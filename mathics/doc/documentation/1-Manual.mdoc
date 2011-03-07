@@ -1,0 +1,1293 @@
+## Mathics: a general-purpose computer algebra system
+## Copyright (C) 2011 Jan Pöschko
+##
+## This program is free software: you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation, either version 3 of the License, or
+## (at your option) any later version.
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+<chapter title="Introduction">
+
+\Mathics---to be pronounced like "Mathematics" without the "emat"---is a general-purpose computer algebra system (CAS). It is meant to be a free, light-weight alternative to \Mathematica with \Sage support. It is free both as in "free beer" and as in "freedom". There is an online interface at <url>http://www.mathics.net/</url>, but it is also possible to run \Mathics locally.
+
+The programming language of \Mathics is meant to resemble \Wolfram\'s famous \Mathematica as much as possible. However, \Mathics is in no way affiliated or supported by \Wolfram. \Mathics will probably never have the power to compete with \Mathematica in industrial applications; yet, it might be an interesting alternative for educational purposes.
+
+<section title="Why yet another CAS?">
+\Mathematica is great, but it has one big disadvantage: It is not free. On the one hand, people might not be able or willing to pay hundreds of dollars for it; on the other hand, they would still not be able to see what\'s going on "inside" the program to understand their computations better. That\'s what free software is for!
+
+There is already a well-established free computer algebra system: \Sage. It is really powerful and has a growing, active community behind it. Yet, by design, it will always be bound to Python syntax and therefore lack the "structural beauty" of the \Mathematica language.
+
+\Mathics aims at combining the best of both worlds: the beauty of \Mathematica backed by a free, extensible Python core, with potential to integrate all desired \Sage functionality.
+
+Of course, there are drawbacks to the \Mathematica language, despite all its beauty. It does not really provide object orientation and especially encapsulation, which might be crucial for big software projects. Nevertheless, \Wolfram still managed to create their amazing <em>Wolfram|Alpha</em> entirely with \Mathematica, so it can\'t be too bad!
+
+However, it is not even the intention of \Mathics to be used in large-scale projects and calculations---at least not as the main framework---but rather as a tool for quick explorations and in educating people who might later switch to \Mathematica. 
+</section>
+
+<section title="What does it offer?">
+Some of the most important features of \Mathics are
+<ul>
+<li>a powerful functional programming language,
+<li>a system driven by pattern matching and rules application,
+<li>rationals, complex numbers, and arbitrary-precision arithmetic,
+<li>lots of list and structure manipulation routines,
+<li>an interactive graphical user interface right in the Web browser using MathML (apart from a command line interface),
+<li>creation of graphics (e.g. plots) and display in the browser using SVG,
+<li>an online version at <url>http://www.mathics.net</url> for instant access,
+<li>export of results to \LaTeX (using Asymptote for graphics),
+<li>a very easy way of defining new functions in Python,
+<li>an integrated documentation and testing system.
+</ul>
+</section>
+
+<section title="What is missing?">
+There are lots of ways in which \Mathics could still be improved.
+
+Most notably, performance is still very slow, so any serious usage in cutting-edge industry or research will fail, unfortunately. Speeding up pattern matching, maybe "out-sourcing" parts of it from Python to C, would certainly improve the whole \Mathics experience.
+
+Apart from performance issues, new features like 3D graphics and more functions in various mathematical fields like calculus, number theory, or graph theory are still to be added.
+</section>
+
+<section title="Who is behind it?">
+\Mathics was created and is maintained by me, Jan Pöschko. So far, I am the only one working on it, although I hope that releasing it to open source will encourage more people to participate.
+
+If you have any ideas how to improve \Mathics or even want to help out yourself, please contact me!
+
+\skip
+Welcome to \Mathics, have fun!
+</section>
+
+</chapter>
+
+
+
+
+<chapter title="Installation">
+
+<section title="Browser requirements">
+To use the online version of \Mathics at <url>http://www.mathics.net</url> or a different location (in fact, anybody could run their own version), you need the Firefox Web browser. Up to this point, this is the only browser to support the needed MathML and SVG requirements. \Mathics is developed and tested under Firefox 3.6, but any decent version should do it. WebKit-based browsers like Chrome and Safari are announced to support MathML soon, so there's hope for broader support.
+
+To display all mathematical content correctly and in a beautiful way, the STIX fonts are needed (see <url>https://developer.mozilla.org/en/Mozilla_MathML_Project/Fonts</url>). While any Unicode-enabled font will provide the basic characters, STIX fonts are needed for stretchy operators like radical signs and under- and over-braces. They are available for free at <url>http://www.stixfonts.org/</url> or as part of the Debian package <em>otf-stix</em>.
+</section>
+
+##<section title="Local installation">
+##For the impatient Debian/Ubuntu users: Run the following commands to install \Mathics:
+##<console>
+### apt-get install python-dev libsqlite3-dev libgmp3-dev
+### python setup.py install
+##</console>
+##To run the console version of \Mathics, issue:
+##<console>
+##$ mathics
+##</console>
+##The GUI version can be started by the command:
+##<console>
+##$ mathicsserver
+##</console>
+##Then open the URL <url>http://localhost:8000</url> in Firefox.
+##
+##If you want more detailed information, especially if you are running a different operating system than Debian or Ubuntu, please read the next section.
+##</section>
+
+<section title="Installation prerequisites">
+To run \Mathics, you need Python 2.5 or higher on your computer. On most Linux distributions and on Mac OS X, Python is already included in the system by default. For Windows, you can get it from <url>http://www.python.org</url>. Anyway, the primary target platforms for \Mathics are Linux (especially Debian and Ubuntu) and Mac OS X. If you are on Windows and want to help by providing an installer to make setup on Windows easier, feel very welcome! 
+
+Furthermore, SQLite and GMP (the "GNU Multi-Precision Library") support are needed. Debian/Ubuntu provides the packages <con>libsqlite3-dev</con> and <con>libgmp3-dev</con>. The package <con>python-dev</con> is needed as well. You can install all required packages by running
+<console>
+# apt-get install python-dev libsqlite3-dev libgmp3-dev
+</console>
+(as super-user, i.e. either after having issued <con>su</con> or by preceding the command with <con>sudo</con>).
+
+On Mac OS X, consider using Fink (<url>http://www.finkproject.org</url>) and install the packages <con>sqlite3-dev</con> and <con>gmp</con>.
+
+If you are on Windows, please figure out yourself how to install SQLite and GMP.
+
+Get the latest version of \Mathics from <url>http://www.mathics.org</url>. You will need internet access for the installation of \Mathics.
+</section>
+
+<section title="Installation without \Sage support">
+If you don\'t want to use the optional features of \Mathics that depend on \Sage, simply run:
+<console>
+# python setup.py install
+</console>
+In addition to installing \Mathics, this will download the required Python packages <con>sympy</con>, <con>gmpy</con>, <con>mpmath</con>, <con>django</con>, and <con>pysqlite</con> and install them in your Python <con>site-packages</con> directory (usually <con>/usr/lib/python2.x/site-packages</con> on Debian or <con>/Library/Frameworks/Python.framework/Versions/2.x/lib/python2.x/site-packages</con> on Mac OS X).
+
+Two executable files will be created in a binary directory on your <con>PATH</con> (usually <con>/usr/bin</con> on Debian or <con>/Library/Frameworks/Python.framework/Versions/2.x/bin</con> on Mac OS X): <con>mathics</con> and <con>mathicsserver</con>.
+</section>
+
+<section title="Installation with \Sage support">
+If you want to use the \Sage features of \Mathics, it has to be installed into your \Sage distribution, due to the fact that \Sage cannot be imported as a regular Python package from your local Python installation, but has its own Python binary and package tree.
+
+If you haven\'t got \Sage yet, download it from <url>http://www.sagemath.org/</url> and install it. \Mathics supports \Sage 4.0.2 or higher. If you are on Windows, you have to run \Sage in a virtual machine, and \Mathics has to be installed therein, of course.
+
+Change to the \Mathics download directory and run
+<console>
+# sage -sh
+# sage -python setup.py install
+</console>
+In addition to installing \Mathics, this will download the required Python packages <con>sympy</con>, <con>gmpy</con>, <con>mpmath</con>, <con>django</con>, and <con>pysqlite</con> and install them in your \Sage Python <con>site-packages</con> directory (usually <con>/usr/opt/sage/local/lib/python2.6/site-packages</con> on Debian or <con>/Applications/sage/local/lib/python2.x/site-packages</con> on Mac OS X).
+
+It will also create two executables in your \Sage Python <con>bin</con> directory. However, these binaries only work when executed on the shell after issueing <con>sage -sh</con>. To run \Mathics without having to enter the \Sage shell, install two helper scripts by invoking
+<console>
+# python install_sage_scripts.py -d=[a directory on your path]
+</console>
+where <con>[a directory on your path]</con> defaults to <con>/usr/local/bin</con>.
+
+The setup process of \Mathics depends on the <con>distribute</con> package, which is a maintained fork of <con>setuptools</con>. <con>setuptools</con> is included in \Sage by default, but is not needed anymore as soon as <con>distribute</con> is present, and keeping both packages makes Python complain about packages loaded twice. Thus, <con>setuptools</con> should be removed by invoking:
+<console>
+# python -c "from distutils import sysconfig; import os; import glob; [os.remove(f) for f in glob.glob(os.path.join(sysconfig.get_python_lib(), 'setuptools-*.egg'))]"
+</console>
+This will do the equivalent of
+<console>
+rm /usr/opt/sage/local/lib/python2.6/site-packages/setuptools-*.egg
+</console>
+where the right path to <con>site-packages</con> is chosen.
+
+The core of \Mathics is and shall remain independent of \Sage, as it adds a huge footprint to the installation and \Mathics should remain rather lightweight. In addition, it should be easier to install \Mathics on Windows and mobile platforms where \Sage is not available. That\'s why the light-weight SymPy Python package is prefered for advanced calculations, like integration, that will not be implemented in \Mathics itself.
+
+At the moment, optional symbols depending on \Sage are simply imported into the global namespace of \Mathics; in the future, <em>contexts</em> might be used to separate them. Then a command like 'Needs["Sage`"]' could be used to load these symbols, maybe overwriting existing functions like 'Integrate' with better versions from \Sage. 
+</section>
+
+<section title="Running \Mathics">
+Run
+<console>
+$ mathics
+</console>
+to start the console version of \Mathics.
+
+Run
+<console>
+$ mathicsserver
+</console>
+to start the local Web server of \Mathics which serves the Firefox GUI interface. Issue
+<console>
+$ mathicsserver --help
+</console>
+to see a list of options.
+
+You can set the used port by using the option <con>-p</con>, as in:
+<console>
+$ mathicsserver -p 8010
+</console>
+The default port for \Mathics is 8000. Make sure you have the necessary privileges to start an application that listens to this port. Otherwise, you will have to run \Mathics as super-user.
+
+By default, the Web server is only reachable from your local machine. To be able to access it from another computer, use the option <con>-e</con>. However, the server is only intended for local use, as it is a security risk to run it openly on a public Web server! This documentation does not cover how to setup \Mathics for being used on a public server. Maybe you want to hire a \Mathics developer to do that for you?!
+</section>
+
+</chapter>
+
+
+
+
+<chapter title="Language tutorials">
+
+The following sections are introductions to the basic principles of the language of \Mathics. A few examples and functions are presented. Only their most common usages are listed; for a full description of their possible arguments, options, etc., see their entry in the Reference of built-in symbols.
+
+<section title="Basic calculations">
+\Mathics can be used to calculate basic stuff:
+>> 1 + 2
+ = 3
+To submit a command to \Mathics, press 'Shift+Return' in the Web interface or 'Return' in the console interface. The result will be printed in a new line below your query.
+
+\Mathics understands all basic arithmetic operators and applies the usual operator precedence. Use parentheses when needed:
+>> 1 - 2 * (3 + 5) / 4
+ = -3
+The multiplication can be omitted:
+>> 1 - 2 (3 + 5) / 4
+ = -3
+>> 2 4
+ = 8
+Powers can be entered using '^':
+>> 3 ^ 4
+ = 81
+Integer divisions yield rational numbers:
+>> 6 / 4
+ = 3 / 2
+To convert the result to a floating point number, apply the function 'N':
+>> N[6 / 4]
+ = 1.5
+As you can see, functions are applied using square braces '[' and ']', in contrast to the common notation of '(' and ')'. At first hand, this might seem strange, but this distinction between function application and precedence change is necessary to allow some general syntax structures, as you will see later.
+
+\Mathics provides many common mathematical functions and constants, e.g.:
+>> Log[E]
+ = 1
+>> Sin[Pi]
+ = 0
+>> Cos[0.5]
+ = 0.877582561890372716
+When entering floating point numbers in your query, \Mathics will perform a numerical evaluation and present a numerical result, pretty much like if you had applied 'N'.
+
+Of course, \Mathics has complex numbers:
+>> Sqrt[-4]
+ = 2 I
+>> I ^ 2
+ = -1
+>> (3 + 2 I) ^ 4
+ = -119 + 120 I
+>> (3 + 2 I) ^ (2.5 - I)
+ = 43.6630044263147 + 8.28556100627573 I
+>> Tan[I + 0.5]
+ = 0.195577310065933999 + 0.842966204845783229 I
+ 
+'Abs' calculates absolute values:
+>> Abs[-3]
+ = 3
+>> Abs[3 + 4 I]
+ = 5
+ 
+\Mathics can operate with pretty huge numbers:
+>> 100!
+ = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
+('!' denotes the factorial function.)
+The precision of numerical evaluation can be set:
+>> N[Pi, 100]
+ = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
+ 
+Division by zero is forbidden:
+>> 1 / 0
+ : Infinite expression (division by zero) encountered.
+ = ComplexInfinity 
+Other expressions involving 'Infinity' are evaluated:
+>> Infinity + 2 Infinity
+ = Infinity
+In contrast to combinatorial belief, '0^0' is undefined:
+>> 0 ^ 0
+ : Indeterminate expression 0 ^ 0 encountered.
+ = Indeterminate
+ 
+The result of the previous query to \Mathics can be accessed by '%':
+>> 3 + 4
+ = 7
+>> % ^ 2
+ = 49
+</section>
+
+<section title="Symbols and assignments">
+Symbols need not be declared in \Mathics, they can just be entered and remain variable:
+>> x
+ = x
+Basic simplifications are performed:
+>> x + 2 x
+ = 3 x
+Symbols can have any name that consists of characters and digits:
+>> iAm1Symbol ^ 2
+ = iAm1Symbol ^ 2
+
+You can assign values to symbols:
+>> a = 2
+ = 2
+>> a ^ 3
+ = 8
+>> a = 4
+ = 4
+>> a ^ 3
+ = 64
+Assigning a value returns that value. If you want to suppress the output of any result, add a ';' to the end of your query:
+>> a = 4;
+
+Values can be copied from one variable to another:
+>> b = a;
+Now changing 'a' does not affect 'b':
+>> a = 3;
+>> b
+ = 4
+Such a dependency can be achieved by using "delayed assignment" with the ':=' operator (which does not return anything, as the right side is not even evaluated):
+>> b := a ^ 2
+>> b
+ = 9
+>> a = 5;
+>> b
+ = 25
+</section>
+
+
+<section title="Comparisons and Boolean logic">
+Values can be compared for equality using the operator '==':
+>> 3 == 3
+ = True
+>> 3 == 4
+ = False
+The special symbols 'True' and 'False' are used to denote truth values. Naturally, there are inequality comparisons as well:
+>> 3 > 4
+ = False
+Inequalities can be chained:
+>> 3 < 4 >= 2 != 1
+ = True
+ 
+Truth values can be negated using '!' (logical <em>not</em>) and combined using '&&' (logical <em>and</em>) and '||' (logical <em>or</em>):
+>> !True
+ = False
+>> !False
+ = True
+>> 3 < 4 && 6 > 5
+ = True
+'&&' has higher precedence than '||', i.e. it binds stronger:
+>> True && True || False && False
+ = True
+>> True && (True || False) && False
+ = False
+</section>
+
+<section title="Strings">
+Strings can be entered with '"' as delimeters:
+>> "Hello world!"
+ = Hello world!
+As you can see, quotation marks are not printed in the output by default. This can be changed by using 'InputForm':
+>> InputForm["Hello world!"]
+ = "Hello world!"
+ 
+Strings can be joined using '<>':
+>> "Hello" <> " " <> "world!"
+ = Hello world!
+Numbers cannot be joined to strings:
+>> "Debian" <> 6
+ : String expected.
+ = Debian <> 6
+They have to be converted to strings using 'ToString' first:
+>> "Debian" <> ToString[6]
+ = Debian6
+</section>
+
+<section title="Lists">
+Lists can be entered in \Mathics with curly braces '{' and '}':
+>> mylist = {a, b, c, d}
+ = {a, b, c, d}
+There are various functions for constructing lists:
+>> Range[5]
+ = {1, 2, 3, 4, 5}
+>> Array[f, 4]
+ = {f[1], f[2], f[3], f[4]}
+>> ConstantArray[x, 4]
+ = {x, x, x, x}
+>> Table[n ^ 2, {n, 2, 5}]
+ = {4, 9, 16, 25}
+ 
+The number of elements of a list can be determined with 'Length':
+>> Length[mylist]
+ = 4
+Elements can be extracted using double square braces:
+>> mylist[[3]]
+ = c
+Negative indices count from the end:
+>> mylist[[-3]]
+ = b
+ 
+Lists can be nested:
+>> mymatrix = {{1, 2}, {3, 4}, {5, 6}};
+There are alternate forms to display lists:
+>> TableForm[mymatrix]
+ = 1   2
+ .
+ . 3   4
+ .
+ . 5   6
+>> MatrixForm[mymatrix]
+ = 1   2
+ .
+ . 3   4
+ .
+ . 5   6
+
+There are various ways of extracting elements from a list:
+>> mymatrix[[2, 1]]
+ = 3
+>> mymatrix[[;;, 2]]
+ = {2, 4, 6}
+>> Take[mylist, 3]
+ = {a, b, c}
+>> Take[mylist, -2]
+ = {c, d}
+>> Drop[mylist, 2]
+ = {c, d}
+>> First[mymatrix]
+ = {1, 2}
+>> Last[mylist]
+ = d
+>> Most[mylist]
+ = {a, b, c}
+>> Rest[mylist]
+ = {b, c, d}
+ 
+Lists can be used to assign values to multiple variables at once:
+>> {a, b} = {1, 2};
+>> a
+ = 1
+>> b
+ = 2
+ 
+Many operations, like addition and multiplication, "thread" over lists, i.e. lists are combined element-wise:
+>> {1, 2, 3} + {4, 5, 6}
+ = {5, 7, 9}
+>> {1, 2, 3} * {4, 5, 6}
+ = {4, 10, 18}
+It is an error to combine lists with unequal lengths:
+>> {1, 2} + {4, 5, 6}
+ : Objects of unequal length cannot be combined.
+ = {1, 2} + {4, 5, 6}
+</section>
+
+<section title="The structure of things">
+Every expression in \Mathics is built upon the same principle: it consists of a <em>head</em> and an arbitrary number of <em>children</em>, unless it is an <em>atom</em>, i.e. it can not be subdivided any further. To put it another way: everything is a function call. This can be best seen when displaying expressions in their "full form":
+>> FullForm[a + b + c]
+ = Plus[a, b, c]
+Nested calculations are nested function calls:
+>> FullForm[a + b * (c + d)]
+ = Plus[a, Times[b, Plus[c, d]]]
+Even lists are function calls of the function 'List':
+>> FullForm[{1, 2, 3}]
+ = List[1, 2, 3]
+ 
+The head of an expression can be determined with 'Head':
+>> Head[a + b + c]
+ = Plus
+The children of an expression can be accessed like list elements:
+>> (a + b + c)[[2]]
+ = b
+The head is the 0th element:
+>> (a + b + c)[[0]]
+ = Plus
+
+The head of an expression can be exchanged using the function 'Apply':
+>> Apply[g, f[x, y]]
+ = g[x, y]
+>> Apply[Plus, a * b * c]
+ = a + b + c
+'Apply' can be written using the operator '@@':
+>> Times @@ {1, 2, 3, 4}
+ = 24
+(This exchanges the head 'List' of '{1, 2, 3, 4}' with 'Times', and then the expression 'Times[1, 2, 3, 4]' is evaluated, yielding 24.)
+'Apply' can also be applied on a certain <em>level</em> of an expression:
+>> Apply[f, {{1, 2}, {3, 4}}, {1}]
+ = {f[1, 2], f[3, 4]}
+Or even on a range of levels:
+>> Apply[f, {{1, 2}, {3, 4}}, {0, 2}]
+ = f[f[1, 2], f[3, 4]]
+'Apply' is similar to 'Map' ('/@'):
+>> Map[f, {1, 2, 3, 4}]
+ = {f[1], f[2], f[3], f[4]}
+>> f /@ {{1, 2}, {3, 4}}
+ = {f[{1, 2}], f[{3, 4}]}
+
+The atoms of \Mathics are numbers, symbols, and strings. 'AtomQ' tests whether an expression is an atom:
+>> AtomQ[5]
+ = True
+>> AtomQ[a + b]
+ = False
+The full form of rational and complex numbers looks like they were compound expressions:
+>> FullForm[3 / 5]
+ = Rational[3, 5]
+>> FullForm[3 + 4 I]
+ = Complex[3, 4]
+However, they are still atoms, thus unaffected by applying functions, for instance:
+>> f @@ Complex[3, 4]
+ = 3 + 4 I
+Nevertheless, every atom has a head:
+>> Head /@ {1, 1/2, 2.0, I, "a string", x}
+ = {Integer, Rational, Real, Complex, String, Symbol}
+
+The operator '===' tests whether two expressions are the same on a structural level:
+>> 3 === 3
+ = True
+>> 3 == 3.0
+ = True
+But
+>> 3 === 3.0
+ = False
+because '3' (an 'Integer') and '3.0' (a 'Real') are structurally different. 
+</section>
+
+<section title="Functions and patterns">
+Functions can be defined in the following way:
+>> f[x_] := x ^ 2
+This tells \Mathics to replace every occurrence of 'f' with one (arbitrary) parameter 'x' with 'x ^ 2'.
+>> f[3]
+ = 9
+>> f[a]
+ = a ^ 2
+The definition of 'f' does not specify anything for two parameters, so any such call will stay unevaluated:
+>> f[1, 2]
+ = f[1, 2]
+
+In fact, <em>functions</em> in \Mathics are just one aspect of <em>patterns</em>: 'f[x_]' is a pattern that <em>matches</em> expressions like 'f[3]' and 'f[a]'. The following patterns are available:
+<dl>
+  <dt>'_' or 'Blank[]'
+  <dd>matches one expression.
+  <dt>'Pattern[$x$, $p$]'
+  <dd>matches the pattern $p$ and stores the value in $x$.
+  <dt>'$x$_' or 'Pattern[$x$, Blank[]]'
+  <dd>matches one expression and stores it in $x$.
+  <dt>'__' or 'BlankSequence[]'
+  <dd>matches a sequence of one or more expressions.
+  <dt>'___' or 'BlankNullSequence[]'
+  <dd>matches a sequence of zero or more expressions.
+  <dt>'_$h$' or 'Blank[$h$]'
+  <dd>matches one expression with head $h$.
+  <dt>'$x$_$h$' or 'Pattern[$x$, Blank[$h$]]'
+  <dd>matches one expression with head $h$ and stores it in $x$.
+  <dt>'$p$ | $q$' or 'Alternatives[$p$, $q$]'
+  <dd>matches either pattern $p$ or $q$.
+  <dt>'$p$ ? $t$' or 'PatternTest[$p$, $t$]'
+  <dd>matches $p$ if the test '$t$[$p$]' yields 'True'.
+  <dt>'$p$ /; $c$' or 'Condition[$p$, $c$]'
+  <dd>matches $p$ if condition $c$ holds.
+  <dt>'Verbatim[$p$]'
+  <dd>matches an expression that equals $p$, without regarding patterns inside $p$.
+</dl>
+
+As before, patterns can be used to define functions:
+>> g[s___] := Plus[s] ^ 2
+>> g[1, 2, 3]
+ = 36
+ 
+'MatchQ[$e$, $p$]' tests whether $e$ matches $p$:
+>> MatchQ[a + b, x_ + y_]
+ = True
+>> MatchQ[6, _Integer]
+ = True
+ 
+'ReplaceAll' ('/.') replaces all occurrences of a pattern in an expression using a 'Rule' given by '->':
+>> {2, "a", 3, 2.5, "b", c} /. x_Integer -> x ^ 2
+ = {4, a, 9, 2.5, b, c}
+You can also specify a list of rules:
+>> {2, "a", 3, 2.5, "b", c} /. {x_Integer -> x ^ 2.0, y_String -> 10}
+ = {4., 10, 9., 2.5, 10, c}
+'ReplaceRepeated' ('//.') applies a set of rules repeatedly, until the expression doesn\'t change anymore:
+>> {2, "a", 3, 2.5, "b", c} //. {x_Integer -> x ^ 2.0, y_String -> 10}
+ = {4., 100., 9., 2.5, 100., c}
+ 
+There is a "delayed" version of 'Rule' which can be specified by ':>' (similar to the relation of ':=' to '='):
+>> a :> 1 + 2
+ = a :> 1 + 2
+>> a -> 1 + 2
+ = a -> 3
+This is useful when the right side of a rule should not be evaluated immediately (before matching):
+>> {1, 2} /. x_Integer -> N[x]
+ = {1, 2}
+Here, 'N' is applied to 'x' before the actual matching, simply yielding 'x'. With a delayed rule this can be avoided:
+>> {1, 2} /. x_Integer :> N[x]
+ = {1., 2.}
+
+While 'ReplaceAll' and 'ReplaceRepeated' simply take the first possible match into account, 'ReplaceList' returns a list of all possible matches. This can be used to get all subsequences of a list, for instance:
+>> ReplaceList[{a, b, c}, {___, x__, ___} -> {x}]
+ = {{a}, {a, b}, {a, b, c}, {b}, {b, c}, {c}}
+'ReplaceAll' would just return the first expression:
+>> ReplaceAll[{a, b, c}, {___, x__, ___} -> {x}]
+ = {a}
+ 
+In addition to defining functions as rules for certain patterns, there are <em>pure</em> functions that can be defined using the '&' postfix operator, where everything before it is treated as the funtion body and '#' can be used as argument placeholder: 
+>> h = # ^ 2 &;
+>> h[3]
+ = 9
+Multiple arguments can simply be indexed:
+>> sum = #1 + #2 &;
+>> sum[4, 6]
+ = 10
+It is also possible to name arguments using 'Function':
+>> prod = Function[{x, y}, x * y];
+>> prod[4, 6]
+ = 24
+Pure functions are very handy when functions are used only locally, e.g., when combined with operators like 'Map':
+>> # ^ 2 & /@ Range[5]
+ = {1, 4, 9, 16, 25}
+Sort according to the second part of a list:
+>> Sort[{{x, 10}, {y, 2}, {z, 5}}, #1[[2]] < #2[[2]] &]
+ = {{y, 2}, {z, 5}, {x, 10}}
+ 
+Functions can be applied using prefix or postfix notation, in addition to using '[]':
+>> h @ 3
+ = 9
+>> 3 // h
+ = 9
+</section>
+
+<section title="Control statements">
+Like most programming languages, \Mathics has common control statements for conditions, loops, etc.:
+<dl>
+<dt>'If[$cond$, $pos$, $neg$]'
+  <dd>returns $pos$ if $cond$ evaluates to 'True', and $neg$ if it evaluates to 'False'.
+<dt>'Which[$cond1$, $expr1$, $cond2$, $expr2$, ...]'
+        <dd>yields $expr1$ if $cond1$ evaluates to 'True', $expr2$ if $cond2$ evaluates to 'True', etc.
+<dt>'Do[$expr$, {$i$, $max$}]'
+  <dd>evaluates $expr$ $max$ times, substituting $i$ in $expr$ with values from 1 to $max$.
+<dt>'For[$start$, $test$, $incr$, $body$]'
+        <dd>evaluates $start$, and then iteratively $body$ and $incr$ as long as $test$ evaluates to 'True'.
+<dt>'While[$test$, $body$]'
+        <dd>evaluates $body$ as long as $test$ evaluates to 'True'.
+<dt>'Nest[$f$, $expr$, $n$]'
+        <dd>returns an expression with $f$ applied $n$ times to $expr$.
+<dt>'NestWhile[$f$, $expr$, $test$]'
+        <dd>applies a function $f$ repeatedly on an expression $expr$, until
+        applying $test$ on the result no longer yields 'True'.
+<dt>'FixedPoint[$f$, $expr$]'
+        <dd>starting with $expr$, repeatedly applies $f$ until the result no longer changes.
+</dl>
+
+>> If[2 < 3, a, b]
+ = a
+>> x = 3; Which[x < 2, a, x > 4, b, x < 5, c]
+ = c
+ 
+Compound statements can be entered with ';'. The result of a compound expression is its last part or 'Null' if it ends with a ';'.
+>> 1; 2; 3
+ = 3
+>> 1; 2; 3;
+
+Inside 'For', 'While', and 'Do' loops, 'Break[]' exits the loop and 'Continue[]' continues to the next iteration.
+>> For[i = 1, i <= 5, i++, If[i == 4, Break[]]; Print[i]]
+ | 1
+ | 2
+ | 3
+</section>
+
+<section title="Scoping">
+By default, all symbols are "global" in \Mathics, i.e. they can be read and written in any part of your program.
+However, sometimes "local" variables are needed in order not to disturb the global namespace. \Mathics provides two ways to support this:
+<ul>
+<li><em>lexical scoping</em> by 'Module', and
+<li><em>dynamic scoping</em> by 'Block'.
+</ul>
+<dl>
+<dt>'Module[{$vars$}, $expr$]'
+        <dd>localizes variables by giving them a temporary name of the form
+    'name$number', where number is the current value of '$ModuleNumber'. Each time a module
+    is evaluated, '$ModuleNumber' is incremented.
+<dt>'Block[{$vars$}, $expr$]'
+        <dd>temporarily stores the definitions of certain variables, evaluates
+        $expr$ with reset values and restores the original definitions afterwards.
+</dl>
+
+Both scoping constructs shield inner variables from affecting outer ones:
+>> t = 3;
+>> Module[{t}, t = 2]
+ = 2
+>> Block[{t}, t = 2]
+ = 2
+>> t
+ = 3
+ 
+'Module' creates new variables:
+>> y = x ^ 3;
+>> Module[{x = 2}, x * y]
+ = 2 x ^ 3
+'Block' does not:
+>> Block[{x = 2}, x * y]
+ = 16
+Thus, 'Block' can be used to temporarily assign a value to a variable:
+>> expr = x ^ 2 + x;
+>> Block[{x = 3}, expr]
+ = 12
+>> x
+ = x
+ 
+'Block' can also be used to temporarily change the value of system parameters:
+>> Block[{$RecursionLimit = 30}, x = 2 x]
+ : Recursion depth of 30 exceeded.
+ = $Aborted
+ 
+It is common to use scoping constructs for function definitions with local variables:
+>> fac[n_] := Module[{k, p}, p = 1; For[k = 1, k <= n, ++k, p *= k]; p]
+>> fac[10]
+ = 3628800
+>> 10!
+ = 3628800
+</section>
+
+<section title="Formatting output">
+The way results are formatted for output in \Mathics is rather sophisticated, as compatibility to the way \Mathematica does things is one of the design goals. It can be summed up in the following procedure:
+<ol>
+<li>The result of the query is calculated.
+<li>The result is stored in 'Out' (which '%' is a shortcut for).
+<li>Any 'Format' rules for the desired output form are applied to the result. In the console version of \Mathics, the result is formatted as 'OutputForm'; 'MathMLForm' for the 'StandardForm' is used in the interactive Web version; and 'TeXForm' for the 'StandardForm' is used to generate the \LaTeX version of this documentation.
+<li>'MakeBoxes' is applied to the formatted result, again given either 'OutputForm', 'MathMLForm', or 'TeXForm' depending on the execution context of \Mathics. This yields a new expression consisting of "box constructs".
+<li>The boxes are turned into an ordinary string and displayed in the console, sent to the browser, or written to the documentation \LaTeX file.   
+</ol>
+As a consequence, there are various ways to implement your own formatting strategy for custom objects.
+
+You can specify how a symbol shall be formatted by assigning values to 'Format':
+>> Format[x] = "y";
+>> x
+ = y
+This will apply to 'MathMLForm', 'OutputForm', 'StandardForm', 'TeXForm', and 'TraditionalForm'.
+>> x // InputForm
+ = x
+You can specify a specific form in the assignment to 'Format':
+>> Format[x, TeXForm] = "z";
+>> x // TeXForm
+ = \text{z}
+
+Special formats might not be very relevant for individual symbols, but rather for custom functions (objects):
+>> Format[r[args___]] = "<an r object>";
+>> r[1, 2, 3]
+ = <an r object>
+You can use several helper functions to format expressions:
+<dl>
+<dt>'Infix[$expr$, $op$]'
+  <dd>formats the arguments of $expr$ with infix operator $op$.
+<dt>'Prefix[$expr$, $op$]'
+  <dd>formats the argument of $expr$ with prefix operator $op$. 
+<dt>'Postfix[$expr$, $op$]'
+  <dd>formats the argument of $expr$ with postfix operator $op$. 
+<dt>'StringForm[$form$, $arg1$, $arg2$, ...]'
+  <dd>formats arguments using a format string.
+</dl>
+>> Format[r[args___]] = Infix[{args}, "~"];
+>> r[1, 2, 3]
+ = 1 ~ 2 ~ 3
+>> StringForm["`1` and `2`", n, m]
+ = n and m
+ 
+There are several methods to display expressions in 2-D:
+<dl>
+<dt>'Row[{...}]'
+  <dd>displays expressions in a row.
+<dt>'Grid[{{...}}]'
+  <dd>displays a matrix in two-dimensional form.
+<dt>'Subscript[$expr$, $i1$, $i2$, ...]'
+  <dd>displays $expr$ with subscript indices $i1$, $i2$, ...
+<dt>'Superscript[$expr$, $exp$]'
+  <dd>displays $expr$ with superscript (exponent) $exp$.
+</dl>
+>> Grid[{{a, b}, {c, d}}]
+ = a   b
+ .
+ . c   d
+>> Subscript[a, 1, 2] // TeXForm
+ = a_{1,2}
+
+If you want even more low-level control of how expressions are displayed, you can override 'MakeBoxes':
+>> MakeBoxes[b, StandardForm] = "c";
+>> b
+ = b
+## this will be displayed as c in the browser and LaTeX documentation
+This will even apply to 'TeXForm', because 'TeXForm' implies 'StandardForm':
+>> b // TeXForm
+ = c
+Except some other form is applied first:
+>> b // OutputForm // TeXForm
+ = b
+'MakeBoxes' for another form:
+>> MakeBoxes[b, TeXForm] = "d";
+>> b // TeXForm
+ = d
+You can cause a much bigger mess by overriding 'MakeBoxes' than by sticking to 'Format', e.g. generate invalid XML:
+>> MakeBoxes[c, MathMLForm] = "<not closed";
+>> c // MathMLForm
+ = <not closed
+However, this will not affect formatting of expressions involving 'c':
+>> c + 1 // MathMLForm
+ = <math><mrow><mn>1</mn> <mo>+</mo> <mi>c</mi></mrow></math>
+That\'s because 'MathMLForm' will, when not overridden for a special case, call 'StandardForm' first.
+'Format' will produce escaped output:
+>> Format[d, MathMLForm] = "<not closed";
+>> d // MathMLForm
+ = <math><mtext>&lt;not&nbsp;closed</mtext></math>
+>> d + 1 // MathMLForm
+ = <math><mrow><mn>1</mn> <mo>+</mo> <mtext>&lt;not&nbsp;closed</mtext></mrow></math>
+ 
+For instance, you can override 'MakeBoxes' to format lists in a different way:
+>> MakeBoxes[{items___}, StandardForm] := RowBox[{"[", Sequence @@ Riffle[MakeBoxes /@ {items}, " "], "]"}]
+>> {1, 2, 3}
+ = {1, 2, 3}
+#> {1, 2, 3} // TeXForm
+ = \left[1 2 3\right]
+However, this will not be accepted as input to \Mathics anymore:
+>> [1 2 3]
+ : Parse error at or near token [.
+>> Clear[MakeBoxes]
+By the way, 'MakeBoxes' is the only built-in symbol that is not protected by default:
+>> Attributes[MakeBoxes]
+ = {HoldAllComplete}
+ 
+'MakeBoxes' must return a valid box construct:
+>> MakeBoxes[squared[args___], StandardForm] := squared[args] ^ 2
+>> squared[1, 2]
+ = squared[1, 2]
+## different in LaTeX and MathML
+#> squared[1, 2] // TeXForm
+ : Power[squared[1, 2], 2] is not a valid box structure.
+ = 
+The desired effect can be achieved in the following way:
+>> MakeBoxes[squared[args___], StandardForm] := SuperscriptBox[RowBox[{MakeBoxes[squared], "[", RowBox[Riffle[MakeBoxes[#]& /@ {args}, ","]], "]"}], 2]
+>> squared[1, 2]
+ = squared[1, 2]
+#> squared[1, 2] // TeXForm
+ = \text{squared}\left[1,2\right]^2
+ 
+You can view the box structure of a formatted expression using 'ToBoxes':
+>> ToBoxes[m + n]
+ = RowBox[{m, +, n}]
+The list elements in this 'RowBox' are strings, though string delimeters are not shown in the default output form:
+>> InputForm[%]
+ = RowBox[{"m", "+", "n"}]
+</section>
+
+<section title="Graphics">
+Graphics can be created using the function 'Graphics' and a list of graphics primitives. The following primitives are available:
+<dl>
+<dt>'Circle[{$x$, $y$}, $r$]'
+  <dd>draws a circle.
+<dt>'Disk[{$x$, $y$}, $r$]'
+  <dd>draws a filled disk.
+<dt>'Rectangle[{$x1$, $y1$}, {$x2$, $y2$}]'
+  <dd>draws a filled rectangle.
+<dt>'Polygon[{{$x1$, $y1$}, {$x2$, $y2$}, ...}]'
+  <dd>draws a filled polygon.
+<dt>'Line[{{$x1$, $y1$}, {$x2$, $y2$}, ...}]'
+  <dd>draws a line.
+<dt>'Text[$text$, {$x$, $y$}]'
+  <dd>draws text in a graphics.
+</dl>
+
+>> Graphics[{Circle[{0, 0}, 1]}]
+ = -Graphics-
+>> Graphics[{Line[{{0, 0}, {0, 1}, {1, 1}, {1, -1}}], Rectangle[{0, 0}, {-1, -1}]}]
+ = -Graphics-
+ 
+Colors can be added in the list of graphics primitives to change the drawing color. The following ways to specify colors are supported:
+<dl>
+<dt>'RGBColor[$r$, $g$, $b$]'
+  <dd>specifies a color using red, green, and blue.
+<dt>'CMYKColor[$c$, $m$, $y$, $k$]'
+  <dd>specifies a color using cyan, magenta, yellow, and black.
+<dt>'Hue[$h$, $s$, $b$]'
+  <dd>specifies a color using hue, saturation, and brightness.
+<dt>'GrayLevel[$l$]'
+  <dd>specifies a color using a gray level.
+</dl>
+All components range from 0 to 1. Each color function can be supplied with an additional argument specifying the desired opacity ("alpha") of the color. There are many predefined colors, such as 'Black', 'White', 'Red, 'Green', 'Blue', etc.
+
+>> Graphics[{Red, Disk[]}]
+ = -Graphics-
+Table of hues:
+>> Graphics[Table[{Hue[h, s], Disk[{12h, 8s}]}, {h, 0, 1, 1/6}, {s, 0, 1, 1/4}]]
+ = -Graphics-
+
+Colors can be mixed and altered using the following functions:
+<dl>
+<dt>'Blend[{$color1$, $color2$}, $ratio$]'
+  <dd>mixes $color1$ and $color2$ with $ratio$, where a ratio of 0 returns $color1$ and a ratio of 1 returns $color2$.
+<dt>'Lighter[$color$]'
+  <dd>makes $color$ lighter (mixes it with 'White').
+<dt>'Darker[$color$]'
+  <dd>makes $color$ darker (mixes it with 'Black').
+</dl>
+
+>> Graphics[{Lighter[Red], Disk[]}]
+ = -Graphics-
+ 
+'Graphics' produces a 'GraphicsBox':
+>> Head[ToBoxes[Graphics[{Circle[]}]]]
+ = GraphicsBox
+</section>
+
+<section title="Plotting">
+\Mathics can plot functions:
+>> Plot[Sin[x], {x, 0, 2 Pi}]
+ = -Graphics-
+You can also plot multiple functions at once:
+>> Plot[{Sin[x], Cos[x], x ^ 2}, {x, -1, 1}]
+ = -Graphics-
+ 
+Two-dimensional functions can be plotted using 'DensityPlot':
+>> DensityPlot[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}]
+ = -Graphics-
+You can use a custom coloring function:
+>> DensityPlot[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}, ColorFunction -> (Blend[{Red, Green, Blue}, #]&)]
+ = -Graphics-
+One problem with 'DensityPlot' is that it\'s still very slow, basically due to function evaluation being pretty slow in general---and 'DensityPlot' has to evaluate a lot of functions.
+</section>
+
+
+</chapter>
+
+
+
+<chapter title="Examples">
+
+<section title="Curve sketching">
+Let\'s sketch the function
+>> f[x_] := 4 x / (x ^ 2 + 3 x + 5)
+The derivatives are
+>> {f'[x], f''[x], f'''[x]} // Together
+ = {(20 - 4 x ^ 2) / (5 + 3 x + x ^ 2) ^ 2, (-120 - 120 x + 8 x ^ 3) / (5 + 3 x + x ^ 2) ^ 3, (480 + 1440 x + 720 x ^ 2 - 24 x ^ 4) / (5 + 3 x + x ^ 2) ^ 4}
+To get the extreme values of 'f', compute the zeroes of the first derivatives:
+>> extremes = Solve[f'[x] == 0, x]
+ = {{x -> Sqrt[5]}, {x -> -Sqrt[5]}}
+And test the second derivative:
+>> f''[x] /. extremes // N
+ = {-0.0640789599668615036, 1.65085581947099374}
+Thus, there is a local maximum at 'x = Sqrt[5]' and a local minimum at 'x = -Sqrt[5]'.
+Compute the inflection points numerically, choping imaginary parts close to 0:
+>> inflections = Solve[f''[x] == 0, x] // N // Chop
+ = {{x -> 4.29982702283229495}, {x -> -3.214627407395195}, {x -> -1.08519961543709995}}
+Insert into the third derivative:
+>> f'''[x] /. inflections
+ = {0.00671894324917601573, 0.6949053627204461, -3.67683091753985818}
+Being different from 0, all three points are actual inflection points.
+'f' is not defined where its denominator is 0:
+>> Solve[Denominator[f[x]] == 0, x]
+ = {{x -> -3 / 2 - I / 2 Sqrt[11]}, {x -> -3 / 2 + I / 2 Sqrt[11]}}
+These are non-real numbers, consequently 'f' is defined on all real numbers.
+The behaviour of 'f' at the boundaries of its definition:
+>> Limit[f[x], x -> Infinity]
+ = 0
+>> Limit[f[x], x -> -Infinity]
+ = 0
+Finally, let\'s plot 'f':
+>> Plot[f[x], {x, -8, 6}]
+ = -Graphics-
+</section>
+
+
+<section title="Linear algebra">
+Let\'s consider the matrix
+>> A = {{1, 1, 0}, {1, 0, 1}, {0, 1, 1}};
+>> MatrixForm[A]
+ = 1   1   0
+ .
+ . 1   0   1
+ .
+ . 0   1   1
+
+We can compute its eigenvalues and eigenvectors:
+>> Eigenvalues[A]
+ = {2, 1, -1}
+>> Eigenvectors[A]
+ = {{1, 1, 1}, {-1, 0, 1}, {1, -2, 1}}
+This yields the diagonalization of 'A':
+>> T = Transpose[Eigenvectors[A]]; MatrixForm[T]
+ = 1   -1   1
+ .
+ . 1   0    -2
+ .
+ . 1   1    1
+>> Inverse[T] . A . T // MatrixForm
+ = 2   0   0
+ .
+ . 0   1   0
+ .
+ . 0   0   -1
+>> % == DiagonalMatrix[Eigenvalues[A]]
+ = True
+ 
+We can solve linear systems:
+>> LinearSolve[A, {1, 2, 3}]
+ = {0, 1, 2}
+>> A . %
+ = {1, 2, 3}
+In this case, the solution is unique:
+>> NullSpace[A]
+ = {}
+ 
+Let\'s consider a singular matrix:
+>> B = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+>> MatrixRank[B]
+ = 2
+>> s = LinearSolve[B, {1, 2, 3}]
+ = {-1 / 3, 2 / 3, 0}
+>> NullSpace[B]
+ = {{1, -2, 1}}
+>> B . (RandomInteger[100] * %[[1]] + s)
+ = {1, 2, 3}
+</section>
+
+
+<section title="Dice">
+Let\'s play with dice in this example. A 'Dice' object shall represent the outcome of a series of rolling a dice with six faces, e.g.:
+>> Dice[1, 6, 4, 4]
+ = Dice[1, 6, 4, 4]
+Like in most games, the ordering of the individual throws does not matter. We can express this by making 'Dice' 'Orderless':
+>> SetAttributes[Dice, Orderless]
+>> Dice[1, 6, 4, 4]
+ = Dice[1, 4, 4, 6]
+A dice object shall be displayed as a rectangle with the given number of points in it, positioned like on a traditional dice: 
+>> Format[Dice[n_Integer?(1 <= # <= 6 &)]] := Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
+>> Dice[1]
+ = -Graphics-
+ 
+#> Definition[Dice]
+ = Attributes[Dice] = {Orderless}
+ . 
+ . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], MathMLForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
+ . 
+ . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], OutputForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
+ . 
+ . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], StandardForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
+ . 
+ . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], TeXForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
+ . 
+ . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], TraditionalForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
+ 
+The empty series of dice shall be displayed as an empty dice:
+>> Format[Dice[]] := Graphics[{EdgeForm[Black], White, Rectangle[]}, ImageSize -> Tiny]
+>> Dice[]
+ = -Graphics-
+Any non-empty series of dice shall be displayed as a row of individual dice:
+>> Format[Dice[d___Integer?(1 <= # <= 6 &)]] := Row[Dice /@ {d}]
+>> Dice[1, 6, 4, 4]
+ = -Graphics--Graphics--Graphics--Graphics-
+Note that \Mathics will automatically sort the given format rules according to their "generality", so the rule for the empty dice does not get overridden by the rule for a series of dice.
+We can still see the original form by using 'InputForm':
+>> Dice[1, 6, 4, 4] // InputForm
+ = Dice[1, 4, 4, 6]
+We want to combine 'Dice' objects using the '+' operator:
+>> Dice[a___] + Dice[b___] ^:= Dice[Sequence @@ {a, b}]
+The '^:=' ('UpSetDelayed') tells \Mathics to associate this rule with 'Dice' instead of 'Plus', which is protected---we would have to unprotect it first:
+>> Dice[a___] + Dice[b___] := Dice[Sequence @@ {a, b}]
+ : Tag Plus in Dice[a___] + Dice[b___] is Protected.
+ = $Failed
+We can now combine dice:
+>> Dice[1, 5] + Dice[3, 2] + Dice[4]
+ = -Graphics--Graphics--Graphics--Graphics--Graphics-
+#> Dice[1, 5] + Dice[3, 2] + Dice[4] // InputForm
+ = Dice[1, 2, 3, 4, 5]
+Let\'s write a function that returns the sum of the rolled dice:
+>> DiceSum[Dice[d___]] := Plus @@ {d}
+>> DiceSum @ Dice[1, 2, 5]
+ = 8
+And now let\'s put some dice into a table:
+>> Table[{Dice[Sequence @@ d], DiceSum @ Dice[Sequence @@ d]}, {d, {{1, 2}, {2, 2}, {2, 6}}}] // TableForm
+ = -Graphics--Graphics-   3
+ .
+ . -Graphics--Graphics-   4
+ .
+ . -Graphics--Graphics-   8
+It is not very sophisticated from a mathematikcal point of view, but it\'s beautiful.
+</section>
+
+</chapter>
+
+
+
+<chapter title="Web interface">
+
+<section title="Saving and loading worksheets">
+Worksheets exist in the browser window only and are not stored on the server, by default. To save all your queries and results, use the <em>Save</em> button in the menu bar. You have to login using your email address. If you don\'t have an account yet, leave the password field empty and a password will be sent to you. You will remain logged in until you press the <em>Logout</em> button in the upper right corner.
+
+Saved worksheets can be loaded again using the <em>Load</em> button. Note that worksheet names are case-insensitive. 
+</section>
+
+<section title="How definitions are stored">
+When you use the Web interface of \Mathics, a browser session is created. Cookies have to be enabled to allow this. Your session holds a key which is used to access your definitions that are stored in a database on the server. As long as you don\'t clear the cookies in your browser, your definitions will remain even when you close and re-open the browser.
+
+This implies that you should not store sensitive, private information in \Mathics variables when using the online Web interface, of course. In addition to their values being stored in a database on the server, your queries might be saved for debugging purposes. However, the fact that they are transmitted over plain HTTP should make you aware that you should not transmit any sensitive information. When you want to do calculations with that kind of stuff, simply install \Mathics locally!
+
+When you use \Mathics on a public terminal, use the command 'Quit[]' to erase all your definitions and close the browser window.
+</section>
+
+<section title="Keyboard commands">
+
+There are some keyboard commands you can use in the web interface of \Mathics.
+
+<dl>
+<dt>'Shift+Return'</dt>
+	<dd>Evaluate current cell (the most important one, for sure)</dd>
+<dt>'Ctrl+D'</dt>
+	<dd>Focus documentation search</dd>
+<dt>'Ctrl+C'</dt>
+	<dd>Back to document code</dd>
+<dt>'Ctrl+S'</dt>
+	<dd>Save worksheet</dd>
+<dt>'Ctrl+O'</dt>
+	<dd>Open worksheet</dd>
+</dl>
+
+Unfortunately, keyboard commands do not work as expected in all browsers and under all
+operating systems. Often, they are only recognized when a textfield has focus; otherwise,
+the browser might do some browser-specific actions, like setting a bookmark etc.
+
+</section>
+
+</chapter>
+
+
+
+
+<chapter title="Implementation">
+
+<section title="Developing">
+To start developing, check out the source directory.
+If you are running \Mathics under \Sage, run
+<console>
+$ sage -sh
+</console>
+to switch to the \Sage shell.
+Run
+<console>
+$ python setup.py develop
+</console>
+This will temporarily overwrite the installed package in your Python library with a link to the current source directory. In addition, you might want to start the Django development server with
+<console>
+$ python manage.py runserver
+</console>
+It will restart automatically when you make changes to the source code.
+</section>
+
+<section title="Documentation and tests">
+One of the greatest features of \Mathics is its integrated documentation and test system. Tests can be included right in the code as Python docstrings. All desired functionality should be covered by these tests to ensure that changes to the code don\'t break it. Execute
+<console>
+$ python test.py
+</console>
+or
+<console>
+$ sage -python test.py
+</console>
+to run all tests.
+
+During a test run, the results of tests are stored for the documentation, both in MathML and \LaTeX form. The XML version of the documentation, which can be accessed in the Web interface, is updated immediately. To produce the \LaTeX documentation file, run:
+<console>
+$ python test.py -t
+</console>
+You can then create the PDF using \LaTeX. All required steps can be executed by
+<console>
+$ make latex
+</console>
+in the <con>doc/tex</con> directory. You just have to adjust the <con>Makefile</con> to your environment.
+
+You can also run the tests for individual built-in symbols using
+<console>
+python test.py -s [name]
+</console>
+This will not re-create the corresponding documentation results, however. You have to run a complete test to do that.
+</section>
+
+<section title="Documentation markup">
+There is a lot of special markup syntax you can use in the documentation. It is kind of a mixture of XML, \LaTeX, Python doctest, and custom markup.
+
+The following commands can be used to specify test cases.
+<dl>
+<dt>'>> $query$'
+  <dd>a test query.
+<dt>' : $message$'
+  <dd>a message in the result of the test query.
+<dt>' | $print$'
+  <dd>a printed line in the result of the test query.
+<dt>' = $result$'
+  <dd>the actual result of the test query.
+<dt>' . $newline$'
+  <dd>a newline in the test result.
+<dt>'$$identifier$$'
+  <dd>a variable identifier in \Mathics code or in text.
+<dt>'#> $query$'
+  <dd>a test query that is not shown in the documentation.
+<dt>'-Graphics-'
+  <dd>graphics in the test result.
+<dt>'...'
+  <dd>a part of the test result which is not checked in the test, e.g., for randomized or system-dependent output.
+</dl>
+  
+The following commands can be used to markup documentation text.
+<dl>
+## XXX nasty trick to prevent Mathics XML tags from being passed unescaped: split code into two halfs using '' inside tag
+<dt>'## $comment$'
+  <dd>a comment line that is not shown in the documentation.
+<dt>'<''dl>$list$</''dl>'
+  <dd>a definition list with '<''dt>' and '<''dd>' entries.
+<dt>'<''dt>$title$'
+  <dd>the title of a description item.
+<dt>'<''dd>$description$'
+  <dd>the description of a description item.
+<dt>'<''ul>$list$</''ul>'
+  <dd>an unordered list with '<''li>' entries.
+<dt>'<''ol>$list$</''ol>'
+  <dd>an ordered list with '<''li>' entries.
+<dt>'<''li>$item$'
+  <dd>an item of an unordered or ordered list.
+<dt>'\'$code$\''
+  <dd>inline \Mathics code or other code.
+<dt>'<''console>$text$</''console>'
+  <dd>a console (shell/bash/Terminal) transcript in its own paragraph.
+<dt>'<''con>$text$</''con>'
+  <dd>an inline console transcript.
+<dt>'<''em>$text$</''em>'
+  <dd>emphasized (italic) text.
+<dt>'<''url>$url$</''url>'
+  <dd>a URL.
+<dt>'<''img src="$src$" title="$title$" label="$label$">'
+  <dd>an image.
+<dt>'<''ref label="$label$">'
+  <dd>a reference to an image.
+<dt>'\s''kip'
+  <dd>a vertical skip.
+<dt>'\L''aTeX', '\M''athematica', '\M''athics'
+  <dd>special product and company names.
+<dt>'\\\''
+  <dd>a single \'.
+</dl>
+
+To include images in the documentation, use the 'img' tag, place an EPS file '$src$.eps' in <con>documentation/images</con> and run <con>images.sh</con> in the <con>doc</con> directory.
+</section>
+
+<section title="Classes">
+A UML diagram of the most important classes in \Mathics can be seen in <ref label="classes">.
+
+<img src="classes" title="UML class diagram" label="classes">
+</section>
+
+<section title="Adding built-in symbols">
+Adding new built-in symbols to \Mathics is very easy. Either place a new module in the <con>builtin</con> directory and add it to the list of modules in <con>builtin/__init__.py</con> or use an existing module. Create a new class derived from 'Builtin'. If you want to add an operator, you should use one of the subclasses of 'Operator'. Use 'SageFunction' for symbols that have a special meaning in \Sage and/or SymPy.
+
+To get an idea of how a built-in class can look like, consider the following implementation of 'If':
+
+<python>
+class If(Builtin):
+	"""
+	<dl>
+	<dt>'If[$cond$, $pos$, $neg$]'
+		<dd>returns $pos$ if $cond$ evaluates to 'True', and $neg$ if it evaluates to 'False'.
+	<dt>'If[$cond$, $pos$, $neg$, $other$]'
+		<dd>returns $other$ if $cond$ evaluates to neither 'True' nor 'False'.
+	<dt>'If[$cond$, $pos$]'
+		<dd>returns 'Null' if $cond$ evaluates to 'False'.
+	</dl>
+	>> If[1<2, a, b]
+	 = a
+	If the second branch is not specified, 'Null' is taken:
+	>> If[1<2, a]
+	 = a
+	>> If[False, a] //FullForm
+	 = Null
+	
+	You might use comments (inside '(*' and '*)') to make the branches of 'If' more readable:
+	>> If[a, (*then*) b, (*else*) c];
+	"""
+	
+	attributes = ['HoldRest']
+	
+	rules = {
+	  'If[condition_, t_]': 'If[condition, t, Null]',
+	}
+	
+	def apply_3(self, condition, t, f, evaluation):
+		'If[condition_, t_, f_]'
+		
+		if condition == Symbol('True'):
+			return t.evaluate(evaluation)
+		elif condition == Symbol('False'):
+			return f.evaluate(evaluation)
+	
+	def apply_4(self, condition, t, f, u, evaluation):
+		'If[condition_, t_, f_, u_]'
+		
+		if condition == Symbol('True'):
+			return t.evaluate(evaluation)
+		elif condition == Symbol('False'):
+			return f.evaluate(evaluation)
+		else:
+			return u.evaluate(evaluation)
+</python>
+
+The class starts with a Python <em>docstring</em> that specifies the documentation and tests for the symbol. A list (or tuple) 'attributes' can be used to assign attributes to the symbol. 'Protected' is assigned by default. A dictionary 'rules' can be used to add custom rules that should be applied.
+
+Python functions starting with 'apply' are converted to built-in rules. Their docstring is compiled to the corresponding \Mathics pattern. Pattern variables used in the pattern are passed to the Python function by their same name, plus an additional 'evaluation' object. This object is needed to evaluate further expressions, print messages in the Python code, etc. Unsurprisingly, the return value of the Python function is the expression which is replaced for the matched pattern. If the function does not return any value, the \Mathics expression is left unchanged. Note that you have to return 'Symbol["Null"]' explicitely if you want that.
+</section>
+
+</chapter>

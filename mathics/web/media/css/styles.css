@@ -1,0 +1,476 @@
+/**
+    Mathics: a general-purpose computer algebra system
+    Copyright (C) 2011 Jan Pöschko
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+**/
+
+body {
+	margin: 0;
+	padding: 0;
+	font-family: sans-serif;
+	font-size: 11pt;
+}
+
+#head {
+	color: black;
+	background: url(/media/img/menu_default.gif) left bottom repeat-x;
+	padding: 5px 20px 5px 20px;
+	height: 60px;
+}
+
+#head a {
+	color: #666;
+	text-decoration: none;
+}
+
+#head a:hover {
+	color: #999;
+}
+
+div.headright {
+	padding-top: 5px;
+	float: right;
+	margin-left: 1em;
+	text-align: right;
+	font-size: 0.85em;
+}
+
+#logo {
+	display: inline-block;
+	padding-top: 3px;
+	height: 37px;
+}
+
+#menu {
+	border-left: 1px solid #999;
+	font-size: 11px;
+	color: #222;
+	height: 30px;
+}
+
+#menuright {
+	border-left: 1px solid #999;
+	float: right;
+}
+
+#menu a,
+#menu a:hover {
+	font-weight: bold;
+	font-size: 0.95em;
+	color: inherit;
+	margin: 0;
+	padding: 6px 10px;
+	display: inline-block;
+	border-right: 1px solid #999;
+}
+
+#menu a:hover {
+	background: url(/media/img/menu_hover.gif) left center repeat-x;
+	color: white;
+	cursor: default;
+}
+
+#doclink:focus {
+	outline: none;
+}
+#doclink.active {
+	background: url(/media/img/menu_inverted.gif) left bottom repeat-x;
+}
+#doclink.active:hover {
+	background: url(/media/img/menu_inverted_hover.gif) left bottom repeat-x;
+}
+
+#search {
+  position: relative;
+  top: +1px;
+	margin: 0;
+	margin-left: 5px;
+	width: 150px;
+	padding: 2px 5px;
+	border: 1px solid #999;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+}
+
+#search.empty {
+	color: #888;
+}
+
+#version {
+	color: #aaa;
+	font-size: 11px;
+	position: absolute;
+	top: 5px;
+	left: 155px;
+}
+
+#username {
+	color: #333;
+}
+
+#head #authenticated #logout {
+	color: #633;
+}
+
+#head #authenticated #logout:hover {
+	color: #966;
+}
+
+a.pdf {
+	background-image: url(/media/img/pdf.gif);
+	background-position: left center;
+	background-repeat: no-repeat;
+	padding-left: 24px;
+	font-size: 0.9em;
+	color: white;
+	text-decoration: none;
+	line-height: 20px;
+	display: inline-block;
+}
+
+#content {
+	padding: 10px 20px 40px;
+}
+
+#document,
+#code,
+#doc {
+	top: 70px;
+}
+
+#document,
+#code {
+	padding: 0;
+	position: absolute;
+	bottom: 0px;
+	left: 0;
+	right: 0;
+	background-color: white;
+	overflow: auto;
+}
+
+#document {
+	cursor: vertical-text;
+	font-size: 0.9em;
+}
+
+#document.doc,
+#code.doc {
+	right: 50%;
+}
+
+#welcome {
+	position: absolute;
+	margin-left: auto;
+	margin-right: auto;
+	left: 25%;
+	width: 50%;
+	bottom: 20px;
+	/*background-color: #666;*/
+	border: 2px solid #999;
+	color: #333;
+	cursor: default;
+	padding: 10px;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;	
+}
+
+#welcome p {
+	margin-top: 0;
+	margin-bottom: 3px;
+}
+
+#welcome a {
+	color: #666;
+}
+
+#welcome a:hover {
+	color: #999;
+}
+
+#doc {
+	position: absolute;
+	bottom: 0px;
+	width: 50%;
+	right: 0;
+	border: none;
+	border-left: 2px solid #999;
+	overflow: auto;
+	font-size: 0.9em;
+}
+
+#docContent {
+	padding: 10px 20px 20px;
+}
+
+#queries {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	padding-bottom: 50px;
+	padding-left: 0;
+	position: relative;
+}
+
+li.query {
+	padding-left: 30px;
+	margin-top: 10px;
+	cursor: text;
+	position: relative;
+}
+
+li.query.focused span.move {
+	border-left-width: 2px;
+}
+
+li.query.moving,
+li.query.moving textarea,
+li.query.moving span.delete {
+	cursor: move;
+}
+
+span.move {
+	position: absolute;
+	top: 0;
+	left: 20px;
+	bottom: 0;
+	width: 3px;
+	cursor: move;
+	background-color: white;
+	border: 1px solid #999;
+	border-right-width: 0;
+}
+
+li.query.moving span.move,
+li.query.moving.focused span.move,
+span.move:hover,
+li.query.focused span.move:hover {
+	background-color: #9f9;
+	width: 6px;
+}
+
+li.query.loading span.move {
+	border-color: orange;
+	border-left-width: 2px;
+}
+
+span.delete {
+	position: absolute;
+	top: 0;
+	left: 5px;
+	color: #f66;
+	font-family: sans-serif;
+	cursor: pointer;
+	cursor: hand;
+	font-size: 12px;
+}
+
+span.delete:hover {
+	font-weight: bold;
+	color: red;
+}
+
+ul.query {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	font-family: monospace;
+	font-size: 1em;
+}
+
+li.request {
+	margin: 0;
+	padding: 0;
+}
+
+textarea.request {
+	width: 100%;
+	overflow: hidden;
+	border: none;
+	line-height: 17px;
+	color: navy;
+	margin: 0;
+	font-family: monospace;
+	font-size: 1em;
+	background: white;
+	
+	/* hide the blue border in Safari */
+	outline-style: none;
+	outline-width: 0px;
+	
+	/* disable resize grid in Safari */
+	resize: none;
+}
+
+li.out {
+	margin: 0;
+	padding: 0;
+}
+
+#docContent ul.out,
+ul.out {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	font-family: monospace;
+	font-size: 1em;
+}
+
+li.serverError,
+li.message,
+li.print,
+li.result {
+	margin-left: 10px;
+	padding: 0;
+}
+
+li.serverError {
+	color: #f00;
+	font-size: 0.9em;
+}
+
+li.message {
+	color: #b30;
+	font-size: 0.9em;
+}
+
+li.print {
+	color: #666;
+	font-size: 0.9em;
+}
+
+li.result {
+	margin-top: 3px;
+	color: black;
+}
+
+h1 {
+	font-weight: normal;
+	color: #333;
+}
+
+form {
+	margin: 0;
+}
+
+form table {
+	margin: 0;
+}
+
+form table th,
+form table td {
+	text-align: left;
+}
+
+form table th {
+	font-weight: normal;
+	color: #666;
+	vertical-align: top;
+	padding-right: 20px;
+	padding-top: 10px;
+}
+
+form table td {
+	padding-top: 5px;
+	padding-right: 10px;
+}
+
+form table input[type="text"],
+form table input[type="password"] {
+	width: 100%;
+	font-size: 12pt;
+}
+
+form table td.submit {
+	padding-top: 10px;
+	text-align: center;
+}
+
+button,
+input[type="button"] {
+	font-size: 13pt;
+}
+
+ul.errorlist {
+	border: 2px solid red;
+	list-style-type: none;
+	margin: 0;
+	margin-bottom: 5px;
+	padding: 2px 5px;
+}
+
+ul.errorlist li {
+	margin: 0;
+	padding: 0;
+	text-align: left;
+}
+
+form table p.helptext {
+	text-align: left;
+	font-size: 0.875em;
+	color: #666;
+	margin: 0;
+	margin-top: 2px;
+}
+
+p.formsuccess {
+	border: 2px solid green;
+	text-align: left;
+	padding: 2px 5px;
+}
+
+div.dialog h1 {
+	text-align: center;
+	margin-top: 0;
+	margin-bottom: 10px;
+	color: #333;
+}
+
+div.dialog form table {
+	width: 100%;
+}
+
+div.filelist {
+	height: 250px;
+	overflow: auto;
+	border: 1px solid #999;
+	margin-bottom: 10px;
+}
+
+div.filelist table {
+	width: 382px;
+	border-collapse: collapse;
+}
+
+div.filelist table th,
+div.filelist table td {
+	text-align: left;
+	padding: 1px 5px;
+}
+
+div.filelist table th {
+	font-weight: normal;
+	color: #666;
+	border-bottom: 1px solid #ccc;
+}
+
+div.filelist table a {
+	color: #006;
+	text-decoration: underline;
+}
+
+div.filelist table a:hover {
+	color: #33c;
+}

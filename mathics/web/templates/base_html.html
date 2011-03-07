@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE html PUBLIC
+  "-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN"
+  "http://www.w3.org/2002/04/xhtml-math-svg/xhtml-math-svg.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>{% block title %}{% endblock %}</title>
+
+<link rel="stylesheet" type="text/css" href="/media/css/styles.css" />
+<link rel="stylesheet" type="text/css" href="/media/css/documentation.css" />
+<link rel="stylesheet" type="text/css" href="/media/css/message.css" />
+<link rel="stylesheet" type="text/css" media="print" href="/media/css/styles_print.css" />
+<!--[if lte IE 7]>
+<link rel="stylesheet" type="text/css" href="/media/css/styles_ie.css" />
+<![endif]-->
+
+<!--<link rel="shortcut icon" href="/favicon.ico" />-->
+
+<script type="text/javascript" src="/media/js/prototype/prototype.js"></script>
+<script type="text/javascript" src="/media/js/innerdom/innerDOM.js"></script>
+
+<script type="text/javascript" src="/media/js/message.js"></script>
+<script type="text/javascript" src="/media/js/authentication.js"></script>
+<script type="text/javascript" src="/media/js/inout.js"></script>
+<script type="text/javascript" src="/media/js/utils.js"></script>
+<script type="text/javascript" src="/media/js/mathics.js"></script>
+<script type="text/javascript" src="/media/js/doc.js"></script>
+
+{% block html_head %}
+{% endblock %}
+
+</head>
+
+<body>
+  
+{% block html_body %}
+{% endblock %}
+
+<div style="display: none">
+<math id="prototype_math" xmlns="http://www.w3.org/1998/Math/MathML">
+<mstyle id="prototype_mstyle"></mstyle>
+<mrow id="prototype_mrow"></mrow>
+<msup id="prototype_msup"><mi>x</mi><mi>y</mi></msup>
+<msub id="prototype_msub"><mi>x</mi><mi>y</mi></msub>
+<msubsup id="prototype_msubsup"><mi>x</mi><mi>y</mi><mi>z</mi></msubsup>
+<mfrac id="prototype_mfrac"><mi>x</mi><mi>y</mi></mfrac>
+<msqrt id="prototype_msqrt"><mi>y</mi></msqrt>
+<mo id="prototype_mo">x</mo>
+<mn id="prototype_mn">1</mn>
+<ms id="prototype_ms">x</ms>
+<mi id="prototype_mi">x</mi>
+<mtext id="prototype_mtext">t</mtext>
+<mtable id="prototype_mtable">
+<mtr id="prototype_mtr">
+<mtd id="prototype_mtd"></mtd>
+</mtr>
+</mtable>
+</math>
+
+<svg id="prototype_svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg">
+<g id="prototype_g" />
+<rect id="prototype_rect" />
+<circle id="prototype_circle" />
+<polyline id="prototype_polyline" />
+<polygon id="prototype_polygon" />
+<path id="prototype_path" />
+<ellipse id="prototype_ellipse" />
+<foreignObject id="prototype_foreignObject" />
+</svg>
+
+<div id="prototype_div_html" xmlns="http://www.w3.org/1999/xhtml"></div>
+<canvas id="prototype_canvas" width="200" height="200" style="border: 1px solid lightgray"></canvas>
+</div>
+
+<div style="white-space: nowrap;">
+<span style="font-size: 0.90em; font-family: default;" id="calc_container"></span><span id="calc_next"> </span><br />
+<span id="calc_below"> </span>
+</div>
+
+</body>
+</html>

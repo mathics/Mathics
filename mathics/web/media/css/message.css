@@ -1,0 +1,67 @@
+/**
+    Mathics: a general-purpose computer algebra system
+    Copyright (C) 2011 Jan Pöschko
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+**/
+
+div.dark {
+	z-index: 1;
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	overflow: hidden;
+	text-align: center;
+}
+
+div.popupContainer,
+div.popupFrameContainer {
+	position: fixed;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	text-align: center;
+}
+
+div.popupContainer {
+	z-index: 10;
+}
+
+div.popupFrameContainer {
+	z-index: 2;
+}
+
+div.popup,
+iframe.popupFrame {
+	width: 400px;
+	min-height: 60px;
+	margin-top: 100px;
+	padding: 16px;
+	margin-left: auto;
+	margin-right: auto;
+  background-color: white;
+  border: 3px solid #2E5437;
+}
+
+iframe.popupFrame {
+	padding: 0;
+	border: none;
+	background-color: white;
+	z-index: 0;
+}

@@ -1,0 +1,26 @@
+{% extends help_base %}
+{% load doc %}
+
+{% block help %}
+<div id="docContent">
+  
+{% if prev or next %}
+<ul id="navigation">
+  {% if prev %}
+  <li><span>&larr;</span> {{ prev|link:ajax }}</li>
+  {% endif %}
+  {% if next %}
+  <li><span>&rarr;</span> {{ next|link:ajax }}</li>
+  {% endif %}
+</ul>
+{% endif %}
+
+{% block head %}
+{% endblock %}
+
+<h1>{{ title }}{% if title_operator %} (<code>{{ title_operator }}</code>){% endif %}</h1>
+
+{% block content %}
+{% endblock %}
+</div>
+{% endblock %}

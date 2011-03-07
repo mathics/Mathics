@@ -1,0 +1,20 @@
+{% extends "doc/base_help.html" %}
+{% load doc %}
+
+{% block head %}
+	<div id="breadcrumbs">
+		{{ chapter.part.doc|link:ajax }}&nbsp;/ {{ chapter.part|link:ajax }}&nbsp;/
+	</div>
+{% endblock head %}
+
+{% block content %}
+
+	{{ chapter.doc.html }}
+	
+	<ul>
+	{% for section in chapter.sections %}
+		<li>{{ section|link:ajax }}</li>
+	{% endfor %}
+	</ul>
+
+{% endblock content %}

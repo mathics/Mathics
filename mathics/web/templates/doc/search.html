@@ -1,0 +1,16 @@
+{% extends "doc/base_help.html" %}
+{% load doc %}
+
+{% block content %}
+
+	{% if result %}
+		<ul>
+		{% for item in result %}
+			<li>{{ item|link:ajax }}</li>
+		{% endfor %}
+		</ul>
+	{% else %}
+		<p>No items found.</p>
+	{% endif %}
+
+{% endblock content %}

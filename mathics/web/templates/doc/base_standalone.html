@@ -1,0 +1,24 @@
+{% extends "base_html.html" %}
+{% load doc %}
+
+{% block title %}{{ title }} - Mathics{% endblock %}
+
+{% block html_head %}
+{% if data %}
+<script type="text/javascript">
+<![CDATA[
+  var data = {{ data|js }};
+  $(document).observe('dom:loaded', function() {
+   showPage({'data': data});
+  });
+]]>
+</script>
+{% endif %}
+{% endblock %}
+
+{% block html_body %}
+
+{% block help %}
+{% endblock %}
+
+{% endblock %}

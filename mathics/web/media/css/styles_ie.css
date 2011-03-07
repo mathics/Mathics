@@ -1,0 +1,41 @@
+html, body {
+	height: 100%;
+	overflow: auto;
+}
+
+v\:* {
+	behavior:url(#default#VML);
+}
+
+li.query {
+	zoom: 1;
+}
+
+textarea.request {
+	width: expression((document.body.clientWidth - 50) + 'px');
+	zoom: 1;
+}
+
+#head {
+	width: expression((document.body.clientWidth - 40) + 'px');
+}
+
+#document {
+	position: absolute;
+	left: 0;
+	top: 65px;
+	width: expression(document.body.clientWidth + 'px');
+	height: expression((document.body.clientHeight - 100) + 'px');
+	zoom: 1;
+	overflow: auto;
+	margin: 0;
+	padding: 0;
+}
+
+#menu, #head {
+	zoom: 1;
+}
+
+#footer {
+	width: expression((document.body.clientWidth - 40) + 'px');
+}

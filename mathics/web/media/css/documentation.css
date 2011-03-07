@@ -1,0 +1,130 @@
+/**
+    Mathics: a general-purpose computer algebra system
+    Copyright (C) 2011 Jan Pöschko
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+**/
+
+#docContent h1,
+#docContent h2 {
+	margin-top: 0.2em;
+	margin-bottom: 0.5em;
+	font-family: sans-serif;
+}
+
+#docContent #navigation {
+  list-style-type: none;
+  float: right;
+  margin: 0 0 1em;
+}
+#docContent #navigation span {
+  font-family: Arial, sans-serif;
+}
+
+a img {
+  border: none;
+}
+
+@media print {
+  #docContent #navigation {
+    display: none;
+  }
+  
+  #breadcrumbs {
+    display: none;
+  }
+}
+
+#docContent h1 {
+}
+
+#docContent h2 {
+	margin-top: 0.5em;
+	font-size: 1.1em;
+}
+
+#docContent p {
+	margin-top: 1em;
+	margin-bottom: 0.2em;
+}
+
+#docContent a {
+	text-decoration: none;
+	color: #00f;
+}
+
+#docContent a:hover {
+	color: #33f;
+}
+
+#docContent dl {
+	border-top: 1px solid #ccc;
+	border-bottom: 1px solid #ccc;
+	padding: 0.2em 0.5em;
+  background-color: rgb(96%, 96%, 94%);
+}
+
+#docContent dl dt {
+	margin-top: 0.2em;
+}
+
+#docContent ul {
+	list-style-type: circle;
+	margin-top: 1em;
+  margin-bottom: 0;
+  margin-left: 0;
+}
+
+#docContent ul.tests {
+	padding: 0;
+	list-style-type: none;
+	margin: 0;
+}
+
+#docContent div.test {
+	position: relative;
+	padding-left: 10px;
+}
+
+#docContent span.move {
+	cursor: default;
+	left: 0;
+}
+#docContent span.move:hover {
+	background-color: white;
+	width: 3px;
+}
+
+#docContent ul.test {
+	padding: 0;
+	list-style-type: none;
+	margin-top: 5px;
+}
+
+#docContent ul.test li.test {
+	color: navy;
+}
+
+#docContent .console {
+  font-family: monospace;
+}
+
+#docContent div.console {
+  margin: 0.5em 1em 0.5em;
+}
+
+#docContent pre {
+  margin: 0;
+  padding: 0;
+}

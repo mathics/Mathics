@@ -1,0 +1,61 @@
+{% extends "base_html.html" %}
+
+{% block title %}Mathics{% endblock %}
+
+{% block html_head %}
+<script type="text/javascript" src="/media/js/scriptaculous/builder.js"></script>
+<script type="text/javascript" src="/media/js/scriptaculous/effects.js"></script>
+<script type="text/javascript" src="/media/js/scriptaculous/dragdrop.js"></script>
+<script type="text/javascript" src="/media/js/scriptaculous/controls.js"></script>
+<script type="text/javascript" src="/media/js/scriptaculous/slider.js"></script>
+<script type="text/javascript" src="/media/js/scriptaculous/sound.js"></script>
+
+{% endblock %}
+
+{% block html_body %}
+
+<div id="head">
+	<div class="headright">
+		<a href="javascript:createLink()">#</a>
+	</div>
+	<div class="headright">
+		<div id="notAuthenticated">
+			<a href="javascript:showLogin()">Login</a><br />
+		</div>
+		<div id="authenticated" style="display: none">
+			<span id="username"></span><br />
+			<a id="logout" href="javascript:logout()">Logout</a>
+		</div>
+	</div>
+	
+	<span id="logo"><a href="http://www.mathics.org" target="_blank"><img src="/media/img/logo.gif" width="88" height="25" alt="Mathics" /></a></span>
+	
+	<div id="menu">
+	<div id="menuright">
+		<a id="doclink" href="javascript:toggleDoc()">Documentation</a>
+		<input id="search" type="text" />
+	</div>
+	<span><a href="javascript:showSave()">Save</a></span><span><a href="javascript:showOpen()">Load</a></span>
+	
+	</div>
+</div>
+
+{% if user.is_authenticated %}
+	<script type="text/javascript">
+		$(document).observe('dom:loaded', function() {
+			onLogin("{{ user.email }}");
+		});
+	</script>
+{% endif %}
+
+{% block main %}
+<div id="content">
+{% block content %}
+{% endblock %}
+</div>
+{% endblock main %}
+
+{% include "authentication.html" %}
+{% include "inout.html" %}
+
+{% endblock html_body %}

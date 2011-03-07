@@ -1,0 +1,22 @@
+<div id="login" class="dialog" style="display: none">
+	<h1>Login</h1>
+	
+	<p id="loginReason" style="display: none">
+	</p>
+
+	<p id="passwordSent" class="formsuccess">
+		A new password has been sent to your e-mail address <code id="passwordEmail">&nbsp;</code>.
+	</p>
+
+	<form id="loginForm" action="javascript:;">
+	<table>
+	{{ login_form }}
+	<tr>
+		<td class="submit" colspan="2">
+			<input type="button" class="submit" onclick="login()" value="Login" />
+			<input type="button" class="cancel" onclick="cancelLogin()" value="Cancel" />
+		</td>
+	</tr>
+	</table>
+	</form>
+</div>

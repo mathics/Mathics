@@ -1,0 +1,44 @@
+<div id="save" class="dialog" style="display: none">
+	<h1>Save worksheet</h1>
+	
+	<form id="saveForm" action="javascript:;">
+	<table>
+	{{ save_form }}
+	<tr>
+		<td class="submit" colspan="2">
+			<input type="button" class="submit" onclick="save()" value="Save" />
+			<input type="button" class="cancel" onclick="cancelSave()" value="Cancel" />
+		</td>
+	</tr>
+	</table>
+	</form>
+</div>
+
+<div id="open" class="dialog" style="display: none">
+	<h1>Open worksheet</h1>
+	
+	<div class="filelist">
+	<table>
+	<thead>
+		<tr>
+			<th>Name</th>
+		</tr>
+	</thead>
+	<tbody id="openFilelist">
+		<tr><td></td></tr> <!-- must not be empty -->
+	</tbody>
+	</table>
+	</div>
+	
+	<input type="button" class="cancel" onclick="cancelOpen()" value="Cancel" />
+</div>
+
+
+<div id="dialog" class="dialog" style="display: none">
+	<h1></h1>
+	<p></p>
+	<div class="buttons">
+		<input type="button" class="submit" onclick="dialogYes()" />
+		<input type="button" class="cancel" onclick="dialogNo()" />
+	</div>
+</div>

@@ -1,0 +1,17 @@
+#head {
+	display: none;
+}
+
+#footer {
+	display: none;
+}
+
+#document {
+	position: static;
+	overflow: visible;
+}
+
+span.move,
+span.delete {
+	display: none;
+}

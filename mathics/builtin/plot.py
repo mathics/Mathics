@@ -1,0 +1,257 @@
+# -*- coding: utf8 -*-
+
+"""
+Plotting
+"""
+
+import re
+from math import floor
+
+from mathics.core.expression import Expression, Real, NumberError, Symbol, String
+from mathics.builtin.base import Builtin
+from mathics.builtin.scoping import dynamic_scoping
+from mathics.builtin.options import options_to_rules
+            
+class ColorDataFunction(Builtin):
+    pass
+    
+class ColorData(Builtin):
+    rules = {
+        'ColorData["LakeColors"]': """ColorDataFunction["LakeColors", "Gradients", {0, 1}, 
+             Blend[{RGBColor[0.293416, 0.0574044, 0.529412], 
+                RGBColor[0.563821, 0.527565, 0.909499], RGBColor[0.762631, 0.846998, 
+                 0.914031], RGBColor[0.941176, 0.906538, 0.834043]}, #1] & ]""",
+    }
+
+class Plot(Builtin):
+    """
+    <dl>
+    <dt>'Plot[$f$, {$x$, $xmin$, $xmax$}]'
+        <dd>plots $f$ with $x$ ranging from $xmin$ to $xmax$.
+    <dt>'Plot[{$f1$, $f2$, ...}, {$x$, $xmin$, $xmax$}]'
+        <dd>plots several functions $f1$, $f2$, ...
+    </dl>
+    
+    >> Plot[{Sin[x], Cos[x], x / 3}, {x, -Pi, Pi}]
+     = -Graphics-
+    """
+
+    from graphics import Graphics
+    
+    attributes = ('HoldAll',)
+    
+    options = Graphics.options.copy()
+    options.update({
+        'Axes': 'True',
+        'AspectRatio': '1 / GoldenRatio',
+    })
+    
+    def apply(self, functions, x, start, stop, evaluation, options):
+        'Plot[functions_, {x_Symbol, start_, stop_}, OptionsPattern[Plot]]'
+        
+        expr = Expression('Plot', functions, Expression('List', x, start, stop), *options_to_rules(options))
+        if functions.has_form('List', None):
+            functions = functions.leaves
+        else:
+            functions = [functions]
+        x = x.get_name()
+        try:
+            start = start.to_number(n_evaluation=evaluation)
+        except NumberError:
+            evaluation.message('Plot', 'plln', start, expr)
+            return
+        try:
+            stop = stop.to_number(n_evaluation=evaluation)
+        except NumberError:
+            evaluation.message('Plot', 'plln', stop, expr)
+            return
+            
+        def eval_f(f, x_value):
+            return dynamic_scoping(f.evaluate, {x: x_value}, evaluation).get_real_value()
+        
+        hue = 0.67
+        hue_pos = 0.236068
+        hue_neg = -0.763932
+        
+        graphics = []
+        for index, f in enumerate(functions):
+            points = []
+            continuous = False
+            steps = 50
+            d = (stop - start) / steps
+            for index in range(steps + 1):
+                x_value = start + index * d
+                y = eval_f(f, Real(x_value))
+                if y is not None:
+                    point = (x_value, y)
+                    if continuous:
+                        points[-1].append(point)
+                    else:
+                        points.append([point])
+                    continuous = True
+                else:
+                    continuous = False    
+            graphics.append(Expression('Hue', hue, 0.6, 0.6))
+            graphics.append(Expression('Line', Expression('List', *(Expression('List',
+                *(Expression('List', Real(x), Real(y)) for x, y in line)) for line in points)
+            )))
+            
+            if index % 4 == 0:
+                hue += hue_pos
+            else:
+                hue += hue_neg
+            if hue > 1: hue -= 1
+            if hue < 0: hue += 1
+        
+        return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
+    
+class DensityPlot(Builtin):
+    """
+    <dl>
+    <dt>'DensityPlot[$f$, {$x$, $xmin$, $xmax$}, {$y$, $ymin$, $ymax$}]'
+        <dd>plots a density plot of $f$ with $x$ ranging from $xmin$ to $xmax$ and $y$ ranging from $ymin$ to $ymax$.
+    </dl>
+    
+    >> DensityPlot[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}]
+     = -Graphics-
+    """
+
+    from graphics import Graphics
+    
+    attributes = ('HoldAll',)
+    
+    options = Graphics.options.copy()
+    options.update({
+        'Axes': 'False',
+        'AspectRatio': '1',
+        'Frame': 'True',
+        'ColorFunction': 'Automatic',
+        'ColorFunctionScaling': 'True',
+    })
+    
+    def apply(self, f, x, xstart, xstop, y, ystart, ystop, evaluation, options):
+        'DensityPlot[f_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[DensityPlot]]'
+        
+        x = x.get_name()
+        y = y.get_name()
+        
+        color_function = self.get_option(options, 'ColorFunction', evaluation, pop=True)
+        color_function_scaling = self.get_option(options, 'ColorFunctionScaling', evaluation, pop=True)
+        
+        color_function_min = color_function_max = None
+        if color_function.get_name() == 'Automatic':
+            color_function = String('LakeColors')
+        if color_function.get_string_value():
+            func = Expression('ColorData', color_function.get_string_value()).evaluate(evaluation)
+            if func.has_form('ColorDataFunction', 4):
+                color_function_min = func.leaves[2].leaves[0].get_real_value()
+                color_function_max = func.leaves[2].leaves[1].get_real_value()
+                color_function = Expression('Function', Expression(func.leaves[3], Expression('Slot', 1)))
+            else:
+                evaluation.message('DensityPlot', 'color', func)
+                return
+        if color_function.has_form('ColorDataFunction', 4):
+            color_function_min = color_function.leaves[2].leaves[0].get_real_value()
+            color_function_max = color_function.leaves[2].leaves[1].get_real_value()
+            
+        color_function_scaling = color_function_scaling.is_true()
+            
+        try:
+            xstart, xstop, ystart, ystop = [value.to_number(n_evaluation=evaluation) for value in
+                (xstart, xstop, ystart, ystop)]
+        except NumberError, exc:
+            expr = Expression('DensityPlot', f, Expression('List', x, xstart, xstop),
+                Expression('List', y, ystart, ystop), *options_to_rules(options))
+            evaluation.message('DensityPlot', 'plln', exc.value, expr)
+            return
+        
+        stored = {}
+        def eval_f(x_value, y_value):
+            value = stored.get((x_value, y_value), False)
+            if value == False:
+                value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation).get_real_value()
+                stored[(x_value, y_value)] = value
+            return value
+        
+        v_borders = [None, None] 
+        
+        triangles = []
+        
+        eps = 0.01
+        
+        def triangle(x1, y1, x2, y2, x3, y3, depth=None):
+            if depth is None:
+                x1, x2, x3 = [xstart + value * (xstop - xstart) for value in (x1, x2, x3)]
+                y1, y2, y3 = [ystart + value * (ystop - ystart) for value in (y1, y2, y3)]
+                depth = 0
+            v1, v2, v3 = eval_f(x1, y1), eval_f(x2, y2), eval_f(x3, y3)
+            for v in (v1, v2, v3):
+                if v_borders[0] is None or v < v_borders[0]:
+                    v_borders[0] = v
+                if v_borders[1] is None or v > v_borders[1]:
+                    v_borders[1] = v
+            if v1 is None or v2 is None or v3 is None:
+                return
+            limit = (v_borders[1] - v_borders[0]) * eps
+            if depth < 2:
+                if abs(v1 - v2) > limit:
+                    triangle(x1, y1, x3, y3, (x1+x2)/2, (y1+y2)/2, depth+1)
+                    triangle(x2, y2, x3, y3, (x1+x2)/2, (y1+y2)/2, depth+1)
+                    return
+                if abs(v2 - v3) > limit:
+                    triangle(x1, y1, x2, y2, (x2+x3)/2, (y2+y3)/2, depth+1)
+                    triangle(x1, y1, x3, y3, (x2+x3)/2, (y2+y3)/2, depth+1)
+                    return
+                if abs(v1 - v3) > limit:
+                    triangle(x2, y2, x1, y1, (x1+x3)/2, (y1+y3)/2, depth+1)
+                    triangle(x2, y2, x3, y3, (x1+x3)/2, (y1+y3)/2, depth+1)
+                    return
+            triangles.append([(x1, y1, v1), (x2, y2, v2), (x3, y3, v3)])
+        
+        points = 7
+        num = points * 1.0
+        for xi in range(points):
+            for yi in range(points):
+                triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, (xi+1)/num, yi/num)
+                triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, xi/num, (yi+1)/num)
+        
+        v_min = v_max = None
+               
+        for t in triangles:
+            for tx, ty, v in t:
+                if v_min is None or v < v_min:
+                    v_min = v
+                if v_max is None or v > v_max:
+                    v_max = v
+                    
+        colors = {}
+        def eval_color(x, y, v):
+            value = colors.get(v)
+            if value is None:
+                if color_function.has_form('ColorDataFunction', 4):
+                    func = color_function.leaves[3]
+                else:
+                    func = color_function
+                if color_function_scaling:
+                    v = (v - v_min) / (v_max - v_min)
+                if color_function_scaling and color_function_min is not None and color_function_max is not None:
+                    v_scaled = color_function_min + v * (color_function_max - color_function_min)
+                else:
+                    v_scaled = v
+                value = Expression(func, Real(v_scaled))
+                value = value.evaluate(evaluation)
+                colors[v] = value
+            return value
+        
+        points = []
+        vertex_colors = []
+        for p1, p2, p3 in triangles:
+            c1, c2, c3 = eval_color(*p1), eval_color(*p2), eval_color(*p3)
+            points.append(Expression('List', Expression('List', *p1[:2]), Expression('List', *p2[:2]),
+                Expression('List', *p3[:2])))
+            vertex_colors.append(Expression('List', c1, c2, c3))
+        
+        polygon = Expression('Polygon', Expression('List', *points),
+            Expression('Rule', Symbol('VertexColors'), Expression('List', *vertex_colors)))
+        return Expression('Graphics', polygon, *options_to_rules(options))
+        
