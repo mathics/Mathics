@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 versionline=`grep -E "VERSION = '(.+)'" mathics/settings.py`
 version=`expr "$versionline" : 'VERSION = .\([0-9.a-z]*\)'`
 echo "Releasing Mathics $version"
@@ -16,5 +18,7 @@ cd build/release
 echo "Creating ZIP file $zipfilename"
 zip -r "../$zipfilename" .
 cd ../..
+
+cp "build/$zipfilename" Homepage/release/
 
 echo "Done"
