@@ -88,15 +88,16 @@ def query(request):
     if settings.DEBUG and not input:
         input = request.GET.get('query', '')
         
-    query_log = Query(query=input, error=True,
-        browser=request.META.get('HTTP_USER_AGENT', ''),
-        remote_user=request.META.get('REMOTE_USER', ''),
-        remote_addr=request.META.get('REMOTE_ADDR', ''),
-        remote_host=request.META.get('REMOTE_HOST', ''),
-        meta=unicode(request.META),
-        log='',
-    )
-    query_log.save()
+    if settings.LOG_QUERIES:
+        query_log = Query(query=input, error=True,
+            browser=request.META.get('HTTP_USER_AGENT', ''),
+            remote_user=request.META.get('REMOTE_USER', ''),
+            remote_addr=request.META.get('REMOTE_ADDR', ''),
+            remote_host=request.META.get('REMOTE_HOST', ''),
+            meta=unicode(request.META),
+            log='',
+        )
+        query_log.save()
     
     user_definitions = request.session.get('definitions')
     definitions.set_user_definitions(user_definitions)
@@ -116,10 +117,11 @@ def query(request):
     }
     request.session['definitions'] = definitions.get_user_definitions()
     
-    query_log.timeout = evaluation.timeout
-    query_log.result = unicode(result) #evaluation.results
-    query_log.error = False
-    query_log.save()
+    if settings.LOG_QUERIES:
+        query_log.timeout = evaluation.timeout
+        query_log.result = unicode(result) #evaluation.results
+        query_log.error = False
+        query_log.save()
     
     return JsonResponse(result)
 

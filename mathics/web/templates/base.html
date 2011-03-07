@@ -29,15 +29,16 @@
 	</div>
 	
 	<span id="logo"><a href="http://www.mathics.org" target="_blank"><img src="/media/img/logo.gif" width="88" height="25" alt="Mathics" /></a></span>
-	
-	<div id="menu">
-	<div id="menuright">
-		<a id="doclink" href="javascript:toggleDoc()">Documentation</a>
-		<input id="search" type="text" />
-	</div>
-	<span><a href="javascript:showSave()">Save</a></span><span><a href="javascript:showOpen()">Load</a></span>
-	
-	</div>
+</div>
+
+<div id="menu">
+<div id="menuleft">
+    <span><a href="javascript:showSave()">Save</a></span><span><a href="javascript:showOpen()">Load</a></span>
+</div>
+<div id="menuright">
+	<a id="doclink" href="javascript:toggleDoc()">Documentation</a>
+	<input id="search" type="text" />
+</div>
 </div>
 
 {% if user.is_authenticated %}

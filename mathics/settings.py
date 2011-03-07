@@ -34,6 +34,8 @@ PROPAGATE_EXCEPTIONS = True
 DISPLAY_EXCEPTIONS = True
 DEBUG_PRINT = False
 
+LOG_QUERIES = False
+
 ADMINS = (
     (u'Jan Poeschko', 'poeschko@student.tugraz.at'),
 )
