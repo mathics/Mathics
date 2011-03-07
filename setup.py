@@ -2,11 +2,7 @@
 from distribute_setup import use_setuptools
 use_setuptools()
 
-import os
-import sys
-import subprocess
-
-from setuptools import setup #, find_packages
+from setuptools import setup
 
 from mathics import settings
 
@@ -56,6 +52,4 @@ setup(
     # TODO: could also include long_description, download_url, classifiers, etc.
 )
 
-print "\nCreating database %s" % settings.DATABASE_NAME
-subprocess.call(['python', 'mathics/manage.py', 'syncdb', '--noinput'])
-os.chmod(settings.DATABASE_NAME, 0766)
+

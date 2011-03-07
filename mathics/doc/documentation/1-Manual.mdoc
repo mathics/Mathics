@@ -147,13 +147,21 @@ The setup process of \Mathics depends on the <con>distribute</con> package, whic
 </console>
 This will do the equivalent of
 <console>
-rm /usr/opt/sage/local/lib/python2.6/site-packages/setuptools-*.egg
+rm $SAGE_ROOT/local/lib/python2.6/site-packages/setuptools-*.egg
 </console>
 where the right path to <con>site-packages</con> is chosen.
 
 The core of \Mathics is and shall remain independent of \Sage, as it adds a huge footprint to the installation and \Mathics should remain rather lightweight. In addition, it should be easier to install \Mathics on Windows and mobile platforms where \Sage is not available. That\'s why the light-weight SymPy Python package is prefered for advanced calculations, like integration, that will not be implemented in \Mathics itself.
 
 At the moment, optional symbols depending on \Sage are simply imported into the global namespace of \Mathics; in the future, <em>contexts</em> might be used to separate them. Then a command like 'Needs["Sage`"]' could be used to load these symbols, maybe overwriting existing functions like 'Integrate' with better versions from \Sage. 
+</section>
+
+<section title="Initialization">
+Before you can run the local Web server of \Mathics, you have to initialize its database used to store variable definitions. Simply run
+<console>
+$ python initialize.py
+</console>
+as the user who you want to execute \Mathics with (usually <em>not</em> root). This will create an SQLite database file in <con>~/.local/var/mathics/</con>. You only have to do that once for each user.
 </section>
 
 <section title="Running \Mathics">

@@ -36,6 +36,8 @@ DEBUG_PRINT = False
 
 LOG_QUERIES = False
 
+TIMEOUT = None
+
 ADMINS = (
     (u'Jan Poeschko', 'poeschko@student.tugraz.at'),
 )

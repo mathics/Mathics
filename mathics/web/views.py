@@ -102,7 +102,7 @@ def query(request):
     user_definitions = request.session.get('definitions')
     definitions.set_user_definitions(user_definitions)
     try:
-        evaluation = Evaluation(input, definitions, timeout=20.0, format='xml')
+        evaluation = Evaluation(input, definitions, timeout=settings.TIMEOUT, format='xml')
     except Exception, exc:
         if settings.DEBUG and settings.DISPLAY_EXCEPTIONS:
             evaluation = Evaluation()
