@@ -161,6 +161,10 @@ def use_setuptools(version=DEFAULT_VERSION, download_base=DEFAULT_URL,
                 return _do_download(version, download_base, to_dir,
                                     download_delay)
         except pkg_resources.DistributionNotFound:
+            # ADDED
+            # according to http://code.activestate.com/lists/python-distutils-sig/16213/
+            # (problem in Ubuntu 10.04)
+            del pkg_resources, sys.modules['pkg_resources']
             return _do_download(version, download_base, to_dir,
                                 download_delay)
     finally:

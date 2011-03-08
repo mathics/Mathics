@@ -23,7 +23,7 @@ import sys
 import os
 from os import path
 
-VERSION = '0.1a2'
+VERSION = '0.1a3'
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -48,8 +48,8 @@ if sys.platform.startswith('win'):
     DATA_DIR = '%APPDATA%/Python/Mathics/'
 else:
     DATA_DIR = path.expanduser('~/.local/var/mathics/')
-if not path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)
+#if not path.exists(DATA_DIR):
+#    os.makedirs(DATA_DIR)
 
 DOC_DIR = ROOT_DIR + 'doc/documentation/'
 DOC_TEX_DATA = ROOT_DIR + 'doc/tex/data'
