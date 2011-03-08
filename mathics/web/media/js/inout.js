@@ -116,29 +116,9 @@ function getContent() {
 	var queries = [];
 	$('queries').childElements().each(function(query) {
 		var item = {};
-		var request = query.select('textarea.request')[0].getText();
-		item.request = request;
-		var results = [];
-		query.select('ul.out').each(function(out) {
-			var outs = [];
-			out.select('li.message, li.print').each(function(outMsg) {
-				var text = DOMtoString(outMsg);
-				var message = outMsg.hasClassName('message');
-				var prefix = '';
-				if (message) {
-					prefix = text.substr(0, text.indexOf(': '));
-					text = text.substr(text.indexOf(': ') + 2);
-				}
-				outs.push({'message': message, 'prefix': prefix, 'text': text});
-			});
-			var result = out.select('li.result');
-			if (result.length > 0)
-				result = DOMtoString(result[0]);
-			else
-				result = '';
-			results.push({'out': outs, 'result': result});
-		});
-		item.results = results;
+		var textarea = query.select('textarea.request')[0];
+		item.request = textarea.value;
+		item.results = textarea.results;
 		queries.push(item);
 	});
 	var content = Object.toJSON(queries);
@@ -156,6 +136,7 @@ function setContent(content) {
 		var li = createQuery(null, true, true);
 		li.textarea.value = item.request;
 		setResult(li.ul, item.results);
+		li.textarea.results = item.results;
 	});
 	
 	createSortable();

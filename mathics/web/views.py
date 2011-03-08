@@ -64,6 +64,7 @@ def main_view(request):
     return render_to_response('main.html', {
         'login_form': LoginForm(),
         'save_form': SaveForm(),
+        'require_login': settings.REQUIRE_LOGIN,
     }, context_instance=RequestContext(request), mimetype='application/xhtml+xml')
 
 def test_view(request):
@@ -220,20 +221,25 @@ def logout(request):
 def save(request):
     if settings.DEBUG and not request.POST:
         request.POST = request.GET
+    if settings.REQUIRE_LOGIN and not request.user.is_authenticated():
+        raise Http404
     form = SaveForm(request.POST)
     overwrite = request.POST.get('overwrite', False)
     result = ''
     if form.is_valid():
         content = request.POST.get('content', '')
         name = form.cleaned_data['name']
+        user = request.user
+        if not user.is_authenticated():
+            user = None
         try:
-            worksheet = Worksheet.objects.get(user=request.user, name=name)
+            worksheet = Worksheet.objects.get(user=user, name=name)
             if overwrite:
                 worksheet.content = content
             else:
                 result = 'overwrite'
         except Worksheet.DoesNotExist:
-            worksheet = Worksheet(user=request.user, name=name, content=content)
+            worksheet = Worksheet(user=user, name=name, content=content)
         worksheet.save()
         
     return JsonResponse({
@@ -242,15 +248,17 @@ def save(request):
     })
     
 def open(request):
+    if settings.REQUIRE_LOGIN and not request.user.is_authenticated():
+        raise Http404
     user = request.user
     name = request.POST.get('name', '')
-    if user.is_authenticated():
-        try:
+    try:
+        if user.is_authenticated():
             worksheet = user.worksheets.get(name=name)
-            content = worksheet.content
-        except Worksheet.DoesNotExist:
-            content = ''
-    else:
+        else:
+            worksheet = Worksheet.objects.get(user__isnull=True, name=name)
+        content = worksheet.content
+    except Worksheet.DoesNotExist:
         content = ''
         
     return JsonResponse({
@@ -258,11 +266,13 @@ def open(request):
     })
     
 def get_worksheets(request):
-    user = request.user
-    if user.is_authenticated():
-        result = list(user.worksheets.order_by('name').values('name'))
-    else:
+    if settings.REQUIRE_LOGIN and not request.user.is_authenticated():
         result = []
+    else:
+        if request.user.is_authenticated():
+            result = list(request.user.worksheets.order_by('name').values('name'))
+        else:
+            result = list(Worksheet.objects.filter(user__isnull=True).order_by('name').values('name'))
     return JsonResponse({
         'worksheets': result,
     })

@@ -23,7 +23,7 @@ import sys
 import os
 from os import path
 
-VERSION = '0.1a'
+VERSION = '0.1a2'
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -39,7 +39,7 @@ LOG_QUERIES = False
 TIMEOUT = None
 
 ADMINS = (
-    (u'Jan Poeschko', 'poeschko@student.tugraz.at'),
+    (u'Admin', 'mail@test.com'),
 )
 MANAGERS = ADMINS
 
@@ -61,7 +61,9 @@ DATABASE_NAME = DATA_DIR + 'mathics.sqlite'
 DATABASE_HOST = ''             # Set to empty string for localhost. Not used with sqlite3.
 DATABASE_PORT = ''             # Set to empty string for default. Not used with sqlite3.
 
-SERVER_EMAIL = 'mail@mathics.net'
+REQUIRE_LOGIN = False
+
+SERVER_EMAIL = 'mathics@localhost'
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -95,7 +97,7 @@ MEDIA_URL = '/media/'
 ADMIN_MEDIA_PREFIX = '/media/admin/'
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = 'uvbhuiasab3tlcvqf)r@3ex1i@et=0j4h(!p4@!r6s-=a_ev*e'
+SECRET_KEY = 'uvbhuiasaeaph6Duh)r@3ex1i@et=0j4h(!p4@!r6s-=a_ev*e'
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (

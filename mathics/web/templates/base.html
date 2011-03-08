@@ -20,7 +20,9 @@
 	</div>
 	<div class="headright">
 		<div id="notAuthenticated">
+		    {% if require_login %}
 			<a href="javascript:showLogin()">Login</a><br />
+            {% endif %}
 		</div>
 		<div id="authenticated" style="display: none">
 			<span id="username"></span><br />
@@ -40,6 +42,10 @@
 	<input id="search" type="text" />
 </div>
 </div>
+
+<script type="text/javascript">
+    var REQUIRE_LOGIN = {% if require_login %}true{% else %}false{% endif %};
+</script>
 
 {% if user.is_authenticated %}
 	<script type="text/javascript">

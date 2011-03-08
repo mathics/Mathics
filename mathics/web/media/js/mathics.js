@@ -302,6 +302,7 @@ function submitQuery(textarea, query, onfinish) {
 			var response = transport.responseText.evalJSON();
 			setResult(textarea.ul, response.results);
 			textarea.submitted = true;
+			textarea.results = response.results;
 			var next = textarea.li.nextSibling;
 			if (next)
 				next.textarea.focus();

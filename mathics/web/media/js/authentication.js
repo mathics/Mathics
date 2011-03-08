@@ -76,14 +76,14 @@ function logout() {
 
 function requireLogin(reason, onLogin) {
 	loginReason = reason;
-	if (!authenticated)
+	if (REQUIRE_LOGIN && !authenticated)
 		showLogin(reason, onLogin);
 	else
 		onLogin();
 }
 
 function checkLogin(response) {
-	if (response.requireLogin) {
+	if (REQUIRE_LOGIN && response.requireLogin) {
 		onLogout();
 		hidePopup();
 		showLogin(loginReason, loginNext);
