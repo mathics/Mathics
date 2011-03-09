@@ -22,7 +22,8 @@
 \usepackage[english]{babel}
 \usepackage{makeidx}
 \usepackage[inline]{asymptote}
-\usepackage{hyperref}
+\usepackage[hypertexnames=false]{hyperref} % make hyperref aware of chapter reset for built-in symbols
+% (http://tex.stackexchange.com/questions/6098/wrong-hyper-references-after-resetting-chapter-counter)
 \usepackage{listings}
 \usepackage{paralist}
 \usepackage{color}
