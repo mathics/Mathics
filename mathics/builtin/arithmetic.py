@@ -1013,6 +1013,9 @@ class Sum(_IterationFunction):
     >> Sum[k, {k, I, I + 1}]
      : Iterator does not have appropriate bounds.
      = Sum[k, {k, I, I + 1, 1}]
+     
+    #> a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]]
+     : Parse error at or near token ].
     """
     
     def get_result(self, items):

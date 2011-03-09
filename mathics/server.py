@@ -47,7 +47,7 @@ def main():
     print u"Quit by pressing %s\n" % quit_command
     
     port = options.port
-    print u"Open the graphical user interface at\nhttp://localhost:%d\nin Firefox\n" % port
+    print u"Open the graphical user interface at\nhttp://localhost:%d\nin Firefox to use Mathics\n" % port
     
     if options.external:
         addr = '0.0.0.0'

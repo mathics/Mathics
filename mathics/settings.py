@@ -23,7 +23,7 @@ import sys
 import os
 from os import path
 
-VERSION = '0.1a3'
+VERSION = '0.3b1'
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
