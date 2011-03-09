@@ -53,7 +53,6 @@ class RandomEnv:
         return random.uniform(a, b)
     
     def seed(self, x=None):
-        print "seed to %s" % x
         random.seed(x)
 
 class RandomState(Builtin):
