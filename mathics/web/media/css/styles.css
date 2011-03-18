@@ -25,9 +25,10 @@ body {
 
 #head {
 	color: black;
-	background: url(/media/img/menu_default.gif) left bottom repeat-x;
-	padding: 5px 20px 5px 20px;
-	height: 60px;
+    padding: 5px 20px 0;
+    margin: 0;
+	height: 40px;
+    position: relative;
 }
 
 #head a {
@@ -40,7 +41,7 @@ body {
 }
 
 div.headright {
-	padding-top: 5px;
+	/*padding-top: 5px;*/
 	float: right;
 	margin-left: 1em;
 	text-align: right;
@@ -48,16 +49,24 @@ div.headright {
 }
 
 #logo {
-	display: inline-block;
-	padding-top: 3px;
-	height: 37px;
+    position: absolute;
+    top: 7px;
+	display: block;
 }
 
 #menu {
-	border-left: 1px solid #999;
-	font-size: 11px;
+    padding: 0 20px;
+    font-family: "Arial",sans-serif;
+	font-size: 14px;
+    line-height: 16px;
 	color: #222;
 	height: 30px;
+    background: url(/media/img/menu_default.gif) left top repeat-x;
+}
+
+#menuleft {
+    float: left;
+	border-left: 1px solid #999;
 }
 
 #menuright {
@@ -65,8 +74,13 @@ div.headright {
 	float: right;
 }
 
+#menuleft {
+    float: left;
+}
+
 #menu a,
 #menu a:hover {
+	text-decoration: none;
 	font-weight: bold;
 	font-size: 0.95em;
 	color: inherit;
@@ -74,10 +88,11 @@ div.headright {
 	padding: 6px 10px;
 	display: inline-block;
 	border-right: 1px solid #999;
+    height: 18px;
 }
 
 #menu a:hover {
-	background: url(/media/img/menu_hover.gif) left center repeat-x;
+	background: url(/media/img/menu_hover.gif) left top repeat-x;
 	color: white;
 	cursor: default;
 }
@@ -86,22 +101,21 @@ div.headright {
 	outline: none;
 }
 #doclink.active {
-	background: url(/media/img/menu_inverted.gif) left bottom repeat-x;
+	background: url(/media/img/menu_inverted.gif) left top repeat-x;
 }
 #doclink.active:hover {
-	background: url(/media/img/menu_inverted_hover.gif) left bottom repeat-x;
+	background: url(/media/img/menu_inverted_hover.gif) left top repeat-x;
 }
 
 #search {
-  position: relative;
-  top: +1px;
-	margin: 0;
-	margin-left: 5px;
-	width: 150px;
-	padding: 2px 5px;
-	border: 1px solid #999;
-	-moz-border-radius: 5px;
-	-webkit-border-radius: 5px;
+   font-size: 0.9em;
+    margin: 0;
+    margin-left: 5px;
+    width: 120px;
+    padding: 2px 5px;
+    border: 1px solid #999;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
 }
 
 #search.empty {
@@ -147,7 +161,7 @@ a.pdf {
 #document,
 #code,
 #doc {
-	top: 70px;
+	top: 75px;
 }
 
 #document,

@@ -19,6 +19,7 @@ u"""
 """
 
 import threading
+import sys
 from gmpy import mpz, mpq, mpf
 import cPickle as pickle
 
@@ -45,13 +46,14 @@ def timeout_call(func, stop_func=None, timeout_duration=None, *args, **kwargs):
         def __init__(self):
             threading.Thread.__init__(self)
             self.result = False
-            self.exception = None
+            self.exception = False
 
         def run(self):
             try:
                 self.result = func(*args, **kwargs)
             except BaseException, exception:
-                self.exception = exception
+                self.exception = True
+                self.exc_info = sys.exc_info()
 
     thread = InterruptableThread()
     thread.start()
@@ -64,7 +66,9 @@ def timeout_call(func, stop_func=None, timeout_duration=None, *args, **kwargs):
         raise TimeoutInterrupt
     else:
         if thread.exception:
-            raise thread.exception
+            #raise thread.exception
+            exc_type, exc_value, exc_traceback = thread.exc_info
+            raise exc_type, exc_value, exc_traceback
         return thread.result
                 
 class EvaluationInterrupt(Exception):

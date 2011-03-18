@@ -99,7 +99,7 @@ function searchFocus() {
 function searchBlur() {
 	if (!$('search').value) {
 		$('search').addClassName('empty');
-		$('search').value = "Search documentation";
+		$('search').value = "Search";
 	}
 }
 

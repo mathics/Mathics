@@ -348,6 +348,7 @@ class Test(Builtin):
         
 class SageObject(Builtin):
     sage_name = None
+    sage_names_alt = []
     sympy_name = None
     
     def __init__(self, *args, **kwargs):

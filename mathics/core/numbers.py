@@ -215,7 +215,7 @@ class mpcomplex(object):
     def __rdiv__(self, other):
         r = self.abs()
         if r == 0:
-            raise ZeroDivision
+            raise ZeroDivisionError
         return other * create_complex(self.real / r, - self.imag / r)
     
     def __eq__(self, other):

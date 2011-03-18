@@ -52,7 +52,7 @@ for module in modules:
                 builtins.append((instance.get_name(), instance))
                 builtins_by_module[module.__name__].append(instance)
 
-builtins = dict(builtins)
+#builtins = dict(builtins)
 
 mathics_to_sage = {}
 sage_to_mathics = {}
@@ -63,21 +63,29 @@ box_constructs = {}
 pattern_objects = {}
 builtins_precedence = {}
 
-for builtin in builtins.values():
-    name = builtin.get_name()
-    if isinstance(builtin, SageObject):
-        mathics_to_sage[name] = builtin
-        if builtin.sage_name:
-            sage_to_mathics[builtin.sage_name] = builtin
-        mathics_to_sympy[name] = builtin
-        if builtin.sympy_name:
-            sympy_to_mathics[builtin.sympy_name] = builtin
-    if isinstance(builtin, BoxConstruct):
-        box_constructs[name] = builtin
-    if isinstance(builtin, Operator):
-        builtins_precedence[name] = builtin.precedence
-    if isinstance(builtin, PatternObject):
-        pattern_objects[name] = builtin.__class__
+def add_builtins(new_builtins):
+    for var_name, builtin in new_builtins:
+        name = builtin.get_name()
+        if isinstance(builtin, SageObject):
+            mathics_to_sage[name] = builtin
+            if builtin.sage_name:
+                sage_to_mathics[builtin.sage_name] = builtin
+            for sage_name in builtin.sage_names_alt:
+                sage_to_mathics[sage_name] = builtin
+            mathics_to_sympy[name] = builtin
+            if builtin.sympy_name:
+                sympy_to_mathics[builtin.sympy_name] = builtin
+        if isinstance(builtin, BoxConstruct):
+            box_constructs[name] = builtin
+        if isinstance(builtin, Operator):
+            builtins_precedence[name] = builtin.precedence
+        if isinstance(builtin, PatternObject):
+            pattern_objects[name] = builtin.__class__
+    builtins.update(dict(new_builtins))
+            
+new_builtins = builtins
+builtins = {}
+add_builtins(new_builtins)
 
 def get_module_doc(module):
     doc = module.__doc__

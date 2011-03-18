@@ -30,7 +30,7 @@ except ImportError:
     # silently ignore when Sage cannot be imported
     sage_version = None
 
-from mathics.builtin import builtins, builtins_by_module, is_builtin
+from mathics.builtin import add_builtins, builtins_by_module, is_builtin
 from mathics.builtin.base import Builtin
 
 optional_builtins = []
@@ -48,8 +48,6 @@ for module in modules:
                 optional_builtins.append((instance.get_name(), instance))
                 optional_builtins_by_module[module.__name__].append(instance)
 
-optional_builtins = dict(optional_builtins)
-
 # update existing builtins
-builtins.update(optional_builtins)
+add_builtins(optional_builtins)
 builtins_by_module.update(optional_builtins_by_module)

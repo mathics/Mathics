@@ -38,7 +38,7 @@ class Query(models.Model):
     log = models.TextField(null=True)
     
 class Worksheet(models.Model):
-    user = models.ForeignKey(User, related_name='worksheets')
+    user = models.ForeignKey(User, related_name='worksheets', null=True)
     name = models.CharField(max_length=30)
     content = models.TextField()
     

@@ -90,6 +90,9 @@ SPECIAL_COMMANDS = {
 
 with open(settings.DOC_XML_DATA, 'r') as xml_data_file:
     xml_data = pickle.load(xml_data_file)
+    
+def filter_comments(doc):
+    return u'\n'.join(line for line in doc.splitlines() if not line.lstrip().startswith('##'))
 
 def get_latex_escape_char(text):
     for escape_char in ("'", '~', '@'):
@@ -120,7 +123,7 @@ def escape_latex(text):
 \end{lstlisting}""" % match.group(1).strip()
     text, post_substitutions = pre_sub(PYTHON_RE, text, repl_python)
     
-    text = text.replace('\\', '\\\\').replace('{', '\\{').replace('}', '\\}').replace('~', '\\~').replace('&', '\\&').replace('%', '\\%')
+    text = text.replace('\\', '\\\\').replace('{', '\\{').replace('}', '\\}').replace('~', '\\~{ }').replace('&', '\\&').replace('%', '\\%')
     
     def repl(match):
         text = match.group(1)
@@ -497,6 +500,7 @@ class Documentation(DocElement):
                 part_title = part_title[:-len('.mdoc')]
                 part = DocPart(self, part_title)
                 text = open(dir + file, 'r').read().decode('utf8')
+                text = filter_comments(text)
                 chapters = CHAPTER_RE.findall(text)
                 for title, text in chapters:
                     chapter = DocChapter(part, title)
@@ -707,7 +711,7 @@ class Doc(object):
     def __init__(self, doc):
         self.items = []
         # remove commented lines
-        doc = '\n'.join(line for line in doc.splitlines() if not line.lstrip().startswith('##'))
+        doc = filter_comments(doc)
         # pre-substitute Python code because it might contain tests
         doc, post_substitutions = pre_sub(PYTHON_RE, doc, lambda m: u'<python>%s</python>' % m.group(1))
         # HACK: Artificially construct a last testcase to get the "intertext" after

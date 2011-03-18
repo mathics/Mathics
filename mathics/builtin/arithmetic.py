@@ -571,7 +571,7 @@ class Power(BinaryOperator, SageFunction):
         elif x.has_form('Power', 2) and isinstance(y, Integer):
             return Expression('Power', x.leaves[0], Expression('Times', x.leaves[1], y))
         elif x.has_form('Times', None) and isinstance(y, Integer):
-            return Expression('Times', *(Expression('Power', leaf, y) for leaf in x.leaves))
+            return Expression('Times', *[Expression('Power', leaf, y) for leaf in x.leaves])
         
         elif isinstance(x, (Rational, Integer)) and isinstance(y, Integer):
             if y.value >= 0:
@@ -596,7 +596,7 @@ class Power(BinaryOperator, SageFunction):
                     return result
                 else:
                     if x.value == 0:
-                        evluation.message('Power', 'infy')
+                        evaluation.message('Power', 'infy')
                         return Symbol('ComplexInfinity')
                     else:
                         return Number.from_mp(mpz(1).qdiv(x.value ** (-y.value)))
@@ -796,6 +796,10 @@ class Abs(SageFunction):
     >> Plot[Abs[x], {x, -4, 4}]
      = -Graphics-
     """
+    
+    sage_name = 'abs_symbolic'
+    sage_names_alt = ['abs']
+    sympy_name = 'abs'
     
     def apply_real(self, x, evaluation):
         'Abs[x_?RealNumberQ]'
@@ -1013,6 +1017,9 @@ class Sum(_IterationFunction):
     >> Sum[k, {k, I, I + 1}]
      : Iterator does not have appropriate bounds.
      = Sum[k, {k, I, I + 1, 1}]
+     
+    #> a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]]
+     : Parse error at or near token ].
     """
     
     def get_result(self, items):

@@ -6,6 +6,8 @@ Random number generation
 Random numbers are generated using the Mersenne Twister.
 """
 
+from __future__ import with_statement
+
 import random
 import cPickle as pickle
 import binascii
@@ -51,7 +53,6 @@ class RandomEnv:
         return random.uniform(a, b)
     
     def seed(self, x=None):
-        print "seed to %s" % x
         random.seed(x)
 
 class RandomState(Builtin):

@@ -1,0 +1,232 @@
+% Mathics: a general-purpose computer algebra system
+% Copyright (C) 2011 Jan Pöschko
+
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+
+% You should have received a copy of the GNU General Public License
+% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+\documentclass[index=totoc,fleqn,11pt,oneside,toc=flat]{scrbook}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[english]{babel}
+\usepackage{makeidx}
+\usepackage[inline]{asymptote}
+\usepackage[hypertexnames=false]{hyperref} % make hyperref aware of chapter reset for built-in symbols
+% (http://tex.stackexchange.com/questions/6098/wrong-hyper-references-after-resetting-chapter-counter)
+\usepackage{listings}
+\usepackage{paralist}
+\usepackage{color}
+\usepackage{fullpage}
+\usepackage{graphics}
+\usepackage{textcomp}
+\usepackage{amsmath}
+\usepackage{mathpazo} 
+\usepackage[mathpazo]{flexisym}
+\usepackage{breqn}
+\usepackage{environ}
+\usepackage{multicol}
+
+\usepackage[k-tight]{minitoc}
+\setlength{\mtcindent}{0pt}
+\mtcsetformat{minitoc}{tocrightmargin}{2.55em plus 1fil}
+\newcommand{\multicolumnmtc}{3}
+\makeatletter
+\let\SV@mtc@verse\mtc@verse
+\let\SV@endmtc@verse\endmtc@verse
+\def\mtc@verse#1{\SV@mtc@verse#1\removelastskip%
+ \begin{multicols}{\multicolumnmtc}\raggedcolumns\leavevmode\unskip
+ \vskip -1.5ex \vskip -1\baselineskip}
+\def\endmtc@verse{\end{multicols}\SV@endmtc@verse}
+\makeatother
+
+\definecolor{message}{rgb}{0.8,0.4,0}
+\definecolor{print}{rgb}{0,0,1}
+\definecolor{definitions}{rgb}{0.96,0.96,0.94}
+\definecolor{subtitle}{rgb}{0.3,0.3,0.3}
+
+\definecolor{pythonstring}{rgb}{0,0.5,0}
+
+\title{\includegraphics[width=0.5\linewidth]{logo.pdf}\\[.5em]
+{\LARGE\color{subtitle}\textit{\textmd{A free, light-weight\\alternative to Mathematica\\with support for Sage}}}}
+\author{Jan Pöschko}
+
+\setlength{\columnsep}{1cm}
+
+\makeatletter\newenvironment{definitions}{
+
+	\vspace{0.5em}%
+	\begin{lrbox}{\@tempboxa}\begin{minipage}{0.95\columnwidth}%
+	\nobreak\vspace{0.3em}%
+}{%
+	\nobreak%
+	\vspace{0.3em}%
+	\end{minipage}\end{lrbox}
+	\colorbox{definitions}{\usebox{\@tempboxa}}
+	\vspace{1em}%
+}\makeatother
+
+\newcommand{\dt}[1]{#1%
+\par%
+}
+\newcommand{\dd}[1]{{%
+\hangindent2em%
+\hangafter=0%
+#1%
+\par%
+}}
+
+% Unfortunately, this doesn't work with code segments:
+%\newenvironment{definitions}{\begin{description}}{\end{description}}
+%\newcommand{\dt}[1]{\item[#1]}
+%\newcommand{\dd}[1]{#1}
+
+\newcommand{\sectionstart}{}
+\newcommand{\sectionend}{}
+
+\newcommand{\chapterstart}{
+}
+\newcommand{\chaptersections}{
+	\minitoc
+	\begin{multicols}{2}
+}
+\newcommand{\chapterend}{
+	\end{multicols}
+}
+
+\newcommand{\referencestart}{
+\setcounter{chapter}{0}
+\def\thechapter{\Roman{chapter}}
+\renewcommand{\chaptersections}{
+	\minitoc
+	\begin{multicols*}{2}
+}
+\renewcommand{\chapterend}{
+	\end{multicols*}
+}
+}
+
+% don't use two columns in appendix
+\let\originalappendix\appendix
+\renewcommand{\appendix}{\originalappendix
+\renewcommand{\chaptersections}{
+}
+\renewcommand{\chapterend}{
+}
+}
+
+\newenvironment{chapterintro}{\begin{multicols}{2}}{\end{multicols}}
+\newenvironment{chapterintroshort}{\par}{}
+
+\newcommand{\codewidth}{0.9\columnwidth}
+
+\newenvironment{tests}{%
+	\begin{compactitem}[{%
+	\tiny\ttfamily $>>$
+	}]%
+}{%
+	\end{compactitem}%
+}
+\newenvironment{testcase}{%
+	\item%
+	\begin{minipage}[t]{\codewidth}
+	\begin{compactitem}[]%
+}{%
+	\end{compactitem}%
+	\end{minipage}
+	\vspace{1em}%
+}
+
+\newcommand{\test}[1]{%
+\item \begin{minipage}[t]{\codewidth}\begin{flushleft} {\ttfamily \bfseries #1} \end{flushleft} \end{minipage} \hfill \nobreak%
+}
+
+\newenvironment{testmessage}{\item
+\vspace{-0.5em}
+\begin{minipage}{\codewidth}
+\begin{dmath*}[indentstep={0em},compact]%
+\color{message}%
+}{%
+\end{dmath*}%
+\end{minipage}%
+}
+\newenvironment{testprint}{\item
+\vspace{-0.5em}
+\begin{minipage}{\codewidth}
+\begin{dmath*}[indentstep={0em},compact]%
+\color{print}%
+}{%
+\end{dmath*}%
+\end{minipage}%
+}
+
+\newenvironment{testresult}{%
+	\item%
+	\vspace{-0.5em}%
+	\begin{minipage}{\codewidth}%
+	\hbadness=10000
+	\begin{dmath*}[indentstep={0em},compact]%
+}{%
+	\end{dmath*}%
+	\end{minipage}%
+}
+\newenvironment{testresultlist}{%
+	\item%
+	\vspace{-0.5em}%
+	\begin{minipage}{\codewidth}%
+	\begin{dgroup*}[indentstep={0em},compact]%
+}{%
+	\end{dgroup*}%
+	\end{minipage}%
+}
+
+\newcommand{\code}[1]{\hbadness=10000{\ttfamily #1}}
+\newcommand{\codevar}[1]{{\rmfamily #1}}
+\newcommand{\console}[1]{\hbadness=10000{\ttfamily #1}}
+
+\setlength{\parindent}{0mm}
+\setlength{\parskip}{1pt}
+
+\setlength{\mathindent}{0em}
+
+\raggedbottom
+
+\raggedcolumns
+
+\makeindex
+
+\hyphenation{assign-ments}
+
+\begin{document}
+
+\maketitle
+
+\dominitoc
+
+\setcounter{tocdepth}{0}
+\tableofcontents
+
+\lstset{
+breaklines=true,
+breakatwhitespace=false,
+showspaces=false,
+basicstyle=\ttfamily
+}
+
+\lstdefinestyle{python}{language=Python,tabsize=2,basicstyle=\scriptsize\ttfamily,showstringspaces=false,stringstyle=\color{pythonstring},commentstyle=\ttfamily\color{pythonstring},frame=lines}
+
+\input{documentation.tex}
+
+\printindex
+
+\end{document}

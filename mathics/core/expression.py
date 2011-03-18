@@ -20,6 +20,9 @@ u"""
 
 from gmpy import mpz, mpq, mpf
 import re
+import cython
+#import pyximport
+#pyximport.install()
 
 from mathics.core.numbers import mpcomplex, format_float, prec, get_type, dps, prec
 from mathics.core.evaluation import Evaluation
@@ -312,6 +315,9 @@ class Monomial(object):
         self.exps = exps_dict
         
     def __cmp__(self, other):
+        return self.__cmp(other)
+        
+    def __cmp(self, other):
         self_exps = self.exps.copy()
         other_exps = other.exps.copy()
         for var in self.exps:
@@ -552,16 +558,29 @@ class Expression(BaseExpression):
                 return [1 if self.is_numeric() else 2, 3, self.head, self.leaves, 1]
     
     def same(self, other):
+        #print u"Same? %s == %s" % (self, other)
+        if self.get_head_name() != other.get_head_name():
+            #print "Not same head name"
+            return False
+        #print "Test head"
         if not self.head.same(other.get_head()):
+            #print "Not same head"
             return False
+        #print "Test length"
         if len(self.leaves) != len(other.get_leaves()):
+            #print "Unequal length"
             return False
+        #print "Test leaves"
         for leaf, other in zip(self.leaves, other.get_leaves()):
             if not leaf.same(other):
                 return False
+        #print "Return"
         return True
     
-    def flatten(self, head, pattern_only=False, callback=None):
+    def flatten(self, head, pattern_only=False, callback=None, level=None):
+        if level is not None and level <= 0:
+            return self
+        sub_level = None if level is None else level - 1
         do_flatten = False
         for leaf in self.leaves:
             if leaf.get_head() == head and (not pattern_only or leaf.pattern_sequence):
@@ -571,7 +590,7 @@ class Expression(BaseExpression):
             new_leaves = []
             for leaf in self.leaves:
                 if leaf.get_head() == head and (not pattern_only or leaf.pattern_sequence):
-                    new_leaf = leaf.flatten(head, pattern_only, callback)
+                    new_leaf = leaf.flatten(head, pattern_only, callback, level=sub_level)
                     if callback is not None:
                         callback(new_leaf.leaves, leaf)
                     new_leaves.extend(new_leaf.leaves)
@@ -582,6 +601,7 @@ class Expression(BaseExpression):
             return self
         
     def evaluate(self, evaluation=builtin_evaluation):
+        #print "Eval %s" % self
         evaluation.inc_recursion_depth()
         old_options = evaluation.options
         if hasattr(self, 'options') and self.options:
@@ -607,14 +627,18 @@ class Expression(BaseExpression):
                     if leaf.has_form('Evaluate', 1) and index not in eval_range:
                         eval_range.append(index)
             eval_range.sort()
+            #print "Eval leaves"
             for index in eval_range:
                 if not leaves[index].has_form('Unevaluated', 1):
                     leaves[index] = leaves[index].evaluate(evaluation)
+            #print "Leaves evaluated"
             
             new = Expression(head, *leaves)
             if 'SequenceHold' not in attributes and 'HoldAllComplete' not in attributes:
                 new = new.flatten(Symbol('Sequence'))
             leaves = new.leaves
+            
+            #print "New constructed"
                 
             for leaf in leaves:
                 leaf.unevaluated = False
@@ -628,6 +652,7 @@ class Expression(BaseExpression):
                 for leaf in new_leaves:
                     leaf.unevaluated = old.unevaluated
             
+            #print "Second new"
             new = Expression(head, *leaves)
             if 'Flat' in attributes:
                 new = new.flatten(new.head, callback=flatten_callback)
@@ -653,11 +678,18 @@ class Expression(BaseExpression):
                 rules += evaluation.definitions.get_downvalues(lookup_name)
             else:
                 rules += evaluation.definitions.get_subvalues(lookup_name)
+            #print u"Process rules %s\non %s" % (rules, new)
             for rule in rules:
+                #print u"  %s" % rule
                 result = rule.apply(new, evaluation, fully=False)
+                #print u"applied"
+                #print u"  -> %s" % result
                 if result is not None:
+                    #print "Test if same"
                     if not result.same(new):
+                        #print "Re-evaluate"
                         result = result.evaluate(evaluation)
+                    #print u"Return applied %s" % result
                     return result
             
             # Expression did not change, re-apply Unevaluated
@@ -666,11 +698,13 @@ class Expression(BaseExpression):
                     new.leaves[index] = Expression('Unevaluated', leaf)
             
             new.unformatted = self.unformatted
+            #print "Return new %s" % new
             return new
             
         finally:
             evaluation.options = old_options
             evaluation.dec_recursion_depth()
+            #print "Reset evaluation"
     
     def post_parse(self):
         if self.parse_operator is not None:
@@ -684,7 +718,7 @@ class Expression(BaseExpression):
         return Expression(head, *leaves)
     
     def __str__(self):
-        return u'%s[%s]' % (self.head, ', '.join(unicode(leave) for leave in self.leaves))
+        return u'%s[%s]' % (self.head, ', '.join([unicode(leave) for leave in self.leaves]))
     
     def __repr__(self):
         return u'<Expression: %s>' % self
@@ -722,7 +756,7 @@ class Expression(BaseExpression):
         if box_construct is not None:
             return box_construct.boxes_to_text(self.leaves, **options)
         if self.has_form('RowBox', 1) and self.leaves[0].has_form('List', None):
-            return ''.join(leaf.boxes_to_text(**options) for leaf in self.leaves[0].leaves)
+            return ''.join([leaf.boxes_to_text(**options) for leaf in self.leaves[0].leaves])
         else:
             raise BoxError(self, 'text')
             
@@ -808,7 +842,7 @@ class Expression(BaseExpression):
             return box_construct.boxes_to_tex(self.leaves, **options)
         name = self.head.get_name()
         if name == 'RowBox' and len(self.leaves) == 1 and self.leaves[0].get_head_name() == 'List':
-            return ''.join(leaf.boxes_to_tex(**options) for leaf in self.leaves[0].get_leaves())
+            return ''.join([leaf.boxes_to_tex(**options) for leaf in self.leaves[0].get_leaves()])
         elif name == 'SuperscriptBox' and len(self.leaves) == 2:
             tex1 = self.leaves[0].boxes_to_tex(**options)
             sup_string = self.leaves[1].get_string_value()
@@ -832,7 +866,8 @@ class Expression(BaseExpression):
             raise BoxError(self, 'tex')
     
     def default_format(self, evaluation, form):
-        return '%s[%s]' % (self.head.default_format(evaluation, form), ', '.join(leaf.default_format(evaluation, form) for leaf in self.leaves))
+        return '%s[%s]' % (self.head.default_format(evaluation, form),
+            ', '.join([leaf.default_format(evaluation, form) for leaf in self.leaves]))
     
     def sort(self, pattern=False):
         " Sort the leaves according to internal ordering. "
@@ -891,7 +926,7 @@ class Expression(BaseExpression):
                     leaves = [Expression('List', *func_params)] + [body] + self.leaves[2:]
                             
         return Expression(self.head.replace_vars(vars, options=options, in_scoping=in_scoping),
-            *(leaf.replace_vars(vars, options=options, in_scoping=in_scoping) for leaf in leaves))
+            *[leaf.replace_vars(vars, options=options, in_scoping=in_scoping) for leaf in leaves])
     
     def replace_slots(self, slots, evaluation):
         if self.head.get_name() == 'Slot':
@@ -913,7 +948,8 @@ class Expression(BaseExpression):
                 if slot is None or slot < 1:
                     evaluation.error('Function', 'slot', self.leaves[0])
             return Expression('Sequence', *slots[slot-1:])
-        return Expression(self.head.replace_slots(slots, evaluation), *(leaf.replace_slots(slots, evaluation) for leaf in self.leaves))
+        return Expression(self.head.replace_slots(slots, evaluation),
+            *[leaf.replace_slots(slots, evaluation) for leaf in self.leaves])
 
     def thread(self, evaluation, head=None):
         if head is None:
@@ -1484,7 +1520,7 @@ TEX_TEXT_REPLACE.update({
     '\\': r'$\backslash$',
     '^': r'${}^{\wedge}$',
 })  
-TEX_REPLACE_RE = re.compile('([' + ''.join(re.escape(c) for c in TEX_REPLACE) + '])')
+TEX_REPLACE_RE = re.compile('([' + ''.join([re.escape(c) for c in TEX_REPLACE]) + '])')
         
 def encode_tex(text, in_text=False):
     def replace(match):
@@ -1623,7 +1659,8 @@ def get_default_value(name, evaluation, k=None, n=None):
         pos.append(n)
     for pos_len in reversed(range(len(pos) + 1)):
         # Try patterns from specific to general
-        defaultexpr = Expression('Default', Symbol(name), *(Integer(index) for index in pos[:pos_len]))
+        defaultexpr = Expression('Default', Symbol(name),
+            *[Integer(index) for index in pos[:pos_len]])
         result = evaluation.definitions.get_value(name, 'DefaultValues', defaultexpr, evaluation)
         if result is not None:
             if result.same(defaultexpr):

@@ -35,7 +35,8 @@ The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PostfixOperator, InstancableBuiltin, Test
 from mathics.builtin.base import PatternObject, PatternError, PatternArgumentError
 from mathics.core.expression import Symbol, BaseExpression, Expression, Number, Integer, Rational, Real, Complex
-from mathics.core.rules import Rule, Pattern
+from mathics.core.rules import Rule
+from mathics.core.pattern import Pattern, StopGenerator
 
 class Rule_(BinaryOperator):
     """
@@ -79,7 +80,7 @@ def create_rules(rules_expr, expr, name, evaluation, extra_args=[]):
     if any_lists:
         all_lists = all(item.has_form('List', None) for item in rules)
         if all_lists:
-            return Expression('List', *(Expression(name, expr, item, *extra_args) for item in rules)), True
+            return Expression('List', *[Expression(name, expr, item, *extra_args) for item in rules]), True
         else:
             evaluation.message(name, 'rmix', rules_expr)
             return None, True
@@ -130,19 +131,6 @@ class ReplaceAll(BinaryOperator):
     def apply(self, expr, rules, evaluation):
         'ReplaceAll[expr_, rules_]'
         
-        """def create_rule(expr):
-            #print expr
-            if expr.get_head().get_name() not in ('Rule', 'RuleDelayed'):
-                evaluation.message('ReplaceAll', 'reps', expr)
-            elif len(expr.leaves) != 2:
-                #evaluation.error("Invalid rule: %s." % expr.format(evaluation))
-                evaluation.message('Rule', 'argrx', 'Rule', 3, 2)
-            else:
-                return Rule(expr.leaves[0], expr.leaves[1])
-        
-        orig_rules = rules.get_sequence()
-        rules = [create_rule(rule) for rule in orig_rules]"""
-        
         rules, ret = create_rules(rules, expr, 'ReplaceAll', evaluation)
         if ret:
             return rules
@@ -187,7 +175,6 @@ class ReplaceRepeated(BinaryOperator):
             if applied:
                 result = result.evaluate(evaluation)
             if applied and not result.same(expr):
-                #print [expr, result]
                 expr = result
             else:
                 break
@@ -292,21 +279,28 @@ class PatternTest(BinaryOperator, PatternObject):
                 return builtin.test(candidate)
         return None
     
-    def match(self, expression, vars, evaluation, **kwargs):
-        for vars_2, rest in self.pattern.match(expression, vars, evaluation):                
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
+        #for vars_2, rest in self.pattern.match(expression, vars, evaluation):
+        def yield_match(vars_2, rest):                
             items = expression.get_sequence()
             for item in items:                              
                 quick_test = self.quick_pattern_test(item, self.test_name)
                 if quick_test is not None:
                     if not quick_test:
                         break
+                        #raise StopGenerator
                 else:                        
                     test_expr = Expression(self.test, item)
                     test_value = test_expr.evaluate(evaluation)
                     if not test_value.is_true():
                         break
+                        #raise StopGenerator
             else:
-                yield vars_2, None
+                yield_func(vars_2, None)
+        #try:
+        self.pattern.match(yield_match, expression, vars, evaluation)
+        #except StopGenerator:
+        #    pass
                 
     def get_match_count(self, vars={}):
         return self.pattern.get_match_count(vars)
@@ -327,10 +321,11 @@ class Alternatives(BinaryOperator, PatternObject):
         super(Alternatives, self).init(expr)
         self.alternatives = [Pattern.create(leaf) for leaf in expr.leaves]
     
-    def match(self, expression, vars, evaluation, **kwargs):
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
         for alternative in self.alternatives:
-            for new_vars, rest in alternative.match(expression, vars, evaluation):
-                yield new_vars, rest
+            #for new_vars, rest in alternative.match(expression, vars, evaluation):
+            #    yield_func(new_vars, rest)
+            alternative.match(yield_func, expression, vars, evaluation)
                 
     def get_match_count(self, vars={}):
         range = None
@@ -361,9 +356,18 @@ class MatchQ(Builtin):
     def apply(self, expr, form, evaluation):
         'MatchQ[expr_, form_]'
         
+        class StopGenerator_MatchQ(StopGenerator):
+            pass
+        
         form = Pattern.create(form)
-        for vars, rest in form.match(expr, {}, evaluation):
-            return Symbol("True")
+        #for vars, rest in form.match(expr, {}, evaluation):
+        def yield_func(vars, rest):
+            #return Symbol("True")
+            raise StopGenerator_MatchQ(Symbol("True"))
+        try:
+            form.match(yield_func, expr, {}, evaluation)
+        except StopGenerator_MatchQ, exc:
+            return exc.value
         return Symbol("False")
     
 class Verbatim(PatternObject):
@@ -382,9 +386,9 @@ class Verbatim(PatternObject):
         super(Verbatim, self).init(expr)
         self.content = expr.leaves[0]
         
-    def match(self, expression, vars, evaluation, **kwargs):
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
         if self.content.same(expression):
-            yield vars, None
+            yield_func(vars, None)
     
 class HoldPattern(PatternObject):
     
@@ -410,9 +414,10 @@ class HoldPattern(PatternObject):
         super(HoldPattern, self).init(expr)
         self.pattern = Pattern.create(expr.leaves[0])
         
-    def match(self, expression, vars, evaluation, **kwargs):
-        for new_vars, rest in self.pattern.match(expression, vars, evaluation):
-            yield new_vars, rest
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
+        #for new_vars, rest in self.pattern.match(expression, vars, evaluation):
+        #    yield new_vars, rest
+        self.pattern.match(yield_func, expression, vars, evaluation)
     
 class Pattern_(PatternObject):
     """
@@ -481,16 +486,17 @@ class Pattern_(PatternObject):
     def get_match_count(self, vars={}):
         return self.pattern.get_match_count(vars)
       
-    def match(self, expression, vars, evaluation, **kwargs):
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
         existing = vars.get(self.varname, None)
         if existing is None:
             new_vars = vars.copy()
             new_vars[self.varname] = expression
-            for vars_2, rest in self.pattern.match(expression, new_vars, evaluation):
-                yield vars_2, rest
+            #for vars_2, rest in self.pattern.match(expression, new_vars, evaluation):
+            #    yield vars_2, rest
+            self.pattern.match(yield_func, expression, new_vars, evaluation)
         else:
             if existing.same(expression):
-                yield vars, None
+                yield_func(vars, None)
            
     def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):             
         existing = vars.get(self.varname, None)
@@ -549,7 +555,7 @@ class Optional(BinaryOperator, PatternObject):
             if sub.has_form(('Pattern', 'Optional'), 2):
                 return Expression('Optional', Expression('Pattern', expression.leaves[0], sub.leaves[0]), sub.leaves[1])
             else:
-                return Expression('Pattern', *(leaf.post_parse() for leaf in expression.leaves))
+                return Expression('Pattern', *[leaf.post_parse() for leaf in expression.leaves])
         else:
             return expression
         
@@ -574,7 +580,7 @@ class Optional(BinaryOperator, PatternObject):
         else:
             self.default = None
     
-    def match(self, expression, vars, evaluation, head=None, leaf_index=None, leaf_count=None, **kwargs):
+    def match(self, yield_func, expression, vars, evaluation, head=None, leaf_index=None, leaf_count=None, **kwargs):
         if expression.has_form('Sequence', 0):
             if self.default is None:
                 if head is None: # head should be given by match_leaf!
@@ -589,8 +595,9 @@ class Optional(BinaryOperator, PatternObject):
                 default = self.default
             
             expression = default
-        for vars_2, rest in self.pattern.match(expression, vars, evaluation):
-            yield vars_2, rest
+        #for vars_2, rest in self.pattern.match(expression, vars, evaluation):
+        #    yield vars_2, rest
+        self.pattern.match(yield_func, expression, vars, evaluation)
             
     def get_match_count(self, vars={}):
         return (0, 1)
@@ -603,7 +610,7 @@ def get_default_value(name, evaluation, k=None, n=None):
         pos.append(n)
     for pos_len in reversed(range(len(pos) + 1)):
         # Try patterns from specific to general
-        defaultexpr = Expression('Default', Symbol(name), *(Integer(index) for index in pos[:pos_len]))
+        defaultexpr = Expression('Default', Symbol(name), *[Integer(index) for index in pos[:pos_len]])
         result = evaluation.definitions.get_value(name, 'DefaultValues', defaultexpr, evaluation)
         if result is not None:
             if result.same(defaultexpr):
@@ -628,13 +635,13 @@ class Blank(_Blank):
             '"_" <> MakeBoxes[head, f]',
     }
     
-    def match(self, expression, vars, evaluation, **kwargs):
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
         if not expression.has_form('Sequence', 0):
             if self.head is not None:
                 if expression.get_head().same(self.head):
-                    yield vars, None
+                    yield_func(vars, None)
             else:
-                yield vars, None
+                yield_func(vars, None)
     
 class BlankSequence(_Blank):
     rules = {
@@ -643,7 +650,7 @@ class BlankSequence(_Blank):
             '"__" <> MakeBoxes[head, f]',
     }
     
-    def match(self, expression, vars, evaluation, **kwargs):
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
         leaves = expression.get_sequence()
         if not leaves:
             return
@@ -654,9 +661,9 @@ class BlankSequence(_Blank):
                     ok = False
                     break
             if ok:
-                yield vars, None
+                yield_func(vars, None)
         else:
-            yield vars, None
+            yield_func(vars, None)
             
     def get_match_count(self, vars={}):
         return (1, None)
@@ -675,7 +682,7 @@ class BlankNullSequence(_Blank):
             '"___" <> MakeBoxes[head, f]',
     }
     
-    def match(self, expression, vars, evaluation, **kwargs):
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
         leaves = expression.get_sequence()
         if self.head:
             ok = True
@@ -684,9 +691,9 @@ class BlankNullSequence(_Blank):
                     ok = False
                     break
             if ok:
-                yield vars, None
+                yield_func(vars, None)
         else:
-            yield vars, None
+            yield_func(vars, None)
             
     def get_match_count(self, vars={}):
         return (0, None)
@@ -727,23 +734,28 @@ class Repeated(PostfixOperator, PatternObject):
             else:
                 self.error('range', 2, expr)
     
-    def match(self, expression, vars, evaluation, **kwargs):
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
         leaves = expression.get_sequence()
         if len(leaves) < self.min:
             return
         if self.max is not None and len(leaves) > self.max:
             return
         
-        def iter(rest_leaves, vars):
+        def iter(yield_iter, rest_leaves, vars):
             if rest_leaves:
-                for new_vars, rest in self.pattern.match(rest_leaves[0], vars, evaluation):
-                    for sub_vars, sub_rest in iter(rest_leaves[1:], new_vars):
-                        yield sub_vars, rest
+                #for new_vars, rest in self.pattern.match(rest_leaves[0], vars, evaluation):
+                def yield_match(new_vars, rest):
+                    #for sub_vars, sub_rest in iter(rest_leaves[1:], new_vars):
+                    #    yield sub_vars, rest
+                    iter(yield_iter, rest_leaves[1:], new_vars)
+                        
+                self.pattern.match(yield_match, rest_leaves[0], vars, evaluation)
             else:
-                yield vars, None
+                yield_iter(vars, None)
         
-        for vars, rest in iter(leaves, vars):
-            yield vars, rest
+        #for vars, rest in iter(leaves, vars):
+        #    yield_func(vars, rest)
+        iter(yield_func, leaves, vars)
             
     def get_match_count(self, vars={}):
         return (self.min, self.max)
@@ -790,12 +802,14 @@ class Condition(BinaryOperator, PatternObject):
         self.pattern = Pattern.create(expr.leaves[0])
         self.test = expr.leaves[1]
     
-    def match(self, expression, vars, evaluation, **kwargs):
-        for new_vars, rest in self.pattern.match(expression, vars, evaluation):
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
+        #for new_vars, rest in self.pattern.match(expression, vars, evaluation):
+        def yield_match(new_vars, rest):
             test_expr = self.test.replace_vars(new_vars)
             test_result = test_expr.evaluate(evaluation)
             if test_result.is_true():
-                yield new_vars, rest
+                yield_func(new_vars, rest)
+        self.pattern.match(yield_match, expression, vars, evaluation)
     
 class OptionsPattern(PatternObject):
     """
@@ -840,7 +854,7 @@ class OptionsPattern(PatternObject):
         super(OptionsPattern, self).init(expr)
         self.defaults = expr.leaves[0]
     
-    def match(self, expression, vars, evaluation, **kwargs):
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
         values = self.defaults.get_option_values(evaluation, allow_symbols=True, stop_on_error=False)
         sequence = expression.get_sequence()
         for options in sequence:                          
@@ -851,7 +865,7 @@ class OptionsPattern(PatternObject):
         new_vars = vars.copy()
         for name, value in values.items():
             new_vars['_option_' + name] = value
-        yield new_vars, None
+        yield_func(new_vars, None)
         
     def get_match_count(self, vars={}):
         return (0, None)

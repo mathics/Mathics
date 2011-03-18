@@ -165,11 +165,14 @@ class DensityPlot(Builtin):
             evaluation.message('DensityPlot', 'plln', exc.value, expr)
             return
         
+        #print "Initialized"
+        
         stored = {}
         def eval_f(x_value, y_value):
             value = stored.get((x_value, y_value), False)
             if value == False:
                 value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation).get_real_value()
+                value = float(value)
                 stored[(x_value, y_value)] = value
             return value
         
@@ -216,42 +219,60 @@ class DensityPlot(Builtin):
                 triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, xi/num, (yi+1)/num)
         
         v_min = v_max = None
-               
-        for t in triangles:
-            for tx, ty, v in t:
-                if v_min is None or v < v_min:
-                    v_min = v
-                if v_max is None or v > v_max:
-                    v_max = v
+              
+        if color_function_scaling: 
+            for t in triangles:
+                for tx, ty, v in t:
+                    if v_min is None or v < v_min:
+                        v_min = v
+                    if v_max is None or v > v_max:
+                        v_max = v
+            v_range = v_max - v_min
+            if v_range == 0:
+                v_range = 1
+                
+        if color_function.has_form('ColorDataFunction', 4):
+            color_func = color_function.leaves[3]
+        else:
+            color_func = color_function
                     
         colors = {}
         def eval_color(x, y, v):
             value = colors.get(v)
             if value is None:
-                if color_function.has_form('ColorDataFunction', 4):
-                    func = color_function.leaves[3]
-                else:
-                    func = color_function
+                #print "Calc"
+                #print "Scale"
                 if color_function_scaling:
-                    v = (v - v_min) / (v_max - v_min)
+                    v = (v - v_min) / v_range
                 if color_function_scaling and color_function_min is not None and color_function_max is not None:
                     v_scaled = color_function_min + v * (color_function_max - color_function_min)
                 else:
                     v_scaled = v
-                value = Expression(func, Real(v_scaled))
+                #print "Expression"
+                value = Expression(color_func, Real(v_scaled))
+                #print "Evaluate %s" % value
                 value = value.evaluate(evaluation)
+                #value = Expression('RGBColor', Real(0.5), Real(0.5), Real(0.5))
+                #print "Set"
                 colors[v] = value
             return value
         
+        #print "Points"
         points = []
         vertex_colors = []
         for p1, p2, p3 in triangles:
+            #print "Triangle %s,%s,%s" % (p1, p2, p3)
             c1, c2, c3 = eval_color(*p1), eval_color(*p2), eval_color(*p3)
+            #print "Append"
             points.append(Expression('List', Expression('List', *p1[:2]), Expression('List', *p2[:2]),
                 Expression('List', *p3[:2])))
             vertex_colors.append(Expression('List', c1, c2, c3))
         
+        #print "Polygon"
         polygon = Expression('Polygon', Expression('List', *points),
             Expression('Rule', Symbol('VertexColors'), Expression('List', *vertex_colors)))
-        return Expression('Graphics', polygon, *options_to_rules(options))
+        #print "Result"
+        result = Expression('Graphics', polygon, *options_to_rules(options))
+        #print "Return"
+        return result
         

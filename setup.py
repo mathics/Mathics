@@ -2,11 +2,10 @@
 from distribute_setup import use_setuptools
 use_setuptools()
 
-import os
-import sys
-import subprocess
+from setuptools import setup
 
-from setuptools import setup #, find_packages
+from distutils.extension import Extension
+from Cython.Distutils import build_ext
 
 from mathics import settings
 
@@ -18,8 +17,17 @@ INSTALL_REQUIRES = ['sympy==0.6.6', 'gmpy>=1.04', 'mpmath>=0.15']
     
 INSTALL_REQUIRES += ['django>=1.0']
 
+EXTENSIONS = {
+    'core': ['expression', 'numbers', 'rules', 'pattern'],
+    'builtin': ['arithmetic', 'numeric', 'patterns', 'graphics']
+}
+EXTENSIONS = [Extension('mathics.%s.%s' % (parent, module),
+    ['mathics/%s/%s.py' % (parent, module)]) for parent, modules in EXTENSIONS.iteritems() for module in modules]
+
 setup(
     name = "Mathics",
+    cmdclass = {'build_ext': build_ext},
+    ext_modules = EXTENSIONS,
     version = settings.VERSION,
     
     packages = ['mathics', 'mathics.builtin', 'mathics.optional',
@@ -56,6 +64,4 @@ setup(
     # TODO: could also include long_description, download_url, classifiers, etc.
 )
 
-print "\nCreating database %s" % settings.DATABASE_NAME
-subprocess.call(['python', 'mathics/manage.py', 'syncdb', '--noinput'])
-os.chmod(settings.DATABASE_NAME, 0766)
+

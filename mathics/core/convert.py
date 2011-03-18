@@ -208,8 +208,14 @@ try:
                 head = 'Power'
             else:
                 head = 'UNKNOWN'
+                
+            operands = map(self, ex.operands())
+            if head in ['Plus', 'Times']:
+                # normalize arguments so that expressions don't change
+                # when Sage does not change them
+                operands.sort()
             
-            return expression.Expression(head, *map(self, ex.operands()))
+            return expression.Expression(head, *operands)
         
         def pyobject(self, ex, obj):
             from mathics.core import expression

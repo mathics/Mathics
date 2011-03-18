@@ -8,6 +8,7 @@ from sage import all as sage
 
 from mathics.optional.base import OptionalSageFunction
 from mathics.core.convert import from_sage, to_sage
+from mathics.core.expression import Expression
 
 class SageIntegrate(OptionalSageFunction):
     """
@@ -37,20 +38,20 @@ class SageIntegrate(OptionalSageFunction):
      = Integrate[f[x], {x, a, b}]
     #> Integrate[f'[x], {x, a, b}]
      = Integrate[f'[x], {x, a, b}]
+     
+    #> SageIntegrate[Abs[Sin[phi]], {phi, 0, 2Pi}] // N
+     = 4.
+    #> SageIntegrate[Hold[x + x], {x, a, b}]
+     = SageIntegrate[Hold[x + x], {x, a, b}]
+    ## see Sage bug http://trac.sagemath.org/sage_trac/ticket/10914
     """
     
     attributes = ('ReadProtected',)
     
-    sage_name = 'Integrate'
-    sympy_name = 'Integral'
+    sage_name = 'integrate'
+    sympy_name = ''
     
     # messages are taken from Integrate
-    #messages = {
-    #    'idiv': "Integral of `1` does not converge on `2`.",
-    #    'ilim': "Invalid integration variable or limit(s).",
-    #    
-    #    'iconstraints': "Additional constraints needed: `1`",
-    #}
     
     rules = {
         'SageIntegrate[list_List, x_]': 'SageIntegrate[#, x]& /@ list',
@@ -95,25 +96,26 @@ class SageIntegrate(OptionalSageFunction):
         for x in xs:
             if x.has_form('List', 3):
                 x, a, b = x.leaves
-                #a = a.to_sympy()
-                #b = b.to_sympy()
             else:
                 a = b = None
             if not x.get_name():
                 return evaluation.message('Integrate', 'ilim')
-            #x = x.to_sympy()
             if a is None or b is None:
                 vars.append(x)
             else:
                 vars.append((x, a, b))
-        #print [f, vars]
         (f, vars), subs = to_sage((f, vars), evaluation)
         
-        #print [f, vars]
         try:
             result = sage.integrate(f, *vars)
         except TypeError:
             # SageIntegrate[f[x], x] raises TypeError because maxima can't handle unknown functions, obviously
             return
-        #print result
-        return from_sage(result, subs) #.evaluate(evaluation)
+        if a is not None and b is not None:
+            prec_a = a.get_precision()
+            prec_b = b.get_precision()
+            if prec_a is not None and prec_b is not None:
+                #prec = min(prec_a, prec_b)
+                result = sage.n(result)
+                
+        return from_sage(result, subs)

@@ -412,20 +412,43 @@ class FreeQ(Builtin):
         
 class Flatten(Builtin):
     """
+    <dl>
+    <dt>'Flatten[$expr$]'
+        <dd>flattens out nested lists in $expr$.
+    <dt>'Flatten[$expr$, $n$]'
+        <dd>stops flattening at level $n$.
+    <dt>'Flatten[$expr$, $n$, $h$]'
+        <dd>flattens expressions with head $h$ instead of 'List'.
+    </dl>
     >> Flatten[{{a, b}, {c, {d}, e}, {f, {g, h}}}]
      = {a, b, c, d, e, f, g, h}
-    >> Flatten[f[a, f[b, f[c, d]], e], f]
+    >> Flatten[{{a, b}, {c, {e}, e}, {f, {g, h}}}, 1]
+     = {a, b, c, {e}, e, f, {g, h}}
+    >> Flatten[f[a, f[b, f[c, d]], e], Infinity, f]
      = f[a, b, c, d, e]
     """
     
     rules = {
-        'Flatten[expr_]': 'Flatten[expr, List]',
+        'Flatten[expr_]': 'Flatten[expr, Infinity, List]',
+        'Flatten[expr_, n_]': 'Flatten[expr, n, List]',
     }
     
-    def apply(self, expr, h, evaluation):
-        'Flatten[expr_, h_]'
+    messages = {
+        'flpi': "Level to be flattened together in `1` should be a non-negative integer."
+    }
+    
+    def apply(self, expr, n, h, evaluation):
+        'Flatten[expr_, n_, h_]'
         
-        return expr.flatten(h)
+        if n == Expression('DirectedInfinity', 1):
+            n = None
+        else:
+            n_int = n.get_int_value()
+            if n_int is None or n_int < 0:
+                return evaluation.message('Flatten', 'flpi', n)
+            n = n_int
+        
+        return expr.flatten(h, level=n)
         
 class Null(Predefined):
     """

@@ -223,16 +223,12 @@ class Derivative(PostfixOperator, SageFunction):
         'Derivative[n__Integer][Derivative[m__Integer][f_]] /; Length[{m}] == Length[{n}]':
             'Derivative[Sequence @@ ({n} + {m})][f]',
         """Derivative[n__Integer][f_Symbol] /; Module[{t=Sequence@@Slot/@Range[Length[{n}]], result, nothing, ft=f[t]},
-            (*Print["Check symbol ", f];*)
-            (*If[f[t] === Flatten[Unevaluated[f[t]], Sequence]*)
-            (*If[f[t] === Unevaluated[f[t]]*)
             If[Head[ft] === f
             && FreeQ[Join[UpValues[f], DownValues[f], SubValues[f]], Derivative|D]
             && Context[f] != "System`",
                 False,
                 (* else *)
                 ft = f[t];
-                (*Print["Try D of ", ft];*)
                 Block[{f},
                     Unprotect[f];
                     (*Derivative[1][f] ^= nothing;*)
@@ -240,7 +236,6 @@ class Derivative(PostfixOperator, SageFunction):
                     Derivative[n][nothing] ^= nothing;
                     result = D[ft, Sequence@@Table[{Slot[i], {n}[[i]]}, {i, Length[{n}]}]];
                 ];
-                (*Print[result, ", ", nothing];*)
                 FreeQ[result, nothing]
             ]
             ]""":
@@ -351,6 +346,9 @@ class Integrate(SageFunction):
      
     #> Integrate[x ^ 3.5 + x, x]
      = x ^ 2 / 2 + 0.222222222222222 x ^ 4.5
+     
+    #> Integrate[Abs[Sin[phi]],{phi,0,2Pi}]//N
+     = 3.99998451720248
     """
     
     """
@@ -364,6 +362,7 @@ class Integrate(SageFunction):
     
     attributes = ('ReadProtected',)
     
+    sage_name = ''
     sympy_name = 'Integral'
     
     messages = {
@@ -416,13 +415,21 @@ class Integrate(SageFunction):
         f_sympy = f.to_sympy()
         xs = xs.get_sequence()
         vars = []
+        prec = None
         for x in xs:
             if x.has_form('List', 3):
                 x, a, b = x.leaves
+                prec_a = a.get_precision()
+                prec_b = b.get_precision()
+                if prec_a is not None and prec_b is not None:
+                    prec_new = min(prec_a, prec_b)
+                    if prec is None or prec_new < prec:
+                        prec = prec_new
                 a = a.to_sympy()
                 b = b.to_sympy()
             else:
                 a = b = None
+                a_mathics, b_mathics = a, b
             if not x.get_name():
                 evaluation.message('Integrate', 'ilim')
                 return
@@ -431,11 +438,13 @@ class Integrate(SageFunction):
                 vars.append(x)
             else:
                 vars.append((x, a, b))
-        #print f_sympy
         try:
             result = sympy.integrate(f_sympy, *vars)
         except sympy.PolynomialError:
             return
+            
+        if prec is not None:
+            result = sympy.N(result)
         result = from_sympy(result)
         return result
                 

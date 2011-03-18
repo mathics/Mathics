@@ -135,11 +135,12 @@ class MathicsScanner(GenericScanner):
     def t_parenthesis_2(self, s):
         r' \]\] '
         
-        last = self.open_square_parenthesizes.pop()
+        last = self.open_square_parenthesizes.pop() if self.open_square_parenthesizes else None
         if last == '[[':
             self.tokens.append(Token(type=s))
         else:
-            self.open_square_parenthesizes.pop()
+            if self.open_square_parenthesizes:
+                self.open_square_parenthesizes.pop()
             self.tokens.append(Token(type=']'))
             self.tokens.append(Token(type=']'))
         
