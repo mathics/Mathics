@@ -747,6 +747,8 @@ class Re(SageFunction):
      = 3
     """
     
+    attributes = ('Listable', 'NumericFunction')
+    
     sage_name = 'real'
     
     def apply_complex(self, number, evaluation):
@@ -764,6 +766,8 @@ class Im(SageFunction):
     >> Im[3+4I]
      = 4
     """
+    
+    attributes = ('Listable', 'NumericFunction')
     
     sage_name = 'imag'
     

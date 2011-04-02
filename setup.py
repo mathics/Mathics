@@ -5,11 +5,25 @@ use_setuptools()
 from setuptools import setup
 
 from distutils.extension import Extension
-from Cython.Distutils import build_ext
+
+#import Cython
 
 from mathics import settings
 
-INSTALL_REQUIRES = ['sympy==0.6.6', 'gmpy>=1.04', 'mpmath>=0.15']
+try:
+    from Cython.Distutils import build_ext
+    EXTENSIONS = {
+        'core': ['expression', 'numbers', 'rules', 'pattern'],
+        'builtin': ['arithmetic', 'numeric', 'patterns']#, 'graphics']
+    }
+    EXTENSIONS = [Extension('mathics.%s.%s' % (parent, module),
+        ['mathics/%s/%s.py' % (parent, module)]) for parent, modules in EXTENSIONS.iteritems() for module in modules]
+    CMDCLASS = {'build_ext': build_ext}
+except ImportError:
+    EXTENSIONS = []
+    CMDCLASS = {}
+    
+INSTALL_REQUIRES = ['sympy==0.6.6', 'gmpy>=1.04', 'mpmath>=0.15', 'cython>=0.14.1']
 # strange SandboxError with SymPy 0.6.7 in Sage (writing to ~/.sage/tmp)
 
 #if sys.platform == "darwin":
@@ -17,16 +31,9 @@ INSTALL_REQUIRES = ['sympy==0.6.6', 'gmpy>=1.04', 'mpmath>=0.15']
     
 INSTALL_REQUIRES += ['django>=1.0']
 
-EXTENSIONS = {
-    'core': ['expression', 'numbers', 'rules', 'pattern'],
-    'builtin': ['arithmetic', 'numeric', 'patterns', 'graphics']
-}
-EXTENSIONS = [Extension('mathics.%s.%s' % (parent, module),
-    ['mathics/%s/%s.py' % (parent, module)]) for parent, modules in EXTENSIONS.iteritems() for module in modules]
-
 setup(
     name = "Mathics",
-    cmdclass = {'build_ext': build_ext},
+    cmdclass = CMDCLASS,
     ext_modules = EXTENSIONS,
     version = settings.VERSION,
     

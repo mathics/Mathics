@@ -3,31 +3,33 @@
 from mathics.builtin.base import Predefined, Builtin
 from mathics.core.expression import Integer, Symbol, Expression
 
+from mathics import settings
+
 class RecursionLimit(Predefined):
     """
     >> a = a + a
-     : Recursion depth of 256 exceeded.
+     : Recursion depth of 200 exceeded.
      = $Aborted
     >> $RecursionLimit
-     = 256
+     = 200
      
     >> $RecursionLimit = x;
-     : Cannot set $RecursionLimit to x; value must be Infinity or an integer at least 20.
+     : Cannot set $RecursionLimit to x; value must be an integer between 20 and 200.
     """
     
     name = '$RecursionLimit'
     
     messages = {
         'reclim': "Recursion depth of `1` exceeded.",
-        'limset': "Cannot set $RecursionLimit to `1`; value must be Infinity or an integer at least 20.",
+        'limset': "Cannot set $RecursionLimit to `1`; value must be an integer between 20 and %d." % settings.MAX_RECURSION_DEPTH,
     }
     
     rules = {
-        '$RecursionLimit': '256',
+        '$RecursionLimit': str(settings.MAX_RECURSION_DEPTH),
     }
     
     def evaluate(self, evaluation):
-        return Integer(256)
+        return Integer(settings.MAX_RECURSION_DEPTH)
     
 class Hold(Builtin):
     """

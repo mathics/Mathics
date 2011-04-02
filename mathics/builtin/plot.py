@@ -11,6 +11,7 @@ from mathics.core.expression import Expression, Real, NumberError, Symbol, Strin
 from mathics.builtin.base import Builtin
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.options import options_to_rules
+from mathics.builtin.numeric import chop
             
 class ColorDataFunction(Builtin):
     pass
@@ -67,7 +68,9 @@ class Plot(Builtin):
             return
             
         def eval_f(f, x_value):
-            return dynamic_scoping(f.evaluate, {x: x_value}, evaluation).get_real_value()
+            value = dynamic_scoping(f.evaluate, {x: x_value}, evaluation)
+            value = chop(value).get_real_value()
+            return value
         
         hue = 0.67
         hue_pos = 0.236068
@@ -171,7 +174,8 @@ class DensityPlot(Builtin):
         def eval_f(x_value, y_value):
             value = stored.get((x_value, y_value), False)
             if value == False:
-                value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation).get_real_value()
+                value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation)
+                value = chop(value).get_real_value()
                 value = float(value)
                 stored[(x_value, y_value)] = value
             return value
@@ -220,41 +224,46 @@ class DensityPlot(Builtin):
         
         v_min = v_max = None
               
-        if color_function_scaling: 
-            for t in triangles:
-                for tx, ty, v in t:
-                    if v_min is None or v < v_min:
-                        v_min = v
-                    if v_max is None or v > v_max:
-                        v_max = v
-            v_range = v_max - v_min
-            if v_range == 0:
-                v_range = 1
+        #if color_function_scaling: 
+        for t in triangles:
+            for tx, ty, v in t:
+                if v_min is None or v < v_min:
+                    v_min = v
+                if v_max is None or v > v_max:
+                    v_max = v
+        v_range = v_max - v_min
+        if v_range == 0:
+            v_range = 1
                 
         if color_function.has_form('ColorDataFunction', 4):
             color_func = color_function.leaves[3]
         else:
             color_func = color_function
+        if color_function_scaling and color_function_min is not None and color_function_max is not None:
+            color_function_range = color_function_max - color_function_min
                     
         colors = {}
         def eval_color(x, y, v):
-            value = colors.get(v)
+            #v_lookup = int(v * 100)
+            #if color_function_scaling:
+            v_scaled = (v - v_min) / v_range
+            if color_function_scaling and color_function_min is not None and color_function_max is not None:
+                v_color_scaled = color_function_min + v_scaled * color_function_range
+            else:
+                v_color_scaled = v
+            v_lookup = int(v_scaled * 100 + 0.5)     # calculate and store 100 different shades max.
+            value = colors.get(v_lookup)
             if value is None:
                 #print "Calc"
                 #print "Scale"
-                if color_function_scaling:
-                    v = (v - v_min) / v_range
-                if color_function_scaling and color_function_min is not None and color_function_max is not None:
-                    v_scaled = color_function_min + v * (color_function_max - color_function_min)
-                else:
-                    v_scaled = v
                 #print "Expression"
-                value = Expression(color_func, Real(v_scaled))
+                #print "Calc color for %f" % v_scaled
+                value = Expression(color_func, Real(v_color_scaled))
                 #print "Evaluate %s" % value
                 value = value.evaluate(evaluation)
                 #value = Expression('RGBColor', Real(0.5), Real(0.5), Real(0.5))
                 #print "Set"
-                colors[v] = value
+                colors[v_lookup] = value
             return value
         
         #print "Points"

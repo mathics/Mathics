@@ -99,7 +99,7 @@ class BaseExpression(object):
         evaluation.check_stopped()
         return self
     
-    def get_atoms(self):
+    def get_atoms(self, include_heads=True):
         return []
     
     def get_name(self):
@@ -231,8 +231,19 @@ class BaseExpression(object):
         return result
             
     def is_free(self, form, evaluation):
-        for vars, rest in form.match(self, {}, evaluation, fully=False):
-            return False
+        from mathics.core.pattern import StopGenerator
+        
+        class StopGenerator_BaseExpression_is_free(StopGenerator):
+            pass
+        
+        #for vars, rest in form.match(self, {}, evaluation, fully=False):
+        def yield_match(vars, rest):
+            raise StopGenerator_BaseExpression_is_free(False)
+            #return False
+        try:
+            form.match(yield_match, self, {}, evaluation, fully=False)
+        except StopGenerator_BaseExpression_is_free, exc:
+            return exc.value
         if self.is_atom():
             return True
         else:
@@ -718,7 +729,7 @@ class Expression(BaseExpression):
         return Expression(head, *leaves)
     
     def __str__(self):
-        return u'%s[%s]' % (self.head, ', '.join([unicode(leave) for leave in self.leaves]))
+        return u'%s[%s]' % (self.head, u', '.join([unicode(leaf) for leaf in self.leaves]))
     
     def __repr__(self):
         return u'<Expression: %s>' % self
@@ -1005,8 +1016,11 @@ class Expression(BaseExpression):
         else:
             return self
         
-    def get_atoms(self):
-        atoms = self.head.get_atoms()
+    def get_atoms(self, include_heads=True):
+        if include_heads:
+            atoms = self.head.get_atoms()
+        else:
+            atoms = []
         for leaf in self.leaves:
             atoms.extend(leaf.get_atoms())
         return atoms
@@ -1063,7 +1077,7 @@ class Atom(BaseExpression):
         else:
             raise NotImplementedError
         
-    def get_atoms(self):
+    def get_atoms(self, include_heads=True):
         return [self]
     
 class Symbol(Atom):        

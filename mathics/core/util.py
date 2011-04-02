@@ -81,7 +81,7 @@ def subsets(items, min, max, included=None, less_first=False):
         if count < 0 or len(rest) < count:
             return
         if count == 0:
-            yield chosen, not_chosen + rest     
+            yield chosen, not_chosen + rest
         elif len(rest) == count:
             if included is None or all(item in included for item in rest):
                 yield chosen + rest, not_chosen

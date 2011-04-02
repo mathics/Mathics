@@ -35,7 +35,14 @@ def match(self, yield_func, expression, vars, evaluation, head=None, leaf_index=
     if 'Flat' not in attributes:
         fully = True
     if not expression.is_atom():
+        # don't do this here, as self.get_pre_choices changes the ordering of the leaves!
+        #if self.leaves:
+        #    next_leaf = self.leaves[0]
+        #    next_leaves = self.leaves[1:]
+        
         def yield_choice(pre_vars):
+            next_leaf = self.leaves[0]
+            next_leaves = self.leaves[1:]
             for leaf in self.leaves:
                 match_count = leaf.get_match_count()
                 candidates = leaf.get_match_candidates_count(expression.leaves, expression, attributes, evaluation, pre_vars)
@@ -46,7 +53,7 @@ def match(self, yield_func, expression, vars, evaluation, head=None, leaf_index=
             #    wrap_oneid=expression.get_head_name() != 'MakeBoxes'):
             #def yield_leaf(new_vars, rest):
             #    yield_func(new_vars, rest)
-            self.match_leaf(yield_func, self.leaves[0], self.leaves[1:], ([], expression.leaves), pre_vars,
+            self.match_leaf(yield_func, next_leaf, next_leaves, ([], expression.leaves), pre_vars,
                 expression, attributes, evaluation, first=True, fully=fully, leaf_count=len(self.leaves),
                 wrap_oneid=expression.get_head_name() != 'MakeBoxes')
                     

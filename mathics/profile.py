@@ -49,7 +49,7 @@ def run():
         #prompt = 'Plus@@f/@Symbol/@StringJoin/@Tuples[CharacterRange["a","z"],2]'
         #prompt = 'FullForm[Nest[1+Sqrt[1+#]&, x, 20]]'
         #prompt = '1+2'
-        prompt = 'DensityPlot[x*y,{x,0,1},{y,0,1}]'
+        prompt = 'DensityPlot[x*y,{x,-1,1},{y,-1,1}]'
         evaluation = Evaluation(prompt, definitions, format='xml')
         if evaluation.results:
             result = evaluation.results[0].result

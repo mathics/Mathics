@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-# cython: profile=True
+# cython: profile=False
 
 u"""
     Mathics: a general-purpose computer algebra system
@@ -208,9 +208,9 @@ class ExpressionPattern(Pattern):
                     yield_name(vars)
             
             #for setting in per_name(groups.items(), vars):
-            def yield_name(setting):
-                yield_func(setting)
-            per_name(yield_name, groups.items(), vars)
+            #def yield_name(setting):
+            #    yield_func(setting)
+            per_name(yield_func, groups.items(), vars)
         else:
             yield_func(vars) 
     
@@ -224,7 +224,7 @@ class ExpressionPattern(Pattern):
         return [leaf for leaf in self.leaves if leaf.get_head_name() == head_name]
         
     def __repr__(self):
-        return '<ExpressionPattern: %s>' % self.expr
+        return u'<ExpressionPattern: %s>' % self.expr
     
     def get_match_count(self, vars={}):
         return (1, 1)
@@ -309,7 +309,18 @@ class ExpressionPattern(Pattern):
         else:
             sets = subranges(candidates, flexible_start=first and not fully, included=leaf_candidates, less_first=less_first, *set_lengths)
             
+        #print "Match %s in %s" % (leaf, expression)
+        
+        if rest_leaves:
+            next_leaf = rest_leaves[0]
+            next_rest_leaves = rest_leaves[1:]
+        next_depth = depth + 1
+        next_index = leaf_index + 1
+            
         for items, items_rest in sets:
+            #try:
+            #print (u"  " + u", ".join(unicode(item) for item in items)).encode('utf-8')
+            #except 
             # Include wrappings like Plus[a, b] only if not all items taken
             # - in that case we would match the same expression over and over again.
             
@@ -317,26 +328,30 @@ class ExpressionPattern(Pattern):
         
             # Don't try flattened when the expression would remain the same!
             
+            def leaf_yield(next_vars, next_rest):
+                #if next_rest is None:
+                #    next_rest = ([], [])
+                #yield_func(next_vars, (rest_expression[0] + items_rest[0], next_rest[1]))
+                if next_rest is None:
+                    yield_func(next_vars, (rest_expression[0] + items_rest[0], []))
+                else:
+                    yield_func(next_vars, (rest_expression[0] + items_rest[0], next_rest[1]))
+                
+            def match_yield(new_vars, _):
+                if rest_leaves:                    
+                    self.match_leaf(leaf_yield, next_leaf, next_rest_leaves, items_rest, new_vars,
+                        expression, attributes, evaluation, fully=fully, depth=next_depth,
+                        leaf_index=next_index, leaf_count=leaf_count, wrap_oneid=wrap_oneid)
+                    #for next_vars, next_rest in recursion:
+                else:
+                    if not fully or (not items_rest[0] and not items_rest[1]):
+                        yield_func(new_vars, items_rest)
+                        #yield new_vars, items_rest
+            
             #wrappings = self.get_wrappings(items, match_count[1], expression, attributes,
             #    include_flattened=include_flattened)
             #for item in wrappings:
             def yield_wrapping(item):
-                def match_yield(new_vars, _):
-                    if rest_leaves:
-                        def leaf_yield(next_vars, next_rest):
-                            if next_rest is None:
-                                next_rest = ([], [])
-                            #yield next_vars, (rest_expression[0] + items_rest[0], next_rest[1])
-                            yield_func(next_vars, (rest_expression[0] + items_rest[0], next_rest[1]))
-                        
-                        self.match_leaf(leaf_yield, rest_leaves[0], rest_leaves[1:], items_rest, new_vars,
-                            expression, attributes, evaluation, fully=fully, depth=depth+1,
-                            leaf_index=leaf_index+1, leaf_count=leaf_count, wrap_oneid=wrap_oneid)
-                        #for next_vars, next_rest in recursion:
-                    else:
-                        if not fully or (not items_rest[0] and not items_rest[1]):
-                            yield_func(new_vars, items_rest)
-                            #yield new_vars, items_rest
                 
                 leaf.match(match_yield, item, vars, evaluation, fully=True,
                     head=expression.head, leaf_index=leaf_index, leaf_count=leaf_count, wrap_oneid=wrap_oneid)

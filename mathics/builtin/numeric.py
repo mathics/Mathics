@@ -230,6 +230,26 @@ class Round(Builtin):
         "Round[expr_?RealNumberQ, k_?RealNumberQ]"
         
         return Number.from_mp(round(expr.value, k.value))
+    
+def chop(expr, delta=10.0**(-10.0)):
+    if isinstance(expr, Real):
+        if -delta < expr.value < delta:
+            return Integer(0)
+        #return expr
+    elif isinstance(expr, Complex) and expr.get_precision() is not None:
+        real = expr.value.real
+        if -delta < real < delta:
+            real = mpz(0)
+        imag = expr.value.imag
+        if -delta < imag < delta:
+            imag = mpz(0)
+        if imag != 0:
+            return Complex(real, imag)
+        else:
+            return Number.from_mp(real)
+    elif isinstance(expr, Expression):
+        return Expression(chop(expr.head), *[chop(leaf) for leaf in expr.leaves])
+    return expr
         
 class Chop(Builtin):
     """
@@ -266,27 +286,7 @@ class Chop(Builtin):
         if delta is None or delta < 0:
             return evaluation.message('Chop', 'tolnn')
         
-        def chop(expr):
-            if isinstance(expr, Real):
-                if -delta < expr.value < delta:
-                    return Integer(0)
-                #return expr
-            elif isinstance(expr, Complex) and expr.get_precision() is not None:
-                real = expr.value.real
-                if -delta < real < delta:
-                    real = mpz(0)
-                imag = expr.value.imag
-                if -delta < imag < delta:
-                    imag = mpz(0)
-                if imag != 0:
-                    return Complex(real, imag)
-                else:
-                    return Number.from_mp(real)
-            elif isinstance(expr, Expression):
-                return Expression(chop(expr.head), *[chop(leaf) for leaf in expr.leaves])
-            return expr
-            
-        return chop(expr)
+        return chop(expr, delta=delta)
     
 class NumericQ(Builtin):
     """

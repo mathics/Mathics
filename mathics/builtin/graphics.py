@@ -11,7 +11,7 @@ from django.utils import simplejson
 
 from mathics.builtin.base import Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError
 from mathics.builtin.options import options_to_rules
-from mathics.core.expression import Expression, Real, NumberError, Symbol
+from mathics.core.expression import Expression, Integer, Real, NumberError, Symbol
 
 class CoordinatesError(BoxConstructError):
     pass
@@ -23,12 +23,18 @@ element_heads = ('Rectangle', 'Disk', 'Line', 'Circle', 'Polygon', 'Inset', 'Tex
 color_heads = ('RGBColor', 'CMYKColor', 'Hue', 'GrayLevel')
 thickness_heads = ('Thickness', 'AbsoluteThickness', 'Thick', 'Thin')
 
+GRAPHICS_SYMBOLS = set(['List', 'Rule', 'VertexColors'] + list(element_heads) + [element + 'Box' for element in element_heads] + list(color_heads) + list(thickness_heads))
+    
+
 def get_class(name):
-    return globals().get(name)
+    # globals() does not work with Cython
+    #return globals().get(name)
+    return GLOBALS.get(name)
 
 def coords(value):
     if value.has_form('List', 2):
-        return tuple(c.to_number() for c in value.leaves)
+        #return tuple(c.to_number() for c in value.leaves)
+        return (value.leaves[0].to_number(), value.leaves[1].to_number())
     raise CoordinatesError
 
 class Coords(object):
@@ -134,16 +140,23 @@ class Graphics(Builtin):
         
         def convert(content):
             if content.has_form('List', None):
-                return Expression('List', *(convert(item) for item in content.leaves))
+                return Expression('List', *[convert(item) for item in content.leaves])
             head = content.get_head_name()
             if head in element_heads:
                 if head == 'Text':
                     head = 'Inset'
-                if head == 'Inset':
-                    n_leaves = [content.leaves[0]] + [Expression('N', leaf).evaluate(evaluation)
-                        for leaf in content.leaves[1:]]
+                atoms = content.get_atoms(include_heads=False)
+                #print atoms
+                #for atom in atoms:
+                #    if not isinstance(atom, (Integer, Real)) and not atom.get_name() in GRAPHICS_SYMBOLS:
+                #        print atom
+                if any(not isinstance(atom, (Integer, Real)) and not atom.get_name() in GRAPHICS_SYMBOLS for atom in atoms):
+                    if head == 'Inset':
+                        n_leaves = content.leaves[0] + [Expression('N', leaf).evaluate(evaluation) for leaf in content.leaves[1:]]
+                    else:
+                        n_leaves = (Expression('N', leaf).evaluate(evaluation) for leaf in content.leaves)
                 else:
-                    n_leaves = (Expression('N', leaf).evaluate(evaluation) for leaf in content.leaves)
+                    n_leaves = content.leaves
                 return Expression(head + 'Box', *n_leaves)
             return content
         
@@ -192,11 +205,13 @@ class _Color(_GraphicsElement):
         
     def to_css(self):
         rgba = self.to_rgba()
-        return (r'rgb(%f%%, %f%%, %f%%)' % tuple(value*100 for value in rgba[:3]), rgba[3])
+        #return (r'rgb(%f%%, %f%%, %f%%)' % tuple(value*100 for value in rgba[:3]), rgba[3])
+        return (r'rgb(%f%%, %f%%, %f%%)' % (rgba[0]*100, rgba[1]*100, rgba[2]*100), rgba[3])
     
     def to_asy(self):
         rgba = self.to_rgba()
-        return (r'rgb(%s, %s, %s)' % tuple(asy_number(c) for c in rgba[:3]), rgba[3])
+        #return (r'rgb(%s, %s, %s)' % tuple(asy_number(c) for c in rgba[:3]), rgba[3])
+        return (r'rgb(%s, %s, %s)' % (asy_number(rgba[0]), asy_number(rgba[1]), asy_number(rgba[2])), rgba[3])
     
     def to_js(self):
         return self.to_rgba()
@@ -218,9 +233,13 @@ class CMYKColor(_Color):
     
     def to_rgba(self):
         k = self.components[3]
-        cmy = (v * (1 - k) + k for v in self.components[:3])
-        rgb = (1 - v for v in cmy)
-        return tuple(rgb) + (self.components[4],)
+        #cmy = (v * (1 - k) + k for v in self.components[:3])
+        #rgb = (1 - v for v in cmy)
+        k_ = 1 - k
+        c = self.components
+        cmy = [c[0] * k_ + k, c[1] * k_ + k, c[2] * k_ + k]
+        rgb = (1 - cmy[0], 1 - cmy[1], 1 - cmy[2])
+        return rgb + (c[4],)
 
 class Hue(_Color):
     """
@@ -278,7 +297,7 @@ class Hue(_Color):
             else:
                 return p
             
-        result = tuple(trans(map(t)) for t in rgb) + (self.components[3],)
+        result = tuple([trans(map(t)) for t in rgb]) + (self.components[3],)
         print result
         return result
 
@@ -524,7 +543,7 @@ class LineBox(_Polyline):
         svg = ''
         for line in self.lines:
             svg += '<polyline points="%s" style="%s" />' % (
-                ' '.join('%f,%f' % coords.pos() for coords in line), style)
+                ' '.join(['%f,%f' % coords.pos() for coords in line]), style)
         return svg
     
     def to_asy(self):
@@ -532,7 +551,7 @@ class LineBox(_Polyline):
         pen = create_pens(edge_color=self.edge_color, stroke_width=l)
         asy = ''
         for line in self.lines:
-            path = '--'.join('(%s,%s)' % coords.pos() for coords in line)
+            path = '--'.join(['(%s,%s)' % coords.pos() for coords in line])
             asy += 'draw(%s, %s);' % (path, pen)
         return asy
         
@@ -612,14 +631,14 @@ class PolygonBox(_Polyline):
             colors = []
             edges = []
             for index, line in enumerate(self.lines):
-                paths.append('--'.join('(%s,%s)' % coords.pos() for coords in line) + '--cycle')
-                colors.append(','.join(color.to_asy()[0] for color in self.vertex_colors[index])) # ignore opacity
+                paths.append('--'.join(['(%s,%s)' % coords.pos() for coords in line]) + '--cycle')
+                colors.append(','.join([color.to_asy()[0] for color in self.vertex_colors[index]])) # ignore opacity
                 edges.append(','.join(['0'] + ['1'] * (len(self.vertex_colors[index]) - 1)))
             asy += 'gouraudshade(%s, new pen[] {%s}, new int[] {%s});' % ('^^'.join(paths), ','.join(colors),
                 ','.join(edges)) 
         if pens and pens != 'nullpen':
             for line in self.lines:
-                path = '--'.join('(%s,%s)' % coords.pos() for coords in line) + '--cycle'
+                path = '--'.join(['(%s,%s)' % coords.pos() for coords in line]) + '--cycle'
                 asy += 'filldraw(%s, %s);' % (path, pens)
         return asy
         
@@ -783,13 +802,13 @@ class GraphicsElements(object):
             return x * self.pixel_width
         
     def extent(self):
-        return total_extent(element.extent() for element in self.elements)
+        return total_extent([element.extent() for element in self.elements])
     
     def to_svg(self):
         return '\n'.join(element.to_svg() for element in self.elements)
     
     def to_asy(self):
-        return '\n'.join(element.to_asy() for element in self.elements)
+        return '\n'.join([element.to_asy() for element in self.elements])
     
     def create_style(self, expr):
         style = Style(self)
@@ -1180,7 +1199,7 @@ class Blend(Builtin):
             if not colors:
                 raise ColorError
         except ColorError:
-            evaluation.message('Blend', 'arg', Expression('List', *colors))
+            evaluation.message('Blend', 'arg', Expression('List', colors_orig))
             return
         try:
             if u.has_form('List', None):
@@ -1376,3 +1395,30 @@ class Orange(_ColorObject):
     rules = {
         'Orange': 'RGBColor[1, 0.5, 0]',
     }
+
+GLOBALS = {
+    'Rectangle': Rectangle,
+    'Disk': Disk,
+    #'Line': Line,
+    'Circle': Circle,
+    'Polygon': Polygon,
+    'Inset': Inset,
+    'Text': Text,
+    'RectangleBox': RectangleBox,
+    'DiskBox': DiskBox,
+    'LineBox': LineBox,
+    'CircleBox': CircleBox,
+    'PolygonBox': PolygonBox,
+    'InsetBox': InsetBox,
+    #'TextBox': TextBox,
+    
+    'RGBColor': RGBColor,
+    'CMYKColor': CMYKColor,
+    'Hue': Hue,
+    'GrayLevel': GrayLevel,
+    
+    'Thickness': Thickness,
+    'AbsoluteThickness': AbsoluteThickness,
+    'Thick': Thick,
+    'Thin': Thin,
+}

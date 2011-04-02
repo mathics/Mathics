@@ -9,6 +9,9 @@ import mathics.core # load core to init sage
 #except ImportError:
 #    pass
 
+#import sys
+#sys.setrecursionlimit(3000)
+
 def print_version(is_server):
     from mathics.optional import sage_version
     import sympy

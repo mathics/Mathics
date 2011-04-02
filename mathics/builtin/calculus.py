@@ -451,8 +451,8 @@ class Integrate(SageFunction):
 class Solve(Builtin):
     """
     <dl>
-    <dt>'Solve[$equation$, $var$]'
-        <dd>attempts to solve $equation$ for the variable $var$.
+    <dt>'Solve[$equation$, $vars$]'
+        <dd>attempts to solve $equation$ for the variables $vars$.
     </dl>
     
     >> Solve[x ^ 2 - 3 x == 4, x]
@@ -499,6 +499,18 @@ class Solve(Builtin):
      : a < b is not a well-formed equation.
      = Solve[a < b, a]
      
+    Solve a system of equations:
+    >> eqs = {3 x ^ 2 - 3 y == 0, 3 y ^ 2 - 3 x == 0};
+    >> sol = Solve[eqs, {x, y}]
+     = {{x -> 1, y -> 1}, {x -> -1 / 2 + I / 2 Sqrt[3], y -> -1 / 2 - I / 2 Sqrt[3]}, {x -> -1 / 2 - I / 2 Sqrt[3], y -> -1 / 2 + I / 2 Sqrt[3]}, {x -> 0, y -> 0}}
+    >> eqs /. sol // Simplify
+     = {{True, True}, {True, True}, {True, True}, {True, True}}
+     
+    An underdetermined system:
+    >> Solve[x^2 == 1 && z^2 == -1, {x, y, z}]
+     : Equations may not give solutions for all "solve" variables.
+     = {{x -> -1, z -> -I}, {x -> -1, z -> I}, {x -> 1, z -> -I}, {x -> 1, z -> I}}
+     
     #> Solve[x^5==x,x]
      = {{x -> 1}, {x -> -1}, {x -> -I}, {x -> 0}, {x -> I}}
      
@@ -511,46 +523,140 @@ class Solve(Builtin):
     
     messages = {
         'eqf': "`1` is not a well-formed equation.",
+        'svars': "Equations may not give solutions for all \"solve\" variables.",
     }
     
     rules = {
     }
     
-    def apply(self, eq, var, evaluation):
-        'Solve[eq_, var_]'
+    def apply(self, eqs, vars, evaluation):
+        'Solve[eqs_, vars_]'
         
-        head_name = var.get_head_name()
-        if (var.is_atom() and not var.is_symbol()) or head_name in ('Plus', 'Times', 'Power'):
-            evaluation.message('Solve', 'ivar', var)
-            return
-        symbol_name = eq.get_name()
-        if symbol_name == 'True':
-            return Expression('List', Expression('List'))
-        elif symbol_name == 'False':
-            return Expression('List')
+        vars_original = vars
+        head_name = vars.get_head_name()
+        if head_name == 'List':
+            vars = vars.leaves
+        else:
+            vars = [vars]
+        for var in vars:
+            if (var.is_atom() and not var.is_symbol()) or head_name in ('Plus', 'Times', 'Power'):
+                evaluation.message('Solve', 'ivar', vars_original)
+                return
+        eqs_original = eqs
+        if eqs.get_head_name() in ('List', 'And'):
+            eqs = eqs.leaves
+        else:
+            eqs = [eqs]
+        sympy_eqs = []
+        sympy_denoms = []
+        for eq in eqs:
+            symbol_name = eq.get_name()
+            if symbol_name == 'True':
+                #return Expression('List', Expression('List'))
+                pass
+            elif symbol_name == 'False':
+                return Expression('List')
+            elif not eq.has_form('Equal', 2):
+                return evaluation.message('Solve', 'eqf', eqs_original)
+            else:
+                left, right = eq.leaves
+                left = left.to_sympy()
+                right = right.to_sympy()
+                #vars_sympy = [var.to_sympy() for var in vars]
+                eq = left - right
+                eq = sympy.together(eq)
+                eq = sympy.cancel(eq)                
+                sympy_eqs.append(eq)
+                numer, denom = eq.as_numer_denom()
+                sympy_denoms.append(denom)
+        #eqs = actual_eqs
         
-        if not eq.has_form('Equal', 2):
-            evaluation.message('Solve', 'eqf', eq)
-            return
+        #left, right = eq.leaves
         
-        left, right = eq.leaves
+        vars_sympy = [var.to_sympy() for var in vars]
         
-        left = left.to_sympy()
-        right = right.to_sympy()
-        var_sympy = var.to_sympy()
-        eq = left - right
-        eq = sympy.together(eq)
-        eq = sympy.cancel(eq)   # otherwise Solve[f''[x]==0,x] for f[x_]:=4 x / (x ^ 2 + 3 x + 5) takes forever
+        # delete unused variables to avoid SymPy's
+        # PolynomialError: Not a zero-dimensional system
+        # in e.g. Solve[x^2==1&&z^2==-1,{x,y,z}]
+        all_vars = vars[:]
+        all_vars_sympy = vars_sympy[:]
+        #for index, var in enumerate(all_vars):
+        #    if eqs_original.is_free(var, evaluation):
+        vars = []
+        vars_sympy = []   
+        for var, var_sympy in zip(all_vars, all_vars_sympy):
+            pattern = Pattern.create(var)
+            if not eqs_original.is_free(pattern, evaluation):
+                vars.append(var)
+                vars_sympy.append(var_sympy)
+        
+        def transform_dict(sols):
+            #print "Transform %s" % sols
+            if not sols:
+                yield sols
+            for var, sol in sols.iteritems():
+                rest = sols.copy()
+                del rest[var]
+                rest = transform_dict(rest)
+                if not isinstance(sol, (tuple, list)):
+                    #print "Convert %s (type %s)" % (sol, type(sol))
+                    sol = [sol]
+                if not sol:
+                    for r in rest:
+                        #print "Yield %s" % r
+                        yield r
+                else:
+                    for r in rest:
+                        for item in sol:
+                            #print "Yield %s with new %s" % (r, item)
+                            new_sols = r.copy()
+                            new_sols[var] = item
+                            yield new_sols
+                break
+        
+        def transform_solution(sol):
+            #if isinstance(sol, (list, tuple)):
+            if not isinstance(sol, dict):
+                if not isinstance(sol, (list, tuple)):
+                    sol = [sol]
+                sol = dict(zip(vars_sympy, sol))
+            #return sol
+            return transform_dict(sol)
+        
+        if len(sympy_eqs) == 1:
+            sympy_eqs = sympy_eqs[0]
+            
+        #eq = left - right
+        #eq = sympy.together(eq)
+        #eq = sympy.cancel(eq)   # otherwise Solve[f''[x]==0,x] for f[x_]:=4 x / (x ^ 2 + 3 x + 5) takes forever
         try:
-            result = sympy.solve(eq, var_sympy)
-            numer, denom = eq.as_numer_denom()
+            result = sympy.solve(sympy_eqs, vars_sympy)
+            if not isinstance(result, list):
+                result = [result]
+            if result == [None]:
+                return Expression('List')
+            #print result
+            #result = [transform_solution(sol) for sol in result]
+            results = []
+            for sol in result:
+                results.extend(transform_solution(sol))
+            result = results
+            #print result
+            if any(sol and any(var not in sol for var in all_vars_sympy) for sol in result):
+                evaluation.message('Solve', 'svars')
+            #numer, denom = eq.as_numer_denom()
             #for sol in result:
             #    sol_denom = denom.subs({var_sympy: sol})
-            result = [sol for sol in result if sympy.simplify(denom.subs({var_sympy: sol})) != 0]   # filter out results for which denominator is 0
+            result = [sol for sol in result if all(sympy.simplify(denom.subs(sol)) != 0 for denom in sympy_denoms)]   # filter out results for which denominator is 0
                 # (SymPy should actually do that itself, but it doesn't!)
-            return Expression('List', *(Expression('List', Expression('Rule', var, from_sympy(sol))) for sol in result))
-        except TypeError:
-            evaluation.message('Solve', 'ivar', var)
+            return Expression('List', *(Expression('List', *(Expression('Rule', var, from_sympy(sol[var_sympy]))
+                for var, var_sympy in zip(vars, vars_sympy) if var_sympy in sol)) for sol in result))
+        #except TypeError:
+            #evaluation.message('Solve', 'ivar', vars_original)
+            #raise
+        except sympy.PolynomialError:
+            # raised for e.g. Solve[x^2==1&&z^2==-1,{x,y,z}] when not deleting unused variables beforehand
+            pass
         except NotImplementedError:
             pass
         

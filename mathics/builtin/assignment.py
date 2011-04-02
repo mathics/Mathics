@@ -5,6 +5,8 @@ from mathics.core.expression import Expression, Symbol, String
 from mathics.core.rules import Rule
 from mathics.builtin.lists import walk_parts
 
+from mathics import settings
+
 def get_symbol_list(list, error_callback):
     if list.has_form('List', None):
         list = list.leaves
@@ -143,7 +145,8 @@ class _SetOperator(object):
         rhs_int_value = rhs.get_int_value()
         lhs_name = lhs.get_name()
         if lhs_name == '$RecursionLimit':
-            if (not rhs_int_value or rhs_int_value < 20) and not rhs.get_name() == 'Infinity':
+            #if (not rhs_int_value or rhs_int_value < 20) and not rhs.get_name() == 'Infinity':
+            if not rhs_int_value or rhs_int_value < 20 or rhs_int_value > settings.MAX_RECURSION_DEPTH:
                 evaluation.message('$RecursionLimit', 'limset', rhs)
                 return False
             ignore_protection = True

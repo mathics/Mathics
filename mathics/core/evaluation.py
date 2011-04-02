@@ -419,7 +419,7 @@ class Evaluation(object):
         
         self.check_stopped()
         
-        limit = self.get_config_value('$RecursionLimit', 256)
+        limit = self.get_config_value('$RecursionLimit', settings.MAX_RECURSION_DEPTH)
         if limit is not None:
             if limit < 20:
                 limit = 20

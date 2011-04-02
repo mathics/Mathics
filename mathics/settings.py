@@ -37,6 +37,7 @@ DEBUG_PRINT = False
 LOG_QUERIES = False
 
 TIMEOUT = None
+MAX_RECURSION_DEPTH = 200
 
 ADMINS = (
     (u'Admin', 'mail@test.com'),

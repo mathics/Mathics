@@ -36,9 +36,7 @@ def StopGenerator(tag):
             
     _tagged_stop_generators[tag] = TaggedStopGenerator
     return TaggedStopGenerator"""
-    
-
-        
+            
 class StopGenerator_BaseRule(StopGenerator):
     pass
 
@@ -50,7 +48,7 @@ class BaseRule(object):
     
     def apply(self, expression, evaluation, fully=True, return_list=False, max_list=None):
         result_list = []
-        count = 0
+        #count = 0
         
         if return_list and max_list is not None and max_list <= 0:
             return []        
@@ -68,6 +66,7 @@ class BaseRule(object):
                 if name.startswith('_option_'):
                     options[name[len('_option_'):]] = value
                     del vars[name]
+            #print sorted((name.encode('utf-8'), unicode(value).encode('utf-8')) for name, value in vars.iteritems())
             new_expression = self.do_replace(vars, options, evaluation)
             if new_expression is None:
                 new_expression = expression
@@ -91,8 +90,8 @@ class BaseRule(object):
             #print "Flattened"
             if return_list:
                 result_list.append(result)
-                count += 1
-                if max_list is not None and count >= max_list:
+                #count += 1
+                if max_list is not None and len(result_list) >= max_list:
                     #return result_list
                     raise StopGenerator_BaseRule(result_list)
             else:

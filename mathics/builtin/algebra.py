@@ -69,6 +69,7 @@ class Simplify(Builtin):
     rules = {
         'Simplify[list_List]': 'Simplify /@ list',
         'Simplify[rule_Rule]': 'Simplify /@ rule',
+        'Simplify[eq_Equal]': 'Simplify /@ eq',
     }
     
     def apply(self, expr, evaluation):
