@@ -23,7 +23,7 @@ textarea.request {
 #document {
 	position: absolute;
 	left: 0;
-	top: 65px;
+	top: 75px;
 	width: expression(document.body.clientWidth + 'px');
 	height: expression((document.body.clientHeight - 100) + 'px');
 	zoom: 1;

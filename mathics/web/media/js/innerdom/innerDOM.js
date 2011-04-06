@@ -223,6 +223,8 @@ function stringToDOM (inputString) {
 		// Objektcontainer erzeugen
 		var newDOM = document.createDocumentFragment();
 	
+		//alert("parse " + str);
+		
 		// Schleifen sie!
 		while (str && str.length > 0) {
 

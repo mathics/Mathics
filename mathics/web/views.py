@@ -43,6 +43,9 @@ if settings.DEBUG:
 else:
     JSON_MIMETYPE = 'application/json'
     
+def get_mimetype(request):
+    return 'text/html' if 'MSIE' in request.META['HTTP_USER_AGENT'] else 'application/xhtml+xml'
+    
 class JsonResponse(HttpResponse):
     def __init__(self, result={}):
         json = simplejson.dumps(result)
@@ -61,11 +64,12 @@ def require_ajax_login(f):
     return f
 
 def main_view(request):
+    mimetype = get_mimetype(request)
     return render_to_response('main.html', {
         'login_form': LoginForm(),
         'save_form': SaveForm(),
         'require_login': settings.REQUIRE_LOGIN,
-    }, context_instance=RequestContext(request), mimetype='application/xhtml+xml')
+    }, context_instance=RequestContext(request), mimetype=mimetype)
 
 def test_view(request):
     return render_to_response('test.html', {
@@ -300,7 +304,7 @@ def render_doc(request, template_name, context, data=None, ajax=False):
             'data': data,
         })
         return render_to_response('doc/%s' % template_name, context,
-            context_instance=RequestContext(request), mimetype='application/xhtml+xml')  
+            context_instance=RequestContext(request), mimetype=get_mimetype(request))  
     
 
 def doc(request, ajax=''):

@@ -15,7 +15,7 @@
 <link rel="stylesheet" type="text/css" href="/media/css/documentation.css" />
 <link rel="stylesheet" type="text/css" href="/media/css/message.css" />
 <link rel="stylesheet" type="text/css" media="print" href="/media/css/styles_print.css" />
-<!--[if lte IE 7]>
+<!--[if lte IE 9]>
 <link rel="stylesheet" type="text/css" href="/media/css/styles_ie.css" />
 <![endif]-->
 
@@ -23,6 +23,8 @@
 
 <script type="text/javascript" src="/media/js/prototype/prototype.js"></script>
 <script type="text/javascript" src="/media/js/innerdom/innerDOM.js"></script>
+
+<script type="text/javascript" src="/media/js/mathjax/MathJax.js?config=MML_HTMLorMML"></script>
 
 <script type="text/javascript" src="/media/js/message.js"></script>
 <script type="text/javascript" src="/media/js/authentication.js"></script>
@@ -40,6 +42,7 @@
   
 {% block html_body %}
 {% endblock %}
+
 
 <div style="display: none">
 <math id="prototype_math" xmlns="http://www.w3.org/1998/Math/MathML">
@@ -77,9 +80,14 @@
 <canvas id="prototype_canvas" width="200" height="200" style="border: 1px solid lightgray"></canvas>
 </div>
 
-<div style="white-space: nowrap;">
-<span style="font-size: 0.90em; font-family: default;" id="calc_container"></span><span id="calc_next"> </span><br />
-<span id="calc_below"> </span>
+
+<!--<div style="white-space: nowrap;" id="calc_all">
+<span class="calc_container" style="font-size: 0.90em; font-family: default;" id="calc_container"></span><span class="calc_next" id="calc_next"> </span><br />
+<span class="calc_below" id="calc_below"> </span>
+</div>-->
+<div style="white-space: nowrap;" id="calc_all">
+<span class="calc_container" style="font-size: 0.90em; font-family: default;"></span><span class="calc_next"> </span><br />
+<span class="calc_below"> </span>
 </div>
 
 </body>

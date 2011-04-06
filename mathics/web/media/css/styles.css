@@ -238,7 +238,12 @@ a.pdf {
 	position: relative;
 }
 
+#queries li {
+    list-style-type: none;
+}
+
 li.query {
+    list-style-type: none;
 	padding-left: 30px;
 	margin-top: 10px;
 	cursor: text;
@@ -297,20 +302,26 @@ span.delete:hover {
 }
 
 ul.query {
-	list-style-type: none;
+	list-style: none;
 	margin: 0;
 	padding: 0;
 	font-family: monospace;
 	font-size: 1em;
 }
+ul.query li {
+    list-style-type: none;
+    list-style-image: none;
+}
 
-li.request {
+ul.query li.request {
+    list-style-type: none;
+    list-style-image: none;
 	margin: 0;
 	padding: 0;
 }
 
 textarea.request {
-	width: 100%;
+	width: 99%;
 	overflow: hidden;
 	border: none;
 	line-height: 17px;
@@ -329,6 +340,8 @@ textarea.request {
 }
 
 li.out {
+    list-style-type: none;
+    list-style-image: none;
 	margin: 0;
 	padding: 0;
 }
@@ -366,6 +379,8 @@ li.print {
 }
 
 li.result {
+    list-style-type: none;
+    list-style-image: none;
 	margin-top: 3px;
 	color: black;
 }

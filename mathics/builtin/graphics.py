@@ -152,7 +152,7 @@ class Graphics(Builtin):
                 #        print atom
                 if any(not isinstance(atom, (Integer, Real)) and not atom.get_name() in GRAPHICS_SYMBOLS for atom in atoms):
                     if head == 'Inset':
-                        n_leaves = content.leaves[0] + [Expression('N', leaf).evaluate(evaluation) for leaf in content.leaves[1:]]
+                        n_leaves = [content.leaves[0]] + [Expression('N', leaf).evaluate(evaluation) for leaf in content.leaves[1:]]
                     else:
                         n_leaves = (Expression('N', leaf).evaluate(evaluation) for leaf in content.leaves)
                 else:
@@ -396,7 +396,10 @@ class Inset(Builtin):
     pass
 
 class Text(Inset):
-    pass
+    """
+    #> Graphics[{Text[x, {0,0}]}]
+     = -Graphics-
+    """
     
 class RectangleBox(_GraphicsElement):
     def init(self, graphics, style, item):
@@ -666,7 +669,7 @@ class InsetBox(_GraphicsElement):
         
     def extent(self):
         p = self.pos.pos()
-        w, h = 20, 15
+        w, h = 20, 25
         opos = self.opos
         x = p[0] - w/2.0 - opos[0]*w/2.0
         y = p[1] - h/2.0 + opos[1]*h/2.0
