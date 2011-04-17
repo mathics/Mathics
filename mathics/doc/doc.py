@@ -343,7 +343,7 @@ def post_sub(text, post_substitutions):
         text = text.replace(POST_SUBSTITUTION_TAG % index, sub)
     return text
 
-def escape_html(text, verbatim_mode=False, counters=None):
+def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
     def repl_python(match):
         return r"""<pre><![CDATA[
 %s
@@ -449,8 +449,9 @@ def escape_html(text, verbatim_mode=False, counters=None):
     for key, (xml, tex) in SPECIAL_COMMANDS.iteritems():
         text = text.replace('\\' + key, xml)
     
-    text = linebreaks(text)
-    text = text.replace('<br />', '\n').replace('<br>', '<br />')
+    if not single_line:
+        text = linebreaks(text)
+        text = text.replace('<br />', '\n').replace('<br>', '<br />')
     
     text = post_sub(text, post_substitutions)
     
@@ -484,6 +485,9 @@ class DocElement(object):
         prev = collection[index - 1] if index > 0 else None
         next = collection[index + 1] if index < len(collection) - 1 else None
         return prev, next  
+    
+    def get_title_html(self):
+        return mark_safe(escape_html(self.title, single_line=True))
 
 class Documentation(DocElement):
     def __init__(self):

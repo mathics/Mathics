@@ -318,7 +318,7 @@ def doc_part(request, part, ajax=''):
     if not part:
         raise Http404
     return render_doc(request, 'part.html', {
-        'title': part.title,
+        'title': part.get_title_html(),
         'part': part,
         'object': part,
     }, ajax=ajax)
@@ -328,7 +328,7 @@ def doc_chapter(request, part, chapter, ajax=''):
     if not chapter:
         raise Http404
     return render_doc(request, 'chapter.html', {
-        'title': chapter.title,
+        'title': chapter.get_title_html(),
         'chapter': chapter,
         'object': chapter,
     }, ajax=ajax)
@@ -339,7 +339,7 @@ def doc_section(request, part, chapter, section, ajax=''):
         raise Http404
     data = section.html_data()
     return render_doc(request, 'section.html', {
-        'title': section.title,
+        'title': section.get_title_html(),
         'title_operator': section.operator,
         'section': section,
         'object': section,
