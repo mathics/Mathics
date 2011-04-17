@@ -270,6 +270,35 @@ li.query.focused span.move {
 	border-left-width: 2px;
 }
 
+li.query .submitbutton {
+    display: none;
+}
+li.query.focused .submitbutton {
+    display: block;
+    position: absolute;
+    right: 10px;
+    top: 0;
+}
+li.query .submitbutton span {
+    display: inline-block;
+    margin-top: 3px;
+    margin-bottom: 5px;
+    /*margin-left: 10px;*/
+    background-color: #999;
+    color: white;
+    padding: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+    width: 10px;
+    line-height: 10px;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+}
+li.query .submitbutton span:hover {
+    background-color: #666;
+}
+
 li.query.moving,
 li.query.moving textarea,
 li.query.moving span.delete {

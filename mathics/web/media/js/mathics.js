@@ -451,7 +451,7 @@ function setResult(ul, results) {
 	//objects = [];
 }
 
-function submitQuery(textarea, query, onfinish) {
+function submitQuery(textarea, onfinish) {
 	//alert("submit");
 	$('welcomeContainer').fade({duration: 0.5});
 	
@@ -465,7 +465,7 @@ function submitQuery(textarea, query, onfinish) {
 		},
 		onSuccess: function(transport) {
 			//alert("response: " + transport.responseText);
-			textarea.ul.select('li[class!=request]').invoke('deleteElement');
+			textarea.ul.select('li[class!=request][class!=submitbutton]').invoke('deleteElement');
 			if (!transport.responseText) {
 				// A fatal Python error has occured, e.g. on 4.4329408320439^43214234345
 				// ("Fatal Python error: mp_reallocate failure")
@@ -511,13 +511,13 @@ function keyDown(event) {
 		return;
 	refreshInputSize(textarea);
 	
-	if (event.keyCode == Event.KEY_RETURN && event.shiftKey) {
+	if (event.keyCode == Event.KEY_RETURN && (event.shiftKey || event.keyLocation == 3)) {
 		if (!Prototype.Browser.IE)
 			event.stop();
 		
 		var query = textarea.value.strip();
 		if (query) {
-			submitQuery(textarea, query);
+			submitQuery(textarea);
 		}
 	} else if (event.keyCode == Event.KEY_UP) {
 		if (textarea.selectionStart == 0 && textarea.selectionEnd == 0) {
@@ -619,12 +619,15 @@ function createSortable() {
 var queryIndex = 0;
 
 function createQuery(before, noFocus, updatingAll) {
-	var ul, textarea, moveHandle, deleteHandle;
+	var ul, textarea, moveHandle, deleteHandle, submitButton;
 	// Items need id in order for Sortable.onUpdate to work.
 	var li = $E('li', {'id': 'query_' + queryIndex++, 'class': 'query'},
 		ul = $E('ul', {'class': 'query'},
 			$E('li', {'class': 'request'},
-				textarea = $E('textarea', {'class': 'request'})
+				textarea = $E('textarea', {'class': 'request'}),
+				$E('span', {'class': 'submitbutton'},
+					submitButton = $E('span', $T('='))
+				)
 			)
 		),
 		moveHandle = $E('span', {'class': 'move'}),
@@ -654,6 +657,18 @@ function createQuery(before, noFocus, updatingAll) {
 	moveHandle.observe('mousedown', moveMouseDown.bindAsEventListener(moveHandle));
 	moveHandle.observe('mouseup', moveMouseUp.bindAsEventListener(moveHandle));
 	$(document).observe('mouseup', moveMouseUp.bindAsEventListener($(document)));
+	submitButton.observe('mousedown', function() {
+		//alert('click');
+		if (textarea.value.strip())
+			submitQuery(textarea);
+		else
+			window.setTimeout(function() {
+				//alert("focus");
+				textarea.focus();
+				//alert("focussed");
+			}, 10);
+	});
+	//submitButton.observe('mousedown', queryMouseDown.bindAsEventListener(li));
 	if (!updatingAll) {
 		createSortable();
 		// calling directly fails in Safari on document loading
@@ -674,6 +689,7 @@ function createQuery(before, noFocus, updatingAll) {
 var mouseDownEvent = null;
 
 function documentMouseDown(event) {
+	//alert('click');
 	if (event.isLeftClick()) {
 		if (clickedQuery) {
 			clickedQuery = null;
