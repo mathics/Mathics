@@ -73,29 +73,8 @@ Welcome to \Mathics, have fun!
 <chapter title="Installation">
 
 <section title="Browser requirements">
-To use the online version of \Mathics at <url>http://www.mathics.net</url> or a different location (in fact, anybody could run their own version), you need the Firefox Web browser. Up to this point, this is the only browser to support the needed MathML and SVG requirements. \Mathics is developed and tested under Firefox 3.6, but any decent version should do it. WebKit-based browsers like Chrome and Safari are announced to support MathML soon, so there's hope for broader support.
-
-To display all mathematical content correctly and in a beautiful way, the STIX fonts are needed (see <url>https://developer.mozilla.org/en/Mozilla_MathML_Project/Fonts</url>). While any Unicode-enabled font will provide the basic characters, STIX fonts are needed for stretchy operators like radical signs and under- and over-braces. They are available for free at <url>http://www.stixfonts.org/</url> or as part of the Debian package <em>otf-stix</em>.
+To use the online version of \Mathics at <url>http://www.mathics.net</url> or a different location (in fact, anybody could run their own version), you need a decent version of a modern Web browser, such as Firefox, Chrome, or Safari. Internet Explorer, even with its relatively new version 9, lacks support for modern Web standards; while you might be able to enter queries and view results, the whole layout of \Mathics is a mess in Internet Explorer. There might be better support in the future, but this does not have very high priority. Opera is not supported "officially" as it obviously has some problems with mathematical text inside SVG graphics, but except from that everything should work pretty fine.  
 </section>
-
-##<section title="Local installation">
-##For the impatient Debian/Ubuntu users: Run the following commands to install \Mathics:
-##<console>
-### apt-get install python-dev libsqlite3-dev libgmp3-dev
-### python setup.py install
-##</console>
-##To run the console version of \Mathics, issue:
-##<console>
-##$ mathics
-##</console>
-##The GUI version can be started by the command:
-##<console>
-##$ mathicsserver
-##</console>
-##Then open the URL <url>http://localhost:8000</url> in Firefox.
-##
-##If you want more detailed information, especially if you are running a different operating system than Debian or Ubuntu, please read the next section.
-##</section>
 
 <section title="Installation prerequisites">
 To run \Mathics, you need Python 2.5 or higher on your computer. On most Linux distributions and on Mac OS X, Python is already included in the system by default. For Windows, you can get it from <url>http://www.python.org</url>. Anyway, the primary target platforms for \Mathics are Linux (especially Debian and Ubuntu) and Mac OS X. If you are on Windows and want to help by providing an installer to make setup on Windows easier, feel very welcome! 

@@ -16,6 +16,26 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
+var HTML_ENTITIES = $H({
+	'amp': 34,
+	'gt': 62,
+	'lt': 60,
+	'quot': 34,
+	'nbsp': 160,
+	'ndash': 8211,
+	'mdash': 8212,
+	'euro': 8364,
+	'copy': 169,
+	'trade': 8482,
+	'hellip': 8230,
+	'ldquo': 8220,
+	'rdquo': 8221,
+	'bdquo': 8222,
+	'reg': 174,
+	'larr': 8592,
+	'rarr': 8594
+});
+
 var ElementMethods = {
 	setText: function(element, text) {
 		element.deleteChildNodes();
@@ -67,16 +87,24 @@ var ElementMethods = {
 	},
 	
 	updateDOM: function(element, content) {
-		var dom = stringToDOM(content);
-		element.deleteChildNodes();
-		element.appendChild(dom);
+		//var dom = stringToDOM(content);
+		//element.deleteChildNodes();
+		//element.appendChild(dom);
+		//content = content.gsub(/&nbsp;/, ' ');
+		//alert(content);
+		//content = content.gsub(/&larr;/, '-').gsub(/&rarr;/, '-');
+		// convert named entities to numerical entities before calling update
+		content = content.gsub(/&([a-zA-Z]+);/, function(match) {
+			var code = HTML_ENTITIES.get(match[1]);
+			return "&#" + code + ";";
+		});
+		element.update(content);
 	},
 	
-	replaceDOM: function(element, content) {
+	/*replaceDOM: function(element, content) {
 		var dom = stringToDOM(content);
-		element.parentNode.replaceChild(dom, element);
-		
-	},
+		element.parentNode.replaceChild(dom, element);		
+	},*/
 	
 	scrollIntoView: function(element) {
 		var offset = element.cumulativeOffset(); 

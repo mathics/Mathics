@@ -155,7 +155,7 @@ function createLink() {
 		queries[queries.length] = 'queries=' + encodeURIComponent(text);
 	});
 	var query = queries.join('&');
-	location.hash = '#' + encodeURI(query);
+	location.hash = '#' + query; //encodeURI(query);
 }
 
 function setQueries(queries) {
@@ -169,7 +169,9 @@ function setQueries(queries) {
 	function load(index) {
 		if (index < list.length) {
 			var item = list[index];
+			//alert("submit");
 			submitQuery(item.li.textarea, item.query, function() {
+				//alert("submitted");
 				load(index + 1);
 			});
 		} else {

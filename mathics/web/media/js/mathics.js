@@ -169,8 +169,9 @@ function createMathNode(nodeName) {
 	}*/
 	if (['svg', 'g', 'rect', 'circle', 'polyline', 'polygon', 'path', 'ellipse', 'foreignObject'].include(nodeName))
 		return document.createElementNS("http://www.w3.org/2000/svg", nodeName);
-	else
+	else {
 		return document.createElement(nodeName);
+	}
 	//alert('created');
 }
 
@@ -222,8 +223,8 @@ function translateDOMElement(element, svg) {
 		var op = element.childNodes[0].nodeValue;
 		if (op == '[' || op == ']' || op == '{' || op == '}' || op == String.fromCharCode(12314) || op == String.fromCharCode(12315))
 			dom.setAttribute('maxsize', '3');
-		else if (op == '(' || op == ')')
-			dom.setAttribute('maxsize', '0');
+		//else if (op == '(' || op == ')')
+		//	dom.setAttribute('maxsize', '0');
 	}
 	if (nodeName == 'meshgradient') {
 		if (!MathJax.Hub.Browser.isOpera) {
@@ -329,8 +330,12 @@ function createLine(value) {
 		//alert('stringToDOM');
 		//var dom = stringToDOM(value);
 		var dom = document.createElement('div');
-		dom.update(value);
-		//alert('got dom');
+		//alert('created dom');
+		// updating with &nbsp; in the value does not work 
+		//value = value.gsub(/&nbsp;/, " ");
+		//alert(value);
+		dom.updateDOM(value);
+		//alert('updated dom');
 		
 		var result = translateDOMElement(dom.childNodes[0]);
 		//alert('translated');
@@ -375,7 +380,9 @@ function setResult(ul, results) {
 			var li = $E('li', {'class': (out.message ? 'message' : 'print')});
 			if (out.message)
 				li.appendChild($T(out.prefix + ': '));
+			//alert(out.text);
 			li.appendChild(createLine(out.text));
+			//alert(li);
 			resultUl.appendChild(li);
 		});
 		//alert('out created');
@@ -445,7 +452,8 @@ function setResult(ul, results) {
 }
 
 function submitQuery(textarea, query, onfinish) {
-	$('welcome').fade({duration: 0.5});
+	//alert("submit");
+	$('welcomeContainer').fade({duration: 0.5});
 	
 	//alert("submit " + textarea.value);
 	
@@ -468,6 +476,7 @@ function submitQuery(textarea, query, onfinish) {
 			}
 			var response = transport.responseText.evalJSON();
 			setResult(textarea.ul, response.results);
+			//alert("result set");
 			textarea.submitted = true;
 			textarea.results = response.results;
 			var next = textarea.li.nextSibling;
@@ -475,6 +484,7 @@ function submitQuery(textarea, query, onfinish) {
 				next.textarea.focus();
 			else
 				createQuery();
+			//alert("success");
 		},
 		onFailure: function(transport) {
 			textarea.ul.select('li[class!=request]').invoke('deleteElement');
@@ -588,26 +598,30 @@ function onBlur(event) {
 }
 
 function createSortable() {
+	//alert("create sortable");
 	Position.includeScrollOffsets = true;
-	
+	//alert("create");
   Sortable.create('queries', {
     handle: 'move',
     scroll: 'document',
     scrollSensitivity: 1	// otherwise strange flying-away of item at top
     /*onChange: function(item) {
-	    //movedItem = item;
+	    movedItem = item;
 	  },
 
 	  onUpdate: function() {
-	  	//movedItem = null;
+	  	movedItem = null;
 	  }*/
   });
+  //alert("created");
 }
+
+var queryIndex = 0;
 
 function createQuery(before, noFocus, updatingAll) {
 	var ul, textarea, moveHandle, deleteHandle;
 	// Items need id in order for Sortable.onUpdate to work.
-	var li = $E('li', {/*'id': 'query_' + queryIndex++,*/ 'class': 'query'},
+	var li = $E('li', {'id': 'query_' + queryIndex++, 'class': 'query'},
 		ul = $E('ul', {'class': 'query'},
 			$E('li', {'class': 'request'},
 				textarea = $E('textarea', {'class': 'request'})
@@ -640,13 +654,19 @@ function createQuery(before, noFocus, updatingAll) {
 	moveHandle.observe('mousedown', moveMouseDown.bindAsEventListener(moveHandle));
 	moveHandle.observe('mouseup', moveMouseUp.bindAsEventListener(moveHandle));
 	$(document).observe('mouseup', moveMouseUp.bindAsEventListener($(document)));
-	if (!updatingAll)
+	if (!updatingAll) {
 		createSortable();
+		// calling directly fails in Safari on document loading
+		//window.setTimeout(createSortable, 10);
+	}
 	//textarea.focus();
+	//alert("focus");
 	// Immediately setting focus doesn't work in IE.
 	if (!noFocus)
 		window.setTimeout(function() {
+			//alert("focus");
 			textarea.focus();
+			//alert("focussed");
 		}, 10);
 	return li;
 }
@@ -686,7 +706,6 @@ function documentClick(event) {
 		}
 	});
 	createQuery(element);
-	
 }
 
 function queryMouseDown(event) {
@@ -739,6 +758,10 @@ function globalKeyUp(event) {
 }
 
 function domLoaded() {
+	if ($('welcomeBrowser'))
+		if (!(Prototype.Browser.WebKit || Prototype.Browser.MobileSafari || Prototype.Browser.Gecko))
+			$('welcomeBrowser').show();
+	
 	$$('body')[0].observe('resize', refreshInputSizes);
 	
 	if ($('queriesContainer')) {
@@ -782,6 +805,11 @@ function domLoaded() {
 		
 		if (!loadLink())
 			createQuery();
+		
+		/*window.setTimeout(function() {
+			$$('textarea')[0].focus();
+			alert("focussed");
+		}, 1000);*/
 	}
 }
 

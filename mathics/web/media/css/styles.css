@@ -185,33 +185,49 @@ a.pdf {
 	right: 50%;
 }
 
-#welcome {
+#welcomeContainer {
 	position: absolute;
 	margin-left: auto;
 	margin-right: auto;
 	left: 25%;
 	width: 50%;
-	bottom: 20px;
+	bottom: 20px;   
+}
+
+#welcome,
+#welcomeBrowser {
 	/*background-color: #666;*/
 	border: 2px solid #999;
 	color: #333;
-	cursor: default;
+	cursor: default; 
 	padding: 10px;
 	-moz-border-radius: 10px;
 	-webkit-border-radius: 10px;	
 }
 
-#welcome p {
+#welcomeContainer p {
 	margin-top: 0;
 	margin-bottom: 3px;
 }
 
-#welcome a {
+#welcomeContainer a {
 	color: #666;
 }
 
-#welcome a:hover {
+#welcomeContainer a:hover {
 	color: #999;
+}
+
+#welcomeBrowser {
+    border-color: red;
+    background-color: red;
+    color: white;
+    margin-top: 20px;
+}
+
+#welcomeBrowser a,
+#welcomeBrowser a:hover {
+    color: white;
 }
 
 #doc {
