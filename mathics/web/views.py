@@ -44,7 +44,7 @@ else:
     JSON_MIMETYPE = 'application/json'
     
 def get_mimetype(request):
-    return 'text/html' if 'MSIE' in request.META['HTTP_USER_AGENT'] else 'application/xhtml+xml'
+    return 'text/html' if 'MSIE' in request.META.get('HTTP_USER_AGENT', '') else 'application/xhtml+xml'
     
 class JsonResponse(HttpResponse):
     def __init__(self, result={}):

@@ -352,26 +352,6 @@ function createLine(value) {
 	}
 }
 
-MathJax.Hub.Config({
-	delayJaxRegistration: true,
-	"HTML-CSS": {
-  	showMathMenu: false
-  },
-  MMLorHTML: {
-    //
-    //  The output jax that is to be preferred when both are possible
-    //  (set to "MML" for native MathML, "HTML" for MathJax's HTML-CSS output jax).
-    //
-    prefer: {
-      MSIE:    "HTML",
-      Firefox: "HTML",
-      Opera:   "HTML",
-      //Safari:  "HTML",
-      other:   "HTML"
-    }
-  }
-});
-
 function setResult(ul, results) {
 	//alert('set result');
 	results.each(function(result) {
@@ -625,7 +605,7 @@ function createQuery(before, noFocus, updatingAll) {
 		ul = $E('ul', {'class': 'query'},
 			$E('li', {'class': 'request'},
 				textarea = $E('textarea', {'class': 'request'}),
-				$E('span', {'class': 'submitbutton'},
+				$E('span', {'class': 'submitbutton', 'title': "Submit [Shift+Return]"},
 					submitButton = $E('span', $T('='))
 				)
 			)
@@ -774,6 +754,27 @@ function globalKeyUp(event) {
 }
 
 function domLoaded() {
+	MathJax.Hub.Config({
+		//delayJaxRegistration: true,
+		"HTML-CSS": {
+	  	showMathMenu: false
+	  },
+	  MMLorHTML: {
+	    //
+	    //  The output jax that is to be preferred when both are possible
+	    //  (set to "MML" for native MathML, "HTML" for MathJax's HTML-CSS output jax).
+	    //
+	    prefer: {
+	      MSIE:    "HTML",
+	      Firefox: "HTML",
+	      Opera:   "HTML",
+	      //Safari:  "HTML",
+	      other:   "HTML"
+	    }
+	  }
+	});
+	MathJax.Hub.Configured();
+	
 	if ($('welcomeBrowser'))
 		if (!(Prototype.Browser.WebKit || Prototype.Browser.MobileSafari || Prototype.Browser.Gecko))
 			$('welcomeBrowser').show();
