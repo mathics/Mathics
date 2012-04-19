@@ -757,6 +757,7 @@ function domLoaded() {
 	MathJax.Hub.Config({
 		//delayJaxRegistration: true,
 		"HTML-CSS": {
+			imageFont: null,
 	  	showMathMenu: false
 	  },
 	  MMLorHTML: {
