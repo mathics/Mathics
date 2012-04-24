@@ -23,11 +23,15 @@ def cancel(expr):
     if expr.has_form('Plus', None):
         return Expression('Plus', *[cancel(leaf) for leaf in expr.leaves])
     else:
-        result = expr.to_sympy()
-        #result = sympy.powsimp(result, deep=True)
-        result = sympy.cancel(result)
-        result = sympy_factor(result)   # cancel factors out rationals, so we factor them again
-        return from_sympy(result)
+        try:
+            result = expr.to_sympy()
+            #result = sympy.powsimp(result, deep=True)
+            result = sympy.cancel(result)
+            result = sympy_factor(result)   # cancel factors out rationals, so we factor them again
+            return from_sympy(result)
+        except sympy.PolynomialError:
+            # e.g. for non-commutative expressions
+            return expr
     
 class Cancel(Builtin):
     """
@@ -101,7 +105,7 @@ class Together(Builtin):
      = f[a / c + b / c]
      
     #> f[x]/x+f[x]/x^2//Together
-     = (x f[x] + f[x]) / x ^ 2
+     = (1 + x) f[x] / x ^ 2
     """
     
     attributes = ['Listable']
@@ -158,12 +162,9 @@ class Apart(Builtin):
      
     When several variables are involved, the results can be different depending on the main variable: 
     >> Apart[1 / (x^2 - y^2), x]
-     = -Sqrt[y ^ 2] / (2 y ^ 2 (x + Sqrt[y ^ 2])) + Sqrt[y ^ 2] / (2 y ^ 2 (x - Sqrt[y ^ 2]))
-    >> Apart[1 / (x^2 - y^2), y]
-     = -Sqrt[x ^ 2] / (2 x ^ 2 (y - Sqrt[x ^ 2])) + Sqrt[x ^ 2] / (2 x ^ 2 (y + Sqrt[x ^ 2]))
-    \Mathics does not yield very beautiful results in this case. The expressions can be simplified using 'PowerExpand', though this might not be mathematically correct:
-    >> Apart[1 / (x^2 - y^2), x] // PowerExpand
      = -1 / (2 y (x + y)) + 1 / (2 y (x - y))
+    >> Apart[1 / (x^2 - y^2), y]
+     = 1 / (2 x (x + y)) + 1 / (2 x (x - y))
      
     'Apart' is 'Listable':
     >> Apart[{1 / (x^2 + 5x + 6)}]
@@ -184,9 +185,13 @@ class Apart(Builtin):
         
         expr_sympy = expr.to_sympy()
         var_sympy = var.to_sympy()
-        result = sympy.apart(expr_sympy, var_sympy)
-        result = from_sympy(result)
-        return result
+        try:
+            result = sympy.apart(expr_sympy, var_sympy)
+            result = from_sympy(result)
+            return result
+        except sympy.PolynomialError:
+            # raised e.g. for apart(sin(1/(x**2-y**2)))
+            return expr
 
 class Expand(Builtin):
     """

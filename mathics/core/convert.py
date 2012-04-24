@@ -50,21 +50,65 @@ class ConvertSubstitutions(object):
         self.subs.append(expr)
         return expression.Expression(self.head_name, expression.Integer(index), *expr.get_atoms())
     
-class SympyExpression(sympy.basic.Basic):
+class BasicSympy(sympy.basic.Basic):
+    """
+    Implementation of some methods not available any more in sympy.basic.Basic for sympy 0.7.1
+    (taken from sympy 0.6.7)
+    """ 
+    
+    def as_base_exp(self):
+        # a -> b ** e
+        return self, sympy.S.One
+
+    def as_coeff_terms(self, x=None):
+        # a -> c * t
+        if x is not None:
+            if not self.has(x):
+                return self, tuple()
+        return sympy.S.One, (self,)
+
+    def as_numer_denom(self):
+        """ a/b -> a,b
+
+        The following is a possible way to modify Eq which are now
+        just returned as (Eq(), 1). It is not a trivial change,
+        however, and it causes many failures.
+
+        from sympy.core.relational import Equality
+        from sympy import Eq
+        if isinstance(self, Equality):
+            l = Symbol('l', dummy=True)
+            r = Symbol('r', dummy=True)
+            n, d = (l*self.lhs - r*self.rhs).as_numer_denom()
+            return Eq(n.subs({l: 1, r: 0}),
+                      n.subs({l: 0, r: -1})), d.subs({l: 1, r: 1})
+        """
+
+        base, exp = self.as_base_exp()
+        coeff_terms = exp.as_coeff_terms()
+        if coeff_terms is not None:
+            coeff, terms = coeff_terms
+            if coeff.is_negative:
+                # b**-e -> 1, b**e
+                return sympy.S.One, base ** (-exp)
+        return self, sympy.S.One
+    
+BasicSympy = sympy.Expr
+    
+class SympyExpression(BasicSympy):
     is_Function = True
     nargs = None
     
     def __new__(cls, expr):
-        obj = sympy.basic.Basic.__new__(cls)
+        obj = BasicSympy.__new__(cls, *(expr.head.to_sympy(),) + tuple(leaf.to_sympy() for leaf in expr.leaves))
         obj.expr = expr
-        obj._args = (expr.head.to_sympy(),) + tuple(leaf.to_sympy() for leaf in expr.leaves)
         return obj
     
-    def new(self, *args):
+    """def new(self, *args):
         from mathics.core import expression
         
         expr = expression.Expression(from_sympy(args[0]), *(from_sympy(arg) for arg in args[1:]))
-        return SympyExpression(expr)
+        return SympyExpression(expr)"""
         
     @property
     def func(self):
@@ -72,7 +116,8 @@ class SympyExpression(sympy.basic.Basic):
         
         class SympyExpressionFunc(object):
             def __new__(cls, *args):
-                return SympyExpression(expression.Expression(self.expr.head, *(from_sympy(arg) for arg in args[1:])))
+                return SympyExpression(self.expr)
+                #return SympyExpression(expression.Expression(self.expr.head, *(from_sympy(arg) for arg in args[1:])))
         return SympyExpressionFunc
         
     def has_any_symbols(self, *syms):
@@ -91,10 +136,22 @@ class SympyExpression(sympy.basic.Basic):
         
     def _eval_rewrite(self, pattern, rule, **hints):
         return self
+    
+    @property
+    def is_commutative(self):
+        if all(getattr(t, 'is_commutative') for t in self.args):
+            return True
+        else:
+            return False
+    
+    def __str__(self):
+        return '%s[%s]' % (super(SympyExpression, self).__str__(), self.expr)
        
 def from_sympy(expr):
     from mathics.builtin import sympy_to_mathics
     from mathics.core.expression import Symbol, Integer, Rational, Real, Expression
+    
+    from sympy.core import numbers, function, symbol
     
     if isinstance(expr, (tuple, list)):
         return Expression('List', *[from_sympy(item) for item in expr])
@@ -106,7 +163,7 @@ def from_sympy(expr):
         name = None
         if expr.is_Symbol:
             name = unicode(expr)
-            if isinstance(expr, sympy.core.symbol.Dummy):
+            if isinstance(expr, symbol.Dummy):
                 name = name + ('__Dummy_%d' % expr.dummy_index)
                 return Symbol(name, sympy_dummy=expr)
             if name.startswith(sage_symbol_prefix):
@@ -118,28 +175,37 @@ def from_sympy(expr):
             if builtin is not None:
                 name = builtin.get_name()
             return Symbol(name)
-        elif isinstance(expr, (sympy.core.numbers.Infinity, sympy.core.numbers.ComplexInfinity)):
+        elif isinstance(expr, (numbers.Infinity, numbers.ComplexInfinity)):
             return Symbol(expr.__class__.__name__)
-        elif isinstance(expr, sympy.core.numbers.NegativeInfinity):
+        elif isinstance(expr, numbers.NegativeInfinity):
             return Expression('Times', Integer(-1), Symbol('Infinity'))
-        elif isinstance(expr, sympy.core.numbers.ImaginaryUnit):
+        elif isinstance(expr, numbers.ImaginaryUnit):
             return Symbol('I')
-        elif isinstance(expr, sympy.core.numbers.Integer):
+        elif isinstance(expr, numbers.Integer):
             return Integer(expr.p)
-        elif isinstance(expr, sympy.core.numbers.Rational):
+        elif isinstance(expr, numbers.Rational):
+            if expr.q == 0:
+                if expr.p > 0:
+                    return Symbol('Infinity')
+                elif expr.p < 0:
+                    return Expression('Times', Integer(-1), Symbol('Infinity'))
+                else:
+                    assert expr.p == 0
+                    return Symbol('Indeterminate')
             return Rational(expr.p, expr.q)
-        elif isinstance(expr, sympy.core.numbers.Real):
+        elif isinstance(expr, numbers.Float):
             return Real(expr.num)
-        elif isinstance(expr, sympy.core.function.FunctionClass):
+        elif isinstance(expr, function.FunctionClass):
             return Symbol(unicode(expr))
     elif expr.is_Add:
-        return Expression('Plus', *(from_sympy(arg) for arg in expr.args))
+        return Expression('Plus', *[from_sympy(arg) for arg in expr.args])
     elif expr.is_Mul:
-        return Expression('Times', *(from_sympy(arg) for arg in expr.args))
+        return Expression('Times', *[from_sympy(arg) for arg in expr.args])
     elif expr.is_Pow:
-        return Expression('Power', *(from_sympy(arg) for arg in expr.args))
+        return Expression('Power', *[from_sympy(arg) for arg in expr.args])
     
     elif isinstance(expr, SympyExpression):
+        #print "SympyExpression: %s" % expr
         return expr.expr
     
     elif expr.is_Function or isinstance(expr, (sympy.Integral, sympy.Derivative)):
@@ -158,6 +224,9 @@ def from_sympy(expr):
             if name.startswith(sage_symbol_prefix):
                 name = name[len(sage_symbol_prefix):]
         return Expression(Symbol(name), *args)
+    
+    elif isinstance(expr, sympy.Tuple):
+        return Expression('List', *[from_sympy(arg) for arg in expr.args])
     
     else:
         raise ValueError("Unknown SymPy expression: %s" % expr)

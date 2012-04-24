@@ -159,7 +159,7 @@ class LinearProgramming(OptionalSageFunction):
             return evaluation.message('LinearProgramming', 'lpsnf')
         #print result
         x = result['x']
-        x = [round(value, mpf('0.000001')) for value in x]  # round result to 6 digits after comma
+        x = [round(value, 6) for value in x]  # round result to 6 digits after comma
         return from_sage(x, subs)
 
 # knapsack is only available in Sage >= 4.6

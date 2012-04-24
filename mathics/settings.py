@@ -22,8 +22,9 @@ import pkg_resources
 import sys
 import os
 from os import path
+import django
 
-VERSION = '0.4dev'
+VERSION = '0.4'
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -57,10 +58,20 @@ DOC_TEX_DATA = ROOT_DIR + 'doc/tex/data'
 DOC_XML_DATA = ROOT_DIR + 'doc/xml/data'
 DOC_LATEX_FILE = ROOT_DIR + 'doc/tex/documentation.tex'
 
+"""
+For Django < 1.2:
 DATABASE_ENGINE = 'sqlite3'
 DATABASE_NAME = DATA_DIR + 'mathics.sqlite'
 DATABASE_HOST = ''             # Set to empty string for localhost. Not used with sqlite3.
 DATABASE_PORT = ''             # Set to empty string for default. Not used with sqlite3.
+"""
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': DATA_DIR + 'mathics.sqlite'
+    }
+}
 
 REQUIRE_LOGIN = False
 
@@ -95,16 +106,17 @@ MEDIA_URL = '/media/'
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
-ADMIN_MEDIA_PREFIX = '/media/admin/'
+if django.VERSION < (1, 3):
+    ADMIN_MEDIA_PREFIX = '/media/admin/'
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'uvbhuiasaeaph6Duh)r@3ex1i@et=0j4h(!p4@!r6s-=a_ev*e'
 
 # List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.load_template_source',
-    'django.template.loaders.app_directories.load_template_source',
-)
+#TEMPLATE_LOADERS = (
+#    'django.template.loaders.filesystem.load_template_source',
+#    'django.template.loaders.app_directories.load_template_source',
+#)
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',

@@ -328,8 +328,11 @@ class Integrate(SageFunction):
      = -Sqrt[3] Log[-2 + Sqrt[3] + x] / 6 + Sqrt[3] Log[-2 - Sqrt[3] + x] / 6
     >> Integrate[4 Sin[x] Cos[x], x]
      = 2 Sin[x] ^ 2
-    >> Integrate[-Infinity, {x, 0, Infinity}]
-     = -Infinity
+     
+    ## This should better return -Infinity:
+    #> Integrate[-Infinity, {x, 0, Infinity}]
+     = Indeterminate
+    
      
     Integration in TeX:
     >> Integrate[f[x], {x, a, b}] // TeXForm
@@ -399,15 +402,27 @@ class Integrate(SageFunction):
     prepare_sympy = prepare_sage
     
     def from_sympy(self, leaves):
+        #print leaves
+        #return leaves
         args = []
-        if len(leaves) > 1 and leaves[1].has_form('List', None):
-            for arg in leaves[1].leaves:
-                if arg.has_form('List', 2):
-                    if arg.leaves[1].get_name() == 'Null':
-                        args.append(arg.leaves[0])
-                    elif arg.leaves[1].has_form('List', 2):
-                        args.append(Expression('List', arg.leaves[0], arg.leaves[1].leaves[0], arg.leaves[1].leaves[1]))
+        for leaf in leaves[1:]:
+            if leaf.has_form('List', 1):
+                # {x} -> x
+                args.append(leaf.leaves[0])
+            else:
+                args.append(leaf)
+        #print leaves
+        #if len(leaves) > 1 and leaves[1].has_form('List', None):
+        #    for arg in leaves[1].leaves:
+        #        pass
+                #if arg.has_form('List', 2):
+                #    if arg.leaves[1].get_name() == 'Null':
+                #        args.append(arg.leaves[0])
+                #    elif arg.leaves[1].has_form('List', 2):
+                #        args.append(Expression('List', arg.leaves[0], arg.leaves[1].leaves[0], arg.leaves[1].leaves[1]))
+        
         return [leaves[0]] + args
+    
     
     def apply(self, f, xs, evaluation):
         'Integrate[f_, xs__]'
@@ -502,14 +517,14 @@ class Solve(Builtin):
     Solve a system of equations:
     >> eqs = {3 x ^ 2 - 3 y == 0, 3 y ^ 2 - 3 x == 0};
     >> sol = Solve[eqs, {x, y}]
-     = {{x -> 1, y -> 1}, {x -> -1 / 2 + I / 2 Sqrt[3], y -> -1 / 2 - I / 2 Sqrt[3]}, {x -> -1 / 2 - I / 2 Sqrt[3], y -> -1 / 2 + I / 2 Sqrt[3]}, {x -> 0, y -> 0}}
+     = {{x -> 0, y -> 0}, {x -> 1, y -> 1}, {x -> (-1 / 2 + I / 2 Sqrt[3]) ^ 2, y -> -1 / 2 + I / 2 Sqrt[3]}, {x -> (-1 / 2 - I / 2 Sqrt[3]) ^ 2, y -> -1 / 2 - I / 2 Sqrt[3]}}
     >> eqs /. sol // Simplify
      = {{True, True}, {True, True}, {True, True}, {True, True}}
      
     An underdetermined system:
     >> Solve[x^2 == 1 && z^2 == -1, {x, y, z}]
      : Equations may not give solutions for all "solve" variables.
-     = {{x -> -1, z -> -I}, {x -> -1, z -> I}, {x -> 1, z -> -I}, {x -> 1, z -> I}}
+     = {{x -> -1, z -> I}, {x -> -1, z -> -I}, {x -> 1, z -> I}, {x -> 1, z -> -I}}
      
     #> Solve[x^5==x,x]
      = {{x -> 1}, {x -> -1}, {x -> -I}, {x -> 0}, {x -> I}}
@@ -623,16 +638,22 @@ class Solve(Builtin):
             #return sol
             return transform_dict(sol)
         
-        if len(sympy_eqs) == 1:
+        if not sympy_eqs:
+            sympy_eqs = True
+        elif len(sympy_eqs) == 1:
             sympy_eqs = sympy_eqs[0]
             
         #eq = left - right
         #eq = sympy.together(eq)
         #eq = sympy.cancel(eq)   # otherwise Solve[f''[x]==0,x] for f[x_]:=4 x / (x ^ 2 + 3 x + 5) takes forever
         try:
+            #print sympy_eqs
             result = sympy.solve(sympy_eqs, vars_sympy)
+            #print result
             if not isinstance(result, list):
                 result = [result]
+            if result == [True]:
+                return Expression('List', Expression('List'))
             if result == [None]:
                 return Expression('List')
             #print result

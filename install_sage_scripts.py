@@ -11,7 +11,7 @@ from optparse import OptionParser
 from mathics import settings
 
 def setup():
-    parser = OptionParser(description="Sets up scripts to run mathcis and mathicsserver when installed into Sage.")
+    parser = OptionParser(description="Sets up scripts to run mathics and mathicsserver when installed into Sage.")
     parser.add_option("-d", "--directory", dest="dir", metavar="DIR", default='/usr/local/bin',
         help="install scripts into directory DIR")
     options, args = parser.parse_args()

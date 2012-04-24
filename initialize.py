@@ -9,12 +9,13 @@ import subprocess
 from mathics import settings
 
 def setup():
+    database_file = settings.DATABASES['default']['NAME']
     print "Creating data directory %s" % settings.DATA_DIR
     if not path.exists(settings.DATA_DIR):
         os.makedirs(settings.DATA_DIR)
-    print "Creating database %s" % settings.DATABASE_NAME
+    print "Creating database %s" % database_file
     subprocess.call(['python', 'mathics/manage.py', 'syncdb', '--noinput'])
-    os.chmod(settings.DATABASE_NAME, 0766)
+    os.chmod(database_file, 0766)
     print ""
     print "Mathics initialized successfully."
 

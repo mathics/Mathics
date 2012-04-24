@@ -6,8 +6,6 @@ from setuptools import setup
 
 from distutils.extension import Extension
 
-#import Cython
-
 from mathics import settings
 
 try:
@@ -23,13 +21,19 @@ except ImportError:
     EXTENSIONS = []
     CMDCLASS = {}
     
-INSTALL_REQUIRES = ['sympy==0.6.6', 'gmpy>=1.04', 'mpmath>=0.15', 'cython>=0.14.1']
+INSTALL_REQUIRES = ['sympy>=0.7', 'gmpy>=1.04', 'mpmath>=0.15', 'cython>=0.15.1']
 # strange SandboxError with SymPy 0.6.7 in Sage (writing to ~/.sage/tmp)
 
 #if sys.platform == "darwin":
 #    INSTALL_REQUIRES += ['readline']
     
-INSTALL_REQUIRES += ['django>=1.0']
+INSTALL_REQUIRES += ['django>=1.2']
+
+def subdirs(root, file='*.*', depth=10):
+    for k in range(depth):
+        yield root + '*/' * k + file
+    
+mathjax_files = list(subdirs('media/js/mathjax/'))
 
 setup(
     name = "Mathics",
@@ -48,7 +52,7 @@ setup(
         'mathics.web': ['media/css/*.css', 'media/img/*.gif',
             'media/js/innerdom/*.js', 'media/js/prototype/*.js', 'media/js/scriptaculous/*.js',
             'media/js/*.js',
-            'templates/*.html', 'templates/doc/*.html'],
+            'templates/*.html', 'templates/doc/*.html'] + mathjax_files,
     },
     
     entry_points = {

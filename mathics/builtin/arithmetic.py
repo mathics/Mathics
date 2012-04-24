@@ -803,7 +803,7 @@ class Abs(SageFunction):
     
     sage_name = 'abs_symbolic'
     sage_names_alt = ['abs']
-    sympy_name = 'abs'
+    sympy_name = 'Abs'
     
     def apply_real(self, x, evaluation):
         'Abs[x_?RealNumberQ]'

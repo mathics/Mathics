@@ -23,15 +23,16 @@ import os
 from optparse import OptionParser
 
 import django
-from django.core.servers.basehttp import run, AdminMediaHandler, WSGIServerException
-from django.core.handlers.wsgi import WSGIHandler
 
 from mathics import print_version, print_license
 
 def main():
     os.environ['DJANGO_SETTINGS_MODULE'] = 'mathics.settings'
+    #os.putenv('DJANGO_SETTINGS_MODULE', 'mathics.settings')
     
     from django.conf import settings
+    from django.core.servers.basehttp import run, AdminMediaHandler, WSGIServerException
+    from django.core.handlers.wsgi import WSGIHandler
     
     parser = OptionParser(version='%prog ' + settings.VERSION,
         description="Mathics server for the graphical user interface in Firefox. It is not intended for production use on a public Web server!")
@@ -47,7 +48,7 @@ def main():
     print u"Quit by pressing %s\n" % quit_command
     
     port = options.port
-    print u"Open the graphical user interface at\nhttp://localhost:%d\nin Firefox to use Mathics\n" % port
+    print u"Open the graphical user interface at\nhttp://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n" % port
     
     if options.external:
         addr = '0.0.0.0'
@@ -62,7 +63,7 @@ def main():
         ERRORS = {
             13: "You don't have permission to access that port.",
             98: "That port is already in use.",
-            99: "That IP address can't be assigned-to.",
+            99: "That IP address can't be assigned to.",
         }
         try:
             error_text = ERRORS[e.args[0].args[0]]

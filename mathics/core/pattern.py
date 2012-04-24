@@ -22,10 +22,8 @@ u"""
 from mathics.core.expression import Expression, Symbol, Integer, Rational, Real, Number
 from mathics.core.util import subsets, subranges, permutations
 
-from mathics.core.pattern_nocython import StopGenerator #, Pattern #, ExpressionPattern
-from mathics.core import pattern_nocython
-
-
+#from mathics.core.pattern_nocython import StopGenerator #, Pattern #, ExpressionPattern
+#from mathics.core import pattern_nocython
         
 def Pattern_create(expr):
     from mathics.builtin import pattern_objects
@@ -39,6 +37,13 @@ def Pattern_create(expr):
         return AtomPattern(expr)
     else:
         return ExpressionPattern(expr)
+
+class StopGenerator(Exception):
+    def __init__(self, value=None):
+        self.value = value
+   
+class StopGenerator_ExpressionPattern_match(StopGenerator):
+    pass
     
 class StopGenerator_Pattern(StopGenerator):
     pass
@@ -134,7 +139,67 @@ class AtomPattern(Pattern):
 
 class ExpressionPattern(Pattern):
     #get_pre_choices = pattern_nocython.get_pre_choices
-    match = pattern_nocython.match
+    #match = pattern_nocython.match
+    
+    def match(self, yield_func, expression, vars, evaluation, head=None, leaf_index=None, leaf_count=None, fully=True, wrap_oneid=True):
+        evaluation.check_stopped()
+        
+        attributes = self.head.get_attributes(evaluation.definitions)
+        if 'Flat' not in attributes:
+            fully = True
+        if not expression.is_atom():
+            # don't do this here, as self.get_pre_choices changes the ordering of the leaves!
+            #if self.leaves:
+            #    next_leaf = self.leaves[0]
+            #    next_leaves = self.leaves[1:]
+            
+            def yield_choice(pre_vars):
+                next_leaf = self.leaves[0]
+                next_leaves = self.leaves[1:]
+                for leaf in self.leaves:
+                    match_count = leaf.get_match_count()
+                    candidates = leaf.get_match_candidates_count(expression.leaves, expression, attributes, evaluation, pre_vars)
+                    if candidates < match_count[0]:
+                        raise StopGenerator_ExpressionPattern_match()
+                #for new_vars, rest in self.match_leaf(self.leaves[0], self.leaves[1:], ([], expression.leaves), pre_vars,
+                #    expression, attributes, evaluation, first=True, fully=fully, leaf_count=len(self.leaves),
+                #    wrap_oneid=expression.get_head_name() != 'MakeBoxes'):
+                #def yield_leaf(new_vars, rest):
+                #    yield_func(new_vars, rest)
+                self.match_leaf(yield_func, next_leaf, next_leaves, ([], expression.leaves), pre_vars,
+                    expression, attributes, evaluation, first=True, fully=fully, leaf_count=len(self.leaves),
+                    wrap_oneid=expression.get_head_name() != 'MakeBoxes')
+                        
+            #for head_vars, _ in self.head.match(expression.get_head(), vars, evaluation):
+            def yield_head(head_vars, _):
+                if self.leaves:
+                    #pre_choices = self.get_pre_choices(expression, attributes, head_vars)
+                    #for pre_vars in pre_choices:
+                    
+                    self.get_pre_choices(yield_choice, expression, attributes, head_vars)
+                else:
+                    if not expression.leaves:
+                        yield_func(head_vars, None)
+                    else:
+                        return
+            try:
+                self.head.match(yield_head, expression.get_head(), vars, evaluation)
+            except StopGenerator_ExpressionPattern_match:
+                return
+        if wrap_oneid and 'OneIdentity' in attributes and expression.get_head() != self.head and expression != self.head: # and 'OneIdentity' not in (expression.get_attributes(evaluation.definitions) | expression.get_head().get_attributes(evaluation.definitions)):
+            new_expression = Expression(self.head, expression)
+            for leaf in self.leaves:
+                leaf.match_count = leaf.get_match_count()
+                leaf.candidates = [expression] #leaf.get_match_candidates(new_expression.leaves, new_expression, attributes, evaluation, vars)
+                if len(leaf.candidates) < leaf.match_count[0]:
+                    return
+            #for new_vars, rest in self.match_leaf(self.leaves[0], self.leaves[1:], ([], [expression]), vars,
+            #    new_expression, attributes, evaluation, first=True, fully=fully, leaf_count=len(self.leaves), wrap_oneid=True):
+            #def yield_leaf(new_vars, rest):
+            #    yield_func(new_vars, rest)
+            self.match_leaf(yield_func, self.leaves[0], self.leaves[1:], ([], [expression]), vars,
+                new_expression, attributes, evaluation, first=True, fully=fully, leaf_count=len(self.leaves), wrap_oneid=True)
+        
     
     def get_pre_choices(self, yield_func, expression, attributes, vars):
         if 'Orderless' in attributes:

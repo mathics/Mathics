@@ -34,7 +34,8 @@ import operator
 
 try:
     from sage import all as sage
-    from sage.calculus.calculus import var as sage_var, function as sage_function
+    from sage.calculus.calculus import var as sage_var #, function as sage_function
+    from sage.symbolic.function_factory import function_factory as sage_function
 except (ImportError, RuntimeError):
     pass
 

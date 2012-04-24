@@ -112,7 +112,7 @@ Change to the \Mathics download directory and run
 # sage -sh
 # sage -python setup.py install
 </console>
-In addition to installing \Mathics, this will download the required Python packages <con>sympy</con>, <con>gmpy</con>, <con>mpmath</con>, <con>django</con>, and <con>pysqlite</con> and install them in your \Sage Python <con>site-packages</con> directory (usually <con>/usr/opt/sage/local/lib/python2.6/site-packages</con> on Debian or <con>/Applications/sage/local/lib/python2.x/site-packages</con> on Mac OS X).
+In addition to installing \Mathics, this will download the required Python packages <con>sympy</con>, <con>gmpy</con>, <con>mpmath</con>, <con>django</con>, and <con>pysqlite</con> and install them in your \Sage Python <con>site-packages</con> directory (usually <con>/usr/opt/sage/local/lib/python/site-packages</con> on Debian or <con>/Applications/sage/local/lib/python/site-packages</con> on Mac OS X).
 
 It will also create two executables in your \Sage Python <con>bin</con> directory. However, these binaries only work when executed on the shell after issueing <con>sage -sh</con>. To run \Mathics without having to enter the \Sage shell, install two helper scripts by invoking
 <console>
@@ -126,7 +126,7 @@ The setup process of \Mathics depends on the <con>distribute</con> package, whic
 </console>
 This will do the equivalent of
 <console>
-rm $SAGE_ROOT/local/lib/python2.6/site-packages/setuptools-*.egg
+rm $SAGE_ROOT/local/lib/python/site-packages/setuptools-*.egg
 </console>
 where the right path to <con>site-packages</con> is chosen.
 
@@ -904,13 +904,13 @@ Let\'s sketch the function
 >> f[x_] := 4 x / (x ^ 2 + 3 x + 5)
 The derivatives are
 >> {f'[x], f''[x], f'''[x]} // Together
- = {(20 - 4 x ^ 2) / (5 + 3 x + x ^ 2) ^ 2, (-120 - 120 x + 8 x ^ 3) / (5 + 3 x + x ^ 2) ^ 3, (480 + 1440 x + 720 x ^ 2 - 24 x ^ 4) / (5 + 3 x + x ^ 2) ^ 4}
+ = {-4 (-5 + x ^ 2) / (5 + 3 x + x ^ 2) ^ 2, 8 (-15 - 15 x + x ^ 3) / (5 + 3 x + x ^ 2) ^ 3, -24 (-20 - 60 x - 30 x ^ 2 + x ^ 4) / (5 + 3 x + x ^ 2) ^ 4}
 To get the extreme values of 'f', compute the zeroes of the first derivatives:
 >> extremes = Solve[f'[x] == 0, x]
- = {{x -> Sqrt[5]}, {x -> -Sqrt[5]}}
+ = {{x -> -Sqrt[5]}, {x -> Sqrt[5]}}
 And test the second derivative:
 >> f''[x] /. extremes // N
- = {-0.0640789599668615036, 1.65085581947099374}
+ = {1.65085581947099374, -0.0640789599668615036}
 Thus, there is a local maximum at 'x = Sqrt[5]' and a local minimum at 'x = -Sqrt[5]'.
 Compute the inflection points numerically, choping imaginary parts close to 0:
 >> inflections = Solve[f''[x] == 0, x] // N // Chop
@@ -921,7 +921,7 @@ Insert into the third derivative:
 Being different from 0, all three points are actual inflection points.
 'f' is not defined where its denominator is 0:
 >> Solve[Denominator[f[x]] == 0, x]
- = {{x -> -3 / 2 - I / 2 Sqrt[11]}, {x -> -3 / 2 + I / 2 Sqrt[11]}}
+ = {{x -> -3 / 2 + I / 2 Sqrt[11]}, {x -> -3 / 2 - I / 2 Sqrt[11]}}
 These are non-real numbers, consequently 'f' is defined on all real numbers.
 The behaviour of 'f' at the boundaries of its definition:
 >> Limit[f[x], x -> Infinity]
