@@ -1387,7 +1387,7 @@ class Real(Number):
         return sage.RealNumber(self.value.digits(10, dps(self.value.getprec()))) #(str(self.value))
     
     def to_sympy(self):
-        return sympy.Real(self.value.digits(10, dps(self.value.getprec())))
+        return sympy.Float(self.value.digits(10, dps(self.value.getprec())))
     
     def same(self, other):
         return isinstance(other, Real) and self.value == other.value
