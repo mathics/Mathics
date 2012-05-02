@@ -167,11 +167,11 @@ def test_all():
         
         print 'Save XML'
         with open(settings.DOC_XML_DATA, 'w') as output_xml_file:
-            pickle.dump(output_xml, output_xml_file, -1)
+            pickle.dump(output_xml, output_xml_file, 0)
             
         print 'Save TEX'
         with open(settings.DOC_TEX_DATA, 'w') as output_tex_file:
-            pickle.dump(output_tex, output_tex_file, -1)
+            pickle.dump(output_tex, output_tex_file, 0)
     else:
         print '\nFAILED'
         
