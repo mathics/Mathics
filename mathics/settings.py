@@ -22,7 +22,12 @@ import pkg_resources
 import sys
 import os
 from os import path
-import django
+
+try:
+    import django
+    DJANGO_VERSION = django.VERSION
+except ImportError:
+    DJANGO_VERSION = (1, 4)
 
 VERSION = '0.4'
 
@@ -106,7 +111,7 @@ MEDIA_URL = '/media/'
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
-if django.VERSION < (1, 3):
+if DJANGO_VERSION < (1, 3):
     ADMIN_MEDIA_PREFIX = '/media/admin/'
 
 # Make this unique, and don't share it with anybody.
