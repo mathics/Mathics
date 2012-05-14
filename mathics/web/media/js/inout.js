@@ -169,9 +169,7 @@ function setQueries(queries) {
 	function load(index) {
 		if (index < list.length) {
 			var item = list[index];
-			//alert("submit");
 			submitQuery(item.li.textarea, function() {
-				//alert("submitted");
 				load(index + 1);
 			});
 		} else {

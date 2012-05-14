@@ -87,12 +87,6 @@ var ElementMethods = {
 	},
 	
 	updateDOM: function(element, content) {
-		//var dom = stringToDOM(content);
-		//element.deleteChildNodes();
-		//element.appendChild(dom);
-		//content = content.gsub(/&nbsp;/, ' ');
-		//alert(content);
-		//content = content.gsub(/&larr;/, '-').gsub(/&rarr;/, '-');
 		// convert named entities to numerical entities before calling update
 		content = content.gsub(/&([a-zA-Z]+);/, function(match) {
 			var code = HTML_ENTITIES.get(match[1]);
@@ -100,11 +94,6 @@ var ElementMethods = {
 		});
 		element.update(content);
 	},
-	
-	/*replaceDOM: function(element, content) {
-		var dom = stringToDOM(content);
-		element.parentNode.replaceChild(dom, element);		
-	},*/
 	
 	scrollIntoView: function(element) {
 		var offset = element.cumulativeOffset(); 
@@ -135,25 +124,6 @@ Object.extend(Object, {
 		return object && !!object.nodeType;
 	}
 });
-
-// untested!
-/*Object.extend(Function.prototype, {
-	curryArray: function(args) {
-		var that = this;
-		return function() {
-			return that.apply(this, args.concat($A(arguments)));
-		}		
-	},
-	
-	curryNamed: function(extra) {
-		extra = $H(extra);
-		var names = this.argumentNames();
-		var args = names.map(function(element) {
-			return extra.get(element);
-		});
-		return this.curryArray(args);
-	}
-});*/
 
 var Publisher = Class.create({
 	initialize: function() {

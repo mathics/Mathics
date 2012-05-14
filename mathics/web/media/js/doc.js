@@ -21,12 +21,8 @@ var lastSearchValue = '';
 
 function showPage(response) {
 	if ($('doc')) {
-		//alert("update dom");
-		//var content = response.content.gsub('&larr;', '<-').gsub('&rarr;', '->');
-		//alert(content);
 		$('doc').updateDOM(response.content);
 	}
-	//alert("page shown");
 	$$('ul.test').each(function(test) {
 		var id = test.id.substr(5); // 'test_...'
 		var data = response.data[id];
