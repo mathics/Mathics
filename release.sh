@@ -19,6 +19,7 @@ rm -rf build/release
 python setup.py build
 mkdir build/release
 cp -r build/lib*/mathics build/release/
+rm build/release/*/*/*.so
 cp setup.py build/release/
 cp initialize.py build/release/
 cp distribute_setup.py build/release/
