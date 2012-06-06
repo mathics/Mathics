@@ -56,7 +56,12 @@ def main():
         addr = ''
     
     try:
-        handler = AdminMediaHandler(WSGIHandler(), '')
+        if settings.DJANGO_VERSION < (1, 4):
+            from django.core.servers.basehttp import AdminMediaHandler
+            handler = AdminMediaHandler(WSGIHandler(), '')
+        else:
+            from django.core.servers.basehttp import get_internal_wsgi_application
+            handler = get_internal_wsgi_application()
         run(addr, port, handler)
     except WSGIServerException, e:
         # Use helpful error messages instead of ugly tracebacks.
