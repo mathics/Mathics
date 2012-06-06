@@ -31,7 +31,7 @@ def main():
     #os.putenv('DJANGO_SETTINGS_MODULE', 'mathics.settings')
     
     from django.conf import settings
-    from django.core.servers.basehttp import run, AdminMediaHandler, WSGIServerException
+    from django.core.servers.basehttp import run, WSGIServerException
     from django.core.handlers.wsgi import WSGIHandler
     
     parser = OptionParser(version='%prog ' + settings.VERSION,
