@@ -88,8 +88,11 @@ SPECIAL_COMMANDS = {
     'skip': (r'<br /><br />', r'\bigskip'),
 }
 
-with open(settings.DOC_XML_DATA, 'r') as xml_data_file:
-    xml_data = pickle.load(xml_data_file)
+try:
+    with open(settings.DOC_XML_DATA, 'r') as xml_data_file:
+        xml_data = pickle.load(xml_data_file)
+except IOError:
+    xml_data = {}
     
 def filter_comments(doc):
     return u'\n'.join(line for line in doc.splitlines() if not line.lstrip().startswith('##'))
