@@ -135,6 +135,15 @@ def test_symbol(symbol):
         print '%d test%s failed.' % (failed, 's' if failed != 1 else '')
     else:
         print 'OK'
+        
+def open_ensure_dir(f, *args, **kwargs):
+    try:
+        return open(f, *args, **kwargs)
+    except IOError, OSError:        
+        d = os.path.dirname(f)
+        if d and not os.path.exists(d):
+            os.makedirs(d)
+        return open(f, *args, **kwargs)
 
 def test_all():    
     try:
@@ -166,22 +175,22 @@ def test_all():
         print '\nOK'
         
         print 'Save XML'
-        with open(settings.DOC_XML_DATA, 'w') as output_xml_file:
+        with open_ensure_dir(settings.DOC_XML_DATA, 'w') as output_xml_file:
             pickle.dump(output_xml, output_xml_file, 0)
             
         print 'Save TEX'
-        with open(settings.DOC_TEX_DATA, 'w') as output_tex_file:
+        with open_ensure_dir(settings.DOC_TEX_DATA, 'w') as output_tex_file:
             pickle.dump(output_tex, output_tex_file, 0)
     else:
         print '\nFAILED'
         
 def write_latex():
     print "Load data"
-    with open(settings.DOC_TEX_DATA, 'r') as output_tex_file:
+    with open_ensure_dir(settings.DOC_TEX_DATA, 'r') as output_tex_file:
         output_tex = pickle.load(output_tex_file)
         
     print 'Print documentation'
-    with open(settings.DOC_LATEX_FILE, 'w') as doc:
+    with open_ensure_dir(settings.DOC_LATEX_FILE, 'w') as doc:
         content = documentation.latex(output_tex)
         content = content.encode('utf-8')
         doc.write(content)
