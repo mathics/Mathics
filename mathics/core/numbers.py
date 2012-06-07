@@ -227,8 +227,8 @@ class mpcomplex(object):
     def __pow__(self, other):
         if get_type(other) == 'z':
             # TODO: make this faster!
-            if other == 1:
-                return mpz(0)
+            if other == 0:
+                return mpz(1)
             else:
                 result = mpz(1)
                 for i in range(abs(other)):
