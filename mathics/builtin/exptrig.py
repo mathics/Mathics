@@ -3,7 +3,7 @@
 """
 Exponential, trigonometric and hyperbolic functions
 
-Mathics basically upports all important trigonometric and hyperbolic functions.
+Mathics basically supports all important trigonometric and hyperbolic functions.
 Numerical values and derivatives can be computed; however, most special exact values and simplification
 rules are not implemented yet.
 """
@@ -135,6 +135,42 @@ class Log(_MPMathFunction):
     
     def eval(self, z):
         return mpmath.log(z)
+    
+class Log2(Builtin):
+    """
+    <dl>
+    <dt>'Log2[$x$]'
+        <dd>gives the base-2 logarithm of $x$.
+    </dl>
+    >> Log2[2^10]
+     = 10
+    >> Log2[1.4142]
+     = 0.499986164421874258
+    >> Log2[x]
+     = Log[x] / Log[2]
+    """
+    
+    rules = {
+        'Log2[x_]': 'Log[2, x]',
+    }
+
+class Log10(Builtin):
+    """
+    <dl>
+    <dt>'Log10[$x$]'
+        <dd>gives the base-10 logarithm of $x$.
+    </dl>
+    >> Log10[1000000]
+     = 6
+    >> Log10[2.]
+     = 0.301029995663981195
+    >> Log10[x]
+     = Log[x] / Log[10]
+    """
+    
+    rules = {
+        'Log10[x_]': 'Log[10, x]',
+    }
 
 class Sin(_MPMathFunction):
     """
