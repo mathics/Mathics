@@ -96,9 +96,9 @@ class Plot(Builtin):
                     continuous = False    
 
             # Loop again and interpolate highly angled sections
+            ang_thresh = cos(pi/36.)    # Cos of the maximum angle between successive line segments
             #TODO get maxrecursion from Plot[] arguments (not hardcoded)
-            maxrecursion = 2
-            ang_thresh = cos(pi/36.)    # Cos of the maximum angle between subsequent line segments
+            maxrecursion = 3
             recursion_count = 0
             for pts in points:
                 smooth = False
@@ -112,7 +112,7 @@ class Plot(Builtin):
                         try:
                             angle = (vec1[0]*vec2[0] + vec1[1]*vec2[1])/sqrt(\
                             (vec1[0]**2 + vec1[1]**2)*(vec2[0]**2 + vec2[1]**2))
-                        except ZeroDivisionError:
+                        except ZeroDivisionError:   # Try plotting Exp[-x^50] {x,-2,2}
                             angle = 0.0
                         if abs(angle) < ang_thresh:
                             smooth = False
