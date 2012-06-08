@@ -188,7 +188,8 @@ class Evaluation(object):
                     query += line
                     try:
                         expression = parse(query)
-                        queries.append(expression)
+                        if expression is not None:
+                            queries.append(expression)
                         query = ''
                         last_parse_error = None
                     except TranslateError, exc:
