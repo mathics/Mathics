@@ -1,4 +1,3 @@
-# -*- coding: utf8 -*-
 
 """
 Plotting
@@ -80,7 +79,6 @@ class Plot(Builtin):
         for index, f in enumerate(functions):
             points = []
             continuous = False
-            # Rough Linear Sampling
             steps = 50
             d = (stop - start) / steps
             for index in range(steps + 1):
@@ -317,4 +315,3 @@ class DensityPlot(Builtin):
         result = Expression('Graphics', polygon, *options_to_rules(options))
         #print "Return"
         return result
-        
