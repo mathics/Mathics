@@ -100,31 +100,31 @@ class Plot(Builtin):
             #TODO get maxrecursion from Plot[] arguments (not hardcoded)
             maxrecursion = 3
             recursion_count = 0
-            for pts in points:
+            for line in points:
                 smooth = False
                 while (not smooth and recursion_count < maxrecursion):
                     recursion_count += 1
                     smooth = True
                     i = 2
-                    while i < len(pts):
-                        vec1 = (pts[i-1][0]-pts[i-2][0], pts[i-1][1]-pts[i-2][1])
-                        vec2 = (pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1])
+                    while i < len(line):
+                        vec1 = (line[i-1][0]-line[i-2][0], line[i-1][1]-line[i-2][1])
+                        vec2 = (line[i][0]-line[i-1][0], line[i][1]-line[i-1][1])
                         try:
                             angle = (vec1[0]*vec2[0] + vec1[1]*vec2[1])/sqrt(\
                             (vec1[0]**2 + vec1[1]**2)*(vec2[0]**2 + vec2[1]**2))
-                        except ZeroDivisionError:   # Try plotting Exp[-x^50] {x,-2,2}
+                        except ZeroDivisionError:
                             angle = 0.0
                         if abs(angle) < ang_thresh:
                             smooth = False
-                            x_value = 0.5*(pts[i-1][0] + pts[i][0])
+                            x_value = 0.5*(line[i-1][0] + line[i][0])
                             y = eval_f(f, Real(x_value))
                             point = (x_value, y)
 
-                            x_value = 0.5*(pts[i-2][0] + pts[i-1][0])
-                            pts.insert(i,point)
+                            x_value = 0.5*(line[i-2][0] + line[i-1][0])
+                            line.insert(i,point)
                             y = eval_f(f, Real(x_value))
                             point = (x_value, y)
-                            pts.insert(i-1,point)
+                            line.insert(i-1,point)
                             i+=2
                         i+=1
 
