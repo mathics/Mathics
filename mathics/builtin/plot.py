@@ -96,6 +96,7 @@ class Plot(Builtin):
                     continuous = False    
 
             # Loop again and interpolate highly angled sections
+            #TODO get maxrecursion from Plot[] arguments (not hardcoded)
             maxrecursion = 2
             ang_thresh = cos(pi/36.)    # Cos of the maximum angle between subsequent line segments
             recursion_count = 0
