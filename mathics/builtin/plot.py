@@ -96,8 +96,8 @@ class Plot(Builtin):
                     continuous = False    
 
             # Loop again and interpolate highly angled sections
-            maxrecursion = 3
-            ang_thresh = cos(pi/45.)    # Cos of the maximum angle between subsequent line segments
+            maxrecursion = 2
+            ang_thresh = cos(pi/36.)    # Cos of the maximum angle between subsequent line segments
             recursion_count = 0
             for pts in points:
                 smooth = False
