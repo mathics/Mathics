@@ -95,17 +95,18 @@ class Plot(Builtin):
                     continuous = False    
 
             # Loop again and interpolate highly angled sections
-            maxrecursion = 500          # Actually is max num interpolated points
+            maxrecursion = 3
             ang_thresh = cos(pi/45.)    # Cos of the maximum angle between subsequent line segments
             recursion_count = 0
             for pts in points:
                 smooth = False
                 while (not smooth and recursion_count < maxrecursion):
+                    recursion_count += 1
                     smooth = True
-                    i = 0
-                    while i+2 < len(pts) and recursion_count < maxrecursion:
-                        vec1 = (pts[i+1][0]-pts[i][0], pts[i+1][1]-pts[i][1])
-                        vec2 = (pts[i+2][0]-pts[i+1][0], pts[i+2][1]-pts[i+1][1])
+                    i = 2
+                    while i < len(pts):
+                        vec1 = (pts[i-1][0]-pts[i-2][0], pts[i-1][1]-pts[i-2][1])
+                        vec2 = (pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1])
                         try:
                             angle = (vec1[0]*vec2[0] + vec1[1]*vec2[1])/sqrt(\
                             (vec1[0]**2 + vec1[1]**2)*(vec2[0]**2 + vec2[1]**2))
@@ -113,16 +114,15 @@ class Plot(Builtin):
                             angle = 0.0
                         if abs(angle) < ang_thresh:
                             smooth = False
-                            x_value = 0.5*(pts[i+1][0] + pts[i+2][0])
+                            x_value = 0.5*(pts[i-1][0] + pts[i][0])
                             y = eval_f(f, Real(x_value))
                             point = (x_value, y)
 
-                            x_value = 0.5*(pts[i][0] + pts[i+1][0])
-                            pts.insert(i+2,point)
+                            x_value = 0.5*(pts[i-2][0] + pts[i-1][0])
+                            pts.insert(i,point)
                             y = eval_f(f, Real(x_value))
                             point = (x_value, y)
-                            pts.insert(i+1,point)
-                            recursion_count += 1
+                            pts.insert(i-1,point)
                             i+=2
                         i+=1
 
