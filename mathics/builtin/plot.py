@@ -315,3 +315,4 @@ class DensityPlot(Builtin):
         result = Expression('Graphics', polygon, *options_to_rules(options))
         #print "Return"
         return result
+
