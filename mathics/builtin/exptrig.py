@@ -32,7 +32,7 @@ class Pi(SageConstant):
     >> N[Pi, 50]
      = 3.1415926535897932384626433832795028841971693993751
     """
-                
+    
     def apply_N(self, prec, evaluation):
         'N[Pi, prec_]'
         
@@ -55,7 +55,7 @@ class E(SageConstant):
     """
     
     sympy_name = 'E'
-                
+    
     def apply_N(self, prec, evaluation):
         'N[E, prec_]'
         
