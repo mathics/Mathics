@@ -5,7 +5,7 @@ Plotting
 """
 
 import re
-from math import floor
+from math import floor, cos, pi, sqrt
 
 from mathics.core.expression import Expression, Real, NumberError, Symbol, String
 from mathics.builtin.base import Builtin
@@ -80,6 +80,7 @@ class Plot(Builtin):
         for index, f in enumerate(functions):
             points = []
             continuous = False
+            # Rough Linear Sampling
             steps = 50
             d = (stop - start) / steps
             for index in range(steps + 1):
@@ -94,11 +95,43 @@ class Plot(Builtin):
                     continuous = True
                 else:
                     continuous = False    
+
+            # Loop again and interpolate highly angled sections
+            maxrecursion = 1000         # Should probably be read from global setting somewhere
+            ang_thresh = cos(pi/45.)    # Cos of the maximum angle between subsequent line segments
+            recursion_count = 0
+            for pts in points:
+                smooth = False
+                while (not smooth and recursion_count < maxrecursion):
+                    smooth = True
+                    i = 0
+                    while i+2 < len(pts):
+                        vec1 = (pts[i+1][0]-pts[i][0], pts[i+1][1]-pts[i][1])
+                        vec2 = (pts[i+2][0]-pts[i+1][0], pts[i+2][1]-pts[i+1][1])
+                        angle = (vec1[0]*vec2[0] + vec1[1]*vec2[1])/sqrt(\
+                        (vec1[0]**2 + vec1[1]**2)*(vec2[0]**2 + vec2[1]**2))
+                        if abs(angle) < ang_thresh:
+                            smooth = False
+                            x_value = 0.5*(pts[i+1][0] + pts[i+2][0])
+                            y = eval_f(f, Real(x_value))
+                            #assert(y is not None)
+                            point = (x_value, y)
+
+                            x_value = 0.5*(pts[i][0] + pts[i+1][0])
+                            pts.insert(i+2,point)
+                            y = eval_f(f, Real(x_value))
+                            #assert(y is not None)
+                            point = (x_value, y)
+                            pts.insert(i+1,point)
+
+                            recursion_count += 1
+                        i+=1
+
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
             graphics.append(Expression('Line', Expression('List', *(Expression('List',
                 *(Expression('List', Real(x), Real(y)) for x, y in line)) for line in points)
             )))
-            
+
             if index % 4 == 0:
                 hue += hue_pos
             else:
