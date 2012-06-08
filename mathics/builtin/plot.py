@@ -99,16 +99,17 @@ class Plot(Builtin):
             ang_thresh = cos(pi/36.)    # Cos of the maximum angle between successive line segments
             #TODO get maxrecursion from Plot[] arguments (not hardcoded)
             maxrecursion = 3
-            recursion_count = 0
             for line in points:
+                recursion_count = 0
                 smooth = False
                 while (not smooth and recursion_count < maxrecursion):
                     recursion_count += 1
                     smooth = True
+                    scalefact = 1./(stop-start)
                     i = 2
                     while i < len(line):
-                        vec1 = (line[i-1][0]-line[i-2][0], line[i-1][1]-line[i-2][1])
-                        vec2 = (line[i][0]-line[i-1][0], line[i][1]-line[i-1][1])
+                        vec1 = (scalefact*(line[i-1][0]-line[i-2][0]), line[i-1][1]-line[i-2][1])
+                        vec2 = (scalefact*(line[i][0]-line[i-1][0]), line[i][1]-line[i-1][1])
                         try:
                             angle = (vec1[0]*vec2[0] + vec1[1]*vec2[1])/sqrt(\
                             (vec1[0]**2 + vec1[1]**2)*(vec2[0]**2 + vec2[1]**2))
