@@ -24,34 +24,6 @@ class ColorData(Builtin):
                  0.914031], RGBColor[0.941176, 0.906538, 0.834043]}, #1] & ]""",
     }
 
-def get_plotrange(points):
-    """ Calculates mean and standard deviation, throwing away all points which
-    are more than 'thresh' number of standard deviations away from the mean """
-    values = []
-    for line in points:
-        for i in range(len(line)):
-            values.append(line[i][1])
-    values.sort()
-    valavg = sum(values)/len(values)
-    valdev = sqrt(sum([(x-valavg)**2 for x in values])/(len(values)-1))
-
-    thresh = 3.0
-
-    (n1,n2) = (0,len(values)-1)
-    for v in values:
-        if abs(v-valavg)/valdev < thresh:
-            break
-        n1+=1
-
-    for v in values[::-1]:
-        if abs(v-valavg)/valdev < thresh:
-            break
-        n2-=1
-    
-    yrange = values[n2]-values[n1]
-    ymin = values[n1]-0.05*yrange
-    ymax = values[n2]+0.05*yrange
-    return (ymin,ymax)
 
 class Plot(Builtin):
     """
@@ -75,6 +47,33 @@ class Plot(Builtin):
         'Axes': 'True',
         'AspectRatio': '1 / GoldenRatio',
     })
+    def AutomaticPlotRange(self,points):
+        """ Calculates mean and standard deviation, throwing away all points which
+        are more than 'thresh' number of standard deviations away from the mean 
+        These are then used to find good ymin and ymax values. """
+        thresh = 3.0
+        values = []
+        for line in points:
+            for p in line:
+                values.append(p[1])
+        values.sort()
+        valavg = sum(values)/len(values)
+        valdev = sqrt(sum([(x-valavg)**2 for x in values])/(len(values)-1))
+
+        (n1,n2) = (0,len(values)-1)
+        for v in values:
+            if abs(v-valavg)/valdev < thresh:
+                break
+            n1+=1
+        for v in values[::-1]:
+            if abs(v-valavg)/valdev < thresh:
+                break
+            n2-=1
+        
+        yrange = values[n2]-values[n1]
+        ymin = values[n1]-0.05*yrange
+        ymax = values[n2]+0.05*yrange
+        return (ymin,ymax)
     
     def apply(self, functions, x, start, stop, evaluation, options):
         'Plot[functions_, {x_Symbol, start_, stop_}, OptionsPattern[Plot]]'
@@ -125,7 +124,7 @@ class Plot(Builtin):
                     continuous = False    
             
             xscale = 1./(stop-start)
-            (ymin,ymax) = get_plotrange(points)     #TODO Use this for PlotRange->Automatic
+            (ymin,ymax) = self.AutomaticPlotRange(points)     #TODO Use this for PlotRange->Automatic
             yscale = 1./(ymax-ymin)
 
             # Loop again and interpolate highly angled sections
