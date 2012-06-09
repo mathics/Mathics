@@ -6,6 +6,7 @@ Plotting
 
 import re
 from math import floor, cos, pi, sqrt
+#from operator import itemgetter
 
 from mathics.core.expression import Expression, Real, NumberError, Symbol, String
 from mathics.builtin.base import Builtin
@@ -23,6 +24,77 @@ class ColorData(Builtin):
                 RGBColor[0.563821, 0.527565, 0.909499], RGBColor[0.762631, 0.846998, 
                  0.914031], RGBColor[0.941176, 0.906538, 0.834043]}, #1] & ]""",
     }
+
+def get_plotrange(points):
+    values = []
+    for line in points:
+        for i in range(len(line)):
+            values.append(line[i][1])
+    values.sort()
+    valavg = sum(values)/len(values)
+    valdev = sqrt(sum([(x-valavg)**2 for x in values])/(len(values)-1))
+
+    thresh = 1.5
+
+    (n1,n2) = (0,len(values)-1)
+    for v in values:
+        if abs(v-valavg)/valdev < thresh:
+            break
+        n1+=1
+
+    for v in values[::-1]:
+        if abs(v-valavg)/valdev < thresh:
+            break
+        n2-=1
+    return (values[n1],values[n2])
+
+
+#def _get_plotrange(points):
+#    xscale = 1./(points[-1][-1][0]-points[0][0][0])
+#    #TODO Optimise this
+#    values = []
+#    slopes = []
+#    for line in points:
+#        for i in range(1,len(line)-1):
+#            slope = 0.5*((line[i+1][1]-line[i][1])/(line[i+1][0]-line[i][0]) \
+#            + (line[i][1]-line[i-1][1])/(line[i][0]-line[i-1][0]))
+#            values.append([line[i][1],slope])
+#    values.sort(key=itemgetter(0))
+#
+#    # Scale the gradients
+#    ymax = max(values,key=itemgetter(0))[0]
+#    ymin = min(values,key=itemgetter(0))[0]
+#    yscale = 1./(ymax-ymin)
+#    map(lambda x: [x[0],x[1]/xscale], values)
+#    
+#
+#    n1 = 0
+#    n2 = len(values)-1
+#    huge = 10**8
+#    big = 2
+#    for i in range(len(values)):
+#        ischanged = False
+#        ymin = values[n1][0]
+#        ymax = values[n2][0]
+#        if (ymin >= ymax or n1 >= n2):
+#            break
+#        delta = xscale*(ymax-ymin)
+#        #print ymin,ymax,delta
+#        if delta > huge or abs(values[n1][1])/delta > big:
+#            n1+=1
+#            ischanged = True
+#        if delta > huge or abs(values[n2][1])/delta > big:
+#            n2-=1
+#            ischanged = True
+#        if not ischanged:
+#            break
+#
+#    if (abs(ymax - ymin)*big < 1):
+#        print "FAIL"
+#        ymax = max(values,key=itemgetter(0))[0]
+#        ymin = min(values,key=itemgetter(0))[0]
+#
+#    return (ymin,ymax)
 
 class Plot(Builtin):
     """
@@ -94,19 +166,20 @@ class Plot(Builtin):
                     continuous = True
                 else:
                     continuous = False    
+            
+            xscale = 1./(stop-start)
+            (ymin,ymax) = get_plotrange(points)
+            yscale = 1./(ymax-ymin)
 
             # Loop again and interpolate highly angled sections
             ang_thresh = cos(pi/32)    # Cos of the maximum angle between successive line segments
-            #TODO get maxrecursion from Plot[] arguments (not hardcoded)
-            maxrecursion = 3
+            maxrecursion = 3    #TODO get maxrecursion from Plot[] arguments (not hardcoded)
             for line in points:
                 recursion_count = 0
                 smooth = False
                 while (not smooth and recursion_count < maxrecursion):
                     recursion_count += 1
                     smooth = True
-                    xscale = 1./(stop-start)
-                    yscale = 1./(max(line[:][2]) - min(line[:][2]))
                     i = 2
                     while i < len(line):
                         vec1 = (xscale*(line[i-1][0]-line[i-2][0]), yscale*(line[i-1][1]-line[i-2][1]))
@@ -129,6 +202,17 @@ class Plot(Builtin):
                             line.insert(i-1,point)
                             i+=2
                         i+=1
+
+            #(ymin,ymax) = get_plotrange(points)
+            #yscale = 1./(ymax-ymin)
+            
+            # Crop the plot
+            #for i in range(len(points)):
+            #    for j in range(len(points[i])):
+            #        if points[i][j][1] > ymax:
+            #            points[i][j] = (points[i][j][0], ymax)
+            #        elif points[i][j][1] < ymin:
+            #            points[i][j] = (points[i][j][0], ymin)
 
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
             graphics.append(Expression('Line', Expression('List', *(Expression('List',
