@@ -24,7 +24,6 @@ class ColorData(Builtin):
                  0.914031], RGBColor[0.941176, 0.906538, 0.834043]}, #1] & ]""",
     }
 
-
 class Plot(Builtin):
     """
     <dl>
@@ -48,9 +47,9 @@ class Plot(Builtin):
         'AspectRatio': '1 / GoldenRatio',
     })
     def AutomaticPlotRange(self,points):
-        """ Calculates mean and standard deviation, throwing away all points which
-        are more than 'thresh' number of standard deviations away from the mean 
-        These are then used to find good ymin and ymax values. """
+        """ Calculates mean and standard deviation, throwing away all points 
+        which are more than 'thresh' number of standard deviations away from 
+        the mean. These are then used to find good ymin and ymax values. """
         thresh = 3.0
         values = []
         for line in points:
@@ -159,8 +158,8 @@ class Plot(Builtin):
                             i+=2
                         i+=1
 
-            # Crop the plotted points
-            #TODO Adapt this to work with user specified PlotRange
+            # Crop the plotted points - this is a hack!
+            #TODO Replace this with user specified PlotRange
             i = 0
             while i < len(points):
                 for j in range(len(points[i])):
