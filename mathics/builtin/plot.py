@@ -6,7 +6,6 @@ Plotting
 
 import re
 from math import floor, cos, pi, sqrt
-#from operator import itemgetter
 
 from mathics.core.expression import Expression, Real, NumberError, Symbol, String
 from mathics.builtin.base import Builtin
@@ -34,7 +33,7 @@ def get_plotrange(points):
     valavg = sum(values)/len(values)
     valdev = sqrt(sum([(x-valavg)**2 for x in values])/(len(values)-1))
 
-    thresh = 1.5
+    thresh = 3.0
 
     (n1,n2) = (0,len(values)-1)
     for v in values:
@@ -47,54 +46,6 @@ def get_plotrange(points):
             break
         n2-=1
     return (values[n1],values[n2])
-
-
-#def _get_plotrange(points):
-#    xscale = 1./(points[-1][-1][0]-points[0][0][0])
-#    #TODO Optimise this
-#    values = []
-#    slopes = []
-#    for line in points:
-#        for i in range(1,len(line)-1):
-#            slope = 0.5*((line[i+1][1]-line[i][1])/(line[i+1][0]-line[i][0]) \
-#            + (line[i][1]-line[i-1][1])/(line[i][0]-line[i-1][0]))
-#            values.append([line[i][1],slope])
-#    values.sort(key=itemgetter(0))
-#
-#    # Scale the gradients
-#    ymax = max(values,key=itemgetter(0))[0]
-#    ymin = min(values,key=itemgetter(0))[0]
-#    yscale = 1./(ymax-ymin)
-#    map(lambda x: [x[0],x[1]/xscale], values)
-#    
-#
-#    n1 = 0
-#    n2 = len(values)-1
-#    huge = 10**8
-#    big = 2
-#    for i in range(len(values)):
-#        ischanged = False
-#        ymin = values[n1][0]
-#        ymax = values[n2][0]
-#        if (ymin >= ymax or n1 >= n2):
-#            break
-#        delta = xscale*(ymax-ymin)
-#        #print ymin,ymax,delta
-#        if delta > huge or abs(values[n1][1])/delta > big:
-#            n1+=1
-#            ischanged = True
-#        if delta > huge or abs(values[n2][1])/delta > big:
-#            n2-=1
-#            ischanged = True
-#        if not ischanged:
-#            break
-#
-#    if (abs(ymax - ymin)*big < 1):
-#        print "FAIL"
-#        ymax = max(values,key=itemgetter(0))[0]
-#        ymin = min(values,key=itemgetter(0))[0]
-#
-#    return (ymin,ymax)
 
 class Plot(Builtin):
     """
@@ -203,16 +154,20 @@ class Plot(Builtin):
                             i+=2
                         i+=1
 
-            #(ymin,ymax) = get_plotrange(points)
-            #yscale = 1./(ymax-ymin)
-            
             # Crop the plot
-            #for i in range(len(points)):
-            #    for j in range(len(points[i])):
-            #        if points[i][j][1] > ymax:
-            #            points[i][j] = (points[i][j][0], ymax)
-            #        elif points[i][j][1] < ymin:
-            #            points[i][j] = (points[i][j][0], ymin)
+            i = 0
+            while i < len(points):
+                for j in range(len(points[i])):
+                    if points[i][j][1] > ymax:
+                        del points[i][j]
+                    elif points[i][j][1] < ymin:
+                        del points[i][j]
+                    else:
+                        continue
+                    points.append(points[i][j:])
+                    points[i] = points[i][:j]
+                    break
+                i+=1
 
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
             graphics.append(Expression('Line', Expression('List', *(Expression('List',
