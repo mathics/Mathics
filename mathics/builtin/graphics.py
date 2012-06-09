@@ -913,9 +913,6 @@ class GraphicsBox(BoxConstruct):
                 ymax = float(plotrange.get_atoms()[6].value)
                 print "PlotRange:", xmin, xmax, ymin, ymax
 
-            xmin, xmax, ymin, ymax = elements.extent()
-            print "Extent:", xmin, xmax, ymin, ymax
-
             if xmin is None and xmax is None:
                 xmin = -1
                 xmax = 1
