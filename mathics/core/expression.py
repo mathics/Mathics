@@ -153,6 +153,8 @@ class BaseExpression(object):
         return hash(unicode(self))
     
     def __cmp__(self, other):
+        if not hasattr(other, 'get_sort_key'):
+            return False
         return cmp(self.get_sort_key(), other.get_sort_key())
     
     def same(self, other):
@@ -469,6 +471,26 @@ class Expression(BaseExpression):
             args = [leaf.to_sage(definitions, subs) for leaf in self.leaves]
             return sage_func(*args)
         return op([leaf.to_sage(definitions, subs) for leaf in self.leaves])
+    
+    def to_python(self, *args, **kwargs):
+        """
+        Convert the Expression to a Python object:
+        List[...]  -> Python list
+        True/False -> True/False
+        Null       -> None
+        Symbol     -> '...'
+        String     -> '"..."'
+        numbers    -> Python number
+        If kwarg n_evaluation is given, apply N first to the expression.
+        """
+        
+        n_evaluation = kwargs.get('n_evaluation')
+        if n_evaluation is not None:
+            value = Expression('N', self).evaluate(n_evaluation)
+            return value.to_python()
+        if self.head.get_name() == 'List':
+            return [leaf.to_python(*args, **kwargs) for leaf in self.leaves]
+        return self
     
     def get_sort_key(self, pattern_sort=False):
         
@@ -1115,6 +1137,19 @@ class Symbol(Atom):
         else:
             return getattr(sympy, builtin.sympy_name)
     
+    def to_python(self, *args, **kwargs):
+        if self.name == 'True':
+            return True
+        if self.name == 'False':
+            return False
+        if self.name == 'Null':
+            return None
+        n_evaluation = kwargs.get('n_evaluation')
+        if n_evaluation is not None:
+            value = Expression('N', self).evaluate(n_evaluation)
+            return value.to_python()
+        return self.name # return name as string (Strings are returned with quotes)
+    
     def default_format(self, evaluation, form):
         return self.name
     
@@ -1236,6 +1271,9 @@ class Integer(Number):
     
     def to_sympy(self):
         return sympy.Integer(int(self.value))
+    
+    def to_python(self, *args, **kwargs):
+        return int(self.value)
         
     def get_int_value(self):
         return self.value
@@ -1285,6 +1323,9 @@ class Rational(Number):
     
     def to_sympy(self):
         return sympy.Rational(int(self.value.numer()), int(self.value.denom()))
+    
+    def to_python(self, *args, **kwargs):
+        return self.value.numer() / self.value.denom()
     
     def same(self, other):
         return isinstance(other, Rational) and self.value == other.value
@@ -1389,6 +1430,9 @@ class Real(Number):
     def to_sympy(self):
         return sympy.Float(self.value.digits(10, dps(self.value.getprec())))
     
+    def to_python(self, *args, **kwargs):
+        return float(self.value)
+    
     def same(self, other):
         return isinstance(other, Real) and self.value == other.value
     
@@ -1439,6 +1483,9 @@ class Complex(Number):
         real = Number.from_mp(self.value.real)
         imag = Number.from_mp(self.value.imag)
         return real.to_sympy() + imag.to_sympy() * sympy.I
+    
+    def to_python(self, *args, **kwargs):
+        return self.value.real + self.value.imag * 1j
     
     def do_format(self, evaluation, form):
         real = Number.from_mp(self.value.real)
@@ -1665,6 +1712,9 @@ class String(Atom):
     
     def to_sympy(self):
         return self.value
+    
+    def to_python(self, *args, **kwargs):
+        return '"%s"' % self.value # add quotes to distinguish from Symbols
     
 def get_default_value(name, evaluation, k=None, n=None):
     pos = []
