@@ -905,13 +905,13 @@ class GraphicsBox(BoxConstruct):
             plotrange = graphics_options['PlotRange']
             if plotrange.get_name() == 'Automatic':
                 xmin, xmax, ymin, ymax = elements.extent()
-                print "Extent:", xmin, xmax, ymin, ymax
+                #print "Extent:", xmin, xmax, ymin, ymax
             else:
                 xmin = float(plotrange.get_atoms()[2].value)
                 xmax = float(plotrange.get_atoms()[3].value)
                 ymin = float(plotrange.get_atoms()[5].value)
                 ymax = float(plotrange.get_atoms()[6].value)
-                print "PlotRange:", xmin, xmax, ymin, ymax
+                #print "PlotRange:", xmin, xmax, ymin, ymax
 
             if xmin is None and xmax is None:
                 xmin = -1
