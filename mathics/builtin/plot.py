@@ -45,6 +45,7 @@ class Plot(Builtin):
     options.update({
         'Axes': 'True',
         'AspectRatio': '1 / GoldenRatio',
+        #'PlotRange' : 'Automatic',
     })
     def AutomaticPlotRange(self,points):
         """ Calculates mean and standard deviation, throwing away all points 
@@ -123,8 +124,8 @@ class Plot(Builtin):
                     continuous = False    
             
             xscale = 1./(stop-start)
-            (ymin,ymax) = self.AutomaticPlotRange(points)     #TODO Use this for PlotRange->Automatic
-            yscale = 1./(ymax-ymin)
+            (tmpymin,tmpymax) = self.AutomaticPlotRange(points)     #TODO Use this for PlotRange->Automatic
+            yscale = 1./(tmpymax-tmpymin)
 
             # Loop again and interpolate highly angled sections
             ang_thresh = cos(pi/90)    # Cos of the maximum angle between successive line segments
@@ -158,22 +159,18 @@ class Plot(Builtin):
                             i+=2
                         i+=1
 
-            # Crop the plotted points - this is a hack!
-            #TODO Replace this with user specified PlotRange
-            i = 0
-            while i < len(points):
-                for j in range(len(points[i])):
-                    if points[i][j][1] > ymax:
-                        del points[i][j]
-                    elif points[i][j][1] < ymin:
-                        del points[i][j]
-                    else:
-                        continue
-                    points.append(points[i][j:])
-                    points[i] = points[i][:j]
-                    break
-                i+=1
-
+                try:
+                    if start < xmin:
+                        xmin = start
+                    if stop > xmax:
+                        xmax = sop
+                    if tmpymin < ymin:
+                        ymin = tmpymin
+                    if tmpymax > ymax:
+                        ymax = tmpymax
+                except UnboundLocalError:
+                    (xmin,xmax,ymin,ymax) = (start,stop,tmpymin,tmpymax)
+                    
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
             graphics.append(Expression('Line', Expression('List', *(Expression('List',
                 *(Expression('List', Real(x), Real(y)) for x, y in line)) for line in points)
@@ -186,6 +183,11 @@ class Plot(Builtin):
             if hue > 1: hue -= 1
             if hue < 0: hue += 1
         
+        plotrange = self.get_option(options, 'PlotRange', evaluation)
+        if plotrange.get_name() == 'Automatic':
+            options['PlotRange'] = Expression('List', Expression('List', Real(xmin), Real(xmax)), \
+            Expression('List', Real(ymin), Real(ymax)))
+
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
     
 class DensityPlot(Builtin):
