@@ -25,6 +25,8 @@ class ColorData(Builtin):
     }
 
 def get_plotrange(points):
+    """ Calculates mean and standard deviation, throwing away all points which
+    are more than 'thresh' number of standard deviations away from the mean """
     values = []
     for line in points:
         for i in range(len(line)):
@@ -45,7 +47,11 @@ def get_plotrange(points):
         if abs(v-valavg)/valdev < thresh:
             break
         n2-=1
-    return (values[n1],values[n2])
+    
+    yrange = values[n2]-values[n1]
+    ymin = values[n1]-0.02*yrange
+    ymax = values[n2]+0.02*yrange
+    return (ymin,ymax)
 
 class Plot(Builtin):
     """
@@ -123,7 +129,7 @@ class Plot(Builtin):
             yscale = 1./(ymax-ymin)
 
             # Loop again and interpolate highly angled sections
-            ang_thresh = cos(pi/32)    # Cos of the maximum angle between successive line segments
+            ang_thresh = cos(pi/90)    # Cos of the maximum angle between successive line segments
             maxrecursion = 3    #TODO get maxrecursion from Plot[] arguments (not hardcoded)
             for line in points:
                 recursion_count = 0
