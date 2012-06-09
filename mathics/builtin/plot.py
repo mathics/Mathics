@@ -49,8 +49,8 @@ def get_plotrange(points):
         n2-=1
     
     yrange = values[n2]-values[n1]
-    ymin = values[n1]-0.02*yrange
-    ymax = values[n2]+0.02*yrange
+    ymin = values[n1]-0.05*yrange
+    ymax = values[n2]+0.05*yrange
     return (ymin,ymax)
 
 class Plot(Builtin):
@@ -125,7 +125,7 @@ class Plot(Builtin):
                     continuous = False    
             
             xscale = 1./(stop-start)
-            (ymin,ymax) = get_plotrange(points)
+            (ymin,ymax) = get_plotrange(points)     #TODO Use this for PlotRange->Automatic
             yscale = 1./(ymax-ymin)
 
             # Loop again and interpolate highly angled sections
@@ -160,7 +160,8 @@ class Plot(Builtin):
                             i+=2
                         i+=1
 
-            # Crop the plot
+            # Crop the plotted points
+            #TODO Adapt this to work with user specified PlotRange
             i = 0
             while i < len(points):
                 for j in range(len(points[i])):
