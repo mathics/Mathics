@@ -121,6 +121,7 @@ class Plot(Builtin):
             points = []
             continuous = False
             steps = 50
+            #steps = max(50,5*maxrecursion**2)
             d = (stop - start) / steps
             for index in range(steps + 1):
                 x_value = start + index * d
@@ -140,6 +141,7 @@ class Plot(Builtin):
             yscale = 1./(tmpymax-tmpymin)
 
             # Loop again and interpolate highly angled sections
+            #ang_thresh = cos(pi/(10*maxrecursion**2))    # Cos of the maximum angle between successive line segments
             ang_thresh = cos(pi/90)    # Cos of the maximum angle between successive line segments
             for line in points:
                 recursion_count = 0
