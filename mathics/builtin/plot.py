@@ -53,6 +53,7 @@ class Plot(Builtin):
         'Axes': 'True',
         'AspectRatio': '1 / GoldenRatio',
         'MaxRecursion': '3',
+        'Mesh':'None',
     })
     def AutomaticPlotRange(self,points):
         """ Calculates mean and standard deviation, throwing away all points 
@@ -104,14 +105,16 @@ class Plot(Builtin):
             evaluation.message('Plot', 'plln', stop, expr)
             return
             
-        def eval_f(f, x_value):
-            value = dynamic_scoping(f.evaluate, {x: x_value}, evaluation)
-            value = chop(value).get_real_value()
-            return value
+        mesh = self.get_option(options, 'Mesh', evaluation)
 
         maxrecursion = self.get_option(options, 'MaxRecursion', evaluation).to_python()
         if type(maxrecursion) not in [int, float] or maxrecursion > 15:
             raise MaxRecursionError(maxrecursion)
+
+        def eval_f(f, x_value):
+            value = dynamic_scoping(f.evaluate, {x: x_value}, evaluation)
+            value = chop(value).get_real_value()
+            return value
 
         hue = 0.67
         hue_pos = 0.236068
@@ -142,6 +145,10 @@ class Plot(Builtin):
                 yscale = 1./(tmpymax-tmpymin)
             else:
                 yscale = 1.0
+
+            if mesh.get_name() == 'Full':
+                #graphics.append()
+                pass
 
             # Loop again and interpolate highly angled sections
             ang_thresh = cos(pi/180)    # Cos of the maximum angle between successive line segments
@@ -191,6 +198,9 @@ class Plot(Builtin):
             graphics.append(Expression('Line', Expression('List', *(Expression('List',
                 *(Expression('List', Real(x), Real(y)) for x, y in line)) for line in points)
             )))
+            if mesh.get_name() == 'All':
+                # graphics.append()
+                pass
 
             if index % 4 == 0:
                 hue += hue_pos
@@ -203,6 +213,9 @@ class Plot(Builtin):
         if plotrange.get_name() == 'Automatic':
             options['PlotRange'] = Expression('List', Expression('List', Real(xmin), Real(xmax)), \
             Expression('List', Real(ymin), Real(ymax)))
+        
+            
+
 
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
     
