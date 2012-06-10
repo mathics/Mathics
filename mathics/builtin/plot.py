@@ -24,6 +24,13 @@ class ColorData(Builtin):
                  0.914031], RGBColor[0.941176, 0.906538, 0.834043]}, #1] & ]""",
     }
 
+class MaxRecursionError(Exception):
+    def __init__(self,maxrecursion):
+        if type(maxrecursion) != int:
+            print "MaxRecursion must be an Integer"
+        elif maxrecursion > 15:
+            print "MaxRecursion must be <=15"
+
 class Plot(Builtin):
     """
     <dl>
@@ -45,6 +52,7 @@ class Plot(Builtin):
     options.update({
         'Axes': 'True',
         'AspectRatio': '1 / GoldenRatio',
+        'MaxRecursion': '3',
     })
     def AutomaticPlotRange(self,points):
         """ Calculates mean and standard deviation, throwing away all points 
@@ -99,7 +107,11 @@ class Plot(Builtin):
             value = dynamic_scoping(f.evaluate, {x: x_value}, evaluation)
             value = chop(value).get_real_value()
             return value
-        
+
+        maxrecursion = self.get_option(options, 'MaxRecursion', evaluation).to_python()
+        if type(maxrecursion) not in [int, float] or maxrecursion > 15:
+            raise MaxRecursionError(maxrecursion)
+
         hue = 0.67
         hue_pos = 0.236068
         hue_neg = -0.763932
@@ -129,7 +141,6 @@ class Plot(Builtin):
 
             # Loop again and interpolate highly angled sections
             ang_thresh = cos(pi/90)    # Cos of the maximum angle between successive line segments
-            maxrecursion = 3    #TODO get maxrecursion from Plot[] arguments (not hardcoded)
             for line in points:
                 recursion_count = 0
                 smooth = False
