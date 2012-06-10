@@ -42,6 +42,19 @@ class Plot(Builtin):
     
     >> Plot[{Sin[x], Cos[x], x / 3}, {x, -Pi, Pi}]
      = -Graphics-
+
+    >> Plot[Sin[x], {x,0,4 Pi}, PlotRange->{{0,4 Pi},{0,1.5}}]
+     = -Graphics-
+
+    >> Plot[Tan[x], {x,6,6}, Mesh->Full]
+     = -Graphics
+
+    >> Plot[x^2, {x,-1,1}, MaxRecursion->5, Mesh->All]
+     = -Graphics-
+
+    >> Plot[Log[x],{x,0,5}, MaxRecursion->0]
+     = -Graphics-
+
     """
 
     from graphics import Graphics
@@ -221,11 +234,14 @@ class Plot(Builtin):
             xscale = 1./(xmax-xmin)
             yscale = 1./(ymax-ymin)
         else:
-            pass
-            #TODO xy scales
+            try:
+                xscale = 1./(plotrange.to_python()[0][1] - plotrange.to_python()[0][0])
+                yscale = 1./(plotrange.to_python()[1][1] - plotrange.to_python()[1][0])
+            except:
+                xscale = 1./(xmax-xmin)
+                yscale = 1./(ymax-ymin)
         
         if mesh.get_name() != 'None':
-            print 1./xscale
             for x,y in mesh_points:
                testdisk = Expression('Disk',Expression('List',Real(x),Real(y)), \
                Expression('List', Real(0.003/xscale), 0.005/yscale))
