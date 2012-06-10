@@ -159,6 +159,7 @@ class Plot(Builtin):
                             i+=2
                         i+=1
 
+                # Take the largest PlotRange over all functions
                 try:
                     if start < xmin:
                         xmin = start
