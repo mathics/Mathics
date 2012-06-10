@@ -55,6 +55,8 @@ class Plot(Builtin):
     >> Plot[Log[x],{x,0,5}, MaxRecursion->0]
      = -Graphics-
 
+    >> Plot[Tan[x],{x,0,6},Mesh->All,PlotRange->{{-1,5},{0,15}},MaxRecursion->10]
+     = -Graphics-
     """
 
     from graphics import Graphics
