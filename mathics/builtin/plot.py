@@ -24,13 +24,6 @@ class ColorData(Builtin):
                  0.914031], RGBColor[0.941176, 0.906538, 0.834043]}, #1] & ]""",
     }
 
-class MaxRecursionError(Exception):
-    def __init__(self,maxrecursion):
-        if type(maxrecursion) != int:
-            print "MaxRecursion must be an Integer"
-        elif maxrecursion > 15:
-            print "MaxRecursion must be <=15"
-
 class Plot(Builtin):
     """
     <dl>
@@ -67,9 +60,14 @@ class Plot(Builtin):
     options.update({
         'Axes': 'True',
         'AspectRatio': '1 / GoldenRatio',
-        'MaxRecursion': '3',
+        'MaxRecursion': 'Automatic',
         'Mesh':'None',
     })
+
+    messages = {
+        'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
+    }
+
     def AutomaticPlotRange(self,points):
         """ Calculates mean and standard deviation, throwing away all points 
         which are more than 'thresh' number of standard deviations away from 
@@ -124,9 +122,25 @@ class Plot(Builtin):
         if mesh.get_name() != 'None':
             mesh_points = []
 
-        maxrecursion = self.get_option(options, 'MaxRecursion', evaluation).to_python()
-        if type(maxrecursion) not in [int, float] or maxrecursion > 15:
-            raise MaxRecursionError(maxrecursion)
+        try:
+            maxrecursion = self.get_option(options, 'MaxRecursion', evaluation).to_python()
+        except:
+            maxrecursion = 3
+            evaluation.message('Plot','invmaxrec',maxrecursion,15)
+
+        if maxrecursion == 'Automatic':
+            maxrecursion = 3
+        if type(maxrecursion) != int or maxrecursion > 15 or maxrecursion < 0:
+            if type(maxrecursion) == float:
+                maxrecursion = int(maxrecursion)
+            if type(maxrecursion) == int:
+                if maxrecursion > 15:
+                    maxrecursion = 15
+                elif maxrecursion < 0:
+                    maxrecursion = 0
+            else:
+                maxrecursion = 3 
+            evaluation.message('Plot','invmaxrec',maxrecursion,15)
 
         def eval_f(f, x_value):
             value = dynamic_scoping(f.evaluate, {x: x_value}, evaluation)
