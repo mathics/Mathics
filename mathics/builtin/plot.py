@@ -66,6 +66,8 @@ class Plot(Builtin):
 
     messages = {
         'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
+        'invplotrange' : "PlotRange take the form {{xmin,xmax},{ymin,ymax}}, where xmin < xmax and ymin < ymax. Using PlotRange->Automatic",
+        'invmesh' : "Mesh must be one of {None, Full, All}. Using Mesh->None",
     }
 
     def AutomaticPlotRange(self,points):
@@ -117,9 +119,37 @@ class Plot(Builtin):
         except NumberError:
             evaluation.message('Plot', 'plln', stop, expr)
             return
-            
+
+        plotrange = self.get_option(options, 'PlotRange', evaluation)
+        if plotrange.get_name() == 'Automatic':
+            pass
+        #elif not plotrange.has_form(Expression('List',Expression('List',None),Expression('List',None))):
+        elif not plotrange.has_form('List',None):
+        #elif plotrange.to_python() 
+            plotrange = Symbol('Automatic')
+            evaluation.message('Plot','invplotrange')
+        else:
+            try:   #TODO clean this up
+                tmp = plotrange.to_python()
+                assert(len(tmp)==2)
+                assert(len(tmp[0])==2)
+                assert(len(tmp[1])==2)
+                for t1 in tmp:
+                    for t2 in t1:
+                        assert(type(t2) in [float,int])
+
+                assert(tmp[0][1] > tmp[0][0])
+                assert(tmp[1][1] > tmp[1][0])
+            except:
+                plotrange = Symbol('Automatic')
+                evaluation.message('Plot','invplotrange')
+    
+
         mesh = self.get_option(options, 'Mesh', evaluation)
-        if mesh.get_name() != 'None':
+        if mesh.get_name() not in ['None', 'Full', 'All']:
+            evaluation.message('Plot','invmesh')
+            mesh = Symbol('None')
+        elif mesh.get_name() != 'None':
             mesh_points = []
 
         try:
@@ -127,7 +157,6 @@ class Plot(Builtin):
         except:
             maxrecursion = 3
             evaluation.message('Plot','invmaxrec',maxrecursion,15)
-
         if maxrecursion == 'Automatic':
             maxrecursion = 3
         if type(maxrecursion) != int or maxrecursion > 15 or maxrecursion < 0:
@@ -243,7 +272,6 @@ class Plot(Builtin):
             if hue > 1: hue -= 1
             if hue < 0: hue += 1
 
-        plotrange = self.get_option(options, 'PlotRange', evaluation)
         if plotrange.get_name() == 'Automatic':
             options['PlotRange'] = Expression('List', Expression('List', Real(xmin), Real(xmax)), \
             Expression('List', Real(ymin), Real(ymax)))
