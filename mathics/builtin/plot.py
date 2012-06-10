@@ -59,7 +59,7 @@ class Plot(Builtin):
         which are more than 'thresh' number of standard deviations away from 
         the mean. These are then used to find good ymin and ymax values. These 
         values can then be used to find Automatic Plotrange. """
-        thresh = 3.0
+        thresh = 2.0
         values = []
         for line in points:
             for p in line:
@@ -69,14 +69,15 @@ class Plot(Builtin):
         valdev = sqrt(sum([(x-valavg)**2 for x in values])/(len(values)-1))
 
         (n1,n2) = (0,len(values)-1)
-        for v in values:
-            if abs(v-valavg)/valdev < thresh:
-                break
-            n1+=1
-        for v in values[::-1]:
-            if abs(v-valavg)/valdev < thresh:
-                break
-            n2-=1
+        if valdev != 0:
+            for v in values:
+                if abs(v-valavg)/valdev < thresh:
+                    break
+                n1+=1
+            for v in values[::-1]:
+                if abs(v-valavg)/valdev < thresh:
+                    break
+                n2-=1
         
         yrange = values[n2]-values[n1]
         ymin = values[n1]-0.05*yrange
@@ -137,10 +138,13 @@ class Plot(Builtin):
             
             xscale = 1./(stop-start)
             (tmpymin,tmpymax) = self.AutomaticPlotRange(points)
-            yscale = 1./(tmpymax-tmpymin)
+            if tmpymin != tmpymax:
+                yscale = 1./(tmpymax-tmpymin)
+            else:
+                yscale = 1.0
 
             # Loop again and interpolate highly angled sections
-            ang_thresh = cos(pi/90)    # Cos of the maximum angle between successive line segments
+            ang_thresh = cos(pi/180)    # Cos of the maximum angle between successive line segments
             for line in points:
                 recursion_count = 0
                 smooth = False
