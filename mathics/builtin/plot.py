@@ -24,6 +24,9 @@ class ColorData(Builtin):
                  0.914031], RGBColor[0.941176, 0.906538, 0.834043]}, #1] & ]""",
     }
 
+class Mesh(Builtin):
+    messages = {'ilevels' : "`1` s not a valid mesh specification."}
+
 class Plot(Builtin):
     """
     <dl>
@@ -124,9 +127,7 @@ class Plot(Builtin):
         plotrange = self.get_option(options, 'PlotRange', evaluation)
         if plotrange.get_name() == 'Automatic':
             pass
-        #elif not plotrange.has_form(Expression('List',Expression('List',None),Expression('List',None))):
         elif not plotrange.has_form('List',None):
-        #elif plotrange.to_python() 
             evaluation.message('Plot','prng',plotrange)
             plotrange = Symbol('Automatic')
         else:
@@ -147,7 +148,7 @@ class Plot(Builtin):
 
         mesh = self.get_option(options, 'Mesh', evaluation)
         if mesh.get_name() not in ['None', 'Full', 'All']:
-            evaluation.message('Plot','invmesh')
+            evaluation.message('Mesh','ilevels', mesh)
             mesh = Symbol('None')
         elif mesh.get_name() != 'None':
             mesh_points = []
