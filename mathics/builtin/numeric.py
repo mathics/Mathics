@@ -222,6 +222,8 @@ class Round(Builtin):
      = Round[1.5, k]
     """
     
+    attributes = ('Listable', 'NumericFunction')
+    
     rules = {
         'Round[expr_?RealNumberQ]': 'Round[expr, 1]',
     }

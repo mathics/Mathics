@@ -116,6 +116,11 @@ class Graphics(Builtin):
     
     >> Graphics[{Blue, Line[{{0,0}, {1,1}}]}]
      = -Graphics-
+     
+    'Graphics' supports 'PlotRange':
+    >> Graphics[{Rectangle[{1, 1}]}, Axes -> True, PlotRange -> {{-2, 1.5}, {-1, 1.5}}]
+     = -Graphics-
+     
     'Graphics' produces 'GraphicsBox' boxes:
     >> Graphics[Rectangle[]] // ToBoxes // Head
      = GraphicsBox
@@ -127,6 +132,7 @@ class Graphics(Builtin):
         'AxesStyle': '{}',
         'LabelStyle': '{}',
         'AspectRatio': 'Automatic',
+        'PlotRange': 'Automatic',
         'PlotRangePadding': 'Automatic',
         'ImageSize': 'Automatic',
     }
@@ -170,6 +176,7 @@ class _GraphicsElement(InstancableBuiltin):
             raise BoxConstructError
         self.graphics = graphics
         self.style = style
+        self.is_completely_visible = False # True for axis elements
     
 class _Color(_GraphicsElement):
     components_sizes = []
@@ -804,8 +811,11 @@ class GraphicsElements(object):
         else:
             return x * self.pixel_width
         
-    def extent(self):
-        return total_extent([element.extent() for element in self.elements])
+    def extent(self, completely_visible_only=False):
+        if completely_visible_only:
+            return total_extent([element.extent() for element in self.elements if element.is_completely_visible])
+        else:
+            return total_extent([element.extent() for element in self.elements])
     
     def to_svg(self):
         return '\n'.join(element.to_svg() for element in self.elements)
@@ -877,6 +887,12 @@ class GraphicsBox(BoxConstruct):
         graphics_options = self.get_option_values(leaves[1:], **options)
         
         aspect_ratio = graphics_options['AspectRatio']
+            
+        plot_range = graphics_options['PlotRange'].to_python()            
+        if plot_range == 'Automatic':
+            plot_range = ['Automatic', 'Automatic']
+        if not isinstance(plot_range, list) or len(plot_range) != 2:
+            raise BoxConstructError
         
         if image_size_multipliers is None:
             image_size_multipliers = (0.5, 0.25)
@@ -900,20 +916,64 @@ class GraphicsBox(BoxConstruct):
         except NumberError:
             raise BoxConstructError
         
-        def calc_dimensions():
-            xmin, xmax, ymin, ymax = elements.extent()
-            if xmin is None and xmax is None:
-                xmin = -1
-                xmax = 1
-            elif xmin == xmax:
-                xmin -= 1
-                xmax += 1
-            if ymin is None and ymax is None:
-                ymin = -1
-                ymax = 1
-            elif ymin == ymax:
-                ymin -= 1
-                ymax += 1
+        def calc_dimensions(final_pass=True):
+            """
+            calc_dimensions gets called twice:
+            In the first run (final_pass = False, called inside _prepare_elements),
+            the extent of all user-defined graphics is determined.
+            Axes are created accordingly.
+            In the second run (final_pass = True, called from outside),
+            the dimensions of these axes are taken into account as well.
+            This is also important to size absolutely sized objects correctly
+            (e.g. values using AbsoluteThickness).
+            """
+            
+            if 'Automatic' in plot_range:
+                xmin, xmax, ymin, ymax = elements.extent()
+            else:
+                xmin = xmax = ymin = ymax = None
+            if final_pass and plot_range != ['Automatic', 'Automatic']:
+                # Take into account the dimensiosn of axes and axes labels
+                # (they should be displayed completely even when a specific
+                # PlotRange is given).
+                exmin, exmax, eymin, eymax = elements.extent(completely_visible_only=True)
+            else:
+                exmin = exmax = eymin = eymax = None
+            
+            try:
+                if plot_range[0] == 'Automatic':
+                    if xmin is None and xmax is None:
+                        xmin = 0
+                        xmax = 1
+                    elif xmin == xmax:
+                        xmin -= 1
+                        xmax += 1
+                elif isinstance(plot_range[0], list) and len(plot_range[0]) == 2:
+                    xmin, xmax = map(float, plot_range[0])
+                    if exmin is not None and exmin < xmin:
+                        xmin = exmin
+                    if exmax is not None and exmax > xmax:
+                        xmax = exmax
+                else:
+                    raise BoxConstructError
+                
+                if plot_range[1] == 'Automatic':
+                    if ymin is None and ymax is None:
+                        ymin = 0
+                        ymax = 1
+                    elif ymin == ymax:
+                        ymin -= 1
+                        ymax += 1
+                elif isinstance(plot_range[1], list) and len(plot_range[1]) == 2:
+                    ymin, ymax = map(float, plot_range[1])
+                    if eymin is not None and eymin < ymin:
+                        ymin = eymin
+                    if eymax is not None and eymax > ymax:
+                        ymax = eymax
+                else:
+                    raise BoxConstructError
+            except (ValueError, TypeError):
+                raise BoxConstructError
                 
             w = xmax - xmin
             h = ymax - ymin
@@ -941,7 +1001,7 @@ class GraphicsBox(BoxConstruct):
             
             return xmin, xmax, ymin, ymax, w, h, width, height
             
-        xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
+        xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions(final_pass=False)
         elements.set_size(xmin, ymin, w, h, width, height)
         
         xmin -= w * 0.02
@@ -1082,12 +1142,16 @@ size(%scm, %scm);
         origin_x = origin_k_x * step_x
         origin_y = origin_k_y * step_y
         
+        def add_element(element):
+            element.is_completely_visible = True
+            elements.elements.append(element)
+        
         axes_extra = 6
         tick_small_size = 3
         tick_large_size = 5
         tick_label_d = 2
         if axes[0]:
-            elements.elements.append(LineBox(elements, axes_style[0], lines=[[Coords(elements,
+            add_element(LineBox(elements, axes_style[0], lines=[[Coords(elements,
                 pos=(xmin,origin_y), d=(-axes_extra,0)),
                 Coords(elements, pos=(xmax,origin_y), d=(axes_extra,0))]]))
             ticks = []
@@ -1100,7 +1164,7 @@ size(%scm, %scm);
                         break
                     ticks.append([Coords(elements, pos=(x,origin_y)),
                         Coords(elements, pos=(x,origin_y), d=(0,tick_large_size))])
-                    elements.elements.append(InsetBox(elements, tick_label_style, content=Real(x), pos=Coords(elements, pos=(x,origin_y),
+                    add_element(InsetBox(elements, tick_label_style, content=Real(x), pos=Coords(elements, pos=(x,origin_y),
                         d=(0,-tick_label_d)), opos=(0,1)))
             for k in range(start_k_x_small, start_k_x_small+steps_x_small+1):
                 if k % sub_x != 0:
@@ -1110,9 +1174,9 @@ size(%scm, %scm);
                     pos = (x,origin_y)
                     ticks.append([Coords(elements, pos=pos),
                         Coords(elements, pos=pos, d=(0,tick_small_size))])
-            elements.elements.append(LineBox(elements, axes_style[0], lines=ticks))    
+            add_element(LineBox(elements, axes_style[0], lines=ticks))    
         if axes[1]:
-            elements.elements.append(LineBox(elements, axes_style[1], lines=[[Coords(elements, pos=(origin_x,ymin), d=(0,-axes_extra)),
+            add_element(LineBox(elements, axes_style[1], lines=[[Coords(elements, pos=(origin_x,ymin), d=(0,-axes_extra)),
                 Coords(elements, pos=(origin_x,ymax), d=(0,axes_extra))]]))
             ticks = []
             tick_label_style = ticks_style[1].clone()
@@ -1125,7 +1189,7 @@ size(%scm, %scm);
                     pos = (origin_x,y)
                     ticks.append([Coords(elements, pos=pos),
                         Coords(elements, pos=pos, d=(tick_large_size,0))])
-                    elements.elements.append(InsetBox(elements, tick_label_style, content=Real(y), pos=Coords(elements, pos=pos,
+                    add_element(InsetBox(elements, tick_label_style, content=Real(y), pos=Coords(elements, pos=pos,
                         d=(-tick_label_d,0)), opos=(1,0)))
             for k in range(start_k_y_small, start_k_y_small+steps_y_small+1):
                 if k % sub_y != 0:
@@ -1135,7 +1199,7 @@ size(%scm, %scm);
                     pos = (origin_x,y)
                     ticks.append([Coords(elements, pos=pos),
                         Coords(elements, pos=pos, d=(tick_small_size,0))])
-            elements.elements.append(LineBox(elements, axes_style[1], lines=ticks))
+            add_element(LineBox(elements, axes_style[1], lines=ticks))
     
 class Directive(Builtin):
     attributes = ('ReadProtected',)
