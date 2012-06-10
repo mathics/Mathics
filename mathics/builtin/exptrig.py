@@ -111,15 +111,10 @@ class Log(_MPMathFunction):
         <dd>returns the natural logarithm of $z$.
     </dl>
     
-    >> Log[E]
-     = 1
-    >> Log[1]
-     = 0
-    >> Log[0]
-     = -Infinity
+    >> Log[{0, 1, E, E*E, E^3, E^x}]
+     = {-Infinity, 0, 1, 2, 3, Log[E ^ x]}
     >> Log[0.]
      = Indeterminate
-     
     >> Plot[Log[x], {x, 0, 5}]
      = -Graphics-
     """
@@ -130,6 +125,7 @@ class Log(_MPMathFunction):
         'Log[0]': 'DirectedInfinity[-1]',
         'Log[1]': '0',
         'Log[E]': '1',
+        'Log[E^x_Integer]': 'x',
         'Derivative[1][Log]': '1/#&',
     }
     
@@ -139,15 +135,15 @@ class Log(_MPMathFunction):
 class Log2(Builtin):
     """
     <dl>
-    <dt>'Log2[$x$]'
-        <dd>gives the base-2 logarithm of $x$.
+    <dt>'Log2[$z$]'
+        <dd>returns the base-2 logarithm of $z$.
     </dl>
-    >> Log2[2^10]
-     = 10
-    >> Log2[1.4142]
-     = 0.499986164421874258
-    >> Log2[x]
-     = Log[x] / Log[2]
+    >> Log2[4^8]
+     = 16
+    >> Log2[5.6]
+     = 2.48542682717024177
+    >> Log2[E^2]
+     = 2 / Log[2]
     """
     
     rules = {
@@ -157,15 +153,15 @@ class Log2(Builtin):
 class Log10(Builtin):
     """
     <dl>
-    <dt>'Log10[$x$]'
-        <dd>gives the base-10 logarithm of $x$.
+    <dt>'Log10[$z$]'
+        <dd>returns the base-10 logarithm of $z$.
     </dl>
-    >> Log10[1000000]
-     = 6
-    >> Log10[2.]
-     = 0.301029995663981195
-    >> Log10[x]
-     = Log[x] / Log[10]
+    >> Log10[1000]
+     = 3
+    >> Log10[{2., 5.}]
+     = {0.301029995663981195, 0.698970004336018803}
+    >> Log10[E^3]
+     = 3 / Log[10]
     """
     
     rules = {
