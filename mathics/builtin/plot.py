@@ -50,7 +50,8 @@ class Plot(Builtin):
     def AutomaticPlotRange(self,points):
         """ Calculates mean and standard deviation, throwing away all points 
         which are more than 'thresh' number of standard deviations away from 
-        the mean. These are then used to find good ymin and ymax values. """
+        the mean. These are then used to find good ymin and ymax values. These 
+        values can then be used to find Automatic Plotrange. """
         thresh = 3.0
         values = []
         for line in points:
