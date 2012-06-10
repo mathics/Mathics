@@ -66,7 +66,7 @@ class Plot(Builtin):
 
     messages = {
         'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
-        'prng' : "PlotRange take the form {{xmin,xmax},{ymin,ymax}}, where xmin < xmax and ymin < ymax. Using PlotRange->Automatic",
+        'prng' : "Value of option PlotRange -> `1` is not Automatic or an appropriate list of range specifications",
         #'prng' : "Value of option PlotRange -> `1` is not All, Full, Automatic, a positive machine number, or an appropriate list of range specifications",
         'invmesh' : "Mesh must be one of {None, Full, All}. Using Mesh->None",
     }
@@ -127,8 +127,8 @@ class Plot(Builtin):
         #elif not plotrange.has_form(Expression('List',Expression('List',None),Expression('List',None))):
         elif not plotrange.has_form('List',None):
         #elif plotrange.to_python() 
+            evaluation.message('Plot','prng',plotrange)
             plotrange = Symbol('Automatic')
-            evaluation.message('Plot','prng')
         else:
             try:   #TODO clean this up
                 tmp = plotrange.to_python()
@@ -142,8 +142,8 @@ class Plot(Builtin):
                 assert(tmp[0][1] > tmp[0][0])
                 assert(tmp[1][1] > tmp[1][0])
             except:
+                evaluation.message('Plot','prng',plotrange)
                 plotrange = Symbol('Automatic')
-                evaluation.message('Plot','prng')
 
         mesh = self.get_option(options, 'Mesh', evaluation)
         if mesh.get_name() not in ['None', 'Full', 'All']:
