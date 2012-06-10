@@ -106,6 +106,8 @@ class Plot(Builtin):
             return
             
         mesh = self.get_option(options, 'Mesh', evaluation)
+        if mesh.get_name() != 'None':
+            mesh_points = []
 
         maxrecursion = self.get_option(options, 'MaxRecursion', evaluation).to_python()
         if type(maxrecursion) not in [int, float] or maxrecursion > 15:
@@ -126,8 +128,8 @@ class Plot(Builtin):
             continuous = False
             steps = 50
             d = (stop - start) / steps
-            for index in range(steps + 1):
-                x_value = start + index * d
+            for i in range(steps + 1):
+                x_value = start + i * d
                 y = eval_f(f, Real(x_value))
                 if y is not None:
                     point = (x_value, y)
@@ -146,12 +148,10 @@ class Plot(Builtin):
             else:
                 yscale = 1.0
 
-            # Disks Not Implemented Yet
-            #if mesh.get_name() == 'Full':
-            #    graphics.append(Expression('Hue', hue, 0.6, 0.6))
-            #    graphics.append(*Expression('List', *(Expression('List',
-            #        (Expression('Disk', Real(x), Real(y), Real(0.1)) for x, y in line)) for line in points)
-            #    ))
+            if mesh.get_name() == 'Full':
+                for line in points:
+                    for point in line:
+                        mesh_points.append([point[0],point[1]])
 
             # Loop again and interpolate highly angled sections
             ang_thresh = cos(pi/180)    # Cos of the maximum angle between successive line segments
@@ -202,11 +202,10 @@ class Plot(Builtin):
                 *(Expression('List', Real(x), Real(y)) for x, y in line)) for line in points)
             )))
             # Disks Not Implemented 
-            #if mesh.get_name() == 'All':
-            #    graphics.append(Expression('Hue', hue, 0.6, 0.6))
-            #    graphics.append(*Expression('List', *(Expression('List',
-            #        (Expression('Disk', Real(x), Real(y), Real(0.1)) for x, y in line)) for line in points)
-            #    ))
+            if mesh.get_name() == 'All':
+                for line in points:
+                    for x,y in line:
+                        mesh_points.append([x,y])
 
             if index % 4 == 0:
                 hue += hue_pos
@@ -214,11 +213,23 @@ class Plot(Builtin):
                 hue += hue_neg
             if hue > 1: hue -= 1
             if hue < 0: hue += 1
-        
+
         plotrange = self.get_option(options, 'PlotRange', evaluation)
         if plotrange.get_name() == 'Automatic':
             options['PlotRange'] = Expression('List', Expression('List', Real(xmin), Real(xmax)), \
             Expression('List', Real(ymin), Real(ymax)))
+            xscale = 1./(xmax-xmin)
+            yscale = 1./(ymax-ymin)
+        else:
+            pass
+            #TODO xy scales
+        
+        if mesh.get_name() != 'None':
+            print 1./xscale
+            for x,y in mesh_points:
+               testdisk = Expression('Disk',Expression('List',Real(x),Real(y)), \
+               Expression('List', Real(0.003/xscale), 0.005/yscale))
+               graphics.append(testdisk)
         
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
     
