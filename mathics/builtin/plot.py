@@ -146,9 +146,12 @@ class Plot(Builtin):
             else:
                 yscale = 1.0
 
-            if mesh.get_name() == 'Full':
-                #graphics.append()
-                pass
+            # Disks Not Implemented Yet
+            #if mesh.get_name() == 'Full':
+            #    graphics.append(Expression('Hue', hue, 0.6, 0.6))
+            #    graphics.append(*Expression('List', *(Expression('List',
+            #        (Expression('Disk', Real(x), Real(y), Real(0.1)) for x, y in line)) for line in points)
+            #    ))
 
             # Loop again and interpolate highly angled sections
             ang_thresh = cos(pi/180)    # Cos of the maximum angle between successive line segments
@@ -198,9 +201,12 @@ class Plot(Builtin):
             graphics.append(Expression('Line', Expression('List', *(Expression('List',
                 *(Expression('List', Real(x), Real(y)) for x, y in line)) for line in points)
             )))
-            if mesh.get_name() == 'All':
-                # graphics.append()
-                pass
+            # Disks Not Implemented 
+            #if mesh.get_name() == 'All':
+            #    graphics.append(Expression('Hue', hue, 0.6, 0.6))
+            #    graphics.append(*Expression('List', *(Expression('List',
+            #        (Expression('Disk', Real(x), Real(y), Real(0.1)) for x, y in line)) for line in points)
+            #    ))
 
             if index % 4 == 0:
                 hue += hue_pos
@@ -214,9 +220,6 @@ class Plot(Builtin):
             options['PlotRange'] = Expression('List', Expression('List', Real(xmin), Real(xmax)), \
             Expression('List', Real(ymin), Real(ymax)))
         
-            
-
-
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
     
 class DensityPlot(Builtin):
