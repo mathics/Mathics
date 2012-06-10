@@ -96,7 +96,7 @@ class Plot(Builtin):
                 n2-=1
         
         yrange = values[n2]-values[n1]
-        ymin = values[n1]-0.05*yrange
+        ymin = values[n1]-0.05*yrange    # 5% extra looks nice
         ymax = values[n2]+0.05*yrange
         return (ymin,ymax)
     
@@ -216,7 +216,7 @@ class Plot(Builtin):
             graphics.append(Expression('Line', Expression('List', *(Expression('List',
                 *(Expression('List', Real(x), Real(y)) for x, y in line)) for line in points)
             )))
-            # Disks Not Implemented 
+
             if mesh.get_name() == 'All':
                 for line in points:
                     for x,y in line:
@@ -233,21 +233,19 @@ class Plot(Builtin):
         if plotrange.get_name() == 'Automatic':
             options['PlotRange'] = Expression('List', Expression('List', Real(xmin), Real(xmax)), \
             Expression('List', Real(ymin), Real(ymax)))
-            xscale = 1./(xmax-xmin)
-            yscale = 1./(ymax-ymin)
+            (xscale,yscale) = (1./(xmax-xmin),1./(ymax-ymin))
         else:
             try:
                 xscale = 1./(plotrange.to_python()[0][1] - plotrange.to_python()[0][0])
                 yscale = 1./(plotrange.to_python()[1][1] - plotrange.to_python()[1][0])
-            except:
-                xscale = 1./(xmax-xmin)
-                yscale = 1./(ymax-ymin)
+            except:     # Incorrect user input should be handeled elsewhere
+                (xscale,yscale) = (1./(xmax-xmin),1./(ymax-ymin))
         
         if mesh.get_name() != 'None':
             for x,y in mesh_points:
-               testdisk = Expression('Disk',Expression('List',Real(x),Real(y)), \
-               Expression('List', Real(0.003/xscale), 0.005/yscale))
-               graphics.append(testdisk)
+                graphics.append(Expression('Disk',Expression('List',Real(x),Real(y)), \
+                Expression('List', Real(0.003/xscale), 0.005/yscale)))       
+                #TODO handle non-default AspectRatio
         
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
     
