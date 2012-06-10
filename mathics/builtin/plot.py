@@ -45,7 +45,6 @@ class Plot(Builtin):
     options.update({
         'Axes': 'True',
         'AspectRatio': '1 / GoldenRatio',
-        #'PlotRange' : 'Automatic',
     })
     def AutomaticPlotRange(self,points):
         """ Calculates mean and standard deviation, throwing away all points 
@@ -125,7 +124,7 @@ class Plot(Builtin):
                     continuous = False    
             
             xscale = 1./(stop-start)
-            (tmpymin,tmpymax) = self.AutomaticPlotRange(points)     #TODO Use this for PlotRange->Automatic
+            (tmpymin,tmpymax) = self.AutomaticPlotRange(points)
             yscale = 1./(tmpymax-tmpymin)
 
             # Loop again and interpolate highly angled sections
