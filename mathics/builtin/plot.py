@@ -66,7 +66,8 @@ class Plot(Builtin):
 
     messages = {
         'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
-        'invplotrange' : "PlotRange take the form {{xmin,xmax},{ymin,ymax}}, where xmin < xmax and ymin < ymax. Using PlotRange->Automatic",
+        'prng' : "PlotRange take the form {{xmin,xmax},{ymin,ymax}}, where xmin < xmax and ymin < ymax. Using PlotRange->Automatic",
+        #'prng' : "Value of option PlotRange -> `1` is not All, Full, Automatic, a positive machine number, or an appropriate list of range specifications",
         'invmesh' : "Mesh must be one of {None, Full, All}. Using Mesh->None",
     }
 
@@ -127,7 +128,7 @@ class Plot(Builtin):
         elif not plotrange.has_form('List',None):
         #elif plotrange.to_python() 
             plotrange = Symbol('Automatic')
-            evaluation.message('Plot','invplotrange')
+            evaluation.message('Plot','prng')
         else:
             try:   #TODO clean this up
                 tmp = plotrange.to_python()
@@ -142,8 +143,7 @@ class Plot(Builtin):
                 assert(tmp[1][1] > tmp[1][0])
             except:
                 plotrange = Symbol('Automatic')
-                evaluation.message('Plot','invplotrange')
-    
+                evaluation.message('Plot','prng')
 
         mesh = self.get_option(options, 'Mesh', evaluation)
         if mesh.get_name() not in ['None', 'Full', 'All']:
@@ -155,20 +155,19 @@ class Plot(Builtin):
         try:
             maxrecursion = self.get_option(options, 'MaxRecursion', evaluation).to_python()
         except:
-            maxrecursion = 3
+            maxrecursion = 0
             evaluation.message('Plot','invmaxrec',maxrecursion,15)
         if maxrecursion == 'Automatic':
             maxrecursion = 3
-        if type(maxrecursion) != int or maxrecursion > 15 or maxrecursion < 0:
-            if type(maxrecursion) == float:
-                maxrecursion = int(maxrecursion)
-            if type(maxrecursion) == int:
-                if maxrecursion > 15:
-                    maxrecursion = 15
-                elif maxrecursion < 0:
-                    maxrecursion = 0
-            else:
-                maxrecursion = 3 
+        if isinstance(maxrecursion,int):
+            if maxrecursion > 15:
+                maxrecursion = 15
+                evaluation.message('Plot','invmaxrec',maxrecursion,15)
+            elif maxrecursion < 0:
+                evaluation.message('Plot','invmaxrec',maxrecursion,15)
+                maxrecursion = 0
+        else:
+            maxrecursion = 0
             evaluation.message('Plot','invmaxrec',maxrecursion,15)
 
         def eval_f(f, x_value):
