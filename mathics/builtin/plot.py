@@ -103,7 +103,7 @@ class Plot(Builtin):
         valavg = sum(values) / len(values)
         valdev = sqrt(sum([(x - valavg)**2 for x in values]) / (len(values) - 1))
 
-        (n1, n2) = (0, len(values) - 1)
+        n1, n2 = 0, len(values) - 1
         if valdev != 0:
             for v in values:
                 if abs(v - valavg) / valdev < thresh:
@@ -117,7 +117,7 @@ class Plot(Builtin):
         yrange = values[n2] - values[n1]
         ymin = values[n1] - 0.05 * yrange    # 5% extra looks nice
         ymax = values[n2] + 0.05 * yrange
-        return (ymin, ymax)
+        return ymin, ymax
     
     def apply(self, functions, x, start, stop, evaluation, options):
         'Plot[functions_, {x_Symbol, start_, stop_}, OptionsPattern[Plot]]'
@@ -198,7 +198,7 @@ class Plot(Builtin):
         hue_neg = -0.763932
         
         graphics = []
-        (xmin, xmax, ymin, ymax) = (None, None, None, None)
+        xmin, xmax, ymin, ymax = None, None, None, None
         for index, f in enumerate(functions):
             points = []
             continuous = False
@@ -218,7 +218,7 @@ class Plot(Builtin):
                     continuous = False    
 
             xscale = 1. / (stop - start)
-            (tmpymin, tmpymax) = self.automatic_plot_range(points)
+            tmpymin, tmpymax = self.automatic_plot_range(points)
             if tmpymin != tmpymax:
                 yscale = 1. / (tmpymax - tmpymin)
             else:
@@ -261,11 +261,11 @@ class Plot(Builtin):
                         i+=1
 
                 # Take the largest PlotRange over all functions and all lines
-                if (xmin is None or xmax is None or ymin is None or ymax is None):
-                    (xmin, xmax, ymin, ymax) = (start, stop, tmpymin, tmpymax)
+                if xmin is None or xmax is None or ymin is None or ymax is None:
+                    xmin, xmax, ymin, ymax = start, stop, tmpymin, tmpymax
                 else:
-                    (xmin, xmax) = (min(start, xmin), max(stop, xmax))
-                    (ymin, ymax) = (min(tmpymin, ymin), max(tmpymax, ymax))
+                    xmin, xmax = min(start, xmin), max(stop, xmax)
+                    ymin, ymax = min(tmpymin, ymin), max(tmpymax, ymax)
                     
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
             graphics.append(Expression('Line', Expression('List', *(Expression('List',
@@ -290,7 +290,7 @@ class Plot(Builtin):
                 Expression('List', Real(ymin), Real(ymax))
             )
 
-            (xscale, yscale) = (1. / (xmax-xmin), 1. / (ymax-ymin))
+            xscale, yscale = 1. / (xmax-xmin), 1. / (ymax-ymin)
         else:
             xscale = 1. / (plotrange.to_python(n_evaluation=evaluation)[0][1] 
                      - plotrange.to_python(n_evaluation=evaluation)[0][0])
