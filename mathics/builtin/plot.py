@@ -25,6 +25,19 @@ class ColorData(Builtin):
     }
 
 class Mesh(Builtin):
+    """
+    <dl>
+    <dt>'Mesh'
+        <dd>is an option for 'Plot' that specifies the mesh to be drawn. The default is 'Mesh->None'.
+     </dl>
+
+    >> Plot[x^2, {x,-1,1}, Mesh->Full]
+     = -Graphics-
+
+    >> Plot[x^3, {x,-1,1}, Mesh->All]
+     = -Graphics-
+    """
+
     messages = {'ilevels' : "`1` s not a valid mesh specification."}
 
 class Plot(Builtin):
