@@ -31,13 +31,11 @@ class Mesh(Builtin):
         <dd>is an option for 'Plot' that specifies the mesh to be drawn. The default is 'Mesh->None'.
      </dl>
 
-    >> Plot[x^2, {x,-1,1}, Mesh->Full]
+    >> Plot[Sin[Cos[x^2]],{x,-4,4},Mesh->All]
      = -Graphics-
 
-    >> Plot[x^3, {x,-1,1}, Mesh->All]
+    >> Plot[Sin[x], {x,0,4 Pi}, Mesh->Full]
      = -Graphics-
-
-    >> Plot[Sin[x], {x,0,4 Pi}, Mesh->None]
     """
 
     messages = {'ilevels' : "`1` s not a valid mesh specification."}
