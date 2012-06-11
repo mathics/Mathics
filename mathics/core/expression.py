@@ -1224,8 +1224,13 @@ class Number(Atom):
             return Real(value)
         elif t == 'c':
             return Complex(value)
-        else:
-            raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
+        
+        if isinstance(value, int):
+            return Integer(value)
+        elif isinstance(value, float):
+            return Real(value)
+        
+        raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
         
     def is_numeric(self):
         return True
@@ -1325,7 +1330,7 @@ class Rational(Number):
         return sympy.Rational(int(self.value.numer()), int(self.value.denom()))
     
     def to_python(self, *args, **kwargs):
-        return self.value.numer() / self.value.denom()
+        return float(self.value)
     
     def same(self, other):
         return isinstance(other, Rational) and self.value == other.value
@@ -1485,7 +1490,9 @@ class Complex(Number):
         return real.to_sympy() + imag.to_sympy() * sympy.I
     
     def to_python(self, *args, **kwargs):
-        return self.value.real + self.value.imag * 1j
+        real = Number.from_mp(self.value.real)
+        imag = Number.from_mp(self.value.imag)
+        return real.to_python() + imag.to_python() * 1j
     
     def do_format(self, evaluation, form):
         real = Number.from_mp(self.value.real)
