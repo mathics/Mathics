@@ -36,6 +36,8 @@ class Mesh(Builtin):
 
     >> Plot[x^3, {x,-1,1}, Mesh->All]
      = -Graphics-
+
+    >> Plot[Sin[x], {x,0,4 Pi}, Mesh->None]
     """
 
     messages = {'ilevels' : "`1` s not a valid mesh specification."}
