@@ -198,7 +198,7 @@ class Plot(Builtin):
         hue_neg = -0.763932
         
         graphics = []
-        xmin, xmax, ymin, ymax = None, None, None, None
+        xmin = xmax = ymin = ymax = None
         for index, f in enumerate(functions):
             points = []
             continuous = False
