@@ -68,6 +68,7 @@ class Plot(Builtin):
 
     >> Plot[Tan[x], {x, 0, 6}, Mesh->All, PlotRange->{{-1, 5}, {0, 15}}, MaxRecursion->10]
      = -Graphics-
+
     """
 
     from graphics import Graphics
@@ -108,11 +109,11 @@ class Plot(Builtin):
             for v in values:
                 if abs(v - valavg) / valdev < thresh:
                     break
-                n1+=1
+                n1 += 1
             for v in values[::-1]:
                 if abs(v - valavg) / valdev < thresh:
                     break
-                n2-=1
+                n2 -= 1
         
         yrange = values[n2] - values[n1]
         ymin = values[n1] - 0.05 * yrange    # 5% extra looks nice
@@ -142,6 +143,7 @@ class Plot(Builtin):
             evaluation.message('Plot', 'plln', stop, expr)
             return
 
+        # PlotRange Option
         plotrange = self.get_option(options, 'PlotRange', evaluation)
         if plotrange.get_name() == 'Automatic':
             pass
@@ -163,6 +165,7 @@ class Plot(Builtin):
                 evaluation.message('Plot', 'prng', plotrange)
                 plotrange = Symbol('Automatic')
 
+        # Mesh Option
         mesh = self.get_option(options, 'Mesh', evaluation)
         if mesh.get_name() not in ['None', 'Full', 'All']:
             evaluation.message('Mesh', 'ilevels', mesh)
@@ -170,13 +173,11 @@ class Plot(Builtin):
         elif mesh.get_name() != 'None':
             mesh_points = []
 
-        try:
-            maxrecursion = self.get_option(options, 'MaxRecursion', evaluation).to_python()
-        except:
-            maxrecursion = 0
-            evaluation.message('Plot', 'invmaxrec', maxrecursion, 15)
-        if maxrecursion == 'Automatic':
+        # MaxRecursion Option
+        maxrecursion = self.get_option(options, 'MaxRecursion', evaluation)
+        if maxrecursion.get_name() == 'Automatic':
             maxrecursion = 3
+        maxrecursion = maxrecursion.to_python()
         if isinstance(maxrecursion, int):
             if maxrecursion > 15:
                 maxrecursion = 15
@@ -229,7 +230,7 @@ class Plot(Builtin):
                     for point in line:
                         mesh_points.append([point[0], point[1]])
 
-            # Loop again and interpolate highly angled sections
+            # Adaptive Sampling - loop again and interpolate highly angled sections
             ang_thresh = cos(pi / 180)    # Cos of the maximum angle between successive line segments
             for line in points:
                 recursion_count = 0
@@ -260,7 +261,7 @@ class Plot(Builtin):
                             i+=2
                         i+=1
 
-                # Take the largest PlotRange over all functions and all lines
+                # Take the largest range over all functions and all lines
                 if xmin is None or xmax is None or ymin is None or ymax is None:
                     xmin, xmax, ymin, ymax = start, stop, tmpymin, tmpymax
                 else:
