@@ -150,10 +150,6 @@ class Plot(Builtin):
             plotrange = Symbol('Automatic')
         else:
             try:   #TODO clean this up
-                #tmp = Expression('N', plotrange)
-                #print tmp.evaluate()
-                #print tmp.to_python()
-                #print (tmp.evaluate()).to_python()
                 tmp = plotrange.to_python(n_evaluation=evaluation)
                 assert(len(tmp) == 2)
                 assert(len(tmp[0]) == 2)
