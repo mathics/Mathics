@@ -58,7 +58,7 @@ class Plot(Builtin):
      = -Graphics-
 
     >> Plot[Tan[x], {x, -6, 6}, Mesh->Full]
-     = -Graphics
+     = -Graphics-
 
     >> Plot[x^2, {x, -1, 1}, MaxRecursion->5, Mesh->All]
      = -Graphics-
