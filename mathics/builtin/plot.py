@@ -115,8 +115,8 @@ class Plot(Builtin):
                 n2-=1
         
         yrange = values[n2] - values[n1]
-        ymin = values[n1] - 0.05*yrange    # 5% extra looks nice
-        ymax = values[n2] + 0.05*yrange
+        ymin = values[n1] - 0.05 * yrange    # 5% extra looks nice
+        ymax = values[n2] + 0.05 * yrange
         return (ymin, ymax)
     
     def apply(self, functions, x, start, stop, evaluation, options):
@@ -150,18 +150,20 @@ class Plot(Builtin):
             plotrange = Symbol('Automatic')
         else:
             try:   #TODO clean this up
-                tmp = plotrange.to_python()
+                #tmp = Expression('N', plotrange)
+                #print tmp.evaluate()
+                #print tmp.to_python()
+                #print (tmp.evaluate()).to_python()
+                tmp = plotrange.to_python(n_evaluation=evaluation)
                 assert(len(tmp) == 2)
                 assert(len(tmp[0]) == 2)
                 assert(len(tmp[1]) == 2)
                 for t1 in tmp:
                     for t2 in t1:
                         assert(isinstance(t2, float) or isinstance(t2, int))
-
                 assert(tmp[0][1] > tmp[0][0])
                 assert(tmp[1][1] > tmp[1][0])
             except AssertionError:
-                print "here"
                 evaluation.message('Plot', 'prng', plotrange)
                 plotrange = Symbol('Automatic')
 
@@ -218,9 +220,9 @@ class Plot(Builtin):
                     continuous = True
                 else:
                     continuous = False    
-            
+
             xscale = 1. / (stop - start)
-            (tmpymin,tmpymax) = self.automatic_plot_range(points)
+            (tmpymin, tmpymax) = self.automatic_plot_range(points)
             if tmpymin != tmpymax:
                 yscale = 1. / (tmpymax - tmpymin)
             else:
@@ -244,8 +246,8 @@ class Plot(Builtin):
                         vec1 = (xscale * (line[i-1][0] - line[i-2][0]), yscale * (line[i-1][1] - line[i-2][1]))
                         vec2 = (xscale * (line[i][0] - line[i-1][0]), yscale * (line[i][1] - line[i-1][1]))
                         try:
-                            angle = (vec1[0] * vec2[0] + vec1[1] * vec2[1]) /\
-                                sqrt((vec1[0]**2 + vec1[1]**2) * (vec2[0]**2 + vec2[1]**2))
+                            angle = (vec1[0] * vec2[0] + vec1[1] * vec2[1]) / sqrt(
+                                (vec1[0]**2 + vec1[1]**2) * (vec2[0]**2 + vec2[1]**2))
                         except ZeroDivisionError:
                             angle = 0.0
                         if abs(angle) < ang_thresh:
@@ -294,8 +296,10 @@ class Plot(Builtin):
 
             (xscale, yscale) = (1. / (xmax-xmin), 1. / (ymax-ymin))
         else:
-            xscale = 1. / (plotrange.to_python()[0][1] - plotrange.to_python()[0][0])
-            yscale = 1. / (plotrange.to_python()[1][1] - plotrange.to_python()[1][0])
+            xscale = 1. / (plotrange.to_python(n_evaluation=evaluation)[0][1] 
+                     - plotrange.to_python(n_evaluation=evaluation)[0][0])
+            yscale = 1. / (plotrange.to_python(n_evaluation=evaluation)[1][1]
+                     - plotrange.to_python(n_evaluation=evaluation)[1][0])
         
         if mesh.get_name() != 'None':
             for x,y in mesh_points:
