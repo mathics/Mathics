@@ -177,7 +177,8 @@ class Plot(Builtin):
         maxrecursion = self.get_option(options, 'MaxRecursion', evaluation)
         if maxrecursion.get_name() == 'Automatic':
             maxrecursion = 3
-        maxrecursion = maxrecursion.to_python()
+        else:
+            maxrecursion = maxrecursion.to_python()
         if isinstance(maxrecursion, int):
             if maxrecursion > 15:
                 maxrecursion = 15
