@@ -168,7 +168,7 @@ class Plot(Builtin):
                 plotrange = Symbol('Automatic')
             else:
                 #print "good form"
-                pass
+                mesh_xscale, mesh_yscale = 1. / (tmp[0][1] - tmp[0][0]), 1. / (tmp[1][1] - tmp[1][0])
         else:
             evaluation.message('Plot', 'prng', plotrange)
             plotrange = Symbol('Automatic')
@@ -299,18 +299,12 @@ class Plot(Builtin):
                 Expression('List', Real(xmin), Real(xmax)), 
                 Expression('List', Real(ymin), Real(ymax))
             )
-
-            xscale, yscale = 1. / (xmax-xmin), 1. / (ymax-ymin)
-        else:
-            xscale = 1. / (plotrange.to_python(n_evaluation=evaluation)[0][1] 
-                     - plotrange.to_python(n_evaluation=evaluation)[0][0])
-            yscale = 1. / (plotrange.to_python(n_evaluation=evaluation)[1][1]
-                     - plotrange.to_python(n_evaluation=evaluation)[1][0])
+            mesh_xscale, mesh_yscale = 1. / (xmax-xmin), 1. / (ymax-ymin)
         
         if mesh.get_name() != 'None':
             for x,y in mesh_points:
                 graphics.append(Expression('Disk', Expression('List', Real(x), Real(y)), 
-                    Expression('List', Real(0.003 / xscale), Real(0.005 / yscale)))
+                    Expression('List', Real(0.003 / mesh_xscale), Real(0.005 / mesh_yscale)))
                 )
                 #TODO handle non-default AspectRatio
         
