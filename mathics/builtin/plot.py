@@ -185,6 +185,9 @@ class Plot(Builtin):
         maxrecursion = self.get_option(options, 'MaxRecursion', evaluation)
         if maxrecursion.get_name() == 'Automatic':
             maxrecursion = 3
+        elif maxrecursion.has_form('DirectedInfinity',1) and str(maxrecursion) == 'DirectedInfinity[1]':
+            maxrecursion = 15
+            evaluation.message('Plot', 'invmaxrec', maxrecursion, 15)
         elif maxrecursion.has_form('Integer'):
             maxrecursion = maxrecursion.to_python()
             assert(isinstance(maxrecursion, int))
