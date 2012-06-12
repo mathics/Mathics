@@ -159,7 +159,7 @@ class Plot(Builtin):
             else:
                 for t1 in tmp:
                     for t2 in t1:
-                        if not (isinstance(t2,float) or isinstance(t2,int)):
+                        if not (isinstance(t2, float) or isinstance(t2, int)):
                             correct_form = False
             if correct_form and (tmp[0][0] >= tmp[0][1] or tmp[1][0] >= tmp[1][1]):
                     correct_form = False
@@ -299,7 +299,7 @@ class Plot(Builtin):
                 Expression('List', Real(xmin), Real(xmax)), 
                 Expression('List', Real(ymin), Real(ymax))
             )
-            mesh_xscale, mesh_yscale = 1. / (xmax-xmin), 1. / (ymax-ymin)
+            mesh_xscale, mesh_yscale = 1. / (xmax - xmin), 1. / (ymax - ymin)
         
         if mesh.get_name() != 'None':
             for x,y in mesh_points:
