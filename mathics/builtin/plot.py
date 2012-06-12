@@ -147,23 +147,31 @@ class Plot(Builtin):
         plotrange = self.get_option(options, 'PlotRange', evaluation)
         if plotrange.get_name() == 'Automatic':
             pass
-        elif not plotrange.has_form('List', None):
-            evaluation.message('Plot', 'prng', plotrange)
-            plotrange = Symbol('Automatic')
-        else:
-            try:   #TODO clean this up
-                tmp = plotrange.to_python(n_evaluation=evaluation)
-                assert(len(tmp) == 2)
-                assert(len(tmp[0]) == 2)
-                assert(len(tmp[1]) == 2)
+        #TODO Implement these alternate forms of PlotRange
+        #elif plotrange.has_form('Integer'):
+        #elif plotrange.has_form('List', 1):
+        elif plotrange.has_form('List', 2):
+            tmp = plotrange.to_python(n_evaluation=evaluation)
+            assert(len(tmp) == 2)
+            correct_form = True
+            if  len(tmp[0]) != 2 or len(tmp[1]) != 2:
+                correct_form =  False
+            else:
                 for t1 in tmp:
                     for t2 in t1:
-                        assert(isinstance(t2, float) or isinstance(t2, int))
-                assert(tmp[0][1] > tmp[0][0])
-                assert(tmp[1][1] > tmp[1][0])
-            except AssertionError:
+                        if not (isinstance(t2,float) or isinstance(t2,int)):
+                            correct_form = False
+            if correct_form and (tmp[0][0] >= tmp[0][1] or tmp[1][0] >= tmp[1][1]):
+                    correct_form = False
+            if not correct_form:
                 evaluation.message('Plot', 'prng', plotrange)
                 plotrange = Symbol('Automatic')
+            else:
+                #print "good form"
+                pass
+        else:
+            evaluation.message('Plot', 'prng', plotrange)
+            plotrange = Symbol('Automatic')
 
         # Mesh Option
         mesh = self.get_option(options, 'Mesh', evaluation)
@@ -177,15 +185,15 @@ class Plot(Builtin):
         maxrecursion = self.get_option(options, 'MaxRecursion', evaluation)
         if maxrecursion.get_name() == 'Automatic':
             maxrecursion = 3
-        else:
+        elif maxrecursion.has_form('Integer'):
             maxrecursion = maxrecursion.to_python()
-        if isinstance(maxrecursion, int):
+            assert(isinstance(maxrecursion, int))
             if maxrecursion > 15:
                 maxrecursion = 15
                 evaluation.message('Plot', 'invmaxrec', maxrecursion, 15)
             elif maxrecursion < 0:
-                evaluation.message('Plot', 'invmaxrec', maxrecursion, 15)
                 maxrecursion = 0
+                evaluation.message('Plot', 'invmaxrec', maxrecursion, 15)
         else:
             maxrecursion = 0
             evaluation.message('Plot', 'invmaxrec', maxrecursion, 15)
