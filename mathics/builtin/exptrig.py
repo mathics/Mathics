@@ -111,7 +111,7 @@ class Log(_MPMathFunction):
         <dd>returns the natural logarithm of $z$.
     </dl>
     
-    >> Log[{0, 1, E, E*E, E^3, E^x}]
+    >> Log[{0, 1, E, E * E, E ^ 3, E ^ x}]
      = {-Infinity, 0, 1, 2, 3, Log[E ^ x]}
     >> Log[0.]
      = Indeterminate
@@ -138,11 +138,12 @@ class Log2(Builtin):
     <dt>'Log2[$z$]'
         <dd>returns the base-2 logarithm of $z$.
     </dl>
-    >> Log2[4^8]
+    
+    >> Log2[4 ^ 8]
      = 16
     >> Log2[5.6]
      = 2.48542682717024177
-    >> Log2[E^2]
+    >> Log2[E ^ 2]
      = 2 / Log[2]
     """
     
@@ -156,11 +157,12 @@ class Log10(Builtin):
     <dt>'Log10[$z$]'
         <dd>returns the base-10 logarithm of $z$.
     </dl>
+    
     >> Log10[1000]
      = 3
     >> Log10[{2., 5.}]
      = {0.301029995663981195, 0.698970004336018803}
-    >> Log10[E^3]
+    >> Log10[E ^ 3]
      = 3 / Log[10]
     """
     
