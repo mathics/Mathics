@@ -73,10 +73,14 @@ def from_python(arg):
         return Integer(arg)
     elif isinstance(arg, float) or number_type == 'f':
         return Real(arg)
+    elif number_type == 'q':
+        return Rational(arg)
     elif isinstance(arg, basestring):
         return String(arg)
     elif isinstance(arg, BaseExpression):
         return arg
+    elif isinstance(arg, list) or isinstance(arg, tuple):
+        return Expression('List', *[from_python(leaf) for leaf in arg])
     else:
         raise NotImplementedError
 
@@ -476,6 +480,8 @@ class Expression(BaseExpression):
         """
         Convert the Expression to a Python object:
         List[...]  -> Python list
+        DirectedInfinity[1] -> inf
+        DirectedInfinity[-1] -> -inf
         True/False -> True/False
         Null       -> None
         Symbol     -> '...'
@@ -488,8 +494,15 @@ class Expression(BaseExpression):
         if n_evaluation is not None:
             value = Expression('N', self).evaluate(n_evaluation)
             return value.to_python()
-        if self.head.get_name() == 'List':
+        head_name = self.head.get_name()
+        if head_name == 'List':
             return [leaf.to_python(*args, **kwargs) for leaf in self.leaves]
+        if head_name == 'DirectedInfinity' and len(self.leaves) == 1:
+            direction = self.leaves[0].get_int_value()
+            if direction == 1:
+                return float('inf')
+            if direction == -1:
+                return -float('inf')
         return self
     
     def get_sort_key(self, pattern_sort=False):

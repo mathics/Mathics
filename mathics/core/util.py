@@ -179,5 +179,3 @@ def unicode_superscript(value):
             value = ord(c)
         return unichr(value)
     return u''.join(repl_char(c) for c in value)
-
-            

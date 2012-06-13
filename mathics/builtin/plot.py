@@ -7,7 +7,7 @@ Plotting
 import re
 from math import floor, cos, pi, sqrt
 
-from mathics.core.expression import Expression, Real, NumberError, Symbol, String
+from mathics.core.expression import Expression, Real, NumberError, Symbol, String, from_python
 from mathics.builtin.base import Builtin
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.options import options_to_rules
@@ -80,27 +80,28 @@ class Plot(Builtin):
         'Axes': 'True',
         'AspectRatio': '1 / GoldenRatio',
         'MaxRecursion': 'Automatic',
-        'Mesh':'None',
+        'Mesh': 'None',
     })
 
     messages = {
         'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
-        'prng' : "Value of option PlotRange -> `1` is not Automatic or an appropriate list of range specifications",
+        'prng': "Value of option PlotRange -> `1` is not Automatic or an appropriate list of range specifications.",
         #'prng' : "Value of option PlotRange -> `1` is not All, Full, Automatic, a positive machine number, or an appropriate list of range specifications",
-        'invmesh' : "Mesh must be one of {None, Full, All}. Using Mesh->None",
+        'invmesh': "Mesh must be one of {None, Full, All}. Using Mesh->None.",
     }
 
-    def automatic_plot_range(self,points):
+    def automatic_plot_range(self, values):
         """ Calculates mean and standard deviation, throwing away all points 
         which are more than 'thresh' number of standard deviations away from 
         the mean. These are then used to find good ymin and ymax values. These 
         values can then be used to find Automatic Plotrange. """
         thresh = 2.0
-        values = []
-        for line in points:
-            for p in line:
-                values.append(p[1])
-        values.sort()
+        #values = []
+        #for line in points:
+        #    for p in line:
+        #        values.append(p[1])
+        #values.sort()
+        values = sorted(values)
         valavg = sum(values) / len(values)
         valdev = sqrt(sum([(x - valavg)**2 for x in values]) / (len(values) - 1))
 
@@ -129,6 +130,7 @@ class Plot(Builtin):
         else:
             functions = [functions]
         x = x.get_name()
+        
         try:
             start = start.to_number(n_evaluation=evaluation)
         except NumberError:
@@ -144,74 +146,103 @@ class Plot(Builtin):
             return
 
         # PlotRange Option
-        plotrange = self.get_option(options, 'PlotRange', evaluation)
-        if plotrange.get_name() == 'Automatic':
-            pass
-        #TODO Implement these alternate forms of PlotRange
-        #elif plotrange.has_form('Integer'):
-        #elif plotrange.has_form('List', 1):
-        elif plotrange.has_form('List', 2):
-            tmp = plotrange.to_python(n_evaluation=evaluation)
-            assert(len(tmp) == 2)
-            correct_form = True
-            if  len(tmp[0]) != 2 or len(tmp[1]) != 2:
-                correct_form =  False
+        def check_range(range):
+            if range in ('Automatic', 'All'):
+                return True
+            if isinstance(range, list) and len(range) == 2:
+                if isinstance(range[0], float) and isinstance(range[1], float):
+                    return True
+            return False
+        plotrange_option = self.get_option(options, 'PlotRange', evaluation)
+        plotrange = plotrange_option.to_python(n_evaluation=evaluation)
+        if isinstance(plotrange, float):
+            plotrange = ['Full', [-plotrange, plotrange]]
+        x_range = y_range = None
+        if plotrange == 'Automatic':
+            plotrange = ['Full', 'Automatic']
+        elif plotrange == 'All':
+            plotrange = ['All', 'All']
+        if isinstance(plotrange, list) and len(plotrange) == 2:
+            if isinstance(plotrange[0], float) and isinstance(plotrange[1], float):
+                x_range, y_range = 'Full', plotrange
             else:
-                for t1 in tmp:
-                    for t2 in t1:
-                        if not (isinstance(t2, float) or isinstance(t2, int)):
-                            correct_form = False
-            if correct_form and (tmp[0][0] >= tmp[0][1] or tmp[1][0] >= tmp[1][1]):
-                    correct_form = False
-            if not correct_form:
-                evaluation.message('Plot', 'prng', plotrange)
-                plotrange = Symbol('Automatic')
-            else:
-                #print "good form"
-                mesh_xscale, mesh_yscale = 1. / (tmp[0][1] - tmp[0][0]), 1. / (tmp[1][1] - tmp[1][0])
-        else:
-            evaluation.message('Plot', 'prng', plotrange)
-            plotrange = Symbol('Automatic')
+                x_range, y_range = plotrange
+            if x_range == 'Full':
+                x_range = [start, stop]
+        if not check_range(x_range) or not check_range(y_range):
+            evaluation.message('Plot', 'prng', plotrange_option)
+            x_range, y_range = [start, stop], 'Automatic'
+        # x_range and y_range are now either Automatic, All, or of the form [min, max]
+        assert x_range in ('Automatic', 'All') or isinstance(x_range, list)
+        assert y_range in ('Automatic', 'All') or isinstance(y_range, list)
 
         # Mesh Option
-        mesh = self.get_option(options, 'Mesh', evaluation)
-        if mesh.get_name() not in ['None', 'Full', 'All']:
-            evaluation.message('Mesh', 'ilevels', mesh)
-            mesh = Symbol('None')
-        elif mesh.get_name() != 'None':
-            mesh_points = []
+        mesh_option = self.get_option(options, 'Mesh', evaluation)
+        mesh = mesh_option.to_python()
+        if mesh not in ['None', 'Full', 'All']:
+            evaluation.message('Mesh', 'ilevels', mesh_option)
+            mesh = 'None'
 
         # MaxRecursion Option
-        maxrecursion = self.get_option(options, 'MaxRecursion', evaluation)
-        if maxrecursion.get_name() == 'Automatic':
-            maxrecursion = 3
-        elif maxrecursion.has_form('DirectedInfinity',1) and str(maxrecursion) == 'DirectedInfinity[1]':
-            maxrecursion = 15
-            evaluation.message('Plot', 'invmaxrec', maxrecursion, 15)
-        elif maxrecursion.has_form('Integer'):
-            maxrecursion = maxrecursion.to_python()
-            assert(isinstance(maxrecursion, int))
-            if maxrecursion > 15:
-                maxrecursion = 15
-                evaluation.message('Plot', 'invmaxrec', maxrecursion, 15)
-            elif maxrecursion < 0:
+        max_recursion_limit = 15
+        maxrecursion_option = self.get_option(options, 'MaxRecursion', evaluation)
+        maxrecursion = maxrecursion_option.to_python()
+        try:
+            if maxrecursion == 'Automatic':
+                maxrecursion = 3
+            elif maxrecursion == float('inf'):
+                maxrecursion = max_recursion_limit
+                raise ValueError
+            elif isinstance(maxrecursion, int):
+                if maxrecursion > max_recursion_limit:
+                    maxrecursion = max_recursion_limit
+                    raise ValueError
+                if maxrecursion < 0:
+                    maxrecursion = 0
+                    raise ValueError
+            else:
                 maxrecursion = 0
-                evaluation.message('Plot', 'invmaxrec', maxrecursion, 15)
-        else:
-            maxrecursion = 0
-            evaluation.message('Plot', 'invmaxrec', maxrecursion, 15)
+                raise ValueError
+        except ValueError:
+            evaluation.message('Plot', 'invmaxrec', maxrecursion_option, max_recursion_limit)
+        assert isinstance(maxrecursion, int)
 
         def eval_f(f, x_value):
-            value = dynamic_scoping(f.evaluate, {x: x_value}, evaluation)
+            value = dynamic_scoping(f.evaluate, {x: Real(x_value)}, evaluation)
             value = chop(value).get_real_value()
             return value
 
+        # constants to generate colors
         hue = 0.67
         hue_pos = 0.236068
         hue_neg = -0.763932
+
+        def get_points_minmax(points):
+            xmin = xmax = ymin = ymax = None
+            for line in points:
+                for x, y in line:
+                    if xmin is None or x < xmin: xmin = x
+                    if xmax is None or x > xmax: xmax = x
+                    if ymin is None or y < ymin: ymin = y
+                    if ymax is None or y > ymax: ymax = y
+            return xmin, xmax, ymin, ymax
         
-        graphics = []
-        xmin = xmax = ymin = ymax = None
+        def zero_to_one(value):
+            if value == 0:
+                return 1
+            return value
+            
+        def get_points_range(points):
+            xmin, xmax, ymin, ymax = get_points_minmax(points)
+            if xmin is None or xmax is None:
+                xmin, xmax = 0, 1
+            if ymin is None or ymax is None:
+                ymin, ymax = 0, 1
+            return zero_to_one(xmax - xmin), zero_to_one(ymax - ymin)
+        
+        plot_points = []    # list of all plotted points
+        mesh_points = []
+        graphics = []       # list of resulting graphics primitives
         for index, f in enumerate(functions):
             points = []
             continuous = False
@@ -219,7 +250,7 @@ class Plot(Builtin):
             d = (stop - start) / steps
             for i in range(steps + 1):
                 x_value = start + i * d
-                y = eval_f(f, Real(x_value))
+                y = eval_f(f, x_value)
                 if y is not None:
                     point = (x_value, y)
                     if continuous:
@@ -228,26 +259,32 @@ class Plot(Builtin):
                         points.append([point])
                     continuous = True
                 else:
-                    continuous = False    
+                    continuous = False
 
+            #xrange, yrange = get_points_range(points)
+            #xscale = 1. / xrange
+            #yscale = 1. / yrange
+            
             xscale = 1. / (stop - start)
-            tmpymin, tmpymax = self.automatic_plot_range(points)
+            all_y = []
+            for line in points:
+                all_y.extend([y for x, y in line])
+            tmpymin, tmpymax = self.automatic_plot_range(all_y)
             if tmpymin != tmpymax:
                 yscale = 1. / (tmpymax - tmpymin)
             else:
                 yscale = 1.0
 
-            if mesh.get_name() == 'Full':
+            if mesh == 'Full':
                 for line in points:
-                    for point in line:
-                        mesh_points.append([point[0], point[1]])
+                    mesh_points.extend(line)
 
             # Adaptive Sampling - loop again and interpolate highly angled sections
             ang_thresh = cos(pi / 180)    # Cos of the maximum angle between successive line segments
             for line in points:
                 recursion_count = 0
                 smooth = False
-                while (not smooth and recursion_count < maxrecursion):
+                while not smooth and recursion_count < maxrecursion:
                     recursion_count += 1
                     smooth = True
                     i = 2
@@ -261,34 +298,35 @@ class Plot(Builtin):
                             angle = 0.0
                         if abs(angle) < ang_thresh:
                             smooth = False
+                            incr = 0
+                            
                             x_value = 0.5 * (line[i-1][0] + line[i][0])
-                            y = eval_f(f, Real(x_value))
-                            point = (x_value, y)
+                            y = eval_f(f, x_value)
+                            if y is not None:
+                                print (x_value, y)
+                                line.insert(i, (x_value, y))
+                                incr += 1
 
                             x_value = 0.5 * (line[i-2][0] + line[i-1][0])
-                            line.insert(i, point)
-                            y = eval_f(f, Real(x_value))
-                            point = (x_value, y)
-                            line.insert(i-1, point)
-                            i+=2
-                        i+=1
-
-                # Take the largest range over all functions and all lines
-                if xmin is None or xmax is None or ymin is None or ymax is None:
-                    xmin, xmax, ymin, ymax = start, stop, tmpymin, tmpymax
-                else:
-                    xmin, xmax = min(start, xmin), max(stop, xmax)
-                    ymin, ymax = min(tmpymin, ymin), max(tmpymax, ymax)
+                            y = eval_f(f, x_value)
+                            if y is not None:
+                                print (x_value, y)
+                                line.insert(i - 1, (x_value, y))
+                                incr += 1
+                            
+                            i += incr
+                        i += 1
                     
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
             graphics.append(Expression('Line', Expression('List', *(Expression('List',
-                *(Expression('List', Real(x), Real(y)) for x, y in line)) for line in points)
+                *(Expression('List', x, y) for x, y in line)) for line in points)
             )))
+            for line in points:
+                plot_points.extend(line)
 
-            if mesh.get_name() == 'All':
+            if mesh == 'All':
                 for line in points:
-                    for x,y in line:
-                        mesh_points.append([x,y])
+                    mesh_points.extend(line)
 
             if index % 4 == 0:
                 hue += hue_pos
@@ -296,18 +334,31 @@ class Plot(Builtin):
                 hue += hue_neg
             if hue > 1: hue -= 1
             if hue < 0: hue += 1
-
-        if plotrange.get_name() == 'Automatic':
-            options['PlotRange'] = Expression('List', 
-                Expression('List', Real(xmin), Real(xmax)), 
-                Expression('List', Real(ymin), Real(ymax))
-            )
-            mesh_xscale, mesh_yscale = 1. / (xmax - xmin), 1. / (ymax - ymin)
+            
+        def get_plot_range(values, option):
+            if option == 'Automatic':
+                return self.automatic_plot_range(values)
+            if option == 'All':
+                if not values:
+                    return [0, 1]
+                return min(values), max(values)
+            return option
         
-        if mesh.get_name() != 'None':
-            for x,y in mesh_points:
-                graphics.append(Expression('Disk', Expression('List', Real(x), Real(y)), 
-                    Expression('List', Real(0.003 / mesh_xscale), Real(0.005 / mesh_yscale)))
+        x_range = get_plot_range([x for x, y in plot_points], x_range)
+        y_range = get_plot_range([y for x, y in plot_points], y_range)
+        
+        print x_range
+        print y_range
+        
+        mesh_xscale = 1. / zero_to_one(x_range[1] - x_range[0])
+        mesh_yscale = 1. / zero_to_one(y_range[1] - y_range[0])
+        
+        options['PlotRange'] = from_python([x_range, y_range])
+        
+        if mesh != 'None':
+            for x, y in mesh_points:
+                graphics.append(Expression('Disk', Expression('List', x, y), 
+                    Expression('List', 0.003 / mesh_xscale, 0.005 / mesh_yscale))
                 )
                 #TODO handle non-default AspectRatio
         
