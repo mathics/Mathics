@@ -1402,7 +1402,7 @@ class Real(Number):
             type = get_type(value)
             if type == 'q':
                 value = mpf(str(value.numer())) / mpf(str(value.denom()))
-            elif get_type(value) != 'f':
+            elif type != 'f':
                 value = mpf(str(value))
         self.value = value
         
@@ -1418,7 +1418,7 @@ class Real(Number):
         self.value = mpf(dict['value'], p)
         
     def boxes_to_text(self, **options):
-        return self.make_boxes('OutputForm').value
+        return self.make_boxes('OutputForm').boxes_to_text(**options)
     
     def boxes_to_xml(self, **options):
         return self.make_boxes('MathMLForm').boxes_to_xml(**options)

@@ -37,6 +37,15 @@ def coords(value):
         return (value.leaves[0].to_number(), value.leaves[1].to_number())
     raise CoordinatesError
 
+def cut(value):
+    "Cut values in graphics primitives (not displayed otherwise in SVG)" 
+    border = 10 ** 8
+    if value < -border:
+        value = -border
+    elif value > border:
+        value = border
+    return value
+
 class Coords(object):
     def __init__(self, graphics, expr=None, pos=None, d=None):
         self.graphics = graphics
@@ -54,6 +63,7 @@ class Coords(object):
             
     def pos(self):
         p = self.graphics.translate(self.p)
+        p = (cut(p[0]), cut(p[1]))
         if self.d is not None:
             d = self.graphics.translate_absolute(self.d)
             return (p[0]+d[0], p[1]+d[1])
@@ -673,10 +683,12 @@ class InsetBox(_GraphicsElement):
             self.content = content
             self.pos = pos
             self.opos = opos
+        self.content_text = self.content.boxes_to_text(evaluation=self.graphics.evaluation)
         
     def extent(self):
         p = self.pos.pos()
-        w, h = 20, 25
+        h = 25
+        w = len(self.content_text) * 7 # rough approximation by numbers of characters
         opos = self.opos
         x = p[0] - w/2.0 - opos[0]*w/2.0
         y = p[1] - h/2.0 + opos[1]*h/2.0
@@ -950,6 +962,8 @@ class GraphicsBox(BoxConstruct):
                         xmax += 1
                 elif isinstance(plot_range[0], list) and len(plot_range[0]) == 2:
                     xmin, xmax = map(float, plot_range[0])
+                    xmin = elements.translate((xmin, 0))[0]
+                    xmax = elements.translate((xmax, 0))[0]
                     if exmin is not None and exmin < xmin:
                         xmin = exmin
                     if exmax is not None and exmax > xmax:
@@ -966,6 +980,8 @@ class GraphicsBox(BoxConstruct):
                         ymax += 1
                 elif isinstance(plot_range[1], list) and len(plot_range[1]) == 2:
                     ymin, ymax = map(float, plot_range[1])
+                    ymin = elements.translate((0, ymin))[1]
+                    ymax = elements.translate((0, ymax))[1]
                     if eymin is not None and eymin < ymin:
                         ymin = eymin
                     if eymax is not None and eymax > ymax:

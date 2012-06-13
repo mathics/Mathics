@@ -85,8 +85,7 @@ class Plot(Builtin):
 
     messages = {
         'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
-        'prng': "Value of option PlotRange -> `1` is not Automatic or an appropriate list of range specifications.",
-        #'prng' : "Value of option PlotRange -> `1` is not All, Full, Automatic, a positive machine number, or an appropriate list of range specifications",
+        'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
         'invmesh': "Mesh must be one of {None, Full, All}. Using Mesh->None.",
     }
 
@@ -96,11 +95,6 @@ class Plot(Builtin):
         the mean. These are then used to find good ymin and ymax values. These 
         values can then be used to find Automatic Plotrange. """
         thresh = 2.0
-        #values = []
-        #for line in points:
-        #    for p in line:
-        #        values.append(p[1])
-        #values.sort()
         values = sorted(values)
         valavg = sum(values) / len(values)
         valdev = sqrt(sum([(x - valavg)**2 for x in values]) / (len(values) - 1))
@@ -129,7 +123,7 @@ class Plot(Builtin):
             functions = functions.leaves
         else:
             functions = [functions]
-        x = x.get_name()
+        x_name = x.get_name()
         
         try:
             start = start.to_number(n_evaluation=evaluation)
@@ -208,7 +202,7 @@ class Plot(Builtin):
         assert isinstance(maxrecursion, int)
 
         def eval_f(f, x_value):
-            value = dynamic_scoping(f.evaluate, {x: Real(x_value)}, evaluation)
+            value = dynamic_scoping(f.evaluate, {x_name: Real(x_value)}, evaluation)
             value = chop(value).get_real_value()
             return value
 
@@ -240,13 +234,14 @@ class Plot(Builtin):
                 ymin, ymax = 0, 1
             return zero_to_one(xmax - xmin), zero_to_one(ymax - ymin)
         
-        plot_points = []    # list of all plotted points
+        base_plot_points = []   # list of points in base subdivision
+        plot_points = []        # list of all plotted points
         mesh_points = []
-        graphics = []       # list of resulting graphics primitives
+        graphics = []           # list of resulting graphics primitives
         for index, f in enumerate(functions):
             points = []
             continuous = False
-            steps = 50
+            steps = 57
             d = (stop - start) / steps
             for i in range(steps + 1):
                 x_value = start + i * d
@@ -260,18 +255,16 @@ class Plot(Builtin):
                     continuous = True
                 else:
                     continuous = False
-
-            #xrange, yrange = get_points_range(points)
-            #xscale = 1. / xrange
-            #yscale = 1. / yrange
+            
+            base_points = []
+            for line in points:
+                base_points.extend(line)
+            base_plot_points.extend(base_points)
             
             xscale = 1. / (stop - start)
-            all_y = []
-            for line in points:
-                all_y.extend([y for x, y in line])
-            tmpymin, tmpymax = self.automatic_plot_range(all_y)
-            if tmpymin != tmpymax:
-                yscale = 1. / (tmpymax - tmpymin)
+            ymin, ymax = self.automatic_plot_range([y for x, y in base_points])
+            if ymin != ymax:
+                yscale = 1. / (ymax - ymin)
             else:
                 yscale = 1.0
 
@@ -303,14 +296,12 @@ class Plot(Builtin):
                             x_value = 0.5 * (line[i-1][0] + line[i][0])
                             y = eval_f(f, x_value)
                             if y is not None:
-                                print (x_value, y)
                                 line.insert(i, (x_value, y))
                                 incr += 1
 
                             x_value = 0.5 * (line[i-2][0] + line[i-1][0])
                             y = eval_f(f, x_value)
                             if y is not None:
-                                print (x_value, y)
                                 line.insert(i - 1, (x_value, y))
                                 incr += 1
                             
@@ -335,20 +326,19 @@ class Plot(Builtin):
             if hue > 1: hue -= 1
             if hue < 0: hue += 1
             
-        def get_plot_range(values, option):
+        def get_plot_range(values, all_values, option):
             if option == 'Automatic':
                 return self.automatic_plot_range(values)
             if option == 'All':
-                if not values:
+                if not all_values:
                     return [0, 1]
-                return min(values), max(values)
+                return min(all_values), max(all_values)
             return option
         
-        x_range = get_plot_range([x for x, y in plot_points], x_range)
-        y_range = get_plot_range([y for x, y in plot_points], y_range)
-        
-        print x_range
-        print y_range
+        x_range = get_plot_range([x for x, y in base_plot_points],
+            [x for x, y in plot_points], x_range)
+        y_range = get_plot_range([y for x, y in base_plot_points],
+            [y for x, y in plot_points], y_range)
         
         mesh_xscale = 1. / zero_to_one(x_range[1] - x_range[0])
         mesh_yscale = 1. / zero_to_one(y_range[1] - y_range[0])
