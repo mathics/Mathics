@@ -63,7 +63,14 @@ class Inverse(Builtin):
     
     >> Inverse[{{1, 2, 0}, {2, 3, 0}, {3, 4, 1}}]
      = {{-3, 2, 0}, {2, -1, 0}, {1, -2, 1}}
+    >> Inverse[{{1, 0}, {0, 0}}]
+     : The matrix {{1, 0}, {0, 0}} is singular.
+     = Inverse[{{1, 0}, {0, 0}}]
     """
+    
+    messages = {
+        'sing': "The matrix `1` is singular.",
+    }
     
     def apply(self, m, evaluation):
         'Inverse[m_]'
@@ -71,6 +78,8 @@ class Inverse(Builtin):
         matrix = to_sympy_matrix(m)
         if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Inverse', 'matsq', m)
+        if matrix.det() == 0:
+            return evaluation.message('Inverse', 'sing', m)
         inv = matrix.inv()
         return from_sympy(inv)
     
@@ -237,7 +246,18 @@ class Eigenvectors(Builtin):
     
     >> Eigenvectors[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
      = {{1, 1, 1}, {-1, 0, 1}, {1, -2, 1}}
+    >> Eigenvectors[{{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}]
+     = {{0, 1, 0}, {1, 0, 0}, {0, 0, 1}}
+    >> Eigenvectors[{{2, 0, 0}, {0, -1, 0}, {0, 0, 0}}]
+     = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
+    >> Eigenvectors[{{0.1, 0.2}, {0.8, 0.5}}]
+     : Eigenvectors is not yet implemented for the matrix {{0.1, 0.2}, {0.8, 0.5}}.
+     = Eigenvectors[{{0.1, 0.2}, {0.8, 0.5}}]
     """
+    
+    messages = {
+        'eigenvecnotimplemented': "Eigenvectors is not yet implemented for the matrix `1`.",
+    }
     
     def apply(self, m, evaluation):
         'Eigenvectors[m_]'
@@ -245,14 +265,23 @@ class Eigenvectors(Builtin):
         matrix = to_sympy_matrix(m)
         if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Eigenvectors', 'matsq', m)
-        eigenvects = matrix.eigenvects()
+        # sympy raises an error for some matrices that Mathematica can compute.
+        try: 
+            eigenvects = matrix.eigenvects()
+        except NotImplementedError:
+            return evaluation.message('Eigenvectors', 'eigenvecnotimplemented', m)
+        # Mathematica seems to sort differently; eivenvalue ordering is first
+        # by abs(val), second by val, e.g. {2, -1, 1}, instead of {2, 1, -1}
+        # for Eigenvalue[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}].
+        # The eigenvectors are given in the same order as the eigenvalues.
         eigenvects = sorted(eigenvects, key=lambda (val, c, vect): abs(val), reverse=True)
         result = []
         for val, count, basis in eigenvects:
-            vect = basis[0] # select first basis vector
-            vect = list(vect)   # convert matrix to vector (list)
-            vect = from_sympy(vect)
-            result.append(vect)
+            # select the i'th basis vector, convert matrix to vector, and convert from sympy
+            vects = [from_sympy(list(basis[i])) for i in range(count)]
+            # this follows Mathematica convention better; higher indexed pivots are outputted first.
+            # E.g. {{0, 1}, {1, 0}} instead of {{1, 0}, {0, 1}}.
+            vects.reverse()
+            result.extend(vects)
         result.extend([Expression('List', *([0] * matrix.rows))] * (matrix.rows - len(result)))
         return Expression('List', *result)
-        
