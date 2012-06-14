@@ -239,15 +239,25 @@ function translateDOMElement(element, svg) {
 			var mtr = createMathNode('mtr');
 			mtr.setAttribute('style', nospace);
 			var mtd = createMathNode('mtd');
+			mtd.setAttribute('style', nospace);
 			row.each(function(element) {
-				mtd.setAttribute('style', nospace);
-				mtd.appendChild(translateDOMElement(element, svg));
+				var elmt = translateDOMElement(element, svg);
+				if (nodeName == 'mtext') {
+					// wrap element in mtext
+					var outer = createMathNode('mtext');
+					outer.appendChild(elmt);
+					elmt = outer;
+				}
+				mtd.appendChild(elmt);
 			});
-			mtd.appendChild($T('\n'));
 			mtr.appendChild(mtd);
 			mtable.appendChild(mtr);
 		});
-		childParent.appendChild(mtable);
+		if (nodeName == 'mtext') {
+			// no mtable inside mtext, but mtable instead of mtext
+			dom = mtable;
+		} else
+			childParent.appendChild(mtable);
 	} else
 		rows[0].each(function(element) {
 			childParent.appendChild(translateDOMElement(element, svg));
@@ -264,6 +274,7 @@ function translateDOMElement(element, svg) {
 function createLine(value) {
 	if (value.startsWith('<math')) {
 		var dom = document.createElement('div');
+		//alert(value);
 		dom.updateDOM(value);
 		return translateDOMElement(dom.childNodes[0]);
 	} else {
@@ -294,7 +305,9 @@ function setResult(ul, results) {
 		}
 		ul.appendChild($E('li', {'class': 'out'}, resultUl));
 	});
+	//alert("typeset");
 	MathJax.Hub.Queue(["Typeset", MathJax.Hub, ul]);
+	//alert("typesetting");
 	MathJax.Hub.Queue(function() {
 		ul.select('.mspace').each(function(mspace) {
 			var id = mspace.getAttribute('id').substr(objectsPrefix.length);
