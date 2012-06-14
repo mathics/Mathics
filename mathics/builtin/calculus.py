@@ -352,6 +352,9 @@ class Integrate(SageFunction):
      
     #> Integrate[Abs[Sin[phi]],{phi,0,2Pi}]//N
      = 3.99998451720248
+     
+    #> Integrate[1/(x^5+1), x]
+     = RootSum[625 #1 ^ 4 + 125 #1 ^ 3 + 25 #1 ^ 2 + 5 #1 + 1&, #1 Log[x + 5 #1]&] + Log[1 + x] / 5
     """
     
     """

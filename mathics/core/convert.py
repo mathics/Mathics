@@ -29,6 +29,7 @@ from UserList import UserList
     
 sage_symbol_prefix = '_Mathics_User_'
 sympy_symbol_prefix = sage_symbol_prefix
+sympy_slot_prefix = '_Mathics_Slot_'
 
 def create_symbol(self, name):
     from mathics.core import expression
@@ -149,12 +150,14 @@ class SympyExpression(BasicSympy):
        
 def from_sympy(expr):
     from mathics.builtin import sympy_to_mathics
-    from mathics.core.expression import Symbol, Integer, Rational, Real, Expression
+    from mathics.core.expression import Symbol, Integer, Rational, Real, Expression, Number
     
     from sympy.core import numbers, function, symbol
     
     if isinstance(expr, (tuple, list)):
         return Expression('List', *[from_sympy(item) for item in expr])
+    if isinstance(expr, (int, float)):
+        return Number.from_mp(expr)
     if expr is None:
         return Symbol('Null')
     if isinstance(expr, sympy.Matrix):
@@ -166,8 +169,11 @@ def from_sympy(expr):
             if isinstance(expr, symbol.Dummy):
                 name = name + ('__Dummy_%d' % expr.dummy_index)
                 return Symbol(name, sympy_dummy=expr)
-            if name.startswith(sage_symbol_prefix):
-                name = name[len(sage_symbol_prefix):]
+            if name.startswith(sympy_symbol_prefix):
+                name = name[len(sympy_symbol_prefix):]
+            if name.startswith(sympy_slot_prefix):
+                index = name[len(sympy_slot_prefix):]
+                return Expression('Slot', int(index))
         elif expr.is_NumberSymbol:
             name = unicode(expr)
         if name is not None:
@@ -207,6 +213,32 @@ def from_sympy(expr):
     elif isinstance(expr, SympyExpression):
         #print "SympyExpression: %s" % expr
         return expr.expr
+    
+    elif isinstance(expr, sympy.RootSum):
+        return Expression('RootSum', from_sympy(expr.poly), from_sympy(expr.fun))
+    elif isinstance(expr, sympy.PurePoly):
+        coeffs = expr.coeffs()
+        monoms = expr.monoms()
+        result = []
+        for coeff, monom in zip(coeffs, monoms):
+            factors = []
+            if coeff != 1:
+                factors.append(from_sympy(coeff))
+            for index, exp in enumerate(monom):
+                if exp != 0:
+                    slot = Expression('Slot', index + 1)
+                    if exp == 1:
+                        factors.append(slot)
+                    else:
+                        factors.append(Expression('Power', slot, from_sympy(exp)))
+            if factors:
+                result.append(Expression('Times', *factors))
+            else:
+                result.append(Integer(1))
+        return Expression('Function', Expression('Plus', *result))
+    elif isinstance(expr, sympy.Lambda):
+        vars = [sympy.Symbol('%s%d' % (sympy_slot_prefix, index + 1)) for index in range(len(expr.variables))]
+        return Expression('Function', from_sympy(expr(*vars)))
     
     elif expr.is_Function or isinstance(expr, (sympy.Integral, sympy.Derivative)):
         if isinstance(expr, sympy.Integral):
