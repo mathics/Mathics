@@ -359,9 +359,9 @@ function submitQuery(textarea, onfinish) {
 		},
 		onFailure: function(transport) {
 			textarea.ul.select('li[class!=request]').invoke('deleteElement');
-			var li = $E('li', {'class': 'serverError'}, $T("Sorry, an error occured while processing your request!"));
+			var li = $E('li', {'class': 'serverError'}, $T("Sorry, an error occurred while processing your request!"));
 			textarea.ul.appendChild(li);					
-			textarea.submitted = true;					
+			textarea.submitted = true;
 		},
 		onComplete: function() {
 			textarea.li.removeClassName('loading');
