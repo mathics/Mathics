@@ -17,7 +17,7 @@
 **/
 
 var HTML_ENTITIES = $H({
-	'amp': 34,
+	'amp': 38,
 	'gt': 62,
 	'lt': 60,
 	'quot': 34,
