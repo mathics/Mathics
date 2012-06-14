@@ -221,7 +221,7 @@ class Eigenvalues(Builtin):
     </dl>
     
     >> Eigenvalues[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
-     = {2, 1, -1}
+     = {2, -1, 1}
     """
     
     def apply(self, m, evaluation):
@@ -231,7 +231,7 @@ class Eigenvalues(Builtin):
         if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Eigenvalues', 'matsq', m)
         eigenvalues = matrix.eigenvals()
-        eigenvalues = sorted(eigenvalues.iteritems(), key=lambda (v, c): abs(v), reverse=True)
+        eigenvalues = sorted(eigenvalues.iteritems(), key=lambda (v, c): (abs(v), -v), reverse=True)
         result = []
         for val, count in eigenvalues:
             result.extend([val] * count)
@@ -245,7 +245,7 @@ class Eigenvectors(Builtin):
     </dl>
     
     >> Eigenvectors[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
-     = {{1, 1, 1}, {-1, 0, 1}, {1, -2, 1}}
+     = {{1, 1, 1}, {1, -2, 1}, {-1, 0, 1}}
     >> Eigenvectors[{{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}]
      = {{0, 1, 0}, {1, 0, 0}, {0, 0, 1}}
     >> Eigenvectors[{{2, 0, 0}, {0, -1, 0}, {0, 0, 0}}]
@@ -270,11 +270,9 @@ class Eigenvectors(Builtin):
             eigenvects = matrix.eigenvects()
         except NotImplementedError:
             return evaluation.message('Eigenvectors', 'eigenvecnotimplemented', m)
-        # Mathematica seems to sort differently; eivenvalue ordering is first
-        # by abs(val), second by val, e.g. {2, -1, 1}, instead of {2, 1, -1}
-        # for Eigenvalue[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}].
+
         # The eigenvectors are given in the same order as the eigenvalues.
-        eigenvects = sorted(eigenvects, key=lambda (val, c, vect): abs(val), reverse=True)
+        eigenvects = sorted(eigenvects, key=lambda (val, c, vect): (abs(val), -val), reverse=True)
         result = []
         for val, count, basis in eigenvects:
             # select the i'th basis vector, convert matrix to vector, and convert from sympy
