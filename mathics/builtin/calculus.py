@@ -405,8 +405,6 @@ class Integrate(SageFunction):
     prepare_sympy = prepare_sage
     
     def from_sympy(self, leaves):
-        #print leaves
-        #return leaves
         args = []
         for leaf in leaves[1:]:
             if leaf.has_form('List', 1):
@@ -414,18 +412,7 @@ class Integrate(SageFunction):
                 args.append(leaf.leaves[0])
             else:
                 args.append(leaf)
-        #print leaves
-        #if len(leaves) > 1 and leaves[1].has_form('List', None):
-        #    for arg in leaves[1].leaves:
-        #        pass
-                #if arg.has_form('List', 2):
-                #    if arg.leaves[1].get_name() == 'Null':
-                #        args.append(arg.leaves[0])
-                #    elif arg.leaves[1].has_form('List', 2):
-                #        args.append(Expression('List', arg.leaves[0], arg.leaves[1].leaves[0], arg.leaves[1].leaves[1]))
-        
         return [leaves[0]] + args
-    
     
     def apply(self, f, xs, evaluation):
         'Integrate[f_, xs__]'
@@ -570,7 +557,6 @@ class Solve(Builtin):
         for eq in eqs:
             symbol_name = eq.get_name()
             if symbol_name == 'True':
-                #return Expression('List', Expression('List'))
                 pass
             elif symbol_name == 'False':
                 return Expression('List')
@@ -580,16 +566,12 @@ class Solve(Builtin):
                 left, right = eq.leaves
                 left = left.to_sympy()
                 right = right.to_sympy()
-                #vars_sympy = [var.to_sympy() for var in vars]
                 eq = left - right
                 eq = sympy.together(eq)
                 eq = sympy.cancel(eq)                
                 sympy_eqs.append(eq)
                 numer, denom = eq.as_numer_denom()
                 sympy_denoms.append(denom)
-        #eqs = actual_eqs
-        
-        #left, right = eq.leaves
         
         vars_sympy = [var.to_sympy() for var in vars]
         
@@ -598,8 +580,6 @@ class Solve(Builtin):
         # in e.g. Solve[x^2==1&&z^2==-1,{x,y,z}]
         all_vars = vars[:]
         all_vars_sympy = vars_sympy[:]
-        #for index, var in enumerate(all_vars):
-        #    if eqs_original.is_free(var, evaluation):
         vars = []
         vars_sympy = []   
         for var, var_sympy in zip(all_vars, all_vars_sympy):
@@ -609,7 +589,6 @@ class Solve(Builtin):
                 vars_sympy.append(var_sympy)
         
         def transform_dict(sols):
-            #print "Transform %s" % sols
             if not sols:
                 yield sols
             for var, sol in sols.iteritems():
@@ -617,28 +596,23 @@ class Solve(Builtin):
                 del rest[var]
                 rest = transform_dict(rest)
                 if not isinstance(sol, (tuple, list)):
-                    #print "Convert %s (type %s)" % (sol, type(sol))
                     sol = [sol]
                 if not sol:
                     for r in rest:
-                        #print "Yield %s" % r
                         yield r
                 else:
                     for r in rest:
                         for item in sol:
-                            #print "Yield %s with new %s" % (r, item)
                             new_sols = r.copy()
                             new_sols[var] = item
                             yield new_sols
                 break
         
         def transform_solution(sol):
-            #if isinstance(sol, (list, tuple)):
             if not isinstance(sol, dict):
                 if not isinstance(sol, (list, tuple)):
                     sol = [sol]
                 sol = dict(zip(vars_sympy, sol))
-            #return sol
             return transform_dict(sol)
         
         if not sympy_eqs:
@@ -646,38 +620,24 @@ class Solve(Builtin):
         elif len(sympy_eqs) == 1:
             sympy_eqs = sympy_eqs[0]
             
-        #eq = left - right
-        #eq = sympy.together(eq)
-        #eq = sympy.cancel(eq)   # otherwise Solve[f''[x]==0,x] for f[x_]:=4 x / (x ^ 2 + 3 x + 5) takes forever
         try:
-            #print sympy_eqs
             result = sympy.solve(sympy_eqs, vars_sympy)
-            #print result
             if not isinstance(result, list):
                 result = [result]
             if result == [True]:
                 return Expression('List', Expression('List'))
             if result == [None]:
                 return Expression('List')
-            #print result
-            #result = [transform_solution(sol) for sol in result]
             results = []
             for sol in result:
                 results.extend(transform_solution(sol))
             result = results
-            #print result
             if any(sol and any(var not in sol for var in all_vars_sympy) for sol in result):
                 evaluation.message('Solve', 'svars')
-            #numer, denom = eq.as_numer_denom()
-            #for sol in result:
-            #    sol_denom = denom.subs({var_sympy: sol})
             result = [sol for sol in result if all(sympy.simplify(denom.subs(sol)) != 0 for denom in sympy_denoms)]   # filter out results for which denominator is 0
                 # (SymPy should actually do that itself, but it doesn't!)
             return Expression('List', *(Expression('List', *(Expression('Rule', var, from_sympy(sol[var_sympy]))
                 for var, var_sympy in zip(vars, vars_sympy) if var_sympy in sol)) for sol in result))
-        #except TypeError:
-            #evaluation.message('Solve', 'ivar', vars_original)
-            #raise
         except sympy.PolynomialError:
             # raised for e.g. Solve[x^2==1&&z^2==-1,{x,y,z}] when not deleting unused variables beforehand
             pass
