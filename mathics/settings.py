@@ -29,7 +29,7 @@ try:
 except ImportError:
     DJANGO_VERSION = (1, 4)
 
-VERSION = '0.4.2dev'
+VERSION = '0.5dev'
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
