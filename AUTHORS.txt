@@ -1,0 +1,18 @@
+Mathics was created and is mainly maintained by:
+
+- Jan Poeschko (jan@poeschko.com; github: poeschko)
+
+Additional contributions were made by:
+
+- Angus Griffith (github: sn6uv): adaptive sampling for Plot
+- Chong Jiang (github: cjiang): Log2, Log10
+
+Thanks to the authors of all projects that are used in Mathics:
+- Django
+- MathJax
+- Prototype
+- Python
+- Sage
+- scripaculous
+- SPARK
+- SymPy
