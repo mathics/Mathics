@@ -25,3 +25,37 @@ class Erf(_MPMathFunction):
     
     def eval(self, z):
         return mpmath.erf(z)
+    
+class ProductLog(_MPMathFunction):
+    """
+    <dl>
+    <dt>'ProductLog[$z$]'
+        <dd>returns the value of the Lambert W function at $z$.
+    </dl>
+    
+    The defining equation:
+    >> z == ProductLog[z] * E ^ ProductLog[z]
+     = True
+     
+    Some special values:
+    >> ProductLog[0]
+     = 0
+    >> ProductLog[E]
+     = 1
+     
+    The graph of 'ProductLog':
+    >> Plot[ProductLog[x], {x, -1/E, E}]
+     = -Graphics-
+    """
+    
+    sympy_name = 'LambertW' # function called LambertW in SymPy
+    sage_name = ''          # function not present in Sage
+    
+    rules = {
+        'ProductLog[0]': '0',
+        'ProductLog[E]': '1',
+        'ProductLog[z_] * E ^ ProductLog[z_]': 'z',
+    }
+    
+    def eval(self, z):
+        return mpmath.lambertw(z)

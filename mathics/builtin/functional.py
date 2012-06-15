@@ -38,6 +38,10 @@ class Function(PostfixOperator):
     >> Function[x, Function[y, x^y]][x][y]
      = x ^ y
      
+    Slots in inner functions are not affected by outer function application:
+    >> f[#] & [g[#]] & [5]
+     = f[g[5]]
+     
     #> g[x_,y_] := x+y
     #> g[Sequence@@Slot/@Range[2]]&[1,2]
      = #1 + #2

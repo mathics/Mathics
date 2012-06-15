@@ -970,6 +970,9 @@ class Expression(BaseExpression):
                 if slot is None or slot < 1:
                     evaluation.error('Function', 'slot', self.leaves[0])
             return Expression('Sequence', *slots[slot-1:])
+        elif self.head.get_name() == 'Function' and len(self.leaves) == 1:
+            # do not replace Slots in nested Functions
+            return self
         return Expression(self.head.replace_slots(slots, evaluation),
             *[leaf.replace_slots(slots, evaluation) for leaf in self.leaves])
 

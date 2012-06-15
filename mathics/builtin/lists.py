@@ -32,6 +32,24 @@ class List(Builtin):
         items = items.get_sequence()
         return Expression('RowBox', Expression('List', *list_boxes(items, f, "{", "}")))
     
+class ListQ(Test):
+    """
+    <dl>
+    <dt>'ListQ[$expr$]'
+        <dd>tests whether $expr$ is a 'List'.
+    </dl>
+    
+    >> ListQ[{1, 2, 3}]
+     = True
+    >> ListQ[{{1, 2}, {3, 4}}]
+     = True
+    >> ListQ[x]
+     = False
+    """
+    
+    def test(self, value):
+        return value.get_head_name() == 'List'
+    
 def list_boxes(items, f, open=None, close=None):
     result = [Expression('MakeBoxes', item, f) for item in items]
     if f.get_name() in ('OutputForm', 'InputForm'):

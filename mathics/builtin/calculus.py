@@ -458,6 +458,8 @@ class Solve(Builtin):
     <dl>
     <dt>'Solve[$equation$, $vars$]'
         <dd>attempts to solve $equation$ for the variables $vars$.
+    <dt>'Solve[$equation$, $vars$, $domain$]'
+        <dd>restricts variables to $domain$, which can be 'Complexes' or 'Reals'.
     </dl>
     
     >> Solve[x ^ 2 - 3 x == 4, x]
@@ -516,6 +518,14 @@ class Solve(Builtin):
      : Equations may not give solutions for all "solve" variables.
      = {{x -> -1, z -> I}, {x -> -1, z -> -I}, {x -> 1, z -> I}, {x -> 1, z -> -I}}
      
+    Domain specification:
+    >> Solve[x^2 == -1, x, Reals]
+     = {}
+    >> Solve[x^2 == 1, x, Reals]
+     = {{x -> 1}, {x -> -1}}
+    >> Solve[x^2 == -1, x, Complexes]
+     = {{x -> -I}, {x -> I}}
+     
     #> Solve[x^5==x,x]
      = {{x -> 1}, {x -> -1}, {x -> -I}, {x -> 0}, {x -> I}}
      
@@ -532,6 +542,10 @@ class Solve(Builtin):
     }
     
     rules = {
+        'Solve[eqs_, vars_, Complexes]': 'Solve[eqs, vars]',
+        'Solve[eqs_, vars_, Reals]': """Select[Solve[eqs, vars],
+            And @@ ((!NumberQ[#] || Im[#] == 0 &) [Chop[N[#], 10^-15]] & /@
+            (If[ListQ[vars], vars, {vars}] /. #)) &]"""
     }
     
     def apply(self, eqs, vars, evaluation):
