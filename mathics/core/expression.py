@@ -21,8 +21,6 @@ u"""
 from gmpy import mpz, mpq, mpf
 import re
 import cython
-#import pyximport
-#pyximport.install()
 
 from mathics.core.numbers import mpcomplex, format_float, prec, get_type, dps, prec
 from mathics.core.evaluation import Evaluation
@@ -605,23 +603,15 @@ class Expression(BaseExpression):
                 return [1 if self.is_numeric() else 2, 3, self.head, self.leaves, 1]
     
     def same(self, other):
-        #print u"Same? %s == %s" % (self, other)
         if self.get_head_name() != other.get_head_name():
-            #print "Not same head name"
             return False
-        #print "Test head"
         if not self.head.same(other.get_head()):
-            #print "Not same head"
             return False
-        #print "Test length"
         if len(self.leaves) != len(other.get_leaves()):
-            #print "Unequal length"
             return False
-        #print "Test leaves"
         for leaf, other in zip(self.leaves, other.get_leaves()):
             if not leaf.same(other):
                 return False
-        #print "Return"
         return True
     
     def flatten(self, head, pattern_only=False, callback=None, level=None):
@@ -648,7 +638,6 @@ class Expression(BaseExpression):
             return self
         
     def evaluate(self, evaluation=builtin_evaluation):
-        #print "Eval %s" % self
         evaluation.inc_recursion_depth()
         old_options = evaluation.options
         if hasattr(self, 'options') and self.options:
@@ -674,18 +663,14 @@ class Expression(BaseExpression):
                     if leaf.has_form('Evaluate', 1) and index not in eval_range:
                         eval_range.append(index)
             eval_range.sort()
-            #print "Eval leaves"
             for index in eval_range:
                 if not leaves[index].has_form('Unevaluated', 1):
                     leaves[index] = leaves[index].evaluate(evaluation)
-            #print "Leaves evaluated"
             
             new = Expression(head, *leaves)
             if 'SequenceHold' not in attributes and 'HoldAllComplete' not in attributes:
                 new = new.flatten(Symbol('Sequence'))
             leaves = new.leaves
-            
-            #print "New constructed"
                 
             for leaf in leaves:
                 leaf.unevaluated = False
@@ -699,7 +684,6 @@ class Expression(BaseExpression):
                 for leaf in new_leaves:
                     leaf.unevaluated = old.unevaluated
             
-            #print "Second new"
             new = Expression(head, *leaves)
             if 'Flat' in attributes:
                 new = new.flatten(new.head, callback=flatten_callback)
@@ -725,18 +709,11 @@ class Expression(BaseExpression):
                 rules += evaluation.definitions.get_downvalues(lookup_name)
             else:
                 rules += evaluation.definitions.get_subvalues(lookup_name)
-            #print u"Process rules %s\non %s" % (rules, new)
             for rule in rules:
-                #print u"  %s" % rule
                 result = rule.apply(new, evaluation, fully=False)
-                #print u"applied"
-                #print u"  -> %s" % result
                 if result is not None:
-                    #print "Test if same"
                     if not result.same(new):
-                        #print "Re-evaluate"
                         result = result.evaluate(evaluation)
-                    #print u"Return applied %s" % result
                     return result
             
             # Expression did not change, re-apply Unevaluated
@@ -745,13 +722,11 @@ class Expression(BaseExpression):
                     new.leaves[index] = Expression('Unevaluated', leaf)
             
             new.unformatted = self.unformatted
-            #print "Return new %s" % new
             return new
             
         finally:
             evaluation.options = old_options
             evaluation.dec_recursion_depth()
-            #print "Reset evaluation"
     
     def post_parse(self):
         if self.parse_operator is not None:
@@ -1411,7 +1386,6 @@ class Real(Number):
         p = self.value.getprec()
         s = self.value.digits(10, dps(p) + 5, -5, 6)
         return {'value': s, 'prec': p}
-        #return {'value': str(self.value)}
     
     def __setstate__(self, dict):
         p = dict['prec']
@@ -1575,17 +1549,11 @@ def encode_mathml(text):
     return text
 
 TEX_REPLACE = {
-    #'\\': r'\text{$\backslash$}',
     '{': r'\{',
     '}': r'\}',
-    #'^': r'\text{${}^{\wedge}$}',
     '_': r'\_',
     '$': r'\$',
-    #'~': r'\text{$\sim$}',
-    #'|': r'\text{$\vert$}',
     '%': r'\%',
-    #'<': r'\text{$<$}',
-    #'>': r'\text{$>$}',
     '#': r'\#',
     '&': r'\&',
     '\\': r'\backslash{}',
@@ -1601,7 +1569,7 @@ TEX_TEXT_REPLACE.update({
     '|': r'$\vert$',
     '\\': r'$\backslash$',
     '^': r'${}^{\wedge}$',
-})  
+})
 TEX_REPLACE_RE = re.compile('([' + ''.join([re.escape(c) for c in TEX_REPLACE]) + '])')
         
 def encode_tex(text, in_text=False):
