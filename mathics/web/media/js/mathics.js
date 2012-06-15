@@ -274,7 +274,6 @@ function translateDOMElement(element, svg) {
 function createLine(value) {
 	if (value.startsWith('<math')) {
 		var dom = document.createElement('div');
-		//alert(value);
 		dom.updateDOM(value);
 		return translateDOMElement(dom.childNodes[0]);
 	} else {
@@ -305,9 +304,7 @@ function setResult(ul, results) {
 		}
 		ul.appendChild($E('li', {'class': 'out'}, resultUl));
 	});
-	//alert("typeset");
 	MathJax.Hub.Queue(["Typeset", MathJax.Hub, ul]);
-	//alert("typesetting");
 	MathJax.Hub.Queue(function() {
 		ul.select('.mspace').each(function(mspace) {
 			var id = mspace.getAttribute('id').substr(objectsPrefix.length);
