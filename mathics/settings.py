@@ -139,7 +139,7 @@ TEMPLATE_DIRS = (
 )
 
 AUTHENTICATION_BACKENDS = (
-    'web.authentication.EmailModelBackend',
+    'mathics.web.authentication.EmailModelBackend',
 )
 
 INSTALLED_APPS = (
