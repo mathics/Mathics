@@ -262,7 +262,7 @@ class Minus(PrefixOperator):
         return Integer(-x.value)
     
     def post_parse(self, expression):
-        if expression.get_head().get_name() == 'Minus' and len(expression.leaves) == 1 and isinstance(expression.leaves[0], Number):
+        if expression.get_head_name() == 'Minus' and len(expression.leaves) == 1 and isinstance(expression.leaves[0], Number):
             return Number.from_mp(-expression.leaves[0].value)
         else:
             return super(Minus, self).post_parse(expression)

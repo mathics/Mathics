@@ -65,7 +65,7 @@ class _InequalityOperator(BinaryOperator):
         def inequality_leaves(expression):
             if expression.parenthesized:
                 return [expression]
-            name = expression.get_head().get_name()
+            name = expression.get_head_name()
             leaves = expression.get_leaves()
             if name == 'Inequality':
                 return leaves
