@@ -81,10 +81,6 @@ class VectorQ(Builtin):
         'VectorQ[expr_]': 'ArrayQ[expr, 1]',
         'VectorQ[expr_, test_]': 'ArrayQ[expr, 1, test]',
     }
-    
-class NotListQ(Test):
-    def test(self, expr):
-        return expr.get_head_name() != 'List'
 
 class MatrixQ(Builtin):
     """

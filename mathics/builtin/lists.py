@@ -47,8 +47,12 @@ class ListQ(Test):
      = False
     """
     
-    def test(self, value):
-        return value.get_head_name() == 'List'
+    def test(self, expr):
+        return expr.get_head_name() == 'List'
+    
+class NotListQ(Test):
+    def test(self, expr):
+        return expr.get_head_name() != 'List'
     
 def list_boxes(items, f, open=None, close=None):
     result = [Expression('MakeBoxes', item, f) for item in items]
