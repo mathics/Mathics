@@ -7,6 +7,7 @@ Special functions
 import mpmath
 
 from mathics.builtin.arithmetic import _MPMathFunction
+from mathics.core.expression import Integer
 
 class Erf(_MPMathFunction):
     """
@@ -59,3 +60,10 @@ class ProductLog(_MPMathFunction):
     
     def eval(self, z):
         return mpmath.lambertw(z)
+
+class Legendre(_MPMathFunction):
+    def eval(self, z):
+        return mpmath.legendre(1, z)
+    
+    def prepare_sympy(self, leaves):
+        return [Integer(1)] + leaves
