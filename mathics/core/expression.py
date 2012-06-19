@@ -166,7 +166,7 @@ class BaseExpression(object):
         return self.get_head_name() == 'Sequence'
     
     def get_sequence(self):
-        if self.get_head().get_name() == 'Sequence':
+        if self.get_head_name() == 'Sequence':
             return self.leaves
         else:
             return [self]

@@ -354,7 +354,7 @@ class Integrate(SageFunction):
      = 3.99998451720248
      
     #> Integrate[1/(x^5+1), x]
-     = RootSum[625 #1 ^ 4 + 125 #1 ^ 3 + 25 #1 ^ 2 + 5 #1 + 1&, #1 Log[x + 5 #1]&] + Log[1 + x] / 5
+     = RootSum[625 #1 ^ 4 + 125 #1 ^ 3 + 25 #1 ^ 2 + 5 #1 + 1&, #1 Log[5 #1 + x]&] + Log[1 + x] / 5
     """
     
     """
@@ -417,7 +417,10 @@ class Integrate(SageFunction):
     def apply(self, f, xs, evaluation):
         'Integrate[f_, xs__]'
         
-        f_sympy = f.to_sympy()
+        try:
+            f_sympy = f.to_sympy()
+        except AttributeError:
+            return
         xs = xs.get_sequence()
         vars = []
         prec = None
@@ -430,15 +433,21 @@ class Integrate(SageFunction):
                     prec_new = min(prec_a, prec_b)
                     if prec is None or prec_new < prec:
                         prec = prec_new
-                a = a.to_sympy()
-                b = b.to_sympy()
+                try:
+                    a = a.to_sympy()
+                    b = b.to_sympy()
+                except AttributeError:
+                    return
             else:
                 a = b = None
                 a_mathics, b_mathics = a, b
             if not x.get_name():
                 evaluation.message('Integrate', 'ilim')
                 return
-            x = x.to_sympy()
+            try:
+                x = x.to_sympy()
+            except AttributeError:
+                return
             if a is None or b is None:
                 vars.append(x)
             else:
@@ -578,8 +587,11 @@ class Solve(Builtin):
                 return evaluation.message('Solve', 'eqf', eqs_original)
             else:
                 left, right = eq.leaves
-                left = left.to_sympy()
-                right = right.to_sympy()
+                try:
+                    left = left.to_sympy()
+                    right = right.to_sympy()
+                except AttributeError:
+                    return
                 eq = left - right
                 eq = sympy.together(eq)
                 eq = sympy.cancel(eq)                
@@ -587,7 +599,10 @@ class Solve(Builtin):
                 numer, denom = eq.as_numer_denom()
                 sympy_denoms.append(denom)
         
-        vars_sympy = [var.to_sympy() for var in vars]
+        try:
+            vars_sympy = [var.to_sympy() for var in vars]
+        except AttributeError:
+            return
         
         # delete unused variables to avoid SymPy's
         # PolynomialError: Not a zero-dimensional system
@@ -692,9 +707,12 @@ class Limit(Builtin):
     def apply(self, expr, x, x0, evaluation, options={}):
         'Limit[expr_, x_->x0_, OptionsPattern[Limit]]'
         
-        expr = expr.to_sympy()
-        x = x.to_sympy()
-        x0 = x0.to_sympy()
+        try:
+            expr = expr.to_sympy()
+            x = x.to_sympy()
+            x0 = x0.to_sympy()
+        except AttributeError:
+            return
         
         direction = self.get_option(options, 'Direction', evaluation)
         value = direction.get_int_value()
