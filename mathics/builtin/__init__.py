@@ -21,14 +21,14 @@ u"""
 from mathics.builtin import algebra, arithmetic, assignment, attributes, calculus, combinatorial, comparison, control, datentime, evaluation
 from mathics.builtin import exptrig, functional, graphics, inout, integer, linalg, lists, logic, numbertheory, numeric, options, patterns
 from mathics.builtin import plot, randomnumbers, specialfunctions, scoping, strings, structure
-from mathics.builtin import tensors
+from mathics.builtin import system, tensors
 
 from mathics.builtin.base import Builtin, SageObject, BoxConstruct, Operator, PatternObject
 
 modules = [algebra, arithmetic, assignment, attributes, calculus, combinatorial, comparison, control, datentime, evaluation,
     exptrig, functional, graphics, inout, integer, linalg, lists, logic, numbertheory, numeric, options, patterns,
     plot, randomnumbers, specialfunctions, scoping, strings, structure,
-    tensors]
+    system, tensors]
 
 builtins = []
 builtins_by_module = {}
