@@ -946,22 +946,22 @@ Let\'s consider the matrix
 
 We can compute its eigenvalues and eigenvectors:
 >> Eigenvalues[A]
- = {2, 1, -1}
+ = {2, -1, 1}
 >> Eigenvectors[A]
- = {{1, 1, 1}, {-1, 0, 1}, {1, -2, 1}}
+ = {{1, 1, 1}, {1, -2, 1}, {-1, 0, 1}}
 This yields the diagonalization of 'A':
 >> T = Transpose[Eigenvectors[A]]; MatrixForm[T]
- = 1   -1   1
+ = 1   1    -1
  .
- . 1   0    -2
+ . 1   -2   0
  .
  . 1   1    1
 >> Inverse[T] . A . T // MatrixForm
- = 2   0   0
+ = 2   0    0
  .
- . 0   1   0
+ . 0   -1   0
  .
- . 0   0   -1
+ . 0   0    1
 >> % == DiagonalMatrix[Eigenvalues[A]]
  = True
  
