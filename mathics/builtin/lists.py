@@ -1185,6 +1185,16 @@ class Join(Builtin):
     >> Join[a + b, c * d]
      : Heads Plus and Times are expected to be the same.
      = Join[a + b, c d]
+     
+    #> Join[x, y]
+     = Join[x, y]
+    #> Join[x + y, z]
+     = Join[x + y, z]
+    #> Join[x + y, y z, a]
+     : Heads Plus and Times are expected to be the same.
+     = Join[x + y, y z, a]
+    #> Join[x, y + z, y z]
+     = Join[x, y + z, y z]
     """
     
     attributes = ('Flat', 'OneIdentity')
@@ -1195,6 +1205,8 @@ class Join(Builtin):
         result = []
         head = None
         for list in lists.get_sequence():
+            if list.is_atom():
+                return
             if head is not None and list.get_head() != head:
                 evaluation.message('Join', 'heads', head, list.get_head())
                 return
