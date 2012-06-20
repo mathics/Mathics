@@ -1433,13 +1433,27 @@ def riffle(items, sep):
         result.append(item)
     return result
         
+def riffle_lists(items, seps):
+    result = items[:1]
+    for index, item in enumerate(items[1:]):
+        result.append(seps[index % len(seps)])
+        result.append(item)
+    return result
+        
 class Riffle(Builtin):
     """
     >> Riffle[{a, b, c}, x]
      = {a, x, b, x, c}
+    >> Riffle[{a, b, c}, {x, y, z}]
+     = {a, x, b, y, c}
+    >> Riffle[{a, b, c, d, e, f}, {x, y, z}]
+     = {a, x, b, y, c, z, d, x, e, y, f}
     """
     
     def apply(self, list, sep, evaluation):
         'Riffle[list_List, sep_]'
         
-        return Expression('List', *riffle(list.get_leaves(), sep))
+        if sep.has_form('List', None):
+            return Expression('List', *riffle_lists(list.get_leaves(), sep.leaves))
+        else:
+            return Expression('List', *riffle(list.get_leaves(), sep))
