@@ -18,11 +18,6 @@ def matrix_data(m):
     return [[item.to_sympy() for item in row.leaves] for row in m.leaves]
 
 def to_sympy_matrix(data):
-    """if not m.has_form('List', None):
-        return None
-    if not all(leaf.has_form('List', None) for leaf in m.leaves):
-        return None
-    data = [[item.to_sympy() for item in row.leaves] for row in m.leaves]"""
     if not isinstance(data, list):
         data = matrix_data(data)
     try:
@@ -123,7 +118,7 @@ class LinearSolve(Builtin):
         system = to_sympy_matrix(system)
         if system is None:
             return
-        syms = [sympy.Symbol('LinearSolve_var%d' % k, dummy=True) for k in range(system.cols - 1)]
+        syms = [sympy.Dummy('LinearSolve_var%d' % k) for k in range(system.cols - 1)]
         sol = sympy.solve_linear_system(system, *syms)
         if sol:
             # substitute 0 for variables that are not in result dictionary 
