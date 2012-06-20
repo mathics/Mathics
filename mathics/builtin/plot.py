@@ -354,6 +354,117 @@ class Plot(Builtin):
         
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
     
+
+class Plot3D(Builtin):
+    """
+    <dl>
+    <dt>'Plot3D[$f$, {$x$, $xmin$, $xmax$}, {$y$, $ymin$, $ymax$}]'
+        <dd>creates a three-dimensional plot of $f$ with $x$ ranging from $xmin$ to $xmax$ and $y$ ranging from $ymin$ to $ymax$.
+    </dl>
+
+    >> Plot3D[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}]
+     = -Graphics-
+    """
+
+    from graphics import Graphics
+
+    attributes = ('HoldAll',)
+
+    options = Graphics.options.copy()
+    options.update({
+        'Axes': 'False',
+        'AspectRatio': '1',
+    })
+
+    messages = {
+        #'ilevels' : "`1` s not a valid mesh specification.",
+    }
+
+    def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
+        'Plot3D[functions_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[Plot3D]]'
+
+        expr = Expression('Plot', functions, Expression('List', x, xstart, xstop), 
+            Expression('List', y, ystart, ystop), *options_to_rules(options))
+
+        if functions.has_form('List', None):
+            functions = functions.leaves
+        else:
+            functions = [functions]
+        x_name = x.get_name()
+        y_name = y.get_name()
+
+        try:
+            xstart = xstart.to_number(n_evaluation=evaluation)
+        except NumberError:
+            evaluation.message('Plot3D', 'plln', xstart, expr)
+            return
+        try:
+            xstop = xstop.to_number(n_evaluation=evaluation)
+        except NumberError:
+            evaluation.message('Plot3D', 'plln', xstop, expr)
+            return
+
+        try:
+            ystart = ystart.to_number(n_evaluation=evaluation)
+        except NumberError:
+            evaluation.message('Plot3D', 'plln', ystart, expr)
+            return
+        try:
+            ystop = ystop.to_number(n_evaluation=evaluation)
+        except NumberError:
+            evaluation.message('Plot3D', 'plln', ystop, expr)
+            return
+        
+        if ystart >= ystop:
+            evaluation.message('Plot3D', 'plln', ystop, expr)
+            return
+
+        if xstart >= xstop:
+            evaluation.message('Plot3D', 'plln', xstop, expr)
+            return
+        print "Initialized"
+
+        def eval_f(f, x_value, y_value):
+            value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation)
+            value = chop(value).get_real_value()
+            return value
+
+        graphics = []           # list of resulting graphics primitives
+        for index, f in enumerate(functions):
+            # Linear Sampling
+            points = []
+            continuous = False
+            steps = 17
+            dx = (xstop - xstart) / steps
+            dy = (ystop - ystart) / steps
+            for xi in range(steps + 1):
+                x_value = xstart + xi * dx
+                for yi in range(steps +1):
+                    y_value = ystart + yi * dy
+                    z = eval_f(f, x_value, y_value)
+                    if z is not None:
+                        point = (x_value, y_value, z)
+                        if continuous:
+                            points[-1].append(point)
+                        else:
+                            points.append([point])
+                        continuous = True
+                    else:
+                        continuous = False
+            
+            zstart = -1
+            zstop = 1
+
+            xscale = 1. / (xstop - xstart)
+            yscale = 1. / (ystop - ystart)
+            zscale = 1. / (zstop - zstart)
+
+            #TODO Adaptive sampling
+
+        print "Return"
+        return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
+
+
 class DensityPlot(Builtin):
     """
     <dl>
