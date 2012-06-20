@@ -740,7 +740,7 @@ class FindRoot(Builtin):
     'FindRoot' uses Newton\'s method, so the function of interest should have a first derivative.
     
     >> FindRoot[Cos[x], {x, 1}]
-     = {x -> 1.57079632679548787}
+     = {x -> 1.57079632679489662}
     >> FindRoot[Sin[x] + Exp[x],{x, 0}]
      = {x -> -0.588532743981861078}
      

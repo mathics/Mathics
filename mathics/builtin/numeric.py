@@ -86,7 +86,7 @@ class N(Builtin):
     >> N[g[1, 1]]
      = g[1., 1]
     >> N[g[2, 2]]
-     = 8.28318530717958
+     = 8.28318530717958648
      
     #> p=N[Pi,100]
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
@@ -149,7 +149,7 @@ class MachinePrecision(Predefined):
         <dd>is a "pessimistic" (integer) estimation of the internally used standard precision.
     </dl>
     >> N[MachinePrecision]
-     = 15.
+     = 18.
     """
     
     def apply_N(self, prec, evaluation):
