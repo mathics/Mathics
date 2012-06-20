@@ -41,6 +41,14 @@ class Mesh(Builtin):
     messages = {
         'ilevels' : "`1` s not a valid mesh specification.",
     }
+    
+def quiet_evaluate(expr, vars, evaluation):
+    """ Evaluates expr with given dynamic scoping values
+    without producing arithmetic error messages. """
+    quiet_expr = Expression('Quiet', expr, Expression('List',
+        Expression('MessageName', Symbol('Power'), String('infy'))))
+    value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)
+    return chop(value).get_real_value()
 
 class Plot(Builtin):
     """
@@ -68,7 +76,9 @@ class Plot(Builtin):
 
     >> Plot[Tan[x], {x, 0, 6}, Mesh->All, PlotRange->{{-1, 5}, {0, 15}}, MaxRecursion->10]
      = -Graphics-
-
+     
+    #> Plot[1 / x, {x, -1, 1}]
+     = -Graphics-
     """
 
     from graphics import Graphics
@@ -202,8 +212,7 @@ class Plot(Builtin):
         assert isinstance(maxrecursion, int)
 
         def eval_f(f, x_value):
-            value = dynamic_scoping(f.evaluate, {x_name: Real(x_value)}, evaluation)
-            value = chop(value).get_real_value()
+            value = quiet_evaluate(f, {x_name: Real(x_value)}, evaluation)
             return value
 
         # constants to generate colors
@@ -363,6 +372,11 @@ class DensityPlot(Builtin):
     
     >> DensityPlot[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}]
      = -Graphics-
+     
+    #> DensityPlot[1 / x, {x, 0, 1}, {y, 0, 1}]
+     = -Graphics-
+    #> DensityPlot[Sqrt[x * y], {x, -1, 1}, {y, -1, 1}]
+     = -Graphics-
     """
 
     from graphics import Graphics
@@ -414,15 +428,15 @@ class DensityPlot(Builtin):
             evaluation.message('DensityPlot', 'plln', exc.value, expr)
             return
         
-        #print "Initialized"
-        
         stored = {}
         def eval_f(x_value, y_value):
             value = stored.get((x_value, y_value), False)
             if value == False:
-                value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation)
-                value = chop(value).get_real_value()
-                value = float(value)
+                value = quiet_evaluate(f, {x: Real(x_value), y: Real(y_value)}, evaluation)
+                #value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation)
+                #value = chop(value).get_real_value()
+                if value is not None:
+                    value = float(value)
                 stored[(x_value, y_value)] = value
             return value
         
@@ -439,10 +453,11 @@ class DensityPlot(Builtin):
                 depth = 0
             v1, v2, v3 = eval_f(x1, y1), eval_f(x2, y2), eval_f(x3, y3)
             for v in (v1, v2, v3):
-                if v_borders[0] is None or v < v_borders[0]:
-                    v_borders[0] = v
-                if v_borders[1] is None or v > v_borders[1]:
-                    v_borders[1] = v
+                if v is not None:
+                    if v_borders[0] is None or v < v_borders[0]:
+                        v_borders[0] = v
+                    if v_borders[1] is None or v > v_borders[1]:
+                        v_borders[1] = v
             if v1 is None or v2 is None or v3 is None:
                 return
             limit = (v_borders[1] - v_borders[0]) * eps
@@ -470,7 +485,6 @@ class DensityPlot(Builtin):
         
         v_min = v_max = None
               
-        #if color_function_scaling: 
         for t in triangles:
             for tx, ty, v in t:
                 if v_min is None or v < v_min:
@@ -490,8 +504,6 @@ class DensityPlot(Builtin):
                     
         colors = {}
         def eval_color(x, y, v):
-            #v_lookup = int(v * 100)
-            #if color_function_scaling:
             v_scaled = (v - v_min) / v_range
             if color_function_scaling and color_function_min is not None and color_function_max is not None:
                 v_color_scaled = color_function_min + v_scaled * color_function_range
@@ -500,34 +512,20 @@ class DensityPlot(Builtin):
             v_lookup = int(v_scaled * 100 + 0.5)     # calculate and store 100 different shades max.
             value = colors.get(v_lookup)
             if value is None:
-                #print "Calc"
-                #print "Scale"
-                #print "Expression"
-                #print "Calc color for %f" % v_scaled
                 value = Expression(color_func, Real(v_color_scaled))
-                #print "Evaluate %s" % value
                 value = value.evaluate(evaluation)
-                #value = Expression('RGBColor', Real(0.5), Real(0.5), Real(0.5))
-                #print "Set"
                 colors[v_lookup] = value
             return value
         
-        #print "Points"
         points = []
         vertex_colors = []
         for p1, p2, p3 in triangles:
-            #print "Triangle %s,%s,%s" % (p1, p2, p3)
             c1, c2, c3 = eval_color(*p1), eval_color(*p2), eval_color(*p3)
-            #print "Append"
             points.append(Expression('List', Expression('List', *p1[:2]), Expression('List', *p2[:2]),
                 Expression('List', *p3[:2])))
             vertex_colors.append(Expression('List', c1, c2, c3))
         
-        #print "Polygon"
         polygon = Expression('Polygon', Expression('List', *points),
             Expression('Rule', Symbol('VertexColors'), Expression('List', *vertex_colors)))
-        #print "Result"
         result = Expression('Graphics', polygon, *options_to_rules(options))
-        #print "Return"
         return result
-
