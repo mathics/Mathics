@@ -534,6 +534,9 @@ class Solve(Builtin):
     ## (should use inverse functions, actually!)
     #> Solve[g[x] + h[x] == 0, x]
      = Solve[g[x] + h[x] == 0, x]
+     
+    #> Solve[Sin(x) == 1, x]
+     = {{x -> 1 / Sin}}
     """
     
     messages = {

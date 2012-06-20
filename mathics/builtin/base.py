@@ -357,6 +357,9 @@ class SageObject(Builtin):
             self.sage_name = self.get_name().lower()
         if self.sympy_name is None:
             self.sympy_name = self.sage_name
+            
+    def is_constant(self):
+        return False
 
 class SageFunction(SageObject):            
     def prepare_sage(self, leaves):
@@ -388,7 +391,9 @@ class SageFunction(SageObject):
         return leaves
     
 class SageConstant(SageObject, Predefined):
-    pass
+    def is_constant(self):
+        # free Symbol will be converted to corresponding SymPy symbol
+        return True
     
 class InvalidLevelspecError(Exception):
     pass

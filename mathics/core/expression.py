@@ -1123,7 +1123,7 @@ class Symbol(Atom):
             return self.sympy_dummy
         
         builtin = mathics_to_sympy.get(self.name)
-        if builtin is None or not builtin.sympy_name:
+        if builtin is None or not builtin.sympy_name or not builtin.is_constant():
             return sympy.Symbol(sympy_symbol_prefix + self.name.encode('utf8'))
         else:
             return getattr(sympy, builtin.sympy_name)
