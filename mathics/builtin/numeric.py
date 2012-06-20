@@ -17,7 +17,7 @@ from mathics.core.numbers import dps, mpmath2gmpy
 from mathics.core import numbers
 from mathics.core.expression import Integer, Rational, Real, Complex, Atom, Expression, Number, Symbol
 
-machine_precision = dps(mpf(53))
+machine_precision = dps(mpf(64))
 
 def get_precision(prec, evaluation):
     if prec.get_name() == 'MachinePrecision':

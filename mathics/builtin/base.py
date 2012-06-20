@@ -391,6 +391,8 @@ class SageFunction(SageObject):
         return leaves
     
 class SageConstant(SageObject, Predefined):
+    attributes = ('Constant', 'ReadProtected')
+    
     def is_constant(self):
         # free Symbol will be converted to corresponding SymPy symbol
         return True

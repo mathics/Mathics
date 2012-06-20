@@ -92,30 +92,47 @@ class _InequalityOperator(BinaryOperator):
             return Expression('Inequality', *leaves)
             
     def apply(self, items, evaluation):
-        '%(name)s[items__?RealNumberQ]'
+        '%(name)s[items__]'
         
-        prev = None
-        items = items.get_sequence()
+        items_sequence = items.get_sequence()
+        all_numeric = all(item.is_numeric() and item.get_precision() is None for item in items_sequence)
+        if all_numeric and any(not isinstance(item, Number) for item in items_sequence):
+            # All expressions are numeric but exact and they are not all numbers,
+            # so apply N and compare them.
+            items = items_sequence
+            n_items = []
+            for item in items:
+                if not isinstance(item, Number):
+                    # TODO: use $MaxExtraPrecision insterad of hard-coded 50
+                    n_expr = Expression('N', item, Real(50)) 
+                    item = n_expr.evaluate(evaluation)
+                n_items.append(item)
+            items = n_items
+        else:
+            items = items.numerify(evaluation).get_sequence()
         wanted = operators[self.get_name()]
+        prev = None
         for item in items:
+            if item.get_real_value() is None and not item.has_form('DirectedInfinity', None):
+                return
             if prev is not None and do_cmp(prev, item) not in wanted:
                 return Symbol('False')
             prev = item
         return Symbol('True')
-            
+        
 class Inequality(Builtin):
     """
     'Inequality' is the head of expressions involving different inequality operators (at least temporarily).
     Thus, it is possible to write chains of inequalities.
-    >> a<b<=c
+    >> a < b <= c
      = a < b && b <= c
     >> Inequality[a, Greater, b, LessEqual, c]
      = a > b && b <= c
-    >> 1<2<=3
+    >> 1 < 2 <= 3
      = True
-    >> 1<2>0
+    >> 1 < 2 > 0
      = True
-    >> 1<2<-1
+    >> 1 < 2 < -1
      = False
     """
     
@@ -126,7 +143,7 @@ class Inequality(Builtin):
     def apply(self, items, evaluation):
         'Inequality[items___]'
         
-        items = items.get_sequence()
+        items = items.numerify(evaluation).get_sequence()
         count = len(items)
         if count == 1:
             return Symbol('True')
@@ -139,6 +156,9 @@ class Inequality(Builtin):
         else:
             groups = [Expression('Inequality', *items[index-1:index+2]) for index in range(1, count-1, 2)]
             return Expression('And', *groups)
+        
+def numerify(vars, evaluation):
+    return Expression('List', *vars).numerify(evaluation).leaves
             
 def do_cmp(x1, x2):
     real1, real2 = x1.get_real_value(), x2.get_real_value()
@@ -198,15 +218,36 @@ class Equal(_InequalityOperator):
     >> 0.73908513321516064200000000 == 0.73908513321516064100000000
      = False
      
+    >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10018
+     = False
+    >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10019
+     = True
+     
+    Comparisons are done using the lower precision:
+    >> N[E, 100] == N[E, 150]
+     = True
+     
+    Symbolic constants are compared numerically:
+    >> E > 1
+     = True
+    >> Pi == 3.14
+     = False
+     
+    ## TODO: N[E, 3] == N[E] (= True)
+     
     #> {1, 2, 3} < {1, 2, 3}
      = {1, 2, 3} < {1, 2, 3}
+     
+    #> E == N[E]
+     = True
     """
     operator = '=='
     grouping = 'None'
     
     def apply_other(self, x, y, evaluation):
         'Equal[x_?(!RealNumberQ[#]&), y_?(!RealNumberQ[#]&)]'
-            
+        
+        x, y = numerify([x, y], evaluation)
         result = do_compare(x, y)
         if result is not None:
             if result:
@@ -230,6 +271,9 @@ class Unequal(_InequalityOperator):
      = True
     >> "a" != "a"
      = False
+    
+    #> Pi != N[Pi]
+     = False
     """
     
     operator = '!='
@@ -237,6 +281,7 @@ class Unequal(_InequalityOperator):
     def apply_other(self, x, y, evaluation):
         'Unequal[x_?(!RealNumberQ[#]&), y_?(!RealNumberQ[#]&)]'
         
+        x, y = numerify([x, y], evaluation)
         result = do_compare(x, y)
         if result is not None:
             if result:

@@ -31,6 +31,9 @@ class Pi(SageConstant):
      = 3.14159265358979
     >> N[Pi, 50]
      = 3.1415926535897932384626433832795028841971693993751
+     
+    >> Attributes[Pi]
+     = {Constant, Protected, ReadProtected}
     """
     
     def apply_N(self, prec, evaluation):
@@ -52,6 +55,9 @@ class E(SageConstant):
      = 2.71828182845905
     >> N[E, 50]
      = 2.7182818284590452353602874713526624977572470937
+     
+    >> Attributes[E]
+     = {Constant, Protected, ReadProtected}
     """
     
     sympy_name = 'E'

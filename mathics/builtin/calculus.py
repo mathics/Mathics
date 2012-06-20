@@ -537,6 +537,13 @@ class Solve(Builtin):
      
     #> Solve[Sin(x) == 1, x]
      = {{x -> 1 / Sin}}
+     
+    #> Solve[E == 1, E]
+     : E is not a valid variable.
+     = Solve[False, E]
+    #> Solve[False, Pi]
+     : Pi is not a valid variable.
+     = Solve[False, Pi]
     """
     
     messages = {
@@ -561,7 +568,9 @@ class Solve(Builtin):
         else:
             vars = [vars]
         for var in vars:
-            if (var.is_atom() and not var.is_symbol()) or head_name in ('Plus', 'Times', 'Power'):
+            if (var.is_atom() and not var.is_symbol()) or \
+                head_name in ('Plus', 'Times', 'Power') or \
+                'Constant' in var.get_attributes(evaluation.definitions):
                 evaluation.message('Solve', 'ivar', vars_original)
                 return
         eqs_original = eqs
@@ -660,6 +669,9 @@ class Solve(Builtin):
             pass
         except NotImplementedError:
             pass
+        except TypeError, exc:
+            if str(exc).startswith("expected Symbol, Function or Derivative"):
+                evaluation.message('Solve', 'ivar', vars_original)
         
 class Limit(Builtin):
     """
