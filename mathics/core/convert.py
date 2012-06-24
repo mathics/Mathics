@@ -24,8 +24,6 @@ u"""
 """
 
 import sympy
-
-from UserList import UserList
     
 sage_symbol_prefix = '_Mathics_User_'
 sympy_symbol_prefix = sage_symbol_prefix
@@ -240,7 +238,8 @@ def from_sympy(expr):
         vars = [sympy.Symbol('%s%d' % (sympy_slot_prefix, index + 1)) for index in range(len(expr.variables))]
         return Expression('Function', from_sympy(expr(*vars)))
     
-    elif expr.is_Function or isinstance(expr, (sympy.Integral, sympy.Derivative)):
+    elif expr.is_Function or isinstance(expr, (sympy.Integral, sympy.Derivative,
+            sympy.Sum, sympy.Product)):
         if isinstance(expr, sympy.Integral):
             name = 'Integral'
         elif isinstance(expr, sympy.Derivative):
@@ -259,6 +258,9 @@ def from_sympy(expr):
     
     elif isinstance(expr, sympy.Tuple):
         return Expression('List', *[from_sympy(arg) for arg in expr.args])
+    
+    #elif isinstance(expr, sympy.Sum):
+    #    return Expression('Sum', )
     
     else:
         raise ValueError("Unknown SymPy expression: %s" % expr)

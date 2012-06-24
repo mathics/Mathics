@@ -670,7 +670,7 @@ class Infinity(SageConstant):
      = DirectedInfinity[1]
     """
     
-    sympy_name = 'Infinity'
+    sympy_name = 'oo'
     
     rules = {
         'Infinity': 'DirectedInfinity[1]',
@@ -1006,7 +1006,24 @@ class Factorial(PostfixOperator, _MPMathFunction):
     def eval(self, z):
         return mpmath.fac(z)
     
-class Sum(_IterationFunction):
+class Gamma(SageFunction):
+    rules = {
+        'Gamma[x_]': '(x - 1)!',
+    }
+    
+class Pochhammer(SageFunction):
+    sage_name = ''
+    sympy_name = 'RisingFactorial'
+    
+    rules = {
+        'Pochhammer[a_, n_]': 'Gamma[a + n] / Gamma[a]',
+    }
+    
+class HarmonicNumber(SageFunction):
+    sage_name = ''
+    sympy_name = 'harmonic'
+    
+class Sum(_IterationFunction, SageFunction):
     """
     >> Sum[k, {k, 1, 10}]
      = 55
@@ -1015,21 +1032,50 @@ class Sum(_IterationFunction):
     >> Sum[i * j, {i, 1, 10}, {j, 1, 10}]
      = 3025
      
-    >> Sum[k, {k, a, b}]
-     : Iterator does not have appropriate bounds.
-     = Sum[k, {k, a, b, 1}]
+    Symbolic sums are evaluated:
+    >> Sum[k, {k, 1, n}]
+     = n (1 + n) / 2
     >> Sum[k, {k, I, I + 1}]
-     : Iterator does not have appropriate bounds.
-     = Sum[k, {k, I, I + 1, 1}]
+     = 1 + 2 I
+    >> Sum[1 / k ^ 2, {k, 1, n}]
+     = HarmonicNumber[n, 2]
+     
+    >> Sum[x ^ 2, {x, 1, y}] - y * (y + 1) * (2 * y + 1) / 6
+     = 0
+     
+    Infinite sums:
+    >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
+     = 1
+    >> Sum[1 / k ^ 2, {k, 1, Infinity}]
+     = Pi ^ 2 / 6
      
     #> a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]]
      : Parse error at or near token ].
     """
     
+    throw_iterb = False # do not throw warning message for symbolic iteration bounds
+    
+    sage_name = ''
+    sympy_name = 'Sum'
+    
+    rules = _IterationFunction.rules.copy()
+    rules.update({
+        'MakeBoxes[Sum[f_, {i_, a_, b_, 1}], form:StandardForm|TraditionalForm]':
+            r'RowBox[{SubsuperscriptBox["\[Sum]", RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}], MakeBoxes[b, form]], MakeBoxes[f, form]}]',
+    })
+    
     def get_result(self, items):
         return Expression('Plus', *items)
     
-class Product(_IterationFunction):
+    def to_sympy(self, expr):
+        if expr.has_form('Sum', 2) and expr.leaves[1].has_form('List', 3):
+            index = expr.leaves[1]
+            result = sympy.summation(expr.leaves[0].to_sympy(), (
+                index.leaves[0].to_sympy(), index.leaves[1].to_sympy(),
+                index.leaves[2].to_sympy()))            
+            return result
+    
+class Product(_IterationFunction, SageFunction):
     """
     >> Product[k, {k, 1, 10}]
      = 3628800
@@ -1038,15 +1084,37 @@ class Product(_IterationFunction):
     
     Symbolic products involving the factorial are evaluated:
     >> Product[k, {k, 3, n}]
-     = n! / 6
+     = n! / 2
+     
+    Other symbolic products:
+    >> Product[2 ^ i, {i, 1, n}]
+     = 2 ^ (n / 2 + n ^ 2 / 2)
+     
+    ## Does not crash SymPy (should be evaluated to Sinh[Pi] / Pi though!) 
+    #> Product[1 + 1 / i ^ 2, {i, Infinity}]
+     = Product[1 + 1 / i ^ 2, {i, 1, Infinity, 1}]
     """
-        
-    def __init__(self, *args, **kwargs):
-        super(Product, self).__init__(*args, **kwargs)
-        
-        self.rules.update({
-            'Product[k_, {k_Symbol, m_?Positive, n_}]': 'n! / m!',
-        })
+    
+    throw_iterb = False
+    
+    sage_name = ''
+    sympy_name = 'Product'
+    
+    rules = _IterationFunction.rules.copy()
+    rules.update({
+        'MakeBoxes[Product[f_, {i_, a_, b_, 1}], form:StandardForm|TraditionalForm]':
+            r'RowBox[{SubsuperscriptBox["\[Product]", RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}], MakeBoxes[b, form]], MakeBoxes[f, form]}]',
+    })
     
     def get_result(self, items):
         return Expression('Times', *items)
+    
+    def to_sympy(self, expr):
+        if expr.has_form('Product', 2) and expr.leaves[1].has_form('List', 3):
+            index = expr.leaves[1]
+            try:
+                return sympy.product(expr.leaves[0].to_sympy(), (
+                    index.leaves[0].to_sympy(), index.leaves[1].to_sympy(),
+                    index.leaves[2].to_sympy()))
+            except ZeroDivisionError:
+                pass

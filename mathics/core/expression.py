@@ -1674,6 +1674,10 @@ class String(Atom):
                 return r'\int'
             elif text == u'\u2146':
                 return r'\, d'
+            elif text == u'\u2211':
+                return r'\sum'
+            elif text == u'\u220f':
+                return r'\prod'
             elif len(text) > 1:
                 return r'\text{%s}' % encode_tex(text, in_text=True)
             else:
