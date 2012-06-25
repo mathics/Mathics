@@ -397,6 +397,10 @@ class SageConstant(SageObject, Predefined):
         # free Symbol will be converted to corresponding SymPy symbol
         return True
     
+    def to_sympy(self, expr):
+        # there is no "native" SymPy expression for e.g. E[x] 
+        return None
+    
 class InvalidLevelspecError(Exception):
     pass
 
