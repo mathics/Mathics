@@ -22,7 +22,7 @@ function drawGraphics3D(container, data) {
   var numx = 25, numz = 25;
     
   renderer = new THREE.WebGLRenderer({antialias: true});
-  renderer.setSize(800, 600);
+  renderer.setSize(400, 400);
      
   container.appendChild(renderer.domElement);
 
