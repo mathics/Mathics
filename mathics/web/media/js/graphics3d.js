@@ -23,7 +23,7 @@ function drawGraphics3D(container, data) {
     
   renderer = new THREE.WebGLRenderer({antialias: true});
   renderer.setSize(400, 400);
-     
+
   container.appendChild(renderer.domElement);
 
   scene = new THREE.Scene();
