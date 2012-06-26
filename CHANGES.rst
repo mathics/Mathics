@@ -18,7 +18,6 @@ CHANGES
 
 - resolved several issues
 
-
 0.1 (alpha-only)
 ----------------
 
