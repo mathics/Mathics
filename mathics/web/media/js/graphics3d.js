@@ -4,16 +4,16 @@ function drawGraphics3D(container, data) {
   // {"elements": [{"coords": [[[1.0, 0.0, 0.0], null], [[1.0, 1.0, 1.0], null], [[0.0, 0.0, 1.0], null]], "type": "polygon", "faceColor": [0, 0, 0, 1]}], "axes": {}, "extent": {"zmax": 1.0, "ymax": 1.0, "zmin": 0.0, "xmax": 1.0, "xmin": 0.0, "ymin": 0.0}}
   // The nulls are the "scaled" parts of coordinates that
   // depend on the size of the final graphics (see Mathematica's Scaled). 
-    
+
   // TODO: update the size of the container dynamically
   // (we also need some mechanism to update the enclosing <mspace>).
-    
+
   // TODO: create axes using the (yet to be generated) information in data.axes.
-  
+
   // TODO: colors, lighting/shading, handling of VertexNormals.
-    
+
   // We just create a sample plot for now.
-    
+
   var camera, scene, renderer, light, axes, tmpx, tmpy, tmpz,
     uplane, lplane, gplane, light, axes,
     isMouseDown = false, onMouseDownPosition, radius = 2,
@@ -93,7 +93,7 @@ function drawGraphics3D(container, data) {
   function render() {
     renderer.render( scene, camera );
   };
-    
+
   // Automatic Rescaling
   function ScaleInView() { 
     camera.left = 0.0;
@@ -140,7 +140,7 @@ function drawGraphics3D(container, data) {
      onMouseDownPosition.x = event.clientX;
      onMouseDownPosition.y = event.clientY;
   }
-    
+
   function onDocumentMouseMove(event) {
     event.preventDefault();
 
@@ -159,7 +159,7 @@ function drawGraphics3D(container, data) {
       render();
      }
   }
-    
+
   function onDocumentMouseUp(event) {
     event.preventDefault();
 
@@ -171,7 +171,7 @@ function drawGraphics3D(container, data) {
     ScaleInView();
     render();
   }
-    
+
   function onDocumentMouseWheel( event ) {
     if (event.wheelDeltaY > 0) {
       camera.left += 0.1;
@@ -192,7 +192,7 @@ function drawGraphics3D(container, data) {
         camera.bottom = 0.1;
     }
     camera.updateProjectionMatrix();
-        
+
     render();
   }
 
@@ -202,7 +202,7 @@ function drawGraphics3D(container, data) {
   container.addEventListener('mouseup', onDocumentMouseUp, false);
   container.addEventListener('mousewheel', onDocumentMouseWheel, false);
   onMouseDownPosition = new THREE.Vector2();
-     
+
   ScaleInView();
   render();
 }
