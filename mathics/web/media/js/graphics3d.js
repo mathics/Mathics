@@ -14,9 +14,9 @@ function drawGraphics3D(container, data) {
 
   // We just create a sample plot for now.
 
-  var camera, scene, renderer, light, axes, tmpx, tmpy, tmpz,
-    uplane, lplane, gplane, light, axes,
+  var camera, scene, renderer, axes, mesh, plane,
     isMouseDown = false, onMouseDownPosition, radius = 2,
+    tmpx, tmpy, tmpz, 
     theta = 45, onMouseDownTheta = 45, phi = 60, onMouseDownPhi = 60;
 
   var numx = 25, numz = 25;
@@ -44,28 +44,8 @@ function drawGraphics3D(container, data) {
   camera.lookAt(scene.position);
   scene.add(camera);
 
-
-  // Lighting
-  light = new THREE.PointLight(0xFFFFFF);
-  light.position.set(0.0, 1.0, 0.0);
-  scene.add(light);
-
-  // Plot Surfaces
-  uplane = new THREE.Mesh(        // Upper Surface
-    new THREE.PlaneGeometry(1, 1, numx, numz),
-    new THREE.MeshLambertMaterial({color: 0xCC0000})
-  );
-
-  lplane = new THREE.Mesh(        // Lower Surface
-    new THREE.PlaneGeometry(1, 1, numx, numz),
-    new THREE.MeshLambertMaterial({color: 0x0000CC})
-  );
-  lplane.flipSided = true;
-
-  gplane = new THREE.Mesh(        // Grid Lines
-    new THREE.PlaneGeometry(1, 1, numx, numz),
-    new THREE.MeshLambertMaterial({color: 0x000000, wireframe: true})
-  );
+  // Plot Surface
+  plane = new THREE.PlaneGeometry(1, 1, numx, numz);
 
   var xi, zi;
 
@@ -75,22 +55,21 @@ function drawGraphics3D(container, data) {
       tmpz = -0.5 + zi / numz;
       tmpy = (tmpx * tmpz) / (tmpx * tmpx + tmpz * tmpz + 0.2);
 
-      uplane.geometry.vertices[(numz + 1)*zi + xi].x = tmpx;
-      uplane.geometry.vertices[(numz + 1)*zi + xi].z = tmpz;
-      uplane.geometry.vertices[(numz + 1)*zi + xi].y = tmpy;
-
-      lplane.geometry.vertices[(numz + 1)*zi + xi].x = tmpx;
-      lplane.geometry.vertices[(numz + 1)*zi + xi].z = tmpz;
-      lplane.geometry.vertices[(numz + 1)*zi + xi].y = tmpy;
-
-      gplane.geometry.vertices[(numz + 1)*zi + xi].x = tmpx;
-      gplane.geometry.vertices[(numz + 1)*zi + xi].z = tmpz;
-      gplane.geometry.vertices[(numz + 1)*zi + xi].y = tmpy;
+      plane.vertices[(numz + 1)*zi + xi].x = tmpx;
+      plane.vertices[(numz + 1)*zi + xi].z = tmpz;
+      plane.vertices[(numz + 1)*zi + xi].y = tmpy;
     }
   }
-  scene.add(uplane);
-  scene.add(lplane);
-  scene.add(gplane);
+  plane.computeFaceNormals();
+
+  var materials = new Array(
+    new THREE.MeshNormalMaterial( { overdraw: true } ),
+    new THREE.MeshLambertMaterial({color: 0x000000, wireframe: true})
+  );
+
+  mesh = new THREE.SceneUtils.createMultiMaterialObject( plane, materials );
+  mesh.children[0].doubleSided = true;
+  scene.add(mesh);
 
   // Axes
   axes = new THREE.Mesh(
