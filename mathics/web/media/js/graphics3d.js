@@ -30,11 +30,22 @@ function drawGraphics3D(container, data) {
 
   // Camera
   camera = new THREE.OrthographicCamera(-0.65, 0.65, 0.65, -0.65, 1, 10);
+
+  /*
+  camera = new THREE.PerspectiveCamera(
+    35,             // Field of view
+    800 / 600,      // Aspect ratio
+    0.1,            // Near plane
+    10000           // Far plane
+  );
+  */
+
   camera.position.x = radius * Math.sin(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
   camera.position.y = radius * Math.sin(phi * Math.PI / 360);
   camera.position.z = radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
   camera.lookAt(scene.position);
   scene.add(camera);
+
 
   // Lighting
   light = new THREE.PointLight(0xFFFFFF);
@@ -96,10 +107,14 @@ function drawGraphics3D(container, data) {
 
   // Automatic Rescaling
   function ScaleInView() { 
-    camera.left = 0.0;
-    camera.right = 0.0;
-    camera.bottom = 0.0;
-    camera.top = 0.0;
+    if (camera instanceof THREE.OrthographicCamera) {
+      camera.left = 0.0;
+      camera.right = 0.0;
+      camera.bottom = 0.0;
+      camera.top = 0.0;
+    } else if (camera instanceof THREE.PerspectiveCamera) {
+      // TODO
+    }
 
     var tmp_theta, tmp_phi;
 
@@ -115,18 +130,27 @@ function drawGraphics3D(container, data) {
       tmpx = Math.cos(tmp_theta) * Math.sin(tmp_phi)
       tmpy = Math.sin(tmp_theta) * Math.sin(tmp_phi);
 
-      camera.left = Math.min(tmpx, camera.left);
-      camera.right = Math.max(tmpx, camera.right);
-      camera.bottom = Math.min(tmpy, camera.bottom);
-      camera.top = Math.max(tmpy, camera.top);
+      if (camera instanceof THREE.OrthographicCamera) {
+        camera.left = Math.min(tmpx, camera.left);
+        camera.right = Math.max(tmpx, camera.right);
+        camera.bottom = Math.min(tmpy, camera.bottom);
+        camera.top = Math.max(tmpy, camera.top);
+      } else if (camera instanceof THREE.PerspectiveCamera) {
+        // TODO
+      }
     }
 
     // Keep aspect ratio
-    camera.right = Math.max(camera.right, -camera.left, camera.top, -camera.bottom);
-    camera.left = Math.min(-camera.right, camera.left, -camera.top, camera.bottom);
-    camera.top = Math.max(camera.right, -camera.left, camera.top, -camera.bottom);
-    camera.bottom = Math.min(-camera.right, camera.left, -camera.top, camera.bottom);
-    camera.updateProjectionMatrix();
+    if (camera instanceof THREE.OrthographicCamera) {
+      camera.right = Math.max(camera.right, -camera.left, camera.top, -camera.bottom);
+      camera.left = Math.min(-camera.right, camera.left, -camera.top, camera.bottom);
+      camera.top = Math.max(camera.right, -camera.left, camera.top, -camera.bottom);
+      camera.bottom = Math.min(-camera.right, camera.left, -camera.top, camera.bottom);
+      camera.updateProjectionMatrix();
+    } else if (camera instanceof THREE.PerspectiveCamera) {
+      // TODO
+      camera.updateMatrix();
+    }
   }
 
   // Mouse Interactions
@@ -145,8 +169,8 @@ function drawGraphics3D(container, data) {
     event.preventDefault();
 
     if (isMouseDown) {
-      theta = -((event.clientX - onMouseDownPosition.x) * 0.5) + onMouseDownTheta;
-      phi = ((event.clientY - onMouseDownPosition.y) * 0.5 ) + onMouseDownPhi;
+      theta = -(event.clientX - onMouseDownPosition.x) + onMouseDownTheta;
+      phi = (event.clientY - onMouseDownPosition.y) + onMouseDownPhi;
 
       phi = Math.max(Math.min(180, phi),-180);
 
@@ -154,7 +178,12 @@ function drawGraphics3D(container, data) {
       camera.position.y = radius * Math.sin(phi * Math.PI / 360);
       camera.position.z = radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
       camera.lookAt(scene.position);
-      camera.updateProjectionMatrix();
+
+      if (camera instanceof THREE.OrthographicCamera) {
+        camera.updateProjectionMatrix();
+      } else if (camera instanceof THREE.PerspectiveCamera) {
+        camera.updateMatrix();
+      }
 
       render();
      }
@@ -173,26 +202,38 @@ function drawGraphics3D(container, data) {
   }
 
   function onDocumentMouseWheel( event ) {
-    if (event.wheelDeltaY > 0) {
-      camera.left += 0.1;
-      camera.right -= 0.1;
-      camera.bottom += 0.1;
-      camera.top -= 0.1;
-    } else {
-      camera.left -= 0.1;
-      camera.right += 0.1;
-      camera.bottom -= 0.1;
-      camera.top += 0.1;
-    }
+    if (camera instanceof THREE.OrthographicCamera) {
+      if (event.wheelDeltaY > 0) {
+        camera.left += 0.1;
+        camera.right -= 0.1;
+        camera.bottom += 0.1;
+        camera.top -= 0.1;
+      } else {
+        camera.left -= 0.1;
+        camera.right += 0.1;
+        camera.bottom -= 0.1;
+        camera.top += 0.1;
+      }
 
-    if (camera.right < 0 || camera.top < 0) {
+      if (camera.right <= 0 || camera.top <= 0) {
         camera.right = 0.1;
-        camera.left = 0.1;
+        camera.left = -0.1;
         camera.top = 0.1;
-        camera.bottom = 0.1;
+        camera.bottom = -0.1;
+      }
+      camera.updateProjectionMatrix();
+    } else if (camera instanceof THREE.PerspectiveCamera) {
+      if (event.wheelDeltaY > 0) {
+        radius *= 0.9;
+      } else {
+        radius /= 0.9;
+      }
+      camera.position.x = radius * Math.sin(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
+      camera.position.y = radius * Math.sin(phi * Math.PI / 360);
+      camera.position.z = radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
+      camera.lookAt(scene.position);
+      camera.updateMatrix();
     }
-    camera.updateProjectionMatrix();
-
     render();
   }
 
