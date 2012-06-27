@@ -64,11 +64,17 @@ function drawGraphics3D(container, data) {
 
   var materials = new Array(
     new THREE.MeshNormalMaterial( { overdraw: true } ),
-    new THREE.MeshLambertMaterial({color: 0x000000, wireframe: true})
+    new THREE.MeshLambertMaterial( {color: 0x000000, wireframe: true} )
   );
 
   mesh = new THREE.SceneUtils.createMultiMaterialObject( plane, materials );
   mesh.children[0].doubleSided = true;
+
+  // These 3 lines put the grid on the right side of the surface
+  mesh.children[0].material.polygonOffset = true;
+  mesh.children[0].material.polygonOffsetFactor = 1;
+  mesh.children[0].material.polygonOffsetUnits = 1;
+
   scene.add(mesh);
 
   // Axes
