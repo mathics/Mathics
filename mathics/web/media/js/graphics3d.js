@@ -54,7 +54,6 @@ function drawPolygon(prim) {
     center.y += tmpv[1] * (1.0 / prim.coords.length);
     center.z += tmpv[2] * (1.0 / prim.coords.length);
   }
-  console.log(center);
   poly.vertices.push(center);
 
   for (var i = 0; i < prim.coords.length-1; i++) {
@@ -85,40 +84,58 @@ function drawGraphics3D(container, data) {
   // We just create a sample plot for now.
 
   var camera, scene, renderer, axes,
-    isMouseDown = false, onMouseDownPosition, radius = 2,
+    isMouseDown = false, onMouseDownPosition, radius,
     tmpx, tmpy, tmpz, 
     theta = 45, onMouseDownTheta = 45, phi = 60, onMouseDownPhi = 60;
 
-  renderer = new THREE.WebGLRenderer({antialias: true});
-  renderer.setSize(400, 400);
+  var center = new THREE.Vector3(
+    0.5*(data.extent["xmin"] + data.extent["xmax"]),
+    0.5*(data.extent["ymin"] + data.extent["ymax"]), 
+    0.5*(data.extent["zmin"] + data.extent["zmax"]));
 
-  container.appendChild(renderer.domElement);
+  radius = 2*Math.sqrt(
+   Math.pow(data.extent["xmax"]-data.extent["xmin"],2) +
+   Math.pow(data.extent["ymax"]-data.extent["ymin"],2) +
+   Math.pow(data.extent["zmax"]-data.extent["zmin"],2));
 
+  // Scene
   scene = new THREE.Scene();
+  scene.position = center;
 
   // Camera - TODO: Handle Different choices
-  //camera = new THREE.OrthographicCamera(-0.65, 0.65, 0.65, -0.65, 1, 10);
+  /*
+  camera = new THREE.OrthographicCamera(
+    data.extent["xmin"], data.extent["xmax"],
+    data.extent["ymin"], data.extent["ymax"],
+    data.extent["zmin"], data.extent["zmax"]
+  );
+  */
 
   camera = new THREE.PerspectiveCamera(
     35,             // Field of view
     800 / 600,      // Aspect ratio
-    0.1,            // Near plane
-    10000           // Far plane
+    0.1*radius,     // Near plane
+    1000*radius     // Far plane
   );
 
-  camera.position.x = radius * Math.sin(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
-  camera.position.y = radius * Math.sin(phi * Math.PI / 360);
-  camera.position.z = radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
+  camera.position.x = center.x + radius * Math.sin(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
+  camera.position.y = center.y + radius * Math.sin(phi * Math.PI / 360);
+  camera.position.z = center.z + radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
   camera.lookAt(scene.position);
   scene.add(camera);
 
   // Axes
   axes = new THREE.Mesh(
-    new THREE.CubeGeometry(1.0,1.0,1.0),
+    new THREE.CubeGeometry(
+      data.extent["xmax"]-data.extent["xmin"],
+      data.extent["ymax"]-data.extent["ymin"],
+      data.extent["zmax"]-data.extent["zmin"]),
     new THREE.MeshLambertMaterial({color: 0x000000, wireframe: true})
   );
+  axes.position = center;
   scene.add(axes);  
 
+  // Plot the primatives
   for (var indx = 0; indx < data.elements.length; indx++) {
     var type = data.elements[indx].type;
     switch(type) {
@@ -133,6 +150,11 @@ function drawGraphics3D(container, data) {
     }
   }
 
+  // Renderer
+  renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setSize(400, 400);
+  container.appendChild(renderer.domElement);
+
   function render() {
     renderer.render( scene, camera );
   };
@@ -145,7 +167,7 @@ function drawGraphics3D(container, data) {
       camera.bottom = 0.0;
       camera.top = 0.0;
     } else if (camera instanceof THREE.PerspectiveCamera) {
-      camera.fov = 1.0;
+      camera.fov = 0.0;
     }
 
     var tmp_theta, tmp_phi;
@@ -169,9 +191,9 @@ function drawGraphics3D(container, data) {
         camera.top = Math.max(tmpy, camera.top);
       } else if (camera instanceof THREE.PerspectiveCamera) {
 
-        var vec1 = new THREE.Vector3( scene.position.x - camera.position.x, 
-                                      scene.position.y - camera.position.y,
-                                      scene.position.z - camera.position.z
+        var vec1 = new THREE.Vector3( axes.position.x - camera.position.x, 
+                                      axes.position.y - camera.position.y,
+                                      axes.position.z - camera.position.z
         );
         var vec2 = new THREE.Vector3( axes.geometry.vertices[i].x - camera.position.x,
                                       axes.geometry.vertices[i].y - camera.position.y,
@@ -217,9 +239,9 @@ function drawGraphics3D(container, data) {
 
       phi = Math.max(Math.min(180, phi),-180);
 
-      camera.position.x = radius * Math.sin(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
-      camera.position.y = radius * Math.sin(phi * Math.PI / 360);
-      camera.position.z = radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
+      camera.position.x = center.x + radius * Math.sin(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
+      camera.position.y = center.y + radius * Math.sin(phi * Math.PI / 360);
+      camera.position.z = center.z + radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
       camera.lookAt(scene.position);
 
       if (camera instanceof THREE.OrthographicCamera) {
