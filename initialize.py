@@ -14,7 +14,7 @@ def setup():
     if not path.exists(settings.DATA_DIR):
         os.makedirs(settings.DATA_DIR)
     print "Creating database %s" % database_file
-    subprocess.call(['python', 'mathics/manage.py', 'syncdb', '--noinput'])
+    subprocess.call(['python2', 'mathics/manage.py', 'syncdb', '--noinput'])
     os.chmod(database_file, 0766)
     print ""
     print "Mathics initialized successfully."

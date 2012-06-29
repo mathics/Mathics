@@ -19,7 +19,7 @@ function drawGraphics3D(container, data) {
     tmpx, tmpy, tmpz, 
     theta = 45, onMouseDownTheta = 45, phi = 60, onMouseDownPhi = 60;
 
-  var numx = 25, numz = 25;
+  var numx = 20, numz = 20;
     
   renderer = new THREE.WebGLRenderer({antialias: true});
   renderer.setSize(400, 400);
@@ -119,20 +119,19 @@ function drawGraphics3D(container, data) {
         camera.bottom = Math.min(tmpy, camera.bottom);
         camera.top = Math.max(tmpy, camera.top);
       } else if (camera instanceof THREE.PerspectiveCamera) {
-        var vec1 = new THREE.Vector3( camera.position.x - scene.position.x, 
-                                      camera.position.y - scene.position.y,
-                                      camera.position.z - scene.position.z
+
+        var vec1 = new THREE.Vector3( scene.position.x - camera.position.x, 
+                                      scene.position.y - camera.position.y,
+                                      scene.position.z - camera.position.z
         );
         var vec2 = new THREE.Vector3( axes.geometry.vertices[i].x - camera.position.x,
                                       axes.geometry.vertices[i].y - camera.position.y,
                                       axes.geometry.vertices[i].z - camera.position.z
         );
-        var angle = 57.296 * Math.acos((vec1.x*vec2.x + vec1.y*vec2.y + vec1.z*vec2.z) / Math.sqrt(
-          (vec1.x * vec1.x + vec1.y * vec1.y + vec1.z * vec1.z) *
-          (vec2.x * vec2.x + vec2.y * vec2.y + vec2.z * vec2.z))
-        );
 
-        camera.fov = Math.max(camera.fov, 0.3 *angle);
+        var angle = 57.296 * Math.acos(vec1.dot(vec2) / (vec1.length() * vec2.length()));
+        
+        camera.fov = Math.max(camera.fov, 2*angle);
       }
     }
 
