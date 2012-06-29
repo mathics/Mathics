@@ -37,26 +37,35 @@ function drawPlot3D(prim) {
   return mesh;
 }
 
-function drawPolygon(prim) {
-    var mesh, poly, material;
+function drawPolygon(prim) {    
+  //TODO: Handle arbitary polygons. For example, S-shapes, shapes with holes.
 
-    // console.log("drawPolygon");
+  var mesh, poly, material;
 
-    poly = new THREE.Geometry();
-    var center = new THREE.Vector3(0,0,0);
-    poly.vertices.push(center);
+  // console.log("drawPolygon");
 
+  poly = new THREE.Geometry();
+  var center = new THREE.Vector3(0,0,0);
 
-    for (var i = 0; i < prim.coords.length; i++) {
-      var tmpv = prim.coords[i][0];
-      poly.vertices.push(new THREE.Vector3(tmpv[0], tmpv[1], tmpv[2]));
-    }
-    for (var i = 1; i < prim.coords.length-1; i++) {
-      poly.faces.push(new THREE.Face3(0,i,i+1));
-    }
-    mesh = new THREE.Mesh(poly, new THREE.MeshNormalMaterial());
+  for (var i = 0; i < prim.coords.length; i++) {
+    var tmpv = prim.coords[i][0];
+    poly.vertices.push(new THREE.Vector3(tmpv[0], tmpv[1], tmpv[2]));
+    center.x += tmpv[0] * (1.0 / prim.coords.length);
+    center.y += tmpv[1] * (1.0 / prim.coords.length);
+    center.z += tmpv[2] * (1.0 / prim.coords.length);
+  }
+  console.log(center);
+  poly.vertices.push(center);
 
-    return mesh;
+  for (var i = 0; i < prim.coords.length-1; i++) {
+    poly.faces.push(new THREE.Face3(prim.coords.length,i,i+1));
+  }
+  poly.faces.push(new THREE.Face3(prim.coords.length,prim.coords.length-1,0));
+
+  mesh = new THREE.Mesh(poly, new THREE.MeshNormalMaterial());
+  mesh.doubleSided = true;
+
+  return mesh;
 }
 
 function drawGraphics3D(container, data) {
@@ -189,14 +198,14 @@ function drawGraphics3D(container, data) {
 
   // Mouse Interactions
   function onDocumentMouseDown( event ) {
-     event.preventDefault();
+    event.preventDefault();
 
-     isMouseDown = true;
+    isMouseDown = true;
 
-     onMouseDownTheta = theta;
-     onMouseDownPhi = phi;
-     onMouseDownPosition.x = event.clientX;
-     onMouseDownPosition.y = event.clientY;
+    onMouseDownTheta = theta;
+    onMouseDownPhi = phi;
+    onMouseDownPosition.x = event.clientX;
+    onMouseDownPosition.y = event.clientY;
   }
 
   function onDocumentMouseMove(event) {
