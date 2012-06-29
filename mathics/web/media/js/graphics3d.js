@@ -1,50 +1,9 @@
-function drawGraphics3D(container, data) {
-  // TODO: use the actual graphic given by data.
-  // data is decoded JSON data such as
-  // {"elements": [{"coords": [[[1.0, 0.0, 0.0], null], [[1.0, 1.0, 1.0], null], [[0.0, 0.0, 1.0], null]], "type": "polygon", "faceColor": [0, 0, 0, 1]}], "axes": {}, "extent": {"zmax": 1.0, "ymax": 1.0, "zmin": 0.0, "xmax": 1.0, "xmin": 0.0, "ymin": 0.0}}
-  // The nulls are the "scaled" parts of coordinates that
-  // depend on the size of the final graphics (see Mathematica's Scaled). 
-
-  // TODO: update the size of the container dynamically
-  // (we also need some mechanism to update the enclosing <mspace>).
-
-  // TODO: create axes using the (yet to be generated) information in data.axes.
-
-  // TODO: colors, lighting/shading, handling of VertexNormals.
-
-  // We just create a sample plot for now.
-
-  var camera, scene, renderer, axes, mesh, plane,
-    isMouseDown = false, onMouseDownPosition, radius = 2,
-    tmpx, tmpy, tmpz, 
-    theta = 45, onMouseDownTheta = 45, phi = 60, onMouseDownPhi = 60;
-
+function drawPlot3D(prim) {
+  var mesh, plane, materials;
   var numx = 20, numz = 20;
+
+  // console.log("drawPlot3D");
     
-  renderer = new THREE.WebGLRenderer({antialias: true});
-  renderer.setSize(400, 400);
-
-  container.appendChild(renderer.domElement);
-
-  scene = new THREE.Scene();
-
-  // Camera
-  //camera = new THREE.OrthographicCamera(-0.65, 0.65, 0.65, -0.65, 1, 10);
-
-  camera = new THREE.PerspectiveCamera(
-    35,             // Field of view
-    800 / 600,      // Aspect ratio
-    0.1,            // Near plane
-    10000           // Far plane
-  );
-
-  camera.position.x = radius * Math.sin(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
-  camera.position.y = radius * Math.sin(phi * Math.PI / 360);
-  camera.position.z = radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
-  camera.lookAt(scene.position);
-  scene.add(camera);
-
-  // Plot Surface
   plane = new THREE.PlaneGeometry(1, 1, numx, numz);
 
   var xi, zi;
@@ -62,12 +21,12 @@ function drawGraphics3D(container, data) {
   }
   plane.computeFaceNormals();
 
-  var materials = new Array(
+  materials = new Array(
     new THREE.MeshNormalMaterial( { overdraw: true } ),
     new THREE.MeshLambertMaterial( {color: 0x000000, wireframe: true} )
   );
 
-  mesh = new THREE.SceneUtils.createMultiMaterialObject( plane, materials );
+  mesh = new THREE.SceneUtils.createMultiMaterialObject(plane, materials);
   mesh.children[0].doubleSided = true;
 
   // These 3 lines put the grid on the right side of the surface
@@ -75,7 +34,74 @@ function drawGraphics3D(container, data) {
   mesh.children[0].material.polygonOffsetFactor = 1;
   mesh.children[0].material.polygonOffsetUnits = 1;
 
-  scene.add(mesh);
+  return mesh;
+}
+
+function drawPolygon(prim) {
+    var mesh, poly, material;
+
+    // console.log("drawPolygon");
+
+    poly = new THREE.Geometry();
+    var center = new THREE.Vector3(0,0,0);
+    poly.vertices.push(center);
+
+
+    for (var i = 0; i < prim.coords.length; i++) {
+      var tmpv = prim.coords[i][0];
+      poly.vertices.push(new THREE.Vector3(tmpv[0], tmpv[1], tmpv[2]));
+    }
+    for (var i = 1; i < prim.coords.length-1; i++) {
+      poly.faces.push(new THREE.Face3(0,i,i+1));
+    }
+    mesh = new THREE.Mesh(poly, new THREE.MeshNormalMaterial());
+
+    return mesh;
+}
+
+function drawGraphics3D(container, data) {
+  // TODO: use the actual graphic given by data.
+  // data is decoded JSON data such as
+  // {"elements": [{"coords": [[[1.0, 0.0, 0.0], null], [[1.0, 1.0, 1.0], null], [[0.0, 0.0, 1.0], null]], "type": "polygon", "faceColor": [0, 0, 0, 1]}], "axes": {}, "extent": {"zmax": 1.0, "ymax": 1.0, "zmin": 0.0, "xmax": 1.0, "xmin": 0.0, "ymin": 0.0}}
+  // The nulls are the "scaled" parts of coordinates that
+  // depend on the size of the final graphics (see Mathematica's Scaled). 
+
+  // TODO: update the size of the container dynamically
+  // (we also need some mechanism to update the enclosing <mspace>).
+
+  // TODO: create axes using the (yet to be generated) information in data.axes.
+
+  // TODO: colors, lighting/shading, handling of VertexNormals.
+
+  // We just create a sample plot for now.
+
+  var camera, scene, renderer, axes,
+    isMouseDown = false, onMouseDownPosition, radius = 2,
+    tmpx, tmpy, tmpz, 
+    theta = 45, onMouseDownTheta = 45, phi = 60, onMouseDownPhi = 60;
+
+  renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setSize(400, 400);
+
+  container.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+
+  // Camera - TODO: Handle Different choices
+  //camera = new THREE.OrthographicCamera(-0.65, 0.65, 0.65, -0.65, 1, 10);
+
+  camera = new THREE.PerspectiveCamera(
+    35,             // Field of view
+    800 / 600,      // Aspect ratio
+    0.1,            // Near plane
+    10000           // Far plane
+  );
+
+  camera.position.x = radius * Math.sin(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
+  camera.position.y = radius * Math.sin(phi * Math.PI / 360);
+  camera.position.z = radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
+  camera.lookAt(scene.position);
+  scene.add(camera);
 
   // Axes
   axes = new THREE.Mesh(
@@ -83,6 +109,20 @@ function drawGraphics3D(container, data) {
     new THREE.MeshLambertMaterial({color: 0x000000, wireframe: true})
   );
   scene.add(axes);  
+
+  for (var indx = 0; indx < data.elements.length; indx++) {
+    var type = data.elements[indx].type;
+    switch(type) {
+      case "polygon":
+        scene.add(drawPolygon(data.elements[indx]));
+        break;
+      case "plot3d":
+        scene.add(drawPlot3D(data.elements[indx]));
+        break;
+      default:
+        alert("Error: Unknown type passed to drawGraphics3D");
+    }
+  }
 
   function render() {
     renderer.render( scene, camera );
@@ -237,3 +277,4 @@ function drawGraphics3D(container, data) {
   ScaleInView();
   render();
 }
+
