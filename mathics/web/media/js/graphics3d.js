@@ -1,4 +1,6 @@
 function drawPlot3D(prim) {
+  // We just create a sample plot for now.
+
   var mesh, plane, materials;
   var numx = 20, numz = 20;
 
@@ -81,8 +83,6 @@ function drawGraphics3D(container, data) {
 
   // TODO: colors, lighting/shading, handling of VertexNormals.
 
-  // We just create a sample plot for now.
-
   var camera, scene, renderer, axes,
     isMouseDown = false, onMouseDownPosition, radius,
     tmpx, tmpy, tmpz, 
@@ -107,7 +107,7 @@ function drawGraphics3D(container, data) {
   camera = new THREE.OrthographicCamera(
     data.extent["xmin"], data.extent["xmax"],
     data.extent["ymin"], data.extent["ymax"],
-    data.extent["zmin"], data.extent["zmax"]
+    0.1, 2*radius
   );
   */
 
@@ -159,61 +159,28 @@ function drawGraphics3D(container, data) {
     renderer.render( scene, camera );
   };
 
-  // Automatic Rescaling
-  function ScaleInView() { 
-    if (camera instanceof THREE.OrthographicCamera) {
-      camera.left = 0.0;
-      camera.right = 0.0;
-      camera.bottom = 0.0;
-      camera.top = 0.0;
-    } else if (camera instanceof THREE.PerspectiveCamera) {
+  function toScreenXY(position, camera) {
+    var pos = position.clone();
+    var projScreenMat = new THREE.Matrix4();
+    projScreenMat.multiply(camera.projectionMatrix, camera.matrixWorldInverse);
+    projScreenMat.multiplyVector3(pos);
+
+    return pos;
+  }
+
+  function ScaleInView() {
+    if (camera instanceof THREE.PerspectiveCamera) 
       camera.fov = 0.0;
-    }
 
-    var tmp_theta, tmp_phi;
-
-    for (i=0; i<=7; i++) { // Check each index and adjust camera bounds
-      tmp_theta = 0.25*Math.PI*(2.*i + 1) - theta * Math.PI / 360;
-
-      if (i <= 3) {
-        tmp_phi = 0.25*Math.PI - phi * Math.PI / 360;
-      } else {
-        tmp_phi = -0.25*Math.PI - phi * Math.PI / 360;
-      }
-
-      tmpx = Math.cos(tmp_theta) * Math.sin(tmp_phi)
-      tmpy = Math.sin(tmp_theta) * Math.sin(tmp_phi);
+    for (var i=0; i<8; i++) {
+      proj2d = toScreenXY(axes.geometry.vertices[i],camera);
 
       if (camera instanceof THREE.OrthographicCamera) {
-        camera.left = Math.min(tmpx, camera.left);
-        camera.right = Math.max(tmpx, camera.right);
-        camera.bottom = Math.min(tmpy, camera.bottom);
-        camera.top = Math.max(tmpy, camera.top);
+        //
       } else if (camera instanceof THREE.PerspectiveCamera) {
-
-        var vec1 = new THREE.Vector3( axes.position.x - camera.position.x, 
-                                      axes.position.y - camera.position.y,
-                                      axes.position.z - camera.position.z
-        );
-        var vec2 = new THREE.Vector3( axes.geometry.vertices[i].x - camera.position.x,
-                                      axes.geometry.vertices[i].y - camera.position.y,
-                                      axes.geometry.vertices[i].z - camera.position.z
-        );
-
-        var angle = 57.296 * Math.acos(vec1.dot(vec2) / (vec1.length() * vec2.length()));
-        
-        camera.fov = Math.max(camera.fov, 2*angle);
+        angle = 57.296 * Math.max(Math.atan(proj2d.x/proj2d.z), Math.atan(proj2d.y/proj2d.z));
+        camera.fov = Math.max(camera.fov,0.7*angle);
       }
-    }
-
-    // Keep aspect ratio
-    if (camera instanceof THREE.OrthographicCamera) {
-      camera.right = Math.max(camera.right, -camera.left, camera.top, -camera.bottom);
-      camera.left = Math.min(-camera.right, camera.left, -camera.top, camera.bottom);
-      camera.top = Math.max(camera.right, -camera.left, camera.top, -camera.bottom);
-      camera.bottom = Math.min(-camera.right, camera.left, -camera.top, camera.bottom);
-    } else if (camera instanceof THREE.PerspectiveCamera) {
-      camera.fov += 1.0;
     }
     camera.updateProjectionMatrix();
   }
