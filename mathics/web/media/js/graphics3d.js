@@ -40,8 +40,6 @@ function drawPlot3D(prim) {
 }
 
 function drawPolygon(prim) {    
-  //TODO: Handle arbitary polygons. For example, S-shapes, shapes with holes.
-
   var mesh, polypath, polyshape, material;
 
   // console.log("drawPolygon");
@@ -94,21 +92,14 @@ function drawPolygon(prim) {
   polypath.lineTo(polypath.curves[0].v1.x, polypath.curves[0].v1.y); // Close the curve
 
   polyshape = polypath.toShapes();
-
-  console.log(polyshape);
-
-  polygeom = new THREE.ExtrudeGeometry(polyshape, {amount:0.1});
-
-  for (var i=0; i < polygeom.vertices.length; i++) {
-      polygeom.vertices[i].z = 0.0;
-  }
+  polygeom = new THREE.ExtrudeGeometry(polyshape, {amount:0.0, steps:0, bevelEnabled: false});
 
   // Undo the Linear Transformation
   var Li = new THREE.Matrix4();
   Li.getInverse(L);
 
   for (var i=0; i < polygeom.vertices.length; i++) {
-      tmpv = new THREE.Vector4(polygeom.vertices.x, polygeom.vertices.y, polygeom.vertices.z, 1.0);
+      tmpv = new THREE.Vector4(polygeom.vertices.x, polygeom.vertices.y, 0.0, 1.0);
       Li.multiplyVector4(tmpv);
       polygeom.vertices.x = tmpv.x
       polygeom.vertices.y = tmpv.y;
@@ -116,7 +107,6 @@ function drawPolygon(prim) {
   }
 
   mesh = new THREE.Mesh(polygeom, new THREE.MeshBasicMaterial({color: 0x000000}));
-
   return mesh;
 }
 
