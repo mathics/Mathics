@@ -362,7 +362,96 @@ class Plot(Builtin):
                 #TODO handle non-default AspectRatio
         
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
+
+def apply_3d(self, plot_type, f, x, xstart, xstop, y, ystart, ystop, evaluation, options):
+    """Applies the function across a range of x and y values, returning a list of triangles"""
+    if plot_type not in ['DensityPlot', 'Plot3D']:
+        return
+
+    x_name = x.get_name()
+    y_name = y.get_name()
+
+    try:
+        xstart, xstop, ystart, ystop = [value.to_number(n_evaluation=evaluation) for value in
+            (xstart, xstop, ystart, ystop)]
+    except NumberError, exc:
+        expr = Expression(plot_type, functions, Expression('List', x, xstart, xstop),
+            Expression('List', y, ystart, ystop), *options_to_rules(options))
+        evaluation.message(plot_type, 'plln', exc.value, expr)
+        return
+
+    if ystart >= ystop:
+        evaluation.message(plot_type, 'plln', ystop, expr)
+        return
+
+    if xstart >= xstop:
+        evaluation.message(plot_type, 'plln', xstop, expr)
+        return
+
+    stored = {}
+    def eval_f(x_value, y_value):
+        value = stored.get((x_value, y_value), False)
+        if value == False:
+            value = quiet_evaluate(f, {x: Real(x_value), y: Real(y_value)}, evaluation)
+            #value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation)
+            #value = chop(value).get_real_value()
+            if value is not None:
+                value = float(value)
+            stored[(x_value, y_value)] = value
+        return value
+
+    v_borders = [None, None] 
+
+    triangles = []
+
+    eps = 0.01
+
+    def triangle(x1, y1, x2, y2, x3, y3, depth=None):
+        if depth is None:
+            x1, x2, x3 = [xstart + value * (xstop - xstart) for value in (x1, x2, x3)]
+            y1, y2, y3 = [ystart + value * (ystop - ystart) for value in (y1, y2, y3)]
+            depth = 0
+        v1, v2, v3 = eval_f(x1, y1), eval_f(x2, y2), eval_f(x3, y3)
+        for v in (v1, v2, v3):
+            if v is not None:
+                if v_borders[0] is None or v < v_borders[0]:
+                    v_borders[0] = v
+                if v_borders[1] is None or v > v_borders[1]:
+                    v_borders[1] = v
+        if v1 is None or v2 is None or v3 is None:
+            return
+        limit = (v_borders[1] - v_borders[0]) * eps
+        if depth < 2:
+            if abs(v1 - v2) > limit:
+                triangle(x1, y1, x3, y3, (x1+x2)/2, (y1+y2)/2, depth+1)
+                triangle(x2, y2, x3, y3, (x1+x2)/2, (y1+y2)/2, depth+1)
+                return
+            if abs(v2 - v3) > limit:
+                triangle(x1, y1, x2, y2, (x2+x3)/2, (y2+y3)/2, depth+1)
+                triangle(x1, y1, x3, y3, (x2+x3)/2, (y2+y3)/2, depth+1)
+                return
+            if abs(v1 - v3) > limit:
+                triangle(x2, y2, x1, y1, (x1+x3)/2, (y1+y3)/2, depth+1)
+                triangle(x2, y2, x3, y3, (x1+x3)/2, (y1+y3)/2, depth+1)
+                return
+        triangles.append([(x1, y1, v1), (x2, y2, v2), (x3, y3, v3)])
+
+    points = 7
+    num = points * 1.0
+    for xi in range(points):
+        for yi in range(points):
+            triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, (xi+1)/num, yi/num)
+            triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, xi/num, (yi+1)/num)
     
+    v_min = v_max = None
+          
+    for t in triangles:
+        for tx, ty, v in t:
+            if v_min is None or v < v_min:
+                v_min = v
+            if v_max is None or v > v_max:
+                v_max = v
+    return triangles, v_min, v_max
 
 class Plot3D(Builtin):
     """
@@ -391,88 +480,13 @@ class Plot3D(Builtin):
 
     def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
         'Plot3D[functions_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[Plot3D]]'
-
-        expr = Expression('Plot', functions, Expression('List', x, xstart, xstop), 
-            Expression('List', y, ystart, ystop), *options_to_rules(options))
-
         if functions.has_form('List', None):
             functions = functions.leaves
         else:
             functions = [functions]
-        x_name = x.get_name()
-        y_name = y.get_name()
 
-        try:
-            xstart = xstart.to_number(n_evaluation=evaluation)
-        except NumberError:
-            evaluation.message('Plot3D', 'plln', xstart, expr)
-            return
-        try:
-            xstop = xstop.to_number(n_evaluation=evaluation)
-        except NumberError:
-            evaluation.message('Plot3D', 'plln', xstop, expr)
-            return
-
-        try:
-            ystart = ystart.to_number(n_evaluation=evaluation)
-        except NumberError:
-            evaluation.message('Plot3D', 'plln', ystart, expr)
-            return
-        try:
-            ystop = ystop.to_number(n_evaluation=evaluation)
-        except NumberError:
-            evaluation.message('Plot3D', 'plln', ystop, expr)
-            return
-        
-        if ystart >= ystop:
-            evaluation.message('Plot3D', 'plln', ystop, expr)
-            return
-
-        if xstart >= xstop:
-            evaluation.message('Plot3D', 'plln', xstop, expr)
-            return
-        print "Initialized"
-
-        def eval_f(f, x_value, y_value):
-            value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation)
-            value = chop(value).get_real_value()
-            return value
-
-        graphics = []           # list of resulting graphics primitives
         for index, f in enumerate(functions):
-            # Linear Sampling
-            points = []
-            continuous = False
-            steps = 17
-            dx = (xstop - xstart) / steps
-            dy = (ystop - ystart) / steps
-            for xi in range(steps + 1):
-                x_value = xstart + xi * dx
-                for yi in range(steps +1):
-                    y_value = ystart + yi * dy
-                    z = eval_f(f, x_value, y_value)
-                    if z is not None:
-                        point = (x_value, y_value, z)
-                        if continuous:
-                            points[-1].append(point)
-                        else:
-                            points.append([point])
-                        continuous = True
-                    else:
-                        continuous = False
-            
-            zstart = -1
-            zstop = 1
-
-            xscale = 1. / (xstop - xstart)
-            yscale = 1. / (ystop - ystart)
-            zscale = 1. / (zstop - zstart)
-
-            #TODO Adaptive sampling
-
-        print "Return"
-        return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
-
+            triangles, v_min, v_max = apply_3d(self, 'Plot3D', f, x, xstart, xstop, y, ystart, ystop, evaluation, options)
 
 class DensityPlot(Builtin):
     """
@@ -503,12 +517,11 @@ class DensityPlot(Builtin):
         'ColorFunctionScaling': 'True',
     })
     
-    def apply(self, f, x, xstart, xstop, y, ystart, ystop, evaluation, options):
-        'DensityPlot[f_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[DensityPlot]]'
-        
-        x = x.get_name()
-        y = y.get_name()
-        
+    def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
+        'DensityPlot[functions_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[DensityPlot]]'
+        expr = Expression('Plot', functions, Expression('List', x, xstart, xstop), 
+            Expression('List', y, ystart, ystop), *options_to_rules(options))
+
         color_function = self.get_option(options, 'ColorFunction', evaluation, pop=True)
         color_function_scaling = self.get_option(options, 'ColorFunctionScaling', evaluation, pop=True)
         
@@ -522,7 +535,7 @@ class DensityPlot(Builtin):
                 color_function_max = func.leaves[2].leaves[1].get_real_value()
                 color_function = Expression('Function', Expression(func.leaves[3], Expression('Slot', 1)))
             else:
-                evaluation.message('DensityPlot', 'color', func)
+                evaluation.message(plot_type, 'color', func)
                 return
         if color_function.has_form('ColorDataFunction', 4):
             color_function_min = color_function.leaves[2].leaves[0].get_real_value()
@@ -530,82 +543,11 @@ class DensityPlot(Builtin):
             
         color_function_scaling = color_function_scaling.is_true()
             
-        try:
-            xstart, xstop, ystart, ystop = [value.to_number(n_evaluation=evaluation) for value in
-                (xstart, xstop, ystart, ystop)]
-        except NumberError, exc:
-            expr = Expression('DensityPlot', f, Expression('List', x, xstart, xstop),
-                Expression('List', y, ystart, ystop), *options_to_rules(options))
-            evaluation.message('DensityPlot', 'plln', exc.value, expr)
-            return
-        
-        stored = {}
-        def eval_f(x_value, y_value):
-            value = stored.get((x_value, y_value), False)
-            if value == False:
-                value = quiet_evaluate(f, {x: Real(x_value), y: Real(y_value)}, evaluation)
-                #value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation)
-                #value = chop(value).get_real_value()
-                if value is not None:
-                    value = float(value)
-                stored[(x_value, y_value)] = value
-            return value
-        
-        v_borders = [None, None] 
-        
-        triangles = []
-        
-        eps = 0.01
-        
-        def triangle(x1, y1, x2, y2, x3, y3, depth=None):
-            if depth is None:
-                x1, x2, x3 = [xstart + value * (xstop - xstart) for value in (x1, x2, x3)]
-                y1, y2, y3 = [ystart + value * (ystop - ystart) for value in (y1, y2, y3)]
-                depth = 0
-            v1, v2, v3 = eval_f(x1, y1), eval_f(x2, y2), eval_f(x3, y3)
-            for v in (v1, v2, v3):
-                if v is not None:
-                    if v_borders[0] is None or v < v_borders[0]:
-                        v_borders[0] = v
-                    if v_borders[1] is None or v > v_borders[1]:
-                        v_borders[1] = v
-            if v1 is None or v2 is None or v3 is None:
-                return
-            limit = (v_borders[1] - v_borders[0]) * eps
-            if depth < 2:
-                if abs(v1 - v2) > limit:
-                    triangle(x1, y1, x3, y3, (x1+x2)/2, (y1+y2)/2, depth+1)
-                    triangle(x2, y2, x3, y3, (x1+x2)/2, (y1+y2)/2, depth+1)
-                    return
-                if abs(v2 - v3) > limit:
-                    triangle(x1, y1, x2, y2, (x2+x3)/2, (y2+y3)/2, depth+1)
-                    triangle(x1, y1, x3, y3, (x2+x3)/2, (y2+y3)/2, depth+1)
-                    return
-                if abs(v1 - v3) > limit:
-                    triangle(x2, y2, x1, y1, (x1+x3)/2, (y1+y3)/2, depth+1)
-                    triangle(x2, y2, x3, y3, (x1+x3)/2, (y1+y3)/2, depth+1)
-                    return
-            triangles.append([(x1, y1, v1), (x2, y2, v2), (x3, y3, v3)])
-        
-        points = 7
-        num = points * 1.0
-        for xi in range(points):
-            for yi in range(points):
-                triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, (xi+1)/num, yi/num)
-                triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, xi/num, (yi+1)/num)
-        
-        v_min = v_max = None
-              
-        for t in triangles:
-            for tx, ty, v in t:
-                if v_min is None or v < v_min:
-                    v_min = v
-                if v_max is None or v > v_max:
-                    v_max = v
+        triangles, v_min, v_max = apply_3d(self, 'DensityPlot', functions, x, xstart, xstop, y, ystart, ystop, evaluation, options)
         v_range = v_max - v_min
         if v_range == 0:
             v_range = 1
-                
+
         if color_function.has_form('ColorDataFunction', 4):
             color_func = color_function.leaves[3]
         else:
@@ -627,7 +569,7 @@ class DensityPlot(Builtin):
                 value = value.evaluate(evaluation)
                 colors[v_lookup] = value
             return value
-        
+
         points = []
         vertex_colors = []
         for p1, p2, p3 in triangles:
@@ -640,3 +582,4 @@ class DensityPlot(Builtin):
             Expression('Rule', Symbol('VertexColors'), Expression('List', *vertex_colors)))
         result = Expression('Graphics', polygon, *options_to_rules(options))
         return result
+
