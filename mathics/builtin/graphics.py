@@ -598,7 +598,7 @@ class PolygonBox(_Polyline):
             if not value.has_form('List', None):
                 raise BoxConstructError
             black = RGBColor(components=[0,0,0,1])
-            vertex_colors = [[black] * len(line) for line in self.lines]
+            self.vertex_colors = [[black] * len(line) for line in self.lines]
             colors = value.leaves
             if not self.multi_parts:
                 colors = [Expression('List', *colors)]
@@ -609,7 +609,7 @@ class PolygonBox(_Polyline):
                 if not line_colors.has_form('List', None):
                     continue
                 for index, color in enumerate(line_colors.leaves):
-                    if index >= len(vertex_colors[line_index]):
+                    if index >= len(self.vertex_colors[line_index]):
                         break
                     try:
                         self.vertex_colors[line_index][index] = _Color.create(color)
