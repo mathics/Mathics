@@ -39,8 +39,24 @@ function drawPlot3D(prim) {
   return mesh;
 }
 
+function drawLine(prim) {
+  var mesh, linegeom, tmpvertex;
+
+  // console.log("drawLine");
+
+  linegeom = new THREE.Geometry();
+
+  for (var i = 0; i < prim.coords.length; i++) {
+    tmpvertex = new THREE.Vector3(prim.coords[i][0][0], prim.coords[i][0][1], prim.coords[i][0][2]);
+    linegeom.vertices.push(tmpvertex);
+  }
+
+  mesh = new THREE.Line(linegeom);
+  return(mesh);
+}
+
 function drawPolygon(prim) {    
-  var mesh, polypath, polyshape, material;
+  var mesh, polypath, polyshape, polygeom, material;
 
   // console.log("drawPolygon");
 
@@ -185,6 +201,9 @@ function drawGraphics3D(container, data) {
         break;
       case "plot3d":
         scene.add(drawPlot3D(data.elements[indx]));
+        break;
+      case "line":
+        scene.add(drawLine(data.elements[indx]));
         break;
       default:
         alert("Error: Unknown type passed to drawGraphics3D");

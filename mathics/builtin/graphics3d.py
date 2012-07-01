@@ -6,7 +6,7 @@ Graphics (3D)
 
 from mathics.core.expression import NumberError
 from mathics.builtin.base import BoxConstruct, BoxConstructError
-from graphics import Graphics, GraphicsBox, _GraphicsElements, PolygonBox
+from graphics import Graphics, GraphicsBox, _GraphicsElements, PolygonBox, LineBox
 
 import simplejson as json
 from django.utils.html import escape as escape_html
@@ -246,6 +246,35 @@ class Graphics3DElements(_GraphicsElements):
             result.extend(element.to_json())
         return result
     
+class Line3DBox(LineBox):
+    def init(self, *args, **kwargs):
+        super(Line3DBox, self).init(*args, **kwargs)
+
+    def process_option(self, name, value):
+        super(Line3DBox, self).process_option(name, value)
+
+    def to_json(self):
+        # TODO: account for line widths and style
+        data = []
+        for line in self.lines:
+            data.append({
+                'type': 'line',
+                'coords': [coords.pos() for coords in line],
+            })
+        return data
+
+    def to_asy(self):
+        # TODO
+        return ''
+    
+    def extent(self):
+        result = []
+        for line in self.lines:
+            for c in line:
+                p, d = c.pos()
+                result.append(p)
+        return result
+
 class Polygon3DBox(PolygonBox):
     def init(self, *args, **kwargs):
         self.vertex_normals = None
@@ -287,4 +316,5 @@ class Polygon3DBox(PolygonBox):
     
 GLOBALS3D = {
     'Polygon3DBox': Polygon3DBox,
+    'Line3DBox': Line3DBox,
 }
