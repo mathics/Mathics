@@ -188,8 +188,9 @@ function drawGraphics3D(container, data) {
   );
 
   camera.position.x = center.x + radius * Math.sin(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
-  camera.position.y = center.y + radius * Math.sin(phi * Math.PI / 360);
-  camera.position.z = center.z + radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
+  camera.position.z = center.y + radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
+  camera.position.y = center.z + radius * Math.sin(phi * Math.PI / 360);
+  camera.up = new THREE.Vector3(0,0,1);
   camera.lookAt(scene.position);
   scene.add(camera);
 
@@ -283,14 +284,14 @@ function drawGraphics3D(container, data) {
     event.preventDefault();
 
     if (isMouseDown) {
-      theta = -(event.clientX - onMouseDownPosition.x) + onMouseDownTheta;
+      theta = (event.clientX - onMouseDownPosition.x) + onMouseDownTheta;
       phi = (event.clientY - onMouseDownPosition.y) + onMouseDownPhi;
 
       phi = Math.max(Math.min(180, phi),-180);
 
       camera.position.x = center.x + radius * Math.sin(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
-      camera.position.y = center.y + radius * Math.sin(phi * Math.PI / 360);
-      camera.position.z = center.z + radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
+      camera.position.y = center.y + radius * Math.cos(theta * Math.PI / 360) * Math.cos(phi * Math.PI / 360);
+      camera.position.z = center.z + radius * Math.sin(phi * Math.PI / 360);
       camera.lookAt(scene.position);
 
       if (camera instanceof THREE.OrthographicCamera) {
