@@ -51,7 +51,7 @@ function drawLine(prim) {
     linegeom.vertices.push(tmpvertex);
   }
 
-  mesh = new THREE.Line(linegeom);
+  mesh = new THREE.Line(linegeom, new THREE.LineBasicMaterial({color: 0x000000}));
   return(mesh);
 }
 
@@ -232,21 +232,26 @@ function drawGraphics3D(container, data) {
     if (camera instanceof THREE.OrthographicCamera) {
       //
     } else if (camera instanceof THREE.PerspectiveCamera) {
-      camera.fov = 0.0;
+      var tmp_fov = 0.0;
     }
 
     for (var i=0; i<8; i++) {
-      //console.log(axes.geometry.vertices[i]);
-
       proj2d = toScreenXY(axes.geometry.vertices[i],camera);
 
       if (camera instanceof THREE.OrthographicCamera) {
         //
       } else if (camera instanceof THREE.PerspectiveCamera) {
         angle = 57.296 * Math.max(Math.atan(proj2d.x/proj2d.z), Math.atan(proj2d.y/proj2d.z));
-        camera.fov = Math.max(camera.fov, 0.5*angle);
+        tmp_fov = Math.max(tmp_fov, angle);
       }
     }
+
+    if (camera instanceof THREE.OrthographicCamera) {
+      //
+    } else if (camera instanceof THREE.PerspectiveCamera) {
+      camera.fov = tmp_fov;
+    }
+
     camera.updateProjectionMatrix();
   }
 
