@@ -443,6 +443,16 @@ def apply_3d(self, plot_type, f, x, xstart, xstop, y, ystart, ystop, evaluation,
             triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, (xi+1)/num, yi/num)
             triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, xi/num, (yi+1)/num)
     
+    # Mesh should just be looking up stored values
+    mesh_points = []
+    for xi in range(points+1):
+        xval = xstart + xi/num * (xstop - xstart)
+        mesh_row = []
+        for yi in range(points+1):
+            yval = ystart + yi/num * (ystop - ystart)
+            mesh_row.append((xval, yval, eval_f(xval, yval)))
+        mesh_points.append(mesh_row)
+
     v_min = v_max = None
           
     for t in triangles:
@@ -451,7 +461,7 @@ def apply_3d(self, plot_type, f, x, xstart, xstop, y, ystart, ystop, evaluation,
                 v_min = v
             if v_max is None or v > v_max:
                 v_max = v
-    return triangles, v_min, v_max
+    return triangles, mesh_points, v_min, v_max
 
 class Plot3D(Builtin):
     """
@@ -485,13 +495,24 @@ class Plot3D(Builtin):
         else:
             functions = [functions]
 
-        polygons = []
+        graphics = []
         for index, f in enumerate(functions):
-            triangles, v_min, v_max = apply_3d(self, 'Plot3D', f, x, xstart, xstop, y, ystart, ystop, evaluation, options)
+            triangles, mesh_points, v_min, v_max = apply_3d(self, 'Plot3D', f, x, xstart, xstop, y, ystart, ystop, evaluation, options)
             for p1, p2, p3 in triangles:
-                polygons.append(Expression('Polygon', Expression('List', Expression('List', *p1), Expression('List', *p2), Expression('List', *p3))))
+                graphics.append(Expression('Polygon', Expression('List', Expression('List', *p1), Expression('List', *p2), Expression('List', *p3))))
+            # Add the Grid
+            for xi in range(len(mesh_points)):
+                line = []
+                for yi in range(len(mesh_points[xi])):
+                    line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1], mesh_points[xi][yi][2]))
+                graphics.append(Expression('Line', Expression('List', *line)))
+            for yi in range(len(mesh_points[0])):
+                line = []
+                for xi in range(len(mesh_points)):
+                    line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1], mesh_points[xi][yi][2]))
+                graphics.append(Expression('Line', Expression('List', *line)))
         
-        result = Expression('Graphics3D', Expression('List', *polygons), *options_to_rules(options))
+        result = Expression('Graphics3D', Expression('List', *graphics),  *options_to_rules(options))
         return result
             
 
@@ -550,7 +571,7 @@ class DensityPlot(Builtin):
             
         color_function_scaling = color_function_scaling.is_true()
             
-        triangles, v_min, v_max = apply_3d(self, 'DensityPlot', functions, x, xstart, xstop, y, ystart, ystop, evaluation, options)
+        triangles, mesh_points, v_min, v_max = apply_3d(self, 'DensityPlot', functions, x, xstart, xstop, y, ystart, ystop, evaluation, options)
         v_range = v_max - v_min
         if v_range == 0:
             v_range = 1
