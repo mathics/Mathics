@@ -72,6 +72,7 @@ function drawPolygon(prim) {
     polygeom.vertices.push(p2);
     polygeom.vertices.push(p3);
     polygeom.faces.push(new THREE.Face3(0, 1, 2));
+    polygeom.faces.push(new THREE.Face3(0, 2, 1));
   } else {
      //TODO: Check the 3 points are not colinear
 
