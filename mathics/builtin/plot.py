@@ -485,8 +485,15 @@ class Plot3D(Builtin):
         else:
             functions = [functions]
 
+        polygons = []
         for index, f in enumerate(functions):
             triangles, v_min, v_max = apply_3d(self, 'Plot3D', f, x, xstart, xstop, y, ystart, ystop, evaluation, options)
+            for p1, p2, p3 in triangles:
+                polygons.append(Expression('Polygon', Expression('List', Expression('List', *p1), Expression('List', *p2), Expression('List', *p3))))
+        
+        result = Expression('Graphics3D', Expression('List', *polygons), *options_to_rules(options))
+        return result
+            
 
 class DensityPlot(Builtin):
     """
