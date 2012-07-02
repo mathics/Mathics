@@ -50,6 +50,40 @@ def quiet_evaluate(expr, vars, evaluation):
     value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)
     return chop(value).get_real_value()
 
+def check_plotrange(range):
+    if range in ('Automatic', 'All'):
+        return True
+    if isinstance(range, list) and len(range) == 2:
+        if isinstance(range[0], float) and isinstance(range[1], float):
+            return True
+    return False
+
+def automatic_plot_range(values):
+    """ Calculates mean and standard deviation, throwing away all points 
+    which are more than 'thresh' number of standard deviations away from 
+    the mean. These are then used to find good vmin and vmax values. These 
+    values can then be used to find Automatic Plotrange. """
+    thresh = 2.0
+    values = sorted(values)
+    valavg = sum(values) / len(values)
+    valdev = sqrt(sum([(x - valavg)**2 for x in values]) / (len(values) - 1))
+
+    n1, n2 = 0, len(values) - 1
+    if valdev != 0:
+        for v in values:
+            if abs(v - valavg) / valdev < thresh:
+                break
+            n1 += 1
+        for v in values[::-1]:
+            if abs(v - valavg) / valdev < thresh:
+                break
+            n2 -= 1
+    
+    vrange = values[n2] - values[n1]
+    vmin = values[n1] - 0.05 * vrange    # 5% extra looks nice
+    vmax = values[n2] + 0.05 * vrange
+    return vmin, vmax
+
 class Plot(Builtin):
     """
     <dl>
@@ -91,6 +125,7 @@ class Plot(Builtin):
         'AspectRatio': '1 / GoldenRatio',
         'MaxRecursion': 'Automatic',
         'Mesh': 'None',
+        'PlotRange': 'Automatic',
     })
 
     messages = {
@@ -99,32 +134,6 @@ class Plot(Builtin):
         'invmesh': "Mesh must be one of {None, Full, All}. Using Mesh->None.",
     }
 
-    def automatic_plot_range(self, values):
-        """ Calculates mean and standard deviation, throwing away all points 
-        which are more than 'thresh' number of standard deviations away from 
-        the mean. These are then used to find good ymin and ymax values. These 
-        values can then be used to find Automatic Plotrange. """
-        thresh = 2.0
-        values = sorted(values)
-        valavg = sum(values) / len(values)
-        valdev = sqrt(sum([(x - valavg)**2 for x in values]) / (len(values) - 1))
-
-        n1, n2 = 0, len(values) - 1
-        if valdev != 0:
-            for v in values:
-                if abs(v - valavg) / valdev < thresh:
-                    break
-                n1 += 1
-            for v in values[::-1]:
-                if abs(v - valavg) / valdev < thresh:
-                    break
-                n2 -= 1
-        
-        yrange = values[n2] - values[n1]
-        ymin = values[n1] - 0.05 * yrange    # 5% extra looks nice
-        ymax = values[n2] + 0.05 * yrange
-        return ymin, ymax
-    
     def apply(self, functions, x, start, stop, evaluation, options):
         'Plot[functions_, {x_Symbol, start_, stop_}, OptionsPattern[Plot]]'
         
@@ -149,14 +158,6 @@ class Plot(Builtin):
             evaluation.message('Plot', 'plln', stop, expr)
             return
 
-        # PlotRange Option
-        def check_range(range):
-            if range in ('Automatic', 'All'):
-                return True
-            if isinstance(range, list) and len(range) == 2:
-                if isinstance(range[0], float) and isinstance(range[1], float):
-                    return True
-            return False
         plotrange_option = self.get_option(options, 'PlotRange', evaluation)
         plotrange = plotrange_option.to_python(n_evaluation=evaluation)
         if isinstance(plotrange, float):
@@ -173,7 +174,7 @@ class Plot(Builtin):
                 x_range, y_range = plotrange
             if x_range == 'Full':
                 x_range = [start, stop]
-        if not check_range(x_range) or not check_range(y_range):
+        if not check_plotrange(x_range) or not check_plotrange(y_range):
             evaluation.message('Plot', 'prng', plotrange_option)
             x_range, y_range = [start, stop], 'Automatic'
         # x_range and y_range are now either Automatic, All, or of the form [min, max]
@@ -271,7 +272,7 @@ class Plot(Builtin):
             base_plot_points.extend(base_points)
             
             xscale = 1. / (stop - start)
-            ymin, ymax = self.automatic_plot_range([y for x, y in base_points])
+            ymin, ymax = automatic_plot_range([y for x, y in base_points])
             if ymin != ymax:
                 yscale = 1. / (ymax - ymin)
             else:
@@ -337,7 +338,7 @@ class Plot(Builtin):
             
         def get_plot_range(values, all_values, option):
             if option == 'Automatic':
-                return self.automatic_plot_range(values)
+                return automatic_plot_range(values)
             if option == 'All':
                 if not all_values:
                     return [0, 1]
@@ -489,6 +490,7 @@ class Plot3D(Builtin):
         'Axes': 'False',
         'AspectRatio': '1',
         'Mesh': 'Full',
+        'PlotRange': 'Automatic',
     })
 
     def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
@@ -555,6 +557,7 @@ class DensityPlot(Builtin):
         'ColorFunction': 'Automatic',
         'ColorFunctionScaling': 'True',
         'Mesh': 'None',
+        'PlotRange': 'Automatic',
     })
     
     def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
