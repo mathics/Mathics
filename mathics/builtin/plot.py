@@ -482,11 +482,8 @@ class Plot3D(Builtin):
     options.update({
         'Axes': 'False',
         'AspectRatio': '1',
+        'Mesh': 'Full',
     })
-
-    messages = {
-        #'ilevels' : "`1` s not a valid mesh specification.",
-    }
 
     def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
         'Plot3D[functions_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[Plot3D]]'
@@ -495,22 +492,30 @@ class Plot3D(Builtin):
         else:
             functions = [functions]
 
+        # Mesh Option
+        mesh_option = self.get_option(options, 'Mesh', evaluation)
+        mesh = mesh_option.to_python()
+        if mesh not in ['None', 'Full']:
+            evaluation.message('Mesh', 'ilevels', mesh_option)
+            mesh = 'Full'
+
         graphics = []
         for index, f in enumerate(functions):
             triangles, mesh_points, v_min, v_max = apply_3d(self, 'Plot3D', f, x, xstart, xstop, y, ystart, ystop, evaluation, options)
             for p1, p2, p3 in triangles:
                 graphics.append(Expression('Polygon', Expression('List', Expression('List', *p1), Expression('List', *p2), Expression('List', *p3))))
             # Add the Grid
-            for xi in range(len(mesh_points)):
-                line = []
-                for yi in range(len(mesh_points[xi])):
-                    line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1], mesh_points[xi][yi][2]))
-                graphics.append(Expression('Line', Expression('List', *line)))
-            for yi in range(len(mesh_points[0])):
-                line = []
+            if mesh == 'Full':
                 for xi in range(len(mesh_points)):
-                    line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1], mesh_points[xi][yi][2]))
-                graphics.append(Expression('Line', Expression('List', *line)))
+                    line = []
+                    for yi in range(len(mesh_points[xi])):
+                        line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1], mesh_points[xi][yi][2]))
+                    graphics.append(Expression('Line', Expression('List', *line)))
+                for yi in range(len(mesh_points[0])):
+                    line = []
+                    for xi in range(len(mesh_points)):
+                        line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1], mesh_points[xi][yi][2]))
+                    graphics.append(Expression('Line', Expression('List', *line)))
         
         result = Expression('Graphics3D', Expression('List', *graphics),  *options_to_rules(options))
         return result
@@ -543,12 +548,20 @@ class DensityPlot(Builtin):
         'Frame': 'True',
         'ColorFunction': 'Automatic',
         'ColorFunctionScaling': 'True',
+        'Mesh': 'None',
     })
     
     def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
         'DensityPlot[functions_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[DensityPlot]]'
         expr = Expression('Plot', functions, Expression('List', x, xstart, xstop), 
             Expression('List', y, ystart, ystop), *options_to_rules(options))
+
+        # Mesh Option
+        mesh_option = self.get_option(options, 'Mesh', evaluation)
+        mesh = mesh_option.to_python()
+        if mesh not in ['None', 'Full']:
+            evaluation.message('Mesh', 'ilevels', mesh_option)
+            mesh = 'None'
 
         color_function = self.get_option(options, 'ColorFunction', evaluation, pop=True)
         color_function_scaling = self.get_option(options, 'ColorFunctionScaling', evaluation, pop=True)
@@ -600,14 +613,28 @@ class DensityPlot(Builtin):
 
         points = []
         vertex_colors = []
+        graphics = []
         for p1, p2, p3 in triangles:
             c1, c2, c3 = eval_color(*p1), eval_color(*p2), eval_color(*p3)
             points.append(Expression('List', Expression('List', *p1[:2]), Expression('List', *p2[:2]),
                 Expression('List', *p3[:2])))
             vertex_colors.append(Expression('List', c1, c2, c3))
         
-        polygon = Expression('Polygon', Expression('List', *points),
-            Expression('Rule', Symbol('VertexColors'), Expression('List', *vertex_colors)))
-        result = Expression('Graphics', polygon, *options_to_rules(options))
+        graphics.append(Expression('Polygon', Expression('List', *points),
+            Expression('Rule', Symbol('VertexColors'), Expression('List', *vertex_colors))))
+
+        if mesh == 'Full':
+            for xi in range(len(mesh_points)):
+                line = []
+                for yi in range(len(mesh_points[xi])):
+                    line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1]))
+                graphics.append(Expression('Line', Expression('List', *line)))
+            for yi in range(len(mesh_points[0])):
+                line = []
+                for xi in range(len(mesh_points)):
+                    line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1]))
+                graphics.append(Expression('Line', Expression('List', *line)))
+            
+        result = Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
         return result
 
