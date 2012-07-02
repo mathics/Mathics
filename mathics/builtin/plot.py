@@ -68,6 +68,15 @@ def automatic_plot_range(values):
     valavg = sum(values) / len(values)
     valdev = sqrt(sum([(x - valavg)**2 for x in values]) / (len(values) - 1))
 
+def get_plot_range(values, all_values, option):
+    if option == 'Automatic':
+        return automatic_plot_range(values)
+    if option == 'All':
+        if not all_values:
+            return [0, 1]
+        return min(all_values), max(all_values)
+    return option
+
     n1, n2 = 0, len(values) - 1
     if valdev != 0:
         for v in values:
@@ -336,15 +345,6 @@ class Plot(Builtin):
             if hue > 1: hue -= 1
             if hue < 0: hue += 1
             
-        def get_plot_range(values, all_values, option):
-            if option == 'Automatic':
-                return automatic_plot_range(values)
-            if option == 'All':
-                if not all_values:
-                    return [0, 1]
-                return min(all_values), max(all_values)
-            return option
-        
         x_range = get_plot_range([x for x, y in base_plot_points],
             [x for x, y in plot_points], x_range)
         y_range = get_plot_range([y for x, y in base_plot_points],
@@ -490,7 +490,6 @@ class Plot3D(Builtin):
         'Axes': 'False',
         'AspectRatio': '1',
         'Mesh': 'Full',
-        'PlotRange': 'Automatic',
     })
 
     def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
@@ -557,7 +556,6 @@ class DensityPlot(Builtin):
         'ColorFunction': 'Automatic',
         'ColorFunctionScaling': 'True',
         'Mesh': 'None',
-        'PlotRange': 'Automatic',
     })
     
     def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
