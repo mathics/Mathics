@@ -472,6 +472,12 @@ class Plot3D(Builtin):
 
     >> Plot3D[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}]
      = -Graphics-
+
+    >> Plot3D[x y / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}]
+     = -Graphics-
+
+    >> Plot3D[x / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}, Mesh->None]
+     = -Graphics-
     """
 
     from graphics import Graphics
@@ -519,7 +525,6 @@ class Plot3D(Builtin):
         
         result = Expression('Graphics3D', Expression('List', *graphics),  *options_to_rules(options))
         return result
-            
 
 class DensityPlot(Builtin):
     """
@@ -531,16 +536,17 @@ class DensityPlot(Builtin):
     >> DensityPlot[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}]
      = -Graphics-
      
-    #> DensityPlot[1 / x, {x, 0, 1}, {y, 0, 1}]
+    >> DensityPlot[1 / x, {x, 0, 1}, {y, 0, 1}]
      = -Graphics-
-    #> DensityPlot[Sqrt[x * y], {x, -1, 1}, {y, -1, 1}]
+
+    >> DensityPlot[Sqrt[x * y], {x, -1, 1}, {y, -1, 1}]
      = -Graphics-
     """
 
     from graphics import Graphics
-    
+
     attributes = ('HoldAll',)
-    
+
     options = Graphics.options.copy()
     options.update({
         'Axes': 'False',
@@ -565,7 +571,7 @@ class DensityPlot(Builtin):
 
         color_function = self.get_option(options, 'ColorFunction', evaluation, pop=True)
         color_function_scaling = self.get_option(options, 'ColorFunctionScaling', evaluation, pop=True)
-        
+
         color_function_min = color_function_max = None
         if color_function.get_name() == 'Automatic':
             color_function = String('LakeColors')
@@ -581,9 +587,9 @@ class DensityPlot(Builtin):
         if color_function.has_form('ColorDataFunction', 4):
             color_function_min = color_function.leaves[2].leaves[0].get_real_value()
             color_function_max = color_function.leaves[2].leaves[1].get_real_value()
-            
+
         color_function_scaling = color_function_scaling.is_true()
-            
+
         triangles, mesh_points, v_min, v_max = apply_3d(self, 'DensityPlot', functions, x, xstart, xstop, y, ystart, ystop, evaluation, options)
         v_range = v_max - v_min
         if v_range == 0:
@@ -595,7 +601,7 @@ class DensityPlot(Builtin):
             color_func = color_function
         if color_function_scaling and color_function_min is not None and color_function_max is not None:
             color_function_range = color_function_max - color_function_min
-                    
+
         colors = {}
         def eval_color(x, y, v):
             v_scaled = (v - v_min) / v_range
@@ -619,7 +625,7 @@ class DensityPlot(Builtin):
             points.append(Expression('List', Expression('List', *p1[:2]), Expression('List', *p2[:2]),
                 Expression('List', *p3[:2])))
             vertex_colors.append(Expression('List', c1, c2, c3))
-        
+
         graphics.append(Expression('Polygon', Expression('List', *points),
             Expression('Rule', Symbol('VertexColors'), Expression('List', *vertex_colors))))
 
