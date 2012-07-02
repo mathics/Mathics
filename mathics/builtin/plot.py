@@ -36,6 +36,12 @@ class Mesh(Builtin):
 
     >> Plot[Sin[x], {x,0,4 Pi}, Mesh->Full]
      = -Graphics-
+
+    >>DensityPlot[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full]
+     = -Graphics-
+
+    >>Plot3D[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full]
+     = -Graphics-
     """
 
     messages = {
@@ -140,7 +146,6 @@ class Plot(Builtin):
     messages = {
         'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
         'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
-        'invmesh': "Mesh must be one of {None, Full, All}. Using Mesh->None.",
     }
 
     def apply(self, functions, x, start, stop, evaluation, options):
