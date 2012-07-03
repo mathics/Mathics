@@ -363,6 +363,124 @@ class Plot(Builtin):
         
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
     
+class ParametricPlot(Builtin):
+    """
+    <dl>
+    <dt>'ParametricPlot[{$f_x$, $f_y$}, {$u$, $umin$, $umax$}]'
+        <dd>plots parametric function $f$ with paramater $u$ ranging from $umin$ to $umax$.
+    <dt>'ParametricPlot[{{$f_x$, $f_y$}, {$g_x$, $g_y$}, ...}, {$u$, $umin$, $umax$}]'
+        <dd>plots several parametric functions $f$, $g$, ...
+    <dt>'ParametricPlot[{$f_x$, $f_y$}, {$u$, $umin$, $umax$}, {$v$, $vmin$, $vmax$}]'
+        <dd>plots a parametric area.
+    <dt>'ParametricPlot[{{$f_x$, $f_y$} {$g_x$, $g_y$}, ...}, {$u$, $umin$, $umax$}, {$v$, $vmin$, $vmax$}]'
+        <dd>plots several parametric areas.
+    </dl>
+
+    >> ParametricPlot[{Sin[u], Cos[3 u]}, {u, 0, 2 Pi}]
+     = -Graphics-
+    """
+
+    from graphics import Graphics
+
+    attributes = ('HoldAll',)
+
+    options = Graphics.options.copy()
+    options.update({
+        'Axes': 'True',
+        'AspectRatio': '1 / GoldenRatio',
+        'MaxRecursion': 'Automatic',
+        'Mesh': 'None',
+        'PlotRange': 'Automatic',
+    })
+
+    messages = {
+        'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
+        'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
+    }
+
+    def apply(self, fx, fy, u, ustart, ustop, evaluation, options):
+        'ParametricPlot[{fx_, fy_},  {u_Symbol, ustart_, ustop_}, OptionsPattern[Plot]]'
+        #TODO: Handle Areas not just lines
+        #TODO: Handle Multiple functions
+        #TODO: Adaptive Sampling
+
+        try:
+            ustart = ustart.to_number(n_evaluation=evaluation)
+        except NumberError:
+            evaluation.message('ParametricPlot', 'plln', ustart, expr)
+            return
+        try:
+            ustop = ustop.to_number(n_evaluation=evaluation)
+        except NumberError:
+            evaluation.message('ParametricPlot', 'plln', ustop, expr)
+            return
+        if ustart >= ustop:
+            evaluation.message('ParametricPlot', 'plln', ustop, expr)
+            return
+
+        expr = Expression('ParametricPlot', Expression('List', fx, fy), Expression('List', u, ustart, ustop), *options_to_rules(options))
+        u_name = u.get_name()
+
+        # Mesh Option
+        mesh_option = self.get_option(options, 'Mesh', evaluation)
+        mesh = mesh_option.to_python()
+        if mesh not in ['None', 'Full', 'All']:
+            evaluation.message('Mesh', 'ilevels', mesh_option)
+            mesh = 'None'
+
+        # MaxRecursion Option
+        max_recursion_limit = 15
+        maxrecursion_option = self.get_option(options, 'MaxRecursion', evaluation)
+        maxrecursion = maxrecursion_option.to_python()
+        try:
+            if maxrecursion == 'Automatic':
+                maxrecursion = 3
+            elif maxrecursion == float('inf'):
+                maxrecursion = max_recursion_limit
+                raise ValueError
+            elif isinstance(maxrecursion, int):
+                if maxrecursion > max_recursion_limit:
+                    maxrecursion = max_recursion_limit
+                    raise ValueError
+                if maxrecursion < 0:
+                    maxrecursion = 0
+                    raise ValueError
+            else:
+                maxrecursion = 0
+                raise ValueError
+        except ValueError:
+            evaluation.message('Plot', 'invmaxrec', maxrecursion_option, max_recursion_limit)
+        assert isinstance(maxrecursion, int)
+
+        def eval_f(f, u_value):
+            value = quiet_evaluate(f, {u_name: Real(u_value)}, evaluation)
+            return value
+
+        graphics = []           # list of resulting graphics primitives
+        points = []
+        continuous = False
+        steps = 57
+        d = (ustop - ustart) / steps
+        for i in range(steps + 1):
+            u_value = ustart + i * d
+            x_value = eval_f(fx, u_value)
+            y_value = eval_f(fy, u_value)
+            if x_value is not None and y_value is not None:
+                point = (u_value, x_value, y_value)
+                if continuous:
+                    points[-1].append(point)
+                else:
+                    points.append([point])
+                continuous = True
+            else:
+                continuous = False
+
+        graphics.append(Expression('Line', Expression('List', *(Expression('List',
+            *(Expression('List', x, y) for tmpu, x, y in line)) for line in points)
+        )))
+
+        return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
+
 class DensityPlot(Builtin):
     """
     <dl>
