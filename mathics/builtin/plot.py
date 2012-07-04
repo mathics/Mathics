@@ -74,15 +74,6 @@ def automatic_plot_range(values):
     valavg = sum(values) / len(values)
     valdev = sqrt(sum([(x - valavg)**2 for x in values]) / (len(values) - 1))
 
-def get_plot_range(values, all_values, option):
-    if option == 'Automatic':
-        return automatic_plot_range(values)
-    if option == 'All':
-        if not all_values:
-            return [0, 1]
-        return min(all_values), max(all_values)
-    return option
-
     n1, n2 = 0, len(values) - 1
     if valdev != 0:
         for v in values:
@@ -98,6 +89,15 @@ def get_plot_range(values, all_values, option):
     vmin = values[n1] - 0.05 * vrange    # 5% extra looks nice
     vmax = values[n2] + 0.05 * vrange
     return vmin, vmax
+
+def get_plot_range(values, all_values, option):
+    if option == 'Automatic':
+        return automatic_plot_range(values)
+    if option == 'All':
+        if not all_values:
+            return [0, 1]
+        return min(all_values), max(all_values)
+    return option
 
 class Plot(Builtin):
     """
