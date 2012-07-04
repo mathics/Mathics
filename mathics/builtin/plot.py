@@ -459,6 +459,29 @@ def apply_3d(self, plot_type, f, x, xstart, xstop, y, ystart, ystop, evaluation,
             mesh_row.append((xval, yval, eval_f(xval, yval)))
         mesh_points.append(mesh_row)
 
+    for yi in range(points+1):
+        yval = ystart + yi/num * (ystop - ystart)
+        mesh_col = []
+        for xi in range(points+1):
+            xval = xstart + xi/num * (xstop - xstart)
+            mesh_col.append((xval, yval, eval_f(xval, yval)))
+        mesh_points.append(mesh_col)
+
+    # Fix the grid near recursions
+    x_grids = [xstart + (xi / num) * (xstop - xstart) for xi in range(points +1)]
+    y_grids = [ystart + (yi / num) * (ystop - ystart) for yi in range(points +1)]
+    
+    for (xval, yval) in stored.keys():
+        if xval in x_grids:
+            x_index = int((xval - xstart) * num / (xstop - xstart) + 0.5)
+            mesh_points[x_index].append((xval, yval, eval_f(xval, yval)))
+        if yval in y_grids:
+            y_index = int((yval - ystart) * num / (ystop - ystart) + points + 1.5)
+            mesh_points[y_index].append((xval, yval, eval_f(xval, yval)))
+
+    for mesh_line in mesh_points:
+        mesh_line.sort()
+
     v_min = v_max = None
           
     for t in triangles:
@@ -521,11 +544,6 @@ class Plot3D(Builtin):
                 for xi in range(len(mesh_points)):
                     line = []
                     for yi in range(len(mesh_points[xi])):
-                        line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1], mesh_points[xi][yi][2]))
-                    graphics.append(Expression('Line', Expression('List', *line)))
-                for yi in range(len(mesh_points[0])):
-                    line = []
-                    for xi in range(len(mesh_points)):
                         line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1], mesh_points[xi][yi][2]))
                     graphics.append(Expression('Line', Expression('List', *line)))
         

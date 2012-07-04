@@ -25,7 +25,6 @@ function drawPolygon(prim) {
   var p3 = new THREE.Vector4(prim.coords[2][0][0], prim.coords[2][0][1], prim.coords[2][0][2]);
 
   if (prim.coords.length == 3) {    // Fast Return
-    console.log("Fast Return");
     polygeom = new THREE.Geometry();
     polygeom.vertices.push(p1);
     polygeom.vertices.push(p2);
