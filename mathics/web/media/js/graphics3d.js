@@ -11,6 +11,12 @@ function drawLine(prim) {
   }
 
   mesh = new THREE.Line(linegeom, new THREE.LineBasicMaterial({color: 0x000000}));
+
+  // These three lines prevent grid from being put on the wrong side
+  mesh.material.polygonOffset = true;
+  mesh.material.polygonOffsetFactor = 1;
+  mesh.material.polygonOffsetUnits = 1;
+
   return(mesh);
 }
 
@@ -270,7 +276,7 @@ function drawGraphics3D(container, data) {
     onMouseDownPosition.x = event.clientX - onMouseDownPosition.x;
     onMouseDownPosition.y = event.clientY - onMouseDownPosition.y;
 
-    ScaleInView();
+    // ScaleInView();
     render();
   }
 
@@ -313,7 +319,7 @@ function drawGraphics3D(container, data) {
   container.addEventListener('mousewheel', onDocumentMouseWheel, false);
   onMouseDownPosition = new THREE.Vector2();
 
-  ScaleInView();
+  // ScaleInView();
   render();
 }
 

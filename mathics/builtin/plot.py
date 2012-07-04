@@ -507,6 +507,9 @@ class Plot3D(Builtin):
 
     >> Plot3D[x / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}, Mesh->None]
      = -Graphics-
+
+    >> Plot3D[Sin[x y] /(x y), {x, -3, 3}, {y, -3, 3}, Mesh->All]
+     = -Graphics-
     """
 
     from graphics import Graphics
@@ -530,7 +533,7 @@ class Plot3D(Builtin):
         # Mesh Option
         mesh_option = self.get_option(options, 'Mesh', evaluation)
         mesh = mesh_option.to_python()
-        if mesh not in ['None', 'Full']:
+        if mesh not in ['None', 'Full', 'All']:
             evaluation.message('Mesh', 'ilevels', mesh_option)
             mesh = 'Full'
 
@@ -545,6 +548,10 @@ class Plot3D(Builtin):
                     line = []
                     for yi in range(len(mesh_points[xi])):
                         line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1], mesh_points[xi][yi][2]))
+                    graphics.append(Expression('Line', Expression('List', *line)))
+            elif mesh == 'All':
+                for p1, p2, p3 in triangles:
+                    line = [from_python(p1),from_python(p2), from_python(p3)]
                     graphics.append(Expression('Line', Expression('List', *line)))
         
         result = Expression('Graphics3D', Expression('List', *graphics),  *options_to_rules(options))
@@ -564,6 +571,12 @@ class DensityPlot(Builtin):
      = -Graphics-
 
     >> DensityPlot[Sqrt[x * y], {x, -1, 1}, {y, -1, 1}]
+     = -Graphics-
+
+    >> DensityPlot[1/(x^2 + y^2 + 1), {x, -1, 1}, {y, -2,2}, Mesh->Full]
+     = -Graphics-
+
+    >> DensityPlot[x^2 y, {x, -1, 1}, {y, -1, 1}, Mesh->All]
      = -Graphics-
     """
 
@@ -589,7 +602,7 @@ class DensityPlot(Builtin):
         # Mesh Option
         mesh_option = self.get_option(options, 'Mesh', evaluation)
         mesh = mesh_option.to_python()
-        if mesh not in ['None', 'Full']:
+        if mesh not in ['None', 'Full', 'All']:
             evaluation.message('Mesh', 'ilevels', mesh_option)
             mesh = 'None'
 
@@ -659,10 +672,9 @@ class DensityPlot(Builtin):
                 for yi in range(len(mesh_points[xi])):
                     line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1]))
                 graphics.append(Expression('Line', Expression('List', *line)))
-            for yi in range(len(mesh_points[0])):
-                line = []
-                for xi in range(len(mesh_points)):
-                    line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1]))
+        elif mesh == 'All':
+            for p1, p2, p3 in triangles:
+                line = [from_python(p1[:2]), from_python(p2[:2]), from_python(p3[:2])]
                 graphics.append(Expression('Line', Expression('List', *line)))
             
         result = Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
