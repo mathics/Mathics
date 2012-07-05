@@ -84,15 +84,10 @@ function drawPolygon(prim) {
     polygeom = new THREE.ExtrudeGeometry(polyshape, {amount:0.0, steps:0, bevelEnabled: false});
 
     // Undo the Linear Transformation
-    var Li = new THREE.Matrix4();
-    Li.getInverse(L);
-
     for (var i=0; i < polygeom.vertices.length; i++) {
-        tmpv = new THREE.Vector4(polygeom.vertices.x, polygeom.vertices.y, 0.0, 1.0);
-        Li.multiplyVector4(tmpv);
-        polygeom.vertices.x = tmpv.x
-        polygeom.vertices.y = tmpv.y;
-        polygeom.vertices.z = tmpv.z;
+        polygeom.vertices[i].x = prim.coords[i][0][0];
+        polygeom.vertices[i].y = prim.coords[i][0][1];
+        polygeom.vertices[i].z = prim.coords[i][0][2];
     }
   }
 
