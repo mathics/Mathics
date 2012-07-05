@@ -5,6 +5,7 @@ Creates the database used by Django
 import os
 from os import path
 import subprocess
+from sys import executable
 
 from mathics import settings
 
@@ -14,7 +15,7 @@ def setup():
     if not path.exists(settings.DATA_DIR):
         os.makedirs(settings.DATA_DIR)
     print "Creating database %s" % database_file
-    subprocess.call(['python', 'mathics/manage.py', 'syncdb', '--noinput'])
+    subprocess.call([executable, 'mathics/manage.py', 'syncdb', '--noinput'])
     os.chmod(database_file, 0766)
     print ""
     print "Mathics initialized successfully."

@@ -60,6 +60,15 @@ class Definitions(object):
                 if builtin_filename is not None:
                     builtin_file = open(builtin_filename, 'w')
                     pickle.dump(self.builtin, builtin_file, -1)
+                    
+    def get_builtin_names(self):
+        return set(self.builtin)
+    
+    def get_user_names(self):
+        return set(self.user)
+                    
+    def get_names(self):
+        return self.get_builtin_names() | self.get_user_names()
         
     def get_definition(self, name):
         user = self.user.get(name, None)

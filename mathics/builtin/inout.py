@@ -82,7 +82,7 @@ class MakeBoxes(Builtin):
     
     rules = {
         'MakeBoxes[Infix[head_[leaves___]], f:StandardForm|TraditionalForm|OutputForm|InputForm]': 'MakeBoxes[Infix[head[leaves], StringForm["~`1`~", head]], f]',
-        'MakeBoxes[expr_]': 'MakeBoxes[expr, StandardForm]', #'MakeBoxes[StandardForm[expr]]',
+        'MakeBoxes[expr_]': 'MakeBoxes[expr, StandardForm]',
         'MakeBoxes[(form:StandardForm|TraditionalForm|OutputForm|TeXForm|MathMLForm)[expr_], StandardForm|TraditionalForm]':
             'MakeBoxes[expr, form]',
         'MakeBoxes[(form:OutputForm|MathMLForm|TeXForm)[expr_], OutputForm]':
@@ -194,29 +194,11 @@ class MakeBoxes(Builtin):
         
         leaves = expr.get_leaves()
         if len(leaves) > 1:
-            #ops = [h] * (len(leaves) - 1)
             if h.has_form('List', len(leaves) - 1):
                 ops = [get_op(op) for op in h.leaves]
             else:
                 ops = [get_op(h)] * (len(leaves) - 1)
             return make_boxes_infix(leaves, ops, precedence, grouping, f)
-            
-            """result = []
-            for index, leaf in enumerate(leaves):
-                if index > 0:
-                    result.append(h)
-                parenthesized = False
-                if grouping == 'NonAssociative':
-                    parenthesized = True
-                elif grouping == 'Left' and index > 0:
-                    parenthesized = True
-                elif grouping == 'Right' and index == 0:
-                    parenthesized = True
-                    
-                leaf_boxes = MakeBoxes(leaf, f)
-                leaf = self.parenthesize(precedence, leaf, leaf_boxes, parenthesized) 
-                result.append(leaf)
-            return Expression('RowBox', Expression('List', *result))"""
         elif len(leaves) == 1:
             return MakeBoxes(leaves[0], f)
         else:

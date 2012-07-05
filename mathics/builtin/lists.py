@@ -6,12 +6,17 @@ List functions
 
 import copy
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test, InvalidLevelspecError, PartError, PartDepthError, PartRangeError
+from mathics.builtin.base import (Builtin, Predefined, BinaryOperator, Test,
+    InvalidLevelspecError, PartError, PartDepthError, PartRangeError, SageFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.core.expression import Expression, String, Symbol, Integer, Number
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.numbers import add
+from mathics.core.convert import from_sympy
+from mathics.builtin.algebra import cancel
+
+import sympy
 
 class List(Builtin):
     """
@@ -1003,13 +1008,27 @@ class _IterationFunction(Builtin):
     def apply_iter(self, expr, i, imin, imax, di, evaluation):
         '%(name)s[expr_, {i_Symbol, imin_, imax_, di_}]'
         
+        if di.get_int_value() == 1 and isinstance(self, SageFunction):
+            whole_expr = Expression(self.get_name(), expr, Expression('List', i, imin, imax))
+            sympy_expr = whole_expr.to_sympy()
+            
+            # apply Together to produce results similar to Mathematica
+            result = sympy.together(sympy_expr)
+            result = from_sympy(result)
+            result = cancel(result)
+            
+            if not result.same(whole_expr):
+                return result
+        
         index = imin.evaluate(evaluation).get_real_value()
         imax = imax.evaluate(evaluation).get_real_value()
         di = di.evaluate(evaluation).get_real_value()
+        
         if index is None or imax is None or di is None:
             if self.throw_iterb:
                 evaluation.message(self.get_name(), 'iterb')
             return
+        
         result = []
         while index <= imax:
             evaluation.check_stopped()

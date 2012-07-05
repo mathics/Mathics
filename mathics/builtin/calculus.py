@@ -358,6 +358,8 @@ class Integrate(SageFunction):
     
     #> Integrate[ArcTan(x), x]
      = ArcTan x ^ 2 / 2
+    #> Integrate[E[x], x]
+     = Integrate[E[x], x]
     """
     
     """
