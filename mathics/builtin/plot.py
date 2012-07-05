@@ -42,45 +42,24 @@ class Mesh(Builtin):
         'ilevels' : "`1` s not a valid mesh specification.",
     }
     
-def quiet_evaluate(expr, vars, evaluation):
+def quiet_evaluate(expr, vars, evaluation, expect_list=False):
     """ Evaluates expr with given dynamic scoping values
     without producing arithmetic error messages. """
     quiet_expr = Expression('Quiet', expr, Expression('List',
         Expression('MessageName', Symbol('Power'), String('infy'))))
     value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)
-    return chop(value).get_real_value()
+    if expect_list:
+        if value.has_form('List', None):
+            value = [chop(item).get_real_value() for item in value.leaves]
+            if any(item is None for item in value):
+                return None
+            return value
+        else:
+            return None
+    else:
+        return chop(value).get_real_value()
 
-class Plot(Builtin):
-    """
-    <dl>
-    <dt>'Plot[$f$, {$x$, $xmin$, $xmax$}]'
-        <dd>plots $f$ with $x$ ranging from $xmin$ to $xmax$.
-    <dt>'Plot[{$f1$, $f2$, ...}, {$x$, $xmin$, $xmax$}]'
-        <dd>plots several functions $f1$, $f2$, ...
-    </dl>
-    
-    >> Plot[{Sin[x], Cos[x], x / 3}, {x, -Pi, Pi}]
-     = -Graphics-
-
-    >> Plot[Sin[x], {x, 0, 4 Pi}, PlotRange->{{0, 4 Pi}, {0, 1.5}}]
-     = -Graphics-
-
-    >> Plot[Tan[x], {x, -6, 6}, Mesh->Full]
-     = -Graphics-
-
-    >> Plot[x^2, {x, -1, 1}, MaxRecursion->5, Mesh->All]
-     = -Graphics-
-
-    >> Plot[Log[x], {x, 0, 5}, MaxRecursion->0]
-     = -Graphics-
-
-    >> Plot[Tan[x], {x, 0, 6}, Mesh->All, PlotRange->{{-1, 5}, {0, 15}}, MaxRecursion->10]
-     = -Graphics-
-     
-    #> Plot[1 / x, {x, -1, 1}]
-     = -Graphics-
-    """
-
+class _Plot(Builtin):
     from graphics import Graphics
     
     attributes = ('HoldAll',)
@@ -126,27 +105,25 @@ class Plot(Builtin):
         return ymin, ymax
     
     def apply(self, functions, x, start, stop, evaluation, options):
-        'Plot[functions_, {x_Symbol, start_, stop_}, OptionsPattern[Plot]]'
+        '%(name)s[functions_, {x_Symbol, start_, stop_}, OptionsPattern[%(name)s]]'
         
-        expr = Expression('Plot', functions, Expression('List', x, start, stop), *options_to_rules(options))
-        if functions.has_form('List', None):
-            functions = functions.leaves
-        else:
-            functions = [functions]
+        expr_limits = Expression('List', x, start, stop)
+        expr = Expression(self.get_name(), functions, expr_limits, *options_to_rules(options))
+        functions = self.get_functions_param(functions)
         x_name = x.get_name()
         
         try:
             start = start.to_number(n_evaluation=evaluation)
         except NumberError:
-            evaluation.message('Plot', 'plln', start, expr)
+            evaluation.message(self.get_name(), 'plln', start, expr)
             return
         try:
             stop = stop.to_number(n_evaluation=evaluation)
         except NumberError:
-            evaluation.message('Plot', 'plln', stop, expr)
+            evaluation.message(self.get_name(), 'plln', stop, expr)
             return
         if start >= stop:
-            evaluation.message('Plot', 'plln', stop, expr)
+            evaluation.message(self.get_name(), 'plld', expr_limits)
             return
 
         # PlotRange Option
@@ -159,22 +136,9 @@ class Plot(Builtin):
             return False
         plotrange_option = self.get_option(options, 'PlotRange', evaluation)
         plotrange = plotrange_option.to_python(n_evaluation=evaluation)
-        if isinstance(plotrange, float):
-            plotrange = ['Full', [-plotrange, plotrange]]
-        x_range = y_range = None
-        if plotrange == 'Automatic':
-            plotrange = ['Full', 'Automatic']
-        elif plotrange == 'All':
-            plotrange = ['All', 'All']
-        if isinstance(plotrange, list) and len(plotrange) == 2:
-            if isinstance(plotrange[0], float) and isinstance(plotrange[1], float):
-                x_range, y_range = 'Full', plotrange
-            else:
-                x_range, y_range = plotrange
-            if x_range == 'Full':
-                x_range = [start, stop]
+        x_range, y_range = self.get_plotrange(plotrange, start, stop)
         if not check_range(x_range) or not check_range(y_range):
-            evaluation.message('Plot', 'prng', plotrange_option)
+            evaluation.message(self.get_name(), 'prng', plotrange_option)
             x_range, y_range = [start, stop], 'Automatic'
         # x_range and y_range are now either Automatic, All, or of the form [min, max]
         assert x_range in ('Automatic', 'All') or isinstance(x_range, list)
@@ -208,12 +172,8 @@ class Plot(Builtin):
                 maxrecursion = 0
                 raise ValueError
         except ValueError:
-            evaluation.message('Plot', 'invmaxrec', maxrecursion_option, max_recursion_limit)
+            evaluation.message(self.get_name(), 'invmaxrec', maxrecursion_option, max_recursion_limit)
         assert isinstance(maxrecursion, int)
-
-        def eval_f(f, x_value):
-            value = quiet_evaluate(f, {x_name: Real(x_value)}, evaluation)
-            return value
 
         # constants to generate colors
         hue = 0.67
@@ -249,18 +209,20 @@ class Plot(Builtin):
         graphics = []           # list of resulting graphics primitives
         for index, f in enumerate(functions):
             points = []
+            xvalues = [] # x value for each point in points
             continuous = False
             steps = 57
             d = (stop - start) / steps
             for i in range(steps + 1):
                 x_value = start + i * d
-                y = eval_f(f, x_value)
-                if y is not None:
-                    point = (x_value, y)
+                point = self.eval_f(f, x_name, x_value, evaluation)
+                if point is not None:
                     if continuous:
                         points[-1].append(point)
+                        xvalues[-1].append(x_value)
                     else:
                         points.append([point])
+                        xvalues.append([x_value])
                     continuous = True
                 else:
                     continuous = False
@@ -283,7 +245,7 @@ class Plot(Builtin):
 
             # Adaptive Sampling - loop again and interpolate highly angled sections
             ang_thresh = cos(pi / 180)    # Cos of the maximum angle between successive line segments
-            for line in points:
+            for line, line_xvalues in zip(points, xvalues):
                 recursion_count = 0
                 smooth = False
                 while not smooth and recursion_count < maxrecursion:
@@ -302,16 +264,18 @@ class Plot(Builtin):
                             smooth = False
                             incr = 0
                             
-                            x_value = 0.5 * (line[i-1][0] + line[i][0])
-                            y = eval_f(f, x_value)
-                            if y is not None:
-                                line.insert(i, (x_value, y))
+                            x_value = 0.5 * (line_xvalues[i-1] + line_xvalues[i])
+                            point = self.eval_f(f, x_name, x_value, evaluation)
+                            if point is not None:
+                                line.insert(i, point)
+                                line_xvalues.insert(i, x_value)
                                 incr += 1
 
-                            x_value = 0.5 * (line[i-2][0] + line[i-1][0])
-                            y = eval_f(f, x_value)
-                            if y is not None:
-                                line.insert(i - 1, (x_value, y))
+                            x_value = 0.5 * (line_xvalues[i-2] + line_xvalues[i-1])
+                            point = self.eval_f(f, x_name, x_value, evaluation)
+                            if point is not None:
+                                line.insert(i - 1, point)
+                                line_xvalues.insert(i - 1, x_value)
                                 incr += 1
                             
                             i += incr
@@ -363,7 +327,68 @@ class Plot(Builtin):
         
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
     
-class ParametricPlot(Builtin):
+class Plot(_Plot):
+    """
+    <dl>
+    <dt>'Plot[$f$, {$x$, $xmin$, $xmax$}]'
+        <dd>plots $f$ with $x$ ranging from $xmin$ to $xmax$.
+    <dt>'Plot[{$f1$, $f2$, ...}, {$x$, $xmin$, $xmax$}]'
+        <dd>plots several functions $f1$, $f2$, ...
+    </dl>
+    
+    >> Plot[{Sin[x], Cos[x], x / 3}, {x, -Pi, Pi}]
+     = -Graphics-
+
+    >> Plot[Sin[x], {x, 0, 4 Pi}, PlotRange->{{0, 4 Pi}, {0, 1.5}}]
+     = -Graphics-
+
+    >> Plot[Tan[x], {x, -6, 6}, Mesh->Full]
+     = -Graphics-
+
+    >> Plot[x^2, {x, -1, 1}, MaxRecursion->5, Mesh->All]
+     = -Graphics-
+
+    >> Plot[Log[x], {x, 0, 5}, MaxRecursion->0]
+     = -Graphics-
+
+    >> Plot[Tan[x], {x, 0, 6}, Mesh->All, PlotRange->{{-1, 5}, {0, 15}}, MaxRecursion->10]
+     = -Graphics-
+     
+    #> Plot[1 / x, {x, -1, 1}]
+     = -Graphics-
+    """
+    
+    def get_functions_param(self, functions):
+        if functions.has_form('List', None):
+            functions = functions.leaves
+        else:
+            functions = [functions]
+        return functions
+    
+    def get_plotrange(self, plotrange, start, stop):
+        x_range = y_range = None
+        if isinstance(plotrange, float):
+            plotrange = ['Full', [-plotrange, plotrange]]
+        if plotrange == 'Automatic':
+            plotrange = ['Full', 'Automatic']
+        elif plotrange == 'All':
+            plotrange = ['All', 'All']
+        if isinstance(plotrange, list) and len(plotrange) == 2:
+            if isinstance(plotrange[0], float) and isinstance(plotrange[1], float):
+                x_range, y_range = 'Full', plotrange
+            else:
+                x_range, y_range = plotrange
+            if x_range == 'Full':
+                x_range = [start, stop]
+        return x_range, y_range
+    
+    def eval_f(self, f, x_name, x_value, evaluation):
+        value = quiet_evaluate(f, {x_name: Real(x_value)}, evaluation)
+        if value is None:
+            return None
+        return (x_value, value)
+    
+class ParametricPlot(_Plot):
     """
     <dl>
     <dt>'ParametricPlot[{$f_x$, $f_y$}, {$u$, $umin$, $umax$}]'
@@ -372,7 +397,7 @@ class ParametricPlot(Builtin):
         <dd>plots several parametric functions $f$, $g$, ...
     <dt>'ParametricPlot[{$f_x$, $f_y$}, {$u$, $umin$, $umax$}, {$v$, $vmin$, $vmax$}]'
         <dd>plots a parametric area.
-    <dt>'ParametricPlot[{{$f_x$, $f_y$} {$g_x$, $g_y$}, ...}, {$u$, $umin$, $umax$}, {$v$, $vmin$, $vmax$}]'
+    <dt>'ParametricPlot[{{$f_x$, $f_y$}, {$g_x$, $g_y$}, ...}, {$u$, $umin$, $umax$}, {$v$, $vmin$, $vmax$}]'
         <dd>plots several parametric areas.
     </dl>
 
@@ -382,94 +407,23 @@ class ParametricPlot(Builtin):
     >> ParametricPlot[{Cos[u] / u, Sin[u] / u}, {u, 0, 50}, PlotRange->0.5]
      = -Graphics-
 
-    >> ParametricPlot[{{Sin[u], Cos[u]},{0.6 Sin[u], 0.6 Cos[u]}, {0.2 Sin[u], 0.2 Cos[u]}}, {u, 0, 2 Pi},PlotRange->{1,1},AspectRatio->1]
+    >> ParametricPlot[{{Sin[u], Cos[u]},{0.6 Sin[u], 0.6 Cos[u]}, {0.2 Sin[u], 0.2 Cos[u]}}, {u, 0, 2 Pi}, PlotRange->1, AspectRatio->1]
     = -Graphics-
     """
-
-    from graphics import Graphics
-
-    attributes = ('HoldAll',)
-
-    options = Graphics.options.copy()
-    options.update({
-        'Axes': 'True',
-        'AspectRatio': '1 / GoldenRatio',
-        'MaxRecursion': 'Automatic',
-        'Mesh': 'None',
-        'PlotRange': 'Automatic',
-    })
-
-    messages = {
-        'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
-        'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
-    }
-
-    def automatic_plot_range(self, values):
-        """ Calculates mean and standard deviation, throwing away all points 
-        which are more than 'thresh' number of standard deviations away from 
-        the mean. These are then used to find good ymin and ymax values. These 
-        values can then be used to find Automatic Plotrange. """
-        thresh = 2.0
-        values = sorted(values)
-        valavg = sum(values) / len(values)
-        valdev = sqrt(sum([(x - valavg)**2 for x in values]) / (len(values) - 1))
-
-        n1, n2 = 0, len(values) - 1
-        if valdev != 0:
-            for v in values:
-                if abs(v - valavg) / valdev < thresh:
-                    break
-                n1 += 1
-            for v in values[::-1]:
-                if abs(v - valavg) / valdev < thresh:
-                    break
-                n2 -= 1
-        
-        vrange = values[n2] - values[n1]
-        vmin = values[n1] - 0.05 * vrange    # 5% extra looks nice
-        vmax = values[n2] + 0.05 * vrange
-        return vmin, vmax
-
-    def apply(self, functions, u, ustart, ustop, evaluation, options):
-        'ParametricPlot[functions_,  {u_Symbol, ustart_, ustop_}, OptionsPattern[Plot]]'
-        #TODO: Handle Areas not just lines
-        #TODO: Check the structure of 'functions' more thoroughly
-        expr = Expression('ParametricPlot', functions, Expression('List', u, ustart, ustop), *options_to_rules(options))
-        if len(functions.leaves) == 2 and not (functions.leaves[0].has_form('List', None) or functions.leaves[1].has_form('List', None)):
+    
+    def get_functions_param(self, functions):
+        if functions.has_form('List', 2) and not (functions.leaves[0].has_form('List', None) or functions.leaves[1].has_form('List', None)):
             # One function given
             functions = [functions]
         else:
             # Multiple Functions
             functions = functions.leaves
-        u_name = u.get_name()
-
-        try:
-            ustart = ustart.to_number(n_evaluation=evaluation)
-        except NumberError:
-            evaluation.message('ParametricPlot', 'plln', ustart, expr)
-            return
-        try:
-            ustop = ustop.to_number(n_evaluation=evaluation)
-        except NumberError:
-            evaluation.message('ParametricPlot', 'plln', ustop, expr)
-            return
-        if ustart >= ustop:
-            evaluation.message('ParametricPlot', 'plln', ustop, expr)
-            return
-
-        # PlotRange Option
-        def check_range(range):
-            if range in ('Automatic', 'All'):
-                return True
-            if isinstance(range, list) and len(range) == 2:
-                if isinstance(range[0], float) and isinstance(range[1], float):
-                    return True
-            return False
-        plotrange_option = self.get_option(options, 'PlotRange', evaluation)
-        plotrange = plotrange_option.to_python(n_evaluation=evaluation)
+        return functions
+    
+    def get_plotrange(self, plotrange, start, stop):
+        x_range = y_range = None
         if isinstance(plotrange, float):
             plotrange = [[-plotrange, plotrange], [-plotrange, plotrange]]
-        x_range = y_range = None
         if plotrange == 'Automatic':
             plotrange = ['Automatic', 'Automatic']
         elif plotrange == 'All':
@@ -480,211 +434,13 @@ class ParametricPlot(Builtin):
                 y_range = [-plotrange[1], plotrange[1]]
             else:
                 x_range, y_range = plotrange
-        if not check_range(x_range) or not check_range(y_range):
-            evaluation.message('Plot', 'prng', plotrange_option)
-            x_range, y_range = 'Automatic', 'Automatic'
-        # x_range and y_range are now either Automatic, All, or of the form [min, max]
-        assert x_range in ('Automatic', 'All') or isinstance(x_range, list)
-        assert y_range in ('Automatic', 'All') or isinstance(y_range, list)
-        # Mesh Option
-        mesh_option = self.get_option(options, 'Mesh', evaluation)
-        mesh = mesh_option.to_python()
-        if mesh not in ['None', 'Full', 'All']:
-            evaluation.message('Mesh', 'ilevels', mesh_option)
-            mesh = 'None'
-
-        # MaxRecursion Option
-        max_recursion_limit = 15
-        maxrecursion_option = self.get_option(options, 'MaxRecursion', evaluation)
-        maxrecursion = maxrecursion_option.to_python()
-        try:
-            if maxrecursion == 'Automatic':
-                maxrecursion = 3
-            elif maxrecursion == float('inf'):
-                maxrecursion = max_recursion_limit
-                raise ValueError
-            elif isinstance(maxrecursion, int):
-                if maxrecursion > max_recursion_limit:
-                    maxrecursion = max_recursion_limit
-                    raise ValueError
-                if maxrecursion < 0:
-                    maxrecursion = 0
-                    raise ValueError
-            else:
-                maxrecursion = 0
-                raise ValueError
-        except ValueError:
-            evaluation.message('Plot', 'invmaxrec', maxrecursion_option, max_recursion_limit)
-        assert isinstance(maxrecursion, int)
-
-        def eval_f(f, u_value):
-            value = quiet_evaluate(f, {u_name: Real(u_value)}, evaluation)
-            return value
-
-        # constants to generate colors
-        hue = 0.67
-        hue_pos = 0.236068
-        hue_neg = -0.763932
-
-        def get_points_minmax(points):
-            xmin = xmax = ymin = ymax = None
-            for line in points:
-                for x, y in line:
-                    if xmin is None or x < xmin: xmin = x
-                    if xmax is None or x > xmax: xmax = x
-                    if ymin is None or y < ymin: ymin = y
-                    if ymax is None or y > ymax: ymax = y
-            return xmin, xmax, ymin, ymax
-        
-        def zero_to_one(value):
-            if value == 0:
-                return 1
-            return value
-            
-        def get_points_range(points):
-            xmin, xmax, ymin, ymax = get_points_minmax(points)
-            if xmin is None or xmax is None:
-                xmin, xmax = 0, 1
-            if ymin is None or ymax is None:
-                ymin, ymax = 0, 1
-            return zero_to_one(xmax - xmin), zero_to_one(ymax - ymin)
-
-        base_plot_points = []   # list of points in base subdivision
-        plot_points = []        # list of all plotted points
-
-        mesh_points = []
-        graphics = []           # list of resulting graphics primitives
-        for index, f in enumerate(functions):
-            if f.has_form('List', None):
-                f = f.leaves
-            else:
-                # Raise Error
-                return
-            if len(f) != 2:
-                # Raise Error
-                return
-            fx, fy = f[0], f[1]
-            points = []
-            continuous = False
-            steps = 57
-            d = (ustop - ustart) / steps
-            for i in range(steps + 1):
-                u_value = ustart + i * d
-                x_value = eval_f(fx, u_value)
-                y_value = eval_f(fy, u_value)
-                if x_value is not None and y_value is not None:
-                    point = (u_value, x_value, y_value)
-                    if continuous:
-                        points[-1].append(point)
-                    else:
-                        points.append([point])
-                    continuous = True
-                else:
-                    continuous = False
-
-            base_points = []
-            for line in points:
-                base_points.extend(line)
-            base_plot_points.extend(base_points)
-            
-            xmin, xmax = self.automatic_plot_range([x for tmpu, x, y in base_points])
-            ymin, ymax = self.automatic_plot_range([y for tmpu, x, y in base_points])
-            if xmin != xmax:
-                xscale = 1. / (xmax - xmin)
-            else:
-                xscale = 1.0
-            if ymin != ymax:
-                yscale = 1. / (ymax - ymin)
-            else:
-                yscale = 1.0
-
-            if mesh == 'Full':
-                for line in points:
-                    mesh_points.extend([(x, y) for tmpu, x, y in line])
-
-            # Adaptive Sampling - loop again and interpolate highly angled sections
-            ang_thresh = cos(pi / 180)    # Cos of the maximum angle between successive line segments
-            for line in points:
-                recursion_count = 0
-                smooth = False
-                while not smooth and recursion_count < maxrecursion:
-                    recursion_count += 1
-                    smooth = True
-                    i = 2
-                    while i < len(line):
-                        vec1 = (xscale * (line[i-1][1] - line[i-2][1]), yscale * (line[i-1][2] - line[i-2][2]))
-                        vec2 = (xscale * (line[i][1] - line[i-1][1]), yscale * (line[i][2] - line[i-1][2]))
-                        try:
-                            angle = (vec1[0] * vec2[0] + vec1[1] * vec2[1]) / sqrt(
-                                (vec1[0]**2 + vec1[1]**2) * (vec2[0]**2 + vec2[1]**2))
-                        except ZeroDivisionError:
-                            angle = 0.0
-                        if abs(angle) < ang_thresh:
-                            smooth = False
-                            incr = 0
-                            
-                            u_value = 0.5 * (line[i-1][0] + line[i][0])
-                            x_value = eval_f(fx, u_value)
-                            y_value = eval_f(fy, u_value)
-                            if x_value is not None and y_value is not None:
-                                line.insert(i, (u_value, x_value, y_value))
-                                incr += 1
-
-                            u_value = 0.5 * (line[i-2][0] + line[i-1][0])
-                            x_value = eval_f(fx, u_value)
-                            y_value = eval_f(fy, u_value)
-                            if x_value is not None and y_value is not None:
-                                line.insert(i - 1, (u_value, x_value, y_value))
-                                incr += 1
-                            
-                            i += incr
-                        i += 1
-                    
-            graphics.append(Expression('Hue', hue, 0.6, 0.6))
-            graphics.append(Expression('Line', Expression('List', *(Expression('List',
-                *(Expression('List', x, y) for tmpu, x, y in line)) for line in points)
-            )))
-            for line in points:
-                plot_points.extend(line)
-
-            if mesh == 'All':
-                for line in points:
-                    mesh_points.extend([(x, y) for tmpu, x, y in line])
-
-            if index % 4 == 0:
-                hue += hue_pos
-            else:
-                hue += hue_neg
-            if hue > 1: hue -= 1
-            if hue < 0: hue += 1
-
-        def get_plot_range(values, all_values, option):
-            if option == 'Automatic':
-                return self.automatic_plot_range(values)
-            if option == 'All':
-                if not all_values:
-                    return [0, 1]
-                return min(all_values), max(all_values)
-            return option
-        
-        x_range = get_plot_range([x for tmpu, x, y in base_plot_points],
-            [x for tmpu, x, y in plot_points], x_range)
-        y_range = get_plot_range([y for tmpu, x, y in base_plot_points],
-            [y for tmpu, x, y in plot_points], y_range)
-        
-        mesh_xscale = 1. / zero_to_one(x_range[1] - x_range[0])
-        mesh_yscale = 1. / zero_to_one(y_range[1] - y_range[0])
-        
-        options['PlotRange'] = from_python([x_range, y_range])
-        
-        if mesh != 'None':
-            for x, y in mesh_points:
-                graphics.append(Expression('Disk', Expression('List', x, y), 
-                    Expression('List', 0.003 / mesh_xscale, 0.005 / mesh_yscale))
-                )
-                #TODO handle non-default AspectRatio
-
-        return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
+        return x_range, y_range
+    
+    def eval_f(self, f, x_name, x_value, evaluation):
+        value = quiet_evaluate(f, {x_name: Real(x_value)}, evaluation, expect_list=True)
+        if value is None or len(value) != 2:
+            return None
+        return value
 
 class DensityPlot(Builtin):
     """
