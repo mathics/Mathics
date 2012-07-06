@@ -369,130 +369,142 @@ class Plot(Builtin):
         
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
 
-def apply_3d(self, plot_type, f, x, xstart, xstop, y, ystart, ystop, evaluation, options):
-    """Applies the function across a range of x and y values, returning a list of triangles"""
-    if plot_type not in ['DensityPlot', 'Plot3D']:
-        return
 
-    x_name = x.get_name()
-    y_name = y.get_name()
+class _Plot3D(Builtin):
+    def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
+        '%(name)s[functions_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[%(name)s]]'
 
-    try:
-        xstart, xstop, ystart, ystop = [value.to_number(n_evaluation=evaluation) for value in
-            (xstart, xstop, ystart, ystop)]
-    except NumberError, exc:
-        expr = Expression(plot_type, functions, Expression('List', x, xstart, xstop),
-            Expression('List', y, ystart, ystop), *options_to_rules(options))
-        evaluation.message(plot_type, 'plln', exc.value, expr)
-        return
+        functions = self.get_functions_param(functions)
 
-    if ystart >= ystop:
-        evaluation.message(plot_type, 'plln', ystop, expr)
-        return
+        x_name = x.get_name()
+        y_name = y.get_name()
 
-    if xstart >= xstop:
-        evaluation.message(plot_type, 'plln', xstop, expr)
-        return
-
-    stored = {}
-    def eval_f(x_value, y_value):
-        value = stored.get((x_value, y_value), False)
-        if value == False:
-            value = quiet_evaluate(f, {x: Real(x_value), y: Real(y_value)}, evaluation)
-            #value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation)
-            #value = chop(value).get_real_value()
-            if value is not None:
-                value = float(value)
-            stored[(x_value, y_value)] = value
-        return value
-
-    v_borders = [None, None] 
-
-    triangles = []
-
-    eps = 0.01
-
-    def triangle(x1, y1, x2, y2, x3, y3, depth=None):
-        if depth is None:
-            x1, x2, x3 = [xstart + value * (xstop - xstart) for value in (x1, x2, x3)]
-            y1, y2, y3 = [ystart + value * (ystop - ystart) for value in (y1, y2, y3)]
-            depth = 0
-        v1, v2, v3 = eval_f(x1, y1), eval_f(x2, y2), eval_f(x3, y3)
-        for v in (v1, v2, v3):
-            if v is not None:
-                if v_borders[0] is None or v < v_borders[0]:
-                    v_borders[0] = v
-                if v_borders[1] is None or v > v_borders[1]:
-                    v_borders[1] = v
-        if v1 is None or v2 is None or v3 is None:
+        try:
+            xstart, xstop, ystart, ystop = [value.to_number(n_evaluation=evaluation) for value in
+                (xstart, xstop, ystart, ystop)]
+        except NumberError, exc:
+            expr = Expression(plot_type, functions, Expression('List', x, xstart, xstop),
+                Expression('List', y, ystart, ystop), *options_to_rules(options))
+            evaluation.message(plot_type, 'plln', exc.value, expr)
             return
-        limit = (v_borders[1] - v_borders[0]) * eps
-        if depth < 2:
-            if abs(v1 - v2) > limit:
-                triangle(x1, y1, x3, y3, (x1+x2)/2, (y1+y2)/2, depth+1)
-                triangle(x2, y2, x3, y3, (x1+x2)/2, (y1+y2)/2, depth+1)
-                return
-            if abs(v2 - v3) > limit:
-                triangle(x1, y1, x2, y2, (x2+x3)/2, (y2+y3)/2, depth+1)
-                triangle(x1, y1, x3, y3, (x2+x3)/2, (y2+y3)/2, depth+1)
-                return
-            if abs(v1 - v3) > limit:
-                triangle(x2, y2, x1, y1, (x1+x3)/2, (y1+y3)/2, depth+1)
-                triangle(x2, y2, x3, y3, (x1+x3)/2, (y1+y3)/2, depth+1)
-                return
-        triangles.append([(x1, y1, v1), (x2, y2, v2), (x3, y3, v3)])
 
-    points = 7
-    num = points * 1.0
-    for xi in range(points):
-        for yi in range(points):
-            triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, (xi+1)/num, yi/num)
-            triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, xi/num, (yi+1)/num)
+        if ystart >= ystop:
+            evaluation.message(plot_type, 'plln', ystop, expr)
+            return
     
-    # Mesh should just be looking up stored values
-    mesh_points = []
-    for xi in range(points+1):
-        xval = xstart + xi/num * (xstop - xstart)
-        mesh_row = []
-        for yi in range(points+1):
-            yval = ystart + yi/num * (ystop - ystart)
-            mesh_row.append((xval, yval, eval_f(xval, yval)))
-        mesh_points.append(mesh_row)
+        if xstart >= xstop:
+            evaluation.message(plot_type, 'plln', xstop, expr)
+            return
 
-    for yi in range(points+1):
-        yval = ystart + yi/num * (ystop - ystart)
-        mesh_col = []
-        for xi in range(points+1):
-            xval = xstart + xi/num * (xstop - xstart)
-            mesh_col.append((xval, yval, eval_f(xval, yval)))
-        mesh_points.append(mesh_col)
+        # Mesh Option
+        mesh_option = self.get_option(options, 'Mesh', evaluation)
+        mesh = mesh_option.to_python()
+        if mesh not in ['None', 'Full', 'All']:
+            evaluation.message('Mesh', 'ilevels', mesh_option)
+            mesh = 'Full'
 
-    # Fix the grid near recursions
-    x_grids = [xstart + (xi / num) * (xstop - xstart) for xi in range(points +1)]
-    y_grids = [ystart + (yi / num) * (ystop - ystart) for yi in range(points +1)]
+        graphics = []
+        for indx, f in enumerate(functions):
+            stored = {}
+            def eval_f(x_value, y_value):
+                value = stored.get((x_value, y_value), False)
+                if value == False:
+                    value = quiet_evaluate(f, {x: Real(x_value), y: Real(y_value)}, evaluation)
+                    #value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation)
+                    #value = chop(value).get_real_value()
+                    if value is not None:
+                        value = float(value)
+                    stored[(x_value, y_value)] = value
+                return value
+
+            v_borders = [None, None] 
+
+            triangles = []
+
+            eps = 0.01
+
+            def triangle(x1, y1, x2, y2, x3, y3, depth=None):
+                if depth is None:
+                    x1, x2, x3 = [xstart + value * (xstop - xstart) for value in (x1, x2, x3)]
+                    y1, y2, y3 = [ystart + value * (ystop - ystart) for value in (y1, y2, y3)]
+                    depth = 0
+                v1, v2, v3 = eval_f(x1, y1), eval_f(x2, y2), eval_f(x3, y3)
+                for v in (v1, v2, v3):
+                    if v is not None:
+                        if v_borders[0] is None or v < v_borders[0]:
+                            v_borders[0] = v
+                        if v_borders[1] is None or v > v_borders[1]:
+                            v_borders[1] = v
+                if v1 is None or v2 is None or v3 is None:
+                    return
+                limit = (v_borders[1] - v_borders[0]) * eps
+                if depth < 2:
+                    if abs(v1 - v2) > limit:
+                        triangle(x1, y1, x3, y3, (x1+x2)/2, (y1+y2)/2, depth+1)
+                        triangle(x2, y2, x3, y3, (x1+x2)/2, (y1+y2)/2, depth+1)
+                        return
+                    if abs(v2 - v3) > limit:
+                        triangle(x1, y1, x2, y2, (x2+x3)/2, (y2+y3)/2, depth+1)
+                        triangle(x1, y1, x3, y3, (x2+x3)/2, (y2+y3)/2, depth+1)
+                        return
+                    if abs(v1 - v3) > limit:
+                        triangle(x2, y2, x1, y1, (x1+x3)/2, (y1+y3)/2, depth+1)
+                        triangle(x2, y2, x3, y3, (x1+x3)/2, (y1+y3)/2, depth+1)
+                        return
+                triangles.append([(x1, y1, v1), (x2, y2, v2), (x3, y3, v3)])
     
-    for (xval, yval) in stored.keys():
-        if xval in x_grids:
-            x_index = int((xval - xstart) * num / (xstop - xstart) + 0.5)
-            mesh_points[x_index].append((xval, yval, eval_f(xval, yval)))
-        if yval in y_grids:
-            y_index = int((yval - ystart) * num / (ystop - ystart) + points + 1.5)
-            mesh_points[y_index].append((xval, yval, eval_f(xval, yval)))
+            points = 7
+            num = points * 1.0
+            for xi in range(points):
+                for yi in range(points):
+                    triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, (xi+1)/num, yi/num)
+                    triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, xi/num, (yi+1)/num)
 
-    for mesh_line in mesh_points:
-        mesh_line.sort()
+            # Mesh should just be looking up stored values
+            mesh_points = []
+            for xi in range(points+1):
+                xval = xstart + xi/num * (xstop - xstart)
+                mesh_row = []
+                for yi in range(points+1):
+                    yval = ystart + yi/num * (ystop - ystart)
+                    mesh_row.append((xval, yval, eval_f(xval, yval)))
+                mesh_points.append(mesh_row)
 
-    v_min = v_max = None
-          
-    for t in triangles:
-        for tx, ty, v in t:
-            if v_min is None or v < v_min:
-                v_min = v
-            if v_max is None or v > v_max:
-                v_max = v
-    return triangles, mesh_points, v_min, v_max
+            for yi in range(points+1):
+                yval = ystart + yi/num * (ystop - ystart)
+                mesh_col = []
+                for xi in range(points+1):
+                    xval = xstart + xi/num * (xstop - xstart)
+                    mesh_col.append((xval, yval, eval_f(xval, yval)))
+                mesh_points.append(mesh_col)
 
-class Plot3D(Builtin):
+            # Fix the grid near recursions
+            x_grids = [xstart + (xi / num) * (xstop - xstart) for xi in range(points +1)]
+            y_grids = [ystart + (yi / num) * (ystop - ystart) for yi in range(points +1)]
+
+            for (xval, yval) in stored.keys():
+                if xval in x_grids:
+                    x_index = int((xval - xstart) * num / (xstop - xstart) + 0.5)
+                    mesh_points[x_index].append((xval, yval, eval_f(xval, yval)))
+                if yval in y_grids:
+                    y_index = int((yval - ystart) * num / (ystop - ystart) + points + 1.5)
+                    mesh_points[y_index].append((xval, yval, eval_f(xval, yval)))
+
+            for mesh_line in mesh_points:
+                mesh_line.sort()
+
+            v_min = v_max = None
+
+            for t in triangles:
+                for tx, ty, v in t:
+                    if v_min is None or v < v_min:
+                        v_min = v
+                    if v_max is None or v > v_max:
+                        v_max = v
+            graphics.extend(self.construct_graphics(triangles, mesh_points, v_min, v_max, options, evaluation))
+        return self.final_graphics(graphics, options)
+
+class Plot3D(_Plot3D):
     """
     <dl>
     <dt>'Plot3D[$f$, {$x$, $xmin$, $xmax$}, {$y$, $ymin$, $ymax$}]'
@@ -523,41 +535,36 @@ class Plot3D(Builtin):
         'Mesh': 'Full',
     })
 
-    def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
-        'Plot3D[functions_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[Plot3D]]'
+    def get_functions_param(self, functions):
         if functions.has_form('List', None):
-            functions = functions.leaves
+            return functions.leaves
         else:
-            functions = [functions]
+            return [functions]
 
-        # Mesh Option
+    def construct_graphics(self, triangles, mesh_points, v_min, v_max, options, evaluation):
         mesh_option = self.get_option(options, 'Mesh', evaluation)
         mesh = mesh_option.to_python()
-        if mesh not in ['None', 'Full', 'All']:
-            evaluation.message('Mesh', 'ilevels', mesh_option)
-            mesh = 'Full'
 
         graphics = []
-        for index, f in enumerate(functions):
-            triangles, mesh_points, v_min, v_max = apply_3d(self, 'Plot3D', f, x, xstart, xstop, y, ystart, ystop, evaluation, options)
+        for p1, p2, p3 in triangles:
+            graphics.append(Expression('Polygon', Expression('List', Expression('List', *p1), Expression('List', *p2), Expression('List', *p3))))
+        # Add the Grid
+        if mesh == 'Full':
+            for xi in range(len(mesh_points)):
+                line = []
+                for yi in range(len(mesh_points[xi])):
+                    line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1], mesh_points[xi][yi][2]))
+                graphics.append(Expression('Line', Expression('List', *line)))
+        elif mesh == 'All':
             for p1, p2, p3 in triangles:
-                graphics.append(Expression('Polygon', Expression('List', Expression('List', *p1), Expression('List', *p2), Expression('List', *p3))))
-            # Add the Grid
-            if mesh == 'Full':
-                for xi in range(len(mesh_points)):
-                    line = []
-                    for yi in range(len(mesh_points[xi])):
-                        line.append(Expression('List', mesh_points[xi][yi][0], mesh_points[xi][yi][1], mesh_points[xi][yi][2]))
-                    graphics.append(Expression('Line', Expression('List', *line)))
-            elif mesh == 'All':
-                for p1, p2, p3 in triangles:
-                    line = [from_python(p1),from_python(p2), from_python(p3)]
-                    graphics.append(Expression('Line', Expression('List', *line)))
-        
-        result = Expression('Graphics3D', Expression('List', *graphics),  *options_to_rules(options))
-        return result
+                line = [from_python(p1),from_python(p2), from_python(p3)]
+                graphics.append(Expression('Line', Expression('List', *line)))
+        return graphics
 
-class DensityPlot(Builtin):
+    def final_graphics(self, graphics, options):
+        return Expression('Graphics3D', Expression('List', *graphics),  *options_to_rules(options))
+
+class DensityPlot(_Plot3D):
     """
     <dl>
     <dt>'DensityPlot[$f$, {$x$, $xmin$, $xmax$}, {$y$, $ymin$, $ymax$}]'
@@ -588,23 +595,18 @@ class DensityPlot(Builtin):
     options.update({
         'Axes': 'False',
         'AspectRatio': '1',
+        'Mesh': 'None',
         'Frame': 'True',
         'ColorFunction': 'Automatic',
         'ColorFunctionScaling': 'True',
-        'Mesh': 'None',
     })
-    
-    def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
-        'DensityPlot[functions_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[DensityPlot]]'
-        expr = Expression('Plot', functions, Expression('List', x, xstart, xstop), 
-            Expression('List', y, ystart, ystop), *options_to_rules(options))
 
-        # Mesh Option
+    def get_functions_param(self, functions):
+        return [functions]
+
+    def construct_graphics(self, triangles, mesh_points, v_min, v_max, options, evaluation):
         mesh_option = self.get_option(options, 'Mesh', evaluation)
         mesh = mesh_option.to_python()
-        if mesh not in ['None', 'Full', 'All']:
-            evaluation.message('Mesh', 'ilevels', mesh_option)
-            mesh = 'None'
 
         color_function = self.get_option(options, 'ColorFunction', evaluation, pop=True)
         color_function_scaling = self.get_option(options, 'ColorFunctionScaling', evaluation, pop=True)
@@ -626,9 +628,8 @@ class DensityPlot(Builtin):
             color_function_max = color_function.leaves[2].leaves[1].get_real_value()
 
         color_function_scaling = color_function_scaling.is_true()
-
-        triangles, mesh_points, v_min, v_max = apply_3d(self, 'DensityPlot', functions, x, xstart, xstop, y, ystart, ystop, evaluation, options)
         v_range = v_max - v_min
+
         if v_range == 0:
             v_range = 1
 
@@ -676,7 +677,8 @@ class DensityPlot(Builtin):
             for p1, p2, p3 in triangles:
                 line = [from_python(p1[:2]), from_python(p2[:2]), from_python(p3[:2])]
                 graphics.append(Expression('Line', Expression('List', *line)))
-            
-        result = Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
-        return result
+        return graphics
+
+    def final_graphics(self, graphics, options):
+        return Expression('Graphics', Expression('List', *graphics),  *options_to_rules(options))
 
