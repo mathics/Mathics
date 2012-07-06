@@ -371,10 +371,20 @@ class Plot(Builtin):
 
 
 class _Plot3D(Builtin):
+    messages = {
+        'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
+        'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
+        'invmesh': "Mesh must be one of {None, Full, All}. Using Mesh->None.",
+    }
+
     def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
         '%(name)s[functions_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[%(name)s]]'
+        xexpr_limits = Expression('List', x, xstart, xstop)
+        yexpr_limits = Expression('List', y, ystart, ystop)
+        expr = Expression(self.get_name(), functions, xexpr_limits, yexpr_limits, *options_to_rules(options))
 
         functions = self.get_functions_param(functions)
+        plot_name = self.get_name()
 
         x_name = x.get_name()
         y_name = y.get_name()
@@ -383,17 +393,17 @@ class _Plot3D(Builtin):
             xstart, xstop, ystart, ystop = [value.to_number(n_evaluation=evaluation) for value in
                 (xstart, xstop, ystart, ystop)]
         except NumberError, exc:
-            expr = Expression(plot_type, functions, Expression('List', x, xstart, xstop),
+            expr = Expression(plot_name, functions, Expression('List', x, xstart, xstop),
                 Expression('List', y, ystart, ystop), *options_to_rules(options))
-            evaluation.message(plot_type, 'plln', exc.value, expr)
+            evaluation.message(plot_name, 'plln', value, expr)
             return
 
         if ystart >= ystop:
-            evaluation.message(plot_type, 'plln', ystop, expr)
+            evaluation.message(plot_name, 'plln', ystop, expr)
             return
     
         if xstart >= xstop:
-            evaluation.message(plot_type, 'plln', xstop, expr)
+            evaluation.message(plot_name, 'plln', xstop, expr)
             return
 
         # Mesh Option
@@ -621,7 +631,7 @@ class DensityPlot(_Plot3D):
                 color_function_max = func.leaves[2].leaves[1].get_real_value()
                 color_function = Expression('Function', Expression(func.leaves[3], Expression('Slot', 1)))
             else:
-                evaluation.message(plot_type, 'color', func)
+                evaluation.message('DensityPlot', 'color', func)
                 return
         if color_function.has_form('ColorDataFunction', 4):
             color_function_min = color_function.leaves[2].leaves[0].get_real_value()
