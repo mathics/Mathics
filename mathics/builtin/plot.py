@@ -326,9 +326,9 @@ class _Plot(Builtin):
         options['PlotRange'] = from_python([x_range, y_range])
         
         if mesh != 'None':
-            for indx, hue in enumerate(function_hues):
+            for hue, points in zip(function_hues, mesh_points):
                 graphics.append(Expression('Hue', hue, 0.6, 0.6))
-                for x, y in mesh_points[indx]:
+                for x, y in points:
                     graphics.append(Expression('Disk', Expression('List', x, y), 
                         Expression('List', 0.003 / mesh_xscale, 0.005 / mesh_yscale))
                     )
