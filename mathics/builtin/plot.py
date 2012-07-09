@@ -172,7 +172,7 @@ class _Plot(Builtin):
                 maxrecursion = 0
                 raise ValueError
         except ValueError:
-            evaluation.message(self.get_name(), 'invmaxrec', maxrecursion_option, max_recursion_limit)
+            evaluation.message(self.get_name(), 'invmaxrec', maxrecursion, max_recursion_limit)
         assert isinstance(maxrecursion, int)
 
         # constants to generate colors
@@ -203,6 +203,7 @@ class _Plot(Builtin):
                 ymin, ymax = 0, 1
             return zero_to_one(xmax - xmin), zero_to_one(ymax - ymin)
         
+        function_hues = []
         base_plot_points = []   # list of points in base subdivision
         plot_points = []        # list of all plotted points
         mesh_points = []
@@ -210,6 +211,7 @@ class _Plot(Builtin):
         for index, f in enumerate(functions):
             points = []
             xvalues = [] # x value for each point in points
+            tmp_mesh_points = [] # For this function only
             continuous = False
             steps = 57
             d = (stop - start) / steps
@@ -241,7 +243,7 @@ class _Plot(Builtin):
 
             if mesh == 'Full':
                 for line in points:
-                    mesh_points.extend(line)
+                    tmp_mesh_points.extend(line)
 
             # Adaptive Sampling - loop again and interpolate highly angled sections
             ang_thresh = cos(pi / 180)    # Cos of the maximum angle between successive line segments
@@ -290,7 +292,12 @@ class _Plot(Builtin):
 
             if mesh == 'All':
                 for line in points:
-                    mesh_points.extend(line)
+                    tmp_mesh_points.extend(line)
+
+            if mesh != 'None':
+                mesh_points.append(tmp_mesh_points)
+
+            function_hues.append(hue)
 
             if index % 4 == 0:
                 hue += hue_pos
@@ -319,10 +326,12 @@ class _Plot(Builtin):
         options['PlotRange'] = from_python([x_range, y_range])
         
         if mesh != 'None':
-            for x, y in mesh_points:
-                graphics.append(Expression('Disk', Expression('List', x, y), 
-                    Expression('List', 0.003 / mesh_xscale, 0.005 / mesh_yscale))
-                )
+            for hue, points in zip(function_hues, mesh_points):
+                graphics.append(Expression('Hue', hue, 0.6, 0.6))
+                for x, y in points:
+                    graphics.append(Expression('Disk', Expression('List', x, y), 
+                        Expression('List', 0.003 / mesh_xscale, 0.005 / mesh_yscale))
+                    )
                 #TODO handle non-default AspectRatio
         
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
