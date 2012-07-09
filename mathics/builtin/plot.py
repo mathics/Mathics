@@ -6,6 +6,7 @@ Plotting
 
 import re
 from math import floor, cos, pi, sqrt
+import numbers
 
 from mathics.core.expression import Expression, Real, NumberError, Symbol, String, from_python
 from mathics.builtin.base import Builtin
@@ -131,7 +132,7 @@ class _Plot(Builtin):
             if range in ('Automatic', 'All'):
                 return True
             if isinstance(range, list) and len(range) == 2:
-                if isinstance(range[0], float) and isinstance(range[1], float):
+                if isinstance(range[0], numbers.Real) and isinstance(range[1], numbers.Real):
                     return True
             return False
         plotrange_option = self.get_option(options, 'PlotRange', evaluation)
@@ -376,14 +377,14 @@ class Plot(_Plot):
     
     def get_plotrange(self, plotrange, start, stop):
         x_range = y_range = None
-        if isinstance(plotrange, float):
+        if isinstance(plotrange, numbers.Real):
             plotrange = ['Full', [-plotrange, plotrange]]
         if plotrange == 'Automatic':
             plotrange = ['Full', 'Automatic']
         elif plotrange == 'All':
             plotrange = ['All', 'All']
         if isinstance(plotrange, list) and len(plotrange) == 2:
-            if isinstance(plotrange[0], float) and isinstance(plotrange[1], float):
+            if isinstance(plotrange[0], numbers.Real) and isinstance(plotrange[1], numbers.Real):
                 x_range, y_range = 'Full', plotrange
             else:
                 x_range, y_range = plotrange
@@ -431,14 +432,14 @@ class ParametricPlot(_Plot):
     
     def get_plotrange(self, plotrange, start, stop):
         x_range = y_range = None
-        if isinstance(plotrange, float):
+        if isinstance(plotrange, numbers.Real):
             plotrange = [[-plotrange, plotrange], [-plotrange, plotrange]]
         if plotrange == 'Automatic':
             plotrange = ['Automatic', 'Automatic']
         elif plotrange == 'All':
             plotrange = ['All', 'All']
         if isinstance(plotrange, list) and len(plotrange) == 2:
-            if isinstance(plotrange[0], float) and isinstance(plotrange[1], float):
+            if isinstance(plotrange[0], numbers.Real) and isinstance(plotrange[1], numbers.Real):
                 x_range = [-plotrange[0], plotrange[1]]
                 y_range = [-plotrange[1], plotrange[1]]
             else:
