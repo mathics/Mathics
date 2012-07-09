@@ -158,9 +158,10 @@ function translateDOMElement(element, svg) {
 		var text = element.nodeValue;
 		return $T(text);
 	}
+	var dom = null;
 	var nodeName = element.nodeName;
-	if (nodeName != 'meshgradient') {
-		var dom = createMathNode(element.nodeName);
+	if (nodeName != 'meshgradient' && nodeName != 'graphics3d') {
+		dom = createMathNode(element.nodeName);
 		for (var i = 0; i < element.attributes.length; ++i) {
 			var attr = element.attributes[i];
 			if (attr.nodeName != 'ox' && attr.nodeName != 'oy')
@@ -209,12 +210,30 @@ function translateDOMElement(element, svg) {
 		}
 	}
 	var object = null;
-	if (nodeName == 'svg') {
-		object = createMathNode('mspace');
-		object.setAttribute('width', dom.getAttribute('width') + 'px');
-		object.setAttribute('height', dom.getAttribute('height') + 'px');
-		svg = dom;
+	if (nodeName == 'graphics3d') {
+		alert(element.getAttribute('data'));
+		var data = element.getAttribute('data').evalJSON();
+		//var div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+		var div = document.createElement('div');
+		drawGraphics3D(div, data);
+		dom = div;
 	}
+	if (nodeName == 'svg' || nodeName == 'graphics3d') {
+		// create <mspace> that will contain the graphics
+		object = createMathNode('mspace');
+		var width, height;
+		if (nodeName == 'svg') {
+			width = dom.getAttribute('width');
+			height = dom.getAttribute('height');
+		} else {
+			// TODO: calculate appropriate height and recalculate on every view change 
+			width = height = '400';
+		}
+		object.setAttribute('width', width  + 'px');
+		object.setAttribute('height', height + 'px');
+	}
+	if (nodeName == 'svg')
+		svg = dom;
 	var rows = [[]];
 	$A(element.childNodes).each(function(child) {
 		if (child.nodeName == 'mspace' && child.getAttribute('linebreak') == 'newline')
@@ -306,6 +325,7 @@ function setResult(ul, results) {
 	});
 	MathJax.Hub.Queue(["Typeset", MathJax.Hub, ul]);
 	MathJax.Hub.Queue(function() {
+		// inject SVG and other non-MathML objects into corresponding <mspace>s
 		ul.select('.mspace').each(function(mspace) {
 			var id = mspace.getAttribute('id').substr(objectsPrefix.length);
 			var object = objects[id];

@@ -795,6 +795,7 @@ class Expression(BaseExpression):
             try:
                 return box_construct.boxes_to_xml(self.leaves, **options)
             except BoxConstructError:
+                raise # uncomment this to see what is going wrong in constructing boxes
                 raise BoxError(self, 'xml')
         name = self.head.get_name()
         if name == 'RowBox' and len(self.leaves) == 1 and self.leaves[0].get_head_name() == 'List':
