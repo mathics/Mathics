@@ -8,7 +8,8 @@ from mathics.core.expression import NumberError
 from mathics.builtin.base import BoxConstruct, BoxConstructError
 from graphics import Graphics, GraphicsBox, _GraphicsElements, PolygonBox
 
-import simplejson as json
+from django.utils import simplejson as json
+
 from django.utils.html import escape as escape_html
 
 def coords3D(value):
