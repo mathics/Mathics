@@ -211,9 +211,7 @@ function translateDOMElement(element, svg) {
 	}
 	var object = null;
 	if (nodeName == 'graphics3d') {
-		alert(element.getAttribute('data'));
 		var data = element.getAttribute('data').evalJSON();
-		//var div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
 		var div = document.createElement('div');
 		drawGraphics3D(div, data);
 		dom = div;
