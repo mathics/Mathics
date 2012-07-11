@@ -113,11 +113,13 @@ class _Plot(Builtin):
         'MaxRecursion': 'Automatic',
         'Mesh': 'None',
         'PlotRange': 'Automatic',
+        'PlotPoints': 'None',
     })
 
     messages = {
         'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
         'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
+        'invpltpts': "Value of PlotPoints -> `1` is not a positive integer.",
     }
 
     def apply(self, functions, x, start, stop, evaluation, options):
@@ -166,6 +168,15 @@ class _Plot(Builtin):
         if mesh not in ['None', 'Full', 'All']:
             evaluation.message('Mesh', 'ilevels', mesh_option)
             mesh = 'None'
+
+        # PlotPoints Option
+        plotpoints_option = self.get_option(options, 'PlotPoints', evaluation)
+        plotpoints = plotpoints_option.to_python()
+        if plotpoints == 'None':
+            plotpoints = 57
+        if not (isinstance(plotpoints, int) and plotpoints > 0):
+            evaluation.message(self.get_name(), 'invpltpts', plotpoints)
+            plotpoints = 57
 
         # MaxRecursion Option
         max_recursion_limit = 15
@@ -229,9 +240,8 @@ class _Plot(Builtin):
             xvalues = [] # x value for each point in points
             tmp_mesh_points = [] # For this function only
             continuous = False
-            steps = 57
-            d = (stop - start) / steps
-            for i in range(steps + 1):
+            d = (stop - start) / plotpoints
+            for i in range(plotpoints + 1):
                 x_value = start + i * d
                 point = self.eval_f(f, x_name, x_value, evaluation)
                 if point is not None:
@@ -349,6 +359,7 @@ class _Plot3D(Builtin):
         'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
         'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
         'invmesh': "Mesh must be one of {None, Full, All}. Using Mesh->None.",
+        'invpltpts': "Value of PlotPoints -> `1` is not a positive integer or appropriate list of positive integers.",
     }
 
     def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
@@ -386,6 +397,24 @@ class _Plot3D(Builtin):
         if mesh not in ['None', 'Full', 'All']:
             evaluation.message('Mesh', 'ilevels', mesh_option)
             mesh = 'Full'
+
+        # PlotPoints Option
+        plotpoints_option = self.get_option(options, 'PlotPoints', evaluation)
+        plotpoints = plotpoints_option.to_python()
+
+        def check_plotpoints(steps):
+            if isinstance(steps, int) and steps > 0:
+                return True
+            return False
+
+        if plotpoints == 'None':
+            plotpoints = [7, 7]
+        elif check_plotpoints(plotpoints):
+            plotpoints = [plotpoints, plotpoints]
+
+        if not (isinstance(plotpoints, list) and len(plotpoints) == 2 and check_plotpoints(plotpoints[0]) and check_plotpoints(plotpoints[1])):
+            evaluation.message(self.get_name(), 'invpltpts', plotpoints)
+            plotpoints = [7, 7]
 
         graphics = []
         for indx, f in enumerate(functions):
@@ -437,41 +466,41 @@ class _Plot3D(Builtin):
                         return
                 triangles.append([(x1, y1, v1), (x2, y2, v2), (x3, y3, v3)])
 
-            points = 7
-            num = points * 1.0
-            for xi in range(points):
-                for yi in range(points):
-                    triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, (xi+1)/num, yi/num)
-                    triangle(xi/num, yi/num, (xi+1)/num, (yi+1)/num, xi/num, (yi+1)/num)
+            numx = plotpoints[0] * 1.0
+            numy = plotpoints[1] * 1.0
+            for xi in range(plotpoints[0]):
+                for yi in range(plotpoints[1]):
+                    triangle(xi/numx, yi/numy, (xi+1)/numx, (yi+1)/numy, (xi+1)/numx, yi/numy)
+                    triangle(xi/numx, yi/numy, (xi+1)/numx, (yi+1)/numy, xi/numx, (yi+1)/numy)
 
             # Mesh should just be looking up stored values
             mesh_points = []
-            for xi in range(points+1):
-                xval = xstart + xi/num * (xstop - xstart)
+            for xi in range(plotpoints[0]+1):
+                xval = xstart + xi/numx * (xstop - xstart)
                 mesh_row = []
-                for yi in range(points+1):
-                    yval = ystart + yi/num * (ystop - ystart)
+                for yi in range(plotpoints[1]+1):
+                    yval = ystart + yi/numy * (ystop - ystart)
                     mesh_row.append((xval, yval, eval_f(xval, yval)))
                 mesh_points.append(mesh_row)
 
-            for yi in range(points+1):
-                yval = ystart + yi/num * (ystop - ystart)
+            for yi in range(plotpoints[1]+1):
+                yval = ystart + yi/numy * (ystop - ystart)
                 mesh_col = []
-                for xi in range(points+1):
-                    xval = xstart + xi/num * (xstop - xstart)
+                for xi in range(plotpoints[0]+1):
+                    xval = xstart + xi/numx * (xstop - xstart)
                     mesh_col.append((xval, yval, eval_f(xval, yval)))
                 mesh_points.append(mesh_col)
 
             # Fix the grid near recursions
-            x_grids = [xstart + (xi / num) * (xstop - xstart) for xi in range(points +1)]
-            y_grids = [ystart + (yi / num) * (ystop - ystart) for yi in range(points +1)]
+            x_grids = [xstart + (xi / numx) * (xstop - xstart) for xi in range(plotpoints[0] +1)]
+            y_grids = [ystart + (yi / numy) * (ystop - ystart) for yi in range(plotpoints[1] +1)]
 
             for (xval, yval) in stored.keys():
                 if xval in x_grids:
-                    x_index = int((xval - xstart) * num / (xstop - xstart) + 0.5)
+                    x_index = int((xval - xstart) * numx / (xstop - xstart) + 0.5)
                     mesh_points[x_index].append((xval, yval, eval_f(xval, yval)))
                 if yval in y_grids:
-                    y_index = int((yval - ystart) * num / (ystop - ystart) + points + 1.5)
+                    y_index = int((yval - ystart) * numy / (ystop - ystart) + plotpoints[0] + 1.5)
                     mesh_points[y_index].append((xval, yval, eval_f(xval, yval)))
 
             for mesh_line in mesh_points:
@@ -632,6 +661,7 @@ class Plot3D(_Plot3D):
         'Axes': 'False',
         'AspectRatio': '1',
         'Mesh': 'Full',
+        'PlotPoints': 'None',
     })
 
     def get_functions_param(self, functions):
@@ -698,6 +728,7 @@ class DensityPlot(_Plot3D):
         'Frame': 'True',
         'ColorFunction': 'Automatic',
         'ColorFunctionScaling': 'True',
+        'PlotPoints': 'None',
     })
 
     def get_functions_param(self, functions):
