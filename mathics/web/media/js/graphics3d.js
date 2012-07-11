@@ -1,5 +1,22 @@
+function drawPoint(prim) {
+  var mesh, pointgeom, pointmat, tmpvertex;
+
+  console.log("drawPoint");
+
+  pointgeom = new THREE.Geometry();
+  for (var i = 0; i < prim.coords.length; i++) {
+    tmpvertex = new THREE.Vector3(prim.coords[i][0][0], prim.coords[i][0][1], prim.coords[i][0][2]);
+    pointgeom.vertices.push(tmpvertex);
+  }
+
+  pointmat = new THREE.ParticleBasicMaterial({ color: 0xFFFFFF, size: 20 });
+
+  mesh = new THREE.ParticleSystem(pointgeom, pointmat);
+
+}
+
 function drawLine(prim) {
-  var mesh, linegeom, tmpvertex;
+  var mesh, linegeom, linemat, tmpvertex;
 
   // console.log("drawLine");
 
@@ -10,7 +27,9 @@ function drawLine(prim) {
     linegeom.vertices.push(tmpvertex);
   }
 
-  mesh = new THREE.Line(linegeom, new THREE.LineBasicMaterial({color: 0x000000}));
+  linemat = new THREE.LineBasicMaterial({color: 0x000000});
+
+  mesh = new THREE.Line(linegeom, linemat);
 
   // These three lines prevent grid from being put on the wrong side
   mesh.material.polygonOffset = true;
@@ -168,11 +187,14 @@ function drawGraphics3D(container, data) {
   for (var indx = 0; indx < data.elements.length; indx++) {
     var type = data.elements[indx].type;
     switch(type) {
-      case "polygon":
-        scene.add(drawPolygon(data.elements[indx]));
-        break;
+      case "point":
+        scene.add(drawPoint(data.elements[indx]));
+        break
       case "line":
         scene.add(drawLine(data.elements[indx]));
+        break;
+      case "polygon":
+        scene.add(drawPolygon(data.elements[indx]));
         break;
       default:
         alert("Error: Unknown type passed to drawGraphics3D");
