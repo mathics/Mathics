@@ -9,7 +9,7 @@ function drawPoint(prim) {
     pointgeom.vertices.push(tmpvertex);
   }
 
-  pointmat = new THREE.ParticleBasicMaterial({ color: 0x000000, size: 0.1 });
+  pointmat = new THREE.ParticleBasicMaterial({ color: 0x000000, size: 0.05 });
 
   mesh = new THREE.ParticleSystem(pointgeom, pointmat);
 
@@ -317,6 +317,8 @@ function drawGraphics3D(container, data) {
   }
 
   function onDocumentMouseWheel( event ) {
+    event.preventDefault();
+
     if (camera instanceof THREE.OrthographicCamera) {
       if (event.wheelDeltaY > 0) {
         camera.left += 0.1;
