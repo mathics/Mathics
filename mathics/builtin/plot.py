@@ -337,20 +337,14 @@ class _Plot(Builtin):
         y_range = get_plot_range([y for x, y in base_plot_points],
             [y for x, y in plot_points], y_range)
         
-        mesh_xscale = 1. / zero_to_one(x_range[1] - x_range[0])
-        mesh_yscale = 1. / zero_to_one(y_range[1] - y_range[0])
-        
         options['PlotRange'] = from_python([x_range, y_range])
         
         if mesh != 'None':
             for hue, points in zip(function_hues, mesh_points):
                 graphics.append(Expression('Hue', hue, 0.6, 0.6))
-                for x, y in points:
-                    graphics.append(Expression('Disk', Expression('List', x, y), 
-                        Expression('List', 0.003 / mesh_xscale, 0.005 / mesh_yscale))
-                    )
-                #TODO handle non-default AspectRatio
-        
+                meshpoints = [Expression('List', x, y) for x, y in points]
+                graphics.append(Expression('Point', Expression('List', *meshpoints)))
+
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
 
 
