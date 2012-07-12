@@ -548,6 +548,9 @@ class PointBox(_Polyline):
             if len(item.leaves) != 1:
                 raise BoxConstructError
             points = item.leaves[0]
+            if points.has_form('List', None) and len(points.leaves) != 0:
+                if all(not leaf.has_form('List', None) for leaf in points.leaves):
+                    points = Expression('List', points)
             self.do_init(graphics, points)
         else:
             raise BoxConstructError
