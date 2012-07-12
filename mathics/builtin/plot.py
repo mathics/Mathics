@@ -114,12 +114,14 @@ class _Plot(Builtin):
         'Mesh': 'None',
         'PlotRange': 'Automatic',
         'PlotPoints': 'None',
+        'Exclusions': 'Automatic',
     })
 
     messages = {
         'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
         'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
         'invpltpts': "Value of PlotPoints -> `1` is not a positive integer.",
+        'invexcl': "Value of Exclusions -> `1` is not None, Automatic or an appropriate list of constraints.", 
     }
 
     def apply(self, functions, x, start, stop, evaluation, options):
@@ -202,6 +204,35 @@ class _Plot(Builtin):
             evaluation.message(self.get_name(), 'invmaxrec', maxrecursion, max_recursion_limit)
         assert isinstance(maxrecursion, int)
 
+        # Exclusions Option
+        def check_exclusion(excl):
+            if isinstance(excl, list):
+                return all(check_exclusion(e) for e in excl)
+            if excl == 'Automatic':
+                return True
+            if not isinstance(excl, numbers.Real):
+                return False
+            return True
+
+        exclusions_option = self.get_option(options, 'Exclusions', evaluation)
+        exclusions = exclusions_option.to_python(n_evaluation=evaluation)
+        #TODO Turn expressions into points E.g. Sin[x] == 0 becomes 0, 2 Pi...
+
+        if exclusions in ['None', ['None']]:
+            exclusions = 'None'
+        elif not isinstance(exclusions, list):
+            exclusions = [exclusions]
+
+            if isinstance(exclusions, list) and all(check_exclusion(excl) for excl in exclusions):
+                pass
+            
+            else:
+                evaluation.message(self.get_name(), 'invexcl', exclusions_option)
+                exclusions = ['Automatic']
+
+        # exclusions is now either 'None' or a list of reals and 'Automatic'
+        assert (exclusions == 'None' or isinstance(exclusions, list))
+
         # constants to generate colors
         hue = 0.67
         hue_pos = 0.236068
@@ -271,6 +302,29 @@ class _Plot(Builtin):
                 for line in points:
                     tmp_mesh_points.extend(line)
 
+            def find_excl(excl):
+                # Find which line the exclusion is in
+                for l in range(len(xvalues)):    #TODO: Binary Search faster?
+                    if xvalues[l][0] <= excl and xvalues[l][-1] >= excl:
+                        break
+                    if xvalues[l][-1] <= excl and xvalues[min(l+1, len(xvalues)-1)][0] >= excl: 
+                        return min(l+1, len(xvalues)-1), 0, False
+                xi = 0
+                for xi in range(len(xvalues[l])-1):
+                    if xvalues[l][xi] <= excl and xvalues[l][xi+1] >= excl:
+                        return l, xi+1, True
+                return l, xi+1, False
+
+            if exclusions != 'None':
+                for excl in exclusions:
+                        l, xi, split_required = find_excl(excl)
+                        if split_required:
+                            xvalues.insert(l+1,xvalues[l][xi:])
+                            xvalues[l] = xvalues[l][:xi]
+                            points.insert(l+1,points[l][xi:])
+                            points[l] = points[l][:xi]
+                        #assert(xvalues[l][-1] <= excl and excl <= xvalues[l+1][0])
+
             # Adaptive Sampling - loop again and interpolate highly angled sections
             ang_thresh = cos(pi / 180)    # Cos of the maximum angle between successive line segments
             for line, line_xvalues in zip(points, xvalues):
@@ -309,6 +363,9 @@ class _Plot(Builtin):
                             i += incr
                         i += 1
                     
+            if exclusions == 'None':
+                points = [[(x,y) for line in points for x,y in line]]
+
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
             graphics.append(Expression('Line', Expression('List', *(Expression('List',
                 *(Expression('List', x, y) for x, y in line)) for line in points)
