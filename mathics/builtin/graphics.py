@@ -541,22 +541,25 @@ class _Polyline(_GraphicsElement):
         return result
     
 class PointBox(_Polyline):
-    def init(self, graphics, style, item=None, lines=None):
+    def init(self, graphics, style, item=None):
         super(PointBox, self).init(graphics, item, style)
-        self.edge_color, _ = style.get_style(_Color, face_element=False)
+        self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
         if item is not None:
             if len(item.leaves) != 1:
                 raise BoxConstructError
             points = item.leaves[0]
             self.do_init(graphics, points)
-        elif lines is not None:
-            self.lines = lines
         else:
             raise BoxConstructError
     
     def to_svg(self):
-        #TODO
-        return ""
+        l = self.style.get_line_width(face_element=False)
+        style = create_css(edge_color=self.edge_color, stroke_width=l, face_color=self.face_color)
+        svg = ''
+        for line in self.lines:
+            for coords in line:
+                svg += '<circle cx="%f" cy="%f" r="1" style="%s" />' % (coords.pos()[0], coords.pos()[1], style)
+        return svg
     
     def to_asy(self):
         #TODO
