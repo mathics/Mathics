@@ -1,7 +1,7 @@
 function drawPoint(prim) {
   var mesh, pointgeom, pointmat, tmpvertex;
 
-  console.log("drawPoint");
+  // console.log("drawPoint");
 
   pointgeom = new THREE.Geometry();
   for (var i = 0; i < prim.coords.length; i++) {
@@ -9,10 +9,11 @@ function drawPoint(prim) {
     pointgeom.vertices.push(tmpvertex);
   }
 
-  pointmat = new THREE.ParticleBasicMaterial({ color: 0xFFFFFF, size: 20 });
+  pointmat = new THREE.ParticleBasicMaterial({ color: 0x000000, size: 0.1 });
 
   mesh = new THREE.ParticleSystem(pointgeom, pointmat);
 
+  return(mesh);
 }
 
 function drawLine(prim) {

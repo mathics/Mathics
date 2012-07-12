@@ -19,7 +19,7 @@ class CoordinatesError(BoxConstructError):
 class ColorError(BoxConstructError):
     pass
     
-element_heads = ('Rectangle', 'Disk', 'Line', 'Circle', 'Polygon', 'Inset', 'Text')
+element_heads = ('Rectangle', 'Disk', 'Line', 'Point', 'Circle', 'Polygon', 'Inset', 'Text')
 color_heads = ('RGBColor', 'CMYKColor', 'Hue', 'GrayLevel')
 thickness_heads = ('Thickness', 'AbsoluteThickness', 'Thick', 'Thin')
 
@@ -540,6 +540,28 @@ class _Polyline(_GraphicsElement):
                 result.extend([(x-l,y-l), (x-l,y+l), (x+l,y-l), (x+l,y+l)])
         return result
     
+class PointBox(_Polyline):
+    def init(self, graphics, style, item=None, lines=None):
+        super(PointBox, self).init(graphics, item, style)
+        self.edge_color, _ = style.get_style(_Color, face_element=False)
+        if item is not None:
+            if len(item.leaves) != 1:
+                raise BoxConstructError
+            points = item.leaves[0]
+            self.do_init(graphics, points)
+        elif lines is not None:
+            self.lines = lines
+        else:
+            raise BoxConstructError
+    
+    def to_svg(self):
+        #TODO
+        return ""
+    
+    def to_asy(self):
+        #TODO
+        return ""
+
 class LineBox(_Polyline):
     def init(self, graphics, style, item=None, lines=None):
         super(LineBox, self).init(graphics, item, style)
@@ -571,7 +593,7 @@ class LineBox(_Polyline):
             path = '--'.join(['(%s,%s)' % coords.pos() for coords in line])
             asy += 'draw(%s, %s);' % (path, pen)
         return asy
-        
+
 class Polygon(Builtin):
     pass
     
@@ -1514,6 +1536,7 @@ GLOBALS = {
     'LineBox': LineBox,
     'CircleBox': CircleBox,
     'PolygonBox': PolygonBox,
+    'PointBox': PointBox,
     'InsetBox': InsetBox,
     
     'RGBColor': RGBColor,
