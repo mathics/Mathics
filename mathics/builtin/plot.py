@@ -205,6 +205,7 @@ class _Plot(Builtin):
         assert isinstance(maxrecursion, int)
 
         # Exclusions Option
+        #TODO: Make exclusions option work properly with ParametricPlot
         def check_exclusion(excl):
             if isinstance(excl, list):
                 return all(check_exclusion(e) for e in excl)
@@ -317,12 +318,13 @@ class _Plot(Builtin):
 
             if exclusions != 'None':
                 for excl in exclusions:
-                        l, xi, split_required = find_excl(excl)
-                        if split_required:
-                            xvalues.insert(l+1,xvalues[l][xi:])
-                            xvalues[l] = xvalues[l][:xi]
-                            points.insert(l+1,points[l][xi:])
-                            points[l] = points[l][:xi]
+                        if excl != 'Automatic':
+                            l, xi, split_required = find_excl(excl)
+                            if split_required:
+                                xvalues.insert(l+1,xvalues[l][xi:])
+                                xvalues[l] = xvalues[l][:xi]
+                                points.insert(l+1,points[l][xi:])
+                                points[l] = points[l][:xi]
                         #assert(xvalues[l][-1] <= excl and excl <= xvalues[l+1][0])
 
             # Adaptive Sampling - loop again and interpolate highly angled sections
@@ -363,8 +365,8 @@ class _Plot(Builtin):
                             i += incr
                         i += 1
                     
-            if exclusions == 'None':
-                points = [[(x,y) for line in points for x,y in line]]
+            if exclusions == 'None':    # Join all the Lines
+                points = [[(x, y) for line in points for x, y in line]]
 
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
             graphics.append(Expression('Line', Expression('List', *(Expression('List',
