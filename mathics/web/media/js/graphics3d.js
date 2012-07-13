@@ -141,7 +141,7 @@ function drawGraphics3D(container, data) {
     0.5*(data.extent["ymin"] + data.extent["ymax"]), 
     0.5*(data.extent["zmin"] + data.extent["zmax"]));
 
-  var shift = new THREE.Vector3(0, 0, 0);
+  var focus = new THREE.Vector3(center.x, center.y, center.z);
 
   radius = 2*Math.sqrt(
    Math.pow(data.extent["xmax"]-data.extent["xmin"],2) +
@@ -152,15 +152,6 @@ function drawGraphics3D(container, data) {
   scene = new THREE.Scene();
   scene.position = center;
 
-  // Camera - TODO: Handle Different choices
-  /*
-  camera = new THREE.OrthographicCamera(
-    data.extent["xmin"], data.extent["xmax"],
-    data.extent["ymin"], data.extent["ymax"],
-    0.1, 2*radius
-  );
-  */
-
   camera = new THREE.PerspectiveCamera(
     35,             // Field of view
     800 / 600,      // Aspect ratio
@@ -168,12 +159,12 @@ function drawGraphics3D(container, data) {
     1000*radius     // Far plane
   );
 
-  camera.position.x = center.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180) + shift.x;
-  camera.position.z = center.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180) + shift.y;
-  camera.position.y = center.z + radius * Math.sin(phi * Math.PI / 180) + shift.z;
-
+  camera.position.x = focus.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+  camera.position.z = focus.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+  camera.position.y = focus.z + radius * Math.sin(phi * Math.PI / 180);
+  camera.lookAt(focus);
   camera.up = new THREE.Vector3(0,0,1);
-  camera.lookAt(new THREE.Vector3(scene.position.x + shift.x, scene.position.y + shift.y, scene.position.z + shift.z));
+
   scene.add(camera);
 
   // Axes
@@ -216,9 +207,9 @@ function drawGraphics3D(container, data) {
 
       function toScreenXY(position) {
         var camz = new THREE.Vector3(
-            center.x - camera.position.x,
-            center.y - camera.position.y,
-            center.z - camera.position.z
+            focus.x - camera.position.x,
+            focus.y - camera.position.y,
+            focus.z - camera.position.z
         );
         camz.normalize();
 
@@ -233,9 +224,9 @@ function drawGraphics3D(container, data) {
         camy.cross(camz, camx);
 
         var campos = new THREE.Vector3(
-            position.x - camera.position.x + center.x,
-            position.y - camera.position.y + center.y,
-            position.z - camera.position.z + center.z
+            position.x - camera.position.x + focus.x,
+            position.y - camera.position.y + focus.y,
+            position.z - camera.position.z + focus.z
         );
 
         var cam = new THREE.Vector3(
@@ -291,7 +282,7 @@ function drawGraphics3D(container, data) {
     onMouseDownPosition.x = event.clientX;
     onMouseDownPosition.y = event.clientY;
 
-    onMouseDownShift = new THREE.Vector3(shift.x, shift.y, shift.z);
+    onMouseDownFocus = new THREE.Vector3(focus.x, focus.y, focus.z);
   }
 
   function onDocumentMouseMove(event) {
@@ -309,9 +300,9 @@ function drawGraphics3D(container, data) {
         }
       //TODO: Panning
       var camz = new THREE.Vector3(
-          center.x - camera.position.x,
-          center.y - camera.position.y,
-          center.z - camera.position.z
+          focus.x - camera.position.x,
+          focus.y - camera.position.y,
+          focus.z - camera.position.z
       );
       camz.normalize();
 
@@ -325,20 +316,14 @@ function drawGraphics3D(container, data) {
       var camy = new THREE.Vector3();
       camy.cross(camz, camx);
 
-      /*
-      camera.position.x = center.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180) 
-        + radius * (camx.x * (event.clientX - onMouseDownPosition.x) + camy.x * (event.clientY - onMouseDownPosition.y)) / 400;
-      camera.position.y = center.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180) 
-        + radius * (camx.y * (event.clientX - onMouseDownPosition.x) + camy.y * (event.clientY - onMouseDownPosition.y)) / 400;
-     camera.position.z = center.z + radius * Math.sin(phi * Math.PI / 180) 
-        + radius * (camx.z * (event.clientX - onMouseDownPosition.x) + camy.z * (event.clientY - onMouseDownPosition.y)) / 400;
-      */
-      shift.x = onMouseDownShift.x + (radius / 400)*(camx.x * (event.clientX - onMouseDownPosition.x) + camy.x * (event.clientY - onMouseDownPosition.y));
-      shift.y = onMouseDownShift.y + (radius / 400)*(camx.y * (event.clientX - onMouseDownPosition.x) + camy.y * (event.clientY - onMouseDownPosition.y));
-      shift.z = onMouseDownShift.z + (radius / 400)*(camx.z * (event.clientX - onMouseDownPosition.x) + camy.z * (event.clientY - onMouseDownPosition.y));
-      camera.position.x = center.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180) + shift.x;
-      camera.position.y = center.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180) + shift.y;
-      camera.position.z = center.z + radius * Math.sin(phi * Math.PI / 180) + shift.z;
+      focus.x = onMouseDownFocus.x + (radius / 400)*(camx.x * (event.clientX - onMouseDownPosition.x) + camy.x * (event.clientY - onMouseDownPosition.y));
+      focus.y = onMouseDownFocus.y + (radius / 400)*(camx.y * (event.clientX - onMouseDownPosition.x) + camy.y * (event.clientY - onMouseDownPosition.y));
+      focus.z = onMouseDownFocus.z + (radius / 400)*(camx.z * (event.clientX - onMouseDownPosition.x) + camy.z * (event.clientY - onMouseDownPosition.y));
+
+      camera.position.x = focus.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+      camera.position.y = focus.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+      camera.position.z = focus.z + radius * Math.sin(phi * Math.PI / 180);
+      camera.lookAt(focus);
 
       } else if (event.ctrlKey) {
         // console.log("Zoom");
@@ -369,10 +354,10 @@ function drawGraphics3D(container, data) {
 
         phi = Math.max(Math.min(90, phi),-90);
 
-        camera.position.x = center.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180) + shift.x;
-        camera.position.y = center.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180); + shift.y;
-        camera.position.z = center.z + radius * Math.sin(phi * Math.PI / 180) + shift.z;
-        camera.lookAt(new THREE.Vector3(scene.position.x + shift.x, scene.position.y + shift.y, scene.position.z + shift.z));
+        camera.position.x = focus.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+        camera.position.y = focus.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+        camera.position.z = focus.z + radius * Math.sin(phi * Math.PI / 180);
+        camera.lookAt(focus);
       }
 
       render();
@@ -400,10 +385,10 @@ function drawGraphics3D(container, data) {
   onMouseDownPosition = new THREE.Vector2();
   autoRescale = true;
 
-  camera.position.x = center.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180) + shift.x;
-  camera.position.y = center.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180) + shift.y;
-  camera.position.z = center.z + radius * Math.sin(phi * Math.PI / 180) + shift.z;
-  camera.lookAt(new THREE.Vector3(scene.position.x + shift.x, scene.position.y + shift.y, scene.position.z + shift.z));
+  camera.position.x = focus.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+  camera.position.y = focus.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+  camera.position.z = focus.z + radius * Math.sin(phi * Math.PI / 180);
+  camera.lookAt(focus);
 
   ScaleInView();
   render();
