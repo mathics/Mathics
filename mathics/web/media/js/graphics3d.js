@@ -136,11 +136,13 @@ function drawGraphics3D(container, data) {
     tmpx, tmpy, tmpz, 
     theta = 45, onMouseDownTheta = 45, phi = 60, onMouseDownPhi = 60;
 
+  // Center of the scene
   var center = new THREE.Vector3(
     0.5*(data.extent["xmin"] + data.extent["xmax"]),
     0.5*(data.extent["ymin"] + data.extent["ymax"]), 
     0.5*(data.extent["zmin"] + data.extent["zmax"]));
 
+  // Where the camera is looking
   var focus = new THREE.Vector3(center.x, center.y, center.z);
 
   radius = 2*Math.sqrt(
@@ -159,10 +161,14 @@ function drawGraphics3D(container, data) {
     1000*radius     // Far plane
   );
 
-  camera.position.x = focus.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-  camera.position.z = focus.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-  camera.position.y = focus.z + radius * Math.sin(phi * Math.PI / 180);
-  camera.lookAt(focus);
+  function update_camera_position() {
+    camera.position.x = focus.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+    camera.position.y = focus.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+    camera.position.z = focus.z + radius * Math.sin(phi * Math.PI / 180);
+    camera.lookAt(focus);
+  }
+
+  update_camera_position();
   camera.up = new THREE.Vector3(0,0,1);
 
   scene.add(camera);
@@ -205,66 +211,53 @@ function drawGraphics3D(container, data) {
     renderer.render( scene, camera );
   };
 
-      function toScreenXY(position) {
-        var camz = new THREE.Vector3(
-            focus.x - camera.position.x,
-            focus.y - camera.position.y,
-            focus.z - camera.position.z
-        );
-        camz.normalize();
+  function toScreenXY(position) {
+    var camz = new THREE.Vector3(
+        focus.x - camera.position.x,
+        focus.y - camera.position.y,
+        focus.z - camera.position.z
+    );
+    camz.normalize();
 
-        var camx = new THREE.Vector3(
-            radius * Math.cos(phi * Math.PI / 180) * Math.cos(theta * Math.PI / 180),
-            - radius * Math.cos(phi * Math.PI / 180) * Math.sin(theta * Math.PI / 180),
-            0
-        );
-        camx.normalize();
+    var camx = new THREE.Vector3(
+        radius * Math.cos(phi * Math.PI / 180) * Math.cos(theta * Math.PI / 180),
+        - radius * Math.cos(phi * Math.PI / 180) * Math.sin(theta * Math.PI / 180),
+        0
+    );
+    camx.normalize();
 
-        var camy = new THREE.Vector3();
-        camy.cross(camz, camx);
+    var camy = new THREE.Vector3();
+    camy.cross(camz, camx);
 
-        var campos = new THREE.Vector3(
-            position.x - camera.position.x + focus.x,
-            position.y - camera.position.y + focus.y,
-            position.z - camera.position.z + focus.z
-        );
+    var campos = new THREE.Vector3(
+        position.x - camera.position.x + focus.x,
+        position.y - camera.position.y + focus.y,
+        position.z - camera.position.z + focus.z
+    );
 
-        var cam = new THREE.Vector3(
-            camx.dot(campos),
-            camy.dot(campos),
-            camz.dot(campos)
-        );
-        
-        return cam;
-      }
+    var cam = new THREE.Vector3(
+        camx.dot(campos),
+        camy.dot(campos),
+        camz.dot(campos)
+    );
+    
+    return cam;
+  }
 
-      function ScaleInView() {
-        if (camera instanceof THREE.OrthographicCamera) {
-          //
-        } else if (camera instanceof THREE.PerspectiveCamera) {
-          var tmp_fov = 0.0;
-        }
+  function ScaleInView() {
+    var tmp_fov = 0.0;
 
-        for (var i=0; i<8; i++) {
-          proj2d = toScreenXY(axes.geometry.vertices[i]);
+    for (var i=0; i<8; i++) {
+      proj2d = toScreenXY(axes.geometry.vertices[i]);
 
-      if (camera instanceof THREE.OrthographicCamera) {
-        //
-      } else if (camera instanceof THREE.PerspectiveCamera) {
-        angle = 57.296 * Math.max(
-            Math.abs(Math.atan(proj2d.x/proj2d.z)),
-            Math.abs(Math.atan(proj2d.y/proj2d.z))
-        );
-        tmp_fov = Math.max(tmp_fov, 2*angle);
-      }
+      angle = 57.296 * Math.max(
+         Math.abs(Math.atan(proj2d.x/proj2d.z)),
+         Math.abs(Math.atan(proj2d.y/proj2d.z))
+      );
+      tmp_fov = Math.max(tmp_fov, 2*angle);
     }
 
-    if (camera instanceof THREE.OrthographicCamera) {
-      //
-    } else if (camera instanceof THREE.PerspectiveCamera) {
-      camera.fov = tmp_fov;
-    }
-
+    camera.fov = tmp_fov;
     camera.updateProjectionMatrix();
   }
 
@@ -292,48 +285,44 @@ function drawGraphics3D(container, data) {
       if (event.shiftKey) {
         // console.log("Pan");
         if (! isShiftDown) {
-            isShiftDown = true;
-            onMouseDownPosition.x = event.clientX;
-            onMouseDownPosition.y = event.clientY;
-            autoRescale = false;
-            container.style.cursor = "move";
+          isShiftDown = true;
+          onMouseDownPosition.x = event.clientX;
+          onMouseDownPosition.y = event.clientY;
+          autoRescale = false;
+          container.style.cursor = "move";
         }
-      //TODO: Panning
-      var camz = new THREE.Vector3(
-          focus.x - camera.position.x,
-          focus.y - camera.position.y,
-          focus.z - camera.position.z
-      );
-      camz.normalize();
+        var camz = new THREE.Vector3(
+            focus.x - camera.position.x,
+            focus.y - camera.position.y,
+            focus.z - camera.position.z
+        );
+        camz.normalize();
 
-      var camx = new THREE.Vector3(
-          radius * Math.cos(phi * Math.PI / 180) * Math.cos(theta * Math.PI / 180),
-          - radius * Math.cos(phi * Math.PI / 180) * Math.sin(theta * Math.PI / 180),
-          0
-      );
-      camx.normalize();
+        var camx = new THREE.Vector3(
+            radius * Math.cos(phi * Math.PI / 180) * Math.cos(theta * Math.PI / 180),
+            - radius * Math.cos(phi * Math.PI / 180) * Math.sin(theta * Math.PI / 180),
+            0
+        );
+        camx.normalize();
 
-      var camy = new THREE.Vector3();
-      camy.cross(camz, camx);
+        var camy = new THREE.Vector3();
+        camy.cross(camz, camx);
 
-      focus.x = onMouseDownFocus.x + (radius / 400)*(camx.x * (event.clientX - onMouseDownPosition.x) + camy.x * (event.clientY - onMouseDownPosition.y));
-      focus.y = onMouseDownFocus.y + (radius / 400)*(camx.y * (event.clientX - onMouseDownPosition.x) + camy.y * (event.clientY - onMouseDownPosition.y));
-      focus.z = onMouseDownFocus.z + (radius / 400)*(camx.z * (event.clientX - onMouseDownPosition.x) + camy.z * (event.clientY - onMouseDownPosition.y));
+        focus.x = onMouseDownFocus.x + (radius / 400)*(camx.x * (event.clientX - onMouseDownPosition.x) + camy.x * (event.clientY - onMouseDownPosition.y));
+        focus.y = onMouseDownFocus.y + (radius / 400)*(camx.y * (event.clientX - onMouseDownPosition.x) + camy.y * (event.clientY - onMouseDownPosition.y));
+        focus.z = onMouseDownFocus.z + (radius / 400)*(camx.z * (event.clientX - onMouseDownPosition.x) + camy.z * (event.clientY - onMouseDownPosition.y));
 
-      camera.position.x = focus.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-      camera.position.y = focus.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-      camera.position.z = focus.z + radius * Math.sin(phi * Math.PI / 180);
-      camera.lookAt(focus);
+        update_camera_position();
 
       } else if (event.ctrlKey) {
         // console.log("Zoom");
         if (! isCtrlDown) {
-            isCtrlDown = true;
-            onCtrlDownFov = camera.fov;
-            onMouseDownPosition.x = event.clientX;
-            onMouseDownPosition.y = event.clientY;
-            autoRescale = false;
-            container.style.cursor = "crosshair";
+          isCtrlDown = true;
+          onCtrlDownFov = camera.fov;
+          onMouseDownPosition.x = event.clientX;
+          onMouseDownPosition.y = event.clientY;
+          autoRescale = false;
+          container.style.cursor = "crosshair";
         }
         camera.fov =  onCtrlDownFov + 20 * Math.atan((event.clientY - onMouseDownPosition.y)/50);
         camera.fov = Math.max(1, Math.min(camera.fov, 150));
@@ -342,25 +331,21 @@ function drawGraphics3D(container, data) {
       } else {
         // console.log("Spin");
         if (isCtrlDown || isShiftDown) {
-            onMouseDownPosition.x = event.clientX;
-            onMouseDownPosition.y = event.clientY;
-            isShiftDown = false;
-            isCtrlDown = false;
-            container.style.cursor = "pointer";
+          onMouseDownPosition.x = event.clientX;
+          onMouseDownPosition.y = event.clientY;
+          isShiftDown = false;
+          isCtrlDown = false;
+          container.style.cursor = "pointer";
         }
 
         theta = (event.clientX - onMouseDownPosition.x) + onMouseDownTheta;
         phi = (event.clientY - onMouseDownPosition.y) + onMouseDownPhi;
-
         phi = Math.max(Math.min(90, phi),-90);
 
-        camera.position.x = focus.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-        camera.position.y = focus.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-        camera.position.z = focus.z + radius * Math.sin(phi * Math.PI / 180);
-        camera.lookAt(focus);
+        update_camera_position();
       }
-
       render();
+
     } else {
         container.style.cursor = "pointer";
     }
@@ -374,8 +359,8 @@ function drawGraphics3D(container, data) {
 
     if (autoRescale) {
         ScaleInView();
+        render();
     }
-    render();
   }
 
   // Bind Mouse events
@@ -385,11 +370,7 @@ function drawGraphics3D(container, data) {
   onMouseDownPosition = new THREE.Vector2();
   autoRescale = true;
 
-  camera.position.x = focus.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-  camera.position.y = focus.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-  camera.position.z = focus.z + radius * Math.sin(phi * Math.PI / 180);
-  camera.lookAt(focus);
-
+  update_camera_position();
   ScaleInView();
   render();
 }
