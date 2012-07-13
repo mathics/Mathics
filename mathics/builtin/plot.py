@@ -347,6 +347,98 @@ class _Plot(Builtin):
 
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
 
+class _ListPlot(Builtin):
+    messages = {
+        'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
+        'joind': "Value of option Joined -> `1` is not True or False.",
+    }
+
+    def apply(self, points, evaluation, options):
+        '%(name)s[points_, OptionsPattern[%(name)s]]'
+
+        plot_name = self.get_name()
+        all_points = points.to_python(n_evaluation=evaluation)
+        expr = Expression(self.get_name(), points, *options_to_rules(options))
+
+        # PlotRange Option
+        def check_range(range):
+            if range in ('Automatic', 'All'):
+                return True
+            if isinstance(range, list) and len(range) == 2:
+                if isinstance(range[0], numbers.Real) and isinstance(range[1], numbers.Real):
+                    return True
+            return False
+
+        plotrange_option = self.get_option(options, 'PlotRange', evaluation)
+        plotrange = plotrange_option.to_python(n_evaluation=evaluation)
+        if plotrange == 'All':
+            plotrange = ['All', 'All']
+        elif plotrange == 'Automatic':
+            plotrange = ['Automatic', 'Automatic']
+        elif isinstance(plotrange, numbers.Real):
+            plotrange = [[-plotrange, plotrange], [-plotrange, plotrange]]
+        elif isinstance(plotrange, list) and len(plotrange) == 2:
+            if all(isinstance(pr, numbers.Real) for pr in plotrange):
+                plotrange = ['All', plotrange]
+            elif all(check_range(pr) for pr in plotrange):
+                pass
+        else:
+            evaluation.message(self.get_name(), 'prng', plotrange_option)
+            plotrange = ['Automatic', 'Automatic']
+            
+        x_range, y_range = plotrange[0], plotrange[1]
+        assert x_range in ('Automatic', 'All') or isinstance(x_range, list)
+        assert y_range in ('Automatic', 'All') or isinstance(y_range, list)
+
+        # Joined Option
+        joined_option = self.get_option(options, 'Joined', evaluation)
+        joined = joined_option.to_python()
+        if joined not in [True, False]: 
+            evaluation.message(plot_name, 'joind', joined_option, expr)
+            joined = False
+
+        if isinstance(all_points, list) and len(all_points) != 0:
+            if all(not isinstance(point, list) for point in all_points):  # Only y values given
+                all_points = [[[float(i), all_points[i]] for i in range(len(all_points))]]
+            elif all(isinstance(line,list) and len(line) == 2 for line in all_points):  # Single list of (x,y) pairs
+                all_points = [all_points]
+            elif all(isinstance(line,list) for line in all_points):     # List of lines
+                if all(isinstance(point, list) and len(point) == 2 for line in all_points for point in line):
+                    pass
+                elif all(not isinstance(point, list) for line in all_points for point in line):
+                    all_points = [[[float(i), line[i]] for i in range(len(line))] for line in all_points]
+                else:
+                    return
+            else:
+                return
+        else:
+            return
+
+        hue = 0.67
+        hue_pos = 0.236068
+        hue_neg = -0.763932
+
+        graphics = []
+        for indx,line in enumerate(all_points):
+            graphics.append(Expression('Hue', hue, 0.6, 0.6))
+            if joined:
+                graphics.append(Expression('Line', from_python(line))) 
+            else:
+                graphics.append(Expression('Point', from_python(line))) 
+
+            if indx % 4 == 0:
+                hue += hue_pos
+            else:
+                hue += hue_neg
+            if hue > 1: hue -= 1
+            if hue < 0: hue += 1
+
+        y_range = get_plot_range([y for line in all_points for x, y in line], [y for line in all_points for x, y in line], y_range)
+        x_range = get_plot_range([x for line in all_points for x, y in line], [x for line in all_points for x, y in line], x_range)
+
+        options['PlotRange'] = from_python([x_range, y_range])
+
+        return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
 
 class _Plot3D(Builtin):
     messages = {
@@ -625,6 +717,65 @@ class ParametricPlot(_Plot):
         if value is None or len(value) != 2:
             return None
         return value
+
+class ListPlot(_ListPlot):
+    """
+    <dl>
+    <dt>'ListPlot[{$y_1$, $y_2$, ...}]'
+        <dd>plots a list of y-values, assuming integer x-values 1, 2, 3, ...
+    <dt>'ListPlot[{{$x_1$, $y_1$}, {$x_2$, $y_2$}, ...}]'
+        <dd>plots a list of x,y pairs.
+    <dt>'ListPlot[{$list_1$, $list_2$, ...}]'
+        <dd>plots a several lists of points.
+    </dl>
+
+    >> ListLinePlot[Table[{n,n^0.5}, {n,10}]]
+     = -Graphics-
+    """
+
+    from graphics import Graphics
+    
+    attributes = ('HoldAll',)
+    
+    options = Graphics.options.copy()
+    options.update({
+        'Axes': 'True',
+        'AspectRatio': '1 / GoldenRatio',
+        'Mesh': 'None',
+        'PlotRange': 'Automatic',
+        'PlotPoints': 'None',
+        'Fillint': 'None',
+        'Joined': 'False',
+    })
+
+class ListLinePlot(_ListPlot):
+    """
+    <dl>
+    <dt>'ListLinePlot[{$y_1$, $y_2$, ...}]'
+        <dd>plots a line through a list of y-values, assuming integer x-values 1, 2, 3, ...
+    <dt>'ListLinePlot[{{$x_1$, $y_1$}, {$x_2$, $y_2$}, ...}]'
+        <dd>plots a line through a list of x,y pairs.
+    <dt>'ListLinePlot[{$list_1$, $list_2$, ...}]'
+        <dd>plots several lines.
+    </dl>
+
+    >> ListPlot[Table[n^2, {n,10}]]
+     = -Graphics-
+    """
+    from graphics import Graphics
+    
+    attributes = ('HoldAll',)
+    
+    options = Graphics.options.copy()
+    options.update({
+        'Axes': 'True',
+        'AspectRatio': '1 / GoldenRatio',
+        'Mesh': 'None',
+        'PlotRange': 'Automatic',
+        'PlotPoints': 'None',
+        'Fillint': 'None',
+        'Joined': 'True',
+    })
 
 class Plot3D(_Plot3D):
     """
