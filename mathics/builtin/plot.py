@@ -46,7 +46,7 @@ class Mesh(Builtin):
     """
 
     messages = {
-        'ilevels' : "`1` s not a valid mesh specification.",
+        'ilevels' : "`1` is not a valid mesh specification.",
     }
     
 def quiet_evaluate(expr, vars, evaluation, expect_list=False):
