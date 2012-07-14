@@ -71,6 +71,10 @@ def automatic_plot_range(values):
     which are more than 'thresh' number of standard deviations away from 
     the mean. These are then used to find good vmin and vmax values. These 
     values can then be used to find Automatic Plotrange. """
+    
+    if not values:
+        return 0, 1
+    
     thresh = 2.0
     values = sorted(values)
     valavg = sum(values) / len(values)
@@ -545,6 +549,8 @@ class Plot(_Plot):
      = -Graphics-
      
     #> Plot[1 / x, {x, -1, 1}]
+     = -Graphics-
+    #> Plot[x, {y, 0, 2}]
      = -Graphics-
     """
     
