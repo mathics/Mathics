@@ -215,7 +215,7 @@ size{1cm, 1cm};
         # and return them.
         # TODO: return some represntation of the axes/ticks/label styles
         # that can be used in the client-side rendering.
-        return {}
+        return axes
             
 def total_extent_3d(extents):
     xmin = xmax = ymin = ymax = zmin = zmax = None
@@ -343,7 +343,11 @@ class Polygon3DBox(PolygonBox):
                 p, d = c.pos()
                 result.append(p)
         return result
-    
+
+class Cylinder3DBox(Graphics3DElements):
+    def init(self, *args, **kwargs):
+        super(Cylinder3DBox, self).init(*args, **kwargs)
+
 GLOBALS3D = {
     'Polygon3DBox': Polygon3DBox,
     'Line3DBox': Line3DBox,

@@ -131,7 +131,7 @@ function drawGraphics3D(container, data) {
 
   // TODO: colors, lighting/shading, handling of VertexNormals.
 
-  var camera, scene, renderer, axes,
+  var camera, scene, renderer, boundbox,
     isMouseDown = false, onMouseDownPosition, radius,
     tmpx, tmpy, tmpz, 
     theta = 45, onMouseDownTheta = 45, phi = 60, onMouseDownPhi = 60;
@@ -173,16 +173,77 @@ function drawGraphics3D(container, data) {
 
   scene.add(camera);
 
-  // Axes
-  axes = new THREE.Mesh(
+  // BoundingBox
+  boundbox = new THREE.Mesh(
     new THREE.CubeGeometry(
       data.extent["xmax"]-data.extent["xmin"],
       data.extent["ymax"]-data.extent["ymin"],
       data.extent["zmax"]-data.extent["zmin"]),
-    new THREE.MeshLambertMaterial({color: 0x000000, wireframe: true})
+    new THREE.MeshBasicMaterial({color: 0x666666, wireframe: true})
   );
-  axes.position = center;
-  scene.add(axes);  
+  boundbox.position = center;
+  scene.add(boundbox);  
+
+  // Draw the Axes
+  if (data.axes instanceof Array) {
+    axes_option = new Array(data.axes[0], data.axes[1], data.axes[2]);
+  } else if (data.axes instanceof Boolean) {
+    if (data.axes) {
+      axes_option = new Array(true, true, true);
+    } else {
+      axes_option = new Array(false, false, false);
+    }
+  }
+  var axesmat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 2 });
+
+  console.log(axes_option);
+  if (axes_option[0]) {
+    axesxgeom = new THREE.Geometry();
+    axesxgeom.vertices.push(new THREE.Vector3(
+      boundbox.geometry.vertices[0].x + boundbox.position.x,
+      boundbox.geometry.vertices[0].y + boundbox.position.y,
+      boundbox.geometry.vertices[0].z + boundbox.position.z
+    ));
+    axesxgeom.vertices.push(new THREE.Vector3(
+      boundbox.geometry.vertices[5].x + boundbox.position.x,
+      boundbox.geometry.vertices[5].y + boundbox.position.y,
+      boundbox.geometry.vertices[5].z + boundbox.position.z
+    ));
+    axesx = new THREE.Line(axesxgeom, axesmat);
+    scene.add(axesx);
+  }
+
+  if (axes_option[1]) {
+    axesygeom = new THREE.Geometry();
+    axesygeom.vertices.push(new THREE.Vector3(
+      boundbox.geometry.vertices[0].x + boundbox.position.x,
+      boundbox.geometry.vertices[0].y + boundbox.position.y,
+      boundbox.geometry.vertices[0].z + boundbox.position.z
+    ));
+    axesygeom.vertices.push(new THREE.Vector3(
+      boundbox.geometry.vertices[2].x + boundbox.position.x,
+      boundbox.geometry.vertices[2].y + boundbox.position.y,
+      boundbox.geometry.vertices[2].z + boundbox.position.z
+    ));
+    axesy = new THREE.Line(axesygeom, axesmat);
+    scene.add(axesy);
+  }
+
+  if (axes_option[2]) {
+    axeszgeom = new THREE.Geometry();
+    axeszgeom.vertices.push(new THREE.Vector3(
+      boundbox.geometry.vertices[0].x + boundbox.position.x,
+      boundbox.geometry.vertices[0].y + boundbox.position.y,
+      boundbox.geometry.vertices[0].z + boundbox.position.z
+    ));
+    axeszgeom.vertices.push(new THREE.Vector3(
+      boundbox.geometry.vertices[1].x + boundbox.position.x,
+      boundbox.geometry.vertices[1].y + boundbox.position.y,
+      boundbox.geometry.vertices[1].z + boundbox.position.z
+    ));
+    axesz = new THREE.Line(axeszgeom, axesmat);
+    scene.add(axesz);
+  }
 
   // Plot the primatives
   for (var indx = 0; indx < data.elements.length; indx++) {
@@ -248,7 +309,7 @@ function drawGraphics3D(container, data) {
     var tmp_fov = 0.0;
 
     for (var i=0; i<8; i++) {
-      proj2d = toScreenXY(axes.geometry.vertices[i]);
+      proj2d = toScreenXY(boundbox.geometry.vertices[i]);
 
       angle = 57.296 * Math.max(
          Math.abs(Math.atan(proj2d.x/proj2d.z)),
