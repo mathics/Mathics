@@ -9,7 +9,7 @@ function drawPoint(prim) {
     pointgeom.vertices.push(tmpvertex);
   }
 
-  pointmat = new THREE.ParticleBasicMaterial({ color: 0x000000, size: 0.1 });
+  pointmat = new THREE.ParticleBasicMaterial({ color: 0x000000, size: 0.05 });
 
   mesh = new THREE.ParticleSystem(pointgeom, pointmat);
 
@@ -136,10 +136,14 @@ function drawGraphics3D(container, data) {
     tmpx, tmpy, tmpz, 
     theta = 45, onMouseDownTheta = 45, phi = 60, onMouseDownPhi = 60;
 
+  // Center of the scene
   var center = new THREE.Vector3(
     0.5*(data.extent["xmin"] + data.extent["xmax"]),
     0.5*(data.extent["ymin"] + data.extent["ymax"]), 
     0.5*(data.extent["zmin"] + data.extent["zmax"]));
+
+  // Where the camera is looking
+  var focus = new THREE.Vector3(center.x, center.y, center.z);
 
   radius = 2*Math.sqrt(
    Math.pow(data.extent["xmax"]-data.extent["xmin"],2) +
@@ -150,15 +154,6 @@ function drawGraphics3D(container, data) {
   scene = new THREE.Scene();
   scene.position = center;
 
-  // Camera - TODO: Handle Different choices
-  /*
-  camera = new THREE.OrthographicCamera(
-    data.extent["xmin"], data.extent["xmax"],
-    data.extent["ymin"], data.extent["ymax"],
-    0.1, 2*radius
-  );
-  */
-
   camera = new THREE.PerspectiveCamera(
     35,             // Field of view
     800 / 600,      // Aspect ratio
@@ -166,11 +161,16 @@ function drawGraphics3D(container, data) {
     1000*radius     // Far plane
   );
 
-  camera.position.x = center.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-  camera.position.z = center.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-  camera.position.y = center.z + radius * Math.sin(phi * Math.PI / 180);
+  function update_camera_position() {
+    camera.position.x = focus.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+    camera.position.y = focus.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
+    camera.position.z = focus.z + radius * Math.sin(phi * Math.PI / 180);
+    camera.lookAt(focus);
+  }
+
+  update_camera_position();
   camera.up = new THREE.Vector3(0,0,1);
-  camera.lookAt(scene.position);
+
   scene.add(camera);
 
   // Axes
@@ -213,9 +213,9 @@ function drawGraphics3D(container, data) {
 
   function toScreenXY(position) {
     var camz = new THREE.Vector3(
-        center.x - camera.position.x,
-        center.y - camera.position.y,
-        center.z - camera.position.z
+        focus.x - camera.position.x,
+        focus.y - camera.position.y,
+        focus.z - camera.position.z
     );
     camz.normalize();
 
@@ -230,9 +230,9 @@ function drawGraphics3D(container, data) {
     camy.cross(camz, camx);
 
     var campos = new THREE.Vector3(
-        position.x - camera.position.x + center.x,
-        position.y - camera.position.y + center.y,
-        position.z - camera.position.z + center.z
+        position.x - camera.position.x + focus.x,
+        position.y - camera.position.y + focus.y,
+        position.z - camera.position.z + focus.z
     );
 
     var cam = new THREE.Vector3(
@@ -245,32 +245,19 @@ function drawGraphics3D(container, data) {
   }
 
   function ScaleInView() {
-    if (camera instanceof THREE.OrthographicCamera) {
-      //
-    } else if (camera instanceof THREE.PerspectiveCamera) {
-      var tmp_fov = 0.0;
-    }
+    var tmp_fov = 0.0;
 
     for (var i=0; i<8; i++) {
       proj2d = toScreenXY(axes.geometry.vertices[i]);
 
-      if (camera instanceof THREE.OrthographicCamera) {
-        //
-      } else if (camera instanceof THREE.PerspectiveCamera) {
-        angle = 57.296 * Math.max(
-            Math.abs(Math.atan(proj2d.x/proj2d.z)),
-            Math.abs(Math.atan(proj2d.y/proj2d.z))
-        );
-        tmp_fov = Math.max(tmp_fov, 2*angle);
-      }
+      angle = 57.296 * Math.max(
+         Math.abs(Math.atan(proj2d.x/proj2d.z)),
+         Math.abs(Math.atan(proj2d.y/proj2d.z))
+      );
+      tmp_fov = Math.max(tmp_fov, 2*angle);
     }
 
-    if (camera instanceof THREE.OrthographicCamera) {
-      //
-    } else if (camera instanceof THREE.PerspectiveCamera) {
-      camera.fov = tmp_fov;
-    }
-
+    camera.fov = tmp_fov;
     camera.updateProjectionMatrix();
   }
 
@@ -279,87 +266,111 @@ function drawGraphics3D(container, data) {
     event.preventDefault();
 
     isMouseDown = true;
+    isShiftDown = false;
+    isCtrlDown = false;
 
     onMouseDownTheta = theta;
     onMouseDownPhi = phi;
+
     onMouseDownPosition.x = event.clientX;
     onMouseDownPosition.y = event.clientY;
+
+    onMouseDownFocus = new THREE.Vector3(focus.x, focus.y, focus.z);
   }
 
   function onDocumentMouseMove(event) {
     event.preventDefault();
 
     if (isMouseDown) {
-      theta = (event.clientX - onMouseDownPosition.x) + onMouseDownTheta;
-      phi = (event.clientY - onMouseDownPosition.y) + onMouseDownPhi;
+      if (event.shiftKey) {
+        // console.log("Pan");
+        if (! isShiftDown) {
+          isShiftDown = true;
+          onMouseDownPosition.x = event.clientX;
+          onMouseDownPosition.y = event.clientY;
+          autoRescale = false;
+          container.style.cursor = "move";
+        }
+        var camz = new THREE.Vector3(
+            focus.x - camera.position.x,
+            focus.y - camera.position.y,
+            focus.z - camera.position.z
+        );
+        camz.normalize();
 
-      phi = Math.max(Math.min(90, phi),-90);
+        var camx = new THREE.Vector3(
+            radius * Math.cos(phi * Math.PI / 180) * Math.cos(theta * Math.PI / 180),
+            - radius * Math.cos(phi * Math.PI / 180) * Math.sin(theta * Math.PI / 180),
+            0
+        );
+        camx.normalize();
 
-      camera.position.x = center.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-      camera.position.y = center.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-      camera.position.z = center.z + radius * Math.sin(phi * Math.PI / 180);
-      camera.lookAt(scene.position);
+        var camy = new THREE.Vector3();
+        camy.cross(camz, camx);
 
+        focus.x = onMouseDownFocus.x + (radius / 400)*(camx.x * (event.clientX - onMouseDownPosition.x) + camy.x * (event.clientY - onMouseDownPosition.y));
+        focus.y = onMouseDownFocus.y + (radius / 400)*(camx.y * (event.clientX - onMouseDownPosition.x) + camy.y * (event.clientY - onMouseDownPosition.y));
+        focus.z = onMouseDownFocus.z + (radius / 400)*(camx.z * (event.clientX - onMouseDownPosition.x) + camy.z * (event.clientY - onMouseDownPosition.y));
+
+        update_camera_position();
+
+      } else if (event.ctrlKey) {
+        // console.log("Zoom");
+        if (! isCtrlDown) {
+          isCtrlDown = true;
+          onCtrlDownFov = camera.fov;
+          onMouseDownPosition.x = event.clientX;
+          onMouseDownPosition.y = event.clientY;
+          autoRescale = false;
+          container.style.cursor = "crosshair";
+        }
+        camera.fov =  onCtrlDownFov + 20 * Math.atan((event.clientY - onMouseDownPosition.y)/50);
+        camera.fov = Math.max(1, Math.min(camera.fov, 150));
+        camera.updateProjectionMatrix();
+
+      } else {
+        // console.log("Spin");
+        if (isCtrlDown || isShiftDown) {
+          onMouseDownPosition.x = event.clientX;
+          onMouseDownPosition.y = event.clientY;
+          isShiftDown = false;
+          isCtrlDown = false;
+          container.style.cursor = "pointer";
+        }
+
+        theta = (event.clientX - onMouseDownPosition.x) + onMouseDownTheta;
+        phi = (event.clientY - onMouseDownPosition.y) + onMouseDownPhi;
+        phi = Math.max(Math.min(90, phi),-90);
+
+        update_camera_position();
+      }
       render();
-     }
+
+    } else {
+        container.style.cursor = "pointer";
+    }
   }
 
   function onDocumentMouseUp(event) {
     event.preventDefault();
 
     isMouseDown = false;
+    container.style.cursor = "pointer";
 
-    onMouseDownPosition.x = event.clientX - onMouseDownPosition.x;
-    onMouseDownPosition.y = event.clientY - onMouseDownPosition.y;
-
-    ScaleInView();
-    render();
-  }
-
-  function onDocumentMouseWheel( event ) {
-    if (camera instanceof THREE.OrthographicCamera) {
-      if (event.wheelDeltaY > 0) {
-        camera.left += 0.1;
-        camera.right -= 0.1;
-        camera.bottom += 0.1;
-        camera.top -= 0.1;
-      } else {
-        camera.left -= 0.1;
-        camera.right += 0.1;
-        camera.bottom -= 0.1;
-        camera.top += 0.1;
-      }
-
-      if (camera.right <= 0 || camera.top <= 0) {
-        camera.right = 0.1;
-        camera.left = -0.1;
-        camera.top = 0.1;
-        camera.bottom = -0.1;
-      }
-    } else if (camera instanceof THREE.PerspectiveCamera) {
-      if (event.wheelDeltaY > 0) {
-        camera.fov *= 0.8;
-      } else {
-        camera.fov /= 0.8;
-      }
-      camera.fov = Math.max(1, Math.min(camera.fov, 150));
+    if (autoRescale) {
+        ScaleInView();
+        render();
     }
-    camera.updateProjectionMatrix();
-    render();
   }
 
   // Bind Mouse events
   container.addEventListener('mousemove', onDocumentMouseMove, false);
   container.addEventListener('mousedown', onDocumentMouseDown, false);
   container.addEventListener('mouseup', onDocumentMouseUp, false);
-  container.addEventListener('mousewheel', onDocumentMouseWheel, false);
   onMouseDownPosition = new THREE.Vector2();
+  autoRescale = true;
 
-  camera.position.x = center.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-  camera.position.y = center.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-  camera.position.z = center.z + radius * Math.sin(phi * Math.PI / 180);
-  camera.lookAt(scene.position);
-
+  update_camera_position();
   ScaleInView();
   render();
 }
