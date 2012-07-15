@@ -246,6 +246,95 @@ function drawGraphics3D(container, data) {
     scene.add(axesz);
   }
 
+  // Axes Ticks
+  function axis_ticks(xmin, xmax) {
+    function round_to_zero(value) {
+      if (value > 0) {
+        return Math.floor(value);
+      }
+      return Math.ceil(value);
+    }
+
+    function round_step(value) {
+      var sub_steps = 5;
+      var shift = Math.pow(10.0, Math.floor(Math.log(value)/Math.LN10));
+      if (value < 1.5) {
+        value = 1;
+      } else if (value < 3) {
+        value = 2;
+      } else if (value < 8) {
+        value = 5;
+      } else {
+        value = 10;
+      }
+      return {'step_x' : value * shift, 'sub_x' : sub_steps};
+    }
+
+    var rstep = round_step((xmax - xmin) / 5.0);
+    var step_x = rstep.step_x;
+    var sub_x = rstep.sub_x;
+    var step_x_small = step_x / sub_x;
+
+    var steps_x = Math.floor((xmax - xmin) / step_x);
+    var steps_x_small = Math.floor((xmax - xmin) / step_x_small);
+
+    var start_k_x = Math.ceil(xmin / step_x);
+    var start_k_x_small = Math.ceil(xmin / step_x_small);
+
+    var start_x = step_x * round_to_zero(xmax - xmin / step_x);
+    var start_x_small = step_x_small * round_to_zero((xmax - xmin) / step_x_small);
+    
+    var zero_tolerance = 0.1;
+    if (xmin > 0 && xmin / (xmax - xmin) < zero_tolerance) {
+      xmin = 0;
+    }
+    if (xmax < 0 && xmax / (xmax - xmin) < zero_tolerance) {
+      xmax = 0;
+    }
+    if (xmin <= 0 && 0 <= xmax) {
+      origin_k_x = 0;
+    } else {
+      origin_k_x = start_k_x;
+    }
+    origin_x = origin_k_x * step_x;
+    
+    ticks = new Array();
+    ticks_small = new Array();
+    for (var k = start_k_x; k <= start_k_x + steps_x; k++) {
+      if (k != origin_k_x) {
+        x = k*step_x;
+        if (x > xmax) {
+          break;
+        }
+        ticks.push(x);
+      }
+    }
+    for (var k = start_k_x_small; k <= start_k_x_small + steps_x_small; k++) {
+      if (k % sub_x != 0) {
+        x = k*step_x_small;
+        if (x > xmax) {
+          break;
+        }
+        ticks_small.push(x);
+      }
+    }
+    return {'ticks' : ticks, 'ticks_small': ticks_small, 'origin': origin_x};
+  }
+
+  if (axes_option[0]) {
+    x_ticks = axis_ticks(data.extent["xmin"],  data.extent["xmax"]);
+    //TODO: Add the ticks to scene
+  }
+  if (axes_option[1]) {
+    y_ticks = axis_ticks(data.extent["ymin"],  data.extent["ymax"]);
+    //TODO: Add the ticks to scene
+  }
+  if (axes_option[2]) {
+    z_ticks = axis_ticks(data.extent["zmin"],  data.extent["zmax"]);
+    //TODO: Add the ticks to scene
+  }
+  
+
   // Plot the primatives
   for (var indx = 0; indx < data.elements.length; indx++) {
     var type = data.elements[indx].type;
