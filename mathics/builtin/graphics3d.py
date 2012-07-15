@@ -49,7 +49,7 @@ class Graphics3D(Graphics):
     
     options = Graphics.options.copy()
     options.update({
-        'Axes': 'True',
+        #'Axes': 'True',
     })
     
     box_suffix = '3DBox'
@@ -192,7 +192,7 @@ size{1cm, 1cm};
         elif axes.has_form('List', 3):
             axes = (axes.leaves[0].is_true(), axes.leaves[1].is_true(), axes.leaves[2].is_true())
         else:
-            axes = (False, False, False)
+            axes = {}
         ticks_style = graphics_options.get('TicksStyle')
         axes_style = graphics_options.get('AxesStyle')
         label_style = graphics_options.get('LabelStyle')

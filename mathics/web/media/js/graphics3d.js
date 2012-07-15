@@ -193,10 +193,11 @@ function drawGraphics3D(container, data) {
     } else {
       axes_option = new Array(false, false, false);
     }
+  } else {
+    axes_option = new Array(false, false, false);
   }
   var axesmat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 2 });
 
-  console.log(axes_option);
   if (axes_option[0]) {
     axesxgeom = new THREE.Geometry();
     axesxgeom.vertices.push(new THREE.Vector3(

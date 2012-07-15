@@ -862,7 +862,7 @@ class Plot3D(_Plot3D):
 
     options = Graphics.options.copy()
     options.update({
-        'Axes': 'False',
+        'Axes': 'True',
         'AspectRatio': '1',
         'Mesh': 'Full',
         'PlotPoints': 'None',
