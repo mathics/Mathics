@@ -321,17 +321,66 @@ function drawGraphics3D(container, data) {
     return {'ticks' : ticks, 'ticks_small': ticks_small, 'origin': origin_x};
   }
 
+  //TODO: Minor Ticks 
+  //TODO: Value div labels on major ticks
+
+  var tickmat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 2 });
   if (axes_option[0]) {
     x_ticks = axis_ticks(data.extent["xmin"],  data.extent["xmax"]);
-    //TODO: Add the ticks to scene
+    for (var i = 0; i < x_ticks.ticks.length; i++) { // Major Ticks
+      xval = x_ticks.ticks[i];
+      tickgeom = new THREE.Geometry();
+      tickgeom.vertices.push(new THREE.Vector3 (
+        xval,
+        axesxgeom.vertices[0].y,
+        axesxgeom.vertices[0].z
+      ));
+      tickgeom.vertices.push(new THREE.Vector3 (
+        xval,
+        axesxgeom.vertices[0].y - 0.05,
+        axesxgeom.vertices[0].z
+      ));
+      tick = new THREE.Line(tickgeom, tickmat);
+      scene.add(tick);
+    }
   }
   if (axes_option[1]) {
     y_ticks = axis_ticks(data.extent["ymin"],  data.extent["ymax"]);
-    //TODO: Add the ticks to scene
+    for (var i = 0; i < y_ticks.ticks.length; i++) { // Major Ticks
+      yval = y_ticks.ticks[i];
+      tickgeom = new THREE.Geometry();
+      tickgeom.vertices.push(new THREE.Vector3 (
+        axesygeom.vertices[0].x,
+        yval,
+        axesygeom.vertices[0].z
+      ));
+      tickgeom.vertices.push(new THREE.Vector3 (
+        axesygeom.vertices[0].x - 0.05,
+        yval,
+        axesygeom.vertices[0].z
+      ));
+      tick = new THREE.Line(tickgeom, tickmat);
+      scene.add(tick);
+    }
   }
   if (axes_option[2]) {
     z_ticks = axis_ticks(data.extent["zmin"],  data.extent["zmax"]);
-    //TODO: Add the ticks to scene
+    for (var i = 0; i < z_ticks.ticks.length; i++) { // Major Ticks
+      zval = z_ticks.ticks[i];
+      tickgeom = new THREE.Geometry();
+      tickgeom.vertices.push(new THREE.Vector3 (
+        axeszgeom.vertices[0].x,
+        axeszgeom.vertices[0].y,
+        zval
+      ));
+      tickgeom.vertices.push(new THREE.Vector3 (
+        axeszgeom.vertices[0].x - 0.05,
+        axeszgeom.vertices[0].y,
+        zval
+      ));
+      tick = new THREE.Line(tickgeom, tickmat);
+      scene.add(tick);
+    }
   }
   
 
