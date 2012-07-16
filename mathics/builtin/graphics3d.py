@@ -139,12 +139,12 @@ class Graphics3DBox(GraphicsBox):
             
         xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions(final_pass=False)
         
-        axes = self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax)
+        axes, ticks = self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax)
         
-        return elements, axes, calc_dimensions
+        return elements, axes, ticks, calc_dimensions
     
     def boxes_to_tex(self, leaves, **options):
-        elements, axes, calc_dimensions = self._prepare_elements(leaves, options, max_width=450)
+        elements, axes, ticks, calc_dimensions = self._prepare_elements(leaves, options, max_width=450)
         
         asy = elements.to_asy()
         
@@ -158,7 +158,7 @@ size{1cm, 1cm};
         """
     
     def boxes_to_xml(self, leaves, **options):
-        elements, axes, calc_dimensions = self._prepare_elements(leaves, options)
+        elements, axes, ticks, calc_dimensions = self._prepare_elements(leaves, options)
         
         json_repr = elements.to_json()
         
@@ -166,7 +166,10 @@ size{1cm, 1cm};
         
         json_repr = json.dumps({
             'elements': json_repr,
-            'axes': axes,
+            'axes': {
+                'hasaxes': axes,
+                'ticks': ticks,
+            },
             'extent': {
                 'xmin': xmin,
                 'xmax': xmax,
@@ -210,12 +213,10 @@ size{1cm, 1cm};
         label_style = elements.create_style(label_style)
         ticks_style[0].extend(axes_style[0])
         ticks_style[1].extend(axes_style[1])
-        
-        # TODO: use self.axis_ticks to get the positions of ticks
-        # and return them.
-        # TODO: return some represntation of the axes/ticks/label styles
-        # that can be used in the client-side rendering.
-        return axes
+
+        ticks = [self.axis_ticks(xmin, xmax), self.axis_ticks(ymin, ymax), self.axis_ticks(zmin, zmax)]
+
+        return axes, ticks
             
 def total_extent_3d(extents):
     xmin = xmax = ymin = ymax = zmin = zmax = None

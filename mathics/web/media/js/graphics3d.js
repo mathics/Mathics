@@ -185,204 +185,131 @@ function drawGraphics3D(container, data) {
   scene.add(boundbox);  
 
   // Draw the Axes
-  if (data.axes instanceof Array) {
-    axes_option = new Array(data.axes[0], data.axes[1], data.axes[2]);
-  } else if (data.axes instanceof Boolean) {
+  if (data.axes.hasaxes instanceof Array) {
+    hasaxes = new Array(data.axes.hasaxes[0], data.axes.hasaxes[1], data.axes.hasaxes[2]);
+  } else if (data.axes.hasaxes instanceof Boolean) {
     if (data.axes) {
-      axes_option = new Array(true, true, true);
+      hasaxes = new Array(true, true, true);
     } else {
-      axes_option = new Array(false, false, false);
+      hasaxes = new Array(false, false, false);
     }
   } else {
-    axes_option = new Array(false, false, false);
+    hasaxes = new Array(false, false, false);
   }
-  var axesmat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 2 });
+  var axesmat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 1.2 });
+  var axesgeom = new Array;
 
-  if (axes_option[0]) {
-    axesxgeom = new THREE.Geometry();
-    axesxgeom.vertices.push(new THREE.Vector3(
+  if (hasaxes[0]) {
+    axesgeom[0] = new THREE.Geometry();
+    axesgeom[0].vertices.push(new THREE.Vector3(
       boundbox.geometry.vertices[0].x + boundbox.position.x,
       boundbox.geometry.vertices[0].y + boundbox.position.y,
       boundbox.geometry.vertices[0].z + boundbox.position.z
     ));
-    axesxgeom.vertices.push(new THREE.Vector3(
+    axesgeom[0].vertices.push(new THREE.Vector3(
       boundbox.geometry.vertices[5].x + boundbox.position.x,
       boundbox.geometry.vertices[5].y + boundbox.position.y,
       boundbox.geometry.vertices[5].z + boundbox.position.z
     ));
-    axesx = new THREE.Line(axesxgeom, axesmat);
+    axesx = new THREE.Line(axesgeom[0], axesmat);
     scene.add(axesx);
   }
 
-  if (axes_option[1]) {
-    axesygeom = new THREE.Geometry();
-    axesygeom.vertices.push(new THREE.Vector3(
+  if (hasaxes[1]) {
+    axesgeom[1] = new THREE.Geometry();
+    axesgeom[1].vertices.push(new THREE.Vector3(
       boundbox.geometry.vertices[0].x + boundbox.position.x,
       boundbox.geometry.vertices[0].y + boundbox.position.y,
       boundbox.geometry.vertices[0].z + boundbox.position.z
     ));
-    axesygeom.vertices.push(new THREE.Vector3(
+    axesgeom[1].vertices.push(new THREE.Vector3(
       boundbox.geometry.vertices[2].x + boundbox.position.x,
       boundbox.geometry.vertices[2].y + boundbox.position.y,
       boundbox.geometry.vertices[2].z + boundbox.position.z
     ));
-    axesy = new THREE.Line(axesygeom, axesmat);
+    axesy = new THREE.Line(axesgeom[1], axesmat);
     scene.add(axesy);
   }
 
-  if (axes_option[2]) {
-    axeszgeom = new THREE.Geometry();
-    axeszgeom.vertices.push(new THREE.Vector3(
+  if (hasaxes[2]) {
+    axesgeom[2] = new THREE.Geometry();
+    axesgeom[2].vertices.push(new THREE.Vector3(
       boundbox.geometry.vertices[0].x + boundbox.position.x,
       boundbox.geometry.vertices[0].y + boundbox.position.y,
       boundbox.geometry.vertices[0].z + boundbox.position.z
     ));
-    axeszgeom.vertices.push(new THREE.Vector3(
+    axesgeom[2].vertices.push(new THREE.Vector3(
       boundbox.geometry.vertices[1].x + boundbox.position.x,
       boundbox.geometry.vertices[1].y + boundbox.position.y,
       boundbox.geometry.vertices[1].z + boundbox.position.z
     ));
-    axesz = new THREE.Line(axeszgeom, axesmat);
+    axesz = new THREE.Line(axesgeom[2], axesmat);
     scene.add(axesz);
   }
 
   // Axes Ticks
-  function axis_ticks(xmin, xmax) {
-    function round_to_zero(value) {
-      if (value > 0) {
-        return Math.floor(value);
-      }
-      return Math.ceil(value);
-    }
+  var tickmat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 1.2 });
+  var ticks = new Array(3);
+  var ticklength = 0.005*radius;
 
-    function round_step(value) {
-      var sub_steps = 5;
-      var shift = Math.pow(10.0, Math.floor(Math.log(value)/Math.LN10));
-      if (value < 1.5) {
-        value = 1;
-      } else if (value < 3) {
-        value = 2;
-      } else if (value < 8) {
-        value = 5;
-      } else {
-        value = 10;
-      }
-      return {'step_x' : value * shift, 'sub_x' : sub_steps};
-    }
-
-    var rstep = round_step((xmax - xmin) / 5.0);
-    var step_x = rstep.step_x;
-    var sub_x = rstep.sub_x;
-    var step_x_small = step_x / sub_x;
-
-    var steps_x = Math.floor((xmax - xmin) / step_x);
-    var steps_x_small = Math.floor((xmax - xmin) / step_x_small);
-
-    var start_k_x = Math.ceil(xmin / step_x);
-    var start_k_x_small = Math.ceil(xmin / step_x_small);
-
-    var start_x = step_x * round_to_zero(xmax - xmin / step_x);
-    var start_x_small = step_x_small * round_to_zero((xmax - xmin) / step_x_small);
-    
-    var zero_tolerance = 0.1;
-    if (xmin > 0 && xmin / (xmax - xmin) < zero_tolerance) {
-      xmin = 0;
-    }
-    if (xmax < 0 && xmax / (xmax - xmin) < zero_tolerance) {
-      xmax = 0;
-    }
-    if (xmin <= 0 && 0 <= xmax) {
-      origin_k_x = 0;
-    } else {
-      origin_k_x = start_k_x;
-    }
-    origin_x = origin_k_x * step_x;
-    
-    ticks = new Array();
-    ticks_small = new Array();
-    for (var k = start_k_x; k <= start_k_x + steps_x; k++) {
-      if (k != origin_k_x) {
-        x = k*step_x;
-        if (x > xmax) {
-          break;
-        }
-        ticks.push(x);
+  for (var i = 0; i < 3; i++) {
+    if (hasaxes[i]) {
+      ticks[i] = new Array;
+      for (var j = 0; j < data.axes.ticks[i][0].length; j++) {
+         tickgeom = new THREE.Geometry();
+         tickgeom.vertices.push(new THREE.Vector3(0,0,0));
+         tickgeom.vertices.push(new THREE.Vector3(0,0,0));
+         ticks[i].push(new THREE.Line(tickgeom, tickmat));
+         scene.add(ticks[i][j]);
       }
     }
-    for (var k = start_k_x_small; k <= start_k_x_small + steps_x_small; k++) {
-      if (k % sub_x != 0) {
-        x = k*step_x_small;
-        if (x > xmax) {
-          break;
-        }
-        ticks_small.push(x);
+  }
+
+  console.log(ticks);
+
+  function update_axes() {
+    if (hasaxes[0]) {
+      for (var j = 0; j < data.axes.ticks[0][0].length; j++) {
+        xval = data.axes.ticks[0][0][j];
+
+        ticks[0][j].geometry.vertices[0].x = xval;
+        ticks[0][j].geometry.vertices[0].y = axesgeom[0].vertices[0].y;
+        ticks[0][j].geometry.vertices[0].z = axesgeom[0].vertices[0].z;
+
+        ticks[0][j].geometry.vertices[1].x = xval;
+        ticks[0][j].geometry.vertices[1].y = axesgeom[0].vertices[0].y - ticklength;
+        ticks[0][j].geometry.vertices[1].z = axesgeom[0].vertices[0].z;
       }
     }
-    return {'ticks' : ticks, 'ticks_small': ticks_small, 'origin': origin_x};
+    if (hasaxes[1]) {
+      for (var j = 0; j < data.axes.ticks[1][0].length; j++) {
+        yval = data.axes.ticks[1][0][j];
+
+        ticks[1][j].geometry.vertices[0].x = axesgeom[1].vertices[0].x;
+        ticks[1][j].geometry.vertices[0].y = yval;
+        ticks[1][j].geometry.vertices[0].z = axesgeom[1].vertices[0].z;
+
+        ticks[1][j].geometry.vertices[1].x = axesgeom[1].vertices[0].x - ticklength;
+        ticks[1][j].geometry.vertices[1].y = yval;
+        ticks[1][j].geometry.vertices[1].z = axesgeom[1].vertices[0].z;
+      }
+    }
+    if (hasaxes[2]) {
+      for (var j = 0; j < data.axes.ticks[2][0].length; j++) {
+        zval = data.axes.ticks[1][0][j];
+
+        ticks[2][j].geometry.vertices[0].x = axesgeom[2].vertices[0].x;
+        ticks[2][j].geometry.vertices[0].y = axesgeom[2].vertices[0].y
+        ticks[2][j].geometry.vertices[0].z = zval;
+
+        ticks[2][j].geometry.vertices[1].x = axesgeom[2].vertices[0].x - ticklength;
+        ticks[2][j].geometry.vertices[1].y = axesgeom[2].vertices[0].y
+        ticks[2][j].geometry.vertices[1].z = zval;
+      }
+    }
   }
 
-  //TODO: Minor Ticks 
-  //TODO: Value div labels on major ticks
-
-  var tickmat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 2 });
-  if (axes_option[0]) {
-    x_ticks = axis_ticks(data.extent["xmin"],  data.extent["xmax"]);
-    for (var i = 0; i < x_ticks.ticks.length; i++) { // Major Ticks
-      xval = x_ticks.ticks[i];
-      tickgeom = new THREE.Geometry();
-      tickgeom.vertices.push(new THREE.Vector3 (
-        xval,
-        axesxgeom.vertices[0].y,
-        axesxgeom.vertices[0].z
-      ));
-      tickgeom.vertices.push(new THREE.Vector3 (
-        xval,
-        axesxgeom.vertices[0].y - 0.05,
-        axesxgeom.vertices[0].z
-      ));
-      tick = new THREE.Line(tickgeom, tickmat);
-      scene.add(tick);
-    }
-  }
-  if (axes_option[1]) {
-    y_ticks = axis_ticks(data.extent["ymin"],  data.extent["ymax"]);
-    for (var i = 0; i < y_ticks.ticks.length; i++) { // Major Ticks
-      yval = y_ticks.ticks[i];
-      tickgeom = new THREE.Geometry();
-      tickgeom.vertices.push(new THREE.Vector3 (
-        axesygeom.vertices[0].x,
-        yval,
-        axesygeom.vertices[0].z
-      ));
-      tickgeom.vertices.push(new THREE.Vector3 (
-        axesygeom.vertices[0].x - 0.05,
-        yval,
-        axesygeom.vertices[0].z
-      ));
-      tick = new THREE.Line(tickgeom, tickmat);
-      scene.add(tick);
-    }
-  }
-  if (axes_option[2]) {
-    z_ticks = axis_ticks(data.extent["zmin"],  data.extent["zmax"]);
-    for (var i = 0; i < z_ticks.ticks.length; i++) { // Major Ticks
-      zval = z_ticks.ticks[i];
-      tickgeom = new THREE.Geometry();
-      tickgeom.vertices.push(new THREE.Vector3 (
-        axeszgeom.vertices[0].x,
-        axeszgeom.vertices[0].y,
-        zval
-      ));
-      tickgeom.vertices.push(new THREE.Vector3 (
-        axeszgeom.vertices[0].x - 0.05,
-        axeszgeom.vertices[0].y,
-        zval
-      ));
-      tick = new THREE.Line(tickgeom, tickmat);
-      scene.add(tick);
-    }
-  }
-  
+  update_axes();
 
   // Plot the primatives
   for (var indx = 0; indx < data.elements.length; indx++) {
