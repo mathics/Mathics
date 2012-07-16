@@ -250,6 +250,7 @@ function drawGraphics3D(container, data) {
   // Axes Ticks
   var tickmat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 1.2 });
   var ticks = new Array(3);
+  var ticks_small = new Array(3);
   var ticklength = 0.005*radius;
 
   for (var i = 0; i < 3; i++) {
@@ -261,6 +262,14 @@ function drawGraphics3D(container, data) {
          tickgeom.vertices.push(new THREE.Vector3(0,0,0));
          ticks[i].push(new THREE.Line(tickgeom, tickmat));
          scene.add(ticks[i][j]);
+      }
+      ticks_small[i] = new Array;
+      for (var j = 0; j < data.axes.ticks[i][1].length; j++) {
+         tickgeom = new THREE.Geometry();
+         tickgeom.vertices.push(new THREE.Vector3(0,0,0));
+         tickgeom.vertices.push(new THREE.Vector3(0,0,0));
+         ticks_small[i].push(new THREE.Line(tickgeom, tickmat));
+         scene.add(ticks_small[i][j]);
       }
     }
   }
@@ -280,6 +289,17 @@ function drawGraphics3D(container, data) {
         ticks[0][j].geometry.vertices[1].y = axesgeom[0].vertices[0].y - ticklength;
         ticks[0][j].geometry.vertices[1].z = axesgeom[0].vertices[0].z;
       }
+      for (var j = 0; j < data.axes.ticks[0][1].length; j++) {
+        xval = data.axes.ticks[0][1][j];
+
+        ticks_small[0][j].geometry.vertices[0].x = xval;
+        ticks_small[0][j].geometry.vertices[0].y = axesgeom[0].vertices[0].y;
+        ticks_small[0][j].geometry.vertices[0].z = axesgeom[0].vertices[0].z;
+
+        ticks_small[0][j].geometry.vertices[1].x = xval;
+        ticks_small[0][j].geometry.vertices[1].y = axesgeom[0].vertices[0].y - ticklength;
+        ticks_small[0][j].geometry.vertices[1].z = axesgeom[0].vertices[0].z;
+      }
     }
     if (hasaxes[1]) {
       for (var j = 0; j < data.axes.ticks[1][0].length; j++) {
@@ -293,10 +313,21 @@ function drawGraphics3D(container, data) {
         ticks[1][j].geometry.vertices[1].y = yval;
         ticks[1][j].geometry.vertices[1].z = axesgeom[1].vertices[0].z;
       }
+      for (var j = 0; j < data.axes.ticks[1][1].length; j++) {
+        yval = data.axes.ticks[1][1][j];
+
+        ticks_small[1][j].geometry.vertices[0].x = axesgeom[1].vertices[0].x;
+        ticks_small[1][j].geometry.vertices[0].y = yval;
+        ticks_small[1][j].geometry.vertices[0].z = axesgeom[1].vertices[0].z;
+
+        ticks_small[1][j].geometry.vertices[1].x = axesgeom[1].vertices[0].x - ticklength;
+        ticks_small[1][j].geometry.vertices[1].y = yval;
+        ticks_small[1][j].geometry.vertices[1].z = axesgeom[1].vertices[0].z;
+      }
     }
     if (hasaxes[2]) {
       for (var j = 0; j < data.axes.ticks[2][0].length; j++) {
-        zval = data.axes.ticks[1][0][j];
+        zval = data.axes.ticks[2][0][j];
 
         ticks[2][j].geometry.vertices[0].x = axesgeom[2].vertices[0].x;
         ticks[2][j].geometry.vertices[0].y = axesgeom[2].vertices[0].y
@@ -305,6 +336,17 @@ function drawGraphics3D(container, data) {
         ticks[2][j].geometry.vertices[1].x = axesgeom[2].vertices[0].x - ticklength;
         ticks[2][j].geometry.vertices[1].y = axesgeom[2].vertices[0].y
         ticks[2][j].geometry.vertices[1].z = zval;
+      }
+      for (var j = 0; j < data.axes.ticks[2][1].length; j++) {
+        zval = data.axes.ticks[2][1][j];
+
+        ticks_small[2][j].geometry.vertices[0].x = axesgeom[2].vertices[0].x;
+        ticks_small[2][j].geometry.vertices[0].y = axesgeom[2].vertices[0].y
+        ticks_small[2][j].geometry.vertices[0].z = zval;
+
+        ticks_small[2][j].geometry.vertices[1].x = axesgeom[2].vertices[0].x - ticklength;
+        ticks_small[2][j].geometry.vertices[1].y = axesgeom[2].vertices[0].y
+        ticks_small[2][j].geometry.vertices[1].z = zval;
       }
     }
   }
