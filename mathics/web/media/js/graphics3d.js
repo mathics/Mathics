@@ -358,7 +358,7 @@ function drawGraphics3D(container, data) {
       ticknums[i] = new Array(data.axes.ticks[i][0].length);
       for (var j = 0; j < ticknums[i].length; j++) {
         ticknums[i][j] = document.createElement('div');
-        ticknums[i][j].innerHTML = data.axes.ticks[i][0][j].toString();
+        ticknums[i][j].innerHTML = parseFloat(data.axes.ticks[i][0][j].toPrecision(12)).toString();
         ticknums[i][j].style.position = "absolute";
         container.appendChild(ticknums[i][j]);
       }
