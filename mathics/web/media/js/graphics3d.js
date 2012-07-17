@@ -257,11 +257,12 @@ function drawGraphics3D(container, data) {
     if (hasaxes[i]) {
       ticks[i] = new Array;
       for (var j = 0; j < data.axes.ticks[i][0].length; j++) {
-         tickgeom = new THREE.Geometry();
-         tickgeom.vertices.push(new THREE.Vector3(0,0,0));
-         tickgeom.vertices.push(new THREE.Vector3(0,0,0));
-         ticks[i].push(new THREE.Line(tickgeom, tickmat));
-         scene.add(ticks[i][j]);
+        tickgeom = new THREE.Geometry();
+        tickgeom.vertices.push(new THREE.Vector3(0,0,0));
+        tickgeom.vertices.push(new THREE.Vector3(0,0,0));
+        ticks[i].push(new THREE.Line(tickgeom, tickmat));
+        scene.add(ticks[i][j]);
+
       }
       ticks_small[i] = new Array;
       for (var j = 0; j < data.axes.ticks[i][1].length; j++) {
@@ -273,8 +274,6 @@ function drawGraphics3D(container, data) {
       }
     }
   }
-
-  console.log(ticks);
 
   function update_axes() {
     if (hasaxes[0]) {
@@ -350,8 +349,56 @@ function drawGraphics3D(container, data) {
       }
     }
   }
-
   update_axes();
+
+  // Axes numbering using divs
+  var ticknums = new Array(3);
+  for (var i = 0; i < 3; i++) {
+    if (hasaxes[i]) {
+      ticknums[i] = new Array(data.axes.ticks[i][0].length);
+      for (var j = 0; j < ticknums[i].length; j++) {
+        ticknums[i][j] = document.createElement('div');
+        ticknums[i][j].innerHTML = data.axes.ticks[i][0][j].toString();
+        ticknums[i][j].style.position = "absolute";
+        container.appendChild(ticknums[i][j]);
+      }
+    }
+  }
+  
+  function hideticknums() {
+    for (var i = 0; i < 3; i++) {
+      if (hasaxes[i]) {
+        for (var j = 0; j < ticknums[i].length; j++) {
+          ticknums[i][j].style.display = "none";
+        }
+      }
+    }
+  }
+
+  function showticknums() {
+    for (var i = 0; i < 3; i++) {
+      if (hasaxes[i]) {
+        for (var j = 0; j < ticknums[i].length; j++) {
+          ticknums[i][j].style.display = "";
+        }
+      }
+    }
+  }
+
+  function positionticknums() {
+    for (var i = 0; i < 3; i++) {
+      if (hasaxes[i]) {
+        for (var j = 0; j < ticknums[i].length; j++) {
+          var tickpos = toScreenCoords(ticks[i][j].geometry.vertices[0]);
+          var anglex = Math.atan(tickpos.x/tickpos.z);
+          var angley = Math.atan(tickpos.y/tickpos.z);
+
+          ticknums[i][j].style.top = (400 * (0.5 + Math.sin(angley) / Math.sin(camera.fov))).toString() + "px";
+          ticknums[i][j].style.left = (400 * (0.5 + Math.sin(anglex) / Math.sin(camera.fov))) + "px";
+        }
+      }
+    }
+  }
 
   // Plot the primatives
   for (var indx = 0; indx < data.elements.length; indx++) {
@@ -380,7 +427,7 @@ function drawGraphics3D(container, data) {
     renderer.render( scene, camera );
   };
 
-  function toScreenXY(position) {
+  function toScreenCoords(position) {
     var camz = new THREE.Vector3(
         focus.x - camera.position.x,
         focus.y - camera.position.y,
@@ -417,7 +464,7 @@ function drawGraphics3D(container, data) {
     var tmp_fov = 0.0;
 
     for (var i=0; i<8; i++) {
-      proj2d = toScreenXY(boundbox.geometry.vertices[i]);
+      proj2d = toScreenCoords(boundbox.geometry.vertices[i]);
 
       angle = 57.296 * Math.max(
          Math.abs(Math.atan(proj2d.x/proj2d.z)),
@@ -451,6 +498,8 @@ function drawGraphics3D(container, data) {
     event.preventDefault();
 
     if (isMouseDown) {
+      positionticknums();
+
       if (event.shiftKey) {
         // console.log("Pan");
         if (! isShiftDown) {
@@ -530,6 +579,7 @@ function drawGraphics3D(container, data) {
         ScaleInView();
         render();
     }
+    positionticknums();
   }
 
   // Bind Mouse events
@@ -541,6 +591,7 @@ function drawGraphics3D(container, data) {
 
   update_camera_position();
   ScaleInView();
+  positionticknums();
   render();
 }
 
