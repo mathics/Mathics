@@ -365,36 +365,22 @@ function drawGraphics3D(container, data) {
     }
   }
   
-  function hideticknums() {
-    for (var i = 0; i < 3; i++) {
-      if (hasaxes[i]) {
-        for (var j = 0; j < ticknums[i].length; j++) {
-          ticknums[i][j].style.display = "none";
-        }
-      }
-    }
-  }
+  function toCanvasCoords(position) {
+    var pos = position.clone();
+    var projScreenMat = new THREE.Matrix4();
+    projScreenMat.multiply(camera.projectionMatrix, camera.matrixWorldInverse);
+    projScreenMat.multiplyVector3( pos );
 
-  function showticknums() {
-    for (var i = 0; i < 3; i++) {
-      if (hasaxes[i]) {
-        for (var j = 0; j < ticknums[i].length; j++) {
-          ticknums[i][j].style.display = "";
-        }
-      }
-    }
+    var result = new THREE.Vector3((pos.x + 1 ) * 200, (1-pos.y) * 200, (pos.z + 1 ) * 200);
+    return result;
   }
-
   function positionticknums() {
     for (var i = 0; i < 3; i++) {
       if (hasaxes[i]) {
         for (var j = 0; j < ticknums[i].length; j++) {
-          var tickpos = toScreenCoords(ticks[i][j].geometry.vertices[0]);
-          var anglex = Math.atan(tickpos.x/tickpos.z);
-          var angley = Math.atan(tickpos.y/tickpos.z);
-
-          ticknums[i][j].style.top = (400 * (0.5 + Math.sin(angley) / Math.sin(camera.fov))).toString() + "px";
-          ticknums[i][j].style.left = (400 * (0.5 + Math.sin(anglex) / Math.sin(camera.fov))) + "px";
+          var tickpos = toCanvasCoords(ticks[i][j].geometry.vertices[0]);
+          ticknums[i][j].style.left = tickpos.x.toString() + "px";
+          ticknums[i][j].style.top = tickpos.y.toString() + "px";
         }
       }
     }
@@ -591,7 +577,7 @@ function drawGraphics3D(container, data) {
 
   update_camera_position();
   ScaleInView();
-  positionticknums();
   render();
+  positionticknums();
 }
 
