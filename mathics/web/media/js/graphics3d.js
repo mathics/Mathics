@@ -198,54 +198,30 @@ function drawGraphics3D(container, data) {
     hasaxes = new Array(false, false, false);
   }
   var axesmat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 1.2 });
+  var axesmat2 = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 2 });
   var axesgeom = new Array;
+  var axesindicies = [
+    [[0,5], [1,4], [2,7], [3,6]],
+    [[0,2], [1,3], [4,6], [5,7]],
+    [[0,1], [2,3], [4,5], [6,7]]
+  ];
 
-  if (hasaxes[0]) {
-    axesgeom[0] = new THREE.Geometry();
-    axesgeom[0].vertices.push(new THREE.Vector3(
-      boundbox.geometry.vertices[0].x + boundbox.position.x,
-      boundbox.geometry.vertices[0].y + boundbox.position.y,
-      boundbox.geometry.vertices[0].z + boundbox.position.z
-    ));
-    axesgeom[0].vertices.push(new THREE.Vector3(
-      boundbox.geometry.vertices[5].x + boundbox.position.x,
-      boundbox.geometry.vertices[5].y + boundbox.position.y,
-      boundbox.geometry.vertices[5].z + boundbox.position.z
-    ));
-    axesx = new THREE.Line(axesgeom[0], axesmat);
-    scene.add(axesx);
-  }
-
-  if (hasaxes[1]) {
-    axesgeom[1] = new THREE.Geometry();
-    axesgeom[1].vertices.push(new THREE.Vector3(
-      boundbox.geometry.vertices[0].x + boundbox.position.x,
-      boundbox.geometry.vertices[0].y + boundbox.position.y,
-      boundbox.geometry.vertices[0].z + boundbox.position.z
-    ));
-    axesgeom[1].vertices.push(new THREE.Vector3(
-      boundbox.geometry.vertices[2].x + boundbox.position.x,
-      boundbox.geometry.vertices[2].y + boundbox.position.y,
-      boundbox.geometry.vertices[2].z + boundbox.position.z
-    ));
-    axesy = new THREE.Line(axesgeom[1], axesmat);
-    scene.add(axesy);
-  }
-
-  if (hasaxes[2]) {
-    axesgeom[2] = new THREE.Geometry();
-    axesgeom[2].vertices.push(new THREE.Vector3(
-      boundbox.geometry.vertices[0].x + boundbox.position.x,
-      boundbox.geometry.vertices[0].y + boundbox.position.y,
-      boundbox.geometry.vertices[0].z + boundbox.position.z
-    ));
-    axesgeom[2].vertices.push(new THREE.Vector3(
-      boundbox.geometry.vertices[1].x + boundbox.position.x,
-      boundbox.geometry.vertices[1].y + boundbox.position.y,
-      boundbox.geometry.vertices[1].z + boundbox.position.z
-    ));
-    axesz = new THREE.Line(axesgeom[2], axesmat);
-    scene.add(axesz);
+  for (var i=0; i<3; i++) {
+    if (hasaxes[i]) {
+      axesgeom[i] = new THREE.Geometry();
+      axesgeom[i].vertices.push(new THREE.Vector3(
+        boundbox.geometry.vertices[axesindicies[i][3][0]].x + boundbox.position.x,
+        boundbox.geometry.vertices[axesindicies[i][3][0]].y + boundbox.position.y,
+        boundbox.geometry.vertices[axesindicies[i][3][0]].z + boundbox.position.z
+      ));
+      axesgeom[i].vertices.push(new THREE.Vector3(
+        boundbox.geometry.vertices[axesindicies[i][3][1]].x + boundbox.position.x,
+        boundbox.geometry.vertices[axesindicies[i][3][1]].y + boundbox.position.y,
+        boundbox.geometry.vertices[axesindicies[i][3][1]].z + boundbox.position.z
+      ));
+      axesmesh = new THREE.Line(axesgeom[i], axesmat);
+      scene.add(axesmesh);
+    }
   }
 
   // Axes Ticks
@@ -375,6 +351,7 @@ function drawGraphics3D(container, data) {
     var result = new THREE.Vector3((pos.x + 1 ) * 200, (1-pos.y) * 200, (pos.z + 1 ) * 200);
     return result;
   }
+
   function positionticknums() {
     for (var i = 0; i < 3; i++) {
       if (hasaxes[i]) {
