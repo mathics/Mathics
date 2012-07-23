@@ -236,14 +236,34 @@ function drawGraphics3D(container, data) {
 
   function positionAxes() {
     // Automatic axes placement
+    nearj = null;
+    nearl = 10*radius;
+    farj = null;
+    farl = 0.0;
+    
+    tmpv = new THREE.Vector3();
+    for (var j = 0; j < 8; j++) {
+      tmpv.add(boundbox.geometry.vertices[j], boundbox.position);
+      tmpv.subSelf(camera.position);
+      tmpl = tmpv.length();
+      if (tmpl < nearl) {
+        nearl = tmpl;
+        nearj = j;
+      } else if (tmpl > farl) {
+        farl = tmpl;
+        farj = j;
+      }
+    }
     for (var i = 0; i < 3; i++) {
-      maxj = 0;
+      maxj = null;
       maxl = 0.0;
       for (var j = 0; j < 4; j++) {
-        tmpl = boxEdgeLength(i, j);
-        if (tmpl > maxl) {
-          maxl = tmpl;
-          maxj = j;
+        if (axesindicies[i][j][0] != nearj && axesindicies[i][j][1] != nearj && axesindicies[i][j][0] != farj && axesindicies[i][j][1] != farj) {
+          tmpl = boxEdgeLength(i, j);
+          if (tmpl > maxl) {
+            maxl = tmpl;
+            maxj = j;
+          }
         }
       }
       axesmesh[i].geometry.vertices[0].add(boundbox.geometry.vertices[axesindicies[i][maxj][0]], boundbox.position);
