@@ -3,8 +3,8 @@
 """
 Graphics (3D)
 """
-
-from mathics.core.expression import NumberError
+        
+from mathics.core.expression import NumberError, from_python, Real
 from mathics.builtin.base import BoxConstruct, BoxConstructError
 from graphics import Graphics, GraphicsBox, _GraphicsElements, PolygonBox, LineBox, PointBox
 
@@ -159,9 +159,17 @@ size{1cm, 1cm};
     
     def boxes_to_xml(self, leaves, **options):
         elements, axes, ticks, calc_dimensions = self._prepare_elements(leaves, options)
-        
+
         json_repr = elements.to_json()
-        
+
+        # Convert ticks to nice strings e.g 0.100000000000002 -> '0.1'
+        def nice_float(z):
+            if z >= 0:
+                return Real(z).format(options['evaluation'], 'TraditionalForm').to_python().replace('"', '')
+            else:
+                return "-" + nice_float(-z)
+        ticks = [(map(nice_float, x[0]), x[1]) for x in ticks]
+
         xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions()
         
         json_repr = json.dumps({
