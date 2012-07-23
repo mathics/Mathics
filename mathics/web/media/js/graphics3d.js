@@ -197,8 +197,7 @@ function drawGraphics3D(container, data) {
   } else {
     hasaxes = new Array(false, false, false);
   }
-  var axesmat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 1.2 });
-  var axesmat2 = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 2 });
+  var axesmat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 1.5 });
   var axesgeom = new Array;
   var axesindicies = [
     [[0,5], [1,4], [2,7], [3,6]],
@@ -206,22 +205,52 @@ function drawGraphics3D(container, data) {
     [[0,1], [2,3], [4,5], [6,7]]
   ];
 
+  axesmesh = new Array(3);
   for (var i=0; i<3; i++) {
     if (hasaxes[i]) {
       axesgeom[i] = new THREE.Geometry();
       axesgeom[i].vertices.push(new THREE.Vector3(
-        boundbox.geometry.vertices[axesindicies[i][3][0]].x + boundbox.position.x,
-        boundbox.geometry.vertices[axesindicies[i][3][0]].y + boundbox.position.y,
-        boundbox.geometry.vertices[axesindicies[i][3][0]].z + boundbox.position.z
+        boundbox.geometry.vertices[axesindicies[i][0][0]].x + boundbox.position.x,
+        boundbox.geometry.vertices[axesindicies[i][0][0]].y + boundbox.position.y,
+        boundbox.geometry.vertices[axesindicies[i][0][0]].z + boundbox.position.z
       ));
       axesgeom[i].vertices.push(new THREE.Vector3(
-        boundbox.geometry.vertices[axesindicies[i][3][1]].x + boundbox.position.x,
-        boundbox.geometry.vertices[axesindicies[i][3][1]].y + boundbox.position.y,
-        boundbox.geometry.vertices[axesindicies[i][3][1]].z + boundbox.position.z
+        boundbox.geometry.vertices[axesindicies[i][0][1]].x + boundbox.position.x,
+        boundbox.geometry.vertices[axesindicies[i][0][1]].y + boundbox.position.y,
+        boundbox.geometry.vertices[axesindicies[i][0][1]].z + boundbox.position.z
       ));
-      axesmesh = new THREE.Line(axesgeom[i], axesmat);
-      scene.add(axesmesh);
+      axesmesh[i] = new THREE.Line(axesgeom[i], axesmat);
+      axesmesh[i].geometry.dynamic = true;
+      scene.add(axesmesh[i]);
     }
+  }
+
+  function boxEdgeLength(i, j) {
+    edge = new THREE.Vector3();
+    edge.sub(
+      toCanvasCoords(boundbox.geometry.vertices[axesindicies[i][j][0]]),
+      toCanvasCoords(boundbox.geometry.vertices[axesindicies[i][j][1]])
+    );
+    return edge.length();
+  }
+
+  function positionAxes() {
+    // Automatic axes placement
+    for (var i = 0; i < 3; i++) {
+      maxj = 0;
+      maxl = 0.0;
+      for (var j = 0; j < 4; j++) {
+        tmpl = boxEdgeLength(i, j);
+        if (tmpl > maxl) {
+          maxl = tmpl;
+          maxj = j;
+        }
+      }
+      axesmesh[i].geometry.vertices[0].add(boundbox.geometry.vertices[axesindicies[i][maxj][0]], boundbox.position);
+      axesmesh[i].geometry.vertices[1].add(boundbox.geometry.vertices[axesindicies[i][maxj][1]], boundbox.position);
+      axesmesh[i].geometry.verticesNeedUpdate = true;
+    }
+    update_axes();
   }
 
   // Axes Ticks
@@ -264,6 +293,8 @@ function drawGraphics3D(container, data) {
         ticks[0][j].geometry.vertices[1].x = xval;
         ticks[0][j].geometry.vertices[1].y = axesgeom[0].vertices[0].y - ticklength;
         ticks[0][j].geometry.vertices[1].z = axesgeom[0].vertices[0].z;
+
+        ticks[0][j].geometry.verticesNeedUpdate = true;
       }
       for (var j = 0; j < data.axes.ticks[0][1].length; j++) {
         xval = data.axes.ticks[0][1][j];
@@ -275,6 +306,8 @@ function drawGraphics3D(container, data) {
         ticks_small[0][j].geometry.vertices[1].x = xval;
         ticks_small[0][j].geometry.vertices[1].y = axesgeom[0].vertices[0].y - ticklength;
         ticks_small[0][j].geometry.vertices[1].z = axesgeom[0].vertices[0].z;
+
+        ticks_small[0][j].geometry.verticesNeedUpdate = true;
       }
     }
     if (hasaxes[1]) {
@@ -288,6 +321,8 @@ function drawGraphics3D(container, data) {
         ticks[1][j].geometry.vertices[1].x = axesgeom[1].vertices[0].x - ticklength;
         ticks[1][j].geometry.vertices[1].y = yval;
         ticks[1][j].geometry.vertices[1].z = axesgeom[1].vertices[0].z;
+
+        ticks[1][j].geometry.verticesNeedUpdate = true;
       }
       for (var j = 0; j < data.axes.ticks[1][1].length; j++) {
         yval = data.axes.ticks[1][1][j];
@@ -299,6 +334,8 @@ function drawGraphics3D(container, data) {
         ticks_small[1][j].geometry.vertices[1].x = axesgeom[1].vertices[0].x - ticklength;
         ticks_small[1][j].geometry.vertices[1].y = yval;
         ticks_small[1][j].geometry.vertices[1].z = axesgeom[1].vertices[0].z;
+
+        ticks_small[1][j].geometry.verticesNeedUpdate = true;
       }
     }
     if (hasaxes[2]) {
@@ -312,6 +349,8 @@ function drawGraphics3D(container, data) {
         ticks[2][j].geometry.vertices[1].x = axesgeom[2].vertices[0].x - ticklength;
         ticks[2][j].geometry.vertices[1].y = axesgeom[2].vertices[0].y
         ticks[2][j].geometry.vertices[1].z = zval;
+
+        ticks[2][j].geometry.verticesNeedUpdate = true;
       }
       for (var j = 0; j < data.axes.ticks[2][1].length; j++) {
         zval = data.axes.ticks[2][1][j];
@@ -323,6 +362,8 @@ function drawGraphics3D(container, data) {
         ticks_small[2][j].geometry.vertices[1].x = axesgeom[2].vertices[0].x - ticklength;
         ticks_small[2][j].geometry.vertices[1].y = axesgeom[2].vertices[0].y
         ticks_small[2][j].geometry.vertices[1].z = zval;
+
+        ticks_small[2][j].geometry.verticesNeedUpdate = true;
       }
     }
   }
@@ -549,6 +590,8 @@ function drawGraphics3D(container, data) {
         ScaleInView();
         render();
     }
+    positionAxes();
+    render();
     positionticknums();
   }
 
@@ -561,6 +604,7 @@ function drawGraphics3D(container, data) {
 
   update_camera_position();
   ScaleInView();
+  positionAxes();
   render();
   positionticknums();
 }
