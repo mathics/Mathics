@@ -224,6 +224,17 @@ size{1cm, 1cm};
 
         ticks = [self.axis_ticks(xmin, xmax), self.axis_ticks(ymin, ymax), self.axis_ticks(zmin, zmax)]
 
+        # Add zero if required, since axis_ticks does not
+        if xmin <= 0 <= xmax:
+            ticks[0][0].append(0.0)
+            ticks[0][0].sort()
+        if ymin <= 0 <= ymax:
+            ticks[1][0].append(0.0)
+            ticks[1][0].sort()
+        if zmin <= 0 <= zmax:
+            ticks[2][0].append(0.0)
+            ticks[2][0].sort()
+
         return axes, ticks
             
 def total_extent_3d(extents):
