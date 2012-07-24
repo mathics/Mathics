@@ -61,13 +61,9 @@ function drawPolygon(prim) {
      //TODO: Check the 3 points are not colinear
 
     // And Three Vectors
-    var v1 = new THREE.Vector3();
-    var v2 = new THREE.Vector3();
-    var v3 = new THREE.Vector3(); // normal vector
-
-    v1.sub(p2, p1);
-    v2.sub(p3, p1);
-    v3.cross(v1, v2);
+    var v1 = new THREE.Vector3().sub(p2, p1);
+    var v2 = new THREE.Vector3().sub(p3, p1);
+    var v3 = new THREE.Vector3().cross(v1, v2); // normal vector
 
     var normal = new THREE.Vector4(v3.x, v3.y, v3.z, -v3.dot(p1));  // Point p on the plane iff p.normal = 0
 
@@ -279,8 +275,8 @@ function drawGraphics3D(container, data) {
       ticks[i] = new Array;
       for (var j = 0; j < data.axes.ticks[i][0].length; j++) {
         tickgeom = new THREE.Geometry();
-        tickgeom.vertices.push(new THREE.Vector3(0,0,0));
-        tickgeom.vertices.push(new THREE.Vector3(0,0,0));
+        tickgeom.vertices.push(new THREE.Vector3());
+        tickgeom.vertices.push(new THREE.Vector3());
         ticks[i].push(new THREE.Line(tickgeom, tickmat));
         scene.add(ticks[i][j]);
 
@@ -288,105 +284,80 @@ function drawGraphics3D(container, data) {
       ticks_small[i] = new Array;
       for (var j = 0; j < data.axes.ticks[i][1].length; j++) {
          tickgeom = new THREE.Geometry();
-         tickgeom.vertices.push(new THREE.Vector3(0,0,0));
-         tickgeom.vertices.push(new THREE.Vector3(0,0,0));
+         tickgeom.vertices.push(new THREE.Vector3());
+         tickgeom.vertices.push(new THREE.Vector3());
          ticks_small[i].push(new THREE.Line(tickgeom, tickmat));
          scene.add(ticks_small[i][j]);
       }
     }
   }
 
-  function update_axes() {
+  function gettickdir(i) {
     var tickdir = new THREE.Vector3();
-
-    if (hasaxes[0]) {
+    if (i == 0) {
       if (axesgeom[0].vertices[0].y > 0) {
         tickdir.set(0,-ticklength, 0);
       } else {
         tickdir.set(0, ticklength, 0);
       }
-
-      for (var j = 0; j < data.axes.ticks[0][0].length; j++) {
-        xval = data.axes.ticks[0][0][j];
-
-        ticks[0][j].geometry.vertices[0].copy(axesgeom[0].vertices[0]);
-        ticks[0][j].geometry.vertices[0].x = xval;
-
-        ticks[0][j].geometry.vertices[1].add(axesgeom[0].vertices[0], tickdir);
-        ticks[0][j].geometry.vertices[1].x = xval;
-
-        ticks[0][j].geometry.verticesNeedUpdate = true;
+    } else if (i == 1) {
+       if (axesgeom[1].vertices[0].x > 0) {
+        tickdir.set(-ticklength, 0, 0);
+      } else {
+        tickdir.set(ticklength, 0, 0);
       }
-      for (var j = 0; j < data.axes.ticks[0][1].length; j++) {
-        xval = data.axes.ticks[0][1][j];
-
-        ticks_small[0][j].geometry.vertices[0].copy(axesgeom[0].vertices[0]);
-        ticks_small[0][j].geometry.vertices[0].x = xval;
-
-        ticks_small[0][j].geometry.vertices[1].add(axesgeom[0].vertices[0], tickdir);
-        ticks_small[0][j].geometry.vertices[1].x = xval;
-
-        ticks_small[0][j].geometry.verticesNeedUpdate = true;
-      }
-    }
-    if (hasaxes[1]) {
+    } else if (i == 2) {
       if (axesgeom[1].vertices[0].x > 0) {
         tickdir.set(-ticklength, 0, 0);
       } else {
         tickdir.set(ticklength, 0, 0);
       }
-
-      for (var j = 0; j < data.axes.ticks[1][0].length; j++) {
-        yval = data.axes.ticks[1][0][j];
-
-        ticks[1][j].geometry.vertices[0].copy(axesgeom[1].vertices[0]);
-        ticks[1][j].geometry.vertices[0].y = yval;
-
-        ticks[1][j].geometry.vertices[1].add(axesgeom[1].vertices[0], tickdir);
-        ticks[1][j].geometry.vertices[1].y = yval;
-
-        ticks[1][j].geometry.verticesNeedUpdate = true;
-      }
-      for (var j = 0; j < data.axes.ticks[1][1].length; j++) {
-        yval = data.axes.ticks[1][1][j];
-
-        ticks_small[1][j].geometry.vertices[0].copy(axesgeom[1].vertices[0]);
-        ticks_small[1][j].geometry.vertices[0].y = yval;
-
-        ticks_small[1][j].geometry.vertices[1].add(axesgeom[1].vertices[0], tickdir);
-        ticks_small[1][j].geometry.vertices[1].y = yval;
-
-        ticks_small[1][j].geometry.verticesNeedUpdate = true;
-      }
     }
-    if (hasaxes[2]) {
-      if (axesgeom[1].vertices[0].x > 0) {
-        tickdir.set(-ticklength, 0, 0);
-      } else {
-        tickdir.set(ticklength, 0, 0);
-      }
+    return tickdir;
+  }
 
-      for (var j = 0; j < data.axes.ticks[2][0].length; j++) {
-        zval = data.axes.ticks[2][0][j];
+  function update_axes() {
+    for (var i = 0; i < 3; i++) {
+      if (hasaxes[i]) {
+        tickdir = gettickdir(i);
+        for (var j = 0; j < data.axes.ticks[i][0].length; j++) {
+          tmpval = data.axes.ticks[i][0][j];
 
-        ticks[2][j].geometry.vertices[0].copy(axesgeom[2].vertices[0]);
-        ticks[2][j].geometry.vertices[0].z = zval;
+          ticks[i][j].geometry.vertices[0].copy(axesgeom[i].vertices[0]);
+          ticks[i][j].geometry.vertices[1].add(axesgeom[i].vertices[0], tickdir);
 
-        ticks[2][j].geometry.vertices[1].add(axesgeom[2].vertices[0], tickdir);
-        ticks[2][j].geometry.vertices[1].z = zval;
+          if (i == 0) {
+            ticks[i][j].geometry.vertices[0].x = tmpval;
+            ticks[i][j].geometry.vertices[1].x = tmpval;
+          } else if (i == 1) {
+            ticks[i][j].geometry.vertices[0].y = tmpval;
+            ticks[i][j].geometry.vertices[1].y = tmpval;
+          } else if (i == 2) {
+            ticks[i][j].geometry.vertices[0].z = tmpval;
+            ticks[i][j].geometry.vertices[1].z = tmpval;
+          }
 
-        ticks[2][j].geometry.verticesNeedUpdate = true;
-      }
-      for (var j = 0; j < data.axes.ticks[2][1].length; j++) {
-        zval = data.axes.ticks[2][1][j];
+          ticks[i][j].geometry.verticesNeedUpdate = true;
+        }
+        for (var j = 0; j < data.axes.ticks[i][1].length; j++) {
+          tmpval = data.axes.ticks[i][1][j];
 
-        ticks_small[2][j].geometry.vertices[0].copy(axesgeom[2].vertices[0]);
-        ticks_small[2][j].geometry.vertices[0].z = zval;
+          ticks_small[i][j].geometry.vertices[0].copy(axesgeom[i].vertices[0]);
+          ticks_small[i][j].geometry.vertices[1].add(axesgeom[i].vertices[0], tickdir);
 
-        ticks_small[2][j].geometry.vertices[1].add(axesgeom[2].vertices[0], tickdir);
-        ticks_small[2][j].geometry.vertices[1].z = zval;
+          if (i == 0) {
+            ticks_small[i][j].geometry.vertices[0].x = tmpval;
+            ticks_small[i][j].geometry.vertices[1].x = tmpval;
+          } else if (i == 1) {
+            ticks_small[i][j].geometry.vertices[0].y = tmpval;
+            ticks_small[i][j].geometry.vertices[1].y = tmpval;
+          } else if (i == 2) {
+            ticks_small[i][j].geometry.vertices[0].z = tmpval;
+            ticks_small[i][j].geometry.vertices[1].z = tmpval;
+          }
 
-        ticks_small[2][j].geometry.verticesNeedUpdate = true;
+          ticks_small[i][j].geometry.verticesNeedUpdate = true;
+        }
       }
     }
   }
