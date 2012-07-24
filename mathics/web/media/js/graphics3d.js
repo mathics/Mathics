@@ -293,25 +293,49 @@ function drawGraphics3D(container, data) {
     }
   }
 
-  function gettickdir(i) {
+  function getTickDir(i) {
     var tickdir = new THREE.Vector3();
     if (i == 0) {
-      if (axesgeom[0].vertices[0].y > 0) {
-        tickdir.set(0,-ticklength, 0);
+      if (-45 < phi && phi < 45) {
+        if (axesgeom[0].vertices[0].z > 0) {
+          tickdir.set(0, 0, -ticklength);
+        } else {
+          tickdir.set(0, 0, ticklength);
+        }
       } else {
-        tickdir.set(0, ticklength, 0);
+        if (axesgeom[0].vertices[0].y > 0) {
+          tickdir.set(0,-ticklength, 0);
+        } else {
+          tickdir.set(0, ticklength, 0);
+        }
       }
     } else if (i == 1) {
-       if (axesgeom[1].vertices[0].x > 0) {
-        tickdir.set(-ticklength, 0, 0);
+      if (-45 < phi && phi < 45) {
+        if (axesgeom[1].vertices[0].z > 0) {
+          tickdir.set(0, 0, -ticklength);
+        } else {
+          tickdir.set(0, 0, ticklength);
+        }
       } else {
-        tickdir.set(ticklength, 0, 0);
+        if (axesgeom[1].vertices[0].x > 0) {
+          tickdir.set(-ticklength, 0, 0);
+        } else {
+          tickdir.set(ticklength, 0, 0);
+        }
       }
     } else if (i == 2) {
-      if (axesgeom[1].vertices[0].x > 0) {
-        tickdir.set(-ticklength, 0, 0);
+      if ((45 < theta && theta < 135) || (225 < theta && theta < 315)) {
+        if (axesgeom[2].vertices[0].y > 0) {
+          tickdir.set(0, -ticklength, 0);
+        } else {
+          tickdir.set(0, ticklength, 0);
+        }
       } else {
-        tickdir.set(ticklength, 0, 0);
+        if (axesgeom[2].vertices[0].x > 0) {
+          tickdir.set(-ticklength, 0, 0);
+        } else {
+          tickdir.set(ticklength, 0, 0);
+        }
       }
     }
     return tickdir;
@@ -320,7 +344,7 @@ function drawGraphics3D(container, data) {
   function update_axes() {
     for (var i = 0; i < 3; i++) {
       if (hasaxes[i]) {
-        tickdir = gettickdir(i);
+        tickdir = getTickDir(i);
         for (var j = 0; j < data.axes.ticks[i][0].length; j++) {
           tmpval = data.axes.ticks[i][0][j];
 
@@ -551,7 +575,7 @@ function drawGraphics3D(container, data) {
           container.style.cursor = "pointer";
         }
 
-        theta = (event.clientX - onMouseDownPosition.x) + onMouseDownTheta;
+        theta = (((event.clientX - onMouseDownPosition.x) + onMouseDownTheta) + 360) % 360;
         phi = (event.clientY - onMouseDownPosition.y) + onMouseDownPhi;
         phi = Math.max(Math.min(90, phi),-90);
 
