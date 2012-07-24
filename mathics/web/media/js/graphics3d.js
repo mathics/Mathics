@@ -345,6 +345,8 @@ function drawGraphics3D(container, data) {
     for (var i = 0; i < 3; i++) {
       if (hasaxes[i]) {
         tickdir = getTickDir(i);
+        small_tickdir = tickdir.clone();
+        small_tickdir.multiplyScalar(0.5);
         for (var j = 0; j < data.axes.ticks[i][0].length; j++) {
           tmpval = data.axes.ticks[i][0][j];
 
@@ -368,7 +370,7 @@ function drawGraphics3D(container, data) {
           tmpval = data.axes.ticks[i][1][j];
 
           ticks_small[i][j].geometry.vertices[0].copy(axesgeom[i].vertices[0]);
-          ticks_small[i][j].geometry.vertices[1].add(axesgeom[i].vertices[0], tickdir);
+          ticks_small[i][j].geometry.vertices[1].add(axesgeom[i].vertices[0], small_tickdir);
 
           if (i == 0) {
             ticks_small[i][j].geometry.vertices[0].x = tmpval;
