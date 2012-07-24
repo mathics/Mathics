@@ -296,7 +296,7 @@ function drawGraphics3D(container, data) {
   function getTickDir(i) {
     var tickdir = new THREE.Vector3();
     if (i == 0) {
-      if (-45 < phi && phi < 45) {
+      if (-30 < phi && phi < 30) {
         if (axesgeom[0].vertices[0].z > 0) {
           tickdir.set(0, 0, -ticklength);
         } else {
@@ -310,7 +310,7 @@ function drawGraphics3D(container, data) {
         }
       }
     } else if (i == 1) {
-      if (-45 < phi && phi < 45) {
+      if (-30 < phi && phi < 30) {
         if (axesgeom[1].vertices[0].z > 0) {
           tickdir.set(0, 0, -ticklength);
         } else {
@@ -399,6 +399,7 @@ function drawGraphics3D(container, data) {
         ticknums[i][j] = document.createElement('div');
         ticknums[i][j].innerHTML = data.axes.ticks[i][0][j];
         ticknums[i][j].style.position = "absolute";
+        ticknums[i][j].style.fontSize = "10pt";
         container.appendChild(ticknums[i][j]);
       }
     }
@@ -418,7 +419,17 @@ function drawGraphics3D(container, data) {
     for (var i = 0; i < 3; i++) {
       if (hasaxes[i]) {
         for (var j = 0; j < ticknums[i].length; j++) {
-          var tickpos = toCanvasCoords(ticks[i][j].geometry.vertices[0]);
+          var tickpos3D = ticks[i][j].geometry.vertices[0].clone();
+          var tickDir = new THREE.Vector3().sub(ticks[i][j].geometry.vertices[0], ticks[i][j].geometry.vertices[1]);
+          //tickDir.multiplyScalar(3);
+          tickDir.setLength(3*ticklength)
+          tickDir.x *= 2.0;
+          tickDir.y *= 2.0;
+          tickpos3D.addSelf(tickDir);
+          var tickpos = toCanvasCoords(tickpos3D);
+          tickpos.x -= 10;
+          tickpos.y += 5;
+
           ticknums[i][j].style.left = tickpos.x.toString() + "px";
           ticknums[i][j].style.top = tickpos.y.toString() + "px";
           if (tickpos.x < 5 || tickpos.x > 395 || tickpos.y < 5 || tickpos.y > 395) {
@@ -498,7 +509,7 @@ function drawGraphics3D(container, data) {
       tmp_fov = Math.max(tmp_fov, 2*angle);
     }
 
-    camera.fov = tmp_fov + 1;
+    camera.fov = tmp_fov + 5;
     camera.updateProjectionMatrix();
   }
 
