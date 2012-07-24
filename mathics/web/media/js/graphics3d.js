@@ -222,6 +222,7 @@ function drawGraphics3D(container, data) {
       toCanvasCoords(boundbox.geometry.vertices[axesindicies[i][j][0]]),
       toCanvasCoords(boundbox.geometry.vertices[axesindicies[i][j][1]])
     );
+    edge.z = 0;
     return edge.length();
   }
 
