@@ -297,16 +297,23 @@ function drawGraphics3D(container, data) {
   }
 
   function update_axes() {
+    var tickdir = new THREE.Vector3();
+
     if (hasaxes[0]) {
+      if (axesgeom[0].vertices[0].y > 0) {
+        tickdir.set(0,-ticklength, 0);
+      } else {
+        tickdir.set(0, ticklength, 0);
+      }
+
       for (var j = 0; j < data.axes.ticks[0][0].length; j++) {
         xval = data.axes.ticks[0][0][j];
 
         ticks[0][j].geometry.vertices[0].copy(axesgeom[0].vertices[0]);
         ticks[0][j].geometry.vertices[0].x = xval;
 
+        ticks[0][j].geometry.vertices[1].add(axesgeom[0].vertices[0], tickdir);
         ticks[0][j].geometry.vertices[1].x = xval;
-        ticks[0][j].geometry.vertices[1].y = axesgeom[0].vertices[0].y - ticklength;
-        ticks[0][j].geometry.vertices[1].z = axesgeom[0].vertices[0].z;
 
         ticks[0][j].geometry.verticesNeedUpdate = true;
       }
@@ -316,23 +323,27 @@ function drawGraphics3D(container, data) {
         ticks_small[0][j].geometry.vertices[0].copy(axesgeom[0].vertices[0]);
         ticks_small[0][j].geometry.vertices[0].x = xval;
 
+        ticks_small[0][j].geometry.vertices[1].add(axesgeom[0].vertices[0], tickdir);
         ticks_small[0][j].geometry.vertices[1].x = xval;
-        ticks_small[0][j].geometry.vertices[1].y = axesgeom[0].vertices[0].y - ticklength;
-        ticks_small[0][j].geometry.vertices[1].z = axesgeom[0].vertices[0].z;
 
         ticks_small[0][j].geometry.verticesNeedUpdate = true;
       }
     }
     if (hasaxes[1]) {
+      if (axesgeom[1].vertices[0].x > 0) {
+        tickdir.set(-ticklength, 0, 0);
+      } else {
+        tickdir.set(ticklength, 0, 0);
+      }
+
       for (var j = 0; j < data.axes.ticks[1][0].length; j++) {
         yval = data.axes.ticks[1][0][j];
 
         ticks[1][j].geometry.vertices[0].copy(axesgeom[1].vertices[0]);
         ticks[1][j].geometry.vertices[0].y = yval;
 
-        ticks[1][j].geometry.vertices[1].x = axesgeom[1].vertices[0].x - ticklength;
+        ticks[1][j].geometry.vertices[1].add(axesgeom[1].vertices[0], tickdir);
         ticks[1][j].geometry.vertices[1].y = yval;
-        ticks[1][j].geometry.vertices[1].z = axesgeom[1].vertices[0].z;
 
         ticks[1][j].geometry.verticesNeedUpdate = true;
       }
@@ -342,22 +353,26 @@ function drawGraphics3D(container, data) {
         ticks_small[1][j].geometry.vertices[0].copy(axesgeom[1].vertices[0]);
         ticks_small[1][j].geometry.vertices[0].y = yval;
 
-        ticks_small[1][j].geometry.vertices[1].x = axesgeom[1].vertices[0].x - ticklength;
+        ticks_small[1][j].geometry.vertices[1].add(axesgeom[1].vertices[0], tickdir);
         ticks_small[1][j].geometry.vertices[1].y = yval;
-        ticks_small[1][j].geometry.vertices[1].z = axesgeom[1].vertices[0].z;
 
         ticks_small[1][j].geometry.verticesNeedUpdate = true;
       }
     }
     if (hasaxes[2]) {
+      if (axesgeom[1].vertices[0].x > 0) {
+        tickdir.set(-ticklength, 0, 0);
+      } else {
+        tickdir.set(ticklength, 0, 0);
+      }
+
       for (var j = 0; j < data.axes.ticks[2][0].length; j++) {
         zval = data.axes.ticks[2][0][j];
 
         ticks[2][j].geometry.vertices[0].copy(axesgeom[2].vertices[0]);
         ticks[2][j].geometry.vertices[0].z = zval;
 
-        ticks[2][j].geometry.vertices[1].x = axesgeom[2].vertices[0].x - ticklength;
-        ticks[2][j].geometry.vertices[1].y = axesgeom[2].vertices[0].y
+        ticks[2][j].geometry.vertices[1].add(axesgeom[2].vertices[0], tickdir);
         ticks[2][j].geometry.vertices[1].z = zval;
 
         ticks[2][j].geometry.verticesNeedUpdate = true;
@@ -368,8 +383,7 @@ function drawGraphics3D(container, data) {
         ticks_small[2][j].geometry.vertices[0].copy(axesgeom[2].vertices[0]);
         ticks_small[2][j].geometry.vertices[0].z = zval;
 
-        ticks_small[2][j].geometry.vertices[1].x = axesgeom[2].vertices[0].x - ticklength;
-        ticks_small[2][j].geometry.vertices[1].y = axesgeom[2].vertices[0].y
+        ticks_small[2][j].geometry.vertices[1].add(axesgeom[2].vertices[0], tickdir);
         ticks_small[2][j].geometry.vertices[1].z = zval;
 
         ticks_small[2][j].geometry.verticesNeedUpdate = true;
