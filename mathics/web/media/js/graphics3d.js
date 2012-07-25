@@ -428,7 +428,7 @@ function drawGraphics3D(container, data) {
           tickpos3D.addSelf(tickDir);
           var tickpos = toCanvasCoords(tickpos3D);
           tickpos.x -= 10;
-          tickpos.y += 5;
+          tickpos.y += 8;
 
           ticknums[i][j].style.left = tickpos.x.toString() + "px";
           ticknums[i][j].style.top = tickpos.y.toString() + "px";

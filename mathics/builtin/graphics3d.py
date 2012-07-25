@@ -163,12 +163,7 @@ size{1cm, 1cm};
         json_repr = elements.to_json()
 
         # Convert ticks to nice strings e.g 0.100000000000002 -> '0.1'
-        def nice_float(z):
-            if z >= 0:
-                return Real(z).format(options['evaluation'], 'TraditionalForm').to_python().replace('"', '')
-            else:
-                return "-" + nice_float(-z)
-        ticks = [(map(nice_float, x[0]), x[1]) for x in ticks]
+        ticks = [(map(str, x[0]), x[1]) for x in ticks]
 
         xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions()
         
