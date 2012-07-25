@@ -296,7 +296,7 @@ function drawGraphics3D(container, data) {
   function getTickDir(i) {
     var tickdir = new THREE.Vector3();
     if (i == 0) {
-      if (-30 < phi && phi < 30) {
+      if (-45 < phi && phi < 45) {
         if (axesgeom[0].vertices[0].z > boundbox.position.z) {
           tickdir.set(0, 0, -ticklength);
         } else {
@@ -310,7 +310,7 @@ function drawGraphics3D(container, data) {
         }
       }
     } else if (i == 1) {
-      if (-30 < phi && phi < 30) {
+      if (-45 < phi && phi < 45) {
         if (axesgeom[1].vertices[0].z > boundbox.position.z) {
           tickdir.set(0, 0, -ticklength);
         } else {
