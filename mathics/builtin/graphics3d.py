@@ -3,10 +3,10 @@
 """
 Graphics (3D)
 """
-
-from mathics.core.expression import NumberError
+        
+from mathics.core.expression import NumberError, from_python, Real
 from mathics.builtin.base import BoxConstruct, BoxConstructError
-from graphics import Graphics, GraphicsBox, _GraphicsElements, PolygonBox, LineBox
+from graphics import Graphics, GraphicsBox, _GraphicsElements, PolygonBox, LineBox, PointBox
 
 from django.utils import simplejson as json
 
@@ -49,7 +49,8 @@ class Graphics3D(Graphics):
     
     options = Graphics.options.copy()
     options.update({
-        'Axes': 'True',
+        #'Axes': 'True',
+        'BoxRatios': 'Automatic',
     })
     
     box_suffix = '3DBox'
@@ -73,6 +74,8 @@ class Graphics3DBox(GraphicsBox):
         
         aspect_ratio = graphics_options['AspectRatio']
             
+        box_ratios = graphics_options['BoxRatios'].to_python()
+
         plot_range = graphics_options['PlotRange'].to_python()            
         if plot_range == 'Automatic':
             plot_range = ['Automatic', 'Automatic', 'Automatic']
@@ -136,15 +139,15 @@ class Graphics3DBox(GraphicsBox):
                 raise BoxConstructError
             
             return xmin, xmax, ymin, ymax, zmin, zmax
-            
+
         xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions(final_pass=False)
         
-        axes = self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax)
+        axes, ticks = self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax)
         
-        return elements, axes, calc_dimensions
+        return elements, axes, ticks, calc_dimensions, box_ratios
     
     def boxes_to_tex(self, leaves, **options):
-        elements, axes, calc_dimensions = self._prepare_elements(leaves, options, max_width=450)
+        elements, axes, ticks, calc_dimensions, box_ratios = self._prepare_elements(leaves, options, max_width=450)
         
         asy = elements.to_asy()
         
@@ -158,15 +161,21 @@ size{1cm, 1cm};
         """
     
     def boxes_to_xml(self, leaves, **options):
-        elements, axes, calc_dimensions = self._prepare_elements(leaves, options)
-        
+        elements, axes, ticks, calc_dimensions, box_ratios = self._prepare_elements(leaves, options)
+
         json_repr = elements.to_json()
-        
+
+        # Convert ticks to nice strings e.g 0.100000000000002 -> '0.1'
+        ticks = [(map(str, x[0]), x[1]) for x in ticks]
+
         xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions()
         
         json_repr = json.dumps({
             'elements': json_repr,
-            'axes': axes,
+            'axes': {
+                'hasaxes': axes,
+                'ticks': ticks,
+            },
             'extent': {
                 'xmin': xmin,
                 'xmax': xmax,
@@ -175,6 +184,7 @@ size{1cm, 1cm};
                 'zmin': zmin,
                 'zmax': zmax,
             },
+            'boxratios': box_ratios,
         })
         
         #return "<mn>3</mn>"
@@ -192,7 +202,7 @@ size{1cm, 1cm};
         elif axes.has_form('List', 3):
             axes = (axes.leaves[0].is_true(), axes.leaves[1].is_true(), axes.leaves[2].is_true())
         else:
-            axes = (False, False, False)
+            axes = {}
         ticks_style = graphics_options.get('TicksStyle')
         axes_style = graphics_options.get('AxesStyle')
         label_style = graphics_options.get('LabelStyle')
@@ -210,12 +220,21 @@ size{1cm, 1cm};
         label_style = elements.create_style(label_style)
         ticks_style[0].extend(axes_style[0])
         ticks_style[1].extend(axes_style[1])
-        
-        # TODO: use self.axis_ticks to get the positions of ticks
-        # and return them.
-        # TODO: return some represntation of the axes/ticks/label styles
-        # that can be used in the client-side rendering.
-        return {}
+
+        ticks = [self.axis_ticks(xmin, xmax), self.axis_ticks(ymin, ymax), self.axis_ticks(zmin, zmax)]
+
+        # Add zero if required, since axis_ticks does not
+        if xmin <= 0 <= xmax:
+            ticks[0][0].append(0.0)
+            ticks[0][0].sort()
+        if ymin <= 0 <= ymax:
+            ticks[1][0].append(0.0)
+            ticks[1][0].sort()
+        if zmin <= 0 <= zmax:
+            ticks[2][0].append(0.0)
+            ticks[2][0].sort()
+
+        return axes, ticks
             
 def total_extent_3d(extents):
     xmin = xmax = ymin = ymax = zmin = zmax = None
@@ -245,6 +264,35 @@ class Graphics3DElements(_GraphicsElements):
         result = []
         for element in self.elements:
             result.extend(element.to_json())
+        return result
+
+class Point3DBox(PointBox):
+    def init(self, *args, **kwargs):
+        super(Point3DBox, self).init(*args, **kwargs)
+
+    def process_option(self, name, value):
+        super(Point3DBox, self).process_option(name, value)
+
+    def to_json(self):
+        # TODO: account for point size and style
+        data = []
+        for line in self.lines:
+            data.append({
+                'type': 'point',
+                'coords': [coords.pos() for coords in line],
+            })
+        return data
+
+    def to_asy(self):
+        # TODO
+        return ''
+    
+    def extent(self):
+        result = []
+        for line in self.lines:
+            for c in line:
+                p, d = c.pos()
+                result.append(p)
         return result
     
 class Line3DBox(LineBox):
@@ -314,8 +362,13 @@ class Polygon3DBox(PolygonBox):
                 p, d = c.pos()
                 result.append(p)
         return result
-    
+
+class Cylinder3DBox(Graphics3DElements):
+    def init(self, *args, **kwargs):
+        super(Cylinder3DBox, self).init(*args, **kwargs)
+
 GLOBALS3D = {
     'Polygon3DBox': Polygon3DBox,
     'Line3DBox': Line3DBox,
+    'Point3DBox': Point3DBox,
 }

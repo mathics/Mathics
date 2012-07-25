@@ -19,7 +19,7 @@ class CoordinatesError(BoxConstructError):
 class ColorError(BoxConstructError):
     pass
     
-element_heads = ('Rectangle', 'Disk', 'Line', 'Circle', 'Polygon', 'Inset', 'Text')
+element_heads = ('Rectangle', 'Disk', 'Line', 'Point', 'Circle', 'Polygon', 'Inset', 'Text')
 color_heads = ('RGBColor', 'CMYKColor', 'Hue', 'GrayLevel')
 thickness_heads = ('Thickness', 'AbsoluteThickness', 'Thick', 'Thin')
 
@@ -540,6 +540,34 @@ class _Polyline(_GraphicsElement):
                 result.extend([(x-l,y-l), (x-l,y+l), (x+l,y-l), (x+l,y+l)])
         return result
     
+class PointBox(_Polyline):
+    def init(self, graphics, style, item=None):
+        super(PointBox, self).init(graphics, item, style)
+        self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
+        if item is not None:
+            if len(item.leaves) != 1:
+                raise BoxConstructError
+            points = item.leaves[0]
+            if points.has_form('List', None) and len(points.leaves) != 0:
+                if all(not leaf.has_form('List', None) for leaf in points.leaves):
+                    points = Expression('List', points)
+            self.do_init(graphics, points)
+        else:
+            raise BoxConstructError
+    
+    def to_svg(self):
+        l = self.style.get_line_width(face_element=False)
+        style = create_css(edge_color=self.edge_color, stroke_width=l, face_color=self.face_color)
+        svg = ''
+        for line in self.lines:
+            for coords in line:
+                svg += '<circle cx="%f" cy="%f" r="1" style="%s" />' % (coords.pos()[0], coords.pos()[1], style)
+        return svg
+    
+    def to_asy(self):
+        #TODO
+        return ""
+
 class LineBox(_Polyline):
     def init(self, graphics, style, item=None, lines=None):
         super(LineBox, self).init(graphics, item, style)
@@ -571,7 +599,7 @@ class LineBox(_Polyline):
             path = '--'.join(['(%s,%s)' % coords.pos() for coords in line])
             asy += 'draw(%s, %s);' % (path, pen)
         return asy
-        
+
 class Polygon(Builtin):
     pass
     
@@ -1514,6 +1542,7 @@ GLOBALS = {
     'LineBox': LineBox,
     'CircleBox': CircleBox,
     'PolygonBox': PolygonBox,
+    'PointBox': PointBox,
     'InsetBox': InsetBox,
     
     'RGBColor': RGBColor,

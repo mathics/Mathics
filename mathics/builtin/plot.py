@@ -118,12 +118,14 @@ class _Plot(Builtin):
         'Mesh': 'None',
         'PlotRange': 'Automatic',
         'PlotPoints': 'None',
+        'Exclusions': 'Automatic',
     })
 
     messages = {
         'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
         'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
         'invpltpts': "Value of PlotPoints -> `1` is not a positive integer.",
+        'invexcl': "Value of Exclusions -> `1` is not None, Automatic or an appropriate list of constraints.", 
     }
 
     def apply(self, functions, x, start, stop, evaluation, options):
@@ -206,6 +208,36 @@ class _Plot(Builtin):
             evaluation.message(self.get_name(), 'invmaxrec', maxrecursion, max_recursion_limit)
         assert isinstance(maxrecursion, int)
 
+        # Exclusions Option
+        #TODO: Make exclusions option work properly with ParametricPlot
+        def check_exclusion(excl):
+            if isinstance(excl, list):
+                return all(check_exclusion(e) for e in excl)
+            if excl == 'Automatic':
+                return True
+            if not isinstance(excl, numbers.Real):
+                return False
+            return True
+
+        exclusions_option = self.get_option(options, 'Exclusions', evaluation)
+        exclusions = exclusions_option.to_python(n_evaluation=evaluation)
+        #TODO Turn expressions into points E.g. Sin[x] == 0 becomes 0, 2 Pi...
+
+        if exclusions in ['None', ['None']]:
+            exclusions = 'None'
+        elif not isinstance(exclusions, list):
+            exclusions = [exclusions]
+
+            if isinstance(exclusions, list) and all(check_exclusion(excl) for excl in exclusions):
+                pass
+            
+            else:
+                evaluation.message(self.get_name(), 'invexcl', exclusions_option)
+                exclusions = ['Automatic']
+
+        # exclusions is now either 'None' or a list of reals and 'Automatic'
+        assert (exclusions == 'None' or isinstance(exclusions, list))
+
         # constants to generate colors
         hue = 0.67
         hue_pos = 0.236068
@@ -275,6 +307,30 @@ class _Plot(Builtin):
                 for line in points:
                     tmp_mesh_points.extend(line)
 
+            def find_excl(excl):
+                # Find which line the exclusion is in
+                for l in range(len(xvalues)):    #TODO: Binary Search faster?
+                    if xvalues[l][0] <= excl and xvalues[l][-1] >= excl:
+                        break
+                    if xvalues[l][-1] <= excl and xvalues[min(l+1, len(xvalues)-1)][0] >= excl: 
+                        return min(l+1, len(xvalues)-1), 0, False
+                xi = 0
+                for xi in range(len(xvalues[l])-1):
+                    if xvalues[l][xi] <= excl and xvalues[l][xi+1] >= excl:
+                        return l, xi+1, True
+                return l, xi+1, False
+
+            if exclusions != 'None':
+                for excl in exclusions:
+                        if excl != 'Automatic':
+                            l, xi, split_required = find_excl(excl)
+                            if split_required:
+                                xvalues.insert(l+1,xvalues[l][xi:])
+                                xvalues[l] = xvalues[l][:xi]
+                                points.insert(l+1,points[l][xi:])
+                                points[l] = points[l][:xi]
+                        #assert(xvalues[l][-1] <= excl and excl <= xvalues[l+1][0])
+
             # Adaptive Sampling - loop again and interpolate highly angled sections
             ang_thresh = cos(pi / 180)    # Cos of the maximum angle between successive line segments
             for line, line_xvalues in zip(points, xvalues):
@@ -313,6 +369,9 @@ class _Plot(Builtin):
                             i += incr
                         i += 1
                     
+            if exclusions == 'None':    # Join all the Lines
+                points = [[(x, y) for line in points for x, y in line]]
+
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
             graphics.append(Expression('Line', Expression('List', *(Expression('List',
                 *(Expression('List', x, y) for x, y in line)) for line in points)
@@ -341,22 +400,108 @@ class _Plot(Builtin):
         y_range = get_plot_range([y for x, y in base_plot_points],
             [y for x, y in plot_points], y_range)
         
-        mesh_xscale = 1. / zero_to_one(x_range[1] - x_range[0])
-        mesh_yscale = 1. / zero_to_one(y_range[1] - y_range[0])
-        
         options['PlotRange'] = from_python([x_range, y_range])
         
         if mesh != 'None':
             for hue, points in zip(function_hues, mesh_points):
                 graphics.append(Expression('Hue', hue, 0.6, 0.6))
-                for x, y in points:
-                    graphics.append(Expression('Disk', Expression('List', x, y), 
-                        Expression('List', 0.003 / mesh_xscale, 0.005 / mesh_yscale))
-                    )
-                #TODO handle non-default AspectRatio
-        
+                meshpoints = [Expression('List', x, y) for x, y in points]
+                graphics.append(Expression('Point', Expression('List', *meshpoints)))
+
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
 
+class _ListPlot(Builtin):
+    messages = {
+        'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
+        'joind': "Value of option Joined -> `1` is not True or False.",
+    }
+
+    def apply(self, points, evaluation, options):
+        '%(name)s[points_, OptionsPattern[%(name)s]]'
+
+        plot_name = self.get_name()
+        all_points = points.to_python(n_evaluation=evaluation)
+        expr = Expression(self.get_name(), points, *options_to_rules(options))
+
+        # PlotRange Option
+        def check_range(range):
+            if range in ('Automatic', 'All'):
+                return True
+            if isinstance(range, list) and len(range) == 2:
+                if isinstance(range[0], numbers.Real) and isinstance(range[1], numbers.Real):
+                    return True
+            return False
+
+        plotrange_option = self.get_option(options, 'PlotRange', evaluation)
+        plotrange = plotrange_option.to_python(n_evaluation=evaluation)
+        if plotrange == 'All':
+            plotrange = ['All', 'All']
+        elif plotrange == 'Automatic':
+            plotrange = ['Automatic', 'Automatic']
+        elif isinstance(plotrange, numbers.Real):
+            plotrange = [[-plotrange, plotrange], [-plotrange, plotrange]]
+        elif isinstance(plotrange, list) and len(plotrange) == 2:
+            if all(isinstance(pr, numbers.Real) for pr in plotrange):
+                plotrange = ['All', plotrange]
+            elif all(check_range(pr) for pr in plotrange):
+                pass
+        else:
+            evaluation.message(self.get_name(), 'prng', plotrange_option)
+            plotrange = ['Automatic', 'Automatic']
+            
+        x_range, y_range = plotrange[0], plotrange[1]
+        assert x_range in ('Automatic', 'All') or isinstance(x_range, list)
+        assert y_range in ('Automatic', 'All') or isinstance(y_range, list)
+
+        # Joined Option
+        joined_option = self.get_option(options, 'Joined', evaluation)
+        joined = joined_option.to_python()
+        if joined not in [True, False]: 
+            evaluation.message(plot_name, 'joind', joined_option, expr)
+            joined = False
+
+        if isinstance(all_points, list) and len(all_points) != 0:
+            if all(not isinstance(point, list) for point in all_points):  # Only y values given
+                all_points = [[[float(i), all_points[i]] for i in range(len(all_points))]]
+            elif all(isinstance(line,list) and len(line) == 2 for line in all_points):  # Single list of (x,y) pairs
+                all_points = [all_points]
+            elif all(isinstance(line,list) for line in all_points):     # List of lines
+                if all(isinstance(point, list) and len(point) == 2 for line in all_points for point in line):
+                    pass
+                elif all(not isinstance(point, list) for line in all_points for point in line):
+                    all_points = [[[float(i), line[i]] for i in range(len(line))] for line in all_points]
+                else:
+                    return
+            else:
+                return
+        else:
+            return
+
+        hue = 0.67
+        hue_pos = 0.236068
+        hue_neg = -0.763932
+
+        graphics = []
+        for indx,line in enumerate(all_points):
+            graphics.append(Expression('Hue', hue, 0.6, 0.6))
+            if joined:
+                graphics.append(Expression('Line', from_python(line))) 
+            else:
+                graphics.append(Expression('Point', from_python(line))) 
+
+            if indx % 4 == 0:
+                hue += hue_pos
+            else:
+                hue += hue_neg
+            if hue > 1: hue -= 1
+            if hue < 0: hue += 1
+
+        y_range = get_plot_range([y for line in all_points for x, y in line], [y for line in all_points for x, y in line], y_range)
+        x_range = get_plot_range([x for line in all_points for x, y in line], [x for line in all_points for x, y in line], x_range)
+
+        options['PlotRange'] = from_python([x_range, y_range])
+
+        return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
 
 class _Plot3D(Builtin):
     messages = {
@@ -638,6 +783,65 @@ class ParametricPlot(_Plot):
             return None
         return value
 
+class ListPlot(_ListPlot):
+    """
+    <dl>
+    <dt>'ListPlot[{$y_1$, $y_2$, ...}]'
+        <dd>plots a list of y-values, assuming integer x-values 1, 2, 3, ...
+    <dt>'ListPlot[{{$x_1$, $y_1$}, {$x_2$, $y_2$}, ...}]'
+        <dd>plots a list of x,y pairs.
+    <dt>'ListPlot[{$list_1$, $list_2$, ...}]'
+        <dd>plots a several lists of points.
+    </dl>
+
+    >> ListLinePlot[Table[{n,n^0.5}, {n,10}]]
+     = -Graphics-
+    """
+
+    from graphics import Graphics
+    
+    attributes = ('HoldAll',)
+    
+    options = Graphics.options.copy()
+    options.update({
+        'Axes': 'True',
+        'AspectRatio': '1 / GoldenRatio',
+        'Mesh': 'None',
+        'PlotRange': 'Automatic',
+        'PlotPoints': 'None',
+        'Fillint': 'None',
+        'Joined': 'False',
+    })
+
+class ListLinePlot(_ListPlot):
+    """
+    <dl>
+    <dt>'ListLinePlot[{$y_1$, $y_2$, ...}]'
+        <dd>plots a line through a list of y-values, assuming integer x-values 1, 2, 3, ...
+    <dt>'ListLinePlot[{{$x_1$, $y_1$}, {$x_2$, $y_2$}, ...}]'
+        <dd>plots a line through a list of x,y pairs.
+    <dt>'ListLinePlot[{$list_1$, $list_2$, ...}]'
+        <dd>plots several lines.
+    </dl>
+
+    >> ListPlot[Table[n^2, {n,10}]]
+     = -Graphics-
+    """
+    from graphics import Graphics
+    
+    attributes = ('HoldAll',)
+    
+    options = Graphics.options.copy()
+    options.update({
+        'Axes': 'True',
+        'AspectRatio': '1 / GoldenRatio',
+        'Mesh': 'None',
+        'PlotRange': 'Automatic',
+        'PlotPoints': 'None',
+        'Fillint': 'None',
+        'Joined': 'True',
+    })
+
 class Plot3D(_Plot3D):
     """
     <dl>
@@ -664,10 +868,11 @@ class Plot3D(_Plot3D):
 
     options = Graphics.options.copy()
     options.update({
-        'Axes': 'False',
+        'Axes': 'True',
         'AspectRatio': '1',
         'Mesh': 'Full',
         'PlotPoints': 'None',
+        'BoxRatios': '{1, 1, 0.4}',
     })
 
     def get_functions_param(self, functions):
