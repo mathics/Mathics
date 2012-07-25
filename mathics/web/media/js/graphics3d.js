@@ -133,19 +133,35 @@ function drawGraphics3D(container, data) {
     tmpx, tmpy, tmpz, 
     theta = 45, onMouseDownTheta = 45, phi = 60, onMouseDownPhi = 60;
 
+  // BoxRatios induce scaling
+  if (data.boxratios == 'Automatic') {
+    boxscale = new THREE.Vector3(1,1,1);
+  } else {
+    if ((data.boxratios instanceof Array) && (data.boxratios.length == 3)) {
+      boxscale = new THREE.Vector3(
+        data.boxratios[0] / (data.extent["xmax"] - data.extent["xmin"]),
+        data.boxratios[1] / (data.extent["ymax"] - data.extent["ymin"]),
+        data.boxratios[2] / (data.extent["zmax"] - data.extent["zmin"])
+      );
+    } else {
+      alert("Error: Internal Boxratios not Automatic or Array(3)");
+      return;
+    }
+  }
+
   // Center of the scene
   var center = new THREE.Vector3(
-    0.5*(data.extent["xmin"] + data.extent["xmax"]),
-    0.5*(data.extent["ymin"] + data.extent["ymax"]), 
-    0.5*(data.extent["zmin"] + data.extent["zmax"]));
+    0.5 * boxscale.x * (data.extent["xmin"] + data.extent["xmax"]),
+    0.5 * boxscale.y * (data.extent["ymin"] + data.extent["ymax"]), 
+    0.5 * boxscale.z * (data.extent["zmin"] + data.extent["zmax"]));
 
   // Where the camera is looking
   var focus = new THREE.Vector3(center.x, center.y, center.z);
 
-  radius = 2*Math.sqrt(
-   Math.pow(data.extent["xmax"]-data.extent["xmin"],2) +
-   Math.pow(data.extent["ymax"]-data.extent["ymin"],2) +
-   Math.pow(data.extent["zmax"]-data.extent["zmin"],2));
+  radius = 2 * Math.sqrt(
+   Math.pow(boxscale.x * (data.extent["xmax"] - data.extent["xmin"]), 2) +
+   Math.pow(boxscale.y * (data.extent["ymax"] - data.extent["ymin"]), 2) +
+   Math.pow(boxscale.z * (data.extent["zmax"] - data.extent["zmin"]), 2));
 
   // Scene
   scene = new THREE.Scene();
@@ -153,7 +169,7 @@ function drawGraphics3D(container, data) {
 
   camera = new THREE.PerspectiveCamera(
     35,             // Field of view
-    800 / 600,      // Aspect ratio
+    1,            // Aspect ratio
     0.1*radius,     // Near plane
     1000*radius     // Far plane
   );
@@ -173,9 +189,9 @@ function drawGraphics3D(container, data) {
   // BoundingBox
   boundbox = new THREE.Mesh(
     new THREE.CubeGeometry(
-      data.extent["xmax"]-data.extent["xmin"],
-      data.extent["ymax"]-data.extent["ymin"],
-      data.extent["zmax"]-data.extent["zmin"]),
+      boxscale.x * (data.extent["xmax"] - data.extent["xmin"]),
+      boxscale.y * (data.extent["ymax"] - data.extent["ymin"]),
+      boxscale.z * (data.extent["zmax"] - data.extent["zmin"])),
     new THREE.MeshBasicMaterial({color: 0x666666, wireframe: true})
   );
   boundbox.position = center;
@@ -247,20 +263,22 @@ function drawGraphics3D(container, data) {
       }
     }
     for (var i = 0; i < 3; i++) {
-      maxj = null;
-      maxl = 0.0;
-      for (var j = 0; j < 4; j++) {
-        if (axesindicies[i][j][0] != nearj && axesindicies[i][j][1] != nearj && axesindicies[i][j][0] != farj && axesindicies[i][j][1] != farj) {
-          tmpl = boxEdgeLength(i, j);
-          if (tmpl > maxl) {
-            maxl = tmpl;
-            maxj = j;
+      if (hasaxes[i]) {
+        maxj = null;
+        maxl = 0.0;
+        for (var j = 0; j < 4; j++) {
+          if (axesindicies[i][j][0] != nearj && axesindicies[i][j][1] != nearj && axesindicies[i][j][0] != farj && axesindicies[i][j][1] != farj) {
+            tmpl = boxEdgeLength(i, j);
+            if (tmpl > maxl) {
+              maxl = tmpl;
+              maxj = j;
+            }
           }
         }
+        axesmesh[i].geometry.vertices[0].add(boundbox.geometry.vertices[axesindicies[i][maxj][0]], boundbox.position);
+        axesmesh[i].geometry.vertices[1].add(boundbox.geometry.vertices[axesindicies[i][maxj][1]], boundbox.position);
+        axesmesh[i].geometry.verticesNeedUpdate = true;
       }
-      axesmesh[i].geometry.vertices[0].add(boundbox.geometry.vertices[axesindicies[i][maxj][0]], boundbox.position);
-      axesmesh[i].geometry.vertices[1].add(boundbox.geometry.vertices[axesindicies[i][maxj][1]], boundbox.position);
-      axesmesh[i].geometry.verticesNeedUpdate = true;
     }
     update_axes();
   }
@@ -354,14 +372,14 @@ function drawGraphics3D(container, data) {
           ticks[i][j].geometry.vertices[1].add(axesgeom[i].vertices[0], tickdir);
 
           if (i == 0) {
-            ticks[i][j].geometry.vertices[0].x = tmpval;
-            ticks[i][j].geometry.vertices[1].x = tmpval;
+            ticks[i][j].geometry.vertices[0].x = boxscale.x * tmpval;
+            ticks[i][j].geometry.vertices[1].x = boxscale.x * tmpval;
           } else if (i == 1) {
-            ticks[i][j].geometry.vertices[0].y = tmpval;
-            ticks[i][j].geometry.vertices[1].y = tmpval;
+            ticks[i][j].geometry.vertices[0].y = boxscale.y * tmpval;
+            ticks[i][j].geometry.vertices[1].y = boxscale.y * tmpval;
           } else if (i == 2) {
-            ticks[i][j].geometry.vertices[0].z = tmpval;
-            ticks[i][j].geometry.vertices[1].z = tmpval;
+            ticks[i][j].geometry.vertices[0].z = boxscale.z * tmpval;
+            ticks[i][j].geometry.vertices[1].z = boxscale.z * tmpval;
           }
 
           ticks[i][j].geometry.verticesNeedUpdate = true;
@@ -373,14 +391,14 @@ function drawGraphics3D(container, data) {
           ticks_small[i][j].geometry.vertices[1].add(axesgeom[i].vertices[0], small_tickdir);
 
           if (i == 0) {
-            ticks_small[i][j].geometry.vertices[0].x = tmpval;
-            ticks_small[i][j].geometry.vertices[1].x = tmpval;
+            ticks_small[i][j].geometry.vertices[0].x = boxscale.x * tmpval;
+            ticks_small[i][j].geometry.vertices[1].x = boxscale.x * tmpval;
           } else if (i == 1) {
-            ticks_small[i][j].geometry.vertices[0].y = tmpval;
-            ticks_small[i][j].geometry.vertices[1].y = tmpval;
+            ticks_small[i][j].geometry.vertices[0].y = boxscale.y * tmpval;
+            ticks_small[i][j].geometry.vertices[1].y = boxscale.y * tmpval;
           } else if (i == 2) {
-            ticks_small[i][j].geometry.vertices[0].z = tmpval;
-            ticks_small[i][j].geometry.vertices[1].z = tmpval;
+            ticks_small[i][j].geometry.vertices[0].z = boxscale.z * tmpval;
+            ticks_small[i][j].geometry.vertices[1].z = boxscale.z * tmpval;
           }
 
           ticks_small[i][j].geometry.verticesNeedUpdate = true;
@@ -451,18 +469,33 @@ function drawGraphics3D(container, data) {
     }
   }
 
+  function applyBoxScaling(mesh) {
+    for (var i = 0; i < mesh.geometry.vertices.length; i++) {
+      mesh.geometry.vertices[i].x -= center.x / boxscale.x;
+      mesh.geometry.vertices[i].y -= center.y / boxscale.y;
+      mesh.geometry.vertices[i].z -= center.z / boxscale.z;
+
+      mesh.geometry.vertices[i].x *= boxscale.x;
+      mesh.geometry.vertices[i].y *= boxscale.y;
+      mesh.geometry.vertices[i].z *= boxscale.z;
+
+      mesh.geometry.vertices[i].addSelf(center);
+    }
+    return mesh;
+  }
+
   // Plot the primatives
   for (var indx = 0; indx < data.elements.length; indx++) {
     var type = data.elements[indx].type;
     switch(type) {
       case "point":
-        scene.add(drawPoint(data.elements[indx]));
+        scene.add(applyBoxScaling(drawPoint(data.elements[indx])));
         break
       case "line":
-        scene.add(drawLine(data.elements[indx]));
+        scene.add(applyBoxScaling(drawLine(data.elements[indx])));
         break;
       case "polygon":
-        scene.add(drawPolygon(data.elements[indx]));
+        scene.add(applyBoxScaling(drawPolygon(data.elements[indx])));
         break;
       default:
         alert("Error: Unknown type passed to drawGraphics3D");

@@ -866,6 +866,7 @@ class Plot3D(_Plot3D):
         'AspectRatio': '1',
         'Mesh': 'Full',
         'PlotPoints': 'None',
+        'BoxRatios': '{1, 1, 0.4}',
     })
 
     def get_functions_param(self, functions):

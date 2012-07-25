@@ -50,6 +50,7 @@ class Graphics3D(Graphics):
     options = Graphics.options.copy()
     options.update({
         #'Axes': 'True',
+        'BoxRatios': 'Automatic',
     })
     
     box_suffix = '3DBox'
@@ -73,6 +74,8 @@ class Graphics3DBox(GraphicsBox):
         
         aspect_ratio = graphics_options['AspectRatio']
             
+        box_ratios = graphics_options['BoxRatios'].to_python()
+
         plot_range = graphics_options['PlotRange'].to_python()            
         if plot_range == 'Automatic':
             plot_range = ['Automatic', 'Automatic', 'Automatic']
@@ -136,15 +139,15 @@ class Graphics3DBox(GraphicsBox):
                 raise BoxConstructError
             
             return xmin, xmax, ymin, ymax, zmin, zmax
-            
+
         xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions(final_pass=False)
         
         axes, ticks = self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax)
         
-        return elements, axes, ticks, calc_dimensions
+        return elements, axes, ticks, calc_dimensions, box_ratios
     
     def boxes_to_tex(self, leaves, **options):
-        elements, axes, ticks, calc_dimensions = self._prepare_elements(leaves, options, max_width=450)
+        elements, axes, ticks, calc_dimensions, box_ratios = self._prepare_elements(leaves, options, max_width=450)
         
         asy = elements.to_asy()
         
@@ -158,7 +161,7 @@ size{1cm, 1cm};
         """
     
     def boxes_to_xml(self, leaves, **options):
-        elements, axes, ticks, calc_dimensions = self._prepare_elements(leaves, options)
+        elements, axes, ticks, calc_dimensions, box_ratios = self._prepare_elements(leaves, options)
 
         json_repr = elements.to_json()
 
@@ -181,6 +184,7 @@ size{1cm, 1cm};
                 'zmin': zmin,
                 'zmax': zmax,
             },
+            'boxratios': box_ratios,
         })
         
         #return "<mn>3</mn>"
