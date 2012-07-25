@@ -1126,7 +1126,7 @@ size(%scm, %scm);
         start_x = step_x * round_to_zero((xmax - xmin) / step_x)
         start_x_small = step_x_small * round_to_zero((xmax - xmin) / step_x_small)
         
-        zero_tolerance = 0.1
+        zero_tolerance = 0.01
         if xmin > 0 and xmin / (xmax - xmin) < zero_tolerance:
             xmin = 0
         if xmax < 0 and xmax / (xmax - xmin) < zero_tolerance:
