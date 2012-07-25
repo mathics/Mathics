@@ -119,12 +119,13 @@ function drawGraphics3D(container, data) {
   // The nulls are the "scaled" parts of coordinates that depend on the 
   // size of the final graphics (see Mathematica's Scaled). TODO.
 
-  // TODO: BoxRatios option
+  // BoxRatios option is stored in data.boxratios and is either Automatic or a length 3 array.
 
   // TODO: update the size of the container dynamically
   // (we also need some mechanism to update the enclosing <mspace>).
 
-  // TODO: create axes using the (yet to be generated) information in data.axes.
+  // Axes are created using the information in data.axes such as
+  // {"axes": {"hasaxes": [true, true, false], "ticks": [[-1, 0, 1], [-2, 0, 2], [0., 0.5, 1]]}}.
 
   // TODO: colors, lighting/shading, handling of VertexNormals.
 
