@@ -398,8 +398,16 @@ function drawGraphics3D(container, data) {
       for (var j = 0; j < ticknums[i].length; j++) {
         ticknums[i][j] = document.createElement('div');
         ticknums[i][j].innerHTML = data.axes.ticks[i][0][j];
+
+        // Handle Minus signs
+        if (data.axes.ticks[i][0][j] >= 0) {
+          ticknums[i][j].style.paddingLeft = "0.5em";
+        } else {
+          ticknums[i][j].style.paddingLeft = 0;
+        }
+
         ticknums[i][j].style.position = "absolute";
-        ticknums[i][j].style.fontSize = "10pt";
+        ticknums[i][j].style.fontSize = "0.8em";
         container.appendChild(ticknums[i][j]);
       }
     }
