@@ -297,13 +297,13 @@ function drawGraphics3D(container, data) {
     var tickdir = new THREE.Vector3();
     if (i == 0) {
       if (-30 < phi && phi < 30) {
-        if (axesgeom[0].vertices[0].z > 0) {
+        if (axesgeom[0].vertices[0].z > boundbox.position.z) {
           tickdir.set(0, 0, -ticklength);
         } else {
           tickdir.set(0, 0, ticklength);
         }
       } else {
-        if (axesgeom[0].vertices[0].y > 0) {
+        if (axesgeom[0].vertices[0].y > boundbox.position.y) {
           tickdir.set(0,-ticklength, 0);
         } else {
           tickdir.set(0, ticklength, 0);
@@ -311,13 +311,13 @@ function drawGraphics3D(container, data) {
       }
     } else if (i == 1) {
       if (-30 < phi && phi < 30) {
-        if (axesgeom[1].vertices[0].z > 0) {
+        if (axesgeom[1].vertices[0].z > boundbox.position.z) {
           tickdir.set(0, 0, -ticklength);
         } else {
           tickdir.set(0, 0, ticklength);
         }
       } else {
-        if (axesgeom[1].vertices[0].x > 0) {
+        if (axesgeom[1].vertices[0].x > boundbox.position.x) {
           tickdir.set(-ticklength, 0, 0);
         } else {
           tickdir.set(ticklength, 0, 0);
@@ -325,13 +325,13 @@ function drawGraphics3D(container, data) {
       }
     } else if (i == 2) {
       if ((45 < theta && theta < 135) || (225 < theta && theta < 315)) {
-        if (axesgeom[2].vertices[0].y > 0) {
+        if (axesgeom[2].vertices[0].y > boundbox.position.y) {
           tickdir.set(0, -ticklength, 0);
         } else {
           tickdir.set(0, ticklength, 0);
         }
       } else {
-        if (axesgeom[2].vertices[0].x > 0) {
+        if (axesgeom[2].vertices[0].x > boundbox.position.x) {
           tickdir.set(-ticklength, 0, 0);
         } else {
           tickdir.set(ticklength, 0, 0);
