@@ -7,7 +7,7 @@ Graphics (3D)
 from mathics.core.expression import NumberError, from_python, Real
 from mathics.builtin.base import BoxConstruct, BoxConstructError
 from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox,
-    LineBox, PointBox, Style, RGBColor)
+    LineBox, PointBox, Style, RGBColor, color_heads, get_class)
 
 from django.utils import simplejson as json
 
@@ -64,6 +64,10 @@ class Graphics3D(Graphics):
     rules = {
         'MakeBoxes[Graphics3D[content_, OptionsPattern[Graphics3D]], OutputForm]': '"-Graphics3D-"',
     }
+
+    messages = {
+        'invlight': "`1` is not a valid list of light sources.", 
+    }
     
 class Graphics3DBox(GraphicsBox):
     def boxes_to_text(self, leaves, **options):
@@ -78,7 +82,11 @@ class Graphics3DBox(GraphicsBox):
         base_width, base_height, size_multiplier, size_aspect = self._get_image_size(options,
             graphics_options, max_width)
         
-        lighting = graphics_options['Lighting'].to_python()
+        #TODO: Handle ImageScaled[], and Scaled[]
+        lighting_option = graphics_options['Lighting']
+        lighting = lighting_option.to_python()
+        self.lighting = []
+
         if lighting == 'Automatic':
             self.lighting = [
                 {"type": "Ambient", "color": [0.3, 0.2, 0.4]},
@@ -93,9 +101,34 @@ class Graphics3DBox(GraphicsBox):
                 {"type": "Directional", "color": [0.3, 0.3, 0.3], "position": [2, 2, 2]},
                 {"type": "Directional", "color": [0.3, 0.3, 0.3], "position": [0, 2, 2]}
             ]
+        elif lighting == 'None':
+            pass
+
+        elif isinstance(lighting, list) and all(isinstance(light, list) for light in lighting):
+            for light in lighting:
+                if light[0] in ['"Ambient"', '"Directional"']:
+                    try:
+                        head = light[1].get_head_name()
+                    except AttributeError:
+                        break
+                    color = get_class(head)(light[1])
+                    if light[0] == '"Ambient"':
+                        self.lighting.append({
+                            "type": "Ambient",
+                             "color": color.to_rgba()
+                        })
+                    elif light[0] == '"Directional"':
+                        position = [0,0,0]
+                        if isinstance(light[2], list) and len(light[2]) == 3:
+                            position = light[2]
+                        self.lighting.append({
+                            "type": "Directional",
+                            "color": color.to_rgba(),
+                            "position": position,
+                        })
+                    #TODO: Other Light Sources
         else:
-            #TODO
-            self.lighting = []
+            options['evaluation'].message("Graphics3D", 'invlight', lighting_option)
 
         #TODO Aspect Ratio
         #aspect_ratio = graphics_options['AspectRatio'].to_python()
