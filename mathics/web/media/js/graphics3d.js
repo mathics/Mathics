@@ -114,7 +114,7 @@ function drawPolygon(prim) {
   polygeom.computeFaceNormals();
 
   var color = new THREE.Color().setRGB(prim.faceColor[0], prim.faceColor[1], prim.faceColor[2]);
-  polymat = new THREE.MeshLambertMaterial({color: color.getHex()});
+  polymat = new THREE.MeshLambertMaterial({color: color.getHex(), transparent: true, opacity: prim.faceColor[3]});
 
   mesh = new THREE.Mesh(polygeom, polymat);
   return mesh;
