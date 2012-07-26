@@ -52,6 +52,7 @@ class Mesh(Builtin):
 def quiet_evaluate(expr, vars, evaluation, expect_list=False):
     """ Evaluates expr with given dynamic scoping values
     without producing arithmetic error messages. """
+    expr = Expression('N', expr)
     quiet_expr = Expression('Quiet', expr, Expression('List',
         Expression('MessageName', Symbol('Power'), String('infy'))))
     value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)
@@ -98,12 +99,17 @@ def automatic_plot_range(values):
 
 def get_plot_range(values, all_values, option):
     if option == 'Automatic':
-        return automatic_plot_range(values)
-    if option == 'All':
+        result = automatic_plot_range(values)
+    elif option == 'All':
         if not all_values:
-            return [0, 1]
-        return min(all_values), max(all_values)
-    return option
+            result = [0, 1]
+        else:
+            result = min(all_values), max(all_values)
+    else:
+        result = option
+    if result[0] == result[1]:
+        return 0, result[1] * 2
+    return result
 
 class _Plot(Builtin):
     from graphics import Graphics
@@ -699,6 +705,10 @@ class Plot(_Plot):
      = -Graphics-
 
     >> Plot[Tan[x], {x, 0, 6}, Mesh->All, PlotRange->{{-1, 5}, {0, 15}}, MaxRecursion->10]
+     = -Graphics-
+    
+    A constant function:
+    >> Plot[3, {x, 0, 1}]
      = -Graphics-
      
     #> Plot[1 / x, {x, -1, 1}]

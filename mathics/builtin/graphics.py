@@ -890,8 +890,10 @@ class GraphicsElements(_GraphicsElements):
         
     def translate(self, coords):
         if self.pixel_width is not None:
-            result = [(coords[0] - self.xmin) * self.pixel_width / self.extent_width,
-                (coords[1] - self.ymin) * self.pixel_height / self.extent_height]
+            w = self.extent_width if self.extent_width > 0 else 1
+            h = self.extent_height if self.extent_height > 0 else 1
+            result = [(coords[0] - self.xmin) * self.pixel_width / w,
+                (coords[1] - self.ymin) * self.pixel_height / h]
             if self.neg_y:
                 result[1] = self.pixel_height - result[1]
             return tuple(result)
@@ -913,9 +915,17 @@ class GraphicsElements(_GraphicsElements):
         
     def extent(self, completely_visible_only=False):
         if completely_visible_only:
-            return total_extent([element.extent() for element in self.elements if element.is_completely_visible])
+            ext = total_extent([element.extent() for element in self.elements if element.is_completely_visible])
         else:
-            return total_extent([element.extent() for element in self.elements])
+            ext = total_extent([element.extent() for element in self.elements])
+        xmin, xmax, ymin, ymax = ext
+        if xmin == xmax:
+            xmin = 0
+            xmax *= 2
+        if ymin == ymax:
+            ymin = 0
+            ymax *= 2
+        return xmin, xmax, ymin, ymax
     
     def to_svg(self):
         return '\n'.join(element.to_svg() for element in self.elements)
@@ -1139,6 +1149,8 @@ size(%scm, %scm);
                 return floor(value)
         
         def round_step(value):
+            if not value:
+                return 1, 1
             sub_steps = 5
             shift = 10.0 ** floor(log10(value))
             value = value / shift
@@ -1165,10 +1177,11 @@ size(%scm, %scm);
         start_x_small = step_x_small * round_to_zero((xmax - xmin) / step_x_small)
         
         zero_tolerance = 0.01
-        if xmin > 0 and xmin / (xmax - xmin) < zero_tolerance:
-            xmin = 0
-        if xmax < 0 and xmax / (xmax - xmin) < zero_tolerance:
-            xmax = 0
+        if xmax > min:
+            if xmin > 0 and xmin / (xmax - xmin) < zero_tolerance:
+                xmin = 0
+            if xmax < 0 and xmax / (xmax - xmin) < zero_tolerance:
+                xmax = 0
         if xmin <= 0 <= xmax:
             origin_k_x = 0
         else:
