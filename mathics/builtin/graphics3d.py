@@ -6,7 +6,8 @@ Graphics (3D)
         
 from mathics.core.expression import NumberError, from_python, Real
 from mathics.builtin.base import BoxConstruct, BoxConstructError
-from graphics import Graphics, GraphicsBox, _GraphicsElements, PolygonBox, LineBox, PointBox
+from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox,
+    LineBox, PointBox, Style, RGBColor)
 
 from django.utils import simplejson as json
 
@@ -38,6 +39,10 @@ class Coords3D(object):
     def add(self, x, y, z):
         p = (self.p[0]+x, self.p[1]+y, self.p[2]+z)
         return Coords3D(self.graphics, pos=p, d=self.d)
+    
+class Style3D(Style):
+    def get_default_face_color(self):
+        return RGBColor(components=(1,1,1,1))
 
 class Graphics3D(Graphics):
     """
@@ -265,6 +270,9 @@ class Graphics3DElements(_GraphicsElements):
         for element in self.elements:
             result.extend(element.to_json())
         return result
+    
+    def get_style_class(self):
+        return Style3D
 
 class Point3DBox(PointBox):
     def init(self, *args, **kwargs):

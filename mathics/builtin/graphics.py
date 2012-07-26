@@ -759,6 +759,7 @@ class Style(object):
         self.graphics = graphics
         self.edge = edge
         self.face = face
+        self.klass = graphics.get_style_class()
         
     def append(self, item, allow_forms=True):
         head = item.get_head_name()
@@ -767,7 +768,7 @@ class Style(object):
         elif head in thickness_heads:
             style = get_class(head)(self.graphics, item)
         elif head in ('EdgeForm', 'FaceForm'):
-            style = Style(self.graphics, edge=head == 'EdgeForm', face=head == 'FaceForm')
+            style = self.klass(self.graphics, edge=head == 'EdgeForm', face=head == 'FaceForm')
             if len(item.leaves) > 1:
                 raise BoxConstructError
             if item.leaves:
@@ -787,9 +788,15 @@ class Style(object):
             self.styles.extend(style.styles)
         
     def clone(self):
-        result = Style(self.graphics, edge=self.edge, face=self.face)
+        result = self.klass(self.graphics, edge=self.edge, face=self.face)
         result.styles = self.styles[:]
         return result
+    
+    def get_default_face_color(self):
+        return RGBColor(components=(0,0,0,1))
+    
+    def get_default_edge_color(self):
+        return RGBColor(components=(0,0,0,1))
 
     def get_style(self, style_class, face_element=None, default_to_faces=True, consider_forms=True):
         if face_element is not None:
@@ -797,9 +804,9 @@ class Style(object):
         edge_style = face_style = None
         if style_class == _Color:
             if default_to_faces:
-                face_style = RGBColor(components=(0,0,0,1))
+                face_style = self.get_default_face_color()
             else:
-                edge_style = RGBColor(components=(0,0,0,1))
+                edge_style = self.get_default_edge_color()
         elif style_class == _Thickness:
             if not default_to_faces:
                 edge_style = AbsoluteThickness(self.graphics, value=0.5)
@@ -855,10 +862,10 @@ class _GraphicsElements(object):
                 else:
                     raise BoxConstructError
                 
-        convert(content, Style(self))
+        convert(content, self.get_style_class()(self))
     
     def create_style(self, expr):
-        style = Style(self)
+        style = self.get_style_class()(self)
         
         def convert(expr):        
             if expr.has_form(('List', 'Directive'), None):
@@ -869,6 +876,9 @@ class _GraphicsElements(object):
                 
         convert(expr)
         return style
+    
+    def get_style_class(self):
+        return Style
     
 class GraphicsElements(_GraphicsElements):
     coords = Coords
