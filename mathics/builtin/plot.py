@@ -52,6 +52,7 @@ class Mesh(Builtin):
 def quiet_evaluate(expr, vars, evaluation, expect_list=False):
     """ Evaluates expr with given dynamic scoping values
     without producing arithmetic error messages. """
+    expr = Expression('N', expr)
     quiet_expr = Expression('Quiet', expr, Expression('List',
         Expression('MessageName', Symbol('Power'), String('infy'))))
     value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)
@@ -98,12 +99,17 @@ def automatic_plot_range(values):
 
 def get_plot_range(values, all_values, option):
     if option == 'Automatic':
-        return automatic_plot_range(values)
-    if option == 'All':
+        result = automatic_plot_range(values)
+    elif option == 'All':
         if not all_values:
-            return [0, 1]
-        return min(all_values), max(all_values)
-    return option
+            result = [0, 1]
+        else:
+            result = min(all_values), max(all_values)
+    else:
+        result = option
+    if result[0] == result[1]:
+        return 0, result[1] * 2
+    return result
 
 class _Plot(Builtin):
     from graphics import Graphics
@@ -629,7 +635,9 @@ class _Plot3D(Builtin):
                 mesh_row = []
                 for yi in range(plotpoints[1]+1):
                     yval = ystart + yi/numy * (ystop - ystart)
-                    mesh_row.append((xval, yval, eval_f(xval, yval)))
+                    z = eval_f(xval, yval)
+                    if z is not None:
+                        mesh_row.append((xval, yval, z))
                 mesh_points.append(mesh_row)
 
             for yi in range(plotpoints[1]+1):
@@ -637,7 +645,9 @@ class _Plot3D(Builtin):
                 mesh_col = []
                 for xi in range(plotpoints[0]+1):
                     xval = xstart + xi/numx * (xstop - xstart)
-                    mesh_col.append((xval, yval, eval_f(xval, yval)))
+                    z = eval_f(xval, yval)
+                    if z is not None:
+                        mesh_col.append((xval, yval, z))
                 mesh_points.append(mesh_col)
 
             # Fix the grid near recursions
@@ -647,10 +657,14 @@ class _Plot3D(Builtin):
             for (xval, yval) in stored.keys():
                 if xval in x_grids:
                     x_index = int((xval - xstart) * numx / (xstop - xstart) + 0.5)
-                    mesh_points[x_index].append((xval, yval, eval_f(xval, yval)))
+                    z = eval_f(xval, yval)
+                    if z is not None:
+                        mesh_points[x_index].append((xval, yval, z))
                 if yval in y_grids:
                     y_index = int((yval - ystart) * numy / (ystop - ystart) + plotpoints[0] + 1.5)
-                    mesh_points[y_index].append((xval, yval, eval_f(xval, yval)))
+                    z = eval_f(xval, yval)
+                    if z is not None:
+                        mesh_points[y_index].append((xval, yval, z))
 
             for mesh_line in mesh_points:
                 mesh_line.sort()
@@ -691,6 +705,10 @@ class Plot(_Plot):
      = -Graphics-
 
     >> Plot[Tan[x], {x, 0, 6}, Mesh->All, PlotRange->{{-1, 5}, {0, 15}}, MaxRecursion->10]
+     = -Graphics-
+    
+    A constant function:
+    >> Plot[3, {x, 0, 1}]
      = -Graphics-
      
     #> Plot[1 / x, {x, -1, 1}]
@@ -859,6 +877,9 @@ class Plot3D(_Plot3D):
      = -Graphics3D-
 
     >> Plot3D[Sin[x y] /(x y), {x, -3, 3}, {y, -3, 3}, Mesh->All]
+     = -Graphics3D-
+     
+    #> Plot3D[z, {x, 1, 20}, {y, 1, 10}]
      = -Graphics3D-
     """
 
