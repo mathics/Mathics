@@ -5,8 +5,8 @@ Graphics (3D)
 """
         
 from mathics.core.expression import NumberError, from_python, Real
-from mathics.builtin.base import BoxConstruct, BoxConstructError
-from graphics import Graphics, GraphicsBox, _GraphicsElements, PolygonBox, LineBox, PointBox
+from mathics.builtin.base import BoxConstruct, BoxConstructError, Builtin
+from graphics import Graphics, GraphicsBox, _GraphicsElements, PolygonBox, LineBox, PointBox, RGBColor
 
 from django.utils import simplejson as json
 
@@ -280,6 +280,7 @@ class Point3DBox(PointBox):
             data.append({
                 'type': 'point',
                 'coords': [coords.pos() for coords in line],
+                'color': self.face_color.to_rgba(),
             })
         return data
 
@@ -309,6 +310,7 @@ class Line3DBox(LineBox):
             data.append({
                 'type': 'line',
                 'coords': [coords.pos() for coords in line],
+                'color': self.edge_color.to_rgba(),
             })
         return data
 

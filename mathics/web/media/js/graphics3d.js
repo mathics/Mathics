@@ -9,7 +9,9 @@ function drawPoint(prim) {
     pointgeom.vertices.push(tmpvertex);
   }
 
-  pointmat = new THREE.ParticleBasicMaterial({ color: 0x000000, size: 0.05 });
+  var color = new THREE.Color().setRGB(prim.color[0], prim.color[1], prim.color[2]);
+
+  pointmat = new THREE.ParticleBasicMaterial({color: color.getHex(), size: 0.05 });
 
   mesh = new THREE.ParticleSystem(pointgeom, pointmat);
 
@@ -28,7 +30,9 @@ function drawLine(prim) {
     linegeom.vertices.push(tmpvertex);
   }
 
-  linemat = new THREE.LineBasicMaterial({color: 0x000000});
+  var color = new THREE.Color().setRGB(prim.color[0], prim.color[1], prim.color[2]);
+
+  linemat = new THREE.LineBasicMaterial({color: color.getHex()});
 
   mesh = new THREE.Line(linegeom, linemat);
 
@@ -107,9 +111,15 @@ function drawPolygon(prim) {
     }
   }
 
-  //mesh = new THREE.Mesh(polygeom, new THREE.MeshBasicMaterial({color: 0x000000}));
   polygeom.computeFaceNormals();
-  mesh = new THREE.Mesh(polygeom, new THREE.MeshNormalMaterial());
+
+  // Apply color if specified otherwise automatically color based on normal vector
+  //var color = new THREE.Color().setRGB(prim.faceColor[0], prim.faceColor[1], prim.faceColor[2]);
+  //polymat = new THREE.MeshBasicMaterial({color: color.getHex()});
+  //polymat.vertexShader = "varying vec3 vNormal; void main() {vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );vNormal = normalMatrix * normal;gl_Position = projectionMatrix * mvPosition;}"; 
+
+  polymat = new THREE.MeshNormalMaterial();
+  mesh = new THREE.Mesh(polygeom, polymat);
   return mesh;
 }
 
