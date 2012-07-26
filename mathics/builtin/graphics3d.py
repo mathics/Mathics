@@ -56,6 +56,7 @@ class Graphics3D(Graphics):
     options.update({
         #'Axes': 'True',
         'BoxRatios': 'Automatic',
+        'Lighting': 'Automatic',
     })
     
     box_suffix = '3DBox'
@@ -77,7 +78,27 @@ class Graphics3DBox(GraphicsBox):
         base_width, base_height, size_multiplier, size_aspect = self._get_image_size(options,
             graphics_options, max_width)
         
-        aspect_ratio = graphics_options['AspectRatio']
+        lighting = graphics_options['Lighting'].to_python()
+        if lighting == 'Automatic':
+            self.lighting = [
+                {"type": "Ambient", "color": [0.3, 0.2, 0.4]},
+                {"type": "Directional", "color": [0.8, 0., 0.], "position": [2, 0, 2]},
+                {"type": "Directional", "color": [0., 0.8, 0.], "position": [2, 2, 2]},
+                {"type": "Directional", "color": [0., 0., 0.8], "position": [0, 2, 2]}
+            ]
+        elif lighting == 'Neutral':
+            self.lighting = [
+                {"type": "Ambient", "color": [0.3, 0.3, 0.3]},
+                {"type": "Directional", "color": [0.3, 0.3, 0.3], "position": [2, 0, 2]},
+                {"type": "Directional", "color": [0.3, 0.3, 0.3], "position": [2, 2, 2]},
+                {"type": "Directional", "color": [0.3, 0.3, 0.3], "position": [0, 2, 2]}
+            ]
+        else:
+            #TODO
+            self.lighting = []
+
+        #TODO Aspect Ratio
+        #aspect_ratio = graphics_options['AspectRatio'].to_python()
             
         box_ratios = graphics_options['BoxRatios'].to_python()
 
@@ -190,6 +211,7 @@ size{1cm, 1cm};
                 'zmax': zmax,
             },
             'boxratios': box_ratios,
+            'lighting': self.lighting,
         })
         
         #return "<mn>3</mn>"

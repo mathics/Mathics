@@ -113,19 +113,16 @@ function drawPolygon(prim) {
 
   polygeom.computeFaceNormals();
 
-  // Apply color if specified otherwise automatically color based on normal vector
-  //var color = new THREE.Color().setRGB(prim.faceColor[0], prim.faceColor[1], prim.faceColor[2]);
-  //polymat = new THREE.MeshBasicMaterial({color: color.getHex()});
-  //polymat.vertexShader = "varying vec3 vNormal; void main() {vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );vNormal = normalMatrix * normal;gl_Position = projectionMatrix * mvPosition;}"; 
+  var color = new THREE.Color().setRGB(prim.faceColor[0], prim.faceColor[1], prim.faceColor[2]);
+  polymat = new THREE.MeshLambertMaterial({color: color.getHex()});
 
-  polymat = new THREE.MeshNormalMaterial();
   mesh = new THREE.Mesh(polygeom, polymat);
   return mesh;
 }
 
 function drawGraphics3D(container, data) {
   // data is decoded JSON data such as
-  // {"elements": [{"coords": [[[1.0, 0.0, 0.0], null], [[1.0, 1.0, 1.0], null], [[0.0, 0.0, 1.0], null]], "type": "polygon", "faceColor": [0, 0, 0, 1]}], "axes": {}, "extent": {"zmax": 1.0, "ymax": 1.0, "zmin": 0.0, "xmax": 1.0, "xmin": 0.0, "ymin": 0.0}}
+  // {"elements": [{"coords": [[[1.0, 0.0, 0.0], null], [[1.0, 1.0, 1.0], null], [[0.0, 0.0, 1.0], null]], "type": "polygon", "faceColor": [0, 0, 0, 1]}], "axes": {}, "extent": {"zmax": 1.0, "ymax": 1.0, "zmin": 0.0, "xmax": 1.0, "xmin": 0.0, "ymin": 0.0}, "lighting": []}
   // The nulls are the "scaled" parts of coordinates that depend on the 
   // size of the final graphics (see Mathematica's Scaled). TODO.
 
@@ -137,7 +134,11 @@ function drawGraphics3D(container, data) {
   // Axes are created using the information in data.axes such as
   // {"axes": {"hasaxes": [true, true, false], "ticks": [[-1, 0, 1], [-2, 0, 2], [0., 0.5, 1]]}}.
 
-  // TODO: colors, lighting/shading, handling of VertexNormals.
+  // Lights are created using the information in data.lighing such as
+  // {"type": "Ambient", "color": [0.3, 0.2, 0.4]}
+  // {"type": "Directional", "color": [0.3, 0.2, 0.4], "position": [2, 0, 2]}
+
+  // TODO: Shading, handling of VertexNormals.
 
   var camera, scene, renderer, boundbox,
     isMouseDown = false, onMouseDownPosition, radius,
@@ -196,6 +197,60 @@ function drawGraphics3D(container, data) {
   camera.up = new THREE.Vector3(0,0,1);
 
   scene.add(camera);
+
+  // Lighting
+  function addLight(l) {
+    var color = new THREE.Color().setRGB(l.color[0], l.color[1], l.color[2]);
+    var light;
+
+    if (l.type == "Ambient") {
+      light = new THREE.AmbientLight(color.getHex());
+    } else if (l.type == "Directional") {
+      light = new THREE.DirectionalLight(color.getHex(), 1);
+    } else {
+      alert("Warning: Light not implemented", l.type);
+      return;
+    }
+    return light;
+  }
+
+  function getInitLightPos(l) {
+    // Initial Light position in spherical polar coordinates
+    if (l.position instanceof Array) {
+      tmppos = new THREE.Vector3(l.position[0], l.position[1], l.position[2]);
+      result = new Object();
+      result.radius = radius * tmppos.length();
+      if (tmppos.isZero()) {
+        result.theta = 0;
+        result.phi = 0;
+      } else {
+        result.phi = (180. / Math.PI) * Math.acos(tmppos.z / result.radius);
+        result.theta = (180. / Math.PI) * Math.atan2(tmppos.y, tmppos.x);
+      }
+      return result;
+    }
+    return;
+  }
+
+  function positionLights() {
+    for (var i = 0; i < lights.length; i++) {
+      if (lights[i] instanceof THREE.DirectionalLight) {
+        lights[i].position.x = focus.x + initLightPos[i].radius * Math.sin((theta + initLightPos[i].theta) * Math.PI / 180) * Math.cos((phi + initLightPos[i].phi) * Math.PI / 180);
+        lights[i].position.y = focus.y + initLightPos[i].radius * Math.cos((theta + initLightPos[i].theta) * Math.PI / 180) * Math.cos((phi + initLightPos[i].phi) * Math.PI / 180);
+        lights[i].position.z = focus.z + initLightPos[i].radius * Math.sin((phi + initLightPos[i].phi) * Math.PI / 180);
+      }
+    }
+  }
+
+  lights = new Array(data.lighting.length);
+  initLightPos = new Array(data.lighting.length);
+
+  for (var i = 0; i < data.lighting.length; i++) {
+    initLightPos[i] = getInitLightPos(data.lighting[i]);
+    
+    lights[i] = addLight(data.lighting[i]);
+    scene.add(lights[i]);
+  }
 
   // BoundingBox
   boundbox = new THREE.Mesh(
@@ -519,6 +574,7 @@ function drawGraphics3D(container, data) {
   container.appendChild(renderer.domElement);
 
   function render() {
+    positionLights();
     renderer.render( scene, camera );
   };
 
