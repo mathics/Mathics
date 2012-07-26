@@ -629,7 +629,9 @@ class _Plot3D(Builtin):
                 mesh_row = []
                 for yi in range(plotpoints[1]+1):
                     yval = ystart + yi/numy * (ystop - ystart)
-                    mesh_row.append((xval, yval, eval_f(xval, yval)))
+                    z = eval_f(xval, yval)
+                    if z is not None:
+                        mesh_row.append((xval, yval, z))
                 mesh_points.append(mesh_row)
 
             for yi in range(plotpoints[1]+1):
@@ -637,7 +639,9 @@ class _Plot3D(Builtin):
                 mesh_col = []
                 for xi in range(plotpoints[0]+1):
                     xval = xstart + xi/numx * (xstop - xstart)
-                    mesh_col.append((xval, yval, eval_f(xval, yval)))
+                    z = eval_f(xval, yval)
+                    if z is not None:
+                        mesh_col.append((xval, yval, z))
                 mesh_points.append(mesh_col)
 
             # Fix the grid near recursions
@@ -647,10 +651,14 @@ class _Plot3D(Builtin):
             for (xval, yval) in stored.keys():
                 if xval in x_grids:
                     x_index = int((xval - xstart) * numx / (xstop - xstart) + 0.5)
-                    mesh_points[x_index].append((xval, yval, eval_f(xval, yval)))
+                    z = eval_f(xval, yval)
+                    if z is not None:
+                        mesh_points[x_index].append((xval, yval, z))
                 if yval in y_grids:
                     y_index = int((yval - ystart) * numy / (ystop - ystart) + plotpoints[0] + 1.5)
-                    mesh_points[y_index].append((xval, yval, eval_f(xval, yval)))
+                    z = eval_f(xval, yval)
+                    if z is not None:
+                        mesh_points[y_index].append((xval, yval, z))
 
             for mesh_line in mesh_points:
                 mesh_line.sort()
@@ -859,6 +867,9 @@ class Plot3D(_Plot3D):
      = -Graphics3D-
 
     >> Plot3D[Sin[x y] /(x y), {x, -3, 3}, {y, -3, 3}, Mesh->All]
+     = -Graphics3D-
+     
+    #> Plot3D[z, {x, 1, 20}, {y, 1, 10}]
      = -Graphics3D-
     """
 
