@@ -453,10 +453,6 @@ class Polygon3DBox(PolygonBox):
                 result.append(p)
         return result
 
-class Cylinder3DBox(Graphics3DElements):
-    def init(self, *args, **kwargs):
-        super(Cylinder3DBox, self).init(*args, **kwargs)
-
 GLOBALS3D = {
     'Polygon3DBox': Polygon3DBox,
     'Line3DBox': Line3DBox,
