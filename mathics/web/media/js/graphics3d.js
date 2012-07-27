@@ -215,6 +215,14 @@ function drawGraphics3D(container, data) {
     } else if (l.type == "Point") {
       light = new THREE.PointLight(color.getHex())
       light.position.set(l.position[0], l.position[1], l.position[2]);
+
+      // Add visible light sphere
+      lightsphere = new THREE.Mesh(
+        new THREE.SphereGeometry(0.007*radius, 16, 8),
+        new THREE.MeshBasicMaterial({color: color.getHex()})
+      );
+      lightsphere.position = light.position;
+      scene.add(lightsphere);
     } else {
       alert("Error: Internal Light Error", l.type);
       return;
