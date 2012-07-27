@@ -210,12 +210,12 @@ function drawGraphics3D(container, data) {
       light = new THREE.DirectionalLight(color.getHex(), 1);
     } else if (l.type == "Spot") {
       light = new THREE.SpotLight(color.getHex());
-      light.position.set(l.position[0], l.position[1], l.position[2]);
-      light.target.position.set(l.target[0], l.target[1], l.target[2]);
+      light.position.set(boxscale.x * l.position[0], boxscale.y * l.position[1], boxscale.z * l.position[2]);
+      light.target.position.set(boxscale.x * l.target[0], boxscale.y * l.target[1], boxscale.z * l.target[2]);
       light.angle = 0.5*l.angle; // Possible bug in THREE.js?
     } else if (l.type == "Point") {
       light = new THREE.PointLight(color.getHex())
-      light.position.set(l.position[0], l.position[1], l.position[2]);
+      light.position.set(boxscale.x * l.position[0], boxscale.y * l.position[1], boxscale.z * l.position[2]);
 
       // Add visible light sphere
       lightsphere = new THREE.Mesh(
@@ -234,7 +234,7 @@ function drawGraphics3D(container, data) {
   function getInitLightPos(l) {
     // Initial Light position in spherical polar coordinates
     if (l.position instanceof Array) {
-      tmppos = new THREE.Vector3(l.position[0], l.position[1], l.position[2]);
+      tmppos = new THREE.Vector3(boxscale.x * l.position[0], boxscale.y * l.position[1], boxscale.z * l.position[2]);
       result = new Object();
       result.radius = radius * tmppos.length();
       if (tmppos.isZero()) {
