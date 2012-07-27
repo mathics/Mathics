@@ -143,7 +143,7 @@ function drawGraphics3D(container, data) {
   var camera, scene, renderer, boundbox,
     isMouseDown = false, onMouseDownPosition, radius,
     tmpx, tmpy, tmpz, 
-    theta = 45, onMouseDownTheta = 45, phi = 60, onMouseDownPhi = 60;
+    theta = Math.PI/4, onMouseDownTheta = Math.PI/4, phi = Math.PI/3, onMouseDownPhi = Math.PI/3;
 
   // BoxRatios induce scaling
   if (data.boxratios == 'Automatic') {
@@ -187,9 +187,9 @@ function drawGraphics3D(container, data) {
   );
 
   function update_camera_position() {
-    camera.position.x = focus.x + radius * Math.sin(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-    camera.position.y = focus.y + radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180);
-    camera.position.z = focus.z + radius * Math.sin(phi * Math.PI / 180);
+    camera.position.x = focus.x + radius * Math.sin(theta) * Math.cos(phi);
+    camera.position.y = focus.y + radius * Math.cos(theta) * Math.cos(phi);
+    camera.position.z = focus.z + radius * Math.sin(phi);
     camera.lookAt(focus);
   }
 
@@ -240,8 +240,8 @@ function drawGraphics3D(container, data) {
         result.theta = 0;
         result.phi = 0;
       } else {
-        result.phi = (180. / Math.PI) * Math.acos(tmppos.z / result.radius);
-        result.theta = (180. / Math.PI) * Math.atan2(tmppos.y, tmppos.x);
+        result.phi = Math.acos(tmppos.z / result.radius);
+        result.theta = Math.atan2(tmppos.y, tmppos.x);
       }
       return result;
     }
@@ -251,9 +251,9 @@ function drawGraphics3D(container, data) {
   function positionLights() {
     for (var i = 0; i < lights.length; i++) {
       if (lights[i] instanceof THREE.DirectionalLight) {
-        lights[i].position.x = focus.x + initLightPos[i].radius * Math.sin((theta + initLightPos[i].theta) * Math.PI / 180) * Math.cos((phi + initLightPos[i].phi) * Math.PI / 180);
-        lights[i].position.y = focus.y + initLightPos[i].radius * Math.cos((theta + initLightPos[i].theta) * Math.PI / 180) * Math.cos((phi + initLightPos[i].phi) * Math.PI / 180);
-        lights[i].position.z = focus.z + initLightPos[i].radius * Math.sin((phi + initLightPos[i].phi) * Math.PI / 180);
+        lights[i].position.x = focus.x + initLightPos[i].radius * Math.sin(theta + initLightPos[i].theta) * Math.cos(phi + initLightPos[i].phi);
+        lights[i].position.y = focus.y + initLightPos[i].radius * Math.cos(theta + initLightPos[i].theta) * Math.cos(phi + initLightPos[i].phi);
+        lights[i].position.z = focus.z + initLightPos[i].radius * Math.sin(phi + initLightPos[i].phi);
       }
     }
   }
@@ -599,8 +599,8 @@ function drawGraphics3D(container, data) {
     camz.normalize();
 
     var camx = new THREE.Vector3(
-        radius * Math.cos(phi * Math.PI / 180) * Math.cos(theta * Math.PI / 180),
-        - radius * Math.cos(phi * Math.PI / 180) * Math.sin(theta * Math.PI / 180),
+        radius * Math.cos(phi) * Math.cos(theta),
+        - radius * Math.cos(phi) * Math.sin(theta),
         0
     );
     camx.normalize();
@@ -673,8 +673,8 @@ function drawGraphics3D(container, data) {
         camz.normalize();
 
         var camx = new THREE.Vector3(
-            radius * Math.cos(phi * Math.PI / 180) * Math.cos(theta * Math.PI / 180),
-            - radius * Math.cos(phi * Math.PI / 180) * Math.sin(theta * Math.PI / 180),
+            radius * Math.cos(phi) * Math.cos(theta),
+            - radius * Math.cos(phi) * Math.sin(theta),
             0
         );
         camx.normalize();
@@ -712,9 +712,10 @@ function drawGraphics3D(container, data) {
           container.style.cursor = "pointer";
         }
 
-        theta = (((event.clientX - onMouseDownPosition.x) + onMouseDownTheta) + 360) % 360;
-        phi = (event.clientY - onMouseDownPosition.y) + onMouseDownPhi;
-        phi = Math.max(Math.min(90, phi),-90);
+        theta = 2 * Math.PI * (event.clientX - onMouseDownPosition.x) / 400 + onMouseDownTheta;
+        theta = (theta + 2 * Math.PI) % (2 * Math.PI);
+        phi = 2 * Math.PI * (event.clientY - onMouseDownPosition.y) / 400 + onMouseDownPhi;
+        phi = Math.max(Math.min(0.5 * Math.PI, phi), -0.5 * Math.PI);
 
         update_camera_position();
       }
