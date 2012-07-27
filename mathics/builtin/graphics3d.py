@@ -106,7 +106,7 @@ class Graphics3DBox(GraphicsBox):
 
         elif isinstance(lighting, list) and all(isinstance(light, list) for light in lighting):
             for light in lighting:
-                if light[0] in ['"Ambient"', '"Directional"']:
+                if light[0] in ['"Ambient"', '"Directional"', '"Point"', '"Spot"']:
                     try:
                         head = light[1].get_head_name()
                     except AttributeError:
@@ -124,9 +124,34 @@ class Graphics3DBox(GraphicsBox):
                         self.lighting.append({
                             "type": "Directional",
                             "color": color.to_rgba(),
-                            "position": position,
+                            "position": position
                         })
-                    #TODO: Other Light Sources
+                    elif light[0] == '"Point"':
+                        position = [0,0,0]
+                        if isinstance(light[2], list) and len(light[2]) == 3:
+                            position = light[2]
+                        self.lighting.append({
+                            "type": "Point",
+                            "color": color.to_rgba(),
+                            "position": position
+                        })
+                    elif light[0] == '"Spot"':
+                        position = [0,0,1]
+                        target = [0,0,0]
+                        if isinstance(light[2], list) and len(light[2]) == 2:
+                            if isinstance(light[2][0], list) and len(light[2][0]) == 3:
+                                position = light[2][0]
+                            if isinstance(light[2][1], list) and len(light[2][1]) == 3:
+                                target = light[2][1]
+                        angle = light[3]
+                        self.lighting.append({
+                            "type": "Spot",
+                            "color": color.to_rgba(),
+                            "position": position,
+                            "target": target,
+                            "angle": angle
+                        })
+
         else:
             options['evaluation'].message("Graphics3D", 'invlight', lighting_option)
 

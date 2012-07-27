@@ -207,8 +207,16 @@ function drawGraphics3D(container, data) {
       light = new THREE.AmbientLight(color.getHex());
     } else if (l.type == "Directional") {
       light = new THREE.DirectionalLight(color.getHex(), 1);
+    } else if (l.type == "Spot") {
+      light = new THREE.SpotLight(color.getHex());
+      light.position.set(l.position[0], l.position[1], l.position[2]);
+      light.target.position.set(l.target[0], l.target[1], l.target[2]);
+      light.angle = l.angle;
+    } else if (l.type == "Point") {
+      light = new THREE.PointLight(color.getHex())
+      light.position.set(l.position[0], l.position[1], l.position[2]);
     } else {
-      alert("Warning: Light not implemented", l.type);
+      alert("Error: Internal Light Error", l.type);
       return;
     }
     return light;
