@@ -149,7 +149,7 @@ class Graphics3DBox(GraphicsBox):
                             "color": color.to_rgba(),
                             "position": position,
                             "target": target,
-                            "angle": 0.5*angle
+                            "angle": angle
                         })
 
         else:
