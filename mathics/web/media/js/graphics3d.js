@@ -212,6 +212,7 @@ function drawGraphics3D(container, data) {
       light = new THREE.SpotLight(color.getHex());
       light.position.set(boxscale.x * l.position[0], boxscale.y * l.position[1], boxscale.z * l.position[2]);
       light.target.position.set(boxscale.x * l.target[0], boxscale.y * l.target[1], boxscale.z * l.target[2]);
+      light.target.updateMatrixWorld(); // This fixes bug in THREE.js
       light.angle = 0.5*l.angle; // Possible bug in THREE.js?
     } else if (l.type == "Point") {
       light = new THREE.PointLight(color.getHex())
