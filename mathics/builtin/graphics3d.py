@@ -119,8 +119,11 @@ class Graphics3DBox(GraphicsBox):
                         })
                     elif light[0] == '"Directional"':
                         position = [0,0,0]
-                        if isinstance(light[2], list) and len(light[2]) == 3:
-                            position = light[2]
+                        if isinstance(light[2], list):
+                            if len(light[2]) == 3:
+                                position = light[2]
+                            if len(light[2]) == 2 and all(isinstance(p, list) and len(p) == 3 for p in light[2]):
+                                position = [light[2][0][i] - light[2][1][i] for i in range(3)]
                         self.lighting.append({
                             "type": "Directional",
                             "color": color.to_rgba(),
@@ -138,11 +141,14 @@ class Graphics3DBox(GraphicsBox):
                     elif light[0] == '"Spot"':
                         position = [0,0,1]
                         target = [0,0,0]
-                        if isinstance(light[2], list) and len(light[2]) == 2:
-                            if isinstance(light[2][0], list) and len(light[2][0]) == 3:
-                                position = light[2][0]
-                            if isinstance(light[2][1], list) and len(light[2][1]) == 3:
-                                target = light[2][1]
+                        if isinstance(light[2], list):
+                            if len(light[2]) == 2:
+                                if isinstance(light[2][0], list) and len(light[2][0]) == 3:
+                                    position = light[2][0]
+                                if isinstance(light[2][1], list) and len(light[2][1]) == 3:
+                                    target = light[2][1]
+                            if len(light[2]) == 3:
+                                position = light[2]
                         angle = light[3]
                         self.lighting.append({
                             "type": "Spot",
