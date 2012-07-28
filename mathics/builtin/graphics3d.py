@@ -262,6 +262,8 @@ size{1cm, 1cm};
         
         #TODO: Sphere (like this)
         #json_repr = [{'faceColor': (1, 1, 1, 1), 'coords': [((0.5, 0.5, 0.5), None), ((0.1, 0.1, 0.1), None)], 'type': 'sphere', 'radius': 0.5}]
+        #TODO: Cubeoid (like this)
+        #json_repr = [{'faceColor': (1, 1, 1, 1), 'position': [(0,0,0), None], 'size':[(1,1,1), None], 'type': 'cube'}]
 
         json_repr = json.dumps({
             'elements': json_repr,

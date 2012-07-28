@@ -124,7 +124,7 @@ function drawPolygon(prim) {
 function drawSphere(prim) {
   var mesh, spheregeom, spheremat, tmpgeom, tmpmesh;
 
-  //console.log("drawSphere");
+  // console.log("drawSphere");
 
   spheregeom = new THREE.Geometry();
   tmpgeom = new THREE.SphereGeometry(prim.radius, 48, 48);
@@ -141,6 +141,22 @@ function drawSphere(prim) {
   spheremat = new THREE.MeshPhongMaterial({color: color.getHex(), transparent: true, opacity: prim.faceColor[3]});
 
   mesh = new THREE.Mesh(spheregeom, spheremat);
+
+  return(mesh);
+}
+
+function drawCube(prim) {
+  var mesh, cubegeom, cubemat;
+
+  // console.log("drawCube");
+
+  cubegeom = new THREE.CubeGeometry(prim.size[0][0], prim.size[0][1], prim.size[0][2]);
+
+  var color = new THREE.Color().setRGB(prim.faceColor[0], prim.faceColor[1], prim.faceColor[2]);
+  cubemat = new THREE.MeshPhongMaterial({color: color.getHex(), transparent: true, opacity: prim.faceColor[3]});
+
+  mesh = new THREE.Mesh(cubegeom, cubemat);
+  mesh.position.set(prim.position[0][0], prim.position[0][1], prim.position[0][2]);
 
   return(mesh);
 }
@@ -607,6 +623,9 @@ function drawGraphics3D(container, data) {
         break;
       case "sphere":
         scene.add(applyBoxScaling(drawSphere(data.elements[indx])));
+        break;
+      case "cube":
+        scene.add(applyBoxScaling(drawCube(data.elements[indx])));
         break;
       default:
         alert("Error: Unknown type passed to drawGraphics3D");
