@@ -121,6 +121,30 @@ function drawPolygon(prim) {
   return mesh;
 }
 
+function drawSphere(prim) {
+  var mesh, spheregeom, spheremat, tmpgeom, tmpmesh;
+
+  //console.log("drawSphere");
+
+  spheregeom = new THREE.Geometry();
+  tmpgeom = new THREE.SphereGeometry(prim.radius, 48, 48);
+
+  for (var i = 0; i < prim.coords.length; i++) {
+    tmpmesh = new THREE.Mesh(tmpgeom);
+    tmpmesh.position.set(prim.coords[i][0][0], prim.coords[i][0][1], prim.coords[i][0][2]);
+    THREE.GeometryUtils.merge(spheregeom, tmpmesh);
+  }
+
+  spheregeom.computeFaceNormals();
+
+  var color = new THREE.Color().setRGB(prim.faceColor[0], prim.faceColor[1], prim.faceColor[2]);
+  spheremat = new THREE.MeshPhongMaterial({color: color.getHex(), transparent: true, opacity: prim.faceColor[3]});
+
+  mesh = new THREE.Mesh(spheregeom, spheremat);
+
+  return(mesh);
+}
+
 function drawGraphics3D(container, data) {
   // data is decoded JSON data such as
   // {"elements": [{"coords": [[[1.0, 0.0, 0.0], null], [[1.0, 1.0, 1.0], null], [[0.0, 0.0, 1.0], null]], "type": "polygon", "faceColor": [0, 0, 0, 1]}], "axes": {}, "extent": {"zmax": 1.0, "ymax": 1.0, "zmin": 0.0, "xmax": 1.0, "xmin": 0.0, "ymin": 0.0}, "lighting": []}
@@ -574,12 +598,15 @@ function drawGraphics3D(container, data) {
     switch(type) {
       case "point":
         scene.add(applyBoxScaling(drawPoint(data.elements[indx])));
-        break
+        break;
       case "line":
         scene.add(applyBoxScaling(drawLine(data.elements[indx])));
         break;
       case "polygon":
         scene.add(applyBoxScaling(drawPolygon(data.elements[indx])));
+        break;
+      case "sphere":
+        scene.add(applyBoxScaling(drawSphere(data.elements[indx])));
         break;
       default:
         alert("Error: Unknown type passed to drawGraphics3D");

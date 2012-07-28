@@ -260,6 +260,9 @@ size{1cm, 1cm};
 
         xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions()
         
+        #TODO: Sphere (like this)
+        #json_repr = [{'faceColor': (1, 1, 1, 1), 'coords': [((0.5, 0.5, 0.5), None), ((0.1, 0.1, 0.1), None)], 'type': 'sphere', 'radius': 0.5}]
+
         json_repr = json.dumps({
             'elements': json_repr,
             'axes': {
