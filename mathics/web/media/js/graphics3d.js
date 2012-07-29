@@ -1,5 +1,5 @@
 function drawPoint(prim) {
-  var mesh, pointgeom, pointmat, tmpvertex;
+  var mesh, pointgeom, pointmat, tmpvertex, color;
 
   // console.log("drawPoint");
 
@@ -9,7 +9,7 @@ function drawPoint(prim) {
     pointgeom.vertices.push(tmpvertex);
   }
 
-  var color = new THREE.Color().setRGB(prim.color[0], prim.color[1], prim.color[2]);
+  color = new THREE.Color().setRGB(prim.color[0], prim.color[1], prim.color[2]);
 
   pointmat = new THREE.ParticleBasicMaterial({color: color.getHex(), size: 0.05 });
 
@@ -19,7 +19,7 @@ function drawPoint(prim) {
 }
 
 function drawLine(prim) {
-  var mesh, linegeom, linemat, tmpvertex;
+  var mesh, linegeom, linemat, tmpvertex, color;
 
   // console.log("drawLine");
 
@@ -30,7 +30,7 @@ function drawLine(prim) {
     linegeom.vertices.push(tmpvertex);
   }
 
-  var color = new THREE.Color().setRGB(prim.color[0], prim.color[1], prim.color[2]);
+  color = new THREE.Color().setRGB(prim.color[0], prim.color[1], prim.color[2]);
 
   linemat = new THREE.LineBasicMaterial({color: color.getHex()});
 
@@ -45,7 +45,7 @@ function drawLine(prim) {
 }
 
 function drawPolygon(prim) {    
-  var mesh, polypath, polyshape, polygeom, material;
+  var mesh, polypath, polyshape, polygeom, polymat, color;
 
   // console.log("drawPolygon");
 
@@ -54,7 +54,7 @@ function drawPolygon(prim) {
   var p2 = new THREE.Vector4(prim.coords[1][0][0], prim.coords[1][0][1], prim.coords[1][0][2]);
   var p3 = new THREE.Vector4(prim.coords[2][0][0], prim.coords[2][0][1], prim.coords[2][0][2]);
 
-  if (prim.coords.length == 3) {    // Fast Return
+  if (prim.coords.length === 3) {    // Fast Return
     polygeom = new THREE.Geometry();
     polygeom.vertices.push(p1);
     polygeom.vertices.push(p2);
@@ -90,9 +90,9 @@ function drawPolygon(prim) {
 
     polypath = new THREE.Path();
     for (var i = 0; i < prim.coords.length; i++) {
-      tmpv = new THREE.Vector4(prim.coords[i][0][0], prim.coords[i][0][1], prim.coords[i][0][2], 1);
+      var tmpv = new THREE.Vector4(prim.coords[i][0][0], prim.coords[i][0][1], prim.coords[i][0][2], 1);
       L.multiplyVector4(tmpv);
-      if (i == 0){
+      if (i === 0){
           polypath.moveTo(tmpv.x, tmpv.y);
       } else {
           polypath.lineTo(tmpv.x, tmpv.y);
@@ -113,7 +113,7 @@ function drawPolygon(prim) {
 
   polygeom.computeFaceNormals();
 
-  var color = new THREE.Color().setRGB(prim.faceColor[0], prim.faceColor[1], prim.faceColor[2]);
+  color = new THREE.Color().setRGB(prim.faceColor[0], prim.faceColor[1], prim.faceColor[2]);
   //polymat = new THREE.MeshLambertMaterial({color: color.getHex(), transparent: true, opacity: prim.faceColor[3]});
   polymat = new THREE.MeshPhongMaterial({color: color.getHex(), transparent: true, opacity: prim.faceColor[3]});
 
@@ -141,20 +141,20 @@ function drawGraphics3D(container, data) {
 
   // TODO: Shading, handling of VertexNormals.
 
-  var camera, scene, renderer, boundbox,
-    isMouseDown = false, onMouseDownPosition, radius,
+  var camera, scene, renderer, boundbox, boxscale, hasaxes,
+    isMouseDown = false, onMouseDownPosition,
     tmpx, tmpy, tmpz, 
     theta = Math.PI/4, onMouseDownTheta = Math.PI/4, phi = Math.PI/3, onMouseDownPhi = Math.PI/3;
 
   // BoxRatios induce scaling
-  if (data.boxratios == 'Automatic') {
+  if (data.boxratios === 'Automatic') {
     boxscale = new THREE.Vector3(1,1,1);
   } else {
-    if ((data.boxratios instanceof Array) && (data.boxratios.length == 3)) {
+    if ((data.boxratios instanceof Array) && (data.boxratios.length === 3)) {
       boxscale = new THREE.Vector3(
-        data.boxratios[0] / (data.extent["xmax"] - data.extent["xmin"]),
-        data.boxratios[1] / (data.extent["ymax"] - data.extent["ymin"]),
-        data.boxratios[2] / (data.extent["zmax"] - data.extent["zmin"])
+        data.boxratios[0] / (data.extent.xmax - data.extent.xmin),
+        data.boxratios[1] / (data.extent.ymax - data.extent.ymin),
+        data.boxratios[2] / (data.extent.zmax - data.extent.zmin)
       );
     } else {
       alert("Error: Internal Boxratios not Automatic or Array(3)");
@@ -164,17 +164,17 @@ function drawGraphics3D(container, data) {
 
   // Center of the scene
   var center = new THREE.Vector3(
-    0.5 * boxscale.x * (data.extent["xmin"] + data.extent["xmax"]),
-    0.5 * boxscale.y * (data.extent["ymin"] + data.extent["ymax"]), 
-    0.5 * boxscale.z * (data.extent["zmin"] + data.extent["zmax"]));
+    0.5 * boxscale.x * (data.extent.xmin + data.extent.xmax),
+    0.5 * boxscale.y * (data.extent.ymin + data.extent.ymax), 
+    0.5 * boxscale.z * (data.extent.zmin + data.extent.zmax));
 
   // Where the camera is looking
   var focus = new THREE.Vector3(center.x, center.y, center.z);
 
-  radius = 2 * Math.sqrt(
-   Math.pow(boxscale.x * (data.extent["xmax"] - data.extent["xmin"]), 2) +
-   Math.pow(boxscale.y * (data.extent["ymax"] - data.extent["ymin"]), 2) +
-   Math.pow(boxscale.z * (data.extent["zmax"] - data.extent["zmin"]), 2));
+  var radius = 2 * Math.sqrt(
+   Math.pow(boxscale.x * (data.extent.xmax - data.extent.xmin), 2) +
+   Math.pow(boxscale.y * (data.extent.ymax - data.extent.ymin), 2) +
+   Math.pow(boxscale.z * (data.extent.zmax - data.extent.zmin), 2));
 
   // Scene
   scene = new THREE.Scene();
@@ -204,22 +204,22 @@ function drawGraphics3D(container, data) {
     var color = new THREE.Color().setRGB(l.color[0], l.color[1], l.color[2]);
     var light;
 
-    if (l.type == "Ambient") {
+    if (l.type === "Ambient") {
       light = new THREE.AmbientLight(color.getHex());
-    } else if (l.type == "Directional") {
+    } else if (l.type === "Directional") {
       light = new THREE.DirectionalLight(color.getHex(), 1);
-    } else if (l.type == "Spot") {
+    } else if (l.type === "Spot") {
       light = new THREE.SpotLight(color.getHex());
       light.position.set(boxscale.x * l.position[0], boxscale.y * l.position[1], boxscale.z * l.position[2]);
       light.target.position.set(boxscale.x * l.target[0], boxscale.y * l.target[1], boxscale.z * l.target[2]);
       light.target.updateMatrixWorld(); // This fixes bug in THREE.js
       light.angle = l.angle;
-    } else if (l.type == "Point") {
-      light = new THREE.PointLight(color.getHex())
+    } else if (l.type === "Point") {
+      light = new THREE.PointLight(color.getHex());
       light.position.set(boxscale.x * l.position[0], boxscale.y * l.position[1], boxscale.z * l.position[2]);
 
       // Add visible light sphere
-      lightsphere = new THREE.Mesh(
+      var lightsphere = new THREE.Mesh(
         new THREE.SphereGeometry(0.007*radius, 16, 8),
         new THREE.MeshBasicMaterial({color: color.getHex()})
       );
@@ -235,9 +235,9 @@ function drawGraphics3D(container, data) {
   function getInitLightPos(l) {
     // Initial Light position in spherical polar coordinates
     if (l.position instanceof Array) {
-      tmppos = new THREE.Vector3(boxscale.x * l.position[0], boxscale.y * l.position[1], boxscale.z * l.position[2]);
-      result = new Object();
-      result.radius = radius * tmppos.length();
+      var tmppos = new THREE.Vector3(boxscale.x * l.position[0], boxscale.y * l.position[1], boxscale.z * l.position[2]);
+      var result = {"radius": radius * tmppos.length()};
+
       if (tmppos.isZero()) {
         result.theta = 0;
         result.phi = 0;
@@ -260,8 +260,8 @@ function drawGraphics3D(container, data) {
     }
   }
 
-  lights = new Array(data.lighting.length);
-  initLightPos = new Array(data.lighting.length);
+  var lights = new Array(data.lighting.length);
+  var initLightPos = new Array(data.lighting.length);
 
   for (var i = 0; i < data.lighting.length; i++) {
     initLightPos[i] = getInitLightPos(data.lighting[i]);
@@ -273,9 +273,9 @@ function drawGraphics3D(container, data) {
   // BoundingBox
   boundbox = new THREE.Mesh(
     new THREE.CubeGeometry(
-      boxscale.x * (data.extent["xmax"] - data.extent["xmin"]),
-      boxscale.y * (data.extent["ymax"] - data.extent["ymin"]),
-      boxscale.z * (data.extent["zmax"] - data.extent["zmin"])),
+      boxscale.x * (data.extent.xmax - data.extent.xmin),
+      boxscale.y * (data.extent.ymax - data.extent.ymin),
+      boxscale.z * (data.extent.zmax - data.extent.zmin)),
     new THREE.MeshBasicMaterial({color: 0x666666, wireframe: true})
   );
   boundbox.position = center;
@@ -294,7 +294,7 @@ function drawGraphics3D(container, data) {
     hasaxes = new Array(false, false, false);
   }
   var axesmat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth : 1.5 });
-  var axesgeom = new Array;
+  var axesgeom = [];
   var axesindicies = [
     [[0,5], [1,4], [2,7], [3,6]],
     [[0,2], [1,3], [4,6], [5,7]],
@@ -351,7 +351,7 @@ function drawGraphics3D(container, data) {
         maxj = null;
         maxl = 0.0;
         for (var j = 0; j < 4; j++) {
-          if (axesindicies[i][j][0] != nearj && axesindicies[i][j][1] != nearj && axesindicies[i][j][0] != farj && axesindicies[i][j][1] != farj) {
+          if (axesindicies[i][j][0] !== nearj && axesindicies[i][j][1] !== nearj && axesindicies[i][j][0] !== farj && axesindicies[i][j][1] !== farj) {
             tmpl = boxEdgeLength(i, j);
             if (tmpl > maxl) {
               maxl = tmpl;
@@ -375,7 +375,7 @@ function drawGraphics3D(container, data) {
 
   for (var i = 0; i < 3; i++) {
     if (hasaxes[i]) {
-      ticks[i] = new Array;
+      ticks[i] = [];
       for (var j = 0; j < data.axes.ticks[i][0].length; j++) {
         tickgeom = new THREE.Geometry();
         tickgeom.vertices.push(new THREE.Vector3());
@@ -384,7 +384,7 @@ function drawGraphics3D(container, data) {
         scene.add(ticks[i][j]);
 
       }
-      ticks_small[i] = new Array;
+      ticks_small[i] = [];
       for (var j = 0; j < data.axes.ticks[i][1].length; j++) {
          tickgeom = new THREE.Geometry();
          tickgeom.vertices.push(new THREE.Vector3());
@@ -397,7 +397,7 @@ function drawGraphics3D(container, data) {
 
   function getTickDir(i) {
     var tickdir = new THREE.Vector3();
-    if (i == 0) {
+    if (i === 0) {
       if (-45 < phi && phi < 45) {
         if (axesgeom[0].vertices[0].z > boundbox.position.z) {
           tickdir.set(0, 0, -ticklength);
@@ -411,7 +411,7 @@ function drawGraphics3D(container, data) {
           tickdir.set(0, ticklength, 0);
         }
       }
-    } else if (i == 1) {
+    } else if (i === 1) {
       if (-45 < phi && phi < 45) {
         if (axesgeom[1].vertices[0].z > boundbox.position.z) {
           tickdir.set(0, 0, -ticklength);
@@ -425,7 +425,7 @@ function drawGraphics3D(container, data) {
           tickdir.set(ticklength, 0, 0);
         }
       }
-    } else if (i == 2) {
+    } else if (i === 2) {
       if ((45 < theta && theta < 135) || (225 < theta && theta < 315)) {
         if (axesgeom[2].vertices[0].y > boundbox.position.y) {
           tickdir.set(0, -ticklength, 0);
@@ -455,13 +455,13 @@ function drawGraphics3D(container, data) {
           ticks[i][j].geometry.vertices[0].copy(axesgeom[i].vertices[0]);
           ticks[i][j].geometry.vertices[1].add(axesgeom[i].vertices[0], tickdir);
 
-          if (i == 0) {
+          if (i === 0) {
             ticks[i][j].geometry.vertices[0].x = boxscale.x * tmpval;
             ticks[i][j].geometry.vertices[1].x = boxscale.x * tmpval;
-          } else if (i == 1) {
+          } else if (i === 1) {
             ticks[i][j].geometry.vertices[0].y = boxscale.y * tmpval;
             ticks[i][j].geometry.vertices[1].y = boxscale.y * tmpval;
-          } else if (i == 2) {
+          } else if (i === 2) {
             ticks[i][j].geometry.vertices[0].z = boxscale.z * tmpval;
             ticks[i][j].geometry.vertices[1].z = boxscale.z * tmpval;
           }
@@ -474,13 +474,13 @@ function drawGraphics3D(container, data) {
           ticks_small[i][j].geometry.vertices[0].copy(axesgeom[i].vertices[0]);
           ticks_small[i][j].geometry.vertices[1].add(axesgeom[i].vertices[0], small_tickdir);
 
-          if (i == 0) {
+          if (i === 0) {
             ticks_small[i][j].geometry.vertices[0].x = boxscale.x * tmpval;
             ticks_small[i][j].geometry.vertices[1].x = boxscale.x * tmpval;
-          } else if (i == 1) {
+          } else if (i === 1) {
             ticks_small[i][j].geometry.vertices[0].y = boxscale.y * tmpval;
             ticks_small[i][j].geometry.vertices[1].y = boxscale.y * tmpval;
-          } else if (i == 2) {
+          } else if (i === 2) {
             ticks_small[i][j].geometry.vertices[0].z = boxscale.z * tmpval;
             ticks_small[i][j].geometry.vertices[1].z = boxscale.z * tmpval;
           }
@@ -532,7 +532,7 @@ function drawGraphics3D(container, data) {
           var tickpos3D = ticks[i][j].geometry.vertices[0].clone();
           var tickDir = new THREE.Vector3().sub(ticks[i][j].geometry.vertices[0], ticks[i][j].geometry.vertices[1]);
           //tickDir.multiplyScalar(3);
-          tickDir.setLength(3*ticklength)
+          tickDir.setLength(3*ticklength);
           tickDir.x *= 2.0;
           tickDir.y *= 2.0;
           tickpos3D.addSelf(tickDir);
@@ -574,7 +574,7 @@ function drawGraphics3D(container, data) {
     switch(type) {
       case "point":
         scene.add(applyBoxScaling(drawPoint(data.elements[indx])));
-        break
+        break;
       case "line":
         scene.add(applyBoxScaling(drawLine(data.elements[indx])));
         break;
@@ -594,7 +594,7 @@ function drawGraphics3D(container, data) {
   function render() {
     positionLights();
     renderer.render( scene, camera );
-  };
+  }
 
   function toScreenCoords(position) {
     var camz = new THREE.Vector3().sub(focus, camera.position);
@@ -748,7 +748,7 @@ function drawGraphics3D(container, data) {
   container.addEventListener('mousedown', onDocumentMouseDown, false);
   container.addEventListener('mouseup', onDocumentMouseUp, false);
   onMouseDownPosition = new THREE.Vector2();
-  autoRescale = true;
+  var autoRescale = true;
 
   update_camera_position();
   ScaleInView();
