@@ -301,7 +301,7 @@ function drawGraphics3D(container, data) {
     [[0,1], [2,3], [4,5], [6,7]]
   ];
 
-  axesmesh = new Array(3);
+  var axesmesh = new Array(3);
   for (var i=0; i<3; i++) {
     if (hasaxes[i]) {
       axesgeom[i] = new THREE.Geometry();
