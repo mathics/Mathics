@@ -3,10 +3,11 @@
 """
 Graphics (3D)
 """
-
-from mathics.core.expression import NumberError
+        
+from mathics.core.expression import NumberError, from_python, Real
 from mathics.builtin.base import BoxConstruct, BoxConstructError
-from graphics import Graphics, GraphicsBox, _GraphicsElements, PolygonBox, LineBox, PointBox
+from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox,
+    LineBox, PointBox, Style, RGBColor, color_heads, get_class)
 
 from django.utils import simplejson as json
 
@@ -38,6 +39,10 @@ class Coords3D(object):
     def add(self, x, y, z):
         p = (self.p[0]+x, self.p[1]+y, self.p[2]+z)
         return Coords3D(self.graphics, pos=p, d=self.d)
+    
+class Style3D(Style):
+    def get_default_face_color(self):
+        return RGBColor(components=(1,1,1,1))
 
 class Graphics3D(Graphics):
     """
@@ -49,13 +54,19 @@ class Graphics3D(Graphics):
     
     options = Graphics.options.copy()
     options.update({
-        'Axes': 'True',
+        #'Axes': 'True',
+        'BoxRatios': 'Automatic',
+        'Lighting': 'Automatic',
     })
     
     box_suffix = '3DBox'
     
     rules = {
         'MakeBoxes[Graphics3D[content_, OptionsPattern[Graphics3D]], OutputForm]': '"-Graphics3D-"',
+    }
+
+    messages = {
+        'invlight': "`1` is not a valid list of light sources.", 
     }
     
 class Graphics3DBox(GraphicsBox):
@@ -71,8 +82,90 @@ class Graphics3DBox(GraphicsBox):
         base_width, base_height, size_multiplier, size_aspect = self._get_image_size(options,
             graphics_options, max_width)
         
-        aspect_ratio = graphics_options['AspectRatio']
+        #TODO: Handle ImageScaled[], and Scaled[]
+        lighting_option = graphics_options['Lighting']
+        lighting = lighting_option.to_python()
+        self.lighting = []
+
+        if lighting == 'Automatic':
+            self.lighting = [
+                {"type": "Ambient", "color": [0.3, 0.2, 0.4]},
+                {"type": "Directional", "color": [0.8, 0., 0.], "position": [2, 0, 2]},
+                {"type": "Directional", "color": [0., 0.8, 0.], "position": [2, 2, 2]},
+                {"type": "Directional", "color": [0., 0., 0.8], "position": [0, 2, 2]}
+            ]
+        elif lighting == 'Neutral':
+            self.lighting = [
+                {"type": "Ambient", "color": [0.3, 0.3, 0.3]},
+                {"type": "Directional", "color": [0.3, 0.3, 0.3], "position": [2, 0, 2]},
+                {"type": "Directional", "color": [0.3, 0.3, 0.3], "position": [2, 2, 2]},
+                {"type": "Directional", "color": [0.3, 0.3, 0.3], "position": [0, 2, 2]}
+            ]
+        elif lighting == 'None':
+            pass
+
+        elif isinstance(lighting, list) and all(isinstance(light, list) for light in lighting):
+            for light in lighting:
+                if light[0] in ['"Ambient"', '"Directional"', '"Point"', '"Spot"']:
+                    try:
+                        head = light[1].get_head_name()
+                    except AttributeError:
+                        break
+                    color = get_class(head)(light[1])
+                    if light[0] == '"Ambient"':
+                        self.lighting.append({
+                            "type": "Ambient",
+                             "color": color.to_rgba()
+                        })
+                    elif light[0] == '"Directional"':
+                        position = [0,0,0]
+                        if isinstance(light[2], list):
+                            if len(light[2]) == 3:
+                                position = light[2]
+                            if len(light[2]) == 2 and all(isinstance(p, list) and len(p) == 3 for p in light[2]):
+                                position = [light[2][0][i] - light[2][1][i] for i in range(3)]
+                        self.lighting.append({
+                            "type": "Directional",
+                            "color": color.to_rgba(),
+                            "position": position
+                        })
+                    elif light[0] == '"Point"':
+                        position = [0,0,0]
+                        if isinstance(light[2], list) and len(light[2]) == 3:
+                            position = light[2]
+                        self.lighting.append({
+                            "type": "Point",
+                            "color": color.to_rgba(),
+                            "position": position
+                        })
+                    elif light[0] == '"Spot"':
+                        position = [0,0,1]
+                        target = [0,0,0]
+                        if isinstance(light[2], list):
+                            if len(light[2]) == 2:
+                                if isinstance(light[2][0], list) and len(light[2][0]) == 3:
+                                    position = light[2][0]
+                                if isinstance(light[2][1], list) and len(light[2][1]) == 3:
+                                    target = light[2][1]
+                            if len(light[2]) == 3:
+                                position = light[2]
+                        angle = light[3]
+                        self.lighting.append({
+                            "type": "Spot",
+                            "color": color.to_rgba(),
+                            "position": position,
+                            "target": target,
+                            "angle": angle
+                        })
+
+        else:
+            options['evaluation'].message("Graphics3D", 'invlight', lighting_option)
+
+        #TODO Aspect Ratio
+        #aspect_ratio = graphics_options['AspectRatio'].to_python()
             
+        box_ratios = graphics_options['BoxRatios'].to_python()
+
         plot_range = graphics_options['PlotRange'].to_python()            
         if plot_range == 'Automatic':
             plot_range = ['Automatic', 'Automatic', 'Automatic']
@@ -136,15 +229,15 @@ class Graphics3DBox(GraphicsBox):
                 raise BoxConstructError
             
             return xmin, xmax, ymin, ymax, zmin, zmax
-            
+
         xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions(final_pass=False)
         
-        axes = self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax)
+        axes, ticks = self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax)
         
-        return elements, axes, calc_dimensions
+        return elements, axes, ticks, calc_dimensions, box_ratios
     
     def boxes_to_tex(self, leaves, **options):
-        elements, axes, calc_dimensions = self._prepare_elements(leaves, options, max_width=450)
+        elements, axes, ticks, calc_dimensions, box_ratios = self._prepare_elements(leaves, options, max_width=450)
         
         asy = elements.to_asy()
         
@@ -158,15 +251,21 @@ size{1cm, 1cm};
         """
     
     def boxes_to_xml(self, leaves, **options):
-        elements, axes, calc_dimensions = self._prepare_elements(leaves, options)
-        
+        elements, axes, ticks, calc_dimensions, box_ratios = self._prepare_elements(leaves, options)
+
         json_repr = elements.to_json()
-        
+
+        # Convert ticks to nice strings e.g 0.100000000000002 -> '0.1'
+        ticks = [(map(str, x[0]), x[1]) for x in ticks]
+
         xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions()
         
         json_repr = json.dumps({
             'elements': json_repr,
-            'axes': axes,
+            'axes': {
+                'hasaxes': axes,
+                'ticks': ticks,
+            },
             'extent': {
                 'xmin': xmin,
                 'xmax': xmax,
@@ -175,6 +274,8 @@ size{1cm, 1cm};
                 'zmin': zmin,
                 'zmax': zmax,
             },
+            'boxratios': box_ratios,
+            'lighting': self.lighting,
         })
         
         #return "<mn>3</mn>"
@@ -192,7 +293,7 @@ size{1cm, 1cm};
         elif axes.has_form('List', 3):
             axes = (axes.leaves[0].is_true(), axes.leaves[1].is_true(), axes.leaves[2].is_true())
         else:
-            axes = (False, False, False)
+            axes = {}
         ticks_style = graphics_options.get('TicksStyle')
         axes_style = graphics_options.get('AxesStyle')
         label_style = graphics_options.get('LabelStyle')
@@ -210,12 +311,21 @@ size{1cm, 1cm};
         label_style = elements.create_style(label_style)
         ticks_style[0].extend(axes_style[0])
         ticks_style[1].extend(axes_style[1])
-        
-        # TODO: use self.axis_ticks to get the positions of ticks
-        # and return them.
-        # TODO: return some represntation of the axes/ticks/label styles
-        # that can be used in the client-side rendering.
-        return {}
+
+        ticks = [self.axis_ticks(xmin, xmax), self.axis_ticks(ymin, ymax), self.axis_ticks(zmin, zmax)]
+
+        # Add zero if required, since axis_ticks does not
+        if xmin <= 0 <= xmax:
+            ticks[0][0].append(0.0)
+            ticks[0][0].sort()
+        if ymin <= 0 <= ymax:
+            ticks[1][0].append(0.0)
+            ticks[1][0].sort()
+        if zmin <= 0 <= zmax:
+            ticks[2][0].append(0.0)
+            ticks[2][0].sort()
+
+        return axes, ticks
             
 def total_extent_3d(extents):
     xmin = xmax = ymin = ymax = zmin = zmax = None
@@ -246,6 +356,9 @@ class Graphics3DElements(_GraphicsElements):
         for element in self.elements:
             result.extend(element.to_json())
         return result
+    
+    def get_style_class(self):
+        return Style3D
 
 class Point3DBox(PointBox):
     def init(self, *args, **kwargs):
@@ -261,6 +374,7 @@ class Point3DBox(PointBox):
             data.append({
                 'type': 'point',
                 'coords': [coords.pos() for coords in line],
+                'color': self.face_color.to_rgba(),
             })
         return data
 
@@ -290,6 +404,7 @@ class Line3DBox(LineBox):
             data.append({
                 'type': 'line',
                 'coords': [coords.pos() for coords in line],
+                'color': self.edge_color.to_rgba(),
             })
         return data
 
@@ -343,7 +458,7 @@ class Polygon3DBox(PolygonBox):
                 p, d = c.pos()
                 result.append(p)
         return result
-    
+
 GLOBALS3D = {
     'Polygon3DBox': Polygon3DBox,
     'Line3DBox': Line3DBox,

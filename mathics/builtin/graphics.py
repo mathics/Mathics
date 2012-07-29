@@ -759,6 +759,7 @@ class Style(object):
         self.graphics = graphics
         self.edge = edge
         self.face = face
+        self.klass = graphics.get_style_class()
         
     def append(self, item, allow_forms=True):
         head = item.get_head_name()
@@ -767,7 +768,7 @@ class Style(object):
         elif head in thickness_heads:
             style = get_class(head)(self.graphics, item)
         elif head in ('EdgeForm', 'FaceForm'):
-            style = Style(self.graphics, edge=head == 'EdgeForm', face=head == 'FaceForm')
+            style = self.klass(self.graphics, edge=head == 'EdgeForm', face=head == 'FaceForm')
             if len(item.leaves) > 1:
                 raise BoxConstructError
             if item.leaves:
@@ -787,9 +788,15 @@ class Style(object):
             self.styles.extend(style.styles)
         
     def clone(self):
-        result = Style(self.graphics, edge=self.edge, face=self.face)
+        result = self.klass(self.graphics, edge=self.edge, face=self.face)
         result.styles = self.styles[:]
         return result
+    
+    def get_default_face_color(self):
+        return RGBColor(components=(0,0,0,1))
+    
+    def get_default_edge_color(self):
+        return RGBColor(components=(0,0,0,1))
 
     def get_style(self, style_class, face_element=None, default_to_faces=True, consider_forms=True):
         if face_element is not None:
@@ -797,9 +804,9 @@ class Style(object):
         edge_style = face_style = None
         if style_class == _Color:
             if default_to_faces:
-                face_style = RGBColor(components=(0,0,0,1))
+                face_style = self.get_default_face_color()
             else:
-                edge_style = RGBColor(components=(0,0,0,1))
+                edge_style = self.get_default_edge_color()
         elif style_class == _Thickness:
             if not default_to_faces:
                 edge_style = AbsoluteThickness(self.graphics, value=0.5)
@@ -855,10 +862,10 @@ class _GraphicsElements(object):
                 else:
                     raise BoxConstructError
                 
-        convert(content, Style(self))
+        convert(content, self.get_style_class()(self))
     
     def create_style(self, expr):
-        style = Style(self)
+        style = self.get_style_class()(self)
         
         def convert(expr):        
             if expr.has_form(('List', 'Directive'), None):
@@ -870,6 +877,9 @@ class _GraphicsElements(object):
         convert(expr)
         return style
     
+    def get_style_class(self):
+        return Style
+    
 class GraphicsElements(_GraphicsElements):
     coords = Coords
     
@@ -880,8 +890,10 @@ class GraphicsElements(_GraphicsElements):
         
     def translate(self, coords):
         if self.pixel_width is not None:
-            result = [(coords[0] - self.xmin) * self.pixel_width / self.extent_width,
-                (coords[1] - self.ymin) * self.pixel_height / self.extent_height]
+            w = self.extent_width if self.extent_width > 0 else 1
+            h = self.extent_height if self.extent_height > 0 else 1
+            result = [(coords[0] - self.xmin) * self.pixel_width / w,
+                (coords[1] - self.ymin) * self.pixel_height / h]
             if self.neg_y:
                 result[1] = self.pixel_height - result[1]
             return tuple(result)
@@ -903,9 +915,17 @@ class GraphicsElements(_GraphicsElements):
         
     def extent(self, completely_visible_only=False):
         if completely_visible_only:
-            return total_extent([element.extent() for element in self.elements if element.is_completely_visible])
+            ext = total_extent([element.extent() for element in self.elements if element.is_completely_visible])
         else:
-            return total_extent([element.extent() for element in self.elements])
+            ext = total_extent([element.extent() for element in self.elements])
+        xmin, xmax, ymin, ymax = ext
+        if xmin == xmax:
+            xmin = 0
+            xmax *= 2
+        if ymin == ymax:
+            ymin = 0
+            ymax *= 2
+        return xmin, xmax, ymin, ymax
     
     def to_svg(self):
         return '\n'.join(element.to_svg() for element in self.elements)
@@ -1129,6 +1149,8 @@ size(%scm, %scm);
                 return floor(value)
         
         def round_step(value):
+            if not value:
+                return 1, 1
             sub_steps = 5
             shift = 10.0 ** floor(log10(value))
             value = value / shift
@@ -1154,11 +1176,12 @@ size(%scm, %scm);
         start_x = step_x * round_to_zero((xmax - xmin) / step_x)
         start_x_small = step_x_small * round_to_zero((xmax - xmin) / step_x_small)
         
-        zero_tolerance = 0.1
-        if xmin > 0 and xmin / (xmax - xmin) < zero_tolerance:
-            xmin = 0
-        if xmax < 0 and xmax / (xmax - xmin) < zero_tolerance:
-            xmax = 0
+        zero_tolerance = 0.01
+        if xmax > min:
+            if xmin > 0 and xmin / (xmax - xmin) < zero_tolerance:
+                xmin = 0
+            if xmax < 0 and xmax / (xmax - xmin) < zero_tolerance:
+                xmax = 0
         if xmin <= 0 <= xmax:
             origin_k_x = 0
         else:
