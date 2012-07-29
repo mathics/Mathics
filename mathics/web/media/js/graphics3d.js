@@ -1,28 +1,36 @@
 function drawPoint(prim) {
-  var pointgeom = new THREE.Geometry();
+  var mesh, pointgeom, pointmat, tmpvertex;
+
+  // console.log("drawPoint");
+
+  pointgeom = new THREE.Geometry();
   for (var i = 0; i < prim.coords.length; i++) {
-    var tmpvertex = new THREE.Vector3(prim.coords[i][0][0], prim.coords[i][0][1], prim.coords[i][0][2]);
+    tmpvertex = new THREE.Vector3(prim.coords[i][0][0], prim.coords[i][0][1], prim.coords[i][0][2]);
     pointgeom.vertices.push(tmpvertex);
   }
 
-  var pointmat = new THREE.ParticleBasicMaterial({ color: 0x000000, size: 0.05 });
+  pointmat = new THREE.ParticleBasicMaterial({ color: 0x000000, size: 0.05 });
 
-  var mesh = new THREE.ParticleSystem(pointgeom, pointmat);
+  mesh = new THREE.ParticleSystem(pointgeom, pointmat);
 
   return(mesh);
 }
 
 function drawLine(prim) {
-  var linegeom = new THREE.Geometry();
+  var mesh, linegeom, linemat, tmpvertex;
+
+  // console.log("drawLine");
+
+  linegeom = new THREE.Geometry();
 
   for (var i = 0; i < prim.coords.length; i++) {
-    var tmpvertex = new THREE.Vector3(prim.coords[i][0][0], prim.coords[i][0][1], prim.coords[i][0][2]);
+    tmpvertex = new THREE.Vector3(prim.coords[i][0][0], prim.coords[i][0][1], prim.coords[i][0][2]);
     linegeom.vertices.push(tmpvertex);
   }
 
-  var linemat = new THREE.LineBasicMaterial({color: 0x000000});
+  linemat = new THREE.LineBasicMaterial({color: 0x000000});
 
-  var mesh = new THREE.Line(linegeom, linemat);
+  mesh = new THREE.Line(linegeom, linemat);
 
   // These three lines prevent grid from being put on the wrong side
   mesh.material.polygonOffset = true;
@@ -43,7 +51,7 @@ function drawPolygon(prim) {
   var p3 = new THREE.Vector4(prim.coords[2][0][0], prim.coords[2][0][1], prim.coords[2][0][2]);
 
   if (prim.coords.length == 3) {    // Fast Return
-    var polygeom = new THREE.Geometry();
+    polygeom = new THREE.Geometry();
     polygeom.vertices.push(p1);
     polygeom.vertices.push(p2);
     polygeom.vertices.push(p3);
@@ -76,7 +84,7 @@ function drawPolygon(prim) {
     L.multiplySelf(new THREE.Matrix4().makeRotationX(thetax));
     L.multiplySelf(new THREE.Matrix4().makeRotationY(thetay));
 
-    var polypath = new THREE.Path();
+    polypath = new THREE.Path();
     for (var i = 0; i < prim.coords.length; i++) {
       tmpv = new THREE.Vector4(prim.coords[i][0][0], prim.coords[i][0][1], prim.coords[i][0][2], 1);
       L.multiplyVector4(tmpv);
@@ -101,7 +109,7 @@ function drawPolygon(prim) {
 
   //mesh = new THREE.Mesh(polygeom, new THREE.MeshBasicMaterial({color: 0x000000}));
   polygeom.computeFaceNormals();
-  var mesh = new THREE.Mesh(polygeom, new THREE.MeshNormalMaterial());
+  mesh = new THREE.Mesh(polygeom, new THREE.MeshNormalMaterial());
   return mesh;
 }
 
@@ -157,10 +165,10 @@ function drawGraphics3D(container, data) {
    Math.pow(boxscale.z * (data.extent["zmax"] - data.extent["zmin"]), 2));
 
   // Scene
-  var scene = new THREE.Scene();
+  scene = new THREE.Scene();
   scene.position = center;
 
-  var camera = new THREE.PerspectiveCamera(
+  camera = new THREE.PerspectiveCamera(
     35,             // Field of view
     1,            // Aspect ratio
     0.1*radius,     // Near plane
@@ -180,7 +188,7 @@ function drawGraphics3D(container, data) {
   scene.add(camera);
 
   // BoundingBox
-  var boundbox = new THREE.Mesh(
+  boundbox = new THREE.Mesh(
     new THREE.CubeGeometry(
       boxscale.x * (data.extent["xmax"] - data.extent["xmin"]),
       boxscale.y * (data.extent["ymax"] - data.extent["ymin"]),
@@ -191,7 +199,6 @@ function drawGraphics3D(container, data) {
   scene.add(boundbox);  
 
   // Draw the Axes
-  var hasaxes;
   if (data.axes.hasaxes instanceof Array) {
     hasaxes = new Array(data.axes.hasaxes[0], data.axes.hasaxes[1], data.axes.hasaxes[2]);
   } else if (data.axes.hasaxes instanceof Boolean) {
@@ -211,7 +218,7 @@ function drawGraphics3D(container, data) {
     [[0,1], [2,3], [4,5], [6,7]]
   ];
 
-  var axesmesh = new Array(3);
+  axesmesh = new Array(3);
   for (var i=0; i<3; i++) {
     if (hasaxes[i]) {
       axesgeom[i] = new THREE.Geometry();
@@ -497,7 +504,7 @@ function drawGraphics3D(container, data) {
   }
 
   // Renderer
-  var renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer = new THREE.WebGLRenderer({antialias: true});
   renderer.setSize(400, 400);
   container.appendChild(renderer.domElement);
 
