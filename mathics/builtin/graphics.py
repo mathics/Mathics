@@ -540,6 +540,26 @@ class _Polyline(_GraphicsElement):
                 result.extend([(x-l,y-l), (x-l,y+l), (x+l,y-l), (x+l,y+l)])
         return result
     
+class Point(Builtin):
+    """
+    <dl>
+    <dt>'Line[{$point_1$, $point_2$ ...}]'
+        <dd>represents the point primitive.
+    <dt>'Line[{{$p_11$, $p_12$, ...}, {$p_21$, $p_22$, ...}, ...}]'
+        <dd>represents a number of point primitives.
+    </dl>
+
+    >> Graphics[Point[{0,0}]]
+    = -Graphics-
+
+    >> Graphics[Point[Table[{Sin[t], Cos[t]}, {t, 0, 2. Pi, Pi / 15.}]]]
+    = -Graphics-
+
+    >> Graphics3D[Point[Table[{Sin[t], Cos[t], 0}, {t, 0, 2. Pi, Pi / 15.}]]]
+    = -Graphics3D-
+    """
+    pass
+
 class PointBox(_Polyline):
     def init(self, graphics, style, item=None):
         super(PointBox, self).init(graphics, item, style)
@@ -567,6 +587,23 @@ class PointBox(_Polyline):
     def to_asy(self):
         #TODO
         return ""
+
+class Line(Builtin):
+    """
+    <dl>
+    <dt>'Line[{$point_1$, $point_2$ ...}]'
+        <dd>represents the line primitive.
+    <dt>'Line[{{$p_11$, $p_12$, ...}, {$p_21$, $p_22$, ...}, ...}]'
+        <dd>represents a number of line primitives.
+    </dl>
+
+    >> Graphics[Line[{{0,1},{0,0},{1,0},{1,1}}]]
+    = -Graphics-
+
+    >> Graphics3D[Line[{{0,0,0},{0,1,1},{1,0,0}}]]
+    = -Graphics3D-
+    """
+    pass
 
 class LineBox(_Polyline):
     def init(self, graphics, style, item=None, lines=None):
@@ -601,6 +638,20 @@ class LineBox(_Polyline):
         return asy
 
 class Polygon(Builtin):
+    """
+    <dl>
+    <dt>'Polygon[{$point_1$, $point_2$ ...}]'
+        <dd>represents the filled polygon primitive.
+    <dt>'Polygon[{{$p_11$, $p_12$, ...}, {$p_21$, $p_22$, ...}, ...}]'
+        <dd>represents a number of filled polygon primitives.
+    </dl>
+
+    >> Graphics[Polygon[{{1,0},{0,0},{0,1}}]]
+    = -Graphics-
+
+    >> Graphics3D[Polygon[{{0,0,0},{0,1,1},{1,0,0}}]]
+    = -Graphics3D-
+    """
     pass
     
 class PolygonBox(_Polyline):

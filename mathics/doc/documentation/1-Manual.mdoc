@@ -886,15 +886,15 @@ Three-dimensional graphics are created using the function 'Graphics3D' and a lis
   <dd>draws a point.
 
 >> Graphics3D[Polygon[{{0,0,0},{0,1,1},{1,0,0}}]]
- = -Graphics-
+ = -Graphics3D-
 
 Colors can also be added to three-dimensional primitives.
 >> Graphics3D[{Orange, Polygon[{{0,0,0},{1,1,1},{1,0,0}}]}, Axes->True]
- = -Graphics-
+ = -Graphics3D-
 
 'Graphics3D' produces a 'Graphics3DBox':
 >> Head[ToBoxes[Graphics3D[{Polygon[]}]]]
- = GraphicsBox
+ = Graphics3DBox
 </section>
 
 <section title="Plotting">
