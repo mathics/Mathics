@@ -40,7 +40,7 @@ Some of the most important features of \Mathics are
 <li>rationals, complex numbers, and arbitrary-precision arithmetic,
 <li>lots of list and structure manipulation routines,
 <li>an interactive graphical user interface right in the Web browser using MathML (apart from a command line interface),
-<li>creation of graphics (e.g. plots) and display in the browser using SVG,
+<li>creation of graphics (e.g. plots) and display in the browser using SVG for 2D graphics and WebGL for 3D graphics,
 <li>an online version at <url>http://www.mathics.net</url> for instant access,
 <li>export of results to \LaTeX (using Asymptote for graphics),
 <li>a very easy way of defining new functions in Python,
@@ -53,7 +53,7 @@ There are lots of ways in which \Mathics could still be improved.
 
 Most notably, performance is still very slow, so any serious usage in cutting-edge industry or research will fail, unfortunately. Speeding up pattern matching, maybe "out-sourcing" parts of it from Python to C, would certainly improve the whole \Mathics experience.
 
-Apart from performance issues, new features like 3D graphics and more functions in various mathematical fields like calculus, number theory, or graph theory are still to be added.
+Apart from performance issues, new features such as more functions in various mathematical fields like calculus, number theory, or graph theory are still to be added.
 </section>
 
 <section title="Who is behind it?">
@@ -817,7 +817,7 @@ The list elements in this 'RowBox' are strings, though string delimeters are not
 </section>
 
 <section title="Graphics">
-Graphics can be created using the function 'Graphics' and a list of graphics primitives. The following primitives are available:
+Two-dimensional graphics can be created using the function 'Graphics' and a list of graphics primitives. For three-dimensional graphics see the following section. The following primitives are available:
 <dl>
 <dt>'Circle[{$x$, $y$}, $r$]'
   <dd>draws a circle.
@@ -872,6 +872,28 @@ Colors can be mixed and altered using the following functions:
  
 'Graphics' produces a 'GraphicsBox':
 >> Head[ToBoxes[Graphics[{Circle[]}]]]
+ = GraphicsBox
+</section>
+
+<section title="3D Graphics">
+Three-dimensional graphics are created using the function 'Graphics3D' and a list of 3D primitives. The following primitives are supported so far:
+<dl>
+<dt>'Polygon[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z3$}, ...}]'
+  <dd>draws a filled polygon.
+<dt>'Line[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z3$}, ...}]'
+  <dd>draws a line.
+<dt>'Point[{$x1$, $y1$, $z1$}]'
+  <dd>draws a point.
+
+>> Graphics3D[Polygon[{{0,0,0},{0,1,1},{1,0,0}}]]
+ = -Graphics-
+
+Colors can also be added to three-dimensional primitives.
+>> Graphics3D[{Orange, Polygon[{{0,0,0},{1,1,1},{1,0,0}}]}, Axes->True]
+ = -Graphics-
+
+'Graphics3D' produces a 'Graphics3DBox':
+>> Head[ToBoxes[Graphics3D[{Polygon[]}]]]
  = GraphicsBox
 </section>
 
