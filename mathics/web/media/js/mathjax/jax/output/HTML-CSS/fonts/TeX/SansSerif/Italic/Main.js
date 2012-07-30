@@ -1,7 +1,7 @@
 /*
  *  /MathJax/jax/output/HTML-CSS/fonts/TeX/SansSerif/Italic/Main.js
  *  
- *  Copyright (c) 2010 Design Science, Inc.
+ *  Copyright (c) 2012 Design Science, Inc.
  *
  *  Part of the MathJax library.
  *  See http://www.mathjax.org for details.
@@ -12,5 +12,5 @@
  *      http://www.apache.org/licenses/LICENSE-2.0
  */
 
-MathJax.OutputJax["HTML-CSS"].FONTDATA.FONTS["MathJax_SansSerif-italic"]={directory:"SansSerif/Italic",family:"MathJax_SansSerif",style:"italic",testString:"MathJax SansSerif",Ranges:[[0,127,"BasicLatin"],[128,65535,"Other"],[768,879,"CombDiacritMarks"]]};MathJax.Callback.Queue(["initFont",MathJax.OutputJax["HTML-CSS"],"MathJax_SansSerif-italic"],["loadComplete",MathJax.Ajax,MathJax.OutputJax["HTML-CSS"].fontDir+"/SansSerif/Italic/Main.js"]);
+MathJax.OutputJax["HTML-CSS"].FONTDATA.FONTS["MathJax_SansSerif-italic"]={directory:"SansSerif/Italic",family:"MathJax_SansSerif",style:"italic",testString:"MathJax SansSerif ^ _",Ranges:[[0,127,"BasicLatin"],[128,65535,"Other"],[768,879,"CombDiacritMarks"]]};MathJax.Callback.Queue(["initFont",MathJax.OutputJax["HTML-CSS"],"MathJax_SansSerif-italic"],["loadComplete",MathJax.Ajax,MathJax.OutputJax["HTML-CSS"].fontDir+"/SansSerif/Italic/Main.js"]);
 

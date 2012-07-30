@@ -243,6 +243,7 @@ function translateDOMElement(element, svg) {
 	if (nodeName == 'math') {
 		var mstyle = createMathNode('mstyle');
 		mstyle.setAttribute('displaystyle', 'true');
+		//mstyle.setAttribute('linebreak', 'linebreak');
 		dom.appendChild(mstyle);
 		childParent = mstyle;
 	}
@@ -643,10 +644,10 @@ function globalKeyUp(event) {
 
 function domLoaded() {
 	MathJax.Hub.Config({
-		//delayJaxRegistration: true,
 		"HTML-CSS": {
 			imageFont: null,
-	  	showMathMenu: false
+	  	showMathMenu: false,
+	  	linebreaks: { automatic: true }
 	  },
 	  MMLorHTML: {
 	    //
@@ -657,7 +658,6 @@ function domLoaded() {
 	      MSIE:    "HTML",
 	      Firefox: "HTML",
 	      Opera:   "HTML",
-	      //Safari:  "HTML",
 	      other:   "HTML"
 	    }
 	  }
