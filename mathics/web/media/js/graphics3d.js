@@ -11,7 +11,11 @@ function drawPoint(prim) {
 
   color = new THREE.Color().setRGB(prim.color[0], prim.color[1], prim.color[2]);
 
-  pointmat = new THREE.ParticleBasicMaterial({color: color.getHex(), size: 0.05 });
+  if (color.r === 1 && color.g === 1 && color.b === 1) {      // Catch bug 
+    pointmat = new THREE.ParticleBasicMaterial({color: 0x000000, size: 0.05});
+  } else {
+    pointmat = new THREE.ParticleBasicMaterial({color: color.getHex(), size: 0.05});
+  }
 
   mesh = new THREE.ParticleSystem(pointgeom, pointmat);
 
