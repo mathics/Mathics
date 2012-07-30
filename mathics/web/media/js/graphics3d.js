@@ -590,8 +590,9 @@ function drawGraphics3D(container, data) {
     }
   }
 
-  // Renderer
-  renderer = new THREE.WebGLRenderer({antialias: true});
+  // Renderer (set preserveDrawingBuffer to deal with issue
+  // of weird canvas content after switching windows)
+  renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
   renderer.setSize(400, 400);
   container.appendChild(renderer.domElement);
 
