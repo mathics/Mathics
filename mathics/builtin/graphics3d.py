@@ -7,7 +7,7 @@ Graphics (3D)
 from mathics.core.expression import NumberError, from_python, Real
 from mathics.builtin.base import BoxConstruct, BoxConstructError
 from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox,
-    LineBox, PointBox, Style, RGBColor)
+    LineBox, PointBox, Style, RGBColor, color_heads, get_class)
 
 from django.utils import simplejson as json
 
@@ -56,12 +56,17 @@ class Graphics3D(Graphics):
     options.update({
         #'Axes': 'True',
         'BoxRatios': 'Automatic',
+        'Lighting': 'Automatic',
     })
     
     box_suffix = '3DBox'
     
     rules = {
         'MakeBoxes[Graphics3D[content_, OptionsPattern[Graphics3D]], OutputForm]': '"-Graphics3D-"',
+    }
+
+    messages = {
+        'invlight': "`1` is not a valid list of light sources.", 
     }
     
 class Graphics3DBox(GraphicsBox):
@@ -77,7 +82,87 @@ class Graphics3DBox(GraphicsBox):
         base_width, base_height, size_multiplier, size_aspect = self._get_image_size(options,
             graphics_options, max_width)
         
-        aspect_ratio = graphics_options['AspectRatio']
+        #TODO: Handle ImageScaled[], and Scaled[]
+        lighting_option = graphics_options['Lighting']
+        lighting = lighting_option.to_python()
+        self.lighting = []
+
+        if lighting == 'Automatic':
+            self.lighting = [
+                {"type": "Ambient", "color": [0.3, 0.2, 0.4]},
+                {"type": "Directional", "color": [0.8, 0., 0.], "position": [2, 0, 2]},
+                {"type": "Directional", "color": [0., 0.8, 0.], "position": [2, 2, 2]},
+                {"type": "Directional", "color": [0., 0., 0.8], "position": [0, 2, 2]}
+            ]
+        elif lighting == 'Neutral':
+            self.lighting = [
+                {"type": "Ambient", "color": [0.3, 0.3, 0.3]},
+                {"type": "Directional", "color": [0.3, 0.3, 0.3], "position": [2, 0, 2]},
+                {"type": "Directional", "color": [0.3, 0.3, 0.3], "position": [2, 2, 2]},
+                {"type": "Directional", "color": [0.3, 0.3, 0.3], "position": [0, 2, 2]}
+            ]
+        elif lighting == 'None':
+            pass
+
+        elif isinstance(lighting, list) and all(isinstance(light, list) for light in lighting):
+            for light in lighting:
+                if light[0] in ['"Ambient"', '"Directional"', '"Point"', '"Spot"']:
+                    try:
+                        head = light[1].get_head_name()
+                    except AttributeError:
+                        break
+                    color = get_class(head)(light[1])
+                    if light[0] == '"Ambient"':
+                        self.lighting.append({
+                            "type": "Ambient",
+                             "color": color.to_rgba()
+                        })
+                    elif light[0] == '"Directional"':
+                        position = [0,0,0]
+                        if isinstance(light[2], list):
+                            if len(light[2]) == 3:
+                                position = light[2]
+                            if len(light[2]) == 2 and all(isinstance(p, list) and len(p) == 3 for p in light[2]):
+                                position = [light[2][0][i] - light[2][1][i] for i in range(3)]
+                        self.lighting.append({
+                            "type": "Directional",
+                            "color": color.to_rgba(),
+                            "position": position
+                        })
+                    elif light[0] == '"Point"':
+                        position = [0,0,0]
+                        if isinstance(light[2], list) and len(light[2]) == 3:
+                            position = light[2]
+                        self.lighting.append({
+                            "type": "Point",
+                            "color": color.to_rgba(),
+                            "position": position
+                        })
+                    elif light[0] == '"Spot"':
+                        position = [0,0,1]
+                        target = [0,0,0]
+                        if isinstance(light[2], list):
+                            if len(light[2]) == 2:
+                                if isinstance(light[2][0], list) and len(light[2][0]) == 3:
+                                    position = light[2][0]
+                                if isinstance(light[2][1], list) and len(light[2][1]) == 3:
+                                    target = light[2][1]
+                            if len(light[2]) == 3:
+                                position = light[2]
+                        angle = light[3]
+                        self.lighting.append({
+                            "type": "Spot",
+                            "color": color.to_rgba(),
+                            "position": position,
+                            "target": target,
+                            "angle": angle
+                        })
+
+        else:
+            options['evaluation'].message("Graphics3D", 'invlight', lighting_option)
+
+        #TODO Aspect Ratio
+        #aspect_ratio = graphics_options['AspectRatio'].to_python()
             
         box_ratios = graphics_options['BoxRatios'].to_python()
 
@@ -190,6 +275,7 @@ size{1cm, 1cm};
                 'zmax': zmax,
             },
             'boxratios': box_ratios,
+            'lighting': self.lighting,
         })
         
         #return "<mn>3</mn>"
@@ -288,6 +374,7 @@ class Point3DBox(PointBox):
             data.append({
                 'type': 'point',
                 'coords': [coords.pos() for coords in line],
+                'color': self.face_color.to_rgba(),
             })
         return data
 
@@ -317,6 +404,7 @@ class Line3DBox(LineBox):
             data.append({
                 'type': 'line',
                 'coords': [coords.pos() for coords in line],
+                'color': self.edge_color.to_rgba(),
             })
         return data
 
@@ -370,10 +458,6 @@ class Polygon3DBox(PolygonBox):
                 p, d = c.pos()
                 result.append(p)
         return result
-
-class Cylinder3DBox(Graphics3DElements):
-    def init(self, *args, **kwargs):
-        super(Cylinder3DBox, self).init(*args, **kwargs)
 
 GLOBALS3D = {
     'Polygon3DBox': Polygon3DBox,
