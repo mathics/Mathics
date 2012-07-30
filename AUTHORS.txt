@@ -4,7 +4,7 @@ Mathics was created and is mainly maintained by:
 
 Additional contributions were made by:
 
-- Angus Griffith (github: sn6uv): adaptive sampling for Plot
+- Angus Griffith (github: sn6uv): adaptive sampling for Plot, 3D graphics
 - Chong Jiang (github: cjiang): Log2, Log10
 
 Thanks to the authors of all projects that are used in Mathics:
