@@ -164,7 +164,13 @@ class Graphics3DBox(GraphicsBox):
         #TODO Aspect Ratio
         #aspect_ratio = graphics_options['AspectRatio'].to_python()
             
-        box_ratios = graphics_options['BoxRatios'].to_python()
+        boxratios = graphics_options['BoxRatios'].to_python()
+        if boxratios == 'Automatic':
+            boxratios = ['Automatic', 'Automatic', 'Automatic']
+        else:
+            boxratios = boxratios
+        if not isinstance(boxratios, list) or len(boxratios) != 3:
+            raise BoxConstructError
 
         plot_range = graphics_options['PlotRange'].to_python()            
         if plot_range == 'Automatic':
@@ -228,20 +234,43 @@ class Graphics3DBox(GraphicsBox):
             except (ValueError, TypeError):
                 raise BoxConstructError
             
-            return xmin, xmax, ymin, ymax, zmin, zmax
+            boxscale = [1., 1., 1.]
+            if boxratios[0] != 'Automatic':
+                boxscale[0] = boxratios[0] / (xmax - xmin)
+            if boxratios[1] != 'Automatic':
+                boxscale[1] = boxratios[1] / (ymax - ymin)
+            if boxratios[2] != 'Automatic':
+                boxscale[2] = boxratios[2] / (zmax - zmin)
 
-        xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions(final_pass=False)
-        
-        axes, ticks = self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax)
-        
-        return elements, axes, ticks, calc_dimensions, box_ratios
+            if final_pass:
+                xmin *= boxscale[0]
+                xmax *= boxscale[0]
+                ymin *= boxscale[1]
+                ymax *= boxscale[1]
+                zmin *= boxscale[2]
+                zmax *= boxscale[2]
+
+                # Rescale lighting
+                for i,light in enumerate(self.lighting):
+                    if self.lighting[i]["type"] != "Ambient":
+                        self.lighting[i]["position"] = [light["position"][j] * boxscale[j] for j in range(3)]
+                    if self.lighting[i]["type"] == "Spot":
+                        self.lighting[i]["target"] = [light["target"][j] * boxscale[j] for j in range(3)]
+
+            return xmin, xmax, ymin, ymax, zmin, zmax, boxscale
+
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions(final_pass=False)
+
+        axes, ticks = self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale)
+
+        return elements, axes, ticks, calc_dimensions, boxscale
     
     def boxes_to_tex(self, leaves, **options):
-        elements, axes, ticks, calc_dimensions, box_ratios = self._prepare_elements(leaves, options, max_width=450)
+        elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(leaves, options, max_width=450)
         
         asy = elements.to_asy()
         
-        xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions()
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
         
         return r"""
 \begin{asy}
@@ -251,14 +280,14 @@ size{1cm, 1cm};
         """
     
     def boxes_to_xml(self, leaves, **options):
-        elements, axes, ticks, calc_dimensions, box_ratios = self._prepare_elements(leaves, options)
+        elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(leaves, options)
 
         json_repr = elements.to_json()
+        # Apply scaling
+        for i, el in enumerate(json_repr):
+            json_repr[i]['coords'] = [((e[0][0] * boxscale[0], e[0][1] * boxscale[1], e[0][2] * boxscale[2]), e[1]) for e in el['coords']]
 
-        # Convert ticks to nice strings e.g 0.100000000000002 -> '0.1'
-        ticks = [(map(str, x[0]), x[1]) for x in ticks]
-
-        xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions()
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
         
         json_repr = json.dumps({
             'elements': json_repr,
@@ -274,7 +303,6 @@ size{1cm, 1cm};
                 'zmin': zmin,
                 'zmax': zmax,
             },
-            'boxratios': box_ratios,
             'lighting': self.lighting,
         })
         
@@ -286,7 +314,7 @@ size{1cm, 1cm};
         xml = """<mtable><mtr><mtd>%s</mtd></mtr></mtable>""" % xml
         return xml
     
-    def create_axes(self, elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax):
+    def create_axes(self, elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale):
         axes = graphics_options.get('Axes')
         if axes.is_true():
             axes = (True, True, True)
@@ -324,6 +352,9 @@ size{1cm, 1cm};
         if zmin <= 0 <= zmax:
             ticks[2][0].append(0.0)
             ticks[2][0].sort()
+
+        # Convert ticks to nice strings e.g 0.100000000000002 -> '0.1' and scale ticks appropriately
+        ticks = [[map(lambda x: boxscale[i] * x, t[0]), map(lambda x: boxscale[i] * x, t[1]), map(str, t[0])] for i,t in enumerate(ticks)]
 
         return axes, ticks
             

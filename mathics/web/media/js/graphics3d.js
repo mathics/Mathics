@@ -135,13 +135,11 @@ function drawGraphics3D(container, data) {
   // The nulls are the "scaled" parts of coordinates that depend on the 
   // size of the final graphics (see Mathematica's Scaled). TODO.
 
-  // BoxRatios option is stored in data.boxratios and is either Automatic or a length 3 array.
-
   // TODO: update the size of the container dynamically
   // (we also need some mechanism to update the enclosing <mspace>).
 
   // Axes are created using the information in data.axes such as
-  // {"axes": {"hasaxes": [true, true, false], "ticks": [[-1, 0, 1], [-2, 0, 2], [0., 0.5, 1]]}}.
+  // {"axes": {"hasaxes": [true, true, false], "ticks": [[large_ticks], [small_ticks], [tick_labels]]}
 
   // Lights are created using the information in data.lighing such as
   // {"type": "Ambient", "color": [0.3, 0.2, 0.4]}
@@ -149,40 +147,24 @@ function drawGraphics3D(container, data) {
 
   // TODO: Shading, handling of VertexNormals.
 
-  var camera, scene, renderer, boundbox, boxscale, hasaxes,
+  var camera, scene, renderer, boundbox, hasaxes,
     isMouseDown = false, onMouseDownPosition,
     tmpx, tmpy, tmpz, 
     theta = Math.PI/4, onMouseDownTheta = Math.PI/4, phi = Math.PI/3, onMouseDownPhi = Math.PI/3;
 
-  // BoxRatios induce scaling
-  if (data.boxratios === 'Automatic') {
-    boxscale = new THREE.Vector3(1,1,1);
-  } else {
-    if ((data.boxratios instanceof Array) && (data.boxratios.length === 3)) {
-      boxscale = new THREE.Vector3(
-        data.boxratios[0] / (data.extent.xmax - data.extent.xmin),
-        data.boxratios[1] / (data.extent.ymax - data.extent.ymin),
-        data.boxratios[2] / (data.extent.zmax - data.extent.zmin)
-      );
-    } else {
-      alert("Error: Internal Boxratios not Automatic or Array(3)");
-      return;
-    }
-  }
-
   // Center of the scene
   var center = new THREE.Vector3(
-    0.5 * boxscale.x * (data.extent.xmin + data.extent.xmax),
-    0.5 * boxscale.y * (data.extent.ymin + data.extent.ymax), 
-    0.5 * boxscale.z * (data.extent.zmin + data.extent.zmax));
+    0.5 * (data.extent.xmin + data.extent.xmax),
+    0.5 * (data.extent.ymin + data.extent.ymax), 
+    0.5 * (data.extent.zmin + data.extent.zmax));
 
   // Where the camera is looking
   var focus = new THREE.Vector3(center.x, center.y, center.z);
 
   var radius = 2 * Math.sqrt(
-   Math.pow(boxscale.x * (data.extent.xmax - data.extent.xmin), 2) +
-   Math.pow(boxscale.y * (data.extent.ymax - data.extent.ymin), 2) +
-   Math.pow(boxscale.z * (data.extent.zmax - data.extent.zmin), 2));
+    Math.pow(data.extent.xmax - data.extent.xmin, 2) +
+    Math.pow(data.extent.ymax - data.extent.ymin, 2) +
+    Math.pow(data.extent.zmax - data.extent.zmin, 2));
 
   // Scene
   scene = new THREE.Scene();
@@ -218,13 +200,13 @@ function drawGraphics3D(container, data) {
       light = new THREE.DirectionalLight(color.getHex(), 1);
     } else if (l.type === "Spot") {
       light = new THREE.SpotLight(color.getHex());
-      light.position.set(boxscale.x * l.position[0], boxscale.y * l.position[1], boxscale.z * l.position[2]);
-      light.target.position.set(boxscale.x * l.target[0], boxscale.y * l.target[1], boxscale.z * l.target[2]);
+      light.position.set(l.position[0], l.position[1], l.position[2]);
+      light.target.position.set(l.target[0], l.target[1], l.target[2]);
       light.target.updateMatrixWorld(); // This fixes bug in THREE.js
       light.angle = l.angle;
     } else if (l.type === "Point") {
       light = new THREE.PointLight(color.getHex());
-      light.position.set(boxscale.x * l.position[0], boxscale.y * l.position[1], boxscale.z * l.position[2]);
+      light.position.set(l.position[0], l.position[1], l.position[2]);
 
       // Add visible light sphere
       var lightsphere = new THREE.Mesh(
@@ -243,7 +225,7 @@ function drawGraphics3D(container, data) {
   function getInitLightPos(l) {
     // Initial Light position in spherical polar coordinates
     if (l.position instanceof Array) {
-      var tmppos = new THREE.Vector3(boxscale.x * l.position[0], boxscale.y * l.position[1], boxscale.z * l.position[2]);
+      var tmppos = new THREE.Vector3(l.position[0], l.position[1], l.position[2]);
       var result = {"radius": radius * tmppos.length()};
 
       if (tmppos.isZero()) {
@@ -281,9 +263,9 @@ function drawGraphics3D(container, data) {
   // BoundingBox
   boundbox = new THREE.Mesh(
     new THREE.CubeGeometry(
-      boxscale.x * (data.extent.xmax - data.extent.xmin),
-      boxscale.y * (data.extent.ymax - data.extent.ymin),
-      boxscale.z * (data.extent.zmax - data.extent.zmin)),
+      data.extent.xmax - data.extent.xmin,
+      data.extent.ymax - data.extent.ymin,
+      data.extent.zmax - data.extent.zmin),
     new THREE.MeshBasicMaterial({color: 0x666666, wireframe: true})
   );
   boundbox.position = center;
@@ -464,14 +446,14 @@ function drawGraphics3D(container, data) {
           ticks[i][j].geometry.vertices[1].add(axesgeom[i].vertices[0], tickdir);
 
           if (i === 0) {
-            ticks[i][j].geometry.vertices[0].x = boxscale.x * tmpval;
-            ticks[i][j].geometry.vertices[1].x = boxscale.x * tmpval;
+            ticks[i][j].geometry.vertices[0].x = tmpval;
+            ticks[i][j].geometry.vertices[1].x = tmpval;
           } else if (i === 1) {
-            ticks[i][j].geometry.vertices[0].y = boxscale.y * tmpval;
-            ticks[i][j].geometry.vertices[1].y = boxscale.y * tmpval;
+            ticks[i][j].geometry.vertices[0].y = tmpval;
+            ticks[i][j].geometry.vertices[1].y = tmpval;
           } else if (i === 2) {
-            ticks[i][j].geometry.vertices[0].z = boxscale.z * tmpval;
-            ticks[i][j].geometry.vertices[1].z = boxscale.z * tmpval;
+            ticks[i][j].geometry.vertices[0].z = tmpval;
+            ticks[i][j].geometry.vertices[1].z = tmpval;
           }
 
           ticks[i][j].geometry.verticesNeedUpdate = true;
@@ -483,14 +465,14 @@ function drawGraphics3D(container, data) {
           ticks_small[i][j].geometry.vertices[1].add(axesgeom[i].vertices[0], small_tickdir);
 
           if (i === 0) {
-            ticks_small[i][j].geometry.vertices[0].x = boxscale.x * tmpval;
-            ticks_small[i][j].geometry.vertices[1].x = boxscale.x * tmpval;
+            ticks_small[i][j].geometry.vertices[0].x = tmpval;
+            ticks_small[i][j].geometry.vertices[1].x = tmpval;
           } else if (i === 1) {
-            ticks_small[i][j].geometry.vertices[0].y = boxscale.y * tmpval;
-            ticks_small[i][j].geometry.vertices[1].y = boxscale.y * tmpval;
+            ticks_small[i][j].geometry.vertices[0].y = tmpval;
+            ticks_small[i][j].geometry.vertices[1].y = tmpval;
           } else if (i === 2) {
-            ticks_small[i][j].geometry.vertices[0].z = boxscale.z * tmpval;
-            ticks_small[i][j].geometry.vertices[1].z = boxscale.z * tmpval;
+            ticks_small[i][j].geometry.vertices[0].z = tmpval;
+            ticks_small[i][j].geometry.vertices[1].z = tmpval;
           }
 
           ticks_small[i][j].geometry.verticesNeedUpdate = true;
@@ -507,7 +489,7 @@ function drawGraphics3D(container, data) {
       ticknums[i] = new Array(data.axes.ticks[i][0].length);
       for (var j = 0; j < ticknums[i].length; j++) {
         ticknums[i][j] = document.createElement('div');
-        ticknums[i][j].innerHTML = data.axes.ticks[i][0][j];
+        ticknums[i][j].innerHTML = data.axes.ticks[i][2][j];
 
         // Handle Minus signs
         if (data.axes.ticks[i][0][j] >= 0) {
@@ -561,33 +543,18 @@ function drawGraphics3D(container, data) {
     }
   }
 
-  function applyBoxScaling(mesh) {
-    for (var i = 0; i < mesh.geometry.vertices.length; i++) {
-      mesh.geometry.vertices[i].x -= center.x / boxscale.x;
-      mesh.geometry.vertices[i].y -= center.y / boxscale.y;
-      mesh.geometry.vertices[i].z -= center.z / boxscale.z;
-
-      mesh.geometry.vertices[i].x *= boxscale.x;
-      mesh.geometry.vertices[i].y *= boxscale.y;
-      mesh.geometry.vertices[i].z *= boxscale.z;
-
-      mesh.geometry.vertices[i].addSelf(center);
-    }
-    return mesh;
-  }
-
   // Plot the primatives
   for (var indx = 0; indx < data.elements.length; indx++) {
     var type = data.elements[indx].type;
     switch(type) {
       case "point":
-        scene.add(applyBoxScaling(drawPoint(data.elements[indx])));
+        scene.add(drawPoint(data.elements[indx]));
         break;
       case "line":
-        scene.add(applyBoxScaling(drawLine(data.elements[indx])));
+        scene.add(drawLine(data.elements[indx]));
         break;
       case "polygon":
-        scene.add(applyBoxScaling(drawPolygon(data.elements[indx])));
+        scene.add(drawPolygon(data.elements[indx]));
         break;
       default:
         alert("Error: Unknown type passed to drawGraphics3D");
