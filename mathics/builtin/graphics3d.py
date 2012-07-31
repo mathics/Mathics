@@ -6,8 +6,8 @@ Graphics (3D)
         
 from mathics.core.expression import NumberError, from_python, Real
 from mathics.builtin.base import BoxConstruct, BoxConstructError
-from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox,
-    LineBox, PointBox, Style, RGBColor, color_heads, get_class)
+from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox, create_pens,
+    LineBox, PointBox, Style, RGBColor, color_heads, get_class, asy_number)
 
 from django.utils import simplejson as json
 
@@ -271,14 +271,19 @@ class Graphics3DBox(GraphicsBox):
         asy = elements.to_asy()
         
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
-        
-        return r"""
+
+        (height, width) = (400, 400) #TODO: Proper size
+        tex = r"""
 \begin{asy}
-size{1cm, 1cm};
-// TODO: render 3D in Asymptote
+import three;
+size(%scm, %scm);
+currentprojection=perspective(10,10,10);
+currentlight=light(blue, specular=red, (2,0,2), (2,2,2), (0,2,2));
+%s
 \end{asy}
-        """
-    
+""" % (asy_number(width/60), asy_number(height/60), asy)
+        return tex
+
     def boxes_to_xml(self, leaves, **options):
         elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(leaves, options)
 
@@ -372,6 +377,10 @@ def total_extent_3d(extents):
             
 class Graphics3DElements(_GraphicsElements):
     coords = Coords3D
+    def __init__(self, content, evaluation, neg_y=False):
+        super(Graphics3DElements, self).__init__(content, evaluation)
+        self.neg_y = neg_y
+        self.xmin = self.ymin = self.pixel_width = self.pixel_height = self.extent_width = self.extent_height = None
     
     def extent(self, completely_visible_only=False):
         return total_extent_3d([element.extent() for element in self.elements])
@@ -440,8 +449,13 @@ class Line3DBox(LineBox):
         return data
 
     def to_asy(self):
-        # TODO
-        return ''
+        #l = self.style.get_line_width(face_element=False)
+        pen = create_pens(edge_color=self.edge_color, stroke_width=1)
+        asy = ''
+        for line in self.lines:
+            path = '--'.join(['(%s,%s,%s)' % coords.pos()[0] for coords in line])
+            asy += 'draw(%s, %s);' % (path, pen)
+        return asy
     
     def extent(self):
         result = []
@@ -479,8 +493,18 @@ class Polygon3DBox(PolygonBox):
         return data
     
     def to_asy(self):
-        # TODO
-        return ''
+        l = self.style.get_line_width(face_element=True)
+        if self.vertex_colors is None:
+            face_color = self.face_color
+        else:
+            face_color = None
+        pen = create_pens(edge_color=self.edge_color, face_color=face_color, stroke_width=l, is_face_element=True)
+
+        asy = ''
+        for line in self.lines:
+            asy += 'path3 g=' + '--'.join(['(%s,%s,%s)' % coords.pos()[0] for coords in line]) + '--cycle;'
+            asy += 'draw(surface(g), %s);' % (pen)
+        return asy
     
     def extent(self):
         result = []
