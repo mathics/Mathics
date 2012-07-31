@@ -36,7 +36,7 @@ function drawLine(prim) {
 
   color = new THREE.Color().setRGB(prim.color[0], prim.color[1], prim.color[2]);
 
-  linemat = new THREE.LineBasicMaterial({color: color.getHex()});
+  linemat = new THREE.LineBasicMaterial({color: color.getHex(), overdraw: true});
 
   mesh = new THREE.Line(linegeom, linemat);
 
@@ -119,7 +119,11 @@ function drawPolygon(prim) {
 
   color = new THREE.Color().setRGB(prim.faceColor[0], prim.faceColor[1], prim.faceColor[2]);
   //polymat = new THREE.MeshLambertMaterial({color: color.getHex(), transparent: true, opacity: prim.faceColor[3]});
-  polymat = new THREE.MeshPhongMaterial({color: color.getHex(), transparent: true, opacity: prim.faceColor[3]});
+  if (Detector.webgl) {
+    polymat = new THREE.MeshPhongMaterial({color: color.getHex(), transparent: true, opacity: prim.faceColor[3]});
+  } else {
+    polymat = new THREE.MeshLambertMaterial({color: color.getHex(), transparent: true, opacity: prim.faceColor[3], overdraw: true});
+  }
 
   mesh = new THREE.Mesh(polygeom, polymat);
   return mesh;
@@ -592,7 +596,12 @@ function drawGraphics3D(container, data) {
 
   // Renderer (set preserveDrawingBuffer to deal with issue
   // of weird canvas content after switching windows)
-  renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
+  if (Detector.webgl) {
+    renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
+  } else { 
+    renderer = new THREE.CanvasRenderer({antialias: true, preserveDrawingBuffer: true});
+  }
+
   renderer.setSize(400, 400);
   container.appendChild(renderer.domElement);
 
