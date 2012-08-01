@@ -268,9 +268,18 @@ class Graphics3DBox(GraphicsBox):
     def boxes_to_tex(self, leaves, **options):
         elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(leaves, options, max_width=450)
         
+        #TODO: Apply Scaling to elements
         asy = elements.to_asy()
-        
+
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
+
+        # draw boundbox
+        pen = create_pens(edge_color=RGBColor(components=(0.4,0.4,0.4,1)), stroke_width=1)
+        boundbox_asy = ''
+        boundbox_lines = self.get_boundbox_lines(xmin, xmax, ymin, ymax, zmin, zmax)
+        for line in boundbox_lines:
+            path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
+            boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
 
         (height, width) = (400, 400) #TODO: Proper size
         tex = r"""
@@ -280,8 +289,9 @@ size(%scm, %scm);
 currentprojection=perspective(10,10,10);
 currentlight=light(blue, specular=red, (2,0,2), (2,2,2), (0,2,2));
 %s
+%s
 \end{asy}
-""" % (asy_number(width/60), asy_number(height/60), asy)
+""" % (asy_number(width/60), asy_number(height/60), asy, boundbox_asy)
         return tex
 
     def boxes_to_xml(self, leaves, **options):
@@ -362,6 +372,21 @@ currentlight=light(blue, specular=red, (2,0,2), (2,2,2), (0,2,2));
         ticks = [[map(lambda x: boxscale[i] * x, t[0]), map(lambda x: boxscale[i] * x, t[1]), map(str, t[0])] for i,t in enumerate(ticks)]
 
         return axes, ticks
+        
+    def get_boundbox_lines(self, xmin, xmax, ymin, ymax, zmin, zmax):
+        return [
+        [(xmin, ymin, zmin), (xmax, ymin, zmin)], 
+        [(xmin, ymax, zmin), (xmax, ymax, zmin)], 
+        [(xmin, ymin, zmax), (xmax, ymin, zmax)], 
+        [(xmin, ymax, zmax), (xmax, ymax, zmax)], 
+        [(xmin, ymin, zmin), (xmin, ymax, zmin)],
+        [(xmax, ymin, zmin), (xmax, ymax, zmin)],
+        [(xmin, ymin, zmax), (xmin, ymax, zmax)],
+        [(xmax, ymin, zmax), (xmax, ymax, zmax)],
+        [(xmin, ymin, zmin), (xmin, ymin, zmax)],
+        [(xmax, ymin, zmin), (xmax, ymin, zmax)],
+        [(xmin, ymax, zmin), (xmin, ymax, zmax)],
+        [(xmax, ymax, zmin), (xmax, ymax, zmax)]]
             
 def total_extent_3d(extents):
     xmin = xmax = ymin = ymax = zmin = zmax = None
