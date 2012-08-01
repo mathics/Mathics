@@ -6,8 +6,8 @@ Graphics (3D)
         
 from mathics.core.expression import NumberError, from_python, Real
 from mathics.builtin.base import BoxConstruct, BoxConstructError
-from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox,
-    LineBox, PointBox, Style, RGBColor, color_heads, get_class)
+from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox, create_pens,
+    LineBox, PointBox, Style, RGBColor, color_heads, get_class, asy_number)
 
 from django.utils import simplejson as json
 
@@ -39,6 +39,9 @@ class Coords3D(object):
     def add(self, x, y, z):
         p = (self.p[0]+x, self.p[1]+y, self.p[2]+z)
         return Coords3D(self.graphics, pos=p, d=self.d)
+    
+    def scale(self, a):
+        self.p = (self.p[0]*a[0], self.p[1]*a[1], self.p[2]*a[2])
     
 class Style3D(Style):
     def get_default_face_color(self):
@@ -268,17 +271,33 @@ class Graphics3DBox(GraphicsBox):
     def boxes_to_tex(self, leaves, **options):
         elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(leaves, options, max_width=450)
         
+        elements._apply_boxscaling(boxscale)
+
         asy = elements.to_asy()
-        
+
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
-        
-        return r"""
+
+        # draw boundbox
+        pen = create_pens(edge_color=RGBColor(components=(0.4,0.4,0.4,1)), stroke_width=1)
+        boundbox_asy = ''
+        boundbox_lines = self.get_boundbox_lines(xmin, xmax, ymin, ymax, zmin, zmax)
+        for line in boundbox_lines:
+            path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
+            boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
+
+        (height, width) = (400, 400) #TODO: Proper size
+        tex = r"""
 \begin{asy}
-size{1cm, 1cm};
-// TODO: render 3D in Asymptote
+import three;
+size(%scm, %scm);
+currentprojection=perspective(10,10,10);
+currentlight=light(blue, specular=red, (2,0,2), (2,2,2), (0,2,2));
+%s
+%s
 \end{asy}
-        """
-    
+""" % (asy_number(width/60), asy_number(height/60), asy, boundbox_asy)
+        return tex
+
     def boxes_to_xml(self, leaves, **options):
         elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(leaves, options)
 
@@ -357,6 +376,21 @@ size{1cm, 1cm};
         ticks = [[map(lambda x: boxscale[i] * x, t[0]), map(lambda x: boxscale[i] * x, t[1]), map(str, t[0])] for i,t in enumerate(ticks)]
 
         return axes, ticks
+        
+    def get_boundbox_lines(self, xmin, xmax, ymin, ymax, zmin, zmax):
+        return [
+        [(xmin, ymin, zmin), (xmax, ymin, zmin)], 
+        [(xmin, ymax, zmin), (xmax, ymax, zmin)], 
+        [(xmin, ymin, zmax), (xmax, ymin, zmax)], 
+        [(xmin, ymax, zmax), (xmax, ymax, zmax)], 
+        [(xmin, ymin, zmin), (xmin, ymax, zmin)],
+        [(xmax, ymin, zmin), (xmax, ymax, zmin)],
+        [(xmin, ymin, zmax), (xmin, ymax, zmax)],
+        [(xmax, ymin, zmax), (xmax, ymax, zmax)],
+        [(xmin, ymin, zmin), (xmin, ymin, zmax)],
+        [(xmax, ymin, zmin), (xmax, ymin, zmax)],
+        [(xmin, ymax, zmin), (xmin, ymax, zmax)],
+        [(xmax, ymax, zmin), (xmax, ymax, zmax)]]
             
 def total_extent_3d(extents):
     xmin = xmax = ymin = ymax = zmin = zmax = None
@@ -372,6 +406,10 @@ def total_extent_3d(extents):
             
 class Graphics3DElements(_GraphicsElements):
     coords = Coords3D
+    def __init__(self, content, evaluation, neg_y=False):
+        super(Graphics3DElements, self).__init__(content, evaluation)
+        self.neg_y = neg_y
+        self.xmin = self.ymin = self.pixel_width = self.pixel_height = self.extent_width = self.extent_height = None
     
     def extent(self, completely_visible_only=False):
         return total_extent_3d([element.extent() for element in self.elements])
@@ -381,6 +419,10 @@ class Graphics3DElements(_GraphicsElements):
     
     def to_asy(self):
         return '\n'.join([element.to_asy() for element in self.elements])
+
+    def _apply_boxscaling(self, boxscale):
+        for element in self.elements:
+            element._apply_boxscaling(boxscale)
     
     def to_json(self):
         result = []
@@ -399,19 +441,35 @@ class Point3DBox(PointBox):
         super(Point3DBox, self).process_option(name, value)
 
     def to_json(self):
-        # TODO: account for point size and style
+        # TODO: account for point size
         data = []
+
+        # Tempoary bug fix: default Point color should be black not white
+        face_color = self.face_color
+        if list(face_color.to_rgba()[:3]) == [1,1,1]:
+            face_color = RGBColor(components=(0,0,0,face_color.to_rgba()[3]))
+
         for line in self.lines:
             data.append({
                 'type': 'point',
                 'coords': [coords.pos() for coords in line],
-                'color': self.face_color.to_rgba(),
+                'color': face_color.to_rgba(),
             })
         return data
 
     def to_asy(self):
-        # TODO
-        return ''
+        face_color = self.face_color
+        
+        # Tempoary bug fix: default Point color should be black not white
+        if list(face_color.to_rgba()[:3]) == [1,1,1]:
+            face_color = RGBColor(components=(0,0,0,face_color.to_rgba()[3]))
+        pen = create_pens(face_color=face_color, is_face_element=False)
+
+        asy = ''
+        for line in self.lines:
+            asy += 'path3 g=' + '--'.join(['(%s,%s,%s)' % coords.pos()[0] for coords in line]) + '--cycle;'
+            asy += 'dot(g, %s);' % (pen)
+        return asy
     
     def extent(self):
         result = []
@@ -420,6 +478,11 @@ class Point3DBox(PointBox):
                 p, d = c.pos()
                 result.append(p)
         return result
+
+    def _apply_boxscaling(self, boxscale):
+        for line in self.lines:
+             for coords in line:
+                 coords.scale(boxscale)
     
 class Line3DBox(LineBox):
     def init(self, *args, **kwargs):
@@ -440,8 +503,13 @@ class Line3DBox(LineBox):
         return data
 
     def to_asy(self):
-        # TODO
-        return ''
+        #l = self.style.get_line_width(face_element=False)
+        pen = create_pens(edge_color=self.edge_color, stroke_width=1)
+        asy = ''
+        for line in self.lines:
+            path = '--'.join(['(%s,%s,%s)' % coords.pos()[0] for coords in line])
+            asy += 'draw(%s, %s);' % (path, pen)
+        return asy
     
     def extent(self):
         result = []
@@ -450,6 +518,11 @@ class Line3DBox(LineBox):
                 p, d = c.pos()
                 result.append(p)
         return result
+
+    def _apply_boxscaling(self, boxscale):
+        for line in self.lines:
+             for coords in line:
+                 coords.scale(boxscale)
 
 class Polygon3DBox(PolygonBox):
     def init(self, *args, **kwargs):
@@ -479,8 +552,18 @@ class Polygon3DBox(PolygonBox):
         return data
     
     def to_asy(self):
-        # TODO
-        return ''
+        l = self.style.get_line_width(face_element=True)
+        if self.vertex_colors is None:
+            face_color = self.face_color
+        else:
+            face_color = None
+        pen = create_pens(edge_color=self.edge_color, face_color=face_color, stroke_width=l, is_face_element=True)
+
+        asy = ''
+        for line in self.lines:
+            asy += 'path3 g=' + '--'.join(['(%s,%s,%s)' % coords.pos()[0] for coords in line]) + '--cycle;'
+            asy += 'draw(surface(g), %s);' % (pen)
+        return asy
     
     def extent(self):
         result = []
@@ -489,6 +572,11 @@ class Polygon3DBox(PolygonBox):
                 p, d = c.pos()
                 result.append(p)
         return result
+
+    def _apply_boxscaling(self, boxscale):
+        for line in self.lines:
+             for coords in line:
+                 coords.scale(boxscale)
 
 GLOBALS3D = {
     'Polygon3DBox': Polygon3DBox,
