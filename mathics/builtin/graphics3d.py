@@ -40,6 +40,9 @@ class Coords3D(object):
         p = (self.p[0]+x, self.p[1]+y, self.p[2]+z)
         return Coords3D(self.graphics, pos=p, d=self.d)
     
+    def scale(self, a):
+        self.p = (self.p[0]*a[0], self.p[1]*a[1], self.p[2]*a[2])
+    
 class Style3D(Style):
     def get_default_face_color(self):
         return RGBColor(components=(1,1,1,1))
@@ -268,7 +271,8 @@ class Graphics3DBox(GraphicsBox):
     def boxes_to_tex(self, leaves, **options):
         elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(leaves, options, max_width=450)
         
-        #TODO: Apply Scaling to elements
+        elements._apply_boxscaling(boxscale)
+
         asy = elements.to_asy()
 
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
@@ -415,6 +419,10 @@ class Graphics3DElements(_GraphicsElements):
     
     def to_asy(self):
         return '\n'.join([element.to_asy() for element in self.elements])
+
+    def _apply_boxscaling(self, boxscale):
+        for element in self.elements:
+            element._apply_boxscaling(boxscale)
     
     def to_json(self):
         result = []
@@ -470,6 +478,11 @@ class Point3DBox(PointBox):
                 p, d = c.pos()
                 result.append(p)
         return result
+
+    def _apply_boxscaling(self, boxscale):
+        for line in self.lines:
+             for coords in line:
+                 coords.scale(boxscale)
     
 class Line3DBox(LineBox):
     def init(self, *args, **kwargs):
@@ -505,6 +518,11 @@ class Line3DBox(LineBox):
                 p, d = c.pos()
                 result.append(p)
         return result
+
+    def _apply_boxscaling(self, boxscale):
+        for line in self.lines:
+             for coords in line:
+                 coords.scale(boxscale)
 
 class Polygon3DBox(PolygonBox):
     def init(self, *args, **kwargs):
@@ -554,6 +572,11 @@ class Polygon3DBox(PolygonBox):
                 p, d = c.pos()
                 result.append(p)
         return result
+
+    def _apply_boxscaling(self, boxscale):
+        for line in self.lines:
+             for coords in line:
+                 coords.scale(boxscale)
 
 GLOBALS3D = {
     'Polygon3DBox': Polygon3DBox,
