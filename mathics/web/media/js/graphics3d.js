@@ -567,6 +567,13 @@ function drawGraphics3D(container, data) {
     renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
   } else { 
     renderer = new THREE.CanvasRenderer({antialias: true, preserveDrawingBuffer: true});
+
+    message = document.createElement('div');
+    message.innerHTML = "Canvas Renderer support is experimental, please enable WebGL where possible.";
+    message.style.position = "absolute";
+    message.style.fontSize = "0.8em";
+    message.style.color = "#FF6060";
+    container.appendChild(message);
   }
 
   renderer.setSize(400, 400);
