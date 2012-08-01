@@ -301,11 +301,10 @@ currentlight=light(blue, specular=red, (2,0,2), (2,2,2), (0,2,2));
     def boxes_to_xml(self, leaves, **options):
         elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(leaves, options)
 
-        json_repr = elements.to_json()
-        # Apply scaling
-        for i, el in enumerate(json_repr):
-            json_repr[i]['coords'] = [((e[0][0] * boxscale[0], e[0][1] * boxscale[1], e[0][2] * boxscale[2]), e[1]) for e in el['coords']]
+        elements._apply_boxscaling(boxscale)
 
+        json_repr = elements.to_json()
+        
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
         
         json_repr = json.dumps({
