@@ -585,8 +585,14 @@ class PointBox(_Polyline):
         return svg
     
     def to_asy(self):
-        #TODO
-        return ""
+        pen = create_pens(face_color=self.face_color, is_face_element=False)
+
+        asy = ''
+        for line in self.lines:
+              for coords in line:
+                asy += 'dot(%s, %s);' % (coords.pos(), pen)
+
+        return asy
 
 class Line(Builtin):
     """

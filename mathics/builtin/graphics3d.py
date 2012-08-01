@@ -408,7 +408,7 @@ class Point3DBox(PointBox):
         super(Point3DBox, self).process_option(name, value)
 
     def to_json(self):
-        # TODO: account for point size and style
+        # TODO: account for point size
         data = []
 
         # Tempoary bug fix: default Point color should be black not white
