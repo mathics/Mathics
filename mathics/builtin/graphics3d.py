@@ -410,16 +410,21 @@ class Point3DBox(PointBox):
     def to_json(self):
         # TODO: account for point size and style
         data = []
+
+        # Tempoary bug fix: default Point color should be black not white
+        face_color = self.face_color
+        if list(face_color.to_rgba()[:3]) == [1,1,1]:
+            face_color = RGBColor(components=(0,0,0,face_color.to_rgba()[3]))
+
         for line in self.lines:
             data.append({
                 'type': 'point',
                 'coords': [coords.pos() for coords in line],
-                'color': self.face_color.to_rgba(),
+                'color': face_color.to_rgba(),
             })
         return data
 
     def to_asy(self):
-        l = self.style.get_line_width(face_element=True)
         face_color = self.face_color
         
         # Tempoary bug fix: default Point color should be black not white
