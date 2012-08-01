@@ -419,8 +419,19 @@ class Point3DBox(PointBox):
         return data
 
     def to_asy(self):
-        # TODO
-        return ''
+        l = self.style.get_line_width(face_element=True)
+        face_color = self.face_color
+        
+        # Tempoary bug fix: default Point color should be black not white
+        if list(face_color.to_rgba()[:3]) == [1,1,1]:
+            face_color = RGBColor(components=(0,0,0,face_color.to_rgba()[3]))
+        pen = create_pens(face_color=face_color, is_face_element=False)
+
+        asy = ''
+        for line in self.lines:
+            asy += 'path3 g=' + '--'.join(['(%s,%s,%s)' % coords.pos()[0] for coords in line]) + '--cycle;'
+            asy += 'dot(g, %s);' % (pen)
+        return asy
     
     def extent(self):
         result = []
