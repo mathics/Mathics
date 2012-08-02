@@ -4,6 +4,7 @@
 Graphics (3D)
 """
         
+import numbers
 from mathics.core.expression import NumberError, from_python, Real
 from mathics.builtin.base import BoxConstruct, BoxConstructError
 from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox, create_pens,
@@ -60,6 +61,7 @@ class Graphics3D(Graphics):
         #'Axes': 'True',
         'BoxRatios': 'Automatic',
         'Lighting': 'Automatic',
+        'ViewPoint': '{1.3,-2.4,2}',
     })
     
     box_suffix = '3DBox'
@@ -81,6 +83,8 @@ class Graphics3DBox(GraphicsBox):
             raise BoxConstructError
         
         graphics_options = self.get_option_values(leaves[1:], **options)
+
+        evaluation = options['evaluation']
         
         base_width, base_height, size_multiplier, size_aspect = self._get_image_size(options,
             graphics_options, max_width)
@@ -162,7 +166,33 @@ class Graphics3DBox(GraphicsBox):
                         })
 
         else:
-            options['evaluation'].message("Graphics3D", 'invlight', lighting_option)
+            evaluation.message("Graphics3D", 'invlight', lighting_option)
+
+        # ViewPoint Option
+        viewpoint_option  = graphics_options['ViewPoint']
+        viewpoint = viewpoint_option.to_python(n_evaluation=evaluation)
+
+        if isinstance(viewpoint, list) and len(viewpoint) == 3:
+            if all(isinstance(x, numbers.Real) for x in viewpoint):
+                pass
+                #TODO Infinite coordinates e.g. {0, 0, Infinity}
+        else:
+            try:
+                viewpoint = {
+                    'Above': [0,0,2],
+                    'Below': [0,0,-2],
+                    'Front': [0,-2,0],
+                    'Back': [0,2,0],
+                    'Left': [-2,0,0],
+                    'Right': [2,0,0]
+                }[viewpoint]
+            except KeyError:
+                #evaluation.message()            
+                #TODO
+                viewpoint = [1.3,-2.4,2]
+
+        assert(isinstance(viewpoint, list) and len(viewpoint) == 3 and all(isinstance(x, numbers.Real) for x in viewpoint))
+        self.viewpoint = viewpoint
 
         #TODO Aspect Ratio
         #aspect_ratio = graphics_options['AspectRatio'].to_python()
@@ -182,7 +212,7 @@ class Graphics3DBox(GraphicsBox):
             raise BoxConstructError
         
         try:
-            elements = Graphics3DElements(leaves[0], options['evaluation'])
+            elements = Graphics3DElements(leaves[0], evaluation)
         except NumberError:
             raise BoxConstructError
         
@@ -260,6 +290,9 @@ class Graphics3DBox(GraphicsBox):
                     if self.lighting[i]["type"] == "Spot":
                         self.lighting[i]["target"] = [light["target"][j] * boxscale[j] for j in range(3)]
 
+                # Rescale viewpoint
+                self.viewpoint = [vp / max([xmax-xmin, ymax-ymin, zmax-zmin]) for vp in self.viewpoint]
+
             return xmin, xmax, ymin, ymax, zmin, zmax, boxscale
 
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions(final_pass=False)
@@ -290,12 +323,12 @@ class Graphics3DBox(GraphicsBox):
 \begin{asy}
 import three;
 size(%scm, %scm);
-currentprojection=perspective(10,10,10);
+currentprojection=perspective(%s,%s,%s);
 currentlight=light(blue, specular=red, (2,0,2), (2,2,2), (0,2,2));
 %s
 %s
 \end{asy}
-""" % (asy_number(width/60), asy_number(height/60), asy, boundbox_asy)
+""" % (asy_number(width/60), asy_number(height/60), self.viewpoint[0], self.viewpoint[1], self.viewpoint[2], asy, boundbox_asy)
         return tex
 
     def boxes_to_xml(self, leaves, **options):
