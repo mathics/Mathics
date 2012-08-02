@@ -142,10 +142,10 @@ function drawGraphics3D(container, data) {
 
   // TODO: Shading, handling of VertexNormals.
 
-  var camera, scene, renderer, boundbox, hasaxes,
+  var camera, scene, renderer, boundbox, hasaxes, viewpoint,
     isMouseDown = false, onMouseDownPosition,
     tmpx, tmpy, tmpz, 
-    theta = Math.PI/4, onMouseDownTheta = Math.PI/4, phi = Math.PI/3, onMouseDownPhi = Math.PI/3;
+    theta, onMouseDownTheta, phi, onMouseDownPhi;
 
   // Center of the scene
   var center = new THREE.Vector3(
@@ -171,6 +171,13 @@ function drawGraphics3D(container, data) {
     0.1*radius,     // Near plane
     1000*radius     // Far plane
   );
+
+  // Viewpoint
+  console.log(data.viewpoint);
+  viewpoint = new THREE.Vector3(data.viewpoint[0], data.viewpoint[1], data.viewpoint[2]);
+  onMouseDownPhi = phi = Math.asin(viewpoint.z / viewpoint.length());
+  onMouseDownTheta = theta = Math.atan2(viewpoint.y, viewpoint.x);
+  console.log(phi, theta);
 
   function update_camera_position() {
     camera.position.x = focus.x + radius * Math.sin(theta) * Math.cos(phi);

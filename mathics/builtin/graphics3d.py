@@ -355,6 +355,7 @@ currentlight=light(blue, specular=red, (2,0,2), (2,2,2), (0,2,2));
                 'zmax': zmax,
             },
             'lighting': self.lighting,
+            'viewpoint': self.viewpoint,
         })
         
         #return "<mn>3</mn>"
