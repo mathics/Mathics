@@ -291,7 +291,7 @@ class Graphics3DBox(GraphicsBox):
                         self.lighting[i]["target"] = [light["target"][j] * boxscale[j] for j in range(3)]
 
                 # Rescale viewpoint
-                self.viewpoint = [vp / max([xmax-xmin, ymax-ymin, zmax-zmin]) for vp in self.viewpoint]
+                self.viewpoint = [vp * max([xmax-xmin, ymax-ymin, zmax-zmin]) for vp in self.viewpoint]
 
             return xmin, xmax, ymin, ymax, zmin, zmax, boxscale
 
