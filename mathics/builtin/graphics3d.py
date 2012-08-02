@@ -312,7 +312,6 @@ class Graphics3DBox(GraphicsBox):
 
         #TODO: Find the longest axes by projecting onto 'screen
         axes_indices = []
-        print axes
         if axes[0]:
             axes_indices.append(0)
         if axes[1]:
@@ -330,6 +329,54 @@ class Graphics3DBox(GraphicsBox):
                 pen = create_pens(edge_color=RGBColor(components=(0.4,0.4,0.4,1)), stroke_width=1)
             path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
             boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
+
+        # Draw axes ticks
+        ticklength = 0.05 * max([xmax-xmin, ymax-ymin, zmax-zmin])
+        pen = create_pens(edge_color=RGBColor(components=(0,0,0,1)), stroke_width=1.2)
+        for xi in axes_indices:
+            if xi < 4:          # x axis
+                for i,tick in enumerate(ticks[0][0]):
+                    line = [
+                        (tick, boundbox_lines[xi][0][1], boundbox_lines[xi][0][2]),
+                        (tick, boundbox_lines[xi][0][1], boundbox_lines[xi][0][2] + ticklength)]
+                    path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
+                    boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
+                    boundbox_asy += 'label("%s",%s,%s);\n' %(ticks[0][2][i], (tick, boundbox_lines[xi][0][1], boundbox_lines[xi][0][2]), 'S')
+                for small_tick in ticks[0][1]:
+                    line = [
+                        (small_tick, boundbox_lines[xi][0][1], boundbox_lines[xi][0][2]),
+                        (small_tick, boundbox_lines[xi][0][1], boundbox_lines[xi][0][2] + 0.5*ticklength)]
+                    path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
+                    boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
+                    
+            if 4 <= xi < 8:     # y axis
+                for i,tick in enumerate(ticks[1][0]):
+                    line = [
+                        (boundbox_lines[xi][0][0], tick, boundbox_lines[xi][0][2]),
+                        (boundbox_lines[xi][0][0], tick, boundbox_lines[xi][0][2] - ticklength)]
+                    path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
+                    boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
+                    boundbox_asy += 'label("%s",%s,%s);\n' %(ticks[1][2][i], (boundbox_lines[xi][0][0], tick, boundbox_lines[xi][0][2]), 'NW')
+                for small_tick in ticks[1][1]:
+                    line = [
+                        (boundbox_lines[xi][0][0], small_tick, boundbox_lines[xi][0][2]),
+                        (boundbox_lines[xi][0][0], small_tick, boundbox_lines[xi][0][2] - 0.5*ticklength)]
+                    path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
+                    boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
+            if 8 <= xi:         # z axis
+                for i,tick in enumerate(ticks[2][0]):
+                    line = [
+                        (boundbox_lines[xi][0][0], boundbox_lines[xi][0][1], tick),
+                        (boundbox_lines[xi][0][0], boundbox_lines[xi][0][1] + ticklength, tick)]
+                    path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
+                    boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
+                    boundbox_asy += 'label("%s",%s,%s);\n' %(ticks[2][2][i], (boundbox_lines[xi][0][0], boundbox_lines[xi][0][1], tick), 'W')
+                for small_tick in ticks[2][1]:
+                    line = [
+                        (boundbox_lines[xi][0][0], boundbox_lines[xi][0][1], small_tick),
+                        (boundbox_lines[xi][0][0], boundbox_lines[xi][0][1] + 0.5*ticklength, small_tick)]
+                    path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
+                    boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
 
         (height, width) = (400, 400) #TODO: Proper size
         tex = r"""
