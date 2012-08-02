@@ -310,11 +310,24 @@ class Graphics3DBox(GraphicsBox):
 
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
 
-        # draw boundbox
-        pen = create_pens(edge_color=RGBColor(components=(0.4,0.4,0.4,1)), stroke_width=1)
+        #TODO: Find the longest axes by projecting onto 'screen
+        axes_indices = []
+        print axes
+        if axes[0]:
+            axes_indices.append(0)
+        if axes[1]:
+            axes_indices.append(6)
+        if axes[2]:
+            axes_indices.append(8)
+
+        # Draw boundbox and axes
         boundbox_asy = ''
         boundbox_lines = self.get_boundbox_lines(xmin, xmax, ymin, ymax, zmin, zmax)
-        for line in boundbox_lines:
+        for i,line in enumerate(boundbox_lines):
+            if i in axes_indices:
+                pen = create_pens(edge_color=RGBColor(components=(0,0,0,1)), stroke_width=1.5)
+            else:
+                pen = create_pens(edge_color=RGBColor(components=(0.4,0.4,0.4,1)), stroke_width=1)
             path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
             boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
 
@@ -324,7 +337,7 @@ class Graphics3DBox(GraphicsBox):
 import three;
 size(%scm, %scm);
 currentprojection=perspective(%s,%s,%s);
-currentlight=light(blue, specular=red, (2,0,2), (2,2,2), (0,2,2));
+currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
 %s
 %s
 \end{asy}
@@ -373,7 +386,7 @@ currentlight=light(blue, specular=red, (2,0,2), (2,2,2), (0,2,2));
         elif axes.has_form('List', 3):
             axes = (axes.leaves[0].is_true(), axes.leaves[1].is_true(), axes.leaves[2].is_true())
         else:
-            axes = {}
+            axes = (False,False,False)
         ticks_style = graphics_options.get('TicksStyle')
         axes_style = graphics_options.get('AxesStyle')
         label_style = graphics_options.get('LabelStyle')
