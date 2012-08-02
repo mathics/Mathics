@@ -156,10 +156,12 @@ function drawGraphics3D(container, data) {
   // Where the camera is looking
   var focus = new THREE.Vector3(center.x, center.y, center.z);
 
-  var radius = 2 * Math.sqrt(
-    Math.pow(data.extent.xmax - data.extent.xmin, 2) +
-    Math.pow(data.extent.ymax - data.extent.ymin, 2) +
-    Math.pow(data.extent.zmax - data.extent.zmin, 2));
+  // Viewpoint
+  viewpoint = new THREE.Vector3(data.viewpoint[0], data.viewpoint[1], data.viewpoint[2]).subSelf(focus);
+  var radius = viewpoint.length()
+
+  onMouseDownTheta = theta = Math.acos(viewpoint.z / radius);
+  onMouseDownPhi = phi = (Math.atan2(viewpoint.y, viewpoint.x) + 2*Math.PI) % (2 * Math.PI);
 
   // Scene
   scene = new THREE.Scene();
@@ -172,17 +174,11 @@ function drawGraphics3D(container, data) {
     1000*radius     // Far plane
   );
 
-  // Viewpoint
-  console.log(data.viewpoint);
-  viewpoint = new THREE.Vector3(data.viewpoint[0], data.viewpoint[1], data.viewpoint[2]);
-  onMouseDownPhi = phi = Math.asin(viewpoint.z / viewpoint.length());
-  onMouseDownTheta = theta = Math.atan2(viewpoint.y, viewpoint.x);
-  console.log(phi, theta);
-
   function update_camera_position() {
-    camera.position.x = focus.x + radius * Math.sin(theta) * Math.cos(phi);
-    camera.position.y = focus.y + radius * Math.cos(theta) * Math.cos(phi);
-    camera.position.z = focus.z + radius * Math.sin(phi);
+    camera.position.x = radius * Math.sin(theta) * Math.cos(phi);
+    camera.position.y = radius * Math.sin(theta) * Math.sin(phi);
+    camera.position.z = radius * Math.cos(theta);
+    camera.position.addSelf(focus);
     camera.lookAt(focus);
   }
 
@@ -234,8 +230,8 @@ function drawGraphics3D(container, data) {
         result.theta = 0;
         result.phi = 0;
       } else {
-        result.phi = Math.acos(tmppos.z / result.radius);
-        result.theta = Math.atan2(tmppos.y, tmppos.x);
+        result.phi = (Math.atan2(tmppos.y, tmppos.x) + 2 * Math.PI) % (2 * Math.PI);
+        result.theta = Math.asin(tmppos.z / result.radius);
       }
       return result;
     }
@@ -245,9 +241,10 @@ function drawGraphics3D(container, data) {
   function positionLights() {
     for (var i = 0; i < lights.length; i++) {
       if (lights[i] instanceof THREE.DirectionalLight) {
-        lights[i].position.x = focus.x + initLightPos[i].radius * Math.sin(theta + initLightPos[i].theta) * Math.cos(phi + initLightPos[i].phi);
-        lights[i].position.y = focus.y + initLightPos[i].radius * Math.cos(theta + initLightPos[i].theta) * Math.cos(phi + initLightPos[i].phi);
-        lights[i].position.z = focus.z + initLightPos[i].radius * Math.sin(phi + initLightPos[i].phi);
+        lights[i].position.x = initLightPos[i].radius * Math.sin(theta + initLightPos[i].theta) * Math.cos(phi + initLightPos[i].phi);
+        lights[i].position.y = initLightPos[i].radius * Math.sin(theta + initLightPos[i].theta) * Math.sin(phi + initLightPos[i].phi);
+        lights[i].position.z = initLightPos[i].radius * Math.cos(theta + initLightPos[i].theta);
+        lights[i].position.addSelf(focus);
       }
     }
   }
@@ -390,7 +387,7 @@ function drawGraphics3D(container, data) {
   function getTickDir(i) {
     var tickdir = new THREE.Vector3();
     if (i === 0) {
-      if (-45 < phi && phi < 45) {
+      if (0.25*Math.PI < theta && theta < 0.75*Math.PI) {
         if (axesgeom[0].vertices[0].z > boundbox.position.z) {
           tickdir.set(0, 0, -ticklength);
         } else {
@@ -404,7 +401,7 @@ function drawGraphics3D(container, data) {
         }
       }
     } else if (i === 1) {
-      if (-45 < phi && phi < 45) {
+      if (0.25*Math.PI < theta && theta < 0.75*Math.PI) {
         if (axesgeom[1].vertices[0].z > boundbox.position.z) {
           tickdir.set(0, 0, -ticklength);
         } else {
@@ -418,17 +415,17 @@ function drawGraphics3D(container, data) {
         }
       }
     } else if (i === 2) {
-      if ((45 < theta && theta < 135) || (225 < theta && theta < 315)) {
-        if (axesgeom[2].vertices[0].y > boundbox.position.y) {
-          tickdir.set(0, -ticklength, 0);
-        } else {
-          tickdir.set(0, ticklength, 0);
-        }
-      } else {
+      if ((0.25*Math.PI < phi && phi < 0.75*Math.PI) || (1.25*Math.PI < phi && phi < 1.75*Math.PI)) {
         if (axesgeom[2].vertices[0].x > boundbox.position.x) {
           tickdir.set(-ticklength, 0, 0);
         } else {
           tickdir.set(ticklength, 0, 0);
+        }
+      } else {
+        if (axesgeom[2].vertices[0].y > boundbox.position.y) {
+          tickdir.set(0, -ticklength, 0, 0);
+        } else {
+          tickdir.set(0, ticklength, 0, 0);
         }
       }
     }
@@ -587,42 +584,22 @@ function drawGraphics3D(container, data) {
   }
 
   function toScreenCoords(position) {
-    var camz = new THREE.Vector3().sub(focus, camera.position);
-    camz.normalize();
-
-    var camx = new THREE.Vector3(
-        radius * Math.cos(phi) * Math.cos(theta),
-        - radius * Math.cos(phi) * Math.sin(theta),
-        0
-    );
-    camx.normalize();
-
-    var camy = new THREE.Vector3();
-    camy.cross(camz, camx);
-
-    var campos = new THREE.Vector3().sub(position, camera.position);
-    campos.addSelf(focus);
-
-    var cam = new THREE.Vector3(
-        camx.dot(campos),
-        camy.dot(campos),
-        camz.dot(campos)
-    );
-    
-    return cam;
+    return camera.matrixWorldInverse.multiplyVector3(position.clone());
   }
 
   function ScaleInView() {
     var tmp_fov = 0.0;
+    var proj2d = new THREE.Vector3();
 
     for (var i=0; i<8; i++) {
-      proj2d = toScreenCoords(boundbox.geometry.vertices[i]);
+      proj2d.add(boundbox.geometry.vertices[i], boundbox.position);
+      proj2d = toScreenCoords(proj2d);
 
-      angle = 57.296 * Math.max(
+      angle = 114.59 * Math.max(
          Math.abs(Math.atan(proj2d.x/proj2d.z) / camera.aspect),
          Math.abs(Math.atan(proj2d.y/proj2d.z))
       );
-      tmp_fov = Math.max(tmp_fov, 2*angle);
+      tmp_fov = Math.max(tmp_fov, angle);
     }
 
     camera.fov = tmp_fov + 5;
@@ -665,8 +642,8 @@ function drawGraphics3D(container, data) {
         camz.normalize();
 
         var camx = new THREE.Vector3(
-            radius * Math.cos(phi) * Math.cos(theta),
-            - radius * Math.cos(phi) * Math.sin(theta),
+            - radius * Math.cos(theta) * Math.sin(phi) * (theta<0.5*Math.PI?1:-1),
+            radius * Math.cos(theta) * Math.cos(phi) * (theta<0.5*Math.PI?1:-1),
             0
         );
         camx.normalize();
@@ -674,9 +651,9 @@ function drawGraphics3D(container, data) {
         var camy = new THREE.Vector3();
         camy.cross(camz, camx);
 
-        focus.x = onMouseDownFocus.x + (radius / 400)*(camx.x * (event.clientX - onMouseDownPosition.x) + camy.x * (event.clientY - onMouseDownPosition.y));
-        focus.y = onMouseDownFocus.y + (radius / 400)*(camx.y * (event.clientX - onMouseDownPosition.x) + camy.y * (event.clientY - onMouseDownPosition.y));
-        focus.z = onMouseDownFocus.z + (radius / 400)*(camx.z * (event.clientX - onMouseDownPosition.x) + camy.z * (event.clientY - onMouseDownPosition.y));
+        focus.x = onMouseDownFocus.x + (radius / 400)*(camx.x * (onMouseDownPosition.x - event.clientX) + camy.x * (onMouseDownPosition.y - event.clientY));
+        focus.y = onMouseDownFocus.y + (radius / 400)*(camx.y * (onMouseDownPosition.x - event.clientX) + camy.y * (onMouseDownPosition.y - event.clientY));
+        focus.z = onMouseDownFocus.z + (radius / 400)*(camx.z * (onMouseDownPosition.x - event.clientX) + camy.z * (onMouseDownPosition.y - event.clientY));
 
         update_camera_position();
 
@@ -704,17 +681,17 @@ function drawGraphics3D(container, data) {
           container.style.cursor = "pointer";
         }
 
-        theta = 2 * Math.PI * (event.clientX - onMouseDownPosition.x) / 400 + onMouseDownTheta;
-        theta = (theta + 2 * Math.PI) % (2 * Math.PI);
-        phi = 2 * Math.PI * (event.clientY - onMouseDownPosition.y) / 400 + onMouseDownPhi;
-        phi = Math.max(Math.min(0.5 * Math.PI, phi), -0.5 * Math.PI);
+        phi = 2 * Math.PI * (onMouseDownPosition.x - event.clientX) / 400 + onMouseDownPhi;
+        phi = (phi + 2 * Math.PI) % (2 * Math.PI);
+        theta = 2 * Math.PI * (onMouseDownPosition.y - event.clientY) / 400 + onMouseDownTheta;
+        var epsilon = 1e-12; // Prevents spinnging from getting stuck
+        theta = Math.max(Math.min(Math.PI - epsilon, theta), epsilon);
 
         update_camera_position();
       }
       render();
-
     } else {
-        container.style.cursor = "pointer";
+      container.style.cursor = "pointer";
     }
   }
 
@@ -741,9 +718,10 @@ function drawGraphics3D(container, data) {
   var autoRescale = true;
 
   update_camera_position();
-  ScaleInView();
   positionAxes();
-  render();
+  render(); // Rendering twice updates camera.matrixWorldInverse so that ScaleInView works properly
+  ScaleInView();
+  render();     
   positionticknums();
 }
 
