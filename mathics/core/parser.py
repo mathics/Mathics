@@ -55,7 +55,7 @@ class ParseError(TranslateError):
         self.token = token
         
     def __unicode__(self):
-        return u"Parse error at or near token %s." % self.token
+        return u"Parse error at or near token %s." % str(self.token)
     
 class AbstractToken(object):
     pass
@@ -75,10 +75,7 @@ class Token(AbstractToken):
         
     def __str__(self):
         if self.value:
-            if isinstance(self.value, Expression):
-                return str(self.value)
-            else:
-                return self.value
+            return unicode(self.value)
         else:
             return self.type
 
