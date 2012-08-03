@@ -7,7 +7,7 @@ Graphics (3D)
 import numbers
 from mathics.core.expression import NumberError, from_python, Real
 from mathics.builtin.base import BoxConstruct, BoxConstructError, Builtin, InstancableBuiltin
-from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox, create_pens,
+from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox, create_pens, _Color,
     LineBox, PointBox, Style, RGBColor, color_heads, get_class, asy_number, _GraphicsElement)
 
 from django.utils import simplejson as json
@@ -341,8 +341,6 @@ currentlight=light(blue, specular=red, (2,0,2), (2,2,2), (0,2,2));
         
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
         
-        #TODO: Sphere (like this)
-        #json_repr = [{'faceColor': (1, 1, 1, 1), 'coords': [((0.5, 0.5, 0.5), None), ((0.1, 0.1, 0.1), None)], 'type': 'sphere', 'radius': 0.5}]
         #TODO: Cubeoid (like this)
         #json_repr = [{'faceColor': (1, 1, 1, 1), 'position': [(0,0,0), None], 'size':[(1,1,1), None], 'type': 'cube'}]
 
@@ -634,13 +632,13 @@ class _Graphics3DElement(InstancableBuiltin):
 class Sphere3DBox(_Graphics3DElement):
     def init(self, graphics, style, item):
         super(Sphere3DBox, self).init(graphics, item, style)
+        self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
         if len(item.leaves) != 2:
             raise BoxConstructError
 
         points = item.leaves[0].to_python()
         if not all(isinstance(point, list) for point in points):
             points = [points]
-        print points
         if not all(len(point) == 3 and all(isinstance(p, numbers.Real) for p in point) for point in points):
             raise BoxConstructError
 
@@ -648,18 +646,23 @@ class Sphere3DBox(_Graphics3DElement):
         self.radius = item.leaves[1].to_python()
 
     def to_asy(self):
+        l = self.style.get_line_width(face_element=True)
+        face_color = self.face_color.to_js() if self.face_color is not None else (1,1,1)
+
         asy = ''
         for coord in self.points:
-            sphere = 'surface(sphere(%s, %s))' % (coord.pos()[0], self.radius)
-            asy += 'draw(%s, %s, %s);'  %(sphere, 'rgb(1,1,1)', 'nullpen')
+            sphere = 'surface(sphere(%s, %s))' % (tuple(coord.pos()[0]), self.radius)
+            color = 'rgb(%s,%s,%s)' % (face_color[0], face_color[1], face_color[2])
+            asy += 'draw(%s, %s);'  %(sphere, color)
         return asy
 
     def to_json(self):
+        face_color = self.face_color
         return [{
             'type': 'sphere', 
             'coords': [coords.pos() for coords in self.points],
             'radius': self.radius,
-            'faceColor': (1, 1, 1, 1), 
+            'faceColor': face_color.to_js() if face_color is not None else None,
         }]
         return data
 
