@@ -322,6 +322,7 @@ class Graphics3DBox(GraphicsBox):
         tex = r"""
 \begin{asy}
 import three;
+import solids;
 size(%scm, %scm);
 currentprojection=perspective(%s,%s,%s);
 currentlight=light(blue, specular=red, (2,0,2), (2,2,2), (0,2,2));
@@ -647,8 +648,11 @@ class Sphere3DBox(_Graphics3DElement):
         self.radius = item.leaves[1].to_python()
 
     def to_asy(self):
-        #TODO
-        return {}
+        asy = ''
+        for coord in self.points:
+            sphere = 'surface(sphere(%s, %s))' % (coord.pos()[0], self.radius)
+            asy += 'draw(%s, %s, %s);'  %(sphere, 'rgb(1,1,1)', 'nullpen')
+        return asy
 
     def to_json(self):
         return [{
