@@ -4,10 +4,11 @@
 Graphics (3D)
 """
         
+import numbers
 from mathics.core.expression import NumberError, from_python, Real
 from mathics.builtin.base import BoxConstruct, BoxConstructError
-from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox,
-    LineBox, PointBox, Style, RGBColor, color_heads, get_class)
+from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox, create_pens,
+    LineBox, PointBox, Style, RGBColor, color_heads, get_class, asy_number)
 
 from django.utils import simplejson as json
 
@@ -40,6 +41,9 @@ class Coords3D(object):
         p = (self.p[0]+x, self.p[1]+y, self.p[2]+z)
         return Coords3D(self.graphics, pos=p, d=self.d)
     
+    def scale(self, a):
+        self.p = (self.p[0]*a[0], self.p[1]*a[1], self.p[2]*a[2])
+    
 class Style3D(Style):
     def get_default_face_color(self):
         return RGBColor(components=(1,1,1,1))
@@ -57,6 +61,7 @@ class Graphics3D(Graphics):
         #'Axes': 'True',
         'BoxRatios': 'Automatic',
         'Lighting': 'Automatic',
+        'ViewPoint': '{1.3,-2.4,2}',
     })
     
     box_suffix = '3DBox'
@@ -78,6 +83,8 @@ class Graphics3DBox(GraphicsBox):
             raise BoxConstructError
         
         graphics_options = self.get_option_values(leaves[1:], **options)
+
+        evaluation = options['evaluation']
         
         base_width, base_height, size_multiplier, size_aspect = self._get_image_size(options,
             graphics_options, max_width)
@@ -159,12 +166,44 @@ class Graphics3DBox(GraphicsBox):
                         })
 
         else:
-            options['evaluation'].message("Graphics3D", 'invlight', lighting_option)
+            evaluation.message("Graphics3D", 'invlight', lighting_option)
+
+        # ViewPoint Option
+        viewpoint_option  = graphics_options['ViewPoint']
+        viewpoint = viewpoint_option.to_python(n_evaluation=evaluation)
+
+        if isinstance(viewpoint, list) and len(viewpoint) == 3:
+            if all(isinstance(x, numbers.Real) for x in viewpoint):
+                pass
+                #TODO Infinite coordinates e.g. {0, 0, Infinity}
+        else:
+            try:
+                viewpoint = {
+                    'Above': [0,0,2],
+                    'Below': [0,0,-2],
+                    'Front': [0,-2,0],
+                    'Back': [0,2,0],
+                    'Left': [-2,0,0],
+                    'Right': [2,0,0]
+                }[viewpoint]
+            except KeyError:
+                #evaluation.message()            
+                #TODO
+                viewpoint = [1.3,-2.4,2]
+
+        assert(isinstance(viewpoint, list) and len(viewpoint) == 3 and all(isinstance(x, numbers.Real) for x in viewpoint))
+        self.viewpoint = viewpoint
 
         #TODO Aspect Ratio
         #aspect_ratio = graphics_options['AspectRatio'].to_python()
             
-        box_ratios = graphics_options['BoxRatios'].to_python()
+        boxratios = graphics_options['BoxRatios'].to_python()
+        if boxratios == 'Automatic':
+            boxratios = ['Automatic', 'Automatic', 'Automatic']
+        else:
+            boxratios = boxratios
+        if not isinstance(boxratios, list) or len(boxratios) != 3:
+            raise BoxConstructError
 
         plot_range = graphics_options['PlotRange'].to_python()            
         if plot_range == 'Automatic':
@@ -173,7 +212,7 @@ class Graphics3DBox(GraphicsBox):
             raise BoxConstructError
         
         try:
-            elements = Graphics3DElements(leaves[0], options['evaluation'])
+            elements = Graphics3DElements(leaves[0], evaluation)
         except NumberError:
             raise BoxConstructError
         
@@ -228,37 +267,78 @@ class Graphics3DBox(GraphicsBox):
             except (ValueError, TypeError):
                 raise BoxConstructError
             
-            return xmin, xmax, ymin, ymax, zmin, zmax
+            boxscale = [1., 1., 1.]
+            if boxratios[0] != 'Automatic':
+                boxscale[0] = boxratios[0] / (xmax - xmin)
+            if boxratios[1] != 'Automatic':
+                boxscale[1] = boxratios[1] / (ymax - ymin)
+            if boxratios[2] != 'Automatic':
+                boxscale[2] = boxratios[2] / (zmax - zmin)
 
-        xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions(final_pass=False)
-        
-        axes, ticks = self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax)
-        
-        return elements, axes, ticks, calc_dimensions, box_ratios
+            if final_pass:
+                xmin *= boxscale[0]
+                xmax *= boxscale[0]
+                ymin *= boxscale[1]
+                ymax *= boxscale[1]
+                zmin *= boxscale[2]
+                zmax *= boxscale[2]
+
+                # Rescale lighting
+                for i,light in enumerate(self.lighting):
+                    if self.lighting[i]["type"] != "Ambient":
+                        self.lighting[i]["position"] = [light["position"][j] * boxscale[j] for j in range(3)]
+                    if self.lighting[i]["type"] == "Spot":
+                        self.lighting[i]["target"] = [light["target"][j] * boxscale[j] for j in range(3)]
+
+                # Rescale viewpoint
+                self.viewpoint = [vp * max([xmax-xmin, ymax-ymin, zmax-zmin]) for vp in self.viewpoint]
+
+            return xmin, xmax, ymin, ymax, zmin, zmax, boxscale
+
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions(final_pass=False)
+
+        axes, ticks = self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale)
+
+        return elements, axes, ticks, calc_dimensions, boxscale
     
     def boxes_to_tex(self, leaves, **options):
-        elements, axes, ticks, calc_dimensions, box_ratios = self._prepare_elements(leaves, options, max_width=450)
+        elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(leaves, options, max_width=450)
         
+        elements._apply_boxscaling(boxscale)
+
         asy = elements.to_asy()
-        
-        xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions()
-        
-        return r"""
+
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
+
+        # draw boundbox
+        pen = create_pens(edge_color=RGBColor(components=(0.4,0.4,0.4,1)), stroke_width=1)
+        boundbox_asy = ''
+        boundbox_lines = self.get_boundbox_lines(xmin, xmax, ymin, ymax, zmin, zmax)
+        for line in boundbox_lines:
+            path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
+            boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
+
+        (height, width) = (400, 400) #TODO: Proper size
+        tex = r"""
 \begin{asy}
-size{1cm, 1cm};
-// TODO: render 3D in Asymptote
+import three;
+size(%scm, %scm);
+currentprojection=perspective(%s,%s,%s);
+currentlight=light(blue, specular=red, (2,0,2), (2,2,2), (0,2,2));
+%s
+%s
 \end{asy}
-        """
-    
+""" % (asy_number(width/60), asy_number(height/60), self.viewpoint[0], self.viewpoint[1], self.viewpoint[2], asy, boundbox_asy)
+        return tex
+
     def boxes_to_xml(self, leaves, **options):
-        elements, axes, ticks, calc_dimensions, box_ratios = self._prepare_elements(leaves, options)
+        elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(leaves, options)
+
+        elements._apply_boxscaling(boxscale)
 
         json_repr = elements.to_json()
-
-        # Convert ticks to nice strings e.g 0.100000000000002 -> '0.1'
-        ticks = [(map(str, x[0]), x[1]) for x in ticks]
-
-        xmin, xmax, ymin, ymax, zmin, zmax = calc_dimensions()
+        
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
         
         #TODO: Sphere (like this)
         #json_repr = [{'faceColor': (1, 1, 1, 1), 'coords': [((0.5, 0.5, 0.5), None), ((0.1, 0.1, 0.1), None)], 'type': 'sphere', 'radius': 0.5}]
@@ -279,8 +359,8 @@ size{1cm, 1cm};
                 'zmin': zmin,
                 'zmax': zmax,
             },
-            'boxratios': box_ratios,
             'lighting': self.lighting,
+            'viewpoint': self.viewpoint,
         })
         
         #return "<mn>3</mn>"
@@ -291,7 +371,7 @@ size{1cm, 1cm};
         xml = """<mtable><mtr><mtd>%s</mtd></mtr></mtable>""" % xml
         return xml
     
-    def create_axes(self, elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax):
+    def create_axes(self, elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale):
         axes = graphics_options.get('Axes')
         if axes.is_true():
             axes = (True, True, True)
@@ -330,7 +410,25 @@ size{1cm, 1cm};
             ticks[2][0].append(0.0)
             ticks[2][0].sort()
 
+        # Convert ticks to nice strings e.g 0.100000000000002 -> '0.1' and scale ticks appropriately
+        ticks = [[map(lambda x: boxscale[i] * x, t[0]), map(lambda x: boxscale[i] * x, t[1]), map(str, t[0])] for i,t in enumerate(ticks)]
+
         return axes, ticks
+        
+    def get_boundbox_lines(self, xmin, xmax, ymin, ymax, zmin, zmax):
+        return [
+        [(xmin, ymin, zmin), (xmax, ymin, zmin)], 
+        [(xmin, ymax, zmin), (xmax, ymax, zmin)], 
+        [(xmin, ymin, zmax), (xmax, ymin, zmax)], 
+        [(xmin, ymax, zmax), (xmax, ymax, zmax)], 
+        [(xmin, ymin, zmin), (xmin, ymax, zmin)],
+        [(xmax, ymin, zmin), (xmax, ymax, zmin)],
+        [(xmin, ymin, zmax), (xmin, ymax, zmax)],
+        [(xmax, ymin, zmax), (xmax, ymax, zmax)],
+        [(xmin, ymin, zmin), (xmin, ymin, zmax)],
+        [(xmax, ymin, zmin), (xmax, ymin, zmax)],
+        [(xmin, ymax, zmin), (xmin, ymax, zmax)],
+        [(xmax, ymax, zmin), (xmax, ymax, zmax)]]
             
 def total_extent_3d(extents):
     xmin = xmax = ymin = ymax = zmin = zmax = None
@@ -346,6 +444,10 @@ def total_extent_3d(extents):
             
 class Graphics3DElements(_GraphicsElements):
     coords = Coords3D
+    def __init__(self, content, evaluation, neg_y=False):
+        super(Graphics3DElements, self).__init__(content, evaluation)
+        self.neg_y = neg_y
+        self.xmin = self.ymin = self.pixel_width = self.pixel_height = self.extent_width = self.extent_height = None
     
     def extent(self, completely_visible_only=False):
         return total_extent_3d([element.extent() for element in self.elements])
@@ -355,6 +457,10 @@ class Graphics3DElements(_GraphicsElements):
     
     def to_asy(self):
         return '\n'.join([element.to_asy() for element in self.elements])
+
+    def _apply_boxscaling(self, boxscale):
+        for element in self.elements:
+            element._apply_boxscaling(boxscale)
     
     def to_json(self):
         result = []
@@ -373,19 +479,35 @@ class Point3DBox(PointBox):
         super(Point3DBox, self).process_option(name, value)
 
     def to_json(self):
-        # TODO: account for point size and style
+        # TODO: account for point size
         data = []
+
+        # Tempoary bug fix: default Point color should be black not white
+        face_color = self.face_color
+        if list(face_color.to_rgba()[:3]) == [1,1,1]:
+            face_color = RGBColor(components=(0,0,0,face_color.to_rgba()[3]))
+
         for line in self.lines:
             data.append({
                 'type': 'point',
                 'coords': [coords.pos() for coords in line],
-                'color': self.face_color.to_rgba(),
+                'color': face_color.to_rgba(),
             })
         return data
 
     def to_asy(self):
-        # TODO
-        return ''
+        face_color = self.face_color
+        
+        # Tempoary bug fix: default Point color should be black not white
+        if list(face_color.to_rgba()[:3]) == [1,1,1]:
+            face_color = RGBColor(components=(0,0,0,face_color.to_rgba()[3]))
+        pen = create_pens(face_color=face_color, is_face_element=False)
+
+        asy = ''
+        for line in self.lines:
+            asy += 'path3 g=' + '--'.join(['(%s,%s,%s)' % coords.pos()[0] for coords in line]) + '--cycle;'
+            asy += 'dot(g, %s);' % (pen)
+        return asy
     
     def extent(self):
         result = []
@@ -394,6 +516,11 @@ class Point3DBox(PointBox):
                 p, d = c.pos()
                 result.append(p)
         return result
+
+    def _apply_boxscaling(self, boxscale):
+        for line in self.lines:
+             for coords in line:
+                 coords.scale(boxscale)
     
 class Line3DBox(LineBox):
     def init(self, *args, **kwargs):
@@ -414,8 +541,13 @@ class Line3DBox(LineBox):
         return data
 
     def to_asy(self):
-        # TODO
-        return ''
+        #l = self.style.get_line_width(face_element=False)
+        pen = create_pens(edge_color=self.edge_color, stroke_width=1)
+        asy = ''
+        for line in self.lines:
+            path = '--'.join(['(%s,%s,%s)' % coords.pos()[0] for coords in line])
+            asy += 'draw(%s, %s);' % (path, pen)
+        return asy
     
     def extent(self):
         result = []
@@ -424,6 +556,11 @@ class Line3DBox(LineBox):
                 p, d = c.pos()
                 result.append(p)
         return result
+
+    def _apply_boxscaling(self, boxscale):
+        for line in self.lines:
+             for coords in line:
+                 coords.scale(boxscale)
 
 class Polygon3DBox(PolygonBox):
     def init(self, *args, **kwargs):
@@ -453,8 +590,18 @@ class Polygon3DBox(PolygonBox):
         return data
     
     def to_asy(self):
-        # TODO
-        return ''
+        l = self.style.get_line_width(face_element=True)
+        if self.vertex_colors is None:
+            face_color = self.face_color
+        else:
+            face_color = None
+        pen = create_pens(edge_color=self.edge_color, face_color=face_color, stroke_width=l, is_face_element=True)
+
+        asy = ''
+        for line in self.lines:
+            asy += 'path3 g=' + '--'.join(['(%s,%s,%s)' % coords.pos()[0] for coords in line]) + '--cycle;'
+            asy += 'draw(surface(g), %s);' % (pen)
+        return asy
     
     def extent(self):
         result = []
@@ -463,6 +610,11 @@ class Polygon3DBox(PolygonBox):
                 p, d = c.pos()
                 result.append(p)
         return result
+
+    def _apply_boxscaling(self, boxscale):
+        for line in self.lines:
+             for coords in line:
+                 coords.scale(boxscale)
 
 GLOBALS3D = {
     'Polygon3DBox': Polygon3DBox,

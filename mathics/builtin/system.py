@@ -36,7 +36,7 @@ class Names(Builtin):
     >> Names["List"]
      = {List}
     >> Names["List*"]
-     = {List, ListQ, Listable}
+     = {List, ListLinePlot, ListPlot, ListQ, Listable}
     >> Names["List@"]
      = {Listable}
      

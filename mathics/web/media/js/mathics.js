@@ -55,6 +55,10 @@ function refreshInputSizes() {
 	$$('textarea.request').each(function(textarea) {
 		refreshInputSize(textarea);
 	});
+	
+	$$('#queries ul').each(function(ul) {
+		afterProcessResult(ul, 'Rerender');		
+	});
 }
 
 function inputChange(event) {
@@ -92,7 +96,7 @@ function getDimensions(math, callback) {
 	var container = all.select('.calc_container')[0];
 	container.appendChild(translateDOMElement(math));
 	
-	MathJax.Hub.Queue(["Typeset",MathJax.Hub,container]);
+	MathJax.Hub.Queue(["Typeset", MathJax.Hub, container]);
 	MathJax.Hub.Queue(function() {
 		var pos = container.cumulativeOffset();
 		var next = all.select('.calc_next')[0].cumulativeOffset();
@@ -305,6 +309,49 @@ function createLine(value) {
 	}
 }
 
+function afterProcessResult(ul, command) {
+	// command is either 'Typeset' (default) or 'Rerender'
+	if (!command)
+		command = 'Typeset';
+	MathJax.Hub.Queue([command, MathJax.Hub, ul]);
+	MathJax.Hub.Queue(function() {
+		// inject SVG and other non-MathML objects into corresponding <mspace>s
+		ul.select('.mspace').each(function(mspace) {
+			var id = mspace.getAttribute('id').substr(objectsPrefix.length);
+			var object = objects[id];
+			mspace.appendChild(object);
+		});
+	});
+	if (!MathJax.Hub.Browser.isOpera) {
+		// Opera 11.01 Build 1190 on Mac OS X 10.5.8 crashes on this call for Plot[x,{x,0,1}]
+		// => leave inner MathML untouched
+		MathJax.Hub.Queue(['Typeset', MathJax.Hub, ul]);
+	}
+	MathJax.Hub.Queue(function() {
+		ul.select('foreignObject >span >nobr >span.math').each(function(math) {
+			var content = math.childNodes[0].childNodes[0].childNodes[0];
+			math.removeChild(math.childNodes[0]);
+			math.insertBefore(content, math.childNodes[0]);
+
+			if (command == 'Typeset') {
+				// recalculate positions of insets based on ox/oy properties
+				var foreignObject = math.parentNode.parentNode.parentNode;
+				var dimensions = math.getDimensions();
+				var w = dimensions.width + 4;
+				var h = dimensions.height + 4;
+				var x = parseFloat(foreignObject.getAttribute('x').substr());
+				var y = parseFloat(foreignObject.getAttribute('y'));
+				var ox = parseFloat(foreignObject.getAttribute('ox'));
+				var oy = parseFloat(foreignObject.getAttribute('oy'));
+				x = x - w/2.0 - ox*w/2.0;
+				y = y - h/2.0 + oy*h/2.0;
+				foreignObject.setAttribute('x', x + 'px');
+				foreignObject.setAttribute('y', y + 'px');
+			}
+		});
+	});
+}
+
 function setResult(ul, results) {
 	results.each(function(result) {
 		var resultUl = $E('ul', {'class': 'out'});
@@ -321,41 +368,7 @@ function setResult(ul, results) {
 		}
 		ul.appendChild($E('li', {'class': 'out'}, resultUl));
 	});
-	MathJax.Hub.Queue(["Typeset", MathJax.Hub, ul]);
-	MathJax.Hub.Queue(function() {
-		// inject SVG and other non-MathML objects into corresponding <mspace>s
-		ul.select('.mspace').each(function(mspace) {
-			var id = mspace.getAttribute('id').substr(objectsPrefix.length);
-			var object = objects[id];
-			mspace.appendChild(object);
-			objects[id] = null;
-		});
-	});
-	if (!MathJax.Hub.Browser.isOpera) {
-		// Opera 11.01 Build 1190 on Mac OS X 10.5.8 crashes on this call for Plot[x,{x,0,1}]
-		// => leave inner MathML untouched
-		MathJax.Hub.Queue(["Typeset", MathJax.Hub, ul]);
-	}
-	MathJax.Hub.Queue(function() {
-		ul.select('foreignObject >span >nobr >span.math').each(function(math) {
-			var content = math.childNodes[0].childNodes[0].childNodes[0];
-			math.removeChild(math.childNodes[0]);
-			math.insertBefore(content, math.childNodes[0]);
-
-			var foreignObject = math.parentNode.parentNode.parentNode;
-			var dimensions = math.getDimensions();
-			var w = dimensions.width + 4;
-			var h = dimensions.height + 4;
-			var x = parseFloat(foreignObject.getAttribute('x').substr());
-			var y = parseFloat(foreignObject.getAttribute('y'));
-			var ox = parseFloat(foreignObject.getAttribute('ox'));
-			var oy = parseFloat(foreignObject.getAttribute('oy'));
-			x = x - w/2.0 - ox*w/2.0;
-			y = y - h/2.0 + oy*h/2.0;
-			foreignObject.setAttribute('x', x + 'px');
-			foreignObject.setAttribute('y', y + 'px');
-		});
-	});
+	afterProcessResult(ul);
 }
 
 function submitQuery(textarea, onfinish) {
@@ -643,10 +656,10 @@ function globalKeyUp(event) {
 
 function domLoaded() {
 	MathJax.Hub.Config({
-		//delayJaxRegistration: true,
 		"HTML-CSS": {
 			imageFont: null,
-	  	showMathMenu: false
+	  	showMathMenu: false,
+	  	linebreaks: { automatic: true }
 	  },
 	  MMLorHTML: {
 	    //
@@ -657,7 +670,6 @@ function domLoaded() {
 	      MSIE:    "HTML",
 	      Firefox: "HTML",
 	      Opera:   "HTML",
-	      //Safari:  "HTML",
 	      other:   "HTML"
 	    }
 	  }

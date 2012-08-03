@@ -2,11 +2,11 @@
  *
  *  MathJax/jax/output/HTML-CSS/autoload/menclose.js
  *  
- *  Implements the HTML-CSS output for <mencode> elements.
+ *  Implements the HTML-CSS output for <menclose> elements.
  *
  *  ---------------------------------------------------------------------
  *  
- *  Copyright (c) 2010-2011 Design Science, Inc.
+ *  Copyright (c) 2010-2012 Design Science, Inc.
  * 
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
  */
 
 MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
-  var VERSION = "1.1";
+  var VERSION = "2.0";
   var MML = MathJax.ElementJax.mml,
       HTMLCSS = MathJax.OutputJax["HTML-CSS"];
   
@@ -36,8 +36,9 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
       if (values.color && !this.mathcolor) {values.mathcolor = values.color}
       if (values.thickness == null) {values.thickness = ".075em"}
       if (values.padding == null)   {values.padding   = ".2em"}
-      var p = HTMLCSS.length2em(values.padding);
-      var t = HTMLCSS.length2em(values.thickness);
+      var mu = this.HTMLgetMu(span), scale = this.HTMLgetScale();
+      var p = HTMLCSS.length2em(values.padding,mu,1/HTMLCSS.em) * scale;
+      var t = HTMLCSS.length2em(values.thickness,mu,1/HTMLCSS.em) * scale;
       var SOLID = HTMLCSS.Em(t)+" solid";
 
       span = this.HTMLcreateSpan(span);
@@ -50,6 +51,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
       HTMLCSS.addBox(stack,frame); stack.insertBefore(frame,base); // move base to above background
       var notation = values.notation.split(/ /);
       var T = 0, B = 0, R = 0, L = 0, dx = 0, dy = 0; var svg, vml;
+      var w, h, r;
       if (!values.mathcolor) {values.mathcolor = "black"} else {span.style.color = values.mathcolor}
       
       for (var i = 0, m = notation.length; i < m; i++) {
@@ -61,10 +63,15 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
           case MML.NOTATION.ROUNDEDBOX:
             if (HTMLCSS.useVML) {
               if (!vml) {vml = this.HTMLvml(stack,H,D,W,t,values.mathcolor)}
-              this.HTMLvmlElement(vml,"roundrect",{
+              // roundrect.arcsize can't be set in IE8 standards mode, so use a path
+              r = Math.floor(1000*Math.min(W,H+D)-2*t);
+              w = Math.floor(4000*(W-2*t)), h = Math.floor(4000*(H+D-2*t));
+              this.HTMLvmlElement(vml,"shape",{
                 style: {width:this.HTMLpx(W-2*t),height:this.HTMLpx(H+D-2*t),
-                        left:this.HTMLpx(t)+.5,top:this.HTMLpx(t)+.5},
-                arcsize: ".25"
+                        left:this.HTMLpx(t,.5),top:this.HTMLpx(t,.5)},
+                path: "m "+r+",0 qx 0,"+r+" l 0,"+(h-r)+" qy "+r+","+h+" "+
+                      "l "+(w-r)+","+h+" qx "+w+","+(h-r)+" l "+w+","+r+" qy "+(w-r)+",0 x e",
+                coordsize: w+","+h
               });
             } else {
               if (!svg) {svg = this.HTMLsvg(stack,H,D,W,t,values.mathcolor)}
@@ -80,7 +87,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
               if (!vml) {vml = this.HTMLvml(stack,H,D,W,t,values.mathcolor)}
               this.HTMLvmlElement(vml,"oval",{
                 style: {width:this.HTMLpx(W-2*t),height:this.HTMLpx(H+D-2*t),
-                        left:this.HTMLpx(t)+.5,top:this.HTMLpx(t)+.5}
+                        left:this.HTMLpx(t,.5),top:this.HTMLpx(t,.5)}
               });
             } else {
               if (!svg) {svg = this.HTMLsvg(stack,H,D,W,t,values.mathcolor)}
@@ -122,12 +129,33 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
           case MML.NOTATION.UPDIAGONALSTRIKE:
             if (HTMLCSS.useVML) {
               if (!vml) {vml = this.HTMLvml(stack,H,D,W,t,values.mathcolor)}
-              this.HTMLvmlElement(vml,"line",{from: "0,"+this.HTMLpx(H+D-t), to: this.HTMLpx(W)+",0"});
+              var line = this.HTMLvmlElement(vml,"line",{from: "0,"+this.HTMLpx(H+D-t), to: this.HTMLpx(W)+",0"});
+              if (this.arrow) {
+                this.HTMLvmlElement(line,"stroke",{endarrow:"classic"});
+                line.to = this.HTMLpx(W)+","+this.HTMLpx(t);
+              }
             } else {
               if (!svg) {svg = this.HTMLsvg(stack,H,D,W,t,values.mathcolor)}
-              this.HTMLsvgElement(svg.firstChild,"line",{
-                x1:1, y1:this.HTMLpx(H+D-t), x2:this.HTMLpx(W-t), y2:this.HTMLpx(t)
-              });
+              if (this.arrow) {
+                var l = Math.sqrt(W*W + (H+D)*(H+D)), f = 1/l * 10*scale/HTMLCSS.em * t/.075;
+                w = W * f; h = (H+D) * f; var x = W - t/2, y = t/2;
+                if (y+h-.4*w < 0) {y = .4*w-h}
+                this.HTMLsvgElement(svg.firstChild,"line",{
+                  x1:1, y1:this.HTMLpx(H+D-t), x2:this.HTMLpx(x-.7*w), y2:this.HTMLpx(y+.7*h)
+                });
+                this.HTMLsvgElement(svg.firstChild,"polygon",{
+                  points: this.HTMLpx(x)+","+this.HTMLpx(y)+" "
+                         +this.HTMLpx(x-w-.4*h)+","+this.HTMLpx(y+h-.4*w)+" "
+                         +this.HTMLpx(x-.7*w)+","+this.HTMLpx(y+.7*h)+" "
+                         +this.HTMLpx(x-w+.4*h)+","+this.HTMLpx(y+h+.4*w)+" "
+                         +this.HTMLpx(x)+","+this.HTMLpx(y),
+                   fill:values.mathcolor, stroke:"none"
+                });
+              } else {
+                this.HTMLsvgElement(svg.firstChild,"line",{
+                  x1:1, y1:this.HTMLpx(H+D-t), x2:this.HTMLpx(W-t), y2:this.HTMLpx(t)
+                });
+              }
             }
             break;
 
@@ -151,9 +179,11 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
           case MML.NOTATION.RADICAL:
             if (HTMLCSS.useVML) {
               if (!vml) {vml = this.HTMLvml(stack,H,D,W,t,values.mathcolor)}
-              this.HTMLvmlElement(vml,"polyline",{
-                points: this.HTMLpx(t/2)+","+this.HTMLpx(.6*(H+D))+" "+this.HTMLpx(p)+","+this.HTMLpx(H+D-t)+
-                  " "+this.HTMLpx(2*p)+","+this.HTMLpx(t/2)+" "+this.HTMLpx(W)+","+this.HTMLpx(t/2)
+              this.HTMLvmlElement(vml,"shape",{
+                style: {width:this.HTMLpx(W), height:this.HTMLpx(H+D)},
+                path: "m "+this.HTMLpt(t/2,.6*(H+D))+" l "+this.HTMLpt(p,H+D-t)+" "+
+                           this.HTMLpt(2*p,t/2)+" "+this.HTMLpt(W,t/2)+" e",
+                coordsize: this.HTMLpt(W,H+D)
               });
               dx = p;
             } else {
@@ -199,13 +229,17 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
     },
     
     HTMLpx: function (n) {return (n*HTMLCSS.em)},
+    HTMLpt: function (x,y) {return Math.floor(1000*x)+','+Math.floor(1000*y)},
     
     HTMLhandleColor: function (span) {
       var frame = document.getElementById("MathJax-frame-"+this.spanID);
       if (frame) {
         // mathcolor is handled in toHTML above
         var values = this.getValues("mathbackground","background");
-        if (this.style && span.style.backgroundColor) {values.mathbackground = span.style.backgroundColor}
+        if (this.style && span.style.backgroundColor) {
+          values.mathbackground = span.style.backgroundColor;
+          span.style.backgroundColor = "";
+        }
         if (values.background && !this.mathbackground) {values.mathbackground = values.background}
         if (values.mathbackground && values.mathbackground !== MML.COLOR.TRANSPARENT)
           {frame.style.backgroundColor = values.mathbackground}
@@ -221,7 +255,7 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
       return svg;
     },
     HTMLsvgElement: function (svg,type,def) {
-      var obj = document.createElementNS(SVGNS,type);
+      var obj = document.createElementNS(SVGNS,type); obj.isMathJax = true;
       if (def) {for (var id in def) {if (def.hasOwnProperty(id)) {obj.setAttributeNS(null,id,def[id].toString())}}}
       svg.appendChild(obj);
       return obj;
@@ -233,20 +267,27 @@ MathJax.Hub.Register.StartupHook("HTML-CSS Jax Ready",function () {
       return vml;
     },
     HTMLvmlElement: function (vml,type,def) {
-      var obj = HTMLCSS.addElement(vml,vmlns+":"+type,def);
+      var obj = HTMLCSS.addElement(vml,vmlns+":"+type,{isMathJax:true});
+      obj.style.position = "absolute"; obj.style.left = obj.style.top = 0;
+      MathJax.Hub.Insert(obj,def); // IE8 needs to do this after obj is added to the page
       if (!def.fillcolor) {obj.fillcolor = "none"}
       if (!def.strokecolor) {obj.strokecolor = this.constructor.VMLcolor}
       if (!def.strokeweight) {obj.strokeweight =this.constructor.VMLthickness}
+      return obj;
     }
   });
   
   MathJax.Hub.Browser.Select({
     MSIE: function (browser) {
+      MML.menclose.Augment({HTMLpx: function (n,d) {return (n*HTMLCSS.em+(d||0))+"px"}});
       HTMLCSS.useVML = true;
       if (!document.namespaces[vmlns]) {
-        document.namespaces.add(vmlns,VMLNS);
-        var sheet = document.createStyleSheet();
-        sheet.addRule(vmlns+"\\:*","{behavior: url(#default#VML); position:absolute; top:0; left:0}");
+        if (document.documentMode && document.documentMode >= 8) {
+          document.namespaces.add(vmlns,VMLNS,"#default#VML");
+        } else {
+          document.namespaces.add(vmlns,VMLNS);
+          document.createStyleSheet().addRule(vmlns+"\\: *","{behavior: url(#default#VML)}");
+        }
       }
     }
   });
