@@ -46,7 +46,8 @@ for module in modules:
     for name in vars:
         var = getattr(module, name)
         if hasattr(var, '__module__') and var.__module__.startswith('mathics.builtin.') and \
-            var.__module__ != 'mathics.builtin.base' and is_builtin(var) and not name.startswith('_'):
+            var.__module__ != 'mathics.builtin.base' and is_builtin(var) and not name.startswith('_') and \
+            var.__module__ == module.__name__:
             instance = var(expression=False)
             if isinstance(instance, Builtin):
                 builtins.append((instance.get_name(), instance))
