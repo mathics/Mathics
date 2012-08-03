@@ -1297,11 +1297,15 @@ class If(Builtin):
 The class starts with a Python <em>docstring</em> that specifies the documentation and tests for the symbol. A list (or tuple) 'attributes' can be used to assign attributes to the symbol. 'Protected' is assigned by default. A dictionary 'rules' can be used to add custom rules that should be applied.
 
 Python functions starting with 'apply' are converted to built-in rules. Their docstring is compiled to the corresponding \Mathics pattern. Pattern variables used in the pattern are passed to the Python function by their same name, plus an additional 'evaluation' object. This object is needed to evaluate further expressions, print messages in the Python code, etc. Unsurprisingly, the return value of the Python function is the expression which is replaced for the matched pattern. If the function does not return any value, the \Mathics expression is left unchanged. Note that you have to return 'Symbol["Null"]' explicitely if you want that.
-</section>
 
-</chapter>
 
 ## Internal tests
 
+## This error message could still be improved.
 #> expand{%]
- = Parse error at or near token -1.
+ : Parse error at or near token -1.
+
+
+</section>
+
+</chapter>
