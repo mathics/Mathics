@@ -310,7 +310,11 @@ class Graphics3DBox(GraphicsBox):
 
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
 
-        #TODO: Find the longest axes by projecting onto 'screen
+        #TODO: Intelligently place the axes on the longest non-middle edge. See
+        #the algorithm used by the web graphics in mathics/web/media/graphics.js
+        #for details of this. (Projection to sceen etc).
+
+        # Choose axes placement (boundbox edge vertices)
         axes_indices = []
         if axes[0]:
             axes_indices.append(0)
@@ -329,6 +333,10 @@ class Graphics3DBox(GraphicsBox):
                 pen = create_pens(edge_color=RGBColor(components=(0.4,0.4,0.4,1)), stroke_width=1)
             path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
             boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
+
+        #TODO: Intelligently draw the axis ticks such that they are always
+        #directed inward and choose the coordinate direction which makes the
+        #ticks the longest. Again, details in mathics/web/media/graphics.js
 
         # Draw axes ticks
         ticklength = 0.05 * max([xmax-xmin, ymax-ymin, zmax-zmin])
