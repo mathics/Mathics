@@ -19,7 +19,7 @@ class CoordinatesError(BoxConstructError):
 class ColorError(BoxConstructError):
     pass
     
-element_heads = ('Rectangle', 'Disk', 'Line', 'Point', 'Circle', 'Polygon', 'Inset', 'Text')
+element_heads = ('Rectangle', 'Disk', 'Line', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere')
 color_heads = ('RGBColor', 'CMYKColor', 'Hue', 'GrayLevel')
 thickness_heads = ('Thickness', 'AbsoluteThickness', 'Thick', 'Thin')
 

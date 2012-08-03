@@ -6,9 +6,9 @@ Graphics (3D)
         
 import numbers
 from mathics.core.expression import NumberError, from_python, Real
-from mathics.builtin.base import BoxConstruct, BoxConstructError
+from mathics.builtin.base import BoxConstruct, BoxConstructError, Builtin, InstancableBuiltin
 from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox, create_pens,
-    LineBox, PointBox, Style, RGBColor, color_heads, get_class, asy_number)
+    LineBox, PointBox, Style, RGBColor, color_heads, get_class, asy_number, _GraphicsElement)
 
 from django.utils import simplejson as json
 
@@ -616,8 +616,62 @@ class Polygon3DBox(PolygonBox):
              for coords in line:
                  coords.scale(boxscale)
 
+class Sphere(Builtin):
+    rules = {
+        'Sphere[]': 'Sphere[{0, 0, 0}, 1]',
+        'Sphere[positions_]': 'Sphere[positions, 1]'
+    }
+
+class _Graphics3DElement(InstancableBuiltin):
+    def init(self, graphics, item=None, style=None):
+        if item is not None and not item.has_form(self.get_name(), None):
+            raise BoxConstructError
+        self.graphics = graphics
+        self.style = style
+        self.is_completely_visible = False # True for axis elements
+
+class Sphere3DBox(_Graphics3DElement):
+    def init(self, graphics, style, item):
+        super(Sphere3DBox, self).init(graphics, item, style)
+        if len(item.leaves) != 2:
+            raise BoxConstructError
+
+        points = item.leaves[0].to_python()
+        if not all(isinstance(point, list) for point in points):
+            points = [points]
+        print points
+        if not all(len(point) == 3 and all(isinstance(p, numbers.Real) for p in point) for point in points):
+            raise BoxConstructError
+
+        self.points = [Coords3D(graphics, pos=point) for point in points]
+        self.radius = item.leaves[1].to_python()
+
+    def to_asy(self):
+        #TODO
+        return {}
+
+    def to_json(self):
+        return [{
+            'type': 'sphere', 
+            'coords': [coords.pos() for coords in self.points],
+            'radius': self.radius,
+            'faceColor': (1, 1, 1, 1), 
+        }]
+        return data
+
+    def extent(self):
+        result = []
+        result.extend([coords.add(self.radius, self.radius, self.radius).pos()[0] for coords in self.points])
+        result.extend([coords.add(-self.radius, -self.radius, -self.radius).pos()[0] for coords in self.points])
+        return result
+
+    def _apply_boxscaling(self, boxscale):
+        #TODO
+        pass
+
 GLOBALS3D = {
     'Polygon3DBox': Polygon3DBox,
     'Line3DBox': Line3DBox,
     'Point3DBox': Point3DBox,
+    'Sphere3DBox': Sphere3DBox,
 }
