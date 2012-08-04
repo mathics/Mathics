@@ -12,7 +12,7 @@ try:
     from Cython.Distutils import build_ext
     EXTENSIONS = {
         'core': ['expression', 'numbers', 'rules', 'pattern'],
-        'builtin': ['arithmetic', 'numeric', 'patterns']#, 'graphics']
+        'builtin': ['arithmetic', 'numeric', 'patterns', 'graphics']
     }
     EXTENSIONS = [Extension('mathics.%s.%s' % (parent, module),
         ['mathics/%s/%s.py' % (parent, module)]) for parent, modules in EXTENSIONS.iteritems() for module in modules]
@@ -66,11 +66,11 @@ setup(
 
     # metadata for upload to PyPI
     author = "Jan Poeschko",
-    author_email = "jan@mathics.net",
+    author_email = "jan@poeschko.com",
     description = "A general-purpose computer algebra system.",
     license = "GPL",
     keywords = "computer algebra system mathics mathematica sage sympy",
-    url = "http://www.mathics.net/",   # project home page, if any
+    url = "http://www.mathics.org/",   # project home page, if any
 
     # TODO: could also include long_description, download_url, classifiers, etc.
 )
