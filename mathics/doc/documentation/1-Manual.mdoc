@@ -884,12 +884,13 @@ Three-dimensional graphics are created using the function 'Graphics3D' and a lis
   <dd>draws a line.
 <dt>'Point[{$x1$, $y1$, $z1$}]'
   <dd>draws a point.
+</dl>
 
->> Graphics3D[Polygon[{{0,0,0},{0,1,1},{1,0,0}}]]
+>> Graphics3D[Polygon[{{0,0,0}, {0,1,1}, {1,0,0}}]]
  = -Graphics3D-
 
 Colors can also be added to three-dimensional primitives.
->> Graphics3D[{Orange, Polygon[{{0,0,0},{1,1,1},{1,0,0}}]}, Axes->True]
+>> Graphics3D[{Orange, Polygon[{{0,0,0}, {1,1,1}, {1,0,0}}]}, Axes->True]
  = -Graphics3D-
 
 'Graphics3D' produces a 'Graphics3DBox':
@@ -912,6 +913,10 @@ You can use a custom coloring function:
 >> DensityPlot[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}, ColorFunction -> (Blend[{Red, Green, Blue}, #]&)]
  = -Graphics-
 One problem with 'DensityPlot' is that it\'s still very slow, basically due to function evaluation being pretty slow in general---and 'DensityPlot' has to evaluate a lot of functions.
+
+Three-dimensional plots are supported as well:
+>> Plot3D[x y / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}]
+ = -Graphics3D-
 </section>
 
 

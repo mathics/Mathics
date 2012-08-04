@@ -1158,7 +1158,6 @@ class GraphicsBox(BoxConstruct):
     def boxes_to_tex(self, leaves, **options):
         elements, calc_dimensions = self._prepare_elements(leaves, options, max_width=450)
         
-        #asy = elements.to_asy()
         asy_completely_visible = '\n'.join(element.to_asy()
             for element in elements.elements if element.is_completely_visible)
         asy_regular = '\n'.join(element.to_asy()

@@ -54,11 +54,13 @@ class Graphics3D(Graphics):
     <dt>'Graphics3D[$primitives$, $options$]'
         <dd>represents a three-dimensional graphic.
     </dl>
+    
+    >> Graphics3D[Polygon[{{0,0,0}, {0,1,1}, {1,0,0}}]]
+     = -Graphics3D-
     """
     
     options = Graphics.options.copy()
     options.update({
-        #'Axes': 'True',
         'BoxRatios': 'Automatic',
         'Lighting': 'Automatic',
         'ViewPoint': '{1.3,-2.4,2}',

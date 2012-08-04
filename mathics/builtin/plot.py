@@ -812,7 +812,7 @@ class ListPlot(_ListPlot):
         <dd>plots a several lists of points.
     </dl>
 
-    >> ListLinePlot[Table[{n,n^0.5}, {n,10}]]
+    >> ListPlot[Table[n^2, {n,10}]]
      = -Graphics-
     """
 
@@ -842,7 +842,7 @@ class ListLinePlot(_ListPlot):
         <dd>plots several lines.
     </dl>
 
-    >> ListPlot[Table[n^2, {n,10}]]
+    >> ListLinePlot[Table[{n,n^0.5}, {n,10}]]
      = -Graphics-
     """
     from graphics import Graphics
