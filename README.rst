@@ -3,8 +3,8 @@ Welcome to Mathics!
 
 Mathics is a general-purpose computer algebra system (CAS). It is meant to be a free, light-weight alternative to Mathematica.
 
-The homepage of Mathics is at <http://www.mathics.org>, where you can find installation instructions.
-There is also a server to use Mathics online at <http://www.mathics.net>.
+The homepage of Mathics is at http://www.mathics.org, where you can find installation instructions.
+There is also a server to use Mathics online at http://www.mathics.net.
 
 Contributing
 ------------
