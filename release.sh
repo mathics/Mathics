@@ -22,7 +22,7 @@ cp -r build/lib*/mathics build/release/
 rm build/release/*/*/*.so
 cp setup.py initialize.py distribute_setup.py build/release/
 cp install_sage_scripts.py build/release/
-cp AUTHORS.txt CHANGES.rst COPYING.txt README.rdoc build/release/
+cp AUTHORS.txt CHANGES.rst COPYING.txt README.rst build/release/
 cp mathics/doc/tex/mathics.pdf build/release/
 
 zipfilename="mathics-$version.zip"
