@@ -1159,7 +1159,7 @@ You can then create the PDF using \LaTeX. All required steps can be executed by
 <console>
 $ make latex
 </console>
-in the <con>doc/tex</con> directory. You just have to adjust the <con>Makefile</con> to your environment.
+in the <con>doc/tex</con> directory, which uses <con>latexmk</con> to build the \LaTeX document. You just have to adjust the <con>Makefile</con> and <con>latexmkrc</con> to your environment. You need the Asymptote (version 2 at least) to generate the graphics in the documentation.
 
 You can also run the tests for individual built-in symbols using
 <console>

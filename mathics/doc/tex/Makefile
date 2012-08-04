@@ -1,15 +1,14 @@
 TEX = /usr/texbin/pdflatex
-ASY = asy
-MAKEINDEX = /usr/texbin/makeindex
+LATEXMK = latexmk
 
 mathics.pdf: mathics.tex documentation.tex
-	python prepare_latex.py
-	$(TEX) mathics.tex
-	$(ASY) mathics.asy
-	$(TEX) mathics.tex
-	$(TEX) mathics.tex
-	$(MAKEINDEX) mathics.tex
-	$(TEX) mathics.tex
-	$(TEX) mathics.tex
+	$(LATEXMK) -pdf -pdflatex=$(TEX) mathics
 	
 latex: mathics.pdf
+
+clear:
+	rm -f mathics.asy mathics.aux mathics.idx mathics.log mathics.mtc mathics.mtc* mathics.out mathics.toc
+	rm -f mathics.fdb_latexmk mathics.ilg mathics.ind mathics.maf mathics.pre
+	rm -f mathics_*.*
+	rm -f mathics-*.*
+	rm –f mathics.pdf
