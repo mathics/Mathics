@@ -1158,7 +1158,11 @@ class GraphicsBox(BoxConstruct):
     def boxes_to_tex(self, leaves, **options):
         elements, calc_dimensions = self._prepare_elements(leaves, options, max_width=450)
         
-        asy = elements.to_asy()
+        #asy = elements.to_asy()
+        asy_completely_visible = '\n'.join(element.to_asy()
+            for element in elements.elements if element.is_completely_visible)
+        asy_regular = '\n'.join(element.to_asy()
+            for element in elements.elements if not element.is_completely_visible)
         
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
         
@@ -1166,8 +1170,13 @@ class GraphicsBox(BoxConstruct):
 \begin{asy}
 size(%scm, %scm);
 %s
+clip(box((%s,%s),(%s,%s)));
+%s
 \end{asy}
-""" % (asy_number(width/60), asy_number(height/60), asy)
+""" % (asy_number(width/60), asy_number(height/60),
+    asy_regular,
+    asy_number(xmin), asy_number(ymin), asy_number(xmax), asy_number(ymax),
+    asy_completely_visible)
         
         return tex
     
