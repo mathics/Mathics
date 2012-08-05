@@ -7,3 +7,7 @@ restart:
 release:
 	make put
 	make restart
+	
+clearso:
+	rm -f builtin/*.so
+	rm -f core/*.so
