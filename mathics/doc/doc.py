@@ -242,7 +242,12 @@ def escape_latex(text):
 def post_process_latex(result):
     " Some post-processing hacks of generated LaTeX code to handle linebreaks "
     
-    WORD_SPLIT_RE = re.compile(r'([\s])')
+    WORD_SPLIT_RE = re.compile(r'(\s+|\\newline\s*)')
+    
+    def wrap_word(word):
+        if word.strip() == r'\newline':
+            return word
+        return r'\text{%s}' % word
     
     def repl_text(match):
         text = match.group(1)
@@ -251,7 +256,12 @@ def post_process_latex(result):
         words = WORD_SPLIT_RE.split(text)
         assert len(words) >= 1
         if len(words) > 1:
-            text = '\\allowbreak{}'.join(r'\text{%s}' % word for word in words)
+            text = ""
+            index = 0
+            while index < len(words) - 1:
+                text += '%s%s\\allowbreak{}' % (wrap_word(words[index]), wrap_word(words[index+1]))
+                index += 2
+            text += wrap_word(words[-1])
         else:
             text = r'\text{%s}' % words[0]
         if not text:
