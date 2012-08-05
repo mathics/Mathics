@@ -4,7 +4,7 @@ CHANGES
 0.5
 ---
 
-- 3D graphics and plots
+- 3D graphics and plots using WebGL in the browser and Asymptote in TeX output
 - Plot: adaptive sampling
 - MathJax 2.0 and line breaking
 - new symbols: Graphics3D etc., Plot3D, ListPlot, ListLinePlot, ParametricPlot, Names, $Version

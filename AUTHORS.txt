@@ -16,3 +16,4 @@ Thanks to the authors of all projects that are used in Mathics:
 - scripaculous
 - SPARK
 - SymPy
+- Three.js
