@@ -1583,7 +1583,9 @@ def encode_tex(text, in_text=False):
         #return TEX_REPLACE[c]
         return repl.get(c, c)
     
-    return TEX_REPLACE_RE.sub(replace, text)
+    text = TEX_REPLACE_RE.sub(replace, text)
+    text = text.replace('\n', '\\newline\n')
+    return text
 
 extra_operators = set((',', '(', ')', '[', ']', '{', '}', u'\u301a', u'\u301b', u'\u00d7', u'\u2032',
     u'\u2032\u2032', ' ', u'\u2062', u'\u222b', u'\u2146'))

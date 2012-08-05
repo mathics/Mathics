@@ -242,15 +242,16 @@ def escape_latex(text):
 def post_process_latex(result):
     " Some post-processing hacks of generated LaTeX code to handle linebreaks "
     
+    WORD_SPLIT_RE = re.compile(r'([\s])')
+    
     def repl_text(match):
         text = match.group(1)
         if not text:
             return r'\text{}'
-        words = text.split(' ')
+        words = WORD_SPLIT_RE.split(text)
         assert len(words) >= 1
         if len(words) > 1:
-            text = ''.join(r'\text{%s%s}\allowbreak{}' % (word, (' ' if index < len(words) - 1 else ''))
-                for index, word in enumerate(words))
+            text = '\\allowbreak{}'.join(r'\text{%s}' % word for word in words)
         else:
             text = r'\text{%s}' % words[0]
         if not text:
