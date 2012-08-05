@@ -686,12 +686,44 @@ class Polygon3DBox(PolygonBox):
                  coords.scale(boxscale)
 
 class Sphere(Builtin):
+    """
+    <dl>
+    <dt>'Sphere[{$x$, $y$, $z$}]'
+        <dd>is a sphere of radius $1$ centerd at the point {$x$, $y$, $z$}.
+    <dt>'Sphere[{$x$, $y$, $z$}, $r$]'
+        <dd>is a sphere of radius $r$ centered at the point $x$, $y$, $z$.
+    <dt>'Sphere[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}, ... }, $r$]'
+        <dd>is a collection spheres of radius $r$ centered at the points {$x1$, $y2$, $z2$}, {$x2$, $y2$, $z2$}, ...
+    </dl>
+
+    >> Graphics3D[Sphere[{0, 0, 0}, 1]]
+     = -Graphics3D-
+
+    >> Graphics3D[{Yellow, Sphere[{{-1, 0, 0}, {1, 0, 0}, {0, 0, Sqrt[3.]}}, 1]}]
+     = -Graphics3D-
+    """
+
     rules = {
         'Sphere[]': 'Sphere[{0, 0, 0}, 1]',
         'Sphere[positions_]': 'Sphere[positions, 1]'
     }
 
 class Cuboid(Builtin):
+    """
+    <dl>
+    <dt>'Cuboid[{$xmin$, $ymin$, $zmin$}]'
+        <dd>is a unit cube.
+    <dt>'Cuboid[{$xmin$, $ymin$, $zmin$}, {$xmax$, $ymax$, $zmax$}]'
+        <dd>represents a cuboid extending from {$xmin$, $ymin$, $zmin$} to {$xmax$, $ymax$, $zmax$}.
+    </dl>
+
+    >> Graphics3D[Cuboid[{0, 0, 1}]]
+     = -Graphics3D-
+
+    >> Graphics3D[{Red, Cuboid[{0, 0, 0}, {1, 1, 0.5}], Blue, Cuboid[{0.25, 0.25, 0.5}, {0.75, 0.75, 1}]}]
+     = -Graphics3D-
+    """
+    
     rules = {
         'Cuboid[]': 'Cuboid[{0,0,0}]',
     }
