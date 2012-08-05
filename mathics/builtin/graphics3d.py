@@ -49,7 +49,7 @@ class Style3D(Style):
         return RGBColor(components=(1,1,1,1))
 
 class Graphics3D(Graphics):
-    """
+    r"""
     <dl>
     <dt>'Graphics3D[$primitives$, $options$]'
         <dd>represents a three-dimensional graphic.
@@ -57,6 +57,30 @@ class Graphics3D(Graphics):
     
     >> Graphics3D[Polygon[{{0,0,0}, {0,1,1}, {1,0,0}}]]
      = -Graphics3D-
+     
+    In 'TeXForm', 'Graphics3D' creates Asymptote figures:
+    >> Graphics3D[Sphere[]] // TeXForm
+     = 
+     . \begin{asy}
+     . import three;
+     . import solids;
+     . size(6cm, 6cm);
+     . currentprojection=perspective(2.6,-4.8,4.0);
+     . currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
+     . draw(surface(sphere((0, 0, 0), 1)), rgb(1,1,1));
+     . draw(((-1.0,-1.0,-1.0)--(1.0,-1.0,-1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1.0,1.0,-1.0)--(1.0,1.0,-1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1.0,-1.0,1.0)--(1.0,-1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1.0,1.0,1.0)--(1.0,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1.0,-1.0,-1.0)--(-1.0,1.0,-1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((1.0,-1.0,-1.0)--(1.0,1.0,-1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1.0,-1.0,1.0)--(-1.0,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((1.0,-1.0,1.0)--(1.0,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1.0,-1.0,-1.0)--(-1.0,-1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((1.0,-1.0,-1.0)--(1.0,-1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1.0,1.0,-1.0)--(-1.0,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((1.0,1.0,-1.0)--(1.0,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . \end{asy}
     """
     
     options = Graphics.options.copy()
@@ -447,7 +471,7 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         elif axes.has_form('List', 3):
             axes = (axes.leaves[0].is_true(), axes.leaves[1].is_true(), axes.leaves[2].is_true())
         else:
-            axes = (False,False,False)
+            axes = (False, False, False)
         ticks_style = graphics_options.get('TicksStyle')
         axes_style = graphics_options.get('AxesStyle')
         label_style = graphics_options.get('LabelStyle')

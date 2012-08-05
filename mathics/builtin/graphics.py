@@ -123,7 +123,7 @@ def create_pens(edge_color=None, face_color=None, stroke_width=None, is_face_ele
     return ', '.join(result)
 
 class Graphics(Builtin):
-    """
+    r"""
     <dl>
     <dt>'Graphics[$primitives$, $options$]'
         <dd>represents a graphic.
@@ -139,6 +139,15 @@ class Graphics(Builtin):
     'Graphics' produces 'GraphicsBox' boxes:
     >> Graphics[Rectangle[]] // ToBoxes // Head
      = GraphicsBox
+     
+    In 'TeXForm', 'Graphics' produces Asymptote figures:
+    >> Graphics[Circle[]] // TeXForm
+     = 
+     . \begin{asy}
+     . size(5.85559796438cm, 5cm);
+     . draw(ellipse((175.0,175.0),175.0,175.0), rgb(0, 0, 0)+linewidth(0.666666666667));
+     . clip(box((-0.333333333333,0.333333333333),(350.333333333,349.666666667)));
+     . \end{asy}
     """
     
     options = {
@@ -1184,7 +1193,7 @@ class GraphicsBox(BoxConstruct):
 \begin{asy}
 size(%scm, %scm);
 %s
-clip(box((%s,%s),(%s,%s)));
+clip(box((%s,%s), (%s,%s)));
 %s
 \end{asy}
 """ % (asy_number(width/60), asy_number(height/60),
