@@ -359,6 +359,21 @@ class Offset(Builtin):
     pass
     
 class Rectangle(Builtin):
+    """
+    <dl>
+    <dt>'Rectangle[{$xmin$, $ymin$}]'
+        <dd>represents a unit square who's bottom-left corner is at {$xmin$, $ymin$}.
+    <dt>'Rectangle[{$xmin$, $ymin$}, {$xmax$, $ymax$}]
+        <dd>is a rectange extending from {$xmin$, $ymin$} to {$xmax$, $ymax$}.
+    </dl>
+
+    >> Graphics[Rectangle[]]
+     = -Graphics-
+
+    >> Graphics[{Blue, Rectangle[{0.5, 0}], Orange, Rectangle[{0, 0.5}]}]
+     = -Graphics-
+    """
+
     rules = {
         'Rectangle[]': 'Rectangle[{0, 0}]',
     }
