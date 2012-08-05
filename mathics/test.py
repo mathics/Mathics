@@ -118,17 +118,16 @@ def create_output(tests, output_xml, output_tex):
                 'results': [r.get_data() for r in result.results],
             }
             
-def test_symbol(symbol):
+def test_section(section):
     failed = 0
     index = 0
-    print 'Testing symbol %s' % symbol
+    print 'Testing section %s' % section
     for tests in documentation.get_tests():
-        if tests.section == symbol or tests.section == '$' + symbol:
+        if tests.section == section or tests.section == '$' + section:
             for test in tests.tests:
                 index += 1
                 if not test_case(test, tests, index):
                     failed += 1
-            break
         
     print ''
     if failed > 0:
@@ -198,8 +197,8 @@ def write_latex():
 def main():
     parser = OptionParser(version='%prog ' + settings.VERSION,
         description="Mathics test suite.")
-    parser.add_option("-s", "--symbol", dest="symbol", metavar="SYMBOL",
-        help="only test SYMBOL")
+    parser.add_option("-s", "--section", dest="section", metavar="SECTION",
+        help="only test SECTION")
     parser.add_option("-t", "--tex", dest="tex", action="store_true",
         help="generate TeX file")
     options, args = parser.parse_args()
@@ -207,8 +206,8 @@ def main():
     if options.tex:
         write_latex()
     else:
-        if options.symbol:
-            test_symbol(options.symbol)
+        if options.section:
+            test_section(options.section)
         else:
             test_all()
 
