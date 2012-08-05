@@ -5,7 +5,7 @@ Graphics (3D)
 """
         
 import numbers
-from mathics.core.expression import NumberError, from_python, Real
+from mathics.core.expression import Expression, NumberError, from_python, Real
 from mathics.builtin.base import BoxConstruct, BoxConstructError, Builtin, InstancableBuiltin
 from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox, create_pens, _Color,
     LineBox, PointBox, Style, RGBColor, color_heads, get_class, asy_number, _GraphicsElement)
@@ -690,6 +690,57 @@ class Sphere(Builtin):
         'Sphere[]': 'Sphere[{0, 0, 0}, 1]',
         'Sphere[positions_]': 'Sphere[positions, 1]'
     }
+
+class Cuboid(Builtin):
+    rules = {
+        'Cuboid[]': 'Cuboid[{0,0,0}]',
+    }
+
+    def apply_full(self, xmin, ymin, zmin, xmax, ymax, zmax, evaluation):
+        'Cuboid[{xmin_, ymin_, zmin_}, {xmax_, ymax_, zmax_}]'
+
+        try:
+            xmin, ymin, zmin = [value.to_number(n_evaluation=evaluation) for value in (xmin, ymin, zmin)]
+            xmax, ymax, zmax = [value.to_number(n_evaluation=evaluation) for value in (xmax, ymax, zmax)]
+        except NumberError, exc:
+            #TODO
+            return
+
+        if (xmax <= xmin) or (ymax <= ymin) or (zmax <= zmin):
+            #TODO
+            return
+
+        polygons = [
+            # X
+            Expression('List', Expression('List', xmin, ymin, zmin), Expression('List', xmin, ymax, zmin), Expression('List', xmin, ymax, zmax)),
+            Expression('List', Expression('List', xmin, ymin, zmin), Expression('List', xmin, ymin, zmax), Expression('List', xmin, ymax, zmax)),
+            Expression('List', Expression('List', xmax, ymin, zmin), Expression('List', xmax, ymax, zmin), Expression('List', xmax, ymax, zmax)),
+            Expression('List', Expression('List', xmax, ymin, zmin), Expression('List', xmax, ymin, zmax), Expression('List', xmax, ymax, zmax)),
+            # Y
+            Expression('List', Expression('List', xmin, ymin, zmin), Expression('List', xmax, ymin, zmin), Expression('List', xmax, ymin, zmax)),
+            Expression('List', Expression('List', xmin, ymin, zmin), Expression('List', xmin, ymin, zmax), Expression('List', xmax, ymin, zmax)),
+            Expression('List', Expression('List', xmin, ymax, zmin), Expression('List', xmax, ymax, zmin), Expression('List', xmax, ymax, zmax)),
+            Expression('List', Expression('List', xmin, ymax, zmin), Expression('List', xmin, ymax, zmax), Expression('List', xmax, ymax, zmax)),
+            # Z
+            Expression('List', Expression('List', xmin, ymin, zmin), Expression('List', xmin, ymax, zmin), Expression('List', xmax, ymax, zmin)),
+            Expression('List', Expression('List', xmin, ymin, zmin), Expression('List', xmax, ymin, zmin), Expression('List', xmax, ymax, zmin)),
+            Expression('List', Expression('List', xmin, ymin, zmax), Expression('List', xmin, ymax, zmax), Expression('List', xmax, ymax, zmax)),
+            Expression('List', Expression('List', xmin, ymin, zmax), Expression('List', xmax, ymin, zmax), Expression('List', xmax, ymax, zmax)),
+        ]
+
+        return Expression('Polygon', Expression('List', *polygons))
+
+    def apply_min(self, xmin, ymin, zmin, evaluation):
+        'Cuboid[{xmin_, ymin_, zmin_}]'
+        try:
+            xmin, ymin, zmin = [value.to_number(n_evaluation=evaluation) for value in (xmin, ymin, zmin)]
+        except NumberError, exc:
+            #TODO
+            return
+        xmax, ymax, zmax = [from_python(value+1) for value in (xmin, ymin, zmin)]
+        xmin, ymin, zmin = [from_python(value) for value in (xmin, ymin, zmin)]
+
+        return self.apply_full(xmin, ymin, zmin, xmax, ymax, zmax, evaluation)
 
 class _Graphics3DElement(InstancableBuiltin):
     def init(self, graphics, item=None, style=None):
