@@ -457,6 +457,15 @@ class _ListPlot(Builtin):
         assert x_range in ('Automatic', 'All') or isinstance(x_range, list)
         assert y_range in ('Automatic', 'All') or isinstance(y_range, list)
 
+        # Filling option
+        #TODO: Fill between corresponding points in two datasets:
+        filling_option =  self.get_option(options, 'Filling', evaluation)
+        filling = filling_option.to_python(n_evaluation=evaluation)
+        if filling in ['Top', 'Bottom', 'Axis'] or isinstance(filling, numbers.Real):
+            pass
+        else:
+            filling = None     #Mathematica does not even check that filling is sane
+
         # Joined Option
         joined_option = self.get_option(options, 'Joined', evaluation)
         joined = joined_option.to_python()
@@ -481,6 +490,16 @@ class _ListPlot(Builtin):
         else:
             return
 
+        y_range = get_plot_range([y for line in all_points for x, y in line], [y for line in all_points for x, y in line], y_range)
+        x_range = get_plot_range([x for line in all_points for x, y in line], [x for line in all_points for x, y in line], x_range)
+
+        if filling == 'Axis':
+            filling = 0.0
+        elif filling == 'Bottom':
+            filling = y_range[0]
+        elif filling == 'Top':
+            filling = y_range[1]
+
         hue = 0.67
         hue_pos = 0.236068
         hue_neg = -0.763932
@@ -490,8 +509,16 @@ class _ListPlot(Builtin):
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
             if joined:
                 graphics.append(Expression('Line', from_python(line))) 
+                if filling is not None:
+                    fill_area = list(line)
+                    fill_area.append([x_range[1], filling])
+                    fill_area.append([x_range[0], filling])
+                    graphics.append(Expression('Polygon', from_python(fill_area)))
             else:
                 graphics.append(Expression('Point', from_python(line))) 
+                if filling is not None:
+                    for point in line:
+                        graphics.append(Expression('Line', from_python([[point[0], filling], [point[0], point[1]]])))
 
             if indx % 4 == 0:
                 hue += hue_pos
@@ -499,9 +526,6 @@ class _ListPlot(Builtin):
                 hue += hue_neg
             if hue > 1: hue -= 1
             if hue < 0: hue += 1
-
-        y_range = get_plot_range([y for line in all_points for x, y in line], [y for line in all_points for x, y in line], y_range)
-        x_range = get_plot_range([x for line in all_points for x, y in line], [x for line in all_points for x, y in line], x_range)
 
         options['PlotRange'] = from_python([x_range, y_range])
 
@@ -830,7 +854,7 @@ class ListPlot(_ListPlot):
         'Mesh': 'None',
         'PlotRange': 'Automatic',
         'PlotPoints': 'None',
-        'Fillint': 'None',
+        'Filling': 'None',
         'Joined': 'False',
     })
 
@@ -859,7 +883,7 @@ class ListLinePlot(_ListPlot):
         'Mesh': 'None',
         'PlotRange': 'Automatic',
         'PlotPoints': 'None',
-        'Fillint': 'None',
+        'Filling': 'None',
         'Joined': 'True',
     })
 
