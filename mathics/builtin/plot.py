@@ -494,6 +494,7 @@ class _ListPlot(Builtin):
         x_range = get_plot_range([x for line in all_points for x, y in line], [x for line in all_points for x, y in line], x_range)
 
         if filling == 'Axis':
+            #TODO: Handle arbitary axis intercepts
             filling = 0.0
         elif filling == 'Bottom':
             filling = y_range[0]
@@ -510,6 +511,7 @@ class _ListPlot(Builtin):
             if joined:
                 graphics.append(Expression('Line', from_python(line))) 
                 if filling is not None:
+                    graphics.append(Expression('Hue', hue, 0.6, 0.6, 0.2))
                     fill_area = list(line)
                     fill_area.append([x_range[1], filling])
                     fill_area.append([x_range[0], filling])
