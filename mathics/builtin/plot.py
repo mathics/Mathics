@@ -602,6 +602,11 @@ class _Plot3D(Builtin):
                         if v_borders[1] is None or v > v_borders[1]:
                             v_borders[1] = v
                 if v1 is None or v2 is None or v3 is None:
+                    if depth < 2:
+                        triangle(x1, y1, (x1+x2)/2, (y1+y2)/2, (x1+x3)/2, (y1+y3)/2, depth+1)
+                        triangle(x2, y2, (x1+x2)/2, (y1+y2)/2, (x2+x3)/2, (y2+y3)/2, depth+1)
+                        triangle(x3, y3, (x1+x3)/2, (y1+y3)/2, (x2+x3)/2, (y2+y3)/2, depth+1)
+                        triangle((x1+x2)/2, (y1+y2)/2, (x2+x3)/2, (y2+y3)/2, (x1+x3)/2, (y1+y3)/2, depth+1)
                     return
                 limit = (v_borders[1] - v_borders[0]) * eps
                 if depth < 2:
