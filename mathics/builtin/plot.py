@@ -302,12 +302,10 @@ class _Plot(Builtin):
                 base_points.extend(line)
             base_plot_points.extend(base_points)
             
-            xscale = 1. / (stop - start)
+            xmin, xmax = automatic_plot_range([x for x, y in base_points])
+            xscale = 1. / zero_to_one(xmax - xmin)
             ymin, ymax = automatic_plot_range([y for x, y in base_points])
-            if ymin != ymax:
-                yscale = 1. / (ymax - ymin)
-            else:
-                yscale = 1.0
+            yscale = 1. / zero_to_one(ymax - ymin)
 
             if mesh == 'Full':
                 for line in points:
