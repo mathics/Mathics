@@ -231,6 +231,34 @@ class FactorInteger(Builtin):
         else:
             return evaluation.message('FactorInteger', 'exact', n)
     
+class Prime(Builtin):
+    """
+    <dl>
+    <dt>'Prime[$n$]'
+        <dd>returns the $n$th prime number.
+    </dl>
+
+    >> Prime[1]
+     = 2
+
+    >> Prime[167]
+     = 991
+    """
+
+    messages = {
+        'intpp' : 'Positive integer argument expected in `1`.',
+    }
+
+    def apply(self, n, evaluation):
+        'Prime[n_]'
+        n_int = n.to_python()
+        if isinstance(n_int, int) and n_int > 0:
+            return Integer(sympy.prime(n_int))
+
+        expr = Expression('Prime', n)
+        evaluation.message('Prime', 'intpp', expr)
+        return
+
 class PrimeQ(Builtin):
     """
     For very large numbers, 'PrimeQ' uses probabilistic prime testing, so it might be wrong sometimes
