@@ -37,7 +37,7 @@ def to_output(text):
     return '\n . '.join(text.splitlines())
 
 def main():
-    quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
+    quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-D'
     
     print_version(is_server=False)
     print_license()
@@ -49,17 +49,21 @@ def main():
     
     try:
         while True:
-            input = raw_input('>> ')
+            try: 
+                input = raw_input('>> ')
             
-            def out_callback(out):
-                print to_output(unicode(out))
+                def out_callback(out):
+                    print to_output(unicode(out))
                 
-            evaluation = Evaluation(input, definitions, timeout=30, out_callback=out_callback)
+                evaluation = Evaluation(input, definitions, timeout=30, out_callback=out_callback)
             
-            for result in evaluation.results:
-                if result.result is not None:
-                    print ' = %s' % to_output(unicode(result.result))
-    except (KeyboardInterrupt, SystemExit, EOFError):
+                for result in evaluation.results:
+                    if result.result is not None:
+                        print ' = %s' % to_output(unicode(result.result))
+            except (KeyboardInterrupt):
+                print '\nKeyboardInterrupt'
+
+    except (SystemExit, EOFError):
         print "\n\nGood bye!\n"
 
 if __name__ == '__main__':
