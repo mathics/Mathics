@@ -32,7 +32,7 @@ from mathics.core.definitions import Definitions
 from mathics.core.expression import Symbol, Expression
 from mathics.core.evaluation import Evaluation
 from mathics import settings
-from mathics import print_version, print_license
+from mathics import print_version, print_license, get_version_string
 
 def to_output(text):
     return '\n . '.join(text.splitlines())
@@ -45,8 +45,10 @@ def main():
         epilog = """Please feel encouraged to contribute to Mathics! Create
             your own fork, make the desired changes, commit, and make a pull 
             request.""")
-    argparser.add_argument('FILE',  nargs='?', type=argparse.FileType('r'), help='Execute commands from FILE.')
-    argparser.add_argument('-q', '--quiet',  help='don\'t print message at startup.', action='store_true')
+    argparser.add_argument('FILE',  nargs='?', type=argparse.FileType('r'), help='execute commands from FILE')
+    argparser.add_argument('-v', '--version', action='version', version=get_version_string(False))
+    argparser.add_argument('-q', '--quiet',  help='don\'t print message at startup', action='store_true')
+    argparser.add_argument('--persist',  help='go to interactive shell after evaluating FILE', action='store_true')
     args = argparser.parse_args()
 
     quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-D'
@@ -71,7 +73,8 @@ def main():
             for result in evaluation.results:
                     if result.result is not None:
                         print ' = %s' % to_output(unicode(result.result))           
-        return
+        if not args.persist:
+            return
     
     try:
         while True:
