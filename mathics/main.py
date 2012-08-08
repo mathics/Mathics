@@ -45,7 +45,7 @@ def main():
         epilog = """Please feel encouraged to contribute to Mathics! Create
             your own fork, make the desired changes, commit, and make a pull 
             request.""")
-    argparser.add_argument('FILE', help='Execute commands from FILE.', nargs='?')
+    argparser.add_argument('FILE',  nargs='?', type=argparse.FileType('r'), help='Execute commands from FILE.')
     argparser.add_argument('-q', '--quiet',  help='don\'t print message at startup.', action='store_true')
     args = argparser.parse_args()
 
@@ -57,10 +57,21 @@ def main():
         print u"Quit by pressing %s" % quit_command
     
         print ''
-
-    #TODO: File input (path at args.FILE)
     
     definitions = Definitions(add_builtin=True)
+
+    if args.FILE is not None:
+        for line in args.FILE:
+            print '>> ', line,
+
+            def out_callback(out):
+                    print to_output(unicode(out))
+
+            evaluation = Evaluation(line, definitions, timeout=30, out_callback=out_callback)
+            for result in evaluation.results:
+                    if result.result is not None:
+                        print ' = %s' % to_output(unicode(result.result))           
+        return
     
     try:
         while True:
