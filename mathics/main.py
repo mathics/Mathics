@@ -59,7 +59,7 @@ def main():
             for result in evaluation.results:
                 if result.result is not None:
                     print ' = %s' % to_output(unicode(result.result))
-    except (KeyboardInterrupt, SystemExit):
+    except (KeyboardInterrupt, SystemExit, EOFError):
         print "\n\nGood bye!\n"
 
 if __name__ == '__main__':
