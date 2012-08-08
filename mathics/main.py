@@ -20,6 +20,7 @@ u"""
 
 import os
 import sys
+import argparse
 
 # Try importing readline to enable arrow keys support etc.
 try:
@@ -37,13 +38,27 @@ def to_output(text):
     return '\n . '.join(text.splitlines())
 
 def main():
+    argparser = argparse.ArgumentParser(
+        prog='mathics',
+        usage='%(prog)s [options] [FILE]',
+        description = "Mathics is a general-purpose computer algebra system.",
+        epilog = """Please feel encouraged to contribute to Mathics! Create
+            your own fork, make the desired changes, commit, and make a pull 
+            request.""")
+    argparser.add_argument('FILE', help='Execute commands from FILE.', nargs='?')
+    argparser.add_argument('-q', '--quiet',  help='don\'t print message at startup.', action='store_true')
+    args = argparser.parse_args()
+
     quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-D'
     
-    print_version(is_server=False)
-    print_license()
-    print u"Quit by pressing %s" % quit_command
+    if not args.quiet:
+        print_version(is_server=False)
+        print_license()
+        print u"Quit by pressing %s" % quit_command
     
-    print ''
+        print ''
+
+    #TODO: File input (path at args.FILE)
     
     definitions = Definitions(add_builtin=True)
     
