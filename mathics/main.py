@@ -41,14 +41,19 @@ def main():
     argparser = argparse.ArgumentParser(
         prog='mathics',
         usage='%(prog)s [options] [FILE]',
+        add_help=False,
         description = "Mathics is a general-purpose computer algebra system.",
         epilog = """Please feel encouraged to contribute to Mathics! Create
             your own fork, make the desired changes, commit, and make a pull 
             request.""")
+
     argparser.add_argument('FILE',  nargs='?', type=argparse.FileType('r'), help='execute commands from FILE')
-    argparser.add_argument('-v', '--version', action='version', version=get_version_string(False))
-    argparser.add_argument('-q', '--quiet',  help='don\'t print message at startup', action='store_true')
+
+    argparser.add_argument('--help', '-h', help='show this help message and exit', action='help')
     argparser.add_argument('--persist',  help='go to interactive shell after evaluating FILE', action='store_true')
+    argparser.add_argument('--quiet', '-q', help='don\'t print message at startup', action='store_true')
+    argparser.add_argument('--version', '-v', action='version', version=get_version_string(False))
+
     args = argparser.parse_args()
 
     quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-D'
