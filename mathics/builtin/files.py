@@ -39,12 +39,36 @@ class ExportFormats(Predefined):
     def evaluate(self, evaluation):
         return Expression('List')
 
-
 class Read(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'Read[stream]'
+        <dd>reads the input stream and returns one expression.
+    <dt>'Read[stream, type]
+        <dd>reads the input stream and returns object of the given type.
+    </dl>
+    """
+
+    rules = {
+        'Read[stream_]': 'Read[stream, Expression]',
+    }
+
+    def apply(self, stream, types, evaluation):
+        'Read[stream_, types_]'
+        #TODO
 
 class Write(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'Write[stream, expr1, expr2, ... ]'
+        <dd>writes the expressions to the output channel followed by a newline"
+    </dl>
+    """
+
+    def apply(self, channel, exprs, evaluation):
+        'Write[channel_, exprs___]'
+        print exprs
+        #TODO
 
 class WriteString(Builtin):
     pass
@@ -68,5 +92,24 @@ class ReadList(Builtin):
     pass
 
 class FilePrint(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'FilePrint["file"]
+        <dd>prints the raw contents of $file$.
+    </dl>
+    """
+
+    def apply(self, path, evaluation):
+        'FilePrint[path_]'
+        path = path.to_python().strip('"')
+
+        try:
+            f = open(path, 'r')
+            result = f.read()
+        except IOError:
+            evaluation.message('General', 'noopen', path)
+            return
+
+        f.close()
+        return Expression('String', result)
 

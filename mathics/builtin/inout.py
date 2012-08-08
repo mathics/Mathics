@@ -806,6 +806,7 @@ class General(Builtin):
         'level': "Level specification `1` is not of the form n, {n}, or {m, n}.",
         'locked': "Symbol `1` is locked.",
         'matsq': "Argument `1` is not a non-empty square matrix.",
+        'noopen': "Cannot open `1`.",
         'nord': "Invalid comparison with `1` attempted.",
         'normal': "Nonatomic expression expected.",
         'noval': "Symbol `1` in part assignment does not have an immediate value.",
