@@ -67,7 +67,7 @@ class Write(Builtin):
 
     def apply(self, channel, exprs, evaluation):
         'Write[channel_, exprs___]'
-        print exprs
+        #print exprs
         #TODO
 
 class WriteString(Builtin):
@@ -101,15 +101,15 @@ class FilePrint(Builtin):
 
     def apply(self, path, evaluation):
         'FilePrint[path_]'
-        path = path.to_python().strip('"')
+        path = path.to_python().strip('"') #Bug in to_python()?
 
         try:
             f = open(path, 'r')
             result = f.read()
+            f.close()
         except IOError:
             evaluation.message('General', 'noopen', path)
             return
 
-        f.close()
         return Expression('String', result)
 
