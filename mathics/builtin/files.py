@@ -4,6 +4,8 @@
 File Operations
 """
 
+import io
+
 from mathics.core.expression import Expression, String
 from mathics.builtin.base import Builtin, Predefined
 
@@ -112,4 +114,40 @@ class FilePrint(Builtin):
             return
 
         return Expression('String', result)
+
+class InputStream(Builtin):
+    """
+    <dl>
+    <dt>'Input["name", n]'
+        <dd>represents an input stream.
+    </dl>
+    """
+
+    def apply(self, name, n, evaluation):
+        'InputStream[name_, n_]'
+        return
+
+class StringToStream(Builtin):
+    """
+    <dl>
+    <dt>'StringToStream["string"]'
+        <dd>converts a string to an open stream.
+    </dl>
+
+    >> StringToStream["abc 123"]
+     = InputStream[String, 18]
+    """
+    
+    def apply(self, string, evaluation):
+        'StringToStream[string_]'
+        pystring = string.to_python().strip('"')
+        global NSTREAM
+        global STREAMS
+        if NSTREAM is None:
+            NSTREAM = 0 
+            STREAMS = {}
+        NSTREAM += 1
+        STREAMS[NSTREAM] = io.StringIO(initial_value=unicode(pystring))
+        return Expression('InputStream', 'String', NSTREAM)
+
 
