@@ -55,10 +55,34 @@ class Read(Builtin):
         'Read[stream_]': 'Read[stream, Expression]',
     }
 
-    def apply(self, stream, types, evaluation):
-        'Read[stream_, types_]'
-        #TODO
+    def apply(self, name, n, types, evaluation):
+        'Read[InputStream[name_, n_], types_]'
+        global STREAMS
+    
+        stream = STREAMS[n.to_python()]
+        
+        types = types.to_python()
+        if not isinstance(types, list):
+            types = [types]
+        
+        name = name.to_python()
 
+        result = []
+
+        if name == 'String':
+            for typ in types:
+                if typ == 'String':
+                    result.append(stream.readline())
+                elif typ == 'Byte':
+                    result.append(ord(stream.read(1)))
+        else:
+            return
+
+        if len(result) == 1:
+            return from_python(*result)
+
+        return from_python(result)
+                
 class Write(Builtin):
     """
     <dl>
