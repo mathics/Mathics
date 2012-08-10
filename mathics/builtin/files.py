@@ -121,31 +121,34 @@ class WriteString(Builtin):
 class Save(Builtin):
     pass
 
-class OpenRead(Builtin):
+class _OpenAction(Builtin):
+    def apply(self, path, evaluation):
+        '%(name)s[path_]'
+
+        path_string = path.to_python().strip('"')
+
+        try:
+            stream = io.open(path_string, mode=self.mode)
+        except IOError:
+            evaluation.message('General', 'noopen', path)
+            return
+
+        n = _put_stream(stream)
+        result = Expression(self.stream_type, path, n)
+        global _STREAMS
+        _STREAMS[n] = result
+
+        return result
+
+class OpenRead(_OpenAction):
     """
     <dl>
     <dt>'OpenRead["file"]'
         <dd>opens a file and returns an InputStream. 
     </dl>
     """
-
-    def apply(self, path, evaluation):
-        'OpenRead[path_]'
-
-        path_string = path.to_python().strip('"')
-
-        try:
-            stream = io.open(path_string, mode='r')
-        except IOError:
-            evaluation.message('General', 'noopen', path)
-            return
-
-        n = _put_stream(stream)
-        result = Expression('InputStream', path, n)
-        global _STREAMS
-        _STREAMS[n] = result
-
-        return result
+    mode = 'r'
+    stream_type = 'InputStream'
 
 class OpenWrite(Builtin):
     """
@@ -154,24 +157,21 @@ class OpenWrite(Builtin):
         <dd>opens a file and returns an OutputStream. 
     </dl>
     """
+    
+    mode = 'w'
+    stream_type = 'OutputStream'
 
-    def apply(self, path, evaluation):
-        'OpenWrite[path_]'
 
-        path_string = path.to_python().strip('"')
+class OpenAppend(_OpenAction):
+    """
+    <dl>
+    <dt>'OpenAppend["file"]'
+        <dd>opens a file and returns an OutputStream to which writes are appended. 
+    </dl>
+    """
 
-        try:
-            stream = io.open(path_string, mode='w')
-        except IOError:
-            evaluation.message('General', 'noopen', path)
-            return
-
-        n = _put_stream(stream)
-        result = Expression('OutputStream', path, n)
-        global _STREAMS
-        _STREAMS[n] = result
-
-        return result
+    mode = 'a'
+    stream_type = 'OutputStream'
 
 class Import(Builtin):
     pass
