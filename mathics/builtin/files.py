@@ -69,14 +69,11 @@ class Read(Builtin):
 
         result = []
 
-        if name == 'String':
-            for typ in types:
-                if typ == 'String':
-                    result.append(stream.readline())
-                elif typ == 'Byte':
-                    result.append(ord(stream.read(1)))
-        else:
-            return
+        for typ in types:
+            if typ == 'String':
+                result.append(stream.readline())
+            elif typ == 'Byte':
+                result.append(ord(stream.read(1)))
 
         if len(result) == 1:
             return from_python(*result)
@@ -97,16 +94,84 @@ class Write(Builtin):
         #TODO
 
 class WriteString(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'Write[channel, expr]'
+        <dd>writes the expression to the output channel as a string."
+    </dl>
+    """
+    #TODO: Multiple exprs
+
+    def apply(self, name, n, expr, evaluation):
+        'WriteString[OutputStream[name_, n_], expr_]'
+        global STREAMS
+
+        expr_str =  expr.to_python().strip('"')
+
+        if not isinstance(expr_str, unicode):
+            #TODO: Conversion to string
+            return
+
+        stream = STREAMS[n.to_python()]
+        
+        stream.write(expr_str)
+        return String('')
+        
 
 class Save(Builtin):
     pass
 
 class OpenRead(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'OpenRead["file"]'
+        <dd>opens a file and returns an InputStream. 
+    </dl>
+    """
+
+    def apply(self, path, evaluation):
+        'OpenRead[path_]'
+
+        path_string = path.to_python().strip('"')
+
+        try:
+            stream = io.open(path_string, mode='r')
+        except IOError:
+            evaluation.message('General', 'noopen', path)
+            return
+
+        n = _put_stream(stream)
+        result = Expression('InputStream', path, n)
+        global _STREAMS
+        _STREAMS[n] = result
+
+        return result
 
 class OpenWrite(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'OpenWrite["file"]'
+        <dd>opens a file and returns an OutputStream. 
+    </dl>
+    """
+
+    def apply(self, path, evaluation):
+        'OpenWrite[path_]'
+
+        path_string = path.to_python().strip('"')
+
+        try:
+            stream = io.open(path_string, mode='w')
+        except IOError:
+            evaluation.message('General', 'noopen', path)
+            return
+
+        n = _put_stream(stream)
+        result = Expression('OutputStream', path, n)
+        global _STREAMS
+        _STREAMS[n] = result
+
+        return result
 
 class Import(Builtin):
     pass
@@ -115,7 +180,42 @@ class Export(Builtin):
     pass
 
 class ReadList(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'ReadList["file"]
+        <dd>Reads all the expressions until the end of file.
+    </dl>
+    """
+
+    rules = {
+        'ReadList[stream_]': 'ReadList[stream, Expression]',
+    }
+
+    def apply(self, name, n, types, evaluation):
+        'ReadList[InputStream[name_, n_], types_]'
+        global STREAMS
+
+        stream = STREAMS[n.to_python()]
+
+        types = types.to_python()
+        if not isinstance(types, list):
+            types = [types]
+
+        name = name.to_python()
+
+        result = []
+
+        for typ in types:
+            if typ == 'String':
+                result.append(stream.readlines())
+            else:
+                #TODO
+                pass
+
+        if len(result) == 1:
+            return from_python(*result)
+
+        return from_python(result)
 
 class FilePrint(Builtin):
     """
@@ -127,7 +227,7 @@ class FilePrint(Builtin):
 
     def apply(self, path, evaluation):
         'FilePrint[path_]'
-        path = path.to_python().strip('"') #Bug in to_python()?
+        path = path.to_python().strip('"')
 
         try:
             f = open(path, 'r')
@@ -137,23 +237,45 @@ class FilePrint(Builtin):
             evaluation.message('General', 'noopen', path)
             return
 
-        return Expression('String', result)
+        return from_python(result)
 
-#class Close(Builtin):
-#    """
-#    <dl>
-#    <dt>'Close[stream]'
-#        <dd>closes an input or output stream.
-#    </dl>
-#    
-#    """
-#     
-#    def apply(self, stream, evaluation):
-#        'Close[stream_]'
-#        if stream.get_head_name() not in ['InputStream', 'OutputStream']:
-#            evaluation.message('General', 'noopen', path)
-#            return
-#        return 'String'
+class Close(Builtin):
+    """
+    <dl>
+    <dt>'Close[stream]'
+        <dd>closes an input or output stream.
+    </dl>
+    
+    """
+     
+    def apply_input(self, name, n, evaluation):
+        'Close[InputStream[name_, n_]]'
+        global STREAMS
+        stream = STREAMS[n.to_python()]
+
+        if stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
+
+        stream.close()
+        return String('')
+
+    def apply_output(self, name, n, evaluation):
+        'Close[OutputStream[name_, n_]]'
+        global STREAMS
+        stream = STREAMS[n.to_python()]
+
+        if stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
+
+        stream.close()
+        return String('')
+
+    def apply_default(self, stream, evaluation):
+        'Close[stream_]'
+        evaluation.message('General', 'stream', stream)
+        return
 
 class InputStream(Builtin):
     """
