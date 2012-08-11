@@ -6,7 +6,7 @@ File Operations
 
 import io
 
-from mathics.core.expression import Expression, String, from_python
+from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
 
 class ImportFormats(Predefined):
@@ -83,40 +83,51 @@ class Read(Builtin):
 class Write(Builtin):
     """
     <dl>
+    <dt>'Write[channel, expr]'
+        <dd>writes the expression to the output channel as a string."
+    </dl>
+    """
+
+    def apply(self, name, n, expr, evaluation):
+        'WriteString[OutputStream[name_, n_], expr___]'
+        global STREAMS
+        stream = STREAMS[n.to_python()]
+
+        expr = expr.get_sequence()
+        expr = Expression('Row', Expression('List', *expr))
+
+        evaluation.format = 'text'
+        text = evaluation.format_output(from_python(expr))
+        stream.write(text)
+        return Symbol('Null')
+
+class WriteString(Builtin):
+    """
+    <dl>
     <dt>'Write[stream, expr1, expr2, ... ]'
         <dd>writes the expressions to the output channel followed by a newline"
     </dl>
     """
 
-    def apply(self, channel, exprs, evaluation):
-        'Write[channel_, exprs___]'
-        #print exprs
-        #TODO
-
-class WriteString(Builtin):
-    """
-    <dl>
-    <dt>'Write[channel, expr]'
-        <dd>writes the expression to the output channel as a string."
-    </dl>
-    """
-    #TODO: Multiple exprs
+    messages = {
+        'strml': '`1` is not a string, stream, or list of strings and streams.',
+    }
 
     def apply(self, name, n, expr, evaluation):
-        'WriteString[OutputStream[name_, n_], expr_]'
+        'WriteString[OutputStream[name_, n_], expr___]'
         global STREAMS
-
-        expr_str =  expr.to_python().strip('"')
-
-        if not isinstance(expr_str, unicode):
-            #TODO: Conversion to string
-            return
-
         stream = STREAMS[n.to_python()]
-        
-        stream.write(expr_str)
-        return String('')
-        
+
+        exprs = expr.get_sequence()
+        for e in exprs:
+            if not isinstance(e, String):
+                evaluation.message('WriteString', 'strml', e) # Mathematica gets this message wrong
+                return
+
+        text = map(lambda x: x.to_python().strip('"'), exprs)
+        text = ''.join(text)
+        stream.write(text)
+        return Symbol('Null')
 
 class Save(Builtin):
     pass
@@ -150,7 +161,7 @@ class OpenRead(_OpenAction):
     mode = 'r'
     stream_type = 'InputStream'
 
-class OpenWrite(Builtin):
+class OpenWrite(_OpenAction):
     """
     <dl>
     <dt>'OpenWrite["file"]'
@@ -258,7 +269,7 @@ class Close(Builtin):
             return
 
         stream.close()
-        return String('')
+        return Symbol('Null')
 
     def apply_output(self, name, n, evaluation):
         'Close[OutputStream[name_, n_]]'
@@ -270,7 +281,7 @@ class Close(Builtin):
             return
 
         stream.close()
-        return String('')
+        return Symbol('Null')
 
     def apply_default(self, stream, evaluation):
         'Close[stream_]'
