@@ -5,6 +5,7 @@ File Operations
 """
 
 import io
+from os.path import getatime, getmtime, getctime
 
 from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
@@ -367,4 +368,32 @@ def _put_stream(stream):
 def _get_stream(n):
     global STREAMS
     return STREAMS[n]
+
+class FileDate(Builtin):
+    """
+    <dl>
+    <dt>'FileDate["file", "types"]'
+        <dd>returns the time and date at which the file was last modified.
+    </dl>
+    """
+
+    rules = {
+        'FileDate[path_]': 'FileDate[path, "Modification"]',
+    }
+
+    def apply(self, path, timetype, evaluation):
+        'FileDate[path_, timetype_]'
+        path = path.to_python().strip('"')
+        time_type = timetype.to_python().strip('"')
+        if time_type == 'Access':
+            time = getatime(path)
+        elif time_type in ['Creation', 'Change']:   # TODO: Fixing this cross platform is difficult
+            time = getctime(path)
+        elif time_type == 'Modification':
+            time = getmtime(path)
+        else:
+            return
+
+        # Mathematica measures epoch from Jan 1 1900, while python is from Jan 1 1970!
+        return Expression('DateString', from_python(time + 2208988800))
 
