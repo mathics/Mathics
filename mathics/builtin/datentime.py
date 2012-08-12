@@ -308,3 +308,23 @@ class DatePlus(Builtin):
             result = Expression('DateString', *idate.to_list())
 
         return result
+
+class DateDifference(Builtin):
+    """
+    <dl>
+    <dt>'DateDifference[date1, date2]
+      <dd> Difference between dates in days.
+    <dt>'DateDifference[date1, date2, "unit"]
+      <dd> Difference between dates in specified units.
+    </dl>
+    """
+    
+    rules = {
+        'DateDifference[date1_, date2_]': 'DateDifference[date1, date2, "Day"]',
+    }
+
+    def apply(self, date1, date2, units, evaluation):
+        'DateDifference[date1_, date2_, units_]'
+        #TODO
+        return
+
