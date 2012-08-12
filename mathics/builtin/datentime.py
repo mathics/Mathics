@@ -5,6 +5,7 @@ Date and Time
 """
 
 import time
+from datetime import datetime, timedelta
 from mathics.core.expression import Expression, Real, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
 
@@ -63,6 +64,8 @@ class DateList(Builtin):
       <dd>returns the current local time in the form {$year$, $month$, $day$, $hour$, $minute$, $second$}.
     <dt>'DateList[time_]'
       <dd>returns a formatted date for the number of seconds $time$ since epoch Jan 1 1900.
+    <dt>'DateList[{y, m, d, h, m, s}]'
+      <dd>converts an incomplete date list to the standard representation.
     </dl>
 
     >> DateList[0]
@@ -70,6 +73,12 @@ class DateList(Builtin):
 
     >> DateList[3155673600]
      = {2000, 1, 1, 0, 0, 0.}
+
+    >> DateList[{2003, 5, 0.5, 0.1, 0.767}]
+     = {2003, 4, 30, 12, 6, 46.02}
+
+    >> DateList[{2012, 1, 300., 10, 0.}]
+     = {2012, 10, 26, 10, 0, 0.}
     """
 
     rules = {
@@ -82,21 +91,43 @@ class DateList(Builtin):
 
     def apply(self, epochtime, evaluation):
         'DateList[epochtime_]'
-        secs = epochtime.to_python()
-        if not (isinstance(secs, float) or isinstance(secs, int)):
+        etime = epochtime.to_python()
+        if isinstance(etime, float) or isinstance(etime, int):
+            try:
+                timestruct = time.gmtime(etime - 2208988800)
+            except ValueError:
+                #TODO: Fix arbitarily large times
+                return
+
+            datelist = list(timestruct[:5])
+            datelist.append(timestruct[5] + etime % 1.)      # Hack to get seconds as float not int.
+
+        elif isinstance(etime, list) and 1 <= len(etime) <= 6 \
+          and all((isinstance(val, float) and i>1) or isinstance(val, int) for i,val in enumerate(etime)):
+            default_date = [1900, 1, 1, 0, 0, 0.]
+
+            datelist = etime + default_date[len(etime):]
+            prec_part, imprec_part = datelist[:2], datelist[2:]
+
+            try:
+                dtime = datetime(prec_part[0], prec_part[1], 1)
+            except ValueError:
+                # datetime is fairly easy to overlfow. 1 <= month <= 12 and some bounds on year too.
+                # TODO: Make this more resiliant (accept a wider range of years and months)
+                evaluation.message('DateList', 'arg', epochtime)
+                return
+
+            tdelta = timedelta(days=imprec_part[0]-1, hours=imprec_part[1], minutes=imprec_part[2], seconds=imprec_part[3])
+            dtime += tdelta
+            datelist = [dtime.year, dtime.month, dtime.day, dtime.hour, dtime.minute, dtime.second + 1e-06 * dtime.microsecond]
+            
+        else:
             evaluation.message('DateList', 'arg', epochtime)
             return
 
-        try:
-            timestruct = time.gmtime(secs - 2208988800)
-        except ValueError:
-            #TODO: Fix arbitarily large times
-            return
-
-        datelist = list(timestruct[:5])
-        datelist.append(timestruct[5] + secs % 1.)      # Hack to get seconds as float not int.
-
+        #TODO: Other input forms
         return Expression('List', *datelist)
+
         
 class AbsoluteTime(Builtin):
     """
