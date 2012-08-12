@@ -50,7 +50,7 @@ setup(
     package_data = {
         'mathics.doc': ['documentation/*.mdoc', 'xml/data'],
         'mathics.web': ['media/css/*.css', 'media/img/*.gif',
-            'media/js/innerdom/*.js', 'media/js/prototype/*.js', 'media/js/scriptaculous/*.js', 'media/js/three/Three.js', 'media/js/detector/Detector.js',
+            'media/js/innerdom/*.js', 'media/js/prototype/*.js', 'media/js/scriptaculous/*.js', 'media/js/three/Three.js', 'media/js/three/Detector.js',
             'media/js/*.js',
             'templates/*.html', 'templates/doc/*.html'] + mathjax_files,
     },
