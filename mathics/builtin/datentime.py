@@ -12,7 +12,7 @@ class Timing(Builtin):
     """
     <dl>
     <dt>'Timing[$expr$]'
-    <dd>measures the time it takes to evaluate $expr$.
+    <dd>measures the processor time taken to evaluate $expr$.
     It returns a list containing the measured time in seconds and the result of the evaluation.
     </dl> 
     >> Timing[50!]
@@ -35,7 +35,7 @@ class AbsoluteTiming(Builtin):
     """
     <dl>
     <dt>'AbsoluteTiming[$expr$]'
-    <dd>measures the time it takes to evaluate $expr$.
+    <dd>measures the actual time it takes to evaluate $expr$.
     It returns a list containing the measured time in seconds and the result of the evaluation.
     </dl> 
     >> AbsoluteTiming[50!]
