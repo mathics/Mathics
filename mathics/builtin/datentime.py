@@ -256,7 +256,7 @@ class DatePlus(Builtin):
     """
 
     rules = {
-        'DatePlus[n_]': 'DatePlus[DateList[], n]',
+        'DatePlus[n_]': 'DatePlus[{DateList[][[1]], DateList[][[2]], DateList[][[3]]}, n]',
     }
 
     messages = {
@@ -270,10 +270,13 @@ class DatePlus(Builtin):
         # Process date
         pydate = date.to_python()
         if isinstance(pydate, list):        # Date List
+            date_prec = len(pydate)
             idate = _Date(datelist = pydate)
         elif isinstance(pydate, float) or isinstance(pydate, int):     # Absolute Time
+            date_prec = 'absolute'
             idate = _Date(absolute = pydate)
         elif isinstance(pydate, unicode):
+            date_prec = 'string'
             #TODO
             return
         else:
@@ -297,5 +300,11 @@ class DatePlus(Builtin):
             evaluation.message('DatePlus', 'inc', off) 
             return
 
-        return Expression('List', *idate.to_list())
+        if isinstance(date_prec, int):
+            result = Expression('List', *idate.to_list()[:date_prec])
+        elif date_prec == 'absolute':
+            result = Expression('AbsoluteTime', idate.to_list())
+        elif date_prec == 'string':
+            result = Expression('DateString', *idate.to_list())
 
+        return result
