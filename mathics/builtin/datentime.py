@@ -26,9 +26,32 @@ class Timing(Builtin):
     def apply(self, expr, evaluation):
         'Timing[expr_]'
         
-        start = clock()
+        start = time.clock()
         result = expr.evaluate(evaluation)
-        stop = clock()
+        stop = time.clock()
+        return Expression('List', Real(stop - start), result)
+
+class AbsoluteTiming(Builtin):
+    """
+    <dl>
+    <dt>'AbsoluteTiming[$expr$]'
+    <dd>measures the time it takes to evaluate $expr$.
+    It returns a list containing the measured time in seconds and the result of the evaluation.
+    </dl> 
+    >> AbsoluteTiming[50!]
+     = {..., 30414093201713378043612608166064768844377641568960512000000000000}
+    >> Attributes[AbsoluteTiming]
+     = {HoldAll, Protected}
+    """
+    
+    attributes = ('HoldAll',)
+    
+    def apply(self, expr, evaluation):
+        'AbsoluteTiming[expr_]'
+        
+        start = time.time()
+        result = expr.evaluate(evaluation)
+        stop = time.time()
         return Expression('List', Real(stop - start), result)
 
 class DateList(Builtin):
