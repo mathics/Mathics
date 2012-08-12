@@ -4,10 +4,9 @@
 Date and Time
 """
 
-from time import clock, localtime
-
-from mathics.core.expression import Expression, Real
-from mathics.builtin.base import Builtin
+import time
+from mathics.core.expression import Expression, Real, Integer, from_python
+from mathics.builtin.base import Builtin, Predefined
 
 class Timing(Builtin):
     """
@@ -64,7 +63,7 @@ class DateList(Builtin):
             return
 
         try:
-            timestruct = localtime(secs - 2208992400)
+            timestruct = time.gmtime(secs - 2208988800)
         except ValueError:
             #TODO: Fix arbitarily large times
             return
@@ -74,3 +73,25 @@ class DateList(Builtin):
 
         return Expression('List', *datelist)
         
+class AbsoluteTime(Builtin):
+    """
+    <dl>
+    <dt>'AbsoluteTime[]'
+      <dd>Gives the local time in seconds since epoch Jan 1 1900.
+    </dl>
+    """
+
+    def apply(self, evaluation):
+        'AbsoluteTime[]'
+        return from_python(time.time() + 2208988800 - time.timezone)
+
+
+class TimeZone(Predefined):
+    """
+    """
+
+    name = '$TimeZone'
+
+    def evaluate(self, evaluation):
+        return Real(-time.timezone / 3600.)
+
