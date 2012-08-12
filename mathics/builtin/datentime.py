@@ -95,3 +95,17 @@ class TimeZone(Predefined):
     def evaluate(self, evaluation):
         return Real(-time.timezone / 3600.)
 
+
+class TimeUsed(Builtin):
+    """
+    <dl>
+    <dt>'TimeUsed[]'
+      <dd>returns the total cpu time used for this session.
+    </dl>
+    """
+
+    def apply(self, evaluation):
+        'TimeUsed[]'
+        return Real(time.clock()) #TODO: Check this for windows
+
+
