@@ -11,6 +11,17 @@ from mathics.builtin.base import Builtin, Predefined
 
 START_TIME = time.time()
 
+TIME_INCREMENTS = {
+    'Year':     (1, 0, 0, 0, 0, 0),
+    'Quarter':  (0, 4, 0, 0, 0, 0),
+    'Month':    (0, 1, 0, 0, 0, 0),
+    'Week':     (0, 0, 7, 0, 0, 0),
+    'Day':      (0, 0, 1, 0, 0, 0),
+    'Hour':     (0, 0, 0, 1, 0, 0),
+    'Minute':   (0, 0, 0, 0, 1, 0),
+    'Second':   (0, 0, 0, 0, 0, 1),
+}
+
 class Timing(Builtin):
     """
     <dl>
@@ -197,4 +208,94 @@ class Pause(Builtin):
 
         time.sleep(sleeptime)
         return Symbol('Null')
+
+class _Date():
+    def __init__(self, datelist = [], absolute=None):
+        datelist += [1900, 1, 1, 0, 0, 0.][len(datelist):]
+        self.date = datetime(
+            datelist[0], datelist[1], datelist[2], datelist[3], datelist[4], 
+            int(datelist[5]), int(1e6 * (datelist[5] % 1.)))
+        if absolute is not None:
+            self.date += timedelta(seconds=absolute)
+
+    def add(self, timevec):
+        years = self.date.year + timevec[0] + int((self.date.month + timevec[1]) / 12)
+        months = (self.date.month + timevec[1]) % 12
+        if months == 0:
+            months += 12
+            years -= 1
+        self.date = datetime(years, months, self.date.day, self.date.hour, self.date.minute, self.date.second)
+        tdelta = timedelta(days=timevec[2], hours=timevec[3], minutes=timevec[4], seconds=timevec[5])
+        self.date += tdelta
+
+    def to_list(self):
+        return [self.date.year, self.date.month, self.date.day, self.date.hour, self.date.minute, self.date.second + 1e-6*self.date.microsecond]
+
+class DatePlus(Builtin):
+    """
+    <dl>
+    <dt>'DatePlus[date, n]'
+      <dd>finds the date $n$ days after $date$.
+    <dt>'DatePlus[date, {n, "unit"}]'
+      <dd>finds the date $n$ units after $date$.
+    <dt>'DatePlus[date, {{n1, "unit1"}, {n2, unit2}, ...}]'
+      <dd>finds the date which is $n_i$ specified units after $date$.
+    <dt>'DatePlus[n]'
+      <dd>finds the date $n$ days after the current date.
+    <dt>'DatePlus[offset]'
+      <dd>finds the date which is offset from the current date.
+    </dl>
+
+    Add 73 days to Feb 5, 2010
+    >> DatePlus[{2010, 2, 5}, 73]
+     = {2010, 4, 19}
+
+    Add 8 Weeks 1 day to March 16, 1999
+    >> DatePlus[{2010, 2, 5}, {{8, "Week"}, {1, "Day"}}]
+     = {2010, 4, 3}
+    """
+
+    rules = {
+        'DatePlus[n_]': 'DatePlus[DateList[], n]',
+    }
+
+    messages = {
+        'date': 'Argument `1` cannot be interpreted as a date.',
+        'inc': 'Argument `1` is not a time increment or a list of time increments.',
+    }
+
+    def apply(self, date, off, evaluation):
+        'DatePlus[date_, off_]'
+        
+        # Process date
+        pydate = date.to_python()
+        if isinstance(pydate, list):        # Date List
+            idate = _Date(datelist = pydate)
+        elif isinstance(pydate, float) or isinstance(pydate, int):     # Absolute Time
+            idate = _Date(absolute = pydate)
+        elif isinstance(pydate, unicode):
+            #TODO
+            return
+        else:
+            evaluation.message('DatePlus', 'date', date)        
+            return
+
+        # Process offset
+        pyoff = off.to_python()
+        if isinstance(pyoff, float) or isinstance(pyoff, int):
+            pyoff = [[pyoff, u'"Day"']]
+        elif isinstance(pyoff, list) and len(pyoff) == 2 and isinstance(pyoff[1], unicode):
+            pyoff = [pyoff]
+
+        # Strip " marks
+        pyoff = map(lambda x: [x[0], x[1].strip('"')], pyoff)
+
+        if isinstance(pyoff, list) and all(len(o) == 2 and o[1] in TIME_INCREMENTS.keys() and (isinstance(o[0], float) or isinstance(o[0], int)) for o in pyoff):
+            for o in pyoff:
+                idate.add([o[0] * TIME_INCREMENTS[o[1]][i] for i in range(6)])
+        else:
+            evaluation.message('DatePlus', 'inc', off) 
+            return
+
+        return Expression('List', *idate.to_list())
 
