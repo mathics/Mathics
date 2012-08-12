@@ -5,8 +5,10 @@ Date and Time
 """
 
 import time
-from mathics.core.expression import Expression, Real, Integer, from_python
+from mathics.core.expression import Expression, Real, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
+
+START_TIME = time.time()
 
 class Timing(Builtin):
     """
@@ -131,4 +133,37 @@ class TimeUsed(Builtin):
         'TimeUsed[]'
         return Real(time.clock()) #TODO: Check this for windows
 
+class SessionTime(Builtin):
+    """
+    <dl>
+    <dt>'SessionTime[]'
+      <dd>returns the total time since this session started.
+    </dl>
+    """
+    def apply(self, evaluation):
+        'SessionTime[]'
+        return Real(time.time() - START_TIME)
+
+
+class Pause(Builtin):
+    """
+    <dl>
+    <dt>'Pause[n]'
+      <dd>pauses for $n$ seconds.
+    </dl>
+    """
+
+    messages = {
+        'numnm': 'Non-negative machine-sized number expected at position 1 in `1`.',
+    }
+
+    def apply(self, n, evaluation):
+        'Pause[n_]'
+        sleeptime = n.to_python()
+        if not (isinstance(sleeptime, int) or isinstance(sleeptime, float)) or sleeptime < 0:
+            evaluation.message('Pause', 'numnm', Expression('Pause', n))
+            return
+
+        time.sleep(sleeptime)
+        return Symbol('Null')
 
