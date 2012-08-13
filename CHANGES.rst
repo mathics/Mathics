@@ -7,10 +7,10 @@ CHANGES
 - 3D graphics and plots using WebGL in the browser and Asymptote in TeX output
 - Plot: adaptive sampling
 - MathJax 2.0 and line breaking
-- new symbols: Graphics3D etc., Plot3D, ListPlot, ListLinePlot, ParametricPlot, Names, $Version
+- new symbols: Graphics3D etc., Plot3D, ListPlot, ListLinePlot, ParametricPlot, Prime, Names, $Version
 - fixed issues: 1, 4, 6, 8-21, 23-27
 - lots of minor fixes and improvements
-- number of built-in symbols: 384
+- number of built-in symbols: 386
 
 0.4
 ---
