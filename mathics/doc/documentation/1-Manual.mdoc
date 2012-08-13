@@ -114,6 +114,15 @@ Change to the \Mathics download directory and run
 </console>
 In addition to installing \Mathics, this will download the required Python packages <con>sympy</con>, <con>gmpy</con>, <con>mpmath</con>, <con>django</con>, and <con>pysqlite</con> and install them in your \Sage Python <con>site-packages</con> directory (usually <con>/usr/opt/sage/local/lib/python/site-packages</con> on Debian or <con>/Applications/sage/local/lib/python/site-packages</con> on Mac OS X).
 
+It might happen that some packages can only be downloaded via SSL. For this to work, SSL support in Sage's version of Python is needed. You might have to do
+<console>
+# apt-get install libssl-dev
+</console>
+and then rebuild Sage's Python by
+<console>
+# sage -f python
+</console>
+
 It will also create two executables in your \Sage Python <con>bin</con> directory. However, these binaries only work when executed on the shell after issueing <con>sage -sh</con>. To run \Mathics without having to enter the \Sage shell, install two helper scripts by invoking
 <console>
 # python install_sage_scripts.py -d=[a directory on your path]
