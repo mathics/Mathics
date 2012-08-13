@@ -13,7 +13,7 @@ START_TIME = time.time()
 
 TIME_INCREMENTS = {
     'Year':     (1, 0, 0, 0, 0, 0),
-    'Quarter':  (0, 4, 0, 0, 0, 0),
+    'Quarter':  (0, 3, 0, 0, 0, 0),
     'Month':    (0, 1, 0, 0, 0, 0),
     'Week':     (0, 0, 7, 0, 0, 0),
     'Day':      (0, 0, 1, 0, 0, 0),
@@ -218,7 +218,7 @@ class _Date():
         if absolute is not None:
             self.date += timedelta(seconds=absolute)
 
-    def add(self, timevec):
+    def addself(self, timevec):
         years = self.date.year + timevec[0] + int((self.date.month + timevec[1]) / 12)
         months = (self.date.month + timevec[1]) % 12
         if months == 0:
@@ -295,7 +295,7 @@ class DatePlus(Builtin):
 
         if isinstance(pyoff, list) and all(len(o) == 2 and o[1] in TIME_INCREMENTS.keys() and (isinstance(o[0], float) or isinstance(o[0], int)) for o in pyoff):
             for o in pyoff:
-                idate.add([o[0] * TIME_INCREMENTS[o[1]][i] for i in range(6)])
+                idate.addself([o[0] * TIME_INCREMENTS[o[1]][i] for i in range(6)])
         else:
             evaluation.message('DatePlus', 'inc', off) 
             return
@@ -317,14 +317,84 @@ class DateDifference(Builtin):
     <dt>'DateDifference[date1, date2, "unit"]
       <dd> Difference between dates in specified units.
     </dl>
+
+    >> DateDifference[
     """
     
     rules = {
-        'DateDifference[date1_, date2_]': 'DateDifference[date1, date2, "Day"]',
+        'DateDifference[date1_, date2_]': """DateDifference[date1, date2, "Day"]""",
+    }
+
+    messages = {
+        'date': 'Argument `1` cannot be interpreted as a date.',
+        'inc': 'Argument `1` is not a time increment or a list of time increments.',
     }
 
     def apply(self, date1, date2, units, evaluation):
         'DateDifference[date1_, date2_, units_]'
-        #TODO
-        return
+
+        # Process dates
+        pydate1, pydate2 = date1.to_python(), date2.to_python()
+
+        if isinstance(pydate1, list):        # Date List
+            idate = _Date(datelist = pydate1)
+        elif isinstance(pydate1, float) or isinstance(pydate1, int):     # Absolute Time
+            idate = _Date(absolute = pydate1)
+        elif isinstance(pydate1, unicode):
+            #TODO
+            return
+        else:
+            evaluation.message('DateDifference', 'date', date1)
+            return
+
+        if isinstance(pydate2, list):        # Date List
+            fdate = _Date(datelist = pydate2)
+        elif isinstance(pydate2, float) or isinstance(pydate2, int):     # Absolute Time
+            fdate = _Date(absolute = pydate2)
+        elif isinstance(pydate2, unicode):
+            #TODO
+            return
+        else:
+            evaluation.message('DateDifference', 'date', date2)
+            return
+
+        try:
+            tdelta = fdate.date - idate.date
+        except OverflowError:
+            evaluation.message('General', 'ovf')
+            return
+
+        # Process Units
+        pyunits = units.to_python()
+        if isinstance(pyunits, unicode) or isinstance(pyunits, str):
+            pyunits = [unicode(pyunits.strip('"'))]
+        elif isinstance(pyunits, list) and all(isinstance(p, unicode)):
+            pyunits = map(lambda p: p.strip('"'), pyunits)
+
+        if not all(p in TIME_INCREMENTS.keys() for p in pyunits):
+            evaluation.message('DateDifference', 'inc', units)
+
+        if len(pyunits) == 1:
+            unit = pyunits[0]
+            days = tdelta.days + tdelta.seconds / (24 * 60 * 60.) + tdelta.microseconds / (24 * 60 * 60 * 1e6)
+            if unit == 'Year':
+                result = [days / 365., "Year"]
+            if unit == 'Quarter':
+                result = [days / 90.250, "Quarter"]
+            if unit == 'Month':
+                result = [days / 30.416666667, "Month"]
+            if unit == 'Week':
+                result = [days / 7., "Week"]
+            if unit == 'Day':
+                result = days
+            if unit == 'Hour':
+                result = [24.*days , "Hour"]
+            if unit == 'Minute':
+                result = [24.*60*days , "Minute"]
+            if unit == 'Second':
+                result = [24.*60*60*days , "Second"]
+            return from_python(result)
+        else:
+            #TODO: Multiple Units
+            return
 
