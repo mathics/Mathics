@@ -318,7 +318,14 @@ class DateDifference(Builtin):
       <dd> Difference between dates in specified units.
     </dl>
 
-    >> DateDifference[
+    >> DateDifference[{2042, 1, 4}, {2057, 1, 1}]
+     = 5476
+
+    >> DateDifference[{1936, 8, 14}, {2000, 12, 1}, "Year"]
+     = {64.3424657534, "Year"}
+
+    >> DateDifference[{2010, 6, 1}, {2015, 1, 1}, "Hour"]
+     = {40200, "Hour"}
     """
     
     rules = {
@@ -374,25 +381,35 @@ class DateDifference(Builtin):
         if not all(p in TIME_INCREMENTS.keys() for p in pyunits):
             evaluation.message('DateDifference', 'inc', units)
 
+        def intdiv(a, b):
+            'exact integer division where possible'
+            if a % b == 0:
+                return a / b
+            else:
+                return a / float(b)
+
         if len(pyunits) == 1:
             unit = pyunits[0]
-            days = tdelta.days + tdelta.seconds / (24 * 60 * 60.) + tdelta.microseconds / (24 * 60 * 60 * 1e6)
+            if tdelta.microseconds == 0:
+                seconds = int(tdelta.total_seconds())
+            else:
+                seconds = tdelta.total_seconds()
             if unit == 'Year':
-                result = [days / 365., "Year"]
+                result = [intdiv(seconds, 365*24*60*60), "Year"]
             if unit == 'Quarter':
-                result = [days / 90.250, "Quarter"]
+                result = [intdiv(seconds, 365*6*60*60), "Quarter"]
             if unit == 'Month':
-                result = [days / 30.416666667, "Month"]
+                result = [intdiv(seconds, 365*2*60*60), "Month"]
             if unit == 'Week':
-                result = [days / 7., "Week"]
+                result = [intdiv(seconds, 7*24*60*60), "Week"]
             if unit == 'Day':
-                result = days
+                result = intdiv(seconds, 24*60*60)
             if unit == 'Hour':
-                result = [24.*days , "Hour"]
+                result = [intdiv(seconds, 60*60) , "Hour"]
             if unit == 'Minute':
-                result = [24.*60*days , "Minute"]
+                result = [intdiv(secods, 60) , "Minute"]
             if unit == 'Second':
-                result = [24.*60*60*days , "Second"]
+                result = [seconds, "Second"]
             return from_python(result)
         else:
             #TODO: Multiple Units
