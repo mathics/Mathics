@@ -31,6 +31,7 @@ from mathics.core.definitions import Definitions
 from mathics.core.expression import Evaluation
 from mathics.builtin import modules, builtins_by_module, get_module_doc, builtins
 from mathics.doc import documentation
+from mathics import get_version_string
 
 from mathics import settings
 
@@ -144,7 +145,9 @@ def open_ensure_dir(f, *args, **kwargs):
             os.makedirs(d)
         return open(f, *args, **kwargs)
 
-def test_all():    
+def test_all():
+    print "Testing %s" % get_version_string(False)
+      
     try:
         index = 0
         count = failed = 0
