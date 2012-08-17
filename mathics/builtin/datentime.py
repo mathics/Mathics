@@ -6,7 +6,7 @@ Date and Time
 
 import time
 from datetime import datetime, timedelta
-from mathics.core.expression import Expression, Real, Symbol, from_python
+from mathics.core.expression import Expression, Real, Symbol, String, from_python
 from mathics.builtin.base import Builtin, Predefined
 
 START_TIME = time.time()
@@ -20,6 +20,44 @@ TIME_INCREMENTS = {
     'Hour':     (0, 0, 0, 1, 0, 0),
     'Minute':   (0, 0, 0, 0, 1, 0),
     'Second':   (0, 0, 0, 0, 0, 1),
+}
+
+DATE_STRING_FORMATS = {
+    "Date": "%c",
+    "DateShort": "%a %d %b %Y",
+    "Time": "%X",
+    "DateTime": "%c %X",
+    "DateTimeShort": "%a %d %b %Y %X",
+    "Year" : "%Y",
+    "YearShort": "%y",
+    "QuarterName": "Quarter N", #TODO
+    "QuarterNameShort": "QN",   #TODO
+    "Quarter": "",              #TODO
+    "MonthName": "%B",
+    "MonthNameShort": "%b",
+    "MonthNameInitial": "%b",   #TODO: Just the first letter
+    "Month": "%m",
+    "MonthShort": "%m",         #TODO: Remove leading 0
+    "DayName": "%A",
+    "DayNameShort": "%a",
+    "DayNameInitial": "%a",     #TODO: Just the first letter
+    "Day": "%d",
+    "DayShort": "%d",           #TODO: Remove leading 0
+    "Hour": "%H",               #TODO: Find system preferences (12/24 hour)
+    "Hour12": "%I",
+    "Hour24": "%H",
+    "HourShort": "%H",          #TODO: Remove leading 0
+    "Hour12Short": "%I",        #TODO: Remove leading 0
+    "Hour24Short": "%H",        #TODO: Remove leading 0
+    "AMPM": "%p",
+    "AMPMLowerCase": "%p",      #TODO: Lowercase
+    "Minute": "%M",
+    "MinuteShort": "%M",        #TODO: Remove leading 0
+    "Second": "%S",
+    "SecondShort": "%S",        #TODO: Remove leading 0
+    "SecondExact": "%S",        #TODO: Add extra Precision
+    "Millisecond": "%f",        #TODO: Multiply by 1000
+    "MillisecondShort": "",     #TODO: Multiply by 1000 and Remove leading 0
 }
 
 class Timing(Builtin):
@@ -68,7 +106,59 @@ class AbsoluteTiming(Builtin):
         stop = time.time()
         return Expression('List', Real(stop - start), result)
 
-class DateList(Builtin):
+class DateStringFormat(Predefined):
+    """
+    """
+
+    name = '$DateStringFormat'
+
+    value = u'DateTimeShort'
+
+    #TODO: Methods to change this
+
+    def evaluate(self, evaluation):
+        return String(self.value)
+
+class _DateFormat(Builtin):
+    def to_datelist(self, epochtime, evaluation):
+        etime = epochtime.to_python()
+        if isinstance(etime, float) or isinstance(etime, int):
+            try:
+                timestruct = time.gmtime(etime - 2208988800)
+            except ValueError:
+                #TODO: Fix arbitarily large times
+                return
+
+            datelist = list(timestruct[:5])
+            datelist.append(timestruct[5] + etime % 1.)      # Hack to get seconds as float not int.
+
+        elif isinstance(etime, list) and 1 <= len(etime) <= 6 \
+          and all((isinstance(val, float) and i>1) or isinstance(val, int) for i,val in enumerate(etime)):
+            default_date = [1900, 1, 1, 0, 0, 0.]
+
+            datelist = etime + default_date[len(etime):]
+            prec_part, imprec_part = datelist[:2], datelist[2:]
+
+            try:
+                dtime = datetime(prec_part[0], prec_part[1], 1)
+            except ValueError:
+                # datetime is fairly easy to overlfow. 1 <= month <= 12 and some bounds on year too.
+                # TODO: Make this more resiliant (accept a wider range of years and months)
+                evaluation.message('%(name)s', 'arg', epochtime)
+                return
+
+            tdelta = timedelta(days=imprec_part[0]-1, hours=imprec_part[1], minutes=imprec_part[2], seconds=imprec_part[3])
+            dtime += tdelta
+            datelist = [dtime.year, dtime.month, dtime.day, dtime.hour, dtime.minute, dtime.second + 1e-06 * dtime.microsecond]
+            
+        else:
+            evaluation.message('%(name)s', 'arg', epochtime)
+            return
+
+        #TODO: Other input forms
+
+        return datelist
+class DateList(_DateFormat):
     """
     <dl>
     <dt>'DateList[]'
@@ -101,45 +191,55 @@ class DateList(Builtin):
     }
 
     def apply(self, epochtime, evaluation):
-        'DateList[epochtime_]'
-        etime = epochtime.to_python()
-        if isinstance(etime, float) or isinstance(etime, int):
-            try:
-                timestruct = time.gmtime(etime - 2208988800)
-            except ValueError:
-                #TODO: Fix arbitarily large times
-                return
-
-            datelist = list(timestruct[:5])
-            datelist.append(timestruct[5] + etime % 1.)      # Hack to get seconds as float not int.
-
-        elif isinstance(etime, list) and 1 <= len(etime) <= 6 \
-          and all((isinstance(val, float) and i>1) or isinstance(val, int) for i,val in enumerate(etime)):
-            default_date = [1900, 1, 1, 0, 0, 0.]
-
-            datelist = etime + default_date[len(etime):]
-            prec_part, imprec_part = datelist[:2], datelist[2:]
-
-            try:
-                dtime = datetime(prec_part[0], prec_part[1], 1)
-            except ValueError:
-                # datetime is fairly easy to overlfow. 1 <= month <= 12 and some bounds on year too.
-                # TODO: Make this more resiliant (accept a wider range of years and months)
-                evaluation.message('DateList', 'arg', epochtime)
-                return
-
-            tdelta = timedelta(days=imprec_part[0]-1, hours=imprec_part[1], minutes=imprec_part[2], seconds=imprec_part[3])
-            dtime += tdelta
-            datelist = [dtime.year, dtime.month, dtime.day, dtime.hour, dtime.minute, dtime.second + 1e-06 * dtime.microsecond]
-            
-        else:
-            evaluation.message('DateList', 'arg', epochtime)
-            return
-
-        #TODO: Other input forms
+        '%(name)s[epochtime_]'
+        datelist = self.to_datelist(epochtime, evaluation)
         return Expression('List', *datelist)
 
-        
+class DateString(_DateFormat):
+    """
+    <dl>
+    <dt>'DateString[]'
+      <dd>Returns the current local time and date as a string.
+    <dt>'DateString[time]'
+      <dd>Returns the date string of an AbsoluteTime
+
+    >> DateString[{1991, 10, 31, 0, 0}, {"Day", " ", "MonthName", " ", "Year"}]
+     = 31 October 1991
+    """
+
+    rules = {
+        'DateString[]': 'DateString[DateList[], $DateStringFormat]',
+    }
+
+    messages = {
+        'arg': 'Argument `1` cannot be intepreted as a date or time input.',
+        'fmt': '`1` is not a valid date format.',
+    }
+
+    def apply(self, epochtime, form, evaluation):
+        'DateString[epochtime_, form_]'
+        datelist = self.to_datelist(epochtime, evaluation)
+        date = _Date(datelist=datelist)
+
+        pyform = form.to_python()
+        if not isinstance(pyform, list):
+            pyform = [pyform]
+
+        pyform = map(lambda x: x.strip('"'), pyform)
+
+        if not all(isinstance(f, unicode) for f in pyform):
+            evaluation.message('DateString', 'fmt', form)
+            return
+
+        datestrs = []
+        for p in pyform:
+            if str(p) in DATE_STRING_FORMATS.keys():
+                datestrs.append(date.date.strftime(DATE_STRING_FORMATS[p]))
+            else:
+                datestrs.append(str(p))
+
+        return from_python(''.join(datestrs))
+
 class AbsoluteTime(Builtin):
     """
     <dl>
@@ -151,7 +251,6 @@ class AbsoluteTime(Builtin):
     def apply(self, evaluation):
         'AbsoluteTime[]'
         return from_python(time.time() + 2208988800 - time.timezone)
-
 
 class TimeZone(Predefined):
     """
