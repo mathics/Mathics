@@ -154,6 +154,7 @@ class _DateFormat(Builtin):
             tdelta = timedelta(days=imprec_part[0]-1, hours=imprec_part[1], minutes=imprec_part[2], seconds=imprec_part[3])
             dtime += tdelta
             datelist = [dtime.year, dtime.month, dtime.day, dtime.hour, dtime.minute, dtime.second + 1e-06 * dtime.microsecond]
+            return datelist
             
         if all(isinstance(s, unicode) or (isinstance(s, list) and all(isinstance(ss, unicode) for ss in s)) for s in etime):
             datelist = []
