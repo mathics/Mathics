@@ -56,7 +56,7 @@ def main():
 
     args = argparser.parse_args()
 
-    quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-D'
+    quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
     
     if not args.quiet:
         print_version(is_server=False)
