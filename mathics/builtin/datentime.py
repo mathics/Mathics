@@ -8,6 +8,7 @@ import time
 from datetime import datetime, timedelta
 from mathics.core.expression import Expression, Real, Symbol, String, from_python
 from mathics.builtin.base import Builtin, Predefined
+from itertools import cycle
 
 START_TIME = time.time()
 
@@ -131,9 +132,12 @@ class _DateFormat(Builtin):
 
             datelist = list(timestruct[:5])
             datelist.append(timestruct[5] + etime % 1.)      # Hack to get seconds as float not int.
+            return datelist
 
-        elif isinstance(etime, list) and 1 <= len(etime) <= 6 \
-          and all((isinstance(val, float) and i>1) or isinstance(val, int) for i,val in enumerate(etime)):
+        if not isinstance(etime, list):
+            etime = [etime]
+
+        if 1 <= len(etime) <= 6 and all((isinstance(val, float) and i>1) or isinstance(val, int) for i,val in enumerate(etime)):
             default_date = [1900, 1, 1, 0, 0, 0.]
 
             datelist = etime + default_date[len(etime):]
@@ -151,13 +155,53 @@ class _DateFormat(Builtin):
             dtime += tdelta
             datelist = [dtime.year, dtime.month, dtime.day, dtime.hour, dtime.minute, dtime.second + 1e-06 * dtime.microsecond]
             
-        else:
-            evaluation.message('%(name)s', 'arg', epochtime)
-            return
+        if all(isinstance(s, unicode) or (isinstance(s, list) and all(isinstance(ss, unicode) for ss in s)) for s in etime):
+            datelist = []
+            if all(isinstance(s[0], unicode) for s in etime):
+                etime = [etime]
 
-        #TODO: Other input forms
+            for spec in etime:
+                if len(spec) == 1:
+                    #TODO: Automatically parse the date-time
+                    pass
+                elif len(spec) == 2:
+                    try:
+                        timestruct = None
+                        date = _Date()
+                        date.date = None
+                        if all(str(s).strip('"') in DATE_STRING_FORMATS.keys() for s in spec[1]):
+                            seperators = [[x for i in range(len(spec[1])-1)] for x in  [' ', '/']]
+                        else:
+                            seperators = [filter(lambda s: s not in  DATE_STRING_FORMATS.keys(), 
+                                map(lambda s: str(s).strip('"'), spec[1]))]
+                        args = filter(lambda s: str(s).strip('"') in DATE_STRING_FORMATS.keys(), spec[1])
+                        args = map(lambda s: DATE_STRING_FORMATS[str(s).strip('"')], args)
 
-        return datelist
+                        for sep in seperators:
+                            iters = [iter(args), iter(sep)]
+                            form = ''.join(list(it.next() for it in cycle(iters)))
+                            try:
+                                date.date = datetime.strptime(str(spec[0]).strip('"'), form)
+                            except ValueError:
+                                pass
+                        if date.date is None:
+                            #TODO: Error message
+                            return []
+                        datelist.append(date.to_list())
+                    except KeyError as e:
+                        #evaluation.message('%(name)s', 'str', "", "")
+                        pass
+                    
+            else:       #Sneaky hack
+                pass
+
+            if len(datelist) == 1:
+                return datelist[0]
+            return datelist
+
+        evaluation.message('%(name)s', 'arg', epochtime)
+        return
+
 class DateList(_DateFormat):
     """
     <dl>
@@ -180,6 +224,12 @@ class DateList(_DateFormat):
 
     >> DateList[{2012, 1, 300., 10, 0.}]
      = {2012, 10, 26, 10, 0, 0.}
+
+    >> DateList[{"31/10/91", {"Day", "Month", "YearShort"}}]
+     = {1991, 10, 31, 0, 0, 0.}
+
+    >> DateList[{"31 10/91", {"Day", " ", "Month", "/", "YearShort"}
+     = {1991, 10, 31, 0, 0, 0.}
     """
 
     rules = {
