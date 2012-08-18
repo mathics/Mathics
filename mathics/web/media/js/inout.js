@@ -205,8 +205,12 @@ function showGallery() {
 	setQueries([
 	  '1 + 2 - x * 3 x / y',
 	  'Sin[Pi]',
+	  'Plot[{Sin[x], Cos[x], Tan[x]}, {x, -3Pi, 3Pi}]',
+	  'Plot3D[x y / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}]',
+	  'translate[graphics_, {dx_,dy_,dz_}] := graphics /. Sphere[{x_,y_,z_}, r_] -> Sphere[{x+dx, y+dy, z+dz}, r]',
+	  'sierpinski[block_, size_] := translate[block, #*size*2]& /@ {{0,0,.6124}, {-.2886,-.5,-.204}, {-.2886,.5,-.204}, {.5774,0,-.204}}',
+	  'Graphics3D[{Yellow, First[Nest[{sierpinski[First[#], Last[#]], Last[#]*2}&, {Sphere[{0,0,0}, 1], 1}, 3]]}]',
 	  'N[E, 30]',
-	  'Plot[{Sin[x], Cos[x]}, {x, -Pi, Pi}]',
 	  'D[Sin[2x] + Log[x] ^ 2, x]',
 	  'Integrate[Tan[x] ^ 5, x]',
 	  'A = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}; MatrixForm[A]',
