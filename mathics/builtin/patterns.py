@@ -820,7 +820,7 @@ class OptionsPattern(PatternObject):
         '$opt$->$value$' or '$opt$:>$value$', and might be in arbitrarily nested lists.
     <dt>'OptionsPattern[{$opt1$->$value1$, ...}]'
         <dd>takes explicit default values from the given list.
-        The list may also contain symbols $f$, for which 'Options[$f$]' is taken into accound;
+        The list may also contain symbols $f$, for which 'Options[$f$]' is taken into account;
         it may be arbitrarily nested.
         'OptionsPattern[{}]' does not use any default values.
     </dl>
