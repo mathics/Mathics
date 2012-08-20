@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 from distribute_setup import use_setuptools
 use_setuptools()
 
