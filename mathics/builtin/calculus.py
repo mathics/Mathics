@@ -300,6 +300,23 @@ class Derivative(PostfixOperator, SageFunction):
             count += 1
         return Expression(Expression('Derivative', Integer(count)), inner)
     
+    def to_sympy(self, expression):
+        #TODO: Handle higher order derivatives
+        inner = expression
+        exprs = [inner]
+        try:
+            while True:
+                inner = inner.head
+                exprs.append(inner)
+        except AttributeError:
+            pass
+
+        x = exprs[0].leaves[0]
+        sym_x = sympy.symbols('_Mathics_User_' +x.__str__())
+        func = exprs[1].leaves[0]
+        sym_func = sympy.Function('_Mathics_User_' + func.__str__()) (sym_x)
+        return sympy.Derivative(sym_func)
+
 class Integrate(SageFunction):
     r"""
     <dl>

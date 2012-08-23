@@ -53,8 +53,8 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'deqx')
 
         left, right = eqn.leaves
-        eq = Expression('Plus', left, Expression('Times', -1, right)).evaluate(evaluation)
-        eq = eq.to_sympy()
+        eqn = Expression('Plus', left, Expression('Times', -1, right)).evaluate(evaluation)
+        eq = eqn.to_sympy()
 
         sym_x = sympy.symbols('_Mathics_User_' +x.to_python())
         func = sympy.Function('_Mathics_User_' + y.get_head_name()) (sym_x)
@@ -63,7 +63,16 @@ class DSolve(Builtin):
             result = sympy.dsolve(eq, func)
             if not isinstance(result, list):
                 result = [result]
-                
+        except ValueError as ve:
+            print ve
+            return
+
+        #TODO: Handle the conversion from sympy back to Mathics:
+        #   Constants C1, C2 etc should become C[1], C[2] etc.
+        #   _Mathics_User_x -> Symbol[x]
+        #   y[x] == ... -> y[x] -> ...
+
+        try:
             return Expression('List', *(Expression('List', *from_sympy(result))))
         except ValueError as ve:
             print ve
