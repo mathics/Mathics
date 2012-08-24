@@ -16,15 +16,14 @@ class DSolve(Builtin):
         <dd> Solves a differential equation for the function $y[x]$.
     </dl>
 
-
     >> DSolve[y''[x] == 0, y[x], x]
-     = {{y[x] -> C[2] + x C[1]}}
+     = {{y[x] -> x C[2] + C[1]}}
 
     >> DSolve[y''[x] == y[x], y[x], x]
      = {{y[x] -> C[1] E ^ x + C[2] E ^ (-x)}}
 
-    >> DSolve[{y'[x] + y[x] == x, y[0] == 0}, y[x], x]
-     = {{y[x] -> E^-x (1 - E^x + E^x x)}}
+    >> DSolve[y''[x] == y[x], y, x]
+     = {{y -> (Function[{x}, C[2] Exp[-x] + C[1] Exp[x]])}}
     """
 
     messages = {
@@ -51,31 +50,40 @@ class DSolve(Builtin):
         # Fixes pathalogical DSolve[y''[x] == y[x], y, x]
         try:
             y.leaves
+            function_form = None
+            func = y
         except AttributeError:
-            y = Expression(y, x)
-        if y.is_atom() or len(y.leaves) != 1:
-            evaluation.message('DSolve', 'dsfun', y) 
+            func = Expression(y, x)
+            function_form = Expression('List', x)
 
-        if x not in y.leaves:
+        if func.is_atom() or len(func.leaves) != 1:
+            evaluation.message('DSolve', 'dsfun', y)
+
+        if x not in func.leaves:
             evaluation.message('DSolve', 'deqx')
 
         left, right = eqn.leaves
         eqn = Expression('Plus', left, Expression('Times', -1, right)).evaluate(evaluation)
-        eq = eqn.to_sympy(converted_functions = set([(y.get_head_name(), x.name)]))
 
+        sym_eq = eqn.to_sympy(converted_functions = set([(func.get_head_name(), x.name)]))
         sym_x = sympy.symbols(str(sympy_symbol_prefix + x.name))
-        func = sympy.Function(str(sympy_symbol_prefix + y.get_head_name())) (sym_x)
+        sym_func = sympy.Function(str(sympy_symbol_prefix + func.get_head_name())) (sym_x)
 
         try:
-            sym_result = sympy.dsolve(eq, func)
+            sym_result = sympy.dsolve(sym_eq, sym_func)
             if not isinstance(sym_result, list):
                 sym_result = [sym_result]
         except ValueError as ve:
-            print ve
+            #print ve
             return
 
-        return Expression('List', *[Expression('List', 
-            Expression('Rule', *from_sympy(soln).leaves)) for soln in sym_result])
+        if function_form is None:
+            return Expression('List', *[Expression('List', 
+                Expression('Rule', *from_sympy(soln).leaves)) for soln in sym_result])
+        else:
+            return Expression('List', *[Expression('List', Expression('Rule', y, 
+                Expression('Function', function_form, *from_sympy(soln).leaves[1:]))) for soln in sym_result])
+
 
 #TODO: NDSolve
 
