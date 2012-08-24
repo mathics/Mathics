@@ -207,6 +207,8 @@ def from_sympy(expr):
         return Expression('Times', *[from_sympy(arg) for arg in expr.args])
     elif expr.is_Pow:
         return Expression('Power', *[from_sympy(arg) for arg in expr.args])
+    elif expr.is_Equality:
+        return Expression('Equal', *[from_sympy(arg) for arg in expr.args])
     
     elif isinstance(expr, SympyExpression):
         #print "SympyExpression: %s" % expr

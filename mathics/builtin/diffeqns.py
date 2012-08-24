@@ -6,7 +6,7 @@ Differential equation solver functions
 
 import sympy
 from mathics.builtin.base import Builtin, BinaryOperator, Test
-from mathics.core.expression import Expression, from_sympy
+from mathics.core.expression import Expression, from_sympy, from_python
 from mathics.core.convert import SympyExpression
 
 class DSolve(Builtin):
@@ -60,23 +60,15 @@ class DSolve(Builtin):
         func = sympy.Function('_Mathics_User_' + y.get_head_name()) (sym_x)
 
         try:
-            result = sympy.dsolve(eq, func)
-            if not isinstance(result, list):
-                result = [result]
+            sym_result = sympy.dsolve(eq, func)
+            if not isinstance(sym_result, list):
+                sym_result = [sym_result]
         except ValueError as ve:
             print ve
             return
 
-        #TODO: Handle the conversion from sympy back to Mathics:
-        #   Constants C1, C2 etc should become C[1], C[2] etc.
-        #   _Mathics_User_x -> Symbol[x]
-        #   y[x] == ... -> y[x] -> ...
-
-        try:
-            return Expression('List', *(Expression('List', *from_sympy(result))))
-        except ValueError as ve:
-            print ve
-            return
+        return Expression('List', *[Expression('List', 
+            Expression('Rule', *from_sympy(soln).leaves)) for soln in sym_result])
 
 #TODO: NDSolve
 
