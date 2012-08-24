@@ -300,8 +300,8 @@ class Derivative(PostfixOperator, SageFunction):
             count += 1
         return Expression(Expression('Derivative', Integer(count)), inner)
     
-    def to_sympy(self, expression):
-        inner = expression
+    def to_sympy(self, expr, **kwargs):
+        inner = expr
         exprs = [inner]
         try:
             while True:
@@ -310,7 +310,7 @@ class Derivative(PostfixOperator, SageFunction):
         except AttributeError:
             pass
 
-        if len(exprs) != 4 or not all(len(expr.leaves) >= 1 for expr in exprs[:3]):
+        if len(exprs) != 4 or not all(len(expr.leaves) >= 1 for exp in exprs[:3]):
             return 
 
         x = exprs[0].leaves[0]
@@ -323,10 +323,6 @@ class Derivative(PostfixOperator, SageFunction):
             sym_func = sympy.Derivative(sym_func)
 
         return sym_func
-
-    def to_sympy_direct(self, expression, **kwargs):
-        #TODO 
-        return self.to_sympy(expression)
 
 class Integrate(SageFunction):
     r"""

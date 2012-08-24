@@ -20,6 +20,9 @@ class DSolve(Builtin):
     >> DSolve[y''[x] == 0, y[x], x]
      = {{y[x] -> C[2] + x C[1]}}
 
+    >> DSolve[y''[x] == y[x], y[x], x]
+     = {{y[x] -> C[1] E ^ x + C[2] E ^ (-x)}}
+
     >> DSolve[{y'[x] + y[x] == x, y[0] == 0}, y[x], x]
      = {{y[x] -> E^-x (1 - E^x + E^x x)}}
     """
@@ -54,9 +57,9 @@ class DSolve(Builtin):
 
         left, right = eqn.leaves
         eqn = Expression('Plus', left, Expression('Times', -1, right)).evaluate(evaluation)
-        eq = eqn.to_sympy()
+        eq = eqn.to_sympy(converted_functions = set([(y.get_head_name(), x.name)]))
 
-        sym_x = sympy.symbols(str(sympy_symbol_prefix + x.to_python()))
+        sym_x = sympy.symbols(str(sympy_symbol_prefix + x.name))
         func = sympy.Function(str(sympy_symbol_prefix + y.get_head_name())) (sym_x)
 
         try:

@@ -733,7 +733,7 @@ class DirectedInfinity(SageFunction):
         'DirectedInfinity[]': 'HoldForm[ComplexInfinity]',
     }
     
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
             dir = expr.leaves[0].get_int_value()
             if dir == 1:
@@ -1067,7 +1067,7 @@ class Sum(_IterationFunction, SageFunction):
     def get_result(self, items):
         return Expression('Plus', *items)
     
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         if expr.has_form('Sum', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
             result = sympy.summation(expr.leaves[0].to_sympy(), (
@@ -1109,7 +1109,7 @@ class Product(_IterationFunction, SageFunction):
     def get_result(self, items):
         return Expression('Times', *items)
     
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         if expr.has_form('Product', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
             try:
