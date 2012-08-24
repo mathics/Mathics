@@ -301,7 +301,6 @@ class Derivative(PostfixOperator, SageFunction):
         return Expression(Expression('Derivative', Integer(count)), inner)
     
     def to_sympy(self, expression):
-        #TODO: Handle higher order derivatives
         inner = expression
         exprs = [inner]
         try:
@@ -315,7 +314,12 @@ class Derivative(PostfixOperator, SageFunction):
         sym_x = sympy.symbols('_Mathics_User_' +x.__str__())
         func = exprs[1].leaves[0]
         sym_func = sympy.Function('_Mathics_User_' + func.__str__()) (sym_x)
-        return sympy.Derivative(sym_func)
+        
+        count = exprs[2].leaves[0].to_python()
+        for i in range(count):
+            sym_func = sympy.Derivative(sym_func)
+
+        return sym_func
 
 class Integrate(SageFunction):
     r"""
