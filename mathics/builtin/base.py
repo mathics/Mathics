@@ -383,6 +383,9 @@ class SageFunction(SageObject):
                 return getattr(sympy, self.sympy_name)(*(leaf.to_sympy() for leaf in leaves))
         except TypeError:
             pass
+
+    def to_sympy_direct(self, expr, **kwargs):
+        return self.to_sympy(expr)
             
     def from_sage(self, leaves):
         return leaves

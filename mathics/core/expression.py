@@ -322,6 +322,12 @@ class BaseExpression(object):
             number = max
         return float(number)
 
+    def to_sympy(self):
+        raise NotImplementedError
+
+    def to_sympy_direct(self, **kwargs):
+        return self.to_sympy()
+
 class Monomial(object):
     """
     An object to sort monomials, used in Expression.get_sort_key and Symbol.get_sort_key.
@@ -443,6 +449,10 @@ class Expression(BaseExpression):
                 return sympy_expr
             
         return SympyExpression(self)
+
+    def to_sympy_direct(self, **kwargs):
+        #TODO
+        return self.to_sympy()
     
     def to_sage(self, definitions, subs):
         from mathics.builtin import mathics_to_sage

@@ -324,6 +324,10 @@ class Derivative(PostfixOperator, SageFunction):
 
         return sym_func
 
+    def to_sympy_direct(self, expression, **kwargs):
+        #TODO 
+        return self.to_sympy(expression)
+
 class Integrate(SageFunction):
     r"""
     <dl>
