@@ -48,11 +48,15 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'dsvar')
             return
 
+        # Fixes pathalogical DSolve[y''[x] == y[x], y, x]
+        try:
+            y.leaves
+        except AttributeError:
+            y = Expression(y, x)
         if y.is_atom() or len(y.leaves) != 1:
             evaluation.message('DSolve', 'dsfun', y) 
 
         if x not in y.leaves:
-            #TODO: Handle implied leaves like >> DSolve[y'[x] == y[x] (1 - y[x]/27), y, x]
             evaluation.message('DSolve', 'deqx')
 
         left, right = eqn.leaves
