@@ -109,15 +109,15 @@ class SympyExpression(BasicSympy):
         expr = expression.Expression(from_sympy(args[0]), *(from_sympy(arg) for arg in args[1:]))
         return SympyExpression(expr)"""
         
-    #@property
-    #def func(self):
-    #    from mathics.core import expression
-    #    
-    #    class SympyExpressionFunc(object):
-    #        def __new__(cls, *args):
-    #            return SympyExpression(self.expr)
-    #            #return SympyExpression(expression.Expression(self.expr.head, *(from_sympy(arg) for arg in args[1:])))
-    #    return SympyExpressionFunc
+    @property
+    def func(self):
+        from mathics.core import expression
+        
+        class SympyExpressionFunc(object):
+            def __new__(cls, *args):
+                return SympyExpression(self.expr)
+                #return SympyExpression(expression.Expression(self.expr.head, *(from_sympy(arg) for arg in args[1:])))
+        return SympyExpressionFunc
         
     def has_any_symbols(self, *syms):
         result = any(arg.has_any_symbols(*syms) for arg in self.args)
