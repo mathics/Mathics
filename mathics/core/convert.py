@@ -167,6 +167,9 @@ def from_sympy(expr):
             if isinstance(expr, symbol.Dummy):
                 name = name + ('__Dummy_%d' % expr.dummy_index)
                 return Symbol(name, sympy_dummy=expr)
+            if (not name.startswith(sympy_symbol_prefix) or name.startswith(sympy_slot_prefix)) \
+              and name.startswith('C'):
+                return Expression('C', name[1:])
             if name.startswith(sympy_symbol_prefix):
                 name = name[len(sympy_symbol_prefix):]
             if name.startswith(sympy_slot_prefix):

@@ -9,7 +9,7 @@ import re
 from mathics.builtin.base import Builtin, PostfixOperator, SageFunction
 from mathics.core.expression import Expression, String, Integer, Number
 from mathics.core.expression import from_sage, ConvertSubstitutions, from_sympy
-from mathics.core.convert import sage_symbol_prefix
+from mathics.core.convert import sage_symbol_prefix, sympy_symbol_prefix
 from mathics.core.util import unicode_superscript
 from mathics.core.rules import Pattern
 from mathics.builtin.scoping import dynamic_scoping
@@ -311,9 +311,9 @@ class Derivative(PostfixOperator, SageFunction):
             pass
 
         x = exprs[0].leaves[0]
-        sym_x = sympy.symbols('_Mathics_User_' +x.__str__())
+        sym_x = sympy.symbols(sympy_symbol_prefix + x.__str__())
         func = exprs[1].leaves[0]
-        sym_func = sympy.Function('_Mathics_User_' + func.__str__()) (sym_x)
+        sym_func = sympy.Function(sympy_symbol_prefix + func.__str__()) (sym_x)
         
         count = exprs[2].leaves[0].to_python()
         for i in range(count):

@@ -6,8 +6,8 @@ Differential equation solver functions
 
 import sympy
 from mathics.builtin.base import Builtin, BinaryOperator, Test
-from mathics.core.expression import Expression, from_sympy, from_python
-from mathics.core.convert import SympyExpression
+from mathics.core.expression import Expression, from_sympy
+from mathics.core.convert import SympyExpression, sympy_symbol_prefix
 
 class DSolve(Builtin):
     """
@@ -18,7 +18,7 @@ class DSolve(Builtin):
 
 
     >> DSolve[y''[x] == 0, y[x], x]
-     = {{y[x] -> C[1] + x C[2]}}
+     = {{y[x] -> C[2] + x C[1]}}
 
     >> DSolve[{y'[x] + y[x] == x, y[0] == 0}, y[x], x]
      = {{y[x] -> E^-x (1 - E^x + E^x x)}}
@@ -56,8 +56,8 @@ class DSolve(Builtin):
         eqn = Expression('Plus', left, Expression('Times', -1, right)).evaluate(evaluation)
         eq = eqn.to_sympy()
 
-        sym_x = sympy.symbols('_Mathics_User_' +x.to_python())
-        func = sympy.Function('_Mathics_User_' + y.get_head_name()) (sym_x)
+        sym_x = sympy.symbols(sympy_symbol_prefix + x.to_python())
+        func = sympy.Function(sympy_symbol_prefix + y.get_head_name()) (sym_x)
 
         try:
             sym_result = sympy.dsolve(eq, func)
