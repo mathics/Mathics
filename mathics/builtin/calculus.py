@@ -310,6 +310,9 @@ class Derivative(PostfixOperator, SageFunction):
         except AttributeError:
             pass
 
+        if len(exprs) != 4 or not all(len(expr.leaves) >= 1 for expr in exprs[:3]):
+            return 
+
         x = exprs[0].leaves[0]
         sym_x = sympy.symbols(str(sympy_symbol_prefix + x.__str__()))
         func = exprs[1].leaves[0]
