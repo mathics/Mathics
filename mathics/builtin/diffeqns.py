@@ -56,8 +56,8 @@ class DSolve(Builtin):
         eqn = Expression('Plus', left, Expression('Times', -1, right)).evaluate(evaluation)
         eq = eqn.to_sympy()
 
-        sym_x = sympy.symbols(sympy_symbol_prefix + x.to_python())
-        func = sympy.Function(sympy_symbol_prefix + y.get_head_name()) (sym_x)
+        sym_x = sympy.symbols(str(sympy_symbol_prefix + x.to_python()))
+        func = sympy.Function(str(sympy_symbol_prefix + y.get_head_name())) (sym_x)
 
         try:
             sym_result = sympy.dsolve(eq, func)

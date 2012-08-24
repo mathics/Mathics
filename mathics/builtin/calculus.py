@@ -311,9 +311,9 @@ class Derivative(PostfixOperator, SageFunction):
             pass
 
         x = exprs[0].leaves[0]
-        sym_x = sympy.symbols(sympy_symbol_prefix + x.__str__())
+        sym_x = sympy.symbols(str(sympy_symbol_prefix + x.__str__()))
         func = exprs[1].leaves[0]
-        sym_func = sympy.Function(sympy_symbol_prefix + func.__str__()) (sym_x)
+        sym_func = sympy.Function(str(sympy_symbol_prefix + func.__str__())) (sym_x)
         
         count = exprs[2].leaves[0].to_python()
         for i in range(count):
