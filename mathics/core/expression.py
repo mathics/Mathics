@@ -440,8 +440,8 @@ class Expression(BaseExpression):
         
         if 'converted_functions' in kwargs:
             functions = kwargs['converted_functions']
-            if len(self.leaves) > 0 and (self.get_head_name(), self.leaves[0].__str__()) in functions:
-                sym_x = sympy.symbols(str(sympy_symbol_prefix + self.leaves[0].name))
+            if len(self.leaves) > 0 and self.get_head_name() in functions:
+                sym_x =  self.leaves[0].to_sympy()
                 func = sympy.Function(str(sympy_symbol_prefix + self.get_head_name())) (sym_x)
                 return func
 

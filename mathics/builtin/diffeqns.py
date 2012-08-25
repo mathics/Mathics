@@ -65,7 +65,7 @@ class DSolve(Builtin):
         left, right = eqn.leaves
         eqn = Expression('Plus', left, Expression('Times', -1, right)).evaluate(evaluation)
 
-        sym_eq = eqn.to_sympy(converted_functions = set([(func.get_head_name(), x.name)]))
+        sym_eq = eqn.to_sympy(converted_functions = set([func.get_head_name()]))
         sym_x = sympy.symbols(str(sympy_symbol_prefix + x.name))
         sym_func = sympy.Function(str(sympy_symbol_prefix + func.get_head_name())) (sym_x)
 
