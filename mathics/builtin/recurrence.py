@@ -16,8 +16,11 @@ class RSolve(Builtin):
         <dd> Solves a recurrence equation for the function $a[n]$.
     </dl>
 
-    >>  RSolve[a[n] == a[n+1], a[n], n]
-     = {}
+    >> RSolve[a[n] == a[n+1], a[n], n]
+     = {{a[n] -> C[0]}}
+
+    >> RSolve[a[n + 2] == 3 a[n], a, n]
+    = {{a -> (Function[{n}, C[1] (-Sqrt[3]) ^ n + C[0] 3 ^ (n / 2)])}}
     """
 
     messages = {
