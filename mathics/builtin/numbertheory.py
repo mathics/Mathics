@@ -9,7 +9,7 @@ import sympy
 from sympy import isprime
 
 from mathics.builtin.base import Builtin, Test
-from mathics.core.expression import Expression, Integer, Rational, Symbol
+from mathics.core.expression import Expression, Integer, Rational, Symbol, from_python
 
 class PowerMod(Builtin):
     """
@@ -314,4 +314,27 @@ class PrimeQ(Builtin):
                 return Symbol('True')
             count += 50"""
     
-    
+class PrimePi(Builtin):
+    """
+    <dl>
+    <dt>'PrimePi[$x$]'
+      gives the number of primes less than or equal to $x$
+    </dl>
+
+    >> PrimePi[100]
+     = 25
+
+    >> PrimePi[-1]
+     = 0
+
+    >> PrimePi[3.5]
+     = 2
+
+    >> PrimePi[E]
+     = 1
+    """
+
+    def apply(self, n, evaluation):
+        'PrimePi[n_?NumericQ]'
+        return from_python(sympy.ntheory.primepi(n.to_python(n_evaluation=evaluation)))
+
