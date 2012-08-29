@@ -490,6 +490,20 @@ class _ListPlot(Builtin):
         else:
             return
 
+        # Split at missing data
+        i = 0
+        while i < len(all_points):
+            line = all_points[i]
+            for j, point in enumerate(line):
+                if not ((isinstance(point[0], float) or isinstance(point[0], int))
+                and (isinstance(point[1], float) or isinstance(point[1], int))):
+                    all_points.insert(i, line[:j])
+                    all_points[i+1] = line[j+1:]
+                    i -= 1
+                    break
+                    
+            i += 1
+
         y_range = get_plot_range([y for line in all_points for x, y in line], [y for line in all_points for x, y in line], y_range)
         x_range = get_plot_range([x for line in all_points for x, y in line], [x for line in all_points for x, y in line], x_range)
 
