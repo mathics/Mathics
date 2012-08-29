@@ -390,3 +390,69 @@ class NextPrime(Builtin):
                 return from_python(-1 * sympy.ntheory.nextprime(0, py_k-i))
             
         return from_python(result)
+
+class RandomPrime(Builtin):
+    """
+    <dl>
+    <dt>'RandomPrime[{$imin$, $imax}]'
+      gives a random prime beteween $imin$ and $imax$.
+    <dt>'RanomPrime[$imax$]
+      gives a random prime beteween 2 and $imax$.
+    <dt>'RandomPrime[$range$, $n$]'
+      gives a list of $n$ random primes in $range$.
+    </dl>
+
+    >> RandomPrime[{14, 17}]
+     = 17
+
+    >> RandomPrime[{14, 16}, 1]
+     : There are no primes in the specified interval.
+     = RandomPrime[{14, 16}, 1]
+
+    >> RandomPrime[{8,12}, 3]
+     = {11, 11, 11}
+    """
+
+    messages = {
+        'posdim': 'The dimensions parameter `1` is expected to be a positive integer or a list of positive integers.',
+        'noprime': 'There are no primes in the specified interval.',
+        'prmrng': 'First argument `1` is not a positive integer or a list of two positive integers.',
+        'posint': 'The paramater `1` describing the interval is expected to be a positive integer.',
+    }
+
+    rules = {
+        'RandomPrime[imax_?NotListQ]': 'RandomPrime[{1, imax}, 1]',
+        'RandomPrime[int_?ListQ]':  'RandomPrime[int, 1]',
+        'RandomPrime[imax_?NotListQ, n_]': 'RandomPrime[{1, imax}, n]',
+    }
+
+    def apply(self, interval, n, evaluation):
+        'RandomPrime[interval_?ListQ, n_]'
+
+        if not isinstance(n, Integer):
+            evaluation.message('RandomPrime', 'posdim', n)
+            return
+        py_n = n.to_python()
+
+        py_int = interval.to_python()
+        if not (isinstance(py_int, list) and len(py_int) == 2): 
+            evaluation.message('RandomPrime', 'prmrng', interval)
+
+        imin, imax = min(py_int), max(py_int)
+        if imin <= 0 or not isinstance(imin, int):
+            evaluation.message('RandomPrime', 'posint', interval.leaves[0])
+            return
+
+        if imax <= 0 or not isinstance(imax, int):
+            evaluation.message('RandomPrime', 'posint', interval.leaves[1])
+            return
+
+        #TODO: arrays of random primes e.g. RandomPrime[100, {4,5}]
+        try:
+            if py_n == 1:
+                return from_python(sympy.ntheory.randprime(imin, imax+1))
+            return from_python([sympy.ntheory.randprime(imin, imax+1) for i in range(py_n)])
+        except ValueError:
+            evaluation.message('RandomPrime', 'noprime')
+            return
+
