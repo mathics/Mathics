@@ -536,8 +536,8 @@ class _ListPlot(Builtin):
                     if filling is not None:
                         graphics.append(Expression('Hue', hue, 0.6, 0.6, 0.2))
                         fill_area = list(segment)
-                        fill_area.append([x_range[1], filling])
-                        fill_area.append([x_range[0], filling])
+                        fill_area.append([segment[-1][0], filling])
+                        fill_area.append([segment[0][0], filling])
                         graphics.append(Expression('Polygon', from_python(fill_area)))
                 else:
                     graphics.append(Expression('Point', from_python(segment))) 
