@@ -316,6 +316,8 @@ class PrimeQ(Builtin):
 
 class CoprimeQ(Builtin):
     """
+    Test whether two numbers are coprime by computing their greatest common divisor
+
     >> CoprimeQ[7, 9]
      = True
 
@@ -324,6 +326,14 @@ class CoprimeQ(Builtin):
 
     >> CoprimeQ[12, 15]
      = False
+
+    CoprimeQ also works for complex numbers
+    >> CoprimeQ[1+2I, 1-I]
+     = True
+
+    >> CoprimeQ[4+2I, 6+3I]
+     = False
+
     """
     attributes = ('Listable',)
 
@@ -332,11 +342,10 @@ class CoprimeQ(Builtin):
     def apply(self, n, m, evaluation):
         'CoprimeQ[n_, m_]'
 
-        n, m = n.get_int_value(), m.get_int_value()
-        if n is None or m is None:
+        n, m = n.to_python(), m.to_python()
+        if not all(isinstance(i, int) or isinstance(i, complex) for i in (n,m)):
             return Symbol('False')
 
-        n, m = abs(n), abs(m)
         if sympy.gcd(n,m) == 1:
             return Symbol('True')
         else:
