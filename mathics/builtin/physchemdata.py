@@ -39,8 +39,27 @@ class ElementData(Builtin):
         'noprop': '`1` is not a known property for ElementData. Use ElementData["Properties"] for a list of properties.',
     }
 
-    def apply(self, n, prop, evaluation):
-        "ElementData[n_, prop_]"
+    def apply_name(self, name, prop, evaluation):
+        "ElementData[name_?StringQ, prop_]"
+        py_name = name.to_python().strip('"')
+        names = ['StandardName', 'Name', 'Abbreviation']
+        iprops = [_ELEMENT_DATA[0].index(s) for s in names]
+
+        indx = None
+        for iprop in iprops:
+            try:
+                indx = [element[iprop] for element in _ELEMENT_DATA].index(py_name)
+            except ValueError:
+                pass
+
+        if indx is None:
+            evaluation.message("ElementData", "noent", name)
+            return
+
+        return self.apply_int(from_python(indx), prop, evaluation)
+
+    def apply_int(self, n, prop, evaluation):
+        "ElementData[n_?IntegerQ, prop_]"
 
         py_n = n.to_python()
         py_prop = prop.to_python()
