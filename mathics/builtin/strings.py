@@ -4,7 +4,7 @@
 String functions
 """
 
-from mathics.builtin.base import BinaryOperator, Builtin
+from mathics.builtin.base import BinaryOperator, Builtin, Test
 from mathics.core.expression import Expression, Symbol, String, Integer
 
 class StringJoin(BinaryOperator):
@@ -118,6 +118,23 @@ class String_(Builtin):
     """
     
     name = 'String'
+
+class StringQ(Test):
+    """
+    <dl>
+    <dt>'ListQ[$expr$]'
+        <dd>tests whether $expr$ is a 'String'.
+    </dl>
+    
+    >> StringQ["abc"]
+     = True
+
+    >> StringQ[1.5]
+     = False
+    """
+    
+    def test(self, expr):
+        return isinstance(expr, String)
     
 class ToString(Builtin):
     """
