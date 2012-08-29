@@ -334,7 +334,59 @@ class PrimePi(Builtin):
      = 1
     """
 
+    #TODO: Traditional Form
+
     def apply(self, n, evaluation):
         'PrimePi[n_?NumericQ]'
         return from_python(sympy.ntheory.primepi(n.to_python(n_evaluation=evaluation)))
 
+class NextPrime(Builtin):
+    """
+    <dl>
+    <dt>'NextPrime[$n$]'
+      gives the next prime after $n$.
+    <dt>'NextPrime[$n$,$k$]'
+      gives the $k$th  prime after $n$.
+    </dl>
+
+    >> NextPrime[10000]
+     = 10007
+
+    >> NextPrime[100, -5]
+     = 73
+
+    >> NextPrime[10, -5]
+    = -2
+
+    >> NextPrime[100, 5]
+     = 113
+
+    >> NextPrime[5.5, 100]
+     = 563
+
+    >> NextPrime[5, 10.5]
+     = NextPrime[5, 10.5]
+    """
+
+    rules = {
+        'NextPrime[n_]': 'NextPrime[n, 1]',
+    }
+
+    def apply(self, n, k, evaluation):
+        'NextPrime[n_?NumericQ, k_?IntegerQ]'
+        py_k = k.to_python(n_evaluation=evaluation)
+        py_n = n.to_python(n_evaluation=evaluation)
+
+        if py_k >= 0:
+            return from_python(sympy.ntheory.nextprime(py_n, py_k))
+
+        # Hack to get earlier primes
+        result = n.to_python()
+        for i in range(-py_k):
+            try:
+                result = sympy.ntheory.prevprime(result)
+            except ValueError:
+                # No earlier primes
+                return from_python(-1 * sympy.ntheory.nextprime(0, py_k-i))
+            
+        return from_python(result)
