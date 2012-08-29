@@ -214,6 +214,8 @@ class FactorInteger(Builtin):
      = {{2, 1}, {3, 1}, {5, 1}, {67, 1}, {2011, -1}}
     """
     
+    #TODO: GausianIntegers option e.g. FactorInteger[5, GaussianIntegers -> True]
+
     def apply(self, n, evaluation):
         'FactorInteger[n_]'
         
@@ -350,7 +352,47 @@ class CoprimeQ(Builtin):
             return Symbol('True')
         else:
             return Symbol('False')
+
+class PrimePowerQ(Builtin):
+    """
+    Tests wheter a number is a prime power
     
+    >> PrimePowerQ[9]
+     = True
+
+    >> PrimePowerQ[52142]
+     = False
+
+    >> PrimePowerQ[-8]
+     = True
+
+    >> PrimePowerQ[371293]
+     = True
+
+    >> PrimePowerQ[1]
+     = False
+    """
+
+    rules = {
+        'PrimePowerQ[1]': 'False',
+    }
+
+    #TODO: GaussianIntegers option e.g. PrimePowerQ[5, GaussianIntegers -> True] (False)
+    #TODO: Threading over lists e.g. PrimePowerQ[{1, 2 + I, 3, 4 - 2 I, 5, 6, 7 + 9 I, 8, 9}]
+    #TODO: Gaussian rationals e.g. PrimePowerQ[2/125 - 11 I/125] (True)
+
+    def apply(self, n, evaluation):
+        'PrimePowerQ[n_]'
+        n = n.get_int_value()
+        if n is None:
+            return Symbol('False')
+
+        n = abs(n)
+        if len(sympy.factorint(n)) == 1:
+            return Symbol('True')
+        else:
+            return Symbol('False')
+
 class PrimePi(Builtin):
     """
     <dl>
