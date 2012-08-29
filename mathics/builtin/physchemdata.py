@@ -5,7 +5,7 @@ Physical and Chemical data
 """
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Expression, from_python
+from mathics.core.expression import from_python
 from mathics.settings import ROOT_DIR
 
 def load_element_data():
@@ -15,8 +15,8 @@ def load_element_data():
     element_data = []
     for row in reader:
         element_data.append([value for value in row])            
-    return element_data
     element_file.close()
+    return element_data
 
 _ELEMENT_DATA = load_element_data()
 
@@ -76,4 +76,5 @@ class ElementData(Builtin):
         if result == "NOT_KNOWN":
             return Expression("Missing", "Unknown")
             
-        return from_python(result)
+        from mathics.core.parser import parse
+        return parse(result)
