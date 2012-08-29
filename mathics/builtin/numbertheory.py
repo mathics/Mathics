@@ -340,7 +340,7 @@ class CoprimeQ(Builtin):
     #TODO: Many numbers e.g. CoprimeQ[8,9,11]
 
     def apply(self, n, m, evaluation):
-        'CoprimeQ[n_, m_]'
+        'CoprimeQ[n_?NumericQ, m_?NumericQ]'
 
         n, m = n.to_python(), m.to_python()
         if not all(isinstance(i, int) or isinstance(i, complex) for i in (n,m)):
@@ -350,7 +350,6 @@ class CoprimeQ(Builtin):
             return Symbol('True')
         else:
             return Symbol('False')
-
     
 class PrimePi(Builtin):
     """
