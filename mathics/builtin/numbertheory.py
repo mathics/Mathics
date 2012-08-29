@@ -313,6 +313,35 @@ class PrimeQ(Builtin):
             elif result == 2:
                 return Symbol('True')
             count += 50"""
+
+class CoprimeQ(Builtin):
+    """
+    >> CoprimeQ[7, 9]
+     = True
+
+    >> CoprimeQ[-4, 9]
+     = True
+
+    >> CoprimeQ[12, 15]
+     = False
+    """
+    attributes = ('Listable',)
+
+    #TODO: Many numbers e.g. CoprimeQ[8,9,11]
+
+    def apply(self, n, m, evaluation):
+        'CoprimeQ[n_, m_]'
+
+        n, m = n.get_int_value(), m.get_int_value()
+        if n is None or m is None:
+            return Symbol('False')
+
+        n, m = abs(n), abs(m)
+        if sympy.gcd(n,m) == 1:
+            return Symbol('True')
+        else:
+            return Symbol('False')
+
     
 class PrimePi(Builtin):
     """
