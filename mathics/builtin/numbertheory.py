@@ -233,6 +233,49 @@ class FactorInteger(Builtin):
         else:
             return evaluation.message('FactorInteger', 'exact', n)
     
+class IntegerExponent(Builtin):
+    """
+    <dl>
+    <dt>'IntegerExponent[$n$, $b$]'
+        gives the highest exponent of $b$ that divides $n$.
+    <dl>
+
+    >> IntegerExponent[16, 2]
+     = 4
+
+    >> IntegerExponent[-510000]
+     = 4
+    """
+
+    rules = {
+        'IntegerExponent[n_]': 'IntegerExponent[n, 10]',
+    }
+
+    messages = {
+        'int': 'Integer expected at position 1 in `1`',
+        'ibase': 'Base `1` is not an integer greater than 1.',
+    }
+
+    def apply(self, n, b, evaluation):
+        'IntegerExponent[n_, b_]'
+
+        py_n, py_b = n.to_python(), b.to_python()
+        expr = Expression('InegerExponent', n, b)
+        
+        if not (isinstance(py_n, int) or isinstance(py_n, long)):
+            evaluation.message('IntegerExponent', 'int', expr)
+        py_n = abs(py_n)
+
+        if not (isinstance(py_b, int) and py_b > 1):
+            evaluation.message('IntegerExponent', 'ibase', b)
+
+        #TODO: Optimise this (dont need to calc. base^result)
+        result = 1
+        while py_n % (py_b**result) == 0:
+            result += 1
+
+        return from_python(result-1)
+        
 class Prime(Builtin):
     """
     <dl>
