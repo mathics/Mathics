@@ -51,6 +51,9 @@ class ElementData(Builtin):
 
     >> ElementData[1, "AtomicRadius"]
      = 53.
+
+    >> ListPlot[Table[ElementData[z, "AtomicWeight"], {z, 118}]]
+     = -Graphics-
     """
 
     rules = {
