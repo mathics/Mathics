@@ -5,7 +5,7 @@ Physical and Chemical data
 """
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import from_python
+from mathics.core.expression import Expression, from_python
 from mathics.settings import ROOT_DIR
 
 def load_element_data():
@@ -28,10 +28,35 @@ class ElementData(Builtin):
     <dt>'ElementData[$n$, "property"]
         <dd>gives the specified property for the $n$th chemical element.                #TODO: Change
     </dl>
+
+    >> ElementData[74]
+     = Tungsten
+
+    >> ElementData["He", "AbsoluteBoilingPoint"]
+     = 4.22
+
+    Some properties are not appropriate for certain elements
+    >> ElementData["He", "AbsoluteMeltingPoint"]
+     = Missing[NotApplicable]
+
+    Some data is unknown
+    >> ElementData["Curium", "MagneticType"]
+     = Missing[Unknown]
+
+    >> ElementData["Uranium", "DiscoveryYear"]
+     = 1789
+
+    All the known properties
+    >> ElementData["Properties"];
+
+    >> ElementData[1, "AtomicRadius"]
+     = 53.
     """
 
     rules = {
         'ElementData[n_]': 'ElementData[n, "StandardName"]',
+        'ElementData[]': 'ElementData[All]',
+        'ElementData["Properties"]': 'ElementData[All, "Properties"]',
     }
 
     messages = {
@@ -39,6 +64,15 @@ class ElementData(Builtin):
         'noprop': '`1` is not a known property for ElementData. Use ElementData["Properties"] for a list of properties.',
     }
 
+    def apply_all(self, evaluation):
+        'ElementData[All]'
+        iprop = _ELEMENT_DATA[0].index('StandardName')
+        return from_python([element[iprop] for element in _ELEMENT_DATA[1:]])
+
+    def apply_all_properties(self, evaluation):
+        'ElementData[All, "Properties"]'
+        return from_python(_ELEMENT_DATA[0])
+        
     def apply_name(self, name, prop, evaluation):
         "ElementData[name_?StringQ, prop_]"
         py_name = name.to_python().strip('"')
@@ -48,7 +82,7 @@ class ElementData(Builtin):
         indx = None
         for iprop in iprops:
             try:
-                indx = [element[iprop] for element in _ELEMENT_DATA].index(py_name)
+                indx = [element[iprop] for element in _ELEMENT_DATA[1:]].index(py_name) + 1
             except ValueError:
                 pass
 
@@ -78,6 +112,13 @@ class ElementData(Builtin):
         # Check property specifier
         if isinstance(py_prop, str) or isinstance(py_prop, unicode):
             py_prop = str(py_prop)
+
+        if py_prop == '"Properties"':
+            result = []
+            for i,p in enumerate(_ELEMENT_DATA[py_n]):
+                if p not in ["NOT_AVAILABLE", "NOT_APPLICABLE", "NOT_KNOWN"]:
+                    result.append(_ELEMENT_DATA[0][i])
+            return from_python(result)
 
         if not (isinstance(py_prop, str) and py_prop[0] == py_prop[-1] == '"' and py_prop.strip('"') in _ELEMENT_DATA[0]):
             evaluation.message("ElementData", "noprop", prop)
