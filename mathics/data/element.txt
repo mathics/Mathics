@@ -1,0 +1,1 @@
+element.csv generated from data on http://en.wikipedia.org/wiki/List_of_elements as of 31 August 2012

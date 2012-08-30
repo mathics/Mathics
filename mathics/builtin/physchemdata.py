@@ -36,21 +36,15 @@ class ElementData(Builtin):
      = 4.22
 
     Some properties are not appropriate for certain elements
-    >> ElementData["He", "AbsoluteMeltingPoint"]
+    >> ElementData["He", "ElectroNegativity"]
      = Missing[NotApplicable]
 
-    Some data is unknown
-    >> ElementData["Curium", "MagneticType"]
-     = Missing[Unknown]
-
-    >> ElementData["Uranium", "DiscoveryYear"]
-     = 1789
+    Some data is missing
+    >> ElementData["Tc", "SpecificHeat"]
+     = Missing[NotAvailable]
 
     All the known properties
     >> ElementData["Properties"];
-
-    >> ElementData[1, "AtomicRadius"]
-     = 53.
 
     >> ListPlot[Table[ElementData[z, "AtomicWeight"], {z, 118}]]
      = -Graphics-
