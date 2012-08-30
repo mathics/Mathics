@@ -231,6 +231,28 @@ class Round(Builtin):
      = 0.1
     >> Round[0.04, 0.1]
      = 0.
+
+    Constants can be rounded too
+    >> Round[Pi, .5]
+     = 3.
+    >> Round[Pi^2]
+     = 10
+
+    Round to exact value
+    >> Round[2.6, 1/3]
+     = 8 / 3
+    >> Round[10, Pi]
+     = 3 Pi
+
+    Round complex numbers
+    >> Round[6/(2 + 3 I)]
+     = 1 - I
+    >> Round[1 + 2 I, 2 I]
+     = 2 I
+
+    Round Negative numbers too
+    >> Round[-1.4]
+     = -1
      
     Expressions other than numbers remain unevaluated:
     >> Round[x]
@@ -238,6 +260,8 @@ class Round(Builtin):
     >> Round[1.5, k]
      = Round[1.5, k]
     """
+
+    #TODO: Pass all tests
     
     attributes = ('Listable', 'NumericFunction')
     
