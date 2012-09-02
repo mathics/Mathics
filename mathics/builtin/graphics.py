@@ -1111,6 +1111,18 @@ class GraphicsBox(BoxConstruct):
                 exmin, exmax, eymin, eymax = elements.extent(completely_visible_only=True)
             else:
                 exmin = exmax = eymin = eymax = None
+                
+            def get_range(min, max):
+                if max < min:
+                    min, max = max, min
+                elif min == max:
+                    if min < 0:
+                        min, max = 2 * min, 0
+                    elif min > 0:
+                        min, max = 0, 2 * min
+                    else:
+                        min, max = -1, 1
+                return min, max
             
             try:
                 if plot_range[0] == 'Automatic':
@@ -1122,6 +1134,7 @@ class GraphicsBox(BoxConstruct):
                         xmax += 1
                 elif isinstance(plot_range[0], list) and len(plot_range[0]) == 2:
                     xmin, xmax = map(float, plot_range[0])
+                    xmin, xmax = get_range(xmin, xmax)
                     xmin = elements.translate((xmin, 0))[0]
                     xmax = elements.translate((xmax, 0))[0]
                     if exmin is not None and exmin < xmin:
@@ -1140,6 +1153,7 @@ class GraphicsBox(BoxConstruct):
                         ymax += 1
                 elif isinstance(plot_range[1], list) and len(plot_range[1]) == 2:
                     ymin, ymax = map(float, plot_range[1])
+                    ymin, ymax = get_range(ymin, ymax)
                     ymin = elements.translate((0, ymin))[1]
                     ymax = elements.translate((0, ymax))[1]
                     if eymin is not None and eymin < ymin:
@@ -1245,7 +1259,11 @@ clip(box((%s,%s), (%s,%s)));
             if not value:
                 return 1, 1
             sub_steps = 5
-            shift = 10.0 ** floor(log10(value))
+            try:
+                shift = 10.0 ** floor(log10(value))
+            except ValueError:
+                print value
+                return 1, 1
             value = value / shift
             if value < 1.5:
                 value = 1

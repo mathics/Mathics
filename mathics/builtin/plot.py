@@ -108,7 +108,12 @@ def get_plot_range(values, all_values, option):
     else:
         result = option
     if result[0] == result[1]:
-        return 0, result[1] * 2
+        value = result[0]
+        if value > 0:
+            return 0, value * 2
+        if value < 0:
+            return value * 2, 0
+        return -1, 1
     return result
 
 class _Plot(Builtin):
@@ -841,7 +846,7 @@ class ListPlot(_ListPlot):
         <dd>plots a several lists of points.
     </dl>
 
-    >> ListPlot[Table[n^2, {n,10}]]
+    >> ListPlot[Table[n ^ 2, {n, 10}]]
      = -Graphics-
     """
 
@@ -871,7 +876,10 @@ class ListLinePlot(_ListPlot):
         <dd>plots several lines.
     </dl>
 
-    >> ListLinePlot[Table[{n,n^0.5}, {n,10}]]
+    >> ListLinePlot[Table[{n, n ^ 0.5}, {n, 10}]]
+     = -Graphics-
+     
+    >> ListLinePlot[{{-2, -1}, {-1, -1}}]
      = -Graphics-
     """
     from graphics import Graphics
