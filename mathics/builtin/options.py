@@ -173,4 +173,5 @@ class Default(Builtin):
         return result
     
 def options_to_rules(options):
-    return [Expression('Rule', Symbol(name), value) for name, value in options.iteritems()]
+    items = sorted(options.iteritems())
+    return [Expression('Rule', Symbol(name), value) for name, value in items]

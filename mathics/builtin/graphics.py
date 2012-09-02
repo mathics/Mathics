@@ -39,7 +39,10 @@ def get_class(name):
 
 def coords(value):
     if value.has_form('List', 2):
-        return (value.leaves[0].to_number(), value.leaves[1].to_number())
+        x, y = value.leaves[0].to_number(), value.leaves[1].to_number()
+        if x is None or y is None:
+            raise CoordinatesError
+        return (x, y)
     raise CoordinatesError
 
 class Coords(object):
@@ -148,6 +151,10 @@ class Graphics(Builtin):
      . draw(ellipse((175.0,175.0),175.0,175.0), rgb(0, 0, 0)+linewidth(0.666666666667));
      . clip(box((-0.333333333333,0.333333333333), (350.333333333,349.666666667)));
      . \end{asy}
+     
+    Invalid graphics directives yield invalid box structures:
+    >> Graphics[Circle[{a, b}]]
+     : GraphicsBox[CircleBox[List[a, b]], Rule[AspectRatio, Automatic], Rule[Axes, False], Rule[AxesStyle, List[]], Rule[ImageSize, Automatic], Rule[LabelStyle, List[]], Rule[PlotRange, Automatic], Rule[PlotRangePadding, Automatic], Rule[TicksStyle, List[]]] is not a valid box structure.
     """
     
     options = {
@@ -161,14 +168,10 @@ class Graphics(Builtin):
         'ImageSize': 'Automatic',
     }
     
-    rules = {
-        'MakeBoxes[Graphics[content_, OptionsPattern[Graphics]], OutputForm]': '"-Graphics-"',
-    }
-    
     box_suffix = 'Box'
     
     def apply_makeboxes(self, content, evaluation, options):
-        'MakeBoxes[%(name)s[content_, OptionsPattern[%(name)s]], StandardForm|TraditionalForm]'
+        'MakeBoxes[%(name)s[content_, OptionsPattern[%(name)s]], StandardForm|TraditionalForm|OutputForm]'
         
         def convert(content):
             if content.has_form('List', None):
@@ -1024,6 +1027,7 @@ class GraphicsBox(BoxConstruct):
     attributes = ('HoldAll', 'ReadProtected')
     
     def boxes_to_text(self, leaves, **options):
+        self._prepare_elements(leaves, options) # to test for Box errors
         return '-Graphics-'
     
     def _get_image_size(self, options, graphics_options, max_width):        
