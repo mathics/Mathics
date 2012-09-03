@@ -480,14 +480,14 @@ class _ListPlot(Builtin):
 
         if isinstance(all_points, list) and len(all_points) != 0:
             if all(not isinstance(point, list) for point in all_points):  # Only y values given
-                all_points = [[[float(i), all_points[i]] for i in range(len(all_points))]]
+                all_points = [[[float(i + 1), all_points[i]] for i in range(len(all_points))]]
             elif all(isinstance(line,list) and len(line) == 2 for line in all_points):  # Single list of (x,y) pairs
                 all_points = [all_points]
             elif all(isinstance(line,list) for line in all_points):     # List of lines
                 if all(isinstance(point, list) and len(point) == 2 for line in all_points for point in line):
                     pass
                 elif all(not isinstance(point, list) for line in all_points for point in line):
-                    all_points = [[[float(i), line[i]] for i in range(len(line))] for line in all_points]
+                    all_points = [[[float(i + 1), line[i]] for i in range(len(line))] for line in all_points]
                 else:
                     return
             else:
