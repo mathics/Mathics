@@ -123,6 +123,9 @@ class DateStringFormat(Predefined):
 class _DateFormat(Builtin):
     def to_datelist(self, epochtime, evaluation):
         etime = epochtime.to_python()
+
+        form_name = self.get_name()
+
         if isinstance(etime, float) or isinstance(etime, int):
             try:
                 timestruct = time.gmtime(etime - 2208988800)
@@ -148,7 +151,7 @@ class _DateFormat(Builtin):
             except ValueError:
                 # datetime is fairly easy to overlfow. 1 <= month <= 12 and some bounds on year too.
                 # TODO: Make this more resiliant (accept a wider range of years and months)
-                evaluation.message('%(name)s', 'arg', epochtime)
+                evaluation.message(form_name, 'arg', epochtime)
                 return
 
             tdelta = timedelta(days=imprec_part[0]-1, hours=imprec_part[1], minutes=imprec_part[2], seconds=imprec_part[3])
@@ -200,8 +203,8 @@ class _DateFormat(Builtin):
                 return datelist[0]
             return datelist
 
-        evaluation.message('%(name)s', 'arg', epochtime)
-        return
+        evaluation.message(form_name, 'arg', epochtime)
+        return None
 
 class DateList(_DateFormat):
     """
@@ -244,6 +247,10 @@ class DateList(_DateFormat):
     def apply(self, epochtime, evaluation):
         '%(name)s[epochtime_]'
         datelist = self.to_datelist(epochtime, evaluation)
+
+        if datelist is None:
+            return
+
         return Expression('List', *datelist)
 
 class DateString(_DateFormat):
@@ -286,6 +293,10 @@ class DateString(_DateFormat):
     def apply(self, epochtime, form, evaluation):
         'DateString[epochtime_, form_]'
         datelist = self.to_datelist(epochtime, evaluation)
+
+        if datelist is None:
+            return
+
         date = _Date(datelist=datelist)
 
         pyform = form.to_python()
