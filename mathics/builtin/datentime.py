@@ -252,14 +252,30 @@ class DateString(_DateFormat):
     <dt>'DateString[]'
       <dd>Returns the current local time and date as a string.
     <dt>'DateString[time]'
-      <dd>Returns the date string of an AbsoluteTime
+      <dd>Returns the date string of an AbsoluteTime.
+    <dt>'DateString[{y, m, d, h, m, s}]'
+      <dd>Returns the date string of a date list specification.
+
+    The current date and time
+    >> DateString[];
 
     >> DateString[{1991, 10, 31, 0, 0}, {"Day", " ", "MonthName", " ", "Year"}]
      = 31 October 1991
+
+    >> DateString[{2007, 4, 15, 0}]
+     = Sun 15 Apr 2007 00:00:00
+
+    >> DateString[{1979, 3, 14}, {"DayName", "  ", "Month", "-", "YearShort"}]
+     = Wednesday  03-79
+
+    Non-integer values are accepted too
+    >>  DateString[{1991, 6, 6.5}]
+     = Thu 6 Jun 1991 12:00:00
     """
 
     rules = {
         'DateString[]': 'DateString[DateList[], $DateStringFormat]',
+        'DateString[epochtime_]': 'DateString[epochtime, $DateStringFormat]',
     }
 
     messages = {
@@ -278,13 +294,14 @@ class DateString(_DateFormat):
 
         pyform = map(lambda x: x.strip('"'), pyform)
 
-        if not all(isinstance(f, unicode) for f in pyform):
+        if not all(isinstance(f, unicode) or isinstance(f, str) for f in pyform):
             evaluation.message('DateString', 'fmt', form)
             return
 
         datestrs = []
         for p in pyform:
             if str(p) in DATE_STRING_FORMATS.keys():
+                #FIXME: Years 1900 before raise an error
                 datestrs.append(date.date.strftime(DATE_STRING_FORMATS[p]))
             else:
                 datestrs.append(str(p))
