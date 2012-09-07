@@ -7,6 +7,9 @@ Elastic properties (BulkModulus, ShearModulus, YoungsModulus) from http://en.wik
 Electronic configurations (ElectronConfiguration, ElectronShellConfiguration, ElectronConfigurationString) from http://en.wikipedia.org/wiki/Electron_configurations_of_the_elements_(data_page) as of 07 September 2012
 LiquidDensity from http://en.wikipedia.org/wiki/Densities_of_the_elements_(data_page) as of 08 September 2012
 ThermalConductivity from http://en.wikipedia.org/wiki/Thermal_conductivities_of_the_elements_(data_page) as of 08 September 2012
+DiscoveryYear from http://en.wikipedia.org/wiki/Timeline_of_chemical_elements_discoveries as of 08 September 2012
+FusionHeat from http://en.wikipedia.org/wiki/Heats_of_fusion_of_the_elements_(data_page) as of 08 September 2012
+VaporizationHeat from http://en.wikipedia.org/wiki/Heats_of_vaporization_of_the_elements_(data_page) as of 08 September 2012
 
 Notes:
 Mathematica appears to use an Algorithmic approach to classifying elements by Series. This gives discrepancy with Mathics
