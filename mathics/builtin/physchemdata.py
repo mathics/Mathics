@@ -23,10 +23,10 @@ _ELEMENT_DATA = load_element_data()
 class ElementData(Builtin):
     """
     <dl>
-    <dt>'ElementData["name", "property"]
-        <dd>gives the value of the specified property for the chemical element "name".  #TODO: Change
-    <dt>'ElementData[$n$, "property"]
-        <dd>gives the specified property for the $n$th chemical element.                #TODO: Change
+    <dt>'ElementData["$name$", "$property$"]
+        <dd>gives the value of the $property$ for the chemical specified by $name$".
+    <dt>'ElementData[$n$, "$property$"]
+        <dd>gives the value of the $property$ for the $n$th chemical element".
     </dl>
 
     >> ElementData[74]
@@ -53,7 +53,8 @@ class ElementData(Builtin):
      = Missing[NotAvailable]
 
     All the known properties
-    >> ElementData["Properties"];
+    >> ElementData["Properties"]
+     = {AtomicNumber, Abbreviation, StandardName, Name, Block, Group, Period, Series, AtomicWeight, Density, AbsoluteMeltingPoint, MeltingPoint, AbsoluteBoilingPoint, BoilingPoint, SpecificHeat, ElectroNegativity, CrustAbundance, MohsHardness, VickersHardness, BrinellHardness, AtomicRadius, VanDerWaalsRadius, CovalentRadius, IonizationEnergies, YoungModulus, PoissonRatio, BulkModulus, ShearModulus, ElectronConfiguration, ElectronConfigurationString, ElectronShellConfiguration}
 
     >> ListPlot[Table[ElementData[z, "AtomicWeight"], {z, 118}]]
      = -Graphics-
