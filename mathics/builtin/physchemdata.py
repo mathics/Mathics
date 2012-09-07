@@ -54,7 +54,7 @@ class ElementData(Builtin):
 
     All the known properties
     >> ElementData["Properties"]
-     = {AtomicNumber, Abbreviation, StandardName, Name, Block, Group, Period, Series, AtomicWeight, Density, AbsoluteMeltingPoint, MeltingPoint, AbsoluteBoilingPoint, BoilingPoint, SpecificHeat, ElectroNegativity, CrustAbundance, MohsHardness, VickersHardness, BrinellHardness, AtomicRadius, VanDerWaalsRadius, CovalentRadius, IonizationEnergies, YoungModulus, PoissonRatio, BulkModulus, ShearModulus, ElectronConfiguration, ElectronConfigurationString, ElectronShellConfiguration}
+     = {AtomicNumber, Abbreviation, StandardName, Name, Block, Group, Period, Series, AtomicWeight, Density, AbsoluteMeltingPoint, MeltingPoint, AbsoluteBoilingPoint, BoilingPoint, SpecificHeat, ElectroNegativity, CrustAbundance, MohsHardness, VickersHardness, BrinellHardness, AtomicRadius, VanDerWaalsRadius, CovalentRadius, IonizationEnergies, ElectronAffinity, YoungModulus, PoissonRatio, BulkModulus, ShearModulus, ElectronConfiguration, ElectronConfigurationString, ElectronShellConfiguration}
 
     >> ListPlot[Table[ElementData[z, "AtomicWeight"], {z, 118}]]
      = -Graphics-
