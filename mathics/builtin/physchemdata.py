@@ -35,6 +35,9 @@ class ElementData(Builtin):
     >> ElementData["He", "AbsoluteBoilingPoint"]
      = 4.22
 
+    >> ElementData["Carbon", "IonizationEnergies"]
+     = {1086.5, 2352.6, 4620.5, 6222.7, 37831, 47277.} 
+
     Some properties are not appropriate for certain elements
     >> ElementData["He", "ElectroNegativity"]
      = Missing[NotApplicable]
