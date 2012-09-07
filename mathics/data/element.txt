@@ -1,1 +1,8 @@
 element.csv generated from data on http://en.wikipedia.org/wiki/List_of_elements as of 31 August 2012
+Series data taken from http://en.wikipedia.org/wiki/Template:Periodic_table as of 07 September 2012
+
+
+Notes:
+Mathematica appears to use an Algorithmic approach to classifying elements by Series. This gives discrepancy with Mathics
+    Elements 71 and 103 are described as Lanthanides and Actinides by Wikipedia based on their chemical and physical properties. 
+    Super heavy elements 109, 110, 111, 113+ incorrectly classified by Mathematica.
