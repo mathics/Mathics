@@ -1,5 +1,6 @@
 element.csv generated from data on http://en.wikipedia.org/wiki/List_of_elements as of 31 August 2012
 Series data taken from http://en.wikipedia.org/wiki/Template:Periodic_table as of 07 September 2012
+Hardness data taken from http://en.wikipedia.org/wiki/Hardnesses_of_the_elements_(data_page) as of 07 September 2012
 
 
 Notes:
