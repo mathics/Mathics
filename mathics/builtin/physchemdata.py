@@ -38,6 +38,12 @@ class ElementData(Builtin):
     >> ElementData["Carbon", "IonizationEnergies"]
      = {1086.5, 2352.6, 4620.5, 6222.7, 37831, 47277.} 
 
+    >> ElementData[16, "ElectronConfigurationString"]
+     = [Ne] 3s2 3p4
+
+    >> ElementData[73, "ElectronConfiguration"]
+     = {{2}, {2, 6}, {2, 6, 10}, {2, 6, 10, 14}, {2, 6, 3}, {2}}
+
     Some properties are not appropriate for certain elements
     >> ElementData["He", "ElectroNegativity"]
      = Missing[NotApplicable]
