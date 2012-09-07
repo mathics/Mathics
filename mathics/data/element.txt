@@ -3,6 +3,7 @@ Series data taken from http://en.wikipedia.org/wiki/Template:Periodic_table as o
 Hardness data taken from http://en.wikipedia.org/wiki/Hardnesses_of_the_elements_(data_page) as of 07 September 2012
 Radius data (AtomicRadius, VanDerWaalsRadius, CovalentRadius) from http://en.wikipedia.org/wiki/List_of_elements_by_atomic_properties as of 07 September 2012
 IonizationEnergies from http://en.wikipedia.org/wiki/Ionization_energies_of_the_elements_(data_page) as of 07 September 2012
+Elastic properties (BulkModulus, ShearModulus, YoungsModulus) from http://en.wikipedia.org/wiki/Elastic_properties_of_the_elements_(data_page) as of 07 September 2012
 
 Notes:
 Mathematica appears to use an Algorithmic approach to classifying elements by Series. This gives discrepancy with Mathics
