@@ -4,12 +4,13 @@
 Physical and Chemical data
 """
 
+from csv import reader as csvreader
+
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Expression, from_python
+from mathics.core.expression import Expression, from_python, Symbol, String
 from mathics.settings import ROOT_DIR
 
 def load_element_data():
-    from csv import reader as csvreader
     element_file = open(ROOT_DIR + 'data/element.csv', 'rb')
     reader = csvreader(element_file, delimiter='\t')
     element_data = []
@@ -43,18 +44,22 @@ class ElementData(Builtin):
 
     >> ElementData[73, "ElectronConfiguration"]
      = {{2}, {2, 6}, {2, 6, 10}, {2, 6, 10, 14}, {2, 6, 3}, {2}}
+     
+    The number of known elements:
+    >> Length[ElementData[All]]
+     = 118
 
-    Some properties are not appropriate for certain elements
+    Some properties are not appropriate for certain elements:
     >> ElementData["He", "ElectroNegativity"]
      = Missing[NotApplicable]
 
-    Some data is missing
+    Some data is missing:
     >> ElementData["Tc", "SpecificHeat"]
      = Missing[NotAvailable]
 
-    All the known properties
+    All the known properties:
     >> ElementData["Properties"]
-     = {AtomicNumber, Abbreviation, StandardName, Name, Block, Group, Period, Series, AtomicWeight, DiscoveryYear, LiquidDensity, Density, AbsoluteMeltingPoint, MeltingPoint, AbsoluteBoilingPoint, BoilingPoint, SpecificHeat, FusionHeat, VaporizationHeat, ElectroNegativity, CrustAbundance, MohsHardness, VickersHardness, BrinellHardness, AtomicRadius, VanDerWaalsRadius, CovalentRadius, IonizationEnergies, ElectronAffinity, ThermalConductivity, YoungModulus, PoissonRatio, BulkModulus, ShearModulus, ElectronConfiguration, ElectronConfigurationString, ElectronShellConfiguration} 
+     = {Abbreviation, AbsoluteBoilingPoint, AbsoluteMeltingPoint, AtomicNumber, AtomicRadius, AtomicWeight, Block, BoilingPoint, BrinellHardness, BulkModulus, CovalentRadius, CrustAbundance, Density, DiscoveryYear, ElectroNegativity, ElectronAffinity, ElectronConfiguration, ElectronConfigurationString, ElectronShellConfiguration, FusionHeat, Group, IonizationEnergies, LiquidDensity, MeltingPoint, MohsHardness, Name, Period, PoissonRatio, Series, ShearModulus, SpecificHeat, StandardName, ThermalConductivity, VanDerWaalsRadius, VaporizationHeat, VickersHardness, YoungModulus} 
 
     >> ListPlot[Table[ElementData[z, "AtomicWeight"], {z, 118}]]
      = -Graphics-
@@ -78,7 +83,7 @@ class ElementData(Builtin):
 
     def apply_all_properties(self, evaluation):
         'ElementData[All, "Properties"]'
-        return from_python(_ELEMENT_DATA[0])
+        return from_python(sorted(_ELEMENT_DATA[0]))
         
     def apply_name(self, name, prop, evaluation):
         "ElementData[name_?StringQ, prop_]"
@@ -101,6 +106,8 @@ class ElementData(Builtin):
 
     def apply_int(self, n, prop, evaluation):
         "ElementData[n_?IntegerQ, prop_]"
+        
+        from mathics.core.parser import parse
 
         py_n = n.to_python()
         py_prop = prop.to_python()
@@ -125,7 +132,7 @@ class ElementData(Builtin):
             for i,p in enumerate(_ELEMENT_DATA[py_n]):
                 if p not in ["NOT_AVAILABLE", "NOT_APPLICABLE", "NOT_KNOWN"]:
                     result.append(_ELEMENT_DATA[0][i])
-            return from_python(result)
+            return from_python(sorted(result))
 
         if not (isinstance(py_prop, str) and py_prop[0] == py_prop[-1] == '"' and py_prop.strip('"') in _ELEMENT_DATA[0]):
             evaluation.message("ElementData", "noprop", prop)
@@ -143,5 +150,7 @@ class ElementData(Builtin):
         if result == "NOT_KNOWN":
             return Expression("Missing", "Unknown")
             
-        from mathics.core.parser import parse
-        return parse(result)
+        result = parse(result)
+        if isinstance(result, Symbol):
+            result = String(result.get_name())
+        return result

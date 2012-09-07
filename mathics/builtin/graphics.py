@@ -374,7 +374,7 @@ class Rectangle(Builtin):
     """
     <dl>
     <dt>'Rectangle[{$xmin$, $ymin$}]'
-        <dd>represents a unit square who's bottom-left corner is at {$xmin$, $ymin$}.
+        <dd>represents a unit square with bottom-left corner at {$xmin$, $ymin$}.
     <dt>'Rectangle[{$xmin$, $ymin$}, {$xmax$, $ymax$}]
         <dd>is a rectange extending from {$xmin$, $ymin$} to {$xmax$, $ymax$}.
     </dl>
