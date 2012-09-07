@@ -42,7 +42,7 @@ setup(
     version = settings.VERSION,
     
     packages = ['mathics', 'mathics.builtin', 'mathics.optional',
-        'mathics.core', 'mathics.core.spark',
+        'mathics.core', 'mathics.core.spark', 'mathics.data',
         'mathics.doc', 'mathics.web', 'mathics.web.templatetags'],
 
     install_requires = INSTALL_REQUIRES,
@@ -53,6 +53,7 @@ setup(
             'media/js/innerdom/*.js', 'media/js/prototype/*.js', 'media/js/scriptaculous/*.js', 'media/js/three/Three.js', 'media/js/three/Detector.js',
             'media/js/*.js',
             'templates/*.html', 'templates/doc/*.html'] + mathjax_files,
+        'mathics.data': ['*.csv'],
     },
     
     entry_points = {

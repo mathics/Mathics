@@ -13,6 +13,14 @@ This file is about the copyright on Mathics and all included components.
 The full text of the GPL is available below in this file. Details of
 the licenses of the components of Mathics are included below as well.
  
+* LICENSES OF INCLUDED DATA:
+
+Mathics includes data from Wikipedia that is published under the Creative 
+Commons Attribution-Sharealike 3.0 Unported License and the GNU Free 
+Documentation License contributed by the respective authors that are listed 
+on the websites specified in "data/elements.txt".
+
+
 * LICENSES OF INCLUDED SOFTWARE:
  
 SOFTWARE                           LICENSE

@@ -1,6 +1,11 @@
 CHANGES
 =======
 
+0.5.1dev
+--------
+
+- ElementData using data from Wikipedia
+
 0.5
 ---
 
