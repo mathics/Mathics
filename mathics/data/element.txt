@@ -5,6 +5,7 @@ Radius data (AtomicRadius, VanDerWaalsRadius, CovalentRadius) from http://en.wik
 IonizationEnergies from http://en.wikipedia.org/wiki/Ionization_energies_of_the_elements_(data_page) as of 07 September 2012
 Elastic properties (BulkModulus, ShearModulus, YoungsModulus) from http://en.wikipedia.org/wiki/Elastic_properties_of_the_elements_(data_page) as of 07 September 2012
 Electronic configurations (ElectronConfiguration, ElectronShellConfiguration, ElectronConfigurationString) from http://en.wikipedia.org/wiki/Electron_configurations_of_the_elements_(data_page) as of 07 September 2012
+LiquidDensity from http://en.wikipedia.org/wiki/Densities_of_the_elements_(data_page) as of 08 September 2012
 
 Notes:
 Mathematica appears to use an Algorithmic approach to classifying elements by Series. This gives discrepancy with Mathics
