@@ -5,6 +5,7 @@ CHANGES
 --------
 
 - ElementData using data from Wikipedia
+- added Switch
 
 0.5
 ---

@@ -340,6 +340,19 @@ class Alternatives(BinaryOperator, PatternObject):
                     range[1] = sub[1]
         return range
     
+def match(expr, form, evaluation):        
+    class StopGenerator_MatchQ(StopGenerator):
+        pass
+    
+    form = Pattern.create(form)
+    def yield_func(vars, rest):
+        raise StopGenerator_MatchQ(Symbol("True"))
+    try:
+        form.match(yield_func, expr, {}, evaluation)
+    except StopGenerator_MatchQ, exc:
+        return True
+    return False
+    
 class MatchQ(Builtin):
     """
     <dl>
@@ -356,18 +369,8 @@ class MatchQ(Builtin):
     def apply(self, expr, form, evaluation):
         'MatchQ[expr_, form_]'
         
-        class StopGenerator_MatchQ(StopGenerator):
-            pass
-        
-        form = Pattern.create(form)
-        #for vars, rest in form.match(expr, {}, evaluation):
-        def yield_func(vars, rest):
-            #return Symbol("True")
-            raise StopGenerator_MatchQ(Symbol("True"))
-        try:
-            form.match(yield_func, expr, {}, evaluation)
-        except StopGenerator_MatchQ, exc:
-            return exc.value
+        if match(expr, form, evaluation):
+            return Symbol("True")
         return Symbol("False")
     
 class Verbatim(PatternObject):
