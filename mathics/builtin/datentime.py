@@ -263,6 +263,8 @@ class DateString(_DateFormat):
         'fmt': '`1` is not a valid date format.',
     }
 
+    attributes = ('ReadProtected',)
+
     def apply(self, epochtime, form, evaluation):
         'DateString[epochtime_, form_]'
         datelist = self.to_datelist(epochtime, evaluation)
@@ -420,6 +422,8 @@ class DatePlus(Builtin):
         'inc': 'Argument `1` is not a time increment or a list of time increments.',
     }
 
+    attributes = ('ReadProtected',)
+
     def apply(self, date, off, evaluation):
         'DatePlus[date_, off_]'
         
@@ -491,6 +495,8 @@ class DateDifference(Builtin):
         'date': 'Argument `1` cannot be interpreted as a date.',
         'inc': 'Argument `1` is not a time increment or a list of time increments.',
     }
+
+    attributes = ('ReadProtected',)
 
     def apply(self, date1, date2, units, evaluation):
         'DateDifference[date1_, date2_, units_]'
