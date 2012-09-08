@@ -31,8 +31,10 @@ class DSolve(Builtin):
         'deqx': 'Supplied equations are not differential equations of the given functions.',
         'dsfun': '`1` cannot be used as a function.',
         'dsvar': '`1` cannot be used as a variable.',
-        'symsys': 'Unfortunately Sympy, part of the Mathics backend, does not support solving systems of DEs.', #FIXME
-        'symimp': 'Unfortunately Sympy, part of the Mathics backend, does not support solutions to this form of DE.', #FIXME
+        #FIXME: Remove these if sympy changes:
+        'symsys': 'Unfortunately Sympy, part of the Mathics backend, does not support solving systems of DEs.',
+        'symimp': 'Unfortunately Sympy, part of the Mathics backend, does not support solutions to this form of DE.',
+        'symmua': 'Unfortunately Sympy, part of the Mathics backend, does not functions of multiple variables.',
     }
 
     def apply(self, eqn, y, x, evaluation):
@@ -62,11 +64,17 @@ class DSolve(Builtin):
             func = Expression(y, x)
             function_form = Expression('List', x)
 
-        if func.is_atom() or len(func.leaves) != 1:
+        if func.is_atom():
             evaluation.message('DSolve', 'dsfun', y)
+            return
+
+        if len(func.leaves) != 1:
+            evaluation.message('DSolve', 'symmua')
+            return
 
         if x not in func.leaves:
             evaluation.message('DSolve', 'deqx')
+            return
 
         left, right = eqn.leaves
         eqn = Expression('Plus', left, Expression('Times', -1, right)).evaluate(evaluation)
