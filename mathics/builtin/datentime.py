@@ -390,13 +390,18 @@ class Pause(Builtin):
         return Symbol('Null')
 
 class _Date():
-    def __init__(self, datelist = [], absolute=None):
+    def __init__(self, datelist = [], absolute=None, datestr=None):
         datelist += [1900, 1, 1, 0, 0, 0.][len(datelist):]
         self.date = datetime(
             datelist[0], datelist[1], datelist[2], datelist[3], datelist[4], 
             int(datelist[5]), int(1e6 * (datelist[5] % 1.)))
         if absolute is not None:
             self.date += timedelta(seconds=absolute)
+        if datestr is not None:
+            if absolute is not None:
+                raise ValueError
+            self.date = dateutil.parser.parse(datestr)
+            
 
     def addself(self, timevec):
         years = self.date.year + timevec[0] + int((self.date.month + timevec[1]) / 12)
@@ -449,16 +454,15 @@ class DatePlus(Builtin):
         
         # Process date
         pydate = date.to_python()
-        if isinstance(pydate, list):        # Date List
+        if isinstance(pydate, list):
             date_prec = len(pydate)
             idate = _Date(datelist = pydate)
-        elif isinstance(pydate, float) or isinstance(pydate, int):     # Absolute Time
+        elif isinstance(pydate, float) or isinstance(pydate, int):
             date_prec = 'absolute'
             idate = _Date(absolute = pydate)
-        elif isinstance(pydate, unicode):
+        elif isinstance(pydate, basestring):
             date_prec = 'string'
-            #TODO
-            return
+            idate = _Date(datestr = pydate.strip('"'))
         else:
             evaluation.message('DatePlus', 'date', date)        
             return
@@ -485,7 +489,7 @@ class DatePlus(Builtin):
         elif date_prec == 'absolute':
             result = Expression('AbsoluteTime', idate.to_list())
         elif date_prec == 'string':
-            result = Expression('DateString', *idate.to_list())
+            result = Expression('DateString', Expression('List', *idate.to_list()))
 
         return result
 
