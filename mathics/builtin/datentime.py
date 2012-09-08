@@ -182,18 +182,21 @@ class _DateFormat(Builtin):
         if len(etime) == 2:
             if isinstance(etime[0], basestring) and isinstance(etime[1], list) and all(isinstance(s, basestring) for s in etime[1]):
                 is_spec = [str(s).strip('"') in DATE_STRING_FORMATS.keys() for s in etime[1]]
+                etime[1] = map(lambda s: str(s).strip('"'), etime[1])
 
                 if sum(is_spec) == len(is_spec):
-                    #TODO: No seperators given - guess some
-                    return
+                    forms = []
+                    fields = [DATE_STRING_FORMATS[s] for s in etime[1]]
+                    for sep in ['', ' ', '/', '-', '.', ',', ':']:
+                        forms.append(sep.join(fields))
                 else:
                     forms = ['']
                     for i,s in enumerate(etime[1]):
                         if is_spec[i]:
-                            forms[0] += DATE_STRING_FORMATS[str(s).strip('"')]
+                            forms[0] += DATE_STRING_FORMATS[s]
                         else:
                             #TODO: Escape % signs?
-                            forms[0] += s.strip('"')
+                            forms[0] += s
 
                 date = _Date()
                 date.date = None
@@ -207,8 +210,12 @@ class _DateFormat(Builtin):
                 if date.date is None:
                     evaluation.message(form_name, 'str', etime[0], etime[1])
                     return
-
                 datelist = date.to_list()
+
+                #If year is ambiguious, assume the current year
+                if 'Year' not in etime[1] and 'YearShort' not in etime[1]:
+                    datelist[0] = datetime.today().year
+
                 return datelist
 
             else:
@@ -245,8 +252,12 @@ class DateList(_DateFormat):
     >> DateList[{"31/10/91", {"Day", "Month", "YearShort"}}]
      = {1991, 10, 31, 0, 0, 0.}
 
-    >> DateList[{"31 10/91", {"Day", " ", "Month", "/", "YearShort"}
+    >> DateList[{"31 10/91", {"Day", " ", "Month", "/", "YearShort"}}]
      = {1991, 10, 31, 0, 0, 0.}
+
+    # Current year assumed 
+    #> DateList[{"5/18", {"Month", "Day"}}]
+     = {2012, 5, 18, 0, 0, 0.}
     """
 
     rules = {
