@@ -441,8 +441,8 @@ class Expression(BaseExpression):
         if 'converted_functions' in kwargs:
             functions = kwargs['converted_functions']
             if len(self.leaves) > 0 and self.get_head_name() in functions:
-                sym_x =  self.leaves[0].to_sympy()
-                func = sympy.Function(str(sympy_symbol_prefix + self.get_head_name())) (sym_x)
+                sym_args =  [leaf.to_sympy() for leaf in self.leaves]
+                func = sympy.Function(str(sympy_symbol_prefix + self.get_head_name())) (*sym_args)
                 return func
 
         lookup_name = self.get_lookup_name()
