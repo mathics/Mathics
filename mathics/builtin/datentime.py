@@ -362,6 +362,8 @@ class AbsoluteTime(Builtin):
     def apply(self, evaluation):
         'AbsoluteTime[]'
         return from_python(time.time() + 2208988800 - time.timezone)
+    
+    #TODO: Intepret list or string
 
 
 class TimeZone(Predefined):
