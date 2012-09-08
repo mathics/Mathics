@@ -62,6 +62,7 @@ DATE_STRING_FORMATS = {
     "MillisecondShort": "",     #TODO: Multiply by 1000 and Remove leading 0
 }
 
+
 class Timing(Builtin):
     """
     <dl>
@@ -85,6 +86,7 @@ class Timing(Builtin):
         result = expr.evaluate(evaluation)
         stop = time.clock()
         return Expression('List', Real(stop - start), result)
+
 
 class AbsoluteTiming(Builtin):
     """
@@ -110,6 +112,7 @@ class AbsoluteTiming(Builtin):
         stop = time.time()
         return Expression('List', Real(stop - start), result)
 
+
 class DateStringFormat(Predefined):
     """
     <dl>
@@ -129,6 +132,7 @@ class DateStringFormat(Predefined):
 
     def evaluate(self, evaluation):
         return Expression('List', String(self.value))
+
 
 class _DateFormat(Builtin):
     def to_datelist(self, epochtime, evaluation):
@@ -166,8 +170,7 @@ class _DateFormat(Builtin):
             try:
                 dtime = datetime(prec_part[0], prec_part[1], 1)
             except ValueError:
-                # datetime is fairly easy to overlfow. 1 <= month <= 12 and some bounds on year too.
-                # TODO: Make this more resiliant (accept a wider range of years and months)
+                #FIXME datetime is fairly easy to overlfow. 1 <= month <= 12 and some bounds on year too.
                 evaluation.message(form_name, 'arg', epochtime)
                 return
 
@@ -177,16 +180,44 @@ class _DateFormat(Builtin):
             return datelist
             
         if len(etime) == 2:
-            if isinstance(etime[0], basestring) and isinstance(etime[1], list):
-                #TODO: Use the given specifiers in etime[1] to parse the string in etime[0]
-                return
+            if isinstance(etime[0], basestring) and isinstance(etime[1], list) and all(isinstance(s, basestring) for s in etime[1]):
+                is_spec = [str(s).strip('"') in DATE_STRING_FORMATS.keys() for s in etime[1]]
+
+                if sum(is_spec) == len(is_spec):
+                    #TODO: No seperators given - guess some
+                    return
+                else:
+                    forms = ['']
+                    for i,s in enumerate(etime[1]):
+                        if is_spec[i]:
+                            forms[0] += DATE_STRING_FORMATS[str(s).strip('"')]
+                        else:
+                            #TODO: Escape % signs?
+                            forms[0] += s.strip('"')
+
+                date = _Date()
+                date.date = None
+                for form in forms:
+                    try:
+                        date.date = datetime.strptime(str(etime[0]).strip('"'), form)
+                        break
+                    except ValueError:
+                        pass
+
+                if date.date is None:
+                    evaluation.message(form_name, 'str', etime[0], etime[1])
+                    return
+
+                datelist = date.to_list()
+                return datelist
 
             else:
-                evaluation.message(form_name, 'str', etime[0])
+                evaluation.message(form_name, 'str', etime[0], etime[1])
                 return
 
         evaluation.message(form_name, 'arg', epochtime)
         return
+
 
 class DateList(_DateFormat):
     """
@@ -224,6 +255,7 @@ class DateList(_DateFormat):
 
     messages = {
         'arg': 'Argument `1` cannot be intepreted as a date or time input.',
+        'str': 'String `1` cannot be interpreted as a date in format `2`.',
     }
 
     def apply(self, epochtime, evaluation):
@@ -234,6 +266,7 @@ class DateList(_DateFormat):
             return
 
         return Expression('List', *datelist)
+
 
 class DateString(_DateFormat):
     """
@@ -303,6 +336,7 @@ class DateString(_DateFormat):
 
         return from_python(''.join(datestrs))
 
+
 class AbsoluteTime(Builtin):
     """
     <dl>
@@ -317,6 +351,7 @@ class AbsoluteTime(Builtin):
     def apply(self, evaluation):
         'AbsoluteTime[]'
         return from_python(time.time() + 2208988800 - time.timezone)
+
 
 class TimeZone(Predefined):
     """
@@ -343,12 +378,13 @@ class TimeUsed(Builtin):
     </dl>
     
     >> TimeUsed[]
-     = ---
+     = ...
     """
 
     def apply(self, evaluation):
         'TimeUsed[]'
         return Real(time.clock()) #TODO: Check this for windows
+
 
 class SessionTime(Builtin):
     """
@@ -389,6 +425,7 @@ class Pause(Builtin):
         time.sleep(sleeptime)
         return Symbol('Null')
 
+
 class _Date():
     def __init__(self, datelist = [], absolute=None, datestr=None):
         datelist += [1900, 1, 1, 0, 0, 0.][len(datelist):]
@@ -415,6 +452,7 @@ class _Date():
 
     def to_list(self):
         return [self.date.year, self.date.month, self.date.day, self.date.hour, self.date.minute, self.date.second + 1e-6*self.date.microsecond]
+
 
 class DatePlus(Builtin):
     """
@@ -494,6 +532,7 @@ class DatePlus(Builtin):
             result = Expression('DateString', Expression('List', *idate.to_list()))
 
         return result
+
 
 class DateDifference(Builtin):
     """
