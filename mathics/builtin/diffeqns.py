@@ -35,11 +35,11 @@ class DSolve(Builtin):
         'symimp': 'Unfortunately Sympy, part of the Mathics backend, does not support solutions to this form of DE.', #FIXME
     }
 
-
     def apply(self, eqn, y, x, evaluation):
         'DSolve[eqn_, y_, x_]'
 
         if eqn.has_form('List', eqn):
+            #TODO: Try and solve BVPs using Solve or something analagous OR add this functonality to sympy.
             evaluation.message('DSolve', 'symsys')
             return
 
@@ -94,7 +94,6 @@ class DSolve(Builtin):
         else:
             return Expression('List', *[Expression('List', Expression('Rule', y, 
                 Expression('Function', function_form, *from_sympy(soln).leaves[1:]))) for soln in sym_result])
-
 
 #TODO: NDSolve
 

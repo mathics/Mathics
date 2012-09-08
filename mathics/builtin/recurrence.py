@@ -43,7 +43,7 @@ class RSolve(Builtin):
     def apply(self, eqns, a, n, evaluation):
         'RSolve[eqns_, a_, n_]'
 
-        #TODO: Do this with rules
+        #TODO: Do this with rules?
         if not eqns.has_form('List', None):
             eqns = Expression('List', eqns)
 
@@ -99,7 +99,7 @@ class RSolve(Builtin):
             sym_conds[sympy.Function(str(sympy_symbol_prefix + func.get_head_name()))(cond)] = conditions[cond]
 
         try:
-            # Sympy raises error when given empty conditions (issue 1511 on sympy github)
+            # Sympy raises error when given empty conditions. Fixed in upcomming sympy release.
             if sym_conds != {}:
                 sym_result = sympy.rsolve(sym_eq, sym_func, sym_conds)
             else:
