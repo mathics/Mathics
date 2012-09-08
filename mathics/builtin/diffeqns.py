@@ -31,11 +31,17 @@ class DSolve(Builtin):
         'deqx': 'Supplied equations are not differential equations of the given functions.',
         'dsfun': '`1` cannot be used as a function.',
         'dsvar': '`1` cannot be used as a variable.',
+        'symsys': 'Unfortunately Sympy, part of the Mathics backend, does not support solving systems of DEs.', #FIXME
+        'symimp': 'Unfortunately Sympy, part of the Mathics backend, does not support solutions to this form of DE.', #FIXME
     }
 
 
     def apply(self, eqn, y, x, evaluation):
         'DSolve[eqn_, y_, x_]'
+
+        if eqn.has_form('List', eqn):
+            evaluation.message('DSolve', 'symsys')
+            return
 
         if eqn.get_head_name() != 'Equal':
             evaluation.message('DSolve', 'deqn', eqn)
@@ -73,8 +79,13 @@ class DSolve(Builtin):
             sym_result = sympy.dsolve(sym_eq, sym_func)
             if not isinstance(sym_result, list):
                 sym_result = [sym_result]
-        except ValueError as ve:
-            #print ve
+        except ValueError as e:
+            #print e
+            evaluation.message('DSolve', 'symimp')
+            return
+        except NotImplementedError as e:
+            #print e
+            evaluation.message('DSolve', 'symimp')
             return
 
         if function_form is None:
