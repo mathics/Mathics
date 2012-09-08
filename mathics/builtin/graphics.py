@@ -39,7 +39,10 @@ def get_class(name):
 
 def coords(value):
     if value.has_form('List', 2):
-        return (value.leaves[0].to_number(), value.leaves[1].to_number())
+        x, y = value.leaves[0].to_number(), value.leaves[1].to_number()
+        if x is None or y is None:
+            raise CoordinatesError
+        return (x, y)
     raise CoordinatesError
 
 class Coords(object):
@@ -148,6 +151,10 @@ class Graphics(Builtin):
      . draw(ellipse((175.0,175.0),175.0,175.0), rgb(0, 0, 0)+linewidth(0.666666666667));
      . clip(box((-0.333333333333,0.333333333333), (350.333333333,349.666666667)));
      . \end{asy}
+     
+    Invalid graphics directives yield invalid box structures:
+    >> Graphics[Circle[{a, b}]]
+     : GraphicsBox[CircleBox[List[a, b]], Rule[AspectRatio, Automatic], Rule[Axes, False], Rule[AxesStyle, List[]], Rule[ImageSize, Automatic], Rule[LabelStyle, List[]], Rule[PlotRange, Automatic], Rule[PlotRangePadding, Automatic], Rule[TicksStyle, List[]]] is not a valid box structure.
     """
     
     options = {
@@ -161,14 +168,10 @@ class Graphics(Builtin):
         'ImageSize': 'Automatic',
     }
     
-    rules = {
-        'MakeBoxes[Graphics[content_, OptionsPattern[Graphics]], OutputForm]': '"-Graphics-"',
-    }
-    
     box_suffix = 'Box'
     
     def apply_makeboxes(self, content, evaluation, options):
-        'MakeBoxes[%(name)s[content_, OptionsPattern[%(name)s]], StandardForm|TraditionalForm]'
+        'MakeBoxes[%(name)s[content_, OptionsPattern[%(name)s]], StandardForm|TraditionalForm|OutputForm]'
         
         def convert(content):
             if content.has_form('List', None):
@@ -371,7 +374,7 @@ class Rectangle(Builtin):
     """
     <dl>
     <dt>'Rectangle[{$xmin$, $ymin$}]'
-        <dd>represents a unit square who's bottom-left corner is at {$xmin$, $ymin$}.
+        <dd>represents a unit square with bottom-left corner at {$xmin$, $ymin$}.
     <dt>'Rectangle[{$xmin$, $ymin$}, {$xmax$, $ymax$}]
         <dd>is a rectange extending from {$xmin$, $ymin$} to {$xmax$, $ymax$}.
     </dl>
@@ -1024,6 +1027,7 @@ class GraphicsBox(BoxConstruct):
     attributes = ('HoldAll', 'ReadProtected')
     
     def boxes_to_text(self, leaves, **options):
+        self._prepare_elements(leaves, options) # to test for Box errors
         return '-Graphics-'
     
     def _get_image_size(self, options, graphics_options, max_width):        
@@ -1107,6 +1111,18 @@ class GraphicsBox(BoxConstruct):
                 exmin, exmax, eymin, eymax = elements.extent(completely_visible_only=True)
             else:
                 exmin = exmax = eymin = eymax = None
+                
+            def get_range(min, max):
+                if max < min:
+                    min, max = max, min
+                elif min == max:
+                    if min < 0:
+                        min, max = 2 * min, 0
+                    elif min > 0:
+                        min, max = 0, 2 * min
+                    else:
+                        min, max = -1, 1
+                return min, max
             
             try:
                 if plot_range[0] == 'Automatic':
@@ -1118,6 +1134,7 @@ class GraphicsBox(BoxConstruct):
                         xmax += 1
                 elif isinstance(plot_range[0], list) and len(plot_range[0]) == 2:
                     xmin, xmax = map(float, plot_range[0])
+                    xmin, xmax = get_range(xmin, xmax)
                     xmin = elements.translate((xmin, 0))[0]
                     xmax = elements.translate((xmax, 0))[0]
                     if exmin is not None and exmin < xmin:
@@ -1136,6 +1153,7 @@ class GraphicsBox(BoxConstruct):
                         ymax += 1
                 elif isinstance(plot_range[1], list) and len(plot_range[1]) == 2:
                     ymin, ymax = map(float, plot_range[1])
+                    ymin, ymax = get_range(ymin, ymax)
                     ymin = elements.translate((0, ymin))[1]
                     ymax = elements.translate((0, ymax))[1]
                     if eymin is not None and eymin < ymin:
@@ -1241,7 +1259,11 @@ clip(box((%s,%s), (%s,%s)));
             if not value:
                 return 1, 1
             sub_steps = 5
-            shift = 10.0 ** floor(log10(value))
+            try:
+                shift = 10.0 ** floor(log10(value))
+            except ValueError:
+                print value
+                return 1, 1
             value = value / shift
             if value < 1.5:
                 value = 1

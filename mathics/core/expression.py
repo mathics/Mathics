@@ -779,6 +779,7 @@ class Expression(BaseExpression):
     
     def boxes_to_text(self, **options):
         from mathics.builtin import box_constructs
+        from mathics.builtin.base import BoxConstructError
         
         is_style, options = self.process_style_box(options)
         if is_style:
@@ -786,7 +787,10 @@ class Expression(BaseExpression):
         head = self.head.get_name()
         box_construct = box_constructs.get(head)
         if box_construct is not None:
-            return box_construct.boxes_to_text(self.leaves, **options)
+            try:
+                return box_construct.boxes_to_text(self.leaves, **options)
+            except BoxConstructError:
+                raise BoxError(self, 'text')
         if self.has_form('RowBox', 1) and self.leaves[0].has_form('List', None):
             return ''.join([leaf.boxes_to_text(**options) for leaf in self.leaves[0].leaves])
         else:
@@ -805,7 +809,7 @@ class Expression(BaseExpression):
             try:
                 return box_construct.boxes_to_xml(self.leaves, **options)
             except BoxConstructError:
-                raise # uncomment this to see what is going wrong in constructing boxes
+                #raise # uncomment this to see what is going wrong in constructing boxes
                 raise BoxError(self, 'xml')
         name = self.head.get_name()
         if name == 'RowBox' and len(self.leaves) == 1 and self.leaves[0].get_head_name() == 'List':
@@ -856,6 +860,7 @@ class Expression(BaseExpression):
             
     def boxes_to_tex(self, **options):
         from mathics.builtin import box_constructs
+        from mathics.builtin.base import BoxConstructError
         
         def block(tex, only_subsup=False):
             if len(tex) == 1:
@@ -872,7 +877,10 @@ class Expression(BaseExpression):
         head = self.head.get_name()
         box_construct = box_constructs.get(head)
         if box_construct is not None:
-            return box_construct.boxes_to_tex(self.leaves, **options)
+            try:
+                return box_construct.boxes_to_tex(self.leaves, **options)
+            except BoxConstructError:
+                raise BoxError(self, 'tex')
         name = self.head.get_name()
         if name == 'RowBox' and len(self.leaves) == 1 and self.leaves[0].get_head_name() == 'List':
             return ''.join([leaf.boxes_to_tex(**options) for leaf in self.leaves[0].get_leaves()])

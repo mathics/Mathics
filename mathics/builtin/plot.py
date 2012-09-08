@@ -108,7 +108,12 @@ def get_plot_range(values, all_values, option):
     else:
         result = option
     if result[0] == result[1]:
-        return 0, result[1] * 2
+        value = result[0]
+        if value > 0:
+            return 0, value * 2
+        if value < 0:
+            return value * 2, 0
+        return -1, 1
     return result
 
 class _Plot(Builtin):
@@ -475,14 +480,14 @@ class _ListPlot(Builtin):
 
         if isinstance(all_points, list) and len(all_points) != 0:
             if all(not isinstance(point, list) for point in all_points):  # Only y values given
-                all_points = [[[float(i), all_points[i]] for i in range(len(all_points))]]
+                all_points = [[[float(i + 1), all_points[i]] for i in range(len(all_points))]]
             elif all(isinstance(line,list) and len(line) == 2 for line in all_points):  # Single list of (x,y) pairs
                 all_points = [all_points]
             elif all(isinstance(line,list) for line in all_points):     # List of lines
                 if all(isinstance(point, list) and len(point) == 2 for line in all_points for point in line):
                     pass
                 elif all(not isinstance(point, list) for line in all_points for point in line):
-                    all_points = [[[float(i), line[i]] for i in range(len(line))] for line in all_points]
+                    all_points = [[[float(i + 1), line[i]] for i in range(len(line))] for line in all_points]
                 else:
                     return
             else:
@@ -490,8 +495,30 @@ class _ListPlot(Builtin):
         else:
             return
 
-        y_range = get_plot_range([y for line in all_points for x, y in line], [y for line in all_points for x, y in line], y_range)
-        x_range = get_plot_range([x for line in all_points for x, y in line], [x for line in all_points for x, y in line], x_range)
+        # Split into segments at missing data
+        all_points = [[line] for line in all_points]
+        for l,line in enumerate(all_points):
+            i = 0
+            while i < len(all_points[l]):
+                seg = line[i]
+                for j, point in enumerate(seg):
+                    if not ((isinstance(point[0], float) or isinstance(point[0], int))
+                    and (isinstance(point[1], float) or isinstance(point[1], int))):
+                        all_points[l].insert(i, seg[:j])
+                        all_points[l][i+1] = seg[j+1:]
+                        i -= 1
+                        break
+                        
+                i += 1
+
+        y_range = get_plot_range(
+            [y for line in all_points for seg in line for x, y in seg],
+            [y for line in all_points for seg in line for x, y in seg],
+            y_range)
+        x_range = get_plot_range(
+            [x for line in all_points for seg in line for x, y in seg],
+            [x for line in all_points for seg in line for x, y in seg],
+            x_range)
 
         if filling == 'Axis':
             #TODO: Handle arbitary axis intercepts
@@ -508,19 +535,20 @@ class _ListPlot(Builtin):
         graphics = []
         for indx,line in enumerate(all_points):
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
-            if joined:
-                graphics.append(Expression('Line', from_python(line))) 
-                if filling is not None:
-                    graphics.append(Expression('Hue', hue, 0.6, 0.6, 0.2))
-                    fill_area = list(line)
-                    fill_area.append([x_range[1], filling])
-                    fill_area.append([x_range[0], filling])
-                    graphics.append(Expression('Polygon', from_python(fill_area)))
-            else:
-                graphics.append(Expression('Point', from_python(line))) 
-                if filling is not None:
-                    for point in line:
-                        graphics.append(Expression('Line', from_python([[point[0], filling], [point[0], point[1]]])))
+            for segment in line:
+                if joined:
+                    graphics.append(Expression('Line', from_python(segment))) 
+                    if filling is not None:
+                        graphics.append(Expression('Hue', hue, 0.6, 0.6, 0.2))
+                        fill_area = list(segment)
+                        fill_area.append([segment[-1][0], filling])
+                        fill_area.append([segment[0][0], filling])
+                        graphics.append(Expression('Polygon', from_python(fill_area)))
+                else:
+                    graphics.append(Expression('Point', from_python(segment))) 
+                    if filling is not None:
+                        for point in segment:
+                            graphics.append(Expression('Line', from_python([[point[0], filling], [point[0], point[1]]])))
 
             if indx % 4 == 0:
                 hue += hue_pos
@@ -841,7 +869,7 @@ class ListPlot(_ListPlot):
         <dd>plots a several lists of points.
     </dl>
 
-    >> ListPlot[Table[n^2, {n,10}]]
+    >> ListPlot[Table[n ^ 2, {n, 10}]]
      = -Graphics-
     """
 
@@ -871,7 +899,10 @@ class ListLinePlot(_ListPlot):
         <dd>plots several lines.
     </dl>
 
-    >> ListLinePlot[Table[{n,n^0.5}, {n,10}]]
+    >> ListLinePlot[Table[{n, n ^ 0.5}, {n, 10}]]
+     = -Graphics-
+     
+    >> ListLinePlot[{{-2, -1}, {-1, -1}}]
      = -Graphics-
     """
     from graphics import Graphics

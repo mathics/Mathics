@@ -4,6 +4,7 @@
 # Clear directory build/
 # python setup.py install
 # sage -python setup.py install
+# sage -python setup.py develop
 # mathics/
 #   sage -python test.py
 #   sage -python test.py -t

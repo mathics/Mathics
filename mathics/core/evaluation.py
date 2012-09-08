@@ -303,7 +303,7 @@ class Evaluation(object):
         self.stopped = True
         
     def format_output(self, expr):
-        from mathics.core.expression import Expression
+        from mathics.core.expression import Expression, String, BoxError
         
         if self.format == 'text':
             result = expr.format(self, 'OutputForm')
@@ -316,7 +316,7 @@ class Evaluation(object):
         try:
             boxes = result.boxes_to_text(evaluation=self)
         except BoxError:
-            message('General', 'notboxes', String('%s' % result))
+            self.message('General', 'notboxes', String('%s' % result))
             boxes = None
         return boxes
                 

@@ -9,6 +9,7 @@ from mathics.core.expression import Expression, Symbol
 from mathics.core.evaluation import AbortInterrupt, ReturnInterrupt, BreakInterrupt, ContinueInterrupt
 
 from mathics.builtin.lists import _IterationFunction
+from mathics.builtin.patterns import match
 
 class CompoundExpression(BinaryOperator):
     """
@@ -87,6 +88,42 @@ class If(Builtin):
             return f.evaluate(evaluation)
         else:
             return u.evaluate(evaluation)
+        
+class Switch(Builtin):
+    """
+    <dl>
+    <dt>'Switch[$expr$, $pattern1$, $value1$, $pattern2$, $value2$, ...]'
+        <dd>yields the first $value$ for which $expr matches the corresponding $pattern$.
+    </dl>
+    
+    >> Switch[2, 1, x, 2, y, 3, z]
+     = y
+    >> Switch[5, 1, x, 2, y]
+     = Switch[5, 1, x, 2, y]
+    >> Switch[5, 1, x, 2, y, _, z]
+     = z
+    >> Switch[2, 1]
+     : Switch called with 2 arguments. Switch must be called with an odd number of arguments.
+     = Switch[2, 1]
+    """
+    
+    attributes = ('HoldRest',)
+    
+    messages = {
+        'argct': "Switch called with `2` arguments. Switch must be called with an odd number of arguments.",
+    }
+    
+    def apply(self, expr, rules, evaluation):
+        'Switch[expr_, rules___]'
+        
+        rules = rules.get_sequence()
+        if len(rules) % 2 != 0:
+            evaluation.message('Switch', 'argct', 'Switch', len(rules) + 1)
+            return
+        for pattern, value in zip(rules[::2], rules[1::2]):
+            if match(expr, pattern, evaluation):
+                return value.evaluate(evaluation) 
+        # return unevaluated Switch when no pattern matches
         
 class Which(Builtin):
     """

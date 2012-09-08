@@ -13,6 +13,14 @@ This file is about the copyright on Mathics and all included components.
 The full text of the GPL is available below in this file. Details of
 the licenses of the components of Mathics are included below as well.
  
+* LICENSES OF INCLUDED DATA:
+
+Mathics includes data from Wikipedia that is published under the Creative 
+Commons Attribution-Sharealike 3.0 Unported License and the GNU Free 
+Documentation License contributed by the respective authors that are listed 
+on the websites specified in "data/elements.txt".
+
+
 * LICENSES OF INCLUDED SOFTWARE:
  
 SOFTWARE                           LICENSE
@@ -21,6 +29,7 @@ SPARK                              MIT
 scripaculous                       MIT
 Prototype                          MIT
 MathJax                            Apache 2.0
+Three.js                           MIT
  
  
 CONTACT INFO:
@@ -793,5 +802,29 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+================================================================================
+
+Three.js:
+(http://mrdoob.github.com/three.js/)
+Copyright © 2010-2012 Three.js authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
 ================================================================================
