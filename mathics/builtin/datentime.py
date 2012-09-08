@@ -6,6 +6,7 @@ Date and Time
 
 import time
 from datetime import datetime, timedelta
+import dateutil.parser
 from mathics.core.expression import Expression, Real, Symbol, String, from_python
 from mathics.builtin.base import Builtin, Predefined
 from itertools import cycle
@@ -159,15 +160,16 @@ class _DateFormat(Builtin):
             datelist = [dtime.year, dtime.month, dtime.day, dtime.hour, dtime.minute, dtime.second + 1e-06 * dtime.microsecond]
             return datelist
             
-        if all(isinstance(s, unicode) or (isinstance(s, list) and all(isinstance(ss, unicode) for ss in s)) for s in etime):
+        if all(isinstance(s, basestring) or (isinstance(s, list) and all(isinstance(ss, unicode) for ss in s)) for s in etime):
             datelist = []
-            if all(isinstance(s[0], unicode) for s in etime):
+            if all(isinstance(s[0], basestring) for s in etime):
                 etime = [etime]
 
             for spec in etime:
                 if len(spec) == 1:
-                    #TODO: Automatically parse the date-time
-                    pass
+                    date = dateutil.parser.parse(spec[0].strip('"'))
+                    datelist = [date.year, date.month, date.day, date.hour, date.minute, date.second, float(date.microsecond)]
+                    return datelist
                 elif len(spec) == 2:
                     try:
                         timestruct = None
