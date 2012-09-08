@@ -123,6 +123,7 @@ class DateStringFormat(Predefined):
 
 class _DateFormat(Builtin):
     def to_datelist(self, epochtime, evaluation):
+        """ Converts date-time 'epochtime' to datelist """
         etime = epochtime.to_python()
 
         form_name = self.get_name()
@@ -138,8 +139,14 @@ class _DateFormat(Builtin):
             datelist.append(timestruct[5] + etime % 1.)      # Hack to get seconds as float not int.
             return datelist
 
+        if isinstance(etime, basestring):
+            date = dateutil.parser.parse(etime.strip('"'))
+            datelist = [date.year, date.month, date.day, date.hour, date.minute, date.second + 1e-06 * date.microsecond]
+            return datelist
+
         if not isinstance(etime, list):
-            etime = [etime]
+            evaluation.message(form_name, 'arg', etime)
+            return
 
         if 1 <= len(etime) <= 6 and all((isinstance(val, float) and i>1) or isinstance(val, int) for i,val in enumerate(etime)):
             default_date = [1900, 1, 1, 0, 0, 0.]
@@ -160,53 +167,17 @@ class _DateFormat(Builtin):
             datelist = [dtime.year, dtime.month, dtime.day, dtime.hour, dtime.minute, dtime.second + 1e-06 * dtime.microsecond]
             return datelist
             
-        if all(isinstance(s, basestring) or (isinstance(s, list) and all(isinstance(ss, unicode) for ss in s)) for s in etime):
-            datelist = []
-            if all(isinstance(s[0], basestring) for s in etime):
-                etime = [etime]
+        if len(etime) == 2:
+            if isinstance(etime[0], basestring) and isinstance(etime[1], list):
+                #TODO: Use the given specifiers in etime[1] to parse the string in etime[0]
+                return
 
-            for spec in etime:
-                if len(spec) == 1:
-                    date = dateutil.parser.parse(spec[0].strip('"'))
-                    datelist = [date.year, date.month, date.day, date.hour, date.minute, date.second, float(date.microsecond)]
-                    return datelist
-                elif len(spec) == 2:
-                    try:
-                        timestruct = None
-                        date = _Date()
-                        date.date = None
-                        if all(str(s).strip('"') in DATE_STRING_FORMATS.keys() for s in spec[1]):
-                            seperators = [[x for i in range(len(spec[1])-1)] for x in  [' ', '/']]
-                        else:
-                            seperators = [filter(lambda s: s not in  DATE_STRING_FORMATS.keys(), 
-                                map(lambda s: str(s).strip('"'), spec[1]))]
-                        args = filter(lambda s: str(s).strip('"') in DATE_STRING_FORMATS.keys(), spec[1])
-                        args = map(lambda s: DATE_STRING_FORMATS[str(s).strip('"')], args)
-
-                        for sep in seperators:
-                            iters = [iter(args), iter(sep)]
-                            form = ''.join(list(it.next() for it in cycle(iters)))
-                            try:
-                                date.date = datetime.strptime(str(spec[0]).strip('"'), form)
-                            except ValueError:
-                                pass
-                        if date.date is None:
-                            #TODO: Error message
-                            return []
-                        datelist.append(date.to_list())
-                    except KeyError as e:
-                        #evaluation.message('%(name)s', 'str', "", "")
-                        pass
-                    
-            else:       #Sneaky hack
-                pass
-
-            if len(datelist) == 1:
-                return datelist[0]
-            return datelist
+            else:
+                evaluation.message(form_name, 'str', etime[0])
+                return
 
         evaluation.message(form_name, 'arg', epochtime)
-        return None
+        return
 
 class DateList(_DateFormat):
     """
@@ -279,7 +250,7 @@ class DateString(_DateFormat):
 
     Non-integer values are accepted too
     >>  DateString[{1991, 6, 6.5}]
-     = Thu 6 Jun 1991 12:00:00
+     = Thu 06 Jun 1991 12:00:00
     """
 
     rules = {
@@ -531,9 +502,8 @@ class DateDifference(Builtin):
             idate = _Date(datelist = pydate1)
         elif isinstance(pydate1, float) or isinstance(pydate1, int):     # Absolute Time
             idate = _Date(absolute = pydate1)
-        elif isinstance(pydate1, unicode):
-            #TODO
-            return
+        elif isinstance(pydate1, basestring):
+            idate = _Date(datestr = pydate2.strip('"'))
         else:
             evaluation.message('DateDifference', 'date', date1)
             return
@@ -542,9 +512,8 @@ class DateDifference(Builtin):
             fdate = _Date(datelist = pydate2)
         elif isinstance(pydate2, float) or isinstance(pydate2, int):     # Absolute Time
             fdate = _Date(absolute = pydate2)
-        elif isinstance(pydate2, unicode):
-            #TODO
-            return
+        elif isinstance(pydate1, basestring):
+            fdate = _Date(datestr = pydate2.strip('"'))
         else:
             evaluation.message('DateDifference', 'date', date2)
             return
