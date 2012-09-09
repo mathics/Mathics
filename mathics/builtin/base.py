@@ -376,14 +376,14 @@ class SageFunction(SageObject):
         except TypeError:
             pass
         
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         try:
             if self.sympy_name:
                 leaves = self.prepare_sympy(expr.leaves)
-                return getattr(sympy, self.sympy_name)(*(leaf.to_sympy() for leaf in leaves))
+                return getattr(sympy, self.sympy_name)(*(leaf.to_sympy(**kwargs) for leaf in leaves))
         except TypeError:
             pass
-            
+
     def from_sage(self, leaves):
         return leaves
     
@@ -397,7 +397,7 @@ class SageConstant(SageObject, Predefined):
         # free Symbol will be converted to corresponding SymPy symbol
         return True
     
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         # there is no "native" SymPy expression for e.g. E[x] 
         return None
     

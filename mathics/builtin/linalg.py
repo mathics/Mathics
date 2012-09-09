@@ -17,7 +17,7 @@ def matrix_data(m):
         return None
     return [[item.to_sympy() for item in row.leaves] for row in m.leaves]
 
-def to_sympy_matrix(data):
+def to_sympy_matrix(data, **kwargs):
     if not isinstance(data, list):
         data = matrix_data(data)
     try:

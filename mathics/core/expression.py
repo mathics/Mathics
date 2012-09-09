@@ -322,6 +322,9 @@ class BaseExpression(object):
             number = max
         return float(number)
 
+    def to_sympy(self, **kwargs):
+        raise NotImplementedError
+
 class Monomial(object):
     """
     An object to sort monomials, used in Expression.get_sort_key and Symbol.get_sort_key.
@@ -432,18 +435,25 @@ class Expression(BaseExpression):
     def has_symbol(self, symbol_name):
         return self.head.has_symbol(symbol_name) or any(leaf.has_symbol(symbol_name) for leaf in self.leaves)
     
-    def to_sympy(self):
+    def to_sympy(self, **kwargs):
         from mathics.builtin import mathics_to_sympy
         
+        if 'converted_functions' in kwargs:
+            functions = kwargs['converted_functions']
+            if len(self.leaves) > 0 and self.get_head_name() in functions:
+                sym_args =  [leaf.to_sympy() for leaf in self.leaves]
+                func = sympy.Function(str(sympy_symbol_prefix + self.get_head_name())) (*sym_args)
+                return func
+
         lookup_name = self.get_lookup_name()
         builtin = mathics_to_sympy.get(lookup_name)
         if builtin is not None:
-            sympy_expr = builtin.to_sympy(self)
+            sympy_expr = builtin.to_sympy(self, **kwargs)
             if sympy_expr is not None:
                 return sympy_expr
             
         return SympyExpression(self)
-    
+
     def to_sage(self, definitions, subs):
         from mathics.builtin import mathics_to_sage
         
@@ -1125,7 +1135,7 @@ class Symbol(Atom):
         else:
             return getattr(sage, builtin.sage_name)
         
-    def to_sympy(self):
+    def to_sympy(self, **kwargs):
         from mathics.builtin import mathics_to_sympy
         
         if self.sympy_dummy is not None:
@@ -1274,7 +1284,7 @@ class Integer(Number):
     def to_sage(self, definitions, subs):
         return sage.Integer(str(self.value))
     
-    def to_sympy(self):
+    def to_sympy(self, **kwargs):
         return sympy.Integer(int(self.value))
     
     def to_python(self, *args, **kwargs):
@@ -1326,7 +1336,7 @@ class Rational(Number):
     def to_sage(self, definitions, subs):
         return sage.Rational((str(self.value.numer()), str(self.value.denom())))
     
-    def to_sympy(self):
+    def to_sympy(self, **kwargs):
         return sympy.Rational(int(self.value.numer()), int(self.value.denom()))
     
     def to_python(self, *args, **kwargs):
@@ -1431,7 +1441,7 @@ class Real(Number):
     def to_sage(self, definitions, subs):
         return sage.RealNumber(self.value.digits(10, dps(self.value.getprec()))) #(str(self.value))
     
-    def to_sympy(self):
+    def to_sympy(self, **kwargs):
         return sympy.Float(self.value.digits(10, dps(self.value.getprec())))
     
     def to_python(self, *args, **kwargs):
@@ -1483,10 +1493,10 @@ class Complex(Number):
         imag = Number.from_mp(self.value.imag)
         return real.to_sage(definitions, subs) + imag.to_sage(definitions, subs) * sage.I
     
-    def to_sympy(self):
+    def to_sympy(self, **kwargs):
         real = Number.from_mp(self.value.real)
         imag = Number.from_mp(self.value.imag)
-        return real.to_sympy() + imag.to_sympy() * sympy.I
+        return real.to_sympy(**kwargs) + imag.to_sympy(**kwargs) * sympy.I
     
     def to_python(self, *args, **kwargs):
         real = Number.from_mp(self.value.real)
@@ -1716,7 +1726,7 @@ class String(Atom):
     def to_sage(self, definitions, subs):
         return subs.substitute(self, definitions)
     
-    def to_sympy(self):
+    def to_sympy(self, **kwargs):
         return self.value
     
     def to_python(self, *args, **kwargs):

@@ -6,6 +6,7 @@ CHANGES
 
 - ElementData using data from Wikipedia
 - added Switch
+- added DSolve and RSolve
 
 0.5
 ---

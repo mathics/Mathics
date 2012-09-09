@@ -9,7 +9,7 @@ import re
 from mathics.builtin.base import Builtin, PostfixOperator, SageFunction
 from mathics.core.expression import Expression, String, Integer, Number
 from mathics.core.expression import from_sage, ConvertSubstitutions, from_sympy
-from mathics.core.convert import sage_symbol_prefix
+from mathics.core.convert import sage_symbol_prefix, sympy_symbol_prefix
 from mathics.core.util import unicode_superscript
 from mathics.core.rules import Pattern
 from mathics.builtin.scoping import dynamic_scoping
@@ -90,6 +90,12 @@ class D(SageFunction):
      = f''[#1]
     #> D[(#1&)[t],{t,4}]
      = 0
+
+    #> Attributes[f] ={HoldAll}; Apart[f''[x + x]]
+     = f''[2 x]
+
+    #> Attributes[f] = {}; Apart[f''[x + x]]
+     = f''[2 x]
     """
     
     # TODO
@@ -300,6 +306,29 @@ class Derivative(PostfixOperator, SageFunction):
             count += 1
         return Expression(Expression('Derivative', Integer(count)), inner)
     
+    def to_sympy(self, expr, **kwargs):
+        inner = expr
+        exprs = [inner]
+        try:
+            while True:
+                inner = inner.head
+                exprs.append(inner)
+        except AttributeError:
+            pass
+
+        if len(exprs) != 4 or not all(len(expr.leaves) >= 1 for exp in exprs[:3]):
+            return 
+
+        sym_x = exprs[0].leaves[0].to_sympy()
+        func = exprs[1].leaves[0]
+        sym_func = sympy.Function(str(sympy_symbol_prefix + func.__str__())) (sym_x)
+        
+        count = exprs[2].leaves[0].to_python()
+        for i in range(count):
+            sym_func = sympy.Derivative(sym_func)
+
+        return sym_func
+
 class Integrate(SageFunction):
     r"""
     <dl>

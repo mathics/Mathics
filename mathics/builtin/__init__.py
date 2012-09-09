@@ -18,16 +18,16 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.builtin import algebra, arithmetic, assignment, attributes, calculus, combinatorial, comparison, control, datentime, evaluation
+from mathics.builtin import algebra, arithmetic, assignment, attributes, calculus, combinatorial, comparison, control, datentime, diffeqns, evaluation
 from mathics.builtin import exptrig, functional, graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory, numeric, options, patterns
-from mathics.builtin import plot, physchemdata, randomnumbers, specialfunctions, scoping, strings, structure
+from mathics.builtin import plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, strings, structure
 from mathics.builtin import system, tensors
 
 from mathics.builtin.base import Builtin, SageObject, BoxConstruct, Operator, PatternObject
 
-modules = [algebra, arithmetic, assignment, attributes, calculus, combinatorial, comparison, control, datentime, evaluation,
+modules = [algebra, arithmetic, assignment, attributes, calculus, combinatorial, comparison, control, datentime, diffeqns, evaluation,
     exptrig, functional, graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory, numeric, options, patterns,
-    plot, physchemdata, randomnumbers, specialfunctions, scoping, strings, structure,
+    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, strings, structure,
     system, tensors]
 
 builtins = []
