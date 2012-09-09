@@ -255,6 +255,16 @@ class DateList(_DateFormat):
     >> DateList[{"31 10/91", {"Day", " ", "Month", "/", "YearShort"}}]
      = {1991, 10, 31, 0, 0, 0.}
 
+    #strptime should ignore leading 0s
+    #> DateList[{"6/6/91", {"Day", "Month", "YearShort"}}]
+     = {1991, 6, 6, 0, 0, 0.}
+    #> DateList[{"6/06/91", {"Day", "Month", "YearShort"}}]
+     = {1991, 6, 6, 0, 0, 0.}
+    #> DateList[{"06/06/91", {"Day", "Month", "YearShort"}}]
+     = {1991, 6, 6, 0, 0, 0.}
+    #> DateList[{"06/6/91", {"Day", "Month", "YearShort"}}]
+     = {1991, 6, 6, 0, 0, 0.}
+
     # Current year assumed 
     #> DateList[{"5/18", {"Month", "Day"}}]
      = {2012, 5, 18, 0, 0, 0.}
