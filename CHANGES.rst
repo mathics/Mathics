@@ -1,6 +1,12 @@
 CHANGES
 =======
 
+0.5.1dev
+--------
+
+- More Timing functions AbsoluteTiming, TimeUsed, SessionTime, Pause
+- Date functions DateList, DateString, DateDifference, etc
+
 0.5
 ---
 
