@@ -32,17 +32,17 @@ DATE_STRING_FORMATS = {
     "DateTimeShort": "%a %d %b %Y %X",
     "Year" : "%Y",
     "YearShort": "%y",
-    "QuarterName": "Quarter N", #TODO
-    "QuarterNameShort": "QN",   #TODO
-    "Quarter": "",              #TODO
+    #"QuarterName": "Quarter N",#TODO
+    #"QuarterNameShort": "QN",  #TODO
+    #"Quarter": "",             #TODO
     "MonthName": "%B",
     "MonthNameShort": "%b",
-    "MonthNameInitial": "%b",   #TODO: Just the first letter
+    #"MonthNameInitial": "%b",  #TODO: Just the first letter
     "Month": "%m",
     "MonthShort": "%m",         #TODO: Remove leading 0
     "DayName": "%A",
     "DayNameShort": "%a",
-    "DayNameInitial": "%a",     #TODO: Just the first letter
+    #"DayNameInitial": "%a",    #TODO
     "Day": "%d",
     "DayShort": "%d",           #TODO: Remove leading 0
     "Hour": "%H",               #TODO: Find system preferences (12/24 hour)
@@ -52,14 +52,14 @@ DATE_STRING_FORMATS = {
     "Hour12Short": "%I",        #TODO: Remove leading 0
     "Hour24Short": "%H",        #TODO: Remove leading 0
     "AMPM": "%p",
-    "AMPMLowerCase": "%p",      #TODO: Lowercase
+    #"AMPMLowerCase": "%p",     #TODO
     "Minute": "%M",
     "MinuteShort": "%M",        #TODO: Remove leading 0
     "Second": "%S",
     "SecondShort": "%S",        #TODO: Remove leading 0
-    "SecondExact": "%S",        #TODO: Add extra Precision
-    "Millisecond": "%f",        #TODO: Multiply by 1000
-    "MillisecondShort": "",     #TODO: Multiply by 1000 and Remove leading 0
+    "SecondExact": "%S.%f",
+    #"Millisecond": "%f",        #TODO
+    #"MillisecondShort": "",     #TODO
 }
 
 
