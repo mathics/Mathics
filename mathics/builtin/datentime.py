@@ -322,11 +322,15 @@ class DateString(_DateFormat):
     #> DateString[{1979, 3, 4}]
      = Sun 4 Mar 1979 00:00:00
     
+    #> DateString[{"DayName", "  ", "Month", "/", "YearShort"}]
+     = Monday  10/08
     """
 
     rules = {
         'DateString[]': 'DateString[DateList[], $DateStringFormat]',
-        'DateString[epochtime_]': 'DateString[epochtime, $DateStringFormat]',
+        'DateString[epochtime_?(VectorQ[#1, NumericQ]&)]': 'DateString[epochtime, $DateStringFormat]',
+        'DateString[epochtime_?NumericQ]': 'DateString[epochtime, $DateStringFormat]',
+        'DateString[format_?(VectorQ[#1, StringQ]&)]': 'DateString[DateList[], format]',
     }
 
     messages = {
