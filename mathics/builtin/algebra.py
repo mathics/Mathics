@@ -173,6 +173,12 @@ class Apart(Builtin):
     But it does not touch other expressions:
     >> Sin[1 / (x ^ 2 - y ^ 2)] // Apart
      = Sin[1 / (x ^ 2 - y ^ 2)]
+
+    #> Attributes[f] = {HoldAll}; Apart[f[x + x]]
+     = f[x + x]
+
+    #> Attributes[f] = {}; Apart[f[x + x]]
+     = f[2 x]
     """
     
     attributes = ['Listable']
