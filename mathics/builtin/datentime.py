@@ -39,27 +39,27 @@ DATE_STRING_FORMATS = {
     "MonthNameShort": "%b",
     "MonthNameInitial": "%b",   #TODO: Just the first letter
     "Month": "%m",
-    "MonthShort": "%-m",
+    "MonthShort": "%m",         #TODO: Remove leading 0
     "DayName": "%A",
     "DayNameShort": "%a",
     "DayNameInitial": "%a",     #TODO: Just the first letter
     "Day": "%d",
-    "DayShort": "%-d",
+    "DayShort": "%d",           #TODO: Remove leading 0
     "Hour": "%H",               #TODO: Find system preferences (12/24 hour)
     "Hour12": "%I",
     "Hour24": "%H",
-    "HourShort": "%-H",
-    "Hour12Short": "%-I",
-    "Hour24Short": "%-H",
+    "HourShort": "%H",          #TODO: Remove leading 0
+    "Hour12Short": "%I",        #TODO: Remove leading 0
+    "Hour24Short": "%H",        #TODO: Remove leading 0
     "AMPM": "%p",
-    "AMPMLowerCase": "%P",
+    "AMPMLowerCase": "%p",      #TODO: Lowercase
     "Minute": "%M",
-    "MinuteShort": "%-M",
+    "MinuteShort": "%M",        #TODO: Remove leading 0
     "Second": "%S",
-    "SecondShort": "%-S",
+    "SecondShort": "%S",        #TODO: Remove leading 0
     "SecondExact": "%S",        #TODO: Add extra Precision
     "Millisecond": "%f",        #TODO: Multiply by 1000
-    "MillisecondShort": "%-f",  #TODO: Multiply by 1000
+    "MillisecondShort": "",     #TODO: Multiply by 1000 and Remove leading 0
 }
 
 
