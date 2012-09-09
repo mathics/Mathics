@@ -324,6 +324,20 @@ class DateString(_DateFormat):
     
     #> DateString[{"DayName", "  ", "Month", "/", "YearShort"}]
      = ...
+
+    #> DateString["2000-12-1", "Year"]
+     = 2000
+
+    # Assumed separators
+    #> DateString[{"06/06/1991", {"Month", "Day", "Year"}}]
+     = Thu 6 Jun 1991 00:00:00
+
+    # Specified separators
+    #> DateString[{"06/06/1991", {"Month", "/", "Day", "/", "Year"}}]
+     = Thu 6 Jun 1991 00:00:00
+
+    #> DateString[{"5/19"}]
+     = 5/19
     """
 
     rules = {
