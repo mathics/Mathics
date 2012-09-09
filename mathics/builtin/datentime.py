@@ -24,6 +24,7 @@ TIME_INCREMENTS = {
     'Second':   (0, 0, 0, 0, 0, 1),
 }
 
+#FIXME: Some of the formats are not supported by strftime/strptime (commented out)
 DATE_STRING_FORMATS = {
     "Date": "%c",
     "DateShort": "%a %d %b %Y",
@@ -32,17 +33,17 @@ DATE_STRING_FORMATS = {
     "DateTimeShort": "%a %d %b %Y %X",
     "Year" : "%Y",
     "YearShort": "%y",
-    #"QuarterName": "Quarter N",#TODO
-    #"QuarterNameShort": "QN",  #TODO
-    #"Quarter": "",             #TODO
+    #"QuarterName": "Quarter N",
+    #"QuarterNameShort": "QN",
+    #"Quarter": "",
     "MonthName": "%B",
     "MonthNameShort": "%b",
-    #"MonthNameInitial": "%b",  #TODO
+    #"MonthNameInitial": "%b",
     "Month": "%m",
     "MonthShort": "%m",
     "DayName": "%A",
     "DayNameShort": "%a",
-    #"DayNameInitial": "%a",    #TODO
+    #"DayNameInitial": "%a",
     "Day": "%d",
     "DayShort": "%d",
     "Hour": "%H",               #TODO: Find system preferences (12/24 hour)
@@ -52,14 +53,14 @@ DATE_STRING_FORMATS = {
     "Hour12Short": "%I",
     "Hour24Short": "%H",
     "AMPM": "%p",
-    #"AMPMLowerCase": "%p",     #TODO
+    #"AMPMLowerCase": "%p",
     "Minute": "%M",
     "MinuteShort": "%M",
     "Second": "%S",
     "SecondShort": "%S",
     "SecondExact": "%S.%f",
-    #"Millisecond": "%f",       #TODO
-    #"MillisecondShort": "",    #TODO
+    #"Millisecond": "%f",
+    #"MillisecondShort": "",
 }
 
 
@@ -398,6 +399,12 @@ class AbsoluteTime(_DateFormat):
     <dl>
     <dt>'AbsoluteTime[]'
       <dd>Gives the local time in seconds since epoch Jan 1 1900.
+    <dt>'AbsoluteTime["string"]'
+      <dd>Gives the absolute time specification for a given date string.
+    <dt>'AbsoluteTime[{y, m, d, h, m, s}]
+      <dd>Gives the absolute time specification for a given date list.
+    <dt>'AbsoluteTime[{"string",{$e1$, $e2$, ...}}]' 
+      <dd>Gives the absolute time specification for a given date list with specified elements $ei$.
     </dl>
 
     >> AbsoluteTime[]
@@ -408,6 +415,16 @@ class AbsoluteTime(_DateFormat):
 
     >> AbsoluteTime[{"01/02/03", {"Day", "Month", "YearShort"}}]
      = 3253046400
+
+    >> AbsoluteTime["6 June 1991"]
+     = 2885155200
+
+    >> AbsoluteTime[{"6-6-91", {"Day", "Month", "YearShort"}}]
+     = 2885155200
+
+    #Mathematica Bug - Mathics gets it right
+    #> AbsoluteTime[1000]
+     = 1000
     """
 
     def apply_now(self, evaluation):
