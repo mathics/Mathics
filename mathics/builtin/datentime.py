@@ -393,7 +393,7 @@ class DateString(_DateFormat):
         return from_python(''.join(datestrs))
 
 
-class AbsoluteTime(Builtin):
+class AbsoluteTime(_DateFormat):
     """
     <dl>
     <dt>'AbsoluteTime[]'
@@ -402,13 +402,32 @@ class AbsoluteTime(Builtin):
 
     >> AbsoluteTime[]
      = ...
+
+    >> AbsoluteTime[{2000}]
+     = 3155673600
+
+    >> AbsoluteTime[{"01/02/03", {"Day", "Month", "YearShort"}}]
+     = 3253046400
     """
 
-    def apply(self, evaluation):
+    def apply_now(self, evaluation):
         'AbsoluteTime[]'
         return from_python(time.time() + 2208988800 - time.timezone)
-    
-    #TODO: Intepret list or string
+
+    def apply_spec(self, epochtime, evaluation):
+        'AbsoluteTime[epochtime_]'
+
+        datelist = self.to_datelist(epochtime, evaluation)
+
+        if datelist is None:
+            return
+
+        epoch = datetime(1900, 1, 1)
+        date = _Date(datelist=datelist)
+        tdelta = date.date - epoch
+        if tdelta.microseconds == 0:
+            return from_python(int(tdelta.total_seconds()))
+        return from_python(tdelta.total_seconds())
 
 
 class TimeZone(Predefined):
