@@ -274,7 +274,7 @@ class Sec(_MPMathFunction):
     def eval(self, z):
         return mpmath.sec(z)
     
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
             return Expression('Power', Expression('Cos', expr.leaves[0]), Integer(-1)).to_sympy()
 
@@ -301,7 +301,7 @@ class Csc(_MPMathFunction):
     def eval(self, z):
         return mpmath.csc(z)
     
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
             return Expression('Power', Expression('Sin', expr.leaves[0]), Integer(-1)).to_sympy()
 
@@ -426,7 +426,7 @@ class ArcSec(_MPMathFunction):
     def eval(self, z):
         return mpmath.asec(z) 
     
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
             return Expression('ArcCos', Expression('Power', expr.leaves[0], Integer(-1))).to_sympy()
     
@@ -454,7 +454,7 @@ class ArcCsc(_MPMathFunction):
     def eval(self, z):
         return mpmath.acsc(z)
     
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
             return Expression('ArcSin', Expression('Power', expr.leaves[0], Integer(-1))).to_sympy()
     
@@ -553,7 +553,7 @@ class Sech(_MPMathFunction):
         'Derivative[1][Sech]': '-Sech[#1] Tanh[#1]&',
     }
     
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
             return Expression('Power', Expression('Cosh', expr.leaves[0]), Integer(-1)).to_sympy()
     
@@ -579,7 +579,7 @@ class Csch(_MPMathFunction):
         'Derivative[1][Csch]': '-Coth[#1] Csch[#1]&',
     }
     
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
             return Expression('Power', Expression('Sinh', expr.leaves[0]), Integer(-1)).to_sympy()
     
@@ -709,7 +709,7 @@ class ArcSech(_MPMathFunction):
     def eval(self, z):
         return mpmath.asech(z)
     
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
             return Expression('ArcCosh', Expression('Power', expr.leaves[0], Integer(-1))).to_sympy()
     
@@ -737,7 +737,7 @@ class ArcCsch(_MPMathFunction):
     def eval(self, z):
         return mpmath.acsch(z)
     
-    def to_sympy(self, expr):
+    def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
             return Expression('ArcSinh', Expression('Power', expr.leaves[0], Integer(-1))).to_sympy()
     

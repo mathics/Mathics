@@ -167,6 +167,9 @@ def from_sympy(expr):
             if isinstance(expr, symbol.Dummy):
                 name = name + ('__Dummy_%d' % expr.dummy_index)
                 return Symbol(name, sympy_dummy=expr)
+            if (not name.startswith(sympy_symbol_prefix) or name.startswith(sympy_slot_prefix)) \
+              and name.startswith('C'):
+                return Expression('C', int(name[1:]))
             if name.startswith(sympy_symbol_prefix):
                 name = name[len(sympy_symbol_prefix):]
             if name.startswith(sympy_slot_prefix):
@@ -207,6 +210,8 @@ def from_sympy(expr):
         return Expression('Times', *[from_sympy(arg) for arg in expr.args])
     elif expr.is_Pow:
         return Expression('Power', *[from_sympy(arg) for arg in expr.args])
+    elif expr.is_Equality:
+        return Expression('Equal', *[from_sympy(arg) for arg in expr.args])
     
     elif isinstance(expr, SympyExpression):
         #print "SympyExpression: %s" % expr
