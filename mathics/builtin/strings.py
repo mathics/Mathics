@@ -141,3 +141,27 @@ class ToString(Builtin):
         return String(text)
     
             
+class StringQ(Builtin):
+    """
+    <dl>
+    <dt> StringQ[$expr$]
+      <dd> Returns True if $expr$ is a string or false otherwise.
+    </dl>
+
+
+    >> StringQ["abc"]
+     = True
+
+    >> Select[{"12", 1, 3, 5, "yz", x, y}, StringQ]
+     = {12, yz}
+    """
+
+    def apply(self, expr, evaluation):
+        'StringQ[expr_]'
+
+        def test(expr):
+            return expr.get_head_name() == 'String'
+
+        return Symbol('True') if test(expr) else Symbol('False')
+
+

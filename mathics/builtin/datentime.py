@@ -323,7 +323,7 @@ class DateString(_DateFormat):
      = Sun 4 Mar 1979 00:00:00
     
     #> DateString[{"DayName", "  ", "Month", "/", "YearShort"}]
-     = Monday  10/08
+     = ...
     """
 
     rules = {
