@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import dateutil.parser
 from mathics.core.expression import Expression, Real, Symbol, String, from_python
 from mathics.builtin.base import Builtin, Predefined
-from itertools import cycle
+from mathics.settings import TIME_12HOUR
 
 START_TIME = time.time()
 
@@ -46,7 +46,7 @@ DATE_STRING_FORMATS = {
     #"DayNameInitial": "%a",
     "Day": "%d",
     "DayShort": "%d",
-    "Hour": "%H",               #TODO: Find system preferences (12/24 hour)
+    "Hour": "%I" if TIME_12HOUR else "%H",
     "Hour12": "%I",
     "Hour24": "%H",
     "HourShort": "%H",

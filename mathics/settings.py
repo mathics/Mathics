@@ -89,6 +89,9 @@ SERVER_EMAIL = 'mathics@localhost'
 # system time zone.
 TIME_ZONE = 'Europe/Vienna'
 
+# Set this True if you prefer 12 hour time to be the default
+TIME_12HOUR = False
+
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
