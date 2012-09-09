@@ -90,6 +90,12 @@ class D(SageFunction):
      = f''[#1]
     #> D[(#1&)[t],{t,4}]
      = 0
+
+    #> Attributes[f] ={HoldAll}; Apart[f''[x + x]]
+     = f''[2 x]
+
+    #> Attributes[f] = {}; Apart[f''[x + x]]
+     = f''[2 x]
     """
     
     # TODO
@@ -313,8 +319,7 @@ class Derivative(PostfixOperator, SageFunction):
         if len(exprs) != 4 or not all(len(expr.leaves) >= 1 for exp in exprs[:3]):
             return 
 
-        x = exprs[0].leaves[0]
-        sym_x = sympy.symbols(str(sympy_symbol_prefix + x.__str__()))
+        sym_x = exprs[0].leaves[0].to_sympy()
         func = exprs[1].leaves[0]
         sym_func = sympy.Function(str(sympy_symbol_prefix + func.__str__())) (sym_x)
         

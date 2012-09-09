@@ -25,13 +25,11 @@ class DSolve(Builtin):
     >> DSolve[y''[x] == y[x], y, x]
      = {{y -> (Function[{x}, C[2] Exp[-x] + C[1] Exp[x]])}}
 
-    #> Attributes[f] = {HoldAll};
-    #> DSolve[f[x + x] == Sin[f'[x]], f, x]
+    #> Attributes[f] = {HoldAll}; DSolve[f[x + x] == Sin[f'[x]], f, x]
      : To avoid possible ambiguity, the arguments of the dependent variable in -Sin[f'[x]] + f[x + x] should literally match the independent variables.
      = DSolve[f[x + x] == Sin[f'[x]], f, x]
 
-    #> Attributes[f] = {};
-    #> DSolve[f[x + x] == Sin[f'[x]], f, x]
+    #> Attributes[f] = {}; DSolve[f[x + x] == Sin[f'[x]], f, x]
      : To avoid possible ambiguity, the arguments of the dependent variable in -Sin[f'[x]] + f[2 x] should literally match the independent variables.
      = DSolve[f[2 x] == Sin[f'[x]], f, x]
     
