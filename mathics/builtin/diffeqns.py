@@ -24,6 +24,17 @@ class DSolve(Builtin):
 
     >> DSolve[y''[x] == y[x], y, x]
      = {{y -> (Function[{x}, C[2] Exp[-x] + C[1] Exp[x]])}}
+
+    #> Attributes[f] = {HoldAll};
+    #> DSolve[f[x + x] == Sin[f'[x]], f, x]
+     : To avoid possible ambiguity, the arguments of the dependent variable in -Sin[f'[x]] + f[x + x] should literally match the independent variables.
+     = DSolve[f[x + x] == Sin[f'[x]], f, x]
+
+    #> Attributes[f] = {};
+    #> DSolve[f[x + x] == Sin[f'[x]], f, x]
+     : To avoid possible ambiguity, the arguments of the dependent variable in -Sin[f'[x]] + f[2 x] should literally match the independent variables.
+     = DSolve[f[2 x] == Sin[f'[x]], f, x]
+    
     """
 
     messages = {
@@ -31,6 +42,7 @@ class DSolve(Builtin):
         'deqx': 'Supplied equations are not differential equations of the given functions.',
         'dsfun': '`1` cannot be used as a function.',
         'dsvar': '`1` cannot be used as a variable.',
+        'litarg': 'To avoid possible ambiguity, the arguments of the dependent variable in `1` should literally match the independent variables.',
         #FIXME: Remove these if sympy changes:
         'symsys': 'Unfortunately Sympy, part of the Mathics backend, does not support solving systems of DEs.',
         'symimp': 'Unfortunately Sympy, part of the Mathics backend, does not support solutions to this form of DE.',
@@ -94,6 +106,9 @@ class DSolve(Builtin):
         except NotImplementedError as e:
             #print e
             evaluation.message('DSolve', 'symimp')
+            return
+        except AttributeError as e:
+            evaluation.message('DSolve', 'litarg', eqn)
             return
 
         if function_form is None:
