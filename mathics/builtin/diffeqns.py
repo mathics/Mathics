@@ -35,7 +35,17 @@ class DSolve(Builtin):
      : To avoid possible ambiguity, the arguments of the dependent variable in -Sin[f'[x]] + f[2 x] should literally match the independent variables.
      = DSolve[f[2 x] == Sin[f'[x]], f, x]
     
+    #> DSolve[f'[x] == f[x], f, x] /.{C[1] -> 1}
+     = {{f -> (Function[{x}, Exp[1 + x]])}}
+
+    #> DSolve[f'[x] == f[x], f, x] /.{C -> D}
+     = {{f -> (Function[{x}, Exp[D[1] + x]])}}
+
+    #> DSolve[f'[x] == f[x], f, x] /.{C[1] -> C[0]}
+     = {{f -> (Function[{x}, Exp[C[0] + x]])}}
     """
+
+    #TODO: GeneratedParameters option
 
     messages = {
         'deqn': 'Equation or list of equations expected instead of `1` in the first argument `1`.',
