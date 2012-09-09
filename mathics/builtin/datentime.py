@@ -37,29 +37,29 @@ DATE_STRING_FORMATS = {
     #"Quarter": "",             #TODO
     "MonthName": "%B",
     "MonthNameShort": "%b",
-    #"MonthNameInitial": "%b",  #TODO: Just the first letter
+    #"MonthNameInitial": "%b",  #TODO
     "Month": "%m",
-    "MonthShort": "%m",         #TODO: Remove leading 0
+    "MonthShort": "%m",
     "DayName": "%A",
     "DayNameShort": "%a",
     #"DayNameInitial": "%a",    #TODO
     "Day": "%d",
-    "DayShort": "%d",           #TODO: Remove leading 0
+    "DayShort": "%d",
     "Hour": "%H",               #TODO: Find system preferences (12/24 hour)
     "Hour12": "%I",
     "Hour24": "%H",
-    "HourShort": "%H",          #TODO: Remove leading 0
-    "Hour12Short": "%I",        #TODO: Remove leading 0
-    "Hour24Short": "%H",        #TODO: Remove leading 0
+    "HourShort": "%H",
+    "Hour12Short": "%I",
+    "Hour24Short": "%H",
     "AMPM": "%p",
     #"AMPMLowerCase": "%p",     #TODO
     "Minute": "%M",
-    "MinuteShort": "%M",        #TODO: Remove leading 0
+    "MinuteShort": "%M",
     "Second": "%S",
-    "SecondShort": "%S",        #TODO: Remove leading 0
+    "SecondShort": "%S",
     "SecondExact": "%S.%f",
-    #"Millisecond": "%f",        #TODO
-    #"MillisecondShort": "",     #TODO
+    #"Millisecond": "%f",       #TODO
+    #"MillisecondShort": "",    #TODO
 }
 
 
@@ -312,8 +312,12 @@ class DateString(_DateFormat):
      = Wednesday  03-79
 
     Non-integer values are accepted too
-    >>  DateString[{1991, 6, 6.5}]
+    >> DateString[{1991, 6, 6.5}]
      = Thu 06 Jun 1991 12:00:00
+
+    # Check Leading 0
+    #> DateString[{1979, 3, 14}, {"DayName", "  ", "MonthShort", "-", "YearShort"}]
+     =  Wednesday  3-79
     """
 
     rules = {
@@ -351,9 +355,13 @@ class DateString(_DateFormat):
         for p in pyform:
             if str(p) in DATE_STRING_FORMATS.keys():
                 #FIXME: Years 1900 before raise an error
-                datestrs.append(date.date.strftime(DATE_STRING_FORMATS[p]))
+                tmp = date.date.strftime(DATE_STRING_FORMATS[p])
+                if str(p).endswith("Short") and str(p) != "YearShort":
+                    tmp = tmp.lstrip('0')
             else:
-                datestrs.append(str(p))
+                tmp = str(p)
+
+            datestrs.append(tmp)
 
         return from_python(''.join(datestrs))
 
