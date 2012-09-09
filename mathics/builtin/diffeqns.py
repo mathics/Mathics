@@ -13,7 +13,7 @@ class DSolve(Builtin):
     """
     <dl>
     <dt>'DSolve[$eq$, $y[x]$, $x$]'
-        <dd> Solves a differential equation for the function $y[x]$.
+        <dd>solves a differential equation for the function $y[x]$.
     </dl>
 
     >> DSolve[y''[x] == 0, y[x], x]
@@ -38,13 +38,13 @@ class DSolve(Builtin):
     #> DSolve[f'[x] == f[x], f, x] // FullForm
      = List[List[Rule[f, Function[List[x], Exp[Plus[C[1], x]]]]]]
 
-    #> DSolve[f'[x] == f[x], f, x] /.{C[1] -> 1}
+    #> DSolve[f'[x] == f[x], f, x] /. {C[1] -> 1}
      = {{f -> (Function[{x}, Exp[1 + x]])}}
 
-    #> DSolve[f'[x] == f[x], f, x] /.{C -> D}
+    #> DSolve[f'[x] == f[x], f, x] /. {C -> D}
      = {{f -> (Function[{x}, Exp[D[1] + x]])}}
 
-    #> DSolve[f'[x] == f[x], f, x] /.{C[1] -> C[0]}
+    #> DSolve[f'[x] == f[x], f, x] /. {C[1] -> C[0]}
      = {{f -> (Function[{x}, Exp[C[0] + x]])}}
     """
 
@@ -57,9 +57,9 @@ class DSolve(Builtin):
         'dsvar': '`1` cannot be used as a variable.',
         'litarg': 'To avoid possible ambiguity, the arguments of the dependent variable in `1` should literally match the independent variables.',
         #FIXME: Remove these if sympy changes:
-        'symsys': 'Unfortunately Sympy, part of the Mathics backend, does not support solving systems of DEs.',
-        'symimp': 'Unfortunately Sympy, part of the Mathics backend, does not support solutions to this form of DE.',
-        'symmua': 'Unfortunately Sympy, part of the Mathics backend, does not functions of multiple variables.',
+        'symsys': 'Unfortunately SymPy, part of the Mathics backend, does not support solving systems of DEs.',
+        'symimp': 'Unfortunately SymPy, part of the Mathics backend, does not support solutions to this form of DE.',
+        'symmua': 'Unfortunately SymPy, part of the Mathics backend, does not support functions of multiple variables.',
     }
 
     def apply(self, eqn, y, x, evaluation):
@@ -113,11 +113,9 @@ class DSolve(Builtin):
             if not isinstance(sym_result, list):
                 sym_result = [sym_result]
         except ValueError as e:
-            #print e
             evaluation.message('DSolve', 'symimp')
             return
         except NotImplementedError as e:
-            #print e
             evaluation.message('DSolve', 'symimp')
             return
         except AttributeError as e:
@@ -132,4 +130,3 @@ class DSolve(Builtin):
                 Expression('Function', function_form, *from_sympy(soln).leaves[1:]))) for soln in sym_result])
 
 #TODO: NDSolve
-

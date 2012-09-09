@@ -13,24 +13,23 @@ class RSolve(Builtin):
     """
     <dl>
     <dt>'RSolve[$eqn$, $a[n]$, $n$]'
-        <dd> Solves a recurrence equation for the function $a[n]$.
+        <dd>solves a recurrence equation for the function '$a[n]$'.
     </dl>
 
     >> RSolve[a[n] == a[n+1], a[n], n]
      = {{a[n] -> C[0]}}
 
-    No boundary conditions gives two general paramaters.
+    No boundary conditions gives two general paramaters:
     >> RSolve[{a[n + 2] == a[n]}, a, n]
      = {{a -> (Function[{n}, C[1] -1 ^ n + C[0]])}}
 
-    One boundary condition.
+    One boundary condition:
     >> RSolve[{a[n + 2] == a[n], a[0] == 1}, a, n]
      = {{a -> (Function[{n}, 1 - C[1] + C[1] -1 ^ n])}}
 
-    Two boundary conditions.
+    Two boundary conditions:
     >> RSolve[{a[n + 2] == a[n], a[0] == 1, a[1] == 4}, a, n]
      = {{a -> (Function[{n}, 5 / 2 - 3 -1 ^ n / 2])}}
-
     """
 
     messages = {
@@ -108,7 +107,6 @@ class RSolve(Builtin):
             if not isinstance(sym_result, list):
                 sym_result = [sym_result]
         except ValueError as ve:
-            #print ve
             return
 
         if function_form is None:
