@@ -427,6 +427,11 @@ class AbsoluteTime(_DateFormat):
      = 1000
     """
 
+    messages = {
+        'arg': 'Argument `1` cannot be intepreted as a date or time input.',
+        'fmt': '`1` is not a valid date format.',
+    }
+
     def apply_now(self, evaluation):
         'AbsoluteTime[]'
         return from_python(time.time() + 2208988800 - time.timezone)
