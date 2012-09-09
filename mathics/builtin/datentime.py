@@ -313,11 +313,15 @@ class DateString(_DateFormat):
 
     Non-integer values are accepted too
     >> DateString[{1991, 6, 6.5}]
-     = Thu 06 Jun 1991 12:00:00
+     = Thu 6 Jun 1991 12:00:00
 
     # Check Leading 0
     #> DateString[{1979, 3, 14}, {"DayName", "  ", "MonthShort", "-", "YearShort"}]
      =  Wednesday  3-79
+
+    #> DateString[{1979, 3, 4}]
+     = Sun 4 Mar 1979 00:00:00
+    
     """
 
     rules = {
@@ -357,7 +361,11 @@ class DateString(_DateFormat):
                 #FIXME: Years 1900 before raise an error
                 tmp = date.date.strftime(DATE_STRING_FORMATS[p])
                 if str(p).endswith("Short") and str(p) != "YearShort":
-                    tmp = tmp.lstrip('0')
+                    if str(p) == "DateTimeShort":
+                        tmp = tmp.split(' ')
+                        tmp = ' '.join(map(lambda s: s.lstrip('0'), tmp[:-1])+[tmp[-1]])
+                    else:
+                        tmp = ' '.join(map(lambda s: s.lstrip('0'), tmp.split(' ')))
             else:
                 tmp = str(p)
 
