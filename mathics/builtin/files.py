@@ -117,12 +117,19 @@ class Read(Builtin):
     #> str = StringToStream["3.*^10"]; Read[str, Real]
      = 3.*^10
 
+    ## Expression
+    #> str = StringToStream["x + y Sin[z]"]; Read[str, Expression]
+     = x + y Sin[z]
+    #> str = StringToStream["Sin[1 123"]; Read[str, Expression]
+     : Invalid input found when reading Sin[1 123 from InputSteam["String", 12]
+     = $Failed
+
     ## Multiple types
     >> str = StringToStream["123 abc"];
     >> Read[str, {Number, Word}]
      = {123, abc}
     #> str = StringToStream["123 abc"]; Read[str, {Word, Number}]
-     : Invalid real number found when reading from InputSteam["String", 12]
+     : Invalid real number found when reading from InputSteam["String", 14]
      = $Failed
     #> Read[str, {Word, Number}]
      = EndOfFile
@@ -134,6 +141,7 @@ class Read(Builtin):
         'openx': '`1` is not open',
         'readf': '`1` is not a valid format specificiation',
         'readn': 'Invalid real number found when reading from `1`',
+        'readt': 'Invalid input found when reading `1` from `2`',
     }
 
     rules = {
@@ -169,7 +177,6 @@ class Read(Builtin):
         record_separators = ['\n', '\r\n', '\r']
 
         def reader(stream, word_separators, accepted = None):
-            word_separators = [' ', '\t', '\n']
             while True:
                 word = ''
                 while True:
@@ -209,7 +216,19 @@ class Read(Builtin):
                         raise EOFError
                     result.append(tmp)
                 elif typ == 'Expression':
-                    pass #TODO
+                    tmp = read_record.next()
+                    try:
+                        try:
+                            expr = parse(tmp)
+                        except NameError:
+                            from mathics.core.parser import parse, ParseError
+                            expr = parse(tmp)
+                    except ParseError:
+                        expr = None
+                    if expr is None:
+                        evaluation.message('Read', 'readt', tmp, Expression('InputSteam', name, n))
+                        return Symbol('$Failed')
+                    result.append(tmp)
                 elif typ == 'Number':
                     tmp = read_number.next()
                     try:
