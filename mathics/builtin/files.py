@@ -282,7 +282,7 @@ class Write(Builtin):
     """
 
     def apply(self, name, n, expr, evaluation):
-        'WriteString[OutputStream[name_, n_], expr___]'
+        'Write[OutputStream[name_, n_], expr___]'
         global STREAMS
         stream = STREAMS[n.to_python()]
 
@@ -291,7 +291,7 @@ class Write(Builtin):
 
         evaluation.format = 'text'
         text = evaluation.format_output(from_python(expr))
-        stream.write(text)
+        stream.write(unicode(text))
         return Symbol('Null')
 
 class WriteString(Builtin):
@@ -427,14 +427,27 @@ class FilePrint(Builtin):
     <dt>'FilePrint["file"]
         <dd>prints the raw contents of $file$.
     </dl>
+
+    #> str = Sin[1];
+    #> FilePrint[str]
+     : File specification Sin[1] is not a string of one or more characters.
+     = FilePrint[Sin[1]]
     """
+
+    messages = {
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+    }
 
     def apply(self, path, evaluation):
         'FilePrint[path_]'
-        path = path.to_python().strip('"')
+        pypath = path.to_python()
+        if not (isinstance(pypath, basestring) and pypath[0] == pypath[-1] == '"'):
+            evaluation.message('FilePrint', 'fstr', path)
+            return
+        pypath = pypath.strip('"')
 
         try:
-            f = open(path, 'r')
+            f = open(pypath, 'r')
             result = f.read()
             f.close()
         except IOError:
