@@ -10,6 +10,8 @@ from os.path import getatime, getmtime, getctime
 from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
 
+STREAMS = {}
+
 class ImportFormats(Predefined):
     """
     <dl>
@@ -50,7 +52,36 @@ class Read(Builtin):
     <dt>'Read[stream, type]
         <dd>reads the input stream and returns object of the given type.
     </dl>
+
+    ## Malformed InputString
+    #> Read[InputStream[String], {Word, Number}]
+     : InputStream[String] is not string, InputStream[], or OutputStream[]
+     = Read[InputStream[String], {Word, Number}]
+
+    ## Correctly formed InputString but not open
+    #> Read[InputStream[String, -1], {Word, Number}]
+     : InputSteam[String, -1] is not open
+     = Read[InputStream[String, -1], {Word, Number}]
+
+    #> str = StringToStream["abc123"];
+    #> Read[str, String]
+     = abc123
+    #> Read[str, String]
+     = EndOfFile
+    
+    #> str = StringToStream["abc 123"];
+    #> Read[str, Word]
+     = abc
+    #> Read[str, Word]
+     = 123
+    #> Read[str, Word]
+     = EndOfFile
     """
+
+    messages = {
+        'readf': '`1` is not a valif format specificiation',
+        'openx': '`1` is not open',
+    }
 
     rules = {
         'Read[stream_]': 'Read[stream, Expression]',
@@ -60,26 +91,87 @@ class Read(Builtin):
         'Read[InputStream[name_, n_], types_]'
         global STREAMS
     
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
+
+        if stream is None:
+            evaluation.message('Read', 'openx', Expression('InputSteam', name, n))
+            return
         
         types = types.to_python()
         if not isinstance(types, list):
             types = [types]
+    
+        READ_TYPES = ['Byte', 'Character', 'Expression', 'Number', 'Real', 'Record', 'String', 'Word']
+
+        if not all(isinstance(typ, basestring) and typ in READ_TYPES for typ in types):
+            evaluation.message('Read', 'readf', from_python(typ))
+            return
         
         name = name.to_python()
 
         result = []
 
+        def word_reader(stream):
+            word_separators = [' ', '\t', '\n']
+            while True:
+                word = ''
+                while True:
+                    tmp = stream.read(1)
+
+                    if tmp == '':
+                        if word == '':
+                            raise EOFError
+                        yield word
+                        raise StopIteration
+
+                    if tmp in word_separators:
+                        if word == '':
+                            break
+                        else:
+                            yield word
+                            raise StopIteration
+                    else:
+                        word += tmp
+
+        read_word = word_reader(stream)            
         for typ in types:
-            if typ == 'String':
-                result.append(stream.readline())
-            elif typ == 'Byte':
-                result.append(ord(stream.read(1)))
+            try:
+                if typ == 'Byte':
+                    tmp = stream.read(1)
+                    if len(tmp) == 0:
+                        raise EOFError
+                    result.append(ord(tmp))
+                elif typ == 'Character':
+                    result.append(stream.read(1))
+                elif typ == 'Expression':
+                    pass #TODO
+                elif typ == 'Number':
+                    pass #TODO
+                elif typ == 'Real':
+                    pass #TODO
+                elif typ == 'Record':
+                    pass #TODO
+                elif typ == 'String':
+                    tmp = stream.readline()
+                    if len(tmp) == 0:
+                        raise EOFError
+                    result.append(tmp)
+                elif typ == 'Word':
+                    tmp = read_word.next()
+                    result.append(tmp)
+                        
+            except EOFError:
+                return from_python('EndOfFile')
 
         if len(result) == 1:
             return from_python(*result)
 
         return from_python(result)
+
+    def apply_nostream(self, arg1, arg2, evaluation):
+        'Read[arg1_, arg2_]'
+        evaluation.message('General', 'stream', arg1)
+        return
                 
 class Write(Builtin):
     """
@@ -355,7 +447,7 @@ def _put_stream(stream):
     global NSTREAMS
 
     try:
-        STREAMS
+        _STREAMS
     except NameError:
         STREAMS = {}    # Python repr
         _STREAMS = {}   # Mathics repr
