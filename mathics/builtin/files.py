@@ -112,13 +112,17 @@ class Read(Builtin):
      = 1.523*^-19
     #> str = StringToStream["-1.523e19"]; Read[str, Real]
      = -1.523*^19
+    #> str = StringToStream["3*^10"]; Read[str, Real]
+     = 3.*^10
+    #> str = StringToStream["3.*^10"]; Read[str, Real]
+     = 3.*^10
 
     ## Multiple types
     >> str = StringToStream["123 abc"];
     >> Read[str, {Number, Word}]
      = {123, abc}
     #> str = StringToStream["123 abc"]; Read[str, {Word, Number}]
-     : Invalid real number found when reading from InputSteam["String", 10]
+     : Invalid real number found when reading from InputSteam["String", 12]
      = $Failed
     #> Read[str, {Word, Number}]
      = EndOfFile
@@ -191,7 +195,7 @@ class Read(Builtin):
         read_number = reader(stream, word_separators + record_separators, 
             ['+', '-', '.'] + [str(i) for i in range(10)])
         read_real = reader(stream, word_separators + record_separators,
-            ['+', '-', '.', 'e', 'E'] + [str(i) for i in range(10)])
+            ['+', '-', '.', 'e', 'E', '^', '*'] + [str(i) for i in range(10)])
         for typ in types:
             try:
                 if typ == 'Byte':
@@ -220,6 +224,7 @@ class Read(Builtin):
                         
                 elif typ == 'Real':
                     tmp = read_real.next()
+                    tmp = tmp.replace('*^', 'E')
                     try:
                         tmp = float(tmp)
                     except ValueError:
