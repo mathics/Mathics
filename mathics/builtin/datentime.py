@@ -650,6 +650,9 @@ class DateDifference(Builtin):
 
     >> DateDifference[{2010, 6, 1}, {2015, 1, 1}, "Hour"]
      = {40200, Hour}
+
+    >> DateDifference[{2003, 8, 11}, {2003, 10, 19}, {"Week", "Day"}]
+     = {{9, Week}, {6, Day}}
     """
     
     rules = {
@@ -697,45 +700,70 @@ class DateDifference(Builtin):
 
         # Process Units
         pyunits = units.to_python()
-        if isinstance(pyunits, unicode) or isinstance(pyunits, str):
+        if isinstance(pyunits, basestring):
             pyunits = [unicode(pyunits.strip('"'))]
-        elif isinstance(pyunits, list) and all(isinstance(p, unicode)):
+        elif isinstance(pyunits, list) and all(isinstance(p, basestring) for p in pyunits):
             pyunits = map(lambda p: p.strip('"'), pyunits)
 
         if not all(p in TIME_INCREMENTS.keys() for p in pyunits):
             evaluation.message('DateDifference', 'inc', units)
 
-        def intdiv(a, b):
+        def intdiv(a, b, flag=True):
             'exact integer division where possible'
-            if a % b == 0:
+            if flag:
+                if a % b == 0:
+                    return a / b
+                else:
+                    return a / float(b)
+            else:
                 return a / b
-            else:
-                return a / float(b)
 
-        if len(pyunits) == 1:
-            unit = pyunits[0]
-            if tdelta.microseconds == 0:
-                seconds = int(tdelta.total_seconds())
-            else:
-                seconds = tdelta.total_seconds()
+        if not isinstance(pyunits, list):
+            pyunits = [pyunits]
+
+        # Why doesn't this work?
+        #pyunits = pyunits.sort(key=TIME_INCREMENTS.get, reverse=True)
+
+        pyunits = [(a, TIME_INCREMENTS.get(a)) for a in pyunits]
+        pyunits.sort(key = lambda a: a[1], reverse=True)
+        pyunits = [a[0] for a in pyunits]
+
+        seconds = int(tdelta.total_seconds())
+
+        #FIXME: Since timedelta doesnt support large intervals (years etc), this method is sometimes innacuarate
+        result = []
+        flag = False
+        for i,unit in enumerate(pyunits):
+            if i+1 == len(pyunits):
+                flag = True
+
             if unit == 'Year':
-                result = [intdiv(seconds, 365*24*60*60), "Year"]
+                result.append([intdiv(seconds, 365*24*60*60, flag), "Year"])
+                seconds = seconds % (365*24*60*60)
             if unit == 'Quarter':
-                result = [intdiv(seconds, 365*6*60*60), "Quarter"]
+                result.append([intdiv(seconds, 365*6*60*60, flag), "Quarter"])
+                seconds = seconds % (365*6*60*60)
             if unit == 'Month':
-                result = [intdiv(seconds, 365*2*60*60), "Month"]
+                result.append([intdiv(seconds, 365*2*60*60, flag), "Month"])
+                seconds = seconds % (365*2*60*60)
             if unit == 'Week':
-                result = [intdiv(seconds, 7*24*60*60), "Week"]
+                result.append([intdiv(seconds, 7*24*60*60, flag), "Week"])
+                seconds = seconds % (7*24*60*60)
             if unit == 'Day':
-                result = intdiv(seconds, 24*60*60)
+                result.append([intdiv(seconds, 24*60*60, flag), "Day"])
+                seconds = seconds % (24*60*60)
             if unit == 'Hour':
-                result = [intdiv(seconds, 60*60) , "Hour"]
+                result.append([intdiv(seconds, 60*60, flag), "Hour"])
+                seconds = seconds % (60*60)
             if unit == 'Minute':
-                result = [intdiv(secods, 60) , "Minute"]
+                result.append([intdiv(seconds, 60, flag), "Minute"])
+                seconds = seconds % 60
             if unit == 'Second':
-                result = [seconds, "Second"]
-            return from_python(result)
-        else:
-            #TODO: Multiple Units
-            return
+                result.append([intdiv(seconds + tdelta.total_seconds() % 1, 1, flag), "Second"])
+
+        if len(result) == 1:
+            if pyunits[0] == "Day":
+                return from_python(result[0][0])
+            return from_python(result[0])
+        return from_python(result)
 
