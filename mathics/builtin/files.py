@@ -64,17 +64,17 @@ class Read(Builtin):
      = Read[InputStream[String, -1], {Word, Number}]
 
     ## String
-    #> str = StringToStream["abc123"];
-    #> Read[str, String]
+    >> str = StringToStream["abc123"];
+    >> Read[str, String]
      = abc123
     #> Read[str, String]
      = EndOfFile
     
     ## Word
-    #> str = StringToStream["abc 123"];
-    #> Read[str, Word]
+    >> str = StringToStream["abc 123"];
+    >> Read[str, Word]
      = abc
-    #> Read[str, Word]
+    >> Read[str, Word]
      = 123
     #> Read[str, Word]
      = EndOfFile
@@ -85,10 +85,10 @@ class Read(Builtin):
      = EndOfFile
 
     ## Number
-    #> str = StringToStream["123, 4"];
-    #> Read[str, Number]
+    >> str = StringToStream["123, 4"];
+    >> Read[str, Number]
      = 123
-    #> Read[str, Number]
+    >> Read[str, Number]
      = 4
     #> Read[str, Number]
      = EndOfFile
@@ -113,6 +113,17 @@ class Read(Builtin):
     #> str = StringToStream["-1.523e19"]; Read[str, Real]
      = -1.523*^19
 
+    ## Multiple types
+    >> str = StringToStream["123 abc"];
+    >> Read[str, {Number, Word}]
+     = {123, abc}
+    #> str = StringToStream["123 abc"]; Read[str, {Word, Number}]
+     : Invalid real number found when reading from InputSteam["String", 10]
+     = $Failed
+    #> Read[str, {Word, Number}]
+     = EndOfFile
+    #> str = StringToStream["123 123"];  Read[str, {Real, Number}]
+     = {123., 123}
     """
 
     messages = {
