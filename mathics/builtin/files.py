@@ -92,6 +92,13 @@ class Read(Builtin):
      = 4
     #> Read[str, Number]
      = EndOfFile
+    #> str = StringToStream["123xyz 321"];
+    #> Read[str, Number]
+     = 123
+    #> Read[str, Number]
+     : Invalid real number found when reading from InputSteam["String", 5]
+     = $Failed
+
     """
 
     messages = {
@@ -122,7 +129,7 @@ class Read(Builtin):
 
         if not all(isinstance(typ, basestring) and typ in READ_TYPES for typ in types):
             evaluation.message('Read', 'readf', from_python(typ))
-            return
+            return Symbol('$Failed')
         
         name = name.to_python()
 
@@ -181,7 +188,7 @@ class Read(Builtin):
                             tmp = float(tmp)
                         except ValueError:
                             evaluation.message('Read', 'readn', Expression('InputSteam', name, n))
-                            return
+                            return Symbol('$Failed')
                     result.append(tmp)
                         
                 elif typ == 'Real':
