@@ -101,6 +101,10 @@ LANGUAGE_CODE = 'en-us'
 
 SITE_ID = 1
 
+# Leave this True unless you have specific reason for not permitting 
+# users to access local files
+ENABLE_FILES_MODULE = True
+
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
 USE_I18N = True
