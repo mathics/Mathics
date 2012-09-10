@@ -494,6 +494,50 @@ class Close(Builtin):
         evaluation.message('General', 'stream', stream)
         return
 
+class Skip(Read):
+    """
+    <dl>
+    <dt>'Skip[$stream$, $type$]'
+      <dd>skips ahead in an input steream by one object of the specified $type$.
+    <dt>'Skip[$stream$, $type$, $n$]'
+      <dd>skips ahead in an input steream by $n$ objects of the specified $type$.
+    </dl>
+
+    >> str = StringToStream["a b c d"];
+    >> Read[str, Word]
+     = a 
+    >> Skip[str, Word]
+    >> Read[str, Word]
+     = c
+
+    >> str = StringToStream["a b c d"];
+    >> Read[str, Word]
+     = a 
+    >> Skip[str, Word, 2]
+    >> Read[str, Word]
+     = d
+    """
+
+    rules = {
+        'Skip[InputStream[name_, n_], types_]': 'Skip[InputStream[name, n], types, 1]',
+    }
+
+    messages = {
+        'intm': 'Non-negative machine-sized integer expected at position 3 in `1`',
+    }
+
+    def apply(self, name, n, types, m, evaluation):
+        'Skip[InputStream[name_, n_], types_, m_]'
+        py_m = m.to_python()
+        if not (isinstance(py_m, int) and py_m > 0):
+            evaluation.message('Skip', 'intm', Expression('Skip', Expression('InputStream', name, n), types, m))
+            return
+        for i in range(py_m):
+            result = super(Skip, self).apply(name, n, types, evaluation)
+            if result is None:
+                return Symbol('$Failed')
+        return Symbol('Null')
+
 class InputStream(Builtin):
     """
     <dl>
