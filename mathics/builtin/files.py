@@ -99,6 +99,20 @@ class Read(Builtin):
      : Invalid real number found when reading from InputSteam["String", 5]
      = $Failed
 
+    ## Real
+    #> str = StringToStream["123, 4abc"];
+    #> Read[str, Real]
+     = 123.
+    #> Read[str, Real]
+     = 4.
+    #> Read[str, Number]
+     : Invalid real number found when reading from InputSteam["String", 6]
+     = $Failed
+    #> str = StringToStream["1.523E-19"]; Read[str, Real]
+     = 1.523*^-19
+    #> str = StringToStream["-1.523e19"]; Read[str, Real]
+     = -1.523*^19
+
     """
 
     messages = {
@@ -165,6 +179,8 @@ class Read(Builtin):
         read_record = reader(stream, record_separators)
         read_number = reader(stream, word_separators + record_separators, 
             ['+', '-', '.'] + [str(i) for i in range(10)])
+        read_real = reader(stream, word_separators + record_separators,
+            ['+', '-', '.', 'e', 'E'] + [str(i) for i in range(10)])
         for typ in types:
             try:
                 if typ == 'Byte':
@@ -192,7 +208,13 @@ class Read(Builtin):
                     result.append(tmp)
                         
                 elif typ == 'Real':
-                    pass #TODO
+                    tmp = read_real.next()
+                    try:
+                        tmp = float(tmp)
+                    except ValueError:
+                        evaluation.message('Read', 'readn', Expression('InputSteam', name, n))
+                        return Symbol('$Failed')
+                    result.append(tmp)
                 elif typ == 'Record':
                     result.append(read_record.next())
                 elif typ == 'String':
