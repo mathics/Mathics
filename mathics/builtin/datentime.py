@@ -232,10 +232,14 @@ class DateList(_DateFormat):
     <dl>
     <dt>'DateList[]'
       <dd>returns the current local time in the form {$year$, $month$, $day$, $hour$, $minute$, $second$}.
-    <dt>'DateList[time_]'
+    <dt>'DateList[$time$]'
       <dd>returns a formatted date for the number of seconds $time$ since epoch Jan 1 1900.
-    <dt>'DateList[{y, m, d, h, m, s}]'
+    <dt>'DateList[{$y$, $m$, $d$, $h$, $m$, $s$}]'
       <dd>converts an incomplete date list to the standard representation.
+    <dt>'DateString[$string$]'
+      <dd>returns the formatted date list of a date string specification.
+    <dt>'DateString[$string$, {$e1$, $e2$, ...}]'
+      <dd>returns the formatted date list of a $string$ obtained from elements $ei$.
     </dl>
 
     >> DateList[0]
@@ -247,8 +251,11 @@ class DateList(_DateFormat):
     >> DateList[{2003, 5, 0.5, 0.1, 0.767}]
      = {2003, 4, 30, 12, 6, 46.02}
 
-    >> DateList[{2012, 1, 300., 10, 0.}]
+    >> DateList[{2012, 1, 300., 10}]
      = {2012, 10, 26, 10, 0, 0.}
+
+    >> DateList["31/10/1991"]
+     = {1991, 10, 31, 0, 0, 0.}
 
     >> DateList[{"31/10/91", {"Day", "Month", "YearShort"}}]
      = {1991, 10, 31, 0, 0, 0.}
@@ -256,7 +263,7 @@ class DateList(_DateFormat):
     >> DateList[{"31 10/91", {"Day", " ", "Month", "/", "YearShort"}}]
      = {1991, 10, 31, 0, 0, 0.}
 
-    #strptime should ignore leading 0s
+    ## strptime should ignore leading 0s
     #> DateList[{"6/6/91", {"Day", "Month", "YearShort"}}]
      = {1991, 6, 6, 0, 0, 0.}
     #> DateList[{"6/06/91", {"Day", "Month", "YearShort"}}]
@@ -266,7 +273,7 @@ class DateList(_DateFormat):
     #> DateList[{"06/6/91", {"Day", "Month", "YearShort"}}]
      = {1991, 6, 6, 0, 0, 0.}
 
-    # Current year assumed 
+    ## Current year assumed - this will need changing every year
     #> DateList[{"5/18", {"Month", "Day"}}]
      = {2012, 5, 18, 0, 0, 0.}
     """
@@ -294,13 +301,22 @@ class DateString(_DateFormat):
     """
     <dl>
     <dt>'DateString[]'
-      <dd>Returns the current local time and date as a string.
-    <dt>'DateString[time]'
-      <dd>Returns the date string of an AbsoluteTime.
-    <dt>'DateString[{y, m, d, h, m, s}]'
-      <dd>Returns the date string of a date list specification.
+      <dd>returns the current local time and date as a string.
+    <dt>'DateString[$elem$]'
+      <dd>returns the time formatted according to $elems$.
+    <dt>'DateString[{$e1$, $e2$, ...}]'
+      <dd>concatinates the time formatted according to elements $ei$.
+    <dt>'DateString[$time$]'
+      <dd>returns the date string of an AbsoluteTime.
+    <dt>'DateString[{$y$, $m$, $d$, $h$, $m$, $s$}]'
+      <dd>returns the date string of a date list specification.
+    <dt>'DateString[$string$]'
+      <dd>returns the formatted date string of a date string specification.
+    <dt>'DateString[$spec$, $elems$]'
+      <dd>formats the time in turns of $elems$. Both $spec$ and $elems$ can take any of the above formats.
+    </dl>
 
-    The current date and time
+    The current date and time:
     >> DateString[];
 
     >> DateString[{1991, 10, 31, 0, 0}, {"Day", " ", "MonthName", " ", "Year"}]
@@ -312,11 +328,11 @@ class DateString(_DateFormat):
     >> DateString[{1979, 3, 14}, {"DayName", "  ", "Month", "-", "YearShort"}]
      = Wednesday  03-79
 
-    Non-integer values are accepted too
+    Non-integer values are accepted too:
     >> DateString[{1991, 6, 6.5}]
      = Thu 6 Jun 1991 12:00:00
 
-    # Check Leading 0
+    ## Check Leading 0
     #> DateString[{1979, 3, 14}, {"DayName", "  ", "MonthShort", "-", "YearShort"}]
      =  Wednesday  3-79
 
@@ -329,11 +345,11 @@ class DateString(_DateFormat):
     #> DateString["2000-12-1", "Year"]
      = 2000
 
-    # Assumed separators
+    ## Assumed separators
     #> DateString[{"06/06/1991", {"Month", "Day", "Year"}}]
      = Thu 6 Jun 1991 00:00:00
 
-    # Specified separators
+    ## Specified separators
     #> DateString[{"06/06/1991", {"Month", "/", "Day", "/", "Year"}}]
      = Thu 6 Jun 1991 00:00:00
 
@@ -398,13 +414,13 @@ class AbsoluteTime(_DateFormat):
     """
     <dl>
     <dt>'AbsoluteTime[]'
-      <dd>Gives the local time in seconds since epoch Jan 1 1900.
-    <dt>'AbsoluteTime["string"]'
-      <dd>Gives the absolute time specification for a given date string.
-    <dt>'AbsoluteTime[{y, m, d, h, m, s}]
-      <dd>Gives the absolute time specification for a given date list.
+      <dd>gives the local time in seconds since epoch Jan 1 1900.
+    <dt>'AbsoluteTime[$string$]'
+      <dd>gives the absolute time specification for a given date string.
+    <dt>'AbsoluteTime[{$y$, $m$, $d$, $h$, $m$, $s$}]
+      <dd>gives the absolute time specification for a given date list.
     <dt>'AbsoluteTime[{"string",{$e1$, $e2$, ...}}]' 
-      <dd>Gives the absolute time specification for a given date list with specified elements $ei$.
+      <dd>gives the absolute time specification for a given date list with specified elements $ei$.
     </dl>
 
     >> AbsoluteTime[]
@@ -422,7 +438,7 @@ class AbsoluteTime(_DateFormat):
     >> AbsoluteTime[{"6-6-91", {"Day", "Month", "YearShort"}}]
      = 2885155200
 
-    #Mathematica Bug - Mathics gets it right
+    ## Mathematica Bug - Mathics gets it right
     #> AbsoluteTime[1000]
      = 1000
     """
@@ -568,11 +584,11 @@ class DatePlus(Builtin):
       <dd>finds the date which is offset from the current date.
     </dl>
 
-    Add 73 days to Feb 5, 2010
+    Add 73 days to Feb 5, 2010:
     >> DatePlus[{2010, 2, 5}, 73]
      = {2010, 4, 19}
 
-    Add 8 Weeks 1 day to March 16, 1999
+    Add 8 weeks and 1 day to March 16, 1999:
     >> DatePlus[{2010, 2, 5}, {{8, "Week"}, {1, "Day"}}]
      = {2010, 4, 3}
     """
@@ -636,10 +652,12 @@ class DatePlus(Builtin):
 class DateDifference(Builtin):
     """
     <dl>
-    <dt>'DateDifference[date1, date2]
-      <dd> Difference between dates in days.
-    <dt>'DateDifference[date1, date2, "unit"]
-      <dd> Difference between dates in specified units.
+    <dt>'DateDifference[$date1$, $date2$]
+      <dd>difference between dates in days.
+    <dt>'DateDifference[$date1$, $date2$, $unit$]
+      <dd>difference between dates in specified $unit$.
+    <dt>'DateDifference[$date1$, $date2$, {$unit1$, $unit2$, ...}]
+      <dd>difference between dates as a list in the specified units.
     </dl>
 
     >> DateDifference[{2042, 1, 4}, {2057, 1, 1}]
@@ -653,6 +671,13 @@ class DateDifference(Builtin):
 
     >> DateDifference[{2003, 8, 11}, {2003, 10, 19}, {"Week", "Day"}]
      = {{9, Week}, {6, Day}}
+    """
+    
+    #TODO: Since timedelta doesnt use large time units (years, months etc) this method can
+    # be innacuarate. The example below gives fractional Days (20.1666666667 not 20).
+    """
+    >> DateDifference[{2000, 6, 15}, {2001, 9, 4}, {"Month", "Day"}]
+     = {{14, "Month"}, {20, "Day"}}
     """
     
     rules = {
@@ -730,7 +755,6 @@ class DateDifference(Builtin):
 
         seconds = int(tdelta.total_seconds())
 
-        #FIXME: Since timedelta doesnt support large intervals (years etc), this method is sometimes innacuarate
         result = []
         flag = False
         for i,unit in enumerate(pyunits):
