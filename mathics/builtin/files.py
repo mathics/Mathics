@@ -516,6 +516,8 @@ class Skip(Read):
     >> Skip[str, Word, 2]
     >> Read[str, Word]
      = d
+    #> Skip[str, Word]
+     = EndOfFile
     """
 
     rules = {
@@ -534,8 +536,8 @@ class Skip(Read):
             return
         for i in range(py_m):
             result = super(Skip, self).apply(name, n, types, evaluation)
-            if result is None:
-                return Symbol('$Failed')
+            if result.to_python() == '"EndOfFile"':
+                return result
         return Symbol('Null')
 
 class InputStream(Builtin):
