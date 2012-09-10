@@ -63,12 +63,14 @@ class Read(Builtin):
      : InputSteam[String, -1] is not open
      = Read[InputStream[String, -1], {Word, Number}]
 
+    ## String
     #> str = StringToStream["abc123"];
     #> Read[str, String]
      = abc123
     #> Read[str, String]
      = EndOfFile
     
+    ## Word
     #> str = StringToStream["abc 123"];
     #> Read[str, Word]
      = abc
@@ -81,11 +83,21 @@ class Read(Builtin):
      = EndOfFile
     #> Read[str, Word]
      = EndOfFile
+
+    ## Number
+    #> str = StringToStream["123, 4"];
+    #> Read[str, Number]
+     = 123
+    #> Read[str, Number]
+     = 4
+    #> Read[str, Number]
+     = EndOfFile
     """
 
     messages = {
-        'readf': '`1` is not a valif format specificiation',
         'openx': '`1` is not open',
+        'readf': '`1` is not a valid format specificiation',
+        'readn': 'Invalid real number found when reading from `1`',
     }
 
     rules = {
@@ -116,11 +128,11 @@ class Read(Builtin):
 
         result = []
 
-        #TODO: Implement these as options
+        #TODO: Implement these as options to Read
         word_separators = [' ', '\t']
         record_separators = ['\n', '\r\n', '\r']
 
-        def word_reader(stream, word_separators):
+        def reader(stream, word_separators, accepted = None):
             word_separators = [' ', '\t', '\n']
             while True:
                 word = ''
@@ -135,37 +147,54 @@ class Read(Builtin):
                     if tmp in word_separators:
                         if word == '':
                             break
-                        else:
-                            yield word
-                    else:
-                        word += tmp
+                        yield word
 
-        read_word = word_reader(stream, word_separators)
+                    if accepted is not None and tmp not in accepted:
+                        yield word
+
+                    word += tmp
+
+        read_word = reader(stream, word_separators)
+        read_record = reader(stream, record_separators)
+        read_number = reader(stream, word_separators + record_separators, 
+            ['+', '-', '.'] + [str(i) for i in range(10)])
         for typ in types:
             try:
                 if typ == 'Byte':
                     tmp = stream.read(1)
-                    if len(tmp) == 0:
+                    if tmp == '':
                         raise EOFError
                     result.append(ord(tmp))
                 elif typ == 'Character':
-                    result.append(stream.read(1))
+                    tmp = stream.read(1)
+                    if tmp == '':
+                        raise EOFError
+                    result.append(tmp)
                 elif typ == 'Expression':
                     pass #TODO
                 elif typ == 'Number':
-                    pass #TODO
+                    tmp = read_number.next()
+                    try:
+                        tmp = int(tmp)
+                    except ValueError:
+                        try:
+                            tmp = float(tmp)
+                        except ValueError:
+                            evaluation.message('Read', 'readn', Expression('InputSteam', name, n))
+                            return
+                    result.append(tmp)
+                        
                 elif typ == 'Real':
                     pass #TODO
                 elif typ == 'Record':
-                    pass #TODO
+                    result.append(read_record.next())
                 elif typ == 'String':
                     tmp = stream.readline()
                     if len(tmp) == 0:
                         raise EOFError
                     result.append(tmp)
                 elif typ == 'Word':
-                    tmp = read_word.next()
-                    result.append(tmp)
+                    result.append(read_word.next())
                         
             except EOFError:
                 return from_python('EndOfFile')
