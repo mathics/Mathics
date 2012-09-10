@@ -76,6 +76,11 @@ class Read(Builtin):
      = 123
     #> Read[str, Word]
      = EndOfFile
+    #> str = StringToStream[""];
+    #> Read[str, Word]
+     = EndOfFile
+    #> Read[str, Word]
+     = EndOfFile
     """
 
     messages = {
@@ -111,7 +116,11 @@ class Read(Builtin):
 
         result = []
 
-        def word_reader(stream):
+        #TODO: Implement these as options
+        word_separators = [' ', '\t']
+        record_separators = ['\n', '\r\n', '\r']
+
+        def word_reader(stream, word_separators):
             word_separators = [' ', '\t', '\n']
             while True:
                 word = ''
@@ -122,18 +131,16 @@ class Read(Builtin):
                         if word == '':
                             raise EOFError
                         yield word
-                        raise StopIteration
 
                     if tmp in word_separators:
                         if word == '':
                             break
                         else:
                             yield word
-                            raise StopIteration
                     else:
                         word += tmp
 
-        read_word = word_reader(stream)            
+        read_word = word_reader(stream, word_separators)
         for typ in types:
             try:
                 if typ == 'Byte':
