@@ -5,10 +5,10 @@ File Operations
 """
 
 import io
+import shutil
 import hashlib
+import os
 from zlib import adler32, crc32
-from os.path import getatime, getmtime, getctime
-from os import utime
 
 from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
@@ -864,11 +864,11 @@ class FileDate(Builtin):
         path = path.to_python().strip('"')
         time_type = timetype.to_python().strip('"')
         if time_type == 'Access':
-            time = getatime(path)
+            time = os.path.getatime(path)
         elif time_type in ['Creation', 'Change']:   # TODO: Fixing this cross platform is difficult
-            time = getctime(path)
+            time = os.path.getctime(path)
         elif time_type == 'Modification':
-            time = getmtime(path)
+            time = os.path.getmtime(path)
         else:
             return
 
@@ -1064,4 +1064,136 @@ class FileByteCount(Builtin):
 #    
 #        return Symbol('Null')
 #
+
+class CopyFile(Builtin):
+    """
+    <dl>
+    <dt>'CopyFile["$file1$", "$file2$"]'
+      <dd>copies $file1$ to $file2$.
+    </dl>
+
+    >> CopyFile["/home/angus/const.txt", "/home/angus/12.txt"]
+     = /home/angus/12.txt
+    >> DeleteFile["/home/angus/12.txt"]
+    """
+
+    def apply(self, source, dest, evaluation):
+        'CopyFile[source_, dest_]'
+
+        py_source = source.to_python()
+        py_dest = dest.to_python()
+
+        #Check filenames
+        if not (isinstance(py_source, basestring) and py_source[0] == py_source[-1] == '"'):
+            evaluation.message('CopyFile', 'todo1', source)
+            return
+        if not (isinstance(py_dest, basestring) and py_dest[0] == py_dest[-1] == '"'):
+            evaluation.message('CopyFile', 'todo2', dest)
+            return
+
+        py_source = py_source.strip('"')
+        py_dest = py_dest.strip('"')
+
+        if not os.path.exists(py_source):
+            evaluation.message('CopyFile', 'todo3', source)
+            return Symbol('$Failed')
+        if os.path.exists(py_dest):
+            evaluation.message('CopyFile', 'todo4', dest)
+            return Symbol('$Failed')
+
+        try:
+            shutil.copy(py_source, py_dest)
+        except IOError:
+            evaluation.message('CopyFile', 'todo5', dest)
+            return Symbol('$Failed')
+
+        return dest
+
+
+class RenameFile(Builtin):
+    """
+    <dl>
+    <dt>'RenameFile["$file1$", "$file2$"]'
+      <dd>renames $file1$ to $file2$.
+    </dl>
+
+    >> CopyFile["/home/angus/const.txt", "/home/angus/12.txt"]
+     = /home/angus/12.txt
+    >> RenameFile["/home/angus/12.txt", "/home/angus/13.txt"]
+     = /home/angus/13.txt
+    >> DeleteFile["/home/angus/13.txt"]
+    """
+
+    def apply(self, source, dest, evaluation):
+        'RenameFile[source_, dest_]'
+
+        py_source = source.to_python()
+        py_dest = dest.to_python()
+
+        #Check filenames
+        if not (isinstance(py_source, basestring) and py_source[0] == py_source[-1] == '"'):
+            evaluation.message('RenameFile', 'todo1', source)
+            return
+        if not (isinstance(py_dest, basestring) and py_dest[0] == py_dest[-1] == '"'):
+            evaluation.message('RenameFile', 'todo2', dest)
+            return
+
+        py_source = py_source.strip('"')
+        py_dest = py_dest.strip('"')
+
+        if not os.path.exists(py_source):
+            evaluation.message('RenameFile', 'todo3', source)
+            return Symbol('$Failed')
+        if os.path.exists(py_dest):
+            evaluation.message('RenameFile', 'todo4', dest)
+            return Symbol('$Failed')
+
+        try:
+            shutil.move(py_source, py_dest)
+        except IOError:
+            evaluation.message('RenameFile', 'todo5', dest)
+            return Symbol('$Failed')
+
+        return dest
+
+
+class DeleteFile(Builtin):
+    """
+    <dl>
+    <dt>'RenameFile["$file1$", "$file2$"]'
+      <dd>renames $file1$ to $file2$.
+    </dl>
+
+    >> CopyFile["/home/angus/const.txt", "/home/angus/12.txt"]
+     = /home/angus/12.txt
+    >> DeleteFile["/home/angus/12.txt"]
+    """
+
+    def apply(self, filename, evaluation):
+        'DeleteFile[filename_]'
+
+        py_path = filename.to_python()
+        if not isinstance(py_path, list):
+            py_path = [py_path]
+
+        for path in py_path:
+            #Check filenames
+            if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
+                evaluation.message('DeleteFile', 'todo1', filename)
+                return
+
+            if not os.path.exists(path.strip('"')):
+                evaluation.message('DeleteFile', 'todo3', from_python(path))
+                return Symbol('$Failed')
+
+        py_path = [path.strip('"') for path in py_path]
+   
+        for path in py_path:
+            try:
+                os.remove(path)
+            except OSError:
+                evaluation.message('DeleteFile', 'todo5', from_python(path))
+                return Symbol('$Failed')
+
+        return Symbol('Null')
 
