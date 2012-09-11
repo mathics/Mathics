@@ -8,6 +8,7 @@ import io
 import hashlib
 from zlib import adler32, crc32
 from os.path import getatime, getmtime, getctime
+from os import utime
 
 from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
@@ -981,8 +982,6 @@ class FileByteCount(Builtin):
     def apply(self, filename, evaluation):
         'FileByteCount[filename_]'
         py_filename = filename.to_python()
-
-        # Check filename
         if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
             evaluation.message('FindList', 'todo2', filename)
             return
@@ -1003,4 +1002,66 @@ class FileByteCount(Builtin):
             return
 
         return from_python(count)
+
+# TODO: This has to wait until the time branch has been merged
+#
+#class SetFileDate(Builtin):
+#    """
+#    <dl>
+#    <dt>'SetFileDate["$file$"]'
+#      <dd>set the file access and modification dates of $file$ to the current date.
+#    <dt>'SetFileDate["$file$", $date$]'
+#      <dd>set the file access and modification dates of $file$ to the specified date list.
+#    <dt>'SetFileDate["$file$", $date$, "$type$"]'
+#      <dd>set the file date of $file$ to the specified date list. 
+#      The "$type$" can be one of "$Access$", "$Creation$", "$Modification$", or 'All'.
+#    </dl>
+#
+#    >> SetFileDate["/home/angus/const.txt"]
+#
+#    """
+#
+#    rules = {
+#        'SetFileDate[file_]': 'SetFileDate[file, DateList[], All]',
+#        'SetFileDate[file_, date]': 'SetFileDate[file, date, All]',
+#    }
+#
+#    def apply(self, filename, datelist, attribute, evaluation):
+#        'SetFileDate[filename_, datelist_, attribute_]'
+#        
+#        py_filename = filename.to_python()
+#        py_datelist = datelist.to_python()
+#        py_attr = attribute.to_python()
+#
+#        #Check filename
+#        if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
+#            evaluation.message('SetFileDate', 'todo1', filename)
+#            return
+#        py_filename = py_filename.strip('"')
+#
+#        #Check datelist
+#        if not (isinstance(py_datelist, list) and len(pydatelist) == 6 and 
+#            all(isinstance(d, int) for d in py_datelist[:-1]) and isinstance(py_datelist[-1], float)):
+#            evaluation.message('SetFileDate', 'todo2', datelist)
+#
+#        #Check attribute
+#        if py_attr not in ['"Access"', '"Creation"', '"Modification"', 'All']:
+#            evaluation.message('SetFileDate', 'todo3', attribute)
+#            return
+#        try:
+#            with open(py_filename, 'a'):
+#                if py_attr == '"Access"':
+#                    pass #TODO
+#                if py_attr == '"Creation"':
+#                    pass #TODO
+#                if py_attr == '"Modification"':
+#                    pass #TODO
+#                if py_attr == 'All':
+#                    pass #TODO
+#        except IOError:
+#            evaluation.message('General', 'noopen', filename)
+#            return
+#    
+#        return Symbol('Null')
+#
 
