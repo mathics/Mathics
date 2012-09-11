@@ -592,26 +592,48 @@ class Find(Read):
         <dd>find the first line in $stream$ that contains $text$
     </dl>
 
-    >> str = OpenRead["/home/angus/.vimrc"];
-    >> Find[str, "let"]
-     = {}
+    >> str = OpenRead["/home/angus/const.txt"];
+    >> Find[str, "electors"]
+     = choice of electors for President and Vice-President of the United States,
+    >> Find[str, "electors"]
+     = have one vote. The electors in each State shall have the qualifications
+    >> Close[str]
+     = ...
+
+    >> str = OpenRead["/home/angus/const.txt"];
+    >> Find[str, {"electors", "people"}]
+     = of the press; or the right of the people peaceably to assemble, and to petition
+    >> Close[str]
+     = ...
     """
 
     def apply(self, name, n, text, evaluation):
         'Find[InputStream[name_, n_], text_]'
         py_text = text.to_python()
-        if not (isinstance(py_text, basestring) and py_text[0] == py_text[-1] == '"'):
+
+        if not isinstance(py_text, list):
+            py_text = [py_text]
+
+        if not all(isinstance(t, basestring) and t[0] == t[-1] == '"' for t in py_text):
             evaluation.message('Find', 'unknown', Expression('Find', Expression('InputStream', name, n), text))
             return
-        py_text = py_text.strip('"')
+
+        py_text = [t.strip('"') for t in py_text]
+        #print py_text
+
         while True:
             tmp = super(Find, self).apply(name, n, Symbol('Record'), evaluation)
             py_tmp = tmp.to_python().strip('"')
+
+            #print py_tmp
+
             if py_tmp == 'EndOfFile':
                 evaluation.message('Find', 'notfound', Expression('Find', Expression('InputStream', name, n), text))
                 return Symbol("$Failed")
-            if py_tmp.find(py_text) != -1:
-                return from_python(py_tmp)
+
+            for t in py_text:
+                if py_tmp.find(t) != -1:
+                    return from_python(py_tmp)
 
 class InputStream(Builtin):
     """
