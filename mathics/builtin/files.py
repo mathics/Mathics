@@ -276,16 +276,17 @@ class Read(Builtin):
 class Write(Builtin):
     """
     <dl>
-    <dt>'Write[a$channel$, $expr1$, $expr2$, ...]'
+    <dt>'Write[$channel$, $expr1$, $expr2$, ...]'
         <dd>writes the expressions to the output channel followed by a newline."
     </dl>
 
-    ##TODO: Need USER_DIR to store temp files like this
-    >> str = OpenWrite["/home/angus/mathics_write_test"];
+    >> str = OpenWrite[]
+     = ...
     >> Write[str, 10 x + 15 y ^ 2]
     >> Write[str, 3 Sin[z]]
     >> Close[str]
-    >> str = OpenRead["/home/angus/mathics_write_test"];
+     = ...
+    >> str = OpenRead[%];
     >> ReadList[str]
      = {10 x + 15 y ^ 2, 3 Sin[z]}
     """
@@ -311,17 +312,19 @@ class WriteString(Builtin):
     </dl>
 
     ##TODO: Need USER_DIR to store temp files like this
-    >> str = OpenWrite["/home/angus/mathics_writestring_test"];
+    >> str = OpenWrite[];
     >> WriteString[str, "This is a test 1"]
     >> WriteString[str, "This is also a test 2"]
     >> Close[str]
-    >> FilePrint["/home/angus/mathics_writestring_test"]
+     = ...
+    >> FilePrint[%]
      = This is a test 1This is also a test 2
 
-    >> str = OpenWrite["/home/angus/mathics_writestring_test"];
+    >> str = OpenWrite[];
     >> WriteString[str, "This is a test 1", "This is also a test 2"]
     >> Close[str]
-    >> FilePrint["/home/angus/mathics_writestring_test"]
+     = ...
+    >> FilePrint[%]
      = This is a test 1This is also a test 2
     """
 
@@ -384,6 +387,10 @@ class OpenWrite(_OpenAction):
         <dd>opens a file and returns an OutputStream. 
     </dl>
     """
+
+    rules = {
+        'OpenWrite[]': 'OpenWrite["/tmp/mathics.write_test"]',
+    }
     
     mode = 'w'
     stream_type = 'OutputStream'
@@ -444,7 +451,7 @@ class ReadList(Read):
 class FilePrint(Builtin):
     """
     <dl>
-    <dt>'FilePrint["file"]
+    <dt>'FilePrint[$file$]
         <dd>prints the raw contents of $file$.
     </dl>
 
@@ -489,11 +496,18 @@ class FilePrint(Builtin):
 class Close(Builtin):
     """
     <dl>
-    <dt>'Close[stream]'
+    <dt>'Close[$stream$]'
         <dd>closes an input or output stream.
     </dl>
     
+    >> Close[StringToStream["123abc"]]
+     = String
+
+    >> Close[OpenWrite[]]
+     = ...
     """
+
+    #TODO: Close by "name"
      
     def apply_input(self, name, n, evaluation):
         'Close[InputStream[name_, n_]]'
@@ -505,7 +519,7 @@ class Close(Builtin):
             return
 
         stream.close()
-        return Symbol('Null')
+        return name
 
     def apply_output(self, name, n, evaluation):
         'Close[OutputStream[name_, n_]]'
@@ -517,7 +531,7 @@ class Close(Builtin):
             return
 
         stream.close()
-        return Symbol('Null')
+        return name
 
     def apply_default(self, stream, evaluation):
         'Close[stream_]'
@@ -573,9 +587,14 @@ class Skip(Read):
 class InputStream(Builtin):
     """
     <dl>
-    <dt>'InputStream["name", n]'
+    <dt>'InputStream[$name$, $n$]'
         <dd>represents an input stream.
     </dl>
+
+    >> str = StringToStream["Mathics is cool!"]
+     = ...
+    >> Close[str]
+     = String
     """
 
     def apply(self, name, n, evaluation):
@@ -585,9 +604,14 @@ class InputStream(Builtin):
 class OutputStream(Builtin):
     """
     <dl>
-    <dt>'OutputStream["name", n]'
+    <dt>'OutputStream[$name$, $n$]'
         <dd>represents an output stream.
     </dl>
+
+    >> OpenWrite[]
+     = ...
+    >> Close[%]
+     = ...
     """
     def apply(self, name, n, evaluation):
         'OutputStream[name_, n_]'
@@ -597,12 +621,14 @@ class OutputStream(Builtin):
 class StringToStream(Builtin):
     """
     <dl>
-    <dt>'StringToStream["string"]'
-        <dd>converts a string to an open stream.
+    <dt>'StringToStream[$string$]'
+        <dd>converts a $string$ to an open input stream.
     </dl>
 
     >> StringToStream["abc 123"]
-     = InputStream[String, 1]
+     = ...
+    #> Close[%]
+     = String
     """
     
     def apply(self, string, evaluation):
@@ -623,11 +649,23 @@ class Streams(Builtin):
     <dt>'Streams[]'
         <dd>returns a list of all open streams.
     </dl>
+
+    >> Streams[]
+     = {}
     """
 
     def apply(self, evaluation):
         'Streams[]'
         global _STREAMS
+        global _STREAMS
+        global NSTREAMS
+
+        try:
+            _STREAMS
+        except NameError:
+            STREAMS = {}    # Python repr
+            _STREAMS = {}   # Mathics repr
+            NSTREAMS = 0    # Max stream number
         return Expression('List', *_STREAMS.values())
 
 def _put_stream(stream):
@@ -653,10 +691,12 @@ def _get_stream(n):
 class FileDate(Builtin):
     """
     <dl>
-    <dt>'FileDate["file", "types"]'
+    <dt>'FileDate[$file$, $types$]'
         <dd>returns the time and date at which the file was last modified.
     </dl>
     """
+
+    #TODO: Test different properties of some example data
 
     rules = {
         'FileDate[path_]': 'FileDate[path, "Modification"]',
@@ -676,5 +716,5 @@ class FileDate(Builtin):
             return
 
         # Mathematica measures epoch from Jan 1 1900, while python is from Jan 1 1970!
-        return Expression('DateString', from_python(time + 2208988800))
+        return Expression('DateList', from_python(time + 2208988800))
 
