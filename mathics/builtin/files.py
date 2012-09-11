@@ -1160,13 +1160,18 @@ class RenameFile(Builtin):
 class DeleteFile(Builtin):
     """
     <dl>
-    <dt>'RenameFile["$file1$", "$file2$"]'
-      <dd>renames $file1$ to $file2$.
+    <dt>'Delete["$file$"]'
+      <dd>deletes $file$.
+    <dt>'Delete[{"$file1$", "$file2$", ...}]'
+      <dd>deletes a list of files.
     </dl>
 
-    >> CopyFile["/home/angus/const.txt", "/home/angus/12.txt"]
-     = /home/angus/12.txt
+    >> CopyFile["/home/angus/const.txt", "/home/angus/12.txt"];
     >> DeleteFile["/home/angus/12.txt"]
+
+    >> CopyFile["/home/angus/const.txt", "/home/angus/12.txt"];
+    >> CopyFile["/home/angus/const.txt", "/home/angus/13.txt"];
+    >> DeleteFile[{"/home/angus/12.txt", "/home/angus/13.txt"}]
     """
 
     def apply(self, filename, evaluation):
@@ -1196,4 +1201,5 @@ class DeleteFile(Builtin):
                 return Symbol('$Failed')
 
         return Symbol('Null')
+
 
