@@ -1202,4 +1202,27 @@ class DeleteFile(Builtin):
 
         return Symbol('Null')
 
+class FileExistsQ(Builtin):
+    """
+    <dl>
+    <dt>'FileExistsQ["$file$"]
+      <dd>returns 'True' if $file$ exists and 'False' otherwise.
+    </dl>
+
+    >> FileExistsQ["/home/angus/const.txt"]
+     = True
+    >> FileExistsQ["/home/angus/13.txt"]
+     = False
+    """
+
+    def apply(self, filename, evaluation):
+        'FileExistsQ[filename_]'
+        path = filename.to_python()
+        if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
+            evaluation.message('FileExistsQ', 'todo1', filename)
+            return
+
+        if os.path.exists(path.strip('"')):
+            return Symbol('True')
+        return Symbol('False')
 
