@@ -609,7 +609,7 @@ class Skip(Read):
 class Find(Read):
     """
     <dl>
-    <dt>'Find[$stream$, $text$"]'
+    <dt>'Find[$stream$, $text$]'
         <dd>find the first line in $stream$ that contains $text$.
     </dl>
 
@@ -627,6 +627,9 @@ class Find(Read):
     >> Close[str]
      = ...
     """
+
+    #TODO: Extra options AnchoredSearch, IgnoreCase RecordSeparators, WordSearch, WordSeparators
+    # this is probably best done with a regex
 
     def apply(self, name, n, text, evaluation):
         'Find[InputStream[name_, n_], text_]'
@@ -656,22 +659,37 @@ class Find(Read):
 class FindList(Builtin):
     """
     <dl>
-    <dt>'FindList[$file$, $text$"]'
-        <dd>returns a list of all lines in $file$ that contain $text$.
+    <dt>'FindList[$file$, $text$]'
+      <dd>returns a list of all lines in $file$ that contain $text$.
+    <dt>'FindList[$file$, {$text1$, $text2$, ...}]'
+      <dd>returns a list of all lines in $file$ that contain any of the specified string.
+    <dt>'FindList[{$file1$, $file2$, ...}, ...]'
+      <dd>returns a list of all lines in any of the $filei$ that contain the specified strings.
     </dl>
 
     >> str = FindList["/home/angus/const.txt", "electors"];
     #> Length[str]
      = 6
 
+    >> str = FindList["/home/angus/const.txt", "electors", 1]
+     = {choice of electors for President and Vice-President of the United States,}
+
     >> str = FindList["/home/angus/const.txt", "democracy"]
      = {}
     """
 
-    def apply(self, filename, text, evaluation):
-        'FindList[filename_, text_]'
+    rules = {
+        'FindList[file_, text_]': 'FindList[file, text, All]',
+    }
+
+    #TODO: Extra options AnchoredSearch, IgnoreCase RecordSeparators, WordSearch, WordSeparators
+    # this is probably best done with a regex
+
+    def apply(self, filename, text, n, evaluation):
+        'FindList[filename_, text_, n_]'
         py_text = text.to_python()
         py_name = filename.to_python()
+        py_n = n.to_python()
 
         if not isinstance(py_text, list):
             py_text = [py_text]
@@ -685,6 +703,10 @@ class FindList(Builtin):
 
         if not all(isinstance(t, basestring) and t[0] == t[-1] == '"' for t in py_name):
             evaluation.message('FindList', 'todo', filename)
+            return
+
+        if not ((isinstance(py_n, int) and py_n > 0) or py_n == 'All'):
+            evaluation.message('FindList', 'todo', n)
             return
 
         py_text = [t.strip('"') for t in py_text]
@@ -704,11 +726,14 @@ class FindList(Builtin):
             for line in lines:
                 for t in py_text:
                     if line.find(t) != -1:
-                        result.append(line)
+                        result.append(line[:-1])
             results.append(result)
             
-        if len(results) == 1:
-            return from_python(results[0])
+        results = [r for result in results for r in result]
+
+        if isinstance(py_n, int):
+            results = results[:min(py_n, len(results))]
+
         return from_python(results)
 
 class InputStream(Builtin):
