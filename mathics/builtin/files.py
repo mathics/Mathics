@@ -610,7 +610,7 @@ class Find(Read):
     """
     <dl>
     <dt>'Find[$stream$, $text$"]'
-        <dd>find the first line in $stream$ that contains $text$
+        <dd>find the first line in $stream$ that contains $text$.
     </dl>
 
     >> str = OpenRead["/home/angus/const.txt"];
@@ -640,13 +640,10 @@ class Find(Read):
             return
 
         py_text = [t.strip('"') for t in py_text]
-        #print py_text
 
         while True:
             tmp = super(Find, self).apply(name, n, Symbol('Record'), evaluation)
             py_tmp = tmp.to_python().strip('"')
-
-            #print py_tmp
 
             if py_tmp == 'EndOfFile':
                 evaluation.message('Find', 'notfound', Expression('Find', Expression('InputStream', name, n), text))
@@ -655,6 +652,64 @@ class Find(Read):
             for t in py_text:
                 if py_tmp.find(t) != -1:
                     return from_python(py_tmp)
+
+class FindList(Builtin):
+    """
+    <dl>
+    <dt>'FindList[$file$, $text$"]'
+        <dd>returns a list of all lines in $file$ that contain $text$.
+    </dl>
+
+    >> str = FindList["/home/angus/const.txt", "electors"];
+    #> Length[str]
+     = 6
+
+    >> str = FindList["/home/angus/const.txt", "democracy"]
+     = {}
+    """
+
+    def apply(self, filename, text, evaluation):
+        'FindList[filename_, text_]'
+        py_text = text.to_python()
+        py_name = filename.to_python()
+
+        if not isinstance(py_text, list):
+            py_text = [py_text]
+
+        if not isinstance(py_name, list):
+            py_name = [py_name]
+
+        if not all(isinstance(t, basestring) and t[0] == t[-1] == '"' for t in py_text):
+            evaluation.message('FindList', 'todo', text)
+            return
+
+        if not all(isinstance(t, basestring) and t[0] == t[-1] == '"' for t in py_name):
+            evaluation.message('FindList', 'todo', filename)
+            return
+
+        py_text = [t.strip('"') for t in py_text]
+        py_name = [t.strip('"') for t in py_name]
+
+        results = []
+        for path in py_name:
+            try:
+                f = open(path, 'r')
+                lines = f.readlines()
+                f.close()
+            except IOError:
+                evaluation.message('General', 'noopen', path)
+                return
+
+            result = []
+            for line in lines:
+                for t in py_text:
+                    if line.find(t) != -1:
+                        result.append(line)
+            results.append(result)
+            
+        if len(results) == 1:
+            return from_python(results[0])
+        return from_python(results)
 
 class InputStream(Builtin):
     """
