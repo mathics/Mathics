@@ -5,6 +5,8 @@ File Operations
 """
 
 import io
+import hashlib
+import zlib
 from os.path import getatime, getmtime, getctime
 
 from mathics.core.expression import Expression, String, Symbol, from_python
@@ -840,6 +842,8 @@ def _get_stream(n):
     global STREAMS
     return STREAMS[n]
 
+# File Properties
+
 class FileDate(Builtin):
     """
     <dl>
@@ -870,3 +874,94 @@ class FileDate(Builtin):
         # Mathematica measures epoch from Jan 1 1900, while python is from Jan 1 1970!
         return Expression('DateList', from_python(time + 2208988800))
 
+class FileHash(Builtin):
+    """
+    <dl>
+    <dt>'FileHash[$file$]'
+      <dd>returns an integer hash for the given $file$.
+    <dt>'FileHash[$file$, $types$]'
+      <dd>returns an integer hash of specified $type$ for the given $file$.
+    </dl>
+
+    >> FileHash["/home/angus/const.txt"]
+     = 327543094924296211684012457845472528194
+
+    >> FileHash["/home/angus/const.txt", "MD5"]
+     = 327543094924296211684012457845472528194
+
+    >> FileHash["/home/angus/const.txt", "Adler32"]
+     = 379970077
+
+    >> FileHash["/home/angus/const.txt", "CRC32"]
+     = -714117466
+
+    >> FileHash["/home/angus/const.txt", "SHA"]
+     = 373198480298074987456387719402557487603665831619
+
+    >> FileHash["/home/angus/const.txt", "SHA224"]
+     = 3917722155990863301063131219313332812450825714047709114184660657040
+
+    >> FileHash["/home/angus/const.txt", "SHA256"]
+     = 11644666593438942629277351724048748939285751972475052522764329079189078028814
+
+    >> FileHash["/home/angus/const.txt", "SHA384"]
+     = 30483718751041705495695586237041127244740940313861521100269551019906506917011401631803235020535267688078407100882707
+
+    >> FileHash["/home/angus/const.txt", "SHA512"]
+     = 1326437464183143781001018855370051677613062767836549469526136224930996101542674475615428678343701377300870189417449686598400481332250256827946277566015805
+    """
+
+    rules = {
+        'FileHash[filename_]': 'FileHash[filename, "MD5"]',
+    }
+
+    def apply(self, filename, hashtype, evaluation):
+        'FileHash[filename_, hashtype_]'
+        py_hashtype = hashtype.to_python()
+        py_filename = filename.to_python()
+
+        #TODO: MD2?
+        supported_hashes = ['Adler32', 'CRC32', 'MD5', 'SHA', 'SHA224', 'SHA256', 'SHA384', 'SHA512']
+
+        # Check hashtype
+        if not (isinstance(py_hashtype, basestring) and py_hashtype[0] == py_hashtype[-1] == '"'):
+            evaluation.message('FileHash', 'todo1', hashtype)
+            return
+        py_hashtype = py_hashtype.strip('"')
+
+        if py_hashtype not in supported_hashes:
+            evaluation.message('FileHash', 'todo1', hashtype)
+            return
+
+        # Check filename
+        if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
+            evaluation.message('FindList', 'todo2', filename)
+            return
+        py_filename = py_filename.strip('"')
+
+        try:
+            f = open(py_filename, 'rb')
+            dump = f.read()
+            f.close()
+        except IOError:
+            evaluation.message('General', 'noopen', filename)
+            return
+
+        if py_hashtype == 'Adler32':
+            result = zlib.adler32(dump)
+        if py_hashtype == 'CRC32':
+            result = zlib.crc32(dump)
+        if py_hashtype == 'MD5':
+            result = int(hashlib.md5(dump).hexdigest(), 16)
+        if py_hashtype == 'SHA':
+            result = int(hashlib.sha1(dump).hexdigest(), 16)
+        if py_hashtype == 'SHA224':
+            result = int(hashlib.sha224(dump).hexdigest(), 16)
+        if py_hashtype == 'SHA256':
+            result = int(hashlib.sha256(dump).hexdigest(), 16)
+        if py_hashtype == 'SHA384':
+            result = int(hashlib.sha384(dump).hexdigest(), 16)
+        if py_hashtype == 'SHA512':
+            result = int(hashlib.sha512(dump).hexdigest(), 16)
+
+        return from_python(result)
