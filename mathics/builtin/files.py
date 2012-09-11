@@ -406,7 +406,7 @@ class Import(Builtin):
 class Export(Builtin):
     pass
 
-class ReadList(Builtin):
+class ReadList(Read):
     """
     <dl>
     <dt>'ReadList["file"]
@@ -420,28 +420,12 @@ class ReadList(Builtin):
 
     def apply(self, name, n, types, evaluation):
         'ReadList[InputStream[name_, n_], types_]'
-        global STREAMS
-
-        stream = STREAMS[n.to_python()]
-
-        types = types.to_python()
-        if not isinstance(types, list):
-            types = [types]
-
-        name = name.to_python()
-
         result = []
-
-        for typ in types:
-            if typ == 'String':
-                result.append(stream.readlines())
-            else:
-                #TODO
-                pass
-
-        if len(result) == 1:
-            return from_python(*result)
-
+        while True:
+            tmp = super(ReadList, self).apply(name, n, types, evaluation)
+            if tmp.to_python() == '"EndOfFile"':
+                break
+            result.append(tmp)
         return from_python(result)
 
 class FilePrint(Builtin):
