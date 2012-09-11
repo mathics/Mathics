@@ -164,9 +164,10 @@ class Read(Builtin):
     
         READ_TYPES = ['Byte', 'Character', 'Expression', 'Number', 'Real', 'Record', 'String', 'Word']
 
-        if not all(isinstance(typ, basestring) and typ in READ_TYPES for typ in types):
-            evaluation.message('Read', 'readf', from_python(typ))
-            return Symbol('$Failed')
+        for typ in types:
+            if not (isinstance(typ, basestring) and typ in READ_TYPES):
+                evaluation.message('Read', 'readf', from_python(typ))
+                return Symbol('$Failed')
         
         name = name.to_python()
 
@@ -583,6 +584,34 @@ class Skip(Read):
             if result.to_python() == '"EndOfFile"':
                 return result
         return Symbol('Null')
+
+class Find(Read):
+    """
+    <dl>
+    <dt>'Find[$stream$, $text$"]'
+        <dd>find the first line in $stream$ that contains $text$
+    </dl>
+
+    >> str = OpenRead["/home/angus/.vimrc"];
+    >> Find[str, "let"]
+     = {}
+    """
+
+    def apply(self, name, n, text, evaluation):
+        'Find[InputStream[name_, n_], text_]'
+        py_text = text.to_python()
+        if not (isinstance(py_text, basestring) and py_text[0] == py_text[-1] == '"'):
+            evaluation.message('Find', 'unknown', Expression('Find', Expression('InputStream', name, n), text))
+            return
+        py_text = py_text.strip('"')
+        while True:
+            tmp = super(Find, self).apply(name, n, Symbol('Record'), evaluation)
+            py_tmp = tmp.to_python().strip('"')
+            if py_tmp == 'EndOfFile':
+                evaluation.message('Find', 'notfound', Expression('Find', Expression('InputStream', name, n), text))
+                return Symbol("$Failed")
+            if py_tmp.find(py_text) != -1:
+                return from_python(py_tmp)
 
 class InputStream(Builtin):
     """
