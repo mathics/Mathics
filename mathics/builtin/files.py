@@ -297,9 +297,23 @@ class Write(Builtin):
 class WriteString(Builtin):
     """
     <dl>
-    <dt>'Write[stream, expr1, expr2, ... ]'
-        <dd>writes the expressions to the output channel followed by a newline"
+    <dt>'WriteString[$stream$, $str1, $str2$, ... ]'
+        <dd>writes the strings to the output stream."
     </dl>
+
+    ##TODO: Need USER_DIR to store temp files like this
+    >> str = OpenWrite["/home/angus/mathics_writestring_test"];
+    >> WriteString[str, "This is a test 1"]
+    >> WriteString[str, "This is also a test 2"]
+    >> Close[str]
+    >> FilePrint["/home/angus/mathics_writestring_test"]
+     = This is a test 1This is also a test 2
+
+    >> str = OpenWrite["/home/angus/mathics_writestring_test"];
+    >> WriteString[str, "This is a test 1", "This is also a test 2"]
+    >> Close[str]
+    >> FilePrint["/home/angus/mathics_writestring_test"]
+     = This is a test 1This is also a test 2
     """
 
     messages = {
@@ -318,7 +332,7 @@ class WriteString(Builtin):
                 return
 
         text = map(lambda x: x.to_python().strip('"'), exprs)
-        text = ''.join(text)
+        text = unicode(''.join(text))
         stream.write(text)
         return Symbol('Null')
 
