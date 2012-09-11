@@ -412,6 +412,19 @@ class ReadList(Read):
     <dt>'ReadList["file"]
         <dd>Reads all the expressions until the end of file.
     </dl>
+
+    >> ReadList[StringToStream["abc123"]]
+     = {abc123}
+    >> InputForm[%]
+     = {"abc123"}
+    """
+
+    #TODO: Accept newlines in input
+    """
+    >> ReadList[StringToStream["123\nabc"]]
+     = {123, abc}
+    >> InputForm[%]
+     = {"123", "abc"}
     """
 
     rules = {
