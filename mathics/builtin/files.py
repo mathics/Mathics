@@ -6,7 +6,7 @@ File Operations
 
 import io
 import hashlib
-import zlib
+from zlib import adler32, crc32
 from os.path import getatime, getmtime, getctime
 
 from mathics.core.expression import Expression, String, Symbol, from_python
@@ -948,9 +948,9 @@ class FileHash(Builtin):
             return
 
         if py_hashtype == 'Adler32':
-            result = zlib.adler32(dump)
+            result = adler32(dump)
         if py_hashtype == 'CRC32':
-            result = zlib.crc32(dump)
+            result = crc32(dump)
         if py_hashtype == 'MD5':
             result = int(hashlib.md5(dump).hexdigest(), 16)
         if py_hashtype == 'SHA':
@@ -965,3 +965,42 @@ class FileHash(Builtin):
             result = int(hashlib.sha512(dump).hexdigest(), 16)
 
         return from_python(result)
+
+
+class FileByteCount(Builtin):
+    """
+    <dl>
+    <dt>'FileByteCount[$file$]'
+      <dd>returns the number of bytes in $file$.
+    </dl>
+
+    >> FileByteCount["/home/angus/const.txt"]
+     = 45119
+    """
+
+    def apply(self, filename, evaluation):
+        'FileByteCount[filename_]'
+        py_filename = filename.to_python()
+
+        # Check filename
+        if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
+            evaluation.message('FindList', 'todo2', filename)
+            return
+        py_filename = py_filename.strip('"')
+
+        try:
+            f = open(py_filename, 'rb')
+
+            count = 0 
+            tmp = f.read(1)
+            while tmp != '':
+                count += 1
+                tmp = f.read(1)
+
+            f.close()
+        except IOError:
+            evaluation.message('General', 'noopen', filename)
+            return
+
+        return from_python(count)
+
