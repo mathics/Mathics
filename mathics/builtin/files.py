@@ -276,9 +276,18 @@ class Read(Builtin):
 class Write(Builtin):
     """
     <dl>
-    <dt>'Write[channel, expr]'
-        <dd>writes the expression to the output channel as a string."
+    <dt>'Write[a$channel$, $expr1$, $expr2$, ...]'
+        <dd>writes the expressions to the output channel followed by a newline."
     </dl>
+
+    ##TODO: Need USER_DIR to store temp files like this
+    >> str = OpenWrite["/home/angus/mathics_write_test"];
+    >> Write[str, 10 x + 15 y ^ 2]
+    >> Write[str, 3 Sin[z]]
+    >> Close[str]
+    >> str = OpenRead["/home/angus/mathics_write_test"];
+    >> ReadList[str]
+     = {10 x + 15 y ^ 2, 3 Sin[z]}
     """
 
     def apply(self, name, n, expr, evaluation):
@@ -291,7 +300,7 @@ class Write(Builtin):
 
         evaluation.format = 'text'
         text = evaluation.format_output(from_python(expr))
-        stream.write(unicode(text))
+        stream.write(unicode(text) + u'\n')
         return Symbol('Null')
 
 class WriteString(Builtin):
