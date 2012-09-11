@@ -454,6 +454,16 @@ class FilePrint(Builtin):
      = FilePrint[Sin[1]]
     """
 
+    #TODO: Handle strange unix files - WARNING: These may crash your computer
+    """
+    #> FilePrint["/dev/zero"]
+     = $Failed
+    #> FilePrint["/dev/random"]
+     = $Failed
+    #> FilePrint["/dev/null"]
+     = $Failed
+    """
+
     messages = {
         'fstr': 'File specification `1` is not a string of one or more characters.',
     }
