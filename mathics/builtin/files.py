@@ -529,8 +529,6 @@ class Close(Builtin):
     >> Close[OpenWrite[]]
      = ...
     """
-
-    #TODO: Close by "name"
      
     def apply_input(self, name, n, evaluation):
         'Close[InputStream[name_, n_]]'
@@ -560,6 +558,52 @@ class Close(Builtin):
         'Close[stream_]'
         evaluation.message('General', 'stream', stream)
         return
+
+class StreamPosition(Builtin):
+    """
+    <dl>
+    <dt>'StreamPosition[$stream$]'
+        <dd>returns the current position in a stream as an integer.
+    </dl>
+
+    >> str = StringToStream["Mathics is cool!"]
+     = ...
+
+    >> Read[str, Word]
+     = Mathics
+
+    >> StreamPosition[str]
+     = 7
+    """
+
+    def apply_input(self, name, n, evaluation):
+        'StreamPosition[InputStream[name_, n_]]'
+        global STREAMS
+        stream = STREAMS[n.to_python()]
+
+        if stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
+   
+        return from_python(stream.tell()-1)
+
+
+    def apply_output(self, name, n, evaluation):
+        'StreamPosition[OutputStream[name_, n_]]'
+        global STREAMS
+        stream = STREAMS[n.to_python()]
+
+        if stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
+
+        return from_python(stream.tell()-1)
+
+    def apply_default(self, stream, evaluation):
+        'StreamPosition[stream_]'
+        evaluation.message('General', 'stream', stream)
+        return
+    
 
 class Skip(Read):
     """
