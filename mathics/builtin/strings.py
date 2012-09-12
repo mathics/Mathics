@@ -145,7 +145,7 @@ class StringQ(Builtin):
     """
     <dl>
     <dt> StringQ[$expr$]
-      <dd> Returns True if $expr$ is a string or false otherwise.
+      <dd>returns 'True' if $expr$ is a string or false otherwise.
     </dl>
 
 
