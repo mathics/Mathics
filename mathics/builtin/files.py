@@ -1348,3 +1348,29 @@ class FileExistsQ(Builtin):
             return Symbol('True')
         return Symbol('False')
 
+
+class DirectoryQ(Builtin):
+    """
+    <dl>'
+    <dt>'DirectoryQ["$name$"]
+      <dd>returns 'True' if the directory called $name$ exists and 'False' otherwise.
+    </dl>
+
+    >> FileExistsQ["/home/angus/bin"]
+     = True
+    >> FileExistsQ["/home/angus/examples"]
+     = False
+    """
+
+    def apply(self, pathname, evaluation):
+        'DirectoryQ[pathname_]'
+        path = pathname.to_python()
+
+        if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
+            evaluation.message('FileExistsQ', 'todo1', pathname)
+            return
+
+        if os.path.isdir(path.strip('"')):
+            return Symbol('True')
+        return Symbol('False')
+
