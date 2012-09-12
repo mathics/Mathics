@@ -210,6 +210,9 @@ class Read(Builtin):
                     if tmp in word_separators:
                         if word == '':
                             break
+                        if stream.seekable():
+                            # stream.seek(-1, 1) #Python3
+                            stream.seek(stream.tell()-1)
                         yield word
 
                     if accepted is not None and tmp not in accepted:
@@ -559,6 +562,7 @@ class Close(Builtin):
         evaluation.message('General', 'stream', stream)
         return
 
+
 class StreamPosition(Builtin):
     """
     <dl>
@@ -585,7 +589,7 @@ class StreamPosition(Builtin):
             evaluation.message('General', 'openx', name)
             return
    
-        return from_python(stream.tell()-1)
+        return from_python(stream.tell())
 
 
     def apply_output(self, name, n, evaluation):
@@ -597,13 +601,87 @@ class StreamPosition(Builtin):
             evaluation.message('General', 'openx', name)
             return
 
-        return from_python(stream.tell()-1)
+        return from_python(stream.tell())
 
     def apply_default(self, stream, evaluation):
         'StreamPosition[stream_]'
         evaluation.message('General', 'stream', stream)
         return
     
+
+class SetStreamPosition(Builtin):
+    """
+    <dl>
+    <dt>'SetStreamPosition[$stream$, $n$]'
+        <dd>sets the current position in a stream.
+    </dl>
+
+    >> str = StringToStream["Mathics is cool!"]
+     = ...
+
+    >> SetStreamPosition[str, 11]
+     = 11
+
+    >> Read[str, Word]
+     = cool!
+
+    """
+
+    def apply_input(self, name, n, m, evaluation):
+        'SetStreamPosition[InputStream[name_, n_], m_]'
+        global STREAMS
+        stream = STREAMS[n.to_python()]
+
+        if stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
+
+        if not stream.seekable:
+            evaluation.message('SetStreamPosition', 'todo', name)   #TODO
+            return
+   
+        seekpos = m.to_python()
+        if not ((isinstance(seekpos, int) and seekpos >= 0) or seekpos == 'Infinity'):
+            evaluation.message('SetStreamPosition', 'todo2', name)   #TODO
+            return Symbol('$Failed')
+
+        if seekpos == 'Infinity':
+            tmp = stream.seek(0, 2)
+        else:
+            stream.seek(seekpos)
+
+        return from_python(stream.tell())
+
+    def apply_output(self, name, n, m, evaluation):
+        'SetStreamPosition[OutputStream[name_, n_], m_]'
+        global STREAMS
+        stream = STREAMS[n.to_python()]
+
+        if stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
+
+        if not stream.seekable:
+            evaluation.message('SetStreamPosition', 'todo1', name)   #TODO
+            return
+
+        seekpos = m.to_python()
+        if not (isinstance(seekpos, int) and seekpos >= 0):
+            evaluation.message('SetStreamPosition', 'todo2', name)   #TODO
+            return Symbol('$Failed')
+
+        if seekpos == 'Infinity':
+            tmp = stream.seek(0, 2)
+        else:
+            stream.seek(seekpos)
+
+        return from_python(stream.tell())
+
+    def apply_default(self, stream, evaluation):
+        'SetStreamPosition[stream_]'
+        evaluation.message('General', 'stream', stream)
+        return
+
 
 class Skip(Read):
     """
