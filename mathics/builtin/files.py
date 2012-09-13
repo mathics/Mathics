@@ -15,12 +15,68 @@ from mathics.builtin.base import Builtin, Predefined
 from mathics.settings import ROOT_DIR
 
 STREAMS = {}
-DIRECTORY_STACK = [os.getcwd()]
+INITIAL_DIR = os.getcwd()
+HOME_DIR = os.path.expanduser('~')
+DIRECTORY_STACK = [INITIAL_DIR]
 
 def mathics_open(filename, mode='r'):
     if isinstance(filename, basestring) and filename.startswith("ExampleData"):
         filename = ROOT_DIR + 'data/' + filename
     return io.open(filename, mode)
+
+
+class InitialDirectory(Predefined):
+    """
+    <dl>
+    <dt>'$InitialDirectory'
+      <dd>returns the directory from which \Mathics was started.'
+    </dl>
+
+    >> $InitialDirectory
+     = ...
+    """
+
+    name = '$InitialDirectory'
+
+    def evaluate(self, evaluation):
+        global INITIAL_DIR
+        return String(INITIAL_DIR)
+
+
+class InstallationDirectory(Predefined):
+    """
+    <dl>
+    <dt>'$InstallationDirectory'
+      <dd>returns the directory in which \Mathics was installed.'
+    </dl>
+
+    >> $InstallationDirectory
+     = ...
+    """
+
+    name = '$InstallationDirectory'
+
+    def evaluate(self, evaluation):
+        global ROOT_DIR
+        return String(ROOT_DIR)
+
+
+class HomeDirectory(Predefined):
+    """
+    <dl>
+    <dt>'$HomeDirectory'
+      <dd>returns the users HOME directory.'
+    </dl>
+
+    >> $HomeDirectory
+     = ...
+    """
+
+    name = '$HomeDirectory'
+
+    def evaluate(self, evaluation):
+        global HOME_DIR
+        return String(HOME_DIR)
 
 
 class ImportFormats(Predefined):
