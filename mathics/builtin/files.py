@@ -284,7 +284,7 @@ class Read(Builtin):
                     result.append(read_word.next())
                         
             except EOFError:
-                return from_python('EndOfFile')
+                return Symbol('EndOfFile')
 
         if len(result) == 1:
             return from_python(*result)
@@ -469,7 +469,7 @@ class ReadList(Read):
         result = []
         while True:
             tmp = super(ReadList, self).apply(name, n, types, evaluation)
-            if tmp.to_python() == '"EndOfFile"':
+            if tmp.to_python() == 'EndOfFile':
                 break
             result.append(tmp)
         return from_python(result)
@@ -727,8 +727,8 @@ class Skip(Read):
             return
         for i in range(py_m):
             result = super(Skip, self).apply(name, n, types, evaluation)
-            if result.to_python() == '"EndOfFile"':
-                return result
+            if result.to_python() == 'EndOfFile':
+                return Symbol('EndOfFile')
         return Symbol('Null')
 
 class Find(Read):
