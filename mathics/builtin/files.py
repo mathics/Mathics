@@ -4,11 +4,11 @@
 File Operations
 """
 
-import io
 import shutil
 import hashlib
 import os
 from zlib import adler32, crc32
+from io import StringIO
 
 from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
@@ -382,7 +382,7 @@ class _OpenAction(Builtin):
         path_string = path.to_python().strip('"')
 
         try:
-            stream = io.open(path_string, mode=self.mode)
+            stream = open(path_string, mode=self.mode)
         except IOError:
             evaluation.message('General', 'noopen', path)
             return
@@ -911,7 +911,7 @@ class StringToStream(Builtin):
     def apply(self, string, evaluation):
         'StringToStream[string_]'
         pystring = string.to_python().strip('"')
-        stream = io.StringIO(initial_value=unicode(pystring))
+        stream = StringIO(initial_value=unicode(pystring))
         n = _put_stream(stream)
         result = Expression('InputStream', from_python('String'), n)
 
