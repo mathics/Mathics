@@ -128,7 +128,7 @@ setup(
             'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
             'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html', 
             'templates/doc/*.html'] + mathjax_files,
-        'mathics.data': ['*.csv'],
+        'mathics.data': ['*.csv', 'ExampleData/*'],
     },
     
     entry_points = {
