@@ -1370,6 +1370,57 @@ class DeleteFile(Builtin):
         return Symbol('Null')
 
 
+class Directory(Builtin):
+    """
+    <dl>
+    <dt>'Directory[]'
+      <dd>returns the current working directory.
+    </dl>
+
+    >> Directory[]
+    = ...
+    """
+
+    def apply(self, evaluation):
+        'Directory[]'
+        result = os.getcwd()
+        return String(result)
+
+
+class SetDirectory(Builtin):
+    """
+    <dl>
+    <dt>'SetDirectory[$dir$]'
+      <dd>sets the current working directory to $dir$.
+    </dl>
+
+    >> SetDirectory[]
+    = ...
+    """
+
+    rules = {
+        'SetDirectory[]': 'SetDirectory[$HomeDirectory]',
+    }
+
+    def apply(self, path, evaluation):
+        'SetDirectory[path_]'
+
+        if not isinstance(path, String):
+            #evaluation.message() #TODO
+            return
+
+        py_path = path.__str__().strip('"')
+        if py_path.startswith('ExampleData'):
+            py_path = ROOT_DIR + 'data/' + py_path
+    
+        if not os.path.isdir(py_path):
+            #evaluation.message() #TODO
+            return Symbol('$Failed')
+
+        os.chdir(py_path)
+        return String(os.getcwd())
+
+
 class FileExistsQ(Builtin):
     """
     <dl>
@@ -1424,7 +1475,7 @@ class DirectoryQ(Builtin):
         if path.startswith('ExampleData'):
             path = ROOT_DIR + 'data/' + path
 
-        if os.path.isdir(path.strip('"')):
+        if os.path.isdir(path):
             return Symbol('True')
         return Symbol('False')
 
