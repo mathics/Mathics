@@ -21,6 +21,7 @@ def mathics_open(filename, mode='r'):
         filename = ROOT_DIR + 'data/' + filename
     return io.open(filename, mode)
 
+
 class ImportFormats(Predefined):
     """
     <dl>
@@ -37,6 +38,7 @@ class ImportFormats(Predefined):
     def evaluate(self, evaluation):
         return Expression('List')
 
+
 class ExportFormats(Predefined):
     """
     <dl>
@@ -52,6 +54,7 @@ class ExportFormats(Predefined):
 
     def evaluate(self, evaluation):
         return Expression('List')
+
 
 class Read(Builtin):
     """
@@ -302,6 +305,7 @@ class Read(Builtin):
         evaluation.message('General', 'stream', arg1)
         return
                 
+
 class Write(Builtin):
     """
     <dl>
@@ -333,6 +337,7 @@ class Write(Builtin):
         text = evaluation.format_output(from_python(expr))
         stream.write(unicode(text) + u'\n')
         return Symbol('Null')
+
 
 class WriteString(Builtin):
     """
@@ -378,8 +383,10 @@ class WriteString(Builtin):
         stream.write(text)
         return Symbol('Null')
 
+
 class Save(Builtin):
     pass
+
 
 class _OpenAction(Builtin):
     def apply(self, path, evaluation):
@@ -404,6 +411,7 @@ class _OpenAction(Builtin):
 
         return result
 
+
 class OpenRead(_OpenAction):
     """
     <dl>
@@ -413,6 +421,7 @@ class OpenRead(_OpenAction):
     """
     mode = 'r'
     stream_type = 'InputStream'
+
 
 class OpenWrite(_OpenAction):
     """
@@ -441,11 +450,14 @@ class OpenAppend(_OpenAction):
     mode = 'a'
     stream_type = 'OutputStream'
 
+
 class Import(Builtin):
     pass
 
+
 class Export(Builtin):
     pass
+
 
 class ReadList(Read):
     """
@@ -483,6 +495,7 @@ class ReadList(Read):
                 break
             result.append(tmp)
         return from_python(result)
+
 
 class FilePrint(Builtin):
     """
@@ -528,6 +541,7 @@ class FilePrint(Builtin):
             return
 
         return from_python(result)
+
 
 class Close(Builtin):
     """
@@ -741,6 +755,7 @@ class Skip(Read):
                 return Symbol('EndOfFile')
         return Symbol('Null')
 
+
 class Find(Read):
     """
     <dl>
@@ -792,6 +807,7 @@ class Find(Read):
             for t in py_text:
                 if py_tmp.find(t) != -1:
                     return from_python(py_tmp)
+
 
 class FindList(Builtin):
     """
@@ -873,6 +889,7 @@ class FindList(Builtin):
 
         return from_python(results)
 
+
 class InputStream(Builtin):
     """
     <dl>
@@ -889,6 +906,7 @@ class InputStream(Builtin):
     def apply(self, name, n, evaluation):
         'InputStream[name_, n_]'
         return
+
 
 class OutputStream(Builtin):
     """
@@ -931,6 +949,7 @@ class StringToStream(Builtin):
         _STREAMS[n] = result
 
         return result
+
 
 class Streams(Builtin):
     """
@@ -977,37 +996,6 @@ def _get_stream(n):
     global STREAMS
     return STREAMS[n]
 
-# File Properties
-
-class FileDate(Builtin):
-    """
-    <dl>
-    <dt>'FileDate[$file$, $types$]'
-        <dd>returns the time and date at which the file was last modified.
-    </dl>
-    """
-
-    #TODO: Test different properties of some example data
-
-    rules = {
-        'FileDate[path_]': 'FileDate[path, "Modification"]',
-    }
-
-    def apply(self, path, timetype, evaluation):
-        'FileDate[path_, timetype_]'
-        path = path.to_python().strip('"')
-        time_type = timetype.to_python().strip('"')
-        if time_type == 'Access':
-            time = os.path.getatime(path)
-        elif time_type in ['Creation', 'Change']:   # TODO: Fixing this cross platform is difficult
-            time = os.path.getctime(path)
-        elif time_type == 'Modification':
-            time = os.path.getmtime(path)
-        else:
-            return
-
-        # Mathematica measures epoch from Jan 1 1900, while python is from Jan 1 1970!
-        return Expression('DateList', from_python(time + 2208988800))
 
 class FileHash(Builtin):
     """
@@ -1137,7 +1125,39 @@ class FileByteCount(Builtin):
 
         return from_python(count)
 
-# TODO: This has to wait until the time branch has been merged
+
+# TODO: These have to wait until the time branch has been merged
+#
+#class FileDate(Builtin):
+#    """
+#    <dl>
+#    <dt>'FileDate[$file$, $types$]'
+#        <dd>returns the time and date at which the file was last modified.
+#    </dl>
+#    """
+#
+#    #TODO: Test different properties of some example data
+#
+#    rules = {
+#        'FileDate[path_]': 'FileDate[path, "Modification"]',
+#    }
+#
+#    def apply(self, path, timetype, evaluation):
+#        'FileDate[path_, timetype_]'
+#        path = path.to_python().strip('"')
+#        time_type = timetype.to_python().strip('"')
+#        if time_type == 'Access':
+#            time = os.path.getatime(path)
+#        elif time_type in ['Creation', 'Change']:   # TODO: Fixing this cross platform is difficult
+#            time = os.path.getctime(path)
+#        elif time_type == 'Modification':
+#            time = os.path.getmtime(path)
+#        else:
+#            return
+#
+#        # Mathematica measures epoch from Jan 1 1900, while python is from Jan 1 1970!
+#        return Expression('DateList', from_python(time + 2208988800))
+#
 #
 #class SetFileDate(Builtin):
 #    """
@@ -1197,7 +1217,7 @@ class FileByteCount(Builtin):
 #            return
 #    
 #        return Symbol('Null')
-#
+
 
 class CopyFile(Builtin):
     """
@@ -1348,6 +1368,7 @@ class DeleteFile(Builtin):
                 return Symbol('$Failed')
 
         return Symbol('Null')
+
 
 class FileExistsQ(Builtin):
     """
