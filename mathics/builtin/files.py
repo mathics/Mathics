@@ -12,8 +12,14 @@ from io import StringIO
 
 from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
+from mathics.settings import ROOT_DIR
 
 STREAMS = {}
+
+def mathics_open(filename, mode='r'):
+    if isinstance(filename, basestring) and filename.startswith("ExampleData"):
+        filename = ROOT_DIR + 'data/' + filename
+    return open(filename, mode='r')
 
 class ImportFormats(Predefined):
     """
@@ -379,10 +385,14 @@ class _OpenAction(Builtin):
     def apply(self, path, evaluation):
         '%(name)s[path_]'
 
-        path_string = path.to_python().strip('"')
+        if not isinstance(path, String):
+            #TODO: evaluation.message
+            return
+
+        path_string = path.__str__().strip('"')
 
         try:
-            stream = open(path_string, mode=self.mode)
+            stream = mathics_open(path_string, mode=self.mode)
         except IOError:
             evaluation.message('General', 'noopen', path)
             return
@@ -510,7 +520,7 @@ class FilePrint(Builtin):
         pypath = pypath.strip('"')
 
         try:
-            f = open(pypath, 'r')
+            f = mathics_open(pypath, 'r')
             result = f.read()
             f.close()
         except IOError:
@@ -840,7 +850,7 @@ class FindList(Builtin):
         results = []
         for path in py_name:
             try:
-                f = open(path, 'r')
+                f = mathics_open(path, 'r')
                 lines = f.readlines()
                 f.close()
             except IOError:
@@ -1063,7 +1073,7 @@ class FileHash(Builtin):
         py_filename = py_filename.strip('"')
 
         try:
-            f = open(py_filename, 'rb')
+            f = mathics_open(py_filename, 'rb')
             dump = f.read()
             f.close()
         except IOError:
@@ -1110,7 +1120,7 @@ class FileByteCount(Builtin):
         py_filename = py_filename.strip('"')
 
         try:
-            f = open(py_filename, 'rb')
+            f = mathics_open(py_filename, 'rb')
 
             count = 0 
             tmp = f.read(1)
@@ -1171,7 +1181,7 @@ class FileByteCount(Builtin):
 #            evaluation.message('SetFileDate', 'todo3', attribute)
 #            return
 #        try:
-#            with open(py_filename, 'a'):
+#            with mathics_open(py_filename, 'a'):
 #                if py_attr == '"Access"':
 #                    pass #TODO
 #                if py_attr == '"Creation"':
