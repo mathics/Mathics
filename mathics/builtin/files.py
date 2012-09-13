@@ -15,6 +15,7 @@ from mathics.builtin.base import Builtin, Predefined
 from mathics.settings import ROOT_DIR
 
 STREAMS = {}
+DIRECTORY_STACK = [os.getcwd()]
 
 def mathics_open(filename, mode='r'):
     if isinstance(filename, basestring) and filename.startswith("ExampleData"):
@@ -1370,6 +1371,23 @@ class DeleteFile(Builtin):
         return Symbol('Null')
 
 
+class DirectoryStack(Builtin):
+    """
+    <dl>
+    <dt>'DirectoryStack[]'
+      <dd>returns the directory stack.
+    </dl>
+
+    >> DirectoryStack[]
+    = ...
+    """
+
+    def apply(self, evaluation):
+        'DirectoryStack[]'
+        global DIRECTORY_STACK
+        return from_python(DIRECTORY_STACK)
+
+
 class Directory(Builtin):
     """
     <dl>
@@ -1418,7 +1436,32 @@ class SetDirectory(Builtin):
             return Symbol('$Failed')
 
         os.chdir(py_path)
+        DIRECTORY_STACK.append(os.getcwd())
         return String(os.getcwd())
+
+
+class ResetDirectory(Builtin):
+    """
+    <dl>
+    <dt>'ResetDirectory[]'
+      <dd>pops a directory from the directory stack and returns it.
+    </dl>
+
+    >> ResetDirectory[]
+    = ...
+    """
+    
+    def apply(self, evaluation):
+        'ResetDirectory[]'
+        global DIRECTORY_STACK
+
+        try:
+            tmp = DIRECTORY_STACK.pop()
+        except IndexError:
+            #evaluation.message #TODO
+            return Symbol('$Failed')
+        os.chdir(tmp)
+        return String(tmp)
 
 
 class FileExistsQ(Builtin):
