@@ -8,7 +8,7 @@ import shutil
 import hashlib
 import os
 from zlib import adler32, crc32
-from io import StringIO
+import io
 
 from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
@@ -19,7 +19,7 @@ STREAMS = {}
 def mathics_open(filename, mode='r'):
     if isinstance(filename, basestring) and filename.startswith("ExampleData"):
         filename = ROOT_DIR + 'data/' + filename
-    return open(filename, mode='r')
+    return io.open(filename, mode)
 
 class ImportFormats(Predefined):
     """
@@ -748,17 +748,19 @@ class Find(Read):
         <dd>find the first line in $stream$ that contains $text$.
     </dl>
 
-    >> str = OpenRead["/home/angus/const.txt"];
-    >> Find[str, "electors"]
-     = choice of electors for President and Vice-President of the United States,
-    >> Find[str, "electors"]
-     = have one vote. The electors in each State shall have the qualifications
+    >> str = OpenRead["ExampleData/EinsteinSzilLetter.txt"];
+    >> Find[str, "uranium"]
+     = in manuscript, leads me to expect that the element uranium may be turned into
+    >> Find[str, "uranium"]
+     = become possible to set up a nuclear chain reaction in a large mass of uranium,
     >> Close[str]
      = ...
 
-    >> str = OpenRead["/home/angus/const.txt"];
-    >> Find[str, {"electors", "people"}]
-     = of the press; or the right of the people peaceably to assemble, and to petition
+    >> str = OpenRead["ExampleData/EinsteinSzilLetter.txt"];
+    >> Find[str, {"energy", "power"} ]
+     = a new and important source of energy in the immediate future. Certain aspects
+    >> Find[str, {"energy", "power"} ]
+     = by which vast amounts of power and large quantities of new radium-like
     >> Close[str]
      = ...
     """
@@ -802,14 +804,14 @@ class FindList(Builtin):
       <dd>returns a list of all lines in any of the $filei$ that contain the specified strings.
     </dl>
 
-    >> str = FindList["/home/angus/const.txt", "electors"];
+    >> str = FindList["ExampleData/EinsteinSzilLetter.txt", "uranium"];
     #> Length[str]
-     = 6
+     = 7
 
-    >> str = FindList["/home/angus/const.txt", "electors", 1]
-     = {choice of electors for President and Vice-President of the United States,}
+    >> str = FindList["ExampleData/EinsteinSzilLetter.txt", "uranium", 1]
+     = {in manuscript, leads me to expect that the element uranium may be turned into}
 
-    >> str = FindList["/home/angus/const.txt", "democracy"]
+    #> str = FindList["ExampleData/EinsteinSzilLetter.txt", "project"]
      = {}
     """
 
@@ -921,7 +923,7 @@ class StringToStream(Builtin):
     def apply(self, string, evaluation):
         'StringToStream[string_]'
         pystring = string.to_python().strip('"')
-        stream = StringIO(initial_value=unicode(pystring))
+        stream = io.StringIO(initial_value=unicode(pystring))
         n = _put_stream(stream)
         result = Expression('InputStream', from_python('String'), n)
 
@@ -1016,32 +1018,32 @@ class FileHash(Builtin):
       <dd>returns an integer hash of specified $type$ for the given $file$.
     </dl>
 
-    >> FileHash["/home/angus/const.txt"]
-     = 327543094924296211684012457845472528194
+    >> FileHash["ExampleData/sunflowers.jpg"]
+     = 109937059621979839952736809235486742106
 
-    >> FileHash["/home/angus/const.txt", "MD5"]
-     = 327543094924296211684012457845472528194
+    >> FileHash["ExampleData/sunflowers.jpg", "MD5"]
+     = 109937059621979839952736809235486742106
 
-    >> FileHash["/home/angus/const.txt", "Adler32"]
-     = 379970077
+    >> FileHash["ExampleData/sunflowers.jpg", "Adler32"]
+     = 1607049478
 
-    >> FileHash["/home/angus/const.txt", "CRC32"]
-     = -714117466
+    >> FileHash["ExampleData/sunflowers.jpg", "CRC32"]
+     = 933095683
 
-    >> FileHash["/home/angus/const.txt", "SHA"]
-     = 373198480298074987456387719402557487603665831619
+    >> FileHash["ExampleData/sunflowers.jpg", "SHA"]
+     = 851696818771101405642332645949480848295550938123
 
-    >> FileHash["/home/angus/const.txt", "SHA224"]
-     = 3917722155990863301063131219313332812450825714047709114184660657040
+    >> FileHash["ExampleData/sunflowers.jpg", "SHA224"]
+     = 8723805623766373862936267623913366865806344065103917676078120867011
 
-    >> FileHash["/home/angus/const.txt", "SHA256"]
-     = 11644666593438942629277351724048748939285751972475052522764329079189078028814
+    >> FileHash["ExampleData/sunflowers.jpg", "SHA256"]
+     = 111619807552579450300684600241129773909359865098672286468229443390003894913065
 
-    >> FileHash["/home/angus/const.txt", "SHA384"]
-     = 30483718751041705495695586237041127244740940313861521100269551019906506917011401631803235020535267688078407100882707
+    >> FileHash["ExampleData/sunflowers.jpg", "SHA384"]
+     = 28288410602533803613059815846847184383722061845493818218404754864571944356226472174056863474016709057507799332611860
 
-    >> FileHash["/home/angus/const.txt", "SHA512"]
-     = 1326437464183143781001018855370051677613062767836549469526136224930996101542674475615428678343701377300870189417449686598400481332250256827946277566015805
+    >> FileHash["ExampleData/sunflowers.jpg", "SHA512"]
+     = 10111462070211820348006107532340854103555369343736736045463376555356986226454343186097958657445421102793096729074874292511750542388324853755795387877480102
     """
 
     rules = {
@@ -1107,8 +1109,8 @@ class FileByteCount(Builtin):
       <dd>returns the number of bytes in $file$.
     </dl>
 
-    >> FileByteCount["/home/angus/const.txt"]
-     = 45119
+    >> FileByteCount["ExampleData/sunflowers.jpg"]
+     = 142286
     """
 
     def apply(self, filename, evaluation):
@@ -1149,7 +1151,7 @@ class FileByteCount(Builtin):
 #      The "$type$" can be one of "$Access$", "$Creation$", "$Modification$", or 'All'.
 #    </dl>
 #
-#    >> SetFileDate["/home/angus/const.txt"]
+#    >> SetFileDate["ExampleData/sunflowers.jpg"]
 #
 #    """
 #
@@ -1204,9 +1206,9 @@ class CopyFile(Builtin):
       <dd>copies $file1$ to $file2$.
     </dl>
 
-    >> CopyFile["/home/angus/const.txt", "/home/angus/12.txt"]
-     = /home/angus/12.txt
-    >> DeleteFile["/home/angus/12.txt"]
+    >> CopyFile["ExampleData/sunflowers.jpg", "MathicsSunflowers.jpg"]
+     = MathicsSunflowers.jpg
+    >> DeleteFile["MathicsSunflowers.jpg"]
     """
 
     def apply(self, source, dest, evaluation):
@@ -1225,6 +1227,10 @@ class CopyFile(Builtin):
 
         py_source = py_source.strip('"')
         py_dest = py_dest.strip('"')
+        if py_source.startswith('ExampleData'):
+            py_source = ROOT_DIR + 'data/' + py_source
+        if py_dest.startswith('ExampleData'):
+            py_dest = ROOT_DIR + 'data/' + py_dest
 
         if not os.path.exists(py_source):
             evaluation.message('CopyFile', 'todo3', source)
@@ -1249,11 +1255,11 @@ class RenameFile(Builtin):
       <dd>renames $file1$ to $file2$.
     </dl>
 
-    >> CopyFile["/home/angus/const.txt", "/home/angus/12.txt"]
-     = /home/angus/12.txt
-    >> RenameFile["/home/angus/12.txt", "/home/angus/13.txt"]
-     = /home/angus/13.txt
-    >> DeleteFile["/home/angus/13.txt"]
+    >> CopyFile["ExampleData/sunflowers.jpg", "MathicsSunflowers.jpg"]
+     = MathicsSunflowers.jpg
+    >> RenameFile["MathicsSunflowers.jpg", "MathicsSunnyFlowers.jpg"]
+     = MathicsSunnyFlowers.jpg
+    >> DeleteFile["MathicsSunnyFlowers.jpg"]
     """
 
     def apply(self, source, dest, evaluation):
@@ -1272,6 +1278,11 @@ class RenameFile(Builtin):
 
         py_source = py_source.strip('"')
         py_dest = py_dest.strip('"')
+
+        if py_source.startswith('ExampleData'):
+            py_source = ROOT_DIR + 'data/' + py_source
+        if py_dest.startswith('ExampleData'):
+            py_dest = ROOT_DIR + 'data/' + py_dest
 
         if not os.path.exists(py_source):
             evaluation.message('RenameFile', 'todo3', source)
@@ -1298,12 +1309,12 @@ class DeleteFile(Builtin):
       <dd>deletes a list of files.
     </dl>
 
-    >> CopyFile["/home/angus/const.txt", "/home/angus/12.txt"];
-    >> DeleteFile["/home/angus/12.txt"]
+    >> CopyFile["ExampleData/sunflowers.jpg", "MathicsSunflowers.jpg"];
+    >> DeleteFile["MathicsSunflowers.jpg"]
 
-    >> CopyFile["/home/angus/const.txt", "/home/angus/12.txt"];
-    >> CopyFile["/home/angus/const.txt", "/home/angus/13.txt"];
-    >> DeleteFile[{"/home/angus/12.txt", "/home/angus/13.txt"}]
+    >> CopyFile["ExampleData/sunflowers.jpg", "MathicsSunflowers1.jpg"];
+    >> CopyFile["ExampleData/sunflowers.jpg", "MathicsSunflowers2.jpg"];
+    >> DeleteFile[{"MathicsSunflowers1.jpg", "MathicsSunflowers2.jpg"}]
     """
 
     def apply(self, filename, evaluation):
@@ -1313,19 +1324,23 @@ class DeleteFile(Builtin):
         if not isinstance(py_path, list):
             py_path = [py_path]
 
+        py_paths = []
         for path in py_path:
             #Check filenames
             if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
                 evaluation.message('DeleteFile', 'todo1', filename)
                 return
 
-            if not os.path.exists(path.strip('"')):
-                evaluation.message('DeleteFile', 'todo3', from_python(path))
-                return Symbol('$Failed')
+            tmp = path.strip('"')
+            if tmp.startswith('ExampleData'):
+                tmp = ROOT_DIR + 'data/' + tmp
 
-        py_path = [path.strip('"') for path in py_path]
-   
-        for path in py_path:
+            if not os.path.exists(tmp):
+                evaluation.message('DeleteFile', 'todo3', String(tmp))
+                return Symbol('$Failed')
+            py_paths.append(tmp)
+
+        for path in py_paths:
             try:
                 os.remove(path)
             except OSError:
@@ -1341,9 +1356,9 @@ class FileExistsQ(Builtin):
       <dd>returns 'True' if $file$ exists and 'False' otherwise.
     </dl>
 
-    >> FileExistsQ["/home/angus/const.txt"]
+    >> FileExistsQ["ExampleData/sunflowers.jpg"]
      = True
-    >> FileExistsQ["/home/angus/13.txt"]
+    >> FileExistsQ["ExampleData/sunflowers.png"]
      = False
     """
 
@@ -1353,8 +1368,12 @@ class FileExistsQ(Builtin):
         if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
             evaluation.message('FileExistsQ', 'todo1', filename)
             return
+        path = path.strip('"')
 
-        if os.path.exists(path.strip('"')):
+        if path.startswith("ExampleData/"):
+            path = ROOT_DIR + 'data/' + path
+
+        if os.path.exists(path):
             return Symbol('True')
         return Symbol('False')
 
@@ -1366,9 +1385,9 @@ class DirectoryQ(Builtin):
       <dd>returns 'True' if the directory called $name$ exists and 'False' otherwise.
     </dl>
 
-    >> FileExistsQ["/home/angus/bin"]
+    >> FileExistsQ["ExampleData/"]
      = True
-    >> FileExistsQ["/home/angus/examples"]
+    >> FileExistsQ["ExampleData/MythicalSubdir/"]
      = False
     """
 
@@ -1379,6 +1398,10 @@ class DirectoryQ(Builtin):
         if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
             evaluation.message('FileExistsQ', 'todo1', pathname)
             return
+        path = path.strip('"')
+
+        if path.startswith('ExampleData'):
+            path = ROOT_DIR + 'data/' + path
 
         if os.path.isdir(path.strip('"')):
             return Symbol('True')
