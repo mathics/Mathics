@@ -705,8 +705,27 @@ class SetStreamPosition(Builtin):
 
     >> Read[str, Word]
      = cool!
-
     """
+    
+    #TODO: This might work in py3
+    """
+    #> SetStreamPosition[str, -5]
+     = 11
+
+    #> Read[str, Word]
+     = cool!
+    """
+
+    #TODO: Seeks beyond stream should return stmrng message
+    """
+    #> SetStreamPosition[str, 40]
+     = ERROR_MESSAGE_HERE
+    """
+
+    messages = {
+        'int': 'Integer expected at position 2 in `1`.',
+        'stmrng': 'Cannot set the current point in stream `1` to position `2`. The requested position exceeds the number of characters in the file',
+    }
 
     def apply_input(self, name, n, m, evaluation):
         'SetStreamPosition[InputStream[name_, n_], m_]'
@@ -718,18 +737,20 @@ class SetStreamPosition(Builtin):
             return
 
         if not stream.seekable:
-            evaluation.message('SetStreamPosition', 'todo', name)   #TODO
-            return
+            raise NotImplementedError
    
         seekpos = m.to_python()
-        if not ((isinstance(seekpos, int) and seekpos >= 0) or seekpos == 'Infinity'):
-            evaluation.message('SetStreamPosition', 'todo2', name)   #TODO
-            return Symbol('$Failed')
+        if not (isinstance(seekpos, int) or seekpos == 'Infinity'):
+            evaluation.message('SetStreamPosition', 'stmrng', Expression('InputStream', name, n), m)
+            return
 
         if seekpos == 'Infinity':
             tmp = stream.seek(0, 2)
         else:
-            stream.seek(seekpos)
+            if seekpos < 0:
+                stream.seek(seekpos, 2)
+            else:
+                stream.seek(seekpos)
 
         return from_python(stream.tell())
 
@@ -743,18 +764,20 @@ class SetStreamPosition(Builtin):
             return
 
         if not stream.seekable:
-            evaluation.message('SetStreamPosition', 'todo1', name)   #TODO
-            return
+            raise NotImplementedError
 
         seekpos = m.to_python()
-        if not (isinstance(seekpos, int) and seekpos >= 0):
-            evaluation.message('SetStreamPosition', 'todo2', name)   #TODO
-            return Symbol('$Failed')
+        if not (isinstance(seekpos, int) or seekpos == 'Infinity'):
+            evaluation.message('SetStreamPosition', 'stmrng', Expression('OutputStream', name, n), m)
+            return
 
         if seekpos == 'Infinity':
             tmp = stream.seek(0, 2)
         else:
-            stream.seek(seekpos)
+            if seekpos < 0:
+                stream.seek(seekpos, 2)
+            else:
+                stream.seek(seekpos)
 
         return from_python(stream.tell())
 
@@ -881,25 +904,38 @@ class FindList(Builtin):
     #> Length[str]
      = 7
 
-    >> str = FindList["ExampleData/EinsteinSzilLetter.txt", "uranium", 1]
+    >> FindList["ExampleData/EinsteinSzilLetter.txt", "uranium", 1]
      = {in manuscript, leads me to expect that the element uranium may be turned into}
 
-    #> str = FindList["ExampleData/EinsteinSzilLetter.txt", "project"]
+    #> FindList["ExampleData/EinsteinSzilLetter.txt", "project"]
      = {}
+
+    #> FindList["ExampleData/EinsteinSzilLetter.txt", "uranium", 0]
+     = $Failed
     """
 
-    rules = {
-        'FindList[file_, text_]': 'FindList[file, text, All]',
+    messages = {
+        'strs': 'String or non-empty list of strings expected at position `1` in `2`.',
+        'intnm': 'Non-negative machine-sized integer expected at position `1` in `2`.',
     }
 
     #TODO: Extra options AnchoredSearch, IgnoreCase RecordSeparators, WordSearch, WordSeparators
     # this is probably best done with a regex
 
+    def apply_without_n(self, filename, text, evaluation):
+        'FindList[filename_, text_]'
+        return self.apply(filename, text, None, evaluation)
+
     def apply(self, filename, text, n, evaluation):
         'FindList[filename_, text_, n_]'
         py_text = text.to_python()
         py_name = filename.to_python()
-        py_n = n.to_python()
+        if n is None:
+            py_n = None
+            expr = Expression('FindList', filename, text)
+        else:
+            py_n = n.to_python()
+            expr = Expression('FindList', filename, text, n)
 
         if not isinstance(py_text, list):
             py_text = [py_text]
@@ -907,17 +943,21 @@ class FindList(Builtin):
         if not isinstance(py_name, list):
             py_name = [py_name]
 
-        if not all(isinstance(t, basestring) and t[0] == t[-1] == '"' for t in py_text):
-            evaluation.message('FindList', 'todo', text)
-            return
-
         if not all(isinstance(t, basestring) and t[0] == t[-1] == '"' for t in py_name):
-            evaluation.message('FindList', 'todo', filename)
-            return
+            evaluation.message('FindList', 'strs', '1', expr)
+            return Symbol('$Failed')
 
-        if not ((isinstance(py_n, int) and py_n > 0) or py_n == 'All'):
-            evaluation.message('FindList', 'todo', n)
-            return
+        if not all(isinstance(t, basestring) and t[0] == t[-1] == '"' for t in py_text):
+            evaluation.message('FindList', 'strs', '2', expr)
+            return Symbol('$Failed')
+
+        if not ((isinstance(py_n, int) and py_n >= 0) or py_n is None):
+            evaluation.message('FindList', 'intnm', '3', expr)
+            return Symbol('$Failed')
+
+        if py_n == 0:
+            return Symbol('$Failed')
+
 
         py_text = [t.strip('"') for t in py_text]
         py_name = [t.strip('"') for t in py_name]
@@ -1089,35 +1129,34 @@ class FileHash(Builtin):
 
     >> FileHash["ExampleData/sunflowers.jpg", "SHA512"]
      = 10111462070211820348006107532340854103555369343736736045463376555356986226454343186097958657445421102793096729074874292511750542388324853755795387877480102
+
+    #> FileHash["ExampleData/sunflowers.jpg", xyzsymbol]
+     = FileHash[ExampleData/sunflowers.jpg, xyzsymbol]
+
+    #> FileHash["ExampleData/sunflowers.jpg", "xyzstr"]
+     = FileHash[ExampleData/sunflowers.jpg, xyzstr]
+
+    #> FileHash[xyzsymbol]
+     = FileHash[xyzsymbol]
     """
 
     rules = {
-        'FileHash[filename_]': 'FileHash[filename, "MD5"]',
+        'FileHash[filename_?StringQ]': 'FileHash[filename, "MD5"]',
     }
 
     def apply(self, filename, hashtype, evaluation):
-        'FileHash[filename_, hashtype_]'
+        'FileHash[filename_?StringQ, hashtype_?StringQ]'
         py_hashtype = hashtype.to_python()
         py_filename = filename.to_python()
 
         #TODO: MD2?
         supported_hashes = ['Adler32', 'CRC32', 'MD5', 'SHA', 'SHA224', 'SHA256', 'SHA384', 'SHA512']
 
-        # Check hashtype
-        if not (isinstance(py_hashtype, basestring) and py_hashtype[0] == py_hashtype[-1] == '"'):
-            evaluation.message('FileHash', 'todo1', hashtype)
-            return
         py_hashtype = py_hashtype.strip('"')
+        py_filename = py_filename.strip('"')
 
         if py_hashtype not in supported_hashes:
-            evaluation.message('FileHash', 'todo1', hashtype)
             return
-
-        # Check filename
-        if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
-            evaluation.message('FindList', 'todo2', filename)
-            return
-        py_filename = py_filename.strip('"')
 
         try:
             f = mathics_open(py_filename, 'rb')
@@ -1158,11 +1197,15 @@ class FileByteCount(Builtin):
      = 142286
     """
 
+    messages = {
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+    }
+
     def apply(self, filename, evaluation):
         'FileByteCount[filename_]'
         py_filename = filename.to_python()
         if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
-            evaluation.message('FindList', 'todo2', filename)
+            evaluation.message('FileByteCount', 'fstr', filename)
             return
         py_filename = py_filename.strip('"')
 
@@ -1288,6 +1331,12 @@ class CopyFile(Builtin):
     >> DeleteFile["MathicsSunflowers.jpg"]
     """
 
+    messages = {
+        'filex': 'Cannot overwrite existing file `1`.',
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'nffil': 'File not found during `1`.',
+    }
+
     def apply(self, source, dest, evaluation):
         'CopyFile[source_, dest_]'
 
@@ -1296,10 +1345,10 @@ class CopyFile(Builtin):
 
         #Check filenames
         if not (isinstance(py_source, basestring) and py_source[0] == py_source[-1] == '"'):
-            evaluation.message('CopyFile', 'todo1', source)
+            evaluation.message('CopyFile', 'fstr', source)
             return
         if not (isinstance(py_dest, basestring) and py_dest[0] == py_dest[-1] == '"'):
-            evaluation.message('CopyFile', 'todo2', dest)
+            evaluation.message('CopyFile', 'fstr', dest)
             return
 
         py_source = py_source.strip('"')
@@ -1310,16 +1359,16 @@ class CopyFile(Builtin):
             py_dest = ROOT_DIR + 'data/' + py_dest
 
         if not os.path.exists(py_source):
-            evaluation.message('CopyFile', 'todo3', source)
+            evaluation.message('CopyFile', 'filex', source)
             return Symbol('$Failed')
         if os.path.exists(py_dest):
-            evaluation.message('CopyFile', 'todo4', dest)
+            evaluation.message('CopyFile', 'filex', dest)
             return Symbol('$Failed')
 
         try:
             shutil.copy(py_source, py_dest)
         except IOError:
-            evaluation.message('CopyFile', 'todo5', dest)
+            evaluation.message('CopyFile', 'nffil', Expression('CopyFile', source, dest))
             return Symbol('$Failed')
 
         return dest
@@ -1339,6 +1388,12 @@ class RenameFile(Builtin):
     >> DeleteFile["MathicsSunnyFlowers.jpg"]
     """
 
+    messages = {
+        'filex': 'Cannot overwrite existing file `1`.',
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'nffil': 'File not found during `1`.',
+    }
+
     def apply(self, source, dest, evaluation):
         'RenameFile[source_, dest_]'
 
@@ -1347,10 +1402,10 @@ class RenameFile(Builtin):
 
         #Check filenames
         if not (isinstance(py_source, basestring) and py_source[0] == py_source[-1] == '"'):
-            evaluation.message('RenameFile', 'todo1', source)
+            evaluation.message('RenameFile', 'fstr', source)
             return
         if not (isinstance(py_dest, basestring) and py_dest[0] == py_dest[-1] == '"'):
-            evaluation.message('RenameFile', 'todo2', dest)
+            evaluation.message('RenameFile', 'fstr', dest)
             return
 
         py_source = py_source.strip('"')
@@ -1362,16 +1417,16 @@ class RenameFile(Builtin):
             py_dest = ROOT_DIR + 'data/' + py_dest
 
         if not os.path.exists(py_source):
-            evaluation.message('RenameFile', 'todo3', source)
+            evaluation.message('RenameFile', 'filex', source)
             return Symbol('$Failed')
         if os.path.exists(py_dest):
-            evaluation.message('RenameFile', 'todo4', dest)
+            evaluation.message('RenameFile', 'filex', dest)
             return Symbol('$Failed')
 
         try:
             shutil.move(py_source, py_dest)
         except IOError:
-            evaluation.message('RenameFile', 'todo5', dest)
+            evaluation.message('RenameFile', 'nffil', dest)
             return Symbol('$Failed')
 
         return dest
@@ -1394,6 +1449,12 @@ class DeleteFile(Builtin):
     >> DeleteFile[{"MathicsSunflowers1.jpg", "MathicsSunflowers2.jpg"}]
     """
 
+    messages = {
+        'filex': 'Cannot overwrite existing file `1`.',
+        'strs': 'String or non-empty list of strings expected at position `1` in `2`.',
+        'nffil': 'File not found during `1`.',
+    }
+
     def apply(self, filename, evaluation):
         'DeleteFile[filename_]'
 
@@ -1405,7 +1466,7 @@ class DeleteFile(Builtin):
         for path in py_path:
             #Check filenames
             if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
-                evaluation.message('DeleteFile', 'todo1', filename)
+                evaluation.message('DeleteFile', 'strs', filename, Expression('DeleteFile', filename))
                 return
 
             tmp = path.strip('"')
@@ -1413,7 +1474,7 @@ class DeleteFile(Builtin):
                 tmp = ROOT_DIR + 'data/' + tmp
 
             if not os.path.exists(tmp):
-                evaluation.message('DeleteFile', 'todo3', String(tmp))
+                evaluation.message('DeleteFile', 'nffil', Expression('DeleteFile', filename))
                 return Symbol('$Failed')
             py_paths.append(tmp)
 
@@ -1421,7 +1482,6 @@ class DeleteFile(Builtin):
             try:
                 os.remove(path)
             except OSError:
-                evaluation.message('DeleteFile', 'todo5', from_python(path))
                 return Symbol('$Failed')
 
         return Symbol('Null')
@@ -1533,11 +1593,15 @@ class FileExistsQ(Builtin):
      = False
     """
 
+    messages = {
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+    }
+
     def apply(self, filename, evaluation):
         'FileExistsQ[filename_]'
         path = filename.to_python()
         if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
-            evaluation.message('FileExistsQ', 'todo1', filename)
+            evaluation.message('FileExistsQ', 'fstr', filename)
             return
         path = path.strip('"')
 
@@ -1556,18 +1620,28 @@ class DirectoryQ(Builtin):
       <dd>returns 'True' if the directory called $name$ exists and 'False' otherwise.
     </dl>
 
-    >> FileExistsQ["ExampleData/"]
+    >> DirectoryQ["ExampleData/"]
      = True
-    >> FileExistsQ["ExampleData/MythicalSubdir/"]
+    >> DirectoryQ["ExampleData/MythicalSubdir/"]
+     = False
+
+    #> DirectoryQ["ExampleData"]
+     = True
+
+    #> DirectoryQ["ExampleData/MythicalSubdir/NestedDir/"]
      = False
     """
+
+    messages = {
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+    }
 
     def apply(self, pathname, evaluation):
         'DirectoryQ[pathname_]'
         path = pathname.to_python()
 
         if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
-            evaluation.message('FileExistsQ', 'todo1', pathname)
+            evaluation.message('DirectoryQ', 'fstr', pathname)
             return
         path = path.strip('"')
 
