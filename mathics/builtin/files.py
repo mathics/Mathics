@@ -80,40 +80,6 @@ class HomeDirectory(Predefined):
         return String(HOME_DIR)
 
 
-class ImportFormats(Predefined):
-    """
-    <dl>
-    <dt>'$ImportFormats'
-        <dd>returns a list of file formats supported by Import.
-    </dl>
-    
-    >> $ImportFormats
-     = {}
-    """
-
-    name = '$ImportFormats'
-
-    def evaluate(self, evaluation):
-        return Expression('List')
-
-
-class ExportFormats(Predefined):
-    """
-    <dl>
-    <dt>'$ExportFormats'
-        <dd>returns a list of file formats supported by Export.
-    </dl>
-    
-    >> $ExportFormats
-     = {}
-    """
-
-    name = '$ExportFormats'
-
-    def evaluate(self, evaluation):
-        return Expression('List')
-
-
 class Read(Builtin):
     """
     <dl>
@@ -621,40 +587,6 @@ class FileFormat(Builtin):
                 result = 'Binary'
 
         return from_python(result)
-
-
-class Import(Builtin):
-    """
-    <dl>
-    <dt>'Import["$file$"]'
-      <dd>imports data from a file.
-    <dt>'Import["$file$", $elements$]'
-      <dd>imports the specified elements from a file.
-    <dt>'Import["http://$url$", ...]' and 'Import["ftp://$url$", ...]'
-      <dd>imports from a URL.
-    </dl>
-
-    """
-
-    messages = {
-        'nffil': 'File not found during Import.',
-    }
-
-    pass
-
-class Export(Builtin):
-    """
-    <dl>
-    <dt>'Export["$file$.$ext$", $expr$]'
-      <dd>exports $expr$ to a file, using the extension $ext$ to determine the format.
-    <dt>'Export["$file$", $expr$, "$format$"]'
-      <dd>exports $expr$ to a file in the specified format.
-    <dt>'Export["$file$", $exprs$, $elems$]'
-      <dd>exports $exprs$ to a file as elements specified by $elems$.
-    </dl>
-    """
-
-    pass
 
 
 class ReadList(Read):
