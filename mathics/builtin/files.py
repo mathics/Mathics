@@ -9,7 +9,6 @@ import hashlib
 import os
 from zlib import adler32, crc32
 import io
-import magic
 
 from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
@@ -530,63 +529,6 @@ class FileBaseName(Builtin):
 
         filename_base, filename_ext  = os.path.splitext(path)
         return from_python(filename_base)
-
-
-class FileFormat(Builtin):
-    """
-    <dl>
-    <dt>'FileFormat["$name$"]'
-      <dd>attempts to determine what format 'Import' should use to import specified file.
-    </dl>
-
-    >> FileFormat["ExampleData/sunflowers.jpg"]
-     = JPEG
-
-    >> FileFormat["ExampleData/EinsteinSzilLetter.txt"]
-     = Text
-    """
-
-    messages = {
-        'nffil': 'File not found during `1`.',
-    }
-
-    def apply(self, filename, evaluation):
-        'FileFormat[filename_?StringQ]'
-
-        path = filename.to_python().strip('"')
-
-        if path.startswith("ExampleData/"):
-            path = ROOT_DIR + 'data/' + path
-
-        if not os.path.exists(path):
-            evaluation.message('FileFormat', 'nffil', Expression('FileFormat', filename))
-            return Symbol('$Failed')
-
-        fileformat = magic.from_file(path)
-
-        #TODO: Add more file formats
-
-        if fileformat.startswith('JPEG image data,'):       # Images
-            result = 'JPEG'
-        elif fileformat.startswith('PNG image data,'):
-            result = 'PNG'
-        elif fileformat.startswith('GIF image data,'):
-            result = 'GIF'
-        elif fileformat.startswith('TIFF image data,'):
-            result = 'TIFF'
-        elif fileformat.startswith('PC bitmap,'):
-            result = 'BMP'
-        elif fileformat.startswith('PDF document,'):           # Documents
-            result = 'PDF'
-        elif fileformat == 'XML  document text':
-            result = 'XML'
-        else:
-            if 'text' in fileformat:
-                result = 'Text'
-            else:
-                result = 'Binary'
-
-        return from_python(result)
 
 
 class ReadList(Read):
