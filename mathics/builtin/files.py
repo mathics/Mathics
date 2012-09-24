@@ -509,6 +509,63 @@ class OpenAppend(_OpenAction):
     stream_type = 'OutputStream'
 
 
+class FileExtension(Builtin):
+    """
+    <dl>
+    <dt>'FileExtension["$file$"]'
+        <dd>gives the extension for the specified file name.
+    </dl>
+
+    >> FileExtension["file.txt"]
+     = txt
+
+    #> FileExtension["file."]
+     = 
+
+    #> FileExtension["file"]
+     = 
+
+    #> FileExtension["file.tar.gz"]
+     = gz
+    """
+
+    def apply(self, filename, evaluation):
+        'FileExtension[filename_?StringQ]'
+        path = filename.to_python().strip('"')
+
+        if path.startswith("ExampleData/"):
+            path = ROOT_DIR + 'data/' + path
+
+        filename_base, filename_ext  = os.path.splitext(path)
+        filename_ext =  filename_ext.lstrip('.')
+        return from_python(filename_ext)
+
+
+class FileBaseName(Builtin):
+    """
+    <dl>
+    <dt>'FileBaseName["$file$"]'
+        <dd>gives the base name for the specified file name.
+    </dl>
+
+    >> FileBaseName["file.txt"]
+     = file
+
+    #> FileBaseName["file.tar.gz"]
+     = file.tar
+    """
+
+    def apply(self, filename, evaluation):
+        'FileBaseName[filename_?StringQ]'
+        path = filename.to_python().strip('"')
+
+        if path.startswith("ExampleData/"):
+            path = ROOT_DIR + 'data/' + path
+
+        filename_base, filename_ext  = os.path.splitext(path)
+        return from_python(filename_base)
+
+
 class FileFormat(Builtin):
     """
     <dl>
