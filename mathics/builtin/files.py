@@ -509,10 +509,36 @@ class OpenAppend(_OpenAction):
 
 
 class Import(Builtin):
+    """
+    <dl>
+    <dt>'Import["$file$"]'
+      <dd>imports data from a file.
+    <dt>'Import["$file$", $elements$]'
+      <dd>imports the specified elements from a file.
+    <dt>'Import["http://$url$", ...]' and 'Import["ftp://$url$", ...]'
+      <dd>imports from a URL.
+    </dl>
+
+    """
+
+    messages = {
+        'nffil': 'File not found during Import.',
+    }
+
     pass
 
-
 class Export(Builtin):
+    """
+    <dl>
+    <dt>'Export["$file$.$ext$", $expr$]'
+      <dd>exports $expr$ to a file, using the extension $ext$ to determine the format.
+    <dt>'Export["$file$", $expr$, "$format$"]'
+      <dd>exports $expr$ to a file in the specified format.
+    <dt>'Export["$file$", $exprs$, $elems$]'
+      <dd>exports $exprs$ to a file as elements specified by $elems$.
+    </dl>
+    """
+
     pass
 
 
