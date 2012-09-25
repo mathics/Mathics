@@ -193,6 +193,12 @@ class FileFormat(Builtin):
     >> FileFormat["ExampleData/MadTeaParty.gif"]
      = GIF
 
+    >> FileFormat["ExampleData/lena.tif"]
+     = TIFF
+
+    #> FileFormat["ExampleData/moon.tif"]
+     = TIFF
+
     """
 
     messages = {
