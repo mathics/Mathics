@@ -61,8 +61,20 @@ class Import(Builtin):
       <dd>imports from a URL.
     </dl>
 
-    >> Import["ExampleData/EinsteinSzilLetter.txt", "Elements"]
+    >> Import["ExampleData/BloodToilTearsSweat.txt", "Elements"]
      = {Data, Lines, Plaintext, String, Words}
+    #> ListQ[Import["ExampleData/BloodToilTearsSweat.txt", "Data"]]
+     = True
+    #> ListQ[Import["ExampleData/BloodToilTearsSweat.txt", "Lines"]]
+     = True
+    #> StringQ[Import["ExampleData/BloodToilTearsSweat.txt", "Plaintext"]]
+     = True
+    #> StringQ[Import["ExampleData/BloodToilTearsSweat.txt", "String"]]
+     = True
+    #> ListQ[Import["ExampleData/BloodToilTearsSweat.txt", "Words"]]
+     = True
+    #> Import["ExampleData/BloodToilTearsSweat.txt", "Lines"] == Import["ExampleData/BloodToilTearsSweat.txt", "Data"]
+     = True
     """
 
     #TODO: Images tests
@@ -105,11 +117,13 @@ class Import(Builtin):
         if filetype == 'Text':
             with open(path, 'r') as f:
                 plaintext = f.read()
+                textlines = filter(lambda x: x != '', plaintext.split('\n'))
+                textwords = filter(lambda x: x != '', plaintext.split())
                 result['Plaintext'] = plaintext
-                result['Lines'] = filter(lambda x: x != '', plaintext.split('\n'))
-                result['Words'] = filter(lambda x: x != '', plaintext.split())
+                result['Lines'] = textlines
+                result['Words'] = textwords
                 result['String'] = plaintext
-                result['Data'] = plaintext
+                result['Data'] = textlines
 
         return result
 
@@ -168,8 +182,17 @@ class FileFormat(Builtin):
     >> FileFormat["ExampleData/sunflowers.jpg"]
      = JPEG
 
+    ## UTF-8 Unicode text
     >> FileFormat["ExampleData/EinsteinSzilLetter.txt"]
      = Text
+
+    ## ASCII text
+    >> FileFormat["ExampleData/BloodToilTearsSweat.txt"]
+     = Text
+
+    >> FileFormat["ExampleData/MadTeaParty.gif"]
+     = GIF
+
     """
 
     messages = {
