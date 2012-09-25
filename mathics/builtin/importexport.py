@@ -61,6 +61,8 @@ class Import(Builtin):
       <dd>imports from a URL.
     </dl>
 
+    >> Import["ExampleData/EinsteinSzilLetter.txt", "Elements"]
+     = {Data, Lines, Plaintext, String, Words}
     """
 
     #TODO: Images tests
@@ -134,6 +136,11 @@ class Import(Builtin):
         if result is None:
             return Symbol('$Failed')
 
+        if elements == "Elements":
+            result = result.keys()
+            result.sort()
+            
+            return from_python(result)
         return from_python(result[elements])
 
 class Export(Builtin):
