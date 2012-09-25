@@ -10,6 +10,7 @@ import shutil
 import hashlib
 import zlib
 import base64
+import sys
 
 from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
@@ -1167,6 +1168,64 @@ class Uncompress(Builtin):
 
         return expr
 
+
+class ByteCount(Builtin):
+    """
+    <dl>
+    <dt>'ByteCount[$expr$]'
+      <dd>returns the number of bytes to store $expr$.
+    </dl>
+
+    >> ByteCount[{1, 2, 3, 4, 5}]
+     = 128
+    """
+
+    def apply(self, expr, evaluation):
+        'ByteCount[expr_]'
+        full = expr.do_format(evaluation, 'FullForm').__str__()
+        return from_python(sys.getsizeof(full))
+
+
+class FileByteCount(Builtin):
+    """
+    <dl>
+    <dt>'FileByteCount[$file$]'
+      <dd>returns the number of bytes in $file$.
+    </dl>
+
+    >> FileByteCount["ExampleData/sunflowers.jpg"]
+     = 142286
+    """
+
+    messages = {
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+    }
+
+    def apply(self, filename, evaluation):
+        'FileByteCount[filename_]'
+        py_filename = filename.to_python()
+        if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
+            evaluation.message('FileByteCount', 'fstr', filename)
+            return
+        py_filename = py_filename.strip('"')
+
+        try:
+            f = mathics_open(py_filename, 'rb')
+
+            count = 0 
+            tmp = f.read(1)
+            while tmp != '':
+                count += 1
+                tmp = f.read(1)
+
+            f.close()
+        except IOError:
+            evaluation.message('General', 'noopen', filename)
+            return
+
+        return from_python(count)
+
+
 class FileHash(Builtin):
     """
     <dl>
@@ -1257,46 +1316,6 @@ class FileHash(Builtin):
             result = int(hashlib.sha512(dump).hexdigest(), 16)
 
         return from_python(result)
-
-
-class FileByteCount(Builtin):
-    """
-    <dl>
-    <dt>'FileByteCount[$file$]'
-      <dd>returns the number of bytes in $file$.
-    </dl>
-
-    >> FileByteCount["ExampleData/sunflowers.jpg"]
-     = 142286
-    """
-
-    messages = {
-        'fstr': 'File specification `1` is not a string of one or more characters.',
-    }
-
-    def apply(self, filename, evaluation):
-        'FileByteCount[filename_]'
-        py_filename = filename.to_python()
-        if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
-            evaluation.message('FileByteCount', 'fstr', filename)
-            return
-        py_filename = py_filename.strip('"')
-
-        try:
-            f = mathics_open(py_filename, 'rb')
-
-            count = 0 
-            tmp = f.read(1)
-            while tmp != '':
-                count += 1
-                tmp = f.read(1)
-
-            f.close()
-        except IOError:
-            evaluation.message('General', 'noopen', filename)
-            return
-
-        return from_python(count)
 
 
 # TODO: These have to wait until the time branch has been merged
