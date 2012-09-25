@@ -1125,7 +1125,8 @@ class Compress(Builtin):
     def apply(self, expr, evaluation):
         'Compress[expr_]'
         
-        string = unicode(expr.do_format(evaluation, 'TraditionalForm'))
+        string = expr.do_format(evaluation, 'FullForm').__str__()
+        string = string.encode('utf-8')
         result = zlib.compress(string)
         result = base64.encodestring(result)
 
@@ -1143,6 +1144,12 @@ class Uncompress(Builtin):
      = eJxT8k0sychMLlbILFZIzs/PUQIANFwF1w==
     >> Uncompress[%]
      = Mathics is cool
+
+    >> a = x ^ 2 + y Sin[x] + 10 Log[15];
+    >> b = Compress[a];
+    >> Uncompress[b]
+     = x ^ 2 + y Sin[x] + 10 Log[15]
+
     """
 
     def apply(self, string, evaluation):
@@ -1150,6 +1157,7 @@ class Uncompress(Builtin):
         string = string.to_python().strip('"')
         string = base64.decodestring(string)
         tmp = zlib.decompress(string)
+        tmp = tmp.decode('utf-8')
         
         try:
             expr = parse(tmp)
