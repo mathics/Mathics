@@ -508,12 +508,16 @@ class Put(Builtin):
     >> Put[50!, "fiftyfactorial"]
     >> FilePrint["fiftyfactorial"]
      = 30414093201713378043612608166064768844377641568960512000000000000
+    #> DeleteFile["fiftyfactorial"]
     
     >> Put[10!, 20!, 30!, "factorials"]
     >> FilePrint["factorials"]
      = 3628800
      . 2432902008176640000
      . 265252859812191058636308480000000
+
+    #> DeleteFile["factorials"]
+     =
     """
 
     def apply(self, exprs, filename, evaluation):
@@ -540,6 +544,55 @@ class Put(Builtin):
         stream.write(text)
 
         return Symbol('Null')
+
+
+class PutAppend(Builtin):
+    """
+    <dl>
+    <dt>'$expr$ >>> $filename$'
+      <dt>append $expr$ to a file.
+    <dt>'PutAppend[$expr1$, $expr2$, ..., $"filename"$]'
+      <dt>write a sequence of expressions to a file.
+
+    >> Put[50!, "factorials"]
+    >> FilePrint["factorials"]
+     = 30414093201713378043612608166064768844377641568960512000000000000
+    
+    >> PutAppend[10!, 20!, 30!, "factorials"]
+    >> FilePrint["factorials"]
+     = 30414093201713378043612608166064768844377641568960512000000000000
+     . 3628800
+     . 2432902008176640000
+     . 265252859812191058636308480000000
+
+    #> DeleteFile["factorials"]
+    """
+
+    def apply(self, exprs, filename, evaluation):
+        'PutAppend[exprs___, filename_?StringQ]'
+        instream = Expression('OpenAppend', filename).evaluate(evaluation)
+        name, n = instream.leaves
+        result = self.apply_input(exprs, name, n, evaluation)
+        close = Expression('Close', instream).evaluate(evaluation)
+        return result
+
+    def apply_input(self, exprs, name, n, evaluation):
+        'PutAppend[exprs___, OutputStream[name_, n_]]'
+        global STREAMS
+        stream = STREAMS.get(n.to_python())
+
+        if stream is None:
+            evaluation.message('Put', 'openx', Expression('OutputSteam', name, n))
+            return
+
+        text = [unicode(e.do_format(evaluation, 'OutputForm').__str__()) for e in exprs.get_sequence()]
+        text = u'\n'.join(text) + u'\n'
+        text.encode('ascii')
+
+        stream.write(text)
+
+        return Symbol('Null')
+
 
 class FileExtension(Builtin):
     """
