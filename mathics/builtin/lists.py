@@ -925,7 +925,126 @@ class Select(Builtin):
             if test.evaluate(evaluation) == Symbol('True'):
                 new_leaves.append(leaf)
         return Expression(list.head, *new_leaves)
+
+class Split(Builtin):
+    """
+    <dl>
+    <dt>'Split[$list$]'
+      <dd>splits $list$ into collections of consecutive identical elements.
+    <dt>'Split[$list$, $test$]'
+      <dd>splits $list$ based on whether the function $test$ yields 'True' on consecutive elements.
+    <dl>
+
+    >> Split[{x, x, x, y, x, y, y, z}]
+     = {{x, x, x}, {y}, {x}, {y, y}, {z}}
+
+    #> Split[{x, x, x, y, x, y, y, z}, x]
+     = {{x}, {x}, {x}, {y}, {x}, {y}, {y}, {z}}
+
+    Split into increasing or decreasing runs of elements
+    >> Split[{1, 5, 6, 3, 6, 1, 6, 3, 4, 5, 4}, Less]
+     = {{1, 5, 6}, {3, 6}, {1, 6}, {3, 4, 5}, {4}}
     
+    >> Split[{1, 5, 6, 3, 6, 1, 6, 3, 4, 5, 4}, Greater]
+     = {{1}, {5}, {6, 3}, {6, 1}, {6, 3}, {4}, {5, 4}}
+
+    Split based on first element
+    >> Split[{x -> a, x -> y, 2 -> a, z -> c, z -> a}, First[#1] === First[#2] &]
+     = {{x -> a, x -> y}, {2 -> a}, {z -> c, z -> a}}
+    """
+
+    rules = {
+        'Split[list_]': 'Split[list, SameQ]',
+    }
+
+    messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
+    }
+
+    def apply(self, mlist, test, evaluation):
+        'Split[mlist_, test_]'
+
+        expr = Expression('Split', mlist, test)
+
+        if mlist.is_atom():
+            evaluation.message('Select', 'normal', 1, expr)
+            return
+
+        result = [[mlist.leaves[0]]]
+        for leaf in mlist.leaves[1:]:
+            applytest = Expression(test, result[-1][-1], leaf)
+            if applytest.evaluate(evaluation) == Symbol('True'):
+                result[-1].append(leaf)
+            else:
+                result.append([leaf])
+
+        return Expression(mlist.head, *[Expression('List', *l) for l in result])
+
+class SplitBy(Builtin):
+    """
+    <dl>
+    <dt>'Split[$list$, $f$]'
+      <dd>splits $list$ into collections of consecutive elements that give the same result when $f$ is applied.
+    <dl>
+
+    >> SplitBy[Range[1, 3, 1/3], Round]
+     = {{1, 4 / 3}, {5 / 3, 2, 7 / 3}, {8 / 3, 3}}
+
+    >> SplitBy[{1, 2, 1, 1.2}, {Round, Identity}]
+     = {{{1}}, {{2}}, {{1}, {1.2}}}
+
+    >> SplitBy[{1, 2, 1, 1.2}, {Round, Identity}]
+     = {{{1}}, {{2}}, {{1}, {1.2}}}
+
+    #> SplitBy[Tuples[{1, 2}, 3], First]
+     = {{{1, 1, 1}, {1, 1, 2}, {1, 2, 1}, {1, 2, 2}}, {{2, 1, 1}, {2, 1, 2}, {2, 2, 1}, {2, 2, 2}}}
+    """
+
+    rules = {
+        'SplitBy[list_]': 'SplitBy[list, Identity]',
+    }
+
+    messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
+    }
+
+    def apply(self, mlist, func, evaluation):
+        'SplitBy[mlist_, func_?NotListQ]'
+
+        expr = Expression('Split', mlist, func)
+
+        if mlist.is_atom():
+            evaluation.message('Select', 'normal', 1, expr)
+            return
+
+        plist = [l for l in mlist.leaves]
+
+        result = [[plist[0]]]
+        prev = Expression(func, plist[0]).evaluate(evaluation)
+        for leaf in plist[1:]:
+            curr = Expression(func, leaf).evaluate(evaluation)
+            if curr == prev:
+                result[-1].append(leaf)
+            else:
+                result.append([leaf])
+            prev = curr
+
+        return Expression(mlist.head, *[Expression('List', *l) for l in result])
+
+    def apply_multiple(self, mlist, funcs, evaluation):
+        'SplitBy[mlist_, funcs_?ListQ]'
+        expr = Expression('Split', mlist, funcs)
+
+        if mlist.is_atom():
+            evaluation.message('Select', 'normal', 1, expr)
+            return
+
+        result = mlist
+        for f in funcs.leaves[::-1]:
+            result = self.apply(result, f, evaluation)
+
+        return result
+
 class Cases(Builtin):
     rules = {
         'Cases[list_, pattern_]': 'Select[list, MatchQ[#, pattern]&]',
