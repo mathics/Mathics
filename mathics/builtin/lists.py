@@ -989,6 +989,15 @@ class SplitBy(Builtin):
 
     >> SplitBy[Range[1, 3, 1/3], Round]
      = {{1, 4 / 3}, {5 / 3, 2, 7 / 3}, {8 / 3, 3}}
+
+    >> SplitBy[{1, 2, 1, 1.2}, {Round, Identity}]
+     = {{{1}}, {{2}}, {{1}, {1.2}}}
+
+    >> SplitBy[{1, 2, 1, 1.2}, {Round, Identity}]
+     = {{{1}}, {{2}}, {{1}, {1.2}}}
+
+    #> SplitBy[Tuples[{1, 2}, 3], First]
+     = {{{1, 1, 1}, {1, 1, 2}, {1, 2, 1}, {1, 2, 2}}, {{2, 1, 1}, {2, 1, 2}, {2, 2, 1}, {2, 2, 2}}}
     """
 
     rules = {
@@ -999,22 +1008,21 @@ class SplitBy(Builtin):
         'normal': 'Nonatomic expression expected at position `1` in `2`.',
     }
 
-    def apply(self, mlist, f, evaluation):
-        'SplitBy[mlist_, f_]'
+    def apply(self, mlist, func, evaluation):
+        'SplitBy[mlist_, func_?NotListQ]'
 
-        expr = Expression('Split', mlist, f)
+        expr = Expression('Split', mlist, func)
 
         if mlist.is_atom():
             evaluation.message('Select', 'normal', 1, expr)
             return
 
-        if Expression('ListQ', f).evaluate(evaluation) == Symbol('True'):  #TODO
-            raise NotImplementedError
+        plist = [l for l in mlist.leaves]
 
-        result = [[mlist.leaves[0]]]
-        prev = Expression(f, mlist.leaves[0]).evaluate(evaluation)
-        for leaf in  mlist.leaves[1:]:
-            curr = Expression(f, leaf).evaluate(evaluation)
+        result = [[plist[0]]]
+        prev = Expression(func, plist[0]).evaluate(evaluation)
+        for leaf in plist[1:]:
+            curr = Expression(func, leaf).evaluate(evaluation)
             if curr == prev:
                 result[-1].append(leaf)
             else:
@@ -1022,6 +1030,20 @@ class SplitBy(Builtin):
             prev = curr
 
         return Expression(mlist.head, *[Expression('List', *l) for l in result])
+
+    def apply_multiple(self, mlist, funcs, evaluation):
+        'SplitBy[mlist_, funcs_?ListQ]'
+        expr = Expression('Split', mlist, funcs)
+
+        if mlist.is_atom():
+            evaluation.message('Select', 'normal', 1, expr)
+            return
+
+        result = mlist
+        for f in funcs.leaves[::-1]:
+            result = self.apply(result, f, evaluation)
+
+        return result
 
 class Cases(Builtin):
     rules = {
