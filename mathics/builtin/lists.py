@@ -979,7 +979,50 @@ class Split(Builtin):
                 result.append([leaf])
 
         return Expression(mlist.head, *[Expression('List', *l) for l in result])
-    
+
+class SplitBy(Builtin):
+    """
+    <dl>
+    <dt>'Split[$list$, $f$]'
+      <dd>splits $list$ into collections of consecutive elements that give the same result when $f$ is applied.
+    <dl>
+
+    >> SplitBy[Range[1, 3, 1/3], Round]
+     = {{1, 4 / 3}, {5 / 3, 2, 7 / 3}, {8 / 3, 3}}
+    """
+
+    rules = {
+        'SplitBy[list_]': 'SplitBy[list, Identity]',
+    }
+
+    messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
+    }
+
+    def apply(self, mlist, f, evaluation):
+        'SplitBy[mlist_, f_]'
+
+        expr = Expression('Split', mlist, f)
+
+        if mlist.is_atom():
+            evaluation.message('Select', 'normal', 1, expr)
+            return
+
+        if Expression('ListQ', f).evaluate(evaluation) == Symbol('True'):  #TODO
+            raise NotImplementedError
+
+        result = [[mlist.leaves[0]]]
+        prev = Expression(f, mlist.leaves[0]).evaluate(evaluation)
+        for leaf in  mlist.leaves[1:]:
+            curr = Expression(f, leaf).evaluate(evaluation)
+            if curr == prev:
+                result[-1].append(leaf)
+            else:
+                result.append([leaf])
+            prev = curr
+
+        return Expression(mlist.head, *[Expression('List', *l) for l in result])
+
 class Cases(Builtin):
     rules = {
         'Cases[list_, pattern_]': 'Select[list, MatchQ[#, pattern]&]',
