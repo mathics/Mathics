@@ -497,6 +497,50 @@ class OpenAppend(_OpenAction):
     stream_type = 'OutputStream'
 
 
+class Put(Builtin):
+    """
+    <dl>
+    <dt>'$expr$ >> $filename$'
+      <dt>write $expr$ to a file.
+    <dt>'Put[$expr1$, $expr2$, ..., $"filename"$]'
+      <dt>write a sequence of expressions to a file.
+
+    >> Put[50!, "fiftyfactorial"]
+    >> FilePrint["fiftyfactorial"]
+     = 30414093201713378043612608166064768844377641568960512000000000000
+    
+    >> Put[10!, 20!, 30!, "factorials"]
+    >> FilePrint["factorials"]
+     = 3628800
+     . 2432902008176640000
+     . 265252859812191058636308480000000
+    """
+
+    def apply(self, exprs, filename, evaluation):
+        'Put[exprs___, filename_?StringQ]'
+        instream = Expression('OpenWrite', filename).evaluate(evaluation)
+        name, n = instream.leaves
+        result = self.apply_input(exprs, name, n, evaluation)
+        close = Expression('Close', instream).evaluate(evaluation)
+        return result
+
+    def apply_input(self, exprs, name, n, evaluation):
+        'Put[exprs___, OutputStream[name_, n_]]'
+        global STREAMS
+        stream = STREAMS.get(n.to_python())
+
+        if stream is None:
+            evaluation.message('Put', 'openx', Expression('OutputSteam', name, n))
+            return
+
+        text = [unicode(e.do_format(evaluation, 'OutputForm').__str__()) for e in exprs.get_sequence()]
+        text = u'\n'.join(text) + u'\n'
+        text.encode('ascii')
+
+        stream.write(text)
+
+        return Symbol('Null')
+
 class FileExtension(Builtin):
     """
     <dl>
