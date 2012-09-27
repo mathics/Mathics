@@ -173,6 +173,23 @@ class InputFileName(Predefined):
         return String(INPUTFILE_VAR)
 
 
+class PathnameSeparator(Predefined):
+    """
+    <dl>
+    <dt>'$PathnameSeparator'
+      <dd>returns a string for the seperator in paths.
+    </dl>
+    
+    >> $PathnameSeparator
+     = 
+    """
+
+    name = '$PathnameSeparator'
+
+    def evaluate(self, evaluation):
+        return String(os.sep)
+
+
 class Path(Predefined):
     """
     >> $Path
@@ -1884,6 +1901,46 @@ class ResetDirectory(Builtin):
         os.chdir(tmp)
         return String(tmp)
 
+
+class FileType(Builtin):
+    """
+    <dl>
+    <dt>'FileType["$file$"]
+      <dd>returns the type of a file, from 'File', 'Directory' or 'None'.
+    </dl>
+
+    >> FileType["ExampleData/sunflowers.jpg"]
+     = File
+    >> FileType["ExampleData"]
+     = Directory
+    >> FileType["ExampleData/nonexistant"]
+     = None
+
+    #> FileType[x]
+     : File specification x is not a string of one or more characters.
+     = FileType[x]
+    """
+
+    messages = {
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+    }
+
+    def apply(self, filename, evaluation):
+        'FileType[filename_]'
+        if not isinstance(filename, String):
+            evaluation.message('FileType', 'fstr', filename)
+            return
+        path = filename.to_python().strip('"')
+
+        path = path_search(path)
+
+        if path is None:
+            return Symbol('None')
+
+        if os.path.isfile(path):
+            return Symbol('File')
+        else:
+            return Symbol('Directory')
 
 class FileExistsQ(Builtin):
     """
