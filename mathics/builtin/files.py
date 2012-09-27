@@ -181,7 +181,7 @@ class PathnameSeparator(Predefined):
     </dl>
     
     >> $PathnameSeparator
-     = 
+     = ...
     """
 
     name = '$PathnameSeparator'
@@ -192,6 +192,11 @@ class PathnameSeparator(Predefined):
 
 class Path(Predefined):
     """
+    <dl>
+    <dt>'$Path'
+      <dd>returns the list of directories to search when looking for an file.
+    </dl>
+
     >> $Path
      = ...
     """
