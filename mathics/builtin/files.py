@@ -11,6 +11,7 @@ import hashlib
 import zlib
 import base64
 import sys
+import tempfile
 
 from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined
@@ -19,14 +20,30 @@ from mathics.settings import ROOT_DIR
 STREAMS = {}
 INITIAL_DIR = os.getcwd()
 HOME_DIR = os.path.expanduser('~')
+TMP_DIR = tempfile.gettempdir()
 DIRECTORY_STACK = [INITIAL_DIR]
 INPUT_VAR = ""
 INPUTFILE_VAR = ""
+PATH_VAR = [HOME_DIR, os.path.join(ROOT_DIR, 'data')]
 
 def mathics_open(filename, mode='r'):
-    if isinstance(filename, basestring) and filename.startswith("ExampleData"):
-        filename = ROOT_DIR + 'data/' + filename
-    return io.open(filename, mode)
+    path = path_search(filename)
+    if path is not None:
+        return io.open(path, mode)
+
+    if mode == 'w':
+        return io.open(filename, mode)
+
+    return None
+
+def path_search(filename):
+    if os.path.exists(filename):
+        return filename
+    for p in PATH_VAR:
+        path = os.path.join(p, filename)
+        if os.path.exists(path):
+            return path
+    return None
 
 def _put_stream(stream):
     global STREAMS
@@ -103,6 +120,23 @@ class HomeDirectory(Predefined):
         return String(HOME_DIR)
 
 
+class TemporaryDirectory(Predefined):
+    """
+    <dl>
+    <dt>'$TemporaryDirectory'
+      <dd>returns the directory used for temporary files.'
+    </dl>
+
+    >> $TemporaryDirectory
+     = ...
+    """
+
+    name = '$TemporaryDirectory'
+
+    def evaluate(self, evaluation):
+        return String(TMP_DIR)
+
+
 class Input(Predefined):
     """
     <dl>
@@ -137,6 +171,18 @@ class InputFileName(Predefined):
     def evaluate(self, evaluation):
         global INPUTFILE_VAR
         return String(INPUTFILE_VAR)
+
+
+class Path(Predefined):
+    """
+    >> $Path
+     = ...
+    """
+
+    name = '$Path'
+
+    def evaluate(self, evaluation):
+        return Expression('List', *[String(p) for p in PATH_VAR])
 
 
 class Read(Builtin):
@@ -429,7 +475,6 @@ class WriteString(Builtin):
         <dd>writes the strings to the output stream."
     </dl>
 
-    ##TODO: Need USER_DIR to store temp files like this
     >> str = OpenWrite[];
     >> WriteString[str, "This is a test 1"]
     >> WriteString[str, "This is also a test 2"]
@@ -472,6 +517,11 @@ class Save(Builtin):
 
 
 class _OpenAction(Builtin):
+
+    messages = {
+        'argx': 'OpenRead called with 0 arguments; 1 argument is expected.',
+    }
+
     def apply(self, path, evaluation):
         '%(name)s[path_]'
 
@@ -479,7 +529,7 @@ class _OpenAction(Builtin):
             #TODO: evaluation.message
             return
 
-        path_string = path.__str__().strip('"')
+        path_string = path.to_python().strip('"')
 
         try:
             stream = mathics_open(path_string, mode=self.mode)
@@ -494,14 +544,49 @@ class _OpenAction(Builtin):
 
         return result
 
+    def apply_empty(self, evaluation):
+        '%(name)s[]'
+
+        if self.mode == 'r':
+            evaluation.message('OpenRead', 'argx')
+            return
+
+        global TMP_DIR
+
+        tmpf = tempfile.NamedTemporaryFile(dir=TMP_DIR)
+        path_string = tmpf.name
+        tmpf.close()
+
+        try:
+            stream = mathics_open(path_string, mode='w')
+        except IOError:
+            evaluation.message('General', 'noopen', String(path_string))
+            return
+
+        n = _put_stream(stream)
+        result = Expression(self.stream_type, String(path_string), n)
+        global _STREAMS
+        _STREAMS[n] = result
+
+        return result
+
 
 class OpenRead(_OpenAction):
     """
     <dl>
     <dt>'OpenRead["file"]'
-        <dd>opens a file and returns an InputStream. 
+      <dd>opens a file and returns an InputStream. 
     </dl>
+
+    >> OpenRead["ExampleData/EinsteinSzilLetter.txt"]
+     = InputStream[...]
+    #> Close[%];
+
+    #> OpenRead[]
+     : OpenRead called with 0 arguments; 1 argument is expected.
+     = OpenRead[]
     """
+
     mode = 'r'
     stream_type = 'InputStream'
 
@@ -510,14 +595,14 @@ class OpenWrite(_OpenAction):
     """
     <dl>
     <dt>'OpenWrite["file"]'
-        <dd>opens a file and returns an OutputStream. 
+      <dd>opens a file and returns an OutputStream. 
     </dl>
+
+    >> OpenWrite[]
+     = OutputStream[...]
+    #> Close[%];
     """
 
-    rules = {
-        'OpenWrite[]': 'OpenWrite["/tmp/mathics.write_test"]',
-    }
-    
     mode = 'w'
     stream_type = 'OutputStream'
 
@@ -526,8 +611,12 @@ class OpenAppend(_OpenAction):
     """
     <dl>
     <dt>'OpenAppend["file"]'
-        <dd>opens a file and returns an OutputStream to which writes are appended. 
+      <dd>opens a file and returns an OutputStream to which writes are appended. 
     </dl>
+
+    >> OpenAppend[]
+     = OutputStream[...]
+    #> Close[%];
     """
 
     mode = 'a'
@@ -538,9 +627,9 @@ class Put(Builtin):
     """
     <dl>
     <dt>'$expr$ >> $filename$'
-      <dt>write $expr$ to a file.
+      <dd>write $expr$ to a file.
     <dt>'Put[$expr1$, $expr2$, ..., $"filename"$]'
-      <dt>write a sequence of expressions to a file.
+      <dd>write a sequence of expressions to a file.
 
     >> Put[50!, "fiftyfactorial"]
     >> FilePrint["fiftyfactorial"]
@@ -574,7 +663,7 @@ class Put(Builtin):
             evaluation.message('Put', 'openx', Expression('OutputSteam', name, n))
             return
 
-        text = [unicode(e.do_format(evaluation, 'OutputForm').__str__()) for e in exprs.get_sequence()]
+        text = [unicode(e.do_format(evaluation, 'InputForm').__str__()) for e in exprs.get_sequence()]
         text = u'\n'.join(text) + u'\n'
         text.encode('ascii')
 
@@ -655,9 +744,6 @@ class FileExtension(Builtin):
         'FileExtension[filename_?StringQ]'
         path = filename.to_python().strip('"')
 
-        if path.startswith("ExampleData/"):
-            path = ROOT_DIR + 'data/' + path
-
         filename_base, filename_ext  = os.path.splitext(path)
         filename_ext =  filename_ext.lstrip('.')
         return from_python(filename_ext)
@@ -680,9 +766,6 @@ class FileBaseName(Builtin):
     def apply(self, filename, evaluation):
         'FileBaseName[filename_?StringQ]'
         path = filename.to_python().strip('"')
-
-        if path.startswith("ExampleData/"):
-            path = ROOT_DIR + 'data/' + path
 
         filename_base, filename_ext  = os.path.splitext(path)
         return from_python(filename_base)
@@ -760,6 +843,7 @@ class FilePrint(Builtin):
             evaluation.message('FilePrint', 'fstr', path)
             return
         pypath = pypath.strip('"')
+        pypath = path_search(pypath)
 
         try:
             f = mathics_open(pypath, 'r')
@@ -1579,14 +1663,13 @@ class CopyFile(Builtin):
 
         py_source = py_source.strip('"')
         py_dest = py_dest.strip('"')
-        if py_source.startswith('ExampleData'):
-            py_source = ROOT_DIR + 'data/' + py_source
-        if py_dest.startswith('ExampleData'):
-            py_dest = ROOT_DIR + 'data/' + py_dest
 
-        if not os.path.exists(py_source):
+        py_source = path_search(py_source)
+
+        if py_source is None:
             evaluation.message('CopyFile', 'filex', source)
             return Symbol('$Failed')
+
         if os.path.exists(py_dest):
             evaluation.message('CopyFile', 'filex', dest)
             return Symbol('$Failed')
@@ -1637,14 +1720,12 @@ class RenameFile(Builtin):
         py_source = py_source.strip('"')
         py_dest = py_dest.strip('"')
 
-        if py_source.startswith('ExampleData'):
-            py_source = ROOT_DIR + 'data/' + py_source
-        if py_dest.startswith('ExampleData'):
-            py_dest = ROOT_DIR + 'data/' + py_dest
+        py_source = path_search(py_source)
 
-        if not os.path.exists(py_source):
+        if py_source is None:
             evaluation.message('RenameFile', 'filex', source)
             return Symbol('$Failed')
+
         if os.path.exists(py_dest):
             evaluation.message('RenameFile', 'filex', dest)
             return Symbol('$Failed')
@@ -1695,14 +1776,13 @@ class DeleteFile(Builtin):
                 evaluation.message('DeleteFile', 'strs', filename, Expression('DeleteFile', filename))
                 return
 
-            tmp = path.strip('"')
-            if tmp.startswith('ExampleData'):
-                tmp = ROOT_DIR + 'data/' + tmp
+            path = path.strip('"')
+            path = path_search(path)
 
-            if not os.path.exists(tmp):
+            if path is None:
                 evaluation.message('DeleteFile', 'nffil', Expression('DeleteFile', filename))
                 return Symbol('$Failed')
-            py_paths.append(tmp)
+            py_paths.append(path)
 
         for path in py_paths:
             try:
@@ -1770,10 +1850,9 @@ class SetDirectory(Builtin):
             return
 
         py_path = path.__str__().strip('"')
-        if py_path.startswith('ExampleData'):
-            py_path = ROOT_DIR + 'data/' + py_path
+        py_path = path_search(py_path)
     
-        if not os.path.isdir(py_path):
+        if py_path is None:
             #evaluation.message() #TODO
             return Symbol('$Failed')
 
@@ -1831,18 +1910,17 @@ class FileExistsQ(Builtin):
             return
         path = path.strip('"')
 
-        if path.startswith("ExampleData/"):
-            path = ROOT_DIR + 'data/' + path
+        path = path_search(path)
 
-        if os.path.exists(path):
-            return Symbol('True')
-        return Symbol('False')
+        if path is None:
+            return Symbol('False')
+        return Symbol('True')
 
 
 class DirectoryQ(Builtin):
     """
-    <dl>'
-    <dt>'DirectoryQ["$name$"]
+    <dl>
+    <dt>'DirectoryQ["$name$"]'
       <dd>returns 'True' if the directory called $name$ exists and 'False' otherwise.
     </dl>
 
@@ -1870,6 +1948,9 @@ class DirectoryQ(Builtin):
             evaluation.message('DirectoryQ', 'fstr', pathname)
             return
         path = path.strip('"')
+
+        #path = path_search(path)
+        #TODO
 
         if path.startswith('ExampleData'):
             path = ROOT_DIR + 'data/' + path
