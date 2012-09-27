@@ -1849,6 +1849,40 @@ class Directory(Builtin):
         return String(result)
 
 
+class ParentDirectory(Builtin):
+    """
+    <dl>
+    <dt>'ParentDirectory[]'
+      <dd>returns the parent of the current working directory.
+    <dt>'ParentDirectory["$dir$"]'
+      <dd>returns the parent $dir$.
+    </dl>
+
+    >> ParentDirectory[]
+     = ...
+    """
+
+    rules = {
+        'ParentDirectory[]': 'ParentDirectory[Directory[]]',
+    }
+
+    messages = {
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+    }
+
+    def apply(self, path, evaluation):
+        'ParentDirectory[path_]'
+
+        if not isinstance(path, String):
+            evaluation.message('ParentDirectory', 'fstr', path)
+            return
+
+        pypath = path.to_python().strip('"')
+
+        result = os.path.abspath(os.path.join(pypath, os.path.pardir))
+        return String(result)
+
+
 class SetDirectory(Builtin):
     """
     <dl>
