@@ -20,7 +20,8 @@ STREAMS = {}
 INITIAL_DIR = os.getcwd()
 HOME_DIR = os.path.expanduser('~')
 DIRECTORY_STACK = [INITIAL_DIR]
-
+INPUT_VAR = ""
+INPUTFILE_VAR = ""
 
 def mathics_open(filename, mode='r'):
     if isinstance(filename, basestring) and filename.startswith("ExampleData"):
@@ -100,6 +101,42 @@ class HomeDirectory(Predefined):
     def evaluate(self, evaluation):
         global HOME_DIR
         return String(HOME_DIR)
+
+
+class Input(Predefined):
+    """
+    <dl>
+    <dt>'$Input'
+      <dd>is the name of the stream from which input it currently being read.
+    </dl>
+    
+    >> $Input
+     = 
+    """
+
+    name = '$Input'
+
+    def evaluate(self, evaluation):
+        global INPUT_VAR
+        return String(INPUT_VAR)
+
+
+class InputFileName(Predefined):
+    """
+    <dl>
+    <dt>'$InputFileName'
+      <dd>is the file name of the file from which input it currently being read.
+    </dl>
+    
+    >> $InputFileName
+     = 
+    """
+
+    name = '$InputFileName'
+
+    def evaluate(self, evaluation):
+        global INPUTFILE_VAR
+        return String(INPUTFILE_VAR)
 
 
 class Read(Builtin):
