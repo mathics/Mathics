@@ -14,7 +14,7 @@ import sys
 import tempfile
 
 from mathics.core.expression import Expression, String, Symbol, from_python
-from mathics.builtin.base import Builtin, Predefined
+from mathics.builtin.base import Builtin, Predefined, BinaryOperator
 from mathics.settings import ROOT_DIR
 
 STREAMS = {}
@@ -645,13 +645,26 @@ class OpenAppend(_OpenAction):
     stream_type = 'OutputStream'
 
 
-class Put(Builtin):
+class Put(BinaryOperator):
     """
     <dl>
     <dt>'$expr$ >> $filename$'
       <dd>write $expr$ to a file.
     <dt>'Put[$expr1$, $expr2$, ..., $"filename"$]'
       <dd>write a sequence of expressions to a file.
+
+    >> 40! >> "fourtyfactorial"
+    >> FilePrint["fourtyfactorial"]
+     = 815915283247897734345611269596115894272000000000
+    #> 40! >> fourtyfactorial
+    #> FilePrint["fourtyfactorial"]
+     = 815915283247897734345611269596115894272000000000
+
+    #> Put[40!, fourtyfactorial]
+     : fourtyfactorial is not string, InputStream[], or OutputStream[]
+     = ...
+    ## FIXME: final line should be
+    ## = Put[815915283247897734345611269596115894272000000000, fourtyfactorial]
 
     >> Put[50!, "fiftyfactorial"]
     >> FilePrint["fiftyfactorial"]
@@ -667,6 +680,9 @@ class Put(Builtin):
     #> DeleteFile["factorials"]
      =
     """
+
+    operator = '>>'
+    precedence = 290 #FIXME: what value is appropriate here?
 
     def apply(self, exprs, filename, evaluation):
         'Put[exprs___, filename_?StringQ]'
@@ -693,8 +709,22 @@ class Put(Builtin):
 
         return Symbol('Null')
 
+    def apply_default(self, exprs, filename, evaluation):
+        'Put[exprs___, filename_]'
+        expr = Expression('Put', exprs, filename)
+        evaluation.message('General', 'stream', filename)
+        return expr
 
-class PutAppend(Builtin):
+    def parse(self, args):
+        if isinstance(args[2], Symbol):
+            ptokens = args[2].parse_tokens
+            args[2] = String(args[2])
+            args[2].parse_tokens = ptokens
+
+        return super(Put, self).parse(args)
+
+
+class PutAppend(BinaryOperator):
     """
     <dl>
     <dt>'$expr$ >>> $filename$'
@@ -713,8 +743,27 @@ class PutAppend(Builtin):
      . 2432902008176640000
      . 265252859812191058636308480000000
 
-    #> DeleteFile["factorials"]
+    >> 60! >>> "factorials"
+    >> FilePrint["factorials"]
+     = 30414093201713378043612608166064768844377641568960512000000000000
+     . 3628800
+     . 2432902008176640000
+     . 265252859812191058636308480000000
+     . 8320987112741390144276341183223364380754172606361245952449277696409600000000000000
+
+    >> "string" >>> factorials
+    >> FilePrint["factorials"]
+     = 30414093201713378043612608166064768844377641568960512000000000000
+     . 3628800
+     . 2432902008176640000
+     . 265252859812191058636308480000000
+     . 8320987112741390144276341183223364380754172606361245952449277696409600000000000000
+     . "string"
+    #> DeleteFile["factorials"];
     """
+
+    operator = '>>>'
+    precedence = 290 #FIXME: what value is appropriate here?
 
     def apply(self, exprs, filename, evaluation):
         'PutAppend[exprs___, filename_?StringQ]'
@@ -740,6 +789,20 @@ class PutAppend(Builtin):
         stream.write(text)
 
         return Symbol('Null')
+
+    def apply_default(self, exprs, filename, evaluation):
+        'PutAppend[exprs___, filename_]'
+        expr = Expression('PutAppend', exprs, filename)
+        evaluation.message('General', 'stream', filename)
+        return expr
+
+    def parse(self, args):
+        if isinstance(args[2], Symbol):
+            ptokens = args[2].parse_tokens
+            args[2] = String(args[2])
+            args[2].parse_tokens = ptokens
+
+        return super(PutAppend, self).parse(args)
 
 
 class FileExtension(Builtin):
