@@ -9,6 +9,9 @@ from distutils.extension import Extension
 from mathics import settings
 
 try:
+    import sys
+    if 'PyPy' in sys.version:   # Don't use cython for PyPy
+        raise ImportError
     from Cython.Distutils import build_ext
     EXTENSIONS = {
         'core': ['expression', 'numbers', 'rules', 'pattern'],
