@@ -8,9 +8,15 @@ from distutils.extension import Extension
 
 from mathics import settings
 
+import sys
+
+if 'PyPy' in sys.version:
+    is_PyPy = True
+else:
+    is_PyPy = False
+
 try:
-    import sys
-    if 'PyPy' in sys.version:   # Don't use cython for PyPy
+    if is_PyPy:
         raise ImportError
     from Cython.Distutils import build_ext
     EXTENSIONS = {
@@ -24,14 +30,20 @@ except ImportError:
     EXTENSIONS = []
     CMDCLASS = {}
     
-INSTALL_REQUIRES = ['sympy>=0.7', 'gmpy>=1.04', 'mpmath>=0.15', 'cython>=0.15.1']
+# Intepreter specific requirements
+if is_PyPy:
+    INSTALL_REQUIRES = []
+else:
+    INSTALL_REQUIRES = ['gmpy>=1.04', 'cython>=0.15.1']
+
+# General Requirements
+INSTALL_REQUIRES += ['sympy>=0.7', 'mpmath>=0.15', 'django>=1.2']
+
 # strange SandboxError with SymPy 0.6.7 in Sage (writing to ~/.sage/tmp)
 
 #if sys.platform == "darwin":
 #    INSTALL_REQUIRES += ['readline']
     
-INSTALL_REQUIRES += ['django>=1.2']
-
 def subdirs(root, file='*.*', depth=10):
     for k in range(depth):
         yield root + '*/' * k + file
