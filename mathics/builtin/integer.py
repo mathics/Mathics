@@ -4,11 +4,12 @@
 Integer functions
 """
 
-from gmpy import mpz
+#from gmpy import mpz
+import sympy
 from mpmath import iv, mp
 
 from mathics.builtin.base import Builtin
-from mathics.core.numbers import mpmath2gmpy, mpz2mpmath
+from mathics.core.numbers import mpmath2sympy
 from mathics.core import numbers
 from mathics.core.expression import Integer, Rational, Real, Expression
 
@@ -52,11 +53,11 @@ class Floor(Builtin):
         
         x = x.value
         if x < 0:
-            floor = - mpz(abs(x))
+            floor = - sympy.Integer(abs(x))
             if x != floor:
                 floor -= 1
         else:
-            floor = mpz(x)
+            floor = sympy.Integer(x)
         return Integer(floor)
     
 class IntegerLength(Builtin):
@@ -100,6 +101,6 @@ class IntegerLength(Builtin):
             evaluation.message('IntegerLength', 'base', b)
             return
          
-        result = mp.mpf(iv.log(iv.mpf(mpz2mpmath(abs(n))), mpz2mpmath(b)).b)
-        result = mpz(mpmath2gmpy(result)) + 1
+        result = mp.mpf(iv.log(iv.mpf(abs(n)), b).b)
+        result = sympy.Integer(mpmath2sympy(result)) + 1
         return Integer(result)

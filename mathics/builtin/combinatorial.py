@@ -2,13 +2,17 @@
 
 from __future__ import with_statement
 
-from gmpy import fib, bincoef
+#from gmpy import fib, bincoef
+from math import factorial as fac
 from mpmath import workprec
 import mpmath
 
+def bincoef(*args):
+    raise NotImplementedError
+
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator
 from mathics.core.expression import Expression, Integer, Number, Symbol
-from mathics.core.numbers import gmpy2mpmath, mpmath2gmpy, min_prec, SpecialValueError
+from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, SpecialValueError
 
 class Fibonacci(Builtin):
     """

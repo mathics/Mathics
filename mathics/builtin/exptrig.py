@@ -15,7 +15,7 @@ import mpmath
 
 from mathics.builtin.base import Builtin, Predefined, SageConstant, SageFunction
 from mathics.core.expression import Number, Real, Expression, Integer
-from mathics.core.numbers import gmpy2mpmath, mpmath2gmpy
+from mathics.core.numbers import sympy2mpmath, mpmath2sympy
 
 from mathics.builtin.numeric import get_precision
 from mathics.builtin.arithmetic import _MPMathFunction

@@ -8,16 +8,17 @@ Precision is not "guarded" through the evaluation process. Only integer precisio
 However, things like 'N[Pi, 100]' should work as expected.
 """
 
-from gmpy import mpz, mpf
+#from gmpy import mpz, mpf
 import mpmath
+import sympy
 from mpmath import mpi
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import dps, mpmath2gmpy
+from mathics.core.numbers import dps, mpmath2sympy
 from mathics.core import numbers
 from mathics.core.expression import Integer, Rational, Real, Complex, Atom, Expression, Number, Symbol
 
-machine_precision = dps(mpf(64))
+machine_precision = dps(sympy.Float(64))
 
 def get_precision(prec, evaluation):
     if prec.get_name() == 'MachinePrecision':
@@ -196,7 +197,7 @@ class Precision(Builtin):
         
 def round(value, k):
     n = value / k
-    n = mpz(n + 0.5)
+    n = sympy.Integer(n + 0.5)
     return n * k
         
 class Round(Builtin):
@@ -241,10 +242,10 @@ def chop(expr, delta=10.0**(-10.0)):
     elif isinstance(expr, Complex) and expr.get_precision() is not None:
         real = expr.value.real
         if -delta < real < delta:
-            real = mpz(0)
+            real = sympy.Integer(0)
         imag = expr.value.imag
         if -delta < imag < delta:
-            imag = mpz(0)
+            imag = sympy.Integer(0)
         if imag != 0:
             return Complex(real, imag)
         else:

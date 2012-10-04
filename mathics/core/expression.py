@@ -18,9 +18,12 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from gmpy import mpz, mpq, mpf
+import sympy
 import re
-import cython
+try:
+    import cython
+except ImportError:
+    pass
 
 from mathics.core.numbers import mpcomplex, format_float, prec, get_type, dps, prec
 from mathics.core.evaluation import Evaluation
@@ -1226,10 +1229,7 @@ class Number(Atom):
         if t == 'z':
             return Integer(value)
         elif t == 'q':
-            if value.denom() == 1:
-                return Integer(value.numer())
-            else:
-                return Rational(value)
+            return Rational(value)
         elif t == 'f':
             return Real(value)
         elif t == 'c':
@@ -1257,14 +1257,14 @@ def number_boxes(text):
 class Integer(Number):
     def __init__(self, value, **kwargs):
         super(Integer, self).__init__(**kwargs)
-        self.value = mpz(str(value))
+        self.value = sympy.Integer(str(value))
         
     def __getstate__(self):
         # pickling of mpz sometimes failes...
         return {'value': str(self.value)}
     
     def __setstate__(self, dict):
-        self.value = mpz(dict['value'])
+        self.value = sympy.Integer(dict['value'])
         
     def boxes_to_text(self, **options):
         return str(self.value)
@@ -1301,19 +1301,17 @@ class Integer(Number):
         return self
     
     def round(self, precision):
-        return Real(mpf(self.value, precision))
+        return Real(sympy.Float(self.value, precision))
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Integer, self).get_sort_key(True)
         else:
             # HACK: otherwise "Bus error" when comparing 1==1.
-            return [0, 0, mpf(self.value), 0, 1]
+            return [0, 0, sympy.Float(self.value), 0, 1]
     
     def get_real_value(self):
-        # BUG in gmpy: mpz(1) < mpq(1, 3)
-        # => convert integers to rationals
-        return mpq(self.value, 1)
+        return sympy.Rational(self.value, 1)
     
     def do_copy(self):
         return Integer(self.value)
@@ -1322,16 +1320,16 @@ class Rational(Number):
     def __init__(self, numerator, denominator=None, **kwargs):
         super(Rational, self).__init__(**kwargs)
         if denominator is None:
-            self.value = mpq(numerator)
+            self.value = sympy.Rational(numerator)
         else:
-            self.value = mpq(numerator, denominator)
+            self.value = sympy.Rational(numerator, denominator)
         
     def __getstate__(self):
         # pickling of mpz sometimes failes...
         return {'value': str(self.value)}
     
     def __setstate__(self, dict):
-        self.value = mpq(dict['value'])
+        self.value = sympy.Rational(dict['value'])
         
     def to_sage(self, definitions, subs):
         return sage.Rational((str(self.value.numer()), str(self.value.denom())))
@@ -1373,14 +1371,14 @@ class Rational(Number):
         return self
     
     def round(self, precision):
-        return Real(mpf(self.value, precision))
+        return Real(sympy.Float(self.value, precision))
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Rational, self).get_sort_key(True)
         else:
             # HACK: otherwise "Bus error" when comparing 1==1.
-            return [0, 0, mpf(self.value), 0, 1]
+            return [0, 0, sympy.Float(self.value), 0, 1]
     
     def get_real_value(self):
         return self.value
@@ -1394,13 +1392,13 @@ class Real(Number):
         if isinstance(value, basestring):
             value = str(value)
             p = prec(len(value))
-            value = mpf(value, p)
+            value = sympy.Float(value, p)
         else:
             type = get_type(value)
             if type == 'q':
-                value = mpf(str(value.numer())) / mpf(str(value.denom()))
+                value = sympy.Float(str(value.numer())) / sympy.Float(str(value.denom()))
             elif type != 'f':
-                value = mpf(str(value))
+                value = sympy.Float(str(value))
         self.value = value
         
     def __getstate__(self):
@@ -1411,7 +1409,7 @@ class Real(Number):
     
     def __setstate__(self, dict):
         p = dict['prec']
-        self.value = mpf(dict['value'], p)
+        self.value = sympy.Float(dict['value'], p)
         
     def boxes_to_text(self, **options):
         return self.make_boxes('OutputForm').boxes_to_text(**options)
@@ -1471,7 +1469,7 @@ class Real(Number):
                 value = digits[:1] + '.' + digits[1:]
             else:
                 value = digits[:0] + '.' + digits[0:]
-            sort_value = mpf('%se%d' % (value, exp))
+            sort_value = sympy.Float('%se%d' % (value, exp))
             return [0, 0, sort_value, 0, 1]
     
     def get_real_value(self):

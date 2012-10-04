@@ -5,7 +5,10 @@ from mathics.core.expression import Expression, Integer, from_sympy
 
 import sympy
 
-from gmpy import mpz, bincoef
+#from gmpy import mpz, bincoef
+
+def bincoef(*args):
+    raise NotImplementedError
 
 def sympy_factor(expr_sympy):
     try:
@@ -255,7 +258,7 @@ class Expand(Builtin):
                     else:
                         other_leaves.append(leaf)
                 if len(neg_powers) > 1:
-                    leaves = other_leaves + [Expression('Power', Expression('Times', *[Expression('Power', leaf.leaves[0], Integer(mpz(-leaf.leaves[1].value))) for leaf in neg_powers]), Integer(-1))]
+                    leaves = other_leaves + [Expression('Power', Expression('Times', *[Expression('Power', leaf.leaves[0], Integer(sympy.Integer(-leaf.leaves[1].value))) for leaf in neg_powers]), Integer(-1))]
             if head_name in ('Plus', 'Times', 'Power'):
                 leaves = [expand(leaf) for leaf in leaves]
             if expr.has_form('Times', 2, None):
@@ -301,7 +304,7 @@ class Expand(Builtin):
                                         this_factor = [Expression('Power', rest[0], Integer(k))]
                                     yield (bincoef(n_rest, k) * coeff, this_factor + next)
                         elif n_rest == 0:
-                            yield (mpz(1), [])
+                            yield (sympy.Integer(1), [])
                             
                     def times(coeff, factors):
                         if coeff == 1:

@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 
-from gmpy import mpz, mpf
+#from gmpy import mpz, mpf
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, Test
 from mathics.core.expression import Expression, Number, Integer, Rational, Real, Symbol, Complex, String
@@ -166,8 +166,8 @@ def do_cmp(x1, x2):
     if x1.has_form('DirectedInfinity', 1): inf1 = x1.leaves[0].get_int_value()
     if x2.has_form('DirectedInfinity', 1): inf2 = x2.leaves[0].get_int_value()
     
-    if real1 is not None and get_type(real1) != 'f': real1 = mpf(real1)
-    if real2 is not None and get_type(real2) != 'f': real2 = mpf(real2)    
+    if real1 is not None and get_type(real1) != 'f': real1 = sympy.Float(real1)
+    if real2 is not None and get_type(real2) != 'f': real2 = sympy.Float(real2)    
     # Bus error when not converting to mpf
     
     if real1 is not None and real2 is not None:

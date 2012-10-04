@@ -10,13 +10,13 @@ from __future__ import with_statement
 
 from mpmath import workprec
 import mpmath
-from gmpy import mpz, fac, mpq
+#from gmpy import mpz, fac, mpq
 
 import sympy
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, PostfixOperator, Test, SageFunction, SageConstant
 from mathics.core.expression import Expression, Number, Integer, Rational, Real, Symbol, Complex, String
-from mathics.core.numbers import real_power, get_type, mul, add, gmpy2mpmath, mpmath2gmpy, SpecialValueError
+from mathics.core.numbers import real_power, get_type, mul, add, sympy2mpmath, mpmath2sympy, SpecialValueError
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
 
@@ -158,7 +158,7 @@ class Plus(BinaryOperator, SageFunction):
         'Plus[items___]'
         
         items = items.numerify(evaluation).get_sequence()
-        number = mpz(0)
+        number = sympy.Integer(0)
         leaves = []
         last_item = last_count = None
         
@@ -191,7 +191,7 @@ class Plus(BinaryOperator, SageFunction):
                                 rest = Expression('Times', *rest)
                             break
                 if count is None:
-                    count = mpz(1)
+                    count = sympy.Integer(1)
                     rest = item
                 if last_item is not None and last_item == rest:
                     last_count = add(last_count, count)
@@ -390,7 +390,7 @@ class Times(BinaryOperator, SageFunction):
         'Times[items___]'
         
         items = items.numerify(evaluation).get_sequence()
-        number = mpz(1)
+        number = sympy.Integer(1)
         leaves = []
         for item in items:
             if isinstance(item, Number):
@@ -575,16 +575,15 @@ class Power(BinaryOperator, SageFunction):
         
         elif isinstance(x, (Rational, Integer)) and isinstance(y, Integer):
             if y.value >= 0:
-                result = mpq(x.value) ** y.value
+                result = x.value ** y.value
                 return Number.from_mp(result)
             else:
                 if x.value == 0:
                     evaluation.message('Power', 'infy')
                     return Symbol('ComplexInfinity')
                 else:
-                    # BUG in gmpy 1.14: mpz(1).qdiv(mpz(2)) == 2
                     denom = mpq(x.value) ** mpq(-y.value)
-                    return Number.from_mp(mpz(1) / denom)
+                    return Number.from_mp(sympy.Integer(1) / denom)
         elif isinstance(x, (Integer, Rational)) and isinstance(y, Rational):
             try:
                 if y.value >= 0:
@@ -599,7 +598,7 @@ class Power(BinaryOperator, SageFunction):
                         evaluation.message('Power', 'infy')
                         return Symbol('ComplexInfinity')
                     else:
-                        return Number.from_mp(mpz(1).qdiv(x.value ** (-y.value)))
+                        return Number.from_mp(sympy.Integer(1).qdiv(x.value ** (-y.value)))
             except ValueError:
                 return Expression('Power', x, y)
         elif isinstance(x, Real) and isinstance(y, Integer):
@@ -827,7 +826,7 @@ class I(Predefined):
     """
     
     def evaluate(self, evaluation):
-        return Complex(mpz(0), mpz(1))
+        return Complex(sympy.Integer(0), sympy.Integer(1))
     
 class NumberQ(Test):
     """

@@ -4,7 +4,20 @@
 Number theoretic functions
 """
 
-from gmpy import invert, gcd, gcdext, lcm
+#from gmpy import invert, gcd, gcdext, lcm
+
+def invert(*args):
+    raise NotImplementedError
+
+def gcd(*args):
+    raise NotImplementedError
+
+def gcdext(*args):
+    raise NotImplementedError
+
+def lcm(*args):
+    raise NotImplementedError
+
 import sympy
 from sympy import isprime
 
