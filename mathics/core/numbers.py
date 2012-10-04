@@ -20,23 +20,18 @@ u"""
 
 from __future__ import with_statement
 
-from gmpy import mpf as g_mpf, mpz, mpq
+import sympy
 from mpmath import mpf as mp_mpf, mpc, workprec, mp
 from math import log
 
 from mathics.core.util import unicode_superscript
 
 def get_type(value):
-    # XXX This is a hack!
-    doc = value.__doc__
-    if doc == 'GNU Multi Precision signed integer':
+    if isinstance(value, sympy.Integer):
         return 'z'
-    elif doc == 'GNU Multi Precision rational number':
-        #if value.denom() == 1:
-        #    return 'z'
-        #else:
+    elif isinstance(value, sympy.Rational):
         return 'q'
-    elif doc == 'GNU Multi Precision floating point':
+    elif isinstance(value, sympy.Float):
         return 'f'
     elif isinstance(value, mpcomplex):
         return 'c'
@@ -75,8 +70,8 @@ def mpmath2gmpy(value):
             raise SpecialValueError('ComplexInfinity')
         return g_mpf(value.replace('+', ''), mp.prec)
     
-def mpz2mpmath(value):
-    return int(value)
+def sympy2mpmath(value):
+    return sympy.Integer(value)
     
 C = log(10, 2) # ~ 3.3219280948873626
     
@@ -101,44 +96,25 @@ def format_float(value, pretty=True, parenthesize_plus=False):
     else:
         return s[0]
     
-def mpq2mpf(x, y):
-    # Kind of a bug in gmpy: when combining mpq with mpf, an mpq is returned!
-    type_x = get_type(x)
-    type_y = get_type(y)
-    if set((type_x, type_y)) == set(('f', 'q')):
-        if type_x == 'f':
-            prec = x.getprec()
-            y = g_mpf(y, prec)
-        else:
-            prec = y.getprec()
-            x = g_mpf(x, prec)
-    return x, y
-        
 def mul(x, y):
-    x, y = mpq2mpf(x, y)
     return x * y
     
 def add(x, y):
-    x, y = mpq2mpf(x, y)
     return x + y
         
 def min_prec(*args):
     result = None
-    for arg in args:
-        prec = arg.get_precision()
-        if result is None or (prec is not None and prec < result):
-            result = prec
+    #TODO
+    #for arg in args:
+    #    prec = arg.get_precision()
+    #    if result is None or (prec is not None and prec < result):
+    #        result = prec
     return result
     
 def real_power(x, y):
-    x = g_mpf(x)
-    y = g_mpf(y)
-    prec = min(x.getprec(), y.getprec())
-    with workprec(prec):
-        x = gmpy2mpmath(x)
-        y = gmpy2mpmath(y)
-        return mpmath2gmpy(x ** y)
-    
+    return sympy.Float(x**y)
+    #TODO precision
+
 def create_complex(real, imag):
     if is_0(imag):
         return real
@@ -151,11 +127,11 @@ def pickle_mp(value):
 def unpickle_mp(value):
     type, value = value
     if type == 'z':
-        return mpz(value)
+        return Sympy.Integer(value)
     elif type == 'q':
-        return mpq(value)
+        return Sympy.Rational(value)
     elif type == 'f':
-        return g_mpf(value)
+        return Sympy.Float(value)
     else:
         return value
 
@@ -164,11 +140,11 @@ class mpcomplex(object):
         if isinstance(real, mpcomplex):
             self.real, self.imag = real.real, real.imag
         elif isinstance(real, mpc):
-            self.real = mpmath2gmpy(real.real)
-            self.imag = mpmath2gmpy(real.imag)
+            self.real = real.real
+            self.imag = real.imag
         else:
             self.real = real
-            if imag is None: imag = mpz(0)
+            if imag is None: imag = sympy.Integer(0)
             self.imag = imag
         
     def __getstate__(self):
@@ -197,14 +173,14 @@ class mpcomplex(object):
             return create_complex(real, imag)
         else:
             if is_0(other):
-                return mpz(0)
+                return sympy.Integer(0)
             else:
                 if is_0(self.real):
-                    real = mpz(0)
+                    real = sympy.Integer(0)
                 else:
                     real = self.real * other
                 if is_0(self.imag):
-                    imag = mpz(0)
+                    imag = sympy.Integer(0)
                 else:
                     imag = self.imag * other
                 return create_complex(real, imag)
@@ -222,26 +198,26 @@ class mpcomplex(object):
         return isinstance(other, mpcomplex) and other.real == self.real and other.imag == self.imag
     
     def to_mpmath(self):
-        return mpc(gmpy2mpmath(self.real), gmpy2mpmath(self.imag))
+        return mpc(self.real, self.imag)
     
     def __pow__(self, other):
         if get_type(other) == 'z':
             # TODO: make this faster!
             if other == 0:
-                return mpz(1)
+                return sympy.Integer(1)
             else:
-                result = mpz(1)
+                result = sympy.Integer(1)
                 for i in range(abs(other)):
                     result = result * self
                 if other < 0:
-                    result = mpz(1) / result
+                    result = sympy.Integer(1) / result
                 return result
         else:
             other = mpcomplex(other)
             sc = self.to_mpmath()
             oc = other.to_mpmath()
             result = sc ** oc
-            return create_complex(mpmath2gmpy(result.real), mpmath2gmpy(result.imag))
+            return create_complex(result.real, result.imag)
             
     def __rpow__(self, other):
         return mpcomplex.__pow__(mpcomplex(other), self)
