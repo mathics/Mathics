@@ -18,7 +18,11 @@ def get_version():
     from mathics.optional import sage_version
     import sympy
     import mpmath
-    import gmpy
+    try:
+        import gmpy
+        has_GMPY = True
+    except ImportError:
+        has_GMPY = False
     try:
         import django
         from django.conf import settings
@@ -31,7 +35,8 @@ def get_version():
         version['sage'] = sage_version
     version['sympy'] = sympy.__version__
     version['mpmath'] = mpmath.__version__
-    version['gmpy'] = gmpy.version()
+    if has_GMPY:
+        version['gmpy'] = gmpy.version()
     return version
 
 def get_version_string(is_server, newlines=False):
@@ -43,8 +48,9 @@ def get_version_string(is_server, newlines=False):
     libs = []
     if 'django' in version and is_server:
         libs.append("Django %s" % version['django'])
-    libs += ["SymPy %s" % version['sympy'], "mpmath %s" % version['mpmath'],
-        "GMPY %s" % version['gmpy']]
+    if 'gmpy' in version:
+        libs.append("GMPY %s" % version['gmpy'])
+    libs += ["SymPy %s" % version['sympy'], "mpmath %s" % version['mpmath']]
     result.append(u"using %s" % ", ".join(libs))
     return ("\n" if newlines else " ").join(result)
 
