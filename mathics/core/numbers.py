@@ -124,11 +124,11 @@ def pickle_mp(value):
 def unpickle_mp(value):
     type, value = value
     if type == 'z':
-        return Sympy.Integer(value)
+        return sympy.Integer(value)
     elif type == 'q':
-        return Sympy.Rational(value)
+        return sympy.Rational(value)
     elif type == 'f':
-        return Sympy.Float(value)
+        return sympy.Float(value)
     else:
         return value
 

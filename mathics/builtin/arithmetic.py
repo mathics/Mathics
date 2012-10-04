@@ -10,6 +10,7 @@ from __future__ import with_statement
 
 from mpmath import workprec
 import mpmath
+from math import factorial as fac
 #from gmpy import mpz, fac, mpq
 
 import sympy
@@ -39,7 +40,7 @@ class _MPMathFunction(SageFunction):
         '%(name)s[z_Real|z_Complex?InexactNumberQ]'
         
         with workprec(z.get_precision()):
-            z = gmpy2mpmath(z.value)
+            z = sympy2mpmath(z.value)
             try:
                 result = self.eval(z)
             except ValueError, exc:
@@ -51,7 +52,7 @@ class _MPMathFunction(SageFunction):
             except ZeroDivisionError:
                 return
             try:
-                result = mpmath2gmpy(result)
+                result = mpmath2sympy(result)
             except SpecialValueError, exc:
                 return Symbol(exc.name)
             number = Number.from_mp(result)
@@ -582,13 +583,13 @@ class Power(BinaryOperator, SageFunction):
                     evaluation.message('Power', 'infy')
                     return Symbol('ComplexInfinity')
                 else:
-                    denom = mpq(x.value) ** mpq(-y.value)
+                    denom = sympy.Rational(x.value) ** sympy.Rational(-y.value)
                     return Number.from_mp(sympy.Integer(1) / denom)
         elif isinstance(x, (Integer, Rational)) and isinstance(y, Rational):
             try:
                 if y.value >= 0:
                     neg = x.value < 0
-                    result = mpq(-x.value if neg else x.value) ** y.value
+                    result = sympy.Rational(-x.value if neg else x.value) ** y.value
                     result = Number.from_mp(result)
                     if neg:
                         result = Expression('Times', result, Symbol('I'))
