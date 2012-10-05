@@ -6,7 +6,6 @@ Integer functions
 
 #from gmpy import mpz
 import sympy
-from mpmath import iv, mp
 
 from mathics.builtin.base import Builtin
 from mathics.core.numbers import mpmath2sympy
@@ -101,6 +100,5 @@ class IntegerLength(Builtin):
             evaluation.message('IntegerLength', 'base', b)
             return
          
-        result = mp.mpf(iv.log(iv.mpf(abs(n)), b).b)
-        result = sympy.Integer(mpmath2sympy(result)) + 1
+        result = sympy.Integer(sympy.log(n, b)) + 1
         return Integer(result)
