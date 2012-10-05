@@ -7,9 +7,6 @@ from math import factorial as fac
 from mpmath import workprec
 import mpmath
 
-def bincoef(*args):
-    raise NotImplementedError
-
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator
 from mathics.core.expression import Expression, Integer, Number, Symbol
 from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, SpecialValueError
@@ -68,7 +65,7 @@ class Binomial(Builtin):
         
         if k.value < 0:
             return Integer(0)
-        return Number.from_mp(bincoef(n.value, k.value))
+        return Number.from_mp(mpmath.binomial(n.value, k.value))
     
     def apply_inexact(self, n, k, evaluation):
         'Binomial[n_?InexactNumberQ, k_?NumberQ]'

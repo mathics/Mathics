@@ -4,11 +4,9 @@ from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer, from_sympy
 
 import sympy
+import mpmath
 
 #from gmpy import mpz, bincoef
-
-def bincoef(*args):
-    raise NotImplementedError
 
 def sympy_factor(expr_sympy):
     try:
@@ -302,7 +300,7 @@ class Expand(Builtin):
                                         this_factor = []
                                     else:
                                         this_factor = [Expression('Power', rest[0], Integer(k))]
-                                    yield (bincoef(n_rest, k) * coeff, this_factor + next)
+                                    yield (int(mpmath.binomial(n_rest, k) * coeff), this_factor + next)
                         elif n_rest == 0:
                             yield (sympy.Integer(1), [])
                             
