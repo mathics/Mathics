@@ -19,13 +19,14 @@ u"""
 """
 
 import sympy
+import mpmath
 import re
 try:
     import cython
 except ImportError:
     pass
 
-from mathics.core.numbers import mpcomplex, format_float, prec, get_type, dps, prec
+from mathics.core.numbers import mpcomplex, format_float, prec, get_type, dps, prec, mpmath2sympy
 from mathics.core.evaluation import Evaluation
 from mathics.core.util import subsets, subranges, permutations, interpolate_string
 from mathics.core.convert import from_sage, from_sympy, ConvertSubstitutions, sage_symbol_prefix, sympy_symbol_prefix, \
@@ -1332,10 +1333,10 @@ class Rational(Number):
         self.value = sympy.Rational(dict['value'])
         
     def to_sage(self, definitions, subs):
-        return sage.Rational((str(self.value.numer()), str(self.value.denom())))
+        return sage.Rational(map(str, self.value.as_numer_denom()))
     
     def to_sympy(self, **kwargs):
-        return sympy.Rational(int(self.value.numer()), int(self.value.denom()))
+        return self.value
     
     def to_python(self, *args, **kwargs):
         return float(self.value)
@@ -1344,10 +1345,10 @@ class Rational(Number):
         return isinstance(other, Rational) and self.value == other.value
     
     def numerator(self):
-        return Number.from_mp(self.value.numer())
+        return Number.from_mp(self.value.as_numer_denom()[0])
     
     def denominator(self):
-        return Number.from_mp(self.value.denom())
+        return Number.from_mp(self.value.as_numer_denom()[1])
     
     def do_format(self, evaluation, form):
         if form == 'FullForm':
@@ -1364,7 +1365,7 @@ class Rational(Number):
             return result.do_format(evaluation, form)
     
     def default_format(self):
-        return 'Rational[%s, %s]' % (self.value.numer(), self.value.denom())
+        return 'Rational[%s, %s]' % self.value.as_numer_denom()
     
     def evaluate(self, evaluation=builtin_evaluation):
         evaluation.check_stopped()
@@ -1394,17 +1395,12 @@ class Real(Number):
             p = prec(len(value))
             value = sympy.Float(value, p)
         else:
-            type = get_type(value)
-            if type == 'q':
-                value = sympy.Float(str(value.numer())) / sympy.Float(str(value.denom()))
-            elif type != 'f':
-                value = sympy.Float(str(value))
+           value = sympy.Float(value)
         self.value = value
-        
+
     def __getstate__(self):
-        # pickling of mpz sometimes failes...
-        p = self.value.getprec()
-        s = self.value.digits(10, dps(p) + 5, -5, 6)
+        p = 15 #TODO: Precision
+        s = self.value.n(15)
         return {'value': s, 'prec': p}
     
     def __setstate__(self, dict):
@@ -1421,8 +1417,11 @@ class Real(Number):
         return self.make_boxes('TeXForm').boxes_to_tex(**options)  
         
     def make_boxes(self, form):
-        s = self.value.digits(10, dps(self.value.getprec()), -5, 6)
-        s = s.split('e')
+        if isinstance(self.value, mpmath.mpf):
+            s = mpmath2sympy(self.value)       
+        else:
+            s = self.value
+        s = str(s.n(15)).split('e')
         if len(s) == 2:
             man, exp = s
             man = Real(man).make_boxes(form) #.get_string_value()
@@ -1437,10 +1436,11 @@ class Real(Number):
             return number_boxes(s[0])
         
     def to_sage(self, definitions, subs):
-        return sage.RealNumber(self.value.digits(10, dps(self.value.getprec()))) #(str(self.value))
+        #TODO
+        return None
     
     def to_sympy(self, **kwargs):
-        return sympy.Float(self.value.digits(10, dps(self.value.getprec())))
+        return self.value
     
     def to_python(self, *args, **kwargs):
         return float(self.value)
@@ -1456,21 +1456,12 @@ class Real(Number):
         return Real(self.value.round(precision))
     
     def get_precision(self):
-        return self.value.getprec()
+        return 15 #TODO
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Real, self).get_sort_key(True)
-        else:
-            digits, exp, prec = self.value.digits(10, 0, 0, 0, 2)
-            count = dps(prec)
-            digits = digits[:count-3]
-            if digits.startswith('-'):
-                value = digits[:1] + '.' + digits[1:]
-            else:
-                value = digits[:0] + '.' + digits[0:]
-            sort_value = sympy.Float('%se%d' % (value, exp))
-            return [0, 0, sort_value, 0, 1]
+        return [0, 0, str(self.value), 0, 1]
     
     def get_real_value(self):
         return self.value

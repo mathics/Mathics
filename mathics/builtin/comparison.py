@@ -1,10 +1,11 @@
 # -*- coding: utf8 -*-
 
 #from gmpy import mpz, mpf
+import sympy
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, Test
 from mathics.core.expression import Expression, Number, Integer, Rational, Real, Symbol, Complex, String
-from mathics.core.numbers import real_power, get_type
+from mathics.core.numbers import get_type
 
 class SameQ(BinaryOperator):
     """

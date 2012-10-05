@@ -21,7 +21,7 @@ u"""
 from __future__ import with_statement
 
 import sympy
-from mpmath import mpf as mp_mpf, mpc, workprec, mp
+import mpmath
 from math import log
 
 from mathics.core.util import unicode_superscript
@@ -31,7 +31,7 @@ def get_type(value):
         return 'z'
     elif isinstance(value, sympy.Rational):
         return 'q'
-    elif isinstance(value, sympy.Float):
+    elif isinstance(value, sympy.Float) or isinstance(value, mpmath.mpf):
         return 'f'
     elif isinstance(value, mpcomplex):
         return 'c'
@@ -50,25 +50,25 @@ def sympy2mpmath(value):
     else:
         if get_type(value) != 'f':
             value = sympy.Float(value)
-        with workprec(value.getprec()):
-            value = str(sympy.Float(value))
-            if value and value[0] == '-':
-                return -mp_mpf(value[1:])
-            else:
-                return mp_mpf(value)
+        #with mpmath.workprec(value.getprec()): #TODO
+        value = str(sympy.Float(value))
+        if value and value[0] == '-':
+            return -mpmath.mpf(value[1:])
+        else:
+            return mpmath.mpf(value)
             
 class SpecialValueError(Exception):
     def __init__(self, name):
         self.name = name
 
 def mpmath2sympy(value):
-    if isinstance(value, mpc):
+    if isinstance(value, mpmath.mpc):
         return mpcomplex(value)
     else:
         value = str(value)
         if value in ('+inf', '-inf'):
             raise SpecialValueError('ComplexInfinity')
-        return sympy.Float(value.replace('+', ''), mp.prec)
+        return sympy.Float(value)
     
 C = log(10, 2) # ~ 3.3219280948873626
     
@@ -107,10 +107,6 @@ def min_prec(*args):
     #    if result is None or (prec is not None and prec < result):
     #        result = prec
     return result
-    
-def real_power(x, y):
-    return sympy.Float(x**y)
-    #TODO precision
 
 def create_complex(real, imag):
     if is_0(imag):
@@ -136,7 +132,7 @@ class mpcomplex(object):
     def __init__(self, real, imag=None):
         if isinstance(real, mpcomplex):
             self.real, self.imag = real.real, real.imag
-        elif isinstance(real, mpc):
+        elif isinstance(real, mpmath.mpc):
             self.real = real.real
             self.imag = real.imag
         else:
@@ -195,7 +191,7 @@ class mpcomplex(object):
         return isinstance(other, mpcomplex) and other.real == self.real and other.imag == self.imag
     
     def to_mpmath(self):
-        return mpc(self.real, self.imag)
+        return mpmath.mpc(self.real, self.imag)
     
     def __pow__(self, other):
         if get_type(other) == 'z':

@@ -74,11 +74,11 @@ class Binomial(Builtin):
         'Binomial[n_?InexactNumberQ, k_?NumberQ]'
         
         with workprec(min_prec(n, k)):
-            n = gmpy2mpmath(n.value)
-            k = gmpy2mpmath(k.value)
+            n = sympy2mpmath(n.value)
+            k = sympy2mpmath(k.value)
             result = mpmath.binomial(n, k)
             try:
-                result = mpmath2gmpy(result)
+                result = mpmath2sympy(result)
             except SpecialValueError, exc:
                 return Symbol(exc.name)
             number = Number.from_mp(result)

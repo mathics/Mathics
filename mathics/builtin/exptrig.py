@@ -42,7 +42,7 @@ class Pi(SageConstant):
         prec = get_precision(prec, evaluation)
         if prec is not None:
             with workprec(prec):
-                return Real(mpmath2gmpy(mpmath.pi))
+                return Real(mpmath2sympy(mpmath.pi))
 
 class E(SageConstant):
     """
@@ -68,7 +68,7 @@ class E(SageConstant):
         prec = get_precision(prec, evaluation)
         if prec is not None:
             with workprec(prec):
-                return Real(mpmath2gmpy(mpmath.e))
+                return Real(mpmath2sympy(mpmath.e))
             
 class GoldenRatio(SageConstant):
     """

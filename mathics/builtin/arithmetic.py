@@ -17,7 +17,7 @@ import sympy
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, PostfixOperator, Test, SageFunction, SageConstant
 from mathics.core.expression import Expression, Number, Integer, Rational, Real, Symbol, Complex, String
-from mathics.core.numbers import real_power, get_type, mul, add, sympy2mpmath, mpmath2sympy, SpecialValueError
+from mathics.core.numbers import get_type, mul, add, sympy2mpmath, mpmath2sympy, SpecialValueError
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
 
@@ -577,7 +577,8 @@ class Power(BinaryOperator, SageFunction):
         elif isinstance(x, (Rational, Integer)) and isinstance(y, Integer):
             if y.value >= 0:
                 result = x.value ** y.value
-                return Number.from_mp(result)
+                
+                return Number.from_mp(result.evalf())
             else:
                 if x.value == 0:
                     evaluation.message('Power', 'infy')
@@ -590,7 +591,7 @@ class Power(BinaryOperator, SageFunction):
                 if y.value >= 0:
                     neg = x.value < 0
                     result = sympy.Rational(-x.value if neg else x.value) ** y.value
-                    result = Number.from_mp(result)
+                    result = Number.from_mp(result.evalf())
                     if neg:
                         result = Expression('Times', result, Symbol('I'))
                     return result
@@ -623,7 +624,8 @@ class Power(BinaryOperator, SageFunction):
         elif (isinstance(x, Number) and isinstance(y, Real)) or (isinstance(x, Real) and \
             isinstance(y, Number)):
             try:
-                return Number.from_mp(real_power(x.value, y.value))
+                result = x.value ** y.value
+                return Number.from_mp(result.evalf())
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
