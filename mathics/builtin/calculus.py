@@ -681,7 +681,10 @@ class Solve(Builtin):
             sympy_eqs = sympy_eqs[0]
             
         try:
-            result = sympy.solve(sympy_eqs, vars_sympy)
+            if isinstance(sympy_eqs, bool):
+                result = sympy_eqs
+            else:
+                result = sympy.solve(sympy_eqs, vars_sympy)
             if not isinstance(result, list):
                 result = [result]
             if result == [True]:

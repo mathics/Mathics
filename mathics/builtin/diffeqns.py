@@ -121,6 +121,9 @@ class DSolve(Builtin):
         except AttributeError as e:
             evaluation.message('DSolve', 'litarg', eqn)
             return
+        except KeyError:
+            #FIXME unknown error
+            return
 
         if function_form is None:
             return Expression('List', *[Expression('List', 

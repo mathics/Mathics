@@ -105,7 +105,7 @@ class _InequalityOperator(BinaryOperator):
             for item in items:
                 if not isinstance(item, Number):
                     # TODO: use $MaxExtraPrecision insterad of hard-coded 50
-                    n_expr = Expression('N', item, Real(50)) 
+                    n_expr = Expression('N', item, Integer(50)) 
                     item = n_expr.evaluate(evaluation)
                 n_items.append(item)
             items = n_items

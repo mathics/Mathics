@@ -19,14 +19,13 @@ u"""
 """
 
 import sympy
-import mpmath
 import re
 try:
     import cython
 except ImportError:
     pass
 
-from mathics.core.numbers import mpcomplex, format_float, prec, get_type, dps, prec, mpmath2sympy
+from mathics.core.numbers import format_float, prec, get_type, dps, prec
 from mathics.core.evaluation import Evaluation
 from mathics.core.util import subsets, subranges, permutations, interpolate_string
 from mathics.core.convert import from_sage, from_sympy, ConvertSubstitutions, sage_symbol_prefix, sympy_symbol_prefix, \
@@ -1047,7 +1046,7 @@ class Expression(BaseExpression):
                 # Don't "numerify" numbers: they should be numerified automatically by the
                 # processing function, and we don't want to lose exactness in e.g. 1.0+I.
                 if not isinstance(leaf, Number):
-                    n_expr = Expression('N', leaf, Real(dps(prec))) 
+                    n_expr = Expression('N', leaf, Integer(dps(prec))) 
                     new_leaves[index] = n_expr.evaluate(evaluation) 
             return Expression(self.head, *new_leaves)
         else:
@@ -1226,6 +1225,7 @@ class Number(Atom):
     
     @staticmethod
     def from_mp(value):
+        #assert(value.is_number)
         t = get_type(value)
         if t == 'z':
             return Integer(value)
@@ -1234,7 +1234,7 @@ class Number(Atom):
         elif t == 'f':
             return Real(value)
         elif t == 'c':
-            return Complex(value)
+            return Complex(*value.as_real_imag())
         
         if isinstance(value, int):
             return Integer(value)
@@ -1302,7 +1302,8 @@ class Integer(Number):
         return self
     
     def round(self, precision):
-        return Real(sympy.Float(self.value, precision))
+        return Real(sympy.Float(self.value.n(precision), precision))
+        #return Real(sympy.Float(self.value.n(precision), precision))
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1372,7 +1373,7 @@ class Rational(Number):
         return self
     
     def round(self, precision):
-        return Real(sympy.Float(self.value, precision))
+        return Real(sympy.Float(self.value.n(precision), precision))
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1382,25 +1383,35 @@ class Rational(Number):
             return [0, 0, sympy.Float(self.value), 0, 1]
     
     def get_real_value(self):
-        return self.value
+        return self.value.n()
     
     def do_copy(self):
         return Rational(self.value)
         
 class Real(Number):
-    def __init__(self, value):
+    def __init__(self, value, p=None):
         super(Real, self).__init__()
         if isinstance(value, basestring):
             value = str(value)
             p = prec(len(value))
             value = sympy.Float(value, p)
+        elif isinstance(value, sympy.Float):
+            pass
+        elif isinstance(value, sympy.Integer):
+            value = value.n()
+        elif isinstance(value, (float, int)):
+            p = dps(53)
+            value = sympy.Float(float(value), p)
         else:
-           value = sympy.Float(value)
+            raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
+        if p is None:
+            p = len(str(value))
         self.value = value
+        self.prec = p
 
     def __getstate__(self):
-        p = 15 #TODO: Precision
-        s = self.value.n(15)
+        p = self.prec
+        s = self.value.n(p)
         return {'value': s, 'prec': p}
     
     def __setstate__(self, dict):
@@ -1417,11 +1428,8 @@ class Real(Number):
         return self.make_boxes('TeXForm').boxes_to_tex(**options)  
         
     def make_boxes(self, form):
-        if isinstance(self.value, mpmath.mpf):
-            s = mpmath2sympy(self.value)       
-        else:
-            s = self.value
-        s = str(s.n(15)).split('e')
+        s = self.value
+        s = str(s.n(self.prec)).split('e')
         if len(s) == 2:
             man, exp = s
             man = Real(man).make_boxes(form) #.get_string_value()
@@ -1453,10 +1461,10 @@ class Real(Number):
         return self      
     
     def round(self, precision):
-        return Real(self.value.round(precision))
+        return Real(sympy.Float(self.value.n(precision), precision))
     
     def get_precision(self):
-        return 15 #TODO
+        return self.prec
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1472,37 +1480,31 @@ class Real(Number):
 class Complex(Number):
     def __init__(self, real, imag=None, **kwargs):
         super(Complex, self).__init__(**kwargs)
+
         if imag is None:
-            self.value = mpcomplex(real)
+            self.value = sympy.Number(real)
         else:
-            self.value = mpcomplex(real, imag)
+            self.value = sympy.Number(real) + sympy.I * sympy.Number(imag)
         
     def to_sage(self, definitions, subs):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        return real.to_sage(definitions, subs) + imag.to_sage(definitions, subs) * sage.I
+        raise NotImplementedError
     
     def to_sympy(self, **kwargs):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        return real.to_sympy(**kwargs) + imag.to_sympy(**kwargs) * sympy.I
+        return self.value
     
     def to_python(self, *args, **kwargs):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        return real.to_python() + imag.to_python() * 1j
+        return complex(*self.value.as_real_imag())
     
     def do_format(self, evaluation, form):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        
+        real, imag = self.value.as_real_imag()
+
         if form == 'FullForm':
             return Expression(Expression('HoldForm', Symbol('Complex')), real, imag).do_format(evaluation, form)
 
         sum = []
-        if not real.same(Integer(0)):
+        if not real.is_zero:
             sum.append(real)
-        if imag.same(Integer(1)):
+        if imag == 1:
             sum.append(Symbol('I'))
         else:
             sum.append(Expression('Times', imag, Symbol('I')))
@@ -1513,17 +1515,16 @@ class Complex(Number):
         return Expression('HoldForm', sum).do_format(evaluation, form)
     
     def default_format(self, evaluation, form):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
+        real, imag = self.value.as_real_imag()
         return 'Complex[%s, %s]' % (real.default_format(evaluation, form), imag.default_format(evaluation, form))
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Complex, self).get_sort_key(True)
         else:
-            real = Real(self.value.real)
-            imag = Real(self.value.imag)
-            return [0, 0, real.get_sort_key()[2], imag.get_sort_key()[2], 1]
+            real, imag = self.value.as_real_imag()
+            #return [0, 0, real.get_sort_key()[2], imag.get_sort_key()[2], 1]
+            return [0, 0, 0, 0, 1] #TODO
     
     def same(self, other):
         return isinstance(other, Complex) and self.value == other.value
@@ -1533,24 +1534,15 @@ class Complex(Number):
         return self
         
     def round(self, precision):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        return Complex(real.round(precision).value, imag.round(precision).value)
+        value = self.value.round(precision)
+        return Complex(*value.as_real_imag())
     
     def get_precision(self):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        real_prec = real.get_precision()
-        imag_prec = imag.get_precision()
-        if real_prec is None:
-            return imag_prec
-        elif imag_prec is None:
-            return real_prec
-        else:
-            return min(imag_prec, real_prec)
+        #TODO
+        return 15
     
     def do_copy(self):
-        return Complex(self.value)
+        return Complex(*self.value.as_real_imag())
     
 def encode_mathml(text):
     text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')

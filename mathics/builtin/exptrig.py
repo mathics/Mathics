@@ -10,12 +10,12 @@ rules are not implemented yet.
 
 from __future__ import with_statement
 
-from mpmath import workprec
+import sympy
 import mpmath
 
 from mathics.builtin.base import Builtin, Predefined, SageConstant, SageFunction
-from mathics.core.expression import Number, Real, Expression, Integer
-from mathics.core.numbers import sympy2mpmath, mpmath2sympy
+from mathics.core.expression import Number, Real, Expression, Integer, from_sympy
+from mathics.core.numbers import dps
 
 from mathics.builtin.numeric import get_precision
 from mathics.builtin.arithmetic import _MPMathFunction
@@ -35,14 +35,14 @@ class Pi(SageConstant):
     >> Attributes[Pi]
      = {Constant, Protected, ReadProtected}
     """
+
+    sympy_name = 'pi'
     
     def apply_N(self, prec, evaluation):
         'N[Pi, prec_]'
-        
         prec = get_precision(prec, evaluation)
         if prec is not None:
-            with workprec(prec):
-                return Real(mpmath2sympy(mpmath.pi))
+            return Real(sympy.pi.n(prec), p=dps(prec))
 
 class E(SageConstant):
     """
@@ -67,8 +67,7 @@ class E(SageConstant):
         
         prec = get_precision(prec, evaluation)
         if prec is not None:
-            with workprec(prec):
-                return Real(mpmath2sympy(mpmath.e))
+            return Real(sympy.E.n(prec))
             
 class GoldenRatio(SageConstant):
     """

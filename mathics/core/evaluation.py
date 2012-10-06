@@ -30,7 +30,7 @@ try:
 except ImportError:
     from mathics import settings
 
-from mathics.core.numbers import mpcomplex, format_float, prec, get_type, dps, prec
+from mathics.core.numbers import format_float, prec, get_type, dps, prec
 from mathics.core.util import subsets, subranges, permutations, interpolate_string
 
 FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',

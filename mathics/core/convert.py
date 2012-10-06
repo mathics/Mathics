@@ -201,7 +201,7 @@ def from_sympy(expr):
                     return Symbol('Indeterminate')
             return Rational(expr.p, expr.q)
         elif isinstance(expr, numbers.Float):
-            return Real(expr.num)
+            return Real(expr)
         elif isinstance(expr, function.FunctionClass):
             return Symbol(unicode(expr))
     elif expr.is_Add:

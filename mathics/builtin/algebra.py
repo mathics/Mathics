@@ -82,7 +82,11 @@ class Simplify(Builtin):
         
         expr_sympy = expr.to_sympy()
         result = expr_sympy
-        result = sympy.simplify(result)
+        try:
+            result = sympy.simplify(result)
+        except TypeError:
+            #XXX What's going on here?
+            pass
         result = sympy.trigsimp(result)
         result = sympy.together(result)
         result = sympy.cancel(result)

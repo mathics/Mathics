@@ -10,7 +10,6 @@ from __future__ import with_statement
 
 from mpmath import workprec
 import mpmath
-from math import factorial as fac
 #from gmpy import mpz, fac, mpq
 
 import sympy
@@ -20,6 +19,7 @@ from mathics.core.expression import Expression, Number, Integer, Rational, Real,
 from mathics.core.numbers import get_type, mul, add, sympy2mpmath, mpmath2sympy, SpecialValueError
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
+from mathics.core.numbers import sympy2mpmath
 
 class _MPMathFunction(SageFunction):
     attributes = ('Listable', 'NumericFunction')
@@ -39,25 +39,27 @@ class _MPMathFunction(SageFunction):
     def apply_inexact(self, z, evaluation):
         '%(name)s[z_Real|z_Complex?InexactNumberQ]'
         
-        with workprec(z.get_precision()):
-            z = sympy2mpmath(z.value)
-            try:
-                result = self.eval(z)
-            except ValueError, exc:
-                text = str(exc)
-                if text == 'gamma function pole':
-                    return Symbol('ComplexInfinity')
-                else:
-                    raise
-            except ZeroDivisionError:
-                return
-            try:
-                result = mpmath2sympy(result)
-            except SpecialValueError, exc:
-                return Symbol(exc.name)
-            number = Number.from_mp(result)
-            return number
-            
+        #with workprec(z.get_precision()): #TODO Precision
+        
+        z = sympy2mpmath(z.value)
+        if z is None:
+            return
+        try:
+            result = self.eval(z)
+            if isinstance(result, mpmath.mpc):
+                result = sympy.Float(result.real) + sympy.I * sympy.Float(result.imag)
+            else:
+                result = sympy.Float(result)
+        except ValueError, exc:
+            text = str(exc)
+            if text == 'gamma function pole':
+                return Symbol('ComplexInfinity')
+            else:
+                raise
+        except ZeroDivisionError:
+            return
+        return from_sympy(result)
+
 class Plus(BinaryOperator, SageFunction):
     """
     'Plus' represents a sum of terms.
@@ -138,7 +140,8 @@ class Plus(BinaryOperator, SageFunction):
             if isinstance(value, (Integer, Rational, Real)) and value.value < 0:
                 return True
             if isinstance(value, Complex):
-                if value.value.real <= 0 and value.value.imag <= 0:
+                real, imag = value.value.as_real_imag()
+                if real <= 0 and imag <= 0:
                     return True
             return False
         
@@ -310,6 +313,9 @@ class Times(BinaryOperator, SageFunction):
      = 1
     #> 2x^2 / x^2
      = 2
+
+    #> 3. Pi
+     = 9.42477796076938
     """
     
     operator = '*'
@@ -397,7 +403,7 @@ class Times(BinaryOperator, SageFunction):
             if isinstance(item, Number):
                 if get_type(item.value) == 'z' and item.value == 0:
                     return Integer('0')
-                number = mul(number, item.value)
+                number = number * item.to_sympy()
             elif leaves and item == leaves[-1]:
                 leaves[-1] = Expression('Power', leaves[-1], Integer(2))
             elif leaves and item.has_form('Power', 2) and leaves[-1].has_form('Power', 2) and item.leaves[0].same(leaves[-1].leaves[0]):
@@ -408,14 +414,15 @@ class Times(BinaryOperator, SageFunction):
                 leaves[-1] = Expression('Power', item, Expression('Plus', Integer(1), leaves[-1].leaves[1]))
             else:
                 leaves.append(item)
-        if get_type(number) == 'z':
-            if number == 1:
-                number = None
-            elif number == -1 and leaves and leaves[0].has_form('Plus', None):
-                leaves[0].leaves = [Expression('Times', Integer(-1), leaf) for leaf in leaves[0].leaves]
-                number = None
+        if number == 1:
+            number = None
+        elif number == -1 and leaves and leaves[0].has_form('Plus', None):
+            leaves[0].leaves = [Expression('Times', Integer(-1), leaf) for leaf in leaves[0].leaves]
+            number = None
+        else:
+            number = from_sympy(number)
         if number is not None:
-            leaves.insert(0, Number.from_mp(number))
+            leaves.insert(0, number)
         if not leaves:
             return Integer(1)
         elif len(leaves) == 1:
@@ -617,7 +624,9 @@ class Power(BinaryOperator, SageFunction):
             (isinstance(x, Complex) and x.is_inexact() and isinstance(y, (Rational, Complex))) or \
             (isinstance(x, Complex) and isinstance(y, Complex) and y.is_inexact()):
             try:
-                return Number.from_mp(x.value ** y.value)
+                result = x.value ** y.value
+                result = result.evalf()
+                return Number.from_mp(result)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
@@ -625,7 +634,8 @@ class Power(BinaryOperator, SageFunction):
             isinstance(y, Number)):
             try:
                 result = x.value ** y.value
-                return Number.from_mp(result.evalf())
+                result = result.evalf()
+                return Number.from_mp(result)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
@@ -818,7 +828,8 @@ class Abs(SageFunction):
     def apply_complex(self, z, evaluation):
         'Abs[z_Complex]'
         
-        return Expression('Sqrt', Expression('Plus', Number.from_mp(z.value.real ** 2), Number.from_mp(z.value.imag ** 2)))
+        real, imag = z.value.as_real_imag()
+        return Expression('Sqrt', Expression('Plus', Number.from_mp(real ** 2), Number.from_mp(imag ** 2)))
                 
 class I(Predefined):
     """
@@ -1003,10 +1014,10 @@ class Factorial(PostfixOperator, _MPMathFunction):
         if n.value < 0:
             return Symbol('ComplexInfinity')
         else:
-            return Integer(fac(n.value))
+            return Integer(sympy.factorial(n.value))
         
     def eval(self, z):
-        return mpmath.fac(z)
+        return mpmath.factorial(z)
     
 class Gamma(SageFunction):
     rules = {

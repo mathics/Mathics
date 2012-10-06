@@ -3,13 +3,11 @@
 from __future__ import with_statement
 
 #from gmpy import fib, bincoef
-from math import factorial as fac
-from mpmath import workprec
-import mpmath
+import sympy
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator
-from mathics.core.expression import Expression, Integer, Number, Symbol
-from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, SpecialValueError
+from mathics.core.expression import Expression, Integer, Real, Number, Symbol, from_sympy
+from mathics.core.numbers import min_prec, SpecialValueError
 
 class Fibonacci(Builtin):
     """
@@ -33,7 +31,7 @@ class Fibonacci(Builtin):
     def apply(self, n, evaluation):
         'Fibonacci[n_Integer]'
         
-        return Integer(fib(n.value))
+        return Integer(sympy.fibonacci(n.value))
     
 class Binomial(Builtin):
     """
@@ -65,21 +63,20 @@ class Binomial(Builtin):
         
         if k.value < 0:
             return Integer(0)
-        return Number.from_mp(mpmath.binomial(n.value, k.value))
+        return Integer(sympy.binomial(n.value, k.value))
     
     def apply_inexact(self, n, k, evaluation):
         'Binomial[n_?InexactNumberQ, k_?NumberQ]'
         
-        with workprec(min_prec(n, k)):
-            n = sympy2mpmath(n.value)
-            k = sympy2mpmath(k.value)
-            result = mpmath.binomial(n, k)
-            try:
-                result = mpmath2sympy(result)
-            except SpecialValueError, exc:
-                return Symbol(exc.name)
-            number = Number.from_mp(result)
-            return number
+        #TODO
+        #with mpmath.workprec(min_prec(n, k)):
+
+        n = n.value.n()
+        k = k.value.n()
+        result = sympy.binomial(n, k)
+        if result == sympy.Float('inf'):
+            return Symbol('ComplexInfinity')
+        return from_sympy(result)
         
     def apply_inexact_2(self, n, k, evaluation):
         'Binomial[n_?NumberQ, k_?InexactNumberQ]'

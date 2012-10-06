@@ -12,7 +12,6 @@ from mathics.builtin.scoping import dynamic_scoping
 from mathics.core.expression import Expression, String, Symbol, Integer, Number
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
 from mathics.core.rules import Pattern
-from mathics.core.numbers import add
 from mathics.core.convert import from_sympy
 from mathics.builtin.algebra import cancel
 
@@ -1045,7 +1044,7 @@ class _IterationFunction(Builtin):
                     break
                 else:
                     raise
-            index = add(index, di)
+            index = index + di
         return self.get_result(result)
     
     def apply_list(self, expr, i, items, evaluation):

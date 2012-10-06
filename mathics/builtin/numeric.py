@@ -17,6 +17,7 @@ from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import dps, mpmath2sympy
 from mathics.core import numbers
 from mathics.core.expression import Integer, Rational, Real, Complex, Atom, Expression, Number, Symbol
+from mathics.core.convert import from_sympy
 
 machine_precision = dps(sympy.Float(64))
 
@@ -240,10 +241,9 @@ def chop(expr, delta=10.0**(-10.0)):
             return Integer(0)
         #return expr
     elif isinstance(expr, Complex) and expr.get_precision() is not None:
-        real = expr.value.real
+        real, imag = expr.value.as_real_imag()
         if -delta < real < delta:
             real = sympy.Integer(0)
-        imag = expr.value.imag
         if -delta < imag < delta:
             imag = sympy.Integer(0)
         if imag != 0:

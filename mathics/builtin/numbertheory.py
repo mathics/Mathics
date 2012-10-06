@@ -5,21 +5,7 @@ Number theoretic functions
 """
 
 #from gmpy import invert, gcd, gcdext, lcm
-
-def invert(*args):
-    raise NotImplementedError
-
-def gcd(*args):
-    raise NotImplementedError
-
-def gcdext(*args):
-    raise NotImplementedError
-
-def lcm(*args):
-    raise NotImplementedError
-
 import sympy
-from sympy import isprime
 
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import Expression, Integer, Rational, Symbol
@@ -57,11 +43,11 @@ class PowerMod(Builtin):
             return
         if b < 0:
             b = -b
-            a = invert(a, m)
             if a == 0:
                 evaluation.message('PowerMod', 'ninv', a_int, m_int)
                 return
-        return Integer(pow(a, b, m))
+            a = sympy.invert(a, m)
+        return Integer(sympy.Mod(a ** b, m))
     
 class Mod(Builtin):
     """
@@ -144,7 +130,7 @@ class GCD(Builtin):
             value = n.get_int_value()
             if value is None:
                 return
-            result = gcd(result, value)
+            result = sympy.gcd(result, value)
         return Integer(result)
     
 class ExtendedGCD(Builtin):
@@ -178,7 +164,7 @@ class ExtendedGCD(Builtin):
             value = n.get_int_value()
             if value is None:
                 return
-            new_result, c1, c2 = gcdext(result, value)
+            new_result, c1, c2 = sympy.gcdex(result, value)
             result = new_result
             coeff = [c * c1 for c in coeff] + [c2]
         return Expression('List', Integer(result), Expression('List', *(Integer(c) for c in coeff)))
@@ -207,7 +193,7 @@ class LCM(Builtin):
             value = n.get_int_value()
             if value is None:
                 return
-            result = lcm(result, value)
+            result = sympy.lcm(result, value)
         return Integer(result)
     
 class FactorInteger(Builtin):
@@ -235,8 +221,7 @@ class FactorInteger(Builtin):
             factors = sorted(factors.iteritems())
             return Expression('List', *[Expression('List', factor, exp) for factor, exp in factors])
         elif isinstance(n, Rational):
-            factors = sympy.factorint(n.value.numer())
-            factors_denom = sympy.factorint(n.value.denom())
+            factors, factors_denom = map(sympy.factorint, n.value.as_numer_denom())
             for factor, exp in factors_denom.iteritems():
                 factors[factor] = factors.get(factor, 0) - exp
             factors = sorted(factors.iteritems())
@@ -310,7 +295,7 @@ class PrimeQ(Builtin):
             return Symbol('False')
         
         n = abs(n)
-        if isprime(n):
+        if sympy.isprime(n):
             return Symbol('True')
         else:
             return Symbol('False')
