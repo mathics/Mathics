@@ -40,9 +40,9 @@ class Pi(SageConstant):
     
     def apply_N(self, prec, evaluation):
         'N[Pi, prec_]'
-        prec = get_precision(prec, evaluation)
+        prec = dps(get_precision(prec, evaluation))
         if prec is not None:
-            return Real(sympy.pi.n(prec), p=dps(prec))
+            return Real(sympy.pi.n(prec), p=prec)
 
 class E(SageConstant):
     """

@@ -1404,7 +1404,7 @@ class Real(Number):
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
         if p is None:
-            p = len(str(value))
+            p = len(str(value.as_base_exp()[0]).replace('.', ''))
         self.value = sympy.Float(value, p).n(p)
         self.prec = p
 
@@ -1430,8 +1430,8 @@ class Real(Number):
         if self.value.is_zero:
             base, exp = ('0.', '1')
         else:
-            base, exp = self.value.as_base_exp()
-            base, exp = str(base.num), str(exp)
+            base, exp = map(str, self.value.as_base_exp())
+            base = base.rstrip('0')
         if exp != '1':
             if form in ('InputForm', 'OutputForm', 'FullForm'):
                 return Expression('RowBox', Expression('List', base, String('*^'), String(exp)))
