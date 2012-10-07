@@ -204,6 +204,8 @@ def from_sympy(expr):
             return Real(expr)
         elif isinstance(expr, function.FunctionClass):
             return Symbol(unicode(expr))
+    elif expr.is_number and all([x.is_Number for x in expr.as_real_imag()]):    # Hack to convert 3 * I to Complex[0, 3]
+        return Expression('Complex', *[from_sympy(arg) for arg in expr.as_real_imag()])
     elif expr.is_Add:
         return Expression('Plus', *[from_sympy(arg) for arg in expr.args])
     elif expr.is_Mul:

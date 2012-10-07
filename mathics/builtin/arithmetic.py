@@ -401,9 +401,10 @@ class Times(BinaryOperator, SageFunction):
         leaves = []
         for item in items:
             if isinstance(item, Number):
-                if get_type(item.value) == 'z' and item.value == 0:
+                t = get_type(item.value)
+                if t == 'z' and item.value == 0:
                     return Integer('0')
-                number = number * item.to_sympy()
+                number = number * item.value
             elif leaves and item == leaves[-1]:
                 leaves[-1] = Expression('Power', leaves[-1], Integer(2))
             elif leaves and item.has_form('Power', 2) and leaves[-1].has_form('Power', 2) and item.leaves[0].same(leaves[-1].leaves[0]):
@@ -595,12 +596,7 @@ class Power(BinaryOperator, SageFunction):
         elif isinstance(x, (Integer, Rational)) and isinstance(y, Rational):
             try:
                 if y.value >= 0:
-                    neg = x.value < 0
-                    result = sympy.Rational(-x.value if neg else x.value) ** y.value
-                    result = from_sympy(result)
-                    if neg:
-                        result = Expression('Times', result, Symbol('I'))
-                    return result
+                    return from_sympy(x.value ** y.value)
                 else:
                     if x.value == 0:
                         evaluation.message('Power', 'infy')
@@ -767,7 +763,8 @@ class Re(SageFunction):
     def apply_complex(self, number, evaluation):
         'Re[number_Complex]'
         
-        return Number.from_mp(number.value.real)
+        real, imag = number.value.as_real_imag()
+        return Number.from_mp(real)
     
     def apply_number(self, number, evaluation):
         'Re[number_?NumberQ]'
@@ -787,7 +784,8 @@ class Im(SageFunction):
     def apply_complex(self, number, evaluation):
         'Im[number_Complex]'
         
-        return Number.from_mp(number.value.imag)
+        real, imag = number.value.as_real_imag()
+        return Number.from_mp(imag)
     
     def apply_number(self, number, evaluation):
         'Im[number_?NumberQ]'
