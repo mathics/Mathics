@@ -100,5 +100,5 @@ class IntegerLength(Builtin):
             evaluation.message('IntegerLength', 'base', b)
             return
          
-        result = sympy.Integer(sympy.log(n, b)) + 1
+        result = sympy.Integer(sympy.log(abs(n), b)) + 1
         return Integer(result)

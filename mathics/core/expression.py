@@ -1394,7 +1394,6 @@ class Real(Number):
         if isinstance(value, basestring):
             value = str(value)
             p = prec(len(value))
-            value = sympy.Float(value, p)
         elif isinstance(value, sympy.Float):
             pass
         elif isinstance(value, sympy.Integer):
@@ -1406,12 +1405,12 @@ class Real(Number):
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
         if p is None:
             p = len(str(value))
-        self.value = value
+        self.value = sympy.Float(value, p).n(p)
         self.prec = p
 
     def __getstate__(self):
         p = self.prec
-        s = self.value.n(p)
+        s = self.value
         return {'value': s, 'prec': p}
     
     def __setstate__(self, dict):
@@ -1428,21 +1427,20 @@ class Real(Number):
         return self.make_boxes('TeXForm').boxes_to_tex(**options)  
         
     def make_boxes(self, form):
-        s = self.value
-        s = str(s.n(self.prec)).split('e')
-        if len(s) == 2:
-            man, exp = s
-            man = Real(man).make_boxes(form) #.get_string_value()
-            assert man is not None
+        if self.value.is_zero:
+            base, exp = ('0.', '1')
+        else:
+            base, exp = self.value.as_base_exp()
+            base, exp = str(base.num), str(exp)
+        if exp != '1':
             if form in ('InputForm', 'OutputForm', 'FullForm'):
-                return Expression('RowBox', Expression('List', man, String('*^'), String(exp)))
+                return Expression('RowBox', Expression('List', base, String('*^'), String(exp)))
             else:
-                return Expression('RowBox', Expression('List', man, String(u'\u00d7'),
+                return Expression('RowBox', Expression('List', base, String(u'\u00d7'),
                     Expression('SuperscriptBox', String('10'), String(exp))))
         else:
-            assert len(s) == 1
-            return number_boxes(s[0])
-        
+            return number_boxes(base)
+
     def to_sage(self, definitions, subs):
         #TODO
         return None

@@ -584,21 +584,20 @@ class Power(BinaryOperator, SageFunction):
         elif isinstance(x, (Rational, Integer)) and isinstance(y, Integer):
             if y.value >= 0:
                 result = x.value ** y.value
-                
-                return Number.from_mp(result.evalf())
+                return from_sympy(result)
             else:
                 if x.value == 0:
                     evaluation.message('Power', 'infy')
                     return Symbol('ComplexInfinity')
                 else:
                     denom = sympy.Rational(x.value) ** sympy.Rational(-y.value)
-                    return Number.from_mp(sympy.Integer(1) / denom)
+                    return from_sympy(sympy.Integer(1) / denom)
         elif isinstance(x, (Integer, Rational)) and isinstance(y, Rational):
             try:
                 if y.value >= 0:
                     neg = x.value < 0
                     result = sympy.Rational(-x.value if neg else x.value) ** y.value
-                    result = Number.from_mp(result.evalf())
+                    result = from_sympy(result)
                     if neg:
                         result = Expression('Times', result, Symbol('I'))
                     return result
@@ -607,26 +606,28 @@ class Power(BinaryOperator, SageFunction):
                         evaluation.message('Power', 'infy')
                         return Symbol('ComplexInfinity')
                     else:
-                        return Number.from_mp(sympy.Integer(1).qdiv(x.value ** (-y.value)))
+                        return from_sympy(sympy.Integer(1) / (x.value ** (-y.value)))
             except ValueError:
                 return Expression('Power', x, y)
         elif isinstance(x, Real) and isinstance(y, Integer):
             if y.value >= 0:
-                return Number.from_mp(x.value ** y.value)
+                result = x.value ** y.value
+                return from_sympy(result)
             else:
                 if x.value == 0:
                     evaluation.message('Power', 'infy')
                     return Symbol('ComplexInfinity')
                 else:
-                    return Number.from_mp(x.value ** y.value)
+                    result = x.value ** y.value
+                    return from_sympy(result)
         elif (isinstance(x, Complex) and isinstance(y, (Integer, Real))) or \
             (isinstance(x, Real) and isinstance(y, Complex)) or \
             (isinstance(x, Complex) and x.is_inexact() and isinstance(y, (Rational, Complex))) or \
             (isinstance(x, Complex) and isinstance(y, Complex) and y.is_inexact()):
             try:
                 result = x.value ** y.value
-                result = result.evalf()
-                return Number.from_mp(result)
+                result = result
+                return from_sympy(result)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
@@ -634,8 +635,8 @@ class Power(BinaryOperator, SageFunction):
             isinstance(y, Number)):
             try:
                 result = x.value ** y.value
-                result = result.evalf()
-                return Number.from_mp(result)
+                result = result
+                return from_sympy(result)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
