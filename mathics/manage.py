@@ -17,3 +17,8 @@ except ImportError:
 
 if __name__ == "__main__":
     execute_manager(settings)
+
+    # fix known PyPy bug (see https://bugs.pypy.org/issue1116)
+    import gc
+    gc.collect()
+    gc.collect()
