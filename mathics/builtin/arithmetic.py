@@ -501,7 +501,7 @@ class Power(BinaryOperator, SageFunction):
     >> 4 ^ (1/2)
      = 2
     >> 4 ^ (1/3)
-     = 4 ^ (1 / 3)
+     = 2 ^ (2 / 3)
     >> 4.0 ^ (1/3)
      = 1.58740105196819947
     >> 3^123
@@ -530,6 +530,9 @@ class Power(BinaryOperator, SageFunction):
      = Sqrt[-3 + 2 I]
     #> (3/2+1/2I)^2
      = 2 + 3 I / 2
+
+    #> 2 ^ 2.0
+     = 4.
     """
     
     operator = '^'
@@ -628,7 +631,6 @@ class Power(BinaryOperator, SageFunction):
             (isinstance(x, Complex) and isinstance(y, Complex) and y.is_inexact()):
             try:
                 result = x.value ** y.value
-                result = result
                 return from_sympy(result)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
@@ -637,7 +639,8 @@ class Power(BinaryOperator, SageFunction):
             isinstance(y, Number)):
             try:
                 result = x.value ** y.value
-                result = result
+                if isinstance(result, sympy.Pow):
+                    result = result.round() #TODO: set precision
                 return from_sympy(result)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
