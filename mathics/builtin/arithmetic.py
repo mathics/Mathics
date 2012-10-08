@@ -100,6 +100,9 @@ class Plus(BinaryOperator, SageFunction):
      
     #> 1 - I * Sqrt[3]
      = 1 - I Sqrt[3]
+
+    #> Head[3 + 2 I]
+     = Complex
     """
     
     operator = '+'
@@ -316,6 +319,9 @@ class Times(BinaryOperator, SageFunction):
 
     #> 3. Pi
      = 9.42477796076938
+
+    #> Head[3 * I]
+     = Complex
     """
     
     operator = '*'
