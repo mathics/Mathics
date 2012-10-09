@@ -232,8 +232,14 @@ class Round(Builtin):
     
     def apply(self, expr, k, evaluation):
         "Round[expr_?RealNumberQ, k_?RealNumberQ]"
+        k = k.to_sympy()
+        if isinstance(k, sympy.Float):
+            return Real(k * (expr.value / k).round())
+        elif isinstance(k, sympy.Integer):
+            return Integer(sympy.Integer(k * (expr.value / k).round()))
+        else:
+            raise TypeError
         
-        return Number.from_mp(round(expr.value, k.value))
     
 def chop(expr, delta=10.0**(-10.0)):
     if isinstance(expr, Real):

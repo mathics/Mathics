@@ -1408,15 +1408,13 @@ class Real(Number):
 
         value = sympy.Float(str(value), p)
         self.value = value
-        self.prec = p
+        self.prec = prec(p)
 
         if isinstance(self.value, sympy.numbers.Zero):  #sympy.Float(0.0) returns weird zero number object
             self.value = sympy.Float('0.0')
 
         if not isinstance(self.value, sympy.Float):
-            print self.value, type(self.value)
-
-        assert isinstance(self.value, sympy.Float)
+            raise TypeError('Unknown number type: %s (type %s) shold be sympy.Float' % (value, type(value)))
 
     def __getstate__(self):
         p = self.prec
@@ -1469,7 +1467,7 @@ class Real(Number):
         return self      
     
     def round(self, precision):
-        return Real(sympy.Float(self.value.n(precision, ''), precision))
+        return Real(sympy.Float(self.value.n(dps(precision), ''), dps(precision)))
     
     def get_precision(self):
         return self.prec
