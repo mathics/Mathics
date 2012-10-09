@@ -26,14 +26,14 @@ import sympy
 # fix a bug in sympy when calling
 # Integrate[x^3.5+x, x]
 # => SymbolsError: No symbols were given
-from sympy import Poly
-old_new = Poly.__new__
-@classmethod
-def new_new(cls, cls2, poly, *symbols, **flags):
-    if poly == 0 and not symbols:
-        return old_new(cls, poly, sympy.Symbol('x'), **flags)
-    return old_new(cls, poly, *symbols, **flags)
-Poly.__new__ = new_new
+#from sympy import Poly
+#old_new = Poly.__new__
+#@classmethod
+#def new_new(cls, cls2, poly, *symbols, **flags):
+#    if poly == 0 and not symbols:
+#        return old_new(cls, poly, sympy.Symbol('x'), **flags)
+#    return old_new(cls, poly, *symbols, **flags)
+#Poly.__new__ = new_new
 
 class D(SageFunction):
     u"""

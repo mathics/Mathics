@@ -1393,20 +1393,30 @@ class Real(Number):
         super(Real, self).__init__()
         if isinstance(value, basestring):
             value = str(value)
-            p = prec(len(value))
+            if p is not None:
+                p = len((''.join(re.findall('[0-9]+', value))).lstrip('0'))
         elif isinstance(value, sympy.Float):
             pass
         elif isinstance(value, sympy.Integer):
             value = value.n()
         elif isinstance(value, (float, int)):
-            p = dps(53)
-            value = sympy.Float(float(value), p)
+            value = str(value)
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
         if p is None:
-            p = len(str(value.as_base_exp()[0]).replace('.', ''))
-        self.value = sympy.Float(value, p).n(p)
+            p = dps(53) #TODO: Use MachinePrecision
+
+        value = sympy.Float(str(value), p)
+        self.value = value
         self.prec = p
+
+        if isinstance(self.value, sympy.numbers.Zero):  #sympy.Float(0.0) returns weird zero number object
+            self.value = sympy.Float('0.0')
+
+        if not isinstance(self.value, sympy.Float):
+            print self.value, type(self.value)
+
+        assert isinstance(self.value, sympy.Float)
 
     def __getstate__(self):
         p = self.prec
@@ -1459,7 +1469,7 @@ class Real(Number):
         return self      
     
     def round(self, precision):
-        return Real(sympy.Float(self.value.n(precision), precision))
+        return Real(sympy.Float(self.value.n(precision, ''), precision))
     
     def get_precision(self):
         return self.prec
