@@ -64,10 +64,9 @@ class E(SageConstant):
     
     def apply_N(self, prec, evaluation):
         'N[E, prec_]'
-        
-        prec = get_precision(prec, evaluation)
+        prec = dps(get_precision(prec, evaluation))
         if prec is not None:
-            return Real(sympy.E.n(prec))
+            return Real(sympy.E.n(prec), p=prec)
             
 class GoldenRatio(SageConstant):
     """
