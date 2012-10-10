@@ -1392,20 +1392,21 @@ class Rational(Number):
 class Real(Number):
     def __init__(self, value, p=None):
         super(Real, self).__init__()
+
         if isinstance(value, basestring):
             value = str(value)
             if p is None:
-                p = len((''.join(re.findall('[0-9]+', value))).lstrip('0'))
+                p = max(prec(len((''.join(re.findall('[0-9]+', value))).lstrip('0'))), 64)
         elif isinstance(value, (sympy.Float, mpmath.mpf, float, int, sympy.numbers.Zero)):
             pass
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
         if p is None:
-            p = dps(64) #TODO: Use MachinePrecision
+            p = 64 #TODO: Use MachinePrecision
 
         self.sympy = sympy.Float(str(value), p)
         self.value = self.sympy
-        self.prec = prec(p)
+        self.prec = p
 
         #TODO: Remove these later
         if not isinstance(self.sympy, sympy.Float):
@@ -1543,7 +1544,7 @@ class Complex(Number):
     
     def get_precision(self):
         #TODO
-        return 15
+        return 64
     
     def do_copy(self):
         return Complex(*self.value.as_real_imag())

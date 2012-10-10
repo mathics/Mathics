@@ -40,13 +40,14 @@ class _MPMathFunction(SageFunction):
     def apply_inexact(self, z, evaluation):
         '%(name)s[z_Real|z_Complex?InexactNumberQ]'
         
-        with mpmath.workdps(machine_precision): #TODO: use z.get_precision()
+        prec = z.get_precision()
+        with mpmath.workprec(prec):
             z = sympy2mpmath(z.to_sympy())
             if z is None:
                 return
             try:
                 result = self.eval(z)
-                result = mpmath2sympy(result, machine_precision)
+                result = mpmath2sympy(result, prec)
             except ValueError, exc:
                 text = str(exc)
                 if text == 'gamma function pole':

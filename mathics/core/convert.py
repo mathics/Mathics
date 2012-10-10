@@ -154,8 +154,10 @@ def from_sympy(expr):
     
     if isinstance(expr, (tuple, list)):
         return Expression('List', *[from_sympy(item) for item in expr])
-    if isinstance(expr, (int, float)):
-        return Number.from_mp(expr)
+    if isinstance(expr, int):
+        return Integer(expr)
+    if isinstance(expr, float):
+        return Real(expr)
     if expr is None:
         return Symbol('Null')
     if isinstance(expr, sympy.Matrix):
