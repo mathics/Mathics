@@ -59,11 +59,11 @@ class SpecialValueError(Exception):
 
 def mpmath2sympy(value, prec=64):
     if isinstance(value, mpmath.mpc):
-        return sympy.Float(value.real, dps(prec)) + sympy.I * sympy.Float(value.imag, dps(prec))
+        return sympy.Float(str(value.real), dps(prec)) + sympy.I * sympy.Float(str(value.imag), dps(prec))
     elif isinstance(value, mpmath.mpf):
         if str(value) in ('+inf', '-inf'):
             raise SpecialValueError('ComplexInfinity')
-        return sympy.Float(value, dps(prec))
+        return sympy.Float(str(value), dps(prec))
     else:
         return None
     
