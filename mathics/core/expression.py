@@ -1485,6 +1485,8 @@ class Complex(Number):
 
         if imag is None:
             self.value = sympy.Number(real)
+        elif isinstance(real, basestring) and isinstance(imag, basestring):
+            self.value = sympy.Float(real, '') + sympy.I * sympy.Float(imag, '')
         else:
             self.value = sympy.Number(real) + sympy.I * sympy.Number(imag)
         

@@ -20,6 +20,7 @@ from mathics.core.numbers import get_type, mul, add, sympy2mpmath, mpmath2sympy,
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
 from mathics.core.numbers import sympy2mpmath
+from mathics.builtin.numeric import machine_precision
 
 class _MPMathFunction(SageFunction):
     attributes = ('Listable', 'NumericFunction')
@@ -503,7 +504,7 @@ class Power(BinaryOperator, SageFunction):
     >> 4 ^ (1/3)
      = 2 ^ (2 / 3)
     >> 4.0 ^ (1/3)
-     = 1.58740105196819947
+     = 1.58740105196819943
     >> 3^123
      = 48519278097689642681155855396759336072749841943521979872827
      
@@ -520,12 +521,12 @@ class Power(BinaryOperator, SageFunction):
      
     Complex powers:
     >> (1.5 + 1.0 I) ^ 3.5
-     = -3.68294005782192 + 6.95139266402851 I
+     = -3.68294005782191823 + 6.9513926640285049 I
     >> (1.5 + 1.0 I) ^ (3.5 + 1.5 I)
-     = -3.19181629045628 + 0.645658509416157 I
+     = -3.19181629045628082 + 0.64565850941615681 I
      
     #> Sqrt[-3+2. I]
-     = 0.550250522700337 + 1.81735402102397 I
+     = 0.550250522700337511 + 1.81735402102397062 I
     #> Sqrt[-3+2 I]
      = Sqrt[-3 + 2 I]
     #> (3/2+1/2I)^2
@@ -533,6 +534,9 @@ class Power(BinaryOperator, SageFunction):
 
     #> 2 ^ 2.0
      = 4.
+
+    #> Pi ^ 4.
+     = 97.409091034002422
     """
     
     operator = '^'
@@ -608,22 +612,26 @@ class Power(BinaryOperator, SageFunction):
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
 
-        elif (isinstance(x, Number) and isinstance(y, Real)) or (isinstance(x, Real) and isinstance(y, Number)):
+        elif isinstance(x, Number) and isinstance(y, Number) and (x.is_inexact() or y.is_inexact()):
             sym_x, sym_y = x.to_sympy(), y.to_sympy()
             try:
-                result = sym_x ** sym_y
-                if isinstance(result, sympy.Pow):
-                    #FIXME: Use mpmath here!
-                    result = result.round() #TODO: set precision
-                return from_sympy(result)
+                with mpmath.workdps(machine_precision):
+                    mp_x = sympy2mpmath(sym_x)
+                    mp_y = sympy2mpmath(sym_y)
+                    result = mp_x ** mp_y
+                    if isinstance(result, mpmath.mpf):
+                        return Real(str(result), machine_precision)
+                    elif isinstance(result, mpmath.mpc):
+                        return Complex(str(result.real), str(result.imag))
+
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
-            
         else:
             numerified_items = items.numerify(evaluation)
             return Expression('Power', *numerified_items.get_sequence())
-                        
+
+
 class Sqrt(SageFunction):
     """
     >> Sqrt[4]

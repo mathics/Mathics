@@ -45,11 +45,13 @@ def is_0(value):
     return get_type(value) == 'z' and value == 0
 
 def sympy2mpmath(value):
-    value = value.n()
+    value = value.n(18)
     if value.is_real:
         return mpmath.mpf(value)
-    else:
+    elif value.is_number:
         return mpmath.mpc(*value.as_real_imag())
+    else:
+        return None
             
 class SpecialValueError(Exception):
     def __init__(self, name):

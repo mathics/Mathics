@@ -11,7 +11,6 @@ However, things like 'N[Pi, 100]' should work as expected.
 #from gmpy import mpz, mpf
 import mpmath
 import sympy
-from mpmath import mpi
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import dps, mpmath2sympy
