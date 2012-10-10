@@ -31,7 +31,7 @@ def get_type(value):
         return 'z'
     elif isinstance(value, sympy.Rational):
         return 'q'
-    elif isinstance(value, sympy.Float):
+    elif isinstance(value, sympy.Float) or isinstance(value, mpmath.mpf):
         return 'f'
     elif isinstance(value, sympy.Expr) and value.is_number and not value.is_real:
         return 'c'

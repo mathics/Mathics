@@ -19,6 +19,7 @@ u"""
 """
 
 import sympy
+import mpmath
 import re
 try:
     import cython
@@ -1393,27 +1394,21 @@ class Real(Number):
         super(Real, self).__init__()
         if isinstance(value, basestring):
             value = str(value)
-            if p is not None:
+            if p is None:
                 p = len((''.join(re.findall('[0-9]+', value))).lstrip('0'))
-        elif isinstance(value, sympy.Float):
+        elif isinstance(value, (sympy.Float, mpmath.mpf, float, int, sympy.numbers.Zero)):
             pass
-        elif isinstance(value, sympy.Integer):
-            value = value.n()
-        elif isinstance(value, (float, int)):
-            value = str(value)
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
         if p is None:
-            p = dps(53) #TODO: Use MachinePrecision
+            p = dps(64) #TODO: Use MachinePrecision
 
-        value = sympy.Float(str(value), p)
-        self.value = value
+        self.sympy = sympy.Float(str(value), p)
+        self.value = self.sympy
         self.prec = prec(p)
 
-        if isinstance(self.value, sympy.numbers.Zero):  #sympy.Float(0.0) returns weird zero number object
-            self.value = sympy.Float('0.0')
-
-        if not isinstance(self.value, sympy.Float):
+        #TODO: Remove these later
+        if not isinstance(self.sympy, sympy.Float):
             raise TypeError('Unknown number type: %s (type %s) shold be sympy.Float' % (value, type(value)))
 
     def __getstate__(self):
@@ -1422,8 +1417,9 @@ class Real(Number):
         return {'value': s, 'prec': p}
     
     def __setstate__(self, dict):
-        p = dict['prec']
-        self.value = sympy.Float(dict['value'], p)
+        #TODO: Check this
+        self.prec = dict['prec']
+        self.value = dict['value']
         
     def boxes_to_text(self, **options):
         return self.make_boxes('OutputForm').boxes_to_text(**options)
@@ -1435,10 +1431,10 @@ class Real(Number):
         return self.make_boxes('TeXForm').boxes_to_tex(**options)  
         
     def make_boxes(self, form):
-        if self.value.is_zero:
+        if self.sympy.is_zero:
             base, exp = ('0.', '1')
         else:
-            base, exp = map(str, self.value.as_base_exp())
+            base, exp = map(str, self.sympy.as_base_exp())
             base = base.rstrip('0')
         if exp != '1':
             if form in ('InputForm', 'OutputForm', 'FullForm'):
@@ -1454,7 +1450,7 @@ class Real(Number):
         return None
     
     def to_sympy(self, **kwargs):
-        return self.value
+        return self.sympy
     
     def to_python(self, *args, **kwargs):
         return float(self.value)
@@ -1467,7 +1463,7 @@ class Real(Number):
         return self      
     
     def round(self, precision):
-        return Real(sympy.Float(self.value.n(dps(precision), ''), dps(precision)))
+        return Real(self.value, dps(precision))
     
     def get_precision(self):
         return self.prec
