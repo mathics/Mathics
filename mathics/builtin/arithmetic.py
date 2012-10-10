@@ -316,7 +316,7 @@ class Times(BinaryOperator, SageFunction):
      = 2
 
     #> 3. Pi
-     = 9.42477796076938
+     = 9.42477796076937972
 
     #> Head[3 * I]
      = Complex
@@ -513,7 +513,7 @@ class Power(BinaryOperator, SageFunction):
     >> 4 ^ (1/3)
      = 2 ^ (2 / 3)
     >> 4.0 ^ (1/3)
-     = 1.58740105196819943
+     = 1.58740105196819947
     >> 3^123
      = 48519278097689642681155855396759336072749841943521979872827
      
@@ -545,7 +545,7 @@ class Power(BinaryOperator, SageFunction):
      = 4.
 
     #> Pi ^ 4.
-     = 97.409091034002422
+     = 97.4090910340024374
     """
     
     operator = '^'
@@ -993,7 +993,7 @@ class Factorial(PostfixOperator, _MPMathFunction):
     >> 10.5!
      = 1.18994230839622485*^7
     >> (-3.0+1.5*I)!
-     = 0.0427943437183768611 - 0.00461565252860394996 I
+     = 0.0427943437183768635 - 0.00461565252860395014 I
 
     However, the value at poles is 'ComplexInfinity':
     >> (-1.)!

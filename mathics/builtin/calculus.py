@@ -377,7 +377,7 @@ class Integrate(SageFunction):
      = Integrate[sin[x], x]
      
     #> Integrate[x ^ 3.5 + x, x]
-     = x ^ 2 / 2 + 0.222222222222222 x ^ 4.5
+     = x ^ 2 / 2 + 0.222222222222222222 x ^ 4.5
      
     #> Integrate[Abs[Sin[phi]],{phi,0,2Pi}]//N
      = 4.
