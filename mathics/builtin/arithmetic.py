@@ -16,7 +16,7 @@ from mathics.core.expression import Expression, Number, Integer, Rational, Real,
 from mathics.core.numbers import get_type, mul, add, sympy2mpmath, mpmath2sympy, SpecialValueError
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
-from mathics.core.numbers import sympy2mpmath, mpmath2sympy
+from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec
 from mathics.builtin.numeric import dps
 
 class _MPMathFunction(SageFunction):
@@ -317,6 +317,9 @@ class Times(BinaryOperator, SageFunction):
 
     #> Head[3 * I]
      = Complex
+
+    #> Head[Times[I, 1/2]]
+     = Complex
     """
     
     operator = '*'
@@ -401,11 +404,7 @@ class Times(BinaryOperator, SageFunction):
         number = sympy.Integer(1)
         leaves = []
 
-        precs = filter(lambda x: x is not None, map(lambda y: y.get_precision(), items))
-        if precs == []:
-            prec = None
-        else:
-            prec = max(min(precs), 64)
+        prec = min_prec(*items)
 
         for item in items:
             if isinstance(item, Number):
@@ -431,12 +430,10 @@ class Times(BinaryOperator, SageFunction):
         elif number == -1 and leaves and leaves[0].has_form('Plus', None):
             leaves[0].leaves = [Expression('Times', Integer(-1), leaf) for leaf in leaves[0].leaves]
             number = None
-        else:
-            if prec is not None:
-                number = number.n(dps(prec))
-            number = from_sympy(number)
+
         if number is not None:
-            leaves.insert(0, number)
+            leaves.insert(0, from_sympy(number))
+
         if not leaves:
             return Integer(1)
         elif len(leaves) == 1:

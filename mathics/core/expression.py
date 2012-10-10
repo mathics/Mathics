@@ -1494,7 +1494,7 @@ class Complex(Number):
                 self.real = Real(real, p)
             else:
                 self.real = Integer(real)
-        elif isinstance(real, (Real, Integer)):
+        elif isinstance(real, Number):
             self.real = real
         else:
             self.real = Number.from_mp(real)
@@ -1505,7 +1505,7 @@ class Complex(Number):
                 self.imag = Real(imag, p)
             else:
                 self.imag = Integer(imag)
-        elif isinstance(imag, (Real, Integer)):
+        elif isinstance(imag, Number):
             self.imag = imag
         else:
             self.imag = Number.from_mp(imag)
