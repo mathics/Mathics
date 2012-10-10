@@ -155,7 +155,6 @@ class BaseExpression(object):
     
     def __hash__(self):
         " To allow usage of expression as dictionary keys, as in Expression.get_pre_choices "
-        
         return hash(unicode(self))
     
     def __cmp__(self, other):
@@ -1374,7 +1373,7 @@ class Rational(Number):
         return self
     
     def round(self, precision):
-        return Real(sympy.Float(self.value.n(precision), precision))
+        return Real(self.value.n(dps(precision)), precision)
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1399,6 +1398,11 @@ class Real(Number):
                 p = max(prec(len((''.join(re.findall('[0-9]+', value))).lstrip('0'))), 64)
         elif isinstance(value, (sympy.Float, mpmath.mpf, float, int, sympy.numbers.Zero)):
             pass
+        elif isinstance(value, Integer):
+            if p is None:
+                value = value.round(64)
+            else:
+                value = value.round(p)
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
         if p is None:
@@ -1457,14 +1461,14 @@ class Real(Number):
         return float(self.value)
     
     def same(self, other):
-        return isinstance(other, Real) and self.value == other.value
+        return isinstance(other, Real) and self.sympy == other.sympy
     
     def evaluate(self, evaluation=builtin_evaluation):
         evaluation.check_stopped()
         return self      
     
     def round(self, precision):
-        return Real(self.value, dps(precision))
+        return Real(self.value, precision)
     
     def get_precision(self):
         return self.prec
@@ -1472,7 +1476,7 @@ class Real(Number):
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Real, self).get_sort_key(True)
-        return [0, 0, str(self.value), 0, 1]
+        return [0, 0, self.value, 0, 1]
     
     def get_real_value(self):
         return self.value
@@ -1487,85 +1491,96 @@ class Complex(Number):
         if isinstance(real, basestring):
             real = str(real)
             if '.' in real:
-                self.real = sympy.Float(real, '')
-                p = max(prec(len((''.join(re.findall('[0-9]+', real))).lstrip('0'))), 64)
+                self.real = Real(real, p)
             else:
-                self.real = sympy.Integer(real)
+                self.real = Integer(real)
+        elif isinstance(real, (Real, Integer)):
+            self.real = real
         else:
-            self.real = sympy.Number(real)
+            self.real = Number.from_mp(real)
 
         if isinstance(imag, basestring):
             imag = str(imag)
             if '.' in imag:
-                self.imag = sympy.Float(imag, '')
-                p = max(prec(len((''.join(re.findall('[0-9]+', imag))).lstrip('0'))), 64, p)
+                self.imag = Real(imag, p)
             else:
-                self.imag = sympy.Integer(imag)
+                self.imag = Integer(imag)
+        elif isinstance(imag, (Real, Integer)):
+            self.imag = imag
         else:
-            self.imag = sympy.Number(imag)
+            self.imag = Number.from_mp(imag)
         
         if p is None:
-            p = 64 #TODO: Use MachinePrecision
+            realp, imagp = self.real.get_precision(), self.imag.get_precision()
+            if realp is None and imagp is None:
+                pass
+            elif realp is None and imagp is not None:
+                p = imagp
+            elif realp is not None and imagp is None:
+                p = realp
+            else:
+                p = max(realp, imagp)
 
-        self.value = sympy.Number(self.real) + sympy.I * sympy.Number(self.imag)
+        if p is None:
+            #assert isinstance(self.real, Integer) and isinstance(self.imag, Integer)
+            pass
+        else:
+            self.real = self.real.round(p)
+            self.imag = self.imag.round(p)
+
+        self.sympy = self.real.to_sympy() + sympy.I * self.imag.to_sympy()
+        self.value = (self.real, self.imag)
         self.prec = p
         
     def to_sage(self, definitions, subs):
         raise NotImplementedError
     
     def to_sympy(self, **kwargs):
-        return self.value
+        return self.sympy
     
     def to_python(self, *args, **kwargs):
-        return complex(*self.value.as_real_imag())
+        return complex(*self.sympy.as_real_imag())
     
     def do_format(self, evaluation, form):
-        real, imag = self.value.as_real_imag()
-
         if form == 'FullForm':
-            return Expression(Expression('HoldForm', Symbol('Complex')), real, imag).do_format(evaluation, form)
+            return Expression(Expression('HoldForm', Symbol('Complex')), self.real, self.imag).do_format(evaluation, form)
 
         sum = []
-        if not real.is_zero:
-            sum.append(real)
-        if imag == 1:
+        if self.real != Integer(0):
+            sum.append(self.real)
+        if self.imag == Integer(1):
             sum.append(Symbol('I'))
         else:
-            sum.append(Expression('Times', imag, Symbol('I')))
-        if len(sum) == 1:
-            sum = sum[0]
-        else:
-            sum = Expression('Plus', *sum)                        
+            sum.append(Expression('Times', self.imag, Symbol('I')))
+        sum = Expression('Plus', *sum)                        
         return Expression('HoldForm', sum).do_format(evaluation, form)
     
     def default_format(self, evaluation, form):
-        real, imag = self.value.as_real_imag()
-        return 'Complex[%s, %s]' % (real.default_format(evaluation, form), imag.default_format(evaluation, form))
+        return 'Complex[%s, %s]' % (self.real.default_format(evaluation, form), self.imag.default_format(evaluation, form))
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Complex, self).get_sort_key(True)
         else:
-            real, imag = self.value.as_real_imag()
-            #return [0, 0, real.get_sort_key()[2], imag.get_sort_key()[2], 1]
-            return [0, 0, 0, 0, 1] #TODO
+            return [0, 0, self.real.get_sort_key()[2], self.imag.get_sort_key()[2], 1]
     
     def same(self, other):
-        return isinstance(other, Complex) and self.value == other.value
+        return isinstance(other, Complex) and self.real == other.real and self.imag == other.imag
     
     def evaluate(self, evaluation=builtin_evaluation):
         evaluation.check_stopped()
         return self
         
     def round(self, precision):
-        value = self.value.round(precision)
-        return Complex(*value.as_real_imag())
+        real = self.real.round(precision)
+        imag = self.imag.round(precision)
+        return Complex(real, imag)
     
     def get_precision(self):
         return self.prec
     
     def do_copy(self):
-        return Complex(*self.value.as_real_imag())
+        return Complex(self.real.do_copy(), self.imag.do_copy())
     
 def encode_mathml(text):
     text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')

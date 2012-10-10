@@ -37,6 +37,12 @@ class N(Builtin):
     </dl>
     >> N[Pi, 50]
      = 3.1415926535897932384626433832795028841971693993751
+
+    >> N[1/7]
+     = 0.142857142857142857
+
+    >> N[1/7, 5]
+     = 0.14286
     
     You can manually assign numerical values to symbols.
     When you do not specify a precision, 'MachinePrecision' is taken.
@@ -44,7 +50,7 @@ class N(Builtin):
      = 10.9
     >> a
      = a
-     
+
     'N' automatically threads over expressions, except when a symbol has attributes 'NHoldAll', 'NHoldFirst', or 'NHoldRest'.
     >> N[a + b]
      = 10.9 + b
@@ -93,6 +99,7 @@ class N(Builtin):
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
     #> ToString[p]
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
+
     """
     
     messages = {

@@ -532,7 +532,7 @@ class Power(BinaryOperator, SageFunction):
     >> (1.5 + 1.0 I) ^ 3.5
      = -3.68294005782191823 + 6.9513926640285049 I
     >> (1.5 + 1.0 I) ^ (3.5 + 1.5 I)
-     = -3.19181629045628082 + 0.64565850941615681 I
+     = -3.19181629045628082 + 0.645658509416156807 I
      
     #> Sqrt[-3+2. I]
      = 0.550250522700337511 + 1.81735402102397062 I
@@ -604,17 +604,17 @@ class Power(BinaryOperator, SageFunction):
         elif x.has_form('Times', None) and isinstance(y, Integer):
             return Expression('Times', *[Expression('Power', leaf, y) for leaf in x.leaves])
         
-        elif isinstance(x, (Rational, Integer, Complex)) and isinstance(y, (Rational, Integer, Complex)):
+        elif isinstance(x, Number) and isinstance(y, Number) and not (x.is_inexact() or y.is_inexact()):
             sym_x, sym_y = x.to_sympy(), y.to_sympy()
             try:
                 if sym_y >= 0:
                     result = sym_x ** sym_y
-                    return from_sympy(result)
                 else:
                     if sym_x == 0:
                         evaluation.message('Power', 'infy')
                         return Symbol('ComplexInfinity')
-                    return from_sympy(sympy.Integer(1) / (sym_x ** (-sym_y)))
+                    result = sympy.Integer(1) / (sym_x ** (-sym_y))
+                return from_sympy(result)
             except ValueError:
                 return Expression('Power', x, y)
             except ZeroDivisionError:
@@ -993,7 +993,7 @@ class Factorial(PostfixOperator, _MPMathFunction):
     >> 10.5!
      = 1.18994230839622485*^7
     >> (-3.0+1.5*I)!
-     = 0.0427943437183768635 - 0.00461565252860395014 I
+     = 0.0427943437183768611 - 0.00461565252860394996 I
 
     However, the value at poles is 'ComplexInfinity':
     >> (-1.)!
@@ -1103,9 +1103,9 @@ class Product(_IterationFunction, SageFunction):
     >> Product[2 ^ i, {i, 1, n}]
      = 2 ^ (n / 2 + n ^ 2 / 2)
      
-    ## Does not crash SymPy (should be evaluated to Sinh[Pi] / Pi though!) 
+    ## Used to be a bug in sympy, but now it is solved exactly!
     #> Product[1 + 1 / i ^ 2, {i, Infinity}]
-     = Product[1 + 1 / i ^ 2, {i, 1, Infinity, 1}]
+     = 1 / ((-I)! (I)!)
     """
     
     throw_iterb = False
