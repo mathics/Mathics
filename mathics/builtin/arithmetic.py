@@ -20,7 +20,7 @@ from mathics.core.numbers import get_type, mul, add, sympy2mpmath, mpmath2sympy,
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
 from mathics.core.numbers import sympy2mpmath, mpmath2sympy
-from mathics.builtin.numeric import machine_precision
+from mathics.builtin.numeric import dps
 
 class _MPMathFunction(SageFunction):
     attributes = ('Listable', 'NumericFunction')
@@ -403,9 +403,19 @@ class Times(BinaryOperator, SageFunction):
         items = items.numerify(evaluation).get_sequence()
         number = sympy.Integer(1)
         leaves = []
+
+        precs = filter(lambda x: x is not None, map(lambda y: y.get_precision(), items))
+        if precs == []:
+            prec = None
+        else:
+            prec = max(min(precs), 64)
+
         for item in items:
             if isinstance(item, Number):
-                sym_item = item.to_sympy()
+                if prec is not None:
+                    sym_item = item.to_sympy().n(dps(prec))
+                else:
+                    sym_item = item.to_sympy()
                 if sym_item.is_zero:
                     return Integer('0')
                 number = number * sym_item
@@ -425,6 +435,8 @@ class Times(BinaryOperator, SageFunction):
             leaves[0].leaves = [Expression('Times', Integer(-1), leaf) for leaf in leaves[0].leaves]
             number = None
         else:
+            if prec is not None:
+                number = number.n(dps(prec))
             number = from_sympy(number)
         if number is not None:
             leaves.insert(0, number)
@@ -610,17 +622,16 @@ class Power(BinaryOperator, SageFunction):
                 return Symbol('ComplexInfinity')
 
         elif isinstance(x, Number) and isinstance(y, Number) and (x.is_inexact() or y.is_inexact()):
-            sym_x, sym_y = x.to_sympy(), y.to_sympy()
             try:
-                with mpmath.workdps(machine_precision):
-                    mp_x = sympy2mpmath(sym_x)
-                    mp_y = sympy2mpmath(sym_y)
+                prec = min(max(x.get_precision(), 64),  max(y.get_precision(), 64))
+                with mpmath.workprec(prec):
+                    mp_x = sympy2mpmath(x.to_sympy())
+                    mp_y = sympy2mpmath(y.to_sympy())
                     result = mp_x ** mp_y
                     if isinstance(result, mpmath.mpf):
-                        return Real(str(result), machine_precision)
+                        return Real(str(result), prec)
                     elif isinstance(result, mpmath.mpc):
-                        return Complex(str(result.real), str(result.imag))
-
+                        return Complex(str(result.real), str(result.imag), prec)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')

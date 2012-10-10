@@ -1481,15 +1481,34 @@ class Real(Number):
         return Real(self.value)
     
 class Complex(Number):
-    def __init__(self, real, imag=None, **kwargs):
+    def __init__(self, real, imag, p=None, **kwargs):
         super(Complex, self).__init__(**kwargs)
 
-        if imag is None:
-            self.value = sympy.Number(real)
-        elif isinstance(real, basestring) and isinstance(imag, basestring):
-            self.value = sympy.Float(real, '') + sympy.I * sympy.Float(imag, '')
+        if isinstance(real, basestring):
+            real = str(real)
+            if '.' in real:
+                self.real = sympy.Float(real, '')
+                p = max(prec(len((''.join(re.findall('[0-9]+', real))).lstrip('0'))), 64)
+            else:
+                self.real = sympy.Integer(real)
         else:
-            self.value = sympy.Number(real) + sympy.I * sympy.Number(imag)
+            self.real = sympy.Number(real)
+
+        if isinstance(imag, basestring):
+            imag = str(imag)
+            if '.' in imag:
+                self.imag = sympy.Float(imag, '')
+                p = max(prec(len((''.join(re.findall('[0-9]+', imag))).lstrip('0'))), 64, p)
+            else:
+                self.imag = sympy.Integer(imag)
+        else:
+            self.imag = sympy.Number(imag)
+        
+        if p is None:
+            p = 64 #TODO: Use MachinePrecision
+
+        self.value = sympy.Number(self.real) + sympy.I * sympy.Number(self.imag)
+        self.prec = p
         
     def to_sage(self, definitions, subs):
         raise NotImplementedError
@@ -1543,8 +1562,7 @@ class Complex(Number):
         return Complex(*value.as_real_imag())
     
     def get_precision(self):
-        #TODO
-        return 64
+        return self.prec
     
     def do_copy(self):
         return Complex(*self.value.as_real_imag())
