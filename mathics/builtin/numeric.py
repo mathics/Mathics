@@ -25,7 +25,7 @@ def get_precision(prec, evaluation):
     if prec.get_name() == 'MachinePrecision':
         return numbers.prec(machine_precision)
     elif isinstance(prec, (Integer, Rational, Real)):
-        return numbers.prec(prec.value)
+        return numbers.prec(prec.to_sympy())
     else:
         evaluation.message('N', 'precbd', prec)
         return None
@@ -234,20 +234,20 @@ class Round(Builtin):
         "Round[expr_?RealNumberQ, k_?RealNumberQ]"
         k = k.to_sympy()
         if isinstance(k, sympy.Float):
-            return Real(k * (expr.value / k).round())
+            return Real(k * (expr.to_sympy() / k).round())
         elif isinstance(k, sympy.Integer):
-            return Integer(sympy.Integer(k * (expr.value / k).round()))
+            return Integer(sympy.Integer(k * (expr.to_sympy() / k).round()))
         else:
             raise TypeError
         
     
 def chop(expr, delta=10.0**(-10.0)):
     if isinstance(expr, Real):
-        if -delta < expr.value < delta:
+        if -delta < expr.to_sympy() < delta:
             return Integer(0)
         #return expr
     elif isinstance(expr, Complex) and expr.get_precision() is not None:
-        real, imag = expr.value.as_real_imag()
+        real, imag = expr.to_sympy().as_real_imag()
         if -delta < real < delta:
             real = sympy.Integer(0)
         if -delta < imag < delta:

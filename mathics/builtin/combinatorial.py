@@ -31,7 +31,7 @@ class Fibonacci(Builtin):
     def apply(self, n, evaluation):
         'Fibonacci[n_Integer]'
         
-        return Integer(sympy.fibonacci(n.value))
+        return Integer(sympy.fibonacci(n.to_sympy()))
     
 class Binomial(Builtin):
     """
@@ -61,9 +61,9 @@ class Binomial(Builtin):
     def apply_exact(self, n, k, evaluation):
         'Binomial[n_Integer, k_Integer]'
         
-        if k.value < 0:
+        if k.to_sympy() < 0:
             return Integer(0)
-        return Integer(sympy.binomial(n.value, k.value))
+        return Integer(sympy.binomial(n.to_sympy(), k.to_sympy()))
     
     def apply_inexact(self, n, k, evaluation):
         'Binomial[n_?InexactNumberQ, k_?NumberQ]'
@@ -71,8 +71,8 @@ class Binomial(Builtin):
         #TODO
         #with mpmath.workprec(min_prec(n, k)):
 
-        n = n.value.n()
-        k = k.value.n()
+        n = n.to_sympy().n()
+        k = k.to_sympy().n()
         result = sympy.binomial(n, k)
         if result == sympy.Float('inf'):
             return Symbol('ComplexInfinity')

@@ -41,7 +41,7 @@ class _MPMathFunction(SageFunction):
         
         #with workprec(z.get_precision()): #TODO Precision
         
-        z = sympy2mpmath(z.value)
+        z = sympy2mpmath(z.to_sympy())
         if z is None:
             return
         try:
@@ -124,7 +124,7 @@ class Plus(BinaryOperator, SageFunction):
         def negate(item):
             if item.has_form('Times', 1, None):
                 if isinstance(item.leaves[0], (Integer, Rational, Real, Complex)):
-                    neg = Number.from_mp(-item.leaves[0].value)
+                    neg = Number.from_mp(-item.leaves[0].to_sympy())
                     if neg.same(Integer(1)):
                         if len(item.leaves) == 1:
                             return neg
@@ -135,15 +135,15 @@ class Plus(BinaryOperator, SageFunction):
                 else:
                     return Expression('Times', -1, *item.leaves)
             elif isinstance(item, (Integer, Rational, Real, Complex)):
-                return Number.from_mp(-item.value)
+                return Number.from_mp(-item.to_sympy())
             else:
                 return Expression('Times', -1, item)
             
         def is_negative(value):
-            if isinstance(value, (Integer, Rational, Real)) and value.value < 0:
+            if isinstance(value, (Integer, Rational, Real)) and value.to_sympy() < 0:
                 return True
             if isinstance(value, Complex):
-                real, imag = value.value.as_real_imag()
+                real, imag = value.to_sympy().as_real_imag()
                 if real <= 0 and imag <= 0:
                     return True
             return False
@@ -182,13 +182,13 @@ class Plus(BinaryOperator, SageFunction):
         
         for item in items:
             if isinstance(item, Number):
-                number = add(number, item.value)
+                number = number + item.to_sympy()
             else:
                 count = rest = None
                 if item.has_form('Times', None):
                     for leaf in item.leaves:
                         if isinstance(leaf, Number):
-                            count = leaf.value
+                            count = leaf.to_sympy()
                             rest = item.leaves[:]
                             rest.remove(leaf)
                             if len(rest) == 1:
@@ -266,11 +266,11 @@ class Minus(PrefixOperator):
     def apply_int(self, x, evaluation):
         'Minus[x_Integer]'
         
-        return Integer(-x.value)
+        return Integer(-x.to_sympy())
     
     def post_parse(self, expression):
         if expression.get_head().get_name() == 'Minus' and len(expression.leaves) == 1 and isinstance(expression.leaves[0], Number):
-            return Number.from_mp(-expression.leaves[0].value)
+            return Number.from_mp(-expression.leaves[0].to_sympy())
         else:
             return super(Minus, self).post_parse(expression)
     
@@ -350,7 +350,7 @@ class Times(BinaryOperator, SageFunction):
         
         def inverse(item):
             if item.has_form('Power', 2) and isinstance(item.leaves[1], (Integer, Rational, Real)):
-                neg = Number.from_mp(-item.leaves[1].value)
+                neg = Number.from_mp(-item.leaves[1].to_sympy())
                 if neg.same(Integer(1)):
                     return item.leaves[0]
                 else:
@@ -362,7 +362,7 @@ class Times(BinaryOperator, SageFunction):
         positive = []
         negative = []
         for item in items:
-            if item.has_form('Power', 2) and isinstance(item.leaves[1], (Integer, Rational, Real)) and item.leaves[1].value < 0:
+            if item.has_form('Power', 2) and isinstance(item.leaves[1], (Integer, Rational, Real)) and item.leaves[1].to_sympy() < 0:
                 negative.append(inverse(item))
             elif isinstance(item, Rational):
                 numerator = item.numerator()
@@ -371,8 +371,8 @@ class Times(BinaryOperator, SageFunction):
                 negative.append(item.denominator())
             else:
                 positive.append(item)
-        if positive and isinstance(positive[0], (Integer, Real)) and positive[0].value < 0:
-            positive[0] = Number.from_mp(-positive[0].value)
+        if positive and isinstance(positive[0], (Integer, Real)) and positive[0].to_sympy() < 0:
+            positive[0] = Number.from_mp(-positive[0].to_sympy())
             if positive[0].same(Integer(1)):
                 del positive[0]
             minus = True
@@ -407,10 +407,10 @@ class Times(BinaryOperator, SageFunction):
         leaves = []
         for item in items:
             if isinstance(item, Number):
-                t = get_type(item.value)
-                if t == 'z' and item.value == 0:
+                sym_item = item.to_sympy()
+                if sym_item.is_zero:
                     return Integer('0')
-                number = number * item.value
+                number = number * sym_item
             elif leaves and item == leaves[-1]:
                 leaves[-1] = Expression('Power', leaves[-1], Integer(2))
             elif leaves and item.has_form('Power', 2) and leaves[-1].has_form('Power', 2) and item.leaves[0].same(leaves[-1].leaves[0]):
@@ -483,10 +483,10 @@ class Divide(BinaryOperator):
     def post_parse(self, expression):
         if len(expression.leaves) == 2:
             if isinstance(expression.leaves[0], Integer) and \
-                isinstance(expression.leaves[1], Integer) and expression.leaves[1].value != 0:
-                return Number.from_mp(Rational(expression.leaves[0].value, expression.leaves[1].value).value)
+                isinstance(expression.leaves[1], Integer) and expression.leaves[1].to_sympy() != 0:
+                return Number.from_mp(Rational(expression.leaves[0].to_sympy(), expression.leaves[1].to_sympy()).to_sympy())
             else:
-                if isinstance(expression.leaves[0], Integer) and expression.leaves[0].value == 1:
+                if isinstance(expression.leaves[0], Integer) and expression.leaves[0].to_sympy() == 1:
                     return Expression('Power', expression.leaves[1].post_parse(), Integer(-1))
                 else:
                     return Expression('Times', expression.leaves[0].post_parse(), Expression('Power', expression.leaves[1].post_parse(), Integer(-1)))
@@ -591,55 +591,29 @@ class Power(BinaryOperator, SageFunction):
         elif x.has_form('Times', None) and isinstance(y, Integer):
             return Expression('Times', *[Expression('Power', leaf, y) for leaf in x.leaves])
         
-        elif isinstance(x, (Rational, Integer)) and isinstance(y, Integer):
-            if y.value >= 0:
-                result = x.value ** y.value
-                return from_sympy(result)
-            else:
-                if x.value == 0:
-                    evaluation.message('Power', 'infy')
-                    return Symbol('ComplexInfinity')
-                else:
-                    denom = sympy.Rational(x.value) ** sympy.Rational(-y.value)
-                    return from_sympy(sympy.Integer(1) / denom)
-        elif isinstance(x, (Integer, Rational)) and isinstance(y, Rational):
+        elif isinstance(x, (Rational, Integer, Complex)) and isinstance(y, (Rational, Integer, Complex)):
+            sym_x, sym_y = x.to_sympy(), y.to_sympy()
             try:
-                if y.value >= 0:
-                    return from_sympy(x.value ** y.value)
+                if sym_y >= 0:
+                    result = sym_x ** sym_y
+                    return from_sympy(result)
                 else:
-                    if x.value == 0:
+                    if sym_x == 0:
                         evaluation.message('Power', 'infy')
                         return Symbol('ComplexInfinity')
-                    else:
-                        return from_sympy(sympy.Integer(1) / (x.value ** (-y.value)))
+                    return from_sympy(sympy.Integer(1) / (sym_x ** (-sym_y)))
             except ValueError:
                 return Expression('Power', x, y)
-        elif isinstance(x, Real) and isinstance(y, Integer):
-            if y.value >= 0:
-                result = x.value ** y.value
-                return from_sympy(result)
-            else:
-                if x.value == 0:
-                    evaluation.message('Power', 'infy')
-                    return Symbol('ComplexInfinity')
-                else:
-                    result = x.value ** y.value
-                    return from_sympy(result)
-        elif (isinstance(x, Complex) and isinstance(y, (Integer, Real))) or \
-            (isinstance(x, Real) and isinstance(y, Complex)) or \
-            (isinstance(x, Complex) and x.is_inexact() and isinstance(y, (Rational, Complex))) or \
-            (isinstance(x, Complex) and isinstance(y, Complex) and y.is_inexact()):
-            try:
-                result = x.value ** y.value
-                return from_sympy(result)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
-        elif (isinstance(x, Number) and isinstance(y, Real)) or (isinstance(x, Real) and \
-            isinstance(y, Number)):
+
+        elif (isinstance(x, Number) and isinstance(y, Real)) or (isinstance(x, Real) and isinstance(y, Number)):
+            sym_x, sym_y = x.to_sympy(), y.to_sympy()
             try:
-                result = x.value ** y.value
+                result = sym_x ** sym_y
                 if isinstance(result, sympy.Pow):
+                    #FIXME: Use mpmath here!
                     result = result.round() #TODO: set precision
                 return from_sympy(result)
             except ZeroDivisionError:
@@ -772,7 +746,7 @@ class Re(SageFunction):
     def apply_complex(self, number, evaluation):
         'Re[number_Complex]'
         
-        real, imag = number.value.as_real_imag()
+        real, imag = number.to_sympy().as_real_imag()
         return Number.from_mp(real)
     
     def apply_number(self, number, evaluation):
@@ -793,7 +767,7 @@ class Im(SageFunction):
     def apply_complex(self, number, evaluation):
         'Im[number_Complex]'
         
-        real, imag = number.value.as_real_imag()
+        real, imag = number.to_sympy().as_real_imag()
         return Number.from_mp(imag)
     
     def apply_number(self, number, evaluation):
@@ -828,15 +802,16 @@ class Abs(SageFunction):
     def apply_real(self, x, evaluation):
         'Abs[x_?RealNumberQ]'
         
-        if x.value < 0:
-            return Number.from_mp(-x.value)
+        sym_x = x.to_sympy()
+        if sym_x < 0:
+            return Number.from_mp(-sym_x)
         else:
             return x
         
     def apply_complex(self, z, evaluation):
         'Abs[z_Complex]'
         
-        real, imag = z.value.as_real_imag()
+        real, imag = z.to_sympy().as_real_imag()
         return Expression('Sqrt', Expression('Plus', Number.from_mp(real ** 2), Number.from_mp(imag ** 2)))
                 
 class I(Predefined):
@@ -960,10 +935,10 @@ class Rational_(Builtin):
     def apply(self, n, m, evaluation):
         'Rational[n_Integer, m_Integer]'
         
-        if m.value == 1:
-            return Integer(n.value)
+        if m.to_sympy() == 1:
+            return Integer(n.to_sympy())
         else:
-            return Rational(n.value, m.value)
+            return Rational(n.to_sympy(), m.to_sympy())
     
 class Complex_(Builtin):
     """
@@ -988,10 +963,10 @@ class Complex_(Builtin):
     def apply(self, r, i, evaluation):
         'Complex[r_?RealNumberQ, i_?RealNumberQ]'
         
-        if i.value != 0:
-            return Complex(r.value, i.value)
+        if i.to_sympy() != 0:
+            return Complex(r.to_sympy(), i.to_sympy())
         else:
-            return r
+            return Number.from_mp(r.to_sympy())
         
 class Factorial(PostfixOperator, _MPMathFunction):
     """
@@ -1019,10 +994,11 @@ class Factorial(PostfixOperator, _MPMathFunction):
     def apply_int(self, n, evaluation):
         'Factorial[n_Integer]'
         
-        if n.value < 0:
+        n = n.to_sympy()
+        if n < 0:
             return Symbol('ComplexInfinity')
         else:
-            return Integer(sympy.factorial(n.value))
+            return Integer(sympy.factorial(n))
         
     def eval(self, z):
         return mpmath.factorial(z)
