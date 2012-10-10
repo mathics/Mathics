@@ -19,7 +19,7 @@ from mathics.core.expression import Expression, Number, Integer, Rational, Real,
 from mathics.core.numbers import get_type, mul, add, sympy2mpmath, mpmath2sympy, SpecialValueError
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
-from mathics.core.numbers import sympy2mpmath
+from mathics.core.numbers import sympy2mpmath, mpmath2sympy
 from mathics.builtin.numeric import machine_precision
 
 class _MPMathFunction(SageFunction):
@@ -40,25 +40,21 @@ class _MPMathFunction(SageFunction):
     def apply_inexact(self, z, evaluation):
         '%(name)s[z_Real|z_Complex?InexactNumberQ]'
         
-        #with workprec(z.get_precision()): #TODO Precision
-        
-        z = sympy2mpmath(z.to_sympy())
-        if z is None:
-            return
-        try:
-            result = self.eval(z)
-            if isinstance(result, mpmath.mpc):
-                result = sympy.Float(result.real) + sympy.I * sympy.Float(result.imag)
-            else:
-                result = sympy.Float(result)
-        except ValueError, exc:
-            text = str(exc)
-            if text == 'gamma function pole':
-                return Symbol('ComplexInfinity')
-            else:
-                raise
-        except ZeroDivisionError:
-            return
+        with mpmath.workdps(machine_precision): #TODO: use z.get_precision()
+            z = sympy2mpmath(z.to_sympy())
+            if z is None:
+                return
+            try:
+                result = self.eval(z)
+                result = mpmath2sympy(result, machine_precision)
+            except ValueError, exc:
+                text = str(exc)
+                if text == 'gamma function pole':
+                    return Symbol('ComplexInfinity')
+                else:
+                    raise
+            except ZeroDivisionError:
+                return
         return from_sympy(result)
 
 class Plus(BinaryOperator, SageFunction):

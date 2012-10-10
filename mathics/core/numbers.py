@@ -44,8 +44,8 @@ def same(v1, v2):
 def is_0(value):
     return get_type(value) == 'z' and value == 0
 
-def sympy2mpmath(value):
-    value = value.n(18)
+def sympy2mpmath(value, prec=18):
+    value = value.n(prec)
     if value.is_real:
         return mpmath.mpf(value)
     elif value.is_number:
@@ -57,14 +57,14 @@ class SpecialValueError(Exception):
     def __init__(self, name):
         self.name = name
 
-def mpmath2sympy(value):
+def mpmath2sympy(value, prec=18):
     if isinstance(value, mpmath.mpc):
-        return sympy.Float(value.real) + sympy.I * sympy.Float(value.imag)
+        return sympy.Float(value.real, prec) + sympy.I * sympy.Float(value.imag, prec)
     else:
         value = str(value)
         if value in ('+inf', '-inf'):
             raise SpecialValueError('ComplexInfinity')
-        return sympy.Float(value)
+        return sympy.Float(value, prec)
     
 C = log(10, 2) # ~ 3.3219280948873626
     
