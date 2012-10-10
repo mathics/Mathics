@@ -8,10 +8,7 @@ Basic arithmetic functions, including complex number arithmetic.
 
 from __future__ import with_statement
 
-from mpmath import workprec
 import mpmath
-#from gmpy import mpz, fac, mpq
-
 import sympy
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, PostfixOperator, Test, SageFunction, SageConstant
