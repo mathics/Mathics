@@ -40,9 +40,9 @@ class Pi(SageConstant):
     
     def apply_N(self, prec, evaluation):
         'N[Pi, prec_]'
-        prec = dps(get_precision(prec, evaluation))
+        prec = get_precision(prec, evaluation)
         if prec is not None:
-            return Real(sympy.pi.n(prec), p=prec)
+            return Real(sympy.pi.n(dps(prec)), p=prec)
 
 class E(SageConstant):
     """
@@ -58,15 +58,18 @@ class E(SageConstant):
      
     >> Attributes[E]
      = {Constant, Protected, ReadProtected}
+
+    #> 5. E
+     = 13.5914091422952262
     """
     
     sympy_name = 'E'
     
     def apply_N(self, prec, evaluation):
         'N[E, prec_]'
-        prec = dps(get_precision(prec, evaluation))
+        prec = get_precision(prec, evaluation)
         if prec is not None:
-            return Real(sympy.E.n(prec), p=prec)
+            return Real(sympy.E.n(dps(prec)), p=prec)
             
 class GoldenRatio(SageConstant):
     """

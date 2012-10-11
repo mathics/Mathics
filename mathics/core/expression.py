@@ -26,7 +26,7 @@ try:
 except ImportError:
     pass
 
-from mathics.core.numbers import format_float, prec, get_type, dps, prec
+from mathics.core.numbers import format_float, prec, get_type, dps, prec, min_prec
 from mathics.core.evaluation import Evaluation
 from mathics.core.util import subsets, subranges, permutations, interpolate_string
 from mathics.core.convert import from_sage, from_sympy, ConvertSubstitutions, sage_symbol_prefix, sympy_symbol_prefix, \
@@ -1302,7 +1302,7 @@ class Integer(Number):
         return self
     
     def round(self, precision):
-        return Real(sympy.Float(self.value.n(precision), precision))
+        return Real(sympy.Float(self.value.n(dps(precision)), precision))
         #return Real(sympy.Float(self.value.n(precision), precision))
     
     def get_sort_key(self, pattern_sort=False):
@@ -1383,7 +1383,7 @@ class Rational(Number):
             return [0, 0, sympy.Float(self.value), 0, 1]
     
     def get_real_value(self):
-        return self.value.n()
+        return self.value.n(18) #TODO: Use dps(machine_precision)
     
     def do_copy(self):
         return Rational(self.value)
@@ -1468,7 +1468,7 @@ class Real(Number):
         return self      
     
     def round(self, precision):
-        return Real(self.value, precision)
+        return Real(self.value.n(dps(precision)), precision)
     
     def get_precision(self):
         return self.prec
@@ -1511,15 +1511,7 @@ class Complex(Number):
             self.imag = Number.from_mp(imag)
         
         if p is None:
-            realp, imagp = self.real.get_precision(), self.imag.get_precision()
-            if realp is None and imagp is None:
-                pass
-            elif realp is None and imagp is not None:
-                p = imagp
-            elif realp is not None and imagp is None:
-                p = realp
-            else:
-                p = max(realp, imagp)
+            p = min_prec(self.real, self.imag)
 
         if p is None:
             #assert isinstance(self.real, Integer) and isinstance(self.imag, Integer)
@@ -1574,7 +1566,7 @@ class Complex(Number):
     def round(self, precision):
         real = self.real.round(precision)
         imag = self.imag.round(precision)
-        return Complex(real, imag)
+        return Complex(real, imag, precision)
     
     def get_precision(self):
         return self.prec
