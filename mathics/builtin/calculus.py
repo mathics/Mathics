@@ -518,7 +518,7 @@ class Solve(Builtin):
     >> Solve[x / (x ^ 2 + 1) == 1, x]
      = {{x -> 1 / 2 + I / 2 Sqrt[3]}, {x -> 1 / 2 - I / 2 Sqrt[3]}} 
     >> Solve[(x^2 + 3 x + 2)/(4 x - 2) == 0, x]
-     = {{x -> -1}, {x -> -2}}
+     = {{x -> -2}, {x -> -1}}
      
     Transcendental equations:
     >> Solve[Cos[x] == 0, x]
@@ -550,18 +550,18 @@ class Solve(Builtin):
     An underdetermined system:
     >> Solve[x^2 == 1 && z^2 == -1, {x, y, z}]
      : Equations may not give solutions for all "solve" variables.
-     = {{x -> -1, z -> I}, {x -> -1, z -> -I}, {x -> 1, z -> I}, {x -> 1, z -> -I}}
+     = {{x -> -1, z -> -I}, {x -> -1, z -> I}, {x -> 1, z -> -I}, {x -> 1, z -> I}}
      
     Domain specification:
     >> Solve[x^2 == -1, x, Reals]
      = {}
     >> Solve[x^2 == 1, x, Reals]
-     = {{x -> 1}, {x -> -1}}
+     = {{x -> -1}, {x -> 1}}
     >> Solve[x^2 == -1, x, Complexes]
      = {{x -> -I}, {x -> I}}
      
     #> Solve[x^5==x,x]
-     = {{x -> 1}, {x -> -1}, {x -> -I}, {x -> 0}, {x -> I}}
+     = {{x -> -1}, {x -> 0}, {x -> 1}, {x -> -I}, {x -> I}}
      
     #> Solve[g[x] == 0, x]
      = Solve[g[x] == 0, x]
