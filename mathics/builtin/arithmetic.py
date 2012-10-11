@@ -319,6 +319,9 @@ class Times(BinaryOperator, SageFunction):
 
     #> Head[Times[I, 1/2]]
      = Complex
+
+    #> Head[Pi * I]
+     = Times
     """
     
     operator = '*'
