@@ -249,14 +249,14 @@ class Round(Builtin):
     
 def chop(expr, delta=10.0**(-10.0)):
     if isinstance(expr, Real):
-        if -delta < expr.to_sympy() < delta:
+        if -delta < expr.to_python() < delta:
             return Integer(0)
         #return expr
     elif isinstance(expr, Complex) and expr.get_precision() is not None:
-        real, imag = expr.to_sympy().as_real_imag()
-        if -delta < real < delta:
+        real, imag = expr.real, expr.imag
+        if -delta < real.to_python() < delta:
             real = sympy.Integer(0)
-        if -delta < imag < delta:
+        if -delta < imag.to_python() < delta:
             imag = sympy.Integer(0)
         if imag != 0:
             return Complex(real, imag)
@@ -289,10 +289,9 @@ class Chop(Builtin):
         'tolnn': "Tolerance specification a must be a non-negative number.",
     }
     
-    #rules = {
-    #'Chop[expr_]': 'Chop[expr, 10^-10]',
-    #    'Chop
-    #}
+    rules = {
+    'Chop[expr_]': 'Chop[expr, 10^-10]',
+    }
     
     def apply(self, expr, delta, evaluation):
         'Chop[expr_, delta_:(10^-10)]'
