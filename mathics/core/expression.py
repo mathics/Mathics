@@ -1444,9 +1444,25 @@ class Real(Number):
         if self.sympy.is_zero:
             base, exp = ('0.', '1')
         else:
-            base, exp = map(str, self.sympy.as_base_exp())
+            s = str(self.sympy())
+            if 'e' in s:
+                base, exp = map(str, s.split('e'))
+            else:
+                if self.sympy < 0:
+                    prefix = '-'
+                    s = s[1:]
+                else:
+                    prefix = ''
+                iexp = s.index('.')-1
+                if -6 < iexp < 6:
+                    base, exp = prefix + s, '0'
+                else:
+                    s = s.replace('.', '') + '0'
+                    base = s[0] + '.' + s[1:]
+                    base = prefix + base.lstrip('0')
+                    exp = str(iexp)
             base = base.rstrip('0')
-        if exp != '1':
+        if exp != '0':
             if form in ('InputForm', 'OutputForm', 'FullForm'):
                 return Expression('RowBox', Expression('List', base, String('*^'), String(exp)))
             else:

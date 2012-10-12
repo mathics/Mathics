@@ -405,7 +405,6 @@ class Times(BinaryOperator, SageFunction):
     
     def format_outputform(self, items, evaluation):
         'OutputForm,InputForm: Times[items__]'
-        
         return self.format_times(items, evaluation, op=' ')
     
     def apply(self, items, evaluation):
@@ -934,6 +933,24 @@ class Real_(Builtin):
      = 2.86797199079244131*^-10
     >> Head[x]
      = Real
+
+    ## Formatting tests
+    #> 1. * 10^6
+     = 1.*^6
+    #> 1. * 10^5
+     = 100000.
+    #> -1. * 10^6
+     = -1.*^6
+    #> -1. * 10^5
+     = -100000.
+    #> 1. * 10^-6
+     = 1.*^-6
+    #> 1. * 10^-5
+     = 0.00001
+    #> -1. * 10^-6
+     = -1.*^-6
+    #> -1. * 10^-5
+     = -0.00001
     """
     
     name = 'Real'
@@ -969,8 +986,10 @@ class Complex_(Builtin):
     'Complex' is the head of complex numbers:
     >> Head[2 + 3*I]
      = Complex
+    >> OutputForm[Complex[2.0 ^ 40, 3]]
+     = 1.099511627776*^12 + 3. I
     >> InputForm[Complex[2.0 ^ 40, 3]]
-     = 1.099511627776*^12 + 3 I
+     = 1.099511627776*^12 + 3.*I
      
     #> -2 / 3 - I
      = -2 / 3 - I
