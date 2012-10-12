@@ -118,11 +118,11 @@ class DSolve(Builtin):
         except NotImplementedError as e:
             evaluation.message('DSolve', 'symimp')
             return
-        except AttributeError as e:
+        except AttributeError as e:     # It is possible this can be removed for sympy >= 0.7.2
             evaluation.message('DSolve', 'litarg', eqn)
             return
         except KeyError:
-            #FIXME unknown error
+            evaluation.message('DSolve', 'litarg', eqn)
             return
 
         if function_form is None:
