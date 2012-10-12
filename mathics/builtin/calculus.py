@@ -325,7 +325,10 @@ class Derivative(PostfixOperator, SageFunction):
         
         count = exprs[2].leaves[0].to_python()
         for i in range(count):
-            sym_func = sympy.Derivative(sym_func)
+            try:
+                sym_func = sympy.Derivative(sym_func)
+            except ValueError:
+                return None
 
         return sym_func
 
