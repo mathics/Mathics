@@ -159,9 +159,14 @@ class Plus(BinaryOperator, SageFunction):
         'Plus[items___]'
         
         items = items.numerify(evaluation).get_sequence()
-        number = sympy.Integer(0)
         leaves = []
         last_item = last_count = None
+
+        prec = min_prec(*items)
+        if prec is None:
+            number = sympy.Integer(0)
+        else:
+            number = sympy.Float('0.0', dps(prec))
         
         def append_last():
             if last_item is not None:
@@ -176,7 +181,11 @@ class Plus(BinaryOperator, SageFunction):
         
         for item in items:
             if isinstance(item, Number):
-                number = number + item.to_sympy()
+                if prec is not None:
+                    sym_item = item.to_sympy().n(dps(prec))
+                else:
+                    sym_item = item.to_sympy()
+                number = number + sym_item
             else:
                 count = rest = None
                 if item.has_form('Times', None):
@@ -201,7 +210,7 @@ class Plus(BinaryOperator, SageFunction):
                     last_item = rest
                     last_count = count
         append_last()
-        if not (get_type(number) == 'z' and number == 0):
+        if number != sympy.Integer(0):
             leaves.insert(0, Number.from_mp(number))
         if not leaves:
             return Integer(0)

@@ -1224,7 +1224,7 @@ class Number(Atom):
             return Integer(value)
     
     @staticmethod
-    def from_mp(value):
+    def from_mp(value, prec=None):
         #assert(value.is_number)
         t = get_type(value)
         if t == 'z':
@@ -1232,9 +1232,10 @@ class Number(Atom):
         elif t == 'q':
             return Rational(value)
         elif t == 'f':
-            return Real(value)
+            return Real(value, prec)
         elif t == 'c':
-            return Complex(*value.as_real_imag())
+            real, imag = value.as_real_imag()
+            return Complex(real, imag, prec)
         
         if isinstance(value, int):
             return Integer(value)
@@ -1408,7 +1409,7 @@ class Real(Number):
         if p is None:
             p = 64 #TODO: Use MachinePrecision
 
-        self.sympy = sympy.Float(str(value), p)
+        self.sympy = sympy.Float(str(value), dps(p))
         self.value = self.sympy
         self.prec = p
 
@@ -1534,10 +1535,11 @@ class Complex(Number):
         if form == 'FullForm':
             return Expression(Expression('HoldForm', Symbol('Complex')), self.real, self.imag).do_format(evaluation, form)
 
-        sum = []
-        if self.real != Integer(0):
-            sum.append(self.real)
-        if self.imag == Integer(1):
+        if self.real.same(Integer(0)):
+            sum = []
+        else:
+            sum = [self.real]
+        if self.imag.same(Integer(1)):
             sum.append(Symbol('I'))
         else:
             sum.append(Expression('Times', self.imag, Symbol('I')))
