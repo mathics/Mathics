@@ -5,7 +5,7 @@ import sympy
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, Test
 from mathics.core.expression import Expression, Number, Integer, Rational, Real, Symbol, Complex, String
-from mathics.core.numbers import get_type
+from mathics.core.numbers import get_type, dps, min_prec
 
 class SameQ(BinaryOperator):
     """
@@ -185,7 +185,13 @@ def do_cmp(x1, x2):
 def do_compare(l1, l2):
     if l1.same(l2):
         return True
-    elif isinstance(l1, (Number, String)) and isinstance(l2, (Number, String)):
+    elif isinstance(l1, String) and isinstance(l2, String):
+        return False
+    elif l1.to_sympy().is_number and l2.to_sympy().is_number:
+        #assert min_prec(l1, l2) is None
+        prec = 64       #TODO: Use $MaxExtraPrecision
+        if l1.to_sympy().n(dps(prec)) == l2.to_sympy().n(dps(prec)):
+           return True
         return False
     elif l1.has_form('List', None) and l2.has_form('List', None):
         if len(l1.leaves) != len(l2.leaves):
@@ -219,10 +225,18 @@ class Equal(_InequalityOperator):
     >> 0.73908513321516064200000000 == 0.73908513321516064100000000
      = False
      
-    >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10018
+    >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10016
      = False
-    >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10019
+    >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10017
      = True
+    
+    ## TODO: Needs ^^ opperator 
+
+    ## Real numbers are considered equal if they only differ in their last seven binary digits
+    ## #> 2^^1.000000000000000000000000000000000000000000000000000000000000 ==  2^^1.000000000000000000000000000000000000000000000000000001111111
+    ##  = True
+    ## 2^^1.000000000000000000000000000000000000000000000000000000000000 ==  2^^1.000000000000000000000000000000000000000000000000000010000000
+    ##  = False
      
     Comparisons are done using the lower precision:
     >> N[E, 100] == N[E, 150]
@@ -234,6 +248,9 @@ class Equal(_InequalityOperator):
     >> Pi == 3.14
      = False
      
+    #> Pi ^ E == E ^ Pi
+     = False
+
     ## TODO: N[E, 3] == N[E] (= True)
      
     #> {1, 2, 3} < {1, 2, 3}
@@ -249,13 +266,14 @@ class Equal(_InequalityOperator):
         'Equal[x_?(!RealNumberQ[#]&), y_?(!RealNumberQ[#]&)]'
         
         x, y = numerify([x, y], evaluation)
+        
         result = do_compare(x, y)
         if result is not None:
             if result:
                 return Symbol('True')
             else:
                 return Symbol('False')
-        
+
 class Unequal(_InequalityOperator):
     """
     >> 1 != 1.
