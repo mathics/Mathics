@@ -2,6 +2,11 @@
 
 import mathics.core # load core to init sage
 
+# force utf8 encoding
+import sys, codecs
+writer = codecs.getwriter("utf-8")
+sys.stdout = writer(sys.stdout)
+
 #try:
 #    from sage import all
 #    # load Sage right on start of Mathics to prevent error in mathicsserver:
