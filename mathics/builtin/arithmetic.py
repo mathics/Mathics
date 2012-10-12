@@ -968,6 +968,9 @@ class Complex_(Builtin):
      
     #> Complex[10, 0]
      = 10
+
+    #> 0. + I
+     = 0. + 1. I
     """
     
     name = 'Complex'
