@@ -779,10 +779,10 @@ class FindRoot(Builtin):
     >> FindRoot[Cos[x], {x, 1}]
      = {x -> 1.57079632679489662}
     >> FindRoot[Sin[x] + Exp[x],{x, 0}]
-     = {x -> -0.588532743981861078}
+     = {x -> -0.588532743981861077}
      
     >> FindRoot[Sin[x] + Exp[x] == Pi,{x, 0}]
-     = {x -> 0.866815239911458063}
+     = {x -> 0.866815239911458064}
      
     'FindRoot' has attribute 'HoldAll' and effectively uses 'Block' to localize $x$.
     However, in the result $x$ will eventually still be replaced by its value.
