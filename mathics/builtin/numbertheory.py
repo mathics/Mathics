@@ -133,41 +133,42 @@ class GCD(Builtin):
             result = sympy.gcd(result, value)
         return Integer(result)
     
-class ExtendedGCD(Builtin):
-    u"""
-    >> ExtendedGCD[10, 15]
-     = {5, {-1, 1}}
-     
-    'ExtendedGCD' works with any number of arguments:
-    >> ExtendedGCD[10, 15, 7]
-     = {1, {-3, 3, -2}}
-    
-    Compute the greated common divisor and check the result:
-    >> numbers = {10, 20, 14};
-    >> {gcd, factors} = ExtendedGCD[Sequence @@ numbers]
-     = {2, {3, 0, -2}}
-    >> Plus @@ (numbers * factors)
-     = 2
-     
-    'ExtendedGCD' does not work for rational numbers and Gaussian integers yet.
-    """
-    
-    attributes = ('Listable',)
-    
-    def apply(self, ns, evaluation):
-        'ExtendedGCD[ns___Integer]'
-        
-        ns = ns.get_sequence()
-        result = 0
-        coeff = []
-        for n in ns:
-            value = n.get_int_value()
-            if value is None:
-                return
-            new_result, c1, c2 = sympy.gcdex(result, value)
-            result = new_result
-            coeff = [c * c1 for c in coeff] + [c2]
-        return Expression('List', Integer(result), Expression('List', *(Integer(c) for c in coeff)))
+#TODO: Previosuly this used gmpy's gcdext. sympy's gcdex is not as powerful unfortunately
+#class ExtendedGCD(Builtin):
+#    u"""
+#    >> ExtendedGCD[10, 15]
+#     = {5, {-1, 1}}
+#     
+#    'ExtendedGCD' works with any number of arguments:
+#    >> ExtendedGCD[10, 15, 7]
+#     = {1, {-3, 3, -2}}
+#    
+#    Compute the greated common divisor and check the result:
+#    >> numbers = {10, 20, 14};
+#    >> {gcd, factors} = ExtendedGCD[Sequence @@ numbers]
+#     = {2, {3, 0, -2}}
+#    >> Plus @@ (numbers * factors)
+#     = 2
+#     
+#    'ExtendedGCD' does not work for rational numbers and Gaussian integers yet.
+#    """
+#    
+#    attributes = ('Listable',)
+#    
+#    def apply(self, ns, evaluation):
+#        'ExtendedGCD[ns___Integer]'
+#        
+#        ns = ns.get_sequence()
+#        result = 0
+#        coeff = []
+#        for n in ns:
+#            value = n.get_int_value()
+#            if value is None:
+#                return
+#            new_result, c1, c2 = sympy.gcdex(result, value)
+#            result = new_result
+#            coeff = [c * c1 for c in coeff] + [c2]
+#        return Expression('List', Integer(result), Expression('List', *(Integer(c) for c in coeff)))
         
 class LCM(Builtin):
     """
