@@ -1513,10 +1513,7 @@ class Complex(Number):
         if p is None:
             p = min_prec(self.real, self.imag)
 
-        if p is None:
-            #assert isinstance(self.real, Integer) and isinstance(self.imag, Integer)
-            pass
-        else:
+        if p is not None:
             self.real = self.real.round(p)
             self.imag = self.imag.round(p)
 
