@@ -877,7 +877,7 @@ class StandardForm(Builtin):
 class InputForm(Builtin):
     """
     >> InputForm[a + b * c]
-     = a + b c
+     = a + b*c
     >> InputForm["A string"]
      = "A string"
     >> InputForm[f'[x]]
