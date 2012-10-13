@@ -163,6 +163,7 @@ class Plus(BinaryOperator, SageFunction):
         last_item = last_count = None
 
         prec = min_prec(*items)
+
         if prec is None:
             number = (sympy.Integer(0), sympy.Integer(0))
         else:
@@ -457,9 +458,9 @@ class Times(BinaryOperator, SageFunction):
 
         if number is not None:
             if number[1].is_zero:
-                leaves.insert(0, from_sympy(number[0]))
+                leaves.insert(0, Number.from_mp(number[0], prec))
             else:
-                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1])))
+                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), prec))
 
         if not leaves:
             return Integer(1)
