@@ -341,6 +341,11 @@ class Times(BinaryOperator, SageFunction):
 
     #> Head[Pi * I]
      = Times
+
+    #> 3 * a //InputForm
+     = 3*a
+    #> 3 * a //OutputForm
+     = 3 a
     """
     
     operator = '*'
@@ -413,8 +418,12 @@ class Times(BinaryOperator, SageFunction):
         result = Expression('HoldForm', result)
         return result
     
+    def format_inputform(self, items, evaluation):
+        'InputForm: Times[items__]'
+        return self.format_times(items, evaluation, op='*')
+
     def format_outputform(self, items, evaluation):
-        'OutputForm,InputForm: Times[items__]'
+        'OutputForm: Times[items__]'
         return self.format_times(items, evaluation, op=' ')
     
     def apply(self, items, evaluation):
