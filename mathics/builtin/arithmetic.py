@@ -645,6 +645,8 @@ class Power(BinaryOperator, SageFunction):
                         evaluation.message('Power', 'infy')
                         return Symbol('ComplexInfinity')
                     result = sympy.Integer(1) / (sym_x ** (-sym_y))
+                if isinstance(result, sympy.Pow):
+                    result = result.simplify()
                 return from_sympy(result)
             except ValueError:
                 return Expression('Power', x, y)
