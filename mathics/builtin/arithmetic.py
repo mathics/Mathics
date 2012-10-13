@@ -164,9 +164,9 @@ class Plus(BinaryOperator, SageFunction):
 
         prec = min_prec(*items)
         if prec is None:
-            number = sympy.Integer(0)
+            number = (sympy.Integer(0), sympy.Integer(0))
         else:
-            number = sympy.Float('0.0', dps(prec))
+            number = (sympy.Float('0.0', dps(prec)), sympy.Float('0.0', dps(prec)))
         
         def append_last():
             if last_item is not None:
@@ -181,11 +181,17 @@ class Plus(BinaryOperator, SageFunction):
         
         for item in items:
             if isinstance(item, Number):
-                if prec is not None:
-                    sym_item = item.to_sympy().n(dps(prec))
+                #TODO: Optimise this for the case of adding many real numbers
+                if isinstance(item, Complex):
+                    sym_real, sym_imag = item.real.to_sympy(), item.imag.to_sympy()
                 else:
-                    sym_item = item.to_sympy()
-                number = number + sym_item
+                    sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
+
+                if prec is not None:
+                    sym_real = sym_real.n(dps(prec))
+                    sym_imag = sym_imag.n(dps(prec))
+
+                number = (number[0] + sym_real, number[1] + sym_imag)
             else:
                 count = rest = None
                 if item.has_form('Times', None):
@@ -210,8 +216,11 @@ class Plus(BinaryOperator, SageFunction):
                     last_item = rest
                     last_count = count
         append_last()
-        if number != sympy.Integer(0):
-            leaves.insert(0, Number.from_mp(number))
+        if number != (sympy.Integer(0), sympy.Integer(0)):
+            if number[1].is_zero:
+                leaves.insert(0, Number.from_mp(number[0], prec))
+            else:
+                leaves.insert(0, Complex(number[0], number[1], prec))
         if not leaves:
             return Integer(0)
         elif len(leaves) == 1:
@@ -411,20 +420,25 @@ class Times(BinaryOperator, SageFunction):
         'Times[items___]'
         
         items = items.numerify(evaluation).get_sequence()
-        number = sympy.Integer(1)
+        number = (sympy.Integer(1), sympy.Integer(0))
         leaves = []
 
         prec = min_prec(*items)
 
         for item in items:
             if isinstance(item, Number):
-                if prec is not None:
-                    sym_item = item.to_sympy().n(dps(prec))
+                if isinstance(item, Complex):
+                    sym_real, sym_imag = item.real.to_sympy(), item.imag.to_sympy()
                 else:
-                    sym_item = item.to_sympy()
-                if sym_item.is_zero:
+                    sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
+
+                if prec is not None:
+                    sym_real = sym_real.n(dps(prec))
+                    sym_imag = sym_imag.n(dps(prec))
+
+                if sym_real.is_zero and sym_imag.is_zero:
                     return Integer('0')
-                number = number * sym_item
+                number = (number[0]*sym_real - number[1]*sym_imag, number[0]*sym_imag + number[1]*sym_real)
             elif leaves and item == leaves[-1]:
                 leaves[-1] = Expression('Power', leaves[-1], Integer(2))
             elif leaves and item.has_form('Power', 2) and leaves[-1].has_form('Power', 2) and item.leaves[0].same(leaves[-1].leaves[0]):
@@ -435,14 +449,17 @@ class Times(BinaryOperator, SageFunction):
                 leaves[-1] = Expression('Power', item, Expression('Plus', Integer(1), leaves[-1].leaves[1]))
             else:
                 leaves.append(item)
-        if number == 1:
+        if number == (1, 0):
             number = None
-        elif number == -1 and leaves and leaves[0].has_form('Plus', None):
+        elif number == (-1, 0) and leaves and leaves[0].has_form('Plus', None):
             leaves[0].leaves = [Expression('Times', Integer(-1), leaf) for leaf in leaves[0].leaves]
             number = None
 
         if number is not None:
-            leaves.insert(0, from_sympy(number))
+            if number[1].is_zero:
+                leaves.insert(0, from_sympy(number[0]))
+            else:
+                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1])))
 
         if not leaves:
             return Integer(1)

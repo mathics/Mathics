@@ -1230,6 +1230,10 @@ class Number(Atom):
     @staticmethod
     def from_mp(value, prec=None):
         #assert(value.is_number)
+        if isinstance(value, Number):
+            if prec is None:
+                return value
+            return value.round(prec)
         t = get_type(value)
         if t == 'z':
             return Integer(value)
