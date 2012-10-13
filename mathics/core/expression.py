@@ -1413,12 +1413,11 @@ class Real(Number):
         if p is None:
             p = 64 #TODO: Use MachinePrecision
 
-        self.sympy = sympy.Float(str(value), dps(p))
-        self.value = self.sympy
+        self.value = sympy.Float(str(value), dps(p))
         self.prec = p
 
         #TODO: Remove these later
-        if not isinstance(self.sympy, sympy.Float):
+        if not isinstance(self.value, sympy.Float):
             raise TypeError('Unknown number type: %s (type %s) shold be sympy.Float' % (value, type(value)))
 
     def __getstate__(self):
@@ -1441,14 +1440,14 @@ class Real(Number):
         return self.make_boxes('TeXForm').boxes_to_tex(**options)  
         
     def make_boxes(self, form):
-        if self.sympy.is_zero:
+        if self.to_sympy().is_zero:
             base, exp = ('0.', '1')
         else:
-            s = str(self.sympy())
+            s = str(self.to_sympy())
             if 'e' in s:
                 base, exp = map(str, s.split('e'))
             else:
-                if self.sympy < 0:
+                if self.to_sympy() < 0:
                     prefix = '-'
                     s = s[1:]
                 else:
@@ -1476,20 +1475,20 @@ class Real(Number):
         return None
     
     def to_sympy(self, **kwargs):
-        return self.sympy
+        return self.value
     
     def to_python(self, *args, **kwargs):
         return float(self.value)
     
     def same(self, other):
-        return isinstance(other, Real) and self.sympy == other.sympy
+        return isinstance(other, Real) and self.to_sympy() == other.to_sympy()
     
     def evaluate(self, evaluation=builtin_evaluation):
         evaluation.check_stopped()
         return self      
     
     def round(self, precision):
-        return Real(self.value.n(dps(precision)), precision)
+        return Real(self.to_sympy().n(dps(precision)), precision)
     
     def get_precision(self):
         return self.prec
@@ -1500,7 +1499,7 @@ class Real(Number):
         return [0, 0, self.value, 0, 1]
     
     def get_real_value(self):
-        return self.value
+        return float(self.value)
     
     def do_copy(self):
         return Real(self.value)
