@@ -1558,15 +1558,17 @@ class Complex(Number):
         if form == 'FullForm':
             return Expression(Expression('HoldForm', Symbol('Complex')), self.real, self.imag).do_format(evaluation, form)
 
-        if self.real.same(Integer(0)):
-            sum = []
-        else:
-            sum = [self.real]
+        sum = []
+        if not self.real.same(Integer(0)):
+            sum.append(self.real)
         if self.imag.same(Integer(1)):
             sum.append(Symbol('I'))
         else:
             sum.append(Expression('Times', self.imag, Symbol('I')))
-        sum = Expression('Plus', *sum)                        
+        if len(sum) == 1:
+            sum = sum[0]
+        else:
+            sum = Expression('Plus', *sum)                        
         return Expression('HoldForm', sum).do_format(evaluation, form)
     
     def default_format(self, evaluation, form):
