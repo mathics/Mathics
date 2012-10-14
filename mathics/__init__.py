@@ -7,16 +7,6 @@ import sys, codecs
 writer = codecs.getwriter("utf-8")
 sys.stdout = writer(sys.stdout)
 
-#try:
-#    from sage import all
-#    # load Sage right on start of Mathics to prevent error in mathicsserver:
-#    # "ValueError: signal only works in main thread"
-#except ImportError:
-#    pass
-
-#import sys
-#sys.setrecursionlimit(3000)
-
 def get_version():
     version = {}
     

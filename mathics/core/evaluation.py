@@ -20,7 +20,6 @@ u"""
 
 import threading
 import sys
-#from gmpy import mpz, mpq, mpf
 import cPickle as pickle
 
 try:

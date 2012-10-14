@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 
-#from gmpy import mpz, mpf
 import sympy
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, Test

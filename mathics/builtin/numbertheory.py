@@ -4,7 +4,6 @@
 Number theoretic functions
 """
 
-#from gmpy import invert, gcd, gcdext, lcm
 import sympy
 
 from mathics.builtin.base import Builtin, Test

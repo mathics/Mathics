@@ -6,8 +6,6 @@ from mathics.core.expression import Expression, Integer, from_sympy
 import sympy
 import mpmath
 
-#from gmpy import mpz, bincoef
-
 def sympy_factor(expr_sympy):
     try:
         result = sympy.together(expr_sympy)

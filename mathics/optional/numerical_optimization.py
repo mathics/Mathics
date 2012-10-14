@@ -4,8 +4,6 @@ Numerical optimization
 Some numerical optimization functions depending on \Sage.
 """
 
-from gmpy import mpf
-
 from sage import all as sage
 #from sage.numerical.knapsack import knapsack
 #from sage.all import RDF, vector, matrix

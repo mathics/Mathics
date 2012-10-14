@@ -78,11 +78,6 @@ class BaseRule(object):
             
             def flatten(expr):
                 new_expr = expr.flatten(Symbol('Sequence'), pattern_only=True)
-                #try:
-                #    new_expr = expr.flatten(Symbol('Sequence'), pattern_only=True)
-                #except:
-                #    print expr, type(expr)
-                #    return
                 if not new_expr.is_atom():
                     for index, leaf in enumerate(new_expr.leaves):
                         new_expr.leaves[index] = flatten(leaf)

@@ -151,7 +151,7 @@ class Builtin(object):
             if name.startswith(prefix):
                 function = getattr(self, name)
                 pattern = function.__doc__
-                if pattern is None: #Fixes sympy bug
+                if pattern is None: #Fixes PyPy bug
                     continue
                 else:
                     m = re.match(r'([\w,]+)\:\s*(.*)', pattern)

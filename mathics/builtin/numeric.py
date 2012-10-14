@@ -8,7 +8,6 @@ Precision is not "guarded" through the evaluation process. Only integer precisio
 However, things like 'N[Pi, 100]' should work as expected.
 """
 
-#from gmpy import mpz, mpf
 import mpmath
 import sympy
 

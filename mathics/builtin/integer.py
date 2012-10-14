@@ -4,7 +4,6 @@
 Integer functions
 """
 
-#from gmpy import mpz
 import sympy
 
 from mathics.builtin.base import Builtin
