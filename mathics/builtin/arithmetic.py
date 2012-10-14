@@ -1161,7 +1161,7 @@ class Product(_IterationFunction, SageFunction):
      
     ## Used to be a bug in sympy, but now it is solved exactly!
     #> Product[1 + 1 / i ^ 2, {i, Infinity}]
-     = 1 / ((-I)! (I)!)
+     = 1 / ((-I)! I!)
     """
     
     throw_iterb = False
