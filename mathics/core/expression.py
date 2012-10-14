@@ -1405,7 +1405,7 @@ class Real(Number):
             value = str(value)
             if p is None:
                 p = max(prec(len((''.join(re.findall('[0-9]+', value))).lstrip('0'))), 64)
-        elif isinstance(value, (sympy.Float, mpmath.mpf, float, int, sympy.numbers.Zero)):
+        elif isinstance(value, (sympy.Float, mpmath.mpf, float, int, sympy.Integer)):
             pass
         elif isinstance(value, Integer):
             if p is None:
@@ -1506,7 +1506,7 @@ class Real(Number):
         return float(self.value)
     
     def do_copy(self):
-        return Real(self.value)
+        return Real(self.value, self.prec)
     
 class Complex(Number):
     def __init__(self, real, imag, p=None, **kwargs):

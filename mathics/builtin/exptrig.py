@@ -649,7 +649,7 @@ class ArcCosh(_MPMathFunction):
     sympy_name = 'acosh'
     
     rules = {
-        'ArcCosh[z:0.0]': 'N[I / 2 Pi, Precision[z]]',
+        #'ArcCosh[z:0.0]': 'N[I / 2 Pi, Precision[z]]',
         'Derivative[1][ArcCosh]': '1/(Sqrt[#-1]*Sqrt[#+1])&',
     }
     
@@ -762,7 +762,7 @@ class ArcCoth(_MPMathFunction):
     sympy_name = 'acoth'
     
     rules = {
-        'ArcCoth[z:0.0]': 'N[I / 2 Pi, Precision[z]]',
+        #'ArcCoth[z:0.0]': 'N[I / 2 Pi, Precision[z]]',
         'Derivative[1][ArcCoth]': '1/(1-#^2)&',
     }
     
