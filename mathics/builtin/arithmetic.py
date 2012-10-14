@@ -1038,17 +1038,31 @@ class Complex_(Builtin):
      = 1. + 0. I
     #> Head[%]
      = Complex
+
+    ## Check Nesting Complex
+    #> Complex[1, Complex[0, 1]]
+     = 0
+    #> Complex[1, Complex[1, 0]]
+     = 1 + I
+    #> Complex[1, Complex[1, 1]]
+     = I
     """
     
     name = 'Complex'
     
     def apply(self, r, i, evaluation):
-        'Complex[r_?RealNumberQ, i_?RealNumberQ]'
-        
-        if i.to_sympy() != 0:
-            return Complex(r.to_sympy(), i.to_sympy())
+        'Complex[r_?NumberQ, i_?NumberQ]'
+
+        if isinstance(r, Complex) or isinstance(i, Complex):
+            sym_form = r.to_sympy() + sympy.I * i.to_sympy()
+            sym_r, sym_i = sym_form.simplify().as_real_imag()
         else:
-            return Number.from_mp(r.to_sympy())
+            sym_r, sym_i = r.to_sympy(), i.to_sympy()
+
+        if sym_i != sympy.Integer(0):
+            return Complex(sym_r, sym_i)
+        else:
+            return Number.from_mp(sym_r)
         
 class Factorial(PostfixOperator, _MPMathFunction):
     """
