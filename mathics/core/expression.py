@@ -1404,7 +1404,7 @@ class Real(Number):
         if isinstance(value, basestring):
             value = str(value)
             if p is None:
-                p = max(prec(len((''.join(re.findall('[0-9]+', value))).lstrip('0'))), 64)
+                p = prec(len((''.join(re.findall('[0-9]+', value))).lstrip('0').zfill(18)))
         elif isinstance(value, (sympy.Float, mpmath.mpf, float, int, sympy.Integer)):
             pass
         elif isinstance(value, Integer):

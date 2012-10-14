@@ -181,12 +181,22 @@ class Precision(Builtin):
      = Infinity
     >> Precision[0.5]
      = 18.
+    #> Precision[0.0]
+     = 0.
+    #> Precision[0.000000000000000000000000000000000000]
+     = 0.
+    #> Precision[-0.0]      (*Matematica gets this wrong *)
+     = 0.
+    #> Precision[-0.000000000000000000000000000000000000]  
+     = 0.
     """
     
     rules = {
         'Precision[_Integer]': 'Infinity',
         'Precision[_Rational]': 'Infinity',
         'Precision[_Symbol]': 'Infinity',
+        'Precision[z:0.0]': '0.',
+        'Precision[z:-0.0]': '0.',
     }
     
     def apply_real(self, x, evaluation):
