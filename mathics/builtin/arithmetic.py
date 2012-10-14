@@ -1034,10 +1034,17 @@ class Complex_(Builtin):
     #> Head[%]
      = Integer
     
+    #> Complex[0.0, 0.0]
+     = 0. + 0. I
+    #> 0. I
+     = 0. + 0. I
+    #> 0. + 0. I
+     = 0. + 0. I
+
     #> 1. + 0. I
      = 1. + 0. I
-    #> Head[%]
-     = Complex
+    #> 0. + 1. I
+     = 0. + 1. I
 
     ## Check Nesting Complex
     #> Complex[1, Complex[0, 1]]
