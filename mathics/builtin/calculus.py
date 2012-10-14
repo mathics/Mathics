@@ -507,7 +507,7 @@ class Solve(Builtin):
      
     Rational equations:
     >> Solve[x / (x ^ 2 + 1) == 1, x]
-     = {{x -> 1 / 2 + I / 2 Sqrt[3]}, {x -> 1 / 2 - I / 2 Sqrt[3]}} 
+     = {{x -> 1 / 2 - I / 2 Sqrt[3]}, {x -> 1 / 2 + I / 2 Sqrt[3]}} 
     >> Solve[(x^2 + 3 x + 2)/(4 x - 2) == 0, x]
      = {{x -> -2}, {x -> -1}}
      
@@ -534,7 +534,7 @@ class Solve(Builtin):
     Solve a system of equations:
     >> eqs = {3 x ^ 2 - 3 y == 0, 3 y ^ 2 - 3 x == 0};
     >> sol = Solve[eqs, {x, y}]
-     = {{x -> 0, y -> 0}, {x -> 1, y -> 1}, {x -> (-1 / 2 + I / 2 Sqrt[3]) ^ 2, y -> -1 / 2 + I / 2 Sqrt[3]}, {x -> (-1 / 2 - I / 2 Sqrt[3]) ^ 2, y -> -1 / 2 - I / 2 Sqrt[3]}}
+     = {{x -> 0, y -> 0}, {x -> 1, y -> 1}, {x -> (-1 / 2 - I / 2 Sqrt[3]) ^ 2, y -> -1 / 2 - I / 2 Sqrt[3]}, {x -> (-1 / 2 + I / 2 Sqrt[3]) ^ 2, y -> -1 / 2 + I / 2 Sqrt[3]}}
     >> eqs /. sol // Simplify
      = {{True, True}, {True, True}, {True, True}, {True, True}}
      
