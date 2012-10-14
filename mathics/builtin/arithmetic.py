@@ -1028,6 +1028,16 @@ class Complex_(Builtin):
 
     #> 0. + I
      = 0. + 1. I
+
+    #> 1 + 0 I
+     = 1
+    #> Head[%]
+     = Integer
+    
+    #> 1. + 0. I
+     = 1. + 0. I
+    #> Head[%]
+     = Complex
     """
     
     name = 'Complex'
