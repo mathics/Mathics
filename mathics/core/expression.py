@@ -1404,7 +1404,11 @@ class Real(Number):
         if isinstance(value, basestring):
             value = str(value)
             if p is None:
-                p = prec(len((''.join(re.findall('[0-9]+', value))).lstrip('0').zfill(18)))
+                digits = (''.join(re.findall('[0-9]+', value))).lstrip('0')
+                if digits == '':     # Handle weird Mathematica zero case
+                    p = max(prec(len(value.replace('0.', ''))), 64)
+                else:
+                    p = prec(len(digits.zfill(18)))
         elif isinstance(value, (sympy.Float, mpmath.mpf, float, int, sympy.Integer)):
             pass
         elif isinstance(value, Integer):
@@ -1444,8 +1448,11 @@ class Real(Number):
         return self.make_boxes('TeXForm').boxes_to_tex(**options)  
         
     def make_boxes(self, form):
-        if self.to_sympy().is_zero:
-            base, exp = ('0.', '1')
+        if self.to_sympy() == sympy.Float('0.0'):
+            if self.prec == 64:     #TODO: Use MachinePrecision
+                base, exp = ('0.', '0')
+            else:
+                base, exp = ('0.', '-' + str(dps(self.prec)))
         else:
             s = str(self.to_sympy())
             if 'e' in s:
