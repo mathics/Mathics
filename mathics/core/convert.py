@@ -189,7 +189,7 @@ def from_sympy(expr):
         elif isinstance(expr, numbers.NegativeInfinity):
             return Expression('Times', Integer(-1), Symbol('Infinity'))
         elif isinstance(expr, numbers.ImaginaryUnit):
-            return Symbol('I')
+            return Expression('Complex', 0, 1)
         elif isinstance(expr, numbers.Integer):
             return Integer(expr.p)
         elif isinstance(expr, numbers.Rational):

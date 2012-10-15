@@ -550,6 +550,9 @@ class Solve(Builtin):
      = {{x -> -1}, {x -> 1}}
     >> Solve[x^2 == -1, x, Complexes]
      = {{x -> -I}, {x -> I}}
+
+    #> Solve[x^2 +1 == 0, x] // FullForm
+     = List[List[Rule[x, Complex[0, -1]]], List[Rule[x, Complex[0, 1]]]]
      
     #> Solve[x^5==x,x]
      = {{x -> -1}, {x -> 0}, {x -> 1}, {x -> -I}, {x -> I}}
