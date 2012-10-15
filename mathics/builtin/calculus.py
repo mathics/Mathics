@@ -581,9 +581,7 @@ class Solve(Builtin):
     
     rules = {
         'Solve[eqs_, vars_, Complexes]': 'Solve[eqs, vars]',
-        'Solve[eqs_, vars_, Reals]': """Select[Solve[eqs, vars],
-            And @@ ((!NumberQ[#] || Im[#] == 0 &) [Chop[N[#], 10^-15]] & /@
-            (If[ListQ[vars], vars, {vars}] /. #)) &]"""
+        'Solve[eqs_, vars_, Reals]': 'Cases[Solve[eqs, vars], {Rule[x,y_?RealNumberQ]}]',
     }
     
     def apply(self, eqs, vars, evaluation):
