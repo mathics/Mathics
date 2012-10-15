@@ -571,6 +571,8 @@ class Power(BinaryOperator, SageFunction):
      = Sqrt[-3 + 2 I]
     #> (3/2+1/2I)^2
      = 2 + 3 I / 2
+    #> I ^ I
+     = I ^ I
 
     #> 2 ^ 2.0
      = 4.
