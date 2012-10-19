@@ -204,6 +204,8 @@ def from_sympy(expr):
             return Rational(expr.p, expr.q)
         elif isinstance(expr, numbers.Float):
             return Real(expr)
+        elif isinstance(expr, numbers.NaN):
+            return Symbol('Indeterminate')
         elif isinstance(expr, function.FunctionClass):
             return Symbol(unicode(expr))
     elif expr.is_number and all([x.is_Number for x in expr.as_real_imag()]):    # Hack to convert 3 * I to Complex[0, 3]
