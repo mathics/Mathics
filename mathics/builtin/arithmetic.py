@@ -1074,10 +1074,10 @@ class Complex_(Builtin):
         else:
             sym_r, sym_i = r.to_sympy(), i.to_sympy()
 
-        if sym_i != sympy.Integer(0):
-            return Complex(sym_r, sym_i)
-        else:
+        if isinstance(sym_i, sympy.Integer) and sym_i == 0:
             return Number.from_mp(sym_r)
+        else:
+            return Complex(sym_r, sym_i)
         
 class Factorial(PostfixOperator, _MPMathFunction):
     """
