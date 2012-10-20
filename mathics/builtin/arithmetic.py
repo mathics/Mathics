@@ -428,12 +428,15 @@ class Times(BinaryOperator, SageFunction):
     
     def apply(self, items, evaluation):
         'Times[items___]'
-        
+
+        #TODO: Clean this up and optimise it        
+
         items = items.numerify(evaluation).get_sequence()
         number = (sympy.Integer(1), sympy.Integer(0))
         leaves = []
 
         prec = min_prec(*items)
+        is_real = all([not isinstance(i, Complex) for i in items])
 
         for item in items:
             if isinstance(item, Number):
@@ -446,7 +449,7 @@ class Times(BinaryOperator, SageFunction):
                     sym_real = sym_real.n(dps(prec))
                     sym_imag = sym_imag.n(dps(prec))
 
-                if sym_real.is_zero and sym_imag.is_zero:
+                if sym_real.is_zero and sym_imag.is_zero and prec is None:
                     return Integer('0')
                 number = (number[0]*sym_real - number[1]*sym_imag, number[0]*sym_imag + number[1]*sym_real)
             elif leaves and item == leaves[-1]:
@@ -466,7 +469,7 @@ class Times(BinaryOperator, SageFunction):
             number = None
 
         if number is not None:
-            if number[1].is_zero:
+            if number[1].is_zero and is_real:
                 leaves.insert(0, Number.from_mp(number[0], prec))
             else:
                 leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), prec))
