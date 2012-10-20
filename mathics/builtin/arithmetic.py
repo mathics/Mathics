@@ -163,6 +163,7 @@ class Plus(BinaryOperator, SageFunction):
         last_item = last_count = None
 
         prec = min_prec(*items)
+        is_real = all([not isinstance(i, Complex) for i in items])
 
         if prec is None:
             number = (sympy.Integer(0), sympy.Integer(0))
@@ -217,8 +218,10 @@ class Plus(BinaryOperator, SageFunction):
                     last_item = rest
                     last_count = count
         append_last()
-        if number != (sympy.Integer(0), sympy.Integer(0)):
-            if number[1].is_zero:
+        if prec is not None or number != (0, 0):
+            if number[1].is_zero and is_real:
+                leaves.insert(0, Number.from_mp(number[0], prec))
+            elif number[1].is_zero and number[1].is_Integer and prec is None:
                 leaves.insert(0, Number.from_mp(number[0], prec))
             else:
                 leaves.insert(0, Complex(number[0], number[1], prec))
@@ -470,6 +473,8 @@ class Times(BinaryOperator, SageFunction):
 
         if number is not None:
             if number[1].is_zero and is_real:
+                leaves.insert(0, Number.from_mp(number[0], prec))
+            elif number[1].is_zero and number[1].is_Integer and prec is None:
                 leaves.insert(0, Number.from_mp(number[0], prec))
             else:
                 leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), prec))
