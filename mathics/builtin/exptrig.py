@@ -643,13 +643,13 @@ class ArcCosh(_MPMathFunction):
     >> ArcCosh[0.]
      = 0. + 1.57079632679489662 I
     >> ArcCosh[0.00000000000000000000000000000000000000]
-     = 0. + 1.5707963267948966192313216916397514420985846997 I
+     = 0. + 1.5707963267948966191479842624545426588 I
     """
     
     sympy_name = 'acosh'
     
     rules = {
-        #'ArcCosh[z:0.0]': 'N[I / 2 Pi, Precision[z]]',
+        'ArcCosh[z:0.0]': 'N[I / 2 Pi, Precision[1+z]]',
         'Derivative[1][ArcCosh]': '1/(Sqrt[#-1]*Sqrt[#+1])&',
     }
     
@@ -762,7 +762,7 @@ class ArcCoth(_MPMathFunction):
     sympy_name = 'acoth'
     
     rules = {
-        #'ArcCoth[z:0.0]': 'N[I / 2 Pi, Precision[z]]',
+        'ArcCoth[z:0.0]': 'N[I / 2 Pi, Precision[1+z]]',
         'Derivative[1][ArcCoth]': '1/(1-#^2)&',
     }
     
