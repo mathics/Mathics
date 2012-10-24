@@ -708,7 +708,7 @@ class Infinity(SageConstant):
     >> 1 / Infinity
      = 0
     >> (2 + 3.5*I) / Infinity
-     = 0
+     = 0. + 0. I
     >> Infinity + 100
      = Infinity
     >> Infinity + Infinity

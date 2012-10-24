@@ -639,7 +639,7 @@ class ArcCosh(_MPMathFunction):
     </dl>
     
     >> ArcCosh[0]
-     = (I / 2) Pi
+     = I / 2 Pi
     >> ArcCosh[0.]
      = 0. + 1.57079632679489662 I
     >> ArcCosh[0.00000000000000000000000000000000000000]
