@@ -25,12 +25,14 @@ def get_version():
         version['sage'] = sage_version
     version['sympy'] = sympy.__version__
     version['mpmath'] = mpmath.__version__
+    version['python'] = sys.subversion[0] + " " + sys.version.split('\n')[0]
     return version
 
 def get_version_string(is_server, newlines=False):
     version = get_version()
     result = []
     result.append(u"Mathics %s" % version['mathics'])
+    result.append(u"on %s" % version['python'])
     if 'sage' in version:
         result.append(u"on %s" % version['sage'])
     libs = []
