@@ -657,6 +657,11 @@ class Power(BinaryOperator, SageFunction):
                     result = sympy.Integer(1) / (sym_x ** (-sym_y))
                 if isinstance(result, sympy.Pow):
                     result = result.simplify()
+                    args = [from_sympy(expr) for expr in result.as_base_exp()]
+                    result = Expression('Power', *args)
+                    result = result.evaluate_leaves(evaluation)
+                    return result
+
                 return from_sympy(result)
             except ValueError:
                 return Expression('Power', x, y)
