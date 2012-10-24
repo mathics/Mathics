@@ -10,7 +10,7 @@ from mathics import settings
 
 import sys
 
-if 'PyPy' in sys.version:
+if sys.subversion[0] == 'PyPy':
     is_PyPy = True
 else:
     is_PyPy = False
@@ -26,16 +26,12 @@ try:
     EXTENSIONS = [Extension('mathics.%s.%s' % (parent, module),
         ['mathics/%s/%s.py' % (parent, module)]) for parent, modules in EXTENSIONS.iteritems() for module in modules]
     CMDCLASS = {'build_ext': build_ext}
+    INSTALL_REQUIRES = ['cython>=0.15.1']
 except ImportError:
     EXTENSIONS = []
     CMDCLASS = {}
-    
-# Intepreter specific requirements
-if is_PyPy:
     INSTALL_REQUIRES = []
-else:
-    INSTALL_REQUIRES = ['gmpy>=1.04', 'cython>=0.15.1']
-
+    
 # General Requirements
 INSTALL_REQUIRES += ['sympy>=0.7.2', 'mpmath>=0.15', 'django>=1.2']
 
