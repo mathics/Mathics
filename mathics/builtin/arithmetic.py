@@ -759,7 +759,7 @@ class DirectedInfinity(SageFunction):
     >> DirectedInfinity[]
      = ComplexInfinity
     >> DirectedInfinity[1 + I]
-     = DirectedInfinity[(1 + I) / Sqrt[2]]
+     = DirectedInfinity[(1 / 2 + I / 2) Sqrt[2]]
     >> 1 / DirectedInfinity[1 + I]
      = 0
     >> DirectedInfinity[1] + DirectedInfinity[-1]
@@ -767,7 +767,7 @@ class DirectedInfinity(SageFunction):
      = Indeterminate
      
     #> DirectedInfinity[1+I]+DirectedInfinity[2+I]
-     = DirectedInfinity[(1 + I) / Sqrt[2]] + DirectedInfinity[(2 + I) / Sqrt[5]]
+     = DirectedInfinity[(2 / 5 + I / 5) Sqrt[5]] + DirectedInfinity[(1 / 2 + I / 2) Sqrt[2]] 
     """
         
     rules = {
@@ -789,6 +789,8 @@ class DirectedInfinity(SageFunction):
         'DirectedInfinity[]': 'HoldForm[ComplexInfinity]',
     }
     
+    #TODO: Improve formatting
+
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
             dir = expr.leaves[0].get_int_value()
