@@ -854,7 +854,7 @@ class FindRoot(Builtin):
                 return
             if x1 == x0:
                 break
-            x0 = x1.evaluate(evaluation)
+            x0 = Expression('N', x1).evaluate(evaluation)       # N required due to bug in sympy arithmetic
             count += 1
         else:
             evaluation.message('FindRoot', 'maxiter')
