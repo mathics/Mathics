@@ -20,6 +20,7 @@ u"""
 
 import os
 import sys
+import argparse
 
 # Try importing readline to enable arrow keys support etc.
 try:
@@ -31,35 +32,72 @@ from mathics.core.definitions import Definitions
 from mathics.core.expression import Symbol, Expression
 from mathics.core.evaluation import Evaluation
 from mathics import settings
-from mathics import print_version, print_license
+from mathics import print_version, print_license, get_version_string
 
 def to_output(text):
     return '\n . '.join(text.splitlines())
 
 def main():
-    quit_command = (sys.platform == 'win32') and 'CTRL-BREAK' or 'CONTROL-C'
+    argparser = argparse.ArgumentParser(
+        prog='mathics',
+        usage='%(prog)s [options] [FILE]',
+        add_help=False,
+        description = "Mathics is a general-purpose computer algebra system.",
+        epilog = """Please feel encouraged to contribute to Mathics! Create
+            your own fork, make the desired changes, commit, and make a pull 
+            request.""")
+
+    argparser.add_argument('FILE',  nargs='?', type=argparse.FileType('r'), help='execute commands from FILE')
+
+    argparser.add_argument('--help', '-h', help='show this help message and exit', action='help')
+    argparser.add_argument('--persist',  help='go to interactive shell after evaluating FILE', action='store_true')
+    argparser.add_argument('--quiet', '-q', help='don\'t print message at startup', action='store_true')
+    argparser.add_argument('--version', '-v', action='version', version=get_version_string(False))
+
+    args = argparser.parse_args()
+
+    quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
     
-    print_version(is_server=False)
-    print_license()
-    print u"Quit by pressing %s" % quit_command
+    if not args.quiet:
+        print_version(is_server=False)
+        print_license()
+        print u"Quit by pressing %s" % quit_command
     
-    print ''
+        print ''
     
     definitions = Definitions(add_builtin=True)
+
+    if args.FILE is not None:
+        for line in args.FILE:
+            print '>> ', line,
+
+            def out_callback(out):
+                    print to_output(unicode(out))
+
+            evaluation = Evaluation(line, definitions, timeout=30, out_callback=out_callback)
+            for result in evaluation.results:
+                    if result.result is not None:
+                        print ' = %s' % to_output(unicode(result.result))           
+        if not args.persist:
+            return
     
     try:
         while True:
-            input = raw_input('>> ')
+            try: 
+                input = raw_input('>> ')
             
-            def out_callback(out):
-                print to_output(unicode(out))
+                def out_callback(out):
+                    print to_output(unicode(out))
                 
-            evaluation = Evaluation(input, definitions, timeout=30, out_callback=out_callback)
+                evaluation = Evaluation(input, definitions, timeout=30, out_callback=out_callback)
             
-            for result in evaluation.results:
-                if result.result is not None:
-                    print ' = %s' % to_output(unicode(result.result))
-    except (KeyboardInterrupt, SystemExit):
+                for result in evaluation.results:
+                    if result.result is not None:
+                        print ' = %s' % to_output(unicode(result.result))
+            except (KeyboardInterrupt):
+                print '\nKeyboardInterrupt'
+
+    except (SystemExit, EOFError):
         print "\n\nGood bye!\n"
 
 if __name__ == '__main__':
