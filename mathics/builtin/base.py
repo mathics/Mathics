@@ -343,17 +343,13 @@ class Test(Builtin):
             return Symbol('False')
         
 class SympyObject(Builtin):
-    sage_name = None
-    sage_names_alt = []
     sympy_name = None
     
     def __init__(self, *args, **kwargs):
         super(SympyObject, self).__init__(*args, **kwargs)
-        if self.sage_name is None:
-            self.sage_name = self.get_name().lower()
         if self.sympy_name is None:
-            self.sympy_name = self.sage_name
-            
+            self.sympy_name = self.get_name().lower()
+
     def is_constant(self):
         return False
 

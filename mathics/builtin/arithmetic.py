@@ -109,7 +109,6 @@ class Plus(BinaryOperator, SympyFunction):
         None: '0',
     }
     
-    sage_name = ''
     sympy_name = 'Add'
     
     def format_plus(self, items, evaluation):
@@ -362,7 +361,6 @@ class Times(BinaryOperator, SympyFunction):
     
     default_formats = False
     
-    sage_name = ''
     sympy_name = 'Mul'
     
     rules = {
@@ -596,7 +594,6 @@ class Power(BinaryOperator, SympyFunction):
     
     default_formats = False
     
-    sage_name = ''
     sympy_name = 'Pow'
     
     messages = {
@@ -807,8 +804,6 @@ class Re(SympyFunction):
     
     attributes = ('Listable', 'NumericFunction')
     
-    sage_name = 'real'
-    
     def apply_complex(self, number, evaluation):
         'Re[number_Complex]'
         
@@ -827,8 +822,6 @@ class Im(SympyFunction):
     """
     
     attributes = ('Listable', 'NumericFunction')
-    
-    sage_name = 'imag'
     
     def apply_complex(self, number, evaluation):
         'Im[number_Complex]'
@@ -861,8 +854,6 @@ class Abs(SympyFunction):
      = -Graphics-
     """
     
-    sage_name = 'abs_symbolic'
-    sage_names_alt = ['abs']
     sympy_name = 'Abs'
     
     def apply_real(self, x, evaluation):
@@ -1135,7 +1126,6 @@ class Gamma(SympyFunction):
     }
     
 class Pochhammer(SympyFunction):
-    sage_name = ''
     sympy_name = 'RisingFactorial'
     
     rules = {
@@ -1143,7 +1133,6 @@ class Pochhammer(SympyFunction):
     }
     
 class HarmonicNumber(SympyFunction):
-    sage_name = ''
     sympy_name = 'harmonic'
     
 class Sum(_IterationFunction, SympyFunction):
@@ -1178,7 +1167,6 @@ class Sum(_IterationFunction, SympyFunction):
     
     throw_iterb = False # do not throw warning message for symbolic iteration bounds
     
-    sage_name = ''
     sympy_name = 'Sum'
     
     rules = _IterationFunction.rules.copy()
@@ -1220,7 +1208,6 @@ class Product(_IterationFunction, SympyFunction):
     
     throw_iterb = False
     
-    sage_name = ''
     sympy_name = 'Product'
     
     rules = _IterationFunction.rules.copy()

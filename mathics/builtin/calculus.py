@@ -14,13 +14,6 @@ from mathics.core.util import unicode_superscript
 from mathics.core.rules import Pattern
 from mathics.builtin.scoping import dynamic_scoping
 
-try:
-    from sage.symbolic.operators import FDerivativeOperator
-    from sage import all as sage
-    from sage.calculus.calculus import var as sage_var, function as sage_function
-except (ImportError, RuntimeError):
-    pass
-
 import sympy
 
 class D(SympyFunction):

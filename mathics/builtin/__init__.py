@@ -55,8 +55,6 @@ for module in modules:
 
 #builtins = dict(builtins)
 
-mathics_to_sage = {}
-sage_to_mathics = {}
 mathics_to_sympy = {}
 sympy_to_mathics = {}
 
@@ -68,11 +66,6 @@ def add_builtins(new_builtins):
     for var_name, builtin in new_builtins:
         name = builtin.get_name()
         if isinstance(builtin, SympyObject):
-            mathics_to_sage[name] = builtin
-            if builtin.sage_name:
-                sage_to_mathics[builtin.sage_name] = builtin
-            for sage_name in builtin.sage_names_alt:
-                sage_to_mathics[sage_name] = builtin
             mathics_to_sympy[name] = builtin
             if builtin.sympy_name:
                 sympy_to_mathics[builtin.sympy_name] = builtin

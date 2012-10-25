@@ -82,7 +82,7 @@ class GoldenRatio(SympyConstant):
      = 1.61803398874989485
     """
     
-    sage_name = sympy_name = 'GoldenRatio'
+    sympy_name = 'GoldenRatio'
     
     rules = {
         'N[GoldenRatio, prec_]': 'N[(1+Sqrt[5])/2, prec]',
