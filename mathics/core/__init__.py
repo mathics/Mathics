@@ -18,14 +18,3 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-try:    
-    #try:
-    #    import django.conf.settings
-    #    from django.conf import settings
-    #except ImportError:
-    #    import settings    
-        
-    # Try to import sage, fail silently
-    import sage.all
-except (ImportError, RuntimeError):
-    pass

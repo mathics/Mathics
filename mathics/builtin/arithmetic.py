@@ -11,14 +11,14 @@ from __future__ import with_statement
 import mpmath
 import sympy
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, PostfixOperator, Test, SageFunction, SageConstant
+from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, PostfixOperator, Test, SympyFunction, SympyConstant
 from mathics.core.expression import Expression, Number, Integer, Rational, Real, Symbol, Complex, String
 from mathics.core.numbers import get_type, mul, add, sympy2mpmath, mpmath2sympy, SpecialValueError
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
 from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, dps
 
-class _MPMathFunction(SageFunction):
+class _MPMathFunction(SympyFunction):
     attributes = ('Listable', 'NumericFunction')
     
     def eval(self, z):
@@ -54,7 +54,7 @@ class _MPMathFunction(SageFunction):
                 return
         return from_sympy(result)
 
-class Plus(BinaryOperator, SageFunction):
+class Plus(BinaryOperator, SympyFunction):
     """
     'Plus' represents a sum of terms.
     
@@ -296,7 +296,7 @@ def create_infix(items, operator, prec, grouping):
     else:
         return Expression('Infix', Expression('List', *items), String(operator), prec, Symbol(grouping))        
 
-class Times(BinaryOperator, SageFunction):
+class Times(BinaryOperator, SympyFunction):
     """
     >> 10 * 2
      = 20
@@ -542,7 +542,7 @@ class Divide(BinaryOperator):
         else:
             return super(Divide, self).post_parse(expression)
         
-class Power(BinaryOperator, SageFunction):
+class Power(BinaryOperator, SympyFunction):
     """
     >> 1/0
      : Infinite expression (division by zero) encountered.
@@ -688,7 +688,7 @@ class Power(BinaryOperator, SageFunction):
             return Expression('Power', *numerified_items.get_sequence())
 
 
-class Sqrt(SageFunction):
+class Sqrt(SympyFunction):
     """
     >> Sqrt[4]
      = 2
@@ -708,7 +708,7 @@ class Sqrt(SageFunction):
         'MakeBoxes[Sqrt[x_], f:StandardForm|TraditionalForm]': 'SqrtBox[MakeBoxes[x, f]]',
     }
     
-class Infinity(SageConstant):
+class Infinity(SympyConstant):
     """
     >> 1 / Infinity
      = 0
@@ -734,7 +734,7 @@ class Infinity(SageConstant):
         'MakeBoxes[Infinity, f:StandardForm|TraditionalForm]': '"\\[Infinity]"',
     }
     
-class ComplexInfinity(SageConstant):
+class ComplexInfinity(SympyConstant):
     """
     >> 1 / ComplexInfinity
      = 0
@@ -752,7 +752,7 @@ class ComplexInfinity(SageConstant):
         'ComplexInfinity': 'DirectedInfinity[]',
     }
     
-class DirectedInfinity(SageFunction):
+class DirectedInfinity(SympyFunction):
     """
     >> DirectedInfinity[1]
      = Infinity
@@ -799,7 +799,7 @@ class DirectedInfinity(SageFunction):
             elif dir == -1:
                 return -sympy.oo
                 
-class Re(SageFunction):
+class Re(SympyFunction):
     """
     >> Re[3+4I]
      = 3
@@ -820,7 +820,7 @@ class Re(SageFunction):
         
         return number
                 
-class Im(SageFunction):
+class Im(SympyFunction):
     """
     >> Im[3+4I]
      = 4
@@ -841,7 +841,7 @@ class Im(SageFunction):
         
         return Integer(0)
     
-class Abs(SageFunction):
+class Abs(SympyFunction):
     """
     <dl>
     <dt>'Abs[$x$]'
@@ -1129,12 +1129,12 @@ class Factorial(PostfixOperator, _MPMathFunction):
     def eval(self, z):
         return mpmath.factorial(z)
     
-class Gamma(SageFunction):
+class Gamma(SympyFunction):
     rules = {
         'Gamma[x_]': '(x - 1)!',
     }
     
-class Pochhammer(SageFunction):
+class Pochhammer(SympyFunction):
     sage_name = ''
     sympy_name = 'RisingFactorial'
     
@@ -1142,11 +1142,11 @@ class Pochhammer(SageFunction):
         'Pochhammer[a_, n_]': 'Gamma[a + n] / Gamma[a]',
     }
     
-class HarmonicNumber(SageFunction):
+class HarmonicNumber(SympyFunction):
     sage_name = ''
     sympy_name = 'harmonic'
     
-class Sum(_IterationFunction, SageFunction):
+class Sum(_IterationFunction, SympyFunction):
     """
     >> Sum[k, {k, 1, 10}]
      = 55
@@ -1198,7 +1198,7 @@ class Sum(_IterationFunction, SageFunction):
                 index.leaves[2].to_sympy()))            
             return result
     
-class Product(_IterationFunction, SageFunction):
+class Product(_IterationFunction, SympyFunction):
     """
     >> Product[k, {k, 1, 10}]
      = 3628800

@@ -13,14 +13,14 @@ from __future__ import with_statement
 import sympy
 import mpmath
 
-from mathics.builtin.base import Builtin, Predefined, SageConstant, SageFunction
+from mathics.builtin.base import Builtin, Predefined, SympyConstant, SympyFunction
 from mathics.core.expression import Number, Real, Expression, Integer, from_sympy
 from mathics.core.numbers import dps
 
 from mathics.builtin.numeric import get_precision
 from mathics.builtin.arithmetic import _MPMathFunction
 
-class Pi(SageConstant):
+class Pi(SympyConstant):
     u"""
     <dl>
     <dt>'Pi'
@@ -44,7 +44,7 @@ class Pi(SageConstant):
         if prec is not None:
             return Real(sympy.pi.n(dps(prec)), p=prec)
 
-class E(SageConstant):
+class E(SympyConstant):
     """
     <dl>
     <dt>'E'
@@ -71,7 +71,7 @@ class E(SageConstant):
         if prec is not None:
             return Real(sympy.E.n(dps(prec)), p=prec)
             
-class GoldenRatio(SageConstant):
+class GoldenRatio(SympyConstant):
     """
     <dl>
     <dt>'GoldenRatio'
@@ -88,7 +88,7 @@ class GoldenRatio(SageConstant):
         'N[GoldenRatio, prec_]': 'N[(1+Sqrt[5])/2, prec]',
     }
                         
-class Exp(SageFunction):
+class Exp(SympyFunction):
     """
     <dl>
     <dt>'Exp[$z$]'

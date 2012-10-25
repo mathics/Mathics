@@ -23,7 +23,7 @@ from mathics.builtin import exptrig, functional, graphics, graphics3d, inout, in
 from mathics.builtin import plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, strings, structure
 from mathics.builtin import system, tensors
 
-from mathics.builtin.base import Builtin, SageObject, BoxConstruct, Operator, PatternObject
+from mathics.builtin.base import Builtin, SympyObject, BoxConstruct, Operator, PatternObject
 
 modules = [algebra, arithmetic, assignment, attributes, calculus, combinatorial, comparison, control, datentime, diffeqns, evaluation,
     exptrig, functional, graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory, numeric, options, patterns,
@@ -67,7 +67,7 @@ builtins_precedence = {}
 def add_builtins(new_builtins):
     for var_name, builtin in new_builtins:
         name = builtin.get_name()
-        if isinstance(builtin, SageObject):
+        if isinstance(builtin, SympyObject):
             mathics_to_sage[name] = builtin
             if builtin.sage_name:
                 sage_to_mathics[builtin.sage_name] = builtin

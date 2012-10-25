@@ -7,7 +7,7 @@ List functions
 import copy
 
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator, Test,
-    InvalidLevelspecError, PartError, PartDepthError, PartRangeError, SageFunction)
+    InvalidLevelspecError, PartError, PartDepthError, PartRangeError, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.core.expression import Expression, String, Symbol, Integer, Number
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
@@ -1007,7 +1007,7 @@ class _IterationFunction(Builtin):
     def apply_iter(self, expr, i, imin, imax, di, evaluation):
         '%(name)s[expr_, {i_Symbol, imin_, imax_, di_}]'
         
-        if di.get_int_value() == 1 and isinstance(self, SageFunction):
+        if di.get_int_value() == 1 and isinstance(self, SympyFunction):
             whole_expr = Expression(self.get_name(), expr, Expression('List', i, imin, imax))
             sympy_expr = whole_expr.to_sympy()
             

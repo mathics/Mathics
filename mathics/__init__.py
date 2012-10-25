@@ -1,7 +1,5 @@
 # -*- coding: utf8 -*-
 
-import mathics.core # load core to init sage
-
 # force utf8 encoding
 import sys, codecs
 writer = codecs.getwriter("utf-8")
@@ -10,7 +8,6 @@ sys.stdout = writer(sys.stdout)
 def get_version():
     version = {}
     
-    from mathics.optional import sage_version
     import sympy
     import mpmath
     try:
@@ -21,8 +18,6 @@ def get_version():
     except ImportError:
         from mathics import settings
         version['mathics'] = settings.VERSION
-    if sage_version is not None:
-        version['sage'] = sage_version
     version['sympy'] = sympy.__version__
     version['mpmath'] = mpmath.__version__
     version['python'] = sys.subversion[0] + " " + sys.version.split('\n')[0]
@@ -33,8 +28,6 @@ def get_version_string(is_server, newlines=False):
     result = []
     result.append(u"Mathics %s" % version['mathics'])
     result.append(u"on %s" % version['python'])
-    if 'sage' in version:
-        result.append(u"on %s" % version['sage'])
     libs = []
     if 'django' in version and is_server:
         libs.append("Django %s" % version['django'])

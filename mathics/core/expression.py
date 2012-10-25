@@ -29,18 +29,9 @@ except ImportError:
 from mathics.core.numbers import format_float, prec, get_type, dps, prec, min_prec
 from mathics.core.evaluation import Evaluation
 from mathics.core.util import subsets, subranges, permutations, interpolate_string
-from mathics.core.convert import from_sage, from_sympy, ConvertSubstitutions, sage_symbol_prefix, sympy_symbol_prefix, \
-    SympyExpression
+from mathics.core.convert import from_sympy, ConvertSubstitutions, sympy_symbol_prefix, SympyExpression
 
 import operator
-
-try:
-    from sage import all as sage
-    from sage.calculus.calculus import var as sage_var #, function as sage_function
-    from sage.symbolic.function_factory import function_factory as sage_function
-except (ImportError, RuntimeError):
-    pass
-
 import sympy
 
 builtin_evaluation = Evaluation()
@@ -461,36 +452,6 @@ class Expression(BaseExpression):
             
         return SympyExpression(self)
 
-    def to_sage(self, definitions, subs):
-        from mathics.builtin import mathics_to_sage
-        
-        lookup_name = self.get_lookup_name()
-        builtin = mathics_to_sage.get(lookup_name)
-        if builtin is not None:
-            sage_expr = builtin.to_sage(self, definitions, subs)
-            if sage_expr is not None:
-                return sage_expr
-                
-        head_name = self.head.get_name()
-        
-        attributes = self.head.get_attributes(definitions)
-        if (set(('HoldAll', 'HoldAllComplete', 'HoldFirst', 'HoldRest')) & attributes) or not head_name:
-            return subs.substitute(self).to_sage(definitions, subs)
-        
-        if head_name == 'Plus':
-            op = sage.add
-        elif head_name == 'Times':
-            op = sage.mul
-        elif head_name == 'Power' and len(self.leaves) == 2:
-            return pow(self.leaves[0].to_sage(definitions, subs), self.leaves[1].to_sage(definitions, subs))
-        elif head_name == 'List':
-            return [leaf.to_sage(definitions, subs) for leaf in self.leaves]
-        else:
-            sage_func = sage_function(sage_symbol_prefix + head_name)
-            args = [leaf.to_sage(definitions, subs) for leaf in self.leaves]
-            return sage_func(*args)
-        return op([leaf.to_sage(definitions, subs) for leaf in self.leaves])
-    
     def to_python(self, *args, **kwargs):
         """
         Convert the Expression to a Python object:
@@ -1132,16 +1093,6 @@ class Symbol(Atom):
     def do_copy(self):
         return Symbol(self.name)
     
-    def to_sage(self, defintions, subs):
-        from mathics.builtin import mathics_to_sage
-        
-        builtin = mathics_to_sage.get(self.name)
-        if builtin is None or not builtin.sage_name:
-            # sage.integrate runs endlessly when called with unicode variables!
-            return sage_var(sage_symbol_prefix + self.name.encode('utf8'))
-        else:
-            return getattr(sage, builtin.sage_name)
-        
     def to_sympy(self, **kwargs):
         from mathics.builtin import mathics_to_sympy
         
@@ -1291,9 +1242,6 @@ class Integer(Number):
     def default_format(self):
         return str(self.value)
         
-    def to_sage(self, definitions, subs):
-        return sage.Integer(str(self.value))
-    
     def to_sympy(self, **kwargs):
         return sympy.Integer(int(self.value))
     
@@ -1342,9 +1290,6 @@ class Rational(Number):
     def __setstate__(self, dict):
         self.value = sympy.Rational(dict['value'])
         
-    def to_sage(self, definitions, subs):
-        return sage.Rational(map(str, self.value.as_numer_denom()))
-    
     def to_sympy(self, **kwargs):
         return self.value
     
@@ -1481,10 +1426,6 @@ class Real(Number):
         else:
             return number_boxes(base)
 
-    def to_sage(self, definitions, subs):
-        #TODO
-        return None
-    
     def to_sympy(self, **kwargs):
         return self.value
     
@@ -1552,9 +1493,6 @@ class Complex(Number):
         self.value = (self.real, self.imag)
         self.prec = p
         
-    def to_sage(self, definitions, subs):
-        raise NotImplementedError
-    
     def to_sympy(self, **kwargs):
         return self.sympy
     
@@ -1764,9 +1702,6 @@ class String(Atom):
     
     def get_string_value(self):
         return self.value
-    
-    def to_sage(self, definitions, subs):
-        return subs.substitute(self, definitions)
     
     def to_sympy(self, **kwargs):
         return self.value

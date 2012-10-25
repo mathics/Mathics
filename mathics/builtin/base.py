@@ -21,15 +21,8 @@ u"""
 from mathics.core.definitions import Definition
 from mathics.core.rules import Rule, BuiltinRule, Pattern
 from mathics.core.expression import BaseExpression, Expression, Symbol, String, Integer
-from mathics.core.expression import from_sage
 
 import re
-
-try:
-    from sage import all as sage
-except (ImportError, RuntimeError):
-    pass    
-
 import sympy
 
 class Builtin(object):
@@ -349,13 +342,13 @@ class Test(Builtin):
         else:
             return Symbol('False')
         
-class SageObject(Builtin):
+class SympyObject(Builtin):
     sage_name = None
     sage_names_alt = []
     sympy_name = None
     
     def __init__(self, *args, **kwargs):
-        super(SageObject, self).__init__(*args, **kwargs)
+        super(SympyObject, self).__init__(*args, **kwargs)
         if self.sage_name is None:
             self.sage_name = self.get_name().lower()
         if self.sympy_name is None:
@@ -364,21 +357,10 @@ class SageObject(Builtin):
     def is_constant(self):
         return False
 
-class SageFunction(SageObject):            
-    def prepare_sage(self, leaves):
-        return leaves  
-    
+class SympyFunction(SympyObject):            
     def prepare_sympy(self, leaves):
         return leaves
             
-    def to_sage(self, expr, definitions, subs):
-        try:
-            if self.sage_name:
-                leaves = self.prepare_sage(expr.leaves)
-                return getattr(sage, self.sage_name)(*(leaf.to_sage(definitions, subs) for leaf in leaves))
-        except TypeError:
-            pass
-        
     def to_sympy(self, expr, **kwargs):
         try:
             if self.sympy_name:
@@ -387,13 +369,10 @@ class SageFunction(SageObject):
         except TypeError:
             pass
 
-    def from_sage(self, leaves):
-        return leaves
-    
     def from_sympy(self, leaves):
         return leaves
     
-class SageConstant(SageObject, Predefined):
+class SympyConstant(SympyObject, Predefined):
     attributes = ('Constant', 'ReadProtected')
     
     def is_constant(self):

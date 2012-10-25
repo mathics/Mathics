@@ -6,10 +6,10 @@ Calculus functions
 
 import re
 
-from mathics.builtin.base import Builtin, PostfixOperator, SageFunction
+from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import Expression, String, Integer, Number
-from mathics.core.expression import from_sage, ConvertSubstitutions, from_sympy
-from mathics.core.convert import sage_symbol_prefix, sympy_symbol_prefix
+from mathics.core.expression import ConvertSubstitutions, from_sympy
+from mathics.core.convert import sympy_symbol_prefix
 from mathics.core.util import unicode_superscript
 from mathics.core.rules import Pattern
 from mathics.builtin.scoping import dynamic_scoping
@@ -23,7 +23,7 @@ except (ImportError, RuntimeError):
 
 import sympy
 
-class D(SageFunction):
+class D(SympyFunction):
     u"""
     <dl>
     <dt>'D[$f$, $x$]'
@@ -154,7 +154,7 @@ class D(SageFunction):
         evaluation.message('D', 'dvar', arg)
         return Expression('D', expr, arg)
     
-class Derivative(PostfixOperator, SageFunction):    
+class Derivative(PostfixOperator, SympyFunction):    
     u"""
     <dl>
     <dt>'Derivative[$n$][$f$]'
@@ -320,7 +320,7 @@ class Derivative(PostfixOperator, SageFunction):
 
         return sym_func
 
-class Integrate(SageFunction):
+class Integrate(SympyFunction):
     r"""
     <dl>
     <dt>'Integrate[$f$, $x$]'
