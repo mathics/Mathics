@@ -205,8 +205,6 @@ class Derivative(PostfixOperator, SympyFunction):
     precedence = 670
     attributes = ('NHoldAll',)
     
-    sage_name = ''
-    
     rules = {
         'MakeBoxes[Derivative[n__Integer][f_], form:StandardForm|TraditionalForm]':
             r'SuperscriptBox[MakeBoxes[f, form], If[{n} === {2}, "\[Prime]\[Prime]", If[{n} === {1}, "\[Prime]", RowBox[{"(", Sequence @@ Riffle[{n}, ","], ")"}]]]]',
@@ -251,41 +249,6 @@ class Derivative(PostfixOperator, SympyFunction):
     def __init__(self, *args, **kwargs):
         super(Derivative, self).__init__(*args, **kwargs)
         
-    """
-    def to_sage(self, expr, definitions, subs):
-        try:
-            fd = expr.head
-            args = expr.leaves
-            d = fd.head
-        except AttributeError:
-            try:
-                args = None
-                fd = expr
-                d = fd.head
-            except AttributeError:
-                return
-        if d.get_head_name() != self.get_name():
-            return
-        d_params = []
-        for index, count in enumerate(d.leaves):
-            count = count.get_int_value()
-            if count is None:
-                return
-            count = int(count)
-            d_params.extend([index] * count)
-        if len(fd.leaves) != 1:
-            return
-        f = fd.leaves[0]
-        f_name = f.get_name()
-        if not f_name:
-            return
-        op = FDerivativeOperator(sage_function(sage_symbol_prefix + f_name), d_params)
-        if args is not None:
-            op = op(*(arg.to_sage(definitions, subs) for arg in args))
-              
-        return op
-    """
-    
     def post_parse(self, expression):
         count = 0
         inner = expression
@@ -393,7 +356,6 @@ class Integrate(SympyFunction):
     
     attributes = ('ReadProtected',)
     
-    sage_name = ''
     sympy_name = 'Integral'
     
     messages = {
@@ -412,7 +374,7 @@ class Integrate(SympyFunction):
             r'RowBox[{SubsuperscriptBox["\[Integral]", MakeBoxes[a, form], MakeBoxes[b, form]], MakeBoxes[f, form], "\[InvisibleTimes]", RowBox[{"\[DifferentialD]", MakeBoxes[x, form]}]}]',
     }
     
-    def prepare_sage(self, leaves):
+    def prepare_sympy(self, leaves):
         if len(leaves) == 2:
             x = leaves[1]
             if x.has_form('List', 3):
@@ -421,14 +383,6 @@ class Integrate(SympyFunction):
                 return ('Integrate', leaves)
         return leaves
             
-    def from_sage(self, leaves):
-        if len(leaves) == 4:
-            return (leaves[0], Expression('List', *leaves[1:4]))
-        else:
-            return leaves
-        
-    prepare_sympy = prepare_sage
-    
     def from_sympy(self, leaves):
         args = []
         for leaf in leaves[1:]:
