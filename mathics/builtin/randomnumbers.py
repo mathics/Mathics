@@ -13,7 +13,7 @@ import cPickle as pickle
 import binascii
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Integer, String, Symbol, Real
+from mathics.core.expression import Integer, String, Symbol, Real, Expression
 
 def get_random_state():
     state = random.getstate()
@@ -175,19 +175,38 @@ class RandomInteger(Builtin):
     rules = {
         'RandomInteger[]': 'RandomInteger[{0, 1}]',
         'RandomInteger[max_Integer]': 'RandomInteger[{0, max}]',
-        'RandomInteger[spec_, n_]': 'Table[RandomInteger[spec], {n}]',
-        'RandomInteger[spec_, ns_List]': 'Table[RandomInteger[spec], Evaluate[Sequence @@ List /@ ns]]',
+        'RandomInteger[max_Integer, ns_]': 'RandomInteger[{0, max}, ns]',
+        'RandomInteger[spec_, n_Integer]': 'RandomInteger[spec, {n}]',
     }
     
-    def apply(self, min, max, evaluation):
-        'RandomInteger[{min_, max_}]'
+    def apply(self, rmin, rmax, evaluation):
+        'RandomInteger[{rmin_, rmax_}]'
         
-        if not isinstance(min, Integer) or not isinstance(max, Integer):
-            return evaluation.message('RandomInteger', 'unifr', Expression('List', min, max))
-        min, max = min.value, max.value
+        if not isinstance(rmin, Integer) or not isinstance(rmax, Integer):
+            return evaluation.message('RandomInteger', 'unifr', Expression('List', rmin, rmax))
+        rmin, rmax = rmin.value, rmax.value
         with RandomEnv(evaluation) as rand:
-            return Integer(rand.randint(min, max))
-    
+            return Integer(rand.randint(rmin, rmax))
+
+    def apply_list(self, rmin, rmax, ns, evaluation):
+        'RandomInteger[{rmin_, rmax_}, ns_?ListQ]'
+        if not isinstance(rmin, Integer) or not isinstance(rmax, Integer):
+            return evaluation.message('RandomInteger', 'unifr', Expression('List', rmin, rmax))
+        rmin, rmax = rmin.value, rmax.value
+        result = ns.to_python()
+
+        assert all([isinstance(i, int) for i in result])
+        
+        with RandomEnv(evaluation) as rand:
+            def search_product(i):
+                if i == len(result) -1:
+                        return Expression('List', *[Integer(rand.randint(rmin, 
+                          rmax)) for j in range(result[i])])
+                else:
+                    return Expression('List', 
+                      *[search_product(i+1) for j in range(result[i])])
+            return search_product(0)
+
 class RandomReal(Builtin):
     """
     <dl>
