@@ -244,8 +244,8 @@ class RandomReal(Builtin):
     rules = {
         'RandomReal[]': 'RandomReal[{0, 1}]',
         'RandomReal[max_Integer]': 'RandomReal[{0, max}]',
-        'RandomReal[spec_, n_]': 'Table[RandomReal[spec], {n}]',
-        'RandomReal[spec_, ns_List]': 'Table[RandomReal[spec], Evaluate[Sequence @@ List /@ ns]]',
+        'RandomReal[max_Integer, ns_]': 'RandomReal[{0, max}, ns]',
+        'RandomReal[spec_, n_Integer]': 'RandomReal[spec, {n}]',
     }
     
     def apply(self, min, max, evaluation):
@@ -258,3 +258,21 @@ class RandomReal(Builtin):
         with RandomEnv(evaluation) as rand:
             return Real(rand.randreal(min_value, max_value))
             
+    def apply_list(self, rmin, rmax, ns, evaluation):
+        'RandomReal[{rmin_, rmax_}, ns_?ListQ]'
+        min_value, max_value = rmin.get_real_value(), rmax.get_real_value()
+        if min_value is None or max_value is None:
+            return evaluation.message('RandomReal', 'unifr', Expression('List', min, max))
+
+        result = ns.to_python()
+
+        assert all([isinstance(i, int) for i in result])
+        
+        with RandomEnv(evaluation) as rand:
+            def search_product(i):
+                if i == len(result) -1:
+                        return Expression('List', *[Real(rand.randreal(min_value, max_value))
+                          for j in range(result[i])])
+                else:
+                    return Expression('List', *[search_product(i+1) for j in range(result[i])])
+            return search_product(0)
