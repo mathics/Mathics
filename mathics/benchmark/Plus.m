@@ -59,7 +59,25 @@ Timing[Plus @@ l1][[1]]
 Timing[Plus @@ l1][[1]]
 
 (* Addition of Exact Complex Numbers *)
+l1 = Table[Complex[1, 1], {1000}];
+Timing[Plus @@ l1][[1]]
+Timing[Plus @@ l1][[1]]
+Timing[Plus @@ l1][[1]]
+Timing[Plus @@ l1][[1]]
+Timing[Plus @@ l1][[1]]
 
 (* Addition of Inexact Complex Numbers *)
+l1 = RandomComplex[1+I, {1000}];
+l2 = RandomComplex[{-1-I, 1+I}, {1000}];
+Timing[Plus @@ l1][[1]]
+Timing[Plus @@ l1][[1]]
+Timing[Plus @@ l1][[1]]
+Timing[Plus @@ l1][[1]]
+Timing[Plus @@ l1][[1]]
+Timing[Plus @@ l2][[1]]
+Timing[Plus @@ l2][[1]]
+Timing[Plus @@ l2][[1]]
+Timing[Plus @@ l2][[1]]
+Timing[Plus @@ l2][[1]]
 
 (* Symbolic Additions *)
