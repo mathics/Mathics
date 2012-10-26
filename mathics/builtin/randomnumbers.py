@@ -13,7 +13,7 @@ import cPickle as pickle
 import binascii
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Integer, String, Symbol, Real, Expression
+from mathics.core.expression import Integer, String, Symbol, Real, Expression, Complex
 
 def get_random_state():
     state = random.getstate()
@@ -211,11 +211,11 @@ class RandomReal(Builtin):
     """
     <dl>
     <dt>'RandomReal[{$min$, $max$}]'
-        <dd>yields a pseudorandom real numbers in the range from $min$ to $max$.
+        <dd>yields a pseudorandom real number in the range from $min$ to $max$.
     <dt>'RandomReal[$max$]'
-        <dd>yields a pseudorandom real numbers in the range from 0 to $max$.
+        <dd>yields a pseudorandom real number in the range from 0 to $max$.
     <dt>'RandomReal[]'
-        <dd>yields a pseudorandom real numbers in the range from 0 to 1.
+        <dd>yields a pseudorandom real number in the range from 0 to 1.
     <dt>'RandomReal[$range$, $n$]'
         <dd>gives a list of $n$ pseudorandom real numbers.
     <dt>'RandomReal[$range$, {$n1$, $n2$, ...}]'
@@ -243,36 +243,132 @@ class RandomReal(Builtin):
     
     rules = {
         'RandomReal[]': 'RandomReal[{0, 1}]',
-        'RandomReal[max_Integer]': 'RandomReal[{0, max}]',
-        'RandomReal[max_Integer, ns_]': 'RandomReal[{0, max}, ns]',
+        'RandomReal[max_?NumberQ]': 'RandomReal[{0, max}]',
+        'RandomReal[max_?NumberQ, ns_]': 'RandomReal[{0, max}, ns]',
         'RandomReal[spec_, n_Integer]': 'RandomReal[spec, {n}]',
     }
     
-    def apply(self, min, max, evaluation):
-        'RandomReal[{min_, max_}]'
-        
-        min_value = min.get_real_value()
-        max_value = max.get_real_value()
-        if min_value is None or max_value is None:
-            return evaluation.message('RandomReal', 'unifr', Expression('List', min, max))
+    def apply(self, xmin, xmax, evaluation):
+        'RandomReal[{xmin_, xmax_}]'
+
+        if not (isinstance(xmin, (Real, Integer)) and isinstance(xmax, (Real, Integer))):
+            return evaluation.message('RandomComplex', 'unifr', Expression('List', xmin, xmax))
+
+        min_value, max_value = xmin.to_python(), xmax.to_python()
+
         with RandomEnv(evaluation) as rand:
             return Real(rand.randreal(min_value, max_value))
             
-    def apply_list(self, rmin, rmax, ns, evaluation):
-        'RandomReal[{rmin_, rmax_}, ns_?ListQ]'
-        min_value, max_value = rmin.get_real_value(), rmax.get_real_value()
-        if min_value is None or max_value is None:
-            return evaluation.message('RandomReal', 'unifr', Expression('List', min, max))
+    def apply_list(self, xmin, xmax, ns, evaluation):
+        'RandomReal[{xmin_, xmax_}, ns_?ListQ]'
 
+        if not (isinstance(xmin, (Real, Integer)) and isinstance(xmax, (Real, Integer))):
+            return evaluation.message('RandomComplex', 'unifr', Expression('List', xmin, xmax))
+
+        min_value, max_value = xmin.to_python(), xmax.to_python()
         result = ns.to_python()
+
+        if not all([isinstance(i, int) and i >= 0 for i in result]):
+            return evaluation.message('RandomComplex', 'array', ns, expr)
 
         assert all([isinstance(i, int) for i in result])
         
         with RandomEnv(evaluation) as rand:
             def search_product(i):
-                if i == len(result) -1:
+                if i == len(result)-1:
                         return Expression('List', *[Real(rand.randreal(min_value, max_value))
                           for j in range(result[i])])
                 else:
                     return Expression('List', *[search_product(i+1) for j in range(result[i])])
             return search_product(0)
+
+class RandomComplex(Builtin):
+    """
+    <dl>
+    <dt>'RandomComplex[{$z_min$, $z_max$}]'
+        <dd>yields a pseudorandom complex number in the rectangle with complex corners $z_min$ and $z_max$.
+    <dt>'RandomComplex[$z_max$]'
+        <dd>yields a pseudorandom complex number in the rectangle with corners at the origin and at $z_max$.
+    <dt>'RandomComplex[]'
+        <dd>yields a pseudorandom complex number with real and imaginary parts from 0 to 1.
+    <dt>'RandomComplex[$range$, $n$]'
+        <dd>gives a list of $n$ pseudorandom complex numbers.
+    <dt>'RandomComplex[$range$, {$n1$, $n2$, ...}]'
+        <dd>gives a nested list of pseudorandom complex numbers.
+    </dl>
+    
+    >> RandomComplex[]
+     = ...
+    #> 0 <= Re[%] <= 1 && 0 <= Im[%] <= 1
+     = True
+    
+    >> RandomComplex[{1+I, 5+5I}]
+     = ...
+    #> 1 <= Re[%] <= 5 && 1 <= Im[%] <= 5
+     = True
+
+    >> RandomComplex[1+I, 5]
+     = {..., ..., ..., ..., ...}
+
+    >> RandomComplex[{1+I, 2+2I}, {2, 2}]
+     = {{..., ...}, {..., ...}}
+    """
+    
+    messages = {
+        'unifr': "The endpoints specified by `1` for the endpoints of the discrete uniform distribution range are not complex valued.",
+        'array': "The array dimensions `1` given in position 2 of `2` should be a list of non-negative machine-sized integers giving the dimensions for the result.",
+    }
+    
+    rules = {
+        'RandomComplex[]': 'RandomComplex[{0, 1+I}]',
+        'RandomComplex[zmax_?NumberQ]': 'RandomComplex[{0, zmax}]',
+        'RandomComplex[zmax_?NumberQ, ns_]': 'RandomComplex[{0, zmax}, ns]',
+    }
+    
+    def apply(self, zmin, zmax, evaluation):
+        'RandomComplex[{zmin_, zmax_}]'
+        if Expression('RealNumberQ', zmin).evaluate(evaluation):
+            zmin = Complex(zmin, 0.0)
+        if Expression('RealNumberQ', zmax).evaluate(evaluation):
+            zmax = Complex(zmax, 0.0)
+
+        if not (isinstance(zmin, Complex) and isinstance(zmax, Complex)):
+            return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
+
+        min_value, max_value = zmin.to_python(), zmax.to_python()
+
+        with RandomEnv(evaluation) as rand:
+            return Complex(rand.randreal(min_value.real, max_value.real),
+              rand.randreal(min_value.imag, max_value.imag))
+            
+    def apply_list(self, zmin, zmax, ns, evaluation):
+        'RandomComplex[{zmin_, zmax_}, ns_]'
+        expr = Expression('RandomComplex', Expression('List', zmin, zmax), ns)
+
+        if Expression('RealNumberQ', zmin).evaluate(evaluation):
+            zmin = Complex(zmin, 0.0)
+        if Expression('RealNumberQ', zmax).evaluate(evaluation):
+            zmax = Complex(zmax, 0.0)
+
+        if not (isinstance(zmin, Complex) and isinstance(zmax, Complex)):
+            return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
+
+        min_value, max_value = zmin.to_python(), zmax.to_python()
+
+        py_ns = ns.to_python()
+        if not isinstance(py_ns, list):
+            py_ns = [py_ns]
+
+        if not all([isinstance(i, int) and i >= 0 for i in py_ns]):
+            return evaluation.message('RandomComplex', 'array', ns, expr)
+        
+        with RandomEnv(evaluation) as rand:
+            def search_product(i):
+                if i == len(py_ns)-1:
+                        return Expression('List', *[Complex(rand.randreal(min_value.real, max_value.real),
+                            rand.randreal(min_value.imag, max_value.imag)) for j in range(py_ns[i])])
+                else:
+                    return Expression('List', *[search_product(i+1) for j in range(py_ns[i])])
+            return search_product(0)
+
+
