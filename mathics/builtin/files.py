@@ -1471,22 +1471,22 @@ class Uncompress(Builtin):
 
         return expr
 
-
-class ByteCount(Builtin):
-    """
-    <dl>
-    <dt>'ByteCount[$expr$]'
-      <dd>returns the number of bytes to store $expr$.
-    </dl>
-
-    >> ByteCount[{1, 2, 3, 4, 5}]
-     = 128
-    """
-
-    def apply(self, expr, evaluation):
-        'ByteCount[expr_]'
-        full = expr.do_format(evaluation, 'FullForm').__str__()
-        return from_python(sys.getsizeof(full))
+# TODO: Find a better way to do this
+#class ByteCount(Builtin):
+#    """
+#    <dl>
+#    <dt>'ByteCount[$expr$]'
+#      <dd>returns the number of bytes to store $expr$.
+#    </dl>
+#
+#    >> ByteCount[{1, 2, 3, 4, 5}]
+#     = 128
+#    """
+#
+#    def apply(self, expr, evaluation):
+#        'ByteCount[expr_]'
+#        full = expr.do_format(evaluation, 'FullForm').__str__()
+#        return from_python(sys.getsizeof(full))
 
 
 class FileByteCount(Builtin):
