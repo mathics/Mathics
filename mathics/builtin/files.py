@@ -1379,7 +1379,7 @@ class StringToStream(Builtin):
     def apply(self, string, evaluation):
         'StringToStream[string_]'
         pystring = string.to_python().strip('"')
-        stream = io.StringIO(initial_value=unicode(pystring))
+        stream = io.StringIO(unicode(pystring))
         n = _put_stream(stream)
         result = Expression('InputStream', from_python('String'), n)
 
