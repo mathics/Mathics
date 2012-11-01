@@ -14,7 +14,7 @@ import sys
 import tempfile
 
 from mathics.core.expression import Expression, String, Symbol, from_python
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator
+from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
 from mathics.settings import ROOT_DIR
 
 STREAMS = {}
@@ -643,6 +643,58 @@ class OpenAppend(_OpenAction):
 
     mode = 'a'
     stream_type = 'OutputStream'
+
+
+class Get(PrefixOperator):
+    """
+    <dl>
+    <dt>'<<name'
+      <dd>reads a file and evaluates each expression, returning only the last one.
+    </dl>
+
+    >> Put[x + y, "example_file"]
+    >> <<"example_file"
+     = x + y
+    
+    >> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], "example_file"]
+    >> <<"example_file"
+     = Cos[x] + I Sin[x]
+    #> DeleteFile["example_file"]
+
+    >> 40! >> "fourtyfactorial"
+    >> FilePrint["fourtyfactorial"]
+     = 815915283247897734345611269596115894272000000000
+    >> <<"fourtyfactorial"
+     = 815915283247897734345611269596115894272000000000
+    #> DeleteFile["fourtyfactorial"]
+    """
+
+    operator = '<<'
+    precedence = 290 #FIXME: what value is appropriate here?
+
+    def apply(self, path, evaluation):
+        'Get[path_?StringQ]'
+        pypath = path.get_string_value()
+        try:
+            f = mathics_open(pypath, 'r')
+            result = f.readlines()
+            f.close()
+        except IOError:
+            evaluation.message('General', 'noopen', path)
+            return
+        for tmp in result:
+            try:
+                expr = parse(tmp)
+            except NameError:
+                from mathics.core.parser import parse, ParseError
+                expr = parse(tmp)
+        return expr
+
+    def apply_default(self, exprs, filename, evaluation):
+        'Get[filename_]'
+        expr = Expression('Get', filename)
+        evaluation.message('General', 'stream', filename)
+        return expr
 
 
 class Put(BinaryOperator):
