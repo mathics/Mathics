@@ -4,6 +4,7 @@
 File Operations
 """
 
+from __future__ import with_statement
 import os
 import io
 import shutil
@@ -26,15 +27,49 @@ INPUT_VAR = ""
 INPUTFILE_VAR = ""
 PATH_VAR = [HOME_DIR, os.path.join(ROOT_DIR, 'data')]
 
-def mathics_open(filename, mode='r'):
-    path = path_search(filename)
-    if path is not None:
-        return io.open(path, mode)
+class mathics_open:
+    def __init__(self, filename, mode='r'):
+        self.filename = filename
+        self.mode = mode
+        self.file = None
 
-    if mode == 'w':
-        return io.open(filename, mode)
+    def __enter__(self):
+        path = path_search(self.filename)
+        if path is not None:
+            self.file = io.open(path, self.mode)
+        elif self.mode == 'w':
+            self.file = io.open(self.filename, self.mode)
+        return self
 
-    return None
+    def __exit__(self, type, value, traceback):
+        if self.file is not None:
+            self.file.close()
+
+    def read(self, *args):
+        return self.file.read(*args)
+
+    def write(self, *args):
+        return self.file.write(*args)
+
+    def readlines(self):
+        return self.file.readlines()
+
+    def seek(self, *args):
+        return self.file.seek(*args)
+
+    def tell(self):
+        return self.file.tell()
+
+    def close(self):
+        self.file.close()
+
+    @property
+    def closed(self):
+        return self.file.closed
+
+    @property
+    def seekable(self):
+        return self.file.seekable
 
 def path_search(filename):
     if os.path.exists(filename):
@@ -554,7 +589,7 @@ class _OpenAction(Builtin):
         path_string = path.to_python().strip('"')
 
         try:
-            stream = mathics_open(path_string, mode=self.mode)
+            stream = mathics_open(path_string, mode=self.mode).__enter__()
         except IOError:
             evaluation.message('General', 'noopen', path)
             return
@@ -580,7 +615,7 @@ class _OpenAction(Builtin):
         tmpf.close()
 
         try:
-            stream = mathics_open(path_string, mode='w')
+            stream = mathics_open(path_string, mode='w').__enter__()
         except IOError:
             evaluation.message('General', 'noopen', String(path_string))
             return
@@ -676,9 +711,8 @@ class Get(PrefixOperator):
         'Get[path_?StringQ]'
         pypath = path.get_string_value()
         try:
-            f = mathics_open(pypath, 'r')
-            result = f.readlines()
-            f.close()
+            with mathics_open(pypath, 'r') as f:
+                result = f.readlines()
         except IOError:
             evaluation.message('General', 'noopen', path)
             return
@@ -980,12 +1014,10 @@ class FilePrint(Builtin):
             evaluation.message('FilePrint', 'fstr', path)
             return
         pypath = pypath.strip('"')
-        pypath = path_search(pypath)
 
         try:
-            f = mathics_open(pypath, 'r')
-            result = f.read()
-            f.close()
+            with mathics_open(pypath, 'r') as f:
+                result = f.read()
         except IOError:
             evaluation.message('General', 'noopen', path)
             return
@@ -1358,9 +1390,8 @@ class FindList(Builtin):
         results = []
         for path in py_name:
             try:
-                f = mathics_open(path, 'r')
-                lines = f.readlines()
-                f.close()
+                with mathics_open(path, 'r') as f:
+                    lines = f.readlines()
             except IOError:
                 evaluation.message('General', 'noopen', path)
                 return
@@ -1565,15 +1596,13 @@ class FileByteCount(Builtin):
         py_filename = py_filename.strip('"')
 
         try:
-            f = mathics_open(py_filename, 'rb')
-
-            count = 0 
-            tmp = f.read(1)
-            while tmp != '':
-                count += 1
+            with mathics_open(py_filename, 'rb') as f:
+                count = 0 
                 tmp = f.read(1)
+                while tmp != '':
+                    count += 1
+                    tmp = f.read(1)
 
-            f.close()
         except IOError:
             evaluation.message('General', 'noopen', filename)
             return
@@ -1646,9 +1675,8 @@ class FileHash(Builtin):
             return
 
         try:
-            f = mathics_open(py_filename, 'rb')
-            dump = f.read()
-            f.close()
+            with mathics_open(py_filename, 'rb') as f:
+                dump = f.read()
         except IOError:
             evaluation.message('General', 'noopen', filename)
             return
