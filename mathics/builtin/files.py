@@ -35,10 +35,13 @@ class mathics_open:
 
     def __enter__(self):
         path = path_search(self.filename)
+
+        encoding = 'utf-8' if 'b' not in self.mode else None
+
         if path is not None:
-            self.file = io.open(path, self.mode)
+            self.file = io.open(path, self.mode, encoding=encoding)
         elif self.mode == 'w':
-            self.file = io.open(self.filename, self.mode)
+            self.file = io.open(self.filename, self.mode, encoding=encoding)
         return self
 
     def __exit__(self, type, value, traceback):
