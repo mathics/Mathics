@@ -27,6 +27,7 @@ from distribute_setup import use_setuptools
 use_setuptools()
 
 from setuptools import setup
+from distutils.core import Command
 from distutils.extension import Extension
 
 import sys
@@ -63,7 +64,41 @@ INSTALL_REQUIRES += ['django>=1.2']
 def subdirs(root, file='*.*', depth=10):
     for k in range(depth):
         yield root + '*/' * k + file
-    
+
+class initialize(Command):
+    """
+    Creates the database used by Django
+    """
+
+    description = "create the database used by django"
+    user_options = []  # distutils complains if this is not here.
+
+    def __init__(self, *args):
+        self.args = args[0] # so we can pass it to other classes
+        Command.__init__(self, *args)
+
+    def initialize_options(self):  # distutils wants this
+        pass
+
+    def finalize_options(self):    # this too
+        pass
+
+    def run(self):
+        import os
+        import subprocess
+
+        database_file = settings.DATABASES['default']['NAME']
+        print "Creating data directory %s" % settings.DATA_DIR
+        if not os.path.exists(settings.DATA_DIR):
+            os.makedirs(settings.DATA_DIR)
+        print "Creating database %s" % database_file
+        subprocess.call([sys.executable, 'mathics/manage.py', 'syncdb', '--noinput'])
+        os.chmod(database_file, 0766)
+        print ""
+        print "Mathics initialized successfully."
+        
+CMDCLASS['initialize'] = initialize
+
 mathjax_files = list(subdirs('media/js/mathjax/'))
 
 setup(
