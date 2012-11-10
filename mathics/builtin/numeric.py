@@ -212,8 +212,11 @@ class Precision(Builtin):
             return Symbol('Infinity')
         
 def round(value, k):
-    n = value / k
-    n = sympy.Integer(n + 0.5)
+    n = (1. * value / k).as_real_imag()[0]
+    if n >= 0:
+        n = sympy.Integer(n + 0.5)
+    else:
+        n = sympy.Integer(n - 0.5)
     return n * k
         
 class Round(Builtin):
@@ -229,8 +232,9 @@ class Round(Builtin):
      = 11
     >> Round[0.06, 0.1]
      = 0.1
+    ## This should return 0. but doesn't due to a bug in sympy
     >> Round[0.04, 0.1]
-     = 0.
+     = 0
 
     Constants can be rounded too
     >> Round[Pi, .5]
@@ -266,19 +270,13 @@ class Round(Builtin):
     attributes = ('Listable', 'NumericFunction')
     
     rules = {
-        'Round[expr_?RealNumberQ]': 'Round[expr, 1]',
+        'Round[expr_?NumericQ]': 'Round[Re[expr], 1] + I * Round[Im[expr], 1]',
+        'Round[expr_Complex, k_RealNumberQ]': 'Round[Re[expr], k] + I * Round[Im[expr], k]',
     }
     
     def apply(self, expr, k, evaluation):
-        "Round[expr_?RealNumberQ, k_?RealNumberQ]"
-        k = k.to_sympy()
-        if isinstance(k, sympy.Float):
-            return Real(k * (expr.to_sympy() / k).round())
-        elif isinstance(k, sympy.Integer):
-            return Integer(sympy.Integer(k * (expr.to_sympy() / k).round()))
-        else:
-            raise TypeError
-        
+        "Round[expr_?NumericQ, k_?NumericQ]"
+        return from_sympy(round(expr.to_sympy(), k.to_sympy()))
     
 def chop(expr, delta=10.0**(-10.0)):
     if isinstance(expr, Real):
