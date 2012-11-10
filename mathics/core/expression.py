@@ -1196,7 +1196,7 @@ class Number(Atom):
             real, imag = value.as_real_imag()
             return Complex(real, imag, prec)
         
-        if isinstance(value, int):
+        if isinstance(value, (int,long)):
             return Integer(value)
         elif isinstance(value, float):
             return Real(value)
@@ -1218,14 +1218,13 @@ def number_boxes(text):
 class Integer(Number):
     def __init__(self, value, **kwargs):
         super(Integer, self).__init__(**kwargs)
-        self.value = sympy.Integer(str(value))
+        self.value = int(value)
         
     def __getstate__(self):
-        # pickling of mpz sometimes failes...
-        return {'value': str(self.value)}
+        return {'value': self.value}
     
     def __setstate__(self, dict):
-        self.value = sympy.Integer(dict['value'])
+        self.value = dict['value']
         
     def boxes_to_text(self, **options):
         return str(self.value)
@@ -1243,10 +1242,10 @@ class Integer(Number):
         return str(self.value)
         
     def to_sympy(self, **kwargs):
-        return sympy.Integer(int(self.value))
+        return sympy.Integer(self.value)
     
     def to_python(self, *args, **kwargs):
-        return int(self.value)
+        return self.value
         
     def get_int_value(self):
         return self.value
@@ -1259,8 +1258,7 @@ class Integer(Number):
         return self
     
     def round(self, precision):
-        return Real(sympy.Float(self.value.n(dps(precision)), precision))
-        #return Real(sympy.Float(self.value.n(precision), precision))
+        return Real(sympy.Float(self.value, precision))
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
