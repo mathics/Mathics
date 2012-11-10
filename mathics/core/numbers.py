@@ -44,7 +44,10 @@ def same(v1, v2):
 def is_0(value):
     return get_type(value) == 'z' and value == 0
 
-def sympy2mpmath(value, prec=64):
+def sympy2mpmath(value, prec=None):
+    if prec is None:
+        from mathics.builtin.numeric import machine_precision
+        prec = machine_precision
     value = value.n(dps(prec))
     if value.is_real:
         return mpmath.mpf(value)
@@ -57,7 +60,10 @@ class SpecialValueError(Exception):
     def __init__(self, name):
         self.name = name
 
-def mpmath2sympy(value, prec=64):
+def mpmath2sympy(value, prec=None):
+    if prec is None:
+        from mathics.builtin.numeric import machine_precision
+        prec = machine_precision
     if isinstance(value, mpmath.mpc):
         return sympy.Float(str(value.real), dps(prec)) + sympy.I * sympy.Float(str(value.imag), dps(prec))
     elif isinstance(value, mpmath.mpf):

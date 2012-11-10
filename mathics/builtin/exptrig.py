@@ -15,7 +15,7 @@ import mpmath
 
 from mathics.builtin.base import Builtin, Predefined, SympyConstant, SympyFunction
 from mathics.core.expression import Number, Real, Expression, Integer, from_sympy
-from mathics.core.numbers import dps
+from mathics.core.numbers import dps, prec
 
 from mathics.builtin.numeric import get_precision
 from mathics.builtin.arithmetic import _MPMathFunction
@@ -38,11 +38,11 @@ class Pi(SympyConstant):
 
     sympy_name = 'pi'
     
-    def apply_N(self, prec, evaluation):
-        'N[Pi, prec_]'
-        prec = get_precision(prec, evaluation)
-        if prec is not None:
-            return Real(sympy.pi.n(dps(prec)), p=prec)
+    def apply_N(self, precision, evaluation):
+        'N[Pi, precision_]'
+        precision = get_precision(precision, evaluation)
+        if precision is not None:
+            return Real(sympy.pi.n(dps(precision)), p=precision)
 
 class E(SympyConstant):
     """
@@ -65,11 +65,11 @@ class E(SympyConstant):
     
     sympy_name = 'E'
     
-    def apply_N(self, prec, evaluation):
-        'N[E, prec_]'
-        prec = get_precision(prec, evaluation)
-        if prec is not None:
-            return Real(sympy.E.n(dps(prec)), p=prec)
+    def apply_N(self, precision, evaluation):
+        'N[E, precision_]'
+        precision = get_precision(precision, evaluation)
+        if precision is not None:
+            return Real(sympy.E.n(dps(precision)), p=precision)
             
 class GoldenRatio(SympyConstant):
     """

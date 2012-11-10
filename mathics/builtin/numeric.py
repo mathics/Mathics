@@ -12,20 +12,21 @@ import mpmath
 import sympy
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import dps, mpmath2sympy
+from mathics.core.numbers import dps, mpmath2sympy, prec
 from mathics.core import numbers
 from mathics.core.expression import Integer, Rational, Real, Complex, Atom, Expression, Number, Symbol
 from mathics.core.convert import from_sympy
+from mathics.settings import MACHINE_PRECISION
 
-machine_precision = dps(sympy.Float(64))
+machine_precision = MACHINE_PRECISION
 
-def get_precision(prec, evaluation):
-    if prec.get_name() == 'MachinePrecision':
-        return numbers.prec(machine_precision)
-    elif isinstance(prec, (Integer, Rational, Real)):
-        return numbers.prec(prec.to_sympy())
+def get_precision(precision, evaluation):
+    if precision.get_name() == 'MachinePrecision':
+        return machine_precision
+    elif isinstance(precision, (Integer, Rational, Real)):
+        return prec(float(precision.to_sympy()))
     else:
-        evaluation.message('N', 'precbd', prec)
+        evaluation.message('N', 'precbd', precision)
         return None
 
 class N(Builtin):
@@ -164,7 +165,7 @@ class MachinePrecision(Predefined):
         
         prec = get_precision(prec, evaluation)
         if prec is not None:
-            return Real(machine_precision).round(prec)
+            return Real(dps(machine_precision), prec)
     
 class Precision(Builtin):
     """

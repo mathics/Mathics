@@ -21,6 +21,7 @@ u"""
 import sympy
 import mpmath
 import re
+import operator
 try:
     import cython
 except ImportError:
@@ -30,9 +31,6 @@ from mathics.core.numbers import format_float, prec, get_type, dps, prec, min_pr
 from mathics.core.evaluation import Evaluation
 from mathics.core.util import subsets, subranges, permutations, interpolate_string
 from mathics.core.convert import from_sympy, ConvertSubstitutions, sympy_symbol_prefix, SympyExpression
-
-import operator
-import sympy
 
 builtin_evaluation = Evaluation()
 
@@ -1258,7 +1256,7 @@ class Integer(Number):
         return self
     
     def round(self, precision):
-        return Real(sympy.Float(self.value, precision))
+        return Real(sympy.Float(self.value, dps(precision)))
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1331,29 +1329,33 @@ class Rational(Number):
             return [0, 0, sympy.Float(self.value), 0, 1]
     
     def get_real_value(self):
-        return self.value.n(18) #TODO: Use dps(machine_precision)
+        from mathics.builtin.numeric import machine_precision
+        return self.value.n(machine_precision)
     
     def do_copy(self):
         return Rational(self.value)
         
 class Real(Number):
     def __init__(self, value, p=None):
+        from mathics.builtin.numeric import machine_precision
         super(Real, self).__init__()
+        if p == 18:
+            raise NotImplementedError
 
         if isinstance(value, basestring):
             value = str(value)
             if p is None:
                 digits = (''.join(re.findall('[0-9]+', value))).lstrip('0')
                 if digits == '':     # Handle weird Mathematica zero case
-                    p = max(prec(len(value.replace('0.', ''))), 64)
+                    p = max(prec(len(value.replace('0.', ''))), machine_precision)
                 else:
-                    p = prec(len(digits.zfill(18)))
+                    p = prec(len(digits.zfill(dps(machine_precision))))
         elif isinstance(value, (Integer, sympy.Float, mpmath.mpf, float, int, sympy.Integer)):
             value = str(value)
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
         if p is None:
-            p = 64 #TODO: Use MachinePrecision
+            p = machine_precision
 
         self.value = sympy.Float(value, dps(p))
         self.prec = p
@@ -1378,8 +1380,9 @@ class Real(Number):
         return self.make_boxes('TeXForm').boxes_to_tex(**options)  
         
     def make_boxes(self, form):
+        from mathics.builtin.numeric import machine_precision
         if self.to_sympy() == sympy.Float('0.0'):
-            if self.prec == 64:     #TODO: Use MachinePrecision
+            if self.prec == machine_precision: #TODO: remove prec???
                 base, exp = ('0.', '0')
             else:
                 base, exp = ('0.', '-' + str(dps(self.prec)))

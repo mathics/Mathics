@@ -45,6 +45,9 @@ LOG_QUERIES = False
 TIMEOUT = None
 MAX_RECURSION_DEPTH = 200
 
+# number of bits of precision for inexact calculations
+MACHINE_PRECISION = 64
+
 ADMINS = (
     (u'Admin', 'mail@test.com'),
 )
