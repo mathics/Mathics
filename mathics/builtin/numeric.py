@@ -266,8 +266,6 @@ class Round(Builtin):
      = Round[1.5, k]
     """
 
-    #TODO: Pass all tests
-    
     attributes = ('Listable', 'NumericFunction')
     
     rules = {

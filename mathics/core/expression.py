@@ -1382,7 +1382,7 @@ class Real(Number):
     def make_boxes(self, form):
         from mathics.builtin.numeric import machine_precision
         if self.to_sympy() == sympy.Float('0.0'):
-            if self.prec == machine_precision: #TODO: remove prec???
+            if self.prec == machine_precision:
                 base, exp = ('0.', '0')
             else:
                 base, exp = ('0.', '-' + str(dps(self.prec)))

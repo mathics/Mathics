@@ -104,7 +104,6 @@ def add(x, y):
         
 def min_prec(*args):
     result = None
-    #TODO
     for arg in args:
         prec = arg.get_precision()
         if result is None or (prec is not None and prec < result):
