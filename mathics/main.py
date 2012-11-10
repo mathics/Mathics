@@ -96,14 +96,18 @@ def main():
                         print ' = %s' % to_output(unicode(result.result))           
         if not args.persist:
             return
-    
+
+    trailing_ops = ['+', '-', '/', '*'] # TODO all binary operators?
+
     while True:
         try: 
             total_input = ""
             line_input = raw_input('>> ')
             while line_input != "":
                 total_input += ' ' + line_input
-                if brackets_balanced(total_input):
+                if not all([not line_input.rstrip().endswith(op) for op in trailing_ops]):
+                    pass
+                elif brackets_balanced(total_input):
                     break
                 line_input = raw_input('       ')
         
