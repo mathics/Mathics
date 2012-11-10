@@ -37,6 +37,22 @@ from mathics import print_version, print_license, get_version_string
 def to_output(text):
     return '\n . '.join(text.splitlines())
 
+# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/
+def brackets_balanced(input_string):
+    brackets = [ ('(',')'), ('[',']'), ('{','}')]
+    kStart, kEnd, stack = 0, 1, []
+    for char in input_string:
+        for bracketPair in brackets:
+            if char == bracketPair[kStart]:
+                stack.append(char)
+            elif char == bracketPair[kEnd] and (len(stack) == 0 or stack.pop() != bracketPair[kStart]):
+                # Brackets are not balanced, but return True so that a parse error can be raised
+                return True
+    if len(stack) == 0:
+        return True
+
+    return False
+
 def main():
     argparser = argparse.ArgumentParser(
         prog='mathics',
@@ -81,24 +97,29 @@ def main():
         if not args.persist:
             return
     
-    try:
-        while True:
-            try: 
-                input = raw_input('>> ')
+    while True:
+        try: 
+            total_input = ""
+            line_input = raw_input('>> ')
+            while line_input != "":
+                total_input += ' ' + line_input
+                if brackets_balanced(total_input):
+                    break
+                line_input = raw_input('       ')
+        
+            def out_callback(out):
+                print to_output(unicode(out))
             
-                def out_callback(out):
-                    print to_output(unicode(out))
-                
-                evaluation = Evaluation(input, definitions, timeout=30, out_callback=out_callback)
-            
-                for result in evaluation.results:
-                    if result.result is not None:
-                        print ' = %s' % to_output(unicode(result.result))
-            except (KeyboardInterrupt):
-                print '\nKeyboardInterrupt'
-
-    except (SystemExit, EOFError):
-        print "\n\nGood bye!\n"
+            evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
+        
+            for result in evaluation.results:
+                if result.result is not None:
+                    print ' = %s' % to_output(unicode(result.result))
+        except (KeyboardInterrupt):
+            print '\nKeyboardInterrupt'
+        except (SystemExit, EOFError):
+            print "\n\nGood bye!\n"
+            break
 
 if __name__ == '__main__':
     main()
