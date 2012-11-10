@@ -23,7 +23,10 @@ class DSolve(Builtin):
      = {{y[x] -> C[1] E ^ (-x) + C[2] E ^ x}}
 
     >> DSolve[y''[x] == y[x], y, x]
-     = {{y -> (Function[{x}, C[1] Exp[-x] + C[2] Exp[x]])}}
+     = ...
+    ## Order of terms depends on intepreter:
+    ## PyPy:    {{y -> (Function[{x}, C[1] Exp[-x] + C[2] Exp[x]])}}
+    ## CPython: {{y -> (Function[{x}, C[2] Exp[x] + C[1] Exp[-x]])}}
 
     #> Attributes[f] = {HoldAll}; 
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]

@@ -25,7 +25,10 @@ class RSolve(Builtin):
 
     One boundary condition:
     >> RSolve[{a[n + 2] == a[n], a[0] == 1}, a, n]
-     = {{a -> (Function[{n}, 1 - C[1] + C[1] -1 ^ n])}}
+     = ...
+    ## Order of terms depends on intepreter:
+    ## PyPy:    {{a -> (Function[{n}, 1 - C[1] + C[1] -1 ^ n])}}
+    ## CPython: {{a -> (Function[{n}, 1 + C[1] -1 ^ n - C[1]])}
 
     Two boundary conditions:
     >> RSolve[{a[n + 2] == a[n], a[0] == 1, a[1] == 4}, a, n]
