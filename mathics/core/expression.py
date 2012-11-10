@@ -1276,13 +1276,9 @@ class Integer(Number):
 class Rational(Number):
     def __init__(self, numerator, denominator=None, **kwargs):
         super(Rational, self).__init__(**kwargs)
-        if denominator is None:
-            self.value = sympy.Rational(numerator)
-        else:
-            self.value = sympy.Rational(numerator, denominator)
+        self.value = sympy.Rational(numerator, denominator)
         
     def __getstate__(self):
-        # pickling of mpz sometimes failes...
         return {'value': str(self.value)}
     
     def __setstate__(self, dict):
@@ -1352,24 +1348,15 @@ class Real(Number):
                     p = max(prec(len(value.replace('0.', ''))), 64)
                 else:
                     p = prec(len(digits.zfill(18)))
-        elif isinstance(value, (sympy.Float, mpmath.mpf, float, int, sympy.Integer)):
-            pass
-        elif isinstance(value, Integer):
-            if p is None:
-                value = value.round(64)
-            else:
-                value = value.round(p)
+        elif isinstance(value, (Integer, sympy.Float, mpmath.mpf, float, int, sympy.Integer)):
+            value = str(value)
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
         if p is None:
             p = 64 #TODO: Use MachinePrecision
 
-        self.value = sympy.Float(str(value), dps(p))
+        self.value = sympy.Float(value, dps(p))
         self.prec = p
-
-        #TODO: Remove these later
-        if not isinstance(self.value, sympy.Float):
-            raise TypeError('Unknown number type: %s (type %s) shold be sympy.Float' % (value, type(value)))
 
     def __getstate__(self):
         p = self.prec
