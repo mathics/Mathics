@@ -330,7 +330,10 @@ class Integrate(SympyFunction):
      = 4.
      
     #> Integrate[1/(x^5+1), x]
-     = RootSum[625 #1 ^ 4 + 125 #1 ^ 3 + 25 #1 ^ 2 + 5 #1 + 1&, #1 Log[x + 5 #1]&] + Log[1 + x] / 5
+     = ...
+    ## System dependent output:
+    ## ArchLinux: RootSum[625 #1 ^ 4 + 125 #1 ^ 3 + 25 #1 ^ 2 + 5 #1 + 1&, #1 Log[x + 5 #1]&] + Log[1 + x] / 5
+    ## Travis-CI: RootSum[625 #1 ^ 4 + 125 #1 ^ 3 + 25 #1 ^ 2 + 5 #1 + 1&, #1 Log[5 #1 + x]&] + Log[1 + x] / 5
     
     #> Integrate[ArcTan(x), x]
      = ArcTan x ^ 2 / 2
