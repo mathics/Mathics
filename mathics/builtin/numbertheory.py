@@ -4,9 +4,7 @@
 Number theoretic functions
 """
 
-from gmpy import invert, gcd, gcdext, lcm
 import sympy
-from sympy import isprime
 
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import Expression, Integer, Rational, Symbol
@@ -44,11 +42,11 @@ class PowerMod(Builtin):
             return
         if b < 0:
             b = -b
-            a = invert(a, m)
             if a == 0:
                 evaluation.message('PowerMod', 'ninv', a_int, m_int)
                 return
-        return Integer(pow(a, b, m))
+            a = sympy.invert(a, m)
+        return Integer(sympy.Mod(a ** b, m))
     
 class Mod(Builtin):
     """
@@ -131,44 +129,45 @@ class GCD(Builtin):
             value = n.get_int_value()
             if value is None:
                 return
-            result = gcd(result, value)
+            result = sympy.gcd(result, value)
         return Integer(result)
     
-class ExtendedGCD(Builtin):
-    u"""
-    >> ExtendedGCD[10, 15]
-     = {5, {-1, 1}}
-     
-    'ExtendedGCD' works with any number of arguments:
-    >> ExtendedGCD[10, 15, 7]
-     = {1, {-3, 3, -2}}
-    
-    Compute the greated common divisor and check the result:
-    >> numbers = {10, 20, 14};
-    >> {gcd, factors} = ExtendedGCD[Sequence @@ numbers]
-     = {2, {3, 0, -2}}
-    >> Plus @@ (numbers * factors)
-     = 2
-     
-    'ExtendedGCD' does not work for rational numbers and Gaussian integers yet.
-    """
-    
-    attributes = ('Listable',)
-    
-    def apply(self, ns, evaluation):
-        'ExtendedGCD[ns___Integer]'
-        
-        ns = ns.get_sequence()
-        result = 0
-        coeff = []
-        for n in ns:
-            value = n.get_int_value()
-            if value is None:
-                return
-            new_result, c1, c2 = gcdext(result, value)
-            result = new_result
-            coeff = [c * c1 for c in coeff] + [c2]
-        return Expression('List', Integer(result), Expression('List', *(Integer(c) for c in coeff)))
+#TODO: Previosuly this used gmpy's gcdext. sympy's gcdex is not as powerful unfortunately
+#class ExtendedGCD(Builtin):
+#    u"""
+#    >> ExtendedGCD[10, 15]
+#     = {5, {-1, 1}}
+#     
+#    'ExtendedGCD' works with any number of arguments:
+#    >> ExtendedGCD[10, 15, 7]
+#     = {1, {-3, 3, -2}}
+#    
+#    Compute the greated common divisor and check the result:
+#    >> numbers = {10, 20, 14};
+#    >> {gcd, factors} = ExtendedGCD[Sequence @@ numbers]
+#     = {2, {3, 0, -2}}
+#    >> Plus @@ (numbers * factors)
+#     = 2
+#     
+#    'ExtendedGCD' does not work for rational numbers and Gaussian integers yet.
+#    """
+#    
+#    attributes = ('Listable',)
+#    
+#    def apply(self, ns, evaluation):
+#        'ExtendedGCD[ns___Integer]'
+#        
+#        ns = ns.get_sequence()
+#        result = 0
+#        coeff = []
+#        for n in ns:
+#            value = n.get_int_value()
+#            if value is None:
+#                return
+#            new_result, c1, c2 = sympy.gcdex(result, value)
+#            result = new_result
+#            coeff = [c * c1 for c in coeff] + [c2]
+#        return Expression('List', Integer(result), Expression('List', *(Integer(c) for c in coeff)))
         
 class LCM(Builtin):
     """
@@ -194,7 +193,7 @@ class LCM(Builtin):
             value = n.get_int_value()
             if value is None:
                 return
-            result = lcm(result, value)
+            result = sympy.lcm(result, value)
         return Integer(result)
     
 class FactorInteger(Builtin):
@@ -222,8 +221,7 @@ class FactorInteger(Builtin):
             factors = sorted(factors.iteritems())
             return Expression('List', *[Expression('List', factor, exp) for factor, exp in factors])
         elif isinstance(n, Rational):
-            factors = sympy.factorint(n.value.numer())
-            factors_denom = sympy.factorint(n.value.denom())
+            factors, factors_denom = map(sympy.factorint, n.value.as_numer_denom())
             for factor, exp in factors_denom.iteritems():
                 factors[factor] = factors.get(factor, 0) - exp
             factors = sorted(factors.iteritems())
@@ -297,7 +295,7 @@ class PrimeQ(Builtin):
             return Symbol('False')
         
         n = abs(n)
-        if isprime(n):
+        if sympy.isprime(n):
             return Symbol('True')
         else:
             return Symbol('False')

@@ -44,7 +44,6 @@ class Definitions(object):
         self.user = {}
         if add_builtin:
             from mathics.builtin import modules, contribute
-            from mathics import optional    # load optional symbols
             from mathics.core.expression import builtin_evaluation
             
             loaded = False

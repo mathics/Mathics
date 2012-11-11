@@ -354,7 +354,7 @@ class FixedPoint(Builtin):
     </dl>
     
     >> FixedPoint[Cos, 1.0]
-     = 0.739085133215160325
+     = 0.739085133215160646
      
     >> FixedPoint[#+1 &, 1, 20]
      = 21
@@ -365,7 +365,7 @@ class FixedPoint(Builtin):
      : Non-negative integer expected.
      = FixedPoint[f, x, -1]
     #> FixedPoint[Cos, 1.0, Infinity]
-     = 0.739085133215160325
+     = 0.739085133215160646
     """
     
     def apply(self, f, expr, n, evaluation):

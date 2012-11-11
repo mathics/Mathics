@@ -18,26 +18,19 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from gmpy import mpz, mpq, mpf
+import sympy
+import mpmath
 import re
-import cython
-
-from mathics.core.numbers import mpcomplex, format_float, prec, get_type, dps, prec
-from mathics.core.evaluation import Evaluation
-from mathics.core.util import subsets, subranges, permutations, interpolate_string
-from mathics.core.convert import from_sage, from_sympy, ConvertSubstitutions, sage_symbol_prefix, sympy_symbol_prefix, \
-    SympyExpression
-
 import operator
-
 try:
-    from sage import all as sage
-    from sage.calculus.calculus import var as sage_var #, function as sage_function
-    from sage.symbolic.function_factory import function_factory as sage_function
-except (ImportError, RuntimeError):
+    import cython
+except ImportError:
     pass
 
-import sympy
+from mathics.core.numbers import format_float, prec, get_type, dps, prec, min_prec
+from mathics.core.evaluation import Evaluation
+from mathics.core.util import subsets, subranges, permutations, interpolate_string
+from mathics.core.convert import from_sympy, ConvertSubstitutions, sympy_symbol_prefix, SympyExpression
 
 builtin_evaluation = Evaluation()
 
@@ -151,10 +144,13 @@ class BaseExpression(object):
     
     def __hash__(self):
         " To allow usage of expression as dictionary keys, as in Expression.get_pre_choices "
-        
         return hash(unicode(self))
     
     def __cmp__(self, other):
+        if isinstance(other, Real):
+            #MMA Docs: "Approximate numbers that differ in their last seven binary digits are considered equal"
+            prec = min_prec(self, other) - 7
+            return cmp(self.to_sympy().n(dps(prec)), other.to_sympy().n(dps(prec)))
         if not hasattr(other, 'get_sort_key'):
             return False
         return cmp(self.get_sort_key(), other.get_sort_key())
@@ -454,36 +450,6 @@ class Expression(BaseExpression):
             
         return SympyExpression(self)
 
-    def to_sage(self, definitions, subs):
-        from mathics.builtin import mathics_to_sage
-        
-        lookup_name = self.get_lookup_name()
-        builtin = mathics_to_sage.get(lookup_name)
-        if builtin is not None:
-            sage_expr = builtin.to_sage(self, definitions, subs)
-            if sage_expr is not None:
-                return sage_expr
-                
-        head_name = self.head.get_name()
-        
-        attributes = self.head.get_attributes(definitions)
-        if (set(('HoldAll', 'HoldAllComplete', 'HoldFirst', 'HoldRest')) & attributes) or not head_name:
-            return subs.substitute(self).to_sage(definitions, subs)
-        
-        if head_name == 'Plus':
-            op = sage.add
-        elif head_name == 'Times':
-            op = sage.mul
-        elif head_name == 'Power' and len(self.leaves) == 2:
-            return pow(self.leaves[0].to_sage(definitions, subs), self.leaves[1].to_sage(definitions, subs))
-        elif head_name == 'List':
-            return [leaf.to_sage(definitions, subs) for leaf in self.leaves]
-        else:
-            sage_func = sage_function(sage_symbol_prefix + head_name)
-            args = [leaf.to_sage(definitions, subs) for leaf in self.leaves]
-            return sage_func(*args)
-        return op([leaf.to_sage(definitions, subs) for leaf in self.leaves])
-    
     def to_python(self, *args, **kwargs):
         """
         Convert the Expression to a Python object:
@@ -1043,7 +1009,7 @@ class Expression(BaseExpression):
                 # Don't "numerify" numbers: they should be numerified automatically by the
                 # processing function, and we don't want to lose exactness in e.g. 1.0+I.
                 if not isinstance(leaf, Number):
-                    n_expr = Expression('N', leaf, Real(dps(prec))) 
+                    n_expr = Expression('N', leaf, Integer(dps(prec))) 
                     new_leaves[index] = n_expr.evaluate(evaluation) 
             return Expression(self.head, *new_leaves)
         else:
@@ -1125,16 +1091,6 @@ class Symbol(Atom):
     def do_copy(self):
         return Symbol(self.name)
     
-    def to_sage(self, defintions, subs):
-        from mathics.builtin import mathics_to_sage
-        
-        builtin = mathics_to_sage.get(self.name)
-        if builtin is None or not builtin.sage_name:
-            # sage.integrate runs endlessly when called with unicode variables!
-            return sage_var(sage_symbol_prefix + self.name.encode('utf8'))
-        else:
-            return getattr(sage, builtin.sage_name)
-        
     def to_sympy(self, **kwargs):
         from mathics.builtin import mathics_to_sympy
         
@@ -1221,21 +1177,24 @@ class Number(Atom):
             return Integer(value)
     
     @staticmethod
-    def from_mp(value):
+    def from_mp(value, prec=None):
+        #assert(value.is_number)
+        if isinstance(value, Number):
+            if prec is None:
+                return value
+            return value.round(prec)
         t = get_type(value)
         if t == 'z':
             return Integer(value)
         elif t == 'q':
-            if value.denom() == 1:
-                return Integer(value.numer())
-            else:
-                return Rational(value)
+            return Rational(value)
         elif t == 'f':
-            return Real(value)
+            return Real(value, prec)
         elif t == 'c':
-            return Complex(value)
+            real, imag = value.as_real_imag()
+            return Complex(real, imag, prec)
         
-        if isinstance(value, int):
+        if isinstance(value, (int,long)):
             return Integer(value)
         elif isinstance(value, float):
             return Real(value)
@@ -1257,14 +1216,13 @@ def number_boxes(text):
 class Integer(Number):
     def __init__(self, value, **kwargs):
         super(Integer, self).__init__(**kwargs)
-        self.value = mpz(str(value))
+        self.value = int(value)
         
     def __getstate__(self):
-        # pickling of mpz sometimes failes...
-        return {'value': str(self.value)}
+        return {'value': self.value}
     
     def __setstate__(self, dict):
-        self.value = mpz(dict['value'])
+        self.value = dict['value']
         
     def boxes_to_text(self, **options):
         return str(self.value)
@@ -1281,14 +1239,11 @@ class Integer(Number):
     def default_format(self):
         return str(self.value)
         
-    def to_sage(self, definitions, subs):
-        return sage.Integer(str(self.value))
-    
     def to_sympy(self, **kwargs):
-        return sympy.Integer(int(self.value))
+        return sympy.Integer(self.value)
     
     def to_python(self, *args, **kwargs):
-        return int(self.value)
+        return self.value
         
     def get_int_value(self):
         return self.value
@@ -1301,19 +1256,17 @@ class Integer(Number):
         return self
     
     def round(self, precision):
-        return Real(mpf(self.value, precision))
+        return Real(sympy.Float(self.value, dps(precision)))
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Integer, self).get_sort_key(True)
         else:
             # HACK: otherwise "Bus error" when comparing 1==1.
-            return [0, 0, mpf(self.value), 0, 1]
+            return [0, 0, sympy.Float(self.value), 0, 1]
     
     def get_real_value(self):
-        # BUG in gmpy: mpz(1) < mpq(1, 3)
-        # => convert integers to rationals
-        return mpq(self.value, 1)
+        return sympy.Rational(self.value, 1)
     
     def do_copy(self):
         return Integer(self.value)
@@ -1321,23 +1274,16 @@ class Integer(Number):
 class Rational(Number):
     def __init__(self, numerator, denominator=None, **kwargs):
         super(Rational, self).__init__(**kwargs)
-        if denominator is None:
-            self.value = mpq(numerator)
-        else:
-            self.value = mpq(numerator, denominator)
+        self.value = sympy.Rational(numerator, denominator)
         
     def __getstate__(self):
-        # pickling of mpz sometimes failes...
         return {'value': str(self.value)}
     
     def __setstate__(self, dict):
-        self.value = mpq(dict['value'])
+        self.value = sympy.Rational(dict['value'])
         
-    def to_sage(self, definitions, subs):
-        return sage.Rational((str(self.value.numer()), str(self.value.denom())))
-    
     def to_sympy(self, **kwargs):
-        return sympy.Rational(int(self.value.numer()), int(self.value.denom()))
+        return self.value
     
     def to_python(self, *args, **kwargs):
         return float(self.value)
@@ -1346,10 +1292,10 @@ class Rational(Number):
         return isinstance(other, Rational) and self.value == other.value
     
     def numerator(self):
-        return Number.from_mp(self.value.numer())
+        return Number.from_mp(self.value.as_numer_denom()[0])
     
     def denominator(self):
-        return Number.from_mp(self.value.denom())
+        return Number.from_mp(self.value.as_numer_denom()[1])
     
     def do_format(self, evaluation, form):
         if form == 'FullForm':
@@ -1366,52 +1312,63 @@ class Rational(Number):
             return result.do_format(evaluation, form)
     
     def default_format(self):
-        return 'Rational[%s, %s]' % (self.value.numer(), self.value.denom())
+        return 'Rational[%s, %s]' % self.value.as_numer_denom()
     
     def evaluate(self, evaluation=builtin_evaluation):
         evaluation.check_stopped()
         return self
     
     def round(self, precision):
-        return Real(mpf(self.value, precision))
+        return Real(self.value.n(dps(precision)), precision)
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Rational, self).get_sort_key(True)
         else:
             # HACK: otherwise "Bus error" when comparing 1==1.
-            return [0, 0, mpf(self.value), 0, 1]
+            return [0, 0, sympy.Float(self.value), 0, 1]
     
     def get_real_value(self):
-        return self.value
+        from mathics.builtin.numeric import machine_precision
+        return self.value.n(machine_precision)
     
     def do_copy(self):
         return Rational(self.value)
         
 class Real(Number):
-    def __init__(self, value):
+    def __init__(self, value, p=None):
+        from mathics.builtin.numeric import machine_precision
         super(Real, self).__init__()
+        if p == 18:
+            raise NotImplementedError
+
         if isinstance(value, basestring):
             value = str(value)
-            p = prec(len(value))
-            value = mpf(value, p)
+            if p is None:
+                digits = (''.join(re.findall('[0-9]+', value))).lstrip('0')
+                if digits == '':     # Handle weird Mathematica zero case
+                    p = max(prec(len(value.replace('0.', ''))), machine_precision)
+                else:
+                    p = prec(len(digits.zfill(dps(machine_precision))))
+        elif isinstance(value, (Integer, sympy.Float, mpmath.mpf, float, int, sympy.Integer)):
+            value = str(value)
         else:
-            type = get_type(value)
-            if type == 'q':
-                value = mpf(str(value.numer())) / mpf(str(value.denom()))
-            elif type != 'f':
-                value = mpf(str(value))
-        self.value = value
-        
+            raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
+        if p is None:
+            p = machine_precision
+
+        self.value = sympy.Float(value, dps(p))
+        self.prec = p
+
     def __getstate__(self):
-        # pickling of mpz sometimes failes...
-        p = self.value.getprec()
-        s = self.value.digits(10, dps(p) + 5, -5, 6)
+        p = self.prec
+        s = self.value
         return {'value': s, 'prec': p}
     
     def __setstate__(self, dict):
-        p = dict['prec']
-        self.value = mpf(dict['value'], p)
+        #TODO: Check this
+        self.prec = dict['prec']
+        self.value = dict['value']
         
     def boxes_to_text(self, **options):
         return self.make_boxes('OutputForm').boxes_to_text(**options)
@@ -1423,100 +1380,124 @@ class Real(Number):
         return self.make_boxes('TeXForm').boxes_to_tex(**options)  
         
     def make_boxes(self, form):
-        s = self.value.digits(10, dps(self.value.getprec()), -5, 6)
-        s = s.split('e')
-        if len(s) == 2:
-            man, exp = s
-            man = Real(man).make_boxes(form) #.get_string_value()
-            assert man is not None
-            if form in ('InputForm', 'OutputForm', 'FullForm'):
-                return Expression('RowBox', Expression('List', man, String('*^'), String(exp)))
+        from mathics.builtin.numeric import machine_precision
+        if self.to_sympy() == sympy.Float('0.0'):
+            if self.prec == machine_precision:
+                base, exp = ('0.', '0')
             else:
-                return Expression('RowBox', Expression('List', man, String(u'\u00d7'),
+                base, exp = ('0.', '-' + str(dps(self.prec)))
+        else:
+            s = str(self.to_sympy())
+            if 'e' in s:
+                base, exp = map(str, s.split('e'))
+            else:
+                if self.to_sympy() < 0:
+                    prefix = '-'
+                    s = s[1:]
+                else:
+                    prefix = ''
+                iexp = s.index('.')-1
+                if -6 < iexp < 6:
+                    base, exp = prefix + s, '0'
+                else:
+                    s = s.replace('.', '') + '0'
+                    base = s[0] + '.' + s[1:]
+                    base = prefix + base.lstrip('0')
+                    exp = str(iexp)
+            base = base.rstrip('0')
+        if exp != '0':
+            if form in ('InputForm', 'OutputForm', 'FullForm'):
+                return Expression('RowBox', Expression('List', base, String('*^'), String(exp)))
+            else:
+                return Expression('RowBox', Expression('List', base, String(u'\u00d7'),
                     Expression('SuperscriptBox', String('10'), String(exp))))
         else:
-            assert len(s) == 1
-            return number_boxes(s[0])
-        
-    def to_sage(self, definitions, subs):
-        return sage.RealNumber(self.value.digits(10, dps(self.value.getprec()))) #(str(self.value))
-    
+            return number_boxes(base)
+
     def to_sympy(self, **kwargs):
-        return sympy.Float(self.value.digits(10, dps(self.value.getprec())))
+        return self.value
     
     def to_python(self, *args, **kwargs):
         return float(self.value)
     
     def same(self, other):
-        return isinstance(other, Real) and self.value == other.value
+        return isinstance(other, Real) and self.to_sympy() == other.to_sympy()
     
     def evaluate(self, evaluation=builtin_evaluation):
         evaluation.check_stopped()
         return self      
     
     def round(self, precision):
-        return Real(self.value.round(precision))
+        return Real(self.to_sympy().n(dps(precision)), precision)
     
     def get_precision(self):
-        return self.value.getprec()
+        return self.prec
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Real, self).get_sort_key(True)
-        else:
-            digits, exp, prec = self.value.digits(10, 0, 0, 0, 2)
-            count = dps(prec)
-            digits = digits[:count-3]
-            if digits.startswith('-'):
-                value = digits[:1] + '.' + digits[1:]
-            else:
-                value = digits[:0] + '.' + digits[0:]
-            sort_value = mpf('%se%d' % (value, exp))
-            return [0, 0, sort_value, 0, 1]
+        return [0, 0, self.value, 0, 1]
     
     def get_real_value(self):
-        return self.value
+        return float(self.value)
     
     def do_copy(self):
-        return Real(self.value)
+        return Real(self.value, self.prec)
     
 class Complex(Number):
-    def __init__(self, real, imag=None, **kwargs):
+    def __init__(self, real, imag, p=None, **kwargs):
         super(Complex, self).__init__(**kwargs)
-        if imag is None:
-            self.value = mpcomplex(real)
+
+        if isinstance(real, basestring):
+            real = str(real)
+            if '.' in real:
+                self.real = Real(real, p)
+            else:
+                self.real = Integer(real)
+        elif isinstance(real, Number):
+            self.real = real
         else:
-            self.value = mpcomplex(real, imag)
+            self.real = Number.from_mp(real)
+
+        if isinstance(imag, basestring):
+            imag = str(imag)
+            if '.' in imag:
+                self.imag = Real(imag, p)
+            else:
+                self.imag = Integer(imag)
+        elif isinstance(imag, Number):
+            self.imag = imag
+        else:
+            self.imag = Number.from_mp(imag)
         
-    def to_sage(self, definitions, subs):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        return real.to_sage(definitions, subs) + imag.to_sage(definitions, subs) * sage.I
-    
+        if p is None:
+            p = min_prec(self.real, self.imag)
+
+        if p is not None:
+            self.real = self.real.round(p)
+            self.imag = self.imag.round(p)
+
+        self.sympy = self.real.to_sympy() + sympy.I * self.imag.to_sympy()
+        self.value = (self.real, self.imag)
+        self.prec = p
+        
     def to_sympy(self, **kwargs):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        return real.to_sympy(**kwargs) + imag.to_sympy(**kwargs) * sympy.I
+        return self.sympy
     
     def to_python(self, *args, **kwargs):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        return real.to_python() + imag.to_python() * 1j
+        return complex(*self.sympy.as_real_imag())
     
     def do_format(self, evaluation, form):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        
         if form == 'FullForm':
-            return Expression(Expression('HoldForm', Symbol('Complex')), real, imag).do_format(evaluation, form)
+            return Expression(Expression('HoldForm', Symbol('Complex')), self.real, self.imag).do_format(evaluation, form)
 
         sum = []
-        if not real.same(Integer(0)):
-            sum.append(real)
-        if imag.same(Integer(1)):
+        if not self.real.same(Integer(0)):
+            sum.append(self.real)
+        if self.imag.same(Integer(1)):
             sum.append(Symbol('I'))
         else:
-            sum.append(Expression('Times', imag, Symbol('I')))
+            sum.append(Expression('Times', self.imag, Symbol('I')))
         if len(sum) == 1:
             sum = sum[0]
         else:
@@ -1524,44 +1505,31 @@ class Complex(Number):
         return Expression('HoldForm', sum).do_format(evaluation, form)
     
     def default_format(self, evaluation, form):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        return 'Complex[%s, %s]' % (real.default_format(evaluation, form), imag.default_format(evaluation, form))
+        return 'Complex[%s, %s]' % (self.real.default_format(evaluation, form), self.imag.default_format(evaluation, form))
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Complex, self).get_sort_key(True)
         else:
-            real = Real(self.value.real)
-            imag = Real(self.value.imag)
-            return [0, 0, real.get_sort_key()[2], imag.get_sort_key()[2], 1]
+            return [0, 0, self.real.get_sort_key()[2], self.imag.get_sort_key()[2], 1]
     
     def same(self, other):
-        return isinstance(other, Complex) and self.value == other.value
+        return isinstance(other, Complex) and self.real == other.real and self.imag == other.imag
     
     def evaluate(self, evaluation=builtin_evaluation):
         evaluation.check_stopped()
         return self
         
     def round(self, precision):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        return Complex(real.round(precision).value, imag.round(precision).value)
+        real = self.real.round(precision)
+        imag = self.imag.round(precision)
+        return Complex(real, imag, precision)
     
     def get_precision(self):
-        real = Number.from_mp(self.value.real)
-        imag = Number.from_mp(self.value.imag)
-        real_prec = real.get_precision()
-        imag_prec = imag.get_precision()
-        if real_prec is None:
-            return imag_prec
-        elif imag_prec is None:
-            return real_prec
-        else:
-            return min(imag_prec, real_prec)
+        return self.prec
     
     def do_copy(self):
-        return Complex(self.value)
+        return Complex(self.real.do_copy(), self.imag.do_copy())
     
 def encode_mathml(text):
     text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
@@ -1722,9 +1690,6 @@ class String(Atom):
     
     def get_string_value(self):
         return self.value
-    
-    def to_sage(self, definitions, subs):
-        return subs.substitute(self, definitions)
     
     def to_sympy(self, **kwargs):
         return self.value

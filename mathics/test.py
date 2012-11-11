@@ -56,14 +56,15 @@ def compare(result, wanted):
             return False
     return True
 
-def test_case(test, tests, index=0):
+def test_case(test, tests, index=0, quiet=False):
     test, wanted_out, wanted, part, chapter, section = test.test, test.outs, test.result, tests.part, tests.chapter, tests.section
     
     def fail(why):
         print u"%sTest failed: %s in %s / %s\n%s\n%s\n" % (sep, section, part, chapter, test, why)
         return False
     
-    print '%4d. TEST %s' % (index, test)
+    if not quiet:
+        print '%4d. TEST %s' % (index, test)
     try:
         evaluation = Evaluation(test, definitions, catch_interrupt=False)
     except Exception, exc:
@@ -95,7 +96,7 @@ def test_case(test, tests, index=0):
             u'\n'.join(unicode(o) for o in wanted_out)))
     return True
 
-def test_tests(tests, index):
+def test_tests(tests, index, quiet=False):
     #print tests
     definitions.reset_user_definitions()
     count = failed = 0
@@ -103,7 +104,7 @@ def test_tests(tests, index):
     for test in tests.tests:   
         count += 1
         index += 1
-        if not test_case(test, tests, index):
+        if not test_case(test, tests, index, quiet):
             failed += 1
             failed_symbols.add((tests.part, tests.chapter, tests.section))
     return count, failed, failed_symbols, index
@@ -119,7 +120,7 @@ def create_output(tests, output_xml, output_tex):
                 'results': [r.get_data() for r in result.results],
             }
             
-def test_section(section):
+def test_section(section, quiet=False):
     failed = 0
     index = 0
     print 'Testing section %s' % section
@@ -127,7 +128,7 @@ def test_section(section):
         if tests.section == section or tests.section == '$' + section:
             for test in tests.tests:
                 index += 1
-                if not test_case(test, tests, index):
+                if not test_case(test, tests, index, quiet=quiet):
                     failed += 1
         
     print ''
@@ -145,8 +146,9 @@ def open_ensure_dir(f, *args, **kwargs):
             os.makedirs(d)
         return open(f, *args, **kwargs)
 
-def test_all():
-    print "Testing %s" % get_version_string(False)
+def test_all(quiet=False):
+    if not quiet:
+        print "Testing %s" % get_version_string(False)
       
     try:
         index = 0
@@ -155,7 +157,7 @@ def test_all():
         output_xml = {}
         output_tex = {}
         for tests in documentation.get_tests():
-            sub_count, sub_failed, symbols, index = test_tests(tests, index)
+            sub_count, sub_failed, symbols, index = test_tests(tests, index, quiet=quiet)
             create_output(tests, output_xml, output_tex)
             count += sub_count
             failed += sub_failed
@@ -203,6 +205,7 @@ def main():
     parser.add_argument('--help', '-h', help='show this help message and exit', action='help')
     parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + settings.VERSION)
     parser.add_argument('--section', '-s', dest="section", metavar="SECTION", help="only test SECTION")
+    parser.add_argument('--quiet', '-q', dest="quiet", action="store_true", help="do not display pased tests")
     parser.add_argument('--tex', '-t', dest="tex", action="store_true", help="generate TeX file")
     args = parser.parse_args()
     
@@ -210,9 +213,9 @@ def main():
         write_latex()
     else:
         if args.section:
-            test_section(args.section)
+            test_section(args.section, quiet=args.quiet)
         else:
-            test_all()
+            test_all(quiet=args.quiet)
 
 if __name__ == '__main__':
     main()
