@@ -118,23 +118,6 @@ class String_(Builtin):
     """
     
     name = 'String'
-
-class StringQ(Test):
-    """
-    <dl>
-    <dt>'ListQ[$expr$]'
-        <dd>tests whether $expr$ is a 'String'.
-    </dl>
-    
-    >> StringQ["abc"]
-     = True
-
-    >> StringQ[1.5]
-     = False
-    """
-    
-    def test(self, expr):
-        return isinstance(expr, String)
     
 class ToString(Builtin):
     """
@@ -156,5 +139,21 @@ class ToString(Builtin):
         
         text = value.format(evaluation, 'OutputForm').boxes_to_text(evaluation=evaluation)
         return String(text)
+
+class StringQ(Test):
+    """
+    <dl>
+    <dt>'StringQ[$expr$]'
+      <dd>returns 'True' if $expr$ is a 'String' or 'False' otherwise.
+    </dl>
+
+    >> StringQ["abc"]
+     = True
+    >> StringQ[1.5]
+     = False
+    >> Select[{"12", 1, 3, 5, "yz", x, y}, StringQ]
+     = {12, yz}
+    """
     
-            
+    def test(self, expr):
+        return isinstance(expr, String)

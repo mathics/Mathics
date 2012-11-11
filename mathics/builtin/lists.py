@@ -924,7 +924,126 @@ class Select(Builtin):
             if test.evaluate(evaluation) == Symbol('True'):
                 new_leaves.append(leaf)
         return Expression(list.head, *new_leaves)
+
+class Split(Builtin):
+    """
+    <dl>
+    <dt>'Split[$list$]'
+      <dd>splits $list$ into collections of consecutive identical elements.
+    <dt>'Split[$list$, $test$]'
+      <dd>splits $list$ based on whether the function $test$ yields 'True' on consecutive elements.
+    <dl>
+
+    >> Split[{x, x, x, y, x, y, y, z}]
+     = {{x, x, x}, {y}, {x}, {y, y}, {z}}
+
+    #> Split[{x, x, x, y, x, y, y, z}, x]
+     = {{x}, {x}, {x}, {y}, {x}, {y}, {y}, {z}}
+
+    Split into increasing or decreasing runs of elements
+    >> Split[{1, 5, 6, 3, 6, 1, 6, 3, 4, 5, 4}, Less]
+     = {{1, 5, 6}, {3, 6}, {1, 6}, {3, 4, 5}, {4}}
     
+    >> Split[{1, 5, 6, 3, 6, 1, 6, 3, 4, 5, 4}, Greater]
+     = {{1}, {5}, {6, 3}, {6, 1}, {6, 3}, {4}, {5, 4}}
+
+    Split based on first element
+    >> Split[{x -> a, x -> y, 2 -> a, z -> c, z -> a}, First[#1] === First[#2] &]
+     = {{x -> a, x -> y}, {2 -> a}, {z -> c, z -> a}}
+    """
+
+    rules = {
+        'Split[list_]': 'Split[list, SameQ]',
+    }
+
+    messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
+    }
+
+    def apply(self, mlist, test, evaluation):
+        'Split[mlist_, test_]'
+
+        expr = Expression('Split', mlist, test)
+
+        if mlist.is_atom():
+            evaluation.message('Select', 'normal', 1, expr)
+            return
+
+        result = [[mlist.leaves[0]]]
+        for leaf in mlist.leaves[1:]:
+            applytest = Expression(test, result[-1][-1], leaf)
+            if applytest.evaluate(evaluation) == Symbol('True'):
+                result[-1].append(leaf)
+            else:
+                result.append([leaf])
+
+        return Expression(mlist.head, *[Expression('List', *l) for l in result])
+
+class SplitBy(Builtin):
+    """
+    <dl>
+    <dt>'Split[$list$, $f$]'
+      <dd>splits $list$ into collections of consecutive elements that give the same result when $f$ is applied.
+    <dl>
+
+    >> SplitBy[Range[1, 3, 1/3], Round]
+     = {{1, 4 / 3}, {5 / 3, 2, 7 / 3}, {8 / 3, 3}}
+
+    >> SplitBy[{1, 2, 1, 1.2}, {Round, Identity}]
+     = {{{1}}, {{2}}, {{1}, {1.2}}}
+
+    >> SplitBy[{1, 2, 1, 1.2}, {Round, Identity}]
+     = {{{1}}, {{2}}, {{1}, {1.2}}}
+
+    #> SplitBy[Tuples[{1, 2}, 3], First]
+     = {{{1, 1, 1}, {1, 1, 2}, {1, 2, 1}, {1, 2, 2}}, {{2, 1, 1}, {2, 1, 2}, {2, 2, 1}, {2, 2, 2}}}
+    """
+
+    rules = {
+        'SplitBy[list_]': 'SplitBy[list, Identity]',
+    }
+
+    messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
+    }
+
+    def apply(self, mlist, func, evaluation):
+        'SplitBy[mlist_, func_?NotListQ]'
+
+        expr = Expression('Split', mlist, func)
+
+        if mlist.is_atom():
+            evaluation.message('Select', 'normal', 1, expr)
+            return
+
+        plist = [l for l in mlist.leaves]
+
+        result = [[plist[0]]]
+        prev = Expression(func, plist[0]).evaluate(evaluation)
+        for leaf in plist[1:]:
+            curr = Expression(func, leaf).evaluate(evaluation)
+            if curr == prev:
+                result[-1].append(leaf)
+            else:
+                result.append([leaf])
+            prev = curr
+
+        return Expression(mlist.head, *[Expression('List', *l) for l in result])
+
+    def apply_multiple(self, mlist, funcs, evaluation):
+        'SplitBy[mlist_, funcs_?ListQ]'
+        expr = Expression('Split', mlist, funcs)
+
+        if mlist.is_atom():
+            evaluation.message('Select', 'normal', 1, expr)
+            return
+
+        result = mlist
+        for f in funcs.leaves[::-1]:
+            result = self.apply(result, f, evaluation)
+
+        return result
+
 class Cases(Builtin):
     rules = {
         'Cases[list_, pattern_]': 'Select[list, MatchQ[#, pattern]&]',
@@ -1452,20 +1571,27 @@ def riffle(items, sep):
     return result
         
 def riffle_lists(items, seps):
-    result = items[:1]
-    for index, item in enumerate(items[1:]):
-        result.append(seps[index % len(seps)])
-        result.append(item)
-    return result
+    if len(seps) + 1 < len(items):  # Use seperators cyclically 
+        seps = seps * (len(items) / len(seps) + 1)
+    if len(seps) > len(items):
+        seps = seps[:len(items)-1]
+    return [val for pair in (map(None, items, seps)) for val in pair if val is not None]
         
 class Riffle(Builtin):
     """
     >> Riffle[{a, b, c}, x]
      = {a, x, b, x, c}
     >> Riffle[{a, b, c}, {x, y, z}]
-     = {a, x, b, y, c}
+     = {a, x, b, y, c, z}
     >> Riffle[{a, b, c, d, e, f}, {x, y, z}]
      = {a, x, b, y, c, z, d, x, e, y, f}
+
+    #> Riffle[{1, 2, 3, 4}, {x, y, z, t}]
+     = {1, x, 2, y, 3, z, 4, t}
+    #> Riffle[{1, 2}, {1, 2, 3}]
+     = {1, 1, 2}
+    #> Riffle[{1, 2}, {1, 2}]
+     = {1, 1, 2, 2}
     """
     
     def apply(self, list, sep, evaluation):
@@ -1474,4 +1600,4 @@ class Riffle(Builtin):
         if sep.has_form('List', None):
             return Expression('List', *riffle_lists(list.get_leaves(), sep.leaves))
         else:
-            return Expression('List', *riffle(list.get_leaves(), sep))
+            return Expression('List', *riffle_lists(list.get_leaves(), [sep]))

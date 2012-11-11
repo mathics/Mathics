@@ -7,6 +7,8 @@ CHANGES
 - ElementData using data from Wikipedia
 - added Switch
 - added DSolve and RSolve
+- More Timing functions AbsoluteTiming, TimeUsed, SessionTime, Pause
+- Date functions DateList, DateString, DateDifference, etc
 
 0.5
 ---
