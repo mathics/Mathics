@@ -1,12 +1,5 @@
 #!/usr/bin/env python
 
-"""from sage.libs.pari.gen import pari
-    
-dl = pari.get_debug_level()
-print dl
-
-from sage import all"""
-
 from django.core.management import execute_manager
 try:
     import settings # Assumed to be in the same directory.
@@ -17,3 +10,8 @@ except ImportError:
 
 if __name__ == "__main__":
     execute_manager(settings)
+
+    # fix known PyPy bug (see https://bugs.pypy.org/issue1116)
+    import gc
+    gc.collect()
+    gc.collect()

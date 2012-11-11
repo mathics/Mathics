@@ -2,13 +2,12 @@
 
 from __future__ import with_statement
 
-from gmpy import fib, bincoef
-from mpmath import workprec
-import mpmath
+import sympy
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator
-from mathics.core.expression import Expression, Integer, Number, Symbol
-from mathics.core.numbers import gmpy2mpmath, mpmath2gmpy, min_prec, SpecialValueError
+from mathics.core.expression import Expression, Integer, Real, Number, Symbol, from_sympy
+from mathics.core.numbers import min_prec, SpecialValueError
+from mathics.builtin.numeric import dps
 
 class Fibonacci(Builtin):
     """
@@ -32,7 +31,7 @@ class Fibonacci(Builtin):
     def apply(self, n, evaluation):
         'Fibonacci[n_Integer]'
         
-        return Integer(fib(n.value))
+        return Integer(sympy.fibonacci(n.to_sympy()))
     
 class Binomial(Builtin):
     """
@@ -62,23 +61,20 @@ class Binomial(Builtin):
     def apply_exact(self, n, k, evaluation):
         'Binomial[n_Integer, k_Integer]'
         
-        if k.value < 0:
+        if k.to_sympy() < 0:
             return Integer(0)
-        return Number.from_mp(bincoef(n.value, k.value))
+        return Integer(sympy.binomial(n.to_sympy(), k.to_sympy()))
     
     def apply_inexact(self, n, k, evaluation):
         'Binomial[n_?InexactNumberQ, k_?NumberQ]'
         
-        with workprec(min_prec(n, k)):
-            n = gmpy2mpmath(n.value)
-            k = gmpy2mpmath(k.value)
-            result = mpmath.binomial(n, k)
-            try:
-                result = mpmath2gmpy(result)
-            except SpecialValueError, exc:
-                return Symbol(exc.name)
-            number = Number.from_mp(result)
-            return number
+        prec = min_prec(n, k)
+        n = n.to_sympy()
+        k = k.to_sympy()
+        result = sympy.binomial(n, k).n(dps(prec))
+        if result == sympy.Float('inf'):
+            return Symbol('ComplexInfinity')
+        return Real(result, prec)
         
     def apply_inexact_2(self, n, k, evaluation):
         'Binomial[n_?NumberQ, k_?InexactNumberQ]'

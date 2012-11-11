@@ -16,7 +16,7 @@
 
 <chapter title="Introduction">
 
-\Mathics---to be pronounced like "Mathematics" without the "emat"---is a general-purpose computer algebra system (CAS). It is meant to be a free, light-weight alternative to \Mathematica with \Sage support. It is free both as in "free beer" and as in "freedom". There is an online interface at <url>http://www.mathics.net/</url>, but it is also possible to run \Mathics locally.
+\Mathics---to be pronounced like "Mathematics" without the "emat"---is a general-purpose computer algebra system (CAS). It is meant to be a free, light-weight alternative to \Mathematica. It is free both as in "free beer" and as in "freedom". There is an online interface at <url>http://www.mathics.net/</url>, but it is also possible to run \Mathics locally.
 
 The programming language of \Mathics is meant to resemble \Wolfram\'s famous \Mathematica as much as possible. However, \Mathics is in no way affiliated or supported by \Wolfram. \Mathics will probably never have the power to compete with \Mathematica in industrial applications; yet, it might be an interesting alternative for educational purposes.
 
@@ -25,7 +25,7 @@ The programming language of \Mathics is meant to resemble \Wolfram\'s famous \Ma
 
 There is already a well-established free computer algebra system: \Sage. It is really powerful and has a growing, active community behind it. Yet, by design, it will always be bound to Python syntax and therefore lack the "structural beauty" of the \Mathematica language.
 
-\Mathics aims at combining the best of both worlds: the beauty of \Mathematica backed by a free, extensible Python core, with potential to integrate all desired \Sage functionality.
+\Mathics aims at combining the best of both worlds: the beauty of \Mathematica backed by a free, extensible Python core.
 
 Of course, there are drawbacks to the \Mathematica language, despite all its beauty. It does not really provide object orientation and especially encapsulation, which might be crucial for big software projects. Nevertheless, \Wolfram still managed to create their amazing <em>Wolfram|Alpha</em> entirely with \Mathematica, so it can\'t be too bad!
 
@@ -92,56 +92,14 @@ If you are on Windows, please figure out yourself how to install SQLite and GMP.
 Get the latest version of \Mathics from <url>http://www.mathics.org</url>. You will need internet access for the installation of \Mathics.
 </section>
 
-<section title="Installation without \Sage support">
-If you don\'t want to use the optional features of \Mathics that depend on \Sage, simply run:
+<section title="Installation">
+Simply run:
 <console>
 # python setup.py install
 </console>
-In addition to installing \Mathics, this will download the required Python packages <con>sympy</con>, <con>gmpy</con>, <con>mpmath</con>, <con>django</con>, and <con>pysqlite</con> and install them in your Python <con>site-packages</con> directory (usually <con>/usr/lib/python2.x/site-packages</con> on Debian or <con>/Library/Frameworks/Python.framework/Versions/2.x/lib/python2.x/site-packages</con> on Mac OS X).
+In addition to installing \Mathics, this will download the required Python packages <con>sympy</con>, <con>mpmath</con>, <con>django</con>, and <con>pysqlite</con> and install them in your Python <con>site-packages</con> directory (usually <con>/usr/lib/python2.x/site-packages</con> on Debian or <con>/Library/Frameworks/Python.framework/Versions/2.x/lib/python2.x/site-packages</con> on Mac OS X).
 
 Two executable files will be created in a binary directory on your <con>PATH</con> (usually <con>/usr/bin</con> on Debian or <con>/Library/Frameworks/Python.framework/Versions/2.x/bin</con> on Mac OS X): <con>mathics</con> and <con>mathicsserver</con>.
-</section>
-
-<section title="Installation with \Sage support">
-If you want to use the \Sage features of \Mathics, it has to be installed into your \Sage distribution, due to the fact that \Sage cannot be imported as a regular Python package from your local Python installation, but has its own Python binary and package tree.
-
-If you haven\'t got \Sage yet, download it from <url>http://www.sagemath.org/</url> and install it. \Mathics supports \Sage 4.0.2 or higher. If you are on Windows, you have to run \Sage in a virtual machine, and \Mathics has to be installed therein, of course.
-
-Change to the \Mathics download directory and run
-<console>
-# sage -sh
-# sage -python setup.py install
-</console>
-In addition to installing \Mathics, this will download the required Python packages <con>sympy</con>, <con>gmpy</con>, <con>mpmath</con>, <con>django</con>, and <con>pysqlite</con> and install them in your \Sage Python <con>site-packages</con> directory (usually <con>/usr/opt/sage/local/lib/python/site-packages</con> on Debian or <con>/Applications/sage/local/lib/python/site-packages</con> on Mac OS X).
-
-It might happen that some packages can only be downloaded via SSL. For this to work, SSL support in Sage's version of Python is needed. You might have to do
-<console>
-# apt-get install libssl-dev
-</console>
-and then rebuild Sage's Python by
-<console>
-# sage -f python
-</console>
-
-It will also create two executables in your \Sage Python <con>bin</con> directory. However, these binaries only work when executed on the shell after issueing <con>sage -sh</con>. To run \Mathics without having to enter the \Sage shell, install two helper scripts by invoking
-<console>
-# python install_sage_scripts.py -d=[a directory on your path]
-</console>
-where <con>[a directory on your path]</con> defaults to <con>/usr/local/bin</con>.
-
-The setup process of \Mathics depends on the <con>distribute</con> package, which is a maintained fork of <con>setuptools</con>. <con>setuptools</con> is included in \Sage by default, but is not needed anymore as soon as <con>distribute</con> is present, and keeping both packages makes Python complain about packages loaded twice. Thus, <con>setuptools</con> should be removed by invoking:
-<console>
-# python -c "from distutils import sysconfig; import os; import glob; [os.remove(f) for f in glob.glob(os.path.join(sysconfig.get_python_lib(), 'setuptools-*.egg'))]"
-</console>
-This will do the equivalent of
-<console>
-rm $SAGE_ROOT/local/lib/python/site-packages/setuptools-*.egg
-</console>
-where the right path to <con>site-packages</con> is chosen.
-
-The core of \Mathics is and shall remain independent of \Sage, as it adds a huge footprint to the installation and \Mathics should remain rather lightweight. In addition, it should be easier to install \Mathics on Windows and mobile platforms where \Sage is not available. That\'s why the light-weight SymPy Python package is prefered for advanced calculations, like integration, that will not be implemented in \Mathics itself.
-
-At the moment, optional symbols depending on \Sage are simply imported into the global namespace of \Mathics; in the future, <em>contexts</em> might be used to separate them. Then a command like 'Needs["Sage`"]' could be used to load these symbols, maybe overwriting existing functions like 'Integrate' with better versions from \Sage. 
 </section>
 
 <section title="Initialization">
@@ -229,7 +187,7 @@ Of course, \Mathics has complex numbers:
 >> (3 + 2 I) ^ 4
  = -119 + 120 I
 >> (3 + 2 I) ^ (2.5 - I)
- = 43.6630044263147 + 8.28556100627573 I
+ = 43.6630044263147016 + 8.28556100627573406 I
 >> Tan[I + 0.5]
  = 0.195577310065933999 + 0.842966204845783229 I
  
@@ -950,14 +908,14 @@ And test the second derivative:
 Thus, there is a local maximum at 'x = Sqrt[5]' and a local minimum at 'x = -Sqrt[5]'.
 Compute the inflection points numerically, choping imaginary parts close to 0:
 >> inflections = Solve[f''[x] == 0, x] // N // Chop
- = {{x -> 4.29982702283229495}, {x -> -3.214627407395195}, {x -> -1.08519961543709995}}
+ = {{x -> -1.08519961543710476}, {x -> 4.29982702283229501}, {x -> -3.21462740739519024}}
 Insert into the third derivative:
 >> f'''[x] /. inflections
- = {0.00671894324917601573, 0.6949053627204461, -3.67683091753985818}
+ = {-3.67683091753987803, 0.00671894324917601732, 0.694905362720454084}
 Being different from 0, all three points are actual inflection points.
 'f' is not defined where its denominator is 0:
 >> Solve[Denominator[f[x]] == 0, x]
- = {{x -> -3 / 2 + I / 2 Sqrt[11]}, {x -> -3 / 2 - I / 2 Sqrt[11]}}
+ = {{x -> -3 / 2 - I / 2 Sqrt[11]}, {x -> -3 / 2 + I / 2 Sqrt[11]}}
 These are non-real numbers, consequently 'f' is defined on all real numbers.
 The behaviour of 'f' at the boundaries of its definition:
 >> Limit[f[x], x -> Infinity]
@@ -1138,11 +1096,6 @@ the browser might do some browser-specific actions, like setting a bookmark etc.
 
 <section title="Developing">
 To start developing, check out the source directory.
-If you are running \Mathics under \Sage, run
-<console>
-$ sage -sh
-</console>
-to switch to the \Sage shell.
 Run
 <console>
 $ python setup.py develop
@@ -1256,7 +1209,7 @@ A UML diagram of the most important classes in \Mathics can be seen in <ref labe
 </section>
 
 <section title="Adding built-in symbols">
-Adding new built-in symbols to \Mathics is very easy. Either place a new module in the <con>builtin</con> directory and add it to the list of modules in <con>builtin/__init__.py</con> or use an existing module. Create a new class derived from 'Builtin'. If you want to add an operator, you should use one of the subclasses of 'Operator'. Use 'SageFunction' for symbols that have a special meaning in \Sage and/or SymPy.
+Adding new built-in symbols to \Mathics is very easy. Either place a new module in the <con>builtin</con> directory and add it to the list of modules in <con>builtin/__init__.py</con> or use an existing module. Create a new class derived from 'Builtin'. If you want to add an operator, you should use one of the subclasses of 'Operator'. Use 'SympyFunction' for symbols that have a special meaning in SymPy.
 
 To get an idea of how a built-in class can look like, consider the following implementation of 'If':
 

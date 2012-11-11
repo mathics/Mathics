@@ -246,13 +246,14 @@ class Eigenvectors(Builtin):
     >> Eigenvectors[{{2, 0, 0}, {0, -1, 0}, {0, 0, 0}}]
      = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
     >> Eigenvectors[{{0.1, 0.2}, {0.8, 0.5}}]
-     : Eigenvectors is not yet implemented for the matrix {{0.1, 0.2}, {0.8, 0.5}}.
-     = Eigenvectors[{{0.1, 0.2}, {0.8, 0.5}}]
+     = {{0.309016994374947, 1.}, {-0.809016994374947, 1.}}
     """
     
     messages = {
         'eigenvecnotimplemented': "Eigenvectors is not yet implemented for the matrix `1`.",
     }
+
+    #TODO: Normalise the eigenvectors
     
     def apply(self, m, evaluation):
         'Eigenvectors[m_]'

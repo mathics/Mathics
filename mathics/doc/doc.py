@@ -35,7 +35,7 @@ try:
 except ImportError:
     import settings
 
-from mathics import builtin, optional
+from mathics import builtin
 from mathics.builtin import get_module_doc
 from mathics.core.evaluation import Message, Print
 
@@ -537,8 +537,8 @@ class Documentation(DocElement):
                     part.is_appendix = True
                     appendix.append(part)
             
-        for title, modules, builtins_by_module, start in [("Reference of built-in symbols", builtin.modules, builtin.builtins_by_module, True),
-            ("Reference of optional symbols", optional.modules, optional.optional_builtins_by_module, False)]:
+        for title, modules, builtins_by_module, start in [("Reference of built-in symbols", builtin.modules, builtin.builtins_by_module, True)]:
+            #("Reference of optional symbols", optional.modules, optional.optional_builtins_by_module, False)]:
             builtin_part = DocPart(self, title, is_reference=start)
             for module in modules:
                 title, text = get_module_doc(module)
