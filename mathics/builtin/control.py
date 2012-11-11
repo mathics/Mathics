@@ -353,9 +353,8 @@ class FixedPoint(Builtin):
         <dd>performs at most $n$ iterations.
     </dl>
     
-    ## FIXME: this evaluates forever
-    ## >> FixedPoint[Cos, 1.0]
-    ##  = 0.739085133215160325
+    >> FixedPoint[Cos, 1.0]
+     = 0.739085133215160646
      
     >> FixedPoint[#+1 &, 1, 20]
      = 21
@@ -365,9 +364,8 @@ class FixedPoint(Builtin):
     #> FixedPoint[f, x, -1]
      : Non-negative integer expected.
      = FixedPoint[f, x, -1]
-    ## FIXME
-    ## #> FixedPoint[Cos, 1.0, Infinity]
-    ##  = 0.739085133215160325
+    #> FixedPoint[Cos, 1.0, Infinity]
+     = 0.739085133215160646
     """
     
     def apply(self, f, expr, n, evaluation):
