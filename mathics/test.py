@@ -185,6 +185,7 @@ def test_all():
             pickle.dump(output_tex, output_tex_file, 0)
     else:
         print '\nFAILED'
+        return sys.exit(1)      # Travis-CI knows the tests have failed
         
 def write_latex():
     print "Load data"
