@@ -25,8 +25,18 @@ from optparse import OptionParser
 import django
 
 from mathics import print_version, print_license
+from mathics import settings as mathics_settings  #Prevents UnboundLocalError
 
 def main():
+    # Check for the database
+    database_file = mathics_settings.DATABASES['default']['NAME']
+    if not os.path.exists(database_file):
+        print "Error: Mathics database not found!"
+        print "Please change to the mathics install directory and run:\n"
+        print "   $> python setup.py initialize\n"
+        print "as the current user"
+        sys.exit(-1)
+
     os.environ['DJANGO_SETTINGS_MODULE'] = 'mathics.settings'
     #os.putenv('DJANGO_SETTINGS_MODULE', 'mathics.settings')
     
