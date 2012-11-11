@@ -24,7 +24,7 @@ import sys
 import re
 import pickle
 import os
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 from mathics.core.parser import parse, TranslateError
 from mathics.core.definitions import Definitions
@@ -198,19 +198,18 @@ def write_latex():
         doc.write(content)
 
 def main():
-    parser = OptionParser(version='%prog ' + settings.VERSION,
-        description="Mathics test suite.")
-    parser.add_option("-s", "--section", dest="section", metavar="SECTION",
-        help="only test SECTION")
-    parser.add_option("-t", "--tex", dest="tex", action="store_true",
-        help="generate TeX file")
-    options, args = parser.parse_args()
+    parser = ArgumentParser(description="Mathics test suite.", add_help=False)
+    parser.add_argument('--help', '-h', help='show this help message and exit', action='help')
+    parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + settings.VERSION)
+    parser.add_argument('--section', '-s', dest="section", metavar="SECTION", help="only test SECTION")
+    parser.add_argument('--tex', '-t', dest="tex", action="store_true", help="generate TeX file")
+    args = parser.parse_args()
     
-    if options.tex:
+    if args.tex:
         write_latex()
     else:
-        if options.section:
-            test_section(options.section)
+        if args.section:
+            test_section(args.section)
         else:
             test_all()
 
