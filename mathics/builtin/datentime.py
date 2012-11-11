@@ -70,7 +70,6 @@ if not hasattr(timedelta, 'total_seconds'):
         return float(td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
 else:
     total_seconds = timedelta.total_seconds 
-    #timedelta.total_seconds = total_seconds
 
 class Timing(Builtin):
     """
@@ -150,7 +149,7 @@ class _DateFormat(Builtin):
 
         form_name = self.get_name()
 
-        if isinstance(etime, float) or isinstance(etime, int):
+        if isinstance(etime, float) or isinstance(etime, (int, long)):
             date = EPOCH_START + timedelta(seconds=etime)
             datelist = [date.year, date.month, date.day, date.hour, date.minute, date.second + 1e-06 * date.microsecond]
             return datelist
@@ -164,7 +163,7 @@ class _DateFormat(Builtin):
             evaluation.message(form_name, 'arg', etime)
             return
 
-        if 1 <= len(etime) <= 6 and all((isinstance(val, float) and i > 1) or isinstance(val, int) for i,val in enumerate(etime)):
+        if 1 <= len(etime) <= 6 and all((isinstance(val, float) and i > 1) or isinstance(val, (int, long)) for i,val in enumerate(etime)):
             default_date = [1900, 1, 1, 0, 0, 0.]
 
             datelist = etime + default_date[len(etime):]
