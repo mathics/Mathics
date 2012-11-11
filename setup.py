@@ -59,7 +59,7 @@ INSTALL_REQUIRES = ['sympy==0.7.1', 'gmpy>=1.04', 'mpmath>=0.15', 'cython>=0.15.
 #if sys.platform == "darwin":
 #    INSTALL_REQUIRES += ['readline']
     
-INSTALL_REQUIRES += ['django>=1.2', 'argparse']
+INSTALL_REQUIRES += ['django>=1.2', 'argparse', 'python-dateutil']
 
 def subdirs(root, file='*.*', depth=10):
     for k in range(depth):
