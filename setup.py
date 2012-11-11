@@ -53,7 +53,7 @@ else:
         ['mathics/%s/%s.py' % (parent, module)]) for parent, modules in EXTENSIONS.iteritems() for module in modules]
     CMDCLASS = {'build_ext': build_ext}
     
-INSTALL_REQUIRES = ['sympy>=0.7', 'gmpy>=1.04', 'mpmath>=0.15', 'cython>=0.15.1']
+INSTALL_REQUIRES = ['sympy==0.7.1', 'gmpy>=1.04', 'mpmath>=0.15', 'cython>=0.15.1']
 # strange SandboxError with SymPy 0.6.7 in Sage (writing to ~/.sage/tmp)
 
 #if sys.platform == "darwin":
