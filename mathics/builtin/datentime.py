@@ -63,6 +63,14 @@ DATE_STRING_FORMATS = {
     #"MillisecondShort": "",
 }
 
+EPOCH_START = datetime(1900, 1, 1)
+
+if not hasattr(timedelta, 'total_seconds'):
+    def total_seconds(td):
+        return float(td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+else:
+    total_seconds = timedelta.total_seconds 
+    #timedelta.total_seconds = total_seconds
 
 class Timing(Builtin):
     """
@@ -143,14 +151,8 @@ class _DateFormat(Builtin):
         form_name = self.get_name()
 
         if isinstance(etime, float) or isinstance(etime, int):
-            try:
-                timestruct = time.gmtime(etime - 2208988800)
-            except ValueError:
-                #TODO: Fix arbitarily large times
-                return
-
-            datelist = list(timestruct[:5])
-            datelist.append(timestruct[5] + etime % 1.)      # Hack to get seconds as float not int.
+            date = EPOCH_START + timedelta(seconds=etime)
+            datelist = [date.year, date.month, date.day, date.hour, date.minute, date.second + 1e-06 * date.microsecond]
             return datelist
 
         if isinstance(etime, basestring):
@@ -162,7 +164,7 @@ class _DateFormat(Builtin):
             evaluation.message(form_name, 'arg', etime)
             return
 
-        if 1 <= len(etime) <= 6 and all((isinstance(val, float) and i>1) or isinstance(val, int) for i,val in enumerate(etime)):
+        if 1 <= len(etime) <= 6 and all((isinstance(val, float) and i > 1) or isinstance(val, int) for i,val in enumerate(etime)):
             default_date = [1900, 1, 1, 0, 0, 0.]
 
             datelist = etime + default_date[len(etime):]
@@ -213,7 +215,7 @@ class _DateFormat(Builtin):
                     return
                 datelist = date.to_list()
 
-                #If year is ambiguious, assume the current year
+                # If year is ambiguious, assume the current year
                 if 'Year' not in etime[1] and 'YearShort' not in etime[1]:
                     datelist[0] = datetime.today().year
 
@@ -417,7 +419,7 @@ class AbsoluteTime(_DateFormat):
       <dd>gives the local time in seconds since epoch Jan 1 1900.
     <dt>'AbsoluteTime[$string$]'
       <dd>gives the absolute time specification for a given date string.
-    <dt>'AbsoluteTime[{$y$, $m$, $d$, $h$, $m$, $s$}]
+    <dt>'AbsoluteTime[{$y$, $m$, $d$, $h$, $m$, $s$}]'
       <dd>gives the absolute time specification for a given date list.
     <dt>'AbsoluteTime[{"string",{$e1$, $e2$, ...}}]' 
       <dd>gives the absolute time specification for a given date list with specified elements $ei$.
@@ -450,7 +452,8 @@ class AbsoluteTime(_DateFormat):
 
     def apply_now(self, evaluation):
         'AbsoluteTime[]'
-        return from_python(time.time() + 2208988800 - time.timezone)
+        
+        return from_python(total_seconds(datetime.now() - EPOCH_START))
 
     def apply_spec(self, epochtime, evaluation):
         'AbsoluteTime[epochtime_]'
@@ -460,13 +463,11 @@ class AbsoluteTime(_DateFormat):
         if datelist is None:
             return
 
-        epoch = datetime(1900, 1, 1)
         date = _Date(datelist=datelist)
-        tdelta = date.date - epoch
+        tdelta = date.date - EPOCH_START
         if tdelta.microseconds == 0:
-            return from_python(int(tdelta.total_seconds()))
-        return from_python(tdelta.total_seconds())
-
+            return from_python(int(total_seconds(tdelta)))
+        return from_python(total_seconds(tdelta))
 
 class TimeZone(Predefined):
     """
@@ -753,7 +754,7 @@ class DateDifference(Builtin):
         pyunits.sort(key = lambda a: a[1], reverse=True)
         pyunits = [a[0] for a in pyunits]
 
-        seconds = int(tdelta.total_seconds())
+        seconds = int(total_seconds(tdelta))
 
         result = []
         flag = False
@@ -783,7 +784,7 @@ class DateDifference(Builtin):
                 result.append([intdiv(seconds, 60, flag), "Minute"])
                 seconds = seconds % 60
             if unit == 'Second':
-                result.append([intdiv(seconds + tdelta.total_seconds() % 1, 1, flag), "Second"])
+                result.append([intdiv(seconds + total_seconds(tdelta) % 1, 1, flag), "Second"])
 
         if len(result) == 1:
             if pyunits[0] == "Day":
