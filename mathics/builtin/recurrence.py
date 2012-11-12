@@ -21,7 +21,7 @@ class RSolve(Builtin):
 
     No boundary conditions gives two general paramaters:
     >> RSolve[{a[n + 2] == a[n]}, a, n]
-     = {{a -> (Function[{n}, C[1] -1 ^ n + C[0]])}}
+     = {{a -> (Function[{n}, C[0] + C[1] -1 ^ n])}}
 
     One boundary condition:
     >> RSolve[{a[n + 2] == a[n], a[0] == 1}, a, n]
