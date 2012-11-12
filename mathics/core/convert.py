@@ -205,9 +205,9 @@ def from_sympy(expr):
         elif isinstance(expr, function.FunctionClass):
             return Symbol(unicode(expr))
     elif expr.is_Add:
-        return Expression('Plus', *[from_sympy(arg) for arg in expr.args])
+        return Expression('Plus', *sorted([from_sympy(arg) for arg in expr.args]))
     elif expr.is_Mul:
-        return Expression('Times', *[from_sympy(arg) for arg in expr.args])
+        return Expression('Times', *sorted([from_sympy(arg) for arg in expr.args]))
     elif expr.is_Pow:
         return Expression('Power', *[from_sympy(arg) for arg in expr.args])
     elif expr.is_Equality:
