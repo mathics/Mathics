@@ -207,9 +207,9 @@ def from_sympy(expr):
     elif expr.is_number and all([x.is_Number for x in expr.as_real_imag()]):    # Hack to convert 3 * I to Complex[0, 3]
         return Expression('Complex', *[from_sympy(arg) for arg in expr.as_real_imag()])
     elif expr.is_Add:
-        return Expression('Plus', *[from_sympy(arg) for arg in expr.args])
+        return Expression('Plus', *sorted([from_sympy(arg) for arg in expr.args]))
     elif expr.is_Mul:
-        return Expression('Times', *[from_sympy(arg) for arg in expr.args])
+        return Expression('Times', *sorted([from_sympy(arg) for arg in expr.args]))
     elif expr.is_Pow:
         return Expression('Power', *[from_sympy(arg) for arg in expr.args])
     elif expr.is_Equality:
