@@ -56,12 +56,16 @@ def timeit(expr, repeats=None):
 
     print "  '{}'".format(str(expr))
     times = []
+
     for i in xrange(repeats):
-        start = time.clock()
+        times.append(time.clock())
         expr.evaluate(evaluation)
-        times.append(time.clock() - start)
-    average_time = format_time_units(sum(times) / repeats)
-    best_time = format_time_units(min(times))
+
+    times.append(time.clock())
+
+    average_time = format_time_units((times[-1] - times[0]) / repeats)
+    best_time = format_time_units(min([times[i+1] - times[i] for i in range(repeats)]))
+
     print "    {} loops, avg: {} per loop, best: {} per loop".format(repeats, average_time, best_time)
     return
 
