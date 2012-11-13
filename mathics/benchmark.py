@@ -39,14 +39,24 @@ from mathics import get_version_string, settings
 definitions = Definitions(add_builtin=True)
 evaluation = None
 
+def format_time_units(seconds):
+    if seconds < 1e-6:
+        return "{0:.3g} ns".format(seconds * 1e9)
+    elif seconds < 1e-3:
+        return "{0:.3g} us".format(seconds * 1e6)
+    elif seconds < 1:
+        return "{0:.3g} ms".format(seconds * 1e3)
+    else:
+        return "{0:.3g} s ".format(seconds)
+
 def timeit(expr, repeats=TESTS_PER_BENCHMARK):
         print "  '{}'".format(str(expr))
         start = time.clock()
         for i in xrange(repeats):
             expr.evaluate(evaluation)
         stop = time.clock()
-        average_time = (stop - start) / repeats
-        print "    {} loops, avg: {}s per loop, best: {}s per loop".format(repeats, average_time, 1)
+        average_time = format_time_units((stop - start) / repeats)
+        print "    {} loops, avg: {} per loop, best: {}s per loop".format(repeats, average_time, 1)
         return
 
 def benchmark_parse(section_name):
