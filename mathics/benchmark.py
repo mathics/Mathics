@@ -18,7 +18,7 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# How many times each benchmark is performed
+# Default number of times to repeat each benchmark
 TESTS_PER_BENCHMARK = 1000
 
 # Mathics expressions to benchmark
@@ -49,15 +49,19 @@ def format_time_units(seconds):
     else:
         return "{0:.3g} s ".format(seconds)
 
-def timeit(expr, repeats=TESTS_PER_BENCHMARK):
-        print "  '{}'".format(str(expr))
-        start = time.clock()
-        for i in xrange(repeats):
-            expr.evaluate(evaluation)
-        stop = time.clock()
-        average_time = format_time_units((stop - start) / repeats)
-        print "    {} loops, avg: {} per loop, best: {}s per loop".format(repeats, average_time, 1)
-        return
+def timeit(expr, repeats=None):
+    if repeats is None:
+        global TESTS_PER_BENCHMARK
+        repeats = TESTS_PER_BENCHMARK
+
+    print "  '{}'".format(str(expr))
+    start = time.clock()
+    for i in xrange(repeats):
+        expr.evaluate(evaluation)
+    stop = time.clock()
+    average_time = format_time_units((stop - start) / repeats)
+    print "    {} loops, avg: {} per loop, best: {}s per loop".format(repeats, average_time, 1)
+    return
 
 def benchmark_parse(section_name):
     pass
@@ -83,12 +87,13 @@ def benchmark_all():
         benchmark_section(section_name)
 
 def main():
-    global evaluation 
+    global evaluation, TESTS_PER_BENCHMARK
     parser = ArgumentParser(description="Mathics benchmark suite.", add_help=False)
     parser.add_argument('--help', '-h', help='show this help message and exit', action='help')
     parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + settings.VERSION)
     parser.add_argument('--section', '-s', dest="section", metavar="SECTION", help="only test SECTION")
     parser.add_argument('--expression', '-e', dest="expression", metavar="EXPRESSION", help="benchmark a valid Mathics expression")
+    parser.add_argument('--number', '-n', dest="repeat", metavar="REPEAT", help="loop REPEAT number of times")
     args = parser.parse_args()
     
     try:
@@ -98,6 +103,9 @@ def main():
         info = sys.exc_info()
         sys.excepthook(*info)
         sys.exit(-1)
+
+    if args.repeat is not None:
+        TESTS_PER_BENCHMARK = int(args.repeat)
 
     if args.expression:
         benchmark_expression(args.expression)
