@@ -55,12 +55,14 @@ def timeit(expr, repeats=None):
         repeats = TESTS_PER_BENCHMARK
 
     print "  '{}'".format(str(expr))
-    start = time.clock()
+    times = []
     for i in xrange(repeats):
+        start = time.clock()
         expr.evaluate(evaluation)
-    stop = time.clock()
-    average_time = format_time_units((stop - start) / repeats)
-    print "    {} loops, avg: {} per loop, best: {}s per loop".format(repeats, average_time, 1)
+        times.append(time.clock() - start)
+    average_time = format_time_units(sum(times) / repeats)
+    best_time = format_time_units(min(times))
+    print "    {} loops, avg: {} per loop, best: {} per loop".format(repeats, average_time, best_time)
     return
 
 def benchmark_parse(section_name):
