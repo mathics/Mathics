@@ -108,7 +108,7 @@ def benchmark_section(section_name):
     return
 
 def benchmark_all():
-    for section_name in BENCHMARKS.keys():
+    for section_name in sorted(BENCHMARKS.keys()):
         benchmark_section(section_name)
 
 def main():
