@@ -18,8 +18,8 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# Default number of times to repeat each benchmark
-TESTS_PER_BENCHMARK = 1000
+# Default number of times to repeat each benchmark. None -> Automatic
+TESTS_PER_BENCHMARK = None
 
 # Mathics expressions to benchmark
 BENCHMARKS = {
@@ -57,16 +57,29 @@ def timeit(expr, repeats=None):
     print "  '{}'".format(str(expr))
     times = []
 
-    for i in xrange(repeats):
-        times.append(time.clock())
-        expr.evaluate(evaluation)
+    if repeats is not None:
+        # Fixed number of repeats
+        for i in xrange(repeats):
+            times.append(time.clock())
+            expr.evaluate(evaluation)
+    else:   
+        # Automatic number of repeats
+        i = 0
+        repeats = 10000
+        while i < repeats:
+            times.append(time.clock())
+            expr.evaluate(evaluation)
+            i += 1
+            for j in [10, 100, 1000, 5000]:
+                if i == j and times[-1] > times[0] + 1:
+                    repeats = i
 
     times.append(time.clock())
 
     average_time = format_time_units((times[-1] - times[0]) / repeats)
     best_time = format_time_units(min([times[i+1] - times[i] for i in range(repeats)]))
 
-    print "    {} loops, avg: {} per loop, best: {} per loop".format(repeats, average_time, best_time)
+    print "    {:4n} loops, avg: {} per loop, best: {} per loop".format(repeats, average_time, best_time)
     return
 
 def benchmark_parse(section_name):
