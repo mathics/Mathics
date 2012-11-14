@@ -33,6 +33,11 @@ BENCHMARKS = {
     'Matrix' : ['RandomInteger[{0,1}, {10,10}] . RandomInteger[{0,1}, {10,10}]', 'RandomInteger[{0,10}, {10,10}] + RandomInteger[{0,10}, {10,10}]'],
 }
 
+PARSING_BENCHMARKS = [
+    " +".join(map(str,range(1,100))),
+    "Sin[Sin[Sin[Sin[0]]]]",
+]
+
 import sys
 import time
 from argparse import ArgumentParser
@@ -84,8 +89,13 @@ def timeit(func, repeats=None):
     best_time = format_time_units(min([times[i+1] - times[i] for i in range(repeats)]))
     print "    {0:5n} loops, avg: {1} per loop, best: {2} per loop".format(repeats, average_time, best_time)
 
+def truncate_line(string):
+    if len(string) > 70:
+        return string[:70] + "..."
+    return string
+
 def benchmark_parse(expression_string):
-    print "  '{0}'".format(expression_string)
+    print "  '{0}'".format(truncate_line(expression_string))
     timeit(lambda: parse(expression_string))
 
 def benchmark_format(section_name):
@@ -104,8 +114,13 @@ def benchmark_section(section_name):
         benchmark_expression(benchmark)
 
 def benchmark_all():
+    print "EVALUATION BENCHMARKS:"
     for section_name in sorted(BENCHMARKS.keys()):
         benchmark_section(section_name)
+    print "PARSING BENCHMARKS:"
+    for expression_string in PARSING_BENCHMARKS:
+        benchmark_parse(expression_string)
+
 
 def main():
     global evaluation, TESTS_PER_BENCHMARK
