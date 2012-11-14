@@ -55,26 +55,24 @@ def format_time_units(seconds):
     else:
         return "{0:.3g} s ".format(seconds)
 
-def timeit(expr, repeats=None):
+def timeit(func, repeats=None):
     if repeats is None:
         global TESTS_PER_BENCHMARK
         repeats = TESTS_PER_BENCHMARK
 
-    print "  '{0}'".format(str(expr))
     times = []
-
     if repeats is not None:
         # Fixed number of repeats
         for i in xrange(repeats):
             times.append(time.clock())
-            expr.evaluate(evaluation)
+            func()
     else:   
         # Automatic number of repeats
         i = 0
         repeats = 10000
         while i < repeats:
             times.append(time.clock())
-            expr.evaluate(evaluation)
+            func()
             i += 1
             for j in [10, 100, 1000, 5000]:
                 if i == j and times[-1] > times[0] + 1:
@@ -84,28 +82,26 @@ def timeit(expr, repeats=None):
 
     average_time = format_time_units((times[-1] - times[0]) / repeats)
     best_time = format_time_units(min([times[i+1] - times[i] for i in range(repeats)]))
+    print "    {0:5n} loops, avg: {1} per loop, best: {2} per loop".format(repeats, average_time, best_time)
 
-    print "    {0:4n} loops, avg: {1} per loop, best: {2} per loop".format(repeats, average_time, best_time)
-    return
-
-def benchmark_parse(section_name):
-    pass
-    #TODO
+def benchmark_parse(expression_string):
+    print "  '{0}'".format(expression_string)
+    timeit(lambda: parse(expression_string))
 
 def benchmark_format(section_name):
-    pass
-    #TODO
+    print "  '{0}'".format(expression_string)
+    expr = parse(expression_string)
+    timeit(lambda: expr.default_format(evaluation, "FullForm"))
 
 def benchmark_expression(expression_string):
+    print "  '{0}'".format(expression_string)
     expr = parse(expression_string)
-    timeit(expr)
-    return
+    timeit(lambda: expr.evaluate(evaluation))
 
 def benchmark_section(section_name):
     print "\n{0}".format(section_name)
     for benchmark in BENCHMARKS.get(section_name):
         benchmark_expression(benchmark)
-    return
 
 def benchmark_all():
     for section_name in sorted(BENCHMARKS.keys()):
