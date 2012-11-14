@@ -24,7 +24,13 @@ TESTS_PER_BENCHMARK = None
 # Mathics expressions to benchmark
 BENCHMARKS = {
     'Arithmetic': ['1 + 2', '5 * 3'],
-    'Trig': ['Sin[RandomReal[]]']
+    'Plot': ['Plot[0, {x, -3, 3}]', 'Plot[x^2 + x + 1, {x, -3, 3}]', 'Plot[Sin[Cos[x^2]], {x, -3, 3}]', 'Plot[Sin[100 x], {x, -3, 3}]'],
+    'Plot3D': ['Plot3D[0, {x, -1, 1}, {y, -1, 1}]', 'Plot3D[x + y^2, {x, -3, 3}, {y, -2, 2}]', 'Plot3D[Sin[x + y^2], {x, -3, 3}, {y, -3, 3}]', 'Plot3D[Sin[100 x + 100 y ^ 2], {x, 0, 1}, {y, 0, 1}]'],
+    'DensityPlot' : ['DensityPlot[x + y^2, {x, -3, 3}, {y, -2, 2}]'],
+    'Trig': ['Sin[RandomReal[]]', 'ArcTan[RandomReal[]]'],
+    'Random' : ['RandomInteger[{-100, 100}, 100]', 'RandomInteger[10, {10, 10}]', 'RandomInteger[{0,1}, {5, 5, 5}]', 'RandomReal[1, 100]', 'RandomReal[{-1, 1}, 100]', 'RandomComplex[2 + I, 50]', 'RandomComplex[{-1 - I, 1 + I}, {10, 10}]'],
+    'Expand' : ['Expand[(a1+a2)^200]', 'Expand[(a1+a2+a3)^25]', 'Expand[(a1+a2+a3+a4+a5+a6+a7)^3]'],
+    'Matrix' : ['RandomInteger[{0,1}, {10,10}] . RandomInteger[{0,1}, {10,10}]', 'RandomInteger[{0,10}, {10,10}] + RandomInteger[{0,10}, {10,10}]'],
 }
 
 import sys
