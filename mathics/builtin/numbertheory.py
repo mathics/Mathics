@@ -7,6 +7,7 @@ Number theoretic functions
 from gmpy import invert, gcd, gcdext, lcm
 import sympy
 from sympy import isprime
+from itertools import combinations
 
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import Expression, Integer, Rational, Symbol, from_python
@@ -379,19 +380,23 @@ class CoprimeQ(Builtin):
     >> CoprimeQ[4+2I, 6+3I]
      = False
 
+    >> CoprimeQ[2, 3, 5]
+     = True
+
+    >> CoprimeQ[2, 4, 5]
+     = False
+
     """
     attributes = ('Listable',)
 
-    #TODO: Many numbers e.g. CoprimeQ[8,9,11]
+    def apply(self, args, evaluation):
+        'CoprimeQ[args__]'
 
-    def apply(self, n, m, evaluation):
-        'CoprimeQ[n_?NumericQ, m_?NumericQ]'
-
-        n, m = n.to_python(), m.to_python()
-        if not all(isinstance(i, int) or isinstance(i, complex) for i in (n,m)):
+        py_args = [arg.to_python() for arg in args.get_sequence()]
+        if not all(isinstance(i, int) or isinstance(i, complex) for i in py_args):
             return Symbol('False')
 
-        if sympy.gcd(n,m) == 1:
+        if all(sympy.gcd(n,m) == 1 for (n,m) in combinations(py_args, 2)):
             return Symbol('True')
         else:
             return Symbol('False')
