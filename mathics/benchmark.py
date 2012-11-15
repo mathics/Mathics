@@ -52,13 +52,13 @@ evaluation = None
 
 def format_time_units(seconds):
     if seconds < 1e-6:
-        return "{0:.3g} ns".format(seconds * 1e9)
+        return "{0:4.3g} ns".format(seconds * 1e9)
     elif seconds < 1e-3:
-        return "{0:.3g} us".format(seconds * 1e6)
+        return "{0:4.3g} us".format(seconds * 1e6)
     elif seconds < 1:
-        return "{0:.3g} ms".format(seconds * 1e3)
+        return "{0:4.3g} ms".format(seconds * 1e3)
     else:
-        return "{0:.3g} s ".format(seconds)
+        return "{0:4.3g} s ".format(seconds)
 
 def timeit(func, repeats=None):
     if repeats is None:
@@ -109,9 +109,10 @@ def benchmark_expression(expression_string):
     timeit(lambda: expr.evaluate(evaluation))
 
 def benchmark_section(section_name):
-    print "\n{0}".format(section_name)
+    print section_name
     for benchmark in BENCHMARKS.get(section_name):
         benchmark_expression(benchmark)
+    print ""
 
 def benchmark_all():
     print "EVALUATION BENCHMARKS:"
