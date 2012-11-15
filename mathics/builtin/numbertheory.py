@@ -533,6 +533,15 @@ class RandomPrime(Builtin):
 
     >> RandomPrime[{8,12}, 3]
      = {11, 11, 11}
+
+    >> RandomPrime[{10,30}, {2,5}]
+     = ...
+
+    #> RandomPrime[{10,12}, {2,2}]
+     = {{11, 11}, {11, 11}}
+
+    #> RandomPrime[2, {3,2}]
+     = {{2, 2}, {2, 2}, {2, 2}}
     """
 
     messages = {
@@ -545,8 +554,11 @@ class RandomPrime(Builtin):
     rules = {
         'RandomPrime[imax_?NotListQ]': 'RandomPrime[{1, imax}, 1]',
         'RandomPrime[int_?ListQ]':  'RandomPrime[int, 1]',
-        'RandomPrime[imax_?NotListQ, n_]': 'RandomPrime[{1, imax}, n]',
+        'RandomPrime[imax_?ListQ, n_?ArrayQ]': 'ConstantArray[RandomPrime[imax, 1], n]',
+        'RandomPrime[imax_?NotListQ, n_?ArrayQ]': 'ConstantArray[RandomPrime[{1, imax}, 1], n]',
     }
+
+    #TODO: Use random state as in other randomised methods within mathics
 
     def apply(self, interval, n, evaluation):
         'RandomPrime[interval_?ListQ, n_]'
@@ -569,7 +581,6 @@ class RandomPrime(Builtin):
             evaluation.message('RandomPrime', 'posint', interval.leaves[1])
             return
 
-        #TODO: arrays of random primes e.g. RandomPrime[100, {4,5}]
         try:
             if py_n == 1:
                 return from_python(sympy.ntheory.randprime(imin, imax+1))
