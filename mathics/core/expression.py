@@ -144,6 +144,7 @@ class BaseExpression(object):
     
     def __hash__(self):
         " To allow usage of expression as dictionary keys, as in Expression.get_pre_choices "
+        
         return hash(unicode(self))
     
     def __cmp__(self, other):
