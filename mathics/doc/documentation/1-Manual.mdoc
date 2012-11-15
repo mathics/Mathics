@@ -79,15 +79,15 @@ To use the online version of \Mathics at <url>http://www.mathics.net</url> or a 
 <section title="Installation prerequisites">
 To run \Mathics, you need Python 2.5 or higher on your computer. On most Linux distributions and on Mac OS X, Python is already included in the system by default. For Windows, you can get it from <url>http://www.python.org</url>. Anyway, the primary target platforms for \Mathics are Linux (especially Debian and Ubuntu) and Mac OS X. If you are on Windows and want to help by providing an installer to make setup on Windows easier, feel very welcome! 
 
-Furthermore, SQLite and GMP (the "GNU Multi-Precision Library") support are needed. Debian/Ubuntu provides the packages <con>libsqlite3-dev</con> and <con>libgmp3-dev</con>. The package <con>python-dev</con> is needed as well. You can install all required packages by running
+Furthermore, SQLite support is needed. Debian/Ubuntu provides the package <con>libsqlite3-dev</con>. The package <con>python-dev</con> is needed as well. You can install all required packages by running
 <console>
-# apt-get install python-dev libsqlite3-dev libgmp3-dev
+# apt-get install python-dev libsqlite3-dev
 </console>
 (as super-user, i.e. either after having issued <con>su</con> or by preceding the command with <con>sudo</con>).
 
-On Mac OS X, consider using Fink (<url>http://www.finkproject.org</url>) and install the packages <con>sqlite3-dev</con> and <con>gmp</con>.
+On Mac OS X, consider using Fink (<url>http://www.finkproject.org</url>) and install the <con>sqlite3-dev</con> package.
 
-If you are on Windows, please figure out yourself how to install SQLite and GMP.
+If you are on Windows, please figure out yourself how to install SQLite.
 
 Get the latest version of \Mathics from <url>http://www.mathics.org</url>. You will need internet access for the installation of \Mathics.
 </section>

@@ -250,7 +250,8 @@ class Equal(_InequalityOperator):
     #> Pi ^ E == E ^ Pi
      = False
 
-    ## TODO: N[E, 3] == N[E] (= True)
+    #> N[E, 3] == N[E]
+     = True
      
     #> {1, 2, 3} < {1, 2, 3}
      = {1, 2, 3} < {1, 2, 3}
@@ -265,7 +266,6 @@ class Equal(_InequalityOperator):
         'Equal[x_?(!RealNumberQ[#]&), y_?(!RealNumberQ[#]&)]'
         
         x, y = numerify([x, y], evaluation)
-        
         result = do_compare(x, y)
         if result is not None:
             if result:
