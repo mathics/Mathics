@@ -1669,12 +1669,22 @@ class FileHash(Builtin):
         py_filename = filename.to_python()
 
         #TODO: MD2?
-        supported_hashes = ['Adler32', 'CRC32', 'MD5', 'SHA', 'SHA224', 'SHA256', 'SHA384', 'SHA512']
+        supported_hashes = {
+            'Adler32': zlib.adler32,
+            'CRC32': zlib.crc32,
+            'MD5': lambda s : int(hashlib.md5(s).hexdigest(), 16),
+            'SHA': lambda s : int(hashlib.sha1(s).hexdigest(), 16),
+            'SHA224': lambda s : int(hashlib.sha224(s).hexdigest(), 16),
+            'SHA256': lambda s : int(hashlib.sha256(s).hexdigest(), 16),
+            'SHA384': lambda s : int(hashlib.sha384(s).hexdigest(), 16),
+            'SHA512': lambda s : int(hashlib.sha512(s).hexdigest(), 16),
+        }
 
         py_hashtype = py_hashtype.strip('"')
         py_filename = py_filename.strip('"')
 
-        if py_hashtype not in supported_hashes:
+        hash_func = supported_hashes.get(py_hashtype)
+        if hash_func is None:
             return
 
         try:
@@ -1684,25 +1694,7 @@ class FileHash(Builtin):
             evaluation.message('General', 'noopen', filename)
             return
 
-        if py_hashtype == 'Adler32':
-            result = zlib.adler32(dump)
-        if py_hashtype == 'CRC32':
-            result = zlib.crc32(dump)
-        if py_hashtype == 'MD5':
-            result = int(hashlib.md5(dump).hexdigest(), 16)
-        if py_hashtype == 'SHA':
-            result = int(hashlib.sha1(dump).hexdigest(), 16)
-        if py_hashtype == 'SHA224':
-            result = int(hashlib.sha224(dump).hexdigest(), 16)
-        if py_hashtype == 'SHA256':
-            result = int(hashlib.sha256(dump).hexdigest(), 16)
-        if py_hashtype == 'SHA384':
-            result = int(hashlib.sha384(dump).hexdigest(), 16)
-        if py_hashtype == 'SHA512':
-            result = int(hashlib.sha512(dump).hexdigest(), 16)
-
-        return from_python(result)
-
+        return from_python(hash_func(dump))
 
 # TODO: These have to wait until the time branch has been merged
 #
