@@ -13,6 +13,7 @@ import zlib
 import base64
 import sys
 import tempfile
+import time
 
 from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
@@ -994,10 +995,8 @@ class FilePrint(Builtin):
     #> FilePrint[exp]
      : File specification Sin[1] is not a string of one or more characters.
      = FilePrint[Sin[1]]
-    """
 
-    #TODO: Handle strange unix files - WARNING: These may crash your computer
-    """
+    ## Return $Failed on special files
     #> FilePrint["/dev/zero"]
      = $Failed
     #> FilePrint["/dev/random"]
@@ -1016,7 +1015,14 @@ class FilePrint(Builtin):
         if not (isinstance(pypath, basestring) and pypath[0] == pypath[-1] == '"'):
             evaluation.message('FilePrint', 'fstr', path)
             return
-        pypath = pypath.strip('"')
+        pypath = path_search(pypath.strip('"'))
+        
+        if pypath is None:
+            evaluation.message('FilePrint', 'TODO', path)
+            return
+
+        if not os.path.isfile(pypath):
+            return Symbol("$Failed")
 
         try:
             with mathics_open(pypath, 'r') as f:
@@ -1696,97 +1702,136 @@ class FileHash(Builtin):
 
         return from_python(hash_func(dump))
 
-# TODO: These have to wait until the time branch has been merged
-#
-#class FileDate(Builtin):
-#    """
-#    <dl>
-#    <dt>'FileDate[$file$, $types$]'
-#        <dd>returns the time and date at which the file was last modified.
-#    </dl>
-#    """
-#
-#    #TODO: Test different properties of some example data
-#
-#    rules = {
-#        'FileDate[path_]': 'FileDate[path, "Modification"]',
-#    }
-#
-#    def apply(self, path, timetype, evaluation):
-#        'FileDate[path_, timetype_]'
-#        path = path.to_python().strip('"')
-#        time_type = timetype.to_python().strip('"')
-#        if time_type == 'Access':
-#            time = os.path.getatime(path)
-#        elif time_type in ['Creation', 'Change']:   # TODO: Fixing this cross platform is difficult
-#            time = os.path.getctime(path)
-#        elif time_type == 'Modification':
-#            time = os.path.getmtime(path)
-#        else:
-#            return
-#
-#        # Mathematica measures epoch from Jan 1 1900, while python is from Jan 1 1970!
-#        return Expression('DateList', from_python(time + 2208988800))
-#
-#
-#class SetFileDate(Builtin):
-#    """
-#    <dl>
-#    <dt>'SetFileDate["$file$"]'
-#      <dd>set the file access and modification dates of $file$ to the current date.
-#    <dt>'SetFileDate["$file$", $date$]'
-#      <dd>set the file access and modification dates of $file$ to the specified date list.
-#    <dt>'SetFileDate["$file$", $date$, "$type$"]'
-#      <dd>set the file date of $file$ to the specified date list. 
-#      The "$type$" can be one of "$Access$", "$Creation$", "$Modification$", or 'All'.
-#    </dl>
-#
-#    >> SetFileDate["ExampleData/sunflowers.jpg"]
-#
-#    """
-#
-#    rules = {
-#        'SetFileDate[file_]': 'SetFileDate[file, DateList[], All]',
-#        'SetFileDate[file_, date]': 'SetFileDate[file, date, All]',
-#    }
-#
-#    def apply(self, filename, datelist, attribute, evaluation):
-#        'SetFileDate[filename_, datelist_, attribute_]'
-#        
-#        py_filename = filename.to_python()
-#        py_datelist = datelist.to_python()
-#        py_attr = attribute.to_python()
-#
-#        #Check filename
-#        if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
-#            evaluation.message('SetFileDate', 'todo1', filename)
-#            return
-#        py_filename = py_filename.strip('"')
-#
-#        #Check datelist
-#        if not (isinstance(py_datelist, list) and len(pydatelist) == 6 and 
-#            all(isinstance(d, int) for d in py_datelist[:-1]) and isinstance(py_datelist[-1], float)):
-#            evaluation.message('SetFileDate', 'todo2', datelist)
-#
-#        #Check attribute
-#        if py_attr not in ['"Access"', '"Creation"', '"Modification"', 'All']:
-#            evaluation.message('SetFileDate', 'todo3', attribute)
-#            return
-#        try:
-#            with mathics_open(py_filename, 'a'):
-#                if py_attr == '"Access"':
-#                    pass #TODO
-#                if py_attr == '"Creation"':
-#                    pass #TODO
-#                if py_attr == '"Modification"':
-#                    pass #TODO
-#                if py_attr == 'All':
-#                    pass #TODO
-#        except IOError:
-#            evaluation.message('General', 'noopen', filename)
-#            return
-#    
-#        return Symbol('Null')
+
+class FileDate(Builtin):
+    """
+    <dl>
+    <dt>'FileDate[$file$, $types$]'
+        <dd>returns the time and date at which the file was last modified.
+    </dl>
+
+    >> FileDate["ExampleData/sunflowers.jpg"]
+     = ...
+
+    >> FileDate["ExampleData/sunflowers.jpg", "Access"]
+     = ...
+
+    >> FileDate["ExampleData/sunflowers.jpg", "Creation"]
+     = ...
+
+    >> FileDate["ExampleData/sunflowers.jpg", "Change"]
+     = ...
+
+    >> FileDate["ExampleData/sunflowers.jpg", "Modification"]
+     = ...
+    """
+
+    rules = {
+        'FileDate[path_]': 'FileDate[path, "Modification"]',
+    }
+
+    def apply(self, path, timetype, evaluation):
+        'FileDate[path_, timetype_]'
+        py_path = path_search(path.to_python().strip('"'))
+
+        if py_path is None:
+            evaluation.message('FileDate', 'TODO1', path)
+            return
+
+        time_type = timetype.to_python().strip('"')
+        if time_type == 'Access':
+            result = os.path.getatime(py_path)
+        elif time_type in ['Creation', 'Change']:   # TODO: Fixing this cross platform is difficult
+            result = os.path.getctime(py_path)
+        elif time_type == 'Modification':
+            result = os.path.getmtime(py_path)
+        else:
+            return
+
+        # Offset for system epoch
+        epochtime = Expression('AbsoluteTime', time.strftime("%F %R", time.gmtime(0))).to_python(n_evaluation=evaluation)
+        result += epochtime
+
+        return Expression('DateList', from_python(result))
+
+
+class SetFileDate(Builtin):
+    """
+    <dl>
+    <dt>'SetFileDate["$file$"]'
+      <dd>set the file access and modification dates of $file$ to the current date.
+    <dt>'SetFileDate["$file$", $date$]'
+      <dd>set the file access and modification dates of $file$ to the specified date list.
+    <dt>'SetFileDate["$file$", $date$, "$type$"]'
+      <dd>set the file date of $file$ to the specified date list. 
+      The "$type$" can be one of "$Access$", "$Creation$", "$Modification$", or 'All'.
+    </dl>
+
+    Create a temporary file (for example purposes)
+    >> tmpfilename = $TemporaryDirectory <> "/tmp0";
+    >> Close[OpenWrite[tmpfilename]];
+
+    >> SetFileDate[tmpfilename, {2000, 1, 1, 0, 0, 0.}, "Access"];
+
+    >> FileDate[tmpfilename, "Access"]
+     = {2000, 1, 1, 0, 0, 0.}
+
+    #> DeleteFile[tmpfilename]
+    """
+
+    rules = {
+        'SetFileDate[file_]': 'SetFileDate[file, DateList[], All]',
+        'SetFileDate[file_, date]': 'SetFileDate[file, date, All]',
+    }
+
+    def apply(self, filename, datelist, attribute, evaluation):
+        'SetFileDate[filename_, datelist_, attribute_]'
+        
+        py_filename = filename.to_python()
+        py_datelist = datelist.to_python()
+        py_attr = attribute.to_python()
+
+        #Check filename
+        if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
+            evaluation.message('SetFileDate', 'TODO0', filename)
+            return
+        py_filename = path_search(py_filename.strip('"'))
+
+        if py_filename is None:
+            evaluation.message('SetFileDate', 'TODO1', filename)
+            return
+
+        #Check datelist
+        if not (isinstance(py_datelist, list) and len(py_datelist) == 6 and 
+            all(isinstance(d, int) for d in py_datelist[:-1]) and isinstance(py_datelist[-1], float)):
+            evaluation.message('SetFileDate', 'TODO2', datelist)
+
+        #Check attribute
+        if py_attr not in ['"Access"', '"Creation"', '"Modification"', 'All']:
+            evaluation.message('SetFileDate', 'todo3', attribute)
+            return
+
+        epochtime = Expression('AbsoluteTime', time.strftime("%F %R", time.gmtime(0))).evaluate(evaluation).to_python()
+        stattime = Expression('AbsoluteTime', datelist).to_python(n_evaluation=evaluation)
+        stattime -= epochtime
+
+        try:
+            stat = os.stat(py_filename)
+            if py_attr == '"Access"':
+                os.utime(py_filename, (stattime, os.path.getatime(py_filename)))
+            if py_attr == '"Creation"':
+                #TODO: ???
+                pass
+            if py_attr == '"Modification"':
+                os.utime(py_filename, (os.path.getatime(py_filename), stattime))
+            if py_attr == 'All':
+                os.utime(py_filename, (stattime, stattime))
+        except OSError as e:
+            print e
+            #evaluation.message(...)
+            return Symbol('$Failed')
+    
+        return Symbol('Null')
 
 
 class CopyFile(Builtin):
