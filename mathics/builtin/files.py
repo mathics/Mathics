@@ -301,9 +301,8 @@ class Read(Builtin):
     #> str = StringToStream["123xyz 321"];
     #> Read[str, Number]
      = 123
-    ## #> Read[str, Number]
-    ##  : Invalid real number found when reading from InputSteam["String", 6]
-    ##  = $Failed
+    #> Quiet[Read[str, Number]]
+     = $Failed
 
     ## Real
     #> str = StringToStream["123, 4abc"];
@@ -311,9 +310,9 @@ class Read(Builtin):
      = 123.
     #> Read[str, Real]
      = 4.
-    ## #> Read[str, Number]
-    ##  : Invalid real number found when reading from InputSteam["String", 6]
-    ##  = $Failed
+    #> Quiet[Read[str, Number]]
+     = $Failed
+
     #> Close[str];
     #> str = StringToStream["1.523E-19"]; Read[str, Real]
      = 1.523*^-19
@@ -332,8 +331,7 @@ class Read(Builtin):
     #> str = StringToStream["x + y Sin[z]"]; Read[str, Expression]
      = x + y Sin[z]
     #> Close[str];
-    ## #> str = StringToStream["Sin[1 123"]; Read[str, Expression]
-    ##  : Invalid input found when reading Sin[1 123 from InputSteam["String", 12]
+    ## #> str = Quiet[StringToStream["Sin[1 123"]; Read[str, Expression]]
     ##  = $Failed
 
     ## Multiple types
@@ -344,11 +342,10 @@ class Read(Builtin):
      = EndOfFile
     #> Close[str];
 
-    ## #> str = StringToStream["123 abc"];
-    ## #> Read[str, {Word, Number}]
-    ##  : Invalid real number found when reading from InputSteam["String", 14]
-    ##  = $Failed
-    ## #> Close[str];
+    #> str = StringToStream["123 abc"];
+    #> Quiet[Read[str, {Word, Number}]]
+     = $Failed
+    #> Close[str];
 
     #> str = StringToStream["123 123"];  Read[str, {Real, Number}]
      = {123., 123}
