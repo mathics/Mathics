@@ -578,13 +578,14 @@ class _OpenAction(Builtin):
 
     messages = {
         'argx': 'OpenRead called with 0 arguments; 1 argument is expected.',
+        'fstr': 'File specification `1` is not a string of one or more characters.',
     }
 
     def apply(self, path, evaluation):
         '%(name)s[path_]'
 
-        if not isinstance(path, String):
-            #TODO: evaluation.message
+        if not (isinstance(path, String) and len(path.to_python()) > 2):
+            evaluation.message(self.__class__.__name__, 'fstr', path)
             return
 
         path_string = path.to_python().strip('"')
@@ -606,7 +607,7 @@ class _OpenAction(Builtin):
         '%(name)s[]'
 
         if self.mode == 'r':
-            evaluation.message('OpenRead', 'argx')
+            evaluation.message(self.__class__.__name__, 'argx')
             return
 
         global TMP_DIR
@@ -642,6 +643,14 @@ class OpenRead(_OpenAction):
 
     #> OpenRead[]
      : OpenRead called with 0 arguments; 1 argument is expected.
+     = OpenRead[]
+
+    #> OpenRead[y]
+     : File specification y is not a string of one or more characters.
+     = OpenRead[y]
+
+    #> OpenRead[""]
+     : File specification  is not a string of one or more characters.
      = OpenRead[]
     """
 
@@ -1000,6 +1009,14 @@ class FilePrint(Builtin):
      = $Failed
     #> FilePrint["/dev/null"]
      = $Failed
+
+    #> FilePrint["somenonexistantpath_h47sdmk^&h4"]
+     : Cannot open somenonexistantpath_h47sdmk^&h4.
+     = FilePrint[somenonexistantpath_h47sdmk^&h4]
+
+    #> FilePrint[""]
+     : File specification  is not a string of one or more characters.
+     = FilePrint[]
     """
 
     messages = {
@@ -1009,13 +1026,13 @@ class FilePrint(Builtin):
     def apply(self, path, evaluation):
         'FilePrint[path_]'
         pypath = path.to_python()
-        if not (isinstance(pypath, basestring) and pypath[0] == pypath[-1] == '"'):
+        if not (isinstance(pypath, basestring) and pypath[0] == pypath[-1] == '"' and len(pypath) > 2):
             evaluation.message('FilePrint', 'fstr', path)
             return
         pypath = path_search(pypath.strip('"'))
         
         if pypath is None:
-            evaluation.message('FilePrint', 'TODO', path)
+            evaluation.message('General', 'noopen', path)
             return
 
         if not os.path.isfile(pypath):
