@@ -226,16 +226,16 @@ class mpcomplex(object):
     
     def __pow__(self, other):
         if get_type(other) == 'z':
-            # TODO: make this faster!
             if other == 0:
                 return mpz(1)
+            elif other < 0:
+                return (mpz(1) / self) ** (-1 * other)
+            elif other % 2 == mpz(1):
+                result = self ** ((other-1) / 2)
+                return self * result * result
             else:
-                result = mpz(1)
-                for i in range(abs(other)):
-                    result = result * self
-                if other < 0:
-                    result = mpz(1) / result
-                return result
+                result = self ** (other / 2)
+                return result * result
         else:
             other = mpcomplex(other)
             sc = self.to_mpmath()

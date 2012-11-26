@@ -7,9 +7,10 @@ Number theoretic functions
 from gmpy import invert, gcd, gcdext, lcm
 import sympy
 from sympy import isprime
+from itertools import combinations
 
 from mathics.builtin.base import Builtin, Test
-from mathics.core.expression import Expression, Integer, Rational, Symbol
+from mathics.core.expression import Expression, Integer, Rational, Symbol, from_python
 
 class PowerMod(Builtin):
     """
@@ -214,6 +215,8 @@ class FactorInteger(Builtin):
      = {{2, 1}, {3, 1}, {5, 1}, {67, 1}, {2011, -1}}
     """
     
+    #TODO: GausianIntegers option e.g. FactorInteger[5, GaussianIntegers -> True]
+
     def apply(self, n, evaluation):
         'FactorInteger[n_]'
         
@@ -231,6 +234,49 @@ class FactorInteger(Builtin):
         else:
             return evaluation.message('FactorInteger', 'exact', n)
     
+class IntegerExponent(Builtin):
+    """
+    <dl>
+    <dt>'IntegerExponent[$n$, $b$]'
+        gives the highest exponent of $b$ that divides $n$.
+    <dl>
+
+    >> IntegerExponent[16, 2]
+     = 4
+
+    >> IntegerExponent[-510000]
+     = 4
+    """
+
+    rules = {
+        'IntegerExponent[n_]': 'IntegerExponent[n, 10]',
+    }
+
+    messages = {
+        'int': 'Integer expected at position 1 in `1`',
+        'ibase': 'Base `1` is not an integer greater than 1.',
+    }
+
+    def apply(self, n, b, evaluation):
+        'IntegerExponent[n_, b_]'
+
+        py_n, py_b = n.to_python(), b.to_python()
+        expr = Expression('InegerExponent', n, b)
+        
+        if not (isinstance(py_n, int) or isinstance(py_n, long)):
+            evaluation.message('IntegerExponent', 'int', expr)
+        py_n = abs(py_n)
+
+        if not (isinstance(py_b, int) and py_b > 1):
+            evaluation.message('IntegerExponent', 'ibase', b)
+
+        #TODO: Optimise this (dont need to calc. base^result)
+        result = 1
+        while py_n % (py_b**result) == 0:
+            result += 1
+
+        return from_python(result-1)
+        
 class Prime(Builtin):
     """
     <dl>
@@ -313,5 +359,238 @@ class PrimeQ(Builtin):
             elif result == 2:
                 return Symbol('True')
             count += 50"""
+
+class CoprimeQ(Builtin):
+    """
+    Test whether two numbers are coprime by computing their greatest common divisor
+
+    >> CoprimeQ[7, 9]
+     = True
+
+    >> CoprimeQ[-4, 9]
+     = True
+
+    >> CoprimeQ[12, 15]
+     = False
+
+    CoprimeQ also works for complex numbers
+    >> CoprimeQ[1+2I, 1-I]
+     = True
+
+    >> CoprimeQ[4+2I, 6+3I]
+     = False
+
+    >> CoprimeQ[2, 3, 5]
+     = True
+
+    >> CoprimeQ[2, 4, 5]
+     = False
+
+    """
+    attributes = ('Listable',)
+
+    def apply(self, args, evaluation):
+        'CoprimeQ[args__]'
+
+        py_args = [arg.to_python() for arg in args.get_sequence()]
+        if not all(isinstance(i, int) or isinstance(i, complex) for i in py_args):
+            return Symbol('False')
+
+        if all(sympy.gcd(n,m) == 1 for (n,m) in combinations(py_args, 2)):
+            return Symbol('True')
+        else:
+            return Symbol('False')
+
+class PrimePowerQ(Builtin):
+    """
+    Tests wheter a number is a prime power
     
-    
+    >> PrimePowerQ[9]
+     = True
+
+    >> PrimePowerQ[52142]
+     = False
+
+    >> PrimePowerQ[-8]
+     = True
+
+    >> PrimePowerQ[371293]
+     = True
+
+    >> PrimePowerQ[1]
+     = False
+    """
+
+    rules = {
+        'PrimePowerQ[1]': 'False',
+    }
+
+    #TODO: GaussianIntegers option e.g. PrimePowerQ[5, GaussianIntegers -> True] (False)
+    #TODO: Threading over lists e.g. PrimePowerQ[{1, 2 + I, 3, 4 - 2 I, 5, 6, 7 + 9 I, 8, 9}]
+    #TODO: Gaussian rationals e.g. PrimePowerQ[2/125 - 11 I/125] (True)
+
+    def apply(self, n, evaluation):
+        'PrimePowerQ[n_]'
+        n = n.get_int_value()
+        if n is None:
+            return Symbol('False')
+
+        n = abs(n)
+        if len(sympy.factorint(n)) == 1:
+            return Symbol('True')
+        else:
+            return Symbol('False')
+
+class PrimePi(Builtin):
+    """
+    <dl>
+    <dt>'PrimePi[$x$]'
+      gives the number of primes less than or equal to $x$
+    </dl>
+
+    >> PrimePi[100]
+     = 25
+
+    >> PrimePi[-1]
+     = 0
+
+    >> PrimePi[3.5]
+     = 2
+
+    >> PrimePi[E]
+     = 1
+    """
+
+    #TODO: Traditional Form
+
+    def apply(self, n, evaluation):
+        'PrimePi[n_?NumericQ]'
+        return from_python(sympy.ntheory.primepi(n.to_python(n_evaluation=evaluation)))
+
+class NextPrime(Builtin):
+    """
+    <dl>
+    <dt>'NextPrime[$n$]'
+      gives the next prime after $n$.
+    <dt>'NextPrime[$n$,$k$]'
+      gives the $k$th  prime after $n$.
+    </dl>
+
+    >> NextPrime[10000]
+     = 10007
+
+    >> NextPrime[100, -5]
+     = 73
+
+    >> NextPrime[10, -5]
+    = -2
+
+    >> NextPrime[100, 5]
+     = 113
+
+    >> NextPrime[5.5, 100]
+     = 563
+
+    >> NextPrime[5, 10.5]
+     = NextPrime[5, 10.5]
+    """
+
+    rules = {
+        'NextPrime[n_]': 'NextPrime[n, 1]',
+    }
+
+    def apply(self, n, k, evaluation):
+        'NextPrime[n_?NumericQ, k_?IntegerQ]'
+        py_k = k.to_python(n_evaluation=evaluation)
+        py_n = n.to_python(n_evaluation=evaluation)
+
+        if py_k >= 0:
+            return from_python(sympy.ntheory.nextprime(py_n, py_k))
+
+        # Hack to get earlier primes
+        result = n.to_python()
+        for i in range(-py_k):
+            try:
+                result = sympy.ntheory.prevprime(result)
+            except ValueError:
+                # No earlier primes
+                return from_python(-1 * sympy.ntheory.nextprime(0, py_k-i))
+            
+        return from_python(result)
+
+class RandomPrime(Builtin):
+    """
+    <dl>
+    <dt>'RandomPrime[{$imin$, $imax}]'
+      gives a random prime beteween $imin$ and $imax$.
+    <dt>'RanomPrime[$imax$]
+      gives a random prime beteween 2 and $imax$.
+    <dt>'RandomPrime[$range$, $n$]'
+      gives a list of $n$ random primes in $range$.
+    </dl>
+
+    >> RandomPrime[{14, 17}]
+     = 17
+
+    >> RandomPrime[{14, 16}, 1]
+     : There are no primes in the specified interval.
+     = RandomPrime[{14, 16}, 1]
+
+    >> RandomPrime[{8,12}, 3]
+     = {11, 11, 11}
+
+    >> RandomPrime[{10,30}, {2,5}]
+     = ...
+
+    #> RandomPrime[{10,12}, {2,2}]
+     = {{11, 11}, {11, 11}}
+
+    #> RandomPrime[2, {3,2}]
+     = {{2, 2}, {2, 2}, {2, 2}}
+    """
+
+    messages = {
+        'posdim': 'The dimensions parameter `1` is expected to be a positive integer or a list of positive integers.',
+        'noprime': 'There are no primes in the specified interval.',
+        'prmrng': 'First argument `1` is not a positive integer or a list of two positive integers.',
+        'posint': 'The paramater `1` describing the interval is expected to be a positive integer.',
+    }
+
+    rules = {
+        'RandomPrime[imax_?NotListQ]': 'RandomPrime[{1, imax}, 1]',
+        'RandomPrime[int_?ListQ]':  'RandomPrime[int, 1]',
+        'RandomPrime[imax_?ListQ, n_?ArrayQ]': 'ConstantArray[RandomPrime[imax, 1], n]',
+        'RandomPrime[imax_?NotListQ, n_?ArrayQ]': 'ConstantArray[RandomPrime[{1, imax}, 1], n]',
+    }
+
+    #TODO: Use random state as in other randomised methods within mathics
+
+    def apply(self, interval, n, evaluation):
+        'RandomPrime[interval_?ListQ, n_]'
+
+        if not isinstance(n, Integer):
+            evaluation.message('RandomPrime', 'posdim', n)
+            return
+        py_n = n.to_python()
+
+        py_int = interval.to_python()
+        if not (isinstance(py_int, list) and len(py_int) == 2): 
+            evaluation.message('RandomPrime', 'prmrng', interval)
+
+        imin, imax = min(py_int), max(py_int)
+        if imin <= 0 or not isinstance(imin, int):
+            evaluation.message('RandomPrime', 'posint', interval.leaves[0])
+            return
+
+        if imax <= 0 or not isinstance(imax, int):
+            evaluation.message('RandomPrime', 'posint', interval.leaves[1])
+            return
+
+        try:
+            if py_n == 1:
+                return from_python(sympy.ntheory.randprime(imin, imax+1))
+            return from_python([sympy.ntheory.randprime(imin, imax+1) for i in range(py_n)])
+        except ValueError:
+            evaluation.message('RandomPrime', 'noprime')
+            return
+
