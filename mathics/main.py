@@ -37,6 +37,9 @@ from mathics import print_version, print_license, get_version_string
 def to_output(text):
     return '\n . '.join(text.splitlines())
 
+def out_callback(out):
+    print to_output(unicode(out))
+
 # Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/
 def brackets_balanced(input_string):
     brackets = [ ('(',')'), ('[',']'), ('{','}')]
@@ -68,36 +71,50 @@ def main():
     argparser.add_argument('--help', '-h', help='show this help message and exit', action='help')
     argparser.add_argument('--persist',  help='go to interactive shell after evaluating FILE', action='store_true')
     argparser.add_argument('--quiet', '-q', help='don\'t print message at startup', action='store_true')
+    argparser.add_argument('-script', help='run a mathics file in script mode', action='store_true')
     argparser.add_argument('--version', '-v', action='version', version=get_version_string(False))
 
     args = argparser.parse_args()
 
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
     
-    if not args.quiet:
+    if not (args.quiet or args.script):
         print_version(is_server=False)
         print_license()
         print u"Quit by pressing %s" % quit_command
     
         print ''
-    
+
     definitions = Definitions(add_builtin=True)
 
+    trailing_ops = ['+', '-', '/', '*'] # TODO all binary operators?
+
     if args.FILE is not None:
+        total_input = ""
         for line in args.FILE:
-            print '>> ', line,
 
-            def out_callback(out):
-                    print to_output(unicode(out))
+            if args.script and line.startswith('#!'):
+                continue
 
-            evaluation = Evaluation(line, definitions, timeout=30, out_callback=out_callback)
+            if total_input == "":
+                print '>> ', line,
+            else:
+                print '       ', line,
+
+            total_input += line
+
+            if line == "":
+                pass
+            elif any(line.rstrip().endswith(op) for op in trailing_ops) or not brackets_balanced(total_input):
+                continue
+
+            evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
             for result in evaluation.results:
                     if result.result is not None:
                         print ' = %s' % to_output(unicode(result.result))           
+            total_input = ""
         if not args.persist:
             return
-
-    trailing_ops = ['+', '-', '/', '*'] # TODO all binary operators?
 
     while True:
         try: 
@@ -105,15 +122,12 @@ def main():
             line_input = raw_input('>> ')
             while line_input != "":
                 total_input += ' ' + line_input
-                if not all([not line_input.rstrip().endswith(op) for op in trailing_ops]):
+                if any([line_input.rstrip().endswith(op) for op in trailing_ops]):
                     pass
                 elif brackets_balanced(total_input):
                     break
                 line_input = raw_input('       ')
         
-            def out_callback(out):
-                print to_output(unicode(out))
-            
             evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
         
             for result in evaluation.results:
