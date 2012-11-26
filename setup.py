@@ -62,7 +62,7 @@ else:
     INSTALL_REQUIRES = ['cython>=0.15.1']
 
 # General Requirements
-INSTALL_REQUIRES += ['sympy==0.7.2', 'mpmath>=0.15', 'django>=1.2', 'argparse', 'python-dateutil', 'python-magic>=0.4.3']]
+INSTALL_REQUIRES += ['sympy==0.7.2', 'mpmath>=0.15', 'django>=1.2', 'argparse', 'python-dateutil', 'python-magic>=0.4.3']
 
 # strange SandboxError with SymPy 0.6.7 in Sage (writing to ~/.sage/tmp)
 
