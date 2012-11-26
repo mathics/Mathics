@@ -726,12 +726,17 @@ class Get(PrefixOperator):
         except IOError:
             evaluation.message('General', 'noopen', path)
             return
-        for tmp in result:
+        for lineno, tmp in enumerate(result):
             try:
-                expr = parse(tmp)
+                parse
+                ParseError
             except NameError:
                 from mathics.core.parser import parse, ParseError
+            try:
                 expr = parse(tmp)
+            except:     #FIXME: something weird is going on here
+                print "Syntax Error (line {0} of {1})".format(lineno+1, pypath)
+                return Symbol('Null')
         return expr
 
     def apply_default(self, filename, evaluation):
