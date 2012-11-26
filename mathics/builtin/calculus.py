@@ -6,36 +6,17 @@ Calculus functions
 
 import re
 
-from mathics.builtin.base import Builtin, PostfixOperator, SageFunction
+from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import Expression, String, Integer, Number
-from mathics.core.expression import from_sage, ConvertSubstitutions, from_sympy
-from mathics.core.convert import sage_symbol_prefix, sympy_symbol_prefix
+from mathics.core.expression import ConvertSubstitutions, from_sympy
+from mathics.core.convert import sympy_symbol_prefix
 from mathics.core.util import unicode_superscript
 from mathics.core.rules import Pattern
 from mathics.builtin.scoping import dynamic_scoping
 
-try:
-    from sage.symbolic.operators import FDerivativeOperator
-    from sage import all as sage
-    from sage.calculus.calculus import var as sage_var, function as sage_function
-except (ImportError, RuntimeError):
-    pass
-
 import sympy
 
-# fix a bug in sympy when calling
-# Integrate[x^3.5+x, x]
-# => SymbolsError: No symbols were given
-from sympy import Poly
-old_new = Poly.__new__
-@classmethod
-def new_new(cls, cls2, poly, *symbols, **flags):
-    if poly == 0 and not symbols:
-        return old_new(cls, poly, sympy.Symbol('x'), **flags)
-    return old_new(cls, poly, *symbols, **flags)
-Poly.__new__ = new_new
-
-class D(SageFunction):
+class D(SympyFunction):
     u"""
     <dl>
     <dt>'D[$f$, $x$]'
@@ -166,7 +147,7 @@ class D(SageFunction):
         evaluation.message('D', 'dvar', arg)
         return Expression('D', expr, arg)
     
-class Derivative(PostfixOperator, SageFunction):    
+class Derivative(PostfixOperator, SympyFunction):    
     u"""
     <dl>
     <dt>'Derivative[$n$][$f$]'
@@ -217,8 +198,6 @@ class Derivative(PostfixOperator, SageFunction):
     precedence = 670
     attributes = ('NHoldAll',)
     
-    sage_name = ''
-    
     rules = {
         'MakeBoxes[Derivative[n__Integer][f_], form:StandardForm|TraditionalForm]':
             r'SuperscriptBox[MakeBoxes[f, form], If[{n} === {2}, "\[Prime]\[Prime]", If[{n} === {1}, "\[Prime]", RowBox[{"(", Sequence @@ Riffle[{n}, ","], ")"}]]]]',
@@ -263,41 +242,6 @@ class Derivative(PostfixOperator, SageFunction):
     def __init__(self, *args, **kwargs):
         super(Derivative, self).__init__(*args, **kwargs)
         
-    """
-    def to_sage(self, expr, definitions, subs):
-        try:
-            fd = expr.head
-            args = expr.leaves
-            d = fd.head
-        except AttributeError:
-            try:
-                args = None
-                fd = expr
-                d = fd.head
-            except AttributeError:
-                return
-        if d.get_head_name() != self.get_name():
-            return
-        d_params = []
-        for index, count in enumerate(d.leaves):
-            count = count.get_int_value()
-            if count is None:
-                return
-            count = int(count)
-            d_params.extend([index] * count)
-        if len(fd.leaves) != 1:
-            return
-        f = fd.leaves[0]
-        f_name = f.get_name()
-        if not f_name:
-            return
-        op = FDerivativeOperator(sage_function(sage_symbol_prefix + f_name), d_params)
-        if args is not None:
-            op = op(*(arg.to_sage(definitions, subs) for arg in args))
-              
-        return op
-    """
-    
     def post_parse(self, expression):
         count = 0
         inner = expression
@@ -325,11 +269,14 @@ class Derivative(PostfixOperator, SageFunction):
         
         count = exprs[2].leaves[0].to_python()
         for i in range(count):
-            sym_func = sympy.Derivative(sym_func)
+            try:
+                sym_func = sympy.Derivative(sym_func)
+            except ValueError:
+                return None
 
         return sym_func
 
-class Integrate(SageFunction):
+class Integrate(SympyFunction):
     r"""
     <dl>
     <dt>'Integrate[$f$, $x$]'
@@ -377,10 +324,10 @@ class Integrate(SageFunction):
      = Integrate[sin[x], x]
      
     #> Integrate[x ^ 3.5 + x, x]
-     = x ^ 2 / 2 + 0.222222222222222 x ^ 4.5
+     = x ^ 2 / 2 + 0.222222222222222222 x ^ 4.5
      
     #> Integrate[Abs[Sin[phi]],{phi,0,2Pi}]//N
-     = 3.99998451720248
+     = 4.
      
     #> Integrate[1/(x^5+1), x]
      = RootSum[625 #1 ^ 4 + 125 #1 ^ 3 + 25 #1 ^ 2 + 5 #1 + 1&, Log[x + 5 #1] #1&] + Log[1 + x] / 5
@@ -402,7 +349,6 @@ class Integrate(SageFunction):
     
     attributes = ('ReadProtected',)
     
-    sage_name = ''
     sympy_name = 'Integral'
     
     messages = {
@@ -421,7 +367,7 @@ class Integrate(SageFunction):
             r'RowBox[{SubsuperscriptBox["\[Integral]", MakeBoxes[a, form], MakeBoxes[b, form]], MakeBoxes[f, form], "\[InvisibleTimes]", RowBox[{"\[DifferentialD]", MakeBoxes[x, form]}]}]',
     }
     
-    def prepare_sage(self, leaves):
+    def prepare_sympy(self, leaves):
         if len(leaves) == 2:
             x = leaves[1]
             if x.has_form('List', 3):
@@ -430,14 +376,6 @@ class Integrate(SageFunction):
                 return ('Integrate', leaves)
         return leaves
             
-    def from_sage(self, leaves):
-        if len(leaves) == 4:
-            return (leaves[0], Expression('List', *leaves[1:4]))
-        else:
-            return leaves
-        
-    prepare_sympy = prepare_sage
-    
     def from_sympy(self, leaves):
         args = []
         for leaf in leaves[1:]:
@@ -516,9 +454,9 @@ class Solve(Builtin):
      
     Rational equations:
     >> Solve[x / (x ^ 2 + 1) == 1, x]
-     = {{x -> 1 / 2 + I / 2 Sqrt[3]}, {x -> 1 / 2 - I / 2 Sqrt[3]}} 
+     = {{x -> 1 / 2 - I / 2 Sqrt[3]}, {x -> 1 / 2 + I / 2 Sqrt[3]}} 
     >> Solve[(x^2 + 3 x + 2)/(4 x - 2) == 0, x]
-     = {{x -> -1}, {x -> -2}}
+     = {{x -> -2}, {x -> -1}}
      
     Transcendental equations:
     >> Solve[Cos[x] == 0, x]
@@ -543,25 +481,28 @@ class Solve(Builtin):
     Solve a system of equations:
     >> eqs = {3 x ^ 2 - 3 y == 0, 3 y ^ 2 - 3 x == 0};
     >> sol = Solve[eqs, {x, y}]
-     = {{x -> 0, y -> 0}, {x -> 1, y -> 1}, {x -> (-1 / 2 + I / 2 Sqrt[3]) ^ 2, y -> -1 / 2 + I / 2 Sqrt[3]}, {x -> (-1 / 2 - I / 2 Sqrt[3]) ^ 2, y -> -1 / 2 - I / 2 Sqrt[3]}}
+     = {{x -> 0, y -> 0}, {x -> 1, y -> 1}, {x -> (-1 / 2 - I / 2 Sqrt[3]) ^ 2, y -> -1 / 2 - I / 2 Sqrt[3]}, {x -> (-1 / 2 + I / 2 Sqrt[3]) ^ 2, y -> -1 / 2 + I / 2 Sqrt[3]}}
     >> eqs /. sol // Simplify
      = {{True, True}, {True, True}, {True, True}, {True, True}}
      
     An underdetermined system:
     >> Solve[x^2 == 1 && z^2 == -1, {x, y, z}]
      : Equations may not give solutions for all "solve" variables.
-     = {{x -> -1, z -> I}, {x -> -1, z -> -I}, {x -> 1, z -> I}, {x -> 1, z -> -I}}
+     = {{x -> -1, z -> -I}, {x -> -1, z -> I}, {x -> 1, z -> -I}, {x -> 1, z -> I}}
      
     Domain specification:
     >> Solve[x^2 == -1, x, Reals]
      = {}
     >> Solve[x^2 == 1, x, Reals]
-     = {{x -> 1}, {x -> -1}}
+     = {{x -> -1}, {x -> 1}}
     >> Solve[x^2 == -1, x, Complexes]
      = {{x -> -I}, {x -> I}}
+
+    #> Solve[x^2 +1 == 0, x] // FullForm
+     = List[List[Rule[x, Complex[0, -1]]], List[Rule[x, Complex[0, 1]]]]
      
     #> Solve[x^5==x,x]
-     = {{x -> 1}, {x -> -1}, {x -> -I}, {x -> 0}, {x -> I}}
+     = {{x -> -1}, {x -> 0}, {x -> 1}, {x -> -I}, {x -> I}}
      
     #> Solve[g[x] == 0, x]
      = Solve[g[x] == 0, x]
@@ -587,9 +528,7 @@ class Solve(Builtin):
     
     rules = {
         'Solve[eqs_, vars_, Complexes]': 'Solve[eqs, vars]',
-        'Solve[eqs_, vars_, Reals]': """Select[Solve[eqs, vars],
-            And @@ ((!NumberQ[#] || Im[#] == 0 &) [Chop[N[#], 10^-15]] & /@
-            (If[ListQ[vars], vars, {vars}] /. #)) &]"""
+        'Solve[eqs_, vars_, Reals]': 'Cases[Solve[eqs, vars], {Rule[x,y_?RealNumberQ]}]',
     }
     
     def apply(self, eqs, vars, evaluation):
@@ -681,7 +620,10 @@ class Solve(Builtin):
             sympy_eqs = sympy_eqs[0]
             
         try:
-            result = sympy.solve(sympy_eqs, vars_sympy)
+            if isinstance(sympy_eqs, bool):
+                result = sympy_eqs
+            else:
+                result = sympy.solve(sympy_eqs, vars_sympy)
             if not isinstance(result, list):
                 result = [result]
             if result == [True]:
@@ -776,10 +718,10 @@ class FindRoot(Builtin):
     >> FindRoot[Cos[x], {x, 1}]
      = {x -> 1.57079632679489662}
     >> FindRoot[Sin[x] + Exp[x],{x, 0}]
-     = {x -> -0.588532743981861078}
+     = {x -> -0.588532743981861077}
      
     >> FindRoot[Sin[x] + Exp[x] == Pi,{x, 0}]
-     = {x -> 0.866815239911458063}
+     = {x -> 0.866815239911458064}
      
     'FindRoot' has attribute 'HoldAll' and effectively uses 'Block' to localize $x$.
     However, in the result $x$ will eventually still be replaced by its value.
@@ -859,7 +801,7 @@ class FindRoot(Builtin):
                 return
             if x1 == x0:
                 break
-            x0 = x1.evaluate(evaluation)
+            x0 = Expression('N', x1).evaluate(evaluation)       # N required due to bug in sympy arithmetic
             count += 1
         else:
             evaluation.message('FindRoot', 'maxiter')

@@ -4,8 +4,7 @@ from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer, from_sympy
 
 import sympy
-
-from gmpy import mpz, bincoef
+import mpmath
 
 def sympy_factor(expr_sympy):
     try:
@@ -81,7 +80,11 @@ class Simplify(Builtin):
         
         expr_sympy = expr.to_sympy()
         result = expr_sympy
-        result = sympy.simplify(result)
+        try:
+            result = sympy.simplify(result)
+        except TypeError:
+            #XXX What's going on here?
+            pass
         result = sympy.trigsimp(result)
         result = sympy.together(result)
         result = sympy.cancel(result)
@@ -255,7 +258,7 @@ class Expand(Builtin):
                     else:
                         other_leaves.append(leaf)
                 if len(neg_powers) > 1:
-                    leaves = other_leaves + [Expression('Power', Expression('Times', *[Expression('Power', leaf.leaves[0], Integer(mpz(-leaf.leaves[1].value))) for leaf in neg_powers]), Integer(-1))]
+                    leaves = other_leaves + [Expression('Power', Expression('Times', *[Expression('Power', leaf.leaves[0], Integer(sympy.Integer(-leaf.leaves[1].value))) for leaf in neg_powers]), Integer(-1))]
             if head_name in ('Plus', 'Times', 'Power'):
                 leaves = [expand(leaf) for leaf in leaves]
             if expr.has_form('Times', 2, None):
@@ -299,9 +302,9 @@ class Expand(Builtin):
                                         this_factor = []
                                     else:
                                         this_factor = [Expression('Power', rest[0], Integer(k))]
-                                    yield (bincoef(n_rest, k) * coeff, this_factor + next)
+                                    yield (int(mpmath.binomial(n_rest, k) * coeff), this_factor + next)
                         elif n_rest == 0:
-                            yield (mpz(1), [])
+                            yield (sympy.Integer(1), [])
                             
                     def times(coeff, factors):
                         if coeff == 1:

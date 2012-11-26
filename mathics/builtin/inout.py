@@ -185,7 +185,9 @@ class MakeBoxes(Builtin):
                 op = MakeBoxes(op, f)
             else:
                 op_value = op.get_string_value()
-                if f.get_name() in ('InputForm', 'OutputForm') and not op_value.startswith(' ') and not op_value.endswith(' '):
+                if f.get_name() == 'InputForm' and op_value == '*':
+                    pass
+                elif f.get_name() in ('InputForm', 'OutputForm') and not op_value.startswith(' ') and not op_value.endswith(' '):
                     op = String(' ' + op_value + ' ')
             return op
         
@@ -877,7 +879,7 @@ class StandardForm(Builtin):
 class InputForm(Builtin):
     """
     >> InputForm[a + b * c]
-     = a + b c
+     = a + b*c
     >> InputForm["A string"]
      = "A string"
     >> InputForm[f'[x]]

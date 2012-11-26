@@ -50,7 +50,6 @@ class ProductLog(_MPMathFunction):
     """
     
     sympy_name = 'LambertW' # function called LambertW in SymPy
-    sage_name = ''          # function not present in Sage
     
     rules = {
         'ProductLog[0]': '0',
