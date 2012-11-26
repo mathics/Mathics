@@ -1237,7 +1237,7 @@ class Integer(Number):
     def make_boxes(self, form):
         return number_boxes(str(self.value))
         
-    def default_format(self):
+    def default_format(self, evaluation, form):
         return str(self.value)
         
     def to_sympy(self, **kwargs):
@@ -1312,7 +1312,7 @@ class Rational(Number):
             result = Expression('HoldForm', result)
             return result.do_format(evaluation, form)
     
-    def default_format(self):
+    def default_format(self, evaluation, form):
         return 'Rational[%s, %s]' % self.value.as_numer_denom()
     
     def evaluate(self, evaluation=builtin_evaluation):

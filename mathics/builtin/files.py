@@ -734,7 +734,7 @@ class Get(PrefixOperator):
                 expr = parse(tmp)
         return expr
 
-    def apply_default(self, exprs, filename, evaluation):
+    def apply_default(self, filename, evaluation):
         'Get[filename_]'
         expr = Expression('Get', filename)
         evaluation.message('General', 'stream', filename)
@@ -758,7 +758,7 @@ class Put(BinaryOperator):
 
     #> Put[40!, fourtyfactorial]
      : fourtyfactorial is not string, InputStream[], or OutputStream[]
-     = ...
+     = 815915283247897734345611269596115894272000000000 >> fourtyfactorial
     ## FIXME: final line should be
     ## = Put[815915283247897734345611269596115894272000000000, fourtyfactorial]
 
@@ -775,6 +775,13 @@ class Put(BinaryOperator):
 
     #> DeleteFile["factorials"]
      =
+
+    #> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], "example_file"]
+    #> FilePrint["example_file"]
+     = x + y
+     . 2*x^2 + 4*z!
+     . Cos[x] + I*Sin[x]
+    #> DeleteFile["example_file"]
     """
 
     operator = '>>'
@@ -797,7 +804,7 @@ class Put(BinaryOperator):
             evaluation.message('Put', 'openx', Expression('OutputSteam', name, n))
             return
 
-        text = [unicode(e.do_format(evaluation, 'InputForm').__str__()) for e in exprs.get_sequence()]
+        text = [evaluation.format_output(Expression('InputForm', expr)) for expr in exprs.get_sequence()]
         text = u'\n'.join(text) + u'\n'
         text.encode('ascii')
 
