@@ -185,7 +185,7 @@ class MakeBoxes(Builtin):
                 op = MakeBoxes(op, f)
             else:
                 op_value = op.get_string_value()
-                if f.get_name() == 'InputForm' and op_value == '*':
+                if f.get_name() == 'InputForm' and op_value in ['*', '^']:
                     pass
                 elif f.get_name() in ('InputForm', 'OutputForm') and not op_value.startswith(' ') and not op_value.endswith(' '):
                     op = String(' ' + op_value + ' ')
@@ -889,6 +889,8 @@ class InputForm(Builtin):
      = Derivative[1][f][x]
     >> InputForm[Derivative[1, 0][f][x]]
      = Derivative[1, 0][f][x]
+    #> InputForm[2 x ^ 2 + 4z!]
+     = 2*x^2 + 4*z!
     """
     
 class OutputForm(Builtin):
