@@ -9,7 +9,7 @@ import re
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import Expression, String, Integer, Number
 from mathics.core.expression import ConvertSubstitutions, from_sympy
-from mathics.core.convert import sympy_symbol_prefix
+from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 from mathics.core.util import unicode_superscript
 from mathics.core.rules import Pattern
 from mathics.builtin.scoping import dynamic_scoping
@@ -390,6 +390,8 @@ class Integrate(SympyFunction):
         'Integrate[f_, xs__]'
         
         f_sympy = f.to_sympy()
+        if isinstance(f_sympy, SympyExpression):
+            return
         xs = xs.get_sequence()
         vars = []
         prec = None

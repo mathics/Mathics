@@ -23,7 +23,7 @@ class DSolve(Builtin):
      = {{y[x] -> C[1] E ^ (-x) + C[2] E ^ x}}
 
     >> DSolve[y''[x] == y[x], y, x]
-     = {{y -> (Function[{x}, C[1] Exp[x] + C[2] Exp[-x]])}}
+     = {{y -> (Function[{x}, C[1] Exp[-x] + C[2] Exp[x]])}}
 
     #> Attributes[f] = {HoldAll}; 
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]
@@ -36,16 +36,16 @@ class DSolve(Builtin):
      = DSolve[f[2 x] == Sin[f'[x]], f, x]
     
     #> DSolve[f'[x] == f[x], f, x] // FullForm
-     = List[List[Rule[f, Function[List[x], Exp[Plus[x, C[1]]]]]]]
+     = List[List[Rule[f, Function[List[x], Times[C[1], Exp[x]]]]]]
 
     #> DSolve[f'[x] == f[x], f, x] /. {C[1] -> 1}
-     = {{f -> (Function[{x}, Exp[x + 1]])}}
+     = {{f -> (Function[{x}, 1 Exp[x]])}}
 
     #> DSolve[f'[x] == f[x], f, x] /. {C -> D}
-     = {{f -> (Function[{x}, Exp[x + D[1]]])}}
+     = {{f -> (Function[{x}, D[1] Exp[x]])}}
 
     #> DSolve[f'[x] == f[x], f, x] /. {C[1] -> C[0]}
-     = {{f -> (Function[{x}, Exp[x + C[0]]])}}
+     = {{f -> (Function[{x}, C[0] Exp[x]])}}
     """
 
     #TODO: GeneratedParameters option
@@ -118,7 +118,7 @@ class DSolve(Builtin):
         except NotImplementedError as e:
             evaluation.message('DSolve', 'symimp')
             return
-        except AttributeError as e:     # It is possible this can be removed for sympy >= 0.7.2
+        except AttributeError as e:
             evaluation.message('DSolve', 'litarg', eqn)
             return
         except KeyError:
