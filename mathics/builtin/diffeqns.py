@@ -118,7 +118,7 @@ class DSolve(Builtin):
         except NotImplementedError as e:
             evaluation.message('DSolve', 'symimp')
             return
-        except AttributeError as e:     # It is possible this can be removed for sympy >= 0.7.2
+        except AttributeError as e:
             evaluation.message('DSolve', 'litarg', eqn)
             return
         except KeyError:
