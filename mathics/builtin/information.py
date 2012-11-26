@@ -35,13 +35,13 @@ class Definition(PrefixOperator):
             print unicode(out)
         from mathics.core.evaluation import Evaluation
             
-#        evaluation = Evaluation(symbol.name+"::usage", evaluation.definitions, timeout=30, out_callback=out_callback)
+        evaluation = Evaluation(symbol.name+"::usage", evaluation.definitions, timeout=30, out_callback=out_callback)
 
-#        for result in evaluation.results:
-#            if result.result is not None:
-#                print '%s' % unicode(result.result)
+        for result in evaluation.results:
+            if result.result is not None:
+                print '%s' % unicode(result.result)
   
-        def= evaluation.definitions.get_definition(symbol.name) ;
+#        def= evaluation.definitions.get_definition(symbol.name) ;
               
         print u"Calling Information for "+symbol.name;
         return None;
