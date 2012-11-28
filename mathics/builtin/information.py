@@ -30,11 +30,14 @@ def _get_usage_string(name,evaluation):
 class Definition(PrefixOperator):
 
     """
-    Retrieves information about symbols
+    <dl>
+    <dt>'Definition[$symbol$]'
+        <dd>Retrieves the definition of $symbol$
+    </dl>
     """
     operator="?"
     precedence=1
-    attributes = ('HoldAll', 'SequenceHold')
+    attributes = ('HoldAll', 'SequenceHold','Protect','ReadProtect')
     def apply(self, symbol, evaluation):
         'Definition[symbol_]'
         if type(symbol)!=Symbol: 
@@ -99,13 +102,16 @@ class Definition(PrefixOperator):
 
 
 
-class Information(PrefixOperator):
+class Information(PrefixOperator):    
     """
-    Retrieves information about symbols
+    <dl>
+    <dt>'Information[$symbol$]'
+        <dd>Retrieves information about $symbol$
+    </dl>
     """
     operator="??"
     precedence=1
-    attributes = ('HoldAll', 'SequenceHold')
+    attributes = ('HoldAll', 'SequenceHold','Protect','ReadProtect')
     
     def apply(self, symbol, evaluation):
         'Information[symbol_]'
