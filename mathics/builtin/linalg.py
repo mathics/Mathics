@@ -22,7 +22,7 @@ def to_sympy_matrix(data, **kwargs):
         data = matrix_data(data)
     try:
         return sympy.Matrix(data)
-    except (TypeError, AssertionError):
+    except (TypeError, AssertionError, ValueError):
         return None
 
 class Det(Builtin):
@@ -173,6 +173,9 @@ class RowReduce(Builtin):
      . 0   1   2
      .
      . 0   0   0
+
+    #> RowReduce[{{1, 0}, {0}}]
+     = RowReduce[{{1, 0}, {0}}]
     """
     
     def apply(self, m, evaluation):
