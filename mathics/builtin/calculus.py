@@ -695,6 +695,9 @@ class Limit(Builtin):
      = Infinity
     >> Limit[1/x, x->0, Direction->1]
      = -Infinity
+
+    #> Limit[(1 + cos[x]) / x, x -> 0]
+     = Limit[(1 + cos[x]) / x, x -> 0]
     """
     
     attributes = ('Listable',)
@@ -727,6 +730,9 @@ class Limit(Builtin):
             result = sympy.limit(expr, x, x0, dir_sympy)
             return from_sympy(result)
         except sympy.PoleError:
+            pass
+        except RuntimeError:
+            # Bug in Sympy: RuntimeError: maximum recursion depth exceeded while calling a Python object
             pass
         except NotImplementedError:
             pass
