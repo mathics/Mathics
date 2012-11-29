@@ -135,7 +135,7 @@ class Information(PrefixOperator):
             evaluation.print_out(String(usagetext))
         else:
             evaluation.print_out(String(definition.context+definition.name +"\n"))
-	print usagetext
+
 
         if definition.ownvalues !=None :
             if len(definition.ownvalues)!=0: 
@@ -186,7 +186,7 @@ class Information(PrefixOperator):
         attributesstr=attributesstr+"}"
         if attributesstr!="{}":         evaluation.print_out(String("Attributes: "+ attributesstr+"\n"))
         
-	print type(definition.options)
+
 	optionsstr="{"
         for opts in definition.options:
             if  optionsstr!='{': 
