@@ -7,8 +7,9 @@ Basic functions to get information about definitions in the current context.
 """
 
 
+
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
-from mathics.core.expression import Expression, Symbol
+from mathics.core.expression import Expression, Symbol,String
 from mathics.core.evaluation import AbortInterrupt, ReturnInterrupt, BreakInterrupt, ContinueInterrupt
 
 from mathics.core.rules import BuiltinRule
@@ -65,9 +66,10 @@ class Definition(PrefixOperator):
                             eqs=':='
                         else:
                             eqs='='
-                        evaluation.print_out(String(evaluation.format_output(from_python(ownval.pattern.expr)),\
-                     eqs,evaluation.format_output(from_python(ownval.replace))))
-                print ""
+                        evaluation.print_out(String(evaluation.format_output(\
+						from_python(ownval.pattern.expr))+\
+							    eqs+evaluation.format_output(from_python(ownval.replace))))
+
 
 
         if definition.upvalues !=None :
@@ -80,8 +82,9 @@ class Definition(PrefixOperator):
                             eqs=':^='
                         else:
                             eqs='^='
-                        evaluation.print_out(String(evaluation.format_output(from_python(upval.pattern.expr)),\
-                                eqs,evaluation.format_output(from_python(upval.replace)), '\n'))
+                        evaluation.print_out(String(evaluation.format_output(\
+						from_python(upval.pattern.expr))+\
+                                eqs+evaluation.format_output(from_python(upval.replace)), '\n'))
                 
 
         if definition.downvalues !=None :
@@ -94,8 +97,10 @@ class Definition(PrefixOperator):
                             eqs=':='
                         else:
                             eqs='='
-                        evaluation.print_out(String(evaluation.format_output(from_python(downval.pattern.expr)),\
-                            eqs,evaluation.format_output(from_python(downval.replace)), '\n'))                    
+                        evaluation.print_out(String(\
+					evaluation.format_output(\
+						from_python(downval.pattern.expr))+\
+						eqs+evaluation.format_output(from_python(downval.replace)), '\n'))
         return Symbol('Null');
         
 
@@ -121,6 +126,7 @@ class Information(PrefixOperator):
         if type(symbol)!=Symbol: 
             evaluation.message('Information','notfound',symbol)                         
             return Symbol('Null');
+
         definition= evaluation.definitions.get_definition(symbol.name) ;
         if definition is None: return None
    
@@ -128,8 +134,8 @@ class Information(PrefixOperator):
         if usagetext!=None :
             evaluation.print_out(String(usagetext))
         else:
-            print definition.context+definition.name        
-        print ""    
+            evaluation.print_out(String(definition.context+definition.name +"\n"))
+	print usagetext
 
         if definition.ownvalues !=None :
             if len(definition.ownvalues)!=0: 
@@ -141,23 +147,23 @@ class Information(PrefixOperator):
                             eqs=':='
                         else:
                             eqs='='
-                        evaluation.print_out(String(evaluation.format_output(from_python(ownval.pattern.expr)),\
-                     eqs,evaluation.format_output(from_python(ownval.replace))))
-                print ""
+                        evaluation.print_out(String(evaluation.format_output(from_python(ownval.pattern.expr))+\
+                     eqs+evaluation.format_output(from_python(ownval.replace))))
+
 
 
         if definition.upvalues !=None :
             if len(definition.upvalues)!=0: 
                 for upval in definition.upvalues:
                     if  type(upval) == BuiltinRule:
-                        evaluation.print_out(String(print "Built - in")
+                        evaluation.print_out(String("Built - in"))
                     else:
                         if type(upval)==RuleDelayed:
                             eqs=':^='
                         else:
                             eqs='^='
-                        evaluation.print_out(String(evaluation.format_output(from_python(upval.pattern.expr)),\
-                                eqs,evaluation.format_output(from_python(upval.replace)), '\n'))
+                        evaluation.print_out(String(evaluation.format_output(from_python(upval.pattern.expr))+\
+                                eqs+evaluation.format_output(from_python(upval.replace)), '\n'))
                 
 
         if definition.downvalues !=None :
@@ -170,9 +176,9 @@ class Information(PrefixOperator):
                             eqs=':='
                         else:
                             eqs='='
-                        evaluation.print_out(String(evaluation.format_output(from_python(downval.pattern.expr)),\
-                            eqs,evaluation.format_output(from_python(downval.replace)), '\n'))
-                    print ""
+                        evaluation.print_out(String(evaluation.format_output(from_python(downval.pattern.expr))+\
+                            eqs+evaluation.format_output(from_python(downval.replace)), '\n'))
+
         attributesstr="{"
         for attr in definition.attributes:
             if  attributesstr!='{': attributesstr=attributesstr+", "
@@ -180,8 +186,19 @@ class Information(PrefixOperator):
         attributesstr=attributesstr+"}"
         if attributesstr!="{}":         evaluation.print_out(String("Attributes: "+ attributesstr+"\n"))
         
+	print type(definition.options)
+	optionsstr="{"
+        for opts in definition.options:
+            if  optionsstr!='{': 
+		    optionsstr+=", "
+            optionsstr+=evaluation.format_output(from_python(opts))+"->"+\
+		evaluation.format_output(from_python(definition.options[opts]))
 
-        evaluation.print_out(String("options: "+definition.options+"\n"))
+        optionsstr+="}"
+
+	if optionsstr!="{}":         
+		evaluation.print_out(String("Options: "+ optionsstr+"\n"))
+
         
 
 #        print "messages: ",definition.messages
