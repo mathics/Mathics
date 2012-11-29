@@ -42,7 +42,7 @@ class Definition(PrefixOperator):
     messages = {'notfound': 'Expression `1` is not a symbol'}
     def apply(self, symbol, evaluation):
         'Definition[symbol_]'
-        if ! isinstance(symbol,Symbol): 
+        if not isinstance(symbol,Symbol): 
             evaluation.message('Definition','notfound',symbol)            
             return Symbol('Null');
         definition= evaluation.definitions.get_definition(symbol.name) ;
@@ -123,7 +123,7 @@ class Information(PrefixOperator):
 
         from mathics.core.expression import from_python        
 
-        if ! isinstance(symbol,Symbol): 
+        if not isinstance(symbol,Symbol): 
             evaluation.message('Information','notfound',symbol)                         
             return Symbol('Null');
 
