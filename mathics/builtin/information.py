@@ -42,21 +42,21 @@ class Definition(PrefixOperator):
     messages = {'notfound': 'Expression `1` is not a symbol'}
     def apply(self, symbol, evaluation):
         'Definition[symbol_]'
-        if type(symbol)!=Symbol: 
+        if ! isinstance(symbol,Symbol): 
             evaluation.message('Definition','notfound',symbol)            
             return Symbol('Null');
         definition= evaluation.definitions.get_definition(symbol.name) ;
         if definition is None: return None
 
         textusage=_get_usage_string(symbol.name,evaluation)
-        if textusage!=None:
+        if textusage is not None:
             evaluation.print_out(String(textusage+"\n"))            
             return Symbol('Null')
         
         from mathics.core.expression import from_python        
         evaluation.print_out(String(definition.context+ symbol.name+"\n"))
         
-        if definition.ownvalues !=None :
+        if definition.ownvalues is not None :
             if len(definition.ownvalues)!=0: 
                 for ownval in definition.ownvalues:
                     if  type(ownval) == BuiltinRule:
@@ -72,7 +72,7 @@ class Definition(PrefixOperator):
 
 
 
-        if definition.upvalues !=None :
+        if definition.upvalues is not None :
             if len(definition.upvalues)!=0: 
                 for upval in definition.upvalues:
                     if  type(upval) == BuiltinRule:
@@ -87,7 +87,7 @@ class Definition(PrefixOperator):
                                 eqs+evaluation.format_output(from_python(upval.replace)), '\n'))
                 
 
-        if definition.downvalues !=None :
+        if definition.downvalues is not None :
             if len(definition.downvalues)!=0: 
                 for downval in definition.downvalues:
                     if  type(downval) == BuiltinRule:
@@ -123,7 +123,7 @@ class Information(PrefixOperator):
 
         from mathics.core.expression import from_python        
 
-        if type(symbol)!=Symbol: 
+        if ! isinstance(symbol,Symbol): 
             evaluation.message('Information','notfound',symbol)                         
             return Symbol('Null');
 
@@ -131,13 +131,13 @@ class Information(PrefixOperator):
         if definition is None: return None
    
         usagetext=_get_usage_string(symbol.name,evaluation);
-        if usagetext!=None :
+        if usagetext is not None :
             evaluation.print_out(String(usagetext))
         else:
             evaluation.print_out(String(definition.context+definition.name +"\n"))
 
 
-        if definition.ownvalues !=None :
+        if definition.ownvalues is not None :
             if len(definition.ownvalues)!=0: 
                 for ownval in definition.ownvalues:
                     if  type(ownval) == BuiltinRule:
@@ -152,7 +152,7 @@ class Information(PrefixOperator):
 
 
 
-        if definition.upvalues !=None :
+        if definition.upvalues is not None :
             if len(definition.upvalues)!=0: 
                 for upval in definition.upvalues:
                     if  type(upval) == BuiltinRule:
@@ -166,7 +166,7 @@ class Information(PrefixOperator):
                                 eqs+evaluation.format_output(from_python(upval.replace)), '\n'))
                 
 
-        if definition.downvalues !=None :
+        if definition.downvalues is not None :
             if len(definition.downvalues)!=0: 
                 for downval in definition.downvalues:
                     if  type(downval) == BuiltinRule:
