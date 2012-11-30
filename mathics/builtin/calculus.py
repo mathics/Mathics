@@ -364,6 +364,8 @@ class Integrate(SympyFunction):
     """
     >> Integrate[Sqrt[Tan[x]], x]
      = 1/4 Log[1 + Tan[x] - Sqrt[2] Sqrt[Tan[x]]] Sqrt[2] + 1/2 ArcTan[-1/2 (Sqrt[2] - 2 Sqrt[Tan[x]]) Sqrt[2]] Sqrt[2] + 1/2 ArcTan[1/2 (Sqrt[2] + 2 Sqrt[Tan[x]]) Sqrt[2]] Sqrt[2] - 1/4 Log[1 + Tan[x] + Sqrt[2] Sqrt[Tan[x]]] Sqrt[2]
+    #> Integrate[x/Exp[x^2/t], {x, 0, Infinity}]
+     = ConditionalExpression[-, Re[t] > 0]
     """
     
     attributes = ('ReadProtected',)
