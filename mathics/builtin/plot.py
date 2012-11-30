@@ -773,6 +773,12 @@ class Plot(_Plot):
     #> Plot[x, {y, 0, 2}]
      = -Graphics-
     """
+
+    #TODO: Raises NumberError:
+    """
+    #> Plot[{f[x],-49x/12+433/108},{x,-6,6}, PlotRange->{-10,10}, AspectRatio->{1}]
+     = -Graphics-
+    """
     
     def get_functions_param(self, functions):
         if functions.has_form('List', None):
