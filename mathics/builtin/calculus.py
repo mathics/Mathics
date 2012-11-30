@@ -349,15 +349,21 @@ class Integrate(SympyFunction):
 
     #> Integrate[Exp[-(x/2)^2],{x,-Infinity,+Infinity}]
      = 2 Sqrt[Pi]
+
+    #> Integrate[Exp[-1/(x^2)], x]
+     = Sqrt[Pi] Erf[1 / x] + x E ^ (-1 / x ^ 2)
+
+    >> Integrate[ArcSin[x / 3], x]
+     = x ArcSin[x / 3] + Sqrt[9 - x ^ 2]
+
+    >> Integrate[f'[x], {x, a, b}]
+     = -f[a] + f[b]    
     """
-    
+
+    #TODO:
     """
-    >> Integrate[ArcSin[x / 3],x]
-     = 3 Sqrt[1 - 1/9 x ^ 2] + x ArcSin[1/3 x]
     >> Integrate[Sqrt[Tan[x]], x]
      = 1/4 Log[1 + Tan[x] - Sqrt[2] Sqrt[Tan[x]]] Sqrt[2] + 1/2 ArcTan[-1/2 (Sqrt[2] - 2 Sqrt[Tan[x]]) Sqrt[2]] Sqrt[2] + 1/2 ArcTan[1/2 (Sqrt[2] + 2 Sqrt[Tan[x]]) Sqrt[2]] Sqrt[2] - 1/4 Log[1 + Tan[x] + Sqrt[2] Sqrt[Tan[x]]] Sqrt[2]
-    >> Integrate[f'[x], {x, a, b}]
-     = f[b] - f[a]    
     """
     
     attributes = ('ReadProtected',)
