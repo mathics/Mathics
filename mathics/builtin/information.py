@@ -35,6 +35,15 @@ class Definition(PrefixOperator):
     <dt>'Definition[$symbol$]'
         <dd>Retrieves the definition of $symbol$
     </dl>
+    >> ? Plus
+         | System`Plus
+         | Built - in
+
+
+     >> B::usage="A short description of B"; ? B
+         | A short description of B
+    
+    
     """
     operator="?"
     precedence=1
@@ -112,6 +121,26 @@ class Information(PrefixOperator):
     <dt>'Information[$symbol$]'
         <dd>Retrieves information about $symbol$
     </dl>
+
+    >> ?? Plus
+    | System`Plus
+    | Built - in
+    | Attributes: {Flat, Orderless, OneIdentity, Listable, Protected, NumericFunction}
+    | 
+    | Options[Plus] = {}
+    | 
+    | Messages[Plus] = {}
+    | 
+    
+
+    >> B::usage="A short description of A"; ?? B
+        | A short description of B
+        | 
+        | Options[B] = {}
+        | 
+        | Messages[B] = {HoldPattern[B::usage] :> A short description of B}
+        | 
+    
     """
     operator="??"
     precedence=1
@@ -185,19 +214,27 @@ class Information(PrefixOperator):
             attributesstr=attributesstr+attr
         attributesstr=attributesstr+"}"
         if attributesstr!="{}":         evaluation.print_out(String("Attributes: "+ attributesstr+"\n"))
-        
+	evaluation.print_out(String(""))
+	options=Expression('Options',symbol)
+	options=Expression('Set',options,options.evaluate(evaluation))
+	evaluation.print_out(options)
+	evaluation.print_out(String(""))
 
-	optionsstr="{"
-        for opts in definition.options:
-            if  optionsstr!='{': 
-		    optionsstr+=", "
-            optionsstr+=evaluation.format_output(from_python(opts))+"->"+\
-		evaluation.format_output(from_python(definition.options[opts]))
-
-        optionsstr+="}"
-
-	if optionsstr!="{}":         
-		evaluation.print_out(String("Options: "+ optionsstr+"\n"))
+	messag=Expression('Messages',symbol)
+	messag=Expression('Set',messag,messag.evaluate(evaluation))
+	evaluation.print_out(messag)
+	evaluation.print_out(String(""))
+#	optionsstr="{"
+#        for opts in definition.options:
+#           if  optionsstr!='{': 
+#		    optionsstr+=", "
+#            optionsstr+=evaluation.format_output(from_python(opts))+"->"+\
+#		evaluation.format_output(from_python(definition.options[opts]))
+#
+#        optionsstr+="}"
+#
+#	if optionsstr!="{}":         
+#		evaluation.print_out(String("Options: "+ optionsstr+"\n"))
 
         
 
