@@ -69,7 +69,8 @@ class Definition(PrefixOperator):
             if len(definition.ownvalues)!=0: 
                 for ownval in definition.ownvalues:
                     if  type(ownval) == BuiltinRule:
-                        evaluation.print_out("Built - in")
+                        evaluation.print_out(String("Built - in"))
+			evaluation.print_out(String(ownval.function.im_class.__doc__))
                     else:
                         if type(ownval)==RuleDelayed:
                             eqs=':='
@@ -77,7 +78,7 @@ class Definition(PrefixOperator):
                             eqs='='
                         evaluation.print_out(String(evaluation.format_output(\
 						from_python(ownval.pattern.expr))+\
-							    eqs+evaluation.format_output(from_python(ownval.replace))))
+							    eqs+evaluation.format_output(from_python(ownval.replace))+'\n'))
 
 
 
@@ -86,6 +87,7 @@ class Definition(PrefixOperator):
                 for upval in definition.upvalues:
                     if  type(upval) == BuiltinRule:
                         evaluation.print_out("Built - in")
+			evaluation.print_out(String(upval.function.im_class.__doc__))
                     else:
                         if type(upval)==RuleDelayed:
                             eqs=':^='
@@ -93,7 +95,7 @@ class Definition(PrefixOperator):
                             eqs='^='
                         evaluation.print_out(String(evaluation.format_output(\
 						from_python(upval.pattern.expr))+\
-                                eqs+evaluation.format_output(from_python(upval.replace)), '\n'))
+                                eqs+evaluation.format_output(from_python(upval.replace))+ '\n'))
                 
 
         if definition.downvalues is not None :
@@ -101,6 +103,7 @@ class Definition(PrefixOperator):
                 for downval in definition.downvalues:
                     if  type(downval) == BuiltinRule:
                         evaluation.print_out("Built - in")
+			evaluation.print_out(String(downval.function.im_class.__doc__))
                     else:
                         if type(downval)==RuleDelayed:
                             eqs=':='
@@ -109,7 +112,7 @@ class Definition(PrefixOperator):
                         evaluation.print_out(String(\
 					evaluation.format_output(\
 						from_python(downval.pattern.expr))+\
-						eqs+evaluation.format_output(from_python(downval.replace)), '\n'))
+						eqs+evaluation.format_output(from_python(downval.replace))+ '\n'))
         return Symbol('Null');
         
 
@@ -171,13 +174,14 @@ class Information(PrefixOperator):
                 for ownval in definition.ownvalues:
                     if  type(ownval) == BuiltinRule:
                         evaluation.print_out(String("Built - in"))
+			evaluation.print_out(String(ownval.function.im_class.__doc__))
                     else:
                         if type(ownval)==RuleDelayed:
                             eqs=':='
                         else:
                             eqs='='
                         evaluation.print_out(String(evaluation.format_output(from_python(ownval.pattern.expr))+\
-                     eqs+evaluation.format_output(from_python(ownval.replace))))
+                     eqs+evaluation.format_output(from_python(ownval.replace))+'\n'))
 
 
 
@@ -186,13 +190,14 @@ class Information(PrefixOperator):
                 for upval in definition.upvalues:
                     if  type(upval) == BuiltinRule:
                         evaluation.print_out(String("Built - in"))
+			evaluation.print_out(String(upval.function.im_class.__doc__))
                     else:
                         if type(upval)==RuleDelayed:
                             eqs=':^='
                         else:
                             eqs='^='
                         evaluation.print_out(String(evaluation.format_output(from_python(upval.pattern.expr))+\
-                                eqs+evaluation.format_output(from_python(upval.replace)), '\n'))
+                                eqs+evaluation.format_output(from_python(upval.replace))+ '\n'))
                 
 
         if definition.downvalues is not None :
@@ -200,13 +205,14 @@ class Information(PrefixOperator):
                 for downval in definition.downvalues:
                     if  type(downval) == BuiltinRule:
                         evaluation.print_out(String("Built - in"))
+			evaluation.print_out(String(downval.function.im_class.__doc__))
                     else:
                         if type(downval)==RuleDelayed:
                             eqs=':='
                         else:
                             eqs='='
                         evaluation.print_out(String(evaluation.format_output(from_python(downval.pattern.expr))+\
-                            eqs+evaluation.format_output(from_python(downval.replace)), '\n'))
+                            eqs+evaluation.format_output(from_python(downval.replace))+ '\n'))
 
         attributesstr="{"
         for attr in definition.attributes:
