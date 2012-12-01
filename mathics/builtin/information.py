@@ -77,7 +77,7 @@ class Definition(PrefixOperator):
                             eqs='='
                         evaluation.print_out(String(evaluation.format_output(\
 						from_python(ownval.pattern.expr))+\
-							    eqs+evaluation.format_output(from_python(ownval.replace))))
+							    eqs+evaluation.format_output(from_python(ownval.replace))+'\n'))
 
 
 
@@ -93,7 +93,7 @@ class Definition(PrefixOperator):
                             eqs='^='
                         evaluation.print_out(String(evaluation.format_output(\
 						from_python(upval.pattern.expr))+\
-                                eqs+evaluation.format_output(from_python(upval.replace)), '\n'))
+                                eqs+evaluation.format_output(from_python(upval.replace))+ '\n'))
                 
 
         if definition.downvalues is not None :
@@ -109,7 +109,7 @@ class Definition(PrefixOperator):
                         evaluation.print_out(String(\
 					evaluation.format_output(\
 						from_python(downval.pattern.expr))+\
-						eqs+evaluation.format_output(from_python(downval.replace)), '\n'))
+						eqs+evaluation.format_output(from_python(downval.replace))+ '\n'))
         return Symbol('Null');
         
 
@@ -192,7 +192,7 @@ class Information(PrefixOperator):
                         else:
                             eqs='^='
                         evaluation.print_out(String(evaluation.format_output(from_python(upval.pattern.expr))+\
-                                eqs+evaluation.format_output(from_python(upval.replace)), '\n'))
+                                eqs+evaluation.format_output(from_python(upval.replace))+ '\n'))
                 
 
         if definition.downvalues is not None :
@@ -206,7 +206,7 @@ class Information(PrefixOperator):
                         else:
                             eqs='='
                         evaluation.print_out(String(evaluation.format_output(from_python(downval.pattern.expr))+\
-                            eqs+evaluation.format_output(from_python(downval.replace)), '\n'))
+                            eqs+evaluation.format_output(from_python(downval.replace))+ '\n'))
 
         attributesstr="{"
         for attr in definition.attributes:
