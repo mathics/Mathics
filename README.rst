@@ -11,7 +11,10 @@ Contributing
 
 Please feel encouraged to contribute to Mathics! Create your own fork, make the desired changes, commit, and make a pull request.
 
-.. image:: https://secure.travis-ci.org/poeschko/Mathics.png?branch=master
+|Travis|_
+
+.. |Travis| image:: https://secure.travis-ci.org/poeschko/Mathics.png?branch=master
+.. _Travis: https://travis-ci.org/poeschko/Mathics
 
 License
 -------
