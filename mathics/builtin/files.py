@@ -760,6 +760,7 @@ class Put(BinaryOperator):
      = 815915283247897734345611269596115894272000000000 >> fourtyfactorial
     ## FIXME: final line should be
     ## = Put[815915283247897734345611269596115894272000000000, fourtyfactorial]
+    #> DeleteFile["fourtyfactorial"]
 
     >> Put[50!, "fiftyfactorial"]
     >> FilePrint["fiftyfactorial"]
