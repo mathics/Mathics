@@ -1155,20 +1155,18 @@ class SetStreamPosition(Builtin):
     >> str = StringToStream["Mathics is cool!"]
      = ...
 
-    >> SetStreamPosition[str, 11]
-     = 11
+    >> SetStreamPosition[str, 8]
+     = 8
 
     >> Read[str, Word]
-     = cool!
-    """
+     = is 
     
-    #TODO: This might work in py3
-    """
     #> SetStreamPosition[str, -5]
-     = 11
+     : Python2 cannot handle negative seeks.
+     = 10
 
-    #> Read[str, Word]
-     = cool!
+    >> SetStreamPosition[str, Infinity]
+     = 16
     """
 
     #TODO: Seeks beyond stream should return stmrng message
@@ -1180,6 +1178,7 @@ class SetStreamPosition(Builtin):
     messages = {
         'int': 'Integer expected at position 2 in `1`.',
         'stmrng': 'Cannot set the current point in stream `1` to position `2`. The requested position exceeds the number of characters in the file',
+        'python2': 'Python2 cannot handle negative seeks.',     #FIXME : fixed in Python3?
     }
 
     def apply_input(self, name, n, m, evaluation):
@@ -1195,46 +1194,26 @@ class SetStreamPosition(Builtin):
             raise NotImplementedError
    
         seekpos = m.to_python()
-        if not (isinstance(seekpos, int) or seekpos == 'Infinity'):
+        if not (isinstance(seekpos, int) or seekpos == float('inf')):
             evaluation.message('SetStreamPosition', 'stmrng', Expression('InputStream', name, n), m)
             return
 
-        if seekpos == 'Infinity':
-            tmp = stream.seek(0, 2)
-        else:
-            if seekpos < 0:
-                stream.seek(seekpos, 2)
+        try:
+            if seekpos == float('inf'):
+                tmp = stream.seek(0, 2)
             else:
-                stream.seek(seekpos)
+                if seekpos < 0:
+                    stream.seek(seekpos, 2)
+                else:
+                    stream.seek(seekpos)
+        except IOError:
+            evaluation.message('SetStreamPosition', 'python2')
 
         return from_python(stream.tell())
 
     def apply_output(self, name, n, m, evaluation):
         'SetStreamPosition[OutputStream[name_, n_], m_]'
-        global STREAMS
-        stream = STREAMS[n.to_python()]
-
-        if stream.closed:
-            evaluation.message('General', 'openx', name)
-            return
-
-        if not stream.seekable:
-            raise NotImplementedError
-
-        seekpos = m.to_python()
-        if not (isinstance(seekpos, int) or seekpos == 'Infinity'):
-            evaluation.message('SetStreamPosition', 'stmrng', Expression('OutputStream', name, n), m)
-            return
-
-        if seekpos == 'Infinity':
-            tmp = stream.seek(0, 2)
-        else:
-            if seekpos < 0:
-                stream.seek(seekpos, 2)
-            else:
-                stream.seek(seekpos)
-
-        return from_python(stream.tell())
+        return self.apply_input(name, n, m, evaluation)
 
     def apply_default(self, stream, evaluation):
         'SetStreamPosition[stream_]'
