@@ -1589,23 +1589,6 @@ class Uncompress(Builtin):
 
         return expr
 
-# TODO: Find a better way to do this
-#class ByteCount(Builtin):
-#    """
-#    <dl>
-#    <dt>'ByteCount[$expr$]'
-#      <dd>returns the number of bytes to store $expr$.
-#    </dl>
-#
-#    >> ByteCount[{1, 2, 3, 4, 5}]
-#     = 128
-#    """
-#
-#    def apply(self, expr, evaluation):
-#        'ByteCount[expr_]'
-#        full = expr.do_format(evaluation, 'FullForm').__str__()
-#        return from_python(sys.getsizeof(full))
-
 
 class FileByteCount(Builtin):
     """
@@ -2254,13 +2237,9 @@ class DirectoryQ(Builtin):
             return
         path = path.strip('"')
 
-        #path = path_search(path)
-        #TODO
+        path = path_search(path)
 
-        if path.startswith('ExampleData'):
-            path = ROOT_DIR + 'data/' + path
-
-        if os.path.isdir(path):
+        if path is not None and os.path.isdir(path):
             return Symbol('True')
         return Symbol('False')
 
