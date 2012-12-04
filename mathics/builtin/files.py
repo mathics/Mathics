@@ -85,9 +85,7 @@ def path_search(filename):
     return None
 
 def _put_stream(stream):
-    global STREAMS
-    global _STREAMS
-    global NSTREAMS
+    global STREAMS, _STREAMS, NSTREAMS
 
     try:
         _STREAMS
@@ -99,10 +97,6 @@ def _put_stream(stream):
     NSTREAMS += 1
     STREAMS[NSTREAMS] = stream
     return NSTREAMS
-
-def _get_stream(n):
-    global STREAMS
-    return STREAMS[n]
 
 
 class InitialDirectory(Predefined):
