@@ -594,6 +594,14 @@ class _OpenAction(Builtin):
 
         path_string = path.to_python().strip('"')
 
+        tmp = path_search(path_string)
+        if tmp is None:
+            if self.mode in ['a', 'r']:
+                evaluation.message('General', 'noopen', path)
+                return
+        else:
+            path_string = tmp
+
         try:
             stream = mathics_open(path_string, mode=self.mode).__enter__()
         except IOError:
@@ -656,6 +664,10 @@ class OpenRead(_OpenAction):
     #> OpenRead[""]
      : File specification  is not a string of one or more characters.
      = OpenRead[]
+
+    #> OpenRead["MathicsNonExampleFile"]
+     : Cannot open MathicsNonExampleFile.
+     = OpenRead[MathicsNonExampleFile]
     """
 
     mode = 'r'
@@ -688,6 +700,10 @@ class OpenAppend(_OpenAction):
     >> OpenAppend[]
      = OutputStream[...]
     #> Close[%];
+
+    #> OpenAppend["MathicsNonExampleFile"]
+     : Cannot open MathicsNonExampleFile.
+     = OpenAppend[MathicsNonExampleFile]
     """
 
     mode = 'a'
