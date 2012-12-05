@@ -181,6 +181,7 @@ class Input(Predefined):
      = 
     """
 
+    attributes = ('Protected', 'ReadProtected')
     name = '$Input'
 
     def evaluate(self, evaluation):
@@ -234,6 +235,7 @@ class Path(Predefined):
      = ...
     """
 
+    attributes = ('Protected')
     name = '$Path'
 
     def evaluate(self, evaluation):
@@ -356,6 +358,8 @@ class Read(Builtin):
     rules = {
         'Read[stream_]': 'Read[stream, Expression]',
     }
+
+    attributes = ('Protected')
 
     def apply(self, name, n, types, evaluation):
         'Read[InputStream[name_, n_], types_]'
@@ -506,6 +510,8 @@ class Write(Builtin):
     #> Close[str];
     """
 
+    attributes = ('Protected')
+
     def apply(self, name, n, expr, evaluation):
         'Write[OutputStream[name_, n_], expr___]'
         global STREAMS
@@ -547,6 +553,8 @@ class WriteString(Builtin):
         'strml': '`1` is not a string, stream, or list of strings and streams.',
     }
 
+    attributes = ('Protected')
+
     def apply(self, name, n, expr, evaluation):
         'WriteString[OutputStream[name_, n_], expr___]'
         global STREAMS
@@ -574,6 +582,8 @@ class _OpenAction(Builtin):
         'argx': 'OpenRead called with 0 arguments; 1 argument is expected.',
         'fstr': 'File specification `1` is not a string of one or more characters.',
     }
+
+    attributes = ('Protected')
 
     def apply(self, path, evaluation):
         '%(name)s[path_]'
@@ -710,6 +720,7 @@ class Get(PrefixOperator):
 
     operator = '<<'
     precedence = 720
+    attributes = ('Protected')
 
     def apply(self, path, evaluation):
         'Get[path_?StringQ]'
@@ -867,6 +878,7 @@ class PutAppend(BinaryOperator):
 
     operator = '>>>'
     precedence = 30
+    attributes = ('Protected')
 
     def apply(self, exprs, filename, evaluation):
         'PutAppend[exprs___, filename_?StringQ]'
@@ -928,6 +940,8 @@ class FileExtension(Builtin):
      = gz
     """
 
+    attributes = ('Protected')
+
     def apply(self, filename, evaluation):
         'FileExtension[filename_?StringQ]'
         path = filename.to_python().strip('"')
@@ -950,6 +964,8 @@ class FileBaseName(Builtin):
     #> FileBaseName["file.tar.gz"]
      = file.tar
     """
+
+    attributes = ('Protected')
 
     def apply(self, filename, evaluation):
         'FileBaseName[filename_?StringQ]'
@@ -985,6 +1001,8 @@ class ReadList(Read):
     rules = {
         'ReadList[stream_]': 'ReadList[stream, Expression]',
     }
+
+    attributes = ('Protected')
 
     def apply(self, name, n, types, evaluation):
         'ReadList[InputStream[name_, n_], types_]'
@@ -1030,6 +1048,8 @@ class FilePrint(Builtin):
         'fstr': 'File specification `1` is not a string of one or more characters.',
     }
 
+    attributes = ('Protected')
+
     def apply(self, path, evaluation):
         'FilePrint[path_]'
         pypath = path.to_python()
@@ -1068,6 +1088,8 @@ class Close(Builtin):
     >> Close[OpenWrite[]]
      = ...
     """
+
+    attributes = ('Protected')
      
     def apply_input(self, name, n, evaluation):
         'Close[InputStream[name_, n_]]'
@@ -1115,6 +1137,8 @@ class StreamPosition(Builtin):
     >> StreamPosition[str]
      = 7
     """
+
+    attributes = ('Protected')
 
     def apply_input(self, name, n, evaluation):
         'StreamPosition[InputStream[name_, n_]]'
@@ -1180,6 +1204,8 @@ class SetStreamPosition(Builtin):
         'stmrng': 'Cannot set the current point in stream `1` to position `2`. The requested position exceeds the number of characters in the file',
         'python2': 'Python2 cannot handle negative seeks.',     #FIXME : fixed in Python3?
     }
+
+    attributes = ('Protected')
 
     def apply_input(self, name, n, m, evaluation):
         'SetStreamPosition[InputStream[name_, n_], m_]'
@@ -1257,6 +1283,8 @@ class Skip(Read):
         'intm': 'Non-negative machine-sized integer expected at position 3 in `1`',
     }
 
+    attributes = ('Protected')
+
     def apply(self, name, n, types, m, evaluation):
         'Skip[InputStream[name_, n_], types_, m_]'
         py_m = m.to_python()
@@ -1293,6 +1321,8 @@ class Find(Read):
     >> Close[str]
      = ...
     """
+
+    attributes = ('Protected')
 
     #TODO: Extra options AnchoredSearch, IgnoreCase RecordSeparators, WordSearch, WordSeparators
     # this is probably best done with a regex
@@ -1352,6 +1382,8 @@ class FindList(Builtin):
         'strs': 'String or non-empty list of strings expected at position `1` in `2`.',
         'intnm': 'Non-negative machine-sized integer expected at position `1` in `2`.',
     }
+
+    attributes = ('Protected')
 
     #TODO: Extra options AnchoredSearch, IgnoreCase RecordSeparators, WordSearch, WordSeparators
     # this is probably best done with a regex
@@ -1433,6 +1465,8 @@ class InputStream(Builtin):
      = String
     """
 
+    attributes = ('Protected')
+
     def apply(self, name, n, evaluation):
         'InputStream[name_, n_]'
         return
@@ -1450,6 +1484,9 @@ class OutputStream(Builtin):
     >> Close[%]
      = ...
     """
+
+    attributes = ('Protected')
+
     def apply(self, name, n, evaluation):
         'OutputStream[name_, n_]'
         return
@@ -1467,6 +1504,8 @@ class StringToStream(Builtin):
     #> Close[%]
      = String
     """
+
+    attributes = ('Protected')
     
     def apply(self, string, evaluation):
         'StringToStream[string_]'
@@ -1491,6 +1530,8 @@ class Streams(Builtin):
     >> Streams[]
      = ...
     """
+
+    attributes = ('Protected')
 
     def apply(self, evaluation):
         'Streams[]'
@@ -1517,6 +1558,8 @@ class Compress(Builtin):
     >> Compress[N[Pi, 10]]
      = ...
     """
+
+    attributes = ('Protected')
 
     def apply(self, expr, evaluation):
         'Compress[expr_]'
@@ -1547,6 +1590,8 @@ class Uncompress(Builtin):
      = x ^ 2 + y Sin[x] + 10 Log[15]
 
     """
+
+    attributes = ('Protected')
 
     def apply(self, string, evaluation):
         'Uncompress[string_?StringQ]'
@@ -1652,6 +1697,8 @@ class FileHash(Builtin):
         'FileHash[filename_?StringQ]': 'FileHash[filename, "MD5"]',
     }
 
+    attributes = ('Protected', 'ReadProtected')
+
     def apply(self, filename, hashtype, evaluation):
         'FileHash[filename_?StringQ, hashtype_?StringQ]'
         py_hashtype = hashtype.to_python()
@@ -1713,6 +1760,8 @@ class FileDate(Builtin):
         'FileDate[path_]': 'FileDate[path, "Modification"]',
     }
 
+    attributes = ('Protected')
+
     def apply(self, path, timetype, evaluation):
         'FileDate[path_, timetype_]'
         py_path = path_search(path.to_python().strip('"'))
@@ -1766,6 +1815,8 @@ class SetFileDate(Builtin):
         'SetFileDate[file_]': 'SetFileDate[file, DateList[], All]',
         'SetFileDate[file_, date]': 'SetFileDate[file, date, All]',
     }
+
+    attributes = ('Protected')
 
     def apply(self, filename, datelist, attribute, evaluation):
         'SetFileDate[filename_, datelist_, attribute_]'
@@ -1835,6 +1886,8 @@ class CopyFile(Builtin):
         'nffil': 'File not found during `1`.',
     }
 
+    attributes = ('Protected')
+
     def apply(self, source, dest, evaluation):
         'CopyFile[source_, dest_]'
 
@@ -1890,6 +1943,8 @@ class RenameFile(Builtin):
         'fstr': 'File specification `1` is not a string of one or more characters.',
         'nffil': 'File not found during `1`.',
     }
+
+    attributes = ('Protected')
 
     def apply(self, source, dest, evaluation):
         'RenameFile[source_, dest_]'
@@ -1950,6 +2005,8 @@ class DeleteFile(Builtin):
         'nffil': 'File not found during `1`.',
     }
 
+    attributes = ('Protected')
+
     def apply(self, filename, evaluation):
         'DeleteFile[filename_]'
 
@@ -1992,6 +2049,8 @@ class DirectoryStack(Builtin):
     = ...
     """
 
+    attributes = ('Protected')
+
     def apply(self, evaluation):
         'DirectoryStack[]'
         global DIRECTORY_STACK
@@ -2008,6 +2067,8 @@ class Directory(Builtin):
     >> Directory[]
     = ...
     """
+
+    attributes = ('Protected')
 
     def apply(self, evaluation):
         'Directory[]'
@@ -2036,6 +2097,8 @@ class ParentDirectory(Builtin):
         'fstr': 'File specification `1` is not a string of one or more characters.',
     }
 
+    attributes = ('Protected')
+
     def apply(self, path, evaluation):
         'ParentDirectory[path_]'
 
@@ -2063,6 +2126,8 @@ class SetDirectory(Builtin):
     rules = {
         'SetDirectory[]': 'SetDirectory[$HomeDirectory]',
     }
+
+    attributes = ('Protected')
 
     def apply(self, path, evaluation):
         'SetDirectory[path_]'
@@ -2094,6 +2159,8 @@ class ResetDirectory(Builtin):
     = ...
     """
     
+    attributes = ('Protected')
+
     def apply(self, evaluation):
         'ResetDirectory[]'
         global DIRECTORY_STACK
@@ -2130,6 +2197,8 @@ class FileType(Builtin):
         'fstr': 'File specification `1` is not a string of one or more characters.',
     }
 
+    attributes = ('Protected')
+
     def apply(self, filename, evaluation):
         'FileType[filename_]'
         if not isinstance(filename, String):
@@ -2163,6 +2232,8 @@ class FileExistsQ(Builtin):
     messages = {
         'fstr': 'File specification `1` is not a string of one or more characters.',
     }
+
+    attributes = ('Protected')
 
     def apply(self, filename, evaluation):
         'FileExistsQ[filename_]'
@@ -2201,6 +2272,8 @@ class DirectoryQ(Builtin):
     messages = {
         'fstr': 'File specification `1` is not a string of one or more characters.',
     }
+
+    attributes = ('Protected')
 
     def apply(self, pathname, evaluation):
         'DirectoryQ[pathname_]'
