@@ -709,7 +709,7 @@ class Get(PrefixOperator):
     """
 
     operator = '<<'
-    precedence = 290 #FIXME: what value is appropriate here?
+    precedence = 720
 
     def apply(self, path, evaluation):
         'Get[path_?StringQ]'
@@ -785,7 +785,7 @@ class Put(BinaryOperator):
     """
 
     operator = '>>'
-    precedence = 290 #FIXME: what value is appropriate here?
+    precedence = 30
 
     def apply(self, exprs, filename, evaluation):
         'Put[exprs___, filename_?StringQ]'
@@ -866,7 +866,7 @@ class PutAppend(BinaryOperator):
     """
 
     operator = '>>>'
-    precedence = 290 #FIXME: what value is appropriate here?
+    precedence = 30
 
     def apply(self, exprs, filename, evaluation):
         'PutAppend[exprs___, filename_?StringQ]'
