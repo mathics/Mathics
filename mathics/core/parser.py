@@ -166,7 +166,7 @@ class MathicsScanner(GenericScanner):
         self.tokens.append(Token(type='symbol', value=s))
         
     def t_float(self, s):
-        r' \d*(?<!\.)\.\d+ | \d+\.(?!\.)\d* '
+        r' \d*(?<!\.)\.\d+(\*\^(\+|-)?\d+)? | \d+\.(?!\.) \d*(\*\^(\+|-)?\d+)?'
         self.tokens.append(Token(type='float', value=s))
         
     def t_int(self, s):
