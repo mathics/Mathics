@@ -1754,10 +1754,29 @@ class FileDate(Builtin):
 
     >> FileDate["ExampleData/sunflowers.jpg", "Modification"]
      = ...
+
+    >>  FileDate["ExampleData/sunflowers.jpg", "Rules"]
+     = ...
+
+    #>  FileDate["MathicsNonExistantExample"]
+     : File not found during FileDate[MathicsNonExistantExample].
+     = FileDate[MathicsNonExistantExample]
+    #>  FileDate["MathicsNonExistantExample", "Modification"]
+     : File not found during FileDate[MathicsNonExistantExample, Modification].
+     = FileDate[MathicsNonExistantExample, Modification]
+
+    #> FileDate["ExampleData/sunflowers.jpg", "Fail"]
+     : Date type Fail should be "Access", "Modification", "Creation" (Windows only), "Change" (Macintosh and Unix only), or "Rules".
+     = FileDate[ExampleData/sunflowers.jpg, Fail]
     """
 
+    messages = {
+        'nffil': 'File not found during `1`.',
+        'datetype': 'Date type Fail should be "Access", "Modification", "Creation" (Windows only), "Change" (Macintosh and Unix only), or "Rules".',
+    }
+
     rules = {
-        'FileDate[path_]': 'FileDate[path, "Modification"]',
+        'FileDate[filepath_?StringQ, "Rules"]': '{"Access" -> FileDate[filepath, "Access"], "Creation" -> FileDate[filepath, "Creation"], "Change" -> FileDate[filepath, "Change"], "Modification" -> FileDate[filepath, "Modification"]}',
     }
 
     attributes = ('Protected')
@@ -1767,17 +1786,31 @@ class FileDate(Builtin):
         py_path = path_search(path.to_python().strip('"'))
 
         if py_path is None:
-            evaluation.message('FileDate', 'TODO1', path)
+            if timetype is None:
+                evaluation.message('FileDate', 'nffil', Expression('FileDate', path))
+            else:
+                evaluation.message('FileDate', 'nffil', Expression('FileDate', path, timetype))
             return
 
-        time_type = timetype.to_python().strip('"')
+        if timetype is None:
+            time_type = 'Modification'
+        else:
+            time_type = timetype.to_python().strip('"')
+
         if time_type == 'Access':
             result = os.path.getatime(py_path)
-        elif time_type in ['Creation', 'Change']:   # TODO: Fixing this cross platform is difficult
+        elif time_type == 'Creation':
+            if os.name == 'posix':
+                return Expression('Missing', 'NotApplicable')
+            result = os.path.getctime(py_path)
+        elif time_type == 'Change':
+            if os.name != 'posix':
+                return Expression('Missing', 'NotApplicable')
             result = os.path.getctime(py_path)
         elif time_type == 'Modification':
             result = os.path.getmtime(py_path)
         else:
+            evaluation.message('FileDate', 'datetype')
             return
 
         # Offset for system epoch
@@ -1785,6 +1818,10 @@ class FileDate(Builtin):
         result += epochtime
 
         return Expression('DateList', from_python(result))
+
+    def apply_default(self, path, evaluation):
+        'FileDate[path_]'
+        return self.apply(path, None, evaluation)
 
 
 class SetFileDate(Builtin):
