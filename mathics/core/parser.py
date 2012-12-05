@@ -167,7 +167,21 @@ class MathicsScanner(GenericScanner):
         
     def t_float(self, s):
         r' \d*(?<!\.)\.\d+(\*\^(\+|-)?\d+)? | \d+\.(?!\.) \d*(\*\^(\+|-)?\d+)?'
-        self.tokens.append(Token(type='float', value=s))
+        s = s.split('*^')
+        if len(s) == 1:
+            self.tokens.append(Token(type='float', value=s[0]))
+        else:
+            assert len(s) == 2
+            exp = int(s[1])
+            if exp >= 0:
+                s = s[0] + '0' * exp
+            else:
+                s = '0' * -exp + s[0]
+
+            dot = s.find('.')
+            s = s[:dot] + s[dot+1:]
+            s = s[:exp+dot] + '.' + s[exp+dot:]
+            self.tokens.append(Token(type='float', value=s))
         
     def t_int(self, s):
         r' \d+ '
