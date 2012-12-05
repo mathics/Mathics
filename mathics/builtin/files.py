@@ -1844,13 +1844,19 @@ class SetFileDate(Builtin):
 
     >> FileDate[tmpfilename, "Access"]
      = {2000, 1, 1, 0, 0, 0.}
-
     #> DeleteFile[tmpfilename]
+
+    #> SetFileDate["MathicsNonExample"]
+     : File not found during SetFileDate[MathicsNonExample].
+     = $Failed
     """
 
-    rules = {
-        'SetFileDate[file_]': 'SetFileDate[file, DateList[], All]',
-        'SetFileDate[file_, date]': 'SetFileDate[file, date, All]',
+    messages = {
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'nffil': 'File not found during `1`.',
+        'fdate': 'Date specification should be either the number of seconds since January 1, 1900 or a {y, m, d, h, m, s} list.',
+        'datetype':  'Date type a should be "Access", "Modification", "Creation" (Windows only), or All.',
+        'nocreationunix': 'The Creation date of a file cannot be set on Macintosh or Unix.',
     }
 
     attributes = ('Protected')
@@ -1859,27 +1865,39 @@ class SetFileDate(Builtin):
         'SetFileDate[filename_, datelist_, attribute_]'
         
         py_filename = filename.to_python()
-        py_datelist = datelist.to_python()
-        py_attr = attribute.to_python()
+
+        if datelist is None:
+            py_datelist = Expression('DateList').evaluate(evaluation).to_python()
+            expr = Expression('SetFileDate', filename)
+        else:
+            py_datelist = datelist.to_python()
+
+        if attribute is None:
+            py_attr = 'All'
+            if datelist is not None:
+                expr = Expression('SetFileDate', filename, datelist)
+        else:
+            py_attr = attribute.to_python()
+            expr = Expression('SetFileDate', filename, datelist, attribute)
 
         #Check filename
         if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
-            evaluation.message('SetFileDate', 'TODO0', filename)
+            evaluation.message('SetFileDate', 'fstr', filename)
             return
         py_filename = path_search(py_filename.strip('"'))
 
         if py_filename is None:
-            evaluation.message('SetFileDate', 'TODO1', filename)
-            return
+            evaluation.message('SetFileDate', 'nffil', expr)
+            return Symbol('$Failed')
 
         #Check datelist
         if not (isinstance(py_datelist, list) and len(py_datelist) == 6 and 
             all(isinstance(d, int) for d in py_datelist[:-1]) and isinstance(py_datelist[-1], float)):
-            evaluation.message('SetFileDate', 'TODO2', datelist)
+            evaluation.message('SetFileDate', 'fdate', expr)
 
         #Check attribute
         if py_attr not in ['"Access"', '"Creation"', '"Modification"', 'All']:
-            evaluation.message('SetFileDate', 'todo3', attribute)
+            evaluation.message('SetFileDate', 'datetype')
             return
 
         epochtime = Expression('AbsoluteTime', time.strftime("%F %R", time.gmtime(0))).evaluate(evaluation).to_python()
@@ -1891,8 +1909,12 @@ class SetFileDate(Builtin):
             if py_attr == '"Access"':
                 os.utime(py_filename, (stattime, os.path.getatime(py_filename)))
             if py_attr == '"Creation"':
-                #TODO: ???
-                pass
+                if os.name == 'posix':
+                    evaluation.message('SetFileDate', 'nocreationunix')
+                    return Symbol('$Failed')
+                else:
+                    #TODO: Note: This is windows only
+                    return Symbol('$Failed')
             if py_attr == '"Modification"':
                 os.utime(py_filename, (os.path.getatime(py_filename), stattime))
             if py_attr == 'All':
@@ -1903,6 +1925,14 @@ class SetFileDate(Builtin):
             return Symbol('$Failed')
     
         return Symbol('Null')
+
+    def apply_1arg(self, filename, evaluation):
+        'SetFileDate[filename_]'
+        return self.apply(filename, None, None, evaluation)
+
+    def apply_2arg(self, filename, evaluation):
+        'SetFileDate[filename_, datelist_]'
+        return self.apply(filename, datelist, None, evaluation)
 
 
 class CopyFile(Builtin):
