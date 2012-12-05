@@ -12,7 +12,7 @@ import mpmath
 import sympy
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import dps, mpmath2sympy, prec
+from mathics.core.numbers import dps, mpmath2sympy, prec, int2base
 from mathics.core import numbers
 from mathics.core.expression import Integer, Rational, Real, Complex, Atom, Expression, Number, Symbol
 from mathics.core.convert import from_sympy
@@ -348,7 +348,7 @@ class NumericQ(Builtin):
     
     def apply(self, expr, evaluation):
         'NumericQ[expr_]'
-        
+
         def test(expr):
             if isinstance(expr, Expression):
                 attr = evaluation.definitions.get_attributes(expr.head.get_name())
@@ -358,3 +358,22 @@ class NumericQ(Builtin):
             
         return Symbol('True') if test(expr) else Symbol('False')
                 
+class BaseForm(Builtin):
+    """
+    <dl> 
+    <dt>'BaseForm[$expr$, $n$]'
+        <dd>prints mumbers in $expr$ in base $n$
+    </dl>
+
+    >> BaseForm[33, 2]
+     = 10001_2
+    """
+
+    def apply(self, expr, n, evaluation):
+        'BaseForm[expr_, n_]'
+
+        from mathics.core.expression import from_python
+        num = expr.get_int_value()
+        base = n.get_int_value()
+        out = "%s_%d" % (int2base(num, base), base)
+        return Expression(from_python(out))
