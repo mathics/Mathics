@@ -2188,10 +2188,19 @@ class SetDirectory(Builtin):
 
     >> SetDirectory[]
     = ...
+
+    #> SetDirectory["MathicsNonExample"]
+     : Cannot set current directory to MathicsNonExample.
+     = $Failed
     """
 
     rules = {
         'SetDirectory[]': 'SetDirectory[$HomeDirectory]',
+    }
+
+    messages = {
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'cdir': 'Cannot set current directory to `1`.',
     }
 
     attributes = ('Protected')
@@ -2200,14 +2209,14 @@ class SetDirectory(Builtin):
         'SetDirectory[path_]'
 
         if not isinstance(path, String):
-            #evaluation.message() #TODO
+            evaluation.message('SetDirectory', 'fstr', path)
             return
 
         py_path = path.__str__().strip('"')
         py_path = path_search(py_path)
     
         if py_path is None:
-            #evaluation.message() #TODO
+            evaluation.message('SetDirectory', 'cdir', path)
             return Symbol('$Failed')
 
         os.chdir(py_path)
