@@ -2158,6 +2158,10 @@ class ResetDirectory(Builtin):
     >> ResetDirectory[]
     = ...
     """
+
+    messages = {
+        'dtop': 'Directory stack is empty.',
+    }
     
     attributes = ('Protected')
 
@@ -2168,9 +2172,10 @@ class ResetDirectory(Builtin):
         try:
             tmp = DIRECTORY_STACK.pop()
         except IndexError:
-            #evaluation.message #TODO
-            return Symbol('$Failed')
-        os.chdir(tmp)
+            tmp = os.getcwd()
+            evaluation.message('ResetDirectory', 'dtop')
+        else:
+            os.chdir(tmp)
         return String(tmp)
 
 
