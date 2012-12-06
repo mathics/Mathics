@@ -369,8 +369,8 @@ class Read(Builtin):
 
     attributes = ('Protected')
 
-    def apply(self, name, n, types, evaluation):
-        'Read[InputStream[name_, n_], types_]'
+    def apply(self, name, n, types, evaluation, options):
+        'Read[InputStream[name_, n_], types_, OptionsPattern[Read]]'
         global STREAMS
     
         stream = STREAMS.get(n.to_python())
@@ -394,9 +394,11 @@ class Read(Builtin):
 
         result = []
 
-        #TODO: Implement these as options to Read
-        word_separators = [' ', '\t']
-        record_separators = ['\n', '\r\n', '\r']
+        assert all(isinstance(s, basestring) and s[0] == s[-1] == '"' for s in options['WordSeparators'].to_python())
+        assert all(isinstance(s, basestring) and s[0] == s[-1] == '"' for s in options['RecordSeparators'].to_python())
+
+        word_separators = [s[1:-1] for s in options['WordSeparators'].to_python()]
+        record_separators = [s[1:-1] for s in options['RecordSeparators'].to_python()]
 
         def reader(stream, word_separators, accepted = None):
             while True:
