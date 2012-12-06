@@ -1030,11 +1030,19 @@ class ReadList(Read):
 
     attributes = ('Protected')
 
-    def apply(self, name, n, types, evaluation):
-        'ReadList[InputStream[name_, n_], types_]'
+    options = {
+        'NullRecords': 'False',
+        'NullWords': 'False',
+        'RecordSeparators': '{"\r\n", "\n", "\r"}',
+        'TokenWords': '{}',
+        'WordSeparators': '{" ", "\t"}',
+    }
+
+    def apply(self, name, n, types, evaluation, options):
+        'ReadList[InputStream[name_, n_], types_, OptionsPattern[ReadList]]'
         result = []
         while True:
-            tmp = super(ReadList, self).apply(name, n, types, evaluation)
+            tmp = super(ReadList, self).apply(name, n, types, evaluation, options)
             if tmp.to_python() == 'EndOfFile':
                 break
             result.append(tmp)
@@ -1309,16 +1317,24 @@ class Skip(Read):
         'intm': 'Non-negative machine-sized integer expected at position 3 in `1`',
     }
 
+    options = {
+        'AnchoredSearch': 'False',
+        'IgnoreCase': 'False',
+        'WordSearch': 'False',
+        'RecordSeparators': '{"\r\n", "\n", "\r"}',
+        'WordSeparators': '{" ", "\t"}',
+    }
+
     attributes = ('Protected')
 
-    def apply(self, name, n, types, m, evaluation):
-        'Skip[InputStream[name_, n_], types_, m_]'
+    def apply(self, name, n, types, m, evaluation, options):
+        'Skip[InputStream[name_, n_], types_, m_, OptionsPattern[Skip]]'
         py_m = m.to_python()
         if not (isinstance(py_m, int) and py_m > 0):
             evaluation.message('Skip', 'intm', Expression('Skip', Expression('InputStream', name, n), types, m))
             return
         for i in range(py_m):
-            result = super(Skip, self).apply(name, n, types, evaluation)
+            result = super(Skip, self).apply(name, n, types, evaluation, options)
             if result.to_python() == 'EndOfFile':
                 return Symbol('EndOfFile')
         return Symbol('Null')
@@ -1350,11 +1366,19 @@ class Find(Read):
 
     attributes = ('Protected')
 
+    options = {
+        'AnchoredSearch': 'False',
+        'IgnoreCase': 'False',
+        'WordSearch': 'False',
+        'RecordSeparators': '{"\r\n", "\n", "\r"}',
+        'WordSeparators': '{" ", "\t"}',
+    }
+
     #TODO: Extra options AnchoredSearch, IgnoreCase RecordSeparators, WordSearch, WordSeparators
     # this is probably best done with a regex
 
-    def apply(self, name, n, text, evaluation):
-        'Find[InputStream[name_, n_], text_]'
+    def apply(self, name, n, text, evaluation, options):
+        'Find[InputStream[name_, n_], text_, OptionsPattern[Find]]'
         py_text = text.to_python()
 
         if not isinstance(py_text, list):
@@ -1367,7 +1391,7 @@ class Find(Read):
         py_text = [t[1:-1] for t in py_text]
 
         while True:
-            tmp = super(Find, self).apply(name, n, Symbol('Record'), evaluation)
+            tmp = super(Find, self).apply(name, n, Symbol('Record'), evaluation, options)
             py_tmp = tmp.to_python()[1:-1]
 
             if py_tmp == 'EndOfFile':
@@ -1411,15 +1435,23 @@ class FindList(Builtin):
 
     attributes = ('Protected')
 
+    options = {
+        'AnchoredSearch': 'False',
+        'IgnoreCase': 'False',
+        'RecordSeparators': '{"\r\n", "\n", "\r"}',
+        'WordSearch': 'False',
+        'WordSeparators': '{" ", "\t"}',
+    }
+
     #TODO: Extra options AnchoredSearch, IgnoreCase RecordSeparators, WordSearch, WordSeparators
     # this is probably best done with a regex
 
-    def apply_without_n(self, filename, text, evaluation):
-        'FindList[filename_, text_]'
-        return self.apply(filename, text, None, evaluation)
+    def apply_without_n(self, filename, text, evaluation, options):
+        'FindList[filename_, text_, OptionsPattern[FindList]]'
+        return self.apply(filename, text, None, evaluation, options)
 
-    def apply(self, filename, text, n, evaluation):
-        'FindList[filename_, text_, n_]'
+    def apply(self, filename, text, n, evaluation, options):
+        'FindList[filename_, text_, n_, OptionsPattern[FindList]]'
         py_text = text.to_python()
         py_name = filename.to_python()
         if n is None:
