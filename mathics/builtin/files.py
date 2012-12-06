@@ -359,6 +359,14 @@ class Read(Builtin):
         'Read[stream_]': 'Read[stream, Expression]',
     }
 
+    options = {
+        'NullRecords': 'False',
+        'NullWords': 'False',
+        'RecordSeparators': '{"\r\n", "\n", "\r"}',
+        'TokenWords': '{}',
+        'WordSeparators': '{" ", "\t"}',
+    }
+
     attributes = ('Protected')
 
     def apply(self, name, n, types, evaluation):
