@@ -196,7 +196,7 @@ class MathicsScanner(GenericScanner):
         self.tokens.append(Token(type='blankdefault', value=s))
         
     def t_string(self, s):
-        r' "([^\\"]|\\\\|\\"|\\\[[a-zA-Z]+\]|\\n)*" '
+        r' "([^\\"]|\\\\|\\"|\\\[[a-zA-Z]+\]|\\n|\\r|\\r\\n)*" '
         s = s[1:-1]
         
         def sub_entity(match):
@@ -218,6 +218,8 @@ class MathicsScanner(GenericScanner):
         
         s = re.sub(r'\\\[([a-zA-Z]+)\]', sub_entity, s)
         s = s.replace('\\\\', '\\').replace('\\"', '"')
+        s = s.replace('\\r\\n', '\r\n')
+        s = s.replace('\\r', '\r')
         s = s.replace('\\n', '\n')
         self.tokens.append(Token(type='string', value=s))
         
