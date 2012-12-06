@@ -566,7 +566,7 @@ class WriteString(Builtin):
                 evaluation.message('WriteString', 'strml', e) # Mathematica gets this message wrong
                 return
 
-        text = map(lambda x: x.to_python().strip('"'), exprs)
+        text = map(lambda x: x.to_python()[1:-1], exprs)
         text = unicode(''.join(text))
         stream.write(text)
         return Symbol('Null')
@@ -592,7 +592,7 @@ class _OpenAction(Builtin):
             evaluation.message(self.__class__.__name__, 'fstr', path)
             return
 
-        path_string = path.to_python().strip('"')
+        path_string = path.to_python()[1:-1]
 
         tmp = path_search(path_string)
         if tmp is None:
@@ -960,7 +960,7 @@ class FileExtension(Builtin):
 
     def apply(self, filename, evaluation):
         'FileExtension[filename_?StringQ]'
-        path = filename.to_python().strip('"')
+        path = filename.to_python()[1:-1]
 
         filename_base, filename_ext  = os.path.splitext(path)
         filename_ext =  filename_ext.lstrip('.')
@@ -985,7 +985,7 @@ class FileBaseName(Builtin):
 
     def apply(self, filename, evaluation):
         'FileBaseName[filename_?StringQ]'
-        path = filename.to_python().strip('"')
+        path = filename.to_python()[1:-1]
 
         filename_base, filename_ext  = os.path.splitext(path)
         return from_python(filename_base)
@@ -1072,7 +1072,7 @@ class FilePrint(Builtin):
         if not (isinstance(pypath, basestring) and pypath[0] == pypath[-1] == '"' and len(pypath) > 2):
             evaluation.message('FilePrint', 'fstr', path)
             return
-        pypath = path_search(pypath.strip('"'))
+        pypath = path_search(pypath[1:-1])
         
         if pypath is None:
             evaluation.message('General', 'noopen', path)
@@ -1354,11 +1354,11 @@ class Find(Read):
             evaluation.message('Find', 'unknown', Expression('Find', Expression('InputStream', name, n), text))
             return
 
-        py_text = [t.strip('"') for t in py_text]
+        py_text = [t[1:-1] for t in py_text]
 
         while True:
             tmp = super(Find, self).apply(name, n, Symbol('Record'), evaluation)
-            py_tmp = tmp.to_python().strip('"')
+            py_tmp = tmp.to_python()[1:-1]
 
             if py_tmp == 'EndOfFile':
                 evaluation.message('Find', 'notfound', Expression('Find', Expression('InputStream', name, n), text))
@@ -1441,8 +1441,8 @@ class FindList(Builtin):
             return Symbol('$Failed')
 
 
-        py_text = [t.strip('"') for t in py_text]
-        py_name = [t.strip('"') for t in py_name]
+        py_text = [t[1:-1] for t in py_text]
+        py_name = [t[1:-1] for t in py_name]
 
         results = []
         for path in py_name:
@@ -1525,7 +1525,7 @@ class StringToStream(Builtin):
     
     def apply(self, string, evaluation):
         'StringToStream[string_]'
-        pystring = string.to_python().strip('"')
+        pystring = string.to_python()[1:-1]
         stream = io.StringIO(unicode(pystring))
         n = _put_stream(stream)
         result = Expression('InputStream', from_python('String'), n)
@@ -1611,7 +1611,7 @@ class Uncompress(Builtin):
 
     def apply(self, string, evaluation):
         'Uncompress[string_?StringQ]'
-        string = string.to_python().strip('"')
+        string = string.to_python()[1:-1]
         string = base64.decodestring(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode('utf-8')
@@ -1646,7 +1646,7 @@ class FileByteCount(Builtin):
         if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
             evaluation.message('FileByteCount', 'fstr', filename)
             return
-        py_filename = py_filename.strip('"')
+        py_filename = py_filename[1:-1]
 
         try:
             with mathics_open(py_filename, 'rb') as f:
@@ -1732,8 +1732,8 @@ class FileHash(Builtin):
             'SHA512': lambda s : int(hashlib.sha512(s).hexdigest(), 16),
         }
 
-        py_hashtype = py_hashtype.strip('"')
-        py_filename = py_filename.strip('"')
+        py_hashtype = py_hashtype[1:-1]
+        py_filename = py_filename[1:-1]
 
         hash_func = supported_hashes.get(py_hashtype)
         if hash_func is None:
@@ -1799,7 +1799,7 @@ class FileDate(Builtin):
 
     def apply(self, path, timetype, evaluation):
         'FileDate[path_, timetype_]'
-        py_path = path_search(path.to_python().strip('"'))
+        py_path = path_search(path.to_python()[1:-1])
 
         if py_path is None:
             if timetype is None:
@@ -1811,7 +1811,7 @@ class FileDate(Builtin):
         if timetype is None:
             time_type = 'Modification'
         else:
-            time_type = timetype.to_python().strip('"')
+            time_type = timetype.to_python()[1:-1]
 
         if time_type == 'Access':
             result = os.path.getatime(py_path)
@@ -1900,7 +1900,7 @@ class SetFileDate(Builtin):
         if not (isinstance(py_filename, basestring) and py_filename[0] == py_filename[-1] == '"'):
             evaluation.message('SetFileDate', 'fstr', filename)
             return
-        py_filename = path_search(py_filename.strip('"'))
+        py_filename = path_search(py_filename[1:-1])
 
         if py_filename is None:
             evaluation.message('SetFileDate', 'nffil', expr)
@@ -1985,8 +1985,8 @@ class CopyFile(Builtin):
             evaluation.message('CopyFile', 'fstr', dest)
             return
 
-        py_source = py_source.strip('"')
-        py_dest = py_dest.strip('"')
+        py_source = py_source[1:-1]
+        py_dest = py_dest[1:-1]
 
         py_source = path_search(py_source)
 
@@ -2043,8 +2043,8 @@ class RenameFile(Builtin):
             evaluation.message('RenameFile', 'fstr', dest)
             return
 
-        py_source = py_source.strip('"')
-        py_dest = py_dest.strip('"')
+        py_source = py_source[1:-1]
+        py_dest = py_dest[1:-1]
 
         py_source = path_search(py_source)
 
@@ -2104,7 +2104,7 @@ class DeleteFile(Builtin):
                 evaluation.message('DeleteFile', 'strs', filename, Expression('DeleteFile', filename))
                 return
 
-            path = path.strip('"')
+            path = path[1:-1]
             path = path_search(path)
 
             if path is None:
@@ -2189,7 +2189,7 @@ class ParentDirectory(Builtin):
             evaluation.message('ParentDirectory', 'fstr', path)
             return
 
-        pypath = path.to_python().strip('"')
+        pypath = path.to_python()[1:-1]
 
         result = os.path.abspath(os.path.join(pypath, os.path.pardir))
         return String(result)
@@ -2228,7 +2228,7 @@ class SetDirectory(Builtin):
             evaluation.message('SetDirectory', 'fstr', path)
             return
 
-        py_path = path.__str__().strip('"')
+        py_path = path.__str__()[1:-1]
         py_path = path_search(py_path)
     
         if py_path is None:
@@ -2301,7 +2301,7 @@ class FileType(Builtin):
         if not isinstance(filename, String):
             evaluation.message('FileType', 'fstr', filename)
             return
-        path = filename.to_python().strip('"')
+        path = filename.to_python()[1:-1]
 
         path = path_search(path)
 
@@ -2338,7 +2338,7 @@ class FileExistsQ(Builtin):
         if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
             evaluation.message('FileExistsQ', 'fstr', filename)
             return
-        path = path.strip('"')
+        path = path[1:-1]
 
         path = path_search(path)
 
@@ -2379,7 +2379,7 @@ class DirectoryQ(Builtin):
         if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
             evaluation.message('DirectoryQ', 'fstr', pathname)
             return
-        path = path.strip('"')
+        path = path[1:-1]
 
         path = path_search(path)
 
