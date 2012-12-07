@@ -369,6 +369,67 @@ class Read(Builtin):
 
     attributes = ('Protected')
 
+    def check_options(self, options):
+        ## Options:
+        #TODO: Proper error messages
+
+        result = {}
+        keys = options.keys()
+
+        # AnchoredSearch
+        if 'AnchoredSearch' in keys:
+            anchored_search = options['AnchoredSearch'].to_python()
+            assert anchored_search in [True, False]
+            result['AnchoredSearch'] = anchored_search
+
+        # IgnoreCase
+        if 'IgnoreCase' in keys:
+            ignore_case = options['IgnoreCase'].to_python()
+            assert ignore_case in [True, False]
+            result['IgnoreCase'] = ignore_case
+
+        # WordSearch
+        if 'WordSearch' in keys:
+            word_search = options['WordSearch'].to_python()
+            assert word_search in [True, False]
+            result['WordSearch'] = word_search
+
+        # RecordSeparators
+        if 'RecordSeparators' in keys:
+            record_separators = options['RecordSeparators'].to_python()
+            assert isinstance(record_separators, list) 
+            assert all(isinstance(s, basestring) and s[0] == s[-1] == '"' for s in record_separators)
+            record_separators = [s[1:-1] for s in record_separators]
+            result['RecordSeparators'] = record_separators
+
+        # WordSeparators
+        if 'WordSeparators' in keys:
+            word_separators = options['WordSeparators'].to_python()
+            assert isinstance(word_separators, list) 
+            assert all(isinstance(s, basestring) and s[0] == s[-1] == '"' for s in word_separators)
+            word_separators = [s[1:-1] for s in word_separators]
+            result['WordSeparators'] = word_separators
+
+        # NullRecords
+        if 'NullRecords' in keys:
+            null_records = options['NullRecords'].to_python()
+            assert null_records in [True, False]
+            result['NullRecords'] = null_records
+
+        # NullWords
+        if 'NullWords' in keys:
+            null_words = options['NullWords'].to_python()
+            assert null_words in [True, False]
+            result['NullWords'] = null_words
+
+        # TokenWords
+        if 'TokenWords' in keys:
+            token_words = options['TokenWords'].to_python()
+            assert token_words == []
+            result['TokenWords'] = token_words
+
+        return result
+
     def apply(self, name, n, types, evaluation, options):
         'Read[InputStream[name_, n_], types_, OptionsPattern[Read]]'
         global STREAMS
@@ -391,29 +452,13 @@ class Read(Builtin):
                 return Symbol('$Failed')
 
         ## Options:
-        # NullRecords
-        null_records = options['NullRecords'].to_python()
-        assert null_records in [True, False]
-
-        # NullWords
-        null_words = options['NullWords'].to_python()
-        assert null_words in [True, False]
-
-        # RecordSeparators
-        record_separators = options['RecordSeparators'].to_python()
-        assert isinstance(record_separators, list) 
-        assert all(isinstance(s, basestring) and s[0] == s[-1] == '"' for s in record_separators)
-        record_separators = [s[1:-1] for s in record_separators]
-
-        # TokenWords
-        token_words = options['TokenWords'].to_python()
-        assert token_words == []
-
-        # WordSeparators
-        word_separators = options['WordSeparators'].to_python()
-        assert isinstance(word_separators, list) 
-        assert all(isinstance(s, basestring) and s[0] == s[-1] == '"' for s in word_separators)
-        word_separators = [s[1:-1] for s in word_separators]
+        #TODO: Implement extra options
+        py_options = self.check_options(options)
+        #null_records = py_options['NullRecords']
+        #null_words = py_options['NullWords']
+        record_separators = py_options['RecordSeparators']
+        #token_words = py_options['TokenWords']
+        word_separators = py_options['WordSeparators']
 
         name = name.to_python()
 
@@ -1059,6 +1104,16 @@ class ReadList(Read):
 
     def apply(self, name, n, types, evaluation, options):
         'ReadList[InputStream[name_, n_], types_, OptionsPattern[ReadList]]'
+
+        # Options
+        #TODO: Implement extra options
+        py_options = self.check_options(options)
+        #null_records = py_options['NullRecords']
+        #null_words = py_options['NullWords']
+        record_separators = py_options['RecordSeparators']
+        #token_words = py_options['TokenWords']
+        word_separators = py_options['WordSeparators']
+
         result = []
         while True:
             tmp = super(ReadList, self).apply(name, n, types, evaluation, options)
@@ -1348,6 +1403,16 @@ class Skip(Read):
 
     def apply(self, name, n, types, m, evaluation, options):
         'Skip[InputStream[name_, n_], types_, m_, OptionsPattern[Skip]]'
+
+        # Options
+        #TODO Implement extra options
+        py_options = self.check_options(options)
+        #null_records = py_options['NullRecords']
+        #null_words = py_options['NullWords']
+        record_separators = py_options['RecordSeparators']
+        #token_words = py_options['TokenWords']
+        word_separators = py_options['WordSeparators']
+
         py_m = m.to_python()
         if not (isinstance(py_m, int) and py_m > 0):
             evaluation.message('Skip', 'intm', Expression('Skip', Expression('InputStream', name, n), types, m))
@@ -1393,11 +1458,18 @@ class Find(Read):
         'WordSeparators': '{" ", "\t"}',
     }
 
-    #TODO: Extra options AnchoredSearch, IgnoreCase RecordSeparators, WordSearch, WordSeparators
-    # this is probably best done with a regex
-
     def apply(self, name, n, text, evaluation, options):
         'Find[InputStream[name_, n_], text_, OptionsPattern[Find]]'
+
+        # Options
+        #TODO Implement extra options
+        py_options = self.check_options(options)
+        #anchored_search = py_options['AnchoredSearch']
+        #ignore_case = py_options['IgnoreCase']
+        #word_search = py_options['WordSearch']
+        record_separators = py_options['RecordSeparators']
+        word_separators = py_options['WordSeparators']
+
         py_text = text.to_python()
 
         if not isinstance(py_text, list):
