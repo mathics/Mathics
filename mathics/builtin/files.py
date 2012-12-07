@@ -389,16 +389,35 @@ class Read(Builtin):
             if not (isinstance(typ, basestring) and typ in READ_TYPES):
                 evaluation.message('Read', 'readf', from_python(typ))
                 return Symbol('$Failed')
-        
+
+        ## Options:
+        # NullRecords
+        null_records = options['NullRecords'].to_python()
+        assert null_records in [True, False]
+
+        # NullWords
+        null_words = options['NullWords'].to_python()
+        assert null_words in [True, False]
+
+        # RecordSeparators
+        record_separators = options['RecordSeparators'].to_python()
+        assert isinstance(record_separators, list) 
+        assert all(isinstance(s, basestring) and s[0] == s[-1] == '"' for s in record_separators)
+        record_separators = [s[1:-1] for s in record_separators]
+
+        # TokenWords
+        token_words = options['TokenWords'].to_python()
+        assert token_words == []
+
+        # WordSeparators
+        word_separators = options['WordSeparators'].to_python()
+        assert isinstance(word_separators, list) 
+        assert all(isinstance(s, basestring) and s[0] == s[-1] == '"' for s in word_separators)
+        word_separators = [s[1:-1] for s in word_separators]
+
         name = name.to_python()
 
         result = []
-
-        assert all(isinstance(s, basestring) and s[0] == s[-1] == '"' for s in options['WordSeparators'].to_python())
-        assert all(isinstance(s, basestring) and s[0] == s[-1] == '"' for s in options['RecordSeparators'].to_python())
-
-        word_separators = [s[1:-1] for s in options['WordSeparators'].to_python()]
-        record_separators = [s[1:-1] for s in options['RecordSeparators'].to_python()]
 
         def reader(stream, word_separators, accepted = None):
             while True:
