@@ -367,13 +367,31 @@ class BaseForm(Builtin):
 
     >> BaseForm[33, 2]
      = 10001_2
+
+    >> BaseForm[234, 16]
+     = ea_16
+
+    >> BaseForm[12.3, 2]
+     = 1100.11_2
     """
 
     def apply(self, expr, n, evaluation):
         'BaseForm[expr_, n_]'
 
         from mathics.core.expression import from_python
-        num = expr.get_int_value()
         base = n.get_int_value()
-        out = "%s_%d" % (int2base(num, base), base)
-        return Expression(from_python(out))
+
+        if isinstance(expr, Real):
+            (num, real) = divmod(expr.get_real_value(), 1)
+
+            # converts the decimal part to an integer
+            real = int(real * 10**(len(str(real)) - 2)) + 1 
+            num = int(num)
+
+            out = "%s.%s_%d" % (int2base(num, base), int2base(real, base), base)
+            return from_python(out)
+        else:
+            num = expr.get_int_value()
+            
+            out = "%s_%d" % (int2base(num, base), base)
+            return from_python(out)
