@@ -393,7 +393,7 @@ class BaseForm(Builtin):
             evaluation.message('BaseForm', 'base', expr, n)
             return
 
-        if expr.get_int_value() is None:
+        if expr.get_int_value() is None and expr.get_real_value() is None:
             return from_python(expr)
 
         if isinstance(expr, Real):
@@ -428,7 +428,7 @@ class BaseForm(Builtin):
             evaluation.message('BaseForm', 'base', expr, n)
             return
 
-        if expr.get_int_value() is None:
+        if expr.get_int_value() is None and expr.get_real_value() is None:
             return from_python(expr)
 
 
