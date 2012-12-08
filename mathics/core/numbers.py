@@ -124,7 +124,7 @@ def unpickle_mp(value):
     else:
         return value
 
-def int2base(x, base):
+def int2base(x, base, zero_prefill=False):
     import string
     digs = string.digits + string.lowercase
 
@@ -144,6 +144,9 @@ def int2base(x, base):
 
     if sign < 0:
         digits.append('-')
+
+    if zero_prefill:
+        digits.append('0')
 
     digits.reverse()
     return ''.join(digits)

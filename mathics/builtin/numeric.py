@@ -375,12 +375,12 @@ class BaseForm(Builtin):
      = 1100.100110011001100110011001_2
     """
 
-    def apply(self, expr, n, evaluation):
-        'BaseForm[expr_, n_]'
+    def apply_makeboxes(self, expr, n, f, evaluation):
+        'MakeBoxes[BaseForm[expr_, n_], f:StandardForm|TraditionalForm]'
 
         from mathics.core.expression import from_python
         base = n.get_int_value()
-
+        
         if isinstance(expr, Real):
             (num, real) = divmod(expr.get_real_value(), 1)
 
@@ -390,10 +390,40 @@ class BaseForm(Builtin):
             real = int(real * base**25)
             num = int(num)
 
-            out = "%s.%s_%d" % (int2base(num, base), int2base(real, base), base)
+            out = "%s.%s" % (int2base(num, base), 
+                                int2base(real, base, zero_prefill=True))
+            return Expression('SubscriptBox', from_python(out),
+                    from_python(base))
+        else:
+            num = expr.get_int_value()
+            return Expression('SubscriptBox', from_python(int2base(num, base)),
+                    from_python(base))
+
+    
+    def apply(self, expr, n, evaluation):
+        'BaseForm[expr_, n_]'
+
+        from mathics.core.expression import from_python
+        base = n.get_int_value()
+        
+        if isinstance(expr, Real):
+            (num, real) = divmod(expr.get_real_value(), 1)
+
+            # converts the decimal part to an integer
+            # check http://stackoverflow.com/questions/4838994/float-to-binary
+            # for more answers
+            real = int(real * base**25)
+            num = int(num)
+
+            out = "%s.%s_%d" % (int2base(num, base), 
+                                int2base(real, base),
+                                base)
+
+
             return from_python(out)
         else:
             num = expr.get_int_value()
-            
             out = "%s_%d" % (int2base(num, base), base)
             return from_python(out)
+
+ 
