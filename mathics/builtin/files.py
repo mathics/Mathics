@@ -1266,6 +1266,108 @@ class FileBaseName(Builtin):
         return from_python(filename_base)
 
 
+class DirectoryName(Builtin):
+    """
+    <dl>
+    <dt>'DirectoryName["$name$"]'
+        <dd>extracts the directory name from a filename.
+    </dl>
+
+    >> DirectoryName["a/b/c"]
+     = a/b
+
+    >> DirectoryName["a/b/c", 2]
+     = a
+
+    #> DirectoryName["a/b/c", 3] // InputForm
+     = ""
+    #> DirectoryName[""] // InputForm
+     = ""
+
+    #> DirectoryName["a/b/c", x]
+     : Positive machine-sized integer expected at position 2 in DirectoryName[a/b/c, x].
+     = DirectoryName[a/b/c, x]
+
+    #> DirectoryName["a/b/c", -1]
+     : Positive machine-sized integer expected at position 2 in DirectoryName[a/b/c, -1].
+     = DirectoryName[a/b/c, -1]
+
+    #> DirectoryName[x]
+     : String expected at position 1 in DirectoryName[x].
+     = DirectoryName[x]
+    """
+
+    attributes = ('Protected')
+
+    options = {
+        'OperatingSystem': '$OperatingSystem',
+    }
+
+    messages = {
+        'string': 'String expected at position 1 in `1`.',
+        'intpm': 'Positive machine-sized integer expected at position 2 in `1`.',
+    }
+
+    def apply(self, name, n, evaluation, options):
+        'DirectoryName[name_, n_, OptionsPattern[DirectoryName]]'
+
+        if n is None:
+            expr = Expression('DirectoryName', name)
+            py_n = 1
+        else:
+            expr = Expression('DirectoryName', name, n)
+            py_n = n.to_python()
+
+        if not (isinstance(py_n, (int, long)) and py_n > 0):
+            evaluation.message('DirectoryName', 'intpm', expr)
+            return
+
+        py_name = name.to_python()
+        if not (isinstance(py_name, basestring) and py_name[0] == py_name[-1] == '"'):
+            evaluation.message('DirectoryName', 'string', expr)
+            return
+        py_name = py_name[1:-1]
+
+        result = py_name
+        for i in range(py_n):
+            (result, tmp) = os.path.split(result)
+
+        return String(result)
+
+
+    def apply1(self, name, evaluation, options):
+        'DirectoryName[name_, OptionsPattern[DirectoryName]]'
+        return self.apply(name, None, evaluation, options)
+
+
+class FileNameDepth(Builtin):
+    """
+    <dl>
+    <dt>'FileNameDepth["$name$"]'
+        <dd>gives the number of path parts in the given filename.
+    </dl>
+
+    >> FileNameDepth["a/b/c"]
+     = 3
+
+    >> FileNameDepth["a/b/c/"]
+     = 3
+
+    #> FileNameDepth[x]
+     = FileNameDepth[x]
+    """
+
+    attributes = ('Protected')
+
+    options = {
+        'OperatingSystem': '$OperatingSystem',
+    }
+
+    rules = {
+        'FileNameDepth[name_?StringQ]': 'Length[FileNameSplit[name]]',
+    }
+
+
 class AbsoluteFileName(Builtin):
     """
     <dl>
