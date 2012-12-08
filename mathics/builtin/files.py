@@ -1135,7 +1135,7 @@ class FileNameSplit(Builtin):
         #TODO Implement OperatingSystem Option
 
         result = []
-        while path != '':
+        while path not in ['', SYS_ROOT_DIR]:
             path, ext = os.path.split(path)
             if ext != '':
                 result.insert(0, ext)
@@ -1355,6 +1355,9 @@ class FileNameDepth(Builtin):
 
     #> FileNameDepth[x]
      = FileNameDepth[x]
+
+    #> FileNameDepth[$RootDirectory]
+     = 0
     """
 
     attributes = ('Protected')
