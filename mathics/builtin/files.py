@@ -1120,6 +1120,62 @@ class FileNameSplit(Builtin):
         return from_python(result)
 
 
+class FileNameJoin(Builtin):
+    """
+    <dl>
+    <dt>'FileNameJoin[{"$dir_1$", "$dir_2$", ...}]'
+      <dd>joins the $dir_i$ togeather into one path.
+    </dl>
+
+    >> FileNameJoin[{"dir1", "dir2", "dir3"}]
+     = ...
+
+    >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Unix"]
+     = dir1/dir2/dir3
+
+    ## TODO
+    ## #> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
+    ##  = dir1\dir2\dir3
+    """
+
+    attributes = ('Protected')
+
+    options = {
+        'OperatingSystem': '$OperatingSystem',
+    }
+
+    messages = {
+        'ostype': 'The value of option OperatingSystem -> `1` must be one of "MacOSX", "Windows", or "Unix".',
+    }
+
+    def apply(self, pathlist, evaluation, options):
+        'FileNameJoin[pathlist_?ListQ, OptionsPattern[FileNameJoin]]'
+
+        py_pathlist = pathlist.to_python()
+        if not all(isinstance(p, basestring) and p[0]==p[-1]=='"' for p in py_pathlist):
+            return
+        py_pathlist = [p[1:-1] for p in py_pathlist]
+
+        operating_system = options['OperatingSystem'].evaluate(evaluation).to_python()
+
+        if operating_system not in ['"MacOSX"', '"Windows"', '"Unix"']:
+            evaluation.message('FileNameSplit', 'ostype', options['OperatingSystem'])
+            if os.name == 'posix':
+                operating_system = 'Unix'
+            elif os.name == 'nt':
+                operating_system = 'Windows'
+            elif os.name == 'os2':
+                operating_system = 'MacOSX'
+            else:
+                return
+
+        #TODO Implement OperatingSystem Option
+
+        result = os.path.join(*py_pathlist)
+
+        return from_python(result)
+
+
 class FileExtension(Builtin):
     """
     <dl>
