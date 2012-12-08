@@ -420,10 +420,15 @@ class BaseForm(Builtin):
 
         from mathics.core.expression import from_python
         base = n.get_int_value()
+        print expr.get_int_value()
 
         if base <= 0:
             evaluation.message('BaseForm', 'base', expr, n)
             return
+
+        if expr.get_int_value() is None:
+            return from_python(expr)
+
 
         if isinstance(expr, Real):
             (num, real) = divmod(expr.get_real_value(), 1)
