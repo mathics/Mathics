@@ -994,6 +994,20 @@ class Real_(Builtin):
      = 0.
     #> 0.0000000000000000000000000000
      = 0.*^-28
+
+    ## Parse *^ Notation
+    #> 1.5*^24
+     = 1.5*^24
+    #> 1.5*^+24
+     = 1.5*^24
+    #> 1.5*^-24
+     = 1.5*^-24
+
+    ## Don't accept *^ with spaces
+    #> 1.5 *^10
+     : Parse error at or near token ^.
+    #> 1.5*^ 10
+     : Parse error at or near token ^.
     """
     
     name = 'Real'
