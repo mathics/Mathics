@@ -1006,6 +1006,41 @@ class PutAppend(BinaryOperator):
         return super(PutAppend, self).parse(args)
 
 
+class FindFile(Builtin):
+    """
+    <dl>
+    <dt>'FindFile[$name$]'
+      <dd>searches '$Path' for the given filename.
+    </dl>
+
+    >> FindFile["ExampleData/sunflowers.jpg"]
+     = ...
+    """
+
+    attributes = ('Protected')
+
+    messages = {
+        'string': 'String expected at position 1 in `1`.',
+    }
+
+    def apply(self, name, evaluation):
+        'FindFile[name_]'
+
+        py_name = name.to_python()
+
+        if not (isinstance(py_name, basestring) and py_name[0] == py_name[-1] == '"'):
+            evaluation.message('FindFile', 'string', Expression('FindFile', name))
+            return
+        py_name = py_name[1:-1]
+
+        result = path_search(py_name)
+
+        if result is None:
+            return Symbol('$Failed')
+
+        return String(os.path.abspath(result))
+
+
 class FileExtension(Builtin):
     """
     <dl>
