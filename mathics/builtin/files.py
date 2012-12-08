@@ -1108,6 +1108,47 @@ class FileBaseName(Builtin):
         return from_python(filename_base)
 
 
+class AbsoluteFileName(Builtin):
+    """
+    <dl>
+    <dt>'AbsoluteFileName["$name$"]'
+      <dd>returns the absolute version of the given filename.
+    </dl>
+
+    >> AbsoluteFileName["ExampleData/sunflowers.jpg"]
+     = ...
+
+    #> AbsoluteFileName["Some/NonExistant/Path.ext"]
+     : File not found during AbsoluteFileName[Some/NonExistant/Path.ext].
+     = $Failed
+    """
+
+    attributes = ('Protected')
+
+    messages = {
+        'fstr': 'File specification x is not a string of one or more characters.',
+        'nffil': 'File not found during `1`.',
+    }
+
+    def apply(self, name, evaluation):
+        'AbsoluteFileName[name_]'
+
+        py_name = name.to_python()
+
+        if not (isinstance(py_name, basestring) and py_name[0] == py_name[-1] == '"'):
+            evaluation.message('AbsoluteFileName', 'fstr', name)
+            return
+        py_name = py_name[1:-1]
+
+        result = path_search(py_name)
+
+        if result is None:
+            evaluation.message('AbsoluteFileName', 'nffil', Expression('AbsoluteFileName', name))
+            return Symbol('$Failed')
+
+        return String(os.path.abspath(result))
+
+
 class ReadList(Read):
     """
     <dl>
