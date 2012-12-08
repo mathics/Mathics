@@ -2439,6 +2439,64 @@ class ResetDirectory(Builtin):
         return String(tmp)
 
 
+class CreateDirectory(Builtin):
+    """
+    <dl>
+    <dt>'CreateDirectory["$dir$"]'
+      <dd>creates a directory called $dir$.
+    <dt>'CreateDirectory[]'
+      <dd>creates a temporary directory.
+    </dl>
+
+    >> dir = CreateDirectory[]
+     = ...
+    #> DirectoryQ[dir]
+     = True
+    #> DeleteDirectory[dir]
+    """
+
+    attributes = ('Listable', 'Protected')
+
+    options = {
+        'CreateIntermediateDirectories': 'True',
+    }
+
+    messages = {
+        'fstr':  "File specification `1` is not a string of one or more characters.",
+        'nffil': "File not found during `1`.",
+        'filex': "`1` already exists.",
+    }
+
+    def apply(self, dirname, evaluation, options):
+        'CreateDirectory[dirname_, OptionsPattern[CreateDirectory]]'
+
+        expr = Expression('CreateDirectory', dirname)
+        py_dirname = dirname.to_python()
+
+        if not (isinstance(py_dirname, basestring) and py_dirname[0] == py_dirname[-1] == '"'):
+            evaluation.message('CreateDirectory', 'fstr', dirname)
+            return
+
+        py_dirname = py_dirname[1:-1]
+
+        if os.path.isdir(py_dirname):
+            evaluation.message('CreateDirectory', 'filex', os.path.abspath(py_dirname))
+            return
+
+        os.mkdir(py_dirname)
+
+        if not os.path.isdir(py_dirname):
+            evaluation.message('CreateDirectory', 'nffil', expr)
+            return
+
+        return String(os.path.abspath(py_dirname))
+
+    def apply_empty(self, evaluation, options):
+        'CreateDirectory[OptionsPattern[CreateDirectory]]'
+        dirname = tempfile.mkdtemp(prefix='m', dir=TMP_DIR)
+        return String(dirname)
+
+
 class FileType(Builtin):
     """
     <dl>
