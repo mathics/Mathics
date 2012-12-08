@@ -166,8 +166,22 @@ class MathicsScanner(GenericScanner):
         self.tokens.append(Token(type='symbol', value=s))
         
     def t_float(self, s):
-        r' \d*(?<!\.)\.\d+ | \d+\.(?!\.)\d* '
-        self.tokens.append(Token(type='float', value=s))
+        r' \d*(?<!\.)\.\d+(\*\^(\+|-)?\d+)? | \d+\.(?!\.) \d*(\*\^(\+|-)?\d+)?'
+        s = s.split('*^')
+        if len(s) == 1:
+            self.tokens.append(Token(type='float', value=s[0]))
+        else:
+            assert len(s) == 2
+            exp = int(s[1])
+            if exp >= 0:
+                s = s[0] + '0' * exp
+            else:
+                s = '0' * -exp + s[0]
+
+            dot = s.find('.')
+            s = s[:dot] + s[dot+1:]
+            s = s[:exp+dot] + '.' + s[exp+dot:]
+            self.tokens.append(Token(type='float', value=s))
         
     def t_int(self, s):
         r' \d+ '
@@ -182,7 +196,7 @@ class MathicsScanner(GenericScanner):
         self.tokens.append(Token(type='blankdefault', value=s))
         
     def t_string(self, s):
-        r' "([^\\"]|\\\\|\\"|\\\[[a-zA-Z]+\])*" '
+        r' "([^\\"]|\\\\|\\"|\\\[[a-zA-Z]+\]|\\n|\\r|\\r\\n)*" '
         s = s[1:-1]
         
         def sub_entity(match):
@@ -204,6 +218,9 @@ class MathicsScanner(GenericScanner):
         
         s = re.sub(r'\\\[([a-zA-Z]+)\]', sub_entity, s)
         s = s.replace('\\\\', '\\').replace('\\"', '"')
+        s = s.replace('\\r\\n', '\r\n')
+        s = s.replace('\\r', '\r')
+        s = s.replace('\\n', '\n')
         self.tokens.append(Token(type='string', value=s))
         
     def t_out_1(self, s):
