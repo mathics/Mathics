@@ -2520,8 +2520,11 @@ class DeleteDirectory(Builtin):
     }
 
     messages = {
-        'fstr':  "File specification `1` is not a string of one or more characters.",
+        'strs':  "String or non-empty list of strings expected at position 1 in `1`.",
         'nodir': 'Directory `1` not found.',
+        'dirne': 'Directory `1` not empty.',
+        'optx': 'Unknown option `1` in `2`',
+        'idcts': 'DeleteContents expects either True or False.',       # Mathematica Bug
     }
 
     def apply(self, dirname, evaluation, options):
@@ -2530,17 +2533,28 @@ class DeleteDirectory(Builtin):
         expr = Expression('DeleteDirectory', dirname)
         py_dirname = dirname.to_python()
 
+        delete_contents = options['DeleteContents'].to_python()
+        if not delete_contents in [True, False]:
+            evaluation.message('DeleteDirectory', 'idcts')
+            return
+
         if not (isinstance(py_dirname, basestring) and py_dirname[0] == py_dirname[-1] == '"'):
-            evaluation.message('DeleteDirectory', 'fstr', dirname)
+            evaluation.message('DeleteDirectory', 'strs', expr)
             return
 
         py_dirname = py_dirname[1:-1]
 
         if not os.path.isdir(py_dirname):
-            evaluation.message('DeleteDirectory', 'nodir', py_dirname)
+            evaluation.message('DeleteDirectory', 'nodir', dirname)
             return Symbol('$Failed')
 
-        os.rmdir(py_dirname)
+        if delete_contents:
+            shutil.rmtree(py_dirname)
+        else:
+            if os.listdir(py_dirname) != []:
+                evaluation.message('DeleteDirectory', 'dirne', dirname)
+                return Symbol('$Failed')
+            os.rmdir(py_dirname)
 
         return Symbol('Null')
 
