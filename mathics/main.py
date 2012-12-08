@@ -72,12 +72,26 @@ def main():
     argparser.add_argument('--persist',  help='go to interactive shell after evaluating FILE', action='store_true')
     argparser.add_argument('--quiet', '-q', help='don\'t print message at startup', action='store_true')
     argparser.add_argument('-script', help='run a mathics file in script mode', action='store_true')
+    argparser.add_argument('--execute', '-e', nargs='?', help='execute a command')
     argparser.add_argument('--version', '-v', action='version', version=get_version_string(False))
 
     args = argparser.parse_args()
 
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
     
+    definitions = Definitions(add_builtin=True)
+
+    trailing_ops = ['+', '-', '/', '*'] # TODO all binary operators?
+
+    if args.execute:
+        evaluation = Evaluation(args.execute, definitions, timeout=30, out_callback=out_callback)
+        print ">> %s" % args.execute
+        for result in evaluation.results:
+                if result.result is not None:
+                    print ' = %s' % to_output(unicode(result.result))           
+        return
+
+
     if not (args.quiet or args.script):
         print_version(is_server=False)
         print_license()
@@ -85,9 +99,6 @@ def main():
     
         print ''
 
-    definitions = Definitions(add_builtin=True)
-
-    trailing_ops = ['+', '-', '/', '*'] # TODO all binary operators?
 
     if args.FILE is not None:
         total_input = ""
