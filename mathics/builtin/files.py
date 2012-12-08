@@ -613,14 +613,14 @@ class WriteString(Builtin):
     >> Close[str]
      = ...
     >> FilePrint[%]
-     = This is a test 1This is also a test 2
+     | This is a test 1This is also a test 2
 
     >> str = OpenWrite[];
     >> WriteString[str, "This is a test 1", "This is also a test 2"]
     >> Close[str]
      = ...
     >> FilePrint[%]
-     = This is a test 1This is also a test 2
+     | This is a test 1This is also a test 2
     """
 
     messages = {
@@ -644,10 +644,6 @@ class WriteString(Builtin):
         text = unicode(''.join(text))
         stream.write(text)
         return Symbol('Null')
-
-
-class Save(Builtin):
-    pass
 
 
 class _OpenAction(Builtin):
@@ -802,7 +798,7 @@ class Get(PrefixOperator):
 
     >> 40! >> "fourtyfactorial"
     >> FilePrint["fourtyfactorial"]
-     = 815915283247897734345611269596115894272000000000
+     | 815915283247897734345611269596115894272000000000
     >> <<"fourtyfactorial"
      = 815915283247897734345611269596115894272000000000
     #> DeleteFile["fourtyfactorial"]
@@ -851,10 +847,10 @@ class Put(BinaryOperator):
 
     >> 40! >> "fourtyfactorial"
     >> FilePrint["fourtyfactorial"]
-     = 815915283247897734345611269596115894272000000000
+     | 815915283247897734345611269596115894272000000000
     #> 40! >> fourtyfactorial
     #> FilePrint["fourtyfactorial"]
-     = 815915283247897734345611269596115894272000000000
+     | 815915283247897734345611269596115894272000000000
 
     #> Put[40!, fourtyfactorial]
      : fourtyfactorial is not string, InputStream[], or OutputStream[]
@@ -865,23 +861,23 @@ class Put(BinaryOperator):
 
     >> Put[50!, "fiftyfactorial"]
     >> FilePrint["fiftyfactorial"]
-     = 30414093201713378043612608166064768844377641568960512000000000000
+     | 30414093201713378043612608166064768844377641568960512000000000000
     #> DeleteFile["fiftyfactorial"]
     
     >> Put[10!, 20!, 30!, "factorials"]
     >> FilePrint["factorials"]
-     = 3628800
-     . 2432902008176640000
-     . 265252859812191058636308480000000
+     | 3628800
+     | 2432902008176640000
+     | 265252859812191058636308480000000
 
     #> DeleteFile["factorials"]
      =
 
     #> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], "example_file"]
     #> FilePrint["example_file"]
-     = x + y
-     . 2*x^2 + 4*z!
-     . Cos[x] + I*Sin[x]
+     | x + y
+     | 2*x^2 + 4*z!
+     | Cos[x] + I*Sin[x]
     #> DeleteFile["example_file"]
     """
 
@@ -938,31 +934,31 @@ class PutAppend(BinaryOperator):
 
     >> Put[50!, "factorials"]
     >> FilePrint["factorials"]
-     = 30414093201713378043612608166064768844377641568960512000000000000
+     | 30414093201713378043612608166064768844377641568960512000000000000
     
     >> PutAppend[10!, 20!, 30!, "factorials"]
     >> FilePrint["factorials"]
-     = 30414093201713378043612608166064768844377641568960512000000000000
-     . 3628800
-     . 2432902008176640000
-     . 265252859812191058636308480000000
+     | 30414093201713378043612608166064768844377641568960512000000000000
+     | 3628800
+     | 2432902008176640000
+     | 265252859812191058636308480000000
 
     >> 60! >>> "factorials"
     >> FilePrint["factorials"]
-     = 30414093201713378043612608166064768844377641568960512000000000000
-     . 3628800
-     . 2432902008176640000
-     . 265252859812191058636308480000000
-     . 8320987112741390144276341183223364380754172606361245952449277696409600000000000000
+     | 30414093201713378043612608166064768844377641568960512000000000000
+     | 3628800
+     | 2432902008176640000
+     | 265252859812191058636308480000000
+     | 8320987112741390144276341183223364380754172606361245952449277696409600000000000000
 
     >> "string" >>> factorials
     >> FilePrint["factorials"]
-     = 30414093201713378043612608166064768844377641568960512000000000000
-     . 3628800
-     . 2432902008176640000
-     . 265252859812191058636308480000000
-     . 8320987112741390144276341183223364380754172606361245952449277696409600000000000000
-     . "string"
+     | 30414093201713378043612608166064768844377641568960512000000000000
+     | 3628800
+     | 2432902008176640000
+     | 265252859812191058636308480000000
+     | 8320987112741390144276341183223364380754172606361245952449277696409600000000000000
+     | "string"
     #> DeleteFile["factorials"];
     """
 
@@ -1020,22 +1016,24 @@ class FileExtension(Builtin):
     >> FileExtension["file.txt"]
      = txt
 
+    >> FileExtension["file.tar.gz"]
+     = gz
+
     #> FileExtension["file."]
      = 
-
     #> FileExtension["file"]
      = 
-
-    #> FileExtension["file.tar.gz"]
-     = gz
     """
 
     attributes = ('Protected')
 
-    def apply(self, filename, evaluation):
-        'FileExtension[filename_?StringQ]'
-        path = filename.to_python()[1:-1]
+    options = {
+        'OperatingSystem': '$OperatingSystem',
+    }
 
+    def apply(self, filename, evaluation, options):
+        'FileExtension[filename_?StringQ, OptionsPattern[FileExtension]]'
+        path = filename.to_python()[1:-1]
         filename_base, filename_ext  = os.path.splitext(path)
         filename_ext =  filename_ext.lstrip('.')
         return from_python(filename_ext)
@@ -1051,14 +1049,24 @@ class FileBaseName(Builtin):
     >> FileBaseName["file.txt"]
      = file
 
-    #> FileBaseName["file.tar.gz"]
+    >> FileBaseName["file.tar.gz"]
      = file.tar
+
+    #> FileBaseName["file."]
+     = file
+
+    #> FileBaseName["file"]
+     = file
     """
 
     attributes = ('Protected')
 
-    def apply(self, filename, evaluation):
-        'FileBaseName[filename_?StringQ]'
+    options = {
+        'OperatingSystem': '$OperatingSystem',
+    }
+
+    def apply(self, filename, evaluation, options):
+        'FileBaseName[filename_?StringQ, OptionsPattern[FileBaseName]]'
         path = filename.to_python()[1:-1]
 
         filename_base, filename_ext  = os.path.splitext(path)
@@ -1156,16 +1164,28 @@ class FilePrint(Builtin):
         'fstr': 'File specification `1` is not a string of one or more characters.',
     }
 
+    options = {
+        'CharacterEncoding': '$CharacterEncoding', 
+        'RecordSeparators': '{"\r\n", "\n", "\r"}',
+        'WordSeparators': '{" ", "\t"}',
+    }
+
     attributes = ('Protected')
 
-    def apply(self, path, evaluation):
-        'FilePrint[path_]'
+    def apply(self, path, evaluation, options):
+        'FilePrint[path_ OptionsPattern[FilePrint]]'
         pypath = path.to_python()
         if not (isinstance(pypath, basestring) and pypath[0] == pypath[-1] == '"' and len(pypath) > 2):
             evaluation.message('FilePrint', 'fstr', path)
             return
         pypath = path_search(pypath[1:-1])
         
+        #Options
+        record_separators = options['RecordSeparators'].to_python()
+        assert isinstance(record_separators, list)
+        assert all(isinstance(s, basestring) and s[0] == s[-1] == '"' for s in record_separators)
+        record_separators = [s[1:-1] for s in record_separators]
+
         if pypath is None:
             evaluation.message('General', 'noopen', path)
             return
@@ -1180,7 +1200,17 @@ class FilePrint(Builtin):
             evaluation.message('General', 'noopen', path)
             return
 
-        return from_python(result)
+        result = [result]
+        for sep in record_separators:
+            result = [item for res in result for item in res.split(sep)]
+
+        if result[-1] == '':
+            result = result[:-1]
+
+        for res in result:
+            evaluation.print_out(from_python(res))
+
+        return Symbol('Null')
 
 
 class Close(Builtin):
@@ -1710,12 +1740,18 @@ class Compress(Builtin):
 
     attributes = ('Protected')
 
-    def apply(self, expr, evaluation):
-        'Compress[expr_]'
+    options = {
+        'Method': '{}',
+    }
+
+    def apply(self, expr, evaluation, options):
+        'Compress[expr_, OptionsPattern[Compress]]'
         
         string = expr.do_format(evaluation, 'FullForm').__str__()
         string = string.encode('utf-8')
-        result = zlib.compress(string)
+
+        #TODO Implement other Methods
+        result = zlib.compress(string)      
         result = base64.encodestring(result)
 
         return from_python(result)
@@ -1737,7 +1773,6 @@ class Uncompress(Builtin):
     >> b = Compress[a];
     >> Uncompress[b]
      = x ^ 2 + y Sin[x] + 10 Log[15]
-
     """
 
     attributes = ('Protected')
