@@ -242,6 +242,31 @@ class Path(Predefined):
         return Expression('List', *[String(p) for p in PATH_VAR])
 
 
+class OperatingSystem(Predefined):
+    """
+    <dl>
+    <dt>'$OperatingSystem'
+      <dd>gives the type of operating system running Mathics.
+    </dl>
+    
+    >> $OperatingSystem
+     = ...
+    """
+
+    attributes = ('Locked', 'Protected')
+    name = '$OperatingSystem'
+
+    def evaluate(self, evaluation):
+        if os.name == 'posix':
+            return String('Unix')
+        elif os.name == 'nt':
+            return String('Windows')
+        elif os.name == 'os2':
+            return String('MacOSX')
+        else:
+            return String('Unknown')
+
+
 class Read(Builtin):
     """
     <dl>
@@ -1039,6 +1064,60 @@ class FindFile(Builtin):
             return Symbol('$Failed')
 
         return String(os.path.abspath(result))
+
+
+class FileNameSplit(Builtin):
+    """
+    <dl>
+    <dt>'FileNameSplit["$filenams$"]'
+        <dd>splits a $filename$ into a list of parts.
+    </dl>
+
+    >> FileNameSplit["example/path/file.txt"]
+     = {example, path, file.txt}
+
+    #> FileNameSplit["example/path", OperatingSystem -> x]
+     : The value of option OperatingSystem -> x must be one of "MacOSX", "Windows", or "Unix".
+     = {example, path}
+    """
+
+    attributes = ('Protected')
+
+    options = {
+        'OperatingSystem': '$OperatingSystem',
+    }
+
+    messages = {
+        'ostype': 'The value of option OperatingSystem -> `1` must be one of "MacOSX", "Windows", or "Unix".',
+    }
+
+    def apply(self, filename, evaluation, options):
+        'FileNameSplit[filename_?StringQ, OptionsPattern[FileExtension]]'
+
+        path = filename.to_python()[1:-1]
+
+        operating_system = options['OperatingSystem'].evaluate(evaluation).to_python()
+
+        if operating_system not in ['"MacOSX"', '"Windows"', '"Unix"']:
+            evaluation.message('FileNameSplit', 'ostype', options['OperatingSystem'])
+            if os.name == 'posix':
+                operating_system = 'Unix'
+            elif os.name == 'nt':
+                operating_system = 'Windows'
+            elif os.name == 'os2':
+                operating_system = 'MacOSX'
+            else:
+                return
+
+        #TODO Implement OperatingSystem Option
+
+        result = []
+        while path != '':
+            path, ext = os.path.split(path)
+            if ext != '':
+                result.insert(0, ext)
+
+        return from_python(result)
 
 
 class FileExtension(Builtin):
