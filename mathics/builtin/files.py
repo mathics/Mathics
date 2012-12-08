@@ -2559,6 +2559,102 @@ class DeleteDirectory(Builtin):
         return Symbol('Null')
 
 
+class CopyDirectory(Builtin):
+    """
+    <dl>
+    <dt>'CopyDirectory["$dir1$", "$dir2$"]'
+      <dd>copies directory $dir1$ to $dir2$.
+    </dl>
+    """
+
+    attributes = ('Protected')
+
+    messages = {
+        'argr': 'called with `1` argument; 2 arguments are expected.',
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'filex': 'Cannot overwrite existing file `1`.',
+        'nodir': 'Directory `1` not found.',
+    }
+
+    def apply(self, dirs, evaluation):
+        'CopyDirectory[dirs__]'
+
+        seq = dirs.get_sequence()
+        if len(seq) != 2:
+            evaluation.message('CopyDirectory', 'argr', len(seq))
+            return
+        (dir1, dir2) = (s.to_python() for s in seq)
+
+        if not (isinstance(dir1, basestring) and dir1[0] == dir1[-1] == '"'):
+            evaluation.message('CopyDirectory', 'fstr', seq[0])
+            return
+        dir1 = dir1[1:-1]
+
+        if not (isinstance(dir2, basestring) and dir2[0] == dir2[-1] == '"'):
+            evaluation.message('CopyDirectory', 'fstr', seq[1])
+            return
+        dir2 = dir2[1:-1]
+
+        if not os.path.isdir(dir1):
+            evaluation.message('CopyDirectory', 'nodir', seq[0])
+            return Symbol('$Failed')
+        if os.path.isdir(dir2):
+            evaluation.message('CopyDirectory', 'filex', seq[1])
+            return Symbol('$Failed')
+
+        shutil.copytree(dir1, dir2)
+
+        return String(os.path.abspath(dir2))
+
+
+class RenameDirectory(Builtin):
+    """
+    <dl>
+    <dt>'RenameyDirectory["$dir1$", "$dir2$"]'
+      <dd>renames directory $dir1$ to $dir2$.
+    </dl>
+    """
+
+    attributes = ('Protected')
+
+    messages = {
+        'argr': 'called with `1` argument; 2 arguments are expected.',
+        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'filex': 'Cannot overwrite existing file `1`.',
+        'nodir': 'Directory `1` not found.',
+    }
+
+    def apply(self, dirs, evaluation):
+        'RenameDirectory[dirs__]'
+
+        seq = dirs.get_sequence()
+        if len(seq) != 2:
+            evaluation.message('RenameDirectory', 'argr', len(seq))
+            return
+        (dir1, dir2) = (s.to_python() for s in seq)
+
+        if not (isinstance(dir1, basestring) and dir1[0] == dir1[-1] == '"'):
+            evaluation.message('RenameDirectory', 'fstr', seq[0])
+            return
+        dir1 = dir1[1:-1]
+
+        if not (isinstance(dir2, basestring) and dir2[0] == dir2[-1] == '"'):
+            evaluation.message('RenameDirectory', 'fstr', seq[1])
+            return
+        dir2 = dir2[1:-1]
+
+        if not os.path.isdir(dir1):
+            evaluation.message('RenameDirectory', 'nodir', seq[0])
+            return Symbol('$Failed')
+        if os.path.isdir(dir2):
+            evaluation.message('RenameDirectory', 'filex', seq[1])
+            return Symbol('$Failed')
+
+        shutil.move(dir1, dir2)
+
+        return String(os.path.abspath(dir2))
+
+
 class FileType(Builtin):
     """
     <dl>
