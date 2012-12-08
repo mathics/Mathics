@@ -366,13 +366,13 @@ class BaseForm(Builtin):
     </dl>
 
     >> BaseForm[33, 2]
-     = 10001_2
+     = 100001_2
 
     >> BaseForm[234, 16]
      = ea_16
 
     >> BaseForm[12.3, 2]
-     = 1100.11_2
+     = 1100.100110011001100110011001_2
     """
 
     def apply(self, expr, n, evaluation):
@@ -385,7 +385,9 @@ class BaseForm(Builtin):
             (num, real) = divmod(expr.get_real_value(), 1)
 
             # converts the decimal part to an integer
-            real = int(real * 10**(len(str(real)) - 2)) + 1 
+            # check http://stackoverflow.com/questions/4838994/float-to-binary
+            # for more answers
+            real = int(real * base**25)
             num = int(num)
 
             out = "%s.%s_%d" % (int2base(num, base), int2base(real, base), base)
