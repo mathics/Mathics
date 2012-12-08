@@ -22,6 +22,7 @@ from mathics.settings import ROOT_DIR
 STREAMS = {}
 INITIAL_DIR = os.getcwd()
 HOME_DIR = os.path.expanduser('~')
+SYS_ROOT_DIR = '/' if os.name == 'posix' else '\\'
 TMP_DIR = tempfile.gettempdir()
 DIRECTORY_STACK = [INITIAL_DIR]
 INPUT_VAR = ""
@@ -148,9 +149,31 @@ class HomeDirectory(Predefined):
 
     name = '$HomeDirectory'
 
+    attributes = ('Protected')
+
     def evaluate(self, evaluation):
         global HOME_DIR
         return String(HOME_DIR)
+
+
+class RootDirectory(Predefined):
+    """
+    <dl>
+    <dt>'$RootDirectory'
+      <dd>returns the system root directory.'
+    </dl>
+
+    >> $RootDirectory
+     = ...
+    """
+
+    name = '$RootDirectory'
+
+    attributes = ('Protected')
+
+    def evaluate(self, evaluation):
+        global SYS_ROOT_DIR
+        return String(SYS_ROOT_DIR)
 
 
 class TemporaryDirectory(Predefined):
