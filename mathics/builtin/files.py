@@ -1307,6 +1307,36 @@ class AbsoluteFileName(Builtin):
         return String(os.path.abspath(result))
 
 
+class ExpandFileName(Builtin):
+    """
+    <dl>
+    <dt>'ExpandFileName["$name$"]'
+      <dd>expands $name$ to an absolute filename for your system.
+    </dl>
+
+    >> ExpandFileName["ExampleData/sunflowers.jpg"]
+     = ...
+    """
+
+    attributes = ('Protected')
+
+    messages = {
+        'string': 'String expected at position 1 in `1`.',
+    }
+
+    def apply(self, name, evaluation):
+        'ExpandFileName[name_]'
+
+        py_name = name.to_python()
+
+        if not (isinstance(py_name, basestring) and py_name[0] == py_name[-1] == '"'):
+            evaluation.message('ExpandFileName', 'string', Expression('ExpandFileName', name))
+            return
+        py_name = py_name[1:-1]
+
+        return String(os.path.abspath(py_name))
+
+
 class ReadList(Read):
     """
     <dl>
