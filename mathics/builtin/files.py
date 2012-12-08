@@ -2497,6 +2497,54 @@ class CreateDirectory(Builtin):
         return String(dirname)
 
 
+class DeleteDirectory(Builtin):
+    """
+    <dl>
+    <dt>'DeleteDirectory["$dir$"]'
+      <dd>deletes a directory called $dir$.
+    </dl>
+
+    >> dir = CreateDirectory[]
+     = ...
+    >> DeleteDirectory[dir]
+    >> DirectoryQ[dir]
+     = False
+    #> Quiet[DeleteDirectory[dir]]
+     = $Failed
+    """
+
+    attributes = ('Protected')
+
+    options = {
+        'DeleteContents': 'False',
+    }
+
+    messages = {
+        'fstr':  "File specification `1` is not a string of one or more characters.",
+        'nodir': 'Directory `1` not found.',
+    }
+
+    def apply(self, dirname, evaluation, options):
+        'DeleteDirectory[dirname_, OptionsPattern[DeleteDirectory]]'
+
+        expr = Expression('DeleteDirectory', dirname)
+        py_dirname = dirname.to_python()
+
+        if not (isinstance(py_dirname, basestring) and py_dirname[0] == py_dirname[-1] == '"'):
+            evaluation.message('DeleteDirectory', 'fstr', dirname)
+            return
+
+        py_dirname = py_dirname[1:-1]
+
+        if not os.path.isdir(py_dirname):
+            evaluation.message('DeleteDirectory', 'nodir', py_dirname)
+            return Symbol('$Failed')
+
+        os.rmdir(py_dirname)
+
+        return Symbol('Null')
+
+
 class FileType(Builtin):
     """
     <dl>
