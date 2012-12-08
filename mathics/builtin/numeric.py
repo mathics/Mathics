@@ -362,7 +362,7 @@ class BaseForm(Builtin):
     """
     <dl> 
     <dt>'BaseForm[$expr$, $n$]'
-        <dd>prints mumbers in $expr$ in base $n$
+        <dd>prints mumbers in $expr$ in base $n$.
     </dl>
 
     >> BaseForm[33, 2]
@@ -373,6 +373,9 @@ class BaseForm(Builtin):
 
     >> BaseForm[12.3, 2]
      = 1100.100110011001100110011001_2
+
+    >> BaseForm[-42, 16]
+     = -2a_16
     """
 
     def apply_makeboxes(self, expr, n, f, evaluation):
@@ -387,6 +390,9 @@ class BaseForm(Builtin):
             # converts the decimal part to an integer
             # check http://stackoverflow.com/questions/4838994/float-to-binary
             # for more answers
+            if num < 0:
+                num += 1
+
             real = int(real * base**25)
             num = int(num)
 
@@ -412,11 +418,14 @@ class BaseForm(Builtin):
             # converts the decimal part to an integer
             # check http://stackoverflow.com/questions/4838994/float-to-binary
             # for more answers
+            if num < 0:
+                num += 1
+
             real = int(real * base**25)
             num = int(num)
 
             out = "%s.%s_%d" % (int2base(num, base), 
-                                int2base(real, base),
+                                int2base(real, base, zero_prefill=True),
                                 base)
 
 
