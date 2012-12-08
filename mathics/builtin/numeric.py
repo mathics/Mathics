@@ -378,12 +378,21 @@ class BaseForm(Builtin):
      = -2a_16
     """
 
+    messages = {
+        'base': "Positive machine-sized integer expected at position 2 in BaseForm[`1`, `2`].",
+    }
+ 
+
     def apply_makeboxes(self, expr, n, f, evaluation):
         'MakeBoxes[BaseForm[expr_, n_], f:StandardForm|TraditionalForm]'
 
         from mathics.core.expression import from_python
         base = n.get_int_value()
-        
+
+        if base <= 0:
+            evaluation.message('BaseForm', 'base', expr, n)
+            return
+
         if isinstance(expr, Real):
             (num, real) = divmod(expr.get_real_value(), 1)
 
@@ -411,7 +420,11 @@ class BaseForm(Builtin):
 
         from mathics.core.expression import from_python
         base = n.get_int_value()
-        
+
+        if base <= 0:
+            evaluation.message('BaseForm', 'base', expr, n)
+            return
+
         if isinstance(expr, Real):
             (num, real) = divmod(expr.get_real_value(), 1)
 
