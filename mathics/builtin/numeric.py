@@ -384,7 +384,7 @@ class BaseForm(Builtin):
  
 
     def apply_makeboxes(self, expr, n, f, evaluation):
-        'MakeBoxes[BaseForm[expr_, n_], f:StandardForm|TraditionalForm]'
+        'MakeBoxes[BaseForm[expr_, n_], f:StandardForm|TraditionalForm|OutputForm]'
 
         from mathics.core.expression import from_python
         base = n.get_int_value()
@@ -410,49 +410,17 @@ class BaseForm(Builtin):
 
             out = "%s.%s" % (int2base(num, base), 
                                 int2base(real, base, zero_prefill=True))
-            return Expression('SubscriptBox', from_python(out),
+
+            if f.same(Symbol('OutputForm')):
+                return from_python("%s_%d" % (out, base))
+            else:
+                return Expression('SubscriptBox', from_python(out),
                     from_python(base))
         else:
             num = expr.get_int_value()
-            return Expression('SubscriptBox', from_python(int2base(num, base)),
+
+            if f.same(Symbol('OutputForm')):
+                return from_python("%s_%d" % (int2base(num, base), base))
+            else:
+                return Expression('SubscriptBox', from_python(int2base(num, base)),
                     from_python(base))
-
-    
-    def apply(self, expr, n, evaluation):
-        'BaseForm[expr_, n_]'
-
-        from mathics.core.expression import from_python
-        base = n.get_int_value()
-
-        if base <= 0:
-            evaluation.message('BaseForm', 'base', expr, n)
-            return
-
-        if expr.get_int_value() is None and expr.get_real_value() is None:
-            return from_python(expr)
-
-
-        if isinstance(expr, Real):
-            (num, real) = divmod(expr.get_real_value(), 1)
-
-            # converts the decimal part to an integer
-            # check http://stackoverflow.com/questions/4838994/float-to-binary
-            # for more answers
-            if num < 0:
-                num += 1
-
-            real = int(real * base**25)
-            num = int(num)
-
-            out = "%s.%s_%d" % (int2base(num, base), 
-                                int2base(real, base, zero_prefill=True),
-                                base)
-
-
-            return from_python(out)
-        else:
-            num = expr.get_int_value()
-            out = "%s_%d" % (int2base(num, base), base)
-            return from_python(out)
-
- 
