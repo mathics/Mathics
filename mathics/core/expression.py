@@ -1088,9 +1088,12 @@ class Symbol(Atom):
         
     def __str__(self):
         return self.name
-    
+   
     def do_copy(self):
         return Symbol(self.name)
+
+    def boxes_to_text(self, **kwargs):
+        return self.name
     
     def to_sympy(self, **kwargs):
         from mathics.builtin import mathics_to_sympy
