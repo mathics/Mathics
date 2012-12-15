@@ -1099,7 +1099,7 @@ class Symbol(Atom):
         return str(self.name)
     
     def boxes_to_tex(self, **options):
-        return str(self.value)
+        return str(self.name)
  
     def to_sympy(self, **kwargs):
         from mathics.builtin import mathics_to_sympy
