@@ -408,7 +408,7 @@ class BaseForm(Builtin):
             if num < 0:
                 num += 1
 
-            real = int(real * base**25)
+            real = int(real * base**expr.get_precision())
             num = int(num)
 
             out = "%s.%s" % (int2base(num, base), 
