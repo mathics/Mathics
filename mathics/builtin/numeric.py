@@ -413,7 +413,7 @@ class BaseForm(Builtin):
             out = "%s.%s" % (int2base(num, base), 
                                 int2base(real, base, zero_prefill=True))
 
-            if f.same(Symbol('OutputForm')):
+            if f.get_name() == 'OutputForm':
                 return from_python("%s_%d" % (out, base))
             else:
                 return Expression('SubscriptBox', from_python(out),
@@ -421,7 +421,7 @@ class BaseForm(Builtin):
         else:
             num = expr.get_int_value()
 
-            if f.same(Symbol('OutputForm')):
+            if f.get_name() == 'OutputForm':
                 return from_python("%s_%d" % (int2base(num, base), base))
             else:
                 return Expression('SubscriptBox', from_python(int2base(num, base)),
