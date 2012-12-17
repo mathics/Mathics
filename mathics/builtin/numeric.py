@@ -14,7 +14,8 @@ import sympy
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import dps, mpmath2sympy, prec, int2base
 from mathics.core import numbers
-from mathics.core.expression import Integer, Rational, Real, Complex, Atom, Expression, Number, Symbol, from_python
+from mathics.core.expression import (Integer, Rational, Real, Complex, Atom,
+        Expression, Number, Symbol, from_python)
 from mathics.core.convert import from_sympy
 from mathics.settings import MACHINE_PRECISION
 
