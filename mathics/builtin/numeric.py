@@ -11,7 +11,7 @@ However, things like 'N[Pi, 100]' should work as expected.
 import mpmath
 import sympy
 
-from mathics.builtin.base import Builtin, Predefined
+from mathics.builtin.base import Builtin, Predefined, SympyConstant
 from mathics.core.numbers import dps, mpmath2sympy, prec, convert_base
 from mathics.core import numbers
 from mathics.core.expression import (Integer, Rational, Real, Complex, Atom,
@@ -150,16 +150,24 @@ class N(Builtin):
                     leaves[index] = Expression('N', leaves[index], prec).evaluate(evaluation)
                 return Expression(head, *leaves)
     
-class MachinePrecision(Predefined):
+class MachinePrecision(SympyConstant):
     """
     <dl>
     <dt>'MachinePrecision'
-        <dd>is a "pessimistic" (integer) estimation of the internally used standard precision.
+        <dd>is a symbol used to represent the internally used standard precision.
     </dl>
     >> N[MachinePrecision]
      = 18.
+
+    #> MachinePrecision
+     = MachinePrecision
+
+    #> Attributes[MachinePrecision]
+     = {Constant, Protected}
     """
-    
+
+    attributes = ('Constant', 'Protected')
+
     def apply_N(self, prec, evaluation):
         'N[MachinePrecision, prec_]'
         
@@ -167,6 +175,35 @@ class MachinePrecision(Predefined):
         if prec is not None:
             return Real(dps(machine_precision), prec)
     
+class MachinePrecision_Symbol(Predefined):
+    """
+    <dl>
+    <dt>'$MachinePrecision'
+        <dd>is a "pessimistic" (integer) estimation of the internally used standard precision.
+    </dl>
+
+    >> $MachinePrecision
+     = 18.
+
+    #> Attributes[$MachinePrecision]
+     = {Protected}
+    """
+
+    # TODO
+    """
+    #> Precision[$MachinePrecision]
+     = MachinePrecision
+    """
+
+    name = '$MachinePrecision'
+
+    attributes = ('Protected',)
+
+    def evaluate(self, evaluation):
+        prec = get_precision(Symbol('MachinePrecision'), evaluation)
+        if prec is not None:
+            return Real(dps(machine_precision), prec)
+
 class Precision(Builtin):
     """
     <dl>
