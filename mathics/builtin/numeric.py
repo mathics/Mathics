@@ -14,7 +14,7 @@ import sympy
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import dps, mpmath2sympy, prec, int2base
 from mathics.core import numbers
-from mathics.core.expression import Integer, Rational, Real, Complex, Atom, Expression, Number, Symbol
+from mathics.core.expression import Integer, Rational, Real, Complex, Atom, Expression, Number, Symbol, from_python
 from mathics.core.convert import from_sympy
 from mathics.settings import MACHINE_PRECISION
 
@@ -382,14 +382,13 @@ class BaseForm(Builtin):
     """
 
     messages = {
-        'base': "Positive machine-sized integer expected at position 2 in BaseForm[`1`, `2`].",
+        'intpm': "Positive machine-sized integer expected at position 2 in BaseForm[`1`, `2`].",
     }
  
 
     def apply_makeboxes(self, expr, n, f, evaluation):
         'MakeBoxes[BaseForm[expr_, n_], f:StandardForm|TraditionalForm|OutputForm]'
 
-        from mathics.core.expression import from_python
         base = n.get_int_value()
 
         if base <= 0:
