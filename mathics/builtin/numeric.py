@@ -373,7 +373,7 @@ class BaseForm(Builtin):
      = ea_16
 
     >> BaseForm[12.3, 2]
-     = 1100.010011001100110011001100110011001100110011001101000000000000000_2
+     = 1100.010011001100110011_2
 
     >> BaseForm[-42, 16]
      = -2a_16
@@ -408,7 +408,7 @@ class BaseForm(Builtin):
             if num < 0:
                 num += 1
 
-            real = int(real * base**expr.get_precision())
+            real = int(real * base**dps(expr.get_precision()))
             num = int(num)
 
             out = "%s.%s" % (int2base(num, base), 
