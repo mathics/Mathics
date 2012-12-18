@@ -1,1 +1,9 @@
 *.py[cod]
+*.so
+*.c
+*.egg
+build/
+dist/
+Mathics.egg-info/
+mathics/doc/tex/mathics.dvi
+mathics/doc/tex/mathics.fls
