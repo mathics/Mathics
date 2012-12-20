@@ -104,7 +104,7 @@ class InitialDirectory(Predefined):
     """
     <dl>
     <dt>'$InitialDirectory'
-      <dd>returns the directory from which \Mathics was started.'
+      <dd>returns the directory from which \Mathics was started.
     </dl>
 
     >> $InitialDirectory
@@ -122,7 +122,7 @@ class InstallationDirectory(Predefined):
     """
     <dl>
     <dt>'$InstallationDirectory'
-      <dd>returns the directory in which \Mathics was installed.'
+      <dd>returns the directory in which \Mathics was installed.
     </dl>
 
     >> $InstallationDirectory
@@ -140,7 +140,7 @@ class HomeDirectory(Predefined):
     """
     <dl>
     <dt>'$HomeDirectory'
-      <dd>returns the users HOME directory.'
+      <dd>returns the users HOME directory.
     </dl>
 
     >> $HomeDirectory
@@ -160,7 +160,7 @@ class RootDirectory(Predefined):
     """
     <dl>
     <dt>'$RootDirectory'
-      <dd>returns the system root directory.'
+      <dd>returns the system root directory.
     </dl>
 
     >> $RootDirectory
@@ -180,7 +180,7 @@ class TemporaryDirectory(Predefined):
     """
     <dl>
     <dt>'$TemporaryDirectory'
-      <dd>returns the directory used for temporary files.'
+      <dd>returns the directory used for temporary files.
     </dl>
 
     >> $TemporaryDirectory
@@ -294,9 +294,9 @@ class Read(Builtin):
     """
     <dl>
     <dt>'Read[stream]'
-        <dd>reads the input stream and returns one expression.
-    <dt>'Read[stream, type]
-        <dd>reads the input stream and returns object of the given type.
+      <dd>reads the input stream and returns one expression.
+    <dt>'Read[stream, type]'
+      <dd>reads the input stream and returns object of the given type.
     </dl>
 
     ## Malformed InputString
@@ -617,7 +617,7 @@ class Write(Builtin):
     """
     <dl>
     <dt>'Write[$channel$, $expr1$, $expr2$, ...]'
-        <dd>writes the expressions to the output channel followed by a newline."
+      <dd>writes the expressions to the output channel followed by a newline.
     </dl>
 
     >> str = OpenWrite[]
@@ -652,7 +652,7 @@ class WriteString(Builtin):
     """
     <dl>
     <dt>'WriteString[$stream$, $str1, $str2$, ... ]'
-        <dd>writes the strings to the output stream."
+      <dd>writes the strings to the output stream.
     </dl>
 
     >> str = OpenWrite[];
@@ -1093,7 +1093,7 @@ class FileNameSplit(Builtin):
     """
     <dl>
     <dt>'FileNameSplit["$filenams$"]'
-        <dd>splits a $filename$ into a list of parts.
+      <dd>splits a $filename$ into a list of parts.
     </dl>
 
     >> FileNameSplit["example/path/file.txt"]
@@ -1203,7 +1203,7 @@ class FileExtension(Builtin):
     """
     <dl>
     <dt>'FileExtension["$file$"]'
-        <dd>gives the extension for the specified file name.
+      <dd>gives the extension for the specified file name.
     </dl>
 
     >> FileExtension["file.txt"]
@@ -1236,7 +1236,7 @@ class FileBaseName(Builtin):
     """
     <dl>
     <dt>'FileBaseName["$file$"]'
-        <dd>gives the base name for the specified file name.
+      <dd>gives the base name for the specified file name.
     </dl>
 
     >> FileBaseName["file.txt"]
@@ -1270,7 +1270,7 @@ class DirectoryName(Builtin):
     """
     <dl>
     <dt>'DirectoryName["$name$"]'
-        <dd>extracts the directory name from a filename.
+      <dd>extracts the directory name from a filename.
     </dl>
 
     >> DirectoryName["a/b/c"]
@@ -1344,7 +1344,7 @@ class FileNameDepth(Builtin):
     """
     <dl>
     <dt>'FileNameDepth["$name$"]'
-        <dd>gives the number of path parts in the given filename.
+      <dd>gives the number of path parts in the given filename.
     </dl>
 
     >> FileNameDepth["a/b/c"]
@@ -1445,8 +1445,8 @@ class ExpandFileName(Builtin):
 class ReadList(Read):
     """
     <dl>
-    <dt>'ReadList["file"]
-        <dd>Reads all the expressions until the end of file.
+    <dt>'ReadList["file"]'
+      <dd>Reads all the expressions until the end of file.
     </dl>
 
     >> str = StringToStream["abc123"];
@@ -1503,8 +1503,8 @@ class ReadList(Read):
 class FilePrint(Builtin):
     """
     <dl>
-    <dt>'FilePrint[$file$]
-        <dd>prints the raw contents of $file$.
+    <dt>'FilePrint[$file$]'
+      <dd>prints the raw contents of $file$.
     </dl>
 
     #> exp = Sin[1];
@@ -1586,7 +1586,7 @@ class Close(Builtin):
     """
     <dl>
     <dt>'Close[$stream$]'
-        <dd>closes an input or output stream.
+      <dd>closes an input or output stream.
     </dl>
     
     >> Close[StringToStream["123abc"]]
@@ -1632,7 +1632,7 @@ class StreamPosition(Builtin):
     """
     <dl>
     <dt>'StreamPosition[$stream$]'
-        <dd>returns the current position in a stream as an integer.
+      <dd>returns the current position in a stream as an integer.
     </dl>
 
     >> str = StringToStream["Mathics is cool!"]
@@ -1680,7 +1680,7 @@ class SetStreamPosition(Builtin):
     """
     <dl>
     <dt>'SetStreamPosition[$stream$, $n$]'
-        <dd>sets the current position in a stream.
+      <dd>sets the current position in a stream.
     </dl>
 
     >> str = StringToStream["Mathics is cool!"]
@@ -1827,7 +1827,7 @@ class Find(Read):
     """
     <dl>
     <dt>'Find[$stream$, $text$]'
-        <dd>find the first line in $stream$ that contains $text$.
+      <dd>find the first line in $stream$ that contains $text$.
     </dl>
 
     >> str = OpenRead["ExampleData/EinsteinSzilLetter.txt"];
@@ -2004,7 +2004,7 @@ class InputStream(Builtin):
     """
     <dl>
     <dt>'InputStream[$name$, $n$]'
-        <dd>represents an input stream.
+      <dd>represents an input stream.
     </dl>
 
     >> str = StringToStream["Mathics is cool!"]
@@ -2024,7 +2024,7 @@ class OutputStream(Builtin):
     """
     <dl>
     <dt>'OutputStream[$name$, $n$]'
-        <dd>represents an output stream.
+      <dd>represents an output stream.
     </dl>
 
     >> OpenWrite[]
@@ -2044,7 +2044,7 @@ class StringToStream(Builtin):
     """
     <dl>
     <dt>'StringToStream[$string$]'
-        <dd>converts a $string$ to an open input stream.
+      <dd>converts a $string$ to an open input stream.
     </dl>
 
     >> StringToStream["abc 123"]
@@ -2072,7 +2072,7 @@ class Streams(Builtin):
     """
     <dl>
     <dt>'Streams[]'
-        <dd>returns a list of all open streams.
+      <dd>returns a list of all open streams.
     </dl>
 
     >> Streams[]
@@ -2290,7 +2290,7 @@ class FileDate(Builtin):
     """
     <dl>
     <dt>'FileDate[$file$, $types$]'
-        <dd>returns the time and date at which the file was last modified.
+      <dd>returns the time and date at which the file was last modified.
     </dl>
 
     >> FileDate["ExampleData/sunflowers.jpg"]
@@ -3027,7 +3027,7 @@ class RenameDirectory(Builtin):
 class FileType(Builtin):
     """
     <dl>
-    <dt>'FileType["$file$"]
+    <dt>'FileType["$file$"]'
       <dd>returns the type of a file, from 'File', 'Directory' or 'None'.
     </dl>
 
@@ -3069,7 +3069,7 @@ class FileType(Builtin):
 class FileExistsQ(Builtin):
     """
     <dl>
-    <dt>'FileExistsQ["$file$"]
+    <dt>'FileExistsQ["$file$"]'
       <dd>returns 'True' if $file$ exists and 'False' otherwise.
     </dl>
 
