@@ -219,6 +219,7 @@ class InputFileName(Predefined):
       <dd>is the file name of the file from which input it currently being read.
     </dl>
     
+    While in interactive mode, '$InputFileName' is "".
     >> $InputFileName
      = 
     """
