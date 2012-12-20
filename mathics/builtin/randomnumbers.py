@@ -252,7 +252,7 @@ class RandomReal(Builtin):
         'RandomReal[{xmin_, xmax_}]'
 
         if not (isinstance(xmin, (Real, Integer)) and isinstance(xmax, (Real, Integer))):
-            return evaluation.message('RandomComplex', 'unifr', Expression('List', xmin, xmax))
+            return evaluation.message('RandomReal', 'unifr', Expression('List', xmin, xmax))
 
         min_value, max_value = xmin.to_python(), xmax.to_python()
 
@@ -263,13 +263,13 @@ class RandomReal(Builtin):
         'RandomReal[{xmin_, xmax_}, ns_?ListQ]'
 
         if not (isinstance(xmin, (Real, Integer)) and isinstance(xmax, (Real, Integer))):
-            return evaluation.message('RandomComplex', 'unifr', Expression('List', xmin, xmax))
+            return evaluation.message('RandomReal', 'unifr', Expression('List', xmin, xmax))
 
         min_value, max_value = xmin.to_python(), xmax.to_python()
         result = ns.to_python()
 
         if not all([isinstance(i, int) and i >= 0 for i in result]):
-            return evaluation.message('RandomComplex', 'array', ns, expr)
+            return evaluation.message('RandomReal', 'array', ns, expr)
 
         assert all([isinstance(i, int) for i in result])
         
