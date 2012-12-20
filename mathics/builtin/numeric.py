@@ -399,20 +399,11 @@ class BaseForm(Builtin):
         if isinstance(expr, Symbol):
             return from_python(expr)
 
-        p = dps(expr.get_precision())
-        if isinstance(expr, Real):
-            val = convert_base(expr.get_real_value(), base, p)
+        p = dps(expr.get_precision()) if isinstance(expr, Real) else 0
+        val = convert_base(expr.get_real_value(), base, p)
 
-            if f.get_name() == 'OutputForm':
-                return from_python("%s_%d" % (val, base))
-            else:
-                return Expression('SubscriptBox', from_python(val),
-                    from_python(base))
+        if f.get_name() == 'OutputForm':
+            return from_python("%s_%d" % (val, base))
         else:
-            val = convert_base(expr.get_int_value(), base, p)
-
-            if f.get_name() == 'OutputForm':
-                return from_python(val)
-            else:
-                return Expression('SubscriptBox', from_python(val),
-                    from_python(base))
+            return Expression('SubscriptBox', from_python(val),
+                from_python(base))
