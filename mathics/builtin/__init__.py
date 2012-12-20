@@ -18,17 +18,26 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.builtin import algebra, arithmetic, assignment, attributes, calculus, combinatorial, comparison, control, datentime, diffeqns, evaluation
-from mathics.builtin import exptrig, functional, graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory, numeric, options, patterns
-from mathics.builtin import plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, strings, structure
-from mathics.builtin import system, tensors
+from mathics.builtin import (algebra, arithmetic, assignment, attributes, 
+    calculus, combinatorial, comparison, control, datentime, diffeqns, 
+    evaluation, exptrig, functional, graphics, graphics3d, importexport, inout, 
+    integer, linalg, lists, logic, numbertheory, numeric, options, patterns, 
+    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, 
+    strings, structure, system, tensors)
 
 from mathics.builtin.base import Builtin, SympyObject, BoxConstruct, Operator, PatternObject
 
-modules = [algebra, arithmetic, assignment, attributes, calculus, combinatorial, comparison, control, datentime, diffeqns, evaluation,
-    exptrig, functional, graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory, numeric, options, patterns,
-    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, strings, structure,
-    system, tensors]
+from mathics.settings import ENABLE_FILES_MODULE
+
+modules = [algebra, arithmetic, assignment, attributes, calculus, combinatorial,
+    comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
+    graphics, graphics3d, importexport, inout, integer, linalg, lists, logic,
+    numbertheory, numeric, options, patterns, plot, physchemdata, randomnumbers,
+    recurrence, specialfunctions, scoping, strings, structure, system, tensors]
+
+if ENABLE_FILES_MODULE:
+    from mathics.builtin import files
+    modules.append(files)
 
 builtins = []
 builtins_by_module = {}

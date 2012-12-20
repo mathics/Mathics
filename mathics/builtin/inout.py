@@ -105,7 +105,7 @@ class MakeBoxes(Builtin):
             if isinstance(x, Symbol):
                 return String(x.name)
             elif isinstance(x, String):
-                return String('"' + x.value + '"')
+                return String('"' + str(x.value) + '"')
             elif isinstance(x, (Integer, Real)):
                 return x.make_boxes(f.get_name())
             elif isinstance(x, (Rational, Complex)):
@@ -185,7 +185,7 @@ class MakeBoxes(Builtin):
                 op = MakeBoxes(op, f)
             else:
                 op_value = op.get_string_value()
-                if f.get_name() == 'InputForm' and op_value == '*':
+                if f.get_name() == 'InputForm' and op_value in ['*', '^']:
                     pass
                 elif f.get_name() in ('InputForm', 'OutputForm') and not op_value.startswith(' ') and not op_value.endswith(' '):
                     op = String(' ' + op_value + ' ')
@@ -806,9 +806,11 @@ class General(Builtin):
         'level': "Level specification `1` is not of the form n, {n}, or {m, n}.",
         'locked': "Symbol `1` is locked.",
         'matsq': "Argument `1` is not a non-empty square matrix.",
+        'noopen': "Cannot open `1`.",
         'nord': "Invalid comparison with `1` attempted.",
         'normal': "Nonatomic expression expected.",
         'noval': "Symbol `1` in part assignment does not have an immediate value.",
+        'openx': "`1` is not open.",
         'optb': "Optional object `1` in `2` is not a single blank.",
         'ovfl': "Overflow occured in computation.",
         'partd': "Part specification is longer than depth of object.",
@@ -820,6 +822,7 @@ class General(Builtin):
         'setp': "Part assignment to `1` could not be made",
         'setps': "`1` in the part assignment is not a symbol.",
         'span': "`1` is not a valid Span specification.",
+        'stream': "`1` is not string, InputStream[], or OutputStream[]",
         'string': "String expected.",
         'sym': "Argument `1` at position `2` is expected to be a symbol.",
         'tag': "Rule for `1` can only be attached to `2`.",
@@ -886,6 +889,8 @@ class InputForm(Builtin):
      = Derivative[1][f][x]
     >> InputForm[Derivative[1, 0][f][x]]
      = Derivative[1, 0][f][x]
+    #> InputForm[2 x ^ 2 + 4z!]
+     = 2*x^2 + 4*z!
     """
     
 class OutputForm(Builtin):
