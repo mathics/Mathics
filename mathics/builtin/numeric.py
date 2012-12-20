@@ -12,7 +12,7 @@ import mpmath
 import sympy
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import dps, mpmath2sympy, prec, int2base
+from mathics.core.numbers import dps, mpmath2sympy, prec, convert_base
 from mathics.core import numbers
 from mathics.core.expression import (Integer, Rational, Real, Complex, Atom,
         Expression, Number, Symbol, from_python)
@@ -399,31 +399,20 @@ class BaseForm(Builtin):
         if isinstance(expr, Symbol):
             return from_python(expr)
 
+        p = dps(expr.get_precision())
         if isinstance(expr, Real):
-            (num, real) = divmod(expr.get_real_value(), 1)
-
-            # converts the decimal part to an integer
-            # check http://stackoverflow.com/questions/4838994/float-to-binary
-            # for more answers
-            if num < 0:
-                num += 1
-
-            real = int(real * base**dps(expr.get_precision()))
-            num = int(num)
-
-            out = "%s.%s" % (int2base(num, base), 
-                                int2base(real, base, zero_prefill=True))
+            val = convert_base(expr.get_real_value(), base, p)
 
             if f.get_name() == 'OutputForm':
-                return from_python("%s_%d" % (out, base))
+                return from_python("%s_%d" % (val, base))
             else:
-                return Expression('SubscriptBox', from_python(out),
+                return Expression('SubscriptBox', from_python(val),
                     from_python(base))
         else:
-            num = expr.get_int_value()
+            val = convert_base(expr.get_int_value(), base, p)
 
             if f.get_name() == 'OutputForm':
-                return from_python("%s_%d" % (int2base(num, base), base))
+                return from_python(val)
             else:
-                return Expression('SubscriptBox', from_python(int2base(num, base)),
+                return Expression('SubscriptBox', from_python(val),
                     from_python(base))

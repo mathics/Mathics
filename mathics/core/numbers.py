@@ -124,30 +124,28 @@ def unpickle_mp(value):
     else:
         return value
 
-def int2base(x, base, zero_prefill=False):
-    import string
-    digs = string.digits + string.lowercase
+# algorithm based on 
+# http://stackoverflow.com/questions/5110177/how-to-convert-floating-point-number-to-base-3-in-python
+def convert_base(x, base, precision=10):
+    length_of_int = int(log(x, base))
+    iexps = range(length_of_int, -1, -1)
 
-    if x < 0: 
-        sign = -1
-    elif x==0: 
-        return '0'
-    else: 
-        sign = 1
+    def convert(x, base, exponents):
+        out = []
+        for e in exponents:
+            d = int(x // (base ** e))
+            x -= d * (base ** e)
+            out.append(str(d))
+            if x == 0 and e < 0: break
+        return out
 
-    x *= sign
-    digits = []
-    
-    while x:
-        digits.append(digs[x % base])
-        x /= base
+    int_part = convert(int(x), base, iexps)
 
-    if sign < 0:
-        digits.append('-')
+    if (isinstance(x, float)):
+        fexps = range(-1, -int(precision + 1), -1)
+        real_part = convert(x  - int(x), base, fexps)
 
-    if zero_prefill:
-        digits.append('0')
-
-    digits.reverse()
-    return ''.join(digits)
+        return "%s.%s" % (''.join(int_part), ''.join(real_part))
+    else:
+        return ''.join(int_part)
 
