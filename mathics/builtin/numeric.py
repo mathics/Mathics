@@ -380,6 +380,13 @@ class BaseForm(Builtin):
 
     >> BaseForm[x, 2]
      = x
+
+    >> BaseForm[12, 3] // FullForm
+     = BaseForm[12, 3]
+
+    >> BaseForm[12, -3]
+     : Positive machine-sized integer expected at position 2 in BaseForm[12, -3]. 
+     : MakeBoxes[BaseForm[12, -3], OutputForm] is not a valid box structure. 
     """
 
     messages = {
@@ -393,10 +400,10 @@ class BaseForm(Builtin):
         base = n.get_int_value()
 
         if base <= 0:
-            evaluation.message('BaseForm', 'base', expr, n)
+            evaluation.message('BaseForm', 'intpm', expr, n)
             return
 
-        if isinstance(expr, Symbol):
+        if not (isinstance(expr, Integer) or isinstance(expr, Real)):
             return from_python(expr)
 
         p = dps(expr.get_precision()) if isinstance(expr, Real) else 0
