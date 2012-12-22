@@ -13,6 +13,9 @@ from mathics.settings import ROOT_DIR
 from pymimesniffer import magic
 
 
+IMPORTERS = {}
+EXPORTERS = {}
+
 IMPORTFORMATS = ['Binary', 'BMP', 'GIF', 'JPEG', 'PDF', 'PNG', 'Text', 'TIFF', 'XML']
 EXPORTFORMATS = []
 
@@ -50,6 +53,47 @@ class ExportFormats(Predefined):
     def evaluate(self, evaluation):
         return from_python(EXPORTFORMATS)
 
+#FIXME This should be private, that is accesed with ImportExport`RegisterImport
+class RegisterImport(Builtin):
+    """
+    <dl>
+    <dt>'RegisterImport["$format$", $defaultFunction$]'
+      <dd>register '$defaultFunction$' as the default function used when importing from a file of type '"$format$"'.
+    </dl>
+
+    First, define the default function used to import the data.
+    >> ExampleFormat1Import[filename_String] := Module[{stream, head, data}, stream = OpenRead[filename]; head = ReadList[stream, "String", 2]; data = Partition[ReadList[stream, Number], 2]; Close[stream]; {"Header" -> head, "Data" -> data}]
+
+    'RegisterImport' is then used to register the above function to a new data format.
+    >> RegisterImport["ExampleFormat1", ExampleFormat1Import]
+
+    >> Import["ExampleData/ExampleData1.txt", {"MyFormat1", "Elements"}]
+     = {Data, Header}
+
+    >> Import["ExampleData/ExampleData1.txt", {"MyFormat1", "Header"}]
+     = {"Example File Format", "Created by Angus"}
+    """
+
+    attributes = ('Protected', 'ReadProtected')
+
+    options = {
+        'Path': 'Automatic',
+        'FunctionChannels': '{"FileNames"}',
+        'Sources': 'None',
+        'DefaultElement': 'Automatic',
+        'AvailableElements': 'None',
+        'Options': '{}',
+        'OriginalChannel': 'False',
+        'BinaryFormat': 'False',
+        'Encoding': 'False',
+        'Extensions': '{}',
+        'AlphaChannel': 'False',
+    }
+
+    def apply(self, formatname, function, evaluation, options):
+        'RegisterImport[formatname_String, function_, OptionsPattern[RegisterImport]]'
+        IMPORTERS[formatname.get_string_value()] = function
+        return Symbol('Null')
 
 class Import(Builtin):
     """
