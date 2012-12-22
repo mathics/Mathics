@@ -7,3 +7,4 @@ MadTeaParty.gif	Public Domain	http://www.gutenberg.org/files/114/114-h/114-h.htm
 BloodToilTearsSweat.txt	Public Domain	http://www.fiftiesweb.com/usa/winston-churchill-blood-toil.htm	May 13, 1940 Winston Churchill "Blood, Toil, Tears and Sweat". Taken as of 2012/09/25
 lena.tif	non-free : overlooked	http://sipi.usc.edu/database/	Famous 'lena' or 'lenna' test image
 moon.tif	Public Domain	http://photojournal.jpl.nasa.gov/target/moon	Taken from Nasa JPL 'PhotoJournal' as of 2012/09/25 and resized using ImageMagik-6.7.9
+ExampleData1.txt	GNU Free Documentation License 1.2	Own Work	Created By Angus Griffith with Python: 'print "{:6f},   {:6f}".format(random(), random())'
