@@ -1095,12 +1095,6 @@ class Symbol(Atom):
     def boxes_to_text(self, **options):
         return str(self.name)
     
-    def boxes_to_xml(self, **options):
-        return str(self.name)
-    
-    def boxes_to_tex(self, **options):
-        return str(self.name)
- 
     def to_sympy(self, **kwargs):
         from mathics.builtin import mathics_to_sympy
         

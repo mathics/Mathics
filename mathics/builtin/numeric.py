@@ -404,7 +404,7 @@ class BaseForm(Builtin):
             return
 
         if not (isinstance(expr, Integer) or isinstance(expr, Real)):
-            return from_python(expr)
+            return Expression("MakeBoxes", expr, f)
 
         p = dps(expr.get_precision()) if isinstance(expr, Real) else 0
         val = convert_base(expr.get_real_value(), base, p)
