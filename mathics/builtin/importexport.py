@@ -16,10 +16,6 @@ from pymimesniffer import magic
 IMPORTERS = {}
 EXPORTERS = {}
 
-IMPORTFORMATS = ['Binary', 'BMP', 'GIF', 'JPEG', 'PDF', 'PNG', 'Text', 'TIFF', 'XML']
-EXPORTFORMATS = []
-
-
 class ImportFormats(Predefined):
     """
     <dl>
@@ -34,7 +30,7 @@ class ImportFormats(Predefined):
     name = '$ImportFormats'
 
     def evaluate(self, evaluation):
-        return from_python(IMPORTFORMATS)
+        return from_python(IMPORTERS.keys())
 
 
 class ExportFormats(Predefined):
@@ -51,7 +47,7 @@ class ExportFormats(Predefined):
     name = '$ExportFormats'
 
     def evaluate(self, evaluation):
-        return from_python(EXPORTFORMATS)
+        return from_python(EXPORTERS.keys())
 
 #FIXME This should be private, that is accesed with ImportExport`RegisterImport
 class RegisterImport(Builtin):
@@ -59,6 +55,10 @@ class RegisterImport(Builtin):
     <dl>
     <dt>'RegisterImport["$format$", $defaultFunction$]'
       <dd>register '$defaultFunction$' as the default function used when importing from a file of type '"$format$"'.
+    <dt>'RegisterImport["$format$", {"$elem1$" :> $conditionalFunction1$, "$elem2$" :> $conditionalFunction2$, ..., $defaultFunction$}]'
+      <dd>registers multiple elements ($elem1$, ...) and their corresponding converter functions ($conditionalFunction1$, ...) in addition to the $defaultFunction$.
+    <dt>'RegisterImport["$format$", {"$conditionalFunctions$, $defaultFunction$, "$elem3$" :> $postFunction3$, "$elem4$" :> $postFunction4$, ...}]'
+      <dd>also registers additional elements ($elem3$, ...) whose converters ($postFunction3$, ...) act on output from the low-level funcions.
     </dl>
 
     First, define the default function used to import the data.
@@ -81,10 +81,10 @@ class RegisterImport(Builtin):
      | 0.838697        0.436220
      | 0.309496        0.833591
 
-    >> Import["ExampleData/ExampleData1.txt", {"MyFormat1", "Elements"}]
+    >> Import["ExampleData/ExampleData1.txt", {"ExampleFormat1", "Elements"}]
      = {Data, Header}
 
-    >> Import["ExampleData/ExampleData1.txt", {"MyFormat1", "Header"}]
+    >> Import["ExampleData/ExampleData1.txt", {"ExampleFormat1", "Header"}]
      = {"Example File Format", "Created by Angus"}
     """
 
@@ -106,7 +106,26 @@ class RegisterImport(Builtin):
 
     def apply(self, formatname, function, evaluation, options):
         'RegisterImport[formatname_String, function_, OptionsPattern[RegisterImport]]'
-        IMPORTERS[formatname.get_string_value()] = function
+        
+        if not function.get_head() == 'List':
+            function = Expression('List', function)
+
+        leaves = function.get_leaves()
+        isdefault = [not x.has_form('RuleDelayed', None) for x in leaves]
+
+        # Only one default Importer is allowed
+        if sum(isdefault) != 1:
+            #TODO: Message
+            return Symbol('$Failed')
+
+        indx = isdefault.index(True)
+
+        IMPORTERS[formatname.get_string_value()] = (
+            {},                                     # Conditional Raw-Importers
+            leaves[indx],                           # Default Importer
+            {}                                      # Post-Importers
+        )
+
         return Symbol('Null')
 
 class Import(Builtin):
@@ -122,6 +141,14 @@ class Import(Builtin):
 
     >> Import["ExampleData/BloodToilTearsSweat.txt", "Elements"]
      = {Data, Lines, Plaintext, String, Words}
+
+    #> Import["ExampleData/ExampleData1.tx"]
+     : File not found during Import.
+     = $Failed
+    #> Import[x]
+     : First argument x is not a valid file, directory, or URL specification.
+     = $Failed
+
     #> ListQ[Import["ExampleData/BloodToilTearsSweat.txt", "Data"]]
      = True
     #> ListQ[Import["ExampleData/BloodToilTearsSweat.txt", "Lines"]]
@@ -149,6 +176,8 @@ class Import(Builtin):
     messages = {
         'nffil': 'File not found during Import.',
         'chtype': 'First argument `1` is not a valid file, directory, or URL specification.',
+        'noelem': 'The Import element `1` is not present when importing as `2`.',
+        'fmtnosup': '`1` is not a supported Import format.',
     }
 
     def importer(self, filename, evaluation):
@@ -156,65 +185,87 @@ class Import(Builtin):
         path = filename.to_python()
         if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
             evaluation.message('Import', 'chtype', filename)
-            return Symbol('$Failed')
+            return None
         path = path.strip('"')
 
-        if path.startswith("ExampleData"):
-            path = ROOT_DIR + 'data/' + path
-
-        if not os.path.exists(path):
+        if Expression('FindFile', filename).evaluate(evaluation) == Symbol('$Failed'):
             evaluation.message('Import', 'nffil')
             return None
 
-        filetype = Expression('FileFormat', path).evaluate(evaluation=evaluation)
+        if self.filetype is None:
+            self.filetype = Expression('FileFormat', path).evaluate(evaluation=evaluation).get_string_value()
 
-        assert isinstance(filetype, String)
-        filetype = filetype.to_python().strip('"')
-        assert filetype in IMPORTFORMATS
+        if self.filetype not in IMPORTERS.keys():
+            evaluation.message('Import', 'fmtnosup', from_python(self.filetype))
+            return None
 
-        result = {}
-        if filetype == 'Text':
-            with open(path, 'r') as f:
-                plaintext = f.read()
-                textlines = filter(lambda x: x != '', plaintext.split('\n'))
-                textwords = filter(lambda x: x != '', plaintext.split())
-                result['Plaintext'] = plaintext
-                result['Lines'] = textlines
-                result['Words'] = textwords
-                result['String'] = plaintext
-                result['Data'] = textlines
-
-        return result
+        return IMPORTERS[self.filetype]
+        #(conditional_function, default_function, post_functions) = IMPORTERS[filetype]
+        #return (conditional_function, default_function, post_functions)
 
     def apply(self, filename, evaluation):
         'Import[filename_]'
         
+        self.filetype = None
         result = self.importer(filename, evaluation)
 
         if result is None:
             return Symbol('$Failed')
 
-        return from_python(result['Data'])
+        (conditional_function, default_function, post_functions) = result
 
     def apply_elements(self, filename, elements, evaluation):
         'Import[filename_, elements_]'
 
         elements = elements.to_python()
-        if not (isinstance(elements, basestring) and elements[0] == elements[-1] == '"'):
-            return Symbol('$Failed')
-        elements = elements.strip('"')
+        if not isinstance(elements, list):
+            elements = [elements] 
+
+        for el in elements:
+            if not (isinstance(el, basestring) and el[0] == el[-1] == '"'):
+                evaluation.message('Import', 'noelem', from_python(el))
+                return Symbol('$Failed')
+    
+        elements = [el[1:-1] for el in elements]
+
+        self.filetype = None
+        for el in elements:
+            if el in IMPORTERS.keys():
+                self.filetype = el
+                elements.remove(el)
+                break
 
         result = self.importer(filename, evaluation)
 
         if result is None:
             return Symbol('$Failed')
 
-        if elements == "Elements":
-            result = result.keys()
-            result.sort()
-            
-            return from_python(result)
-        return from_python(result[elements])
+        (conditionals, default_function, posts) = result
+
+        def get_defaults():
+            defaults = Expression(from_python(default_function), filename).evaluate(evaluation)
+            defaults = defaults.get_leaves()
+            assert all(expr.has_form('Rule', None) for expr in defaults)
+            return {a.get_string_value() : b for (a,b) in map(lambda x: x.get_leaves(), defaults)}
+
+        defaults = None
+        for el in elements:
+            if el == "Elements":
+                defaults = get_defaults()
+                return from_python(sorted(conditionals.keys() + defaults.keys() + posts.keys()))
+            else:
+                if el in conditionals.keys():
+                    return conditionals[el].evaluate(evaluation)
+                elif el in posts.keys():
+                    return posts[el].evaluate(evaluation)
+                else:
+                    if defaults is None:
+                        defaults = get_defaults()
+                    if el in defaults.keys():
+                        return defaults[el]
+                    else:
+                        evaluation.message('Import', 'noelem', from_python(el), from_python(self.filetype))
+                        return Symbol('$Failed')
 
 class Export(Builtin):
     """
