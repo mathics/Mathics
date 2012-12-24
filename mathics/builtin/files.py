@@ -56,6 +56,9 @@ class mathics_open:
     def write(self, *args):
         return self.file.write(*args)
 
+    def readline(self):
+        return self.file.readline()
+
     def readlines(self):
         return self.file.readlines()
 
@@ -596,7 +599,7 @@ class Read(Builtin):
                     tmp = stream.readline()
                     if len(tmp) == 0:
                         raise EOFError
-                    result.append(tmp)
+                    result.append(tmp.rstrip('\n'))
                 elif typ == 'Word':
                     result.append(read_word.next())
                         

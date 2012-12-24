@@ -177,7 +177,7 @@ class Import(Builtin):
       <dd>imports from a URL.
     </dl>
 
-    >> Import["ExampleData/BloodToilTearsSweat.txt", "Elements"]
+    >> Import["ExampleData/ExampleData.txt", "Elements"]
      = {Data, Lines, Plaintext, String, Words}
 
     #> Import["ExampleData/ExampleData.tx"]
@@ -213,9 +213,9 @@ class Import(Builtin):
         if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
             evaluation.message('Import', 'chtype', filename)
             return Symbol('$Failed')
-        path = path.strip('"')
 
-        if Expression('FindFile', filename).evaluate(evaluation) == Symbol('$Failed'):
+        findfile = Expression('FindFile', filename).evaluate(evaluation)
+        if findfile == Symbol('$Failed'):
             evaluation.message('Import', 'nffil')
             return Symbol('$Failed')
 
@@ -238,30 +238,43 @@ class Import(Builtin):
                 elements.remove(el)
                 break
         else:
-            filetype = Expression('FileFormat', path).evaluate(evaluation=evaluation).get_string_value()
+            filetype = Expression('FileFormat', findfile).evaluate(evaluation=evaluation).get_string_value()
 
         if filetype not in IMPORTERS.keys():
-            evaluation.message('Import', 'fmtnosup', from_python(filetype))
+            evaluation.message('Import', 'fmtnosup', filetype)
             return Symbol('$Failed')
 
         # Load the importer
         (conditionals, default_function, posts) = IMPORTERS[filetype]
 
         def get_results(tmp_function):
-            tmp = Expression(from_python(tmp_function), filename).evaluate(evaluation)
+            tmp = Expression(from_python(tmp_function), findfile).evaluate(evaluation)
             tmp = tmp.get_leaves()
             assert all(expr.has_form('Rule', None) for expr in tmp)
             return {a.get_string_value() : b for (a,b) in map(lambda x: x.get_leaves(), tmp)}
 
         # Perform the import
         defaults = None
-        for el in elements:
+
+        if elements == []:
+            #TODO: Implement non-Automatic DefaultElement options here
+            defaults = get_results(default_function)
+            return Expression('List', *[Expression('Rule', String(key), defaults[key]) for key in defaults.keys()])
+        else:
+            assert len(elements) == 1
+            el = elements[0]
             if el == "Elements":
                 defaults = get_results(default_function)
-                return from_python(sorted(conditionals.keys() + defaults.keys() + posts.keys()))
+                # Use set() to remove duplicates
+                return from_python(sorted(set(conditionals.keys() + defaults.keys() + posts.keys())))
             else:
                 if el in conditionals.keys():
-                    return get_results(conditionals[el])
+                    result = Expression(from_python(conditionals[el]), findfile).evaluate(evaluation).get_leaves()
+                    assert len(result) == 1
+                    result = result[0].get_leaves()
+                    assert len(result) == 2 and result[0] == el
+                    return result[1]
+                    
                 elif el in posts.keys():
                     #TODO: allow use of conditionals
                     return get_results(posts[el])
