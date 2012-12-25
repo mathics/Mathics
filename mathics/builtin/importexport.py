@@ -86,6 +86,44 @@ class RegisterImport(Builtin):
 
     >> Import["ExampleData/ExampleData1.txt", {"ExampleFormat1", "Header"}]
      = {"Example File Format", "Created by Angus"}
+
+    Conditional Importer:
+    >> ExampleFormat2DefaultImport[filename_String] := Module[{stream, head}, stream = OpenRead[filename]; head = ReadList[stream, "String", 2]; Close[stream]; {"Header" -> head}]
+
+    >> ExampleFormat2DataImport[filename_String] := Module[{stream, data}, stream = OpenRead[filename]; Skip[stream, "String", 3]; data = Partition[ReadList[stream, "Number"], 2]; Close[stream]; {"Data" -> data}]
+
+    >> RegisterImport["ExampleFormat2", {"Data" :> ExampleFormat2DataImport, ExampleFormat2DefaultImport}]
+
+    >> Import["ExampleData/ExampleData1.txt", {"ExampleFormat2", "Elements"}]
+     = {Data, Header}
+
+    >> Import["ExampleData/ExampleData1.txt", {"ExampleFormat2", "Header"}]
+     = {"Example File Format", "Created by Angus"}
+    """
+
+    #TODO: at the moment this hangs
+    """
+    >> Import["ExampleData/ExampleData1.txt", {"ExampleFormat2", "Data"}] // Grid
+     = 0.629452   0.586355
+     .
+     . 0.711009   0.687453
+     .
+     . 0.246540   0.433973
+     .
+     . 0.926871   0.887255
+     .
+     . 0.825141   0.940900
+     .
+     . 0.847035   0.127464
+     .
+     . 0.054348   0.296494
+     .
+     . 0.838545   0.247025
+     .
+     . 0.838697   0.436220
+     .
+     . 0.309496   0.833591
+    
     """
 
     attributes = ('Protected', 'ReadProtected')
@@ -227,26 +265,27 @@ class Import(Builtin):
         # Load the importer
         (conditionals, default_function, posts) = IMPORTERS[filetype]
 
-        # Perform the import
-        def get_defaults():
-            defaults = Expression(from_python(default_function), filename).evaluate(evaluation)
-            defaults = defaults.get_leaves()
-            assert all(expr.has_form('Rule', None) for expr in defaults)
-            return {a.get_string_value() : b for (a,b) in map(lambda x: x.get_leaves(), defaults)}
+        def get_results(tmp_function):
+            tmp = Expression(from_python(tmp_function), filename).evaluate(evaluation)
+            tmp = tmp.get_leaves()
+            assert all(expr.has_form('Rule', None) for expr in tmp)
+            return {a.get_string_value() : b for (a,b) in map(lambda x: x.get_leaves(), tmp)}
 
+        # Perform the import
         defaults = None
         for el in elements:
             if el == "Elements":
-                defaults = get_defaults()
+                defaults = get_results(default_function)
                 return from_python(sorted(conditionals.keys() + defaults.keys() + posts.keys()))
             else:
                 if el in conditionals.keys():
-                    return conditionals[el].evaluate(evaluation)
+                    return get_results(conditionals[el])
                 elif el in posts.keys():
-                    return posts[el].evaluate(evaluation)
+                    #TODO: allow use of conditionals
+                    return get_results(posts[el])
                 else:
                     if defaults is None:
-                        defaults = get_defaults()
+                        defaults = get_results(default_function)
                     if el in defaults.keys():
                         return defaults[el]
                     else:
