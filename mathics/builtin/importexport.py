@@ -107,10 +107,11 @@ class RegisterImport(Builtin):
     def apply(self, formatname, function, evaluation, options):
         'RegisterImport[formatname_String, function_, OptionsPattern[RegisterImport]]'
         
-        if not function.get_head() == 'List':
-            function = Expression('List', function)
+        if function.has_form('List', None):
+            leaves = function.get_leaves()
+        else:
+            leaves = [function]
 
-        leaves = function.get_leaves()
         isdefault = [not x.has_form('RuleDelayed', None) for x in leaves]
 
         # Only one default Importer is allowed
