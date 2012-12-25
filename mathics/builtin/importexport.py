@@ -142,27 +142,26 @@ class RegisterImport(Builtin):
         'AlphaChannel': 'False',
     }
 
-    def apply(self, formatname, function, evaluation, options):
-        'RegisterImport[formatname_String, function_, OptionsPattern[RegisterImport]]'
+    rules = {
+        'RegisterImport[formatname_String, function_]': 'RegisterImport[formatname, function, {}]',
+    }
+
+    def apply(self, formatname, function, posts, evaluation, options):
+        'RegisterImport[formatname_String, function_, posts_, OptionsPattern[RegisterImport]]'
         
         if function.has_form('List', None):
             leaves = function.get_leaves()
         else:
             leaves = [function]
 
-        isdefault = [not x.has_form('RuleDelayed', None) for x in leaves]
-
-        # Only one default Importer is allowed
-        if sum(isdefault) != 1:
+        if not (len(leaves) >= 1 and all(x.has_form('RuleDelayed', None) for x in leaves[:-1]) and isinstance(leaves[-1], Symbol)):
             #TODO: Message
             return Symbol('$Failed')
 
-        indx = isdefault.index(True)
-
         IMPORTERS[formatname.get_string_value()] = (
-            {elem.get_string_value(): expr for [elem, expr] in [x.get_leaves() for x in leaves[:indx]]},  # Conditional
-            leaves[indx],                                                                                 # Default
-            {elem.get_string_value(): expr for [elem, expr] in [x.get_leaves() for x in leaves[indx+1:]]} # Post
+            {elem.get_string_value(): expr for [elem, expr] in [x.get_leaves() for x in leaves[:-1]]},  # Conditional
+            leaves[-1],                                                                                 # Default
+            {}
         )
 
         return Symbol('Null')
