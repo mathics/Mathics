@@ -181,43 +181,25 @@ class Import(Builtin):
         'fmtnosup': '`1` is not a supported Import format.',
     }
 
-    def importer(self, filename, evaluation):
+    rules = {
+        'Import[filename_]': 'Import[filename, {}]',
+    }
 
+    def apply(self, filename, elements, evaluation):
+        'Import[filename_, elements_]'
+
+        # Check filename
         path = filename.to_python()
         if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
             evaluation.message('Import', 'chtype', filename)
-            return None
+            return Symbol('$Failed')
         path = path.strip('"')
 
         if Expression('FindFile', filename).evaluate(evaluation) == Symbol('$Failed'):
             evaluation.message('Import', 'nffil')
-            return None
-
-        if self.filetype is None:
-            self.filetype = Expression('FileFormat', path).evaluate(evaluation=evaluation).get_string_value()
-
-        if self.filetype not in IMPORTERS.keys():
-            evaluation.message('Import', 'fmtnosup', from_python(self.filetype))
-            return None
-
-        return IMPORTERS[self.filetype]
-        #(conditional_function, default_function, post_functions) = IMPORTERS[filetype]
-        #return (conditional_function, default_function, post_functions)
-
-    def apply(self, filename, evaluation):
-        'Import[filename_]'
-        
-        self.filetype = None
-        result = self.importer(filename, evaluation)
-
-        if result is None:
             return Symbol('$Failed')
 
-        (conditional_function, default_function, post_functions) = result
-
-    def apply_elements(self, filename, elements, evaluation):
-        'Import[filename_, elements_]'
-
+        # Check elements
         elements = elements.to_python()
         if not isinstance(elements, list):
             elements = [elements] 
@@ -229,20 +211,23 @@ class Import(Builtin):
     
         elements = [el[1:-1] for el in elements]
 
-        self.filetype = None
+        # Determine file type
         for el in elements:
             if el in IMPORTERS.keys():
-                self.filetype = el
+                filetype = el
                 elements.remove(el)
                 break
+        else:
+            filetype = Expression('FileFormat', path).evaluate(evaluation=evaluation).get_string_value()
 
-        result = self.importer(filename, evaluation)
-
-        if result is None:
+        if filetype not in IMPORTERS.keys():
+            evaluation.message('Import', 'fmtnosup', from_python(filetype))
             return Symbol('$Failed')
 
-        (conditionals, default_function, posts) = result
+        # Load the importer
+        (conditionals, default_function, posts) = IMPORTERS[filetype]
 
+        # Perform the import
         def get_defaults():
             defaults = Expression(from_python(default_function), filename).evaluate(evaluation)
             defaults = defaults.get_leaves()
@@ -265,7 +250,7 @@ class Import(Builtin):
                     if el in defaults.keys():
                         return defaults[el]
                     else:
-                        evaluation.message('Import', 'noelem', from_python(el), from_python(self.filetype))
+                        evaluation.message('Import', 'noelem', from_python(el), from_python(filetype))
                         return Symbol('$Failed')
 
 class Export(Builtin):
