@@ -121,9 +121,9 @@ class RegisterImport(Builtin):
         indx = isdefault.index(True)
 
         IMPORTERS[formatname.get_string_value()] = (
-            {},                                     # Conditional Raw-Importers
-            leaves[indx],                           # Default Importer
-            {}                                      # Post-Importers
+            {elem.get_string_value(): expr for [elem, expr] in [x.get_leaves() for x in leaves[:indx]]},  # Conditional
+            leaves[indx],                                                                                 # Default
+            {elem.get_string_value(): expr for [elem, expr] in [x.get_leaves() for x in leaves[indx+1:]]} # Post
         )
 
         return Symbol('Null')
