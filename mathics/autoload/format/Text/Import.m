@@ -56,4 +56,3 @@ RegisterImport[
 	"BinaryFormat" -> True *)
 ]
 
-Import["ExampleData/ExampleData.txt", "Words"]
