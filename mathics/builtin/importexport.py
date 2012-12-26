@@ -67,7 +67,7 @@ class RegisterImport(Builtin):
     'RegisterImport' is then used to register the above function to a new data format.
     >> RegisterImport["ExampleFormat1", ExampleFormat1Import]
 
-    >> FilePrint["ExampleData/ExampleData1.txt"]
+    >> FilePrint["ExampleData/ExampleData.txt"]
      | Example File Format
      | Created by Angus
      | 0.629452        0.586355
@@ -81,10 +81,10 @@ class RegisterImport(Builtin):
      | 0.838697        0.436220
      | 0.309496        0.833591
 
-    >> Import["ExampleData/ExampleData1.txt", {"ExampleFormat1", "Elements"}]
+    >> Import["ExampleData/ExampleData.txt", {"ExampleFormat1", "Elements"}]
      = {Data, Header}
 
-    >> Import["ExampleData/ExampleData1.txt", {"ExampleFormat1", "Header"}]
+    >> Import["ExampleData/ExampleData.txt", {"ExampleFormat1", "Header"}]
      = {"Example File Format", "Created by Angus"}
 
     Conditional Importer:
@@ -94,16 +94,16 @@ class RegisterImport(Builtin):
 
     >> RegisterImport["ExampleFormat2", {"Data" :> ExampleFormat2DataImport, ExampleFormat2DefaultImport}]
 
-    >> Import["ExampleData/ExampleData1.txt", {"ExampleFormat2", "Elements"}]
+    >> Import["ExampleData/ExampleData.txt", {"ExampleFormat2", "Elements"}]
      = {Data, Header}
 
-    >> Import["ExampleData/ExampleData1.txt", {"ExampleFormat2", "Header"}]
+    >> Import["ExampleData/ExampleData.txt", {"ExampleFormat2", "Header"}]
      = {"Example File Format", "Created by Angus"}
     """
 
     #TODO: at the moment this hangs
     """
-    >> Import["ExampleData/ExampleData1.txt", {"ExampleFormat2", "Data"}] // Grid
+    >> Import["ExampleData/ExampleData.txt", {"ExampleFormat2", "Data"}] // Grid
      = 0.629452   0.586355
      .
      . 0.711009   0.687453
@@ -180,35 +180,18 @@ class Import(Builtin):
     >> Import["ExampleData/BloodToilTearsSweat.txt", "Elements"]
      = {Data, Lines, Plaintext, String, Words}
 
-    #> Import["ExampleData/ExampleData1.tx"]
+    #> Import["ExampleData/ExampleData.tx"]
      : File not found during Import.
      = $Failed
     #> Import[x]
      : First argument x is not a valid file, directory, or URL specification.
      = $Failed
-
-    #> ListQ[Import["ExampleData/BloodToilTearsSweat.txt", "Data"]]
-     = True
-    #> ListQ[Import["ExampleData/BloodToilTearsSweat.txt", "Lines"]]
-     = True
-    #> StringQ[Import["ExampleData/BloodToilTearsSweat.txt", "Plaintext"]]
-     = True
-    #> StringQ[Import["ExampleData/BloodToilTearsSweat.txt", "String"]]
-     = True
-    #> ListQ[Import["ExampleData/BloodToilTearsSweat.txt", "Words"]]
-     = True
-    #> Import["ExampleData/BloodToilTearsSweat.txt", "Lines"] == Import["ExampleData/BloodToilTearsSweat.txt", "Data"]
-     = True
     """
 
     #TODO: Images tests
     """
     >> Import["ExampleData/sunflowers.jpg"]
      = -Image-
-
-    #> Import["ExampleData/sunflowers.jp"]
-     : File not found during Import.
-     = $Failed
     """
 
     messages = {
