@@ -402,7 +402,7 @@ class Read(Builtin):
 
     messages = {
         'openx': '`1` is not open',
-        'readf': '`1` is not a valid format specificiation',
+        'readf': '`1` is not a valid format specification.',
         'readn': 'Invalid real number found when reading from `1`',
         'readt': 'Invalid input found when reading `1` from `2`',
     }
@@ -1462,6 +1462,10 @@ class ReadList(Read):
      = {abc123}
     >> InputForm[%]
      = {"abc123"}
+
+    #> ReadList[str, "Invalid"]
+     : "Invalid" is not a valid format specification.
+     = ReadList[..., Invalid]
     #> Close[str];
     """
 
@@ -1502,6 +1506,10 @@ class ReadList(Read):
         result = []
         while True:
             tmp = super(ReadList, self).apply(name, n, types, evaluation, options)
+
+            if tmp == Symbol('$Failed'):
+                return
+
             if tmp.to_python() == 'EndOfFile':
                 break
             result.append(tmp)
