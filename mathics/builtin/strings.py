@@ -5,7 +5,7 @@ String functions
 """
 
 from mathics.builtin.base import BinaryOperator, Builtin, Test
-from mathics.core.expression import Expression, Symbol, String, Integer
+from mathics.core.expression import Expression, Symbol, String, Integer, from_python
 
 class StringJoin(BinaryOperator):
     """
@@ -40,7 +40,41 @@ class StringJoin(BinaryOperator):
                 return
             result += item.value
         return String(result)
-    
+
+class StringSplit(Builtin):
+    """
+    >> StringSplit["abc,123", ","]
+     = {abc, 123}
+
+    >> StringSplit["abc 123"]
+     = {abc, 123}
+
+    #> StringSplit["  abc    123  "]
+     = {abc, 123}
+
+    >> StringSplit["abc,123.456", {",", "."}]
+     = {abc, 123, 456}
+    """
+
+    def apply_empty(self, string, evaluation):
+        'StringSplit[string_String]'
+        py_string = string.get_string_value()
+        return from_python(py_string.split())
+
+    def apply_sep(self, string, sep, evaluation):
+        'StringSplit[string_String, sep_String]'
+        py_string, py_sep = string.get_string_value(), sep.get_string_value()
+        return from_python(py_string.split(py_sep))
+
+    def apply_list(self, string, seps, evaluation):
+        'StringSplit[string_String, seps_List]'
+        py_string, py_seps = string.get_string_value(), [sep.get_string_value() for sep in seps.get_leaves()]
+        result = [py_string]
+        for py_sep in py_seps:
+            result = [t for s in result for t in s.split(py_sep)]
+        return from_python(result)
+
+
 class StringLength(Builtin):
     """
     'StringLength' gives the length of a string.
