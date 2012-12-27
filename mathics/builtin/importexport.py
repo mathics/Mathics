@@ -367,6 +367,8 @@ class FileFormat(Builtin):
             result = 'PNG'
         elif 'image/tiff' in mimetypes:
             result = 'TIFF'
+        elif 'text/csv' in mimetypes:
+            result = 'CSV'
         else:
             for mimetype in mimetypes:
                 if mimetype.startswith('text'):
