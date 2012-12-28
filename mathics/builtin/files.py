@@ -1461,9 +1461,16 @@ class ExpandFileName(Builtin):
 class ReadList(Read):
     """
     <dl>
-    <dt>'ReadList["file"]'
+    <dt>'ReadList["$file$"]'
       <dd>Reads all the expressions until the end of file.
+    <dt>'ReadList["$file$", $type$]'
+      <dd>Reads objects of a specified type until the end of file.
+    <dt>'ReadList["$file$", {$type1$, $type2$, ...}]'
+      <dd>Reads a sequence of specified types until the end of file.
     </dl>
+
+    >> ReadList[StringToStream["a 1 b 2"], {Word, Number}]
+     = {{a, 1}, {b, 2}}
 
     >> str = StringToStream["abc123"];
     >> ReadList[str]
@@ -1475,6 +1482,9 @@ class ReadList(Read):
      : "Invalid" is not a valid format specification.
      = ReadList[..., Invalid]
     #> Close[str];
+
+    #> ReadList[StringToStream["123 45 x y"]]
+     = {5535 x y}
     """
 
     #TODO: Accept newlines in input
@@ -1482,7 +1492,7 @@ class ReadList(Read):
     >> ReadList[StringToStream["123\nabc"]]
      = {123, abc}
     >> InputForm[%]
-     = {"123", "abc"}
+     = {123, abc}
     """
 
     rules = {
@@ -1522,7 +1532,6 @@ class ReadList(Read):
                 break
             result.append(tmp)
         return from_python(result)
-
 
 class FilePrint(Builtin):
     """
