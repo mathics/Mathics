@@ -177,15 +177,24 @@ class Import(Builtin):
       <dd>imports from a URL.
     </dl>
 
-    >> Import["ExampleData/ExampleData.txt", "Elements"]
-     = {Data, Lines, Plaintext, String, Words}
-
     #> Import["ExampleData/ExampleData.tx"]
      : File not found during Import.
      = $Failed
     #> Import[x]
      : First argument x is not a valid file, directory, or URL specification.
      = $Failed
+
+    ## CSV
+    #> Import["ExampleData/numberdata.csv", "Elements"]
+     = {Data, Grid}
+    #> Import["ExampleData/numberdata.csv", "Data"]
+    = {{0.88, 0.60, 0.94}, {0.76, 0.19, 0.51}, {0.97, 0.04, 0.26}, {0.33, 0.74, 0.79}, {0.42, 0.64, 0.56}}
+
+    ## Text
+    >> Import["ExampleData/ExampleData.txt", "Elements"]
+     = {Data, Lines, Plaintext, String, Words}
+    >> Import["ExampleData/ExampleData.txt", "Lines"]
+     = ...
     """
 
     #TODO: Images tests
