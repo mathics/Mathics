@@ -62,7 +62,7 @@ class RegisterImport(Builtin):
     </dl>
 
     First, define the default function used to import the data.
-    >> ExampleFormat1Import[filename_String] := Module[{stream, head, data}, stream = OpenRead[filename]; head = ReadList[stream, "String", 2]; data = Partition[ReadList[stream, Number], 2]; Close[stream]; {"Header" -> head, "Data" -> data}]
+    >> ExampleFormat1Import[filename_String] := Module[{stream, head, data}, stream = OpenRead[filename]; head = ReadList[stream, String, 2]; data = Partition[ReadList[stream, Number], 2]; Close[stream]; {"Header" -> head, "Data" -> data}]
 
     'RegisterImport' is then used to register the above function to a new data format.
     >> RegisterImport["ExampleFormat1", ExampleFormat1Import]
@@ -85,12 +85,12 @@ class RegisterImport(Builtin):
      = {Data, Header}
 
     >> Import["ExampleData/ExampleData.txt", {"ExampleFormat1", "Header"}]
-     = {"Example File Format", "Created by Angus"}
+     = {Example File Format, Created by Angus}
 
     Conditional Importer:
-    >> ExampleFormat2DefaultImport[filename_String] := Module[{stream, head}, stream = OpenRead[filename]; head = ReadList[stream, "String", 2]; Close[stream]; {"Header" -> head}]
+    >> ExampleFormat2DefaultImport[filename_String] := Module[{stream, head}, stream = OpenRead[filename]; head = ReadList[stream, String, 2]; Close[stream]; {"Header" -> head}]
 
-    >> ExampleFormat2DataImport[filename_String] := Module[{stream, data}, stream = OpenRead[filename]; Skip[stream, "String", 3]; data = Partition[ReadList[stream, "Number"], 2]; Close[stream]; {"Data" -> data}]
+    >> ExampleFormat2DataImport[filename_String] := Module[{stream, data}, stream = OpenRead[filename]; Skip[stream, String, 3]; data = Partition[ReadList[stream, "Number"], 2]; Close[stream]; {"Data" -> data}]
 
     >> RegisterImport["ExampleFormat2", {"Data" :> ExampleFormat2DataImport, ExampleFormat2DefaultImport}]
 
@@ -98,7 +98,7 @@ class RegisterImport(Builtin):
      = {Data, Header}
 
     >> Import["ExampleData/ExampleData.txt", {"ExampleFormat2", "Header"}]
-     = {"Example File Format", "Created by Angus"}
+     = {Example File Format, Created by Angus}
     """
 
     #TODO: at the moment this hangs
