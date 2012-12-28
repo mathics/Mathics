@@ -310,7 +310,7 @@ class Read(Builtin):
 
     ## Correctly formed InputString but not open
     #> Read[InputStream[String, -1], {Word, Number}]
-     : InputSteam[String, -1] is not open
+     : InputStream[String, -1] is not open.
      = Read[InputStream[String, -1], {Word, Number}]
 
     ## String
@@ -398,13 +398,21 @@ class Read(Builtin):
     #> str = StringToStream["123 123"];  Read[str, {Real, Number}]
      = {123., 123}
     #> Close[str];
+
+    ## TODO Replace the following test with this one:
+    ## >> Read[str, {Real}]
+    ##  : InputStream[String, ...] is not open.
+    ##  = Read[InputStream[String, ...], {Real}]
+    ## Quick check
+    #> Quiet[Head[Read[str, {Real}]]]
+     = Read
     """
 
     messages = {
-        'openx': '`1` is not open',
+        'openx': '`1` is not open.',
         'readf': '`1` is not a valid format specification.',
-        'readn': 'Invalid real number found when reading from `1`',
-        'readt': 'Invalid input found when reading `1` from `2`',
+        'readn': 'Invalid real number found when reading from `1`.',
+        'readt': 'Invalid input found when reading `1` from `2`.',
     }
 
     rules = {
@@ -488,10 +496,10 @@ class Read(Builtin):
     
         stream = STREAMS.get(n.to_python())
 
-        if stream is None:
-            evaluation.message('Read', 'openx', Expression('InputSteam', name, n))
+        if stream is None or stream.closed:
+            evaluation.message('Read', 'openx', Expression('InputStream', name, n))
             return
-        
+
         types = types.to_python()
         if not isinstance(types, list):
             types = [types]
