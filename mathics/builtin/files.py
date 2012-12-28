@@ -15,7 +15,7 @@ import sys
 import tempfile
 import time
 
-from mathics.core.expression import Expression, String, Symbol, from_python
+from mathics.core.expression import Expression, String, Symbol, from_python, Integer
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
 from mathics.settings import ROOT_DIR
 
@@ -413,6 +413,7 @@ class Read(Builtin):
         'readf': '`1` is not a valid format specification.',
         'readn': 'Invalid real number found when reading from `1`.',
         'readt': 'Invalid input found when reading `1` from `2`.',
+        'intnm': 'Non-negative machine-sized integer expected at position 3 in `1`.',
     }
 
     rules = {
@@ -1483,7 +1484,21 @@ class ReadList(Read):
      = ReadList[..., Invalid]
     #> Close[str];
 
-    #> ReadList[StringToStream["123 45 x y"]]
+
+    #> ReadList[StringToStream["a 1 b 2"], {Word, Number}, 1]
+     = {{a, 1}}
+    """
+
+    #TODO 
+    """
+    #> ReadList[StringToStream["a 1 b 2"], {Word, Number}, -1]
+     : Non-negative machine-sized integer expected at position 3 in ReadList[InputStream[String, ...], {Word, Number}, -1].
+     = ReadList[InputStream[String, ...], {Word, Number}, -1]
+    """
+    
+    #TODO: Expression type
+    """
+    #> ReadList[StringToStream["123 45 x y"], Expression]
      = {5535 x y}
     """
 
@@ -1523,6 +1538,35 @@ class ReadList(Read):
 
         result = []
         while True:
+            tmp = super(ReadList, self).apply(name, n, types, evaluation, options)
+
+            if tmp == Symbol('$Failed'):
+                return
+
+            if tmp.to_python() == 'EndOfFile':
+                break
+            result.append(tmp)
+        return from_python(result)
+
+    def apply_m(self, name, n, types, m, evaluation, options):
+        'ReadList[InputStream[name_, n_], types_, m_, OptionsPattern[ReadList]]'
+
+        # Options
+        #TODO: Implement extra options
+        py_options = self.check_options(options)
+        #null_records = py_options['NullRecords']
+        #null_words = py_options['NullWords']
+        record_separators = py_options['RecordSeparators']
+        #token_words = py_options['TokenWords']
+        word_separators = py_options['WordSeparators']
+
+        py_m = m.get_int_value()
+        if py_m < 0:
+            evaluation.message('ReadList', 'intnm', Expression('ReadList', Expression('InputStream', name, n), types, m))
+            return
+
+        result = []
+        for i in range(py_m):
             tmp = super(ReadList, self).apply(name, n, types, evaluation, options)
 
             if tmp == Symbol('$Failed'):
