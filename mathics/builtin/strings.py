@@ -54,26 +54,61 @@ class StringSplit(Builtin):
 
     >> StringSplit["abc,123.456", {",", "."}]
      = {abc, 123, 456}
+
+    #> StringSplit["x", "x"]
+     = {}
+
+    #> StringSplit[x]
+     : String or list of strings expected at position 1 in StringSplit[x].
+     = StringSplit[x]
+
+    #> StringSplit["x", x]      (* Mathematica uses StringExpression *)
+     : String or list of strings expected at position 2 in StringSplit[x, x].
+     = StringSplit[x, x]
     """
+
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+    }
+
+    def apply(self, string, seps, evaluation):
+        'StringSplit[string_String, seps_List]'
+        py_string, py_seps = string.get_string_value(),  seps.get_leaves()
+        result = [py_string]
+
+        for py_sep in py_seps:
+            if not isinstance(py_sep, String):
+                evaluation.message('StringSplit', 'strse', Integer(2), Expression('StringSplit', string, seps))
+                return
+
+        py_seps = [py_sep.get_string_value() for py_sep in py_seps]
+
+        for py_sep in py_seps:
+            result = [t for s in result for t in s.split(py_sep)]
+        return from_python(filter(lambda x: x != u'', result))
+
+    def apply_single(self, string, sep, evaluation):
+        'StringSplit[string_String, sep_?NotListQ]'
+        if not isinstance(sep, String):
+            evaluation.message('StringSplit', 'strse', Integer(2), Expression('StringSplit', string, sep))
+            return
+        return self.apply(string, Expression('List', sep), evaluation)
 
     def apply_empty(self, string, evaluation):
         'StringSplit[string_String]'
         py_string = string.get_string_value()
-        return from_python(py_string.split())
+        result = py_string.split()
+        return from_python(filter(lambda x: x != u'', result))
 
-    def apply_sep(self, string, sep, evaluation):
-        'StringSplit[string_String, sep_String]'
-        py_string, py_sep = string.get_string_value(), sep.get_string_value()
-        return from_python(py_string.split(py_sep))
+    def apply_strse1(self, x, evaluation):
+        'StringSplit[x_/;Not[StringQ[x]]]'
+        evaluation.message('StringSplit', 'strse', Integer(1), Expression('StringSplit', x))
+        return
 
-    def apply_list(self, string, seps, evaluation):
-        'StringSplit[string_String, seps_List]'
-        py_string, py_seps = string.get_string_value(), [sep.get_string_value() for sep in seps.get_leaves()]
-        result = [py_string]
-        for py_sep in py_seps:
-            result = [t for s in result for t in s.split(py_sep)]
-        return from_python(result)
-
+    def apply_strse2(self, x, y, evaluation):
+        'StringSplit[x_/;Not[StringQ[x]], y_]'
+        evaluation.message('StringSplit', 'strse', Integer(1), Expression('StringSplit', x))
+        return
 
 class StringLength(Builtin):
     """
