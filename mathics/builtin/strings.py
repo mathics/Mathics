@@ -365,6 +365,56 @@ class ToString(Builtin):
         text = value.format(evaluation, 'OutputForm').boxes_to_text(evaluation=evaluation)
         return String(text)
 
+class ToExpression(Builtin):
+    """
+    <dl>
+    <dt>'ToExpression[$input$]'
+      <dd>inteprets a given string as Mathics input.
+    <dt>'ToExpression[$input$, $form$]'
+      <dd>reads the given input in the specified form.
+    <dt>'ToExpression[$input$, $form$, $h$]'
+      <dd>applies the head $h$ to the expression before evaluating it.
+    </dl>
+
+    >> ToExpression["1 + 2"]
+     = 3
+
+    >> ToExpression["log(x)", TraditionalForm]
+     = Log[x]
+    #> ToExpression["log(x)", StandardForm]
+     = log x
+    #> ToExpression["log(x)", InputForm]
+     = log x
+
+    #> ToExpression["1+"]
+     : Incomplete expression; more input is needed.
+     = $Failed
+
+    #> ToExpression[]
+     : ToExpression called with 0 arguments; between 1 and 3 arguments are expected.
+     = ToExpression[]
+    """
+
+    attributes = ('Listable', 'Protected')
+
+    messages = {
+        'argb': '`1` called with `2` arguments; between `3` and `4` arguments are expected.',
+        'sntxi': 'Incomplete expression; more input is needed `1`.',
+    }
+
+    def apply(self, seq, evaluation):
+        'ToExpression[seq__]'
+        py_seq = seq.get_sequence()
+
+        if len(py_seq) > 3: # 0 case handled by apply_empty
+            evaluation.message('ToExpression', 'argb', 'ToExpression', Integer(len(py_seq)), Integer(1), Integer(3))
+            return 
+
+    def apply_empty(self, evaluation):
+        'ToExpression[]'
+        evaluation.message('ToExpression', 'argb', 'ToExpression', Integer(0), Integer(1), Integer(3))
+        return 
+
 class StringQ(Test):
     """
     <dl>
