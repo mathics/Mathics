@@ -134,6 +134,162 @@ class StringLength(Builtin):
             return
         return Integer(len(str.value))
     
+class StringReplace(Builtin):
+    """
+    <dl>
+    <dt>'StringReplace["$string$", $s$->$sp$]' or 'StringReplace["$string$", {$s1$->$sp1$, $s2$->$sp2$}]'
+      <dd>replace the string $si$ by $spi$ for all occurances in "$string$".
+    <dt>'StringReplace["$string$", $srules$, $n$]'
+      <dd>only perform the first $n$ replacements.
+    <dt>'StringReplace[{"$string1$", "$string2$", ...}, srules]'
+      <dd>perform replacements on a list of strings
+    </dl>
+
+    StringReplace replaces all occurances of one substring with another:
+    >> StringReplace["xyxyxyyyxxxyyxy", "xy" -> "A"]
+     = AAAyyxxAyA
+
+    Multiple replacements can be supplied:
+    >> StringReplace["xyzwxyzwxxyzxyzw", {"xyz" -> "A", "w" -> "BCD"}]
+     = ABCDABCDxAABCD
+
+    Only replace the first 2 occurances:
+    >> StringReplace["xyxyxyyyxxxyyxy", "xy" -> "A", 2]
+     = AAxyyyxxxyyxy
+
+    StringReplace acts on lists of strings too:
+    >> StringReplace[{"xyxyxxy", "yxyxyxxxyyxy"}, "xy" -> "A"]
+     = {AAxA, yAAxxAyA}
+
+    #> StringReplace["abcabc", "a" -> "b", Infinity]
+     = bbcbbc
+    #> StringReplace[x, "a" -> "b"]
+     : String or list of strings expected at position 1 in StringReplace[x, a -> b].
+     = StringReplace[x, a -> b]
+    #> StringReplace["xyzwxyzwaxyzxyzw", x]
+     : x is not a valid string replacement rule.
+     = StringReplace[xyzwxyzwaxyzxyzw, x]
+    #> StringReplace["xyzwxyzwaxyzxyzw", x -> y]
+     : x -> y is not a valid string replacement rule.
+     = StringReplace[xyzwxyzwaxyzxyzw, x -> y]
+    #> StringReplace["abcabc", "a" -> "b", x]
+     : Non-negative integer or Infinity expected at position 3 in StringReplace[abcabc, a -> b, x].
+     = StringReplace[abcabc, a -> b, x]
+    """
+
+    attributes = ('Protected')
+    
+    #TODO: Implement these options
+    options = {
+        'IgnoreCase': 'False',
+        'MetaCharacters': 'None',
+    }
+
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+        'srep': '`1` is not a valid string replacement rule.',
+        'innf': 'Non-negative integer or Infinity expected at position `1` in `2`.',
+    }
+
+
+    #TODO: Implement StringExpression replacements
+
+
+    def check_arguments(self, string, rule, n, evaluation):
+        if n is None:
+            expr = Expression('StringReplace', string, rule)
+        else:
+            expr = Expression('StringReplace', string, rule, n)
+
+        # Check first argument
+        if string.has_form('List', None):
+            py_string = [s.get_string_value() for s in string.get_leaves()]
+            if None in py_string:
+                evaluation.message('StringReplace', 'strse', Integer(1), expr)
+                return
+        else:
+            py_string = string.get_string_value()
+            if py_string is None:
+                evaluation.message('StringReplace', 'strse', Integer(1), expr)
+                return
+
+        # Check second argument
+        def check_rule(r):
+            tmp = [s.get_string_value() for s in r.get_leaves()]
+            if not (r.has_form('Rule', None) and len(tmp) == 2 and all(r is not None for r in tmp)):
+                evaluation.message('StringReplace', 'srep', r)
+                return None
+            return tmp
+
+        if rule.has_form('List', None):
+            tmp_rules = rule.get_leaves()
+            py_rules = []
+            for r in tmp_rules:
+                tmp = check_rule(r)
+                if tmp is None:
+                    return None
+                py_rules.append(tmp)
+        else:
+            tmp = check_rule(rule)
+            if tmp is None:
+                return None
+            py_rules = [tmp]
+
+        if n is None:
+            return (py_string, py_rules)
+        elif n == Expression('DirectedInfinity', Integer(1)):
+            return (py_string, py_rules, None)
+        else:
+            py_n = n.get_int_value()
+            if py_n < 0:
+                evaluation.message('StringReplace', 'innf', Integer(3), expr)
+                return None
+            return (py_string, py_rules, py_n)
+
+    def apply(self, string, rule, evaluation):
+        'StringReplace[string_, rule_]'
+
+        args = self.check_arguments(string, rule, None, evaluation)
+        if args is None:
+            return None
+        (py_string, py_rules) = args
+
+        def do_replace(s):
+            for sp in py_rules:
+                s = s.replace(sp[0], sp[1])
+            return s
+
+        if isinstance(py_string, list):
+            result = [do_replace(s) for s in py_string]
+        else:
+            result = do_replace(py_string)
+
+        return from_python(result)
+
+    def apply_n(self, string, rule, n, evaluation):
+        'StringReplace[string_, rule_, n_]'
+
+        args = self.check_arguments(string, rule, n, evaluation)
+
+        if args is None:
+            return None
+        (py_string, py_rules, py_n) = args
+
+        def do_replace(s):
+            for sp in py_rules:
+                if py_n is None:
+                    s = s.replace(sp[0], sp[1])
+                else:
+                    s = s.replace(sp[0], sp[1], py_n)
+            return s
+
+        if isinstance(py_string, list):
+            result = [do_replace(s) for s in py_string]
+        else:
+            result = do_replace(py_string)
+
+        return from_python(result)
+
 class Characters(Builtin):
     """
     >> Characters["abc"]
