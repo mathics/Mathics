@@ -90,7 +90,7 @@ class RegisterImport(Builtin):
     Conditional Importer:
     >> ExampleFormat2DefaultImport[filename_String] := Module[{stream, head}, stream = OpenRead[filename]; head = ReadList[stream, String, 2]; Close[stream]; {"Header" -> head}]
 
-    >> ExampleFormat2DataImport[filename_String] := Module[{stream, data}, stream = OpenRead[filename]; Skip[stream, String, 3]; data = Partition[ReadList[stream, "Number"], 2]; Close[stream]; {"Data" -> data}]
+    >> ExampleFormat2DataImport[filename_String] := Module[{stream, data}, stream = OpenRead[filename]; Skip[stream, String, 2]; data = Partition[ReadList[stream, Number], 2]; Close[stream]; {"Data" -> data}]
 
     >> RegisterImport["ExampleFormat2", {"Data" :> ExampleFormat2DataImport, ExampleFormat2DefaultImport}]
 
@@ -99,20 +99,17 @@ class RegisterImport(Builtin):
 
     >> Import["ExampleData/ExampleData.txt", {"ExampleFormat2", "Header"}]
      = {Example File Format, Created by Angus}
-    """
 
-    #TODO: at the moment this hangs
-    """
     >> Import["ExampleData/ExampleData.txt", {"ExampleFormat2", "Data"}] // Grid
      = 0.629452   0.586355
      .
      . 0.711009   0.687453
      .
-     . 0.246540   0.433973
+     . 0.24654    0.433973
      .
      . 0.926871   0.887255
      .
-     . 0.825141   0.940900
+     . 0.825141   0.9409
      .
      . 0.847035   0.127464
      .
@@ -120,7 +117,7 @@ class RegisterImport(Builtin):
      .
      . 0.838545   0.247025
      .
-     . 0.838697   0.436220
+     . 0.838697   0.43622
      .
      . 0.309496   0.833591
     
