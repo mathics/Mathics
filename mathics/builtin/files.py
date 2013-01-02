@@ -650,7 +650,11 @@ class Write(Builtin):
     def apply(self, name, n, expr, evaluation):
         'Write[OutputStream[name_, n_], expr___]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
+
+        if stream is None or stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
 
         expr = expr.get_sequence()
         expr = Expression('Row', Expression('List', *expr))
@@ -693,7 +697,11 @@ class WriteString(Builtin):
     def apply(self, name, n, expr, evaluation):
         'WriteString[OutputStream[name_, n_], expr___]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
+
+        if stream is None or stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
 
         exprs = expr.get_sequence()
         for e in exprs:
@@ -961,7 +969,7 @@ class Put(BinaryOperator):
         global STREAMS
         stream = STREAMS.get(n.to_python())
 
-        if stream is None:
+        if stream is None or stream.closed:
             evaluation.message('Put', 'openx', Expression('OutputSteam', name, n))
             return
 
@@ -1044,7 +1052,7 @@ class PutAppend(BinaryOperator):
         global STREAMS
         stream = STREAMS.get(n.to_python())
 
-        if stream is None:
+        if stream is None or stream.closed:
             evaluation.message('Put', 'openx', Expression('OutputSteam', name, n))
             return
 
@@ -1678,9 +1686,9 @@ class Close(Builtin):
     def apply_input(self, name, n, evaluation):
         'Close[InputStream[name_, n_]]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
 
-        if stream.closed:
+        if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
             return
 
@@ -1690,9 +1698,9 @@ class Close(Builtin):
     def apply_output(self, name, n, evaluation):
         'Close[OutputStream[name_, n_]]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
 
-        if stream.closed:
+        if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
             return
 
@@ -1727,9 +1735,9 @@ class StreamPosition(Builtin):
     def apply_input(self, name, n, evaluation):
         'StreamPosition[InputStream[name_, n_]]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
 
-        if stream.closed:
+        if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
             return
    
@@ -1739,9 +1747,9 @@ class StreamPosition(Builtin):
     def apply_output(self, name, n, evaluation):
         'StreamPosition[OutputStream[name_, n_]]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
 
-        if stream.closed:
+        if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
             return
 
@@ -1794,9 +1802,9 @@ class SetStreamPosition(Builtin):
     def apply_input(self, name, n, m, evaluation):
         'SetStreamPosition[InputStream[name_, n_], m_]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
 
-        if stream.closed:
+        if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
             return
 
