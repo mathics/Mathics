@@ -126,17 +126,17 @@ class RegisterImport(Builtin):
     attributes = ('Protected', 'ReadProtected')
 
     options = {
-        'Path': 'Automatic',
-        'FunctionChannels': '{"FileNames"}',
-        'Sources': 'None',
-        'DefaultElement': 'Automatic',
-        'AvailableElements': 'None',
-        'Options': '{}',
-        'OriginalChannel': 'False',
-        'BinaryFormat': 'False',
-        'Encoding': 'False',
-        'Extensions': '{}',
-        'AlphaChannel': 'False',
+        '"Path"': 'Automatic',
+        '"FunctionChannels"': '{"FileNames"}',
+        '"Sources"': 'None',
+        '"DefaultElement"': 'Automatic',
+        '"AvailableElements"': 'None',
+        '"Options"': '{}',
+        '"OriginalChannel"': 'False',
+        '"BinaryFormat"': 'False',
+        '"Encoding"': 'False',
+        '"Extensions"': '{}',
+        '"AlphaChannel"': 'False',
     }
 
     rules = {
@@ -158,7 +158,8 @@ class RegisterImport(Builtin):
         IMPORTERS[formatname.get_string_value()] = (
             {elem.get_string_value(): expr for [elem, expr] in [x.get_leaves() for x in leaves[:-1]]},  # Conditional
             leaves[-1],                                                                                 # Default
-            {}
+            {},                                                                                         # Post
+            options
         )
 
         return Symbol('Null')
@@ -185,6 +186,8 @@ class Import(Builtin):
     #> Import["ExampleData/numberdata.csv", "Elements"]
      = {Data, Grid}
     #> Import["ExampleData/numberdata.csv", "Data"]
+    = {{0.88, 0.60, 0.94}, {0.76, 0.19, 0.51}, {0.97, 0.04, 0.26}, {0.33, 0.74, 0.79}, {0.42, 0.64, 0.56}}
+    #> Import["ExampleData/numberdata.csv"]
     = {{0.88, 0.60, 0.94}, {0.76, 0.19, 0.51}, {0.97, 0.04, 0.26}, {0.33, 0.74, 0.79}, {0.42, 0.64, 0.56}}
 
     ## Text
@@ -251,7 +254,7 @@ class Import(Builtin):
             return Symbol('$Failed')
 
         # Load the importer
-        (conditionals, default_function, posts) = IMPORTERS[filetype]
+        (conditionals, default_function, posts, importer_options) = IMPORTERS[filetype]
 
         def get_results(tmp_function):
             tmp = Expression(from_python(tmp_function), findfile).evaluate(evaluation)
@@ -263,9 +266,18 @@ class Import(Builtin):
         defaults = None
 
         if elements == []:
-            #TODO: Implement non-Automatic DefaultElement options here
             defaults = get_results(default_function)
-            return Expression('List', *[Expression('Rule', String(key), defaults[key]) for key in defaults.keys()])
+            default_element = importer_options.get("DefaultElement")
+
+            if default_element == Symbol("Automatic"):
+                return Expression('List', *[Expression('Rule', String(key), defaults[key]) for key in defaults.keys()])
+            else:
+                assert isinstance(default_element, String)
+                result = defaults.get(default_element.get_string_value())
+                if result is None:
+                    evaluation.message('Import', 'noelem', default_element, from_python(filetype))
+                    return Symbol('$Failed')
+                return result
         else:
             assert len(elements) == 1
             el = elements[0]
