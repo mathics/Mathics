@@ -18,14 +18,14 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from os import stat
 import pickle
 import traceback
 import sys
+import os
 
 def get_file_time(file):
     try:
-        return stat(file).st_mtime
+        return os.stat(file).st_mtime
     except OSError:
         return 0
     
@@ -45,6 +45,8 @@ class Definitions(object):
         if add_builtin:
             from mathics.builtin import modules, contribute
             from mathics.core.expression import builtin_evaluation
+            from mathics.core.evaluation import Evaluation
+            from mathics.settings import ROOT_DIR
             
             loaded = False
             if builtin_filename is not None:
@@ -59,6 +61,12 @@ class Definitions(object):
                 if builtin_filename is not None:
                     builtin_file = open(builtin_filename, 'w')
                     pickle.dump(self.builtin, builtin_file, -1)
+
+            for root, dirs, files in os.walk(os.path.join(ROOT_DIR,'autoload')):
+                for f in filter(lambda x: x.endswith('.m'), files):
+                    with open(os.path.join(root,f)) as stream:
+                        evaluation = Evaluation(stream.read(), self, timeout=30)
+
                     
     def get_builtin_names(self):
         return set(self.builtin)
