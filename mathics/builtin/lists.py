@@ -9,7 +9,7 @@ import copy
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator, Test,
     InvalidLevelspecError, PartError, PartDepthError, PartRangeError, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
-from mathics.core.expression import Expression, String, Symbol, Integer, Number
+from mathics.core.expression import Expression, String, Symbol, Integer, Number, from_python
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
@@ -604,7 +604,50 @@ class Part(Builtin):
         result = walk_parts([list], indices, evaluation)
         if result:
             return result
-            
+
+class Partition(Builtin):
+    """
+    <dl>
+    <dt>'Partition[$list$, $n$]'
+      <dd>partitions $list$ into sublists of length $n$.
+    <dt>'Parition[$list$, $n$, $d$]'
+      <dd>partitions $list$ into sublists of length $n$ which overlap $d$ indicies.
+
+    >> Partition[{a, b, c, d, e, f}, 2]
+     = {{a, b}, {c, d}, {e, f}}
+
+    >> Partition[{a, b, c, d, e, f}, 3, 1]
+     = {{a, b, c}, {b, c, d}, {c, d, e}, {d, e, f}}
+
+    #> Partition[{a, b, c, d, e}, 2]
+     = {{a, b}, {c, d}}
+    """
+
+    #TODO: Nested list length specifications
+    """
+    >> Partition[{{11, 12, 13}, {21, 22, 23}, {31, 32, 33}}, {2, 2}, 1]
+     = {{{{11, 12}, {21, 22}}, {{12, 13}, {22, 23}}}, {{{21, 22}, {31, 32}}, {{22, 23}, {32, 33}}}}
+    """
+
+    rules = {
+        'Parition[list_, n_, d_, k]': 'Partition[list, n, d, {k, k}]',
+    }
+
+    def chunks(self, l, n, d):
+        assert n > 0 and d > 0
+        return filter(lambda x: len(x) == n, map(lambda i: l[i:i+n], xrange(0, len(l), d)))
+
+    def apply_no_overlap(self, l, n, evaluation):
+        'Partition[l_List, n_Integer]'
+        #TODO: Error checking
+        return Expression('List', *self.chunks(l.get_leaves(), n.get_int_value(), n.get_int_value()))
+
+    def apply(self, l, n, d, evaluation):
+        'Partition[l_List, n_Integer, d_Integer]'
+        #TODO: Error checking
+        return Expression('List', *self.chunks(l.get_leaves(), n.get_int_value(), d.get_int_value()))
+        
+
 class Extract(Builtin):
     """
     <dl>
