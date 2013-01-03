@@ -14,15 +14,14 @@ ImportCSV[filename_String]:=
 
 RegisterImport[
     "CSV",
-    ImportCSV (*,
+    ImportCSV,
     {
         "Data" :> GetData,
 	    "Grid" :> GetGrid
     },
-     "Sources" -> ImportExport`DefaultSources["Table"],
-    "FunctionChannels" -> {"FileNames"},
-    "AvailableElements" -> {"Data", "Grid"},
-    "DefaultElement" -> "Data"
-    *)
+    (* Sources -> ImportExport`DefaultSources["Table"], *)
+    FunctionChannels -> {"FileNames"},
+    AvailableElements -> {"Data", "Grid"},
+    DefaultElement -> "Data"
 ]
 

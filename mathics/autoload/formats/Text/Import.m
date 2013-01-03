@@ -1,42 +1,32 @@
 (* Text Importer *)
 
-DataImport[filename_String]:=
-    Module[{stream, data},
-        stream = OpenRead[filename];
+DataImport[stream_]:=
+    Module[{data},
         data = ReadList[stream, String];
-        Close[stream];
         {"Data" -> data}
     ]
 
-LinesImport[filename_String]:=
-    Module[{stream, lines},
-        stream = OpenRead[filename];
+LinesImport[stream_]:=
+    Module[{lines},
         lines = ReadList[stream, String];
-        Close[stream];
         {"Lines" -> lines}
     ]
 
-PlaintextImport[filename_String]:=
-    Module[{stream, plaintext},
-        stream = OpenRead[filename];
+PlaintextImport[stream_]:=
+    Module[{plaintext},
         plaintext = Read[stream, Record, RecordSeparators -> {}];
-        Close[stream];
         {"Plaintext" -> plaintext}
     ]
 
-StringImport[filename_String]:=
-    Module[{stream, string},
-        stream = OpenRead[filename];
+StringImport[stream_]:=
+    Module[{string},
         string = Read[stream, Record, RecordSeparators -> {}];
-        Close[stream];
         {"String" -> string}
     ]
 
-WordsImport[filename_String]:= 
-    Module[{stream, words},
-        stream = OpenRead[filename];
+WordsImport[stream_]:= 
+    Module[{words},
         words = ReadList[stream, Word];
-        Close[stream];
         {"Words" -> words}
     ]
 
@@ -49,10 +39,11 @@ RegisterImport[
         "String" :> StringImport, 
         "Words" :> WordsImport,
         PlaintextImport
-    } (*,
-    "FunctionChannels" -> {"Streams"},
-	"AvailableElements" -> {"Data", "Lines", "Plaintext", "String", "Words"},
-	"DefaultElement" -> "Plaintext",
-	"BinaryFormat" -> True *)
+    },
+    {},
+	AvailableElements -> {"Data", "Lines", "Plaintext", "String", "Words"},
+	BinaryFormat -> True,
+	DefaultElement -> "Plaintext",
+    FunctionChannels -> {"Streams"}
 ]
 

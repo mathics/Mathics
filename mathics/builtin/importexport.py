@@ -125,18 +125,19 @@ class RegisterImport(Builtin):
 
     attributes = ('Protected', 'ReadProtected')
 
+    #XXX OptionsIssue
     options = {
-        '"Path"': 'Automatic',
-        '"FunctionChannels"': '{"FileNames"}',
-        '"Sources"': 'None',
-        '"DefaultElement"': 'Automatic',
-        '"AvailableElements"': 'None',
-        '"Options"': '{}',
-        '"OriginalChannel"': 'False',
-        '"BinaryFormat"': 'False',
-        '"Encoding"': 'False',
-        '"Extensions"': '{}',
-        '"AlphaChannel"': 'False',
+        'Path': 'Automatic',
+        'FunctionChannels': '{"FileNames"}',
+        'Sources': 'None',
+        'DefaultElement': 'Automatic',
+        'AvailableElements': 'None',
+        'Options': '{}',
+        'OriginalChannel': 'False',
+        'BinaryFormat': 'False',
+        'Encoding': 'False',
+        'Extensions': '{}',
+        'AlphaChannel': 'False',
     }
 
     rules = {
@@ -256,8 +257,27 @@ class Import(Builtin):
         # Load the importer
         (conditionals, default_function, posts, importer_options) = IMPORTERS[filetype]
 
+        #XXX OptionsIssue
+        #function_channels = importer_options.get(String("FunctionChannels"))
+        function_channels = importer_options.get(Symbol("FunctionChannels"))
+
+        #XXX OptionsIssue
+        #default_element = importer_options.get(String("DefaultElement"))
+        default_element = importer_options.get(Symbol("DefaultElement"))
+ 
         def get_results(tmp_function):
-            tmp = Expression(from_python(tmp_function), findfile).evaluate(evaluation)
+            if function_channels == Expression('List', String('FileNames')):
+                tmp = Expression(tmp_function, findfile).evaluate(evaluation)
+            elif function_channels == Expression('List', String('Streams')):
+                stream = Expression('OpenRead', findfile).evaluate(evaluation)
+                if stream == Symbol('$Failed'):
+                    #TODO print appropriate error message
+                    raise NotImplementedError
+                tmp = Expression(tmp_function, stream).evaluate(evaluation)
+                Expression('Close', stream).evaluate(evaluation)
+            else:
+                #TODO print appropriate error message
+                raise NotImplementedError
             tmp = tmp.get_leaves()
             assert all(expr.has_form('Rule', None) for expr in tmp)
             return {a.get_string_value() : b for (a,b) in map(lambda x: x.get_leaves(), tmp)}
@@ -267,12 +287,9 @@ class Import(Builtin):
 
         if elements == []:
             defaults = get_results(default_function)
-            default_element = importer_options.get("DefaultElement")
-
             if default_element == Symbol("Automatic"):
                 return Expression('List', *[Expression('Rule', String(key), defaults[key]) for key in defaults.keys()])
             else:
-                assert isinstance(default_element, String)
                 result = defaults.get(default_element.get_string_value())
                 if result is None:
                     evaluation.message('Import', 'noelem', default_element, from_python(filetype))
@@ -287,12 +304,9 @@ class Import(Builtin):
                 return from_python(sorted(set(conditionals.keys() + defaults.keys() + posts.keys())))
             else:
                 if el in conditionals.keys():
-                    result = Expression(from_python(conditionals[el]), findfile).evaluate(evaluation).get_leaves()
-                    assert len(result) == 1
-                    result = result[0].get_leaves()
-                    assert len(result) == 2 and result[0] == el
-                    return result[1]
-                    
+                    result = get_results(conditionals[el])
+                    assert len(result.keys()) == 1 and result.keys()[0] == el
+                    return result.values()[0]
                 elif el in posts.keys():
                     #TODO: allow use of conditionals
                     return get_results(posts[el])

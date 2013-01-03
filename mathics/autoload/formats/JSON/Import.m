@@ -30,10 +30,10 @@ importJSON[filename_String]:=
 
 RegisterImport[
     "JSON",
-    importJSON (*,
-    "AvailableElements" -> {"Data"},
-    "DefaultElement" -> "Data",
-    "FunctionChannels" -> {"Streams"},
-    "Sources" -> {"JLink`","Convert`JSON`"}
-    *)
+    importJSON,
+    {},
+    AvailableElements -> {"Data"},
+    DefaultElement -> "Data",
+    FunctionChannels -> {"FileNames"},
+    (* "Sources" -> {"JLink`","Convert`JSON`"} *)
 ]
