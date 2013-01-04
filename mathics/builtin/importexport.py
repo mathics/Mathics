@@ -24,13 +24,13 @@ class ImportFormats(Predefined):
     </dl>
     
     >> $ImportFormats
-     = {...}
+     = {CSV, JSON, Text}
     """
 
     name = '$ImportFormats'
 
     def evaluate(self, evaluation):
-        return from_python(IMPORTERS.keys())
+        return from_python(sorted(IMPORTERS.keys()))
 
 
 class ExportFormats(Predefined):
