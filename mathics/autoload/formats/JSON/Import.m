@@ -34,6 +34,5 @@ RegisterImport[
     {},
     AvailableElements -> {"Data"},
     DefaultElement -> "Data",
-    FunctionChannels -> {"FileNames"},
-    (* "Sources" -> {"JLink`","Convert`JSON`"} *)
+    FunctionChannels -> {"FileNames"}
 ]
