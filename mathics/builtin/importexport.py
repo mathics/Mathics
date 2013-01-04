@@ -358,6 +358,15 @@ class FileFormat(Builtin):
     #> FileFormat["ExampleData/moon.tif"]
      = TIFF
 
+    #> FileFormat["ExampleData/some-typo.extension"]
+     : File not found during FileFormat[ExampleData/some-typo.extension].
+     = $Failed
+    """
+
+    #TODO: JSON example file
+    """
+    #> FileFormat["ExampleData/example.json"]
+     = JSON
     """
 
     messages = {
@@ -369,14 +378,12 @@ class FileFormat(Builtin):
     def apply(self, filename, evaluation):
         'FileFormat[filename_?StringQ]'
 
-        path = filename.to_python().strip('"')
-
-        if path.startswith("ExampleData/"):
-            path = ROOT_DIR + 'data/' + path
-
-        if not os.path.exists(path):
+        findfile = Expression('FindFile', filename).evaluate(evaluation)
+        if findfile == Symbol('$Failed'):
             evaluation.message('FileFormat', 'nffil', Expression('FileFormat', filename))
             return Symbol('$Failed')
+
+        path = findfile.get_string_value()
         
         if not FileFormat.detector:
             loader = magic.MagicLoader()
@@ -399,8 +406,12 @@ class FileFormat(Builtin):
             result = 'PNG'
         elif 'image/tiff' in mimetypes:
             result = 'TIFF'
-        elif 'text/csv' in mimetypes:
+        elif 'text/csv' in mimetypes or path.endswith('.csv'):
             result = 'CSV'
+        elif 'application/json' in mimetypes or path.endswith('.json'):
+            result = 'JSON'
+        elif path.endswith('.xml'):
+            result = 'XML'
         else:
             for mimetype in mimetypes:
                 if mimetype.startswith('text'):
