@@ -270,9 +270,9 @@ class Import(Builtin):
                 tmp = Expression(tmp_function, findfile).evaluate(evaluation)
             elif function_channels == Expression('List', String('Streams')):
                 stream = Expression('OpenRead', findfile).evaluate(evaluation)
-                if stream == Symbol('$Failed'):
-                    #TODO print appropriate error message
-                    raise NotImplementedError
+                if stream.get_head_name() != 'InputStream':
+                    evaluation.message('Import', 'nffil')
+                    return None
                 tmp = Expression(tmp_function, stream).evaluate(evaluation)
                 Expression('Close', stream).evaluate(evaluation)
             else:
@@ -287,6 +287,8 @@ class Import(Builtin):
 
         if elements == []:
             defaults = get_results(default_function)
+            if defaults is None:
+                return Symbol('$Failed')
             if default_element == Symbol("Automatic"):
                 return Expression('List', *[Expression('Rule', String(key), defaults[key]) for key in defaults.keys()])
             else:
@@ -300,16 +302,22 @@ class Import(Builtin):
             el = elements[0]
             if el == "Elements":
                 defaults = get_results(default_function)
+                if defaults is None:
+                    return Symbol('$Failed')
                 # Use set() to remove duplicates
                 return from_python(sorted(set(conditionals.keys() + defaults.keys() + posts.keys())))
             else:
                 if el in conditionals.keys():
                     result = get_results(conditionals[el])
+                    if result is None:
+                        return Symbol('$Failed')
                     assert len(result.keys()) == 1 and result.keys()[0] == el
                     return result.values()[0]
                 elif el in posts.keys():
                     #TODO: allow use of conditionals
-                    return get_results(posts[el])
+                    result = get_results(posts[el])
+                    if result is None:
+                        return Symbol('$Failed')
                 else:
                     if defaults is None:
                         defaults = get_results(default_function)
