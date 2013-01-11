@@ -280,7 +280,8 @@ class Import(Builtin):
                 #TODO print appropriate error message
                 raise NotImplementedError
             tmp = tmp.get_leaves()
-            assert all(expr.has_form('Rule', None) for expr in tmp)
+            if not all(expr.has_form('Rule', None) for expr in tmp):
+                return None
 
             # return {a.get_string_value() : b for (a,b) in map(lambda x: x.get_leaves(), tmp)}
             return dict((a.get_string_value(), b) for (a,b) in map(lambda x: x.get_leaves(), tmp))
@@ -324,6 +325,8 @@ class Import(Builtin):
                 else:
                     if defaults is None:
                         defaults = get_results(default_function)
+                        if defaults is None:
+                            return Symbol('$Failed')
                     if el in defaults.keys():
                         return defaults[el]
                     else:
