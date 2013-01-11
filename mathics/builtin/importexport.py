@@ -156,12 +156,13 @@ class RegisterImport(Builtin):
             #TODO: Message
             return Symbol('$Failed')
 
-        IMPORTERS[formatname.get_string_value()] = (
-            {elem.get_string_value(): expr for [elem, expr] in [x.get_leaves() for x in leaves[:-1]]},  # Conditional
-            leaves[-1],                                                                                 # Default
-            {},                                                                                         # Post
-            options
-        )
+        # Does not work in python <= 2.6
+        #conditionals = {elem.get_string_value(): expr for [elem, expr] in [x.get_leaves() for x in leaves[:-1]]}
+        conditionals = dict((elem.get_string_value(), expr) for [elem, expr] in [x.get_leaves() for x in leaves[:-1]])
+        default = leaves[-1]
+        posts = {}
+            
+        IMPORTERS[formatname.get_string_value()] = (conditionals, default, posts, options)
 
         return Symbol('Null')
 
@@ -280,7 +281,9 @@ class Import(Builtin):
                 raise NotImplementedError
             tmp = tmp.get_leaves()
             assert all(expr.has_form('Rule', None) for expr in tmp)
-            return {a.get_string_value() : b for (a,b) in map(lambda x: x.get_leaves(), tmp)}
+
+            # return {a.get_string_value() : b for (a,b) in map(lambda x: x.get_leaves(), tmp)}
+            return dict((a.get_string_value(), b) for (a,b) in map(lambda x: x.get_leaves(), tmp))
 
         # Perform the import
         defaults = None
