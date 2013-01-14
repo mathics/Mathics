@@ -3,6 +3,7 @@
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.expression import Expression, String, Symbol, Integer, from_python
 
+CONTEXT_STACK = ["Global`"]
 CONTEXT_PATH = ['Global`', 'System`']
 
 def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
@@ -218,4 +219,116 @@ class ContextPath(Predefined):
 
     def evaluate(self, evaluation):
         return from_python(CONTEXT_PATH)
+
+class Begin(Builtin):
+    """
+    <dl>
+    <dt>'Begin["$context`$"]
+      <dd>sets the current context.
+    </dl>
+
+    >> Begin["ExampleContext`"]
+     = ExampleContext`
+
+    ##FIXME (see $Context definition)
+    ## >> $Context
+    ##  = ExampleContext`
+
+    >> End[]
+     = ExampleContext`
+
+    #> Begin["ABC`"]
+     = ABC`
+    #> Begin["DEF`"]
+     = DEF`
+    ## #> $Context
+    ##  = DEF`
+    #> End[]
+     = DEF`
+    ## #> $Context
+    ##  = ABC`
+    #> End[]
+     = ABC`
+    ## #> $Context
+    ##  = Global`
+    """
+
+    attributes = ('Protected')
+
+    messages = {
+        'cxt': 'Invalid context specified at position `2` in `1`. A context must consist of valid symbol names separated by and ending with `3`.',
+    }
+
+    def apply(self, context, evaluation):
+        'Begin[context_]'
+
+        if isinstance(context, String):
+            py_context = context.get_string_value()
+            if py_context.endswith('`'):
+                CONTEXT_STACK.append(py_context)
+                return context
+
+        evaluation.message('Begin', 'cxt', Integer(1), Expression('Begin', context), String("`"))
+        return
+
+class End(Builtin):
+    """
+    <dl>
+    <dt>'End[]
+      <dd>reverts to the previous context.
+    </dl>
+
+    >> Begin["ExampleContext`"]
+     = ExampleContext`
+
+    >> End[]
+     = ExampleContext`
+
+    ##FIXME (see $Context definition)
+    ## >> $Context
+    ##  = Global`
+
+    #> End[]
+     : No previous context defined.
+     = Global`
+
+    #> End[x]
+     : End called with 1 argument; 0 arguments are expected.
+     = End[x]
+
+    #> End[x, y]
+     : End called with 2 arguments; 0 arguments are expected.
+     = End[x, y]
+    """
+
+    attributes = ('Protected')
+
+
+    messages = {
+        'argr': '`1` called with 1 argument; `2` arguments are expected.',
+        'argx': '`1` called with `2` arguments; `3` arguments are expected.',
+        'noctx': 'No previous context defined.',
+    }
+
+    def apply(self, args, evaluation):
+        'End[args___]'
+
+        nargs = len(args.get_sequence())
+
+        if nargs == 1:
+            evaluation.message('End', 'argr', 'End', Integer(0))
+            return
+        elif nargs != 0:
+            evaluation.message('End', 'argx', 'End', Integer(nargs), Integer(0))
+            return
+
+        global CONTEXT_STACK
+
+        if len(CONTEXT_STACK) == 1:
+            evaluation.message('End', 'noctx')
+            result = CONTEXT_STACK[0]
+        else:
+            result = CONTEXT_STACK.pop()
+
+        return String(result)
 
