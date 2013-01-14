@@ -274,9 +274,15 @@ class DateList(_DateFormat):
     #> DateList[{"06/6/91", {"Day", "Month", "YearShort"}}]
      = {1991, 6, 6, 0, 0, 0.}
 
-    ## Current year assumed - this will need changing every year
-    #> DateList[{"5/18", {"Month", "Day"}}]
-     = {2012, 5, 18, 0, 0, 0.}
+    If not specified, the current year assumed
+    >> DateList[{"5/18", {"Month", "Day"}}]
+     = ...
+    """
+
+    #TODO: Somehow check that the current year is correct
+    """
+    #> DateList[{"5/18", {"Month", "Day"}}][[1]] == 2013
+     = True
     """
 
     rules = {
