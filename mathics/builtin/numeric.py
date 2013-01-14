@@ -12,9 +12,10 @@ import mpmath
 import sympy
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import dps, mpmath2sympy, prec
+from mathics.core.numbers import dps, mpmath2sympy, prec, convert_base
 from mathics.core import numbers
-from mathics.core.expression import Integer, Rational, Real, Complex, Atom, Expression, Number, Symbol
+from mathics.core.expression import (Integer, Rational, Real, Complex, Atom,
+        Expression, Number, Symbol, from_python)
 from mathics.core.convert import from_sympy
 from mathics.settings import MACHINE_PRECISION
 
@@ -348,7 +349,7 @@ class NumericQ(Builtin):
     
     def apply(self, expr, evaluation):
         'NumericQ[expr_]'
-        
+
         def test(expr):
             if isinstance(expr, Expression):
                 attr = evaluation.definitions.get_attributes(expr.head.get_name())
@@ -358,3 +359,58 @@ class NumericQ(Builtin):
             
         return Symbol('True') if test(expr) else Symbol('False')
                 
+class BaseForm(Builtin):
+    """
+    <dl> 
+    <dt>'BaseForm[$expr$, $n$]'
+        <dd>prints mumbers in $expr$ in base $n$.
+    </dl>
+
+    >> BaseForm[33, 2]
+     = 100001_2
+
+    >> BaseForm[234, 16]
+     = ea_16
+
+    >> BaseForm[12.3, 2]
+     = 1100.010011001100110011_2
+
+    >> BaseForm[-42, 16]
+     = -2a_16
+
+    >> BaseForm[x, 2]
+     = x
+
+    >> BaseForm[12, 3] // FullForm
+     = BaseForm[12, 3]
+
+    >> BaseForm[12, -3]
+     : Positive machine-sized integer expected at position 2 in BaseForm[12, -3]. 
+     : MakeBoxes[BaseForm[12, -3], OutputForm] is not a valid box structure. 
+    """
+
+    messages = {
+        'intpm': "Positive machine-sized integer expected at position 2 in BaseForm[`1`, `2`].",
+    }
+ 
+
+    def apply_makeboxes(self, expr, n, f, evaluation):
+        'MakeBoxes[BaseForm[expr_, n_], f:StandardForm|TraditionalForm|OutputForm]'
+
+        base = n.get_int_value()
+
+        if base <= 0:
+            evaluation.message('BaseForm', 'intpm', expr, n)
+            return
+
+        if not (isinstance(expr, Integer) or isinstance(expr, Real)):
+            return Expression("MakeBoxes", expr, f)
+
+        p = dps(expr.get_precision()) if isinstance(expr, Real) else 0
+        val = convert_base(expr.get_real_value(), base, p)
+
+        if f.get_name() == 'OutputForm':
+            return from_python("%s_%d" % (val, base))
+        else:
+            return Expression('SubscriptBox', from_python(val),
+                from_python(base))

@@ -123,3 +123,36 @@ def unpickle_mp(value):
         return sympy.Float(value)
     else:
         return value
+
+# algorithm based on 
+# http://stackoverflow.com/questions/5110177/how-to-convert-floating-point-number-to-base-3-in-python
+def convert_base(x, base, precision=10):
+    sign = -1 if x < 0 else 1
+    x *= sign
+
+    length_of_int = int(log(x, base))
+    iexps = range(length_of_int, -1, -1)
+    import string
+    digits = string.digits + string.lowercase
+
+    def convert(x, base, exponents):
+        out = []
+        for e in exponents:
+            d = int(x // (base ** e))
+            x -= d * (base ** e)
+            out.append(digits[d])
+            if x == 0 and e < 0: break
+        return out
+
+    int_part = convert(int(x), base, iexps)
+    if sign == -1:
+        int_part.insert(0, '-')
+
+    if (isinstance(x, float)):
+        fexps = range(-1, -int(precision + 1), -1)
+        real_part = convert(x  - int(x), base, fexps)
+
+        return "%s.%s" % (''.join(int_part), ''.join(real_part))
+    else:
+        return ''.join(int_part)
+
