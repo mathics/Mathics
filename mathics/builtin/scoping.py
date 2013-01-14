@@ -1,7 +1,9 @@
 # -*- coding: utf8 -*-
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.expression import Expression, String, Symbol, Integer
+from mathics.core.expression import Expression, String, Symbol, Integer, from_python
+
+CONTEXT_PATH = ['Global`', 'System`']
 
 def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
     def message(tag, *args):
@@ -200,5 +202,20 @@ class Context(Builtin):
             return
         context = evaluation.definitions.get_definition(name).context
         return String(context)
-    
-    
+
+class ContextPath(Predefined):
+    """
+    <dl>
+    <dt>'$ContextPath'
+        <dd>is a list of the currently active contexts which will be searched when looking for symbols.
+    </dl>
+
+    >> $ContextPath
+     = {Global`, System`}
+    """
+
+    name = '$ContextPath'
+
+    def evaluate(self, evaluation):
+        return from_python(CONTEXT_PATH)
+
