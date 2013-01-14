@@ -84,8 +84,8 @@ def main():
     trailing_ops = ['+', '-', '/', '*'] # TODO all binary operators?
 
     if args.execute:
-        evaluation = Evaluation(args.execute, definitions, timeout=30, out_callback=out_callback)
         print ">> %s" % args.execute
+        evaluation = Evaluation(args.execute, definitions, timeout=30, out_callback=out_callback)
         for result in evaluation.results:
                 if result.result is not None:
                     print ' = %s' % to_output(unicode(result.result))           
