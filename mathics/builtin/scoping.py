@@ -220,6 +220,22 @@ class ContextPath(Predefined):
     def evaluate(self, evaluation):
         return from_python(CONTEXT_PATH)
 
+class Context_Symbol(Predefined):
+    """
+    <dl>
+    <dt>'$Context'
+        <dd>is the current context.
+    </dl>
+
+    >> $Context
+     = Global`
+    """
+
+    name = '$Context'
+
+    def evaluate(self, evaluation):
+        return from_python(CONTEXT_STACK[-1])
+
 class Begin(Builtin):
     """
     <dl>
