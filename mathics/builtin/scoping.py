@@ -192,7 +192,14 @@ class Context(Builtin):
      = Global`
     >> Context[Sin] // InputForm
      = "System`"
+
+    #> Context[]
+     = Global`
     """
+
+    rules = {
+        'Context[]': '$Context',
+    }
     
     def apply(self, symbol, evaluation):
         'Context[symbol_]'
