@@ -162,7 +162,7 @@ class MathicsScanner(GenericScanner):
         self.tokens.append(Token(type=s))
         
     def t_symbol(self, s):
-        r' [a-zA-Z$][a-zA-Z0-9$]* '
+        r' [a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
         self.tokens.append(Token(type='symbol', value=s))
         
     def t_float(self, s):
