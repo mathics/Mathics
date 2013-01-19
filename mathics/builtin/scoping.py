@@ -6,6 +6,9 @@ from mathics.core.expression import Expression, String, Symbol, Integer, from_py
 CONTEXT_STACK = ["Global`"]
 CONTEXT_PATH = ['Global`', 'System`']
 
+def get_current_context():
+    return CONTEXT_STACK[-1]
+
 def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
     def message(tag, *args):
         if msg_symbol and evaluation:
@@ -202,14 +205,9 @@ class Context(Builtin):
     }
     
     def apply(self, symbol, evaluation):
-        'Context[symbol_]'
-        
-        name = symbol.get_name()
-        if not name:
-            evaluation.message('Context', 'normal')
-            return
-        context = evaluation.definitions.get_definition(name).context
-        return String(context)
+        'Context[symbol_Symbol]'
+
+        return String(symbol.get_context())
 
 class ContextPath(Predefined):
     """
@@ -253,9 +251,8 @@ class Begin(Builtin):
     >> Begin["ExampleContext`"]
      = ExampleContext`
 
-    ##FIXME (see $Context definition)
-    ## >> $Context
-    ##  = ExampleContext`
+    >> $Context
+     = ExampleContext`
 
     >> End[]
      = ExampleContext`
@@ -264,16 +261,16 @@ class Begin(Builtin):
      = ABC`
     #> Begin["DEF`"]
      = DEF`
-    ## #> $Context
-    ##  = DEF`
+    #> $Context
+     = DEF`
     #> End[]
      = DEF`
-    ## #> $Context
-    ##  = ABC`
+    #> $Context
+     = ABC`
     #> End[]
      = ABC`
-    ## #> $Context
-    ##  = Global`
+    #> $Context
+     = Global`
     """
 
     attributes = ('Protected')
@@ -307,9 +304,8 @@ class End(Builtin):
     >> End[]
      = ExampleContext`
 
-    ##FIXME (see $Context definition)
-    ## >> $Context
-    ##  = Global`
+    >> $Context
+     = Global`
 
     #> End[]
      : No previous context defined.
