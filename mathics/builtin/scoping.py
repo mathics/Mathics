@@ -182,7 +182,7 @@ class Module(Builtin):
         return result
         
 class Context(Builtin):
-    r"""
+    """
     <dl>
     <dt>'Context[$symbol$]'
         <dd>yields the name of the context where $symbol$ is defined in.
@@ -193,6 +193,9 @@ class Context(Builtin):
     
     >> Context[a]
      = Global`
+    #> a = 3; Context[a]
+     = Global`
+
     >> Context[Sin] // InputForm
      = "System`"
 
@@ -202,6 +205,14 @@ class Context(Builtin):
 
     rules = {
         'Context[]': '$Context',
+    }
+
+    attributes = ('HoldFirst', 'Protected')
+
+    messages = {
+        'argt': '`1` called with `2` arguments; `3` or `4` arguments are expected.',
+        'notfound': 'Symbol `1` not found.',
+        'ssle': 'Symbol, string, or HoldPattern[symbol] expected at position `2` in `1`.',
     }
     
     def apply(self, symbol, evaluation):
