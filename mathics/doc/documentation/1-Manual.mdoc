@@ -1118,7 +1118,11 @@ $ sage -python test.py
 </console>
 to run all tests.
 
-During a test run, the results of tests are stored for the documentation, both in MathML and \LaTeX form. The XML version of the documentation, which can be accessed in the Web interface, is updated immediately. To produce the \LaTeX documentation file, run:
+During a test run, the results of tests can be stored for the documentation, both in MathML and \LaTeX form, by executing
+<console>
+$ python test.py -o
+</console>
+The XML version of the documentation, which can be accessed in the Web interface, is updated immediately. To produce the \LaTeX documentation file, run:
 <console>
 $ python test.py -t
 </console>

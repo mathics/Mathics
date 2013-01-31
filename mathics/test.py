@@ -146,7 +146,7 @@ def open_ensure_dir(f, *args, **kwargs):
             os.makedirs(d)
         return open(f, *args, **kwargs)
 
-def test_all(quiet=False):
+def test_all(quiet=False, generate_output=False):
     if not quiet:
         print "Testing %s" % get_version_string(False)
       
@@ -158,7 +158,8 @@ def test_all(quiet=False):
         output_tex = {}
         for tests in documentation.get_tests():
             sub_count, sub_failed, symbols, index = test_tests(tests, index, quiet=quiet)
-            create_output(tests, output_xml, output_tex)
+            if generate_output:
+                create_output(tests, output_xml, output_tex)
             count += sub_count
             failed += sub_failed
             failed_symbols.update(symbols)
@@ -178,13 +179,14 @@ def test_all(quiet=False):
     if failed == 0:
         print '\nOK'
         
-        print 'Save XML'
-        with open_ensure_dir(settings.DOC_XML_DATA, 'w') as output_xml_file:
-            pickle.dump(output_xml, output_xml_file, 0)
-            
-        print 'Save TEX'
-        with open_ensure_dir(settings.DOC_TEX_DATA, 'w') as output_tex_file:
-            pickle.dump(output_tex, output_tex_file, 0)
+        if generate_output:
+            print 'Save XML'
+            with open_ensure_dir(settings.DOC_XML_DATA, 'w') as output_xml_file:
+                pickle.dump(output_xml, output_xml_file, 0)
+                
+            print 'Save TEX'
+            with open_ensure_dir(settings.DOC_TEX_DATA, 'w') as output_tex_file:
+                pickle.dump(output_tex, output_tex_file, 0)
     else:
         print '\nFAILED'
         return sys.exit(1)      # Travis-CI knows the tests have failed
@@ -205,7 +207,8 @@ def main():
     parser.add_argument('--help', '-h', help='show this help message and exit', action='help')
     parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + settings.VERSION)
     parser.add_argument('--section', '-s', dest="section", metavar="SECTION", help="only test SECTION")
-    parser.add_argument('--tex', '-t', dest="tex", action="store_true", help="generate TeX file")
+    parser.add_argument('--output', '-o', dest="output", action="store_true", help="generate TeX and XML output data")
+    parser.add_argument('--tex', '-t', dest="tex", action="store_true", help="generate TeX documentation file")
     args = parser.parse_args()
     
     if args.tex:
@@ -214,7 +217,7 @@ def main():
         if args.section:
             test_section(args.section)
         else:
-            test_all()
+            test_all(generate_output=args.output)
 
 if __name__ == '__main__':
     main()
