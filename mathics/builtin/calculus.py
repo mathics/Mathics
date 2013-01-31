@@ -421,6 +421,12 @@ class Integrate(SympyFunction):
             result = sympy.integrate(f_sympy, *vars)
         except sympy.PolynomialError:
             return
+        except ValueError:
+            # e.g. ValueError: can't raise polynomial to a negative power
+            return
+        except NotImplementedError:
+            # e.g. NotImplementedError: Result depends on the sign of -sign(_Mathics_User_j)*sign(_Mathics_User_w)
+            return
             
         if prec is not None:
             result = sympy.N(result)
