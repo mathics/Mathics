@@ -5,11 +5,12 @@ Importing and Exporting
 """
 
 import os
-import magic
 
 from mathics.core.expression import Expression, from_python
 from mathics.builtin.base import Builtin, Predefined, Symbol, String
 from mathics.settings import ROOT_DIR
+
+from pymimesniffer import magic
 
 
 IMPORTFORMATS = ['Binary', 'BMP', 'GIF', 'JPEG', 'PDF', 'PNG', 'Text', 'TIFF', 'XML']
@@ -171,7 +172,6 @@ class Export(Builtin):
 
     pass
 
-
 class FileFormat(Builtin):
     """
     <dl>
@@ -204,6 +204,8 @@ class FileFormat(Builtin):
     messages = {
         'nffil': 'File not found during `1`.',
     }
+    
+    detector = None
 
     def apply(self, filename, evaluation):
         'FileFormat[filename_?StringQ]'
@@ -216,30 +218,40 @@ class FileFormat(Builtin):
         if not os.path.exists(path):
             evaluation.message('FileFormat', 'nffil', Expression('FileFormat', filename))
             return Symbol('$Failed')
-
-        fileformat = magic.from_file(path)
+        
+        if not FileFormat.detector:
+            loader = magic.MagicLoader()
+            loader.load()
+            FileFormat.detector = magic.MagicDetector(loader.mimetypes)
+            
+        mimetypes = FileFormat.detector.match(path)
+        mimetypes = set(mimetypes)
 
         #TODO: Add more file formats
-
-        if fileformat.startswith('PC bitmap,'):
-            result = 'BMP'
-        elif fileformat.startswith('GIF image data,'):
+        
+        result = 'Binary'
+        if 'image/gif' in mimetypes:
             result = 'GIF'
-        elif fileformat.startswith('JPEG image data,'):
+        elif 'image/jpeg' in mimetypes:
             result = 'JPEG'
-        elif fileformat.startswith('PDF document,'):
+        elif 'application/pdf' in mimetypes:
             result = 'PDF'
-        elif fileformat.startswith('PNG image data,'):
+        elif 'image/png' in mimetypes:
             result = 'PNG'
-        elif fileformat.startswith('TIFF image data,'):
+        elif 'image/tiff' in mimetypes:
             result = 'TIFF'
-        elif fileformat == 'XML  document text':
-            result = 'XML'
         else:
-            if 'text' in fileformat:
-                result = 'Text'
+            for mimetype in mimetypes:
+                if mimetype.startswith('text'):
+                    result = 'Text'
+                    break
+                elif 'xml' in mimetype:
+                    result = 'XML'
+                    break
             else:
-                result = 'Binary'
+                # TODO: text file recognition is not perfect
+                if path.lower().endswith('.txt'):
+                    result = 'Text'
 
         return from_python(result)
 
