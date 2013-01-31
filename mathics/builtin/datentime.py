@@ -276,14 +276,11 @@ class DateList(_DateFormat):
 
     If not specified, the current year assumed
     >> DateList[{"5/18", {"Month", "Day"}}]
-     = ...
-    """
-
-    #TODO: Somehow check that the current year is correct
-    """
-    #> DateList[{"5/18", {"Month", "Day"}}][[1]] == 2013
+     = {..., 5, 18, 0, 0, 0.}
+    #> DateList[{"5/18", {"Month", "Day"}}][[1]] == DateList[][[1]]
      = True
     """
+    #TODO: Somehow check that the current year is correct
 
     rules = {
         'DateList[]': 'DateList[AbsoluteTime[]]',
