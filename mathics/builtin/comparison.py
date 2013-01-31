@@ -292,6 +292,9 @@ class Unequal(_InequalityOperator):
     
     #> Pi != N[Pi]
      = False
+
+    #> a_ != b_
+     = a_ != b_
     """
     
     operator = '!='
@@ -306,9 +309,6 @@ class Unequal(_InequalityOperator):
                 return Symbol('False')
             else:
                 return Symbol('True')
-        
-        if x.is_same(y):
-            return Symbol('False')
         
 class Less(_InequalityOperator):
     operator = '<'
