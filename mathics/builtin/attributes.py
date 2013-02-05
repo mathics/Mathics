@@ -122,7 +122,7 @@ class Protect(Builtin):
     attributes = ('HoldAll',)
     
     rules = {
-        'Protect[symbol_]': 'SetAttributes[symbol, Protected]',
+        'Protect[symbols__]': 'SetAttributes[{symbols}, Protected]',
     }
     
 class Unprotect(Builtin):
@@ -130,7 +130,7 @@ class Unprotect(Builtin):
     attributes = ('HoldAll',)
     
     rules = {
-        'Unprotect[symbol_]': 'ClearAttributes[symbol, Protected]',
+        'Unprotect[symbols__]': 'ClearAttributes[{symbols}, Protected]',
     }
     
 class Protected(Predefined):
