@@ -866,12 +866,14 @@ class Get(PrefixOperator):
         except IOError:
             evaluation.message('General', 'noopen', path)
             return
+
+        try:
+            parse
+            ParseError
+        except NameError:
+            from mathics.core.parser import parse, ParseError
+
         for lineno, tmp in enumerate(result):
-            try:
-                parse
-                ParseError
-            except NameError:
-                from mathics.core.parser import parse, ParseError
             try:
                 expr = parse(tmp)
             except:     #FIXME: something weird is going on here
