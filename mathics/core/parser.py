@@ -162,7 +162,10 @@ class MathicsScanner(GenericScanner):
         self.tokens.append(Token(type=s))
         
     def t_symbol(self, s):
-        r' [a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
+        r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
+        if s.startswith('`'):
+            #FIXME: Replace Global with the current value of $Context
+            s = 'Global' + s     
         self.tokens.append(Token(type='symbol', value=s))
         
     def t_float(self, s):
