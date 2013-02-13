@@ -23,9 +23,8 @@ class Erf(_MPMathFunction):
     >> Plot[Erf[x], {x, -2, 2}]
      = -Graphics-
     """
-    
-    def eval(self, z):
-        return mpmath.erf(z)
+
+    mpmath_name = 'erf'
     
 class ProductLog(_MPMathFunction):
     """
@@ -50,6 +49,7 @@ class ProductLog(_MPMathFunction):
     """
     
     sympy_name = 'LambertW' # function called LambertW in SymPy
+    mpmath_name = 'lambertw'
     
     rules = {
         'ProductLog[0]': '0',
@@ -57,9 +57,6 @@ class ProductLog(_MPMathFunction):
         'ProductLog[z_] * E ^ ProductLog[z_]': 'z',
     }
     
-    def eval(self, z):
-        return mpmath.lambertw(z)
-
 class Legendre(_MPMathFunction):
     def eval(self, z):
         return mpmath.legendre(1, z)

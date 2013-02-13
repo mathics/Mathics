@@ -20,9 +20,15 @@ from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, dps
 
 class _MPMathFunction(SympyFunction):
     attributes = ('Listable', 'NumericFunction')
+
+    mpmath_name = None
     
     def eval(self, z):
-        return None
+        if self.mpmath_name is None:
+            return None
+        
+        mpmath_function = getattr(mpmath, self.mpmath_name)
+        return mpmath_function(z)
     
     def apply_exact(self, z, evaluation):
         '%(name)s[z_?ExactNumberQ]'
