@@ -1141,14 +1141,17 @@ class _IterationFunction(Builtin):
         index = imin.evaluate(evaluation)
         imax = imax.evaluate(evaluation)
         di = di.evaluate(evaluation)
-        
-        if index is None or imax is None or di is None:
-            if self.throw_iterb:
-                evaluation.message(self.get_name(), 'iterb')
-            return
-        
+
         result = []
-        while Expression('LessEqual', index, imax).evaluate(evaluation) == Symbol('True'):
+        while True:
+            cont = Expression('LessEqual', index, imax).evaluate(evaluation)
+            if cont == Symbol('False'):
+                break
+            if cont != Symbol('True'):
+                if self.throw_iterb:
+                    evaluation.message(self.get_name(), 'iterb')
+                return
+
             evaluation.check_stopped()
             try:
                 item = dynamic_scoping(expr.evaluate, {i.name: index}, evaluation)
