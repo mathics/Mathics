@@ -55,7 +55,7 @@ MANAGERS = ADMINS
 
 ROOT_DIR = pkg_resources.resource_filename('mathics', '') + '/'
 if sys.platform.startswith('win'):
-    DATA_DIR = '%APPDATA%/Python/Mathics/'
+    DATA_DIR = os.environ['APPDATA'].replace(os.path.sep, '/') + '/Python/Mathics/'
 else:
     DATA_DIR = path.expanduser('~/.local/var/mathics/')
 #if not path.exists(DATA_DIR):
