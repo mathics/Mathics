@@ -307,26 +307,12 @@ class AntiMinus(PrefixOperator):
     precedence = 480
     attributes = ('Listable', 'NumericFunction')
     
-    rules = {
-        'AntiMinus[x_]': 'x',
-    }
-    
-    formats = {
-        'AntiMinus[x_]': 'Prefix[{HoldForm[x]}, "-", 480]',
-        'AntiMinus[expr_Divide]': 'Prefix[{HoldForm[expr]}, "-", 399]',  # don't put e.g. -2/3 in parentheses
-        'AntiMinus[Infix[expr_, op_, 400, grouping_]]': 'Prefix[{Infix[expr, op, 400, grouping]}, "-", 399]',
-    }
-    
     def apply_int(self, x, evaluation):
-        'AntiMinus[x_Integer]'
-        
+        'AntiMinus[x_]'
         return x
     
     def post_parse(self, expression):
-        if expression.get_head().get_name() == 'AntiMinus' and len(expression.leaves) == 1 and isinstance(expression.leaves[0], Number):
-            return Number.from_mp(expression.leaves[0].to_sympy())
-        else:
-            return super(AntiMinus, self).post_parse(expression)
+        return expression.leaves[0]
     
 def create_infix(items, operator, prec, grouping):
     if len(items) == 1:
