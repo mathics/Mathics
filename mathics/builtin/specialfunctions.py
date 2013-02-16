@@ -8,6 +8,9 @@ import mpmath
 
 from mathics.builtin.arithmetic import _MPMathFunction
 from mathics.core.expression import Integer
+from mathics.core.numbers import min_prec, sympy2mpmath, mpmath2sympy
+from mathics.core.convert import from_sympy
+from mathics.builtin.base import SympyFunction
 
 class Erf(_MPMathFunction):
     """
@@ -69,21 +72,54 @@ class Zeta(_MPMathFunction):
     sympy_name = 'zeta'
     mpmath_name = 'zeta'
 
-class BesselJ(_MPMathFunction):
+class BesselJ(SympyFunction):
     """
     >> BesselJ[0, 5.2]
-     = -0.11029
+     = -0.11029043979098654
+
+    #> BesselJ[2.5, 1]
+     = 0.0494968102284779423
 
     ## >> D[BesselJ[n, z], z]
     ##  = BesselJ[n - 1, z] / 2 - BesselJ[n + 1, z] / 2
+    """
 
     #TODO: Sympy Backend is not as powerful as Mathmeatica
+    """
     >> BesselJ[1/2, x]
      = Sqrt[2 / Pi] Sin[x] / Sqrt[x]
     """
 
     sympy_name = 'besselj'
-    mpmath_name = 'besselj'
+
+    def apply_inexact1(self, n, z, evaluation):
+        'BesselJ[n_, z_?InexactNumberQ]'
+
+        prec = min_prec(n, z)
+        with mpmath.workprec(prec):
+            n, z = sympy2mpmath(n.to_sympy()), sympy2mpmath(z.to_sympy())
+            if n is None or z is None:
+                return
+            try:
+                result = self.eval(n, z)
+                result = mpmath2sympy(result, prec)
+            except ValueError, exc:
+                text = str(exc)
+                if text == 'gamma function pole':
+                    return Symbol('ComplexInfinity')
+                else:
+                    raise
+            except ZeroDivisionError:
+                return
+        return from_sympy(result)
+            
+    def apply_inexact2(self, n, z, evaluation):
+        'BesselJ[n_?InexactNumberQ, z_]'
+
+        return self.apply_inexact1(n, z, evaluation)
+
+    def eval(self, n, z):
+        return mpmath.besselj(n, z)
 
 class Legendre(_MPMathFunction):
     def eval(self, z):

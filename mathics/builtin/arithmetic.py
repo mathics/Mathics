@@ -19,6 +19,8 @@ from mathics.core.convert import from_sympy
 from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, dps
 
 class _MPMathFunction(SympyFunction):
+    #TODO adapt this to work with multiple arguments
+
     attributes = ('Listable', 'NumericFunction')
 
     mpmath_name = None
@@ -40,7 +42,7 @@ class _MPMathFunction(SympyFunction):
         return result
     
     def apply_inexact(self, z, evaluation):
-        '%(name)s[z_Real|z_Complex?InexactNumberQ]'
+        '%(name)s[z_?InexactNumberQ]'
         
         prec = z.get_precision()
         with mpmath.workprec(prec):
