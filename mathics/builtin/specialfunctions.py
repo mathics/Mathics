@@ -57,6 +57,34 @@ class ProductLog(_MPMathFunction):
         'ProductLog[z_] * E ^ ProductLog[z_]': 'z',
     }
     
+class Zeta(_MPMathFunction):
+    """
+    >> Zeta[2]
+     = Pi ^ 2 / 6
+
+    >> Zeta[-2.5 + I]
+     = 0.0235936105863796486 + 0.00140779960583837704 I
+    """
+
+    sympy_name = 'zeta'
+    mpmath_name = 'zeta'
+
+class BesselJ(_MPMathFunction):
+    """
+    >> BesselJ[0, 5.2]
+     = -0.11029
+
+    ## >> D[BesselJ[n, z], z]
+    ##  = BesselJ[n - 1, z] / 2 - BesselJ[n + 1, z] / 2
+
+    #TODO: Sympy Backend is not as powerful as Mathmeatica
+    >> BesselJ[1/2, x]
+     = Sqrt[2 / Pi] Sin[x] / Sqrt[x]
+    """
+
+    sympy_name = 'besselj'
+    mpmath_name = 'besselj'
+
 class Legendre(_MPMathFunction):
     def eval(self, z):
         return mpmath.legendre(1, z)
