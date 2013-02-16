@@ -72,7 +72,41 @@ class Zeta(_MPMathFunction):
     sympy_name = 'zeta'
     mpmath_name = 'zeta'
 
-class BesselJ(SympyFunction):
+class _Bessel(SympyFunction):
+    def apply_inexact1(self, n, z, evaluation):
+        '%(name)s[n_, z_?InexactNumberQ]'
+
+        prec = min_prec(n, z)
+        with mpmath.workprec(prec):
+            n, z = sympy2mpmath(n.to_sympy()), sympy2mpmath(z.to_sympy())
+            if n is None or z is None:
+                return
+            try:
+                result = self.eval(n, z)
+                result = mpmath2sympy(result, prec)
+            except ValueError, exc:
+                text = str(exc)
+                if text == 'gamma function pole':
+                    return Symbol('ComplexInfinity')
+                else:
+                    raise
+            except ZeroDivisionError:
+                return
+        return from_sympy(result)
+            
+    def apply_inexact2(self, n, z, evaluation):
+        '%(name)s[n_?InexactNumberQ, z_]'
+
+        return self.apply_inexact1(n, z, evaluation)
+
+    def eval(self, n, z):
+        if self.mpmath_name is None:
+            return None
+        
+        mpmath_function = getattr(mpmath, self.mpmath_name)
+        return mpmath_function(n, z)
+
+class BesselJ(_Bessel):
     """
     >> BesselJ[0, 5.2]
      = -0.11029043979098654
@@ -91,72 +125,40 @@ class BesselJ(SympyFunction):
     """
 
     sympy_name = 'besselj'
+    mpmath_name = 'besselj'
 
-    def apply_inexact1(self, n, z, evaluation):
-        'BesselJ[n_, z_?InexactNumberQ]'
-
-        prec = min_prec(n, z)
-        with mpmath.workprec(prec):
-            n, z = sympy2mpmath(n.to_sympy()), sympy2mpmath(z.to_sympy())
-            if n is None or z is None:
-                return
-            try:
-                result = self.eval(n, z)
-                result = mpmath2sympy(result, prec)
-            except ValueError, exc:
-                text = str(exc)
-                if text == 'gamma function pole':
-                    return Symbol('ComplexInfinity')
-                else:
-                    raise
-            except ZeroDivisionError:
-                return
-        return from_sympy(result)
-            
-    def apply_inexact2(self, n, z, evaluation):
-        'BesselJ[n_?InexactNumberQ, z_]'
-
-        return self.apply_inexact1(n, z, evaluation)
-
-    def eval(self, n, z):
-        return mpmath.besselj(n, z)
-
-class BesselY(SympyFunction):
+class BesselY(_Bessel):
     """
     >> BesselY[1.5, 4]
      = 0.367112032460934155
     """
 
+    #TODO: Special Values
+    """
+    >> BesselY[0, 0]
+     = - Infinity
+    """
+
     sympy_name = 'bessely'
+    mpmath_name = 'bessely'
 
-    def apply_inexact1(self, n, z, evaluation):
-        'BesselY[n_, z_?InexactNumberQ]'
+class BesselI(_Bessel):
+    """
+    >> BesselI[1.5, 4]
+     = 8.17263323168659544
+    """
 
-        prec = min_prec(n, z)
-        with mpmath.workprec(prec):
-            n, z = sympy2mpmath(n.to_sympy()), sympy2mpmath(z.to_sympy())
-            if n is None or z is None:
-                return
-            try:
-                result = self.eval(n, z)
-                result = mpmath2sympy(result, prec)
-            except ValueError, exc:
-                text = str(exc)
-                if text == 'gamma function pole':
-                    return Symbol('ComplexInfinity')
-                else:
-                    raise
-            except ZeroDivisionError:
-                return
-        return from_sympy(result)
-            
-    def apply_inexact2(self, n, z, evaluation):
-        'BesselY[n_?InexactNumberQ, z_]'
+    sympy_name = 'besseli'
+    mpmath_name = 'besseli'
 
-        return self.apply_inexact1(n, z, evaluation)
+class BesselK(_Bessel):
+    """
+    >> BesselK[1.5, 4]
+     = 0.0143470307207600668
+    """
 
-    def eval(self, n, z):
-        return mpmath.bessely(n, z)
+    sympy_name = 'besselk'
+    mpmath_name = 'besselk'
 
 class Legendre(_MPMathFunction):
     def eval(self, z):
