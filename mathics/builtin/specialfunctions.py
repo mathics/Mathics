@@ -106,6 +106,8 @@ class _Bessel(SympyFunction):
         mpmath_function = getattr(mpmath, self.mpmath_name)
         return mpmath_function(n, z)
 
+# Bessel Functions
+
 class BesselJ(_Bessel):
     """
     >> BesselJ[0, 5.2]
@@ -160,6 +162,10 @@ class BesselK(_Bessel):
     sympy_name = 'besselk'
     mpmath_name = 'besselk'
 
+#TODO: Spherical Bessel Functions
+
+# Hankel Functions
+
 class HankelH1(_Bessel):
     """
     >> HankelH1[1.5, 4]
@@ -177,6 +183,86 @@ class HankelH2(_Bessel):
 
     sympy_name = 'hankel2'
     mpmath_name = 'hankel2'
+
+# Airy Functions
+
+class AirAi(_Bessel):
+    sympy_name = ''
+    mpmath_name = 'airyai'
+
+class AirBi(_Bessel):
+    sympy_name = ''
+    mpmath_name = 'airybi'
+
+# Kelvin Functions
+
+class KelvinBer(_Bessel):
+    rules = {
+        'KelvinBer[z_]': 'KelvinBer[0, z]',
+    }
+
+    sympy_name = ''
+    mpmath_name = 'ber'
+
+class KelvinBei(_Bessel):
+    rules = {
+        'KelvinBei[z_]': 'KelvinBei[0, z]',
+    }
+
+    sympy_name = ''
+    mpmath_name = 'bei'
+
+class KelvinKer(_Bessel):
+    rules = {
+        'KelvinKer[z_]': 'KelvinKer[0, z]',
+    }
+
+    sympy_name = ''
+    mpmath_name = 'ker'
+
+class KelvinKei(_Bessel):
+    rules = {
+        'KelvinKei[z_]': 'KelvinKei[0, z]',
+    }
+
+    sympy_name = ''
+    mpmath_name = 'kei'
+
+# Struve and Related Functions
+
+class StruveH(_Bessel):
+    sympy_name = ''
+    mpmath_name = 'struveh'
+
+class StruveL(_Bessel):
+    sympy_name = ''
+    mpmath_name = 'struveh'
+
+class AngerJ(_Bessel):
+    sympy_name = ''
+    mpmath_name = 'angerj'
+
+class WeberE(_Bessel):
+    sympy_name = ''
+    mpmath_name = 'webere'
+
+# Function Zeros
+
+class BesselJZero(_Bessel):
+    sympy_name = ''
+    mpmath_name = 'besseljzero'
+    
+class BesselYZero(_Bessel):
+    sympy_name = ''
+    mpmath_name = 'besselyzero'
+
+class AirAiZero(_Bessel):
+    sympy_name = ''
+    mpmath_name = 'airyaizero'
+
+class AirBiZero(_Bessel):
+    sympy_name = ''
+    mpmath_name = 'airybizero'
 
 class Legendre(_MPMathFunction):
     def eval(self, z):
