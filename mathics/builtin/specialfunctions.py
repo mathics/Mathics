@@ -160,6 +160,24 @@ class BesselK(_Bessel):
     sympy_name = 'besselk'
     mpmath_name = 'besselk'
 
+class HankelH1(_Bessel):
+    """
+    >> HankelH1[1.5, 4]
+     = 0.185285948354268953 + 0.367112032460934155 I
+    """
+
+    sympy_name = 'hankel1'
+    mpmath_name = 'hankel1'
+
+class HankelH2(_Bessel):
+    """
+    >> HankelH2[1.5, 4]
+     = 0.185285948354268953 - 0.367112032460934155 I
+    """
+
+    sympy_name = 'hankel2'
+    mpmath_name = 'hankel2'
+
 class Legendre(_MPMathFunction):
     def eval(self, z):
         return mpmath.legendre(1, z)
