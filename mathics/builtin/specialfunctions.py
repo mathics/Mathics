@@ -6,11 +6,13 @@ Special functions
 
 import mpmath
 
+from mathics.builtin.base import Builtin
 from mathics.builtin.arithmetic import _MPMathFunction
 from mathics.core.expression import Integer, Symbol
 from mathics.core.numbers import min_prec, sympy2mpmath, mpmath2sympy, SpecialValueError
 from mathics.core.convert import from_sympy
 from mathics.builtin.base import SympyFunction
+from mathics.builtin.numeric import get_precision
 
 class Erf(_MPMathFunction):
     """
@@ -516,7 +518,7 @@ class BesselYZero(_Bessel):
     sympy_name = ''
     mpmath_name = 'besselyzero'
 
-class AiryAiZero(_MPMathFunction):
+class AiryAiZero(Builtin):
     """
     <dl>
     <dt>'AiryAiZero[$k$]'
@@ -525,16 +527,36 @@ class AiryAiZero(_MPMathFunction):
 
     >> N[AiryAiZero[1]]
      = -2.33810741045976704
+
+    #> AiryAiZero[1]
+     = AiryAiZero[1]
+
+    #> AiryAiZero[1.]
+     = AiryAiZero[1.]
+
+    #> AiryAi[AiryAiZero[1]]
+     = 0
     """
 
     #TODO: 'AiryAiZero[$k$, $x0$]' - $k$th zero less than x0 
 
     attributes = ('Listable', 'NHoldFirst', 'NumericFunction', 'Protected', 'ReadProtected')
 
-    sympy_name = ''
-    mpmath_name = 'airyaizero'
+    rules = {
+        'AiryAi[AiryAiZero[k_]]': '0',
+    }
 
-class AiryBiZero(_MPMathFunction):
+    def apply_N(self, k, precision, evaluation):
+        'N[AiryAiZero[k_Integer], precision_]'
+
+        prec = get_precision(precision, evaluation)
+        k_int = k.get_int_value()
+
+        with mpmath.workprec(prec):
+            result = mpmath2sympy(mpmath.airyaizero(k_int), prec)
+        return from_sympy(result)
+
+class AiryBiZero(Builtin):
     """
     <dl>
     <dt>'AiryBiZero[$k$]'
@@ -543,14 +565,34 @@ class AiryBiZero(_MPMathFunction):
 
     >> N[AiryBiZero[1]]
      = -1.17371322270912792
+
+    #> AiryBiZero[1]
+     = AiryBiZero[1]
+
+    #> AiryBiZero[1.]
+     = AiryBiZero[1.]
+
+    #> AiryBi[AiryBiZero[1]]
+     = 0
     """
 
     #TODO: 'AiryBiZero[$k$, $x0$]' - $k$th zero less than x0 
 
     attributes = ('Listable', 'NHoldFirst', 'NumericFunction', 'Protected', 'ReadProtected')
 
-    sympy_name = ''
-    mpmath_name = 'airybizero'
+    rules = {
+        'AiryBi[AiryBiZero[z_]]': '0',
+    }
+
+    def apply_N(self, k, precision, evaluation):
+        'N[AiryBiZero[k_Integer], precision_]'
+
+        prec = get_precision(precision, evaluation)
+        k_int = k.get_int_value()
+
+        with mpmath.workprec(prec):
+            result = mpmath2sympy(mpmath.airybizero(k_int), prec)
+        return from_sympy(result)
 
 class Legendre(_MPMathFunction):
     def eval(self, z):
