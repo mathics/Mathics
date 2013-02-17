@@ -138,7 +138,7 @@ class BesselY(_Bessel):
     #TODO: Special Values
     """
     >> BesselY[0, 0]
-     = - Infinity
+     = -Infinity
     """
 
     sympy_name = 'bessely'
@@ -186,17 +186,44 @@ class HankelH2(_Bessel):
 
 # Airy Functions
 
-class AirAi(_Bessel):
+class AiryAi(_MPMathFunction):
+    """
+    >> AiryAi[0.5]
+     = 0.23169360648083349
+
+    >> AiryAi[0.5 + I]
+     = 0.157118446499986172 - 0.241039813840210768 I
+    """
+
     sympy_name = ''
     mpmath_name = 'airyai'
 
-class AirBi(_Bessel):
+class AiryBi(_MPMathFunction):
+    """
+    >> AiryBi[0.5]
+     = 0.854277043103155493
+
+    >> AiryBi[0.5 + I]
+     = 0.688145273113482414 + 0.370815390737010831 I
+    """
+
     sympy_name = ''
     mpmath_name = 'airybi'
 
 # Kelvin Functions
 
 class KelvinBer(_Bessel):
+    """
+    >> KelvinBer[0.5]
+     = 0.999023463990838256
+
+    >> KelvinBer[1.5 + I]
+     = 1.11620420872233787 - 0.117944469093970067 I
+
+    >> KelvinBer[0.5, 0.25]
+     = 0.148824330530639942
+    """
+
     rules = {
         'KelvinBer[z_]': 'KelvinBer[0, z]',
     }
@@ -205,6 +232,17 @@ class KelvinBer(_Bessel):
     mpmath_name = 'ber'
 
 class KelvinBei(_Bessel):
+    """
+    >> KelvinBei[0.5]
+     = 0.0624932183821994586
+
+    >> KelvinBei[1.5 + I]
+     = 0.326323348699806294 + 0.75560557861089228 I
+
+    >> KelvinBei[0.5, 0.25]
+     = 0.370152900194021013
+    """
+
     rules = {
         'KelvinBei[z_]': 'KelvinBei[0, z]',
     }
@@ -213,6 +251,17 @@ class KelvinBei(_Bessel):
     mpmath_name = 'bei'
 
 class KelvinKer(_Bessel):
+    """
+    >> KelvinKer[0.5]
+     = 0.855905872118634214
+
+    >> KelvinKer[1.5 + I]
+     = -0.167162242027385125 - 0.184403720314419905 I
+
+    >> KelvinKer[0.5, 0.25]
+     = 0.450022838747182502
+    """
+
     rules = {
         'KelvinKer[z_]': 'KelvinKer[0, z]',
     }
@@ -221,6 +270,17 @@ class KelvinKer(_Bessel):
     mpmath_name = 'ker'
 
 class KelvinKei(_Bessel):
+    """
+    >> KelvinKei[0.5]
+     = -0.671581695094367603
+
+    >> KelvinKei[1.5 + I]
+     = -0.248993863536003923 + 0.303326291875385478 I
+
+    >> KelvinKei[0.5, 0.25]
+     = -2.05169683896315934
+    """
+
     rules = {
         'KelvinKei[z_]': 'KelvinKei[0, z]',
     }
@@ -231,36 +291,76 @@ class KelvinKei(_Bessel):
 # Struve and Related Functions
 
 class StruveH(_Bessel):
+    """
+    >> StruveH[1.5, 3.5]
+     = 1.13192125271801312
+    """
+
     sympy_name = ''
     mpmath_name = 'struveh'
 
 class StruveL(_Bessel):
+    """
+    >> StruveL[1.5, 3.5]
+     = 4.41126360920433996
+    """
+
     sympy_name = ''
-    mpmath_name = 'struveh'
+    mpmath_name = 'struvel'
 
 class AngerJ(_Bessel):
+    """
+    >> AngerJ[1.5, 3.5]
+     = 0.294478574459563408
+    """
+
     sympy_name = ''
     mpmath_name = 'angerj'
 
 class WeberE(_Bessel):
+    """
+    >> WeberE[1.5, 3.5]
+     = -0.397256259210030809
+    """
+
     sympy_name = ''
     mpmath_name = 'webere'
 
 # Function Zeros
 
 class BesselJZero(_Bessel):
+    """
+    >> N[BesselJZero[0, 1]]
+     = 2.40482555769577277
+    """
+
     sympy_name = ''
     mpmath_name = 'besseljzero'
     
 class BesselYZero(_Bessel):
+    """
+    >> N[BesselYZero[0, 1]]
+     = 0.893576966279167522
+    """
+
     sympy_name = ''
     mpmath_name = 'besselyzero'
 
-class AirAiZero(_Bessel):
+class AiryAiZero(_MPMathFunction):
+    """
+    >> N[AiryAiZero[1]]
+     = -2.33810741045976704
+    """
+
     sympy_name = ''
     mpmath_name = 'airyaizero'
 
-class AirBiZero(_Bessel):
+class AiryBiZero(_MPMathFunction):
+    """
+    >> N[AiryBiZero[1]]
+     = -1.17371322270912792
+    """
+
     sympy_name = ''
     mpmath_name = 'airybizero'
 
