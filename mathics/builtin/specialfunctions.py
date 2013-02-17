@@ -62,6 +62,11 @@ class ProductLog(_MPMathFunction):
     
 class Zeta(_MPMathFunction):
     """
+    <dl>
+    <dt>'Zeta[$z$]'
+      <dd>returns the Riemann zeta function of $z$.
+    </dl>
+
     >> Zeta[2]
      = Pi ^ 2 / 6
 
@@ -110,6 +115,11 @@ class _Bessel(SympyFunction):
 
 class BesselJ(_Bessel):
     """
+    <dl>
+    <dt>'BesselJ[$n$, $z$]'
+      <dd>returns the Bessel function of the first kind $J_n(z)$.
+    </dl>
+
     >> BesselJ[0, 5.2]
      = -0.11029043979098654
 
@@ -131,6 +141,11 @@ class BesselJ(_Bessel):
 
 class BesselY(_Bessel):
     """
+    <dl>
+    <dt>'BesselY[$n$, $z$]'
+      <dd>returns the Bessel function of the second kind $Y_n(z)$.
+    </dl>
+
     >> BesselY[1.5, 4]
      = 0.367112032460934155
     """
@@ -146,6 +161,11 @@ class BesselY(_Bessel):
 
 class BesselI(_Bessel):
     """
+    <dl>
+    <dt>'BesselI[$n$, $z$]'
+      <dd>returns the modified Bessel function of the first kind $I_n(z)$.
+    </dl>
+
     >> BesselI[1.5, 4]
      = 8.17263323168659544
     """
@@ -155,6 +175,11 @@ class BesselI(_Bessel):
 
 class BesselK(_Bessel):
     """
+    <dl>
+    <dt>'BesselK[$n$, $z$]'
+      <dd>returns the modified Bessel function of the second kind $K_n(z)$.
+    </dl>
+
     >> BesselK[1.5, 4]
      = 0.0143470307207600668
     """
@@ -168,6 +193,11 @@ class BesselK(_Bessel):
 
 class HankelH1(_Bessel):
     """
+    <dl>
+    <dt>'HankelH1[$n$, $z$]'
+      <dd>returns the Hankel function of the first kind $H_n^1 (z)$.
+    </dl>
+
     >> HankelH1[1.5, 4]
      = 0.185285948354268953 + 0.367112032460934155 I
     """
@@ -177,6 +207,11 @@ class HankelH1(_Bessel):
 
 class HankelH2(_Bessel):
     """
+    <dl>
+    <dt>'HankelH2[$n$, $z$]'
+      <dd>returns the Hankel function of the second kind $H_n^2 (z)$.
+    </dl>
+
     >> HankelH2[1.5, 4]
      = 0.185285948354268953 - 0.367112032460934155 I
     """
@@ -188,6 +223,11 @@ class HankelH2(_Bessel):
 
 class AiryAi(_MPMathFunction):
     """
+    <dl>
+    <dt>'AiryAi[$n$, $z$]'
+      <dd>returns the Airy function $Ai(z)$.
+    </dl>
+
     >> AiryAi[0.5]
      = 0.23169360648083349
 
@@ -200,6 +240,11 @@ class AiryAi(_MPMathFunction):
 
 class AiryBi(_MPMathFunction):
     """
+    <dl>
+    <dt>'AiryBi[$n$, $z$]'
+      <dd>returns the Airy function $Bi(z)$.
+    </dl>
+
     >> AiryBi[0.5]
      = 0.854277043103155493
 
@@ -214,6 +259,13 @@ class AiryBi(_MPMathFunction):
 
 class KelvinBer(_Bessel):
     """
+    <dl>
+    <dt>'KelvinBer[$z$]'
+      <dd>returns the Kelvin function $ber(z)$.
+    <dt>'KelvinBer[$n$, $z$]'
+      <dd>returns the Kelvin function $ber_n(z)$.
+    </dl>
+
     >> KelvinBer[0.5]
      = 0.999023463990838256
 
@@ -233,6 +285,13 @@ class KelvinBer(_Bessel):
 
 class KelvinBei(_Bessel):
     """
+    <dl>
+    <dt>'KelvinBei[$z$]'
+      <dd>returns the Kelvin function $bei(z)$.
+    <dt>'KelvinBei[$n$, $z$]'
+      <dd>returns the Kelvin function $bei_n(z)$.
+    </dl>
+
     >> KelvinBei[0.5]
      = 0.0624932183821994586
 
@@ -252,6 +311,13 @@ class KelvinBei(_Bessel):
 
 class KelvinKer(_Bessel):
     """
+    <dl>
+    <dt>'KelvinKer[$z$]'
+      <dd>returns the Kelvin function $ker(z)$.
+    <dt>'KelvinKer[$n$, $z$]'
+      <dd>returns the Kelvin function $ker_n(z)$.
+    </dl>
+
     >> KelvinKer[0.5]
      = 0.855905872118634214
 
@@ -271,6 +337,13 @@ class KelvinKer(_Bessel):
 
 class KelvinKei(_Bessel):
     """
+    <dl>
+    <dt>'KelvinKei[$z$]'
+      <dd>returns the Kelvin function $kei(z)$.
+    <dt>'KelvinKei[$n$, $z$]'
+      <dd>returns the Kelvin function $kei_n(z)$.
+    </dl>
+
     >> KelvinKei[0.5]
      = -0.671581695094367603
 
@@ -292,6 +365,11 @@ class KelvinKei(_Bessel):
 
 class StruveH(_Bessel):
     """
+    <dl>
+    <dt>'StruveH[$n$, $z$]'
+      <dd>returns the Struve function $H_n(z)$.
+    </dl>
+
     >> StruveH[1.5, 3.5]
      = 1.13192125271801312
     """
@@ -301,6 +379,11 @@ class StruveH(_Bessel):
 
 class StruveL(_Bessel):
     """
+    <dl>
+    <dt>'StruveL[$n$, $z$]'
+      <dd>returns the modified Struve function $L_n(z)$.
+    </dl>
+
     >> StruveL[1.5, 3.5]
      = 4.41126360920433996
     """
@@ -310,18 +393,32 @@ class StruveL(_Bessel):
 
 class AngerJ(_Bessel):
     """
+    <dl>
+    <dt>'AngerJ[$n$, $z$]'
+      <dd>returns the Anger function $J_n(z)$.
+    </dl>
+
     >> AngerJ[1.5, 3.5]
      = 0.294478574459563408
     """
+
+    #TODO: Associated Anger function AngerJ[v, u, z]
 
     sympy_name = ''
     mpmath_name = 'angerj'
 
 class WeberE(_Bessel):
     """
+    <dl>
+    <dt>'WeberE[$n$, $z$]'
+      <dd>returns the Weber function $E_n(z)$.
+    </dl>
+
     >> WeberE[1.5, 3.5]
      = -0.397256259210030809
     """
+
+    #TODO: Associated Weber function WeberE[v, u, z]
 
     sympy_name = ''
     mpmath_name = 'webere'
@@ -330,6 +427,11 @@ class WeberE(_Bessel):
 
 class BesselJZero(_Bessel):
     """
+    <dl>
+    <dt>'BesselJZero[$n$, $k$]'
+      <dd>returns the $k$th zero of the Bessel function of the first kind $J_n(z)$.
+    </dl>
+
     >> N[BesselJZero[0, 1]]
      = 2.40482555769577277
     """
@@ -339,6 +441,11 @@ class BesselJZero(_Bessel):
     
 class BesselYZero(_Bessel):
     """
+    <dl>
+    <dt>'BesselJZero[$n$, $k$]'
+      <dd>returns the $k$th zero of the Bessel function of the second kind $Y_n(z)$.
+    </dl>
+
     >> N[BesselYZero[0, 1]]
      = 0.893576966279167522
     """
@@ -348,18 +455,32 @@ class BesselYZero(_Bessel):
 
 class AiryAiZero(_MPMathFunction):
     """
+    <dl>
+    <dt>'AiryAiZero[$k$]'
+      <dd>returns the $k$th zero of the Airy function $Ai(z)$.
+    </dl>
+
     >> N[AiryAiZero[1]]
      = -2.33810741045976704
     """
+
+    #TODO: 'AiryAiZero[$k$, $x0$]' - $k$th zero less than x0 
 
     sympy_name = ''
     mpmath_name = 'airyaizero'
 
 class AiryBiZero(_MPMathFunction):
     """
+    <dl>
+    <dt>'AiryBiZero[$k$]'
+      <dd>returns the $k$th zero of the Airy function $Bi(z)$.
+    </dl>
+
     >> N[AiryBiZero[1]]
      = -1.17371322270912792
     """
+
+    #TODO: 'AiryBiZero[$k$, $x0$]' - $k$th zero less than x0 
 
     sympy_name = ''
     mpmath_name = 'airybizero'
