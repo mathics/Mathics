@@ -78,6 +78,9 @@ class Zeta(_MPMathFunction):
     mpmath_name = 'zeta'
 
 class _Bessel(SympyFunction):
+
+    attributes = ('Listable', 'NumericFunction', 'Protected', 'ReadProtected')
+
     def apply_inexact1(self, n, z, evaluation):
         '%(name)s[n_, z_?InexactNumberQ]'
 
@@ -145,6 +148,8 @@ class BesselJ(_Bessel):
      = Sqrt[2 / Pi] Sin[x] / Sqrt[x]
     """
 
+    attributes = ('Listable', 'NumericFunction', 'Protected')
+
     sympy_name = 'besselj'
     mpmath_name = 'besselj'
 
@@ -172,6 +177,8 @@ class BesselY(_Bessel):
      = -Infinity
     """
 
+    attributes = ('Listable', 'NumericFunction', 'Protected')
+
     sympy_name = 'bessely'
     mpmath_name = 'bessely'
 
@@ -189,6 +196,8 @@ class BesselI(_Bessel):
      = -Graphics-
     """
 
+    attributes = ('Listable', 'NumericFunction', 'Protected')
+
     sympy_name = 'besseli'
     mpmath_name = 'besseli'
 
@@ -205,6 +214,8 @@ class BesselK(_Bessel):
     >> Plot[BesselK[0, x], {x, 0, 5}]
      = -Graphics-
     """
+
+    attributes = ('Listable', 'NumericFunction', 'Protected')
 
     sympy_name = 'besselk'
     mpmath_name = 'besselk'
@@ -518,6 +529,8 @@ class AiryAiZero(_MPMathFunction):
 
     #TODO: 'AiryAiZero[$k$, $x0$]' - $k$th zero less than x0 
 
+    attributes = ('Listable', 'NHoldFirst', 'NumericFunction', 'Protected', 'ReadProtected')
+
     sympy_name = ''
     mpmath_name = 'airyaizero'
 
@@ -533,6 +546,8 @@ class AiryBiZero(_MPMathFunction):
     """
 
     #TODO: 'AiryBiZero[$k$, $x0$]' - $k$th zero less than x0 
+
+    attributes = ('Listable', 'NHoldFirst', 'NumericFunction', 'Protected', 'ReadProtected')
 
     sympy_name = ''
     mpmath_name = 'airybizero'
