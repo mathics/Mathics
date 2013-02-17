@@ -7,8 +7,8 @@ Special functions
 import mpmath
 
 from mathics.builtin.arithmetic import _MPMathFunction
-from mathics.core.expression import Integer
-from mathics.core.numbers import min_prec, sympy2mpmath, mpmath2sympy
+from mathics.core.expression import Integer, Symbol
+from mathics.core.numbers import min_prec, sympy2mpmath, mpmath2sympy, SpecialValueError
 from mathics.core.convert import from_sympy
 from mathics.builtin.base import SympyFunction
 
@@ -97,6 +97,9 @@ class _Bessel(SympyFunction):
                     raise
             except ZeroDivisionError:
                 return
+            except SpecialValueError, exc:
+                return Symbol(exc.name)
+
         return from_sympy(result)
             
     def apply_inexact2(self, n, z, evaluation):
@@ -128,6 +131,12 @@ class BesselJ(_Bessel):
 
     ## >> D[BesselJ[n, z], z]
     ##  = BesselJ[n - 1, z] / 2 - BesselJ[n + 1, z] / 2
+
+    #> BesselJ[0., 0.]
+     = 1.
+
+    >> Plot[BesselJ[0, x], {x, 0, 10}]
+     = -Graphics-
     """
 
     #TODO: Sympy Backend is not as powerful as Mathmeatica
@@ -148,6 +157,13 @@ class BesselY(_Bessel):
 
     >> BesselY[1.5, 4]
      = 0.367112032460934155
+
+    ## Returns ComplexInfinity instead
+    ## #> BesselY[0., 0.]
+    ##  = -Infinity
+
+    >> Plot[BesselY[0, x], {x, 0, 10}]
+     = -Graphics-
     """
 
     #TODO: Special Values
@@ -168,6 +184,9 @@ class BesselI(_Bessel):
 
     >> BesselI[1.5, 4]
      = 8.17263323168659544
+
+    >> Plot[BesselI[0, x], {x, 0, 5}]
+     = -Graphics-
     """
 
     sympy_name = 'besseli'
@@ -182,6 +201,9 @@ class BesselK(_Bessel):
 
     >> BesselK[1.5, 4]
      = 0.0143470307207600668
+
+    >> Plot[BesselK[0, x], {x, 0, 5}]
+     = -Graphics-
     """
 
     sympy_name = 'besselk'
@@ -224,8 +246,8 @@ class HankelH2(_Bessel):
 class AiryAi(_MPMathFunction):
     """
     <dl>
-    <dt>'AiryAi[$n$, $z$]'
-      <dd>returns the Airy function $Ai(z)$.
+    <dt>'AiryAi[$x$]'
+      <dd>returns the Airy function $Ai(x)$.
     </dl>
 
     >> AiryAi[0.5]
@@ -233,6 +255,9 @@ class AiryAi(_MPMathFunction):
 
     >> AiryAi[0.5 + I]
      = 0.157118446499986172 - 0.241039813840210768 I
+
+    >> Plot[AiryAi[x], {x, -10, 10}]
+     = -Graphics-
     """
 
     sympy_name = ''
@@ -241,8 +266,8 @@ class AiryAi(_MPMathFunction):
 class AiryBi(_MPMathFunction):
     """
     <dl>
-    <dt>'AiryBi[$n$, $z$]'
-      <dd>returns the Airy function $Bi(z)$.
+    <dt>'AiryBi[$x$]'
+      <dd>returns the Airy function $Bi(x)$.
     </dl>
 
     >> AiryBi[0.5]
@@ -250,6 +275,9 @@ class AiryBi(_MPMathFunction):
 
     >> AiryBi[0.5 + I]
      = 0.688145273113482414 + 0.370815390737010831 I
+
+    >> Plot[AiryBi[x], {x, -10, 2}]
+     = -Graphics-
     """
 
     sympy_name = ''
@@ -274,6 +302,9 @@ class KelvinBer(_Bessel):
 
     >> KelvinBer[0.5, 0.25]
      = 0.148824330530639942
+
+    >> Plot[KelvinBer[x], {x, 0, 10}]
+     = -Graphics-
     """
 
     rules = {
@@ -300,6 +331,9 @@ class KelvinBei(_Bessel):
 
     >> KelvinBei[0.5, 0.25]
      = 0.370152900194021013
+
+    >> Plot[KelvinBei[x], {x, 0, 10}]
+     = -Graphics-
     """
 
     rules = {
@@ -326,6 +360,9 @@ class KelvinKer(_Bessel):
 
     >> KelvinKer[0.5, 0.25]
      = 0.450022838747182502
+
+    >> Plot[KelvinKer[x], {x, 0, 10}]
+     = -Graphics-
     """
 
     rules = {
@@ -352,6 +389,9 @@ class KelvinKei(_Bessel):
 
     >> KelvinKei[0.5, 0.25]
      = -2.05169683896315934
+
+    >> Plot[KelvinKei[x], {x, 0, 10}]
+     = -Graphics-
     """
 
     rules = {
@@ -372,6 +412,9 @@ class StruveH(_Bessel):
 
     >> StruveH[1.5, 3.5]
      = 1.13192125271801312
+
+    >> Plot[StruveH[0, x], {x, 0, 20}]
+     = -Graphics-
     """
 
     sympy_name = ''
@@ -386,6 +429,9 @@ class StruveL(_Bessel):
 
     >> StruveL[1.5, 3.5]
      = 4.41126360920433996
+
+    >> Plot[StruveL[0, x], {x, 0, 5}]
+     = -Graphics-
     """
 
     sympy_name = ''
@@ -400,6 +446,9 @@ class AngerJ(_Bessel):
 
     >> AngerJ[1.5, 3.5]
      = 0.294478574459563408
+
+    >> Plot[AngerJ[1, x], {x, -10, 10}]
+     = -Graphics-
     """
 
     #TODO: Associated Anger function AngerJ[v, u, z]
@@ -416,6 +465,9 @@ class WeberE(_Bessel):
 
     >> WeberE[1.5, 3.5]
      = -0.397256259210030809
+
+    >> Plot[WeberE[1, x], {x, -10, 10}]
+     = -Graphics-
     """
 
     #TODO: Associated Weber function WeberE[v, u, z]
