@@ -336,6 +336,9 @@ class Integrate(SympyFunction):
      = ArcTan x ^ 2 / 2
     #> Integrate[E[x], x]
      = Integrate[E[x], x]
+
+    #> Integrate[Exp[-(x/2)^2],{x,-Infinity,+Infinity}]
+     = 2 Sqrt[Pi]
     """
     
     """

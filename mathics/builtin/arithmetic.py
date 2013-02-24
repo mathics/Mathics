@@ -253,7 +253,7 @@ class Subtract(BinaryOperator):
     rules = {
         'Subtract[x_, y_]': 'Plus[x, Times[-1, y]]',
     }
-    
+
 class Minus(PrefixOperator):
     """
     >> -a //FullForm
@@ -288,6 +288,31 @@ class Minus(PrefixOperator):
             return Number.from_mp(-expression.leaves[0].to_sympy())
         else:
             return super(Minus, self).post_parse(expression)
+    
+class AntiMinus(PrefixOperator):
+    """
+    Hack to help the parser distinguish between binary and unary Plus.
+
+    >> +a //FullForm
+     = a
+    
+    #> +(x - 2/3 + y)
+     = -2 / 3 + x + y
+
+    #> +Infinity
+     = Infinity
+    """
+    
+    operator = '+'
+    precedence = 480
+    attributes = ('Listable', 'NumericFunction')
+    
+    def apply_int(self, x, evaluation):
+        'AntiMinus[x_]'
+        return x
+    
+    def post_parse(self, expression):
+        return expression.leaves[0]
     
 def create_infix(items, operator, prec, grouping):
     if len(items) == 1:
