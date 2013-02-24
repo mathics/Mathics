@@ -236,8 +236,8 @@ class IntegerExponent(Builtin):
     """
     <dl>
     <dt>'IntegerExponent[$n$, $b$]'
-        gives the highest exponent of $b$ that divides $n$.
-    <dl>
+        <dd>gives the highest exponent of $b$ that divides $n$.
+    </dl>
 
     >> IntegerExponent[16, 2]
      = 4
@@ -259,7 +259,7 @@ class IntegerExponent(Builtin):
         'IntegerExponent[n_, b_]'
 
         py_n, py_b = n.to_python(), b.to_python()
-        expr = Expression('InegerExponent', n, b)
+        expr = Expression('IntegerExponent', n, b)
         
         if not (isinstance(py_n, int) or isinstance(py_n, long)):
             evaluation.message('IntegerExponent', 'int', expr)
@@ -269,6 +269,7 @@ class IntegerExponent(Builtin):
             evaluation.message('IntegerExponent', 'ibase', b)
 
         #TODO: Optimise this (dont need to calc. base^result)
+        #NOTE: IntegerExponent[a,b] causes a Python error here when a or b are symbols
         result = 1
         while py_n % (py_b**result) == 0:
             result += 1
@@ -443,7 +444,7 @@ class PrimePi(Builtin):
     """
     <dl>
     <dt>'PrimePi[$x$]'
-      gives the number of primes less than or equal to $x$
+        <dd>gives the number of primes less than or equal to $x$
     </dl>
 
     >> PrimePi[100]
@@ -469,9 +470,9 @@ class NextPrime(Builtin):
     """
     <dl>
     <dt>'NextPrime[$n$]'
-      gives the next prime after $n$.
+        <dd>gives the next prime after $n$.
     <dt>'NextPrime[$n$,$k$]'
-      gives the $k$th  prime after $n$.
+        <dd>gives the $k$th  prime after $n$.
     </dl>
 
     >> NextPrime[10000]
@@ -520,11 +521,11 @@ class RandomPrime(Builtin):
     """
     <dl>
     <dt>'RandomPrime[{$imin$, $imax}]'
-      gives a random prime beteween $imin$ and $imax$.
+        <dd>gives a random prime between $imin$ and $imax$.
     <dt>'RanomPrime[$imax$]
-      gives a random prime beteween 2 and $imax$.
+        <dd>gives a random prime between 2 and $imax$.
     <dt>'RandomPrime[$range$, $n$]'
-      gives a list of $n$ random primes in $range$.
+        <dd>gives a list of $n$ random primes in $range$.
     </dl>
 
     >> RandomPrime[{14, 17}]

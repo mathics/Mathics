@@ -893,6 +893,7 @@ class Put(BinaryOperator):
       <dd>write $expr$ to a file.
     <dt>'Put[$expr1$, $expr2$, ..., $"filename"$]'
       <dd>write a sequence of expressions to a file.
+    </dl>
 
     >> 40! >> "fourtyfactorial"
     >> FilePrint["fourtyfactorial"]
@@ -977,9 +978,10 @@ class PutAppend(BinaryOperator):
     """
     <dl>
     <dt>'$expr$ >>> $filename$'
-      <dt>append $expr$ to a file.
+      <dd>append $expr$ to a file.
     <dt>'PutAppend[$expr1$, $expr2$, ..., $"filename"$]'
-      <dt>write a sequence of expressions to a file.
+      <dd>write a sequence of expressions to a file.
+    </dl>
 
     >> Put[50!, "factorials"]
     >> FilePrint["factorials"]

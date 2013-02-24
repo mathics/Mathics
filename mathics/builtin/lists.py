@@ -932,7 +932,7 @@ class Split(Builtin):
       <dd>splits $list$ into collections of consecutive identical elements.
     <dt>'Split[$list$, $test$]'
       <dd>splits $list$ based on whether the function $test$ yields 'True' on consecutive elements.
-    <dl>
+    </dl>
 
     >> Split[{x, x, x, y, x, y, y, z}]
      = {{x, x, x}, {y}, {x}, {y, y}, {z}}
@@ -984,7 +984,7 @@ class SplitBy(Builtin):
     <dl>
     <dt>'Split[$list$, $f$]'
       <dd>splits $list$ into collections of consecutive elements that give the same result when $f$ is applied.
-    <dl>
+    </dl>
 
     >> SplitBy[Range[1, 3, 1/3], Round]
      = {{1, 4 / 3}, {5 / 3, 2, 7 / 3}, {8 / 3, 3}}
