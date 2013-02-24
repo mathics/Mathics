@@ -2368,7 +2368,7 @@ class FileDate(Builtin):
             return
 
         # Offset for system epoch
-        epochtime = Expression('AbsoluteTime', time.strftime("%F %R", time.gmtime(0))).to_python(n_evaluation=evaluation)
+        epochtime = Expression('AbsoluteTime', time.strftime("%Y-%m-%d %H:%M", time.gmtime(0))).to_python(n_evaluation=evaluation)
         result += epochtime
 
         return Expression('DateList', from_python(result))
@@ -2454,7 +2454,7 @@ class SetFileDate(Builtin):
             evaluation.message('SetFileDate', 'datetype')
             return
 
-        epochtime = Expression('AbsoluteTime', time.strftime("%F %R", time.gmtime(0))).evaluate(evaluation).to_python()
+        epochtime = Expression('AbsoluteTime', time.strftime("%Y-%m-%d %H:%M", time.gmtime(0))).evaluate(evaluation).to_python()
         stattime = Expression('AbsoluteTime', datelist).to_python(n_evaluation=evaluation)
         stattime -= epochtime
 
