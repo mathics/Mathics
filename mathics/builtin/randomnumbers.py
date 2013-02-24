@@ -101,14 +101,14 @@ class SeedRandom(Builtin):
     'SeedRandom' can be used to get reproducable random numbers:
     >> SeedRandom[42]
     >> RandomInteger[100]
-     = 18
+     = 7
     >> RandomInteger[100]
-     = 95
+     = 14
     >> SeedRandom[42]
     >> RandomInteger[100]
-     = 18
+     = 7
     >> RandomInteger[100]
-     = 95
+     = 14
     
     #> SeedRandom[x]
      : Argument x should be an integer or a string.
