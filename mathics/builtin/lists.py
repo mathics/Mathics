@@ -1126,7 +1126,7 @@ class _IterationFunction(Builtin):
     def apply_iter(self, expr, i, imin, imax, di, evaluation):
         '%(name)s[expr_, {i_Symbol, imin_, imax_, di_}]'
         
-        if di.get_int_value() == 1 and isinstance(self, SympyFunction):
+        if isinstance(self, SympyFunction) and di.get_int_value() == 1:
             whole_expr = Expression(self.get_name(), expr, Expression('List', i, imin, imax))
             sympy_expr = whole_expr.to_sympy()
             
@@ -1138,20 +1138,23 @@ class _IterationFunction(Builtin):
             if not result.same(whole_expr):
                 return result
         
-        index = imin.evaluate(evaluation).get_real_value()
-        imax = imax.evaluate(evaluation).get_real_value()
-        di = di.evaluate(evaluation).get_real_value()
-        
-        if index is None or imax is None or di is None:
-            if self.throw_iterb:
-                evaluation.message(self.get_name(), 'iterb')
-            return
-        
+        index = imin.evaluate(evaluation)
+        imax = imax.evaluate(evaluation)
+        di = di.evaluate(evaluation)
+
         result = []
-        while index <= imax:
+        while True:
+            cont = Expression('LessEqual', index, imax).evaluate(evaluation)
+            if cont == Symbol('False'):
+                break
+            if cont != Symbol('True'):
+                if self.throw_iterb:
+                    evaluation.message(self.get_name(), 'iterb')
+                return
+
             evaluation.check_stopped()
             try:
-                item = dynamic_scoping(expr.evaluate, {i.name: Number.from_mp(index)}, evaluation)
+                item = dynamic_scoping(expr.evaluate, {i.name: index}, evaluation)
                 result.append(item)
             except ContinueInterrupt:
                 if self.allow_loopcontrol:
@@ -1163,7 +1166,7 @@ class _IterationFunction(Builtin):
                     break
                 else:
                     raise
-            index = index + di
+            index = Expression('Plus', index, di).evaluate(evaluation)
         return self.get_result(result)
     
     def apply_list(self, expr, i, items, evaluation):
@@ -1291,6 +1294,8 @@ class Table(_IterationFunction):
      = {2, 3, 4, 5}
     >> Table[i, {i, 2, 6, 2}]
      = {2, 4, 6}
+    >> Table[i, {i, Pi, 2 Pi, Pi / 2}]
+     = {Pi, 3 Pi / 2, 2 Pi}
     >> Table[x^2, {x, {a, b, c}}]
      = {a ^ 2, b ^ 2, c ^ 2}
      
