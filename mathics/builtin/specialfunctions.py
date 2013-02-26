@@ -671,3 +671,38 @@ class GegenbauerC(_MPMathFunction):
     sympy_name = 'gegenbauer'
     mpmath_name = 'gegenbauer'
 
+class ChebyshevT(_MPMathFunction):
+    """
+    <dl>
+    <dt>'ChebyshevT[$n$, $x$]'
+      <dd>returns the Chebyshev polynomial of the first kind $T_n(x)$.
+    </dl>
+
+    >> ChebyshevT[8, x]
+     = 1 - 32 x ^ 2 + 160 x ^ 4 - 256 x ^ 6 + 128 x ^ 8
+
+    >> ChebyshevT[1 - I, 0.5]
+     = 0.800143428851193116 + 1.08198360440499884 I 
+    """
+
+    nargs = 2
+    sympy_name = 'chebyshevt'
+    mpmath_name = 'chebyt'
+
+class ChebyshevU(_MPMathFunction):
+    """
+    <dl>
+    <dt>'ChebyshevU[$n$, $x$]'
+      <dd>returns the Chebyshev polynomial of the second kind $U_n(x)$.
+    </dl>
+
+    >> ChebyshevU[8, x]
+     = 1 - 40 x ^ 2 + 240 x ^ 4 - 448 x ^ 6 + 256 x ^ 8
+
+    >> ChebyshevU[1 - I, 0.5]
+     = 1.60028685770238623 + 0.721322402936665892 I
+    """
+
+    nargs = 2
+    sympy_name = 'chebyshevu'
+    mpmath_name = 'chebyu'
