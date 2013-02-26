@@ -244,6 +244,9 @@ class IntegerExponent(Builtin):
 
     >> IntegerExponent[-510000]
      = 4
+
+    >> IntegerExponent[10, b]
+     = IntegerExponent[10, b]
     """
 
     rules = {
@@ -256,7 +259,7 @@ class IntegerExponent(Builtin):
     }
 
     def apply(self, n, b, evaluation):
-        'IntegerExponent[n_, b_]'
+        'IntegerExponent[n_Integer, b_Integer]'
 
         py_n, py_b = n.to_python(), b.to_python()
         expr = Expression('IntegerExponent', n, b)
