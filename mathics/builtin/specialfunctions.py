@@ -650,3 +650,24 @@ class SphericalHarmonicY(_MPMathFunction):
     nargs = 4
     sympy_name = 'Ylm'
     mpmath_name = 'spherharm'
+
+class GegenbauerC(_MPMathFunction):
+    """
+    <dl>
+    <dt>'GegenbauerC[$n$, $m$, $x$]'
+      <dd>returns the Generbauer polynomial $C_n^{(m)}(x)$.
+    </dl>
+
+    >> GegenbauerC[6, 1, x] 
+     = -1 + 24 x ^ 2 - 80 x ^ 4 + 64 x ^ 6
+
+    >> GegenbauerC[4 - I, 1 + 2 I, 0.7]
+     = -3.26209595216525854 - 24.9739397455269944 I
+    """
+
+    #TODO: Two argument renormalized form GegenbauerC[n, x]
+
+    nargs = 3
+    sympy_name = 'gegenbauer'
+    mpmath_name = 'gegenbauer'
+
