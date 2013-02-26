@@ -33,21 +33,7 @@ class _MPMathFunction(SympyFunction):
         mpmath_function = getattr(mpmath, self.mpmath_name)
         return mpmath_function(*args)
 
-    def apply_exact(self, z, evaluation):
-        '%(name)s[z__?ExactNumberQ]'
-        
-        args = z.get_sequence()
-
-        if len(args) != self.nargs:
-            return
-
-        expr = Expression(self.get_name(), *args).to_sympy()
-        result = from_sympy(expr)
-        # evaluate leaves to convert e.g. Plus[2, I] -> Complex[2, 1]
-        result = result.evaluate_leaves(evaluation)
-        return result
-    
-    def apply_inexact(self, z, evaluation):
+    def apply(self, z, evaluation):
         '%(name)s[z__]'
 
         args = z.get_sequence()
@@ -55,31 +41,33 @@ class _MPMathFunction(SympyFunction):
         if len(args) != self.nargs:
             return
 
-        # At least one argument must be inexact
+        # if no arguments are inexact attempt to use sympy
         if len([True for x in args if Expression('InexactNumberQ', x).evaluate(evaluation).is_true()]) == 0:
-            return
+            expr = Expression(self.get_name(), *args).to_sympy()
+            result = from_sympy(expr)
+            # evaluate leaves to convert e.g. Plus[2, I] -> Complex[2, 1]
+            result = result.evaluate_leaves(evaluation)
+        else:
+            prec = min_prec(*args)
+            with mpmath.workprec(prec):
+                mpmath_args = [sympy2mpmath(x.to_sympy()) for x in args]
+                if None in mpmath_args:
+                    return
+                try:
+                    result = self.eval(*mpmath_args)
+                    result = from_sympy(mpmath2sympy(result, prec))
+                except ValueError, exc:
+                    text = str(exc)
+                    if text == 'gamma function pole':
+                        return Symbol('ComplexInfinity')
+                    else:
+                        raise
+                except ZeroDivisionError:
+                    return
+                except SpecialValueError, exc:
+                    return Symbol(exc.name)
 
-        prec = min_prec(*args)
-
-        with mpmath.workprec(prec):
-            mpmath_args = [sympy2mpmath(x.to_sympy()) for x in args]
-            if None in mpmath_args:
-                return
-            try:
-                result = self.eval(*mpmath_args)
-                result = mpmath2sympy(result, prec)
-            except ValueError, exc:
-                text = str(exc)
-                if text == 'gamma function pole':
-                    return Symbol('ComplexInfinity')
-                else:
-                    raise
-            except ZeroDivisionError:
-                return
-            except SpecialValueError, exc:
-                return Symbol(exc.name)
-
-        return from_sympy(result)
+        return result
 
 class Plus(BinaryOperator, SympyFunction):
     """
