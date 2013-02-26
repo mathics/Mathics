@@ -19,38 +19,54 @@ from mathics.core.convert import from_sympy
 from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, dps
 
 class _MPMathFunction(SympyFunction):
-    #TODO adapt this to work with multiple arguments
 
     attributes = ('Listable', 'NumericFunction')
 
     mpmath_name = None
-    
-    def eval(self, z):
+
+    nargs = 1
+
+    def eval(self, *args):
         if self.mpmath_name is None:
             return None
         
         mpmath_function = getattr(mpmath, self.mpmath_name)
-        return mpmath_function(z)
-    
+        return mpmath_function(*args)
+
     def apply_exact(self, z, evaluation):
-        '%(name)s[z_?ExactNumberQ]'
+        '%(name)s[z__?ExactNumberQ]'
         
-        expr = Expression(self.get_name(), z).to_sympy()
+        args = z.get_sequence()
+
+        if len(args) != self.nargs:
+            return
+
+        expr = Expression(self.get_name(), *args).to_sympy()
         result = from_sympy(expr)
         # evaluate leaves to convert e.g. Plus[2, I] -> Complex[2, 1]
         result = result.evaluate_leaves(evaluation)
         return result
     
     def apply_inexact(self, z, evaluation):
-        '%(name)s[z_?InexactNumberQ]'
-        
-        prec = z.get_precision()
+        '%(name)s[z__]'
+
+        args = z.get_sequence()
+
+        if len(args) != self.nargs:
+            return
+
+        # At least one argument must be inexact
+        if len([True for x in args if Expression('InexactNumberQ', x).evaluate(evaluation).is_true()]) == 0:
+            return
+
+        prec = min_prec(*args)
+
         with mpmath.workprec(prec):
-            z = sympy2mpmath(z.to_sympy())
-            if z is None:
+            mpmath_args = [sympy2mpmath(x.to_sympy()) for x in args]
+            if None in mpmath_args:
                 return
             try:
-                result = self.eval(z)
+                result = self.eval(*mpmath_args)
                 result = mpmath2sympy(result, prec)
             except ValueError, exc:
                 text = str(exc)
@@ -60,6 +76,9 @@ class _MPMathFunction(SympyFunction):
                     raise
             except ZeroDivisionError:
                 return
+            except SpecialValueError, exc:
+                return Symbol(exc.name)
+
         return from_sympy(result)
 
 class Plus(BinaryOperator, SympyFunction):

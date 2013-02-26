@@ -8,10 +8,9 @@ import mpmath
 
 from mathics.builtin.base import Builtin
 from mathics.builtin.arithmetic import _MPMathFunction
-from mathics.core.expression import Integer, Symbol
-from mathics.core.numbers import min_prec, sympy2mpmath, mpmath2sympy, SpecialValueError
+from mathics.core.expression import Integer
+from mathics.core.numbers import mpmath2sympy
 from mathics.core.convert import from_sympy
-from mathics.builtin.base import SympyFunction
 from mathics.builtin.numeric import get_precision
 
 class Erf(_MPMathFunction):
@@ -79,45 +78,11 @@ class Zeta(_MPMathFunction):
     sympy_name = 'zeta'
     mpmath_name = 'zeta'
 
-class _Bessel(SympyFunction):
+class _Bessel(_MPMathFunction):
 
     attributes = ('Listable', 'NumericFunction', 'Protected', 'ReadProtected')
 
-    def apply_inexact1(self, n, z, evaluation):
-        '%(name)s[n_, z_?InexactNumberQ]'
-
-        prec = min_prec(n, z)
-        with mpmath.workprec(prec):
-            n, z = sympy2mpmath(n.to_sympy()), sympy2mpmath(z.to_sympy())
-            if n is None or z is None:
-                return
-            try:
-                result = self.eval(n, z)
-                result = mpmath2sympy(result, prec)
-            except ValueError, exc:
-                text = str(exc)
-                if text == 'gamma function pole':
-                    return Symbol('ComplexInfinity')
-                else:
-                    raise
-            except ZeroDivisionError:
-                return
-            except SpecialValueError, exc:
-                return Symbol(exc.name)
-
-        return from_sympy(result)
-            
-    def apply_inexact2(self, n, z, evaluation):
-        '%(name)s[n_?InexactNumberQ, z_]'
-
-        return self.apply_inexact1(n, z, evaluation)
-
-    def eval(self, n, z):
-        if self.mpmath_name is None:
-            return None
-        
-        mpmath_function = getattr(mpmath, self.mpmath_name)
-        return mpmath_function(n, z)
+    nargs = 2
 
 # Bessel Functions
 
