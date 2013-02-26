@@ -604,7 +604,6 @@ class LegendreP(_MPMathFunction):
         'LegendreP[n_, x_]': 'LegendreP[n, 0, x]'
     }
 
-
     nargs = 3
     sympy_name = 'legendre_poly'
     mpmath_name = 'legenp'
@@ -633,3 +632,21 @@ class JacobiP(_MPMathFunction):
     sympy_name = 'jacobi'
     mpmath_name = 'jacobi'
 
+
+class SphericalHarmonicY(_MPMathFunction):
+    """
+    <dl>
+    <dt>'SphericalHarmonicY[$l$, $m$, $\\theta$, $\\phi$]'
+      <dd>returns the spherical harmonic functin $Y_l^m(\\theta, \\phi)$.
+    </dl>
+
+    >> SphericalHarmonicY[3, 1, theta, phi]
+     = -Sqrt[21] (-3 / 2 + 15 Cos[theta] ^ 2 / 2) E ^ (I phi) Sin[theta] / (12 Sqrt[Pi])
+
+    >> SphericalHarmonicY[3/4, 0.5, Pi/5, Pi/3]
+     = 0.254247340352667373 + 0.146789770393358909 I
+    """
+
+    nargs = 4
+    sympy_name = 'Ylm'
+    mpmath_name = 'spherharm'
