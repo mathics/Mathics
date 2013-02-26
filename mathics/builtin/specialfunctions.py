@@ -559,13 +559,6 @@ class AiryBiZero(Builtin):
             result = mpmath2sympy(mpmath.airybizero(k_int), prec)
         return from_sympy(result)
 
-class Legendre(_MPMathFunction):
-    def eval(self, z):
-        return mpmath.legendre(1, z)
-    
-    def prepare_sympy(self, leaves):
-        return [Integer(1)] + leaves
-
 # Orthogonal Polynomials
 
 class LegendreP(_MPMathFunction):
@@ -605,7 +598,7 @@ class LegendreP(_MPMathFunction):
     }
 
     nargs = 3
-    sympy_name = 'legendre_poly'
+    sympy_name = 'legendre'
     mpmath_name = 'legenp'
 
     def prepare_sympy(self, leaves):
@@ -613,6 +606,43 @@ class LegendreP(_MPMathFunction):
             return leaves[:1] + leaves[2:]
         return leaves
 
+class LegendreQ(_MPMathFunction):
+    """
+    <dl>
+    <dt>'LegendreQ[$n$, $x$]'
+      <dd>returns the Legendre function of the second kind $Q_n(x)$.
+    <dt>'LegendreQ[$n$, $m$, $x$]'
+      <dd>returns the associated Legendre function of the second $Q^m_n(x)$.
+    </dl>
+
+    >> LegendreQ[5/2, 1.5]
+     = 0.0362109671796812979 - 6.56218879817530572 I
+
+    >> LegendreQ[1.75, 1.4, 0.53]
+     = 2.05498907857609114
+
+    >> LegendreQ[1.6, 3.1, 1.5]
+     = -1.71931290970694153 - 7.70273279782676974 I
+    """
+
+    #FIXME: Sympy is missing the Legendre function of the second kind so symbolic manipulations are limited
+    """
+    >> LegendreQ[2, x]
+     = -3 x / 2 - 3 x ^ 2 Log[1 - x] / 4 + 3 x ^ 2 Log[1 + x] / 4 - Log[1 + x] / 4 + Log[1 - x] / 4
+    """
+
+    rules = {
+        'LegendreQ[n_, x_]': 'LegendreQ[n, 0, x]'
+    }
+
+    nargs = 3
+    sympy_name = ''
+    mpmath_name = 'legenq'
+
+    def prepare_sympy(self, leaves):
+        if leaves[1] == Integer(0):
+            return leaves[:1] + leaves[2:]
+        return leaves
 
 class JacobiP(_MPMathFunction):
     """
