@@ -570,6 +570,13 @@ class Legendre(_MPMathFunction):
 
 class LegendreP(_MPMathFunction):
     """
+    <dl>
+    <dt>'LegendreP[$n$, $x$]'
+      <dd>returns the Legendre polynomial $P_n(x)$.
+    <dt>'LegendreP[$n$, $m$, $x$]'
+      <dd>returns the associated Legendre polynomial $P^m_n(x)$.
+    </dl>
+
     >> LegendreP[4, x]
      = 3 / 8 - 15 x ^ 2 / 4 + 35 x ^ 4 / 8
 
@@ -600,7 +607,6 @@ class LegendreP(_MPMathFunction):
 
     nargs = 3
     sympy_name = 'legendre_poly'
-
     mpmath_name = 'legenp'
 
     def prepare_sympy(self, leaves):
@@ -608,4 +614,22 @@ class LegendreP(_MPMathFunction):
             return leaves[:1] + leaves[2:]
         return leaves
 
+
+class JacobiP(_MPMathFunction):
+    """
+    <dl>
+    <dt>'JacobiP[$n$, $a$, $b$, $x$]'
+      <dd>returns the Jacobi polynomial $P_n^{(a,b)}(x)$.
+    </dl>
+
+    >> JacobiP[1, a, b, z]
+     = a / 2 - b / 2 + z (1 + a / 2 + b / 2)
+
+    >> JacobiP[3.5 + I, 3, 2, 4 - I]
+     = 1410.02011674512937 + 5797.29855312717469 I
+    """
+
+    nargs = 4
+    sympy_name = 'jacobi'
+    mpmath_name = 'jacobi'
 
