@@ -761,3 +761,26 @@ class LaguerreL(_MPMathFunction):
             return [leaves[0], leaves[2], leaves[1]]
         return leaves
 
+#TODO: Zernike polynomials not yet implemented in mpmath nor sympy
+#
+#class ZernikeR(_MPMathFunction):
+#    """
+#    <dl>
+#    <dt>'ZernikeR[$n$, $m$,  $r$]'
+#      <dd>returns the radial Zernike polynomial $R_n^m(r)$.
+#    </dl>
+#
+#    >> ZernikeR[3, 1, r]
+#     = -2 r + 3 r ^ 3
+#
+#    >> ZernikeR[5, 1, 1/2]
+#     = 5 / 16
+#
+#    >> ZernikeR[3 - I, 4.5, 1.5 + I]
+#     = 1.12642179606815007 - 1.21017262353631061 I
+#    """
+#
+#    nargs = 3
+#    sympy_name = ''
+#    mpmath_name = ''
+
