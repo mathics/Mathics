@@ -706,3 +706,24 @@ class ChebyshevU(_MPMathFunction):
     nargs = 2
     sympy_name = 'chebyshevu'
     mpmath_name = 'chebyu'
+
+class HermiteH(_MPMathFunction):
+    """
+    <dl>
+    <dt>'ChebyshevU[$n$, $x$]'
+      <dd>returns the Hermite polynomial $H_n(x)$.
+    </dl>
+
+    >> HermiteH[8, x] 
+     = 1680 - 13440 x ^ 2 + 13440 x ^ 4 - 3584 x ^ 6 + 256 x ^ 8
+    
+    >> HermiteH[3, 1 + I]
+     = -28 + 4 I
+    
+    >> HermiteH[4.2, 2]
+     = 77.5290837369752225
+    """
+
+    nargs = 2
+    sympy_name = 'hermite'
+    mpmath_name = 'hermite'
