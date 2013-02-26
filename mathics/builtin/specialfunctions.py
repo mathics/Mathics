@@ -565,3 +565,47 @@ class Legendre(_MPMathFunction):
     
     def prepare_sympy(self, leaves):
         return [Integer(1)] + leaves
+
+# Orthogonal Polynomials
+
+class LegendreP(_MPMathFunction):
+    """
+    >> LegendreP[4, x]
+     = 3 / 8 - 15 x ^ 2 / 4 + 35 x ^ 4 / 8
+
+    >> LegendreP[5/2, 1.5]
+     = 4.17761913892745532
+
+    >> LegendreP[1.75, 1.4, 0.53]
+     = -1.32619280980662145
+
+    >> LegendreP[1.6, 3.1, 1.5]
+     = -0.303998161489593441 - 1.91936885256334894 I
+
+    LegendreP can be used to draw generalized Lissajous figures:
+    >> ParametricPlot[ {LegendreP[7, x], LegendreP[5, x]}, {x, -1, 1}]
+     = -Graphics-
+    """
+
+    #FIXME: Sympy can't handle associated polynomials
+    """
+    >> LegendreP[2, 1, x]
+     = -3 x Sqrt[1 - x^2]
+    """
+
+    rules = {
+        'LegendreP[n_, x_]': 'LegendreP[n, 0, x]'
+    }
+
+
+    nargs = 3
+    sympy_name = 'legendre_poly'
+
+    mpmath_name = 'legenp'
+
+    def prepare_sympy(self, leaves):
+        if leaves[1] == Integer(0):
+            return leaves[:1] + leaves[2:]
+        return leaves
+
+
