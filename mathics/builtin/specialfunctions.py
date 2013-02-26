@@ -727,3 +727,37 @@ class HermiteH(_MPMathFunction):
     nargs = 2
     sympy_name = 'hermite'
     mpmath_name = 'hermite'
+
+class LaguerreL(_MPMathFunction):
+    """
+    <dl>
+    <dt>'LaguerreL[$n$, $x$]'
+      <dd>returns the Laguerre polynomial $L_n(x)$.
+    <dt>'LaguerreL[$n$, $a$, $x$]'
+      <dd>returns the generalised Laguerre polynomial $L^a_n(x)$.
+    </dl>
+
+    >> LaguerreL[8, x]
+     = 1 - 8 x + 14 x ^ 2 - 28 x ^ 3 / 3 + 35 x ^ 4 / 12 - 7 x ^ 5 / 15 + 7 x ^ 6 / 180 - x ^ 7 / 630 + x ^ 8 / 40320
+
+    >> LaguerreL[3/2, 1.7]
+     = -0.94713399725341823
+
+    >> LaguerreL[5, 2, x]
+     = 21 - 35 x + 35 x ^ 2 / 2 - 7 x ^ 3 / 2 + 7 x ^ 4 / 24 - x ^ 5 / 120
+    """
+
+    rules = {
+        'LaguerreL[n_, x_]': 'LaguerreL[n, 0, x]',
+    }
+
+    nargs = 3 
+    sympy_name = 'laguerre_poly'
+    mpmath_name = 'laguerre'
+
+
+    def prepare_sympy(self, leaves):
+        if len(leaves) == 3:
+            return [leaves[0], leaves[2], leaves[1]]
+        return leaves
+
