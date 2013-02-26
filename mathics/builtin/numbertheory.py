@@ -256,7 +256,7 @@ class IntegerExponent(Builtin):
     }
 
     def apply(self, n, b, evaluation):
-        'IntegerExponent[n_, b_]'
+        'IntegerExponent[n_Integer, b_Integer]'
 
         py_n, py_b = n.to_python(), b.to_python()
         expr = Expression('IntegerExponent', n, b)
