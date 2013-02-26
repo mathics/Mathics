@@ -289,7 +289,7 @@ class Minus(PrefixOperator):
         else:
             return super(Minus, self).post_parse(expression)
     
-class AntiMinus(PrefixOperator):
+class PrePlus(PrefixOperator):
     """
     Hack to help the parser distinguish between binary and unary Plus.
 
@@ -308,7 +308,7 @@ class AntiMinus(PrefixOperator):
     attributes = ('Listable', 'NumericFunction')
     
     def apply_int(self, x, evaluation):
-        'AntiMinus[x_]'
+        'PrePlus[x_]'
         return x
     
     def post_parse(self, expression):
