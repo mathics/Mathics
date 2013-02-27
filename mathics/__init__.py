@@ -10,12 +10,15 @@ def get_version():
     
     import sympy
     import mpmath
+    
+    from django.core.exceptions import ImproperlyConfigured
+    
     try:
         import django
         from django.conf import settings
         version['mathics'] = settings.VERSION
         version['django'] = django.get_version()        
-    except ImportError:
+    except (ImportError, ImproperlyConfigured):
         from mathics import settings
         version['mathics'] = settings.VERSION
     version['sympy'] = sympy.__version__

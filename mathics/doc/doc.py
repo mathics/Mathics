@@ -28,12 +28,7 @@ from django.utils.html import escape, linebreaks
 from django.template.defaultfilters import slugify
 from django.utils.safestring import mark_safe
 
-try:
-    # Import settings module via Django, when possible
-    from django.conf import settings
-    settings.DEBUG  # django.conf imports settings lazily, so we need to access some setting to check
-except ImportError:
-    import settings
+import settings
 
 from mathics import builtin
 from mathics.builtin import get_module_doc

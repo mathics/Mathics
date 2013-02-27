@@ -22,15 +22,7 @@ import threading
 import sys
 import cPickle as pickle
 
-from django.core.exceptions import ImproperlyConfigured
-
-try:
-    # Import settings module via Django, when possible
-    from django.conf import settings
-    settings.DEBUG  # django.conf imports settings lazily, so we need to access some setting to check
-except (ImportError, ImproperlyConfigured):
-    # Django 1.5 raises ImproperlyConfigured instead of ImportError
-    from mathics import settings
+from mathics import settings
 
 from mathics.core.numbers import format_float, prec, get_type, dps, prec
 from mathics.core.util import subsets, subranges, permutations, interpolate_string
