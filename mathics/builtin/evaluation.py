@@ -14,7 +14,7 @@ class RecursionLimit(Predefined):
      = 200
      
     >> $RecursionLimit = x;
-     : Cannot set $RecursionLimit to x; value must be an integer between 20 and 200.
+     : Cannot set $RecursionLimit to x; value must be an integer between 20 and 512.
     """
     
     name = '$RecursionLimit'

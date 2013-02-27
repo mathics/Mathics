@@ -81,7 +81,9 @@ def main():
     
     definitions = Definitions(add_builtin=True)
 
-    trailing_ops = ['+', '-', '/', '*'] # TODO all binary operators?
+    # TODO all binary operators?
+    trailing_ops = ['+', '-', '/', '*', '^', '=', 
+	    '>', '<', '/;', '/:', '/.', '&&', '||'] 
 
     if args.execute:
         print ">> %s" % args.execute
