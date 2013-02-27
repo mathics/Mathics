@@ -199,10 +199,10 @@ class Flat(Predefined):
     #> u[a]
      = {a}
     #> u[a, b]
-     : Recursion depth of 200 exceeded.
+     : Recursion depth of 512 exceeded.
      = $Aborted
     #> u[a, b, c]
-     : Recursion depth of 200 exceeded.
+     : Recursion depth of 512 exceeded.
      = $Aborted
     #> v[x_] := x
     #> v[]
@@ -212,7 +212,7 @@ class Flat(Predefined):
     #> v[a, b] (* in Mathematica: Iteration limit of 4096 exceeded. *)
      = v[a, b]
     #> v[a, b, c] (* in Mathematica: Iteration limit of 4096 exceeded. *)
-     : Recursion depth of 200 exceeded.
+     : Recursion depth of 512 exceeded.
      = $Aborted
     """
 

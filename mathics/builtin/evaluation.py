@@ -8,10 +8,10 @@ from mathics import settings
 class RecursionLimit(Predefined):
     """
     >> a = a + a
-     : Recursion depth of 200 exceeded.
+     : Recursion depth of 512 exceeded.
      = $Aborted
     >> $RecursionLimit
-     = 200
+     = 512
      
     >> $RecursionLimit = x;
      : Cannot set $RecursionLimit to x; value must be an integer between 20 and 512.
