@@ -198,6 +198,10 @@ class Import(Builtin):
      = {Data, Lines, Plaintext, String, Words}
     >> Import["ExampleData/ExampleData.txt", "Lines"]
      = ...
+
+    ## JSON
+    >> Import["ExampleData/colors.json"]
+     = {colorsArray -> {{colorName -> black, rgbValue -> (0, 0, 0), hexValue -> #000000}, {colorName -> red, rgbValue -> (255, 0, 0), hexValue -> #FF0000}, {colorName -> green, rgbValue -> (0, 255, 0), hexValue -> #00FF00}, {colorName -> blue, rgbValue -> (0, 0, 255), hexValue -> #0000FF}, {colorName -> yellow, rgbValue -> (255, 255, 0), hexValue -> #FFFF00}, {colorName -> cyan, rgbValue -> (0, 255, 255), hexValue -> #00FFFF}, {colorName -> magenta, rgbValue -> (255, 0, 255), hexValue -> #FF00FF}, {colorName -> white, rgbValue -> (255, 255, 255), hexValue -> #FFFFFF}}} 
     """
 
     #TODO: Images tests
@@ -384,6 +388,9 @@ class FileFormat(Builtin):
 
     #> FileFormat["ExampleData/benzene.xyz"]
      = XYZ
+
+    #> FileFormat["ExampleData/colors.json"]
+     = JSON
 
     #> FileFormat["ExampleData/some-typo.extension"]
      : File not found during FileFormat[ExampleData/some-typo.extension].

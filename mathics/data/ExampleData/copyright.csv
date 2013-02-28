@@ -9,3 +9,4 @@ lena.tif	non-free : overlooked	http://sipi.usc.edu/database/	Famous 'lena' or 'l
 moon.tif	Public Domain	http://photojournal.jpl.nasa.gov/target/moon	Taken from Nasa JPL 'PhotoJournal' as of 2012/09/25 and resized using ImageMagik-6.7.9
 ExampleData.txt	GNU Free Documentation License 1.2	Own Work	Created By Angus Griffith with a simple Python script
 numberdata.csv	GNU Free Documentation License 1.2	Own Work	Created By Angus Griffith with a simple Python script
+colors.json	GNU Free Documentation License 1.2	Own Work	Created Manually By Angus Griffith 
