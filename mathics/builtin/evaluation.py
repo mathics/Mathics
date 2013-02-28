@@ -15,9 +15,26 @@ class RecursionLimit(Predefined):
      
     >> $RecursionLimit = x;
      : Cannot set $RecursionLimit to x; value must be an integer between 20 and 512.
+
+    >> $RecursionLimit = 512
+     = 512
+    >> a = a + a
+     : Recursion depth of 512 exceeded.
+     = $Aborted
+
+    #> $RecursionLimit = 20
+     = 20
+    #> a = a + a
+     : Recursion depth of 20 exceeded.
+     = $Aborted
+
+    #> $RecursionLimit = 200
+     = 200
+
     """
     
     name = '$RecursionLimit'
+    value = 200
     
     messages = {
         'reclim': "Recursion depth of `1` exceeded.",
@@ -25,11 +42,11 @@ class RecursionLimit(Predefined):
     }
     
     rules = {
-        '$RecursionLimit': str(settings.MAX_RECURSION_DEPTH),
+        '$RecursionLimit': str(value),
     }
     
     def evaluate(self, evaluation):
-        return Integer(settings.MAX_RECURSION_DEPTH)
+        return Integer(self.value)
     
 class Hold(Builtin):
     """
