@@ -186,16 +186,14 @@ class FileFormat(Builtin):
     >> FileFormat["ExampleData/EinsteinSzilLetter.txt"]
      = Text
 
-    ## ASCII text
-    >> FileFormat["ExampleData/BloodToilTearsSweat.txt"]
-     = Text
-
-    >> FileFormat["ExampleData/MadTeaParty.gif"]
-     = GIF
-
     >> FileFormat["ExampleData/lena.tif"]
      = TIFF
 
+    ## ASCII text
+    #> FileFormat["ExampleData/BloodToilTearsSweat.txt"]
+     = Text
+    #> FileFormat["ExampleData/MadTeaParty.gif"]
+     = GIF
     #> FileFormat["ExampleData/moon.tif"]
      = TIFF
 

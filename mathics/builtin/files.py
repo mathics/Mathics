@@ -197,7 +197,7 @@ class Input(Predefined):
     """
     <dl>
     <dt>'$Input'
-      <dd>is the name of the stream from which input it currently being read.
+      <dd>is the name of the stream from which input is currently being read.
     </dl>
     
     >> $Input
@@ -216,7 +216,7 @@ class InputFileName(Predefined):
     """
     <dl>
     <dt>'$InputFileName'
-      <dd>is the file name of the file from which input it currently being read.
+      <dd>is the name of the file from which input is currently being read.
     </dl>
     
     While in interactive mode, '$InputFileName' is "".
@@ -252,7 +252,7 @@ class Path(Predefined):
     """
     <dl>
     <dt>'$Path'
-      <dd>returns the list of directories to search when looking for an file.
+      <dd>returns the list of directories to search when looking for a file.
     </dl>
 
     >> $Path
@@ -297,7 +297,7 @@ class Read(Builtin):
     <dt>'Read[stream]'
       <dd>reads the input stream and returns one expression.
     <dt>'Read[stream, type]'
-      <dd>reads the input stream and returns object of the given type.
+      <dd>reads the input stream and returns an object of the given type.
     </dl>
 
     ## Malformed InputString
@@ -895,6 +895,7 @@ class Put(BinaryOperator):
       <dd>write $expr$ to a file.
     <dt>'Put[$expr1$, $expr2$, ..., $"filename"$]'
       <dd>write a sequence of expressions to a file.
+    </dl>
 
     >> 40! >> "fourtyfactorial"
     >> FilePrint["fourtyfactorial"]
@@ -979,9 +980,10 @@ class PutAppend(BinaryOperator):
     """
     <dl>
     <dt>'$expr$ >>> $filename$'
-      <dt>append $expr$ to a file.
+      <dd>append $expr$ to a file.
     <dt>'PutAppend[$expr1$, $expr2$, ..., $"filename"$]'
-      <dt>write a sequence of expressions to a file.
+      <dd>write a sequence of expressions to a file.
+    </dl>
 
     >> Put[50!, "factorials"]
     >> FilePrint["factorials"]
@@ -2208,10 +2210,11 @@ class FileHash(Builtin):
     <dl>
     <dt>'FileHash[$file$]'
       <dd>returns an integer hash for the given $file$.
-    <dt>'FileHash[$file$, $types$]'
-      <dd>returns an integer hash of specified $type$ for the given $file$.
+    <dt>'FileHash[$file$, $type$]'
+      <dd>returns an integer hash of the specified $type$ for the given $file$.</dd>
+      <dd>The types supported are "MD5", "Adler32", "CRC32", "SHA", "SHA224", "SHA256", "SHA384", and "SHA512".</dd>
     </dl>
-
+    
     >> FileHash["ExampleData/sunflowers.jpg"]
      = 109937059621979839952736809235486742106
 
@@ -2221,30 +2224,24 @@ class FileHash(Builtin):
     >> FileHash["ExampleData/sunflowers.jpg", "Adler32"]
      = 1607049478
 
-    >> FileHash["ExampleData/sunflowers.jpg", "CRC32"]
-     = 933095683
-
-    >> FileHash["ExampleData/sunflowers.jpg", "SHA"]
-     = 851696818771101405642332645949480848295550938123
-
-    >> FileHash["ExampleData/sunflowers.jpg", "SHA224"]
-     = 8723805623766373862936267623913366865806344065103917676078120867011
-
     >> FileHash["ExampleData/sunflowers.jpg", "SHA256"]
      = 111619807552579450300684600241129773909359865098672286468229443390003894913065
 
-    >> FileHash["ExampleData/sunflowers.jpg", "SHA384"]
+    #> FileHash["ExampleData/sunflowers.jpg", "CRC32"]
+     = 933095683
+    #> FileHash["ExampleData/sunflowers.jpg", "SHA"]
+     = 851696818771101405642332645949480848295550938123
+    #> FileHash["ExampleData/sunflowers.jpg", "SHA224"]
+     = 8723805623766373862936267623913366865806344065103917676078120867011
+    #> FileHash["ExampleData/sunflowers.jpg", "SHA384"]
      = 28288410602533803613059815846847184383722061845493818218404754864571944356226472174056863474016709057507799332611860
-
-    >> FileHash["ExampleData/sunflowers.jpg", "SHA512"]
+    #> FileHash["ExampleData/sunflowers.jpg", "SHA512"]
      = 10111462070211820348006107532340854103555369343736736045463376555356986226454343186097958657445421102793096729074874292511750542388324853755795387877480102
 
     #> FileHash["ExampleData/sunflowers.jpg", xyzsymbol]
      = FileHash[ExampleData/sunflowers.jpg, xyzsymbol]
-
     #> FileHash["ExampleData/sunflowers.jpg", "xyzstr"]
      = FileHash[ExampleData/sunflowers.jpg, xyzstr]
-
     #> FileHash[xyzsymbol]
      = FileHash[xyzsymbol]
     """

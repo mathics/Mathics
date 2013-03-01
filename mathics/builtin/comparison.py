@@ -374,9 +374,12 @@ def expr_min(items):
     
 class Max(Builtin):
     """
+    >> Max[4, -8, 1]
+     = 4
     >> Max[{1,2},3,{-3,3.5,-Infinity},{{1/2}}]
      = 3.5
-    >> Max[]
+
+    #> Max[]
      = -Infinity
     """
     
@@ -400,7 +403,12 @@ class Max(Builtin):
     
 class Min(Builtin):
     """
-    >> Min[]
+    >> Min[4, -8, 1]
+     = -8
+    >> Min[{1,2},3,{-3,3.5,-Infinity},{{1/2}}]
+     = -Infinity
+
+    #> Min[]
      = Infinity
     """
     
