@@ -317,13 +317,14 @@ class PrimeQ(Builtin):
      = True
     >> PrimeQ[-3]
      = True
-    >> PrimeQ[1]
-     = False
     >> PrimeQ[137]
      = True
     >> PrimeQ[2 ^ 127 - 1]
      = True
-    >> PrimeQ[2 ^ 255 - 1]
+
+    #> PrimeQ[1]
+     = False
+    #> PrimeQ[2 ^ 255 - 1]
      = False
      
     All prime numbers between 1 and 100:
@@ -419,7 +420,7 @@ class PrimePowerQ(Builtin):
     >> PrimePowerQ[371293]
      = True
 
-    >> PrimePowerQ[1]
+    #> PrimePowerQ[1]
      = False
     """
 
