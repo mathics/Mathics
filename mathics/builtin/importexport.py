@@ -397,6 +397,9 @@ class FileFormat(Builtin):
     #> FileFormat["ExampleData/some-typo.extension"]
      : File not found during FileFormat[ExampleData/some-typo.extension].
      = $Failed
+
+    #> FileFormat["ExampleData/Testosterone.svg"]
+     = SVG
     """
 
     #TODO: JSON example file
