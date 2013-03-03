@@ -11,6 +11,7 @@ from mathics.builtin.base import Builtin, Predefined, Symbol, String
 from mathics.settings import ROOT_DIR
 
 from pymimesniffer import magic
+import mimetypes
 
 
 IMPORTERS = {}
@@ -372,6 +373,18 @@ class FileFormat(Builtin):
     #> FileFormat["ExampleData/moon.tif"]
      = TIFF
 
+    #> FileFormat["ExampleData/numberdata.csv"]
+     = CSV
+
+    #> FileFormat["ExampleData/EinsteinSzilLetter.txt"]
+     = Text
+
+    #> FileFormat["ExampleData/BloodToilTearsSweat.txt"]
+     = Text
+
+    #> FileFormat["ExampleData/benzene.xyz"]
+     = XYZ
+
     #> FileFormat["ExampleData/some-typo.extension"]
      : File not found during FileFormat[ExampleData/some-typo.extension].
      = $Failed
@@ -404,40 +417,43 @@ class FileFormat(Builtin):
             loader.load()
             FileFormat.detector = magic.MagicDetector(loader.mimetypes)
             
-        mimetypes = FileFormat.detector.match(path)
-        mimetypes = set(mimetypes)
+        mime = set(FileFormat.detector.match(path))
+
+        # If match fails match on extension only
+        if mime == set([]):
+            mime, encoding = mimetypes.guess_type(path)
+            if mime is None:
+                mime = set([])
+            else:
+                mime = set([mime])
 
         #TODO: Add more file formats
-        
-        result = 'Binary'
-        if 'image/gif' in mimetypes:
-            result = 'GIF'
-        elif 'image/jpeg' in mimetypes:
-            result = 'JPEG'
-        elif 'application/pdf' in mimetypes:
-            result = 'PDF'
-        elif 'image/png' in mimetypes:
-            result = 'PNG'
-        elif 'image/tiff' in mimetypes:
-            result = 'TIFF'
-        elif 'text/csv' in mimetypes or path.endswith('.csv'):
-            result = 'CSV'
-        elif 'application/json' in mimetypes or path.endswith('.json'):
-            result = 'JSON'
-        elif path.endswith('.xml'):
-            result = 'XML'
+
+        typedict = {
+            'application/json': 'JSON',
+            'application/pdf': 'PDF',
+            'application/xml': 'XML',
+            'chemical/x-xyz': 'XYZ',
+            'image/gif': 'GIF',
+            'image/jpeg': 'JPEG',
+            'image/png': 'PNG',
+            'image/tiff': 'TIFF',
+            'text/csv': 'CSV',
+            'text/plain': 'Text',
+            #None: 'Binary',
+        }
+
+        result = []
+        for key in typedict.keys():
+            if key in mime:
+                result.append(typedict[key])
+
+        assert len(result) in (0,1)
+
+        if len(result) == 0:
+            result = 'Binary'
         else:
-            for mimetype in mimetypes:
-                if mimetype.startswith('text'):
-                    result = 'Text'
-                    break
-                elif 'xml' in mimetype:
-                    result = 'XML'
-                    break
-            else:
-                # TODO: text file recognition is not perfect
-                if path.lower().endswith('.txt'):
-                    result = 'Text'
+            result = result[0]
 
         return from_python(result)
 
