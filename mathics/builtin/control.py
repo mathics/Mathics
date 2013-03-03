@@ -304,7 +304,36 @@ class Nest(Builtin):
         for k in range(n):
             result = Expression(f, result).evaluate(evaluation)
         return result
+
+class NestList(Builtin):
+    """
+    <dl>
+    <dt>'Nest[$f$, $expr$, $n$]'
+        <dd>applies $f$ $n$ times to $expr$ and returns a list of all intermediate results.
+    </dl>
     
+    >> NestList[f, x, 3]
+     = {x, f[x], f[f[x]], f[f[f[x]]]}
+    >> NestList[(1+#) ^ 2 &, x, 2]
+     = {x, (1 + x)^2, (1 + (1 + x)^2)^2}
+    """
+    
+    def apply(self, f, expr, n, evaluation):
+        'NestList[f_, expr_, n_Integer]'
+        
+        n = n.get_int_value()
+        if n is None or n < 0:
+            return
+
+        interm = expr
+        result = [interm]
+
+        for k in range(n):
+            interm = Expression(f, interm).evaluate(evaluation)
+            result.append(interm)
+
+        return Expression('Identity', result)
+
 class NestWhile(Builtin):
     """
     <dl>
