@@ -308,14 +308,21 @@ class Nest(Builtin):
 class NestList(Builtin):
     """
     <dl>
-    <dt>'Nest[$f$, $expr$, $n$]'
+    <dt>'NestList[$f$, $expr$, $n$]'
         <dd>applies $f$ $n$ times to $expr$ and returns a list of all intermediate results.
     </dl>
     
     >> NestList[f, x, 3]
      = {x, f[x], f[f[x]], f[f[f[x]]]}
-    >> NestList[(1+#) ^ 2 &, x, 2]
-     = {x, (1 + x)^2, (1 + (1 + x)^2)^2}
+    >> NestList[2 # &, 1, 8]
+     = {1, 2, 4, 8, 16, 32, 64, 128, 256}
+
+    ## TODO: improve this example when RandomChoice, PointSize, Axes->False are implemented
+    Chaos game rendition of the Sierpinski triangle:
+    >> vertices = {{0,0}, {1,0}, {.5, .5 Sqrt[3]}};
+    >> points = NestList[.5(vertices[[ RandomInteger[{1,3}] ]] + #) &, {0.,0.}, 2000];
+    >> Graphics[Point[points], ImageSize->Small]
+     = -Graphics-
     """
     
     def apply(self, f, expr, n, evaluation):
@@ -383,7 +390,7 @@ class FixedPoint(Builtin):
     </dl>
     
     >> FixedPoint[Cos, 1.0]
-     = 0.739085133215160646
+     = 0.739085133215160639
      
     >> FixedPoint[#+1 &, 1, 20]
      = 21
@@ -394,7 +401,7 @@ class FixedPoint(Builtin):
      : Non-negative integer expected.
      = FixedPoint[f, x, -1]
     #> FixedPoint[Cos, 1.0, Infinity]
-     = 0.739085133215160646
+     = 0.739085133215160639
     """
     
     def apply(self, f, expr, n, evaluation):
@@ -414,11 +421,75 @@ class FixedPoint(Builtin):
             new_result = Expression(f, result).evaluate(evaluation)
             #print '%d: %s' % (index, new_result)
             if new_result == result:
+                result = new_result
                 break
             result = new_result
             index += 1
             
         return result
+
+class FixedPointList(Builtin):
+    """
+    <dl>
+    <dt>'FixedPointList[$f$, $expr$]'
+        <dd>repeatedly applies $f$ to $expr$ until the result no longer changes, and returns a list of all intermediate results.
+    <dt>'FixedPointList[$f$, $expr$, $n$]'
+        <dd>performs at most $n$ iterations.
+    </dl>
+    
+    >> FixedPointList[Cos, 1.0, 4]
+     = {1., 0.540302305868139717, 0.857553215846393416, 0.65428979049777915, 0.793480358742565592}
+
+    Observe the convergence of Newton's method for approximating square roots:
+    >> newton[n_] := FixedPointList[.5(# + n/#) &, 1.];
+    >> newton[9]
+     = {1., 5., 3.4, 3.02352941176470588, 3.00009155413138018, 3.00000000139698386, 3., 3.}
+    
+    Plot the hailstone sequence of a number:
+    >> collatz[1] := 1;
+    >> collatz[x_ /; EvenQ[x]] := x / 2;
+    >> collatz[x_] := 3 x + 1;
+    >> list = FixedPointList[collatz, 14]
+     = {14, 7, 22, 11, 34, 17, 52, 26, 13, 40, 20, 10, 5, 16, 8, 4, 2, 1, 1}
+    >> ListLinePlot[list]
+     = -Graphics-
+
+    #> FixedPointList[f, x, 0]
+     = {x}
+    #> FixedPointList[f, x, -1]
+     : Non-negative integer expected.
+     = FixedPointList[f, x, -1]
+    #> Last[FixedPointList[Cos, 1.0, Infinity]]
+     = 0.739085133215160639
+    """
+    
+    def apply(self, f, expr, n, evaluation):
+        'FixedPointList[f_, expr_, n_:DirectedInfinity[1]]'
+        
+        if n == Expression('DirectedInfinity', 1):
+            count = None
+        else:
+            count = n.get_int_value()
+            if count is None or count < 0:
+                evaluation.message('FixedPoint', 'intnn')
+                return
+
+        interm = expr
+        result = [interm]
+
+        index = 0
+        while count is None or index < count:
+            evaluation.check_stopped()
+
+            new_result = Expression(f, interm).evaluate(evaluation)
+            result.append(new_result)
+            if new_result == interm:
+                break
+
+            interm = new_result
+            index += 1
+            
+        return Expression('Identity', result)
     
 class Abort(Builtin):
     """
