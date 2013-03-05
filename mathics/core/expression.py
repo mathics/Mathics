@@ -105,6 +105,11 @@ class BaseExpression(object):
     
     def is_symbol(self):
         return False
+
+    def get_context(self):
+        " Returns the symbol's context if Symbol instance "
+
+        return ''
     
     def get_lookup_name(self):
         " Returns symbol name of leftmost head "
@@ -1083,8 +1088,21 @@ class Atom(BaseExpression):
 class Symbol(Atom):        
     def __init__(self, name, sympy_dummy=None, **kwargs):
         super(Symbol, self).__init__(**kwargs)
-        self.name = name
+
+        if isinstance(name, Symbol):
+            self.name = name.name
+        elif isinstance(name, basestring):
+            self.name = name
+        else:
+            raise TypeError('Unknown number type: %s (type %s)' % (name, type(name)))
+
         self.sympy_dummy = sympy_dummy
+
+        if '`' in self.name:
+            self.context = self.name[::-1].split('`', 1)[1][::-1]
+        else:
+            from mathics.builtin.scoping import get_current_context
+            self.context = get_current_context()
         
     def __str__(self):
         return self.name
@@ -1128,6 +1146,9 @@ class Symbol(Atom):
     
     def get_name(self):
         return self.name
+
+    def get_context(self):
+        return self.context
     
     def is_symbol(self):
         return True
