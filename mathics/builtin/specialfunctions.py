@@ -90,7 +90,7 @@ class BesselJ(_Bessel):
     """
     <dl>
     <dt>'BesselJ[$n$, $z$]'
-      <dd>returns the Bessel function of the first kind $J_n(z)$.
+      <dd>returns the Bessel function of the first kind J_$n$($z$).
     </dl>
 
     >> BesselJ[0, 5.2]
@@ -124,7 +124,7 @@ class BesselY(_Bessel):
     """
     <dl>
     <dt>'BesselY[$n$, $z$]'
-      <dd>returns the Bessel function of the second kind $Y_n(z)$.
+      <dd>returns the Bessel function of the second kind Y_$n$($z$).
     </dl>
 
     >> BesselY[1.5, 4]
@@ -153,7 +153,7 @@ class BesselI(_Bessel):
     """
     <dl>
     <dt>'BesselI[$n$, $z$]'
-      <dd>returns the modified Bessel function of the first kind $I_n(z)$.
+      <dd>returns the modified Bessel function of the first kind I_$n$($z$).
     </dl>
 
     >> BesselI[1.5, 4]
@@ -172,7 +172,7 @@ class BesselK(_Bessel):
     """
     <dl>
     <dt>'BesselK[$n$, $z$]'
-      <dd>returns the modified Bessel function of the second kind $K_n(z)$.
+      <dd>returns the modified Bessel function of the second kind K_$n$($z$).
     </dl>
 
     >> BesselK[1.5, 4]
@@ -195,7 +195,7 @@ class HankelH1(_Bessel):
     """
     <dl>
     <dt>'HankelH1[$n$, $z$]'
-      <dd>returns the Hankel function of the first kind $H_n^1 (z)$.
+      <dd>returns the Hankel function of the first kind H_$n$^1 ($z$).
     </dl>
 
     >> HankelH1[1.5, 4]
@@ -209,7 +209,7 @@ class HankelH2(_Bessel):
     """
     <dl>
     <dt>'HankelH2[$n$, $z$]'
-      <dd>returns the Hankel function of the second kind $H_n^2 (z)$.
+      <dd>returns the Hankel function of the second kind H_$n$^2 ($z$).
     </dl>
 
     >> HankelH2[1.5, 4]
@@ -225,7 +225,7 @@ class AiryAi(_MPMathFunction):
     """
     <dl>
     <dt>'AiryAi[$x$]'
-      <dd>returns the Airy function $Ai(x)$.
+      <dd>returns the Airy function Ai($x$).
     </dl>
 
     >> AiryAi[0.5]
@@ -245,7 +245,7 @@ class AiryBi(_MPMathFunction):
     """
     <dl>
     <dt>'AiryBi[$x$]'
-      <dd>returns the Airy function $Bi(x)$.
+      <dd>returns the Airy function Bi($x$).
     </dl>
 
     >> AiryBi[0.5]
@@ -267,9 +267,9 @@ class KelvinBer(_Bessel):
     """
     <dl>
     <dt>'KelvinBer[$z$]'
-      <dd>returns the Kelvin function $ber(z)$.
+      <dd>returns the Kelvin function ber($z$).
     <dt>'KelvinBer[$n$, $z$]'
-      <dd>returns the Kelvin function $ber_n(z)$.
+      <dd>returns the Kelvin function ber_$n$($z$).
     </dl>
 
     >> KelvinBer[0.5]
@@ -296,9 +296,9 @@ class KelvinBei(_Bessel):
     """
     <dl>
     <dt>'KelvinBei[$z$]'
-      <dd>returns the Kelvin function $bei(z)$.
+      <dd>returns the Kelvin function bei($z$).
     <dt>'KelvinBei[$n$, $z$]'
-      <dd>returns the Kelvin function $bei_n(z)$.
+      <dd>returns the Kelvin function bei_$n$($z$).
     </dl>
 
     >> KelvinBei[0.5]
@@ -325,9 +325,9 @@ class KelvinKer(_Bessel):
     """
     <dl>
     <dt>'KelvinKer[$z$]'
-      <dd>returns the Kelvin function $ker(z)$.
+      <dd>returns the Kelvin function ker($z$).
     <dt>'KelvinKer[$n$, $z$]'
-      <dd>returns the Kelvin function $ker_n(z)$.
+      <dd>returns the Kelvin function ker_$n$($z$).
     </dl>
 
     >> KelvinKer[0.5]
@@ -354,9 +354,9 @@ class KelvinKei(_Bessel):
     """
     <dl>
     <dt>'KelvinKei[$z$]'
-      <dd>returns the Kelvin function $kei(z)$.
+      <dd>returns the Kelvin function kei($z$).
     <dt>'KelvinKei[$n$, $z$]'
-      <dd>returns the Kelvin function $kei_n(z)$.
+      <dd>returns the Kelvin function kei_$n$($z$).
     </dl>
 
     >> KelvinKei[0.5]
@@ -385,7 +385,7 @@ class StruveH(_Bessel):
     """
     <dl>
     <dt>'StruveH[$n$, $z$]'
-      <dd>returns the Struve function $H_n(z)$.
+      <dd>returns the Struve function H_$n$($z$).
     </dl>
 
     >> StruveH[1.5, 3.5]
@@ -402,7 +402,7 @@ class StruveL(_Bessel):
     """
     <dl>
     <dt>'StruveL[$n$, $z$]'
-      <dd>returns the modified Struve function $L_n(z)$.
+      <dd>returns the modified Struve function L_$n$($z$).
     </dl>
 
     >> StruveL[1.5, 3.5]
@@ -419,7 +419,7 @@ class AngerJ(_Bessel):
     """
     <dl>
     <dt>'AngerJ[$n$, $z$]'
-      <dd>returns the Anger function $J_n(z)$.
+      <dd>returns the Anger function J_$n$($z$).
     </dl>
 
     >> AngerJ[1.5, 3.5]
@@ -438,7 +438,7 @@ class WeberE(_Bessel):
     """
     <dl>
     <dt>'WeberE[$n$, $z$]'
-      <dd>returns the Weber function $E_n(z)$.
+      <dd>returns the Weber function E_$n$($z$).
     </dl>
 
     >> WeberE[1.5, 3.5]
@@ -459,7 +459,7 @@ class BesselJZero(_Bessel):
     """
     <dl>
     <dt>'BesselJZero[$n$, $k$]'
-      <dd>returns the $k$th zero of the Bessel function of the first kind $J_n(z)$.
+      <dd>returns the $k$th zero of the Bessel function of the first kind J_$n$($z$).
     </dl>
 
     >> N[BesselJZero[0, 1]]
@@ -473,7 +473,7 @@ class BesselYZero(_Bessel):
     """
     <dl>
     <dt>'BesselJZero[$n$, $k$]'
-      <dd>returns the $k$th zero of the Bessel function of the second kind $Y_n(z)$.
+      <dd>returns the $k$th zero of the Bessel function of the second kind Y_$n$($z$).
     </dl>
 
     >> N[BesselYZero[0, 1]]
@@ -487,7 +487,7 @@ class AiryAiZero(Builtin):
     """
     <dl>
     <dt>'AiryAiZero[$k$]'
-      <dd>returns the $k$th zero of the Airy function $Ai(z)$.
+      <dd>returns the $k$th zero of the Airy function Ai($z$).
     </dl>
 
     >> N[AiryAiZero[1]]
@@ -525,7 +525,7 @@ class AiryBiZero(Builtin):
     """
     <dl>
     <dt>'AiryBiZero[$k$]'
-      <dd>returns the $k$th zero of the Airy function $Bi(z)$.
+      <dd>returns the $k$th zero of the Airy function Bi($z$).
     </dl>
 
     >> N[AiryBiZero[1]]
@@ -565,9 +565,9 @@ class LegendreP(_MPMathFunction):
     """
     <dl>
     <dt>'LegendreP[$n$, $x$]'
-      <dd>returns the Legendre polynomial $P_n(x)$.
+      <dd>returns the Legendre polynomial P_$n$($x$).
     <dt>'LegendreP[$n$, $m$, $x$]'
-      <dd>returns the associated Legendre polynomial $P^m_n(x)$.
+      <dd>returns the associated Legendre polynomial P^$m$_$n$($x$).
     </dl>
 
     >> LegendreP[4, x]
@@ -582,7 +582,7 @@ class LegendreP(_MPMathFunction):
     >> LegendreP[1.6, 3.1, 1.5]
      = -0.303998161489593441 - 1.91936885256334894 I
 
-    LegendreP can be used to draw generalized Lissajous figures:
+    'LegendreP' can be used to draw generalized Lissajous figures:
     >> ParametricPlot[ {LegendreP[7, x], LegendreP[5, x]}, {x, -1, 1}]
      = -Graphics-
     """
@@ -610,9 +610,9 @@ class LegendreQ(_MPMathFunction):
     """
     <dl>
     <dt>'LegendreQ[$n$, $x$]'
-      <dd>returns the Legendre function of the second kind $Q_n(x)$.
+      <dd>returns the Legendre function of the second kind Q_$n$($x$).
     <dt>'LegendreQ[$n$, $m$, $x$]'
-      <dd>returns the associated Legendre function of the second $Q^m_n(x)$.
+      <dd>returns the associated Legendre function of the second Q^$m$_$n$($x$).
     </dl>
 
     >> LegendreQ[5/2, 1.5]
@@ -648,7 +648,7 @@ class JacobiP(_MPMathFunction):
     """
     <dl>
     <dt>'JacobiP[$n$, $a$, $b$, $x$]'
-      <dd>returns the Jacobi polynomial $P_n^{(a,b)}(x)$.
+      <dd>returns the Jacobi polynomial P_$n$^($a$,$b$)($x$).
     </dl>
 
     >> JacobiP[1, a, b, z]
@@ -664,10 +664,10 @@ class JacobiP(_MPMathFunction):
 
 
 class SphericalHarmonicY(_MPMathFunction):
-    """
+    u"""
     <dl>
-    <dt>'SphericalHarmonicY[$l$, $m$, $\\theta$, $\\phi$]'
-      <dd>returns the spherical harmonic functin $Y_l^m(\\theta, \\phi)$.
+    <dt>'SphericalHarmonicY[$l$, $m$, \u0275, \u03D5]'
+      <dd>returns the spherical harmonic functin Y_$l$^$m$(\u0257, \u03D5).
     </dl>
 
     >> SphericalHarmonicY[3, 1, theta, phi]
@@ -685,7 +685,7 @@ class GegenbauerC(_MPMathFunction):
     """
     <dl>
     <dt>'GegenbauerC[$n$, $m$, $x$]'
-      <dd>returns the Generbauer polynomial $C_n^{(m)}(x)$.
+      <dd>returns the Generbauer polynomial C_$n$^($m$)($x$).
     </dl>
 
     >> GegenbauerC[6, 1, x] 
@@ -705,7 +705,7 @@ class ChebyshevT(_MPMathFunction):
     """
     <dl>
     <dt>'ChebyshevT[$n$, $x$]'
-      <dd>returns the Chebyshev polynomial of the first kind $T_n(x)$.
+      <dd>returns the Chebyshev polynomial of the first kind T_$n$($x$).
     </dl>
 
     >> ChebyshevT[8, x]
@@ -723,7 +723,7 @@ class ChebyshevU(_MPMathFunction):
     """
     <dl>
     <dt>'ChebyshevU[$n$, $x$]'
-      <dd>returns the Chebyshev polynomial of the second kind $U_n(x)$.
+      <dd>returns the Chebyshev polynomial of the second kind U_$n$($x$).
     </dl>
 
     >> ChebyshevU[8, x]
@@ -741,7 +741,7 @@ class HermiteH(_MPMathFunction):
     """
     <dl>
     <dt>'ChebyshevU[$n$, $x$]'
-      <dd>returns the Hermite polynomial $H_n(x)$.
+      <dd>returns the Hermite polynomial H_$n$($x$).
     </dl>
 
     >> HermiteH[8, x] 
@@ -762,9 +762,9 @@ class LaguerreL(_MPMathFunction):
     """
     <dl>
     <dt>'LaguerreL[$n$, $x$]'
-      <dd>returns the Laguerre polynomial $L_n(x)$.
+      <dd>returns the Laguerre polynomial L_$n$($x$).
     <dt>'LaguerreL[$n$, $a$, $x$]'
-      <dd>returns the generalised Laguerre polynomial $L^a_n(x)$.
+      <dd>returns the generalised Laguerre polynomial L^$a$_$n$($x$).
     </dl>
 
     >> LaguerreL[8, x]
@@ -797,7 +797,7 @@ class LaguerreL(_MPMathFunction):
 #    """
 #    <dl>
 #    <dt>'ZernikeR[$n$, $m$,  $r$]'
-#      <dd>returns the radial Zernike polynomial $R_n^m(r)$.
+#      <dd>returns the radial Zernike polynomial R_$n$^$m$($r$).
 #    </dl>
 #
 #    >> ZernikeR[3, 1, r]
