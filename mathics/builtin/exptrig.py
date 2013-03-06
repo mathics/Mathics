@@ -379,6 +379,24 @@ class ArcTan(_MPMathFunction):
      = 0.78539816339744831
     >> ArcTan[-1.0]
      = -0.78539816339744831
+
+    >> ArcTan[1, 1]
+     = Pi / 4
+    #> ArcTan[-1, 1]
+     = 3 Pi / 4
+    #> ArcTan[1, -1]
+     = -Pi / 4
+    #> ArcTan[-1, -1]
+     = -3 Pi / 4
+
+    #> ArcTan[1, 0]
+     = 0
+    #> ArcTan[-1, 0]
+     = Pi
+    #> ArcTan[0, 1]
+     = Pi / 2
+    #> ArcTan[0, -1]
+     = -Pi / 2
     """
     
     sympy_name = 'atan'
@@ -388,6 +406,7 @@ class ArcTan(_MPMathFunction):
         'ArcTan[1]': 'Pi/4',
         'ArcTan[0]': '0',
         'Derivative[1][ArcTan]': '1/(1+#^2)&',
+        'ArcTan[x_?RealNumberQ, y_?RealNumberQ]': 'If[x == 0, If[y == 0, 0, If[y > 0, Pi/2, -Pi/2]], If[x > 0, ArcTan[y/x], If[y >= 0, ArcTan[y/x] + Pi, ArcTan[y/x] - Pi]]]',
     }
     
 class ArcSec(_MPMathFunction):
