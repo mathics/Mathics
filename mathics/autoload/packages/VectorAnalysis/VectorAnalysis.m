@@ -38,9 +38,23 @@ ScalarTripleProduct[v1_?IsVecQ, v2_?IsVecQ, v3_?IsVecQ,
     Det[{c1, c2, c3}]]
 
 (* TODO: Other coordinate systems *)
-CoordinatesToCartesian[pt_?IsVecQ, coordsys_:$CoordinateSystem] := pt
+CoordinatesToCartesian[pt_?IsVecQ, coordsys_:$CoordinateSystem] := 
+    Module[{v1 = pt[[1]], v2 = pt[[2]], v3 = pt[[3]]}, 
+        Switch[coordsys,
+            Cartesian, {v1, v2, v3},
+            Spherical, {v1 Sin[v2] Cos[v3], v1 Sin[v2] Sin[v3], v1 Cos[v2]},
+            Cylindrical, {v1 Cos[v2], v1 Sin[v2], v3}
+        ]
+    ]
 
-CoordinatesFromCartesian[pt_?IsVecQ, coordsys_:$CoordinateSystem] := pt
+CoordinatesFromCartesian[pt_?IsVecQ, coordsys_:$CoordinateSystem] :=
+    Module[{v1 = pt[[1]], v2 = pt[[2]], v3 = pt[[3]]}, 
+        Switch[coordsys,
+            Cartesian, {v1, v2, v3},
+            Spherical, {Sqrt[v1^2 + v2^2 + v3^2], ArcCos[v3/Sqrt[v1^2 + v2^2 + v3^2]], ArcTan[v1, v2]},
+            Cylindrical, {Sqrt[v1^2 + v2^2], ArcTan[v1, v2], v3}
+        ]
+    ]
 
 Attributes[DotProduct] = {ReadProtected, Protected};
 Attributes[CrossProduct] = {ReadProtected, Protected};
