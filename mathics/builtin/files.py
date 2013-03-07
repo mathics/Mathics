@@ -27,7 +27,7 @@ TMP_DIR = tempfile.gettempdir()
 DIRECTORY_STACK = [INITIAL_DIR]
 INPUT_VAR = ""
 INPUTFILE_VAR = ""
-PATH_VAR = [HOME_DIR, os.path.join(ROOT_DIR, 'data')]
+PATH_VAR = [HOME_DIR, os.path.join(ROOT_DIR, 'data'), os.path.join(ROOT_DIR, 'packages')]
 
 class mathics_open:
     def __init__(self, filename, mode='r'):
@@ -3220,3 +3220,47 @@ class DirectoryQ(Builtin):
             return Symbol('True')
         return Symbol('False')
 
+
+class Needs(Builtin):
+    """
+    <dl>'Needs["context`"]'
+      <dd>loads the specified context if not already in '$Packages'.
+    </dl>
+
+    >> Needs["VectorAnalysis`"]
+     =
+
+    #> Needs["VectorAnalysis`"]
+     =
+
+    #> Needs["SomeFakePackageOrTypo`"]
+     : Cannot open SomeFakePackageOrTypo`
+     : Context SomeFakePackageOrTypo` was not created when Needs was evaluated.
+
+    #> Needs["VectorAnalysis"]
+     : Invalid context specified at position 1 in Needs[VectorAnalysis]. A context must consist of valid symbol names separated by and ending with `.
+     = Needs[VectorAnalysis]
+    """
+
+    messages = {
+        'ctx': 'Invalid context specified at position `2` in `1`. A context must consist of valid symbol names separated by and ending with `3`.',
+        'nocont': 'Context `1` was not created when Needs was evaluated.',
+    }
+
+    def apply(self, context, evaluation):
+        'Needs[context_String]'
+
+        if context.get_string_value()[-1] != '`':
+            evaluation.message('Needs', 'ctx', Expression('Needs', context), 1, '`')
+            return
+
+        # TODO
+        #if Expression('MemberQ', context, Symbol('$Packages')).is_true():
+        #    # Already loaded
+        #    return Symbol('Null')
+
+        if Expression('Get', context).evaluate() != Symbol('Null'):
+            evaluation.message('Needs', 'nocont', context)
+            return Symbol('$Failed')
+
+        return Symbol('Null')
