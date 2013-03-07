@@ -80,13 +80,30 @@ class mathics_open:
         return self.file.seekable
 
 def path_search(filename):
-    if os.path.exists(filename):
-        return filename
-    for p in PATH_VAR:
-        path = os.path.join(p, filename)
-        if os.path.exists(path):
-            return path
-    return None
+    # For names of the form "name`", search for name.mx and name.m
+    if filename[-1] == '`':
+        filename = filename[:-1].replace('`', os.path.sep)
+        for ext in ['.mx', '.m']:
+            result = path_search(filename + ext)
+            if result is not None:
+                filename = None
+                break
+
+    if filename is not None:
+        result = None
+        for p in PATH_VAR + ['']:
+            path = os.path.join(p, filename)
+            if os.path.exists(path):
+                result = path
+                break
+
+    # If FindFile resolves to a dir, search within for Kernel/init.m and init.m
+    if result is not None and os.path.isdir(result):
+        for ext in [os.path.join('Kernel', 'init.m'), 'init.m']:
+            tmp = os.path.join(result, ext)
+            if os.path.isfile(tmp):
+                return tmp
+    return result
 
 def _put_stream(stream):
     global STREAMS, _STREAMS, NSTREAMS
@@ -871,6 +888,9 @@ class Get(PrefixOperator):
     >> <<"fourtyfactorial"
      = 815915283247897734345611269596115894272000000000
     #> DeleteFile["fourtyfactorial"]
+
+    'Get' can also load packages:
+    >> << "VectorAnalysis`"
     """
 
     operator = '<<'
@@ -1087,6 +1107,12 @@ class FindFile(Builtin):
     </dl>
 
     >> FindFile["ExampleData/sunflowers.jpg"]
+     = ...
+
+    >> FindFile["VectorAnalysis`"]
+     = ...
+
+    >> FindFile["VectorAnalysis`VectorAnalysis`"]
      = ...
     """
 
