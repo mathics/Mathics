@@ -919,12 +919,16 @@ class Get(PrefixOperator):
         except NameError:
             from mathics.core.parser import parse, ParseError
 
+        syntax_error_count = 0
         for lineno, tmp in enumerate(result):
             try:
                 expr = parse(tmp)
             except:     #FIXME: something weird is going on here
-                print "Syntax Error (line {0} of {1})".format(lineno+1, pypath)
-                return Symbol('Null')
+                syntax_error_count += 1
+                if syntax_error_count <= 4:
+                    print "Syntax Error (line {0} of {1})".format(lineno+1, pypath)
+                if syntax_error_count == 4:
+                    print "Supressing further syntax errors in {0}".format(pypath)
         return expr
 
     def apply_default(self, filename, evaluation):
