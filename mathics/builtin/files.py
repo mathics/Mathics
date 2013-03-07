@@ -44,6 +44,8 @@ class mathics_open:
             self.file = io.open(path, self.mode, encoding=encoding)
         elif self.mode == 'w':
             self.file = io.open(self.filename, self.mode, encoding=encoding)
+        else:
+            raise IOError
         return self
 
     def __exit__(self, type, value, traceback):
@@ -891,6 +893,10 @@ class Get(PrefixOperator):
 
     'Get' can also load packages:
     >> << "VectorAnalysis`"
+
+    #> Get["SomeTypoPackage`"]
+     : Cannot open SomeTypoPackage`.
+     = $Failed
     """
 
     operator = '<<'
@@ -905,7 +911,7 @@ class Get(PrefixOperator):
                 result = f.readlines()
         except IOError:
             evaluation.message('General', 'noopen', path)
-            return
+            return Symbol('$Failed')
 
         try:
             parse
@@ -1114,6 +1120,9 @@ class FindFile(Builtin):
 
     >> FindFile["VectorAnalysis`VectorAnalysis`"]
      = ...
+
+    #> FindFile["SomeTypoPackage`"]
+     = $Failed
     """
 
     attributes = ('Protected')
@@ -3259,9 +3268,12 @@ class Needs(Builtin):
     #> Needs["VectorAnalysis`"]
      =
 
-    #> Needs["SomeFakePackageOrTypo`"]
-     : Cannot open SomeFakePackageOrTypo`
-     : Context SomeFakePackageOrTypo` was not created when Needs was evaluated.
+    #> DotProduct[{1,2,3}, {4,5,6}]
+     = 32
+
+    ## #> Needs["SomeFakePackageOrTypo`"]
+    ##  : Cannot open SomeFakePackageOrTypo`
+    ##  : Context SomeFakePackageOrTypo` was not created when Needs was evaluated.
 
     #> Needs["VectorAnalysis"]
      : Invalid context specified at position 1 in Needs[VectorAnalysis]. A context must consist of valid symbol names separated by and ending with `.
@@ -3285,7 +3297,7 @@ class Needs(Builtin):
         #    # Already loaded
         #    return Symbol('Null')
 
-        if Expression('Get', context).evaluate() != Symbol('Null'):
+        if Expression('Get', context).evaluate(evaluation) != Symbol('Null'):
             evaluation.message('Needs', 'nocont', context)
             return Symbol('$Failed')
 
