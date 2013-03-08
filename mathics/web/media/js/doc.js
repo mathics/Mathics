@@ -29,11 +29,13 @@ function showPage(response) {
                     {'class': 'submitbutton', 'title': "Submit [Shift+Return]"},
 					submitButton = $E('span', $T('='))
 				));
-        test.observe('mouseover', function(){
-            this.grep(new Selector('.submitbutton')).show(); 
+        test.descendants()[1].hide();
+
+        test.observe('mouseover', function(e){
+            this.descendants()[1].show();
         });    
-        test.observe('mouseout', function(){
-            this.grep(new Selector('.submitbutton')).hide(); 
+        test.observe('mouseout', function(e){
+            this.descendants()[1].hide();
         });
     });
 
