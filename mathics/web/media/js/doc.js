@@ -29,13 +29,11 @@ function showPage(response) {
                     {'class': 'submitbutton', 'title': "Submit [Shift+Return]"},
 					submitButton = $E('span', $T('='))
 				));
-        test.descendants()[1].hide();
-
         test.observe('mouseover', function(e){
-            this.descendants()[1].show();
+            this.descendants()[1].addClassName('focused');
         });    
         test.observe('mouseout', function(e){
-            this.descendants()[1].hide();
+            this.descendants()[1].removeClassName('focused');
         });
     });
 
