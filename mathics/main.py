@@ -41,7 +41,16 @@ def out_callback(out):
     print to_output(unicode(out))
 
 # Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/
-def brackets_balanced(input_string):
+def wait_for_line(input_string):
+    """
+    Should the intepreter wait for another line of input or try to evaluate the
+    current line as is.
+    """
+    trailing_ops = ['+', '-', '/', '*', '^', '=', 
+	    '>', '<', '/;', '/:', '/.', '&&', '||'] 
+    if any(input_string.rstrip().endswith(op) for op in trailing_ops):
+        return True
+
     brackets = [ ('(',')'), ('[',']'), ('{','}')]
     kStart, kEnd, stack = 0, 1, []
     for char in input_string:
@@ -49,12 +58,12 @@ def brackets_balanced(input_string):
             if char == bracketPair[kStart]:
                 stack.append(char)
             elif char == bracketPair[kEnd] and (len(stack) == 0 or stack.pop() != bracketPair[kStart]):
-                # Brackets are not balanced, but return True so that a parse error can be raised
-                return True
-    if len(stack) == 0:
-        return True
+                # Brackets are not balanced, but return False so that a parse error can be raised
+                return False
+    if len(stack) == 0 and input_string.count('"') % 2 == 0:
+        return False
 
-    return False
+    return True
 
 def main():
     argparser = argparse.ArgumentParser(
@@ -82,8 +91,6 @@ def main():
     definitions = Definitions(add_builtin=True)
 
     # TODO all binary operators?
-    trailing_ops = ['+', '-', '/', '*', '^', '=', 
-	    '>', '<', '/;', '/:', '/.', '&&', '||'] 
 
     if args.execute:
         print ">> %s" % args.execute
@@ -92,7 +99,6 @@ def main():
                 if result.result is not None:
                     print ' = %s' % to_output(unicode(result.result))           
         return
-
 
     if not (args.quiet or args.script):
         print_version(is_server=False)
@@ -112,13 +118,13 @@ def main():
             if total_input == "":
                 print '>> ', line,
             else:
-                print '       ', line,
+                print '   ', line,
 
             total_input += line
 
             if line == "":
                 pass
-            elif any(line.rstrip().endswith(op) for op in trailing_ops) or not brackets_balanced(total_input):
+            elif wait_for_line(total_input):
                 continue
 
             evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
@@ -135,9 +141,7 @@ def main():
             line_input = raw_input('>> ')
             while line_input != "":
                 total_input += ' ' + line_input
-                if any([line_input.rstrip().endswith(op) for op in trailing_ops]):
-                    pass
-                elif brackets_balanced(total_input):
+                if not wait_for_line(total_input):
                     break
                 line_input = raw_input('       ')
         

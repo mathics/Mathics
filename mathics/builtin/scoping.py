@@ -200,5 +200,3 @@ class Context(Builtin):
             return
         context = evaluation.definitions.get_definition(name).context
         return String(context)
-    
-    

@@ -891,8 +891,9 @@ class Get(PrefixOperator):
      = 815915283247897734345611269596115894272000000000
     #> DeleteFile["fourtyfactorial"]
 
-    'Get' can also load packages:
-    >> << "VectorAnalysis`"
+    ## TODO: Requires EndPackage implemented
+    ## 'Get' can also load packages:
+    ## >> << "VectorAnalysis`"
 
     #> Get["SomeTypoPackage`"]
      : Cannot open SomeTypoPackage`.
@@ -919,16 +920,34 @@ class Get(PrefixOperator):
         except NameError:
             from mathics.core.parser import parse, ParseError
 
+        from mathics.main import wait_for_line
+
+        total_input = ""
         syntax_error_count = 0
+        expr = Symbol('Null')
+
         for lineno, tmp in enumerate(result):
+            total_input += ' ' + tmp
+            if wait_for_line(total_input):
+                continue
             try:
-                expr = parse(tmp)
+                expr = parse(total_input)
             except:     #FIXME: something weird is going on here
                 syntax_error_count += 1
                 if syntax_error_count <= 4:
                     print "Syntax Error (line {0} of {1})".format(lineno+1, pypath)
                 if syntax_error_count == 4:
                     print "Supressing further syntax errors in {0}".format(pypath)
+            else:
+                total_input = ""
+
+        if total_input != "":
+            #TODO:
+            #evaluation.message('Syntax', 'sntue', 'line {0} of {1}'.format(lineno, pypath))
+            print 'Unexpected end of file (probably unfinished expression)'
+            print '    (line {0} of "{1}").'.format(lineno, pypath)
+            return Symbol('Null')
+
         return expr
 
     def apply_default(self, filename, evaluation):
@@ -3301,7 +3320,7 @@ class Needs(Builtin):
         #    # Already loaded
         #    return Symbol('Null')
 
-        if Expression('Get', context).evaluate(evaluation) != Symbol('Null'):
+        if Expression('Get', context).evaluate(evaluation) == Symbol('$Failed'):
             evaluation.message('Needs', 'nocont', context)
             return Symbol('$Failed')
 
