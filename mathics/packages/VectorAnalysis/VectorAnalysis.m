@@ -16,6 +16,11 @@ $CoordSysList = {Cartesian, Spherical, Cylindrical};
 $IsVecQ[v_] := Length[v] == 3 && VectorQ[v];
 
 
+Unprotect[DotProduct, CrossProduct, ScalarTripleProduct, 
+    CoordinatesToCartesian, CoordinatesFromCartesian, Coordinates,
+    Parameters, CoordinateRanges, ParameterRanges, SetCoordinates,
+    CoordinateSystem];
+
   (* ============================ Dot Product ============================ *)
 
 DotProduct::usage =
