@@ -23,11 +23,26 @@ function showPage(response) {
 	if ($('doc')) {
 		$('doc').updateDOM(response.content);
 	}
+
+    $$('li.test p').each(function(test){
+        test.insert($E('span', 
+                    {'class': 'submitbutton', 'title': "Submit [Shift+Return]"},
+					submitButton = $E('span', $T('='))
+				));
+        test.observe('mouseover', function(){
+            this.grep(new Selector('.submitbutton')).show(); 
+        });    
+        test.observe('mouseout', function(){
+            this.grep(new Selector('.submitbutton')).hide(); 
+        });
+    });
+
 	$$('ul.test').each(function(test) {
 		var id = test.id.substr(5); // 'test_...'
 		var data = response.data[id];
 		setResult(test, data.results);
 	});
+
 }
 
 function loadDoc(page) {
