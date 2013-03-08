@@ -939,6 +939,8 @@ class Get(PrefixOperator):
                 if syntax_error_count == 4:
                     print "Supressing further syntax errors in {0}".format(pypath)
             else:
+                if expr is not None:
+                    expr = expr.evaluate(evaluation)
                 total_input = ""
 
         if total_input != "":
@@ -3286,17 +3288,16 @@ class Needs(Builtin):
     </dl>
 
     >> Needs["VectorAnalysis`"]
-     =
 
     #> Needs["VectorAnalysis`"]
-     =
 
     #> DotProduct[{1,2,3}, {4,5,6}]
      = 32
 
-    ## #> Needs["SomeFakePackageOrTypo`"]
-    ##  : Cannot open SomeFakePackageOrTypo`
-    ##  : Context SomeFakePackageOrTypo` was not created when Needs was evaluated.
+    #> Needs["SomeFakePackageOrTypo`"]
+     : Cannot open SomeFakePackageOrTypo`.
+     : Context SomeFakePackageOrTypo` was not created when Needs was evaluated.
+     = $Failed
 
     #> Needs["VectorAnalysis"]
      : Invalid context specified at position 1 in Needs[VectorAnalysis]. A context must consist of valid symbol names separated by and ending with `.
@@ -3320,7 +3321,9 @@ class Needs(Builtin):
         #    # Already loaded
         #    return Symbol('Null')
 
-        if Expression('Get', context).evaluate(evaluation) == Symbol('$Failed'):
+        result =  Expression('Get', context).evaluate(evaluation)
+
+        if result == Symbol('$Failed'):
             evaluation.message('Needs', 'nocont', context)
             return Symbol('$Failed')
 
