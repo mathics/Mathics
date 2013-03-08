@@ -29,11 +29,17 @@ function showPage(response) {
                     {'class': 'submitbutton', 'title': "Submit [Shift+Return]"},
 					submitButton = $E('span', $T('='))
 				));
+
         test.observe('mouseover', function(e){
             $(test).addClassName('focused');
         });    
         test.observe('mouseout', function(e){
             $(test).removeClassName('focused');
+        });
+
+        $(test).descendants()[1].observe('click', function(){
+            var query = $(test).descendants()[0].innerHTML;
+            setQueries([query]);
         });
     });
 
