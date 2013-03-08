@@ -26,7 +26,7 @@ function showPage(response) {
 
     $$('li.test p').each(function(test){
         test.insert($E('span', 
-                    {'class': 'submitbutton', 'title': "Submit [Shift+Return]"},
+                    {'class': 'submitbutton', 'title': "Run this example!"},
 					submitButton = $E('span', $T('='))
 				));
 
