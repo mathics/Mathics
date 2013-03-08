@@ -3288,11 +3288,7 @@ class Needs(Builtin):
     </dl>
 
     >> Needs["VectorAnalysis`"]
-
     #> Needs["VectorAnalysis`"]
-
-    #> DotProduct[{1,2,3}, {4,5,6}]
-     = 32
 
     #> Needs["SomeFakePackageOrTypo`"]
      : Cannot open SomeFakePackageOrTypo`.
@@ -3302,6 +3298,65 @@ class Needs(Builtin):
     #> Needs["VectorAnalysis"]
      : Invalid context specified at position 1 in Needs[VectorAnalysis]. A context must consist of valid symbol names separated by and ending with `.
      = Needs[VectorAnalysis]
+
+    ## --- VectorAnalysis ---
+
+    #> Needs["VectorAnalysis`"]
+
+    #> DotProduct[{1,2,3}, {4,5,6}]
+     = 32
+    #> DotProduct[{-1.4, 0.6, 0.2}, {0.1, 0.6, 1.7}]
+     = 0.56
+
+    #> CrossProduct[{1,2,3}, {4,5,6}]
+     = {-3, 6, -3}
+    #> CrossProduct[{-1.4, 0.6, 0.2}, {0.1, 0.6, 1.7}]
+     = {0.9, 2.4, -0.9}
+
+    #> ScalarTripleProduct[{-2,3,1},{0,4,0},{-1,3,3}]
+     = -20
+    #> ScalarTripleProduct[{-1.4,0.6,0.2}, {0.1,0.6,1.7}, {0.7,-1.5,-0.2}]
+     = -2.79
+
+    #> CoordinatesToCartesian[{2, Pi, 3}, Spherical]
+     = {0, 0, -2}
+    #> CoordinatesFromCartesian[%, Spherical]
+     = {2, Pi, 0}
+    #> CoordinatesToCartesian[{2, Pi, 3}, Cylindrical]
+     = {-2, 0, 3}
+    #> CoordinatesFromCartesian[%, Cylindrical]
+     = {2, Pi, 3}
+    ## Needs Sin/Cos exact value (PR #100) for these tests to pass
+    ## #> CoordinatesToCartesian[{2, Pi / 4, Pi / 3}, Spherical]
+    ##  = {Sqrt[2] / 2, Sqrt[6] / 2, Sqrt[2]}
+    ## #> CoordinatesFromCartesian[%, Spherical]
+    ##  = {2, Pi / 4, Pi / 3}
+    ## #> CoordinatesToCartesian[{2, Pi / 4, -1}, Cylindrical]
+    ##  = {Sqrt[2], Sqrt[2], -1}
+    ## #> CoordinatesFromCartesian[%, Cylindrical]
+    ##  = {2, Pi / 4, -1}
+    #> CoordinatesToCartesian[{0.27, 0.51, 0.92}, Cylindrical]
+     = {0.235641017064352841, 0.131807856658385023, 0.92}
+    #> CoordinatesToCartesian[{0.27, 0.51, 0.92}, Spherical]
+     = {0.0798518563676219116, 0.10486654429093224, 0.235641017064352841}
+
+    #> Coordinates[]
+     = {Xx, Yy, Zz}
+    #> Coordinates[Spherical]
+     = {Rr, Ttheta, Pphi}
+    #> SetCoordinates[Cylindrical]
+     = Cylindrical[Rr, Ttheta, Zz]
+    #> Coordinates[]
+     = {Rr, Ttheta, Zz}
+    #> CoordinateSystem
+     = Cylindrical
+    #> Parameters[]
+     = {}
+    #> CoordinateRanges[]
+    ## = {0 <= Rr < Infinity, -Pi < Ttheta <= Pi, -Infinity < Zz < Infinity}
+     = {0 <= Rr && Rr < Infinity, -Pi < Ttheta && Ttheta <= Pi, -Infinity < Zz < Infinity}
+    #> CoordinateRanges[Cartesian]
+     = {-Infinity < Xx < Infinity, -Infinity < Yy < Infinity, -Infinity < Zz < Infinity}
     """
 
     messages = {
