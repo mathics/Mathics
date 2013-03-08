@@ -30,10 +30,10 @@ function showPage(response) {
 					submitButton = $E('span', $T('='))
 				));
         test.observe('mouseover', function(e){
-            this.descendants()[1].addClassName('focused');
+            $(test).addClassName('focused');
         });    
         test.observe('mouseout', function(e){
-            this.descendants()[1].removeClassName('focused');
+            $(test).removeClassName('focused');
         });
     });
 

@@ -434,7 +434,7 @@ li.test .submitbutton {
     display: none;
 }
 
-li.test.focused .submitbutton {
+li.test p.focused .submitbutton {
     display: block;
     position: absolute;
     right: 10px;
