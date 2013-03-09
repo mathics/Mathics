@@ -121,6 +121,7 @@ setup(
         'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.data',
         'mathics.doc', 
         'mathics.autoload',
+        'mathics.packages',
         'mathics.web', 'mathics.web.templatetags'
     ],
 
@@ -136,6 +137,7 @@ setup(
         'mathics.data': ['*.csv', 'ExampleData/*'],
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
         'mathics.autoload': ['formats/*/Import.m', 'formats/*/Export.m'],
+        'mathics.packages': ['*/*.m', '*/Kernel/init.m'],
     },
     
     entry_points = {
