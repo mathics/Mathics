@@ -3373,6 +3373,12 @@ class Needs(Builtin):
      = Rr
     #> JacobianDeterminant[{2, 1, 3}, Cylindrical]
      = 2
+    #> JacobianMatrix[Cartesian]
+     = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
+    #> JacobianMatrix[Spherical]
+     = {{Cos[Pphi] Sin[Ttheta], Rr Cos[Pphi] Cos[Ttheta], -Rr Sin[Pphi] Sin[Ttheta]}, {Sin[Pphi] Sin[Ttheta], Rr Cos[Ttheta] Sin[Pphi], Rr Cos[Pphi] Sin[Ttheta]}, {Cos[Ttheta], -Rr Sin[Ttheta], 0}}
+    #> JacobianMatrix[Cylindrical]
+     = {{Cos[Ttheta], -Rr Sin[Ttheta], 0}, {Sin[Ttheta], Rr Cos[Ttheta], 0}, {0, 0, 1}}
     """
 
     messages = {
