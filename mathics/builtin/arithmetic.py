@@ -1465,13 +1465,12 @@ class Product(_IterationFunction, SympyFunction):
      = 3628800
     >> Product[x^k, {k, 2, 20, 2}]
      = x ^ 110
+    >> Product[2 ^ i, {i, 1, n}]
+     = 2 ^ (n / 2 + n ^ 2 / 2)
     
     Symbolic products involving the factorial are evaluated:
     >> Product[k, {k, 3, n}]
      = n! / 2
-
-    >> Product[2 ^ i, {i, 1, n}]
-     = 2 ^ (n / 2 + n ^ 2 / 2)
 
     Evaluate the $n$th primorial:
     >> primorial[0] = 1;
