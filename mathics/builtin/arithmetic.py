@@ -59,7 +59,7 @@ class Plus(BinaryOperator, SympyFunction):
     <dl>
     <dt>'Plus[$a$, $b$, ...]'</dt>
     <dt>$a$ + $b$ + ...</dt>
-        <dd>represents a sum of terms.
+        <dd>represents the sum of the terms $a$, $b$, ...
     </dl>
     
     >> 1 + 2
@@ -349,7 +349,7 @@ class Times(BinaryOperator, SympyFunction):
     <dt>'Times[$a$, $b$, ...]'</dt>
     <dt>'$a$ * $b$ * ...'</dt>
     <dt>'$a$ $b$ ...'</dt>
-        <dd>represents a product of terms.
+        <dd>represents the product of the terms $a$, $b$, ...
     </dl>
     >> 10 * 2
      = 20
@@ -613,7 +613,7 @@ class Power(BinaryOperator, SympyFunction):
     """
     <dl>
     <dt>'Power[$a$, $b$]'</dt>
-    <dt>'a ^ b'</dt>
+    <dt>'$a$ ^ $b$'</dt>
         <dd>represents $a$ raised to the power of $b$.
     </dl>
 
@@ -642,7 +642,7 @@ class Power(BinaryOperator, SympyFunction):
     >> a /. x_ ^ n_. :> {x, n}
      = {a, 1}
      
-    'Power' can handle complex numbers:
+    'Power' can be used with complex numbers:
     >> (1.5 + 1.0 I) ^ 3.5
      = -3.68294005782191823 + 6.9513926640285049 I
     >> (1.5 + 1.0 I) ^ (3.5 + 1.5 I)
@@ -776,7 +776,7 @@ class Sqrt(SympyFunction):
      = 2
     >> Sqrt[5]
      = Sqrt[5]
-    >> Sqrt[5] //N
+    >> Sqrt[5] // N
      = 2.2360679774997897
     >> Sqrt[a]^2
      = a
@@ -803,7 +803,7 @@ class Infinity(SympyConstant):
     """
     <dl>
     <dt>'Infinity'
-        <dd>represents an infinite quantity.
+        <dd>represents an infinite real quantity.
     </dl>
 
     >> 1 / Infinity
@@ -836,6 +836,11 @@ class Infinity(SympyConstant):
     
 class ComplexInfinity(SympyConstant):
     """
+    <dl>
+    <dt>'ComplexInfinity'
+        <dd>represents an infinite complex quantity of undetermined direction.
+    </dl>
+
     >> 1 / ComplexInfinity
      = 0
     >> ComplexInfinity + ComplexInfinity
@@ -854,6 +859,13 @@ class ComplexInfinity(SympyConstant):
     
 class DirectedInfinity(SympyFunction):
     """
+    <dl>
+    <dt>'DirectedInfinity[$z$]'</dt>
+        <dd>represents an infinite multiple of the complex number $z$.
+    <dt>'DirectedInfinity[]'</dt>
+        <dd>is the same as 'ComplexInfinity'.</dd>
+    </dl>
+
     >> DirectedInfinity[1]
      = Infinity
     >> DirectedInfinity[]
@@ -1087,7 +1099,7 @@ class InexactNumberQ(Test):
     >> InexactNumberQ[2/3]
      = False
 
-    'InexactNumberQ' works with complex numbers:
+    'InexactNumberQ' can be applied to complex numbers:
     >> InexactNumberQ[4.0+I]
      = True
     """
@@ -1389,10 +1401,10 @@ class Sum(_IterationFunction, SympyFunction):
     Symbolic sums are evaluated:
     >> Sum[k, {k, 1, n}]
      = n (1 + n) / 2
+    >> Sum[k, {k, n, 2 n}]
+     = 3 n (1 + n) / 2
     >> Sum[k, {k, I, I + 1}]
      = 1 + 2 I
-    >> Sum[n, {n, m, 2 m}]
-     = 3 m (1 + m) / 2
     >> Sum[1 / k ^ 2, {k, 1, n}]
      = HarmonicNumber[n, 2]
      
@@ -1451,16 +1463,15 @@ class Product(_IterationFunction, SympyFunction):
      = 3628800
     >> 10!
      = 3628800
+    >> Product[x^k, {k, 2, 20, 2}]
+     = x ^ 110
     
     Symbolic products involving the factorial are evaluated:
     >> Product[k, {k, 3, n}]
      = n! / 2
-     
-    Other symbolic products:
+
     >> Product[2 ^ i, {i, 1, n}]
      = 2 ^ (n / 2 + n ^ 2 / 2)
-    >> Product[x^k, {k, 2, 20, 2}]
-     = x ^ 110
 
     Evaluate the $n$th primorial:
     >> primorial[0] = 1;
