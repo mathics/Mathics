@@ -3365,6 +3365,14 @@ class Needs(Builtin):
      = {1, Rr, 1}
     #> ScaleFactors[{2, 1, 3}, Cylindrical]
      = {1, 2, 1}
+    #> JacobianDeterminant[Cartesian]
+     = 1
+    #> JacobianDeterminant[Spherical]
+     = Rr ^ 2 Sin[Ttheta]
+    #> JacobianDeterminant[Cylindrical]
+     = Rr
+    #> JacobianDeterminant[{2, 1, 3}, Cylindrical]
+     = 2
     """
 
     messages = {

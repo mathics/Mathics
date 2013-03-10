@@ -19,7 +19,7 @@ $IsVecQ[v_] := Length[v] == 3 && VectorQ[v];
 Unprotect[DotProduct, CrossProduct, ScalarTripleProduct, 
     CoordinatesToCartesian, CoordinatesFromCartesian, Coordinates,
     Parameters, CoordinateRanges, ParameterRanges, SetCoordinates,
-    CoordinateSystem, ScaleFactors];
+    CoordinateSystem, ScaleFactors, JacobianDeterminant];
 
   (* ============================ Dot Product ============================ *)
 
@@ -224,5 +224,23 @@ ScaleFactors[coordsys_Symbol:CoordinateSystem] :=
         ScaleFactors[Coordinates[coordsys], coordsys]
         
 Attributes[ScaleFactors] = {ReadProtected, Protected};
+
+
+  (* ======================== Jacobian Determinant ======================= *)
+
+JacobianDeterminant::usage =
+"JacobianDeterminant[pt] gives the determinant of the Jacobian describing
+the transformation from the current coordinate system to Cartesian
+coordinates at the specified point pt. JacobianDeterminant[pt, coordsys]
+gives the determinant of the JacobianMatrix in the specified coordinates
+at the given point pt.";
+
+JacobianDeterminant[pt_?$IsVecQ, coordsys_:CoordinateSystem] :=
+    Times @@ ScaleFactors[pt, coordsys]
+
+JacobianDeterminant[coordsys_Symbol:CoordinateSystem] :=
+    Times @@ ScaleFactors[coordsys]
+
+Attributes[JacobianDeterminant] = {ReadProtected, Protected};
 
 EndPackage[]
