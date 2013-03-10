@@ -19,7 +19,7 @@ $IsVecQ[v_] := Length[v] == 3 && VectorQ[v];
 Unprotect[DotProduct, CrossProduct, ScalarTripleProduct, 
     CoordinatesToCartesian, CoordinatesFromCartesian, Coordinates,
     Parameters, CoordinateRanges, ParameterRanges, SetCoordinates,
-    CoordinateSystem];
+    CoordinateSystem, ScaleFactors];
 
   (* ============================ Dot Product ============================ *)
 
@@ -203,5 +203,26 @@ CoordinateSystem = Cartesian;
 
 Attributes[CoordinateSystem] = {ReadProtected, Protected};
 
+
+  (* =========================== Scale Factors =========================== *)
+
+ScaleFactors::usage = 
+"ScaleFactors[pt] gives the scale factors at point pt in the current
+coordinate system. ScaleFactors[pt, coordsys] gives the scale factors in the
+specified coordinate system at point pt.";
+
+ScaleFactors[pt_?$IsVecQ, coordsys_:CoordinateSystem] :=
+    Module[{},
+        Switch[coordsys,
+            Cartesian, {1, 1, 1},
+            Spherical, {1, pt[[1]], pt[[1]] Sin[pt[[2]]]},
+            Cylindrical, {1, pt[[1]], 1}
+        ]
+    ]
+
+ScaleFactors[coordsys_Symbol:CoordinateSystem] := 
+        ScaleFactors[Coordinates[coordsys], coordsys]
+        
+Attributes[ScaleFactors] = {ReadProtected, Protected};
 
 EndPackage[]

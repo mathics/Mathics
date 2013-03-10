@@ -3357,6 +3357,14 @@ class Needs(Builtin):
      = {0 <= Rr && Rr < Infinity, -Pi < Ttheta && Ttheta <= Pi, -Infinity < Zz < Infinity}
     #> CoordinateRanges[Cartesian]
      = {-Infinity < Xx < Infinity, -Infinity < Yy < Infinity, -Infinity < Zz < Infinity}
+    #> ScaleFactors[Cartesian]
+     = {1, 1, 1}
+    #> ScaleFactors[Spherical]
+     = {1, Rr, Rr Sin[Ttheta]}
+    #> ScaleFactors[Cylindrical]
+     = {1, Rr, 1}
+    #> ScaleFactors[{2, 1, 3}, Cylindrical]
+     = {1, 2, 1}
     """
 
     messages = {
