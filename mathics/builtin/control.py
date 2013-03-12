@@ -5,7 +5,7 @@ Control statements
 """
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator
-from mathics.core.expression import Expression, Symbol
+from mathics.core.expression import Expression, Symbol, from_python
 from mathics.core.evaluation import AbortInterrupt, ReturnInterrupt, BreakInterrupt, ContinueInterrupt
 
 from mathics.builtin.lists import _IterationFunction
@@ -285,7 +285,7 @@ class Nest(Builtin):
     """
     <dl>
     <dt>'Nest[$f$, $expr$, $n$]'
-        <dd>returns an expression with $f$ applied $n$ times to $expr$.
+        <dd>starting with $expr$, iteratively applies $f$ $n$ times and returns the final result.
     </dl>
     
     >> Nest[f, x, 3]
@@ -309,7 +309,7 @@ class NestList(Builtin):
     """
     <dl>
     <dt>'NestList[$f$, $expr$, $n$]'
-        <dd>applies $f$ $n$ times to $expr$ and returns a list of all intermediate results.
+        <dd>starting with $expr$, iteratively applies $f$ $n$ times and returns a list of all intermediate results.
     </dl>
     
     >> NestList[f, x, 3]
@@ -339,7 +339,7 @@ class NestList(Builtin):
             interm = Expression(f, interm).evaluate(evaluation)
             result.append(interm)
 
-        return Expression('Identity', result)
+        return from_python(result)
 
 class NestWhile(Builtin):
     """
@@ -384,7 +384,7 @@ class FixedPoint(Builtin):
     """
     <dl>
     <dt>'FixedPoint[$f$, $expr$]'
-        <dd>starting with $expr$, repeatedly applies $f$ until the result no longer changes.
+        <dd>starting with $expr$, iteratively applies $f$ until the result no longer changes.
     <dt>'FixedPoint[$f$, $expr$, $n$]'
         <dd>performs at most $n$ iterations.
     </dl>
@@ -432,7 +432,7 @@ class FixedPointList(Builtin):
     """
     <dl>
     <dt>'FixedPointList[$f$, $expr$]'
-        <dd>repeatedly applies $f$ to $expr$ until the result no longer changes, and returns a list of all intermediate results.
+        <dd>starting with $expr$, iteratively applies $f$ until the result no longer changes, and returns a list of all intermediate results.
     <dt>'FixedPointList[$f$, $expr$, $n$]'
         <dd>performs at most $n$ iterations.
     </dl>
@@ -445,7 +445,7 @@ class FixedPointList(Builtin):
     >> newton[9]
      = {1., 5., 3.4, 3.02352941176470588, 3.00009155413138018, 3.00000000139698386, 3., 3.}
     
-    Plot the hailstone sequence of a number:
+    Plot the "hailstone" sequence of a number:
     >> collatz[1] := 1;
     >> collatz[x_ /; EvenQ[x]] := x / 2;
     >> collatz[x_] := 3 x + 1;
@@ -489,7 +489,7 @@ class FixedPointList(Builtin):
             interm = new_result
             index += 1
             
-        return Expression('Identity', result)
+        return from_python(result)
     
 class Abort(Builtin):
     """
