@@ -56,7 +56,11 @@ class _MPMathFunction(SympyFunction):
 
 class Plus(BinaryOperator, SympyFunction):
     """
-    'Plus' represents a sum of terms.
+    <dl>
+    <dt>'Plus[$a$, $b$, ...]'</dt>
+    <dt>$a$ + $b$ + ...</dt>
+        <dd>represents the sum of the terms $a$, $b$, ...
+    </dl>
     
     >> 1 + 2
      = 3
@@ -82,6 +86,10 @@ class Plus(BinaryOperator, SympyFunction):
      = {HoldPattern[Default[Plus]] :> 0}
     >> a /. n_. + x_ :> {n, x}
      = {0, a}
+
+    The sum of 2 red circles and 3 red circles is...
+    >> 2 Graphics[{Red,Disk[]}] + 3 Graphics[{Red,Disk[]}]
+     = 5 -Graphics-
      
     #> -2a - 2b
      = -2 a - 2 b
@@ -234,6 +242,12 @@ class Plus(BinaryOperator, SympyFunction):
         
 class Subtract(BinaryOperator):
     """
+    <dl>
+    <dt>'Subtract[$a$, $b$]'</dt>
+    <dt>$a$ - $b$</dt>
+        <dd>represents the subtraction of $b$ from $a$.</dd>
+    </dl>
+
     >> 5 - 3
      = 2
     >> a - b // FullForm
@@ -256,12 +270,21 @@ class Subtract(BinaryOperator):
 
 class Minus(PrefixOperator):
     """
+    <dl>
+    <dt>'Minus[$expr$]'
+        <dd> is the negation of $expr$.
+    </dl>
+
     >> -a //FullForm
      = Times[-1, a]
-    
-    #> -(x - 2/3)
+
+    'Minus' automatically distributes:
+    >> -(x - 2/3)
      = 2 / 3 - x
-    ## (not --2 / 3 - x)
+
+    'Minus' threads over lists:
+    >> -Range[10]
+    = {-1, -2, -3, -4, -5, -6, -7, -8, -9, -10}
     """
     
     operator = '-'
@@ -322,6 +345,12 @@ def create_infix(items, operator, prec, grouping):
 
 class Times(BinaryOperator, SympyFunction):
     """
+    <dl>
+    <dt>'Times[$a$, $b$, ...]'</dt>
+    <dt>'$a$ * $b$ * ...'</dt>
+    <dt>'$a$ $b$ ...'</dt>
+        <dd>represents the product of the terms $a$, $b$, ...
+    </dl>
     >> 10 * 2
      = 20
     >> 10 2
@@ -511,14 +540,25 @@ class Times(BinaryOperator, SympyFunction):
         
 class Divide(BinaryOperator):
     """
+    <dl>
+    <dt>'Divide[$a$, $b$]'</dt>
+    <dt>'$a$ / $b$'</dt>
+        <dd>represents the division of $a$ by $b$.
+    </dl>
     >> 30 / 5
      = 6
-    >> 1 / 4.0
-     = 0.25
-    >> 10 / 3 // FullForm
-     = Rational[10, 3]
-    >> a / b // FullForm
-     = Times[a, Power[b, -1]]
+    >> 1 / 8
+     = 1 / 8
+    >> Pi / 4
+     = Pi / 4
+
+    Use 'N' or a decimal point to force numeric evaluation:
+    >> Pi / 4.0
+     = 0.78539816339744831
+    >> 1 / 8
+     = 1 / 8
+    >> N[%]
+     = 0.125
      
     Nested divisions:
     >> a / b / c
@@ -529,10 +569,14 @@ class Divide(BinaryOperator):
      = a d / (b c e)
     >> a / (b ^ 2 * c ^ 3 / e)
      = a e / (b ^ 2 c ^ 3)
+
+    #> 1 / 4.0
+     = 0.25
+    #> 10 / 3 // FullForm
+     = Rational[10, 3]
+    #> a / b // FullForm
+     = Times[a, Power[b, -1]]
     
-    Numeric evaluation:
-    >> Pi / 4.0
-     = 0.78539816339744831
     """
     
     operator = '/'
@@ -567,22 +611,30 @@ class Divide(BinaryOperator):
         
 class Power(BinaryOperator, SympyFunction):
     """
-    >> 1/0
-     : Infinite expression (division by zero) encountered.
-     = ComplexInfinity
+    <dl>
+    <dt>'Power[$a$, $b$]'</dt>
+    <dt>'$a$ ^ $b$'</dt>
+        <dd>represents $a$ raised to the power of $b$.
+    </dl>
+
     >> 4 ^ (1/2)
      = 2
     >> 4 ^ (1/3)
      = 2 ^ (2 / 3)
-    >> 4.0 ^ (1/3)
-     = 1.58740105196819947
     >> 3^123
      = 48519278097689642681155855396759336072749841943521979872827
-     
+
     >> (y ^ 2) ^ (1/2)
      = Sqrt[y ^ 2]
     >> (y ^ 2) ^ 3
      = y ^ 6
+
+    >> Plot[Evaluate[Table[x^y, {y, 1, 5}]], {x, -1.5, 1.5}, AspectRatio -> 1]
+     = -Graphics-
+     
+    Use a decimal point to force numeric evaluation:
+    >> 4.0 ^ (1/3)
+     = 1.58740105196819947
      
     'Power' has default value 1 for its second argument:
     >> DefaultValues[Power]
@@ -590,12 +642,15 @@ class Power(BinaryOperator, SympyFunction):
     >> a /. x_ ^ n_. :> {x, n}
      = {a, 1}
      
-    Complex powers:
+    'Power' can be used with complex numbers:
     >> (1.5 + 1.0 I) ^ 3.5
      = -3.68294005782191823 + 6.9513926640285049 I
     >> (1.5 + 1.0 I) ^ (3.5 + 1.5 I)
      = -3.19181629045628082 + 0.645658509416156807 I
      
+    #> 1/0
+     : Infinite expression (division by zero) encountered.
+     = ComplexInfinity
     #> Sqrt[-3+2. I]
      = 0.550250522700337511 + 1.81735402102397062 I
     #> Sqrt[-3+2 I]
@@ -712,14 +767,28 @@ class Power(BinaryOperator, SympyFunction):
 
 class Sqrt(SympyFunction):
     """
+    <dl>
+    <dt>'Sqrt[$expr$]'
+        <dd>returns the square root of $expr$.
+    </dl>
+
     >> Sqrt[4]
      = 2
     >> Sqrt[5]
      = Sqrt[5]
+    >> Sqrt[5] // N
+     = 2.2360679774997897
+    >> Sqrt[a]^2
+     = a
     
-    Complex result:
+    Complex numbers:
     >> Sqrt[-4]
      = 2 I
+    >> I == Sqrt[-1]
+     = True
+
+    >> Plot[Sqrt[a^2], {a, -2, 2}]
+     = -Graphics-
     """
     
     attributes = ('Listable', 'NumericFunction')
@@ -732,20 +801,29 @@ class Sqrt(SympyFunction):
     
 class Infinity(SympyConstant):
     """
+    <dl>
+    <dt>'Infinity'
+        <dd>represents an infinite real quantity.
+    </dl>
+
     >> 1 / Infinity
      = 0
-    >> (2 + 3.5*I) / Infinity
-     = 0. + 0. I
     >> Infinity + 100
      = Infinity
-    >> Infinity + Infinity
+
+    Use 'Infinity' in sum and limit calculations:
+    >> Sum[1/x^2, {x, 1, Infinity}]
+     = Pi ^ 2 / 6
+     
+    #> FullForm[Infinity]
+     = DirectedInfinity[1]
+    #> (2 + 3.5*I) / Infinity
+     = 0. + 0. I
+    #> Infinity + Infinity
      = Infinity
-    >> Infinity / Infinity
+    #> Infinity / Infinity
      : Indeterminate expression 0 Infinity encountered.
      = Indeterminate
-     
-    >> FullForm[Infinity]
-     = DirectedInfinity[1]
     """
     
     sympy_name = 'oo'
@@ -758,6 +836,11 @@ class Infinity(SympyConstant):
     
 class ComplexInfinity(SympyConstant):
     """
+    <dl>
+    <dt>'ComplexInfinity'
+        <dd>represents an infinite complex quantity of undetermined direction.
+    </dl>
+
     >> 1 / ComplexInfinity
      = 0
     >> ComplexInfinity + ComplexInfinity
@@ -776,6 +859,13 @@ class ComplexInfinity(SympyConstant):
     
 class DirectedInfinity(SympyFunction):
     """
+    <dl>
+    <dt>'DirectedInfinity[$z$]'</dt>
+        <dd>represents an infinite multiple of the complex number $z$.
+    <dt>'DirectedInfinity[]'</dt>
+        <dd>is the same as 'ComplexInfinity'.</dd>
+    </dl>
+
     >> DirectedInfinity[1]
      = Infinity
     >> DirectedInfinity[]
@@ -823,8 +913,16 @@ class DirectedInfinity(SympyFunction):
                 
 class Re(SympyFunction):
     """
+    <dl>
+    <dt>'Re[$z$]'
+        <dd>returns the real component of the complex number $z$.
+    </dl>
+
     >> Re[3+4I]
      = 3
+
+    >> Plot[{Cos[a], Re[E^(I a)]}, {a, 0, 2 Pi}]
+     = -Graphics-
     """
     
     attributes = ('Listable', 'NumericFunction')
@@ -842,8 +940,16 @@ class Re(SympyFunction):
                 
 class Im(SympyFunction):
     """
+    <dl>
+    <dt>'Im[$z$]'
+        <dd>returns the imaginary component of the complex number $z$.
+    </dl>
+
     >> Im[3+4I]
      = 4
+
+    >> Plot[{Sin[a], Im[E^(I a)]}, {a, 0, 2 Pi}]
+     = -Graphics-
     """
     
     attributes = ('Listable', 'NumericFunction')
@@ -867,16 +973,19 @@ class Abs(SympyFunction):
     </dl>
     >> Abs[-3]
      = 3
-    >> Abs[I]
-     = 1
+
+    'Abs' returns the magnitude of complex numbers:
     >> Abs[3 + I]
      = Sqrt[10]
     >> Abs[3.0 + I]
      = 3.16227766016837933
-    >> Abs[a - b]
-     = Abs[a - b]
     >> Plot[Abs[x], {x, -4, 4}]
      = -Graphics-
+
+    #> Abs[I]
+     = 1
+    #> Abs[a - b]
+     = Abs[a - b]
     """
     
     sympy_name = 'Abs'
@@ -898,6 +1007,11 @@ class Abs(SympyFunction):
                 
 class I(Predefined):
     """
+    <dl>
+    <dt>'I'
+        <dd>represents the imaginary number 'Sqrt[-1]'.
+    </dl>
+
     >> I^2
      = -1
     >> (3+I)*(3-I)
@@ -909,6 +1023,11 @@ class I(Predefined):
     
 class NumberQ(Test):
     """
+    <dl>
+    <dt>'NumberQ[$expr$]'
+        <dd>returns 'True' if $expr$ is an explicit number, and 'False' otherwise.
+    </dl>
+
     >> NumberQ[3+I]
      = True
     >> NumberQ[5!]
@@ -922,6 +1041,11 @@ class NumberQ(Test):
     
 class RealNumberQ(Test):
     """
+    <dl>
+    <dt>'RealNumberQ[$expr$]'
+        <dd>returns 'True' if $expr$ is an explicit number with no imaginary component.
+    </dl>
+
     >> RealNumberQ[10]
      = True
     >> RealNumberQ[4.0]
@@ -939,11 +1063,22 @@ class RealNumberQ(Test):
     
 class ExactNumberQ(Test):
     """
+    <dl>
+    <dt>'ExactNumberQ[$expr$]'
+        <dd>returns 'True' if $expr$ is an exact number, and 'False' otherwise.
+    </dl>
+
     >> ExactNumberQ[10]
      = True
     >> ExactNumberQ[4.0]
      = False
     >> ExactNumberQ[n]
+     = False
+
+    'ExactNumberQ' can be applied to complex numbers:
+    >> ExactNumberQ[1 + I]
+     = True
+    >> ExactNumberQ[1 + 1. I]
      = False
     """
     
@@ -952,14 +1087,21 @@ class ExactNumberQ(Test):
     
 class InexactNumberQ(Test):
     """
+    <dl>
+    <dt>'InexactNumberQ[$expr$]'
+        <dd>returns 'True' if $expr$ is not an exact number, and 'False' otherwise.
+    </dl>
+
     >> InexactNumberQ[a]
      = False
-    >> InexactNumberQ[4.0+I]
-     = True
     >> InexactNumberQ[3.0]
      = True
     >> InexactNumberQ[2/3]
      = False
+
+    'InexactNumberQ' can be applied to complex numbers:
+    >> InexactNumberQ[4.0+I]
+     = True
     """
     
     def test(self, expr):        
@@ -967,6 +1109,11 @@ class InexactNumberQ(Test):
     
 class IntegerQ(Test):
     """
+    <dl>
+    <dt>'IntegerQ[$expr$]'
+        <dd>returns 'True' if $expr$ is an integer, and 'False' otherwise.
+    </dl>
+
     >> IntegerQ[3]
      = True
     >> IntegerQ[Pi]
@@ -978,7 +1125,10 @@ class IntegerQ(Test):
     
 class Integer_(Builtin):
     """
-    'Integer' is the head of integers.
+    <dl>
+    <dt>'Integer'
+        <dd>is the head of integers.
+    </dl>
     
     >> Head[5]
      = Integer
@@ -988,7 +1138,10 @@ class Integer_(Builtin):
     
 class Real_(Builtin):
     u"""
-    'Real' is the head of real (inexact) numbers.
+    <dl>
+    <dt>'Real'
+        <dd>is the head of real (inexact) numbers.
+    </dl>
     
     >> x = 3. ^ -20;
     >> InputForm[x]
@@ -1039,12 +1192,18 @@ class Real_(Builtin):
     
 class Rational_(Builtin):
     """
-    Use 'Rational' to construct rational numbers:
-    >> Rational[1, 2]
-     = 1 / 2
-    'Rational' is the head of rational numbers:
+    <dl>
+    <dt>'Rational'</dt>
+        <dd>is the head of rational numbers.</dd>
+    <dt>'Rational[$a$, $b$]'</dt>
+        <dd>constructs the rational number a / b.</dd>
+    </dl>
+
     >> Head[1/2]
      = Rational
+
+    >> Rational[1, 2]
+     = 1 / 2
      
     #> -2/3
      = -2 / 3
@@ -1062,15 +1221,23 @@ class Rational_(Builtin):
     
 class Complex_(Builtin):
     """
-    Use 'Complex' to construct complex numbers:
-    >> Complex[1, 2/3]
-     = 1 + 2 I / 3
-    'Complex' is the head of complex numbers:
+    <dl>
+    <dt>'Complex'
+        <dd>is the head of complex numbers.
+    <dt>'Complex[$a$, $b$]'
+        <dd>constructs the complex number '$a$ + I $b$'.
+    </dl>
+
     >> Head[2 + 3*I]
      = Complex
-    >> OutputForm[Complex[2.0 ^ 40, 3]]
+    >> Complex[1, 2/3]
+     = 1 + 2 I / 3
+    >> Abs[Complex[3, 4]]
+     = 5
+
+    #> OutputForm[Complex[2.0 ^ 40, 3]]
      = 1.099511627776*^12 + 3. I
-    >> InputForm[Complex[2.0 ^ 40, 3]]
+    #> InputForm[Complex[2.0 ^ 40, 3]]
      = 1.099511627776*^12 + 3.*I
      
     #> -2 / 3 - I
@@ -1126,6 +1293,12 @@ class Complex_(Builtin):
         
 class Factorial(PostfixOperator, _MPMathFunction):
     """
+    <dl>
+    <dt>'Factorial[$n$]'</dt>
+    <dt>'$n$!'</dt>
+        <dd>computes the factorial of $n$.
+    </dl>
+
     >> 20!
      = 2432902008176640000
     
@@ -1142,6 +1315,9 @@ class Factorial(PostfixOperator, _MPMathFunction):
     'Factorial' has the same operator ('!') as 'Not', but with higher precedence: 
     >> !a! //FullForm
      = Not[Factorial[a]]
+
+    #> 0!
+     = 1
     """
     
     operator = '!'
@@ -1160,11 +1336,39 @@ class Factorial(PostfixOperator, _MPMathFunction):
         return mpmath.factorial(z)
     
 class Gamma(SympyFunction):
+    #TODO implement the incomplete Gamma functions
+    """
+    <dl>
+    <dt>'Gamma[$z$]'
+        <dd>is the Gamma function on the complex number $z$.
+    </dl>
+
+    >> Gamma[8]
+     = 5040
+    >> Gamma[1. + I]
+     = 0.498015668118356043 - 0.154949828301810685 I
+
+    Both 'Gamma' and 'Factorial' functions are continuous:
+    >> Plot[{Gamma[x], x!}, {x, 0, 4}]
+     = -Graphics-
+    """
+
     rules = {
         'Gamma[x_]': '(x - 1)!',
     }
     
 class Pochhammer(SympyFunction):
+    """
+    <dl>
+    <dt>'Pochhammer[$a$, $n$]'
+        <dd>is the Pochhammer symbol (a)_n.
+    </dl>
+
+    >> Pochhammer[4, 8]
+     = 6652800
+    """
+
+
     sympy_name = 'RisingFactorial'
     
     rules = {
@@ -1172,10 +1376,21 @@ class Pochhammer(SympyFunction):
     }
     
 class HarmonicNumber(SympyFunction):
+    # TODO get HarmonicNumber to work
     sympy_name = 'harmonic'
-    
+
 class Sum(_IterationFunction, SympyFunction):
     """
+    <dl>
+    <dt>'Sum[$expr$, {$i$, $imin$, $imax$}]'
+        <dd>evaluates the discrete sum of $expr$ with $i$ ranging from $imin$ to $imax$.
+    <dt>'Sum[$expr$, {$i$, $imax$}]'
+        <dd>same as 'Sum[$expr$, {$i$, 1, $imax$}]'.
+    <dt>'Sum[$expr$, {$i$, $imin$, $imax$, $di$}]'
+        <dd>$i$ ranges from $imin$ to $imax$ in steps of $di$.
+    <dt>'Sum[$expr$, {$i$, $imin$, $imax$}, {$j$, $jmin$, $jmax$}, ...]'
+        <dd>evaluates $expr$ as a multiple sum, with {$i$, ...}, {$j$, ...}, ... being in outermost-to-innermost order.
+    </dl>
     >> Sum[k, {k, 1, 10}]
      = 55
      
@@ -1186,13 +1401,19 @@ class Sum(_IterationFunction, SympyFunction):
     Symbolic sums are evaluated:
     >> Sum[k, {k, 1, n}]
      = n (1 + n) / 2
+    >> Sum[k, {k, n, 2 n}]
+     = 3 n (1 + n) / 2
     >> Sum[k, {k, I, I + 1}]
      = 1 + 2 I
     >> Sum[1 / k ^ 2, {k, 1, n}]
      = HarmonicNumber[n, 2]
      
+    Verify algebraic identities:
     >> Sum[x ^ 2, {x, 1, y}] - y * (y + 1) * (2 * y + 1) / 6
      = 0
+
+    >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
+     = -1 + a ^ (m n)
      
     Infinite sums:
     >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
@@ -1227,19 +1448,36 @@ class Sum(_IterationFunction, SympyFunction):
     
 class Product(_IterationFunction, SympyFunction):
     """
+    <dl>
+    <dt>'Product[$expr$, {$i$, $imin$, $imax$}]'
+        <dd>evaluates the discrete product of $expr$ with $i$ ranging from $imin$ to $imax$.
+    <dt>'Product[$expr$, {$i$, $imax$}]'
+        <dd>same as 'Product[$expr$, {$i$, 1, $imax$}]'.
+    <dt>'Product[$expr$, {$i$, $imin$, $imax$, $di$}]'
+        <dd>$i$ ranges from $imin$ to $imax$ in steps of $di$.
+    <dt>'Product[$expr$, {$i$, $imin$, $imax$}, {$j$, $jmin$, $jmax$}, ...]'
+        <dd>evaluates $expr$ as a multiple product, with {$i$, ...}, {$j$, ...}, ... being in outermost-to-innermost order.
+    </dl>
+
     >> Product[k, {k, 1, 10}]
      = 3628800
     >> 10!
      = 3628800
+    >> Product[x^k, {k, 2, 20, 2}]
+     = x ^ 110
+    >> Product[2 ^ i, {i, 1, n}]
+     = 2 ^ (n / 2 + n ^ 2 / 2)
     
     Symbolic products involving the factorial are evaluated:
     >> Product[k, {k, 3, n}]
      = n! / 2
-     
-    Other symbolic products:
-    >> Product[2 ^ i, {i, 1, n}]
-     = 2 ^ (n / 2 + n ^ 2 / 2)
-     
+
+    Evaluate the $n$th primorial:
+    >> primorial[0] = 1;
+    >> primorial[n_Integer] := Product[Prime[k], {k, 1, n}];
+    >> primorial[12]
+     = 7420738134810
+
     ## Used to be a bug in sympy, but now it is solved exactly!
     #> Product[1 + 1 / i ^ 2, {i, Infinity}]
      = 1 / ((-I)! I!)
