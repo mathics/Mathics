@@ -120,6 +120,7 @@ setup(
         'mathics.core', 'mathics.core.spark',
         'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.data',
         'mathics.doc', 
+        'mathics.autoload',
         'mathics.web', 'mathics.web.templatetags'
     ],
 
@@ -134,6 +135,7 @@ setup(
             'templates/doc/*.html'] + mathjax_files,
         'mathics.data': ['*.csv', 'ExampleData/*'],
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
+        'mathics.autoload': ['formats/*/Import.m', 'formats/*/Export.m'],
     },
     
     entry_points = {

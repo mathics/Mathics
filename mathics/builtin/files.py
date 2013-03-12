@@ -15,7 +15,7 @@ import sys
 import tempfile
 import time
 
-from mathics.core.expression import Expression, String, Symbol, from_python
+from mathics.core.expression import Expression, String, Symbol, from_python, Integer
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
 from mathics.settings import ROOT_DIR
 
@@ -55,6 +55,9 @@ class mathics_open:
 
     def write(self, *args):
         return self.file.write(*args)
+
+    def readline(self):
+        return self.file.readline()
 
     def readlines(self):
         return self.file.readlines()
@@ -307,7 +310,7 @@ class Read(Builtin):
 
     ## Correctly formed InputString but not open
     #> Read[InputStream[String, -1], {Word, Number}]
-     : InputSteam[String, -1] is not open
+     : InputStream[String, -1] is not open.
      = Read[InputStream[String, -1], {Word, Number}]
 
     ## String
@@ -395,13 +398,22 @@ class Read(Builtin):
     #> str = StringToStream["123 123"];  Read[str, {Real, Number}]
      = {123., 123}
     #> Close[str];
+
+    ## TODO Replace the following test with this one:
+    ## >> Read[str, {Real}]
+    ##  : InputStream[String, ...] is not open.
+    ##  = Read[InputStream[String, ...], {Real}]
+    ## Quick check
+    #> Quiet[Head[Read[str, {Real}]]]
+     = Read
     """
 
     messages = {
-        'openx': '`1` is not open',
-        'readf': '`1` is not a valid format specificiation',
-        'readn': 'Invalid real number found when reading from `1`',
-        'readt': 'Invalid input found when reading `1` from `2`',
+        'openx': '`1` is not open.',
+        'readf': '`1` is not a valid format specification.',
+        'readn': 'Invalid real number found when reading from `1`.',
+        'readt': 'Invalid input found when reading `1` from `2`.',
+        'intnm': 'Non-negative machine-sized integer expected at position 3 in `1`.',
     }
 
     rules = {
@@ -485,10 +497,10 @@ class Read(Builtin):
     
         stream = STREAMS.get(n.to_python())
 
-        if stream is None:
-            evaluation.message('Read', 'openx', Expression('InputSteam', name, n))
+        if stream is None or stream.closed:
+            evaluation.message('Read', 'openx', Expression('InputStream', name, n))
             return
-        
+
         types = types.to_python()
         if not isinstance(types, list):
             types = [types]
@@ -596,7 +608,7 @@ class Read(Builtin):
                     tmp = stream.readline()
                     if len(tmp) == 0:
                         raise EOFError
-                    result.append(tmp)
+                    result.append(tmp.rstrip('\n'))
                 elif typ == 'Word':
                     result.append(read_word.next())
                         
@@ -638,7 +650,11 @@ class Write(Builtin):
     def apply(self, name, n, expr, evaluation):
         'Write[OutputStream[name_, n_], expr___]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
+
+        if stream is None or stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
 
         expr = expr.get_sequence()
         expr = Expression('Row', Expression('List', *expr))
@@ -681,7 +697,11 @@ class WriteString(Builtin):
     def apply(self, name, n, expr, evaluation):
         'WriteString[OutputStream[name_, n_], expr___]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
+
+        if stream is None or stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
 
         exprs = expr.get_sequence()
         for e in exprs:
@@ -949,7 +969,7 @@ class Put(BinaryOperator):
         global STREAMS
         stream = STREAMS.get(n.to_python())
 
-        if stream is None:
+        if stream is None or stream.closed:
             evaluation.message('Put', 'openx', Expression('OutputSteam', name, n))
             return
 
@@ -1032,7 +1052,7 @@ class PutAppend(BinaryOperator):
         global STREAMS
         stream = STREAMS.get(n.to_python())
 
-        if stream is None:
+        if stream is None or stream.closed:
             evaluation.message('Put', 'openx', Expression('OutputSteam', name, n))
             return
 
@@ -1450,16 +1470,44 @@ class ExpandFileName(Builtin):
 class ReadList(Read):
     """
     <dl>
-    <dt>'ReadList["file"]'
+    <dt>'ReadList["$file$"]'
       <dd>Reads all the expressions until the end of file.
+    <dt>'ReadList["$file$", $type$]'
+      <dd>Reads objects of a specified type until the end of file.
+    <dt>'ReadList["$file$", {$type1$, $type2$, ...}]'
+      <dd>Reads a sequence of specified types until the end of file.
     </dl>
+
+    >> ReadList[StringToStream["a 1 b 2"], {Word, Number}]
+     = {{a, 1}, {b, 2}}
 
     >> str = StringToStream["abc123"];
     >> ReadList[str]
      = {abc123}
     >> InputForm[%]
      = {"abc123"}
+
+    #> ReadList[str, "Invalid"]
+     : "Invalid" is not a valid format specification.
+     = ReadList[..., Invalid]
     #> Close[str];
+
+
+    #> ReadList[StringToStream["a 1 b 2"], {Word, Number}, 1]
+     = {{a, 1}}
+    """
+
+    #TODO 
+    """
+    #> ReadList[StringToStream["a 1 b 2"], {Word, Number}, -1]
+     : Non-negative machine-sized integer expected at position 3 in ReadList[InputStream[String, ...], {Word, Number}, -1].
+     = ReadList[InputStream[String, ...], {Word, Number}, -1]
+    """
+    
+    #TODO: Expression type
+    """
+    #> ReadList[StringToStream["123 45 x y"], Expression]
+     = {5535 x y}
     """
 
     #TODO: Accept newlines in input
@@ -1467,7 +1515,7 @@ class ReadList(Read):
     >> ReadList[StringToStream["123\nabc"]]
      = {123, abc}
     >> InputForm[%]
-     = {"123", "abc"}
+     = {123, abc}
     """
 
     rules = {
@@ -1499,11 +1547,43 @@ class ReadList(Read):
         result = []
         while True:
             tmp = super(ReadList, self).apply(name, n, types, evaluation, options)
+
+            if tmp == Symbol('$Failed'):
+                return
+
             if tmp.to_python() == 'EndOfFile':
                 break
             result.append(tmp)
         return from_python(result)
 
+    def apply_m(self, name, n, types, m, evaluation, options):
+        'ReadList[InputStream[name_, n_], types_, m_, OptionsPattern[ReadList]]'
+
+        # Options
+        #TODO: Implement extra options
+        py_options = self.check_options(options)
+        #null_records = py_options['NullRecords']
+        #null_words = py_options['NullWords']
+        record_separators = py_options['RecordSeparators']
+        #token_words = py_options['TokenWords']
+        word_separators = py_options['WordSeparators']
+
+        py_m = m.get_int_value()
+        if py_m < 0:
+            evaluation.message('ReadList', 'intnm', Expression('ReadList', Expression('InputStream', name, n), types, m))
+            return
+
+        result = []
+        for i in range(py_m):
+            tmp = super(ReadList, self).apply(name, n, types, evaluation, options)
+
+            if tmp == Symbol('$Failed'):
+                return
+
+            if tmp.to_python() == 'EndOfFile':
+                break
+            result.append(tmp)
+        return from_python(result)
 
 class FilePrint(Builtin):
     """
@@ -1606,9 +1686,9 @@ class Close(Builtin):
     def apply_input(self, name, n, evaluation):
         'Close[InputStream[name_, n_]]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
 
-        if stream.closed:
+        if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
             return
 
@@ -1618,9 +1698,9 @@ class Close(Builtin):
     def apply_output(self, name, n, evaluation):
         'Close[OutputStream[name_, n_]]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
 
-        if stream.closed:
+        if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
             return
 
@@ -1655,9 +1735,9 @@ class StreamPosition(Builtin):
     def apply_input(self, name, n, evaluation):
         'StreamPosition[InputStream[name_, n_]]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
 
-        if stream.closed:
+        if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
             return
    
@@ -1667,9 +1747,9 @@ class StreamPosition(Builtin):
     def apply_output(self, name, n, evaluation):
         'StreamPosition[OutputStream[name_, n_]]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
 
-        if stream.closed:
+        if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
             return
 
@@ -1722,9 +1802,9 @@ class SetStreamPosition(Builtin):
     def apply_input(self, name, n, m, evaluation):
         'SetStreamPosition[InputStream[name_, n_], m_]'
         global STREAMS
-        stream = STREAMS[n.to_python()]
+        stream = STREAMS.get(n.to_python())
 
-        if stream.closed:
+        if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
             return
 
