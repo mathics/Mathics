@@ -30,7 +30,7 @@ import ply.yacc as yacc
 #import unicodedata
 #
 #from mathics.core.expression import BaseExpression, Expression, Integer, Real, Symbol, String
-#from mathics.builtin import builtins
+from mathics.builtin import builtins
          
 class TranslateError(Exception):
     pass
@@ -43,63 +43,41 @@ class ScanError(TranslateError):
     def __unicode__(self):
         return u"Lexical error at position {0}.".format(self.pos)
         
-#class InvalidCharError(TranslateError):
-#    def __init__(self, char):
-#        super(InvalidCharError, self).__init__()
-#        self.char = char
-#        
-#    def __unicode__(self):
-#        return u"Invalid character at '%s'." % self.char #.decode('utf-8')
-#
-#class ParseError(TranslateError):
-#    def __init__(self, token):
-#        super(ParseError, self).__init__()
-#        self.token = token
-#        
-#    def __unicode__(self):
-#        return u"Parse error at or near token %s." % str(self.token)
+class InvalidCharError(TranslateError):
+    def __init__(self, char):
+        super(InvalidCharError, self).__init__()
+        self.char = char
+        
+    def __unicode__(self):
+        return u"Invalid character at '%s'." % self.char #.decode('utf-8')
+
+class ParseError(TranslateError):
+    def __init__(self, token):
+        super(ParseError, self).__init__()
+        self.token = token
+        
+    def __unicode__(self):
+        return u"Parse error at or near token %s." % str(self.token)
     
-#class AbstractToken(object):
-#    pass
-#
-#class Token(AbstractToken):
-#    def __init__(self, type, value=''):
-#        self.type = type
-#        self.value = value
-#        self.parenthesized = False
-#        self.parse_tokens = [self]
-#        
-#    def __repr__(self):
-#        if self.value:
-#            return u'%s (%s)' % (self.type, self.value)
-#        else:
-#            return self.type
-#        
-#    def __str__(self):
-#        if self.value:
-#            return unicode(self.value)
-#        else:
-#            return self.type
-#
-#operators = {} # operator (e.g. "+") -> list of classes ([Minus, Subtract])
-#operators_by_prec = {} # precedence (310) -> list of classes ([Plus, Minus])
-#binary_operators = [] # list of binary operators (['+', '-', ...])
-#for name, builtin in builtins.iteritems():
-#    operator = builtin.get_operator()
-#    if operator:
-#        if builtin.precedence_parse is not None:
-#            precedence = builtin.precedence_parse
-#        else:
-#            precedence = builtin.precedence
-#        existing = operators_by_prec.get(precedence)
-#        if existing is None:
-#            operators_by_prec[precedence] = [builtin]
-#        else:
-#            existing.append(builtin)
-#        operators[operator] = builtin
-#        if builtin.is_binary():
-#            binary_operators.append(operator)
-#            
+operators = {} # operator (e.g. "+") -> list of classes ([Minus, Subtract])
+operators_by_prec = {} # precedence (310) -> list of classes ([Plus, Minus])
+binary_operators = [] # list of binary operators (['+', '-', ...])
+for name, builtin in builtins.iteritems():
+    operator = builtin.get_operator()
+    if operator:
+        if builtin.precedence_parse is not None:
+            precedence = builtin.precedence_parse
+        else:
+            precedence = builtin.precedence
+        existing = operators_by_prec.get(precedence)
+        if existing is None:
+            operators_by_prec[precedence] = [builtin]
+        else:
+            existing.append(builtin)
+        operators[operator] = builtin
+        if builtin.is_binary():
+            binary_operators.append(operator)
+
 #symbol_re = compile(r'[a-zA-Z$][a-zA-Z0-9$]*')
 #
 #def is_symbol_name(text):
@@ -114,11 +92,7 @@ class ScanError(TranslateError):
 class MathicsScanner:
     tokens = (
         'comment',
-        'parenthesis_0',
-        'parenthesis_1',
-        'parenthesis_2',
-        'parenthesis_3',
-        'parenthesis_other',
+        'parenthesis',
         'comma',
         'symbol',
         'float',
@@ -126,12 +100,9 @@ class MathicsScanner:
         'blanks', 
         'blankdefault',
         'string',
-        'out_1',
-        'out_2',
-        'slotseq_1',
-        'slotseq_2',
-        'slotsingle_1',
-        'slotsingle_2',
+        'out',
+        'slotseq',
+        'slot'
         'span',
         'other',
         'default',
@@ -139,11 +110,12 @@ class MathicsScanner:
 
     t_ignore = ur' [\s\u2062]+ '
 
-    def t_error(self, s):
+    def t_error(self, t):
+        print t
         raise ScanError(self.lexer.lexpos)
 
     def build(self, **kwargs):
-        self.lexer = lex.lex(module=self, **kwargs)
+        self.lexer = lex.lex(debug=1, module=self, **kwargs)
 
     def tokenize(self, input_string):
         self.tokens = []
@@ -162,14 +134,14 @@ class MathicsScanner:
         r' \[\[ '
         self.open_square_parenthesizes.append('[[')
 
-        t.value = (t.value, '')
+        t.type = 'parenthesis'
         return t
         
     def t_parenthesis_1(self, t):
         r' \[ '
         self.open_square_parenthesizes.append('[')
 
-        t.value = (t.value, '')
+        t.type = 'parenthesis'
         return t
         
     def t_parenthesis_2(self, s):
@@ -177,7 +149,7 @@ class MathicsScanner:
         
         last = self.open_square_parenthesizes.pop() if self.open_square_parenthesizes else None
         if last == '[[':
-            t.value = (t.value, '')
+            (t.type, t.value) = (t.value, '')
         else:
             if self.open_square_parenthesizes:
                 self.open_square_parenthesizes.pop()
@@ -185,28 +157,29 @@ class MathicsScanner:
             #self.tokens.append(Token(type=']'))
             #self.tokens.append(Token(type=']'))
         
+        t.type = 'parenthesis'
         return t
+
     def t_parenthesis_3(self, t):
         r' \] '
         if self.open_square_parenthesizes:
             self.open_square_parenthesizes.pop()
 
-        t.value = (t.value, '')
+        t.type = 'parenthesis'
         return t
         
     def t_parenthesis_other(self, t):
         r' [(){}] '
-        t.value = (t.value, '')
+        t.type = 'parenthesis'
         return t
         
     def t_comma(self, t):
         r' , '
-        t.value = (t.value, '')
+        t.value = ''
         return t
         
     def t_symbol(self, t):
         r' [a-zA-Z$][a-zA-Z0-9$]* '
-        t.value = ('symbol', t.value)
         return t
         
     def t_float(self, t):
@@ -226,22 +199,19 @@ class MathicsScanner:
             s = s[:dot] + s[dot+1:]
             s = s[:exp+dot] + '.' + s[exp+dot:]
 
-        t.value = ('float', s)
+        t.value = s
         return t
 
     def t_int(self, t):
         r' \d+ '
-        t.value = ('int', t.value)
         return t
         
     def t_blanks(self, t):
         r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
-        t.value = ('blanks', t.value)
         return t
 
     def t_blankdefault(self, t):
         r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
-        t.value = ('blankdefault', t.value)
         return t
         
     def t_string(self, t):
@@ -271,52 +241,58 @@ class MathicsScanner:
         s = s.replace('\\r', '\r')
         s = s.replace('\\n', '\n')
 
-        t.value = ('string', s)
+        t.value = s
         return t
         
     def t_out_1(self, t):
         r' \%\d+ '
-        t.value = ('out', int(t.value[1:]))
+        (t.type, t.value) = ('out', int(t.value[1:]))
         return t
         
     def t_out_2(self, t):
         r' \%+ '
-        t.value = ('out', -len(t.value))
+        (t.type, t.value) = ('out', -len(t.value))
         return t
         
     def t_slotseq_1(self, t):
         r' \#\#\d+ '
-        t.value = ('slotseq', int(t.value[2:]))
+        (t.type, t.value) = ('slotseq', int(t.value[2:]))
         return t
         
     def t_slotseq_2(self, t):
         r' \#\# '
-        t.value = ('slotseq', 1)
+        (t.type, t.value) = ('slotseq', 1)
         return t
         
     def t_slotsingle_1(self, t):
         r' \#\d+ '
-        t.value = ('slot', int(t.value[1:]))
+        (t.type, t.value) = ('slot', int(t.value[1:]))
         return t
         
     def t_slotsingle_2(self, t):
         r' \# '
-        t.value = ('slot', 1)
+        (t.type, t.value) = ('slot', 1)
         return t
         
     def t_span(self, t):
         r' \;\; '
-        t.value = (';;', '')
+        #FIXME
+        #t.value = ''
+        #return t
         return t
         
     def t_other(self, t):
         r' \/\: | \=\. '
-        t.value = (t.value, '')
+        #FIXME
+        #t.value = (t.value, '')
+        #return t
         return t
     
-    def t_default(self, s):
+    def t_default(self, t):
         r'( . | \n )+'        
-        raise InvalidCharError(s)
+        print t.value, type(t.type)
+        print self.lexer.lexdata
+        raise InvalidCharError(t.value)
 
     #def reflect(self):
     #    symbols = operators.keys()
@@ -333,7 +309,9 @@ class MathicsScanner:
 
 m = MathicsScanner()
 m.build()
-m.tokenize('mysym + x + 1 + 3.4')
+m.tokenize('1 + 1')
+m.tokenize('mysym + x + 1 - 3.4')
+m.tokenize('4 / 2')
         
 #class CompoundToken(AbstractToken):
 #    def __init__(self, items):
@@ -684,13 +662,14 @@ m.tokenize('mysym + x + 1 + 3.4')
 #                
 #        GenericParser.collectRules(self)
 #                
-#scanner = MathicsScanner()
+scanner = MathicsScanner()
+scanner.build()
 #parser = MathicsParser()
 #
-#def parse(string):
-#    tokens = scanner.tokenize(string)
-#    if tokens:
-#        result = parser.parse(tokens)
-#        return result
-#    else:
-#        return None
+def parse(string):
+    tokens = scanner.tokenize(string)
+    if tokens:
+        result = parser.parse(tokens)
+        return result
+    else:
+        return None
