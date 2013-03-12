@@ -24,6 +24,8 @@ u"""
 import ply.lex as lex
 import ply.yacc as yacc
 
+from re import escape
+
 #import re
 #from re import compile, escape
 #
@@ -90,6 +92,7 @@ for name, builtin in builtins.iteritems():
 #}
 
 class MathicsScanner:
+
     tokens = (
         'comment',
         'parenthesis',
@@ -106,6 +109,7 @@ class MathicsScanner:
         'span',
         'other',
         'default',
+        'operator',
     )
 
     t_ignore = ur' [\s\u2062]+ '
@@ -115,7 +119,19 @@ class MathicsScanner:
         raise ScanError(self.lexer.lexpos)
 
     def build(self, **kwargs):
-        self.lexer = lex.lex(debug=1, module=self, **kwargs)
+        # add operators
+        symbols = operators.keys()
+        symbols.sort(key=lambda s: len(s), reverse=True)
+        index = 1
+        for symbol in symbols:
+            def t_op(t):
+                pass
+
+            t_op.__doc__ = escape(symbol)
+            setattr(self, 't_operator_%.4d' % index, t_op)
+            index += 1
+            
+        self.lexer = lex.lex(debug=0, module=self, **kwargs)
 
     def tokenize(self, input_string):
         self.tokens = []
@@ -126,6 +142,7 @@ class MathicsScanner:
                 break
             print tok
             self.tokens.append(tok)
+        return self.tokens
 
     def t_comment(self, t):
         r'(?s) \(\* .*? \*\) '
@@ -149,7 +166,7 @@ class MathicsScanner:
         
         last = self.open_square_parenthesizes.pop() if self.open_square_parenthesizes else None
         if last == '[[':
-            (t.type, t.value) = (t.value, '')
+            pass
         else:
             if self.open_square_parenthesizes:
                 self.open_square_parenthesizes.pop()
@@ -291,28 +308,15 @@ class MathicsScanner:
     def t_default(self, t):
         r'( . | \n )+'        
         print t.value, type(t.type)
-        print self.lexer.lexdata
         raise InvalidCharError(t.value)
-
-    #def reflect(self):
-    #    symbols = operators.keys()
-    #    symbols.sort(key=lambda s: len(s), reverse=True)
-    #    index = 1
-    #    for symbol in symbols:
-    #        def t_op(s, symbol=symbol):
-    #            self.tokens.append(Token(type=symbol))
-    #        t_op.__doc__ = escape(symbol)
-    #        setattr(self, 't_zzzz_op_%.4d' % index, t_op)
-    #        index += 1
-    #        
-    #    return GenericScanner.reflect(self)
 
 m = MathicsScanner()
 m.build()
 m.tokenize('1 + 1')
+m.tokenize('Sin[x]')
 m.tokenize('mysym + x + 1 - 3.4')
 m.tokenize('4 / 2')
-        
+
 #class CompoundToken(AbstractToken):
 #    def __init__(self, items):
 #        self.items = items
