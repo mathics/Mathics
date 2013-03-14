@@ -31,7 +31,7 @@ from re import escape
 #
 #import unicodedata
 #
-#from mathics.core.expression import BaseExpression, Expression, Integer, Real, Symbol, String
+from mathics.core.expression import BaseExpression, Expression, Integer, Real, Symbol, String
 from mathics.builtin import builtins
          
 class TranslateError(Exception):
@@ -103,7 +103,6 @@ tokens = [
     'blanks', 
     'blankdefault',
     'string',
-    'slot',
     'out',
     'slot',
     'slotseq',
@@ -253,6 +252,9 @@ class MathicsScanner:
         print t
         raise ScanError(self.lexer.lexpos)
 
+class AbstractToken(object):
+    pass
+
 class CompoundToken(AbstractToken):
     def __init__(self, items):
         self.items = items
@@ -317,7 +319,7 @@ class MathicsParser:
     
     def parse(self, string):
         result = self.parser.parse(string)
-        result = result.post_parse()
+        #result = result.post_parse()
         return result
     
     def op_400(self, args):
@@ -446,15 +448,15 @@ class MathicsParser:
         
     def p_symbol(self, args):
         ' expr : symbol '
-        return Symbol(args[0].value)
+        return Symbol(args[1])
         
     def p_int(self, args):
         ' expr : int '
-        return Integer(args[0].value)
+        return Integer(args[1])
         
     def p_float(self, args):
         ' expr : float '
-        return Real(args[0].value)
+        return Real(args[1])
         
     def p_blanks(self, args):
         ' expr : blanks '
@@ -580,3 +582,8 @@ parser.build()
 def parse(string):
     print "#>", string
     return parser.parse(string)
+
+parse('1')
+parse('1.4')
+parse('xX')
+quit()
