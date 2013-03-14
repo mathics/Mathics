@@ -24,9 +24,7 @@ u"""
 import ply.lex as lex
 import ply.yacc as yacc
 
-from re import escape
-
-#import re
+import re
 #from re import compile, escape
 #
 #import unicodedata
@@ -150,7 +148,7 @@ class MathicsScanner:
             def t_op(t):
                 return t
 
-            t_op.__doc__ = escape(symbol)
+            t_op.__doc__ = re.escape(symbol)
             setattr(self, 't_operator_%.4d' % index, t_op)
             index += 1
             
@@ -308,105 +306,97 @@ class MathicsParser:
         print p
         raise ParseError(p)
 
-#    def __init__(self):
-#        self.parser = yacc.yacc(object=self)
-#
-#    def typestring(self, token):
-#        if isinstance(token, BaseExpression):
-#            return 'expr'
-#        else:
-#            return token.type
-    
     def parse(self, string):
         result = self.parser.parse(string)
+        print "##", result
         #result = result.post_parse()
         return result
     
     def op_400(self, args):
         ' expr ::= expr expr '
         #return builtins['Times'].parse([args[0], None, args[1]])
-        return Expression('Times', args[0], args[1])
+        args[0] = Expression('Times', args[1], args[3])
     
     def p_parenthesis(self, args):
         ''' expr : '(' expr ')' '''
-        expr = args[1]
+        expr = args[2]
         expr.parenthesized = True
-        return expr
+        args[0] = expr
     
     def op_045_tagset(self, args):
         ' expr : expr /: expr = expr '
         #''' expr : expr /: expr '=' expr '''
-        return Expression('TagSet', args[0], args[2], args[4])
+        args[0] = Expression('TagSet', args[1], args[3], args[5])
     
     def op_045_tagsetdelayed(self, args):
         ' expr : expr /: expr := expr '
-        return Expression('TagSetDelayed', args[0], args[2], args[4])
+        args[0] = Expression('TagSetDelayed', args[1], args[3], args[5])
     
     def op_045_tagunset(self, args):
         ' expr : expr /: expr =. '
-        return Expression('TagUnset', args[0], args[2])
+        args[0] = Expression('TagUnset', args[1], args[3])
     
     def op_010(self, args):
         ' expr : expr ; '
-        return Expression('CompoundExpression', args[0], Symbol('Null'))
+        args[0] = Expression('CompoundExpression', args[1], Symbol('Null'))
     
     def p_parsed_expr(self, args):
         ' expr : parsedexpr '
-        return args[0].value
+        args[0] = args[1]
     
     def op_670_call(self, args):
         ' expr : expr args'
-        expr = Expression(args[0], *args[1].items)
+        expr = Expression(args[1], *args[1].items)
         expr.parenthesized = True # to handle e.g. Power[a,b]^c correctly
-        return expr
+        args[0] = expr
     
     def op_670_part(self, args):
         ' expr : expr position'
-        return Expression('Part', args[0], *args[1].items)
+        args[0] = Expression('Part', args[1], *args[2].items)
     
     def p_span_start_1(self, args):
         ' span_start : expr '
-        return args[0]
+        args[0] = args[1]
     
     def p_span_start_2(self, args):
         ' span_start : '
-        return Integer(1)
+        args[0] = Integer(1)
     
     def p_span_stop_1(self, args):
         ' span_stop : expr '
-        return args[0]
+        args[0] = args[1]
     
     def p_span_stop_2(self, args):
         ' span_stop : '
-        return Symbol('All')
+        args[0] = Symbol('All')
     
     def p_span_step_1(self, args):
         ' span_step : expr '
-        return args[0]
+        args[0] = args[1]
     
     def p_span_step_2(self, args):
         ' span_step : '
-        return Integer(1)
+        args[0] = Integer(1)
     
     def op_305_1(self, args):
         ' expr : span_start ;; span_stop ;; span_step '
-        return Expression('Span', args[0], args[2], args[4])
+        args[0] = Expression('Span', args[1], args[3], args[5])
     
     def op_305_2(self, args):
         ' expr : span_start ;; span_stop '
-        return Expression('Span', args[0], args[2], Integer(1))
+        args[0] = Expression('Span', args[1], args[3], Integer(1))
     
     def p_args_1(self, args):
         ' args : parenthesis_1 sequence parenthesis_3 '
-        return ArgsToken(args[1].items)
+        args[0] = ArgsToken(args[1].items)
     
     def p_list(self, args):
         ''' expr : '{' sequence '}' '''
-        return Expression('List', *args[1].items)
+        args[0] = Expression('List', *args[2].items)
     
     def p_position(self, args):
         ' position : parenthesis_0 sequence parenthesis_2'
-        return PositionToken(args[1].items)
+        args[0] = PositionToken(args[2].items)
     
     def p_rest_left(self, args):
         '''
@@ -414,7 +404,7 @@ class MathicsParser:
                   | expr
                   | expr binary_op
         '''
-        return RestToken()
+        args[0] = RestToken()
     
     def p_rest_right(self, args):
         '''
@@ -424,44 +414,43 @@ class MathicsParser:
                    | position rest_right
                    | rest_right binary_op expr
         '''
-        return RestToken()
+        args[0] = RestToken()
     
     def p_sequence_0(self, args):
         ' sequence : '
-        return SequenceToken([])
+        args[0] = SequenceToken([])
     
     def p_sequence_1(self, args):
         ''' sequence : sequence ',' expr '''
-        return SequenceToken(args[0].items + [args[2]])
+        args[0] = SequenceToken(args[1].items + [args[2]])
         
     def p_sequence_2(self, args):
         ' sequence : expr '
-        return SequenceToken([args[0]])
+        args[0] = SequenceToken([args[1]])
         
     def p_sequence_3(self, args):
         ''' sequence : ',' '''
-        return SequenceToken([Symbol('Null'), Symbol('Null')])
+        args[0] = SequenceToken([Symbol('Null'), Symbol('Null')])
         
     def p_sequence_4(self, args):
         ''' sequence : sequence ',' '''
-        return SequenceToken(args[0].items + [Symbol('Null')])
+        args[0] = SequenceToken(args[1].items + [Symbol('Null')])
         
     def p_symbol(self, args):
         ' expr : symbol '
-        return Symbol(args[1])
+        args[0] = Symbol(args[1])
         
     def p_int(self, args):
         ' expr : int '
-        return Integer(args[1])
+        args[0] = Integer(args[1])
         
     def p_float(self, args):
         ' expr : float '
-        return Real(args[1])
+        args[0] = Real(args[1])
         
     def p_blanks(self, args):
         ' expr : blanks '
-        value = args[0].value
-        pieces = value.split('_')
+        pieces = args[1].split('_')
         count = len(pieces) - 1
         if count == 1:
             name = 'Blank'
@@ -474,36 +463,34 @@ class MathicsParser:
         else:
             blank = Expression(name)
         if pieces[0]:
-            return Expression('Pattern', Symbol(pieces[0]), blank)
+            args[0] = Expression('Pattern', Symbol(pieces[0]), blank)
         else:
-            return blank
+            args[0] = blank
         
     def p_blankdefault(self, args):
         ' expr : blankdefault '
-        value = args[0].value
-        name = value[:-2]
+        name = args[1][:-2]
         if name:
-            return Expression('Optional', Expression('Pattern', Symbol(name), Expression('Blank')))
+            args[0] = Expression('Optional', Expression('Pattern', Symbol(name), Expression('Blank')))
         else:
-            return Expression('Optional', Expression('Blank'))
+            args[0] = Expression('Optional', Expression('Blank'))
         
     def p_slot(self, args):
         ' expr : slot '
-        return Expression('Slot', Integer(args[0].value))
+        args[0] = Expression('Slot', Integer(args[1]))
 
     def p_slotseq(self, args):
         ' expr : slotseq '
-        return Expression('SlotSequence', Integer(args[0].value))
+        args[0] = Expression('SlotSequence', Integer(args[1]))
     
     def p_out(self, args):
         ' expr : out '
-        raise NotImplementedError
-        return Expression('Out', Integer(args[0].value))
+        args[0] = Expression('Out', Integer(args[1]))
         
     def p_string(self, args):
         ' expr : string '
-        return String(args[0].value)
-    
+        args[0] = String(args[1])
+
 #    def ambiguity(self, rules):
 #        """
 #        Don't use length of right-hand side for ordering of rules!
@@ -563,17 +550,20 @@ class MathicsParser:
 #                self.addRule(doc, p_op)
 #        
 #        @parsing_static
-#        def p_binary_op(args):
-#            return args[0]
+#        def p_binary_op(self, args):
+#            'expr : expr binary_op expr'
+#            print args
+#            args[0] = Expression(args[2], args[1], args[3])
 #            
-#        rule = ''    
-#        for operator in binary_operators:
-#            rule += u'binary_op ::= %s\n' % operator
-#        
-#        self.addRule(rule, p_binary_op)
-#                
-#        GenericParser.collectRules(self)
-#                
+        #rule = ''    
+        #for operator in binary_operators:
+        #    def p_op(self, args):
+        #    rule += u'binary_op ::= %s\n' % operator
+        #
+        #self.addRule(rule, p_binary_op)
+        #        
+        #GenericParser.collectRules(self)
+                
 scanner = MathicsScanner()
 scanner.build()
 parser = MathicsParser()
@@ -586,4 +576,7 @@ def parse(string):
 parse('1')
 parse('1.4')
 parse('xX')
+parse('"abc 123"')
+parse('1 + 2')
+
 quit()
