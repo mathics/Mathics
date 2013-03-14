@@ -91,42 +91,41 @@ for name, builtin in builtins.iteritems():
 #    'Product': u'\u220f',
 #}
 
-class MathicsScanner:
+tokens = [
+    'comment',
+    'parenthesis_0',
+    'parenthesis_1',
+    'parenthesis_2',
+    'parenthesis_3',
+    'symbol',
+    'float',
+    'int', 
+    'blanks', 
+    'blankdefault',
+    'string',
+    'slot',
+    'out',
+    'slot',
+    'slotseq',
+    'span',
+    'other',
+    'default',
+    'binary_op',
+    'parsedexpr',
+] + ['operator_%.4d' % i for i in range(len(operators.keys()))]
 
-    tokens = [
-        'comment',
-        'parenthesis_0',
-        'parenthesis_1',
-        'parenthesis_2',
-        'parenthesis_3',
-        'parenthesis_4',
-        'parenthesis_5',
-        'parenthesis_6',
-        'parenthesis_7',
-        'comma',
-        'symbol',
-        'float',
-        'int', 
-        'blanks', 
-        'blankdefault',
-        'string',
-        'out_1',
-        'out_2',
-        'slotseq_1',
-        'slotseq_2',
-        'slotsingle_1',
-        'slotsingle_2',
-        'span',
-        'other',
-        'default',
-    ] + ['operator_%.4d' % i for i in range(len(operators.keys()))]
+literals = ['(', ')', '{', '}', ',']
+
+class MathicsScanner:
+    tokens = tokens
+    literals = literals
 
     #t_ignore = ur' [\s\u2062]+ '
     t_ignore = ' \t '
 
     t_comment = r' (?s) \(\* .*? \*\) '
     t_symbol = r' [a-zA-Z$][a-zA-Z0-9$]* '
-    t_comma = r' , '
+    #t_comma = r' , '
     t_int = r' \d+ '
     t_blanks = r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
     t_blankdefault = r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
@@ -135,18 +134,11 @@ class MathicsScanner:
     t_parenthesis_1 = r' \[ '
     t_parenthesis_2 = r' \]\] '
     t_parenthesis_3 = r' \] '
-    t_parenthesis_4 = r' \( '
-    t_parenthesis_5 = r' \) '
-    t_parenthesis_6 = r' \{ '
-    t_parenthesis_7 = r' \} '
+    #t_parenthesis_4 = r' \( '
+    #t_parenthesis_5 = r' \) '
+    #t_parenthesis_6 = r' \{ '
+    #t_parenthesis_7 = r' \} '
 
-    t_out_1 = r' \%\d+ '
-    t_out_2 = r' \%+ '
-    t_slotseq_1 = r' \#\#\d+ '
-    t_slotseq_2 = r' \#\# '
-
-    t_slotsingle_1 = r' \#\d+ '
-    t_slotsingle_2 = r' \# '
     t_span = r' \;\; '
     t_other = r' \/\: | \=\. '
 
@@ -163,7 +155,7 @@ class MathicsScanner:
             setattr(self, 't_operator_%.4d' % index, t_op)
             index += 1
             
-        self.lexer = lex.lex(debug=1, module=self, **kwargs)
+        self.lexer = lex.lex(debug=0, module=self, **kwargs)
 
     def tokenize(self, input_string):
         self.tokens = []
@@ -225,28 +217,59 @@ class MathicsScanner:
 
         t.value = s
         return t
+
+    def t_slotseq_1(self, t):
+        r' \#\#\d+ '
+        (t.type, t.value) = ('slotseq', int(t.values[2:]))
+        return t
+    
+    def t_slotseq_2(self, t):
+        r' \#\# '
+        s = t.value
+        (t.type, t.value) = ('slotseq', 1)
+        return t
+    
+    def t_slotsingle_1(self, t):
+        r' \#\d+ '
+        (t.type, t.value) = ('slot', int(t.values[2:]))
+        return t
+
+    def t_slotsingle_2(self, t):
+        r' \# '
+        (t.type, t.value) = ('slot', 1)
+        return t
+
+    def t_out_1(self, t):
+        r' \%\d+ '
+        (t.type, t.value) = ('out', int(t.value[1:]))
+        return t
+
+    def t_out_2(self, t):
+        r' \%+ '
+        (t.type, t.value) = ('out', 1)
+        return t
     
     def t_error(self, t):
         print t
         raise ScanError(self.lexer.lexpos)
 
-#class CompoundToken(AbstractToken):
-#    def __init__(self, items):
-#        self.items = items
-#        
-#class SequenceToken(CompoundToken):
-#    pass
-#        
-#class ArgsToken(CompoundToken):
-#    pass
-#        
-#class PositionToken(CompoundToken):
-#    pass
-#
-#class RestToken(AbstractToken):
-#    pass
-#
-#    # Actual expressions in there don't matter - we just use its parse_tokens property!
+class CompoundToken(AbstractToken):
+    def __init__(self, items):
+        self.items = items
+        
+class SequenceToken(CompoundToken):
+    pass
+        
+class ArgsToken(CompoundToken):
+    pass
+        
+class PositionToken(CompoundToken):
+    pass
+
+class RestToken(AbstractToken):
+    pass
+
+    # Actual expressions in there don't matter - we just use its parse_tokens property!
 #        
 #def join_parse_tokens(tokens):
 #    result = []
@@ -272,7 +295,17 @@ class MathicsScanner:
 #    new_function.__doc__ = function.__doc__
 #    return new_function
 #
-#class MathicsParser:
+class MathicsParser:
+    tokens = tokens
+    literals = literals
+
+    def build(self, **kwargs):
+        self.parser = yacc.yacc(debug=1, module=self, **kwargs)
+
+    def p_error(self, p):
+        print p
+        raise ParseError(p)
+
 #    def __init__(self):
 #        self.parser = yacc.yacc(object=self)
 #
@@ -281,234 +314,194 @@ class MathicsScanner:
 #            return 'expr'
 #        else:
 #            return token.type
-#    
-#    def error(self, token):
-#        raise ParseError(token)
-#    
-#    def parse(self, tokens):
-#        result = GenericParser.parse(self, tokens)
-#        result = result.post_parse()
-#        return result
-#    
-#    @parsing
-#    def op_400(self, args):
-#        ' expr ::= expr expr '
-#        return builtins['Times'].parse([args[0], None, args[1]])
-#    
-#    @parsing
-#    def p_parenthesis(self, args):
-#        ' expr ::= ( expr ) '
-#        expr = args[1]
-#        expr.parenthesized = True
-#        return expr
-#    
-#    @parsing
-#    def op_045_tagset(self, args):
-#        ' expr ::= expr /: expr = expr '
-#        
-#        return Expression('TagSet', args[0], args[2], args[4])
-#    
-#    @parsing
-#    def op_045_tagsetdelayed(self, args):
-#        ' expr ::= expr /: expr := expr '
-#        
-#        return Expression('TagSetDelayed', args[0], args[2], args[4])
-#    
-#    @parsing
-#    def op_045_tagunset(self, args):
-#        ' expr ::= expr /: expr =. '
-#        
-#        return Expression('TagUnset', args[0], args[2])
-#    
-#    @parsing
-#    def op_010(self, args):
-#        ' expr ::= expr ; '
-#        
-#        return Expression('CompoundExpression', args[0], Symbol('Null'))
-#    
-#    @parsing
-#    def p_parsed_expr(self, args):
-#        ' expr ::= parsedexpr '
-#        return args[0].value
-#    
-#    @parsing
-#    def op_670_call(self, args):
-#        ' expr ::= expr args'
-#        expr = Expression(args[0], *args[1].items)
-#        expr.parenthesized = True # to handle e.g. Power[a,b]^c correctly
-#        return expr
-#    
-#    @parsing
-#    def op_670_part(self, args):
-#        ' expr ::= expr position'
-#        return Expression('Part', args[0], *args[1].items)
-#    
-#    @parsing
-#    def p_span_start_1(self, args):
-#        ' span_start ::= expr '
-#        return args[0]
-#    
-#    @parsing
-#    def p_span_start_2(self, args):
-#        ' span_start ::= '
-#        return Integer(1)
-#    
-#    @parsing
-#    def p_span_stop_1(self, args):
-#        ' span_stop ::= expr '
-#        return args[0]
-#    
-#    @parsing
-#    def p_span_stop_2(self, args):
-#        ' span_stop ::= '
-#        return Symbol('All')
-#    
-#    @parsing
-#    def p_span_step_1(self, args):
-#        ' span_step ::= expr '
-#        return args[0]
-#    
-#    @parsing
-#    def p_span_step_2(self, args):
-#        ' span_step ::= '
-#        return Integer(1)
-#    
-#    @parsing
-#    def op_305_1(self, args):
-#        ' expr ::= span_start ;; span_stop ;; span_step '
-#        return Expression('Span', args[0], args[2], args[4])
-#    
-#    @parsing
-#    def op_305_2(self, args):
-#        ' expr ::= span_start ;; span_stop '
-#        return Expression('Span', args[0], args[2], Integer(1))
-#    
-#    @parsing
-#    def p_args_1(self, args):
-#        ' args ::= [ sequence ] '
-#        return ArgsToken(args[1].items)
-#    
-#    @parsing
-#    def p_list(self, args):
-#        ' expr ::= { sequence } '
-#        return Expression('List', *args[1].items)
-#    
-#    @parsing
-#    def p_position(self, args):
-#        ' position ::= [[ sequence ]]'
-#        return PositionToken(args[1].items)
-#    
-#    @parsing
-#    def p_rest_left(self, args):
-#        '''
-#        rest_left ::=
-#        rest_left ::= expr
-#        rest_left ::= expr binary_op
-#        '''
-#        return RestToken()
-#    
-#    @parsing
-#    def p_rest_right(self, args):
-#        '''
-#        rest_right ::=
-#        rest_right ::= expr
-#        rest_right ::= args rest_right
-#        rest_right ::= position rest_right
-#        rest_right ::= rest_right binary_op expr
-#        '''
-#        return RestToken()
-#    
-#    @parsing
-#    def p_sequence_0(self, args):
-#        ' sequence ::= '
-#        return SequenceToken([])
-#    
-#    @parsing
-#    def p_sequence_1(self, args):
-#        ' sequence ::= sequence , expr '
-#        return SequenceToken(args[0].items + [args[2]])
-#        
-#    @parsing
-#    def p_sequence_2(self, args):
-#        ' sequence ::= expr '
-#        return SequenceToken([args[0]])
-#        
-#    @parsing
-#    def p_sequence_3(self, args):
-#        ' sequence ::= , '
-#        return SequenceToken([Symbol('Null'), Symbol('Null')])
-#        
-#    @parsing
-#    def p_sequence_4(self, args):
-#        ' sequence ::= sequence , '
-#        return SequenceToken(args[0].items + [Symbol('Null')])
-#        
-#    @parsing
-#    def p_symbol(self, args):
-#        ' expr ::= symbol '
-#        return Symbol(args[0].value)
-#        
-#    @parsing
-#    def p_int(self, args):
-#        ' expr ::= int '
-#        return Integer(args[0].value)
-#        
-#    @parsing
-#    def p_float(self, args):
-#        ' expr ::= float '
-#        return Real(args[0].value)
-#        
-#    @parsing
-#    def p_blanks(self, args):
-#        ' expr ::= blanks '
-#        value = args[0].value
-#        pieces = value.split('_')
-#        count = len(pieces) - 1
-#        if count == 1:
-#            name = 'Blank'
-#        elif count == 2:
-#            name = 'BlankSequence'
-#        elif count == 3:
-#            name = 'BlankNullSequence'
-#        if pieces[-1]:
-#            blank = Expression(name, Symbol(pieces[-1]))
-#        else:
-#            blank = Expression(name)
-#        if pieces[0]:
-#            return Expression('Pattern', Symbol(pieces[0]), blank)
-#        else:
-#            return blank
-#        
-#    @parsing
-#    def p_blankdefault(self, args):
-#        ' expr ::= blankdefault '
-#        value = args[0].value
-#        name = value[:-2]
-#        if name:
-#            return Expression('Optional', Expression('Pattern', Symbol(name), Expression('Blank')))
-#        else:
-#            return Expression('Optional', Expression('Blank'))
-#        
-#    @parsing
-#    def p_slot(self, args):
-#        ' expr ::= slot '
-#        return Expression('Slot', Integer(args[0].value))
-#        
-#    @parsing
-#    def p_slotseq(self, args):
-#        ' expr ::= slotseq '
-#        return Expression('SlotSequence', Integer(args[0].value))
-#    
-#    @parsing
-#    def p_out(self, args):
-#        ' expr ::= out '
-#        return Expression('Out', Integer(args[0].value))
-#        
-#    @parsing
-#    def p_string(self, args):
-#        ' expr ::= string '
-#        return String(args[0].value)
-#    
+    
+    def parse(self, string):
+        result = self.parser.parse(string)
+        result = result.post_parse()
+        return result
+    
+    def op_400(self, args):
+        ' expr ::= expr expr '
+        #return builtins['Times'].parse([args[0], None, args[1]])
+        return Expression('Times', args[0], args[1])
+    
+    def p_parenthesis(self, args):
+        ''' expr : '(' expr ')' '''
+        expr = args[1]
+        expr.parenthesized = True
+        return expr
+    
+    def op_045_tagset(self, args):
+        ' expr : expr /: expr = expr '
+        #''' expr : expr /: expr '=' expr '''
+        return Expression('TagSet', args[0], args[2], args[4])
+    
+    def op_045_tagsetdelayed(self, args):
+        ' expr : expr /: expr := expr '
+        return Expression('TagSetDelayed', args[0], args[2], args[4])
+    
+    def op_045_tagunset(self, args):
+        ' expr : expr /: expr =. '
+        return Expression('TagUnset', args[0], args[2])
+    
+    def op_010(self, args):
+        ' expr : expr ; '
+        return Expression('CompoundExpression', args[0], Symbol('Null'))
+    
+    def p_parsed_expr(self, args):
+        ' expr : parsedexpr '
+        return args[0].value
+    
+    def op_670_call(self, args):
+        ' expr : expr args'
+        expr = Expression(args[0], *args[1].items)
+        expr.parenthesized = True # to handle e.g. Power[a,b]^c correctly
+        return expr
+    
+    def op_670_part(self, args):
+        ' expr : expr position'
+        return Expression('Part', args[0], *args[1].items)
+    
+    def p_span_start_1(self, args):
+        ' span_start : expr '
+        return args[0]
+    
+    def p_span_start_2(self, args):
+        ' span_start : '
+        return Integer(1)
+    
+    def p_span_stop_1(self, args):
+        ' span_stop : expr '
+        return args[0]
+    
+    def p_span_stop_2(self, args):
+        ' span_stop : '
+        return Symbol('All')
+    
+    def p_span_step_1(self, args):
+        ' span_step : expr '
+        return args[0]
+    
+    def p_span_step_2(self, args):
+        ' span_step : '
+        return Integer(1)
+    
+    def op_305_1(self, args):
+        ' expr : span_start ;; span_stop ;; span_step '
+        return Expression('Span', args[0], args[2], args[4])
+    
+    def op_305_2(self, args):
+        ' expr : span_start ;; span_stop '
+        return Expression('Span', args[0], args[2], Integer(1))
+    
+    def p_args_1(self, args):
+        ' args : parenthesis_1 sequence parenthesis_3 '
+        return ArgsToken(args[1].items)
+    
+    def p_list(self, args):
+        ''' expr : '{' sequence '}' '''
+        return Expression('List', *args[1].items)
+    
+    def p_position(self, args):
+        ' position : parenthesis_0 sequence parenthesis_2'
+        return PositionToken(args[1].items)
+    
+    def p_rest_left(self, args):
+        '''
+        rest_left :
+                  | expr
+                  | expr binary_op
+        '''
+        return RestToken()
+    
+    def p_rest_right(self, args):
+        '''
+        rest_right :
+                   | expr
+                   | args rest_right
+                   | position rest_right
+                   | rest_right binary_op expr
+        '''
+        return RestToken()
+    
+    def p_sequence_0(self, args):
+        ' sequence : '
+        return SequenceToken([])
+    
+    def p_sequence_1(self, args):
+        ''' sequence : sequence ',' expr '''
+        return SequenceToken(args[0].items + [args[2]])
+        
+    def p_sequence_2(self, args):
+        ' sequence : expr '
+        return SequenceToken([args[0]])
+        
+    def p_sequence_3(self, args):
+        ''' sequence : ',' '''
+        return SequenceToken([Symbol('Null'), Symbol('Null')])
+        
+    def p_sequence_4(self, args):
+        ''' sequence : sequence ',' '''
+        return SequenceToken(args[0].items + [Symbol('Null')])
+        
+    def p_symbol(self, args):
+        ' expr : symbol '
+        return Symbol(args[0].value)
+        
+    def p_int(self, args):
+        ' expr : int '
+        return Integer(args[0].value)
+        
+    def p_float(self, args):
+        ' expr : float '
+        return Real(args[0].value)
+        
+    def p_blanks(self, args):
+        ' expr : blanks '
+        value = args[0].value
+        pieces = value.split('_')
+        count = len(pieces) - 1
+        if count == 1:
+            name = 'Blank'
+        elif count == 2:
+            name = 'BlankSequence'
+        elif count == 3:
+            name = 'BlankNullSequence'
+        if pieces[-1]:
+            blank = Expression(name, Symbol(pieces[-1]))
+        else:
+            blank = Expression(name)
+        if pieces[0]:
+            return Expression('Pattern', Symbol(pieces[0]), blank)
+        else:
+            return blank
+        
+    def p_blankdefault(self, args):
+        ' expr : blankdefault '
+        value = args[0].value
+        name = value[:-2]
+        if name:
+            return Expression('Optional', Expression('Pattern', Symbol(name), Expression('Blank')))
+        else:
+            return Expression('Optional', Expression('Blank'))
+        
+    def p_slot(self, args):
+        ' expr : slot '
+        return Expression('Slot', Integer(args[0].value))
+
+    def p_slotseq(self, args):
+        ' expr : slotseq '
+        return Expression('SlotSequence', Integer(args[0].value))
+    
+    def p_out(self, args):
+        ' expr : out '
+        raise NotImplementedError
+        return Expression('Out', Integer(args[0].value))
+        
+    def p_string(self, args):
+        ' expr : string '
+        return String(args[0].value)
+    
 #    def ambiguity(self, rules):
 #        """
 #        Don't use length of right-hand side for ordering of rules!
@@ -581,12 +574,9 @@ class MathicsScanner:
 #                
 scanner = MathicsScanner()
 scanner.build()
-#parser = MathicsParser()
-#
+parser = MathicsParser()
+parser.build()
+
 def parse(string):
-    tokens = scanner.tokenize(string)
-    if tokens:
-        result = parser.parse(tokens)
-        return result
-    else:
-        return None
+    print "#>", string
+    return parser.parse(string)
