@@ -93,30 +93,62 @@ for name, builtin in builtins.iteritems():
 
 class MathicsScanner:
 
-    tokens = (
+    tokens = [
         'comment',
-        'parenthesis',
+        'parenthesis_0',
+        'parenthesis_1',
+        'parenthesis_2',
+        'parenthesis_3',
+        'parenthesis_4',
+        'parenthesis_5',
+        'parenthesis_6',
+        'parenthesis_7',
         'comma',
         'symbol',
         'float',
-        'int',
+        'int', 
         'blanks', 
         'blankdefault',
         'string',
-        'out',
-        'slotseq',
-        'slot'
+        'out_1',
+        'out_2',
+        'slotseq_1',
+        'slotseq_2',
+        'slotsingle_1',
+        'slotsingle_2',
         'span',
         'other',
         'default',
-        'operator',
-    )
+    ] + ['operator_%.4d' % i for i in range(len(operators.keys()))]
 
-    t_ignore = ur' [\s\u2062]+ '
+    #t_ignore = ur' [\s\u2062]+ '
+    t_ignore = ' \t '
 
-    def t_error(self, t):
-        print t
-        raise ScanError(self.lexer.lexpos)
+    t_comment = r' (?s) \(\* .*? \*\) '
+    t_symbol = r' [a-zA-Z$][a-zA-Z0-9$]* '
+    t_comma = r' , '
+    t_int = r' \d+ '
+    t_blanks = r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
+    t_blankdefault = r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
+
+    t_parenthesis_0 = r' \[\[ '
+    t_parenthesis_1 = r' \[ '
+    t_parenthesis_2 = r' \]\] '
+    t_parenthesis_3 = r' \] '
+    t_parenthesis_4 = r' \( '
+    t_parenthesis_5 = r' \) '
+    t_parenthesis_6 = r' \{ '
+    t_parenthesis_7 = r' \} '
+
+    t_out_1 = r' \%\d+ '
+    t_out_2 = r' \%+ '
+    t_slotseq_1 = r' \#\#\d+ '
+    t_slotseq_2 = r' \#\# '
+
+    t_slotsingle_1 = r' \#\d+ '
+    t_slotsingle_2 = r' \# '
+    t_span = r' \;\; '
+    t_other = r' \/\: | \=\. '
 
     def build(self, **kwargs):
         # add operators
@@ -125,13 +157,13 @@ class MathicsScanner:
         index = 1
         for symbol in symbols:
             def t_op(t):
-                pass
+                return t
 
             t_op.__doc__ = escape(symbol)
             setattr(self, 't_operator_%.4d' % index, t_op)
             index += 1
             
-        self.lexer = lex.lex(debug=0, module=self, **kwargs)
+        self.lexer = lex.lex(debug=1, module=self, **kwargs)
 
     def tokenize(self, input_string):
         self.tokens = []
@@ -144,61 +176,6 @@ class MathicsScanner:
             self.tokens.append(tok)
         return self.tokens
 
-    def t_comment(self, t):
-        r'(?s) \(\* .*? \*\) '
-        
-    def t_parenthesis_0(self, t):
-        r' \[\[ '
-        self.open_square_parenthesizes.append('[[')
-
-        t.type = 'parenthesis'
-        return t
-        
-    def t_parenthesis_1(self, t):
-        r' \[ '
-        self.open_square_parenthesizes.append('[')
-
-        t.type = 'parenthesis'
-        return t
-        
-    def t_parenthesis_2(self, s):
-        r' \]\] '
-        
-        last = self.open_square_parenthesizes.pop() if self.open_square_parenthesizes else None
-        if last == '[[':
-            pass
-        else:
-            if self.open_square_parenthesizes:
-                self.open_square_parenthesizes.pop()
-            raise NotImplementedError
-            #self.tokens.append(Token(type=']'))
-            #self.tokens.append(Token(type=']'))
-        
-        t.type = 'parenthesis'
-        return t
-
-    def t_parenthesis_3(self, t):
-        r' \] '
-        if self.open_square_parenthesizes:
-            self.open_square_parenthesizes.pop()
-
-        t.type = 'parenthesis'
-        return t
-        
-    def t_parenthesis_other(self, t):
-        r' [(){}] '
-        t.type = 'parenthesis'
-        return t
-        
-    def t_comma(self, t):
-        r' , '
-        t.value = ''
-        return t
-        
-    def t_symbol(self, t):
-        r' [a-zA-Z$][a-zA-Z0-9$]* '
-        return t
-        
     def t_float(self, t):
         r' \d*(?<!\.)\.\d+(\*\^(\+|-)?\d+)? | \d+\.(?!\.) \d*(\*\^(\+|-)?\d+)?'
         s = t.value.split('*^')
@@ -219,18 +196,6 @@ class MathicsScanner:
         t.value = s
         return t
 
-    def t_int(self, t):
-        r' \d+ '
-        return t
-        
-    def t_blanks(self, t):
-        r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
-        return t
-
-    def t_blankdefault(self, t):
-        r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
-        return t
-        
     def t_string(self, t):
         r' "([^\\"]|\\\\|\\"|\\\[[a-zA-Z]+\]|\\n|\\r|\\r\\n)*" '
         s = t.value[1:-1]
@@ -260,55 +225,111 @@ class MathicsScanner:
 
         t.value = s
         return t
-        
-    def t_out_1(self, t):
-        r' \%\d+ '
-        (t.type, t.value) = ('out', int(t.value[1:]))
-        return t
-        
-    def t_out_2(self, t):
-        r' \%+ '
-        (t.type, t.value) = ('out', -len(t.value))
-        return t
-        
-    def t_slotseq_1(self, t):
-        r' \#\#\d+ '
-        (t.type, t.value) = ('slotseq', int(t.value[2:]))
-        return t
-        
-    def t_slotseq_2(self, t):
-        r' \#\# '
-        (t.type, t.value) = ('slotseq', 1)
-        return t
-        
-    def t_slotsingle_1(self, t):
-        r' \#\d+ '
-        (t.type, t.value) = ('slot', int(t.value[1:]))
-        return t
-        
-    def t_slotsingle_2(self, t):
-        r' \# '
-        (t.type, t.value) = ('slot', 1)
-        return t
-        
-    def t_span(self, t):
-        r' \;\; '
-        #FIXME
-        #t.value = ''
-        #return t
-        return t
-        
-    def t_other(self, t):
-        r' \/\: | \=\. '
-        #FIXME
-        #t.value = (t.value, '')
-        #return t
-        return t
     
-    def t_default(self, t):
-        r'( . | \n )+'        
-        print t.value, type(t.type)
-        raise InvalidCharError(t.value)
+    #def t_default(self, t):
+    #    r'( . | \n )+'        
+    #    print t.value, type(t.type)
+    #    raise InvalidCharError(t.value)
+    
+    def t_error(self, t):
+        print t
+        raise ScanError(self.lexer.lexpos)
+    
+    #def t_int(self, t):
+    #    r' \d+ '
+    #    return t
+    #    
+    #def t_blanks(self, t):
+    #    r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
+    #    return t
+    #
+    #def t_blankdefault(self, t):
+    #    r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
+    #    return t
+        
+    #def t_comment(self, t):
+    #    r'(?s) \(\* .*? \*\) '
+    #    
+    #def t_parenthesis_0(self, t):
+    #    r' \[\[ '
+    #    self.open_square_parenthesizes.append('[[')
+    #    
+    #def t_parenthesis_1(self, t):
+    #    r' \[ '
+    #    self.open_square_parenthesizes.append('[')
+    #    return t
+    #    
+    #def t_parenthesis_2(self, s):
+    #    r' \]\] '
+    #    
+    #    last = self.open_square_parenthesizes.pop() if self.open_square_parenthesizes else None
+    #    if last == '[[':
+    #        pass
+    #    else:
+    #        if self.open_square_parenthesizes:
+    #            self.open_square_parenthesizes.pop()
+    #        raise NotImplementedError
+    #        #self.tokens.append(Token(type=']'))
+    #        #self.tokens.append(Token(type=']'))
+    #
+    #def t_parenthesis_3(self, t):
+    #    r' \] '
+    #    if self.open_square_parenthesizes:
+    #        self.open_square_parenthesizes.pop()
+    #    return t
+    #    
+    #def t_comma(self, t):
+    #    r' , '
+    #    t.value = ''
+    #    return t
+    #    
+    #def t_symbol(self, t):
+    #    r' [a-zA-Z$][a-zA-Z0-9$]* '
+    #    return t
+    #       
+    #def t_out_1(self, t):
+    #    r' \%\d+ '
+    #    (t.type, t.value) = ('out', int(t.value[1:]))
+    #    return t
+    #    
+    #def t_out_2(self, t):
+    #    r' \%+ '
+    #    (t.type, t.value) = ('out', -len(t.value))
+    #    return t
+    #    
+    #def t_slotseq_1(self, t):
+    #    r' \#\#\d+ '
+    #    (t.type, t.value) = ('slotseq', int(t.value[2:]))
+    #    return t
+    #    
+    #def t_slotseq_2(self, t):
+    #    r' \#\# '
+    #    (t.type, t.value) = ('slotseq', 1)
+    #    return t
+    #    
+    #def t_slotsingle_1(self, t):
+    #    r' \#\d+ '
+    #    (t.type, t.value) = ('slot', int(t.value[1:]))
+    #    return t
+    #    
+    #def t_slotsingle_2(self, t):
+    #    r' \# '
+    #    (t.type, t.value) = ('slot', 1)
+    #    return t
+    #    
+    #def t_span(self, t):
+    #    r' \;\; '
+    #    #FIXME
+    #    #t.value = ''
+    #    #return t
+    #    return t
+    #    
+    #def t_other(self, t):
+    #    r' \/\: | \=\. '
+    #    #FIXME
+    #    #t.value = (t.value, '')
+    #    #return t
+    #    return t
 
 m = MathicsScanner()
 m.build()
@@ -316,6 +337,9 @@ m.tokenize('1 + 1')
 m.tokenize('Sin[x]')
 m.tokenize('mysym + x + 1 - 3.4')
 m.tokenize('4 / 2')
+m.tokenize('1 + (2 - 4)')
+
+quit()
 
 #class CompoundToken(AbstractToken):
 #    def __init__(self, items):
