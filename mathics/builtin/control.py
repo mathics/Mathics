@@ -447,7 +447,7 @@ class FixedPointList(Builtin):
     
     Plot the "hailstone" sequence of a number:
     >> collatz[1] := 1;
-    >> collatz[x_ /; EvenQ[x]] := x / 2;
+    >> collatz[x_ ? EvenQ] := x / 2;
     >> collatz[x_] := 3 x + 1;
     >> list = FixedPointList[collatz, 14]
      = {14, 7, 22, 11, 34, 17, 52, 26, 13, 40, 20, 10, 5, 16, 8, 4, 2, 1, 1}
