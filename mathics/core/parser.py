@@ -121,8 +121,8 @@ class MathicsScanner:
     tokens = tokens
     literals = literals
 
-    #t_ignore = ur' [\s\u2062]+ '
-    t_ignore = ' \t '
+    t_ignore = ur' [\s\u2062]+ '
+    #t_ignore = ' \t '
 
     t_symbol = r' [a-zA-Z$][a-zA-Z0-9$]* '
     #t_comma = r' , '
@@ -304,7 +304,7 @@ class MathicsParser:
     literals = literals
 
     def build(self, **kwargs):
-        self.parser = yacc.yacc(debug=1, module=self, **kwargs)
+        self.parser = yacc.yacc(debug=0, module=self, **kwargs)
 
     def p_error(self, p):
         print p
@@ -318,8 +318,7 @@ class MathicsParser:
 
     def p_op_400(self, args):
         'expr : expr expr'
-        #args[0] = builtins['Times'].parse([args[0], None, args[1]])
-        args[0] = Expression('Times', args[1], args[2])
+        args[0] = builtins['Times'].parse([args[1], None, args[2]])
     
     def p_parenthesis(self, args):
         '''
@@ -393,7 +392,7 @@ class MathicsParser:
         #'expr : span_start ;; span_stop'
         args[0] = Expression('Span', args[1], args[3], Integer(1))
     
-    def p_args_1(self, args):
+    def p_args(self, args):
         'args : parenthesis_1 sequence parenthesis_3'
         args[0] = ArgsToken(args[1].items)
     
@@ -420,8 +419,8 @@ class MathicsParser:
                       | position rest_right
                       | rest_right binary_op expr'''
         args[0] = RestToken()
-    
-    def p_sequence_0(self, args):
+
+    def p_sequence(self, args):
         '''sequence :
                     | expr
                     | ','
@@ -494,7 +493,24 @@ class MathicsParser:
     def p_string(self, args):
         'expr : string'
         args[0] = String(args[1])
-
+    
+    def p_binary_op(self, args):
+        'expr : expr binary_op expr'
+        args[0] = Expression(args[2], args[1], args[3])
+        
+    def __init__(self):
+        index = 0
+        for symbol in symbols:
+            tmp = lookup[symbol]
+            def p_op(args):
+                args[0] = tmp
+                
+            if symbol in binary_operators:
+                p_op.__doc__ = 'binary_op : operator_%.4d' % index
+                
+                setattr(self, 'p_operator_%.4d' % index, p_op)
+            index += 1
+            
 #    def ambiguity(self, rules):
 #        """
 #        Don't use length of right-hand side for ordering of rules!
@@ -553,14 +569,6 @@ class MathicsParser:
 #                p_op = parsing_static(p_op)
 #                self.addRule(doc, p_op)
 #        
-        
-    def p_binary_op(self, args):
-        'expr : expr binary_op expr'
-        args[0] = Expression(args[2], args[1], args[3])
-
-    def p_op(self, args):
-        'binary_op : operator_0037'
-        args[0] = 'Plus'
 
 scanner = MathicsScanner()
 scanner.build()
@@ -579,5 +587,6 @@ parse('1 2 3')
 parse('145 (* abf *) 345')
 #parse('+')
 parse('1 + 2')
+parse('Sin[x, y]')
 
 quit()
