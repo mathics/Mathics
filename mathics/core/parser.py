@@ -97,7 +97,6 @@ for symbol in symbols:
 #}
 
 tokens = [
-    'comment',
     'parenthesis_0',
     'parenthesis_1',
     'parenthesis_2',
@@ -125,7 +124,6 @@ class MathicsScanner:
     #t_ignore = ur' [\s\u2062]+ '
     t_ignore = ' \t '
 
-    t_comment = r' (?s) \(\* .*? \*\) '
     t_symbol = r' [a-zA-Z$][a-zA-Z0-9$]* '
     #t_comma = r' , '
     t_int = r' \d+ '
@@ -247,6 +245,10 @@ class MathicsScanner:
         r' \%+ '
         (t.type, t.value) = ('out', 1)
         return t
+
+    def t_comment(self, t):
+        r' (?s) \(\* .*? \*\) '
+        return None
     
     def t_error(self, t):
         print t
@@ -574,6 +576,7 @@ parse('1.4')
 parse('xX')
 parse('"abc 123"')
 parse('1 2 3')
+parse('145 (* abf *) 345')
 #parse('+')
 parse('1 + 2')
 
