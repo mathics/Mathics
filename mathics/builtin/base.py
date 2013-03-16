@@ -242,9 +242,6 @@ class PrefixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PrefixOperator, self).__init__('Prefix', *args, **kwargs)
                       
-    def get_rule(self):
-        return 'expr ::= rest_left %s expr' % self.get_operator()
-                
     def parse(self, args):
         from mathics.core.parser import MathicsParser, Token
         
@@ -264,9 +261,6 @@ class PostfixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PostfixOperator, self).__init__('Postfix', *args, **kwargs)
                       
-    def get_rule(self):
-        return 'expr ::= expr %s rest_right' % self.get_operator()
-                
     def parse(self, args):
         from mathics.core.parser import MathicsParser, Token
         
@@ -307,9 +301,6 @@ class BinaryOperator(Operator):
             }
             default_rules.update(self.rules)
             self.rules = default_rules
-                
-    def get_rule(self):
-        return 'expr ::= expr %s expr' % self.get_operator()
                 
     def parse(self, args):
         left = args[0]
