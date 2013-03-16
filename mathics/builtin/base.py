@@ -208,6 +208,12 @@ class Operator(Builtin):
         
     def is_binary(self):
         return False
+
+    def is_prefix(self):
+        return False
+
+    def is_postfix(self):
+        return False
     
     def post_parse(self, expression):
         return Expression(expression.head.post_parse(), *[leaf.post_parse() for leaf in expression.leaves])
@@ -250,6 +256,9 @@ class PrefixOperator(UnaryOperator):
             return result
         else:
             return Expression(self.get_name(), args[2], parse_operator=self)
+            
+    def is_prefix(self):
+        return True
 
 class PostfixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
@@ -270,6 +279,8 @@ class PostfixOperator(UnaryOperator):
         else:
             return Expression(self.get_name(), args[0], parse_operator=self)
         
+    def is_postfix(self):
+        return True
 
 class BinaryOperator(Operator):
     grouping = 'None'  # NonAssociative, None, Left, Right

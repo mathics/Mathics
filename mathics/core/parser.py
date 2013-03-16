@@ -59,6 +59,10 @@ class ParseError(TranslateError):
     def __unicode__(self):
         return u"Parse error at or near token %s." % str(self.token)
     
+prefix_lookup = {}  # operator (e.g. "-") -> name (e.g. "Minus")
+postfix_lookup = {}  # operator (e.g. "-") -> name (e.g. "Minus")
+binary_lookup = {}  # operator (e.g. "+") -> name (e.g. "Plus")
+
 operators = {} # operator (e.g. "+") -> list of classes ([Minus, Subtract])
 operators_by_prec = {} # precedence (310) -> list of classes ([Plus, Minus])
 binary_operators = [] # list of binary operators (['+', '-', ...])
@@ -74,16 +78,24 @@ for name, builtin in builtins.iteritems():
             operators_by_prec[precedence] = [builtin]
         else:
             existing.append(builtin)
-        operators[operator] = builtin
+
+        if operators.get(operator) is not None:
+            operators[operator].append(builtin)
+        else:
+            operators[operator] = [builtin]
+            
+        if builtin.is_prefix():
+            prefix_lookup[operator] = name
+            
+        if builtin.is_postfix():
+            postfix_lookup[operator] = name
+            
         if builtin.is_binary():
             binary_operators.append(operator)
+            binary_lookup[operator] = name
+
 symbols = operators.keys()
 symbols.sort(key=lambda s: len(s), reverse=True)
-
-lookup = {}
-for symbol in symbols:
-    lookup[symbol] = operators[symbol].__class__.__name__ 
-
 
 #symbol_re = compile(r'[a-zA-Z$][a-zA-Z0-9$]*')
 #
@@ -299,12 +311,41 @@ class RestToken(AbstractToken):
 #    new_function.__doc__ = function.__doc__
 #    return new_function
 #
+
+def RULE(r):
+    def set_doc(f):
+        if hasattr(r,"__call__"):
+            f.__doc__ = r.__doc__
+        else:
+            f.__doc__ = r
+        return f
+    return set_doc
+
+binary_op_rules = []
+prefix_op_rules = []
+postfix_op_rules = []
+
+index = 0
+for symbol in symbols:
+    for op in operators[symbol]:
+        if op.is_prefix():
+            prefix_op_rules.append('prefix_op : operator_%.4d' % index)
+        if op.is_postfix():
+            postfix_op_rules.append('postfix_op : operator_%.4d' % index)
+        if op.is_binary():
+            binary_op_rules.append('binary_op : operator_%.4d' % index)
+    index += 1
+
+prefix_op_rules = "\n".join(prefix_op_rules)
+postfix_op_rules = "\n".join(postfix_op_rules)
+binary_op_rules = "\n".join(binary_op_rules)
+
 class MathicsParser:
     tokens = tokens
     literals = literals
 
     def build(self, **kwargs):
-        self.parser = yacc.yacc(debug=0, module=self, **kwargs)
+        self.parser = yacc.yacc(debug=1, module=self, **kwargs)
 
     def p_error(self, p):
         print p
@@ -494,23 +535,31 @@ class MathicsParser:
         'expr : string'
         args[0] = String(args[1])
     
-    def p_binary_op(self, args):
+    def p_prefix_expr(self, args):
+        'expr : prefix_op expr rest_right'
+        args[0] = Expression(args[1], args[2])
+
+    def p_postfix_expr(self, args):
+        'expr : rest_left expr postfix_op'
+        args[0] = Expression(args[3], args[2])
+
+    def p_binary_expr(self, args):
         'expr : expr binary_op expr'
         args[0] = Expression(args[2], args[1], args[3])
         
-    def __init__(self):
-        index = 0
-        for symbol in symbols:
-            tmp = lookup[symbol]
-            def p_op(args):
-                args[0] = tmp
-                
-            if symbol in binary_operators:
-                p_op.__doc__ = 'binary_op : operator_%.4d' % index
-                
-                setattr(self, 'p_operator_%.4d' % index, p_op)
-            index += 1
-            
+    @RULE(prefix_op_rules)
+    def p_prefix_op(self, args):
+        args[0] = prefix_lookup[args[1]]
+        
+    @RULE(postfix_op_rules)
+    def p_postfix_op(self, args):
+        args[0] = postfix_lookup[args[1]]
+        
+    @RULE(binary_op_rules)
+    def p_binary_op(self, args):
+        args[0] = binary_lookup[args[1]]
+        
+
 #    def ambiguity(self, rules):
 #        """
 #        Don't use length of right-hand side for ordering of rules!
@@ -585,8 +634,11 @@ parse('xX')
 parse('"abc 123"')
 parse('1 2 3')
 parse('145 (* abf *) 345')
-#parse('+')
+parse('+1')
+parse('a ++')
+parse('++ a')
 parse('1 + 2')
+parse('1 ^ 2')
 parse('Sin[x, y]')
 
 quit()
