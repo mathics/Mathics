@@ -133,11 +133,10 @@ class MathicsScanner:
     tokens = tokens
     literals = literals
 
-    t_ignore = ur' [\s\u2062]+ '
-    #t_ignore = ' \t '
+    #t_ignore = ur' [\s \u2062]+ '
+    t_ignore = r' \t '
 
     t_symbol = r' [a-zA-Z$][a-zA-Z0-9$]* '
-    #t_comma = r' , '
     t_int = r' \d+ '
     t_blanks = r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
     t_blankdefault = r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
@@ -353,7 +352,6 @@ class MathicsParser:
     
     def parse(self, string):
         result = self.parser.parse(string)
-        print "##", result
         #result = result.post_parse()
         return result
 
@@ -391,7 +389,7 @@ class MathicsParser:
     
     def p_op_670_call(self, args):
         'expr : expr args'
-        expr = Expression(args[1], *args[1].items)
+        expr = Expression(args[1], *args[2].items)
         expr.parenthesized = True # to handle e.g. Power[a,b]^c correctly
         args[0] = expr
     
@@ -435,7 +433,7 @@ class MathicsParser:
     
     def p_args(self, args):
         'args : parenthesis_1 sequence parenthesis_3'
-        args[0] = ArgsToken(args[1].items)
+        args[0] = ArgsToken(args[2].items)
     
     def p_list(self, args):
         '''
@@ -471,14 +469,14 @@ class MathicsParser:
         if len(args) == 1:
             args[0] = SequenceToken([])
         elif len(args) == 2:
-            if args[1] == ',':
-                args[0] = SequenceToken([Symbol('Null'), Symbol('Null')])
-            else:
+            if isinstance(args[1], BaseExpression):
                 args[0] = SequenceToken([args[1]])
-        elif len(args) == 3 and args[2] == ',':
+            else:
+                args[0] = SequenceToken([Symbol('Null'), Symbol('Null')])
+        elif len(args) == 3:
             args[0] = SequenceToken(args[1].items + [Symbol('Null')])
-        elif len(args) == 4 and args[2] == ',':
-            args[0] = SequenceToken(args[1].items + [args[2]])
+        elif len(args) == 4:
+            args[0] = SequenceToken(args[1].items + [args[3]])
         
     def p_symbol(self, args):
         'expr : symbol'
@@ -628,17 +626,25 @@ def parse(string):
     print "#>", string
     return parser.parse(string)
 
-parse('1')
-parse('1.4')
-parse('xX')
-parse('"abc 123"')
-parse('1 2 3')
-parse('145 (* abf *) 345')
-parse('+1')
-parse('a ++')
-parse('++ a')
-parse('1 + 2')
-parse('1 ^ 2')
-parse('Sin[x, y]')
+assert parse('1') == Integer(1)
+assert parse('1.4') == Real('1.4')
+assert parse('xX') == Symbol('xX')
+assert parse('"abc 123"') == String('abc 123')
+assert parse('1 2 3') == Expression('Times', Integer(1), Integer(2), Integer(3))
+assert parse('145 (* abf *) 345')==Expression('Times',Integer(145),Integer(345))
+
+#parse('+1')
+#parse('a ++')
+#parse('++ a')
+#assert parse('1 + 2') == Expression('Plus', Integer(1), Integer(2)) #TODO
+
+assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
+assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
+assert parse('{a,}') == Expression('List', Symbol('a'), Symbol('Null'))
+assert parse('{,}') == Expression('List', Symbol('Null'), Symbol('Null'))
+#assert parse('{,a}') == Expression('List', Symbol('Null'), Symbol('a')) #TODO
+
+assert parse('Sin[x, y]') == Expression('Sin', Symbol('x'), Symbol('y'))
+assert parse('a[[1]]') == Expression('Part', Symbol('a'), Integer(1))
 
 quit()
