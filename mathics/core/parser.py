@@ -228,7 +228,7 @@ class MathicsScanner:
 
     def t_slotseq_1(self, t):
         r' \#\#\d+ '
-        (t.type, t.value) = ('slotseq', int(t.values[2:]))
+        (t.type, t.value) = ('slotseq', int(t.value[2:]))
         return t
     
     def t_slotseq_2(self, t):
@@ -239,7 +239,7 @@ class MathicsScanner:
     
     def t_slotsingle_1(self, t):
         r' \#\d+ '
-        (t.type, t.value) = ('slot', int(t.values[2:]))
+        (t.type, t.value) = ('slot', int(t.value[1:]))
         return t
 
     def t_slotsingle_2(self, t):
@@ -254,7 +254,7 @@ class MathicsScanner:
 
     def t_out_2(self, t):
         r' \%+ '
-        (t.type, t.value) = ('out', 1)
+        (t.type, t.value) = ('out', -len(t.value))
         return t
 
     def t_comment(self, t):
@@ -527,7 +527,10 @@ class MathicsParser:
     
     def p_out(self, args):
         'expr : out'
-        args[0] = Expression('Out', Integer(args[1]))
+        if args[1] == -1:
+            args[0] = Expression('Out')
+        else:
+            args[0] = Expression('Out', Integer(args[1]))
         
     def p_string(self, args):
         'expr : string'
@@ -633,10 +636,12 @@ assert parse('"abc 123"') == String('abc 123')
 assert parse('1 2 3') == Expression('Times', Integer(1), Integer(2), Integer(3))
 assert parse('145 (* abf *) 345')==Expression('Times',Integer(145),Integer(345))
 
-#parse('+1')
-#parse('a ++')
-#parse('++ a')
-#assert parse('1 + 2') == Expression('Plus', Integer(1), Integer(2)) #TODO
+assert parse('+1') == Expression('PrePlus', Integer(1))
+
+#TODO
+#assert parse('a++') == Expression('Increment', Symbol('a'))
+#assert parse('++a') == Expression('PreIncrement', Symbol('a'))
+#assert parse('1 + 2') == Expression('Plus', Integer(1), Integer(2))
 
 assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
 assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
@@ -646,5 +651,20 @@ assert parse('{,}') == Expression('List', Symbol('Null'), Symbol('Null'))
 
 assert parse('Sin[x, y]') == Expression('Sin', Symbol('x'), Symbol('y'))
 assert parse('a[[1]]') == Expression('Part', Symbol('a'), Integer(1))
+
+assert parse('f_') == Expression('Pattern', Symbol('f'), Expression('Blank'))
+assert parse('f__') == Expression('Pattern', Symbol('f'), Expression('BlankSequence'))
+assert parse('f___') == Expression('Pattern', Symbol('f'), Expression('BlankNullSequence'))
+
+assert parse('#2') == Expression('Slot', Integer(2))
+assert parse('#') == Expression('Slot', Integer(1))
+
+assert parse('##2') == Expression('SlotSequence', Integer(2))
+assert parse('##') == Expression('SlotSequence', Integer(1))
+
+assert parse('%2') == Expression('Out', Integer(2))
+assert parse('%') == Expression('Out')
+assert parse('%%') == Expression('Out', Integer(-2))
+assert parse('%%%%') == Expression('Out', Integer(-4))
 
 quit()
