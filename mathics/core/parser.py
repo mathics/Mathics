@@ -73,9 +73,9 @@ precedence = (
     #('right', 'RULE'),
     #('left', 'CONDITION'),
     #('left', 'STRINGEXPRESSION'),
-    #('nonassoc', 'PATTERN', 'OPTIONAL'),
-    #('left', 'ALTERNATIVES'),
-    #('nonassoc', 'REPEATED'),
+    ('nonassoc', 'PATTERN'),
+    ('left', 'ALTERNATIVES'),
+    ('nonassoc', 'REPEATED'),
     #('right', 'IMPLIES'),
     #('left', 'EQUIVALENT'),
     ('left', 'OR'),
@@ -133,15 +133,14 @@ tokens = (
     'symbol',
     'float',
     'int', 
+    'string',
     'blanks', 
     'blankdefault',
-    'string',
     'out',
     'slot',
     'slotseq',
     'span',
-    'other',
-    'parsedexpr',
+    #'parsedexpr',
     'op_Get',
     'op_Put',
     'op_PutAppend',
@@ -159,8 +158,8 @@ tokens = (
     'op_Apply2',
     'op_Map',
     'op_MapAll',
-    'op_Factorial',
-    'op_Factorial2',
+    'op_Bang',
+    'op_DoubleBang',
     'op_Conjugate',
     'op_Transpose',
     'op_ConjugateTranspose',
@@ -185,10 +184,13 @@ tokens = (
     'op_LessEqual',
     'op_SameQ',
     'op_UnsameQ',
-    'op_Not',
     'op_And',
     'op_Xor',
     'op_Or',
+    'op_Repeated',
+    'op_RepeatedNull',
+    'op_Alternatives',
+    'op_Colon',
 )
 
 literals = ['(', ')', '{', '}', ',']
@@ -212,7 +214,6 @@ class MathicsScanner:
     t_parenthesis_3 = r' \] '
 
     t_span = r' \;\; '
-    t_other = r' \/\: '
 
     t_op_MessageName = r' \:\: '
     t_op_Get = r' \<\< '
@@ -235,8 +236,8 @@ class MathicsScanner:
     t_op_Map = r' \/\@ '
     t_op_MapAll = r' \/\/\@ '
 
-    t_op_Factorial = r' \! '
-    t_op_Factorial2 = r' \!\! '
+    t_op_Bang = r' \! '
+    t_op_DoubleBang = r' \!\! '
 
     #TODO
     #t_op_Conjugate = r''
@@ -272,10 +273,15 @@ class MathicsScanner:
     t_op_SameQ = r' \=\=\= '
     t_op_UnsameQ = r' \=\!\= '
 
-    t_op_Not = r' \! '
     t_op_And = r' \&\& '
     #t_op_Xor = r''     #TODO
     t_op_Or = r' \|\|  '
+
+    t_op_Repeated = r' \.\. '
+    t_op_RepeatedNull = r' \.\.\. '
+    t_op_Alternatives = r' \| '
+
+    t_op_Colon = r' \: '
 
     def build(self, **kwargs):
         self.lexer = lex.lex(debug=0, module=self, **kwargs)
@@ -399,31 +405,7 @@ class RestToken(AbstractToken):
     pass
 
     # Actual expressions in there don't matter - we just use its parse_tokens property!
-#        
-#def join_parse_tokens(tokens):
-#    result = []
-#    for token in tokens:
-#        result.extend(token.parse_tokens)
-#    return result
-#
-#def parsing(function):
-#    def new_function(self, args):
-#        result = function(self, args)
-#        result.parse_tokens = join_parse_tokens(args)
-#        return result
-#    new_function.__name__ = function.__name__
-#    new_function.__doc__ = function.__doc__
-#    return new_function
-#
-#def parsing_static(function):
-#    def new_function(args):
-#        result = function(args)
-#        result.parse_tokens = join_parse_tokens(args)
-#        return result
-#    new_function.__name__ = function.__name__
-#    new_function.__doc__ = function.__doc__
-#    return new_function
-#
+
 
 class MathicsParser:
     tokens = tokens
@@ -465,9 +447,9 @@ class MathicsParser:
     #    'expr : expr operator_0043 %prec COMPOUNDEXPRESSION'
     #    args[0] = Expression('CompoundExpression', args[1], Symbol('Null'))
     
-    def p_parsed_expr(self, args):
-        'expr : parsedexpr'
-        args[0] = args[1]
+    #def p_parsed_expr(self, args):
+    #    'expr : parsedexpr'
+    #    args[0] = args[1]
     
     def p_op_670_call(self, args):
         'expr : expr args %prec PART'
@@ -539,7 +521,7 @@ class MathicsParser:
         args[0] = Real(args[1])
         
     def p_blanks(self, args):
-        'expr : blanks %prec BLANK'
+        'pattern : blanks %prec BLANK'
         pieces = args[1].split('_')
         count = len(pieces) - 1
         if count == 1:
@@ -558,7 +540,7 @@ class MathicsParser:
             args[0] = blank
         
     def p_blankdefault(self, args):
-        'expr : blankdefault %prec BLANK'
+        'pattern : blankdefault %prec BLANK'
         name = args[1][:-2]
         if name:
             args[0] = Expression('Optional', Expression('Pattern', Symbol(name), Expression('Blank')))
@@ -671,10 +653,9 @@ class MathicsParser:
         elif args[2] == '@@@':
             args[0] = Expression('Apply', args[1], args[3], Expression('List', Integer(1)))
 
-
     def p_Factorial(self, args):
-        '''expr : expr op_Factorial %prec FACTORIAL
-                | expr op_Factorial2 %prec FACTORIAL'''
+        '''expr : expr op_Bang %prec FACTORIAL
+                | expr op_DoubleBang %prec FACTORIAL'''
         if args[2] == '!':
             args[0] = Expression('Factorial', args[1])
         elif args[2] == '!!':
@@ -829,7 +810,7 @@ class MathicsParser:
             args[0] = Expression('UnsameQ', args[1], args[3])
 
     def p_Not(self, args):
-        'expr : op_Not expr %prec NOT'
+        'expr : op_Bang expr %prec NOT'
         args[0] = Expression('Not', args[2])
 
     def p_And(self, args):
@@ -843,6 +824,27 @@ class MathicsParser:
     def p_Or(self, args):
         'expr : expr op_Or expr %prec OR'
         args[0] = Expression('Or', args[1], args[3])
+
+    def p_Repeated(self, args):
+        '''expr : expr op_Repeated %prec REPEATED
+                | expr op_RepeatedNull %prec REPEATED'''
+        if args[2] == '..':
+            args[0] = Expression('Repeated', args[1])
+        elif args[2] == '...':
+            args[0] = Expression('RepeatedNull', args[1])
+
+    def p_Alternatives(self, args):
+        'expr : expr op_Alternatives expr %prec ALTERNATIVES'
+        args[0] = Expression('Alternatives', args[1], args[3])
+
+    def p_Pattern(self, args):
+        'expr : symbol op_Colon expr %prec PATTERN'
+        args[0] = Expression('Pattern', Symbol(args[1]), args[3])
+
+    def p_Optional(self, args):
+        'expr : pattern op_Colon expr %prec PATTERN'
+        args[0] = Expression('Optional', args[1], args[3])
+        
 
 scanner = MathicsScanner()
 scanner.build()
@@ -955,6 +957,17 @@ assert parse('1 =!= 2') == Expression('UnsameQ', Integer(1), Integer(2))
 #assert parse('1 =!= 2 =!= 3') == Expression('UnsameQ', Integer(1), Integer(2), Integer(3))
 
 assert parse('!1') == Expression('Not', Integer(1))
+assert parse('1 && 2') == Expression('And', Integer(1), Integer(2))
+assert parse('1 || 2') == Expression('Or', Integer(1), Integer(2))
+
+assert parse('1..') == Expression('Repeated', Integer(1))
+assert parse('1...') == Expression('RepeatedNull', Integer(1))
+
+assert parse('1 | 2') == Expression('Alternatives', Integer(1), Integer(2))
+#assert parse('1 | 2 | 3') == Expression('Alternatives', Integer(1), Integer(2), Integer(3))
+
+assert parse('x:expr') == Expression('Pattern', Symbol('x'), Symbol('expr'))
+assert parse('x_:expr') == Expression('Optional', Expression('Pattern', Symbol('x'), Expression('Blank')), Symbol('expr'))
 
 # assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
 # assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
@@ -975,9 +988,11 @@ assert parse('!1') == Expression('Not', Integer(1))
 # assert parse('##2') == Expression('SlotSequence', Integer(2))
 # assert parse('##') == Expression('SlotSequence', Integer(1))
 # 
-# assert parse('%2') == Expression('Out', Integer(2))
-# assert parse('%') == Expression('Out')
-# assert parse('%%') == Expression('Out', Integer(-2))
-# assert parse('%%%%') == Expression('Out', Integer(-4))
+assert parse('%2') == Expression('Out', Integer(2))
+assert parse('%') == Expression('Out')
+assert parse('%%') == Expression('Out', Integer(-2))
+assert parse('%%%%') == Expression('Out', Integer(-4))
 
+assert parse('x ! y') == Expression('Times', Expression('Factorial', Symbol('x')), Symbol('y'))
+assert parse('x ^ 2 y') == Expression('Times', Expression('Power', Symbol('x'), Integer(2)), Symbol('y'))
 quit()
