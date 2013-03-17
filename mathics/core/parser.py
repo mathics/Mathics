@@ -23,6 +23,7 @@ u"""
 
 import ply.lex as lex
 import ply.yacc as yacc
+from ply.lex import TOKEN
 
 import re
 #from re import compile, escape
@@ -63,6 +64,8 @@ prefix_lookup = {}  # operator (e.g. "-") -> name (e.g. "Minus")
 postfix_lookup = {}  # operator (e.g. "-") -> name (e.g. "Minus")
 binary_lookup = {}  # operator (e.g. "+") -> name (e.g. "Plus")
 
+operator_lookup = {} # operator (e.g. "+") -> operator ID (.e.g "operator_0045")
+
 operators = {} # operator (e.g. "+") -> list of classes ([Minus, Subtract])
 operators_by_prec = {} # precedence (310) -> list of classes ([Plus, Minus])
 binary_operators = [] # list of binary operators (['+', '-', ...])
@@ -97,6 +100,30 @@ for name, builtin in builtins.iteritems():
 symbols = operators.keys()
 symbols.sort(key=lambda s: len(s), reverse=True)
 
+op_identifier = []      # regex to find all operators
+binary_op_rules = []
+prefix_op_rules = []
+postfix_op_rules = []
+
+for index, symbol in enumerate(symbols):
+    operator_lookup[symbol] = "operator_%.4d" % index
+
+    op_identifier.append(re.escape(symbol))
+
+    for op in operators[symbol]:
+        if op.is_prefix():
+            prefix_op_rules.append('prefix_op : operator_%.4d' % index)
+        if op.is_postfix():
+            postfix_op_rules.append('postfix_op : operator_%.4d' % index)
+        if op.is_binary():
+            binary_op_rules.append('binary_op : operator_%.4d' % index)
+
+op_identifier = '(' + ')|('.join(op_identifier) + ')'
+
+prefix_op_rules = "\n".join(prefix_op_rules)
+postfix_op_rules = "\n".join(postfix_op_rules)
+binary_op_rules = "\n".join(binary_op_rules)
+
 #symbol_re = compile(r'[a-zA-Z$][a-zA-Z0-9$]*')
 #
 #def is_symbol_name(text):
@@ -125,7 +152,7 @@ tokens = [
     'span',
     'other',
     'parsedexpr',
-] + ['operator_%.4d' % i for i in range(len(operators.keys()))]
+] + ['operator_%.4d' % i for i, symbol in enumerate(symbols)]
 
 literals = ['(', ')', '{', '}', ',']
 
@@ -145,25 +172,8 @@ class MathicsScanner:
     t_parenthesis_1 = r' \[ '
     t_parenthesis_2 = r' \]\] '
     t_parenthesis_3 = r' \] '
-    #t_parenthesis_4 = r' \( '
-    #t_parenthesis_5 = r' \) '
-    #t_parenthesis_6 = r' \{ '
-    #t_parenthesis_7 = r' \} '
-
-    t_span = r' \;\; '
-    t_other = r' \/\: '
 
     def build(self, **kwargs):
-        # add operators
-        index = 0
-        for symbol in symbols:
-            def t_op(t):
-                return t
-
-            t_op.__doc__ = re.escape(symbol)
-            setattr(self, 't_operator_%.4d' % index, t_op)
-            index += 1
-            
         self.lexer = lex.lex(debug=0, module=self, **kwargs)
 
     def tokenize(self, input_string):
@@ -257,10 +267,23 @@ class MathicsScanner:
         (t.type, t.value) = ('out', -len(t.value))
         return t
 
+    def t_span(self, t):  # added as function to take precedence over operators
+        r' \;\; '
+        return t
+
+    def t_other(self, t): # added as function to take precedence over operators
+        r' \/\: '
+        return t
+
     def t_comment(self, t):
         r' (?s) \(\* .*? \*\) '
         return None
     
+    @TOKEN(op_identifier)
+    def t_operator(self, t):
+        t.type = operator_lookup[t.value]
+        return t
+
     def t_error(self, t):
         print t
         raise ScanError(self.lexer.lexpos)
@@ -320,25 +343,6 @@ def RULE(r):
         return f
     return set_doc
 
-binary_op_rules = []
-prefix_op_rules = []
-postfix_op_rules = []
-
-index = 0
-for symbol in symbols:
-    for op in operators[symbol]:
-        if op.is_prefix():
-            prefix_op_rules.append('prefix_op : operator_%.4d' % index)
-        if op.is_postfix():
-            postfix_op_rules.append('postfix_op : operator_%.4d' % index)
-        if op.is_binary():
-            binary_op_rules.append('binary_op : operator_%.4d' % index)
-    index += 1
-
-prefix_op_rules = "\n".join(prefix_op_rules)
-postfix_op_rules = "\n".join(postfix_op_rules)
-binary_op_rules = "\n".join(binary_op_rules)
-
 class MathicsParser:
     tokens = tokens
     literals = literals
@@ -354,7 +358,7 @@ class MathicsParser:
         result = self.parser.parse(string)
         #result = result.post_parse()
         return result
-
+        
     def p_op_400(self, args):
         'expr : expr expr'
         args[0] = builtins['Times'].parse([args[1], None, args[2]])
