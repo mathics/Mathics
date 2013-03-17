@@ -78,10 +78,10 @@ precedence = (
     #('nonassoc', 'REPEATED'),
     #('right', 'IMPLIES'),
     #('left', 'EQUIVALENT'),
-    #('left', 'OR'),
-    #('left', 'XOR'),
-    #('left', 'AND'),
-    #('right', 'NOT'),
+    ('left', 'OR'),
+    ('left', 'XOR'),
+    ('left', 'AND'),
+    ('right', 'NOT'),
     #('right', 'FORALL', 'EXISTS'),
     #('left', 'ELEMENT')
     ('left', 'SAMEQ'),
@@ -185,6 +185,10 @@ tokens = (
     'op_LessEqual',
     'op_SameQ',
     'op_UnsameQ',
+    'op_Not',
+    'op_And',
+    'op_Xor',
+    'op_Or',
 )
 
 literals = ['(', ')', '{', '}', ',']
@@ -267,6 +271,11 @@ class MathicsScanner:
 
     t_op_SameQ = r' \=\=\= '
     t_op_UnsameQ = r' \=\!\= '
+
+    t_op_Not = r' \! '
+    t_op_And = r' \&\& '
+    #t_op_Xor = r''     #TODO
+    t_op_Or = r' \|\|  '
 
     def build(self, **kwargs):
         self.lexer = lex.lex(debug=0, module=self, **kwargs)
@@ -819,6 +828,22 @@ class MathicsParser:
         elif args[2] == '=!=':
             args[0] = Expression('UnsameQ', args[1], args[3])
 
+    def p_Not(self, args):
+        'expr : op_Not expr %prec NOT'
+        args[0] = Expression('Not', args[2])
+
+    def p_And(self, args):
+        'expr : expr op_And expr %prec AND'
+        args[0] = Expression('And', args[1], args[3])
+
+    def p_Xor(self, args)
+        'expr : expr op_Xor expr %prec XOR'
+        args[0] = Expression('Xor', args[1], args[3])
+
+    def p_Or(self, args)
+        'expr : expr op_Or expr %prec OR'
+        args[0] = Expression('Or', args[1], args[3])
+
 scanner = MathicsScanner()
 scanner.build()
 parser = MathicsParser()
@@ -928,6 +953,8 @@ assert parse('1 === 2') == Expression('SameQ', Integer(1), Integer(2))
 assert parse('1 =!= 2') == Expression('UnsameQ', Integer(1), Integer(2))
 #assert parse('1 === 2 === 3') == Expression('SameQ', Integer(1), Integer(2), Integer(3))
 #assert parse('1 =!= 2 =!= 3') == Expression('UnsameQ', Integer(1), Integer(2), Integer(3))
+
+assert parse('!1') == Expression('Not', Integer(1))
 
 # assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
 # assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
