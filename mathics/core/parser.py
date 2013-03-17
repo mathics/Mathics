@@ -836,11 +836,11 @@ class MathicsParser:
         'expr : expr op_And expr %prec AND'
         args[0] = Expression('And', args[1], args[3])
 
-    def p_Xor(self, args)
+    def p_Xor(self, args):
         'expr : expr op_Xor expr %prec XOR'
         args[0] = Expression('Xor', args[1], args[3])
 
-    def p_Or(self, args)
+    def p_Or(self, args):
         'expr : expr op_Or expr %prec OR'
         args[0] = Expression('Or', args[1], args[3])
 
