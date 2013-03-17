@@ -84,26 +84,27 @@ precedence = (
     #('right', 'NOT'),
     #('right', 'FORALL', 'EXISTS'),
     #('left', 'ELEMENT')
-    #('left', 'SAME'),
-    #('left', 'EQUAL'),
+    ('left', 'SAMEQ'),
+    ('left', 'EQUAL'),
     ('left', 'SPAN'),
-    #('left', 'PLUS')
-    ('right', 'TIMES'),     # both left and right assoc
-    #('right', 'BACKSLASH'),
-    #('left', 'DIVIDE'),
-    #('nonassoc', 'PREPLUS', 'MINUS', 'PLUSMINUS', 'MINUSPLUS'),
+    ('left', 'PLUS'),
+    ('right', 'TIMES'),                     # flat
+    ('right', 'BACKSLASH'),
+    ('left', 'DIVIDE'),
+    ('nonassoc', 'MINUS'),
+    ('right', 'NONCOMMUTATIVEMULTIPLY'),    # flat
     #('right', 'INTEGRATION'),
-    #('right', 'SQRT'),
-    #('right', 'POWER'),
-    #('left', 'STRINGJOIN'),  # both left and right assoc
-    #('nonassoc', 'DERIVATIVE'),
-    #('nonassoc', 'CONJUGATE'),
-    #('nonassoc', 'FACTORIAL'),
-    #('right', 'MAP', 'MAPALL', 'APPLY'),
-    #('left', 'INFIX'),
-    #('right', 'PREFIX'),
-    #('nonassoc', 'PREINCREMENT', 'PREDECREMENT'),
-    #('nonassoc', 'INCREMENT', 'DECREMENT'),
+    ('right', 'SQRT'),
+    ('right', 'POWER'),
+    ('left', 'STRINGJOIN'),                 # flat
+    ('nonassoc', 'DERIVATIVE'),
+    ('nonassoc', 'CONJUGATE'),
+    ('nonassoc', 'FACTORIAL'),
+    ('right', 'APPLY'),
+    ('left', 'INFIX'),
+    ('right', 'PREFIX'),
+    ('nonassoc', 'PREINCREMENT'),
+    ('nonassoc', 'INCREMENT'),
     ('left', 'PART'),
     ('nonassoc', 'PATTERNTEST'),
     ('right', 'SUBSCRIPT'),
@@ -150,6 +151,40 @@ tokens = (
     'op_Subscript',
     'op_Otherscript',
     'op_PatternTest',
+    'op_Increment',
+    'op_Decrement',
+    'op_Prefix',
+    'op_Infix',
+    'op_Apply1',
+    'op_Apply2',
+    'op_Map',
+    'op_MapAll',
+    'op_Factorial',
+    'op_Factorial2',
+    'op_Conjugate',
+    'op_Transpose',
+    'op_ConjugateTranspose',
+    'op_Derivative',
+    'op_StringJoin',
+    'op_Power',
+    'op_Power2',
+    'op_Sqrt',
+    'op_NonCommutativeMultiply',
+    'op_Plus',
+    'op_Minus',
+    'op_PlusMinus',
+    'op_MinusPlus',
+    'op_Slash',
+    'op_Backslash',
+    'op_Times',
+    'op_Equal',
+    'op_Unequal',
+    'op_Greater',
+    'op_Less',
+    'op_GreaterEqual',
+    'op_LessEqual',
+    'op_SameQ',
+    'op_UnsameQ',
 )
 
 literals = ['(', ')', '{', '}', ',']
@@ -186,6 +221,52 @@ class MathicsScanner:
     t_op_Otherscript = r' \\\% '
 
     t_op_PatternTest = r' \? '
+    t_op_Increment = r' \+\+ '
+    t_op_Decrement = r' \-\- '
+
+    t_op_Prefix = r' \@ '
+    t_op_Infix = r' \~ '
+    t_op_Apply1 = r' \@\@ '
+    t_op_Apply2 = r' \@\@\@ '
+    t_op_Map = r' \/\@ '
+    t_op_MapAll = r' \/\/\@ '
+
+    t_op_Factorial = r' \! '
+    t_op_Factorial2 = r' \!\! '
+
+    #TODO
+    #t_op_Conjugate = r''
+    #t_op_Transpose = r''
+    #t_op_ConjugateTranspose = r''
+
+    t_op_Derivative = r' \'+ '
+    t_op_StringJoin = r' \<\> '
+
+    t_op_Power = r' \^ '
+    t_op_Power2 = r' \\\^ '
+    t_op_Sqrt = r' \\\@ '
+    t_op_NonCommutativeMultiply = r' \*\* '
+
+    t_op_Plus = r' \+ '
+    t_op_Minus = r' \- '
+    t_op_Slash = r' \/ '
+    t_op_Backslash = r' \\ '
+
+    t_op_Times = r' \* '
+
+    #TODO
+    #t_op_PlusMinus = r''
+    #t_op_MinusPlus = r''
+
+    t_op_Equal = r' \=\= '
+    t_op_Unequal = r' \!\= '
+    t_op_Greater = r' \> '
+    t_op_Less = r' \< '
+    t_op_GreaterEqual = r' \>\= '
+    t_op_LessEqual = r' \<\= '
+
+    t_op_SameQ = r' \=\=\= '
+    t_op_UnsameQ = r' \=\!\= '
 
     def build(self, **kwargs):
         self.lexer = lex.lex(debug=0, module=self, **kwargs)
@@ -284,7 +365,7 @@ class MathicsScanner:
     def t_comment(self, t):
         r' (?s) \(\* .*? \*\) '
         return None
-
+    
     def t_error(self, t):
         print t
         raise ScanError(self.lexer.lexpos)
@@ -352,10 +433,6 @@ class MathicsParser:
         #result = result.post_parse()
         return result
         
-    def p_op_400(self, args):
-        'expr : expr expr %prec TIMES'
-        args[0] = builtins['Times'].parse([args[1], None, args[2]])
-    
     def p_parenthesis(self, args):
         '''
         expr : '(' expr ')'
@@ -392,40 +469,6 @@ class MathicsParser:
     def p_op_670_part(self, args):
         'expr : expr position %prec PART'
         args[0] = Expression('Part', args[1], *args[2].items)
-    
-    def p_span_start(self, args):
-        '''span_start :
-                      | expr'''
-        if len(args) == 1:
-            args[0] = Integer(1)
-        elif len(args) == 2:
-            args[0] = args[1]
-    
-    def p_span_stop(self, args):
-        '''span_stop :
-                     | expr'''
-        if len(args) == 1:
-            args[0] = Symbol('All')
-        elif len(args) == 2:
-            args[0] = args[1]
-
-    def p_span_step(self, args):
-        '''span_step :
-                     | expr'''
-        if len(args) == 1:
-            args[0] = Integer(1)
-        elif len(args) == 2:
-            args[0] = args[1]
-
-    def p_op_305_1(self, args):
-        'expr : span_start span span_stop span span_step %prec SPAN'
-        #'expr : span_start ;; span_stop ;; span_step'
-        args[0] = Expression('Span', args[1], args[3], args[5])
-    
-    def p_op_305_2(self, args):
-        'expr : span_start span span_stop %prec SPAN'
-        #'expr : span_start ;; span_stop'
-        args[0] = Expression('Span', args[1], args[3], Integer(1))
     
     def p_args(self, args):
         'args : parenthesis_1 sequence parenthesis_3'
@@ -585,17 +628,196 @@ class MathicsParser:
         'expr : expr op_PatternTest expr %prec PATTERNTEST'
         args[0] = Expression('PatternTest', args[1], args[3])
 
-    #def p_prefix_expr(self, args):
-    #    'expr : prefix_op expr rest_right'
-    #    args[0] = Expression(args[1], args[2])
+    def p_Increment(self, args):
+        '''expr : expr op_Increment %prec INCREMENT
+                | expr op_Decrement %prec INCREMENT'''
+        if args[2] == '++':
+            args[0] = Expression('Increment', args[1])
+        elif args[2] == '--':
+            args[0] = Expression('Decrement', args[1])
 
-    #def p_postfix_expr(self, args):
-    #    'expr : rest_left expr postfix_op'
-    #    args[0] = Expression(args[3], args[2])
+    def p_PreIncrement(self, args):
+        '''expr : op_Increment expr %prec PREINCREMENT
+                | op_Decrement expr %prec PREINCREMENT'''
+        if args[1] == '++':
+            args[0] = Expression('PreIncrement', args[2])
+        elif args[1] == '--':
+            args[0] = Expression('PreDecrement', args[2])
 
-    #def p_binary_expr(self, args):
-    #    'expr : expr binary_op expr'
-    #    args[0] = Expression(args[2], args[1], args[3])
+    def p_Prefix(self, args):
+        'expr : expr op_Prefix expr %prec PREFIX'
+        args[0] = Expression(args[1], args[3])
+
+    def p_Infix(self, args):
+        'expr : expr op_Infix expr op_Infix expr %prec INFIX'
+        args[0] = Expression(args[3], args[1], args[5])
+
+    def p_Apply(self, args):
+        '''expr : expr op_Apply1 expr %prec APPLY
+                | expr op_Apply2 expr %prec APPLY
+                | expr op_Map expr %prec APPLY
+                | expr op_MapAll expr %prec APPLY'''
+        if args[2] == '@@':
+            args[0] = Expression('Apply', args[1], args[3])
+        elif args[2] == '@@@':
+            args[0] = Expression('Apply', args[1], args[3], Expression('List', Integer(1)))
+
+
+    def p_Factorial(self, args):
+        '''expr : expr op_Factorial %prec FACTORIAL
+                | expr op_Factorial2 %prec FACTORIAL'''
+        if args[2] == '!':
+            args[0] = Expression('Factorial', args[1])
+        elif args[2] == '!!':
+            args[0] = Expression('Factorial2', args[1])
+
+    def p_Conjugate(self, args):
+        '''expr : expr op_Conjugate %prec CONJUGATE'''
+        args[0] = Expression('Conjugate', args[1])
+
+    def p_Transpose(self, args):
+        '''expr : expr op_Transpose %prec CONJUGATE'''
+        args[0] = Expression('Transpose', args[1])
+
+    def p_ConjugateTranspose(self, args):
+        '''expr : expr op_ConjugateTranspose %prec CONJUGATE'''
+        args[0] = Expression('ConjugateTranspose', args[1])
+
+    def p_Derivative(self, args):
+        'expr : expr op_Derivative %prec DERIVATIVE'
+        args[0] = Expression(Expression('Derivative', Integer(len(args[2]))), args[1])
+
+    def p_StringJoin(self, args):
+        'expr : expr op_StringJoin expr %prec STRINGJOIN'
+        args[0] = Expression('StringJoin', args[1], args[3])
+
+    def p_Power(self, args):
+        '''expr : expr op_Power2 expr op_Otherscript expr %prec POWER
+                | expr op_Power expr %prec POWER'''
+        if args[2] == '^':
+            args[0] = Expression('Power', args[1], args[3])
+        elif args[2] == '\\^':
+            args[0] = Expression('Power', Expression('Subscript', args[1], args[5]), args[3])
+
+    def p_Sqrt(self, args):
+        '''expr : op_Sqrt expr op_Otherscript expr %prec SQRT
+                | op_Sqrt expr %prec SQRT'''
+        if len(args) == 3:
+            args[0] = Expression('Sqrt', args[2])
+        elif len(args) == 5:
+            args[0] = Expression('Power', args[2], Expression('Times', Integer(1), Expression('Power', args[4], Integer(-1))))
+
+    def p_NonCommutativeMultiply(self, args):
+        'expr : expr op_NonCommutativeMultiply expr %prec NONCOMMUTATIVEMULTIPLY'
+        args[0] = Expression('NonCommutativeMultiply', args[1], args[3])
+
+    def p_Plus(self, args):
+        '''expr : expr op_Plus expr %prec PLUS
+                | op_Plus expr %prec MINUS'''
+        if len(args) == 3:
+            args[0] = args[2]
+        elif len(args) == 4:
+            args[0] = Expression('Plus', args[1], args[3])
+
+    def p_Minus(self, args):
+        '''expr : expr op_Minus expr %prec PLUS
+                | op_Minus expr %prec MINUS'''
+        if len(args) == 3:
+            args[0] = Expression('Times', Integer(-1), args[2])
+        elif len(args) == 4:
+            args[0] = Expression('Plus', args[1], Expression('Times', Integer(-1), args[3]))
+
+    def p_PlusMinus(self, args):
+        '''expr : expr op_PlusMinus expr %prec PLUS
+                | op_PlusMinus expr %prec MINUS'''
+        if len(args) == 3:
+            args[0] = Expression('PlusMinus', args[2])
+        elif len(args) == 4:
+            args[0] = Expression('PlusMinus', args[1], args[3])
+
+    def p_MinusPlus(self, args):
+        '''expr : expr op_MinusPlus expr %prec PLUS
+                | op_MinusPlus expr %prec MINUS'''
+        if len(args) == 3:
+            args[0] = Expression('MinusPlus', args[2])
+        elif len(args) == 4:
+            args[0] = Expression('MinusPlus', args[1], args[3])
+
+    def p_Slash(self, args):
+        'expr : expr op_Slash expr %prec DIVIDE'
+        args[0] = Expression('Times', args[1], Expression('Power', args[3], Integer(-1)))
+
+    def p_Backslash(self, args):
+        'expr : expr op_Backslash expr %prec BACKSLASH'
+        args[0] = Expression('Backslash', args[1], args[3])
+
+    def p_Times(self, args):
+        '''expr : expr expr %prec TIMES
+                | expr op_Times expr %prec TIMES'''
+        if len(args) == 3:
+            args[0] = builtins['Times'].parse([args[1], None, args[2]])
+        elif len(args) == 4:
+            args[0] = builtins['Times'].parse([args[1], None, args[3]])
+    
+    def p_span_start(self, args):
+        '''span_start :
+                      | expr'''
+        if len(args) == 1:
+            args[0] = Integer(1)
+        elif len(args) == 2:
+            args[0] = args[1]
+    
+    def p_span_stop(self, args):
+        '''span_stop :
+                     | expr'''
+        if len(args) == 1:
+            args[0] = Symbol('All')
+        elif len(args) == 2:
+            args[0] = args[1]
+
+    def p_span_step(self, args):
+        '''span_step :
+                     | expr'''
+        if len(args) == 1:
+            args[0] = Integer(1)
+        elif len(args) == 2:
+            args[0] = args[1]
+
+    def p_Span(self, args):
+        '''expr : span_start span span_stop span span_step %prec SPAN
+                | span_start span span_stop %prec SPAN'''
+        if len(args) == 4:
+            args[0] = Expression('Span', args[1], args[3], Integer(1))
+        elif len(args) == 5:
+            args[0] = Expression('Span', args[1], args[3], args[5])
+
+    def p_Equal(self, args):
+        '''expr : expr op_Equal expr %prec EQUAL
+                | expr op_Unequal expr %prec EQUAL
+                | expr op_Greater expr %prec EQUAL
+                | expr op_Less expr %prec EQUAL
+                | expr op_GreaterEqual expr %prec EQUAL
+                | expr op_LessEqual expr %prec EQUAL'''
+        if args[2] == '==':
+            args[0] = Expression('Equal', args[1], args[3])
+        elif args[2] == '!=':
+            args[0] = Expression('Unequal', args[1], args[3])
+        elif args[2] == '>':
+            args[0] = Expression('Greater', args[1], args[3])
+        elif args[2] == '<':
+            args[0] = Expression('Less', args[1], args[3])
+        elif args[2] == '>=':
+            args[0] = Expression('GreaterEqual', args[1], args[3])
+        elif args[2] == '<=':
+            args[0] = Expression('LessEqual', args[1], args[3])
+
+    def p_SameQ(self, args):
+        '''expr : expr op_SameQ expr %prec SAMEQ
+                | expr op_UnsameQ expr %prec SAMEQ'''
+        if args[2] == '===':
+            args[0] = Expression('SameQ', args[1], args[3])
+        elif args[2] == '=!=':
+            args[0] = Expression('UnsameQ', args[1], args[3])
 
 scanner = MathicsScanner()
 scanner.build()
@@ -610,8 +832,7 @@ assert parse('1') == Integer(1)
 assert parse('1.4') == Real('1.4')
 assert parse('xX') == Symbol('xX')
 assert parse('"abc 123"') == String('abc 123')
-assert parse('1 2 3') == Expression('Times', Integer(1), Integer(2), Integer(3))
-assert parse('145 (* abf *) 345')==Expression('Times',Integer(145),Integer(345))
+#assert parse('145 (* abf *) 345')==Expression('Times',Integer(145),Integer(345))
 
 assert parse('1 :: "abc"') == Expression('MessageName', Integer(1), String("abc"))
 assert parse('1 :: "abc" :: "123"') == Expression('MessageName', Integer(1), String("abc"), String("123"))
@@ -631,14 +852,83 @@ assert parse('1 \\_ 2 \\% 3') == Expression('Power', Expression('Subscript', Int
 
 assert parse('1?2') == Expression('PatternTest', Integer(1), Integer(2))
 
-# assert parse('+1') == Expression('PrePlus', Integer(1))
-# 
-# #TODO
-# #assert parse('a++') == Expression('Increment', Symbol('a'))
-# assert parse('++a') == Expression('PreIncrement', Symbol('a'))
-# #print parse('1 + 2')
-# #assert parse('1 + 2') == Expression('Plus', Integer(1), Integer(2))
-# 
+assert parse('expr1[expr2]') == Expression('expr1', Symbol('expr2'))
+assert parse('expr1[expr2][expr3]') == Expression(Expression('expr1', Symbol('expr2')), Symbol('expr3'))
+assert parse('expr1[[expr2]]') == Expression('Part', Symbol('expr1'), Symbol('expr2'))
+assert parse('expr1[[expr2, expr3]]') == Expression('Part', Symbol('expr1'), Symbol('expr2'), Symbol('expr3'))
+assert parse('expr1[[expr2]][[expr3]]') == Expression('Part', Expression('Part', Symbol('expr1'), Symbol('expr2')), Symbol('expr3'))
+
+assert parse('a++') == Expression('Increment', Symbol('a'))
+assert parse('a--') == Expression('Decrement', Symbol('a'))
+assert parse('++a') == Expression('PreIncrement', Symbol('a'))
+assert parse('--a') == Expression('PreDecrement', Symbol('a'))
+
+assert parse('expr1 @ expr2') == Expression('expr1', Symbol('expr2'))
+assert parse('expr1 ~ expr2 ~ expr3') == Expression('expr2', Symbol('expr1'), Symbol('expr3'))
+
+assert parse('f @@ expr') == Expression('Apply', Symbol('f'), Symbol('expr'))
+assert parse('f @@@ expr') == Expression('Apply', Symbol('f'), Symbol('expr'), Expression('List', 1))
+assert parse('f /@ expr') == Expression('Map', Symbol('f'), Symbol('expr'))
+assert parse('f //@ expr') == Expression('MapAll', Symbol('f'), Symbol('expr'))
+#assert parse('a @@ b @@ c') == Expression('Apply', Symbol('a'), Expression('Apply', Symbol('b'), Symbol('c')))
+
+assert parse('5!') == Expression('Factorial', Integer(5))
+assert parse('5 !!') == Expression('Factorial2', Integer(5))
+assert parse('5 ! !') == Expression('Factorial', Expression('Factorial', Integer(5)))
+
+assert parse("f'") == Expression(Expression('Derivative', Integer(1)), Symbol('f'))
+assert parse("f''") == Expression(Expression('Derivative', Integer(2)), Symbol('f'))
+
+assert parse('1 <> 2 ') == Expression('StringJoin', Integer(1), Integer(2))
+#assert parse('1 <> 2 <> 3') == Expression('StringJoin', Integer(1), Integer(2), Integer(3))
+
+assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
+assert parse('1 \^ 2 \% 3') == Expression('Power', Expression('Subscript', Integer(1), Integer(3)), Integer(2))
+assert parse('\@ 3') == Expression('Sqrt', Integer(3))
+assert parse('\@ 3 \% 3') == Expression('Power', Integer(3), Expression('Times', Integer(1), Expression('Power', Integer(3), Integer(-1))))
+
+assert parse('expr1 ** expr2') == Expression('NonCommutativeMultiply', Symbol('expr1'), Symbol('expr2'))
+#assert parse('expr1 ** expr2 ** expr3') == Expression('NonCommutativeMultiply', Symbol('expr1'), Symbol('expr2'), Symbol('expr3'))
+
+assert parse('+1') == Integer(1)
+assert parse('-1') == Expression('Times', Integer(-1), Integer(1))
+
+assert parse('3/2') == Expression('Times', Integer(3), Expression('Power', Integer(2), Integer(-1)))
+assert parse('3\\2') == Expression('Backslash', Integer(3), Integer(2))
+
+assert parse('1 2') == Expression('Times', Integer(1), Integer(2))
+assert parse('1*2') == Expression('Times', Integer(1), Integer(2))
+assert parse('1 2 3') == Expression('Times', Integer(1), Integer(2), Integer(3))
+assert parse('1*2*3') == Expression('Times', Integer(1), Integer(2), Integer(3))
+
+assert parse('1 + 2') == Expression('Plus', Integer(1), Integer(2))
+assert parse('1 - 2') == Expression('Plus', Integer(1), Expression('Times', Integer(-1), Integer(2)))
+#assert parse('1 + 2 + 3') == Expression('Plus', Integer(1), Integer(2), Integer(3))
+
+#FIXME
+#assert parse('1;;2;;3') == Expression('Span', Integer(1), Integer(2), Integer(3))
+#assert parse('1;; ;;3') == Expression('Span', Integer(1), Symbol('All'), Integer(3))
+#assert parse(' ;;2;;3') == Expression('Span', Integer(1), Integer(2), Integer(3))
+ 
+assert parse('1 == 2') == Expression('Equal', Integer(1), Integer(2))
+assert parse('1 != 2') == Expression('Unequal', Integer(1), Integer(2))
+#assert parse('1 == 2 == 3') == Expression('Equal', Integer(1), Integer(2), Integer(3))
+#assert parse('1 != 2 != 3') == Expression('Unequal', Integer(1), Integer(2), Integer(3))
+
+assert parse('1 > 2') == Expression('Greater', Integer(1), Integer(2))
+assert parse('1 >= 2') == Expression('GreaterEqual', Integer(1), Integer(2))
+assert parse('1 < 2') == Expression('Less', Integer(1), Integer(2))
+assert parse('1 <= 2') == Expression('LessEqual', Integer(1), Integer(2))
+#assert parse('1 > 2 > 3') == Expression('Greater', Integer(1), Integer(2), Integer(3))
+#assert parse('1 >= 2 >= 3') == Expression('GreaterEqual', Integer(1), Integer(2), Integer(3))
+#assert parse('1 < 2 < 3') == Expression('Less', Integer(1), Integer(2), Integer(3))
+#assert parse('1 <= 2 <= 3') == Expression('LessEqual', Integer(1), Integer(2), Integer(3))
+
+assert parse('1 === 2') == Expression('SameQ', Integer(1), Integer(2))
+assert parse('1 =!= 2') == Expression('UnsameQ', Integer(1), Integer(2))
+#assert parse('1 === 2 === 3') == Expression('SameQ', Integer(1), Integer(2), Integer(3))
+#assert parse('1 =!= 2 =!= 3') == Expression('UnsameQ', Integer(1), Integer(2), Integer(3))
+
 # assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
 # assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
 # assert parse('{a,}') == Expression('List', Symbol('a'), Symbol('Null'))
