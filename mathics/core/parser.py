@@ -59,83 +59,72 @@ class ParseError(TranslateError):
         
     def __unicode__(self):
         return u"Parse error at or near token %s." % str(self.token)
-    
-prefix_lookup = {}  # operator (e.g. "-") -> name (e.g. "Minus")
-postfix_lookup = {}  # operator (e.g. "-") -> name (e.g. "Minus")
-binary_lookup = {}  # operator (e.g. "+") -> name (e.g. "Plus")
 
-operator_lookup = {} # operator (e.g. "+") -> operator ID (.e.g "operator_0045")
+precedence = (
+    #('right', 'FORMBOX'),
+    #('nonassoc', 'COMPOUNDEXPRESSION'),
+    ('nonassoc', 'PUT'),
+    #('right', 'SET'),
+    #('right', 'POSTFIX'),
+    #('right', 'COLON'),
+    #('nonassoc', 'FUNCTION'),
+    #('right', 'ADDTO'),
+    #('left', 'REPLACE'),
+    #('right', 'RULE'),
+    #('left', 'CONDITION'),
+    #('left', 'STRINGEXPRESSION'),
+    #('nonassoc', 'PATTERN', 'OPTIONAL'),
+    #('left', 'ALTERNATIVES'),
+    #('nonassoc', 'REPEATED'),
+    #('right', 'IMPLIES'),
+    #('left', 'EQUIVALENT'),
+    #('left', 'OR'),
+    #('left', 'XOR'),
+    #('left', 'AND'),
+    #('right', 'NOT'),
+    #('right', 'FORALL', 'EXISTS'),
+    #('left', 'ELEMENT')
+    #('left', 'SAME'),
+    #('left', 'EQUAL'),
+    ('left', 'SPAN'),
+    #('left', 'PLUS')
+    ('right', 'TIMES'),     # both left and right assoc
+    #('right', 'BACKSLASH'),
+    #('left', 'DIVIDE'),
+    #('nonassoc', 'PREPLUS', 'MINUS', 'PLUSMINUS', 'MINUSPLUS'),
+    #('right', 'INTEGRATION'),
+    #('right', 'SQRT'),
+    #('right', 'POWER'),
+    #('left', 'STRINGJOIN'),  # both left and right assoc
+    #('nonassoc', 'DERIVATIVE'),
+    #('nonassoc', 'CONJUGATE'),
+    #('nonassoc', 'FACTORIAL'),
+    #('right', 'MAP', 'MAPALL', 'APPLY'),
+    #('left', 'INFIX'),
+    #('right', 'PREFIX'),
+    #('nonassoc', 'PREINCREMENT', 'PREDECREMENT'),
+    #('nonassoc', 'INCREMENT', 'DECREMENT'),
+    ('left', 'PART'),
+    #('nonassoc', 'PATTERNTEST'),
+    ('right', 'SUBSCRIPT'),
+    ('right', 'OVERSCRIPT'),
+    ('nonassoc', 'GET'),
+    ('nonassoc', 'BLANK'),
+    ('nonassoc', 'OUT'),
+    ('nonassoc', 'SLOT'),
+    ('nonassoc', 'MESSAGENAME'),
+    ('nonassoc', 'STRING'),
+    ('nonassoc', 'SYMBOL'),
+    ('nonassoc', 'NUMBER'),
+)
 
-operators = {} # operator (e.g. "+") -> list of classes ([Minus, Subtract])
-operators_by_prec = {} # precedence (310) -> list of classes ([Plus, Minus])
-binary_operators = [] # list of binary operators (['+', '-', ...])
-for name, builtin in builtins.iteritems():
-    operator = builtin.get_operator()
-    if operator:
-        if builtin.precedence_parse is not None:
-            precedence = builtin.precedence_parse
-        else:
-            precedence = builtin.precedence
-        existing = operators_by_prec.get(precedence)
-        if existing is None:
-            operators_by_prec[precedence] = [builtin]
-        else:
-            existing.append(builtin)
-
-        if operators.get(operator) is not None:
-            operators[operator].append(builtin)
-        else:
-            operators[operator] = [builtin]
-            
-        if builtin.is_prefix():
-            prefix_lookup[operator] = name
-            
-        if builtin.is_postfix():
-            postfix_lookup[operator] = name
-            
-        if builtin.is_binary():
-            binary_operators.append(operator)
-            binary_lookup[operator] = name
-
-symbols = operators.keys()
-symbols.sort(key=lambda s: len(s), reverse=True)
-
-op_identifier = []      # regex to find all operators
-binary_op_rules = []
-prefix_op_rules = []
-postfix_op_rules = []
-
-for index, symbol in enumerate(symbols):
-    operator_lookup[symbol] = "operator_%.4d" % index
-
-    op_identifier.append(re.escape(symbol))
-
-    for op in operators[symbol]:
-        if op.is_prefix():
-            prefix_op_rules.append('prefix_op : operator_%.4d' % index)
-        if op.is_postfix():
-            postfix_op_rules.append('postfix_op : operator_%.4d' % index)
-        if op.is_binary():
-            binary_op_rules.append('binary_op : operator_%.4d' % index)
-
-op_identifier = '(' + ')|('.join(op_identifier) + ')'
-
-prefix_op_rules = "\n".join(prefix_op_rules)
-postfix_op_rules = "\n".join(postfix_op_rules)
-binary_op_rules = "\n".join(binary_op_rules)
-
-#symbol_re = compile(r'[a-zA-Z$][a-zA-Z0-9$]*')
-#
-#def is_symbol_name(text):
-#    return symbol_re.sub('', text) == ''
-#
 #additional_entities = {
 #    'DifferentialD': u'\u2146',
 #    'Sum': u'\u2211',
 #    'Product': u'\u220f',
 #}
 
-tokens = [
+tokens = (
     'parenthesis_0',
     'parenthesis_1',
     'parenthesis_2',
@@ -152,16 +141,25 @@ tokens = [
     'span',
     'other',
     'parsedexpr',
-] + ['operator_%.4d' % i for i, symbol in enumerate(symbols)]
+    'op_Get',
+    'op_MessageName',
+    'op_Overscript',
+    'op_Underscript',
+    'op_Subscript',
+    'op_Otherscript',
+    'op_Put',
+    'op_PutAppend',
+)
 
 literals = ['(', ')', '{', '}', ',']
 
 class MathicsScanner:
     tokens = tokens
     literals = literals
+    precedence = precedence
 
     #t_ignore = ur' [\s \u2062]+ '
-    t_ignore = r' \t '
+    t_ignore = ' \t '
 
     t_symbol = r' [a-zA-Z$][a-zA-Z0-9$]* '
     t_int = r' \d+ '
@@ -172,6 +170,19 @@ class MathicsScanner:
     t_parenthesis_1 = r' \[ '
     t_parenthesis_2 = r' \]\] '
     t_parenthesis_3 = r' \] '
+
+    t_span = r' \;\; '
+    t_other = r' \/\: '
+
+    t_op_MessageName = r' \:\: '
+    t_op_Get = r' \<\< '
+    t_op_Put = r' \>\> '
+    t_op_PutAppend = r' \>\>\> '
+
+    t_op_Overscript = r' \\\& '
+    t_op_Underscript = r' \\\+ '
+    t_op_Subscript = r' \\\_ '
+    t_op_Otherscript = r' \\\% '
 
     def build(self, **kwargs):
         self.lexer = lex.lex(debug=0, module=self, **kwargs)
@@ -267,22 +278,9 @@ class MathicsScanner:
         (t.type, t.value) = ('out', -len(t.value))
         return t
 
-    def t_span(self, t):  # added as function to take precedence over operators
-        r' \;\; '
-        return t
-
-    def t_other(self, t): # added as function to take precedence over operators
-        r' \/\: '
-        return t
-
     def t_comment(self, t):
         r' (?s) \(\* .*? \*\) '
         return None
-    
-    @TOKEN(op_identifier)
-    def t_operator(self, t):
-        t.type = operator_lookup[t.value]
-        return t
 
     def t_error(self, t):
         print t
@@ -334,18 +332,10 @@ class RestToken(AbstractToken):
 #    return new_function
 #
 
-def RULE(r):
-    def set_doc(f):
-        if hasattr(r,"__call__"):
-            f.__doc__ = r.__doc__
-        else:
-            f.__doc__ = r
-        return f
-    return set_doc
-
 class MathicsParser:
     tokens = tokens
     literals = literals
+    precedence = precedence
 
     def build(self, **kwargs):
         self.parser = yacc.yacc(debug=1, module=self, **kwargs)
@@ -360,7 +350,7 @@ class MathicsParser:
         return result
         
     def p_op_400(self, args):
-        'expr : expr expr'
+        'expr : expr expr %prec TIMES'
         args[0] = builtins['Times'].parse([args[1], None, args[2]])
     
     def p_parenthesis(self, args):
@@ -371,34 +361,33 @@ class MathicsParser:
         expr.parenthesized = True
         args[0] = expr
     
-    def p_tagset(self, args):
-        '''expr : expr other expr operator_0014 expr
-                | expr other expr operator_0049 expr
-                | expr other expr operator_0022'''
-        if args[4] == '=':
-            args[0] = Expression('TagSet', args[1], args[3], args[5])
-        elif args[4] == ':=':
-            args[0] = Expression('TagSetDelayed', args[1], args[3], args[5])
-        elif args[4] == '=.':
-            args[0] = Expression('TagUnset', args[1], args[3])
+    #def p_tagset(self, args):
+    #    '''expr : expr other expr operator_0014 expr
+    #            | expr other expr operator_0049 expr
+    #            | expr other expr operator_0022'''
+    #    if args[4] == '=':
+    #        args[0] = Expression('TagSet', args[1], args[3], args[5])
+    #    elif args[4] == ':=':
+    #        args[0] = Expression('TagSetDelayed', args[1], args[3], args[5])
+    #    elif args[4] == '=.':
+    #        args[0] = Expression('TagUnset', args[1], args[3])
 
-    def p_compound(self, args):
-        'expr : expr operator_0043'
-        if args[2] == ';':
-            args[0] = Expression('CompoundExpression', args[1], Symbol('Null'))
+    #def p_compound(self, args):
+    #    'expr : expr operator_0043 %prec COMPOUNDEXPRESSION'
+    #    args[0] = Expression('CompoundExpression', args[1], Symbol('Null'))
     
     def p_parsed_expr(self, args):
         'expr : parsedexpr'
         args[0] = args[1]
     
     def p_op_670_call(self, args):
-        'expr : expr args'
+        'expr : expr args %prec PART'
         expr = Expression(args[1], *args[2].items)
         expr.parenthesized = True # to handle e.g. Power[a,b]^c correctly
         args[0] = expr
     
     def p_op_670_part(self, args):
-        'expr : expr position'
+        'expr : expr position %prec PART'
         args[0] = Expression('Part', args[1], *args[2].items)
     
     def p_span_start(self, args):
@@ -426,12 +415,12 @@ class MathicsParser:
             args[0] = args[1]
 
     def p_op_305_1(self, args):
-        'expr : span_start span span_stop span span_step'
+        'expr : span_start span span_stop span span_step %prec SPAN'
         #'expr : span_start ;; span_stop ;; span_step'
         args[0] = Expression('Span', args[1], args[3], args[5])
     
     def p_op_305_2(self, args):
-        'expr : span_start span span_stop'
+        'expr : span_start span span_stop %prec SPAN'
         #'expr : span_start ;; span_stop'
         args[0] = Expression('Span', args[1], args[3], Integer(1))
     
@@ -449,19 +438,19 @@ class MathicsParser:
         'position : parenthesis_0 sequence parenthesis_2'
         args[0] = PositionToken(args[2].items)
     
-    def p_rest_left(self, args):
-        '''rest_left :
-                     | expr
-                     | expr binary_op'''
-        args[0] = RestToken()
-    
-    def p_rest_right(self, args):
-        '''rest_right :
-                      | expr
-                      | args rest_right
-                      | position rest_right
-                      | rest_right binary_op expr'''
-        args[0] = RestToken()
+    #def p_rest_left(self, args):
+    #    '''rest_left :
+    #                 | expr
+    #                 | expr binary_op'''
+    #    args[0] = RestToken()
+    #
+    #def p_rest_right(self, args):
+    #    '''rest_right :
+    #                  | expr
+    #                  | args rest_right
+    #                  | position rest_right
+    #                  | rest_right binary_op expr'''
+    #    args[0] = RestToken()
 
     def p_sequence(self, args):
         '''sequence :
@@ -483,19 +472,19 @@ class MathicsParser:
             args[0] = SequenceToken(args[1].items + [args[3]])
         
     def p_symbol(self, args):
-        'expr : symbol'
+        'expr : symbol %prec SYMBOL'
         args[0] = Symbol(args[1])
         
     def p_int(self, args):
-        'expr : int'
+        'expr : int %prec NUMBER'
         args[0] = Integer(args[1])
         
     def p_float(self, args):
-        'expr : float'
+        'expr : float %prec NUMBER'
         args[0] = Real(args[1])
         
     def p_blanks(self, args):
-        'expr : blanks'
+        'expr : blanks %prec BLANK'
         pieces = args[1].split('_')
         count = len(pieces) - 1
         if count == 1:
@@ -514,7 +503,7 @@ class MathicsParser:
             args[0] = blank
         
     def p_blankdefault(self, args):
-        'expr : blankdefault'
+        'expr : blankdefault %prec BLANK'
         name = args[1][:-2]
         if name:
             args[0] = Expression('Optional', Expression('Pattern', Symbol(name), Expression('Blank')))
@@ -522,107 +511,84 @@ class MathicsParser:
             args[0] = Expression('Optional', Expression('Blank'))
         
     def p_slot(self, args):
-        'expr : slot'
+        'expr : slot %prec SLOT'
         args[0] = Expression('Slot', Integer(args[1]))
 
     def p_slotseq(self, args):
-        'expr : slotseq'
+        'expr : slotseq %prec SLOT'
         args[0] = Expression('SlotSequence', Integer(args[1]))
     
     def p_out(self, args):
-        'expr : out'
+        'expr : out %prec OUT'
         if args[1] == -1:
             args[0] = Expression('Out')
         else:
             args[0] = Expression('Out', Integer(args[1]))
         
     def p_string(self, args):
-        'expr : string'
+        'expr : string %prec STRING'
         args[0] = String(args[1])
-    
-    def p_prefix_expr(self, args):
-        'expr : prefix_op expr rest_right'
-        args[0] = Expression(args[1], args[2])
 
-    def p_postfix_expr(self, args):
-        'expr : rest_left expr postfix_op'
-        args[0] = Expression(args[3], args[2])
+    def p_filename_string(self, args):
+        '''filename : string
+                    | symbol'''
+        args[0] = String(args[1])
 
-    def p_binary_expr(self, args):
-        'expr : expr binary_op expr'
-        args[0] = Expression(args[2], args[1], args[3])
-        
-    @RULE(prefix_op_rules)
-    def p_prefix_op(self, args):
-        args[0] = prefix_lookup[args[1]]
-        
-    @RULE(postfix_op_rules)
-    def p_postfix_op(self, args):
-        args[0] = postfix_lookup[args[1]]
-        
-    @RULE(binary_op_rules)
-    def p_binary_op(self, args):
-        args[0] = binary_lookup[args[1]]
-        
+    def p_Get(self, args):
+        'expr : op_Get filename %prec GET'
+        args[0] = Expression('Get', args[2])
 
-#    def ambiguity(self, rules):
-#        """
-#        Don't use length of right-hand side for ordering of rules!
-#        (Problem with 'implicit' multiplication!)
-#        """
-#        #
-#        #  XXX - problem here and in collectRules() if the same rule
-#        #     appears in >1 method.  Also undefined results if rules
-#        #     causing the ambiguity appear in the same method.
-#        #
-#        
-#        sortlist = []
-#        name2index = {}
-#        for i in range(len(rules)):
-#            lhs, rhs = rule = rules[i]
-#            name = self.rule2name[self.new2old[rule]]
-#            sortlist.append(name)
-#            name2index[name] = i
-#        sortlist.sort()
-#        result = rules[name2index[self.resolve(sortlist)]]
-#        return result
-#    
-#    def collectRules(self):
-#        
-#        custom_ops = {}
-#        for name in dir(self):
-#            if name.startswith('op_'):
-#                precedence = int(name[3:6])
-#                existing = custom_ops.get(precedence)
-#                if existing is None:
-#                    custom_ops[precedence] = [name]
-#                else:
-#                    existing.append(name)
-#        
-#        precedences = set(operators_by_prec.keys() + custom_ops.keys())
-#        precedences = sorted(precedences)
-#        
-#        for precedence in precedences:
-#            builtin = operators_by_prec.get(precedence, [])
-#            
-#            for operator in builtin:
-#                def p_op(args, operator=operator):
-#                    return operator.parse(args)
-#                p_op.__name__ = 'p_zzzz_%.4d' % precedence #(1000-precedence)
-#                rule = operator.get_rule()
-#                p_op = parsing_static(p_op)
-#                self.addRule(rule, p_op)
-#            
-#            custom = custom_ops.get(precedence, [])
-#            for name in custom:
-#                func = getattr(self, name)
-#                doc = func.__doc__
-#                def p_op(args, func=func):
-#                    return func(args)
-#                p_op.__name__ = 'p_zzzz_%.4d_%s' % (precedence, name)
-#                p_op = parsing_static(p_op)
-#                self.addRule(doc, p_op)
-#        
+    def p_Put(self, args):
+        'expr : expr op_Put filename %prec PUT'
+        args[0] = Expression('Put', args[1], args[3])
+
+    def p_PutAppend(self, args):
+        'expr : expr op_PutAppend filename %prec PUT'
+        args[0] = Expression('PutAppend', args[1], args[3])
+
+    def p_MessageName(self, args):
+        '''expr : expr op_MessageName string op_MessageName string %prec MESSAGENAME
+                | expr op_MessageName string %prec MESSAGENAME'''
+        if len(args) == 4:
+            args[0] = Expression('MessageName', args[1], String(args[3]))
+        elif len(args) == 6:
+            args[0] = Expression('MessageName', args[1], String(args[3]), String(args[5]))
+
+    def p_OverScript(self, args):
+        '''expr : expr op_Underscript expr op_Otherscript expr %prec OVERSCRIPT
+                | expr op_Overscript expr op_Otherscript expr %prec OVERSCRIPT
+                | expr op_Overscript expr %prec OVERSCRIPT
+                | expr op_Underscript expr %prec OVERSCRIPT'''
+        if len(args) == 4:
+            if args[2] == '\\+':
+                args[0] = Expression('Underscript', args[1], args[3])
+            elif args[2] == '\\&':
+                args[0] = Expression('Overscript', args[1], args[3])
+        elif len(args) == 6:
+            if args[2] == '\\+':
+                args[0] = Expression('Underoverscript', args[1], args[3], args[5])
+            elif args[2] == '\\&':
+                args[0] = Expression('Underoverscript', args[1], args[5], args[3])
+
+    def p_Subscript(self, args):
+        '''expr : expr op_Subscript expr op_Otherscript expr %prec SUBSCRIPT
+                | expr op_Subscript expr %prec SUBSCRIPT'''
+        if len(args) == 4:
+            args[0] = Expression('Subscript', args[1], args[3])
+        elif len(args) == 6:
+            args[0] = Expression('Power', Expression('Subscript', args[1], args[3]), args[5])
+
+    #def p_prefix_expr(self, args):
+    #    'expr : prefix_op expr rest_right'
+    #    args[0] = Expression(args[1], args[2])
+
+    #def p_postfix_expr(self, args):
+    #    'expr : rest_left expr postfix_op'
+    #    args[0] = Expression(args[3], args[2])
+
+    #def p_binary_expr(self, args):
+    #    'expr : expr binary_op expr'
+    #    args[0] = Expression(args[2], args[1], args[3])
 
 scanner = MathicsScanner()
 scanner.build()
@@ -640,35 +606,52 @@ assert parse('"abc 123"') == String('abc 123')
 assert parse('1 2 3') == Expression('Times', Integer(1), Integer(2), Integer(3))
 assert parse('145 (* abf *) 345')==Expression('Times',Integer(145),Integer(345))
 
-assert parse('+1') == Expression('PrePlus', Integer(1))
+assert parse('1 :: "abc"') == Expression('MessageName', Integer(1), String("abc"))
+assert parse('1 :: "abc" :: "123"') == Expression('MessageName', Integer(1), String("abc"), String("123"))
 
-#TODO
-#assert parse('a++') == Expression('Increment', Symbol('a'))
-#assert parse('++a') == Expression('PreIncrement', Symbol('a'))
-#assert parse('1 + 2') == Expression('Plus', Integer(1), Integer(2))
+assert parse('<< filename') == Expression('Get', String('filename'))
+assert parse('<<"filename"') == Expression('Get', String('filename'))
+assert parse('1 >> filename') == Expression('Put', Integer(1), String('filename'))
+assert parse('1 >>> filename') == Expression('PutAppend', Integer(1), String('filename'))
 
-assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
-assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
-assert parse('{a,}') == Expression('List', Symbol('a'), Symbol('Null'))
-assert parse('{,}') == Expression('List', Symbol('Null'), Symbol('Null'))
-#assert parse('{,a}') == Expression('List', Symbol('Null'), Symbol('a')) #TODO
+assert parse('1 \\& 2') == Expression('Overscript', Integer(1), Integer(2))
+assert parse('1 \\+ 2') == Expression('Underscript', Integer(1), Integer(2))
+assert parse('1 \\+ 2 \\% 3') == Expression('Underoverscript', Integer(1), Integer(2), Integer(3))
+assert parse('1 \\& 2 \\% 3') == Expression('Underoverscript', Integer(1), Integer(3), Integer(2))
 
-assert parse('Sin[x, y]') == Expression('Sin', Symbol('x'), Symbol('y'))
-assert parse('a[[1]]') == Expression('Part', Symbol('a'), Integer(1))
+assert parse('1 \\_ 2') == Expression('Subscript', Integer(1), Integer(2))
+assert parse('1 \\_ 2 \\% 3') == Expression('Power', Expression('Subscript', Integer(1), Integer(2)), Integer(3))
 
-assert parse('f_') == Expression('Pattern', Symbol('f'), Expression('Blank'))
-assert parse('f__') == Expression('Pattern', Symbol('f'), Expression('BlankSequence'))
-assert parse('f___') == Expression('Pattern', Symbol('f'), Expression('BlankNullSequence'))
-
-assert parse('#2') == Expression('Slot', Integer(2))
-assert parse('#') == Expression('Slot', Integer(1))
-
-assert parse('##2') == Expression('SlotSequence', Integer(2))
-assert parse('##') == Expression('SlotSequence', Integer(1))
-
-assert parse('%2') == Expression('Out', Integer(2))
-assert parse('%') == Expression('Out')
-assert parse('%%') == Expression('Out', Integer(-2))
-assert parse('%%%%') == Expression('Out', Integer(-4))
+# assert parse('+1') == Expression('PrePlus', Integer(1))
+# 
+# #TODO
+# #assert parse('a++') == Expression('Increment', Symbol('a'))
+# assert parse('++a') == Expression('PreIncrement', Symbol('a'))
+# #print parse('1 + 2')
+# #assert parse('1 + 2') == Expression('Plus', Integer(1), Integer(2))
+# 
+# assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
+# assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
+# assert parse('{a,}') == Expression('List', Symbol('a'), Symbol('Null'))
+# assert parse('{,}') == Expression('List', Symbol('Null'), Symbol('Null'))
+# #assert parse('{,a}') == Expression('List', Symbol('Null'), Symbol('a')) #TODO
+# 
+# assert parse('Sin[x, y]') == Expression('Sin', Symbol('x'), Symbol('y'))
+# assert parse('a[[1]]') == Expression('Part', Symbol('a'), Integer(1))
+# 
+# assert parse('f_') == Expression('Pattern', Symbol('f'), Expression('Blank'))
+# assert parse('f__') == Expression('Pattern', Symbol('f'), Expression('BlankSequence'))
+# assert parse('f___') == Expression('Pattern', Symbol('f'), Expression('BlankNullSequence'))
+# 
+# assert parse('#2') == Expression('Slot', Integer(2))
+# assert parse('#') == Expression('Slot', Integer(1))
+# 
+# assert parse('##2') == Expression('SlotSequence', Integer(2))
+# assert parse('##') == Expression('SlotSequence', Integer(1))
+# 
+# assert parse('%2') == Expression('Out', Integer(2))
+# assert parse('%') == Expression('Out')
+# assert parse('%%') == Expression('Out', Integer(-2))
+# assert parse('%%%%') == Expression('Out', Integer(-4))
 
 quit()
