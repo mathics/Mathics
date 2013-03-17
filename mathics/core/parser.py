@@ -105,7 +105,7 @@ precedence = (
     #('nonassoc', 'PREINCREMENT', 'PREDECREMENT'),
     #('nonassoc', 'INCREMENT', 'DECREMENT'),
     ('left', 'PART'),
-    #('nonassoc', 'PATTERNTEST'),
+    ('nonassoc', 'PATTERNTEST'),
     ('right', 'SUBSCRIPT'),
     ('right', 'OVERSCRIPT'),
     ('nonassoc', 'GET'),
@@ -142,13 +142,14 @@ tokens = (
     'other',
     'parsedexpr',
     'op_Get',
+    'op_Put',
+    'op_PutAppend',
     'op_MessageName',
     'op_Overscript',
     'op_Underscript',
     'op_Subscript',
     'op_Otherscript',
-    'op_Put',
-    'op_PutAppend',
+    'op_PatternTest',
 )
 
 literals = ['(', ')', '{', '}', ',']
@@ -183,6 +184,8 @@ class MathicsScanner:
     t_op_Underscript = r' \\\+ '
     t_op_Subscript = r' \\\_ '
     t_op_Otherscript = r' \\\% '
+
+    t_op_PatternTest = r' \? '
 
     def build(self, **kwargs):
         self.lexer = lex.lex(debug=0, module=self, **kwargs)
@@ -578,6 +581,10 @@ class MathicsParser:
         elif len(args) == 6:
             args[0] = Expression('Power', Expression('Subscript', args[1], args[3]), args[5])
 
+    def p_PatternTest(self, args):
+        'expr : expr op_PatternTest expr %prec PATTERNTEST'
+        args[0] = Expression('PatternTest', args[1], args[3])
+
     #def p_prefix_expr(self, args):
     #    'expr : prefix_op expr rest_right'
     #    args[0] = Expression(args[1], args[2])
@@ -621,6 +628,8 @@ assert parse('1 \\& 2 \\% 3') == Expression('Underoverscript', Integer(1), Integ
 
 assert parse('1 \\_ 2') == Expression('Subscript', Integer(1), Integer(2))
 assert parse('1 \\_ 2 \\% 3') == Expression('Power', Expression('Subscript', Integer(1), Integer(2)), Integer(3))
+
+assert parse('1?2') == Expression('PatternTest', Integer(1), Integer(2))
 
 # assert parse('+1') == Expression('PrePlus', Integer(1))
 # 
