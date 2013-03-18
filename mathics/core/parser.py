@@ -65,14 +65,14 @@ precedence = (
     #('nonassoc', 'COMPOUNDEXPRESSION'),
     ('nonassoc', 'PUT'),
     #('right', 'SET'),
-    #('right', 'POSTFIX'),
+    ('right', 'POSTFIX'),
     #('right', 'COLON'),
-    #('nonassoc', 'FUNCTION'),
-    #('right', 'ADDTO'),
-    #('left', 'REPLACE'),
-    #('right', 'RULE'),
-    #('left', 'CONDITION'),
-    #('left', 'STRINGEXPRESSION'),
+    ('nonassoc', 'FUNCTION'),
+    ('right', 'ADDTO'),
+    ('left', 'REPLACE'),
+    ('right', 'RULE'),
+    ('left', 'CONDITION'),
+    ('left', 'STRINGEXPRESSION'),
     ('nonassoc', 'PATTERN'),
     ('left', 'ALTERNATIVES'),
     ('nonassoc', 'REPEATED'),
@@ -191,6 +191,18 @@ tokens = (
     'op_RepeatedNull',
     'op_Alternatives',
     'op_Colon',
+    'op_StringExpression',
+    'op_Condition',
+    'op_Rule',
+    'op_RuleDelayed',
+    'op_ReplaceAll',
+    'op_ReplaceRepeated',
+    'op_AddTo',
+    'op_SubtractFrom',
+    'op_TimesBy',
+    'op_DivideBy',
+    'op_Function',
+    'op_Postfix',
 )
 
 literals = ['(', ')', '{', '}', ',']
@@ -282,6 +294,21 @@ class MathicsScanner:
     t_op_Alternatives = r' \| '
 
     t_op_Colon = r' \: '
+    t_op_StringExpression = r' \~\~ '
+    t_op_Condition = r' \/\; '
+
+    t_op_Rule = r' \-\> '
+    t_op_RuleDelayed = r' \:\> '
+    t_op_ReplaceAll = r' \/\. '
+    t_op_ReplaceRepeated = r' \/\/\. '
+
+    t_op_AddTo = r' \+\= '
+    t_op_SubtractFrom = r' \-\=  '
+    t_op_TimesBy = r' \*\= '
+    t_op_DivideBy = r' \/\=  '
+
+    t_op_Function = r' \& '
+    t_op_Postfix = r' \/\/ '
 
     def build(self, **kwargs):
         self.lexer = lex.lex(debug=0, module=self, **kwargs)
@@ -844,7 +871,56 @@ class MathicsParser:
     def p_Optional(self, args):
         'expr : pattern op_Colon expr %prec PATTERN'
         args[0] = Expression('Optional', args[1], args[3])
-        
+
+    def p_StringExpression(self, args):
+        'expr : expr op_StringExpression expr %prec STRINGEXPRESSION'
+        args[0] = Expression('StringExpression', args[1], args[3])
+
+    def p_Condition(self, args):
+        'expr : expr op_Condition expr %prec CONDITION'
+        args[0] = Expression('Condition', args[1], args[3])
+
+    def p_Rule(self, args):
+        '''expr : expr op_Rule expr %prec RULE
+                | expr op_RuleDelayed expr %prec RULE'''
+        if args[2] == '->':
+            args[0] = Expression('Rule', args[1], args[3])
+        elif args[2] == ':>':
+            args[0] = Expression('RuleDelayed', args[1], args[3])
+
+    def p_Replace(self, args):
+        '''expr : expr op_ReplaceAll expr %prec REPLACE
+                | expr op_ReplaceRepeated expr %prec REPLACE'''
+        if args[2] == '/.':
+            args[0] = Expression('ReplaceAll', args[1], args[3])
+        elif args[2] == '//.':
+            args[0] = Expression('ReplaceRepeated', args[1], args[3])
+
+    def p_AddTo(self, args):
+        '''expr : expr op_AddTo expr %prec ADDTO
+                | expr op_SubtractFrom expr %prec ADDTO
+                | expr op_TimesBy expr %prec ADDTO
+                | expr op_DivideBy expr %prec ADDTO'''
+        if args[2] == '+=':
+            args[0] = Expression('AddTo', args[1], args[3])
+        elif args[2] == '-=':
+            args[0] = Expression('SubtractFrom', args[1], args[3])
+        elif args[2] == '*=':
+            args[0] = Expression('TimesBy', args[1], args[3])
+        elif args[2] == '/=':
+            args[0] = Expression('DivideBy', args[1], args[3])
+
+    def p_Function(self, args):
+        'expr : expr op_Function %prec FUNCTION'
+        args[0] = Expression('Function', args[1])
+
+    #def p_Colon(self, args):
+    #    'expr : expr op_Colon expr %prec COLON'
+    #    args[0] = Expression('Colon', args[1], args[3])
+
+    def p_Postfix(self, args):
+        'expr : expr op_Postfix expr %prec POSTFIX'
+        args[0] = Expression(args[3], args[1])
 
 scanner = MathicsScanner()
 scanner.build()
@@ -968,6 +1044,23 @@ assert parse('1 | 2') == Expression('Alternatives', Integer(1), Integer(2))
 
 assert parse('x:expr') == Expression('Pattern', Symbol('x'), Symbol('expr'))
 assert parse('x_:expr') == Expression('Optional', Expression('Pattern', Symbol('x'), Expression('Blank')), Symbol('expr'))
+
+assert parse('x ~~ y') == Expression('StringExpression', Symbol('x'), Symbol('y'))
+#assert parse('x ~~ y ~~ z') == Expression('StringExpression', Symbol('x'), Symbol('y'), Symbol('z'))
+
+assert parse('x /; y') == Expression('Condition', Symbol('x'), Symbol('y'))
+assert parse('x -> y') == Expression('Rule', Symbol('x'), Symbol('y'))
+
+assert parse('x /. y') == Expression('ReplaceAll', Symbol('x'), Symbol('y'))
+assert parse('x //. y') == Expression('ReplaceRepeated', Symbol('x'), Symbol('y'))
+
+assert parse('x += y') == Expression('AddTo', Symbol('x'), Symbol('y'))
+assert parse('x -= y') == Expression('SubtractFrom', Symbol('x'), Symbol('y'))
+assert parse('x *= y') == Expression('TimesBy', Symbol('x'), Symbol('y'))
+assert parse('x /= y') == Expression('DivideBy', Symbol('x'), Symbol('y'))
+
+assert parse('x &') == Expression('Function', Symbol('x'))
+assert parse('x // y') == Expression('y', Symbol('x'))
 
 # assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
 # assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
