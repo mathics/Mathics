@@ -64,10 +64,14 @@ precedence = (
     ('right', 'FORMBOX'),
     ('nonassoc', 'COMPOUNDEXPRESSION'),
     ('nonassoc', 'PUT'),
+    ('nonassoc', 'SET2'),
     ('right', 'SET'),
+    ('left', 'BECAUSE'),
+    ('right', 'THEREFORE'),
+    ('right', 'VERTICALSEPARATOR'),         # flat
     ('right', 'POSTFIX'),
     ('right', 'COLON'),
-    ('nonassoc', 'FUNCTION'),
+    ('nonassoc', 'AMPERSAND'),
     ('right', 'ADDTO'),
     ('left', 'REPLACE'),
     ('right', 'RULE'),
@@ -76,24 +80,38 @@ precedence = (
     ('nonassoc', 'PATTERN'),
     ('left', 'ALTERNATIVES'),
     ('nonassoc', 'REPEATED'),
-    #('right', 'IMPLIES'),
-    #('left', 'EQUIVALENT'),
+    ('right', 'SUCHTHAT'),
+    ('right', 'IMPLIES'),
+    ('left', 'EQUIVALENT'),
     ('left', 'OR'),
     ('left', 'XOR'),
     ('left', 'AND'),
     ('right', 'NOT'),
-    #('right', 'FORALL', 'EXISTS'),
-    #('left', 'ELEMENT')
+    ('right', 'FORALL'),
+    ('left', 'ELEMENT'),
     ('left', 'SAMEQ'),
     ('left', 'EQUAL'),
     ('left', 'SPAN'),
+    ('left', 'UNION'),                      # flat
+    ('left', 'INTERSECTION'),               # flat
     ('left', 'PLUS'),
     ('right', 'TIMES'),                     # flat
+    ('right', 'DIAMOND'),                   # flat
+    ('right', 'WEDGE'),                     # flat
+    ('right', 'VEE'),                       # flat
+    ('right', 'CIRCLETIMES'),               # flat
+    ('right', 'CENTERDOT'),                 # flat
+    ('right', 'STAR'),                      # flat
     ('right', 'BACKSLASH'),
     ('left', 'DIVIDE'),
     ('nonassoc', 'MINUS'),
+    ('right', 'DOT'),                       # flat
+    ('right', 'CROSS'),                     # flat
     ('right', 'NONCOMMUTATIVEMULTIPLY'),    # flat
-    #('right', 'INTEGRATION'),
+    ('right', 'CIRCLEDOT'),
+    ('right', 'SQUARE'),
+    ('right', 'DEL'),
+    ('right', 'INTEGRATE'),
     ('right', 'SQRT'),
     ('right', 'POWER'),
     ('left', 'STRINGJOIN'),                 # flat
@@ -119,12 +137,6 @@ precedence = (
     ('nonassoc', 'NUMBER'),
 )
 
-#additional_entities = {
-#    'DifferentialD': u'\u2146',
-#    'Sum': u'\u2211',
-#    'Product': u'\u220f',
-#}
-
 tokens = (
     'parenthesis_0',
     'parenthesis_1',
@@ -140,7 +152,6 @@ tokens = (
     'slot',
     'slotseq',
     'span',
-    #'parsedexpr',
     'Get',
     'Put',
     'PutAppend',
@@ -168,41 +179,59 @@ tokens = (
     'Power',
     'Power2',
     'Sqrt',
+    'Integral',
+    'DifferentialD',
+    'PartialD',
+    'Del',
+    'Square',
+    'CircleDot',
+    'SmallCircle',
     'NonCommutativeMultiply',
+    'Cross',
+    'Dot',
     'Plus',
     'Minus',
     'PlusMinus',
     'MinusPlus',
     'Slash',
     'Backslash',
+    'Diamond',
+    'Wedge',
+    'Vee',
+    'CircleTimes',
+    'CenterDot',
+    'Star',
+    'Sum',
+    'Product',
+    'Asterisk',
     'Times',
-    'Equal',
-    'Unequal',
+    'Divide',
+    'op_Equal',
+    'op_Unequal',
     'Greater',
     'Less',
-    'GreaterEqual',
-    'LessEqual',
+    'op_GreaterEqual',
+    'op_LessEqual',
     'SameQ',
     'UnsameQ',
-    'And',
-    'Xor',
-    'Or',
+    'op_And',
+    'op_Or',
     'Repeated',
     'RepeatedNull',
     'Alternatives',
-    'Colon',
+    'RawColon',
     'StringExpression',
     'Condition',
-    'Rule',
-    'RuleDelayed',
+    'op_Rule',
+    'op_RuleDelayed',
     'ReplaceAll',
     'ReplaceRepeated',
     'AddTo',
     'SubtractFrom',
     'TimesBy',
     'DivideBy',
-    'Function',
-    'RawColon',
+    'RawAmpersand',
+    'Colon',
     'Postfix',
     'Set',
     'SetDelayed',
@@ -212,6 +241,55 @@ tokens = (
     'Unset',
     'Semicolon',
     'FormBox',
+    'DiscreteShift',
+    'DiscreteRatio',
+    'DifferenceDelta',
+    'VerticalTilde',
+    'Coproduct',
+    'Cap',
+    'Cup',
+    'CirclePlus',
+    'CircleMinus',
+    'Intersection',
+    'Union',
+    'Equal',
+    'LongEqual',
+    'NotEqual',
+    'LessEqual',
+    'LessSlantEqual',
+    'GreaterEqual',
+    'GreaterSlantEqual',
+    'VerticalBar',
+    'NotVerticalBar',
+    'DoubleVerticalBar',
+    'NotDoubleVerticalBar',
+    'Element',
+    'NotElement',
+    'Subset',
+    'Superset',
+    'ForAll',
+    'Exists',
+    'NotExists',
+    'Not',
+    'And',
+    'Nand',
+    'Xor',
+    'Xnor',
+    'Or',
+    'Nor',
+    'Equivalent',
+    'Implies',
+    'RightTee',
+    'DoubleRightTee',
+    'LeftTee',
+    'DoubleLeftTee',
+    'SuchThat',
+    'Rule',
+    'RuleDelayed',
+    'VerticalSeparator',
+    'Therefore',
+    'Because',
+    'Function',
 )
 
 literals = ['(', ')', '{', '}', ',']
@@ -260,10 +338,9 @@ class MathicsScanner:
     t_Bang = r' \! '
     t_DoubleBang = r' \!\! '
 
-    #TODO
-    #t_Conjugate = r''
-    #t_Transpose = r''
-    #t_ConjugateTranspose = r''
+    t_Transpose = ur' \\\[Transpose\]|\uf3c7 '
+    t_Conjugate = ur' \\\[Conjugate\]|\uf3c8 '
+    t_ConjugateTranspose = ur' \\\[ConjugateTranspose\]|\uf3c9 '
 
     t_Derivative = r' \'+ '
     t_StringJoin = r' \<\> '
@@ -271,43 +348,76 @@ class MathicsScanner:
     t_Power = r' \^ '
     t_Power2 = r' \\\^ '
     t_Sqrt = r' \\\@ '
+
+    t_Integral = ur' \\\[Integral\]|\u222b '
+    t_DifferentialD = ur'\\\[DifferentialD\]|\uf74c '
+    t_PartialD = ur' \\\[PartialD\]|\u2202 '
+    t_Del = ur' \\\[Del\]|\u2207 '
+    
+    t_Square = ur' \\\[Square\]|\uf520 '
+    t_SmallCircle = ur' \\\[SmallCircle\]|\u2218 '
+    t_CircleDot = ur' \\\[CircleDot\]|\u2299 '
+
     t_NonCommutativeMultiply = r' \*\* '
+
+    t_Cross = ur' \\\[Cross\]|\uf4a0 '
+    t_Dot = r' \. '
 
     t_Plus = r' \+ '
     t_Minus = r' \- '
     t_Slash = r' \/ '
     t_Backslash = r' \\ '
 
-    t_Times = r' \* '
+    t_Diamond = ur' \\\[Diamond\]|\u22c4 '
+    t_Wedge = ur' \\\[Wedge\]|\u22c0 '
+    t_Vee = ur' \\\[Vee\]|\u22c1 '
+    t_CircleTimes = ur' \\\[CircleTimes\]|\u2297 '
+    t_CenterDot = ur' \\\[CenterDot\]|\u00b7 '
+    t_Star = ur' \\\[Star\]|\u22c6'
+
+    t_Sum = ur' \\\[Sum\]|\u2211 '
+    t_Product = ur' \\\[Product\]|\u220f '
+
+    t_Asterisk = r' \* '
+    t_Times = ur'\\\[Times\]|\u00d7 '
+    t_Divide = ur' \\\[Divide\]|\u00f7 '
 
     #TODO
-    #t_PlusMinus = r''
-    #t_MinusPlus = r''
+    t_PlusMinus = ur' \\\[PlusMinus\]|\u00b1 '
+    t_MinusPlus = ur' \\\[MinusPlus\]|\u2213 '
 
-    t_Equal = r' \=\= '
-    t_Unequal = r' \!\= '
+    t_op_Equal = r' \=\= '
+    t_op_Unequal = r' \!\= '
     t_Greater = r' \> '
     t_Less = r' \< '
-    t_GreaterEqual = r' \>\= '
-    t_LessEqual = r' \<\= '
+    t_op_GreaterEqual = r' \>\= '
+    t_op_LessEqual = r' \<\= '
 
     t_SameQ = r' \=\=\= '
     t_UnsameQ = r' \=\!\= '
 
-    t_And = r' \&\& '
-    #t_Xor = r''     #TODO
-    t_Or = r' \|\|  '
+    t_op_And = r' \&\& '
+    t_op_Or = r' \|\|  '
+
+    t_Or = ur' \\\[Or\]|\u2228 '
+    t_Nor = ur' \\\[Nor\]|\u22BD '
+
+    t_And = ur' \\\[And\]|\u2227 '
+    t_Nand = ur' \\\[Nand\]|\u22BC '
+
+    t_Xor = ur' \\\[Xor\]|\u22BB '
+    t_Xnor = ur' \\\[Xnor\]|\uF4A2 '
 
     t_Repeated = r' \.\. '
     t_RepeatedNull = r' \.\.\. '
     t_Alternatives = r' \| '
 
-    t_Colon = r' \: '
+    t_RawColon = r' \: '
     t_StringExpression = r' \~\~ '
     t_Condition = r' \/\; '
 
-    t_Rule = r' \-\> '
-    t_RuleDelayed = r' \:\> '
+    t_op_Rule = r' \-\> '
+    t_op_RuleDelayed = r' \:\> '
     t_ReplaceAll = r' \/\. '
     t_ReplaceRepeated = r' \/\/\. '
 
@@ -316,8 +426,8 @@ class MathicsScanner:
     t_TimesBy = r' \*\= '
     t_DivideBy = r' \/\=  '
 
-    t_Function = r' \& '
-    #t_RawColon = r''   #TODO
+    t_RawAmpersand = r' \& '
+    t_Colon = ur' \\\[Colon\]|\u2236 ' 
     t_Postfix = r' \/\/ '
 
     t_Set = r' \= '
@@ -329,6 +439,50 @@ class MathicsScanner:
 
     t_Semicolon = r' \; '
     t_FormBox = r' \\\` '
+
+    t_DiscreteShift = ur' \\\[DiscreteShift\]|\uf4a3 '
+    t_DiscreteRatio = ur' \\\[DiscreteRatio\]|\uf4a4 '
+    t_DifferenceDelta = ur' \\\[DifferenceDelta\]|\u2206 '
+    t_VerticalTilde = ur' \\\[VerticalTilde\]|\u2240 '
+    t_Coproduct = ur' \\\[Coproduct\]|\u2210 '
+    t_Cap = ur' \\\[Cap\]|\u2322 '
+    t_Cup = ur' \\\[Cup\]|\u2323 '
+    t_CirclePlus = ur' \\\[CirclePlus\]|\u2295 '
+    t_CircleMinus = ur' \\\[CircleMinus\]|\u2296 '
+    t_Intersection = ur' \\\[Intersection\]|\u22c2 '
+    t_Union = ur' \\\[Union\]|\u22c3 '
+    t_Equal = ur' \\\[Equal\]|\uf431 '
+    t_LongEqual = ur' \\\[LongEqual\]|\uf7d9 '
+    t_NotEqual = ur' \\\[NotEqual\]|\u2260 '
+    t_LessEqual = ur' \\\[LessEqual\]|\u2264 '
+    t_LessSlantEqual = ur' \\\[LessSlantEqual\]|\u2a7d '
+    t_GreaterEqual = ur' \\\[GreaterEqual\]|\u2265 '
+    t_GreaterSlantEqual = ur' \\\[GreaterSlantEqual\]|\u2a7e '
+    t_VerticalBar = ur' \\\[VerticalBar\]|\u2223 '
+    t_NotVerticalBar = ur' \\\[NotVerticalBar\]|\u2224 '
+    t_DoubleVerticalBar = ur' \\\[DoubleVerticalBar\]|\u2225 '
+    t_NotDoubleVerticalBar = ur' \\\[NotDoubleVerticalBar\]|\u2226 '
+    t_Element = ur' \\\[Element\]|\u2208 '
+    t_NotElement = ur' \\\[NotElement\]|\u2209 '
+    t_Subset = ur' \\\[Subset\]|\u2282 '
+    t_Superset = ur' \\\[Superset\]|\u2283 '
+    t_ForAll = ur' \\\[ForAll\]|\u2200 '
+    t_Exists = ur' \\\[Exists\]|\u2203 '
+    t_NotExists = ur' \\\[NotExists\]|\u2204 '
+    t_Not = ur' \\\[Not\]|\u00AC '
+    t_Equivalent = ur' \\\[Equivalent\]|\u29E6 '
+    t_Implies = ur' \\\[Implies\]|\uF523 '
+    t_RightTee = ur' \\\[RightTee\]|\u22A2 '
+    t_DoubleRightTee = ur' \\\[DoubleRightTee\]|\u22A8 '
+    t_LeftTee = ur' \\\[LeftTee\]|\u22A3 '
+    t_DoubleLeftTee = ur' \\\[DoubleLeftTee\]|\u2AE4 '
+    t_SuchThat = ur' \\\[SuchThat\]|\u220D '
+    t_Rule = ur' \\\[Rule\]|\uF522 '
+    t_RuleDelayed = ur' \\\[RuleDelayed\]|\uF51F '
+    t_VerticalSeparator = ur' \\\[VerticalSeparator\]|\uF432 '
+    t_Therefore = ur' \\\[Therefore\]|\u2234 '
+    t_Because = ur' \\\[Because\]|\u2235 '
+    t_Function = ur' \\\[Function\]|\uF4A1 '
 
     def build(self, **kwargs):
         self.lexer = lex.lex(debug=0, module=self, **kwargs)
@@ -555,6 +709,11 @@ class MathicsParser:
             args[0] = Expression('Optional', Expression('Pattern', Symbol(name), Expression('Blank')))
         else:
             args[0] = Expression('Optional', Expression('Blank'))
+
+    def p_pattern(self, args):
+        '''expr : blanks
+                | blankdefault'''
+        args[0] = args[1]
         
     def p_slot(self, args):
         'expr : slot %prec SLOT'
@@ -698,9 +857,39 @@ class MathicsParser:
         elif len(args) == 5:
             args[0] = Expression('Power', args[2], Expression('Times', Integer(1), Expression('Power', args[4], Integer(-1))))
 
+    def p_Integrate(self, args):
+        'expr : Integral expr DifferentialD expr %prec INTEGRATE'
+        args[0] = Expression('Integrate', args[2], args[4])
+
+    #TODO: p_D(self, args):
+
+    def p_Del(self, args):
+        'expr : Del expr %prec DEL'
+        expr = Expression('Del', args[2])
+
+    def p_Square(self, args):
+        'expr : Square expr %prec SQUARE'
+        expr = Expression('Square', args[2])
+
+    def p_SmallCircle(self, args):
+        'expr : expr SmallCircle expr %prec CROSS'
+        args[0] = Expression('SmallCircle', args[1], args[3])
+
+    def p_CircleDot(self, args):
+        'expr : expr CircleDot expr %prec CIRCLEDOT'
+        args[0] = Expression('CircleDot', args[1], args[3])
+
     def p_NonCommutativeMultiply(self, args):
         'expr : expr NonCommutativeMultiply expr %prec NONCOMMUTATIVEMULTIPLY'
         args[0] = Expression('NonCommutativeMultiply', args[1], args[3])
+
+    def p_Cross(self, args):
+        'expr : expr Cross expr %prec CROSS'
+        args[0] = Expression('Cross', args[1], args[3])
+
+    def p_Dot(self, args):
+        'expr : expr Dot expr %prec DOT'
+        args[0] = Expression('Dot', args[1], args[3])
 
     def p_Plus(self, args):
         '''expr : expr Plus expr %prec PLUS
@@ -734,9 +923,42 @@ class MathicsParser:
         elif len(args) == 4:
             args[0] = Expression('MinusPlus', args[1], args[3])
 
+    def p_Intersection(self, args):
+        'expr : expr Intersection expr %prec INTERSECTION'
+        args[0] = Expression('Intersection', args[1], args[3])
+
+    def p_Union(self, args):
+        'expr : expr Union expr %prec UNION'
+        args[0] = Expression('Union', args[1], args[3])
+
     def p_Slash(self, args):
-        'expr : expr Slash expr %prec DIVIDE'
+        '''expr : expr Slash expr %prec DIVIDE
+                | expr Divide expr %prec DIVIDE'''
         args[0] = Expression('Times', args[1], Expression('Power', args[3], Integer(-1)))
+
+    def p_Diamond(self, args):
+        'expr : expr Diamond expr %prec DIAMOND'
+        args[0] = Expression('Diamond', args[1], args[3])
+
+    def p_Wedge(self, args):
+        'expr : expr Wedge expr %prec WEDGE'
+        args[0] = Expression('Wedge', args[1], args[3])
+
+    def p_Vee(self, args):
+        'expr : expr Vee expr %prec VEE'
+        args[0] = Expression('Vee', args[1], args[3])
+
+    def p_CircleTimes(self, args):
+        'expr : expr CircleTimes expr %prec CIRCLETIMES'
+        args[0] = Expression('CircleTimes', args[1], args[3])
+
+    def p_CenterDot(self, args):
+        'expr : expr CenterDot expr %prec CENTERDOT'
+        args[0] = Expression('CenterDot', args[1], args[3])
+
+    def p_Star(self, args):
+        'expr : expr Star expr %prec STAR'
+        args[0] = Expression('Star', args[1], args[3])
 
     def p_Backslash(self, args):
         'expr : expr Backslash expr %prec BACKSLASH'
@@ -744,6 +966,7 @@ class MathicsParser:
 
     def p_Times(self, args):
         '''expr : expr expr %prec TIMES
+                | expr Asterisk expr %prec TIMES
                 | expr Times expr %prec TIMES'''
         if len(args) == 3:
             args[0] = builtins['Times'].parse([args[1], None, args[2]])
@@ -783,24 +1006,51 @@ class MathicsParser:
             args[0] = Expression('Span', args[1], args[3], args[5])
 
     def p_Equal(self, args):
-        '''expr : expr Equal expr %prec EQUAL
-                | expr Unequal expr %prec EQUAL
-                | expr Greater expr %prec EQUAL
-                | expr Less expr %prec EQUAL
+        '''expr : expr op_Equal expr %prec EQUAL
+                | expr LongEqual expr %prec EQUAL
+                | expr Equal expr %prec EQUAL'''
+        args[0] = Expression('Equal', args[1], args[3])
+
+    def p_Unequal(self, args):
+        '''expr : expr op_Unequal expr %prec EQUAL
+                | expr NotEqual expr %prec EQUAL'''
+        args[0] = Expression('Unequal', args[1], args[3])
+
+    def p_Greater(self, args):
+        'expr : expr Greater expr %prec EQUAL'
+        args[0] = Expression('Greater', args[1], args[3])
+
+    def p_Less(self, args):
+        'expr : expr Less expr %prec EQUAL'
+        args[0] = Expression('Less', args[1], args[3])
+
+    def p_GreaterEqual(self, args):
+        '''expr : expr op_GreaterEqual expr %prec EQUAL
                 | expr GreaterEqual expr %prec EQUAL
-                | expr LessEqual expr %prec EQUAL'''
-        if args[2] == '==':
-            args[0] = Expression('Equal', args[1], args[3])
-        elif args[2] == '!=':
-            args[0] = Expression('Unequal', args[1], args[3])
-        elif args[2] == '>':
-            args[0] = Expression('Greater', args[1], args[3])
-        elif args[2] == '<':
-            args[0] = Expression('Less', args[1], args[3])
-        elif args[2] == '>=':
-            args[0] = Expression('GreaterEqual', args[1], args[3])
-        elif args[2] == '<=':
-            args[0] = Expression('LessEqual', args[1], args[3])
+                | expr GreaterSlantEqual expr %prec EQUAL'''
+        args[0] = Expression('GreaterEqual', args[1], args[3])
+
+    def p_LessEqual(self, args):
+        '''expr : expr op_LessEqual expr %prec EQUAL
+                | expr LessEqual expr %prec EQUAL
+                | expr LessSlantEqual expr %prec EQUAL'''
+        args[0] = Expression('LessEqual', args[1], args[3])
+
+    def p_VerticalBar(self, args):
+        'expr : expr VerticalBar expr %prec EQUAL'
+        args[0] = Expression('VerticalBar', args[1], args[3])
+
+    def p_NotVerticalBar(self, args):
+        'expr : expr NotVerticalBar expr %prec EQUAL'
+        args[0] = Expression('NotVerticalBar', args[1], args[3])
+
+    def p_DoubleVerticalBar(self, args):
+        'expr : expr DoubleVerticalBar expr %prec EQUAL'
+        args[0] = Expression('DoubleVerticalBar', args[1], args[3])
+
+    def p_NotDoubleVerticalBar(self, args):
+        'expr : expr NotDoubleVerticalBar expr %prec EQUAL'
+        args[0] = Expression('NotDoubleVerticalBar', args[1], args[3])
 
     def p_SameQ(self, args):
         '''expr : expr SameQ expr %prec SAMEQ
@@ -810,21 +1060,76 @@ class MathicsParser:
         elif args[2] == '=!=':
             args[0] = Expression('UnsameQ', args[1], args[3])
 
+    def p_Element(self, args):
+        'expr : expr Element expr %prec ELEMENT'
+        args[0] = Expression('Element', args[1], args[3])
+
+    def p_NotElement(self, args):
+        'expr : expr NotElement expr %prec ELEMENT'
+        args[0] = Expression('NotElement', args[1], args[3])
+
+    def p_Subset(self, args):
+        'expr : expr Subset expr %prec ELEMENT'
+        args[0] = Expression('Subset', args[1], args[3])
+
+    def p_Superset(self, args):
+        'expr : expr Superset expr %prec ELEMENT'
+        args[0] = Expression('Superset', args[1], args[3])
+
+    def p_ForAll(self, args):
+        'expr : ForAll expr %prec FORALL'
+        args[0] = Expression('ForAll', args[2])
+
+    def p_Exists(self, args):
+        'expr : Exists expr %prec FORALL'
+        args[0] = Expression('Exists', args[2])
+
+    def p_NotExists(self, args):
+        'expr : NotExists expr %prec FORALL'
+        args[0] = Expression('NotExists', args[2])
+
     def p_Not(self, args):
-        'expr : Bang expr %prec NOT'
+        '''expr : Bang expr %prec NOT
+                | Not expr %prec NOT'''
         args[0] = Expression('Not', args[2])
 
     def p_And(self, args):
-        'expr : expr And expr %prec AND'
+        '''expr : expr op_And expr %prec AND
+                | expr And expr %prec AND'''
         args[0] = Expression('And', args[1], args[3])
+
+    def p_Nand(self, args):
+        'expr : expr Nand expr %prec AND'
+        args[0] = Expression('Nand', args[1], args[3])
 
     def p_Xor(self, args):
         'expr : expr Xor expr %prec XOR'
         args[0] = Expression('Xor', args[1], args[3])
 
+    def p_Xnor(self, args):
+        'expr : expr Xnor expr %prec XOR'
+        args[0] = Expression('Xnor', args[1], args[3])
+
     def p_Or(self, args):
-        'expr : expr Or expr %prec OR'
+        '''expr : expr op_Or expr %prec OR
+                | expr Or expr %prec OR'''
         args[0] = Expression('Or', args[1], args[3])
+
+    def p_Nor(self, args):
+        'expr : expr Nor expr %prec OR'
+        args[0] = Expression('Nor', args[1], args[3])
+
+    def p_Equivalent(self, args):
+        'expr : expr Equivalent expr %prec EQUIVALENT'
+        args[0] = Expression('Equivalent', args[1], args[3])
+
+    def p_Implies(self, args):
+        'expr : expr Implies expr %prec IMPLIES'
+        args[0] = Expression('Implies', args[1], args[3])
+
+    def p_SuchThat(self, args):
+        'expr : expr SuchThat expr %prec SUCHTHAT'
+        args[0] = Expression('SuchThat', args[1], args[3])
 
     def p_Repeated(self, args):
         '''expr : expr Repeated %prec REPEATED
@@ -839,11 +1144,11 @@ class MathicsParser:
         args[0] = Expression('Alternatives', args[1], args[3])
 
     def p_Pattern(self, args):
-        'expr : symbol Colon expr %prec PATTERN'
+        'expr : symbol RawColon expr %prec PATTERN'
         args[0] = Expression('Pattern', Symbol(args[1]), args[3])
 
     def p_Optional(self, args):
-        'expr : pattern Colon expr %prec PATTERN'
+        'expr : pattern RawColon expr %prec PATTERN'
         args[0] = Expression('Optional', args[1], args[3])
 
     def p_StringExpression(self, args):
@@ -855,12 +1160,14 @@ class MathicsParser:
         args[0] = Expression('Condition', args[1], args[3])
 
     def p_Rule(self, args):
-        '''expr : expr Rule expr %prec RULE
+        '''expr : expr op_Rule expr %prec RULE
+                | expr Rule expr %prec RULE'''
+        args[0] = Expression('Rule', args[1], args[3])
+
+    def p_RuleDelayed(self, args):
+        '''expr : expr op_RuleDelayed expr %prec RULE
                 | expr RuleDelayed expr %prec RULE'''
-        if args[2] == '->':
-            args[0] = Expression('Rule', args[1], args[3])
-        elif args[2] == ':>':
-            args[0] = Expression('RuleDelayed', args[1], args[3])
+        args[0] = Expression('RuleDelayed', args[1], args[3])
 
     def p_Replace(self, args):
         '''expr : expr ReplaceAll expr %prec REPLACE
@@ -884,20 +1191,32 @@ class MathicsParser:
         elif args[2] == '/=':
             args[0] = Expression('DivideBy', args[1], args[3])
 
-    def p_Function(self, args):
-        'expr : expr Function %prec FUNCTION'
+    def p_Ampersand(self, args):
+        'expr : expr RawAmpersand %prec AMPERSAND'
         args[0] = Expression('Function', args[1])
 
-    def p_RawColon(self, args):
-        'expr : expr RawColon expr %prec COLON'
+    def p_Colon(self, args):
+        'expr : expr Colon expr %prec COLON'
         args[0] = Expression('Colon', args[1], args[3])
 
     def p_Postfix(self, args):
         'expr : expr Postfix expr %prec POSTFIX'
         args[0] = Expression(args[3], args[1])
 
+    def p_VerticalSeparator(self, args):
+        'expr : expr VerticalSeparator expr %prec VERTICALSEPARATOR'
+        args[0] = Expression('VerticalSeparator', args[1], args[3])
+
+    def p_Therefore(self, args):
+        'expr : expr Therefore expr %prec THEREFORE'
+        args[0] = Expression('Therefore', args[1], args[3])
+
+    def p_Because(self, args):
+        'expr : expr Because expr %prec BECAUSE'
+        args[0] = Expression('Because', args[1], args[3])
+
     def p_Set(self, args):
-        '''expr : symbol TagSet expr Set expr %prec SET
+        '''expr : symbol TagSet expr Set expr %prec SET2
                 | expr Set expr %prec SET'''
         if len(args) == 4:
             args[0] = Expression('Set', args[1], args[3])
@@ -905,7 +1224,7 @@ class MathicsParser:
             args[0] = Expression('TagSet', Symbol(args[1]), args[3], args[5])
 
     def p_SetDelayed(self, args):
-        '''expr : symbol TagSet expr SetDelayed expr %prec SET
+        '''expr : symbol TagSet expr SetDelayed expr %prec SET2
                 | expr SetDelayed expr %prec SET'''
         if len(args) == 4:
             args[0] = Expression('SetDelayed', args[1], args[3])
@@ -921,12 +1240,16 @@ class MathicsParser:
         args[0] = Expression('UpSetDelayed', args[1], args[3])
 
     def p_Unset(self, args):
-        '''expr : symbol TagSet expr Unset %prec SET
-                | expr Unset %prec SET'''
+        '''expr : symbol TagSet expr Unset %prec SET2
+                | expr Unset %prec SET2'''
         if len(args) == 3:
             args[0] = Expression('Unset', args[1])
         elif len(args) == 4:
             args[0] = Expression('TagUnset', Symbol(args[1]), args[3])
+
+    def p_Function(self, args):
+        'expr : expr Function expr %prec SET2'
+        args[0] = Expression('Function', Expression('List', args[1]), args[3])
 
     def p_Put(self, args):
         'expr : expr Put filename %prec PUT'
@@ -1005,6 +1328,14 @@ assert parse('5!') == Expression('Factorial', Integer(5))
 assert parse('5 !!') == Expression('Factorial2', Integer(5))
 assert parse('5 ! !') == Expression('Factorial', Expression('Factorial', Integer(5)))
 
+assert parse('z \\[Conjugate]') == Expression('Conjugate', Symbol('z'))
+assert parse('z \\[Transpose]') == Expression('Transpose', Symbol('z'))
+assert parse('z \\[ConjugateTranspose]') == Expression('ConjugateTranspose', Symbol('z'))
+
+assert parse(u'z \uf3c7 ') == Expression('Transpose', Symbol('z'))
+assert parse(u'z \uf3c8 ') == Expression('Conjugate', Symbol('z'))
+assert parse(u'z \uf3c9 ') == Expression('ConjugateTranspose', Symbol('z'))
+
 assert parse("f'") == Expression(Expression('Derivative', Integer(1)), Symbol('f'))
 assert parse("f''") == Expression(Expression('Derivative', Integer(2)), Symbol('f'))
 
@@ -1016,13 +1347,44 @@ assert parse('1 \^ 2 \% 3') == Expression('Power', Expression('Subscript', Integ
 assert parse('\@ 3') == Expression('Sqrt', Integer(3))
 assert parse('\@ 3 \% 3') == Expression('Power', Integer(3), Expression('Times', Integer(1), Expression('Power', Integer(3), Integer(-1))))
 
+assert parse('\\[Integral] x \\[DifferentialD] x') == Expression('Integrate', Symbol('x'), Symbol('x'))
+assert parse('\\[Del] x') == Expression('Del', Symbol('x'))
+
+assert parse('\\[Square] x') == Expression('Square', Symbol('x'))
+assert parse('1 \\[SmallCircle] 2') == Expression('SmallCircle', Integer(1), Integer(2))
+assert parse(u'1 \u2218 2') == Expression('SmallCircle', Integer(1), Integer(2))
+
+assert parse('1 \\[CircleDot] 2') == Expression('CircleDot', Integer(1), Integer(2))
+assert parse(u'1 \u2299 2') == Expression('CircleDot', Integer(1), Integer(2))
+
+assert parse('1 \\[Diamond] 2') == Expression('Diamond', Integer(1), Integer(2))
+assert parse('1 \\[Wedge] 2') == Expression('Wedge', Integer(1), Integer(2))
+assert parse('1 \\[Vee] 2') == Expression('Vee', Integer(1), Integer(2))
+assert parse('1 \\[CircleTimes] 2') == Expression('CircleTimes', Integer(1), Integer(2))
+assert parse('1 \\[CenterDot] 2') == Expression('CenterDot', Integer(1), Integer(2))
+assert parse('1 \\[Star] 2') == Expression('Star', Integer(1), Integer(2))
+
+assert parse(u'1 \u22C4 2') == Expression('Diamond', Integer(1), Integer(2))
+assert parse(u'1 \u22C0 2') == Expression('Wedge', Integer(1), Integer(2))
+assert parse(u'1 \u22c1 2') == Expression('Vee', Integer(1), Integer(2))
+assert parse(u'1 \u2297 2') == Expression('CircleTimes', Integer(1), Integer(2))
+assert parse(u'1 \u00B7 2') == Expression('CenterDot', Integer(1), Integer(2))
+assert parse(u'1 \u22C6 2') == Expression('Star', Integer(1), Integer(2))
+
 assert parse('expr1 ** expr2') == Expression('NonCommutativeMultiply', Symbol('expr1'), Symbol('expr2'))
 #assert parse('expr1 ** expr2 ** expr3') == Expression('NonCommutativeMultiply', Symbol('expr1'), Symbol('expr2'), Symbol('expr3'))
+
+assert parse('1 . 2') == Expression('Dot', Integer(1), Integer(2))
+assert parse('1 \\[Cross] 2') == Expression('Cross', Integer(1), Integer(2))
+assert parse(u'1 \uf4a0 2') == Expression('Cross', Integer(1), Integer(2))
 
 assert parse('+1') == Integer(1)
 assert parse('-1') == Expression('Times', Integer(-1), Integer(1))
 
 assert parse('3/2') == Expression('Times', Integer(3), Expression('Power', Integer(2), Integer(-1)))
+assert parse('3\\[Divide]2') == Expression('Times', Integer(3), Expression('Power', Integer(2), Integer(-1)))
+assert parse(u'3 \u00f7 2') == Expression('Times', Integer(3), Expression('Power', Integer(2), Integer(-1)))
+
 assert parse('3\\2') == Expression('Backslash', Integer(3), Integer(2))
 
 assert parse('1 2') == Expression('Times', Integer(1), Integer(2))
@@ -1030,9 +1392,20 @@ assert parse('1*2') == Expression('Times', Integer(1), Integer(2))
 assert parse('1 2 3') == Expression('Times', Integer(1), Integer(2), Integer(3))
 assert parse('1*2*3') == Expression('Times', Integer(1), Integer(2), Integer(3))
 
+assert parse('1 \\[Times] 2') == Expression('Times', Integer(1), Integer(2))
+assert parse(u'1 \u00d7 2') == Expression('Times', Integer(1), Integer(2))
+
 assert parse('1 + 2') == Expression('Plus', Integer(1), Integer(2))
 assert parse('1 - 2') == Expression('Plus', Integer(1), Expression('Times', Integer(-1), Integer(2)))
 #assert parse('1 + 2 + 3') == Expression('Plus', Integer(1), Integer(2), Integer(3))
+
+assert parse('1 \[PlusMinus] 2') == Expression('PlusMinus', Integer(1), Integer(2))
+assert parse('1 \[MinusPlus] 2') == Expression('MinusPlus', Integer(1), Integer(2))
+assert parse('\[PlusMinus] 1') == Expression('PlusMinus', Integer(1))
+assert parse('\[MinusPlus] 1') == Expression('MinusPlus', Integer(1))
+
+assert parse(u'\u00b1 1') == Expression('PlusMinus', Integer(1))
+assert parse(u'\u2213 1') == Expression('MinusPlus', Integer(1))
 
 #FIXME
 #assert parse('1;;2;;3') == Expression('Span', Integer(1), Integer(2), Integer(3))
@@ -1060,7 +1433,12 @@ assert parse('1 =!= 2') == Expression('UnsameQ', Integer(1), Integer(2))
 
 assert parse('!1') == Expression('Not', Integer(1))
 assert parse('1 && 2') == Expression('And', Integer(1), Integer(2))
+assert parse('1 \\[And] 2') == Expression('And', Integer(1), Integer(2))
+assert parse(u'1 \u2227 2') == Expression('And', Integer(1), Integer(2))
+
 assert parse('1 || 2') == Expression('Or', Integer(1), Integer(2))
+assert parse('1 \\[Or] 2') == Expression('Or', Integer(1), Integer(2))
+assert parse(u'1 \u2228 2') == Expression('Or', Integer(1), Integer(2))
 
 assert parse('1..') == Expression('Repeated', Integer(1))
 assert parse('1...') == Expression('RepeatedNull', Integer(1))
@@ -1076,6 +1454,7 @@ assert parse('x ~~ y') == Expression('StringExpression', Symbol('x'), Symbol('y'
 
 assert parse('x /; y') == Expression('Condition', Symbol('x'), Symbol('y'))
 assert parse('x -> y') == Expression('Rule', Symbol('x'), Symbol('y'))
+assert parse('x :> y') == Expression('RuleDelayed', Symbol('x'), Symbol('y'))
 
 assert parse('x /. y') == Expression('ReplaceAll', Symbol('x'), Symbol('y'))
 assert parse('x //. y') == Expression('ReplaceRepeated', Symbol('x'), Symbol('y'))
@@ -1086,6 +1465,10 @@ assert parse('x *= y') == Expression('TimesBy', Symbol('x'), Symbol('y'))
 assert parse('x /= y') == Expression('DivideBy', Symbol('x'), Symbol('y'))
 
 assert parse('x &') == Expression('Function', Symbol('x'))
+
+assert parse('a \\[Colon] b') == Expression('Colon', Symbol('a'), Symbol('b'))
+assert parse(u'a \u2236 b') == Expression('Colon', Symbol('a'), Symbol('b'))
+
 assert parse('x // y') == Expression('y', Symbol('x'))
 
 assert parse('x = y') == Expression('Set', Symbol('x'), Symbol('y'))
@@ -1098,30 +1481,37 @@ assert parse('x/:1=1') == Expression('TagSet', Symbol('x'), Integer(1), Integer(
 assert parse('x/:1:=1') == Expression('TagSetDelayed', Symbol('x'), Integer(1), Integer(1))
 assert parse('x/:1=.') == Expression('TagUnset', Symbol('x'), Integer(1))
 
+assert parse('x \\[Function] y') == parse('Function[{x}, y]')
+assert parse(u'x \uf4a1 y') == parse('Function[{x}, y]')
+
 assert parse('1 \\` 2') == Expression('FormBox', Integer(2), Integer(1))
 
 #FIXME
 #assert parse('1 ; 5') == Expression('CompoundExpression', Integer(1), Integer(5))
 #assert parse('1 ;') == Expression('CompoundExpression', Integer(1), Symbol('Null'))
 
-## assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
-## assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
-## assert parse('{a,}') == Expression('List', Symbol('a'), Symbol('Null'))
-## assert parse('{,}') == Expression('List', Symbol('Null'), Symbol('Null'))
-## #assert parse('{,a}') == Expression('List', Symbol('Null'), Symbol('a')) #TODO
-## assert parse('Sin[x, y]') == Expression('Sin', Symbol('x'), Symbol('y'))
-## assert parse('a[[1]]') == Expression('Part', Symbol('a'), Integer(1))
-## assert parse('f_') == Expression('Pattern', Symbol('f'), Expression('Blank'))
-## assert parse('f__') == Expression('Pattern', Symbol('f'), Expression('BlankSequence'))
-## assert parse('f___') == Expression('Pattern', Symbol('f'), Expression('BlankNullSequence'))
-## assert parse('#2') == Expression('Slot', Integer(2))
-## assert parse('#') == Expression('Slot', Integer(1))
-## assert parse('##2') == Expression('SlotSequence', Integer(2))
-## assert parse('##') == Expression('SlotSequence', Integer(1))
-## assert parse('%2') == Expression('Out', Integer(2))
-## assert parse('%') == Expression('Out')
-## assert parse('%%') == Expression('Out', Integer(-2))
-## assert parse('%%%%') == Expression('Out', Integer(-4))
+assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
+assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
+assert parse('{a,}') == Expression('List', Symbol('a'), Symbol('Null'))
+assert parse('{,}') == Expression('List', Symbol('Null'), Symbol('Null'))
+assert parse('{}') == Expression('List')
+#assert parse('{,a}') == Expression('List', Symbol('Null'), Symbol('a')) #TODO
+
+assert parse('Sin[x, y]') == Expression('Sin', Symbol('x'), Symbol('y'))
+assert parse('a[[1]]') == Expression('Part', Symbol('a'), Integer(1))
+
+assert parse('f_') == Expression('Pattern', Symbol('f'), Expression('Blank'))
+assert parse('f__') == Expression('Pattern', Symbol('f'), Expression('BlankSequence'))
+assert parse('f___') == Expression('Pattern', Symbol('f'), Expression('BlankNullSequence'))
+
+assert parse('#2') == Expression('Slot', Integer(2))
+assert parse('#') == Expression('Slot', Integer(1))
+assert parse('##2') == Expression('SlotSequence', Integer(2))
+assert parse('##') == Expression('SlotSequence', Integer(1))
+assert parse('%2') == Expression('Out', Integer(2))
+assert parse('%') == Expression('Out')
+assert parse('%%') == Expression('Out', Integer(-2))
+assert parse('%%%%') == Expression('Out', Integer(-4))
 
 assert parse('x ! y') == Expression('Times', Expression('Factorial', Symbol('x')), Symbol('y'))
 assert parse('x ^ 2 y') == Expression('Times', Expression('Power', Symbol('x'), Integer(2)), Symbol('y'))
