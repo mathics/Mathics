@@ -62,9 +62,9 @@ class ParseError(TranslateError):
 
 precedence = (
     #('right', 'FORMBOX'),
-    #('nonassoc', 'COMPOUNDEXPRESSION'),
+    ('nonassoc', 'COMPOUNDEXPRESSION'),
     ('nonassoc', 'PUT'),
-    #('right', 'SET'),
+    ('right', 'SET'),
     ('right', 'POSTFIX'),
     #('right', 'COLON'),
     ('nonassoc', 'FUNCTION'),
@@ -203,6 +203,13 @@ tokens = (
     'op_DivideBy',
     'op_Function',
     'op_Postfix',
+    'op_Set',
+    'op_SetDelayed',
+    'op_UpSet',
+    'op_UpSetDelayed',
+    'op_TagSet',
+    'op_Unset',
+    'op_CompoundExpression',
 )
 
 literals = ['(', ')', '{', '}', ',']
@@ -309,6 +316,15 @@ class MathicsScanner:
 
     t_op_Function = r' \& '
     t_op_Postfix = r' \/\/ '
+
+    t_op_Set = r' \= '
+    t_op_SetDelayed = r' \:\= '
+    t_op_UpSet = r' \^\= '
+    t_op_UpSetDelayed = r' \^\:\= '
+    t_op_TagSet = r' \/\: '
+    t_op_Unset = r' \=\. '
+
+    t_op_CompoundExpression = r' \; '
 
     def build(self, **kwargs):
         self.lexer = lex.lex(debug=0, module=self, **kwargs)
@@ -458,26 +474,7 @@ class MathicsParser:
         expr = args[2]
         expr.parenthesized = True
         args[0] = expr
-    
-    #def p_tagset(self, args):
-    #    '''expr : expr other expr operator_0014 expr
-    #            | expr other expr operator_0049 expr
-    #            | expr other expr operator_0022'''
-    #    if args[4] == '=':
-    #        args[0] = Expression('TagSet', args[1], args[3], args[5])
-    #    elif args[4] == ':=':
-    #        args[0] = Expression('TagSetDelayed', args[1], args[3], args[5])
-    #    elif args[4] == '=.':
-    #        args[0] = Expression('TagUnset', args[1], args[3])
 
-    #def p_compound(self, args):
-    #    'expr : expr operator_0043 %prec COMPOUNDEXPRESSION'
-    #    args[0] = Expression('CompoundExpression', args[1], Symbol('Null'))
-    
-    #def p_parsed_expr(self, args):
-    #    'expr : parsedexpr'
-    #    args[0] = args[1]
-    
     def p_op_670_call(self, args):
         'expr : expr args %prec PART'
         expr = Expression(args[1], *args[2].items)
@@ -502,20 +499,6 @@ class MathicsParser:
         'position : parenthesis_0 sequence parenthesis_2'
         args[0] = PositionToken(args[2].items)
     
-    #def p_rest_left(self, args):
-    #    '''rest_left :
-    #                 | expr
-    #                 | expr binary_op'''
-    #    args[0] = RestToken()
-    #
-    #def p_rest_right(self, args):
-    #    '''rest_right :
-    #                  | expr
-    #                  | args rest_right
-    #                  | position rest_right
-    #                  | rest_right binary_op expr'''
-    #    args[0] = RestToken()
-
     def p_sequence(self, args):
         '''sequence :
                     | expr
@@ -601,14 +584,6 @@ class MathicsParser:
     def p_Get(self, args):
         'expr : op_Get filename %prec GET'
         args[0] = Expression('Get', args[2])
-
-    def p_Put(self, args):
-        'expr : expr op_Put filename %prec PUT'
-        args[0] = Expression('Put', args[1], args[3])
-
-    def p_PutAppend(self, args):
-        'expr : expr op_PutAppend filename %prec PUT'
-        args[0] = Expression('PutAppend', args[1], args[3])
 
     def p_MessageName(self, args):
         '''expr : expr op_MessageName string op_MessageName string %prec MESSAGENAME
@@ -914,6 +889,7 @@ class MathicsParser:
         'expr : expr op_Function %prec FUNCTION'
         args[0] = Expression('Function', args[1])
 
+    # Note that Colon is different from RawColon
     #def p_Colon(self, args):
     #    'expr : expr op_Colon expr %prec COLON'
     #    args[0] = Expression('Colon', args[1], args[3])
@@ -921,6 +897,54 @@ class MathicsParser:
     def p_Postfix(self, args):
         'expr : expr op_Postfix expr %prec POSTFIX'
         args[0] = Expression(args[3], args[1])
+
+    def p_Set(self, args):
+        '''expr : symbol op_TagSet expr op_Set expr %prec SET
+                | expr op_Set expr %prec SET'''
+        if len(args) == 4:
+            args[0] = Expression('Set', args[1], args[3])
+        elif len(args) == 6:
+            args[0] = Expression('TagSet', Symbol(args[1]), args[3], args[5])
+
+    def p_SetDelayed(self, args):
+        '''expr : symbol op_TagSet expr op_SetDelayed expr %prec SET
+                | expr op_SetDelayed expr %prec SET'''
+        if len(args) == 4:
+            args[0] = Expression('SetDelayed', args[1], args[3])
+        elif len(args) == 6:
+            args[0] = Expression('TagSetDelayed', Symbol(args[1]), args[3], args[5])
+
+    def p_UpSet(self, args):
+        'expr : expr op_UpSet expr %prec SET'
+        args[0] = Expression('UpSet', args[1], args[3])
+
+    def p_UpSetDelayed(self, args):
+        'expr : expr op_UpSetDelayed expr %prec SET'
+        args[0] = Expression('UpSetDelayed', args[1], args[3])
+
+    def p_Unset(self, args):
+        '''expr : symbol op_TagSet expr op_Unset %prec SET
+                | expr op_Unset %prec SET'''
+        if len(args) == 3:
+            args[0] = Expression('Unset', args[1])
+        elif len(args) == 4:
+            args[0] = Expression('TagUnset', Symbol(args[1]), args[3])
+
+    def p_Put(self, args):
+        'expr : expr op_Put filename %prec PUT'
+        args[0] = Expression('Put', args[1], args[3])
+
+    def p_PutAppend(self, args):
+        'expr : expr op_PutAppend filename %prec PUT'
+        args[0] = Expression('PutAppend', args[1], args[3])
+
+    def p_Compound(self, args):
+        '''expr : expr op_CompoundExpression expr %prec COMPOUNDEXPRESSION
+                | expr op_CompoundExpression %prec COMPOUNDEXPRESSION'''
+        if len(args) == 4:
+            args[0] = Expression('CompoundExpression', args[1], args[3])
+        if len(args) == 3:
+            args[0] = Expression('CompoundExpression', args[1], Symbol('Null'))
 
 scanner = MathicsScanner()
 scanner.build()
@@ -1062,29 +1086,38 @@ assert parse('x /= y') == Expression('DivideBy', Symbol('x'), Symbol('y'))
 assert parse('x &') == Expression('Function', Symbol('x'))
 assert parse('x // y') == Expression('y', Symbol('x'))
 
-# assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
-# assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
-# assert parse('{a,}') == Expression('List', Symbol('a'), Symbol('Null'))
-# assert parse('{,}') == Expression('List', Symbol('Null'), Symbol('Null'))
-# #assert parse('{,a}') == Expression('List', Symbol('Null'), Symbol('a')) #TODO
-# 
-# assert parse('Sin[x, y]') == Expression('Sin', Symbol('x'), Symbol('y'))
-# assert parse('a[[1]]') == Expression('Part', Symbol('a'), Integer(1))
-# 
-# assert parse('f_') == Expression('Pattern', Symbol('f'), Expression('Blank'))
-# assert parse('f__') == Expression('Pattern', Symbol('f'), Expression('BlankSequence'))
-# assert parse('f___') == Expression('Pattern', Symbol('f'), Expression('BlankNullSequence'))
-# 
-# assert parse('#2') == Expression('Slot', Integer(2))
-# assert parse('#') == Expression('Slot', Integer(1))
-# 
-# assert parse('##2') == Expression('SlotSequence', Integer(2))
-# assert parse('##') == Expression('SlotSequence', Integer(1))
-# 
-assert parse('%2') == Expression('Out', Integer(2))
-assert parse('%') == Expression('Out')
-assert parse('%%') == Expression('Out', Integer(-2))
-assert parse('%%%%') == Expression('Out', Integer(-4))
+assert parse('x = y') == Expression('Set', Symbol('x'), Symbol('y'))
+assert parse('x := y') == Expression('SetDelayed', Symbol('x'), Symbol('y'))
+assert parse('x ^= y') == Expression('UpSet', Symbol('x'), Symbol('y'))
+assert parse('x ^:= y') == Expression('UpSetDelayed', Symbol('x'), Symbol('y'))
+assert parse('x =.') == Expression('Unset', Symbol('x'))
+
+assert parse('x/:1=1') == Expression('TagSet', Symbol('x'), Integer(1), Integer(1))
+assert parse('x/:1:=1') == Expression('TagSetDelayed', Symbol('x'), Integer(1), Integer(1))
+assert parse('x/:1=.') == Expression('TagUnset', Symbol('x'), Integer(1))
+
+#FIXME
+#assert parse('1 ; 5') == Expression('CompoundExpression', Integer(1), Integer(5))
+#assert parse('1 ;') == Expression('CompoundExpression', Integer(1), Symbol('Null'))
+
+## assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
+## assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
+## assert parse('{a,}') == Expression('List', Symbol('a'), Symbol('Null'))
+## assert parse('{,}') == Expression('List', Symbol('Null'), Symbol('Null'))
+## #assert parse('{,a}') == Expression('List', Symbol('Null'), Symbol('a')) #TODO
+## assert parse('Sin[x, y]') == Expression('Sin', Symbol('x'), Symbol('y'))
+## assert parse('a[[1]]') == Expression('Part', Symbol('a'), Integer(1))
+## assert parse('f_') == Expression('Pattern', Symbol('f'), Expression('Blank'))
+## assert parse('f__') == Expression('Pattern', Symbol('f'), Expression('BlankSequence'))
+## assert parse('f___') == Expression('Pattern', Symbol('f'), Expression('BlankNullSequence'))
+## assert parse('#2') == Expression('Slot', Integer(2))
+## assert parse('#') == Expression('Slot', Integer(1))
+## assert parse('##2') == Expression('SlotSequence', Integer(2))
+## assert parse('##') == Expression('SlotSequence', Integer(1))
+## assert parse('%2') == Expression('Out', Integer(2))
+## assert parse('%') == Expression('Out')
+## assert parse('%%') == Expression('Out', Integer(-2))
+## assert parse('%%%%') == Expression('Out', Integer(-4))
 
 assert parse('x ! y') == Expression('Times', Expression('Factorial', Symbol('x')), Symbol('y'))
 assert parse('x ^ 2 y') == Expression('Times', Expression('Power', Symbol('x'), Integer(2)), Symbol('y'))
