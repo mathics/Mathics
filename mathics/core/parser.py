@@ -868,10 +868,6 @@ class MathicsParser:
     def p_StringJoin(self, args):
         args[0] = Flat('StringJoin', args)
 
-    #def p_StringJoin(self, args):
-    #    'expr : expr StringJoin expr %prec STRINGJOIN'
-    #    args[0] = Expression('StringJoin', args[1], args[3])
-
     def p_Power(self, args):
         '''expr : expr Power2 expr Otherscript expr %prec POWER
                 | expr Power expr %prec POWER'''
@@ -906,41 +902,21 @@ class MathicsParser:
     def p_SmallCircle(self, args):
         args[0] = Flat('SmallCircle', args)
 
-    #def p_SmallCircle(self, args):
-    #    'expr : expr SmallCircle expr %prec CROSS'
-    #    args[0] = Expression('SmallCircle', args[1], args[3])
-
     @FLAT('CircleDot', 'CIRCLEDOT')
     def p_CircleDot(self, args):
         args[0] = Flat('CircleDot', args)
-
-    #def p_CircleDot(self, args):
-    #    'expr : expr CircleDot expr %prec CIRCLEDOT'
-    #    args[0] = Expression('CircleDot', args[1], args[3])
 
     @FLAT('NonCommutativeMultiply', 'NONCOMMUTATIVEMULTIPLY')
     def p_NonCommutativeMultiply(self, args):
         args[0] = Flat('NonCommutativeMultiply', args)
 
-    #def p_NonCommutativeMultiply(self, args):
-    #    'expr : expr NonCommutativeMultiply expr %prec NONCOMMUTATIVEMULTIPLY'
-    #    args[0] = Expression('NonCommutativeMultiply', args[1], args[3])
-
     @FLAT('Cross', 'CROSS')
     def p_Cross(self, args):
         args[0] = Flat('Cross', args)
 
-    #def p_Cross(self, args):
-    #    'expr : expr Cross expr %prec CROSS'
-    #    args[0] = Expression('Cross', args[1], args[3])
-
     @FLAT('Dot', 'DOT')
     def p_Dot(self, args):
         args[0] = Flat('Dot', args)
-
-    #def p_Dot(self, args):
-    #    'expr : expr Dot expr %prec DOT'
-    #    args[0] = Expression('Dot', args[1], args[3])
 
     @FLAT('Plus', 'PLUS')
     def p_Plus(self, args):
@@ -978,17 +954,9 @@ class MathicsParser:
     def p_Intersection(self, args):
         args[0] = Flat('Intersection', args)
 
-    #def p_Intersection(self, args):
-    #    'expr : expr Intersection expr %prec INTERSECTION'
-    #    args[0] = Expression('Intersection', args[1], args[3])
-
     @FLAT('Union', 'UNION')
     def p_Union(self, args):
         args[0] = Flat('Union', args)
-
-    #def p_Union(self, args):
-    #    'expr : expr Union expr %prec UNION'
-    #    args[0] = Expression('Union', args[1], args[3])
 
     def p_Slash(self, args):
         '''expr : expr Slash expr %prec DIVIDE
@@ -999,25 +967,13 @@ class MathicsParser:
     def p_Diamond(self, args):
         args[0] = Flat('Diamond', args)
 
-    #def p_Diamond(self, args):
-    #    'expr : expr Diamond expr %prec DIAMOND'
-    #    args[0] = Expression('Diamond', args[1], args[3])
-
     @FLAT('Wedge', 'WEDGE')
     def p_Wedge(self, args):
         args[0] = Flat('Wedge', args)
 
-    #def p_Wedge(self, args):
-    #    'expr : expr Wedge expr %prec WEDGE'
-    #    args[0] = Expression('Wedge', args[1], args[3])
-
     @FLAT('Vee', 'VEE')
     def p_Vee(self, args):
         args[0] = Flat('Vee', args)
-
-    #def p_Vee(self, args):
-    #    'expr : expr Vee expr %prec VEE'
-    #    args[0] = Expression('Vee', args[1], args[3])
 
     @FLAT('CircleTimes', 'CIRCLETIMES')
     def p_CircleTimes(self, args):
@@ -1031,34 +987,18 @@ class MathicsParser:
     def p_CircleMinus(self, args):
         args[0] = Flat('CircleMinus', args)
 
-    #def p_CircleTimes(self, args):
-    #    'expr : expr CircleTimes expr %prec CIRCLETIMES'
-    #    args[0] = Expression('CircleTimes', args[1], args[3])
-
     @FLAT('CenterDot', 'CENTERDOT')
     def p_CenterDot(self, args):
         args[0] = Flat('CenterDot', args)
-
-    #def p_CenterDot(self, args):
-    #    'expr : expr CenterDot expr %prec CENTERDOT'
-    #    args[0] = Expression('CenterDot', args[1], args[3])
 
     @FLAT('Star', 'STAR')
     def p_Star(self, args):
         args[0] = Flat('Star', args)
 
-    #def p_Star(self, args):
-    #    'expr : expr Star expr %prec STAR'
-    #    args[0] = Expression('Star', args[1], args[3])
-
     @FLAT('Backslash', 'BACKSLASH')
     def p_Backslash(self, args):
         args[0] = Flat('Backslash', args)
     
-    #def p_Backslash(self, args):
-    #    'expr : expr Backslash expr %prec BACKSLASH'
-    #    args[0] = Expression('Backslash', args[1], args[3])
-
     @FLAT(['Times', 'Asterisk', ''], 'TIMES')
     def p_Times(self, args):
         if len(args) == 2:
@@ -1075,15 +1015,6 @@ class MathicsParser:
             elif len(args) == 4:
                 args[0] = [args[1], args[3]] 
 
-    #def p_Times(self, args):
-    #    '''expr : expr expr
-    #            | expr Asterisk expr %prec TIMES
-    #            | expr Times expr %prec TIMES'''
-    #    if len(args) == 3:
-    #        args[0] = builtins['Times'].parse([args[1], None, args[2]])
-    #    elif len(args) == 4:
-    #        args[0] = builtins['Times'].parse([args[1], None, args[3]])
-    
     def p_span_start(self, args):
         '''span_start :
                       | expr'''
@@ -1120,56 +1051,25 @@ class MathicsParser:
     def p_Equal(self, args):
         args[0] = Flat('Equal', args)
 
-    #def p_Equal(self, args):
-    #    '''expr : expr op_Equal expr %prec EQUAL
-    #            | expr LongEqual expr %prec EQUAL
-    #            | expr Equal expr %prec EQUAL'''
-    #    args[0] = Expression('Equal', args[1], args[3])
-
     @FLAT(['op_Unequal', 'NotEqual'], "EQUAL")
     def p_Unequal(self, args):
         args[0] = Flat('Unequal', args)
-
-    #def p_Unequal(self, args):
-    #    '''expr : expr op_Unequal expr %prec EQUAL
-    #            | expr NotEqual expr %prec EQUAL'''
-    #    args[0] = Expression('Unequal', args[1], args[3])
 
     @FLAT('Greater', 'EQUAL')
     def p_Greater(self, args):
         args[0] = Flat('Greater', args)
 
-    #def p_Greater(self, args):
-    #    'expr : expr Greater expr %prec EQUAL'
-    #    args[0] = Expression('Greater', args[1], args[3])
-
     @FLAT('Less', 'EQUAL')
     def p_Less(self, args):
         args[0] = Flat('Less', args)
-
-    #def p_Less(self, args):
-    #    'expr : expr Less expr %prec EQUAL'
-    #    args[0] = Expression('Less', args[1], args[3])
 
     @FLAT(['op_GreaterEqual', 'GreaterEqual', 'GreaterSlantEqual'], 'EQUAL')
     def p_GreaterEqual(self, args):
         args[0] = Flat('GreaterEqual', args)
 
-    #def p_GreaterEqual(self, args):
-    #    '''expr : expr op_GreaterEqual expr %prec EQUAL
-    #            | expr GreaterEqual expr %prec EQUAL
-    #            | expr GreaterSlantEqual expr %prec EQUAL'''
-    #    args[0] = Expression('GreaterEqual', args[1], args[3])
-
     @FLAT(['op_LessEqual', 'LessEqual', 'LessSlantEqual'], 'EQUAL')
     def p_LessEqual(self, args):
         args[0] = Flat('LessEqual', args)
-
-    #def p_LessEqual(self, args):
-    #    '''expr : expr op_LessEqual expr %prec EQUAL
-    #            | expr LessEqual expr %prec EQUAL
-    #            | expr LessSlantEqual expr %prec EQUAL'''
-    #    args[0] = Expression('LessEqual', args[1], args[3])
 
     @FLAT('VerticalBar', 'EQUAL')
     def p_VerticalBar(self, args):
@@ -1187,22 +1087,6 @@ class MathicsParser:
     def p_NotDoubleVerticalBar(self, args):
         args[0] = Flat('NotDoubleVerticalBar', args)
 
-    #def p_VerticalBar(self, args):
-    #    'expr : expr VerticalBar expr %prec EQUAL'
-    #    args[0] = Expression('VerticalBar', args[1], args[3])
-
-    #def p_NotVerticalBar(self, args):
-    #    'expr : expr NotVerticalBar expr %prec EQUAL'
-    #    args[0] = Expression('NotVerticalBar', args[1], args[3])
-
-    #def p_DoubleVerticalBar(self, args):
-    #    'expr : expr DoubleVerticalBar expr %prec EQUAL'
-    #    args[0] = Expression('DoubleVerticalBar', args[1], args[3])
-
-    #def p_NotDoubleVerticalBar(self, args):
-    #    'expr : expr NotDoubleVerticalBar expr %prec EQUAL'
-    #    args[0] = Expression('NotDoubleVerticalBar', args[1], args[3])
-
     @FLAT('SameQ', 'SAMEQ')
     def p_SameQ(self, args):
         args[0] = Flat('SameQ', args)
@@ -1211,45 +1095,21 @@ class MathicsParser:
     def p_Unsame(self, args):
         args[0] = Flat('UnsameQ', args)
 
-    #def p_SameQ(self, args):
-    #    '''expr : expr SameQ expr %prec SAMEQ
-    #            | expr UnsameQ expr %prec SAMEQ'''
-    #    if args[2] == '===':
-    #        args[0] = Expression('SameQ', args[1], args[3])
-    #    elif args[2] == '=!=':
-    #        args[0] = Expression('UnsameQ', args[1], args[3])
-
     @FLAT('Element', 'ELEMENT')
     def p_Element(self, args):
         args[0] = Flat('Element', args)
-
-    #def p_Element(self, args):
-    #    'expr : expr Element expr %prec ELEMENT'
-    #    args[0] = Expression('Element', args[1], args[3])
 
     @FLAT('NotElement', 'ELEMENT')
     def p_NotElement(self, args):
         args[0] = Flat('NotElement', args)
 
-    #def p_NotElement(self, args):
-    #    'expr : expr NotElement expr %prec ELEMENT'
-    #    args[0] = Expression('NotElement', args[1], args[3])
-
     @FLAT('Subset', 'ELEMENT')
     def p_Subset(self, args):
         args[0] = Flat('Subset', args)
 
-    #def p_Subset(self, args):
-    #    'expr : expr Subset expr %prec ELEMENT'
-    #    args[0] = Expression('Subset', args[1], args[3])
-
     @FLAT('Superset', 'ELEMENT')
     def p_Superset(self, args):
         args[0] = Flat('Superset', args)
-
-    #def p_Superset(self, args):
-    #    'expr : expr Superset expr %prec ELEMENT'
-    #    args[0] = Expression('Superset', args[1], args[3])
 
     def p_ForAll(self, args):
         'expr : ForAll expr %prec FORALL'
@@ -1272,59 +1132,29 @@ class MathicsParser:
     def p_And(self, args):
         args[0] = Flat('And', args)
 
-    #def p_And(self, args):
-    #    '''expr : expr op_And expr %prec AND
-    #            | expr And expr %prec AND'''
-    #    args[0] = Expression('And', args[1], args[3])
-
     @FLAT('Nand', 'AND')
     def p_Nand(self, args):
         args[0] = Flat('Nand', args)
-
-    #def p_Nand(self, args):
-    #    'expr : expr Nand expr %prec AND'
-    #    args[0] = Expression('Nand', args[1], args[3])
 
     @FLAT('Xor', 'XOR')
     def p_Xor(self, args):
         args[0] = Flat('Xor', args)
 
-    #def p_Xor(self, args):
-    #    'expr : expr Xor expr %prec XOR'
-    #    args[0] = Expression('Xor', args[1], args[3])
-
     @FLAT('Xnor', 'XOR')
     def p_Xnor(self, args):
         args[0] = Flat('Xnor', args)
-
-    #def p_Xnor(self, args):
-    #    'expr : expr Xnor expr %prec XOR'
-    #    args[0] = Expression('Xnor', args[1], args[3])
 
     @FLAT(['op_Or', 'Or'], 'OR')
     def p_Or(self, args):
         args[0] = Flat('Or', args)
 
-    #def p_Or(self, args):
-    #    '''expr : expr op_Or expr %prec OR
-    #            | expr Or expr %prec OR'''
-    #    args[0] = Expression('Or', args[1], args[3])
-
     @FLAT('Nor', 'OR')
     def p_Nor(self, args):
         args[0] = Flat('Nor', args)
 
-    #def p_Nor(self, args):
-    #    'expr : expr Nor expr %prec OR'
-    #    args[0] = Expression('Nor', args[1], args[3])
-
     @FLAT('Equivalent', 'EQUIVALENT')
     def p_Equivalent(self, args):
         args[0] = Flat('Equivalent', args)
-
-    #def p_Equivalent(self, args):
-    #    'expr : expr Equivalent expr %prec EQUIVALENT'
-    #    args[0] = Expression('Equivalent', args[1], args[3])
 
     def p_Implies(self, args):
         'expr : expr Implies expr %prec IMPLIES'
@@ -1345,10 +1175,6 @@ class MathicsParser:
     @FLAT('Alternatives', 'ALTERNATIVES')
     def p_Alternatives(self, args):
         args[0] = Flat('Alternatives', args)
-
-    #def p_Alternatives(self, args):
-    #    'expr : expr Alternatives expr %prec ALTERNATIVES'
-    #    args[0] = Expression('Alternatives', args[1], args[3])
 
     def p_Pattern(self, args):
         'expr : symbol RawColon expr %prec PATTERN'
@@ -1406,10 +1232,6 @@ class MathicsParser:
     def p_Colon(self, args):
         args[0] = Flat('Colon', args)
 
-    #def p_Colon(self, args):
-    #    'expr : expr Colon expr %prec COLON'
-    #    args[0] = Expression('Colon', args[1], args[3])
-
     def p_Postfix(self, args):
         'expr : expr Postfix expr %prec POSTFIX'
         args[0] = Expression(args[3], args[1])
@@ -1417,10 +1239,6 @@ class MathicsParser:
     @FLAT('VerticalSeparator', 'VERTICALSEPARATOR')
     def p_VerticalSeparator(self, args):
         args[0] = Flat('VerticalSeparator', args)
-
-    #def p_VerticalSeparator(self, args):
-    #    'expr : expr VerticalSeparator expr %prec VERTICALSEPARATOR'
-    #    args[0] = Expression('VerticalSeparator', args[1], args[3])
 
     def p_Therefore(self, args):
         'expr : expr Therefore expr %prec THEREFORE'
