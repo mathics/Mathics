@@ -61,12 +61,12 @@ class ParseError(TranslateError):
         return u"Parse error at or near token %s." % str(self.token)
 
 precedence = (
-    #('right', 'FORMBOX'),
+    ('right', 'FORMBOX'),
     ('nonassoc', 'COMPOUNDEXPRESSION'),
     ('nonassoc', 'PUT'),
     ('right', 'SET'),
     ('right', 'POSTFIX'),
-    #('right', 'COLON'),
+    ('right', 'COLON'),
     ('nonassoc', 'FUNCTION'),
     ('right', 'ADDTO'),
     ('left', 'REPLACE'),
@@ -141,75 +141,77 @@ tokens = (
     'slotseq',
     'span',
     #'parsedexpr',
-    'op_Get',
-    'op_Put',
-    'op_PutAppend',
-    'op_MessageName',
-    'op_Overscript',
-    'op_Underscript',
-    'op_Subscript',
-    'op_Otherscript',
-    'op_PatternTest',
-    'op_Increment',
-    'op_Decrement',
-    'op_Prefix',
-    'op_Infix',
-    'op_Apply1',
-    'op_Apply2',
-    'op_Map',
-    'op_MapAll',
-    'op_Bang',
-    'op_DoubleBang',
-    'op_Conjugate',
-    'op_Transpose',
-    'op_ConjugateTranspose',
-    'op_Derivative',
-    'op_StringJoin',
-    'op_Power',
-    'op_Power2',
-    'op_Sqrt',
-    'op_NonCommutativeMultiply',
-    'op_Plus',
-    'op_Minus',
-    'op_PlusMinus',
-    'op_MinusPlus',
-    'op_Slash',
-    'op_Backslash',
-    'op_Times',
-    'op_Equal',
-    'op_Unequal',
-    'op_Greater',
-    'op_Less',
-    'op_GreaterEqual',
-    'op_LessEqual',
-    'op_SameQ',
-    'op_UnsameQ',
-    'op_And',
-    'op_Xor',
-    'op_Or',
-    'op_Repeated',
-    'op_RepeatedNull',
-    'op_Alternatives',
-    'op_Colon',
-    'op_StringExpression',
-    'op_Condition',
-    'op_Rule',
-    'op_RuleDelayed',
-    'op_ReplaceAll',
-    'op_ReplaceRepeated',
-    'op_AddTo',
-    'op_SubtractFrom',
-    'op_TimesBy',
-    'op_DivideBy',
-    'op_Function',
-    'op_Postfix',
-    'op_Set',
-    'op_SetDelayed',
-    'op_UpSet',
-    'op_UpSetDelayed',
-    'op_TagSet',
-    'op_Unset',
-    'op_CompoundExpression',
+    'Get',
+    'Put',
+    'PutAppend',
+    'MessageName',
+    'Overscript',
+    'Underscript',
+    'Subscript',
+    'Otherscript',
+    'PatternTest',
+    'Increment',
+    'Decrement',
+    'Prefix',
+    'Infix',
+    'Apply1',
+    'Apply2',
+    'Map',
+    'MapAll',
+    'Bang',
+    'DoubleBang',
+    'Conjugate',
+    'Transpose',
+    'ConjugateTranspose',
+    'Derivative',
+    'StringJoin',
+    'Power',
+    'Power2',
+    'Sqrt',
+    'NonCommutativeMultiply',
+    'Plus',
+    'Minus',
+    'PlusMinus',
+    'MinusPlus',
+    'Slash',
+    'Backslash',
+    'Times',
+    'Equal',
+    'Unequal',
+    'Greater',
+    'Less',
+    'GreaterEqual',
+    'LessEqual',
+    'SameQ',
+    'UnsameQ',
+    'And',
+    'Xor',
+    'Or',
+    'Repeated',
+    'RepeatedNull',
+    'Alternatives',
+    'Colon',
+    'StringExpression',
+    'Condition',
+    'Rule',
+    'RuleDelayed',
+    'ReplaceAll',
+    'ReplaceRepeated',
+    'AddTo',
+    'SubtractFrom',
+    'TimesBy',
+    'DivideBy',
+    'Function',
+    'RawColon',
+    'Postfix',
+    'Set',
+    'SetDelayed',
+    'UpSet',
+    'UpSetDelayed',
+    'TagSet',
+    'Unset',
+    'Semicolon',
+    'FormBox',
 )
 
 literals = ['(', ')', '{', '}', ',']
@@ -234,97 +236,99 @@ class MathicsScanner:
 
     t_span = r' \;\; '
 
-    t_op_MessageName = r' \:\: '
-    t_op_Get = r' \<\< '
-    t_op_Put = r' \>\> '
-    t_op_PutAppend = r' \>\>\> '
+    t_MessageName = r' \:\: '
+    t_Get = r' \<\< '
+    t_Put = r' \>\> '
+    t_PutAppend = r' \>\>\> '
 
-    t_op_Overscript = r' \\\& '
-    t_op_Underscript = r' \\\+ '
-    t_op_Subscript = r' \\\_ '
-    t_op_Otherscript = r' \\\% '
+    t_Overscript = r' \\\& '
+    t_Underscript = r' \\\+ '
+    t_Subscript = r' \\\_ '
+    t_Otherscript = r' \\\% '
 
-    t_op_PatternTest = r' \? '
-    t_op_Increment = r' \+\+ '
-    t_op_Decrement = r' \-\- '
+    t_PatternTest = r' \? '
+    t_Increment = r' \+\+ '
+    t_Decrement = r' \-\- '
 
-    t_op_Prefix = r' \@ '
-    t_op_Infix = r' \~ '
-    t_op_Apply1 = r' \@\@ '
-    t_op_Apply2 = r' \@\@\@ '
-    t_op_Map = r' \/\@ '
-    t_op_MapAll = r' \/\/\@ '
+    t_Prefix = r' \@ '
+    t_Infix = r' \~ '
+    t_Apply1 = r' \@\@ '
+    t_Apply2 = r' \@\@\@ '
+    t_Map = r' \/\@ '
+    t_MapAll = r' \/\/\@ '
 
-    t_op_Bang = r' \! '
-    t_op_DoubleBang = r' \!\! '
-
-    #TODO
-    #t_op_Conjugate = r''
-    #t_op_Transpose = r''
-    #t_op_ConjugateTranspose = r''
-
-    t_op_Derivative = r' \'+ '
-    t_op_StringJoin = r' \<\> '
-
-    t_op_Power = r' \^ '
-    t_op_Power2 = r' \\\^ '
-    t_op_Sqrt = r' \\\@ '
-    t_op_NonCommutativeMultiply = r' \*\* '
-
-    t_op_Plus = r' \+ '
-    t_op_Minus = r' \- '
-    t_op_Slash = r' \/ '
-    t_op_Backslash = r' \\ '
-
-    t_op_Times = r' \* '
+    t_Bang = r' \! '
+    t_DoubleBang = r' \!\! '
 
     #TODO
-    #t_op_PlusMinus = r''
-    #t_op_MinusPlus = r''
+    #t_Conjugate = r''
+    #t_Transpose = r''
+    #t_ConjugateTranspose = r''
 
-    t_op_Equal = r' \=\= '
-    t_op_Unequal = r' \!\= '
-    t_op_Greater = r' \> '
-    t_op_Less = r' \< '
-    t_op_GreaterEqual = r' \>\= '
-    t_op_LessEqual = r' \<\= '
+    t_Derivative = r' \'+ '
+    t_StringJoin = r' \<\> '
 
-    t_op_SameQ = r' \=\=\= '
-    t_op_UnsameQ = r' \=\!\= '
+    t_Power = r' \^ '
+    t_Power2 = r' \\\^ '
+    t_Sqrt = r' \\\@ '
+    t_NonCommutativeMultiply = r' \*\* '
 
-    t_op_And = r' \&\& '
-    #t_op_Xor = r''     #TODO
-    t_op_Or = r' \|\|  '
+    t_Plus = r' \+ '
+    t_Minus = r' \- '
+    t_Slash = r' \/ '
+    t_Backslash = r' \\ '
 
-    t_op_Repeated = r' \.\. '
-    t_op_RepeatedNull = r' \.\.\. '
-    t_op_Alternatives = r' \| '
+    t_Times = r' \* '
 
-    t_op_Colon = r' \: '
-    t_op_StringExpression = r' \~\~ '
-    t_op_Condition = r' \/\; '
+    #TODO
+    #t_PlusMinus = r''
+    #t_MinusPlus = r''
 
-    t_op_Rule = r' \-\> '
-    t_op_RuleDelayed = r' \:\> '
-    t_op_ReplaceAll = r' \/\. '
-    t_op_ReplaceRepeated = r' \/\/\. '
+    t_Equal = r' \=\= '
+    t_Unequal = r' \!\= '
+    t_Greater = r' \> '
+    t_Less = r' \< '
+    t_GreaterEqual = r' \>\= '
+    t_LessEqual = r' \<\= '
 
-    t_op_AddTo = r' \+\= '
-    t_op_SubtractFrom = r' \-\=  '
-    t_op_TimesBy = r' \*\= '
-    t_op_DivideBy = r' \/\=  '
+    t_SameQ = r' \=\=\= '
+    t_UnsameQ = r' \=\!\= '
 
-    t_op_Function = r' \& '
-    t_op_Postfix = r' \/\/ '
+    t_And = r' \&\& '
+    #t_Xor = r''     #TODO
+    t_Or = r' \|\|  '
 
-    t_op_Set = r' \= '
-    t_op_SetDelayed = r' \:\= '
-    t_op_UpSet = r' \^\= '
-    t_op_UpSetDelayed = r' \^\:\= '
-    t_op_TagSet = r' \/\: '
-    t_op_Unset = r' \=\. '
+    t_Repeated = r' \.\. '
+    t_RepeatedNull = r' \.\.\. '
+    t_Alternatives = r' \| '
 
-    t_op_CompoundExpression = r' \; '
+    t_Colon = r' \: '
+    t_StringExpression = r' \~\~ '
+    t_Condition = r' \/\; '
+
+    t_Rule = r' \-\> '
+    t_RuleDelayed = r' \:\> '
+    t_ReplaceAll = r' \/\. '
+    t_ReplaceRepeated = r' \/\/\. '
+
+    t_AddTo = r' \+\= '
+    t_SubtractFrom = r' \-\=  '
+    t_TimesBy = r' \*\= '
+    t_DivideBy = r' \/\=  '
+
+    t_Function = r' \& '
+    #t_RawColon = r''   #TODO
+    t_Postfix = r' \/\/ '
+
+    t_Set = r' \= '
+    t_SetDelayed = r' \:\= '
+    t_UpSet = r' \^\= '
+    t_UpSetDelayed = r' \^\:\= '
+    t_TagSet = r' \/\: '
+    t_Unset = r' \=\. '
+
+    t_Semicolon = r' \; '
+    t_FormBox = r' \\\` '
 
     def build(self, **kwargs):
         self.lexer = lex.lex(debug=0, module=self, **kwargs)
@@ -434,20 +438,15 @@ class AbstractToken(object):
 class CompoundToken(AbstractToken):
     def __init__(self, items):
         self.items = items
-        
+
 class SequenceToken(CompoundToken):
     pass
-        
+
 class ArgsToken(CompoundToken):
     pass
-        
+
 class PositionToken(CompoundToken):
     pass
-
-class RestToken(AbstractToken):
-    pass
-
-    # Actual expressions in there don't matter - we just use its parse_tokens property!
 
 
 class MathicsParser:
@@ -475,13 +474,13 @@ class MathicsParser:
         expr.parenthesized = True
         args[0] = expr
 
-    def p_op_670_call(self, args):
+    def p_670_call(self, args):
         'expr : expr args %prec PART'
         expr = Expression(args[1], *args[2].items)
         expr.parenthesized = True # to handle e.g. Power[a,b]^c correctly
         args[0] = expr
     
-    def p_op_670_part(self, args):
+    def p_670_part(self, args):
         'expr : expr position %prec PART'
         args[0] = Expression('Part', args[1], *args[2].items)
     
@@ -582,22 +581,22 @@ class MathicsParser:
         args[0] = String(args[1])
 
     def p_Get(self, args):
-        'expr : op_Get filename %prec GET'
+        'expr : Get filename %prec GET'
         args[0] = Expression('Get', args[2])
 
     def p_MessageName(self, args):
-        '''expr : expr op_MessageName string op_MessageName string %prec MESSAGENAME
-                | expr op_MessageName string %prec MESSAGENAME'''
+        '''expr : expr MessageName string MessageName string %prec MESSAGENAME
+                | expr MessageName string %prec MESSAGENAME'''
         if len(args) == 4:
             args[0] = Expression('MessageName', args[1], String(args[3]))
         elif len(args) == 6:
             args[0] = Expression('MessageName', args[1], String(args[3]), String(args[5]))
 
     def p_OverScript(self, args):
-        '''expr : expr op_Underscript expr op_Otherscript expr %prec OVERSCRIPT
-                | expr op_Overscript expr op_Otherscript expr %prec OVERSCRIPT
-                | expr op_Overscript expr %prec OVERSCRIPT
-                | expr op_Underscript expr %prec OVERSCRIPT'''
+        '''expr : expr Underscript expr Otherscript expr %prec OVERSCRIPT
+                | expr Overscript expr Otherscript expr %prec OVERSCRIPT
+                | expr Overscript expr %prec OVERSCRIPT
+                | expr Underscript expr %prec OVERSCRIPT'''
         if len(args) == 4:
             if args[2] == '\\+':
                 args[0] = Expression('Underscript', args[1], args[3])
@@ -610,142 +609,142 @@ class MathicsParser:
                 args[0] = Expression('Underoverscript', args[1], args[5], args[3])
 
     def p_Subscript(self, args):
-        '''expr : expr op_Subscript expr op_Otherscript expr %prec SUBSCRIPT
-                | expr op_Subscript expr %prec SUBSCRIPT'''
+        '''expr : expr Subscript expr Otherscript expr %prec SUBSCRIPT
+                | expr Subscript expr %prec SUBSCRIPT'''
         if len(args) == 4:
             args[0] = Expression('Subscript', args[1], args[3])
         elif len(args) == 6:
             args[0] = Expression('Power', Expression('Subscript', args[1], args[3]), args[5])
 
     def p_PatternTest(self, args):
-        'expr : expr op_PatternTest expr %prec PATTERNTEST'
+        'expr : expr PatternTest expr %prec PATTERNTEST'
         args[0] = Expression('PatternTest', args[1], args[3])
 
     def p_Increment(self, args):
-        '''expr : expr op_Increment %prec INCREMENT
-                | expr op_Decrement %prec INCREMENT'''
+        '''expr : expr Increment %prec INCREMENT
+                | expr Decrement %prec INCREMENT'''
         if args[2] == '++':
             args[0] = Expression('Increment', args[1])
         elif args[2] == '--':
             args[0] = Expression('Decrement', args[1])
 
     def p_PreIncrement(self, args):
-        '''expr : op_Increment expr %prec PREINCREMENT
-                | op_Decrement expr %prec PREINCREMENT'''
+        '''expr : Increment expr %prec PREINCREMENT
+                | Decrement expr %prec PREINCREMENT'''
         if args[1] == '++':
             args[0] = Expression('PreIncrement', args[2])
         elif args[1] == '--':
             args[0] = Expression('PreDecrement', args[2])
 
     def p_Prefix(self, args):
-        'expr : expr op_Prefix expr %prec PREFIX'
+        'expr : expr Prefix expr %prec PREFIX'
         args[0] = Expression(args[1], args[3])
 
     def p_Infix(self, args):
-        'expr : expr op_Infix expr op_Infix expr %prec INFIX'
+        'expr : expr Infix expr Infix expr %prec INFIX'
         args[0] = Expression(args[3], args[1], args[5])
 
     def p_Apply(self, args):
-        '''expr : expr op_Apply1 expr %prec APPLY
-                | expr op_Apply2 expr %prec APPLY
-                | expr op_Map expr %prec APPLY
-                | expr op_MapAll expr %prec APPLY'''
+        '''expr : expr Apply1 expr %prec APPLY
+                | expr Apply2 expr %prec APPLY
+                | expr Map expr %prec APPLY
+                | expr MapAll expr %prec APPLY'''
         if args[2] == '@@':
             args[0] = Expression('Apply', args[1], args[3])
         elif args[2] == '@@@':
             args[0] = Expression('Apply', args[1], args[3], Expression('List', Integer(1)))
 
     def p_Factorial(self, args):
-        '''expr : expr op_Bang %prec FACTORIAL
-                | expr op_DoubleBang %prec FACTORIAL'''
+        '''expr : expr Bang %prec FACTORIAL
+                | expr DoubleBang %prec FACTORIAL'''
         if args[2] == '!':
             args[0] = Expression('Factorial', args[1])
         elif args[2] == '!!':
             args[0] = Expression('Factorial2', args[1])
 
     def p_Conjugate(self, args):
-        '''expr : expr op_Conjugate %prec CONJUGATE'''
+        '''expr : expr Conjugate %prec CONJUGATE'''
         args[0] = Expression('Conjugate', args[1])
 
     def p_Transpose(self, args):
-        '''expr : expr op_Transpose %prec CONJUGATE'''
+        '''expr : expr Transpose %prec CONJUGATE'''
         args[0] = Expression('Transpose', args[1])
 
     def p_ConjugateTranspose(self, args):
-        '''expr : expr op_ConjugateTranspose %prec CONJUGATE'''
+        '''expr : expr ConjugateTranspose %prec CONJUGATE'''
         args[0] = Expression('ConjugateTranspose', args[1])
 
     def p_Derivative(self, args):
-        'expr : expr op_Derivative %prec DERIVATIVE'
+        'expr : expr Derivative %prec DERIVATIVE'
         args[0] = Expression(Expression('Derivative', Integer(len(args[2]))), args[1])
 
     def p_StringJoin(self, args):
-        'expr : expr op_StringJoin expr %prec STRINGJOIN'
+        'expr : expr StringJoin expr %prec STRINGJOIN'
         args[0] = Expression('StringJoin', args[1], args[3])
 
     def p_Power(self, args):
-        '''expr : expr op_Power2 expr op_Otherscript expr %prec POWER
-                | expr op_Power expr %prec POWER'''
+        '''expr : expr Power2 expr Otherscript expr %prec POWER
+                | expr Power expr %prec POWER'''
         if args[2] == '^':
             args[0] = Expression('Power', args[1], args[3])
         elif args[2] == '\\^':
             args[0] = Expression('Power', Expression('Subscript', args[1], args[5]), args[3])
 
     def p_Sqrt(self, args):
-        '''expr : op_Sqrt expr op_Otherscript expr %prec SQRT
-                | op_Sqrt expr %prec SQRT'''
+        '''expr : Sqrt expr Otherscript expr %prec SQRT
+                | Sqrt expr %prec SQRT'''
         if len(args) == 3:
             args[0] = Expression('Sqrt', args[2])
         elif len(args) == 5:
             args[0] = Expression('Power', args[2], Expression('Times', Integer(1), Expression('Power', args[4], Integer(-1))))
 
     def p_NonCommutativeMultiply(self, args):
-        'expr : expr op_NonCommutativeMultiply expr %prec NONCOMMUTATIVEMULTIPLY'
+        'expr : expr NonCommutativeMultiply expr %prec NONCOMMUTATIVEMULTIPLY'
         args[0] = Expression('NonCommutativeMultiply', args[1], args[3])
 
     def p_Plus(self, args):
-        '''expr : expr op_Plus expr %prec PLUS
-                | op_Plus expr %prec MINUS'''
+        '''expr : expr Plus expr %prec PLUS
+                | Plus expr %prec MINUS'''
         if len(args) == 3:
             args[0] = args[2]
         elif len(args) == 4:
             args[0] = Expression('Plus', args[1], args[3])
 
     def p_Minus(self, args):
-        '''expr : expr op_Minus expr %prec PLUS
-                | op_Minus expr %prec MINUS'''
+        '''expr : expr Minus expr %prec PLUS
+                | Minus expr %prec MINUS'''
         if len(args) == 3:
             args[0] = Expression('Times', Integer(-1), args[2])
         elif len(args) == 4:
             args[0] = Expression('Plus', args[1], Expression('Times', Integer(-1), args[3]))
 
     def p_PlusMinus(self, args):
-        '''expr : expr op_PlusMinus expr %prec PLUS
-                | op_PlusMinus expr %prec MINUS'''
+        '''expr : expr PlusMinus expr %prec PLUS
+                | PlusMinus expr %prec MINUS'''
         if len(args) == 3:
             args[0] = Expression('PlusMinus', args[2])
         elif len(args) == 4:
             args[0] = Expression('PlusMinus', args[1], args[3])
 
     def p_MinusPlus(self, args):
-        '''expr : expr op_MinusPlus expr %prec PLUS
-                | op_MinusPlus expr %prec MINUS'''
+        '''expr : expr MinusPlus expr %prec PLUS
+                | MinusPlus expr %prec MINUS'''
         if len(args) == 3:
             args[0] = Expression('MinusPlus', args[2])
         elif len(args) == 4:
             args[0] = Expression('MinusPlus', args[1], args[3])
 
     def p_Slash(self, args):
-        'expr : expr op_Slash expr %prec DIVIDE'
+        'expr : expr Slash expr %prec DIVIDE'
         args[0] = Expression('Times', args[1], Expression('Power', args[3], Integer(-1)))
 
     def p_Backslash(self, args):
-        'expr : expr op_Backslash expr %prec BACKSLASH'
+        'expr : expr Backslash expr %prec BACKSLASH'
         args[0] = Expression('Backslash', args[1], args[3])
 
     def p_Times(self, args):
         '''expr : expr expr %prec TIMES
-                | expr op_Times expr %prec TIMES'''
+                | expr Times expr %prec TIMES'''
         if len(args) == 3:
             args[0] = builtins['Times'].parse([args[1], None, args[2]])
         elif len(args) == 4:
@@ -784,12 +783,12 @@ class MathicsParser:
             args[0] = Expression('Span', args[1], args[3], args[5])
 
     def p_Equal(self, args):
-        '''expr : expr op_Equal expr %prec EQUAL
-                | expr op_Unequal expr %prec EQUAL
-                | expr op_Greater expr %prec EQUAL
-                | expr op_Less expr %prec EQUAL
-                | expr op_GreaterEqual expr %prec EQUAL
-                | expr op_LessEqual expr %prec EQUAL'''
+        '''expr : expr Equal expr %prec EQUAL
+                | expr Unequal expr %prec EQUAL
+                | expr Greater expr %prec EQUAL
+                | expr Less expr %prec EQUAL
+                | expr GreaterEqual expr %prec EQUAL
+                | expr LessEqual expr %prec EQUAL'''
         if args[2] == '==':
             args[0] = Expression('Equal', args[1], args[3])
         elif args[2] == '!=':
@@ -804,78 +803,78 @@ class MathicsParser:
             args[0] = Expression('LessEqual', args[1], args[3])
 
     def p_SameQ(self, args):
-        '''expr : expr op_SameQ expr %prec SAMEQ
-                | expr op_UnsameQ expr %prec SAMEQ'''
+        '''expr : expr SameQ expr %prec SAMEQ
+                | expr UnsameQ expr %prec SAMEQ'''
         if args[2] == '===':
             args[0] = Expression('SameQ', args[1], args[3])
         elif args[2] == '=!=':
             args[0] = Expression('UnsameQ', args[1], args[3])
 
     def p_Not(self, args):
-        'expr : op_Bang expr %prec NOT'
+        'expr : Bang expr %prec NOT'
         args[0] = Expression('Not', args[2])
 
     def p_And(self, args):
-        'expr : expr op_And expr %prec AND'
+        'expr : expr And expr %prec AND'
         args[0] = Expression('And', args[1], args[3])
 
     def p_Xor(self, args):
-        'expr : expr op_Xor expr %prec XOR'
+        'expr : expr Xor expr %prec XOR'
         args[0] = Expression('Xor', args[1], args[3])
 
     def p_Or(self, args):
-        'expr : expr op_Or expr %prec OR'
+        'expr : expr Or expr %prec OR'
         args[0] = Expression('Or', args[1], args[3])
 
     def p_Repeated(self, args):
-        '''expr : expr op_Repeated %prec REPEATED
-                | expr op_RepeatedNull %prec REPEATED'''
+        '''expr : expr Repeated %prec REPEATED
+                | expr RepeatedNull %prec REPEATED'''
         if args[2] == '..':
             args[0] = Expression('Repeated', args[1])
         elif args[2] == '...':
             args[0] = Expression('RepeatedNull', args[1])
 
     def p_Alternatives(self, args):
-        'expr : expr op_Alternatives expr %prec ALTERNATIVES'
+        'expr : expr Alternatives expr %prec ALTERNATIVES'
         args[0] = Expression('Alternatives', args[1], args[3])
 
     def p_Pattern(self, args):
-        'expr : symbol op_Colon expr %prec PATTERN'
+        'expr : symbol Colon expr %prec PATTERN'
         args[0] = Expression('Pattern', Symbol(args[1]), args[3])
 
     def p_Optional(self, args):
-        'expr : pattern op_Colon expr %prec PATTERN'
+        'expr : pattern Colon expr %prec PATTERN'
         args[0] = Expression('Optional', args[1], args[3])
 
     def p_StringExpression(self, args):
-        'expr : expr op_StringExpression expr %prec STRINGEXPRESSION'
+        'expr : expr StringExpression expr %prec STRINGEXPRESSION'
         args[0] = Expression('StringExpression', args[1], args[3])
 
     def p_Condition(self, args):
-        'expr : expr op_Condition expr %prec CONDITION'
+        'expr : expr Condition expr %prec CONDITION'
         args[0] = Expression('Condition', args[1], args[3])
 
     def p_Rule(self, args):
-        '''expr : expr op_Rule expr %prec RULE
-                | expr op_RuleDelayed expr %prec RULE'''
+        '''expr : expr Rule expr %prec RULE
+                | expr RuleDelayed expr %prec RULE'''
         if args[2] == '->':
             args[0] = Expression('Rule', args[1], args[3])
         elif args[2] == ':>':
             args[0] = Expression('RuleDelayed', args[1], args[3])
 
     def p_Replace(self, args):
-        '''expr : expr op_ReplaceAll expr %prec REPLACE
-                | expr op_ReplaceRepeated expr %prec REPLACE'''
+        '''expr : expr ReplaceAll expr %prec REPLACE
+                | expr ReplaceRepeated expr %prec REPLACE'''
         if args[2] == '/.':
             args[0] = Expression('ReplaceAll', args[1], args[3])
         elif args[2] == '//.':
             args[0] = Expression('ReplaceRepeated', args[1], args[3])
 
     def p_AddTo(self, args):
-        '''expr : expr op_AddTo expr %prec ADDTO
-                | expr op_SubtractFrom expr %prec ADDTO
-                | expr op_TimesBy expr %prec ADDTO
-                | expr op_DivideBy expr %prec ADDTO'''
+        '''expr : expr AddTo expr %prec ADDTO
+                | expr SubtractFrom expr %prec ADDTO
+                | expr TimesBy expr %prec ADDTO
+                | expr DivideBy expr %prec ADDTO'''
         if args[2] == '+=':
             args[0] = Expression('AddTo', args[1], args[3])
         elif args[2] == '-=':
@@ -886,65 +885,68 @@ class MathicsParser:
             args[0] = Expression('DivideBy', args[1], args[3])
 
     def p_Function(self, args):
-        'expr : expr op_Function %prec FUNCTION'
+        'expr : expr Function %prec FUNCTION'
         args[0] = Expression('Function', args[1])
 
-    # Note that Colon is different from RawColon
-    #def p_Colon(self, args):
-    #    'expr : expr op_Colon expr %prec COLON'
-    #    args[0] = Expression('Colon', args[1], args[3])
+    def p_RawColon(self, args):
+        'expr : expr RawColon expr %prec COLON'
+        args[0] = Expression('Colon', args[1], args[3])
 
     def p_Postfix(self, args):
-        'expr : expr op_Postfix expr %prec POSTFIX'
+        'expr : expr Postfix expr %prec POSTFIX'
         args[0] = Expression(args[3], args[1])
 
     def p_Set(self, args):
-        '''expr : symbol op_TagSet expr op_Set expr %prec SET
-                | expr op_Set expr %prec SET'''
+        '''expr : symbol TagSet expr Set expr %prec SET
+                | expr Set expr %prec SET'''
         if len(args) == 4:
             args[0] = Expression('Set', args[1], args[3])
         elif len(args) == 6:
             args[0] = Expression('TagSet', Symbol(args[1]), args[3], args[5])
 
     def p_SetDelayed(self, args):
-        '''expr : symbol op_TagSet expr op_SetDelayed expr %prec SET
-                | expr op_SetDelayed expr %prec SET'''
+        '''expr : symbol TagSet expr SetDelayed expr %prec SET
+                | expr SetDelayed expr %prec SET'''
         if len(args) == 4:
             args[0] = Expression('SetDelayed', args[1], args[3])
         elif len(args) == 6:
             args[0] = Expression('TagSetDelayed', Symbol(args[1]), args[3], args[5])
 
     def p_UpSet(self, args):
-        'expr : expr op_UpSet expr %prec SET'
+        'expr : expr UpSet expr %prec SET'
         args[0] = Expression('UpSet', args[1], args[3])
 
     def p_UpSetDelayed(self, args):
-        'expr : expr op_UpSetDelayed expr %prec SET'
+        'expr : expr UpSetDelayed expr %prec SET'
         args[0] = Expression('UpSetDelayed', args[1], args[3])
 
     def p_Unset(self, args):
-        '''expr : symbol op_TagSet expr op_Unset %prec SET
-                | expr op_Unset %prec SET'''
+        '''expr : symbol TagSet expr Unset %prec SET
+                | expr Unset %prec SET'''
         if len(args) == 3:
             args[0] = Expression('Unset', args[1])
         elif len(args) == 4:
             args[0] = Expression('TagUnset', Symbol(args[1]), args[3])
 
     def p_Put(self, args):
-        'expr : expr op_Put filename %prec PUT'
+        'expr : expr Put filename %prec PUT'
         args[0] = Expression('Put', args[1], args[3])
 
     def p_PutAppend(self, args):
-        'expr : expr op_PutAppend filename %prec PUT'
+        'expr : expr PutAppend filename %prec PUT'
         args[0] = Expression('PutAppend', args[1], args[3])
 
     def p_Compound(self, args):
-        '''expr : expr op_CompoundExpression expr %prec COMPOUNDEXPRESSION
-                | expr op_CompoundExpression %prec COMPOUNDEXPRESSION'''
+        '''expr : expr Semicolon expr %prec COMPOUNDEXPRESSION
+                | expr Semicolon %prec COMPOUNDEXPRESSION'''
         if len(args) == 4:
             args[0] = Expression('CompoundExpression', args[1], args[3])
         if len(args) == 3:
             args[0] = Expression('CompoundExpression', args[1], Symbol('Null'))
+
+    def p_FormBox(self, args):
+        'expr : expr FormBox expr %prec FORMBOX'
+        args[0] = Expression('FormBox', args[3], args[1])
 
 scanner = MathicsScanner()
 scanner.build()
@@ -1095,6 +1097,8 @@ assert parse('x =.') == Expression('Unset', Symbol('x'))
 assert parse('x/:1=1') == Expression('TagSet', Symbol('x'), Integer(1), Integer(1))
 assert parse('x/:1:=1') == Expression('TagSetDelayed', Symbol('x'), Integer(1), Integer(1))
 assert parse('x/:1=.') == Expression('TagUnset', Symbol('x'), Integer(1))
+
+assert parse('1 \\` 2') == Expression('FormBox', Integer(2), Integer(1))
 
 #FIXME
 #assert parse('1 ; 5') == Expression('CompoundExpression', Integer(1), Integer(5))
