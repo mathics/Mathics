@@ -138,10 +138,6 @@ precedence = (
 )
 
 tokens = (
-    'parenthesis_0',
-    'parenthesis_1',
-    'parenthesis_2',
-    'parenthesis_3',
     'symbol',
     'float',
     'int', 
@@ -152,6 +148,8 @@ tokens = (
     'slot',
     'slotseq',
     'span',
+    'RawLeftBracket',
+    'RawRightBracket',
     'Get',
     'Put',
     'PutAppend',
@@ -307,10 +305,8 @@ class MathicsScanner:
     t_blanks = r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
     t_blankdefault = r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
 
-    t_parenthesis_0 = r' \[\[ '
-    t_parenthesis_1 = r' \[ '
-    t_parenthesis_2 = r' \]\] '
-    t_parenthesis_3 = r' \] '
+    t_RawLeftBracket = r' \[ '
+    t_RawRightBracket = r' \] '
 
     t_span = r' \;\; '
 
@@ -639,7 +635,7 @@ class MathicsParser:
         args[0] = Expression('Part', args[1], *args[2].items)
     
     def p_args(self, args):
-        'args : parenthesis_1 sequence parenthesis_3'
+        'args : RawLeftBracket sequence RawRightBracket'
         args[0] = ArgsToken(args[2].items)
     
     def p_list(self, args):
@@ -649,8 +645,8 @@ class MathicsParser:
         args[0] = Expression('List', *args[2].items)
     
     def p_position(self, args):
-        'position : parenthesis_0 sequence parenthesis_2'
-        args[0] = PositionToken(args[2].items)
+        'position : RawLeftBracket RawLeftBracket sequence RawRightBracket RawRightBracket'
+        args[0] = PositionToken(args[3].items)
     
     def p_sequence(self, args):
         '''sequence :
@@ -745,7 +741,10 @@ class MathicsParser:
 
     def p_MessageName(self, args):
         '''expr : expr MessageName string MessageName string %prec MESSAGENAME
+                | expr MessageName symbol MessageName string %prec MESSAGENAME
+                | expr MessageName symbol %prec MESSAGENAME
                 | expr MessageName string %prec MESSAGENAME'''
+
         if len(args) == 4:
             args[0] = Expression('MessageName', args[1], String(args[3]))
         elif len(args) == 6:
@@ -1216,20 +1215,20 @@ class MathicsParser:
         args[0] = Expression('Because', args[1], args[3])
 
     def p_Set(self, args):
-        '''expr : symbol TagSet expr Set expr %prec SET2
+        '''expr : expr TagSet expr Set expr %prec SET2
                 | expr Set expr %prec SET'''
         if len(args) == 4:
             args[0] = Expression('Set', args[1], args[3])
         elif len(args) == 6:
-            args[0] = Expression('TagSet', Symbol(args[1]), args[3], args[5])
+            args[0] = Expression('TagSet', args[1], args[3], args[5])
 
     def p_SetDelayed(self, args):
-        '''expr : symbol TagSet expr SetDelayed expr %prec SET2
+        '''expr : expr TagSet expr SetDelayed expr %prec SET2
                 | expr SetDelayed expr %prec SET'''
         if len(args) == 4:
             args[0] = Expression('SetDelayed', args[1], args[3])
         elif len(args) == 6:
-            args[0] = Expression('TagSetDelayed', Symbol(args[1]), args[3], args[5])
+            args[0] = Expression('TagSetDelayed', args[1], args[3], args[5])
 
     def p_UpSet(self, args):
         'expr : expr UpSet expr %prec SET'
@@ -1240,12 +1239,12 @@ class MathicsParser:
         args[0] = Expression('UpSetDelayed', args[1], args[3])
 
     def p_Unset(self, args):
-        '''expr : symbol TagSet expr Unset %prec SET2
+        '''expr : expr TagSet expr Unset %prec SET2
                 | expr Unset %prec SET2'''
         if len(args) == 3:
             args[0] = Expression('Unset', args[1])
         elif len(args) == 4:
-            args[0] = Expression('TagUnset', Symbol(args[1]), args[3])
+            args[0] = Expression('TagUnset', args[1], args[3])
 
     def p_Function(self, args):
         'expr : expr Function expr %prec SET2'
@@ -1277,7 +1276,7 @@ parser = MathicsParser()
 parser.build()
 
 def parse(string):
-    print "#>", string
+    #print "#>", string
     return parser.parse(string)
 
 assert parse('1') == Integer(1)
@@ -1515,4 +1514,10 @@ assert parse('%%%%') == Expression('Out', Integer(-4))
 
 assert parse('x ! y') == Expression('Times', Expression('Factorial', Symbol('x')), Symbol('y'))
 assert parse('x ^ 2 y') == Expression('Times', Expression('Power', Symbol('x'), Integer(2)), Symbol('y'))
+
+assert parse('Infinity::indet') == parse('MessageName[Infinity, "indet"]')
+assert parse('Infinity::indet::"fasd"') == parse('MessageName[Infinity, "indet", "fasd"]')
+
+#print parse('Postfix[{HoldForm[item]},"...",170]')
+
 quit()
