@@ -19,40 +19,55 @@ from mathics.core.convert import from_sympy
 from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, dps
 
 class _MPMathFunction(SympyFunction):
+
     attributes = ('Listable', 'NumericFunction')
-    
-    def eval(self, z):
-        return None
-    
-    def apply_exact(self, z, evaluation):
-        '%(name)s[z_?ExactNumberQ]'
+
+    mpmath_name = None
+
+    nargs = 1
+
+    def eval(self, *args):
+        if self.mpmath_name is None:
+            return None
         
-        expr = Expression(self.get_name(), z).to_sympy()
-        result = from_sympy(expr)
-        # evaluate leaves to convert e.g. Plus[2, I] -> Complex[2, 1]
-        result = result.evaluate_leaves(evaluation)
+        mpmath_function = getattr(mpmath, self.mpmath_name)
+        return mpmath_function(*args)
+
+    def apply(self, z, evaluation):
+        '%(name)s[z__]'
+
+        args = z.get_sequence()
+
+        if len(args) != self.nargs:
+            return
+
+        # if no arguments are inexact attempt to use sympy
+        if len([True for x in args if Expression('InexactNumberQ', x).evaluate(evaluation).is_true()]) == 0:
+            expr = Expression(self.get_name(), *args).to_sympy()
+            result = from_sympy(expr)
+            # evaluate leaves to convert e.g. Plus[2, I] -> Complex[2, 1]
+            result = result.evaluate_leaves(evaluation)
+        else:
+            prec = min_prec(*args)
+            with mpmath.workprec(prec):
+                mpmath_args = [sympy2mpmath(x.to_sympy()) for x in args]
+                if None in mpmath_args:
+                    return
+                try:
+                    result = self.eval(*mpmath_args)
+                    result = from_sympy(mpmath2sympy(result, prec))
+                except ValueError, exc:
+                    text = str(exc)
+                    if text == 'gamma function pole':
+                        return Symbol('ComplexInfinity')
+                    else:
+                        raise
+                except ZeroDivisionError:
+                    return
+                except SpecialValueError, exc:
+                    return Symbol(exc.name)
+
         return result
-    
-    def apply_inexact(self, z, evaluation):
-        '%(name)s[z_Real|z_Complex?InexactNumberQ]'
-        
-        prec = z.get_precision()
-        with mpmath.workprec(prec):
-            z = sympy2mpmath(z.to_sympy())
-            if z is None:
-                return
-            try:
-                result = self.eval(z)
-                result = mpmath2sympy(result, prec)
-            except ValueError, exc:
-                text = str(exc)
-                if text == 'gamma function pole':
-                    return Symbol('ComplexInfinity')
-                else:
-                    raise
-            except ZeroDivisionError:
-                return
-        return from_sympy(result)
 
 class Plus(BinaryOperator, SympyFunction):
     """
@@ -1375,10 +1390,30 @@ class Pochhammer(SympyFunction):
         'Pochhammer[a_, n_]': 'Gamma[a + n] / Gamma[a]',
     }
     
-class HarmonicNumber(SympyFunction):
-    # TODO get HarmonicNumber to work
-    sympy_name = 'harmonic'
+class HarmonicNumber(_MPMathFunction):
+    """
+    <dl>
+    <dt>'HarmonicNumber[n]'
+      <dd>returns the $n$th harmonic number.
+    </dl>
 
+    >> Table[HarmonicNumber[n], {n, 8}]
+     = {1, 3 / 2, 11 / 6, 25 / 12, 137 / 60, 49 / 20, 363 / 140, 761 / 280}
+
+    >> HarmonicNumber[3.8]
+     =  2.0380634056306492
+
+    #> HarmonicNumber[-1.5]
+     = 0.613705638880109381
+    """
+
+    rules = {
+        'HarmonicNumber[-1]': 'ComplexInfinity',
+    }
+
+    sympy_name = 'harmonic'
+    mpmath_name = 'harmonic'
+    
 class Sum(_IterationFunction, SympyFunction):
     """
     <dl>

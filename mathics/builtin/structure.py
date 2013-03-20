@@ -47,7 +47,7 @@ class Sort(Builtin):
      = x Sqrt[y] + y
     ## Numeric parts:
     #> 1+Pi+Pi^2+Sin[9/4*Pi]+x+x^2+Sin[x+x^2]
-     = 1 + Pi + Pi ^ 2 + Sin[9 Pi / 4] + x + x ^ 2 + Sin[x + x ^ 2]
+     = 1 + Pi + Pi ^ 2 + Sqrt[2] / 2 + x + x ^ 2 + Sin[x + x ^ 2]
     """
     
     def apply(self, list, evaluation):
