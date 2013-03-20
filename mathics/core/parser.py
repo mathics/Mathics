@@ -307,8 +307,6 @@ class MathicsScanner:
 
     t_symbol = r' [a-zA-Z$][a-zA-Z0-9$]* '
     t_int = r' \d+ '
-    t_blanks = r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
-    t_blankdefault = r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
 
     t_RawLeftBracket = r' \[ '
     t_RawRightBracket = r' \] '
@@ -524,7 +522,8 @@ class MathicsScanner:
         
         def sub_entity(match):
             name = match.group(1)
-            entity = additional_entities.get(name)
+            #entity = additional_entities.get(name)
+            entity = None
             if entity is not None:
                 return entity
             uname = ''
@@ -547,6 +546,15 @@ class MathicsScanner:
 
         t.value = s
         return t
+
+    def t_blankdefault(self, t):    # this must come before t_blanks
+        r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
+        return t
+
+    def t_blanks(self, t):
+        r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
+        return t
+
 
     def t_slotseq_1(self, t):
         r' \#\#\d+ '
@@ -642,20 +650,18 @@ class MathicsParser:
         return result
         
     def p_parenthesis(self, args):
-        '''
-        expr : '(' expr ')'
-        '''
+        "expr : '(' expr ')'"
         expr = args[2]
         expr.parenthesized = True
         args[0] = expr
 
-    def p_670_call(self, args):
+    def p_call(self, args):
         'expr : expr args %prec PART'
         expr = Expression(args[1], *args[2].items)
         expr.parenthesized = True # to handle e.g. Power[a,b]^c correctly
         args[0] = expr
     
-    def p_670_part(self, args):
+    def p_part(self, args):
         'expr : expr position %prec PART'
         args[0] = Expression('Part', args[1], *args[2].items)
     
@@ -664,34 +670,43 @@ class MathicsParser:
         args[0] = ArgsToken(args[2].items)
     
     def p_list(self, args):
-        '''
-        expr : '{' sequence '}'
-        '''
+        "expr : '{' sequence '}'"
         args[0] = Expression('List', *args[2].items)
     
     def p_position(self, args):
         'position : RawLeftBracket RawLeftBracket sequence RawRightBracket RawRightBracket'
         args[0] = PositionToken(args[3].items)
-    
+
     def p_sequence(self, args):
         '''sequence :
-                    | expr
-                    | ','
-                    | sequence ','
-                    | sequence ',' expr'''
-
+                    | sequence1'''
         if len(args) == 1:
             args[0] = SequenceToken([])
+        else:
+            args[0] = args[1]
+
+    def p_sequence1(self, args):
+        '''sequence1 : sequence1 ',' expr
+                     | sequence1 ','
+                     | ',' sequence1
+                     | expr
+                     | ',' '''
+        if len(args) == 4:
+            args[1].items.append(args[3])
+            args[0] = args[1]
+        elif len(args) == 3:
+            if args[2] == ',':
+                args[1].items.append(Symbol('Null'))
+                args[0] = args[1]
+            elif args[1] == ',':
+                args[2].items.insert(0, Symbol('Null'))
+                args[0] = args[2]
         elif len(args) == 2:
             if isinstance(args[1], BaseExpression):
                 args[0] = SequenceToken([args[1]])
-            else:
+            elif args[1] == ',':
                 args[0] = SequenceToken([Symbol('Null'), Symbol('Null')])
-        elif len(args) == 3:
-            args[0] = SequenceToken(args[1].items + [Symbol('Null')])
-        elif len(args) == 4:
-            args[0] = SequenceToken(args[1].items + [args[3]])
-        
+
     def p_symbol(self, args):
         'expr : symbol %prec SYMBOL'
         args[0] = Symbol(args[1])
@@ -1184,9 +1199,9 @@ class MathicsParser:
         'expr : pattern RawColon expr %prec PATTERN'
         args[0] = Expression('Optional', args[1], args[3])
 
+    @FLAT('StringExpression', 'STRINGEXPRESSION')
     def p_StringExpression(self, args):
-        'expr : expr StringExpression expr %prec STRINGEXPRESSION'
-        args[0] = Expression('StringExpression', args[1], args[3])
+        args[0] = Flat('StringExpression', args)
 
     def p_Condition(self, args):
         'expr : expr Condition expr %prec CONDITION'
@@ -1488,13 +1503,13 @@ assert parse('1..') == Expression('Repeated', Integer(1))
 assert parse('1...') == Expression('RepeatedNull', Integer(1))
 
 assert parse('1 | 2') == Expression('Alternatives', Integer(1), Integer(2))
-#assert parse('1 | 2 | 3') == Expression('Alternatives', Integer(1), Integer(2), Integer(3))
+assert parse('1 | 2 | 3') == Expression('Alternatives', Integer(1), Integer(2), Integer(3))
 
 assert parse('x:expr') == Expression('Pattern', Symbol('x'), Symbol('expr'))
 assert parse('x_:expr') == Expression('Optional', Expression('Pattern', Symbol('x'), Expression('Blank')), Symbol('expr'))
 
 assert parse('x ~~ y') == Expression('StringExpression', Symbol('x'), Symbol('y'))
-#assert parse('x ~~ y ~~ z') == Expression('StringExpression', Symbol('x'), Symbol('y'), Symbol('z'))
+assert parse('x ~~ y ~~ z') == Expression('StringExpression', Symbol('x'), Symbol('y'), Symbol('z'))
 
 assert parse('x /; y') == Expression('Condition', Symbol('x'), Symbol('y'))
 assert parse('x -> y') == Expression('Rule', Symbol('x'), Symbol('y'))
@@ -1536,10 +1551,15 @@ assert parse('1 ;') == Expression('CompoundExpression', Integer(1), Symbol('Null
 
 assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
 assert parse('{x, y}') == Expression('List', Symbol('x'), Symbol('y'))
-assert parse('{a,}') == Expression('List', Symbol('a'), Symbol('Null'))
-assert parse('{,}') == Expression('List', Symbol('Null'), Symbol('Null'))
+
 assert parse('{}') == Expression('List')
-# assert parse('{,a}') == Expression('List', Symbol('Null'), Symbol('a')) #TODO
+assert parse('{a,}') == Expression('List', Symbol('a'), Symbol('Null'))
+assert parse('{,a}') == Expression('List', Symbol('Null'), Symbol('a'))
+assert parse('{,}') == Expression('List', Symbol('Null'), Symbol('Null'))
+
+assert parse('{a, b,}') == Expression('List', Symbol('a'), Symbol('b'), Symbol('Null'))
+assert parse('{, a, b}') == Expression('List', Symbol('Null'), Symbol('a'), Symbol('b'))
+assert parse('{,a,b,}') == Expression('List', Symbol('Null'), Symbol('a'), Symbol('b'), Symbol('Null'))
 
 assert parse('Sin[x, y]') == Expression('Sin', Symbol('x'), Symbol('y'))
 assert parse('a[[1]]') == Expression('Part', Symbol('a'), Integer(1))
@@ -1547,6 +1567,22 @@ assert parse('a[[1]]') == Expression('Part', Symbol('a'), Integer(1))
 assert parse('f_') == Expression('Pattern', Symbol('f'), Expression('Blank'))
 assert parse('f__') == Expression('Pattern', Symbol('f'), Expression('BlankSequence'))
 assert parse('f___') == Expression('Pattern', Symbol('f'), Expression('BlankNullSequence'))
+
+assert parse('_') == parse('Blank[]')
+assert parse('_expr') == parse('Blank[expr]')
+assert parse('__') == parse('BlankSequence[]')
+assert parse('__expr') == parse('BlankSequence[expr]')
+assert parse('___') == parse('BlankNullSequence[]')
+assert parse('___expr') == parse('BlankNullSequence[expr]')
+
+assert parse('_.') == parse('Optional[Blank[]]')
+assert parse('symb_') == parse('Pattern[symb, Blank[]]')
+assert parse('symb_expr') == parse('Pattern[symb, Blank[expr]]')
+assert parse('symb__') == parse('Pattern[symb, BlankSequence[]]')
+assert parse('symb__expr') == parse('Pattern[symb, BlankSequence[expr]]')
+assert parse('symb___') == parse('Pattern[symb, BlankNullSequence[]]')
+assert parse('symb___expr') == parse('Pattern[symb, BlankNullSequence[expr]]')
+assert parse('symb_.') == parse('Optional[Pattern[symb, Blank[]]]')
 
 assert parse('#2') == Expression('Slot', Integer(2))
 assert parse('#') == Expression('Slot', Integer(1))
@@ -1569,6 +1605,7 @@ assert parse('"System`"') == String('System`')
 
 # import time
 # instr = '+'.join(map(str, range(10000)))
+# #instr = '{' + ', '.join(map(str, range(10000))) + '}'
 # stime = time.time()
 # a = parse(instr)
 # print time.time() - stime
