@@ -80,6 +80,8 @@ precedence = (
     ('left', 'ALTERNATIVES'),
     ('nonassoc', 'REPEATED'),
     ('right', 'SUCHTHAT'),
+    ('left', 'LEFTTEE'),
+    ('right', 'RIGHTTEE'),
     ('right', 'IMPLIES'),
     ('left', 'EQUIVALENT'),
     ('left', 'OR'),
@@ -96,9 +98,9 @@ precedence = (
     ('left', 'PLUS'),                       # flat
     #('left', 'SUM'),                       # flat
     ('left', 'CIRCLEPLUS'),                 # flat
-    #('left', 'CAP'),                       # flat
-    #('left', 'COPRODUCT'),                 # flat
-    #('left', 'VERTICALTILDE'),             # flat
+    ('left', 'CAP'),                        # flat
+    ('left', 'COPRODUCT'),                  # flat
+    ('left', 'VERTICALTILDE'),              # flat
     #('left', 'PRODUCT'),
     ('left', 'STAR'),                       # flat
     ('left', 'TIMES'),                      # flat
@@ -185,28 +187,28 @@ tokens = (
     'Sqrt',
     'Integral',
     'DifferentialD',
-    'PartialD',
+    #'PartialD',
     'Del',
     'Square',
     'CircleDot',
     'SmallCircle',
     'NonCommutativeMultiply',
     'Cross',
-    'Dot',
+    'RawDot',
     'Plus',
     'Minus',
     'PlusMinus',
     'MinusPlus',
     'Slash',
-    'Backslash',
+    'RawBackslash',
     'Diamond',
     'Wedge',
     'Vee',
     'CircleTimes',
     'CenterDot',
     'Star',
-    'Sum',
-    'Product',
+    #'Sum',
+    #'Product',
     'Asterisk',
     'Times',
     'Divide',
@@ -245,9 +247,9 @@ tokens = (
     'Unset',
     'Semicolon',
     'FormBox',
-    'DiscreteShift',
-    'DiscreteRatio',
-    'DifferenceDelta',
+    #'DiscreteShift',
+    #'DiscreteRatio',
+    #'DifferenceDelta',
     'VerticalTilde',
     'Coproduct',
     'Cap',
@@ -353,7 +355,7 @@ class MathicsScanner:
 
     t_Integral = ur' \\\[Integral\]|\u222b '
     t_DifferentialD = ur'\\\[DifferentialD\]|\uf74c '
-    t_PartialD = ur' \\\[PartialD\]|\u2202 '
+    #t_PartialD = ur' \\\[PartialD\]|\u2202 '
     t_Del = ur' \\\[Del\]|\u2207 '
     
     t_Square = ur' \\\[Square\]|\uf520 '
@@ -363,12 +365,12 @@ class MathicsScanner:
     t_NonCommutativeMultiply = r' \*\* '
 
     t_Cross = ur' \\\[Cross\]|\uf4a0 '
-    t_Dot = r' \. '
+    t_RawDot = r' \. '
 
     t_Plus = r' \+ '
     t_Minus = r' \- '
     t_Slash = r' \/ '
-    t_Backslash = r' \\ '
+    t_RawBackslash = r' \\ '
 
     t_Diamond = ur' \\\[Diamond\]|\u22c4 '
     t_Wedge = ur' \\\[Wedge\]|\u22c0 '
@@ -377,8 +379,8 @@ class MathicsScanner:
     t_CenterDot = ur' \\\[CenterDot\]|\u00b7 '
     t_Star = ur' \\\[Star\]|\u22c6'
 
-    t_Sum = ur' \\\[Sum\]|\u2211 '
-    t_Product = ur' \\\[Product\]|\u220f '
+    #t_Sum = ur' \\\[Sum\]|\u2211 '
+    #t_Product = ur' \\\[Product\]|\u220f '
 
     t_Asterisk = r' \* '
     t_Times = ur'\\\[Times\]|\u00d7 '
@@ -442,9 +444,9 @@ class MathicsScanner:
     t_Semicolon = r' \; '
     t_FormBox = r' \\\` '
 
-    t_DiscreteShift = ur' \\\[DiscreteShift\]|\uf4a3 '
-    t_DiscreteRatio = ur' \\\[DiscreteRatio\]|\uf4a4 '
-    t_DifferenceDelta = ur' \\\[DifferenceDelta\]|\u2206 '
+    #t_DiscreteShift = ur' \\\[DiscreteShift\]|\uf4a3 '
+    #t_DiscreteRatio = ur' \\\[DiscreteRatio\]|\uf4a4 '
+    #t_DifferenceDelta = ur' \\\[DifferenceDelta\]|\u2206 '
     t_VerticalTilde = ur' \\\[VerticalTilde\]|\u2240 '
     t_Coproduct = ur' \\\[Coproduct\]|\u2210 '
     t_Cap = ur' \\\[Cap\]|\u2322 '
@@ -641,7 +643,7 @@ class MathicsParser:
     precedence = precedence
 
     def build(self, **kwargs):
-        self.parser = yacc.yacc(debug=0, module=self, **kwargs)
+        self.parser = yacc.yacc(debug=1, module=self, **kwargs)
 
     def p_error(self, p):
         print p
@@ -932,7 +934,7 @@ class MathicsParser:
     def p_Cross(self, args):
         args[0] = Flat('Cross', args)
 
-    @FLAT('Dot', 'DOT')
+    @FLAT('RawDot', 'DOT')
     def p_Dot(self, args):
         args[0] = Flat('Dot', args)
 
@@ -1009,11 +1011,27 @@ class MathicsParser:
     def p_CenterDot(self, args):
         args[0] = Flat('CenterDot', args)
 
+    @FLAT('VerticalTilde', 'VERTICALTILDE')
+    def p_VerticalTilde(self, args):
+        args[0] = Flat('VerticalTilde', args)
+
+    @FLAT('Coproduct', 'COPRODUCT')
+    def p_Coproduct(self, args):
+        args[0] = Flat('Coproduct', args)
+
+    @FLAT('Cap', 'CAP')
+    def p_Cap(self, args):
+        args[0] = Flat('Cap', args)
+
+    @FLAT('Cup', 'CAP')
+    def p_Cup(self, args):
+        args[0] = Flat('Cup', args)
+
     @FLAT('Star', 'STAR')
     def p_Star(self, args):
         args[0] = Flat('Star', args)
 
-    @FLAT('Backslash', 'BACKSLASH')
+    @FLAT('RawBackslash', 'BACKSLASH')
     def p_Backslash(self, args):
         args[0] = Flat('Backslash', args)
     
@@ -1168,6 +1186,22 @@ class MathicsParser:
     @FLAT('Equivalent', 'EQUIVALENT')
     def p_Equivalent(self, args):
         args[0] = Flat('Equivalent', args)
+
+    def p_RightTee(self, args):
+        'expr : expr RightTee expr %prec RIGHTTEE'
+        args[0] = Expression('RightTee', args[1], args[3])
+
+    def p_DoubleRightTee(self, args):
+        'expr : expr DoubleRightTee expr %prec RIGHTTEE'
+        args[0] = Expression('DoubleRightTee', args[1], args[3])
+
+    def p_LeftTee(self, args):
+        'expr : expr LeftTee expr %prec LEFTTEE'
+        args[0] = Expression('LeftTee', args[1], args[3])
+
+    def p_DoubleLeftTee(self, args):
+        'expr : expr DoubleLeftTee expr %prec LEFTTEE'
+        args[0] = Expression('DoubleLeftTee', args[1], args[3])
 
     def p_Implies(self, args):
         'expr : expr Implies expr %prec IMPLIES'
@@ -1376,6 +1410,7 @@ assert parse('--a') == Expression('PreDecrement', Symbol('a'))
 
 assert parse('expr1 @ expr2') == Expression('expr1', Symbol('expr2'))
 assert parse('expr1 ~ expr2 ~ expr3') == Expression('expr2', Symbol('expr1'), Symbol('expr3'))
+assert parse('x~f~y') == parse('f[x, y]')
 
 assert parse('f @@ expr') == Expression('Apply', Symbol('f'), Symbol('expr'))
 assert parse('f @@@ expr') == Expression('Apply', Symbol('f'), Symbol('expr'), Expression('List', 1))
@@ -1423,6 +1458,12 @@ assert parse('1 \\[Vee] 2') == Expression('Vee', Integer(1), Integer(2))
 assert parse('1 \\[CircleTimes] 2') == Expression('CircleTimes', Integer(1), Integer(2))
 assert parse('1 \\[CenterDot] 2') == Expression('CenterDot', Integer(1), Integer(2))
 assert parse('1 \\[Star] 2') == Expression('Star', Integer(1), Integer(2))
+
+assert parse('a \\[Cap] b') == parse('Cap[a,b]')
+assert parse('a \\[Cup] b \\[Cup] c') == parse('Cup[a,b,c]')
+
+assert parse(u'a \u2322 b \u2322 c') == parse('Cap[a,b,c]')
+assert parse(u'a \u2323 b') == parse('Cup[a, b]')
 
 assert parse(u'1 \u22C4 2') == Expression('Diamond', Integer(1), Integer(2))
 assert parse(u'1 \u22C0 2') == Expression('Wedge', Integer(1), Integer(2))
@@ -1598,6 +1639,11 @@ assert parse('%2') == Expression('Out', Integer(2))
 assert parse('%') == Expression('Out')
 assert parse('%%') == Expression('Out', Integer(-2))
 assert parse('%%%%') == Expression('Out', Integer(-4))
+
+assert parse('x1 \\[RightTee] x2') == parse('RightTee[x1, x2]')
+assert parse('x1 \\[DoubleRightTee] x2') == parse('DoubleRightTee[x1, x2]')
+assert parse('x1 \\[LeftTee] x2') == parse('LeftTee[x1, x2]')
+assert parse('x1 \\[DoubleLeftTee] x2') == parse('DoubleLeftTee[x1, x2]')
 
 assert parse('x ! y') == Expression('Times', Expression('Factorial', Symbol('x')), Symbol('y'))
 assert parse('x ^ 2 y') == Expression('Times', Expression('Power', Symbol('x'), Integer(2)), Symbol('y'))
