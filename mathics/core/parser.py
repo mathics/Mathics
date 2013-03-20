@@ -1030,37 +1030,32 @@ class MathicsParser:
             elif len(args) == 4:
                 args[0] = [args[1], args[3]] 
 
-    def p_span_start(self, args):
-        '''span_start :
-                      | expr'''
-        if len(args) == 1:
-            args[0] = Integer(1)
-        elif len(args) == 2:
-            args[0] = args[1]
-    
-    def p_span_stop(self, args):
-        '''span_stop :
-                     | expr'''
-        if len(args) == 1:
-            args[0] = Symbol('All')
-        elif len(args) == 2:
-            args[0] = args[1]
+    def p_span(self, args):
+        '''expr : expr span expr span expr %prec SPAN
+                | expr span      span expr %prec SPAN
+                |      span expr span expr %prec SPAN
+                |      span      span expr %prec SPAN
+                | expr span expr
+                | expr span
+                |      span expr
+                |      span'''
 
-    def p_span_step(self, args):
-        '''span_step :
-                     | expr'''
-        if len(args) == 1:
-            args[0] = Integer(1)
-        elif len(args) == 2:
-            args[0] = args[1]
-
-    def p_Span(self, args):
-        '''expr : span_start span span_stop span span_step %prec SPAN
-                | span_start span span_stop %prec SPAN'''
-        if len(args) == 4:
-            args[0] = Expression('Span', args[1], args[3], Integer(1))
-        elif len(args) == 5:
+        if len(args) == 6:
             args[0] = Expression('Span', args[1], args[3], args[5])
+        elif len(args) == 5:
+            if isinstance(args[1], BaseExpression):
+                args[0] = Expression('Span', args[1], Symbol('All'), args[4])
+            elif isinstance(args[2], BaseExpression):
+                args[0] = Expression('Span', Integer(1), args[2], args[4])
+        elif len(args) == 4:
+            args[0] = Expression('Span', args[1], args[3])
+        elif len(args) == 3:
+            if isinstance(args[1], BaseExpression):
+                args[0] = Expression('Span', args[1], Symbol('All'))
+            elif isinstance(args[2], BaseExpression):
+                args[0] = Expression('Span', Integer(1), args[2])
+        elif len(args) == 2:
+                args[0] = Expression('Span', Integer(1), Symbol('All'))
 
     @FLAT(['op_Equal', 'LongEqual', 'Equal'], "EQUAL")
     def p_Equal(self, args):
@@ -1333,7 +1328,7 @@ parser = MathicsParser()
 parser.build()
 
 def parse(string):
-    #print "#>", string
+    print "#>", string
     return parser.parse(string)
 
 assert parse('1') == Integer(1)
@@ -1465,10 +1460,12 @@ assert parse('\[MinusPlus] 1') == Expression('MinusPlus', Integer(1))
 assert parse(u'\u00b1 1') == Expression('PlusMinus', Integer(1))
 assert parse(u'\u2213 1') == Expression('MinusPlus', Integer(1))
 
-#FIXME
-#assert parse('1;;2;;3') == Expression('Span', Integer(1), Integer(2), Integer(3))
-#assert parse('1;; ;;3') == Expression('Span', Integer(1), Symbol('All'), Integer(3))
-#assert parse(' ;;2;;3') == Expression('Span', Integer(1), Integer(2), Integer(3))
+assert parse('1;;2;;3') == Expression('Span', Integer(1), Integer(2), Integer(3))
+assert parse('1;; ;;3') == Expression('Span', Integer(1), Symbol('All'), Integer(3))
+assert parse(' ;;2;;3') == Expression('Span', Integer(1), Integer(2), Integer(3))
+assert parse(' ;;2') == Expression('Span', Integer(1), Integer(2))
+assert parse('1;; ') == Expression('Span', Integer(1), Symbol('All'))
+assert parse(' ;; ') == Expression('Span', Integer(1), Symbol('All'))
  
 assert parse('1 == 2') == Expression('Equal', Integer(1), Integer(2))
 assert parse('1 != 2') == Expression('Unequal', Integer(1), Integer(2))
@@ -1610,4 +1607,4 @@ assert parse('"System`"') == String('System`')
 # a = parse(instr)
 # print time.time() - stime
 
-#quit()
+quit()
