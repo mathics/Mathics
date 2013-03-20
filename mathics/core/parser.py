@@ -1304,17 +1304,22 @@ class MathicsParser:
 
     def p_Compound(self, args):
         '''CompoundToken : expr Semicolon expr %prec COMPOUNDEXPRESSION
-                         | expr Semicolon %prec COMPOUNDEXPRESSION
-                         | expr Semicolon CompoundToken %prec COMPOUNDEXPRESSION
+                         | CompoundToken Semicolon expr %prec COMPOUNDEXPRESSION
+                         | expr Semicolon
+                         | CompoundToken Semicolon
                     expr : CompoundToken'''
         if len(args) == 2:
             args[0] = Expression('CompoundExpression', *args[1])
         if len(args) == 3:
-            args[0] = [args[1], Symbol('Null')]
+            if isinstance(args[1], list):
+                args[1].append(Symbol('Null'))
+                args[0] = args[1]
+            else:
+                args[0] = [args[1], Symbol('Null')]
         if len(args) == 4:
-            if isinstance(args[3], list):
-                args[3].append(args[1])
-                args[0] = args[3]
+            if isinstance(args[1], list):
+                args[1].append(args[3])
+                args[0] = args[1]
             else:
                 args[0] = [args[1], args[3]]
 
@@ -1542,8 +1547,9 @@ assert parse(u'x \uf4a1 y') == parse('Function[{x}, y]')
 
 assert parse('1 \\` 2') == Expression('FormBox', Integer(2), Integer(1))
 
-#FIXME
-#assert parse('1 ; 5') == Expression('CompoundExpression', Integer(1), Integer(5))
+assert parse('1 ; 5') == Expression('CompoundExpression', Integer(1), Integer(5))
+assert parse('4; 1 ; 5') == Expression('CompoundExpression', Integer(4), Integer(1), Integer(5))
+assert parse('4;1;') == Expression('CompoundExpression', Integer(4), Integer(1), Symbol('Null'))
 assert parse('1 ;') == Expression('CompoundExpression', Integer(1), Symbol('Null'))
 
 assert parse('1 ^ 2') == Expression('Power', Integer(1), Integer(2))
