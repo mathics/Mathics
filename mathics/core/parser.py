@@ -155,6 +155,7 @@ tokens = (
     'span',
     'RawLeftBracket',
     'RawRightBracket',
+    'RawComma',
     'Get',
     'Put',
     'PutAppend',
@@ -295,7 +296,7 @@ tokens = (
     'Function',
 )
 
-literals = ['(', ')', '{', '}', ',']
+literals = ['(', ')', '{', '}']
 
 class MathicsScanner:
     tokens = tokens
@@ -310,6 +311,8 @@ class MathicsScanner:
 
     t_RawLeftBracket = r' \[ '
     t_RawRightBracket = r' \] '
+
+    t_RawComma = r' \, '
 
     t_span = r' \;\; '
 
@@ -638,7 +641,7 @@ class MathicsParser:
     precedence = precedence
 
     def build(self, **kwargs):
-        self.parser = yacc.yacc(debug=1, module=self, **kwargs)
+        self.parser = yacc.yacc(debug=0, module=self, **kwargs)
 
     def p_error(self, p):
         print p
@@ -686,11 +689,11 @@ class MathicsParser:
             args[0] = args[1]
 
     def p_sequence1(self, args):
-        '''sequence1 : sequence1 ',' expr
-                     | sequence1 ','
-                     | ',' sequence1
+        '''sequence1 : sequence1 RawComma expr
+                     | sequence1 RawComma
+                     | RawComma sequence1
                      | expr
-                     | ',' '''
+                     | RawComma '''
         if len(args) == 4:
             args[1].items.append(args[3])
             args[0] = args[1]
