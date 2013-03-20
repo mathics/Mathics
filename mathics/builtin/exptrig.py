@@ -125,6 +125,8 @@ class Log(_MPMathFunction):
     >> Plot[Log[x], {x, 0, 5}]
      = -Graphics-
     """
+
+    mpmath_name = 'log'
     
     rules = {
         'Log[b_, z_]': 'Log[z] / Log[b]',
@@ -135,9 +137,6 @@ class Log(_MPMathFunction):
         'Log[E^x_Integer]': 'x',
         'Derivative[1][Log]': '1/#&',
     }
-    
-    def eval(self, z):
-        return mpmath.log(z)
     
 class Log2(Builtin):
     """
@@ -196,6 +195,8 @@ class Sin(_MPMathFunction):
     >> Plot[Sin[x], {x, -Pi, Pi}]
      = -Graphics-
     """
+
+    mpmath_name = 'sin'
     
     rules = {
         'Sin[Pi]': '0',
@@ -204,9 +205,6 @@ class Sin(_MPMathFunction):
         'Sin[0]': '0',
         'Derivative[1][Sin]': 'Cos[#]&',
     }
-    
-    def eval(self, z):
-        return mpmath.sin(z)
 
 class Cos(_MPMathFunction):
     """
@@ -218,6 +216,8 @@ class Cos(_MPMathFunction):
     >> Cos[3 Pi]
      = -1
     """
+
+    mpmath_name = 'cos'
        
     rules = {
         'Cos[Pi]': '-1',
@@ -226,9 +226,6 @@ class Cos(_MPMathFunction):
         'Cos[0]': '1',
         'Derivative[1][Cos]': '-Sin[#]&',
     }
-    
-    def eval(self, z):
-        return mpmath.cos(z)
 
 class Tan(_MPMathFunction):
     """   
@@ -242,6 +239,8 @@ class Tan(_MPMathFunction):
     >> Tan[Pi / 2]
      = ComplexInfinity
     """
+
+    mpmath_name = 'tan'
     
     rules = {
         'Tan[(1/2) * Pi]': 'ComplexInfinity',
@@ -249,9 +248,6 @@ class Tan(_MPMathFunction):
         'Derivative[1][Tan]': 'Sec[#]^2&',
     }
     
-    def eval(self, z):
-        return mpmath.tan(z)
-
 class Sec(_MPMathFunction):
     """  
     <dl>
@@ -266,14 +262,13 @@ class Sec(_MPMathFunction):
     >> Sec[1.]
      = 1.85081571768092562
     """
+
+    mpmath_name = 'sec'
       
     rules = {
         'Derivative[1][Sec]': 'Sec[#] Tan[#]&',
         'Sec[0]': '1',
     } 
-      
-    def eval(self, z):
-        return mpmath.sec(z)
     
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
@@ -293,15 +288,14 @@ class Csc(_MPMathFunction):
     >> Csc[1.]
      = 1.18839510577812122
     """
+
+    mpmath_name = 'csc'
        
     rules = {
         'Derivative[1][Csc]': '-Cot[#] Csc[#]&',
         'Csc[0]': 'ComplexInfinity',
     } 
       
-    def eval(self, z):
-        return mpmath.csc(z)
-    
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
             return Expression('Power', Expression('Sin', expr.leaves[0]), Integer(-1)).to_sympy()
@@ -318,14 +312,13 @@ class Cot(_MPMathFunction):
     >> Cot[1.]
      = 0.642092615934330703
     """
+
+    mpmath_name = 'cot'
     
     rules = {
         'Derivative[1][Cot]': '-Csc[#]^2&',
         'Cot[0]': 'ComplexInfinity',
     } 
-      
-    def eval(self, z):
-        return mpmath.cot(z)
     
 class ArcSin(_MPMathFunction):
     """
@@ -341,15 +334,13 @@ class ArcSin(_MPMathFunction):
     """
     
     sympy_name = 'asin'
+    mpmath_name = 'asin'
     
     rules = {
         'Derivative[1][ArcSin]': '1/Sqrt[1-#^2]&',
         'ArcSin[0]': '0',
         'ArcSin[1]': 'Pi / 2',
     }
-    
-    def eval(self, z):
-        return mpmath.asin(z)
     
 class ArcCos(_MPMathFunction):
     """
@@ -367,15 +358,13 @@ class ArcCos(_MPMathFunction):
     """
     
     sympy_name = 'acos'
+    mpmath_name = 'acos'
     
     rules = {
         'Derivative[1][ArcCos]': '-1/Sqrt[1-#^2]&',
         'ArcCos[0]': 'Pi / 2',
         'ArcCos[1]': '0',
     }
-    
-    def eval(self, z):
-        return mpmath.acos(z)
 
 class ArcTan(_MPMathFunction):
     """
@@ -393,15 +382,13 @@ class ArcTan(_MPMathFunction):
     """
     
     sympy_name = 'atan'
+    mpmath_name = 'atan'
     
     rules = {
         'ArcTan[1]': 'Pi/4',
         'ArcTan[0]': '0',
         'Derivative[1][ArcTan]': '1/(1+#^2)&',
     }
-    
-    def eval(self, z):
-        return mpmath.atan(z)
     
 class ArcSec(_MPMathFunction):
     """
@@ -417,15 +404,13 @@ class ArcSec(_MPMathFunction):
     """
     
     sympy_name = ''
+    mpmath_name = 'asec'
     
     rules = {
         'Derivative[1][ArcSec]': '1 / (Sqrt[1 - 1/#^2] * #^2)&',
         'ArcSec[0]': 'ComplexInfinity',
         'ArcSec[1]': '0',
     }
-    
-    def eval(self, z):
-        return mpmath.asec(z) 
     
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
@@ -445,15 +430,13 @@ class ArcCsc(_MPMathFunction):
     """
     
     sympy_name = ''
+    mpmath_name = 'acsc'
     
     rules = {
         'Derivative[1][ArcCsc]': '-1 / (Sqrt[1 - 1/#^2] * #^2)&',
         'ArcCsc[0]': 'ComplexInfinity',
         'ArcCsc[1]': 'Pi / 2',
     }
-    
-    def eval(self, z):
-        return mpmath.acsc(z)
     
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
@@ -473,15 +456,13 @@ class ArcCot(_MPMathFunction):
     """
     
     sympy_name = 'acot'
+    mpmath_name = 'acot'
     
     rules = {
         'Derivative[1][ArcCot]': '-1/(1+#^2)&',
         'ArcCot[0]': 'Pi / 2',
         'ArcCot[1]': 'Pi / 4',
     }
-    
-    def eval(self, z):
-        return mpmath.acot(z)
     
 class Sinh(_MPMathFunction):
     """
@@ -494,12 +475,11 @@ class Sinh(_MPMathFunction):
      = 0
     """
     
+    mpmath_name = 'sinh'
+
     rules = {
         'Derivative[1][Sinh]': 'Cosh[#]&',
     }
-    
-    def eval(self, z):
-        return mpmath.sinh(z)
     
 class Cosh(_MPMathFunction):
     """
@@ -511,13 +491,12 @@ class Cosh(_MPMathFunction):
     >> Cosh[0]
      = 1
     """
+
+    mpmath_name = 'cosh'
     
     rules = {
         'Derivative[1][Cosh]': 'Sinh[#]&',
     }
-    
-    def eval(self, z):
-        return mpmath.cosh(z)
     
 class Tanh(_MPMathFunction):
     """
@@ -529,13 +508,12 @@ class Tanh(_MPMathFunction):
     >> Tanh[0]
      = 0
     """
+
+    mpmath_name = 'tanh'
     
     rules = {
         'Derivative[1][Tanh]': 'Sech[#1]^2&',
     }
-    
-    def eval(self, z):
-        return mpmath.tanh(z)
     
 class Sech(_MPMathFunction):
     """
@@ -549,6 +527,7 @@ class Sech(_MPMathFunction):
     """
     
     sympy_name = ''
+    mpmath_name = 'sech'
     
     rules = {
         'Derivative[1][Sech]': '-Sech[#1] Tanh[#1]&',
@@ -557,9 +536,6 @@ class Sech(_MPMathFunction):
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
             return Expression('Power', Expression('Cosh', expr.leaves[0]), Integer(-1)).to_sympy()
-    
-    def eval(self, z):
-        return mpmath.sech(z)
     
 class Csch(_MPMathFunction):
     """
@@ -573,6 +549,7 @@ class Csch(_MPMathFunction):
     """
     
     sympy_name = ''
+    mpmath_name = 'csch'
     
     rules = {
         'Csch[0]': 'ComplexInfinity',
@@ -584,9 +561,6 @@ class Csch(_MPMathFunction):
         if len(expr.leaves) == 1:
             return Expression('Power', Expression('Sinh', expr.leaves[0]), Integer(-1)).to_sympy()
     
-    def eval(self, z):
-        return mpmath.csch(z)
-    
 class Coth(_MPMathFunction):
     """
     <dl>
@@ -597,15 +571,14 @@ class Coth(_MPMathFunction):
     >> Coth[0]
      = ComplexInfinity
     """
+
+    mpmath_name = 'coth'
     
     rules = {
         'Coth[0]': 'ComplexInfinity',
         'Coth[0.]': 'ComplexInfinity',
         'Derivative[1][Coth]': '-Csch[#1]^2&',
     }
-    
-    def eval(self, z):
-        return mpmath.coth(z)
     
 class ArcSinh(_MPMathFunction):
     """
@@ -623,13 +596,11 @@ class ArcSinh(_MPMathFunction):
     """
     
     sympy_name = 'asinh'
+    mpmath_name = 'asinh'
     
     rules = {
         'Derivative[1][ArcSinh]': '1/Sqrt[1+#^2]&',
     }
-    
-    def eval(self, z):
-        return mpmath.asinh(z)
     
 class ArcCosh(_MPMathFunction):
     """
@@ -644,17 +615,18 @@ class ArcCosh(_MPMathFunction):
      = 0. + 1.57079632679489662 I
     >> ArcCosh[0.00000000000000000000000000000000000000]
      = 0. + 1.5707963267948966191479842624545426588 I
+
+    #> ArcCosh[1.4]
+     = 0.867014726490565104
     """
     
     sympy_name = 'acosh'
+    mpmath_name = 'acosh'
     
     rules = {
         'ArcCosh[z:0.0]': 'N[I / 2 Pi, Precision[1+z]]',
         'Derivative[1][ArcCosh]': '1/(Sqrt[#-1]*Sqrt[#+1])&',
     }
-    
-    def eval(self, z):
-        return mpmath.acoth(z)
     
 class ArcTanh(_MPMathFunction):
     """
@@ -676,13 +648,11 @@ class ArcTanh(_MPMathFunction):
     """
     
     sympy_name = 'atanh'
+    mpmath_name = 'atanh'
     
     rules = {
         'Derivative[1][ArcTanh]': '1/(1-#^2)&',
     }
-    
-    def eval(self, z):
-        return mpmath.atanh(z)
     
 class ArcSech(_MPMathFunction):
     """
@@ -700,15 +670,13 @@ class ArcSech(_MPMathFunction):
     """
     
     sympy_name = ''
+    mpmath_name = 'asech'
     
     rules = {
         'ArcSech[0]': 'Infinity',
         'ArcSech[0.]': 'Indeterminate',
         'Derivative[1][ArcSech]': '-1 / (# * Sqrt[(1-#)/(1+#)] (1+#)) &',
     }
-    
-    def eval(self, z):
-        return mpmath.asech(z)
     
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
@@ -728,15 +696,13 @@ class ArcCsch(_MPMathFunction):
     """
     
     sympy_name = ''
+    mpmath_name = 'acsch'
     
     rules = {
         'ArcCsch[0]': 'ComplexInfinity',
         'ArcCsch[0.]': 'ComplexInfinity',
         'Derivative[1][ArcCsch]': '-1 / (Sqrt[1+1/#^2] * #^2) &',
     }
-    
-    def eval(self, z):
-        return mpmath.acsch(z)
     
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
@@ -760,11 +726,9 @@ class ArcCoth(_MPMathFunction):
     """
     
     sympy_name = 'acoth'
+    mpmath_name = 'acoth'
     
     rules = {
         'ArcCoth[z:0.0]': 'N[I / 2 Pi, Precision[1+z]]',
         'Derivative[1][ArcCoth]': '1/(1-#^2)&',
     }
-    
-    def eval(self, z):
-        return mpmath.acoth(z)
