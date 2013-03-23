@@ -797,12 +797,14 @@ class MathicsParser:
         self.parser = yacc.yacc(debug=1, module=self, **kwargs)
 
     def p_error(self, p):
-        print p
+        if p is not None:
+            print p
         raise ParseError(p)
     
     def parse(self, string):
         result = self.parser.parse(string)
-        #result = result.post_parse()
+        if result is not None:
+            result = result.post_parse()
         return result
 
     def p_Expression(self, args):
