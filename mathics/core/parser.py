@@ -750,6 +750,7 @@ def ONEARG(f):
 class MathicsParser:
     tokens = tokens
     precedence = precedence
+    start = 'Expression'
 
     def __init__(self):
         for prefix_op in prefix_operators:
@@ -803,6 +804,14 @@ class MathicsParser:
         result = self.parser.parse(string)
         #result = result.post_parse()
         return result
+
+    def p_Expression(self, args):
+        'Expression : expr'
+        args[0] = args[1]
+
+    def p_Empty(self, args):
+        'Expression :'
+        args[0] = None
         
     def p_parenthesis(self, args):
         'expr : RawLeftParenthesis expr RawRightParenthesis'
