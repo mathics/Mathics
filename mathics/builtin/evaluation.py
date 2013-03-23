@@ -290,10 +290,18 @@ class Out(Builtin):
      = Hold[%4]
     >> Out[0]
      = Out[0]
+
+    #> 10
+     = 10
+    #> Out[-1] + 1
+     = 11
+    #> Out[] + 1
+     = 12
     """
     
     rules = {
         'Out[k_Integer?Negative]': 'Out[$Line + k]',
+        'Out[]': 'Out[$Line - 1]',
         
         'MakeBoxes[Out[k_Integer?((-10 <= # < 0)&)], f:StandardForm|TraditionalForm|InputForm|OutputForm]':
             r'StringJoin[ConstantArray["%%", -k]]',
