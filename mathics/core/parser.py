@@ -258,6 +258,10 @@ tokens = (
     'span',
     'RawLeftBracket',
     'RawRightBracket',
+    'RawLeftBrace',
+    'RawRightBrace',
+    'RawLeftParenthesis',
+    'RawRightParenthesis',
     'RawComma',
     'Get',
     'Put',
@@ -300,7 +304,7 @@ tokens = (
     'Minus',
     'PlusMinus',
     'MinusPlus',
-    'Slash',
+    'RawSlash',
     'RawBackslash',
     'Diamond',
     'Wedge',
@@ -310,7 +314,7 @@ tokens = (
     'Star',
     #'Sum',
     #'Product',
-    'Asterisk',
+    'RawStar',
     'Times',
     'Divide',
     'op_Equal',
@@ -399,11 +403,8 @@ tokens = (
     'Function',
 )
 
-literals = ['(', ')', '{', '}']
-
 class MathicsScanner:
     tokens = tokens
-    literals = literals
     precedence = precedence
 
     #t_ignore = ur' [\s \u2062]+ '
@@ -414,6 +415,10 @@ class MathicsScanner:
 
     t_RawLeftBracket = r' \[ '
     t_RawRightBracket = r' \] '
+    t_RawLeftBrace = r' \{ '
+    t_RawRightBrace = r' \} '
+    t_RawLeftParenthesis = r' \( '
+    t_RawRightParenthesis = r' \) '
 
     t_RawComma = r' \, '
 
@@ -470,7 +475,7 @@ class MathicsScanner:
 
     t_Plus = r' \+ '
     t_Minus = r' \- '
-    t_Slash = r' \/ '
+    t_RawSlash = r' \/ '
     t_RawBackslash = r' \\ '
 
     t_Diamond = ur' \\\[Diamond\]|\u22c4 '
@@ -483,7 +488,7 @@ class MathicsScanner:
     #t_Sum = ur' \\\[Sum\]|\u2211 '
     #t_Product = ur' \\\[Product\]|\u220f '
 
-    t_Asterisk = r' \* '
+    t_RawStar = r' \* '
     t_Times = ur'\\\[Times\]|\u00d7 '
     t_Divide = ur' \\\[Divide\]|\u00f7 '
 
@@ -660,7 +665,6 @@ class MathicsScanner:
         r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
         return t
 
-
     def t_slotseq_1(self, t):
         r' \#\#\d+ '
         (t.type, t.value) = ('slotseq', int(t.value[2:]))
@@ -745,7 +749,6 @@ def ONEARG(f):
 
 class MathicsParser:
     tokens = tokens
-    literals = literals
     precedence = precedence
 
     def __init__(self):
@@ -802,7 +805,7 @@ class MathicsParser:
         return result
         
     def p_parenthesis(self, args):
-        "expr : '(' expr ')'"
+        'expr : RawLeftParenthesis expr RawRightParenthesis'
         expr = args[2]
         expr.parenthesized = True
         args[0] = expr
@@ -822,7 +825,7 @@ class MathicsParser:
         args[0] = ArgsToken(args[2].items)
     
     def p_list(self, args):
-        "expr : '{' sequence '}'"
+        'expr : RawLeftBrace sequence RawRightBrace'
         args[0] = Expression('List', *args[2].items)
     
     def p_position(self, args):
@@ -1015,11 +1018,11 @@ class MathicsParser:
         args[0] = Expression('Times', Integer(-1), args[2])
 
     def p_Slash(self, args):
-        '''expr : expr Slash expr %prec DIVIDE
+        '''expr : expr RawSlash expr %prec DIVIDE
                 | expr Divide expr %prec DIVIDE'''
         args[0] = Expression('Times', args[1], Expression('Power', args[3], Integer(-1)))
 
-    @FLAT(['Times', 'Asterisk', ''], 'TIMES')
+    @FLAT(['Times', 'RawStar', ''], 'TIMES')
     def p_Times(self, args):
         if len(args) == 2:
             args[0] = Expression('Times', *args[1])
