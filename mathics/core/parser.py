@@ -55,194 +55,192 @@ class ParseError(TranslateError):
         return u"Parse error at or near token %s." % str(self.token)
 
 prefix_operators = {
-    'PreIncrement': ('Increment', 'PREINCREMENT'),
-    'PreDecrement': ('Decrement', 'PREINCREMENT'),
-    'Del' : ('Del', 'DEL'),
-    'Square': ('Square', 'SQUARE'),
-    'PlusMinus' : ('PlusMinus', 'MINUS'),
-    'MinusPlus' : ('MinusPlus', 'MINUS'),
-    'ForAll': ('ForAll', 'FORALL'),
-    'Exists': ('Exists', 'FORALL'),
-    'NotExists': ('NotExists', 'FORALL'),
-    'Not': (['Not', 'Bang'], 'NOT'),
+    'Del' : 'Del',
+    'Square': 'Square',
+    'ForAll': 'ForAll',
+    'Exists': 'Exists',
+    'NotExists': 'NotExists',
 }
 
 infix_operators = {
-    'PatternTest' : ('PatternTest', 'PATTERNTEST'),
-    'Apply': ('Apply1', 'APPLY'),
-    'Map': ('Map', 'APPLY'),
-    'MapAll': ('MapAll', 'APPLY'),
-    'PlusMinus': ('PlusMinus', 'PLUS'),
-    'MinusPlus': ('MinusPlus', 'PLUS'),
-    'RightTee' : ('RightTee', 'RIGHTTEE'),
-    'DoubleRightTee' : ('DoubleRightTee', 'RIGHTTEE'),
-    'LeftTee' : ('LeftTee', 'LEFTTEE'),
-    'DoubleLeftTee' : ('DoubleLeftTee', 'LEFTTEE'),
-    'Implies' : ('Implies', 'IMPLIES'),
-    'SuchThat' : ('SuchThat', 'SUCHTHAT'),
-    'Condition' : ('Condition', 'CONDITION'),
-    'Rule' : (['op_Rule', 'Rule'], 'RULE'),
-    'RuleDelayed' : (['op_RuleDelayed', 'RuleDelayed'], 'RULE'),
-    'ReplaceAll' : ('ReplaceAll', 'REPLACE'),
-    'ReplaceRepeated' : ('ReplaceRepeated', 'REPLACE'),
-    'AddTo' : ('AddTo', 'ADDTO'),
-    'SubtractFrom' : ('SubtractFrom', 'ADDTO'),
-    'TimesBy' : ('TimesBy', 'ADDTO'),
-    'DivideBy' : ('DivideBy', 'ADDTO'),
-    'Therefore': ('Therefore', 'THEREFORE'),
-    'Because': ('Because', 'BECAUSE'),
-    'UpSet' : ('UpSet', 'SET'),
-    'UpSetDelayed' : ('UpSetDelayed', 'SET'),
+    'PatternTest' : 'PatternTest',
+    'Apply': 'Apply1',
+    'Map': 'Map',
+    'MapAll': 'MapAll',
+    'PlusMinus': 'PlusMinus',
+    'MinusPlus': 'MinusPlus',
+    'RightTee' : 'RightTee',
+    'DoubleRightTee' : 'DoubleRightTee',
+    'LeftTee' : 'LeftTee',
+    'DoubleLeftTee' : 'DoubleLeftTee',
+    'Implies' : 'Implies',
+    'SuchThat' : 'SuchThat',
+    'Condition' : 'Condition',
+    'Rule' : ['op_Rule', 'Rule'],
+    'RuleDelayed' : ['op_RuleDelayed', 'RuleDelayed'],
+    'ReplaceAll' : 'ReplaceAll',
+    'ReplaceRepeated' : 'ReplaceRepeated',
+    'AddTo' : 'AddTo',
+    'SubtractFrom' : 'SubtractFrom',
+    'TimesBy' : 'TimesBy',
+    'DivideBy' : 'DivideBy',
+    'Therefore': 'Therefore',
+    'Because': 'Because',
+    'UpSet' : 'UpSet',
+    'UpSetDelayed' : 'UpSetDelayed',
 }
 
 flat_infix_operators = {
-    'StringJoin': ('StringJoin', 'STRINGJOIN'),
-    'SmallCircle' : ('SmallCircle', 'SQUARE'),
-    'CircleDot' : ('CircleDot', 'CIRCLEDOT'),
-    'NonCommutativeMultiply' : ('NonCommutativeMultiply', 'NONCOMMUTATIVEMULTIPLY'),
-    'Cross' : ('Cross', 'CROSS'),
-    'Dot' : ('RawDot', 'DOT'),
-    'Plus' : ('Plus', 'PLUS'),
-    'Intersection' : ('Intersection', 'INTERSECTION'),
-    'Union' : ('Union', 'UNION'),
-    'Diamond' : ('Diamond', 'DIAMOND'),
-    'Wedge' : ('Wedge', 'WEDGE'),
-    'Vee' : ('Vee', 'VEE'),
-    'CircleTimes' : ('CircleTimes', 'CIRCLETIMES'),
-    'CirclePlus' : ('CirclePlus', 'CIRCLEPLUS'),
-    'CircleMinus' : ('CircleMinus', 'CIRCLEPLUS'),
-    'CenterDot' : ('CenterDot', 'CENTERDOT'),
-    'VerticalTilde' : ('VerticalTilde', 'VERTICALTILDE'),
-    'Coproduct' : ('Coproduct', 'COPRODUCT'),
-    'Cap' : ('Cap', 'CAP'),
-    'Cup' : ('Cup', 'CAP'),
-    'Star' : ('Star', 'STAR'),
-    'Backslash' : ('RawBackslash', 'BACKSLASH'),
-    'Equal' : (['op_Equal', 'LongEqual', 'Equal'], "EQUAL"),
-    'Unequal' : (['op_Unequal', 'NotEqual'], "EQUAL"),
-    'Greater' : ('Greater', 'EQUAL'),
-    'Less' : ('Less', 'EQUAL'),
-    'GreaterEqual' : (['op_GreaterEqual', 'GreaterEqual', 'GreaterSlantEqual'], 'EQUAL'),
-    'LessEqual' : (['op_LessEqual', 'LessEqual', 'LessSlantEqual'], 'EQUAL'),
-    'VerticalBar' : ('VerticalBar', 'EQUAL'),
-    'NotVerticalBar' : ('NotVerticalBar', 'EQUAL'),
-    'DoubleVerticalBar' : ('DoubleVerticalBar', 'EQUAL'),
-    'NotDoubleVerticalBar' : ('NotDoubleVerticalBar', 'EQUAL'),
-    'SameQ' : ('SameQ', 'SAMEQ'),
-    'UnsameQ' : ('UnsameQ', 'SAMEQ'),
-    'Element' : ('Element', 'ELEMENT'),
-    'NotElement' : ('NotElement', 'ELEMENT'),
-    'Subset' : ('Subset', 'ELEMENT'),
-    'Superset' : ('Superset', 'ELEMENT'),
-    'And' : (['And', 'op_And'], 'AND'),
-    'Nand' : ('Nand', 'AND'),
-    'Xor' : ('Xor', 'XOR'),
-    'Xnor' : ('Xnor', 'XOR'),
-    'Or' : (['op_Or', 'Or'], 'OR'),
-    'Nor' : ('Nor', 'OR'),
-    'Equivalent' : ('Equivalent', 'EQUIVALENT'),
-    'Alternatives' : ('Alternatives', 'ALTERNATIVES'),
-    'StringExpression' : ('StringExpression', 'STRINGEXPRESSION'),
-    'Colon' : ('Colon', 'COLON'),
-    'VerticalSeparator' : ('VerticalSeparator', 'VERTICALSEPARATOR'),
+    'StringJoin': 'StringJoin',
+    'SmallCircle' : 'SmallCircle',
+    'CircleDot' : 'CircleDot',
+    'NonCommutativeMultiply' : 'NonCommutativeMultiply',
+    'Cross' : 'Cross',
+    'Dot' : 'RawDot',
+    'Plus' : 'Plus',
+    'Intersection' : 'Intersection',
+    'Union' : 'Union',
+    'Diamond' : 'Diamond',
+    'Wedge' : 'Wedge',
+    'Vee' : 'Vee',
+    'CircleTimes' : 'CircleTimes',
+    'CirclePlus' : 'CirclePlus',
+    'CircleMinus' : 'CircleMinus',
+    'CenterDot' : 'CenterDot',
+    'VerticalTilde' : 'VerticalTilde',
+    'Coproduct' : 'Coproduct',
+    'Cap' : 'Cap',
+    'Cup' : 'Cup',
+    'Star' : 'Star',
+    'Backslash' : 'RawBackslash',
+    'Equal' : ['op_Equal', 'LongEqual', 'Equal'],
+    'Unequal' : ['op_Unequal', 'NotEqual'],
+    'Greater' : 'Greater',
+    'Less' : 'Less',
+    'GreaterEqual' : ['op_GreaterEqual', 'GreaterEqual', 'GreaterSlantEqual'],
+    'LessEqual' : ['op_LessEqual', 'LessEqual', 'LessSlantEqual'],
+    'VerticalBar' : 'VerticalBar',
+    'NotVerticalBar' : 'NotVerticalBar',
+    'DoubleVerticalBar' : 'DoubleVerticalBar',
+    'NotDoubleVerticalBar' : 'NotDoubleVerticalBar',
+    'SameQ' : 'SameQ',
+    'UnsameQ' : 'UnsameQ',
+    'Element' : 'Element',
+    'NotElement' : 'NotElement',
+    'Subset' : 'Subset',
+    'Superset' : 'Superset',
+    'And' : ['And', 'op_And'],
+    'Nand' : 'Nand',
+    'Xor' : 'Xor',
+    'Xnor' : 'Xnor',
+    'Or' : ['op_Or', 'Or'],
+    'Nor' : 'Nor',
+    'Equivalent' : 'Equivalent',
+    'Alternatives' : 'Alternatives',
+    'StringExpression' : 'StringExpression',
+    'Colon' : 'Colon',
+    'VerticalSeparator' : 'VerticalSeparator',
 }
 
+#for op in flat_infix_operators:
+#    infix_operators[op] = flat_infix_operators[op]
+#flat_infix_operators = {}
+
 postfix_operators = {
-    'Increment': ('Increment', 'INCREMENT'),
-    'Decrement': ('Decrement', 'INCREMENT'),
-    'Factorial': ('Bang', 'FACTORIAL'),
-    'Factorial2': ('DoubleBang', 'FACTORIAL'),
-    'Conjugate': ('Conjugate', 'CONJUGATE'),
-    'Transpose': ('Transpose', 'CONJUGATE'),
-    'ConjugateTranspose': ('ConjugateTranspose', 'CONJUGATE'),
-    'Repeated' : ('Repeated', 'REPEATED'),
-    'RepeatedNull' : ('RepeatedNull', 'REPEATED'),
-    'Function' : ('RawAmpersand', 'AMPERSAND'),
+    'Increment': 'Increment',
+    'Decrement': 'Decrement',
+    'Factorial': 'Factorial',
+    'Factorial2': 'Factorial2',
+    'Conjugate': 'Conjugate',
+    'Transpose': 'Transpose',
+    'ConjugateTranspose': 'ConjugateTranspose',
+    'Repeated' : 'Repeated',
+    'RepeatedNull' : 'RepeatedNull',
+    'Function' : 'RawAmpersand',
 }
 
 precedence = (
-    ('right', 'FORMBOX'),
-    ('right', 'COMPOUNDEXPRESSION'),
-    ('nonassoc', 'PUT'),
-    ('nonassoc', 'SET2'),
-    ('right', 'SET'),
-    ('left', 'BECAUSE'),
-    ('right', 'THEREFORE'),
-    ('left', 'VERTICALSEPARATOR'),         # flat
-    ('right', 'POSTFIX'),
-    ('right', 'COLON'),
-    ('nonassoc', 'AMPERSAND'),
-    ('right', 'ADDTO'),
-    ('left', 'REPLACE'),
-    ('right', 'RULE'),
-    ('left', 'CONDITION'),
-    ('left', 'STRINGEXPRESSION'),
-    ('nonassoc', 'PATTERN'),
-    ('left', 'ALTERNATIVES'),
-    ('nonassoc', 'REPEATED'),
-    ('right', 'SUCHTHAT'),
-    ('left', 'LEFTTEE'),
-    ('right', 'RIGHTTEE'),
-    ('right', 'IMPLIES'),
-    ('left', 'EQUIVALENT'),
-    ('left', 'OR'),
-    ('left', 'XOR'),
-    ('left', 'AND'),
-    ('right', 'NOT'),
-    ('right', 'FORALL'),
-    ('left', 'ELEMENT'),
-    ('left', 'SAMEQ'),
-    ('left', 'EQUAL'),
-    ('left', 'SPAN'),
-    ('left', 'UNION'),                      # flat
-    ('left', 'INTERSECTION'),               # flat
-    ('left', 'PLUS'),                       # flat
-    #('left', 'SUM'),                       # flat
-    ('left', 'CIRCLEPLUS'),                 # flat
-    ('left', 'CAP'),                        # flat
-    ('left', 'COPRODUCT'),                  # flat
-    ('left', 'VERTICALTILDE'),              # flat
-    #('left', 'PRODUCT'),
-    ('left', 'STAR'),                       # flat
-    ('left', 'TIMES'),                      # flat
-    ('left', 'DIAMOND'),                    # flat
-    ('left', 'WEDGE'),                      # flat
-    ('left', 'VEE'),                        # flat
-    ('left', 'CIRCLETIMES'),                # flat
-    ('left', 'CENTERDOT'),                  # flat
-    ('right', 'BACKSLASH'),
-    ('left', 'DIVIDE'),
-    ('nonassoc', 'MINUS'),
-    ('left', 'DOT'),                       # flat
-    ('left', 'CROSS'),                     # flat
-    ('left', 'NONCOMMUTATIVEMULTIPLY'),    # flat
-    ('right', 'CIRCLEDOT'),
-    ('right', 'SQUARE'),
-    ('right', 'DEL'),
-    ('right', 'INTEGRATE'),
-    ('right', 'SQRT'),
-    ('right', 'POWER'),
-    ('left', 'STRINGJOIN'),                 # flat
-    ('nonassoc', 'DERIVATIVE'),
-    ('nonassoc', 'CONJUGATE'),
-    ('nonassoc', 'FACTORIAL'),
-    ('right', 'APPLY'),
-    ('left', 'INFIX'),
-    ('right', 'PREFIX'),
-    ('nonassoc', 'PREINCREMENT'),
-    ('nonassoc', 'INCREMENT'),
+    ('right', 'FormBox'),
+    ('right', 'Semicolon'),
+    ('nonassoc', 'Put', 'PutAppend'),
+    ('nonassoc', 'Set', 'SetDelayed', 'Function', 'UpSet', 'UpSetDelayed'),
+    ('left', 'Because'),
+    ('right', 'Therefore'),
+    ('left', 'VerticalSeparator'),         # flat
+    ('right', 'Postfix'),
+    ('right', 'Colon'),
+    ('nonassoc', 'RawAmpersand'),
+    ('right', 'AddTo', 'SubtractFrom', 'TimesBy', 'DivideBy'),
+    ('left', 'ReplaceAll', 'ReplaceRepeated'),
+    ('right', 'Rule', 'RuleDelayed', 'op_RuleDelayed'),
+    ('left', 'Condition'),
+    ('left', 'StringExpression'),
+    ('nonassoc', 'RawColon'),
+    ('left', 'Alternatives'),
+    ('nonassoc', 'Repeated', 'RepeatedNull'),
+    ('right', 'SuchThat'),
+    ('left', 'LeftTee', 'DoubleLeftTee'),
+    ('right', 'RightTee', 'DoubleRightTee'),
+    ('right', 'Implies'),
+    ('left', 'Equivalent'),
+    ('left', 'Or', 'op_Or', 'Nor'),
+    ('left', 'Xor', 'Xnor'),
+    ('left', 'And', 'op_And', 'Nand'),
+    ('right', 'Not'),
+    ('right', 'ForAll', 'Exists', 'NotExists'),
+    ('left', 'Element', 'NotElement', 'Subset', 'Superset'),
+    ('left', 'SameQ', 'UnsameQ'),
+    ('left', 'Equal', 'op_Equal', 'LongEqual', 'op_Unequal', 'NotEqual', 'Greater', 'Less', 'GreaterEqual', 'op_GreaterEqual', 'GreaterSlantEqual', 'LessEqual', 'op_LessEqual', 'LessSlantEqual', 'VerticalBar', 'NotVerticalBar', 'DoubleVerticalBar', 'NotDoubleVerticalBar'),
+    ('left', 'Span'),
+    ('left', 'Union'),                      # flat
+    ('left', 'Intersection'),               # flat
+    ('left', 'Plus', 'Minus', 'PlusMinus', 'MinusPlus'),  # flat
+    #('left', 'Sum'),                       # flat
+    ('left', 'CirclePlus', 'CircleMinus'),  # flat
+    ('left', 'Cap', 'Cup'),                 # flat
+    ('left', 'Coproduct'),                  # flat
+    ('left', 'VerticalTilde'),              # flat
+    #('left', 'Product'),
+    ('left', 'Star'),                       # flat
+    ('left', 'Times', 'RawStar'),           # flat
+    ('left', 'CenterDot'),                  # flat
+    ('left', 'CircleTimes'),                # flat
+    ('left', 'Vee'),                        # flat
+    ('left', 'Wedge'),                      # flat
+    ('left', 'Diamond'),                    # flat
+    ('right', 'RawBackslash'),
+    ('left',  'RawSlash', 'Divide'),
+    ('nonassoc', 'UPlus', 'UMinus', 'UPlusMinus', 'UMinusPlus'),
+    ('left', 'RawDot'),                    # flat
+    ('left', 'Cross'),                     # flat
+    ('left', 'NonCommutativeMultiply'),    # flat
+    ('right', 'CircleDot'),
+    ('right', 'Square'),
+    ('right', 'Del'),
+    ('right', 'Integral'),
+    ('right', 'Sqrt'),
+    ('right', 'Power', 'Power2'),
+    ('left', 'StringJoin'),                 # flat
+    ('left', 'Derivative'),
+    ('nonassoc', 'Conjugate'),
+    ('left', 'Factorial'),
+    ('right', 'Apply1', 'Apply2', 'Map', 'MapAll'),
+    ('left', 'Infix'),
+    ('right', 'Prefix'),
+    ('nonassoc', 'PreIncrement', 'PreDecrement'),
+    ('nonassoc', 'Increment', 'Decrement'),
     ('left', 'PART'),
-    ('nonassoc', 'PATTERNTEST'),
-    ('right', 'SUBSCRIPT'),
-    ('right', 'OVERSCRIPT'),
-    ('nonassoc', 'GET'),
-    ('nonassoc', 'BLANK'),
-    ('nonassoc', 'OUT'),
-    ('nonassoc', 'SLOT'),
-    ('nonassoc', 'MESSAGENAME'),
-    ('nonassoc', 'STRING'),
-    ('nonassoc', 'SYMBOL'),
-    ('nonassoc', 'NUMBER'),
+    ('nonassoc', 'PatternTest'),
+    ('right', 'Subscript'),
+    ('right', 'Overscript', 'Underscript'),
+    ('nonassoc', 'Get'),
+    ('nonassoc', 'blanks', 'blankdefault'),
+    ('nonassoc', 'out'),
+    ('nonassoc', 'slot', 'slotseq'),
+    ('nonassoc', 'MessageName'),
+    ('nonassoc', 'string'),
+    ('nonassoc', 'symbol'),
+    ('nonassoc', 'int', 'float'),
 )
 
 tokens = (
@@ -255,7 +253,7 @@ tokens = (
     'out',
     'slot',
     'slotseq',
-    'span',
+    'Span',
     'RawLeftBracket',
     'RawRightBracket',
     'RawLeftBrace',
@@ -280,8 +278,8 @@ tokens = (
     'Apply2',
     'Map',
     'MapAll',
-    'Bang',
-    'DoubleBang',
+    'Factorial',
+    'Factorial2',
     'Conjugate',
     'Transpose',
     'ConjugateTranspose',
@@ -422,7 +420,7 @@ class MathicsScanner:
 
     t_RawComma = r' \, '
 
-    t_span = r' \;\; '
+    t_Span = r' \;\; '
 
     t_MessageName = r' \:\: '
     t_Get = r' \<\< '
@@ -445,8 +443,8 @@ class MathicsScanner:
     t_Map = r' \/\@ '
     t_MapAll = r' \/\/\@ '
 
-    t_Bang = r' \! '
-    t_DoubleBang = r' \!\! '
+    t_Factorial = r' \! '
+    t_Factorial2 = r' \!\! '
 
     t_Transpose = ur' \\\[Transpose\]|\uf3c7 '
     t_Conjugate = ur' \\\[Conjugate\]|\uf3c8 '
@@ -729,13 +727,13 @@ def Flat(operator, args):
     else:
         return [args[1], args[3]]
 
-def FLAT(op_tokens, prec):
-    def set_doc(f, op_tokens=op_tokens, prec=prec):
+def FLAT(op_tokens):
+    def set_doc(f, op_tokens=op_tokens):
         if not isinstance(op_tokens, list):
             op_tokens = [op_tokens]
         tokenname = op_tokens[0]+'TOKEN'
-        rule1 = ['{0} : expr {1} expr %prec {2}'.format(tokenname, op, prec) for op in op_tokens]
-        rule2 = ['{0} : {0} {1} expr %prec {2}'.format(tokenname, op, prec) for op in op_tokens]
+        rule1 = ['{0} : expr {1} expr'.format(tokenname, op) for op in op_tokens]
+        rule2 = ['{0} : {0} {1} expr'.format(tokenname, op) for op in op_tokens]
         rule3 = ['expr : {0}'.format(tokenname)]
         f.__doc__ = '\n'.join(rule1 + rule2 + rule3)
         return f
@@ -757,27 +755,27 @@ class MathicsParser:
             @ONEARG
             def tmp(args, op=prefix_op):
                 args[0] = Expression(op, args[2])
-            (tokens, prec) = prefix_operators[prefix_op]
+            tokens = prefix_operators[prefix_op]
             if not isinstance(tokens, list):
                 tokens = [tokens]
-            tmp.__doc__ = 'expr : ' + '\n     | '.join(['{0} expr %prec {1}'.format(token, prec) for token in tokens])
+            tmp.__doc__ = 'expr : ' + '\n     | '.join(['{0} expr'.format(token) for token in tokens])
             setattr(self, 'p_{0}_prefix'.format(prefix_op), tmp)
 
         for infix_op in infix_operators:
             @ONEARG
             def tmp(args, op=infix_op):
                 args[0] = Expression(op, args[1], args[3])
-            (tokens, prec) = infix_operators[infix_op]
+            tokens = infix_operators[infix_op]
             if not isinstance(tokens, list):
                 tokens = [tokens]
-            tmp.__doc__ = 'expr : ' + '\n     | '.join(['expr {0} expr %prec {1}'.format(token, prec) for token in tokens])
+            tmp.__doc__ = 'expr : ' + '\n     | '.join(['expr {0} expr'.format(token) for token in tokens])
             setattr(self, 'p_{0}_infix'.format(infix_op), tmp)
 
         for flat_infix_op in flat_infix_operators:
-            (tokens, prec) = flat_infix_operators[flat_infix_op]
+            tokens = flat_infix_operators[flat_infix_op]
             if not isinstance(tokens, list):
                 tokens = [tokens]
-            @FLAT(tokens, prec)
+            @FLAT(tokens)
             @ONEARG
             def tmp(args, op=flat_infix_op):
                 args[0] = Flat(op, args)
@@ -787,10 +785,10 @@ class MathicsParser:
             @ONEARG
             def tmp(args, op=postfix_op):
                 args[0] = Expression(op, args[1])
-            (tokens, prec) = postfix_operators[postfix_op]
+            tokens = postfix_operators[postfix_op]
             if not isinstance(tokens, list):
                 tokens = [tokens]
-            tmp.__doc__ = 'expr : ' + '\n     | '.join(['expr {0} %prec {1}'.format(token, prec) for token in tokens])
+            tmp.__doc__ = 'expr : ' + '\n     | '.join(['expr {0}'.format(token) for token in tokens])
             setattr(self, 'p_{0}_postfix'.format(postfix_op), tmp)
 
     def build(self, **kwargs):
@@ -874,19 +872,19 @@ class MathicsParser:
                 args[0] = SequenceToken([Symbol('Null'), Symbol('Null')])
 
     def p_symbol(self, args):
-        'expr : symbol %prec SYMBOL'
+        'expr : symbol'
         args[0] = Symbol(args[1])
         
     def p_int(self, args):
-        'expr : int %prec NUMBER'
+        'expr : int'
         args[0] = Integer(args[1])
         
     def p_float(self, args):
-        'expr : float %prec NUMBER'
+        'expr : float'
         args[0] = Real(args[1])
         
     def p_blanks(self, args):
-        'pattern : blanks %prec BLANK'
+        'pattern : blanks'
         pieces = args[1].split('_')
         count = len(pieces) - 1
         if count == 1:
@@ -905,7 +903,7 @@ class MathicsParser:
             args[0] = blank
         
     def p_blankdefault(self, args):
-        'pattern : blankdefault %prec BLANK'
+        'pattern : blankdefault'
         name = args[1][:-2]
         if name:
             args[0] = Expression('Optional', Expression('Pattern', Symbol(name), Expression('Blank')))
@@ -917,22 +915,22 @@ class MathicsParser:
         args[0] = args[1]
         
     def p_slot(self, args):
-        'expr : slot %prec SLOT'
+        'expr : slot'
         args[0] = Expression('Slot', Integer(args[1]))
 
     def p_slotseq(self, args):
-        'expr : slotseq %prec SLOT'
+        'expr : slotseq'
         args[0] = Expression('SlotSequence', Integer(args[1]))
     
     def p_out(self, args):
-        'expr : out %prec OUT'
+        'expr : out'
         if args[1] == -1:
             args[0] = Expression('Out')
         else:
             args[0] = Expression('Out', Integer(args[1]))
         
     def p_string(self, args):
-        'expr : string %prec STRING'
+        'expr : string'
         args[0] = String(args[1])
 
     def p_filename_string(self, args):
@@ -941,14 +939,14 @@ class MathicsParser:
         args[0] = String(args[1])
 
     def p_Get(self, args):
-        'expr : Get filename %prec GET'
+        'expr : Get filename'
         args[0] = Expression('Get', args[2])
 
     def p_MessageName(self, args):
-        '''expr : expr MessageName string MessageName string %prec MESSAGENAME
-                | expr MessageName symbol MessageName string %prec MESSAGENAME
-                | expr MessageName symbol %prec MESSAGENAME
-                | expr MessageName string %prec MESSAGENAME'''
+        '''expr : expr MessageName string MessageName string
+                | expr MessageName symbol MessageName string
+                | expr MessageName symbol
+                | expr MessageName string'''
 
         if len(args) == 4:
             args[0] = Expression('MessageName', args[1], String(args[3]))
@@ -956,10 +954,10 @@ class MathicsParser:
             args[0] = Expression('MessageName', args[1], String(args[3]), String(args[5]))
 
     def p_OverScript(self, args):
-        '''expr : expr Underscript expr Otherscript expr %prec OVERSCRIPT
-                | expr Overscript expr Otherscript expr %prec OVERSCRIPT
-                | expr Overscript expr %prec OVERSCRIPT
-                | expr Underscript expr %prec OVERSCRIPT'''
+        '''expr : expr Underscript expr Otherscript expr %prec Underscript
+                | expr Overscript expr Otherscript expr %prec Overscript
+                | expr Overscript expr
+                | expr Underscript expr'''
         if len(args) == 4:
             if args[2] == '\\+':
                 args[0] = Expression('Underscript', args[1], args[3])
@@ -972,69 +970,91 @@ class MathicsParser:
                 args[0] = Expression('Underoverscript', args[1], args[5], args[3])
 
     def p_Subscript(self, args):
-        '''expr : expr Subscript expr Otherscript expr %prec SUBSCRIPT
-                | expr Subscript expr %prec SUBSCRIPT'''
+        '''expr : expr Subscript expr Otherscript expr %prec Subscript
+                | expr Subscript expr'''
         if len(args) == 4:
             args[0] = Expression('Subscript', args[1], args[3])
         elif len(args) == 6:
             args[0] = Expression('Power', Expression('Subscript', args[1], args[3]), args[5])
 
+    def p_PreIncrement(self, args):
+        'expr : Increment expr %prec PreIncrement'
+        args[0] = Expression('PreIncrement', args[2])
+
+    def p_PreDecrement(self, args):
+        'expr : Decrement expr %prec PreDecrement'
+        args[0] = Expression('PreDecrement', args[2])
+
     def p_Prefix(self, args):
-        'expr : expr Prefix expr %prec PREFIX'
+        'expr : expr Prefix expr'
         args[0] = Expression(args[1], args[3])
 
     def p_Infix(self, args):
-        'expr : expr Infix expr Infix expr %prec INFIX'
+        'expr : expr Infix expr Infix expr'
         args[0] = Expression(args[3], args[1], args[5])
 
     def p_Apply2(self, args):
-        'expr : expr Apply2 expr %prec APPLY'
+        'expr : expr Apply2 expr'
         assert args[2] == '@@@'
         args[0] = Expression('Apply', args[1], args[3], Expression('List', Integer(1)))
 
     def p_Derivative(self, args):
-        'expr : expr Derivative %prec DERIVATIVE'
+        'expr : expr Derivative'
         args[0] = Expression(Expression('Derivative', Integer(len(args[2]))), args[1])
 
     def p_Power(self, args):
-        '''expr : expr Power2 expr Otherscript expr %prec POWER
-                | expr Power expr %prec POWER'''
+        '''expr : expr Power2 expr Otherscript expr %prec Power2
+                | expr Power expr'''
         if args[2] == '^':
             args[0] = Expression('Power', args[1], args[3])
         elif args[2] == '\\^':
             args[0] = Expression('Power', Expression('Subscript', args[1], args[5]), args[3])
 
     def p_Sqrt(self, args):
-        '''expr : Sqrt expr Otherscript expr %prec SQRT
-                | Sqrt expr %prec SQRT'''
+        '''expr : Sqrt expr Otherscript expr %prec Sqrt
+                | Sqrt expr'''
         if len(args) == 3:
             args[0] = Expression('Sqrt', args[2])
         elif len(args) == 5:
             args[0] = Expression('Power', args[2], Expression('Times', Integer(1), Expression('Power', args[4], Integer(-1))))
 
     def p_Integrate(self, args):
-        'expr : Integral expr DifferentialD expr %prec INTEGRATE'
+        'expr : Integral expr DifferentialD expr %prec Integral'
         args[0] = Expression('Integrate', args[2], args[4])
 
     def p_Minus(self, args):
-        'expr : expr Minus expr %prec PLUS'
+        'expr : expr Minus expr'
         args[0] = Expression('Plus', args[1], Expression('Times', Integer(-1), args[3]))
 
     def p_UPlus(self, args):
-        'expr : Plus expr %prec MINUS'
+        'expr : Plus expr %prec UPlus'
         args[0] = args[2]
 
     def p_UMinus(self, args):
-        'expr : Minus expr %prec MINUS'''
+        'expr : Minus expr %prec UMinus'''
         args[0] = Expression('Times', Integer(-1), args[2])
 
+    def p_UPlusMinus(self, args):
+        'expr : PlusMinus expr %prec UPlusMinus'''
+        args[0] = Expression('PlusMinus', args[2])
+
+    def p_UMinusPlus(self, args):
+        'expr : MinusPlus expr %prec UMinusPlus'''
+        args[0] = Expression('MinusPlus', args[2])
+
     def p_Slash(self, args):
-        '''expr : expr RawSlash expr %prec DIVIDE
-                | expr Divide expr %prec DIVIDE'''
+        '''expr : expr RawSlash expr
+                | expr Divide expr'''
         args[0] = Expression('Times', args[1], Expression('Power', args[3], Integer(-1)))
 
-    @FLAT(['Times', 'RawStar', ''], 'TIMES')
     def p_Times(self, args):
+        '''TimesTOKEN : expr Times expr
+                      | expr RawStar expr
+                      | expr expr %prec Times
+                      | TimesTOKEN Times expr
+                      | TimesTOKEN RawStar expr
+                      | TimesTOKEN expr %prec Times
+                 expr : TimesTOKEN'''
         if len(args) == 2:
             args[0] = Expression('Times', *args[1])
         elif isinstance(args[1], list):
@@ -1045,19 +1065,19 @@ class MathicsParser:
             args[0] = args[1]
         else:
             if len(args) == 3:
-                args[0] = [args[1], args[2]] 
+                args[0] = [args[1], args[2]]
             elif len(args) == 4:
-                args[0] = [args[1], args[3]] 
+                args[0] = [args[1], args[3]]
 
-    def p_span(self, args):
-        '''expr : expr span expr span expr %prec SPAN
-                | expr span      span expr %prec SPAN
-                |      span expr span expr %prec SPAN
-                |      span      span expr %prec SPAN
-                | expr span expr
-                | expr span
-                |      span expr
-                |      span'''
+    def p_Span(self, args):
+        '''expr : expr Span expr Span expr
+                | expr Span      Span expr
+                |      Span expr Span expr
+                |      Span      Span expr
+                | expr Span expr
+                | expr Span
+                |      Span expr
+                |      Span'''
 
         if len(args) == 6:
             args[0] = Expression('Span', args[1], args[3], args[5])
@@ -1076,57 +1096,62 @@ class MathicsParser:
         elif len(args) == 2:
                 args[0] = Expression('Span', Integer(1), Symbol('All'))
 
+    def p_Not(self, args):
+        '''expr : Not expr
+                | Factorial expr %prec Not'''
+        args[0] = Expression('Not', args[2])
+
     def p_Pattern(self, args):
-        'expr : symbol RawColon expr %prec PATTERN'
+        'expr : symbol RawColon expr'
         args[0] = Expression('Pattern', Symbol(args[1]), args[3])
 
     def p_Optional(self, args):
-        'expr : pattern RawColon expr %prec PATTERN'
+        'expr : pattern RawColon expr'
         args[0] = Expression('Optional', args[1], args[3])
 
     def p_Postfix(self, args):
-        'expr : expr Postfix expr %prec POSTFIX'
+        'expr : expr Postfix expr'
         args[0] = Expression(args[3], args[1])
 
     def p_Set(self, args):
-        '''expr : expr TagSet expr Set expr %prec SET2
-                | expr Set expr %prec SET'''
+        '''expr : expr TagSet expr Set expr
+                | expr Set expr'''
         if len(args) == 4:
             args[0] = Expression('Set', args[1], args[3])
         elif len(args) == 6:
             args[0] = Expression('TagSet', args[1], args[3], args[5])
 
     def p_SetDelayed(self, args):
-        '''expr : expr TagSet expr SetDelayed expr %prec SET2
-                | expr SetDelayed expr %prec SET'''
+        '''expr : expr TagSet expr SetDelayed expr
+                | expr SetDelayed expr'''
         if len(args) == 4:
             args[0] = Expression('SetDelayed', args[1], args[3])
         elif len(args) == 6:
             args[0] = Expression('TagSetDelayed', args[1], args[3], args[5])
 
     def p_Unset(self, args):
-        '''expr : expr TagSet expr Unset %prec SET2
-                | expr Unset %prec SET2'''
+        '''expr : expr TagSet expr Unset
+                | expr Unset'''
         if len(args) == 3:
             args[0] = Expression('Unset', args[1])
         elif len(args) == 4:
             args[0] = Expression('TagUnset', args[1], args[3])
 
     def p_Function(self, args):
-        'expr : expr Function expr %prec SET2'
+        'expr : expr Function expr'
         args[0] = Expression('Function', Expression('List', args[1]), args[3])
 
     def p_Put(self, args):
-        'expr : expr Put filename %prec PUT'
+        'expr : expr Put filename'
         args[0] = Expression('Put', args[1], args[3])
 
     def p_PutAppend(self, args):
-        'expr : expr PutAppend filename %prec PUT'
+        'expr : expr PutAppend filename'
         args[0] = Expression('PutAppend', args[1], args[3])
 
     def p_Compound(self, args):
-        '''CompoundToken : expr Semicolon expr %prec COMPOUNDEXPRESSION
-                         | CompoundToken Semicolon expr %prec COMPOUNDEXPRESSION
+        '''CompoundToken : expr Semicolon expr
+                         | CompoundToken Semicolon expr
                          | expr Semicolon
                          | CompoundToken Semicolon
                     expr : CompoundToken'''
@@ -1146,7 +1171,7 @@ class MathicsParser:
                 args[0] = [args[1], args[3]]
 
     def p_FormBox(self, args):
-        'expr : expr FormBox expr %prec FORMBOX'
+        'expr : expr FormBox expr'
         args[0] = Expression('FormBox', args[3], args[1])
 
 scanner = MathicsScanner()
