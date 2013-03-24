@@ -113,12 +113,6 @@ flat_infix_operators = {
     'Cup' : 'Cup',
     'Star' : 'Star',
     'Backslash' : 'RawBackslash',
-    'Equal' : ['op_Equal', 'LongEqual', 'Equal'],
-    'Unequal' : ['op_Unequal', 'NotEqual'],
-    'Greater' : 'Greater',
-    'Less' : 'Less',
-    'GreaterEqual' : ['op_GreaterEqual', 'GreaterEqual', 'GreaterSlantEqual'],
-    'LessEqual' : ['op_LessEqual', 'LessEqual', 'LessSlantEqual'],
     'VerticalBar' : 'VerticalBar',
     'NotVerticalBar' : 'NotVerticalBar',
     'DoubleVerticalBar' : 'DoubleVerticalBar',
@@ -153,6 +147,15 @@ postfix_operators = {
     'Repeated' : 'Repeated',
     'RepeatedNull' : 'RepeatedNull',
     'Function' : 'RawAmpersand',
+}
+
+innequality_operators = {
+    'Equal' : ['op_Equal', 'LongEqual', 'Equal'],
+    'Unequal' : ['op_Unequal', 'NotEqual'],
+    'Greater' : 'Greater',
+    'Less' : 'Less',
+    'GreaterEqual' : ['op_GreaterEqual', 'GreaterEqual', 'GreaterSlantEqual'],
+    'LessEqual' : ['op_LessEqual', 'LessEqual', 'LessSlantEqual'],
 }
 
 precedence = (
@@ -770,6 +773,34 @@ class MathicsParser:
                 tokens = [tokens]
             tmp.__doc__ = 'expr : ' + '\n     | '.join(['expr {0}'.format(token) for token in tokens])
             setattr(self, 'p_{0}_postfix'.format(postfix_op), tmp)
+
+        for innequality_op in innequality_operators:
+            @ONEARG
+            def tmp(args, op=innequality_op):
+                head = args[1].get_head_name()
+                if head == op:
+                    args[1].leaves.append(args[3])
+                    args[0] = args[1]
+                elif head == 'Inequality':
+                    args[1].leaves.append(Symbol(op))
+                    args[1].leaves.append(args[3])
+                    args[0] = args[1]
+                elif head in innequality_operators.keys():
+                    leaves = []
+                    for i, leaf in enumerate(args[1].leaves):
+                        if i != 0:
+                            leaves.append(Symbol(head))
+                        leaves.append(leaf)
+                    leaves.append(Symbol(op))
+                    leaves.append(args[3])
+                    args[0] = Expression('Inequality', *leaves)
+                else:
+                    args[0] = Expression(op, args[1], args[3])
+            tokens = innequality_operators[innequality_op]
+            if not isinstance(tokens, list):
+                tokens = [tokens]
+            tmp.__doc__ = 'expr : ' + '\n     | '.join(['expr {0} expr'.format(token) for token in tokens])
+            setattr(self, 'p_{0}_innequality'.format(innequality_op), tmp)
 
     def build(self, **kwargs):
         self.parser = yacc.yacc(debug=1, module=self, **kwargs)
