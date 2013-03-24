@@ -26,7 +26,7 @@ import unicodedata
 
 from mathics.core.expression import BaseExpression, Expression, Integer, Real, Symbol, String
 from mathics.builtin import builtins
-         
+
 class TranslateError(Exception):
     pass
 
@@ -158,34 +158,34 @@ postfix_operators = {
 precedence = (
     ('right', 'FormBox'),
     ('right', 'Semicolon'),
-    ('nonassoc', 'Put', 'PutAppend'),
-    ('nonassoc', 'Set', 'SetDelayed', 'Function', 'UpSet', 'UpSetDelayed'),
+    ('left', 'Put', 'PutAppend'),
+    ('right', 'Set', 'SetDelayed', 'Function', 'UpSet', 'UpSetDelayed'),
     ('left', 'Because'),
     ('right', 'Therefore'),
-    ('left', 'VerticalSeparator'),         # flat
+    ('left', 'VerticalSeparator'),          # flat
     ('right', 'Postfix'),
-    ('right', 'Colon'),
-    ('nonassoc', 'RawAmpersand'),
+    ('right', 'Colon'),                     # flat
+    ('left', 'RawAmpersand'),
     ('right', 'AddTo', 'SubtractFrom', 'TimesBy', 'DivideBy'),
     ('left', 'ReplaceAll', 'ReplaceRepeated'),
     ('right', 'Rule', 'RuleDelayed', 'op_RuleDelayed'),
     ('left', 'Condition'),
-    ('left', 'StringExpression'),
-    ('nonassoc', 'RawColon'),
-    ('left', 'Alternatives'),
-    ('nonassoc', 'Repeated', 'RepeatedNull'),
+    ('left', 'StringExpression'),           # flat
+    ('right', 'RawColon'),
+    ('left', 'Alternatives'),               # flat
+    ('nonassoc', 'Repeated', 'RepeatedNull'),  
     ('right', 'SuchThat'),
     ('left', 'LeftTee', 'DoubleLeftTee'),
     ('right', 'RightTee', 'DoubleRightTee'),
     ('right', 'Implies'),
-    ('left', 'Equivalent'),
-    ('left', 'Or', 'op_Or', 'Nor'),
-    ('left', 'Xor', 'Xnor'),
-    ('left', 'And', 'op_And', 'Nand'),
+    ('left', 'Equivalent'),                 # flat
+    ('left', 'Or', 'op_Or', 'Nor'),         # flat
+    ('left', 'Xor', 'Xnor'),                # flat
+    ('left', 'And', 'op_And', 'Nand'),      # flat
     ('right', 'Not'),
     ('right', 'ForAll', 'Exists', 'NotExists'),
-    ('left', 'Element', 'NotElement', 'Subset', 'Superset'),
-    ('left', 'SameQ', 'UnsameQ'),
+    ('left', 'Element', 'NotElement', 'Subset', 'Superset'),    # flat
+    ('left', 'SameQ', 'UnsameQ'),           # flat
     ('left', 'Equal', 'op_Equal', 'LongEqual', 'op_Unequal', 'NotEqual', 'Greater', 'Less', 'GreaterEqual', 'op_GreaterEqual', 'GreaterSlantEqual', 'LessEqual', 'op_LessEqual', 'LessSlantEqual', 'VerticalBar', 'NotVerticalBar', 'DoubleVerticalBar', 'NotDoubleVerticalBar'),
     ('left', 'Span'),
     ('left', 'Union'),                      # flat
@@ -204,14 +204,14 @@ precedence = (
     ('left', 'Vee'),                        # flat
     ('left', 'Wedge'),                      # flat
     ('left', 'Diamond'),                    # flat
-    ('right', 'RawBackslash'),
+    ('nonassoc', 'RawBackslash'),
     ('left',  'RawSlash', 'Divide'),
-    ('nonassoc', 'UPlus', 'UMinus', 'UPlusMinus', 'UMinusPlus'),
-    ('left', 'RawDot'),                    # flat
-    ('left', 'Cross'),                     # flat
-    ('left', 'NonCommutativeMultiply'),    # flat
+    ('right', 'UPlus', 'UMinus', 'UPlusMinus', 'UMinusPlus'),
+    ('left', 'RawDot'),                     # flat
+    ('left', 'Cross'),                      # flat
+    ('left', 'NonCommutativeMultiply'),     # flat
     ('right', 'CircleDot'),
-    ('left', 'SmallCircle'),
+    ('left', 'SmallCircle'),                # flat
     ('right', 'Square'),
     ('right', 'Del'),
     ('right', 'Integral'),
@@ -219,13 +219,13 @@ precedence = (
     ('right', 'Power', 'Power2'),
     ('left', 'StringJoin'),                 # flat
     ('left', 'Derivative'),
-    ('nonassoc', 'Conjugate'),
-    ('left', 'Factorial'),
+    ('left', 'Conjugate'),
+    ('left', 'Factorial', 'Factorial2'),
     ('right', 'Apply1', 'Apply2', 'Map', 'MapAll'),
     ('left', 'Infix'),
     ('right', 'Prefix'),
-    ('nonassoc', 'PreIncrement', 'PreDecrement'),
-    ('nonassoc', 'Increment', 'Decrement'),
+    ('right', 'PreIncrement', 'PreDecrement'),
+    ('left', 'Increment', 'Decrement'),
     ('left', 'PART'),
     ('nonassoc', 'PatternTest'),
     ('right', 'Subscript'),
