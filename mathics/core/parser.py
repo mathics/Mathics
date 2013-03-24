@@ -142,10 +142,6 @@ flat_infix_operators = {
     'VerticalSeparator' : 'VerticalSeparator',
 }
 
-#for op in flat_infix_operators:
-#    infix_operators[op] = flat_infix_operators[op]
-#flat_infix_operators = {}
-
 postfix_operators = {
     'Increment': 'Increment',
     'Decrement': 'Decrement',
@@ -215,6 +211,7 @@ precedence = (
     ('left', 'Cross'),                     # flat
     ('left', 'NonCommutativeMultiply'),    # flat
     ('right', 'CircleDot'),
+    ('left', 'SmallCircle'),
     ('right', 'Square'),
     ('right', 'Del'),
     ('right', 'Integral'),
@@ -718,27 +715,6 @@ class ArgsToken(CompoundToken):
 class PositionToken(CompoundToken):
     pass
 
-def Flat(operator, args):
-    if len(args) == 2:
-        return Expression(operator, *args[1])
-    elif isinstance(args[1], list):
-        args[1].append(args[3])
-        return args[1]
-    else:
-        return [args[1], args[3]]
-
-def FLAT(op_tokens):
-    def set_doc(f, op_tokens=op_tokens):
-        if not isinstance(op_tokens, list):
-            op_tokens = [op_tokens]
-        tokenname = op_tokens[0]+'TOKEN'
-        rule1 = ['{0} : expr {1} expr'.format(tokenname, op) for op in op_tokens]
-        rule2 = ['{0} : {0} {1} expr'.format(tokenname, op) for op in op_tokens]
-        rule3 = ['expr : {0}'.format(tokenname)]
-        f.__doc__ = '\n'.join(rule1 + rule2 + rule3)
-        return f
-    return set_doc
-
 # Decorator hack to convince ply that a parsing rule only accepts one argument
 def ONEARG(f):      
     def wrapped(args):
@@ -762,12 +738,12 @@ class MathicsParser:
             setattr(self, 'p_{0}_prefix'.format(prefix_op), tmp)
 
         for infix_op in infix_operators:
-            @ONEARG
-            def tmp(args, op=infix_op):
-                args[0] = Expression(op, args[1], args[3])
             tokens = infix_operators[infix_op]
             if not isinstance(tokens, list):
                 tokens = [tokens]
+            @ONEARG
+            def tmp(args, op=infix_op):
+                args[0] = Expression(op, args[1], args[3])
             tmp.__doc__ = 'expr : ' + '\n     | '.join(['expr {0} expr'.format(token) for token in tokens])
             setattr(self, 'p_{0}_infix'.format(infix_op), tmp)
 
@@ -775,10 +751,14 @@ class MathicsParser:
             tokens = flat_infix_operators[flat_infix_op]
             if not isinstance(tokens, list):
                 tokens = [tokens]
-            @FLAT(tokens)
             @ONEARG
             def tmp(args, op=flat_infix_op):
-                args[0] = Flat(op, args)
+                if args[1].get_head_name() == op:
+                    args[1].leaves.append(args[3])
+                    args[0] = args[1]
+                else:
+                    args[0] = Expression(op, args[1], args[3])
+            tmp.__doc__ = 'expr : ' + '\n     | '.join(['expr {0} expr'.format(token) for token in tokens])
             setattr(self, 'p_{0}_infix'.format(flat_infix_op), tmp)
 
         for postfix_op in postfix_operators:
@@ -1048,26 +1028,21 @@ class MathicsParser:
         args[0] = Expression('Times', args[1], Expression('Power', args[3], Integer(-1)))
 
     def p_Times(self, args):
-        '''TimesTOKEN : expr Times expr
-                      | expr RawStar expr
-                      | expr expr %prec Times
-                      | TimesTOKEN Times expr
-                      | TimesTOKEN RawStar expr
-                      | TimesTOKEN expr %prec Times
-                 expr : TimesTOKEN'''
-        if len(args) == 2:
-            args[0] = Expression('Times', *args[1])
-        elif isinstance(args[1], list):
-            if len(args) == 3:
-                args[1].append(args[2])
-            elif len(args) == 4:
-                args[1].append(args[3])
-            args[0] = args[1]
-        else:
-            if len(args) == 3:
-                args[0] = [args[1], args[2]]
-            elif len(args) == 4:
-                args[0] = [args[1], args[3]]
+        '''expr : expr Times expr
+                | expr RawStar expr
+                | expr expr %prec Times'''
+        if len(args) == 3:
+            if args[2].get_head_name() == 'Times':
+                args[2].leaves.insert(0, args[1])
+                args[0] = args[2]
+            else:
+                args[0] = Expression('Times', args[1], args[2])
+        elif len(args) == 4:
+            if args[1].get_head_name() == 'Times':
+                args[1].leaves.append(args[3])
+                args[0] = args[1]
+            else:
+                args[0] = Expression('Times', args[1], args[3])
 
     def p_Span(self, args):
         '''expr : expr Span expr Span expr
