@@ -190,7 +190,7 @@ precedence = (
     ('left', 'Element', 'NotElement', 'Subset', 'Superset'),    # flat
     ('left', 'SameQ', 'UnsameQ'),           # flat
     ('left', 'Equal', 'op_Equal', 'LongEqual', 'op_Unequal', 'NotEqual', 'Greater', 'Less', 'GreaterEqual', 'op_GreaterEqual', 'GreaterSlantEqual', 'LessEqual', 'op_LessEqual', 'LessSlantEqual', 'VerticalBar', 'NotVerticalBar', 'DoubleVerticalBar', 'NotDoubleVerticalBar'),
-    ('left', 'Span'),
+    ('right', 'Span'),
     ('left', 'Union'),                      # flat
     ('left', 'Intersection'),               # flat
     ('left', 'Plus', 'Minus', 'PlusMinus', 'MinusPlus'),  # flat
