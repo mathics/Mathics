@@ -1147,6 +1147,31 @@ class Integer_(Builtin):
     
     >> Head[5]
      = Integer
+
+    Specify a base
+    >> 8^^23
+     = 19
+
+    >> 2^^101001
+     = 41
+
+    Give an exponent
+    >> 10*^3
+     = 10000
+
+    #> 10*^-3
+     = 1 / 100
+
+    Both base and exponent
+    >> 8^^23*^2
+     = 1216
+
+    #> 16^^F4A308C
+     = 256520332
+    #> 36^^f4z5
+     = 706289
+    #> 19^^3Ai
+     = 1291
     """
     
     name = 'Integer'

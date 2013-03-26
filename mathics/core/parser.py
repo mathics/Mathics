@@ -24,7 +24,7 @@ import ply.yacc as yacc
 import re
 import unicodedata
 
-from mathics.core.expression import BaseExpression, Expression, Integer, Real, Symbol, String
+from mathics.core.expression import BaseExpression, Expression, Integer, Real, Symbol, String, Rational
 from mathics.builtin import builtins
 
 class TranslateError(Exception):
@@ -418,8 +418,6 @@ class MathicsScanner:
     #t_ignore = ur' [\s \u2062]+ '
     t_ANY_ignore = ' \t\n '
 
-    t_ANY_int = r' \d+ '
-
     t_ANY_RawLeftBracket = r' \[ '
     t_ANY_RawRightBracket = r' \] '
     t_ANY_RawLeftBrace = r' \{ '
@@ -638,6 +636,32 @@ class MathicsScanner:
             s = s[:exp+dot] + '.' + s[exp+dot:]
 
         t.value = s
+        return t
+
+    def t_ANY_int(self, t):
+        r' (\d+\^\^[a-zA-Z0-9]+|\d+) (\*\^-?\d+)? '
+        s = t.value
+
+        # Look for base
+        s = s.split('^^')
+        if len(s) == 1:
+            base, s = 10, s[0]
+        else:
+            assert len(s) == 2
+            base, s = int(s[0]), s[1]
+            assert 2 <= base <= 36
+
+        # Look for mantissa
+        s = s.split('*^')
+        if len(s) == 1:
+            n, s = 0, s[0]
+        else:
+            n, s = int(s[1]), s[0]
+
+        if n < 0:
+            t.value = Rational(int(s, base), base ** abs(n))
+        else:
+            t.value = Integer(int(s, base) * (base ** n))
         return t
 
     def t_ANY_string(self, t):
@@ -931,7 +955,7 @@ class MathicsParser:
         
     def p_int(self, args):
         'expr : int'
-        args[0] = Integer(args[1])
+        args[0] = args[1]
         
     def p_float(self, args):
         'expr : float'
