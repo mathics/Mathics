@@ -23,9 +23,11 @@ import ply.yacc as yacc
 
 import re
 import unicodedata
+from math import log10
 
 from mathics.core.expression import BaseExpression, Expression, Integer, Real, Symbol, String, Rational
 from mathics.builtin import builtins
+from mathics.builtin.numeric import machine_precision
 
 class TranslateError(Exception):
     pass
@@ -639,7 +641,7 @@ class MathicsScanner:
         return t
 
     def t_ANY_int(self, t):
-        r' (\d+\^\^[a-zA-Z0-9]+|\d+) (\*\^-?\d+)? '
+        r' (\d+\^\^[a-zA-Z0-9]+|\d+) ((``\d+|`\d*)\.?\d*)? (\*\^-?\d+)? '
         s = t.value
 
         # Look for base
@@ -658,10 +660,26 @@ class MathicsScanner:
         else:
             n, s = int(s[1]), s[0]
 
+        # Look at precision ` suffix
+        s = s.split('`', 1)
+        if len(s) == 1:
+            suffix, s = None, s[0]
+        else:
+            suffix, s = s[1], s[0]
+
         if n < 0:
             t.value = Rational(int(s, base), base ** abs(n))
         else:
             t.value = Integer(int(s, base) * (base ** n))
+
+        if suffix is not None:
+            if suffix == '':
+                prec = machine_precision
+            elif suffix.startswith('`'):
+                prec = log10(abs(t.value.to_python())) + float(suffix[1:])
+            else:
+                prec = float(suffix)
+            t.value = t.value.round(prec)
         return t
 
     def t_ANY_string(self, t):
