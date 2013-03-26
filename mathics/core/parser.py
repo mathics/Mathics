@@ -418,7 +418,6 @@ class MathicsScanner:
     #t_ignore = ur' [\s \u2062]+ '
     t_ANY_ignore = ' \t\n '
 
-    t_ANY_symbol = r' [a-zA-Z$][a-zA-Z0-9$]* '
     t_ANY_int = r' \d+ '
 
     t_ANY_RawLeftBracket = r' \[ '
@@ -617,6 +616,10 @@ class MathicsScanner:
             self.tokens.append(tok)
         return self.tokens
 
+    def t_ANY_comment(self, t):
+        r' (?s) \(\* .*? \*\) '
+        return None
+
     def t_ANY_float(self, t):
         r' \d*(?<!\.)\.\d+(\*\^(\+|-)?\d+)? | \d+\.(?!\.) \d*(\*\^(\+|-)?\d+)?'
         s = t.value.split('*^')
@@ -676,6 +679,15 @@ class MathicsScanner:
         r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
         return t
 
+    def t_ANY_symbol(self, t):
+        r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
+        s = t.value
+        if s.startswith('`'):
+            #FIXME: Replace Global with the current value of $Context
+            s = 'Global' + s
+        t.value = s
+        return t
+
     def t_ANY_slotseq_1(self, t):
         r' \#\#\d+ '
         (t.type, t.value) = ('slotseq', int(t.value[2:]))
@@ -706,10 +718,6 @@ class MathicsScanner:
         r' \%+ '
         (t.type, t.value) = ('out', -len(t.value))
         return t
-
-    def t_ANY_comment(self, t):
-        r' (?s) \(\* .*? \*\) '
-        return None
 
     def t_INITIAL_LeftBoxParenthesis(self, t):
         r' \\\( '
