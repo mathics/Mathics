@@ -78,6 +78,17 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
     return Expression('RowBox', Expression('List', *result))
     
 class MakeBoxes(Builtin):
+    """
+    >> \\(1 + 1 \\)
+     = RowBox[{1, +, 1}]
+    """
+
+    #TODO: Fix Infix operators
+    """
+    >> MakeBoxes[1 + 1]
+     = RowBox[{1, +, 1}]
+    """
+
     attributes = ('HoldAllComplete',)
     
     rules = {
@@ -105,7 +116,7 @@ class MakeBoxes(Builtin):
             if isinstance(x, Symbol):
                 return String(x.name)
             elif isinstance(x, String):
-                return String('"' + str(x.value) + '"')
+                return String('"' + unicode(x.value) + '"')
             elif isinstance(x, (Integer, Real)):
                 return x.make_boxes(f.get_name())
             elif isinstance(x, (Rational, Complex)):
@@ -206,6 +217,18 @@ class MakeBoxes(Builtin):
         else:
             return MakeBoxes(expr, f)
         
+class MyMakeBoxes(Builtin):
+
+    attributes = ('HoldAllComplete',)
+
+    def apply(self, expr, form, evaluation):
+        'MyMakeBoxes[expr_, form_:StandardForm]'
+        form_name = form.get_name()
+        if form_name is None:
+            evaluation.message('ToBoxes', 'boxfmt', form)
+        boxes = expr.format(evaluation, form_name)
+        return boxes
+
 class ToBoxes(Builtin):
     """
     >> ToBoxes[a + b]
