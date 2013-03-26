@@ -79,14 +79,77 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
     
 class MakeBoxes(Builtin):
     """
-    >> \\(1 + 1 \\)
-     = RowBox[{1, +, 1}]
+
+    String representation of boxes
+    >> \(a + b\)
+     = RowBox[{a, +, b}]
+
+    >> \(x \^ 2\)
+     = SuperscriptBox[x, 2]
+
+    >> \(x \_ 2\)
+     = SubscriptBox[x, 2]
+
+    >> \( a \+ b \% c\)
+     = UnderoverscriptBox[a, b, c]
+
+    >> \( a \& b \% c\)
+     = UnderoverscriptBox[a, c, b]
+
+    #> \( \@ 5 \)
+     = SqrtBox[5]
+
+    >> \(TraditionalForm \` a + b\)
+     = FormBox[RowBox[{a, +, b}], TraditionalForm]
+
+    >> \(x \/ \(y + z\)\)
+     =  FractionBox[x, RowBox[{y, +, z}]]
+
+    >> \(x \& y \)
+     = OverscriptBox[x, y]
+
+    >> \(x \+ y \)
+     = UnderscriptBox[x, y]
+
+    #> \( x \^ 2 \_ 4 \)
+     = SuperscriptBox[x, SubscriptBox[2, 4]]
+    """
+
+    #TODO: Correct precedence
+    """
+    >> \(x \/ y + z\)
+     = RowBox[{FractionBox[x, y], +, z}]
+    >> \(x \/ (y + z)\)
+     = FractionBox[x, RowBox[{(, RowBox[{y, +, z}], )}]]
+
+    #> \( \@ a + b \)
+     = RowBox[{SqrtBox[a], +, b}]
+    """
+
+    #FIXME: Don't insert spaces with brackets
+    """
+    #> \(c (1 + x)\)
+     = RowBox[{c, RowBox[{(, RowBox[{1, +, x}], )}]}]
+    """
+
+    #TODO: Required MakeExpression
+    """
+    #> \!\(x \^ 2\)
+     = x ^ 2
+    #> FullForm[%]
+     = Power[x, 2]
     """
 
     #TODO: Fix Infix operators
     """
     >> MakeBoxes[1 + 1]
      = RowBox[{1, +, 1}]
+    """
+
+    #TODO: Parsing of special characters (like commas)
+    """
+    >> \( a, b \)
+     = RowBox[{a, ,, b}]
     """
 
     attributes = ('HoldAllComplete',)
