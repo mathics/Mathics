@@ -430,6 +430,38 @@ li.result {
 	color: black;
 }
 
+li.test .submitbutton {
+    display: none;
+}
+
+li.test p.focused .submitbutton {
+    display: block;
+    position: absolute;
+    right: 10px;
+    top: 0;
+}
+
+li.test .submitbutton span {
+    display: inline-block;
+    margin-top: 3px;
+    margin-bottom: 5px;
+    /*margin-left: 10px;*/
+    background-color: #999;
+    color: white;
+    padding: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+    width: 10px;
+    line-height: 10px;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+li.test .submitbutton span:hover {
+    background-color: #666;
+}
+
 h1 {
 	font-weight: normal;
 	color: #333;

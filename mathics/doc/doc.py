@@ -28,7 +28,7 @@ from django.utils.html import escape, linebreaks
 from django.template.defaultfilters import slugify
 from django.utils.safestring import mark_safe
 
-import settings
+from mathics import settings
 
 from mathics import builtin
 from mathics.builtin import get_module_doc
