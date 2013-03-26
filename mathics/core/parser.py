@@ -208,7 +208,7 @@ precedence = (
     ('left', 'Wedge'),                      # flat
     ('left', 'Diamond'),                    # flat
     ('nonassoc', 'RawBackslash'),
-    ('left',  'RawSlash', 'Divide'),
+    ('left',  'RawSlash', 'Divide', 'Fraction'),
     ('right', 'UPlus', 'UMinus', 'UPlusMinus', 'UMinusPlus'),
     ('left', 'RawDot'),                     # flat
     ('left', 'Cross'),                      # flat
@@ -219,7 +219,7 @@ precedence = (
     ('right', 'Del'),
     ('right', 'Integral'),
     ('right', 'Sqrt'),
-    ('right', 'Power', 'Power2'),
+    ('right', 'Power', 'Superscript'),
     ('left', 'StringJoin'),                 # flat
     ('left', 'Derivative'),
     ('left', 'Conjugate'),
@@ -262,15 +262,22 @@ tokens = (
     'RawRightParenthesis',
     'LeftBoxParenthesis',
     'RightBoxParenthesis',
+    'LeftBoxParenthesisInternal',
+    'RightBoxParenthesisInternal',
     'RawComma',
     'Get',
     'Put',
     'PutAppend',
     'MessageName',
+    'Superscript',
+    'Subscript',
     'Overscript',
     'Underscript',
-    'Subscript',
     'Otherscript',
+    'Fraction',
+    'Sqrt',
+    'FormBox',
+    'IntepretedBox',
     'PatternTest',
     'Increment',
     'Decrement',
@@ -288,8 +295,6 @@ tokens = (
     'Derivative',
     'StringJoin',
     'Power',
-    'Power2',
-    'Sqrt',
     'Integral',
     'DifferentialD',
     #'PartialD',
@@ -351,7 +356,6 @@ tokens = (
     'TagSet',
     'Unset',
     'Semicolon',
-    'FormBox',
     #'DiscreteShift',
     #'DiscreteRatio',
     #'DifferenceDelta',
@@ -433,10 +437,16 @@ class MathicsScanner:
     t_ANY_Put = r' \>\> '
     t_ANY_PutAppend = r' \>\>\> '
 
+    # Box Constructors
+    t_ANY_IntepretedBox = r' \\\! '
+    t_boxes_Superscript = r' \\\^ '
+    t_boxes_Subscript = r' \\\_ '
     t_boxes_Overscript = r' \\\& '
     t_boxes_Underscript = r' \\\+ '
-    t_boxes_Subscript = r' \\\_ '
     t_boxes_Otherscript = r' \\\% '
+    t_boxes_Fraction = r' \\\/ '
+    t_boxes_Sqrt = r' \\\@ '
+    t_boxes_FormBox = r' \\\` '
 
     t_ANY_PatternTest = r' \? '
     t_ANY_Increment = r' \+\+ '
@@ -460,8 +470,6 @@ class MathicsScanner:
     t_ANY_StringJoin = r' \<\> '
 
     t_ANY_Power = r' \^ '
-    t_boxes_Power2 = r' \\\^ '
-    t_boxes_Sqrt = r' \\\@ '
 
     t_ANY_Integral = ur' \\\[Integral\]|\u222b '
     t_ANY_DifferentialD = ur'\\\[DifferentialD\]|\uf74c '
@@ -551,7 +559,6 @@ class MathicsScanner:
     t_ANY_Unset = r' \=\. '
 
     t_ANY_Semicolon = r' \; '
-    t_boxes_FormBox = r' \\\` '
 
     #tANY__DiscreteShift = ur' \\\[DiscreteShift\]|\uf4a3 '
     #tANY__DiscreteRatio = ur' \\\[DiscreteRatio\]|\uf4a4 '
@@ -704,14 +711,16 @@ class MathicsScanner:
         r' (?s) \(\* .*? \*\) '
         return None
 
-    def t_ANY_LeftBoxParenthesis(self, t):
+    def t_INITIAL_LeftBoxParenthesis(self, t):
         r' \\\( '
         t.lexer.level = 1
         t.lexer.begin('boxes')
+        return t
 
     def t_boxes_LeftBoxParenthesis(self, t):
         r' \\\( '
         t.lexer.level += 1
+        t.type = 'LeftBoxParenthesisInternal'
         return t
 
     def t_boxes_RightBoxParenthesis(self, t):
@@ -719,7 +728,9 @@ class MathicsScanner:
         t.lexer.level -= 1
         if t.lexer.level == 0:
             t.lexer.begin('INITIAL')
+            return t
         else:
+            t.type = 'RightBoxParenthesisInternal'
             return t
 
     def t_ANY_error(self, t):
@@ -988,30 +999,6 @@ class MathicsParser:
         elif len(args) == 6:
             args[0] = Expression('MessageName', args[1], String(args[3]), String(args[5]))
 
-    def p_OverScript(self, args):
-        '''expr : expr Underscript expr Otherscript expr %prec Underscript
-                | expr Overscript expr Otherscript expr %prec Overscript
-                | expr Overscript expr
-                | expr Underscript expr'''
-        if len(args) == 4:
-            if args[2] == '\\+':
-                args[0] = Expression('Underscript', args[1], args[3])
-            elif args[2] == '\\&':
-                args[0] = Expression('Overscript', args[1], args[3])
-        elif len(args) == 6:
-            if args[2] == '\\+':
-                args[0] = Expression('Underoverscript', args[1], args[3], args[5])
-            elif args[2] == '\\&':
-                args[0] = Expression('Underoverscript', args[1], args[5], args[3])
-
-    def p_Subscript(self, args):
-        '''expr : expr Subscript expr Otherscript expr %prec Subscript
-                | expr Subscript expr'''
-        if len(args) == 4:
-            args[0] = Expression('Subscript', args[1], args[3])
-        elif len(args) == 6:
-            args[0] = Expression('Power', Expression('Subscript', args[1], args[3]), args[5])
-
     def p_PreIncrement(self, args):
         'expr : Increment expr %prec PreIncrement'
         args[0] = Expression('PreIncrement', args[2])
@@ -1038,20 +1025,9 @@ class MathicsParser:
         args[0] = Expression(Expression('Derivative', Integer(len(args[2]))), args[1])
 
     def p_Power(self, args):
-        '''expr : expr Power2 expr Otherscript expr %prec Power2
-                | expr Power expr'''
+        'expr : expr Power expr'
         if args[2] == '^':
             args[0] = Expression('Power', args[1], args[3])
-        elif args[2] == '\\^':
-            args[0] = Expression('Power', Expression('Subscript', args[1], args[5]), args[3])
-
-    def p_Sqrt(self, args):
-        '''expr : Sqrt expr Otherscript expr %prec Sqrt
-                | Sqrt expr'''
-        if len(args) == 3:
-            args[0] = Expression('Sqrt', args[2])
-        elif len(args) == 5:
-            args[0] = Expression('Power', args[2], Expression('Times', Integer(1), Expression('Power', args[4], Integer(-1))))
 
     def p_Integrate(self, args):
         'expr : Integral expr DifferentialD expr %prec Integral'
@@ -1200,8 +1176,96 @@ class MathicsParser:
             else:
                 args[0] = [args[1], args[3]]
 
+    def p_box_to_expr(self, args):
+        '''expr : LeftBoxParenthesis boxes RightBoxParenthesis
+                | IntepretedBox LeftBoxParenthesis boxes RightBoxParenthesis'''
+        if len(args) == 4:
+            args[0] = args[2]
+        else:
+            result = Expression('MakeExpression', args[3])
+            args[0] = Expression('ReleaseHold', result) #remove HoldComplete
+
+    def p_box(self, args):
+        'box : expr'
+        args[0] = Expression('MyMakeBoxes', args[1])
+
+    def p_form(self, args):
+        'form : expr'
+        if args[1].get_head_name() == 'Symbol':
+            args[0] = args[1]
+        else:
+            args[0] = Expression('Removed', String("$$Failure"))
+
+    def p_boxes(self, args):
+        '''boxTOKEN : box
+                    | boxTOKEN box
+              boxes : boxTOKEN
+                    |'''
+        if len(args) == 1:
+            args[0] = String("")
+        if len(args) == 2:
+            if isinstance(args[1], list):
+                if len(args[1]) > 1:
+                    args[0] = Expression('RowBox', *args[1])
+                else:
+                    args[0] = args[1][0]
+            else:
+                args[0] = [args[1]]
+        elif len(args) == 3:
+            args[1].append(args[2])
+            args[0] = args[1]
+
+    def p_RowBox(self, args):       # used for grouping raw boxes
+        'box : LeftBoxParenthesisInternal boxes RightBoxParenthesisInternal'
+        args[2].parenthesized = True
+        args[0] = args[2]
+
+    def p_SuperscriptBox(self, args):
+        '''box : box Superscript box Otherscript box %prec Superscript
+               | box Superscript box'''
+        if len(args) == 4:
+            args[0] = Expression('SuperscriptBox', args[1], args[3])
+        elif len(args) == 6:
+            args[0] = Expression('SubsuperscriptBox', args[1], args[5], args[3])
+
+    def p_Subscript(self, args):
+        '''box : box Subscript box Otherscript box %prec Subscript
+               | box Subscript box'''
+        if len(args) == 4:
+            args[0] = Expression('SubscriptBox', args[1], args[3])
+        elif len(args) == 6:
+            args[0] = Expression('SubsuperscriptBox', args[1], args[3], args[5])
+
+    def p_OverscriptBox(self, args):
+        '''box : box Overscript box Otherscript box %prec Overscript
+               | box Overscript box'''
+        if len(args) == 4:
+            args[0] = Expression('OverscriptBox', args[1], args[3])
+        elif len(args) == 6:
+            args[0] = Expression('UnderoverscriptBox', args[1], args[5], args[3])
+
+    def p_UnderscriptBox(self, args):
+        '''box : box Underscript box Otherscript box %prec Underscript
+               | box Underscript box'''
+        if len(args) == 4:
+            args[0] = Expression('UnderscriptBox', args[1], args[3])
+        elif len(args) == 6:
+            args[0] = Expression('UnderoverscriptBox', args[1], args[3], args[5])
+
+    def p_FractionBox(self, args):
+        'box : box Fraction box'
+        args[0] = Expression('FractionBox', args[1], args[3])
+
+    def p_SqrtBox(self, args):
+        '''box : Sqrt box Otherscript box %prec Sqrt
+               | Sqrt box'''
+        if len(args) == 3:
+            args[0] = Expression('SqrtBox', args[2])
+        elif len(args) == 5:
+            args[0] = Expression('RadicalBox', args[2], args[4])
+
     def p_FormBox(self, args):
-        'expr : expr FormBox expr'
+        'box : form FormBox box'
         args[0] = Expression('FormBox', args[3], args[1])
 
 scanner = MathicsScanner()
@@ -1210,4 +1274,5 @@ parser = MathicsParser()
 parser.build()
 
 def parse(string):
+    scanner.lexer.begin('INITIAL')      # Reset the lexer state (known lex bug)
     return parser.parse(string)
