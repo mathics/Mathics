@@ -40,8 +40,7 @@ function showPage(response) {
         $(test).descendants()[1].observe('click', function(){
             var query = $(test).descendants()[0].innerHTML;
             query = query.replace(/\xA0/g, ' ');
-            query = query.replace(/&gt;/g, '>');
-            query = query.replace(/&lt;/g, '<');
+            query = query.unescapeHTML();
             setQueries([query]);
         });
     });
