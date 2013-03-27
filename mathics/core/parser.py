@@ -641,7 +641,7 @@ class MathicsScanner:
         return t
 
     def t_ANY_int(self, t):
-        r' (\d+\^\^[a-zA-Z0-9]+|\d+) ((``\d+|`\d*)\.?\d*)? (\*\^(\+|-)?\d+)? '
+        r' (\d+\^\^[a-zA-Z0-9]+|\d+) (``?(\+|-)?(\d+\.?\d*|\d*\.?\d+)|`)? (\*\^(\+|-)?\d+)? '
         s = t.value
 
         # Look for base
@@ -676,7 +676,10 @@ class MathicsScanner:
             if suffix == '':
                 prec = machine_precision
             elif suffix.startswith('`'):
-                prec = log10(abs(t.value.to_python())) + float(suffix[1:])
+                if t.value.get_int_value() == 0:
+                    prec = 0
+                else:
+                    prec = log10(abs(t.value.to_python())) + float(suffix[1:])
             else:
                 prec = float(suffix)
             t.value = t.value.round(prec)
