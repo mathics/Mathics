@@ -641,7 +641,7 @@ class MathicsScanner:
         return t
 
     def t_ANY_int(self, t):
-        r' (\d+\^\^[a-zA-Z0-9]+|\d+) ((``\d+|`\d*)\.?\d*)? (\*\^-?\d+)? '
+        r' (\d+\^\^[a-zA-Z0-9]+|\d+) ((``\d+|`\d*)\.?\d*)? (\*\^(\+|-)?\d+)? '
         s = t.value
 
         # Look for base
