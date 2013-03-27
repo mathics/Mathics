@@ -29,6 +29,23 @@ from mathics.core.expression import BaseExpression, Expression, Integer, Real, S
 from mathics.builtin import builtins
 from mathics.builtin.numeric import machine_precision
 
+def read_base(s, base, n):
+    "Converts a float string `s` with exponent `n` from arbitary base to base 10"
+    assert isinstance(n, int) and isinstance(base, int) and 2 <= base <= 36
+    s = s.split('.')
+
+    head = int(s[0], base) * (base ** n)
+    if len(s) == 1:
+        tail = 0
+    else:
+        num = int(s[1], base)
+        fact = len(s[1]) - n
+        if fact <= 0:
+            tail = num * base**(-fact)
+        else:
+            tail = float(num) / base ** float(fact)
+    return str(head + tail)
+
 class TranslateError(Exception):
     pass
 
@@ -242,13 +259,12 @@ precedence = (
     ('nonassoc', 'MessageName'),
     ('nonassoc', 'string'),
     ('nonassoc', 'symbol'),
-    ('nonassoc', 'int', 'float'),
+    ('nonassoc', 'number'),
 )
 
 tokens = (
     'symbol',
-    'float',
-    'int', 
+    'number',
     'string',
     'blanks', 
     'blankdefault',
@@ -620,28 +636,8 @@ class MathicsScanner:
         r' (?s) \(\* .*? \*\) '
         return None
 
-    def t_ANY_float(self, t):
-        r' \d*(?<!\.)\.\d+(\*\^(\+|-)?\d+)? | \d+\.(?!\.) \d*(\*\^(\+|-)?\d+)?'
-        s = t.value.split('*^')
-        if len(s) == 1:
-            s = s[0]
-        else:
-            assert len(s) == 2
-            exp = int(s[1])
-            if exp >= 0:
-                s = s[0] + '0' * exp
-            else:
-                s = '0' * -exp + s[0]
-
-            dot = s.find('.')
-            s = s[:dot] + s[dot+1:]
-            s = s[:exp+dot] + '.' + s[exp+dot:]
-
-        t.value = s
-        return t
-
-    def t_ANY_int(self, t):
-        r' (\d+\^\^[a-zA-Z0-9]+|\d+) (``?(\+|-)?(\d+\.?\d*|\d*\.?\d+)|`)? (\*\^(\+|-)?\d+)? '
+    def t_ANY_number(self, t):
+        r' (\d+\^\^([a-zA-Z0-9]+\.?[a-zA-Z0-9]*|[a-zA-Z0-9]*\.?[a-zA-Z0-9]+)|(\d+\.?\d*|\d*\.?\d+)) (``?(\+|-)?(\d+\.?\d*|\d*\.?\d+)|`)? (\*\^(\+|-)?\d+)? '
         s = t.value
 
         # Look for base
@@ -658,31 +654,39 @@ class MathicsScanner:
         if len(s) == 1:
             n, s = 0, s[0]
         else:
+            #TODO: modify regex and provide error message if n not an int
             n, s = int(s[1]), s[0]
 
-        # Look at precision ` suffix
+        # Look at precision ` suffix to get precision/accuracy
+        prec, acc = None, None
         s = s.split('`', 1)
         if len(s) == 1:
             suffix, s = None, s[0]
         else:
             suffix, s = s[1], s[0]
 
-        if n < 0:
-            t.value = Rational(int(s, base), base ** abs(n))
-        else:
-            t.value = Integer(int(s, base) * (base ** n))
-
-        if suffix is not None:
             if suffix == '':
                 prec = machine_precision
             elif suffix.startswith('`'):
-                if t.value.get_int_value() == 0:
-                    prec = 0
-                else:
-                    prec = log10(abs(t.value.to_python())) + float(suffix[1:])
+                acc = float(suffix[1:])
             else:
                 prec = float(suffix)
-            t.value = t.value.round(prec)
+
+        # Look for decimal point
+        if s.count('.') == 0:
+            if suffix is None:
+                if n < 0:
+                    t.value = Rational(int(s, base), base ** abs(n))
+                else:
+                    t.value = Integer(int(s, base) * (base ** n))
+                return t
+
+        if base == 10:
+            if n != 0:
+                s = s + 'E' + str(n)    # sympy handles this
+        else:
+            s = read_base(s, base, n)
+        t.value = Real(s, p=prec, acc=acc)
         return t
 
     def t_ANY_string(self, t):
@@ -895,7 +899,7 @@ class MathicsParser:
 
     def p_error(self, p):
         if p is not None:
-            print p
+            p = p.value
         raise ParseError(p)
     
     def parse(self, string):
@@ -974,13 +978,9 @@ class MathicsParser:
         'expr : symbol'
         args[0] = Symbol(args[1])
         
-    def p_int(self, args):
-        'expr : int'
+    def p_number(self, args):
+        'expr : number'
         args[0] = args[1]
-        
-    def p_float(self, args):
-        'expr : float'
-        args[0] = Real(args[1])
         
     def p_blanks(self, args):
         'pattern : blanks'

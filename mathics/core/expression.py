@@ -1344,11 +1344,13 @@ class Rational(Number):
         return Rational(self.value)
         
 class Real(Number):
-    def __init__(self, value, p=None):
+    def __init__(self, value, p=None, acc=None):
         from mathics.builtin.numeric import machine_precision
         super(Real, self).__init__()
         if p == 18:
             raise NotImplementedError
+
+        assert (p is None or acc is None)
 
         if isinstance(value, basestring):
             value = str(value)
