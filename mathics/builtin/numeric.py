@@ -211,7 +211,23 @@ class Precision(Builtin):
             return Real(dps(x.get_precision()))
         else:
             return Symbol('Infinity')
-        
+
+class Accuracy(Builtin):
+    """
+    >> Accuracy[1.]
+     = 18
+
+    >> Accuracy[0.04235423]
+     = 19.3731032093
+    """
+    def apply_real(self, x, evaluation):
+        'Accuracy[x_Real/;x!=0]'
+        return Real(x.get_accuracy())
+
+    def apply_real_zero(self, x, evaluation):
+        'Accuracy[x_Real/;x==0]'
+        return Expression('Times', Integer(-1), Expression('Log', Integer(10), Symbol('$MinMachineNumber')))
+       
 def round(value, k):
     n = (1. * value / k).as_real_imag()[0]
     if n >= 0:

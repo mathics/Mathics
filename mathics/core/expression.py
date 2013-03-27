@@ -27,6 +27,8 @@ try:
 except ImportError:
     pass
 
+from math import log10
+
 from mathics.core.numbers import format_float, prec, get_type, dps, prec, min_prec
 from mathics.core.evaluation import Evaluation
 from mathics.core.util import subsets, subranges, permutations, interpolate_string
@@ -1354,7 +1356,7 @@ class Real(Number):
 
         if isinstance(value, basestring):
             value = str(value)
-            if p is None:
+            if p is None and acc is None:
                 digits = (''.join(re.findall('[0-9]+', value))).lstrip('0')
                 if digits == '':     # Handle weird Mathematica zero case
                     p = max(prec(len(value.replace('0.', ''))), machine_precision)
@@ -1364,10 +1366,15 @@ class Real(Number):
             value = str(value)
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
-        if p is None:
+        if p is None and acc is None:
             p = machine_precision
 
+        if acc is not None:
+            tmp = Real(value)
+            p = prec(acc + log10(tmp.value))
+
         self.value = sympy.Float(value, dps(p))
+
         self.prec = p
 
     def __getstate__(self):
@@ -1442,6 +1449,9 @@ class Real(Number):
     
     def get_precision(self):
         return self.prec
+
+    def get_accuracy(self):
+        return dps(self.prec) - log10(abs(self.value))
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:

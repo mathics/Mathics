@@ -29,22 +29,38 @@ from mathics.core.expression import BaseExpression, Expression, Integer, Real, S
 from mathics.builtin import builtins
 from mathics.builtin.numeric import machine_precision
 
-def read_base(s, base, n):
-    "Converts a float string `s` with exponent `n` from arbitary base to base 10"
-    assert isinstance(n, int) and isinstance(base, int) and 2 <= base <= 36
-    s = s.split('.')
+def read_base(s, base, n, acc=None):
+    """Converts a float string `s` from arbitary base to base 10. The argument
+    n specifies the exponent and acc the digits of precision (both in terms of 
+    the given base"""
+    assert isinstance(n, int) 
+    assert isinstance(base, int) and 2 <= base <= 36
 
-    head = int(s[0], base) * (base ** n)
+    # Put into standard form mantissa * base ^ n
+    s = s.split('.')
     if len(s) == 1:
-        tail = 0
+        man = s[0]
     else:
-        num = int(s[1], base)
-        fact = len(s[1]) - n
-        if fact <= 0:
-            tail = num * base**(-fact)
-        else:
-            tail = float(num) / base ** float(fact)
-    return str(head + tail)
+        n -= len(s[1])
+        man = s[0] + s[1]
+
+    man = int(man, base)
+
+    if n >= 0:
+        result = Integer(man * base ** n)
+    else:
+        result = Rational(man, base ** n)
+
+    prec = None
+    if acc is None and prec is None:     # machine precision
+        prec10 = machine_precision
+    elif acc is not None:
+        acc10 = acc * log10(base)
+        prec10 = acc10 + log10(result.to_python())
+    elif prec is not None:
+        prec10 = prec - log10(result.to_python())
+
+    return result.round(prec10)
 
 class TranslateError(Exception):
     pass
@@ -684,9 +700,9 @@ class MathicsScanner:
         if base == 10:
             if n != 0:
                 s = s + 'E' + str(n)    # sympy handles this
+            t.value = Real(s, p=prec, acc=acc)
         else:
-            s = read_base(s, base, n)
-        t.value = Real(s, p=prec, acc=acc)
+            t.value = read_base(s, base, n, prec)
         return t
 
     def t_ANY_string(self, t):
