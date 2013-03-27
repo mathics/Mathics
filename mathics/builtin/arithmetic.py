@@ -1286,6 +1286,80 @@ class Real_(Builtin):
     >> Head[x]
      = Real
 
+    Machine precision numbers
+    >> 10.5
+     = 10.5
+
+    Arbitary precision numbers
+    >> 10.95834905890234859042134832740172304897123
+     = 10.95834905890234859042134832740172304897123
+    >> Precision[%]
+     = 42.0397
+
+    Machine precision can be forced by appending the ` character
+    >> 10.958349058902348590421348327401723048971230`
+     = 10.9583490589023486
+    >> Precision[%]
+     = MachinePrecision
+
+    Precision can be specified by appending `prec as follows
+    >> 123.123`30
+     = 123.123000000000000000000000000
+    >> Precision[%]
+     = 30
+
+    Accuracy is specified by appending `acc as follows
+    >> 123.123``30
+     = 123.12300000000000000000000000000
+    >> Accuracy[%]
+     = 30
+
+    Numbers can be entered using scientific notation
+    >> 1.1234*^8
+     = 1.1234*^8
+    >> 1.1234*^5
+     = 112340.
+    >> 1.1234*^-5
+     = 0.000011234
+    ## Permit explicit exponent signs
+    #> 1.5*^+24
+     = 1.5*^24
+    #> 1.5*^-24
+     = 1.5*^-24
+    ## Don't accept *^ with spaces
+    #> 1.5 *^10
+     : Parse error at or near token ^.
+    #> 1.5*^ 10
+     : Parse error at or near token ^.
+
+    Numbers can also be specified in arbitary bases
+    >> 16^^94A.D31E
+     = 2378.82467651367187
+    #> 8^^1.5
+     = 1.625
+
+    All the previous forms can be combined
+    >> 1.1234`30*^8
+     = 1.1234`30.*^8
+    >> 8^^1743.232`30
+     = 995.300781250000000000000000
+    #> {Accuracy[%], Precision[%]}
+     = {24.0947, 27.0927}
+    >> 16^^5AC3.94F`20*^8
+     = 9.9796063879168`24.082399653118497*^13
+    #> 8^^1.73*^5
+     = 62976.
+    #> 8^^1.73*^-5
+     = 0.000058651
+    #> 8^^1.73``20*^-5
+     = 0.000058650970458984
+    #> {Accuracy[%], Precision[%]}
+     = {18.0618, 13.8301}
+    #> 8^^1.73`20*^-5
+     = 0.0000586509704589843750
+    #> {Accuracy[%], Precision[%]}
+     = {22.2935, 18.0618}
+
     ## Formatting tests
     #> 1. * 10^6
      = 1.*^6
@@ -1309,20 +1383,6 @@ class Real_(Builtin):
      = 0.
     #> 0.0000000000000000000000000000
      = 0.*^-28
-
-    ## Parse *^ Notation
-    #> 1.5*^24
-     = 1.5*^24
-    #> 1.5*^+24
-     = 1.5*^24
-    #> 1.5*^-24
-     = 1.5*^-24
-
-    ## Don't accept *^ with spaces
-    #> 1.5 *^10
-     : Parse error at or near token ^.
-    #> 1.5*^ 10
-     : Parse error at or near token ^.
     """
     
     name = 'Real'
