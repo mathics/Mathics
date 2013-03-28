@@ -24,44 +24,17 @@ import ply.yacc as yacc
 import re
 import unicodedata
 from math import log10
+import logging
 
 from mathics.core.expression import BaseExpression, Expression, Integer, Real, Symbol, String, Rational
 #from mathics.core.numbers import prec as dps_to_prec
 from mathics.builtin import builtins
 from mathics.builtin.numeric import machine_precision
 
-def read_base(s, base, n, acc=None):
-    """Converts a float string `s` from arbitary base to base 10. The argument
-    n specifies the exponent and acc the digits of precision (both in terms of 
-    the given base"""
-    assert isinstance(n, int) 
-    assert isinstance(base, int) and 2 <= base <= 36
-
-    # Put into standard form mantissa * base ^ n
-    s = s.split('.')
-    if len(s) == 1:
-        man = s[0]
-    else:
-        n -= len(s[1])
-        man = s[0] + s[1]
-
-    man = int(man, base)
-
-    if n >= 0:
-        result = Integer(man * base ** n)
-    else:
-        result = Rational(man, base ** n)
-
-    prec = None
-    if acc is None and prec is None:     # machine precision
-        prec10 = machine_precision
-    elif acc is not None:
-        acc10 = acc * log10(base)
-        prec10 = acc10 + log10(result.to_python())
-    elif prec is not None:
-        prec10 = prec - log10(result.to_python())
-
-    return result.round(prec10)
+#logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.ERROR)
+#log = logging.getLogger()
+log = None
 
 class TranslateError(Exception):
     pass
@@ -89,6 +62,12 @@ class ParseError(TranslateError):
         
     def __unicode__(self):
         return u"Parse error at or near token %s." % str(self.token)
+
+symbol_re = re.compile(r'`?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)*')
+
+def is_symbol_name(text):
+    return symbol_re.sub('', text) == ''
+
 
 prefix_operators = {
     'Del' : 'Del',
@@ -265,7 +244,7 @@ precedence = (
     ('right', 'Prefix'),
     ('right', 'PreIncrement', 'PreDecrement'),
     ('left', 'Increment', 'Decrement'),
-    ('left', 'PART'),
+    ('left', 'PART', 'RawLeftBracket', 'RawRightBracket'),
     ('nonassoc', 'PatternTest'),
     ('right', 'Subscript'),
     ('right', 'Overscript', 'Underscript'),
@@ -715,7 +694,34 @@ class MathicsScanner:
 
             t.value = Real(s, p=prec, d=dps)
         else:
-            t.value = read_base(s, base, n, prec)
+            # Convert the base
+            assert isinstance(base, int) and 2 <= base <= 36
+
+            # Put into standard form mantissa * base ^ n
+            s = s.split('.')
+            if len(s) == 1:
+                man = s[0]
+            else:
+                n -= len(s[1])
+                man = s[0] + s[1]
+
+            man = int(man, base)
+
+            if n >= 0:
+                result = Integer(man * base ** n)
+            else:
+                result = Rational(man, base ** -n)
+
+            prec = None
+            if acc is None and prec is None:     # machine precision
+                prec10 = machine_precision
+            elif acc is not None:
+                acc10 = acc * log10(base)
+                prec10 = acc10 + log10(result.to_python())
+            elif prec is not None:
+                prec10 = prec - log10(result.to_python())
+
+            t.value = result.round(prec10)
         return t
 
     def t_ANY_string(self, t):
@@ -932,7 +938,7 @@ class MathicsParser:
         raise ParseError(p)
     
     def parse(self, string):
-        result = self.parser.parse(string)
+        result = self.parser.parse(string, debug=log)
         if result is not None:
             result = result.post_parse()
         return result
@@ -1125,7 +1131,11 @@ class MathicsParser:
 
     def p_UMinus(self, args):
         'expr : Minus expr %prec UMinus'''
-        args[0] = Expression('Times', Integer(-1), args[2])
+        if args[2].get_head_name() in ['Integer', 'Real']:
+            args[2].value = -args[2].value
+            args[0] = args[2]
+        else:
+            args[0] = Expression('Times', Integer(-1), args[2])
 
     def p_UPlusMinus(self, args):
         'expr : PlusMinus expr %prec UPlusMinus'''

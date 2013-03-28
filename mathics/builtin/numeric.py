@@ -226,14 +226,33 @@ class Precision(Builtin):
      = Infinity
     >> Precision[0.5]
      = 18.
+
+    Numbers with specified precision:
+    >> Precision[1.5`5]
+     = 5.
+    #> Precision[23`39]
+     = 39.
+    #> Precision[23`39.]
+     = 39.
+    #> Precision[1.5`2.]
+     = 2.
+
+    Numbers with specified accuracy:
+    >> Precision[3.4``10]
+     = 10.531478917042255124
+    #> Precision[1``5]
+     = 5.
+
+    ## Precision of zeros is zero by definition
     #> Precision[0.0]
      = 0.
     #> Precision[0.000000000000000000000000000000000000]
      = 0.
     #> Precision[-0.0]      (*Matematica gets this wrong *)
      = 0.
-    #> Precision[-0.000000000000000000000000000000000000]  
+    #> Precision[-0.000000000000000000000000000000000000]
      = 0.
+
     """
     
     rules = {
@@ -257,17 +276,36 @@ class Precision(Builtin):
         else:
             return Symbol('Infinity')
 
+class RealExponent(Builtin):
+    """
+    >> RealExponent[10]
+     = 1.
+
+    >> RealExponent[1 + I]
+     = 0.150514997831990598
+
+    >> RealExponent[64, 8]
+     = 2.
+    """
+
+    attributes = ('Listable, Protected')
+
+    rules = {
+        'RealExponent[x_, b_:10]': 'If[x === 0., -Accuracy[x], N[Log[b, Abs[x]]]]',
+    }
+
+
 class Accuracy(Builtin):
     """
     >> Accuracy[1.]
-     = 18
+     = 18.
 
     >> Accuracy[0.04235423]
      = 19.3731032093
     """
 
     rules = {
-        'Accuracy[x_]': 'If[InexactNumberQ[x], If[x!=0, If[MachineNumberQ[x], $MachinePrecision-Log[10, Abs[x]], Precision[x] - RealExponent[x]], -Log[10, $MinMachineNumber]], Infinity]'
+        'Accuracy[x_]': 'If[InexactNumberQ[x], If[x != 0, If[MachineNumberQ[x], $MachinePrecision-Log[10, Abs[x]], Precision[x] - RealExponent[x]], -Log[10, $MinMachineNumber]], Infinity]'
     }
 
 def round(value, k):

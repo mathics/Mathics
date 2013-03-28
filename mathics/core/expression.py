@@ -1373,7 +1373,7 @@ class Real(Number):
         elif p is None:
             p = prec(d)
 
-        self.value = sympy.Float(value, p)
+        self.value = sympy.Float(value, d)
 
         # Number of bits of precision
         self.prec = p
