@@ -711,6 +711,11 @@ class Repeated(PostfixOperator, PatternObject):
      = {{}, a, {a, b}, a, {a, a, a, a}}
     >> f[x, 0, 0, 0] /. f[x, s:0..] -> s
      = Sequence[0, 0, 0]
+
+    #> 1.. // FullForm
+     = Repeated[1]
+    #> 8^^1.. // FullForm   (* Mathematica gets this wrong *)
+     = Repeated[1]
     """
     
     messages = {
@@ -769,6 +774,11 @@ class RepeatedNull(Repeated):
      = RepeatedNull[Pattern[a, BlankNullSequence[Integer]]]
     >> f[x] /. f[x, 0...] -> t
      = t
+
+    #> 1... // FullForm
+     = RepeatedNull[1]
+    #> 8^^1... // FullForm   (* Mathematica gets this wrong *)
+     = RepeatedNull[1]
     """
     
     operator = '...'

@@ -42,7 +42,7 @@ class Pi(SympyConstant):
         'N[Pi, precision_]'
         precision = get_precision(precision, evaluation)
         if precision is not None:
-            return Real(sympy.pi.n(dps(precision)), p=precision)
+            return Real(sympy.pi.n(dps(precision)), precision)
 
 class E(SympyConstant):
     """
@@ -69,7 +69,7 @@ class E(SympyConstant):
         'N[E, precision_]'
         precision = get_precision(precision, evaluation)
         if precision is not None:
-            return Real(sympy.E.n(dps(precision)), p=precision)
+            return Real(sympy.E.n(dps(precision)), precision)
             
 class GoldenRatio(SympyConstant):
     """

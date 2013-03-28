@@ -26,6 +26,7 @@ import unicodedata
 from math import log10
 
 from mathics.core.expression import BaseExpression, Expression, Integer, Real, Symbol, String, Rational
+#from mathics.core.numbers import prec as dps_to_prec
 from mathics.builtin import builtins
 from mathics.builtin.numeric import machine_precision
 
@@ -652,6 +653,13 @@ class MathicsScanner:
         r' (?s) \(\* .*? \*\) '
         return None
 
+    # Lex '1..' as [1, RepeatedNull]. MMA fails when base given e.g. '8^^1..'
+    def t_ANY_intRepeated(self, t): 
+        r' (\d+\^\^[a-zA-Z0-9]+|\d+)(?=\.\.) '
+        t = self.t_ANY_number(t)
+        t.type = 'number'
+        return t
+
     def t_ANY_number(self, t):
         r' (\d+\^\^([a-zA-Z0-9]+\.?[a-zA-Z0-9]*|[a-zA-Z0-9]*\.?[a-zA-Z0-9]+)|(\d+\.?\d*|\d*\.?\d+)) (``?(\+|-)?(\d+\.?\d*|\d*\.?\d+)|`)? (\*\^(\+|-)?\d+)? '
         s = t.value
@@ -674,7 +682,7 @@ class MathicsScanner:
             n, s = int(s[1]), s[0]
 
         # Look at precision ` suffix to get precision/accuracy
-        prec = None
+        prec, dps, acc = None, None, None
         s = s.split('`', 1)
         if len(s) == 1:
             suffix, s = None, s[0]
@@ -685,10 +693,8 @@ class MathicsScanner:
                 prec = machine_precision
             elif suffix.startswith('`'):
                 acc = float(suffix[1:])
-                #TODO: Convert to prec
-                raise NotImplementedError
             else:
-                prec = float(suffix)
+                dps = float(suffix)
 
         # Look for decimal point
         if s.count('.') == 0:
@@ -702,7 +708,12 @@ class MathicsScanner:
         if base == 10:
             if n != 0:
                 s = s + 'E' + str(n)    # sympy handles this
-            t.value = Real(s, p=prec)
+
+            if acc is not None:
+                assert prec is None
+                dps = acc + log10(float(s)) + n
+
+            t.value = Real(s, p=prec, d=dps)
         else:
             t.value = read_base(s, base, n, prec)
         return t

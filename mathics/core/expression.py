@@ -1346,31 +1346,40 @@ class Rational(Number):
         return Rational(self.value)
         
 class Real(Number):
-    def __init__(self, value, p=None):
+    def __init__(self, value, p=None, d=None):
         from mathics.builtin.numeric import machine_precision
         super(Real, self).__init__()
-        if p == 18:
-            # you probably want p=64
+        if p == 18 or d == 64:
+            # you probably want p=64, d=18
             raise NotImplementedError
 
         if isinstance(value, basestring):
             value = str(value)
-            if p is None:
+            if p is None and d is None:
                 digits = (''.join(re.findall('[0-9]+', value))).lstrip('0')
                 if digits == '':     # Handle weird Mathematica zero case
-                    p = max(prec(len(value.replace('0.', ''))), machine_precision)
+                    d = max(len(value.replace('0.','')), dps(machine_precision))
                 else:
-                    p = prec(len(digits.zfill(dps(machine_precision))))
+                    d = len(digits.zfill(dps(machine_precision)))
         elif isinstance(value, (Integer, sympy.Float, mpmath.mpf, float, int, sympy.Integer)):
             value = str(value)
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
-        if p is None:
+        if p is None and d is None:
             p = machine_precision
+            d = dps(machine_precision)
+        elif d is None:
+            d = dps(p)
+        elif p is None:
+            p = prec(d)
 
-        self.value = sympy.Float(value, dps(p))
-        print p, dps(p)
+        self.value = sympy.Float(value, p)
+
+        # Number of bits of precision
         self.prec = p
+
+        # Number of digits of precision (Mathematica's Precision[])
+        self.dps = d
 
     def __getstate__(self):
         p = self.prec

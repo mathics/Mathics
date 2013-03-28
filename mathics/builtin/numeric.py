@@ -166,6 +166,51 @@ class MachinePrecision(Predefined):
         prec = get_precision(prec, evaluation)
         if prec is not None:
             return Real(dps(machine_precision), prec)
+
+class MachinePrecision_Symbol(Predefined):
+    """
+    <dl>
+    <dt>'$MachinePrecision'
+        <dd>is a "pessimistic" (integer) estimation of the internally used standard precision.
+    </dl>
+
+    >> $MachinePrecision
+     = 18.
+
+    #> Precision[$MachinePrecision]
+     = MachinePrecision
+    #> Attributes[$MachinePrecision]
+     = {Protected}
+    """
+
+    name = '$MachinePrecision'
+
+    attributes = ('Protected',)
+
+    def evaluate(self, evaluation):
+        prec = get_precision(Symbol('MachinePrecision'), evaluation)
+        if prec is not None:
+            return Real(dps(machine_precision), prec)
+
+class MachineNumberQ(Builtin):
+    """
+    >> MachineNumberQ[1.]
+     = True
+    >> MachineNumberQ[1]
+     = False
+    >> MachineNumberQ[x]
+     = False
+
+    #> MachineNumberQ[1. + I]
+     = True
+    #> MachineNumberQ[1 + I]
+     = False
+    """
+
+    rules = {
+        'MachineNumberQ[x_]': 'If[InexactNumberQ[x], Precision[x]==18, False]',
+        #'MachineNumberQ[x_]': 'If[InexactNumberQ[x], Precision[x]==MachinePrecision, False]',  #TODO
+    }
     
 class Precision(Builtin):
     """
@@ -220,14 +265,11 @@ class Accuracy(Builtin):
     >> Accuracy[0.04235423]
      = 19.3731032093
     """
-    def apply_real(self, x, evaluation):
-        'Accuracy[x_Real/;x!=0]'
-        return Real(x.get_accuracy())
 
-    def apply_real_zero(self, x, evaluation):
-        'Accuracy[x_Real/;x==0]'
-        return Expression('Times', Integer(-1), Expression('Log', Integer(10), Symbol('$MinMachineNumber')))
-       
+    rules = {
+        'Accuracy[x_]': 'If[InexactNumberQ[x], If[x!=0, If[MachineNumberQ[x], $MachinePrecision-Log[10, Abs[x]], Precision[x] - RealExponent[x]], -Log[10, $MinMachineNumber]], Infinity]'
+    }
+
 def round(value, k):
     n = (1. * value / k).as_real_imag()[0]
     if n >= 0:
