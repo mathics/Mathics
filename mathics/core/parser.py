@@ -674,7 +674,7 @@ class MathicsScanner:
             n, s = int(s[1]), s[0]
 
         # Look at precision ` suffix to get precision/accuracy
-        prec, acc = None, None
+        prec = None
         s = s.split('`', 1)
         if len(s) == 1:
             suffix, s = None, s[0]
@@ -685,6 +685,8 @@ class MathicsScanner:
                 prec = machine_precision
             elif suffix.startswith('`'):
                 acc = float(suffix[1:])
+                #TODO: Convert to prec
+                raise NotImplementedError
             else:
                 prec = float(suffix)
 
@@ -700,7 +702,7 @@ class MathicsScanner:
         if base == 10:
             if n != 0:
                 s = s + 'E' + str(n)    # sympy handles this
-            t.value = Real(s, p=prec, acc=acc)
+            t.value = Real(s, p=prec)
         else:
             t.value = read_base(s, base, n, prec)
         return t
