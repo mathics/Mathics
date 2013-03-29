@@ -1265,9 +1265,14 @@ class Integer(Number):
         evaluation.check_stopped()
         return self
     
-    def round(self, precision):
-        return Real(sympy.Float(self.value, dps(precision)))
-    
+    def round(self, p=None, d=None):
+        if d is None and p is None:
+            from mathics.builtin.numeric import machine_precision
+            d = dps(machine_precision)
+        elif d is None:
+                d = dps(p)
+        return Real(sympy.Float(self.value, d), d=d)
+
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Integer, self).get_sort_key(True)
@@ -1328,8 +1333,13 @@ class Rational(Number):
         evaluation.check_stopped()
         return self
     
-    def round(self, precision):
-        return Real(self.value.n(dps(precision)), precision)
+    def round(self, p=None, d=None):
+        if d is None and p is None:
+            from mathics.builtin.numeric import machine_precision
+            d = dps(machine_precision)
+        elif d is None:
+                d = dps(p)
+        return Real(self.to_sympy().n(d), d=d)
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1346,32 +1356,61 @@ class Rational(Number):
         return Rational(self.value)
         
 class Real(Number):
-    def __init__(self, value, p=None, d=None):
+    def __init__(self, value, p=None, d=None, a=None):
         from mathics.builtin.numeric import machine_precision
         super(Real, self).__init__()
-        if p == 18 or d == 64:
-            # you probably want p=64, d=18
-            raise NotImplementedError
+
+        self.is_machine_precision = False
+
 
         if isinstance(value, basestring):
+            assert re.match(r'^\d+\.\d*((E|e)-?\d+)?$', value) is not None
+
             value = str(value)
-            if p is None and d is None:
-                digits = (''.join(re.findall('[0-9]+', value))).lstrip('0')
-                if digits == '':     # Handle weird Mathematica zero case
-                    d = max(len(value.replace('0.','')), dps(machine_precision))
+
+            is_zero = re.search(r'(^|\.)\d*[1-9]\d*($|E|e|\.)', value) is None
+
+            if is_zero:
+                # Ignore precise zeros e.g. 0`30 -> 0.
+                p, d = 0., 0.
+
+                if a is None:
+                    a = re.search('(?<=\.)\d*', value)
+                    a = a.end() - a.start()
+                    if a < dps(machine_precision):
+                        self.is_machine_precision = True
+                        a = -307.653        #TODO
+            elif p is None and d is None:
+                if a is None:
+                    a = re.search('(?<=\.)\d*', value)
+                    a = a.end() - a.start()
+                if a < dps(machine_precision):
+                    a = dps(machine_precision) - log10(abs(float(value)))
+                    d = dps(machine_precision)
+                    self.is_machine_precision = True
                 else:
-                    d = len(digits.zfill(dps(machine_precision)))
+                    d = a + log10(float(value))
+
         elif isinstance(value, (Integer, sympy.Float, mpmath.mpf, float, int, sympy.Integer)):
             value = str(value)
+
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
         if p is None and d is None:
             p = machine_precision
             d = dps(machine_precision)
+            self.is_machine_precision = True
         elif d is None:
             d = dps(p)
+            if a is None:
+                a = d - log10(float(value))
         elif p is None:
             p = prec(d)
+            if a is None:
+                a = d - log10(float(value))
+        if a is None:
+            assert self.is_machine_precision
+            a = dps(machine_precision) - log10(abs(float(value)))
 
         self.value = sympy.Float(value, d)
 
@@ -1380,6 +1419,9 @@ class Real(Number):
 
         # Number of digits of precision (Mathematica's Precision[])
         self.dps = d
+
+        # Accuracy (only used for zeros)
+        self.acc = a
 
     def __getstate__(self):
         p = self.prec
@@ -1401,39 +1443,64 @@ class Real(Number):
         return self.make_boxes('TeXForm').boxes_to_tex(**options)  
         
     def make_boxes(self, form):
+        options = {
+            'NumberPoint' : '.',
+            'ExponentStep': 1,
+            'NumberSigns': ['-', ''],
+        }
         from mathics.builtin.numeric import machine_precision
+
+        coef, exp, acc, prec, prefix =  None, None, None, None, ''
+
         if self.to_sympy() == sympy.Float('0.0'):
-            if self.prec == machine_precision:
-                base, exp = ('0.', '0')
+            if self.is_machine_precision:
+                coef, exp, prec, acc = '0.', None, '', None
             else:
-                base, exp = ('0.', '-' + str(dps(self.prec)))
+                coef, exp, prec = '0.', None, None
+                acc = '{:f}'.format(self.acc).rstrip('0')
         else:
-            s = str(self.to_sympy())
-            if 'e' in s:
-                base, exp = map(str, s.split('e'))
+            coef = str(self.to_sympy())
+            if coef[0] == '-':
+                prefix = '-'
+                coef = coef[1:]
+            
+            coef = coef.split('e')
+            if len(coef) == 1:
+                coef, exp = coef[0], 0
             else:
-                if self.to_sympy() < 0:
-                    prefix = '-'
-                    s = s[1:]
-                else:
-                    prefix = ''
-                iexp = s.index('.')-1
-                if -6 < iexp < 6:
-                    base, exp = prefix + s, '0'
-                else:
-                    s = s.replace('.', '') + '0'
-                    base = s[0] + '.' + s[1:]
-                    base = prefix + base.lstrip('0')
-                    exp = str(iexp)
-            base, exp = base.rstrip('0'), exp.lstrip('+')
-        if exp != '0':
-            if form in ('InputForm', 'OutputForm', 'FullForm'):
-                return Expression('RowBox', Expression('List', base, String('*^'), String(exp)))
+                coef, exp = coef[0], int(coef[1])
+
+            pos = coef.index('.')
+            coef = coef[:pos] + coef[pos+1:]
+            exp += pos - 1
+
+            if -5 <= exp <= 5:
+                coef = '00000' + coef 
+                coef = coef[:6+exp] + '.' + coef[6+exp:]
+                coef = re.sub('^0*(?!\.)', '', coef)
+                exp = None
             else:
-                return Expression('RowBox', Expression('List', base, String(u'\u00d7'),
-                    Expression('SuperscriptBox', String('10'), String(exp))))
-        else:
-            return number_boxes(base)
+                coef = coef[0] + '.' + coef[1:]
+                exp = str(exp)
+
+            coef = coef.rstrip('0')
+            
+            if self.is_machine_precision:
+                prec = ''
+            else:
+                prec = str(float(self.dps)).rstrip('0')
+
+        result = prefix + coef
+        if prec is not None:
+            result += '`' + prec
+
+        if acc is not None:
+            result += '``' + acc
+
+        if exp is not None:
+            result += '*^' + exp
+
+        return String(result)
 
     def to_sympy(self, **kwargs):
         return self.value
@@ -1447,9 +1514,14 @@ class Real(Number):
     def evaluate(self, evaluation=builtin_evaluation):
         evaluation.check_stopped()
         return self      
-    
-    def round(self, precision):
-        return Real(self.to_sympy().n(dps(precision)), precision)
+
+    def round(self, p=None, d=None):
+        if d is None and p is None:
+            from mathics.builtin.numeric import machine_precision
+            d = dps(machine_precision)
+        elif d is None:
+                d = dps(p)
+        return Real(self.to_sympy().n(d), d=d)
     
     def get_precision(self):
         return self.prec

@@ -225,7 +225,7 @@ class Precision(Builtin):
     >> Precision[1/2]
      = Infinity
     >> Precision[0.5]
-     = 18.
+     = MachinePrecision
 
     Numbers with specified precision:
     >> Precision[1.5`5]
@@ -243,13 +243,12 @@ class Precision(Builtin):
     #> Precision[1``5]
      = 5.
 
-    ## Precision of zeros is zero by definition
     #> Precision[0.0]
-     = 0.
+     = MachinePrecision
     #> Precision[0.000000000000000000000000000000000000]
      = 0.
-    #> Precision[-0.0]      (*Matematica gets this wrong *)
-     = 0.
+    #> Precision[-0.0]
+     = MachinePrecision
     #> Precision[-0.000000000000000000000000000000000000]
      = 0.
 
@@ -259,20 +258,21 @@ class Precision(Builtin):
         'Precision[_Integer]': 'Infinity',
         'Precision[_Rational]': 'Infinity',
         'Precision[_Symbol]': 'Infinity',
-        'Precision[z:0.0]': '0.',
-        'Precision[z:-0.0]': '0.',
+        #'Precision[z:0.0]': '0.',
+        #'Precision[z:-0.0]': '0.',
     }
     
     def apply_real(self, x, evaluation):
         'Precision[x_Real]'
-        
+        if x.is_machine_precision:
+            return Symbol('MachinePrecision')
         return Real(dps(x.get_precision()))
     
     def apply_complex(self, x, evaluation):
         'Precision[x_Complex]'
         
         if x.is_inexact():
-            return Real(dps(x.get_precision()))
+            return Real(x.dps)
         else:
             return Symbol('Infinity')
 
@@ -302,11 +302,17 @@ class Accuracy(Builtin):
 
     >> Accuracy[0.04235423]
      = 19.3731032093
+
+    #> Accuracy[0.000000000000000000000000000000000000]
+     = 36.
+
+    #> Accuracy[14`4]
+     = 2.85387
     """
 
-    rules = {
-        'Accuracy[x_]': 'If[InexactNumberQ[x], If[x != 0, If[MachineNumberQ[x], $MachinePrecision-Log[10, Abs[x]], Precision[x] - RealExponent[x]], -Log[10, $MinMachineNumber]], Infinity]'
-    }
+    def apply_real(self, x, evaluation):
+        "Accuracy[x_Real]"
+        return Real(x.acc)
 
 def round(value, k):
     n = (1. * value / k).as_real_imag()[0]

@@ -683,19 +683,20 @@ class MathicsScanner:
                 else:
                     t.value = Integer(int(s, base) * (base ** n))
                 return t
+            else:
+                s = s + '.'
 
         if base == 10:
             if n != 0:
                 s = s + 'E' + str(n)    # sympy handles this
 
             if acc is not None:
-                assert prec is None
                 if float(s) == 0:
                     dps = 0.
                 else:
                     dps = acc + log10(float(s)) + n
 
-            t.value = Real(s, p=prec, d=dps)
+            t.value = Real(s, p=prec, d=dps, a=acc)
         else:
             # Convert the base
             assert isinstance(base, int) and 2 <= base <= 36
@@ -715,16 +716,16 @@ class MathicsScanner:
             else:
                 result = Rational(man, base ** -n)
 
-            prec = None
-            if acc is None and prec is None:     # machine precision
-                prec10 = machine_precision
+            if acc is None and dps is None:
+                #TODO: Long expressions -> automatic precision
+                dps10 = None
             elif acc is not None:
                 acc10 = acc * log10(base)
-                prec10 = acc10 + log10(result.to_python())
-            elif prec is not None:
-                prec10 = prec - log10(result.to_python())
+                dps10 = acc10 + log10(result.to_python())
+            elif dps is not None:
+                dps10 = dps * log10(base)
+            t.value = result.round(d=dps10)
 
-            t.value = result.round(prec10)
         return t
 
     def t_ANY_string(self, t):
