@@ -1510,47 +1510,56 @@ class Real(Number):
     def do_format(self, evaluation, form):
         prec, acc, exp = None, None, None
 
-        coef = str(self.to_sympy())
-        coef = coef.split('e')
-        if len(coef) == 1:
-            coef, exp = coef[0], 0
-        else:
-            coef, exp = coef[0], int(coef[1])
+        coef, exp, acc, prec, prefix =  None, None, None, None, ''
 
-        pos = coef.index('.')
-        coef = coef[:pos] + coef[pos+1:]
-        exp += pos - 1
-
-        if -5 <= exp <= 5:
-            coef = '00000' + coef 
-            coef = coef[:6+exp] + '.' + coef[6+exp:]
-            coef = re.sub('^0*(?!\.)', '', coef)
-            exp = None
-        else:
-            coef = coef[0] + '.' + coef[1:]
-            exp = str(exp)
-
-        if self.is_machine_precision:
-            if form in ['StandardForm', 'TraditionalForm']:
-                prec = ''
+        if self.to_sympy() == sympy.Float('0.0'):
+            if self.is_machine_precision:
+                coef, exp, prec, acc = '0.', None, None, None
             else:
-                prec = None
-
-            if form in ['OutputForm', 'TeXForm']:
-                coef = "{0:.6g}".format(float(coef))
-                if '.' not in coef:
-                    coef = coef + '.'
-            else:
-                coef = coef.rstrip('0')
+                coef, acc, prec = '0.', None, None
+                exp = '-{:f}'.format(self.acc).rstrip('0')
         else:
-            if form in ['InputForm', 'StandardForm', 'TraditionalForm']:
-                prec = str(float(self.dps)).rstrip('0')
+            coef = str(self.to_sympy())
+            coef = coef.split('e')
+            if len(coef) == 1:
+                coef, exp = coef[0], 0
             else:
-                prec = None
+                coef, exp = coef[0], int(coef[1])
 
-            if form in ['OutputForm', 'TeXForm']:
-                #TODO: Round to only self.dps digits
-                pass
+            pos = coef.index('.')
+            coef = coef[:pos] + coef[pos+1:]
+            exp += pos - 1
+
+            if -5 <= exp <= 5:
+                coef = '00000' + coef 
+                coef = coef[:6+exp] + '.' + coef[6+exp:]
+                coef = re.sub('^0*(?!\.)', '', coef)
+                exp = None
+            else:
+                coef = coef[0] + '.' + coef[1:]
+                exp = str(exp)
+
+            if self.is_machine_precision:
+                if form in ['StandardForm', 'TraditionalForm']:
+                    prec = ''
+                else:
+                    prec = None
+
+                if form in ['OutputForm', 'TeXForm']:
+                    coef = "{0:.6g}".format(float(coef))
+                    if '.' not in coef:
+                        coef = coef + '.'
+                else:
+                    coef = coef.rstrip('0')
+            else:
+                if form in ['InputForm', 'StandardForm', 'TraditionalForm']:
+                    prec = str(float(self.dps)).rstrip('0')
+                else:
+                    prec = None
+
+                if form in ['OutputForm', 'TeXForm']:
+                    #TODO: Round to only self.dps digits
+                    pass
         
         result = coef
         if prec is not None:
@@ -1566,9 +1575,12 @@ class Real(Number):
                 result += '*^' + exp
         result = String(result)
         if form in ['OutputForm'] and exp is not None:
-                result = Expression('RowBox', Expression('List', result, 
-                    Expression('SuperscriptBox', String('10'), 
-                        String(exp)))).do_format(evaluation, form)
+                exp = exp.rstrip('.')
+                #TODO: Requires 2D formatting etc
+                #result = Expression('RowBox', Expression('List', result, 
+                #    Expression('SuperscriptBox', String('10'), 
+                #    String(exp)))).do_format(evaluation, form)
+                result = String(result.get_string_value() + '*^' + exp)
         return result
 
     def same(self, other):

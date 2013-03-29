@@ -1208,7 +1208,7 @@ class Integer_(Builtin):
      = 10.00
     #> 10`-4
      : Requested precision -4. is smaller than $MinPrecision. Using $MinPrecision instead.
-     = 0.``-1.
+     = 0.*^1
 
     If number is not specified MachinePrecision is used
     >> Precision[195`]
@@ -1250,7 +1250,7 @@ class Integer_(Builtin):
 
     ## Zero Edge case
     #> 0``14
-     = 0``14    ( * Why no decimal place here ? *)
+     = 0.*^-14
     #> {Accuracy[%], Precision[%]}
      = {14., 0.}
     ## MMA is weirdly inconsistent 0` -> 0. but 0`x -> 0 *)
@@ -1265,9 +1265,9 @@ class Integer_(Builtin):
     #> {0``-4, 0``+4, 0``3.4, 0``+5.6, 0``-.1, 0``1.}
      = {0``-4., 0``4., 0``3.4, 0``5.6, 0``-0.1, 0``1.}
     #> 25`0
-     = 0``-1.3979400086720373
+     = 0.*^2
     #> 25``0
-     = 25.`1.3979400086720373
+     = 2.*^1
     #> 25`0 == 25``0 == 25``-0 ==  25``+0. == 25``.0
      = True
     """
@@ -1324,7 +1324,7 @@ class Real_(Builtin):
 
     Machine precision can be forced by appending the ` character
     >> 10.958349058902348590421348327401723048971230`
-     = 10.9583490589023486
+     = 10.9583
     >> Precision[%]
      = MachinePrecision
 
@@ -1370,7 +1370,7 @@ class Real_(Builtin):
 
     All the previous forms can be combined
     >> 1.1234`30*^8
-     = 1.1234`30.*^8
+     = 1.12340000000000000000000000000*^8
     >> 8^^1743.232`30
      = 995.300781250000000000000000
     #> {Accuracy[%], Precision[%]}
