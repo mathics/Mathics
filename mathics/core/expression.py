@@ -1506,7 +1506,71 @@ class Real(Number):
     
     def to_python(self, *args, **kwargs):
         return float(self.value)
-    
+
+    def do_format(self, evaluation, form):
+        prec, acc, exp = None, None, None
+
+        coef = str(self.to_sympy())
+        coef = coef.split('e')
+        if len(coef) == 1:
+            coef, exp = coef[0], 0
+        else:
+            coef, exp = coef[0], int(coef[1])
+
+        pos = coef.index('.')
+        coef = coef[:pos] + coef[pos+1:]
+        exp += pos - 1
+
+        if -5 <= exp <= 5:
+            coef = '00000' + coef 
+            coef = coef[:6+exp] + '.' + coef[6+exp:]
+            coef = re.sub('^0*(?!\.)', '', coef)
+            exp = None
+        else:
+            coef = coef[0] + '.' + coef[1:]
+            exp = str(exp)
+
+        if self.is_machine_precision:
+            if form in ['StandardForm', 'TraditionalForm']:
+                prec = ''
+            else:
+                prec = None
+
+            if form in ['OutputForm', 'TeXForm']:
+                coef = "{0:.6g}".format(float(coef))
+                if '.' not in coef:
+                    coef = coef + '.'
+            else:
+                coef = coef.rstrip('0')
+        else:
+            if form in ['InputForm', 'StandardForm', 'TraditionalForm']:
+                prec = str(float(self.dps)).rstrip('0')
+            else:
+                prec = None
+
+            if form in ['OutputForm', 'TeXForm']:
+                #TODO: Round to only self.dps digits
+                pass
+        
+        result = coef
+        if prec is not None:
+            result += '`' + prec
+
+        if acc is not None:
+            result += '``' + acc
+
+        if exp is not None:
+            if form in ['CForm', 'FortranForm']:
+                result += 'e' + exp
+            elif form in ['InputForm', 'StandardForm', 'TraditionalForm']:
+                result += '*^' + exp
+        result = String(result)
+        if form in ['OutputForm'] and exp is not None:
+                result = Expression('RowBox', Expression('List', result, 
+                    Expression('SuperscriptBox', String('10'), 
+                        String(exp)))).do_format(evaluation, form)
+        return result
+
     def same(self, other):
         return isinstance(other, Real) and self.to_sympy() == other.to_sympy()
     
