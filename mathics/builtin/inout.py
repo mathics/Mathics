@@ -113,6 +113,40 @@ class MakeBoxes(Builtin):
 
     #> \( x \^ 2 \_ 4 \)
      = SuperscriptBox[x, SubscriptBox[2, 4]]
+
+    ## Test Real MakeBoxes
+    #> MakeBoxes[1.4]
+     = 1.4`
+    #> MakeBoxes[1.4`]
+     = 1.4`
+    #> MakeBoxes[1.5`20]
+     = 1.5`20.
+    #> MakeBoxes[1.4`20]
+     = 1.4`20.
+    #> MakeBoxes[1.5``20]
+     = 1.5`20.1760912591
+    #> MakeBoxes[-1.4]
+     = RowBox[{-, 1.4`}]
+    #> MakeBoxes[34.*^3]
+     = 34000.`
+
+    #> MakeBoxes[0`]
+     = 0.`
+    #> MakeBoxes[0`3]       (* MMA gives Integer 0 *)
+     = 0.`
+    #> MakeBoxes[0``30]     (* MMA gives 0``30 *)
+     = 0.``30.
+    #> MakeBoxes[0.`]
+     = 0.`
+    #> MakeBoxes[0.`3]
+     = 0.`
+    #> MakeBoxes[0.``30]
+     = 0.``30.
+
+    #> MakeBoxes[14]
+     = 14
+    #> MakeBoxes[-14]
+     = RowBox[{-, 14}]
     """
 
     #TODO: Correct precedence

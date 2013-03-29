@@ -1444,11 +1444,6 @@ class Real(Number):
         return self.make_boxes('TeXForm').boxes_to_tex(**options)  
         
     def make_boxes(self, form):
-        options = {
-            'NumberPoint' : '.',
-            'ExponentStep': 1,
-            'NumberSigns': ['-', ''],
-        }
         from mathics.builtin.numeric import machine_precision
 
         coef, exp, acc, prec, prefix =  None, None, None, None, ''
@@ -1491,7 +1486,7 @@ class Real(Number):
             else:
                 prec = str(float(self.dps)).rstrip('0')
 
-        result = prefix + coef
+        result = coef
         if prec is not None:
             result += '`' + prec
 
@@ -1501,7 +1496,10 @@ class Real(Number):
         if exp is not None:
             result += '*^' + exp
 
-        return String(result)
+        result = String(result)
+        if prefix != '':
+            result = Expression('RowBox', Expression('List', String(prefix), result))
+        return result
 
     def to_sympy(self, **kwargs):
         return self.value
