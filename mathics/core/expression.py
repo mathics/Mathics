@@ -1378,7 +1378,7 @@ class Real(Number):
                     a = a.end() - a.start()
                     if a < dps(machine_precision):
                         self.is_machine_precision = True
-                        a = -307.653        #TODO
+                        a = 307.653        #TODO
             elif force_mp:
                 pass
             elif p is None and d is None:

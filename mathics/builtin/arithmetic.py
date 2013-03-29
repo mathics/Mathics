@@ -1250,16 +1250,15 @@ class Integer_(Builtin):
 
     ## Zero Edge case
     #> 0``14
-     = 0``14
+     = 0``14    ( * Why no decimal place here ? *)
     #> {Accuracy[%], Precision[%]}
      = {14., 0.}
+    ## MMA is weirdly inconsistent 0` -> 0. but 0`x -> 0 *)
     #> 0`13
-     = 0
-    #> {Accuracy[%], Precision[%]}
-     = {Infinity, Infinity}
+     = 0.   (* MMA gives integer 0 *)
     #> 0`
      = 0.
-    #> {Accuracy[%], Precision[%]}
+    #> {Accuracy[0.], Precision[0.]}
      = {307.653, MachinePrecision}
     #> {0`-4, 0`+4, 0`3.4, 0`+5.6, 0`-.1, 0`1.}
      = {0, 0, 0, 0, 0, 0}
