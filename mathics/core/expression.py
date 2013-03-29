@@ -1356,12 +1356,11 @@ class Rational(Number):
         return Rational(self.value)
         
 class Real(Number):
-    def __init__(self, value, p=None, d=None, a=None):
+    def __init__(self, value, p=None, d=None, a=None, force_mp=False):
         from mathics.builtin.numeric import machine_precision
         super(Real, self).__init__()
 
         self.is_machine_precision = False
-
 
         if isinstance(value, basestring):
             assert re.match(r'^\d+\.\d*((E|e)-?\d+)?$', value) is not None
@@ -1372,7 +1371,7 @@ class Real(Number):
 
             if is_zero:
                 # Ignore precise zeros e.g. 0`30 -> 0.
-                p, d = 0., 0.
+                p, d, force_mp = 0., 0., False
 
                 if a is None:
                     a = re.search('(?<=\.)\d*', value)
@@ -1380,6 +1379,8 @@ class Real(Number):
                     if a < dps(machine_precision):
                         self.is_machine_precision = True
                         a = -307.653        #TODO
+            elif force_mp:
+                pass
             elif p is None and d is None:
                 if a is None:
                     a = re.search('(?<=\.)\d*', value)
@@ -1396,7 +1397,7 @@ class Real(Number):
 
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
-        if p is None and d is None:
+        if (p is None and d is None) or force_mp:
             p = machine_precision
             d = dps(machine_precision)
             self.is_machine_precision = True

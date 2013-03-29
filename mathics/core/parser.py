@@ -661,7 +661,7 @@ class MathicsScanner:
             n, s = int(s[1]), s[0]
 
         # Look at precision ` suffix to get precision/accuracy
-        prec, dps, acc = None, None, None
+        prec, dps, acc, force_mp = None, None, None, False
         s = s.split('`', 1)
         if len(s) == 1:
             suffix, s = None, s[0]
@@ -669,7 +669,8 @@ class MathicsScanner:
             suffix, s = s[1], s[0]
 
             if suffix == '':
-                prec = machine_precision
+                #prec = machine_precision
+                force_mp = True
             elif suffix.startswith('`'):
                 acc = float(suffix[1:])
             else:
@@ -696,7 +697,7 @@ class MathicsScanner:
                 else:
                     dps = acc + log10(float(s)) + n
 
-            t.value = Real(s, p=prec, d=dps, a=acc)
+            t.value = Real(s, p=prec, d=dps, a=acc, force_mp=force_mp)
         else:
             # Convert the base
             assert isinstance(base, int) and 2 <= base <= 36
@@ -717,7 +718,9 @@ class MathicsScanner:
                 result = Rational(man, base ** -n)
 
             if acc is None and dps is None:
-                #TODO: Long expressions -> automatic precision
+                if not force_mp:
+                    #TODO: Long expressions -> automatic precision
+                    pass
                 dps10 = None
             elif acc is not None:
                 acc10 = acc * log10(base)
