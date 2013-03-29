@@ -690,7 +690,10 @@ class MathicsScanner:
 
             if acc is not None:
                 assert prec is None
-                dps = acc + log10(float(s)) + n
+                if float(s) == 0:
+                    dps = 0.
+                else:
+                    dps = acc + log10(float(s)) + n
 
             t.value = Real(s, p=prec, d=dps)
         else:

@@ -1306,13 +1306,13 @@ class Real_(Builtin):
     >> 123.123`30
      = 123.123000000000000000000000000
     >> Precision[%]
-     = 30
+     = 30.
 
     Accuracy is specified by appending `acc as follows
     >> 123.123``30
      = 123.12300000000000000000000000000
     >> Accuracy[%]
-     = 30
+     = 30.
 
     Numbers can be entered using scientific notation
     >> 1.1234*^8
@@ -1334,7 +1334,7 @@ class Real_(Builtin):
 
     Numbers can also be specified in arbitary bases
     >> 16^^94A.D31E
-     = 2378.82467651367187
+     = 2378.82467651367188
     #> 8^^1.5
      = 1.625
 
@@ -1350,7 +1350,7 @@ class Real_(Builtin):
     #> 8^^1.73*^5
      = 62976.
     #> 8^^1.73*^-5
-     = 0.000058651
+     = 0.0000586509704589843750
     #> 8^^1.73``20*^-5
      = 0.000058650970458984
     #> {Accuracy[%], Precision[%]}
