@@ -685,7 +685,11 @@ class MathicsScanner:
                     t.value = Integer(int(s, base) * (base ** n))
                 return t
             else:
-                s = s + '.'
+                if dps is not None and s.strip('0') == '':      # 0`12 -> 0
+                    t.value = Integer(0)
+                    return t
+                else:
+                    s = s + '.'
 
         if base == 10:
             if n != 0:

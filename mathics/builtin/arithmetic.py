@@ -1255,7 +1255,7 @@ class Integer_(Builtin):
      = {14., 0.}
     ## MMA is weirdly inconsistent 0` -> 0. but 0`x -> 0 *)
     #> 0`13
-     = 0.   (* MMA gives integer 0 *)
+     = 0
     #> 0`
      = 0.
     #> {Accuracy[0.], Precision[0.]}
@@ -1413,6 +1413,14 @@ class Real_(Builtin):
      = 0.
     #> 0.0000000000000000000000000000
      = 0.*^-28
+    #> 0.``14
+     = 0.*^-14
+    #> {Accuracy[%], Precision[%]}
+     = {14., 0.}
+    #> 0.`13    (* Check me !! *)
+     = 0.
+    #> 0.`
+     = 0.
     """
     
     name = 'Real'
