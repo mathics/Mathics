@@ -68,13 +68,13 @@ class Binomial(Builtin):
     def apply_inexact(self, n, k, evaluation):
         'Binomial[n_?InexactNumberQ, k_?NumberQ]'
         
-        prec = min_prec(n, k)
+        dps = min_prec(n, k)
         n = n.to_sympy()
         k = k.to_sympy()
-        result = sympy.binomial(n, k).n(dps(prec))
+        result = sympy.binomial(n, k).n(dps)
         if result == sympy.Float('inf'):
             return Symbol('ComplexInfinity')
-        return Real(result, prec)
+        return Real(result, d=dps)
         
     def apply_inexact_2(self, n, k, evaluation):
         'Binomial[n_?NumberQ, k_?InexactNumberQ]'

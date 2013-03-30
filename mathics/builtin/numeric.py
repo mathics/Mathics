@@ -23,9 +23,9 @@ machine_precision = MACHINE_PRECISION
 
 def get_precision(precision, evaluation):
     if precision.get_name() == 'MachinePrecision':
-        return machine_precision
+        return dps(machine_precision)
     elif isinstance(precision, (Integer, Rational, Real)):
-        return prec(float(precision.to_sympy()))
+        return float(precision.to_sympy())
     else:
         evaluation.message('N', 'precbd', precision)
         return None
@@ -266,13 +266,13 @@ class Precision(Builtin):
         'Precision[x_Real]'
         if x.is_machine_precision:
             return Symbol('MachinePrecision')
-        return Real(dps(x.get_precision()))
+        return Real(x.get_precision())
     
     def apply_complex(self, x, evaluation):
         'Precision[x_Complex]'
         
         if x.is_inexact():
-            return Real(x.dps)
+            return Real(x.get_precision())
         else:
             return Symbol('Infinity')
 
@@ -508,7 +508,7 @@ class BaseForm(Builtin):
         if not (isinstance(expr, Integer) or isinstance(expr, Real)):
             return Expression("MakeBoxes", expr, f)
 
-        p = dps(expr.get_precision()) if isinstance(expr, Real) else 0
+        p = expr.get_precision() if isinstance(expr, Real) else 0
         val = convert_base(expr.get_real_value(), base, p)
 
         if f.get_name() == 'OutputForm':

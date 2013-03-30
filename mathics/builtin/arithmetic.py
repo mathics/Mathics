@@ -16,7 +16,7 @@ from mathics.core.expression import Expression, Number, Integer, Rational, Real,
 from mathics.core.numbers import get_type, mul, add, sympy2mpmath, mpmath2sympy, SpecialValueError
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
-from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, dps
+from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, prec
 
 class _MPMathFunction(SympyFunction):
 
@@ -184,13 +184,13 @@ class Plus(BinaryOperator, SympyFunction):
         leaves = []
         last_item = last_count = None
 
-        prec = min_prec(*items)
+        dps = min_prec(*items)
         is_real = all([not isinstance(i, Complex) for i in items])
 
-        if prec is None:
+        if dps is None:
             number = (sympy.Integer(0), sympy.Integer(0))
         else:
-            number = (sympy.Float('0.0', dps(prec)), sympy.Float('0.0', dps(prec)))
+            number = (sympy.Float('0.0', dps), sympy.Float('0.0', dps))
         
         def append_last():
             if last_item is not None:
@@ -211,9 +211,9 @@ class Plus(BinaryOperator, SympyFunction):
                 else:
                     sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
 
-                if prec is not None:
-                    sym_real = sym_real.n(dps(prec))
-                    sym_imag = sym_imag.n(dps(prec))
+                if dps is not None:
+                    sym_real = sym_real.n(dps)
+                    sym_imag = sym_imag.n(dps)
 
                 number = (number[0] + sym_real, number[1] + sym_imag)
             else:
@@ -240,13 +240,13 @@ class Plus(BinaryOperator, SympyFunction):
                     last_item = rest
                     last_count = count
         append_last()
-        if prec is not None or number != (0, 0):
+        if dps is not None or number != (0, 0):
             if number[1].is_zero and is_real:
-                leaves.insert(0, Number.from_mp(number[0], prec))
-            elif number[1].is_zero and number[1].is_Integer and prec is None:
-                leaves.insert(0, Number.from_mp(number[0], prec))
+                leaves.insert(0, Number.from_mp(number[0], d=dps))
+            elif number[1].is_zero and number[1].is_Integer and dps is None:
+                leaves.insert(0, Number.from_mp(number[0], d=dps))
             else:
-                leaves.insert(0, Complex(number[0], number[1], prec))
+                leaves.insert(0, Complex(number[0], number[1], d=dps))
         if not leaves:
             return Integer(0)
         elif len(leaves) == 1:
@@ -505,7 +505,7 @@ class Times(BinaryOperator, SympyFunction):
         number = (sympy.Integer(1), sympy.Integer(0))
         leaves = []
 
-        prec = min_prec(*items)
+        dps = min_prec(*items)
         is_real = all([not isinstance(i, Complex) for i in items])
 
         for item in items:
@@ -515,11 +515,11 @@ class Times(BinaryOperator, SympyFunction):
                 else:
                     sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
 
-                if prec is not None:
-                    sym_real = sym_real.n(dps(prec))
-                    sym_imag = sym_imag.n(dps(prec))
+                if dps is not None:
+                    sym_real = sym_real.n(dps)
+                    sym_imag = sym_imag.n(dps)
 
-                if sym_real.is_zero and sym_imag.is_zero and prec is None:
+                if sym_real.is_zero and sym_imag.is_zero and dps is None:
                     return Integer('0')
                 number = (number[0]*sym_real - number[1]*sym_imag, number[0]*sym_imag + number[1]*sym_real)
             elif leaves and item == leaves[-1]:
@@ -540,11 +540,11 @@ class Times(BinaryOperator, SympyFunction):
 
         if number is not None:
             if number[1].is_zero and is_real:
-                leaves.insert(0, Number.from_mp(number[0], prec))
-            elif number[1].is_zero and number[1].is_Integer and prec is None:
-                leaves.insert(0, Number.from_mp(number[0], prec))
+                leaves.insert(0, Number.from_mp(number[0], d=dps))
+            elif number[1].is_zero and number[1].is_Integer and dps is None:
+                leaves.insert(0, Number.from_mp(number[0], d=dps))
             else:
-                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), prec))
+                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), d=dps))
 
         if not leaves:
             return Integer(1)
@@ -763,15 +763,15 @@ class Power(BinaryOperator, SympyFunction):
 
         elif isinstance(x, Number) and isinstance(y, Number) and (x.is_inexact() or y.is_inexact()):
             try:
-                prec = min(max(x.get_precision(), 64),  max(y.get_precision(), 64))
-                with mpmath.workprec(prec):
+                dps = min_prec(x, y)
+                with mpmath.workprec(prec(dps)):
                     mp_x = sympy2mpmath(x.to_sympy())
                     mp_y = sympy2mpmath(y.to_sympy())
                     result = mp_x ** mp_y
                     if isinstance(result, mpmath.mpf):
-                        return Real(str(result), prec)
+                        return Real(str(result), d=dps)
                     elif isinstance(result, mpmath.mpc):
-                        return Complex(str(result.real), str(result.imag), prec)
+                        return Complex(str(result.real), str(result.imag), d=dps)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
