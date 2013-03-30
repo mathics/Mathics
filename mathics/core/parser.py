@@ -722,10 +722,13 @@ class MathicsScanner:
                 result = Rational(man, base ** -n)
 
             if acc is None and dps is None:
-                if not force_mp:
-                    #TODO: Long expressions -> automatic precision
-                    pass
                 dps10 = None
+                if not force_mp:    # Long expressions -> automatic precision
+                    acc = len(s[1])
+                    acc10 = acc * log10(base)
+                    dps10 = acc10 + log10(result.to_python())
+                    if dps10 < 18:
+                        dps10 = None
             elif acc is not None:
                 acc10 = acc * log10(base)
                 dps10 = acc10 + log10(result.to_python())

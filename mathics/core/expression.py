@@ -1266,12 +1266,14 @@ class Integer(Number):
         return self
     
     def round(self, p=None, d=None):
+        force_mp = False
         if d is None and p is None:
             from mathics.builtin.numeric import machine_precision
             d = dps(machine_precision)
+            force_mp = True
         elif d is None:
                 d = dps(p)
-        return Real(sympy.Float(self.value, d), d=d)
+        return Real(sympy.Float(self.value, d), d=d, force_mp=force_mp)
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1334,12 +1336,14 @@ class Rational(Number):
         return self
     
     def round(self, p=None, d=None):
+        force_mp = False
         if d is None and p is None:
             from mathics.builtin.numeric import machine_precision
+            force_mp = True
             d = dps(machine_precision)
         elif d is None:
                 d = dps(p)
-        return Real(self.to_sympy().n(d), d=d)
+        return Real(self.to_sympy().n(d), d=d, force_mp=force_mp)
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1591,12 +1595,14 @@ class Real(Number):
         return self      
 
     def round(self, p=None, d=None):
+        force_mp = False
         if d is None and p is None:
             from mathics.builtin.numeric import machine_precision
             d = dps(machine_precision)
+            force_mp = True
         elif d is None:
                 d = dps(p)
-        return Real(self.to_sympy().n(d), d=d)
+        return Real(self.to_sympy().n(d), d=d, force_mp=force_mp)
     
     def get_precision(self):
         return self.prec
