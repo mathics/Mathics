@@ -1546,7 +1546,15 @@ class Real(Number):
                 coef, acc, prec = '0.', None, None
                 exp = '{:f}'.format(-self.acc).rstrip('0')
         else:
-            coef = str(self.to_sympy())
+            if form in ['OutputForm', 'TeXForm']:
+                if self.is_machine_precision:
+                    coef = "{0:.5e}".format(float(self.to_sympy()))
+                else:
+                    #TODO: Round to only self.dps digits
+                    #coef = "{0:.5e}".format(float(self.to_sympy()))
+                    coef = str(self.to_sympy())
+            else:
+                coef = str(self.to_sympy())
             coef = coef.split('e')
             if len(coef) == 1:
                 coef, exp = coef[0], 0
@@ -1567,27 +1575,17 @@ class Real(Number):
                 exp = str(exp)
 
             if self.is_machine_precision:
+                coef = coef.rstrip('0')
                 if form in ['StandardForm', 'TraditionalForm']:
                     prec = ''
                 else:
                     prec = None
-
-                if form in ['OutputForm', 'TeXForm']:
-                    coef = "{0:.6g}".format(float(coef))
-                    if '.' not in coef:
-                        coef = coef + '.'
-                else:
-                    coef = coef.rstrip('0')
             else:
                 if form in ['InputForm', 'StandardForm', 'TraditionalForm']:
                     prec = str(float(self.dps)).rstrip('0')
                 else:
                     prec = None
 
-                if form in ['OutputForm', 'TeXForm']:
-                    #TODO: Round to only self.dps digits
-                    pass
-        
         result = coef
         if prec is not None:
             result += '`' + prec
