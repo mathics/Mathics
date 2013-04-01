@@ -246,6 +246,7 @@ precedence = (
     ('left', 'Increment', 'Decrement'),
     ('left', 'PART', 'RawLeftBracket', 'RawRightBracket'),
     ('nonassoc', 'PatternTest'),
+    ('nonassoc', 'InterpretedBox'),
     ('right', 'Subscript'),
     ('right', 'Overscript', 'Underscript'),
     ('nonassoc', 'Get'),
@@ -291,7 +292,7 @@ tokens = (
     'Fraction',
     'Sqrt',
     'FormBox',
-    'IntepretedBox',
+    'InterpretedBox',
     'PatternTest',
     'Increment',
     'Decrement',
@@ -449,7 +450,7 @@ class MathicsScanner:
     t_ANY_PutAppend = r' \>\>\> '
 
     # Box Constructors
-    t_ANY_IntepretedBox = r' \\\! '
+    t_ANY_InterpretedBox = r' \\\! '
     t_boxes_Superscript = r' \\\^ '
     t_boxes_Subscript = r' \\\_ '
     t_boxes_Overscript = r' \\\& '
@@ -1284,7 +1285,7 @@ class MathicsParser:
 
     def p_box_to_expr(self, args):
         '''expr : LeftBoxParenthesis boxes RightBoxParenthesis
-                | IntepretedBox LeftBoxParenthesis boxes RightBoxParenthesis'''
+                | InterpretedBox LeftBoxParenthesis boxes RightBoxParenthesis %prec InterpretedBox'''
         if len(args) == 4:
             args[0] = args[2]
         else:
