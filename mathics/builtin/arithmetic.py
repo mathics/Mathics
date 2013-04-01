@@ -417,6 +417,13 @@ class Times(BinaryOperator, SympyFunction):
      = 3*a
     #> 3 * a //OutputForm
      = 3 a
+
+    #> Precision[1 * 2.8]
+     = MachinePrecision
+    #> Precision[1.4 * 2.8]
+     = MachinePrecision
+    #> Precision[1 * 8]
+     = Infinity
     """
     
     operator = '*'
@@ -507,6 +514,7 @@ class Times(BinaryOperator, SympyFunction):
 
         dps = min_prec(*items)
         is_real = all([not isinstance(i, Complex) for i in items])
+        force_mp = all([i.get_precision() == None or i.is_machine_precision for i in items])
 
         for item in items:
             if isinstance(item, Number):
@@ -540,11 +548,11 @@ class Times(BinaryOperator, SympyFunction):
 
         if number is not None:
             if number[1].is_zero and is_real:
-                leaves.insert(0, Number.from_mp(number[0], d=dps))
+                leaves.insert(0, Number.from_mp(number[0], d=dps, force_mp=force_mp))
             elif number[1].is_zero and number[1].is_Integer and dps is None:
-                leaves.insert(0, Number.from_mp(number[0], d=dps))
+                leaves.insert(0, Number.from_mp(number[0], d=dps, force_mp=force_mp))
             else:
-                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), d=dps))
+                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), d=dps, force_mp=force_mp))
 
         if not leaves:
             return Integer(1)
@@ -1393,21 +1401,21 @@ class Real_(Builtin):
      = {22.2935, 18.0618}
 
     ## Formatting tests
-    #> 1. * 10^6
+    #> 1.*^6
      = 1.*^6
-    #> 1. * 10^5
+    #> 1.*^5
      = 100000.
-    #> -1. * 10^6
+    #> -1.*^6
      = -1.*^6
-    #> -1. * 10^5
+    #> -1.*^5
      = -100000.
-    #> 1. * 10^-6
+    #> 1.*^-6
      = 1.*^-6
-    #> 1. * 10^-5
+    #> 1.*^-5
      = 0.00001
-    #> -1. * 10^-6
+    #> -1.*^-6
      = -1.*^-6
-    #> -1. * 10^-5
+    #> -1.*^-5
      = -0.00001
 
     ## Mathematica treats zero strangely

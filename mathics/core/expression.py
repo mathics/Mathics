@@ -1033,6 +1033,9 @@ class Expression(BaseExpression):
         return atoms
 
 class Atom(BaseExpression):    
+    def __init__(self, *args, **kwargs):
+        super(Atom, self).__init__()
+        self.is_machine_precision = False
     
     def is_atom(self):
         return True
@@ -1188,7 +1191,7 @@ class Number(Atom):
             return Integer(value)
     
     @staticmethod
-    def from_mp(value, p=None, d=None):
+    def from_mp(value, p=None, d=None, force_mp=False):
         #assert(value.is_number)
         if p is not None:
             raise NotImplementedError
@@ -1202,10 +1205,10 @@ class Number(Atom):
         elif t == 'q':
             return Rational(value)
         elif t == 'f':
-            return Real(value, d=d)
+            return Real(value, d=d, force_mp=force_mp)
         elif t == 'c':
             real, imag = value.as_real_imag()
-            return Complex(real, imag, d=d)
+            return Complex(real, imag, d=d, force_mp=force_mp)
         
         if isinstance(value, (int,long)):
             return Integer(value)
@@ -1216,7 +1219,7 @@ class Number(Atom):
         
     def is_numeric(self):
         return True
-            
+
 def number_boxes(text):
     assert text is not None
     if text.endswith('.0'):
@@ -1385,7 +1388,7 @@ class Real(Number):
 
         if isinstance(value, basestring):
 
-            is_zero = re.search(r'(^|\.)\d*[1-9]\d*($|E|e|\.)', value) is None
+            is_zero = re.search(r'(^-?|\.)\d*[1-9]\d*($|E|e|\.)', value) is None
 
             if is_zero:
                 # Ignore precise zeros e.g. 0`30 -> 0.
@@ -1555,6 +1558,9 @@ class Real(Number):
                     coef = str(self.to_sympy())
             else:
                 coef = str(self.to_sympy())
+            if coef.startswith('-'):
+                coef, prefix = coef[1:], '-'
+
             coef = coef.split('e')
             if len(coef) == 1:
                 coef, exp = coef[0], 0
@@ -1586,7 +1592,7 @@ class Real(Number):
                 else:
                     prec = None
 
-        result = coef
+        result = prefix + coef
         if prec is not None:
             result += '`' + prec
 

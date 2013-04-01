@@ -106,7 +106,7 @@ def mul(x, y):
     
 def add(x, y):
     return x + y
-        
+
 def min_prec(*args):
     result = None
     for arg in args:
