@@ -31,6 +31,7 @@ except ImportError:
 # Try importing colorama to enable colored prompts
 try:
     import colorama
+    colorama.init()
     has_colorama = True
 except ImportError:
     has_colorama = False
