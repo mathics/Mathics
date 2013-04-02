@@ -186,7 +186,7 @@ precedence = (
     ('left', 'RawAmpersand'),
     ('right', 'AddTo', 'SubtractFrom', 'TimesBy', 'DivideBy'),
     ('left', 'ReplaceAll', 'ReplaceRepeated'),
-    ('right', 'Rule', 'RuleDelayed', 'op_RuleDelayed'),
+    ('right', 'Rule', 'op_Rule', 'RuleDelayed', 'op_RuleDelayed'),
     ('left', 'Condition'),
     ('left', 'StringExpression'),           # flat
     ('right', 'RawColon'),
