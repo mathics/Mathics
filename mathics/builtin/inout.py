@@ -132,9 +132,9 @@ class MakeBoxes(Builtin):
 
     #> MakeBoxes[0`]
      = 0.`
-    #> MakeBoxes[0`3]       (* MMA gives Integer 0 *)
-     = 0.`
-    #> MakeBoxes[0``30]     (* MMA gives 0``30 *)
+    #> MakeBoxes[0`3]
+     = 0
+    #> MakeBoxes[0``30]
      = 0.``30.
     #> MakeBoxes[0.`]
      = 0.`

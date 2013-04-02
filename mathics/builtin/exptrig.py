@@ -147,7 +147,7 @@ class Log2(Builtin):
     >> Log2[4 ^ 8]
      = 16
     >> Log2[5.6]
-     = 2.48542682717024177
+     = 2.48543
     >> Log2[E ^ 2]
      = 2 / Log[2]
     """
@@ -166,7 +166,7 @@ class Log10(Builtin):
     >> Log10[1000]
      = 3
     >> Log10[{2., 5.}]
-     = {0.301029995663981195, 0.698970004336018803}
+     = {0.30103, 0.69897}
     >> Log10[E ^ 3]
      = 3 / Log[10]
     """
@@ -185,11 +185,11 @@ class Sin(_MPMathFunction):
     >> Sin[0]
      = 0
     >> Sin[0.5]
-     = 0.479425538604203
+     = 0.479426
     >> Sin[3 Pi]
      = 0
     >> Sin[1.0 + I]
-     = 1.29845758141597729 + 0.634963914784736108 I
+     = 1.29846 + 0.634964 I
      
     >> Plot[Sin[x], {x, -Pi, Pi}]
      = -Graphics-
@@ -259,7 +259,7 @@ class Sec(_MPMathFunction):
     >> Sec[1] (* Sec[1] in Mathematica *)
      = 1 / Cos[1]
     >> Sec[1.]
-     = 1.85081571768092562
+     = 1.85082
     """
 
     mpmath_name = 'sec'
@@ -309,7 +309,7 @@ class Cot(_MPMathFunction):
     >> Cot[0]
      = ComplexInfinity
     >> Cot[1.]
-     = 0.642092615934330703
+     = 0.642093
     """
 
     mpmath_name = 'cot'
@@ -610,7 +610,7 @@ class ArcSinh(_MPMathFunction):
     >> ArcSinh[0.]
      = 0.
     >> ArcSinh[1.0]
-     = 0.881373587019543025
+     = 0.881374
     """
     
     sympy_name = 'asinh'
@@ -630,10 +630,9 @@ class ArcCosh(_MPMathFunction):
     >> ArcCosh[0]
      = I / 2 Pi
     >> ArcCosh[0.]
-     = 0. + 1.57079632679489662 I
+     = 0. + 1.5708 I
     >> ArcCosh[0.00000000000000000000000000000000000000]
-     = 0. + 1.5707963267948966191479842624545426588 I
-
+     = 1.5707963267948966192313216916397514421 I
     #> ArcCosh[1.4]
      = 0.867014726490565104
     """
@@ -660,7 +659,7 @@ class ArcTanh(_MPMathFunction):
     >> ArcTanh[0]
      = 0
     >> ArcTanh[.5 + 2 I]
-     = 0.0964156202029961672 + 1.12655644083482235 I
+     = 0.0964156 + 1.12656 I
     >> ArcTanh[2 + I]
      = ArcTanh[2 + I]
     """
@@ -684,7 +683,7 @@ class ArcSech(_MPMathFunction):
     >> ArcSech[1]
      = 0
     >> ArcSech[0.5]
-     = 1.31695789692481671
+     = 1.31696
     """
     
     sympy_name = ''
@@ -710,7 +709,7 @@ class ArcCsch(_MPMathFunction):
     >> ArcCsch[0]
      = ComplexInfinity
     >> ArcCsch[1.0]
-     = 0.881373587019543025
+     = 0.881374
     """
     
     sympy_name = ''
@@ -738,9 +737,9 @@ class ArcCoth(_MPMathFunction):
     >> ArcCoth[1]
      = Infinity
     >> ArcCoth[0.0]
-     = 0. + 1.57079632679489662 I
+     = 0. + 1.5708 I
     >> ArcCoth[0.5]
-     = 0.549306144334054846 - 1.57079632679489662 I
+     = 0.549306 - 1.5708 I
     """
     
     sympy_name = 'acoth'

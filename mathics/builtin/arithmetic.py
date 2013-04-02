@@ -186,6 +186,7 @@ class Plus(BinaryOperator, SympyFunction):
 
         prec = min_prec(*items)
         is_real = all([not isinstance(i, Complex) for i in items])
+        force_mp = any([i.is_machine_precision for i in items])
 
         if prec is None:
             number = (sympy.Integer(0), sympy.Integer(0))
@@ -242,11 +243,11 @@ class Plus(BinaryOperator, SympyFunction):
         append_last()
         if prec is not None or number != (0, 0):
             if number[1].is_zero and is_real:
-                leaves.insert(0, Number.from_mp(number[0], prec))
+                leaves.insert(0, Number.from_mp(number[0], prec, force_mp=force_mp))
             elif number[1].is_zero and number[1].is_Integer and prec is None:
-                leaves.insert(0, Number.from_mp(number[0], prec))
+                leaves.insert(0, Number.from_mp(number[0], prec, force_mp=force_mp))
             else:
-                leaves.insert(0, Complex(number[0], number[1], prec))
+                leaves.insert(0, Complex(number[0], number[1], prec, force_mp=force_mp))
         if not leaves:
             return Integer(0)
         elif len(leaves) == 1:
@@ -402,7 +403,7 @@ class Times(BinaryOperator, SympyFunction):
      = 2
 
     #> 3. Pi
-     = 9.42477796076937972
+     = 9.42478
 
     #> Head[3 * I]
      = Complex
@@ -577,7 +578,7 @@ class Divide(BinaryOperator):
 
     Use 'N' or a decimal point to force numeric evaluation:
     >> Pi / 4.0
-     = 0.78539816339744831
+     = 0.785398
     >> 1 / 8
      = 1 / 8
     >> N[%]
@@ -659,7 +660,7 @@ class Power(BinaryOperator, SympyFunction):
      = 1.5874
     #> Precision[%]
      = MachinePrecision
-    >> 4.0`20 ^ (1/3)
+    #> 4.0`20 ^ (1/3)
      = 1.58740105196819947475
      
     'Power' has default value 1 for its second argument:
@@ -670,15 +671,15 @@ class Power(BinaryOperator, SympyFunction):
      
     'Power' can be used with complex numbers:
     >> (1.5 + 1.0 I) ^ 3.5
-     = -3.68294005782191823 + 6.9513926640285049 I
+     = -3.68294 + 6.95139 I
     >> (1.5 + 1.0 I) ^ (3.5 + 1.5 I)
-     = -3.19181629045628082 + 0.645658509416156807 I
+     = -3.19182 + 0.645659 I
      
     #> 1/0
      : Infinite expression (division by zero) encountered.
      = ComplexInfinity
     #> Sqrt[-3+2. I]
-     = 0.550250522700337511 + 1.81735402102397062 I
+     = 0.550251 + 1.81735 I
     #> Sqrt[-3+2 I]
      = Sqrt[-3 + 2 I]
     #> (3/2+1/2I)^2
@@ -1561,9 +1562,9 @@ class Factorial(PostfixOperator, _MPMathFunction):
     
     'Factorial' handles numeric (real and complex) values using the gamma function:
     >> 10.5!
-     = 1.18994230839622485*^7
+     = 1.18994*^7
     >> (-3.0+1.5*I)!
-     = 0.0427943437183768611 - 0.00461565252860394996 I
+     = 0.0427943 - 0.00461565 I
 
     However, the value at poles is 'ComplexInfinity':
     >> (-1.)!
@@ -1603,7 +1604,7 @@ class Gamma(SympyFunction):
     >> Gamma[8]
      = 5040
     >> Gamma[1. + I]
-     = 0.498015668118356043 - 0.154949828301810685 I
+     = 0.498016 - 0.15495 I
 
     Both 'Gamma' and 'Factorial' functions are continuous:
     >> Plot[{Gamma[x], x!}, {x, 0, 4}]

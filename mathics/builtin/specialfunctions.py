@@ -21,7 +21,7 @@ class Erf(_MPMathFunction):
     </dl>
     
     >> Erf[1.0]
-     = 0.842700792949714869
+     = 0.842701
     >> Erf[0]
      = 0
     >> Plot[Erf[x], {x, -2, 2}]
