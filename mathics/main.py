@@ -28,6 +28,13 @@ try:
 except ImportError:
     pass
 
+# Try importing colorama to enable colored prompts
+try:
+    import colorama
+    has_colorama = True
+except ImportError:
+    has_colorama = False
+
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Symbol, Expression
 from mathics.core.evaluation import Evaluation
@@ -139,7 +146,13 @@ def main():
         try: 
             total_input = ""
             line_number = definitions.get_definition('$Line').ownvalues[0].replace.get_int_value()
-            line_input = raw_input('In[{0}]:= '.format(line_number))
+
+            if has_colorama: 
+                inprompt = '{1.GREEN}In[{2.BRIGHT}{0}{2.NORMAL}]:= {1.RESET}'.format(line_number, colorama.Fore, colorama.Style)
+            else:
+                inprompt = 'In[{0}]:= '.format(line_number)
+
+            line_input = raw_input(inprompt)
             while line_input != "":
                 total_input += ' ' + line_input
                 if not wait_for_line(total_input):
@@ -148,9 +161,15 @@ def main():
         
             evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
         
+            if has_colorama: 
+                outprompt = '{1.RED}Out[{2.BRIGHT}{0}{2.NORMAL}]= {1.RESET}'.format(line_number, colorama.Fore, colorama.Style)
+            else:
+                outprompt = 'Out[{0}]= '.format(line_number)
+
             for result in evaluation.results:
                 if result.result is not None:
-                    print 'Out[{0}]= {1}\n'.format(line_number, to_output(unicode(result.result)))
+                    print outprompt + to_output(unicode(result.result)) + '\n'
+
         except (KeyboardInterrupt):
             print '\nKeyboardInterrupt'
         except (SystemExit, EOFError):
