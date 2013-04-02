@@ -158,7 +158,7 @@ postfix_operators = {
     'Factorial2': 'Factorial2',
     'Conjugate': 'Conjugate',
     'Transpose': 'Transpose',
-    'ConjugateTranspose': 'ConjugateTranspose',
+    'ConjugateTranspose': ['ConjugateTranspose', 'HermitianConjugate'],
     'Repeated' : 'Repeated',
     'RepeatedNull' : 'RepeatedNull',
     'Function' : 'RawAmpersand',
@@ -177,7 +177,7 @@ precedence = (
     ('right', 'FormBox'),
     ('right', 'Semicolon'),
     ('left', 'Put', 'PutAppend'),
-    ('right', 'Set', 'SetDelayed', 'Function', 'UpSet', 'UpSetDelayed'),
+    ('right', 'Set', 'SetDelayed', 'Function', 'UpSet', 'UpSetDelayed', 'TagSet', 'Unset'),
     ('left', 'Because'),
     ('right', 'Therefore'),
     ('left', 'VerticalSeparator'),          # flat
@@ -232,12 +232,12 @@ precedence = (
     ('left', 'SmallCircle'),                # flat
     ('right', 'Square'),
     ('right', 'Del'),
-    ('right', 'Integral'),
+    ('right', 'Integral', 'DifferentialD'),
     ('right', 'Sqrt'),
     ('right', 'Power', 'Superscript'),
     ('left', 'StringJoin'),                 # flat
     ('left', 'Derivative'),
-    ('left', 'Conjugate'),
+    ('left', 'Conjugate', 'Transpose', 'ConjugateTranspose'),
     ('left', 'Factorial', 'Factorial2'),
     ('right', 'Apply1', 'Apply2', 'Map', 'MapAll'),
     ('left', 'Infix'),
@@ -307,6 +307,7 @@ tokens = (
     'Conjugate',
     'Transpose',
     'ConjugateTranspose',
+    'HermitianConjugate',
     'Derivative',
     'StringJoin',
     'Power',
@@ -422,6 +423,14 @@ tokens = (
     'Function',
 )
 
+#Look for forgotten tokens
+#seen_tokens = []
+#for p in precedence:
+#    seen_tokens.extend(list(p[1:]))
+#for token in tokens:
+#    if token not in seen_tokens:
+#        print "WARNING token {} has no precedence".format(token)
+
 class MathicsScanner:
     tokens = tokens
     precedence = precedence
@@ -477,6 +486,7 @@ class MathicsScanner:
     t_ANY_Transpose = ur' \\\[Transpose\]|\uf3c7 '
     t_ANY_Conjugate = ur' \\\[Conjugate\]|\uf3c8 '
     t_ANY_ConjugateTranspose = ur' \\\[ConjugateTranspose\]|\uf3c9 '
+    t_ANY_HermitianConjugate = ur' \\\[HermitianConjugate\]|\uf3ce '
 
     t_ANY_Derivative = r' \'+ '
     t_ANY_StringJoin = r' \<\> '
