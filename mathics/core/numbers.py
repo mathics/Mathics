@@ -44,13 +44,11 @@ def same(v1, v2):
 def is_0(value):
     return get_type(value) == 'z' and value == 0
 
-def sympy2mpmath(value, prec=None, d=None):
-    if prec is not None:
-        raise NotImplementedError
-    if d is None:
+def sympy2mpmath(value, prec=None):
+    if prec is None:
         from mathics.builtin.numeric import machine_precision
-        d = dps(machine_precision)
-    value = value.n(d)
+        prec = machine_precision
+    value = value.n(prec)
     if value.is_real:
         return mpmath.mpf(value)
     elif value.is_number:
@@ -62,19 +60,16 @@ class SpecialValueError(Exception):
     def __init__(self, name):
         self.name = name
 
-def mpmath2sympy(value, prec=None, d=None):
+def mpmath2sympy(value, prec=None):
     if prec is not None:
-        raise NotImplementedError
-
-    if d is None:
         from mathics.builtin.numeric import machine_precision
-        d = dps(machine_precision)
+        prec = machine_precision
     if isinstance(value, mpmath.mpc):
-        return sympy.Float(str(value.real), d) + sympy.I * sympy.Float(str(value.imag), d)
+        return sympy.Float(str(value.real), prec) + sympy.I * sympy.Float(str(value.imag), prec)
     elif isinstance(value, mpmath.mpf):
         if str(value) in ('+inf', '-inf'):
             raise SpecialValueError('ComplexInfinity')
-        return sympy.Float(str(value), d)
+        return sympy.Float(str(value), prec)
     else:
         return None
     

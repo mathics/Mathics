@@ -29,7 +29,7 @@ except ImportError:
 
 from math import log10
 
-from mathics.core.numbers import format_float, prec, get_type, dps, prec, min_prec
+from mathics.core.numbers import format_float,  get_type, min_prec
 from mathics.core.evaluation import Evaluation
 from mathics.core.util import subsets, subranges, permutations, interpolate_string
 from mathics.core.convert import from_sympy, ConvertSubstitutions, sympy_symbol_prefix, SympyExpression
@@ -89,6 +89,7 @@ class BaseExpression(object):
         self.pattern_sequence = False
         
         self.unformatted = self
+        self.is_machine_precision = False
         
     def get_attributes(self, definitions):
         return set()
@@ -154,7 +155,7 @@ class BaseExpression(object):
             # MMA Docs: "Approximate numbers that differ in their last seven binary digits are considered equal"
             # Log[2, 7] = 2.8074
             prec = min_prec(self, other) - 2.8074
-            return cmp(self.to_sympy().n(dps(prec)), other.to_sympy().n(dps(prec)))
+            return cmp(self.to_sympy().n(prec), other.to_sympy().n(prec))
         if not hasattr(other, 'get_sort_key'):
             return False
         return cmp(self.get_sort_key(), other.get_sort_key())
@@ -1035,7 +1036,6 @@ class Expression(BaseExpression):
 class Atom(BaseExpression):    
     def __init__(self, *args, **kwargs):
         super(Atom, self).__init__()
-        self.is_machine_precision = False
     
     def is_atom(self):
         return True
@@ -1191,24 +1191,22 @@ class Number(Atom):
             return Integer(value)
     
     @staticmethod
-    def from_mp(value, p=None, d=None, force_mp=False):
+    def from_mp(value, prec=None, force_mp=False):
         #assert(value.is_number)
-        if p is not None:
-            raise NotImplementedError
         if isinstance(value, Number):
-            if d is None:
+            if prec is None:
                 return value
-            return value.round(d)
+            return value.round(prec)
         t = get_type(value)
         if t == 'z':
             return Integer(value)
         elif t == 'q':
             return Rational(value)
         elif t == 'f':
-            return Real(value, d=d, force_mp=force_mp)
+            return Real(value, prec, force_mp=force_mp)
         elif t == 'c':
             real, imag = value.as_real_imag()
-            return Complex(real, imag, d=d, force_mp=force_mp)
+            return Complex(real, imag, prec, force_mp=force_mp)
         
         if isinstance(value, (int,long)):
             return Integer(value)
@@ -1271,15 +1269,13 @@ class Integer(Number):
         evaluation.check_stopped()
         return self
     
-    def round(self, p=None, d=None):
+    def round(self, prec):
         force_mp = False
-        if d is None and p is None:
+        if prec is None:
             from mathics.builtin.numeric import machine_precision
-            d = dps(machine_precision)
+            prec = machine_precision
             force_mp = True
-        elif d is None:
-                d = dps(p)
-        return Real(sympy.Float(self.value, d), d=d, force_mp=force_mp)
+        return Real(sympy.Float(self.value, prec), prec, force_mp=force_mp)
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1341,15 +1337,13 @@ class Rational(Number):
         evaluation.check_stopped()
         return self
     
-    def round(self, p=None, d=None):
+    def round(self, prec=None):
         force_mp = False
-        if d is None and p is None:
+        if prec is None:
             from mathics.builtin.numeric import machine_precision
             force_mp = True
-            d = dps(machine_precision)
-        elif d is None:
-                d = dps(p)
-        return Real(self.to_sympy().n(d), d=d, force_mp=force_mp)
+            prec = machine_precision
+        return Real(self.to_sympy().n(prec), prec, force_mp=force_mp)
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1366,12 +1360,12 @@ class Rational(Number):
         return Rational(self.value)
         
 class Real(Number):
-    def __init__(self, value, p=None, d=None, a=None, force_mp=False):
+    def __init__(self, value, prec=None, acc=None, force_mp=False):
         from mathics.builtin.numeric import machine_precision
         super(Real, self).__init__()
 
         self.is_machine_precision = False
-        if p is not None:
+        if prec == 63 or prec == 64:
             raise NotImplementedError
 
         if isinstance(value, (basestring, Integer, sympy.Float, mpmath.mpf, float, int, sympy.Integer)):
@@ -1386,73 +1380,48 @@ class Real(Number):
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
 
-        if isinstance(value, basestring):
+        assert isinstance(value, basestring)
 
-            is_zero = re.search(r'(^-?|\.)\d*[1-9]\d*($|E|e|\.)', value) is None
+        is_zero = re.search(r'(^-?|\.)\d*[1-9]\d*($|E|e|\.)', value) is None
 
-            if is_zero:
-                # Ignore precise zeros e.g. 0`30 -> 0.
-                p, d, force_mp = 0., 0., False
+        if is_zero:
+            # Ignore precise zeros e.g. 0`30 -> 0.
+            prec, force_mp = 0., False
 
-                if a is None:
-                    a = re.search('(?<=\.)\d*', value)
-                    a = a.end() - a.start()
-                    if a < dps(machine_precision):
-                        self.is_machine_precision = True
-                        a = 307.653        #TODO
-            elif force_mp:
-                pass
-            elif p is None and d is None:
-                if a is None:
-                    a = re.search('(?<=\.)\d*', value)
-                    a = a.end() - a.start()
-                if a < dps(machine_precision):
-                    a = dps(machine_precision) - log10(abs(float(value)))
-                    d = dps(machine_precision)
+            if acc is None:
+                acc = re.search('(?<=\.)\d*', value)
+                acc = acc.end() - acc.start()
+                if acc < machine_precision:
                     self.is_machine_precision = True
-                else:
-                    d = a + log10(abs(float(value)))
-
-        if (p is None and d is None) or force_mp:
-            p = machine_precision
-            d = dps(machine_precision)
+                    acc = 307.653        #TODO
+        elif force_mp:
+            pass
+        elif prec is None:
+            if acc is None:
+                acc = re.search('(?<=\.)\d*', value)
+                acc = acc.end() - acc.start()
+            if acc < machine_precision:
+                acc = machine_precision - log10(abs(float(value)))
+                prec = machine_precision
+                self.is_machine_precision = True
+            else:
+                prec = acc + log10(abs(float(value)))
+        
+        if prec is None or force_mp:
+            prec = machine_precision
             self.is_machine_precision = True
-        elif d is None:
-            d = dps(p)
-            if a is None:
-                if float(value) == 0.0:
-                    a = re.search('(?<=\.)\d*', value)
-                    a = a.end() - a.start()
-                    if a < dps(machine_precision):
-                        self.is_machine_precision = True
-                        a = 307.653        #TODO
-                else:
-                    a = d - log10(abs(float(value)))
-        elif p is None:
-            p = prec(d)
-            if a is None:
-                if float(value) == 0.0:
-                    a = re.search('(?<=\.)\d*', value)
-                    a = a.end() - a.start()
-                    if a < dps(machine_precision):
-                        self.is_machine_precision = True
-                        a = 307.653        #TODO
-                else:
-                    a = d - log10(abs(float(value)))
-        if a is None:
-            assert self.is_machine_precision
-            a = dps(machine_precision) - log10(abs(float(value)))
 
-        self.value = sympy.Float(value, d)
+        if acc is None:
+            assert not is_zero
+            acc = prec - log10(abs(float(value)))
+
+        self.value = sympy.Float(value, prec)
 
         # Number of bits of precision
-        self.prec = p
-
-        # Number of digits of precision (Mathematica's Precision[])
-        self.dps = d
+        self.prec = prec
 
         # Accuracy (only used for zeros)
-        self.acc = a
+        self.acc = acc
 
     def __getstate__(self):
         p = self.prec
@@ -1514,7 +1483,7 @@ class Real(Number):
             if self.is_machine_precision:
                 prec = ''
             else:
-                prec = str(float(self.dps)).rstrip('0')
+                prec = str(float(self.prec)).rstrip('0')
 
         result = coef
         if prec is not None:
@@ -1553,7 +1522,7 @@ class Real(Number):
                 if self.is_machine_precision:
                     coef = "{0:.5e}".format(float(self.to_sympy()))
                 else:
-                    #TODO: Round to only self.dps digits
+                    #TODO: Round to only self.prec digits
                     #coef = "{0:.5e}".format(float(self.to_sympy()))
                     coef = str(self.to_sympy())
             else:
@@ -1588,7 +1557,7 @@ class Real(Number):
                     prec = None
             else:
                 if form in ['InputForm', 'StandardForm', 'TraditionalForm']:
-                    prec = str(float(self.dps)).rstrip('0')
+                    prec = str(float(self.prec)).rstrip('0')
                 else:
                     prec = None
 
@@ -1621,18 +1590,16 @@ class Real(Number):
         evaluation.check_stopped()
         return self      
 
-    def round(self, p=None, d=None):
+    def round(self, prec):
         force_mp = False
-        if d is None and p is None:
+        if prec is None:
             from mathics.builtin.numeric import machine_precision
-            d = dps(machine_precision)
+            prec = machine_precision
             force_mp = True
-        elif d is None:
-                d = dps(p)
-        return Real(self.to_sympy().n(d), d=d, force_mp=force_mp)
+        return Real(self.to_sympy().n(prec), prec, force_mp=force_mp)
     
     def get_precision(self):
-        return self.dps
+        return self.prec
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1646,43 +1613,56 @@ class Real(Number):
         return Real(self.value, self.prec)
     
 class Complex(Number):
-    def __init__(self, real, imag, p=None, **kwargs):
+    def __init__(self, real, imag, prec=None, force_mp=False, **kwargs):
         super(Complex, self).__init__(**kwargs)
 
+        self.is_machine_precision = False
+        #TODO: fix precision determination
         if isinstance(real, basestring):
             real = str(real)
-            if '.' in real:
-                self.real = Real(real, p)
+            if '.' in real or force_mp:
+                self.real = Real(real, prec, force_mp=force_mp)
             else:
                 self.real = Integer(real)
         elif isinstance(real, Number):
             self.real = real
         else:
-            self.real = Number.from_mp(real)
+            self.real = Number.from_mp(real, prec, force_mp=force_mp)
 
         if isinstance(imag, basestring):
             imag = str(imag)
-            if '.' in imag:
-                self.imag = Real(imag, p)
+            if '.' in imag or force_mp:
+                self.imag = Real(imag, prec, force_mp=force_mp)
             else:
                 self.imag = Integer(imag)
         elif isinstance(imag, Number):
             self.imag = imag
         else:
-            self.imag = Number.from_mp(imag)
+            self.imag = Number.from_mp(imag, prec, force_mp=force_mp)
         
-        if p is None:
-            p = min_prec(self.real, self.imag)
+        if force_mp:
+            from mathics.builtin.numeric import machine_precision
+            prec = machine_precision
+            self.is_machine_precision = True
 
-        if p is not None:
-            self.real = self.real.round(d=p)
-            self.imag = self.imag.round(d=p)
+        if prec is None:
+            prec = min_prec(self.real, self.imag)
+
+        if prec is not None:
+            self.real = self.real.round(prec)
+            self.imag = self.imag.round(prec)
+
+        if self.real.is_machine_precision or self.imag.is_machine_precision:
+            self.is_machine_precision = True
+
+        if self.is_machine_precision:
+            self.real.is_machine_precision = True
+            self.imag.is_machine_precision = True
 
         self.sympy = self.real.to_sympy() + sympy.I * self.imag.to_sympy()
         self.value = (self.real, self.imag)
-        #self.prec = prec(p)
-        self.dps = p
-        
+        self.prec = prec
+
     def to_sympy(self, **kwargs):
         return self.sympy
     
@@ -1722,14 +1702,13 @@ class Complex(Number):
         evaluation.check_stopped()
         return self
         
-    def round(self, precision):
-        real = self.real.round(precision)
-        imag = self.imag.round(precision)
-        return Complex(real, imag, precision)
+    def round(self, prec):
+        real = self.real.round(prec)
+        imag = self.imag.round(prec)
+        return Complex(real, imag, prec)
     
     def get_precision(self):
-        #return self.prec
-        return self.dps
+        return self.prec
     
     def do_copy(self):
         return Complex(self.real.do_copy(), self.imag.do_copy())

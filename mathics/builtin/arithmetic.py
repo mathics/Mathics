@@ -48,14 +48,14 @@ class _MPMathFunction(SympyFunction):
             # evaluate leaves to convert e.g. Plus[2, I] -> Complex[2, 1]
             result = result.evaluate_leaves(evaluation)
         else:
-            prec = min_prec(*args)
-            with mpmath.workprec(prec):
+            p = min_prec(*args)
+            with mpmath.workprec(prec(p)):
                 mpmath_args = [sympy2mpmath(x.to_sympy()) for x in args]
                 if None in mpmath_args:
                     return
                 try:
                     result = self.eval(*mpmath_args)
-                    result = from_sympy(mpmath2sympy(result, prec))
+                    result = from_sympy(mpmath2sympy(result, p))
                 except ValueError, exc:
                     text = str(exc)
                     if text == 'gamma function pole':
@@ -184,13 +184,13 @@ class Plus(BinaryOperator, SympyFunction):
         leaves = []
         last_item = last_count = None
 
-        dps = min_prec(*items)
+        prec = min_prec(*items)
         is_real = all([not isinstance(i, Complex) for i in items])
 
-        if dps is None:
+        if prec is None:
             number = (sympy.Integer(0), sympy.Integer(0))
         else:
-            number = (sympy.Float('0.0', dps), sympy.Float('0.0', dps))
+            number = (sympy.Float('0.0', prec), sympy.Float('0.0', prec))
         
         def append_last():
             if last_item is not None:
@@ -211,9 +211,9 @@ class Plus(BinaryOperator, SympyFunction):
                 else:
                     sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
 
-                if dps is not None:
-                    sym_real = sym_real.n(dps)
-                    sym_imag = sym_imag.n(dps)
+                if prec is not None:
+                    sym_real = sym_real.n(prec)
+                    sym_imag = sym_imag.n(prec)
 
                 number = (number[0] + sym_real, number[1] + sym_imag)
             else:
@@ -240,13 +240,13 @@ class Plus(BinaryOperator, SympyFunction):
                     last_item = rest
                     last_count = count
         append_last()
-        if dps is not None or number != (0, 0):
+        if prec is not None or number != (0, 0):
             if number[1].is_zero and is_real:
-                leaves.insert(0, Number.from_mp(number[0], d=dps))
-            elif number[1].is_zero and number[1].is_Integer and dps is None:
-                leaves.insert(0, Number.from_mp(number[0], d=dps))
+                leaves.insert(0, Number.from_mp(number[0], prec))
+            elif number[1].is_zero and number[1].is_Integer and prec is None:
+                leaves.insert(0, Number.from_mp(number[0], prec))
             else:
-                leaves.insert(0, Complex(number[0], number[1], d=dps))
+                leaves.insert(0, Complex(number[0], number[1], prec))
         if not leaves:
             return Integer(0)
         elif len(leaves) == 1:
@@ -506,15 +506,15 @@ class Times(BinaryOperator, SympyFunction):
     def apply(self, items, evaluation):
         'Times[items___]'
 
-        #TODO: Clean this up and optimise it        
+        #TODO: Clean this up and optimise it 
 
         items = items.numerify(evaluation).get_sequence()
         number = (sympy.Integer(1), sympy.Integer(0))
         leaves = []
 
-        dps = min_prec(*items)
+        prec = min_prec(*items)
         is_real = all([not isinstance(i, Complex) for i in items])
-        force_mp = all([i.get_precision() == None or i.is_machine_precision for i in items])
+        force_mp = any([i.is_machine_precision for i in items])
 
         for item in items:
             if isinstance(item, Number):
@@ -523,11 +523,11 @@ class Times(BinaryOperator, SympyFunction):
                 else:
                     sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
 
-                if dps is not None:
-                    sym_real = sym_real.n(dps)
-                    sym_imag = sym_imag.n(dps)
+                if prec is not None:
+                    sym_real = sym_real.n(prec)
+                    sym_imag = sym_imag.n(prec)
 
-                if sym_real.is_zero and sym_imag.is_zero and dps is None:
+                if sym_real.is_zero and sym_imag.is_zero and prec is None:
                     return Integer('0')
                 number = (number[0]*sym_real - number[1]*sym_imag, number[0]*sym_imag + number[1]*sym_real)
             elif leaves and item == leaves[-1]:
@@ -548,11 +548,11 @@ class Times(BinaryOperator, SympyFunction):
 
         if number is not None:
             if number[1].is_zero and is_real:
-                leaves.insert(0, Number.from_mp(number[0], d=dps, force_mp=force_mp))
-            elif number[1].is_zero and number[1].is_Integer and dps is None:
-                leaves.insert(0, Number.from_mp(number[0], d=dps, force_mp=force_mp))
+                leaves.insert(0, Number.from_mp(number[0], prec, force_mp=force_mp))
+            elif number[1].is_zero and number[1].is_Integer and prec is None:
+                leaves.insert(0, Number.from_mp(number[0], prec, force_mp=force_mp))
             else:
-                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), d=dps, force_mp=force_mp))
+                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), prec, force_mp=force_mp))
 
         if not leaves:
             return Integer(1)
@@ -599,7 +599,6 @@ class Divide(BinaryOperator):
      = Rational[10, 3]
     #> a / b // FullForm
      = Times[a, Power[b, -1]]
-    
     """
     
     operator = '/'
@@ -657,7 +656,11 @@ class Power(BinaryOperator, SympyFunction):
      
     Use a decimal point to force numeric evaluation:
     >> 4.0 ^ (1/3)
-     = 1.58740105196819947
+     = 1.5874
+    #> Precision[%]
+     = MachinePrecision
+    >> 4.0`20 ^ (1/3)
+     = 1.58740105196819947475
      
     'Power' has default value 1 for its second argument:
     >> DefaultValues[Power]
@@ -687,7 +690,7 @@ class Power(BinaryOperator, SympyFunction):
      = 4.
 
     #> Pi ^ 4.
-     = 97.4090910340024374
+     = 97.4091
     """
     
     operator = '^'
@@ -728,7 +731,7 @@ class Power(BinaryOperator, SympyFunction):
             x, y = items_sequence
         else:
             return Expression('Power', *items_sequence)
-        
+
         if y.get_int_value() == 1:
             return x
         elif x.get_int_value() == 1:
@@ -761,7 +764,6 @@ class Power(BinaryOperator, SympyFunction):
                     result = Expression('Power', *args)
                     result = result.evaluate_leaves(evaluation)
                     return result
-
                 return from_sympy(result)
             except ValueError:
                 return Expression('Power', x, y)
@@ -771,15 +773,16 @@ class Power(BinaryOperator, SympyFunction):
 
         elif isinstance(x, Number) and isinstance(y, Number) and (x.is_inexact() or y.is_inexact()):
             try:
-                dps = min_prec(x, y)
-                with mpmath.workprec(prec(dps)):
+                p = min_prec(x, y)
+                force_mp = x.is_machine_precision or y.is_machine_precision
+                with mpmath.workprec(prec(p)):
                     mp_x = sympy2mpmath(x.to_sympy())
                     mp_y = sympy2mpmath(y.to_sympy())
                     result = mp_x ** mp_y
                     if isinstance(result, mpmath.mpf):
-                        return Real(str(result), d=dps)
+                        return Real(str(result), p, force_mp=force_mp)
                     elif isinstance(result, mpmath.mpc):
-                        return Complex(str(result.real), str(result.imag), d=dps)
+                        return Complex(str(result.real), str(result.imag), p, force_mp=force_mp)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
@@ -1490,6 +1493,15 @@ class Complex_(Builtin):
      
     #> Complex[10, 0]
      = 10
+
+    #> Precision[Complex[1, 4.5]]
+     = MachinePrecison
+    #> Precision[Complex[1.``30, 4.4]]
+     = MachinePrecison
+    #> Precision[Complex[1., 4.4``30]]
+     = MachinePrecison
+    #> Precision[Complex[1.``30, 1.``30]]
+     = 30.
 
     #> 0. + I
      = 0. + 1. I

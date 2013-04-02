@@ -188,8 +188,8 @@ def do_compare(l1, l2):
         return False
     elif l1.to_sympy().is_number and l2.to_sympy().is_number:
         #assert min_prec(l1, l2) is None
-        dps = 18       #TODO: Use $MaxExtraPrecision
-        if l1.to_sympy().n(dps) == l2.to_sympy().n(dps):
+        prec = 18       #TODO: Use $MaxExtraPrecision
+        if l1.to_sympy().n(prec) == l2.to_sympy().n(prec):
            return True
         return False
     elif l1.has_form('List', None) and l2.has_form('List', None):

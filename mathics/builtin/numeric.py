@@ -19,11 +19,11 @@ from mathics.core.expression import (Integer, Rational, Real, Complex, Atom,
 from mathics.core.convert import from_sympy
 from mathics.settings import MACHINE_PRECISION
 
-machine_precision = MACHINE_PRECISION
+machine_precision = dps(MACHINE_PRECISION)
 
 def get_precision(precision, evaluation):
     if precision.get_name() == 'MachinePrecision':
-        return dps(machine_precision)
+        return machine_precision
     elif isinstance(precision, (Integer, Rational, Real)):
         return float(precision.to_sympy())
     else:
@@ -165,7 +165,7 @@ class MachinePrecision(Predefined):
         
         prec = get_precision(prec, evaluation)
         if prec is not None:
-            return Real(dps(machine_precision), prec)
+            return Real(machine_precision, prec)
 
 class MachinePrecision_Symbol(Predefined):
     """
@@ -190,7 +190,7 @@ class MachinePrecision_Symbol(Predefined):
     def evaluate(self, evaluation):
         prec = get_precision(Symbol('MachinePrecision'), evaluation)
         if prec is not None:
-            return Real(dps(machine_precision), prec)
+            return Real(machine_precision, prec)
 
 class MachineNumberQ(Builtin):
     """
@@ -239,7 +239,7 @@ class Precision(Builtin):
 
     Numbers with specified accuracy:
     >> Precision[3.4``10]
-     = 10.531478917042255124
+     = 10.5315
     #> Precision[1``5]
      = 5.
 
@@ -252,6 +252,8 @@ class Precision(Builtin):
     #> Precision[-0.000000000000000000000000000000000000]
      = 0.
 
+    #> Precision[1. I]
+     = MachinePrecision
     """
     
     rules = {
@@ -272,6 +274,8 @@ class Precision(Builtin):
         'Precision[x_Complex]'
         
         if x.is_inexact():
+            if x.is_machine_precision:
+                return Symbol('MachinePrecision')
             return Real(x.get_precision())
         else:
             return Symbol('Infinity')

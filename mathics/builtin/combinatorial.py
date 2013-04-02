@@ -7,7 +7,6 @@ import sympy
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator
 from mathics.core.expression import Expression, Integer, Real, Number, Symbol, from_sympy
 from mathics.core.numbers import min_prec, SpecialValueError
-from mathics.builtin.numeric import dps
 
 class Fibonacci(Builtin):
     """
@@ -68,13 +67,13 @@ class Binomial(Builtin):
     def apply_inexact(self, n, k, evaluation):
         'Binomial[n_?InexactNumberQ, k_?NumberQ]'
         
-        dps = min_prec(n, k)
+        prec = min_prec(n, k)
         n = n.to_sympy()
         k = k.to_sympy()
-        result = sympy.binomial(n, k).n(dps)
+        result = sympy.binomial(n, k).n(prec)
         if result == sympy.Float('inf'):
             return Symbol('ComplexInfinity')
-        return Real(result, d=dps)
+        return Real(result, prec)
         
     def apply_inexact_2(self, n, k, evaluation):
         'Binomial[n_?NumberQ, k_?InexactNumberQ]'

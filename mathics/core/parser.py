@@ -662,7 +662,7 @@ class MathicsScanner:
             n, s = int(s[1]), s[0]
 
         # Look at precision ` suffix to get precision/accuracy
-        prec, dps, acc, force_mp = None, None, None, False
+        prec, acc, force_mp = None, None, False
         s = s.split('`', 1)
         if len(s) == 1:
             suffix, s = None, s[0]
@@ -675,7 +675,7 @@ class MathicsScanner:
             elif suffix.startswith('`'):
                 acc = float(suffix[1:])
             else:
-                dps = float(suffix)
+                prec = float(suffix)
 
         # Look for decimal point
         if s.count('.') == 0:
@@ -686,7 +686,7 @@ class MathicsScanner:
                     t.value = Integer(int(s, base) * (base ** n))
                 return t
             else:
-                if dps is not None and s.strip('0') == '':      # 0`12 -> 0
+                if prec is not None and s.strip('0') == '':      # 0`12 -> 0
                     t.value = Integer(0)
                     return t
                 else:
@@ -698,11 +698,11 @@ class MathicsScanner:
 
             if acc is not None:
                 if float(s) == 0:
-                    dps = 0.
+                    prec = 0.
                 else:
-                    dps = acc + log10(float(s)) + n
+                    prec = acc + log10(float(s)) + n
 
-            t.value = Real(s, p=prec, d=dps, a=acc, force_mp=force_mp)
+            t.value = Real(s, prec, acc, force_mp)
         else:
             # Convert the base
             assert isinstance(base, int) and 2 <= base <= 36
@@ -722,20 +722,20 @@ class MathicsScanner:
             else:
                 result = Rational(man, base ** -n)
 
-            if acc is None and dps is None:
-                dps10 = None
+            if acc is None and prec is None:
+                prec10 = None
                 if not force_mp:    # Long expressions -> automatic precision
                     acc = len(s[1])
                     acc10 = acc * log10(base)
-                    dps10 = acc10 + log10(result.to_python())
-                    if dps10 < 18:
-                        dps10 = None
+                    prec10 = acc10 + log10(result.to_python())
+                    if prec10 < 18:
+                        prec10 = None
             elif acc is not None:
                 acc10 = acc * log10(base)
-                dps10 = acc10 + log10(result.to_python())
-            elif dps is not None:
-                dps10 = dps * log10(base)
-            t.value = result.round(d=dps10)
+                prec10 = acc10 + log10(result.to_python())
+            elif prec is not None:
+                prec10 = prec * log10(base)
+            t.value = result.round(prec10)
 
         return t
 
