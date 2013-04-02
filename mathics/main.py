@@ -150,7 +150,7 @@ def main():
         
             for result in evaluation.results:
                 if result.result is not None:
-                    print 'Out[{0}]= {1}'.format(line_number, to_output(unicode(result.result)))
+                    print 'Out[{0}]= {1}\n'.format(line_number, to_output(unicode(result.result)))
         except (KeyboardInterrupt):
             print '\nKeyboardInterrupt'
         except (SystemExit, EOFError):
