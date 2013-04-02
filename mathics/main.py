@@ -138,7 +138,8 @@ def main():
     while True:
         try: 
             total_input = ""
-            line_input = raw_input('>> ')
+            line_number = definitions.get_definition('$Line').ownvalues[0].replace.get_int_value()
+            line_input = raw_input('In[{0}]:= '.format(line_number))
             while line_input != "":
                 total_input += ' ' + line_input
                 if not wait_for_line(total_input):
@@ -149,7 +150,7 @@ def main():
         
             for result in evaluation.results:
                 if result.result is not None:
-                    print ' = %s' % to_output(unicode(result.result))
+                    print 'Out[{0}]= {1}'.format(line_number, to_output(unicode(result.result)))
         except (KeyboardInterrupt):
             print '\nKeyboardInterrupt'
         except (SystemExit, EOFError):
