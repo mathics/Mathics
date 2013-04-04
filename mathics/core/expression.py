@@ -1205,9 +1205,12 @@ class Number(Atom):
         elif t == 'f':
             return Real(value, prec)
         elif t == 'c':
-            real, imag = value.as_real_imag()
+            if isinstance(value, mpmath.mpc):
+                real, imag = value.real, value.imag
+            else:
+                real, imag = value.as_real_imag()
             return Complex(real, imag, prec)
-        
+
         if isinstance(value, (int,long)):
             return Integer(value)
         elif isinstance(value, float):

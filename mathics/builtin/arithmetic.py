@@ -55,7 +55,7 @@ class _MPMathFunction(SympyFunction):
                     return
                 try:
                     result = self.eval(*mpmath_args)
-                    result = from_sympy(mpmath2sympy(result, p), prec=p)
+                    result = Number.from_mp(result, p)
                 except ValueError, exc:
                     text = str(exc)
                     if text == 'gamma function pole':
@@ -66,7 +66,6 @@ class _MPMathFunction(SympyFunction):
                     return
                 except SpecialValueError, exc:
                     return Symbol(exc.name)
-
         return result
 
 class Plus(BinaryOperator, SympyFunction):
@@ -551,8 +550,7 @@ class Times(BinaryOperator, SympyFunction):
             elif number[1].is_zero and number[1].is_Integer and prec is None:
                 leaves.insert(0, Number.from_mp(number[0], prec))
             else:
-                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), prec))
-
+                leaves.insert(0, Complex(Number.from_mp(number[0], prec), Number.from_mp(number[1], prec), prec))
         if not leaves:
             return Integer(1)
         elif len(leaves) == 1:
