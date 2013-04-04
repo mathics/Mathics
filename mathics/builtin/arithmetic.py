@@ -50,12 +50,12 @@ class _MPMathFunction(SympyFunction):
         else:
             p = min_prec(*args)
             with mpmath.workprec(prec(p)):
-                mpmath_args = [sympy2mpmath(x.to_sympy()) for x in args]
+                mpmath_args = [sympy2mpmath(z.to_sympy()) for z in args]
                 if None in mpmath_args:
                     return
                 try:
                     result = self.eval(*mpmath_args)
-                    result = from_sympy(mpmath2sympy(result, p))
+                    result = from_sympy(mpmath2sympy(result, p), prec=p)
                 except ValueError, exc:
                     text = str(exc)
                     if text == 'gamma function pole':
@@ -186,7 +186,6 @@ class Plus(BinaryOperator, SympyFunction):
 
         prec = min_prec(*items)
         is_real = all([not isinstance(i, Complex) for i in items])
-        force_mp = any([i.is_machine_precision for i in items])
 
         if prec is None:
             number = (sympy.Integer(0), sympy.Integer(0))
@@ -243,11 +242,11 @@ class Plus(BinaryOperator, SympyFunction):
         append_last()
         if prec is not None or number != (0, 0):
             if number[1].is_zero and is_real:
-                leaves.insert(0, Number.from_mp(number[0], prec, force_mp=force_mp))
+                leaves.insert(0, Number.from_mp(number[0], prec))
             elif number[1].is_zero and number[1].is_Integer and prec is None:
-                leaves.insert(0, Number.from_mp(number[0], prec, force_mp=force_mp))
+                leaves.insert(0, Number.from_mp(number[0], prec))
             else:
-                leaves.insert(0, Complex(number[0], number[1], prec, force_mp=force_mp))
+                leaves.insert(0, Complex(number[0], number[1], prec))
         if not leaves:
             return Integer(0)
         elif len(leaves) == 1:
@@ -515,7 +514,6 @@ class Times(BinaryOperator, SympyFunction):
 
         prec = min_prec(*items)
         is_real = all([not isinstance(i, Complex) for i in items])
-        force_mp = any([i.is_machine_precision for i in items])
 
         for item in items:
             if isinstance(item, Number):
@@ -549,11 +547,11 @@ class Times(BinaryOperator, SympyFunction):
 
         if number is not None:
             if number[1].is_zero and is_real:
-                leaves.insert(0, Number.from_mp(number[0], prec, force_mp=force_mp))
+                leaves.insert(0, Number.from_mp(number[0], prec))
             elif number[1].is_zero and number[1].is_Integer and prec is None:
-                leaves.insert(0, Number.from_mp(number[0], prec, force_mp=force_mp))
+                leaves.insert(0, Number.from_mp(number[0], prec))
             else:
-                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), prec, force_mp=force_mp))
+                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), prec))
 
         if not leaves:
             return Integer(1)
@@ -775,15 +773,14 @@ class Power(BinaryOperator, SympyFunction):
         elif isinstance(x, Number) and isinstance(y, Number) and (x.is_inexact() or y.is_inexact()):
             try:
                 p = min_prec(x, y)
-                force_mp = x.is_machine_precision or y.is_machine_precision
                 with mpmath.workprec(prec(p)):
                     mp_x = sympy2mpmath(x.to_sympy())
                     mp_y = sympy2mpmath(y.to_sympy())
                     result = mp_x ** mp_y
                     if isinstance(result, mpmath.mpf):
-                        return Real(str(result), p, force_mp=force_mp)
+                        return Real(str(result), p)
                     elif isinstance(result, mpmath.mpc):
-                        return Complex(str(result.real), str(result.imag), p, force_mp=force_mp)
+                        return Complex(str(result.real), str(result.imag), p)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')

@@ -153,7 +153,7 @@ def from_sympy(expr, **kwargs):
     if isinstance(expr, int):
         return Integer(expr)
     if isinstance(expr, float):
-        return Real(expr, prec=kwargs.get('prec'), force_mp=kwargs.get('force_mp'))
+        return Real(expr, prec=kwargs.get('prec'))
     if expr is None:
         return Symbol('Null')
     if isinstance(expr, sympy.Matrix):
