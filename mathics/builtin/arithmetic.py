@@ -804,7 +804,7 @@ class Sqrt(SympyFunction):
     >> Sqrt[5]
      = Sqrt[5]
     >> Sqrt[5] // N
-     = 2.2360679774997897
+     = 2.23607
     >> Sqrt[a]^2
      = a
     
@@ -1005,7 +1005,7 @@ class Abs(SympyFunction):
     >> Abs[3 + I]
      = Sqrt[10]
     >> Abs[3.0 + I]
-     = 3.16227766016837933
+     = 3.16228
     >> Plot[Abs[x], {x, -4, 4}]
      = -Graphics-
 
@@ -1485,9 +1485,9 @@ class Complex_(Builtin):
      = 5
 
     #> OutputForm[Complex[2.0 ^ 40, 3]]
-     = 1.099511627776*^12 + 3. I
+     = 1.09951*^12 + 3. I
     #> InputForm[Complex[2.0 ^ 40, 3]]
-     = 1.099511627776*^12 + 3.*I
+     = 1.09951*^12 + 3.*I
      
     #> -2 / 3 - I
      = -2 / 3 - I
@@ -1496,11 +1496,11 @@ class Complex_(Builtin):
      = 10
 
     #> Precision[Complex[1, 4.5]]
-     = MachinePrecison
+     = MachinePrecision
     #> Precision[Complex[1.``30, 4.4]]
-     = MachinePrecison
+     = MachinePrecision
     #> Precision[Complex[1., 4.4``30]]
-     = MachinePrecison
+     = MachinePrecision
     #> Precision[Complex[1.``30, 1.``30]]
      = 30.
 

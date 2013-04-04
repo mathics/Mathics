@@ -44,7 +44,7 @@ class Binomial(Builtin):
      
     'Binomial' supports inexact numbers:
     >> Binomial[10.5,3.2]
-     = 165.286109367256421
+     = 165.286
      
     Some special cases:
     >> Binomial[10, -2]

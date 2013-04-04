@@ -27,7 +27,7 @@ class Pi(SympyConstant):
     </dl>
     
     >> N[Pi]
-     = 3.14159265358979324
+     = 3.14159
     >> N[Pi, 50]
      = 3.1415926535897932384626433832795028841971693993751
      
@@ -51,15 +51,15 @@ class E(SympyConstant):
     </dl>
     
     >> N[E]
-     = 2.71828182845904524
+     = 2.71828
     >> N[E, 50]
-     = 2.7182818284590452353602874713526624977572470937
+     = 2.7182818284590452353602874713526624977572470937000
      
     >> Attributes[E]
      = {Constant, Protected, ReadProtected}
 
     #> 5. E
-     = 13.5914091422952262
+     = 13.5914
     """
     
     sympy_name = 'E'
@@ -78,7 +78,10 @@ class GoldenRatio(SympyConstant):
     </dl>
     
     >> N[GoldenRatio]
-     = 1.61803398874989485
+     = 1.61803
+
+    >> N[GoldenRatio, 30]
+     = 1.61803398874989484820458683437
     """
     
     sympy_name = 'GoldenRatio'
@@ -97,7 +100,7 @@ class Exp(SympyFunction):
     >> Exp[1]
      = E
     >> Exp[10.0]
-     = 22026.4657948067169
+     = 22026.5
     >> Exp[x] //FullForm
      = Power[E, x]
      
@@ -285,7 +288,7 @@ class Csc(_MPMathFunction):
     >> Csc[1] (* Csc[1] in Mathematica *)
      = 1 / Sin[1]
     >> Csc[1.]
-     = 1.18839510577812122
+     = 1.1884
     """
 
     mpmath_name = 'csc'
