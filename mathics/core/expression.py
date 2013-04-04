@@ -1387,7 +1387,7 @@ class Real(Number):
 
         if is_zero:
             # Ignore precise zeros e.g. 0.`30 -> 0.
-            prec, self.is_machine_precision = 0., True
+            prec = 0.
 
             if acc is None:
                 acc = re.search('(?<=\.)\d*', value)
@@ -1395,6 +1395,8 @@ class Real(Number):
                 if acc < machine_precision:
                     self.is_machine_precision = True
                     acc = 307.653        #TODO
+                else:
+                    self.is_machine_precision = False
         elif self.is_machine_precision:
             pass
         elif prec is None:

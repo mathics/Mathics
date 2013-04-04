@@ -684,6 +684,9 @@ class MathicsScanner:
             elif suffix.startswith('`'):
                 acc = float(suffix[1:])
             else:
+                if re.match('0+', s) is not None:
+                    t.value = Integer(0)
+                    return t
                 prec = float(suffix)
 
         # Look for decimal point
@@ -695,11 +698,7 @@ class MathicsScanner:
                     t.value = Integer(int(s, base) * (base ** n))
                 return t
             else:
-                if prec is not None and s.strip('0') == '':      # 0`12 -> 0
-                    t.value = Integer(0)
-                    return t
-                else:
-                    s = s + '.'
+                s = s + '.'
 
         if base == 10:
             if n != 0:
