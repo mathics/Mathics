@@ -378,10 +378,9 @@ class ArcTan(_MPMathFunction):
     >> ArcTan[1]
      = Pi / 4
     >> ArcTan[1.0]
-     = 0.78539816339744831
-    >> ArcTan[-1.0]
-     = -0.78539816339744831
-
+     = 0.785398
+    #> ArcTan[-1.0]
+     = -0.785398
     >> ArcTan[1, 1]
      = Pi / 4
     #> ArcTan[-1, 1]

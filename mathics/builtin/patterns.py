@@ -532,7 +532,7 @@ class Optional(BinaryOperator, PatternObject):
     >> _:d // FullForm
      = Optional[Blank[], d]
     >> x:_+y_:d // FullForm
-     = Optional[Pattern[x, Plus[Blank[], Pattern[y, Blank[]]]], d]
+     = Pattern[x, Plus[Blank[], Optional[Pattern[y, Blank[]], d]]]
      
     's_.' is equivalent to 'Optional[s_]' and represents an optional parameter which, if omitted,
     gets its value from 'Default'.
