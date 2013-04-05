@@ -100,12 +100,28 @@ def main():
 
     # TODO all binary operators?
 
+    def get_in_prompt():
+        line_number = definitions.get_definition('$Line').ownvalues[0].replace.get_int_value()
+        if has_colorama: 
+            inprompt = '{1.GREEN}In[{2.BRIGHT}{0}{2.NORMAL}]:= {1.RESET}'.format(line_number, colorama.Fore, colorama.Style)
+        else:
+            inprompt = 'In[{0}]:= '.format(line_number)
+        return inprompt
+
+    def get_out_prompt():
+        line_number = definitions.get_definition('$Line').ownvalues[0].replace.get_int_value()-1
+        if has_colorama: 
+            outprompt = '{1.RED}Out[{2.BRIGHT}{0}{2.NORMAL}]= {1.RESET}'.format(line_number, colorama.Fore, colorama.Style)
+        else:
+            outprompt = 'Out[{0}]= '.format(line_number)
+        return outprompt
+
     if args.execute:
-        print ">> %s" % args.execute
+        print get_in_prompt() + args.execute
         evaluation = Evaluation(args.execute, definitions, timeout=30, out_callback=out_callback)
         for result in evaluation.results:
-                if result.result is not None:
-                    print ' = %s' % to_output(unicode(result.result))           
+            if result.result is not None:
+                print get_out_prompt() + to_output(unicode(result.result)) + '\n'
         return
 
     if not (args.quiet or args.script):
@@ -124,9 +140,9 @@ def main():
                 continue
 
             if total_input == "":
-                print '>> ', line,
+                print get_in_prompt() + line,
             else:
-                print '   ', line,
+                print '        ', line,
 
             total_input += line
 
@@ -137,8 +153,8 @@ def main():
 
             evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
             for result in evaluation.results:
-                    if result.result is not None:
-                        print ' = %s' % to_output(unicode(result.result))           
+                if result.result is not None:
+                    print get_out_prompt() + to_output(unicode(result.result)) + '\n'
             total_input = ""
         if not args.persist:
             return
@@ -146,30 +162,18 @@ def main():
     while True:
         try: 
             total_input = ""
-            line_number = definitions.get_definition('$Line').ownvalues[0].replace.get_int_value()
-
-            if has_colorama: 
-                inprompt = '{1.GREEN}In[{2.BRIGHT}{0}{2.NORMAL}]:= {1.RESET}'.format(line_number, colorama.Fore, colorama.Style)
-            else:
-                inprompt = 'In[{0}]:= '.format(line_number)
-
-            line_input = raw_input(inprompt)
+            line_input = raw_input(get_in_prompt())
             while line_input != "":
                 total_input += ' ' + line_input
                 if not wait_for_line(total_input):
                     break
-                line_input = raw_input('       ')
+                line_input = raw_input('         ')
         
             evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
         
-            if has_colorama: 
-                outprompt = '{1.RED}Out[{2.BRIGHT}{0}{2.NORMAL}]= {1.RESET}'.format(line_number, colorama.Fore, colorama.Style)
-            else:
-                outprompt = 'Out[{0}]= '.format(line_number)
-
             for result in evaluation.results:
                 if result.result is not None:
-                    print outprompt + to_output(unicode(result.result)) + '\n'
+                    print get_out_prompt() + to_output(unicode(result.result)) + '\n'
 
         except (KeyboardInterrupt):
             print '\nKeyboardInterrupt'
