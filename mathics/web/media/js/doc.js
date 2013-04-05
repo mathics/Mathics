@@ -23,11 +23,34 @@ function showPage(response) {
 	if ($('doc')) {
 		$('doc').updateDOM(response.content);
 	}
+
+    $$('li.test p').each(function(test){
+        test.insert($E('span', 
+                    {'class': 'submitbutton', 'title': "Run this example!"},
+					submitButton = $E('span', $T('='))
+				));
+
+        test.observe('mouseover', function(e){
+            $(test).addClassName('focused');
+        });    
+        test.observe('mouseout', function(e){
+            $(test).removeClassName('focused');
+        });
+
+        $(test).descendants()[1].observe('click', function(){
+            var query = $(test).descendants()[0].innerHTML;
+            query = query.replace(/\xA0/g, ' ');
+            query = query.unescapeHTML();
+            setQueries([query]);
+        });
+    });
+
 	$$('ul.test').each(function(test) {
 		var id = test.id.substr(5); // 'test_...'
 		var data = response.data[id];
 		setResult(test, data.results);
 	});
+
 }
 
 function loadDoc(page) {
