@@ -37,7 +37,7 @@ except ImportError:
     has_colorama = False
 
 from mathics.core.definitions import Definitions
-from mathics.core.expression import Symbol, Expression
+from mathics.core.expression import Symbol, Expression, Integer
 from mathics.core.evaluation import Evaluation
 from mathics import settings
 from mathics import print_version, print_license, get_version_string
@@ -99,6 +99,9 @@ def main():
     definitions = Definitions(add_builtin=True)
 
     # TODO all binary operators?
+
+    #Reset the line number to 1
+    definitions.set_ownvalue('$Line', Integer(0))
 
     def get_in_prompt():
         line_number = definitions.get_definition('$Line').ownvalues[0].replace.get_int_value()
