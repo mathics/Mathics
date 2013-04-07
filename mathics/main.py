@@ -101,7 +101,7 @@ def main():
     # TODO all binary operators?
 
     #Reset the line number to 1
-    definitions.set_ownvalue('$Line', Integer(0))
+    definitions.set_ownvalue('$Line', Integer(1))
 
     def get_in_prompt():
         line_number = definitions.get_definition('$Line').ownvalues[0].replace.get_int_value()
