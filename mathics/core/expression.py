@@ -1223,8 +1223,8 @@ class Number(Atom):
 
 def number_boxes(text):
     assert text is not None
-    if text.endswith('.0'):
-        text = text[:-1]
+    if '.' in text:
+        text = re.sub('0+(?=($|\*|`))', '', text)
     if text.startswith('-'):
         return Expression('RowBox', Expression('List', String('-'), String(text[1:])))
     else:
@@ -1445,71 +1445,13 @@ class Real(Number):
     def boxes_to_tex(self, **options):
         return self.make_boxes('TeXForm').boxes_to_tex(**options)  
         
-    def make_boxes(self, form):
-        from mathics.builtin.numeric import machine_precision
-
-        coef, exp, acc, prec, prefix =  None, None, None, None, ''
-
-        if self.to_sympy() == sympy.Float('0.0'):
-            if self.is_machine_precision:
-                coef, exp, prec, acc = '0.', None, '', None
-            else:
-                coef, exp, prec = '0.', None, None
-                acc = '{:f}'.format(self.acc).rstrip('0')
-        else:
-            coef = str(self.to_sympy())
-            if coef[0] == '-':
-                prefix = '-'
-                coef = coef[1:]
-            
-            coef = coef.split('e')
-            if len(coef) == 1:
-                coef, exp = coef[0], 0
-            else:
-                coef, exp = coef[0], int(coef[1])
-
-            pos = coef.index('.')
-            coef = coef[:pos] + coef[pos+1:]
-            exp += pos - 1
-
-            if -5 <= exp <= 5:
-                coef = '00000' + coef 
-                coef = coef[:6+exp] + '.' + coef[6+exp:]
-                coef = re.sub('^0*(?!\.)', '', coef)
-                exp = None
-            else:
-                coef = coef[0] + '.' + coef[1:]
-                exp = str(exp)
-
-            coef = coef.rstrip('0')
-            
-            if self.is_machine_precision:
-                prec = ''
-            else:
-                prec = str(float(self.prec)).rstrip('0')
-
-        result = coef
-        if prec is not None:
-            result += '`' + prec
-
-        if acc is not None:
-            result += '``' + acc
-
-        if exp is not None:
-            result += '*^' + exp
-
-        result = String(result)
-        if prefix != '':
-            result = Expression('RowBox', Expression('List', String(prefix), result))
-        return result
-
     def to_sympy(self, **kwargs):
         return self.value
     
     def to_python(self, *args, **kwargs):
         return float(self.value)
 
-    def do_format(self, evaluation, form):
+    def make_boxes(self, form):
         prec, acc, exp = None, None, None
 
         coef, exp, acc, prec, prefix =  None, None, None, None, ''
@@ -1576,15 +1518,14 @@ class Real(Number):
                 result += 'e' + exp
             elif form in ['InputForm', 'StandardForm', 'TraditionalForm']:
                 result += '*^' + exp
-        result = String(result)
         if form in ['OutputForm'] and exp is not None:
                 exp = exp.rstrip('.')
                 #TODO: Requires 2D formatting etc
                 #result = Expression('RowBox', Expression('List', result, 
                 #    Expression('SuperscriptBox', String('10'), 
                 #    String(exp)))).do_format(evaluation, form)
-                result = String(result.get_string_value() + '*^' + exp)
-        return result
+                result = result + '*^' + exp
+        return number_boxes(result)
 
     def same(self, other):
         return isinstance(other, Real) and self.to_sympy() == other.to_sympy()
