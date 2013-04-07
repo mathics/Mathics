@@ -1526,6 +1526,9 @@ class Complex_(Builtin):
      = 1 + I
     #> Complex[1, Complex[1, 1]]
      = I
+
+    #> 0.5 E + 0.5 Pi I
+     = 1.35914 + 1.5708 I
     """
     
     name = 'Complex'

@@ -1626,7 +1626,7 @@ class Complex(Number):
 
         if isinstance(real, basestring):
             real = str(real)
-            if '.' in real:
+            if '.' in real or self.is_machine_precision:
                 self.real = Real(real, prec)
             else:
                 self.real = Integer(real)
