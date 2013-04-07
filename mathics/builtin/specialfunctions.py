@@ -8,8 +8,8 @@ import mpmath
 
 from mathics.builtin.base import Builtin
 from mathics.builtin.arithmetic import _MPMathFunction
-from mathics.core.expression import Integer
-from mathics.core.numbers import mpmath2sympy
+from mathics.core.expression import Integer, Number
+from mathics.core.numbers import mpmath2sympy, prec
 from mathics.core.convert import from_sympy
 from mathics.builtin.numeric import get_precision
 
@@ -514,12 +514,12 @@ class AiryAiZero(Builtin):
     def apply_N(self, k, precision, evaluation):
         'N[AiryAiZero[k_Integer], precision_]'
 
-        prec = get_precision(precision, evaluation)
+        p = get_precision(precision, evaluation)
         k_int = k.get_int_value()
 
-        with mpmath.workprec(prec):
-            result = mpmath2sympy(mpmath.airyaizero(k_int), prec)
-        return from_sympy(result)
+        with mpmath.workprec(prec(p)):
+            result = Number.from_mp(mpmath.airyaizero(k_int), p)
+        return result
 
 class AiryBiZero(Builtin):
     """
@@ -552,12 +552,12 @@ class AiryBiZero(Builtin):
     def apply_N(self, k, precision, evaluation):
         'N[AiryBiZero[k_Integer], precision_]'
 
-        prec = get_precision(precision, evaluation)
+        p = get_precision(precision, evaluation)
         k_int = k.get_int_value()
 
-        with mpmath.workprec(prec):
-            result = mpmath2sympy(mpmath.airybizero(k_int), prec)
-        return from_sympy(result)
+        with mpmath.workprec(prec(p)):
+            result = Number.from_mp(mpmath.airybizero(k_int), p)
+        return result
 
 # Orthogonal Polynomials
 
