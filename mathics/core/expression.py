@@ -1223,8 +1223,6 @@ class Number(Atom):
 
 def number_boxes(text):
     assert text is not None
-    if '.' in text:
-        text = re.sub('0+(?=($|\*|`))', '', text)
     if text.startswith('-'):
         return Expression('RowBox', Expression('List', String('-'), String(text[1:])))
     else:
@@ -1494,8 +1492,10 @@ class Real(Number):
                 coef = coef[0] + '.' + coef[1:]
                 exp = str(exp)
 
+            if form != 'OutputForm' or self.is_machine_precision:
+                coef = re.sub('0+(?=$)', '', coef)
+
             if self.is_machine_precision:
-                coef = coef.rstrip('0')
                 if form in ['StandardForm', 'TraditionalForm']:
                     prec = ''
                 else:
