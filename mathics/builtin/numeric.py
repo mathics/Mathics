@@ -72,6 +72,8 @@ class N(Builtin):
      = c
     >> N[c, 11]
      = 11.
+    #> Precision[%]
+     = MachinePrecision
      
     You can also use 'UpSet' or 'TagSet' to specify values for 'N':
     >> N[d] ^= 5;
