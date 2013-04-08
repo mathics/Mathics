@@ -740,7 +740,10 @@ class MathicsScanner:
                 acc10 = acc * log10(base)
                 prec10 = acc10 + log10(result.to_python())
             elif prec is not None:
-                prec10 = prec * log10(base)
+                if prec == machine_precision:
+                    prec10 = machine_precision
+                else:
+                    prec10 = prec * log10(base)
             t.value = result.round(prec10)
 
         return t

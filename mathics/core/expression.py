@@ -1493,7 +1493,7 @@ class Real(Number):
                 exp = str(exp)
 
             if form != 'OutputForm' or self.is_machine_precision:
-                coef = re.sub('0+(?=$)', '', coef)
+                coef = coef.rstrip('0')
 
             if self.is_machine_precision:
                 if form in ['StandardForm', 'TraditionalForm']:
