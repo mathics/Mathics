@@ -27,7 +27,7 @@ TMP_DIR = tempfile.gettempdir()
 DIRECTORY_STACK = [INITIAL_DIR]
 INPUT_VAR = ""
 INPUTFILE_VAR = ""
-PATH_VAR = [HOME_DIR, os.path.join(ROOT_DIR, 'data')]
+PATH_VAR = [HOME_DIR, os.path.join(ROOT_DIR, 'data'), os.path.join(ROOT_DIR, 'packages')]
 
 class mathics_open:
     def __init__(self, filename, mode='r'):
@@ -44,6 +44,8 @@ class mathics_open:
             self.file = io.open(path, self.mode, encoding=encoding)
         elif self.mode == 'w':
             self.file = io.open(self.filename, self.mode, encoding=encoding)
+        else:
+            raise IOError
         return self
 
     def __exit__(self, type, value, traceback):
@@ -80,13 +82,30 @@ class mathics_open:
         return self.file.seekable
 
 def path_search(filename):
-    if os.path.exists(filename):
-        return filename
-    for p in PATH_VAR:
-        path = os.path.join(p, filename)
-        if os.path.exists(path):
-            return path
-    return None
+    # For names of the form "name`", search for name.mx and name.m
+    if filename[-1] == '`':
+        filename = filename[:-1].replace('`', os.path.sep)
+        for ext in ['.mx', '.m']:
+            result = path_search(filename + ext)
+            if result is not None:
+                filename = None
+                break
+
+    if filename is not None:
+        result = None
+        for p in PATH_VAR + ['']:
+            path = os.path.join(p, filename)
+            if os.path.exists(path):
+                result = path
+                break
+
+    # If FindFile resolves to a dir, search within for Kernel/init.m and init.m
+    if result is not None and os.path.isdir(result):
+        for ext in [os.path.join('Kernel', 'init.m'), 'init.m']:
+            tmp = os.path.join(result, ext)
+            if os.path.isfile(tmp):
+                return tmp
+    return result
 
 def _put_stream(stream):
     global STREAMS, _STREAMS, NSTREAMS
@@ -871,6 +890,14 @@ class Get(PrefixOperator):
     >> <<"fourtyfactorial"
      = 815915283247897734345611269596115894272000000000
     #> DeleteFile["fourtyfactorial"]
+
+    ## TODO: Requires EndPackage implemented
+    ## 'Get' can also load packages:
+    ## >> << "VectorAnalysis`"
+
+    #> Get["SomeTypoPackage`"]
+     : Cannot open SomeTypoPackage`.
+     = $Failed
     """
 
     operator = '<<'
@@ -885,7 +912,7 @@ class Get(PrefixOperator):
                 result = f.readlines()
         except IOError:
             evaluation.message('General', 'noopen', path)
-            return
+            return Symbol('$Failed')
 
         try:
             parse
@@ -893,12 +920,36 @@ class Get(PrefixOperator):
         except NameError:
             from mathics.core.parser import parse, ParseError
 
+        from mathics.main import wait_for_line
+
+        total_input = ""
+        syntax_error_count = 0
+        expr = Symbol('Null')
+
         for lineno, tmp in enumerate(result):
+            total_input += ' ' + tmp
+            if wait_for_line(total_input):
+                continue
             try:
-                expr = parse(tmp)
+                expr = parse(total_input)
             except:     #FIXME: something weird is going on here
-                print "Syntax Error (line {0} of {1})".format(lineno+1, pypath)
-                return Symbol('Null')
+                syntax_error_count += 1
+                if syntax_error_count <= 4:
+                    print "Syntax Error (line {0} of {1})".format(lineno+1, pypath)
+                if syntax_error_count == 4:
+                    print "Supressing further syntax errors in {0}".format(pypath)
+            else:
+                if expr is not None:
+                    expr = expr.evaluate(evaluation)
+                total_input = ""
+
+        if total_input != "":
+            #TODO:
+            #evaluation.message('Syntax', 'sntue', 'line {0} of {1}'.format(lineno, pypath))
+            print 'Unexpected end of file (probably unfinished expression)'
+            print '    (line {0} of "{1}").'.format(lineno, pypath)
+            return Symbol('Null')
+
         return expr
 
     def apply_default(self, filename, evaluation):
@@ -1088,6 +1139,15 @@ class FindFile(Builtin):
 
     >> FindFile["ExampleData/sunflowers.jpg"]
      = ...
+
+    >> FindFile["VectorAnalysis`"]
+     = ...
+
+    >> FindFile["VectorAnalysis`VectorAnalysis`"]
+     = ...
+
+    #> FindFile["SomeTypoPackage`"]
+     = $Failed
     """
 
     attributes = ('Protected')
@@ -3220,3 +3280,128 @@ class DirectoryQ(Builtin):
             return Symbol('True')
         return Symbol('False')
 
+
+class Needs(Builtin):
+    """
+    <dl>'Needs["context`"]'
+      <dd>loads the specified context if not already in '$Packages'.
+    </dl>
+
+    >> Needs["VectorAnalysis`"]
+    #> Needs["VectorAnalysis`"]
+
+    #> Needs["SomeFakePackageOrTypo`"]
+     : Cannot open SomeFakePackageOrTypo`.
+     : Context SomeFakePackageOrTypo` was not created when Needs was evaluated.
+     = $Failed
+
+    #> Needs["VectorAnalysis"]
+     : Invalid context specified at position 1 in Needs[VectorAnalysis]. A context must consist of valid symbol names separated by and ending with `.
+     = Needs[VectorAnalysis]
+
+    ## --- VectorAnalysis ---
+
+    #> Needs["VectorAnalysis`"]
+
+    #> DotProduct[{1,2,3}, {4,5,6}]
+     = 32
+    #> DotProduct[{-1.4, 0.6, 0.2}, {0.1, 0.6, 1.7}]
+     = 0.56
+
+    #> CrossProduct[{1,2,3}, {4,5,6}]
+     = {-3, 6, -3}
+    #> CrossProduct[{-1.4, 0.6, 0.2}, {0.1, 0.6, 1.7}]
+     = {0.9, 2.4, -0.9}
+
+    #> ScalarTripleProduct[{-2,3,1},{0,4,0},{-1,3,3}]
+     = -20
+    #> ScalarTripleProduct[{-1.4,0.6,0.2}, {0.1,0.6,1.7}, {0.7,-1.5,-0.2}]
+     = -2.79
+
+    #> CoordinatesToCartesian[{2, Pi, 3}, Spherical]
+     = {0, 0, -2}
+    #> CoordinatesFromCartesian[%, Spherical]
+     = {2, Pi, 0}
+    #> CoordinatesToCartesian[{2, Pi, 3}, Cylindrical]
+     = {-2, 0, 3}
+    #> CoordinatesFromCartesian[%, Cylindrical]
+     = {2, Pi, 3}
+    ## Needs Sin/Cos exact value (PR #100) for these tests to pass
+    ## #> CoordinatesToCartesian[{2, Pi / 4, Pi / 3}, Spherical]
+    ##  = {Sqrt[2] / 2, Sqrt[6] / 2, Sqrt[2]}
+    ## #> CoordinatesFromCartesian[%, Spherical]
+    ##  = {2, Pi / 4, Pi / 3}
+    ## #> CoordinatesToCartesian[{2, Pi / 4, -1}, Cylindrical]
+    ##  = {Sqrt[2], Sqrt[2], -1}
+    ## #> CoordinatesFromCartesian[%, Cylindrical]
+    ##  = {2, Pi / 4, -1}
+    #> CoordinatesToCartesian[{0.27, 0.51, 0.92}, Cylindrical]
+     = {0.235641017064352841, 0.131807856658385023, 0.92}
+    #> CoordinatesToCartesian[{0.27, 0.51, 0.92}, Spherical]
+     = {0.0798518563676219116, 0.10486654429093224, 0.235641017064352841}
+
+    #> Coordinates[]
+     = {Xx, Yy, Zz}
+    #> Coordinates[Spherical]
+     = {Rr, Ttheta, Pphi}
+    #> SetCoordinates[Cylindrical]
+     = Cylindrical[Rr, Ttheta, Zz]
+    #> Coordinates[]
+     = {Rr, Ttheta, Zz}
+    #> CoordinateSystem
+     = Cylindrical
+    #> Parameters[]
+     = {}
+    #> CoordinateRanges[]
+    ## = {0 <= Rr < Infinity, -Pi < Ttheta <= Pi, -Infinity < Zz < Infinity}
+     = {0 <= Rr && Rr < Infinity, -Pi < Ttheta && Ttheta <= Pi, -Infinity < Zz < Infinity}
+    #> CoordinateRanges[Cartesian]
+     = {-Infinity < Xx < Infinity, -Infinity < Yy < Infinity, -Infinity < Zz < Infinity}
+    #> ScaleFactors[Cartesian]
+     = {1, 1, 1}
+    #> ScaleFactors[Spherical]
+     = {1, Rr, Rr Sin[Ttheta]}
+    #> ScaleFactors[Cylindrical]
+     = {1, Rr, 1}
+    #> ScaleFactors[{2, 1, 3}, Cylindrical]
+     = {1, 2, 1}
+    #> JacobianDeterminant[Cartesian]
+     = 1
+    #> JacobianDeterminant[Spherical]
+     = Rr ^ 2 Sin[Ttheta]
+    #> JacobianDeterminant[Cylindrical]
+     = Rr
+    #> JacobianDeterminant[{2, 1, 3}, Cylindrical]
+     = 2
+    #> JacobianMatrix[Cartesian]
+     = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
+    #> JacobianMatrix[Spherical]
+     = {{Cos[Pphi] Sin[Ttheta], Rr Cos[Pphi] Cos[Ttheta], -Rr Sin[Pphi] Sin[Ttheta]}, {Sin[Pphi] Sin[Ttheta], Rr Cos[Ttheta] Sin[Pphi], Rr Cos[Pphi] Sin[Ttheta]}, {Cos[Ttheta], -Rr Sin[Ttheta], 0}}
+    #> JacobianMatrix[Cylindrical]
+     = {{Cos[Ttheta], -Rr Sin[Ttheta], 0}, {Sin[Ttheta], Rr Cos[Ttheta], 0}, {0, 0, 1}}
+    """
+
+    messages = {
+        'ctx': 'Invalid context specified at position `2` in `1`. A context must consist of valid symbol names separated by and ending with `3`.',
+        'nocont': 'Context `1` was not created when Needs was evaluated.',
+    }
+
+    def apply(self, context, evaluation):
+        'Needs[context_String]'
+
+        if context.get_string_value()[-1] != '`':
+            evaluation.message('Needs', 'ctx', Expression('Needs', context), 1, '`')
+            return
+
+        # TODO
+        #if Expression('MemberQ', context, Symbol('$Packages')).is_true():
+        #    # Already loaded
+        #    return Symbol('Null')
+
+        result =  Expression('Get', context).evaluate(evaluation)
+
+        if result == Symbol('$Failed'):
+            evaluation.message('Needs', 'nocont', context)
+            return Symbol('$Failed')
+
+        return Symbol('Null')
