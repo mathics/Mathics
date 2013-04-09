@@ -22,25 +22,63 @@ import os
 import sys
 import argparse
 
-# Try importing readline to enable arrow keys support etc.
-try:
-    import readline
-except ImportError:
-    pass
-
-# Try importing colorama to enable colored prompts
-try:
-    import colorama
-    colorama.init()
-    has_colorama = True
-except ImportError:
-    has_colorama = False
-
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Symbol, Expression, Integer
 from mathics.core.evaluation import Evaluation
 from mathics import settings
 from mathics import print_version, print_license, get_version_string
+
+class TerminalShell(object):
+    def __init__(self, definitions, colors):
+        # Try importing readline to enable arrow keys support etc.
+        try:
+            import readline
+        except ImportError:
+            pass
+
+        # Try importing colorama to escape ansi sequences for cross platform colors
+        try:
+            from colorama import init as colorama_init
+        except ImportError:
+            colors = 'NoColor'
+        else:
+            colorama_init()
+            if colors is None:
+                colors = 'Linux'
+
+        color_schemes = {
+            'NOCOLOR' : (
+                ['', '', '', ''],
+                ['', '', '', '']),
+            'LINUX' : (
+                ['\033[32m', '\033[1m', '\033[22m', '\033[39m'],
+                ['\033[31m', '\033[1m', '\033[22m','\033[39m']),
+            'LIGHTBG' : (
+                ['\033[34m', '\033[1m', '\033[22m', '\033[39m'],
+                ['\033[31m', '\033[1m', '\033[22m','\033[39m']),
+        }
+
+        # Handle any case by using .upper()
+        term_colors = color_schemes.get(colors.upper())
+        if term_colors is None:
+            out_msg = "The 'colors' argument must be {0} or None"
+            print out_msg.format(repr(color_schemes.keys()))
+            quit()
+
+        self.incolors, self.outcolors = term_colors
+        self.definitions = definitions
+
+    def get_line_number(self):
+        line = self.definitions.get_definition('$Line').ownvalues[0].replace
+        return line.get_int_value()
+
+    def get_in_prompt(self):
+        line_number = self.get_line_number()
+        return '{1}In[{2}{0}{3}]:= {4}'.format(line_number, *self.incolors)
+
+    def get_out_prompt(self):
+        line_number = self.get_line_number()-1
+        return '{1}Out[{2}{0}{3}]= {4}'.format(line_number, *self.outcolors)
 
 def to_output(text):
     return '\n . '.join(text.splitlines())
@@ -90,6 +128,7 @@ def main():
     argparser.add_argument('--quiet', '-q', help='don\'t print message at startup', action='store_true')
     argparser.add_argument('-script', help='run a mathics file in script mode', action='store_true')
     argparser.add_argument('--execute', '-e', nargs='?', help='execute a command')
+    argparser.add_argument('--colors', nargs='?', help='interactive shell colors')
     argparser.add_argument('--version', '-v', action='version', version=get_version_string(False))
 
     args = argparser.parse_args()
@@ -103,28 +142,14 @@ def main():
     #Reset the line number to 1
     definitions.set_ownvalue('$Line', Integer(1))
 
-    def get_in_prompt():
-        line_number = definitions.get_definition('$Line').ownvalues[0].replace.get_int_value()
-        if has_colorama: 
-            inprompt = '{1.GREEN}In[{2.BRIGHT}{0}{2.NORMAL}]:= {1.RESET}'.format(line_number, colorama.Fore, colorama.Style)
-        else:
-            inprompt = 'In[{0}]:= '.format(line_number)
-        return inprompt
-
-    def get_out_prompt():
-        line_number = definitions.get_definition('$Line').ownvalues[0].replace.get_int_value()-1
-        if has_colorama: 
-            outprompt = '{1.RED}Out[{2.BRIGHT}{0}{2.NORMAL}]= {1.RESET}'.format(line_number, colorama.Fore, colorama.Style)
-        else:
-            outprompt = 'Out[{0}]= '.format(line_number)
-        return outprompt
+    shell = TerminalShell(definitions, args.colors)
 
     if args.execute:
         print get_in_prompt() + args.execute
         evaluation = Evaluation(args.execute, definitions, timeout=30, out_callback=out_callback)
         for result in evaluation.results:
             if result.result is not None:
-                print get_out_prompt() + to_output(unicode(result.result)) + '\n'
+                print shell.get_out_prompt() + to_output(unicode(result.result)) + '\n'
         return
 
     if not (args.quiet or args.script):
@@ -143,7 +168,7 @@ def main():
                 continue
 
             if total_input == "":
-                print get_in_prompt() + line,
+                print shell.get_in_prompt() + line,
             else:
                 print '        ', line,
 
@@ -157,7 +182,7 @@ def main():
             evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
             for result in evaluation.results:
                 if result.result is not None:
-                    print get_out_prompt() + to_output(unicode(result.result)) + '\n'
+                    print shell.get_out_prompt() + to_output(unicode(result.result)) + '\n'
             total_input = ""
         if not args.persist:
             return
@@ -165,7 +190,7 @@ def main():
     while True:
         try: 
             total_input = ""
-            line_input = raw_input(get_in_prompt())
+            line_input = raw_input(shell.get_in_prompt())
             while line_input != "":
                 total_input += ' ' + line_input
                 if not wait_for_line(total_input):
@@ -176,7 +201,7 @@ def main():
         
             for result in evaluation.results:
                 if result.result is not None:
-                    print get_out_prompt() + to_output(unicode(result.result)) + '\n'
+                    print shell.get_out_prompt() + to_output(unicode(result.result)) + '\n'
 
         except (KeyboardInterrupt):
             print '\nKeyboardInterrupt'
