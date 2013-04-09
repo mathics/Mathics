@@ -1205,7 +1205,10 @@ class MathicsParser:
             elif isinstance(args[2], BaseExpression):
                 args[0] = Expression('Span', Integer(1), args[2], args[4])
         elif len(args) == 4:
-            args[0] = Expression('Span', args[1], args[3])
+            if isinstance(args[1], BaseExpression):
+                args[0] = Expression('Span', args[1], args[3])
+            else:
+                args[0] = Expression('Span', Integer(1), Symbol('All'), args[3])
         elif len(args) == 3:
             if isinstance(args[1], BaseExpression):
                 args[0] = Expression('Span', args[1], Symbol('All'))
