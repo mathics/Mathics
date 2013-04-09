@@ -86,6 +86,7 @@ infix_operators = {
     'MinusPlus': 'MinusPlus',
     'RightTee' : 'RightTee',
     'DoubleRightTee' : 'DoubleRightTee',
+    'Power' : 'Power',
     'LeftTee' : 'LeftTee',
     'DoubleLeftTee' : 'DoubleLeftTee',
     'Implies' : 'Implies',
@@ -1135,11 +1136,6 @@ class MathicsParser:
     def p_Derivative(self, args):
         'expr : expr Derivative'
         args[0] = Expression(Expression('Derivative', Integer(len(args[2]))), args[1])
-
-    def p_Power(self, args):
-        'expr : expr Power expr'
-        if args[2] == '^':
-            args[0] = Expression('Power', args[1], args[3])
 
     def p_Integrate(self, args):
         'expr : Integral expr DifferentialD expr %prec Integral'
