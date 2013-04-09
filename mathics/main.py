@@ -170,7 +170,7 @@ def main():
             if total_input == "":
                 print shell.get_in_prompt() + line,
             else:
-                print '        ', line,
+                print '       ', line,
 
             total_input += line
 
@@ -195,7 +195,7 @@ def main():
                 total_input += ' ' + line_input
                 if not wait_for_line(total_input):
                     break
-                line_input = raw_input('         ')
+                line_input = raw_input('        ')
         
             evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
         
