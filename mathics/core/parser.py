@@ -176,7 +176,7 @@ innequality_operators = {
 
 precedence = (
     ('right', 'FormBox'),
-    ('right', 'Semicolon'),
+    ('left', 'Semicolon'),                  # flat - custom
     ('left', 'Put', 'PutAppend'),
     ('right', 'Set', 'SetDelayed', 'Function', 'UpSet', 'UpSetDelayed', 'TagSet', 'Unset'),
     ('left', 'Because'),
@@ -1274,25 +1274,17 @@ class MathicsParser:
         args[0] = Expression('PutAppend', args[1], args[3])
 
     def p_Compound(self, args):
-        '''CompoundToken : expr Semicolon expr
-                         | CompoundToken Semicolon expr
-                         | expr Semicolon
-                         | CompoundToken Semicolon
-                    expr : CompoundToken'''
-        if len(args) == 2:
-            args[0] = Expression('CompoundExpression', *args[1])
-        if len(args) == 3:
-            if isinstance(args[1], list):
-                args[1].append(Symbol('Null'))
-                args[0] = args[1]
-            else:
-                args[0] = [args[1], Symbol('Null')]
+        '''expr : expr Semicolon expr
+                | expr Semicolon'''
+        if args[1].get_head_name() == 'CompoundExpression':
+            pass
+        else:
+            args[1] = Expression('CompoundExpression', args[1])
         if len(args) == 4:
-            if isinstance(args[1], list):
-                args[1].append(args[3])
-                args[0] = args[1]
-            else:
-                args[0] = [args[1], args[3]]
+            args[1].leaves.append(args[3])
+        else:
+            args[1].leaves.append(Symbol('Null'))
+        args[0] = args[1]
 
     def p_box_to_expr(self, args):
         '''expr : LeftBoxParenthesis boxes RightBoxParenthesis

@@ -21,6 +21,24 @@ class CompoundExpression(BinaryOperator):
      = d
     If the last argument is omitted, 'Null' is taken:
     >> a;
+
+    ## Parser Tests
+    #> FullForm[Hold[a ;]]
+     = Hold[CompoundExpression[a, Null]]
+    #> FullForm[Hold[a ; b]]
+     = Hold[CompoundExpression[a, b]]
+    #> FullForm[Hold[a ; b ;]]
+     = Hold[CompoundExpression[a, b, Null]]
+    #> FullForm[Hold[a ; b ; c]]
+     = Hold[CompoundExpression[a, b, c]]
+    #> FullForm[Hold[a ; ; c]]
+     = Hold[CompoundExpression[a, Null, c]]
+    #> FullForm[Hold[a ; ;]]
+     = Hold[CompoundExpression[a, Null, Null]]
+    #> FullForm[Hold[; a]]
+     : Parse error at or near token ;.
+    #> FullForm[Hold[; a ;]]
+     : Parse error at or near token ;.
     """
     
     operator = ';'
