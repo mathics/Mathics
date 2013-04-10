@@ -217,7 +217,8 @@ precedence = (
     ('left', 'VerticalTilde'),              # flat
     #('left', 'Product'),
     ('left', 'Star'),                       # flat
-    ('left', 'Times', 'RawStar'),           # flat
+    #This is a hack to get implicit times working properly:
+    ('left', 'Times', 'RawStar', 'blanks', 'blankdefault', 'out', 'slot', 'slotseq', 'string', 'symbol', 'number'), # flat, 
     ('left', 'CenterDot'),                  # flat
     ('left', 'CircleTimes'),                # flat
     ('left', 'Vee'),                        # flat
@@ -251,13 +252,13 @@ precedence = (
     ('right', 'Subscript'),
     ('right', 'Overscript', 'Underscript'),
     ('nonassoc', 'Get'),
-    ('nonassoc', 'blanks', 'blankdefault'),
-    ('nonassoc', 'out'),
-    ('nonassoc', 'slot', 'slotseq'),
+    #('nonassoc', 'blanks', 'blankdefault'),
+    #('nonassoc', 'out'),
+    #('nonassoc', 'slot', 'slotseq'),
     ('nonassoc', 'MessageName'),
-    ('nonassoc', 'string'),
-    ('nonassoc', 'symbol'),
-    ('nonassoc', 'number'),
+    #('nonassoc', 'string'),
+    #('nonassoc', 'symbol'),
+    #('nonassoc', 'number'),
 )
 
 tokens = (
@@ -1175,12 +1176,14 @@ class MathicsParser:
                 | expr RawStar expr
                 | expr expr %prec Times'''
         if len(args) == 3:
-            if args[2].get_head_name() == 'Times':
-                args[2].leaves.insert(0, args[1])
-                args[0] = args[2]
+            assert args[2].get_head_name != 'Times'
+            if args[1].get_head_name() == 'Times':
+                args[1].leaves.append(args[2])
+                args[0] = args[1]
             else:
                 args[0] = Expression('Times', args[1], args[2])
         elif len(args) == 4:
+            assert args[3].get_head_name != 'Times'
             if args[1].get_head_name() == 'Times':
                 args[1].leaves.append(args[3])
                 args[0] = args[1]
