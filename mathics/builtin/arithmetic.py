@@ -55,6 +55,14 @@ class _MPMathFunction(SympyFunction):
                     return
                 try:
                     result = self.eval(*mpmath_args)
+                    if mpmath.isinf(result):
+                        result = mpmath.rect(1, mpmath.arg(result))
+                        if result.imag == 0: # Avoid DirectedInfinity[1. + 0. I]
+                            result = int(result.real)
+                        result = Number.from_mp(result)
+                        return Expression('DirectedInfinity', result)
+                    elif mpmath.isnan(result):
+                        return Symbol('Indeterminate')
                     result = Number.from_mp(result, p)
                 except ValueError, exc:
                     text = str(exc)

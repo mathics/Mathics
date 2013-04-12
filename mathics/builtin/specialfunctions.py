@@ -178,6 +178,9 @@ class BesselK(_Bessel):
     >> BesselK[1.5, 4]
      = 0.014347
 
+    #> BesselK[0., 0.]
+     = Infinity
+
     >> Plot[BesselK[0, x], {x, 0, 5}]
      = -Graphics-
     """
