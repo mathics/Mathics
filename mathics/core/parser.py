@@ -218,7 +218,7 @@ precedence = (
     #('left', 'Product'),
     ('left', 'Star'),                       # flat
     #This is a hack to get implicit times working properly:
-    ('left', 'Times', 'RawStar', 'blanks', 'blankdefault', 'out', 'slot', 'slotseq', 'string', 'symbol', 'number'), # flat, 
+    ('left', 'Times', 'RawStar', 'blanks', 'blankdefault', 'out', 'slot', 'slotseq', 'string', 'symbol', 'number', 'RawLeftParenthesis'), # flat, 
     ('left', 'CenterDot'),                  # flat
     ('left', 'CircleTimes'),                # flat
     ('left', 'Vee'),                        # flat
