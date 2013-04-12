@@ -182,7 +182,7 @@ precedence = (
     ('left', 'Because'),
     ('right', 'Therefore'),
     ('left', 'VerticalSeparator'),          # flat
-    ('right', 'Postfix'),
+    ('left', 'Postfix'),
     ('right', 'Colon'),                     # flat
     ('left', 'RawAmpersand'),
     ('right', 'AddTo', 'SubtractFrom', 'TimesBy', 'DivideBy'),
