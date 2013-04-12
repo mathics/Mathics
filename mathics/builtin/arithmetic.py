@@ -1490,7 +1490,7 @@ class Complex_(Builtin):
     #> OutputForm[Complex[2.0 ^ 40, 3]]
      = 1.09951*^12 + 3. I
     #> InputForm[Complex[2.0 ^ 40, 3]]
-     = 1.09951*^12 + 3.*I
+     = 1.099511627776*^12 + 3.*I
      
     #> -2 / 3 - I
      = -2 / 3 - I
@@ -1650,10 +1650,10 @@ class HarmonicNumber(_MPMathFunction):
      = {1, 3 / 2, 11 / 6, 25 / 12, 137 / 60, 49 / 20, 363 / 140, 761 / 280}
 
     >> HarmonicNumber[3.8]
-     =  2.0380634056306492
+     = 2.03806
 
     #> HarmonicNumber[-1.5]
-     = 0.613705638880109381
+     = 0.613706
     """
 
     rules = {
