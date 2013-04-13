@@ -686,7 +686,7 @@ class MathicsScanner:
             elif suffix.startswith('`'):
                 acc = float(suffix[1:])
             else:
-                if re.match('0+', s) is not None:
+                if re.match('0+$', s) is not None:
                     t.value = Integer(0)
                     return t
                 prec = float(suffix)
