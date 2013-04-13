@@ -1034,8 +1034,6 @@ class Expression(BaseExpression):
         return atoms
 
 class Atom(BaseExpression):    
-    def __init__(self, *args, **kwargs):
-        super(Atom, self).__init__()
     
     def is_atom(self):
         return True

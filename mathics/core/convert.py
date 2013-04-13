@@ -142,14 +142,14 @@ class SympyExpression(BasicSympy):
     def __str__(self):
         return '%s[%s]' % (super(SympyExpression, self).__str__(), self.expr)
        
-def from_sympy(expr, **kwargs):
+def from_sympy(expr):
     from mathics.builtin import sympy_to_mathics
     from mathics.core.expression import Symbol, Integer, Rational, Real, Expression, Number
     
     from sympy.core import numbers, function, symbol
     
     if isinstance(expr, (tuple, list)):
-        return Expression('List', *[from_sympy(item, **kwargs) for item in expr])
+        return Expression('List', *[from_sympy(item) for item in expr])
     if isinstance(expr, int):
         return Integer(expr)
     if isinstance(expr, float):
@@ -157,7 +157,7 @@ def from_sympy(expr, **kwargs):
     if expr is None:
         return Symbol('Null')
     if isinstance(expr, sympy.Matrix):
-        return Expression('List', *[Expression('List', *[from_sympy(item, **kwargs) for item in row]) for row in expr.tolist()])
+        return Expression('List', *[Expression('List', *[from_sympy(item) for item in row]) for row in expr.tolist()])
     if expr.is_Atom:
         name = None
         if expr.is_Symbol:
@@ -205,22 +205,22 @@ def from_sympy(expr, **kwargs):
         elif isinstance(expr, function.FunctionClass):
             return Symbol(unicode(expr))
     elif expr.is_number and all([x.is_Number for x in expr.as_real_imag()]):    # Hack to convert 3 * I to Complex[0, 3]
-        return Expression('Complex', *[from_sympy(arg, **kwargs) for arg in expr.as_real_imag()])
+        return Expression('Complex', *[from_sympy(arg) for arg in expr.as_real_imag()])
     elif expr.is_Add:
-        return Expression('Plus', *sorted([from_sympy(arg, **kwargs) for arg in expr.args]))
+        return Expression('Plus', *sorted([from_sympy(arg) for arg in expr.args]))
     elif expr.is_Mul:
-        return Expression('Times', *sorted([from_sympy(arg, **kwargs) for arg in expr.args]))
+        return Expression('Times', *sorted([from_sympy(arg) for arg in expr.args]))
     elif expr.is_Pow:
-        return Expression('Power', *[from_sympy(arg, **kwargs) for arg in expr.args])
+        return Expression('Power', *[from_sympy(arg) for arg in expr.args])
     elif expr.is_Equality:
-        return Expression('Equal', *[from_sympy(arg, **kwargs) for arg in expr.args])
+        return Expression('Equal', *[from_sympy(arg) for arg in expr.args])
     
     elif isinstance(expr, SympyExpression):
         #print "SympyExpression: %s" % expr
         return expr.expr
     
     elif isinstance(expr, sympy.RootSum):
-        return Expression('RootSum', from_sympy(expr.poly, **kwargs), from_sympy(expr.fun, **kwargs))
+        return Expression('RootSum', from_sympy(expr.poly), from_sympy(expr.fun))
     elif isinstance(expr, sympy.PurePoly):
         coeffs = expr.coeffs()
         monoms = expr.monoms()
@@ -228,14 +228,14 @@ def from_sympy(expr, **kwargs):
         for coeff, monom in zip(coeffs, monoms):
             factors = []
             if coeff != 1:
-                factors.append(from_sympy(coeff, **kwargs))
+                factors.append(from_sympy(coeff))
             for index, exp in enumerate(monom):
                 if exp != 0:
                     slot = Expression('Slot', index + 1)
                     if exp == 1:
                         factors.append(slot)
                     else:
-                        factors.append(Expression('Power', slot, from_sympy(exp, **kwargs)))
+                        factors.append(Expression('Power', slot, from_sympy(exp)))
             if factors:
                 result.append(Expression('Times', *factors))
             else:
@@ -243,7 +243,7 @@ def from_sympy(expr, **kwargs):
         return Expression('Function', Expression('Plus', *result))
     elif isinstance(expr, sympy.Lambda):
         vars = [sympy.Symbol('%s%d' % (sympy_slot_prefix, index + 1)) for index in range(len(expr.variables))]
-        return Expression('Function', from_sympy(expr(*vars), **kwargs))
+        return Expression('Function', from_sympy(expr(*vars)))
     
     elif expr.is_Function or isinstance(expr, (sympy.Integral, sympy.Derivative,
             sympy.Sum, sympy.Product)):
@@ -255,15 +255,15 @@ def from_sympy(expr, **kwargs):
             name = expr.func.__name__
             if name.startswith(sympy_symbol_prefix):
                 name = name[len(sympy_symbol_prefix):]
-        args = [from_sympy(arg, **kwargs) for arg in expr.args]
+        args = [from_sympy(arg) for arg in expr.args]
         builtin = sympy_to_mathics.get(name)
         if builtin is not None:
             name = builtin.get_name()
-            args = builtin.from_sympy(args, **kwargs)
+            args = builtin.from_sympy(args)
         return Expression(Symbol(name), *args)
     
     elif isinstance(expr, sympy.Tuple):
-        return Expression('List', *[from_sympy(arg, **kwargs) for arg in expr.args])
+        return Expression('List', *[from_sympy(arg) for arg in expr.args])
     
     #elif isinstance(expr, sympy.Sum):
     #    return Expression('Sum', )
