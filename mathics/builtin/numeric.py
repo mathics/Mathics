@@ -12,7 +12,7 @@ import mpmath
 import sympy
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import dps, mpmath2sympy, prec, convert_base
+from mathics.core.numbers import dps, mpmath2sympy, prec, convert_base, min_prec
 from mathics.core import numbers
 from mathics.core.expression import (Integer, Rational, Real, Complex, Atom,
         Expression, Number, Symbol, from_python)
@@ -341,9 +341,8 @@ class Round(Builtin):
      = 11
     >> Round[0.06, 0.1]
      = 0.1
-    ## This should return 0. but doesn't due to a bug in sympy
     >> Round[0.04, 0.1]
-     = 0
+     = 0.
 
     Constants can be rounded too
     >> Round[Pi, .5]
@@ -383,7 +382,11 @@ class Round(Builtin):
     
     def apply(self, expr, k, evaluation):
         "Round[expr_?NumericQ, k_?NumericQ]"
-        return from_sympy(round(expr.to_sympy(), k.to_sympy()))
+        prec = k.get_precision()
+        result = from_sympy(round(expr.to_sympy(), k.to_sympy()))
+        if prec is not None:
+            result = Expression('N', result, Real(prec)).evaluate(evaluation)
+        return result
     
 def chop(expr, delta=10.0**(-10.0)):
     if isinstance(expr, Real):
