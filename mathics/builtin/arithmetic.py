@@ -254,6 +254,11 @@ class Plus(BinaryOperator, SympyFunction):
                 leaves.insert(0, Number.from_mp(number[0], prec))
             else:
                 leaves.insert(0, Complex(number[0], number[1], prec))
+
+        # Catch infinite recursion loops with trivial changes
+        if leaves == items:
+            leaves = items
+
         if not leaves:
             return Integer(0)
         elif len(leaves) == 1:
