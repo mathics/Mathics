@@ -16,7 +16,7 @@ from mathics.core.expression import Expression, Number, Integer, Rational, Real,
 from mathics.core.numbers import get_type, mul, add, sympy2mpmath, mpmath2sympy, SpecialValueError
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
-from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, prec
+from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, dps
 
 class _MPMathFunction(SympyFunction):
 
@@ -48,22 +48,14 @@ class _MPMathFunction(SympyFunction):
             # evaluate leaves to convert e.g. Plus[2, I] -> Complex[2, 1]
             result = result.evaluate_leaves(evaluation)
         else:
-            p = min_prec(*args)
-            with mpmath.workprec(prec(p)):
-                mpmath_args = [sympy2mpmath(z.to_sympy()) for z in args]
+            prec = min_prec(*args)
+            with mpmath.workprec(prec):
+                mpmath_args = [sympy2mpmath(x.to_sympy()) for x in args]
                 if None in mpmath_args:
                     return
                 try:
                     result = self.eval(*mpmath_args)
-                    if mpmath.isinf(result):
-                        result = mpmath.rect(1, mpmath.arg(result))
-                        if result.imag == 0: # Avoid DirectedInfinity[1. + 0. I]
-                            result = int(result.real)
-                        result = Number.from_mp(result)
-                        return Expression('DirectedInfinity', result)
-                    elif mpmath.isnan(result):
-                        return Symbol('Indeterminate')
-                    result = Number.from_mp(result, p)
+                    result = from_sympy(mpmath2sympy(result, prec))
                 except ValueError, exc:
                     text = str(exc)
                     if text == 'gamma function pole':
@@ -74,6 +66,7 @@ class _MPMathFunction(SympyFunction):
                     return
                 except SpecialValueError, exc:
                     return Symbol(exc.name)
+
         return result
 
 class Plus(BinaryOperator, SympyFunction):
@@ -197,7 +190,7 @@ class Plus(BinaryOperator, SympyFunction):
         if prec is None:
             number = (sympy.Integer(0), sympy.Integer(0))
         else:
-            number = (sympy.Float('0.0', prec), sympy.Float('0.0', prec))
+            number = (sympy.Float('0.0', dps(prec)), sympy.Float('0.0', dps(prec)))
         
         def append_last():
             if last_item is not None:
@@ -219,8 +212,8 @@ class Plus(BinaryOperator, SympyFunction):
                     sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
 
                 if prec is not None:
-                    sym_real = sym_real.n(prec)
-                    sym_imag = sym_imag.n(prec)
+                    sym_real = sym_real.n(dps(prec))
+                    sym_imag = sym_imag.n(dps(prec))
 
                 number = (number[0] + sym_real, number[1] + sym_imag)
             else:
@@ -254,11 +247,6 @@ class Plus(BinaryOperator, SympyFunction):
                 leaves.insert(0, Number.from_mp(number[0], prec))
             else:
                 leaves.insert(0, Complex(number[0], number[1], prec))
-
-        # Catch infinite recursion loops with trivial changes
-        if leaves == items:
-            leaves = items
-
         if not leaves:
             return Integer(0)
         elif len(leaves) == 1:
@@ -414,7 +402,7 @@ class Times(BinaryOperator, SympyFunction):
      = 2
 
     #> 3. Pi
-     = 9.42478
+     = 9.42477796076937972
 
     #> Head[3 * I]
      = Complex
@@ -429,13 +417,6 @@ class Times(BinaryOperator, SympyFunction):
      = 3*a
     #> 3 * a //OutputForm
      = 3 a
-
-    #> Precision[1 * 2.8]
-     = MachinePrecision
-    #> Precision[1.4 * 2.8]
-     = MachinePrecision
-    #> Precision[1 * 8]
-     = Infinity
     """
     
     operator = '*'
@@ -518,7 +499,7 @@ class Times(BinaryOperator, SympyFunction):
     def apply(self, items, evaluation):
         'Times[items___]'
 
-        #TODO: Clean this up and optimise it 
+        #TODO: Clean this up and optimise it        
 
         items = items.numerify(evaluation).get_sequence()
         number = (sympy.Integer(1), sympy.Integer(0))
@@ -535,8 +516,8 @@ class Times(BinaryOperator, SympyFunction):
                     sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
 
                 if prec is not None:
-                    sym_real = sym_real.n(prec)
-                    sym_imag = sym_imag.n(prec)
+                    sym_real = sym_real.n(dps(prec))
+                    sym_imag = sym_imag.n(dps(prec))
 
                 if sym_real.is_zero and sym_imag.is_zero and prec is None:
                     return Integer('0')
@@ -563,7 +544,8 @@ class Times(BinaryOperator, SympyFunction):
             elif number[1].is_zero and number[1].is_Integer and prec is None:
                 leaves.insert(0, Number.from_mp(number[0], prec))
             else:
-                leaves.insert(0, Complex(Number.from_mp(number[0], prec), Number.from_mp(number[1], prec), prec))
+                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), prec))
+
         if not leaves:
             return Integer(1)
         elif len(leaves) == 1:
@@ -587,7 +569,7 @@ class Divide(BinaryOperator):
 
     Use 'N' or a decimal point to force numeric evaluation:
     >> Pi / 4.0
-     = 0.785398
+     = 0.78539816339744831
     >> 1 / 8
      = 1 / 8
     >> N[%]
@@ -609,6 +591,7 @@ class Divide(BinaryOperator):
      = Rational[10, 3]
     #> a / b // FullForm
      = Times[a, Power[b, -1]]
+    
     """
     
     operator = '/'
@@ -666,11 +649,7 @@ class Power(BinaryOperator, SympyFunction):
      
     Use a decimal point to force numeric evaluation:
     >> 4.0 ^ (1/3)
-     = 1.5874
-    #> Precision[%]
-     = MachinePrecision
-    #> 4.0`20 ^ (1/3)
-     = 1.58740105196819947475
+     = 1.58740105196819947
      
     'Power' has default value 1 for its second argument:
     >> DefaultValues[Power]
@@ -680,15 +659,15 @@ class Power(BinaryOperator, SympyFunction):
      
     'Power' can be used with complex numbers:
     >> (1.5 + 1.0 I) ^ 3.5
-     = -3.68294 + 6.95139 I
+     = -3.68294005782191823 + 6.9513926640285049 I
     >> (1.5 + 1.0 I) ^ (3.5 + 1.5 I)
-     = -3.19182 + 0.645659 I
+     = -3.19181629045628082 + 0.645658509416156807 I
      
     #> 1/0
      : Infinite expression (division by zero) encountered.
      = ComplexInfinity
     #> Sqrt[-3+2. I]
-     = 0.550251 + 1.81735 I
+     = 0.550250522700337511 + 1.81735402102397062 I
     #> Sqrt[-3+2 I]
      = Sqrt[-3 + 2 I]
     #> (3/2+1/2I)^2
@@ -700,7 +679,7 @@ class Power(BinaryOperator, SympyFunction):
      = 4.
 
     #> Pi ^ 4.
-     = 97.4091
+     = 97.4090910340024374
     """
     
     operator = '^'
@@ -741,7 +720,7 @@ class Power(BinaryOperator, SympyFunction):
             x, y = items_sequence
         else:
             return Expression('Power', *items_sequence)
-
+        
         if y.get_int_value() == 1:
             return x
         elif x.get_int_value() == 1:
@@ -774,6 +753,7 @@ class Power(BinaryOperator, SympyFunction):
                     result = Expression('Power', *args)
                     result = result.evaluate_leaves(evaluation)
                     return result
+
                 return from_sympy(result)
             except ValueError:
                 return Expression('Power', x, y)
@@ -783,15 +763,15 @@ class Power(BinaryOperator, SympyFunction):
 
         elif isinstance(x, Number) and isinstance(y, Number) and (x.is_inexact() or y.is_inexact()):
             try:
-                p = min_prec(x, y)
-                with mpmath.workprec(prec(p)):
+                prec = min(max(x.get_precision(), 64),  max(y.get_precision(), 64))
+                with mpmath.workprec(prec):
                     mp_x = sympy2mpmath(x.to_sympy())
                     mp_y = sympy2mpmath(y.to_sympy())
                     result = mp_x ** mp_y
                     if isinstance(result, mpmath.mpf):
-                        return Real(str(result), p)
+                        return Real(str(result), prec)
                     elif isinstance(result, mpmath.mpc):
-                        return Complex(str(result.real), str(result.imag), p)
+                        return Complex(str(result.real), str(result.imag), prec)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
@@ -812,7 +792,7 @@ class Sqrt(SympyFunction):
     >> Sqrt[5]
      = Sqrt[5]
     >> Sqrt[5] // N
-     = 2.23607
+     = 2.2360679774997897
     >> Sqrt[a]^2
      = a
     
@@ -1013,7 +993,7 @@ class Abs(SympyFunction):
     >> Abs[3 + I]
      = Sqrt[10]
     >> Abs[3.0 + I]
-     = 3.16228
+     = 3.16227766016837933
     >> Plot[Abs[x], {x, -4, 4}]
      = -Graphics-
 
@@ -1167,131 +1147,8 @@ class Integer_(Builtin):
     
     >> Head[5]
      = Integer
-
-    Specify a base
-    >> 8^^23
-     = 19
-
-    >> 2^^101001
-     = 41
-
-    #> 16^^F4A308C
-     = 256520332
-    #> 36^^f4z5
-     = 706289
-    #> 19^^3Ai
-     = 1291
-
-    Give an exponent
-    >> 10*^3
-     = 10000
-
-    #> 10*^-3
-     = 1 / 100
-    #> 10*^+3
-     = 10000
-
-    Both base and exponent
-    >> 8^^23*^2
-     = 1216
-
-    #> 8^^23*^-2
-     = 19 / 64
-    #> 8^^23*^+2
-     = 1216
-
-    Precision is specified with `number
-    >> Precision[195`45]
-     = 45.
-
-    #> 15`4
-     = 15.00
-    #> Precision[15`.4]
-     = 0.4
-    #> Precision[15`4.]
-     = 4.
-    #> 15``045.5
-     = 15.000000000000000000000000000000000000000000000
-    #> Precision[%]
-     = 46.6761
-    #> 8^^23`20
-     = 19.0000000000000000
-    #> 10`20*^3
-     = 10000.000000000000000
-    #> 10`20*^-3
-     = 0.010000000000000000000
-    #> 8^^23`20*^2
-     = 1216.00000000000000
-    #> 8^^23`20*^-2
-     = 0.296875000000000000
-    #> 10`+4
-     = 10.00
-    #> 10`-4
-     : Requested precision -4. is smaller than $MinPrecision. Using $MinPrecision instead.
-     = 0.*^1
-
-    If number is not specified MachinePrecision is used
-    >> Precision[195`]
-     = MachinePrecision
-
-    #> 8^^23`
-     = 19.
-    #> 10`*^3
-     = 10000.
-    #> 10`*^-3
-     = 0.01
-    #> 8^^23`*^2
-     = 1216.
-    #> 8^^23`*^-2
-     = 0.296875
-
-    Accuracy is specified with ``number
-    >> Accuracy[195``40]
-     = 40.
-
-    #> Accuracy[15`.4]
-     = -0.776091
-    #> Accuracy[15`4.]
-     = 2.82391
-    #> Accuracy[15``045.5]
-     = 45.5
-    #> 8^^23``20
-     = 19.000000000000000000
-    #> 10``20*^3
-     = 10000.0000000000000000000
-    #> 10``20*^-3
-     = 0.0100000000000000000
-    #> 8^^23``20*^2
-     = 1216.000000000000000000
-    #> 8^^23``20*^-2
-     = 0.296875000000000000
-    #> 10``+4
-     = 10.000
-
-    ## Zero Edge case
-    #> 0``14
-     = 0.*^-14
-    #> {Accuracy[%], Precision[%]}
-     = {14., 0.}
-    ## MMA is weirdly inconsistent 0` -> 0. but 0`x -> 0 *)
-    #> 0`13
-     = 0
-    #> 0`
-     = 0.
-    #> {Accuracy[0.], Precision[0.]}
-     = {307.653, MachinePrecision}
-    #> {0`-4, 0`+4, 0`3.4, 0`+5.6, 0`-.1, 0`1.}
-     = {0, 0, 0, 0, 0, 0}
-    #> {0``-4, 0``+4, 0``3.4, 0``+5.6, 0``-.1, 0``1.}
-     = {0``-4., 0``4., 0``3.4, 0``5.6, 0``-0.1, 0``1.}
-    #> 25`0
-     = 0.*^2
-    #> 25``0
-     = 2.*^1
-    #> 25`0 == 25``0 == 25``-0 ==  25``+0. == 25``.0
-     = True
     """
-
+    
     name = 'Integer'
     
 class Real_(Builtin):
@@ -1307,127 +1164,22 @@ class Real_(Builtin):
     >> Head[x]
      = Real
 
-    Machine precision numbers
-    >> 10.5
-     = 10.5
-
-    Arbitary precision numbers
-    >> 10.95834905890234859042134832740172304897123
-     = 10.9583490589023485904213483274017230489712
-    >> Precision[%]
-     = 42.0397
-
-    ## By Copying ans pasting you slowly loose one digit of precision
-    ## until you reach machine precision numbers.
-    #> 1.5904213483274017230489712
-     = 1.590421348327401723048971
-    #> 1.590421348327401723048971
-     = 1.59042134832740172304897
-    #> 1.59042134832740172304897
-     = 1.5904213483274017230490
-    #> 1.5904213483274017230490
-     = 1.590421348327401723049
-    #> 1.590421348327401723049
-     = 1.59042134832740172305
-    #> 1.59042134832740172305
-     = 1.5904213483274017231
-    #> 1.5904213483274017231
-     = 1.590421348327401723
-    #> 1.590421348327401723
-     = 1.59042134832740172
-    #> 1.59042134832740172
-     = 1.59042
-    #> Precision[%]
-     = MachinePrecision
-    #> 1.59042
-     = 1.59042
-
-    Machine precision can be forced by appending the ` character
-    >> 10.958349058902348590421348327401723048971230`
-     = 10.9583
-    >> Precision[%]
-     = MachinePrecision
-
-    Precision can be specified by appending `prec as follows
-    >> 123.123`30
-     = 123.123000000000000000000000000
-    >> Precision[%]
-     = 30.
-
-    Accuracy is specified by appending `acc as follows
-    >> 123.123``30
-     = 123.12300000000000000000000000000
-    >> Accuracy[%]
-     = 30.
-
-    Numbers can be entered using scientific notation
-    >> 1.1234*^8
-     = 1.1234*^8
-    >> 1.1234*^5
-     = 112340.
-    >> 1.1234*^-5
-     = 0.000011234
-    ## Permit explicit exponent signs
-    #> 1.5*^+24
-     = 1.5*^24
-    #> 1.5*^-24
-     = 1.5*^-24
-    ## Don't accept *^ with spaces
-    #> 1.5 *^10
-     : Parse error at or near token ^.
-    #> 1.5*^ 10
-     : Parse error at or near token ^.
-
-    Numbers can also be specified in arbitary bases
-    >> 16^^94A.D31E
-     = 2378.82
-    #> 8^^1.5
-     = 1.625
-    #> 8^^32432.423143242134231213
-     = 13594.5374882383664860
-    #> {Accuracy[%], Precision[%]}
-     = {16.2556, 20.389}
-
-    All the previous forms can be combined
-    >> 1.1234`30*^8
-     = 1.12340000000000000000000000000*^8
-    >> 8^^1743.232`30
-     = 995.300781250000000000000000
-    #> {Accuracy[%], Precision[%]}
-     = {24.0947, 27.0927}
-    >> 16^^5AC3.94F`20*^8 // InputForm  (* Check me *)
-     = 9.9796063879168`24.0823996531*^13
-    #> 8^^1.73*^5
-     = 62976.
-    #> 8^^1.73*^-5
-     = 0.000058651
-    #> {Accuracy[%], Precision[%]}  (* Check me *)
-     = {22.2317, MachinePrecision}
-    #> 8^^1.73``20*^-5
-     = 0.000058650970458984
-    #> {Accuracy[%], Precision[%]}
-     = {18.0618, 13.8301}
-    #> 8^^1.73`20*^-5
-     = 0.0000586509704589843750
-    #> {Accuracy[%], Precision[%]}
-     = {22.2935, 18.0618}
-
     ## Formatting tests
-    #> 1.*^6
+    #> 1. * 10^6
      = 1.*^6
-    #> 1.*^5
+    #> 1. * 10^5
      = 100000.
-    #> -1.*^6
+    #> -1. * 10^6
      = -1.*^6
-    #> -1.*^5
+    #> -1. * 10^5
      = -100000.
-    #> 1.*^-6
+    #> 1. * 10^-6
      = 1.*^-6
-    #> 1.*^-5
+    #> 1. * 10^-5
      = 0.00001
-    #> -1.*^-6
+    #> -1. * 10^-6
      = -1.*^-6
-    #> -1.*^-5
+    #> -1. * 10^-5
      = -0.00001
 
     ## Mathematica treats zero strangely
@@ -1435,14 +1187,20 @@ class Real_(Builtin):
      = 0.
     #> 0.0000000000000000000000000000
      = 0.*^-28
-    #> 0.``14
-     = 0.*^-14
-    #> {Accuracy[%], Precision[%]}
-     = {14., 0.}
-    #> 0.`13    (* Check me !! *)
-     = 0.
-    #> 0.`
-     = 0.
+
+    ## Parse *^ Notation
+    #> 1.5*^24
+     = 1.5*^24
+    #> 1.5*^+24
+     = 1.5*^24
+    #> 1.5*^-24
+     = 1.5*^-24
+
+    ## Don't accept *^ with spaces
+    #> 1.5 *^10
+     : Parse error at or near token ^.
+    #> 1.5*^ 10
+     : Parse error at or near token ^.
     """
     
     name = 'Real'
@@ -1493,7 +1251,7 @@ class Complex_(Builtin):
      = 5
 
     #> OutputForm[Complex[2.0 ^ 40, 3]]
-     = 1.09951*^12 + 3. I
+     = 1.099511627776*^12 + 3. I
     #> InputForm[Complex[2.0 ^ 40, 3]]
      = 1.099511627776*^12 + 3.*I
      
@@ -1502,15 +1260,6 @@ class Complex_(Builtin):
      
     #> Complex[10, 0]
      = 10
-
-    #> Precision[Complex[1, 4.5]]
-     = MachinePrecision
-    #> Precision[Complex[1.``30, 4.4]]
-     = MachinePrecision
-    #> Precision[Complex[1., 4.4``30]]
-     = MachinePrecision
-    #> Precision[Complex[1.``30, 1.``30]]
-     = 30.
 
     #> 0. + I
      = 0. + 1. I
@@ -1539,9 +1288,6 @@ class Complex_(Builtin):
      = 1 + I
     #> Complex[1, Complex[1, 1]]
      = I
-
-    #> 0.5 E + 0.5 Pi I
-     = 1.35914 + 1.5708 I
     """
     
     name = 'Complex'
@@ -1573,9 +1319,9 @@ class Factorial(PostfixOperator, _MPMathFunction):
     
     'Factorial' handles numeric (real and complex) values using the gamma function:
     >> 10.5!
-     = 1.18994*^7
+     = 1.18994230839622485*^7
     >> (-3.0+1.5*I)!
-     = 0.0427943 - 0.00461565 I
+     = 0.0427943437183768611 - 0.00461565252860394996 I
 
     However, the value at poles is 'ComplexInfinity':
     >> (-1.)!
@@ -1615,7 +1361,7 @@ class Gamma(SympyFunction):
     >> Gamma[8]
      = 5040
     >> Gamma[1. + I]
-     = 0.498016 - 0.15495 I
+     = 0.498015668118356043 - 0.154949828301810685 I
 
     Both 'Gamma' and 'Factorial' functions are continuous:
     >> Plot[{Gamma[x], x!}, {x, 0, 4}]
@@ -1655,10 +1401,10 @@ class HarmonicNumber(_MPMathFunction):
      = {1, 3 / 2, 11 / 6, 25 / 12, 137 / 60, 49 / 20, 363 / 140, 761 / 280}
 
     >> HarmonicNumber[3.8]
-     = 2.03806
+     =  2.0380634056306492
 
     #> HarmonicNumber[-1.5]
-     = 0.613706
+     = 0.613705638880109381
     """
 
     rules = {

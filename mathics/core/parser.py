@@ -27,7 +27,7 @@ from math import log10
 import logging
 
 from mathics.core.expression import BaseExpression, Expression, Integer, Real, Symbol, String, Rational
-#from mathics.core.numbers import prec as dps_to_prec
+from mathics.core.numbers import dps
 from mathics.builtin import builtins
 from mathics.builtin.numeric import machine_precision
 
@@ -712,7 +712,11 @@ class MathicsScanner:
                 else:
                     prec = acc + log10(float(s)) + n
 
-            t.value = Real(s, prec, acc)
+            #XXX
+            if prec is not None:
+                prec = dps(prec)
+            t.value = Real(s, prec)
+            #t.value = Real(s, prec, acc)
         else:
             # Convert the base
             assert isinstance(base, int) and 2 <= base <= 36
@@ -746,6 +750,12 @@ class MathicsScanner:
                     prec10 = machine_precision
                 else:
                     prec10 = prec * log10(base)
+            #XXX
+            if prec10 is None:
+                prec10 = machine_precision
+            else:
+                prec10 = dps(prec10)
+
             t.value = result.round(prec10)
 
         return t

@@ -15,6 +15,7 @@ import mpmath
 
 from mathics.builtin.base import Builtin, Predefined, SympyConstant, SympyFunction
 from mathics.core.expression import Number, Real, Expression, Integer, from_sympy
+from mathics.core.numbers import dps, prec
 
 from mathics.builtin.numeric import get_precision
 from mathics.builtin.arithmetic import _MPMathFunction
@@ -27,7 +28,7 @@ class Pi(SympyConstant):
     </dl>
     
     >> N[Pi]
-     = 3.14159
+     = 3.14159265358979324
     >> N[Pi, 50]
      = 3.1415926535897932384626433832795028841971693993751
      
@@ -39,9 +40,9 @@ class Pi(SympyConstant):
     
     def apply_N(self, precision, evaluation):
         'N[Pi, precision_]'
-        prec = get_precision(precision, evaluation)
-        if prec is not None:
-            return Real(sympy.pi.n(prec), prec)
+        precision = get_precision(precision, evaluation)
+        if precision is not None:
+            return Real(sympy.pi.n(dps(precision)), p=precision)
 
 class E(SympyConstant):
     """
@@ -51,24 +52,24 @@ class E(SympyConstant):
     </dl>
     
     >> N[E]
-     = 2.71828
+     = 2.71828182845904524
     >> N[E, 50]
-     = 2.7182818284590452353602874713526624977572470937000
+     = 2.7182818284590452353602874713526624977572470937
      
     >> Attributes[E]
      = {Constant, Protected, ReadProtected}
 
     #> 5. E
-     = 13.5914
+     = 13.5914091422952262
     """
     
     sympy_name = 'E'
     
     def apply_N(self, precision, evaluation):
         'N[E, precision_]'
-        prec = get_precision(precision, evaluation)
-        if prec is not None:
-            return Real(sympy.E.n(prec), prec)
+        precision = get_precision(precision, evaluation)
+        if precision is not None:
+            return Real(sympy.E.n(dps(precision)), p=precision)
             
 class GoldenRatio(SympyConstant):
     """
@@ -78,10 +79,7 @@ class GoldenRatio(SympyConstant):
     </dl>
     
     >> N[GoldenRatio]
-     = 1.61803
-
-    >> N[GoldenRatio, 30]
-     = 1.61803398874989484820458683437
+     = 1.61803398874989485
     """
     
     sympy_name = 'GoldenRatio'
@@ -100,7 +98,7 @@ class Exp(SympyFunction):
     >> Exp[1]
      = E
     >> Exp[10.0]
-     = 22026.5
+     = 22026.4657948067169
     >> Exp[x] //FullForm
      = Power[E, x]
      
@@ -150,7 +148,7 @@ class Log2(Builtin):
     >> Log2[4 ^ 8]
      = 16
     >> Log2[5.6]
-     = 2.48543
+     = 2.48542682717024177
     >> Log2[E ^ 2]
      = 2 / Log[2]
     """
@@ -169,7 +167,7 @@ class Log10(Builtin):
     >> Log10[1000]
      = 3
     >> Log10[{2., 5.}]
-     = {0.30103, 0.69897}
+     = {0.301029995663981195, 0.698970004336018803}
     >> Log10[E ^ 3]
      = 3 / Log[10]
     """
@@ -188,11 +186,11 @@ class Sin(_MPMathFunction):
     >> Sin[0]
      = 0
     >> Sin[0.5]
-     = 0.479426
+     = 0.479425538604203
     >> Sin[3 Pi]
      = 0
     >> Sin[1.0 + I]
-     = 1.29846 + 0.634964 I
+     = 1.29845758141597729 + 0.634963914784736108 I
      
     >> Plot[Sin[x], {x, -Pi, Pi}]
      = -Graphics-
@@ -262,7 +260,7 @@ class Sec(_MPMathFunction):
     >> Sec[1] (* Sec[1] in Mathematica *)
      = 1 / Cos[1]
     >> Sec[1.]
-     = 1.85082
+     = 1.85081571768092562
     """
 
     mpmath_name = 'sec'
@@ -288,7 +286,7 @@ class Csc(_MPMathFunction):
     >> Csc[1] (* Csc[1] in Mathematica *)
      = 1 / Sin[1]
     >> Csc[1.]
-     = 1.1884
+     = 1.18839510577812122
     """
 
     mpmath_name = 'csc'
@@ -312,7 +310,7 @@ class Cot(_MPMathFunction):
     >> Cot[0]
      = ComplexInfinity
     >> Cot[1.]
-     = 0.642093
+     = 0.642092615934330703
     """
 
     mpmath_name = 'cot'
@@ -378,9 +376,10 @@ class ArcTan(_MPMathFunction):
     >> ArcTan[1]
      = Pi / 4
     >> ArcTan[1.0]
-     = 0.785398
-    #> ArcTan[-1.0]
-     = -0.785398
+     = 0.78539816339744831
+    >> ArcTan[-1.0]
+     = -0.78539816339744831
+
     >> ArcTan[1, 1]
      = Pi / 4
     #> ArcTan[-1, 1]
@@ -612,7 +611,7 @@ class ArcSinh(_MPMathFunction):
     >> ArcSinh[0.]
      = 0.
     >> ArcSinh[1.0]
-     = 0.881374
+     = 0.881373587019543025
     """
     
     sympy_name = 'asinh'
@@ -632,11 +631,12 @@ class ArcCosh(_MPMathFunction):
     >> ArcCosh[0]
      = I / 2 Pi
     >> ArcCosh[0.]
-     = 0. + 1.5708 I
+     = 0. + 1.57079632679489662 I
     >> ArcCosh[0.00000000000000000000000000000000000000]
-     = 1.5707963267948966192313216916397514421 I
+     = 0. + 1.5707963267948966191479842624545426588 I
+
     #> ArcCosh[1.4]
-     = 0.867015
+     = 0.867014726490565104
     """
     
     sympy_name = 'acosh'
@@ -661,7 +661,7 @@ class ArcTanh(_MPMathFunction):
     >> ArcTanh[0]
      = 0
     >> ArcTanh[.5 + 2 I]
-     = 0.0964156 + 1.12656 I
+     = 0.0964156202029961672 + 1.12655644083482235 I
     >> ArcTanh[2 + I]
      = ArcTanh[2 + I]
     """
@@ -685,7 +685,7 @@ class ArcSech(_MPMathFunction):
     >> ArcSech[1]
      = 0
     >> ArcSech[0.5]
-     = 1.31696
+     = 1.31695789692481671
     """
     
     sympy_name = ''
@@ -711,7 +711,7 @@ class ArcCsch(_MPMathFunction):
     >> ArcCsch[0]
      = ComplexInfinity
     >> ArcCsch[1.0]
-     = 0.881374
+     = 0.881373587019543025
     """
     
     sympy_name = ''
@@ -739,9 +739,9 @@ class ArcCoth(_MPMathFunction):
     >> ArcCoth[1]
      = Infinity
     >> ArcCoth[0.0]
-     = 0. + 1.5708 I
+     = 0. + 1.57079632679489662 I
     >> ArcCoth[0.5]
-     = 0.549306 - 1.5708 I
+     = 0.549306144334054846 - 1.57079632679489662 I
     """
     
     sympy_name = 'acoth'

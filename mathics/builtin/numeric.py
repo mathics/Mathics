@@ -12,20 +12,20 @@ import mpmath
 import sympy
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import dps, mpmath2sympy, prec, convert_base, min_prec
+from mathics.core.numbers import dps, mpmath2sympy, prec, convert_base
 from mathics.core import numbers
 from mathics.core.expression import (Integer, Rational, Real, Complex, Atom,
         Expression, Number, Symbol, from_python)
 from mathics.core.convert import from_sympy
 from mathics.settings import MACHINE_PRECISION
 
-machine_precision = dps(MACHINE_PRECISION)
+machine_precision = MACHINE_PRECISION
 
 def get_precision(precision, evaluation):
     if precision.get_name() == 'MachinePrecision':
         return machine_precision
     elif isinstance(precision, (Integer, Rational, Real)):
-        return float(precision.to_sympy())
+        return prec(float(precision.to_sympy()))
     else:
         evaluation.message('N', 'precbd', precision)
         return None
@@ -40,7 +40,7 @@ class N(Builtin):
      = 3.1415926535897932384626433832795028841971693993751
 
     >> N[1/7]
-     = 0.142857
+     = 0.142857142857142857
 
     >> N[1/7, 5]
      = 0.14286
@@ -59,7 +59,7 @@ class N(Builtin):
      = a
     >> N[a, 20] = 11;
     >> N[a + b, 20]
-     = 11.000000000000000000 + b
+     = 11. + b
     >> N[f[a, b]]
      = f[10.9, b]
     >> SetAttributes[f, NHoldAll]
@@ -72,8 +72,6 @@ class N(Builtin):
      = c
     >> N[c, 11]
      = 11.
-    #> Precision[%]
-     = MachinePrecision
      
     You can also use 'UpSet' or 'TagSet' to specify values for 'N':
     >> N[d] ^= 5;
@@ -96,7 +94,7 @@ class N(Builtin):
     >> N[g[1, 1]]
      = g[1., 1]
     >> N[g[2, 2]]
-     = 8.28319
+     = 8.28318530717958648
      
     #> p=N[Pi,100]
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
@@ -167,52 +165,7 @@ class MachinePrecision(Predefined):
         
         prec = get_precision(prec, evaluation)
         if prec is not None:
-            return Real(machine_precision, prec)
-
-class MachinePrecision_Symbol(Predefined):
-    """
-    <dl>
-    <dt>'$MachinePrecision'
-        <dd>is a "pessimistic" (integer) estimation of the internally used standard precision.
-    </dl>
-
-    >> $MachinePrecision
-     = 18.
-
-    #> Precision[$MachinePrecision]
-     = MachinePrecision
-    #> Attributes[$MachinePrecision]
-     = {Protected}
-    """
-
-    name = '$MachinePrecision'
-
-    attributes = ('Protected',)
-
-    def evaluate(self, evaluation):
-        prec = get_precision(Symbol('MachinePrecision'), evaluation)
-        if prec is not None:
-            return Real(machine_precision, prec)
-
-class MachineNumberQ(Builtin):
-    """
-    >> MachineNumberQ[1.]
-     = True
-    >> MachineNumberQ[1]
-     = False
-    >> MachineNumberQ[x]
-     = False
-
-    #> MachineNumberQ[1. + I]
-     = True
-    #> MachineNumberQ[1 + I]
-     = False
-    """
-
-    rules = {
-        'MachineNumberQ[x_]': 'If[InexactNumberQ[x], Precision[x]==18, False]',
-        #'MachineNumberQ[x_]': 'If[InexactNumberQ[x], Precision[x]==MachinePrecision, False]',  #TODO
-    }
+            return Real(dps(machine_precision), prec)
     
 class Precision(Builtin):
     """
@@ -227,99 +180,38 @@ class Precision(Builtin):
     >> Precision[1/2]
      = Infinity
     >> Precision[0.5]
-     = MachinePrecision
-
-    Numbers with specified precision:
-    >> Precision[1.5`5]
-     = 5.
-    #> Precision[23`39]
-     = 39.
-    #> Precision[23`39.]
-     = 39.
-    #> Precision[1.5`2.]
-     = 2.
-
-    Numbers with specified accuracy:
-    >> Precision[3.4``10]
-     = 10.5315
-    #> Precision[1``5]
-     = 5.
-
+     = 18.
     #> Precision[0.0]
-     = MachinePrecision
+     = 0.
     #> Precision[0.000000000000000000000000000000000000]
      = 0.
-    #> Precision[-0.0]
-     = MachinePrecision
-    #> Precision[-0.000000000000000000000000000000000000]
+    #> Precision[-0.0]      (*Matematica gets this wrong *)
      = 0.
-
-    #> Precision[1. I]
-     = MachinePrecision
+    #> Precision[-0.000000000000000000000000000000000000]  
+     = 0.
     """
     
     rules = {
         'Precision[_Integer]': 'Infinity',
         'Precision[_Rational]': 'Infinity',
         'Precision[_Symbol]': 'Infinity',
-        #'Precision[z:0.0]': '0.',
-        #'Precision[z:-0.0]': '0.',
+        'Precision[z:0.0]': '0.',
+        'Precision[z:-0.0]': '0.',
     }
     
     def apply_real(self, x, evaluation):
         'Precision[x_Real]'
-        if x.is_machine_precision:
-            return Symbol('MachinePrecision')
-        return Real(x.get_precision())
+        
+        return Real(dps(x.get_precision()))
     
     def apply_complex(self, x, evaluation):
         'Precision[x_Complex]'
         
         if x.is_inexact():
-            if x.is_machine_precision:
-                return Symbol('MachinePrecision')
-            return Real(x.get_precision())
+            return Real(dps(x.get_precision()))
         else:
             return Symbol('Infinity')
-
-class RealExponent(Builtin):
-    """
-    >> RealExponent[10]
-     = 1.
-
-    >> RealExponent[1 + I]
-     = 0.150515
-
-    >> RealExponent[64, 8]
-     = 2.
-    """
-
-    attributes = ('Listable, Protected')
-
-    rules = {
-        'RealExponent[x_, b_:10]': 'If[x === 0., -Accuracy[x], N[Log[b, Abs[x]]]]',
-    }
-
-
-class Accuracy(Builtin):
-    """
-    >> Accuracy[1.]
-     = 18.
-
-    >> Accuracy[0.04235423]
-     = 19.3731
-
-    #> Accuracy[0.000000000000000000000000000000000000]
-     = 36.
-
-    #> Accuracy[14`4]
-     = 2.85387
-    """
-
-    def apply_real(self, x, evaluation):
-        "Accuracy[x_Real]"
-        return Real(x.acc)
-
+        
 def round(value, k):
     n = (1. * value / k).as_real_imag()[0]
     if n >= 0:
@@ -341,8 +233,9 @@ class Round(Builtin):
      = 11
     >> Round[0.06, 0.1]
      = 0.1
+    ## This should return 0. but doesn't due to a bug in sympy
     >> Round[0.04, 0.1]
-     = 0.
+     = 0
 
     Constants can be rounded too
     >> Round[Pi, .5]
@@ -382,11 +275,7 @@ class Round(Builtin):
     
     def apply(self, expr, k, evaluation):
         "Round[expr_?NumericQ, k_?NumericQ]"
-        prec = k.get_precision()
-        result = from_sympy(round(expr.to_sympy(), k.to_sympy()))
-        if prec is not None:
-            result = Expression('N', result, Real(prec)).evaluate(evaluation)
-        return result
+        return from_sympy(round(expr.to_sympy(), k.to_sympy()))
     
 def chop(expr, delta=10.0**(-10.0)):
     if isinstance(expr, Real):
@@ -517,7 +406,7 @@ class BaseForm(Builtin):
         if not (isinstance(expr, Integer) or isinstance(expr, Real)):
             return Expression("MakeBoxes", expr, f)
 
-        p = expr.get_precision() if isinstance(expr, Real) else 0
+        p = dps(expr.get_precision()) if isinstance(expr, Real) else 0
         val = convert_base(expr.get_real_value(), base, p)
 
         if f.get_name() == 'OutputForm':

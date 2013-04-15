@@ -4,7 +4,7 @@ import sympy
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, Test
 from mathics.core.expression import Expression, Number, Integer, Rational, Real, Symbol, Complex, String
-from mathics.core.numbers import get_type
+from mathics.core.numbers import get_type, dps, min_prec
 
 class SameQ(BinaryOperator):
     """
@@ -188,8 +188,8 @@ def do_compare(l1, l2):
         return False
     elif l1.to_sympy().is_number and l2.to_sympy().is_number:
         #assert min_prec(l1, l2) is None
-        prec = 18       #TODO: Use $MaxExtraPrecision
-        if l1.to_sympy().n(prec) == l2.to_sympy().n(prec):
+        prec = 64       #TODO: Use $MaxExtraPrecision
+        if l1.to_sympy().n(dps(prec)) == l2.to_sympy().n(dps(prec)):
            return True
         return False
     elif l1.has_form('List', None) and l2.has_form('List', None):

@@ -33,7 +33,7 @@ def get_type(value):
         return 'q'
     elif isinstance(value, sympy.Float) or isinstance(value, mpmath.mpf):
         return 'f'
-    elif isinstance(value, sympy.Expr) and value.is_number and not value.is_real or isinstance(value, mpmath.mpc):
+    elif isinstance(value, sympy.Expr) and value.is_number and not value.is_real:
         return 'c'
     else:
         return None
@@ -48,7 +48,7 @@ def sympy2mpmath(value, prec=None):
     if prec is None:
         from mathics.builtin.numeric import machine_precision
         prec = machine_precision
-    value = value.n(prec)
+    value = value.n(dps(prec))
     if value.is_real:
         return mpmath.mpf(value)
     elif value.is_number:
@@ -61,15 +61,15 @@ class SpecialValueError(Exception):
         self.name = name
 
 def mpmath2sympy(value, prec=None):
-    if prec is not None:
+    if prec is None:
         from mathics.builtin.numeric import machine_precision
         prec = machine_precision
     if isinstance(value, mpmath.mpc):
-        return sympy.Float(str(value.real), prec) + sympy.I * sympy.Float(str(value.imag), prec)
+        return sympy.Float(str(value.real), dps(prec)) + sympy.I * sympy.Float(str(value.imag), dps(prec))
     elif isinstance(value, mpmath.mpf):
         if str(value) in ('+inf', '-inf'):
             raise SpecialValueError('ComplexInfinity')
-        return sympy.Float(str(value), prec)
+        return sympy.Float(str(value), dps(prec))
     else:
         return None
     
@@ -101,7 +101,7 @@ def mul(x, y):
     
 def add(x, y):
     return x + y
-
+        
 def min_prec(*args):
     result = None
     for arg in args:

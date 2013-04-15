@@ -7,6 +7,7 @@ import sympy
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator
 from mathics.core.expression import Expression, Integer, Real, Number, Symbol, from_sympy
 from mathics.core.numbers import min_prec, SpecialValueError
+from mathics.builtin.numeric import dps
 
 class Fibonacci(Builtin):
     """
@@ -44,7 +45,7 @@ class Binomial(Builtin):
      
     'Binomial' supports inexact numbers:
     >> Binomial[10.5,3.2]
-     = 165.286
+     = 165.286109367256421
      
     Some special cases:
     >> Binomial[10, -2]
@@ -70,7 +71,7 @@ class Binomial(Builtin):
         prec = min_prec(n, k)
         n = n.to_sympy()
         k = k.to_sympy()
-        result = sympy.binomial(n, k).n(prec)
+        result = sympy.binomial(n, k).n(dps(prec))
         if result == sympy.Float('inf'):
             return Symbol('ComplexInfinity')
         return Real(result, prec)
