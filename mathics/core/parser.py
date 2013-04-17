@@ -68,6 +68,12 @@ symbol_re = re.compile(r'`?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)*')
 def is_symbol_name(text):
     return symbol_re.sub('', text) == ''
 
+#TODO Expand this
+additional_entities = {
+    'DifferentialD': u'\u2146',
+    'Sum': u'\u2211',
+    'Product': u'\u220f',
+}
 
 prefix_operators = {
     'Del' : 'Del',
@@ -766,8 +772,7 @@ class MathicsScanner:
         
         def sub_entity(match):
             name = match.group(1)
-            #entity = additional_entities.get(name)
-            entity = None
+            entity = additional_entities.get(name)
             if entity is not None:
                 return entity
             uname = ''
