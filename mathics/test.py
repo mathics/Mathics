@@ -209,6 +209,7 @@ def main():
     parser.add_argument('--section', '-s', dest="section", metavar="SECTION", help="only test SECTION")
     parser.add_argument('--output', '-o', dest="output", action="store_true", help="generate TeX and XML output data")
     parser.add_argument('--tex', '-t', dest="tex", action="store_true", help="generate TeX documentation file")
+    parser.add_argument('--quiet', '-q', dest="quiet", action="store_true", help="hide passed tests")
     args = parser.parse_args()
     
     if args.tex:
@@ -217,7 +218,7 @@ def main():
         if args.section:
             test_section(args.section)
         else:
-            test_all(generate_output=args.output)
+            test_all(quiet=args.quiet, generate_output=args.output)
 
 if __name__ == '__main__':
     main()
