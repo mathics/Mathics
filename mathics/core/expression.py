@@ -1347,8 +1347,6 @@ class Real(Number):
     def __init__(self, value, p=None):
         from mathics.builtin.numeric import machine_precision
         super(Real, self).__init__()
-        if p == 18:
-            raise NotImplementedError
 
         if isinstance(value, basestring):
             value = str(value)
