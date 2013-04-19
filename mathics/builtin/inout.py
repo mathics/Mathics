@@ -314,18 +314,6 @@ class MakeBoxes(Builtin):
         else:
             return MakeBoxes(expr, f)
         
-class MyMakeBoxes(Builtin):
-
-    attributes = ('HoldAllComplete',)
-
-    def apply(self, expr, form, evaluation):
-        'MyMakeBoxes[expr_, form_:StandardForm]'
-        form_name = form.get_name()
-        if form_name is None:
-            evaluation.message('ToBoxes', 'boxfmt', form)
-        boxes = expr.format(evaluation, form_name)
-        return boxes
-
 class ToBoxes(Builtin):
     """
     >> ToBoxes[a + b]

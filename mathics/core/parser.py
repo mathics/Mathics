@@ -1312,7 +1312,7 @@ class MathicsParser:
 
     def p_box(self, args):
         'box : expr'
-        args[0] = Expression('MyMakeBoxes', args[1])
+        args[0] = Expression('MakeBoxes', args[1])
 
     def p_form(self, args):
         'form : expr'
