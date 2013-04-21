@@ -35,6 +35,10 @@ class RecursionLimit(Predefined):
     
     name = '$RecursionLimit'
     value = 200
+
+    rules = {
+        '$RecursionLimit' : str(value),
+    }
     
     messages = {
         'reclim': "Recursion depth of `1` exceeded.",
