@@ -105,6 +105,10 @@ class Switch(Builtin):
     >> Switch[2, 1]
      : Switch called with 2 arguments. Switch must be called with an odd number of arguments.
      = Switch[2, 1]
+
+    #> a; Switch[b, b]
+     : Switch called with 2 arguments. Switch must be called with an odd number of arguments.
+     = Switch[b, b]
     """
     
     attributes = ('HoldRest',)
