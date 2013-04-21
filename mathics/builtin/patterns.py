@@ -284,6 +284,7 @@ class PatternTest(BinaryOperator, PatternObject):
         def yield_match(vars_2, rest):                
             items = expression.get_sequence()
             for item in items:                              
+                item = item.evaluate(evaluation)
                 quick_test = self.quick_pattern_test(item, self.test_name)
                 if quick_test is not None:
                     if not quick_test:
