@@ -700,7 +700,7 @@ class Power(BinaryOperator, SympyFunction):
     }
     
     formats = {
-        'x_ ^ (1/2)': 'HoldForm[Sqrt[x]]',
+        Expression('Power', Expression('Pattern', Symbol('x'), Expression('Blank')), Rational(1, 2)) : 'HoldForm[Sqrt[x]]',
         
         (('InputForm', 'OutputForm'), 'x_ ^ y_'): 'Infix[{HoldForm[x], HoldForm[y]}, "^", 590, Right]',
         ('', 'x_ ^ y_'): 'PrecedenceForm[Superscript[OuterPrecedenceForm[HoldForm[x], 590], HoldForm[y]], 590]',

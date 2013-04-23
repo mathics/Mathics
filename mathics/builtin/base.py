@@ -92,7 +92,9 @@ class Builtin(object):
             for form in forms:
                 if not form in formatvalues:
                     formatvalues[form] = []
-                formatvalues[form].append(Rule(parse(pattern), parse(replace), system=True))
+                if not isinstance(pattern, BaseExpression):
+                    pattern = parse(pattern)
+                formatvalues[form].append(Rule(pattern, parse(replace), system=True))
         for form, formatrules in formatvalues.items():
             formatrules.sort()
         
