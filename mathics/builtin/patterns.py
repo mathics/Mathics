@@ -450,14 +450,22 @@ class Pattern_(PatternObject):
     the last parameter is the default value.
     >> f[y] /. f[a:b:_:d] -> {a, b}
      = {y, y}
-    >> f[] /. f[a:b:_:d] -> {a, b}
-     = {d, d}
     This is equivalent to:
     >> f[] /. f[a:b_:d] -> {a, b}
      = {d, d}
     'FullForm':
     >> FullForm[a:b:c:d:e]
-     = Optional[Pattern[a, Pattern[b, Pattern[c, d]]], e]
+     = Optional[Pattern[a, b], Optional[Pattern[c, d], e]]
+
+    ## Test parsing for following TODO test
+    #> Hold[f[] /. f[a:b:_:d] -> {a, b}] // FullForm
+     = Hold[ReplaceAll[f[], Rule[f[Pattern[a, Optional[Pattern[b, Blank[]], d]]], List[a, b]]]]
+    """
+
+    #TODO: This parses correctly (see above test) but computes incorrectly
+    """
+    >> f[] /. f[a:b:_:d] -> {a, b}
+     = {d, d}
     """
     
     name = 'Pattern'

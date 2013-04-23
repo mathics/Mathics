@@ -1241,8 +1241,13 @@ class MathicsParser:
         args[0] = Expression('Not', args[2])
 
     def p_Pattern(self, args):
-        'expr : symbol RawColon expr'
+        '''expr : symbol RawColon pattern RawColon expr
+                | symbol RawColon expr'''
         args[0] = Expression('Pattern', Symbol(args[1]), args[3])
+        if len(args) == 6:
+            args[0] = Expression('Optional', args[0], args[5])
+        elif args[3].get_head_name() == 'Pattern':
+            args[0] = Expression('Optional', Expression('Pattern', Symbol(args[1]), args[3].leaves[0]), args[3].leaves[1])
 
     def p_Optional(self, args):
         'expr : pattern RawColon expr'
