@@ -81,9 +81,6 @@ class MakeBoxes(Builtin):
     """
 
     String representation of boxes
-    >> \(a + b\)
-     = RowBox[{a, +, b}]
-
     >> \(x \^ 2\)
      = SuperscriptBox[x, 2]
 
@@ -99,12 +96,6 @@ class MakeBoxes(Builtin):
     #> \( \@ 5 \)
      = SqrtBox[5]
 
-    >> \(TraditionalForm \` a + b\)
-     = FormBox[RowBox[{a, +, b}], TraditionalForm]
-
-    >> \(x \/ \(y + z\)\)
-     =  FractionBox[x, RowBox[{y, +, z}]]
-
     >> \(x \& y \)
      = OverscriptBox[x, y]
 
@@ -114,6 +105,19 @@ class MakeBoxes(Builtin):
     #> \( x \^ 2 \_ 4 \)
      = SuperscriptBox[x, SubscriptBox[2, 4]]
     """
+
+    #TODO: Convert operators to appropriate representations e.g. 'Plus' to '+'
+    """
+    >> \(a + b\)
+     = RowBox[{a, +, b}]
+
+    >> \(TraditionalForm \` a + b\)
+     = FormBox[RowBox[{a, +, b}], TraditionalForm]
+
+    >> \(x \/ \(y + z\)\)
+     =  FractionBox[x, RowBox[{y, +, z}]]
+    """
+
 
     #TODO: Constructing boxes from Real
     """
