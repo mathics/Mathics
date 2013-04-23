@@ -118,7 +118,7 @@ setup(
     
     packages = [
         'mathics',
-        'mathics.core', 'mathics.core.spark',
+        'mathics.core',
         'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.data',
         'mathics.doc', 
         'mathics.autoload',
