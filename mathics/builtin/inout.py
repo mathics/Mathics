@@ -113,7 +113,10 @@ class MakeBoxes(Builtin):
 
     #> \( x \^ 2 \_ 4 \)
      = SuperscriptBox[x, SubscriptBox[2, 4]]
+    """
 
+    #TODO: Constructing boxes from Real
+    """
     ## Test Real MakeBoxes
     #> MakeBoxes[1.4]
      = 1.4`
