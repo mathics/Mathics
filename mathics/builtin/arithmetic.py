@@ -898,7 +898,7 @@ class DirectedInfinity(SympyFunction):
     """
         
     rules = {
-        '1 / DirectedInfinity[args___]': '0',
+        'DirectedInfinity[args___] ^ -1': '0',
         '0 * DirectedInfinity[args___]': 'Message[Infinity::indet, Unevaluated[0 DirectedInfinity[args]]]; Indeterminate',
         'DirectedInfinity[a_?NumberQ] /; N[Abs[a]] != 1': 'DirectedInfinity[a / Abs[a]]',
         'DirectedInfinity[a_] * DirectedInfinity[b_]': 'DirectedInfinity[a*b]',
