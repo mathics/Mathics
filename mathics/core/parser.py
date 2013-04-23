@@ -276,6 +276,7 @@ tokens = (
     'out',
     'slot',
     'slotseq',
+    'filename',
     'Span',
     'RawLeftBracket',
     'RawRightBracket',
@@ -650,6 +651,14 @@ class MathicsScanner:
     def t_ANY_comment(self, t):
         r' (?s) \(\* .*? \*\) '
         return None
+
+    def t_ANY_filename(self, t):
+        r' ((?<=(<<|>>))|(?<=(<<|>>)\s)) (?P<quote>\"*) [a-zA-Z0-9\`/\.\\\!\-\:\_\$\*\~\?]+ (?P=quote) '
+        s = t.value
+        if s.startswith('"'):
+            s = s[1:-1]
+        t.value = String(s)
+        return t
 
     # Lex '1..' as [1, RepeatedNull]. MMA fails when base given e.g. '8^^1..'
     def t_ANY_intRepeated(self, t): 
@@ -1106,11 +1115,6 @@ class MathicsParser:
         
     def p_string(self, args):
         'expr : string'
-        args[0] = String(args[1])
-
-    def p_filename_string(self, args):
-        '''filename : string
-                    | symbol'''
         args[0] = String(args[1])
 
     def p_Get(self, args):
