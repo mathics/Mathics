@@ -34,8 +34,13 @@ BENCHMARKS = {
 }
 
 PARSING_BENCHMARKS = [
-    " +".join(map(str,range(1,100))),
-    "Sin[Sin[Sin[Sin[0]]]]",
+    "+".join(map(str, range(1,1000))),
+    ";".join(map(str, range(1,1000))),
+    "/".join(map(str, range(1,1000))),
+    "^".join(map(str, range(1,1000))),
+    "! "*1000 + 'expr',
+    'expr' + "& "*1000,
+    "Sin["*1000 + '0.5' + "]"*1000,
 ]
 
 import sys
