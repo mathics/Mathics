@@ -1185,7 +1185,13 @@ class MathicsParser:
 
     def p_Derivative(self, args):
         'expr : expr Derivative'
-        args[0] = Expression(Expression('Derivative', Integer(len(args[2]))), args[1])
+        n = len(args[2])
+        if isinstance(args[1], Expression) and isinstance(args[1].head,
+            Expression) and args[1].head.get_head_name() == 'Derivative' \
+            and args[1].head.leaves[0].get_int_value() is not None:
+            n += args[1].head.leaves[0].get_int_value()
+            args[1] = args[1].leaves[0]
+        args[0] = Expression(Expression('Derivative', Integer(n)), args[1])
 
     def p_Integrate(self, args):
         'expr : Integral expr DifferentialD expr %prec Integral'
