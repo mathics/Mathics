@@ -1271,8 +1271,11 @@ class MathicsParser:
 
     def p_Not(self, args):
         '''expr : Not expr
-                | Factorial expr %prec Not'''
+                | Factorial expr %prec Not
+                | Factorial2 expr %prec Not'''
         args[0] = Expression('Not', args[2])
+        if args[1] == '!!':
+            args[0] = Expression('Not', args[0])
 
     def p_Pattern(self, args):
         '''expr : symbol RawColon pattern RawColon expr

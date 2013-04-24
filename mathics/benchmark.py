@@ -39,6 +39,7 @@ PARSING_BENCHMARKS = [
     "/".join(map(str, range(1,1000))),
     "^".join(map(str, range(1,1000))),
     "! "*1000 + 'expr',
+    "!"*1000 + 'expr',
     'expr' + "& "*1000,
     "Sin["*1000 + '0.5' + "]"*1000,
 ]
