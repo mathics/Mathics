@@ -24,17 +24,11 @@ import ply.yacc as yacc
 import re
 import unicodedata
 from math import log10
-import logging
 
 from mathics.core.expression import BaseExpression, Expression, Integer, Real, Symbol, String, Rational
 from mathics.core.numbers import dps
 from mathics.builtin import builtins
 from mathics.builtin.numeric import machine_precision
-
-#logging.basicConfig(level=logging.DEBUG)
-#logging.basicConfig(level=logging.ERROR)
-#log = logging.getLogger()
-log = None
 
 class TranslateError(Exception):
     pass
@@ -634,7 +628,10 @@ class MathicsScanner:
     t_Function = ur' \\\[Function\]|\uF4A1 '
 
     def build(self, **kwargs):
-        self.lexer = lex.lex(debug=0, module=self, **kwargs)
+        self.lexer = lex.lex(
+            debug=False,
+            module=self, 
+            **kwargs)
 
     def tokenize(self, input_string):
         self.tokens = []
@@ -1008,7 +1005,12 @@ class MathicsParser:
             setattr(self, 'p_{0}_innequality'.format(innequality_op), tmp)
 
     def build(self, **kwargs):
-        self.parser = yacc.yacc(debug=1, module=self, **kwargs)
+        self.parser = yacc.yacc(
+            module=self,
+            debug=False,
+            tabmodule='mathics.core.parsetab',  # where to look for parsetab
+            outputdir='mathics/core/',          # where to store parsetab
+            **kwargs)
 
     def p_error(self, p):
         if p is not None:
@@ -1016,7 +1018,7 @@ class MathicsParser:
         raise ParseError(p)
     
     def parse(self, string):
-        result = self.parser.parse(string, debug=log)
+        result = self.parser.parse(string)
         if result is not None:
             result = result.post_parse()
         return result
