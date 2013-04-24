@@ -648,6 +648,32 @@ class MathicsScanner:
             self.tokens.append(tok)
         return self.tokens
 
+    @staticmethod
+    def string_escape(s):
+        def sub_entity(match):
+            name = match.group(1)
+            entity = additional_entities.get(name)
+            if entity is not None:
+                return entity
+            uname = ''
+            for c in name:
+                if 'A' <= c <= 'Z':
+                    uname += ' ' + c
+                else:
+                    uname += c
+            try:
+                uname = uname.strip()
+                return unicodedata.lookup(uname)
+            except KeyError:
+                return '\\[' + name + ']'
+        
+        s = re.sub(r'\\\[([a-zA-Z]+)\]', sub_entity, s)
+        s = s.replace('\\\\', '\\').replace('\\"', '"')
+        s = s.replace('\\r\\n', '\r\n')
+        s = s.replace('\\r', '\r')
+        s = s.replace('\\n', '\n')
+        return s
+
     def t_ANY_comment(self, t):
         r' (?s) \(\* .*? \*\) '
         return None
@@ -657,6 +683,8 @@ class MathicsScanner:
         s = t.value
         if s.startswith('"'):
             s = s[1:-1]
+        s = self.string_escape(s)
+        s = s.replace('\\', '\\\\')
         t.value = String(s)
         return t
 
@@ -777,32 +805,7 @@ class MathicsScanner:
 
     def t_ANY_string(self, t):
         r' "([^\\"]|\\\\|\\"|\\\[[a-zA-Z]+\]|\\n|\\r|\\r\\n)*" '
-        s = t.value[1:-1]
-        
-        def sub_entity(match):
-            name = match.group(1)
-            entity = additional_entities.get(name)
-            if entity is not None:
-                return entity
-            uname = ''
-            for c in name:
-                if 'A' <= c <= 'Z':
-                    uname += ' ' + c
-                else:
-                    uname += c
-            try:
-                uname = uname.strip()
-                return unicodedata.lookup(uname)
-            except KeyError:
-                return '\\[' + name + ']'
-        
-        s = re.sub(r'\\\[([a-zA-Z]+)\]', sub_entity, s)
-        s = s.replace('\\\\', '\\').replace('\\"', '"')
-        s = s.replace('\\r\\n', '\r\n')
-        s = s.replace('\\r', '\r')
-        s = s.replace('\\n', '\n')
-
-        t.value = s
+        t.value = self.string_escape(t.value[1:-1])
         return t
 
     def t_ANY_blankdefault(self, t):    # this must come before t_blanks
