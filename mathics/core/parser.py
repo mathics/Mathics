@@ -445,30 +445,28 @@ class MathicsScanner:
     precedence = precedence
 
     states = (
-        ('boxes', 'exclusive'),
+        ('file', 'exclusive'),
+        ('boxes', 'inclusive'),
     )
 
     #t_ignore = ur' [\s \u2062]+ '
     t_ANY_ignore = ' \t\n '
 
-    t_ANY_RawLeftBracket = r' \[ '
-    t_ANY_RawRightBracket = r' \] '
-    t_ANY_RawLeftBrace = r' \{ '
-    t_ANY_RawRightBrace = r' \} '
-    t_ANY_RawLeftParenthesis = r' \( '
-    t_ANY_RawRightParenthesis = r' \) '
+    t_RawLeftBracket = r' \[ '
+    t_RawRightBracket = r' \] '
+    t_RawLeftBrace = r' \{ '
+    t_RawRightBrace = r' \} '
+    t_RawLeftParenthesis = r' \( '
+    t_RawRightParenthesis = r' \) '
 
-    t_ANY_RawComma = r' \, '
+    t_RawComma = r' \, '
 
-    t_ANY_Span = r' \;\; '
+    t_Span = r' \;\; '
 
-    t_ANY_MessageName = r' \:\: '
-    t_ANY_Get = r' \<\< '
-    t_ANY_Put = r' \>\> '
-    t_ANY_PutAppend = r' \>\>\> '
+    t_MessageName = r' \:\: '
 
     # Box Constructors
-    t_ANY_InterpretedBox = r' \\\! '
+    t_InterpretedBox = r' \\\! '
     t_boxes_Superscript = r' \\\^ '
     t_boxes_Subscript = r' \\\_ '
     t_boxes_Overscript = r' \\\& '
@@ -478,162 +476,162 @@ class MathicsScanner:
     t_boxes_Sqrt = r' \\\@ '
     t_boxes_FormBox = r' \\\` '
 
-    t_ANY_PatternTest = r' \? '
-    t_ANY_Increment = r' \+\+ '
-    t_ANY_Decrement = r' \-\- '
+    t_PatternTest = r' \? '
+    t_Increment = r' \+\+ '
+    t_Decrement = r' \-\- '
 
-    t_ANY_Prefix = r' \@ '
-    t_ANY_Infix = r' \~ '
-    t_ANY_Apply1 = r' \@\@ '
-    t_ANY_Apply2 = r' \@\@\@ '
-    t_ANY_Map = r' \/\@ '
-    t_ANY_MapAll = r' \/\/\@ '
+    t_Prefix = r' \@ '
+    t_Infix = r' \~ '
+    t_Apply1 = r' \@\@ '
+    t_Apply2 = r' \@\@\@ '
+    t_Map = r' \/\@ '
+    t_MapAll = r' \/\/\@ '
 
-    t_ANY_Factorial = r' \! '
-    t_ANY_Factorial2 = r' \!\! '
+    t_Factorial = r' \! '
+    t_Factorial2 = r' \!\! '
 
-    t_ANY_Transpose = ur' \\\[Transpose\]|\uf3c7 '
-    t_ANY_Conjugate = ur' \\\[Conjugate\]|\uf3c8 '
-    t_ANY_ConjugateTranspose = ur' \\\[ConjugateTranspose\]|\uf3c9 '
-    t_ANY_HermitianConjugate = ur' \\\[HermitianConjugate\]|\uf3ce '
+    t_Transpose = ur' \\\[Transpose\]|\uf3c7 '
+    t_Conjugate = ur' \\\[Conjugate\]|\uf3c8 '
+    t_ConjugateTranspose = ur' \\\[ConjugateTranspose\]|\uf3c9 '
+    t_HermitianConjugate = ur' \\\[HermitianConjugate\]|\uf3ce '
 
-    t_ANY_Derivative = r' \'+ '
-    t_ANY_StringJoin = r' \<\> '
+    t_Derivative = r' \'+ '
+    t_StringJoin = r' \<\> '
 
-    t_ANY_Power = r' \^ '
+    t_Power = r' \^ '
 
-    t_ANY_Integral = ur' \\\[Integral\]|\u222b '
-    t_ANY_DifferentialD = ur'\\\[DifferentialD\]|\uf74c '
-    #tANY__PartialD = ur' \\\[PartialD\]|\u2202 '
-    t_ANY_Del = ur' \\\[Del\]|\u2207 '
+    t_Integral = ur' \\\[Integral\]|\u222b '
+    t_DifferentialD = ur'\\\[DifferentialD\]|\uf74c '
+    #t_PartialD = ur' \\\[PartialD\]|\u2202 '
+    t_Del = ur' \\\[Del\]|\u2207 '
     
-    t_ANY_Square = ur' \\\[Square\]|\uf520 '
-    t_ANY_SmallCircle = ur' \\\[SmallCircle\]|\u2218 '
-    t_ANY_CircleDot = ur' \\\[CircleDot\]|\u2299 '
+    t_Square = ur' \\\[Square\]|\uf520 '
+    t_SmallCircle = ur' \\\[SmallCircle\]|\u2218 '
+    t_CircleDot = ur' \\\[CircleDot\]|\u2299 '
 
-    t_ANY_NonCommutativeMultiply = r' \*\* '
+    t_NonCommutativeMultiply = r' \*\* '
 
-    t_ANY_Cross = ur' \\\[Cross\]|\uf4a0 '
-    t_ANY_RawDot = r' \. '
+    t_Cross = ur' \\\[Cross\]|\uf4a0 '
+    t_RawDot = r' \. '
 
-    t_ANY_Plus = r' \+ '
-    t_ANY_Minus = r' \- '
-    t_ANY_RawSlash = r' \/ '
-    t_ANY_RawBackslash = r' \\ '
+    t_Plus = r' \+ '
+    t_Minus = r' \- '
+    t_RawSlash = r' \/ '
+    t_RawBackslash = r' \\ '
 
-    t_ANY_Diamond = ur' \\\[Diamond\]|\u22c4 '
-    t_ANY_Wedge = ur' \\\[Wedge\]|\u22c0 '
-    t_ANY_Vee = ur' \\\[Vee\]|\u22c1 '
-    t_ANY_CircleTimes = ur' \\\[CircleTimes\]|\u2297 '
-    t_ANY_CenterDot = ur' \\\[CenterDot\]|\u00b7 '
-    t_ANY_Star = ur' \\\[Star\]|\u22c6'
+    t_Diamond = ur' \\\[Diamond\]|\u22c4 '
+    t_Wedge = ur' \\\[Wedge\]|\u22c0 '
+    t_Vee = ur' \\\[Vee\]|\u22c1 '
+    t_CircleTimes = ur' \\\[CircleTimes\]|\u2297 '
+    t_CenterDot = ur' \\\[CenterDot\]|\u00b7 '
+    t_Star = ur' \\\[Star\]|\u22c6'
 
-    #tANY__Sum = ur' \\\[Sum\]|\u2211 '
-    #tANY__Product = ur' \\\[Product\]|\u220f '
+    #t_Sum = ur' \\\[Sum\]|\u2211 '
+    #t_Product = ur' \\\[Product\]|\u220f '
 
-    t_ANY_RawStar = r' \* '
-    t_ANY_Times = ur'\\\[Times\]|\u00d7 '
-    t_ANY_Divide = ur' \\\[Divide\]|\u00f7 '
+    t_RawStar = r' \* '
+    t_Times = ur'\\\[Times\]|\u00d7 '
+    t_Divide = ur' \\\[Divide\]|\u00f7 '
 
-    t_ANY_PlusMinus = ur' \\\[PlusMinus\]|\u00b1 '
-    t_ANY_MinusPlus = ur' \\\[MinusPlus\]|\u2213 '
+    t_PlusMinus = ur' \\\[PlusMinus\]|\u00b1 '
+    t_MinusPlus = ur' \\\[MinusPlus\]|\u2213 '
 
-    t_ANY_op_Equal = r' \=\= '
-    t_ANY_op_Unequal = r' \!\= '
-    t_ANY_Greater = r' \> '
-    t_ANY_Less = r' \< '
-    t_ANY_op_GreaterEqual = r' \>\= '
-    t_ANY_op_LessEqual = r' \<\= '
+    t_op_Equal = r' \=\= '
+    t_op_Unequal = r' \!\= '
+    t_Greater = r' \> '
+    t_Less = r' \< '
+    t_op_GreaterEqual = r' \>\= '
+    t_op_LessEqual = r' \<\= '
 
-    t_ANY_SameQ = r' \=\=\= '
-    t_ANY_UnsameQ = r' \=\!\= '
+    t_SameQ = r' \=\=\= '
+    t_UnsameQ = r' \=\!\= '
 
-    t_ANY_op_And = r' \&\& '
-    t_ANY_op_Or = r' \|\|  '
+    t_op_And = r' \&\& '
+    t_op_Or = r' \|\|  '
 
-    t_ANY_Or = ur' \\\[Or\]|\u2228 '
-    t_ANY_Nor = ur' \\\[Nor\]|\u22BD '
+    t_Or = ur' \\\[Or\]|\u2228 '
+    t_Nor = ur' \\\[Nor\]|\u22BD '
 
-    t_ANY_And = ur' \\\[And\]|\u2227 '
-    t_ANY_Nand = ur' \\\[Nand\]|\u22BC '
+    t_And = ur' \\\[And\]|\u2227 '
+    t_Nand = ur' \\\[Nand\]|\u22BC '
 
-    t_ANY_Xor = ur' \\\[Xor\]|\u22BB '
-    t_ANY_Xnor = ur' \\\[Xnor\]|\uF4A2 '
+    t_Xor = ur' \\\[Xor\]|\u22BB '
+    t_Xnor = ur' \\\[Xnor\]|\uF4A2 '
 
-    t_ANY_Repeated = r' \.\. '
-    t_ANY_RepeatedNull = r' \.\.\. '
-    t_ANY_Alternatives = r' \| '
+    t_Repeated = r' \.\. '
+    t_RepeatedNull = r' \.\.\. '
+    t_Alternatives = r' \| '
 
-    t_ANY_RawColon = r' \: '
-    t_ANY_StringExpression = r' \~\~ '
-    t_ANY_Condition = r' \/\; '
+    t_RawColon = r' \: '
+    t_StringExpression = r' \~\~ '
+    t_Condition = r' \/\; '
 
-    t_ANY_op_Rule = r' \-\> '
-    t_ANY_op_RuleDelayed = r' \:\> '
-    t_ANY_ReplaceAll = r' \/\. '
-    t_ANY_ReplaceRepeated = r' \/\/\. '
+    t_op_Rule = r' \-\> '
+    t_op_RuleDelayed = r' \:\> '
+    t_ReplaceAll = r' \/\. '
+    t_ReplaceRepeated = r' \/\/\. '
 
-    t_ANY_AddTo = r' \+\= '
-    t_ANY_SubtractFrom = r' \-\=  '
-    t_ANY_TimesBy = r' \*\= '
-    t_ANY_DivideBy = r' \/\=  '
+    t_AddTo = r' \+\= '
+    t_SubtractFrom = r' \-\=  '
+    t_TimesBy = r' \*\= '
+    t_DivideBy = r' \/\=  '
 
-    t_ANY_RawAmpersand = r' \& '
-    t_ANY_Colon = ur' \\\[Colon\]|\u2236 ' 
-    t_ANY_Postfix = r' \/\/ '
+    t_RawAmpersand = r' \& '
+    t_Colon = ur' \\\[Colon\]|\u2236 ' 
+    t_Postfix = r' \/\/ '
 
-    t_ANY_Set = r' \= '
-    t_ANY_SetDelayed = r' \:\= '
-    t_ANY_UpSet = r' \^\= '
-    t_ANY_UpSetDelayed = r' \^\:\= '
-    t_ANY_TagSet = r' \/\: '
-    t_ANY_Unset = r' \=\. '
+    t_Set = r' \= '
+    t_SetDelayed = r' \:\= '
+    t_UpSet = r' \^\= '
+    t_UpSetDelayed = r' \^\:\= '
+    t_TagSet = r' \/\: '
+    t_Unset = r' \=\. '
 
-    t_ANY_Semicolon = r' \; '
+    t_Semicolon = r' \; '
 
-    #tANY__DiscreteShift = ur' \\\[DiscreteShift\]|\uf4a3 '
-    #tANY__DiscreteRatio = ur' \\\[DiscreteRatio\]|\uf4a4 '
-    #tANY__DifferenceDelta = ur' \\\[DifferenceDelta\]|\u2206 '
-    t_ANY_VerticalTilde = ur' \\\[VerticalTilde\]|\u2240 '
-    t_ANY_Coproduct = ur' \\\[Coproduct\]|\u2210 '
-    t_ANY_Cap = ur' \\\[Cap\]|\u2322 '
-    t_ANY_Cup = ur' \\\[Cup\]|\u2323 '
-    t_ANY_CirclePlus = ur' \\\[CirclePlus\]|\u2295 '
-    t_ANY_CircleMinus = ur' \\\[CircleMinus\]|\u2296 '
-    t_ANY_Intersection = ur' \\\[Intersection\]|\u22c2 '
-    t_ANY_Union = ur' \\\[Union\]|\u22c3 '
-    t_ANY_Equal = ur' \\\[Equal\]|\uf431 '
-    t_ANY_LongEqual = ur' \\\[LongEqual\]|\uf7d9 '
-    t_ANY_NotEqual = ur' \\\[NotEqual\]|\u2260 '
-    t_ANY_LessEqual = ur' \\\[LessEqual\]|\u2264 '
-    t_ANY_LessSlantEqual = ur' \\\[LessSlantEqual\]|\u2a7d '
-    t_ANY_GreaterEqual = ur' \\\[GreaterEqual\]|\u2265 '
-    t_ANY_GreaterSlantEqual = ur' \\\[GreaterSlantEqual\]|\u2a7e '
-    t_ANY_VerticalBar = ur' \\\[VerticalBar\]|\u2223 '
-    t_ANY_NotVerticalBar = ur' \\\[NotVerticalBar\]|\u2224 '
-    t_ANY_DoubleVerticalBar = ur' \\\[DoubleVerticalBar\]|\u2225 '
-    t_ANY_NotDoubleVerticalBar = ur' \\\[NotDoubleVerticalBar\]|\u2226 '
-    t_ANY_Element = ur' \\\[Element\]|\u2208 '
-    t_ANY_NotElement = ur' \\\[NotElement\]|\u2209 '
-    t_ANY_Subset = ur' \\\[Subset\]|\u2282 '
-    t_ANY_Superset = ur' \\\[Superset\]|\u2283 '
-    t_ANY_ForAll = ur' \\\[ForAll\]|\u2200 '
-    t_ANY_Exists = ur' \\\[Exists\]|\u2203 '
-    t_ANY_NotExists = ur' \\\[NotExists\]|\u2204 '
-    t_ANY_Not = ur' \\\[Not\]|\u00AC '
-    t_ANY_Equivalent = ur' \\\[Equivalent\]|\u29E6 '
-    t_ANY_Implies = ur' \\\[Implies\]|\uF523 '
-    t_ANY_RightTee = ur' \\\[RightTee\]|\u22A2 '
-    t_ANY_DoubleRightTee = ur' \\\[DoubleRightTee\]|\u22A8 '
-    t_ANY_LeftTee = ur' \\\[LeftTee\]|\u22A3 '
-    t_ANY_DoubleLeftTee = ur' \\\[DoubleLeftTee\]|\u2AE4 '
-    t_ANY_SuchThat = ur' \\\[SuchThat\]|\u220D '
-    t_ANY_Rule = ur' \\\[Rule\]|\uF522 '
-    t_ANY_RuleDelayed = ur' \\\[RuleDelayed\]|\uF51F '
-    t_ANY_VerticalSeparator = ur' \\\[VerticalSeparator\]|\uF432 '
-    t_ANY_Therefore = ur' \\\[Therefore\]|\u2234 '
-    t_ANY_Because = ur' \\\[Because\]|\u2235 '
-    t_ANY_Function = ur' \\\[Function\]|\uF4A1 '
+    #t_DiscreteShift = ur' \\\[DiscreteShift\]|\uf4a3 '
+    #t_DiscreteRatio = ur' \\\[DiscreteRatio\]|\uf4a4 '
+    #t_DifferenceDelta = ur' \\\[DifferenceDelta\]|\u2206 '
+    t_VerticalTilde = ur' \\\[VerticalTilde\]|\u2240 '
+    t_Coproduct = ur' \\\[Coproduct\]|\u2210 '
+    t_Cap = ur' \\\[Cap\]|\u2322 '
+    t_Cup = ur' \\\[Cup\]|\u2323 '
+    t_CirclePlus = ur' \\\[CirclePlus\]|\u2295 '
+    t_CircleMinus = ur' \\\[CircleMinus\]|\u2296 '
+    t_Intersection = ur' \\\[Intersection\]|\u22c2 '
+    t_Union = ur' \\\[Union\]|\u22c3 '
+    t_Equal = ur' \\\[Equal\]|\uf431 '
+    t_LongEqual = ur' \\\[LongEqual\]|\uf7d9 '
+    t_NotEqual = ur' \\\[NotEqual\]|\u2260 '
+    t_LessEqual = ur' \\\[LessEqual\]|\u2264 '
+    t_LessSlantEqual = ur' \\\[LessSlantEqual\]|\u2a7d '
+    t_GreaterEqual = ur' \\\[GreaterEqual\]|\u2265 '
+    t_GreaterSlantEqual = ur' \\\[GreaterSlantEqual\]|\u2a7e '
+    t_VerticalBar = ur' \\\[VerticalBar\]|\u2223 '
+    t_NotVerticalBar = ur' \\\[NotVerticalBar\]|\u2224 '
+    t_DoubleVerticalBar = ur' \\\[DoubleVerticalBar\]|\u2225 '
+    t_NotDoubleVerticalBar = ur' \\\[NotDoubleVerticalBar\]|\u2226 '
+    t_Element = ur' \\\[Element\]|\u2208 '
+    t_NotElement = ur' \\\[NotElement\]|\u2209 '
+    t_Subset = ur' \\\[Subset\]|\u2282 '
+    t_Superset = ur' \\\[Superset\]|\u2283 '
+    t_ForAll = ur' \\\[ForAll\]|\u2200 '
+    t_Exists = ur' \\\[Exists\]|\u2203 '
+    t_NotExists = ur' \\\[NotExists\]|\u2204 '
+    t_Not = ur' \\\[Not\]|\u00AC '
+    t_Equivalent = ur' \\\[Equivalent\]|\u29E6 '
+    t_Implies = ur' \\\[Implies\]|\uF523 '
+    t_RightTee = ur' \\\[RightTee\]|\u22A2 '
+    t_DoubleRightTee = ur' \\\[DoubleRightTee\]|\u22A8 '
+    t_LeftTee = ur' \\\[LeftTee\]|\u22A3 '
+    t_DoubleLeftTee = ur' \\\[DoubleLeftTee\]|\u2AE4 '
+    t_SuchThat = ur' \\\[SuchThat\]|\u220D '
+    t_Rule = ur' \\\[Rule\]|\uF522 '
+    t_RuleDelayed = ur' \\\[RuleDelayed\]|\uF51F '
+    t_VerticalSeparator = ur' \\\[VerticalSeparator\]|\uF432 '
+    t_Therefore = ur' \\\[Therefore\]|\u2234 '
+    t_Because = ur' \\\[Because\]|\u2235 '
+    t_Function = ur' \\\[Function\]|\uF4A1 '
 
     def build(self, **kwargs):
         self.lexer = lex.lex(debug=0, module=self, **kwargs)
@@ -674,33 +672,18 @@ class MathicsScanner:
         s = s.replace('\\n', '\n')
         return s
 
-    def t_ANY_comment(self, t):
+    def t_comment(self, t):
         r' (?s) \(\* .*? \*\) '
         return None
 
-    def t_ANY_filename(self, t):
-        r'''
-        ((?<=(<<|>>))|(?<=(<<|>>)\s))               (?# Examine previous token)
-        (?P<quote>\"?)                              (?# Opening quotation mark)
-            [a-zA-Z0-9\`/\.\\\!\-\:\_\$\*\~\?]+     (?# Literal characters)
-        (?P=quote)                                  (?# Closing quotation mark)
-        '''
-        s = t.value
-        if s.startswith('"'):
-            s = s[1:-1]
-        s = self.string_escape(s)
-        s = s.replace('\\', '\\\\')
-        t.value = String(s)
-        return t
-
     # Lex '1..' as [1, RepeatedNull]. MMA fails when base given e.g. '8^^1..'
-    def t_ANY_intRepeated(self, t): 
+    def t_intRepeated(self, t): 
         r' (\d+\^\^[a-zA-Z0-9]+|\d+)(?=\.\.) '
-        t = self.t_ANY_number(t)
+        t = self.t_number(t)
         t.type = 'number'
         return t
 
-    def t_ANY_number(self, t):
+    def t_number(self, t):
         r'''
         ( (?# Two possible forms depending on whether base is specified)
             (\d+\^\^([a-zA-Z0-9]+\.?[a-zA-Z0-9]*|[a-zA-Z0-9]*\.?[a-zA-Z0-9]+))
@@ -815,20 +798,20 @@ class MathicsScanner:
 
         return t
 
-    def t_ANY_string(self, t):
+    def t_string(self, t):
         r' "([^\\"]|\\\\|\\"|\\\[[a-zA-Z]+\]|\\n|\\r|\\r\\n)*" '
         t.value = self.string_escape(t.value[1:-1])
         return t
 
-    def t_ANY_blankdefault(self, t):    # this must come before t_blanks
+    def t_blankdefault(self, t):    # this must come before t_blanks
         r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
         return t
 
-    def t_ANY_blanks(self, t):
+    def t_blanks(self, t):
         r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
         return t
 
-    def t_ANY_symbol(self, t):
+    def t_symbol(self, t):
         r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
         s = t.value
         if s.startswith('`'):
@@ -837,33 +820,33 @@ class MathicsScanner:
         t.value = s
         return t
 
-    def t_ANY_slotseq_1(self, t):
+    def t_slotseq_1(self, t):
         r' \#\#\d+ '
         (t.type, t.value) = ('slotseq', int(t.value[2:]))
         return t
     
-    def t_ANY_slotseq_2(self, t):
+    def t_slotseq_2(self, t):
         r' \#\# '
         s = t.value
         (t.type, t.value) = ('slotseq', 1)
         return t
     
-    def t_ANY_slotsingle_1(self, t):
+    def t_slotsingle_1(self, t):
         r' \#\d+ '
         (t.type, t.value) = ('slot', int(t.value[1:]))
         return t
 
-    def t_ANY_slotsingle_2(self, t):
+    def t_slotsingle_2(self, t):
         r' \# '
         (t.type, t.value) = ('slot', 1)
         return t
 
-    def t_ANY_out_1(self, t):
+    def t_out_1(self, t):
         r' \%\d+ '
         (t.type, t.value) = ('out', int(t.value[1:]))
         return t
 
-    def t_ANY_out_2(self, t):
+    def t_out_2(self, t):
         r' \%+ '
         (t.type, t.value) = ('out', -len(t.value))
         return t
@@ -889,6 +872,36 @@ class MathicsScanner:
         else:
             t.type = 'RightBoxParenthesisInternal'
             return t
+
+    def t_PutAppend(self, t):
+        r' \>\>\> '
+        t.lexer.begin('file')
+        return t
+
+    def t_Put(self, t):
+        r' \>\> '
+        t.lexer.begin('file')
+        return t
+
+    def t_Get(self, t):
+        r' \<\< '
+        t.lexer.begin('file')
+        return t
+
+    def t_file_filename(self, t):
+        r'''
+        (?P<quote>\"?)                              (?# Opening quotation mark)
+            [a-zA-Z0-9\`/\.\\\!\-\:\_\$\*\~\?]+     (?# Literal characters)
+        (?P=quote)                                  (?# Closing quotation mark)
+        '''
+        s = t.value
+        if s.startswith('"'):
+            s = s[1:-1]
+        s = self.string_escape(s)
+        s = s.replace('\\', '\\\\')
+        t.value = String(s)
+        t.lexer.begin('INITIAL')
+        return t
 
     def t_ANY_error(self, t):
         print t
