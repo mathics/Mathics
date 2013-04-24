@@ -679,7 +679,12 @@ class MathicsScanner:
         return None
 
     def t_ANY_filename(self, t):
-        r' ((?<=(<<|>>))|(?<=(<<|>>)\s)) (?P<quote>\"*) [a-zA-Z0-9\`/\.\\\!\-\:\_\$\*\~\?]+ (?P=quote) '
+        r'''
+        ((?<=(<<|>>))|(?<=(<<|>>)\s))               (?# Examine previous token)
+        (?P<quote>\"?)                              (?# Opening quotation mark)
+            [a-zA-Z0-9\`/\.\\\!\-\:\_\$\*\~\?]+     (?# Literal characters)
+        (?P=quote)                                  (?# Closing quotation mark)
+        '''
         s = t.value
         if s.startswith('"'):
             s = s[1:-1]
@@ -696,7 +701,14 @@ class MathicsScanner:
         return t
 
     def t_ANY_number(self, t):
-        r' (\d+\^\^([a-zA-Z0-9]+\.?[a-zA-Z0-9]*|[a-zA-Z0-9]*\.?[a-zA-Z0-9]+)|(\d+\.?\d*|\d*\.?\d+)) (``?(\+|-)?(\d+\.?\d*|\d*\.?\d+)|`)? (\*\^(\+|-)?\d+)? '
+        r'''
+        ( (?# Two possible forms depending on whether base is specified)
+            (\d+\^\^([a-zA-Z0-9]+\.?[a-zA-Z0-9]*|[a-zA-Z0-9]*\.?[a-zA-Z0-9]+))
+            | (\d+\.?\d*|\d*\.?\d+)
+        )
+        (``?(\+|-)?(\d+\.?\d*|\d*\.?\d+)|`)?        (?# Precision / Accuracy)
+        (\*\^(\+|-)?\d+)?                           (?# Exponent)
+        '''
         s = t.value
 
         # Look for base
