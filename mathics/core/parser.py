@@ -25,9 +25,10 @@ import re
 import unicodedata
 from math import log10
 
-from mathics.core.expression import BaseExpression, Expression, Integer, Real, Symbol, String, Rational
+from mathics.core.expression import (BaseExpression, Expression, Integer, 
+    Real, Symbol, String, Rational)
 from mathics.core.numbers import dps
-from mathics.builtin import builtins
+
 from mathics.builtin.numeric import machine_precision
 
 class TranslateError(Exception):
@@ -426,14 +427,6 @@ tokens = (
     'Function',
 )
 
-#Look for forgotten tokens
-#seen_tokens = []
-#for p in precedence:
-#    seen_tokens.extend(list(p[1:]))
-#for token in tokens:
-#    if token not in seen_tokens:
-#        print "WARNING token {} has no precedence".format(token)
-
 class MathicsScanner:
     tokens = tokens
     precedence = precedence
@@ -443,7 +436,6 @@ class MathicsScanner:
         ('boxes', 'inclusive'),
     )
 
-    #t_ignore = ur' [\s \u2062]+ '
     t_ANY_ignore = ' \t\n '
 
     t_RawLeftBracket = r' \[ '
@@ -905,19 +897,16 @@ class MathicsScanner:
         raise ScanError(self.lexer.lexpos)
 
 class AbstractToken(object):
-    pass
-
-class CompoundToken(AbstractToken):
     def __init__(self, items):
         self.items = items
 
-class SequenceToken(CompoundToken):
+class SequenceToken(AbstractToken):
     pass
 
-class ArgsToken(CompoundToken):
+class ArgsToken(AbstractToken):
     pass
 
-class PositionToken(CompoundToken):
+class PositionToken(AbstractToken):
     pass
 
 # Decorator hack to convince ply that a parsing rule only accepts one argument
