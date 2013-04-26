@@ -869,7 +869,7 @@ class OpenAppend(_OpenAction):
 
 
 class Get(PrefixOperator):
-    """
+    r"""
     <dl>
     <dt>'<<name'
       <dd>reads a file and evaluates each expression, returning only the last one.
@@ -898,6 +898,12 @@ class Get(PrefixOperator):
     #> Get["SomeTypoPackage`"]
      : Cannot open SomeTypoPackage`.
      = $Failed
+
+    ## Parser Tests
+    #> Hold[<< ~/some_example/dir/] // FullForm
+     = Hold[Get["~/some_example/dir/"]]
+    #> Hold[<<`/.\-_:$*~?] // FullForm
+     = Hold[Get["`/.\\-_:$*~?"]]
     """
 
     operator = '<<'

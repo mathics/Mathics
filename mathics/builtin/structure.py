@@ -200,7 +200,7 @@ class Apply(BinaryOperator):
         evaluation.message('Apply', 'level', ls)
     
     def apply(self, f, expr, ls, evaluation, options={}):
-        'Apply[f_, expr_, ls_?LevelQ:{0}, OptionsPattern[Apply]]'
+        'Apply[f_, expr_, Optional[Pattern[ls, _?LevelQ], {0}], OptionsPattern[Apply]]'
         
         try:
             start, stop = python_levelspec(ls)
@@ -260,7 +260,7 @@ class Map(BinaryOperator):
         evaluation.message('Map', 'level', ls)
         
     def apply_level(self, f, expr, ls, evaluation, options={}):
-        'Map[f_, expr_, ls_?LevelQ:{1}, OptionsPattern[Map]]'
+        'Map[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}], OptionsPattern[Map]]'
         
         try:
             start, stop = python_levelspec(ls)
@@ -326,7 +326,7 @@ class MapIndexed(Builtin):
         evaluation.message('MapIndexed', 'level', ls)
         
     def apply_level(self, f, expr, ls, evaluation, options={}):
-        'MapIndexed[f_, expr_, ls_?LevelQ:{1}, OptionsPattern[MapIndexed]]'
+        'MapIndexed[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}], OptionsPattern[MapIndexed]]'
         
         try:
             start, stop = python_levelspec(ls)

@@ -192,6 +192,16 @@ class Derivative(PostfixOperator, SympyFunction):
      = Derivative[2, 1][h]
     >> Derivative[2, 0, 1, 0][h[g]]
      = Derivative[2, 0, 1, 0][h[g]]
+
+    ## Parser Tests
+    #> Hold[f''] // FullForm
+     = Hold[Derivative[2][f]]
+    #> Hold[f ' '] // FullForm
+     = Hold[Derivative[2][f]]
+    #> Hold[f '' ''] // FullForm
+     = Hold[Derivative[4][f]]
+    #> Hold[Derivative[x][4] '] // FullForm
+     = Hold[Derivative[1][Derivative[x][4]]]
     """
     
     operator = "'"

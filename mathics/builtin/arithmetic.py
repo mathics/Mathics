@@ -700,7 +700,7 @@ class Power(BinaryOperator, SympyFunction):
     }
     
     formats = {
-        'x_ ^ (1/2)': 'HoldForm[Sqrt[x]]',
+        Expression('Power', Expression('Pattern', Symbol('x'), Expression('Blank')), Rational(1, 2)) : 'HoldForm[Sqrt[x]]',
         
         (('InputForm', 'OutputForm'), 'x_ ^ y_'): 'Infix[{HoldForm[x], HoldForm[y]}, "^", 590, Right]',
         ('', 'x_ ^ y_'): 'PrecedenceForm[Superscript[OuterPrecedenceForm[HoldForm[x], 590], HoldForm[y]], 590]',
@@ -898,7 +898,7 @@ class DirectedInfinity(SympyFunction):
     """
         
     rules = {
-        '1 / DirectedInfinity[args___]': '0',
+        'DirectedInfinity[args___] ^ -1': '0',
         '0 * DirectedInfinity[args___]': 'Message[Infinity::indet, Unevaluated[0 DirectedInfinity[args]]]; Indeterminate',
         'DirectedInfinity[a_?NumberQ] /; N[Abs[a]] != 1': 'DirectedInfinity[a / Abs[a]]',
         'DirectedInfinity[a_] * DirectedInfinity[b_]': 'DirectedInfinity[a*b]',
