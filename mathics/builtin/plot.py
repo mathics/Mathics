@@ -5,7 +5,7 @@ Plotting
 """
 
 import re
-from math import floor, cos, pi, sqrt
+from math import floor, sin, cos, pi, sqrt
 import numbers
 
 from mathics.core.expression import Expression, Real, NumberError, Symbol, String, from_python
@@ -857,6 +857,49 @@ class ParametricPlot(_Plot):
         if value is None or len(value) != 2:
             return None
         return value
+
+class PolarPlot(_Plot):
+    """
+    <dl>
+    <dt>'PolarPlot[$r$, {$t$, $tmin$, $tmax$}]'
+      <dd>plots blah
+    </dl>
+
+    >> PolarPlot[Cos[5t], {t, 0, Pi}]
+     = -Graphics-
+
+    >> PolarPlot[{1, 1 + Sin[20 t] / 5}, {t, 0, 2 Pi}]
+     = -Graphics-
+   """
+
+    def get_functions_param(self, functions):
+        if functions.has_form('List', None):
+            functions = functions.leaves
+        else:
+            functions = [functions]
+        return functions
+    
+    def get_plotrange(self, plotrange, start, stop):
+        x_range = y_range = None
+        if isinstance(plotrange, numbers.Real):
+            plotrange = [[-plotrange, plotrange], [-plotrange, plotrange]]
+        if plotrange == 'Automatic':
+            plotrange = ['Automatic', 'Automatic']
+        elif plotrange == 'All':
+            plotrange = ['All', 'All']
+        if isinstance(plotrange, list) and len(plotrange) == 2:
+            if isinstance(plotrange[0], numbers.Real) and isinstance(plotrange[1], numbers.Real):
+                x_range = [-plotrange[0], plotrange[1]]
+                y_range = [-plotrange[1], plotrange[1]]
+            else:
+                x_range, y_range = plotrange
+        return x_range, y_range
+
+    def eval_f(self, f, x_name, x_value, evaluation):
+        value = quiet_evaluate(f, {x_name: Real(x_value)}, evaluation)
+        if value is None:
+            return None
+        return (value * cos(x_value), value * sin(x_value))
 
 class ListPlot(_ListPlot):
     """
