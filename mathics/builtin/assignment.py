@@ -4,9 +4,9 @@ from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PostfixOpe
 from mathics.core.expression import Expression, Symbol, String
 from mathics.core.rules import Rule
 from mathics.builtin.lists import walk_parts
+from mathics.builtin.evaluation import set_recursionlimit
 
 from mathics import settings
-from sys import setrecursionlimit as sys_setrecursionlimit
 
 def get_symbol_list(list, error_callback):
     if list.has_form('List', None):
@@ -151,7 +151,7 @@ class _SetOperator(object):
                 evaluation.message('$RecursionLimit', 'limset', rhs)
                 return False
             try:
-                sys_setrecursionlimit(200 + 4 * rhs_int_value)
+                set_recursionlimit(rhs_int_value)
             except OverflowError:
                 #TODO: Message
                 return False

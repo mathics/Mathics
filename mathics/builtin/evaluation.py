@@ -1,9 +1,19 @@
 # -*- coding: utf8 -*-
 
+import sys
+
 from mathics.builtin.base import Predefined, Builtin
 from mathics.core.expression import Integer, Symbol, Expression
 
 from mathics import settings
+
+def set_recursionlimit(n):
+    "Sets the required python recursion limit given $RecursionLimit value"
+    def conversion(m):
+        return 200 + 5 * m
+    sys.setrecursionlimit(conversion(n))
+    if sys.getrecursionlimit() != conversion(n):
+        raise OverflowError
 
 class RecursionLimit(Predefined):
     """
@@ -35,6 +45,12 @@ class RecursionLimit(Predefined):
     
     name = '$RecursionLimit'
     value = 200
+    
+    set_recursionlimit(value)
+
+    rules = {
+        '$RecursionLimit' : str(value),
+    }
     
     messages = {
         'reclim': "Recursion depth of `1` exceeded.",
