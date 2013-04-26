@@ -3,11 +3,13 @@
 from __future__ import with_statement
 
 import sympy
+import mpmath
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator
 from mathics.core.expression import Expression, Integer, Real, Number, Symbol, from_sympy
 from mathics.core.numbers import min_prec, SpecialValueError
 from mathics.builtin.numeric import dps
+from mathics.builtin.arithmetic import _MPMathFunction
 
 class Fibonacci(Builtin):
     """
@@ -33,7 +35,7 @@ class Fibonacci(Builtin):
         
         return Integer(sympy.fibonacci(n.to_sympy()))
     
-class Binomial(Builtin):
+class Binomial(_MPMathFunction):
     """
     <dl>
     <dt>'Binomial[$n$, $k$]'
@@ -57,30 +59,11 @@ class Binomial(Builtin):
     """
     
     attributes = ('Listable', 'NumericFunction')
-    
-    def apply_exact(self, n, k, evaluation):
-        'Binomial[n_Integer, k_Integer]'
-        
-        if k.to_sympy() < 0:
-            return Integer(0)
-        return Integer(sympy.binomial(n.to_sympy(), k.to_sympy()))
-    
-    def apply_inexact(self, n, k, evaluation):
-        'Binomial[n_?InexactNumberQ, k_?NumberQ]'
-        
-        prec = min_prec(n, k)
-        n = n.to_sympy()
-        k = k.to_sympy()
-        result = sympy.binomial(n, k).n(dps(prec))
-        if result == sympy.Float('inf'):
-            return Symbol('ComplexInfinity')
-        return Real(result, prec)
-        
-    def apply_inexact_2(self, n, k, evaluation):
-        'Binomial[n_?NumberQ, k_?InexactNumberQ]'
-        
-        return self.apply_inexact(n, k, evaluation)
-        
+
+    nargs = 2
+    sympy_name = 'binomial'
+    mpmath_name = 'binomial'
+
 class Multinomial(Builtin):
     """
     <dl>
@@ -94,7 +77,7 @@ class Multinomial(Builtin):
      = 1
     Multinomial is expressed in terms of 'Binomial':
     >> Multinomial[a, b, c]
-     = Binomial[a, a] Binomial[a + b, b] Binomial[a + b + c, c]
+     = Binomial[a + b, b] Binomial[a + b + c, c]
     'Multinomial[$n$-$k$, $k$]' is equivalent to 'Binomial[$n$, $k$]'.
     >> Multinomial[2, 3]
      = 10

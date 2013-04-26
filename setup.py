@@ -62,7 +62,7 @@ else:
     INSTALL_REQUIRES = ['cython>=0.15.1']
 
 # General Requirements
-INSTALL_REQUIRES += ['sympy==0.7.2', 'mpmath>=0.15', 'django>=1.2', 
+INSTALL_REQUIRES += ['sympy==0.7.2', 'mpmath>=0.15', 'django>=1.2', 'ply>=3.4',
     'argparse', 'python-dateutil', 'colorama']
 
 # strange SandboxError with SymPy 0.6.7 in Sage (writing to ~/.sage/tmp)
@@ -118,7 +118,7 @@ setup(
     
     packages = [
         'mathics',
-        'mathics.core', 'mathics.core.spark',
+        'mathics.core',
         'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.data',
         'mathics.doc', 
         'mathics.autoload',

@@ -997,15 +997,15 @@ A dice object shall be displayed as a rectangle with the given number of points 
 #> Definition[Dice]
  = Attributes[Dice] = {Orderless}
  . 
- . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], MathMLForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
+ . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], MathMLForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
  . 
- . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], OutputForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
+ . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], OutputForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
  . 
- . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], StandardForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
+ . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], StandardForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
  . 
- . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], TeXForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
+ . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], TeXForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
  . 
- . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], TraditionalForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
+ . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], TraditionalForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
  
 The empty series of dice shall be displayed as an empty dice:
 >> Format[Dice[]] := Graphics[{EdgeForm[Black], White, Rectangle[]}, ImageSize -> Tiny]
@@ -1276,9 +1276,8 @@ Python functions starting with 'apply' are converted to built-in rules. Their do
 
 ## Internal tests
 
-## This error message could still be improved.
 #> expand{%]
- : Parse error at or near token -1.
+ : Parse error at or near token ].
 
 
 </section>

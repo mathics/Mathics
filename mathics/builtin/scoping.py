@@ -91,7 +91,9 @@ class Block(Builtin):
         'Block[vars_, expr_]'
         
         vars = dict(get_scoping_vars(vars, 'Block', evaluation))
-        return dynamic_scoping(expr.evaluate, vars, evaluation)
+        result = dynamic_scoping(expr.evaluate, vars, evaluation)
+        result.is_evaluated = False  # Variables may have changed: must revalute
+        return result
     
 class ModuleNumber(Predefined):
     """

@@ -380,6 +380,7 @@ class Expression(BaseExpression):
         self.leaves = [from_python(leaf) for leaf in leaves]
         
         self.parse_operator = kwargs.get('parse_operator')
+        self.is_evaluated = False
         
     def copy(self):
         result = Expression(self.head.copy(), *[leaf.copy() for leaf in self.leaves])
@@ -620,6 +621,8 @@ class Expression(BaseExpression):
         if hasattr(self, 'options') and self.options:
             evaluation.options = self.options
         try:
+            if self.is_evaluated:
+                return self
             head = self.head.evaluate(evaluation)
             attributes = head.get_attributes(evaluation.definitions)
             leaves = self.leaves[:]
@@ -667,6 +670,7 @@ class Expression(BaseExpression):
             if 'Orderless' in attributes:
                 new.sort()
                 
+            new.is_evaluated = True
             if 'Listable' in attributes:
                 done, threaded = new.thread(evaluation)
                 if done:
@@ -1343,8 +1347,6 @@ class Real(Number):
     def __init__(self, value, p=None):
         from mathics.builtin.numeric import machine_precision
         super(Real, self).__init__()
-        if p == 18:
-            raise NotImplementedError
 
         if isinstance(value, basestring):
             value = str(value)

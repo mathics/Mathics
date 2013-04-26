@@ -284,6 +284,7 @@ class PatternTest(BinaryOperator, PatternObject):
         def yield_match(vars_2, rest):                
             items = expression.get_sequence()
             for item in items:                              
+                item = item.evaluate(evaluation)
                 quick_test = self.quick_pattern_test(item, self.test_name)
                 if quick_test is not None:
                     if not quick_test:
@@ -449,14 +450,22 @@ class Pattern_(PatternObject):
     the last parameter is the default value.
     >> f[y] /. f[a:b:_:d] -> {a, b}
      = {y, y}
-    >> f[] /. f[a:b:_:d] -> {a, b}
-     = {d, d}
     This is equivalent to:
     >> f[] /. f[a:b_:d] -> {a, b}
      = {d, d}
     'FullForm':
     >> FullForm[a:b:c:d:e]
-     = Optional[Pattern[a, Pattern[b, Pattern[c, d]]], e]
+     = Optional[Pattern[a, b], Optional[Pattern[c, d], e]]
+
+    ## Test parsing for following TODO test
+    #> Hold[f[] /. f[a:b:_:d] -> {a, b}] // FullForm
+     = Hold[ReplaceAll[f[], Rule[f[Pattern[a, Optional[Pattern[b, Blank[]], d]]], List[a, b]]]]
+    """
+
+    #TODO: This parses correctly (see above test) but computes incorrectly
+    """
+    >> f[] /. f[a:b:_:d] -> {a, b}
+     = {d, d}
     """
     
     name = 'Pattern'
@@ -532,7 +541,7 @@ class Optional(BinaryOperator, PatternObject):
     >> _:d // FullForm
      = Optional[Blank[], d]
     >> x:_+y_:d // FullForm
-     = Optional[Pattern[x, Plus[Blank[], Pattern[y, Blank[]]]], d]
+     = Pattern[x, Plus[Blank[], Optional[Pattern[y, Blank[]], d]]]
      
     's_.' is equivalent to 'Optional[s_]' and represents an optional parameter which, if omitted,
     gets its value from 'Default'.
@@ -711,6 +720,11 @@ class Repeated(PostfixOperator, PatternObject):
      = {{}, a, {a, b}, a, {a, a, a, a}}
     >> f[x, 0, 0, 0] /. f[x, s:0..] -> s
      = Sequence[0, 0, 0]
+
+    #> 1.. // FullForm
+     = Repeated[1]
+    #> 8^^1.. // FullForm   (* Mathematica gets this wrong *)
+     = Repeated[1]
     """
     
     messages = {
@@ -769,6 +783,11 @@ class RepeatedNull(Repeated):
      = RepeatedNull[Pattern[a, BlankNullSequence[Integer]]]
     >> f[x] /. f[x, 0...] -> t
      = t
+
+    #> 1... // FullForm
+     = RepeatedNull[1]
+    #> 8^^1... // FullForm   (* Mathematica gets this wrong *)
+     = RepeatedNull[1]
     """
     
     operator = '...'

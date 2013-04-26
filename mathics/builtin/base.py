@@ -92,7 +92,9 @@ class Builtin(object):
             for form in forms:
                 if not form in formatvalues:
                     formatvalues[form] = []
-                formatvalues[form].append(Rule(parse(pattern), parse(replace), system=True))
+                if not isinstance(pattern, BaseExpression):
+                    pattern = parse(pattern)
+                formatvalues[form].append(Rule(pattern, parse(replace), system=True))
         for form, formatrules in formatvalues.items():
             formatrules.sort()
         
@@ -208,6 +210,12 @@ class Operator(Builtin):
         
     def is_binary(self):
         return False
+
+    def is_prefix(self):
+        return False
+
+    def is_postfix(self):
+        return False
     
     def post_parse(self, expression):
         return Expression(expression.head.post_parse(), *[leaf.post_parse() for leaf in expression.leaves])
@@ -236,9 +244,6 @@ class PrefixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PrefixOperator, self).__init__('Prefix', *args, **kwargs)
                       
-    def get_rule(self):
-        return 'expr ::= rest_left %s expr' % self.get_operator()
-                
     def parse(self, args):
         from mathics.core.parser import MathicsParser, Token
         
@@ -250,14 +255,14 @@ class PrefixOperator(UnaryOperator):
             return result
         else:
             return Expression(self.get_name(), args[2], parse_operator=self)
+            
+    def is_prefix(self):
+        return True
 
 class PostfixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PostfixOperator, self).__init__('Postfix', *args, **kwargs)
                       
-    def get_rule(self):
-        return 'expr ::= expr %s rest_right' % self.get_operator()
-                
     def parse(self, args):
         from mathics.core.parser import MathicsParser, Token
         
@@ -270,6 +275,8 @@ class PostfixOperator(UnaryOperator):
         else:
             return Expression(self.get_name(), args[0], parse_operator=self)
         
+    def is_postfix(self):
+        return True
 
 class BinaryOperator(Operator):
     grouping = 'None'  # NonAssociative, None, Left, Right
@@ -296,9 +303,6 @@ class BinaryOperator(Operator):
             }
             default_rules.update(self.rules)
             self.rules = default_rules
-                
-    def get_rule(self):
-        return 'expr ::= expr %s expr' % self.get_operator()
                 
     def parse(self, args):
         left = args[0]
