@@ -18,6 +18,21 @@ u"""
     along with this program.  If not see <http://www.gnu.org/licenses/>.
 """
 
+# Character ranges of letters
+letter_pattern = unicode(u'a-zA-Z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u0103'
+u'\u0106\u0107\u010c-\u010f\u0112-\u0115\u011a-\u012d\u0131\u0141'
+u'\u0142\u0147\u0148\u0150-\u0153\u0158-\u0161\u0164\u0165'
+u'\u016e-\u0171\u017d\u017e\u0391-\u03a1\u03a3-\u03a9\u03b1-\u03c9'
+u'\u03d1\u03d2\u03d5\u03d6\u03da-\u03e1\u03f0\u03f1\u03f5\u210a-\u210c'
+u'\u2110-\u2113\u211b\u211c\u2128\u212c\u212d\u212f-\u2131'
+u'\u2133-\u2138\uf6b2-\uf6b5\uf6b7\uf6b9\uf6ba-\uf6bc\uf6be\uf6bf'
+u'\uf6c1-\uf700\uf730\uf731\uf770\uf772\uf773\uf776\uf779\uf77a'
+u'\uf77d-\uf780\uf782-\uf78b\uf78d-\uf78f\uf790\uf793-\uf79a'
+u'\uf79c-\uf7a2\uf7a4-\uf7bd\uf800-\uf833\ufb01\ufb02')
+
+#TODO: letter-like and operator patterns
+
+# All supported longname characters
 named_characters = {
     'AAcute' : u'\u00E1',
     'ABar' : u'\u0101',

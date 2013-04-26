@@ -28,7 +28,7 @@ from math import log10
 from mathics.core.expression import (BaseExpression, Expression, Integer, 
     Real, Symbol, String, Rational)
 from mathics.core.numbers import dps
-from mathics.core.characters import named_characters
+from mathics.core.characters import named_characters, letter_pattern
 
 from mathics.builtin.numeric import machine_precision
 
@@ -59,7 +59,10 @@ class ParseError(TranslateError):
     def __unicode__(self):
         return u"Parse error at or near token %s." % str(self.token)
 
-symbol_re = re.compile(r'`?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)*')
+# Symbols can be any letters
+base_symb = ur'((?![0-9])([0-9${0}])+)'.format(letter_pattern)
+
+symbol_re = re.compile(ur'`?{0}(`{0})*'.format(base_symb))
 
 def is_symbol_name(text):
     return symbol_re.sub('', text) == ''
@@ -785,16 +788,19 @@ class MathicsScanner:
         t.value = self.string_escape(t.value[1:-1])
         return t
 
+    @lex.TOKEN(ur'{0}?_\.'.format(base_symb))
     def t_blankdefault(self, t):    # this must come before t_blanks
-        r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
+        #r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
         return t
 
+    @lex.TOKEN(ur'{0}?_(__?)?{0}?'.format(base_symb))
     def t_blanks(self, t):
-        r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
+        #r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
         return t
 
+    @lex.TOKEN(ur'`?{0}(`{0})*'.format(base_symb))
     def t_symbol(self, t):
-        r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
+        #r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
         s = t.value
         if s.startswith('`'):
             #FIXME: Replace Global with the current value of $Context
