@@ -622,6 +622,13 @@ class MathicsScanner:
             module=self, 
             **kwargs)
 
+        self.precompiled_regex = {
+            'longnames': re.compile(r'(?<!\\)(\\\[[a-zA-Z]+\])'),
+            'oct': re.compile(r'(?<!\\)(\\[0-7]{3})'),
+            'hex': re.compile(r'(?<!\\)(\\\.[0-9a-fA-F]{2}|\\\:[0-9a-fA-F]{4})')
+        }
+
+
     def tokenize(self, input_string):
         self.tokens = []
         self.lexer.input(input_string)
@@ -632,11 +639,26 @@ class MathicsScanner:
             self.tokens.append(tok)
         return self.tokens
 
-    @staticmethod
-    def convert_unicode_longnames(s):
+    def convert_character_codes(self, s):
+        "Converts character codes to characters E.g. \.7A -> z, \:004a -> J"
+        def repl_hex_char(match):
+            return unichr(int(match.group(0)[2:], 16))
+
+        def repl_oct_char(match):
+            return unichr(int(match.group(0)[1:], 8))
+
+        hex_re = self.precompiled_regex['hex']
+        oct_re = self.precompiled_regex['oct']
+
+        s = hex_re.sub(repl_hex_char, s)
+        s = oct_re.sub(repl_oct_char, s)
+
+        return s
+
+    def convert_unicode_longnames(self, s):
         "Converts unicode longnames to characters. E.g. \[Theta] -> \u03B8"
 
-        def repl_char(match):
+        def repl_named_char(match):
             name = match.group(0)[2:-1]
             char = named_characters.get(name)
             if char is not None:
@@ -645,9 +667,9 @@ class MathicsScanner:
                 #TODO: Syntax::sntufn message
                 return '\\[' + name + ']'
 
-        longnames_re = re.compile(r'(?<!\\)(\\\[[a-zA-Z]+\])')
+        longnames_re = self.precompiled_regex['longnames']
 
-        return longnames_re.sub(repl_char, s)
+        return longnames_re.sub(repl_named_char, s)
 
     @staticmethod
     def string_escape(s):
@@ -1436,5 +1458,8 @@ parser.build()
 
 def parse(string):
     scanner.lexer.begin('INITIAL')      # Reset the lexer state (known lex bug)
+
     string = scanner.convert_unicode_longnames(string)
+    string = scanner.convert_character_codes(string)
+
     return parser.parse(string)
