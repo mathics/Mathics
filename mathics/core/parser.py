@@ -1459,8 +1459,6 @@ parser.build()
 def parse(string):
     scanner.lexer.begin('INITIAL')      # Reset the lexer state (known lex bug)
 
-    string = string.decode('utf-8')
-
     string = scanner.convert_unicode_longnames(string)
     string = scanner.convert_character_codes(string)
 

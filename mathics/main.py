@@ -145,8 +145,9 @@ def main():
     shell = TerminalShell(definitions, args.colors)
 
     if args.execute:
-        print get_in_prompt() + args.execute
-        evaluation = Evaluation(args.execute, definitions, timeout=30, out_callback=out_callback)
+        total_input = args.execute.decode(sys.stdin.encoding)  # check encoding
+        print shell.get_in_prompt() + total_input
+        evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
         for result in evaluation.results:
             if result.result is not None:
                 print shell.get_out_prompt() + to_output(unicode(result.result)) + '\n'
@@ -163,6 +164,7 @@ def main():
     if args.FILE is not None:
         total_input = ""
         for line in args.FILE:
+            line = line.decode('utf-8')     # TODO: other encodings
 
             if args.script and line.startswith('#!'):
                 continue
@@ -191,12 +193,14 @@ def main():
         try: 
             total_input = ""
             line_input = raw_input(shell.get_in_prompt())
+            line_input = line_input.decode(sys.stdin.encoding)
             while line_input != "":
                 total_input += ' ' + line_input
                 if not wait_for_line(total_input):
                     break
                 line_input = raw_input('        ')
-        
+                line_input = line_input.decode(sys.stdin.encoding)
+
             evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
         
             for result in evaluation.results:
