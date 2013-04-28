@@ -28,7 +28,7 @@ from math import log10
 from mathics.core.expression import (BaseExpression, Expression, Integer, 
     Real, Symbol, String, Rational)
 from mathics.core.numbers import dps
-from mathics.core.characters import named_characters, letter_pattern
+from mathics.core.characters import letters, letterlikes, named_characters
 
 from mathics.builtin.numeric import machine_precision
 
@@ -60,7 +60,7 @@ class ParseError(TranslateError):
         return u"Parse error at or near token %s." % str(self.token)
 
 # Symbols can be any letters
-base_symb = ur'((?![0-9])([0-9${0}])+)'.format(letter_pattern)
+base_symb = ur'((?![0-9])([0-9${0}{1}])+)'.format(letters, letterlikes)
 
 symbol_re = re.compile(ur'`?{0}(`{0})*'.format(base_symb))
 
