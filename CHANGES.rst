@@ -9,6 +9,17 @@ CHANGES
 - added DSolve and RSolve
 - More Timing functions AbsoluteTiming, TimeUsed, SessionTime, Pause
 - Date functions DateList, DateString, DateDifference, etc
+- Parser rewritten using lex/yacc (PLY)
+- Unicode characters suppoerted 
+- PolarPlot
+- IPython style (coloured) input 
+- VectorAnalysis` Package
+- More special functions (Bessel functions and othogonal polynomials)
+- More NumberTheory functions
+- Import, Get, Needs and other IO related functions
+- PyPy compatibility
+- added benchmarks (mathics/benchmark.py)
+- BaseForm
 
 0.5
 ---
