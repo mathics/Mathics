@@ -1043,7 +1043,11 @@ class GraphicsBox(BoxConstruct):
         if aspect_ratio == Symbol('Automatic'):
             aspect = None
         else:
-            aspect = aspect_ratio.to_number()
+            try:
+                aspect = aspect_ratio.to_number()
+            except NumberError:
+                #TODO: Custom message - MMA uses a tooltip over red graphics
+                aspect = None
             
         image_size = graphics_options['ImageSize']
         image_size = image_size.get_name()
