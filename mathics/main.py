@@ -121,10 +121,13 @@ def wait_for_line(input_string):
         for bracketPair in brackets:
             if char == bracketPair[kStart]:
                 stack.append(char)
-            elif char == bracketPair[kEnd] and (len(stack) == 0 or stack.pop() != bracketPair[kStart]):
-                # Brackets are not balanced, but return False so that a parse
-                # error can be raised
-                return False
+            elif char == bracketPair[kEnd]:
+                if len(stack) == 0:
+                    return False
+                if stack.pop() != bracketPair[kStart]:
+                    # Brackets are not balanced, but return False so that a
+                    # parse error can be raised
+                    return False
     if len(stack) == 0 and input_string.count('"') % 2 == 0:
         return False
     return True
@@ -145,16 +148,25 @@ def main():
 
     argparser.add_argument(
         '--help', '-h', help='show this help message and exit', action='help')
+
     argparser.add_argument(
-        '--persist', help='go to interactive shell after evaluating FILE', action='store_true')
+        '--persist', help='go to interactive shell after evaluating FILE',
+        action='store_true')
+
     argparser.add_argument(
-        '--quiet', '-q', help='don\'t print message at startup', action='store_true')
+        '--quiet', '-q', help='don\'t print message at startup',
+        action='store_true')
+
     argparser.add_argument(
-        '-script', help='run a mathics file in script mode', action='store_true')
+        '-script', help='run a mathics file in script mode',
+        action='store_true')
+
     argparser.add_argument(
         '--execute', '-e', nargs='?', help='execute a command')
+
     argparser.add_argument(
         '--colors', nargs='?', help='interactive shell colors')
+
     argparser.add_argument(
         '--version', '-v', action='version', version=get_version_string(False))
 

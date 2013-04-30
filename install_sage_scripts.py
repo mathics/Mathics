@@ -13,17 +13,23 @@ from mathics import settings
 
 def setup():
     parser = ArgumentParser(
-        description="Sets up scripts to run mathics and mathicsserver when installed into Sage.")
+        description="Sets up scripts to run mathics and mathicsserver \
+when installed into Sage.")
+
     parser.add_argument(
-        "-d", "--directory", dest="dir", metavar="DIR", default='/usr/local/bin',
-        help="install scripts into directory DIR")
+        "-d", "--directory", dest="dir", metavar="DIR",
+        default='/usr/local/bin', help="install scripts into directory DIR")
+
     args = parser.parse_args()
 
     for cmd in ['mathics', 'mathicsserver']:
         filename = path.join(args.dir, cmd)
         with open(filename, 'w') as file:
             file.write("""#!/usr/bin/env bash
-sage -python -c "__requires__ = 'Mathics==%(version)s'; import sys; from pkg_resources import load_entry_point; sys.exit(load_entry_point('Mathics==%(version)s', 'console_scripts', '%(cmd)s')())" "$@"
+sage -python -c "__requires__ = 'Mathics==%(version)s'; \
+import sys; from pkg_resources import load_entry_point; \
+sys.exit(load_entry_point('Mathics==%(version)s', 'console_scripts', \
+'%(cmd)s')())" "$@"
 """ % {
                        'version': settings.VERSION,
                        'cmd': cmd,

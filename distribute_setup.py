@@ -149,20 +149,22 @@ def use_setuptools(version=DEFAULT_VERSION, download_base=DEFAULT_URL,
         except pkg_resources.VersionConflict:
             e = sys.exc_info()[1]
             if was_imported:
-                sys.stderr.write(
-                    "The required version of distribute (>=%s) is not available,\n"
-                    "and can't be installed while this script is running. Please\n"
-                    "install a more recent version first, using\n"
-                    "'easy_install -U distribute'."
-                    "\n\n(Currently using %r)\n" % (version, e.args[0]))
+                sys.stderr.write("""\
+The required version of distribute (>=%s) is not available,
+and can't be installed while this script is running. Please
+install a more recent version first, using
+
+    easy_install -U distribute
+
+(Currently using %r)\n""" % (version, e.args[0]))
                 sys.exit(2)
             else:
                 del pkg_resources, sys.modules['pkg_resources']    # reload ok
                 return _do_download(version, download_base, to_dir,
                                     download_delay)
         except pkg_resources.DistributionNotFound:
-            # ADDED
-            # according to http://code.activestate.com/lists/python-distutils-sig/16213/
+            # ADDED according to
+            # http://code.activestate.com/lists/python-distutils-sig/16213/
             # (problem in Ubuntu 10.04)
             del pkg_resources, sys.modules['pkg_resources']
             return _do_download(version, download_base, to_dir,
@@ -438,7 +440,8 @@ def _relaunch():
     log.warn('Relaunching...')
     # we have to relaunch the process
     # pip marker to avoid a relaunch bug
-    if sys.argv[:3] == ['-c', 'install', '--single-version-externally-managed']:
+    if sys.argv[:3] == ['-c', 'install',
+                        '--single-version-externally-managed']:
         sys.argv[0] = 'setup.py'
     args = [sys.executable] + sys.argv
     sys.exit(subprocess.call(args))

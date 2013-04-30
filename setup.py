@@ -33,8 +33,8 @@ from distutils.extension import Extension
 import sys
 # Ensure user has the correct Python version
 if not (2, 5) <= sys.version_info[:2] <= (2, 7):
-    print("Mathics supports Python 2.5 upto Python 2.7. Python %d.%d detected" %
-          sys.version_info[:2])
+    print("Mathics supports Python 2.5 upto Python 2.7. \
+Python %d.%d detected" % sys.version_info[:2])
     sys.exit(-1)
 
 from mathics import settings
@@ -57,8 +57,10 @@ else:
         'core': ['expression', 'numbers', 'rules', 'pattern'],
         'builtin': ['arithmetic', 'numeric', 'patterns', 'graphics']
     }
-    EXTENSIONS = [Extension('mathics.%s.%s' % (parent, module),
-                            ['mathics/%s/%s.py' % (parent, module)]) for parent, modules in EXTENSIONS.iteritems() for module in modules]
+    EXTENSIONS = [
+        Extension('mathics.%s.%s' % (parent, module),
+                  ['mathics/%s/%s.py' % (parent, module)])
+        for parent, modules in EXTENSIONS.iteritems() for module in modules]
     CMDCLASS = {'build_ext': build_ext}
     INSTALL_REQUIRES = ['cython>=0.15.1']
 
@@ -134,11 +136,12 @@ setup(
 
     package_data={
         'mathics.doc': ['documentation/*.mdoc', 'xml/data'],
-        'mathics.web': ['media/css/*.css', 'media/img/*.gif',
-                        'media/js/innerdom/*.js', 'media/js/prototype/*.js',
-                        'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
-                        'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
-                        'templates/doc/*.html'] + mathjax_files,
+        'mathics.web': [
+            'media/css/*.css', 'media/img/*.gif',
+            'media/js/innerdom/*.js', 'media/js/prototype/*.js',
+            'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
+            'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
+            'templates/doc/*.html'] + mathjax_files,
         'mathics.data': ['*.csv', 'ExampleData/*'],
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
         'mathics.autoload': ['formats/*/Import.m', 'formats/*/Export.m'],
