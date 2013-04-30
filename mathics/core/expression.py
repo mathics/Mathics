@@ -436,7 +436,7 @@ class Expression(BaseExpression):
                 return False
         if not leaf_counts:
             return False
-        if leaf_counts and leaf_counts[0] != None:
+        if leaf_counts and leaf_counts[0] is not None:
             count = len(self.leaves)
             if count not in leaf_counts:
                 if len(leaf_counts) == 2 and leaf_counts[1] is None and count >= leaf_counts[0]:

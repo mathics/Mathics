@@ -37,7 +37,7 @@ class Builtin(object):
     defaults = {}
 
     def __new__(cls, *args, **kwargs):
-        if kwargs.get('expression', None) != False:
+        if kwargs.get('expression', None) is not False:
             return Expression(cls.get_name(), *args)
         else:
             instance = super(Builtin, cls).__new__(cls)
@@ -186,7 +186,7 @@ class InstancableBuiltin(Builtin):
             # Reset formats so that not every instance shares the same empty
             # dict {}
             instance.formats = {}
-        if kwargs.get('expression', None) != False:
+        if kwargs.get('expression', None) is not False:
             try:
                 instance.init(*args, **kwargs)
             except TypeError:

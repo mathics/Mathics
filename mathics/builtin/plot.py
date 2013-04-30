@@ -666,7 +666,7 @@ class _Plot3D(Builtin):
 
             def eval_f(x_value, y_value):
                 value = stored.get((x_value, y_value), False)
-                if value == False:
+                if value is False:
                     value = quiet_evaluate(f, {x: Real(
                         x_value), y: Real(y_value)}, evaluation)
                     # value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation)
