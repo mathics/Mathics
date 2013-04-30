@@ -1,19 +1,25 @@
-Mathics was created and is mainly maintained by:
+Mathics was originally created by:
 
-- Jan Poeschko (jan@poeschko.com; github: poeschko)
+- Jan Pöschko (poeschko)
+
+Mathics is currently maintained by:
+
+- Angus Griffith (sn6uv)
 
 Additional contributions were made by:
 
-- Angus Griffith (github: sn6uv): adaptive sampling for Plot, 3D graphics, date functions, Prime, ElementData, DSolve, RSolve
-- Chong Jiang (github: cjiang): Log2, Log10
+- Chong Jiang (cjiang)
+- Marek Šuppa (mrshu)
+- lanyjie
+- freshwater
 
 Thanks to the authors of all projects that are used in Mathics:
 - Django
 - MathJax
 - Prototype
 - Python
-- Sage
 - scripaculous
-- SPARK
+- PLY
+- colorama
 - SymPy
 - Three.js
