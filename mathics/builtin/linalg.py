@@ -22,7 +22,7 @@ def to_sympy_matrix(data, **kwargs):
         data = matrix_data(data)
     try:
         return sympy.Matrix(data)
-    except (TypeError, AssertionError):
+    except (TypeError, AssertionError, ValueError):
         return None
 
 class Det(Builtin):
@@ -173,6 +173,9 @@ class RowReduce(Builtin):
      . 0   1   2
      .
      . 0   0   0
+
+    #> RowReduce[{{1, 0}, {0}}]
+     = RowReduce[{{1, 0}, {0}}]
     """
     
     def apply(self, m, evaluation):
@@ -247,6 +250,9 @@ class Eigenvectors(Builtin):
      = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
     >> Eigenvectors[{{0.1, 0.2}, {0.8, 0.5}}]
      = {{0.309016994374947, 1.}, {-0.809016994374947, 1.}}
+
+    #> Eigenvectors[{{-2, 1, -1}, {-3, 2, 1}, {-1, 1, 0}}]
+     = {{1 / 3, 7 / 3, 1}, {1, 1, 0}, {0, 0, 0}}
     """
     
     messages = {
@@ -272,7 +278,7 @@ class Eigenvectors(Builtin):
         result = []
         for val, count, basis in eigenvects:
             # select the i'th basis vector, convert matrix to vector, and convert from sympy
-            vects = [from_sympy(list(basis[i])) for i in range(count)]
+            vects = [from_sympy(list(b)) for b in basis]
             # this follows Mathematica convention better; higher indexed pivots are outputted first.
             # E.g. {{0, 1}, {1, 0}} instead of {{1, 0}, {0, 1}}.
             vects.reverse()
