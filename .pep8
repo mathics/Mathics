@@ -1,3 +1,3 @@
 [pep8]
-select = W,E
+ignore = E501,W291
 exclude = parsetab.py
