@@ -494,9 +494,9 @@ class MathicsScanner:
 
     t_Integral = ur' \u222b '
     t_DifferentialD = ur' \uf74c '
-    #t_PartialD = ur' \u2202 '
+    # t_PartialD = ur' \u2202 '
     t_Del = ur' \u2207 '
-    
+
     t_Square = ur' \uf520 '
     t_SmallCircle = ur' \u2218 '
     t_CircleDot = ur' \u2299 '
@@ -581,9 +581,9 @@ class MathicsScanner:
 
     t_Semicolon = r' \; '
 
-    #t_DiscreteShift = ur' \uf4a3 '
-    #t_DiscreteRatio = ur' \uf4a4 '
-    #t_DifferenceDelta = ur' \u2206 '
+    # t_DiscreteShift = ur' \uf4a3 '
+    # t_DiscreteRatio = ur' \uf4a4 '
+    # t_DifferenceDelta = ur' \u2206 '
     t_VerticalTilde = ur' \u2240 '
     t_Coproduct = ur' \u2210 '
     t_Cap = ur' \u2322 '
@@ -637,7 +637,6 @@ class MathicsScanner:
             'hex': re.compile(r'(?<!\\)(\\\.[0-9a-fA-F]{2}|\\\:[0-9a-fA-F]{4})')
         }
 
-
     def tokenize(self, input_string):
         self.tokens = []
         self.lexer.input(input_string)
@@ -673,7 +672,7 @@ class MathicsScanner:
             if char is not None:
                 return char
             else:
-                #TODO: Syntax::sntufn message
+                # TODO: Syntax::sntufn message
                 return '\\[' + name + ']'
 
         longnames_re = self.precompiled_regex['longnames']
@@ -821,17 +820,17 @@ class MathicsScanner:
 
     @lex.TOKEN(ur'{0}?_\.'.format(base_symb))
     def t_blankdefault(self, t):    # this must come before t_blanks
-        #r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
+        # r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
         return t
 
     @lex.TOKEN(ur'{0}?_(__?)?{0}?'.format(base_symb))
     def t_blanks(self, t):
-        #r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
+        # r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
         return t
 
     @lex.TOKEN(ur'`?{0}(`{0})*'.format(base_symb))
     def t_symbol(self, t):
-        #r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
+        # r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
         s = t.value
         if s.startswith('`'):
             # FIXME: Replace Global with the current value of $Context
