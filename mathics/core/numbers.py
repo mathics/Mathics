@@ -26,6 +26,7 @@ from math import log
 
 from mathics.core.util import unicode_superscript
 
+
 def get_type(value):
     if isinstance(value, sympy.Integer):
         return 'z'
@@ -37,12 +38,15 @@ def get_type(value):
         return 'c'
     else:
         return None
-    
+
+
 def same(v1, v2):
     return get_type(v1) == get_type(v2) and v1 == v2
 
+
 def is_0(value):
     return get_type(value) == 'z' and value == 0
+
 
 def sympy2mpmath(value, prec=None):
     if prec is None:
@@ -55,10 +59,12 @@ def sympy2mpmath(value, prec=None):
         return mpmath.mpc(*value.as_real_imag())
     else:
         return None
-            
+
+
 class SpecialValueError(Exception):
     def __init__(self, name):
         self.name = name
+
 
 def mpmath2sympy(value, prec=None):
     if prec is None:
@@ -72,14 +78,17 @@ def mpmath2sympy(value, prec=None):
         return sympy.Float(str(value), dps(prec))
     else:
         return None
-    
-C = log(10, 2) # ~ 3.3219280948873626
-    
+
+C = log(10, 2)  # ~ 3.3219280948873626
+
+
 def dps(prec):
     return max(1, int(round(int(prec) / C - 1)))
 
+
 def prec(dps):
     return max(1, int(round((int(dps) + 1) * C)))
+
 
 def format_float(value, pretty=True, parenthesize_plus=False):
     s = str(value)
@@ -95,13 +104,16 @@ def format_float(value, pretty=True, parenthesize_plus=False):
             return result
     else:
         return s[0]
-    
+
+
 def mul(x, y):
     return x * y
-    
+
+
 def add(x, y):
     return x + y
-        
+
+
 def min_prec(*args):
     result = None
     for arg in args:
@@ -110,8 +122,10 @@ def min_prec(*args):
             result = prec
     return result
 
+
 def pickle_mp(value):
     return (get_type(value), str(value))
+
 
 def unpickle_mp(value):
     type, value = value
@@ -124,8 +138,11 @@ def unpickle_mp(value):
     else:
         return value
 
-# algorithm based on 
-# http://stackoverflow.com/questions/5110177/how-to-convert-floating-point-number-to-base-3-in-python
+# algorithm based on
+# http://stackoverflow.com/questions/5110177/how-to-convert-floating-
+# point-number-to-base-3-in-python
+
+
 def convert_base(x, base, precision=10):
     sign = -1 if x < 0 else 1
     x *= sign
@@ -141,7 +158,8 @@ def convert_base(x, base, precision=10):
             d = int(x // (base ** e))
             x -= d * (base ** e)
             out.append(digits[d])
-            if x == 0 and e < 0: break
+            if x == 0 and e < 0:
+                break
         return out
 
     int_part = convert(int(x), base, iexps)
@@ -150,9 +168,8 @@ def convert_base(x, base, precision=10):
 
     if (isinstance(x, float)):
         fexps = range(-1, -int(precision + 1), -1)
-        real_part = convert(x  - int(x), base, fexps)
+        real_part = convert(x - int(x), base, fexps)
 
         return "%s.%s" % (''.join(int_part), ''.join(real_part))
     else:
         return ''.join(int_part)
-

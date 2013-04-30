@@ -39,6 +39,7 @@ definitions = Definitions(add_builtin=True)
 
 sep = '-' * 70 + '\n'
 
+
 def compare(result, wanted):
     if result == wanted:
         return True
@@ -56,13 +57,14 @@ def compare(result, wanted):
             return False
     return True
 
+
 def test_case(test, tests, index=0, quiet=False):
     test, wanted_out, wanted, part, chapter, section = test.test, test.outs, test.result, tests.part, tests.chapter, tests.section
-    
+
     def fail(why):
         print u"%sTest failed: %s in %s / %s\n%s\n%s\n" % (sep, section, part, chapter, test, why)
         return False
-    
+
     if not quiet:
         print '%4d. TEST %s' % (index, test)
     try:
@@ -72,7 +74,7 @@ def test_case(test, tests, index=0, quiet=False):
         info = sys.exc_info()
         sys.excepthook(*info)
         return False
-    
+
     if evaluation.results:
         if len(evaluation.results) > 1:
             return fail(u"Too many results: %s" % evaluation.results)
@@ -92,16 +94,18 @@ def test_case(test, tests, index=0, quiet=False):
                 output_ok = False
                 break
     if not output_ok:
-        return fail(u"Output:\n%s\nWanted:\n%s" % (u'\n'.join(unicode(o) for o in out),
-            u'\n'.join(unicode(o) for o in wanted_out)))
+        return fail(
+            u"Output:\n%s\nWanted:\n%s" % (u'\n'.join(unicode(o) for o in out),
+                                           u'\n'.join(unicode(o) for o in wanted_out)))
     return True
 
+
 def test_tests(tests, index, quiet=False):
-    #print tests
+    # print tests
     definitions.reset_user_definitions()
     count = failed = 0
     failed_symbols = set()
-    for test in tests.tests:   
+    for test in tests.tests:
         count += 1
         index += 1
         if not test_case(test, tests, index, quiet):
@@ -109,17 +113,20 @@ def test_tests(tests, index, quiet=False):
             failed_symbols.add((tests.part, tests.chapter, tests.section))
     return count, failed, failed_symbols, index
 
+
 def create_output(tests, output_xml, output_tex):
     for format, output in [('xml', output_xml), ('tex', output_tex)]:
         definitions.reset_user_definitions()
         for test in tests.tests:
             key = test.key
-            result = Evaluation(test.test, definitions, format=format, catch_interrupt=False)
+            result = Evaluation(
+                test.test, definitions, format=format, catch_interrupt=False)
             output[key] = {
                 'query': test.test,
                 'results': [r.get_data() for r in result.results],
             }
-            
+
+
 def test_section(section, quiet=False):
     failed = 0
     index = 0
@@ -130,26 +137,28 @@ def test_section(section, quiet=False):
                 index += 1
                 if not test_case(test, tests, index, quiet=quiet):
                     failed += 1
-        
+
     print ''
     if failed > 0:
         print '%d test%s failed.' % (failed, 's' if failed != 1 else '')
     else:
         print 'OK'
-        
+
+
 def open_ensure_dir(f, *args, **kwargs):
     try:
         return open(f, *args, **kwargs)
-    except IOError, OSError:        
+    except IOError, OSError:
         d = os.path.dirname(f)
         if d and not os.path.exists(d):
             os.makedirs(d)
         return open(f, *args, **kwargs)
 
+
 def test_all(quiet=False, generate_output=False):
     if not quiet:
         print "Testing %s" % get_version_string(False)
-      
+
     try:
         index = 0
         count = failed = 0
@@ -157,7 +166,8 @@ def test_all(quiet=False, generate_output=False):
         output_xml = {}
         output_tex = {}
         for tests in documentation.get_tests():
-            sub_count, sub_failed, symbols, index = test_tests(tests, index, quiet=quiet)
+            sub_count, sub_failed, symbols, index = test_tests(
+                tests, index, quiet=quiet)
             if generate_output:
                 create_output(tests, output_xml, output_tex)
             count += sub_count
@@ -167,7 +177,7 @@ def test_all(quiet=False, generate_output=False):
     except KeyboardInterrupt:
         print "\nAborted.\n"
         return
-        
+
     if failed > 0:
         print '%s' % sep
     print "%d Tests for %d built-in symbols, %d passed, %d failed." % (count, builtin_count, count - failed, failed)
@@ -175,43 +185,51 @@ def test_all(quiet=False, generate_output=False):
         print "Failed:"
         for part, chapter, section in sorted(failed_symbols):
             print '  - %s in %s / %s' % (section, part, chapter)
-    
+
     if failed == 0:
         print '\nOK'
-        
+
         if generate_output:
             print 'Save XML'
             with open_ensure_dir(settings.DOC_XML_DATA, 'w') as output_xml_file:
                 pickle.dump(output_xml, output_xml_file, 0)
-                
+
             print 'Save TEX'
             with open_ensure_dir(settings.DOC_TEX_DATA, 'w') as output_tex_file:
                 pickle.dump(output_tex, output_tex_file, 0)
     else:
         print '\nFAILED'
         return sys.exit(1)      # Travis-CI knows the tests have failed
-        
+
+
 def write_latex():
     print "Load data"
     with open_ensure_dir(settings.DOC_TEX_DATA, 'r') as output_tex_file:
         output_tex = pickle.load(output_tex_file)
-        
+
     print 'Print documentation'
     with open_ensure_dir(settings.DOC_LATEX_FILE, 'w') as doc:
         content = documentation.latex(output_tex)
         content = content.encode('utf-8')
         doc.write(content)
 
+
 def main():
     parser = ArgumentParser(description="Mathics test suite.", add_help=False)
-    parser.add_argument('--help', '-h', help='show this help message and exit', action='help')
-    parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + settings.VERSION)
-    parser.add_argument('--section', '-s', dest="section", metavar="SECTION", help="only test SECTION")
-    parser.add_argument('--output', '-o', dest="output", action="store_true", help="generate TeX and XML output data")
-    parser.add_argument('--tex', '-t', dest="tex", action="store_true", help="generate TeX documentation file")
-    parser.add_argument('--quiet', '-q', dest="quiet", action="store_true", help="hide passed tests")
+    parser.add_argument(
+        '--help', '-h', help='show this help message and exit', action='help')
+    parser.add_argument(
+        '--version', '-v', action='version', version='%(prog)s ' + settings.VERSION)
+    parser.add_argument('--section', '-s', dest="section",
+                        metavar="SECTION", help="only test SECTION")
+    parser.add_argument('--output', '-o', dest="output",
+                        action="store_true", help="generate TeX and XML output data")
+    parser.add_argument('--tex', '-t', dest="tex",
+                        action="store_true", help="generate TeX documentation file")
+    parser.add_argument('--quiet', '-q', dest="quiet",
+                        action="store_true", help="hide passed tests")
     args = parser.parse_args()
-    
+
     if args.tex:
         write_latex()
     else:

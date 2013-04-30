@@ -15,13 +15,15 @@ import binascii
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Integer, String, Symbol, Real, Expression, Complex
 
+
 def get_random_state():
     state = random.getstate()
     state = pickle.dumps(state)
     state = binascii.b2a_hex(state)
     state = int(state, 16)
     return state
-    
+
+
 def set_random_state(state):
     if state is None:
         random.seed()
@@ -32,28 +34,30 @@ def set_random_state(state):
         state = binascii.a2b_hex(state)
         state = pickle.loads(state)
         random.setstate(state)
-    
+
+
 class RandomEnv:
     def __init__(self, evaluation):
         self.evaluation = evaluation
-        
+
     def __enter__(self):
         state = self.evaluation.get_config_value('$RandomState')
         set_random_state(state)
         return self
-        
+
     def __exit__(self, type, value, traceback):
         state = get_random_state()
         self.evaluation.set_config_value('$RandomState', state)
-        
+
     def randint(self, a, b):
         return random.randint(a, b)
-    
+
     def randreal(self, a, b):
         return random.uniform(a, b)
-    
+
     def seed(self, x=None):
         random.seed(x)
+
 
 class RandomState(Builtin):
     """
@@ -61,12 +65,12 @@ class RandomState(Builtin):
     <dt>'$RandomState'
         <dd>is a long number representing the internal state of the pseudorandom number generator.
     </dl>
-    
+
     >> Mod[$RandomState, 10^100]
      = ...
     >> IntegerLength[$RandomState]
      = ...
-     
+
     So far, it is not possible to assign values to '$RandomState'.
     >> $RandomState = 42
      : It is not possible to change the random state.
@@ -75,29 +79,30 @@ class RandomState(Builtin):
     >> $RandomState = $RandomState;
      : It is not possible to change the random state.
     """
-    
+
     name = '$RandomState'
-    
+
     messages = {
         'rndst': "It is not possible to change the random state.",
         #"`1` is not a valid random state.",
     }
-    
+
     def apply(self, evaluation):
         '$RandomState'
-        
+
         with RandomEnv(evaluation) as rand:
             return Integer(get_random_state())
-        
+
+
 class SeedRandom(Builtin):
     """
     <dl>
     <dt>'SeedRandom[$x$]'
         <dd>resets the pseudorandom generator with seed $x$.
     <dt>'SeedRandom[]'
-        <dd>uses the current date and time as seed. 
+        <dd>uses the current date and time as seed.
     </dl>
-    
+
     'SeedRandom' can be used to get reproducable random numbers:
     >> SeedRandom[42]
     >> RandomInteger[100]
@@ -109,32 +114,33 @@ class SeedRandom(Builtin):
      = 7
     >> RandomInteger[100]
      = 14
-    
+
     #> SeedRandom[x]
      : Argument x should be an integer or a string.
      = SeedRandom[x]
     """
-    
+
     messages = {
         'seed': "Argument `1` should be an integer or a string.",
     }
-    
+
     def apply(self, x, evaluation):
         'SeedRandom[x_]'
-        
+
         if not isinstance(x, (Integer, String)):
             return evaluation.message('SeedRandom', 'seed', x)
         with RandomEnv(evaluation) as rand:
             rand.seed(x)
         return Symbol('Null')
-    
+
     def apply_empty(self, evaluation):
         'SeedRandom[]'
-        
+
         with RandomEnv(evaluation) as rand:
             rand.seed()
         return Symbol('Null')
-    
+
+
 class RandomInteger(Builtin):
     """
     <dl>
@@ -149,17 +155,17 @@ class RandomInteger(Builtin):
     <dt>'RandomInteger[$range$, {$n1$, $n2$, ...}]'
         <dd>gives a nested list of pseudorandom integers.
     </dl>
-    
+
     >> RandomInteger[{1, 5}]
      = ...
     #> 1 <= % <= 5
      = True
-     
+
     >> RandomInteger[100, {2, 3}] // TableForm
      = ...   ...   ...
      .
      . ...   ...   ...
-     
+
     Calling 'RandomInteger' changes '$RandomState':
     >> previousState = $RandomState;
     >> RandomInteger[]
@@ -167,21 +173,21 @@ class RandomInteger(Builtin):
     >> $RandomState != previousState
      = True
     """
-    
+
     messages = {
         'unifr': "The endpoints specified by `1` for the endpoints of the discrete uniform distribution range are not integers.",
     }
-    
+
     rules = {
         'RandomInteger[]': 'RandomInteger[{0, 1}]',
         'RandomInteger[max_Integer]': 'RandomInteger[{0, max}]',
         'RandomInteger[max_Integer, ns_]': 'RandomInteger[{0, max}, ns]',
         'RandomInteger[spec_, n_Integer]': 'RandomInteger[spec, {n}]',
     }
-    
+
     def apply(self, rmin, rmax, evaluation):
         'RandomInteger[{rmin_, rmax_}]'
-        
+
         if not isinstance(rmin, Integer) or not isinstance(rmax, Integer):
             return evaluation.message('RandomInteger', 'unifr', Expression('List', rmin, rmax))
         rmin, rmax = rmin.value, rmax.value
@@ -196,16 +202,17 @@ class RandomInteger(Builtin):
         result = ns.to_python()
 
         assert all([isinstance(i, int) for i in result])
-        
+
         with RandomEnv(evaluation) as rand:
             def search_product(i):
-                if i == len(result) -1:
-                        return Expression('List', *[Integer(rand.randint(rmin, 
-                          rmax)) for j in range(result[i])])
+                if i == len(result) - 1:
+                        return Expression('List', *[Integer(rand.randint(rmin,
+                                                                         rmax)) for j in range(result[i])])
                 else:
-                    return Expression('List', 
-                      *[search_product(i+1) for j in range(result[i])])
+                    return Expression('List',
+                                      *[search_product(i + 1) for j in range(result[i])])
             return search_product(0)
+
 
 class RandomReal(Builtin):
     """
@@ -221,33 +228,33 @@ class RandomReal(Builtin):
     <dt>'RandomReal[$range$, {$n1$, $n2$, ...}]'
         <dd>gives a nested list of pseudorandom real numbers.
     </dl>
-    
+
     >> RandomReal[]
      = ...
     #> 0 <= % <= 1
      = True
-    
+
     >> RandomReal[{1, 5}]
      = ...
-     
+
     ## needs too much horizontal space in TeX form
     #> RandomReal[100, {2, 3}] // TableForm
      = ...   ...   ...
      .
      . ...   ...   ...
     """
-    
+
     messages = {
         'unifr': "The endpoints specified by `1` for the endpoints of the discrete uniform distribution range are not real valued.",
     }
-    
+
     rules = {
         'RandomReal[]': 'RandomReal[{0, 1}]',
         'RandomReal[max_?NumberQ]': 'RandomReal[{0, max}]',
         'RandomReal[max_?NumberQ, ns_]': 'RandomReal[{0, max}, ns]',
         'RandomReal[spec_, n_Integer]': 'RandomReal[spec, {n}]',
     }
-    
+
     def apply(self, xmin, xmax, evaluation):
         'RandomReal[{xmin_, xmax_}]'
 
@@ -258,7 +265,7 @@ class RandomReal(Builtin):
 
         with RandomEnv(evaluation) as rand:
             return Real(rand.randreal(min_value, max_value))
-            
+
     def apply_list(self, xmin, xmax, ns, evaluation):
         'RandomReal[{xmin_, xmax_}, ns_?ListQ]'
 
@@ -272,15 +279,16 @@ class RandomReal(Builtin):
             return evaluation.message('RandomReal', 'array', ns, expr)
 
         assert all([isinstance(i, int) for i in result])
-        
+
         with RandomEnv(evaluation) as rand:
             def search_product(i):
-                if i == len(result)-1:
+                if i == len(result) - 1:
                         return Expression('List', *[Real(rand.randreal(min_value, max_value))
-                          for j in range(result[i])])
+                                                    for j in range(result[i])])
                 else:
-                    return Expression('List', *[search_product(i+1) for j in range(result[i])])
+                    return Expression('List', *[search_product(i + 1) for j in range(result[i])])
             return search_product(0)
+
 
 class RandomComplex(Builtin):
     """
@@ -296,12 +304,12 @@ class RandomComplex(Builtin):
     <dt>'RandomComplex[$range$, {$n1$, $n2$, ...}]'
         <dd>gives a nested list of pseudorandom complex numbers.
     </dl>
-    
+
     >> RandomComplex[]
      = ...
     #> 0 <= Re[%] <= 1 && 0 <= Im[%] <= 1
      = True
-    
+
     >> RandomComplex[{1+I, 5+5I}]
      = ...
     #> 1 <= Re[%] <= 5 && 1 <= Im[%] <= 5
@@ -313,18 +321,18 @@ class RandomComplex(Builtin):
     >> RandomComplex[{1+I, 2+2I}, {2, 2}]
      = {{..., ...}, {..., ...}}
     """
-    
+
     messages = {
         'unifr': "The endpoints specified by `1` for the endpoints of the discrete uniform distribution range are not complex valued.",
         'array': "The array dimensions `1` given in position 2 of `2` should be a list of non-negative machine-sized integers giving the dimensions for the result.",
     }
-    
+
     rules = {
         'RandomComplex[]': 'RandomComplex[{0, 1+I}]',
         'RandomComplex[zmax_?NumberQ]': 'RandomComplex[{0, zmax}]',
         'RandomComplex[zmax_?NumberQ, ns_]': 'RandomComplex[{0, zmax}, ns]',
     }
-    
+
     def apply(self, zmin, zmax, evaluation):
         'RandomComplex[{zmin_, zmax_}]'
         if Expression('RealNumberQ', zmin).evaluate(evaluation):
@@ -339,8 +347,8 @@ class RandomComplex(Builtin):
 
         with RandomEnv(evaluation) as rand:
             return Complex(rand.randreal(min_value.real, max_value.real),
-              rand.randreal(min_value.imag, max_value.imag))
-            
+                           rand.randreal(min_value.imag, max_value.imag))
+
     def apply_list(self, zmin, zmax, ns, evaluation):
         'RandomComplex[{zmin_, zmax_}, ns_]'
         expr = Expression('RandomComplex', Expression('List', zmin, zmax), ns)
@@ -361,14 +369,13 @@ class RandomComplex(Builtin):
 
         if not all([isinstance(i, int) and i >= 0 for i in py_ns]):
             return evaluation.message('RandomComplex', 'array', ns, expr)
-        
+
         with RandomEnv(evaluation) as rand:
             def search_product(i):
-                if i == len(py_ns)-1:
-                        return Expression('List', *[Complex(rand.randreal(min_value.real, max_value.real),
-                            rand.randreal(min_value.imag, max_value.imag)) for j in range(py_ns[i])])
+                if i == len(py_ns) - 1:
+                        return Expression(
+                            'List', *[Complex(rand.randreal(min_value.real, max_value.real),
+                                              rand.randreal(min_value.imag, max_value.imag)) for j in range(py_ns[i])])
                 else:
-                    return Expression('List', *[search_product(i+1) for j in range(py_ns[i])])
+                    return Expression('List', *[search_product(i + 1) for j in range(py_ns[i])])
             return search_product(0)
-
-

@@ -15,11 +15,12 @@ from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import dps, mpmath2sympy, prec, convert_base
 from mathics.core import numbers
 from mathics.core.expression import (Integer, Rational, Real, Complex, Atom,
-        Expression, Number, Symbol, from_python)
+                                     Expression, Number, Symbol, from_python)
 from mathics.core.convert import from_sympy
 from mathics.settings import MACHINE_PRECISION
 
 machine_precision = MACHINE_PRECISION
+
 
 def get_precision(precision, evaluation):
     if precision.get_name() == 'MachinePrecision':
@@ -29,6 +30,7 @@ def get_precision(precision, evaluation):
     else:
         evaluation.message('N', 'precbd', precision)
         return None
+
 
 class N(Builtin):
     """
@@ -44,14 +46,14 @@ class N(Builtin):
 
     >> N[1/7, 5]
      = 0.14286
-    
+
     You can manually assign numerical values to symbols.
     When you do not specify a precision, 'MachinePrecision' is taken.
     >> N[a] = 10.9
      = 10.9
     >> a
      = a
-     
+
     'N' automatically threads over expressions, except when a symbol has attributes 'NHoldAll', 'NHoldFirst', or 'NHoldRest'.
     >> N[a + b]
      = 10.9 + b
@@ -65,14 +67,14 @@ class N(Builtin):
     >> SetAttributes[f, NHoldAll]
     >> N[f[a, b]]
      = f[a, b]
-    
+
     The precision can be a pattern:
     >> N[c, p_?(#>10&)] := p
     >> N[c, 3]
      = c
     >> N[c, 11]
      = 11.
-     
+
     You can also use 'UpSet' or 'TagSet' to specify values for 'N':
     >> N[d] ^= 5;
     However, the value will not be stored in 'UpValues', but in 'NValues' (as for 'Set'):
@@ -83,11 +85,11 @@ class N(Builtin):
     >> e /: N[e] = 6;
     >> N[e]
      = 6.
-     
+
     Values for 'N[$expr$]' must be associated with the head of $expr$:
     >> f /: N[e[f]] = 7;
      : Tag f not found or too deep for an assigned rule.
-     
+
     You can use 'Condition':
     >> N[g[x_, y_], p_] := x + y * Pi /; x + y > 3
     >> SetAttributes[g, NHoldRest]
@@ -95,40 +97,41 @@ class N(Builtin):
      = g[1., 1]
     >> N[g[2, 2]]
      = 8.28318530717958648
-     
+
     #> p=N[Pi,100]
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
     #> ToString[p]
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
     """
-    
+
     messages = {
         'precbd': "Requested precision `1` is not a machine-sized real number.",
     }
-    
+
     rules = {
         'N[expr_]': 'N[expr, MachinePrecision]',
     }
-        
+
     def apply_other(self, expr, prec, evaluation):
         'N[expr_, prec_]'
-        
+
         valid_prec = get_precision(prec, evaluation)
-        
+
         if valid_prec is not None:
             if expr.get_head_name() in ('List', 'Rule'):
                 return Expression(expr.head, *[self.apply_other(leaf, prec, evaluation) for leaf in expr.leaves])
             if isinstance(expr, Number):
                 return expr.round(valid_prec)
-            
+
             name = expr.get_lookup_name()
             nexpr = Expression('N', expr, prec)
-            result = evaluation.definitions.get_value(name, 'NValues', nexpr, evaluation)
+            result = evaluation.definitions.get_value(
+                name, 'NValues', nexpr, evaluation)
             if result is not None:
                 if not result.same(nexpr):
                     result = Expression('N', result, prec).evaluate(evaluation)
                 return result
-            
+
             if expr.is_atom():
                 return expr.round(valid_prec)
             else:
@@ -147,9 +150,11 @@ class N(Builtin):
                 head = Expression('N', expr.head, prec).evaluate(evaluation)
                 leaves = expr.leaves[:]
                 for index in eval_range:
-                    leaves[index] = Expression('N', leaves[index], prec).evaluate(evaluation)
+                    leaves[index] = Expression('N', leaves[
+                                               index], prec).evaluate(evaluation)
                 return Expression(head, *leaves)
-    
+
+
 class MachinePrecision(Predefined):
     """
     <dl>
@@ -159,14 +164,15 @@ class MachinePrecision(Predefined):
     >> N[MachinePrecision]
      = 18.
     """
-    
+
     def apply_N(self, prec, evaluation):
         'N[MachinePrecision, prec_]'
-        
+
         prec = get_precision(prec, evaluation)
         if prec is not None:
             return Real(dps(machine_precision), prec)
-    
+
+
 class Precision(Builtin):
     """
     <dl>
@@ -187,10 +193,10 @@ class Precision(Builtin):
      = 0.
     #> Precision[-0.0]      (*Matematica gets this wrong *)
      = 0.
-    #> Precision[-0.000000000000000000000000000000000000]  
+    #> Precision[-0.000000000000000000000000000000000000]
      = 0.
     """
-    
+
     rules = {
         'Precision[_Integer]': 'Infinity',
         'Precision[_Rational]': 'Infinity',
@@ -198,20 +204,21 @@ class Precision(Builtin):
         'Precision[z:0.0]': '0.',
         'Precision[z:-0.0]': '0.',
     }
-    
+
     def apply_real(self, x, evaluation):
         'Precision[x_Real]'
-        
+
         return Real(dps(x.get_precision()))
-    
+
     def apply_complex(self, x, evaluation):
         'Precision[x_Complex]'
-        
+
         if x.is_inexact():
             return Real(dps(x.get_precision()))
         else:
             return Symbol('Infinity')
-        
+
+
 def round(value, k):
     n = (1. * value / k).as_real_imag()[0]
     if n >= 0:
@@ -219,7 +226,8 @@ def round(value, k):
     else:
         n = sympy.Integer(n - 0.5)
     return n * k
-        
+
+
 class Round(Builtin):
     """
     <dl>
@@ -228,7 +236,7 @@ class Round(Builtin):
     <dt>'Round[$expr$, $k$]'
         <dd>rounds $expr$ to the closest multiple of $k$.
     </dl>
-    
+
     >> Round[10.6]
      = 11
     >> Round[0.06, 0.1]
@@ -258,7 +266,7 @@ class Round(Builtin):
     Round Negative numbers too
     >> Round[-1.4]
      = -1
-     
+
     Expressions other than numbers remain unevaluated:
     >> Round[x]
      = Round[x]
@@ -267,21 +275,22 @@ class Round(Builtin):
     """
 
     attributes = ('Listable', 'NumericFunction')
-    
+
     rules = {
         'Round[expr_?NumericQ]': 'Round[Re[expr], 1] + I * Round[Im[expr], 1]',
         'Round[expr_Complex, k_RealNumberQ]': 'Round[Re[expr], k] + I * Round[Im[expr], k]',
     }
-    
+
     def apply(self, expr, k, evaluation):
         "Round[expr_?NumericQ, k_?NumericQ]"
         return from_sympy(round(expr.to_sympy(), k.to_sympy()))
-    
-def chop(expr, delta=10.0**(-10.0)):
+
+
+def chop(expr, delta=10.0 ** (-10.0)):
     if isinstance(expr, Real):
         if -delta < expr.to_python() < delta:
             return Integer(0)
-        #return expr
+        # return expr
     elif isinstance(expr, Complex) and expr.get_precision() is not None:
         real, imag = expr.real, expr.imag
         if -delta < real.to_python() < delta:
@@ -295,7 +304,8 @@ def chop(expr, delta=10.0**(-10.0)):
     elif isinstance(expr, Expression):
         return Expression(chop(expr.head), *[chop(leaf) for leaf in expr.leaves])
     return expr
-        
+
+
 class Chop(Builtin):
     """
     <dl>
@@ -304,7 +314,7 @@ class Chop(Builtin):
     <dt>'Chop[$expr$, $delta$]'
         <dd>uses a tolerance of $delta$. The default tolerance is '10^-10'.
     </dl>
-    
+
     >> Chop[10.0 ^ -16]
      = 0
     >> Chop[10.0 ^ -9]
@@ -312,33 +322,34 @@ class Chop(Builtin):
     >> Chop[10 ^ -11 I]
      = I / 100000000000
     >> Chop[0. + 10 ^ -11 I]
-     = 0    
+     = 0
     """
-    
+
     messages = {
         'tolnn': "Tolerance specification a must be a non-negative number.",
     }
-    
+
     rules = {
         'Chop[expr_]': 'Chop[expr, 10^-10]',
     }
-    
+
     def apply(self, expr, delta, evaluation):
         'Chop[expr_, delta_:(10^-10)]'
-        
+
         delta = delta.evaluate(evaluation).get_real_value()
         if delta is None or delta < 0:
             return evaluation.message('Chop', 'tolnn')
-        
+
         return chop(expr, delta=delta)
-    
+
+
 class NumericQ(Builtin):
     """
     <dl>
     <dt>'NumericQ[$expr$]'
         <dd>tests whether $expr$ represents a numeric quantity.
     </dl>
-    
+
     >> NumericQ[2]
      = True
     >> NumericQ[Sqrt[Pi]]
@@ -346,22 +357,24 @@ class NumericQ(Builtin):
     >> NumberQ[Sqrt[Pi]]
      = False
     """
-    
+
     def apply(self, expr, evaluation):
         'NumericQ[expr_]'
 
         def test(expr):
             if isinstance(expr, Expression):
-                attr = evaluation.definitions.get_attributes(expr.head.get_name())
+                attr = evaluation.definitions.get_attributes(
+                    expr.head.get_name())
                 return 'NumericFunction' in attr and all(test(leaf) for leaf in expr.leaves)
             else:
                 return expr.is_numeric()
-            
+
         return Symbol('True') if test(expr) else Symbol('False')
-                
+
+
 class BaseForm(Builtin):
     """
-    <dl> 
+    <dl>
     <dt>'BaseForm[$expr$, $n$]'
         <dd>prints mumbers in $expr$ in base $n$.
     </dl>
@@ -385,14 +398,13 @@ class BaseForm(Builtin):
      = BaseForm[12, 3]
 
     >> BaseForm[12, -3]
-     : Positive machine-sized integer expected at position 2 in BaseForm[12, -3]. 
-     : MakeBoxes[BaseForm[12, -3], OutputForm] is not a valid box structure. 
+     : Positive machine-sized integer expected at position 2 in BaseForm[12, -3].
+     : MakeBoxes[BaseForm[12, -3], OutputForm] is not a valid box structure.
     """
 
     messages = {
         'intpm': "Positive machine-sized integer expected at position 2 in BaseForm[`1`, `2`].",
     }
- 
 
     def apply_makeboxes(self, expr, n, f, evaluation):
         'MakeBoxes[BaseForm[expr_, n_], f:StandardForm|TraditionalForm|OutputForm]'
@@ -413,4 +425,4 @@ class BaseForm(Builtin):
             return from_python("%s_%d" % (val, base))
         else:
             return Expression('SubscriptBox', from_python(val),
-                from_python(base))
+                              from_python(base))

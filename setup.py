@@ -32,8 +32,9 @@ from distutils.extension import Extension
 
 import sys
 # Ensure user has the correct Python version
-if not (2,5) <= sys.version_info[:2] <= (2,7):
-    print("Mathics supports Python 2.5 upto Python 2.7. Python %d.%d detected" % sys.version_info[:2])
+if not (2, 5) <= sys.version_info[:2] <= (2, 7):
+    print("Mathics supports Python 2.5 upto Python 2.7. Python %d.%d detected" %
+          sys.version_info[:2])
     sys.exit(-1)
 
 from mathics import settings
@@ -57,22 +58,24 @@ else:
         'builtin': ['arithmetic', 'numeric', 'patterns', 'graphics']
     }
     EXTENSIONS = [Extension('mathics.%s.%s' % (parent, module),
-        ['mathics/%s/%s.py' % (parent, module)]) for parent, modules in EXTENSIONS.iteritems() for module in modules]
+                            ['mathics/%s/%s.py' % (parent, module)]) for parent, modules in EXTENSIONS.iteritems() for module in modules]
     CMDCLASS = {'build_ext': build_ext}
     INSTALL_REQUIRES = ['cython>=0.15.1']
 
 # General Requirements
 INSTALL_REQUIRES += ['sympy==0.7.2', 'django>=1.2', 'ply>=3.4',
-    'argparse', 'python-dateutil', 'colorama']
+                     'argparse', 'python-dateutil', 'colorama']
 
 # strange SandboxError with SymPy 0.6.7 in Sage (writing to ~/.sage/tmp)
 
-#if sys.platform == "darwin":
+# if sys.platform == "darwin":
 #    INSTALL_REQUIRES += ['readline']
+
 
 def subdirs(root, file='*.*', depth=10):
     for k in range(depth):
         yield root + '*/' * k + file
+
 
 class initialize(Command):
     """
@@ -83,7 +86,7 @@ class initialize(Command):
     user_options = []  # distutils complains if this is not here.
 
     def __init__(self, *args):
-        self.args = args[0] # so we can pass it to other classes
+        self.args = args[0]  # so we can pass it to other classes
         Command.__init__(self, *args)
 
     def initialize_options(self):  # distutils wants this
@@ -101,64 +104,65 @@ class initialize(Command):
         if not os.path.exists(settings.DATA_DIR):
             os.makedirs(settings.DATA_DIR)
         print("Creating database %s" % database_file)
-        subprocess.call([sys.executable, 'mathics/manage.py', 'syncdb', '--noinput'])
+        subprocess.call(
+            [sys.executable, 'mathics/manage.py', 'syncdb', '--noinput'])
         os.chmod(database_file, 0o766)
         print("")
         print("Mathics initialized successfully.")
-        
+
 CMDCLASS['initialize'] = initialize
 
 mathjax_files = list(subdirs('media/js/mathjax/'))
 
 setup(
-    name = "Mathics",
-    cmdclass = CMDCLASS,
-    ext_modules = EXTENSIONS,
-    version = settings.VERSION,
-    
-    packages = [
+    name="Mathics",
+    cmdclass=CMDCLASS,
+    ext_modules=EXTENSIONS,
+    version=settings.VERSION,
+
+    packages=[
         'mathics',
         'mathics.core',
         'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.data',
-        'mathics.doc', 
+        'mathics.doc',
         'mathics.autoload',
         'mathics.packages',
         'mathics.web', 'mathics.web.templatetags'
     ],
 
-    install_requires = INSTALL_REQUIRES,
+    install_requires=INSTALL_REQUIRES,
 
-    package_data = {
+    package_data={
         'mathics.doc': ['documentation/*.mdoc', 'xml/data'],
         'mathics.web': ['media/css/*.css', 'media/img/*.gif',
-            'media/js/innerdom/*.js', 'media/js/prototype/*.js', 
-            'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
-            'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html', 
-            'templates/doc/*.html'] + mathjax_files,
+                        'media/js/innerdom/*.js', 'media/js/prototype/*.js',
+                        'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
+                        'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
+                        'templates/doc/*.html'] + mathjax_files,
         'mathics.data': ['*.csv', 'ExampleData/*'],
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
         'mathics.autoload': ['formats/*/Import.m', 'formats/*/Export.m'],
         'mathics.packages': ['*/*.m', '*/Kernel/init.m'],
     },
-    
-    entry_points = {
+
+    entry_points={
         'console_scripts': [
             'mathics = mathics.main:main',
             'mathicsserver = mathics.server:main',
         ],
     },
-    
-    zip_safe = False,   # don't pack Mathics in egg file because of sqlite database, media files, etc.
+
+    # don't pack Mathics in egg because of sqlite database, media files, etc.
+    zip_safe=False,
 
     # metadata for upload to PyPI
-    author = "Jan Poeschko",
-    author_email = "jan@poeschko.com",
-    description = "A general-purpose computer algebra system.",
-    license = "GPL",
-    keywords = "computer algebra system mathics mathematica sage sympy",
-    url = "http://www.mathics.org/",   # project home page, if any
+    author="Jan Poeschko",
+    author_email="jan@poeschko.com",
+    description="A general-purpose computer algebra system.",
+    license="GPL",
+    keywords="computer algebra system mathics mathematica sage sympy",
+    url="http://www.mathics.org/",   # project home page, if any
 
-    # TODO: could also include long_description, download_url, classifiers, etc.
+    # TODO: could also include long_description, download_url, classifiers,
+    # etc.
 )
-
-

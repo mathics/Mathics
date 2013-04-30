@@ -29,18 +29,18 @@ from django.conf import settings
 handler404 = 'mathics.web.views.error_404_view'
 handler500 = 'mathics.web.views.error_500_view'
 
-urlpatterns = patterns('',    
-    (r'^media/(?P<path>.*)$', 'django.views.static.serve', {
-        'document_root': settings.MEDIA_ROOT,
-        'show_indexes': False
-    }),
-    
-    (r'^', include('mathics.web.urls')),
+urlpatterns = patterns('',
+                      (r'^media/(?P<path>.*)$', 'django.views.static.serve', {
+                       'document_root': settings.MEDIA_ROOT,
+                       'show_indexes': False
+                       }),
 
-    # Uncomment the admin/doc line below and add 'django.contrib.admindocs' 
-    # to INSTALLED_APPS to enable admin documentation:
-    # (r'^admin/doc/', include('django.contrib.admindocs.urls')),
+                      (r'^', include('mathics.web.urls')),
 
-    # Uncomment the next line to enable the admin:
-    # (r'^admin/(.*)', admin.site.root),
-)
+                       # Uncomment the admin/doc line below and add 'django.contrib.admindocs'
+                       # to INSTALLED_APPS to enable admin documentation:
+                       # (r'^admin/doc/', include('django.contrib.admindocs.urls')),
+
+                       # Uncomment the next line to enable the admin:
+                       # (r'^admin/(.*)', admin.site.root),
+                       )

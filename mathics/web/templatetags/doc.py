@@ -3,11 +3,12 @@
 from django import template
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
-from django.utils import simplejson#
+from django.utils import simplejson
 
 from mathics.doc.doc import escape_html
 
 register = template.Library()
+
 
 @register.filter
 def link(object, ajax):
@@ -16,7 +17,8 @@ def link(object, ajax):
         return mark_safe('<a href="%s">%s</a>' % (escape(href), object.get_title_html()))
     else:
         return ''
-    
+
+
 @register.filter
 def js(data):
     return mark_safe(simplejson.dumps(data))

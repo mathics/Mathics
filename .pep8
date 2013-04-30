@@ -1,0 +1,3 @@
+[pep8]
+select = W,E
+exclude = parsetab.py

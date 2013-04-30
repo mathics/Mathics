@@ -19,13 +19,14 @@ mimetypes.add_type('application/vnd.wolfram.mathematica.package', '.m')
 IMPORTERS = {}
 EXPORTERS = {}
 
+
 class ImportFormats(Predefined):
     """
     <dl>
     <dt>'$ImportFormats'
         <dd>returns a list of file formats supported by Import.
     </dl>
-    
+
     >> $ImportFormats
      = {CSV, JSON, Text}
     """
@@ -42,7 +43,7 @@ class ExportFormats(Predefined):
     <dt>'$ExportFormats'
         <dd>returns a list of file formats supported by Export.
     </dl>
-    
+
     >> $ExportFormats
      = {...}
     """
@@ -52,7 +53,10 @@ class ExportFormats(Predefined):
     def evaluate(self, evaluation):
         return from_python(EXPORTERS.keys())
 
-#FIXME This should be private, that is accesed with ImportExport`RegisterImport
+# FIXME This should be private, that is accesed with
+# ImportExport`RegisterImport
+
+
 class RegisterImport(Builtin):
     """
     <dl>
@@ -123,12 +127,12 @@ class RegisterImport(Builtin):
      . 0.838697   0.43622
      .
      . 0.309496   0.833591
-    
+
     """
 
     attributes = ('Protected', 'ReadProtected')
 
-    #XXX OptionsIssue
+    # XXX OptionsIssue
     options = {
         'Path': 'Automatic',
         'FunctionChannels': '{"FileNames"}',
@@ -149,25 +153,29 @@ class RegisterImport(Builtin):
 
     def apply(self, formatname, function, posts, evaluation, options):
         'RegisterImport[formatname_String, function_, posts_, OptionsPattern[RegisterImport]]'
-        
+
         if function.has_form('List', None):
             leaves = function.get_leaves()
         else:
             leaves = [function]
 
         if not (len(leaves) >= 1 and all(x.has_form('RuleDelayed', None) for x in leaves[:-1]) and isinstance(leaves[-1], Symbol)):
-            #TODO: Message
+            # TODO: Message
             return Symbol('$Failed')
 
         # Does not work in python <= 2.6
-        #conditionals = {elem.get_string_value(): expr for [elem, expr] in [x.get_leaves() for x in leaves[:-1]]}
-        conditionals = dict((elem.get_string_value(), expr) for [elem, expr] in [x.get_leaves() for x in leaves[:-1]])
+        # conditionals = {elem.get_string_value(): expr for [elem, expr] in
+        # [x.get_leaves() for x in leaves[:-1]]}
+        conditionals = dict((elem.get_string_value(), expr) for [
+                            elem, expr] in [x.get_leaves() for x in leaves[:-1]])
         default = leaves[-1]
         posts = {}
-            
-        IMPORTERS[formatname.get_string_value()] = (conditionals, default, posts, options)
+
+        IMPORTERS[formatname.get_string_value()] = (
+            conditionals, default, posts, options)
 
         return Symbol('Null')
+
 
 class Import(Builtin):
     """
@@ -203,10 +211,10 @@ class Import(Builtin):
 
     ## JSON
     >> Import["ExampleData/colors.json"]
-     = {colorsArray -> {{colorName -> black, rgbValue -> (0, 0, 0), hexValue -> #000000}, {colorName -> red, rgbValue -> (255, 0, 0), hexValue -> #FF0000}, {colorName -> green, rgbValue -> (0, 255, 0), hexValue -> #00FF00}, {colorName -> blue, rgbValue -> (0, 0, 255), hexValue -> #0000FF}, {colorName -> yellow, rgbValue -> (255, 255, 0), hexValue -> #FFFF00}, {colorName -> cyan, rgbValue -> (0, 255, 255), hexValue -> #00FFFF}, {colorName -> magenta, rgbValue -> (255, 0, 255), hexValue -> #FF00FF}, {colorName -> white, rgbValue -> (255, 255, 255), hexValue -> #FFFFFF}}} 
+     = {colorsArray -> {{colorName -> black, rgbValue -> (0, 0, 0), hexValue -> #000000}, {colorName -> red, rgbValue -> (255, 0, 0), hexValue -> #FF0000}, {colorName -> green, rgbValue -> (0, 255, 0), hexValue -> #00FF00}, {colorName -> blue, rgbValue -> (0, 0, 255), hexValue -> #0000FF}, {colorName -> yellow, rgbValue -> (255, 255, 0), hexValue -> #FFFF00}, {colorName -> cyan, rgbValue -> (0, 255, 255), hexValue -> #00FFFF}, {colorName -> magenta, rgbValue -> (255, 0, 255), hexValue -> #FF00FF}, {colorName -> white, rgbValue -> (255, 255, 255), hexValue -> #FFFFFF}}}
     """
 
-    #TODO: Images tests
+    # TODO: Images tests
     """
     >> Import["ExampleData/sunflowers.jpg"]
      = -Image-
@@ -240,13 +248,13 @@ class Import(Builtin):
         # Check elements
         elements = elements.to_python()
         if not isinstance(elements, list):
-            elements = [elements] 
+            elements = [elements]
 
         for el in elements:
             if not (isinstance(el, basestring) and el[0] == el[-1] == '"'):
                 evaluation.message('Import', 'noelem', from_python(el))
                 return Symbol('$Failed')
-    
+
         elements = [el[1:-1] for el in elements]
 
         # Determine file type
@@ -256,23 +264,25 @@ class Import(Builtin):
                 elements.remove(el)
                 break
         else:
-            filetype = Expression('FileFormat', findfile).evaluate(evaluation=evaluation).get_string_value()
+            filetype = Expression('FileFormat', findfile).evaluate(
+                evaluation=evaluation).get_string_value()
 
         if filetype not in IMPORTERS.keys():
             evaluation.message('Import', 'fmtnosup', filetype)
             return Symbol('$Failed')
 
         # Load the importer
-        (conditionals, default_function, posts, importer_options) = IMPORTERS[filetype]
+        (conditionals, default_function, posts,
+         importer_options) = IMPORTERS[filetype]
 
-        #XXX OptionsIssue
-        #function_channels = importer_options.get(String("FunctionChannels"))
+        # XXX OptionsIssue
+        # function_channels = importer_options.get(String("FunctionChannels"))
         function_channels = importer_options.get(Symbol("FunctionChannels"))
 
-        #XXX OptionsIssue
-        #default_element = importer_options.get(String("DefaultElement"))
+        # XXX OptionsIssue
+        # default_element = importer_options.get(String("DefaultElement"))
         default_element = importer_options.get(Symbol("DefaultElement"))
- 
+
         def get_results(tmp_function):
             if function_channels == Expression('List', String('FileNames')):
                 tmp = Expression(tmp_function, findfile).evaluate(evaluation)
@@ -284,14 +294,15 @@ class Import(Builtin):
                 tmp = Expression(tmp_function, stream).evaluate(evaluation)
                 Expression('Close', stream).evaluate(evaluation)
             else:
-                #TODO print appropriate error message
+                # TODO print appropriate error message
                 raise NotImplementedError
             tmp = tmp.get_leaves()
             if not all(expr.has_form('Rule', None) for expr in tmp):
                 return None
 
-            # return {a.get_string_value() : b for (a,b) in map(lambda x: x.get_leaves(), tmp)}
-            return dict((a.get_string_value(), b) for (a,b) in map(lambda x: x.get_leaves(), tmp))
+            # return {a.get_string_value() : b for (a,b) in map(lambda x:
+            # x.get_leaves(), tmp)}
+            return dict((a.get_string_value(), b) for (a, b) in map(lambda x: x.get_leaves(), tmp))
 
         # Perform the import
         defaults = None
@@ -305,7 +316,8 @@ class Import(Builtin):
             else:
                 result = defaults.get(default_element.get_string_value())
                 if result is None:
-                    evaluation.message('Import', 'noelem', default_element, from_python(filetype))
+                    evaluation.message(
+                        'Import', 'noelem', default_element, from_python(filetype))
                     return Symbol('$Failed')
                 return result
         else:
@@ -325,7 +337,7 @@ class Import(Builtin):
                     assert len(result.keys()) == 1 and result.keys()[0] == el
                     return result.values()[0]
                 elif el in posts.keys():
-                    #TODO: allow use of conditionals
+                    # TODO: allow use of conditionals
                     result = get_results(posts[el])
                     if result is None:
                         return Symbol('$Failed')
@@ -337,8 +349,10 @@ class Import(Builtin):
                     if el in defaults.keys():
                         return defaults[el]
                     else:
-                        evaluation.message('Import', 'noelem', from_python(el), from_python(filetype))
+                        evaluation.message('Import', 'noelem', from_python(
+                            el), from_python(filetype))
                         return Symbol('$Failed')
+
 
 class Export(Builtin):
     """
@@ -353,6 +367,7 @@ class Export(Builtin):
     """
 
     pass
+
 
 class FileFormat(Builtin):
     """
@@ -402,7 +417,7 @@ class FileFormat(Builtin):
      = SVG
     """
 
-    #TODO: JSON example file
+    # TODO: JSON example file
     """
     #> FileFormat["ExampleData/example.json"]
      = JSON
@@ -411,7 +426,7 @@ class FileFormat(Builtin):
     messages = {
         'nffil': 'File not found during `1`.',
     }
-    
+
     detector = None
 
     def apply(self, filename, evaluation):
@@ -419,16 +434,17 @@ class FileFormat(Builtin):
 
         findfile = Expression('FindFile', filename).evaluate(evaluation)
         if findfile == Symbol('$Failed'):
-            evaluation.message('FileFormat', 'nffil', Expression('FileFormat', filename))
+            evaluation.message('FileFormat', 'nffil', Expression(
+                'FileFormat', filename))
             return Symbol('$Failed')
 
         path = findfile.get_string_value()
-        
+
         if not FileFormat.detector:
             loader = magic.MagicLoader()
             loader.load()
             FileFormat.detector = magic.MagicDetector(loader.mimetypes)
-            
+
         mime = set(FileFormat.detector.match(path))
 
         # If match fails match on extension only
@@ -439,7 +455,7 @@ class FileFormat(Builtin):
             else:
                 mime = set([mime])
 
-        #TODO: Add more file formats
+        # TODO: Add more file formats
 
         typedict = {
             'application/dicom': 'DICOM',
@@ -481,7 +497,7 @@ class FileFormat(Builtin):
             'application/x-msaccess': 'MDB',
             'application/x-netcdf': 'NetCDF',
             'application/x-shockwave-flash': 'SWF',
-            'application/x-tex': 'TeX', # Also TeX
+            'application/x-tex': 'TeX',  # Also TeX
             'audio/aiff': 'AIFF',
             'audio/basic': 'AU',        # Also SND
             'audio/midi': 'MIDI',
@@ -555,7 +571,7 @@ class FileFormat(Builtin):
             'video/avi': 'AVI',
             'video/quicktime': 'QuickTime',
             'video/x-flv': 'FLV',
-            #None: 'Binary',
+            # None: 'Binary',
         }
 
         result = []
@@ -563,7 +579,7 @@ class FileFormat(Builtin):
             if key in mime:
                 result.append(typedict[key])
 
-        assert len(result) in (0,1)
+        assert len(result) in (0, 1)
 
         if len(result) == 0:
             result = 'Binary'
@@ -571,4 +587,3 @@ class FileFormat(Builtin):
             result = result[0]
 
         return from_python(result)
-

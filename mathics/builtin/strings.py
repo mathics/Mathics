@@ -7,27 +7,28 @@ String functions
 from mathics.builtin.base import BinaryOperator, Builtin, Test
 from mathics.core.expression import Expression, Symbol, String, Integer, from_python
 
+
 class StringJoin(BinaryOperator):
     """
     >> StringJoin["a", "b", "c"]
      = abc
     >> "a" <> "b" <> "c" // InputForm
      = "abc"
-     
+
     'StringJoin' flattens lists out:
     >> StringJoin[{"a", "b"}] // InputForm
      = "ab"
     >> Print[StringJoin[{"Hello", " ", {"world"}}, "!"]]
      | Hello world!
     """
-    
+
     operator = '<>'
     precedence = 600
     attributes = ('Flat', 'OneIdentity')
-    
+
     def apply(self, items, evaluation):
         'StringJoin[items___]'
-        
+
         result = ''
         items = items.flatten(Symbol('List'))
         if items.get_head_name() == 'List':
@@ -40,6 +41,7 @@ class StringJoin(BinaryOperator):
                 return
             result += item.value
         return String(result)
+
 
 class StringSplit(Builtin):
     """
@@ -73,12 +75,13 @@ class StringSplit(Builtin):
 
     def apply(self, string, seps, evaluation):
         'StringSplit[string_String, seps_List]'
-        py_string, py_seps = string.get_string_value(),  seps.get_leaves()
+        py_string, py_seps = string.get_string_value(), seps.get_leaves()
         result = [py_string]
 
         for py_sep in py_seps:
             if not isinstance(py_sep, String):
-                evaluation.message('StringSplit', 'strse', Integer(2), Expression('StringSplit', string, seps))
+                evaluation.message('StringSplit', 'strse', Integer(
+                    2), Expression('StringSplit', string, seps))
                 return
 
         py_seps = [py_sep.get_string_value() for py_sep in py_seps]
@@ -90,7 +93,8 @@ class StringSplit(Builtin):
     def apply_single(self, string, sep, evaluation):
         'StringSplit[string_String, sep_?NotListQ]'
         if not isinstance(sep, String):
-            evaluation.message('StringSplit', 'strse', Integer(2), Expression('StringSplit', string, sep))
+            evaluation.message('StringSplit', 'strse', Integer(
+                2), Expression('StringSplit', string, sep))
             return
         return self.apply(string, Expression('List', sep), evaluation)
 
@@ -102,13 +106,16 @@ class StringSplit(Builtin):
 
     def apply_strse1(self, x, evaluation):
         'StringSplit[x_/;Not[StringQ[x]]]'
-        evaluation.message('StringSplit', 'strse', Integer(1), Expression('StringSplit', x))
+        evaluation.message('StringSplit', 'strse', Integer(
+            1), Expression('StringSplit', x))
         return
 
     def apply_strse2(self, x, y, evaluation):
         'StringSplit[x_/;Not[StringQ[x]], y_]'
-        evaluation.message('StringSplit', 'strse', Integer(1), Expression('StringSplit', x))
+        evaluation.message('StringSplit', 'strse', Integer(
+            1), Expression('StringSplit', x))
         return
+
 
 class StringLength(Builtin):
     """
@@ -118,22 +125,23 @@ class StringLength(Builtin):
     'StringLength' is listable:
     >> StringLength[{"a", "bc"}]
      = {1, 2}
-    
+
     >> StringLength[x]
      : String expected.
      = StringLength[x]
     """
-    
+
     attributes = ('Listable',)
-    
+
     def apply(self, str, evaluation):
         'StringLength[str_]'
-        
+
         if not isinstance(str, String):
             evaluation.message('StringLength', 'string')
             return
         return Integer(len(str.value))
-    
+
+
 class StringReplace(Builtin):
     """
     <dl>
@@ -178,8 +186,8 @@ class StringReplace(Builtin):
     """
 
     attributes = ('Protected')
-    
-    #TODO: Implement these options
+
+    # TODO: Implement these options
     options = {
         'IgnoreCase': 'False',
         'MetaCharacters': 'None',
@@ -191,10 +199,7 @@ class StringReplace(Builtin):
         'innf': 'Non-negative integer or Infinity expected at position `1` in `2`.',
     }
 
-
-    #TODO: Implement StringExpression replacements
-
-
+    # TODO: Implement StringExpression replacements
     def check_arguments(self, string, rule, n, evaluation):
         if n is None:
             expr = Expression('StringReplace', string, rule)
@@ -290,6 +295,7 @@ class StringReplace(Builtin):
 
         return from_python(result)
 
+
 class Characters(Builtin):
     u"""
     >> Characters["abc"]
@@ -307,14 +313,15 @@ class Characters(Builtin):
     #> \\[Alpha]\\[Beta]\\[Gamma]
      = \u03B1\u03B2\u03B3
     """
-    
+
     attributes = ('Listable',)
-    
+
     def apply(self, string, evaluation):
         'Characters[string_String]'
-        
+
         return Expression('List', *(String(c) for c in string.value))
-    
+
+
 class CharacterRange(Builtin):
     """
     >> CharacterRange["a", "e"]
@@ -322,23 +329,24 @@ class CharacterRange(Builtin):
     >> CharacterRange["b", "a"]
      = {}
     """
-    
+
     attributes = ('ReadProtected',)
-    
+
     messages = {
         'argtype': "Arguments `1` and `2` are not both strings of length 1.",
     }
-    
+
     def apply(self, start, stop, evaluation):
         'CharacterRange[start_String, stop_String]'
-        
+
         if len(start.value) != 1 or len(stop.value) != 1:
             evaluation.message('CharacterRange', 'argtype', start, stop)
             return
         start = ord(start.value[0])
         stop = ord(stop.value[0])
         return Expression('List', *(String(unichr(code)) for code in range(start, stop + 1)))
-    
+
+
 class String_(Builtin):
     """
     'String' is the head of strings.
@@ -353,9 +361,10 @@ class String_(Builtin):
     >> FullForm["abc" + 2]
      = Plus[2, "abc"]
     """
-    
+
     name = 'String'
-    
+
+
 class ToString(Builtin):
     """
     >> ToString[2]
@@ -370,12 +379,14 @@ class ToString(Builtin):
     >> "U" <> ToString[2]
      = U2
     """
-    
+
     def apply(self, value, evaluation):
         'ToString[value_]'
-        
-        text = value.format(evaluation, 'OutputForm').boxes_to_text(evaluation=evaluation)
+
+        text = value.format(evaluation, 'OutputForm').boxes_to_text(
+            evaluation=evaluation)
         return String(text)
+
 
 class ToExpression(Builtin):
     """
@@ -406,8 +417,7 @@ class ToExpression(Builtin):
      = ToExpression[]
     """
 
-
-    #TODO: Other forms
+    # TODO: Other forms
     """
     >> ToExpression["log(x)", TraditionalForm]
      = Log[x]
@@ -436,9 +446,10 @@ class ToExpression(Builtin):
         elif len(py_seq) == 3:
             (inp, form, head) = (py_seq[0], py_seq[1], py_seq[2])
         else:
-            assert len(py_seq) > 3 # 0 case handled by apply_empty
-            evaluation.message('ToExpression', 'argb', 'ToExpression', Integer(len(py_seq)), Integer(1), Integer(3))
-            return 
+            assert len(py_seq) > 3  # 0 case handled by apply_empty
+            evaluation.message('ToExpression', 'argb', 'ToExpression', Integer(
+                len(py_seq)), Integer(1), Integer(3))
+            return
 
         # Apply the differnet forms
         if form == Symbol('InputForm'):
@@ -463,8 +474,10 @@ class ToExpression(Builtin):
 
     def apply_empty(self, evaluation):
         'ToExpression[]'
-        evaluation.message('ToExpression', 'argb', 'ToExpression', Integer(0), Integer(1), Integer(3))
-        return 
+        evaluation.message('ToExpression', 'argb', 'ToExpression', Integer(
+            0), Integer(1), Integer(3))
+        return
+
 
 class StringQ(Test):
     """
@@ -480,6 +493,6 @@ class StringQ(Test):
     >> Select[{"12", 1, 3, 5, "yz", x, y}, StringQ]
      = {12, yz}
     """
-    
+
     def test(self, expr):
         return isinstance(expr, String)

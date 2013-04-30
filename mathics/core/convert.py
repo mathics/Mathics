@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-    
+
 """
 Converts expressions from SymPy to Mathics expressions.
 Conversion to SymPy is handled directly in BaseExpression descendants.
@@ -24,33 +24,36 @@ u"""
 """
 
 import sympy
-    
+
 sympy_symbol_prefix = '_Mathics_User_'
 sympy_slot_prefix = '_Mathics_Slot_'
+
 
 def create_symbol(self, name):
     from mathics.core import expression
     return expression.Symbol(name)
-        
+
+
 class ConvertSubstitutions(object):
     head_name = '___SageSubst___'
-    
+
     def __init__(self):
         self.subs = []
-        
+
     def substitute(self, expr):
         from mathics.core import expression
-        
+
         index = len(self.subs)
         self.subs.append(expr)
         return expression.Expression(self.head_name, expression.Integer(index), *expr.get_atoms())
-    
+
+
 class BasicSympy(sympy.basic.Basic):
     """
     Implementation of some methods not available any more in sympy.basic.Basic for sympy 0.7.1
     (taken from sympy 0.6.7)
-    """ 
-    
+    """
+
     def as_base_exp(self):
         # a -> b ** e
         return self, sympy.S.One
@@ -87,38 +90,41 @@ class BasicSympy(sympy.basic.Basic):
                 # b**-e -> 1, b**e
                 return sympy.S.One, base ** (-exp)
         return self, sympy.S.One
-    
+
 BasicSympy = sympy.Expr
-    
+
+
 class SympyExpression(BasicSympy):
     is_Function = True
     nargs = None
-    
+
     def __new__(cls, expr):
-        obj = BasicSympy.__new__(cls, *(expr.head.to_sympy(),) + tuple(leaf.to_sympy() for leaf in expr.leaves))
+        obj = BasicSympy.__new__(cls, *(expr.head.to_sympy(),) + tuple(
+            leaf.to_sympy() for leaf in expr.leaves))
         obj.expr = expr
         return obj
-    
+
     """def new(self, *args):
         from mathics.core import expression
-        
+
         expr = expression.Expression(from_sympy(args[0]), *(from_sympy(arg) for arg in args[1:]))
         return SympyExpression(expr)"""
-        
+
     @property
     def func(self):
         from mathics.core import expression
-        
+
         class SympyExpressionFunc(object):
             def __new__(cls, *args):
                 return SympyExpression(self.expr)
-                #return SympyExpression(expression.Expression(self.expr.head, *(from_sympy(arg) for arg in args[1:])))
+                # return SympyExpression(expression.Expression(self.expr.head,
+                # *(from_sympy(arg) for arg in args[1:])))
         return SympyExpressionFunc
-        
+
     def has_any_symbols(self, *syms):
         result = any(arg.has_any_symbols(*syms) for arg in self.args)
         return result
-    
+
     def _eval_subs(self, old, new):
         if self == old:
             return new
@@ -128,26 +134,27 @@ class SympyExpression(BasicSympy):
             new_expr = self.expr.replace_vars({old_name: new})
             return SympyExpression(new_expr)
         return self
-        
+
     def _eval_rewrite(self, pattern, rule, **hints):
         return self
-    
+
     @property
     def is_commutative(self):
         if all(getattr(t, 'is_commutative') for t in self.args):
             return True
         else:
             return False
-    
+
     def __str__(self):
         return '%s[%s]' % (super(SympyExpression, self).__str__(), self.expr)
-       
+
+
 def from_sympy(expr):
     from mathics.builtin import sympy_to_mathics
     from mathics.core.expression import Symbol, Integer, Rational, Real, Expression, Number
-    
+
     from sympy.core import numbers, function, symbol
-    
+
     if isinstance(expr, (tuple, list)):
         return Expression('List', *[from_sympy(item) for item in expr])
     if isinstance(expr, int):
@@ -166,7 +173,7 @@ def from_sympy(expr):
                 name = name + ('__Dummy_%d' % expr.dummy_index)
                 return Symbol(name, sympy_dummy=expr)
             if (not name.startswith(sympy_symbol_prefix) or name.startswith(sympy_slot_prefix)) \
-              and name.startswith('C'):
+                    and name.startswith('C'):
                 return Expression('C', int(name[1:]))
             if name.startswith(sympy_symbol_prefix):
                 name = name[len(sympy_symbol_prefix):]
@@ -214,11 +221,11 @@ def from_sympy(expr):
         return Expression('Power', *[from_sympy(arg) for arg in expr.args])
     elif expr.is_Equality:
         return Expression('Equal', *[from_sympy(arg) for arg in expr.args])
-    
+
     elif isinstance(expr, SympyExpression):
-        #print "SympyExpression: %s" % expr
+        # print "SympyExpression: %s" % expr
         return expr.expr
-    
+
     elif isinstance(expr, sympy.RootSum):
         return Expression('RootSum', from_sympy(expr.poly), from_sympy(expr.fun))
     elif isinstance(expr, sympy.PurePoly):
@@ -235,18 +242,21 @@ def from_sympy(expr):
                     if exp == 1:
                         factors.append(slot)
                     else:
-                        factors.append(Expression('Power', slot, from_sympy(exp)))
+                        factors.append(Expression(
+                            'Power', slot, from_sympy(exp)))
             if factors:
                 result.append(Expression('Times', *factors))
             else:
                 result.append(Integer(1))
         return Expression('Function', Expression('Plus', *result))
     elif isinstance(expr, sympy.Lambda):
-        vars = [sympy.Symbol('%s%d' % (sympy_slot_prefix, index + 1)) for index in range(len(expr.variables))]
+        vars = [sympy.Symbol('%s%d' % (
+            sympy_slot_prefix, index + 1)) for index in range(len(expr.variables))]
         return Expression('Function', from_sympy(expr(*vars)))
-    
-    elif expr.is_Function or isinstance(expr, (sympy.Integral, sympy.Derivative,
-            sympy.Sum, sympy.Product)):
+
+    elif expr.is_Function or isinstance(
+        expr, (sympy.Integral, sympy.Derivative,
+               sympy.Sum, sympy.Product)):
         if isinstance(expr, sympy.Integral):
             name = 'Integral'
         elif isinstance(expr, sympy.Derivative):
@@ -261,12 +271,12 @@ def from_sympy(expr):
             name = builtin.get_name()
             args = builtin.from_sympy(args)
         return Expression(Symbol(name), *args)
-    
+
     elif isinstance(expr, sympy.Tuple):
         return Expression('List', *[from_sympy(arg) for arg in expr.args])
-    
-    #elif isinstance(expr, sympy.Sum):
+
+    # elif isinstance(expr, sympy.Sum):
     #    return Expression('Sum', )
-    
+
     else:
         raise ValueError("Unknown SymPy expression: %s" % expr)

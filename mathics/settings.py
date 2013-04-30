@@ -58,7 +58,7 @@ if sys.platform.startswith('win'):
     DATA_DIR = os.environ['APPDATA'].replace(os.sep, '/') + '/Python/Mathics/'
 else:
     DATA_DIR = path.expanduser('~/.local/var/mathics/')
-#if not path.exists(DATA_DIR):
+# if not path.exists(DATA_DIR):
 #    os.makedirs(DATA_DIR)
 
 DOC_DIR = ROOT_DIR + 'doc/documentation/'
@@ -101,7 +101,7 @@ LANGUAGE_CODE = 'en-us'
 
 SITE_ID = 1
 
-# Leave this True unless you have specific reason for not permitting 
+# Leave this True unless you have specific reason for not permitting
 # users to access local files
 ENABLE_FILES_MODULE = True
 
@@ -128,7 +128,7 @@ if DJANGO_VERSION < (1, 3):
 SECRET_KEY = 'uvbhuiasaeaph6Duh)r@3ex1i@et=0j4h(!p4@!r6s-=a_ev*e'
 
 # List of callables that know how to import templates from various sources.
-#TEMPLATE_LOADERS = (
+# TEMPLATE_LOADERS = (
 #    'django.template.loaders.filesystem.load_template_source',
 #    'django.template.loaders.app_directories.load_template_source',
 #)

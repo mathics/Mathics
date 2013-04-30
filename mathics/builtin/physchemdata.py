@@ -10,16 +10,18 @@ from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, from_python, Symbol, String
 from mathics.settings import ROOT_DIR
 
+
 def load_element_data():
     element_file = open(ROOT_DIR + 'data/element.csv', 'rb')
     reader = csvreader(element_file, delimiter='\t')
     element_data = []
     for row in reader:
-        element_data.append([value for value in row])            
+        element_data.append([value for value in row])
     element_file.close()
     return element_data
 
 _ELEMENT_DATA = load_element_data()
+
 
 class ElementData(Builtin):
     """
@@ -37,14 +39,14 @@ class ElementData(Builtin):
      = 4.22
 
     >> ElementData["Carbon", "IonizationEnergies"]
-     = {1086.5, 2352.6, 4620.5, 6222.7, 37831, 47277.} 
+     = {1086.5, 2352.6, 4620.5, 6222.7, 37831, 47277.}
 
     >> ElementData[16, "ElectronConfigurationString"]
      = [Ne] 3s2 3p4
 
     >> ElementData[73, "ElectronConfiguration"]
      = {{2}, {2, 6}, {2, 6, 10}, {2, 6, 10, 14}, {2, 6, 3}, {2}}
-     
+
     The number of known elements:
     >> Length[ElementData[All]]
      = 118
@@ -59,7 +61,7 @@ class ElementData(Builtin):
 
     All the known properties:
     >> ElementData["Properties"]
-     = {Abbreviation, AbsoluteBoilingPoint, AbsoluteMeltingPoint, AtomicNumber, AtomicRadius, AtomicWeight, Block, BoilingPoint, BrinellHardness, BulkModulus, CovalentRadius, CrustAbundance, Density, DiscoveryYear, ElectroNegativity, ElectronAffinity, ElectronConfiguration, ElectronConfigurationString, ElectronShellConfiguration, FusionHeat, Group, IonizationEnergies, LiquidDensity, MeltingPoint, MohsHardness, Name, Period, PoissonRatio, Series, ShearModulus, SpecificHeat, StandardName, ThermalConductivity, VanDerWaalsRadius, VaporizationHeat, VickersHardness, YoungModulus} 
+     = {Abbreviation, AbsoluteBoilingPoint, AbsoluteMeltingPoint, AtomicNumber, AtomicRadius, AtomicWeight, Block, BoilingPoint, BrinellHardness, BulkModulus, CovalentRadius, CrustAbundance, Density, DiscoveryYear, ElectroNegativity, ElectronAffinity, ElectronConfiguration, ElectronConfigurationString, ElectronShellConfiguration, FusionHeat, Group, IonizationEnergies, LiquidDensity, MeltingPoint, MohsHardness, Name, Period, PoissonRatio, Series, ShearModulus, SpecificHeat, StandardName, ThermalConductivity, VanDerWaalsRadius, VaporizationHeat, VickersHardness, YoungModulus}
 
     >> ListPlot[Table[ElementData[z, "AtomicWeight"], {z, 118}]]
      = -Graphics-
@@ -84,7 +86,7 @@ class ElementData(Builtin):
     def apply_all_properties(self, evaluation):
         'ElementData[All, "Properties"]'
         return from_python(sorted(_ELEMENT_DATA[0]))
-        
+
     def apply_name(self, name, prop, evaluation):
         "ElementData[name_?StringQ, prop_]"
         py_name = name.to_python().strip('"')
@@ -94,7 +96,8 @@ class ElementData(Builtin):
         indx = None
         for iprop in iprops:
             try:
-                indx = [element[iprop] for element in _ELEMENT_DATA[1:]].index(py_name) + 1
+                indx = [element[iprop] for element in _ELEMENT_DATA[
+                    1:]].index(py_name) + 1
             except ValueError:
                 pass
 
@@ -106,7 +109,7 @@ class ElementData(Builtin):
 
     def apply_int(self, n, prop, evaluation):
         "ElementData[n_?IntegerQ, prop_]"
-        
+
         from mathics.core.parser import parse
 
         py_n = n.to_python()
@@ -129,27 +132,27 @@ class ElementData(Builtin):
 
         if py_prop == '"Properties"':
             result = []
-            for i,p in enumerate(_ELEMENT_DATA[py_n]):
+            for i, p in enumerate(_ELEMENT_DATA[py_n]):
                 if p not in ["NOT_AVAILABLE", "NOT_APPLICABLE", "NOT_KNOWN"]:
                     result.append(_ELEMENT_DATA[0][i])
             return from_python(sorted(result))
 
         if not (isinstance(py_prop, str) and py_prop[0] == py_prop[-1] == '"' and py_prop.strip('"') in _ELEMENT_DATA[0]):
             evaluation.message("ElementData", "noprop", prop)
-            return 
+            return
 
         iprop = _ELEMENT_DATA[0].index(py_prop.strip('"'))
         result = _ELEMENT_DATA[py_n][iprop]
 
         if result == "NOT_AVAILABLE":
             return Expression("Missing", "NotAvailable")
-            
+
         if result == "NOT_APPLICABLE":
             return Expression("Missing", "NotApplicable")
-            
+
         if result == "NOT_KNOWN":
             return Expression("Missing", "Unknown")
-            
+
         result = parse(result)
         if isinstance(result, Symbol):
             result = String(result.get_name())
