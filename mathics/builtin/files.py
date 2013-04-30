@@ -227,7 +227,7 @@ class Input(Predefined):
     </dl>
 
     >> $Input
-     =
+     = 
     """
 
     attributes = ('Protected', 'ReadProtected')
@@ -247,7 +247,7 @@ class InputFileName(Predefined):
 
     While in interactive mode, '$InputFileName' is "".
     >> $InputFileName
-     =
+     = 
     """
 
     name = '$InputFileName'
@@ -1326,9 +1326,9 @@ class FileExtension(Builtin):
      = gz
 
     #> FileExtension["file."]
-     =
+     = 
     #> FileExtension["file"]
-     =
+     = 
     """
 
     attributes = ('Protected')

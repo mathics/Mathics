@@ -65,7 +65,7 @@ class Graphics3D(Graphics):
 
     In 'TeXForm', 'Graphics3D' creates Asymptote figures:
     >> Graphics3D[Sphere[]] // TeXForm
-     =
+     = 
      . \begin{asy}
      . import three;
      . import solids;
