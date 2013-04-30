@@ -495,13 +495,16 @@ class SymbolQ(Test):
         return isinstance(expr, Symbol)
     
 class Symbol_(Builtin):
-    """
+    u"""
     'Symbol' is the head of symbols.
     >> Head[x]
      = Symbol
     You can use 'Symbol' to create symbols from strings:
     >> Symbol["x"] + Symbol["x"]
      = 2 x
+
+    #> {\[Eta], \[CapitalGamma]\[Beta], Z\[Infinity], \[Angle]XYZ, \[FilledSquare]r, i\[Ellipsis]j}
+     = {η, Γβ, Z∞, ∠XYZ, ■r, i…j}
     """
     
     name = 'Symbol'

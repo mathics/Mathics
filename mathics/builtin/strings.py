@@ -291,9 +291,21 @@ class StringReplace(Builtin):
         return from_python(result)
 
 class Characters(Builtin):
-    """
+    u"""
     >> Characters["abc"]
      = {a, b, c}
+
+    #> \\.78\\.79\\.7A
+     = xyz
+
+    #> \\:0078\\:0079\\:007A
+     = xyz
+
+    #> \\101\\102\\103\\061\\062\\063
+     = ABC123
+
+    #> \\[Alpha]\\[Beta]\\[Gamma]
+     = \u03B1\u03B2\u03B3
     """
     
     attributes = ('Listable',)

@@ -1055,6 +1055,7 @@ class TeXForm(Builtin):
         try:
             tex = boxes.boxes_to_tex(evaluation=evaluation)
             tex = MULTI_NEWLINE_RE.sub('\n', tex)   # replace multiple newlines by a single newline (relevent between asy-blocks)
+            tex = tex.replace(u' \uF74c', u' \, d')  # tmp hack for Integrate
         except BoxError:
             evaluation.message('General', 'notboxes', String('%s' % boxes))
             tex = ''
