@@ -214,7 +214,8 @@ class ExpressionPattern(Pattern):
                     yield_head, expression.get_head(), vars, evaluation)
             except StopGenerator_ExpressionPattern_match:
                 return
-        if wrap_oneid and 'OneIdentity' in attributes and expression.get_head() != self.head and expression != self.head:  # and 'OneIdentity' not in (expression.get_attributes(evaluation.definitions) | expression.get_head().get_attributes(evaluation.definitions)):
+        if wrap_oneid and 'OneIdentity' in attributes and expression.get_head() != self.head and expression != self.head:
+            # and 'OneIdentity' not in (expression.get_attributes(evaluation.definitions) | expression.get_head().get_attributes(evaluation.definitions)):
             new_expression = Expression(self.head, expression)
             for leaf in self.leaves:
                 leaf.match_count = leaf.get_match_count()

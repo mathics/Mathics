@@ -583,7 +583,9 @@ class _Date():
         self.date += tdelta
 
     def to_list(self):
-        return [self.date.year, self.date.month, self.date.day, self.date.hour, self.date.minute, self.date.second + 1e-6 * self.date.microsecond]
+        return [
+            self.date.year, self.date.month, self.date.day, self.date.hour,
+            self.date.minute, self.date.second + 1e-6 * self.date.microsecond]
 
 
 class DatePlus(Builtin):
@@ -649,7 +651,10 @@ class DatePlus(Builtin):
         # Strip " marks
         pyoff = map(lambda x: [x[0], x[1].strip('"')], pyoff)
 
-        if isinstance(pyoff, list) and all(len(o) == 2 and o[1] in TIME_INCREMENTS.keys() and (isinstance(o[0], float) or isinstance(o[0], int)) for o in pyoff):
+        if isinstance(pyoff, list) and all(
+                len(o) == 2 and o[1] in TIME_INCREMENTS.keys() and
+                isinstance(o[0], (float, int)) for o in pyoff):
+
             for o in pyoff:
                 idate.addself([o[0] * TIME_INCREMENTS[
                               o[1]][i] for i in range(6)])
