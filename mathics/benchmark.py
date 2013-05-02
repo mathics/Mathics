@@ -114,8 +114,8 @@ def timeit(func, repeats=None):
     times.append(time.clock())
 
     average_time = format_time_units((times[-1] - times[0]) / repeats)
-    best_time = format_time_units(min([times[
-                                  i + 1] - times[i] for i in range(repeats)]))
+    best_time = format_time_units(
+        min([times[i + 1] - times[i] for i in range(repeats)]))
     print "    {0:5n} loops, avg: {1} per loop, best: {2} per loop".format(
         repeats, average_time, best_time)
 

@@ -13,8 +13,10 @@ from __future__ import with_statement
 import sympy
 import sympy.mpmath as mpmath
 
-from mathics.builtin.base import Builtin, Predefined, SympyConstant, SympyFunction
-from mathics.core.expression import Number, Real, Expression, Integer, from_sympy
+from mathics.builtin.base import (Builtin, Predefined, SympyConstant, 
+                                  SympyFunction)
+from mathics.core.expression import (Number, Real, Expression, Integer,
+                                     from_sympy)
 from mathics.core.numbers import dps, prec
 
 from mathics.builtin.numeric import get_precision
@@ -283,7 +285,8 @@ class Sec(_MPMathFunction):
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
-            return Expression('Power', Expression('Cos', expr.leaves[0]), Integer(-1)).to_sympy()
+            return Expression('Power', Expression('Cos', expr.leaves[0]),
+                              Integer(-1)).to_sympy()
 
 
 class Csc(_MPMathFunction):
@@ -310,7 +313,8 @@ class Csc(_MPMathFunction):
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
-            return Expression('Power', Expression('Sin', expr.leaves[0]), Integer(-1)).to_sympy()
+            return Expression('Power', Expression('Sin', expr.leaves[0]),
+                              Integer(-1)).to_sympy()
 
 
 class Cot(_MPMathFunction):
@@ -450,7 +454,8 @@ class ArcSec(_MPMathFunction):
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
-            return Expression('ArcCos', Expression('Power', expr.leaves[0], Integer(-1))).to_sympy()
+            return Expression('ArcCos', Expression('Power', expr.leaves[0],
+                              Integer(-1))).to_sympy()
 
 
 class ArcCsc(_MPMathFunction):
@@ -477,7 +482,8 @@ class ArcCsc(_MPMathFunction):
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
-            return Expression('ArcSin', Expression('Power', expr.leaves[0], Integer(-1))).to_sympy()
+            return Expression('ArcSin', Expression('Power', expr.leaves[0],
+                              Integer(-1))).to_sympy()
 
 
 class ArcCot(_MPMathFunction):
@@ -577,7 +583,8 @@ class Sech(_MPMathFunction):
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
-            return Expression('Power', Expression('Cosh', expr.leaves[0]), Integer(-1)).to_sympy()
+            return Expression('Power', Expression('Cosh', expr.leaves[0]),
+                              Integer(-1)).to_sympy()
 
 
 class Csch(_MPMathFunction):
@@ -602,7 +609,8 @@ class Csch(_MPMathFunction):
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
-            return Expression('Power', Expression('Sinh', expr.leaves[0]), Integer(-1)).to_sympy()
+            return Expression('Power', Expression('Sinh', expr.leaves[0]),
+                              Integer(-1)).to_sympy()
 
 
 class Coth(_MPMathFunction):
@@ -728,7 +736,8 @@ class ArcSech(_MPMathFunction):
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
-            return Expression('ArcCosh', Expression('Power', expr.leaves[0], Integer(-1))).to_sympy()
+            return Expression('ArcCosh', Expression('Power', expr.leaves[0],
+                              Integer(-1))).to_sympy()
 
 
 class ArcCsch(_MPMathFunction):
@@ -755,7 +764,8 @@ class ArcCsch(_MPMathFunction):
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
-            return Expression('ArcSinh', Expression('Power', expr.leaves[0], Integer(-1))).to_sympy()
+            return Expression('ArcSinh', Expression('Power', expr.leaves[0],
+                              Integer(-1))).to_sympy()
 
 
 class ArcCoth(_MPMathFunction):

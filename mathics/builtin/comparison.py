@@ -2,8 +2,10 @@
 
 import sympy
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, Test
-from mathics.core.expression import Expression, Number, Integer, Rational, Real, Symbol, Complex, String
+from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
+                                  PrefixOperator, Test)
+from mathics.core.expression import (Expression, Number, Integer, Rational,
+                                     Real, Symbol, Complex, String)
 from mathics.core.numbers import get_type, dps, min_prec
 
 
@@ -98,10 +100,12 @@ class _InequalityOperator(BinaryOperator):
         '%(name)s[items__]'
 
         items_sequence = items.get_sequence()
-        all_numeric = all(
-            item.is_numeric() and item.get_precision() is None for item in items_sequence)
-        if all_numeric and any(not isinstance(item, Number) for item in items_sequence):
-            # All expressions are numeric but exact and they are not all numbers,
+        all_numeric = all(item.is_numeric() and item.get_precision() is None
+                          for item in items_sequence)
+
+        # All expressions are numeric but exact and they are not all numbers,
+        if all_numeric and any(not isinstance(item, Number)
+                               for item in items_sequence):
             # so apply N and compare them.
             items = items_sequence
             n_items = []
@@ -117,7 +121,8 @@ class _InequalityOperator(BinaryOperator):
         wanted = operators[self.get_name()]
         prev = None
         for item in items:
-            if item.get_real_value() is None and not item.has_form('DirectedInfinity', None):
+            if (item.get_real_value() is None   # noqa
+                and not item.has_form('DirectedInfinity', None)):
                 return
             if prev is not None and do_cmp(prev, item) not in wanted:
                 return Symbol('False')
@@ -159,8 +164,8 @@ class Inequality(Builtin):
             if name in operators.keys():
                 return Expression(name, items[0], items[2])
         else:
-            groups = [Expression('Inequality', *items[
-                                 index - 1:index + 2]) for index in range(1, count - 1, 2)]
+            groups = [Expression('Inequality', *items[index - 1:index + 2])
+                      for index in range(1, count - 1, 2)]
             return Expression('And', *groups)
 
 

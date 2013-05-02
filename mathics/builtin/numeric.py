@@ -119,7 +119,9 @@ class N(Builtin):
 
         if valid_prec is not None:
             if expr.get_head_name() in ('List', 'Rule'):
-                return Expression(expr.head, *[self.apply_other(leaf, prec, evaluation) for leaf in expr.leaves])
+                return Expression(expr.head, *[
+                    self.apply_other(leaf, prec, evaluation)
+                    for leaf in expr.leaves])
             if isinstance(expr, Number):
                 return expr.round(valid_prec)
 
@@ -150,8 +152,8 @@ class N(Builtin):
                 head = Expression('N', expr.head, prec).evaluate(evaluation)
                 leaves = expr.leaves[:]
                 for index in eval_range:
-                    leaves[index] = Expression('N', leaves[
-                                               index], prec).evaluate(evaluation)
+                    leaves[index] = Expression(
+                        'N', leaves[index], prec).evaluate(evaluation)
                 return Expression(head, *leaves)
 
 
@@ -302,7 +304,8 @@ def chop(expr, delta=10.0 ** (-10.0)):
         else:
             return Number.from_mp(real)
     elif isinstance(expr, Expression):
-        return Expression(chop(expr.head), *[chop(leaf) for leaf in expr.leaves])
+        return Expression(chop(expr.head), *[
+            chop(leaf) for leaf in expr.leaves])
     return expr
 
 
@@ -365,7 +368,8 @@ class NumericQ(Builtin):
             if isinstance(expr, Expression):
                 attr = evaluation.definitions.get_attributes(
                     expr.head.get_name())
-                return 'NumericFunction' in attr and all(test(leaf) for leaf in expr.leaves)
+                return 'NumericFunction' in attr and all(
+                    test(leaf) for leaf in expr.leaves)
             else:
                 return expr.is_numeric()
 

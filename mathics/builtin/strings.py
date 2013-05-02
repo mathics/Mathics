@@ -5,7 +5,8 @@ String functions
 """
 
 from mathics.builtin.base import BinaryOperator, Builtin, Test
-from mathics.core.expression import Expression, Symbol, String, Integer, from_python
+from mathics.core.expression import (Expression, Symbol, String, Integer,
+                                     from_python)
 
 
 class StringJoin(BinaryOperator):
@@ -344,7 +345,8 @@ class CharacterRange(Builtin):
             return
         start = ord(start.value[0])
         stop = ord(stop.value[0])
-        return Expression('List', *(String(unichr(code)) for code in range(start, stop + 1)))
+        return Expression('List', *(
+            String(unichr(code)) for code in range(start, stop + 1)))
 
 
 class String_(Builtin):
@@ -447,8 +449,8 @@ class ToExpression(Builtin):
             (inp, form, head) = (py_seq[0], py_seq[1], py_seq[2])
         else:
             assert len(py_seq) > 3  # 0 case handled by apply_empty
-            evaluation.message('ToExpression', 'argb', 'ToExpression', Integer(
-                len(py_seq)), Integer(1), Integer(3))
+            evaluation.message('ToExpression', 'argb', 'ToExpression',
+                               Integer(len(py_seq)), Integer(1), Integer(3))
             return
 
         # Apply the differnet forms

@@ -13,7 +13,8 @@ import cPickle as pickle
 import binascii
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Integer, String, Symbol, Real, Expression, Complex
+from mathics.core.expression import (Integer, String, Symbol, Real, Expression,
+                                     Complex)
 
 
 def get_random_state():
@@ -189,7 +190,8 @@ class RandomInteger(Builtin):
         'RandomInteger[{rmin_, rmax_}]'
 
         if not isinstance(rmin, Integer) or not isinstance(rmax, Integer):
-            return evaluation.message('RandomInteger', 'unifr', Expression('List', rmin, rmax))
+            return evaluation.message('RandomInteger', 'unifr',
+                                      Expression('List', rmin, rmax))
         rmin, rmax = rmin.value, rmax.value
         with RandomEnv(evaluation) as rand:
             return Integer(rand.randint(rmin, rmax))
@@ -197,7 +199,8 @@ class RandomInteger(Builtin):
     def apply_list(self, rmin, rmax, ns, evaluation):
         'RandomInteger[{rmin_, rmax_}, ns_?ListQ]'
         if not isinstance(rmin, Integer) or not isinstance(rmax, Integer):
-            return evaluation.message('RandomInteger', 'unifr', Expression('List', rmin, rmax))
+            return evaluation.message('RandomInteger', 'unifr',
+                                      Expression('List', rmin, rmax))
         rmin, rmax = rmin.value, rmax.value
         result = ns.to_python()
 
@@ -206,11 +209,12 @@ class RandomInteger(Builtin):
         with RandomEnv(evaluation) as rand:
             def search_product(i):
                 if i == len(result) - 1:
-                        return Expression('List', *[Integer(rand.randint(rmin,
-                                                                         rmax)) for j in range(result[i])])
+                        return Expression('List', *[
+                            Integer(rand.randint(rmin, rmax))
+                            for j in range(result[i])])
                 else:
-                    return Expression('List',
-                                      *[search_product(i + 1) for j in range(result[i])])
+                    return Expression('List', *[
+                        search_product(i + 1) for j in range(result[i])])
             return search_product(0)
 
 
@@ -258,8 +262,10 @@ class RandomReal(Builtin):
     def apply(self, xmin, xmax, evaluation):
         'RandomReal[{xmin_, xmax_}]'
 
-        if not (isinstance(xmin, (Real, Integer)) and isinstance(xmax, (Real, Integer))):
-            return evaluation.message('RandomReal', 'unifr', Expression('List', xmin, xmax))
+        if not (isinstance(xmin, (Real, Integer)) and
+                isinstance(xmax, (Real, Integer))):
+            return evaluation.message('RandomReal', 'unifr',
+                                      Expression('List', xmin, xmax))
 
         min_value, max_value = xmin.to_python(), xmax.to_python()
 
@@ -269,8 +275,10 @@ class RandomReal(Builtin):
     def apply_list(self, xmin, xmax, ns, evaluation):
         'RandomReal[{xmin_, xmax_}, ns_?ListQ]'
 
-        if not (isinstance(xmin, (Real, Integer)) and isinstance(xmax, (Real, Integer))):
-            return evaluation.message('RandomReal', 'unifr', Expression('List', xmin, xmax))
+        if not (isinstance(xmin, (Real, Integer)) and
+                isinstance(xmax, (Real, Integer))):
+            return evaluation.message('RandomReal', 'unifr',
+                                      Expression('List', xmin, xmax))
 
         min_value, max_value = xmin.to_python(), xmax.to_python()
         result = ns.to_python()
@@ -283,10 +291,12 @@ class RandomReal(Builtin):
         with RandomEnv(evaluation) as rand:
             def search_product(i):
                 if i == len(result) - 1:
-                        return Expression('List', *[Real(rand.randreal(min_value, max_value))
-                                                    for j in range(result[i])])
+                        return Expression('List', *[
+                            Real(rand.randreal(min_value, max_value))
+                            for j in range(result[i])])
                 else:
-                    return Expression('List', *[search_product(i + 1) for j in range(result[i])])
+                    return Expression('List', *[
+                        search_product(i + 1) for j in range(result[i])])
             return search_product(0)
 
 
@@ -341,7 +351,8 @@ class RandomComplex(Builtin):
             zmax = Complex(zmax, 0.0)
 
         if not (isinstance(zmin, Complex) and isinstance(zmax, Complex)):
-            return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
+            return evaluation.message('RandomComplex', 'unifr',
+                                      Expression('List', zmin, zmax))
 
         min_value, max_value = zmin.to_python(), zmax.to_python()
 
@@ -359,7 +370,8 @@ class RandomComplex(Builtin):
             zmax = Complex(zmax, 0.0)
 
         if not (isinstance(zmin, Complex) and isinstance(zmax, Complex)):
-            return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
+            return evaluation.message('RandomComplex', 'unifr',
+                                      Expression('List', zmin, zmax))
 
         min_value, max_value = zmin.to_python(), zmax.to_python()
 
@@ -373,9 +385,12 @@ class RandomComplex(Builtin):
         with RandomEnv(evaluation) as rand:
             def search_product(i):
                 if i == len(py_ns) - 1:
-                        return Expression(
-                            'List', *[Complex(rand.randreal(min_value.real, max_value.real),
-                                              rand.randreal(min_value.imag, max_value.imag)) for j in range(py_ns[i])])
+                        return Expression('List', *[
+                            Complex(
+                                rand.randreal(min_value.real, max_value.real),
+                                rand.randreal(min_value.imag, max_value.imag)
+                            ) for j in range(py_ns[i])])
                 else:
-                    return Expression('List', *[search_product(i + 1) for j in range(py_ns[i])])
+                    return Expression('List', *[
+                        search_product(i + 1) for j in range(py_ns[i])])
             return search_product(0)

@@ -6,10 +6,11 @@ Graphics (3D)
 
 import numbers
 from mathics.core.expression import Expression, NumberError, from_python, Real
-from mathics.builtin.base import BoxConstruct, BoxConstructError, Builtin, InstancableBuiltin
-from graphics import (
-    Graphics, GraphicsBox, _GraphicsElements, PolygonBox, create_pens, _Color,
-    LineBox, PointBox, Style, RGBColor, color_heads, get_class, asy_number, _GraphicsElement)
+from mathics.builtin.base import (BoxConstruct, BoxConstructError, Builtin,
+                                  InstancableBuiltin)
+from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox,
+                      create_pens, _Color, LineBox, PointBox, Style, RGBColor,
+                      color_heads, get_class, asy_number, _GraphicsElement)
 
 from django.utils import simplejson as json
 
@@ -18,7 +19,9 @@ from django.utils.html import escape as escape_html
 
 def coords3D(value):
     if value.has_form('List', 3):
-        return (value.leaves[0].to_number(), value.leaves[1].to_number(), value.leaves[2].to_number())
+        return (value.leaves[0].to_number(),
+                value.leaves[1].to_number(),
+                value.leaves[2].to_number())
     raise CoordinatesError
 
 
@@ -118,9 +121,8 @@ class Graphics3DBox(GraphicsBox):
 
         evaluation = options['evaluation']
 
-        base_width, base_height, size_multiplier, size_aspect = self._get_image_size(
-            options,
-            graphics_options, max_width)
+        base_width, base_height, size_multiplier, size_aspect = \
+            self._get_image_size(options, graphics_options, max_width)
 
         # TODO: Handle ImageScaled[], and Scaled[]
         lighting_option = graphics_options['Lighting']
@@ -150,9 +152,11 @@ class Graphics3DBox(GraphicsBox):
         elif lighting == 'None':
             pass
 
-        elif isinstance(lighting, list) and all(isinstance(light, list) for light in lighting):
+        elif (isinstance(lighting, list) and
+              all(isinstance(light, list) for light in lighting)):
             for light in lighting:
-                if light[0] in ['"Ambient"', '"Directional"', '"Point"', '"Spot"']:
+                if light[0] in ['"Ambient"', '"Directional"', '"Point"',
+                                '"Spot"']:
                     try:
                         head = light[1].get_head_name()
                     except AttributeError:
@@ -168,9 +172,11 @@ class Graphics3DBox(GraphicsBox):
                         if isinstance(light[2], list):
                             if len(light[2]) == 3:
                                 position = light[2]
-                            if len(light[2]) == 2 and all(isinstance(p, list) and len(p) == 3 for p in light[2]):
-                                position = [light[2][0][i] - light[
-                                    2][1][i] for i in range(3)]
+                            if len(light[2]) == 2 and all(  # noqa
+                                isinstance(p, list) and len(p) == 3
+                                for p in light[2]):
+                                position = [light[2][0][i] - light[2][1][i]
+                                            for i in range(3)]
                         self.lighting.append({
                             "type": "Directional",
                             "color": color.to_rgba(),
@@ -190,9 +196,11 @@ class Graphics3DBox(GraphicsBox):
                         target = [0, 0, 0]
                         if isinstance(light[2], list):
                             if len(light[2]) == 2:
-                                if isinstance(light[2][0], list) and len(light[2][0]) == 3:
+                                if (isinstance(light[2][0], list) and   # noqa
+                                    len(light[2][0]) == 3):
                                     position = light[2][0]
-                                if isinstance(light[2][1], list) and len(light[2][1]) == 3:
+                                if (isinstance(light[2][1], list) and   # noqa
+                                    len(light[2][1]) == 3):
                                     target = light[2][1]
                             if len(light[2]) == 3:
                                 position = light[2]
@@ -214,8 +222,8 @@ class Graphics3DBox(GraphicsBox):
 
         if isinstance(viewpoint, list) and len(viewpoint) == 3:
             if all(isinstance(x, numbers.Real) for x in viewpoint):
-                pass
                 # TODO Infinite coordinates e.g. {0, 0, Infinity}
+                pass
         else:
             try:
                 viewpoint = {
@@ -271,7 +279,8 @@ class Graphics3DBox(GraphicsBox):
                     elif xmin == xmax:
                         xmin -= 1
                         xmax += 1
-                elif isinstance(plot_range[0], list) and len(plot_range[0]) == 2:
+                elif (isinstance(plot_range[0], list) and
+                      len(plot_range[0]) == 2):
                     xmin, xmax = map(float, plot_range[0])
                     xmin = elements.translate((xmin, 0, 0))[0]
                     xmax = elements.translate((xmax, 0, 0))[0]
@@ -285,7 +294,8 @@ class Graphics3DBox(GraphicsBox):
                     elif ymin == ymax:
                         ymin -= 1
                         ymax += 1
-                elif isinstance(plot_range[1], list) and len(plot_range[1]) == 2:
+                elif (isinstance(plot_range[1], list) and
+                      len(plot_range[1]) == 2):
                     ymin, ymax = map(float, plot_range[1])
                     ymin = elements.translate((0, ymin, 0))[1]
                     ymax = elements.translate((0, ymax, 0))[1]
@@ -299,7 +309,8 @@ class Graphics3DBox(GraphicsBox):
                     elif zmin == zmax:
                         zmin -= 1
                         zmax += 1
-                elif isinstance(plot_range[1], list) and len(plot_range[1]) == 2:
+                elif (isinstance(plot_range[1], list) and
+                      len(plot_range[1]) == 2):
                     zmin, zmax = map(float, plot_range[2])
                     zmin = elements.translate((0, 0, zmin))[2]
                     zmax = elements.translate((0, 0, zmax))[2]
@@ -334,22 +345,24 @@ class Graphics3DBox(GraphicsBox):
                             "target"][j] * boxscale[j] for j in range(3)]
 
                 # Rescale viewpoint
-                self.viewpoint = [vp * max(
-                    [xmax - xmin, ymax - ymin, zmax - zmin]) for vp in self.viewpoint]
+                self.viewpoint = [
+                    vp * max([xmax - xmin, ymax - ymin, zmax - zmin])
+                    for vp in self.viewpoint]
 
             return xmin, xmax, ymin, ymax, zmin, zmax, boxscale
 
-        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions(
-            final_pass=False)
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = \
+            calc_dimensions(final_pass=False)
 
         axes, ticks = self.create_axes(
-            elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale)
+            elements, graphics_options,
+            xmin, xmax, ymin, ymax, zmin, zmax, boxscale)
 
         return elements, axes, ticks, calc_dimensions, boxscale
 
     def boxes_to_tex(self, leaves, **options):
-        elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(
-            leaves, options, max_width=450)
+        elements, axes, ticks, calc_dimensions, boxscale = \
+            self._prepare_elements(leaves, options, max_width=450)
 
         elements._apply_boxscaling(boxscale)
 
@@ -357,8 +370,8 @@ class Graphics3DBox(GraphicsBox):
 
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
 
-        # TODO: Intelligently place the axes on the longest non-middle edge. See
-        # the algorithm used by the web graphics in mathics/web/media/graphics.js
+        # TODO: Intelligently place the axes on the longest non-middle edge.
+        # See algorithm used by web graphics in mathics/web/media/graphics.js
         # for details of this. (Projection to sceen etc).
 
         # Choose axes placement (boundbox edge vertices)
@@ -395,20 +408,22 @@ class Graphics3DBox(GraphicsBox):
         for xi in axes_indices:
             if xi < 4:          # x axis
                 for i, tick in enumerate(ticks[0][0]):
-                    line = [
-                        (tick, boundbox_lines[xi][0][
-                         1], boundbox_lines[xi][0][2]),
-                        (tick, boundbox_lines[xi][0][1], boundbox_lines[xi][0][2] + ticklength)]
-                    path = '--'.join(
-                        ['(%s,%s,%s)' % coords for coords in line])
+                    line = [(tick, boundbox_lines[xi][0][1],
+                             boundbox_lines[xi][0][2]),
+                            (tick, boundbox_lines[xi][0][1],
+                             boundbox_lines[xi][0][2] + ticklength)]
+                    path = '--'.join(['(%s,%s,%s)' % coords
+                                     for coords in line])
                     boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
                     boundbox_asy += 'label("%s",%s,%s);\n' % (ticks[0][2][i], (
-                        tick, boundbox_lines[xi][0][1], boundbox_lines[xi][0][2]), 'S')
+                        tick, boundbox_lines[xi][0][1],
+                        boundbox_lines[xi][0][2]), 'S')
                 for small_tick in ticks[0][1]:
                     line = [
-                        (small_tick, boundbox_lines[xi][
-                         0][1], boundbox_lines[xi][0][2]),
-                        (small_tick, boundbox_lines[xi][0][1], boundbox_lines[xi][0][2] + 0.5 * ticklength)]
+                        (small_tick, boundbox_lines[xi][0][1],
+                         boundbox_lines[xi][0][2]),
+                        (small_tick, boundbox_lines[xi][0][1],
+                         boundbox_lines[xi][0][2] + 0.5 * ticklength)]
                     path = '--'.join(
                         ['(%s,%s,%s)' % coords for coords in line])
                     boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
@@ -416,38 +431,45 @@ class Graphics3DBox(GraphicsBox):
             if 4 <= xi < 8:     # y axis
                 for i, tick in enumerate(ticks[1][0]):
                     line = [
-                        (boundbox_lines[xi][0][
-                         0], tick, boundbox_lines[xi][0][2]),
-                        (boundbox_lines[xi][0][0], tick, boundbox_lines[xi][0][2] - ticklength)]
+                        (boundbox_lines[xi][0][0], tick,
+                         boundbox_lines[xi][0][2]),
+                        (boundbox_lines[xi][0][0], tick,
+                         boundbox_lines[xi][0][2] - ticklength)]
                     path = '--'.join(
                         ['(%s,%s,%s)' % coords for coords in line])
                     boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
                     boundbox_asy += 'label("%s",%s,%s);\n' % (ticks[1][2][i], (
-                        boundbox_lines[xi][0][0], tick, boundbox_lines[xi][0][2]), 'NW')
+                        boundbox_lines[xi][0][0], tick,
+                        boundbox_lines[xi][0][2]), 'NW')
                 for small_tick in ticks[1][1]:
                     line = [
-                        (boundbox_lines[xi][0][
-                         0], small_tick, boundbox_lines[xi][0][2]),
-                        (boundbox_lines[xi][0][0], small_tick, boundbox_lines[xi][0][2] - 0.5 * ticklength)]
+                        (boundbox_lines[xi][0][0], small_tick,
+                         boundbox_lines[xi][0][2]),
+                        (boundbox_lines[xi][0][0], small_tick,
+                         boundbox_lines[xi][0][2] - 0.5 * ticklength)]
                     path = '--'.join(
                         ['(%s,%s,%s)' % coords for coords in line])
                     boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
             if 8 <= xi:         # z axis
                 for i, tick in enumerate(ticks[2][0]):
                     line = [
-                        (boundbox_lines[xi][0][
-                         0], boundbox_lines[xi][0][1], tick),
-                        (boundbox_lines[xi][0][0], boundbox_lines[xi][0][1] + ticklength, tick)]
+                        (boundbox_lines[xi][0][0], boundbox_lines[xi][0][1],
+                         tick),
+                        (boundbox_lines[xi][0][0],
+                         boundbox_lines[xi][0][1] + ticklength, tick)]
                     path = '--'.join(
                         ['(%s,%s,%s)' % coords for coords in line])
                     boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
                     boundbox_asy += 'label("%s",%s,%s);\n' % (ticks[2][2][i], (
-                        boundbox_lines[xi][0][0], boundbox_lines[xi][0][1], tick), 'W')
+                        boundbox_lines[xi][0][0], boundbox_lines[xi][0][1],
+                        tick), 'W')
                 for small_tick in ticks[2][1]:
                     line = [
                         (boundbox_lines[xi][0][
                          0], boundbox_lines[xi][0][1], small_tick),
-                        (boundbox_lines[xi][0][0], boundbox_lines[xi][0][1] + 0.5 * ticklength, small_tick)]
+                        (boundbox_lines[xi][0][0],
+                         boundbox_lines[xi][0][1] + 0.5 * ticklength,
+                         small_tick)]
                     path = '--'.join(
                         ['(%s,%s,%s)' % coords for coords in line])
                     boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
@@ -463,12 +485,13 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
 %s
 %s
 \end{asy}
-""" % (asy_number(width / 60), asy_number(height / 60), self.viewpoint[0], self.viewpoint[1], self.viewpoint[2], asy, boundbox_asy)
+""" % (asy_number(width / 60), asy_number(height / 60), self.viewpoint[0],
+       self.viewpoint[1], self.viewpoint[2], asy, boundbox_asy)
         return tex
 
     def boxes_to_xml(self, leaves, **options):
-        elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(
-            leaves, options)
+        elements, axes, ticks, calc_dimensions, boxscale = \
+            self._prepare_elements(leaves, options)
 
         elements._apply_boxscaling(boxscale)
 
@@ -506,7 +529,8 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         xml = """<mtable><mtr><mtd>%s</mtd></mtr></mtable>""" % xml
         return xml
 
-    def create_axes(self, elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale):
+    def create_axes(self, elements, graphics_options, xmin, xmax, ymin, ymax,
+                    zmin, zmax, boxscale):
         axes = graphics_options.get('Axes')
         if axes.is_true():
             axes = (True, True, True)
@@ -549,8 +573,9 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
 
         # Convert ticks to nice strings e.g 0.100000000000002 -> '0.1' and
         # scale ticks appropriately
-        ticks = [[map(lambda x: boxscale[i] * x, t[0]), map(lambda x: boxscale[
-                                                            i] * x, t[1]), map(str, t[0])] for i, t in enumerate(ticks)]
+        ticks = [[map(lambda x: boxscale[i] * x, t[0]),
+                  map(lambda x: boxscale[i] * x, t[1]),
+                  map(str, t[0])] for i, t in enumerate(ticks)]
 
         return axes, ticks
 
@@ -595,7 +620,8 @@ class Graphics3DElements(_GraphicsElements):
     def __init__(self, content, evaluation, neg_y=False):
         super(Graphics3DElements, self).__init__(content, evaluation)
         self.neg_y = neg_y
-        self.xmin = self.ymin = self.pixel_width = self.pixel_height = self.extent_width = self.extent_height = None
+        self.xmin = self.ymin = self.pixel_width = self.pixel_height = \
+            self.extent_width = self.extent_height = None
 
     def extent(self, completely_visible_only=False):
         return total_extent_3d([element.extent() for element in self.elements])
@@ -656,8 +682,8 @@ class Point3DBox(PointBox):
 
         asy = ''
         for line in self.lines:
-            asy += 'path3 g=' + '--'.join(['(%s,%s,%s)' % coords.pos()[
-                                          0] for coords in line]) + '--cycle;'
+            asy += 'path3 g=' + '--'.join(['(%s,%s,%s)' % coords.pos()[0]
+                                           for coords in line]) + '--cycle;'
             asy += 'dot(g, %s);' % (pen)
         return asy
 
@@ -735,12 +761,16 @@ class Polygon3DBox(PolygonBox):
             face_color = self.face_color
         else:
             face_color = None
+
+        if face_color is not None:
+            face_color = face_color.to_js()
+
         data = []
         for line in self.lines:
             data.append({
                 'type': 'polygon',
                 'coords': [coords.pos() for coords in line],
-                'faceColor': face_color.to_js() if face_color is not None else None,
+                'faceColor': face_color,
             })
         return data
 
@@ -750,13 +780,13 @@ class Polygon3DBox(PolygonBox):
             face_color = self.face_color
         else:
             face_color = None
-        pen = create_pens(edge_color=self.edge_color,
-                          face_color=face_color, stroke_width=l, is_face_element=True)
+        pen = create_pens(edge_color=self.edge_color, face_color=face_color,
+                          stroke_width=l, is_face_element=True)
 
         asy = ''
         for line in self.lines:
-            asy += 'path3 g=' + '--'.join(['(%s,%s,%s)' % coords.pos()[
-                                          0] for coords in line]) + '--cycle;'
+            asy += 'path3 g=' + '--'.join(['(%s,%s,%s)' % coords.pos()[0]
+                                           for coords in line]) + '--cycle;'
             asy += 'draw(surface(g), %s);' % (pen)
         return asy
 
@@ -836,32 +866,56 @@ class Cuboid(Builtin):
 
         polygons = [
             # X
-            Expression('List', Expression('List', xmin, ymin, zmin), Expression(
-                'List', xmin, ymax, zmin), Expression('List', xmin, ymax, zmax)),
-            Expression('List', Expression('List', xmin, ymin, zmin), Expression(
-                'List', xmin, ymin, zmax), Expression('List', xmin, ymax, zmax)),
-            Expression('List', Expression('List', xmax, ymin, zmin), Expression(
-                'List', xmax, ymax, zmin), Expression('List', xmax, ymax, zmax)),
-            Expression('List', Expression('List', xmax, ymin, zmin), Expression(
-                'List', xmax, ymin, zmax), Expression('List', xmax, ymax, zmax)),
+            Expression('List',
+                       Expression('List', xmin, ymin, zmin),
+                       Expression('List', xmin, ymax, zmin),
+                       Expression('List', xmin, ymax, zmax)),
+            Expression('List',
+                       Expression('List', xmin, ymin, zmin),
+                       Expression('List', xmin, ymin, zmax),
+                       Expression('List', xmin, ymax, zmax)),
+            Expression('List',
+                       Expression('List', xmax, ymin, zmin),
+                       Expression('List', xmax, ymax, zmin),
+                       Expression('List', xmax, ymax, zmax)),
+            Expression('List',
+                       Expression('List', xmax, ymin, zmin),
+                       Expression('List', xmax, ymin, zmax),
+                       Expression('List', xmax, ymax, zmax)),
             # Y
-            Expression('List', Expression('List', xmin, ymin, zmin), Expression(
-                'List', xmax, ymin, zmin), Expression('List', xmax, ymin, zmax)),
-            Expression('List', Expression('List', xmin, ymin, zmin), Expression(
-                'List', xmin, ymin, zmax), Expression('List', xmax, ymin, zmax)),
-            Expression('List', Expression('List', xmin, ymax, zmin), Expression(
-                'List', xmax, ymax, zmin), Expression('List', xmax, ymax, zmax)),
-            Expression('List', Expression('List', xmin, ymax, zmin), Expression(
-                'List', xmin, ymax, zmax), Expression('List', xmax, ymax, zmax)),
+            Expression('List',
+                       Expression('List', xmin, ymin, zmin),
+                       Expression('List', xmax, ymin, zmin),
+                       Expression('List', xmax, ymin, zmax)),
+            Expression('List',
+                       Expression('List', xmin, ymin, zmin),
+                       Expression('List', xmin, ymin, zmax),
+                       Expression('List', xmax, ymin, zmax)),
+            Expression('List',
+                       Expression('List', xmin, ymax, zmin),
+                       Expression('List', xmax, ymax, zmin),
+                       Expression('List', xmax, ymax, zmax)),
+            Expression('List',
+                       Expression('List', xmin, ymax, zmin),
+                       Expression('List', xmin, ymax, zmax),
+                       Expression('List', xmax, ymax, zmax)),
             # Z
-            Expression('List', Expression('List', xmin, ymin, zmin), Expression(
-                'List', xmin, ymax, zmin), Expression('List', xmax, ymax, zmin)),
-            Expression('List', Expression('List', xmin, ymin, zmin), Expression(
-                'List', xmax, ymin, zmin), Expression('List', xmax, ymax, zmin)),
-            Expression('List', Expression('List', xmin, ymin, zmax), Expression(
-                'List', xmin, ymax, zmax), Expression('List', xmax, ymax, zmax)),
-            Expression('List', Expression('List', xmin, ymin, zmax), Expression(
-                'List', xmax, ymin, zmax), Expression('List', xmax, ymax, zmax)),
+            Expression('List',
+                       Expression('List', xmin, ymin, zmin),
+                       Expression('List', xmin, ymax, zmin),
+                       Expression('List', xmax, ymax, zmin)),
+            Expression('List',
+                       Expression('List', xmin, ymin, zmin),
+                       Expression('List', xmax, ymin, zmin),
+                       Expression('List', xmax, ymax, zmin)),
+            Expression('List',
+                       Expression('List', xmin, ymin, zmax),
+                       Expression('List', xmin, ymax, zmax),
+                       Expression('List', xmax, ymax, zmax)),
+            Expression('List',
+                       Expression('List', xmin, ymin, zmax),
+                       Expression('List', xmax, ymin, zmax),
+                       Expression('List', xmax, ymax, zmax)),
         ]
 
         return Expression('Polygon', Expression('List', *polygons))
@@ -874,9 +928,10 @@ class Cuboid(Builtin):
         except NumberError, exc:
             # TODO
             return
-        xmax, ymax, zmax = [from_python(
-            value + 1) for value in (xmin, ymin, zmin)]
-        xmin, ymin, zmin = [from_python(value) for value in (xmin, ymin, zmin)]
+        xmax, ymax, zmax = [from_python(value + 1)
+                            for value in (xmin, ymin, zmin)]
+        xmin, ymin, zmin = [from_python(value)
+                            for value in (xmin, ymin, zmin)]
 
         return self.apply_full(xmin, ymin, zmin, xmax, ymax, zmax, evaluation)
 
@@ -901,7 +956,8 @@ class Sphere3DBox(_Graphics3DElement):
         points = item.leaves[0].to_python()
         if not all(isinstance(point, list) for point in points):
             points = [points]
-        if not all(len(point) == 3 and all(isinstance(p, numbers.Real) for p in point) for point in points):
+        if not all(len(point) == 3 and all(isinstance(p, numbers.Real)
+                   for p in point) for point in points):
             raise BoxConstructError
 
         self.points = [Coords3D(graphics, pos=point) for point in points]
@@ -909,34 +965,41 @@ class Sphere3DBox(_Graphics3DElement):
 
     def to_asy(self):
         l = self.style.get_line_width(face_element=True)
-        face_color = self.face_color.to_js() if self.face_color is not None else (
-            1, 1, 1)
+
+        if self.face_color is None:
+            face_color = (1, 1, 1)
+        else:
+            face_color = self.face_color.to_js()
 
         asy = ''
         for coord in self.points:
             sphere = 'surface(sphere(%s, %s))' % (
                 tuple(coord.pos()[0]), self.radius)
-            color = 'rgb(%s,%s,%s)' % (face_color[
-                                       0], face_color[1], face_color[2])
+            color = 'rgb(%s,%s,%s)' % (
+                face_color[0], face_color[1], face_color[2])
             asy += 'draw(%s, %s);' % (sphere, color)
         return asy
 
     def to_json(self):
         face_color = self.face_color
+        if face_color is not None:
+            face_color = face_color.to_js()
         return [{
             'type': 'sphere',
             'coords': [coords.pos() for coords in self.points],
             'radius': self.radius,
-            'faceColor': face_color.to_js() if face_color is not None else None,
+            'faceColor': face_color,
         }]
         return data
 
     def extent(self):
         result = []
-        result.extend([coords.add(self.radius, self.radius, self.radius).pos()[
-                      0] for coords in self.points])
-        result.extend([coords.add(-self.radius, -self.radius, -self.radius).pos()[
-                      0] for coords in self.points])
+        result.extend([
+            coords.add(self.radius, self.radius, self.radius).pos()[0]
+            for coords in self.points])
+        result.extend([
+            coords.add(-self.radius, -self.radius, -self.radius).pos()[0]
+            for coords in self.points])
         return result
 
     def _apply_boxscaling(self, boxscale):

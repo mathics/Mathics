@@ -7,7 +7,10 @@ Date and Time
 import time
 from datetime import datetime, timedelta
 import dateutil.parser
-from mathics.core.expression import Expression, Real, Symbol, String, from_python
+
+from mathics.core.expression import (Expression, Real, Symbol, String,
+                                     from_python)
+
 from mathics.builtin.base import Builtin, Predefined
 from mathics.settings import TIME_12HOUR
 
@@ -68,7 +71,8 @@ EPOCH_START = datetime(1900, 1, 1)
 
 if not hasattr(timedelta, 'total_seconds'):
     def total_seconds(td):
-        return float(td.microseconds + (td.seconds + td.days * 24 * 3600) * 10 ** 6) / 10 ** 6
+        return float(td.microseconds + 
+                     (td.seconds + td.days * 24 * 3600) * 10 ** 6) / 10 ** 6
 else:
     total_seconds = timedelta.total_seconds
 
@@ -167,9 +171,11 @@ class _DateFormat(Builtin):
             evaluation.message(form_name, 'arg', etime)
             return
 
-        if 1 <= len(etime) <= 6 and all((isinstance(val, float) and i > 1) or isinstance(val, (int, long)) for i, val in enumerate(etime)):
-            default_date = [1900, 1, 1, 0, 0, 0.]
+        if 1 <= len(etime) <= 6 and all(    # noqa
+            (isinstance(val, float) and i > 1) or
+            isinstance(val, (int, long)) for i, val in enumerate(etime)):
 
+            default_date = [1900, 1, 1, 0, 0, 0.]
             datelist = etime + default_date[len(etime):]
             prec_part, imprec_part = datelist[:2], datelist[2:]
 
@@ -189,7 +195,9 @@ class _DateFormat(Builtin):
             return datelist
 
         if len(etime) == 2:
-            if isinstance(etime[0], basestring) and isinstance(etime[1], list) and all(isinstance(s, basestring) for s in etime[1]):
+            if (isinstance(etime[0], basestring) and    # noqa
+                isinstance(etime[1], list) and
+                all(isinstance(s, basestring) for s in etime[1])):
                 is_spec = [str(s).strip(
                     '"') in DATE_STRING_FORMATS.keys() for s in etime[1]]
                 etime[1] = map(lambda s: str(s).strip('"'), etime[1])
@@ -400,7 +408,8 @@ class DateString(_DateFormat):
 
         pyform = map(lambda x: x.strip('"'), pyform)
 
-        if not all(isinstance(f, unicode) or isinstance(f, str) for f in pyform):
+        if not all(isinstance(f, unicode) or isinstance(f, str)
+                   for f in pyform):
             evaluation.message('DateString', 'fmt', form)
             return
 
@@ -548,7 +557,7 @@ class Pause(Builtin):
     def apply(self, n, evaluation):
         'Pause[n_]'
         sleeptime = n.to_python()
-        if not (isinstance(sleeptime, int) or isinstance(sleeptime, float)) or sleeptime < 0:
+        if not isinstance(sleeptime, (int, float)) or sleeptime < 0:
             evaluation.message('Pause', 'numnm', Expression('Pause', n))
             return
 
@@ -576,16 +585,16 @@ class _Date():
         if months == 0:
             months += 12
             years -= 1
-        self.date = datetime(years, months, self.date.day,
-                             self.date.hour, self.date.minute, self.date.second)
-        tdelta = timedelta(days=timevec[2], hours=timevec[
-                           3], minutes=timevec[4], seconds=timevec[5])
+        self.date = datetime(years, months, self.date.day, self.date.hour,
+                             self.date.minute, self.date.second)
+        tdelta = timedelta(days=timevec[2], hours=timevec[3],
+                           minutes=timevec[4], seconds=timevec[5])
         self.date += tdelta
 
     def to_list(self):
-        return [
-            self.date.year, self.date.month, self.date.day, self.date.hour,
-            self.date.minute, self.date.second + 1e-6 * self.date.microsecond]
+        return [self.date.year, self.date.month, self.date.day,
+                self.date.hour, self.date.minute,
+                self.date.second + 1e-6 * self.date.microsecond]
 
 
 class DatePlus(Builtin):
@@ -645,15 +654,16 @@ class DatePlus(Builtin):
         pyoff = off.to_python()
         if isinstance(pyoff, float) or isinstance(pyoff, int):
             pyoff = [[pyoff, u'"Day"']]
-        elif isinstance(pyoff, list) and len(pyoff) == 2 and isinstance(pyoff[1], unicode):
+        elif (isinstance(pyoff, list) and len(pyoff) == 2 and
+              isinstance(pyoff[1], unicode)):
             pyoff = [pyoff]
 
         # Strip " marks
         pyoff = map(lambda x: [x[0], x[1].strip('"')], pyoff)
 
-        if isinstance(pyoff, list) and all(
-                len(o) == 2 and o[1] in TIME_INCREMENTS.keys() and
-                isinstance(o[0], (float, int)) for o in pyoff):
+        if isinstance(pyoff, list) and all(     # noqa
+            len(o) == 2 and o[1] in TIME_INCREMENTS.keys() and
+            isinstance(o[0], (float, int)) for o in pyoff):
 
             for o in pyoff:
                 idate.addself([o[0] * TIME_INCREMENTS[
@@ -697,9 +707,10 @@ class DateDifference(Builtin):
      = {{9, Week}, {6, Day}}
     """
 
-    # TODO: Since timedelta doesnt use large time units (years, months etc) this method can
-    # be innacuarate. The example below gives fractional Days (20.1666666667
-    # not 20).
+    # FIXME: Since timedelta doesnt use large time units (years, months etc)
+    # this method can be innacuarate. The example below gives fractional Days
+    # (20.1666666667 not 20).
+
     """
     >> DateDifference[{2000, 6, 15}, {2001, 9, 4}, {"Month", "Day"}]
      = {{14, "Month"}, {20, "Day"}}
@@ -722,21 +733,21 @@ class DateDifference(Builtin):
         # Process dates
         pydate1, pydate2 = date1.to_python(), date2.to_python()
 
-        if isinstance(pydate1, list):        # Date List
+        if isinstance(pydate1, list):               # Date List
             idate = _Date(datelist=pydate1)
-        elif isinstance(pydate1, float) or isinstance(pydate1, int):     # Absolute Time
+        elif isinstance(pydate1, (float, int)):     # Absolute Time
             idate = _Date(absolute=pydate1)
-        elif isinstance(pydate1, basestring):
+        elif isinstance(pydate1, basestring):       # Date string
             idate = _Date(datestr=pydate2.strip('"'))
         else:
             evaluation.message('DateDifference', 'date', date1)
             return
 
-        if isinstance(pydate2, list):        # Date List
+        if isinstance(pydate2, list):           # Date List
             fdate = _Date(datelist=pydate2)
-        elif isinstance(pydate2, float) or isinstance(pydate2, int):     # Absolute Time
+        elif isinstance(pydate2, (int, float)):  # Absolute Time
             fdate = _Date(absolute=pydate2)
-        elif isinstance(pydate1, basestring):
+        elif isinstance(pydate1, basestring):   # Date string
             fdate = _Date(datestr=pydate2.strip('"'))
         else:
             evaluation.message('DateDifference', 'date', date2)
@@ -752,7 +763,8 @@ class DateDifference(Builtin):
         pyunits = units.to_python()
         if isinstance(pyunits, basestring):
             pyunits = [unicode(pyunits.strip('"'))]
-        elif isinstance(pyunits, list) and all(isinstance(p, basestring) for p in pyunits):
+        elif (isinstance(pyunits, list) and
+              all(isinstance(p, basestring) for p in pyunits)):
             pyunits = map(lambda p: p.strip('"'), pyunits)
 
         if not all(p in TIME_INCREMENTS.keys() for p in pyunits):

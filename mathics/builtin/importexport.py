@@ -159,15 +159,18 @@ class RegisterImport(Builtin):
         else:
             leaves = [function]
 
-        if not (len(leaves) >= 1 and all(x.has_form('RuleDelayed', None) for x in leaves[:-1]) and isinstance(leaves[-1], Symbol)):
+        if not (len(leaves) >= 1 and
+                all(x.has_form('RuleDelayed', None) for x in leaves[:-1]) and
+                isinstance(leaves[-1], Symbol)):
             # TODO: Message
             return Symbol('$Failed')
 
         # Does not work in python <= 2.6
         # conditionals = {elem.get_string_value(): expr for [elem, expr] in
         # [x.get_leaves() for x in leaves[:-1]]}
-        conditionals = dict((elem.get_string_value(), expr) for [
-                            elem, expr] in [x.get_leaves() for x in leaves[:-1]])
+        conditionals = dict(
+            (elem.get_string_value(), expr) for [elem, expr] in [
+                x.get_leaves() for x in leaves[:-1]])
         default = leaves[-1]
         posts = {}
 
@@ -302,7 +305,8 @@ class Import(Builtin):
 
             # return {a.get_string_value() : b for (a,b) in map(lambda x:
             # x.get_leaves(), tmp)}
-            return dict((a.get_string_value(), b) for (a, b) in map(lambda x: x.get_leaves(), tmp))
+            return dict((a.get_string_value(), b)
+                        for (a, b) in map(lambda x: x.get_leaves(), tmp))
 
         # Perform the import
         defaults = None
@@ -312,12 +316,14 @@ class Import(Builtin):
             if defaults is None:
                 return Symbol('$Failed')
             if default_element == Symbol("Automatic"):
-                return Expression('List', *[Expression('Rule', String(key), defaults[key]) for key in defaults.keys()])
+                return Expression('List', *[
+                    Expression('Rule', String(key), defaults[key])
+                    for key in defaults.keys()])
             else:
                 result = defaults.get(default_element.get_string_value())
                 if result is None:
-                    evaluation.message(
-                        'Import', 'noelem', default_element, from_python(filetype))
+                    evaluation.message('Import', 'noelem', default_element,
+                                       from_python(filetype))
                     return Symbol('$Failed')
                 return result
         else:
@@ -328,7 +334,8 @@ class Import(Builtin):
                 if defaults is None:
                     return Symbol('$Failed')
                 # Use set() to remove duplicates
-                return from_python(sorted(set(conditionals.keys() + defaults.keys() + posts.keys())))
+                return from_python(sorted(set(
+                    conditionals.keys() + defaults.keys() + posts.keys())))
             else:
                 if el in conditionals.keys():
                     result = get_results(conditionals[el])
@@ -349,8 +356,8 @@ class Import(Builtin):
                     if el in defaults.keys():
                         return defaults[el]
                     else:
-                        evaluation.message('Import', 'noelem', from_python(
-                            el), from_python(filetype))
+                        evaluation.message('Import', 'noelem', from_python(el),
+                                           from_python(filetype))
                         return Symbol('$Failed')
 
 

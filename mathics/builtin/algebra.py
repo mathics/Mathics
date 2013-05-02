@@ -267,8 +267,12 @@ class Expand(Builtin):
                     else:
                         other_leaves.append(leaf)
                 if len(neg_powers) > 1:
-                    leaves = other_leaves + [Expression('Power', Expression('Times', *[Expression('Power', leaf.leaves[
-                                                        0], Integer(sympy.Integer(-leaf.leaves[1].value))) for leaf in neg_powers]), Integer(-1))]
+                    leaves = other_leaves + [
+                        Expression('Power', Expression('Times', *[
+                            Expression(
+                                'Power', leaf.leaves[0],
+                                Integer(sympy.Integer(-leaf.leaves[1].value)))
+                            for leaf in neg_powers]), Integer(-1))]
             if head_name in ('Plus', 'Times', 'Power'):
                 leaves = [expand(leaf) for leaf in leaves]
             if expr.has_form('Times', 2, None):
@@ -294,9 +298,14 @@ class Expand(Builtin):
                             add = [leaf]
                         result = [item + add for item in result]
                 if has_plus:
-                    return Expression('Plus', *(expand(Expression('Times', *item)) for item in result))
+                    return Expression(
+                        'Plus', *(expand(Expression('Times', *item))
+                        for item in result))
+
                 else:
-                    return Expression('Plus', *(Expression('Times', *item) for item in result))
+                    return Expression('Plus', *(
+                        Expression('Times', *item) for item in result))
+
             elif expr.has_form('Power', 2):
                 n = leaves[1].get_int_value()
                 sum = leaves[0]
@@ -313,7 +322,9 @@ class Expand(Builtin):
                                     else:
                                         this_factor = [Expression(
                                             'Power', rest[0], Integer(k))]
-                                    yield (int(mpmath.binomial(n_rest, k) * coeff), this_factor + next)
+                                    yield (int(
+                                        mpmath.binomial(n_rest, k) * coeff),
+                                        this_factor + next)
                         elif n_rest == 0:
                             yield (sympy.Integer(1), [])
 
@@ -321,11 +332,15 @@ class Expand(Builtin):
                         if coeff == 1:
                             return Expression('Times', *factors)
                         else:
-                            return Expression('Times', Integer(coeff), *factors)
+                            return Expression(
+                                'Times', Integer(coeff), *factors)
 
-                    return Expression('Plus', *[times(coeff, factors) for coeff, factors in iterate(items, n)])
+                    return Expression('Plus', *[
+                        times(coeff, factors) for coeff,
+                        factors in iterate(items, n)])
                 else:
-                    return Expression(expr.head, *[expand(leaf) for leaf in expr.leaves])
+                    return Expression(
+                        expr.head, *[expand(leaf) for leaf in expr.leaves])
             elif expr.has_form('Plus', 2, None):
                 return Expression('Plus', *leaves)
             else:

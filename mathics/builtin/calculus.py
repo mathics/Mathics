@@ -122,7 +122,8 @@ class D(SympyFunction):
         if f == x:
             return Integer(1)
         elif not f.is_atom() and len(f.leaves) == 1 and f.leaves[0] == x:
-            return Expression(Expression(Expression('Derivative', Integer(1)), f.head), x)
+            return Expression(
+                Expression(Expression('Derivative', Integer(1)), f.head), x)
         elif not f.is_atom() and len(f.leaves) == 1:
             g = f.leaves[0]
             return Expression(
@@ -131,14 +132,20 @@ class D(SympyFunction):
         elif not f.is_atom() and len(f.leaves) > 1:
             def summand(leaf, index):
                 if leaf.same(x):
-                    result = Expression(Expression(Expression('Derivative', *([Integer(0)] * (index) + [
-                                        Integer(1)] + [Integer(0)] * (len(f.leaves) - index - 1))), f.head), *f.leaves)
+                    result = Expression(Expression(
+                        Expression(
+                            'Derivative',
+                            *([Integer(0)] * (index) + [Integer(1)] + 
+                              [Integer(0)] * (len(f.leaves) - index - 1))), 
+                        f.head), *f.leaves)
                 else:
                     result = Expression('D', f, leaf)
                 return Expression('Times', result, Expression('D', leaf, x))
             x_pattern = Pattern.create(x)
-            result = Expression('Plus', *[summand(leaf, index) for index, leaf in enumerate(
-                f.leaves) if not leaf.is_free(x_pattern, evaluation)])
+            result = Expression(
+                'Plus', *[
+                    summand(leaf, index) for index, leaf in enumerate(f.leaves) 
+                    if not leaf.is_free(x_pattern, evaluation)])
             if len(result.leaves) == 1:
                 return result.leaves[0]
             else:
@@ -275,7 +282,8 @@ class Derivative(PostfixOperator, SympyFunction):
         except AttributeError:
             pass
 
-        if len(exprs) != 4 or not all(len(expr.leaves) >= 1 for exp in exprs[:3]):
+        if len(exprs) != 4 or not all(len(expr.leaves) >= 1
+                                      for exp in exprs[:3]):
             return
 
         sym_x = exprs[0].leaves[0].to_sympy()
@@ -587,9 +595,10 @@ class Solve(Builtin):
         else:
             vars = [vars]
         for var in vars:
-            if (var.is_atom() and not var.is_symbol()) or \
-                head_name in ('Plus', 'Times', 'Power') or \
-                    'Constant' in var.get_attributes(evaluation.definitions):
+            if ((var.is_atom() and not var.is_symbol()) or  # noqa
+                head_name in ('Plus', 'Times', 'Power') or
+                'Constant' in var.get_attributes(evaluation.definitions)):
+
                 evaluation.message('Solve', 'ivar', vars_original)
                 return
         eqs_original = eqs
@@ -680,13 +689,20 @@ class Solve(Builtin):
             for sol in result:
                 results.extend(transform_solution(sol))
             result = results
-            if any(sol and any(var not in sol for var in all_vars_sympy) for sol in result):
-                evaluation.message('Solve', 'svars')
-            result = [sol for sol in result if all(sympy.simplify(denom.subs(
-                sol)) != 0 for denom in sympy_denoms)]   # filter out results for which denominator is 0
+            if any(sol and any(var not in sol for var in all_vars_sympy)
+                   for sol in result):
+                evaluation.message('Solve', 'svars')   
+
+            # Filter out results for which denominator is 0
+            result = [sol for sol in result if all(sympy.simplify(
+                denom.subs(sol)) != 0 for denom in sympy_denoms)]
                 # (SymPy should actually do that itself, but it doesn't!)
-            return Expression('List', *(Expression('List', *(Expression('Rule', var, from_sympy(sol[var_sympy]))
-                                                             for var, var_sympy in zip(vars, vars_sympy) if var_sympy in sol)) for sol in result))
+            return Expression('List', *(Expression(
+                'List',
+                *(Expression('Rule', var, from_sympy(sol[var_sympy]))
+                  for var, var_sympy in zip(vars, vars_sympy)
+                  if var_sympy in sol)
+            ) for sol in result))
         except sympy.PolynomialError:
             # raised for e.g. Solve[x^2==1&&z^2==-1,{x,y,z}] when not deleting
             # unused variables beforehand
@@ -844,7 +860,8 @@ class FindRoot(Builtin):
             d_value = d.evaluate(evaluation)
             if d_value == Integer(0):
                 return None
-            return Expression('Times', f, Expression('Power', d_value, Integer(-1))).evaluate(evaluation)
+            return Expression('Times', f, Expression(
+                'Power', d_value, Integer(-1))).evaluate(evaluation)
 
         while count < 100:
             minus = dynamic_scoping(sub, {x_name: x0}, evaluation)

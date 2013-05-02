@@ -18,14 +18,15 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.builtin import (algebra, arithmetic, assignment, attributes,
-                             calculus, combinatorial, comparison, control, datentime, diffeqns,
-                             evaluation, exptrig, functional, graphics, graphics3d, inout, integer,
-                             linalg, lists, logic, numbertheory, numeric, options, patterns, plot,
-                             physchemdata, randomnumbers, recurrence, specialfunctions, scoping, strings,
-                             structure, system, tensors)
+from mathics.builtin import (
+    algebra, arithmetic, assignment, attributes, calculus, combinatorial,
+    comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
+    graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory,
+    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
+    specialfunctions, scoping, strings, structure, system, tensors)
 
-from mathics.builtin.base import Builtin, SympyObject, BoxConstruct, Operator, PatternObject
+from mathics.builtin.base import (
+    Builtin, SympyObject, BoxConstruct, Operator, PatternObject)
 
 from mathics.settings import ENABLE_FILES_MODULE
 
@@ -56,10 +57,14 @@ for module in modules:
     vars = dir(module)
     for name in vars:
         var = getattr(module, name)
-        if hasattr(var, '__module__') and var.__module__.startswith('mathics.builtin.') and \
-            var.__module__ != 'mathics.builtin.base' and is_builtin(var) and not name.startswith('_') and \
-                var.__module__ == module.__name__:
+        if (hasattr(var, '__module__')
+                and var.__module__.startswith('mathics.builtin.')
+                and var.__module__ != 'mathics.builtin.base'
+                and is_builtin(var) and not name.startswith('_')
+                and var.__module__ == module.__name__):
+
             instance = var(expression=False)
+
             if isinstance(instance, Builtin):
                 builtins.append((instance.get_name(), instance))
                 builtins_by_module[module.__name__].append(instance)

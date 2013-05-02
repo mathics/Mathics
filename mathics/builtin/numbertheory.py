@@ -8,7 +8,8 @@ import sympy
 from itertools import combinations
 
 from mathics.builtin.base import Builtin, Test
-from mathics.core.expression import Expression, Integer, Rational, Symbol, from_python
+from mathics.core.expression import (Expression, Integer, Rational, Symbol,
+                                     from_python)
 
 
 class PowerMod(Builtin):
@@ -138,7 +139,7 @@ class GCD(Builtin):
             result = sympy.gcd(result, value)
         return Integer(result)
 
-# TODO: Previosuly this used gmpy's gcdext. sympy's gcdex is not as powerful unfortunately
+# FIXME: Previosuly this used gmpy's gcdext. sympy's gcdex is not as powerful
 # class ExtendedGCD(Builtin):
 #    u"""
 #    >> ExtendedGCD[10, 15]
@@ -155,7 +156,7 @@ class GCD(Builtin):
 #    >> Plus @@ (numbers * factors)
 #     = 2
 #
-#    'ExtendedGCD' does not work for rational numbers and Gaussian integers yet.
+#    'ExtendedGCD' does not work for rational numbers and Gaussian integers yet
 #    """
 #
 #    attributes = ('Listable',)
@@ -222,8 +223,8 @@ class FactorInteger(Builtin):
      = {{2, 1}, {3, 1}, {5, 1}, {67, 1}, {2011, -1}}
     """
 
-    # TODO: GausianIntegers option e.g. FactorInteger[5, GaussianIntegers ->
-    # True]
+    # TODO: GausianIntegers option 
+    # e.g. FactorInteger[5, GaussianIntegers -> True]
 
     def apply(self, n, evaluation):
         'FactorInteger[n_]'
@@ -231,14 +232,16 @@ class FactorInteger(Builtin):
         if isinstance(n, Integer):
             factors = sympy.factorint(n.value)
             factors = sorted(factors.iteritems())
-            return Expression('List', *[Expression('List', factor, exp) for factor, exp in factors])
+            return Expression('List', *[
+                Expression('List', factor, exp) for factor, exp in factors])
         elif isinstance(n, Rational):
             factors, factors_denom = map(
                 sympy.factorint, n.value.as_numer_denom())
             for factor, exp in factors_denom.iteritems():
                 factors[factor] = factors.get(factor, 0) - exp
             factors = sorted(factors.iteritems())
-            return Expression('List', *[Expression('List', factor, exp) for factor, exp in factors])
+            return Expression('List', *[
+                Expression('List', factor, exp) for factor, exp in factors])
         else:
             return evaluation.message('FactorInteger', 'exact', n)
 
@@ -411,7 +414,8 @@ class CoprimeQ(Builtin):
         'CoprimeQ[args__]'
 
         py_args = [arg.to_python() for arg in args.get_sequence()]
-        if not all(isinstance(i, int) or isinstance(i, complex) for i in py_args):
+        if not all(isinstance(i, int) or isinstance(i, complex)
+                   for i in py_args):
             return Symbol('False')
 
         if all(sympy.gcd(n, m) == 1 for (n, m) in combinations(py_args, 2)):
@@ -485,7 +489,8 @@ class PrimePi(Builtin):
 
     def apply(self, n, evaluation):
         'PrimePi[n_?NumericQ]'
-        return from_python(sympy.ntheory.primepi(n.to_python(n_evaluation=evaluation)))
+        result = sympy.ntheory.primepi(n.to_python(n_evaluation=evaluation))
+        return from_python(result)
 
 
 class NextPrime(Builtin):
@@ -611,7 +616,8 @@ class RandomPrime(Builtin):
         try:
             if py_n == 1:
                 return from_python(sympy.ntheory.randprime(imin, imax + 1))
-            return from_python([sympy.ntheory.randprime(imin, imax + 1) for i in range(py_n)])
+            return from_python([sympy.ntheory.randprime(imin, imax + 1)
+                                for i in range(py_n)])
         except ValueError:
             evaluation.message('RandomPrime', 'noprime')
             return

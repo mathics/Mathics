@@ -137,7 +137,9 @@ class ElementData(Builtin):
                     result.append(_ELEMENT_DATA[0][i])
             return from_python(sorted(result))
 
-        if not (isinstance(py_prop, str) and py_prop[0] == py_prop[-1] == '"' and py_prop.strip('"') in _ELEMENT_DATA[0]):
+        if not (isinstance(py_prop, str) and
+                py_prop[0] == py_prop[-1] == '"' and
+                py_prop.strip('"') in _ELEMENT_DATA[0]):
             evaluation.message("ElementData", "noprop", prop)
             return
 

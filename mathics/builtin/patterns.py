@@ -32,9 +32,13 @@ Options using 'OptionsPattern' and 'OptionValue':
 The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 """
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PostfixOperator, InstancableBuiltin, Test
-from mathics.builtin.base import PatternObject, PatternError, PatternArgumentError
-from mathics.core.expression import Symbol, BaseExpression, Expression, Number, Integer, Rational, Real, Complex
+from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
+                                  PostfixOperator, InstancableBuiltin, Test)
+from mathics.builtin.base import (PatternObject, PatternError,
+                                  PatternArgumentError)
+
+from mathics.core.expression import (Symbol, BaseExpression, Expression,
+                                     Number, Integer, Rational, Real, Complex)
 from mathics.core.rules import Rule
 from mathics.core.pattern import Pattern, StopGenerator
 
@@ -84,7 +88,9 @@ def create_rules(rules_expr, expr, name, evaluation, extra_args=[]):
     if any_lists:
         all_lists = all(item.has_form('List', None) for item in rules)
         if all_lists:
-            return Expression('List', *[Expression(name, expr, item, *extra_args) for item in rules]), True
+            return Expression(
+                'List', *[Expression(name, expr, item, *extra_args)
+                          for item in rules]), True
         else:
             evaluation.message(name, 'rmix', rules_expr)
             return None, True
@@ -278,7 +284,8 @@ class PatternTest(BinaryOperator, PatternObject):
                 candidate.leaves[1].value < 0
         elif test == 'NotNegativePowerQ':
             return not (candidate.has_form('Power', 2) and
-                        isinstance(candidate.leaves[1], (Integer, Rational, Real)) and
+                        isinstance(candidate.leaves[1], (Integer, Rational,
+                                                         Real)) and
                         candidate.leaves[1].value < 0)
         else:
             from mathics.builtin import builtins
@@ -335,8 +342,9 @@ class Alternatives(BinaryOperator, PatternObject):
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         for alternative in self.alternatives:
-            # for new_vars, rest in alternative.match(expression, vars, evaluation):
-            #    yield_func(new_vars, rest)
+            # for new_vars, rest in alternative.match(  # noqa
+            #     expression, vars, evaluation):
+            #     yield_func(new_vars, rest)
             alternative.match(yield_func, expression, vars, evaluation)
 
     def get_match_count(self, vars={}):
@@ -435,8 +443,9 @@ class HoldPattern(PatternObject):
         self.pattern = Pattern.create(expr.leaves[0])
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
-        # for new_vars, rest in self.pattern.match(expression, vars, evaluation):
-        #    yield new_vars, rest
+        # for new_vars, rest in self.pattern.match(     # noqa
+        #     expression, vars, evaluation):
+        #     yield new_vars, rest
         self.pattern.match(yield_func, expression, vars, evaluation)
 
 
@@ -528,15 +537,18 @@ class Pattern_(PatternObject):
             if existing.same(expression):
                 yield_func(vars, None)
 
-    def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
+    def get_match_candidates(self, leaves, expression, attributes, evaluation,
+                             vars={}):
         existing = vars.get(self.varname, None)
         if existing is None:
-            return self.pattern.get_match_candidates(leaves, expression, attributes, evaluation, vars)
+            return self.pattern.get_match_candidates(
+                leaves, expression, attributes, evaluation, vars)
         else:
             # Treat existing variable as verbatim
             verbatim_expr = Expression('Verbatim', existing)
             verbatim = Verbatim(verbatim_expr)
-            return verbatim.get_match_candidates(leaves, expression, attributes, evaluation, vars)
+            return verbatim.get_match_candidates(
+                leaves, expression, attributes, evaluation, vars)
 
 
 class Optional(BinaryOperator, PatternObject):
@@ -581,12 +593,18 @@ class Optional(BinaryOperator, PatternObject):
     def post_parse(self, expression):
         leaves = [leaf.post_parse() for leaf in expression.leaves]
         expression = Expression(expression.head.post_parse(), *leaves)
-        if expression.has_form('Optional', 2) and expression.leaves[0].get_name():
+        if (expression.has_form('Optional', 2) and      # noqa
+            expression.leaves[0].get_name()):
             sub = expression.leaves[1]
             if sub.has_form(('Pattern', 'Optional'), 2):
-                return Expression('Optional', Expression('Pattern', expression.leaves[0], sub.leaves[0]), sub.leaves[1])
+                return Expression(
+                    'Optional',
+                    Expression('Pattern', expression.leaves[0], sub.leaves[0]),
+                    sub.leaves[1])
             else:
-                return Expression('Pattern', *[leaf.post_parse() for leaf in expression.leaves])
+                return Expression(
+                    'Pattern',
+                    *[leaf.post_parse() for leaf in expression.leaves])
         else:
             return expression
 
@@ -611,7 +629,8 @@ class Optional(BinaryOperator, PatternObject):
         else:
             self.default = None
 
-    def match(self, yield_func, expression, vars, evaluation, head=None, leaf_index=None, leaf_count=None, **kwargs):
+    def match(self, yield_func, expression, vars, evaluation, head=None,
+              leaf_index=None, leaf_count=None, **kwargs):
         if expression.has_form('Sequence', 0):
             if self.default is None:
                 if head is None:  # head should be given by match_leaf!
@@ -772,7 +791,8 @@ class Repeated(PostfixOperator, PatternObject):
         self.min = min
         if len(expr.leaves) == 2:
             leaf_1 = expr.leaves[1]
-            if leaf_1.has_form('List', 1, 2) and all(leaf.get_int_value() for leaf in leaf_1.leaves):
+            if (leaf_1.has_form('List', 1, 2) and       # noqa
+                all(leaf.get_int_value() for leaf in leaf_1.leaves)):
                 self.max = leaf_1.leaves[-1].get_int_value()
                 self.min = leaf_1.leaves[0].get_int_value()
             elif leaf_1.get_int_value():
@@ -848,8 +868,9 @@ class Condition(BinaryOperator, PatternObject):
 
     operator = '/;'
     precedence = 130
-    attributes = (
-        'HoldRest',)  # don't know why this has attribute HoldAll in Mathematica
+
+    # Don't know why this has attribute HoldAll in Mathematica
+    attributes = ('HoldRest',)
 
     arg_counts = [2]
 
@@ -929,5 +950,8 @@ class OptionsPattern(PatternObject):
     def get_match_count(self, vars={}):
         return (0, None)
 
-    def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
-        return [leaf for leaf in leaves if leaf.has_form(('Rule', 'RuleDelayed'), 2) or leaf.has_form('List', None)]
+    def get_match_candidates(self, leaves, expression, attributes, evaluation,
+                             vars={}):
+        return [leaf for leaf in leaves
+                if leaf.has_form(('Rule', 'RuleDelayed'), 2) or
+                leaf.has_form('List', None)]

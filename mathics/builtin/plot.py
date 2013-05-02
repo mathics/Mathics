@@ -8,7 +8,8 @@ import re
 from math import floor, sin, cos, pi, sqrt
 import numbers
 
-from mathics.core.expression import Expression, Real, NumberError, Symbol, String, from_python
+from mathics.core.expression import (Expression, Real, NumberError, Symbol,
+                                     String, from_python)
 from mathics.builtin.base import Builtin
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.options import options_to_rules
@@ -57,8 +58,8 @@ def quiet_evaluate(expr, vars, evaluation, expect_list=False):
     """ Evaluates expr with given dynamic scoping values
     without producing arithmetic error messages. """
     expr = Expression('N', expr)
-    quiet_expr = Expression('Quiet', expr, Expression('List',
-                                                      Expression('MessageName', Symbol('Power'), String('infy'))))
+    quiet_expr = Expression('Quiet', expr, Expression(
+        'List', Expression('MessageName', Symbol('Power'), String('infy'))))
     value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)
     if expect_list:
         if value.has_form('List', None):
@@ -150,8 +151,8 @@ class _Plot(Builtin):
         '%(name)s[functions_, {x_Symbol, start_, stop_}, OptionsPattern[%(name)s]]'
 
         expr_limits = Expression('List', x, start, stop)
-        expr = Expression(
-            self.get_name(), functions, expr_limits, *options_to_rules(options))
+        expr = Expression(self.get_name(), functions, expr_limits,
+                          *options_to_rules(options))
         functions = self.get_functions_param(functions)
         x_name = x.get_name()
 
@@ -174,7 +175,8 @@ class _Plot(Builtin):
             if range in ('Automatic', 'All'):
                 return True
             if isinstance(range, list) and len(range) == 2:
-                if isinstance(range[0], numbers.Real) and isinstance(range[1], numbers.Real):
+                if (isinstance(range[0], numbers.Real) and  # noqa
+                    isinstance(range[1], numbers.Real)):
                     return True
             return False
         plotrange_option = self.get_option(options, 'PlotRange', evaluation)
@@ -226,8 +228,8 @@ class _Plot(Builtin):
                 maxrecursion = 0
                 raise ValueError
         except ValueError:
-            evaluation.message(
-                self.get_name(), 'invmaxrec', maxrecursion, max_recursion_limit)
+            evaluation.message(self.get_name(), 'invmaxrec', maxrecursion,
+                               max_recursion_limit)
         assert isinstance(maxrecursion, int)
 
         # Exclusions Option
@@ -250,7 +252,8 @@ class _Plot(Builtin):
         elif not isinstance(exclusions, list):
             exclusions = [exclusions]
 
-            if isinstance(exclusions, list) and all(check_exclusion(excl) for excl in exclusions):
+            if (isinstance(exclusions, list) and        # noqa
+                all(check_exclusion(excl) for excl in exclusions)):
                 pass
 
             else:
@@ -369,21 +372,22 @@ class _Plot(Builtin):
                     smooth = True
                     i = 2
                     while i < len(line):
-                        vec1 = (xscale * (line[i - 1][0] - line[i - 2][
-                                0]), yscale * (line[i - 1][1] - line[i - 2][1]))
-                        vec2 = (xscale * (line[i][0] - line[i - 1][
-                                0]), yscale * (line[i][1] - line[i - 1][1]))
+                        vec1 = (xscale * (line[i - 1][0] - line[i - 2][0]),
+                                yscale * (line[i - 1][1] - line[i - 2][1]))
+                        vec2 = (xscale * (line[i][0] - line[i - 1][0]),
+                                yscale * (line[i][1] - line[i - 1][1]))
                         try:
-                            angle = (vec1[0] * vec2[0] + vec1[1] * vec2[1]) / sqrt(
-                                (vec1[0] ** 2 + vec1[1] ** 2) * (vec2[0] ** 2 + vec2[1] ** 2))
+                            angle = (vec1[0] * vec2[0] + vec1[1] * vec2[1]) \
+                                / sqrt((vec1[0] ** 2 + vec1[1] ** 2) *
+                                       (vec2[0] ** 2 + vec2[1] ** 2))
                         except ZeroDivisionError:
                             angle = 0.0
                         if abs(angle) < ang_thresh:
                             smooth = False
                             incr = 0
 
-                            x_value = 0.5 * (line_xvalues[
-                                             i - 1] + line_xvalues[i])
+                            x_value = 0.5 * (line_xvalues[i - 1] +
+                                             line_xvalues[i])
                             point = self.eval_f(f, x_name, x_value, evaluation)
                             if point is not None:
                                 line.insert(i, point)
@@ -405,10 +409,10 @@ class _Plot(Builtin):
                 points = [[(x, y) for line in points for x, y in line]]
 
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
-            graphics.append(
-                Expression('Line', Expression('List', *(Expression('List',
-                           *(Expression('List', x, y) for x, y in line)) for line in points)
-                )))
+            graphics.append(Expression('Line', Expression('List', *(
+                Expression('List', *(Expression('List', x, y)
+                                     for x, y in line))
+                for line in points))))
             for line in points:
                 plot_points.extend(line)
 
@@ -444,7 +448,8 @@ class _Plot(Builtin):
                 graphics.append(Expression(
                     'Point', Expression('List', *meshpoints)))
 
-        return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
+        return Expression('Graphics', Expression('List', *graphics),
+                          *options_to_rules(options))
 
 
 class _ListPlot(Builtin):
@@ -465,7 +470,8 @@ class _ListPlot(Builtin):
             if range in ('Automatic', 'All'):
                 return True
             if isinstance(range, list) and len(range) == 2:
-                if isinstance(range[0], numbers.Real) and isinstance(range[1], numbers.Real):
+                if (isinstance(range[0], numbers.Real) and      # noqa
+                    isinstance(range[1], numbers.Real)):
                     return True
             return False
 
@@ -494,10 +500,12 @@ class _ListPlot(Builtin):
         # TODO: Fill between corresponding points in two datasets:
         filling_option = self.get_option(options, 'Filling', evaluation)
         filling = filling_option.to_python(n_evaluation=evaluation)
-        if filling in ['Top', 'Bottom', 'Axis'] or isinstance(filling, numbers.Real):
+        if filling in ['Top', 'Bottom', 'Axis'] or isinstance(filling,
+                                                              numbers.Real):
             pass
         else:
-            filling = None  # Mathematica does not even check that filling is sane
+            # Mathematica does not even check that filling is sane
+            filling = None
 
         # Joined Option
         joined_option = self.get_option(options, 'Joined', evaluation)
@@ -507,17 +515,24 @@ class _ListPlot(Builtin):
             joined = False
 
         if isinstance(all_points, list) and len(all_points) != 0:
-            if all(not isinstance(point, list) for point in all_points):  # Only y values given
+            if all(not isinstance(point, list) for point in all_points):
+                # Only y values given
                 all_points = [[[float(i + 1), all_points[
                                 i]] for i in range(len(all_points))]]
-            elif all(isinstance(line, list) and len(line) == 2 for line in all_points):  # Single list of (x,y) pairs
+            elif all(isinstance(line, list) and
+                     len(line) == 2 for line in all_points):
+                # Single list of (x,y) pairs
                 all_points = [all_points]
-            elif all(isinstance(line, list) for line in all_points):     # List of lines
-                if all(isinstance(point, list) and len(point) == 2 for line in all_points for point in line):
+            elif all(isinstance(line, list) for line in all_points):
+                # List of lines
+                if all(isinstance(point, list) and len(point) == 2
+                       for line in all_points for point in line):
                     pass
-                elif all(not isinstance(point, list) for line in all_points for point in line):
-                    all_points = [[[float(i + 1), line[i]] for i in range(
-                        len(line))] for line in all_points]
+                elif all(not isinstance(point, list)
+                         for line in all_points for point in line):
+                    all_points = [
+                        [[float(i + 1), l] for i, l in enumerate(line)]
+                        for line in all_points]
                 else:
                     return
             else:
@@ -532,8 +547,10 @@ class _ListPlot(Builtin):
             while i < len(all_points[l]):
                 seg = line[i]
                 for j, point in enumerate(seg):
-                    if not ((isinstance(point[0], float) or isinstance(point[0], int))
-                            and (isinstance(point[1], float) or isinstance(point[1], int))):
+                    if not ((isinstance(point[0], float) or
+                             isinstance(point[0], int))
+                            and (isinstance(point[1], float) or
+                                 isinstance(point[1], int))):
                         all_points[l].insert(i, seg[:j])
                         all_points[l][i + 1] = seg[j + 1:]
                         i -= 1
@@ -579,8 +596,9 @@ class _ListPlot(Builtin):
                     graphics.append(Expression('Point', from_python(segment)))
                     if filling is not None:
                         for point in segment:
-                            graphics.append(Expression('Line', from_python(
-                                [[point[0], filling], [point[0], point[1]]])))
+                            graphics.append(Expression(
+                                'Line', from_python([[point[0], filling],
+                                                    [point[0], point[1]]])))
 
             if indx % 4 == 0:
                 hue += hue_pos
@@ -593,7 +611,8 @@ class _ListPlot(Builtin):
 
         options['PlotRange'] = from_python([x_range, y_range])
 
-        return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
+        return Expression('Graphics', Expression('List', *graphics),
+                          *options_to_rules(options))
 
 
 class _Plot3D(Builtin):
@@ -604,12 +623,13 @@ class _Plot3D(Builtin):
         'invpltpts': "Value of PlotPoints -> `1` is not a positive integer or appropriate list of positive integers.",
     }
 
-    def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
+    def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation,
+              options):
         '%(name)s[functions_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[%(name)s]]'
         xexpr_limits = Expression('List', x, xstart, xstop)
         yexpr_limits = Expression('List', y, ystart, ystop)
-        expr = Expression(self.get_name(), functions,
-                          xexpr_limits, yexpr_limits, *options_to_rules(options))
+        expr = Expression(self.get_name(), functions, xexpr_limits,
+                          yexpr_limits, *options_to_rules(options))
 
         functions = self.get_functions_param(functions)
         plot_name = self.get_name()
@@ -618,12 +638,15 @@ class _Plot3D(Builtin):
         y_name = y.get_name()
 
         try:
-            xstart, xstop, ystart, ystop = [value.to_number(n_evaluation=evaluation) for value in
-                                                           (xstart, xstop, ystart, ystop)]
+            xstart, xstop, ystart, ystop = \
+                [value.to_number(n_evaluation=evaluation)
+                 for value in (xstart, xstop, ystart, ystop)]
+
         except NumberError, exc:
             expr = Expression(
                 plot_name, functions, Expression('List', x, xstart, xstop),
-                Expression('List', y, ystart, ystop), *options_to_rules(options))
+                Expression('List', y, ystart, ystop),
+                *options_to_rules(options))
             evaluation.message(plot_name, 'plln', value, expr)
             return
 
@@ -656,7 +679,9 @@ class _Plot3D(Builtin):
         elif check_plotpoints(plotpoints):
             plotpoints = [plotpoints, plotpoints]
 
-        if not (isinstance(plotpoints, list) and len(plotpoints) == 2 and check_plotpoints(plotpoints[0]) and check_plotpoints(plotpoints[1])):
+        if not (isinstance(plotpoints, list) and len(plotpoints) == 2 and
+                check_plotpoints(plotpoints[0]) and
+                check_plotpoints(plotpoints[1])):
             evaluation.message(self.get_name(), 'invpltpts', plotpoints)
             plotpoints = [7, 7]
 
@@ -669,7 +694,9 @@ class _Plot3D(Builtin):
                 if value is False:
                     value = quiet_evaluate(f, {x: Real(
                         x_value), y: Real(y_value)}, evaluation)
-                    # value = dynamic_scoping(f.evaluate, {x: Real(x_value), y: Real(y_value)}, evaluation)
+                    # value = dynamic_scoping(
+                    #    f.evaluate, {x: Real(x_value), y: Real(y_value)},
+                    #    evaluation)
                     # value = chop(value).get_real_value()
                     if value is not None:
                         value = float(value)
@@ -698,14 +725,15 @@ class _Plot3D(Builtin):
                             v_borders[1] = v
                 if v1 is None or v2 is None or v3 is None:
                     if depth < 2:
-                        triangle(x1, y1, (x1 + x2) / 2, (y1 + y2) / 2, (
-                            x1 + x3) / 2, (y1 + y3) / 2, depth + 1)
-                        triangle(x2, y2, (x1 + x2) / 2, (y1 + y2) / 2, (
-                            x2 + x3) / 2, (y2 + y3) / 2, depth + 1)
-                        triangle(x3, y3, (x1 + x3) / 2, (y1 + y3) / 2, (
-                            x2 + x3) / 2, (y2 + y3) / 2, depth + 1)
-                        triangle((x1 + x2) / 2, (y1 + y2) / 2, (x2 + x3) / 2, (
-                            y2 + y3) / 2, (x1 + x3) / 2, (y1 + y3) / 2, depth + 1)
+                        triangle(x1, y1, (x1 + x2) / 2, (y1 + y2) / 2,
+                                 (x1 + x3) / 2, (y1 + y3) / 2, depth + 1)
+                        triangle(x2, y2, (x1 + x2) / 2, (y1 + y2) / 2,
+                                 (x2 + x3) / 2, (y2 + y3) / 2, depth + 1)
+                        triangle(x3, y3, (x1 + x3) / 2, (y1 + y3) / 2,
+                                 (x2 + x3) / 2, (y2 + y3) / 2, depth + 1)
+                        triangle((x1 + x2) / 2, (y1 + y2) / 2, (x2 + x3) / 2,
+                                 (y2 + y3) / 2, (x1 + x3) / 2, (y1 + y3) / 2,
+                                 depth + 1)
                     return
                 limit = (v_borders[1] - v_borders[0]) * eps
                 if depth < 2:
@@ -733,10 +761,10 @@ class _Plot3D(Builtin):
             numy = plotpoints[1] * 1.0
             for xi in range(plotpoints[0]):
                 for yi in range(plotpoints[1]):
-                    triangle(xi / numx, yi / numy, (xi + 1) / numx, (
-                        yi + 1) / numy, (xi + 1) / numx, yi / numy)
-                    triangle(xi / numx, yi / numy, (xi + 1) / numx, (
-                        yi + 1) / numy, xi / numx, (yi + 1) / numy)
+                    triangle(xi / numx, yi / numy, (xi + 1) / numx,
+                             (yi + 1) / numy, (xi + 1) / numx, yi / numy)
+                    triangle(xi / numx, yi / numy, (xi + 1) / numx,
+                             (yi + 1) / numy, xi / numx, (yi + 1) / numy)
 
             # Mesh should just be looking up stored values
             mesh_points = []
@@ -852,7 +880,8 @@ class Plot(_Plot):
         elif plotrange == 'All':
             plotrange = ['All', 'All']
         if isinstance(plotrange, list) and len(plotrange) == 2:
-            if isinstance(plotrange[0], numbers.Real) and isinstance(plotrange[1], numbers.Real):
+            if (isinstance(plotrange[0], numbers.Real) and      # noqa
+                isinstance(plotrange[1], numbers.Real)):
                 x_range, y_range = 'Full', plotrange
             else:
                 x_range, y_range = plotrange
@@ -891,7 +920,9 @@ class ParametricPlot(_Plot):
     """
 
     def get_functions_param(self, functions):
-        if functions.has_form('List', 2) and not (functions.leaves[0].has_form('List', None) or functions.leaves[1].has_form('List', None)):
+        if (functions.has_form('List', 2) and 
+            not (functions.leaves[0].has_form('List', None) or 
+                 functions.leaves[1].has_form('List', None))):
             # One function given
             functions = [functions]
         else:
@@ -908,7 +939,8 @@ class ParametricPlot(_Plot):
         elif plotrange == 'All':
             plotrange = ['All', 'All']
         if isinstance(plotrange, list) and len(plotrange) == 2:
-            if isinstance(plotrange[0], numbers.Real) and isinstance(plotrange[1], numbers.Real):
+            if (isinstance(plotrange[0], numbers.Real) and  # noqa
+                isinstance(plotrange[1], numbers.Real)):
                 x_range = [-plotrange[0], plotrange[1]]
                 y_range = [-plotrange[1], plotrange[1]]
             else:
@@ -953,7 +985,8 @@ class PolarPlot(_Plot):
         elif plotrange == 'All':
             plotrange = ['All', 'All']
         if isinstance(plotrange, list) and len(plotrange) == 2:
-            if isinstance(plotrange[0], numbers.Real) and isinstance(plotrange[1], numbers.Real):
+            if (isinstance(plotrange[0], numbers.Real) and  # noqa
+                isinstance(plotrange[1], numbers.Real)):
                 x_range = [-plotrange[0], plotrange[1]]
                 y_range = [-plotrange[1], plotrange[1]]
             else:
@@ -1073,21 +1106,24 @@ class Plot3D(_Plot3D):
         else:
             return [functions]
 
-    def construct_graphics(self, triangles, mesh_points, v_min, v_max, options, evaluation):
+    def construct_graphics(self, triangles, mesh_points, v_min, v_max,
+                           options, evaluation):
         mesh_option = self.get_option(options, 'Mesh', evaluation)
         mesh = mesh_option.to_python()
 
         graphics = []
         for p1, p2, p3 in triangles:
-            graphics.append(Expression('Polygon', Expression('List', Expression(
-                'List', *p1), Expression('List', *p2), Expression('List', *p3))))
+            graphics.append(Expression('Polygon', Expression(
+                'List', Expression('List', *p1), Expression('List', *p2),
+                Expression('List', *p3))))
         # Add the Grid
         if mesh == 'Full':
             for xi in range(len(mesh_points)):
                 line = []
                 for yi in range(len(mesh_points[xi])):
-                    line.append(Expression('List', mesh_points[xi][yi][
-                                0], mesh_points[xi][yi][1], mesh_points[xi][yi][2]))
+                    line.append(Expression(
+                        'List', mesh_points[xi][yi][0], mesh_points[xi][yi][1],
+                        mesh_points[xi][yi][2]))
                 graphics.append(Expression('Line', Expression('List', *line)))
         elif mesh == 'All':
             for p1, p2, p3 in triangles:
@@ -1096,7 +1132,8 @@ class Plot3D(_Plot3D):
         return graphics
 
     def final_graphics(self, graphics, options):
-        return Expression('Graphics3D', Expression('List', *graphics), *options_to_rules(options))
+        return Expression('Graphics3D', Expression('List', *graphics),
+                          *options_to_rules(options))
 
 
 class DensityPlot(_Plot3D):
@@ -1140,7 +1177,8 @@ class DensityPlot(_Plot3D):
     def get_functions_param(self, functions):
         return [functions]
 
-    def construct_graphics(self, triangles, mesh_points, v_min, v_max, options, evaluation):
+    def construct_graphics(self, triangles, mesh_points, v_min, v_max, 
+                           options, evaluation):
         mesh_option = self.get_option(options, 'Mesh', evaluation)
         mesh = mesh_option.to_python()
 
@@ -1154,7 +1192,8 @@ class DensityPlot(_Plot3D):
             color_function = String('LakeColors')
         if color_function.get_string_value():
             func = Expression(
-                'ColorData', color_function.get_string_value()).evaluate(evaluation)
+                'ColorData',
+                color_function.get_string_value()).evaluate(evaluation)
             if func.has_form('ColorDataFunction', 4):
                 color_function_min = func.leaves[2].leaves[0].get_real_value()
                 color_function_max = func.leaves[2].leaves[1].get_real_value()
@@ -1179,20 +1218,26 @@ class DensityPlot(_Plot3D):
             color_func = color_function.leaves[3]
         else:
             color_func = color_function
-        if color_function_scaling and color_function_min is not None and color_function_max is not None:
+        if (color_function_scaling and      # noqa
+            color_function_min is not None and
+            color_function_max is not None):
             color_function_range = color_function_max - color_function_min
 
         colors = {}
 
         def eval_color(x, y, v):
             v_scaled = (v - v_min) / v_range
-            if color_function_scaling and color_function_min is not None and color_function_max is not None:
+            if (color_function_scaling and      # noqa
+                color_function_min is not None and
+                color_function_max is not None):
                 v_color_scaled = color_function_min + \
                     v_scaled * color_function_range
             else:
-                v_color_scaled = v
-            v_lookup = int(
-                v_scaled * 100 + 0.5)     # calculate and store 100 different shades max.
+                v_color_scaled = v     
+
+            # Calculate and store 100 different shades max.
+            v_lookup = int(v_scaled * 100 + 0.5)
+
             value = colors.get(v_lookup)
             if value is None:
                 value = Expression(color_func, Real(v_color_scaled))
@@ -1212,8 +1257,10 @@ class DensityPlot(_Plot3D):
                     Expression('List', *p3[:2])))
             vertex_colors.append(Expression('List', c1, c2, c3))
 
-        graphics.append(Expression('Polygon', Expression('List', *points),
-                                   Expression('Rule', Symbol('VertexColors'), Expression('List', *vertex_colors))))
+        graphics.append(Expression(
+            'Polygon', Expression('List', *points),
+            Expression('Rule', Symbol('VertexColors'),
+                       Expression('List', *vertex_colors))))
 
         if mesh == 'Full':
             for xi in range(len(mesh_points)):
@@ -1230,4 +1277,5 @@ class DensityPlot(_Plot3D):
         return graphics
 
     def final_graphics(self, graphics, options):
-        return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
+        return Expression('Graphics', Expression('List', *graphics),
+                          *options_to_rules(options))

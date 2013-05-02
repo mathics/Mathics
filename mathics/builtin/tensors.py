@@ -134,7 +134,8 @@ class Dimensions(Builtin):
     def apply(self, expr, evaluation):
         'Dimensions[expr_]'
 
-        return Expression('List', *(Integer(dim) for dim in get_dimensions(expr)))
+        return Expression('List', *(
+            Integer(dim) for dim in get_dimensions(expr)))
 
 
 class ArrayDepth(Builtin):
@@ -230,7 +231,8 @@ class Inner(Builtin):
                 return new
             else:
                 def summand(i):
-                    return Expression(f, get_part(list1, i_cur + [i]), get_part(list2, [i] + j_cur))
+                    return Expression(f, get_part(list1, i_cur + [i]),
+                                      get_part(list2, [i] + j_cur))
                 part = Expression(g, *(summand(
                     i) for i in range(1, inner_dim + 1)))
                 # cur_expr.leaves.append(part)
@@ -329,7 +331,8 @@ class Transpose(Builtin):
                     result.append([item])
                 else:
                     result[col_index].append(item)
-        return Expression('List', *[Expression('List', *row) for row in result])
+        return Expression('List', *[Expression('List', *row)
+                                    for row in result])
 
 
 class DiagonalMatrix(Builtin):

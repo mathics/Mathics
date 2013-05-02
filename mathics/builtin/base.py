@@ -18,12 +18,13 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.core.definitions import Definition
-from mathics.core.rules import Rule, BuiltinRule, Pattern
-from mathics.core.expression import BaseExpression, Expression, Symbol, String, Integer
-
 import re
 import sympy
+
+from mathics.core.definitions import Definition
+from mathics.core.rules import Rule, BuiltinRule, Pattern
+from mathics.core.expression import (BaseExpression, Expression, Symbol,
+                                     String, Integer)
 
 
 class Builtin(object):
@@ -102,8 +103,10 @@ class Builtin(object):
         for form, formatrules in formatvalues.items():
             formatrules.sort()
 
-        messages = [Rule(Expression('MessageName', Symbol(name), String(
-            msg)), String(value), system=True) for msg, value in self.messages.items()]
+        messages = [Rule(Expression('MessageName', Symbol(name), String(msg)),
+                         String(value), system=True)
+                    for msg, value in self.messages.items()]
+
         if name == 'MakeBoxes':
             attributes = []
         else:
@@ -191,9 +194,9 @@ class InstancableBuiltin(Builtin):
                 instance.init(*args, **kwargs)
             except TypeError:
                 # TypeError occurs when unpickling instance, e.g. PatterObject,
-                # because parameter expr is not given.
-                # This should no be a problem, as pickled objects need their init-method
-                # not being called.
+                # because parameter expr is not given. This should no be a 
+                # problem, as pickled objects need their init-method not 
+                # being called.
                 pass
         return instance
 
@@ -228,7 +231,8 @@ class Operator(Builtin):
         return False
 
     def post_parse(self, expression):
-        return Expression(expression.head.post_parse(), *[leaf.post_parse() for leaf in expression.leaves])
+        return Expression(expression.head.post_parse(), *[
+            leaf.post_parse() for leaf in expression.leaves])
 
 
 class Predefined(Builtin):
@@ -250,8 +254,9 @@ class UnaryOperator(Operator):
             if not op_pattern in self.formats:
                 operator = self.get_operator_display()
                 if operator is not None:
-                    self.formats[op_pattern] = '%s[{HoldForm[item]},"%s",%d]' % (
+                    form = '%s[{HoldForm[item]},"%s",%d]' % (
                         format_function, operator, self.precedence)
+                    self.formats[op_pattern] = form
 
 
 class PrefixOperator(UnaryOperator):
@@ -264,8 +269,8 @@ class PrefixOperator(UnaryOperator):
         rest = args[0].parse_tokens
         if rest:
             parser = MathicsParser()
-            items = rest + [Token('(')] + [args[
-                                           1]] + args[2].parse_tokens + [Token(')')]
+            items = list(rest + [Token('(')] + [args[1]] +
+                         args[2].parse_tokens + [Token(')')])
             result = parser.parse(items)
             return result
         else:
@@ -319,8 +324,10 @@ class BinaryOperator(Operator):
             formatted_output = 'MakeBoxes[Infix[{%s}," %s ",%d,%s], form]' % (
                 replace_items, operator, self.precedence, self.grouping)
             default_rules = {
-                'MakeBoxes[%s, form:StandardForm|TraditionalForm]' % op_pattern: formatted,
-                'MakeBoxes[%s, form:InputForm|OutputForm]' % op_pattern: formatted_output,
+                'MakeBoxes[{0}, form:StandardForm|TraditionalForm]'.format(
+                    op_pattern): formatted,
+                'MakeBoxes[{0}, form:InputForm|OutputForm]'.format(
+                    op_pattern): formatted_output,
             }
             default_rules.update(self.rules)
             self.rules = default_rules
@@ -355,7 +362,8 @@ class BinaryOperator(Operator):
                         name, result, leaf, parse_operator=self)
                 return result
         else:
-            return Expression(self.get_name(), left, right, parse_operator=self)
+            return Expression(self.get_name(), left, right,
+                              parse_operator=self)
 
     def is_binary(self):
         return True
@@ -391,7 +399,8 @@ class SympyFunction(SympyObject):
         try:
             if self.sympy_name:
                 leaves = self.prepare_sympy(expr.leaves)
-                return getattr(sympy, self.sympy_name)(*(leaf.to_sympy(**kwargs) for leaf in leaves))
+                return getattr(sympy, self.sympy_name)(*(
+                    leaf.to_sympy(**kwargs) for leaf in leaves))
         except TypeError:
             pass
 
@@ -490,7 +499,8 @@ class PatternObject(InstancableBuiltin, Pattern):
     def get_match_count(self, vars={}):
         return (1, 1)
 
-    def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
+    def get_match_candidates(self, leaves, expression, attributes, evaluation,
+                             vars={}):
         return leaves
 
     def get_attributes(self, definitions):

@@ -25,7 +25,8 @@ import cPickle as pickle
 from mathics import settings
 
 from mathics.core.numbers import format_float, get_type
-from mathics.core.util import subsets, subranges, permutations, interpolate_string
+from mathics.core.util import (subsets, subranges, permutations,
+                               interpolate_string)
 
 FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
@@ -162,9 +163,8 @@ class Result(object):
 
 
 class Evaluation(object):
-    def __init__(
-        self, input=None, definitions=None, timeout=None, out_callback=None, format='text',
-            catch_interrupt=True):
+    def __init__(self, input=None, definitions=None, timeout=None,
+                 out_callback=None, format='text', catch_interrupt=True):
         from mathics.core.definitions import Definitions
 
         if definitions is None:
@@ -249,7 +249,8 @@ class Evaluation(object):
                         raise
                 except ValueError, exc:
                     text = unicode(exc)
-                    if text == 'mpz.pow outrageous exponent' or text == 'mpq.pow outrageous exp num':
+                    if (text == 'mpz.pow outrageous exponent' or    # noqa
+                        text == 'mpq.pow outrageous exp num'):
                         self.message('General', 'ovfl')
                         exc_result = Expression('Overflow')
                     else:
@@ -334,7 +335,8 @@ class Evaluation(object):
         return boxes
 
     def message(self, symbol, tag, *args):
-        from mathics.core.expression import String, Symbol, Expression, from_python
+        from mathics.core.expression import (String, Symbol, Expression,
+                                             from_python)
 
         if (symbol, tag) in self.quiet_messages or self.quiet_all:
             return
@@ -410,8 +412,9 @@ class Evaluation(object):
     def get_config_value(self, name, default=None):
         # Infinity -> None, otherwise returns integer
 
-        # Temporarily reset the recursion limit, to allow the evaluation of $RecursionLimit
-        # and the possible message formatting to use some recursion.
+        # Temporarily reset the recursion limit, to allow the evaluation
+        # $RecursionLimit and the possible message formatting to use some
+        # recursion.
         # self.recursion_depth, depth = 0, self.recursion_depth
         value = self.definitions.get_definition(name).ownvalues
         if value:

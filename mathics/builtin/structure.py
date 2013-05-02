@@ -4,7 +4,8 @@ from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
 from mathics.core.expression import Expression, String, Symbol, Integer
 from mathics.core.rules import Pattern
 
-from mathics.builtin.lists import python_levelspec, walk_levels, InvalidLevelspecError
+from mathics.builtin.lists import (python_levelspec, walk_levels,
+                                   InvalidLevelspecError)
 
 
 class Sort(Builtin):
@@ -345,11 +346,12 @@ class MapIndexed(Builtin):
             return
 
         def callback(level, pos):
-            return Expression(f, level, Expression('List', *(Integer(p) for p in pos)))
+            return Expression(f, level, Expression('List', *(
+                Integer(p) for p in pos)))
 
         heads = self.get_option(options, 'Heads', evaluation).is_true()
-        result, depth = walk_levels(
-            expr, start, stop, heads=heads, callback=callback, include_pos=True)
+        result, depth = walk_levels(expr, start, stop, heads=heads,
+                                    callback=callback, include_pos=True)
 
         return result
 

@@ -130,11 +130,14 @@ class DSolve(Builtin):
             return
 
         if function_form is None:
-            return Expression('List', *[Expression('List',
-                                                   Expression('Rule', *from_sympy(soln).leaves)) for soln in sym_result])
+            return Expression('List', *[
+                Expression(
+                    'List', Expression('Rule', *from_sympy(soln).leaves))
+                for soln in sym_result])
         else:
-            return Expression(
-                'List', *[Expression('List', Expression('Rule', y,
-                                                        Expression('Function', function_form, *from_sympy(soln).leaves[1:]))) for soln in sym_result])
+            return Expression('List', *[
+                Expression('List', Expression('Rule', y, Expression(
+                    'Function', function_form, *from_sympy(soln).leaves[1:])))
+                for soln in sym_result])
 
 # TODO: NDSolve

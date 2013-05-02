@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PostfixOperator, PrefixOperator
+from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
+                                  PostfixOperator, PrefixOperator)
 from mathics.core.expression import Expression, Symbol, String
 from mathics.core.rules import Rule
 from mathics.builtin.lists import walk_parts
@@ -29,9 +30,9 @@ class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
         name = lhs.get_head_name()
 
-        if name in (
-            'OwnValues', 'DownValues', 'SubValues', 'UpValues', 'NValues', 'Options',
-                'DefaultValues', 'Attributes', 'Messages'):
+        if name in ('OwnValues', 'DownValues', 'SubValues', 'UpValues',
+                    'NValues', 'Options', 'DefaultValues', 'Attributes',
+                    'Messages'):
             if len(lhs.leaves) != 1:
                 evaluation.message_args(name, len(lhs.leaves), 1)
                 return False
@@ -43,7 +44,8 @@ class _SetOperator(object):
                 evaluation.message(name, 'tag', name, tag)
                 return False
 
-            if name != 'Attributes' and 'Protected' in evaluation.definitions.get_attributes(tag):
+            if (name != 'Attributes' and 'Protected'    # noqa
+                in evaluation.definitions.get_attributes(tag)):
                 evaluation.message(name, 'wrsym', tag)
                 return False
             if name == 'Options':
@@ -152,7 +154,9 @@ class _SetOperator(object):
         if lhs_name == '$RecursionLimit':
             # if (not rhs_int_value or rhs_int_value < 20) and not
             # rhs.get_name() == 'Infinity':
-            if not rhs_int_value or rhs_int_value < 20 or rhs_int_value > settings.MAX_RECURSION_DEPTH:
+            if (not rhs_int_value or rhs_int_value < 20  # noqa
+                or rhs_int_value > settings.MAX_RECURSION_DEPTH):
+
                 evaluation.message('$RecursionLimit', 'limset', rhs)
                 return False
             try:
@@ -190,7 +194,8 @@ class _SetOperator(object):
         count = 0
         defs = evaluation.definitions
         for tag in tags:
-            if not ignore_protection and 'Protected' in evaluation.definitions.get_attributes(tag):
+            if (not ignore_protection and 'Protected'   # noqa
+                in evaluation.definitions.get_attributes(tag)):
                 if lhs.get_name() == tag:
                     evaluation.message(self.get_name(), 'wrsym', tag)
                 else:
@@ -217,7 +222,9 @@ class _SetOperator(object):
 
     def assign(self, lhs, rhs, evaluation):
         if lhs.get_head_name() == 'List':
-            if not (rhs.get_head_name() == 'List') or len(lhs.leaves) != len(rhs.leaves):
+            if (not (rhs.get_head_name() == 'List')     # noqa
+                or len(lhs.leaves) != len(rhs.leaves)):
+
                 evaluation.message(self.get_name(), 'shape', lhs, rhs)
                 return False
             else:
@@ -601,9 +608,8 @@ class Definition(Builtin):
             if isinstance(rule, Rule):
                 r = rhs(rule.replace.replace_vars({'Definition': Expression(
                     'HoldForm', Symbol('Definition'))}))
-                lines.append(
-                    Expression('HoldForm', Expression(up and 'UpSet' or 'Set',
-                                                      lhs(rule.pattern.expr), r)))
+                lines.append(Expression('HoldForm', Expression(
+                    up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
 
         name = symbol.get_name()
         if not name:
@@ -616,10 +622,12 @@ class Definition(Builtin):
         if attributes:
             attributes = list(attributes)
             attributes.sort()
-            lines.append(
-                Expression(
-                    'HoldForm', Expression('Set', Expression('Attributes', symbol),
-                                           Expression('List', *(Symbol(attribute) for attribute in attributes)))))
+            lines.append(Expression(
+                'HoldForm', Expression(
+                    'Set', Expression('Attributes', symbol), Expression(
+                        'List',
+                        *(Symbol(attribute) for attribute in attributes)))))
+
         if definition is not None and not 'ReadProtected' in attributes:
             for rule in definition.ownvalues:
                 print_rule(rule)
@@ -650,15 +658,18 @@ class Definition(Builtin):
             options = all.options.items()
             options.sort()
             lines.append(
-                Expression(
-                    'HoldForm', Expression('Set', Expression('Options', symbol),
-                                           Expression('List', *(Expression('Rule', Symbol(name), value) for name, value in options)))))
+                Expression('HoldForm', Expression(
+                    'Set', Expression('Options', symbol),
+                    Expression('List', *(
+                        Expression('Rule', Symbol(name), value)
+                        for name, value in options)))))
         if grid:
             if lines:
                 return Expression(
-                    'Grid', Expression('List', *(Expression(
-                        'List', line) for line in lines)),
-                    Expression('Rule', Symbol('ColumnAlignments'), Symbol('Left')))
+                    'Grid', Expression(
+                        'List', *(Expression('List', line) for line in lines)),
+                    Expression(
+                        'Rule', Symbol('ColumnAlignments'), Symbol('Left')))
             else:
                 return Symbol('Null')
         else:
@@ -1115,7 +1126,8 @@ class DefaultValues(Builtin):
     def apply(self, symbol, evaluation):
         'DefaultValues[symbol_]'
 
-        return get_symbol_values(symbol, 'DefaultValues', 'default', evaluation)
+        return get_symbol_values(symbol, 'DefaultValues', 'default',
+                                 evaluation)
 
 
 class AddTo(BinaryOperator):

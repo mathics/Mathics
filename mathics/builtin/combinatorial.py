@@ -6,7 +6,8 @@ import sympy
 import sympy.mpmath as mpmath
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator
-from mathics.core.expression import Expression, Integer, Real, Number, Symbol, from_sympy
+from mathics.core.expression import (Expression, Integer, Real, Number, Symbol,
+                                     from_sympy)
 from mathics.core.numbers import min_prec, SpecialValueError
 from mathics.builtin.numeric import dps
 from mathics.builtin.arithmetic import _MPMathFunction

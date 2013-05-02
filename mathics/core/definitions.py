@@ -69,7 +69,9 @@ class Definitions(object):
                     pickle.dump(self.builtin, builtin_file, -1)
 
             self.autoload_stage = True
-            for root, dirs, files in os.walk(os.path.join(ROOT_DIR, 'autoload')):
+            for root, dirs, files in os.walk(   # noqa
+                os.path.join(ROOT_DIR, 'autoload')):
+
                 for f in filter(lambda x: x.endswith('.m'), files):
                     with open(os.path.join(root, f)) as stream:
                         evaluation = Evaluation(
@@ -313,12 +315,10 @@ def insert_rule(values, rule):
 
 
 class Definition(object):
-    def __init__(self, name,
-                 rules=None,
-                 ownvalues=None, downvalues=None, subvalues=None, upvalues=None,
-                 formatvalues=None, messages=None, attributes=(), options=None, nvalues=None, defaultvalues=None,
-                 builtin=None,
-                 context='Global`'):
+    def __init__(self, name, rules=None, ownvalues=None, downvalues=None,
+                 subvalues=None, upvalues=None, formatvalues=None,
+                 messages=None, attributes=(), options=None, nvalues=None,
+                 defaultvalues=None, builtin=None, context='Global`'):
 
         super(Definition, self).__init__()
         self.name = name
@@ -394,5 +394,5 @@ class Definition(object):
         return False
 
     def __repr__(self):
-        return '<Definition: name: %s, downvalues: %s, formats: %s, attributes: %s>' % (self.name,
-                                                                                        self.downvalues, self.formatvalues, self.attributes)
+        return '<Definition: name: %s, downvalues: %s, formats: %s, attributes: %s>' % (
+            self.name, self.downvalues, self.formatvalues, self.attributes)

@@ -123,16 +123,16 @@ class LinearSolve(Builtin):
         system = to_sympy_matrix(system)
         if system is None:
             return
-        syms = [sympy.Dummy('LinearSolve_var%d' %
-                            k) for k in range(system.cols - 1)]
+        syms = [sympy.Dummy('LinearSolve_var%d' % k)
+                for k in range(system.cols - 1)]
         sol = sympy.solve_linear_system(system, *syms)
         if sol:
             # substitute 0 for variables that are not in result dictionary
             free_vars = dict((sym, sympy.Integer(
                 0)) for sym in syms if sym not in sol)
             sol.update(free_vars)
-            sol = [(sol[sym] if sym in free_vars else sol[
-                    sym].subs(free_vars)) for sym in syms]
+            sol = [(sol[sym] if sym in free_vars
+                   else sol[sym].subs(free_vars)) for sym in syms]
             return from_sympy(sol)
         else:
             return evaluation.message('LinearSolve', 'nosol')
@@ -241,8 +241,8 @@ class Eigenvalues(Builtin):
         if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Eigenvalues', 'matsq', m)
         eigenvalues = matrix.eigenvals()
-        eigenvalues = sorted(eigenvalues.iteritems(), key=lambda (
-            v, c): (abs(v), -v), reverse=True)
+        eigenvalues = sorted(eigenvalues.iteritems(),
+                             key=lambda (v, c): (abs(v), -v), reverse=True)
         result = []
         for val, count in eigenvalues:
             result.extend([val] * count)
@@ -285,7 +285,8 @@ class Eigenvectors(Builtin):
         try:
             eigenvects = matrix.eigenvects()
         except NotImplementedError:
-            return evaluation.message('Eigenvectors', 'eigenvecnotimplemented', m)
+            return evaluation.message(
+                'Eigenvectors', 'eigenvecnotimplemented', m)
 
         # The eigenvectors are given in the same order as the eigenvalues.
         eigenvects = sorted(eigenvects, key=lambda (

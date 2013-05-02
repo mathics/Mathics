@@ -6,10 +6,12 @@ List functions
 
 import copy
 
-from mathics.builtin.base import (Builtin, Predefined, BinaryOperator, Test,
-                                  InvalidLevelspecError, PartError, PartDepthError, PartRangeError, SympyFunction)
+from mathics.builtin.base import (
+    Builtin, Predefined, BinaryOperator, Test, InvalidLevelspecError,
+    PartError, PartDepthError, PartRangeError, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
-from mathics.core.expression import Expression, String, Symbol, Integer, Number, from_python
+from mathics.core.expression import (Expression, String, Symbol, Integer,
+                                     Number, from_python)
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
@@ -35,7 +37,8 @@ class List(Builtin):
         'MakeBoxes[{items___}, f:StandardForm|TraditionalForm|OutputForm|InputForm]'
 
         items = items.get_sequence()
-        return Expression('RowBox', Expression('List', *list_boxes(items, f, "{", "}")))
+        return Expression('RowBox', Expression('List', *list_boxes(
+            items, f, "{", "}")))
 
 
 class ListQ(Test):
@@ -214,9 +217,10 @@ def set_part(list, indices, new):
 
 def walk_parts(list_of_list, indices, evaluation, assign_list=None):
     list = list_of_list[0]
+
+    # To get rid of duplicate entries (TODO: could be made faster!)
     list = list.copy()
-                     # to get rid of duplicate entries (TODO: could be made
-                     # faster!)
+
     list.set_positions()
     list_of_list = [list]
 
@@ -330,14 +334,16 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         def process_level(item, assignment):
             if item.is_atom():
                 replace_item(list_of_list, item.original, assignment)
-            elif assignment.get_head_name() != 'List' or len(item.leaves) != len(assignment.leaves):
+            elif (assignment.get_head_name() != 'List' or
+                  len(item.leaves) != len(assignment.leaves)):
                 if item.original:
                     replace_item(list_of_list, item.original, assignment)
                 else:
                     for leaf in item.leaves:
                         process_level(leaf, assignment)
             else:
-                for sub_item, sub_assignment in zip(item.leaves, assignment.leaves):
+                for sub_item, sub_assignment in zip(item.leaves,
+                                                    assignment.leaves):
                     process_level(sub_item, sub_assignment)
         process_level(result, assign_list)
         return list_of_list[0]
@@ -355,7 +361,8 @@ def is_in_level(current, depth, start=1, stop=None):
     return start <= current <= stop
 
 
-def walk_levels(expr, start=1, stop=None, current=0, heads=False, callback=lambda l: l, include_pos=False, cur_pos=[]):
+def walk_levels(expr, start=1, stop=None, current=0, heads=False,
+                callback=lambda l: l, include_pos=False, cur_pos=[]):
     if expr.is_atom():
         depth = 0
         new_expr = expr
@@ -363,13 +370,15 @@ def walk_levels(expr, start=1, stop=None, current=0, heads=False, callback=lambd
         depth = 0
         if heads:
             head, head_depth = walk_levels(
-                expr.head, start, stop, current + 1, heads, callback, include_pos, cur_pos + [0])
+                expr.head, start, stop, current + 1, heads, callback,
+                include_pos, cur_pos + [0])
         else:
             head = expr.head
         leaves = []
         for index, leaf in enumerate(expr.leaves):
             leaf, leaf_depth = walk_levels(
-                leaf, start, stop, current + 1, heads, callback, include_pos, cur_pos + [index + 1])
+                leaf, start, stop, current + 1, heads, callback, include_pos,
+                cur_pos + [index + 1])
             if leaf_depth + 1 > depth:
                 depth = leaf_depth + 1
             leaves.append(leaf)
@@ -676,17 +685,20 @@ class Partition(Builtin):
 
     def chunks(self, l, n, d):
         assert n > 0 and d > 0
-        return filter(lambda x: len(x) == n, map(lambda i: l[i:i + n], xrange(0, len(l), d)))
+        return filter(lambda x: len(x) == n,
+                      map(lambda i: l[i:i + n], xrange(0, len(l), d)))
 
     def apply_no_overlap(self, l, n, evaluation):
         'Partition[l_List, n_Integer]'
         # TODO: Error checking
-        return Expression('List', *self.chunks(l.get_leaves(), n.get_int_value(), n.get_int_value()))
+        return Expression('List', *self.chunks(
+            l.get_leaves(), n.get_int_value(), n.get_int_value()))
 
     def apply(self, l, n, d, evaluation):
         'Partition[l_List, n_Integer, d_Integer]'
         # TODO: Error checking
-        return Expression('List', *self.chunks(l.get_leaves(), n.get_int_value(), d.get_int_value()))
+        return Expression('List', *self.chunks(
+            l.get_leaves(), n.get_int_value(), d.get_int_value()))
 
 
 class Extract(Builtin):
@@ -864,9 +876,10 @@ class ReplacePart(Builtin):
         new_expr = expr.copy()
         replacements = replacements.get_sequence()
         for replacement in replacements:
-            if not replacement.has_form('Rule', 2) and not replacement.has_form('RuleDelayed', 2):
-                evaluation.message('ReplacePart', 'reps', Expression(
-                    'List', *replacements))
+            if (not replacement.has_form('Rule', 2) and     # noqa
+                not replacement.has_form('RuleDelayed', 2)):
+                evaluation.message('ReplacePart', 'reps',
+                                   Expression('List', *replacements))
                 return
             position = replacement.leaves[0]
             replace = replacement.leaves[1]
@@ -934,7 +947,9 @@ class Take(Builtin):
             start, stop, step = seq_tuple
             py_start, py_stop = python_seq(start, stop)
             for inner in inner_list:
-                if inner.is_atom() or abs(start) > len(inner.leaves) or stop is not None and abs(stop) > len(inner.leaves):
+                if (inner.is_atom() or      # noqa
+                    abs(start) > len(inner.leaves) or
+                    stop is not None and abs(stop) > len(inner.leaves)):
                     evaluation.message('Take', 'take', start, Symbol(
                         'Infinity') if stop is None else stop, inner)
                     return
@@ -983,7 +998,9 @@ class Drop(Builtin):
             start, stop, step = seq_tuple
             py_start, py_stop = python_seq(start, stop)
             for inner in inner_list:
-                if inner.is_atom() or abs(start) > len(inner.leaves) or stop is not None and abs(stop) > len(inner.leaves):
+                if (inner.is_atom() or  # noqa
+                    abs(start) > len(inner.leaves) or
+                    stop is not None and abs(stop) > len(inner.leaves)):
                     evaluation.message('Drop', 'drop', start, stop, inner)
                     return
                 if stop is None:
@@ -1078,7 +1095,8 @@ class Split(Builtin):
                 else:
                     result.append([leaf])
 
-        return Expression(mlist.head, *[Expression('List', *l) for l in result])
+        return Expression(mlist.head, *[Expression('List', *l)
+                                        for l in result])
 
 
 class SplitBy(Builtin):
@@ -1130,7 +1148,8 @@ class SplitBy(Builtin):
                 result.append([leaf])
             prev = curr
 
-        return Expression(mlist.head, *[Expression('List', *l) for l in result])
+        return Expression(mlist.head, *[Expression('List', *l)
+                                        for l in result])
 
     def apply_multiple(self, mlist, funcs, evaluation):
         'SplitBy[mlist_, funcs_?ListQ]'
@@ -1531,7 +1550,8 @@ class Tuples(Builtin):
                     for rest in iterate(n_rest - 1):
                         yield [item] + rest
 
-        return Expression('List', *(Expression(expr.head, *leaves) for leaves in iterate(n)))
+        return Expression('List', *(Expression(expr.head, *leaves)
+                                    for leaves in iterate(n)))
 
     def apply_lists(self, exprs, evaluation):
         'Tuples[{exprs___}]'
@@ -1545,7 +1565,8 @@ class Tuples(Builtin):
                 return
             items.append(expr.leaves)
 
-        return Expression('List', *(Expression('List', *leaves) for leaves in get_tuples(items)))
+        return Expression('List', *(Expression('List', *leaves)
+                                    for leaves in get_tuples(items)))
 
 
 class Reap(Builtin):
@@ -1701,7 +1722,8 @@ def riffle_lists(items, seps):
         seps = seps * (len(items) / len(seps) + 1)
     if len(seps) > len(items):
         seps = seps[:len(items) - 1]
-    return [val for pair in (map(None, items, seps)) for val in pair if val is not None]
+    return [val for pair in (map(None, items, seps))
+            for val in pair if val is not None]
 
 
 class Riffle(Builtin):
@@ -1725,7 +1747,8 @@ class Riffle(Builtin):
         'Riffle[list_List, sep_]'
 
         if sep.has_form('List', None):
-            return Expression('List', *riffle_lists(list.get_leaves(), sep.leaves))
+            return Expression('List',
+                              *riffle_lists(list.get_leaves(), sep.leaves))
         else:
             return Expression('List', *riffle_lists(list.get_leaves(), [sep]))
 

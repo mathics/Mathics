@@ -9,9 +9,11 @@ from math import floor, ceil, log10, fmod
 
 from django.utils import simplejson
 
-from mathics.builtin.base import Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError
+from mathics.builtin.base import (Builtin, InstancableBuiltin, BoxConstruct,
+                                  BoxConstructError)
 from mathics.builtin.options import options_to_rules
-from mathics.core.expression import Expression, Integer, Real, NumberError, Symbol
+from mathics.core.expression import (Expression, Integer, Real, NumberError,
+                                     Symbol)
 
 
 class CoordinatesError(BoxConstructError):
@@ -26,8 +28,9 @@ element_heads = ('Rectangle', 'Disk', 'Line', 'Point',
 color_heads = ('RGBColor', 'CMYKColor', 'Hue', 'GrayLevel')
 thickness_heads = ('Thickness', 'AbsoluteThickness', 'Thick', 'Thin')
 
-GRAPHICS_SYMBOLS = set(['List', 'Rule', 'VertexColors'] + list(element_heads) + [
-                       element + 'Box' for element in element_heads] + list(color_heads) + list(thickness_heads))
+GRAPHICS_SYMBOLS = set(['List', 'Rule', 'VertexColors'] + list(element_heads) +
+                       [element + 'Box' for element in element_heads] + 
+                       list(color_heads) + list(thickness_heads))
 
 
 def get_class(name):
@@ -39,8 +42,8 @@ def get_class(name):
     else:
         return c
 
-    # globals() does not work with Cython, otherwise one could use something like
-    # return globals().get(name)
+    # globals() does not work with Cython, otherwise one could use something
+    # like return globals().get(name)
 
 
 def coords(value):
@@ -90,7 +93,8 @@ def cut(value):
     return value
 
 
-def create_css(edge_color=None, face_color=None, stroke_width=None, font_color=None):
+def create_css(edge_color=None, face_color=None, stroke_width=None,
+               font_color=None):
     css = []
     if edge_color is not None:
         color, opacity = edge_color.to_css()
@@ -116,7 +120,8 @@ def asy_number(value):
     return '%s' % value
 
 
-def create_pens(edge_color=None, face_color=None, stroke_width=None, is_face_element=False):
+def create_pens(edge_color=None, face_color=None, stroke_width=None,
+                is_face_element=False):
     result = []
     if face_color is not None:
         brush, opacity = face_color.to_asy()
@@ -187,16 +192,20 @@ class Graphics(Builtin):
 
         def convert(content):
             if content.has_form('List', None):
-                return Expression('List', *[convert(item) for item in content.leaves])
+                return Expression('List',
+                                  *[convert(item) for item in content.leaves])
             head = content.get_head_name()
             if head in element_heads:
                 if head == 'Text':
                     head = 'Inset'
                 atoms = content.get_atoms(include_heads=False)
-                if any(not isinstance(atom, (Integer, Real)) and not atom.get_name() in GRAPHICS_SYMBOLS for atom in atoms):
+                if any(not isinstance(atom, (Integer, Real)) and 
+                       not atom.get_name() in GRAPHICS_SYMBOLS
+                       for atom in atoms):
                     if head == 'Inset':
-                        n_leaves = [content.leaves[0]] + [Expression(
-                            'N', leaf).evaluate(evaluation) for leaf in content.leaves[1:]]
+                        n_leaves = [content.leaves[0]] + [
+                            Expression('N', leaf).evaluate(evaluation)
+                            for leaf in content.leaves[1:]]
                     else:
                         n_leaves = (Expression('N', leaf).evaluate(
                             evaluation) for leaf in content.leaves)
@@ -209,7 +218,8 @@ class Graphics(Builtin):
             options[option] = Expression(
                 'N', options[option]).evaluate(evaluation)
         box_name = 'Graphics' + self.box_suffix
-        return Expression(box_name, convert(content), *options_to_rules(options))
+        return Expression(box_name, convert(content),
+                          *options_to_rules(options))
 
 
 class _GraphicsElement(InstancableBuiltin):
@@ -257,11 +267,14 @@ class _Color(_GraphicsElement):
 
     def to_css(self):
         rgba = self.to_rgba()
-        return (r'rgb(%f%%, %f%%, %f%%)' % (rgba[0] * 100, rgba[1] * 100, rgba[2] * 100), rgba[3])
+        return (r'rgb(%f%%, %f%%, %f%%)' % (
+            rgba[0] * 100, rgba[1] * 100, rgba[2] * 100), rgba[3])
 
     def to_asy(self):
         rgba = self.to_rgba()
-        return (r'rgb(%s, %s, %s)' % (asy_number(rgba[0]), asy_number(rgba[1]), asy_number(rgba[2])), rgba[3])
+        return (r'rgb(%s, %s, %s)' % (
+            asy_number(rgba[0]), asy_number(rgba[1]), asy_number(rgba[2])),
+            rgba[3])
 
     def to_js(self):
         return self.to_rgba()
@@ -512,7 +525,8 @@ class RectangleBox(_GraphicsElement):
         w = max(x1, x2) - xmin
         h = max(y1, y2) - ymin
         style = create_css(self.edge_color, self.face_color, l)
-        return '<rect x="%f" y="%f" width="%f" height="%f" style="%s" />' % (xmin, ymin, w, h, style)
+        return '<rect x="%f" y="%f" width="%f" height="%f" style="%s" />' % (
+            xmin, ymin, w, h, style)
 
     def to_asy(self):
         l = self.style.get_line_width(face_element=True)
@@ -522,7 +536,8 @@ class RectangleBox(_GraphicsElement):
             self.edge_color, self.face_color, l, is_face_element=True)
         x1, x2, y1, y2 = asy_number(x1), asy_number(
             x2), asy_number(y1), asy_number(y2)
-        return 'filldraw((%s,%s)--(%s,%s)--(%s,%s)--(%s,%s)--cycle, %s);' % (x1, y1, x2, y1, x2, y2, x1, y2, pens)
+        return 'filldraw((%s,%s)--(%s,%s)--(%s,%s)--(%s,%s)--cycle, %s);' % (
+            x1, y1, x2, y1, x2, y2, x1, y2, pens)
 
 
 class _RoundBox(_GraphicsElement):
@@ -554,7 +569,8 @@ class _RoundBox(_GraphicsElement):
         ry = y - ry
         rx += l
         ry += l
-        return [(x - rx, y - ry), (x - rx, y + ry), (x + rx, y - ry), (x + rx, y + ry)]
+        return [(x - rx, y - ry), (x - rx, y + ry),
+                (x + rx, y - ry), (x + rx, y + ry)]
 
     def to_svg(self):
         x, y = self.c.pos()
@@ -563,7 +579,8 @@ class _RoundBox(_GraphicsElement):
         ry = y - ry
         l = self.style.get_line_width(face_element=self.face_element)
         style = create_css(self.edge_color, self.face_color, stroke_width=l)
-        return '<ellipse cx="%f" cy="%f" rx="%f" ry="%f" style="%s" />' % (x, y, rx, ry, style)
+        return '<ellipse cx="%f" cy="%f" rx="%f" ry="%f" style="%s" />' % (
+            x, y, rx, ry, style)
 
     def to_asy(self):
         x, y = self.c.pos()
@@ -571,12 +588,13 @@ class _RoundBox(_GraphicsElement):
         rx -= x
         ry -= y
         l = self.style.get_line_width(face_element=self.face_element)
-        pen = create_pens(
-            edge_color=self.edge_color, face_color=self.face_color, stroke_width=l,
-            # is_face_element=True)#
-            is_face_element=self.face_element)
+        pen = create_pens(edge_color=self.edge_color,
+                          face_color=self.face_color, stroke_width=l,
+                          is_face_element=self.face_element)
         cmd = 'filldraw' if self.face_element else 'draw'
-        return '%s(ellipse((%s,%s),%s,%s), %s);' % (cmd, asy_number(x), asy_number(y), asy_number(rx), asy_number(ry), pen)
+        return '%s(ellipse((%s,%s),%s,%s), %s);' % (
+            cmd, asy_number(x), asy_number(y), asy_number(rx), asy_number(ry),
+            pen)
 
 
 class DiskBox(_RoundBox):
@@ -591,7 +609,9 @@ class _Polyline(_GraphicsElement):
     def do_init(self, graphics, points):
         if not points.has_form('List', None):
             raise BoxConstructError
-        if points.leaves and points.leaves[0].has_form('List', None) and all(leaf.has_form('List', None) for leaf in points.leaves[0].leaves):
+        if (points.leaves and points.leaves[0].has_form('List', None) and 
+            all(leaf.has_form('List', None)
+                for leaf in points.leaves[0].leaves)):
             leaves = points.leaves
             self.multi_parts = True
         else:
@@ -648,7 +668,8 @@ class PointBox(_Polyline):
                 raise BoxConstructError
             points = item.leaves[0]
             if points.has_form('List', None) and len(points.leaves) != 0:
-                if all(not leaf.has_form('List', None) for leaf in points.leaves):
+                if all(not leaf.has_form('List', None)
+                       for leaf in points.leaves):
                     points = Expression('List', points)
             self.do_init(graphics, points)
         else:
@@ -656,8 +677,8 @@ class PointBox(_Polyline):
 
     def to_svg(self):
         l = self.style.get_line_width(face_element=False)
-        style = create_css(
-            edge_color=self.edge_color, stroke_width=l, face_color=self.face_color)
+        style = create_css(edge_color=self.edge_color,
+                           stroke_width=l, face_color=self.face_color)
         svg = ''
         for line in self.lines:
             for coords in line:
@@ -817,22 +838,26 @@ class PolygonBox(_Polyline):
             face_color = self.face_color
         else:
             face_color = None
-        pens = create_pens(edge_color=self.edge_color,
-                           face_color=face_color, stroke_width=l, is_face_element=True)
+        pens = create_pens(edge_color=self.edge_color, face_color=face_color,
+                           stroke_width=l, is_face_element=True)
         asy = ''
         if self.vertex_colors is not None:
             paths = []
             colors = []
             edges = []
             for index, line in enumerate(self.lines):
-                paths.append('--'.join(
-                    ['(%s,%s)' % coords.pos() for coords in line]) + '--cycle')
-                colors.append(','.join([color.to_asy()[
-                              0] for color in self.vertex_colors[index]]))  # ignore opacity
+                paths.append('--'.join([
+                    '(%s,%s)' % coords.pos() for coords in line]) + '--cycle')
+
+                # ignore opacity
+                colors.append(','.join([
+                    color.to_asy()[0] for color in self.vertex_colors[index]]))
+
                 edges.append(','.join(['0'] + ['1'] * (
                     len(self.vertex_colors[index]) - 1)))
-            asy += 'gouraudshade(%s, new pen[] {%s}, new int[] {%s});' % ('^^'.join(paths), ','.join(colors),
-                                                                          ','.join(edges))
+
+            asy += 'gouraudshade(%s, new pen[] {%s}, new int[] {%s});' % (
+                '^^'.join(paths), ','.join(colors), ','.join(edges))
         if pens and pens != 'nullpen':
             for line in self.lines:
                 path = '--'.join(
@@ -842,7 +867,8 @@ class PolygonBox(_Polyline):
 
 
 class InsetBox(_GraphicsElement):
-    def init(self, graphics, style, item=None, content=None, pos=None, opos=(0, 0)):
+    def init(self, graphics, style, item=None, content=None, pos=None,
+             opos=(0, 0)):
         super(InsetBox, self).init(graphics, item, style)
         self.color, _ = style.get_style(_Color, face_element=False)
         if item is not None:
@@ -881,8 +907,8 @@ class InsetBox(_GraphicsElement):
         content = self.content.boxes_to_xml(
             evaluation=self.graphics.evaluation)
         style = create_css(font_color=self.color)
-        svg = '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s"><math>%s</math></foreignObject>' % (x, y,
-                                                                                                           self.opos[0], self.opos[1], style, content)
+        svg = '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s"><math>%s</math></foreignObject>' % (
+            x, y, self.opos[0], self.opos[1], style, content)
         return svg
 
     def to_asy(self):
@@ -933,8 +959,8 @@ class Style(object):
         elif head in thickness_heads:
             style = get_class(head)(self.graphics, item)
         elif head in ('EdgeForm', 'FaceForm'):
-            style = self.klass(
-                self.graphics, edge=head == 'EdgeForm', face=head == 'FaceForm')
+            style = self.klass(self.graphics, edge=head == 'EdgeForm',
+                               face=head == 'FaceForm')
             if len(item.leaves) > 1:
                 raise BoxConstructError
             if item.leaves:
@@ -964,7 +990,8 @@ class Style(object):
     def get_default_edge_color(self):
         return RGBColor(components=(0, 0, 0, 1))
 
-    def get_style(self, style_class, face_element=None, default_to_faces=True, consider_forms=True):
+    def get_style(self, style_class, face_element=None, default_to_faces=True,
+                  consider_forms=True):
         if face_element is not None:
             default_to_faces = consider_forms = face_element
         edge_style = face_style = None
@@ -986,10 +1013,12 @@ class Style(object):
                 if consider_forms:
                     if item.edge:
                         edge_style, _ = item.get_style(
-                            style_class, default_to_faces=False, consider_forms=False)
+                            style_class, default_to_faces=False,
+                            consider_forms=False)
                     elif item.face:
                         _, face_style = item.get_style(
-                            style_class, default_to_faces=True, consider_forms=False)
+                            style_class, default_to_faces=True,
+                            consider_forms=False)
 
         return edge_style, face_style
 
@@ -997,7 +1026,8 @@ class Style(object):
         if self.graphics.pixel_width is None:
             return 0
         edge_style, _ = self.get_style(
-            _Thickness, default_to_faces=face_element, consider_forms=face_element)
+            _Thickness, default_to_faces=face_element,
+            consider_forms=face_element)
         if edge_style is None:
             return 0
         return edge_style.get_thickness()
@@ -1018,7 +1048,8 @@ class _GraphicsElements(object):
                 if item.get_name() == 'Null':
                     continue
                 head = item.get_head_name()
-                if head in color_heads or head in thickness_heads or head in ('EdgeForm', 'FaceForm'):
+                if (head in color_heads or head in thickness_heads or   # noqa
+                    head in ('EdgeForm', 'FaceForm')):
                     style.append(item)
                 elif head[-3:] == 'Box':  # and head[:-3] in element_heads:
                     element_class = get_class(head)
@@ -1057,7 +1088,8 @@ class GraphicsElements(_GraphicsElements):
     def __init__(self, content, evaluation, neg_y=False):
         super(GraphicsElements, self).__init__(content, evaluation)
         self.neg_y = neg_y
-        self.xmin = self.ymin = self.pixel_width = self.pixel_height = self.extent_width = self.extent_height = None
+        self.xmin = self.ymin = self.pixel_width = None
+        self.pixel_height = self.extent_width = self.extent_height = None
 
     def translate(self, coords):
         if self.pixel_width is not None:
@@ -1086,8 +1118,8 @@ class GraphicsElements(_GraphicsElements):
 
     def extent(self, completely_visible_only=False):
         if completely_visible_only:
-            ext = total_extent(
-                [element.extent() for element in self.elements if element.is_completely_visible])
+            ext = total_extent([element.extent() for element in self.elements
+                                if element.is_completely_visible])
         else:
             ext = total_extent([element.extent() for element in self.elements])
         xmin, xmax, ymin, ymax = ext
@@ -1103,11 +1135,14 @@ class GraphicsElements(_GraphicsElements):
         return '\n'.join(element.to_svg() for element in self.elements)
 
     def to_asy(self):
-        return '\n'.join([element.to_asy() for element in self.elements])
+        return '\n'.join(element.to_asy() for element in self.elements)
 
-    def set_size(self, xmin, ymin, extent_width, extent_height, pixel_width, pixel_height):
-        self.xmin, self.ymin, self.extent_width, self.extent_height, self.pixel_width, self.pixel_height = \
-            xmin, ymin, extent_width, extent_height, pixel_width, pixel_height
+    def set_size(self, xmin, ymin, extent_width, extent_height, pixel_width,
+                 pixel_height):
+
+        self.xmin, self.ymin = xmin, ymin
+        self.extent_width, self.extent_height = extent_width, extent_height
+        self.pixel_width, self.pixel_height = pixel_width, pixel_height
 
 
 class GraphicsBox(BoxConstruct):
@@ -1167,9 +1202,8 @@ class GraphicsBox(BoxConstruct):
 
         graphics_options = self.get_option_values(leaves[1:], **options)
 
-        base_width, base_height, size_multiplier, size_aspect = self._get_image_size(
-            options,
-            graphics_options, max_width)
+        base_width, base_height, size_multiplier, size_aspect = \
+            self._get_image_size(options, graphics_options, max_width)
 
         plot_range = graphics_options['PlotRange'].to_python()
         if plot_range == 'Automatic':
@@ -1185,9 +1219,9 @@ class GraphicsBox(BoxConstruct):
 
         def calc_dimensions(final_pass=True):
             """
-            calc_dimensions gets called twice:
-            In the first run (final_pass = False, called inside _prepare_elements),
-            the extent of all user-defined graphics is determined.
+            calc_dimensions gets called twice: In the first run
+            (final_pass = False, called inside _prepare_elements), the extent
+            of all user-defined graphics is determined.
             Axes are created accordingly.
             In the second run (final_pass = True, called from outside),
             the dimensions of these axes are taken into account as well.
@@ -1228,7 +1262,8 @@ class GraphicsBox(BoxConstruct):
                     elif xmin == xmax:
                         xmin -= 1
                         xmax += 1
-                elif isinstance(plot_range[0], list) and len(plot_range[0]) == 2:
+                elif (isinstance(plot_range[0], list) and
+                      len(plot_range[0]) == 2):
                     xmin, xmax = map(float, plot_range[0])
                     xmin, xmax = get_range(xmin, xmax)
                     xmin = elements.translate((xmin, 0))[0]
@@ -1247,7 +1282,8 @@ class GraphicsBox(BoxConstruct):
                     elif ymin == ymax:
                         ymin -= 1
                         ymax += 1
-                elif isinstance(plot_range[1], list) and len(plot_range[1]) == 2:
+                elif (isinstance(plot_range[1], list) and
+                      len(plot_range[1]) == 2):
                     ymin, ymax = map(float, plot_range[1])
                     ymin, ymax = get_range(ymin, ymax)
                     ymin = elements.translate((0, ymin))[1]
@@ -1283,6 +1319,7 @@ class GraphicsBox(BoxConstruct):
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions(
             final_pass=False)
+
         elements.set_size(xmin, ymin, w, h, width, height)
 
         xmin -= w * 0.02
@@ -1298,10 +1335,13 @@ class GraphicsBox(BoxConstruct):
         elements, calc_dimensions = self._prepare_elements(
             leaves, options, max_width=450)
 
-        asy_completely_visible = '\n'.join(element.to_asy()
-                                           for element in elements.elements if element.is_completely_visible)
-        asy_regular = '\n'.join(element.to_asy()
-                                for element in elements.elements if not element.is_completely_visible)
+        asy_completely_visible = '\n'.join(
+            element.to_asy() for element in elements.elements 
+            if element.is_completely_visible) 
+
+        asy_regular = '\n'.join(
+            element.to_asy() for element in elements.elements
+            if not element.is_completely_visible)
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
 
@@ -1454,34 +1494,38 @@ clip(box((%s,%s), (%s,%s)));
         tick_large_size = 5
         tick_label_d = 2
 
-        for index, (min, max, p_self0, p_other0, p_origin, ticks, ticks_small) in enumerate([
-            (xmin, xmax, lambda y: (0, y), lambda x: (
-                x, 0), lambda x: (x, origin_y), ticks_x, ticks_x_small),
-                (ymin, ymax, lambda x: (x, 0), lambda y: (0, y), lambda y: (origin_x, y), ticks_y, ticks_y_small)]):
+        for index, (
+            min, max, p_self0, p_other0, p_origin,
+            ticks, ticks_small) in enumerate([
+                (xmin, xmax, lambda y: (0, y), lambda x: (x, 0),
+                 lambda x: (x, origin_y), ticks_x, ticks_x_small),
+                (ymin, ymax, lambda x: (x, 0), lambda y: (0, y),
+                 lambda y: (origin_x, y), ticks_y, ticks_y_small)]):
             if axes[index]:
-                add_element(
-                    LineBox(
-                        elements, axes_style[index], lines=[[Coords(elements,
-                                                                    pos=p_origin(
-                                                                    min), d=p_other0(
-                                                                    -axes_extra)),
-                                                             Coords(elements, pos=p_origin(max), d=p_other0(axes_extra))]]))
+                add_element(LineBox(
+                    elements, axes_style[index],
+                    lines=[[Coords(elements, pos=p_origin(min),
+                                   d=p_other0(-axes_extra)),
+                            Coords(elements, pos=p_origin(max),
+                                   d=p_other0(axes_extra))]]))
                 ticks_lines = []
                 tick_label_style = ticks_style[index].clone()
                 tick_label_style.extend(label_style)
                 for x in ticks:
                     ticks_lines.append([Coords(elements, pos=p_origin(x)),
-                                        Coords(elements, pos=p_origin(x), d=p_self0(tick_large_size))])
-                    add_element(
-                        InsetBox(elements, tick_label_style, content=Real(x),
-                                 pos=Coords(elements, pos=p_origin(x),
-                                            d=p_self0(-tick_label_d)), opos=p_self0(1)))
+                                        Coords(elements, pos=p_origin(x),
+                                               d=p_self0(tick_large_size))])
+                    add_element(InsetBox(
+                        elements, tick_label_style, content=Real(x),
+                        pos=Coords(elements, pos=p_origin(x),
+                                   d=p_self0(-tick_label_d)), opos=p_self0(1)))
                 for x in ticks_small:
                     pos = p_origin(x)
                     ticks_lines.append([Coords(elements, pos=pos),
-                                        Coords(elements, pos=pos, d=p_self0(tick_small_size))])
-                add_element(LineBox(elements, axes_style[
-                            0], lines=ticks_lines))
+                                        Coords(elements, pos=pos,
+                                               d=p_self0(tick_small_size))])
+                add_element(LineBox(elements, axes_style[0],
+                                    lines=ticks_lines))
 
         """if axes[1]:
             add_element(LineBox(elements, axes_style[1], lines=[[Coords(elements, pos=(origin_x,ymin), d=(0,-axes_extra)),
@@ -1601,7 +1645,8 @@ class Blend(Builtin):
             if pos == len(colors) - 1:
                 return colors[-1].to_expr()
             else:
-                return self.do_blend(colors[pos:(pos + 2)], [1 - x, x]).to_expr()
+                return self.do_blend(colors[pos:(pos + 2)],
+                                     [1 - x, x]).to_expr()
 
 
 class Lighter(Builtin):

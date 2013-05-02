@@ -84,8 +84,11 @@ class RSolve(Builtin):
         def is_relation(eqn):
             left, right = eqn.leaves
             for l, r in [(left, right), (right, left)]:
-                if left.get_head_name() == func.get_head_name() and len(left.leaves) == 1 \
-                        and isinstance(l.leaves[0].to_python(), int) and r.is_numeric():
+                if (left.get_head_name() == func.get_head_name() and    # noqa
+                    len(left.leaves) == 1 and
+                    isinstance(l.leaves[0].to_python(), int) and
+                    r.is_numeric()):
+
                     conditions[l.leaves[0].to_python()] = r.to_sympy()
                     return False
             return True
@@ -104,7 +107,8 @@ class RSolve(Builtin):
         sym_conds = {}
         for cond in conditions:
             sym_conds[sympy.Function(str(
-                sympy_symbol_prefix + func.get_head_name()))(cond)] = conditions[cond]
+                sympy_symbol_prefix + func.get_head_name()))(cond)] = \
+                conditions[cond]
 
         try:
             # Sympy raises error when given empty conditions. Fixed in
@@ -120,9 +124,11 @@ class RSolve(Builtin):
             return
 
         if function_form is None:
-            return Expression('List', *[Expression('List',
-                                                   Expression('Rule', a, from_sympy(soln))) for soln in sym_result])
+            return Expression('List', *[
+                Expression('List', Expression('Rule', a, from_sympy(soln)))
+                for soln in sym_result])
         else:
-            return Expression(
-                'List', *[Expression('List', Expression('Rule', a,
-                                                        Expression('Function', function_form, from_sympy(soln)))) for soln in sym_result])
+            return Expression('List', *[
+                Expression('List', Expression(
+                    'Rule', a, Expression('Function', function_form,
+                    from_sympy(soln)))) for soln in sym_result])

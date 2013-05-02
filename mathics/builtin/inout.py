@@ -57,7 +57,8 @@ def parenthesize(precedence, leaf, leaf_boxes, when_equal):
         leaf_prec = builtins_precedence.get(leaf.get_head_name())
     if precedence is not None and leaf_prec is not None:
         if precedence > leaf_prec or (precedence == leaf_prec and when_equal):
-            return Expression('RowBox', Expression('List', String("("), leaf_boxes, String(")")))
+            return Expression('RowBox', Expression(
+                'List', String("("), leaf_boxes, String(")")))
     return leaf_boxes
 
 
@@ -305,7 +306,9 @@ class MakeBoxes(Builtin):
                 op_value = op.get_string_value()
                 if f.get_name() == 'InputForm' and op_value in ['*', '^']:
                     pass
-                elif f.get_name() in ('InputForm', 'OutputForm') and not op_value.startswith(' ') and not op_value.endswith(' '):
+                elif (f.get_name() in ('InputForm', 'OutputForm') and
+                      not op_value.startswith(' ') and
+                      not op_value.endswith(' ')):
                     op = String(' ' + op_value + ' ')
             return op
 
@@ -496,8 +499,10 @@ class Grid(Builtin):
     def apply_makeboxes(self, array, f, evaluation, options):
         'MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]], f:StandardForm|TraditionalForm|OutputForm]'
 
-        array = Expression('List', *(Expression('List', *(Expression('MakeBoxes', item, f)
-                                                          for item in row.leaves)) for row in array.leaves))
+        array = Expression('List', *(
+            Expression('List', *(Expression('MakeBoxes', item, f)
+                                 for item in row.leaves))
+            for row in array.leaves))
 
         return Expression('GridBox', array, *options_to_rules(options))
 
@@ -551,8 +556,9 @@ class TableForm(Builtin):
             return Expression('MakeBoxes', table, f)
         elif depth == 1:
             return Expression(
-                'GridBox', Expression('List', *(Expression('List',
-                                                           Expression('MakeBoxes', item, f)) for item in table.leaves)))
+                'GridBox', Expression('List', *(
+                    Expression('List', Expression('MakeBoxes', item, f))
+                    for item in table.leaves)))
         else:
             new_depth = Expression('Rule', Symbol('TableDepth'), depth - 2)
 
@@ -563,9 +569,10 @@ class TableForm(Builtin):
                     return item
 
             return Expression(
-                'GridBox', Expression('List', *(Expression('List',
-                                                           *(Expression('MakeBoxes', transform_item(item), f)
-                                                             for item in row.leaves)) for row in table.leaves)))
+                'GridBox', Expression('List', *(
+                    Expression('List', *(
+                        Expression('MakeBoxes', transform_item(item), f)
+                        for item in row.leaves)) for row in table.leaves)))
 
 
 class MatrixForm(TableForm):
@@ -586,7 +593,8 @@ class MatrixForm(TableForm):
         result = super(MatrixForm, self).apply_makeboxes(
             table, f, evaluation, options)
         if result.get_head_name() == 'GridBox':
-            return Expression('RowBox', Expression('List', String("("), result, String(")")))
+            return Expression('RowBox', Expression(
+                'List', String("("), result, String(")")))
         return result
 
 
@@ -643,8 +651,8 @@ class Postfix(BinaryOperator):
     grouping = 'Left'
 
     def post_parse(self, expression):
-        # print expression
-        return Expression(expression.leaves[1].post_parse(), expression.leaves[0].post_parse())
+        return Expression(expression.leaves[1].post_parse(),
+                          expression.leaves[0].post_parse())
 
 
 class Prefix(BinaryOperator):
@@ -675,7 +683,8 @@ class Prefix(BinaryOperator):
     grouping = 'Right'
 
     def post_parse(self, expression):
-        return Expression(expression.leaves[0].post_parse(), expression.leaves[1].post_parse())
+        return Expression(expression.leaves[0].post_parse(),
+                          expression.leaves[1].post_parse())
 
 
 class Infix(Builtin):
@@ -835,8 +844,8 @@ class Quiet(Builtin):
                 raise ValueError
             return all, messages
 
-        old_quiet_all, old_quiet_messages = evaluation.quiet_all, evaluation.quiet_messages.copy(
-        )
+        old_quiet_all, old_quiet_messages = \
+            evaluation.quiet_all, evaluation.quiet_messages.copy()
         try:
             quiet_expr = Expression('Quiet', expr, moff, mon)
             try:
@@ -860,8 +869,9 @@ class Quiet(Builtin):
                     break
             if conflict:
                 evaluation.message(
-                    'Quiet', 'conflict', quiet_expr, Expression('List', *(Expression('MessageName',
-                                                                                     Symbol(symbol), String(tag)) for symbol, tag in conflict)))
+                    'Quiet', 'conflict', quiet_expr, Expression('List', *(
+                        Expression('MessageName', Symbol(symbol), String(tag))
+                        for symbol, tag in conflict)))
                 return
             for off in off_messages:
                 evaluation.quiet_messages.add(off)
@@ -872,7 +882,8 @@ class Quiet(Builtin):
 
             return expr.evaluate(evaluation)
         finally:
-            evaluation.quiet_all, evaluation.quiet_messages = old_quiet_all, old_quiet_messages
+            evaluation.quiet_all, evaluation.quiet_messages =\
+                old_quiet_all, old_quiet_messages
 
 
 class MessageName(BinaryOperator):
@@ -908,7 +919,8 @@ class MessageName(BinaryOperator):
         'MessageName[symbol_Symbol, tag_String]'
 
         pattern = Expression('MessageName', symbol, tag)
-        return evaluation.definitions.get_value(symbol.get_name(), 'Messages', pattern, evaluation)
+        return evaluation.definitions.get_value(
+            symbol.get_name(), 'Messages', pattern, evaluation)
 
     def post_parse(self, expr):
         if len(expr.leaves) == 2 and expr.leaves[1].is_symbol():

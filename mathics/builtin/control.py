@@ -6,7 +6,8 @@ Control statements
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator
 from mathics.core.expression import Expression, Symbol, from_python
-from mathics.core.evaluation import AbortInterrupt, ReturnInterrupt, BreakInterrupt, ContinueInterrupt
+from mathics.core.evaluation import (AbortInterrupt, ReturnInterrupt,
+                                     BreakInterrupt, ContinueInterrupt)
 
 from mathics.builtin.lists import _IterationFunction
 from mathics.builtin.patterns import match
@@ -269,7 +270,8 @@ class For(Builtin):
                     pass
                 try:
                     incr.evaluate(evaluation)
-                except ContinueInterrupt:   # critical, most likely leads to an infinite loop
+                except ContinueInterrupt:
+                    # Critical, most likely leads to an infinite loop
                     pass
             except BreakInterrupt:
                 break

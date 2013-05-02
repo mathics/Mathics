@@ -5,7 +5,8 @@ Options and default arguments
 """
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator
-from mathics.core.expression import Symbol, Expression, Integer, get_default_value
+from mathics.core.expression import (Symbol, Expression, Integer,
+                                     get_default_value)
 from mathics.core.rules import Rule
 
 
@@ -74,9 +75,8 @@ class Options(Builtin):
         options = evaluation.definitions.get_options(name)
         result = []
         for option, value in sorted(options.items(), key=lambda item: item[0]):
-            # result.append(Expression('RuleDelayed', Expression('HoldPattern', Symbol(option)), value))
-            # Don't use HoldPattern, since the returned List should be assignable to
-            # Options again!
+            # Don't use HoldPattern, since the returned List should be
+            # assignable to Options again!
             result.append(Expression('RuleDelayed', Symbol(option), value))
         return Expression('List', *result)
 
