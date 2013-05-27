@@ -135,8 +135,8 @@ class D(SympyFunction):
                     result = Expression(Expression(
                         Expression(
                             'Derivative',
-                            *([Integer(0)] * (index) + [Integer(1)] + 
-                              [Integer(0)] * (len(f.leaves) - index - 1))), 
+                            *([Integer(0)] * (index) + [Integer(1)] +
+                              [Integer(0)] * (len(f.leaves) - index - 1))),
                         f.head), *f.leaves)
                 else:
                     result = Expression('D', f, leaf)
@@ -144,7 +144,7 @@ class D(SympyFunction):
             x_pattern = Pattern.create(x)
             result = Expression(
                 'Plus', *[
-                    summand(leaf, index) for index, leaf in enumerate(f.leaves) 
+                    summand(leaf, index) for index, leaf in enumerate(f.leaves)
                     if not leaf.is_free(x_pattern, evaluation)])
             if len(result.leaves) == 1:
                 return result.leaves[0]
@@ -372,7 +372,7 @@ class Integrate(SympyFunction):
      = x ArcSin[x / 3] + Sqrt[9 - x ^ 2]
 
     >> Integrate[f'[x], {x, a, b}]
-     = -f[a] + f[b]    
+     = -f[a] + f[b]
     """
 
     # TODO
@@ -691,7 +691,7 @@ class Solve(Builtin):
             result = results
             if any(sol and any(var not in sol for var in all_vars_sympy)
                    for sol in result):
-                evaluation.message('Solve', 'svars')   
+                evaluation.message('Solve', 'svars')
 
             # Filter out results for which denominator is 0
             result = [sol for sol in result if all(sympy.simplify(

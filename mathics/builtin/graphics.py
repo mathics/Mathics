@@ -29,7 +29,7 @@ color_heads = ('RGBColor', 'CMYKColor', 'Hue', 'GrayLevel')
 thickness_heads = ('Thickness', 'AbsoluteThickness', 'Thick', 'Thin')
 
 GRAPHICS_SYMBOLS = set(['List', 'Rule', 'VertexColors'] + list(element_heads) +
-                       [element + 'Box' for element in element_heads] + 
+                       [element + 'Box' for element in element_heads] +
                        list(color_heads) + list(thickness_heads))
 
 
@@ -199,7 +199,7 @@ class Graphics(Builtin):
                 if head == 'Text':
                     head = 'Inset'
                 atoms = content.get_atoms(include_heads=False)
-                if any(not isinstance(atom, (Integer, Real)) and 
+                if any(not isinstance(atom, (Integer, Real)) and
                        not atom.get_name() in GRAPHICS_SYMBOLS
                        for atom in atoms):
                     if head == 'Inset':
@@ -609,7 +609,7 @@ class _Polyline(_GraphicsElement):
     def do_init(self, graphics, points):
         if not points.has_form('List', None):
             raise BoxConstructError
-        if (points.leaves and points.leaves[0].has_form('List', None) and 
+        if (points.leaves and points.leaves[0].has_form('List', None) and
             all(leaf.has_form('List', None)
                 for leaf in points.leaves[0].leaves)):
             leaves = points.leaves
@@ -1336,8 +1336,8 @@ class GraphicsBox(BoxConstruct):
             leaves, options, max_width=450)
 
         asy_completely_visible = '\n'.join(
-            element.to_asy() for element in elements.elements 
-            if element.is_completely_visible) 
+            element.to_asy() for element in elements.elements
+            if element.is_completely_visible)
 
         asy_regular = '\n'.join(
             element.to_asy() for element in elements.elements

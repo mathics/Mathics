@@ -194,8 +194,8 @@ class InstancableBuiltin(Builtin):
                 instance.init(*args, **kwargs)
             except TypeError:
                 # TypeError occurs when unpickling instance, e.g. PatterObject,
-                # because parameter expr is not given. This should no be a 
-                # problem, as pickled objects need their init-method not 
+                # because parameter expr is not given. This should no be a
+                # problem, as pickled objects need their init-method not
                 # being called.
                 pass
         return instance

@@ -293,7 +293,7 @@ class Eigenvectors(Builtin):
             val, c, vect): (abs(val), -val), reverse=True)
         result = []
         for val, count, basis in eigenvects:
-            # Select the i'th basis vector, convert matrix to vector, 
+            # Select the i'th basis vector, convert matrix to vector,
             # and convert from sympy
             vects = [from_sympy(list(b)) for b in basis]
 

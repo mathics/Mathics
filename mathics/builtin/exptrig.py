@@ -13,7 +13,7 @@ from __future__ import with_statement
 import sympy
 import sympy.mpmath as mpmath
 
-from mathics.builtin.base import (Builtin, Predefined, SympyConstant, 
+from mathics.builtin.base import (Builtin, Predefined, SympyConstant,
                                   SympyFunction)
 from mathics.core.expression import (Number, Real, Expression, Integer,
                                      from_sympy)

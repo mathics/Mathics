@@ -789,7 +789,7 @@ class Power(BinaryOperator, SympyFunction):
                 return Integer(1)
 
         elif x.has_form('Power', 2) and isinstance(y, Integer):
-            return Expression('Power', x.leaves[0], 
+            return Expression('Power', x.leaves[0],
                               Expression('Times', x.leaves[1], y))
         elif x.has_form('Times', None) and isinstance(y, Integer):
             return Expression('Times', *[

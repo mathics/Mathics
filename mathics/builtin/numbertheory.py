@@ -223,7 +223,7 @@ class FactorInteger(Builtin):
      = {{2, 1}, {3, 1}, {5, 1}, {67, 1}, {2011, -1}}
     """
 
-    # TODO: GausianIntegers option 
+    # TODO: GausianIntegers option
     # e.g. FactorInteger[5, GaussianIntegers -> True]
 
     def apply(self, n, evaluation):

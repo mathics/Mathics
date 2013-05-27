@@ -920,8 +920,8 @@ class ParametricPlot(_Plot):
     """
 
     def get_functions_param(self, functions):
-        if (functions.has_form('List', 2) and 
-            not (functions.leaves[0].has_form('List', None) or 
+        if (functions.has_form('List', 2) and
+            not (functions.leaves[0].has_form('List', None) or
                  functions.leaves[1].has_form('List', None))):
             # One function given
             functions = [functions]
@@ -1177,7 +1177,7 @@ class DensityPlot(_Plot3D):
     def get_functions_param(self, functions):
         return [functions]
 
-    def construct_graphics(self, triangles, mesh_points, v_min, v_max, 
+    def construct_graphics(self, triangles, mesh_points, v_min, v_max,
                            options, evaluation):
         mesh_option = self.get_option(options, 'Mesh', evaluation)
         mesh = mesh_option.to_python()
@@ -1233,7 +1233,7 @@ class DensityPlot(_Plot3D):
                 v_color_scaled = color_function_min + \
                     v_scaled * color_function_range
             else:
-                v_color_scaled = v     
+                v_color_scaled = v
 
             # Calculate and store 100 different shades max.
             v_lookup = int(v_scaled * 100 + 0.5)
