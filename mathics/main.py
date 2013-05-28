@@ -72,13 +72,23 @@ class TerminalShell(object):
         line = self.definitions.get_definition('$Line').ownvalues[0].replace
         return line.get_int_value()
 
-    def get_in_prompt(self):
+    def get_in_prompt(self, continued=False):
         line_number = self.get_line_number()
-        return '{1}In[{2}{0}{3}]:= {4}'.format(line_number, *self.incolors)
+        if continued:
+            return ' '*len('In[{0}]:= '.format(line_number))
+        else:
+            return '{1}In[{2}{0}{3}]:= {4}'.format(line_number, *self.incolors)
 
     def get_out_prompt(self):
         line_number = self.get_line_number()-1
         return '{1}Out[{2}{0}{3}]= {4}'.format(line_number, *self.outcolors)
+
+    def evaluate(self, text):
+        evaluation = Evaluation(text, self.definitions, timeout=30, out_callback=out_callback)
+        for result in evaluation.results:
+            if result.result is not None:
+                print self.get_out_prompt() + to_output(unicode(result.result)) + '\n'
+
 
 def to_output(text):
     return '\n . '.join(text.splitlines())
@@ -108,7 +118,6 @@ def wait_for_line(input_string):
                 return False
     if len(stack) == 0 and input_string.count('"') % 2 == 0:
         return False
-
     return True
 
 def main():
@@ -122,7 +131,6 @@ def main():
             request.""")
 
     argparser.add_argument('FILE',  nargs='?', type=argparse.FileType('r'), help='execute commands from FILE')
-
     argparser.add_argument('--help', '-h', help='show this help message and exit', action='help')
     argparser.add_argument('--persist',  help='go to interactive shell after evaluating FILE', action='store_true')
     argparser.add_argument('--quiet', '-q', help='don\'t print message at startup', action='store_true')
@@ -130,83 +138,57 @@ def main():
     argparser.add_argument('--execute', '-e', nargs='?', help='execute a command')
     argparser.add_argument('--colors', nargs='?', help='interactive shell colors')
     argparser.add_argument('--version', '-v', action='version', version=get_version_string(False))
-
     args = argparser.parse_args()
 
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
     
     definitions = Definitions(add_builtin=True)
-
-    # TODO all binary operators?
-
-    #Reset the line number to 1
-    definitions.set_ownvalue('$Line', Integer(1))
+    definitions.set_ownvalue('$Line', Integer(1)) #Reset the line number to 1
 
     shell = TerminalShell(definitions, args.colors)
-
-    if args.execute:
-        total_input = args.execute.decode(sys.stdin.encoding)  # check encoding
-        print shell.get_in_prompt() + total_input
-        evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
-        for result in evaluation.results:
-            if result.result is not None:
-                print shell.get_out_prompt() + to_output(unicode(result.result)) + '\n'
-        return
 
     if not (args.quiet or args.script):
         print_version(is_server=False)
         print_license()
-        print u"Quit by pressing %s" % quit_command
-    
-        print ''
+        print u"Quit by pressing {0}\n".format(quit_command)
 
+    if args.execute:
+        total_input = args.execute.decode(sys.stdin.encoding)  # check encoding
+        print shell.get_in_prompt() + total_input
+        shell.evaluate(total_input)
+        return 
 
     if args.FILE is not None:
-        total_input = ""
-        for line in args.FILE:
-            line = line.decode('utf-8')     # TODO: other encodings
-
-            if args.script and line.startswith('#!'):
-                continue
-
-            if total_input == "":
-                print shell.get_in_prompt() + line,
-            else:
-                print '       ', line,
-
-            total_input += line
-
-            if line == "":
-                pass
-            elif wait_for_line(total_input):
-                continue
-
-            evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
-            for result in evaluation.results:
-                if result.result is not None:
-                    print shell.get_out_prompt() + to_output(unicode(result.result)) + '\n'
-            total_input = ""
+        total_input = ''
+        for line_no, line in enumerate(args.FILE):
+            try:
+                line = line.decode('utf-8')     # TODO: other encodings
+                if args.script and line_no == 0 and line.startswith('#!'):
+                    continue
+                print shell.get_in_prompt(continued=(total_input != '')) + line,
+                total_input += ' ' + line
+                if line != "" and wait_for_line(total_input):
+                    continue
+                shell.evaluate(total_input)
+                total_input = ""
+            except (KeyboardInterrupt):
+                print '\nKeyboardInterrupt'
+            except (SystemExit, EOFError):
+                print "\n\nGood bye!\n"
+                break
         if not args.persist:
             return
 
+    total_input = ""
     while True:
         try: 
+            line = raw_input(shell.get_in_prompt(continued=total_input != ''))
+            line= line.decode(sys.stdin.encoding)
+            total_input += line
+            if line != "" and wait_for_line(total_input):
+                continue
+            shell.evaluate(total_input)
             total_input = ""
-            line_input = raw_input(shell.get_in_prompt())
-            line_input = line_input.decode(sys.stdin.encoding)
-            while line_input != "":
-                total_input += ' ' + line_input
-                if not wait_for_line(total_input):
-                    break
-                line_input = raw_input('        ')
-                line_input = line_input.decode(sys.stdin.encoding)
-
-            evaluation = Evaluation(total_input, definitions, timeout=30, out_callback=out_callback)
-        
-            for result in evaluation.results:
-                if result.result is not None:
-                    print shell.get_out_prompt() + to_output(unicode(result.result)) + '\n'
-
         except (KeyboardInterrupt):
             print '\nKeyboardInterrupt'
         except (SystemExit, EOFError):
