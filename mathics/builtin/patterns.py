@@ -279,9 +279,10 @@ class PatternTest(BinaryOperator, PatternObject):
             return False
             # pass
         elif test == 'NegativePowerQ':
-            return candidate.has_form('Power', 2) and \
-                isinstance(candidate.leaves[1], (Integer, Rational, Real)) and \
-                candidate.leaves[1].value < 0
+            return (
+                candidate.has_form('Power', 2) and
+                isinstance(candidate.leaves[1], (Integer, Rational, Real)) and
+                candidate.leaves[1].value < 0)
         elif test == 'NotNegativePowerQ':
             return not (candidate.has_form('Power', 2) and
                         isinstance(candidate.leaves[1], (Integer, Rational,
@@ -502,17 +503,23 @@ class Pattern_(PatternObject):
 
     messages = {
         'patvar': "First element in pattern `1` is not a valid pattern name.",
-        'nodef': "No default setting found for `1` in position `2` when length is `3`.",
+        'nodef': ("No default setting found for `1` in "
+                  "position `2` when length is `3`."),
     }
 
     rules = {
-        'MakeBoxes[Verbatim[Pattern][symbol_Symbol, blank_Blank|blank_BlankSequence|blank_BlankNullSequence], f:StandardForm|TraditionalForm|InputForm|OutputForm]':
-        'MakeBoxes[symbol, f] <> MakeBoxes[blank, f]',
+        '''MakeBoxes[
+            Verbatim[Pattern][symbol_Symbol,
+                blank_Blank|blank_BlankSequence|blank_BlankNullSequence],
+            f:StandardForm|TraditionalForm|InputForm|OutputForm]''': (
+                'MakeBoxes[symbol, f] <> MakeBoxes[blank, f]'),   # nopep8
         # 'StringForm["`1``2`", HoldForm[symbol], blank]',
     }
 
     formats = {
-        'Verbatim[Pattern][symbol_, pattern_?(!MatchQ[#, _Blank|_BlankSequence|_BlankNullSequence]&)]': 'Infix[{symbol, pattern}, ":", 140]',
+        'Verbatim[Pattern][symbol_, '
+        'pattern_?(!MatchQ[#, _Blank|_BlankSequence|_BlankNullSequence]&)]': (
+            'Infix[{symbol, pattern}, ":", 140]'),
     }
 
     def init(self, expr):
@@ -530,7 +537,8 @@ class Pattern_(PatternObject):
         if existing is None:
             new_vars = vars.copy()
             new_vars[self.varname] = expression
-            # for vars_2, rest in self.pattern.match(expression, new_vars, evaluation):
+            # for vars_2, rest in self.pattern.match(   # nopep8
+            #    expression, new_vars, evaluation):
             #    yield vars_2, rest
             self.pattern.match(yield_func, expression, new_vars, evaluation)
         else:
@@ -609,14 +617,17 @@ class Optional(BinaryOperator, PatternObject):
             return expression
 
     rules = {
-        'MakeBoxes[Verbatim[Optional][Verbatim[Pattern][symbol_Symbol, Verbatim[_]]], f:StandardForm|TraditionalForm|InputForm|OutputForm]':
-        'MakeBoxes[symbol, f] <> "_."',
-        'MakeBoxes[Verbatim[Optional][Verbatim[_]], f:StandardForm|TraditionalForm|InputForm|OutputForm]':
-        '"_."',
+        'MakeBoxes[Verbatim[Optional][Verbatim[Pattern][symbol_Symbol, '
+        'Verbatim[_]]], f:StandardForm|TraditionalForm|InputForm|OutputForm]':
+            'MakeBoxes[symbol, f] <> "_."',   # nopep8
+        'MakeBoxes[Verbatim[Optional][Verbatim[_]], '
+        'f:StandardForm|TraditionalForm|InputForm|OutputForm]':
+            '"_."',     # nopep8
     }
 
     formats = {
-        'Verbatim[Optional][pattern_Pattern, default_]': 'Infix[{HoldForm[pattern], HoldForm[default]}, ":", 150]',
+        'Verbatim[Optional][pattern_Pattern, default_]':
+            'Infix[{HoldForm[pattern], HoldForm[default]}, ":", 150]',  # nopep8
     }
 
     arg_counts = [1, 2]
@@ -687,9 +698,12 @@ class _Blank(PatternObject):
 
 class Blank(_Blank):
     rules = {
-        'MakeBoxes[Verbatim[Blank][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"_"',
-        'MakeBoxes[Verbatim[Blank][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]':
-        '"_" <> MakeBoxes[head, f]',
+        'MakeBoxes[Verbatim[Blank][], '
+        'f:StandardForm|TraditionalForm|OutputForm|InputForm]':
+            '"_"',   # nopep8
+        'MakeBoxes[Verbatim[Blank][head_Symbol], '
+        'f:StandardForm|TraditionalForm|OutputForm|InputForm]':
+            '"_" <> MakeBoxes[head, f]',    # nopep8
     }
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
@@ -703,9 +717,12 @@ class Blank(_Blank):
 
 class BlankSequence(_Blank):
     rules = {
-        'MakeBoxes[Verbatim[BlankSequence][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"__"',
-        'MakeBoxes[Verbatim[BlankSequence][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]':
-        '"__" <> MakeBoxes[head, f]',
+        'MakeBoxes[Verbatim[BlankSequence][], '
+        'f:StandardForm|TraditionalForm|OutputForm|InputForm]':
+            '"__"',  # nopep8
+        'MakeBoxes[Verbatim[BlankSequence][head_Symbol], '
+        'f:StandardForm|TraditionalForm|OutputForm|InputForm]':
+            '"__" <> MakeBoxes[head, f]',   # nopep8
     }
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
@@ -736,9 +753,12 @@ class BlankNullSequence(_Blank):
     """
 
     rules = {
-        'MakeBoxes[Verbatim[BlankNullSequence][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"___"',
-        'MakeBoxes[Verbatim[BlankNullSequence][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]':
-        '"___" <> MakeBoxes[head, f]',
+        'MakeBoxes[Verbatim[BlankNullSequence][], '
+        'f:StandardForm|TraditionalForm|OutputForm|InputForm]':
+            '"___"',        # nopep8
+        'MakeBoxes[Verbatim[BlankNullSequence][head_Symbol], '
+        'f:StandardForm|TraditionalForm|OutputForm|InputForm]':
+            '"___" <> MakeBoxes[head, f]',  # nopep8
     }
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
@@ -776,7 +796,9 @@ class Repeated(PostfixOperator, PatternObject):
     """
 
     messages = {
-        'range': "Range specification in integers (max or {min, max}) expected at position `1` in `2`.",
+        'range': (
+            "Range specification in integers (max or {min, max}) "
+            "expected at position `1` in `2`."),
     }
 
     operator = '..'
@@ -812,7 +834,8 @@ class Repeated(PostfixOperator, PatternObject):
                 # for new_vars, rest in self.pattern.match(rest_leaves[0],
                 # vars, evaluation):
                 def yield_match(new_vars, rest):
-                    # for sub_vars, sub_rest in iter(rest_leaves[1:], new_vars):
+                    # for sub_vars, sub_rest in iter(rest_leaves[1:],
+                    #                                new_vars):
                     #    yield sub_vars, rest
                     iter(yield_iter, rest_leaves[1:], new_vars)
 

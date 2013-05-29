@@ -101,7 +101,8 @@ class Graphics3D(Graphics):
     box_suffix = '3DBox'
 
     rules = {
-        'MakeBoxes[Graphics3D[content_, OptionsPattern[Graphics3D]], OutputForm]': '"-Graphics3D-"',
+        'MakeBoxes[Graphics3D[content_, OptionsPattern[Graphics3D]], '
+        '        OutputForm]': '"-Graphics3D-"',
     }
 
     messages = {
@@ -523,8 +524,9 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
 
         # return "<mn>3</mn>"
 
-        # xml = """<graphics3d xmin="%f" xmax="%f" ymin="%f" ymax="%f" zmin="%f" zmax="%f" data="%s" />""" % (
-        #    xmin, xmax, ymin, ymax, zmin, zmax, json_repr)
+        # xml = ('<graphics3d xmin="%f" xmax="%f" ymin="%f" ymax="%f" '
+        #        'zmin="%f" zmax="%f" data="%s" />') % (
+        #           xmin, xmax, ymin, ymax, zmin, zmax, json_repr)
         xml = """<graphics3d data="%s" />""" % escape_html(json_repr)
         xml = """<mtable><mtr><mtd>%s</mtd></mtr></mtable>""" % xml
         return xml

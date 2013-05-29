@@ -147,7 +147,8 @@ class Inequality(Builtin):
     """
 
     messages = {
-        'ineq': "Inequality called with `` arguments; the number of arguments is expected to be an odd number >= 3.",
+        'ineq': ("Inequality called with `` arguments; the number of "
+                 "arguments is expected to be an odd number >= 3."),
     }
 
     def apply(self, items, evaluation):

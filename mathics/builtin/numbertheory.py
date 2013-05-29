@@ -448,9 +448,25 @@ class PrimePowerQ(Builtin):
         'PrimePowerQ[1]': 'False',
     }
 
-    # TODO: GaussianIntegers option e.g. PrimePowerQ[5, GaussianIntegers -> True] (False)
-    # TODO: Threading over lists e.g. PrimePowerQ[{1, 2 + I, 3, 4 - 2 I, 5, 6, 7 + 9 I, 8, 9}]
-    # TODO: Gaussian rationals e.g. PrimePowerQ[2/125 - 11 I/125] (True)
+    attributes = ('Listable', 'Protected', 'ReadProtected')
+
+    # TODO: GaussianIntegers option
+    """
+    #> PrimePowerQ[5, GaussianIntegers -> True]
+     = False
+    """
+
+    #TODO: Complex args
+    """
+    #> PrimePowerQ[{3 + I, 3 - 2 I, 3 + 4 I, 9 + 7 I}]
+     = {False, True, True, False}
+    """
+
+    # TODO: Gaussian rationals
+    """
+    #> PrimePowerQ[2/125 - 11 I/125]
+     = True
+    """
 
     def apply(self, n, evaluation):
         'PrimePowerQ[n_]'
@@ -577,17 +593,23 @@ class RandomPrime(Builtin):
     """
 
     messages = {
-        'posdim': 'The dimensions parameter `1` is expected to be a positive integer or a list of positive integers.',
+        'posdim': (
+            'The dimensions parameter `1` is expected to be a positive '
+            'integer or a list of positive integers.'),
         'noprime': 'There are no primes in the specified interval.',
-        'prmrng': 'First argument `1` is not a positive integer or a list of two positive integers.',
-        'posint': 'The paramater `1` describing the interval is expected to be a positive integer.',
+        'prmrng': ('First argument `1` is not a positive integer or a list '
+                   'of two positive integers.'),
+        'posint': ('The paramater `1` describing the interval is expected to '
+                   'be a positive integer.'),
     }
 
     rules = {
         'RandomPrime[imax_?NotListQ]': 'RandomPrime[{1, imax}, 1]',
         'RandomPrime[int_?ListQ]': 'RandomPrime[int, 1]',
-        'RandomPrime[imax_?ListQ, n_?ArrayQ]': 'ConstantArray[RandomPrime[imax, 1], n]',
-        'RandomPrime[imax_?NotListQ, n_?ArrayQ]': 'ConstantArray[RandomPrime[{1, imax}, 1], n]',
+        'RandomPrime[imax_?ListQ, n_?ArrayQ]': (
+            'ConstantArray[RandomPrime[imax, 1], n]'),
+        'RandomPrime[imax_?NotListQ, n_?ArrayQ]': (
+            'ConstantArray[RandomPrime[{1, imax}, 1], n]'),
     }
 
     # TODO: Use random state as in other randomised methods within mathics

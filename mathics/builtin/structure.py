@@ -207,7 +207,8 @@ class Apply(BinaryOperator):
         evaluation.message('Apply', 'level', ls)
 
     def apply(self, f, expr, ls, evaluation, options={}):
-        'Apply[f_, expr_, Optional[Pattern[ls, _?LevelQ], {0}], OptionsPattern[Apply]]'
+        '''Apply[f_, expr_, Optional[Pattern[ls, _?LevelQ], {0}],
+                OptionsPattern[Apply]]'''
 
         try:
             start, stop = python_levelspec(ls)
@@ -269,7 +270,8 @@ class Map(BinaryOperator):
         evaluation.message('Map', 'level', ls)
 
     def apply_level(self, f, expr, ls, evaluation, options={}):
-        'Map[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}], OptionsPattern[Map]]'
+        '''Map[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}],
+                OptionsPattern[Map]]'''
 
         try:
             start, stop = python_levelspec(ls)
@@ -337,7 +339,8 @@ class MapIndexed(Builtin):
         evaluation.message('MapIndexed', 'level', ls)
 
     def apply_level(self, f, expr, ls, evaluation, options={}):
-        'MapIndexed[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}], OptionsPattern[MapIndexed]]'
+        '''MapIndexed[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}],
+                OptionsPattern[MapIndexed]]'''
 
         try:
             start, stop = python_levelspec(ls)
@@ -411,14 +414,6 @@ class FreeQ(Builtin):
     def apply(self, expr, form, evaluation):
         'FreeQ[expr_, form_]'
 
-        """def is_free(sub):
-            for vars, rest in form.match(sub, {}, evaluation, fully=False):
-                return False
-            if sub.is_atom():
-                return True
-            else:
-                return is_free(sub.head) and all(is_free(leaf) for leaf in sub.leaves)"""
-
         form = Pattern.create(form)
         if expr.is_free(form, evaluation):
             return Symbol('True')
@@ -450,7 +445,9 @@ class Flatten(Builtin):
     }
 
     messages = {
-        'flpi': "Level to be flattened together in `1` should be a non-negative integer."
+        'flpi': (
+            "Level to be flattened together in `1` "
+            "should be a non-negative integer."),
     }
 
     def apply(self, expr, n, h, evaluation):
@@ -531,7 +528,9 @@ class Symbol_(Builtin):
     attributes = ('Locked',)
 
     messages = {
-        'symname': "The string `1` cannot be used for a symbol name. A symbol name must start with a letter followed by letters and numbers.",
+        'symname': ("The string `1` cannot be used for a symbol name. "
+                    "A symbol name must start with a letter "
+                    "followed by letters and numbers."),
     }
 
     def apply(self, string, evaluation):

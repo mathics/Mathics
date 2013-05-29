@@ -426,7 +426,9 @@ class ArcTan(_MPMathFunction):
         'ArcTan[1]': 'Pi/4',
         'ArcTan[0]': '0',
         'Derivative[1][ArcTan]': '1/(1+#^2)&',
-        'ArcTan[x_?RealNumberQ, y_?RealNumberQ]': 'If[x == 0, If[y == 0, 0, If[y > 0, Pi/2, -Pi/2]], If[x > 0, ArcTan[y/x], If[y >= 0, ArcTan[y/x] + Pi, ArcTan[y/x] - Pi]]]',
+        'ArcTan[x_?RealNumberQ, y_?RealNumberQ]':
+        '''If[x == 0, If[y == 0, 0, If[y > 0, Pi/2, -Pi/2]], If[x > 0,
+            ArcTan[y/x], If[y >= 0, ArcTan[y/x] + Pi, ArcTan[y/x] - Pi]]]''',
     }
 
 

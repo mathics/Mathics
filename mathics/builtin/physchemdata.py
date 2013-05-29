@@ -74,8 +74,10 @@ class ElementData(Builtin):
     }
 
     messages = {
-        'noent': '`1` is not a known entity, class, or tag for ElementData. Use ElementData[] for a list of entities.',
-        'noprop': '`1` is not a known property for ElementData. Use ElementData["Properties"] for a list of properties.',
+        'noent': ('`1` is not a known entity, class, or tag for ElementData. '
+                  'Use ElementData[] for a list of entities.'),
+        'noprop': ('`1` is not a known property for ElementData. '
+                   'Use ElementData["Properties"] for a list of properties.'),
     }
 
     def apply_all(self, evaluation):

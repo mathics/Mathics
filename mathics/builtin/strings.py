@@ -197,7 +197,8 @@ class StringReplace(Builtin):
     messages = {
         'strse': 'String or list of strings expected at position `1` in `2`.',
         'srep': '`1` is not a valid string replacement rule.',
-        'innf': 'Non-negative integer or Infinity expected at position `1` in `2`.',
+        'innf': ('Non-negative integer or Infinity expected at '
+                 'position `1` in `2`.'),
     }
 
     # TODO: Implement StringExpression replacements
@@ -222,7 +223,8 @@ class StringReplace(Builtin):
         # Check second argument
         def check_rule(r):
             tmp = [s.get_string_value() for s in r.get_leaves()]
-            if not (r.has_form('Rule', None) and len(tmp) == 2 and all(r is not None for r in tmp)):
+            if not (r.has_form('Rule', None) and len(tmp) == 2 and
+                    all(r is not None for r in tmp)):
                 evaluation.message('StringReplace', 'srep', r)
                 return None
             return tmp
@@ -430,8 +432,11 @@ class ToExpression(Builtin):
     attributes = ('Listable', 'Protected')
 
     messages = {
-        'argb': '`1` called with `2` arguments; between `3` and `4` arguments are expected.',
-        'interpfmt': '`1` is not a valid interpretation format. Valid interpretation formats include InputForm and any member of $BoxForms.',
+        'argb': ('`1` called with `2` arguments; '
+                 'between `3` and `4` arguments are expected.'),
+        'interpfmt': ('`1` is not a valid interpretation format. '
+                      'Valid interpretation formats include InputForm '
+                      'and any member of $BoxForms.'),
         'notstr': 'The format type `1` is valid only for string input.',
         'sntxi': 'Incomplete expression; more input is needed `1`.',
     }

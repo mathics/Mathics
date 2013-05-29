@@ -28,8 +28,10 @@ def cancel(expr):
             result = expr.to_sympy()
             # result = sympy.powsimp(result, deep=True)
             result = sympy.cancel(result)
-            result = sympy_factor(
-                result)   # cancel factors out rationals, so we factor them again
+
+            # cancel factors out rationals, so we factor them again
+            result = sympy_factor(result)
+
             return from_sympy(result)
         except sympy.PolynomialError:
             # e.g. for non-commutative expressions
@@ -171,7 +173,8 @@ class Apart(Builtin):
     >> Apart[1 / (x^2 + 5x + 6)]
      = 1 / (2 + x) - 1 / (3 + x)
 
-    When several variables are involved, the results can be different depending on the main variable:
+    When several variables are involved, the results can be different
+    depending on the main variable:
     >> Apart[1 / (x^2 - y^2), x]
      = -1 / (2 y (x + y)) + 1 / (2 y (x - y))
     >> Apart[1 / (x^2 - y^2), y]
@@ -194,7 +197,9 @@ class Apart(Builtin):
 
     attributes = ['Listable']
     rules = {
-        'Apart[expr_]': 'Block[{vars=Cases[Level[expr, {-1}], _Symbol]}, If[Length[vars] > 0, Apart[expr, vars[[1]]], expr]]',
+        'Apart[expr_]': (
+            'Block[{vars = Cases[Level[expr, {-1}], _Symbol]},'
+            '  If[Length[vars] > 0, Apart[expr, vars[[1]]], expr]]'),
     }
 
     def apply(self, expr, var, evaluation):
@@ -255,14 +260,17 @@ class Expand(Builtin):
         def expand(expr):
             head_name = expr.get_head_name()
             if head_name in ('List', 'Rule'):
-                return Expression(head_name, *[expand(leaf) for leaf in expr.leaves])
+                return Expression(
+                    head_name, *[expand(leaf) for leaf in expr.leaves])
             leaves = expr.get_leaves()
             if expr.has_form('Times', 2, None):
                 " Group negative powers into one negative power "
                 neg_powers = []
                 other_leaves = []
                 for leaf in leaves:
-                    if leaf.has_form('Power', 2) and leaf.leaves[1].get_int_value() is not None and leaf.leaves[1].get_int_value() < 0:
+                    if (leaf.has_form('Power', 2) and   # nopep8
+                        leaf.leaves[1].get_int_value() is not None and
+                        leaf.leaves[1].get_int_value() < 0):
                         neg_powers.append(leaf)
                     else:
                         other_leaves.append(leaf)
@@ -316,7 +324,8 @@ class Expand(Builtin):
                     def iterate(rest, n_rest):
                         if rest and n_rest > 0:
                             for k in range(n_rest + 1):
-                                for coeff, next in iterate(rest[1:], n_rest - k):
+                                for coeff, next in iterate(rest[1:],
+                                                           n_rest - k):
                                     if k == 0:
                                         this_factor = []
                                     else:

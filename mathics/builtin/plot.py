@@ -22,10 +22,12 @@ class ColorDataFunction(Builtin):
 
 class ColorData(Builtin):
     rules = {
-        'ColorData["LakeColors"]': """ColorDataFunction["LakeColors", "Gradients", {0, 1},
-             Blend[{RGBColor[0.293416, 0.0574044, 0.529412],
-                RGBColor[0.563821, 0.527565, 0.909499], RGBColor[0.762631, 0.846998,
-                 0.914031], RGBColor[0.941176, 0.906538, 0.834043]}, #1] & ]""",
+        'ColorData["LakeColors"]': (
+            """ColorDataFunction["LakeColors", "Gradients", {0, 1},
+                Blend[{RGBColor[0.293416, 0.0574044, 0.529412],
+                    RGBColor[0.563821, 0.527565, 0.909499],
+                    RGBColor[0.762631, 0.846998, 0.914031],
+                    RGBColor[0.941176, 0.906538, 0.834043]}, #1] &]"""),
     }
 
 
@@ -141,14 +143,19 @@ class _Plot(Builtin):
     })
 
     messages = {
-        'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
-        'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
+        'invmaxrec': (
+            "MaxRecursion must be a non-negative integer; the recursion value "
+            "is limited to `2`. Using MaxRecursion -> `1`."),
+        'prng': ("Value of option PlotRange -> `1` is not All, Automatic or "
+                 "an appropriate list of range specifications."),
         'invpltpts': "Value of PlotPoints -> `1` is not a positive integer.",
-        'invexcl': "Value of Exclusions -> `1` is not None, Automatic or an appropriate list of constraints.",
+        'invexcl': ("Value of Exclusions -> `1` is not None, Automatic or an "
+                    "appropriate list of constraints."),
     }
 
     def apply(self, functions, x, start, stop, evaluation, options):
-        '%(name)s[functions_, {x_Symbol, start_, stop_}, OptionsPattern[%(name)s]]'
+        '''%(name)s[functions_, {x_Symbol, start_, stop_},
+            OptionsPattern[%(name)s]]'''
 
         expr_limits = Expression('List', x, start, stop)
         expr = Expression(self.get_name(), functions, expr_limits,
@@ -340,7 +347,8 @@ class _Plot(Builtin):
                 for l in range(len(xvalues)):  # TODO: Binary Search faster?
                     if xvalues[l][0] <= excl and xvalues[l][-1] >= excl:
                         break
-                    if xvalues[l][-1] <= excl and xvalues[min(l + 1, len(xvalues) - 1)][0] >= excl:
+                    if (xvalues[l][-1] <= excl and      # nopep8
+                        xvalues[min(l + 1, len(xvalues) - 1)][0] >= excl):
                         return min(l + 1, len(xvalues) - 1), 0, False
                 xi = 0
                 for xi in range(len(xvalues[l]) - 1):
@@ -362,8 +370,10 @@ class _Plot(Builtin):
 
             # Adaptive Sampling - loop again and interpolate highly angled
             # sections
-            ang_thresh = cos(
-                pi / 180)    # Cos of the maximum angle between successive line segments
+
+            # Cos of the maximum angle between successive line segments
+            ang_thresh = cos(pi / 180)
+
             for line, line_xvalues in zip(points, xvalues):
                 recursion_count = 0
                 smooth = False
@@ -454,7 +464,8 @@ class _Plot(Builtin):
 
 class _ListPlot(Builtin):
     messages = {
-        'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
+        'prng': ("Value of option PlotRange -> `1` is not All, Automatic or "
+                 "an appropriate list of range specifications."),
         'joind': "Value of option Joined -> `1` is not True or False.",
     }
 
@@ -617,15 +628,20 @@ class _ListPlot(Builtin):
 
 class _Plot3D(Builtin):
     messages = {
-        'invmaxrec': "MaxRecursion must be a non-negative integer; the recursion value is limited to `2`. Using MaxRecursion -> `1`.",
-        'prng': "Value of option PlotRange -> `1` is not All, Automatic or an appropriate list of range specifications.",
+        'invmaxrec': (
+            "MaxRecursion must be a non-negative integer; the recursion value "
+            "is limited to `2`. Using MaxRecursion -> `1`."),
+        'prng': ("Value of option PlotRange -> `1` is not All, Automatic or "
+                 "an appropriate list of range specifications."),
         'invmesh': "Mesh must be one of {None, Full, All}. Using Mesh->None.",
-        'invpltpts': "Value of PlotPoints -> `1` is not a positive integer or appropriate list of positive integers.",
+        'invpltpts': ("Value of PlotPoints -> `1` is not a positive integer "
+                      "or appropriate list of positive integers."),
     }
 
     def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation,
               options):
-        '%(name)s[functions_, {x_Symbol, xstart_, xstop_}, {y_Symbol, ystart_, ystop_}, OptionsPattern[%(name)s]]'
+        '''%(name)s[functions_, {x_Symbol, xstart_, xstop_},
+                {y_Symbol, ystart_, ystop_}, OptionsPattern[%(name)s]]'''
         xexpr_limits = Expression('List', x, xstart, xstop)
         yexpr_limits = Expression('List', y, ystart, ystop)
         expr = Expression(self.get_name(), functions, xexpr_limits,

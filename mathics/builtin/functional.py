@@ -107,7 +107,9 @@ class Slot(Builtin):
 
     rules = {
         'Slot[]': 'Slot[1]',
-        'MakeBoxes[Slot[n_Integer?Positive], f:StandardForm|TraditionalForm|InputForm|OutputForm]': '"#" <> ToString[n]',
+        'MakeBoxes[Slot[n_Integer?Positive],'
+        '  f:StandardForm|TraditionalForm|InputForm|OutputForm]': (
+            '"#" <> ToString[n]'),
     }
 
 
@@ -136,7 +138,9 @@ class SlotSequence(Builtin):
 
     rules = {
         'SlotSequence[]': 'SlotSequence[1]',
-        'MakeBoxes[SlotSequence[n_Integer?Positive], f:StandardForm|TraditionalForm|InputForm|OutputForm]': '"##" <> ToString[n]',
+        'MakeBoxes[SlotSequence[n_Integer?Positive],'
+        'f:StandardForm|TraditionalForm|InputForm|OutputForm]': (
+            '"##" <> ToString[n]'),
     }
 
 

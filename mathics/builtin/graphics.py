@@ -188,7 +188,8 @@ class Graphics(Builtin):
     box_suffix = 'Box'
 
     def apply_makeboxes(self, content, evaluation, options):
-        'MakeBoxes[%(name)s[content_, OptionsPattern[%(name)s]], StandardForm|TraditionalForm|OutputForm]'
+        '''MakeBoxes[%(name)s[content_, OptionsPattern[%(name)s]],
+                StandardForm|TraditionalForm|OutputForm]'''
 
         def convert(content):
             if content.has_form('List', None):
@@ -907,8 +908,9 @@ class InsetBox(_GraphicsElement):
         content = self.content.boxes_to_xml(
             evaluation=self.graphics.evaluation)
         style = create_css(font_color=self.color)
-        svg = '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s"><math>%s</math></foreignObject>' % (
-            x, y, self.opos[0], self.opos[1], style, content)
+        svg = ('<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
+               '<math>%s</math></foreignObject>') % (
+                    x, y, self.opos[0], self.opos[1], style, content)  # nopep8
         return svg
 
     def to_asy(self):
@@ -1372,9 +1374,10 @@ clip(box((%s,%s), (%s,%s)));
         w += 2
         h += 2
 
-        xml = """<svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
-        version="1.0" width="%f" height="%f" viewBox="%f %f %f %f">%s</svg>""" % (width, height,
-                                                                                  xmin, ymin, w, h, svg)
+        xml = ('<svg xmlns:svg="http://www.w3.org/2000/svg" '
+               'xmlns="http://www.w3.org/2000/svg"\nversion="1.0" width="%f" '
+               'height="%f" viewBox="%f %f %f %f">%s</svg>') % (
+                    width, height, xmin, ymin, w, h, svg)   # nopep8
 
         xml = """<mtable><mtr><mtd>%s</mtd></mtr></mtable>""" % xml
         return xml
@@ -1579,8 +1582,10 @@ class Blend(Builtin):
     """
 
     messages = {
-        'arg': "`1` is not a valid list of color or gray-level directives, or pairs of a real number and a directive.",
-        'argl': "`1` should be a real number or a list of non-negative numbers, which has the same length as `2`.",
+        'arg': ("`1` is not a valid list of color or gray-level directives, "
+                "or pairs of a real number and a directive."),
+        'argl': ("`1` should be a real number or a list of non-negative "
+                 "numbers, which has the same length as `2`."),
     }
 
     rules = {

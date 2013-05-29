@@ -52,15 +52,19 @@ class DSolve(Builtin):
     # TODO: GeneratedParameters option
 
     messages = {
-        'deqn': 'Equation or list of equations expected instead of `1` in the first argument `1`.',
-        'deqx': 'Supplied equations are not differential equations of the given functions.',
+        'deqn': ('Equation or list of equations expected instead of '
+                 '`1` in the first argument `1`.'),
+        'deqx': ('Supplied equations are not differential equations '
+                 'of the given functions.'),
         'dsfun': '`1` cannot be used as a function.',
         'dsvar': '`1` cannot be used as a variable.',
-        'litarg': 'To avoid possible ambiguity, the arguments of the dependent variable in `1` should literally match the independent variables.',
+        'litarg': ('To avoid possible ambiguity, the arguments of the '
+                   'dependent variable in `1` should literally match the '
+                   'independent variables.'),
         # FIXME: Remove these if sympy changes:
-        'symsys': 'Unfortunately SymPy, part of the Mathics backend, does not support solving systems of DEs.',
-        'symimp': 'Unfortunately SymPy, part of the Mathics backend, does not support solutions to this form of DE.',
-        'symmua': 'Unfortunately SymPy, part of the Mathics backend, does not support functions of multiple variables.',
+        'symsys': "SymPy can't solve systems of DEs.",
+        'symimp': "SymPy can't solve this form of DE.",
+        'symmua': "SymPy can't handle functions of multiple variables.",
     }
 
     def apply(self, eqn, y, x, evaluation):
@@ -76,9 +80,9 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'deqn', eqn)
             return
 
-        if (x.is_atom() and not x.is_symbol()) or \
-            x.get_head_name() in ('Plus', 'Times', 'Power') or \
-                'Constant' in x.get_attributes(evaluation.definitions):
+        if ((x.is_atom() and not x.is_symbol()) or      # nopep8
+            x.get_head_name() in ('Plus', 'Times', 'Power') or
+            'Constant' in x.get_attributes(evaluation.definitions)):
             evaluation.message('DSolve', 'dsvar')
             return
 

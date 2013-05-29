@@ -105,7 +105,8 @@ class N(Builtin):
     """
 
     messages = {
-        'precbd': "Requested precision `1` is not a machine-sized real number.",
+        'precbd': (
+            "Requested precision `1` is not a machine-sized real number."),
     }
 
     rules = {
@@ -280,7 +281,8 @@ class Round(Builtin):
 
     rules = {
         'Round[expr_?NumericQ]': 'Round[Re[expr], 1] + I * Round[Im[expr], 1]',
-        'Round[expr_Complex, k_RealNumberQ]': 'Round[Re[expr], k] + I * Round[Im[expr], k]',
+        'Round[expr_Complex, k_RealNumberQ]': (
+            'Round[Re[expr], k] + I * Round[Im[expr], k]'),
     }
 
     def apply(self, expr, k, evaluation):
@@ -407,11 +409,14 @@ class BaseForm(Builtin):
     """
 
     messages = {
-        'intpm': "Positive machine-sized integer expected at position 2 in BaseForm[`1`, `2`].",
+        'intpm': (
+            "Positive machine-sized integer expected at position 2 in "
+            "BaseForm[`1`, `2`]."),
     }
 
     def apply_makeboxes(self, expr, n, f, evaluation):
-        'MakeBoxes[BaseForm[expr_, n_], f:StandardForm|TraditionalForm|OutputForm]'
+        '''MakeBoxes[BaseForm[expr_, n_],
+            f:StandardForm|TraditionalForm|OutputForm]'''
 
         base = n.get_int_value()
 

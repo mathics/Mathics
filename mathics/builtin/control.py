@@ -136,7 +136,8 @@ class Switch(Builtin):
     attributes = ('HoldRest',)
 
     messages = {
-        'argct': "Switch called with `2` arguments. Switch must be called with an odd number of arguments.",
+        'argct': ("Switch called with `2` arguments. "
+                  "Switch must be called with an odd number of arguments."),
     }
 
     def apply(self, expr, rules, evaluation):

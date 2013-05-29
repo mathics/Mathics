@@ -6,12 +6,14 @@ Input and Output
 
 import re
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, BoxConstruct, BoxConstructError, Operator
+from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
+                                  BoxConstruct, BoxConstructError, Operator)
 from mathics.builtin.tensors import get_dimensions
 from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
-from mathics.core.expression import Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError
+from mathics.core.expression import (Expression, String, Symbol, Integer,
+                                     Rational, Real, Complex, BoxError)
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
@@ -200,10 +202,13 @@ class MakeBoxes(Builtin):
     attributes = ('HoldAllComplete',)
 
     rules = {
-        'MakeBoxes[Infix[head_[leaves___]], f:StandardForm|TraditionalForm|OutputForm|InputForm]': 'MakeBoxes[Infix[head[leaves], StringForm["~`1`~", head]], f]',
+        'MakeBoxes[Infix[head_[leaves___]], '
+        '    f:StandardForm|TraditionalForm|OutputForm|InputForm]': (
+            'MakeBoxes[Infix[head[leaves], StringForm["~`1`~", head]], f]'),
         'MakeBoxes[expr_]': 'MakeBoxes[expr, StandardForm]',
-        'MakeBoxes[(form:StandardForm|TraditionalForm|OutputForm|TeXForm|MathMLForm)[expr_], StandardForm|TraditionalForm]':
-        'MakeBoxes[expr, form]',
+        'MakeBoxes[(form:StandardForm|TraditionalForm|OutputForm|TeXForm|'
+        'MathMLForm)[expr_], StandardForm|TraditionalForm]': (
+            'MakeBoxes[expr, form]'),
         'MakeBoxes[(form:OutputForm|MathMLForm|TeXForm)[expr_], OutputForm]':
         'MakeBoxes[expr, form]',
         'MakeBoxes[StandardForm[expr_], OutputForm]':
@@ -213,11 +218,14 @@ class MakeBoxes(Builtin):
         'MakeBoxes[InputForm[expr_], StandardForm|TraditionalForm|OutputForm]':
         'StyleBox[MakeBoxes[expr, InputForm], ShowStringCharacters->True]',
         'MakeBoxes[PrecedenceForm[expr_, prec_], f_]': 'MakeBoxes[expr, f]',
-        'MakeBoxes[Style[expr_, OptionsPattern[Style]], f_]': 'StyleBox[MakeBoxes[expr, f], ImageSizeMultipliers->OptionValue[ImageSizeMultipliers]]',
+        'MakeBoxes[Style[expr_, OptionsPattern[Style]], f_]': (
+            'StyleBox[MakeBoxes[expr, f], '
+            'ImageSizeMultipliers -> OptionValue[ImageSizeMultipliers]]'),
     }
 
     def apply_general(self, expr, f, evaluation):
-        'MakeBoxes[expr_, f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]'
+        '''MakeBoxes[expr_,
+            f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]'''
 
         if expr.is_atom():
             x = expr
@@ -256,7 +264,8 @@ class MakeBoxes(Builtin):
             return RowBox(Expression('List', *result))
 
     def _apply_atom(self, x, f, evaluation):
-        'MakeBoxes[x_?AtomQ, f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]'
+        '''MakeBoxes[x_?AtomQ,
+            f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]'''
 
         if isinstance(x, Symbol):
             return String(x.name)
@@ -268,14 +277,16 @@ class MakeBoxes(Builtin):
             return x.format(evaluation, f.get_name())
 
     def apply_outerprecedenceform(self, expr, prec, f, evaluation):
-        'MakeBoxes[OuterPrecedenceForm[expr_, prec_], f:StandardForm|TraditionalForm|OutputForm|InputForm]'
+        '''MakeBoxes[OuterPrecedenceForm[expr_, prec_],
+            f:StandardForm|TraditionalForm|OutputForm|InputForm]'''
 
         precedence = prec.get_int_value()
         boxes = MakeBoxes(expr)
         return parenthesize(precedence, expr, boxes, True)
 
     def apply_postprefix(self, p, expr, h, prec, f, evaluation):
-        'MakeBoxes[(p:Prefix|Postfix)[expr_, h_, prec_:None], f:StandardForm|TraditionalForm|OutputForm|InputForm]'
+        '''MakeBoxes[(p:Prefix|Postfix)[expr_, h_, prec_:None],
+            f:StandardForm|TraditionalForm|OutputForm|InputForm]'''
 
         if not isinstance(h, String):
             h = MakeBoxes(h, f)
@@ -297,7 +308,8 @@ class MakeBoxes(Builtin):
             return MakeBoxes(expr, f)
 
     def apply_infix(self, expr, h, prec, grouping, f, evaluation):
-        'MakeBoxes[Infix[expr_, h_, prec_:None, grouping_:None], f:StandardForm|TraditionalForm|OutputForm|InputForm]'
+        '''MakeBoxes[Infix[expr_, h_, prec_:None, grouping_:None],
+            f:StandardForm|TraditionalForm|OutputForm|InputForm]'''
 
         def get_op(op):
             if not isinstance(op, String):
@@ -352,7 +364,8 @@ class RowBox(Builtin):
 
 class Row(Builtin):
     def apply_makeboxes(self, items, sep, f, evaluation):
-        'MakeBoxes[Row[{items___}, sep_:""], f:StandardForm|TraditionalForm|OutputForm]'
+        '''MakeBoxes[Row[{items___}, sep_:""],
+            f:StandardForm|TraditionalForm|OutputForm]'''
 
         items = items.get_sequence()
         if not isinstance(sep, String):
@@ -497,7 +510,8 @@ class Grid(Builtin):
     options = GridBox.options
 
     def apply_makeboxes(self, array, f, evaluation, options):
-        'MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]], f:StandardForm|TraditionalForm|OutputForm]'
+        '''MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]],
+            f:StandardForm|TraditionalForm|OutputForm]'''
 
         array = Expression('List', *(
             Expression('List', *(Expression('MakeBoxes', item, f)
@@ -542,7 +556,8 @@ class TableForm(Builtin):
     }
 
     def apply_makeboxes(self, table, f, evaluation, options):
-        'MakeBoxes[%(name)s[table_, OptionsPattern[%(name)s]], f:StandardForm|TraditionalForm|OutputForm]'
+        '''MakeBoxes[%(name)s[table_, OptionsPattern[%(name)s]],
+            f:StandardForm|TraditionalForm|OutputForm]'''
 
         dims = len(get_dimensions(table, head=Symbol('List')))
         depth = self.get_option(options, 'TableDepth', evaluation).unformatted
@@ -588,7 +603,8 @@ class MatrixForm(TableForm):
     """
 
     def apply_makeboxes_matrix(self, table, f, evaluation, options):
-        'MakeBoxes[%(name)s[table_, OptionsPattern[%(name)s]], f:StandardForm|TraditionalForm]'
+        '''MakeBoxes[%(name)s[table_, OptionsPattern[%(name)s]],
+            f:StandardForm|TraditionalForm]'''
 
         result = super(MatrixForm, self).apply_makeboxes(
             table, f, evaluation, options)
@@ -605,7 +621,8 @@ class Superscript(Builtin):
     """
 
     rules = {
-        'MakeBoxes[Superscript[x_, y_], f:StandardForm|TraditionalForm]': 'SuperscriptBox[MakeBoxes[x, f], MakeBoxes[y, f]]',
+        'MakeBoxes[Superscript[x_, y_], f:StandardForm|TraditionalForm]': (
+            'SuperscriptBox[MakeBoxes[x, f], MakeBoxes[y, f]]'),
     }
 
 
@@ -619,7 +636,8 @@ class Subscript(Builtin):
         'MakeBoxes[Subscript[x_, y__], f:StandardForm|TraditionalForm]'
 
         y = y.get_sequence()
-        return Expression('SubscriptBox', Expression('MakeBoxes', x, f), *list_boxes(y, f))
+        return Expression('SubscriptBox', Expression('MakeBoxes', x, f),
+                          *list_boxes(y, f))
 
 
 class Subsuperscript(Builtin):
@@ -629,7 +647,10 @@ class Subsuperscript(Builtin):
     """
 
     rules = {
-        'MakeBoxes[Subsuperscript[x_, y_, z_], f:StandardForm|TraditionalForm]': 'SubsuperscriptBox[MakeBoxes[x, f], MakeBoxes[y, f], MakeBoxes[z, f]]',
+        'MakeBoxes[Subsuperscript[x_, y_, z_], '
+        'f:StandardForm|TraditionalForm]': (
+            'SubsuperscriptBox[MakeBoxes[x, f], MakeBoxes[y, f], '
+            'MakeBoxes[z, f]]'),
     }
 
 
@@ -723,7 +744,8 @@ class StringForm(Builtin):
     format_re = re.compile(r'(\`(\d*)\`)')
 
     def apply_makeboxes(self, s, args, f, evaluation):
-        'MakeBoxes[StringForm[s_String, args___], f:StandardForm|TraditionalForm|OutputForm]'
+        '''MakeBoxes[StringForm[s_String, args___],
+            f:StandardForm|TraditionalForm|OutputForm]'''
 
         s = s.value
         args = args.get_sequence()
@@ -805,9 +827,12 @@ class Quiet(Builtin):
     attributes = ('HoldAll',)
 
     messages = {
-        'anmlist': "Argument `1` of `2` should be All, None, a message name, or a list of message names.",
+        'anmlist': ("Argument `1` of `2` should be All, None, a message name, "
+                    "or a list of message names."),
         'allall': "Arguments 2 and 3 of `1` should not both be All.",
-        'conflict': "In `1` the message name(s) `2` appear in both the list of messages to switch off and the list of messages to switch on.",
+        'conflict': (
+            "In `1` the message name(s) `2` appear in both the list of "
+            "messages to switch off and the list of messages to switch on."),
     }
 
     rules = {
@@ -911,8 +936,11 @@ class MessageName(BinaryOperator):
     }
 
     rules = {
-        'MakeBoxes[MessageName[symbol_Symbol, tag_String], f:StandardForm|TraditionalForm|OutputForm]': 'RowBox[{MakeBoxes[symbol, f], "::", MakeBoxes[tag, f]}]',
-        'MakeBoxes[MessageName[symbol_Symbol, tag_String], InputForm]': 'RowBox[{MakeBoxes[symbol, InputForm], "::", tag}]',
+        'MakeBoxes[MessageName[symbol_Symbol, tag_String], '
+        'f:StandardForm|TraditionalForm|OutputForm]': (
+            'RowBox[{MakeBoxes[symbol, f], "::", MakeBoxes[tag, f]}]'),
+        'MakeBoxes[MessageName[symbol_Symbol, tag_String], InputForm]': (
+            'RowBox[{MakeBoxes[symbol, InputForm], "::", tag}]'),
     }
 
     def apply(self, symbol, tag, evaluation):
@@ -940,21 +968,26 @@ class General(Builtin):
     """
 
     messages = {
-        'argb': "`1` called with `2` arguments; between `3` and `4` arguments are expected.",
+        'argb': ("`1` called with `2` arguments; "
+                 "between `3` and `4` arguments are expected."),
         'argct': "`1` called with `2` arguments.",
         'argctu': "`1` called with 1 argument.",
         'argr': "`1` called with 1 argument; `2` arguments are expected.",
         'argrx': "`1` called with `2` arguments; `3` arguments are expected.",
         'argx': "`1` called with `2` arguments; 1 argument is expected.",
-        'argt': "`1` called with `2` arguments; `3` or `4` arguments are expected.",
-        'argtu': "`1` called with 1 argument; `2` or `3` arguments are expected.",
+        'argt': ("`1` called with `2` arguments; "
+                 "`3` or `4` arguments are expected."),
+        'argtu': (
+            "`1` called with 1 argument; `2` or `3` arguments are expected."),
         'boxfmt': "`1` is not a box formatting type.",
         'color': "`1` is not a valid color or gray-level specification.",
         'divz': "The argument `1` should be nonzero.",
         'exact': "Argument `1` is not an exact number.",
-        'fnsym': "First argument in `1` is not a symbol or a string naming a symbol.",
+        'fnsym': ("First argument in `1` is not a symbol "
+                  "or a string naming a symbol."),
         'heads': "Heads `1` and `2` are expected to be the same.",
-        'ilsnn': "Single or list of non-negative integers expected at position `1`.",
+        'ilsnn': ("Single or list of non-negative integers expected at "
+                  "position `1`."),
         'indet': "Indeterminate expression `1` encountered.",
         'innf': "Non-negative integer or Infinity expected at position `1`.",
         'int': "Integer expected.",
@@ -962,13 +995,15 @@ class General(Builtin):
         'intnn': "Non-negative integer expected.",
         'iterb': "Iterator does not have appropriate bounds.",
         'ivar': "`1` is not a valid variable.",
-        'level': "Level specification `1` is not of the form n, {n}, or {m, n}.",
+        'level': ("Level specification `1` is not of the form n, "
+                  "{n}, or {m, n}."),
         'locked': "Symbol `1` is locked.",
         'matsq': "Argument `1` is not a non-empty square matrix.",
         'noopen': "Cannot open `1`.",
         'nord': "Invalid comparison with `1` attempted.",
         'normal': "Nonatomic expression expected.",
-        'noval': "Symbol `1` in part assignment does not have an immediate value.",
+        'noval': (
+            "Symbol `1` in part assignment does not have an immediate value."),
         'openx': "`1` is not open.",
         'optb': "Optional object `1` in `2` is not a single blank.",
         'ovfl': "Overflow occured in computation.",
@@ -976,7 +1011,8 @@ class General(Builtin):
         'partw': "Part `1` of `2` does not exist.",
         'plld': "Endpoints in `1` must be distinct machine-size real numbers.",
         'plln': "Limiting value `1` in `2` is not a machine-size real number.",
-        'pspec': "Part specification `1` is neither an integer nor a list of integer.",
+        'pspec': ("Part specification `1` is neither an integer nor "
+                  "a list of integer."),
         'seqs': "Sequence specification expected, but got `1`.",
         'setp': "Part assignment to `1` could not be made",
         'setps': "`1` in the part assignment is not a symbol.",
@@ -985,7 +1021,8 @@ class General(Builtin):
         'string': "String expected.",
         'sym': "Argument `1` at position `2` is expected to be a symbol.",
         'tag': "Rule for `1` can only be attached to `2`.",
-        'vrule': "Cannot set `1` to `2`, which is not a valid list of replacement rules.",
+        'vrule': ("Cannot set `1` to `2`, "
+                  "which is not a valid list of replacement rules."),
         'write': "Tag `1` in `2` is Protected.",
         'wrsym': "Symbol `1` is Protected.",
 
@@ -1123,7 +1160,9 @@ class Style(Builtin):
     }
 
     rules = {
-        'MakeBoxes[Style[expr_, OptionsPattern[Style]], f_]': 'StyleBox[MakeBoxes[expr, f], ImageSizeMultipliers->OptionValue[ImageSizeMultipliers]]',
+        'MakeBoxes[Style[expr_, OptionsPattern[Style]], f_]': (
+            'StyleBox[MakeBoxes[expr, f], '
+            'ImageSizeMultipliers -> OptionValue[ImageSizeMultipliers]]'),
     }
 
 

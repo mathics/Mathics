@@ -176,7 +176,8 @@ class RandomInteger(Builtin):
     """
 
     messages = {
-        'unifr': "The endpoints specified by `1` for the endpoints of the discrete uniform distribution range are not integers.",
+        'unifr': ("The endpoints specified by `1` for the endpoints of the "
+                  "discrete uniform distribution range are not integers."),
     }
 
     rules = {
@@ -249,7 +250,8 @@ class RandomReal(Builtin):
     """
 
     messages = {
-        'unifr': "The endpoints specified by `1` for the endpoints of the discrete uniform distribution range are not real valued.",
+        'unifr': ("The endpoints specified by `1` for the endpoints of the "
+                  "discrete uniform distribution range are not real valued."),
     }
 
     rules = {
@@ -333,8 +335,13 @@ class RandomComplex(Builtin):
     """
 
     messages = {
-        'unifr': "The endpoints specified by `1` for the endpoints of the discrete uniform distribution range are not complex valued.",
-        'array': "The array dimensions `1` given in position 2 of `2` should be a list of non-negative machine-sized integers giving the dimensions for the result.",
+        'unifr': (
+            "The endpoints specified by `1` for the endpoints of the "
+            "discrete uniform distribution range are not complex valued."),
+        'array': (
+            "The array dimensions `1` given in position 2 of `2` should be a "
+            "list of non-negative machine-sized integers giving the "
+            "dimensions for the result."),
     }
 
     rules = {

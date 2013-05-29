@@ -148,11 +148,13 @@ class RegisterImport(Builtin):
     }
 
     rules = {
-        'RegisterImport[formatname_String, function_]': 'RegisterImport[formatname, function, {}]',
+        'RegisterImport[formatname_String, function_]':
+        'RegisterImport[formatname, function, {}]',
     }
 
     def apply(self, formatname, function, posts, evaluation, options):
-        'RegisterImport[formatname_String, function_, posts_, OptionsPattern[RegisterImport]]'
+        '''RegisterImport[formatname_String, function_, posts_,
+                OptionsPattern[RegisterImport]]'''
 
         if function.has_form('List', None):
             leaves = function.get_leaves()
@@ -225,8 +227,10 @@ class Import(Builtin):
 
     messages = {
         'nffil': 'File not found during Import.',
-        'chtype': 'First argument `1` is not a valid file, directory, or URL specification.',
-        'noelem': 'The Import element `1` is not present when importing as `2`.',
+        'chtype': ('First argument `1` is not a valid file, directory, '
+                   'or URL specification.'),
+        'noelem': (
+            'The Import element `1` is not present when importing as `2`.'),
         'fmtnosup': '`1` is not a supported Import format.',
     }
 
@@ -487,7 +491,7 @@ class FileFormat(Builtin):
             'application/vnd.ms-excel': 'XLS',
             'application/vnd.ms-pki.stl': 'STL',
             'application/vnd.oasis.opendocument.spreadsheet': 'ODS',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',    # nopep8
             'application/vnd.sun.xml.calc': 'SXC',
             'application/vnd.msaccess': 'MDB',
             'application/vnd.wolfram.cdf': 'CDF',

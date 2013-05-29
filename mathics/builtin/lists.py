@@ -34,7 +34,8 @@ class List(Builtin):
     attributes = ('Locked',)
 
     def apply_makeboxes(self, items, f, evaluation):
-        'MakeBoxes[{items___}, f:StandardForm|TraditionalForm|OutputForm|InputForm]'
+        '''MakeBoxes[{items___},
+            f:StandardForm|TraditionalForm|OutputForm|InputForm]'''
 
         items = items.get_sequence()
         return Expression('RowBox', Expression('List', *list_boxes(
@@ -633,7 +634,8 @@ class Part(Builtin):
     attributes = ('NHoldRest', 'ReadProtected')
 
     def apply_makeboxes(self, list, i, f, evaluation):
-        'MakeBoxes[Part[list_, i___], f:StandardForm|TraditionalForm|OutputForm|InputForm]'
+        '''MakeBoxes[Part[list_, i___],
+            f:StandardForm|TraditionalForm|OutputForm|InputForm]'''
 
         i = i.get_sequence()
         list = Expression('MakeBoxes', list, f)
@@ -866,8 +868,11 @@ class ReplacePart(Builtin):
     }
 
     rules = {
-        'ReplacePart[expr_, (Rule|RuleDelayed)[i_, new_]]': 'ReplacePart[expr, {i -> new}]',
-        'ReplacePart[expr_, Pattern[rule, Rule|RuleDelayed][{indices___?(Head[#]===List&)}, new_]]': 'ReplacePart[expr, rule[#, new]& /@ {indices}]',
+        'ReplacePart[expr_, (Rule|RuleDelayed)[i_, new_]]': (
+            'ReplacePart[expr, {i -> new}]'),
+        'ReplacePart[expr_, Pattern[rule, '
+        'Rule|RuleDelayed][{indices___?(Head[#]===List&)}, new_]]': (
+            'ReplacePart[expr, rule[#, new]& /@ {indices}]'),
     }
 
     def apply(self, expr, replacements, evaluation):
@@ -1174,7 +1179,8 @@ class Cases(Builtin):
 
 class MemberQ(Builtin):
     rules = {
-        'MemberQ[list_, pattern_]': 'Length[Select[list, MatchQ[#, pattern]&]] > 0',
+        'MemberQ[list_, pattern_]': (
+            'Length[Select[list, MatchQ[#, pattern]&]] > 0'),
     }
 
 
@@ -1211,8 +1217,10 @@ class Range(Builtin):
 class _IterationFunction(Builtin):
     attributes = ('HoldAll',)
     rules = {
-        '%(name)s[expr_, {i_Symbol, imax_}]': '%(name)s[expr, {i, 1, imax, 1}]',
-        '%(name)s[expr_, {i_Symbol, imin_, imax_}]': '%(name)s[expr, {i, imin, imax, 1}]',
+        '%(name)s[expr_, {i_Symbol, imax_}]': (
+            '%(name)s[expr, {i, 1, imax, 1}]'),
+        '%(name)s[expr_, {i_Symbol, imin_, imax_}]': (
+            '%(name)s[expr, {i, imin, imax, 1}]'),
     }
 
     allow_loopcontrol = False
@@ -1608,7 +1616,8 @@ class Reap(Builtin):
     attributes = ('HoldFirst',)
 
     rules = {
-        'Reap[expr_, pattern_, f_]': '{#[[1]], #[[2, 1]]}& [Reap[expr, {pattern}, f]]',
+        'Reap[expr_, pattern_, f_]': (
+            '{#[[1]], #[[2, 1]]}& [Reap[expr, {pattern}, f]]'),
         'Reap[expr_, pattern_]': 'Reap[expr, pattern, #2&]',
         'Reap[expr_]': 'Reap[expr, _]',
     }

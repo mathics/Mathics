@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
+from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
+                                  PrefixOperator)
 from mathics.core.expression import Expression, Symbol
 
 

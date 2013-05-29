@@ -56,7 +56,10 @@ class RecursionLimit(Predefined):
 
     messages = {
         'reclim': "Recursion depth of `1` exceeded.",
-        'limset': "Cannot set $RecursionLimit to `1`; value must be an integer between 20 and %d." % settings.MAX_RECURSION_DEPTH,
+        'limset': (
+            "Cannot set $RecursionLimit to `1`; "
+            "value must be an integer between 20 and %d.") % (
+                settings.MAX_RECURSION_DEPTH),
     }
 
     rules = {
@@ -315,9 +318,10 @@ class Out(Builtin):
     rules = {
         'Out[k_Integer?Negative]': 'Out[$Line + k]',
         'Out[]': 'Out[$Line - 1]',
-
-        'MakeBoxes[Out[k_Integer?((-10 <= # < 0)&)], f:StandardForm|TraditionalForm|InputForm|OutputForm]':
+        'MakeBoxes[Out[k_Integer?((-10 <= # < 0)&)],'
+        '    f:StandardForm|TraditionalForm|InputForm|OutputForm]':
         r'StringJoin[ConstantArray["%%", -k]]',
-        'MakeBoxes[Out[k_Integer?Positive], f:StandardForm|TraditionalForm|InputForm|OutputForm]':
+        'MakeBoxes[Out[k_Integer?Positive],'
+        '    f:StandardForm|TraditionalForm|InputForm|OutputForm]':
         r'"%%" <> ToString[k]',
     }

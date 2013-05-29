@@ -438,7 +438,8 @@ class Read(Builtin):
         'readf': '`1` is not a valid format specification.',
         'readn': 'Invalid real number found when reading from `1`.',
         'readt': 'Invalid input found when reading `1` from `2`.',
-        'intnm': 'Non-negative machine-sized integer expected at position 3 in `1`.',
+        'intnm': ('Non-negative machine-sized integer expected at '
+                  'position 3 in `1`.'),
     }
 
     rules = {
@@ -722,7 +723,8 @@ class WriteString(Builtin):
     """
 
     messages = {
-        'strml': '`1` is not a string, stream, or list of strings and streams.',
+        'strml': ('`1` is not a string, stream, '
+                  'or list of strings and streams.'),
     }
 
     attributes = ('Protected')
@@ -753,7 +755,8 @@ class _OpenAction(Builtin):
 
     messages = {
         'argx': 'OpenRead called with 0 arguments; 1 argument is expected.',
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr': ('File specification `1` is not a string of '
+                 'one or more characters.'),
     }
 
     attributes = ('Protected')
@@ -1226,7 +1229,8 @@ class FileNameSplit(Builtin):
     }
 
     messages = {
-        'ostype': 'The value of option OperatingSystem -> `1` must be one of "MacOSX", "Windows", or "Unix".',
+        'ostype': ('The value of option OperatingSystem -> `1` '
+                   'must be one of "MacOSX", "Windows", or "Unix".'),
     }
 
     def apply(self, filename, evaluation, options):
@@ -1285,7 +1289,8 @@ class FileNameJoin(Builtin):
     }
 
     messages = {
-        'ostype': 'The value of option OperatingSystem -> `1` must be one of "MacOSX", "Windows", or "Unix".',
+        'ostype': ('The value of option OperatingSystem -> `1` '
+                   'must be one of "MacOSX", "Windows", or "Unix".'),
     }
 
     def apply(self, pathlist, evaluation, options):
@@ -1425,7 +1430,8 @@ class DirectoryName(Builtin):
 
     messages = {
         'string': 'String expected at position 1 in `1`.',
-        'intpm': 'Positive machine-sized integer expected at position 2 in `1`.',
+        'intpm': ('Positive machine-sized integer expected at '
+                  'position 2 in `1`.'),
     }
 
     def apply(self, name, n, evaluation, options):
@@ -1509,7 +1515,8 @@ class AbsoluteFileName(Builtin):
     attributes = ('Protected')
 
     messages = {
-        'fstr': 'File specification x is not a string of one or more characters.',
+        'fstr': (
+            'File specification x is not a string of one or more characters.'),
         'nffil': 'File not found during `1`.',
     }
 
@@ -1558,8 +1565,8 @@ class ExpandFileName(Builtin):
 
         if not (isinstance(py_name, basestring) and
                 py_name[0] == py_name[-1] == '"'):
-            evaluation.message('ExpandFileName', 'string', Expression(
-                'ExpandFileName', name))
+            evaluation.message('ExpandFileName', 'string',
+                               Expression('ExpandFileName', name))
             return
         py_name = py_name[1:-1]
 
@@ -1657,7 +1664,7 @@ class ReadList(Read):
         return from_python(result)
 
     def apply_m(self, name, n, types, m, evaluation, options):
-        'ReadList[InputStream[name_, n_], types_, m_, OptionsPattern[ReadList]]'
+        'ReadList[InputStream[name_,n_], types_, m_, OptionsPattern[ReadList]]'
 
         # Options
         # TODO: Implement extra options
@@ -1718,7 +1725,8 @@ class FilePrint(Builtin):
     """
 
     messages = {
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr': ('File specification `1` is not a string of '
+                 'one or more characters.'),
     }
 
     options = {
@@ -1897,8 +1905,10 @@ class SetStreamPosition(Builtin):
 
     messages = {
         'int': 'Integer expected at position 2 in `1`.',
-        'stmrng': 'Cannot set the current point in stream `1` to position `2`. The requested position exceeds the number of characters in the file',
-        'python2': 'Python2 cannot handle negative seeks.',  # FIXME : fixed in Python3?
+        'stmrng': (
+            'Cannot set the current point in stream `1` to position `2`. The '
+            'requested position exceeds the number of characters in the file'),
+        'python2': 'Python2 cannot handle negative seeks.',  # FIXME: Python3?
     }
 
     attributes = ('Protected')
@@ -1973,11 +1983,13 @@ class Skip(Read):
     """
 
     rules = {
-        'Skip[InputStream[name_, n_], types_]': 'Skip[InputStream[name, n], types, 1]',
+        'Skip[InputStream[name_, n_], types_]':
+        'Skip[InputStream[name, n], types, 1]',
     }
 
     messages = {
-        'intm': 'Non-negative machine-sized integer expected at position 3 in `1`',
+        'intm':
+        'Non-negative machine-sized integer expected at position 3 in `1`',
     }
 
     options = {
@@ -2115,8 +2127,10 @@ class FindList(Builtin):
     """
 
     messages = {
-        'strs': 'String or non-empty list of strings expected at position `1` in `2`.',
-        'intnm': 'Non-negative machine-sized integer expected at position `1` in `2`.',
+        'strs':
+        'String or non-empty list of strings expected at position `1` in `2`.',
+        'intnm':
+        'Non-negative machine-sized integer expected at position `1` in `2`.',
     }
 
     attributes = ('Protected')
@@ -2371,7 +2385,8 @@ class FileByteCount(Builtin):
     """
 
     messages = {
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr':
+        'File specification `1` is not a string of one or more characters.',
     }
 
     def apply(self, filename, evaluation):
@@ -2518,11 +2533,17 @@ class FileDate(Builtin):
 
     messages = {
         'nffil': 'File not found during `1`.',
-        'datetype': 'Date type Fail should be "Access", "Modification", "Creation" (Windows only), "Change" (Macintosh and Unix only), or "Rules".',
+        'datetype': ('Date type Fail should be "Access", "Modification", '
+                     '"Creation" (Windows only), '
+                     '"Change" (Macintosh and Unix only), or "Rules".'),
     }
 
     rules = {
-        'FileDate[filepath_?StringQ, "Rules"]': '{"Access" -> FileDate[filepath, "Access"], "Creation" -> FileDate[filepath, "Creation"], "Change" -> FileDate[filepath, "Change"], "Modification" -> FileDate[filepath, "Modification"]}',
+        'FileDate[filepath_?StringQ, "Rules"]':
+        '''{"Access" -> FileDate[filepath, "Access"],
+            "Creation" -> FileDate[filepath, "Creation"],
+            "Change" -> FileDate[filepath, "Change"],
+            "Modification" -> FileDate[filepath, "Modification"]}''',
     }
 
     attributes = ('Protected')
@@ -2602,11 +2623,15 @@ class SetFileDate(Builtin):
     """
 
     messages = {
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr': ('File specification `1` is not a string of one or '
+                 'more characters.'),
         'nffil': 'File not found during `1`.',
-        'fdate': 'Date specification should be either the number of seconds since January 1, 1900 or a {y, m, d, h, m, s} list.',
-        'datetype': 'Date type a should be "Access", "Modification", "Creation" (Windows only), or All.',
-        'nocreationunix': 'The Creation date of a file cannot be set on Macintosh or Unix.',
+        'fdate': ('Date specification should be either the number of seconds '
+                  'since January 1, 1900 or a {y, m, d, h, m, s} list.'),
+        'datetype': ('Date type a should be "Access", "Modification", '
+                     '"Creation" (Windows only), or All.'),
+        'nocreationunix': ('The Creation date of a file cannot be set on '
+                           'Macintosh or Unix.'),
     }
 
     attributes = ('Protected')
@@ -2706,7 +2731,8 @@ class CopyFile(Builtin):
 
     messages = {
         'filex': 'Cannot overwrite existing file `1`.',
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr': ('File specification `1` is not a string of '
+                 'one or more characters.'),
         'nffil': 'File not found during `1`.',
     }
 
@@ -2767,7 +2793,8 @@ class RenameFile(Builtin):
 
     messages = {
         'filex': 'Cannot overwrite existing file `1`.',
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr': ('File specification `1` is not a string of '
+                 'one or more characters.'),
         'nffil': 'File not found during `1`.',
     }
 
@@ -2830,7 +2857,8 @@ class DeleteFile(Builtin):
 
     messages = {
         'filex': 'Cannot overwrite existing file `1`.',
-        'strs': 'String or non-empty list of strings expected at position `1` in `2`.',
+        'strs': ('String or non-empty list of strings expected at '
+                 'position `1` in `2`.'),
         'nffil': 'File not found during `1`.',
     }
 
@@ -2926,7 +2954,8 @@ class ParentDirectory(Builtin):
     }
 
     messages = {
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr': ('File specification `1` is not a string of '
+                 'one or more characters.'),
     }
 
     attributes = ('Protected')
@@ -2964,7 +2993,8 @@ class SetDirectory(Builtin):
     }
 
     messages = {
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr': ('File specification `1` is not a string of '
+                 'one or more characters.'),
         'cdir': 'Cannot set current directory to `1`.',
     }
 
@@ -3043,7 +3073,8 @@ class CreateDirectory(Builtin):
     }
 
     messages = {
-        'fstr': "File specification `1` is not a string of one or more characters.",
+        'fstr': ('File specification `1` is not a string of '
+                 'one or more characters.'),
         'nffil': "File not found during `1`.",
         'filex': "`1` already exists.",
     }
@@ -3103,11 +3134,12 @@ class DeleteDirectory(Builtin):
     }
 
     messages = {
-        'strs': "String or non-empty list of strings expected at position 1 in `1`.",
+        'strs': ('String or non-empty list of strings expected at '
+                 'position 1 in `1`.'),
         'nodir': 'Directory `1` not found.',
         'dirne': 'Directory `1` not empty.',
         'optx': 'Unknown option `1` in `2`',
-        'idcts': 'DeleteContents expects either True or False.',       # Mathematica Bug
+        'idcts': 'DeleteContents expects either True or False.',   # MMA Bug
     }
 
     def apply(self, dirname, evaluation, options):
@@ -3155,7 +3187,8 @@ class CopyDirectory(Builtin):
 
     messages = {
         'argr': 'called with `1` argument; 2 arguments are expected.',
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr': ('File specification `1` is not a string of '
+                 'one or more characters.'),
         'filex': 'Cannot overwrite existing file `1`.',
         'nodir': 'Directory `1` not found.',
     }
@@ -3203,7 +3236,8 @@ class RenameDirectory(Builtin):
 
     messages = {
         'argr': 'called with `1` argument; 2 arguments are expected.',
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr': ('File specification `1` is not a string of '
+                 'one or more characters.'),
         'filex': 'Cannot overwrite existing file `1`.',
         'nodir': 'Directory `1` not found.',
     }
@@ -3259,7 +3293,8 @@ class FileType(Builtin):
     """
 
     messages = {
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr': ('File specification `1` is not a string of '
+                 'one or more characters.'),
     }
 
     attributes = ('Protected')
@@ -3296,7 +3331,8 @@ class FileExistsQ(Builtin):
     """
 
     messages = {
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr': ('File specification `1` is not a string of '
+                 'one or more characters.'),
     }
 
     attributes = ('Protected')
@@ -3336,7 +3372,8 @@ class DirectoryQ(Builtin):
     """
 
     messages = {
-        'fstr': 'File specification `1` is not a string of one or more characters.',
+        'fstr': ('File specification `1` is not a string of '
+                 'one or more characters.'),
     }
 
     attributes = ('Protected')
@@ -3458,7 +3495,9 @@ class Needs(Builtin):
     """
 
     messages = {
-        'ctx': 'Invalid context specified at position `2` in `1`. A context must consist of valid symbol names separated by and ending with `3`.',
+        'ctx': ('Invalid context specified at position `2` in `1`. '
+                'A context must consist of valid symbol names separated by '
+                'and ending with `3`.'),
         'nocont': 'Context `1` was not created when Needs was evaluated.',
     }
 

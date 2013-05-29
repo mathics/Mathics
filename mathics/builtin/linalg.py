@@ -105,7 +105,8 @@ class LinearSolve(Builtin):
     """
 
     messages = {
-        'lslc': "Coefficient matrix and target vector(s) or matrix do not have the same dimensions.",
+        'lslc': ("Coefficient matrix and target vector(s) or matrix "
+                 "do not have the same dimensions."),
         'nosol': "Linear equation encountered that has no solution.",
     }
 
@@ -270,7 +271,8 @@ class Eigenvectors(Builtin):
     """
 
     messages = {
-        'eigenvecnotimplemented': "Eigenvectors is not yet implemented for the matrix `1`.",
+        'eigenvecnotimplemented': (
+            "Eigenvectors is not yet implemented for the matrix `1`."),
     }
 
     # TODO: Normalise the eigenvectors

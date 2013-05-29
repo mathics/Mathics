@@ -1,3 +1,3 @@
 [pep8]
 ignore = E501,W291
-exclude = parsetab.py
+exclude = parsetab.py,magic.py

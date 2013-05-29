@@ -89,7 +89,9 @@ class D(SympyFunction):
     sympy_name = 'Derivative'
 
     messages = {
-        'dvar': "Multiple derivative specifier `1` does not have the form {variable, n}, where n is a non-negative machine integer.",
+        'dvar': (
+            "Multiple derivative specifier `1` does not have the form "
+            "{variable, n}, where n is a non-negative machine integer."),
     }
 
     rules = {
@@ -100,20 +102,25 @@ class D(SympyFunction):
         'D[f_ ^ g_, x_?NotListQ]': 'D[E ^ (Log[f] * g), x]',
 
         'D[f_, x_?NotListQ] /; FreeQ[f, x]': '0',
-        #'D[f_[g_], x_?NotListQ]': 'Module[{t}, D[f[t], t] /. t -> g] * D[g, x]',
+        #'D[f_[g_], x_?NotListQ]': (
+        #  'Module[{t}, D[f[t], t] /. t -> g] * D[g, x]',
         #'D[f_[g_], x_?NotListQ]': 'D[f[g], g] * D[g, x]',
 
         'D[f_[left___, x_, right___], x_?NotListQ] /; FreeQ[{left, right}, x]':
-        'Derivative[Sequence @@ UnitVector[Length[{left, x, right}], Length[{left, x}]]][f][left, x, right]',
+        'Derivative[Sequence @@ UnitVector['
+        '  Length[{left, x, right}], Length[{left, x}]]][f][left, x, right]',
         #'D[f_[args___], x_?NotListQ]':
-        #    'Plus @@ MapIndexed[(D[f[Sequence@@ReplacePart[{args}, #2->t]], t] /. t->#) * D[#, x]&, {args}]',
+        #'Plus @@ MapIndexed[(D[f[Sequence@@ReplacePart[{args}, #2->t]], t] '
+        #'/. t->#) * D[#, x]&, {args}]',
 
         'D[{items___}, x_?NotListQ]': 'D[#, x]& /@ {items}',
         'D[f_, {list_List}]': 'D[f, #]& /@ list',
-        'D[f_, {list_List, n_Integer?Positive}]': 'D[f, Sequence @@ ConstantArray[{list}, n]]',
+        'D[f_, {list_List, n_Integer?Positive}]': (
+            'D[f, Sequence @@ ConstantArray[{list}, n]]'),
         'D[f_, x_, rest__]': 'D[D[f, x], rest]',
 
-        'D[expr_, {x_, n_Integer?NonNegative}]': 'Module[{t}, Nest[Function[{t}, D[t, x]], expr, n]]',
+        'D[expr_, {x_, n_Integer?NonNegative}]': (
+            'Module[{t}, Nest[Function[{t}, D[t, x]], expr, n]]'),
     }
 
     def apply(self, f, x, evaluation):
@@ -221,14 +228,17 @@ class Derivative(PostfixOperator, SympyFunction):
     attributes = ('NHoldAll',)
 
     rules = {
-        'MakeBoxes[Derivative[n__Integer][f_], form:StandardForm|TraditionalForm]':
-        r'SuperscriptBox[MakeBoxes[f, form], If[{n} === {2}, "\[Prime]\[Prime]", If[{n} === {1}, "\[Prime]", RowBox[{"(", Sequence @@ Riffle[{n}, ","], ")"}]]]]',
+        'MakeBoxes[Derivative[n__Integer][f_], '
+        '  form:StandardForm|TraditionalForm]': (
+            r'SuperscriptBox[MakeBoxes[f, form], If[{n} === {2}, '
+            r'  "\[Prime]\[Prime]", If[{n} === {1}, "\[Prime]", '
+            r'    RowBox[{"(", Sequence @@ Riffle[{n}, ","], ")"}]]]]'),
         'MakeBoxes[Derivative[n:1|2][f_], form:OutputForm]':
         """RowBox[{MakeBoxes[f, form], If[n==1, "'", "''"]}]""",
 
         'Derivative[0...][f_]': 'f',
-        'Derivative[n__Integer][Derivative[m__Integer][f_]] /; Length[{m}] == Length[{n}]':
-        'Derivative[Sequence @@ ({n} + {m})][f]',
+        'Derivative[n__Integer][Derivative[m__Integer][f_]] /; Length[{m}] '
+        '== Length[{n}]': 'Derivative[Sequence @@ ({n} + {m})][f]',
         """Derivative[n__Integer][f_Symbol] /; Module[{t=Sequence@@Slot/@Range[Length[{n}]], result, nothing, ft=f[t]},
             If[Head[ft] === f
             && FreeQ[Join[UpValues[f], DownValues[f], SubValues[f]], Derivative|D]
@@ -256,7 +266,11 @@ class Derivative(PostfixOperator, SympyFunction):
                 ];
                 Function @@ {result}
             ]""",
-        'Derivative[n__Integer][f_Function]': 'Evaluate[D[Quiet[f[Sequence @@ Table[Slot[i], {i, 1, Length[{n}]}]], Function::slotn], Sequence @@ Table[{Slot[i], {n}[[i]]}, {i, 1, Length[{n}]}]]]&',
+        'Derivative[n__Integer][f_Function]':
+        """Evaluate[D[
+            Quiet[f[Sequence @@ Table[Slot[i], {i, 1, Length[{n}]}]],
+                Function::slotn],
+            Sequence @@ Table[{Slot[i], {n}[[i]]}, {i, 1, Length[{n}]}]]]&""",
     }
 
     default_formats = False
@@ -400,9 +414,13 @@ class Integrate(SympyFunction):
         'Integrate[list_List, x_]': 'Integrate[#, x]& /@ list',
 
         'MakeBoxes[Integrate[f_, x_], form:StandardForm|TraditionalForm]':
-        r'RowBox[{"\[Integral]", MakeBoxes[f, form], "\[InvisibleTimes]", RowBox[{"\[DifferentialD]", MakeBoxes[x, form]}]}]',
-        'MakeBoxes[Integrate[f_, {x_, a_, b_}], form:StandardForm|TraditionalForm]':
-        r'RowBox[{SubsuperscriptBox["\[Integral]", MakeBoxes[a, form], MakeBoxes[b, form]], MakeBoxes[f, form], "\[InvisibleTimes]", RowBox[{"\[DifferentialD]", MakeBoxes[x, form]}]}]',
+        r'''RowBox[{"\[Integral]", MakeBoxes[f, form], "\[InvisibleTimes]",
+                RowBox[{"\[DifferentialD]", MakeBoxes[x, form]}]}]''',
+        'MakeBoxes[Integrate[f_, {x_, a_, b_}], '
+        'form:StandardForm|TraditionalForm]':
+        r'''RowBox[{SubsuperscriptBox["\[Integral]", MakeBoxes[a, form],
+                MakeBoxes[b, form]], MakeBoxes[f, form], "\[InvisibleTimes]",
+                RowBox[{"\[DifferentialD]", MakeBoxes[x, form]}]}]''',
     }
 
     def prepare_sympy(self, leaves):
@@ -577,12 +595,13 @@ class Solve(Builtin):
 
     messages = {
         'eqf': "`1` is not a well-formed equation.",
-        'svars': "Equations may not give solutions for all \"solve\" variables.",
+        'svars': 'Equations may not give solutions for all "solve" variables.',
     }
 
     rules = {
         'Solve[eqs_, vars_, Complexes]': 'Solve[eqs, vars]',
-        'Solve[eqs_, vars_, Reals]': 'Cases[Solve[eqs, vars], {Rule[x,y_?RealNumberQ]}]',
+        'Solve[eqs_, vars_, Reals]': (
+            'Cases[Solve[eqs, vars], {Rule[x,y_?RealNumberQ]}]'),
     }
 
     def apply(self, eqs, vars, evaluation):
@@ -770,7 +789,8 @@ class Limit(Builtin):
         except sympy.PoleError:
             pass
         except RuntimeError:
-            # Bug in Sympy: RuntimeError: maximum recursion depth exceeded while calling a Python object
+            # Bug in Sympy: RuntimeError: maximum recursion depth exceeded
+            # while calling a Python object
             pass
         except NotImplementedError:
             pass
@@ -831,7 +851,8 @@ class FindRoot(Builtin):
         'snum': "Value `1` is not a number.",
         'nnum': "The function value is not a number at `1` = `2`.",
         'dsing': "Encountered a singular derivative at the point `1` = `2`.",
-        'maxiter': "The maximum number of iterations was exceeded. The result might be inaccurate.",
+        'maxiter': ("The maximum number of iterations was exceeded. "
+                    "The result might be inaccurate."),
     }
 
     rules = {

@@ -37,8 +37,10 @@ class RSolve(Builtin):
     """
 
     messages = {
-        'deqn': 'Equation or list of equations expected instead of `1` in the first argument `1`.',
-        'deqx': 'Supplied equations are not difference equations of the given functions.',
+        'deqn': ('Equation or list of equations expected instead of `1` '
+                 'in the first argument `1`.'),
+        'deqx': ('Supplied equations are not difference equations of the '
+                 'given functions.'),
         'dsfun': '`1` cannot be used as a function.',
         'dsvar': '`1` cannot be used as a variable.',
     }

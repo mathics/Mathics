@@ -192,7 +192,8 @@ class Inner(Builtin):
     }
 
     messages = {
-        'incom': "Length `1` of dimension `2` in `3` is incommensurate with length `4` of dimension 1 in `5.",
+        'incom': ("Length `1` of dimension `2` in `3` is incommensurate with "
+                  "length `4` of dimension 1 in `5."),
     }
 
     def apply(self, f, list1, list2, g, evaluation):

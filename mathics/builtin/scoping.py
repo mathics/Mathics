@@ -86,8 +86,10 @@ class Block(Builtin):
     attributes = ('HoldAll',)
 
     messages = {
-        'lvsym': "Local variable specification contains `1`, which is not a symbol or an assignment to a symbol.",
-        'dup': "Duplicate local variable `1` found in local variable specification.",
+        'lvsym': ("Local variable specification contains `1`, "
+                  "which is not a symbol or an assignment to a symbol."),
+        'dup': ("Duplicate local variable `1` found in local variable "
+                "specification."),
         'lvlist': "Local variable specification `1` is not a List.",
     }
 
@@ -122,7 +124,8 @@ class ModuleNumber(Predefined):
     name = '$ModuleNumber'
 
     messages = {
-        'set': "Cannot set $ModuleNumber to `1`; value must be a positive integer.",
+        'set': ("Cannot set $ModuleNumber to `1`; "
+                "value must be a positive integer."),
     }
 
     rules = {
@@ -163,8 +166,10 @@ class Module(Builtin):
     attributes = ('HoldAll',)
 
     messages = {
-        'lvsym': "Local variable specification contains `1`, which is not a symbol or an assignment to a symbol.",
-        'dup': "Duplicate local variable `1` found in local variable specification.",
+        'lvsym': ("Local variable specification contains `1`, "
+                  "which is not a symbol or an assignment to a symbol."),
+        'dup': ("Duplicate local variable `1` found in local variable "
+                "specification."),
         'lvlist': "Local variable specification `1` is not a List.",
     }
 

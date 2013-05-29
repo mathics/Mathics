@@ -187,8 +187,8 @@ class _DateFormat(Builtin):
                 evaluation.message(form_name, 'arg', epochtime)
                 return
 
-            tdelta = timedelta(days=imprec_part[0] - 1, hours=imprec_part[
-                               1], minutes=imprec_part[2], seconds=imprec_part[3])
+            tdelta = timedelta(days=imprec_part[0] - 1, hours=imprec_part[1],
+                               minutes=imprec_part[2], seconds=imprec_part[3])
             dtime += tdelta
             datelist = [dtime.year, dtime.month, dtime.day, dtime.hour,
                         dtime.minute, dtime.second + 1e-06 * dtime.microsecond]
@@ -380,9 +380,12 @@ class DateString(_DateFormat):
 
     rules = {
         'DateString[]': 'DateString[DateList[], $DateStringFormat]',
-        'DateString[epochtime_?(VectorQ[#1, NumericQ]&)]': 'DateString[epochtime, $DateStringFormat]',
-        'DateString[epochtime_?NumericQ]': 'DateString[epochtime, $DateStringFormat]',
-        'DateString[format_?(VectorQ[#1, StringQ]&)]': 'DateString[DateList[], format]',
+        'DateString[epochtime_?(VectorQ[#1, NumericQ]&)]': (
+            'DateString[epochtime, $DateStringFormat]'),
+        'DateString[epochtime_?NumericQ]': (
+            'DateString[epochtime, $DateStringFormat]'),
+        'DateString[format_?(VectorQ[#1, StringQ]&)]': (
+            'DateString[DateList[], format]'),
         'DateString[epochtime_]': 'DateString[epochtime, $DateStringFormat]',
     }
 
@@ -551,7 +554,8 @@ class Pause(Builtin):
     """
 
     messages = {
-        'numnm': 'Non-negative machine-sized number expected at position 1 in `1`.',
+        'numnm': ('Non-negative machine-sized number expected at '
+                  'position 1 in `1`.'),
     }
 
     def apply(self, n, evaluation):
@@ -622,12 +626,13 @@ class DatePlus(Builtin):
     """
 
     rules = {
-        'DatePlus[n_]': 'DatePlus[{DateList[][[1]], DateList[][[2]], DateList[][[3]]}, n]',
+        'DatePlus[n_]': 'DatePlus[Take[DateList[], 3], n]'
     }
 
     messages = {
         'date': 'Argument `1` cannot be interpreted as a date.',
-        'inc': 'Argument `1` is not a time increment or a list of time increments.',
+        'inc': ('Argument `1` is not a time increment or a list '
+                'of time increments.'),
     }
 
     attributes = ('ReadProtected',)
@@ -717,12 +722,13 @@ class DateDifference(Builtin):
     """
 
     rules = {
-        'DateDifference[date1_, date2_]': """DateDifference[date1, date2, "Day"]""",
+        'DateDifference[date1_, date2_]': 'DateDifference[date1, date2, "Day"]'
     }
 
     messages = {
         'date': 'Argument `1` cannot be interpreted as a date.',
-        'inc': 'Argument `1` is not a time increment or a list of time increments.',
+        'inc': ('Argument `1` is not a time increment or '
+                'a list of time increments.'),
     }
 
     attributes = ('ReadProtected',)

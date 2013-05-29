@@ -330,8 +330,10 @@ class Minus(PrefixOperator):
 
     formats = {
         'Minus[x_]': 'Prefix[{HoldForm[x]}, "-", 480]',
-        'Minus[expr_Divide]': 'Prefix[{HoldForm[expr]}, "-", 399]',  # don't put e.g. -2/3 in parentheses
-        'Minus[Infix[expr_, op_, 400, grouping_]]': 'Prefix[{Infix[expr, op, 400, grouping]}, "-", 399]',
+        # don't put e.g. -2/3 in parentheses
+        'Minus[expr_Divide]': 'Prefix[{HoldForm[expr]}, "-", 399]',
+        'Minus[Infix[expr_, op_, 400, grouping_]]': (
+            'Prefix[{Infix[expr, op, 400, grouping]}, "-", 399]'),
     }
 
     def apply_int(self, x, evaluation):
@@ -647,12 +649,13 @@ class Divide(BinaryOperator):
 
     rules = {
         'Divide[x_, y_]': 'Times[x, Power[y, -1]]',
-
-        'MakeBoxes[Divide[x_, y_], f:StandardForm|TraditionalForm]': 'FractionBox[MakeBoxes[x, f], MakeBoxes[y, f]]',
+        'MakeBoxes[Divide[x_, y_], f:StandardForm|TraditionalForm]': (
+            'FractionBox[MakeBoxes[x, f], MakeBoxes[y, f]]'),
     }
 
     formats = {
-        (('InputForm', 'OutputForm'), 'Divide[x_, y_]'): 'Infix[{HoldForm[x], HoldForm[y]}, "/", 400, Left]',
+        (('InputForm', 'OutputForm'), 'Divide[x_, y_]'): (
+            'Infix[{HoldForm[x], HoldForm[y]}, "/", 400, Left]'),
     }
 
     def post_parse(self, expression):
@@ -756,12 +759,16 @@ class Power(BinaryOperator, SympyFunction):
     }
 
     formats = {
-        Expression('Power', Expression('Pattern', Symbol('x'), Expression('Blank')), Rational(1, 2)): 'HoldForm[Sqrt[x]]',
+        Expression('Power', Expression('Pattern', Symbol('x'),
+                   Expression('Blank')), Rational(1, 2)): 'HoldForm[Sqrt[x]]',
+        (('InputForm', 'OutputForm'), 'x_ ^ y_'): (
+            'Infix[{HoldForm[x], HoldForm[y]}, "^", 590, Right]'),
+        ('', 'x_ ^ y_'): (
+            'PrecedenceForm[Superscript[OuterPrecedenceForm[HoldForm[x], 590],'
+            '  HoldForm[y]], 590]'),
 
-        (('InputForm', 'OutputForm'), 'x_ ^ y_'): 'Infix[{HoldForm[x], HoldForm[y]}, "^", 590, Right]',
-        ('', 'x_ ^ y_'): 'PrecedenceForm[Superscript[OuterPrecedenceForm[HoldForm[x], 590], HoldForm[y]], 590]',
-
-        ('', 'x_ ^ y_?Negative'): 'HoldForm[Divide[1, #]]&[If[y==-1, HoldForm[x], HoldForm[x]^-y]]',
+        ('', 'x_ ^ y_?Negative'): (
+            'HoldForm[Divide[1, #]]&[If[y==-1, HoldForm[x], HoldForm[x]^-y]]'),
     }
 
     rules = {
@@ -875,7 +882,8 @@ class Sqrt(SympyFunction):
     rules = {
         'Sqrt[x_]': 'x ^ (1/2)',
 
-        'MakeBoxes[Sqrt[x_], f:StandardForm|TraditionalForm]': 'SqrtBox[MakeBoxes[x, f]]',
+        'MakeBoxes[Sqrt[x_], f:StandardForm|TraditionalForm]': (
+            'SqrtBox[MakeBoxes[x, f]]'),
     }
 
 
@@ -911,7 +919,8 @@ class Infinity(SympyConstant):
     rules = {
         'Infinity': 'DirectedInfinity[1]',
 
-        'MakeBoxes[Infinity, f:StandardForm|TraditionalForm]': '"\\[Infinity]"',
+        'MakeBoxes[Infinity, f:StandardForm|TraditionalForm]': (
+            '"\\[Infinity]"'),
     }
 
 
@@ -966,14 +975,20 @@ class DirectedInfinity(SympyFunction):
 
     rules = {
         'DirectedInfinity[args___] ^ -1': '0',
-        '0 * DirectedInfinity[args___]': 'Message[Infinity::indet, Unevaluated[0 DirectedInfinity[args]]]; Indeterminate',
-        'DirectedInfinity[a_?NumberQ] /; N[Abs[a]] != 1': 'DirectedInfinity[a / Abs[a]]',
+        '0 * DirectedInfinity[args___]': (
+            'Message[Infinity::indet, Unevaluated[0 DirectedInfinity[args]]];'
+            'Indeterminate'),
+        'DirectedInfinity[a_?NumberQ] /; N[Abs[a]] != 1': (
+            'DirectedInfinity[a / Abs[a]]'),
         'DirectedInfinity[a_] * DirectedInfinity[b_]': 'DirectedInfinity[a*b]',
         'DirectedInfinity[] * DirectedInfinity[args___]': 'DirectedInfinity[]',
         'DirectedInfinity[0]': 'DirectedInfinity[]',
         'z_?NumberQ * DirectedInfinity[]': 'DirectedInfinity[]',
         'z_?NumberQ * DirectedInfinity[a_]': 'DirectedInfinity[z * a]',
-        'DirectedInfinity[a_] + DirectedInfinity[b_] /; b == -a': 'Message[Infinity::indet, Unevaluated[DirectedInfinity[a] + DirectedInfinity[b]]]; Indeterminate',
+        'DirectedInfinity[a_] + DirectedInfinity[b_] /; b == -a': (
+            'Message[Infinity::indet,'
+            '  Unevaluated[DirectedInfinity[a] + DirectedInfinity[b]]];'
+            'Indeterminate'),
         'DirectedInfinity[args___] + _?NumberQ': 'DirectedInfinity[args]',
     }
 
@@ -1553,8 +1568,11 @@ class Sum(_IterationFunction, SympyFunction):
 
     rules = _IterationFunction.rules.copy()
     rules.update({
-        'MakeBoxes[Sum[f_, {i_, a_, b_, 1}], form:StandardForm|TraditionalForm]':
-        r'RowBox[{SubsuperscriptBox["\[Sum]", RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}], MakeBoxes[b, form]], MakeBoxes[f, form]}]',
+        'MakeBoxes[Sum[f_, {i_, a_, b_, 1}],'
+        '  form:StandardForm|TraditionalForm]': (
+            r'RowBox[{SubsuperscriptBox["\[Sum]",'
+            r'  RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}],'
+            r'  MakeBoxes[b, form]], MakeBoxes[f, form]}]'),
     })
 
     def get_result(self, items):
@@ -1612,8 +1630,11 @@ class Product(_IterationFunction, SympyFunction):
 
     rules = _IterationFunction.rules.copy()
     rules.update({
-        'MakeBoxes[Product[f_, {i_, a_, b_, 1}], form:StandardForm|TraditionalForm]':
-        r'RowBox[{SubsuperscriptBox["\[Product]", RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}], MakeBoxes[b, form]], MakeBoxes[f, form]}]',
+        'MakeBoxes[Product[f_, {i_, a_, b_, 1}],'
+        '  form:StandardForm|TraditionalForm]': (
+            r'RowBox[{SubsuperscriptBox["\[Product]",'
+            r'  RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}],'
+            r'  MakeBoxes[b, form]], MakeBoxes[f, form]}]'),
     })
 
     def get_result(self, items):
