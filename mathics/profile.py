@@ -27,7 +27,8 @@ import pstats
 from mathics.core.parser import parse, TranslateError
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Evaluation
-from mathics.builtin import modules, builtins_by_module, get_module_doc, builtins
+from mathics.builtin import (modules, builtins_by_module, get_module_doc,
+                             builtins)
 from mathics.doc import documentation
 
 definitions = Definitions(add_builtin=True)
@@ -48,7 +49,8 @@ def run():
     try:
         # prompt = 'SetAttributes[v, Flat]; v[x_]:={x}; v[a,b]'
         # prompt = """(Plus@@Symbol/@CharacterRange["a","z"])^2//Expand;"""
-        # prompt = 'Plus@@f/@Symbol/@StringJoin/@Tuples[CharacterRange["a","z"],2]'
+        # prompt = (
+        #     'Plus@@f/@Symbol/@StringJoin/@Tuples[CharacterRange["a","z"],2]')
         # prompt = 'FullForm[Nest[1+Sqrt[1+#]&, x, 20]]'
         # prompt = '1+2'
         prompt = 'DensityPlot[x*y,{x,-1,1},{y,-1,1}]'

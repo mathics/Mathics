@@ -67,13 +67,16 @@ HYPERTEXT_RE = re.compile(r"(?s)<(?P<tag>em|url)>(?P<content>.*?)</(?P=tag)>")
 
 OUTSIDE_ASY_RE = re.compile(r"(?s)((?:^|\\end\{asy\}).*?(?:$|\\begin\{asy\}))")
 LATEX_TEXT_RE = re.compile(
-    r"(?s)\\text\{([^{}]*?(?:[^{}]*?\{[^{}]*?(?:[^{}]*?\{[^{}]*?\}[^{}]*?)*?[^{}]*?\}[^{}]*?)*?[^{}]*?)\}")
+    r"(?s)\\text\{([^{}]*?(?:[^{}]*?\{[^{}]*?(?:[^{}]*?\{[^{}]*?\}[^{}]*?)*?"
+    r"[^{}]*?\}[^{}]*?)*?[^{}]*?)\}")
 LATEX_TESTOUT_RE = re.compile(
-    r"(?s)\\begin\{(?P<tag>testmessage|testprint|testresult)\}(?P<content>.*?)\\end\{(?P=tag)\}")
+    r"(?s)\\begin\{(?P<tag>testmessage|testprint|testresult)\}"
+    r"(?P<content>.*?)\\end\{(?P=tag)\}")
 LATEX_TESTOUT_DELIM_RE = re.compile(r',')
 NUMBER_RE = re.compile(r'(\d*(?<!\.)\.\d+|\d+\.(?!\.)\d*|\d+)')
 LATEX_ARRAY_RE = re.compile(
-    r'(?s)\\begin\{testresult\}\\begin\{array\}\{l\}(.*?)\\end\{array\}\\end\{testresult\}')
+    r'(?s)\\begin\{testresult\}\\begin\{array\}\{l\}(.*?)'
+    r'\\end\{array\}\\end\{testresult\}')
 LATEX_INLINE_END_RE = re.compile(r"(?s)(?P<all>\\lstinline'[^']*?'\}?[.,;:])")
 LATEX_CONSOLE_RE = re.compile(r"\\console\{(.*?)\}")
 
@@ -84,7 +87,8 @@ ALLOWED_TAGS_RE = dict((allowed, re.compile(
 
 SPECIAL_COMMANDS = {
     'LaTeX': (r'<em>LaTeX</em>', r'\LaTeX{}'),
-    'Mathematica': (r'<em>Mathematica</em>&reg;', r'\emph{Mathematica}\textregistered{}'),
+    'Mathematica': (r'<em>Mathematica</em>&reg;',
+                    r'\emph{Mathematica}\textregistered{}'),
     'Mathics': (r'<em>Mathics</em>', r'\emph{Mathics}'),
     'Sage': (r'<em>Sage</em>', r'\emph{Sage}'),
     'Wolfram': (r'<em>Wolfram</em>', r'\emph{Wolfram}'),
@@ -100,7 +104,8 @@ except IOError:
 
 
 def filter_comments(doc):
-    return u'\n'.join(line for line in doc.splitlines() if not line.lstrip().startswith('##'))
+    return u'\n'.join(line for line in doc.splitlines()
+                      if not line.lstrip().startswith('##'))
 
 
 def get_latex_escape_char(text):
@@ -110,12 +115,18 @@ def get_latex_escape_char(text):
     raise ValueError
 
 
+def _replace_all(text, pairs):
+    for (i, j) in pairs:
+        text = text.replace(i, j)
+    return text
+
+
 def escape_latex_output(text):
     " Escape Mathics output "
 
-    text = text.replace('\\', '\\\\').replace('{', '\\{').replace(
-        '}', '\\}').replace('~', '\\~').replace('&', '\\&').replace('%', '\\%')
-    text = text.replace('$', r'\$')
+    text = _replace_all(text, [('\\', '\\\\'), ('{', '\\{'), ('}', '\\}'),
+                               ('~', '\\~'), ('&', '\\&'), ('%', '\\%'),
+                               ('$', r'\$')])
     return text
 
 
@@ -136,22 +147,25 @@ def escape_latex(text):
 \end{lstlisting}""" % match.group(1).strip()
     text, post_substitutions = pre_sub(PYTHON_RE, text, repl_python)
 
-    text = text.replace('\\', '\\\\').replace('{', '\\{').replace(
-        '}', '\\}').replace('~', '\\~{ }').replace('&', '\\&').replace('%', '\\%')
+    text = _repalce_all(text, [('\\', '\\\\'), ('{', '\\{'), ('}', '\\}'),
+                               ('~', '\\~{ }'), ('&', '\\&'), ('%', '\\%')])
 
     def repl(match):
         text = match.group(1)
         if text:
-            text = text.replace("\\'", "'")
-            text = text.replace('^', '\\^')
+            text = _replace_all(text, [("\\'", "'"), ('^', '\\^')])
             escape_char = get_latex_escape_char(text)
-            text = LATEX_RE.sub(lambda m: u"%s%s\\codevar{\\textit{%s}}%s\\lstinline%s" % (
-                escape_char, m.group(1), m.group(2), m.group(3), escape_char), text)
+            text = LATEX_RE.sub(
+                lambda m: u"%s%s\\codevar{\\textit{%s}}%s\\lstinline%s" % (
+                    escape_char, m.group(1), m.group(2), m.group(3),
+                    escape_char),
+                text)
             if text.startswith(' '):
                 text = r'\ ' + text[1:]
             if text.endswith(' '):
                 text = text[:-1] + r'\ '
-            return u"\\code{\\lstinline%s%s%s}" % (escape_char, text, escape_char)
+            return u"\\code{\\lstinline%s%s%s}" % (
+                escape_char, text, escape_char)
         else:
             # treat double '' literaly
             return "''"
@@ -179,9 +193,7 @@ def escape_latex(text):
         return u'\\begin{%s}%s\\end{%s}' % (env, content, env)
     text = LIST_RE.sub(repl_list, text)
 
-    text = text.replace('$', r'\$')
-
-    text = text.replace(u'π', '$\pi$')
+    text = _replace_all(text, [('$', r'\$'), (u'π', '$\pi$')])
 
     def repl_char(match):
         char = match.group(1)
@@ -235,13 +247,16 @@ def escape_latex(text):
             return '\\begin{lstlisting}\n%s\n\\end{lstlisting}' % content
     text = CONSOLE_RE.sub(repl_console, text)
 
-    """def repl_asy(match):
-        " ensure \begin{asy} and \end{asy} are on their own line, but there shall be no extra empty lines "
+    '''def repl_asy(match):
+        """
+        Ensure \begin{asy} and \end{asy} are on their own line,
+        but there shall be no extra empty lines
+        """
         #tag = match.group(1)
         #return '\n%s\n' % tag
         #print "replace"
         return '\\end{asy}\n\\begin{asy}'
-    text = LATEX_BETWEEN_ASY_RE.sub(repl_asy, text)"""
+    text = LATEX_BETWEEN_ASY_RE.sub(repl_asy, text)'''
 
     def repl_subsection(match):
         return '\n\\subsection*{%s}\n' % match.group(1)
@@ -249,8 +264,8 @@ def escape_latex(text):
     text = SUBSECTION_END_RE.sub('', text)
 
     for key, (xml, tex) in SPECIAL_COMMANDS.iteritems():
-        text = text.replace(
-            '\\\\' + key, tex)  # "\" has been escaped already => 2 \
+        # "\" has been escaped already => 2 \
+        text = text.replace('\\\\' + key, tex)
 
     text = post_sub(text, post_substitutions)
 
@@ -258,7 +273,9 @@ def escape_latex(text):
 
 
 def post_process_latex(result):
-    " Some post-processing hacks of generated LaTeX code to handle linebreaks "
+    """
+    Some post-processing hacks of generated LaTeX code to handle linebreaks
+    """
 
     WORD_SPLIT_RE = re.compile(r'(\s+|\\newline\s*)')
 
@@ -400,7 +417,8 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
     text = text.replace('"', '&quot;')
     if not verbatim_mode:
         def repl_latex(match):
-            return '%s<var>%s</var>%s' % (match.group(1), match.group(2), match.group(3))
+            return '%s<var>%s</var>%s' % (
+                match.group(1), match.group(2), match.group(3))
 
         text = LATEX_RE.sub(repl_latex, text)
 
@@ -414,8 +432,8 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
                 return "'"
 
         def repl_allowed(match):
-            content = match.group(1).replace('&ldquo;', '"').replace(
-                '&rdquo;', '"').replace('&quot;', '"')
+            context = _repalce_all(match.group(1), [
+                ('&ldquo;', '"'), ('&rdquo;', '"'), ('&quot;', '"')])
             return '<%s>' % content
 
         text = MATHICS_RE.sub(repl_mathics, text)
@@ -456,19 +474,21 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
             tag = 'div' if tag == 'console' else 'span'
             content = content.strip()
             pre = post = ''
-            content = content.replace(
-                '\n', '<br>')  # gets replaced for <br /> later by DocText.html()
-            return r'<%s class="console">%s%s%s</%s>' % (tag, pre, content, post, tag)
+
+            # gets replaced for <br /> later by DocText.html()
+            content = content.replace('\n', '<br>')
+
+            return r'<%s class="console">%s%s%s</%s>' % (
+                tag, pre, content, post, tag)
 
         text = CONSOLE_RE.sub(repl_console, text)
 
         def repl_img(match):
             src = match.group('src')
             title = match.group('title')
-            return r'<a href="/media/doc/%(src)s.pdf"><img src="/media/doc/%(src)s.png" title="%(title)s" /></a>' % {
-                'src': src,
-                'title': title,
-            }
+            return (r'<a href="/media/doc/%(src)s.pdf">'
+                    r'<img src="/media/doc/%(src)s.png" title="%(title)s" />'
+                    r'</a>') % {'src': src, 'title': title}
         text = IMG_RE.sub(repl_img, text)
 
         def repl_ref(match):
@@ -504,7 +524,8 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
 
 class Tests(object):
     def __init__(self, part, chapter, section, tests):
-        self.part, self.chapter, self.section, self.tests = part, chapter, section, tests
+        self.part, self.chapter = part, chapter
+        self.section, self.tests = section, tests
 
 
 class DocElement(object):
@@ -568,8 +589,11 @@ class Documentation(DocElement):
                     part.is_appendix = True
                     appendix.append(part)
 
-        for title, modules, builtins_by_module, start in [("Reference of built-in symbols", builtin.modules, builtin.builtins_by_module, True)]:
-            #("Reference of optional symbols", optional.modules, optional.optional_builtins_by_module, False)]:
+        for title, modules, builtins_by_module, start in [(     # nopep8
+            "Reference of built-in symbols", builtin.modules,
+            builtin.builtins_by_module, True)]:
+            #("Reference of optional symbols", optional.modules,
+            # optional.optional_builtins_by_module, False)]:
             builtin_part = DocPart(self, title, is_reference=start)
             for module in modules:
                 title, text = get_module_doc(module)
@@ -604,7 +628,8 @@ class Documentation(DocElement):
                 for section in chapter.sections:
                     tests = section.doc.get_tests()
                     if tests:
-                        yield Tests(part.title, chapter.title, section.title, tests)
+                        yield Tests(
+                            part.title, chapter.title, section.title, tests)
 
     def get_part(self, part_slug):
         return self.parts_by_slug.get(part_slug)
@@ -678,11 +703,13 @@ class DocPart(DocElement):
         doc.parts_by_slug[self.slug] = self
 
     def __str__(self):
-        return '%s\n\n%s' % (self.title, '\n'.join(str(chapter) for chapter in self.chapters))
+        return '%s\n\n%s' % (
+            self.title, '\n'.join(str(chapter) for chapter in self.chapters))
 
     def latex(self, output):
-        result = '\n\n\\part{%s}\n\n' % escape_latex(self.title) + '\n\n'.join(
-            chapter.latex(output) for chapter in self.chapters)
+        result = '\n\n\\part{%s}\n\n' % (
+            escape_latex(self.title) +
+            '\n\n'.join(chapter.latex(output) for chapter in self.chapters))
         if self.is_reference:
             result = '\n\n\\referencestart' + result
         return result
@@ -705,7 +732,8 @@ class DocChapter(DocElement):
         part.chapters_by_slug[self.slug] = self
 
     def __str__(self):
-        return '= %s =\n\n%s' % (self.title, '\n'.join(str(section) for section in self.sections))
+        return '= %s =\n\n%s' % (
+            self.title, '\n'.join(str(section) for section in self.sections))
 
     def latex(self, output):
         intro = self.doc.latex(output).strip()
@@ -713,11 +741,14 @@ class DocChapter(DocElement):
             short = 'short' if len(intro) < 300 else ''
             intro = '\\begin{chapterintro%s}\n%s\n\n\\end{chapterintro%s}' % (
                 short, intro, short)
-        return '\n\n\\chapter{%(title)s}\n\\chapterstart\n\n%(intro)s' % {
-            'title': escape_latex(self.title),
-            'intro': intro
-        } + '\\chaptersections\n' + '\n\n'.join(section.latex(output) for section in self.sections) + \
-            '\n\\chapterend\n'
+        return ''.join([
+            '\n\n\\chapter{%(title)s}\n\\chapterstart\n\n%(intro)s' % {
+                'title': escape_latex(self.title),
+                'intro': intro},
+            '\\chaptersections\n',
+            '\n\n'.join(
+                section.latex(output) for section in self.sections),
+            '\n\\chapterend\n'])
 
     def get_url(self):
         return '/%s/%s/' % (self.part.slug, self.slug)
@@ -744,14 +775,17 @@ class DocSection(DocElement):
             title += " (\\code{%s})" % escape_latex_code(self.operator)
         index = '\index{%s}' % escape_latex(
             self.title) if self.chapter.part.is_reference else ''
-        return '\n\n\\section*{%(title)s}%(index)s\n\\sectionstart\n\n%(content)s\\sectionend\\addcontentsline{toc}{section}{%(title)s}' % {
-            'title': title,
-            'index': index,
-            'content': self.doc.latex(output)
-        }
+        return (
+            '\n\n\\section*{%(title)s}%(index)s\n'
+            '\\sectionstart\n\n%(content)s\\sectionend'
+            '\\addcontentsline{toc}{section}{%(title)s}') % {
+                'title': title,
+                'index': index,
+                'content': self.doc.latex(output)}
 
     def get_url(self):
-        return '/%s/%s/%s/' % (self.chapter.part.slug, self.chapter.slug, self.slug)
+        return '/%s/%s/%s/' % (
+            self.chapter.part.slug, self.chapter.slug, self.slug)
 
     def get_collection(self):
         return self.chapter.sections
@@ -763,7 +797,8 @@ class DocSection(DocElement):
         result = {}
         for index in indices:
             result[index] = xml_data.get((
-                self.chapter.part.title, self.chapter.title, self.title, index))
+                self.chapter.part.title, self.chapter.title, self.title,
+                index))
         return result
 
 
@@ -775,8 +810,8 @@ class Doc(object):
         # pre-substitute Python code because it might contain tests
         doc, post_substitutions = pre_sub(
             PYTHON_RE, doc, lambda m: u'<python>%s</python>' % m.group(1))
-        # HACK: Artificially construct a last testcase to get the "intertext" after
-        # the last (real) testcase. Ignore the test, of course.
+        # HACK: Artificially construct a last testcase to get the "intertext"
+        # after the last (real) testcase. Ignore the test, of course.
         doc += '\n>> test\n = test'
         testcases = TESTCASE_RE.findall(doc)
         tests = None
@@ -809,11 +844,13 @@ class Doc(object):
         return tests
 
     def latex(self, output):
-        return '\n'.join(item.latex(output) for item in self.items if not item.is_private())
+        return '\n'.join(item.latex(output) for item in self.items
+                         if not item.is_private())
 
     def html(self):
         counters = {}
-        return mark_safe('\n'.join(item.html(counters) for item in self.items if not item.is_private()))
+        return mark_safe('\n'.join(item.html(counters) for item in self.items
+                         if not item.is_private()))
 
 
 class DocText(object):
@@ -854,10 +891,14 @@ class DocTests(object):
         return '\n'.join(str(test) for test in self.tests)
 
     def latex(self, output):
-        return '\\begin{tests}%%\n%s%%\n\\end{tests}' % '%\n'.join(test.latex(output) for test in self.tests if not test.private)
+        return '\\begin{tests}%%\n%s%%\n\\end{tests}' % (
+            '%\n'.join(test.latex(output) for test in self.tests
+            if not test.private))
 
     def html(self, counters=None):
-        return '<ul class="tests">%s</ul>' % '\n'.join('<li>%s</li>' % test.html() for test in self.tests if not test.private)
+        return '<ul class="tests">%s</ul>' % (
+            '\n'.join('<li>%s</li>' % test.html() for test in self.tests
+            if not test.private))
 
     def test_indices(self):
         return [test.index for test in self.tests]

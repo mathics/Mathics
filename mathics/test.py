@@ -29,7 +29,8 @@ from argparse import ArgumentParser
 from mathics.core.parser import parse, TranslateError
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Evaluation
-from mathics.builtin import modules, builtins_by_module, get_module_doc, builtins
+from mathics.builtin import (modules, builtins_by_module, get_module_doc,
+                             builtins)
 from mathics.doc import documentation
 from mathics import get_version_string
 
@@ -59,10 +60,12 @@ def compare(result, wanted):
 
 
 def test_case(test, tests, index=0, quiet=False):
-    test, wanted_out, wanted, part, chapter, section = test.test, test.outs, test.result, tests.part, tests.chapter, tests.section
+    test, wanted_out, wanted = test.test, test.outs, test.result
+    part, chapter, section = tests.part, tests.chapter, tests.section
 
     def fail(why):
-        print u"%sTest failed: %s in %s / %s\n%s\n%s\n" % (sep, section, part, chapter, test, why)
+        print u"%sTest failed: %s in %s / %s\n%s\n%s\n" % (
+            sep, section, part, chapter, test, why)
         return False
 
     if not quiet:
@@ -94,9 +97,9 @@ def test_case(test, tests, index=0, quiet=False):
                 output_ok = False
                 break
     if not output_ok:
-        return fail(
-            u"Output:\n%s\nWanted:\n%s" % (u'\n'.join(unicode(o) for o in out),
-                                           u'\n'.join(unicode(o) for o in wanted_out)))
+        return fail(u"Output:\n%s\nWanted:\n%s" % (
+            u'\n'.join(unicode(o) for o in out),
+            u'\n'.join(unicode(o) for o in wanted_out)))
     return True
 
 
@@ -180,7 +183,8 @@ def test_all(quiet=False, generate_output=False):
 
     if failed > 0:
         print '%s' % sep
-    print "%d Tests for %d built-in symbols, %d passed, %d failed." % (count, builtin_count, count - failed, failed)
+    print "%d Tests for %d built-in symbols, %d passed, %d failed." % (
+        count, builtin_count, count - failed, failed)
     if failed_symbols:
         print "Failed:"
         for part, chapter, section in sorted(failed_symbols):
@@ -191,12 +195,12 @@ def test_all(quiet=False, generate_output=False):
 
         if generate_output:
             print 'Save XML'
-            with open_ensure_dir(settings.DOC_XML_DATA, 'w') as output_xml_file:
-                pickle.dump(output_xml, output_xml_file, 0)
+            with open_ensure_dir(settings.DOC_XML_DATA, 'w') as output_file:
+                pickle.dump(output_xml, output_file, 0)
 
             print 'Save TEX'
-            with open_ensure_dir(settings.DOC_TEX_DATA, 'w') as output_tex_file:
-                pickle.dump(output_tex, output_tex_file, 0)
+            with open_ensure_dir(settings.DOC_TEX_DATA, 'w') as output_file:
+                pickle.dump(output_tex, output_file, 0)
     else:
         print '\nFAILED'
         return sys.exit(1)      # Travis-CI knows the tests have failed
@@ -204,8 +208,8 @@ def test_all(quiet=False, generate_output=False):
 
 def write_latex():
     print "Load data"
-    with open_ensure_dir(settings.DOC_TEX_DATA, 'r') as output_tex_file:
-        output_tex = pickle.load(output_tex_file)
+    with open_ensure_dir(settings.DOC_TEX_DATA, 'r') as output_file:
+        output_tex = pickle.load(output_file)
 
     print 'Print documentation'
     with open_ensure_dir(settings.DOC_LATEX_FILE, 'w') as doc:
@@ -219,13 +223,14 @@ def main():
     parser.add_argument(
         '--help', '-h', help='show this help message and exit', action='help')
     parser.add_argument(
-        '--version', '-v', action='version', version='%(prog)s ' + settings.VERSION)
+        '--version', '-v', action='version',
+        version='%(prog)s ' + settings.VERSION)
     parser.add_argument('--section', '-s', dest="section",
                         metavar="SECTION", help="only test SECTION")
-    parser.add_argument('--output', '-o', dest="output",
-                        action="store_true", help="generate TeX and XML output data")
-    parser.add_argument('--tex', '-t', dest="tex",
-                        action="store_true", help="generate TeX documentation file")
+    parser.add_argument('--output', '-o', dest="output", action="store_true",
+                        help="generate TeX and XML output data")
+    parser.add_argument('--tex', '-t', dest="tex", action="store_true",
+                        help="generate TeX documentation file")
     parser.add_argument('--quiet', '-q', dest="quiet",
                         action="store_true", help="hide passed tests")
     args = parser.parse_args()

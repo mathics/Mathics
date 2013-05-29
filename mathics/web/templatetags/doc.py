@@ -14,7 +14,8 @@ register = template.Library()
 def link(object, ajax):
     if object:
         href = object.href(ajax)
-        return mark_safe('<a href="%s">%s</a>' % (escape(href), object.get_title_html()))
+        return mark_safe('<a href="%s">%s</a>' % (
+            escape(href), object.get_title_html()))
     else:
         return ''
 

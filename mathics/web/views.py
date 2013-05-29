@@ -23,7 +23,8 @@ import traceback
 
 from django.shortcuts import render_to_response
 from django.template import RequestContext, loader
-from django.http import HttpResponse, HttpResponseNotFound, HttpResponseServerError, Http404
+from django.http import (HttpResponse, HttpResponseNotFound,
+                         HttpResponseServerError, Http404)
 from django.utils import simplejson
 from django.conf import settings
 from django.contrib import auth
@@ -45,7 +46,8 @@ else:
 
 
 def get_mimetype(request):
-    return 'text/html' if 'MSIE' in request.META.get('HTTP_USER_AGENT', '') else 'application/xhtml+xml'
+    return ('text/html' if 'MSIE' in request.META.get('HTTP_USER_AGENT', '')
+            else 'application/xhtml+xml')
 
 
 class JsonResponse(HttpResponse):
@@ -188,7 +190,9 @@ def nicepass(alpha=6, numeric=2):
 
 def email_user(user, subject, text):
     if settings.DEBUG_MAIL:
-        print '-' * 70 + '\nE-Mail to %s:\n%s\n%s\n' % (user.email, subject, text) + '-' * 70
+        print '\n'.join(['-' * 70,
+                         'E-Mail to %s:\n%s\n%s' % (user.email, subject, text),
+                         '-' * 70])
     else:
         user.email_user(subject, text)
 
@@ -214,13 +218,17 @@ def login(request):
             try:
                 user = User.objects.get(username=email)
                 result = 'reset'
-                email_user(user, "Your password at mathics.net",
-                           u"You have reset your password at mathics.net.\n\nYour password is: %s\n\nYours,\nThe Mathics team" % password)
+                email_user(
+                    user, "Your password at mathics.net",
+                    (u"""You have reset your password at mathics.net.\n
+Your password is: %s\n\nYours,\nThe Mathics team""") % password)
             except User.DoesNotExist:
                 user = User(username=email, email=email)
                 result = 'created'
-                email_user(user, "New account at mathics.net",
-                           u"Welcome to mathics.net!\n\nYour password is: %s\n\nYours,\nThe Mathics team" % password)
+                email_user(
+                    user, "New account at mathics.net",
+                    u"""Welcome to mathics.net!\n
+Your password is: %s\n\nYours,\nThe Mathics team""" % password)
             user.set_password(password)
             user.save()
 
@@ -309,7 +317,8 @@ def render_doc(request, template_name, context, data=None, ajax=False):
     object = context.get('object')
     context.update({
         'ajax': ajax,
-        'help_base': 'doc/base_ajax.html' if ajax else 'doc/base_standalone.html',
+        'help_base': ('doc/base_ajax.html' if ajax else
+                      'doc/base_standalone.html'),
         'prev': object.get_prev() if object else None,
         'next': object.get_next() if object else None,
     })
@@ -326,8 +335,10 @@ def render_doc(request, template_name, context, data=None, ajax=False):
         context.update({
             'data': data,
         })
-        return render_to_response('doc/%s' % template_name, context,
-                                  context_instance=RequestContext(request), mimetype=get_mimetype(request))
+        return render_to_response(
+            'doc/%s' % template_name, context,
+            context_instance=RequestContext(request),
+            mimetype=get_mimetype(request))
 
 
 def doc(request, ajax=''):
@@ -381,9 +392,12 @@ def doc_search(request):
                 if isinstance(item, DocPart):
                     return doc_part(request, item.slug, ajax=True)
                 elif isinstance(item, DocChapter):
-                    return doc_chapter(request, item.part.slug, item.slug, ajax=True)
+                    return doc_chapter(
+                        request, item.part.slug, item.slug, ajax=True)
                 else:
-                    return doc_section(request, item.chapter.part.slug, item.chapter.slug, item.slug, ajax=True)
+                    return doc_section(
+                        request, item.chapter.part.slug, item.chapter.slug,
+                        item.slug, ajax=True)
     result = [item for exact, item in result]
 
     return render_doc(request, 'search.html', {

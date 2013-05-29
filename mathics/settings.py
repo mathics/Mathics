@@ -70,8 +70,8 @@ DOC_LATEX_FILE = ROOT_DIR + 'doc/tex/documentation.tex'
 For Django < 1.2:
 DATABASE_ENGINE = 'sqlite3'
 DATABASE_NAME = DATA_DIR + 'mathics.sqlite'
-DATABASE_HOST = ''             # Set to empty string for localhost. Not used with sqlite3.
-DATABASE_PORT = ''             # Set to empty string for default. Not used with sqlite3.
+DATABASE_HOST = ''  # Set to empty string for localhost. Not used with sqlite3.
+DATABASE_PORT = ''  # Set to empty string for default. Not used with sqlite3.
 """
 
 DATABASES = {
@@ -118,8 +118,8 @@ MEDIA_ROOT = ROOT_DIR + 'web/media/'
 # Examples: "http://media.lawrence.com", "http://example.com/media/"
 MEDIA_URL = '/media/'
 
-# URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
-# trailing slash.
+# URL prefix for admin media -- CSS, JavaScript and images.
+# Make sure to use a trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
 if DJANGO_VERSION < (1, 3):
     ADMIN_MEDIA_PREFIX = '/media/admin/'
@@ -142,7 +142,8 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'mathics.urls'
 
 TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Put strings here, like "/home/html/django_templates" or
+    # "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
     ROOT_DIR + 'web/templates/',

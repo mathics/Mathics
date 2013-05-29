@@ -59,9 +59,11 @@ def main():
     argparser.add_argument(
         '--help', '-h', help='show this help message and exit', action='help')
     argparser.add_argument(
-        '--quiet', '-q', help='don\'t print message at startup', action='store_true')
+        '--quiet', '-q', help='don\'t print message at startup',
+        action='store_true')
     argparser.add_argument(
-        '--version', '-v', action='version', version='%(prog)s ' + settings.VERSION)
+        '--version', '-v', action='version',
+        version='%(prog)s ' + settings.VERSION)
     argparser.add_argument(
         "--port", "-p", dest="port", metavar="PORT", default=8000, type=int,
         help="use PORT as server port")
@@ -79,7 +81,8 @@ def main():
         print_license()
         print u"Quit by pressing %s\n" % quit_command
 
-        print u"Open the graphical user interface at\nhttp://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n" % port
+        print u"""Open the graphical user interface at
+http://localhost:%d\n in Firefox, Chrome, or Safari to use Mathics\n""" % port
 
     if args.external:
         addr = '0.0.0.0'
@@ -91,7 +94,8 @@ def main():
             from django.core.servers.basehttp import AdminMediaHandler
             handler = AdminMediaHandler(WSGIHandler(), '')
         else:
-            from django.core.servers.basehttp import get_internal_wsgi_application
+            from django.core.servers.basehttp import (
+                get_internal_wsgi_application)
             handler = get_internal_wsgi_application()
         run(addr, port, handler)
     except WSGIServerException, e:
