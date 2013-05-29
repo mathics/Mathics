@@ -209,8 +209,10 @@ precedence = (
     ('right', 'ForAll', 'Exists', 'NotExists'),
     ('left', 'Element', 'NotElement', 'Subset', 'Superset'),    # flat
     ('left', 'SameQ', 'UnsameQ'),           # flat
-    ('left', 'Equal', 'op_Equal', 'LongEqual', 'op_Unequal', 'NotEqual', 'Greater', 'Less', 'GreaterEqual', 'op_GreaterEqual', 'GreaterSlantEqual',
-     'LessEqual', 'op_LessEqual', 'LessSlantEqual', 'VerticalBar', 'NotVerticalBar', 'DoubleVerticalBar', 'NotDoubleVerticalBar'),
+    ('left', 'Equal', 'op_Equal', 'LongEqual', 'op_Unequal', 'NotEqual',
+     'Greater', 'Less', 'GreaterEqual', 'op_GreaterEqual', 'GreaterSlantEqual',
+     'LessEqual', 'op_LessEqual', 'LessSlantEqual', 'VerticalBar',
+     'NotVerticalBar', 'DoubleVerticalBar', 'NotDoubleVerticalBar'),
     ('nonassoc', 'Span'),
     ('left', 'Union'),                      # flat
     ('left', 'Intersection'),               # flat
@@ -223,8 +225,9 @@ precedence = (
     #('left', 'Product'),
     ('left', 'Star'),                       # flat
     # This is a hack to get implicit times working properly:
-    ('left', 'Times', 'RawStar', 'blanks', 'blankdefault', 'out', 'slot', 'slotseq',
-     'string', 'symbol', 'number', 'RawLeftBrace', 'RawLeftParenthesis'),  # flat,
+    ('left', 'Times', 'RawStar', 'blanks', 'blankdefault', 'out', 'slot',
+     'slotseq', 'string', 'symbol', 'number', 'RawLeftBrace',
+     'RawLeftParenthesis'),  # flat,
     ('left', 'CenterDot'),                  # flat
     ('left', 'CircleTimes'),                # flat
     ('left', 'Vee'),                        # flat
@@ -634,7 +637,8 @@ class MathicsScanner:
         self.precompiled_regex = {
             'longnames': re.compile(r'(?<!\\)(\\\[[a-zA-Z]+\])'),
             'oct': re.compile(r'(?<!\\)(\\[0-7]{3})'),
-            'hex': re.compile(r'(?<!\\)(\\\.[0-9a-fA-F]{2}|\\\:[0-9a-fA-F]{4})')
+            'hex': re.compile(
+                r'(?<!\\)(\\\.[0-9a-fA-F]{2}|\\\:[0-9a-fA-F]{4})')
         }
 
     def tokenize(self, input_string):
@@ -1088,7 +1092,7 @@ class MathicsParser:
         args[0] = Expression('List', *args[2].items)
 
     def p_position(self, args):
-        'position : RawLeftBracket RawLeftBracket sequence RawRightBracket RawRightBracket'
+        'position : RawLeftBracket RawLeftBracket sequence RawRightBracket RawRightBracket'     # nopep8
         args[0] = PositionToken(args[3].items)
 
     def p_sequence(self, args):
@@ -1221,9 +1225,10 @@ class MathicsParser:
     def p_Derivative(self, args):
         'expr : expr Derivative'
         n = len(args[2])
-        if isinstance(args[1], Expression) and isinstance(args[1].head,
-                                                          Expression) and args[1].head.get_head_name() == 'Derivative' \
-                and args[1].head.leaves[0].get_int_value() is not None:
+        if (isinstance(args[1], Expression) and     # nopep8
+            isinstance(args[1].head, Expression) and
+            args[1].head.get_head_name() == 'Derivative' and
+            args[1].head.leaves[0].get_int_value() is not None):
             n += args[1].head.leaves[0].get_int_value()
             args[1] = args[1].leaves[0]
         args[0] = Expression(Expression('Derivative', Integer(n)), args[1])
@@ -1390,7 +1395,7 @@ class MathicsParser:
 
     def p_box_to_expr(self, args):
         '''expr : LeftBoxParenthesis boxes RightBoxParenthesis
-                | InterpretedBox LeftBoxParenthesis boxes RightBoxParenthesis %prec InterpretedBox'''
+                | InterpretedBox LeftBoxParenthesis boxes RightBoxParenthesis %prec InterpretedBox'''   # nopep8
         if len(args) == 4:
             args[0] = args[2]
         else:

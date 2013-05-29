@@ -91,7 +91,8 @@ def subsets(items, min, max, included=None, less_first=False):
         elif rest:
             item = rest[0]
             if included is None or item in included:
-                for set in decide(chosen + [item], not_chosen, rest[1:], count - 1):
+                for set in decide(chosen + [item], not_chosen, rest[1:],
+                                  count - 1):
                     yield set
             for set in decide(chosen, not_chosen + [item], rest[1:], count):
                 yield set
@@ -125,14 +126,17 @@ def subsets_2(items, min, max, without_duplicates=True):
         def decide(chosen, not_chosen, rest):
             if not rest:
                 if len(chosen) >= min:
-                    """if False and len(chosen) > 1 and (permutate_until is None or len(chosen) <= permutate_until):
+                    """if False and len(chosen) > 1 and (
+                            permutate_until is None or
+                            len(chosen) <= permutate_until):
                         for perm in permutations(chosen):
                             yield perm, ([], not_chosen)
                     else:"""
                     yield chosen, ([], not_chosen)
             else:
                 if rest[0].include:
-                    for set in decide(chosen + [rest[0]], not_chosen, rest[1:]):
+                    for set in decide(chosen + [rest[0]], not_chosen,
+                                      rest[1:]):
                         yield set
                 for set in decide(chosen, not_chosen + [rest[0]], rest[1:]):
                     yield set
@@ -145,7 +149,8 @@ def subsets_2(items, min, max, without_duplicates=True):
                 print 'already taken'
 
 
-def subranges(items, min_count, max, flexible_start=False, included=None, less_first=False):
+def subranges(items, min_count, max, flexible_start=False, included=None,
+              less_first=False):
     # TODO: take into account included
 
     if max is None:
@@ -163,7 +168,8 @@ def subranges(items, min_count, max, flexible_start=False, included=None, less_f
         if lengths == [0, 1]:
             lengths = [1, 0]
         for length in lengths:
-            yield items[start:start + length], (items[:start], items[start + length:])
+            yield (items[start:start + length],
+                   (items[:start], items[start + length:]))
 
 
 def unicode_superscript(value):

@@ -394,5 +394,7 @@ class Definition(object):
         return False
 
     def __repr__(self):
-        return '<Definition: name: %s, downvalues: %s, formats: %s, attributes: %s>' % (
-            self.name, self.downvalues, self.formatvalues, self.attributes)
+        return (
+            '<Definition: name: %s, '
+            'downvalues: %s, formats: %s, attributes: %s>') % (
+                self.name, self.downvalues, self.formatvalues, self.attributes)

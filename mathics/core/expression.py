@@ -518,7 +518,8 @@ class Expression(BaseExpression):
             """
             Pattern sort key structure:
             0: 0/2:        Atom / Expression
-            1: pattern:    0 / 11-31 for blanks / 1 for empty Alternatives / 40 for OptionsPattern
+            1: pattern:    0 / 11-31 for blanks / 1 for empty Alternatives /
+                               40 for OptionsPattern
             2: 0/1:        0 for PatternTest
             3: 0/1:        0 for Pattern
             4: 0/1:        1 for Optional

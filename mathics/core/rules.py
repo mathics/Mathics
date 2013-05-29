@@ -18,7 +18,8 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.core.expression import Expression, Symbol, Integer, Rational, Real, Number
+from mathics.core.expression import (Expression, Symbol, Integer, Rational,
+                                     Real, Number)
 # from mathics.core.util import subsets, subranges, permutations
 from mathics.core.pattern import Pattern, StopGenerator
 
@@ -48,7 +49,8 @@ class BaseRule(object):
         self.pattern = Pattern.create(pattern)
         self.system = system
 
-    def apply(self, expression, evaluation, fully=True, return_list=False, max_list=None):
+    def apply(self, expression, evaluation, fully=True, return_list=False,
+              max_list=None):
         result_list = []
         # count = 0
 
@@ -155,7 +157,8 @@ class BuiltinRule(BaseRule):
 
     def do_replace(self, vars, options, evaluation):
         if options:
-            return self.function(evaluation=evaluation, options=options, **vars)
+            return self.function(
+                evaluation=evaluation, options=options, **vars)
         else:
             return self.function(evaluation=evaluation, **vars)
 

@@ -34,7 +34,8 @@ def get_type(value):
         return 'q'
     elif isinstance(value, sympy.Float) or isinstance(value, mpmath.mpf):
         return 'f'
-    elif isinstance(value, sympy.Expr) and value.is_number and not value.is_real:
+    elif (isinstance(value, sympy.Expr) and value.is_number and
+          not value.is_real):
         return 'c'
     else:
         return None
@@ -71,7 +72,8 @@ def mpmath2sympy(value, prec=None):
         from mathics.builtin.numeric import machine_precision
         prec = machine_precision
     if isinstance(value, mpmath.mpc):
-        return sympy.Float(str(value.real), dps(prec)) + sympy.I * sympy.Float(str(value.imag), dps(prec))
+        return (sympy.Float(str(value.real), dps(prec)) +
+                sympy.I * sympy.Float(str(value.imag), dps(prec)))
     elif isinstance(value, mpmath.mpf):
         if str(value) in ('+inf', '-inf'):
             raise SpecialValueError('ComplexInfinity')
@@ -96,7 +98,8 @@ def format_float(value, pretty=True, parenthesize_plus=False):
     if len(s) == 2:
         man, exp = s
         if pretty:
-            return u'%s\u00d710%s' % (format_float(man), unicode_superscript(exp))
+            return u'%s\u00d710%s' % (
+                format_float(man), unicode_superscript(exp))
         else:
             result = u'%s*10^%s' % (format_float(man), exp)
             if parenthesize_plus:
