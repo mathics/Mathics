@@ -143,8 +143,9 @@ def main():
             your own fork, make the desired changes, commit, and make a pull
             request.""")
 
-    argparser.add_argument('FILE', nargs='?', type=argparse.FileType('r'),
-                           help='execute commands from FILE')
+    argparser.add_argument(
+        'FILE', nargs='?', type=argparse.FileType('r'),
+        help='execute commands from FILE')
 
     argparser.add_argument(
         '--help', '-h', help='show this help message and exit', action='help')
@@ -176,7 +177,7 @@ def main():
 
     definitions = Definitions(add_builtin=True)
 
-    definitions.set_ownvalue('$Line', Integer(1)) #Reset the line number to 1
+    definitions.set_ownvalue('$Line', Integer(1))  # Reset the line number to 1
 
     shell = TerminalShell(definitions, args.colors)
 
@@ -189,7 +190,7 @@ def main():
         total_input = args.execute.decode(sys.stdin.encoding)  # check encoding
         print shell.get_in_prompt() + total_input
         shell.evaluate(total_input)
-        return 
+        return
 
     if args.FILE is not None:
         total_input = ''
@@ -198,7 +199,7 @@ def main():
                 line = line.decode('utf-8')     # TODO: other encodings
                 if args.script and line_no == 0 and line.startswith('#!'):
                     continue
-                print shell.get_in_prompt(continued=(total_input != '')) + line,
+                print shell.get_in_prompt(continued=total_input != '') + line,
                 total_input += ' ' + line
                 if line != "" and wait_for_line(total_input):
                     continue
@@ -214,9 +215,9 @@ def main():
 
     total_input = ""
     while True:
-        try: 
+        try:
             line = raw_input(shell.get_in_prompt(continued=total_input != ''))
-            line= line.decode(sys.stdin.encoding)
+            line = line.decode(sys.stdin.encoding)
             total_input += line
             if line != "" and wait_for_line(total_input):
                 continue
