@@ -1269,8 +1269,6 @@ class Complex_(Builtin):
     #> Head[%]
      = Integer
     
-    #> Complex[0.0, 0.0]
-     = 0. + 0. I
     #> 0. I
      = 0. + 0. I
     #> 0. + 0. I
@@ -1288,6 +1286,12 @@ class Complex_(Builtin):
      = 1 + I
     #> Complex[1, Complex[1, 1]]
      = I
+    """
+
+    #TODO
+    """
+    #> Complex[0.0, 0.0]
+     = 0. + 0. I
     """
     
     name = 'Complex'
