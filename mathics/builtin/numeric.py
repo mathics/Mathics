@@ -153,6 +153,12 @@ class N(Builtin):
     
     messages = {
         'precbd': "Requested precision `1` is not a machine-sized real number.",
+        'preclg': ("Requested precision `1` is larger than $MaxPrecision. "
+                   "Using current $MaxPrecision of `2` instead. "
+                   "$MaxPrecision = Infinity specifies that any precision "
+                   "should be allowed."),
+        'precsm': ("Requested precision `1` is smaller than $MinPrecision. "
+                   "Using $MinPrecision instead.")
     }
     
     rules = {
@@ -252,6 +258,169 @@ class MachinePrecision_Symbol(Predefined):
         prec = get_precision(Symbol('MachinePrecision'), evaluation)
         if prec is not None:
             return Real(dps(machine_precision), prec)
+
+
+class MinPrecision(Predefined):
+    """
+    <dl>
+    <dt>'$MinPrecision'
+        <dd>is the minimum number of digits of precision allowed in arbitrary-precision numbers.
+    </dl>
+
+    >> $MinPrecision
+     = 0
+
+    ## #> Block[{$MinPrecision = 50}, N[Pi, 25]]
+    ##  : Requested precision 25 is smaller than $MinPrecision. Using $MinPrecision instead.
+    ##  = 3.1415926535897932384626433832795028841971693993751
+
+    #> $MinPrecision = -5
+     : Cannot set $MinPrecision to -5; value must be a non-negative number or Infinity.
+     = -5
+    #> $MinPrecision
+     = 0
+    #> $MinPrecison = 4
+     = 4
+    #> $MinPrecision = 10.4
+     = 10.4
+    #> $MinPrecision = 10/3
+     = 10 / 3
+    #> $MinPrecision = Infinity
+     = Infinity
+
+    #> $MinPrecision = 0; $MaxPrecision = 10;
+
+    #> $MinPrecision = 15
+     : Cannot set $MinPrecision such that $MaxPrecision < $MinPrecision.
+     = 15
+    #> $MinPrecision = 10
+     = 10
+    #> $MinPrecision = 5
+     = 5
+
+    #> $MaxPrecision = Infinity; $MinPrecision = 0;
+    """
+
+    name = '$MinPrecision'
+
+    messages = {
+        'preccon': "Cannot set `1` such that $MaxPrecision < $MinPrecision.",
+        'precset': ("Cannot set `1` to `2`; value must be a non-negative "
+                    "number or Infinity."),
+    }
+
+    rules = {
+        '$MinPrecision': '0',
+    }
+
+    attributes = ()
+
+    #def evaluate(self, evaluation):
+    #    return MIN_PRECISION
+
+
+class MaxPrecision(Predefined):
+    """
+    <dl>
+    <dt>'$MaxPrecision'
+        <dd>is the number of digits of precision allowed in arbitrary-precision numbers.
+    </dl>
+
+    >> $MaxPrecision
+     = Infinity
+
+    ## #> Block[{$MaxPrecision = 50}, N[Pi, 100]]
+    ##  : Requested precision 100 is larger than $MaxPrecision. Using current $MaxPrecision of 50. instead. $MaxPrecision = Infinity specifies that any precision should be allowed.
+    ##  = 3.1415926535897932384626433832795028841971693993751
+
+    #> $MaxPrecision = 0
+     : Cannot set $MaxPrecision to 0; value must be a positive number or Infinity.
+     = 0
+    #> $MaxPrecision = -5
+     : Cannot set $MaxPrecision to -5; value must be a positive number or Infinity.
+     = -5
+    #> $MaxPrecision
+     = Infinity
+    #> $MaxPrecison = 4
+     = 4
+    #> $MaxPrecision = 10.4
+     = 10.4
+    #> $MaxPrecision = 10/3
+     = 10 / 3
+
+    #> $MaxPrecision = Infinity; $MinPrecision = 10;
+    #> $MaxPrecision = 15
+     = 15
+    #> $MaxPrecision = 10
+     = 10
+    #> $MaxPrecision = 5
+     : Cannot set $MaxPrecision such that $MaxPrecision < $MinPrecision.
+     = 5
+
+    #> $MaxPrecision = Infinity; $MinPrecision = 0;
+    """
+
+    name = '$MaxPrecision'
+
+    messages = {
+        'preccon': "Cannot set `1` such that $MaxPrecision < $MinPrecision.",
+        'precset': ("Cannot set `1` to `2`; value must be a positive number "
+                    "or Infinity."),
+    }
+
+    attributes = ()
+
+    rules = {
+        '$MaxPrecision': 'Infinity',
+    }
+
+
+class MaxExtraPrecision(Predefined):
+    """
+    <dl>
+    <dt>'$MaxExtraPrecision'
+        <dd>is the maximum of extra digits used in numerical calculations.
+    </dl>
+
+    >> $MaxExtraPrecision
+     = 50.
+
+    ## >> N[Cos[Exp[500]], 20]
+    ##  Internal precision limit $MaxExtraPrecision = 50. reached while evaluating Cos[Exp[500]].
+    ##  = 0.
+
+    ## >> Block[{$MaxExtraPrecision = 1000}, N[Cos[Exp[500]], 20]]
+    ##  = 0.88536064016933422109
+
+    #> $MaxExtraPrecision = -1
+     : Cannot set $MaxExtraPrecision to -1; value must be a non-negative number or Infinity.
+     = -1
+
+    #> $MaxExtraPrecision = x
+     : Cannot set $MaxExtraPrecision to x; value must be a non-negative number or Infinity.
+     = x
+
+    #> $MaxExtraPrecision = 0
+     = 0
+    #> MaxExtraPrecision = 11/3
+     = 11 / 3
+    #> MaxRxtraPrecision = 50.
+     = 50.
+    """
+
+    name = '$MaxExtraPrecision'
+
+    messages = {
+        'precset': ("Cannot set `1` to `2`; value must be a non-negative "
+                    "number or Infinity."),
+    }
+
+    attributes = ()
+
+    rules = {
+        '$MaxExtraPrecision': '50.',
+    }
+
 
 class Precision(Builtin):
     """
