@@ -4,10 +4,10 @@ python:
   - 2.7
   - "pypy"
 install:
-  - "pip install pep8 --use-mirrors"
+  #- "pip install pep8 --use-mirrors"
   - "python setup.py install"
 before_script:
-  - "pep8"
+  #- "pep8"
 script:
   - "python mathics/test.py"
 after_script:
