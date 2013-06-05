@@ -1348,7 +1348,7 @@ class Real(Number):
         from mathics.builtin.numeric import machine_precision
         super(Real, self).__init__()
 
-        if isinstance(value, (basestring, float, int, Integer, Real,
+        if isinstance(value, (basestring, float, int, long, Integer, Real,
                               sympy.Float, sympy.Integer, mpmath.mpf)):
             value = str(value)
         else:
