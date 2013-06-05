@@ -59,7 +59,7 @@ class N(Builtin):
      = a
     >> N[a, 20] = 11;
     >> N[a + b, 20]
-     = 11. + b
+     = 11.000000000000000000 + b
     >> N[f[a, b]]
      = f[10.9, b]
     >> SetAttributes[f, NHoldAll]
@@ -71,7 +71,7 @@ class N(Builtin):
     >> N[c, 3]
      = c
     >> N[c, 11]
-     = 11.
+     = 11.000000000
      
     You can also use 'UpSet' or 'TagSet' to specify values for 'N':
     >> N[d] ^= 5;
@@ -106,7 +106,7 @@ class N(Builtin):
     #> N[3/2 + I, 25]
      = 1.500000000000000000000000 + 1.000000000000000000000000 I
     #> N[3.5, 25]
-     = 3.5
+     = 3.500000000000000000000000
      
     ## Mathemaitcal Constants
     #> p = N[Pi,100]
