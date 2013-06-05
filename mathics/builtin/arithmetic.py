@@ -1286,12 +1286,13 @@ class Complex_(Builtin):
      = 1 + I
     #> Complex[1, Complex[1, 1]]
      = I
-    """
 
-    #TODO
-    """
     #> Complex[0.0, 0.0]
      = 0. + 0. I
+    #> Complex[1.0, 0.0]
+     = 1. + 0. I
+    #> Complex[0.0, 1.0]
+     = 0. + 1. I
     """
     
     name = 'Complex'

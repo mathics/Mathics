@@ -1362,20 +1362,11 @@ class Real(Number):
                     p = prec(len(value.replace('0.', '')))
                     if machine_precision >= p:
                         p = machine_precision
-                        self._mp = True
-                    else:
-                        self._mp = False
                 else:
                     p = prec(len(digits.zfill(dps(machine_precision))))
-                    self._mp = p == machine_precision
                     
             else:
                 p = machine_precision
-                self._mp = True
-        else:
-            self._mp = p == machine_precision
-
-        assert self._mp == (p == machine_precision)
 
         self.value = sympy.Float(value, dps(p))
 
@@ -1399,7 +1390,7 @@ class Real(Number):
     def make_boxes(self, form):
         from mathics.builtin.numeric import machine_precision
         if self.to_sympy() == sympy.Float('0.0'):
-            if self._mp:
+            if 0 <= (machine_precision - self.value._prec) <= 1:
                 base, exp = ('0.', '0')
             else:
                 base, exp = ('0.', '-' + str(dps(self.value._prec)))
