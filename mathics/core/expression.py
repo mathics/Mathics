@@ -1264,7 +1264,7 @@ class Integer(Number):
         return self
     
     def round(self, precision):
-        return Real(sympy.Float(self.value, dps(precision)))
+        return Real(self.value, precision)
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
