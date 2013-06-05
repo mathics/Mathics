@@ -643,7 +643,6 @@ class ArcCosh(_MPMathFunction):
     mpmath_name = 'acosh'
     
     rules = {
-        'ArcCosh[z:0.0]': 'N[I / 2 Pi, Precision[1+z]]',
         'Derivative[1][ArcCosh]': '1/(Sqrt[#-1]*Sqrt[#+1])&',
     }
     
@@ -748,6 +747,5 @@ class ArcCoth(_MPMathFunction):
     mpmath_name = 'acoth'
     
     rules = {
-        'ArcCoth[z:0.0]': 'N[I / 2 Pi, Precision[1+z]]',
         'Derivative[1][ArcCoth]': '1/(1-#^2)&',
     }
