@@ -1421,7 +1421,9 @@ class Real(Number):
                     base = s[0] + '.' + s[1:]
                     base = prefix + base.lstrip('0')
                     exp = str(iexp)
-            base, exp = base.rstrip('0'), exp.lstrip('+')
+            exp = exp.lstrip('+')
+            if 0 <= (machine_precision - self.value._prec) <= 1:
+                base = base.rstrip('0')
         if exp != '0':
             if form in ('InputForm', 'OutputForm', 'FullForm'):
                 return Expression('RowBox', Expression('List', base, String('*^'), String(exp)))
