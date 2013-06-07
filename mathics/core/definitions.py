@@ -19,8 +19,6 @@ u"""
 """
 
 import pickle
-import traceback
-import sys
 import os
 
 
@@ -49,7 +47,6 @@ class Definitions(object):
 
         if add_builtin:
             from mathics.builtin import modules, contribute
-            from mathics.core.expression import builtin_evaluation
             from mathics.core.evaluation import Evaluation
             from mathics.settings import ROOT_DIR
 
@@ -74,8 +71,7 @@ class Definitions(object):
 
                 for f in filter(lambda x: x.endswith('.m'), files):
                     with open(os.path.join(root, f)) as stream:
-                        evaluation = Evaluation(
-                            stream.read(), self, timeout=30)
+                        Evaluation(stream.read(), self, timeout=30)
             self.autoload_stage = False
 
     def get_builtin_names(self):

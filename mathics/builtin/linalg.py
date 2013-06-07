@@ -120,7 +120,7 @@ class LinearSolve(Builtin):
             return
         if len(b.leaves) != len(matrix):
             return evaluation.message('LinearSolve', 'lslc')
-        system = [m + [v] for m, v in zip(matrix, b.leaves)]
+        system = [mm + [v] for mm, v in zip(matrix, b.leaves)]
         system = to_sympy_matrix(system)
         if system is None:
             return

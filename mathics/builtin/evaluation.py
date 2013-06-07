@@ -3,7 +3,7 @@
 import sys
 
 from mathics.builtin.base import Predefined, Builtin
-from mathics.core.expression import Integer, Symbol, Expression
+from mathics.core.expression import Integer
 
 from mathics import settings
 

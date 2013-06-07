@@ -4,13 +4,10 @@
 Calculus functions
 """
 
-import re
-
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
-from mathics.core.expression import Expression, String, Integer, Number
-from mathics.core.expression import ConvertSubstitutions, from_sympy
-from mathics.core.convert import sympy_symbol_prefix, SympyExpression
-from mathics.core.util import unicode_superscript
+from mathics.core.expression import Expression, Integer, Number
+from mathics.core.convert import (
+    sympy_symbol_prefix, SympyExpression, from_sympy)
 from mathics.core.rules import Pattern
 from mathics.builtin.scoping import dynamic_scoping
 

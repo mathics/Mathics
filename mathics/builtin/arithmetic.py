@@ -17,12 +17,11 @@ from mathics.builtin.base import (
 
 from mathics.core.expression import (Expression, Number, Integer, Rational,
                                      Real, Symbol, Complex, String)
-from mathics.core.numbers import (get_type, mul, add, sympy2mpmath,
-                                  mpmath2sympy, SpecialValueError)
+from mathics.core.numbers import (
+    add, min_prec, dps, sympy2mpmath, mpmath2sympy, SpecialValueError)
 
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
-from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, dps
 
 
 class _MPMathFunction(SympyFunction):

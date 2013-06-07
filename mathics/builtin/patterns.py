@@ -32,13 +32,11 @@ Options using 'OptionsPattern' and 'OptionValue':
 The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 """
 
-from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
-                                  PostfixOperator, InstancableBuiltin, Test)
-from mathics.builtin.base import (PatternObject, PatternError,
-                                  PatternArgumentError)
+from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
+from mathics.builtin.base import PatternObject
 
-from mathics.core.expression import (Symbol, BaseExpression, Expression,
-                                     Number, Integer, Rational, Real, Complex)
+from mathics.core.expression import (
+    Symbol, Expression, Number, Integer, Rational, Real)
 from mathics.core.rules import Rule
 from mathics.core.pattern import Pattern, StopGenerator
 
@@ -372,7 +370,7 @@ def match(expr, form, evaluation):
         raise StopGenerator_MatchQ(Symbol("True"))
     try:
         form.match(yield_func, expr, {}, evaluation)
-    except StopGenerator_MatchQ, exc:
+    except StopGenerator_MatchQ:
         return True
     return False
 

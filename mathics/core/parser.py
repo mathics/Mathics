@@ -22,7 +22,6 @@ import ply.lex as lex
 import ply.yacc as yacc
 
 import re
-import unicodedata
 from math import log10
 
 from mathics.core.expression import (BaseExpression, Expression, Integer,
@@ -849,7 +848,6 @@ class MathicsScanner:
 
     def t_slotseq_2(self, t):
         r' \#\# '
-        s = t.value
         (t.type, t.value) = ('slotseq', 1)
         return t
 

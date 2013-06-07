@@ -18,8 +18,7 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.core.expression import (Expression, Symbol, Integer, Rational,
-                                     Real, Number)
+from mathics.core.expression import Expression, Symbol
 # from mathics.core.util import subsets, subranges, permutations
 from mathics.core.pattern import Pattern, StopGenerator
 

@@ -19,8 +19,7 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.core.expression import (Expression, Symbol, Integer, Rational,
-                                     Real, Number)
+from mathics.core.expression import Expression
 from mathics.core.util import subsets, subranges, permutations
 
 # from mathics.core.pattern_nocython import (
@@ -272,7 +271,7 @@ class ExpressionPattern(Pattern):
                     prev_pattern = pattern
                     prev_name = name
             expr_groups = {}
-            prev_leaf = None
+            # prev_leaf = None
             for leaf in expression.leaves:
                 if leaf in expr_groups:
                     expr_groups[leaf] += 1
@@ -297,8 +296,8 @@ class ExpressionPattern(Pattern):
                             (sub_match_count[1] is not None and
                              sub_match_count[1] < match_count[1])):
                             match_count[1] = sub_match_count[1]
-                    possibilities = [{}]
-                    sum = 0
+                    # possibilities = [{}]
+                    # sum = 0
 
                     def per_expr(yield_expr, expr_groups, sum=0):
                         """

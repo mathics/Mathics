@@ -7,9 +7,7 @@ Integer functions
 import sympy
 
 from mathics.builtin.base import Builtin
-from mathics.core.numbers import mpmath2sympy
-from mathics.core import numbers
-from mathics.core.expression import Integer, Rational, Real, Expression
+from mathics.core.expression import Integer
 
 
 class Floor(Builtin):

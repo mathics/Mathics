@@ -4,14 +4,11 @@
 List functions
 """
 
-import copy
-
 from mathics.builtin.base import (
-    Builtin, Predefined, BinaryOperator, Test, InvalidLevelspecError,
+    Builtin, Test, InvalidLevelspecError,
     PartError, PartDepthError, PartRangeError, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
-from mathics.core.expression import (Expression, String, Symbol, Integer,
-                                     Number, from_python)
+from mathics.core.expression import Expression, String, Symbol, Integer, Number
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy

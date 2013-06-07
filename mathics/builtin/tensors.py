@@ -4,7 +4,7 @@
 Tensor functions
 """
 
-from mathics.builtin.base import Builtin, BinaryOperator, Test
+from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, Integer
 from mathics.core.rules import Pattern
 

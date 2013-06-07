@@ -5,12 +5,11 @@ Graphics (3D)
 """
 
 import numbers
-from mathics.core.expression import Expression, NumberError, from_python, Real
-from mathics.builtin.base import (BoxConstruct, BoxConstructError, Builtin,
-                                  InstancableBuiltin)
-from graphics import (Graphics, GraphicsBox, _GraphicsElements, PolygonBox,
-                      create_pens, _Color, LineBox, PointBox, Style, RGBColor,
-                      color_heads, get_class, asy_number, _GraphicsElement)
+from mathics.core.expression import Expression, NumberError, from_python
+from mathics.builtin.base import BoxConstructError, Builtin, InstancableBuiltin
+from graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
+                      LineBox, PointBox, Style, RGBColor, get_class,
+                      asy_number, CoordinatesError, _GraphicsElements)
 
 from django.utils import simplejson as json
 
@@ -858,7 +857,7 @@ class Cuboid(Builtin):
                 n_evaluation=evaluation) for value in (xmin, ymin, zmin)]
             xmax, ymax, zmax = [value.to_number(
                 n_evaluation=evaluation) for value in (xmax, ymax, zmax)]
-        except NumberError, exc:
+        except NumberError:
             # TODO
             return
 
@@ -927,7 +926,7 @@ class Cuboid(Builtin):
         try:
             xmin, ymin, zmin = [value.to_number(
                 n_evaluation=evaluation) for value in (xmin, ymin, zmin)]
-        except NumberError, exc:
+        except NumberError:
             # TODO
             return
         xmax, ymax, zmax = [from_python(value + 1)
@@ -966,7 +965,7 @@ class Sphere3DBox(_Graphics3DElement):
         self.radius = item.leaves[1].to_python()
 
     def to_asy(self):
-        l = self.style.get_line_width(face_element=True)
+        #l = self.style.get_line_width(face_element=True)
 
         if self.face_color is None:
             face_color = (1, 1, 1)
@@ -992,7 +991,6 @@ class Sphere3DBox(_Graphics3DElement):
             'radius': self.radius,
             'faceColor': face_color,
         }]
-        return data
 
     def extent(self):
         result = []

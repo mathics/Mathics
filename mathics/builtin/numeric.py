@@ -12,9 +12,8 @@ import sympy
 import sympy.mpmath as mpmath
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import dps, mpmath2sympy, prec, convert_base
-from mathics.core import numbers
-from mathics.core.expression import (Integer, Rational, Real, Complex, Atom,
+from mathics.core.numbers import dps, prec, convert_base
+from mathics.core.expression import (Integer, Rational, Real, Complex,
                                      Expression, Number, Symbol, from_python)
 from mathics.core.convert import from_sympy
 from mathics.settings import MACHINE_PRECISION

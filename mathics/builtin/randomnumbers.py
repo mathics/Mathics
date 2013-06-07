@@ -91,7 +91,7 @@ class RandomState(Builtin):
     def apply(self, evaluation):
         '$RandomState'
 
-        with RandomEnv(evaluation) as rand:
+        with RandomEnv(evaluation):
             return Integer(get_random_state())
 
 
@@ -247,11 +247,18 @@ class RandomReal(Builtin):
      = ...   ...   ...
      .
      . ...   ...   ...
+
+    #> RandomReal[{0, 1}, {1, -1}]
+     : The array dimensions {1, -1} given in position 2 of RandomReal[{0, 1}, {1, -1}] should be a list of non-negative machine-sized integers giving the dimensions for the result.
+     = RandomReal[{0, 1}, {1, -1}]
     """
 
     messages = {
         'unifr': ("The endpoints specified by `1` for the endpoints of the "
                   "discrete uniform distribution range are not real valued."),
+        'array': ("The array dimensions `2` given in position 2 of `1` should "
+                  "be a list of non-negative machine-sized integers giving "
+                  "the dimensions for the result."),
     }
 
     rules = {
@@ -286,7 +293,8 @@ class RandomReal(Builtin):
         result = ns.to_python()
 
         if not all([isinstance(i, int) and i >= 0 for i in result]):
-            return evaluation.message('RandomReal', 'array', ns, expr)
+            expr = Expression('RandomReal', Expression('List', xmin, xmax), ns)
+            return evaluation.message('RandomReal', 'array', expr, ns)
 
         assert all([isinstance(i, int) for i in result])
 

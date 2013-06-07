@@ -8,7 +8,7 @@ However, you can set any symbol as an attribute, in contrast to \Mathematica.
 """
 
 from mathics.builtin.base import Predefined, Builtin
-from mathics.core.expression import Integer, Real, Symbol, Expression
+from mathics.core.expression import Symbol, Expression
 from mathics.builtin.assignment import get_symbol_list
 
 

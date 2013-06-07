@@ -1,7 +1,8 @@
 # -*- coding: utf8 -*-
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Expression, Integer, from_sympy
+from mathics.core.expression import Expression, Integer
+from mathics.core.convert import from_sympy
 
 import sympy
 import sympy.mpmath as mpmath

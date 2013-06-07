@@ -4,10 +4,8 @@
 Options and default arguments
 """
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator
-from mathics.core.expression import (Symbol, Expression, Integer,
-                                     get_default_value)
-from mathics.core.rules import Rule
+from mathics.builtin.base import Builtin
+from mathics.core.expression import Symbol, Expression, get_default_value
 
 
 class Options(Builtin):

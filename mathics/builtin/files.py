@@ -11,12 +11,10 @@ import shutil
 import hashlib
 import zlib
 import base64
-import sys
 import tempfile
 import time
 
-from mathics.core.expression import (Expression, String, Symbol, from_python,
-                                     Integer)
+from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.settings import ROOT_DIR
@@ -942,7 +940,7 @@ class Get(PrefixOperator):
             parse
             ParseError
         except NameError:
-            from mathics.core.parser import parse, ParseError
+            from mathics.core.parser import parse
 
         from mathics.main import wait_for_line
 
@@ -1039,7 +1037,7 @@ class Put(BinaryOperator):
         instream = Expression('OpenWrite', filename).evaluate(evaluation)
         name, n = instream.leaves
         result = self.apply_input(exprs, name, n, evaluation)
-        close = Expression('Close', instream).evaluate(evaluation)
+        Expression('Close', instream).evaluate(evaluation)
         return result
 
     def apply_input(self, exprs, name, n, evaluation):
@@ -1124,7 +1122,7 @@ class PutAppend(BinaryOperator):
         instream = Expression('OpenAppend', filename).evaluate(evaluation)
         name, n = instream.leaves
         result = self.apply_input(exprs, name, n, evaluation)
-        close = Expression('Close', instream).evaluate(evaluation)
+        Expression('Close', instream).evaluate(evaluation)
         return result
 
     def apply_input(self, exprs, name, n, evaluation):
@@ -1643,12 +1641,12 @@ class ReadList(Read):
 
         # Options
         # TODO: Implement extra options
-        py_options = self.check_options(options)
+        # py_options = self.check_options(options)
         # null_records = py_options['NullRecords']
         # null_words = py_options['NullWords']
-        record_separators = py_options['RecordSeparators']
+        # record_separators = py_options['RecordSeparators']
         # token_words = py_options['TokenWords']
-        word_separators = py_options['WordSeparators']
+        # word_separators = py_options['WordSeparators']
 
         result = []
         while True:
@@ -1668,12 +1666,12 @@ class ReadList(Read):
 
         # Options
         # TODO: Implement extra options
-        py_options = self.check_options(options)
+        # py_options = self.check_options(options)
         # null_records = py_options['NullRecords']
         # null_words = py_options['NullWords']
-        record_separators = py_options['RecordSeparators']
+        # record_separators = py_options['RecordSeparators']
         # token_words = py_options['TokenWords']
-        word_separators = py_options['WordSeparators']
+        # word_separators = py_options['WordSeparators']
 
         py_m = m.get_int_value()
         if py_m < 0:
@@ -1933,7 +1931,7 @@ class SetStreamPosition(Builtin):
 
         try:
             if seekpos == float('inf'):
-                tmp = stream.seek(0, 2)
+                stream.seek(0, 2)
             else:
                 if seekpos < 0:
                     stream.seek(seekpos, 2)
@@ -2007,12 +2005,12 @@ class Skip(Read):
 
         # Options
         # TODO Implement extra options
-        py_options = self.check_options(options)
+        # py_options = self.check_options(options)
         # null_records = py_options['NullRecords']
         # null_words = py_options['NullWords']
-        record_separators = py_options['RecordSeparators']
+        # record_separators = py_options['RecordSeparators']
         # token_words = py_options['TokenWords']
-        word_separators = py_options['WordSeparators']
+        # word_separators = py_options['WordSeparators']
 
         py_m = m.to_python()
         if not (isinstance(py_m, int) and py_m > 0):
@@ -2066,12 +2064,12 @@ class Find(Read):
 
         # Options
         # TODO Implement extra options
-        py_options = self.check_options(options)
+        # py_options = self.check_options(options)
         # anchored_search = py_options['AnchoredSearch']
         # ignore_case = py_options['IgnoreCase']
         # word_search = py_options['WordSearch']
-        record_separators = py_options['RecordSeparators']
-        word_separators = py_options['WordSeparators']
+        # record_separators = py_options['RecordSeparators']
+        # word_separators = py_options['WordSeparators']
 
         py_text = text.to_python()
 
@@ -2294,7 +2292,7 @@ class Streams(Builtin):
 
     def apply(self, evaluation):
         'Streams[]'
-        global _STREAMS
+        global STREAMS
         global _STREAMS
         global NSTREAMS
 
@@ -2367,7 +2365,7 @@ class Uncompress(Builtin):
         try:
             expr = parse(tmp)
         except NameError:
-            from mathics.core.parser import parse, ParseError
+            from mathics.core.parser import parse
             expr = parse(tmp)
 
         return expr
@@ -2615,6 +2613,15 @@ class SetFileDate(Builtin):
 
     >> FileDate[tmpfilename, "Access"]
      = {2000, 1, 1, 0, 0, 0.}
+
+    #> SetFileDate[tmpfilename, {2001, 1, 1, 0, 0, 0.}];
+    #> FileDate[tmpfilename, "Access"]
+     = {2001, 1, 1, 0, 0, 0.}
+
+    #> SetFileDate[tmpfilename]
+    #> FileDate[tmpfilename, "Access"]
+     = {...}
+
     #> DeleteFile[tmpfilename]
 
     #> SetFileDate["MathicsNonExample"]
@@ -2680,12 +2687,14 @@ class SetFileDate(Builtin):
 
         epochtime = Expression('AbsoluteTime', time.strftime(
             "%Y-%m-%d %H:%M", time.gmtime(0))).evaluate(evaluation).to_python()
-        stattime = Expression('AbsoluteTime', datelist).to_python(
-            n_evaluation=evaluation)
+
+        stattime = Expression('AbsoluteTime', from_python(py_datelist))
+        stattime = stattime.to_python(n_evaluation=evaluation)
+
         stattime -= epochtime
 
         try:
-            stat = os.stat(py_filename)
+            os.stat(py_filename)
             if py_attr == '"Access"':
                 os.utime(py_filename, (
                     stattime, os.path.getatime(py_filename)))
@@ -2712,7 +2721,7 @@ class SetFileDate(Builtin):
         'SetFileDate[filename_]'
         return self.apply(filename, None, None, evaluation)
 
-    def apply_2arg(self, filename, evaluation):
+    def apply_2arg(self, filename, datelist, evaluation):
         'SetFileDate[filename_, datelist_]'
         return self.apply(filename, datelist, None, evaluation)
 

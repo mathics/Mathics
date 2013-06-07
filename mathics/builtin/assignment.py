@@ -1,8 +1,8 @@
 # -*- coding: utf8 -*-
 
-from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
-                                  PostfixOperator, PrefixOperator)
-from mathics.core.expression import Expression, Symbol, String
+from mathics.builtin.base import (
+    Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
+from mathics.core.expression import Expression, Symbol
 from mathics.core.rules import Rule
 from mathics.builtin.lists import walk_parts
 from mathics.builtin.evaluation import set_recursionlimit
@@ -845,6 +845,10 @@ class Unset(PostfixOperator):
      = {Null, Null}
     #> a + b
      = a + b
+
+    #> Unset[Messages[1]]
+     : First argument in Messages[1] is not a symbol or a string naming a symbol.
+     = $Failed
     """
 
     operator = '=.'
@@ -867,7 +871,7 @@ class Unset(PostfixOperator):
                 return Symbol('$Failed')
             symbol = expr.leaves[0].get_name()
             if not symbol:
-                evaluation.message(name, normal)
+                evaluation.message(name, 'fnsym', expr)
                 return Symbol('$Failed')
             if name == 'Options':
                 empty = {}

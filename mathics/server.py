@@ -22,8 +22,6 @@ import sys
 import os
 import argparse
 
-import django
-
 from mathics import print_version, print_license
 from mathics import settings as mathics_settings  # Prevents UnboundLocalError
 

@@ -5,9 +5,9 @@ Differential equation solver functions
 """
 
 import sympy
-from mathics.builtin.base import Builtin, BinaryOperator, Test
-from mathics.core.expression import Expression, from_sympy
-from mathics.core.convert import SympyExpression, sympy_symbol_prefix
+from mathics.builtin.base import Builtin
+from mathics.core.expression import Expression
+from mathics.core.convert import sympy_symbol_prefix, from_sympy
 
 
 class DSolve(Builtin):
@@ -120,13 +120,13 @@ class DSolve(Builtin):
             sym_result = sympy.dsolve(sym_eq, sym_func)
             if not isinstance(sym_result, list):
                 sym_result = [sym_result]
-        except ValueError as e:
+        except ValueError:
             evaluation.message('DSolve', 'symimp')
             return
-        except NotImplementedError as e:
+        except NotImplementedError:
             evaluation.message('DSolve', 'symimp')
             return
-        except AttributeError as e:
+        except AttributeError:
             evaluation.message('DSolve', 'litarg', eqn)
             return
         except KeyError:

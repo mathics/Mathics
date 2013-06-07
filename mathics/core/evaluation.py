@@ -24,10 +24,6 @@ import cPickle as pickle
 
 from mathics import settings
 
-from mathics.core.numbers import format_float, get_type
-from mathics.core.util import (subsets, subranges, permutations,
-                               interpolate_string)
-
 FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
            'TeXForm', 'MathMLForm',
@@ -47,7 +43,7 @@ def timeout_call(func, stop_func=None, timeout_duration=None, *args, **kwargs):
         def run(self):
             try:
                 self.result = func(*args, **kwargs)
-            except BaseException, exception:
+            except BaseException:
                 self.exception = True
                 self.exc_info = sys.exc_info()
 
@@ -435,8 +431,6 @@ class Evaluation(object):
         self.definitions.set_ownvalue(name, Integer(new_value))
 
     def inc_recursion_depth(self):
-        from mathics.core.expression import Symbol
-
         self.check_stopped()
 
         limit = self.get_config_value(

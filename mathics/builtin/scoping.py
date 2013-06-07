@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.expression import Expression, String, Symbol, Integer
+from mathics.core.expression import String, Symbol, Integer
 
 
 def get_scoping_vars(var_list, msg_symbol='', evaluation=None):

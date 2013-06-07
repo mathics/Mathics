@@ -4,8 +4,7 @@
 Graphics
 """
 
-import re
-from math import floor, ceil, log10, fmod
+from math import floor, ceil, log10
 
 from django.utils import simplejson
 
@@ -1426,9 +1425,9 @@ clip(box((%s,%s), (%s,%s)));
         start_k_x = int(ceil(xmin / step_x))
         start_k_x_small = int(ceil(xmin / step_x_small))
 
-        start_x = step_x * round_to_zero((xmax - xmin) / step_x)
-        start_x_small = step_x_small * \
-            round_to_zero((xmax - xmin) / step_x_small)
+        #start_x = step_x * round_to_zero((xmax - xmin) / step_x)
+        #start_x_small = step_x_small * \
+        #    round_to_zero((xmax - xmin) / step_x_small)
 
         zero_tolerance = 0.01
         if xmax > min:

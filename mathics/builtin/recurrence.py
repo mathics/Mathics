@@ -5,9 +5,9 @@ Recurrence relation solvers
 """
 
 import sympy
-from mathics.builtin.base import Builtin, BinaryOperator, Test
-from mathics.core.expression import Expression, from_sympy
-from mathics.core.convert import SympyExpression, sympy_symbol_prefix
+from mathics.builtin.base import Builtin
+from mathics.core.expression import Expression
+from mathics.core.convert import sympy_symbol_prefix, from_sympy
 
 
 class RSolve(Builtin):
@@ -122,7 +122,7 @@ class RSolve(Builtin):
 
             if not isinstance(sym_result, list):
                 sym_result = [sym_result]
-        except ValueError as ve:
+        except ValueError:
             return
 
         if function_form is None:

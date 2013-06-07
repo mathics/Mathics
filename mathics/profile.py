@@ -18,18 +18,11 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import sys
-import re
-
 import cProfile
 import pstats
 
-from mathics.core.parser import parse, TranslateError
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Evaluation
-from mathics.builtin import (modules, builtins_by_module, get_module_doc,
-                             builtins)
-from mathics.doc import documentation
 
 definitions = Definitions(add_builtin=True)
 

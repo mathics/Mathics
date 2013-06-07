@@ -2,11 +2,10 @@
 
 import sympy
 
-from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
-                                  PrefixOperator, Test)
+from mathics.builtin.base import Builtin, BinaryOperator, Test
 from mathics.core.expression import (Expression, Number, Integer, Rational,
-                                     Real, Symbol, Complex, String)
-from mathics.core.numbers import get_type, dps, min_prec
+                                     Real, Symbol, String)
+from mathics.core.numbers import get_type, dps
 
 
 class SameQ(BinaryOperator):

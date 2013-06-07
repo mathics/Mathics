@@ -11,13 +11,10 @@ rules are not implemented yet.
 from __future__ import with_statement
 
 import sympy
-import sympy.mpmath as mpmath
 
-from mathics.builtin.base import (Builtin, Predefined, SympyConstant,
-                                  SympyFunction)
-from mathics.core.expression import (Number, Real, Expression, Integer,
-                                     from_sympy)
-from mathics.core.numbers import dps, prec
+from mathics.builtin.base import Builtin, SympyConstant, SympyFunction
+from mathics.core.expression import Real, Expression, Integer
+from mathics.core.numbers import dps
 
 from mathics.builtin.numeric import get_precision
 from mathics.builtin.arithmetic import _MPMathFunction

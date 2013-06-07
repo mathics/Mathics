@@ -4,8 +4,7 @@
 Plotting
 """
 
-import re
-from math import floor, sin, cos, pi, sqrt
+from math import sin, cos, pi, sqrt
 import numbers
 
 from mathics.core.expression import (Expression, Real, NumberError, Symbol,
@@ -333,9 +332,9 @@ class _Plot(Builtin):
                 base_points.extend(line)
             base_plot_points.extend(base_points)
 
-            xmin, xmax = automatic_plot_range([x for x, y in base_points])
+            xmin, xmax = automatic_plot_range([xx for xx, yy in base_points])
             xscale = 1. / zero_to_one(xmax - xmin)
-            ymin, ymax = automatic_plot_range([y for x, y in base_points])
+            ymin, ymax = automatic_plot_range([yy for xx, yy in base_points])
             yscale = 1. / zero_to_one(ymax - ymin)
 
             if mesh == 'Full':
@@ -416,7 +415,7 @@ class _Plot(Builtin):
                         i += 1
 
             if exclusions == 'None':    # Join all the Lines
-                points = [[(x, y) for line in points for x, y in line]]
+                points = [[(xx, yy) for line in points for xx, yy in line]]
 
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
             graphics.append(Expression('Line', Expression('List', *(
@@ -444,17 +443,17 @@ class _Plot(Builtin):
             if hue < 0:
                 hue += 1
 
-        x_range = get_plot_range([x for x, y in base_plot_points],
-                                 [x for x, y in plot_points], x_range)
-        y_range = get_plot_range([y for x, y in base_plot_points],
-                                 [y for x, y in plot_points], y_range)
+        x_range = get_plot_range([xx for xx, yy in base_plot_points],
+                                 [xx for xx, yy in plot_points], x_range)
+        y_range = get_plot_range([yy for xx, yy in base_plot_points],
+                                 [yy for xx, yy in plot_points], y_range)
 
         options['PlotRange'] = from_python([x_range, y_range])
 
         if mesh != 'None':
             for hue, points in zip(function_hues, mesh_points):
                 graphics.append(Expression('Hue', hue, 0.6, 0.6))
-                meshpoints = [Expression('List', x, y) for x, y in points]
+                meshpoints = [Expression('List', xx, yy) for xx, yy in points]
                 graphics.append(Expression(
                     'Point', Expression('List', *meshpoints)))
 
@@ -650,15 +649,12 @@ class _Plot3D(Builtin):
         functions = self.get_functions_param(functions)
         plot_name = self.get_name()
 
-        x_name = x.get_name()
-        y_name = y.get_name()
-
         try:
             xstart, xstop, ystart, ystop = \
                 [value.to_number(n_evaluation=evaluation)
                  for value in (xstart, xstop, ystart, ystop)]
 
-        except NumberError, exc:
+        except NumberError:
             expr = Expression(
                 plot_name, functions, Expression('List', x, xstart, xstop),
                 Expression('List', y, ystart, ystop),

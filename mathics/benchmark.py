@@ -68,10 +68,10 @@ import sys
 import time
 from argparse import ArgumentParser
 
-from mathics.core.parser import parse, TranslateError
+from mathics.core.parser import parse
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Evaluation
-from mathics import get_version_string, settings
+from mathics import settings
 
 definitions = Definitions(add_builtin=True)
 evaluation = None
@@ -101,15 +101,14 @@ def timeit(func, repeats=None):
             func()
     else:
         # Automatic number of repeats
-        i = 0
         repeats = 10000
-        while i < repeats:
+        for i in xrange(repeats):
             times.append(time.clock())
             func()
-            i += 1
-            for j in [10, 100, 1000, 5000]:
-                if i == j and times[-1] > times[0] + 1:
+            if any(i == j for j in (5, 10, 100, 1000, 5000)):
+                if times[-1] > times[0] + 1:
                     repeats = i
+                    break
 
     times.append(time.clock())
 
@@ -131,7 +130,7 @@ def benchmark_parse(expression_string):
     timeit(lambda: parse(expression_string))
 
 
-def benchmark_format(section_name):
+def benchmark_format(expression_string):
     print "  '{0}'".format(expression_string)
     expr = parse(expression_string)
     timeit(lambda: expr.default_format(evaluation, "FullForm"))

@@ -4,11 +4,8 @@
 Importing and Exporting
 """
 
-import os
-
 from mathics.core.expression import Expression, from_python
 from mathics.builtin.base import Builtin, Predefined, Symbol, String
-from mathics.settings import ROOT_DIR
 
 from pymimesniffer import magic
 import mimetypes

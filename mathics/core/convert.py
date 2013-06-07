@@ -48,50 +48,6 @@ class ConvertSubstitutions(object):
         return expression.Expression(self.head_name, expression.Integer(index),
                                      *expr.get_atoms())
 
-
-class BasicSympy(sympy.basic.Basic):
-    """
-    Implementation of some methods not available any more in sympy.basic.Basic
-    for sympy 0.7.1 (taken from sympy 0.6.7)
-    """
-
-    def as_base_exp(self):
-        # a -> b ** e
-        return self, sympy.S.One
-
-    def as_coeff_terms(self, x=None):
-        # a -> c * t
-        if x is not None:
-            if not self.has(x):
-                return self, tuple()
-        return sympy.S.One, (self,)
-
-    def as_numer_denom(self):
-        """ a/b -> a,b
-
-        The following is a possible way to modify Eq which are now
-        just returned as (Eq(), 1). It is not a trivial change,
-        however, and it causes many failures.
-
-        from sympy.core.relational import Equality
-        from sympy import Eq
-        if isinstance(self, Equality):
-            l = Symbol('l', dummy=True)
-            r = Symbol('r', dummy=True)
-            n, d = (l*self.lhs - r*self.rhs).as_numer_denom()
-            return Eq(n.subs({l: 1, r: 0}),
-                      n.subs({l: 0, r: -1})), d.subs({l: 1, r: 1})
-        """
-
-        base, exp = self.as_base_exp()
-        coeff_terms = exp.as_coeff_terms()
-        if coeff_terms is not None:
-            coeff, terms = coeff_terms
-            if coeff.is_negative:
-                # b**-e -> 1, b**e
-                return sympy.S.One, base ** (-exp)
-        return self, sympy.S.One
-
 BasicSympy = sympy.Expr
 
 
@@ -114,8 +70,6 @@ class SympyExpression(BasicSympy):
 
     @property
     def func(self):
-        from mathics.core import expression
-
         class SympyExpressionFunc(object):
             def __new__(cls, *args):
                 return SympyExpression(self.expr)
@@ -154,7 +108,7 @@ class SympyExpression(BasicSympy):
 def from_sympy(expr):
     from mathics.builtin import sympy_to_mathics
     from mathics.core.expression import (Symbol, Integer, Rational, Real,
-                                         Expression, Number)
+                                         Expression)
 
     from sympy.core import numbers, function, symbol
 

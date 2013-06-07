@@ -4,10 +4,10 @@
 Control statements
 """
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator
+from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, from_python
-from mathics.core.evaluation import (AbortInterrupt, ReturnInterrupt,
-                                     BreakInterrupt, ContinueInterrupt)
+from mathics.core.evaluation import (
+    AbortInterrupt, BreakInterrupt, ContinueInterrupt)
 
 from mathics.builtin.lists import _IterationFunction
 from mathics.builtin.patterns import match

@@ -18,14 +18,12 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os
 import sys
 import argparse
 
 from mathics.core.definitions import Definitions
-from mathics.core.expression import Symbol, Expression, Integer
+from mathics.core.expression import Integer
 from mathics.core.evaluation import Evaluation
-from mathics import settings
 from mathics import print_version, print_license, get_version_string
 
 

@@ -26,11 +26,9 @@ import pickle
 import os
 from argparse import ArgumentParser
 
-from mathics.core.parser import parse, TranslateError
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Evaluation
-from mathics.builtin import (modules, builtins_by_module, get_module_doc,
-                             builtins)
+from mathics.builtin import builtins
 from mathics.doc import documentation
 from mathics import get_version_string
 
@@ -151,7 +149,7 @@ def test_section(section, quiet=False):
 def open_ensure_dir(f, *args, **kwargs):
     try:
         return open(f, *args, **kwargs)
-    except IOError, OSError:
+    except (IOError, OSError):
         d = os.path.dirname(f)
         if d and not os.path.exists(d):
             os.makedirs(d)

@@ -6,8 +6,8 @@ Input and Output
 
 import re
 
-from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
-                                  BoxConstruct, BoxConstructError, Operator)
+from mathics.builtin.base import (
+    Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator)
 from mathics.builtin.tensors import get_dimensions
 from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes

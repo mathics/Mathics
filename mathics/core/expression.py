@@ -21,19 +21,10 @@ u"""
 import sympy
 import sympy.mpmath as mpmath
 import re
-import operator
-try:
-    import cython
-except ImportError:
-    pass
 
-from mathics.core.numbers import (format_float, prec, get_type, dps, prec,
-                                  min_prec)
+from mathics.core.numbers import get_type, dps, prec, min_prec
 from mathics.core.evaluation import Evaluation
-from mathics.core.util import (subsets, subranges, permutations,
-                               interpolate_string)
-from mathics.core.convert import (from_sympy, ConvertSubstitutions,
-                                  sympy_symbol_prefix, SympyExpression)
+from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 
 builtin_evaluation = Evaluation()
 
@@ -164,9 +155,9 @@ class BaseExpression(object):
         if isinstance(other, Real):
             # MMA Docs: "Approximate numbers that differ in their last seven
             # binary digits are considered equal"
-            prec = min_prec(self, other) - 7
-            return cmp(self.to_sympy().n(dps(prec)),
-                       other.to_sympy().n(dps(prec)))
+            _prec = min_prec(self, other) - 7
+            return cmp(self.to_sympy().n(dps(_prec)),
+                       other.to_sympy().n(dps(_prec)))
         if not hasattr(other, 'get_sort_key'):
             return False
         return cmp(self.get_sort_key(), other.get_sort_key())
@@ -837,7 +828,7 @@ class Expression(BaseExpression):
             self.leaves[0].get_head_name() == 'List'):
             result = []
             inside_row = options.get('inside_row')
-            inside_list = options.get('inside_list')
+            # inside_list = options.get('inside_list')
             options = options.copy()
 
             def is_list_interior(content):
@@ -1096,13 +1087,13 @@ class Expression(BaseExpression):
         # attribute
 
     def numerify(self, evaluation):
-        prec = None
+        _prec = None
         for leaf in self.leaves:
             if leaf.is_inexact():
                 leaf_prec = leaf.get_precision()
-                if prec is None or leaf_prec < prec:
-                    prec = leaf_prec
-        if prec is not None:
+                if _prec is None or leaf_prec < _prec:
+                    _prec = leaf_prec
+        if _prec is not None:
             new_leaves = self.leaves[:]
             for index in range(len(self.leaves)):
                 leaf = self.leaves[index]
@@ -1110,7 +1101,7 @@ class Expression(BaseExpression):
                 # automatically by the processing function,
                 # and we don't want to lose exactness in e.g. 1.0+I.
                 if not isinstance(leaf, Number):
-                    n_expr = Expression('N', leaf, Integer(dps(prec)))
+                    n_expr = Expression('N', leaf, Integer(dps(_prec)))
                     new_leaves[index] = n_expr.evaluate(evaluation)
             return Expression(self.head, *new_leaves)
         else:
@@ -1757,7 +1748,6 @@ class String(Atom):
                 return '<mtext>%s</mtext>' % encode_mathml(text)
 
     def boxes_to_tex(self, show_string_characters=False, **options):
-        from mathics.core.parser import is_symbol_name
         from mathics.builtin import builtins
 
         operators = set()
