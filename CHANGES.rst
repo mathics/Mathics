@@ -10,7 +10,7 @@ CHANGES
 - More Timing functions AbsoluteTiming, TimeUsed, SessionTime, Pause
 - Date functions DateList, DateString, DateDifference, etc
 - Parser rewritten using lex/yacc (PLY)
-- Unicode characters suppoerted 
+- Unicode character support 
 - PolarPlot
 - IPython style (coloured) input 
 - VectorAnalysis` Package
