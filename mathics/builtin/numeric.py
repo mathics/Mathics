@@ -25,7 +25,19 @@ def get_precision(precision, evaluation):
     if precision.get_name() == 'MachinePrecision':
         return machine_precision
     elif isinstance(precision, (Integer, Rational, Real)):
-        return prec(float(precision.to_sympy()))
+        sym_precision = precision.to_sympy()
+        min_precision = evaluation.get_config_value('$MinPrecision')
+        max_precision = evaluation.get_config_value('$MaxPrecision')
+
+        if min_precision is not None and min_precision > sym_precision:
+            evaluation.message('N', 'precsm', precision)
+            sym_precision = min_precision
+
+        elif max_precision is not None and max_precision < sym_precision:
+            evaluation.message('N', 'preclg', precision, float(max_precision))
+            sym_precision = max_precision
+
+        return prec(float(sym_precision))
     else:
         evaluation.message('N', 'precbd', precision)
         return None
@@ -288,9 +300,9 @@ class MinPrecision(Predefined):
     >> $MinPrecision
      = 0
 
-    ## #> Block[{$MinPrecision = 50}, N[Pi, 25]]
-    ##  : Requested precision 25 is smaller than $MinPrecision. Using $MinPrecision instead.
-    ##  = 3.1415926535897932384626433832795028841971693993751
+    #> Block[{$MinPrecision = 50}, N[Pi, 25]]
+     : Requested precision 25 is smaller than $MinPrecision. Using $MinPrecision instead.
+     = 3.1415926535897932384626433832795028841971693993751
 
     #> $MinPrecision = -5
      : Cannot set $MinPrecision to -5; value must be a non-negative number or Infinity.
@@ -347,9 +359,9 @@ class MaxPrecision(Predefined):
     >> $MaxPrecision
      = Infinity
 
-    ## #> Block[{$MaxPrecision = 50}, N[Pi, 100]]
-    ##  : Requested precision 100 is larger than $MaxPrecision. Using current $MaxPrecision of 50. instead. $MaxPrecision = Infinity specifies that any precision should be allowed.
-    ##  = 3.1415926535897932384626433832795028841971693993751
+    #> Block[{$MaxPrecision = 50}, N[Pi, 100]]
+     : Requested precision 100 is larger than $MaxPrecision. Using current $MaxPrecision of 50. instead. $MaxPrecision = Infinity specifies that any precision should be allowed.
+     = 3.1415926535897932384626433832795028841971693993751
 
     #> $MaxPrecision = 0
      : Cannot set $MaxPrecision to 0; value must be a positive number or Infinity.
