@@ -1667,3 +1667,52 @@ class Riffle(Builtin):
             return Expression('List', *riffle_lists(list.get_leaves(), sep.leaves))
         else:
             return Expression('List', *riffle_lists(list.get_leaves(), [sep]))
+
+class DeleteDuplicates(Builtin):
+    """
+    <dl>
+    <dt>'DeleteDuplicates[$list$]'
+      <dd>Delete duplicates from $list$.
+    <dt>'DeleteDuplicates[$list$, $test$]'
+      <dd>Deletes elements from $list$ based on whether the function $test$ yields 'True' on pairs of elements.
+    </dl>
+
+    >> DeleteDuplicates[{1, 7, 8, 4, 3, 4, 1, 9, 9, 2, 1}]
+     = {1, 7, 8, 4, 3, 9, 2}
+
+    >> DeleteDuplicates[{3,2,1,2,3,4}, Less]
+     = {3, 2, 1}
+
+    >> DeleteDuplicates[{3,2,1,2,3,4}, Greater]
+     = {3, 3, 4}
+    """
+
+    rules = {
+        'DeleteDuplicates[list_]': 'DeleteDuplicates[list, SameQ]',
+    }
+
+    messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
+    }
+
+    def apply(self, mlist, test, evaluation):
+        'DeleteDuplicates[mlist_, test_]'
+
+        expr = Expression('DeleteDuplicates', mlist, test)
+
+        if mlist.is_atom():
+            evaluation.message('Select', 'normal', 1, expr)
+            return
+
+        result = [[mlist.leaves[0]][0]]
+        for leaf in mlist.leaves[1:]:
+            matched = False
+            for res in result:
+                applytest = Expression(test, res, leaf)
+                if applytest.evaluate(evaluation) == Symbol('True'):
+                    matched = True
+                    break
+            if not matched:
+                result.append(leaf)
+
+        return Expression(mlist.head, *result)
