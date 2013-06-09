@@ -1685,6 +1685,9 @@ class DeleteDuplicates(Builtin):
 
     >> DeleteDuplicates[{3,2,1,2,3,4}, Greater]
      = {3, 3, 4}
+
+    >> DeleteDuplicates[{}]
+     = {}
     """
 
     rules = {
@@ -1704,8 +1707,8 @@ class DeleteDuplicates(Builtin):
             evaluation.message('Select', 'normal', 1, expr)
             return
 
-        result = [[mlist.leaves[0]][0]]
-        for leaf in mlist.leaves[1:]:
+        result = []
+        for leaf in mlist.leaves:
             matched = False
             for res in result:
                 applytest = Expression(test, res, leaf)
