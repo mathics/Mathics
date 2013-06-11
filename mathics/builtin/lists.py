@@ -1683,10 +1683,10 @@ class DeleteDuplicates(Builtin):
     >> DeleteDuplicates[{3,2,1,2,3,4}, Less]
      = {3, 2, 1}
 
-    >> DeleteDuplicates[{3,2,1,2,3,4}, Greater]
+    #> DeleteDuplicates[{3,2,1,2,3,4}, Greater]
      = {3, 3, 4}
 
-    >> DeleteDuplicates[{}]
+    #> DeleteDuplicates[{}]
      = {}
     """
 
