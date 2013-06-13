@@ -178,6 +178,41 @@ class RegisterImport(Builtin):
         return Symbol('Null')
 
 
+#FIXME This should be private, that is accesed with ImportExport`RegisterExport
+class RegisterExport(Builtin):
+    """
+    >> ExampleExporter1[filename_, data_, opts___] := Module[{strm = OpenWrite[filename], char = data}, WriteString[strm, char]; Close[strm]]
+
+    >> RegisterExport["ExampleFormat1", ExampleExporter1]
+
+    >> Export["sample.txt", "Encode this string!", "ExampleFormat1"];
+
+    >> FilePrint["sample.txt"]
+     | Encode this string!
+    """
+
+    options = {
+        'Path': 'Automatic',
+        'FunctionChannels': '{"FileNames"}',
+        'Sources': 'None', 
+        'DefaultElement': 'None',
+        'AvailableElements': 'None',
+        'Options': '{}', 
+        'OriginalChannel': 'False',
+        'BinaryFormat': 'False',
+        'Encoding': 'False',
+        'Extensions': '{}', 
+        'AlphaChannel': 'False',
+    }
+        
+
+    def apply(self, formatname, function, evaluation, options):
+        'RegisterExport[formatname_String, function_, OptionsPattern[RegisterExport]]'
+        EXPORTERS[formatname.get_string_value()] = function
+
+        return Symbol('Null')
+
+
 class Import(Builtin):
     """
     <dl>
@@ -372,9 +407,151 @@ class Export(Builtin):
     <dt>'Export["$file$", $exprs$, $elems$]'
       <dd>exports $exprs$ to a file as elements specified by $elems$.
     </dl>
+
+    # Invalid Filename
+    #> Export["abc.", 1+2]
+     : Cannot infer format of file abc..
+     = $Failed
+    #> Export[".ext", 1+2]
+     : Cannot infer format of file .ext.
+     = $Failed
+    #> Export[x, 1+2]
+     : First argument x is not a valid file specification.
+     = $Failed
+
+    ## Explicit Format
+    #> Export["abc.txt", 1+x, "JPF"]
+     : {JPF} is not a valid set of export elements for the Text format.
+     = $Failed
+    #> Export["abc.txt", 1+x, {"JPF"}]
+     : {JPF} is not a valid set of export elements for the Text format.
+     = $Failed
+
+    ## Empty elems
+    #> Export["123.txt", 1+x, {}]
+     = 123.txt
+    #> Export["123.jcp", 1+x, {}]
+     : Cannot infer format of file 123.jcp.
+     = $Failed
+
+    ## Compression
+    ## #> Export["abc.txt", 1+x, "ZIP"]    (* MMA Bug - Export::type *)
+    ##  : {ZIP} is not a valid set of export elements for the Text format.
+    ##  = $Failed
+    ## #> Export["abc.txt", 1+x, "BZIP"]   (* MMA Bug - General::stop *)
+    ##  : {BZIP} is not a valid set of export elements for the Text format.
+    ##  = $Failed
+    ## #> Export["abc.txt", 1+x, {"BZIP", "ZIP", "Text"}]
+    ##  = abc.txt
+    ## #> Export["abc.txt", 1+x, {"GZIP", "Text"}]
+    ##  = abc.txt
+    ## #> Export["abc.txt", 1+x, {"BZIP2", "Text"}]
+    ##  = abc.txt
+
+    ## FORMATS
+
+    ## Text
+    #> Export["abc.txt", 1 + x + y]
+     = abc.txt
+    #> FilePrint[%]
+     | 1 + x + y
+    #> DeleteFile[%%]
     """
 
-    pass
+    messages = {
+        'chtype': "First argument `1` is not a valid file specification.",
+        'infer': "Cannot infer format of file `1`.",
+        'noelem': "`1` is not a valid set of export elements for the `2` format.",
+    }
+
+    _extdict = {
+        'jpg': 'JPEG',
+        'txt': 'Text',
+    }
+
+    rules = {
+        'Export[filename_, expr_, elems_?NotListQ]': 
+            'Export[filename, expr, {elems}]',
+    }
+
+    def apply_noelems(self, filename, expr, evaluation):
+        "Export[filename_, expr_]"
+
+        # Check filename
+        if not self._check_filename(filename, evaluation):
+            return Symbol('$Failed')
+
+        # Determine Format
+        form = self._infer_form(filename, evaluation)
+
+        if form is None:
+            evaluation.message('Export', 'infer', filename)
+            return Symbol('$Failed')
+        else:
+            return self.apply(filename, expr, String(form), evaluation)
+
+    def apply(self, filename, expr, elems, evaluation):
+        "Export[filename_, expr_, elems_List]"
+
+        # Check filename
+        if not self._check_filename(filename, evaluation):
+            return Symbol('$Failed')
+
+        ## Process elems {comp* format?, elem1*}
+        leaves = elems.get_leaves()
+
+        format_spec, elems_spec = [], []
+        found_form = False
+        for leaf in leaves[::-1]:
+            leaf_str = leaf.get_string_value()
+
+            if not found_form and leaf_str in EXPORTERS:
+                found_form = True
+
+            if found_form:
+                format_spec.append(leaf_str)
+            else:
+                elems_spec.append(leaf)
+
+        # Infer format if not present
+        if not found_form:
+            assert format_spec == []
+            format_spec = self._infer_form(filename, evaluation)
+            if format_spec is None:
+                evaluation.message('Export', 'infer', filename)
+                return Symbol('$Failed')
+            format_spec = [format_spec]
+        else:
+            assert format_spec != []
+
+        # First item in format_spec is the explicit format.
+        # The other elements (if present) are compression formats
+
+        if elems_spec != []:        # FIXME: support elems
+            evaluation.message(
+                'Export', 'noelem', elems, String(format_spec[0]))
+            return Symbol('$Failed')
+
+        # Load the exporter
+        exporter_symbol = EXPORTERS[format_spec[0]]
+
+        exporter_function = Expression(exporter_symbol, filename, expr)
+
+        if exporter_function.evaluate(evaluation) == Symbol('Null'):
+            return filename
+        return Symbol('$Failed')
+
+    def _check_filename(self, filename, evaluation):
+        path = filename.to_python()
+        if isinstance(path, basestring) and path[0] == path[-1] == '"':
+            return True
+        evaluation.message('Export', 'chtype', filename)
+        return False
+
+    def _infer_form(self, filename, evaluation):
+        ext = Expression('FileExtension', filename).evaluate(evaluation)
+        ext = ext.get_string_value()
+        return self._extdict.get(ext)
 
 
 class FileFormat(Builtin):
