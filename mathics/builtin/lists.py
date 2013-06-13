@@ -1011,6 +1011,9 @@ class Split(Builtin):
     Split based on first element
     >> Split[{x -> a, x -> y, 2 -> a, z -> c, z -> a}, First[#1] === First[#2] &]
      = {{x -> a, x -> y}, {2 -> a}, {z -> c, z -> a}}
+
+    #> Split[{}]
+     = {}
     """
 
     rules = {
@@ -1029,14 +1032,17 @@ class Split(Builtin):
         if mlist.is_atom():
             evaluation.message('Select', 'normal', 1, expr)
             return
-
-        result = [[mlist.leaves[0]]]
-        for leaf in mlist.leaves[1:]:
-            applytest = Expression(test, result[-1][-1], leaf)
-            if applytest.evaluate(evaluation) == Symbol('True'):
-                result[-1].append(leaf)
-            else:
-                result.append([leaf])
+ 
+        if len(mlist.leaves) == 0:
+            result = []
+        else:
+            result = [[mlist.leaves[0]]]
+            for leaf in mlist.leaves[1:]:
+                applytest = Expression(test, result[-1][-1], leaf)
+                if applytest.evaluate(evaluation) == Symbol('True'):
+                    result[-1].append(leaf)
+                else:
+                    result.append([leaf])
 
         return Expression(mlist.head, *[Expression('List', *l) for l in result])
 
