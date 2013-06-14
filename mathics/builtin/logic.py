@@ -24,7 +24,7 @@ class Or(BinaryOperator):
         leaves = []
         for arg in args:
             result = arg.evaluate(evaluation)
-            if result == Symbol('True'):
+            if result.is_true():
                 return Symbol('True')
             elif result != Symbol('False'):
                 leaves.append(result)
@@ -62,7 +62,7 @@ class And(BinaryOperator):
             result = arg.evaluate(evaluation)
             if result == Symbol('False'):
                 return Symbol('False')
-            elif result != Symbol('True'):
+            elif not result.is_true():
                 leaves.append(result)
         if leaves:
             if len(leaves) == 1:

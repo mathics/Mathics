@@ -457,7 +457,7 @@ class Level(Builtin):
             result.append(level)
             return level
         
-        heads = self.get_option(options, 'Heads', evaluation) == Symbol('True')
+        heads = self.get_option(options, 'Heads', evaluation).is_true()
         walk_levels(expr, start, stop, heads=heads, callback=callback)
         return Expression('List', *result)
     
@@ -982,7 +982,7 @@ class Select(Builtin):
         new_leaves = []
         for leaf in list.leaves:
             test = Expression(expr, leaf)
-            if test.evaluate(evaluation) == Symbol('True'):
+            if test.evaluate(evaluation).is_true():
                 new_leaves.append(leaf)
         return Expression(list.head, *new_leaves)
 
@@ -1039,7 +1039,7 @@ class Split(Builtin):
             result = [[mlist.leaves[0]]]
             for leaf in mlist.leaves[1:]:
                 applytest = Expression(test, result[-1][-1], leaf)
-                if applytest.evaluate(evaluation) == Symbol('True'):
+                if applytest.evaluate(evaluation).is_true():
                     result[-1].append(leaf)
                 else:
                     result.append([leaf])
@@ -1214,7 +1214,7 @@ class _IterationFunction(Builtin):
             cont = Expression('LessEqual', index, imax).evaluate(evaluation)
             if cont == Symbol('False'):
                 break
-            if cont != Symbol('True'):
+            if not cont.is_true():
                 if self.throw_iterb:
                     evaluation.message(self.get_name(), 'iterb')
                 return
@@ -1718,7 +1718,7 @@ class DeleteDuplicates(Builtin):
             matched = False
             for res in result:
                 applytest = Expression(test, res, leaf)
-                if applytest.evaluate(evaluation) == Symbol('True'):
+                if applytest.evaluate(evaluation).is_true():
                     matched = True
                     break
             if not matched:
