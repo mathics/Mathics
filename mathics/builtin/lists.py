@@ -1678,9 +1678,9 @@ class DeleteDuplicates(Builtin):
     """
     <dl>
     <dt>'DeleteDuplicates[$list$]'
-      <dd>Delete duplicates from $list$.
+      <dd>deletes duplicates from $list$.
     <dt>'DeleteDuplicates[$list$, $test$]'
-      <dd>Deletes elements from $list$ based on whether the function $test$ yields 'True' on pairs of elements.
+      <dd>deletes elements from $list$ based on whether the function $test$ yields 'True' on pairs of elements.
     </dl>
 
     >> DeleteDuplicates[{1, 7, 8, 4, 3, 4, 1, 9, 9, 2, 1}]
