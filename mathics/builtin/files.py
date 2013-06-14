@@ -726,6 +726,12 @@ class WriteString(Builtin):
      = ...
     #> FilePrint[%]
      | 1001 + x + ySin[x + y]
+
+    #> str = OpenWrite[];
+    #> WriteString[str]
+    #> Close[str]
+     = ...
+    #> FilePrint[%]
     """
 
     messages = {
