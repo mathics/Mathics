@@ -14,7 +14,8 @@ import base64
 import tempfile
 import time
 
-from mathics.core.expression import Expression, String, Symbol, from_python
+from mathics.core.expression import (Expression, String, Symbol, from_python,
+                                     BoxError)
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.settings import ROOT_DIR
@@ -718,6 +719,13 @@ class WriteString(Builtin):
      = ...
     >> FilePrint[%]
      | This is a test 1This is also a test 2
+
+    #> str = OpenWrite[];
+    #> WriteString[str, 100, 1 + x + y, Sin[x  + y]]
+    #> Close[str]
+     = ...
+    #> FilePrint[%]
+     | 1001 + x + ySin[x + y]
     """
 
     messages = {
@@ -736,16 +744,17 @@ class WriteString(Builtin):
             evaluation.message('General', 'openx', name)
             return
 
-        exprs = expr.get_sequence()
-        for e in exprs:
-            if not isinstance(e, String):
-                # Mathematica gets this message wrong
-                evaluation.message('WriteString', 'strml', e)
-                return
+        exprs = []
+        for expri in expr.get_sequence():
+            result = expri.format(evaluation, "OutputForm")
+            try:
+                result = result.boxes_to_text(evaluation=evaluation)
+            except BoxError:
+                return evaluation.message(
+                    'General', 'notboxes', String('%s' % result))
+            exprs.append(result)
 
-        text = map(lambda x: x.to_python()[1:-1], exprs)
-        text = unicode(''.join(text))
-        stream.write(text)
+        stream.write(u''.join(exprs))
         return Symbol('Null')
 
 
