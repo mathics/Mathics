@@ -4,7 +4,7 @@
 Options and default arguments
 """
 
-from mathics.builtin.base import Builtin
+from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import Symbol, Expression, get_default_value
 
 
@@ -172,6 +172,53 @@ class Default(Builtin):
             return
         result = get_default_value(name, evaluation, *i)
         return result
+
+
+class OptionQ(Test):
+    """
+
+    >> OptionQ[a -> True]
+     = True
+    >> OptionQ[a :> True]
+     = True
+    >> OptionQ[{a -> True}]
+     = True
+    >> OptionQ[{a :> True}]
+     = True
+
+    >> OptionQ[x]
+     = False
+    """
+
+    def test(self, expr):
+        if not expr.has_form('List', None):
+            expr = [expr]
+        else:
+            expr = expr.get_leaves()
+        return all(e.has_form('Rule', None) or e.has_form('RuleDelayed', 2)
+                   for e in expr)
+
+
+class NotOptionQ(Test):
+    """
+    >> NotOptionQ[x]
+     = True
+    >> NotOptionQ[2]
+     = True
+    >> NotOptionQ["abc"]
+     = True
+
+    >> NotOptionQ[a -> True]
+     = False
+    """
+
+    def test(self, expr):
+        if not expr.has_form('List', None):
+            expr = [expr]
+        else:
+            expr = expr.get_leaves()
+        return not all(e.has_form('Rule', None) or e.has_form('RuleDelayed', 2)
+                       for e in expr)
 
 
 def options_to_rules(options):

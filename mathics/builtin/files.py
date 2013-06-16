@@ -722,6 +722,159 @@ class Write(Builtin):
         return Symbol('Null')
 
 
+class BinaryWrite(Builtin):
+    """
+    >> strm = OpenWrite[BinaryFormat -> True]
+     = OutputStream[...]
+    >> BinaryWrite[strm, {39, 4, 122}]
+     = OutputStream[...]
+    >> Close[strm]
+     = ...
+    >> strm = OpenRead[%, BinaryFormat -> True]
+     = InputStream[...]
+    >> BinaryRead[strm]
+     = 39
+    >> BinaryRead[strm, "Byte"]
+     = 4
+    >> BinaryRead[strm, "Character8"]
+     = z
+    >> Close[strm];
+    """
+
+    def apply_notype(self, name, n, b, evaluation):
+        'BinaryWrite[OutputStream[name_, n_], b_]'
+        return self.apply(name, n, b, None, evaluation)
+
+    def apply(self, name, n, b, typ, evaluation):
+        'BinaryWrite[OutputStream[name_, n_] b_, typ_]'
+
+        channel = Expression('OutputStream', name, n)
+
+        # Check channel
+        stream = _lookup_stream(n.get_int_value())
+
+        if stream is None or stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
+
+        if stream.mode not in ['wb', 'ab']:
+            evaluation.message('BinaryWrite', 'openr', channel)
+            return
+
+        # Check Type
+        if typ is None:
+            expr = Expression('BinaryWrite', channel, b)
+            typ = String('Character8')
+        else:
+            expr = Expression('BinaryWrite', channel, b, typ)
+
+
+        # Check b
+        if isinstance(b, String):
+            raise NotImplementedError
+            #pyb = bytes(b)
+        elif isinstance(b, Integer):
+            pyb = bytearray([b.get_int_value()])
+        elif(b.has_form('List', None) and 
+             all(isinstance(bi, Integer) for bi in b.leaves)):
+            pyb = bytearray([bi.get_int_value() for bi in b.leaves])
+        else:
+            evaluation.message('BinaryWrite', 'nocoerce', b)
+            return
+
+        # Write to stream
+        stream.write(pyb)
+        stream.flush()
+        return channel 
+
+class BinaryRead(Builtin):
+    """
+    """
+
+    known_types = set([
+        "Byte",                 # 8-bit unsigned integer
+        "Character8",           # 8-bit character
+        "Character16",          # 16-bit character
+        "Complex64",            # IEEE single-precision complex number
+        "Complex128",           # IEEE double-precision complex number
+        "Complex256",           # IEEE quad-precision complex number
+        "Integer8",             # 8-bit signed integer
+        "Integer16",            # 16-bit signed integer
+        "Integer24",            # 24-bit signed integer
+        "Integer32",            # 32-bit signed integer
+        "Integer64",            # 64-bit signed integer
+        "Integer128",           # 128-bit signed integer
+        "Real32",               # IEEE single-precision real number
+        "Real64",               # IEEE double-precision real number
+        "Real128",              # IEEE quad-precision real number
+        "TerminatedString",     # null-terminated string of 8-bit characters
+        "UnsignedInteger8",     # 8-bit unsigned integer
+        "UnsignedInteger16",    # 16-bit unsigned integer
+        "UnsignedInteger24",    # 24-bit unsigned integer
+        "UnsignedInteger32",    # 32-bit unsigned integer
+        "UnsignedInteger64",    # 64-bit unsigned integer
+        "UnsignedInteger128",   # 128-bit unsigned integer
+    ])
+
+    messages = {
+        'format': '`1` is not a recognized binary format.',
+        'openw': '`1` is open for output.',
+        'bfmt': 'The stream `1` has been opened with BinaryFormat -> False and cannot be used with binary data.',
+    }
+
+    def apply_empty(self, name, n, evaluation):
+        'BinaryRead[InputStream[name_, n_]]'
+        return self.apply(name, n, None, evaluation)
+
+    def apply(self, name, n, typ, evaluation):
+        'BinaryRead[InputStream[name_, n_], typ_]'
+
+        channel = Expression('InputStream', name, n)
+
+        # Check channel
+        stream = _lookup_stream(n.get_int_value())
+
+        if stream is None or stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
+
+        if stream.mode not in ['rb']:
+            evaluation.message('BinaryRead', 'bfmt', channel)
+            return
+
+        # Check typ
+        if typ is None:
+            expr = Expression('BinaryRead', channel)
+            typ = String('Byte')
+        else:
+            expr = Expression('BinaryRead', channel, typ)
+
+        if typ.has_form('List', None):
+            types = typ.get_leaves()
+        else:
+            types = [typ]
+
+        types = [t.get_string_value() for t in types]
+        if not all(t in self.known_types for t in types):
+            evaluation.message('BinaryRead', 'format', typ)
+            return
+
+        # Read from stream
+        result = []
+        for t in types:
+            if t == "Byte":
+                result.append(Integer(ord(stream.read(1))))
+            elif t == "Character8":
+                result.append(String(stream.read(1)))
+            else:
+                raise ValueError("Unknown type {0}".format(t))
+
+        if typ.has_form('List', None):
+            return Expression('List', *result)
+        else:
+            assert len(result) == 1
+            return result[0]
+
 class WriteString(Builtin):
     """
     <dl>
@@ -803,16 +956,48 @@ class WriteString(Builtin):
 
 class _OpenAction(Builtin):
 
+    attributes = ('Protected')
+
+    # BinaryFormat: 'False',
+    # CharacterEncoding :> Automatic, 
+    # DOSTextFormat :> True,
+    # FormatType -> InputForm, 
+    # NumberMarks :> $NumberMarks,
+    # PageHeight -> 22, PageWidth -> 78, 
+    # TotalHeight -> Infinity,
+    # TotalWidth -> Infinity
+
+    options = {
+        'BinaryFormat': 'False',
+    }
+
     messages = {
         'argx': 'OpenRead called with 0 arguments; 1 argument is expected.',
         'fstr': ('File specification `1` is not a string of '
                  'one or more characters.'),
     }
 
-    attributes = ('Protected')
+    def apply_empty(self, evaluation, options):
+        '%(name)s[OptionsPattern[]]'
 
-    def apply(self, path, evaluation):
-        '%(name)s[path_]'
+        if isinstance(self, (OpenWrite, OpenAppend)):
+            tmpf = tempfile.NamedTemporaryFile(dir=TMP_DIR)
+            path = String(tmpf.name)
+            tmpf.close()
+            return self.apply_path(path, evaluation, options)
+        else:
+            evaluation.message('OpenRead', 'argx')
+            return
+
+    def apply_path(self, path, evaluation, options):
+        '%(name)s[path_?NotOptionQ, OptionsPattern[]]'
+
+        ## Options
+        # BinaryFormat
+        if options['BinaryFormat'].is_true():
+            if not self.mode.endswith('b'):
+                #self.mode = self.mode + 'b'
+                self.mode += 'b'
 
         if not (isinstance(path, String) and len(path.to_python()) > 2):
             evaluation.message(self.__class__.__name__, 'fstr', path)
@@ -837,33 +1022,7 @@ class _OpenAction(Builtin):
             return
 
         assert STREAMS[n] == stream
-        result = Expression(self.stream_type, path, Integer(n))
-        return result
-
-    def apply_empty(self, evaluation):
-        '%(name)s[]'
-
-        if self.mode in ['r', 'rb']:
-            evaluation.message(self.__class__.__name__, 'argx')
-            return
-
-        global TMP_DIR
-
-        tmpf = tempfile.NamedTemporaryFile(dir=TMP_DIR)
-        path_string = tmpf.name
-        tmpf.close()
-
-        try:
-            opener = mathics_open(path_string, mode='w')
-            stream = opener.__enter__()
-            n = opener.n
-        except IOError:
-            evaluation.message('General', 'noopen', String(path_string))
-            return
-
-        assert STREAMS[n] == stream
-        result = Expression(self.stream_type, String(path_string), Integer(n))
-        return result
+        return Expression(self.stream_type, path, Integer(n))
 
 
 class OpenRead(_OpenAction):
@@ -892,6 +1051,10 @@ class OpenRead(_OpenAction):
     #> OpenRead["MathicsNonExampleFile"]
      : Cannot open MathicsNonExampleFile.
      = OpenRead[MathicsNonExampleFile]
+
+    #> OpenRead["ExampleData/EinsteinSzilLetter.txt", BinaryFormat -> True]
+     = InputStream[...]
+    #> Close[%];
     """
 
     mode = 'r'
@@ -906,6 +1069,10 @@ class OpenWrite(_OpenAction):
     </dl>
 
     >> OpenWrite[]
+     = OutputStream[...]
+    #> Close[%];
+
+    #> OpenWrite[BinaryFormat -> True]
      = OutputStream[...]
     #> Close[%];
     """
@@ -1281,7 +1448,7 @@ class FileNameSplit(Builtin):
     }
 
     def apply(self, filename, evaluation, options):
-        'FileNameSplit[filename_String, OptionsPattern[FileExtension]]'
+        'FileNameSplit[filename_String, OptionsPattern[FileNameSplit]]'
 
         path = filename.to_python()[1:-1]
 
