@@ -15,12 +15,11 @@ import tempfile
 import time
 
 from mathics.core.expression import (Expression, String, Symbol, from_python,
-                                     BoxError)
+                                     BoxError, Integer)
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.settings import ROOT_DIR
 
-STREAMS = {}
 INITIAL_DIR = os.getcwd()
 HOME_DIR = os.path.expanduser('~')
 SYS_ROOT_DIR = '/' if os.name == 'posix' else '\\'
@@ -30,59 +29,6 @@ INPUT_VAR = ""
 INPUTFILE_VAR = ""
 PATH_VAR = [HOME_DIR, os.path.join(ROOT_DIR, 'data'),
             os.path.join(ROOT_DIR, 'packages')]
-
-
-class mathics_open:
-    def __init__(self, filename, mode='r'):
-        self.filename = filename
-        self.mode = mode
-        self.file = None
-
-    def __enter__(self):
-        path = path_search(self.filename)
-
-        encoding = 'utf-8' if 'b' not in self.mode else None
-
-        if path is not None:
-            self.file = io.open(path, self.mode, encoding=encoding)
-        elif self.mode == 'w':
-            self.file = io.open(self.filename, self.mode, encoding=encoding)
-        else:
-            raise IOError
-        return self
-
-    def __exit__(self, type, value, traceback):
-        if self.file is not None:
-            self.file.close()
-
-    def read(self, *args):
-        return self.file.read(*args)
-
-    def write(self, *args):
-        return self.file.write(*args)
-
-    def readline(self):
-        return self.file.readline()
-
-    def readlines(self):
-        return self.file.readlines()
-
-    def seek(self, *args):
-        return self.file.seek(*args)
-
-    def tell(self):
-        return self.file.tell()
-
-    def close(self):
-        self.file.close()
-
-    @property
-    def closed(self):
-        return self.file.closed
-
-    @property
-    def seekable(self):
-        return self.file.seekable
 
 
 def path_search(filename):
@@ -112,20 +58,89 @@ def path_search(filename):
     return result
 
 
-def _put_stream(stream):
-    global STREAMS, _STREAMS, NSTREAMS
+def count():
+    n = 0
+    while True:
+        yield n
+        n += 1
 
-    try:
-        _STREAMS
-    except NameError:
-        STREAMS = {}    # Python repr
-        _STREAMS = {}   # Mathics repr
-        NSTREAMS = 0    # Max stream number
+NSTREAMS = count()      # use next(NSTREAMS)
+STREAMS = []
 
-    NSTREAMS += 1
-    STREAMS[NSTREAMS] = stream
-    return NSTREAMS
 
+def _channel_to_stream(channel, mode='r'):
+    if isinstance(channel, String):
+        name = channel.get_string_value()
+        opener = mathics_open(name, mode)
+        opener.__enter__()
+        n = opener.n
+        if mode in ['r', 'rb']:
+            head = 'InputStream'
+        elif mode in ['w', 'a', 'wb', 'ab']:
+            head = 'OutputStream'
+        else:
+            raise ValueError("Unknown format {0}".format(mode))
+        return Expression(head, channel, Integer(n))
+    elif channel.has_form('InputStream', 2):
+        return channel
+    elif channel.has_form('OutputStream', 2):
+        return channel
+    else:
+        return None
+
+def _lookup_stream(n=None):
+    if n is None:
+        return None
+    elif n is not None:
+        try:
+            return STREAMS[n]
+        except IndexError:
+            return None
+
+class mathics_open:
+    def __init__(self, name, mode='r'):
+        self.name = name
+        self.mode = mode
+
+        if mode not in ['r', 'w', 'a', 'rb', 'wb', 'ab']:
+            raise ValueError("Can't handle mode {0}".format(mode))
+
+    def __enter__(self):
+        # find path
+        path = path_search(self.name)
+        if path is None and self.mode in ['w', 'a', 'wb', 'ab']:
+            path = self.name
+        if path is None:
+            raise IOError
+
+        # determine encoding
+        encoding = 'utf-8' if 'b' not in self.mode else None
+
+        # open the stream
+        stream = io.open(path, self.mode, encoding=encoding)
+
+        # build the Expression
+        n = next(NSTREAMS)
+        if self.mode in ['r', 'rb']:
+            self.expr = Expression(
+                'InputStream', String(path), Integer(n))
+        elif self.mode in ['w', 'a', 'wb', 'ab']:
+            self.expr = Expression(
+                'OutputStream', String(path), Integer(n))
+        else:
+            raise IOError
+
+        STREAMS.append(stream)
+
+        self.n = n
+
+        return stream
+
+    def __exit__(self, type, value, traceback):
+        strm = STREAMS[self.n]
+        if strm is not None:
+            strm.close()
+            STREAMS[self.n] = None
 
 class InitialDirectory(Predefined):
     """
@@ -329,7 +344,6 @@ class Read(Builtin):
 
     ## Malformed InputString
     #> Read[InputStream[String], {Word, Number}]
-     : InputStream[String] is not string, InputStream[], or OutputStream[]
      = Read[InputStream[String], {Word, Number}]
 
     ## Correctly formed InputString but not open
@@ -423,13 +437,8 @@ class Read(Builtin):
      = {123., 123}
     #> Close[str];
 
-    ## TODO Replace the following test with this one:
-    ## >> Read[str, {Real}]
-    ##  : InputStream[String, ...] is not open.
-    ##  = Read[InputStream[String, ...], {Real}]
-    ## Quick check
-    #> Quiet[Head[Read[str, {Real}]]]
-     = Read
+    #> Quiet[Read[str, {Real}]]
+     = Read[InputStream[String, ...], {Real}]
     """
 
     messages = {
@@ -518,15 +527,24 @@ class Read(Builtin):
 
         return result
 
-    def apply(self, name, n, types, evaluation, options):
-        'Read[InputStream[name_, n_], types_, OptionsPattern[Read]]'
-        global STREAMS
+    def apply(self, channel, types, evaluation, options):
+        'Read[channel_, types_, OptionsPattern[Read]]'
 
-        stream = STREAMS.get(n.to_python())
+        if channel.has_form('OutputStream', 2):
+            evaluation.message('General', 'openw', channel)
+            return
+
+        strm = _channel_to_stream(channel, 'r')
+
+        if strm is None:
+            return
+
+        [name, n] = strm.get_leaves()
+
+        stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
-            evaluation.message('Read', 'openx', Expression(
-                'InputStream', name, n))
+            evaluation.message('Read', 'openx', strm)
             return
 
         types = types.to_python()
@@ -680,10 +698,16 @@ class Write(Builtin):
 
     attributes = ('Protected')
 
-    def apply(self, name, n, expr, evaluation):
-        'Write[OutputStream[name_, n_], expr___]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+    def apply(self, channel, expr, evaluation):
+        'Write[channel_, expr___]'
+
+        strm = _channel_to_stream(channel)
+
+        if strm is None:
+            return
+
+        n = strm.leaves[1].get_int_value()
+        stream = _lookup_stream(n)
 
         if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
@@ -732,6 +756,14 @@ class WriteString(Builtin):
     #> Close[str]
      = ...
     #> FilePrint[%]
+
+    #> WriteString[%%, abc]
+    #> Streams[%%%][[1]]
+     = ...
+    #> Close[%]
+     = ...
+    #> FilePrint[%]
+     | abc
     """
 
     messages = {
@@ -741,14 +773,18 @@ class WriteString(Builtin):
 
     attributes = ('Protected')
 
-    def apply(self, name, n, expr, evaluation):
-        'WriteString[OutputStream[name_, n_], expr___]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+    def apply(self, channel, expr, evaluation):
+        'WriteString[channel_, expr___]'
+        strm = _channel_to_stream(channel, 'w')
+
+        if strm is None:
+            return
+
+        stream = _lookup_stream(strm.leaves[1].get_int_value())
 
         if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
-            return
+            #evaluation.message(...)
+            return None
 
         exprs = []
         for expri in expr.get_sequence():
@@ -761,6 +797,7 @@ class WriteString(Builtin):
             exprs.append(result)
 
         stream.write(u''.join(exprs))
+        stream.flush()
         return Symbol('Null')
 
 
@@ -781,33 +818,32 @@ class _OpenAction(Builtin):
             evaluation.message(self.__class__.__name__, 'fstr', path)
             return
 
-        path_string = path.to_python()[1:-1]
+        path_string = path.get_string_value()
 
         tmp = path_search(path_string)
         if tmp is None:
-            if self.mode in ['a', 'r']:
+            if self.mode in ['r', 'rb']:
                 evaluation.message('General', 'noopen', path)
                 return
         else:
             path_string = tmp
 
         try:
-            stream = mathics_open(path_string, mode=self.mode).__enter__()
+            opener = mathics_open(path_string, mode=self.mode)
+            stream = opener.__enter__()
+            n = opener.n
         except IOError:
             evaluation.message('General', 'noopen', path)
             return
 
-        n = _put_stream(stream)
-        result = Expression(self.stream_type, path, n)
-        global _STREAMS
-        _STREAMS[n] = result
-
+        assert STREAMS[n] == stream
+        result = Expression(self.stream_type, path, Integer(n))
         return result
 
     def apply_empty(self, evaluation):
         '%(name)s[]'
 
-        if self.mode == 'r':
+        if self.mode in ['r', 'rb']:
             evaluation.message(self.__class__.__name__, 'argx')
             return
 
@@ -818,16 +854,15 @@ class _OpenAction(Builtin):
         tmpf.close()
 
         try:
-            stream = mathics_open(path_string, mode='w').__enter__()
+            opener = mathics_open(path_string, mode='w')
+            stream = opener.__enter__()
+            n = opener.n
         except IOError:
             evaluation.message('General', 'noopen', String(path_string))
             return
 
-        n = _put_stream(stream)
-        result = Expression(self.stream_type, String(path_string), n)
-        global _STREAMS
-        _STREAMS[n] = result
-
+        assert STREAMS[n] == stream
+        result = Expression(self.stream_type, String(path_string), Integer(n))
         return result
 
 
@@ -891,8 +926,9 @@ class OpenAppend(_OpenAction):
     #> Close[%];
 
     #> OpenAppend["MathicsNonExampleFile"]
-     : Cannot open MathicsNonExampleFile.
-     = OpenAppend[MathicsNonExampleFile]
+     = OutputStream[MathicsNonExampleFile, ...]
+
+    #> DeleteFile["MathicsNonExampleFile"]
     """
 
     mode = 'a'
@@ -942,7 +978,7 @@ class Get(PrefixOperator):
     attributes = ('Protected')
 
     def apply(self, path, evaluation):
-        'Get[path_?StringQ]'
+        'Get[path_String]'
         pypath = path.get_string_value()
         try:
             with mathics_open(pypath, 'r') as f:
@@ -1048,7 +1084,7 @@ class Put(BinaryOperator):
     precedence = 30
 
     def apply(self, exprs, filename, evaluation):
-        'Put[exprs___, filename_?StringQ]'
+        'Put[exprs___, filename_String]'
         instream = Expression('OpenWrite', filename).evaluate(evaluation)
         name, n = instream.leaves
         result = self.apply_input(exprs, name, n, evaluation)
@@ -1057,8 +1093,7 @@ class Put(BinaryOperator):
 
     def apply_input(self, exprs, name, n, evaluation):
         'Put[exprs___, OutputStream[name_, n_]]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+        stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message('Put', 'openx', Expression(
@@ -1133,7 +1168,7 @@ class PutAppend(BinaryOperator):
     attributes = ('Protected')
 
     def apply(self, exprs, filename, evaluation):
-        'PutAppend[exprs___, filename_?StringQ]'
+        'PutAppend[exprs___, filename_String]'
         instream = Expression('OpenAppend', filename).evaluate(evaluation)
         name, n = instream.leaves
         result = self.apply_input(exprs, name, n, evaluation)
@@ -1142,8 +1177,7 @@ class PutAppend(BinaryOperator):
 
     def apply_input(self, exprs, name, n, evaluation):
         'PutAppend[exprs___, OutputStream[name_, n_]]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+        stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message('Put', 'openx', Expression(
@@ -1247,7 +1281,7 @@ class FileNameSplit(Builtin):
     }
 
     def apply(self, filename, evaluation, options):
-        'FileNameSplit[filename_?StringQ, OptionsPattern[FileExtension]]'
+        'FileNameSplit[filename_String, OptionsPattern[FileExtension]]'
 
         path = filename.to_python()[1:-1]
 
@@ -1363,7 +1397,7 @@ class FileExtension(Builtin):
     }
 
     def apply(self, filename, evaluation, options):
-        'FileExtension[filename_?StringQ, OptionsPattern[FileExtension]]'
+        'FileExtension[filename_String, OptionsPattern[FileExtension]]'
         path = filename.to_python()[1:-1]
         filename_base, filename_ext = os.path.splitext(path)
         filename_ext = filename_ext.lstrip('.')
@@ -1397,7 +1431,7 @@ class FileBaseName(Builtin):
     }
 
     def apply(self, filename, evaluation, options):
-        'FileBaseName[filename_?StringQ, OptionsPattern[FileBaseName]]'
+        'FileBaseName[filename_String, OptionsPattern[FileBaseName]]'
         path = filename.to_python()[1:-1]
 
         filename_base, filename_ext = os.path.splitext(path)
@@ -1506,7 +1540,7 @@ class FileNameDepth(Builtin):
     }
 
     rules = {
-        'FileNameDepth[name_?StringQ]': 'Length[FileNameSplit[name]]',
+        'FileNameDepth[name_String]': 'Length[FileNameSplit[name]]',
     }
 
 
@@ -1651,8 +1685,8 @@ class ReadList(Read):
         'WordSeparators': '{" ", "\t"}',
     }
 
-    def apply(self, name, n, types, evaluation, options):
-        'ReadList[InputStream[name_, n_], types_, OptionsPattern[ReadList]]'
+    def apply(self, channel, types, evaluation, options):
+        'ReadList[channel_, types_, OptionsPattern[ReadList]]'
 
         # Options
         # TODO: Implement extra options
@@ -1666,7 +1700,7 @@ class ReadList(Read):
         result = []
         while True:
             tmp = super(ReadList, self).apply(
-                name, n, types, evaluation, options)
+                channel, types, evaluation, options)
 
             if tmp == Symbol('$Failed'):
                 return
@@ -1676,8 +1710,8 @@ class ReadList(Read):
             result.append(tmp)
         return from_python(result)
 
-    def apply_m(self, name, n, types, m, evaluation, options):
-        'ReadList[InputStream[name_,n_], types_, m_, OptionsPattern[ReadList]]'
+    def apply_m(self, channel, types, m, evaluation, options):
+        'ReadList[channel_, types_, m_, OptionsPattern[ReadList]]'
 
         # Options
         # TODO: Implement extra options
@@ -1690,14 +1724,14 @@ class ReadList(Read):
 
         py_m = m.get_int_value()
         if py_m < 0:
-            evaluation.message('ReadList', 'intnm', Expression(
-                'ReadList', Expression('InputStream', name, n), types, m))
+            evaluation.message(
+                'ReadList', 'intnm', Expression('ReadList', channel, types, m))
             return
 
         result = []
         for i in range(py_m):
             tmp = super(ReadList, self).apply(
-                name, n, types, evaluation, options)
+                channel, types, evaluation, options)
 
             if tmp == Symbol('$Failed'):
                 return
@@ -1805,38 +1839,38 @@ class Close(Builtin):
 
     >> Close[OpenWrite[]]
      = ...
+
+    #> Streams[] == (Close[OpenWrite[]]; Streams[])
+     = True
+
+    #> Close["abc"]
+     : abc is not open.
+     = Close[abc]
+
+    #> strm = OpenWrite[];
+    #> Close[strm];
+    #> Quiet[Close[strm]]
+     = Close[OutputStream[...]]
     """
 
     attributes = ('Protected')
 
-    def apply_input(self, name, n, evaluation):
-        'Close[InputStream[name_, n_]]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+    def apply(self, channel, evaluation):
+        'Close[channel_]'
+
+        if (channel.has_form('InputStream', 2) or       # nopep8
+            channel.has_form('OutputStream', 2)):
+            [name, n] = channel.get_leaves()
+            stream =_lookup_stream(n.get_int_value())
+        else:
+            stream = None
 
         if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
+            evaluation.message('General', 'openx', channel)
             return
 
         stream.close()
         return name
-
-    def apply_output(self, name, n, evaluation):
-        'Close[OutputStream[name_, n_]]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
-
-        if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
-            return
-
-        stream.close()
-        return name
-
-    def apply_default(self, stream, evaluation):
-        'Close[stream_]'
-        evaluation.message('General', 'stream', stream)
-        return
 
 
 class StreamPosition(Builtin):
@@ -1860,8 +1894,7 @@ class StreamPosition(Builtin):
 
     def apply_input(self, name, n, evaluation):
         'StreamPosition[InputStream[name_, n_]]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+        stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
@@ -1871,8 +1904,7 @@ class StreamPosition(Builtin):
 
     def apply_output(self, name, n, evaluation):
         'StreamPosition[OutputStream[name_, n_]]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+        stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
@@ -1928,8 +1960,7 @@ class SetStreamPosition(Builtin):
 
     def apply_input(self, name, n, m, evaluation):
         'SetStreamPosition[InputStream[name_, n_], m_]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+        stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
@@ -2018,6 +2049,8 @@ class Skip(Read):
     def apply(self, name, n, types, m, evaluation, options):
         'Skip[InputStream[name_, n_], types_, m_, OptionsPattern[Skip]]'
 
+        channel = Expression('InputStream', name, n)
+
         # Options
         # TODO Implement extra options
         # py_options = self.check_options(options)
@@ -2034,7 +2067,7 @@ class Skip(Read):
             return
         for i in range(py_m):
             result = super(Skip, self).apply(
-                name, n, types, evaluation, options)
+                channel, types, evaluation, options)
             if result.to_python() == 'EndOfFile':
                 return Symbol('EndOfFile')
         return Symbol('Null')
@@ -2088,25 +2121,27 @@ class Find(Read):
 
         py_text = text.to_python()
 
+        channel = Expression('InputStream', name, n)
+
         if not isinstance(py_text, list):
             py_text = [py_text]
 
         if not all(isinstance(t, basestring) and
                    t[0] == t[-1] == '"' for t in py_text):
-            evaluation.message('Find', 'unknown', Expression(
-                'Find', Expression('InputStream', name, n), text))
+            evaluation.message(
+                'Find', 'unknown', Expression('Find', channel, text))
             return
 
         py_text = [t[1:-1] for t in py_text]
 
         while True:
-            tmp = super(Find, self).apply(name, n, Symbol(
-                'Record'), evaluation, options)
+            tmp = super(Find, self).apply(
+                channel, Symbol('Record'), evaluation, options)
             py_tmp = tmp.to_python()[1:-1]
 
             if py_tmp == 'EndOfFile':
-                evaluation.message('Find', 'notfound', Expression(
-                    'Find', Expression('InputStream', name, n), text))
+                evaluation.message(
+                    'Find', 'notfound', Expression('Find', channel, text))
                 return Symbol("$Failed")
 
             for t in py_text:
@@ -2271,9 +2306,16 @@ class StringToStream(Builtin):
       <dd>converts a $string$ to an open input stream.
     </dl>
 
-    >> StringToStream["abc 123"]
-     = ...
-    #> Close[%]
+    >> strm = StringToStream["abc 123"]
+     = InputStream[String, ...]
+
+    #> Read[strm, Word]
+     = abc
+
+    #> Read[strm, Number]
+     = 123
+
+    #> Close[strm]
      = String
     """
 
@@ -2283,11 +2325,15 @@ class StringToStream(Builtin):
         'StringToStream[string_]'
         pystring = string.to_python()[1:-1]
         stream = io.StringIO(unicode(pystring))
-        n = _put_stream(stream)
-        result = Expression('InputStream', from_python('String'), n)
 
-        global _STREAMS
-        _STREAMS[n] = result
+        name = Symbol('String')
+        n = next(NSTREAMS)
+
+        result = Expression('InputStream', name, Integer(n))
+
+        STREAMS.append(stream)
+
+        assert STREAMS[n] == stream
 
         return result
 
@@ -2301,23 +2347,45 @@ class Streams(Builtin):
 
     >> Streams[]
      = ...
+
+    #> OpenWrite[]
+     = ...
+    #> Streams[%[[1]]]
+     = {OutputStream[...]}
+
+    #> Streams["some_nonexistant_name"]
+     = {}
     """
 
     attributes = ('Protected')
 
     def apply(self, evaluation):
         'Streams[]'
-        global STREAMS
-        global _STREAMS
-        global NSTREAMS
+        return self.apply_name(None, evaluation)
 
-        try:
-            _STREAMS
-        except NameError:
-            STREAMS = {}    # Python repr
-            _STREAMS = {}   # Mathics repr
-            NSTREAMS = 0    # Max stream number
-        return Expression('List', *_STREAMS.values())
+    def apply_name(self, name, evaluation):
+        'Streams[name_String]'
+        result = []
+        for n in xrange(len(STREAMS)):
+            stream = _lookup_stream(n)
+            if stream is None or stream.closed:
+                continue
+            if isinstance(stream, io.StringIO):
+                head = 'InputStream'
+                _name = Symbol('String')
+            else:
+                mode = stream.mode
+                if mode in ['r', 'rb']:
+                    head = 'InputStream'
+                elif mode in ['w', 'a', 'wb', 'ab']:
+                    head = 'OutputStream'
+                else:
+                    raise ValueError("Unknown mode {0}".format(mode))
+                _name = String(stream.name)
+            expr = Expression(head, _name, Integer(n))
+            if name is None or _name == name:
+                result.append(expr)
+        return Expression('List', *result)
 
 
 class Compress(Builtin):
@@ -2328,7 +2396,7 @@ class Compress(Builtin):
     </dl>
 
     >> Compress[N[Pi, 10]]
-     = ...
+     = eJwz1jM0MTS1NDIzNQEADRsCNw== 
     """
 
     attributes = ('Protected')
@@ -2339,15 +2407,16 @@ class Compress(Builtin):
 
     def apply(self, expr, evaluation, options):
         'Compress[expr_, OptionsPattern[Compress]]'
-
-        string = expr.do_format(evaluation, 'FullForm').__str__()
+        string = expr.format(evaluation, 'FullForm')
+        string = string.boxes_to_text(
+            evaluation=evaluation, show_string_characters=True)
         string = string.encode('utf-8')
 
-        # TODO Implement other Methods
+        #TODO Implement other Methods
         result = zlib.compress(string)
         result = base64.encodestring(result)
 
-        return from_python(result)
+        return String(result)
 
 
 class Uncompress(Builtin):
@@ -2371,8 +2440,8 @@ class Uncompress(Builtin):
     attributes = ('Protected')
 
     def apply(self, string, evaluation):
-        'Uncompress[string_?StringQ]'
-        string = string.to_python()[1:-1]
+        'Uncompress[string_String]'
+        string = string.get_string_value()
         string = base64.decodestring(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode('utf-8')
@@ -2468,13 +2537,13 @@ class FileHash(Builtin):
     """
 
     rules = {
-        'FileHash[filename_?StringQ]': 'FileHash[filename, "MD5"]',
+        'FileHash[filename_String]': 'FileHash[filename, "MD5"]',
     }
 
     attributes = ('Protected', 'ReadProtected')
 
     def apply(self, filename, hashtype, evaluation):
-        'FileHash[filename_?StringQ, hashtype_?StringQ]'
+        'FileHash[filename_String, hashtype_String]'
         py_hashtype = hashtype.to_python()
         py_filename = filename.to_python()
 
@@ -2552,7 +2621,7 @@ class FileDate(Builtin):
     }
 
     rules = {
-        'FileDate[filepath_?StringQ, "Rules"]':
+        'FileDate[filepath_String, "Rules"]':
         '''{"Access" -> FileDate[filepath, "Access"],
             "Creation" -> FileDate[filepath, "Creation"],
             "Change" -> FileDate[filepath, "Change"],
