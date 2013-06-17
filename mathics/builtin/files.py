@@ -13,9 +13,10 @@ import zlib
 import base64
 import tempfile
 import time
+import struct
 
-from mathics.core.expression import (Expression, String, Symbol, from_python,
-                                     BoxError, Integer)
+from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
+                                     from_python, Integer, BoxError)
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.settings import ROOT_DIR
@@ -724,6 +725,21 @@ class Write(Builtin):
 
 class BinaryWrite(Builtin):
     """
+    <dl>
+    <dt>'BinaryWrite[$channel$, $b$]'
+      <dd>writes a single byte given as an integer from 0 to 255.
+    <dt>'BinaryWrite[$channel$, {b1, b2, ...}]'
+      <dd>writes a sequence of byte.
+    <dt>'BinaryWrite[$channel$, "string"]'
+      <dd>writes the raw characters in a string.
+    <dt>'BinaryWrite[$channel$, $x$, $type$]'
+      <dd>writes $x$ as the specified type.
+    <dt>'BinaryWrite[$channel$, {$x1$, $x2$, ...}, $type$]'
+      <dd>writes a sequence of objects as the specified type.
+    <dt>'BinaryWrite[$channel$, {$x1$, $x2$, ...}, {$type1$, $type2$, ...}]'
+      <dd>writes a sequence of objects using a sequence of specified types.
+    </dl>
+
     >> strm = OpenWrite[BinaryFormat -> True]
      = OutputStream[...]
     >> BinaryWrite[strm, {39, 4, 122}]
@@ -789,32 +805,225 @@ class BinaryWrite(Builtin):
 
 class BinaryRead(Builtin):
     """
+    <dl>
+    <dt>'BinaryRead[$stream$]'
+      <dd>reads one byte from the stream as an integer from 0 to 255.
+    <dt>'BinaryRead[$stream$, $type$]'
+      <dd>reads one object of specified type from the stream.
+    <dt>'BinaryRead[$stream$, {$type1$, $type2$, ...}]'
+      <dd>reads a sequence of objects of specified types.
+    </dl>
+
+    >> strm = OpenWrite[BinaryFormat -> True]
+     = OutputStream[...]
+    >> BinaryWrite[strm, {97, 98, 99}]
+     = OutputStream[...]
+    >> Close[strm]
+     = ...
+    >> strm = OpenRead[%, BinaryFormat -> True]
+     = InputStream[...]
+    >> BinaryRead[strm, {"Character8", "Character8", "Character8"}]
+     = {a, b, c}
+    >> Close[strm];
+
+    #> WR[bytes_, form_] := Module[{str, res}, str = OpenWrite[BinaryFormat -> True]; BinaryWrite[str, bytes]; str = OpenRead[Close[str], BinaryFormat -> True]; res = BinaryRead[str, form]; Close[str]; res]
+
+    ## Byte
+    #> WR[{149, 2, 177, 132}, {"Byte", "Byte", "Byte", "Byte"}]
+     = {149, 2, 177, 132}
+    #> (# == WR[#, Table["Byte", {50}]]) & [RandomInteger[{0, 255}, 50]]
+     = True
+
+    ## Character8
+    #> WR[{97, 98, 99}, {"Character8", "Character8", "Character8"}]
+     = {a, b, c}
+    #> WR[{34, 60, 39}, {"Character8", "Character8", "Character8"}]
+     = {", <, '}
+
+    ## Character16
+    #> WR[{97, 0, 98, 0, 99, 0}, {"Character16", "Character16", "Character16"}]
+     = {a, b, c}
+    #> ToCharacterCode[WR[{50, 154, 182, 236}, {"Character16", "Character16"}]]
+     = {{39474}, {60598}}
+    ## #> WR[ {91, 146, 206, 54}, {"Character16", "Character16"}]
+    ##  = {\:925b, \:36ce}
+
+    ## Complex64
+    #> WR[{80, 201, 77, 239, 201, 177, 76, 79}, "Complex64"]
+     = -6.36877988924*^28 + 3.434203392*^9 I
+    #> WR[{158, 2, 185, 232, 18, 237, 0, 102}, "Complex64"]
+     = -6.98948862335*^24 + 1.52209021297*^23 I
+    #> WR[{195, 142, 38, 160, 238, 252, 85, 188}, "Complex64"]
+     = -1.41079828148*^-19 - 0.013060791418 I
+
+    ## Complex128
+    #> WR[{15,114,1,163,234,98,40,15,214,127,116,15,48,57,208,180},"Complex128"]
+     = 1.19839770357*^-235 - 2.64656391494*^-54 I
+    #> WR[{148,119,12,126,47,94,220,91,42,69,29,68,147, 11,62,233},"Complex128"]
+     = 3.22170267142*^134 - 8.98364297498*^198 I
+
+    ## Complex256
+
+    ## Integer8
+    #> WR[{149, 2, 177, 132}, {"Integer8", "Integer8", "Integer8", "Integer8"}]
+     = {-107, 2, -79, -124}
+    #> WR[{127, 128, 0, 255}, {"Integer8", "Integer8", "Integer8", "Integer8"}]
+     = {127, -128, 0, -1}
+
+    ## Integer16
+    #> WR[{149, 2, 177, 132, 112, 24}, {"Integer16", "Integer16", "Integer16"}]
+     = {661, -31567, 6256}
+    #> WR[{0, 0, 255, 0, 255, 255, 128, 127, 128, 128}, Table["Integer16", {5}]]
+     = {0, 255, -1, 32640, -32640}
+
+    ## Integer24
+    #> WR[{152, 173, 160, 188, 207, 154}, {"Integer24", "Integer24"}]
+     = {-6247016, -6631492}
+    #> WR[{145, 173, 231, 49, 90, 30}, {"Integer24", "Integer24"}]
+     = {-1593967, 1989169}
+
+    ## Integer32
+    #> WR[{209, 99, 23, 218, 143, 187, 236, 241}, {"Integer32", "Integer32"}]
+     = {-636001327, -236143729}
+    #> WR[{15, 31, 173, 120, 245, 100, 18, 188}, {"Integer32", "Integer32"}]
+     = {2024611599, -1139645195}
+
+    ## Integer64
+    #> WR[{211, 18, 152, 2, 235, 102, 82, 16}, "Integer64"]
+     = 1176115612243989203
+    #> WR[{37, 217, 208, 88, 14, 241, 170, 137}, "Integer64"]
+     = -8526737900550694619
+
+    ## Real32
+    #> WR[{81, 72, 250, 79, 52, 227, 104, 90}, {"Real32", "Real32"}]
+     = {8.398086656*^9, 1.63880017687*^16}
+    #> WR[{251, 22, 221, 117, 165, 245, 18, 75}, {"Real32", "Real32"}]
+     = {5.6052915284*^32, 9.631141*^6}
+
+    ## Real64
+    #> WR[{45, 243, 20, 87, 129, 185, 53, 239}, "Real64"]
+     = -5.14646619426*^227
+    #> WR[{192, 60, 162, 67, 122, 71, 74, 196}, "Real64"]
+     = -9.69531698809*^20
+    #> WR[{15, 42, 80, 125, 157, 4, 38, 97}, "Real64"]
+     = 9.67355569764*^159
+
+    ## Real128
+
+    ## TerminatedString
+
+    ## UnsignedInteger8
+    #> WR[{96, 94, 141, 162, 141}, Table["UnsignedInteger8", {5}]]
+     = {96, 94, 141, 162, 141}
+    #> (#==WR[#,Table["UnsignedInteger8",{50}]])&[RandomInteger[{0, 255}, 50]]
+     = True
+
+    ## UnsignedInteger16
+    #> WR[{54, 71, 106, 185, 147, 38, 5, 231}, Table["UnsignedInteger16", {4}]]
+     = {18230, 47466, 9875, 59141}
+    #> WR[{0, 0, 128, 128, 255, 255}, Table["UnsignedInteger16", {3}]]
+     = {0, 32896, 65535}
+
+    ## UnsignedInteger24
+    #> WR[{78, 35, 226, 225, 84, 236}, Table["UnsignedInteger24", {2}]]
+     = {14820174, 15488225}
+    #> WR[{165, 2, 82, 239, 88, 59}, Table["UnsignedInteger24", {2}]]
+     = {5374629, 3889391}
+
+    ## UnsignedInteger32
+    #> WR[{213,143,98,112,141,183,203,247}, Table["UnsignedInteger32", {2}]]
+     = {1885507541, 4157323149}
+    #> WR[{148,135,230,22,136,141,234,99}, Table["UnsignedInteger32", {2}]]
+     = {384206740, 1676316040}
+
+    ## UnsignedInteger64
+    #> WR[{95, 5, 33, 229, 29, 62, 63, 98}, "UnsignedInteger64"]
+     = 7079445437368829279
+    #> WR[{134, 9, 161, 91, 93, 195, 173, 74}, "UnsignedInteger64"]
+     = 5381171935514265990
+
+    ## UnsignedInteger128
+
+    ## EndOfFile
+    #> WR[{148}, {"Integer32", "Integer32","Integer32"}]
+     = {EndOfFile, EndOfFile, EndOfFile}
     """
 
-    known_types = set([
-        "Byte",                 # 8-bit unsigned integer
-        "Character8",           # 8-bit character
-        "Character16",          # 16-bit character
-        "Complex64",            # IEEE single-precision complex number
-        "Complex128",           # IEEE double-precision complex number
-        "Complex256",           # IEEE quad-precision complex number
-        "Integer8",             # 8-bit signed integer
-        "Integer16",            # 16-bit signed integer
-        "Integer24",            # 24-bit signed integer
-        "Integer32",            # 32-bit signed integer
-        "Integer64",            # 64-bit signed integer
-        "Integer128",           # 128-bit signed integer
-        "Real32",               # IEEE single-precision real number
-        "Real64",               # IEEE double-precision real number
-        "Real128",              # IEEE quad-precision real number
-        "TerminatedString",     # null-terminated string of 8-bit characters
-        "UnsignedInteger8",     # 8-bit unsigned integer
-        "UnsignedInteger16",    # 16-bit unsigned integer
-        "UnsignedInteger24",    # 24-bit unsigned integer
-        "UnsignedInteger32",    # 32-bit unsigned integer
-        "UnsignedInteger64",    # 64-bit unsigned integer
-        "UnsignedInteger128",   # 128-bit unsigned integer
-    ])
+    def _Complex256_reader(s):
+        b = read(32)
+        # TODO
+        return Symbol('Null')
+
+    def _Integer24_reader(s):
+        b = s.read(3)
+        return Integer(*struct.unpack(
+            'i', b + ('\0' if b[2] < '\x80' else '\xff')))
+
+    def _Integer128_reader(s):
+        b = s.read(16)
+        # TODO
+        return Symbol('Null')
+
+    def _Real128_reader(s):
+        b = s.read(16)
+        # TODO
+        return Symbol('Null')
+
+    def _TerminatedString_reader(s):
+        # TODO
+        return Symbol('Null')
+
+    def _UnsignedInteger128_reader(s):
+        b = s.read(16)
+        # TODO
+        return Symbol('Null')
+
+    readers = {
+        "Byte":                 # 8-bit unsigned integer
+            lambda s: Integer(*struct.unpack('B', s.read(1))),
+        "Character8":           # 8-bit character
+            lambda s: String(*struct.unpack('c', s.read(1))),
+        "Character16":          # 16-bit character
+            lambda s: String(unichr(struct.unpack('H', s.read(2))[0])),
+        "Complex64":            # IEEE single-precision complex number
+            lambda s: Complex(*struct.unpack('ff', s.read(8))),
+        "Complex128":           # IEEE double-precision complex number
+            lambda s: Complex(*struct.unpack('dd', s.read(16))),
+        "Complex256":           # IEEE quad-precision complex number
+            _Complex256_reader,
+        "Integer8":             # 8-bit signed integer
+            lambda s: Integer(*struct.unpack('b', s.read(1))),
+        "Integer16":            # 16-bit signed integer
+            lambda s: Integer(*struct.unpack('h', s.read(2))),
+        "Integer24":            # 24-bit signed integer
+            _Integer24_reader,
+        "Integer32":            # 32-bit signed integer
+            lambda s: Integer(*struct.unpack('i', s.read(4))),
+        "Integer64":            # 64-bit signed integer
+            lambda s: Integer(*struct.unpack('q', s.read(8))),
+        "Integer128":           # 128-bit signed integer
+            _Integer128_reader,
+        "Real32":               # IEEE single-precision real number
+            lambda s: Real(*struct.unpack('f', s.read(4))),
+        "Real64":               # IEEE double-precision real number
+            lambda s: Real(*struct.unpack('d', s.read(8))),
+        "Real128":              # IEEE quad-precision real number
+            _Real128_reader,
+        "TerminatedString":     # null-terminated string of 8-bit characters
+            _TerminatedString_reader,
+        "UnsignedInteger8":     # 8-bit unsigned integer
+            lambda s: Integer(*struct.unpack('B', s.read(1))),
+        "UnsignedInteger16":    # 16-bit unsigned integer
+            lambda s: Integer(*struct.unpack('H', s.read(2))),
+        "UnsignedInteger24":    # 24-bit unsigned integer
+            lambda s: Integer(*struct.unpack('I', s.read(3) + '\0')),
+        "UnsignedInteger32":    # 32-bit unsigned integer
+            lambda s: Integer(*struct.unpack('I', s.read(4))),
+        "UnsignedInteger64":    # 64-bit unsigned integer
+            lambda s: Integer(*struct.unpack('Q', s.read(8))),
+        "UnsignedInteger128":   # 128-bit unsigned integer
+            _UnsignedInteger128_reader,
+    }
 
     messages = {
         'format': '`1` is not a recognized binary format.',
@@ -855,19 +1064,17 @@ class BinaryRead(Builtin):
             types = [typ]
 
         types = [t.get_string_value() for t in types]
-        if not all(t in self.known_types for t in types):
+        if not all(t in self.readers for t in types):
             evaluation.message('BinaryRead', 'format', typ)
             return
 
         # Read from stream
         result = []
         for t in types:
-            if t == "Byte":
-                result.append(Integer(ord(stream.read(1))))
-            elif t == "Character8":
-                result.append(String(stream.read(1)))
-            else:
-                raise ValueError("Unknown type {0}".format(t))
+            try:
+                result.append(self.readers[t](stream))
+            except struct.error:
+                result.append(Symbol('EndOfFile'))
 
         if typ.has_form('List', None):
             return Expression('List', *result)
