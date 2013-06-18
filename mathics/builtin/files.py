@@ -894,6 +894,14 @@ class BinaryRead(Builtin):
     #> WR[{37, 217, 208, 88, 14, 241, 170, 137}, "Integer64"]
      = -8526737900550694619
 
+    ## Integer128
+    #> WR[{140,32,24,199,10,169,248,117,123,184,75,76,34,206,49,105}, "Integer128"]
+     = 139827542997232652313568968616424513676
+    #> WR[{101,57,184,108,43,214,186,120,153,51,132,225,56,165,209,77}, "Integer128"]
+     = 103439096823027953602112616165136677221
+    #> WR[{113,100,125,144,211,83,140,24,206,11,198,118,222,152,23,219}, "Integer128"]
+     = -49058912464625098822365387707690163087
+
     ## Real32
     #> WR[{81, 72, 250, 79, 52, 227, 104, 90}, {"Real32", "Real32"}]
      = {8.398086656*^9, 1.63880017687*^16}
@@ -911,6 +919,12 @@ class BinaryRead(Builtin):
     ## Real128
 
     ## TerminatedString
+    #> WR[{97, 98, 99, 0}, "TerminatedString"]
+     = abc
+    #> WR[{49, 50, 51, 0, 52, 53, 54, 0, 55, 56, 57}, Table["TerminatedString", {3}]]
+     = {123, 456, EndOfFile}
+    #> WR[{0}, "TerminatedString"] // InputForm
+     = ""
 
     ## UnsignedInteger8
     #> WR[{96, 94, 141, 162, 141}, Table["UnsignedInteger8", {5}]]
@@ -943,6 +957,10 @@ class BinaryRead(Builtin):
      = 5381171935514265990
 
     ## UnsignedInteger128
+    #> WR[{108,78,217,150,88,126,152,101,231,134,176,140,118,81,183,220}, "UnsignedInteger128"]
+     = 293382001665435747348222619884289871468
+    #> WR[{53,83,116,79,81,100,60,126,202,52,241,48,5,113,92,190}, "UnsignedInteger128"]
+     = 253033302833692126095975097811212718901
 
     ## EndOfFile
     #> WR[{148}, {"Integer32", "Integer32","Integer32"}]
@@ -960,9 +978,8 @@ class BinaryRead(Builtin):
             'i', b + ('\0' if b[2] < '\x80' else '\xff')))
 
     def _Integer128_reader(s):
-        b = s.read(16)
-        # TODO
-        return Symbol('Null')
+        a, b = struct.unpack('Qq', s.read(16))
+        return Integer((b << 64) + a)
 
     def _Real128_reader(s):
         b = s.read(16)
@@ -970,13 +987,18 @@ class BinaryRead(Builtin):
         return Symbol('Null')
 
     def _TerminatedString_reader(s):
-        # TODO
-        return Symbol('Null')
+        b = s.read(1)
+        string = ''
+        while b != '\x00':
+            if b == '':
+                raise struct.error
+            string += b
+            b = s.read(1)
+        return String(string)
 
     def _UnsignedInteger128_reader(s):
-        b = s.read(16)
-        # TODO
-        return Symbol('Null')
+        a, b = struct.unpack('QQ', s.read(16))
+        return Integer((b << 64) + a)
 
     readers = {
         "Byte":                 # 8-bit unsigned integer
