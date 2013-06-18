@@ -917,6 +917,10 @@ class BinaryRead(Builtin):
      = 9.67355569764*^159
 
     ## Real128
+    #> WR[{135, 62, 233, 137, 22, 208, 233, 210, 133, 82, 251, 92, 220, 216, 207, 72}, "Real128"]
+     = 2.45563355727491021879689747166251*^679
+    #> WR[{74, 95, 30, 234, 116, 130, 1, 84, 20, 133, 245, 221, 113, 110, 219, 212}, "Real128"]
+     = -4.528406815923418795183665393351378*^1607
 
     ## TerminatedString
     #> WR[{97, 98, 99, 0}, "TerminatedString"]
@@ -968,14 +972,15 @@ class BinaryRead(Builtin):
     """
 
     def _Complex256_reader(s):
-        b = read(32)
+        #return Complex(_Real128_reader(s), _Real128_reader(s))
+        b = s.read(32)
         # TODO
         return Symbol('Null')
 
     def _Integer24_reader(s):
         b = s.read(3)
         return Integer(*struct.unpack(
-            'i', b + ('\0' if b[2] < '\x80' else '\xff')))
+            'i', b + ('\0' if b[-1] < '\x80' else '\xff')))
 
     def _Integer128_reader(s):
         a, b = struct.unpack('Qq', s.read(16))
@@ -983,7 +988,8 @@ class BinaryRead(Builtin):
 
     def _Real128_reader(s):
         b = s.read(16)
-        # TODO
+        man, sexp = b[:14], b[14:]
+        sign = sexp[-1] < '\x80'
         return Symbol('Null')
 
     def _TerminatedString_reader(s):
