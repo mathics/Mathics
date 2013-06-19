@@ -14,6 +14,7 @@ import base64
 import tempfile
 import time
 import struct
+import mpmath
 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError)
@@ -917,10 +918,33 @@ class BinaryRead(Builtin):
      = 9.67355569764*^159
 
     ## Real128
+    ## 0x0000
+    ## #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0}, "Real128"]
+    ##  = 0.*^-4965
+    ## #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,128}, "Real128"]
+    ##  = 0.*^-4965
+
+    ## 0x0001 - 0x7FFE
+    #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,63}, "Real128"]
+     = 1.
+    #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,191}, "Real128"]
+     = -1.
+    #> WR[{135, 62, 233, 137, 22, 208, 233, 210, 133, 82, 251, 92, 220, 216, 255, 63}, "Real128"]
+     = 1.84711247573661489653389674493896
     #> WR[{135, 62, 233, 137, 22, 208, 233, 210, 133, 82, 251, 92, 220, 216, 207, 72}, "Real128"]
-     = 2.45563355727491021879689747166251*^679
+     = 2.45563355727491021879689747166252*^679
     #> WR[{74, 95, 30, 234, 116, 130, 1, 84, 20, 133, 245, 221, 113, 110, 219, 212}, "Real128"]
-     = -4.528406815923418795183665393351378*^1607
+     = -4.52840681592341879518366539335138*^1607
+
+    ## 0x7FFF
+    #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,127}, "Real128"]
+     = Infinity
+    #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,255}, "Real128"]
+     = -Infinity
+    #> WR[{1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,127}, "Real128"]
+     = Indeterminate
+    #> WR[{1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,255}, "Real128"]
+     = Indeterminate
 
     ## TerminatedString
     #> WR[{97, 98, 99, 0}, "TerminatedString"]
@@ -987,10 +1011,44 @@ class BinaryRead(Builtin):
         return Integer((b << 64) + a)
 
     def _Real128_reader(s):
+        # Workaround quad missing from struct 
+        # correctness is not guaranteed
         b = s.read(16)
-        man, sexp = b[:14], b[14:]
-        sign = sexp[-1] < '\x80'
-        return Symbol('Null')
+        sig, sexp = b[:14], b[14:]
+
+        # Sign / Exponent
+        sexp = struct.unpack('H', sexp)[0]
+        signbit = sexp / 0x8000
+        expbits = sexp % 0x8000
+
+        # Signifand
+        fracbits = int(sig[::-1].encode('hex'), 16)
+
+        if expbits == 0x0000 and fracbits == 0:
+            result = mpmath.fdiv((-1)**signbit, 2**16382, prec=128)
+            return Real(mpmath.nstr(result, n=38), p=128)
+        elif expbits == 0x7FFF:
+            if fracbits == 0:
+                return Expression('DirectedInfinity', Integer((-1)**signbit))
+            else:
+                return Symbol('Indeterminate')
+
+        core = mpmath.fdiv(fracbits, 2**112, prec=128)
+        if expbits == 0x000:
+            assert fracbits != 0
+            exp = -16382
+            core = mpmath.fmul((-1)**signbit, core, prec=128)
+        else:
+            assert 0x0001 <= expbits <= 0x7FFE
+            exp = expbits - 16383
+            core = mpmath.fmul((-1)**signbit, mpmath.fadd(1, core, prec=128), prec=128)
+
+        if exp >= 0:
+            result = mpmath.fmul(core, 2**exp, prec=128)
+        else:
+            result = mpmath.fdiv(core, 2**-exp, prec=128)
+
+        return Real(mpmath.nstr(result, n=38), p=112)
 
     def _TerminatedString_reader(s):
         b = s.read(1)
