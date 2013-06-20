@@ -864,6 +864,7 @@ class BinaryRead(Builtin):
      = 3.22170267142*^134 - 8.98364297498*^198 I
 
     ## Complex256
+    ## TODO
 
     ## Integer8
     #> WR[{149, 2, 177, 132}, {"Integer8", "Integer8", "Integer8", "Integer8"}]
@@ -996,10 +997,7 @@ class BinaryRead(Builtin):
     """
 
     def _Complex256_reader(s):
-        #return Complex(_Real128_reader(s), _Real128_reader(s))
-        b = s.read(32)
-        # TODO
-        return Symbol('Null')
+        return Complex(_Real128_reader(s), _Real128_reader(s))
 
     def _Integer24_reader(s):
         b = s.read(3)
