@@ -920,31 +920,40 @@ class BinaryRead(Builtin):
 
     ## Real128
     ## 0x0000
-    ## #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0}, "Real128"]
-    ##  = 0.*^-4965
-    ## #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,128}, "Real128"]
-    ##  = 0.*^-4965
-
+    #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = 0.*^-4965
+    #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,128}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = 0.*^-4965
     ## 0x0001 - 0x7FFE
     #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,63}, "Real128"]
+     : Results for the format Real128 may not be correct.
      = 1.
     #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,191}, "Real128"]
+     : Results for the format Real128 may not be correct.
      = -1.
     #> WR[{135, 62, 233, 137, 22, 208, 233, 210, 133, 82, 251, 92, 220, 216, 255, 63}, "Real128"]
+     : Results for the format Real128 may not be correct.
      = 1.84711247573661489653389674493896
     #> WR[{135, 62, 233, 137, 22, 208, 233, 210, 133, 82, 251, 92, 220, 216, 207, 72}, "Real128"]
+     : Results for the format Real128 may not be correct.
      = 2.45563355727491021879689747166252*^679
     #> WR[{74, 95, 30, 234, 116, 130, 1, 84, 20, 133, 245, 221, 113, 110, 219, 212}, "Real128"]
+     : Results for the format Real128 may not be correct.
      = -4.52840681592341879518366539335138*^1607
-
     ## 0x7FFF
     #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,127}, "Real128"]
+     : Results for the format Real128 may not be correct.
      = Infinity
     #> WR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,255}, "Real128"]
+     : Results for the format Real128 may not be correct.
      = -Infinity
     #> WR[{1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,127}, "Real128"]
+     : Results for the format Real128 may not be correct.
      = Indeterminate
     #> WR[{1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,255}, "Real128"]
+     : Results for the format Real128 may not be correct.
      = Indeterminate
 
     ## TerminatedString
@@ -1023,8 +1032,7 @@ class BinaryRead(Builtin):
         fracbits = int(sig[::-1].encode('hex'), 16)
 
         if expbits == 0x0000 and fracbits == 0:
-            result = mpmath.fdiv((-1)**signbit, 2**16382, prec=128)
-            return Real(mpmath.nstr(result, n=38), p=128)
+            return Real('0.' + '0' * 4965)
         elif expbits == 0x7FFF:
             if fracbits == 0:
                 return Expression('DirectedInfinity', Integer((-1)**signbit))
@@ -1113,6 +1121,7 @@ class BinaryRead(Builtin):
         'format': '`1` is not a recognized binary format.',
         'openw': '`1` is open for output.',
         'bfmt': 'The stream `1` has been opened with BinaryFormat -> False and cannot be used with binary data.',
+        'warnquad': 'Results for the format `1` may not be correct.',   #FIXME
     }
 
     def apply_empty(self, name, n, evaluation):
@@ -1155,6 +1164,8 @@ class BinaryRead(Builtin):
         # Read from stream
         result = []
         for t in types:
+            if t in ('Real128', 'Complex256'):
+                evaluation.message('BinaryRead', 'warnquad', t)
             try:
                 result.append(self.readers[t](stream))
             except struct.error:
