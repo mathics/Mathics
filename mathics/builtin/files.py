@@ -15,6 +15,7 @@ import tempfile
 import time
 import struct
 import mpmath
+import math
 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError)
@@ -909,6 +910,14 @@ class BinaryRead(Builtin):
      = {8.398086656*^9, 1.63880017687*^16}
     #> WR[{251, 22, 221, 117, 165, 245, 18, 75}, {"Real32", "Real32"}]
      = {5.6052915284*^32, 9.631141*^6}
+    #> WR[{0, 0, 128, 127}, "Real32"]
+     = Infinity
+    #> WR[{0, 0, 128, 255}, "Real32"]
+     = -Infinity
+    #> WR[{1, 0, 128, 255}, "Real32"]
+     = Indeterminate
+    #> WR[{1, 0, 128, 127}, "Real32"]
+     = Indeterminate
 
     ## Real64
     #> WR[{45, 243, 20, 87, 129, 185, 53, 239}, "Real64"]
@@ -917,6 +926,14 @@ class BinaryRead(Builtin):
      = -9.69531698809*^20
     #> WR[{15, 42, 80, 125, 157, 4, 38, 97}, "Real64"]
      = 9.67355569764*^159
+    #> WR[{0, 0, 0, 0, 0, 0, 240, 127}, "Real64"]
+     = Infinity
+    #> WR[{0, 0, 0, 0, 0, 0, 240, 255}, "Real64"]
+     = -Infinity
+    #> WR[{1, 0, 0, 0, 0, 0, 240, 127}, "Real64"]
+     = Indeterminate
+    #> WR[{1, 0, 0, 0, 0, 0, 240, 255}, "Real64"]
+     = Indeterminate
 
     ## Real128
     ## 0x0000
@@ -1017,6 +1034,24 @@ class BinaryRead(Builtin):
         a, b = struct.unpack('Qq', s.read(16))
         return Integer((b << 64) + a)
 
+    def _Real32_reader(s):
+        result = struct.unpack('f', s.read(4))[0]
+        if math.isnan(result):
+            return Symbol('Indeterminate')
+        elif math.isinf(result):
+            return Expression('DirectedInfinity', Integer((-1) ** (result < 0)))
+        else:
+            return Real(result)
+
+    def _Real64_reader(s):
+        result = struct.unpack('d', s.read(8))[0]
+        if math.isnan(result):
+            return Symbol('Indeterminate')
+        elif math.isinf(result):
+            return Expression('DirectedInfinity', Integer((-1) ** (result < 0)))
+        else:
+            return Real(result)
+
     def _Real128_reader(s):
         # Workaround quad missing from struct 
         # correctness is not guaranteed
@@ -1096,9 +1131,9 @@ class BinaryRead(Builtin):
         "Integer128":           # 128-bit signed integer
             _Integer128_reader,
         "Real32":               # IEEE single-precision real number
-            lambda s: Real(*struct.unpack('f', s.read(4))),
+            _Real32_reader,
         "Real64":               # IEEE double-precision real number
-            lambda s: Real(*struct.unpack('d', s.read(8))),
+            _Real64_reader,
         "Real128":              # IEEE quad-precision real number
             _Real128_reader,
         "TerminatedString":     # null-terminated string of 8-bit characters
