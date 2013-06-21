@@ -805,6 +805,199 @@ class BinaryWrite(Builtin):
         stream.flush()
         return channel 
 
+class _BinaryFormat(object):
+    """
+    Container for BinaryRead readers
+    """
+
+    @staticmethod
+    def _IEEE_real(real):
+        if math.isnan(real):
+            return Symbol('Indeterminate')
+        elif math.isinf(real):
+            return Expression('DirectedInfinity', Integer((-1) ** (real < 0)))
+        else:
+            return Real(real)
+
+    @staticmethod
+    def _IEEE_cmplx(real, imag):
+        if math.isnan(real) or math.isnan(imag):
+            return Symbol('Indeterminate')
+        elif math.isinf(real) or math.isinf(imag):
+            if math.isinf(real) and math.isinf(imag):
+                return Symbol('Indeterminate')
+            return Expression('DirectedInfinity', Expression(
+                'Complex', 
+                (-1) ** (real < 0) if math.isinf(real) else 0,
+                (-1) ** (imag < 0) if math.isinf(imag) else 0))
+        else:
+            return Complex(real, imag)
+
+    @staticmethod
+    def _Byte_reader(s):
+        "8-bit unsigned integer"
+        return Integer(*struct.unpack('B', s.read(1)))
+
+    @staticmethod
+    def _Character8_reader(s): 
+        "8-bit character"
+        return String(*struct.unpack('c', s.read(1)))
+
+    @staticmethod
+    def _Character16_reader(s):
+        "16-bit character"
+        return String(unichr(*struct.unpack('H', s.read(2))))
+
+    @staticmethod
+    def _Complex64_reader(s):
+        "IEEE single-precision complex number"
+        return _BinaryFormat._IEEE_cmplx(*struct.unpack('ff', s.read(8)))
+
+    @staticmethod
+    def _Complex128_reader(s): 
+        "IEEE double-precision complex number"
+        return _BinaryFormat._IEEE_cmplx(*struct.unpack('dd', s.read(16)))
+
+    @staticmethod
+    def _Complex256_reader(s):
+        "IEEE quad-precision complex number"
+        return Complex(_Real128_reader(s), _Real128_reader(s))
+
+    @staticmethod
+    def _Integer8_reader(s):
+        "8-bit signed integer"
+        return Integer(*struct.unpack('b', s.read(1)))
+
+    @staticmethod
+    def _Integer16_reader(s):
+        "16-bit signed integer"
+        return Integer(*struct.unpack('h', s.read(2)))
+
+    @staticmethod
+    def _Integer24_reader(s):
+        "24-bit signed integer"
+        b = s.read(3)
+        return Integer(*struct.unpack(
+            'i', b + ('\0' if b[-1] < '\x80' else '\xff')))
+
+    @staticmethod
+    def _Integer32_reader(s):
+        "32-bit signed integer"
+        return Integer(*struct.unpack('i', s.read(4)))
+
+    @staticmethod
+    def _Integer64_reader(s):
+        "64-bit signed integer"
+        return Integer(*struct.unpack('q', s.read(8)))
+
+    @staticmethod
+    def _Integer128_reader(s):
+        "128-bit signed integer"
+        a, b = struct.unpack('Qq', s.read(16))
+        return Integer((b << 64) + a)
+
+    @staticmethod
+    def _Real32_reader(s): 
+        "IEEE single-precision real number"
+        return _BinaryFormat._IEEE_real(*struct.unpack('f', s.read(4)))
+
+    @staticmethod
+    def _Real64_reader(s):
+        "IEEE double-precision real number"
+        return _BinaryFormat._IEEE_real(*struct.unpack('d', s.read(8)))
+
+    @staticmethod
+    def _Real128_reader(s):
+        "IEEE quad-precision real number"
+        # Workaround quad missing from struct
+        # correctness is not guaranteed
+        b = s.read(16)
+        sig, sexp = b[:14], b[14:]
+
+        # Sign / Exponent
+        sexp, = struct.unpack('H', sexp)
+        signbit = sexp / 0x8000
+        expbits = sexp % 0x8000
+
+        # Signifand
+        fracbits = int(sig[::-1].encode('hex'), 16)
+
+        if expbits == 0x0000 and fracbits == 0:
+            return Real('0.' + '0' * 4965)
+        elif expbits == 0x7FFF:
+            if fracbits == 0:
+                return Expression('DirectedInfinity', Integer((-1)**signbit))
+            else:
+                return Symbol('Indeterminate')
+
+        core = mpmath.fdiv(fracbits, 2**112, prec=128)
+        if expbits == 0x000:
+            assert fracbits != 0
+            exp = -16382
+            core = mpmath.fmul((-1)**signbit, core, prec=128)
+        else:
+            assert 0x0001 <= expbits <= 0x7FFE
+            exp = expbits - 16383
+            core = mpmath.fmul((-1)**signbit, mpmath.fadd(1, core, prec=128), prec=128)
+
+        if exp >= 0:
+            result = mpmath.fmul(core, 2**exp, prec=128)
+        else:
+            result = mpmath.fdiv(core, 2**-exp, prec=128)
+
+        return Real(mpmath.nstr(result, n=38), p=112)
+
+    @staticmethod
+    def _TerminatedString_reader(s):
+        "null-terminated string of 8-bit characters"
+        b = s.read(1)
+        string = ''
+        while b != '\x00':
+            if b == '':
+                raise struct.error
+            string += b
+            b = s.read(1)
+        return String(string)
+
+    @staticmethod
+    def _UnsignedInteger8_reader(s):
+        "8-bit unsigned integer"
+        return Integer(*struct.unpack('B', s.read(1)))
+
+    @staticmethod
+    def _UnsignedInteger16_reader(s):
+        "16-bit unsigned integer"
+        return Integer(*struct.unpack('H', s.read(2)))
+
+    @staticmethod
+    def _UnsignedInteger24_reader(s):
+        "24-bit unsigned integer"
+        return Integer(*struct.unpack('I', s.read(3) + '\0'))
+
+    @staticmethod
+    def _UnsignedInteger32_reader(s):
+        "32-bit unsigned integer"
+        return Integer(*struct.unpack('I', s.read(4)))
+
+    @staticmethod
+    def _UnsignedInteger64_reader(s):
+        "64-bit unsigned integer"
+        return Integer(*struct.unpack('Q', s.read(8)))
+
+    @staticmethod
+    def _UnsignedInteger128_reader(s):
+        "128-bit unsigned integer"
+        a, b = struct.unpack('QQ', s.read(16))
+        return Integer((b << 64) + a)
+
+    @classmethod
+    def get_readers(cls):
+        readers = {}
+        for funcname in dir(cls):
+            if funcname.startswith('_') and funcname.endswith('_reader'):
+                readers[funcname[1:-7]] = getattr(cls, funcname)
+        return readers
+
 class BinaryRead(Builtin):
     """
     <dl>
@@ -863,6 +1056,22 @@ class BinaryRead(Builtin):
      = 1.19839770357*^-235 - 2.64656391494*^-54 I
     #> WR[{148,119,12,126,47,94,220,91,42,69,29,68,147, 11,62,233},"Complex128"]
      = 3.22170267142*^134 - 8.98364297498*^198 I
+    #> WR[{15,42,80,125,157,4,38,97, 0,0,0,0,0,0,240,255}, "Complex128"]
+      = -I Infinity
+    #> WR[{15,42,80,125,157,4,38,97, 0,0,0,0,0,0,240,127}, "Complex128"]
+      = I Infinity
+    #> WR[{15,42,80,125,157,4,38,97, 1,0,0,0,0,0,240,255}, "Complex128"]
+     = Indeterminate
+    #> WR[{0,0,0,0,0,0,240,127, 15,42,80,125,157,4,38,97}, "Complex128"]
+     = Infinity
+    #> WR[{0,0,0,0,0,0,240,255, 15,42,80,125,157,4,38,97}, "Complex128"]
+     = -Infinity
+    #> WR[{1,0,0,0,0,0,240,255, 15,42,80,125,157,4,38,97}, "Complex128"]
+     = Indeterminate
+    #> WR[{0,0,0,0,0,0,240,127, 0,0,0,0,0,0,240,127}, "Complex128"]
+     = Indeterminate
+    #> WR[{0,0,0,0,0,0,240,127, 0,0,0,0,0,0,240,255}, "Complex128"]
+     = Indeterminate
 
     ## Complex256
     ## TODO
@@ -1022,135 +1231,7 @@ class BinaryRead(Builtin):
      = {EndOfFile, EndOfFile, EndOfFile}
     """
 
-    def _Complex256_reader(s):
-        return Complex(_Real128_reader(s), _Real128_reader(s))
-
-    def _Integer24_reader(s):
-        b = s.read(3)
-        return Integer(*struct.unpack(
-            'i', b + ('\0' if b[-1] < '\x80' else '\xff')))
-
-    def _Integer128_reader(s):
-        a, b = struct.unpack('Qq', s.read(16))
-        return Integer((b << 64) + a)
-
-    def _Real32_reader(s):
-        result = struct.unpack('f', s.read(4))[0]
-        if math.isnan(result):
-            return Symbol('Indeterminate')
-        elif math.isinf(result):
-            return Expression('DirectedInfinity', Integer((-1) ** (result < 0)))
-        else:
-            return Real(result)
-
-    def _Real64_reader(s):
-        result = struct.unpack('d', s.read(8))[0]
-        if math.isnan(result):
-            return Symbol('Indeterminate')
-        elif math.isinf(result):
-            return Expression('DirectedInfinity', Integer((-1) ** (result < 0)))
-        else:
-            return Real(result)
-
-    def _Real128_reader(s):
-        # Workaround quad missing from struct 
-        # correctness is not guaranteed
-        b = s.read(16)
-        sig, sexp = b[:14], b[14:]
-
-        # Sign / Exponent
-        sexp = struct.unpack('H', sexp)[0]
-        signbit = sexp / 0x8000
-        expbits = sexp % 0x8000
-
-        # Signifand
-        fracbits = int(sig[::-1].encode('hex'), 16)
-
-        if expbits == 0x0000 and fracbits == 0:
-            return Real('0.' + '0' * 4965)
-        elif expbits == 0x7FFF:
-            if fracbits == 0:
-                return Expression('DirectedInfinity', Integer((-1)**signbit))
-            else:
-                return Symbol('Indeterminate')
-
-        core = mpmath.fdiv(fracbits, 2**112, prec=128)
-        if expbits == 0x000:
-            assert fracbits != 0
-            exp = -16382
-            core = mpmath.fmul((-1)**signbit, core, prec=128)
-        else:
-            assert 0x0001 <= expbits <= 0x7FFE
-            exp = expbits - 16383
-            core = mpmath.fmul((-1)**signbit, mpmath.fadd(1, core, prec=128), prec=128)
-
-        if exp >= 0:
-            result = mpmath.fmul(core, 2**exp, prec=128)
-        else:
-            result = mpmath.fdiv(core, 2**-exp, prec=128)
-
-        return Real(mpmath.nstr(result, n=38), p=112)
-
-    def _TerminatedString_reader(s):
-        b = s.read(1)
-        string = ''
-        while b != '\x00':
-            if b == '':
-                raise struct.error
-            string += b
-            b = s.read(1)
-        return String(string)
-
-    def _UnsignedInteger128_reader(s):
-        a, b = struct.unpack('QQ', s.read(16))
-        return Integer((b << 64) + a)
-
-    readers = {
-        "Byte":                 # 8-bit unsigned integer
-            lambda s: Integer(*struct.unpack('B', s.read(1))),
-        "Character8":           # 8-bit character
-            lambda s: String(*struct.unpack('c', s.read(1))),
-        "Character16":          # 16-bit character
-            lambda s: String(unichr(struct.unpack('H', s.read(2))[0])),
-        "Complex64":            # IEEE single-precision complex number
-            lambda s: Complex(*struct.unpack('ff', s.read(8))),
-        "Complex128":           # IEEE double-precision complex number
-            lambda s: Complex(*struct.unpack('dd', s.read(16))),
-        "Complex256":           # IEEE quad-precision complex number
-            _Complex256_reader,
-        "Integer8":             # 8-bit signed integer
-            lambda s: Integer(*struct.unpack('b', s.read(1))),
-        "Integer16":            # 16-bit signed integer
-            lambda s: Integer(*struct.unpack('h', s.read(2))),
-        "Integer24":            # 24-bit signed integer
-            _Integer24_reader,
-        "Integer32":            # 32-bit signed integer
-            lambda s: Integer(*struct.unpack('i', s.read(4))),
-        "Integer64":            # 64-bit signed integer
-            lambda s: Integer(*struct.unpack('q', s.read(8))),
-        "Integer128":           # 128-bit signed integer
-            _Integer128_reader,
-        "Real32":               # IEEE single-precision real number
-            _Real32_reader,
-        "Real64":               # IEEE double-precision real number
-            _Real64_reader,
-        "Real128":              # IEEE quad-precision real number
-            _Real128_reader,
-        "TerminatedString":     # null-terminated string of 8-bit characters
-            _TerminatedString_reader,
-        "UnsignedInteger8":     # 8-bit unsigned integer
-            lambda s: Integer(*struct.unpack('B', s.read(1))),
-        "UnsignedInteger16":    # 16-bit unsigned integer
-            lambda s: Integer(*struct.unpack('H', s.read(2))),
-        "UnsignedInteger24":    # 24-bit unsigned integer
-            lambda s: Integer(*struct.unpack('I', s.read(3) + '\0')),
-        "UnsignedInteger32":    # 32-bit unsigned integer
-            lambda s: Integer(*struct.unpack('I', s.read(4))),
-        "UnsignedInteger64":    # 64-bit unsigned integer
-            lambda s: Integer(*struct.unpack('Q', s.read(8))),
-        "UnsignedInteger128":   # 128-bit unsigned integer
-            _UnsignedInteger128_reader,
-    }
+    readers = _BinaryFormat.get_readers()
 
     messages = {
         'format': '`1` is not a recognized binary format.',
