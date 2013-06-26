@@ -8,8 +8,8 @@ import sympy
 from itertools import combinations
 
 from mathics.builtin.base import Builtin, Test
-from mathics.core.expression import (Expression, Integer, Rational, Symbol,
-                                     from_python)
+from mathics.core.expression import (
+    Expression, Integer, Rational, Symbol, from_python)
 
 
 class PowerMod(Builtin):
@@ -174,8 +174,8 @@ class GCD(Builtin):
 #            new_result, c1, c2 = sympy.gcdex(result, value)
 #            result = new_result
 #            coeff = [c * c1 for c in coeff] + [c2]
-# return Expression('List', Integer(result), Expression('List',
-# *(Integer(c) for c in coeff)))
+#            return Expression('List', Integer(result), Expression(
+#                'List', *(Integer(c) for c in coeff)))
 
 
 class LCM(Builtin):
@@ -232,16 +232,17 @@ class FactorInteger(Builtin):
         if isinstance(n, Integer):
             factors = sympy.factorint(n.value)
             factors = sorted(factors.iteritems())
-            return Expression('List', *[
-                Expression('List', factor, exp) for factor, exp in factors])
+            return Expression('List', *(Expression('List', factor, exp)
+                                        for factor, exp in factors))
+
         elif isinstance(n, Rational):
             factors, factors_denom = map(
                 sympy.factorint, n.value.as_numer_denom())
             for factor, exp in factors_denom.iteritems():
                 factors[factor] = factors.get(factor, 0) - exp
             factors = sorted(factors.iteritems())
-            return Expression('List', *[
-                Expression('List', factor, exp) for factor, exp in factors])
+            return Expression('List', *(Expression('List', factor, exp)
+                                        for factor, exp in factors))
         else:
             return evaluation.message('FactorInteger', 'exact', n)
 

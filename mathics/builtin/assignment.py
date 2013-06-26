@@ -1130,8 +1130,8 @@ class DefaultValues(Builtin):
     def apply(self, symbol, evaluation):
         'DefaultValues[symbol_]'
 
-        return get_symbol_values(symbol, 'DefaultValues', 'default',
-                                 evaluation)
+        return get_symbol_values(
+            symbol, 'DefaultValues', 'default', evaluation)
 
 
 class AddTo(BinaryOperator):

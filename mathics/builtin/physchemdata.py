@@ -98,8 +98,8 @@ class ElementData(Builtin):
         indx = None
         for iprop in iprops:
             try:
-                indx = [element[iprop] for element in _ELEMENT_DATA[
-                    1:]].index(py_name) + 1
+                indx = [element[iprop] for element in
+                        _ELEMENT_DATA[1:]].index(py_name) + 1
             except ValueError:
                 pass
 

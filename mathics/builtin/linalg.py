@@ -132,8 +132,8 @@ class LinearSolve(Builtin):
             free_vars = dict((sym, sympy.Integer(
                 0)) for sym in syms if sym not in sol)
             sol.update(free_vars)
-            sol = [(sol[sym] if sym in free_vars
-                   else sol[sym].subs(free_vars)) for sym in syms]
+            sol = [(sol[sym] if sym in free_vars else sol[sym].subs(free_vars))
+                   for sym in syms]
             return from_sympy(sol)
         else:
             return evaluation.message('LinearSolve', 'nosol')

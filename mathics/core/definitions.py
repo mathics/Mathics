@@ -52,8 +52,8 @@ class Definitions(object):
 
             loaded = False
             if builtin_filename is not None:
-                builtin_dates = [get_file_time(
-                    module.__file__) for module in modules]
+                builtin_dates = [get_file_time(module.__file__)
+                                 for module in modules]
                 builtin_time = max(builtin_dates)
                 if get_file_time(builtin_filename) > builtin_time:
                     builtin_file = open(builtin_filename, 'r')
@@ -346,8 +346,8 @@ class Definition(object):
         self.upvalues = upvalues
         for rule in rules:
             self.add_rule(rule)
-        self.formatvalues = dict((
-            name, list) for name, list in formatvalues.items())
+        self.formatvalues = dict((name, list)
+                                 for name, list in formatvalues.items())
         self.messages = messages
         self.attributes = set(attributes)
         self.options = options

@@ -467,7 +467,7 @@ def _extractall(self, path=".", members=None):
             # Extract directories with a safe mode.
             directories.append(tarinfo)
             tarinfo = copy.copy(tarinfo)
-            tarinfo.mode = 448  # decimal for oct 0700
+            tarinfo.mode = 0o700
         self.extract(tarinfo, path)
 
     # Reverse sort directories.

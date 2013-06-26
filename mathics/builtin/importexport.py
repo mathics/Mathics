@@ -151,16 +151,15 @@ class RegisterImport(Builtin):
 
     def apply(self, formatname, function, posts, evaluation, options):
         '''RegisterImport[formatname_String, function_, posts_,
-                OptionsPattern[RegisterImport]]'''
+               OptionsPattern[RegisterImport]]'''
 
         if function.has_form('List', None):
             leaves = function.get_leaves()
         else:
             leaves = [function]
 
-        if not (len(leaves) >= 1 and
-                all(x.has_form('RuleDelayed', None) for x in leaves[:-1]) and
-                isinstance(leaves[-1], Symbol)):
+        if not (len(leaves) >= 1 and isinstance(leaves[-1], Symbol) and
+                all(x.has_form('RuleDelayed', None) for x in leaves[:-1])):
             # TODO: Message
             return Symbol('$Failed')
 
@@ -168,8 +167,8 @@ class RegisterImport(Builtin):
         # conditionals = {elem.get_string_value(): expr for [elem, expr] in
         # [x.get_leaves() for x in leaves[:-1]]}
         conditionals = dict(
-            (elem.get_string_value(), expr) for [elem, expr] in [
-                x.get_leaves() for x in leaves[:-1]])
+            (elem.get_string_value(), expr)
+            for (elem, expr) in (x.get_leaves() for x in leaves[:-1]))
         default = leaves[-1]
         posts = {}
 
@@ -247,19 +246,20 @@ class Import(Builtin):
         findfile = Expression('FindFile', filename).evaluate(evaluation)
         if findfile == Symbol('$Failed'):
             evaluation.message('Import', 'nffil')
-            return Symbol('$Failed')
+            return findfile
 
         # Check elements
-        elements = elements.to_python()
-        if not isinstance(elements, list):
+        if elements.has_form('List', None):
+            elements = elements.get_leaves()
+        else:
             elements = [elements]
 
         for el in elements:
-            if not (isinstance(el, basestring) and el[0] == el[-1] == '"'):
-                evaluation.message('Import', 'noelem', from_python(el))
+            if not isinstance(el, String):
+                evaluation.message('Import', 'noelem', el)
                 return Symbol('$Failed')
 
-        elements = [el[1:-1] for el in elements]
+        elements = [el.get_string_value() for el in elements]
 
         # Determine file type
         for el in elements:
@@ -317,9 +317,9 @@ class Import(Builtin):
             if defaults is None:
                 return Symbol('$Failed')
             if default_element == Symbol("Automatic"):
-                return Expression('List', *[
+                return Expression('List', *(
                     Expression('Rule', String(key), defaults[key])
-                    for key in defaults.keys()])
+                    for key in defaults.keys()))
             else:
                 result = defaults.get(default_element.get_string_value())
                 if result is None:
@@ -438,13 +438,13 @@ class FileFormat(Builtin):
     detector = None
 
     def apply(self, filename, evaluation):
-        'FileFormat[filename_?StringQ]'
+        'FileFormat[filename_String]'
 
         findfile = Expression('FindFile', filename).evaluate(evaluation)
         if findfile == Symbol('$Failed'):
-            evaluation.message('FileFormat', 'nffil', Expression(
-                'FileFormat', filename))
-            return Symbol('$Failed')
+            evaluation.message(
+                'FileFormat', 'nffil', Expression('FileFormat', filename))
+            return findfile
 
         path = findfile.get_string_value()
 

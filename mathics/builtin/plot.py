@@ -364,8 +364,7 @@ class _Plot(Builtin):
                                 xvalues[l] = xvalues[l][:xi]
                                 points.insert(l + 1, points[l][xi:])
                                 points[l] = points[l][:xi]
-                        # assert(xvalues[l][-1] <= excl and excl <=
-                        # xvalues[l+1][0])
+                        # assert(xvalues[l][-1] <= excl  <= xvalues[l+1][0])
 
             # Adaptive Sampling - loop again and interpolate highly angled
             # sections
@@ -397,14 +396,15 @@ class _Plot(Builtin):
 
                             x_value = 0.5 * (line_xvalues[i - 1] +
                                              line_xvalues[i])
+
                             point = self.eval_f(f, x_name, x_value, evaluation)
                             if point is not None:
                                 line.insert(i, point)
                                 line_xvalues.insert(i, x_value)
                                 incr += 1
 
-                            x_value = 0.5 * (line_xvalues[
-                                             i - 2] + line_xvalues[i - 1])
+                            x_value = 0.5 * (line_xvalues[i - 2] +
+                                             line_xvalues[i - 1])
                             point = self.eval_f(f, x_name, x_value, evaluation)
                             if point is not None:
                                 line.insert(i - 1, point)
@@ -510,8 +510,8 @@ class _ListPlot(Builtin):
         # TODO: Fill between corresponding points in two datasets:
         filling_option = self.get_option(options, 'Filling', evaluation)
         filling = filling_option.to_python(n_evaluation=evaluation)
-        if filling in ['Top', 'Bottom', 'Axis'] or isinstance(filling,
-                                                              numbers.Real):
+        if (filling in ['Top', 'Bottom', 'Axis'] or     # noqa
+            isinstance(filling, numbers.Real)):
             pass
         else:
             # Mathematica does not even check that filling is sane
@@ -527,8 +527,8 @@ class _ListPlot(Builtin):
         if isinstance(all_points, list) and len(all_points) != 0:
             if all(not isinstance(point, list) for point in all_points):
                 # Only y values given
-                all_points = [[[float(i + 1), all_points[
-                                i]] for i in range(len(all_points))]]
+                all_points = [[[float(i + 1), all_points[i]]
+                               for i in range(len(all_points))]]
             elif all(isinstance(line, list) and
                      len(line) == 2 for line in all_points):
                 # Single list of (x,y) pairs
@@ -723,10 +723,10 @@ class _Plot3D(Builtin):
 
             def triangle(x1, y1, x2, y2, x3, y3, depth=None):
                 if depth is None:
-                    x1, x2, x3 = [xstart + value * (
-                        xstop - xstart) for value in (x1, x2, x3)]
-                    y1, y2, y3 = [ystart + value * (
-                        ystop - ystart) for value in (y1, y2, y3)]
+                    x1, x2, x3 = [xstart + value * (xstop - xstart)
+                                  for value in (x1, x2, x3)]
+                    y1, y2, y3 = [ystart + value * (ystop - ystart)
+                                  for value in (y1, y2, y3)]
                     depth = 0
                 v1, v2, v3 = eval_f(x1, y1), eval_f(x2, y2), eval_f(x3, y3)
                 for v in (v1, v2, v3):
@@ -750,10 +750,10 @@ class _Plot3D(Builtin):
                 limit = (v_borders[1] - v_borders[0]) * eps
                 if depth < 2:
                     if abs(v1 - v2) > limit:
-                        triangle(x1, y1, x3, y3, (
-                            x1 + x2) / 2, (y1 + y2) / 2, depth + 1)
-                        triangle(x2, y2, x3, y3, (
-                            x1 + x2) / 2, (y1 + y2) / 2, depth + 1)
+                        triangle(x1, y1, x3, y3, (x1 + x2) / 2, (y1 + y2) / 2,
+                                 depth + 1)
+                        triangle(x2, y2, x3, y3, (x1 + x2) / 2, (y1 + y2) / 2,
+                                 depth + 1)
                         return
                     if abs(v2 - v3) > limit:
                         triangle(x1, y1, x2, y2, (
@@ -801,21 +801,21 @@ class _Plot3D(Builtin):
                 mesh_points.append(mesh_col)
 
             # Fix the grid near recursions
-            x_grids = [xstart + (xi / numx) * (
-                xstop - xstart) for xi in range(plotpoints[0] + 1)]
-            y_grids = [ystart + (yi / numy) * (
-                ystop - ystart) for yi in range(plotpoints[1] + 1)]
+            x_grids = [xstart + (xi / numx) * (xstop - xstart)
+                       for xi in range(plotpoints[0] + 1)]
+            y_grids = [ystart + (yi / numy) * (ystop - ystart)
+                       for yi in range(plotpoints[1] + 1)]
 
             for (xval, yval) in stored.keys():
                 if xval in x_grids:
-                    x_index = int((xval - xstart) * numx / (
-                        xstop - xstart) + 0.5)
+                    x_index = int((xval - xstart) * numx / (xstop - xstart) +
+                                  0.5)
                     z = eval_f(xval, yval)
                     if z is not None:
                         mesh_points[x_index].append((xval, yval, z))
                 if yval in y_grids:
-                    y_index = int((yval - ystart) * numy / (
-                        ystop - ystart) + plotpoints[0] + 1.5)
+                    y_index = int((yval - ystart) * numy / (ystop - ystart) +
+                                  plotpoints[0] + 1.5)
                     z = eval_f(xval, yval)
                     if z is not None:
                         mesh_points[y_index].append((xval, yval, z))
@@ -960,8 +960,8 @@ class ParametricPlot(_Plot):
         return x_range, y_range
 
     def eval_f(self, f, x_name, x_value, evaluation):
-        value = quiet_evaluate(f, {x_name: Real(
-            x_value)}, evaluation, expect_list=True)
+        value = quiet_evaluate(
+            f, {x_name: Real(x_value)}, evaluation, expect_list=True)
         if value is None or len(value) != 2:
             return None
         return value
@@ -1215,10 +1215,10 @@ class DensityPlot(_Plot3D):
                 evaluation.message('DensityPlot', 'color', func)
                 return
         if color_function.has_form('ColorDataFunction', 4):
-            color_function_min = color_function.leaves[
-                2].leaves[0].get_real_value()
-            color_function_max = color_function.leaves[
-                2].leaves[1].get_real_value()
+            color_function_min = \
+                color_function.leaves[2].leaves[0].get_real_value()
+            color_function_max = \
+                color_function.leaves[2].leaves[1].get_real_value()
 
         color_function_scaling = color_function_scaling.is_true()
         v_range = v_max - v_min
@@ -1260,14 +1260,11 @@ class DensityPlot(_Plot3D):
         points = []
         vertex_colors = []
         graphics = []
-        for p1, p2, p3 in triangles:
-            c1, c2, c3 = eval_color(*p1), eval_color(*p2), eval_color(*p3)
+        for p in triangles:
             points.append(
-                Expression(
-                    'List', Expression('List', *p1[
-                                       :2]), Expression('List', *p2[:2]),
-                    Expression('List', *p3[:2])))
-            vertex_colors.append(Expression('List', c1, c2, c3))
+                Expression('List', *(Expression('List', *x[:2]) for x in p)))
+            vertex_colors.append(
+                Expression('List', *(eval_color(*x) for x in p)))
 
         graphics.append(Expression(
             'Polygon', Expression('List', *points),
@@ -1278,14 +1275,14 @@ class DensityPlot(_Plot3D):
             for xi in range(len(mesh_points)):
                 line = []
                 for yi in range(len(mesh_points[xi])):
-                    line.append(Expression('List', mesh_points[
-                                xi][yi][0], mesh_points[xi][yi][1]))
+                    line.append(Expression('List', mesh_points[xi][yi][0],
+                                mesh_points[xi][yi][1]))
                 graphics.append(Expression('Line', Expression('List', *line)))
         elif mesh == 'All':
-            for p1, p2, p3 in triangles:
-                line = [from_python(p1[:2]), from_python(
-                    p2[:2]), from_python(p3[:2])]
-                graphics.append(Expression('Line', Expression('List', *line)))
+            for p in triangles:
+                graphics.append(Expression(
+                    'Line',
+                    Expression('List', *(from_python(x[:2]) for x in p))))
         return graphics
 
     def final_graphics(self, graphics, options):

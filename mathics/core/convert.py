@@ -56,8 +56,9 @@ class SympyExpression(BasicSympy):
     nargs = None
 
     def __new__(cls, expr):
-        obj = BasicSympy.__new__(cls, *(expr.head.to_sympy(),) + tuple(
-            leaf.to_sympy() for leaf in expr.leaves))
+        obj = BasicSympy.__new__(
+            cls, *(expr.head.to_sympy(),) + tuple(leaf.to_sympy()
+                                                  for leaf in expr.leaves))
         obj.expr = expr
         return obj
 
@@ -107,8 +108,8 @@ class SympyExpression(BasicSympy):
 
 def from_sympy(expr):
     from mathics.builtin import sympy_to_mathics
-    from mathics.core.expression import (Symbol, Integer, Rational, Real,
-                                         Expression)
+    from mathics.core.expression import (
+        Symbol, Integer, Rational, Real, Expression)
 
     from sympy.core import numbers, function, symbol
 

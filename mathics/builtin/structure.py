@@ -349,8 +349,8 @@ class MapIndexed(Builtin):
             return
 
         def callback(level, pos):
-            return Expression(f, level, Expression('List', *(
-                Integer(p) for p in pos)))
+            return Expression(f, level, Expression('List', *[
+                Integer(p) for p in pos]))
 
         heads = self.get_option(options, 'Heads', evaluation).is_true()
         result, depth = walk_levels(expr, start, stop, heads=heads,

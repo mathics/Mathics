@@ -64,8 +64,8 @@ class Names(Builtin):
         if pattern.startswith('System`'):
             names = evaluation.definitions.get_builtin_names()
         elif pattern.startswith('Global`'):
-            names = evaluation.definitions.get_user_names(
-            ) - evaluation.definitions.get_builtin_names()
+            names = (evaluation.definitions.get_user_names() -
+                     evaluation.definitions.get_builtin_names())
         else:
             names = evaluation.definitions.get_names()
         if '`' in pattern:

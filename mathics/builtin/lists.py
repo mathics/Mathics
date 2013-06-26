@@ -35,8 +35,8 @@ class List(Builtin):
             f:StandardForm|TraditionalForm|OutputForm|InputForm]'''
 
         items = items.get_sequence()
-        return Expression('RowBox', Expression('List', *list_boxes(
-            items, f, "{", "}")))
+        return Expression(
+            'RowBox', Expression('List', *list_boxes(items, f, "{", "}")))
 
 
 class ListQ(Test):
@@ -1285,8 +1285,8 @@ class _IterationFunction(Builtin):
 
             evaluation.check_stopped()
             try:
-                item = dynamic_scoping(expr.evaluate, {
-                                       i.name: index}, evaluation)
+                item = dynamic_scoping(
+                    expr.evaluate, {i.name: index}, evaluation)
                 result.append(item)
             except ContinueInterrupt:
                 if self.allow_loopcontrol:
@@ -1309,8 +1309,8 @@ class _IterationFunction(Builtin):
         for item in items:
             evaluation.check_stopped()
             try:
-                item = dynamic_scoping(expr.evaluate, {
-                                       i.name: item}, evaluation)
+                item = dynamic_scoping(
+                    expr.evaluate, {i.name: item}, evaluation)
                 result.append(item)
             except ContinueInterrupt:
                 if self.allow_loopcontrol:

@@ -134,8 +134,8 @@ class Dimensions(Builtin):
     def apply(self, expr, evaluation):
         'Dimensions[expr_]'
 
-        return Expression('List', *(
-            Integer(dim) for dim in get_dimensions(expr)))
+        return Expression('List', *[
+            Integer(dim) for dim in get_dimensions(expr)])
 
 
 class ArrayDepth(Builtin):
@@ -209,8 +209,8 @@ class Inner(Builtin):
             evaluation.message('Inner', 'heads', list1.head, list2.head)
             return
         if m[-1] != n[0]:
-            evaluation.message('Inner', 'incom', m[
-                               -1], len(m), list1, n[0], list2)
+            evaluation.message(
+                'Inner', 'incom', m[-1], len(m), list1, n[0], list2)
             return
 
         head = list1.head
@@ -220,22 +220,22 @@ class Inner(Builtin):
             evaluation.check_stopped()
             if i_rest:
                 new = Expression(head)
-                for i in range(1, i_rest[0] + 1):
-                    new.leaves.append(rec(i_cur + [
-                                      i], j_cur, i_rest[1:], j_rest))
+                for i in xrange(1, i_rest[0] + 1):
+                    new.leaves.append(
+                        rec(i_cur + [i], j_cur, i_rest[1:], j_rest))
                 return new
             elif j_rest:
                 new = Expression(head)
-                for j in range(1, j_rest[0] + 1):
-                    new.leaves.append(rec(i_cur, j_cur + [
-                                      j], i_rest, j_rest[1:]))
+                for j in xrange(1, j_rest[0] + 1):
+                    new.leaves.append(
+                        rec(i_cur, j_cur + [j], i_rest, j_rest[1:]))
                 return new
             else:
                 def summand(i):
                     return Expression(f, get_part(list1, i_cur + [i]),
                                       get_part(list2, [i] + j_cur))
-                part = Expression(g, *(summand(
-                    i) for i in range(1, inner_dim + 1)))
+                part = Expression(
+                    g, *[summand(i) for i in xrange(1, inner_dim + 1)])
                 # cur_expr.leaves.append(part)
                 return part
 

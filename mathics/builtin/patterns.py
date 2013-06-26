@@ -282,10 +282,10 @@ class PatternTest(BinaryOperator, PatternObject):
                 isinstance(candidate.leaves[1], (Integer, Rational, Real)) and
                 candidate.leaves[1].value < 0)
         elif test == 'NotNegativePowerQ':
-            return not (candidate.has_form('Power', 2) and
-                        isinstance(candidate.leaves[1], (Integer, Rational,
-                                                         Real)) and
-                        candidate.leaves[1].value < 0)
+            return not (
+                candidate.has_form('Power', 2) and
+                isinstance(candidate.leaves[1], (Integer, Rational, Real)) and
+                candidate.leaves[1].value < 0)
         else:
             from mathics.builtin import builtins
             from mathics.builtin.base import Test
@@ -672,10 +672,10 @@ def get_default_value(name, evaluation, k=None, n=None):
         pos.append(n)
     for pos_len in reversed(range(len(pos) + 1)):
         # Try patterns from specific to general
-        defaultexpr = Expression('Default', Symbol(name), *[
-                                 Integer(index) for index in pos[:pos_len]])
-        result = evaluation.definitions.get_value(
-            name, 'DefaultValues', defaultexpr, evaluation)
+        defaultexpr = Expression('Default', Symbol(name),
+                                 *[Integer(index) for index in pos[:pos_len]])
+        result = evaluation.definitions.get_value(name, 'DefaultValues',
+                                                  defaultexpr, evaluation)
         if result is not None:
             if result.same(defaultexpr):
                 result = result.evaluate(evaluation)
@@ -837,8 +837,8 @@ class Repeated(PostfixOperator, PatternObject):
                     #    yield sub_vars, rest
                     iter(yield_iter, rest_leaves[1:], new_vars)
 
-                self.pattern.match(yield_match, rest_leaves[
-                                   0], vars, evaluation)
+                self.pattern.match(
+                    yield_match, rest_leaves[0], vars, evaluation)
             else:
                 yield_iter(vars, None)
 
@@ -973,6 +973,7 @@ class OptionsPattern(PatternObject):
 
     def get_match_candidates(self, leaves, expression, attributes, evaluation,
                              vars={}):
-        return [leaf for leaf in leaves
-                if leaf.has_form(('Rule', 'RuleDelayed'), 2) or
-                leaf.has_form('List', None)]
+        def _match(leaf):
+            return (leaf.has_form(('Rule', 'RuleDelayed'), 2) or
+                    leaf.has_form('List', None))
+        return [leaf for leaf in leaves if _match(leaf)]

@@ -1237,8 +1237,8 @@ class MathicsParser:
 
     def p_Minus(self, args):
         'expr : expr Minus expr'
-        args[0] = Expression('Plus', args[
-                             1], Expression('Times', Integer(-1), args[3]))
+        args[0] = Expression('Plus', args[1],
+                             Expression('Times', Integer(-1), args[3]))
 
     def p_UPlus(self, args):
         'expr : Plus expr %prec UPlus'
@@ -1263,8 +1263,8 @@ class MathicsParser:
     def p_Slash(self, args):
         '''expr : expr RawSlash expr
                 | expr Divide expr'''
-        args[0] = Expression('Times', args[
-                             1], Expression('Power', args[3], Integer(-1)))
+        args[0] = Expression('Times', args[1],
+                             Expression('Power', args[3], Integer(-1)))
 
     def p_Times(self, args):
         '''expr : expr Times expr
@@ -1306,8 +1306,8 @@ class MathicsParser:
             if isinstance(args[1], BaseExpression):
                 args[0] = Expression('Span', args[1], args[3])
             else:
-                args[0] = Expression('Span', Integer(
-                    1), Symbol('All'), args[3])
+                args[0] = Expression('Span', Integer(1), Symbol('All'),
+                                     args[3])
         elif len(args) == 3:
             if isinstance(args[1], BaseExpression):
                 args[0] = Expression('Span', args[1], Symbol('All'))
@@ -1331,8 +1331,10 @@ class MathicsParser:
         if len(args) == 6:
             args[0] = Expression('Optional', args[0], args[5])
         elif args[3].get_head_name() == 'Pattern':
-            args[0] = Expression('Optional', Expression('Pattern', Symbol(
-                args[1]), args[3].leaves[0]), args[3].leaves[1])
+            args[0] = Expression(
+                'Optional',
+                Expression('Pattern', Symbol(args[1]), args[3].leaves[0]),
+                args[3].leaves[1])
 
     def p_Optional(self, args):
         'expr : pattern RawColon expr'
@@ -1450,8 +1452,8 @@ class MathicsParser:
         if len(args) == 4:
             args[0] = Expression('SubscriptBox', args[1], args[3])
         elif len(args) == 6:
-            args[0] = Expression('SubsuperscriptBox', args[
-                                 1], args[3], args[5])
+            args[0] = Expression(
+                'SubsuperscriptBox', args[1], args[3], args[5])
 
     def p_OverscriptBox(self, args):
         '''box : box Overscript box Otherscript box %prec Overscript
@@ -1459,8 +1461,8 @@ class MathicsParser:
         if len(args) == 4:
             args[0] = Expression('OverscriptBox', args[1], args[3])
         elif len(args) == 6:
-            args[0] = Expression('UnderoverscriptBox', args[
-                                 1], args[5], args[3])
+            args[0] = Expression(
+                'UnderoverscriptBox', args[1], args[5], args[3])
 
     def p_UnderscriptBox(self, args):
         '''box : box Underscript box Otherscript box %prec Underscript

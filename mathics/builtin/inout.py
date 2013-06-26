@@ -12,8 +12,8 @@ from mathics.builtin.tensors import get_dimensions
 from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
-from mathics.core.expression import (Expression, String, Symbol, Integer,
-                                     Rational, Real, Complex, BoxError)
+from mathics.core.expression import (
+    Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError)
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
@@ -59,8 +59,9 @@ def parenthesize(precedence, leaf, leaf_boxes, when_equal):
         leaf_prec = builtins_precedence.get(leaf.get_head_name())
     if precedence is not None and leaf_prec is not None:
         if precedence > leaf_prec or (precedence == leaf_prec and when_equal):
-            return Expression('RowBox', Expression(
-                'List', String("("), leaf_boxes, String(")")))
+            return Expression(
+                'RowBox',
+                Expression('List', String("("), leaf_boxes, String(")")))
     return leaf_boxes
 
 
@@ -425,11 +426,10 @@ class GridBox(BoxConstruct):
         column_count = 0
         for row in items:
             column_count = max(column_count, len(row))
-        result = r'\begin{array}{%s}' % (
-            column_alignments * column_count) + ' '
+        result = r'\begin{array}{%s} ' % (column_alignments * column_count)
         for index, row in enumerate(items):
-            result += ' & '.join(item.boxes_to_tex(
-                **new_box_options) for item in row)
+            result += ' & '.join(item.boxes_to_tex(**new_box_options)
+                                 for item in row)
             if index != len(items) - 1:
                 result += '\\\\ '
         result += r'\end{array}'
@@ -444,15 +444,15 @@ class GridBox(BoxConstruct):
             attrs['columnalign'] = column_alignments.lower()
         else:
             raise BoxConstructError
-        attrs = ' ' + ' '.join('%s="%s"' % (
-            name, value) for name, value in attrs.iteritems())
-        result = '<mtable%s>\n' % attrs
+        attrs = ' '.join('{0}="{1}"'.format(name, value)
+                         for name, value in attrs.iteritems())
+        result = '<mtable {0}>\n'.format(attrs)
         new_box_options = box_options.copy()
         new_box_options['inside_list'] = True
         for row in items:
             result += '<mtr>'
             for item in row:
-                result += '<mtd%s>%s</mtd>' % (
+                result += '<mtd {0}>{1}</mtd>'.format(
                     attrs, item.boxes_to_xml(**new_box_options))
             result += '</mtr>\n'
         result += '</mtable>'
@@ -465,8 +465,8 @@ class GridBox(BoxConstruct):
         if not items:
             return ''
         widths = [0] * len(items[0])
-        cells = [[item.boxes_to_text(
-            **box_options).splitlines() for item in row] for row in items]
+        cells = [[item.boxes_to_text(**box_options).splitlines()
+                  for item in row] for row in items]
         for row in cells:
             for index, cell in enumerate(row):
                 if index >= len(widths):
@@ -513,12 +513,13 @@ class Grid(Builtin):
         '''MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]],
             f:StandardForm|TraditionalForm|OutputForm]'''
 
-        array = Expression('List', *(
-            Expression('List', *(Expression('MakeBoxes', item, f)
-                                 for item in row.leaves))
-            for row in array.leaves))
-
-        return Expression('GridBox', array, *options_to_rules(options))
+        return Expression(
+            'GridBox',
+            Expression('List', *(
+                Expression('List', *(
+                    Expression('MakeBoxes', item, f) for item in row.leaves))
+                for row in array.leaves)),
+            *options_to_rules(options))
 
 
 class TableForm(Builtin):
@@ -636,8 +637,8 @@ class Subscript(Builtin):
         'MakeBoxes[Subscript[x_, y__], f:StandardForm|TraditionalForm]'
 
         y = y.get_sequence()
-        return Expression('SubscriptBox', Expression('MakeBoxes', x, f),
-                          *list_boxes(y, f))
+        return Expression(
+            'SubscriptBox', Expression('MakeBoxes', x, f), *list_boxes(y, f))
 
 
 class Subsuperscript(Builtin):

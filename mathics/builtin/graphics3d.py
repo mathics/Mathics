@@ -132,22 +132,22 @@ class Graphics3DBox(GraphicsBox):
         if lighting == 'Automatic':
             self.lighting = [
                 {"type": "Ambient", "color": [0.3, 0.2, 0.4]},
-                {"type": "Directional", "color": [
-                    0.8, 0., 0.], "position": [2, 0, 2]},
-                {"type": "Directional", "color": [
-                    0., 0.8, 0.], "position": [2, 2, 2]},
-                {"type": "Directional", "color": [
-                    0., 0., 0.8], "position": [0, 2, 2]}
+                {"type": "Directional", "color": [0.8, 0., 0.],
+                 "position": [2, 0, 2]},
+                {"type": "Directional", "color": [0., 0.8, 0.],
+                 "position": [2, 2, 2]},
+                {"type": "Directional", "color": [0., 0., 0.8],
+                 "position": [0, 2, 2]}
             ]
         elif lighting == 'Neutral':
             self.lighting = [
                 {"type": "Ambient", "color": [0.3, 0.3, 0.3]},
-                {"type": "Directional", "color": [
-                    0.3, 0.3, 0.3], "position": [2, 0, 2]},
-                {"type": "Directional", "color": [
-                    0.3, 0.3, 0.3], "position": [2, 2, 2]},
-                {"type": "Directional", "color": [
-                    0.3, 0.3, 0.3], "position": [0, 2, 2]}
+                {"type": "Directional", "color": [0.3, 0.3, 0.3],
+                 "position": [2, 0, 2]},
+                {"type": "Directional", "color": [0.3, 0.3, 0.3],
+                 "position": [2, 2, 2]},
+                {"type": "Directional", "color": [0.3, 0.3, 0.3],
+                 "position": [0, 2, 2]}
             ]
         elif lighting == 'None':
             pass
@@ -165,8 +165,8 @@ class Graphics3DBox(GraphicsBox):
                     if light[0] == '"Ambient"':
                         self.lighting.append({
                             "type": "Ambient",
-                                             "color": color.to_rgba()
-                                             })
+                            "color": color.to_rgba(), 
+                        })
                     elif light[0] == '"Directional"':
                         position = [0, 0, 0]
                         if isinstance(light[2], list):
@@ -338,11 +338,13 @@ class Graphics3DBox(GraphicsBox):
                 # Rescale lighting
                 for i, light in enumerate(self.lighting):
                     if self.lighting[i]["type"] != "Ambient":
-                        self.lighting[i]["position"] = [light[
-                            "position"][j] * boxscale[j] for j in range(3)]
+                        self.lighting[i]["position"] = (
+                            [light["position"][j] * boxscale[j]
+                             for j in range(3)])
                     if self.lighting[i]["type"] == "Spot":
-                        self.lighting[i]["target"] = [light[
-                            "target"][j] * boxscale[j] for j in range(3)]
+                        self.lighting[i]["target"] = (
+                            [light["target"][j] * boxscale[j]
+                             for j in range(3)])
 
                 # Rescale viewpoint
                 self.viewpoint = [
@@ -387,6 +389,7 @@ class Graphics3DBox(GraphicsBox):
         boundbox_asy = ''
         boundbox_lines = self.get_boundbox_lines(
             xmin, xmax, ymin, ymax, zmin, zmax)
+
         for i, line in enumerate(boundbox_lines):
             if i in axes_indices:
                 pen = create_pens(edge_color=RGBColor(
@@ -394,6 +397,7 @@ class Graphics3DBox(GraphicsBox):
             else:
                 pen = create_pens(edge_color=RGBColor(
                     components=(0.4, 0.4, 0.4, 1)), stroke_width=1)
+
             path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
             boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
 
@@ -408,25 +412,32 @@ class Graphics3DBox(GraphicsBox):
         for xi in axes_indices:
             if xi < 4:          # x axis
                 for i, tick in enumerate(ticks[0][0]):
-                    line = [(tick, boundbox_lines[xi][0][1],
-                             boundbox_lines[xi][0][2]),
-                            (tick, boundbox_lines[xi][0][1],
-                             boundbox_lines[xi][0][2] + ticklength)]
-                    path = '--'.join(['(%s,%s,%s)' % coords
-                                     for coords in line])
-                    boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
-                    boundbox_asy += 'label("%s",%s,%s);\n' % (ticks[0][2][i], (
-                        tick, boundbox_lines[xi][0][1],
-                        boundbox_lines[xi][0][2]), 'S')
+                    line = [
+                        (tick, boundbox_lines[xi][0][1],
+                         boundbox_lines[xi][0][2]),
+                        (tick, boundbox_lines[xi][0][1],
+                         boundbox_lines[xi][0][2] + ticklength)]
+
+                    path = '--'.join(
+                        ['({0},{1},{2})'.format(*coords) for coords in line])
+
+                    boundbox_asy += 'draw(({0}), {1});\n'.format(path, pen)
+                    boundbox_asy += 'label("{0}",{1},{2});\n'.format(
+                        ticks[0][2][i], (tick, boundbox_lines[xi][0][1],
+                                         boundbox_lines[xi][0][2]),
+                        'S')
+
                 for small_tick in ticks[0][1]:
                     line = [
                         (small_tick, boundbox_lines[xi][0][1],
                          boundbox_lines[xi][0][2]),
                         (small_tick, boundbox_lines[xi][0][1],
                          boundbox_lines[xi][0][2] + 0.5 * ticklength)]
+
                     path = '--'.join(
-                        ['(%s,%s,%s)' % coords for coords in line])
-                    boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
+                        ['({0},{1},{2})'.format(*coords) for coords in line])
+
+                    boundbox_asy += 'draw(({0}), {1});\n'.format(path, pen)
 
             if 4 <= xi < 8:     # y axis
                 for i, tick in enumerate(ticks[1][0]):
@@ -436,11 +447,15 @@ class Graphics3DBox(GraphicsBox):
                         (boundbox_lines[xi][0][0], tick,
                          boundbox_lines[xi][0][2] - ticklength)]
                     path = '--'.join(
-                        ['(%s,%s,%s)' % coords for coords in line])
-                    boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
-                    boundbox_asy += 'label("%s",%s,%s);\n' % (ticks[1][2][i], (
-                        boundbox_lines[xi][0][0], tick,
-                        boundbox_lines[xi][0][2]), 'NW')
+                        ['({0},{1},{2})'.format(*coords) for coords in line])
+
+                    boundbox_asy += 'draw(({0}), {1});\n'.format(path, pen)
+
+                    boundbox_asy += 'label("{0}",{1},{2});\n'.format(
+                        ticks[1][2][i], (boundbox_lines[xi][0][0], tick,
+                                         boundbox_lines[xi][0][2]),
+                        'NW')
+
                 for small_tick in ticks[1][1]:
                     line = [
                         (boundbox_lines[xi][0][0], small_tick,
@@ -448,8 +463,8 @@ class Graphics3DBox(GraphicsBox):
                         (boundbox_lines[xi][0][0], small_tick,
                          boundbox_lines[xi][0][2] - 0.5 * ticklength)]
                     path = '--'.join(
-                        ['(%s,%s,%s)' % coords for coords in line])
-                    boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
+                        ['({0},{1},{2})'.format(*coords) for coords in line])
+                    boundbox_asy += 'draw(({0}), {1});\n'.format(path, pen)
             if 8 <= xi:         # z axis
                 for i, tick in enumerate(ticks[2][0]):
                     line = [
@@ -458,35 +473,39 @@ class Graphics3DBox(GraphicsBox):
                         (boundbox_lines[xi][0][0],
                          boundbox_lines[xi][0][1] + ticklength, tick)]
                     path = '--'.join(
-                        ['(%s,%s,%s)' % coords for coords in line])
-                    boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
-                    boundbox_asy += 'label("%s",%s,%s);\n' % (ticks[2][2][i], (
-                        boundbox_lines[xi][0][0], boundbox_lines[xi][0][1],
-                        tick), 'W')
+                        ['({0},{1},{2})'.format(*coords) for coords in line])
+                    boundbox_asy += 'draw(({0}), {1});\n'.format(path, pen)
+                    boundbox_asy += 'label("{0}",{1},{2});\n'.format(
+                        ticks[2][2][i],
+                        (boundbox_lines[xi][0][0], boundbox_lines[xi][0][1],
+                         tick),
+                        'W')
                 for small_tick in ticks[2][1]:
                     line = [
-                        (boundbox_lines[xi][0][
-                         0], boundbox_lines[xi][0][1], small_tick),
+                        (boundbox_lines[xi][0][0],
+                         boundbox_lines[xi][0][1],
+                         small_tick),
                         (boundbox_lines[xi][0][0],
                          boundbox_lines[xi][0][1] + 0.5 * ticklength,
-                         small_tick)]
+                         small_tick)
+                    ]
                     path = '--'.join(
-                        ['(%s,%s,%s)' % coords for coords in line])
-                    boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
+                        ['({0},{1},{2})'.format(*coords) for coords in line])
+                    boundbox_asy += 'draw(({0}), {1});\n'.format(path, pen)
 
         (height, width) = (400, 400)  # TODO: Proper size
         tex = r"""
-\begin{asy}
+\begin{{asy}}
 import three;
 import solids;
-size(%scm, %scm);
-currentprojection=perspective(%s,%s,%s);
+size({0}cm, {1}cm);
+currentprojection=perspective({2[0]},{2[1]},{2[2]});
 currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
-%s
-%s
-\end{asy}
-""" % (asy_number(width / 60), asy_number(height / 60), self.viewpoint[0],
-       self.viewpoint[1], self.viewpoint[2], asy, boundbox_asy)
+{3}
+{4}
+\end{{asy}}
+""".format(asy_number(width / 60), asy_number(height / 60), self.viewpoint,
+           asy, boundbox_asy)
         return tex
 
     def boxes_to_xml(self, leaves, **options):
@@ -526,18 +545,17 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         # xml = ('<graphics3d xmin="%f" xmax="%f" ymin="%f" ymax="%f" '
         #        'zmin="%f" zmax="%f" data="%s" />') % (
         #           xmin, xmax, ymin, ymax, zmin, zmax, json_repr)
-        xml = """<graphics3d data="%s" />""" % escape_html(json_repr)
-        xml = """<mtable><mtr><mtd>%s</mtd></mtr></mtable>""" % xml
+        xml = '<graphics3d data="{0}" />'.format(escape_html(json_repr))
+        xml = '<mtable><mtr><mtd>{0}</mtd></mtr></mtable>'.format(xml)
         return xml
 
-    def create_axes(self, elements, graphics_options, xmin, xmax, ymin, ymax,
-                    zmin, zmax, boxscale):
+    def create_axes(self, elements, graphics_options,
+                    xmin, xmax, ymin, ymax, zmin, zmax, boxscale):
         axes = graphics_options.get('Axes')
         if axes.is_true():
             axes = (True, True, True)
         elif axes.has_form('List', 3):
-            axes = (axes.leaves[0].is_true(), axes.leaves[
-                    1].is_true(), axes.leaves[2].is_true())
+            axes = (leaf.is_true() for leaf in axes.leaves)
         else:
             axes = (False, False, False)
         ticks_style = graphics_options.get('TicksStyle')
@@ -558,8 +576,9 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         ticks_style[0].extend(axes_style[0])
         ticks_style[1].extend(axes_style[1])
 
-        ticks = [self.axis_ticks(xmin, xmax), self.axis_ticks(
-            ymin, ymax), self.axis_ticks(zmin, zmax)]
+        ticks = [self.axis_ticks(xmin, xmax),
+                 self.axis_ticks(ymin, ymax),
+                 self.axis_ticks(zmin, zmax)]
 
         # Add zero if required, since axis_ticks does not
         if xmin <= 0 <= xmax:
@@ -661,8 +680,8 @@ class Point3DBox(PointBox):
         # Tempoary bug fix: default Point color should be black not white
         face_color = self.face_color
         if list(face_color.to_rgba()[:3]) == [1, 1, 1]:
-            face_color = RGBColor(components=(
-                0, 0, 0, face_color.to_rgba()[3]))
+            face_color = RGBColor(
+                components=(0, 0, 0, face_color.to_rgba()[3]))
 
         for line in self.lines:
             data.append({
@@ -677,16 +696,14 @@ class Point3DBox(PointBox):
 
         # Tempoary bug fix: default Point color should be black not white
         if list(face_color.to_rgba()[:3]) == [1, 1, 1]:
-            face_color = RGBColor(components=(
-                0, 0, 0, face_color.to_rgba()[3]))
+            face_color = RGBColor(
+                components=(0, 0, 0, face_color.to_rgba()[3]))
+
         pen = create_pens(face_color=face_color, is_face_element=False)
 
-        asy = ''
-        for line in self.lines:
-            asy += 'path3 g=' + '--'.join(['(%s,%s,%s)' % coords.pos()[0]
-                                           for coords in line]) + '--cycle;'
-            asy += 'dot(g, %s);' % (pen)
-        return asy
+        return ''.join('path3 g={0}--cycle;dot(g, {1});'.format(
+            '--'.join('({0},{1},{2})'.format(coords.pos()[0])
+                      for coords in line), pen) for line in self.lines)
 
     def extent(self):
         result = []
@@ -723,12 +740,10 @@ class Line3DBox(LineBox):
     def to_asy(self):
         # l = self.style.get_line_width(face_element=False)
         pen = create_pens(edge_color=self.edge_color, stroke_width=1)
-        asy = ''
-        for line in self.lines:
-            path = '--'.join(['(%s,%s,%s)' %
-                             coords.pos()[0] for coords in line])
-            asy += 'draw(%s, %s);' % (path, pen)
-        return asy
+
+        return ''.join('draw({0}, {1});'.format(
+            '--'.join('({0},{1},{2})'.format(coords.pos()[0])
+                      for coords in line), pen) for line in self.lines)
 
     def extent(self):
         result = []
@@ -853,10 +868,10 @@ class Cuboid(Builtin):
         'Cuboid[{xmin_, ymin_, zmin_}, {xmax_, ymax_, zmax_}]'
 
         try:
-            xmin, ymin, zmin = [value.to_number(
-                n_evaluation=evaluation) for value in (xmin, ymin, zmin)]
-            xmax, ymax, zmax = [value.to_number(
-                n_evaluation=evaluation) for value in (xmax, ymax, zmax)]
+            xmin, ymin, zmin = [value.to_number(n_evaluation=evaluation)
+                                for value in (xmin, ymin, zmin)]
+            xmax, ymax, zmax = [value.to_number(n_evaluation=evaluation)
+                                for value in (xmax, ymax, zmax)]
         except NumberError:
             # TODO
             return
@@ -929,10 +944,10 @@ class Cuboid(Builtin):
         except NumberError:
             # TODO
             return
-        xmax, ymax, zmax = [from_python(value + 1)
-                            for value in (xmin, ymin, zmin)]
-        xmin, ymin, zmin = [from_python(value)
-                            for value in (xmin, ymin, zmin)]
+        (xmax, ymax, zmax) = (from_python(value + 1)
+                              for value in (xmin, ymin, zmin))
+        (xmin, ymin, zmin) = (from_python(value)
+                              for value in (xmin, ymin, zmin))
 
         return self.apply_full(xmin, ymin, zmin, xmax, ymax, zmax, evaluation)
 
@@ -972,14 +987,10 @@ class Sphere3DBox(_Graphics3DElement):
         else:
             face_color = self.face_color.to_js()
 
-        asy = ''
-        for coord in self.points:
-            sphere = 'surface(sphere(%s, %s))' % (
-                tuple(coord.pos()[0]), self.radius)
-            color = 'rgb(%s,%s,%s)' % (
-                face_color[0], face_color[1], face_color[2])
-            asy += 'draw(%s, %s);' % (sphere, color)
-        return asy
+        return ''.join(
+            'draw(surface(sphere({0}, {1})), rgb({2},{3},{4}));'.format(
+                tuple(coord.pos()[0],), self.radius, *face_color[:3])
+            for coord in self.points)
 
     def to_json(self):
         face_color = self.face_color

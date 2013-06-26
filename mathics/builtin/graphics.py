@@ -8,11 +8,11 @@ from math import floor, ceil, log10
 
 from django.utils import simplejson
 
-from mathics.builtin.base import (Builtin, InstancableBuiltin, BoxConstruct,
-                                  BoxConstructError)
+from mathics.builtin.base import (
+    Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
 from mathics.builtin.options import options_to_rules
-from mathics.core.expression import (Expression, Integer, Real, NumberError,
-                                     Symbol)
+from mathics.core.expression import (
+    Expression, Integer, Real, NumberError, Symbol)
 
 
 class CoordinatesError(BoxConstructError):
@@ -1649,8 +1649,8 @@ class Blend(Builtin):
             if pos == len(colors) - 1:
                 return colors[-1].to_expr()
             else:
-                return self.do_blend(colors[pos:(pos + 2)],
-                                     [1 - x, x]).to_expr()
+                return self.do_blend(
+                    colors[pos:(pos + 2)], [1 - x, x]).to_expr()
 
 
 class Lighter(Builtin):

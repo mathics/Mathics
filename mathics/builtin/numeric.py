@@ -119,9 +119,9 @@ class N(Builtin):
 
         if valid_prec is not None:
             if expr.get_head_name() in ('List', 'Rule'):
-                return Expression(expr.head, *[
-                    self.apply_other(leaf, prec, evaluation)
-                    for leaf in expr.leaves])
+                return Expression(
+                    expr.head, *[self.apply_other(leaf, prec, evaluation)
+                                 for leaf in expr.leaves])
             if isinstance(expr, Number):
                 return expr.round(valid_prec)
 
@@ -432,5 +432,5 @@ class BaseForm(Builtin):
         if f.get_name() == 'OutputForm':
             return from_python("%s_%d" % (val, base))
         else:
-            return Expression('SubscriptBox', from_python(val),
-                              from_python(base))
+            return Expression(
+                'SubscriptBox', from_python(val), from_python(base))

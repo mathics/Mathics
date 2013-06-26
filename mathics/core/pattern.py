@@ -463,8 +463,8 @@ class ExpressionPattern(Pattern):
             # Include wrappings like Plus[a, b] only if not all items taken
             # - in that case we would match the same expression over and over.
 
-            include_flattened = try_flattened and 0 < len(
-                items) < len(expression.leaves)
+            include_flattened = (try_flattened and
+                                 0 < len(items) < len(expression.leaves))
 
             # Don't try flattened when the expression would remain the same!
 
@@ -474,11 +474,13 @@ class ExpressionPattern(Pattern):
                 # yield_func(next_vars, (rest_expression[0] + items_rest[0],
                 # next_rest[1]))
                 if next_rest is None:
-                    yield_func(next_vars, (rest_expression[
-                               0] + items_rest[0], []))
+                    yield_func(
+                        next_vars,
+                        (rest_expression[0] + items_rest[0], []))
                 else:
-                    yield_func(next_vars, (rest_expression[
-                               0] + items_rest[0], next_rest[1]))
+                    yield_func(
+                        next_vars,
+                        (rest_expression[0] + items_rest[0], next_rest[1]))
 
             def match_yield(new_vars, _):
                 if rest_leaves:
@@ -487,27 +489,14 @@ class ExpressionPattern(Pattern):
                         new_vars, expression, attributes, evaluation,
                         fully=fully, depth=next_depth, leaf_index=next_index,
                         leaf_count=leaf_count, wrap_oneid=wrap_oneid)
-                    # for next_vars, next_rest in recursion:
                 else:
                     if not fully or (not items_rest[0] and not items_rest[1]):
                         yield_func(new_vars, items_rest)
-                        # yield new_vars, items_rest
 
-            # wrappings = self.get_wrappings(
-            #    items, match_count[1], expression, attributes,
-            #    include_flattened=include_flattened)
-            # for item in wrappings:
             def yield_wrapping(item):
-
                 leaf.match(match_yield, item, vars, evaluation, fully=True,
                            head=expression.head, leaf_index=leaf_index,
                            leaf_count=leaf_count, wrap_oneid=wrap_oneid)
-
-                # Need not fully match, as in g[a+b+c+d,a] against g[x_+y_,x_].
-                # for new_vars, _ in leaf.match(
-                #    item, vars, evaluation, fully=True,
-                #    head=expression.head, leaf_index=leaf_index,
-                #    leaf_count=leaf_count, wrap_oneid=wrap_oneid):
 
             self.get_wrappings(
                 yield_wrapping, items, match_count[1], expression, attributes,

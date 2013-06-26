@@ -205,17 +205,15 @@ class RandomInteger(Builtin):
         rmin, rmax = rmin.value, rmax.value
         result = ns.to_python()
 
-        assert all([isinstance(i, int) for i in result])
-
         with RandomEnv(evaluation) as rand:
             def search_product(i):
                 if i == len(result) - 1:
                         return Expression('List', *[
                             Integer(rand.randint(rmin, rmax))
-                            for j in range(result[i])])
+                            for j in xrange(result[i])])
                 else:
                     return Expression('List', *[
-                        search_product(i + 1) for j in range(result[i])])
+                        search_product(i + 1) for j in xrange(result[i])])
             return search_product(0)
 
 
@@ -303,10 +301,10 @@ class RandomReal(Builtin):
                 if i == len(result) - 1:
                         return Expression('List', *[
                             Real(rand.randreal(min_value, max_value))
-                            for j in range(result[i])])
+                            for j in xrange(result[i])])
                 else:
                     return Expression('List', *[
-                        search_product(i + 1) for j in range(result[i])])
+                        search_product(i + 1) for j in xrange(result[i])])
             return search_product(0)
 
 
@@ -404,8 +402,8 @@ class RandomComplex(Builtin):
                             Complex(
                                 rand.randreal(min_value.real, max_value.real),
                                 rand.randreal(min_value.imag, max_value.imag)
-                            ) for j in range(py_ns[i])])
+                            ) for j in xrange(py_ns[i])])
                 else:
                     return Expression('List', *[
-                        search_product(i + 1) for j in range(py_ns[i])])
+                        search_product(i + 1) for j in xrange(py_ns[i])])
             return search_product(0)

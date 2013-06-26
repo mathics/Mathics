@@ -225,10 +225,10 @@ class BaseExpression(object):
                     expr = expr.do_format(evaluation, form)
                 elif (head != 'FullForm' and not expr.is_atom() and
                       head != 'Graphics'):
-                    new_leaves = [leaf.do_format(
-                        evaluation, form) for leaf in expr.leaves]
-                    expr = Expression(expr.head.do_format(
-                        evaluation, form), *new_leaves)
+                    new_leaves = [leaf.do_format(evaluation, form)
+                                  for leaf in expr.leaves]
+                    expr = Expression(
+                        expr.head.do_format(evaluation, form), *new_leaves)
 
             if include_form:
                 expr = Expression(form, expr)
@@ -239,8 +239,8 @@ class BaseExpression(object):
 
     def format(self, evaluation, form):
         expr = self.do_format(evaluation, form)
-        result = Expression('MakeBoxes', expr, Symbol(
-            form)).evaluate(evaluation)
+        result = Expression(
+            'MakeBoxes', expr, Symbol(form)).evaluate(evaluation)
         return result
 
     def is_free(self, form, evaluation):
@@ -401,8 +401,8 @@ class Expression(BaseExpression):
         self.is_evaluated = False
 
     def copy(self):
-        result = Expression(self.head.copy(), *[
-                            leaf.copy() for leaf in self.leaves])
+        result = Expression(
+            self.head.copy(), *[leaf.copy() for leaf in self.leaves])
         result.options = self.options
         result.original = self
         return result
@@ -971,8 +971,8 @@ class Expression(BaseExpression):
             return result, True
         head, applied = self.head.apply_rules(rules, evaluation)
 
-        new_applied = [
-            applied]  # to be able to access it inside inner function
+        # to be able to access it inside inner function
+        new_applied = [applied]
 
         def apply_leaf(leaf):
             new, sub_applied = leaf.apply_rules(rules, evaluation)
@@ -1005,16 +1005,16 @@ class Expression(BaseExpression):
                 if self.leaves[0].get_name():
                     func_params = [self.leaves[0].get_name()]
                 else:
-                    func_params = [
-                        leaf.get_name() for leaf in self.leaves[0].leaves]
+                    func_params = [leaf.get_name()
+                                   for leaf in self.leaves[0].leaves]
                 if '' not in func_params:
                     body = self.leaves[1]
                     replacement = dict((name, Symbol(
                         name + '$')) for name in func_params)
                     func_params = [Symbol(name + '$') for name in func_params]
                     body = body.replace_vars(replacement, options, in_scoping)
-                    leaves = [Expression('List', *func_params)] + [
-                        body] + self.leaves[2:]
+                    leaves = [Expression('List', *func_params), body] + \
+                        self.leaves[2:]
 
         return Expression(
             self.head.replace_vars(
@@ -1232,8 +1232,8 @@ class Symbol(Atom):
         if pattern_sort:
             return super(Symbol, self).get_sort_key(True)
         else:
-            return [1 if self.is_numeric() else
-                    2, 2, Monomial({self.name: 1}), 0, self.name, 1]
+            return [1 if self.is_numeric() else 2,
+                    2, Monomial({self.name: 1}), 0, self.name, 1]
 
     def same(self, other):
         return isinstance(other, Symbol) and self.name == other.name
@@ -1456,8 +1456,8 @@ class Real(Number):
             if p is None:
                 digits = (''.join(re.findall('[0-9]+', value))).lstrip('0')
                 if digits == '':     # Handle weird Mathematica zero case
-                    p = max(prec(len(value.replace(
-                        '0.', ''))), machine_precision)
+                    p = max(prec(len(value.replace('0.', ''))),
+                            machine_precision)
                 else:
                     p = prec(len(digits.zfill(dps(machine_precision))))
         elif isinstance(value,
@@ -1652,12 +1652,9 @@ class Complex(Number):
 
 
 def encode_mathml(text):
-    text = text.replace('&', '&amp;').replace(
-        '<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
-    #.replace('\n', '&NewLine;')
-    text = text.replace(' ', '&nbsp;')
-    text = text.replace('\n', '<mspace linebreak="newline" />')
-    return text
+    text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    text = text.replace('"', '&quot;').replace(' ', '&nbsp;')
+    return text.replace('\n', '<mspace linebreak="newline" />')
 
 TEX_REPLACE = {
     '{': r'\{',
@@ -1847,5 +1844,5 @@ def get_default_value(name, evaluation, k=None, n=None):
 def print_parenthesizes(precedence, outer_precedence=None,
                         parenthesize_when_equal=False):
     return (outer_precedence is not None and (
-        outer_precedence > precedence or
-        (outer_precedence == precedence and parenthesize_when_equal)))
+        outer_precedence > precedence or (
+            outer_precedence == precedence and parenthesize_when_equal)))

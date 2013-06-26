@@ -56,8 +56,6 @@ class BaseRule(object):
         if return_list and max_list is not None and max_list <= 0:
             return []
 
-        # for vars, rest in self.pattern.match(expression, {}, evaluation,
-        # fully=fully):
         def yield_match(vars, rest):
             # print "Yield match %s" % vars
             if rest is None:
@@ -132,7 +130,7 @@ class BaseRule(object):
             # None is not equal to any rule
             return -1
         return cmp((self.system, self.pattern.get_sort_key(True)),
-                  (other.system, other.pattern.get_sort_key(True)))
+                   (other.system, other.pattern.get_sort_key(True)))
 
 
 class Rule(BaseRule):

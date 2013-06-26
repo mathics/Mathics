@@ -99,8 +99,7 @@ def to_output(text):
 def out_callback(out):
     print to_output(unicode(out))
 
-# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-
-# brackets-in-python/
+# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/       # nopep8
 
 
 def wait_for_line(input_string):
