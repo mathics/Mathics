@@ -19,7 +19,7 @@ u"""
 """
 
 from mathics.builtin import (algebra, arithmetic, assignment, attributes, 
-    calculus, combinatorial, comparison, control, datentime, diffeqns, 
+    calculus, combinatorial, comparison, compile, control, datentime, diffeqns,
     evaluation, exptrig, functional, graphics, graphics3d, inout, integer, 
     linalg, lists, logic, numbertheory, numeric, options, patterns, plot, 
     physchemdata, randomnumbers, recurrence, specialfunctions, scoping, strings,
@@ -30,10 +30,10 @@ from mathics.builtin.base import Builtin, SympyObject, BoxConstruct, Operator, P
 from mathics.settings import ENABLE_FILES_MODULE
 
 modules = [algebra, arithmetic, assignment, attributes, calculus, combinatorial,
-    comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory, 
-    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence, 
-    specialfunctions, scoping, strings, structure, system, tensors]
+    comparison, compile, control, datentime, diffeqns, evaluation, exptrig,
+    functional, graphics, graphics3d, inout, integer, linalg, lists, logic,
+    numbertheory, numeric, options, patterns, plot, physchemdata, randomnumbers,
+    recurrence, specialfunctions, scoping, strings, structure, system, tensors]
 
 if ENABLE_FILES_MODULE:
     from mathics.builtin import files, importexport
