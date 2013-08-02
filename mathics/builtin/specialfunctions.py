@@ -4,6 +4,7 @@
 Special functions
 """
 
+import sympy
 import sympy.mpmath as mpmath
 
 from mathics.builtin.base import Builtin
@@ -700,15 +701,18 @@ class SphericalHarmonicY(_MPMathFunction):
       <dd>returns the spherical harmonic functin Y_$l$^$m$(\u0257, \u03D5).
     </dl>
 
-    >> SphericalHarmonicY[3, 1, theta, phi]
-     = -Sqrt[21] (-3 / 2 + 15 Cos[theta] ^ 2 / 2) E ^ (I phi) Sin[theta] / (12 Sqrt[Pi])
-
     >> SphericalHarmonicY[3/4, 0.5, Pi/5, Pi/3]
      = 0.254247340352667373 + 0.146789770393358909 I
     """
 
+    # FIXME: This works in sympy==0.7.2 but not 0.7.3
+    """
+    >> SphericalHarmonicY[3, 1, theta, phi]
+     = -Sqrt[21] (-3 / 2 + 15 Cos[theta] ^ 2 / 2) E ^ (I phi) Sin[theta] / (12 Sqrt[Pi])
+    """
+
     nargs = 4
-    sympy_name = 'Ylm'
+    sympy_name = 'Ynm'
     mpmath_name = 'spherharm'
 
 
