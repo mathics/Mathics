@@ -19,7 +19,7 @@ u"""
 """
 
 import sympy
-import mpmath
+import sympy.mpmath as mpmath
 import re
 import operator
 try:

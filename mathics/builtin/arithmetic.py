@@ -8,8 +8,8 @@ Basic arithmetic functions, including complex number arithmetic.
 
 from __future__ import with_statement
 
-import mpmath
 import sympy
+import sympy.mpmath as mpmath
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, PostfixOperator, Test, SympyFunction, SympyConstant
 from mathics.core.expression import Expression, Number, Integer, Rational, Real, Symbol, Complex, String

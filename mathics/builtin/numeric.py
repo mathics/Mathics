@@ -8,8 +8,8 @@ Precision is not "guarded" through the evaluation process. Only integer precisio
 However, things like 'N[Pi, 100]' should work as expected.
 """
 
-import mpmath
 import sympy
+import sympy.mpmath as mpmath
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import dps, mpmath2sympy, prec, convert_base
