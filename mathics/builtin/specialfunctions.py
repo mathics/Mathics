@@ -4,7 +4,7 @@
 Special functions
 """
 
-import mpmath
+import sympy.mpmath as mpmath
 
 from mathics.builtin.base import Builtin
 from mathics.builtin.arithmetic import _MPMathFunction

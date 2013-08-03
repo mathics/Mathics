@@ -4,7 +4,7 @@ from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer, from_sympy
 
 import sympy
-import mpmath
+import sympy.mpmath as mpmath
 
 def sympy_factor(expr_sympy):
     try:

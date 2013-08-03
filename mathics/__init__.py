@@ -9,7 +9,7 @@ def get_version():
     version = {}
     
     import sympy
-    import mpmath
+    import sympy.mpmath as mpmath
     
     from django.core.exceptions import ImproperlyConfigured
     
