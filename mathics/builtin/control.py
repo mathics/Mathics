@@ -181,7 +181,7 @@ class Which(Builtin):
             evaluation.message('Which', 'argct', 'Which', len(items))
             return
         for test, item in zip(items[::2], items[1::2]):
-            if test.evaluate(evaluation) == Symbol('True'):
+            if test.evaluate(evaluation).is_true():
                 return item.evaluate(evaluation)
         return Symbol('Null')
         
@@ -255,7 +255,7 @@ class For(Builtin):
     def apply(self, start, test, incr, body, evaluation):
         'For[start_, test_, incr_, body_]'
         
-        while test.evaluate(evaluation) == Symbol('True'):
+        while test.evaluate(evaluation).is_true():
             evaluation.check_stopped()
             try:
                 try:
@@ -293,7 +293,7 @@ class While(Builtin):
     def apply(self, test, body, evaluation):
         'While[test_, body_]'
         
-        while test.evaluate(evaluation) == Symbol('True'):
+        while test.evaluate(evaluation).is_true():
             try:
                 evaluation.check_stopped()
                 body.evaluate(evaluation)
@@ -395,7 +395,7 @@ class NestWhile(Builtin):
                 test_leaves = results[-m.value:]
             test_expr = Expression(test, *test_leaves)
             test_result = test_expr.evaluate(evaluation)
-            if test_result == Symbol('True'):
+            if test_result.is_true():
                 next = Expression(f, results[-1])
                 results.append(next.evaluate(evaluation))
             else:

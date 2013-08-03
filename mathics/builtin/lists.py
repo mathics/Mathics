@@ -457,7 +457,7 @@ class Level(Builtin):
             result.append(level)
             return level
         
-        heads = self.get_option(options, 'Heads', evaluation) == Symbol('True')
+        heads = self.get_option(options, 'Heads', evaluation).is_true()
         walk_levels(expr, start, stop, heads=heads, callback=callback)
         return Expression('List', *result)
     
@@ -982,7 +982,7 @@ class Select(Builtin):
         new_leaves = []
         for leaf in list.leaves:
             test = Expression(expr, leaf)
-            if test.evaluate(evaluation) == Symbol('True'):
+            if test.evaluate(evaluation).is_true():
                 new_leaves.append(leaf)
         return Expression(list.head, *new_leaves)
 
@@ -1011,6 +1011,9 @@ class Split(Builtin):
     Split based on first element
     >> Split[{x -> a, x -> y, 2 -> a, z -> c, z -> a}, First[#1] === First[#2] &]
      = {{x -> a, x -> y}, {2 -> a}, {z -> c, z -> a}}
+
+    #> Split[{}]
+     = {}
     """
 
     rules = {
@@ -1029,14 +1032,17 @@ class Split(Builtin):
         if mlist.is_atom():
             evaluation.message('Select', 'normal', 1, expr)
             return
-
-        result = [[mlist.leaves[0]]]
-        for leaf in mlist.leaves[1:]:
-            applytest = Expression(test, result[-1][-1], leaf)
-            if applytest.evaluate(evaluation) == Symbol('True'):
-                result[-1].append(leaf)
-            else:
-                result.append([leaf])
+ 
+        if len(mlist.leaves) == 0:
+            result = []
+        else:
+            result = [[mlist.leaves[0]]]
+            for leaf in mlist.leaves[1:]:
+                applytest = Expression(test, result[-1][-1], leaf)
+                if applytest.evaluate(evaluation).is_true():
+                    result[-1].append(leaf)
+                else:
+                    result.append([leaf])
 
         return Expression(mlist.head, *[Expression('List', *l) for l in result])
 
@@ -1208,7 +1214,7 @@ class _IterationFunction(Builtin):
             cont = Expression('LessEqual', index, imax).evaluate(evaluation)
             if cont == Symbol('False'):
                 break
-            if cont != Symbol('True'):
+            if not cont.is_true():
                 if self.throw_iterb:
                     evaluation.message(self.get_name(), 'iterb')
                 return
@@ -1667,3 +1673,55 @@ class Riffle(Builtin):
             return Expression('List', *riffle_lists(list.get_leaves(), sep.leaves))
         else:
             return Expression('List', *riffle_lists(list.get_leaves(), [sep]))
+
+class DeleteDuplicates(Builtin):
+    """
+    <dl>
+    <dt>'DeleteDuplicates[$list$]'
+      <dd>deletes duplicates from $list$.
+    <dt>'DeleteDuplicates[$list$, $test$]'
+      <dd>deletes elements from $list$ based on whether the function $test$ yields 'True' on pairs of elements.
+    </dl>
+
+    >> DeleteDuplicates[{1, 7, 8, 4, 3, 4, 1, 9, 9, 2, 1}]
+     = {1, 7, 8, 4, 3, 9, 2}
+
+    >> DeleteDuplicates[{3,2,1,2,3,4}, Less]
+     = {3, 2, 1}
+
+    #> DeleteDuplicates[{3,2,1,2,3,4}, Greater]
+     = {3, 3, 4}
+
+    #> DeleteDuplicates[{}]
+     = {}
+    """
+
+    rules = {
+        'DeleteDuplicates[list_]': 'DeleteDuplicates[list, SameQ]',
+    }
+
+    messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
+    }
+
+    def apply(self, mlist, test, evaluation):
+        'DeleteDuplicates[mlist_, test_]'
+
+        expr = Expression('DeleteDuplicates', mlist, test)
+
+        if mlist.is_atom():
+            evaluation.message('Select', 'normal', 1, expr)
+            return
+
+        result = []
+        for leaf in mlist.leaves:
+            matched = False
+            for res in result:
+                applytest = Expression(test, res, leaf)
+                if applytest.evaluate(evaluation).is_true():
+                    matched = True
+                    break
+            if not matched:
+                result.append(leaf)
+
+        return Expression(mlist.head, *result)
