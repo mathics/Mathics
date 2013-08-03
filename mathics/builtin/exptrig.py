@@ -54,7 +54,7 @@ class E(SympyConstant):
     >> N[E]
      = 2.71828182845904524
     >> N[E, 50]
-     = 2.7182818284590452353602874713526624977572470937
+     = 2.7182818284590452353602874713526624977572470937000
      
     >> Attributes[E]
      = {Constant, Protected, ReadProtected}
@@ -633,7 +633,7 @@ class ArcCosh(_MPMathFunction):
     >> ArcCosh[0.]
      = 0. + 1.57079632679489662 I
     >> ArcCosh[0.00000000000000000000000000000000000000]
-     = 0. + 1.5707963267948966191479842624545426588 I
+     = 0.*^-38 + 1.5707963267948966192313216916397514421 I
 
     #> ArcCosh[1.4]
      = 0.867014726490565104
@@ -643,7 +643,6 @@ class ArcCosh(_MPMathFunction):
     mpmath_name = 'acosh'
     
     rules = {
-        'ArcCosh[z:0.0]': 'N[I / 2 Pi, Precision[1+z]]',
         'Derivative[1][ArcCosh]': '1/(Sqrt[#-1]*Sqrt[#+1])&',
     }
     
@@ -738,8 +737,8 @@ class ArcCoth(_MPMathFunction):
      = I / 2 Pi
     >> ArcCoth[1]
      = Infinity
-    >> ArcCoth[0.0]
-     = 0. + 1.57079632679489662 I
+    #> ArcCoth[0.0]
+     = ArcCoth[0.]
     >> ArcCoth[0.5]
      = 0.549306144334054846 - 1.57079632679489662 I
     """
@@ -748,6 +747,5 @@ class ArcCoth(_MPMathFunction):
     mpmath_name = 'acoth'
     
     rules = {
-        'ArcCoth[z:0.0]': 'N[I / 2 Pi, Precision[1+z]]',
         'Derivative[1][ArcCoth]': '1/(1-#^2)&',
     }

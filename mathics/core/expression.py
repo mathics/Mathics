@@ -1264,7 +1264,7 @@ class Integer(Number):
         return self
     
     def round(self, precision):
-        return Real(sympy.Float(self.value, dps(precision)))
+        return Real(self.value, precision)
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1348,32 +1348,34 @@ class Real(Number):
         from mathics.builtin.numeric import machine_precision
         super(Real, self).__init__()
 
-        if isinstance(value, basestring):
-            value = str(value)
-            if p is None:
-                digits = (''.join(re.findall('[0-9]+', value))).lstrip('0')
-                if digits == '':     # Handle weird Mathematica zero case
-                    p = max(prec(len(value.replace('0.', ''))), machine_precision)
-                else:
-                    p = prec(len(digits.zfill(dps(machine_precision))))
-        elif isinstance(value, (Integer, sympy.Float, mpmath.mpf, float, int, sympy.Integer)):
+        if isinstance(value, (basestring, float, int, long, Integer, Real,
+                              sympy.Float, sympy.Integer, mpmath.mpf)):
             value = str(value)
         else:
-            raise TypeError('Unknown number type: %s (type %s)' % (value, type(value)))
+            raise TypeError('Unknown number type: %s (type %s)' % (
+                value, type(value)))
+
         if p is None:
-            p = machine_precision
+            if isinstance(value, basestring):
+                digits = (''.join(re.findall('[0-9]+', value)[:2])).lstrip('0')
+                if digits == '':     # Handle weird Mathematica zero case
+                    p = prec(len(value.replace('0.', '')))
+                    if machine_precision >= p:
+                        p = machine_precision
+                else:
+                    p = prec(len(digits.zfill(dps(machine_precision))))
+                    
+            else:
+                p = machine_precision
 
         self.value = sympy.Float(value, dps(p))
-        self.prec = p
 
     def __getstate__(self):
-        p = self.prec
         s = self.value
-        return {'value': s, 'prec': p}
+        return {'value': s}
     
     def __setstate__(self, dict):
         #TODO: Check this
-        self.prec = dict['prec']
         self.value = dict['value']
         
     def boxes_to_text(self, **options):
@@ -1388,10 +1390,10 @@ class Real(Number):
     def make_boxes(self, form):
         from mathics.builtin.numeric import machine_precision
         if self.to_sympy() == sympy.Float('0.0'):
-            if self.prec == machine_precision:
+            if 0 <= (machine_precision - self.value._prec) <= 1:
                 base, exp = ('0.', '0')
             else:
-                base, exp = ('0.', '-' + str(dps(self.prec)))
+                base, exp = ('0.', '-' + str(dps(self.value._prec)))
         else:
             s = str(self.to_sympy())
             if 'e' in s:
@@ -1410,7 +1412,9 @@ class Real(Number):
                     base = s[0] + '.' + s[1:]
                     base = prefix + base.lstrip('0')
                     exp = str(iexp)
-            base, exp = base.rstrip('0'), exp.lstrip('+')
+            exp = exp.lstrip('+')
+            if 0 <= (machine_precision - self.value._prec) <= 1:
+                base = base.rstrip('0')
         if exp != '0':
             if form in ('InputForm', 'OutputForm', 'FullForm'):
                 return Expression('RowBox', Expression('List', base, String('*^'), String(exp)))
@@ -1437,7 +1441,7 @@ class Real(Number):
         return Real(self.to_sympy().n(dps(precision)), precision)
     
     def get_precision(self):
-        return self.prec
+        return self.value._prec
     
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1448,7 +1452,7 @@ class Real(Number):
         return float(self.value)
     
     def do_copy(self):
-        return Real(self.value, self.prec)
+        return Real(self.value)
     
 class Complex(Number):
     def __init__(self, real, imag, p=None, **kwargs):
@@ -1485,7 +1489,6 @@ class Complex(Number):
 
         self.sympy = self.real.to_sympy() + sympy.I * self.imag.to_sympy()
         self.value = (self.real, self.imag)
-        self.prec = p
         
     def to_sympy(self, **kwargs):
         return self.sympy
@@ -1532,7 +1535,7 @@ class Complex(Number):
         return Complex(real, imag, precision)
     
     def get_precision(self):
-        return self.prec
+        return min_prec(self.real, self.imag)
     
     def do_copy(self):
         return Complex(self.real.do_copy(), self.imag.do_copy())

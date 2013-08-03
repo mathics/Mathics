@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PostfixOperator, PrefixOperator
-from mathics.core.expression import Expression, Symbol, String
+from mathics.core.expression import Expression, Symbol, String, Integer
 from mathics.core.rules import Rule
 from mathics.builtin.lists import walk_parts
 from mathics.builtin.evaluation import set_recursionlimit
@@ -171,7 +171,40 @@ class _SetOperator(object):
             # (but consider pickle's insecurity!)
             evaluation.message('$RandomState', 'rndst', rhs)
             return False
-            
+        elif lhs_name == '$MinPrecision':
+            if rhs.same(Expression('DirectedInfinity', Integer(1))):
+                pass
+            elif rhs.is_numeric() and rhs.to_sympy() >= 0:
+                pass
+            else:
+                evaluation.message('$MinPrecision', 'precset', '$MinPrecision', rhs)
+                return False
+            if Expression('Less', Symbol('$MaxPrecision'), rhs).evaluate(evaluation).is_true():
+                evaluation.message('$MinPrecision', 'preccon', '$MinPrecision')
+                return False
+            ignore_protection = True
+        elif lhs_name == '$MaxPrecision':
+            if rhs.same(Expression('DirectedInfinity', Integer(1))):
+                pass
+            elif rhs.is_numeric() and rhs.to_sympy() > 0:
+                pass
+            else:
+                evaluation.message('$MaxPrecision', 'precset', '$MaxPrecision', rhs)
+                return False
+            if Expression('Less', rhs, Symbol('$MinPrecision')).evaluate(evaluation).is_true():
+                evaluation.message('$MaxPrecision', 'preccon', '$MaxPrecision')
+                return False
+            ignore_protection = True
+        elif lhs_name == '$MaxExtraPrecision':
+            if rhs.same(Expression('DirectedInfinity', Integer(1))):
+                pass
+            elif rhs.is_numeric() and rhs.to_sympy() >= 0:
+                pass
+            else:
+                evaluation.message('$MaxExtraPrecision', 'precset', '$MaxExtraPrecision', rhs)
+                return False
+            ignore_protection = True
+
         rhs_name = rhs.get_head_name()
         if rhs_name == 'Condition':
             if len(rhs.leaves) != 2:

@@ -11,7 +11,7 @@ However, things like 'N[Pi, 100]' should work as expected.
 import mpmath
 import sympy
 
-from mathics.builtin.base import Builtin, Predefined
+from mathics.builtin.base import Builtin, Predefined, SympyConstant
 from mathics.core.numbers import dps, mpmath2sympy, prec, convert_base
 from mathics.core import numbers
 from mathics.core.expression import (Integer, Rational, Real, Complex, Atom,
@@ -25,7 +25,19 @@ def get_precision(precision, evaluation):
     if precision.get_name() == 'MachinePrecision':
         return machine_precision
     elif isinstance(precision, (Integer, Rational, Real)):
-        return prec(float(precision.to_sympy()))
+        sym_precision = precision.to_sympy()
+        min_precision = evaluation.get_config_value('$MinPrecision')
+        max_precision = evaluation.get_config_value('$MaxPrecision')
+
+        if min_precision is not None and min_precision > sym_precision:
+            evaluation.message('N', 'precsm', precision)
+            sym_precision = min_precision
+
+        elif max_precision is not None and max_precision < sym_precision:
+            evaluation.message('N', 'preclg', precision, float(max_precision))
+            sym_precision = max_precision
+
+        return prec(float(sym_precision))
     else:
         evaluation.message('N', 'precbd', precision)
         return None
@@ -59,7 +71,7 @@ class N(Builtin):
      = a
     >> N[a, 20] = 11;
     >> N[a + b, 20]
-     = 11. + b
+     = 11.000000000000000000 + b
     >> N[f[a, b]]
      = f[10.9, b]
     >> SetAttributes[f, NHoldAll]
@@ -71,7 +83,7 @@ class N(Builtin):
     >> N[c, 3]
      = c
     >> N[c, 11]
-     = 11.
+     = 11.000000000
      
     You can also use 'UpSet' or 'TagSet' to specify values for 'N':
     >> N[d] ^= 5;
@@ -95,15 +107,88 @@ class N(Builtin):
      = g[1., 1]
     >> N[g[2, 2]]
      = 8.28318530717958648
+
+    ## Atoms
+    #> N[5, 25]
+     = 5.000000000000000000000000
+    #> N[5/2, 25]
+     = 2.500000000000000000000000
+    #> N[3 + I, 25]
+     = 3.000000000000000000000000 + 1.000000000000000000000000 I
+    #> N[3/2 + I, 25]
+     = 1.500000000000000000000000 + 1.000000000000000000000000 I
+    #> N[3.5, 25]
+     = 3.500000000000000000000000
      
-    #> p=N[Pi,100]
+    ## Mathemaitcal Constants
+    #> p = N[Pi,100]
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
     #> ToString[p]
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
+
+    ## Elementary Functions
+    #> N[Cos[1/2], 100]
+     = 0.8775825618903727161162815826038296519916451971097440529976108683159507632742139474057941840846822584
+    #> N[ArcTan[3/2], 50]
+     = 0.98279372324732906798571061101466601449687745363163
+    #> N[ArcSin[3], 30]
+     = 1.57079632679489661923132169164 - 1.76274717403908605046521864996 I
+
+    ## Special Function
+    #> N[Zeta[3], 50]
+     = 1.2020569031595942853997381615114499907649862923405
+    #> N[Erf[3/2], 30]
+     = 0.966105146475310727066976261646
+    #> N[ProductLog[5/2], 25]
+     = 0.9585863567287029121698668
+
+    ## Big Numbers
+    #> N[500!]
+     = 1.22013682599111007*^1134
+    #> N[500!, 25]
+     = 1.220136825991110068701239*^1134
+    """
+
+    # TODO
+    """
+    #> N[Cos[Exp[Sqrt[3]] - BesselY[4, 1]], 34]
+     = 0.3327813156758121757179731972059867
+    """
+
+    # TODO: Fix MachinePrecision Numbers
+    """
+    #> N[1, 10]
+     = 1.000000000
+    #> Precision[%]
+     = 10.
+    #> N[1]
+     = 1.
+    #> Precision[%]
+     = MachinePrecision
+    #> N[1, $MachinePrecision]
+     = 1.00000000000000000
+    """
+
+    # XXX: Don't affect "exact numeric powers" - buggy in MMA8
+    """
+    #> N[x ^ (5 / 2)]
+     = x ^ (5 / 2)
+
+    #> N[x ^ Pi]
+     = x ^ Pi
+
+    #> N[(5 / 2) ^ x]
+     = 2.5 ^ x
     """
     
     messages = {
         'precbd': "Requested precision `1` is not a machine-sized real number.",
+        'preclg': ("Requested precision `1` is larger than $MaxPrecision. "
+                   "Using current $MaxPrecision of `2` instead. "
+                   "$MaxPrecision = Infinity specifies that any precision "
+                   "should be allowed."),
+        'precsm': ("Requested precision `1` is smaller than $MinPrecision. "
+                   "Using $MinPrecision instead.")
     }
     
     rules = {
@@ -150,16 +235,24 @@ class N(Builtin):
                     leaves[index] = Expression('N', leaves[index], prec).evaluate(evaluation)
                 return Expression(head, *leaves)
     
-class MachinePrecision(Predefined):
+class MachinePrecision(SympyConstant):
     """
     <dl>
     <dt>'MachinePrecision'
-        <dd>is a "pessimistic" (integer) estimation of the internally used standard precision.
+        <dd>is a symbol used to represent the internally used standard precision.
     </dl>
     >> N[MachinePrecision]
      = 18.
+
+    #> MachinePrecision
+     = MachinePrecision
+
+    #> Attributes[MachinePrecision]
+     = {Constant, Protected}
     """
-    
+
+    attributes = ('Constant', 'Protected')
+
     def apply_N(self, prec, evaluation):
         'N[MachinePrecision, prec_]'
         
@@ -167,6 +260,198 @@ class MachinePrecision(Predefined):
         if prec is not None:
             return Real(dps(machine_precision), prec)
     
+class MachinePrecision_Symbol(Predefined):
+    """
+    <dl>
+    <dt>'$MachinePrecision'
+        <dd>is a "pessimistic" (integer) estimation of the internally used standard precision.
+    </dl>
+
+    >> $MachinePrecision
+     = 18.
+
+    #> Attributes[$MachinePrecision]
+     = {Protected}
+    """
+
+    # TODO
+    """
+    #> Precision[$MachinePrecision]
+     = MachinePrecision
+    """
+
+    name = '$MachinePrecision'
+
+    attributes = ('Protected',)
+
+    def evaluate(self, evaluation):
+        prec = get_precision(Symbol('MachinePrecision'), evaluation)
+        if prec is not None:
+            return Real(dps(machine_precision), prec)
+
+
+class MinPrecision(Predefined):
+    """
+    <dl>
+    <dt>'$MinPrecision'
+        <dd>is the minimum number of digits of precision allowed in arbitrary-precision numbers.
+    </dl>
+
+    >> $MinPrecision
+     = 0
+
+    #> Block[{$MinPrecision = 50}, N[Pi, 25]]
+     : Requested precision 25 is smaller than $MinPrecision. Using $MinPrecision instead.
+     = 3.1415926535897932384626433832795028841971693993751
+
+    #> $MinPrecision = -5
+     : Cannot set $MinPrecision to -5; value must be a non-negative number or Infinity.
+     = -5
+    #> $MinPrecision
+     = 0
+    #> $MinPrecison = 4
+     = 4
+    #> $MinPrecision = 10.4
+     = 10.4
+    #> $MinPrecision = 10/3
+     = 10 / 3
+    #> $MinPrecision = Infinity
+     = Infinity
+
+    #> $MinPrecision = 0; $MaxPrecision = 10;
+
+    #> $MinPrecision = 15
+     : Cannot set $MinPrecision such that $MaxPrecision < $MinPrecision.
+     = 15
+    #> $MinPrecision = 10
+     = 10
+    #> $MinPrecision = 5
+     = 5
+
+    #> $MaxPrecision = Infinity; $MinPrecision = 0;
+    """
+
+    name = '$MinPrecision'
+
+    messages = {
+        'preccon': "Cannot set `1` such that $MaxPrecision < $MinPrecision.",
+        'precset': ("Cannot set `1` to `2`; value must be a non-negative "
+                    "number or Infinity."),
+    }
+
+    rules = {
+        '$MinPrecision': '0',
+    }
+
+    attributes = ()
+
+    #def evaluate(self, evaluation):
+    #    return MIN_PRECISION
+
+
+class MaxPrecision(Predefined):
+    """
+    <dl>
+    <dt>'$MaxPrecision'
+        <dd>is the number of digits of precision allowed in arbitrary-precision numbers.
+    </dl>
+
+    >> $MaxPrecision
+     = Infinity
+
+    #> Block[{$MaxPrecision = 50}, N[Pi, 100]]
+     : Requested precision 100 is larger than $MaxPrecision. Using current $MaxPrecision of 50. instead. $MaxPrecision = Infinity specifies that any precision should be allowed.
+     = 3.1415926535897932384626433832795028841971693993751
+
+    #> $MaxPrecision = 0
+     : Cannot set $MaxPrecision to 0; value must be a positive number or Infinity.
+     = 0
+    #> $MaxPrecision = -5
+     : Cannot set $MaxPrecision to -5; value must be a positive number or Infinity.
+     = -5
+    #> $MaxPrecision
+     = Infinity
+    #> $MaxPrecison = 4
+     = 4
+    #> $MaxPrecision = 10.4
+     = 10.4
+    #> $MaxPrecision = 10/3
+     = 10 / 3
+
+    #> $MaxPrecision = Infinity; $MinPrecision = 10;
+    #> $MaxPrecision = 15
+     = 15
+    #> $MaxPrecision = 10
+     = 10
+    #> $MaxPrecision = 5
+     : Cannot set $MaxPrecision such that $MaxPrecision < $MinPrecision.
+     = 5
+
+    #> $MaxPrecision = Infinity; $MinPrecision = 0;
+    """
+
+    name = '$MaxPrecision'
+
+    messages = {
+        'preccon': "Cannot set `1` such that $MaxPrecision < $MinPrecision.",
+        'precset': ("Cannot set `1` to `2`; value must be a positive number "
+                    "or Infinity."),
+    }
+
+    attributes = ()
+
+    rules = {
+        '$MaxPrecision': 'Infinity',
+    }
+
+
+class MaxExtraPrecision(Predefined):
+    """
+    <dl>
+    <dt>'$MaxExtraPrecision'
+        <dd>is the maximum of extra digits used in numerical calculations.
+    </dl>
+
+    >> $MaxExtraPrecision
+     = 50.
+
+    ## >> N[Cos[Exp[500]], 20]
+    ##  Internal precision limit $MaxExtraPrecision = 50. reached while evaluating Cos[Exp[500]].
+    ##  = 0.
+
+    ## >> Block[{$MaxExtraPrecision = 1000}, N[Cos[Exp[500]], 20]]
+    ##  = 0.88536064016933422109
+
+    #> $MaxExtraPrecision = -1
+     : Cannot set $MaxExtraPrecision to -1; value must be a non-negative number or Infinity.
+     = -1
+
+    #> $MaxExtraPrecision = x
+     : Cannot set $MaxExtraPrecision to x; value must be a non-negative number or Infinity.
+     = x
+
+    #> $MaxExtraPrecision = 0
+     = 0
+    #> MaxExtraPrecision = 11/3
+     = 11 / 3
+    #> MaxRxtraPrecision = 50.
+     = 50.
+    """
+
+    name = '$MaxExtraPrecision'
+
+    messages = {
+        'precset': ("Cannot set `1` to `2`; value must be a non-negative "
+                    "number or Infinity."),
+    }
+
+    attributes = ()
+
+    rules = {
+        '$MaxExtraPrecision': '50.',
+    }
+
+
 class Precision(Builtin):
     """
     <dl>
