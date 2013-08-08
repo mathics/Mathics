@@ -1085,7 +1085,7 @@ class Split(Builtin):
         if mlist.is_atom():
             evaluation.message('Select', 'normal', 1, expr)
             return
- 
+
         if len(mlist.leaves) == 0:
             result = []
         else:
@@ -1757,6 +1757,7 @@ class Riffle(Builtin):
                               *riffle_lists(list.get_leaves(), sep.leaves))
         else:
             return Expression('List', *riffle_lists(list.get_leaves(), [sep]))
+
 
 class DeleteDuplicates(Builtin):
     """
