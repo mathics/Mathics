@@ -11,12 +11,18 @@ from __future__ import with_statement
 import sympy
 import sympy.mpmath as mpmath
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator, PostfixOperator, Test, SympyFunction, SympyConstant
-from mathics.core.expression import Expression, Number, Integer, Rational, Real, Symbol, Complex, String
-from mathics.core.numbers import get_type, mul, add, sympy2mpmath, mpmath2sympy, SpecialValueError
+from mathics.builtin.base import (
+    Builtin, Predefined, BinaryOperator, PrefixOperator, PostfixOperator, Test,
+    SympyFunction, SympyConstant)
+
+from mathics.core.expression import (Expression, Number, Integer, Rational,
+                                     Real, Symbol, Complex, String)
+from mathics.core.numbers import (
+    add, min_prec, dps, sympy2mpmath, mpmath2sympy, SpecialValueError)
+
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
-from mathics.core.numbers import sympy2mpmath, mpmath2sympy, min_prec, dps
+
 
 class _MPMathFunction(SympyFunction):
 
@@ -29,7 +35,7 @@ class _MPMathFunction(SympyFunction):
     def eval(self, *args):
         if self.mpmath_name is None:
             return None
-        
+
         mpmath_function = getattr(mpmath, self.mpmath_name)
         return mpmath_function(*args)
 
@@ -42,7 +48,8 @@ class _MPMathFunction(SympyFunction):
             return
 
         # if no arguments are inexact attempt to use sympy
-        if len([True for x in args if Expression('InexactNumberQ', x).evaluate(evaluation).is_true()]) == 0:
+        if sum([Expression('InexactNumberQ', x).evaluate(evaluation).is_true()
+                for x in args]) == 0:
             expr = Expression(self.get_name(), *args).to_sympy()
             result = from_sympy(expr)
             # evaluate leaves to convert e.g. Plus[2, I] -> Complex[2, 1]
@@ -69,6 +76,7 @@ class _MPMathFunction(SympyFunction):
 
         return result
 
+
 class Plus(BinaryOperator, SympyFunction):
     """
     <dl>
@@ -76,26 +84,26 @@ class Plus(BinaryOperator, SympyFunction):
     <dt>$a$ + $b$ + ...</dt>
         <dd>represents the sum of the terms $a$, $b$, ...
     </dl>
-    
+
     >> 1 + 2
      = 3
-     
+
     'Plus' performs basic simplification of terms:
-     
+
     >> a + b + a
      = 2 a + b
     >> a + a + 3 * a
      = 5 a
     >> a + b + 4.5 + a + b + a + 2 + 1.5 b
      = 6.5 + 3. a + 3.5 b
-     
+
     Apply 'Plus' on a list to sum up its elements:
     >> Plus @@ {2, 4, 6}
      = 12
     The sum of the first 1000 integers:
     >> Plus @@ Range[1000]
      = 500500
-     
+
     'Plus' has default value 0:
     >> DefaultValues[Plus]
      = {HoldPattern[Default[Plus]] :> 0}
@@ -105,7 +113,7 @@ class Plus(BinaryOperator, SympyFunction):
     The sum of 2 red circles and 3 red circles is...
     >> 2 Graphics[{Red,Disk[]}] + 3 Graphics[{Red,Disk[]}]
      = 5 -Graphics-
-     
+
     #> -2a - 2b
      = -2 a - 2 b
     #> -4+2x+2*Sqrt[3]
@@ -114,38 +122,39 @@ class Plus(BinaryOperator, SympyFunction):
      = 2 a - 3 b - c
     #> 2a+5d-3b-2c-e
      = 2 a - 3 b - 2 c + 5 d - e
-     
+
     #> 1 - I * Sqrt[3]
      = 1 - I Sqrt[3]
 
     #> Head[3 + 2 I]
      = Complex
     """
-    
+
     operator = '+'
     precedence = 310
-    attributes = ('Flat', 'Listable', 'NumericFunction', 'OneIdentity', 'Orderless', 'Protected')
-    
+    attributes = ('Flat', 'Listable', 'NumericFunction',
+                  'OneIdentity', 'Orderless', 'Protected')
+
     default_formats = False
-    
+
     defaults = {
         None: '0',
     }
-    
+
     sympy_name = 'Add'
-    
+
     def format_plus(self, items, evaluation):
         'Plus[items__]'
-        
+
         def negate(item):
             if item.has_form('Times', 1, None):
-                if isinstance(item.leaves[0], (Integer, Rational, Real, Complex)):
+                if isinstance(item.leaves[0], Number):
                     neg = Number.from_mp(-item.leaves[0].to_sympy())
                     if neg.same(Integer(1)):
                         if len(item.leaves) == 1:
                             return neg
                         else:
-                            return Expression ('Times', *item.leaves[1:])
+                            return Expression('Times', *item.leaves[1:])
                     else:
                         return Expression('Times', neg, *item.leaves[1:])
                 else:
@@ -154,32 +163,34 @@ class Plus(BinaryOperator, SympyFunction):
                 return Number.from_mp(-item.to_sympy())
             else:
                 return Expression('Times', -1, item)
-            
+
         def is_negative(value):
-            if isinstance(value, (Integer, Rational, Real)) and value.to_sympy() < 0:
-                return True
             if isinstance(value, Complex):
                 real, imag = value.to_sympy().as_real_imag()
                 if real <= 0 and imag <= 0:
                     return True
+            elif isinstance(value, Number) and value.to_sympy() < 0:
+                return True
             return False
-        
+
         items = items.get_sequence()
         values = [Expression('HoldForm', item) for item in items[:1]]
         ops = []
         for item in items[1:]:
-            if (item.has_form('Times', 1, None) and is_negative(item.leaves[0])) or is_negative(item):
+            if (item.has_form('Times', 1, None)     # noqa
+                and is_negative(item.leaves[0])) or is_negative(item):
                 item = negate(item)
                 op = "-"
             else:
                 op = "+"
             values.append(Expression('HoldForm', item))
             ops.append(String(op))
-        return Expression('Infix', Expression('List', *values), Expression('List', *ops), 310, Symbol('Left'))
-            
+        return Expression('Infix', Expression('List', *values),
+                          Expression('List', *ops), 310, Symbol('Left'))
+
     def apply(self, items, evaluation):
         'Plus[items___]'
-        
+
         items = items.numerify(evaluation).get_sequence()
         leaves = []
         last_item = last_count = None
@@ -190,8 +201,10 @@ class Plus(BinaryOperator, SympyFunction):
         if prec is None:
             number = (sympy.Integer(0), sympy.Integer(0))
         else:
-            number = (sympy.Float('0.0', dps(prec)), sympy.Float('0.0', dps(prec)))
-        
+            number = (
+                sympy.Float('0.0', dps(prec)),
+                sympy.Float('0.0', dps(prec)))
+
         def append_last():
             if last_item is not None:
                 if last_count == 1:
@@ -201,13 +214,15 @@ class Plus(BinaryOperator, SympyFunction):
                         last_item.leaves.insert(0, Number.from_mp(last_count))
                         leaves.append(last_item)
                     else:
-                        leaves.append(Expression('Times', Number.from_mp(last_count), last_item))
-        
+                        leaves.append(Expression(
+                            'Times', Number.from_mp(last_count), last_item))
+
         for item in items:
             if isinstance(item, Number):
-                #TODO: Optimise this for the case of adding many real numbers
+                # TODO: Optimise this for the case of adding many real numbers
                 if isinstance(item, Complex):
-                    sym_real, sym_imag = item.real.to_sympy(), item.imag.to_sympy()
+                    sym_real, sym_imag = item.real.to_sympy(
+                    ), item.imag.to_sympy()
                 else:
                     sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
 
@@ -254,7 +269,8 @@ class Plus(BinaryOperator, SympyFunction):
         else:
             leaves.sort()
             return Expression('Plus', *leaves)
-        
+
+
 class Subtract(BinaryOperator):
     """
     <dl>
@@ -272,16 +288,17 @@ class Subtract(BinaryOperator):
     >> a - (b - c)
      = a - b + c
     """
-    
+
     operator = '-'
     precedence_parse = 311
     precedence = 310
     attributes = ('Listable', 'NumericFunction')
     grouping = 'Left'
-    
+
     rules = {
         'Subtract[x_, y_]': 'Plus[x, Times[-1, y]]',
     }
+
 
 class Minus(PrefixOperator):
     """
@@ -301,62 +318,70 @@ class Minus(PrefixOperator):
     >> -Range[10]
     = {-1, -2, -3, -4, -5, -6, -7, -8, -9, -10}
     """
-    
+
     operator = '-'
     precedence = 480
     attributes = ('Listable', 'NumericFunction')
-    
+
     rules = {
         'Minus[x_]': 'Times[-1, x]',
     }
-    
+
     formats = {
         'Minus[x_]': 'Prefix[{HoldForm[x]}, "-", 480]',
-        'Minus[expr_Divide]': 'Prefix[{HoldForm[expr]}, "-", 399]',  # don't put e.g. -2/3 in parentheses
-        'Minus[Infix[expr_, op_, 400, grouping_]]': 'Prefix[{Infix[expr, op, 400, grouping]}, "-", 399]',
+        # don't put e.g. -2/3 in parentheses
+        'Minus[expr_Divide]': 'Prefix[{HoldForm[expr]}, "-", 399]',
+        'Minus[Infix[expr_, op_, 400, grouping_]]': (
+            'Prefix[{Infix[expr, op, 400, grouping]}, "-", 399]'),
     }
-    
+
     def apply_int(self, x, evaluation):
         'Minus[x_Integer]'
-        
+
         return Integer(-x.to_sympy())
-    
+
     def post_parse(self, expression):
-        if expression.get_head().get_name() == 'Minus' and len(expression.leaves) == 1 and isinstance(expression.leaves[0], Number):
+        if (expression.get_head().get_name() == 'Minus'    # noqa
+            and len(expression.leaves) == 1
+            and isinstance(expression.leaves[0], Number)):
             return Number.from_mp(-expression.leaves[0].to_sympy())
         else:
             return super(Minus, self).post_parse(expression)
-    
+
+
 class PrePlus(PrefixOperator):
     """
     Hack to help the parser distinguish between binary and unary Plus.
 
     >> +a //FullForm
      = a
-    
+
     #> +(x - 2/3 + y)
      = -2 / 3 + x + y
 
     #> +Infinity
      = Infinity
     """
-    
+
     operator = '+'
     precedence = 480
     attributes = ('Listable', 'NumericFunction')
-    
+
     def apply_int(self, x, evaluation):
         'PrePlus[x_]'
         return x
-    
+
     def post_parse(self, expression):
         return expression.leaves[0]
-    
+
+
 def create_infix(items, operator, prec, grouping):
     if len(items) == 1:
         return items[0]
     else:
-        return Expression('Infix', Expression('List', *items), String(operator), prec, Symbol(grouping))        
+        return Expression('Infix', Expression('List', *items),
+                          String(operator), prec, Symbol(grouping))
+
 
 class Times(BinaryOperator, SympyFunction):
     """
@@ -380,13 +405,13 @@ class Times(BinaryOperator, SympyFunction):
      = 24
     >> IntegerLength[Times@@Range[5000]]
      = 16326
-     
+
     'Times' has default value 1:
     >> DefaultValues[Times]
      = {HoldPattern[Default[Times]] :> 1}
     >> a /. n_. * x_ :> {n, x}
      = {1, a}
-     
+
     #> -a*b // FullForm
      = Times[-1, a, b]
     #> -(x - 2/3)
@@ -395,7 +420,7 @@ class Times(BinaryOperator, SympyFunction):
      = -2 x
     #> -(h/2) // FullForm
      = Times[Rational[-1, 2], h]
-     
+
     #> x / x
      = 1
     #> 2x^2 / x^2
@@ -418,32 +443,33 @@ class Times(BinaryOperator, SympyFunction):
     #> 3 * a //OutputForm
      = 3 a
     """
-    
+
     operator = '*'
     operator_display = ' '
     precedence = 400
-    attributes = ('Flat', 'Listable', 'NumericFunction', 'OneIdentity', 'Orderless', 'Protected')
-    
+    attributes = ('Flat', 'Listable', 'NumericFunction',
+                  'OneIdentity', 'Orderless', 'Protected')
+
     defaults = {
         None: '1',
     }
-    
+
     default_formats = False
-    
+
     sympy_name = 'Mul'
-    
+
     rules = {
     }
-    
+
     formats = {
     }
-    
-    
+
     def format_times(self, items, evaluation, op=u'\u2062'):
         'Times[items__]'
-        
+
         def inverse(item):
-            if item.has_form('Power', 2) and isinstance(item.leaves[1], (Integer, Rational, Real)):
+            if item.has_form('Power', 2) and isinstance(    # noqa
+                item.leaves[1], (Integer, Rational, Real)):
                 neg = Number.from_mp(-item.leaves[1].to_sympy())
                 if neg.same(Integer(1)):
                     return item.leaves[0]
@@ -451,12 +477,14 @@ class Times(BinaryOperator, SympyFunction):
                     return Expression('Power', item.leaves[0], neg)
             else:
                 return item
-        
+
         items = items.get_sequence()
         positive = []
         negative = []
         for item in items:
-            if item.has_form('Power', 2) and isinstance(item.leaves[1], (Integer, Rational, Real)) and item.leaves[1].to_sympy() < 0:
+            if (item.has_form('Power', 2)   # noqa
+                and isinstance(item.leaves[1], (Integer, Rational, Real))
+                and item.leaves[1].to_sympy() < 0):
                 negative.append(inverse(item))
             elif isinstance(item, Rational):
                 numerator = item.numerator()
@@ -465,7 +493,8 @@ class Times(BinaryOperator, SympyFunction):
                 negative.append(item.denominator())
             else:
                 positive.append(item)
-        if positive and isinstance(positive[0], (Integer, Real)) and positive[0].to_sympy() < 0:
+        if (positive and isinstance(positive[0], (Integer, Real))   # noqa
+            and positive[0].to_sympy() < 0):
             positive[0] = Number.from_mp(-positive[0].to_sympy())
             if positive[0].same(Integer(1)):
                 del positive[0]
@@ -480,14 +509,16 @@ class Times(BinaryOperator, SympyFunction):
             positive = Integer(1)
         if negative:
             negative = create_infix(negative, op, 400, 'None')
-            result = Expression('Divide', Expression('HoldForm', positive), Expression('HoldForm', negative))
+            result = Expression('Divide', Expression(
+                'HoldForm', positive), Expression('HoldForm', negative))
         else:
             result = positive
         if minus:
-            result = Expression('Minus', result) #Expression('PrecedenceForm', result, 481))
+            result = Expression(
+                'Minus', result)  # Expression('PrecedenceForm', result, 481))
         result = Expression('HoldForm', result)
         return result
-    
+
     def format_inputform(self, items, evaluation):
         'InputForm: Times[items__]'
         return self.format_times(items, evaluation, op='*')
@@ -495,11 +526,11 @@ class Times(BinaryOperator, SympyFunction):
     def format_outputform(self, items, evaluation):
         'OutputForm: Times[items__]'
         return self.format_times(items, evaluation, op=' ')
-    
+
     def apply(self, items, evaluation):
         'Times[items___]'
 
-        #TODO: Clean this up and optimise it        
+        # TODO: Clean this up and optimise it
 
         items = items.numerify(evaluation).get_sequence()
         number = (sympy.Integer(1), sympy.Integer(0))
@@ -511,7 +542,8 @@ class Times(BinaryOperator, SympyFunction):
         for item in items:
             if isinstance(item, Number):
                 if isinstance(item, Complex):
-                    sym_real, sym_imag = item.real.to_sympy(), item.imag.to_sympy()
+                    sym_real, sym_imag = item.real.to_sympy(
+                    ), item.imag.to_sympy()
                 else:
                     sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
 
@@ -521,21 +553,32 @@ class Times(BinaryOperator, SympyFunction):
 
                 if sym_real.is_zero and sym_imag.is_zero and prec is None:
                     return Integer('0')
-                number = (number[0]*sym_real - number[1]*sym_imag, number[0]*sym_imag + number[1]*sym_real)
+                number = (
+                    number[0] * sym_real - number[1] * sym_imag,
+                    number[0] * sym_imag + number[1] * sym_real)
             elif leaves and item == leaves[-1]:
                 leaves[-1] = Expression('Power', leaves[-1], Integer(2))
-            elif leaves and item.has_form('Power', 2) and leaves[-1].has_form('Power', 2) and item.leaves[0].same(leaves[-1].leaves[0]):
-                leaves[-1].leaves[1] = Expression('Plus', item.leaves[1], leaves[-1].leaves[1])
-            elif leaves and item.has_form('Power', 2) and item.leaves[0].same(leaves[-1]):
-                leaves[-1] = Expression('Power', leaves[-1], Expression('Plus', item.leaves[1], Integer(1)))
-            elif leaves and leaves[-1].has_form('Power', 2) and leaves[-1].leaves[0].same(item):
-                leaves[-1] = Expression('Power', item, Expression('Plus', Integer(1), leaves[-1].leaves[1]))
+            elif (leaves and item.has_form('Power', 2)
+                  and leaves[-1].has_form('Power', 2)
+                  and item.leaves[0].same(leaves[-1].leaves[0])):
+                leaves[-1].leaves[1] = Expression(
+                    'Plus', item.leaves[1], leaves[-1].leaves[1])
+            elif (leaves and item.has_form('Power', 2)
+                  and item.leaves[0].same(leaves[-1])):
+                leaves[-1] = Expression(
+                    'Power', leaves[-1],
+                    Expression('Plus', item.leaves[1], Integer(1)))
+            elif (leaves and leaves[-1].has_form('Power', 2)
+                  and leaves[-1].leaves[0].same(item)):
+                leaves[-1] = Expression('Power', item, Expression(
+                    'Plus', Integer(1), leaves[-1].leaves[1]))
             else:
                 leaves.append(item)
         if number == (1, 0):
             number = None
         elif number == (-1, 0) and leaves and leaves[0].has_form('Plus', None):
-            leaves[0].leaves = [Expression('Times', Integer(-1), leaf) for leaf in leaves[0].leaves]
+            leaves[0].leaves = [Expression('Times', Integer(
+                -1), leaf) for leaf in leaves[0].leaves]
             number = None
 
         if number is not None:
@@ -544,7 +587,8 @@ class Times(BinaryOperator, SympyFunction):
             elif number[1].is_zero and number[1].is_Integer and prec is None:
                 leaves.insert(0, Number.from_mp(number[0], prec))
             else:
-                leaves.insert(0, Complex(from_sympy(number[0]), from_sympy(number[1]), prec))
+                leaves.insert(0, Complex(from_sympy(
+                    number[0]), from_sympy(number[1]), prec))
 
         if not leaves:
             return Integer(1)
@@ -552,7 +596,8 @@ class Times(BinaryOperator, SympyFunction):
             return leaves[0]
         else:
             return Expression('Times', *leaves)
-        
+
+
 class Divide(BinaryOperator):
     """
     <dl>
@@ -574,7 +619,7 @@ class Divide(BinaryOperator):
      = 1 / 8
     >> N[%]
      = 0.125
-     
+
     Nested divisions:
     >> a / b / c
      = a / (b c)
@@ -591,39 +636,52 @@ class Divide(BinaryOperator):
      = Rational[10, 3]
     #> a / b // FullForm
      = Times[a, Power[b, -1]]
-    
+
     """
-    
+
     operator = '/'
     precedence = 470
     attributes = ('Listable', 'NumericFunction')
     grouping = 'Left'
-    
+
     default_formats = False
-    
+
     rules = {
         'Divide[x_, y_]': 'Times[x, Power[y, -1]]',
-        
-        'MakeBoxes[Divide[x_, y_], f:StandardForm|TraditionalForm]': 'FractionBox[MakeBoxes[x, f], MakeBoxes[y, f]]',
+        'MakeBoxes[Divide[x_, y_], f:StandardForm|TraditionalForm]': (
+            'FractionBox[MakeBoxes[x, f], MakeBoxes[y, f]]'),
     }
-    
+
     formats = {
-        (('InputForm', 'OutputForm'), 'Divide[x_, y_]'): 'Infix[{HoldForm[x], HoldForm[y]}, "/", 400, Left]',
+        (('InputForm', 'OutputForm'), 'Divide[x_, y_]'): (
+            'Infix[{HoldForm[x], HoldForm[y]}, "/", 400, Left]'),
     }
-    
+
     def post_parse(self, expression):
         if len(expression.leaves) == 2:
-            if isinstance(expression.leaves[0], Integer) and \
-                isinstance(expression.leaves[1], Integer) and expression.leaves[1].to_sympy() != 0:
-                return Number.from_mp(Rational(expression.leaves[0].to_sympy(), expression.leaves[1].to_sympy()).to_sympy())
+            if (isinstance(expression.leaves[0], Integer) and   # noqa
+                isinstance(expression.leaves[1], Integer) and
+                expression.leaves[1].to_sympy() != 0):
+
+                return Number.from_mp(Rational(
+                    expression.leaves[0].to_sympy(),
+                    expression.leaves[1].to_sympy()).to_sympy())
             else:
-                if isinstance(expression.leaves[0], Integer) and expression.leaves[0].to_sympy() == 1:
-                    return Expression('Power', expression.leaves[1].post_parse(), Integer(-1))
+                if (isinstance(expression.leaves[0], Integer) and   # noqa
+                    expression.leaves[0].to_sympy() == 1):
+
+                    return Expression('Power',
+                                      expression.leaves[1].post_parse(),
+                                      Integer(-1))
                 else:
-                    return Expression('Times', expression.leaves[0].post_parse(), Expression('Power', expression.leaves[1].post_parse(), Integer(-1)))
+                    return Expression(
+                        'Times', expression.leaves[0].post_parse(),
+                        Expression('Power', expression.leaves[1].post_parse(),
+                                   Integer(-1)))
         else:
             return super(Divide, self).post_parse(expression)
-        
+
+
 class Power(BinaryOperator, SympyFunction):
     """
     <dl>
@@ -646,23 +704,23 @@ class Power(BinaryOperator, SympyFunction):
 
     >> Plot[Evaluate[Table[x^y, {y, 1, 5}]], {x, -1.5, 1.5}, AspectRatio -> 1]
      = -Graphics-
-     
+
     Use a decimal point to force numeric evaluation:
     >> 4.0 ^ (1/3)
      = 1.58740105196819947
-     
+
     'Power' has default value 1 for its second argument:
     >> DefaultValues[Power]
      = {HoldPattern[Default[Power, 2]] :> 1}
     >> a /. x_ ^ n_. :> {x, n}
      = {a, 1}
-     
+
     'Power' can be used with complex numbers:
     >> (1.5 + 1.0 I) ^ 3.5
      = -3.68294005782191823 + 6.9513926640285049 I
     >> (1.5 + 1.0 I) ^ (3.5 + 1.5 I)
      = -3.19181629045628082 + 0.645658509416156807 I
-     
+
     #> 1/0
      : Infinite expression (division by zero) encountered.
      = ComplexInfinity
@@ -681,46 +739,50 @@ class Power(BinaryOperator, SympyFunction):
     #> Pi ^ 4.
      = 97.4090910340024374
     """
-    
+
     operator = '^'
     precedence = 590
     attributes = ('Listable', 'NumericFunction', 'OneIdentity')
     grouping = 'Right'
-    
+
     default_formats = False
-    
+
     sympy_name = 'Pow'
-    
+
     messages = {
         'infy': "Infinite expression (division by zero) encountered.",
     }
-    
+
     defaults = {
         2: '1',
     }
-    
+
     formats = {
-        Expression('Power', Expression('Pattern', Symbol('x'), Expression('Blank')), Rational(1, 2)) : 'HoldForm[Sqrt[x]]',
-        
-        (('InputForm', 'OutputForm'), 'x_ ^ y_'): 'Infix[{HoldForm[x], HoldForm[y]}, "^", 590, Right]',
-        ('', 'x_ ^ y_'): 'PrecedenceForm[Superscript[OuterPrecedenceForm[HoldForm[x], 590], HoldForm[y]], 590]',
-        
-        ('', 'x_ ^ y_?Negative'): 'HoldForm[Divide[1, #]]&[If[y==-1, HoldForm[x], HoldForm[x]^-y]]',
+        Expression('Power', Expression('Pattern', Symbol('x'),
+                   Expression('Blank')), Rational(1, 2)): 'HoldForm[Sqrt[x]]',
+        (('InputForm', 'OutputForm'), 'x_ ^ y_'): (
+            'Infix[{HoldForm[x], HoldForm[y]}, "^", 590, Right]'),
+        ('', 'x_ ^ y_'): (
+            'PrecedenceForm[Superscript[OuterPrecedenceForm[HoldForm[x], 590],'
+            '  HoldForm[y]], 590]'),
+
+        ('', 'x_ ^ y_?Negative'): (
+            'HoldForm[Divide[1, #]]&[If[y==-1, HoldForm[x], HoldForm[x]^-y]]'),
     }
-    
+
     rules = {
     }
-    
+
     def apply(self, items, evaluation):
         'Power[items__]'
-        
+
         items_sequence = items.get_sequence()
-        
+
         if len(items_sequence) == 2:
             x, y = items_sequence
         else:
             return Expression('Power', *items_sequence)
-        
+
         if y.get_int_value() == 1:
             return x
         elif x.get_int_value() == 1:
@@ -731,14 +793,19 @@ class Power(BinaryOperator, SympyFunction):
                 return Symbol('Indeterminate')
             else:
                 return Integer(1)
-        
+
         elif x.has_form('Power', 2) and isinstance(y, Integer):
-            return Expression('Power', x.leaves[0], Expression('Times', x.leaves[1], y))
+            return Expression('Power', x.leaves[0],
+                              Expression('Times', x.leaves[1], y))
         elif x.has_form('Times', None) and isinstance(y, Integer):
-            return Expression('Times', *[Expression('Power', leaf, y) for leaf in x.leaves])
-        
-        elif isinstance(x, Number) and isinstance(y, Number) and not (x.is_inexact() or y.is_inexact()):
+            return Expression('Times', *[
+                Expression('Power', leaf, y) for leaf in x.leaves])
+
+        elif (isinstance(x, Number) and isinstance(y, Number)
+              and not (x.is_inexact() or y.is_inexact())):
+
             sym_x, sym_y = x.to_sympy(), y.to_sympy()
+
             try:
                 if sym_y >= 0:
                     result = sym_x ** sym_y
@@ -761,9 +828,11 @@ class Power(BinaryOperator, SympyFunction):
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
 
-        elif isinstance(x, Number) and isinstance(y, Number) and (x.is_inexact() or y.is_inexact()):
+        elif (isinstance(x, Number) and isinstance(y, Number)
+              and (x.is_inexact() or y.is_inexact())):
             try:
-                prec = min(max(x.get_precision(), 64),  max(y.get_precision(), 64))
+                prec = min(max(x.get_precision(), 64), max(
+                    y.get_precision(), 64))
                 with mpmath.workprec(prec):
                     mp_x = sympy2mpmath(x.to_sympy())
                     mp_y = sympy2mpmath(y.to_sympy())
@@ -771,7 +840,8 @@ class Power(BinaryOperator, SympyFunction):
                     if isinstance(result, mpmath.mpf):
                         return Real(str(result), prec)
                     elif isinstance(result, mpmath.mpc):
-                        return Complex(str(result.real), str(result.imag), prec)
+                        return Complex(str(result.real),
+                                       str(result.imag), prec)
             except ZeroDivisionError:
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
@@ -795,7 +865,7 @@ class Sqrt(SympyFunction):
      = 2.2360679774997897
     >> Sqrt[a]^2
      = a
-    
+
     Complex numbers:
     >> Sqrt[-4]
      = 2 I
@@ -805,15 +875,17 @@ class Sqrt(SympyFunction):
     >> Plot[Sqrt[a^2], {a, -2, 2}]
      = -Graphics-
     """
-    
+
     attributes = ('Listable', 'NumericFunction')
-    
+
     rules = {
         'Sqrt[x_]': 'x ^ (1/2)',
-        
-        'MakeBoxes[Sqrt[x_], f:StandardForm|TraditionalForm]': 'SqrtBox[MakeBoxes[x, f]]',
+
+        'MakeBoxes[Sqrt[x_], f:StandardForm|TraditionalForm]': (
+            'SqrtBox[MakeBoxes[x, f]]'),
     }
-    
+
+
 class Infinity(SympyConstant):
     """
     <dl>
@@ -829,7 +901,7 @@ class Infinity(SympyConstant):
     Use 'Infinity' in sum and limit calculations:
     >> Sum[1/x^2, {x, 1, Infinity}]
      = Pi ^ 2 / 6
-     
+
     #> FullForm[Infinity]
      = DirectedInfinity[1]
     #> (2 + 3.5*I) / Infinity
@@ -840,15 +912,17 @@ class Infinity(SympyConstant):
      : Indeterminate expression 0 Infinity encountered.
      = Indeterminate
     """
-    
+
     sympy_name = 'oo'
-    
+
     rules = {
         'Infinity': 'DirectedInfinity[1]',
-        
-        'MakeBoxes[Infinity, f:StandardForm|TraditionalForm]': '"\\[Infinity]"',
+
+        'MakeBoxes[Infinity, f:StandardForm|TraditionalForm]': (
+            '"\\[Infinity]"'),
     }
-    
+
+
 class ComplexInfinity(SympyConstant):
     """
     <dl>
@@ -865,13 +939,14 @@ class ComplexInfinity(SympyConstant):
     >> FullForm[ComplexInfinity]
      = DirectedInfinity[]
     """
-    
+
     sympy_name = 'ComplexInfinity'
-    
+
     rules = {
         'ComplexInfinity': 'DirectedInfinity[]',
     }
-    
+
+
 class DirectedInfinity(SympyFunction):
     """
     <dl>
@@ -892,31 +967,37 @@ class DirectedInfinity(SympyFunction):
     >> DirectedInfinity[1] + DirectedInfinity[-1]
      : Indeterminate expression -Infinity + Infinity encountered.
      = Indeterminate
-     
+
     #> DirectedInfinity[1+I]+DirectedInfinity[2+I]
-     = DirectedInfinity[(2 / 5 + I / 5) Sqrt[5]] + DirectedInfinity[(1 / 2 + I / 2) Sqrt[2]] 
+     = DirectedInfinity[(2 / 5 + I / 5) Sqrt[5]] + DirectedInfinity[(1 / 2 + I / 2) Sqrt[2]]
     """
-        
+
     rules = {
         'DirectedInfinity[args___] ^ -1': '0',
-        '0 * DirectedInfinity[args___]': 'Message[Infinity::indet, Unevaluated[0 DirectedInfinity[args]]]; Indeterminate',
-        'DirectedInfinity[a_?NumberQ] /; N[Abs[a]] != 1': 'DirectedInfinity[a / Abs[a]]',
+        '0 * DirectedInfinity[args___]': (
+            'Message[Infinity::indet, Unevaluated[0 DirectedInfinity[args]]];'
+            'Indeterminate'),
+        'DirectedInfinity[a_?NumberQ] /; N[Abs[a]] != 1': (
+            'DirectedInfinity[a / Abs[a]]'),
         'DirectedInfinity[a_] * DirectedInfinity[b_]': 'DirectedInfinity[a*b]',
         'DirectedInfinity[] * DirectedInfinity[args___]': 'DirectedInfinity[]',
         'DirectedInfinity[0]': 'DirectedInfinity[]',
         'z_?NumberQ * DirectedInfinity[]': 'DirectedInfinity[]',
         'z_?NumberQ * DirectedInfinity[a_]': 'DirectedInfinity[z * a]',
-        'DirectedInfinity[a_] + DirectedInfinity[b_] /; b == -a': 'Message[Infinity::indet, Unevaluated[DirectedInfinity[a] + DirectedInfinity[b]]]; Indeterminate',
+        'DirectedInfinity[a_] + DirectedInfinity[b_] /; b == -a': (
+            'Message[Infinity::indet,'
+            '  Unevaluated[DirectedInfinity[a] + DirectedInfinity[b]]];'
+            'Indeterminate'),
         'DirectedInfinity[args___] + _?NumberQ': 'DirectedInfinity[args]',
     }
-    
+
     formats = {
         'DirectedInfinity[1]': 'HoldForm[Infinity]',
         'DirectedInfinity[-1]': 'HoldForm[-Infinity]',
         'DirectedInfinity[]': 'HoldForm[ComplexInfinity]',
     }
-    
-    #TODO: Improve formatting
+
+    # TODO: Improve formatting
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
@@ -925,7 +1006,8 @@ class DirectedInfinity(SympyFunction):
                 return sympy.oo
             elif dir == -1:
                 return -sympy.oo
-                
+
+
 class Re(SympyFunction):
     """
     <dl>
@@ -939,20 +1021,21 @@ class Re(SympyFunction):
     >> Plot[{Cos[a], Re[E^(I a)]}, {a, 0, 2 Pi}]
      = -Graphics-
     """
-    
+
     attributes = ('Listable', 'NumericFunction')
-    
+
     def apply_complex(self, number, evaluation):
         'Re[number_Complex]'
-        
+
         real, imag = number.to_sympy().as_real_imag()
         return Number.from_mp(real)
-    
+
     def apply_number(self, number, evaluation):
         'Re[number_?NumberQ]'
-        
+
         return number
-                
+
+
 class Im(SympyFunction):
     """
     <dl>
@@ -966,20 +1049,21 @@ class Im(SympyFunction):
     >> Plot[{Sin[a], Im[E^(I a)]}, {a, 0, 2 Pi}]
      = -Graphics-
     """
-    
+
     attributes = ('Listable', 'NumericFunction')
-    
+
     def apply_complex(self, number, evaluation):
         'Im[number_Complex]'
-        
+
         real, imag = number.to_sympy().as_real_imag()
         return Number.from_mp(imag)
-    
+
     def apply_number(self, number, evaluation):
         'Im[number_?NumberQ]'
-        
+
         return Integer(0)
-    
+
+
 class Abs(SympyFunction):
     """
     <dl>
@@ -1002,24 +1086,26 @@ class Abs(SympyFunction):
     #> Abs[a - b]
      = Abs[a - b]
     """
-    
+
     sympy_name = 'Abs'
-    
+
     def apply_real(self, x, evaluation):
         'Abs[x_?RealNumberQ]'
-        
+
         sym_x = x.to_sympy()
         if sym_x < 0:
             return Number.from_mp(-sym_x)
         else:
             return x
-        
+
     def apply_complex(self, z, evaluation):
         'Abs[z_Complex]'
-        
+
         real, imag = z.to_sympy().as_real_imag()
-        return Expression('Sqrt', Expression('Plus', Number.from_mp(real ** 2), Number.from_mp(imag ** 2)))
-                
+        return Expression('Sqrt', Expression(
+            'Plus', Number.from_mp(real ** 2), Number.from_mp(imag ** 2)))
+
+
 class I(Predefined):
     """
     <dl>
@@ -1032,10 +1118,11 @@ class I(Predefined):
     >> (3+I)*(3-I)
      = 10
     """
-    
+
     def evaluate(self, evaluation):
         return Complex(sympy.Integer(0), sympy.Integer(1))
-    
+
+
 class NumberQ(Test):
     """
     <dl>
@@ -1050,10 +1137,11 @@ class NumberQ(Test):
     >> NumberQ[Pi]
      = False
     """
-    
+
     def test(self, expr):
         return isinstance(expr, Number)
-    
+
+
 class RealNumberQ(Test):
     """
     <dl>
@@ -1072,10 +1160,11 @@ class RealNumberQ(Test):
     >> RealNumberQ[0.0 * I]
      = False
     """
-    
-    def test(self, expr):        
+
+    def test(self, expr):
         return isinstance(expr, (Integer, Rational, Real))
-    
+
+
 class ExactNumberQ(Test):
     """
     <dl>
@@ -1096,10 +1185,11 @@ class ExactNumberQ(Test):
     >> ExactNumberQ[1 + 1. I]
      = False
     """
-    
-    def test(self, expr):        
+
+    def test(self, expr):
         return isinstance(expr, Number) and not expr.is_inexact()
-    
+
+
 class InexactNumberQ(Test):
     """
     <dl>
@@ -1118,10 +1208,11 @@ class InexactNumberQ(Test):
     >> InexactNumberQ[4.0+I]
      = True
     """
-    
-    def test(self, expr):        
+
+    def test(self, expr):
         return isinstance(expr, Number) and expr.is_inexact()
-    
+
+
 class IntegerQ(Test):
     """
     <dl>
@@ -1134,30 +1225,32 @@ class IntegerQ(Test):
     >> IntegerQ[Pi]
      = False
     """
-    
+
     def test(self, expr):
         return isinstance(expr, Integer)
-    
+
+
 class Integer_(Builtin):
     """
     <dl>
     <dt>'Integer'
         <dd>is the head of integers.
     </dl>
-    
+
     >> Head[5]
      = Integer
     """
-    
+
     name = 'Integer'
-    
+
+
 class Real_(Builtin):
     u"""
     <dl>
     <dt>'Real'
         <dd>is the head of real (inexact) numbers.
     </dl>
-    
+
     >> x = 3. ^ -20;
     >> InputForm[x]
      = 2.86797199079244131*^-10
@@ -1202,9 +1295,10 @@ class Real_(Builtin):
     #> 1.5*^ 10
      : Parse error at or near token ^.
     """
-    
+
     name = 'Real'
-    
+
+
 class Rational_(Builtin):
     """
     <dl>
@@ -1219,21 +1313,22 @@ class Rational_(Builtin):
 
     >> Rational[1, 2]
      = 1 / 2
-     
+
     #> -2/3
      = -2 / 3
     """
-    
+
     name = 'Rational'
-    
+
     def apply(self, n, m, evaluation):
         'Rational[n_Integer, m_Integer]'
-        
+
         if m.to_sympy() == 1:
             return Integer(n.to_sympy())
         else:
             return Rational(n.to_sympy(), m.to_sympy())
-    
+
+
 class Complex_(Builtin):
     """
     <dl>
@@ -1254,10 +1349,10 @@ class Complex_(Builtin):
      = 1.099511627776*^12 + 3. I
     #> InputForm[Complex[2.0 ^ 40, 3]]
      = 1.099511627776*^12 + 3.*I
-     
+
     #> -2 / 3 - I
      = -2 / 3 - I
-     
+
     #> Complex[10, 0]
      = 10
 
@@ -1268,7 +1363,7 @@ class Complex_(Builtin):
      = 1
     #> Head[%]
      = Integer
-    
+
     #> Complex[0.0, 0.0]
      = 0. + 0. I
     #> 0. I
@@ -1289,9 +1384,9 @@ class Complex_(Builtin):
     #> Complex[1, Complex[1, 1]]
      = I
     """
-    
+
     name = 'Complex'
-    
+
     def apply(self, r, i, evaluation):
         'Complex[r_?NumberQ, i_?NumberQ]'
 
@@ -1305,7 +1400,8 @@ class Complex_(Builtin):
             return Number.from_mp(sym_r)
         else:
             return Complex(sym_r, sym_i)
-        
+
+
 class Factorial(PostfixOperator, _MPMathFunction):
     """
     <dl>
@@ -1316,7 +1412,7 @@ class Factorial(PostfixOperator, _MPMathFunction):
 
     >> 20!
      = 2432902008176640000
-    
+
     'Factorial' handles numeric (real and complex) values using the gamma function:
     >> 10.5!
      = 1.18994230839622485*^7
@@ -1326,32 +1422,32 @@ class Factorial(PostfixOperator, _MPMathFunction):
     However, the value at poles is 'ComplexInfinity':
     >> (-1.)!
      = ComplexInfinity
-    
-    'Factorial' has the same operator ('!') as 'Not', but with higher precedence: 
+
+    'Factorial' has the same operator ('!') as 'Not', but with higher precedence:
     >> !a! //FullForm
      = Not[Factorial[a]]
 
     #> 0!
      = 1
     """
-    
+
     operator = '!'
     precedence = 610
-    
+
     def apply_int(self, n, evaluation):
         'Factorial[n_Integer]'
-        
+
         n = n.to_sympy()
         if n < 0:
             return Symbol('ComplexInfinity')
         else:
             return Integer(sympy.factorial(n))
-        
+
     def eval(self, z):
         return mpmath.factorial(z)
-    
+
+
 class Gamma(SympyFunction):
-    #TODO implement the incomplete Gamma functions
     """
     <dl>
     <dt>'Gamma[$z$]'
@@ -1368,10 +1464,13 @@ class Gamma(SympyFunction):
      = -Graphics-
     """
 
+    # TODO implement the incomplete Gamma functions
+
     rules = {
         'Gamma[x_]': '(x - 1)!',
     }
-    
+
+
 class Pochhammer(SympyFunction):
     """
     <dl>
@@ -1383,13 +1482,13 @@ class Pochhammer(SympyFunction):
      = 6652800
     """
 
-
     sympy_name = 'RisingFactorial'
-    
+
     rules = {
         'Pochhammer[a_, n_]': 'Gamma[a + n] / Gamma[a]',
     }
-    
+
+
 class HarmonicNumber(_MPMathFunction):
     """
     <dl>
@@ -1413,7 +1512,8 @@ class HarmonicNumber(_MPMathFunction):
 
     sympy_name = 'harmonic'
     mpmath_name = 'harmonic'
-    
+
+
 class Sum(_IterationFunction, SympyFunction):
     """
     <dl>
@@ -1428,11 +1528,11 @@ class Sum(_IterationFunction, SympyFunction):
     </dl>
     >> Sum[k, {k, 1, 10}]
      = 55
-     
+
     Double sum:
     >> Sum[i * j, {i, 1, 10}, {j, 1, 10}]
      = 3025
-     
+
     Symbolic sums are evaluated:
     >> Sum[k, {k, 1, n}]
      = n (1 + n) / 2
@@ -1442,45 +1542,50 @@ class Sum(_IterationFunction, SympyFunction):
      = 1 + 2 I
     >> Sum[1 / k ^ 2, {k, 1, n}]
      = HarmonicNumber[n, 2]
-     
+
     Verify algebraic identities:
     >> Sum[x ^ 2, {x, 1, y}] - y * (y + 1) * (2 * y + 1) / 6
      = 0
 
     >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
      = -1 + a ^ (m n)
-     
+
     Infinite sums:
     >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
      = 1
     >> Sum[1 / k ^ 2, {k, 1, Infinity}]
      = Pi ^ 2 / 6
-     
+
     #> a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]]
      : Parse error at or near token ].
     """
-    
-    throw_iterb = False # do not throw warning message for symbolic iteration bounds
-    
+
+    # Do not throw warning message for symbolic iteration bounds
+    throw_iterb = False
+
     sympy_name = 'Sum'
-    
+
     rules = _IterationFunction.rules.copy()
     rules.update({
-        'MakeBoxes[Sum[f_, {i_, a_, b_, 1}], form:StandardForm|TraditionalForm]':
-            r'RowBox[{SubsuperscriptBox["\[Sum]", RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}], MakeBoxes[b, form]], MakeBoxes[f, form]}]',
+        'MakeBoxes[Sum[f_, {i_, a_, b_, 1}],'
+        '  form:StandardForm|TraditionalForm]': (
+            r'RowBox[{SubsuperscriptBox["\[Sum]",'
+            r'  RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}],'
+            r'  MakeBoxes[b, form]], MakeBoxes[f, form]}]'),
     })
-    
+
     def get_result(self, items):
         return Expression('Plus', *items)
-    
+
     def to_sympy(self, expr, **kwargs):
         if expr.has_form('Sum', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
             result = sympy.summation(expr.leaves[0].to_sympy(), (
                 index.leaves[0].to_sympy(), index.leaves[1].to_sympy(),
-                index.leaves[2].to_sympy()))            
+                index.leaves[2].to_sympy()))
             return result
-    
+
+
 class Product(_IterationFunction, SympyFunction):
     """
     <dl>
@@ -1502,7 +1607,7 @@ class Product(_IterationFunction, SympyFunction):
      = x ^ 110
     >> Product[2 ^ i, {i, 1, n}]
      = 2 ^ (n / 2 + n ^ 2 / 2)
-    
+
     Symbolic products involving the factorial are evaluated:
     >> Product[k, {k, 3, n}]
      = n! / 2
@@ -1517,20 +1622,23 @@ class Product(_IterationFunction, SympyFunction):
     #> Product[1 + 1 / i ^ 2, {i, Infinity}]
      = 1 / ((-I)! I!)
     """
-    
+
     throw_iterb = False
-    
+
     sympy_name = 'Product'
-    
+
     rules = _IterationFunction.rules.copy()
     rules.update({
-        'MakeBoxes[Product[f_, {i_, a_, b_, 1}], form:StandardForm|TraditionalForm]':
-            r'RowBox[{SubsuperscriptBox["\[Product]", RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}], MakeBoxes[b, form]], MakeBoxes[f, form]}]',
+        'MakeBoxes[Product[f_, {i_, a_, b_, 1}],'
+        '  form:StandardForm|TraditionalForm]': (
+            r'RowBox[{SubsuperscriptBox["\[Product]",'
+            r'  RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}],'
+            r'  MakeBoxes[b, form]], MakeBoxes[f, form]}]'),
     })
-    
+
     def get_result(self, items):
         return Expression('Times', *items)
-    
+
     def to_sympy(self, expr, **kwargs):
         if expr.has_form('Product', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]

@@ -5,9 +5,10 @@ Recurrence relation solvers
 """
 
 import sympy
-from mathics.builtin.base import Builtin, BinaryOperator, Test
-from mathics.core.expression import Expression, from_sympy
-from mathics.core.convert import SympyExpression, sympy_symbol_prefix
+from mathics.builtin.base import Builtin
+from mathics.core.expression import Expression
+from mathics.core.convert import sympy_symbol_prefix, from_sympy
+
 
 class RSolve(Builtin):
     """
@@ -36,8 +37,10 @@ class RSolve(Builtin):
     """
 
     messages = {
-        'deqn': 'Equation or list of equations expected instead of `1` in the first argument `1`.',
-        'deqx': 'Supplied equations are not difference equations of the given functions.',
+        'deqn': ('Equation or list of equations expected instead of `1` '
+                 'in the first argument `1`.'),
+        'deqx': ('Supplied equations are not difference equations of the '
+                 'given functions.'),
         'dsfun': '`1` cannot be used as a function.',
         'dsvar': '`1` cannot be used as a variable.',
     }
@@ -45,7 +48,7 @@ class RSolve(Builtin):
     def apply(self, eqns, a, n, evaluation):
         'RSolve[eqns_, a_, n_]'
 
-        #TODO: Do this with rules?
+        # TODO: Do this with rules?
         if not eqns.has_form('List', None):
             eqns = Expression('List', eqns)
 
@@ -58,8 +61,8 @@ class RSolve(Builtin):
                 return
 
         if (n.is_atom() and not n.is_symbol()) or \
-          n.get_head_name() in ('Plus', 'Times', 'Power') or \
-          'Constant' in n.get_attributes(evaluation.definitions):
+            n.get_head_name() in ('Plus', 'Times', 'Power') or \
+                'Constant' in n.get_attributes(evaluation.definitions):
             evaluation.message('RSolve', 'dsvar')
             return
 
@@ -79,29 +82,39 @@ class RSolve(Builtin):
 
         # Seperate relations from conditions
         conditions = {}
+
         def is_relation(eqn):
             left, right = eqn.leaves
-            for l,r in [(left, right), (right, left)]:
-                if left.get_head_name() == func.get_head_name() and len(left.leaves) == 1 \
-                  and isinstance(l.leaves[0].to_python(), int) and r.is_numeric():
+            for l, r in [(left, right), (right, left)]:
+                if (left.get_head_name() == func.get_head_name() and    # noqa
+                    len(left.leaves) == 1 and
+                    isinstance(l.leaves[0].to_python(), int) and
+                    r.is_numeric()):
+
                     conditions[l.leaves[0].to_python()] = r.to_sympy()
                     return False
             return True
         relation = filter(is_relation, eqns.leaves)[0]
 
         left, right = relation.leaves
-        relation = Expression('Plus', left, Expression('Times', -1, right)).evaluate(evaluation)
+        relation = Expression('Plus', left, Expression(
+            'Times', -1, right)).evaluate(evaluation)
 
-        sym_eq = relation.to_sympy(converted_functions = set([func.get_head_name()]))
+        sym_eq = relation.to_sympy(
+            converted_functions=set([func.get_head_name()]))
         sym_n = sympy.symbols(str(sympy_symbol_prefix + n.name))
-        sym_func = sympy.Function(str(sympy_symbol_prefix + func.get_head_name())) (sym_n)
+        sym_func = sympy.Function(str(
+            sympy_symbol_prefix + func.get_head_name()))(sym_n)
 
         sym_conds = {}
         for cond in conditions:
-            sym_conds[sympy.Function(str(sympy_symbol_prefix + func.get_head_name()))(cond)] = conditions[cond]
+            sym_conds[sympy.Function(str(
+                sympy_symbol_prefix + func.get_head_name()))(cond)] = \
+                conditions[cond]
 
         try:
-            # Sympy raises error when given empty conditions. Fixed in upcomming sympy release.
+            # Sympy raises error when given empty conditions. Fixed in
+            # upcomming sympy release.
             if sym_conds != {}:
                 sym_result = sympy.rsolve(sym_eq, sym_func, sym_conds)
             else:
@@ -109,13 +122,15 @@ class RSolve(Builtin):
 
             if not isinstance(sym_result, list):
                 sym_result = [sym_result]
-        except ValueError as ve:
+        except ValueError:
             return
 
         if function_form is None:
-            return Expression('List', *[Expression('List',
-                Expression('Rule', a, from_sympy(soln))) for soln in sym_result])
+            return Expression('List', *[
+                Expression('List', Expression('Rule', a, from_sympy(soln)))
+                for soln in sym_result])
         else:
-            return Expression('List', *[Expression('List', Expression('Rule', a,
-                Expression('Function', function_form, from_sympy(soln)))) for soln in sym_result])
-
+            return Expression('List', *[
+                Expression('List', Expression(
+                    'Rule', a, Expression('Function', function_form,
+                    from_sympy(soln)))) for soln in sym_result])

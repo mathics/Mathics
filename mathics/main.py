@@ -18,15 +18,14 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os
 import sys
 import argparse
 
 from mathics.core.definitions import Definitions
-from mathics.core.expression import Symbol, Expression, Integer
+from mathics.core.expression import Integer
 from mathics.core.evaluation import Evaluation
-from mathics import settings
 from mathics import print_version, print_license, get_version_string
+
 
 class TerminalShell(object):
     def __init__(self, definitions, colors):
@@ -36,7 +35,8 @@ class TerminalShell(object):
         except ImportError:
             pass
 
-        # Try importing colorama to escape ansi sequences for cross platform colors
+        # Try importing colorama to escape ansi sequences for cross platform
+        # colors
         try:
             from colorama import init as colorama_init
         except ImportError:
@@ -47,15 +47,15 @@ class TerminalShell(object):
                 colors = 'Linux'
 
         color_schemes = {
-            'NOCOLOR' : (
+            'NOCOLOR': (
                 ['', '', '', ''],
                 ['', '', '', '']),
-            'LINUX' : (
+            'LINUX': (
                 ['\033[32m', '\033[1m', '\033[22m', '\033[39m'],
-                ['\033[31m', '\033[1m', '\033[22m','\033[39m']),
-            'LIGHTBG' : (
+                ['\033[31m', '\033[1m', '\033[22m', '\033[39m']),
+            'LIGHTBG': (
                 ['\033[34m', '\033[1m', '\033[22m', '\033[39m'],
-                ['\033[31m', '\033[1m', '\033[22m','\033[39m']),
+                ['\033[31m', '\033[1m', '\033[22m', '\033[39m']),
         }
 
         # Handle any case by using .upper()
@@ -75,75 +75,106 @@ class TerminalShell(object):
     def get_in_prompt(self, continued=False):
         line_number = self.get_line_number()
         if continued:
-            return ' '*len('In[{0}]:= '.format(line_number))
+            return ' ' * len('In[{0}]:= '.format(line_number))
         else:
             return '{1}In[{2}{0}{3}]:= {4}'.format(line_number, *self.incolors)
 
     def get_out_prompt(self):
-        line_number = self.get_line_number()-1
+        line_number = self.get_line_number() - 1
         return '{1}Out[{2}{0}{3}]= {4}'.format(line_number, *self.outcolors)
 
     def evaluate(self, text):
-        evaluation = Evaluation(text, self.definitions, timeout=30, out_callback=out_callback)
+        evaluation = Evaluation(text, self.definitions, timeout=30,
+                                out_callback=out_callback)
         for result in evaluation.results:
             if result.result is not None:
-                print self.get_out_prompt() + to_output(unicode(result.result)) + '\n'
+                print(self.get_out_prompt() +
+                      to_output(unicode(result.result)) + '\n')
 
 
 def to_output(text):
     return '\n . '.join(text.splitlines())
 
+
 def out_callback(out):
     print to_output(unicode(out))
 
-# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/
+# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/       # nopep8
+
+
 def wait_for_line(input_string):
     """
     Should the intepreter wait for another line of input or try to evaluate the
     current line as is.
     """
-    trailing_ops = ['+', '-', '/', '*', '^', '=', 
-	    '>', '<', '/;', '/:', '/.', '&&', '||'] 
+    trailing_ops = ['+', '-', '/', '*', '^', '=',
+                    '>', '<', '/;', '/:', '/.', '&&', '||']
     if any(input_string.rstrip().endswith(op) for op in trailing_ops):
         return True
 
-    brackets = [ ('(',')'), ('[',']'), ('{','}')]
+    brackets = [('(', ')'), ('[', ']'), ('{', '}')]
     kStart, kEnd, stack = 0, 1, []
     for char in input_string:
         for bracketPair in brackets:
             if char == bracketPair[kStart]:
                 stack.append(char)
-            elif char == bracketPair[kEnd] and (len(stack) == 0 or stack.pop() != bracketPair[kStart]):
-                # Brackets are not balanced, but return False so that a parse error can be raised
-                return False
+            elif char == bracketPair[kEnd]:
+                if len(stack) == 0:
+                    return False
+                if stack.pop() != bracketPair[kStart]:
+                    # Brackets are not balanced, but return False so that a
+                    # parse error can be raised
+                    return False
     if len(stack) == 0 and input_string.count('"') % 2 == 0:
         return False
     return True
+
 
 def main():
     argparser = argparse.ArgumentParser(
         prog='mathics',
         usage='%(prog)s [options] [FILE]',
         add_help=False,
-        description = "Mathics is a general-purpose computer algebra system.",
-        epilog = """Please feel encouraged to contribute to Mathics! Create
-            your own fork, make the desired changes, commit, and make a pull 
+        description="Mathics is a general-purpose computer algebra system.",
+        epilog="""Please feel encouraged to contribute to Mathics! Create
+            your own fork, make the desired changes, commit, and make a pull
             request.""")
 
-    argparser.add_argument('FILE',  nargs='?', type=argparse.FileType('r'), help='execute commands from FILE')
-    argparser.add_argument('--help', '-h', help='show this help message and exit', action='help')
-    argparser.add_argument('--persist',  help='go to interactive shell after evaluating FILE', action='store_true')
-    argparser.add_argument('--quiet', '-q', help='don\'t print message at startup', action='store_true')
-    argparser.add_argument('-script', help='run a mathics file in script mode', action='store_true')
-    argparser.add_argument('--execute', '-e', nargs='?', help='execute a command')
-    argparser.add_argument('--colors', nargs='?', help='interactive shell colors')
-    argparser.add_argument('--version', '-v', action='version', version=get_version_string(False))
+    argparser.add_argument(
+        'FILE', nargs='?', type=argparse.FileType('r'),
+        help='execute commands from FILE')
+
+    argparser.add_argument(
+        '--help', '-h', help='show this help message and exit', action='help')
+
+    argparser.add_argument(
+        '--persist', help='go to interactive shell after evaluating FILE',
+        action='store_true')
+
+    argparser.add_argument(
+        '--quiet', '-q', help='don\'t print message at startup',
+        action='store_true')
+
+    argparser.add_argument(
+        '-script', help='run a mathics file in script mode',
+        action='store_true')
+
+    argparser.add_argument(
+        '--execute', '-e', nargs='?', help='execute a command')
+
+    argparser.add_argument(
+        '--colors', nargs='?', help='interactive shell colors')
+
+    argparser.add_argument(
+        '--version', '-v', action='version', version=get_version_string(False))
+
     args = argparser.parse_args()
 
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
-    
+
     definitions = Definitions(add_builtin=True)
-    definitions.set_ownvalue('$Line', Integer(1)) #Reset the line number to 1
+
+    definitions.set_ownvalue('$Line', Integer(1))  # Reset the line number to 1
 
     shell = TerminalShell(definitions, args.colors)
 
@@ -156,7 +187,7 @@ def main():
         total_input = args.execute.decode(sys.stdin.encoding)  # check encoding
         print shell.get_in_prompt() + total_input
         shell.evaluate(total_input)
-        return 
+        return
 
     if args.FILE is not None:
         total_input = ''
@@ -165,7 +196,7 @@ def main():
                 line = line.decode('utf-8')     # TODO: other encodings
                 if args.script and line_no == 0 and line.startswith('#!'):
                     continue
-                print shell.get_in_prompt(continued=(total_input != '')) + line,
+                print shell.get_in_prompt(continued=total_input != '') + line,
                 total_input += ' ' + line
                 if line != "" and wait_for_line(total_input):
                     continue
@@ -181,9 +212,9 @@ def main():
 
     total_input = ""
     while True:
-        try: 
+        try:
             line = raw_input(shell.get_in_prompt(continued=total_input != ''))
-            line= line.decode(sys.stdin.encoding)
+            line = line.decode(sys.stdin.encoding)
             total_input += line
             if line != "" and wait_for_line(total_input):
                 continue

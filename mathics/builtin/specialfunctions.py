@@ -13,13 +13,14 @@ from mathics.core.numbers import mpmath2sympy
 from mathics.core.convert import from_sympy
 from mathics.builtin.numeric import get_precision
 
+
 class Erf(_MPMathFunction):
     """
     <dl>
     <dt>'Erf[$z$]'
         <dd>returns the error function of $z$.
     </dl>
-    
+
     >> Erf[1.0]
      = 0.842700792949714869
     >> Erf[0]
@@ -29,38 +30,40 @@ class Erf(_MPMathFunction):
     """
 
     mpmath_name = 'erf'
-    
+
+
 class ProductLog(_MPMathFunction):
     """
     <dl>
     <dt>'ProductLog[$z$]'
         <dd>returns the value of the Lambert W function at $z$.
     </dl>
-    
+
     The defining equation:
     >> z == ProductLog[z] * E ^ ProductLog[z]
      = True
-     
+
     Some special values:
     >> ProductLog[0]
      = 0
     >> ProductLog[E]
      = 1
-     
+
     The graph of 'ProductLog':
     >> Plot[ProductLog[x], {x, -1/E, E}]
      = -Graphics-
     """
-    
-    sympy_name = 'LambertW' # function called LambertW in SymPy
+
+    sympy_name = 'LambertW'  # function called LambertW in SymPy
     mpmath_name = 'lambertw'
-    
+
     rules = {
         'ProductLog[0]': '0',
         'ProductLog[E]': '1',
         'ProductLog[z_] * E ^ ProductLog[z_]': 'z',
     }
-    
+
+
 class Zeta(_MPMathFunction):
     """
     <dl>
@@ -78,6 +81,7 @@ class Zeta(_MPMathFunction):
     sympy_name = 'zeta'
     mpmath_name = 'zeta'
 
+
 class _Bessel(_MPMathFunction):
 
     attributes = ('Listable', 'NumericFunction', 'Protected', 'ReadProtected')
@@ -85,6 +89,7 @@ class _Bessel(_MPMathFunction):
     nargs = 2
 
 # Bessel Functions
+
 
 class BesselJ(_Bessel):
     """
@@ -109,7 +114,7 @@ class BesselJ(_Bessel):
      = -Graphics-
     """
 
-    #TODO: Sympy Backend is not as powerful as Mathmeatica
+    # TODO: Sympy Backend is not as powerful as Mathmeatica
     """
     >> BesselJ[1/2, x]
      = Sqrt[2 / Pi] Sin[x] / Sqrt[x]
@@ -119,6 +124,7 @@ class BesselJ(_Bessel):
 
     sympy_name = 'besselj'
     mpmath_name = 'besselj'
+
 
 class BesselY(_Bessel):
     """
@@ -138,7 +144,7 @@ class BesselY(_Bessel):
      = -Graphics-
     """
 
-    #TODO: Special Values
+    # TODO: Special Values
     """
     >> BesselY[0, 0]
      = -Infinity
@@ -148,6 +154,7 @@ class BesselY(_Bessel):
 
     sympy_name = 'bessely'
     mpmath_name = 'bessely'
+
 
 class BesselI(_Bessel):
     """
@@ -168,6 +175,7 @@ class BesselI(_Bessel):
     sympy_name = 'besseli'
     mpmath_name = 'besseli'
 
+
 class BesselK(_Bessel):
     """
     <dl>
@@ -187,9 +195,10 @@ class BesselK(_Bessel):
     sympy_name = 'besselk'
     mpmath_name = 'besselk'
 
-#TODO: Spherical Bessel Functions
+# TODO: Spherical Bessel Functions
 
 # Hankel Functions
+
 
 class HankelH1(_Bessel):
     """
@@ -204,6 +213,7 @@ class HankelH1(_Bessel):
 
     sympy_name = 'hankel1'
     mpmath_name = 'hankel1'
+
 
 class HankelH2(_Bessel):
     """
@@ -220,6 +230,7 @@ class HankelH2(_Bessel):
     mpmath_name = 'hankel2'
 
 # Airy Functions
+
 
 class AiryAi(_MPMathFunction):
     """
@@ -240,6 +251,7 @@ class AiryAi(_MPMathFunction):
 
     sympy_name = ''
     mpmath_name = 'airyai'
+
 
 class AiryBi(_MPMathFunction):
     """
@@ -262,6 +274,7 @@ class AiryBi(_MPMathFunction):
     mpmath_name = 'airybi'
 
 # Kelvin Functions
+
 
 class KelvinBer(_Bessel):
     """
@@ -292,6 +305,7 @@ class KelvinBer(_Bessel):
     sympy_name = ''
     mpmath_name = 'ber'
 
+
 class KelvinBei(_Bessel):
     """
     <dl>
@@ -321,6 +335,7 @@ class KelvinBei(_Bessel):
     sympy_name = ''
     mpmath_name = 'bei'
 
+
 class KelvinKer(_Bessel):
     """
     <dl>
@@ -349,6 +364,7 @@ class KelvinKer(_Bessel):
 
     sympy_name = ''
     mpmath_name = 'ker'
+
 
 class KelvinKei(_Bessel):
     """
@@ -381,6 +397,7 @@ class KelvinKei(_Bessel):
 
 # Struve and Related Functions
 
+
 class StruveH(_Bessel):
     """
     <dl>
@@ -397,6 +414,7 @@ class StruveH(_Bessel):
 
     sympy_name = ''
     mpmath_name = 'struveh'
+
 
 class StruveL(_Bessel):
     """
@@ -415,6 +433,7 @@ class StruveL(_Bessel):
     sympy_name = ''
     mpmath_name = 'struvel'
 
+
 class AngerJ(_Bessel):
     """
     <dl>
@@ -429,10 +448,11 @@ class AngerJ(_Bessel):
      = -Graphics-
     """
 
-    #TODO: Associated Anger function AngerJ[v, u, z]
+    # TODO: Associated Anger function AngerJ[v, u, z]
 
     sympy_name = ''
     mpmath_name = 'angerj'
+
 
 class WeberE(_Bessel):
     """
@@ -448,12 +468,13 @@ class WeberE(_Bessel):
      = -Graphics-
     """
 
-    #TODO: Associated Weber function WeberE[v, u, z]
+    # TODO: Associated Weber function WeberE[v, u, z]
 
     sympy_name = ''
     mpmath_name = 'webere'
 
 # Function Zeros
+
 
 class BesselJZero(_Bessel):
     """
@@ -468,7 +489,8 @@ class BesselJZero(_Bessel):
 
     sympy_name = ''
     mpmath_name = 'besseljzero'
-    
+
+
 class BesselYZero(_Bessel):
     """
     <dl>
@@ -482,6 +504,7 @@ class BesselYZero(_Bessel):
 
     sympy_name = ''
     mpmath_name = 'besselyzero'
+
 
 class AiryAiZero(Builtin):
     """
@@ -503,9 +526,10 @@ class AiryAiZero(Builtin):
      = 0
     """
 
-    #TODO: 'AiryAiZero[$k$, $x0$]' - $k$th zero less than x0 
+    # TODO: 'AiryAiZero[$k$, $x0$]' - $k$th zero less than x0
 
-    attributes = ('Listable', 'NHoldFirst', 'NumericFunction', 'Protected', 'ReadProtected')
+    attributes = ('Listable', 'NHoldFirst',
+                  'NumericFunction', 'Protected', 'ReadProtected')
 
     rules = {
         'AiryAi[AiryAiZero[k_]]': '0',
@@ -520,6 +544,7 @@ class AiryAiZero(Builtin):
         with mpmath.workprec(prec):
             result = mpmath2sympy(mpmath.airyaizero(k_int), prec)
         return from_sympy(result)
+
 
 class AiryBiZero(Builtin):
     """
@@ -541,9 +566,10 @@ class AiryBiZero(Builtin):
      = 0
     """
 
-    #TODO: 'AiryBiZero[$k$, $x0$]' - $k$th zero less than x0 
+    # TODO: 'AiryBiZero[$k$, $x0$]' - $k$th zero less than x0
 
-    attributes = ('Listable', 'NHoldFirst', 'NumericFunction', 'Protected', 'ReadProtected')
+    attributes = ('Listable', 'NHoldFirst',
+                  'NumericFunction', 'Protected', 'ReadProtected')
 
     rules = {
         'AiryBi[AiryBiZero[z_]]': '0',
@@ -560,6 +586,7 @@ class AiryBiZero(Builtin):
         return from_sympy(result)
 
 # Orthogonal Polynomials
+
 
 class LegendreP(_MPMathFunction):
     """
@@ -587,7 +614,7 @@ class LegendreP(_MPMathFunction):
      = -Graphics-
     """
 
-    #FIXME: Sympy can't handle associated polynomials
+    # FIXME: Sympy can't handle associated polynomials
     """
     >> LegendreP[2, 1, x]
      = -3 x Sqrt[1 - x^2]
@@ -605,6 +632,7 @@ class LegendreP(_MPMathFunction):
         if leaves[1] == Integer(0):
             return leaves[:1] + leaves[2:]
         return leaves
+
 
 class LegendreQ(_MPMathFunction):
     """
@@ -625,7 +653,8 @@ class LegendreQ(_MPMathFunction):
      = -1.71931290970694153 - 7.70273279782676974 I
     """
 
-    #FIXME: Sympy is missing the Legendre function of the second kind so symbolic manipulations are limited
+    # FIXME: Sympy is missing the Legendre function of the second kind so
+    # symbolic manipulations are limited
     """
     >> LegendreQ[2, x]
      = -3 x / 2 - 3 x ^ 2 Log[1 - x] / 4 + 3 x ^ 2 Log[1 + x] / 4 - Log[1 + x] / 4 + Log[1 - x] / 4
@@ -643,6 +672,7 @@ class LegendreQ(_MPMathFunction):
         if leaves[1] == Integer(0):
             return leaves[:1] + leaves[2:]
         return leaves
+
 
 class JacobiP(_MPMathFunction):
     """
@@ -681,6 +711,7 @@ class SphericalHarmonicY(_MPMathFunction):
     sympy_name = 'Ylm'
     mpmath_name = 'spherharm'
 
+
 class GegenbauerC(_MPMathFunction):
     """
     <dl>
@@ -688,18 +719,19 @@ class GegenbauerC(_MPMathFunction):
       <dd>returns the Generbauer polynomial C_$n$^($m$)($x$).
     </dl>
 
-    >> GegenbauerC[6, 1, x] 
+    >> GegenbauerC[6, 1, x]
      = -1 + 24 x ^ 2 - 80 x ^ 4 + 64 x ^ 6
 
     >> GegenbauerC[4 - I, 1 + 2 I, 0.7]
      = -3.26209595216525854 - 24.9739397455269944 I
     """
 
-    #TODO: Two argument renormalized form GegenbauerC[n, x]
+    # TODO: Two argument renormalized form GegenbauerC[n, x]
 
     nargs = 3
     sympy_name = 'gegenbauer'
     mpmath_name = 'gegenbauer'
+
 
 class ChebyshevT(_MPMathFunction):
     """
@@ -712,12 +744,13 @@ class ChebyshevT(_MPMathFunction):
      = 1 - 32 x ^ 2 + 160 x ^ 4 - 256 x ^ 6 + 128 x ^ 8
 
     >> ChebyshevT[1 - I, 0.5]
-     = 0.800143428851193116 + 1.08198360440499884 I 
+     = 0.800143428851193116 + 1.08198360440499884 I
     """
 
     nargs = 2
     sympy_name = 'chebyshevt'
     mpmath_name = 'chebyt'
+
 
 class ChebyshevU(_MPMathFunction):
     """
@@ -737,6 +770,7 @@ class ChebyshevU(_MPMathFunction):
     sympy_name = 'chebyshevu'
     mpmath_name = 'chebyu'
 
+
 class HermiteH(_MPMathFunction):
     """
     <dl>
@@ -744,12 +778,12 @@ class HermiteH(_MPMathFunction):
       <dd>returns the Hermite polynomial H_$n$($x$).
     </dl>
 
-    >> HermiteH[8, x] 
+    >> HermiteH[8, x]
      = 1680 - 13440 x ^ 2 + 13440 x ^ 4 - 3584 x ^ 6 + 256 x ^ 8
-    
+
     >> HermiteH[3, 1 + I]
      = -28 + 4 I
-    
+
     >> HermiteH[4.2, 2]
      = 77.5290837369752225
     """
@@ -757,6 +791,7 @@ class HermiteH(_MPMathFunction):
     nargs = 2
     sympy_name = 'hermite'
     mpmath_name = 'hermite'
+
 
 class LaguerreL(_MPMathFunction):
     """
@@ -781,19 +816,18 @@ class LaguerreL(_MPMathFunction):
         'LaguerreL[n_, x_]': 'LaguerreL[n, 0, x]',
     }
 
-    nargs = 3 
+    nargs = 3
     sympy_name = 'laguerre_poly'
     mpmath_name = 'laguerre'
-
 
     def prepare_sympy(self, leaves):
         if len(leaves) == 3:
             return [leaves[0], leaves[2], leaves[1]]
         return leaves
 
-#TODO: Zernike polynomials not yet implemented in mpmath nor sympy
+# TODO: Zernike polynomials not yet implemented in mpmath nor sympy
 #
-#class ZernikeR(_MPMathFunction):
+# class ZernikeR(_MPMathFunction):
 #    """
 #    <dl>
 #    <dt>'ZernikeR[$n$, $m$,  $r$]'
@@ -813,4 +847,3 @@ class LaguerreL(_MPMathFunction):
 #    nargs = 3
 #    sympy_name = ''
 #    mpmath_name = ''
-

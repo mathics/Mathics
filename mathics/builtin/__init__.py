@@ -18,21 +18,23 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.builtin import (algebra, arithmetic, assignment, attributes, 
-    calculus, combinatorial, comparison, control, datentime, diffeqns, 
-    evaluation, exptrig, functional, graphics, graphics3d, inout, integer, 
-    linalg, lists, logic, numbertheory, numeric, options, patterns, plot, 
-    physchemdata, randomnumbers, recurrence, specialfunctions, scoping, strings,
-    structure, system, tensors)
+from mathics.builtin import (
+    algebra, arithmetic, assignment, attributes, calculus, combinatorial,
+    comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
+    graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory,
+    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
+    specialfunctions, scoping, strings, structure, system, tensors)
 
-from mathics.builtin.base import Builtin, SympyObject, BoxConstruct, Operator, PatternObject
+from mathics.builtin.base import (
+    Builtin, SympyObject, BoxConstruct, Operator, PatternObject)
 
 from mathics.settings import ENABLE_FILES_MODULE
 
-modules = [algebra, arithmetic, assignment, attributes, calculus, combinatorial,
+modules = [
+    algebra, arithmetic, assignment, attributes, calculus, combinatorial,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory, 
-    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence, 
+    graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory,
+    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
     specialfunctions, scoping, strings, structure, system, tensors]
 
 if ENABLE_FILES_MODULE:
@@ -41,6 +43,7 @@ if ENABLE_FILES_MODULE:
 
 builtins = []
 builtins_by_module = {}
+
 
 def is_builtin(var):
     if var == Builtin:
@@ -54,15 +57,19 @@ for module in modules:
     vars = dir(module)
     for name in vars:
         var = getattr(module, name)
-        if hasattr(var, '__module__') and var.__module__.startswith('mathics.builtin.') and \
-            var.__module__ != 'mathics.builtin.base' and is_builtin(var) and not name.startswith('_') and \
-            var.__module__ == module.__name__:
+        if (hasattr(var, '__module__')
+                and var.__module__.startswith('mathics.builtin.')
+                and var.__module__ != 'mathics.builtin.base'
+                and is_builtin(var) and not name.startswith('_')
+                and var.__module__ == module.__name__):
+
             instance = var(expression=False)
+
             if isinstance(instance, Builtin):
                 builtins.append((instance.get_name(), instance))
                 builtins_by_module[module.__name__].append(instance)
 
-#builtins = dict(builtins)
+# builtins = dict(builtins)
 
 mathics_to_sympy = {}
 sympy_to_mathics = {}
@@ -70,6 +77,7 @@ sympy_to_mathics = {}
 box_constructs = {}
 pattern_objects = {}
 builtins_precedence = {}
+
 
 def add_builtins(new_builtins):
     for var_name, builtin in new_builtins:
@@ -85,10 +93,11 @@ def add_builtins(new_builtins):
         if isinstance(builtin, PatternObject):
             pattern_objects[name] = builtin.__class__
     builtins.update(dict(new_builtins))
-            
+
 new_builtins = builtins
 builtins = {}
 add_builtins(new_builtins)
+
 
 def get_module_doc(module):
     doc = module.__doc__
@@ -106,9 +115,10 @@ def get_module_doc(module):
         text = ''
     return title, text
 
+
 def contribute(definitions):
     # let MakeBoxes contribute first
-    builtins['MakeBoxes'].contribute(definitions)    
+    builtins['MakeBoxes'].contribute(definitions)
     for name, item in builtins.items():
         if name != 'MakeBoxes':
             item.contribute(definitions)

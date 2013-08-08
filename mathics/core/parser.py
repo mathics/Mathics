@@ -22,40 +22,43 @@ import ply.lex as lex
 import ply.yacc as yacc
 
 import re
-import unicodedata
 from math import log10
 
-from mathics.core.expression import (BaseExpression, Expression, Integer, 
-    Real, Symbol, String, Rational)
+from mathics.core.expression import (BaseExpression, Expression, Integer,
+                                     Real, Symbol, String, Rational)
 from mathics.core.numbers import dps
 from mathics.core.characters import letters, letterlikes, named_characters
 
 from mathics.builtin.numeric import machine_precision
 
+
 class TranslateError(Exception):
     pass
+
 
 class ScanError(TranslateError):
     def __init__(self, pos):
         super(ScanError, self).__init__()
         self.pos = pos
-        
+
     def __unicode__(self):
         return u"Lexical error at position {0}.".format(self.pos)
-        
+
+
 class InvalidCharError(TranslateError):
     def __init__(self, char):
         super(InvalidCharError, self).__init__()
         self.char = char
-        
+
     def __unicode__(self):
-        return u"Invalid character at '%s'." % self.char #.decode('utf-8')
+        return u"Invalid character at '%s'." % self.char  # .decode('utf-8')
+
 
 class ParseError(TranslateError):
     def __init__(self, token):
         super(ParseError, self).__init__()
         self.token = token
-        
+
     def __unicode__(self):
         return u"Parse error at or near token %s." % str(self.token)
 
@@ -64,11 +67,12 @@ base_symb = ur'((?![0-9])([0-9${0}{1}])+)'.format(letters, letterlikes)
 
 symbol_re = re.compile(ur'`?{0}(`{0})*'.format(base_symb))
 
+
 def is_symbol_name(text):
     return symbol_re.sub('', text) == ''
 
 prefix_operators = {
-    'Del' : 'Del',
+    'Del': 'Del',
     'Square': 'Square',
     'ForAll': 'ForAll',
     'Exists': 'Exists',
@@ -76,78 +80,78 @@ prefix_operators = {
 }
 
 infix_operators = {
-    'PatternTest' : 'PatternTest',
+    'PatternTest': 'PatternTest',
     'Apply': 'Apply1',
     'Map': 'Map',
     'MapAll': 'MapAll',
     'PlusMinus': 'PlusMinus',
     'MinusPlus': 'MinusPlus',
-    'RightTee' : 'RightTee',
-    'DoubleRightTee' : 'DoubleRightTee',
-    'Power' : 'Power',
-    'LeftTee' : 'LeftTee',
-    'DoubleLeftTee' : 'DoubleLeftTee',
-    'Implies' : 'Implies',
-    'SuchThat' : 'SuchThat',
-    'Condition' : 'Condition',
-    'Rule' : ['op_Rule', 'Rule'],
-    'RuleDelayed' : ['op_RuleDelayed', 'RuleDelayed'],
-    'ReplaceAll' : 'ReplaceAll',
-    'ReplaceRepeated' : 'ReplaceRepeated',
-    'AddTo' : 'AddTo',
-    'SubtractFrom' : 'SubtractFrom',
-    'TimesBy' : 'TimesBy',
-    'DivideBy' : 'DivideBy',
+    'RightTee': 'RightTee',
+    'DoubleRightTee': 'DoubleRightTee',
+    'Power': 'Power',
+    'LeftTee': 'LeftTee',
+    'DoubleLeftTee': 'DoubleLeftTee',
+    'Implies': 'Implies',
+    'SuchThat': 'SuchThat',
+    'Condition': 'Condition',
+    'Rule': ['op_Rule', 'Rule'],
+    'RuleDelayed': ['op_RuleDelayed', 'RuleDelayed'],
+    'ReplaceAll': 'ReplaceAll',
+    'ReplaceRepeated': 'ReplaceRepeated',
+    'AddTo': 'AddTo',
+    'SubtractFrom': 'SubtractFrom',
+    'TimesBy': 'TimesBy',
+    'DivideBy': 'DivideBy',
     'Therefore': 'Therefore',
     'Because': 'Because',
-    'UpSet' : 'UpSet',
-    'UpSetDelayed' : 'UpSetDelayed',
+    'UpSet': 'UpSet',
+    'UpSetDelayed': 'UpSetDelayed',
 }
 
 flat_infix_operators = {
     'StringJoin': 'StringJoin',
-    'SmallCircle' : 'SmallCircle',
-    'CircleDot' : 'CircleDot',
-    'NonCommutativeMultiply' : 'NonCommutativeMultiply',
-    'Cross' : 'Cross',
-    'Dot' : 'RawDot',
-    'Plus' : 'Plus',
-    'Intersection' : 'Intersection',
-    'Union' : 'Union',
-    'Diamond' : 'Diamond',
-    'Wedge' : 'Wedge',
-    'Vee' : 'Vee',
-    'CircleTimes' : 'CircleTimes',
-    'CirclePlus' : 'CirclePlus',
-    'CircleMinus' : 'CircleMinus',
-    'CenterDot' : 'CenterDot',
-    'VerticalTilde' : 'VerticalTilde',
-    'Coproduct' : 'Coproduct',
-    'Cap' : 'Cap',
-    'Cup' : 'Cup',
-    'Star' : 'Star',
-    'Backslash' : 'RawBackslash',
-    'VerticalBar' : 'VerticalBar',
-    'NotVerticalBar' : 'NotVerticalBar',
-    'DoubleVerticalBar' : 'DoubleVerticalBar',
-    'NotDoubleVerticalBar' : 'NotDoubleVerticalBar',
-    'SameQ' : 'SameQ',
-    'UnsameQ' : 'UnsameQ',
-    'Element' : 'Element',
-    'NotElement' : 'NotElement',
-    'Subset' : 'Subset',
-    'Superset' : 'Superset',
-    'And' : ['And', 'op_And'],
-    'Nand' : 'Nand',
-    'Xor' : 'Xor',
-    'Xnor' : 'Xnor',
-    'Or' : ['op_Or', 'Or'],
-    'Nor' : 'Nor',
-    'Equivalent' : 'Equivalent',
-    'Alternatives' : 'Alternatives',
-    'StringExpression' : 'StringExpression',
-    'Colon' : 'Colon',
-    'VerticalSeparator' : 'VerticalSeparator',
+    'SmallCircle': 'SmallCircle',
+    'CircleDot': 'CircleDot',
+    'NonCommutativeMultiply': 'NonCommutativeMultiply',
+    'Cross': 'Cross',
+    'Dot': 'RawDot',
+    'Plus': 'Plus',
+    'Intersection': 'Intersection',
+    'Union': 'Union',
+    'Diamond': 'Diamond',
+    'Wedge': 'Wedge',
+    'Vee': 'Vee',
+    'CircleTimes': 'CircleTimes',
+    'CirclePlus': 'CirclePlus',
+    'CircleMinus': 'CircleMinus',
+    'CenterDot': 'CenterDot',
+    'VerticalTilde': 'VerticalTilde',
+    'Coproduct': 'Coproduct',
+    'Cap': 'Cap',
+    'Cup': 'Cup',
+    'Star': 'Star',
+    'Backslash': 'RawBackslash',
+    'VerticalBar': 'VerticalBar',
+    'NotVerticalBar': 'NotVerticalBar',
+    'DoubleVerticalBar': 'DoubleVerticalBar',
+    'NotDoubleVerticalBar': 'NotDoubleVerticalBar',
+    'SameQ': 'SameQ',
+    'UnsameQ': 'UnsameQ',
+    'Element': 'Element',
+    'NotElement': 'NotElement',
+    'Subset': 'Subset',
+    'Superset': 'Superset',
+    'And': ['And', 'op_And'],
+    'Nand': 'Nand',
+    'Xor': 'Xor',
+    'Xnor': 'Xnor',
+    'Or': ['op_Or', 'Or'],
+    'Nor': 'Nor',
+    'Equivalent': 'Equivalent',
+    'Alternatives': 'Alternatives',
+    'StringExpression': 'StringExpression',
+    'Colon': 'Colon',
+    'VerticalSeparator': 'VerticalSeparator',
 }
 
 postfix_operators = {
@@ -158,25 +162,26 @@ postfix_operators = {
     'Conjugate': 'Conjugate',
     'Transpose': 'Transpose',
     'ConjugateTranspose': ['ConjugateTranspose', 'HermitianConjugate'],
-    'Repeated' : 'Repeated',
-    'RepeatedNull' : 'RepeatedNull',
-    'Function' : 'RawAmpersand',
+    'Repeated': 'Repeated',
+    'RepeatedNull': 'RepeatedNull',
+    'Function': 'RawAmpersand',
 }
 
 innequality_operators = {
-    'Equal' : ['op_Equal', 'LongEqual', 'Equal'],
-    'Unequal' : ['op_Unequal', 'NotEqual'],
-    'Greater' : 'Greater',
-    'Less' : 'Less',
-    'GreaterEqual' : ['op_GreaterEqual', 'GreaterEqual', 'GreaterSlantEqual'],
-    'LessEqual' : ['op_LessEqual', 'LessEqual', 'LessSlantEqual'],
+    'Equal': ['op_Equal', 'LongEqual', 'Equal'],
+    'Unequal': ['op_Unequal', 'NotEqual'],
+    'Greater': 'Greater',
+    'Less': 'Less',
+    'GreaterEqual': ['op_GreaterEqual', 'GreaterEqual', 'GreaterSlantEqual'],
+    'LessEqual': ['op_LessEqual', 'LessEqual', 'LessSlantEqual'],
 }
 
 precedence = (
     ('right', 'FormBox'),
     ('left', 'Semicolon'),                  # flat - custom
     ('left', 'Put', 'PutAppend'),
-    ('right', 'Set', 'SetDelayed', 'Function', 'UpSet', 'UpSetDelayed', 'TagSet', 'Unset'),
+    ('right', 'Set', 'SetDelayed', 'Function',
+     'UpSet', 'UpSetDelayed', 'TagSet', 'Unset'),
     ('left', 'Because'),
     ('right', 'Therefore'),
     ('left', 'VerticalSeparator'),          # flat
@@ -190,7 +195,7 @@ precedence = (
     ('left', 'StringExpression'),           # flat
     ('right', 'RawColon'),
     ('left', 'Alternatives'),               # flat
-    ('nonassoc', 'Repeated', 'RepeatedNull'),  
+    ('nonassoc', 'Repeated', 'RepeatedNull'),
     ('right', 'SuchThat'),
     ('left', 'LeftTee', 'DoubleLeftTee'),
     ('right', 'RightTee', 'DoubleRightTee'),
@@ -203,7 +208,10 @@ precedence = (
     ('right', 'ForAll', 'Exists', 'NotExists'),
     ('left', 'Element', 'NotElement', 'Subset', 'Superset'),    # flat
     ('left', 'SameQ', 'UnsameQ'),           # flat
-    ('left', 'Equal', 'op_Equal', 'LongEqual', 'op_Unequal', 'NotEqual', 'Greater', 'Less', 'GreaterEqual', 'op_GreaterEqual', 'GreaterSlantEqual', 'LessEqual', 'op_LessEqual', 'LessSlantEqual', 'VerticalBar', 'NotVerticalBar', 'DoubleVerticalBar', 'NotDoubleVerticalBar'),
+    ('left', 'Equal', 'op_Equal', 'LongEqual', 'op_Unequal', 'NotEqual',
+     'Greater', 'Less', 'GreaterEqual', 'op_GreaterEqual', 'GreaterSlantEqual',
+     'LessEqual', 'op_LessEqual', 'LessSlantEqual', 'VerticalBar',
+     'NotVerticalBar', 'DoubleVerticalBar', 'NotDoubleVerticalBar'),
     ('nonassoc', 'Span'),
     ('left', 'Union'),                      # flat
     ('left', 'Intersection'),               # flat
@@ -215,15 +223,17 @@ precedence = (
     ('left', 'VerticalTilde'),              # flat
     #('left', 'Product'),
     ('left', 'Star'),                       # flat
-    #This is a hack to get implicit times working properly:
-    ('left', 'Times', 'RawStar', 'blanks', 'blankdefault', 'out', 'slot', 'slotseq', 'string', 'symbol', 'number', 'RawLeftBrace', 'RawLeftParenthesis'), # flat, 
+    # This is a hack to get implicit times working properly:
+    ('left', 'Times', 'RawStar', 'blanks', 'blankdefault', 'out', 'slot',
+     'slotseq', 'string', 'symbol', 'number', 'RawLeftBrace',
+     'RawLeftParenthesis'),  # flat,
     ('left', 'CenterDot'),                  # flat
     ('left', 'CircleTimes'),                # flat
     ('left', 'Vee'),                        # flat
     ('left', 'Wedge'),                      # flat
     ('left', 'Diamond'),                    # flat
     ('nonassoc', 'RawBackslash'),
-    ('left',  'RawSlash', 'Divide', 'Fraction'),
+    ('left', 'RawSlash', 'Divide', 'Fraction'),
     ('right', 'UPlus', 'UMinus', 'UPlusMinus', 'UMinusPlus'),
     ('left', 'RawDot'),                     # flat
     ('left', 'Cross'),                      # flat
@@ -263,7 +273,7 @@ tokens = (
     'symbol',
     'number',
     'string',
-    'blanks', 
+    'blanks',
     'blankdefault',
     'out',
     'slot',
@@ -424,6 +434,7 @@ tokens = (
     'Function',
 )
 
+
 class MathicsScanner:
     tokens = tokens
     precedence = precedence
@@ -485,9 +496,9 @@ class MathicsScanner:
 
     t_Integral = ur' \u222b '
     t_DifferentialD = ur' \uf74c '
-    #t_PartialD = ur' \u2202 '
+    # t_PartialD = ur' \u2202 '
     t_Del = ur' \u2207 '
-    
+
     t_Square = ur' \uf520 '
     t_SmallCircle = ur' \u2218 '
     t_CircleDot = ur' \u2299 '
@@ -509,8 +520,8 @@ class MathicsScanner:
     t_CenterDot = ur' \u00b7 '
     t_Star = ur' \u22c6'
 
-    #t_Sum = ur' \u2211 '
-    #t_Product = ur' \u220f '
+    # t_Sum = ur' \u2211 '
+    # t_Product = ur' \u220f '
 
     t_RawStar = r' \* '
     t_Times = ur' \u00d7 '
@@ -560,7 +571,7 @@ class MathicsScanner:
     t_DivideBy = r' \/\=  '
 
     t_RawAmpersand = r' \& '
-    t_Colon = ur' \u2236 ' 
+    t_Colon = ur' \u2236 '
     t_Postfix = r' \/\/ '
 
     t_Set = r' \= '
@@ -572,9 +583,9 @@ class MathicsScanner:
 
     t_Semicolon = r' \; '
 
-    #t_DiscreteShift = ur' \uf4a3 '
-    #t_DiscreteRatio = ur' \uf4a4 '
-    #t_DifferenceDelta = ur' \u2206 '
+    # t_DiscreteShift = ur' \uf4a3 '
+    # t_DiscreteRatio = ur' \uf4a4 '
+    # t_DifferenceDelta = ur' \u2206 '
     t_VerticalTilde = ur' \u2240 '
     t_Coproduct = ur' \u2210 '
     t_Cap = ur' \u2322 '
@@ -619,15 +630,15 @@ class MathicsScanner:
     def build(self, **kwargs):
         self.lexer = lex.lex(
             debug=False,
-            module=self, 
+            module=self,
             **kwargs)
 
         self.precompiled_regex = {
             'longnames': re.compile(r'(?<!\\)(\\\[[a-zA-Z]+\])'),
             'oct': re.compile(r'(?<!\\)(\\[0-7]{3})'),
-            'hex': re.compile(r'(?<!\\)(\\\.[0-9a-fA-F]{2}|\\\:[0-9a-fA-F]{4})')
+            'hex': re.compile(
+                r'(?<!\\)(\\\.[0-9a-fA-F]{2}|\\\:[0-9a-fA-F]{4})')
         }
-
 
     def tokenize(self, input_string):
         self.tokens = []
@@ -664,7 +675,7 @@ class MathicsScanner:
             if char is not None:
                 return char
             else:
-                #TODO: Syntax::sntufn message
+                # TODO: Syntax::sntufn message
                 return '\\[' + name + ']'
 
         longnames_re = self.precompiled_regex['longnames']
@@ -684,7 +695,7 @@ class MathicsScanner:
         return None
 
     # Lex '1..' as [1, RepeatedNull]. MMA fails when base given e.g. '8^^1..'
-    def t_intRepeated(self, t): 
+    def t_intRepeated(self, t):
         r' (\d+\^\^[a-zA-Z0-9]+|\d+)(?=\.\.) '
         t = self.t_number(t)
         t.type = 'number'
@@ -715,7 +726,7 @@ class MathicsScanner:
         if len(s) == 1:
             n, s = 0, s[0]
         else:
-            #TODO: modify regex and provide error message if n not an int
+            # TODO: modify regex and provide error message if n not an int
             n, s = int(s[1]), s[0]
 
         # Look at precision ` suffix to get precision/accuracy
@@ -757,11 +768,11 @@ class MathicsScanner:
                 else:
                     prec = acc + log10(float(s)) + n
 
-            #XXX
+            # XXX
             if prec is not None:
                 prec = dps(prec)
             t.value = Real(s, prec)
-            #t.value = Real(s, prec, acc)
+            # t.value = Real(s, prec, acc)
         else:
             # Convert the base
             assert isinstance(base, int) and 2 <= base <= 36
@@ -795,7 +806,7 @@ class MathicsScanner:
                     prec10 = machine_precision
                 else:
                     prec10 = prec * log10(base)
-            #XXX
+            # XXX
             if prec10 is None:
                 prec10 = machine_precision
             else:
@@ -812,20 +823,20 @@ class MathicsScanner:
 
     @lex.TOKEN(ur'{0}?_\.'.format(base_symb))
     def t_blankdefault(self, t):    # this must come before t_blanks
-        #r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
+        # r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
         return t
 
     @lex.TOKEN(ur'{0}?_(__?)?{0}?'.format(base_symb))
     def t_blanks(self, t):
-        #r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
+        # r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
         return t
 
     @lex.TOKEN(ur'`?{0}(`{0})*'.format(base_symb))
     def t_symbol(self, t):
-        #r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
+        # r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
         s = t.value
         if s.startswith('`'):
-            #FIXME: Replace Global with the current value of $Context
+            # FIXME: Replace Global with the current value of $Context
             s = 'Global' + s
         t.value = s
         return t
@@ -834,13 +845,12 @@ class MathicsScanner:
         r' \#\#\d+ '
         (t.type, t.value) = ('slotseq', int(t.value[2:]))
         return t
-    
+
     def t_slotseq_2(self, t):
         r' \#\# '
-        s = t.value
         (t.type, t.value) = ('slotseq', 1)
         return t
-    
+
     def t_slotsingle_1(self, t):
         r' \#\d+ '
         (t.type, t.value) = ('slot', int(t.value[1:]))
@@ -917,24 +927,31 @@ class MathicsScanner:
         # print t
         raise ScanError(self.lexer.lexpos)
 
+
 class AbstractToken(object):
     def __init__(self, items):
         self.items = items
 
+
 class SequenceToken(AbstractToken):
     pass
 
+
 class ArgsToken(AbstractToken):
     pass
+
 
 class PositionToken(AbstractToken):
     pass
 
 # Decorator hack to convince ply that a parsing rule only accepts one argument
-def ONEARG(f):      
+
+
+def ONEARG(f):
     def wrapped(args):
         return f(args)
     return wrapped
+
 
 class MathicsParser:
     tokens = tokens
@@ -949,23 +966,27 @@ class MathicsParser:
             tokens = prefix_operators[prefix_op]
             if not isinstance(tokens, list):
                 tokens = [tokens]
-            tmp.__doc__ = 'expr : ' + '\n     | '.join(['{0} expr'.format(token) for token in tokens])
+            tmp.__doc__ = 'expr : ' + '\n     | '.join(
+                ['{0} expr'.format(token) for token in tokens])
             setattr(self, 'p_{0}_prefix'.format(prefix_op), tmp)
 
         for infix_op in infix_operators:
             tokens = infix_operators[infix_op]
             if not isinstance(tokens, list):
                 tokens = [tokens]
+
             @ONEARG
             def tmp(args, op=infix_op):
                 args[0] = Expression(op, args[1], args[3])
-            tmp.__doc__ = 'expr : ' + '\n     | '.join(['expr {0} expr'.format(token) for token in tokens])
+            tmp.__doc__ = 'expr : ' + '\n     | '.join(
+                ['expr {0} expr'.format(token) for token in tokens])
             setattr(self, 'p_{0}_infix'.format(infix_op), tmp)
 
         for flat_infix_op in flat_infix_operators:
             tokens = flat_infix_operators[flat_infix_op]
             if not isinstance(tokens, list):
                 tokens = [tokens]
+
             @ONEARG
             def tmp(args, op=flat_infix_op):
                 if args[1].get_head_name() == op:
@@ -973,7 +994,8 @@ class MathicsParser:
                     args[0] = args[1]
                 else:
                     args[0] = Expression(op, args[1], args[3])
-            tmp.__doc__ = 'expr : ' + '\n     | '.join(['expr {0} expr'.format(token) for token in tokens])
+            tmp.__doc__ = 'expr : ' + '\n     | '.join(
+                ['expr {0} expr'.format(token) for token in tokens])
             setattr(self, 'p_{0}_infix'.format(flat_infix_op), tmp)
 
         for postfix_op in postfix_operators:
@@ -983,7 +1005,8 @@ class MathicsParser:
             tokens = postfix_operators[postfix_op]
             if not isinstance(tokens, list):
                 tokens = [tokens]
-            tmp.__doc__ = 'expr : ' + '\n     | '.join(['expr {0}'.format(token) for token in tokens])
+            tmp.__doc__ = 'expr : ' + '\n     | '.join(
+                ['expr {0}'.format(token) for token in tokens])
             setattr(self, 'p_{0}_postfix'.format(postfix_op), tmp)
 
         for innequality_op in innequality_operators:
@@ -1011,7 +1034,8 @@ class MathicsParser:
             tokens = innequality_operators[innequality_op]
             if not isinstance(tokens, list):
                 tokens = [tokens]
-            tmp.__doc__ = 'expr : ' + '\n     | '.join(['expr {0} expr'.format(token) for token in tokens])
+            tmp.__doc__ = 'expr : ' + '\n     | '.join(
+                ['expr {0} expr'.format(token) for token in tokens])
             setattr(self, 'p_{0}_innequality'.format(innequality_op), tmp)
 
     def build(self, **kwargs):
@@ -1026,7 +1050,7 @@ class MathicsParser:
         if p is not None:
             p = p.value
         raise ParseError(p)
-    
+
     def parse(self, string):
         result = self.parser.parse(string)
         if result is not None:
@@ -1040,7 +1064,7 @@ class MathicsParser:
     def p_Empty(self, args):
         'Expression :'
         args[0] = None
-        
+
     def p_parenthesis(self, args):
         'expr : RawLeftParenthesis expr RawRightParenthesis'
         expr = args[2]
@@ -1050,23 +1074,23 @@ class MathicsParser:
     def p_call(self, args):
         'expr : expr args %prec PART'
         expr = Expression(args[1], *args[2].items)
-        expr.parenthesized = True # to handle e.g. Power[a,b]^c correctly
+        expr.parenthesized = True  # to handle e.g. Power[a,b]^c correctly
         args[0] = expr
-    
+
     def p_part(self, args):
         'expr : expr position %prec PART'
         args[0] = Expression('Part', args[1], *args[2].items)
-    
+
     def p_args(self, args):
         'args : RawLeftBracket sequence RawRightBracket'
         args[0] = ArgsToken(args[2].items)
-    
+
     def p_list(self, args):
         'expr : RawLeftBrace sequence RawRightBrace'
         args[0] = Expression('List', *args[2].items)
-    
+
     def p_position(self, args):
-        'position : RawLeftBracket RawLeftBracket sequence RawRightBracket RawRightBracket'
+        'position : RawLeftBracket RawLeftBracket sequence RawRightBracket RawRightBracket'     # nopep8
         args[0] = PositionToken(args[3].items)
 
     def p_sequence(self, args):
@@ -1102,11 +1126,11 @@ class MathicsParser:
     def p_symbol(self, args):
         'expr : symbol'
         args[0] = Symbol(args[1])
-        
+
     def p_number(self, args):
         'expr : number'
         args[0] = args[1]
-        
+
     def p_blanks(self, args):
         'pattern : blanks'
         pieces = args[1].split('_')
@@ -1125,19 +1149,20 @@ class MathicsParser:
             args[0] = Expression('Pattern', Symbol(pieces[0]), blank)
         else:
             args[0] = blank
-        
+
     def p_blankdefault(self, args):
         'pattern : blankdefault'
         name = args[1][:-2]
         if name:
-            args[0] = Expression('Optional', Expression('Pattern', Symbol(name), Expression('Blank')))
+            args[0] = Expression('Optional', Expression(
+                'Pattern', Symbol(name), Expression('Blank')))
         else:
             args[0] = Expression('Optional', Expression('Blank'))
 
     def p_pattern(self, args):
         'expr : pattern'
         args[0] = args[1]
-        
+
     def p_slot(self, args):
         'expr : slot'
         args[0] = Expression('Slot', Integer(args[1]))
@@ -1145,14 +1170,14 @@ class MathicsParser:
     def p_slotseq(self, args):
         'expr : slotseq'
         args[0] = Expression('SlotSequence', Integer(args[1]))
-    
+
     def p_out(self, args):
         'expr : out'
         if args[1] == -1:
             args[0] = Expression('Out')
         else:
             args[0] = Expression('Out', Integer(args[1]))
-        
+
     def p_string(self, args):
         'expr : string'
         args[0] = String(args[1])
@@ -1170,7 +1195,8 @@ class MathicsParser:
         if len(args) == 4:
             args[0] = Expression('MessageName', args[1], String(args[3]))
         elif len(args) == 6:
-            args[0] = Expression('MessageName', args[1], String(args[3]), String(args[5]))
+            args[0] = Expression('MessageName', args[
+                                 1], String(args[3]), String(args[5]))
 
     def p_PreIncrement(self, args):
         'expr : Increment expr %prec PreIncrement'
@@ -1191,14 +1217,16 @@ class MathicsParser:
     def p_Apply2(self, args):
         'expr : expr Apply2 expr'
         assert args[2] == '@@@'
-        args[0] = Expression('Apply', args[1], args[3], Expression('List', Integer(1)))
+        args[0] = Expression('Apply', args[1], args[
+                             3], Expression('List', Integer(1)))
 
     def p_Derivative(self, args):
         'expr : expr Derivative'
         n = len(args[2])
-        if isinstance(args[1], Expression) and isinstance(args[1].head,
-            Expression) and args[1].head.get_head_name() == 'Derivative' \
-            and args[1].head.leaves[0].get_int_value() is not None:
+        if (isinstance(args[1], Expression) and     # nopep8
+            isinstance(args[1].head, Expression) and
+            args[1].head.get_head_name() == 'Derivative' and
+            args[1].head.leaves[0].get_int_value() is not None):
             n += args[1].head.leaves[0].get_int_value()
             args[1] = args[1].leaves[0]
         args[0] = Expression(Expression('Derivative', Integer(n)), args[1])
@@ -1209,7 +1237,8 @@ class MathicsParser:
 
     def p_Minus(self, args):
         'expr : expr Minus expr'
-        args[0] = Expression('Plus', args[1], Expression('Times', Integer(-1), args[3]))
+        args[0] = Expression('Plus', args[1],
+                             Expression('Times', Integer(-1), args[3]))
 
     def p_UPlus(self, args):
         'expr : Plus expr %prec UPlus'
@@ -1234,7 +1263,8 @@ class MathicsParser:
     def p_Slash(self, args):
         '''expr : expr RawSlash expr
                 | expr Divide expr'''
-        args[0] = Expression('Times', args[1], Expression('Power', args[3], Integer(-1)))
+        args[0] = Expression('Times', args[1],
+                             Expression('Power', args[3], Integer(-1)))
 
     def p_Times(self, args):
         '''expr : expr Times expr
@@ -1276,7 +1306,8 @@ class MathicsParser:
             if isinstance(args[1], BaseExpression):
                 args[0] = Expression('Span', args[1], args[3])
             else:
-                args[0] = Expression('Span', Integer(1), Symbol('All'), args[3])
+                args[0] = Expression('Span', Integer(1), Symbol('All'),
+                                     args[3])
         elif len(args) == 3:
             if isinstance(args[1], BaseExpression):
                 args[0] = Expression('Span', args[1], Symbol('All'))
@@ -1300,7 +1331,10 @@ class MathicsParser:
         if len(args) == 6:
             args[0] = Expression('Optional', args[0], args[5])
         elif args[3].get_head_name() == 'Pattern':
-            args[0] = Expression('Optional', Expression('Pattern', Symbol(args[1]), args[3].leaves[0]), args[3].leaves[1])
+            args[0] = Expression(
+                'Optional',
+                Expression('Pattern', Symbol(args[1]), args[3].leaves[0]),
+                args[3].leaves[1])
 
     def p_Optional(self, args):
         'expr : pattern RawColon expr'
@@ -1361,12 +1395,12 @@ class MathicsParser:
 
     def p_box_to_expr(self, args):
         '''expr : LeftBoxParenthesis boxes RightBoxParenthesis
-                | InterpretedBox LeftBoxParenthesis boxes RightBoxParenthesis %prec InterpretedBox'''
+                | InterpretedBox LeftBoxParenthesis boxes RightBoxParenthesis %prec InterpretedBox'''   # nopep8
         if len(args) == 4:
             args[0] = args[2]
         else:
             result = Expression('MakeExpression', args[3])
-            args[0] = Expression('ReleaseHold', result) #remove HoldComplete
+            args[0] = Expression('ReleaseHold', result)  # remove HoldComplete
 
     def p_box(self, args):
         'box : expr'
@@ -1409,7 +1443,8 @@ class MathicsParser:
         if len(args) == 4:
             args[0] = Expression('SuperscriptBox', args[1], args[3])
         elif len(args) == 6:
-            args[0] = Expression('SubsuperscriptBox', args[1], args[5], args[3])
+            args[0] = Expression(
+                'SubsuperscriptBox', args[1], args[5], args[3])
 
     def p_Subscript(self, args):
         '''box : box Subscript box Otherscript box %prec Subscript
@@ -1417,7 +1452,8 @@ class MathicsParser:
         if len(args) == 4:
             args[0] = Expression('SubscriptBox', args[1], args[3])
         elif len(args) == 6:
-            args[0] = Expression('SubsuperscriptBox', args[1], args[3], args[5])
+            args[0] = Expression(
+                'SubsuperscriptBox', args[1], args[3], args[5])
 
     def p_OverscriptBox(self, args):
         '''box : box Overscript box Otherscript box %prec Overscript
@@ -1425,7 +1461,8 @@ class MathicsParser:
         if len(args) == 4:
             args[0] = Expression('OverscriptBox', args[1], args[3])
         elif len(args) == 6:
-            args[0] = Expression('UnderoverscriptBox', args[1], args[5], args[3])
+            args[0] = Expression(
+                'UnderoverscriptBox', args[1], args[5], args[3])
 
     def p_UnderscriptBox(self, args):
         '''box : box Underscript box Otherscript box %prec Underscript
@@ -1433,7 +1470,8 @@ class MathicsParser:
         if len(args) == 4:
             args[0] = Expression('UnderscriptBox', args[1], args[3])
         elif len(args) == 6:
-            args[0] = Expression('UnderoverscriptBox', args[1], args[3], args[5])
+            args[0] = Expression(
+                'UnderoverscriptBox', args[1], args[3], args[5])
 
     def p_FractionBox(self, args):
         'box : box Fraction box'
@@ -1455,6 +1493,7 @@ scanner = MathicsScanner()
 scanner.build()
 parser = MathicsParser()
 parser.build()
+
 
 def parse(string):
     scanner.lexer.begin('INITIAL')      # Reset the lexer state (known lex bug)
