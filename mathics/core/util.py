@@ -22,19 +22,20 @@ import re
 
 FORMAT_RE = re.compile(r'\`(\d*)\`')
 
+
 def interpolate_string(text, get_param):
     index = [1]
-    
+
     def get_item(index):
         if 1 <= index <= len(args):
             return args[index - 1]
         else:
             return ''
-        
+
     if isinstance(get_param, list):
         args = get_param
         get_param = get_item
-    
+
     def repl(match):
         arg = match.group(1)
         if arg == '' or arg == '0':
@@ -54,19 +55,21 @@ http://www.cosc.canterbury.ac.nz/tad.takaoka/perm.p
 for a permutation generating algorithm for multisets.
 """
 
+
 def permutations(items, without_duplicates=True):
     if not items:
         yield []
-    #already_taken = set()
+    # already_taken = set()
     # first yield identical permutation without recursion
     yield items
     for index in range(len(items)):
         item = items[index]
-        #if item not in already_taken:
-        for sub in permutations(items[:index] + items[index+1:]):
+        # if item not in already_taken:
+        for sub in permutations(items[:index] + items[index + 1:]):
             yield [item] + sub
-            #already_taken.add(item)
-            
+            # already_taken.add(item)
+
+
 def subsets(items, min, max, included=None, less_first=False):
     if max is None:
         max = len(items)
@@ -76,7 +79,7 @@ def subsets(items, min, max, included=None, less_first=False):
     lengths = list(lengths)
     if lengths and lengths[0] == 0:
         lengths = lengths[1:] + [0]
-        
+
     def decide(chosen, not_chosen, rest, count):
         if count < 0 or len(rest) < count:
             return
@@ -88,24 +91,26 @@ def subsets(items, min, max, included=None, less_first=False):
         elif rest:
             item = rest[0]
             if included is None or item in included:
-                for set in decide(chosen + [item], not_chosen, rest[1:], count - 1):
-                    yield set 
+                for set in decide(chosen + [item], not_chosen, rest[1:],
+                                  count - 1):
+                    yield set
             for set in decide(chosen, not_chosen + [item], rest[1:], count):
                 yield set
-                        
+
     for length in lengths:
         for chosen, not_chosen in decide([], [], items, length):
             yield chosen, ([], not_chosen)
-        
+
+
 def subsets_2(items, min, max, without_duplicates=True):
     """ max may only be 1 or None (= infinity).
     Respects include property of items
     """
-    
+
     if min <= max == 1:
         for index in range(len(items)):
             if items[index].include:
-                yield [items[index]], ([], items[:index] + items[index+1:])
+                yield [items[index]], ([], items[:index] + items[index + 1:])
         if min == 0:
             yield [], ([], items)
     else:
@@ -117,17 +122,21 @@ def subsets_2(items, min, max, without_duplicates=True):
                 else:
                     counts[item] = 1
         already = set()
+
         def decide(chosen, not_chosen, rest):
             if not rest:
                 if len(chosen) >= min:
-                    """if False and len(chosen) > 1 and (permutate_until is None or len(chosen) <= permutate_until):
+                    """if False and len(chosen) > 1 and (
+                            permutate_until is None or
+                            len(chosen) <= permutate_until):
                         for perm in permutations(chosen):
                             yield perm, ([], not_chosen)
                     else:"""
                     yield chosen, ([], not_chosen)
             else:
                 if rest[0].include:
-                    for set in decide(chosen + [rest[0]], not_chosen, rest[1:]):
+                    for set in decide(chosen + [rest[0]], not_chosen,
+                                      rest[1:]):
                         yield set
                 for set in decide(chosen, not_chosen + [rest[0]], rest[1:]):
                     yield set
@@ -138,10 +147,12 @@ def subsets_2(items, min, max, without_duplicates=True):
                 already.add(t)
             else:
                 print 'already taken'
-        
-def subranges(items, min_count, max, flexible_start=False, included=None, less_first=False):
+
+
+def subranges(items, min_count, max, flexible_start=False, included=None,
+              less_first=False):
     # TODO: take into account included
-    
+
     if max is None:
         max = len(items)
     max = min(max, len(items))
@@ -157,8 +168,10 @@ def subranges(items, min_count, max, flexible_start=False, included=None, less_f
         if lengths == [0, 1]:
             lengths = [1, 0]
         for length in lengths:
-            yield items[start:start+length], (items[:start], items[start+length:])
-            
+            yield (items[start:start + length],
+                   (items[:start], items[start + length:]))
+
+
 def unicode_superscript(value):
     def repl_char(c):
         if c == '1':

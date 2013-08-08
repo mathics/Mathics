@@ -1,23 +1,25 @@
 # -*- coding: utf8 -*-
 
 # force utf8 encoding
-import sys, codecs
+import sys
+import codecs
 writer = codecs.getwriter("utf-8")
 sys.stdout = writer(sys.stdout)
 
+
 def get_version():
     version = {}
-    
+
     import sympy
     import sympy.mpmath as mpmath
-    
+
     from django.core.exceptions import ImproperlyConfigured
-    
+
     try:
         import django
         from django.conf import settings
         version['mathics'] = settings.VERSION
-        version['django'] = django.get_version()        
+        version['django'] = django.get_version()
     except (ImportError, ImproperlyConfigured):
         from mathics import settings
         version['mathics'] = settings.VERSION
@@ -25,6 +27,7 @@ def get_version():
     version['mpmath'] = mpmath.__version__
     version['python'] = sys.subversion[0] + " " + sys.version.split('\n')[0]
     return version
+
 
 def get_version_string(is_server, newlines=False):
     version = get_version()
@@ -38,9 +41,11 @@ def get_version_string(is_server, newlines=False):
     result.append(u"using %s" % ", ".join(libs))
     return ("\n" if newlines else " ").join(result)
 
+
 def print_version(is_server):
     print "\n" + get_version_string(is_server, newlines=True)
-    
+
+
 def print_license():
     print u"""
 Copyright (C) 2011-2013 The Mathics Team.

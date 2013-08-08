@@ -7,9 +7,8 @@ Integer functions
 import sympy
 
 from mathics.builtin.base import Builtin
-from mathics.core.numbers import mpmath2sympy
-from mathics.core import numbers
-from mathics.core.expression import Integer, Rational, Real, Expression
+from mathics.core.expression import Integer
+
 
 class Floor(Builtin):
     """
@@ -19,7 +18,7 @@ class Floor(Builtin):
     <dt>'Floor[$x$, $a$]'
         <dd>gives the smallest multiple of $a$ less than or equal to $x$.
     </dl>
-    
+
     >> Floor[10.4]
      = 10
     >> Floor[10/3]
@@ -32,7 +31,7 @@ class Floor(Builtin):
      = 2.5
     >> Floor[-10.4]
      = -11
-     
+
     For negative $a$, the smallest multiple of $a$ greater than or equal to $x$
     is returned.
     >> Floor[10.4, -1]
@@ -40,15 +39,15 @@ class Floor(Builtin):
     >> Floor[-10.4, -1]
      = -10
     """
-    
+
     rules = {
         'Floor[x_, a_]': 'Floor[x / a] * a',
         'Floor[z_Complex]': 'Complex[Floor[Re[z]], Floor[Im[z]]]',
     }
-    
+
     def apply_real(self, x, evaluation):
         'Floor[x_?RealNumberQ]'
-        
+
         x = x.value
         if x < 0:
             floor = - sympy.Integer(abs(x))
@@ -57,7 +56,8 @@ class Floor(Builtin):
         else:
             floor = sympy.Integer(x)
         return Integer(floor)
-    
+
+
 class IntegerLength(Builtin):
     """
     >> IntegerLength[123456]
@@ -77,20 +77,20 @@ class IntegerLength(Builtin):
      : Base -2 is not an integer greater than 1.
      = IntegerLength[3, -2]
     """
-    
+
     rules = {
         'IntegerLength[n_]': 'IntegerLength[n, 10]',
     }
-    
+
     messages = {
         'base': "Base `1` is not an integer greater than 1.",
     }
-    
+
     def apply(self, n, b, evaluation):
         'IntegerLength[n_, b_]'
-        
+
         # Use interval arithmetic to account for "right" rounding
-        
+
         n, b = n.get_int_value(), b.get_int_value()
         if n is None or b is None:
             evaluation.message('IntegerLength', 'int')
@@ -98,6 +98,6 @@ class IntegerLength(Builtin):
         if b <= 1:
             evaluation.message('IntegerLength', 'base', b)
             return
-         
+
         result = sympy.Integer(sympy.log(abs(n), b)) + 1
         return Integer(result)

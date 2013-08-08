@@ -22,10 +22,9 @@ import sys
 import os
 import argparse
 
-import django
-
 from mathics import print_version, print_license
-from mathics import settings as mathics_settings  #Prevents UnboundLocalError
+from mathics import settings as mathics_settings  # Prevents UnboundLocalError
+
 
 def main():
     # Check for the database
@@ -38,33 +37,40 @@ def main():
         sys.exit(-1)
 
     os.environ['DJANGO_SETTINGS_MODULE'] = 'mathics.settings'
-    #os.putenv('DJANGO_SETTINGS_MODULE', 'mathics.settings')
-    
+    # os.putenv('DJANGO_SETTINGS_MODULE', 'mathics.settings')
+
     from django.conf import settings
     from django.core.servers.basehttp import run, WSGIServerException
     from django.core.handlers.wsgi import WSGIHandler
-    
+
     argparser = argparse.ArgumentParser(
         prog='mathicsserver',
         usage='%(prog)s [options]',
         add_help=False,
-        description = """Mathics server for the graphical user interface in a
+        description="""Mathics server for the graphical user interface in a
             web browser. It is not intended for production use on a public Web
             server!""",
-        epilog = """Please feel encouraged to contribute to Mathics! Create
-            your own fork, make the desired changes, commit, and make a pull 
+        epilog="""Please feel encouraged to contribute to Mathics! Create
+            your own fork, make the desired changes, commit, and make a pull
             request.""")
 
-    argparser.add_argument('--help', '-h', help='show this help message and exit', action='help')
-    argparser.add_argument('--quiet', '-q', help='don\'t print message at startup', action='store_true')
-    argparser.add_argument('--version', '-v', action='version', version='%(prog)s ' + settings.VERSION)
-    argparser.add_argument("--port", "-p", dest="port", metavar="PORT", default=8000, type=int, 
+    argparser.add_argument(
+        '--help', '-h', help='show this help message and exit', action='help')
+    argparser.add_argument(
+        '--quiet', '-q', help='don\'t print message at startup',
+        action='store_true')
+    argparser.add_argument(
+        '--version', '-v', action='version',
+        version='%(prog)s ' + settings.VERSION)
+    argparser.add_argument(
+        "--port", "-p", dest="port", metavar="PORT", default=8000, type=int,
         help="use PORT as server port")
-    argparser.add_argument("--external", "-e", dest="external", action="store_true", 
+    argparser.add_argument(
+        "--external", "-e", dest="external", action="store_true",
         help="allow external access to server")
-    
+
     args = argparser.parse_args()
-    
+
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-C'
     port = args.port
 
@@ -72,20 +78,22 @@ def main():
         print_version(is_server=True)
         print_license()
         print u"Quit by pressing %s\n" % quit_command
-    
-        print u"Open the graphical user interface at\nhttp://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n" % port
-    
+
+        print u"""Open the graphical user interface at
+http://localhost:%d\n in Firefox, Chrome, or Safari to use Mathics\n""" % port
+
     if args.external:
         addr = '0.0.0.0'
     else:
         addr = ''
-    
+
     try:
         if settings.DJANGO_VERSION < (1, 4):
             from django.core.servers.basehttp import AdminMediaHandler
             handler = AdminMediaHandler(WSGIHandler(), '')
         else:
-            from django.core.servers.basehttp import get_internal_wsgi_application
+            from django.core.servers.basehttp import (
+                get_internal_wsgi_application)
             handler = get_internal_wsgi_application()
         run(addr, port, handler)
     except WSGIServerException, e:

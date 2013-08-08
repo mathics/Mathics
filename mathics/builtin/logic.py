@@ -1,7 +1,8 @@
 # -*- coding: utf8 -*-
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
+from mathics.builtin.base import BinaryOperator, PrefixOperator
 from mathics.core.expression import Expression, Symbol
+
 
 class Or(BinaryOperator):
     """
@@ -10,16 +11,16 @@ class Or(BinaryOperator):
     >> False || True
      = True
     >> a || False || b
-     = a || b 
+     = a || b
     """
-    
+
     operator = '||'
     precedence = 215
     attributes = ('Flat', 'HoldAll', 'OneIdentity')
-    
+
     def apply(self, args, evaluation):
         'Or[args___]'
-        
+
         args = args.get_sequence()
         leaves = []
         for arg in args:
@@ -36,6 +37,7 @@ class Or(BinaryOperator):
         else:
             return Symbol('False')
 
+
 class And(BinaryOperator):
     """
     <dl>
@@ -48,14 +50,14 @@ class And(BinaryOperator):
     >> a && b && True && c
      = a && b && c
     """
-    
+
     operator = '&&'
     precedence = 215
     attributes = ('Flat', 'HoldAll', 'OneIdentity')
-    
+
     def apply(self, args, evaluation):
         'And[args___]'
-        
+
         args = args.get_sequence()
         leaves = []
         for arg in args:
@@ -71,7 +73,8 @@ class And(BinaryOperator):
                 return Expression('And', *leaves)
         else:
             return Symbol('True')
-        
+
+
 class Not(PrefixOperator):
     """
     'Not' negates a logical expression.
@@ -82,13 +85,11 @@ class Not(PrefixOperator):
     >> !b
      = !b
     """
-    
+
     operator = '!'
     precedence = 230
-    
+
     rules = {
         'Not[True]': 'False',
         'Not[False]': 'True',
     }
-    
-        
