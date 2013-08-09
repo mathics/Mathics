@@ -216,5 +216,5 @@ class Context(Builtin):
         if not name:
             evaluation.message('Context', 'normal')
             return
-        context = evaluation.definitions.get_definition(name).context
+        context = 'System`' if name in evaluation.definitions.get_builtin_names() else 'Global`'
         return String(context)

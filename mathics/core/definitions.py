@@ -87,18 +87,11 @@ class Definitions(object):
         user = self.user.get(name, None)
         builtin = self.builtin.get(name, None)
 
-        if builtin:
-            context = 'System`'
-        else:
-            context = 'Global`'
-
         if user is None and builtin is None:
-            return Definition(name=name, context=context)
+            return Definition(name=name)
         if builtin is None:
-            user.context = context
             return user
         if user is None:
-            builtin.context = context
             return builtin
 
         if user:
@@ -132,7 +125,6 @@ class Definitions(object):
                           nvalues=user.nvalues + builtin.nvalues,
                           defaultvalues=user.defaultvalues +
                           builtin.defaultvalues,
-                          context=context,
                           )
 
     def get_attributes(self, name):
@@ -314,7 +306,7 @@ class Definition(object):
     def __init__(self, name, rules=None, ownvalues=None, downvalues=None,
                  subvalues=None, upvalues=None, formatvalues=None,
                  messages=None, attributes=(), options=None, nvalues=None,
-                 defaultvalues=None, builtin=None, context='Global`'):
+                 defaultvalues=None, builtin=None):
 
         super(Definition, self).__init__()
         self.name = name
@@ -354,7 +346,6 @@ class Definition(object):
         self.nvalues = nvalues
         self.defaultvalues = defaultvalues
         self.builtin = builtin
-        self.context = context
 
     def get_values_list(self, pos):
         if pos == 'messages':
