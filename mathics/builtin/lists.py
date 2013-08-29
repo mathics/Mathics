@@ -661,6 +661,7 @@ class Partition(Builtin):
       <dd>partitions $list$ into sublists of length $n$.
     <dt>'Parition[$list$, $n$, $d$]'
       <dd>partitions $list$ into sublists of length $n$ which overlap $d$ indicies.
+    </dl>
 
     >> Partition[{a, b, c, d, e, f}, 2]
      = {{a, b}, {c, d}, {e, f}}
