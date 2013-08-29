@@ -210,10 +210,27 @@ def main():
         if not args.persist:
             return
 
+    def raw_input_nocodec(*args, **kwargs):
+        # sys.stdout is wrapped by a codecs.StreamWriter object in
+        # mathics/__init__.py, which interferes with raw_input's use
+        # of readline.
+        #
+        # To work around this issue, call raw_input with the original
+        # file object as sys.stdout, which is in the undocumented
+        # 'stream' field of codecs.StreamWriter.
+        orig_stdout = sys.stdout
+        try:
+            sys.stdout = sys.stdout.stream
+            ret = raw_input(*args, **kwargs)
+            return ret
+        finally:
+            sys.stdout = orig_stdout
+
     total_input = ""
     while True:
         try:
-            line = raw_input(shell.get_in_prompt(continued=total_input != ''))
+            line = raw_input_nocodec(
+                shell.get_in_prompt(continued=total_input != ''))
             line = line.decode(sys.stdin.encoding)
             total_input += line
             if line != "" and wait_for_line(total_input):
