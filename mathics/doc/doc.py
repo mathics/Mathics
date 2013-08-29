@@ -147,7 +147,7 @@ def escape_latex(text):
 \end{lstlisting}""" % match.group(1).strip()
     text, post_substitutions = pre_sub(PYTHON_RE, text, repl_python)
 
-    text = _repalce_all(text, [('\\', '\\\\'), ('{', '\\{'), ('}', '\\}'),
+    text = _replace_all(text, [('\\', '\\\\'), ('{', '\\{'), ('}', '\\}'),
                                ('~', '\\~{ }'), ('&', '\\&'), ('%', '\\%')])
 
     def repl(match):
@@ -432,7 +432,7 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
                 return "'"
 
         def repl_allowed(match):
-            context = _repalce_all(match.group(1), [
+            content = _replace_all(match.group(1), [
                 ('&ldquo;', '"'), ('&rdquo;', '"'), ('&quot;', '"')])
             return '<%s>' % content
 
