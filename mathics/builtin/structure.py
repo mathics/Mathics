@@ -555,3 +555,35 @@ class SymbolName(Builtin):
         'SymbolName[symbol_Symbol]'
 
         return String(symbol.get_name())
+
+class Depth(Builtin):
+    """
+    <dl>
+    <dt>'Depth[$expr$]'
+    <dd>gives the depth of $expr$
+    </dl>
+
+    The depth of an expression is defined as one plus the maximum
+    number of 'Part' indices required to reach any part of $expr$,
+    except for heads.
+
+    >> Depth[x]
+     = 1
+    >> Depth[x + y]
+     = 2
+    >> Depth[{{{{x}}}}]
+     = 5
+
+    Complex numbers are atomic, and hence have depth 1:
+    >> Depth[1 + 2 I]
+     = 1
+
+    'Depth' ignores heads:
+    >> Depth[f[a, b][c]]
+     = 2
+    """
+
+    def apply(self, expr, evaluation):
+        'Depth[expr_]'
+        expr, depth = walk_levels(expr)
+        return Integer(depth + 1)
