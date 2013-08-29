@@ -587,3 +587,74 @@ class Depth(Builtin):
         'Depth[expr_]'
         expr, depth = walk_levels(expr)
         return Integer(depth + 1)
+
+class Operate(Builtin):
+    """
+    <dl>
+    <dt>'Operate[$p$, $expr$]'
+    <dd>applies $p$ to the head of $expr$.
+    <dt>'Operate[$p$, $expr$, $n$]'
+    <dd>applies $p$ to the $n$th head of $expr$.
+    </dl>
+
+    >> Operate[p, f[a, b]]
+     = p[f][a, b]
+
+    The default value of $n$ is 1:
+    >> Operate[p, f[a, b], 1]
+     = p[f][a, b]
+
+    With $n$=0, 'Operate' acts like 'Apply':
+    >> Operate[p, f[a][b][c], 0]
+     = p[f[a][b][c]]
+
+    #> Operate[p, f[a][b][c]]
+     = p[f[a][b]][c]
+    #> Operate[p, f[a][b][c], 1]
+     = p[f[a][b]][c]
+    #> Operate[p, f[a][b][c], 2]
+     = p[f[a]][b][c]
+    #> Operate[p, f[a][b][c], 3]
+     = p[f][a][b][c]
+    #> Operate[p, f[a][b][c], 4]
+     = f[a][b][c]
+    #> Operate[p, f]
+     = f
+    #> Operate[p, f, 0]
+     = p[f]
+    """
+
+    def apply_invalidlevel(self, p, expr, n, evaluation):
+        'Operate[p_, expr_, n_]'
+
+        evaluation.message('Operate', 'intnn')
+
+    def apply(self, p, expr, n, evaluation):
+        'Operate[p_, expr_, Optional[n_Integer, 1]]'
+
+        head_depth = n.to_python()
+
+        if head_depth < 0:
+            return evaluation.message('Operate', 'intnn')
+        elif head_depth == 0:
+            # Act like Apply
+            return Expression(p, expr)
+        elif expr.is_atom():
+            return expr
+
+        expr = expr.copy()
+        e = expr
+
+        for i in range(1, head_depth):
+            e = e.head
+            if e.is_atom():
+                # n is higher than the depth of heads in expr: return
+                # expr unmodified.
+                return expr
+
+        # Otherwise, if we get here, e.head points to the head we need
+        # to apply p to. Python's reference semantics mean that this
+        # assignment modifies expr as well.
+        e.head = Expression(p, e.head)
+
+        return expr
