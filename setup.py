@@ -23,14 +23,9 @@ Or, if all else fails, feel free to write to the sympy list at
 mathics-users@googlegroups.com and ask for help.
 """
 
-from distribute_setup import use_setuptools
-use_setuptools()
-
-from setuptools import setup
-from distutils.core import Command
-from distutils.extension import Extension
-
 import sys
+from setuptools import setup, Command, Extension
+
 # Ensure user has the correct Python version
 if not (2, 5) <= sys.version_info[:2] <= (2, 7):
     print("Mathics supports Python 2.5 upto Python 2.7. \
