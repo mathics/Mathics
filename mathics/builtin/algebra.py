@@ -434,3 +434,33 @@ class Denominator(Builtin):
         sympy_expr = expr.to_sympy()
         numer, denom = sympy_expr.as_numer_denom()
         return from_sympy(denom)
+
+
+class Variables(Builtin):
+    """
+    <dl>
+    <dt>'Variables[$expr$]'
+        <dd>gives a list of the variables that appear in the
+        polynomial $expr$.
+    </dl>
+
+    >> Variables[a x^2 + b x + c]
+     = {a, x, c, b}
+    """
+
+    def apply(self, expr, evaluation):
+        'Variables[expr_]'
+
+        variables = set()
+
+        def find_vars(e):
+            if e.is_symbol():
+                variables.add(e)
+            elif (e.has_form('Plus', None) or
+                  e.has_form('Times', None) or
+                  e.has_form('Power', None)):
+                for l in e.leaves:
+                    find_vars(l)
+
+        find_vars(expr)
+        return Expression('List', *variables)
