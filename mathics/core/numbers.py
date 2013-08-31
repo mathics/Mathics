@@ -175,3 +175,22 @@ def convert_base(x, base, precision=10):
         return "%s.%s" % (''.join(int_part), ''.join(real_part))
     else:
         return ''.join(int_part)
+
+
+def convert_int_to_digit_list(x, base):
+    x = abs(x)
+
+    length_of_int = int(log(x, base))
+    iexps = range(length_of_int, -1, -1)
+
+    def convert(x, base, exponents):
+        out = []
+        for e in exponents:
+            d = int(x // (base ** e))
+            x -= d * (base ** e)
+            out.append(d)
+            if x == 0 and e < 0:
+                break
+        return out
+
+    return convert(x, base, iexps)
