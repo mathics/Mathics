@@ -1811,3 +1811,99 @@ class DeleteDuplicates(Builtin):
                 result.append(leaf)
 
         return Expression(mlist.head, *result)
+
+
+class Complement(Builtin):
+    """
+    <dl>
+    <dt>'Complement[$all$, $e1$, $e2$, ...]'
+      <dd>returns an expression containing the elements in the set $all$ that
+      are not in any of $e1$, $e2$, etc.
+    <dt>'Complement[$all$, $e1$, $e2$, ..., SameTest->$test$]'
+      <dd>applies $test$ to the elements in $all$ and each of the $ei$
+      to determine equality.
+    </dl>
+
+    The sets $all$, $e1$, etc can have any head, which must all match.
+    The returned expression has the same head as the input
+    expressions.
+
+    >> Complement[{a, b, c}, {a, c}]
+     = {b}
+    >> Complement[{a, b, c}, {a, c}, {b}]
+     = {}
+    >> Complement[f[z, y, x, w], f[x], f[x, z]]
+     = f[w, y]
+
+    #> Complement[a, b]
+     : Non-atomic expression expected at position 1 in Complement[a, b].
+     = Complement[a, b]
+    #> Complement[f[a], g[b]]
+     : Heads f and g at positions 1 and 2 are expected to be the same.
+     = Complement[f[a], g[b]]
+    #> Complement[{a, b, c}, {a, c}, SameTest->(True&)]
+     = {}
+    #> Complement[{a, b, c}, {a, c}, SameTest->(False&)]
+     = {a, b, c}
+    """
+
+    messages = {
+        'normal': "Non-atomic expression expected at position `1` in `2`.",
+        'heads': ("Heads `1` and `2` at positions `3` and `4` are expected "
+                  "to be the same."),
+        'smtst': ("Application of the SameTest yielded `1`, which evaluates "
+                  "to `2`. The SameTest must evaluate to True or False at "
+                  "every pair of elements."),
+    }
+
+    options = {
+        'SameTest': 'SameQ',
+    }
+
+    def complement(self, all, others, evaluation, test):
+        def test_pair(e1, e2):
+            test_expr = Expression(test, e1, e2)
+            result = test_expr.evaluate(evaluation)
+            if not(result.is_symbol() and (result.has_symbol('True') or
+                                           result.has_symbol('False'))):
+                evaluation.message('Complement', 'smtst', test_expr, result)
+            return result.is_true()
+        all = set(all)
+        for leaves in others:
+            for e2 in leaves:
+                for e1 in all.copy():
+                    if test_pair(e1, e2):
+                        all.discard(e1)
+        return all
+
+    def apply(self, all, others, evaluation, options={}):
+        'Complement[all_, others__, OptionsPattern[Complement]]'
+
+        # FIXME: is there a better way to get hold of the original
+        # expression?
+        def get_call():
+            return Expression('Complement', all, *others.get_sequence())
+
+        for pos, e in enumerate([all, others]):
+            if e.is_atom():
+                return evaluation.message(
+                    'Complement', 'normal', pos + 1, get_call())
+
+        for pos, e in enumerate([all] + others.get_sequence()):
+            if e.is_atom():
+                return evaluation.message(
+                    'Complement', 'normal', pos + 1, get_call())
+            if e.head != all.head:
+                return evaluation.message(
+                    'Complement', 'heads', all.head, e.head,
+                    1, pos + 1)
+
+        result_head = all.head
+        same_test = self.get_option(options, 'SameTest', evaluation)
+        others_leaves = [e.leaves for e in others.get_sequence()]
+
+        result = Expression(result_head,
+                            *self.complement(all.leaves, others_leaves,
+                                             evaluation, same_test))
+        result.sort()
+        return result
