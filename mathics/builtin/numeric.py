@@ -450,6 +450,11 @@ class IntegerDigits(Builtin):
 
     >> IntegerDigits[76543]
      = {7, 6, 5, 4, 3}
+
+    The sign of $n$ is discarded:
+    >> IntegerDigits[-76543]
+     = {7, 6, 5, 4, 3}
+
     >> IntegerDigits[15, 16]
      = {15}
     >> IntegerDigits[1234, 16]
