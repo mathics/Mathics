@@ -556,6 +556,7 @@ class SymbolName(Builtin):
 
         return String(symbol.get_name())
 
+
 class Depth(Builtin):
     """
     <dl>
