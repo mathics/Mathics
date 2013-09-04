@@ -946,15 +946,39 @@ class OptionsPattern(PatternObject):
 
     #> {opt -> b} /. OptionsPattern[{}] -> t
      = t
+
+    #> Clear[f]
+    #> Options[f] = {Power -> 2};
+    #> f[x_, OptionsPattern[f]] := x ^ OptionValue[Power]
+    #> f[10]
+     = 100
+    #> f[10, Power -> 3]
+     = 1000
+    #> Clear[f]
+
+    #> Options[f] = {Power -> 2};
+    #> f[x_, OptionsPattern[]] := x ^ OptionValue[Power]
+    #> f[10]
+     = 100
+    #> f[10, Power -> 3]
+     = 1000
+    #> Clear[f]
     """
 
-    arg_counts = [1]
+    arg_counts = [0, 1]
 
     def init(self, expr):
         super(OptionsPattern, self).init(expr)
-        self.defaults = expr.leaves[0]
+        try:
+            self.defaults = expr.leaves[0]
+        except IndexError:
+            # OptionsPattern[] takes default options of the nearest enclosing
+            # function. Set to not None in self.match
+            self.defaults = None
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
+        if self.defaults is None:
+            self.defaults = kwargs['head']
         values = self.defaults.get_option_values(
             evaluation, allow_symbols=True, stop_on_error=False)
         sequence = expression.get_sequence()
