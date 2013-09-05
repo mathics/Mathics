@@ -14,7 +14,7 @@ import base64
 import tempfile
 import time
 import struct
-import mpmath
+import sympy
 import math
 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
@@ -930,22 +930,23 @@ class _BinaryFormat(object):
             else:
                 return Symbol('Indeterminate')
 
-        core = mpmath.fdiv(fracbits, 2**112, prec=128)
+        core = sympy.mpmath.fdiv(fracbits, 2**112, prec=128)
         if expbits == 0x000:
             assert fracbits != 0
             exp = -16382
-            core = mpmath.fmul((-1)**signbit, core, prec=128)
+            core = sympy.mpmath.fmul((-1)**signbit, core, prec=128)
         else:
             assert 0x0001 <= expbits <= 0x7FFE
             exp = expbits - 16383
-            core = mpmath.fmul((-1)**signbit, mpmath.fadd(1, core, prec=128), prec=128)
+            core = sympy.mpmath.fmul(
+                (-1)**signbit, sympy.mpmath.fadd(1, core, prec=128), prec=128)
 
         if exp >= 0:
-            result = mpmath.fmul(core, 2**exp, prec=128)
+            result = sympy.mpmath.fmul(core, 2**exp, prec=128)
         else:
-            result = mpmath.fdiv(core, 2**-exp, prec=128)
+            result = sympy.mpmath.fdiv(core, 2**-exp, prec=128)
 
-        return Real(mpmath.nstr(result, n=38), p=112)
+        return Real(sympy.mpmath.nstr(result, n=38), p=112)
 
     @staticmethod
     def _TerminatedString_reader(s):
