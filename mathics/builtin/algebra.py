@@ -434,3 +434,57 @@ class Denominator(Builtin):
         sympy_expr = expr.to_sympy()
         numer, denom = sympy_expr.as_numer_denom()
         return from_sympy(denom)
+
+
+class Variables(Builtin):
+    # This builtin is incomplete. See the failing test case below.
+    """
+    <dl>
+    <dt>'Variables[$expr$]'
+        <dd>gives a list of the variables that appear in the
+        polynomial $expr$.
+    </dl>
+
+    >> Variables[a x^2 + b x + c]
+     = {a, b, c, x}
+    >> Variables[{a + b x, c y^2 + x/2}]
+     = {a, b, c, x, y}
+    >> Variables[x + Sin[y]]
+     = {x, Sin[y]}
+    """
+
+    """
+    ## failing test case from MMA docs
+    #> Variables[E^x]
+     = {}
+    """
+
+    def apply(self, expr, evaluation):
+        'Variables[expr_]'
+
+        variables = set()
+
+        def find_vars(e):
+            if e.to_sympy().is_constant():
+                return
+            elif e.is_symbol():
+                variables.add(e)
+            elif (e.has_form('Plus', None) or
+                  e.has_form('Times', None)):
+                for l in e.leaves:
+                    find_vars(l)
+            elif e.has_form('Power', 2):
+                (a, b) = e.leaves # a^b
+                if (not(a.to_sympy().is_constant()) and
+                    b.to_sympy().is_rational):
+                    find_vars(a)
+            elif not(e.is_atom()):
+                variables.add(e)
+
+        exprs = expr.leaves if expr.has_form('List', None) else [expr]
+        for e in exprs:
+            find_vars(from_sympy(e.to_sympy().expand()))
+
+        variables = Expression('List', *variables)
+        variables.sort()        # MMA doesn't do this
+        return variables
