@@ -625,22 +625,18 @@ class Operate(Builtin):
      = p[f]
     """
 
-    def apply_invalidlevel(self, p, expr, n, evaluation):
-        'Operate[p_, expr_, n_]'
-
-        evaluation.message('Operate', 'intnn')
-
     def apply(self, p, expr, n, evaluation):
-        'Operate[p_, expr_, Optional[n_Integer, 1]]'
+        'Operate[p_, expr_, Optional[n_, 1]]'
 
-        head_depth = n.to_python()
-
-        if head_depth < 0:
+        head_depth = n.get_int_value()
+        if head_depth is None or head_depth < 0:
             return evaluation.message('Operate', 'intnn')
-        elif head_depth == 0:
+
+        if head_depth == 0:
             # Act like Apply
             return Expression(p, expr)
-        elif expr.is_atom():
+
+        if expr.is_atom():
             return expr
 
         expr = expr.copy()
