@@ -623,14 +623,22 @@ class Operate(Builtin):
      = f
     #> Operate[p, f, 0]
      = p[f]
+    #> Operate[p, f, -1]
+     : Non-negative integer expected at position 3 in Operate[p, f, -1].
+     = Operate[p, f, -1]
     """
+
+    messages = {
+        'intnn': "Non-negative integer expected at position `2` in `1`.",
+    }
 
     def apply(self, p, expr, n, evaluation):
         'Operate[p_, expr_, Optional[n_, 1]]'
 
         head_depth = n.get_int_value()
         if head_depth is None or head_depth < 0:
-            return evaluation.message('Operate', 'intnn')
+            return evaluation.message('Operate', 'intnn',
+                                      Expression('Operate', p, expr, n), 3)
 
         if head_depth == 0:
             # Act like Apply
