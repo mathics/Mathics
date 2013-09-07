@@ -12,7 +12,8 @@ import sympy
 import sympy.mpmath as mpmath
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import dps, prec, convert_base
+from mathics.core.numbers import (dps, prec, convert_base,
+                                  convert_int_to_digit_list)
 from mathics.core.expression import (Integer, Rational, Real, Complex,
                                      Expression, Number, Symbol, from_python)
 from mathics.core.convert import from_sympy
@@ -434,3 +435,77 @@ class BaseForm(Builtin):
         else:
             return Expression(
                 'SubscriptBox', from_python(val), from_python(base))
+
+
+class IntegerDigits(Builtin):
+    """
+    <dl>
+    <dt>'IntegerDigits[$n$]'
+    <dd>returns a list of the base-10 digits in the integer $n$.
+    <dt>'IntegerDigits[$n$, $base$]'
+    <dd>returns a list of the base-$base$ digits in $n$.
+    <dt>'IntegerDigits[$n$, $base$, $length$]'
+    <dd>returns a list of length $length$, truncating or padding with
+    zeroes on the left as necessary.
+
+    >> IntegerDigits[76543]
+     = {7, 6, 5, 4, 3}
+
+    The sign of $n$ is discarded:
+    >> IntegerDigits[-76543]
+     = {7, 6, 5, 4, 3}
+
+    >> IntegerDigits[15, 16]
+     = {15}
+    >> IntegerDigits[1234, 16]
+     = {4, 13, 2}
+    >> IntegerDigits[1234, 10, 5]
+     = {0, 1, 2, 3, 4}
+    """
+
+    attributes = ('Listable',)
+
+    messages = {
+        'int': 'Integer expected at position 1 in `1`',
+        'ibase': 'Base `1` is not an integer greater than 1.',
+    }
+
+    rules = {
+        'IntegerDigits[n_]': 'IntegerDigits[n, 10]',
+    }
+
+    def apply_len(self, n, base, length, evaluation):
+        'IntegerDigits[n_, base_, length_]'
+
+        if not(isinstance(length, Integer) and length.get_int_value() >= 0):
+            return evaluation.message('IntegerDigits', 'intnn')
+
+        return self.apply(n, base, evaluation,
+                          nr_elements=length.get_int_value())
+
+    def apply(self, n, base, evaluation, nr_elements=None):
+        'IntegerDigits[n_, base_]'
+
+        if not(isinstance(n, Integer)):
+            return evaluation.message('IntegerDigits', 'int',
+                                      Expression('IntegerDigits', n, base))
+
+        if not(isinstance(base, Integer) and base.get_int_value() > 1):
+            return evaluation.message('IntegerDigits', 'ibase', base)
+
+        if nr_elements == 0:
+            # trivial case: we don't want any digits
+            return Expression('List')
+
+        digits = convert_int_to_digit_list(
+            n.get_int_value(), base.get_int_value())
+
+        if nr_elements is not None:
+            if len(digits) >= nr_elements:
+                # Truncate, preserving the digits on the right
+                digits = digits[-nr_elements:]
+            else:
+                # Pad with zeroes
+                digits = [0] * (nr_elements - len(digits)) + digits
+
+        return Expression('List', *digits)

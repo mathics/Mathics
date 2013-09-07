@@ -555,3 +555,142 @@ class SymbolName(Builtin):
         'SymbolName[symbol_Symbol]'
 
         return String(symbol.get_name())
+
+
+class Depth(Builtin):
+    """
+    <dl>
+    <dt>'Depth[$expr$]'
+    <dd>gives the depth of $expr$
+    </dl>
+
+    The depth of an expression is defined as one plus the maximum
+    number of 'Part' indices required to reach any part of $expr$,
+    except for heads.
+
+    >> Depth[x]
+     = 1
+    >> Depth[x + y]
+     = 2
+    >> Depth[{{{{x}}}}]
+     = 5
+
+    Complex numbers are atomic, and hence have depth 1:
+    >> Depth[1 + 2 I]
+     = 1
+
+    'Depth' ignores heads:
+    >> Depth[f[a, b][c]]
+     = 2
+    """
+
+    def apply(self, expr, evaluation):
+        'Depth[expr_]'
+        expr, depth = walk_levels(expr)
+        return Integer(depth + 1)
+
+class Operate(Builtin):
+    """
+    <dl>
+    <dt>'Operate[$p$, $expr$]'
+    <dd>applies $p$ to the head of $expr$.
+    <dt>'Operate[$p$, $expr$, $n$]'
+    <dd>applies $p$ to the $n$th head of $expr$.
+    </dl>
+
+    >> Operate[p, f[a, b]]
+     = p[f][a, b]
+
+    The default value of $n$ is 1:
+    >> Operate[p, f[a, b], 1]
+     = p[f][a, b]
+
+    With $n$=0, 'Operate' acts like 'Apply':
+    >> Operate[p, f[a][b][c], 0]
+     = p[f[a][b][c]]
+
+    #> Operate[p, f[a][b][c]]
+     = p[f[a][b]][c]
+    #> Operate[p, f[a][b][c], 1]
+     = p[f[a][b]][c]
+    #> Operate[p, f[a][b][c], 2]
+     = p[f[a]][b][c]
+    #> Operate[p, f[a][b][c], 3]
+     = p[f][a][b][c]
+    #> Operate[p, f[a][b][c], 4]
+     = f[a][b][c]
+    #> Operate[p, f]
+     = f
+    #> Operate[p, f, 0]
+     = p[f]
+    #> Operate[p, f, -1]
+     : Non-negative integer expected at position 3 in Operate[p, f, -1].
+     = Operate[p, f, -1]
+    """
+
+    messages = {
+        'intnn': "Non-negative integer expected at position `2` in `1`.",
+    }
+
+    def apply(self, p, expr, n, evaluation):
+        'Operate[p_, expr_, Optional[n_, 1]]'
+
+        head_depth = n.get_int_value()
+        if head_depth is None or head_depth < 0:
+            return evaluation.message('Operate', 'intnn',
+                                      Expression('Operate', p, expr, n), 3)
+
+        if head_depth == 0:
+            # Act like Apply
+            return Expression(p, expr)
+
+        if expr.is_atom():
+            return expr
+
+        expr = expr.copy()
+        e = expr
+
+        for i in range(1, head_depth):
+            e = e.head
+            if e.is_atom():
+                # n is higher than the depth of heads in expr: return
+                # expr unmodified.
+                return expr
+
+        # Otherwise, if we get here, e.head points to the head we need
+        # to apply p to. Python's reference semantics mean that this
+        # assignment modifies expr as well.
+        e.head = Expression(p, e.head)
+
+        return expr
+
+
+class Through(Builtin):
+    """
+    <dl>
+    <dt>'Through[$p$[$f$][$x$]]'
+    <dd>gives $p$[$f$[$x$]].
+    </dl>
+
+    >> Through[f[g][x]]
+     = f[g[x]]
+    >> Through[p[f, g][x]]
+     = p[f[x], g[x]]
+
+    #> Through[p[f, g][x, y]]
+     = p[f[x, y], g[x, y]]
+    #> Through[p[f, g][]]
+     = p[f[], g[]]
+    #> Through[p[f, g]]
+     = Through[p[f, g]]
+    #> Through[f[][x]]
+     = f[]
+    """
+
+    def apply(self, p, args, x, evaluation):
+        'Through[p_[args___][x___]]'
+
+        items = []
+        for leaf in args.get_sequence():
+            items.append(Expression(leaf, *x.get_sequence()))
+        return Expression(p, *items)
