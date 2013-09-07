@@ -50,6 +50,7 @@ class ExportFormats(Predefined):
     def evaluate(self, evaluation):
         return from_python(EXPORTERS.keys())
 
+
 # FIXME This should be private, ImportExport`RegisterImport
 class RegisterImport(Builtin):
     """
@@ -221,7 +222,6 @@ class RegisterExport(Builtin):
         'Extensions': '{}',
         'AlphaChannel': 'False',
     }
-
 
     def apply(self, formatname, function, evaluation, options):
         'RegisterExport[formatname_String, function_, OptionsPattern[RegisterExport]]'
@@ -487,8 +487,8 @@ class Export(Builtin):
     }
 
     rules = {
-        'Export[filename_, expr_, elems_?NotListQ]':
-            'Export[filename, expr, {elems}]',
+        'Export[filename_, expr_, elems_?NotListQ]': (
+            'Export[filename, expr, {elems}]'),
     }
 
     def apply_noelems(self, filename, expr, evaluation):

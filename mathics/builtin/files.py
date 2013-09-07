@@ -91,6 +91,7 @@ def _channel_to_stream(channel, mode='r'):
     else:
         return None
 
+
 def _lookup_stream(n=None):
     if n is None:
         return None
@@ -99,6 +100,7 @@ def _lookup_stream(n=None):
             return STREAMS[n]
         except IndexError:
             return None
+
 
 class mathics_open:
     def __init__(self, name, mode='r'):
@@ -144,6 +146,7 @@ class mathics_open:
         if strm is not None:
             strm.close()
             STREAMS[self.n] = None
+
 
 class InitialDirectory(Predefined):
     """
@@ -864,25 +867,26 @@ class _BinaryFormat(object):
             return Real('0.' + '0' * 4965)
         elif expbits == 0x7FFF:
             if fracbits == 0:
-                return Expression('DirectedInfinity', Integer((-1)**signbit))
+                return Expression('DirectedInfinity', Integer((-1) ** signbit))
             else:
                 return Symbol('Indeterminate')
 
-        core = sympy.mpmath.fdiv(fracbits, 2**112, prec=128)
+        core = sympy.mpmath.fdiv(fracbits, 2 ** 112, prec=128)
         if expbits == 0x000:
             assert fracbits != 0
             exp = -16382
-            core = sympy.mpmath.fmul((-1)**signbit, core, prec=128)
+            core = sympy.mpmath.fmul((-1) ** signbit, core, prec=128)
         else:
             assert 0x0001 <= expbits <= 0x7FFE
             exp = expbits - 16383
             core = sympy.mpmath.fmul(
-                (-1)**signbit, sympy.mpmath.fadd(1, core, prec=128), prec=128)
+                (-1) ** signbit,
+                sympy.mpmath.fadd(1, core, prec=128), prec=128)
 
         if exp >= 0:
-            result = sympy.mpmath.fmul(core, 2**exp, prec=128)
+            result = sympy.mpmath.fmul(core, 2 ** exp, prec=128)
         else:
-            result = sympy.mpmath.fdiv(core, 2**-exp, prec=128)
+            result = sympy.mpmath.fdiv(core, 2 ** -exp, prec=128)
 
         return Real(sympy.mpmath.nstr(result, n=38), p=112)
 
@@ -945,7 +949,7 @@ class _BinaryFormat(object):
     # @staticmethod
     # def _Character16_writer(s, x):
     #     "16-bit character"
-    #     return String(unichr(*struct.unpack('H', s.read(2))))
+    #     pass
 
     @staticmethod
     def _Complex64_writer(s, x):
@@ -962,7 +966,7 @@ class _BinaryFormat(object):
     # @staticmethod
     # def _Complex256_writer(s, x):
     #     "IEEE quad-precision complex number"
-    #     return Complex(_Real128_reader(s), _Real128_reader(s))
+    #     pass
 
     @staticmethod
     def _Integer8_writer(s, x):
@@ -1009,44 +1013,7 @@ class _BinaryFormat(object):
     # @staticmethod
     # def _Real128_writer(s, x):
     #     "IEEE quad-precision real number"
-    #     # Workaround quad missing from struct
-    #     # correctness is not guaranteed
-    #     b = s.read(16)
-    #     sig, sexp = b[:14], b[14:]
-
-    #     # Sign / Exponent
-    #     sexp, = struct.unpack('H', sexp)
-    #     signbit = sexp / 0x8000
-    #     expbits = sexp % 0x8000
-
-    #     # Signifand
-    #     fracbits = int(sig[::-1].encode('hex'), 16)
-
-    #     if expbits == 0x0000 and fracbits == 0:
-    #         return Real('0.' + '0' * 4965)
-    #     elif expbits == 0x7FFF:
-    #         if fracbits == 0:
-    #             return Expression('DirectedInfinity', Integer((-1)**signbit))
-    #         else:
-    #             return Symbol('Indeterminate')
-
-    #     core = sympy.mpmath.fdiv(fracbits, 2**112, prec=128)
-    #     if expbits == 0x000:
-    #         assert fracbits != 0
-    #         exp = -16382
-    #         core = sympy.mpmath.fmul((-1)**signbit, core, prec=128)
-    #     else:
-    #         assert 0x0001 <= expbits <= 0x7FFE
-    #         exp = expbits - 16383
-    #         core = sympy.mpmath.fmul(
-    #             (-1)**signbit, sympy.mpmath.fadd(1, core, prec=128), prec=128)
-
-    #     if exp >= 0:
-    #         result = sympy.mpmath.fmul(core, 2**exp, prec=128)
-    #     else:
-    #         result = sympy.mpmath.fdiv(core, 2**-exp, prec=128)
-
-    #     return Real(sympy.mpmath.nstr(result, n=38), p=112)
+    #     pass
 
     @staticmethod
     def _TerminatedString_writer(s, x):
@@ -1398,7 +1365,8 @@ class BinaryWrite(Builtin):
                         x = float('+inf')
                     elif x.leaves[0].get_int_value() == -1:
                         x = float('-inf')
-                    else: x = None
+                    else:
+                        x = None
                 elif isinstance(x, Symbol) and x.get_name() == 'Indeterminate':
                     x = float('nan')
                 else:
@@ -1419,15 +1387,18 @@ class BinaryWrite(Builtin):
                     x = None
             elif t.startswith('Character'):
                 if isinstance(x, Integer):
-                    pyb = pyb[:i] + [String(char) for char in str(x.get_int_value())] + pyb[i+1:]
+                    x = [String(char) for char in str(x.get_int_value())]
+                    pyb = pyb[:i] + x + pyb[i + 1:]
                     x = pyb[i]
                 if isinstance(x, String) and len(x.get_string_value()) > 1:
-                    pyb = pyb[:i] + [String(char) for char in x.get_string_value()] + pyb[i+1:]
+                    x = [String(char) for char in x.get_string_value()] 
+                    pyb = pyb[:i] + x + pyb[i + 1:]
                     x = pyb[i]
                 x = x.get_string_value()
             elif t == 'Byte' and isinstance(x, String):
                 if len(x.get_string_value()) > 1:
-                    pyb = pyb[:i] + [String(char) for char in x.get_string_value()] + pyb[i+1:]
+                    x = [String(char) for char in x.get_string_value()] 
+                    pyb = pyb[:i] + x + pyb[i + 1:]
                     x = pyb[i]
                 x = ord(x.get_string_value())
             else:
@@ -1439,8 +1410,7 @@ class BinaryWrite(Builtin):
             try:
                 self.writers[t](stream, x)
             except struct.error:
-                # TODO
-                evaluation.message('BinaryWrite', "todo")
+                return evaluation.message('BinaryWrite', "nocoerce", b)
             i += 1
 
         stream.flush()
@@ -1687,7 +1657,7 @@ class BinaryRead(Builtin):
         'format': '`1` is not a recognized binary format.',
         'openw': '`1` is open for output.',
         'bfmt': 'The stream `1` has been opened with BinaryFormat -> False and cannot be used with binary data.',
-        'warnquad': 'Results for the format `1` may not be correct.',   #FIXME
+        'warnquad': 'Results for the format `1` may not be correct.',   # FIXME
     }
 
     def apply_empty(self, name, n, evaluation):
@@ -1742,6 +1712,7 @@ class BinaryRead(Builtin):
         else:
             assert len(result) == 1
             return result[0]
+
 
 class WriteString(Builtin):
     """
@@ -2893,10 +2864,10 @@ class Close(Builtin):
     def apply(self, channel, evaluation):
         'Close[channel_]'
 
-        if (channel.has_form('InputStream', 2) or       # nopep8
+        if (channel.has_form('InputStream', 2) or       # noqa
             channel.has_form('OutputStream', 2)):
             [name, n] = channel.get_leaves()
-            stream =_lookup_stream(n.get_int_value())
+            stream = _lookup_stream(n.get_int_value())
         else:
             stream = None
 

@@ -486,7 +486,6 @@ class ToExpression(Builtin):
         return
 
 
-
 class ToCharacterCode(Builtin):
     """
     <dl>
@@ -643,9 +642,8 @@ class FromCharacterCode(Builtin):
 
             for i, pyni in enumerate(pyn):
                 if not (isinstance(pyni, int) and 0 <= pyni <= 0xffff):
-                    evaluation.message(
-                        'FromCharacterCode', 'notunicode', pyn, Integer(i+1))
-                    return None
+                    return evaluation.message(
+                        'FromCharacterCode', 'notunicode', pyn, Integer(i + 1))
 
             return ''.join(unichr(pyni) for pyni in pyn)
 

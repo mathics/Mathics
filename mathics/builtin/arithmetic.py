@@ -1063,6 +1063,7 @@ class Im(SympyFunction):
 
         return Integer(0)
 
+
 class Abs(_MPMathFunction):
     """
     <dl>
@@ -1090,7 +1091,7 @@ class Abs(_MPMathFunction):
     """
 
     sympy_name = 'Abs'
-    mpmath_name = 'fabs' # mpmath actually uses python abs(x) / x.__abs__()
+    mpmath_name = 'fabs'  # mpmath actually uses python abs(x) / x.__abs__()
 
 
 class I(Predefined):
