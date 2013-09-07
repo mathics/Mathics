@@ -50,10 +50,7 @@ class ExportFormats(Predefined):
     def evaluate(self, evaluation):
         return from_python(EXPORTERS.keys())
 
-# FIXME This should be private, that is accesed with
-# ImportExport`RegisterImport
-
-
+# FIXME This should be private, ImportExport`RegisterImport
 class RegisterImport(Builtin):
     """
     <dl>
@@ -178,9 +175,15 @@ class RegisterImport(Builtin):
         return Symbol('Null')
 
 
-#FIXME This should be private, that is accesed with ImportExport`RegisterExport
+#FIXME This should be private, ImportExport`RegisterExport
 class RegisterExport(Builtin):
     """
+    <dl>
+    <dt>'RegisterExport["$format$", $func$]'
+      <dd>register '$func$' as the default function used when exporting from a file of type '"$format$"'.
+    </dl>
+
+    Simple text exporter
     >> ExampleExporter1[filename_, data_, opts___] := Module[{strm = OpenWrite[filename], char = data}, WriteString[strm, char]; Close[strm]]
 
     >> RegisterExport["ExampleFormat1", ExampleExporter1]
@@ -189,22 +192,36 @@ class RegisterExport(Builtin):
 
     >> FilePrint["sample.txt"]
      | Encode this string!
+
+    #> DeleteFile["sample.txt"]
+
+    Very basic encrypted text exporter
+    >> ExampleExporter2[filename_, data_, opts___] := Module[{strm = OpenWrite[filename], char}, (* TODO: Check data *) char = FromCharacterCode[Mod[ToCharacterCode[data] - 84, 26] + 97]; WriteString[strm, char]; Close[strm]]
+
+    >> RegisterExport["ExampleFormat2", ExampleExporter2]
+
+    >> Export["sample.txt", "encodethisstring", "ExampleFormat2"];
+
+    >> FilePrint["sample.txt"]
+     | rapbqrguvffgevat
+
+    #> DeleteFile["sample.txt"]
     """
 
     options = {
         'Path': 'Automatic',
         'FunctionChannels': '{"FileNames"}',
-        'Sources': 'None', 
+        'Sources': 'None',
         'DefaultElement': 'None',
         'AvailableElements': 'None',
-        'Options': '{}', 
+        'Options': '{}',
         'OriginalChannel': 'False',
         'BinaryFormat': 'False',
         'Encoding': 'False',
-        'Extensions': '{}', 
+        'Extensions': '{}',
         'AlphaChannel': 'False',
     }
-        
+
 
     def apply(self, formatname, function, evaluation, options):
         'RegisterExport[formatname_String, function_, OptionsPattern[RegisterExport]]'
@@ -470,7 +487,7 @@ class Export(Builtin):
     }
 
     rules = {
-        'Export[filename_, expr_, elems_?NotListQ]': 
+        'Export[filename_, expr_, elems_?NotListQ]':
             'Export[filename, expr, {elems}]',
     }
 
