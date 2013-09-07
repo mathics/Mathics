@@ -1862,10 +1862,10 @@ class _OpenAction(Builtin):
 
         ## Options
         # BinaryFormat
+        mode = self.mode
         if options['BinaryFormat'].is_true():
             if not self.mode.endswith('b'):
-                #self.mode = self.mode + 'b'
-                self.mode += 'b'
+                mode += 'b'
 
         if not (isinstance(path, String) and len(path.to_python()) > 2):
             evaluation.message(self.__class__.__name__, 'fstr', path)
@@ -1875,14 +1875,14 @@ class _OpenAction(Builtin):
 
         tmp = path_search(path_string)
         if tmp is None:
-            if self.mode in ['r', 'rb']:
+            if mode in ['r', 'rb']:
                 evaluation.message('General', 'noopen', path)
                 return
         else:
             path_string = tmp
 
         try:
-            opener = mathics_open(path_string, mode=self.mode)
+            opener = mathics_open(path_string, mode=mode)
             stream = opener.__enter__()
             n = opener.n
         except IOError:
