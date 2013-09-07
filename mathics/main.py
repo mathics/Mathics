@@ -68,19 +68,20 @@ class TerminalShell(object):
         self.incolors, self.outcolors = term_colors
         self.definitions = definitions
 
-    def get_line_number(self):
+    def get_last_line_number(self):
         line = self.definitions.get_definition('$Line').ownvalues[0].replace
         return line.get_int_value()
 
     def get_in_prompt(self, continued=False):
-        line_number = self.get_line_number()
+        next_line_number = self.get_last_line_number() + 1
         if continued:
-            return ' ' * len('In[{0}]:= '.format(line_number))
+            return ' ' * len('In[{0}]:= '.format(next_line_number))
         else:
-            return '{1}In[{2}{0}{3}]:= {4}'.format(line_number, *self.incolors)
+            return '{1}In[{2}{0}{3}]:= {4}'.format(next_line_number,
+                                                   *self.incolors)
 
     def get_out_prompt(self):
-        line_number = self.get_line_number() - 1
+        line_number = self.get_last_line_number()
         return '{1}Out[{2}{0}{3}]= {4}'.format(line_number, *self.outcolors)
 
     def evaluate(self, text):
@@ -174,7 +175,7 @@ def main():
 
     definitions = Definitions(add_builtin=True)
 
-    definitions.set_ownvalue('$Line', Integer(1))  # Reset the line number to 1
+    definitions.set_ownvalue('$Line', Integer(0))  # Reset the line number
 
     shell = TerminalShell(definitions, args.colors)
 
