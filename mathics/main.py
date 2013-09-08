@@ -20,6 +20,8 @@ u"""
 
 import sys
 import argparse
+import re
+import locale
 
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Integer
@@ -29,9 +31,14 @@ from mathics import print_version, print_license, get_version_string
 
 class TerminalShell(object):
     def __init__(self, definitions, colors):
+        self.input_encoding = locale.getpreferredencoding()
+
         # Try importing readline to enable arrow keys support etc.
+        self.using_readline = False
         try:
             import readline
+            self.using_readline = sys.stdin.isatty() and sys.stdout.isatty()
+            self.ansi_color_re = re.compile("\033\\[[0-9;]+m")
         except ImportError:
             pass
 
@@ -44,7 +51,7 @@ class TerminalShell(object):
         else:
             colorama_init()
             if colors is None:
-                colors = 'Linux'
+                colors = 'Linux' if sys.stdout.isatty() else 'NoColor'
 
         color_schemes = {
             'NOCOLOR': (
@@ -68,19 +75,20 @@ class TerminalShell(object):
         self.incolors, self.outcolors = term_colors
         self.definitions = definitions
 
-    def get_line_number(self):
+    def get_last_line_number(self):
         line = self.definitions.get_definition('$Line').ownvalues[0].replace
         return line.get_int_value()
 
     def get_in_prompt(self, continued=False):
-        line_number = self.get_line_number()
+        next_line_number = self.get_last_line_number() + 1
         if continued:
-            return ' ' * len('In[{0}]:= '.format(line_number))
+            return ' ' * len('In[{0}]:= '.format(next_line_number))
         else:
-            return '{1}In[{2}{0}{3}]:= {4}'.format(line_number, *self.incolors)
+            return '{1}In[{2}{0}{3}]:= {4}'.format(next_line_number,
+                                                   *self.incolors)
 
     def get_out_prompt(self):
-        line_number = self.get_line_number() - 1
+        line_number = self.get_last_line_number()
         return '{1}Out[{2}{0}{3}]= {4}'.format(line_number, *self.outcolors)
 
     def evaluate(self, text):
@@ -90,6 +98,31 @@ class TerminalShell(object):
             if result.result is not None:
                 print(self.get_out_prompt() +
                       to_output(unicode(result.result)) + '\n')
+
+    def read_line(self, prompt):
+        if self.using_readline:
+            return self.rl_read_line(prompt)
+        return raw_input(prompt)
+
+    def rl_read_line(self, prompt):
+        # sys.stdout is wrapped by a codecs.StreamWriter object in
+        # mathics/__init__.py, which interferes with raw_input's use
+        # of readline.
+        #
+        # To work around this issue, call raw_input with the original
+        # file object as sys.stdout, which is in the undocumented
+        # 'stream' field of codecs.StreamWriter.
+        orig_stdout = sys.stdout
+        try:
+            # Wrap ANSI colour sequences in \001 and \002, so readline
+            # knows that they're nonprinting.
+            prompt = self.ansi_color_re.sub(lambda m: "\001"+m.group(0)+"\002",
+                                            prompt)
+            sys.stdout = sys.stdout.stream
+            ret = raw_input(prompt)
+            return ret
+        finally:
+            sys.stdout = orig_stdout
 
 
 def to_output(text):
@@ -174,7 +207,7 @@ def main():
 
     definitions = Definitions(add_builtin=True)
 
-    definitions.set_ownvalue('$Line', Integer(1))  # Reset the line number to 1
+    definitions.set_ownvalue('$Line', Integer(0))  # Reset the line number
 
     shell = TerminalShell(definitions, args.colors)
 
@@ -184,7 +217,7 @@ def main():
         print u"Quit by pressing {0}\n".format(quit_command)
 
     if args.execute:
-        total_input = args.execute.decode(sys.stdin.encoding)  # check encoding
+        total_input = args.execute.decode(shell.input_encoding)
         print shell.get_in_prompt() + total_input
         shell.evaluate(total_input)
         return
@@ -210,28 +243,12 @@ def main():
         if not args.persist:
             return
 
-    def raw_input_nocodec(*args, **kwargs):
-        # sys.stdout is wrapped by a codecs.StreamWriter object in
-        # mathics/__init__.py, which interferes with raw_input's use
-        # of readline.
-        #
-        # To work around this issue, call raw_input with the original
-        # file object as sys.stdout, which is in the undocumented
-        # 'stream' field of codecs.StreamWriter.
-        orig_stdout = sys.stdout
-        try:
-            sys.stdout = sys.stdout.stream
-            ret = raw_input(*args, **kwargs)
-            return ret
-        finally:
-            sys.stdout = orig_stdout
-
     total_input = ""
     while True:
         try:
-            line = raw_input_nocodec(
+            line = shell.read_line(
                 shell.get_in_prompt(continued=total_input != ''))
-            line = line.decode(sys.stdin.encoding)
+            line = line.decode(shell.input_encoding)
             total_input += line
             if line != "" and wait_for_line(total_input):
                 continue
