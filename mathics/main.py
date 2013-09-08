@@ -48,7 +48,7 @@ class TerminalShell(object):
         else:
             colorama_init()
             if colors is None:
-                colors = 'Linux'
+                colors = 'Linux' if sys.stdout.isatty() else 'NoColor'
 
         color_schemes = {
             'NOCOLOR': (
