@@ -11,6 +11,6 @@ before_script:
 script:
   - "python mathics/test.py"
 after_script:
-  - "python mathics/benchmark.py"
+  # - "python mathics/benchmark.py"
 notifications:
   email: false
