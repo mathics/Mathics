@@ -20,6 +20,7 @@ u"""
 
 import sys
 import argparse
+import re
 
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Integer
@@ -30,8 +31,11 @@ from mathics import print_version, print_license, get_version_string
 class TerminalShell(object):
     def __init__(self, definitions, colors):
         # Try importing readline to enable arrow keys support etc.
+        self.using_readline = False
         try:
             import readline
+            self.using_readline = sys.stdin.isatty() and sys.stdout.isatty()
+            self.ansi_color_re = re.compile("\033\\[[0-9;]+m")
         except ImportError:
             pass
 
@@ -91,6 +95,31 @@ class TerminalShell(object):
             if result.result is not None:
                 print(self.get_out_prompt() +
                       to_output(unicode(result.result)) + '\n')
+
+    def read_line(self, prompt):
+        if self.using_readline:
+            return self.rl_read_line(prompt)
+        return raw_input(prompt)
+
+    def rl_read_line(self, prompt):
+        # sys.stdout is wrapped by a codecs.StreamWriter object in
+        # mathics/__init__.py, which interferes with raw_input's use
+        # of readline.
+        #
+        # To work around this issue, call raw_input with the original
+        # file object as sys.stdout, which is in the undocumented
+        # 'stream' field of codecs.StreamWriter.
+        orig_stdout = sys.stdout
+        try:
+            # Wrap ANSI colour sequences in \001 and \002, so readline
+            # knows that they're nonprinting.
+            prompt = self.ansi_color_re.sub(lambda m: "\001"+m.group(0)+"\002",
+                                            prompt)
+            sys.stdout = sys.stdout.stream
+            ret = raw_input(prompt)
+            return ret
+        finally:
+            sys.stdout = orig_stdout
 
 
 def to_output(text):
@@ -211,26 +240,10 @@ def main():
         if not args.persist:
             return
 
-    def raw_input_nocodec(*args, **kwargs):
-        # sys.stdout is wrapped by a codecs.StreamWriter object in
-        # mathics/__init__.py, which interferes with raw_input's use
-        # of readline.
-        #
-        # To work around this issue, call raw_input with the original
-        # file object as sys.stdout, which is in the undocumented
-        # 'stream' field of codecs.StreamWriter.
-        orig_stdout = sys.stdout
-        try:
-            sys.stdout = sys.stdout.stream
-            ret = raw_input(*args, **kwargs)
-            return ret
-        finally:
-            sys.stdout = orig_stdout
-
     total_input = ""
     while True:
         try:
-            line = raw_input_nocodec(
+            line = shell.read_line(
                 shell.get_in_prompt(continued=total_input != ''))
             line = line.decode(sys.stdin.encoding)
             total_input += line
