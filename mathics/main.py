@@ -21,6 +21,7 @@ u"""
 import sys
 import argparse
 import re
+import locale
 
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Integer
@@ -30,6 +31,8 @@ from mathics import print_version, print_license, get_version_string
 
 class TerminalShell(object):
     def __init__(self, definitions, colors):
+        self.input_encoding = locale.getpreferredencoding()
+
         # Try importing readline to enable arrow keys support etc.
         self.using_readline = False
         try:
@@ -214,7 +217,7 @@ def main():
         print u"Quit by pressing {0}\n".format(quit_command)
 
     if args.execute:
-        total_input = args.execute.decode(sys.stdin.encoding)  # check encoding
+        total_input = args.execute.decode(shell.input_encoding)
         print shell.get_in_prompt() + total_input
         shell.evaluate(total_input)
         return
@@ -245,7 +248,7 @@ def main():
         try:
             line = shell.read_line(
                 shell.get_in_prompt(continued=total_input != ''))
-            line = line.decode(sys.stdin.encoding)
+            line = line.decode(shell.input_encoding)
             total_input += line
             if line != "" and wait_for_line(total_input):
                 continue
