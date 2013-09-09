@@ -12,6 +12,8 @@ Additional contributions were made by:
 - Marek Šuppa (mrshu)
 - lanyjie
 - freshwater
+- proxy-sander
+- Ben Jones (bnjones)
 
 Thanks to the authors of all projects that are used in Mathics:
 - Django
@@ -23,3 +25,6 @@ Thanks to the authors of all projects that are used in Mathics:
 - colorama
 - SymPy
 - Three.js
+- interruptingcow
+- dateutil
+- colorama
