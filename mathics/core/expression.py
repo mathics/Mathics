@@ -152,12 +152,6 @@ class BaseExpression(object):
         return hash(unicode(self))
 
     def __cmp__(self, other):
-        if isinstance(other, Real):
-            # MMA Docs: "Approximate numbers that differ in their last seven
-            # binary digits are considered equal"
-            _prec = min_prec(self, other) - 7
-            return cmp(self.to_sympy().n(dps(_prec)),
-                       other.to_sympy().n(dps(_prec)))
         if not hasattr(other, 'get_sort_key'):
             return False
         return cmp(self.get_sort_key(), other.get_sort_key())
@@ -1557,6 +1551,17 @@ class Real(Number):
 
     def do_copy(self):
         return Real(self.value, self.prec)
+
+    def __cmp__(self, other):
+        if isinstance(other, Real):
+            # MMA Docs: "Approximate numbers that differ in their last seven
+            # binary digits are considered equal"
+            _prec = min_prec(self, other) - 7
+            return cmp(self.to_sympy().n(dps(_prec)),
+                       other.to_sympy().n(dps(_prec)))
+        if not hasattr(other, 'get_sort_key'):
+            return False
+        return cmp(self.get_sort_key(), other.get_sort_key())
 
 
 class Complex(Number):
