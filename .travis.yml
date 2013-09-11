@@ -2,15 +2,10 @@ language: python
 python:
   - 2.6
   - 2.7
-  - "pypy"
+  - pypy
 install:
-  #- "pip install pep8 --use-mirrors"
-  - "python setup.py install"
-before_script:
-  #- "pep8"
+  - python setup.py install
 script:
-  - "python mathics/test.py"
-after_script:
-  # - "python mathics/benchmark.py"
+  - python mathics/test.py
 notifications:
   email: false
