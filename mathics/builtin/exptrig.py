@@ -12,7 +12,7 @@ from __future__ import with_statement
 
 import sympy
 
-from mathics.builtin.base import Builtin, SympyConstant, SympyFunction
+from mathics.builtin.base import Builtin, SympyConstant
 from mathics.core.expression import Real, Expression, Integer
 from mathics.core.numbers import dps
 
@@ -91,7 +91,7 @@ class GoldenRatio(SympyConstant):
     }
 
 
-class Exp(SympyFunction):
+class Exp(_MPMathFunction):
     """
     <dl>
     <dt>'Exp[$z$]'
