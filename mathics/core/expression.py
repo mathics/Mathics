@@ -1363,8 +1363,7 @@ class Integer(Number):
         if pattern_sort:
             return super(Integer, self).get_sort_key(True)
         else:
-            # HACK: otherwise "Bus error" when comparing 1==1.
-            return [0, 0, sympy.Float(self.value), 0, 1]
+            return [0, 0, self.value, 0, 1]
 
     def get_real_value(self):
         return sympy.Rational(self.value, 1)
