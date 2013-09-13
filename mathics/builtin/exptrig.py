@@ -11,6 +11,7 @@ rules are not implemented yet.
 from __future__ import with_statement
 
 import sympy
+import sympy.mpmath as mpmath
 
 from mathics.builtin.base import Builtin, SympyConstant
 from mathics.core.expression import Real, Expression, Integer
@@ -128,12 +129,16 @@ class Log(_MPMathFunction):
      = Indeterminate
     >> Plot[Log[x], {x, 0, 5}]
      = -Graphics-
+
+    #> Log[1000] / Log[10] // Simplify
+     = 3
     """
 
+    nargs = 2
     mpmath_name = 'log'
+    sympy_name = 'log'
 
     rules = {
-        'Log[b_, z_]': 'Log[z] / Log[b]',
         'Log[0.]': 'Indeterminate',
         'Log[0]': 'DirectedInfinity[-1]',
         'Log[1]': '0',
@@ -141,6 +146,14 @@ class Log(_MPMathFunction):
         'Log[E^x_Integer]': 'x',
         'Derivative[1][Log]': '1/#&',
     }
+
+    def prepare_sympy(self, leaves):
+        if len(leaves) == 2:
+            leaves = [leaves[1], leaves[0]]
+        return leaves
+
+    def eval(self, *args):
+        return mpmath.log(args[1], args[0])
 
 
 class Log2(Builtin):
@@ -153,7 +166,7 @@ class Log2(Builtin):
     >> Log2[4 ^ 8]
      = 16
     >> Log2[5.6]
-     = 2.48542682717024177
+     = 2.48542682717024176
     >> Log2[E ^ 2]
      = 2 / Log[2]
     """
@@ -173,7 +186,7 @@ class Log10(Builtin):
     >> Log10[1000]
      = 3
     >> Log10[{2., 5.}]
-     = {0.301029995663981195, 0.698970004336018803}
+     = {0.301029995663981195, 0.698970004336018805}
     >> Log10[E ^ 3]
      = 3 / Log[10]
     """
