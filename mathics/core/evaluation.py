@@ -18,9 +18,9 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import threading
 import sys
 import cPickle as pickle
+import interruptingcow
 
 from mathics import settings
 
@@ -28,40 +28,6 @@ FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
            'TeXForm', 'MathMLForm',
            'MatrixForm', 'TableForm']
-
-
-def timeout_call(func, stop_func=None, timeout_duration=None, *args, **kwargs):
-    if timeout_duration is None or settings.PROPAGATE_EXCEPTIONS:
-        return func(*args, **kwargs)
-
-    class InterruptableThread(threading.Thread):
-        def __init__(self):
-            threading.Thread.__init__(self)
-            self.result = False
-            self.exception = False
-
-        def run(self):
-            try:
-                self.result = func(*args, **kwargs)
-            except BaseException:
-                self.exception = True
-                self.exc_info = sys.exc_info()
-
-    thread = InterruptableThread()
-    thread.start()
-    thread.join(timeout_duration)
-    if thread.isAlive():
-        if stop_func is not None:
-            stop_func()
-            # Thread should quit quite soon...
-            # thread.join()
-        raise TimeoutInterrupt
-    else:
-        if thread.exception:
-            # raise thread.exception
-            exc_type, exc_value, exc_traceback = thread.exc_info
-            raise exc_type, exc_value, exc_traceback
-        return thread.result
 
 
 class EvaluationInterrupt(Exception):
@@ -218,7 +184,7 @@ class Evaluation(object):
             if history_length is None or history_length > 100:
                 history_length = 100
 
-            def evaluate(self):
+            def evaluate():
                 if history_length > 0:
                     self.definitions.add_rule('In', Rule(
                         Expression('In', line_no), query))
@@ -236,8 +202,11 @@ class Evaluation(object):
                 result = None
                 exc_result = None
                 try:
-                    result = timeout_call(
-                        evaluate, self.stop, timeout, *[self])
+                    if timeout is None:
+                        result = evaluate()
+                    else:
+                        with interruptingcow.timeout(timeout, TimeoutInterrupt):
+                            result = evaluate()
                 except KeyboardInterrupt:
                     if catch_interrupt:
                         exc_result = Symbol('$Aborted')

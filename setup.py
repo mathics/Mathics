@@ -61,7 +61,8 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += ['sympy==0.7.2', 'django>=1.2', 'ply>=3.4',
-                     'argparse', 'python-dateutil', 'colorama']
+                     'argparse', 'python-dateutil', 'colorama',
+                     'interruptingcow']
 
 # strange SandboxError with SymPy 0.6.7 in Sage (writing to ~/.sage/tmp)
 

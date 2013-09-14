@@ -27,6 +27,7 @@ from mathics.core.definitions import Definitions
 from mathics.core.expression import Integer
 from mathics.core.evaluation import Evaluation
 from mathics import print_version, print_license, get_version_string
+from mathics import settings
 
 
 class TerminalShell(object):
@@ -92,7 +93,9 @@ class TerminalShell(object):
         return '{1}Out[{2}{0}{3}]= {4}'.format(line_number, *self.outcolors)
 
     def evaluate(self, text):
-        evaluation = Evaluation(text, self.definitions, timeout=30,
+        evaluation = Evaluation(text,
+                                self.definitions,
+                                timeout=settings.TIMEOUT,
                                 out_callback=out_callback)
         for result in evaluation.results:
             if result.result is not None:
