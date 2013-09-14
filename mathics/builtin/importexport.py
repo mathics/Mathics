@@ -42,13 +42,13 @@ class ExportFormats(Predefined):
     </dl>
 
     >> $ExportFormats
-     = {...}
+     = {CSV, Text}
     """
 
     name = '$ExportFormats'
 
     def evaluate(self, evaluation):
-        return from_python(EXPORTERS.keys())
+        return from_python(sorted(EXPORTERS.keys()))
 
 
 # FIXME This should be private, ImportExport`RegisterImport
@@ -473,6 +473,14 @@ class Export(Builtin):
     #> FilePrint[%]
      | 1 + x + y
     #> DeleteFile[%%]
+
+    ## CSV
+    #> Export["abc.csv", {{1, 2, 3}, {4, 5, 6}}]
+     = abc.csv
+    #> FilePrint[%]
+     | 1,2,3
+     | 4,5,6
+    #> DeleteFile[%%]
     """
 
     messages = {
@@ -484,6 +492,7 @@ class Export(Builtin):
     _extdict = {
         'jpg': 'JPEG',
         'txt': 'Text',
+        'csv': 'CSV',
     }
 
     rules = {
