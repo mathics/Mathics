@@ -1239,6 +1239,10 @@ class Integer_(Builtin):
 
     >> Head[5]
      = Integer
+
+    ## Test large Integer comparison bug
+    #> {a, b} = {2^10000, 2^10000 + 1}; {a == b, a < b, a <= b}
+     = {False, True, True}
     """
 
     name = 'Integer'
