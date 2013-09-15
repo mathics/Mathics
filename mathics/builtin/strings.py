@@ -14,6 +14,7 @@ import six
 from six.moves import range
 from six import unichr
 
+import re
 from mathics.builtin.base import BinaryOperator, Builtin, Test
 from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
@@ -100,29 +101,23 @@ class StringSplit(Builtin):
     }
 
     def apply(self, string, seps, evaluation):
-        'StringSplit[string_String, seps_List]'
-        py_string, py_seps = string.get_string_value(), seps.get_leaves()
-        result = [py_string]
+        'StringSplit[string_String, seps_]'
+        result = [string.get_string_value()]
+        if seps.has_form('List', None):
+            py_seps = seps.get_leaves()
+        else:
+            py_seps = [seps]
 
-        for py_sep in py_seps:
-            if not isinstance(py_sep, String):
-                evaluation.message('StringSplit', 'strse', Integer(2),
-                                   Expression('StringSplit', string, seps))
-                return
-
-        py_seps = [py_sep.get_string_value() for py_sep in py_seps]
-
-        for py_sep in py_seps:
-            result = [t for s in result for t in s.split(py_sep)]
-        return from_python([x for x in result if x != ''])
-
-    def apply_single(self, string, sep, evaluation):
-        'StringSplit[string_String, sep_?NotListQ]'
-        if not isinstance(sep, String):
+        py_seps = [to_regex(s) for s in py_seps]
+        if any(s is None for s in py_seps):
             evaluation.message('StringSplit', 'strse', Integer(2),
-                               Expression('StringSplit', string, sep))
+                               Expression('StringSplit', string, seps))
             return
-        return self.apply(string, Expression('List', sep), evaluation)
+
+        for s in py_seps:
+            result = [t for res in result for t in re.split(s, res)]
+
+        return from_python(filter(lambda x: x != u'', result))
 
     def apply_empty(self, string, evaluation):
         'StringSplit[string_String]'
@@ -212,11 +207,40 @@ class StringReplace(Builtin):
      : x is not a valid string replacement rule.
      = StringReplace[xyzwxyzwaxyzxyzw, x]
     #> StringReplace["xyzwxyzwaxyzxyzw", x -> y]
-     : x -> y is not a valid string replacement rule.
+     : Element x is not a valid string or pattern element in x.
      = StringReplace[xyzwxyzwaxyzxyzw, x -> y]
     #> StringReplace["abcabc", "a" -> "b", x]
      : Non-negative integer or Infinity expected at position 3 in StringReplace[abcabc, a -> b, x].
      = StringReplace[abcabc, a -> b, x]
+
+    #> StringReplace["01101100010", "01" .. -> "x"]
+     = x1x100x0
+
+    #> StringReplace["abc abcb abdc", "ab" ~~ _ -> "X"]
+     = X Xb Xc
+
+    #> StringReplace["abc abcd abcd",  WordBoundary ~~ "abc" ~~ WordBoundary -> "XX"]
+     = XX abcd abcd
+
+    #> StringReplace["abcd acbd", RegularExpression["[ab]"] -> "XX"]
+     = XXXXcd XXcXXd
+
+    #> StringReplace["abcd acbd", RegularExpression["[ab]"] ~~ _ -> "YY"]
+     = YYcd YYYY
+
+    #> StringReplace["abcdabcdaabcabcd", {"abc" -> "Y", "d" -> "XXX"}]
+     = YXXXYXXXaYYXXX
+
+
+    #> StringReplace["  Have a nice day.  ", (StartOfString ~~ Whitespace) | (Whitespace ~~ EndOfString) -> ""] // FullForm
+     = "Have a nice day."
+    """
+
+
+    # TODO Special Characters
+    """
+    #> StringReplace["product: A \[CirclePlus] B" , "\[CirclePlus]" -> "x"]
+     = A x B
     """
 
     attributes = ('Protected')
@@ -234,102 +258,71 @@ class StringReplace(Builtin):
                  'position `1` in `2`.'),
     }
 
-    # TODO: Implement StringExpression replacements
-    def check_arguments(self, string, rule, n, evaluation):
+    def apply(self, string, rule, evaluation):
+        'StringReplace[string_, rule_]'
+        return self.apply_n(string, rule, None, evaluation)
+
+    def apply_n(self, string, rule, n, evaluation):
+        'StringReplace[string_, rule_, n_]'
+
         if n is None:
             expr = Expression('StringReplace', string, rule)
         else:
             expr = Expression('StringReplace', string, rule, n)
 
-        # Check first argument
+        # convert string
         if string.has_form('List', None):
-            py_string = [s.get_string_value() for s in string.get_leaves()]
-            if None in py_string:
-                evaluation.message('StringReplace', 'strse', Integer(1), expr)
-                return
+            py_strings = [stri.get_string_value() for stri in string.leaves]
+            if None in py_strings:
+                return evaluation.message(
+                    'StringReplace', 'strse', Integer(1), expr)
         else:
-            py_string = string.get_string_value()
-            if py_string is None:
-                evaluation.message('StringReplace', 'strse', Integer(1), expr)
-                return
+            py_strings = string.get_string_value()
+            if py_strings is None:
+                return evaluation.message(
+                    'StringReplace', 'strse', Integer(1), expr)
 
-        # Check second argument
-        def check_rule(r):
-            tmp = [s.get_string_value() for s in r.get_leaves()]
-            if not (r.has_form('Rule', None) and len(tmp) == 2 and
-                    all(r is not None for r in tmp)):
-                evaluation.message('StringReplace', 'srep', r)
-                return None
-            return tmp
+        # convert rule
+        def convert_rule(r):
+            if r.has_form('Rule', None) and len(r.leaves) == 2:
+                py_s = to_regex(r.leaves[0])
+                if py_s is None:
+                    return evaluation.message(
+                        'StringExpression', 'invld', r.leaves[0], r.leaves[0])
+                # TODO: py_sp is allowed to be more general (function, etc)
+                py_sp = r.leaves[1].get_string_value()
+                if py_sp is not None:
+                    return (py_s, py_sp)
+            return evaluation.message('StringReplace', 'srep', r)
 
         if rule.has_form('List', None):
-            tmp_rules = rule.get_leaves()
-            py_rules = []
-            for r in tmp_rules:
-                tmp = check_rule(r)
-                if tmp is None:
-                    return None
-                py_rules.append(tmp)
+            py_rules = [convert_rule(r) for r in rule.leaves]
         else:
-            tmp = check_rule(rule)
-            if tmp is None:
-                return None
-            py_rules = [tmp]
+            py_rules = [convert_rule(rule)]
+        if None in py_rules:
+            return None
 
+        # convert n
         if n is None:
-            return (py_string, py_rules)
+            py_n = 0
         elif n == Expression('DirectedInfinity', Integer(1)):
-            return (py_string, py_rules, None)
+            py_n = 0
         else:
             py_n = n.get_int_value()
-            if py_n is None or py_n < 0:
-                evaluation.message('StringReplace', 'innf', Integer(3), expr)
-                return None
-            return (py_string, py_rules, py_n)
+            if py_n is None py_n < 0:
+                return evaluation.message(
+                    'StringReplace', 'innf', Integer(3), expr)
 
-    def apply(self, string, rule, evaluation):
-        'StringReplace[string_, rule_]'
+        def do_subs(py_stri):
+            for py_s, py_sp in py_rules:
+                py_stri = re.sub(py_s, py_sp, py_stri, py_n)
+            return py_stri
 
-        args = self.check_arguments(string, rule, None, evaluation)
-        if args is None:
-            return None
-        (py_string, py_rules) = args
-
-        def do_replace(s):
-            for sp in py_rules:
-                s = s.replace(sp[0], sp[1])
-            return s
-
-        if isinstance(py_string, list):
-            result = [do_replace(s) for s in py_string]
+        if isinstance(py_strings, list):
+            return Expression(
+                'List', *[String(do_subs(py_stri)) for py_stri in py_strings])
         else:
-            result = do_replace(py_string)
-
-        return from_python(result)
-
-    def apply_n(self, string, rule, n, evaluation):
-        'StringReplace[string_, rule_, n_]'
-
-        args = self.check_arguments(string, rule, n, evaluation)
-
-        if args is None:
-            return None
-        (py_string, py_rules, py_n) = args
-
-        def do_replace(s):
-            for sp in py_rules:
-                if py_n is None:
-                    s = s.replace(sp[0], sp[1])
-                else:
-                    s = s.replace(sp[0], sp[1], py_n)
-            return s
-
-        if isinstance(py_string, list):
-            result = [do_replace(s) for s in py_string]
-        else:
-            result = do_replace(py_string)
-
-        return from_python(result)
+            return String(do_subs(py_strings))
 
 
 class Characters(Builtin):
@@ -946,3 +939,116 @@ class StringDrop(Builtin):
         if not isinstance(string, String):
             return evaluation.message('StringDrop', 'strse')
         return evaluation.message('StringDrop', 'mseqs')
+
+# TODO
+class RegularExpression(Builtin):
+    """
+    >> RegularExpression["[abc]"]
+     = RegularExpression[[abc]]
+    """
+
+
+# TODO
+class StringExpression(Builtin):
+    """
+    """
+
+    # TODO
+    """
+    >> a ~~ b
+     = a~~b
+
+    >> "a" ~~ "b"
+     = "ab"
+    """
+
+    messages = {
+        'invld': 'Element `1` is not a valid string or pattern element in `2`.'
+    }
+
+
+def to_regex(expr):
+    if expr is None:
+        return None
+
+    head = expr.get_head_name()
+    if head == 'Symbol':
+        return {
+            'NumberString': r'\d+',
+            'Whitespace': r'\s+',
+            'DigitCharacter': r'\d',
+            'WhitespaceCharacter': r'\s',
+            'WordCharacter': r'\s',
+            'StartOfLine': r'(?m)^',
+            'EndOfLine': r'(?m)$',
+            'StartOfString': r'^',
+            'EndOfString': r'$',
+            'WordBoundary': r'\b',
+            'LetterCharacter': r'[a-zA-Z]',
+            'HexidecimalCharacter': r'[0-9a-fA-F]',
+        }.get(expr.get_name())
+    elif head == 'String':
+        leaf = expr.get_string_value()
+        if leaf is not None:
+            return "({0})".format(re.escape(leaf))
+    elif head == 'RegularExpression':
+        if len(expr.leaves) == 1:
+            return "({0})".format(expr.leaves[0].get_string_value())
+    elif head == 'CharacterRange':
+        if len(expr.leaves) == 2:
+            (start, stop) = (leaf.get_string_value() for leaf in expr.leaves)
+            if all(x is not None and len(x) == 1 for x in (start, stop)):
+                return "[{0}-{1}]".format(re.escape(start), re.escape(stop))
+    elif head == 'Blank':
+        if len(expr.leaves) == 0:
+            return r'(.|\n)'
+    elif head == 'BlankSequence':
+        if len(expr.leaves) == 0:
+            return r'(.|\n)+'
+    elif head == 'BlankNullSequence':
+        if len(expr.leaves) == 0:
+            return r'(.|\n)*'
+    elif head == 'Except':
+        if len(expr.leaves) == 1:
+            leaf = to_regex(expr.leaves[0])
+            if leaf is not None:
+                return '^{0}'.format(leaf)
+        # TODO
+        # if len(expr.leaves) == 2:
+        #     pass
+    elif head == 'Characters':
+        if len(expr.leaves) == 1:
+            leaf = expr.leaves[0].get_string_value()
+            if leaf is not None:
+                return '[{0}]'.format(re.escape(leaf))
+    elif head == 'StringExpression':
+        leaves = [to_regex(leaf) for leaf in expr.leaves]
+        if None in leaves:
+            return None
+        return "".join(leaves)
+    elif head == 'Longest':
+        if len(leaves) == 1:
+            return to_regex(expr.leaves[0])
+    elif head == 'Shortest':
+        if len(leaves) == 1:
+            leaf = to_regex(expr.leaves[0])
+            if leaf is not None:
+                return '{0}*?'.format(leaf)
+                # p*?|p+?|p??
+    elif head == 'Repeated':
+        if len(expr.leaves) == 1:
+            leaf = to_regex(expr.leaves[0])
+            if leaf is not None:
+                return '{0}+'.format(leaf)
+    elif head == 'RepeatedNull':
+        if len(expr.leaves) == 1:
+            leaf = to_regex(expr.leaves[0])
+            if leaf is not None:
+                return '{0}*'.format(leaf)
+    elif head == 'Alternatives':
+        leaves = [to_regex(leaf) for leaf in expr.leaves]
+        if all(leaf is not None for leaf in leaves):
+            return "|".join(leaves)
+    else:
+        #print expr, head
+        pass
