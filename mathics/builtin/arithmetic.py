@@ -48,10 +48,10 @@ class _MPMathFunction(SympyFunction):
             return
 
         # if no arguments are inexact attempt to use sympy
-        if sum([Expression('InexactNumberQ', x).evaluate(evaluation).is_true()
-                for x in args]) == 0:
-            expr = Expression(self.get_name(), *args).to_sympy()
-            result = from_sympy(expr)
+        if all(not x.is_inexact() for x in args):
+            result = Expression(self.get_name(), *args).to_sympy()
+            result = self.prepare_mathics(result)
+            result = from_sympy(result)
             # evaluate leaves to convert e.g. Plus[2, I] -> Complex[2, 1]
             result = result.evaluate_leaves(evaluation)
         else:

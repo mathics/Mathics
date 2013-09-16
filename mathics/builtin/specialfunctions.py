@@ -703,17 +703,21 @@ class SphericalHarmonicY(_MPMathFunction):
 
     >> SphericalHarmonicY[3/4, 0.5, Pi/5, Pi/3]
      = 0.254247340352667373 + 0.146789770393358909 I
-    """
 
-    # FIXME: This works in sympy==0.7.2 but not 0.7.3
-    """
+    ## Results depend on sympy version
     >> SphericalHarmonicY[3, 1, theta, phi]
-     = -Sqrt[21] (-3 / 2 + 15 Cos[theta] ^ 2 / 2) E ^ (I phi) Sin[theta] / (12 Sqrt[Pi])
+     = ...
+
+    #> SphericalHarmonicY[1,1,x,y]
+     = -Sqrt[6] E ^ (I y) Sin[x] / (4 Sqrt[Pi])
     """
 
     nargs = 4
-    sympy_name = 'Ynm'
+    sympy_name = 'Ynm' if sympy.__version__ != "0.7.2" else 'Ylm'
     mpmath_name = 'spherharm'
+
+    def prepare_mathics(self, sympy_expr):
+        return sympy_expr.expand(func=True).simplify()
 
 
 class GegenbauerC(_MPMathFunction):
