@@ -961,7 +961,8 @@ class DirectedInfinity(SympyFunction):
     >> DirectedInfinity[]
      = ComplexInfinity
     >> DirectedInfinity[1 + I]
-     = DirectedInfinity[(1 / 2 + I / 2) Sqrt[2]]
+     = (1 / 2 + I / 2) Sqrt[2] Infinity
+
     >> 1 / DirectedInfinity[1 + I]
      = 0
     >> DirectedInfinity[1] + DirectedInfinity[-1]
@@ -969,16 +970,16 @@ class DirectedInfinity(SympyFunction):
      = Indeterminate
 
     #> DirectedInfinity[1+I]+DirectedInfinity[2+I]
-     = DirectedInfinity[(2 / 5 + I / 5) Sqrt[5]] + DirectedInfinity[(1 / 2 + I / 2) Sqrt[2]]
+     = (2 / 5 + I / 5) Sqrt[5] Infinity + (1 / 2 + I / 2) Sqrt[2] Infinity
+
+    #> DirectedInfinity[Sqrt[3]]
+     = Infinity
     """
 
     rules = {
         'DirectedInfinity[args___] ^ -1': '0',
-        '0 * DirectedInfinity[args___]': (
-            'Message[Infinity::indet, Unevaluated[0 DirectedInfinity[args]]];'
-            'Indeterminate'),
-        'DirectedInfinity[a_?NumberQ] /; N[Abs[a]] != 1': (
-            'DirectedInfinity[a / Abs[a]]'),
+        '0 * DirectedInfinity[args___]': 'Message[Infinity::indet, Unevaluated[0 DirectedInfinity[args]]]; Indeterminate',
+        'DirectedInfinity[a_?NumericQ] /; N[Abs[a]] != 1': 'DirectedInfinity[a / Abs[a]]',
         'DirectedInfinity[a_] * DirectedInfinity[b_]': 'DirectedInfinity[a*b]',
         'DirectedInfinity[] * DirectedInfinity[args___]': 'DirectedInfinity[]',
         'DirectedInfinity[0]': 'DirectedInfinity[]',
@@ -995,9 +996,8 @@ class DirectedInfinity(SympyFunction):
         'DirectedInfinity[1]': 'HoldForm[Infinity]',
         'DirectedInfinity[-1]': 'HoldForm[-Infinity]',
         'DirectedInfinity[]': 'HoldForm[ComplexInfinity]',
+        'DirectedInfinity[z_?NumericQ]': 'HoldForm[z Infinity]',
     }
-
-    # TODO: Improve formatting
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
@@ -1064,7 +1064,7 @@ class Im(SympyFunction):
         return Integer(0)
 
 
-class Abs(SympyFunction):
+class Abs(_MPMathFunction):
     """
     <dl>
     <dt>'Abs[$x$]'
@@ -1085,25 +1085,13 @@ class Abs(SympyFunction):
      = 1
     #> Abs[a - b]
      = Abs[a - b]
+
+    #> Abs[Sqrt[3]]
+     = Sqrt[3]
     """
 
     sympy_name = 'Abs'
-
-    def apply_real(self, x, evaluation):
-        'Abs[x_?RealNumberQ]'
-
-        sym_x = x.to_sympy()
-        if sym_x < 0:
-            return Number.from_mp(-sym_x)
-        else:
-            return x
-
-    def apply_complex(self, z, evaluation):
-        'Abs[z_Complex]'
-
-        real, imag = z.to_sympy().as_real_imag()
-        return Expression('Sqrt', Expression(
-            'Plus', Number.from_mp(real ** 2), Number.from_mp(imag ** 2)))
+    mpmath_name = 'fabs'  # mpmath actually uses python abs(x) / x.__abs__()
 
 
 class I(Predefined):
