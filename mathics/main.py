@@ -129,7 +129,7 @@ class TerminalShell(object):
 
 
 def to_output(text):
-    return '\n . '.join(text.splitlines())
+    return '\n        '.join(text.splitlines())
 
 
 def out_callback(out):
