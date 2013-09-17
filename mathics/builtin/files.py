@@ -1710,8 +1710,8 @@ class BinaryRead(Builtin):
         if typ.has_form('List', None):
             return Expression('List', *result)
         else:
-            assert len(result) == 1
-            return result[0]
+            if len(result) == 1:
+                return result[0]
 
 
 class WriteString(Builtin):
@@ -1756,6 +1756,8 @@ class WriteString(Builtin):
      = ...
     #> FilePrint[%]
      | abc
+
+    #> WriteString[OpenWrite["/dev/zero"], "abc"]   (* Null *)
     """
 
     messages = {
@@ -1775,7 +1777,6 @@ class WriteString(Builtin):
         stream = _lookup_stream(strm.leaves[1].get_int_value())
 
         if stream is None or stream.closed:
-            #evaluation.message(...)
             return None
 
         exprs = []
@@ -1860,7 +1861,6 @@ class _OpenAction(Builtin):
             evaluation.message('General', 'noopen', path)
             return
 
-        assert STREAMS[n] == stream
         return Expression(self.stream_type, path, Integer(n))
 
 
@@ -3338,9 +3338,6 @@ class StringToStream(Builtin):
         result = Expression('InputStream', name, Integer(n))
 
         STREAMS.append(stream)
-
-        assert STREAMS[n] == stream
-
         return result
 
 
@@ -3418,7 +3415,7 @@ class Compress(Builtin):
             evaluation=evaluation, show_string_characters=True)
         string = string.encode('utf-8')
 
-        #TODO Implement other Methods
+        # TODO Implement other Methods
         result = zlib.compress(string)
         result = base64.encodestring(result)
 

@@ -638,8 +638,6 @@ class FromCharacterCode(Builtin):
             if encoding is not None:
                 raise NotImplementedError
 
-            assert isinstance(pyn, list)
-
             for i, pyni in enumerate(pyn):
                 if not (isinstance(pyni, int) and 0 <= pyni <= 0xffff):
                     return evaluation.message(

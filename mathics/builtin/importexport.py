@@ -176,7 +176,7 @@ class RegisterImport(Builtin):
         return Symbol('Null')
 
 
-#FIXME This should be private, ImportExport`RegisterExport
+# FIXME This should be private, ImportExport`RegisterExport
 class RegisterExport(Builtin):
     """
     <dl>
@@ -394,8 +394,8 @@ class Import(Builtin):
                     result = get_results(conditionals[el])
                     if result is None:
                         return Symbol('$Failed')
-                    assert len(result.keys()) == 1 and result.keys()[0] == el
-                    return result.values()[0]
+                    if len(result.keys()) == 1 and result.keys()[0] == el:
+                        return result.values()[0]
                 elif el in posts.keys():
                     # TODO: allow use of conditionals
                     result = get_results(posts[el])
@@ -790,11 +790,11 @@ class FileFormat(Builtin):
             if key in mime:
                 result.append(typedict[key])
 
-        assert len(result) in (0, 1)
-
         if len(result) == 0:
             result = 'Binary'
-        else:
+        elif len(result) == 1:
             result = result[0]
+        else:
+            return None
 
         return from_python(result)
