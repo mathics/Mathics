@@ -486,6 +486,190 @@ class ToExpression(Builtin):
         return
 
 
+class ToCharacterCode(Builtin):
+    """
+    <dl>
+    <dt>'ToCharacterCode["string"]'
+      <dd>converts the string to a list of integer character codes.
+    <dt>'ToCharacterCode[{"string1", "string2", ...}]'
+      <dd>converts a list of strings to character codes.
+    </dl>
+
+    >> ToCharacterCode["abc"]
+     = {97, 98, 99}
+    >> FromCharacterCode[%]
+     = abc
+
+    >> ToCharacterCode["\[Alpha]\[Beta]\[Gamma]"]
+     = {945, 946, 947}
+
+    >> ToCharacterCode[{"ab", "c"}]
+     = {{97, 98}, {99}}
+
+    #> ToCharacterCode[{"ab"}]
+     = {{97, 98}}
+
+    #> ToCharacterCode[{{"ab"}}]
+     : String or list of strings expected at position 1 in ToCharacterCode[{{ab}}].
+     = ToCharacterCode[{{ab}}]
+
+    >> ToCharacterCode[{"ab", x}]
+     : String or list of strings expected at position 1 in ToCharacterCode[{ab, x}].
+     = ToCharacterCode[{ab, x}]
+
+    >> ListPlot[ToCharacterCode["plot this string"], Filling -> Axis]
+     = -Graphics-
+
+    #> ToCharacterCode[x]
+     : String or list of strings expected at position 1 in ToCharacterCode[x].
+     = ToCharacterCode[x]
+
+    #> ToCharacterCode[""]
+     = {}
+    """
+
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+    }
+
+    #TODO: encoding
+
+    def apply(self, string, evaluation):
+        "ToCharacterCode[string_]"
+
+        exp = Expression('ToCharacterCode', string)
+
+        if string.has_form('List', None):
+            string = [substring.get_string_value()
+                      for substring in string.leaves]
+            if any(substring is None for substring in string):
+                evaluation.message('ToCharacterCode', 'strse', Integer(1), exp)
+                return None
+        else:
+            string = string.get_string_value()
+            if string is None:
+                evaluation.message('ToCharacterCode', 'strse', Integer(1), exp)
+                return None
+
+        if isinstance(string, list):
+            codes = [[ord(char) for char in substring] for substring in string]
+        elif isinstance(string, basestring):
+            codes = [ord(char) for char in string]
+        return from_python(codes)
+
+
+class FromCharacterCode(Builtin):
+    """
+    <dl>
+    <dt>'FromCharacterCode[$n$]'
+        <dd>returns the character corresponding to character code $n$.
+    <dt>'FromCharacterCode[{$n1$, $n2$, ...}]'
+        <dd>returns a string with characters corresponding to $n_i$.
+    <dt>'FromCharacterCode[{{$n11$, $n12$, ...}, {$n21$, $n22$, ...}, ...}]'
+        <dd>returns a list of strings.
+    </dl>
+
+    >> FromCharacterCode[100]
+     = d
+
+    >> FromCharacterCode[{100, 101, 102}]
+     = def
+    >> ToCharacterCode[%]
+     = {100, 101, 102}
+
+    >> FromCharacterCode[{{97, 98, 99}, {100, 101, 102}}]
+     = {abc, def}
+
+    >> ToCharacterCode["abc 123"] // FromCharacterCode
+     = abc 123
+
+    #> #1 == ToCharacterCode[FromCharacterCode[#1]] & [RandomInteger[{0, 65535}, 100]]
+     = True
+
+    #> FromCharacterCode[{}] // InputForm
+     = ""
+
+    #> FromCharacterCode[65536]
+     : A character code, which should be a non-negative integer less than 65536, is expected at position 1 in {65536}.
+     = FromCharacterCode[65536]
+    #> FromCharacterCode[-1]
+     : Non-negative machine-sized integer expected at position 1 in FromCharacterCode[-1].
+     = FromCharacterCode[-1]
+    #> FromCharacterCode[444444444444444444444444444444444444]
+     : Non-negative machine-sized integer expected at position 1 in FromCharacterCode[444444444444444444444444444444444444].
+     = FromCharacterCode[444444444444444444444444444444444444]
+
+    #> FromCharacterCode[{100, 101, -1}]
+     : A character code, which should be a non-negative integer less than 65536, is expected at position 3 in {100, 101, -1}.
+     = FromCharacterCode[{100, 101, -1}]
+    #> FromCharacterCode[{100, 101, 65536}]
+     : A character code, which should be a non-negative integer less than 65536, is expected at position 3 in {100, 101, 65536}.
+     = FromCharacterCode[{100, 101, 65536}]
+    #> FromCharacterCode[{100, 101, x}]
+     : A character code, which should be a non-negative integer less than 65536, is expected at position 3 in {100, 101, x}.
+     = FromCharacterCode[{100, 101, x}]
+    #> FromCharacterCode[{100, {101}}]
+     : A character code, which should be a non-negative integer less than 65536, is expected at position 2 in {100, {101}}.
+     = FromCharacterCode[{100, {101}}]
+
+    #> FromCharacterCode[{{97, 98, 99}, {100, 101, x}}]
+     : A character code, which should be a non-negative integer less than 65536, is expected at position 3 in {100, 101, x}.
+     = FromCharacterCode[{{97, 98, 99}, {100, 101, x}}]
+    #> FromCharacterCode[{{97, 98, x}, {100, 101, x}}]
+     : A character code, which should be a non-negative integer less than 65536, is expected at position 3 in {97, 98, x}.
+     = FromCharacterCode[{{97, 98, x}, {100, 101, x}}]
+    """
+
+    messages = {
+        'notunicode': (
+            'A character code, which should be a non-negative integer less '
+            'than 65536, is expected at position `2` in `1`.'),
+        'intnm': (
+            'Non-negative machine-sized integer expected at '
+            'position `2` in `1`.'),
+    }
+
+    def apply(self, n, evaluation):
+        "FromCharacterCode[n_]"
+        exp = Expression('FromCharacterCode', n)
+        pyn = n.to_python()
+
+        def convert(pyn, encoding=None):
+            if encoding is not None:
+                raise NotImplementedError
+
+            for i, pyni in enumerate(pyn):
+                if not (isinstance(pyni, int) and 0 <= pyni <= 0xffff):
+                    return evaluation.message(
+                        'FromCharacterCode', 'notunicode', pyn, Integer(i + 1))
+
+            return ''.join(unichr(pyni) for pyni in pyn)
+
+        if isinstance(pyn, list):
+            if pyn == []:
+                string = ''
+            elif all(isinstance(ni, list) for ni in pyn):
+                string = []
+                for pyni in pyn:
+                    stringi = convert(pyni)
+                    if stringi is None:
+                        string = None
+                        break
+                    else:
+                        string.append(stringi)
+            else:
+                string = convert(pyn)
+        else:
+            if not (isinstance(pyn, int) and pyn > 0):
+                evaluation.message(
+                    'FromCharacterCode', 'intnm', exp, Integer(1))
+                return
+            string = convert([pyn])
+
+        if string is not None:
+            return from_python(string)
+
+
 class StringQ(Test):
     """
     <dl>

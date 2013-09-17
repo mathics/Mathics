@@ -13,13 +13,16 @@ import zlib
 import base64
 import tempfile
 import time
+import struct
+import sympy
+import math
 
-from mathics.core.expression import Expression, String, Symbol, from_python
+from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
+                                     from_python, Integer, BoxError)
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.settings import ROOT_DIR
 
-STREAMS = {}
 INITIAL_DIR = os.getcwd()
 HOME_DIR = os.path.expanduser('~')
 SYS_ROOT_DIR = '/' if os.name == 'posix' else '\\'
@@ -29,59 +32,6 @@ INPUT_VAR = ""
 INPUTFILE_VAR = ""
 PATH_VAR = [HOME_DIR, os.path.join(ROOT_DIR, 'data'),
             os.path.join(ROOT_DIR, 'packages')]
-
-
-class mathics_open:
-    def __init__(self, filename, mode='r'):
-        self.filename = filename
-        self.mode = mode
-        self.file = None
-
-    def __enter__(self):
-        path = path_search(self.filename)
-
-        encoding = 'utf-8' if 'b' not in self.mode else None
-
-        if path is not None:
-            self.file = io.open(path, self.mode, encoding=encoding)
-        elif self.mode == 'w':
-            self.file = io.open(self.filename, self.mode, encoding=encoding)
-        else:
-            raise IOError
-        return self
-
-    def __exit__(self, type, value, traceback):
-        if self.file is not None:
-            self.file.close()
-
-    def read(self, *args):
-        return self.file.read(*args)
-
-    def write(self, *args):
-        return self.file.write(*args)
-
-    def readline(self):
-        return self.file.readline()
-
-    def readlines(self):
-        return self.file.readlines()
-
-    def seek(self, *args):
-        return self.file.seek(*args)
-
-    def tell(self):
-        return self.file.tell()
-
-    def close(self):
-        self.file.close()
-
-    @property
-    def closed(self):
-        return self.file.closed
-
-    @property
-    def seekable(self):
-        return self.file.seekable
 
 
 def path_search(filename):
@@ -111,19 +61,91 @@ def path_search(filename):
     return result
 
 
-def _put_stream(stream):
-    global STREAMS, _STREAMS, NSTREAMS
+def count():
+    n = 0
+    while True:
+        yield n
+        n += 1
 
-    try:
-        _STREAMS
-    except NameError:
-        STREAMS = {}    # Python repr
-        _STREAMS = {}   # Mathics repr
-        NSTREAMS = 0    # Max stream number
+NSTREAMS = count()      # use next(NSTREAMS)
+STREAMS = []
 
-    NSTREAMS += 1
-    STREAMS[NSTREAMS] = stream
-    return NSTREAMS
+
+def _channel_to_stream(channel, mode='r'):
+    if isinstance(channel, String):
+        name = channel.get_string_value()
+        opener = mathics_open(name, mode)
+        opener.__enter__()
+        n = opener.n
+        if mode in ['r', 'rb']:
+            head = 'InputStream'
+        elif mode in ['w', 'a', 'wb', 'ab']:
+            head = 'OutputStream'
+        else:
+            raise ValueError("Unknown format {0}".format(mode))
+        return Expression(head, channel, Integer(n))
+    elif channel.has_form('InputStream', 2):
+        return channel
+    elif channel.has_form('OutputStream', 2):
+        return channel
+    else:
+        return None
+
+
+def _lookup_stream(n=None):
+    if n is None:
+        return None
+    elif n is not None:
+        try:
+            return STREAMS[n]
+        except IndexError:
+            return None
+
+
+class mathics_open:
+    def __init__(self, name, mode='r'):
+        self.name = name
+        self.mode = mode
+
+        if mode not in ['r', 'w', 'a', 'rb', 'wb', 'ab']:
+            raise ValueError("Can't handle mode {0}".format(mode))
+
+    def __enter__(self):
+        # find path
+        path = path_search(self.name)
+        if path is None and self.mode in ['w', 'a', 'wb', 'ab']:
+            path = self.name
+        if path is None:
+            raise IOError
+
+        # determine encoding
+        encoding = 'utf-8' if 'b' not in self.mode else None
+
+        # open the stream
+        stream = io.open(path, self.mode, encoding=encoding)
+
+        # build the Expression
+        n = next(NSTREAMS)
+        if self.mode in ['r', 'rb']:
+            self.expr = Expression(
+                'InputStream', String(path), Integer(n))
+        elif self.mode in ['w', 'a', 'wb', 'ab']:
+            self.expr = Expression(
+                'OutputStream', String(path), Integer(n))
+        else:
+            raise IOError
+
+        STREAMS.append(stream)
+
+        self.n = n
+
+        return stream
+
+    def __exit__(self, type, value, traceback):
+        strm = STREAMS[self.n]
+        if strm is not None:
+            strm.close()
+            STREAMS[self.n] = None
 
 
 class InitialDirectory(Predefined):
@@ -328,7 +350,6 @@ class Read(Builtin):
 
     ## Malformed InputString
     #> Read[InputStream[String], {Word, Number}]
-     : InputStream[String] is not string, InputStream[], or OutputStream[]
      = Read[InputStream[String], {Word, Number}]
 
     ## Correctly formed InputString but not open
@@ -422,13 +443,8 @@ class Read(Builtin):
      = {123., 123}
     #> Close[str];
 
-    ## TODO Replace the following test with this one:
-    ## >> Read[str, {Real}]
-    ##  : InputStream[String, ...] is not open.
-    ##  = Read[InputStream[String, ...], {Real}]
-    ## Quick check
-    #> Quiet[Head[Read[str, {Real}]]]
-     = Read
+    #> Quiet[Read[str, {Real}]]
+     = Read[InputStream[String, ...], {Real}]
     """
 
     messages = {
@@ -517,15 +533,24 @@ class Read(Builtin):
 
         return result
 
-    def apply(self, name, n, types, evaluation, options):
-        'Read[InputStream[name_, n_], types_, OptionsPattern[Read]]'
-        global STREAMS
+    def apply(self, channel, types, evaluation, options):
+        'Read[channel_, types_, OptionsPattern[Read]]'
 
-        stream = STREAMS.get(n.to_python())
+        if channel.has_form('OutputStream', 2):
+            evaluation.message('General', 'openw', channel)
+            return
+
+        strm = _channel_to_stream(channel, 'r')
+
+        if strm is None:
+            return
+
+        [name, n] = strm.get_leaves()
+
+        stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
-            evaluation.message('Read', 'openx', Expression(
-                'InputStream', name, n))
+            evaluation.message('Read', 'openx', strm)
             return
 
         types = types.to_python()
@@ -679,10 +704,16 @@ class Write(Builtin):
 
     attributes = ('Protected')
 
-    def apply(self, name, n, expr, evaluation):
-        'Write[OutputStream[name_, n_], expr___]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+    def apply(self, channel, expr, evaluation):
+        'Write[channel_, expr___]'
+
+        strm = _channel_to_stream(channel)
+
+        if strm is None:
+            return
+
+        n = strm.leaves[1].get_int_value()
+        stream = _lookup_stream(n)
 
         if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
@@ -695,6 +726,992 @@ class Write(Builtin):
         text = evaluation.format_output(from_python(expr))
         stream.write(unicode(text) + u'\n')
         return Symbol('Null')
+
+
+class _BinaryFormat(object):
+    """
+    Container for BinaryRead readers and BinaryWrite writers
+    """
+
+    @staticmethod
+    def _IEEE_real(real):
+        if math.isnan(real):
+            return Symbol('Indeterminate')
+        elif math.isinf(real):
+            return Expression('DirectedInfinity', Integer((-1) ** (real < 0)))
+        else:
+            return Real(real)
+
+    @staticmethod
+    def _IEEE_cmplx(real, imag):
+        if math.isnan(real) or math.isnan(imag):
+            return Symbol('Indeterminate')
+        elif math.isinf(real) or math.isinf(imag):
+            if math.isinf(real) and math.isinf(imag):
+                return Symbol('Indeterminate')
+            return Expression('DirectedInfinity', Expression(
+                'Complex', 
+                (-1) ** (real < 0) if math.isinf(real) else 0,
+                (-1) ** (imag < 0) if math.isinf(imag) else 0))
+        else:
+            return Complex(real, imag)
+
+    @classmethod
+    def get_readers(cls):
+        readers = {}
+        for funcname in dir(cls):
+            if funcname.startswith('_') and funcname.endswith('_reader'):
+                readers[funcname[1:-7]] = getattr(cls, funcname)
+        return readers
+
+    @classmethod
+    def get_writers(cls):
+        writers = {}
+        for funcname in dir(cls):
+            if funcname.startswith('_') and funcname.endswith('_writer'):
+                writers[funcname[1:-7]] = getattr(cls, funcname)
+        return writers
+
+    # Reader Functions
+
+    @staticmethod
+    def _Byte_reader(s):
+        "8-bit unsigned integer"
+        return Integer(*struct.unpack('B', s.read(1)))
+
+    @staticmethod
+    def _Character8_reader(s): 
+        "8-bit character"
+        return String(*struct.unpack('c', s.read(1)))
+
+    @staticmethod
+    def _Character16_reader(s):
+        "16-bit character"
+        return String(unichr(*struct.unpack('H', s.read(2))))
+
+    @staticmethod
+    def _Complex64_reader(s):
+        "IEEE single-precision complex number"
+        return _BinaryFormat._IEEE_cmplx(*struct.unpack('ff', s.read(8)))
+
+    @staticmethod
+    def _Complex128_reader(s): 
+        "IEEE double-precision complex number"
+        return _BinaryFormat._IEEE_cmplx(*struct.unpack('dd', s.read(16)))
+
+    @staticmethod
+    def _Complex256_reader(s):
+        "IEEE quad-precision complex number"
+        return Complex(_Real128_reader(s), _Real128_reader(s))
+
+    @staticmethod
+    def _Integer8_reader(s):
+        "8-bit signed integer"
+        return Integer(*struct.unpack('b', s.read(1)))
+
+    @staticmethod
+    def _Integer16_reader(s):
+        "16-bit signed integer"
+        return Integer(*struct.unpack('h', s.read(2)))
+
+    @staticmethod
+    def _Integer24_reader(s):
+        "24-bit signed integer"
+        b = s.read(3)
+        return Integer(*struct.unpack(
+            'i', b + ('\0' if b[-1] < '\x80' else '\xff')))
+
+    @staticmethod
+    def _Integer32_reader(s):
+        "32-bit signed integer"
+        return Integer(*struct.unpack('i', s.read(4)))
+
+    @staticmethod
+    def _Integer64_reader(s):
+        "64-bit signed integer"
+        return Integer(*struct.unpack('q', s.read(8)))
+
+    @staticmethod
+    def _Integer128_reader(s):
+        "128-bit signed integer"
+        a, b = struct.unpack('Qq', s.read(16))
+        return Integer((b << 64) + a)
+
+    @staticmethod
+    def _Real32_reader(s): 
+        "IEEE single-precision real number"
+        return _BinaryFormat._IEEE_real(*struct.unpack('f', s.read(4)))
+
+    @staticmethod
+    def _Real64_reader(s):
+        "IEEE double-precision real number"
+        return _BinaryFormat._IEEE_real(*struct.unpack('d', s.read(8)))
+
+    @staticmethod
+    def _Real128_reader(s):
+        "IEEE quad-precision real number"
+        # Workaround quad missing from struct
+        # correctness is not guaranteed
+        b = s.read(16)
+        sig, sexp = b[:14], b[14:]
+
+        # Sign / Exponent
+        sexp, = struct.unpack('H', sexp)
+        signbit = sexp / 0x8000
+        expbits = sexp % 0x8000
+
+        # Signifand
+        fracbits = int(sig[::-1].encode('hex'), 16)
+
+        if expbits == 0x0000 and fracbits == 0:
+            return Real('0.' + '0' * 4965)
+        elif expbits == 0x7FFF:
+            if fracbits == 0:
+                return Expression('DirectedInfinity', Integer((-1) ** signbit))
+            else:
+                return Symbol('Indeterminate')
+
+        core = sympy.mpmath.fdiv(fracbits, 2 ** 112, prec=128)
+        if expbits == 0x000:
+            assert fracbits != 0
+            exp = -16382
+            core = sympy.mpmath.fmul((-1) ** signbit, core, prec=128)
+        else:
+            assert 0x0001 <= expbits <= 0x7FFE
+            exp = expbits - 16383
+            core = sympy.mpmath.fmul(
+                (-1) ** signbit,
+                sympy.mpmath.fadd(1, core, prec=128), prec=128)
+
+        if exp >= 0:
+            result = sympy.mpmath.fmul(core, 2 ** exp, prec=128)
+        else:
+            result = sympy.mpmath.fdiv(core, 2 ** -exp, prec=128)
+
+        return Real(sympy.mpmath.nstr(result, n=38), p=112)
+
+    @staticmethod
+    def _TerminatedString_reader(s):
+        "null-terminated string of 8-bit characters"
+        b = s.read(1)
+        string = ''
+        while b != '\x00':
+            if b == '':
+                raise struct.error
+            string += b
+            b = s.read(1)
+        return String(string)
+
+    @staticmethod
+    def _UnsignedInteger8_reader(s):
+        "8-bit unsigned integer"
+        return Integer(*struct.unpack('B', s.read(1)))
+
+    @staticmethod
+    def _UnsignedInteger16_reader(s):
+        "16-bit unsigned integer"
+        return Integer(*struct.unpack('H', s.read(2)))
+
+    @staticmethod
+    def _UnsignedInteger24_reader(s):
+        "24-bit unsigned integer"
+        return Integer(*struct.unpack('I', s.read(3) + '\0'))
+
+    @staticmethod
+    def _UnsignedInteger32_reader(s):
+        "32-bit unsigned integer"
+        return Integer(*struct.unpack('I', s.read(4)))
+
+    @staticmethod
+    def _UnsignedInteger64_reader(s):
+        "64-bit unsigned integer"
+        return Integer(*struct.unpack('Q', s.read(8)))
+
+    @staticmethod
+    def _UnsignedInteger128_reader(s):
+        "128-bit unsigned integer"
+        a, b = struct.unpack('QQ', s.read(16))
+        return Integer((b << 64) + a)
+
+    # Writer Functions
+
+    @staticmethod
+    def _Byte_writer(s, x):
+        "8-bit unsigned integer"
+        s.write(struct.pack('B', x))
+
+    @staticmethod
+    def _Character8_writer(s, x): 
+        "8-bit character"
+        s.write(struct.pack('c', x.encode('utf-8')))
+
+    # TODO
+    # @staticmethod
+    # def _Character16_writer(s, x):
+    #     "16-bit character"
+    #     pass
+
+    @staticmethod
+    def _Complex64_writer(s, x):
+        "IEEE single-precision complex number"
+        s.write(struct.pack('ff', x.real, x.imag))
+        # return _BinaryFormat._IEEE_cmplx(*struct.unpack('ff', s.read(8)))
+
+    @staticmethod
+    def _Complex128_writer(s, x): 
+        "IEEE double-precision complex number"
+        s.write(struct.pack('dd', x.real, x.imag))
+
+    # TODO
+    # @staticmethod
+    # def _Complex256_writer(s, x):
+    #     "IEEE quad-precision complex number"
+    #     pass
+
+    @staticmethod
+    def _Integer8_writer(s, x):
+        "8-bit signed integer"
+        s.write(struct.pack('b', x))
+
+    @staticmethod
+    def _Integer16_writer(s, x):
+        "16-bit signed integer"
+        s.write(struct.pack('h', x))
+
+    @staticmethod
+    def _Integer24_writer(s, x):
+        "24-bit signed integer"
+        s.write(struct.pack("i", x << 8)[1:])
+
+    @staticmethod
+    def _Integer32_writer(s, x):
+        "32-bit signed integer"
+        s.write(struct.pack('i', x))
+
+    @staticmethod
+    def _Integer64_writer(s, x):
+        "64-bit signed integer"
+        s.write(struct.pack('q', x))
+
+    @staticmethod
+    def _Integer128_writer(s, x):
+        "128-bit signed integer"
+        a, b = x & 0xFFFFFFFFFFFFFFFF, x >> 64
+        s.write(struct.pack('Qq', a, b))
+
+    @staticmethod
+    def _Real32_writer(s, x): 
+        "IEEE single-precision real number"
+        s.write(struct.pack('f', x))
+
+    @staticmethod
+    def _Real64_writer(s, x):
+        "IEEE double-precision real number"
+        s.write(struct.pack('d', x))
+
+    # TODO
+    # @staticmethod
+    # def _Real128_writer(s, x):
+    #     "IEEE quad-precision real number"
+    #     pass
+
+    @staticmethod
+    def _TerminatedString_writer(s, x):
+        "null-terminated string of 8-bit characters"
+        s.write(x.encode('utf-8'))
+
+    @staticmethod
+    def _UnsignedInteger8_writer(s, x):
+        "8-bit unsigned integer"
+        s.write(struct.pack('B', x))
+
+    @staticmethod
+    def _UnsignedInteger16_writer(s, x):
+        "16-bit unsigned integer"
+        s.write(struct.pack('H', x))
+
+    @staticmethod
+    def _UnsignedInteger24_writer(s, x):
+        "24-bit unsigned integer"
+        s.write(struct.pack("I", x << 8)[1:])
+
+    @staticmethod
+    def _UnsignedInteger32_writer(s, x):
+        "32-bit unsigned integer"
+        s.write(struct.pack('I', x))
+
+    @staticmethod
+    def _UnsignedInteger64_writer(s, x):
+        "64-bit unsigned integer"
+        s.write(struct.pack('Q', x))
+
+    @staticmethod
+    def _UnsignedInteger128_writer(s, x):
+        "128-bit unsigned integer"
+        a, b = x & 0xFFFFFFFFFFFFFFFF, x >> 64
+        s.write(struct.pack('QQ', a, b))
+
+
+class BinaryWrite(Builtin):
+    """
+    <dl>
+    <dt>'BinaryWrite[$channel$, $b$]'
+      <dd>writes a single byte given as an integer from 0 to 255.
+    <dt>'BinaryWrite[$channel$, {b1, b2, ...}]'
+      <dd>writes a sequence of byte.
+    <dt>'BinaryWrite[$channel$, "string"]'
+      <dd>writes the raw characters in a string.
+    <dt>'BinaryWrite[$channel$, $x$, $type$]'
+      <dd>writes $x$ as the specified type.
+    <dt>'BinaryWrite[$channel$, {$x1$, $x2$, ...}, $type$]'
+      <dd>writes a sequence of objects as the specified type.
+    <dt>'BinaryWrite[$channel$, {$x1$, $x2$, ...}, {$type1$, $type2$, ...}]'
+      <dd>writes a sequence of objects using a sequence of specified types.
+    </dl>
+
+    >> strm = OpenWrite[BinaryFormat -> True]
+     = OutputStream[...]
+    >> BinaryWrite[strm, {39, 4, 122}]
+     = OutputStream[...]
+    >> Close[strm]
+     = ...
+    >> strm = OpenRead[%, BinaryFormat -> True]
+     = InputStream[...]
+    >> BinaryRead[strm]
+     = 39
+    >> BinaryRead[strm, "Byte"]
+     = 4
+    >> BinaryRead[strm, "Character8"]
+     = z
+    >> Close[strm];
+
+    Write a String
+    >> strm = OpenWrite[BinaryFormat -> True]
+     = OutputStream[...]
+    >> BinaryWrite[strm, "abc123"]
+     = OutputStream[...]
+    >> Close[%]
+     = ...
+
+    Read as Bytes
+    >> strm = OpenRead[%, BinaryFormat -> True]
+     = InputStream[...]
+    >> BinaryRead[strm, {"Character8", "Character8", "Character8", "Character8", "Character8", "Character8", "Character8"}]
+     = {a, b, c, 1, 2, 3, EndOfFile}
+    >> Close[strm]
+     = ...
+
+    Read as Characters
+    >> strm = OpenRead[%, BinaryFormat -> True]
+     = InputStream[...]
+    >> BinaryRead[strm, {"Byte", "Byte", "Byte", "Byte", "Byte", "Byte", "Byte"}]
+     = {97, 98, 99, 49, 50, 51, EndOfFile}
+    >> Close[strm]
+     = ...
+
+    Write Type
+    >> strm = OpenWrite[BinaryFormat -> True]
+     = OutputStream[...]
+    >> BinaryWrite[strm, 97, "Byte"]
+     = OutputStream[...]
+    >> BinaryWrite[strm, {97, 98, 99}, {"Byte", "Byte", "Byte"}]
+     = OutputStream[...]
+    >> Close[%]
+     = ...
+
+    ## Write then Read as Bytes
+    #> WRb[bytes_, form_] := Module[{str, res={}, byte}, str = OpenWrite[BinaryFormat -> True]; BinaryWrite[str, bytes, form]; str = OpenRead[Close[str], BinaryFormat -> True]; While[Not[SameQ[byte = BinaryRead[str], EndOfFile]], res = Join[res, {byte}];]; Close[str]; res]
+
+    ## Byte
+    #> WRb[{149, 2, 177, 132}, {"Byte", "Byte", "Byte", "Byte"}]
+     = {149, 2, 177, 132}
+    #> WRb[{149, 2, 177, 132}, {"Byte", "Byte", "Byte", "Byte"}]
+     = {149, 2, 177, 132}
+    #> (# == WRb[#, Table["Byte", {50}]]) & [RandomInteger[{0, 255}, 50]]
+     = True
+
+    ## Character8
+    #> WRb[{"a", "b", "c"}, {"Character8", "Character8", "Character8"}]
+     = {97, 98, 99}
+    #> WRb[{34, 60, 39}, {"Character8", "Character8", "Character8"}]
+     = {51, 52, 54, 48, 51, 57}
+    #> WRb[{"ab", "c", "d"}, {"Character8", "Character8", "Character8", "Character8"}]
+     = {97, 98, 99, 100}
+
+    ## Character16
+    ## TODO
+
+    ## Complex64
+    #> WRb[-6.36877988924*^28 + 3.434203392*^9 I, "Complex64"]
+     = {80, 201, 77, 239, 201, 177, 76, 79}
+    #> WRb[-6.98948862335*^24 + 1.52209021297*^23 I, "Complex64"]
+     = {158, 2, 185, 232, 18, 237, 0, 102}
+    #> WRb[-1.41079828148*^-19 - 0.013060791418 I, "Complex64"]
+     = {195, 142, 38, 160, 238, 252, 85, 188}
+    #> WRb[{5, -2054}, "Complex64"]
+     = {0, 0, 160, 64, 0, 0, 0, 0, 0, 96, 0, 197, 0, 0, 0, 0}
+    #> WRb[Infinity, "Complex64"]
+     = {0, 0, 128, 127, 0, 0, 0, 0}
+    #> WRb[-Infinity, "Complex64"]
+     = {0, 0, 128, 255, 0, 0, 0, 0}
+    #> WRb[DirectedInfinity[1 + I], "Complex64"]
+     = {0, 0, 128, 127, 0, 0, 128, 127}
+    #> WRb[DirectedInfinity[I], "Complex64"]
+     = {0, 0, 0, 0, 0, 0, 128, 127}
+    ## FIXME (different convention to MMA)
+    #> WRb[Indeterminate, "Complex64"]
+     = {0, 0, 192, 127, 0, 0, 192, 127}
+
+    ## Complex128
+    #> WRb[1.19839770357*^-235 - 2.64656391494*^-54 I,"Complex128"]
+     = {102, 217, 1, 163, 234, 98, 40, 15, 243, 104, 116, 15, 48, 57, 208, 180}
+    #> WRb[3.22170267142*^134 - 8.98364297498*^198 I,"Complex128"]
+     = {219, 161, 12, 126, 47, 94, 220, 91, 189, 66, 29, 68, 147, 11, 62, 233}
+    #> WRb[-Infinity, "Complex128"]
+     = {0, 0, 0, 0, 0, 0, 240, 255, 0, 0, 0, 0, 0, 0, 0, 0}
+    #> WRb[DirectedInfinity[1 - I], "Complex128"]
+     = {0, 0, 0, 0, 0, 0, 240, 127, 0, 0, 0, 0, 0, 0, 240, 255}
+    #> WRb[DirectedInfinity[I], "Complex128"]
+     = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 240, 127}
+    ## FIXME (different convention to MMA)
+    #> WRb[Indeterminate, "Complex128"]
+     = {0, 0, 0, 0, 0, 0, 248, 127, 0, 0, 0, 0, 0, 0, 248, 127}
+
+    ## Complex256
+    ## TODO
+
+    ## Integer8
+    #> WRb[{5, 2, 11, -4}, {"Integer8", "Integer8", "Integer8", "Integer8"}]
+     = {5, 2, 11, 252}
+    #> WRb[{127, -128, 0}, {"Integer8", "Integer8", "Integer8"}]
+     = {127, 128, 0}
+
+    ## Integer16
+    #> WRb[{661, -31567, 6256}, {"Integer16", "Integer16", "Integer16"}]
+     = {149, 2, 177, 132, 112, 24}
+    #> WRb[{0, 255, -1, 32640, -32640}, Table["Integer16", {5}]]
+     = {0, 0, 255, 0, 255, 255, 128, 127, 128, 128}
+
+    ## Integer24
+    #> WRb[{-6247016, -6631492}, {"Integer24", "Integer24"}]
+     = {152, 173, 160, 188, 207, 154}
+    #> WRb[{-1593967, 1989169}, {"Integer24", "Integer24"}]
+     = {145, 173, 231, 49, 90, 30}
+
+    ## Integer32
+    #> WRb[{-636001327, -236143729}, {"Integer32", "Integer32"}]
+     = {209, 99, 23, 218, 143, 187, 236, 241}
+    #> WRb[{2024611599, -1139645195}, {"Integer32", "Integer32"}]
+     = {15, 31, 173, 120, 245, 100, 18, 188}
+
+    ## Integer64
+    #> WRb[{1176115612243989203}, "Integer64"]
+     = {211, 18, 152, 2, 235, 102, 82, 16}
+    #> WRb[{-8526737900550694619}, "Integer64"]
+     = {37, 217, 208, 88, 14, 241, 170, 137}
+
+    ## Integer128
+    #> WRb[139827542997232652313568968616424513676, "Integer128"]
+     = {140, 32, 24, 199, 10, 169, 248, 117, 123, 184, 75, 76, 34, 206, 49, 105}
+    #> WRb[103439096823027953602112616165136677221, "Integer128"]
+     = {101, 57, 184, 108, 43, 214, 186, 120, 153, 51, 132, 225, 56, 165, 209, 77}
+    #> WRb[-49058912464625098822365387707690163087, "Integer128"]
+     = {113, 100, 125, 144, 211, 83, 140, 24, 206, 11, 198, 118, 222, 152, 23, 219}
+
+    ## Real32
+    #> WRb[{8.398086656*^9, 1.63880017687*^16}, {"Real32", "Real32"}]
+     = {81, 72, 250, 79, 52, 227, 104, 90}
+    #> WRb[{5.6052915284*^32, 9.631141*^6}, {"Real32", "Real32"}]
+     = {251, 22, 221, 117, 165, 245, 18, 75}
+    #> WRb[Infinity, "Real32"]
+     = {0, 0, 128, 127}
+    #> WRb[-Infinity, "Real32"]
+     = {0, 0, 128, 255}
+    ## FIXME (different convention to MMA)
+    #> WRb[Indeterminate, "Real32"]
+     = {0, 0, 192, 127}
+
+    ## Real64
+    #> WRb[-5.14646619426*^227, "Real64"]
+     = {91, 233, 20, 87, 129, 185, 53, 239}
+    #> WRb[-9.69531698809*^20, "Real64"]
+     = {187, 67, 162, 67, 122, 71, 74, 196}
+    #> WRb[9.67355569764*^159, "Real64"]
+     = {132, 48, 80, 125, 157, 4, 38, 97}
+    #> WRb[Infinity, "Real64"]
+     = {0, 0, 0, 0, 0, 0, 240, 127}
+    #> WRb[-Infinity, "Real64"]
+     = {0, 0, 0, 0, 0, 0, 240, 255}
+    ## FIXME (different convention to MMA)
+    #> WRb[Indeterminate, "Real64"]
+     = {0, 0, 0, 0, 0, 0, 248, 127}
+
+    ## Real128
+    ## TODO
+
+    ## TerminatedString
+    #> WRb["abc", "TerminatedString"]
+     = {97, 98, 99, 0}
+    #> WRb[{"123", "456"}, {"TerminatedString", "TerminatedString", "TerminatedString"}]
+     = {49, 50, 51, 0, 52, 53, 54, 0}
+    #> WRb["", "TerminatedString"]
+    = {0}
+
+    ## UnsignedInteger8
+    #> WRb[{96, 94, 141, 162, 141}, Table["UnsignedInteger8", {5}]]
+     = {96, 94, 141, 162, 141}
+    #> (#==WRb[#,Table["UnsignedInteger8",{50}]])&[RandomInteger[{0, 255}, 50]]
+     = True
+
+    ## UnsignedInteger16
+    #> WRb[{18230, 47466, 9875, 59141}, Table["UnsignedInteger16", {4}]]
+     = {54, 71, 106, 185, 147, 38, 5, 231}
+    #> WRb[{0, 32896, 65535}, Table["UnsignedInteger16", {3}]]
+     = {0, 0, 128, 128, 255, 255}
+
+    ## UnsignedInteger24
+    #> WRb[{14820174, 15488225}, Table["UnsignedInteger24", {2}]]
+     = {78, 35, 226, 225, 84, 236}
+    #> WRb[{5374629, 3889391}, Table["UnsignedInteger24", {2}]]
+     = {165, 2, 82, 239, 88, 59}
+
+    ## UnsignedInteger32
+    #> WRb[{1885507541, 4157323149}, Table["UnsignedInteger32", {2}]]
+     = {213, 143, 98, 112, 141, 183, 203, 247}
+    #> WRb[{384206740, 1676316040}, Table["UnsignedInteger32", {2}]]
+     = {148, 135, 230, 22, 136, 141, 234, 99}
+
+    ## UnsignedInteger64
+    #> WRb[7079445437368829279, "UnsignedInteger64"]
+     = {95, 5, 33, 229, 29, 62, 63, 98}
+    #> WRb[5381171935514265990, "UnsignedInteger64"]
+     = {134, 9, 161, 91, 93, 195, 173, 74}
+
+    ## UnsignedInteger128
+    #> WRb[293382001665435747348222619884289871468, "UnsignedInteger128"]
+     = {108, 78, 217, 150, 88, 126, 152, 101, 231, 134, 176, 140, 118, 81, 183, 220}
+    #> WRb[253033302833692126095975097811212718901, "UnsignedInteger128"]
+     = {53, 83, 116, 79, 81, 100, 60, 126, 202, 52, 241, 48, 5, 113, 92, 190}
+    """
+
+    writers = _BinaryFormat.get_writers()
+
+    def apply_notype(self, name, n, b, evaluation):
+        'BinaryWrite[OutputStream[name_, n_], b_]'
+        return self.apply(name, n, b, None, evaluation)
+
+    def apply(self, name, n, b, typ, evaluation):
+        'BinaryWrite[OutputStream[name_, n_], b_, typ_]'
+
+        channel = Expression('OutputStream', name, n)
+
+        # Check channel
+        stream = _lookup_stream(n.get_int_value())
+
+        if stream is None or stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
+
+        if stream.mode not in ['wb', 'ab']:
+            evaluation.message('BinaryWrite', 'openr', channel)
+            return
+
+        # Check Empty Type
+        if typ is None:
+            expr = Expression('BinaryWrite', channel, b)
+            typ = Expression('List')
+        else:
+            expr = Expression('BinaryWrite', channel, b, typ)
+
+        # Check b
+        if b.has_form('List', None):
+            pyb = b.leaves
+        else:
+            pyb = [b]
+
+        # Check Type
+        if typ.has_form('List', None):
+            types = typ.get_leaves()
+        else:
+            types = [typ]
+
+        if len(types) == 0:     # Default type is "Bytes"
+            types = [String("Byte")]
+
+        types = [t.get_string_value() for t in types]
+        if not all(t in self.writers for t in types):
+            evaluation.message('BinaryRead', 'format', typ)
+            return
+
+        # Write to stream
+        result = []
+        i = 0
+        while i < len(pyb):
+            x = pyb[i]
+            # Types are "repeated as many times as necessary"
+            t = types[i % len(types)]
+
+            if t in ('Real128', 'Complex256'):
+                evaluation.message('BinaryRead', 'warnquad', t)
+
+            # Coerce x
+            if t == 'TerminatedString':
+                x = x.get_string_value() + '\x00'
+            elif t.startswith('Real'):
+                if isinstance(x, Real):
+                    x = x.to_python()
+                elif x.has_form('DirectedInfinity', 1):
+                    if x.leaves[0].get_int_value() == 1:
+                        x = float('+inf')
+                    elif x.leaves[0].get_int_value() == -1:
+                        x = float('-inf')
+                    else:
+                        x = None
+                elif isinstance(x, Symbol) and x.get_name() == 'Indeterminate':
+                    x = float('nan')
+                else:
+                    x = None
+                assert x is None or isinstance(x, float)
+            elif t.startswith('Complex'):
+                if isinstance(x, (Complex, Real, Integer)):
+                    x = x.to_python()
+                elif x.has_form('DirectedInfinity', 1):
+                    x = x.leaves[0].to_python(n_evaluation=evaluation)
+
+                    # x*float('+inf') creates nan if x.real or x.imag are zero
+                    x = complex(x.real * float('+inf') if x.real != 0 else 0,
+                                x.imag * float('+inf') if x.imag != 0 else 0)
+                elif isinstance(x, Symbol) and x.get_name() == 'Indeterminate':
+                    x = complex(float('nan'), float('nan'))
+                else:
+                    x = None
+            elif t.startswith('Character'):
+                if isinstance(x, Integer):
+                    x = [String(char) for char in str(x.get_int_value())]
+                    pyb = pyb[:i] + x + pyb[i + 1:]
+                    x = pyb[i]
+                if isinstance(x, String) and len(x.get_string_value()) > 1:
+                    x = [String(char) for char in x.get_string_value()] 
+                    pyb = pyb[:i] + x + pyb[i + 1:]
+                    x = pyb[i]
+                x = x.get_string_value()
+            elif t == 'Byte' and isinstance(x, String):
+                if len(x.get_string_value()) > 1:
+                    x = [String(char) for char in x.get_string_value()] 
+                    pyb = pyb[:i] + x + pyb[i + 1:]
+                    x = pyb[i]
+                x = ord(x.get_string_value())
+            else:
+                x = x.get_int_value()
+
+            if x is None:
+                return evaluation.message('BinaryWrite', 'nocoerce', b)
+
+            try:
+                self.writers[t](stream, x)
+            except struct.error:
+                return evaluation.message('BinaryWrite', "nocoerce", b)
+            i += 1
+
+        stream.flush()
+        return channel 
+
+
+class BinaryRead(Builtin):
+    """
+    <dl>
+    <dt>'BinaryRead[$stream$]'
+      <dd>reads one byte from the stream as an integer from 0 to 255.
+    <dt>'BinaryRead[$stream$, $type$]'
+      <dd>reads one object of specified type from the stream.
+    <dt>'BinaryRead[$stream$, {$type1$, $type2$, ...}]'
+      <dd>reads a sequence of objects of specified types.
+    </dl>
+
+    >> strm = OpenWrite[BinaryFormat -> True]
+     = OutputStream[...]
+    >> BinaryWrite[strm, {97, 98, 99}]
+     = OutputStream[...]
+    >> Close[strm]
+     = ...
+    >> strm = OpenRead[%, BinaryFormat -> True]
+     = InputStream[...]
+    >> BinaryRead[strm, {"Character8", "Character8", "Character8"}]
+     = {a, b, c}
+    >> Close[strm];
+
+    ## Write as Bytes then Read
+    #> WbR[bytes_, form_] := Module[{str, res}, str = OpenWrite[BinaryFormat -> True]; BinaryWrite[str, bytes]; str = OpenRead[Close[str], BinaryFormat -> True]; res = BinaryRead[str, form]; Close[str]; res]
+
+    ## Byte
+    #> WbR[{149, 2, 177, 132}, {"Byte", "Byte", "Byte", "Byte"}]
+     = {149, 2, 177, 132}
+    #> (# == WbR[#, Table["Byte", {50}]]) & [RandomInteger[{0, 255}, 50]]
+     = True
+
+    ## Character8
+    #> WbR[{97, 98, 99}, {"Character8", "Character8", "Character8"}]
+     = {a, b, c}
+    #> WbR[{34, 60, 39}, {"Character8", "Character8", "Character8"}]
+     = {", <, '}
+
+    ## Character16
+    #> WbR[{97, 0, 98, 0, 99, 0}, {"Character16", "Character16", "Character16"}]
+     = {a, b, c}
+    #> ToCharacterCode[WbR[{50, 154, 182, 236}, {"Character16", "Character16"}]]
+     = {{39474}, {60598}}
+    ## #> WbR[ {91, 146, 206, 54}, {"Character16", "Character16"}]
+    ##  = {\:925b, \:36ce}
+
+    ## Complex64
+    #> WbR[{80, 201, 77, 239, 201, 177, 76, 79}, "Complex64"]
+     = -6.36877988924*^28 + 3.434203392*^9 I
+    #> WbR[{158, 2, 185, 232, 18, 237, 0, 102}, "Complex64"]
+     = -6.98948862335*^24 + 1.52209021297*^23 I
+    #> WbR[{195, 142, 38, 160, 238, 252, 85, 188}, "Complex64"]
+     = -1.41079828148*^-19 - 0.013060791418 I
+
+    ## Complex128
+    #> WbR[{15,114,1,163,234,98,40,15,214,127,116,15,48,57,208,180},"Complex128"]
+     = 1.19839770357*^-235 - 2.64656391494*^-54 I
+    #> WbR[{148,119,12,126,47,94,220,91,42,69,29,68,147, 11,62,233},"Complex128"]
+     = 3.22170267142*^134 - 8.98364297498*^198 I
+    #> WbR[{15,42,80,125,157,4,38,97, 0,0,0,0,0,0,240,255}, "Complex128"]
+      = -I Infinity
+    #> WbR[{15,42,80,125,157,4,38,97, 0,0,0,0,0,0,240,127}, "Complex128"]
+      = I Infinity
+    #> WbR[{15,42,80,125,157,4,38,97, 1,0,0,0,0,0,240,255}, "Complex128"]
+     = Indeterminate
+    #> WbR[{0,0,0,0,0,0,240,127, 15,42,80,125,157,4,38,97}, "Complex128"]
+     = Infinity
+    #> WbR[{0,0,0,0,0,0,240,255, 15,42,80,125,157,4,38,97}, "Complex128"]
+     = -Infinity
+    #> WbR[{1,0,0,0,0,0,240,255, 15,42,80,125,157,4,38,97}, "Complex128"]
+     = Indeterminate
+    #> WbR[{0,0,0,0,0,0,240,127, 0,0,0,0,0,0,240,127}, "Complex128"]
+     = Indeterminate
+    #> WbR[{0,0,0,0,0,0,240,127, 0,0,0,0,0,0,240,255}, "Complex128"]
+     = Indeterminate
+
+    ## Complex256
+    ## TODO
+
+    ## Integer8
+    #> WbR[{149, 2, 177, 132}, {"Integer8", "Integer8", "Integer8", "Integer8"}]
+     = {-107, 2, -79, -124}
+    #> WbR[{127, 128, 0, 255}, {"Integer8", "Integer8", "Integer8", "Integer8"}]
+     = {127, -128, 0, -1}
+
+    ## Integer16
+    #> WbR[{149, 2, 177, 132, 112, 24}, {"Integer16", "Integer16", "Integer16"}]
+     = {661, -31567, 6256}
+    #> WbR[{0, 0, 255, 0, 255, 255, 128, 127, 128, 128}, Table["Integer16", {5}]]
+     = {0, 255, -1, 32640, -32640}
+
+    ## Integer24
+    #> WbR[{152, 173, 160, 188, 207, 154}, {"Integer24", "Integer24"}]
+     = {-6247016, -6631492}
+    #> WbR[{145, 173, 231, 49, 90, 30}, {"Integer24", "Integer24"}]
+     = {-1593967, 1989169}
+
+    ## Integer32
+    #> WbR[{209, 99, 23, 218, 143, 187, 236, 241}, {"Integer32", "Integer32"}]
+     = {-636001327, -236143729}
+    #> WbR[{15, 31, 173, 120, 245, 100, 18, 188}, {"Integer32", "Integer32"}]
+     = {2024611599, -1139645195}
+
+    ## Integer64
+    #> WbR[{211, 18, 152, 2, 235, 102, 82, 16}, "Integer64"]
+     = 1176115612243989203
+    #> WbR[{37, 217, 208, 88, 14, 241, 170, 137}, "Integer64"]
+     = -8526737900550694619
+
+    ## Integer128
+    #> WbR[{140,32,24,199,10,169,248,117,123,184,75,76,34,206,49,105}, "Integer128"]
+     = 139827542997232652313568968616424513676
+    #> WbR[{101,57,184,108,43,214,186,120,153,51,132,225,56,165,209,77}, "Integer128"]
+     = 103439096823027953602112616165136677221
+    #> WbR[{113,100,125,144,211,83,140,24,206,11,198,118,222,152,23,219}, "Integer128"]
+     = -49058912464625098822365387707690163087
+
+    ## Real32
+    #> WbR[{81, 72, 250, 79, 52, 227, 104, 90}, {"Real32", "Real32"}]
+     = {8.398086656*^9, 1.63880017687*^16}
+    #> WbR[{251, 22, 221, 117, 165, 245, 18, 75}, {"Real32", "Real32"}]
+     = {5.6052915284*^32, 9.631141*^6}
+    #> WbR[{0, 0, 128, 127}, "Real32"]
+     = Infinity
+    #> WbR[{0, 0, 128, 255}, "Real32"]
+     = -Infinity
+    #> WbR[{1, 0, 128, 255}, "Real32"]
+     = Indeterminate
+    #> WbR[{1, 0, 128, 127}, "Real32"]
+     = Indeterminate
+
+    ## Real64
+    #> WbR[{45, 243, 20, 87, 129, 185, 53, 239}, "Real64"]
+     = -5.14646619426*^227
+    #> WbR[{192, 60, 162, 67, 122, 71, 74, 196}, "Real64"]
+     = -9.69531698809*^20
+    #> WbR[{15, 42, 80, 125, 157, 4, 38, 97}, "Real64"]
+     = 9.67355569764*^159
+    #> WbR[{0, 0, 0, 0, 0, 0, 240, 127}, "Real64"]
+     = Infinity
+    #> WbR[{0, 0, 0, 0, 0, 0, 240, 255}, "Real64"]
+     = -Infinity
+    #> WbR[{1, 0, 0, 0, 0, 0, 240, 127}, "Real64"]
+     = Indeterminate
+    #> WbR[{1, 0, 0, 0, 0, 0, 240, 255}, "Real64"]
+     = Indeterminate
+
+    ## Real128
+    ## 0x0000
+    #> WbR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = 0.*^-4965
+    #> WbR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,128}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = 0.*^-4965
+    ## 0x0001 - 0x7FFE
+    #> WbR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,63}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = 1.
+    #> WbR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,191}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = -1.
+    #> WbR[{135, 62, 233, 137, 22, 208, 233, 210, 133, 82, 251, 92, 220, 216, 255, 63}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = 1.84711247573661489653389674493896
+    #> WbR[{135, 62, 233, 137, 22, 208, 233, 210, 133, 82, 251, 92, 220, 216, 207, 72}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = 2.45563355727491021879689747166252*^679
+    #> WbR[{74, 95, 30, 234, 116, 130, 1, 84, 20, 133, 245, 221, 113, 110, 219, 212}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = -4.52840681592341879518366539335138*^1607
+    ## 0x7FFF
+    #> WbR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,127}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = Infinity
+    #> WbR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,255}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = -Infinity
+    #> WbR[{1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,127}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = Indeterminate
+    #> WbR[{1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,255}, "Real128"]
+     : Results for the format Real128 may not be correct.
+     = Indeterminate
+
+    ## TerminatedString
+    #> WbR[{97, 98, 99, 0}, "TerminatedString"]
+     = abc
+    #> WbR[{49, 50, 51, 0, 52, 53, 54, 0, 55, 56, 57}, Table["TerminatedString", {3}]]
+     = {123, 456, EndOfFile}
+    #> WbR[{0}, "TerminatedString"] // InputForm
+     = ""
+
+    ## UnsignedInteger8
+    #> WbR[{96, 94, 141, 162, 141}, Table["UnsignedInteger8", {5}]]
+     = {96, 94, 141, 162, 141}
+    #> (#==WbR[#,Table["UnsignedInteger8",{50}]])&[RandomInteger[{0, 255}, 50]]
+     = True
+
+    ## UnsignedInteger16
+    #> WbR[{54, 71, 106, 185, 147, 38, 5, 231}, Table["UnsignedInteger16", {4}]]
+     = {18230, 47466, 9875, 59141}
+    #> WbR[{0, 0, 128, 128, 255, 255}, Table["UnsignedInteger16", {3}]]
+     = {0, 32896, 65535}
+
+    ## UnsignedInteger24
+    #> WbR[{78, 35, 226, 225, 84, 236}, Table["UnsignedInteger24", {2}]]
+     = {14820174, 15488225}
+    #> WbR[{165, 2, 82, 239, 88, 59}, Table["UnsignedInteger24", {2}]]
+     = {5374629, 3889391}
+
+    ## UnsignedInteger32
+    #> WbR[{213,143,98,112,141,183,203,247}, Table["UnsignedInteger32", {2}]]
+     = {1885507541, 4157323149}
+    #> WbR[{148,135,230,22,136,141,234,99}, Table["UnsignedInteger32", {2}]]
+     = {384206740, 1676316040}
+
+    ## UnsignedInteger64
+    #> WbR[{95, 5, 33, 229, 29, 62, 63, 98}, "UnsignedInteger64"]
+     = 7079445437368829279
+    #> WbR[{134, 9, 161, 91, 93, 195, 173, 74}, "UnsignedInteger64"]
+     = 5381171935514265990
+
+    ## UnsignedInteger128
+    #> WbR[{108,78,217,150,88,126,152,101,231,134,176,140,118,81,183,220}, "UnsignedInteger128"]
+     = 293382001665435747348222619884289871468
+    #> WbR[{53,83,116,79,81,100,60,126,202,52,241,48,5,113,92,190}, "UnsignedInteger128"]
+     = 253033302833692126095975097811212718901
+
+    ## EndOfFile
+    #> WbR[{148}, {"Integer32", "Integer32","Integer32"}]
+     = {EndOfFile, EndOfFile, EndOfFile}
+    """
+
+    readers = _BinaryFormat.get_readers()
+
+    messages = {
+        'format': '`1` is not a recognized binary format.',
+        'openw': '`1` is open for output.',
+        'bfmt': 'The stream `1` has been opened with BinaryFormat -> False and cannot be used with binary data.',
+        'warnquad': 'Results for the format `1` may not be correct.',   # FIXME
+    }
+
+    def apply_empty(self, name, n, evaluation):
+        'BinaryRead[InputStream[name_, n_]]'
+        return self.apply(name, n, None, evaluation)
+
+    def apply(self, name, n, typ, evaluation):
+        'BinaryRead[InputStream[name_, n_], typ_]'
+
+        channel = Expression('InputStream', name, n)
+
+        # Check channel
+        stream = _lookup_stream(n.get_int_value())
+
+        if stream is None or stream.closed:
+            evaluation.message('General', 'openx', name)
+            return
+
+        if stream.mode not in ['rb']:
+            evaluation.message('BinaryRead', 'bfmt', channel)
+            return
+
+        # Check typ
+        if typ is None:
+            expr = Expression('BinaryRead', channel)
+            typ = String('Byte')
+        else:
+            expr = Expression('BinaryRead', channel, typ)
+
+        if typ.has_form('List', None):
+            types = typ.get_leaves()
+        else:
+            types = [typ]
+
+        types = [t.get_string_value() for t in types]
+        if not all(t in self.readers for t in types):
+            evaluation.message('BinaryRead', 'format', typ)
+            return
+
+        # Read from stream
+        result = []
+        for t in types:
+            if t in ('Real128', 'Complex256'):
+                evaluation.message('BinaryRead', 'warnquad', t)
+            try:
+                result.append(self.readers[t](stream))
+            except struct.error:
+                result.append(Symbol('EndOfFile'))
+
+        if typ.has_form('List', None):
+            return Expression('List', *result)
+        else:
+            if len(result) == 1:
+                return result[0]
 
 
 class WriteString(Builtin):
@@ -718,6 +1735,29 @@ class WriteString(Builtin):
      = ...
     >> FilePrint[%]
      | This is a test 1This is also a test 2
+
+    #> str = OpenWrite[];
+    #> WriteString[str, 100, 1 + x + y, Sin[x  + y]]
+    #> Close[str]
+     = ...
+    #> FilePrint[%]
+     | 1001 + x + ySin[x + y]
+
+    #> str = OpenWrite[];
+    #> WriteString[str]
+    #> Close[str]
+     = ...
+    #> FilePrint[%]
+
+    #> WriteString[%%, abc]
+    #> Streams[%%%][[1]]
+     = ...
+    #> Close[%]
+     = ...
+    #> FilePrint[%]
+     | abc
+
+    #> WriteString[OpenWrite["/dev/zero"], "abc"]   (* Null *)
     """
 
     messages = {
@@ -727,29 +1767,49 @@ class WriteString(Builtin):
 
     attributes = ('Protected')
 
-    def apply(self, name, n, expr, evaluation):
-        'WriteString[OutputStream[name_, n_], expr___]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+    def apply(self, channel, expr, evaluation):
+        'WriteString[channel_, expr___]'
+        strm = _channel_to_stream(channel, 'w')
 
-        if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
+        if strm is None:
             return
 
-        exprs = expr.get_sequence()
-        for e in exprs:
-            if not isinstance(e, String):
-                # Mathematica gets this message wrong
-                evaluation.message('WriteString', 'strml', e)
-                return
+        stream = _lookup_stream(strm.leaves[1].get_int_value())
 
-        text = map(lambda x: x.to_python()[1:-1], exprs)
-        text = unicode(''.join(text))
-        stream.write(text)
+        if stream is None or stream.closed:
+            return None
+
+        exprs = []
+        for expri in expr.get_sequence():
+            result = expri.format(evaluation, "OutputForm")
+            try:
+                result = result.boxes_to_text(evaluation=evaluation)
+            except BoxError:
+                return evaluation.message(
+                    'General', 'notboxes', String('%s' % result))
+            exprs.append(result)
+
+        stream.write(u''.join(exprs))
+        stream.flush()
         return Symbol('Null')
 
 
 class _OpenAction(Builtin):
+
+    attributes = ('Protected')
+
+    # BinaryFormat: 'False',
+    # CharacterEncoding :> Automatic, 
+    # DOSTextFormat :> True,
+    # FormatType -> InputForm, 
+    # NumberMarks :> $NumberMarks,
+    # PageHeight -> 22, PageWidth -> 78, 
+    # TotalHeight -> Infinity,
+    # TotalWidth -> Infinity
+
+    options = {
+        'BinaryFormat': 'False',
+    }
 
     messages = {
         'argx': 'OpenRead called with 0 arguments; 1 argument is expected.',
@@ -757,63 +1817,51 @@ class _OpenAction(Builtin):
                  'one or more characters.'),
     }
 
-    attributes = ('Protected')
+    def apply_empty(self, evaluation, options):
+        '%(name)s[OptionsPattern[]]'
 
-    def apply(self, path, evaluation):
-        '%(name)s[path_]'
+        if isinstance(self, (OpenWrite, OpenAppend)):
+            tmpf = tempfile.NamedTemporaryFile(dir=TMP_DIR)
+            path = String(tmpf.name)
+            tmpf.close()
+            return self.apply_path(path, evaluation, options)
+        else:
+            evaluation.message('OpenRead', 'argx')
+            return
+
+    def apply_path(self, path, evaluation, options):
+        '%(name)s[path_?NotOptionQ, OptionsPattern[]]'
+
+        ## Options
+        # BinaryFormat
+        mode = self.mode
+        if options['BinaryFormat'].is_true():
+            if not self.mode.endswith('b'):
+                mode += 'b'
 
         if not (isinstance(path, String) and len(path.to_python()) > 2):
             evaluation.message(self.__class__.__name__, 'fstr', path)
             return
 
-        path_string = path.to_python()[1:-1]
+        path_string = path.get_string_value()
 
         tmp = path_search(path_string)
         if tmp is None:
-            if self.mode in ['a', 'r']:
+            if mode in ['r', 'rb']:
                 evaluation.message('General', 'noopen', path)
                 return
         else:
             path_string = tmp
 
         try:
-            stream = mathics_open(path_string, mode=self.mode).__enter__()
+            opener = mathics_open(path_string, mode=mode)
+            stream = opener.__enter__()
+            n = opener.n
         except IOError:
             evaluation.message('General', 'noopen', path)
             return
 
-        n = _put_stream(stream)
-        result = Expression(self.stream_type, path, n)
-        global _STREAMS
-        _STREAMS[n] = result
-
-        return result
-
-    def apply_empty(self, evaluation):
-        '%(name)s[]'
-
-        if self.mode == 'r':
-            evaluation.message(self.__class__.__name__, 'argx')
-            return
-
-        global TMP_DIR
-
-        tmpf = tempfile.NamedTemporaryFile(dir=TMP_DIR)
-        path_string = tmpf.name
-        tmpf.close()
-
-        try:
-            stream = mathics_open(path_string, mode='w').__enter__()
-        except IOError:
-            evaluation.message('General', 'noopen', String(path_string))
-            return
-
-        n = _put_stream(stream)
-        result = Expression(self.stream_type, String(path_string), n)
-        global _STREAMS
-        _STREAMS[n] = result
-
-        return result
+        return Expression(self.stream_type, path, Integer(n))
 
 
 class OpenRead(_OpenAction):
@@ -842,6 +1890,10 @@ class OpenRead(_OpenAction):
     #> OpenRead["MathicsNonExampleFile"]
      : Cannot open MathicsNonExampleFile.
      = OpenRead[MathicsNonExampleFile]
+
+    #> OpenRead["ExampleData/EinsteinSzilLetter.txt", BinaryFormat -> True]
+     = InputStream[...]
+    #> Close[%];
     """
 
     mode = 'r'
@@ -856,6 +1908,10 @@ class OpenWrite(_OpenAction):
     </dl>
 
     >> OpenWrite[]
+     = OutputStream[...]
+    #> Close[%];
+
+    #> OpenWrite[BinaryFormat -> True]
      = OutputStream[...]
     #> Close[%];
     """
@@ -876,8 +1932,9 @@ class OpenAppend(_OpenAction):
     #> Close[%];
 
     #> OpenAppend["MathicsNonExampleFile"]
-     : Cannot open MathicsNonExampleFile.
-     = OpenAppend[MathicsNonExampleFile]
+     = OutputStream[MathicsNonExampleFile, ...]
+
+    #> DeleteFile["MathicsNonExampleFile"]
     """
 
     mode = 'a'
@@ -927,7 +1984,7 @@ class Get(PrefixOperator):
     attributes = ('Protected')
 
     def apply(self, path, evaluation):
-        'Get[path_?StringQ]'
+        'Get[path_String]'
         pypath = path.get_string_value()
         try:
             with mathics_open(pypath, 'r') as f:
@@ -1033,7 +2090,7 @@ class Put(BinaryOperator):
     precedence = 30
 
     def apply(self, exprs, filename, evaluation):
-        'Put[exprs___, filename_?StringQ]'
+        'Put[exprs___, filename_String]'
         instream = Expression('OpenWrite', filename).evaluate(evaluation)
         name, n = instream.leaves
         result = self.apply_input(exprs, name, n, evaluation)
@@ -1042,8 +2099,7 @@ class Put(BinaryOperator):
 
     def apply_input(self, exprs, name, n, evaluation):
         'Put[exprs___, OutputStream[name_, n_]]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+        stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message('Put', 'openx', Expression(
@@ -1118,7 +2174,7 @@ class PutAppend(BinaryOperator):
     attributes = ('Protected')
 
     def apply(self, exprs, filename, evaluation):
-        'PutAppend[exprs___, filename_?StringQ]'
+        'PutAppend[exprs___, filename_String]'
         instream = Expression('OpenAppend', filename).evaluate(evaluation)
         name, n = instream.leaves
         result = self.apply_input(exprs, name, n, evaluation)
@@ -1127,8 +2183,7 @@ class PutAppend(BinaryOperator):
 
     def apply_input(self, exprs, name, n, evaluation):
         'PutAppend[exprs___, OutputStream[name_, n_]]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+        stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message('Put', 'openx', Expression(
@@ -1232,7 +2287,7 @@ class FileNameSplit(Builtin):
     }
 
     def apply(self, filename, evaluation, options):
-        'FileNameSplit[filename_?StringQ, OptionsPattern[FileExtension]]'
+        'FileNameSplit[filename_String, OptionsPattern[FileNameSplit]]'
 
         path = filename.to_python()[1:-1]
 
@@ -1348,7 +2403,7 @@ class FileExtension(Builtin):
     }
 
     def apply(self, filename, evaluation, options):
-        'FileExtension[filename_?StringQ, OptionsPattern[FileExtension]]'
+        'FileExtension[filename_String, OptionsPattern[FileExtension]]'
         path = filename.to_python()[1:-1]
         filename_base, filename_ext = os.path.splitext(path)
         filename_ext = filename_ext.lstrip('.')
@@ -1382,7 +2437,7 @@ class FileBaseName(Builtin):
     }
 
     def apply(self, filename, evaluation, options):
-        'FileBaseName[filename_?StringQ, OptionsPattern[FileBaseName]]'
+        'FileBaseName[filename_String, OptionsPattern[FileBaseName]]'
         path = filename.to_python()[1:-1]
 
         filename_base, filename_ext = os.path.splitext(path)
@@ -1491,7 +2546,7 @@ class FileNameDepth(Builtin):
     }
 
     rules = {
-        'FileNameDepth[name_?StringQ]': 'Length[FileNameSplit[name]]',
+        'FileNameDepth[name_String]': 'Length[FileNameSplit[name]]',
     }
 
 
@@ -1636,8 +2691,8 @@ class ReadList(Read):
         'WordSeparators': '{" ", "\t"}',
     }
 
-    def apply(self, name, n, types, evaluation, options):
-        'ReadList[InputStream[name_, n_], types_, OptionsPattern[ReadList]]'
+    def apply(self, channel, types, evaluation, options):
+        'ReadList[channel_, types_, OptionsPattern[ReadList]]'
 
         # Options
         # TODO: Implement extra options
@@ -1651,7 +2706,7 @@ class ReadList(Read):
         result = []
         while True:
             tmp = super(ReadList, self).apply(
-                name, n, types, evaluation, options)
+                channel, types, evaluation, options)
 
             if tmp == Symbol('$Failed'):
                 return
@@ -1661,8 +2716,8 @@ class ReadList(Read):
             result.append(tmp)
         return from_python(result)
 
-    def apply_m(self, name, n, types, m, evaluation, options):
-        'ReadList[InputStream[name_,n_], types_, m_, OptionsPattern[ReadList]]'
+    def apply_m(self, channel, types, m, evaluation, options):
+        'ReadList[channel_, types_, m_, OptionsPattern[ReadList]]'
 
         # Options
         # TODO: Implement extra options
@@ -1675,14 +2730,14 @@ class ReadList(Read):
 
         py_m = m.get_int_value()
         if py_m < 0:
-            evaluation.message('ReadList', 'intnm', Expression(
-                'ReadList', Expression('InputStream', name, n), types, m))
+            evaluation.message(
+                'ReadList', 'intnm', Expression('ReadList', channel, types, m))
             return
 
         result = []
         for i in range(py_m):
             tmp = super(ReadList, self).apply(
-                name, n, types, evaluation, options)
+                channel, types, evaluation, options)
 
             if tmp == Symbol('$Failed'):
                 return
@@ -1790,38 +2845,38 @@ class Close(Builtin):
 
     >> Close[OpenWrite[]]
      = ...
+
+    #> Streams[] == (Close[OpenWrite[]]; Streams[])
+     = True
+
+    #> Close["abc"]
+     : abc is not open.
+     = Close[abc]
+
+    #> strm = OpenWrite[];
+    #> Close[strm];
+    #> Quiet[Close[strm]]
+     = Close[OutputStream[...]]
     """
 
     attributes = ('Protected')
 
-    def apply_input(self, name, n, evaluation):
-        'Close[InputStream[name_, n_]]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+    def apply(self, channel, evaluation):
+        'Close[channel_]'
+
+        if (channel.has_form('InputStream', 2) or       # noqa
+            channel.has_form('OutputStream', 2)):
+            [name, n] = channel.get_leaves()
+            stream = _lookup_stream(n.get_int_value())
+        else:
+            stream = None
 
         if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
+            evaluation.message('General', 'openx', channel)
             return
 
         stream.close()
         return name
-
-    def apply_output(self, name, n, evaluation):
-        'Close[OutputStream[name_, n_]]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
-
-        if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
-            return
-
-        stream.close()
-        return name
-
-    def apply_default(self, stream, evaluation):
-        'Close[stream_]'
-        evaluation.message('General', 'stream', stream)
-        return
 
 
 class StreamPosition(Builtin):
@@ -1845,8 +2900,7 @@ class StreamPosition(Builtin):
 
     def apply_input(self, name, n, evaluation):
         'StreamPosition[InputStream[name_, n_]]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+        stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
@@ -1856,8 +2910,7 @@ class StreamPosition(Builtin):
 
     def apply_output(self, name, n, evaluation):
         'StreamPosition[OutputStream[name_, n_]]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+        stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
@@ -1913,8 +2966,7 @@ class SetStreamPosition(Builtin):
 
     def apply_input(self, name, n, m, evaluation):
         'SetStreamPosition[InputStream[name_, n_], m_]'
-        global STREAMS
-        stream = STREAMS.get(n.to_python())
+        stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message('General', 'openx', name)
@@ -2003,6 +3055,8 @@ class Skip(Read):
     def apply(self, name, n, types, m, evaluation, options):
         'Skip[InputStream[name_, n_], types_, m_, OptionsPattern[Skip]]'
 
+        channel = Expression('InputStream', name, n)
+
         # Options
         # TODO Implement extra options
         # py_options = self.check_options(options)
@@ -2019,7 +3073,7 @@ class Skip(Read):
             return
         for i in range(py_m):
             result = super(Skip, self).apply(
-                name, n, types, evaluation, options)
+                channel, types, evaluation, options)
             if result.to_python() == 'EndOfFile':
                 return Symbol('EndOfFile')
         return Symbol('Null')
@@ -2073,25 +3127,27 @@ class Find(Read):
 
         py_text = text.to_python()
 
+        channel = Expression('InputStream', name, n)
+
         if not isinstance(py_text, list):
             py_text = [py_text]
 
         if not all(isinstance(t, basestring) and
                    t[0] == t[-1] == '"' for t in py_text):
-            evaluation.message('Find', 'unknown', Expression(
-                'Find', Expression('InputStream', name, n), text))
+            evaluation.message(
+                'Find', 'unknown', Expression('Find', channel, text))
             return
 
         py_text = [t[1:-1] for t in py_text]
 
         while True:
-            tmp = super(Find, self).apply(name, n, Symbol(
-                'Record'), evaluation, options)
+            tmp = super(Find, self).apply(
+                channel, Symbol('Record'), evaluation, options)
             py_tmp = tmp.to_python()[1:-1]
 
             if py_tmp == 'EndOfFile':
-                evaluation.message('Find', 'notfound', Expression(
-                    'Find', Expression('InputStream', name, n), text))
+                evaluation.message(
+                    'Find', 'notfound', Expression('Find', channel, text))
                 return Symbol("$Failed")
 
             for t in py_text:
@@ -2256,9 +3312,16 @@ class StringToStream(Builtin):
       <dd>converts a $string$ to an open input stream.
     </dl>
 
-    >> StringToStream["abc 123"]
-     = ...
-    #> Close[%]
+    >> strm = StringToStream["abc 123"]
+     = InputStream[String, ...]
+
+    #> Read[strm, Word]
+     = abc
+
+    #> Read[strm, Number]
+     = 123
+
+    #> Close[strm]
      = String
     """
 
@@ -2268,12 +3331,13 @@ class StringToStream(Builtin):
         'StringToStream[string_]'
         pystring = string.to_python()[1:-1]
         stream = io.StringIO(unicode(pystring))
-        n = _put_stream(stream)
-        result = Expression('InputStream', from_python('String'), n)
 
-        global _STREAMS
-        _STREAMS[n] = result
+        name = Symbol('String')
+        n = next(NSTREAMS)
 
+        result = Expression('InputStream', name, Integer(n))
+
+        STREAMS.append(stream)
         return result
 
 
@@ -2286,23 +3350,45 @@ class Streams(Builtin):
 
     >> Streams[]
      = ...
+
+    #> OpenWrite[]
+     = ...
+    #> Streams[%[[1]]]
+     = {OutputStream[...]}
+
+    #> Streams["some_nonexistant_name"]
+     = {}
     """
 
     attributes = ('Protected')
 
     def apply(self, evaluation):
         'Streams[]'
-        global STREAMS
-        global _STREAMS
-        global NSTREAMS
+        return self.apply_name(None, evaluation)
 
-        try:
-            _STREAMS
-        except NameError:
-            STREAMS = {}    # Python repr
-            _STREAMS = {}   # Mathics repr
-            NSTREAMS = 0    # Max stream number
-        return Expression('List', *_STREAMS.values())
+    def apply_name(self, name, evaluation):
+        'Streams[name_String]'
+        result = []
+        for n in xrange(len(STREAMS)):
+            stream = _lookup_stream(n)
+            if stream is None or stream.closed:
+                continue
+            if isinstance(stream, io.StringIO):
+                head = 'InputStream'
+                _name = Symbol('String')
+            else:
+                mode = stream.mode
+                if mode in ['r', 'rb']:
+                    head = 'InputStream'
+                elif mode in ['w', 'a', 'wb', 'ab']:
+                    head = 'OutputStream'
+                else:
+                    raise ValueError("Unknown mode {0}".format(mode))
+                _name = String(stream.name)
+            expr = Expression(head, _name, Integer(n))
+            if name is None or _name == name:
+                result.append(expr)
+        return Expression('List', *result)
 
 
 class Compress(Builtin):
@@ -2313,7 +3399,7 @@ class Compress(Builtin):
     </dl>
 
     >> Compress[N[Pi, 10]]
-     = ...
+     = eJwz1jM0MTS1NDIzNQEADRsCNw== 
     """
 
     attributes = ('Protected')
@@ -2324,15 +3410,16 @@ class Compress(Builtin):
 
     def apply(self, expr, evaluation, options):
         'Compress[expr_, OptionsPattern[Compress]]'
-
-        string = expr.do_format(evaluation, 'FullForm').__str__()
+        string = expr.format(evaluation, 'FullForm')
+        string = string.boxes_to_text(
+            evaluation=evaluation, show_string_characters=True)
         string = string.encode('utf-8')
 
         # TODO Implement other Methods
         result = zlib.compress(string)
         result = base64.encodestring(result)
 
-        return from_python(result)
+        return String(result)
 
 
 class Uncompress(Builtin):
@@ -2356,8 +3443,8 @@ class Uncompress(Builtin):
     attributes = ('Protected')
 
     def apply(self, string, evaluation):
-        'Uncompress[string_?StringQ]'
-        string = string.to_python()[1:-1]
+        'Uncompress[string_String]'
+        string = string.get_string_value()
         string = base64.decodestring(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode('utf-8')
@@ -2453,13 +3540,13 @@ class FileHash(Builtin):
     """
 
     rules = {
-        'FileHash[filename_?StringQ]': 'FileHash[filename, "MD5"]',
+        'FileHash[filename_String]': 'FileHash[filename, "MD5"]',
     }
 
     attributes = ('Protected', 'ReadProtected')
 
     def apply(self, filename, hashtype, evaluation):
-        'FileHash[filename_?StringQ, hashtype_?StringQ]'
+        'FileHash[filename_String, hashtype_String]'
         py_hashtype = hashtype.to_python()
         py_filename = filename.to_python()
 
@@ -2537,7 +3624,7 @@ class FileDate(Builtin):
     }
 
     rules = {
-        'FileDate[filepath_?StringQ, "Rules"]':
+        'FileDate[filepath_String, "Rules"]':
         '''{"Access" -> FileDate[filepath, "Access"],
             "Creation" -> FileDate[filepath, "Creation"],
             "Change" -> FileDate[filepath, "Change"],
