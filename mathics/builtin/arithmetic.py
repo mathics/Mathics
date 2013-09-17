@@ -1551,8 +1551,9 @@ class Sum(_IterationFunction, SympyFunction):
     >> Sum[x ^ 2, {x, 1, y}] - y * (y + 1) * (2 * y + 1) / 6
      = 0
 
+    ## Piecewise answer for sympy >= 0.7.3
     >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
-     = -1 + a ^ (m n)
+     = ...
 
     Infinite sums:
     >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
@@ -1652,3 +1653,39 @@ class Product(_IterationFunction, SympyFunction):
                     index.leaves[2].to_sympy()))
             except ZeroDivisionError:
                 pass
+
+
+# TODO: Proper symbolic computation
+class Piecewise(SympyFunction):
+    """
+    <dl>
+    <dt>'Picewise[{{expr1, cond1}, ...}]'
+      <dd>represents a piecewise function.
+    <dt>'Picewise[{{expr1, cond1}, ...}, expr]'
+      <dd>represents a piecewise function with default 'expr'.
+    </dl>
+    
+    Heaviside function
+    >> Piecewise[{{0, x <= 0}}, 1]
+     = Piecewise[{{0, x <= 0}}, 1]
+    """
+
+    # TODO
+    """
+    #> D[%, x]
+    """
+
+    sympy_name = 'Piecewise'
+
+    def prepare_sympy(self, leaves):
+        if len(leaves) == 1:
+            return leaves[0]
+        if len(leaves) == 2:
+            return leaves[0].leaves + [
+                Expression('List', leaves[1], Symbol('True'))]
+
+    def from_sympy(self, args):
+        # Hack to get around weird sympy.Piecewise 'otherwise' behaviour
+        if str(args[-1].leaves[1]).startswith('_True__Dummy_'):
+            args[-1].leaves[1] = Symbol('True')
+        return [args]

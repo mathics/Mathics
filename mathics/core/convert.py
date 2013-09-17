@@ -279,5 +279,18 @@ def from_sympy(expr):
     # elif isinstance(expr, sympy.Sum):
     #    return Expression('Sum', )
 
+    elif isinstance(expr, sympy.LessThan):
+        return Expression('LessEqual',
+                          [from_sympy(arg) for arg in expr.args])
+    elif isinstance(expr, sympy.StictLessThan):
+        return Expression('Less',
+                          [from_sympy(arg) for arg in expr.args])
+    elif isinstance(expr, sympy.GreaterThan):
+        return Expression('GreaterEqual',
+                          [from_sympy(arg) for arg in expr.args])
+    elif isinstance(expr, sympy.StrictGreaterThan):
+        return Expression('Greater',
+                          [from_sympy(arg) for arg in expr.args])
+
     else:
         raise ValueError("Unknown SymPy expression: %s" % expr)
