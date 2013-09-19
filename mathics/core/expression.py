@@ -1028,12 +1028,12 @@ class Expression(BaseExpression):
                 evaluation.message_args('Slot', len(self.leaves), 1)
             else:
                 slot = self.leaves[0].get_int_value()
-                if slot is None or slot < 1:
+                if slot is None or slot < 0:
                     evaluation.message('Function', 'slot', self.leaves[0])
                 elif slot > len(slots):
                     evaluation.message('Function', 'slotn', slot)
                 else:
-                    return slots[int(slot - 1)]
+                    return slots[int(slot)]
         elif self.head.get_name() == 'SlotSequence':
             if len(self.leaves) != 1:
                 evaluation.message_args('SlotSequence', len(self.leaves), 1)
@@ -1041,7 +1041,7 @@ class Expression(BaseExpression):
                 slot = self.leaves[0].get_int_value()
                 if slot is None or slot < 1:
                     evaluation.error('Function', 'slot', self.leaves[0])
-            return Expression('Sequence', *slots[slot - 1:])
+            return Expression('Sequence', *slots[slot:])
         elif self.head.get_name() == 'Function' and len(self.leaves) == 1:
             # do not replace Slots in nested Functions
             return self
