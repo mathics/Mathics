@@ -762,6 +762,9 @@ class DocSection(DocElement):
         self.chapter = chapter
         self.title = title
         self.slug = slugify(title)
+        if text.count("<dl>") != text.count("</dl>"):
+            raise ValueError("Missing opening or closing <dl> tag in "
+                             "{} documentation".format(title))
         self.doc = Doc(text)
         self.operator = operator
         chapter.sections_by_slug[self.slug] = self
