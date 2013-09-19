@@ -447,6 +447,7 @@ class IntegerDigits(Builtin):
     <dt>'IntegerDigits[$n$, $base$, $length$]'
     <dd>returns a list of length $length$, truncating or padding with
     zeroes on the left as necessary.
+    </dl>
 
     >> IntegerDigits[76543]
      = {7, 6, 5, 4, 3}
