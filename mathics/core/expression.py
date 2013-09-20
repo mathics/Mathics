@@ -56,12 +56,14 @@ class ExpressionPointer(object):
 
 def from_python(arg):
     number_type = get_type(arg)
-    if isinstance(arg, int) or isinstance(arg, long) or number_type == 'z':
+    if isinstance(arg, (int, long)) or number_type == 'z':
         return Integer(arg)
     elif isinstance(arg, float) or number_type == 'f':
         return Real(arg)
     elif number_type == 'q':
         return Rational(arg)
+    elif isinstance(arg, complex) or number_type == 'c':
+        return Complex(arg.real, arg.imag)
     elif isinstance(arg, basestring):
         return String(arg)
     elif isinstance(arg, BaseExpression):

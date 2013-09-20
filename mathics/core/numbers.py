@@ -35,7 +35,7 @@ def get_type(value):
     elif isinstance(value, sympy.Float) or isinstance(value, mpmath.mpf):
         return 'f'
     elif (isinstance(value, sympy.Expr) and value.is_number and
-          not value.is_real):
+          not value.is_real) or isinstance(value, mpmath.mpc):
         return 'c'
     else:
         return None

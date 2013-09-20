@@ -6,6 +6,11 @@ import codecs
 writer = codecs.getwriter("utf-8")
 sys.stdout = writer(sys.stdout)
 
+from mathics.core.expression import (
+    Expression, Symbol, String, Number, Integer, Real, Complex, Rational,
+    from_python)
+from mathics.core.convert import from_sympy
+
 
 __version__ = "0.6.0rc1"
 

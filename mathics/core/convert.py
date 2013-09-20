@@ -144,7 +144,7 @@ class SympyExpression(BasicSympy):
 def from_sympy(expr):
     from mathics.builtin import sympy_to_mathics
     from mathics.core.expression import (
-        Symbol, Integer, Rational, Real, Expression)
+        Symbol, Integer, Rational, Real, Complex, String, Expression)
 
     from sympy.core import numbers, function, symbol
 
@@ -154,6 +154,10 @@ def from_sympy(expr):
         return Integer(expr)
     if isinstance(expr, float):
         return Real(expr)
+    if isinstance(expr, complex):
+        return Complex(expr.real, expr.imag)
+    if isinstance(expr, str):
+        return String(expr)
     if expr is None:
         return Symbol('Null')
     if isinstance(expr, sympy.Matrix):
@@ -188,7 +192,7 @@ def from_sympy(expr):
         elif isinstance(expr, numbers.NegativeInfinity):
             return Expression('Times', Integer(-1), Symbol('Infinity'))
         elif isinstance(expr, numbers.ImaginaryUnit):
-            return Expression('Complex', 0, 1)
+            return Complex(0, 1)
         elif isinstance(expr, numbers.Integer):
             return Integer(expr.p)
         elif isinstance(expr, numbers.Rational):
@@ -209,8 +213,7 @@ def from_sympy(expr):
             return Symbol(unicode(expr))
     elif expr.is_number and all([x.is_Number for x in expr.as_real_imag()]):
         # Hack to convert 3 * I to Complex[0, 3]
-        return Expression('Complex', *[
-            from_sympy(arg) for arg in expr.as_real_imag()])
+        return Complex(*[from_sympy(arg) for arg in expr.as_real_imag()])
     elif expr.is_Add:
         return Expression('Plus', *sorted([
             from_sympy(arg) for arg in expr.args]))

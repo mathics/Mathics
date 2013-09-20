@@ -27,6 +27,7 @@ before_install:
 install:
   - if [[ "$TEST_DOC" == "true" ]]; then python setup.py develop; else python setup.py install; fi
 script:
+  - python -m unittest discover
   - if [[ "$TEST_DOC" == "true" ]]; then
         python mathics/test.py -o &&
         python mathics/test.py -t &&
