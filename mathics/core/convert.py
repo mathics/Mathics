@@ -48,6 +48,41 @@ class ConvertSubstitutions(object):
         return expression.Expression(self.head_name, expression.Integer(index),
                                      *expr.get_atoms())
 
+if sympy.__version__ == '0.7.3':
+    # Monkeypatch bug in sympy.Expr._expand_hint
+
+    def _expand_hint(expr, hint, deep=True, **hints):
+        """
+        Helper for ``expand()``.  Recursively calls ``expr._eval_expand_hint()``.
+
+        Returns ``(expr, hit)``, where expr is the (possibly) expanded
+        ``expr`` and ``hit`` is ``True`` if ``expr`` was truly expanded and
+        ``False`` otherwise.
+        """
+        hit = False
+        # XXX: Hack to support non-Basic args
+        #              |
+        #              V
+        if deep and getattr(expr, 'args', ()) and not expr.is_Atom:
+            sargs = []
+            for arg in expr.args:
+                arg, arghit = _expand_hint(arg, hint, **hints)
+                hit |= arghit
+                sargs.append(arg)
+
+            if hit:
+                expr = expr.func(*sargs)
+
+        if hasattr(expr, hint):
+            newexpr = getattr(expr, hint)(**hints)
+            if newexpr != expr:
+                return (newexpr, True)
+
+        return (expr, hit)
+
+    sympy.Expr._expand_hint = _expand_hint
+
+
 BasicSympy = sympy.Expr
 
 
@@ -243,6 +278,19 @@ def from_sympy(expr):
 
     # elif isinstance(expr, sympy.Sum):
     #    return Expression('Sum', )
+
+    elif isinstance(expr, sympy.LessThan):
+        return Expression('LessEqual',
+                          [from_sympy(arg) for arg in expr.args])
+    elif isinstance(expr, sympy.StictLessThan):
+        return Expression('Less',
+                          [from_sympy(arg) for arg in expr.args])
+    elif isinstance(expr, sympy.GreaterThan):
+        return Expression('GreaterEqual',
+                          [from_sympy(arg) for arg in expr.args])
+    elif isinstance(expr, sympy.StrictGreaterThan):
+        return Expression('Greater',
+                          [from_sympy(arg) for arg in expr.args])
 
     else:
         raise ValueError("Unknown SymPy expression: %s" % expr)
