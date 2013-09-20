@@ -522,8 +522,9 @@ class Solve(Builtin):
      = {{x -> -2}, {x -> -1}}
 
     Transcendental equations:
+    ## sympy<=0.7.2 only gives one root
     >> Solve[Cos[x] == 0, x]
-     = {{x -> Pi / 2}}
+     = {{x -> Pi / 2}...}
 
     Solve can only solve equations with respect to symbols or functions:
     >> Solve[f[x + y] == 3, f[x + y]]

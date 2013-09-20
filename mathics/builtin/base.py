@@ -407,6 +407,9 @@ class SympyFunction(SympyObject):
     def from_sympy(self, leaves):
         return leaves
 
+    def prepare_mathics(self, sympy_expr):
+        return sympy_expr
+
 
 class SympyConstant(SympyObject, Predefined):
     attributes = ('Constant', 'ReadProtected')

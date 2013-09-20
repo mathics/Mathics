@@ -2,7 +2,7 @@
 
 import sympy
 
-from mathics.builtin.base import Builtin, BinaryOperator, Test
+from mathics.builtin.base import Builtin, BinaryOperator, Test, SympyFunction
 from mathics.core.expression import (Expression, Number, Integer, Rational,
                                      Real, Symbol, String)
 from mathics.core.numbers import get_type, dps
@@ -222,7 +222,7 @@ def do_compare(l1, l2):
         return None
 
 
-class Equal(_InequalityOperator):
+class Equal(_InequalityOperator, SympyFunction):
     """
     >> a==a
      = True
@@ -281,6 +281,8 @@ class Equal(_InequalityOperator):
     operator = '=='
     grouping = 'None'
 
+    sympy_name = 'Eq'
+
     def apply_other(self, x, y, evaluation):
         'Equal[x_?(!RealNumberQ[#]&), y_?(!RealNumberQ[#]&)]'
 
@@ -293,7 +295,7 @@ class Equal(_InequalityOperator):
                 return Symbol('False')
 
 
-class Unequal(_InequalityOperator):
+class Unequal(_InequalityOperator, SympyFunction):
     """
     >> 1 != 1.
      = False
@@ -319,6 +321,8 @@ class Unequal(_InequalityOperator):
 
     operator = '!='
 
+    sympy_name = 'Ne'
+
     def apply_other(self, x, y, evaluation):
         'Unequal[x_?(!RealNumberQ[#]&), y_?(!RealNumberQ[#]&)]'
 
@@ -331,15 +335,17 @@ class Unequal(_InequalityOperator):
                 return Symbol('True')
 
 
-class Less(_InequalityOperator):
+class Less(_InequalityOperator, SympyFunction):
     operator = '<'
+    sympy_name = 'StrictLessThan'
 
 
-class LessEqual(_InequalityOperator):
+class LessEqual(_InequalityOperator, SympyFunction):
     operator = '<='
+    sympy_name = 'LessThan'
 
 
-class Greater(_InequalityOperator):
+class Greater(_InequalityOperator, SympyFunction):
     """
     >> a > b > c //FullForm
      = Greater[a, b, c]
@@ -348,10 +354,12 @@ class Greater(_InequalityOperator):
     """
 
     operator = '>'
+    sympy_name = 'StrictGreaterThan'
 
 
-class GreaterEqual(_InequalityOperator):
+class GreaterEqual(_InequalityOperator, SympyFunction):
     operator = '>='
+    sympy_name = 'GreaterThan'
 
 
 class Positive(Test):
