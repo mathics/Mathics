@@ -1,8 +1,8 @@
 CHANGES
 =======
 
-0.5.1dev
---------
+0.6
+---
 
 - ElementData using data from Wikipedia
 - added Switch
@@ -16,10 +16,15 @@ CHANGES
 - VectorAnalysis` Package
 - More special functions (Bessel functions and othogonal polynomials)
 - More NumberTheory functions
-- Import, Get, Needs and other IO related functions
+- Import, Export, Get, Needs and other IO related functions
 - PyPy compatibility
 - added benchmarks (mathics/benchmark.py)
 - BaseForm
+- DeleteDuplicates
+- Depth, Operate Through and other Structure related functions
+- Changes to MatrixForm/TableForm printing
+- Use interruptingcow to limit evaluation time
+- Character Code functions
 
 0.5
 ---
