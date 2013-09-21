@@ -66,6 +66,10 @@ def from_python(arg):
         return Complex(arg.real, arg.imag)
     elif isinstance(arg, basestring):
         return String(arg)
+        # if arg[0] == arg[-1] == '"':
+        #     return String(arg[1:-1])
+        # else:
+        #     return Symbol(arg)
     elif isinstance(arg, BaseExpression):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):

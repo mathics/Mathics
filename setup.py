@@ -167,6 +167,8 @@ setup(
     keywords="computer algebra system mathics mathematica sage sympy",
     url="http://www.mathics.org/",   # project home page, if any
 
+    test_suite='test',
+
     # TODO: could also include long_description, download_url, classifiers,
     # etc.
 )
