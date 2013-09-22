@@ -1030,7 +1030,7 @@ class Expression(BaseExpression):
                 slot = self.leaves[0].get_int_value()
                 if slot is None or slot < 0:
                     evaluation.message('Function', 'slot', self.leaves[0])
-                elif slot > len(slots)-1:
+                elif slot > len(slots) - 1:
                     evaluation.message('Function', 'slotn', slot)
                 else:
                     return slots[int(slot)]
