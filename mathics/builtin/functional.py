@@ -64,6 +64,7 @@ class Function(PostfixOperator):
         'Function[body_][args___]'
 
         args = args.get_sequence()
+        args.insert(0, Expression('Function', body))
         return body.replace_slots(args, evaluation)
 
     def apply_named(self, vars, body, args, evaluation):
@@ -90,6 +91,8 @@ class Slot(Builtin):
         <dd>represents the $n$th argument to a pure function.
     <dt>'#'
         <dd>is short-hand for '#1'
+    <dt>'#0'
+        <dd>represents the pure function itself.
     </dl>
 
     >> #
@@ -98,6 +101,10 @@ class Slot(Builtin):
     Unused arguments are simply ignored:
     >> {#1, #2, #3}&[1, 2, 3, 4, 5]
      = {1, 2, 3}
+
+    Recursive pure functions can be written using '#0':
+    >> If[#1<=1, 1, #1 #0[#1-1]]& [10]
+     = 3628800
 
     #> # // InputForm
      = #1
