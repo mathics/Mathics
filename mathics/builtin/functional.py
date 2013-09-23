@@ -114,7 +114,7 @@ class Slot(Builtin):
 
     rules = {
         'Slot[]': 'Slot[1]',
-        'MakeBoxes[Slot[n_Integer?Positive],'
+        'MakeBoxes[Slot[n_Integer?NonNegative],'
         '  f:StandardForm|TraditionalForm|InputForm|OutputForm]': (
             '"#" <> ToString[n]'),
     }
