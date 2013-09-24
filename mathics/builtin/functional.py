@@ -108,6 +108,9 @@ class Slot(Builtin):
 
     #> # // InputForm
      = #1
+
+    #> #0 // InputForm
+     = #0
     """
 
     attributes = ('NHoldAll',)
