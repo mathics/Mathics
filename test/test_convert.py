@@ -1,4 +1,4 @@
-import unittest
+import unittest2 as unittest
 import sympy
 import mathics
 import random
