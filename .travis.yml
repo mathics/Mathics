@@ -23,6 +23,8 @@ before_install:
     sudo apt-get update -qq &&
     sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
     fi
+  - pip install --use-mirrors unittest2
+  - pip install --use-mirrors pexpect
   - pip install --use-mirrors git+https://github.com/sympy/sympy.git@$SYMPY_SRC
 install:
   - if [[ "$TEST_DOC" == "true" ]]; then python setup.py develop; else python setup.py install; fi
