@@ -713,7 +713,7 @@ class SphericalHarmonicY(_MPMathFunction):
     """
 
     nargs = 4
-    sympy_name = 'Ynm' if sympy.__version__ != "0.7.2" else 'Ylm'
+    sympy_name = 'Ynm'
     mpmath_name = 'spherharm'
 
     def prepare_mathics(self, sympy_expr):

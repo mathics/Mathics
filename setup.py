@@ -60,7 +60,7 @@ else:
     INSTALL_REQUIRES = ['cython>=0.15.1']
 
 # General Requirements
-INSTALL_REQUIRES += ['sympy>=0.7.2', 'django>=1.2', 'ply>=3.4',
+INSTALL_REQUIRES += ['sympy==0.7.3', 'django>=1.2', 'ply>=3.4',
                      'argparse', 'python-dateutil', 'colorama',
                      'interruptingcow']
 

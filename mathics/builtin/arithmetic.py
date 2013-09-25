@@ -1539,9 +1539,8 @@ class Sum(_IterationFunction, SympyFunction):
     >> Sum[x ^ 2, {x, 1, y}] - y * (y + 1) * (2 * y + 1) / 6
      = 0
 
-    ## Piecewise answer for sympy >= 0.7.3
     >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
-     = ...
+     = Piecewise[{{m, a ^ n == 1}, {(1 - (a ^ n) ^ m) / (1 - a ^ n), True}}] (-1 + a ^ n)
 
     Infinite sums:
     >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
