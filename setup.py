@@ -27,8 +27,8 @@ import sys
 from setuptools import setup, Command, Extension
 
 # Ensure user has the correct Python version
-if not (2, 5) <= sys.version_info[:2] <= (2, 7):
-    print("Mathics supports Python 2.5 upto Python 2.7. \
+if not (2, 6) <= sys.version_info[:2] <= (2, 7):
+    print("Mathics supports Python 2.6 upto Python 2.7. \
 Python %d.%d detected" % sys.version_info[:2])
     sys.exit(-1)
 
