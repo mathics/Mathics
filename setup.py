@@ -60,7 +60,7 @@ else:
     INSTALL_REQUIRES = ['cython>=0.15.1']
 
 # General Requirements
-INSTALL_REQUIRES += ['sympy>=0.7.2', 'django>=1.2', 'ply>=3.4',
+INSTALL_REQUIRES += ['sympy==0.7.3', 'django>=1.2', 'ply>=3.4',
                      'argparse', 'python-dateutil', 'colorama',
                      'interruptingcow']
 
@@ -127,6 +127,9 @@ setup(
     ],
 
     install_requires=INSTALL_REQUIRES,
+
+    # This can be removed once we move to sympy>=0.7.4
+    dependency_links = ['https://github.com/sympy/sympy/releases'],
 
     package_data={
         'mathics.doc': ['documentation/*.mdoc', 'xml/data'],
