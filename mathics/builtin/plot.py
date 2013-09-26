@@ -1097,6 +1097,12 @@ class Plot3D(_Plot3D):
 
     #> Plot3D[z, {x, 1, 20}, {y, 1, 10}]
      = -Graphics3D-
+
+    """
+
+    # FIXME: This test passes but the result is 511 lines long !
+    """
+    #> Plot3D[x + 2y, {x, -2, 2}, {y, -2, 2}] // TeXForm
     """
 
     from graphics import Graphics
