@@ -68,10 +68,10 @@ import sys
 import time
 from argparse import ArgumentParser
 
+import mathics
 from mathics.core.parser import parse
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Evaluation
-from mathics import settings
 
 definitions = Definitions(add_builtin=True)
 evaluation = None
@@ -168,7 +168,7 @@ def main():
 
     parser.add_argument(
         '--version', '-v', action='version',
-        version='%(prog)s ' + settings.VERSION)
+        version='%(prog)s ' + mathics.__version__)
 
     parser.add_argument(
         '--section', '-s', dest="section", metavar="SECTION",
