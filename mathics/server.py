@@ -22,6 +22,7 @@ import sys
 import os
 import argparse
 
+import mathics
 from mathics import print_version, print_license
 from mathics import settings as mathics_settings  # Prevents UnboundLocalError
 
@@ -61,7 +62,7 @@ def main():
         action='store_true')
     argparser.add_argument(
         '--version', '-v', action='version',
-        version='%(prog)s ' + settings.VERSION)
+        version='%(prog)s ' + mathics.__version__)
     argparser.add_argument(
         "--port", "-p", dest="port", metavar="PORT", default=8000, type=int,
         help="use PORT as server port")
