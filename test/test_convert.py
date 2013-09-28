@@ -1,8 +1,12 @@
-import unittest2 as unittest
 import sympy
 import mathics
 import random
 import sys
+
+if sys.version_info[:2] == (2, 7):
+    import unittest
+else:
+    import unittest2 as unittest
 
 
 class SympyConvert(unittest.TestCase):
