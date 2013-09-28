@@ -110,7 +110,42 @@ class initialize(Command):
             print("error: failed to create database")
             sys.exit(1)
 
+
+class test(Command):
+    """
+    Runs the unittests
+    """
+
+    description = "runs the unittests"
+    user_options = []
+
+    def __init__(self, *args):
+        self.args = args[0]  # so we can pass it to other classes
+        Command.__init__(self, *args)
+
+    def initialize_options(self):  # distutils wants this
+        pass
+
+    def finalize_options(self):    # this too
+        pass
+
+    def run(self):
+        if sys.version_info[:2] == (2, 7):
+            import unittest
+        else:
+            import unittest2 as unittest
+
+        test_loader = unittest.defaultTestLoader
+        test_runner = unittest.TextTestRunner(verbosity=3)
+        test_suite = test_loader.discover('test/')
+        test_result = test_runner.run(test_suite)
+
+        if not test_result.wasSuccessful():
+            sys.exit(1)
+
+
 CMDCLASS['initialize'] = initialize
+CMDCLASS['test'] = test
 
 mathjax_files = list(subdirs('media/js/mathjax/'))
 
@@ -166,8 +201,6 @@ setup(
     license="GPL",
     keywords="computer algebra system mathics mathematica sage sympy",
     url="http://www.mathics.org/",   # project home page, if any
-
-    test_suite='test',
 
     # TODO: could also include long_description, download_url, classifiers,
     # etc.
