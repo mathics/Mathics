@@ -23,8 +23,8 @@ class SympyConvert(unittest.TestCase):
             sympy.Symbol('_Mathics_User__Mathics_User_x'))
 
     def testReal(self):
-        self.compare(mathics.Real('1.0'), sympy.Real('1.0'))
-        self.compare(mathics.Real(1.0), sympy.Real(1.0))
+        self.compare(mathics.Real('1.0'), sympy.Float('1.0'))
+        self.compare(mathics.Real(1.0), sympy.Float(1.0))
 
     def testInteger(self):
         self.compare(mathics.Integer(0), sympy.Integer(0))
@@ -39,7 +39,7 @@ class SympyConvert(unittest.TestCase):
     def testComplex(self):
         self.compare(
             mathics.Complex(mathics.Real('1.0'), mathics.Real('1.0')),
-            sympy.Add(sympy.Real('1.0'), sympy.Real('1.0') * sympy.I))
+            sympy.Add(sympy.Float('1.0'), sympy.Float('1.0') * sympy.I))
 
         self.compare(
             mathics.Complex(mathics.Integer(0), mathics.Integer(1)),
