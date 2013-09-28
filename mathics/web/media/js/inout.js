@@ -206,7 +206,7 @@ function showGallery() {
 	  '1 + 2 - x * 3 x / y',
 	  'Sin[Pi]',
 	  'Plot[{Sin[x], Cos[x], Tan[x]}, {x, -3Pi, 3Pi}]',
-	  'Plot3D[x y / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}]',
+	  'Plot3D[Exp[x] Cos[y], {x, -2, 1}, {y, -Pi, 2 Pi}]',
 	  'translate[graphics_, {dx_,dy_,dz_}] := graphics /. Sphere[{x_,y_,z_}, r_] -> Sphere[{x+dx, y+dy, z+dz}, r]',
 	  'sierpinski[block_, size_] := translate[block, #*size*2]& /@ {{0,0,.6124}, {-.2886,-.5,-.204}, {-.2886,.5,-.204}, {.5774,0,-.204}}',
 	  'Graphics3D[{Yellow, First[Nest[{sierpinski[First[#], Last[#]], Last[#]*2}&, {Sphere[{0,0,0}, 1], 1}, 3]]}]',
