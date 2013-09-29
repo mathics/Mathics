@@ -282,7 +282,7 @@ def from_sympy(expr):
     elif isinstance(expr, sympy.LessThan):
         return Expression('LessEqual',
                           [from_sympy(arg) for arg in expr.args])
-    elif isinstance(expr, sympy.StictLessThan):
+    elif isinstance(expr, sympy.StrictLessThan):
         return Expression('Less',
                           [from_sympy(arg) for arg in expr.args])
     elif isinstance(expr, sympy.GreaterThan):
