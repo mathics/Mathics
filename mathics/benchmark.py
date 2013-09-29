@@ -71,7 +71,7 @@ from argparse import ArgumentParser
 import mathics
 from mathics.core.parser import parse
 from mathics.core.definitions import Definitions
-from mathics.core.expression import Evaluation
+from mathics.core.evaluation import Evaluation
 
 definitions = Definitions(add_builtin=True)
 evaluation = None

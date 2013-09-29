@@ -22,7 +22,7 @@ import cProfile
 import pstats
 
 from mathics.core.definitions import Definitions
-from mathics.core.expression import Evaluation
+from mathics.core.evaluation import Evaluation
 
 definitions = Definitions(add_builtin=True)
 
