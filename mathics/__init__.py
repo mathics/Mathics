@@ -7,6 +7,9 @@ writer = codecs.getwriter("utf-8")
 sys.stdout = writer(sys.stdout)
 
 
+__version__ = "0.6.0rc1"
+
+
 def get_version():
     version = {}
 
@@ -18,11 +21,10 @@ def get_version():
     try:
         import django
         from django.conf import settings
-        version['mathics'] = settings.VERSION
         version['django'] = django.get_version()
     except (ImportError, ImproperlyConfigured):
-        from mathics import settings
-        version['mathics'] = settings.VERSION
+        pass
+    version['mathics'] = __version__
     version['sympy'] = sympy.__version__
     version['mpmath'] = mpmath.__version__
     version['python'] = sys.subversion[0] + " " + sys.version.split('\n')[0]

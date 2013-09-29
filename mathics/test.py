@@ -26,6 +26,7 @@ import pickle
 import os
 from argparse import ArgumentParser
 
+import mathics
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Evaluation
 from mathics.builtin import builtins
@@ -222,7 +223,7 @@ def main():
         '--help', '-h', help='show this help message and exit', action='help')
     parser.add_argument(
         '--version', '-v', action='version',
-        version='%(prog)s ' + settings.VERSION)
+        version='%(prog)s ' + mathics.__version__)
     parser.add_argument('--section', '-s', dest="section",
                         metavar="SECTION", help="only test SECTION")
     parser.add_argument('--output', '-o', dest="output", action="store_true",

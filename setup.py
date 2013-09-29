@@ -27,12 +27,12 @@ import sys
 from setuptools import setup, Command, Extension
 
 # Ensure user has the correct Python version
-if not (2, 5) <= sys.version_info[:2] <= (2, 7):
-    print("Mathics supports Python 2.5 upto Python 2.7. \
+if not (2, 6) <= sys.version_info[:2] <= (2, 7):
+    print("Mathics supports Python 2.6 upto Python 2.7. \
 Python %d.%d detected" % sys.version_info[:2])
     sys.exit(-1)
 
-from mathics import settings
+import mathics
 
 if sys.subversion[0] == 'PyPy':
     is_PyPy = True
@@ -94,6 +94,7 @@ class initialize(Command):
     def run(self):
         import os
         import subprocess
+        from mathics import settings
 
         database_file = settings.DATABASES['default']['NAME']
         print("Creating data directory %s" % settings.DATA_DIR)
@@ -114,7 +115,7 @@ setup(
     name="Mathics",
     cmdclass=CMDCLASS,
     ext_modules=EXTENSIONS,
-    version=settings.VERSION,
+    version=mathics.__version__,
 
     packages=[
         'mathics',
