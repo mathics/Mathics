@@ -147,7 +147,7 @@ class _Plot(Builtin):
             "is limited to `2`. Using MaxRecursion -> `1`."),
         'prng': ("Value of option PlotRange -> `1` is not All, Automatic or "
                  "an appropriate list of range specifications."),
-        'invpltpts': "Value of PlotPoints -> `1` is not a positive integer.",
+        'ppts': "Value of option PlotPoints -> `1` is not an integer >= 2.",
         'invexcl': ("Value of Exclusions -> `1` is not None, Automatic or an "
                     "appropriate list of constraints."),
     }
@@ -208,9 +208,8 @@ class _Plot(Builtin):
         plotpoints = plotpoints_option.to_python()
         if plotpoints == 'None':
             plotpoints = 57
-        if not (isinstance(plotpoints, int) and plotpoints > 0):
-            evaluation.message(self.get_name(), 'invpltpts', plotpoints)
-            plotpoints = 57
+        if not (isinstance(plotpoints, int) and plotpoints >= 2):
+            return evaluation.message(self.get_name(), 'ppts', plotpoints)
 
         # MaxRecursion Option
         max_recursion_limit = 15
@@ -312,8 +311,8 @@ class _Plot(Builtin):
             xvalues = []  # x value for each point in points
             tmp_mesh_points = []  # For this function only
             continuous = False
-            d = (stop - start) / plotpoints
-            for i in range(plotpoints + 1):
+            d = (stop - start) / (plotpoints - 1)
+            for i in xrange(plotpoints):
                 x_value = start + i * d
                 point = self.eval_f(f, x_name, x_value, evaluation)
                 if point is not None:
@@ -874,6 +873,10 @@ class Plot(_Plot):
 
     #> Plot[{f[x],-49x/12+433/108},{x,-6,6}, PlotRange->{-10,10}, AspectRatio->{1}]
      = -Graphics-
+
+    #> Plot[Sin[t],  {t, 0, 2 Pi}, PlotPoints -> 1]
+     : Value of option PlotPoints -> 1 is not an integer >= 2.
+     = Plot[Sin[t], {t, 0, 2 Pi}, PlotPoints -> 1]
     """
 
     def get_functions_param(self, functions):

@@ -882,7 +882,7 @@ You can use a custom coloring function:
 One problem with 'DensityPlot' is that it\'s still very slow, basically due to function evaluation being pretty slow in general---and 'DensityPlot' has to evaluate a lot of functions.
 
 Three-dimensional plots are supported as well:
->> Plot3D[x y / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}]
+>> Plot3D[Exp[x] Cos[y], {x, -2, 1}, {y, -Pi, 2 Pi}]
  = -Graphics3D-
 </section>
 
