@@ -8,7 +8,6 @@ import re
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator)
-from mathics.builtin.calculus import Derivative
 from mathics.builtin.tensors import get_dimensions
 from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
@@ -261,12 +260,7 @@ class MakeBoxes(Builtin):
             # Parenthesize infix operators at the head of expressions,
             # like (a + b)[x], but not f[a] in f[a][b].
             #
-            # Derivative is a special case here: it can print as an
-            # operator or as Derivative[a, b]. Work around this by
-            # parenthesizing with a precedence that's just under
-            # Derivative's precedence.
-            #
-            head_boxes = parenthesize(Derivative.precedence - 1,
+            head_boxes = parenthesize(670,
                                       head, MakeBoxes(head, f), False)
             result = [head_boxes, String(left)]
 
