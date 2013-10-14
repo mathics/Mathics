@@ -193,7 +193,11 @@ class BaseExpression(object):
             unformatted = expr
 
             def format_expr(expr):
-                name = expr.get_lookup_name()
+                if not(expr.is_atom()) and not(expr.head.is_atom()):
+                    # expr is of the form f[...][...]
+                    name = ''
+                else:
+                    name = expr.get_lookup_name()
                 formats = evaluation.definitions.get_formats(name, form)
                 for rule in formats:
                     result = rule.apply(expr, evaluation)
