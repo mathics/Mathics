@@ -112,6 +112,15 @@ class MakeBoxes(Builtin):
 
     #> \( x \^ 2 \_ 4 \)
      = SuperscriptBox[x, SubscriptBox[2, 4]]
+
+    ## Tests for issue 151 (infix operators in heads)
+    #> (a + b)[x]
+     = (a + b)[x]
+    #> (a b)[x]
+     = (a b)[x]
+    #> (a <> b)[x]
+     : String expected.
+     = (a <> b)[x]
     """
 
     # TODO: Convert operators to appropriate representations e.g. 'Plus' to '+'
@@ -247,7 +256,14 @@ class MakeBoxes(Builtin):
                 left, right = '(', ')'
             else:
                 left, right = '[', ']'
-            result = [MakeBoxes(head, f), String(left)]
+
+            # Parenthesize infix operators at the head of expressions,
+            # like (a + b)[x], but not f[a] in f[a][b].
+            #
+            head_boxes = parenthesize(670,
+                                      head, MakeBoxes(head, f), False)
+            result = [head_boxes, String(left)]
+
             if len(leaves) > 1:
                 row = []
                 if f_name in ('InputForm', 'OutputForm', 'FullForm'):
