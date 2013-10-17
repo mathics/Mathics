@@ -1,4 +1,4 @@
-TEX = /usr/texbin/pdflatex
+TEX = pdflatex -shell-escape -interaction=nonstopmode -file-line-error
 LATEXMK = latexmk
 
 mathics.pdf: mathics.tex documentation.tex
