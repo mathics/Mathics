@@ -3,11 +3,9 @@
 # Before releasing:
 # Clear directory build/
 # python setup.py install
-# sage -python setup.py install
-# sage -python setup.py develop
 # mathics/
-#   sage -python test.py
-#   sage -python test.py -t
+#   python test.py -o
+#   python test.py -t
 # mathics/doc/tex/
 #   make latex
 # Then run this file.
@@ -21,9 +19,7 @@ python setup.py build
 mkdir build/release
 cp -r build/lib*/mathics build/release/
 rm build/release/*/*/*.so
-cp setup.py initialize.py distribute_setup.py build/release/
-cp install_sage_scripts.py build/release/
-cp AUTHORS.txt CHANGES.rst COPYING.txt README.rst build/release/
+cp setup.py AUTHORS.txt CHANGES.rst COPYING.txt README.rst build/release/
 cp mathics/doc/tex/mathics.pdf build/release/
 
 zipfilename="mathics-$version.zip"
@@ -33,6 +29,7 @@ echo "Creating ZIP file $zipfilename"
 zip -r "../$zipfilename" .
 cd ../..
 
+mkdir -p Homepage/release
 cp "build/$zipfilename" Homepage/release/
 
 echo "Done"
