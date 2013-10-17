@@ -155,7 +155,7 @@ function createLink() {
 		queries[queries.length] = 'queries=' + encodeURIComponent(text);
 	});
 	var query = queries.join('&');
-	location.hash = '#' + query; //encodeURI(query);
+	location.hash = '#' + btoa(query); //encodeURI(query);
 }
 
 function setQueries(queries) {
@@ -185,7 +185,7 @@ function setQueries(queries) {
 function loadLink() {
 	var hash = location.hash;
 	if (hash && hash.length > 1) {
-		var params = hash.slice(1).split('&');
+		var params = atob(hash.slice(1)).split('&');
 		var queries = [];
 		params.each(function(param) {
 			if (param.startsWith('queries=')) {
