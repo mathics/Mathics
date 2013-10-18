@@ -32,7 +32,8 @@ if not (2, 6) <= sys.version_info[:2] <= (2, 7):
 Python %d.%d detected" % sys.version_info[:2])
     sys.exit(-1)
 
-import mathics
+# Get stores __version__ in the current namespace
+execfile('mathics/version.py')
 
 if sys.subversion[0] == 'PyPy':
     is_PyPy = True
@@ -94,12 +95,13 @@ class initialize(Command):
     def run(self):
         import os
         import subprocess
-        from mathics import settings
+        settings = {}
+        execfile('mathics/settings.py', settings)
 
-        database_file = settings.DATABASES['default']['NAME']
-        print("Creating data directory %s" % settings.DATA_DIR)
-        if not os.path.exists(settings.DATA_DIR):
-            os.makedirs(settings.DATA_DIR)
+        database_file = settings['DATABASES']['default']['NAME']
+        print("Creating data directory %s" % settings['DATA_DIR'])
+        if not os.path.exists(settings['DATA_DIR']):
+            os.makedirs(settings['DATA_DIR'])
         print("Creating database %s" % database_file)
         try:
             subprocess.check_call(
@@ -153,7 +155,7 @@ setup(
     name="Mathics",
     cmdclass=CMDCLASS,
     ext_modules=EXTENSIONS,
-    version=mathics.__version__,
+    version=__version__,
 
     packages=[
         'mathics',
