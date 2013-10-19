@@ -5,5 +5,6 @@ for filename in $(find documentation/images/ -name "*.eps"); do
 	convert -resize 400 "$filename" "$png"
 	mv "$png" "../web/media/doc/"
 	cp "$pdf" "../web/media/doc/"
+	mkdir -p "tex/images"
 	mv "$pdf" "tex/images/"
 done
