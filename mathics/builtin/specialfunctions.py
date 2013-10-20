@@ -697,8 +697,8 @@ class JacobiP(_MPMathFunction):
 class SphericalHarmonicY(_MPMathFunction):
     u"""
     <dl>
-    <dt>'SphericalHarmonicY[$l$, $m$, \u0275, \u03D5]'
-      <dd>returns the spherical harmonic functin Y_$l$^$m$(\u0257, \u03D5).
+    <dt>'SphericalHarmonicY[$l$, $m$, $theta$, $phi$]'
+      <dd>returns the spherical harmonic functin Y_$l$^$m$(theta, phi).
     </dl>
 
     >> SphericalHarmonicY[3/4, 0.5, Pi/5, Pi/3]
