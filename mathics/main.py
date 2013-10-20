@@ -19,6 +19,7 @@ u"""
 """
 
 import sys
+import os
 import argparse
 import re
 import locale
@@ -52,7 +53,9 @@ class TerminalShell(object):
         else:
             colorama_init()
             if colors is None:
-                colors = 'Linux' if sys.stdout.isatty() else 'NoColor'
+                terminal_supports_color = (sys.stdout.isatty() and
+                                           os.getenv('TERM') != 'dumb')
+                colors = 'Linux' if terminal_supports_color else 'NoColor'
 
         color_schemes = {
             'NOCOLOR': (
