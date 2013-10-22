@@ -193,7 +193,7 @@ def escape_latex(text):
         return u'\\begin{%s}%s\\end{%s}' % (env, content, env)
     text = LIST_RE.sub(repl_list, text)
 
-    text = _replace_all(text, [('$', r'\$'), (u'π', '$\pi$')])
+    text = _replace_all(text, [('$', r'\$'), (u'\u03c0', '$\pi$')])
 
     def repl_char(match):
         char = match.group(1)
