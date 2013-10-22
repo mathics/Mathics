@@ -474,9 +474,8 @@ class Variables(Builtin):
                 for l in e.leaves:
                     find_vars(l)
             elif e.has_form('Power', 2):
-                (a, b) = e.leaves # a^b
-                if (not(a.to_sympy().is_constant()) and
-                    b.to_sympy().is_rational):
+                (a, b) = e.leaves  # a^b
+                if not(a.to_sympy().is_constant()) and b.to_sympy().is_rational:
                     find_vars(a)
             elif not(e.is_atom()):
                 variables.add(e)

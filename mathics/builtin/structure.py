@@ -589,6 +589,7 @@ class Depth(Builtin):
         expr, depth = walk_levels(expr)
         return Integer(depth + 1)
 
+
 class Operate(Builtin):
     """
     <dl>
