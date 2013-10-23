@@ -707,8 +707,7 @@ class DocPart(DocElement):
             self.title, '\n'.join(str(chapter) for chapter in self.chapters))
 
     def latex(self, output):
-        result = '\n\n\\part{%s}\n\n' % (
-            escape_latex(self.title) +
+        result = '\n\n\\part{%s}\n\n' % escape_latex(self.title) + (
             '\n\n'.join(chapter.latex(output) for chapter in self.chapters))
         if self.is_reference:
             result = '\n\n\\referencestart' + result

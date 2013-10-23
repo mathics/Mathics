@@ -417,10 +417,8 @@ class _Plot(Builtin):
                 points = [[(xx, yy) for line in points for xx, yy in line]]
 
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
-            graphics.append(Expression('Line', Expression('List', *(
-                Expression('List', *(Expression('List', x, y)
-                                     for x, y in line))
-                for line in points))))
+            graphics.append(Expression('Line', from_python(points)))
+
             for line in points:
                 plot_points.extend(line)
 

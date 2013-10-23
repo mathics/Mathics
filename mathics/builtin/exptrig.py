@@ -132,6 +132,15 @@ class Log(_MPMathFunction):
 
     #> Log[1000] / Log[10] // Simplify
      = 3
+
+    #> Log[1.4]
+     = 0.336472236621212931
+
+    #> Log[1.4]
+     = 0.336472236621212931
+
+    #> Log[-1.4]
+     = 0.336472236621212931 + 3.14159265358979324 I
     """
 
     nargs = 2
@@ -145,6 +154,7 @@ class Log(_MPMathFunction):
         'Log[E]': '1',
         'Log[E^x_Integer]': 'x',
         'Derivative[1][Log]': '1/#&',
+        'Log[x_?InexactNumberQ]': 'Log[E, x]',
     }
 
     def prepare_sympy(self, leaves):

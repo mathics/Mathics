@@ -1,5 +1,5 @@
-TEX = pdflatex -shell-escape -interaction=nonstopmode -file-line-error
-LATEXMK = latexmk
+TEX = pdflatex
+LATEXMK = latexmk -quiet
 
 mathics.pdf: mathics.tex documentation.tex
 	$(LATEXMK) -pdf -pdflatex=$(TEX) mathics
@@ -11,4 +11,4 @@ clear:
 	rm -f mathics.fdb_latexmk mathics.ilg mathics.ind mathics.maf mathics.pre
 	rm -f mathics_*.*
 	rm -f mathics-*.*
-	rm –f mathics.pdf
+	rm -f mathics.pdf

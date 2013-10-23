@@ -425,7 +425,7 @@ class Export(Builtin):
       <dd>exports $exprs$ to a file as elements specified by $elems$.
     </dl>
 
-    # Invalid Filename
+    ## Invalid Filename
     #> Export["abc.", 1+2]
      : Cannot infer format of file abc..
      = $Failed

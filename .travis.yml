@@ -7,13 +7,33 @@ env:
   - SYMPY_SRC=sympy-0.7.3
   - SYMPY_SRC=master
 matrix:
-  allow_failures:
-    - env: SYMPY_SRC=master
+    include:
+      - python: 2.7
+        env:
+          - SYMPY_SRC=sympy-0.7.3
+          - TEST_DOC="true"
+    allow_failures:
+      - env: SYMPY_SRC=master
 before_install:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
+  - if [[ "$TEST_DOC" == "true" ]]; then
+    sudo apt-get update -qq &&
+    sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
+    fi
   - pip install --use-mirrors git+https://github.com/sympy/sympy.git@$SYMPY_SRC
 install:
-  - python setup.py install
+  - if [[ "$TEST_DOC" == "true" ]]; then python setup.py develop; else python setup.py install; fi
 script:
-  - python mathics/test.py
+  - if [[ "$TEST_DOC" == "true" ]]; then
+        python mathics/test.py -o &&
+        python mathics/test.py -t &&
+        cd mathics/doc/ &&
+        ./images.sh &&
+        cd tex/ &&
+        make latex;
+    else
+        python mathics/test.py;
+    fi
 notifications:
-  email: false
+    email: false
