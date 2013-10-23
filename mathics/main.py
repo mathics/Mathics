@@ -119,8 +119,8 @@ class TerminalShell(object):
         try:
             # Wrap ANSI colour sequences in \001 and \002, so readline
             # knows that they're nonprinting.
-            prompt = self.ansi_color_re.sub(lambda m: "\001"+m.group(0)+"\002",
-                                            prompt)
+            prompt = self.ansi_color_re.sub(
+                lambda m: "\001" + m.group(0) + "\002", prompt)
             sys.stdout = sys.stdout.stream
             ret = raw_input(prompt)
             return ret

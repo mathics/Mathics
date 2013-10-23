@@ -177,8 +177,7 @@ class Plus(BinaryOperator, SympyFunction):
         values = [Expression('HoldForm', item) for item in items[:1]]
         ops = []
         for item in items[1:]:
-            if (item.has_form('Times', 1, None)     # noqa
-                and is_negative(item.leaves[0])) or is_negative(item):
+            if (item.has_form('Times', 1, None) and is_negative(item.leaves[0])) or is_negative(item):
                 item = negate(item)
                 op = "-"
             else:
@@ -1651,7 +1650,7 @@ class Piecewise(SympyFunction):
     <dt>'Picewise[{{expr1, cond1}, ...}, expr]'
       <dd>represents a piecewise function with default 'expr'.
     </dl>
-    
+
     Heaviside function
     >> Piecewise[{{0, x <= 0}}, 1]
      = Piecewise[{{0, x <= 0}}, 1]

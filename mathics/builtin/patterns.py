@@ -341,7 +341,7 @@ class Alternatives(BinaryOperator, PatternObject):
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         for alternative in self.alternatives:
-            # for new_vars, rest in alternative.match(  # noqa
+            # for new_vars, rest in alternative.match(
             #     expression, vars, evaluation):
             #     yield_func(new_vars, rest)
             alternative.match(yield_func, expression, vars, evaluation)
@@ -442,7 +442,7 @@ class HoldPattern(PatternObject):
         self.pattern = Pattern.create(expr.leaves[0])
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
-        # for new_vars, rest in self.pattern.match(     # noqa
+        # for new_vars, rest in self.pattern.match(
         #     expression, vars, evaluation):
         #     yield new_vars, rest
         self.pattern.match(yield_func, expression, vars, evaluation)
@@ -506,11 +506,7 @@ class Pattern_(PatternObject):
     }
 
     rules = {
-        '''MakeBoxes[
-            Verbatim[Pattern][symbol_Symbol,
-                blank_Blank|blank_BlankSequence|blank_BlankNullSequence],
-            f:StandardForm|TraditionalForm|InputForm|OutputForm]''': (
-                'MakeBoxes[symbol, f] <> MakeBoxes[blank, f]'),   # nopep8
+        'MakeBoxes[Verbatim[Pattern][symbol_Symbol, blank_Blank|blank_BlankSequence|blank_BlankNullSequence], f:StandardForm|TraditionalForm|InputForm|OutputForm]': 'MakeBoxes[symbol, f] <> MakeBoxes[blank, f]',
         # 'StringForm["`1``2`", HoldForm[symbol], blank]',
     }
 
@@ -535,7 +531,7 @@ class Pattern_(PatternObject):
         if existing is None:
             new_vars = vars.copy()
             new_vars[self.varname] = expression
-            # for vars_2, rest in self.pattern.match(   # nopep8
+            # for vars_2, rest in self.pattern.match(
             #    expression, new_vars, evaluation):
             #    yield vars_2, rest
             self.pattern.match(yield_func, expression, new_vars, evaluation)
@@ -599,8 +595,7 @@ class Optional(BinaryOperator, PatternObject):
     def post_parse(self, expression):
         leaves = [leaf.post_parse() for leaf in expression.leaves]
         expression = Expression(expression.head.post_parse(), *leaves)
-        if (expression.has_form('Optional', 2) and      # noqa
-            expression.leaves[0].get_name()):
+        if (expression.has_form('Optional', 2) and expression.leaves[0].get_name()):
             sub = expression.leaves[1]
             if sub.has_form(('Pattern', 'Optional'), 2):
                 return Expression(
@@ -615,17 +610,12 @@ class Optional(BinaryOperator, PatternObject):
             return expression
 
     rules = {
-        'MakeBoxes[Verbatim[Optional][Verbatim[Pattern][symbol_Symbol, '
-        'Verbatim[_]]], f:StandardForm|TraditionalForm|InputForm|OutputForm]':
-            'MakeBoxes[symbol, f] <> "_."',   # nopep8
-        'MakeBoxes[Verbatim[Optional][Verbatim[_]], '
-        'f:StandardForm|TraditionalForm|InputForm|OutputForm]':
-            '"_."',     # nopep8
+        'MakeBoxes[Verbatim[Optional][Verbatim[Pattern][symbol_Symbol, Verbatim[_]]], f:StandardForm|TraditionalForm|InputForm|OutputForm]': 'MakeBoxes[symbol, f] <> "_."',
+        'MakeBoxes[Verbatim[Optional][Verbatim[_]], f:StandardForm|TraditionalForm|InputForm|OutputForm]': '"_."',
     }
 
     formats = {
-        'Verbatim[Optional][pattern_Pattern, default_]':
-            'Infix[{HoldForm[pattern], HoldForm[default]}, ":", 150]',  # nopep8
+        'Verbatim[Optional][pattern_Pattern, default_]': 'Infix[{HoldForm[pattern], HoldForm[default]}, ":", 150]',
     }
 
     arg_counts = [1, 2]
@@ -696,12 +686,8 @@ class _Blank(PatternObject):
 
 class Blank(_Blank):
     rules = {
-        'MakeBoxes[Verbatim[Blank][], '
-        'f:StandardForm|TraditionalForm|OutputForm|InputForm]':
-            '"_"',   # nopep8
-        'MakeBoxes[Verbatim[Blank][head_Symbol], '
-        'f:StandardForm|TraditionalForm|OutputForm|InputForm]':
-            '"_" <> MakeBoxes[head, f]',    # nopep8
+        'MakeBoxes[Verbatim[Blank][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"_"',
+        'MakeBoxes[Verbatim[Blank][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"_" <> MakeBoxes[head, f]',
     }
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
@@ -715,12 +701,8 @@ class Blank(_Blank):
 
 class BlankSequence(_Blank):
     rules = {
-        'MakeBoxes[Verbatim[BlankSequence][], '
-        'f:StandardForm|TraditionalForm|OutputForm|InputForm]':
-            '"__"',  # nopep8
-        'MakeBoxes[Verbatim[BlankSequence][head_Symbol], '
-        'f:StandardForm|TraditionalForm|OutputForm|InputForm]':
-            '"__" <> MakeBoxes[head, f]',   # nopep8
+        'MakeBoxes[Verbatim[BlankSequence][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"__"',
+        'MakeBoxes[Verbatim[BlankSequence][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"__" <> MakeBoxes[head, f]',
     }
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
@@ -751,12 +733,8 @@ class BlankNullSequence(_Blank):
     """
 
     rules = {
-        'MakeBoxes[Verbatim[BlankNullSequence][], '
-        'f:StandardForm|TraditionalForm|OutputForm|InputForm]':
-            '"___"',        # nopep8
-        'MakeBoxes[Verbatim[BlankNullSequence][head_Symbol], '
-        'f:StandardForm|TraditionalForm|OutputForm|InputForm]':
-            '"___" <> MakeBoxes[head, f]',  # nopep8
+        'MakeBoxes[Verbatim[BlankNullSequence][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"___"',
+        'MakeBoxes[Verbatim[BlankNullSequence][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"___" <> MakeBoxes[head, f]',
     }
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
@@ -811,8 +789,7 @@ class Repeated(PostfixOperator, PatternObject):
         self.min = min
         if len(expr.leaves) == 2:
             leaf_1 = expr.leaves[1]
-            if (leaf_1.has_form('List', 1, 2) and       # noqa
-                all(leaf.get_int_value() for leaf in leaf_1.leaves)):
+            if (leaf_1.has_form('List', 1, 2) and all(leaf.get_int_value() for leaf in leaf_1.leaves)):
                 self.max = leaf_1.leaves[-1].get_int_value()
                 self.min = leaf_1.leaves[0].get_int_value()
             elif leaf_1.get_int_value():

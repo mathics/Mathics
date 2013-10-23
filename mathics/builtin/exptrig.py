@@ -25,7 +25,7 @@ class Pi(SympyConstant):
     u"""
     <dl>
     <dt>'Pi'
-        <dd>is the constant π.
+        <dd>is the constant \u03c0.
     </dl>
 
     >> N[Pi]

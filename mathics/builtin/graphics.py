@@ -907,9 +907,10 @@ class InsetBox(_GraphicsElement):
         content = self.content.boxes_to_xml(
             evaluation=self.graphics.evaluation)
         style = create_css(font_color=self.color)
-        svg = ('<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
-               '<math>%s</math></foreignObject>') % (
-                    x, y, self.opos[0], self.opos[1], style, content)  # nopep8
+        svg = (
+            '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
+            '<math>%s</math></foreignObject>') % (
+                x, y, self.opos[0], self.opos[1], style, content)
         return svg
 
     def to_asy(self):
@@ -1373,10 +1374,11 @@ clip(box((%s,%s), (%s,%s)));
         w += 2
         h += 2
 
-        xml = ('<svg xmlns:svg="http://www.w3.org/2000/svg" '
-               'xmlns="http://www.w3.org/2000/svg"\nversion="1.0" width="%f" '
-               'height="%f" viewBox="%f %f %f %f">%s</svg>') % (
-                    width, height, xmin, ymin, w, h, svg)   # nopep8
+        xml = (
+            '<svg xmlns:svg="http://www.w3.org/2000/svg" '
+            'xmlns="http://www.w3.org/2000/svg"\nversion="1.0" width="%f" '
+            'height="%f" viewBox="%f %f %f %f">%s</svg>') % (
+                width, height, xmin, ymin, w, h, svg)
 
         xml = """<mtable><mtr><mtd>%s</mtd></mtr></mtable>""" % xml
         return xml

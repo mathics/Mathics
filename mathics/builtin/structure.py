@@ -521,7 +521,7 @@ class Symbol_(Builtin):
      = 2 x
 
     #> {\[Eta], \[CapitalGamma]\[Beta], Z\[Infinity], \[Angle]XYZ, \[FilledSquare]r, i\[Ellipsis]j}
-     = {η, Γβ, Z∞, ∠XYZ, ■r, i…j}
+     = {\u03b7, \u0393\u03b2, Z\u221e, \u2220XYZ, \u25a0r, i\u2026j}
     """
 
     name = 'Symbol'
@@ -588,6 +588,7 @@ class Depth(Builtin):
         'Depth[expr_]'
         expr, depth = walk_levels(expr)
         return Integer(depth + 1)
+
 
 class Operate(Builtin):
     """
