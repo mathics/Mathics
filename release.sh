@@ -2,7 +2,7 @@
 
 # Before releasing:
 # Clear directory build/
-# python setup.py install
+# python setup.py develop
 # mathics/
 #   python test.py -o
 #   python test.py -t
@@ -10,8 +10,7 @@
 #   make latex
 # Then run this file.
 
-versionline=`grep -E "VERSION = '(.+)'" mathics/settings.py`
-version=`expr "$versionline" : 'VERSION = .\([0-9.a-z]*\)'`
+version=`python -c "import mathics; print mathics.__version__"`
 echo "Releasing Mathics $version"
 
 rm -rf build/release
