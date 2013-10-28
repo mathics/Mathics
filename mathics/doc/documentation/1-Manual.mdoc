@@ -23,8 +23,6 @@ The programming language of \Mathics is meant to resemble \Wolfram\'s famous \Ma
 <section title="Why yet another CAS?">
 \Mathematica is great, but it has one big disadvantage: It is not free. On the one hand, people might not be able or willing to pay hundreds of dollars for it; on the other hand, they would still not be able to see what\'s going on "inside" the program to understand their computations better. That\'s what free software is for!
 
-There is already a well-established free computer algebra system: \Sage. It is really powerful and has a growing, active community behind it. Yet, by design, it will always be bound to Python syntax and therefore lack the "structural beauty" of the \Mathematica language.
-
 \Mathics aims at combining the best of both worlds: the beauty of \Mathematica backed by a free, extensible Python core.
 
 Of course, there are drawbacks to the \Mathematica language, despite all its beauty. It does not really provide object orientation and especially encapsulation, which might be crucial for big software projects. Nevertheless, \Wolfram still managed to create their amazing <em>Wolfram|Alpha</em> entirely with \Mathematica, so it can\'t be too bad!
@@ -57,7 +55,7 @@ Apart from performance issues, new features such as more functions in various ma
 </section>
 
 <section title="Who is behind it?">
-\Mathics was created by and is developed under the lead of Jan Pöschko. A list of all people involved in \Mathics can be found in the <con>AUTHORS</con> file.
+\Mathics was created by Jan Pöschko. A list of all people involved in \Mathics can be found in the <con>AUTHORS</con> file.
 
 If you have any ideas on how to improve \Mathics or even want to help out yourself, please contact us!
 
@@ -92,7 +90,7 @@ If you are on Windows, please figure out yourself how to install SQLite.
 Get the latest version of \Mathics from <url>http://www.mathics.org</url>. You will need internet access for the installation of \Mathics.
 </section>
 
-<section title="Installation">
+<section title="Setup">
 Simply run:
 <console>
 # python setup.py install
@@ -1115,10 +1113,6 @@ $ python setup.py initialize
 One of the greatest features of \Mathics is its integrated documentation and test system. Tests can be included right in the code as Python docstrings. All desired functionality should be covered by these tests to ensure that changes to the code don\'t break it. Execute
 <console>
 $ python test.py
-</console>
-or
-<console>
-$ sage -python test.py
 </console>
 to run all tests.
 
