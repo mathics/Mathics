@@ -13,6 +13,10 @@ import mimetypes
 
 mimetypes.add_type('application/vnd.wolfram.mathematica.package', '.m')
 
+# Seems that JSON is not registered on the mathics.net server, so we do it manually here.
+# Keep in mind that mimetypes has system-dependent aspects (it inspects "/etc/mime.types" and other files).
+mimetypes.add_type('application/json', '.json')
+
 IMPORTERS = {}
 EXPORTERS = {}
 
