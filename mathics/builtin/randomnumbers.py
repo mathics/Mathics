@@ -11,6 +11,7 @@ from __future__ import with_statement
 import random
 import cPickle as pickle
 import binascii
+import hashlib
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import (Integer, String, Symbol, Real, Expression,
@@ -46,7 +47,7 @@ class RandomEnv:
         set_random_state(state)
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exit_type, value, traceback):
         state = get_random_state()
         self.evaluation.set_config_value('$RandomState', state)
 
@@ -98,40 +99,53 @@ class RandomState(Builtin):
 class SeedRandom(Builtin):
     """
     <dl>
-    <dt>'SeedRandom[$x$]'
-        <dd>resets the pseudorandom generator with seed $x$.
+    <dt>'SeedRandom[$n$]'
+        <dd>resets the pseudorandom generator with seed $n$.
     <dt>'SeedRandom[]'
         <dd>uses the current date and time as seed.
     </dl>
 
-    'SeedRandom' can be used to get reproducable random numbers:
+    'SeedRandom' can be used to get reproducible random numbers:
     >> SeedRandom[42]
     >> RandomInteger[100]
-     = 7
+     = 64
     >> RandomInteger[100]
-     = 14
+     = 2
     >> SeedRandom[42]
     >> RandomInteger[100]
-     = 7
+     = 64
     >> RandomInteger[100]
-     = 14
+     = 2
+
+    String seeds are supported as well:
+    >> SeedRandom["Mathics"]
+    >> RandomInteger[100]
+     = 60
 
     #> SeedRandom[x]
-     : Argument x should be an integer or a string.
+     : Argument x should be an integer or string.
      = SeedRandom[x]
     """
 
     messages = {
-        'seed': "Argument `1` should be an integer or a string.",
+        'seed': "Argument `1` should be an integer or string.",
     }
 
     def apply(self, x, evaluation):
         'SeedRandom[x_]'
 
-        if not isinstance(x, (Integer, String)):
+        if isinstance(x, Integer):
+            value = x.value
+        elif isinstance(x, String):
+            # OS/version-independent hash
+            value = int(hashlib.md5(x.get_string_value()).hexdigest(), 16)
+        else:
             return evaluation.message('SeedRandom', 'seed', x)
         with RandomEnv(evaluation) as rand:
-            rand.seed(x)
+            # TODO: This has different behavior in Python 3.2 (vs. 2.7),
+            # so SeedRandom behavior will change.
+            # Also, we should use version=1 when supporting Python 3.
+            rand.seed(value)
         return Symbol('Null')
 
     def apply_empty(self, evaluation):
