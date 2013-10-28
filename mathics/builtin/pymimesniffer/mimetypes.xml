@@ -279,6 +279,11 @@ See http://www.wotsit.org/ for an online database of file format descriptions.
 </description>
 
 <description>
+    <mimeType>application/json</mimeType>
+    <extensions>json</extensions>
+</description>
+
+<description>
 	<mimeType>application/java-archive</mimeType>
 	<extensions>jar</extensions>
 	<parentType>application/zip</parentType>
