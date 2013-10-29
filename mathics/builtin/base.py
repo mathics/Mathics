@@ -24,11 +24,12 @@ import sympy
 from mathics.core.definitions import Definition
 from mathics.core.rules import Rule, BuiltinRule, Pattern
 from mathics.core.expression import (BaseExpression, Expression, Symbol,
-                                     String, Integer)
+                                     String, Integer, strip_context)
 
 
 class Builtin(object):
     name = None
+    context = 'System`'
     abstract = False
     attributes = ()
     rules = {}
@@ -66,10 +67,10 @@ class Builtin(object):
             rules.append(Rule(pattern, parse(replace), system=True))
 
         box_rules = []
-        if name != 'MakeBoxes':
+        if name != 'System`MakeBoxes':
             new_rules = []
             for rule in rules:
-                if rule.pattern.get_head_name() == 'MakeBoxes':
+                if rule.pattern.get_head_name() == 'System`MakeBoxes':
                     box_rules.append(rule)
                 else:
                     new_rules.append(rule)
@@ -79,6 +80,7 @@ class Builtin(object):
         for pattern, function in self.get_functions('format_'):
             if isinstance(pattern, tuple):
                 forms, pattern = pattern
+                forms = ['System`' + f for f in forms]
             else:
                 forms = ['']
             for form in forms:
@@ -89,8 +91,7 @@ class Builtin(object):
         for pattern, replace in self.formats.items():
             if isinstance(pattern, tuple):
                 forms, pattern = pattern
-                if not isinstance(forms, tuple):
-                    forms = [forms]
+                forms = ['System`' + f for f in forms]
             else:
                 forms, pattern = [''], pattern
             for form in forms:
@@ -107,7 +108,7 @@ class Builtin(object):
                          String(value), system=True)
                     for msg, value in self.messages.items()]
 
-        if name == 'MakeBoxes':
+        if name == 'System`MakeBoxes':
             attributes = []
         else:
             attributes = ['Protected']
@@ -131,16 +132,17 @@ class Builtin(object):
             defaultvalues=defaults)
         definitions.builtin[name] = definition
 
-        makeboxes_def = definitions.builtin['MakeBoxes']
+        makeboxes_def = definitions.builtin['System`MakeBoxes']
         for rule in box_rules:
             makeboxes_def.add_rule(rule)
 
     @classmethod
     def get_name(cls):
         if cls.name is None:
-            return cls.__name__
+            shortname = cls.__name__
         else:
-            return cls.name
+            shortname = cls.name
+        return cls.context + shortname
 
     def get_operator(self):
         return None
@@ -302,7 +304,7 @@ class PostfixOperator(UnaryOperator):
 
 
 class BinaryOperator(Operator):
-    grouping = 'None'  # NonAssociative, None, Left, Right
+    grouping = 'System`None'  # NonAssociative, None, Left, Right
 
     def __init__(self, *args, **kwargs):
         super(BinaryOperator, self).__init__(*args, **kwargs)
@@ -310,7 +312,7 @@ class BinaryOperator(Operator):
         # Prevent pattern matching symbols from gaining meaning here using
         # Verbatim
         name = 'Verbatim[%s]' % name
-        if self.grouping in ('None', 'NonAssociative'):
+        if self.grouping in ('System`None', 'System`NonAssociative'):
             op_pattern = '%s[items__]' % name
             replace_items = 'items'
         else:
@@ -333,11 +335,12 @@ class BinaryOperator(Operator):
             self.rules = default_rules
 
     def parse(self, args):
+        assert False, "turns out this function is used after all"
         left = args[0]
         right = args[2]
         name = self.get_name()
         grouping = self.grouping
-        if grouping != 'NonAssociative':
+        if grouping != 'System`NonAssociative':
             def collect_leaves(expr):
                 if expr.parenthesized or expr.get_head_name() != name:
                     return [expr]
@@ -347,15 +350,15 @@ class BinaryOperator(Operator):
                         result.extend(collect_leaves(leaf))
                     return result
             leaves = collect_leaves(left) + collect_leaves(right)
-            if grouping == 'None':
+            if grouping == 'System`None':
                 return Expression(name, parse_operator=self, *leaves)
-            elif grouping == 'Right':
+            elif grouping == 'System`Right':
                 result = Expression(name, parse_operator=self, *leaves[-2:])
                 for leaf in reversed(leaves[:-2]):
                     result = Expression(
                         name, leaf, result, parse_operator=self)
                 return result
-            elif grouping == 'Left':
+            elif grouping == 'System`Left':
                 result = Expression(name, parse_operator=self, *leaves[:2])
                 for leaf in leaves[2:]:
                     result = Expression(
@@ -385,7 +388,7 @@ class SympyObject(Builtin):
     def __init__(self, *args, **kwargs):
         super(SympyObject, self).__init__(*args, **kwargs)
         if self.sympy_name is None:
-            self.sympy_name = self.get_name().lower()
+            self.sympy_name = strip_context(self.get_name()).lower()
 
     def is_constant(self):
         return False

@@ -81,7 +81,8 @@ class DSolve(Builtin):
             return
 
         if ((x.is_atom() and not x.is_symbol()) or      # nopep8
-            x.get_head_name() in ('Plus', 'Times', 'Power') or
+            x.get_head_name() in ('System`Plus', 'System`Times',
+                                  'System`Power') or
             'Constant' in x.get_attributes(evaluation.definitions)):
             evaluation.message('DSolve', 'dsvar')
             return

@@ -30,9 +30,10 @@ class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
         name = lhs.get_head_name()
 
-        if name in ('OwnValues', 'DownValues', 'SubValues', 'UpValues',
-                    'NValues', 'Options', 'DefaultValues', 'Attributes',
-                    'Messages'):
+        if name in ('System`' + s for s in
+                    ('OwnValues', 'DownValues', 'SubValues', 'UpValues',
+                     'NValues', 'Options', 'DefaultValues', 'Attributes',
+                     'Messages')):
             if len(lhs.leaves) != 1:
                 evaluation.message_args(name, len(lhs.leaves), 1)
                 return False
@@ -44,17 +45,17 @@ class _SetOperator(object):
                 evaluation.message(name, 'tag', name, tag)
                 return False
 
-            if (name != 'Attributes' and 'Protected'    # noqa
+            if (name != 'System`Attributes' and 'Protected'    # noqa
                 in evaluation.definitions.get_attributes(tag)):
                 evaluation.message(name, 'wrsym', tag)
                 return False
-            if name == 'Options':
+            if name == 'System`Options':
                 option_values = rhs.get_option_values(evaluation)
                 if option_values is None:
                     evaluation.message(name, 'options', rhs)
                     return False
                 evaluation.definitions.set_options(tag, option_values)
-            elif name == 'Attributes':
+            elif name == 'System`Attributes':
                 attributes = get_symbol_list(
                     rhs, lambda item: evaluation.message(name, 'sym', item, 1))
                 if attributes is None:
@@ -80,7 +81,7 @@ class _SetOperator(object):
 
         focus = lhs
 
-        if name == 'N':
+        if name == 'System`N':
             if len(lhs.leaves) not in (1, 2):
                 evaluation.message_args('N', len(lhs.leaves), 1, 2)
                 return False
@@ -90,19 +91,19 @@ class _SetOperator(object):
                 nprec = lhs.leaves[1]
             focus = lhs.leaves[0]
             lhs = Expression('N', focus, nprec)
-        elif name == 'MessageName':
+        elif name == 'System`MessageName':
             if len(lhs.leaves) != 2:
                 evaluation.message_args('MessageName', len(lhs.leaves), 2)
                 return False
             focus = lhs.leaves[0]
             message = True
-        elif name == 'Default':
+        elif name == 'System`Default':
             if len(lhs.leaves) not in (1, 2, 3):
                 evaluation.message_args('Default', len(lhs.leaves), 1, 2, 3)
                 return False
             focus = lhs.leaves[0]
             default = True
-        elif name == 'Format':
+        elif name == 'System`Format':
             if len(lhs.leaves) not in (1, 2):
                 evaluation.message_args('Format', len(lhs.leaves), 1, 2)
                 return False
@@ -112,9 +113,10 @@ class _SetOperator(object):
                     evaluation.message('Format', 'fttp', lhs.leaves[1])
                     return False
             else:
-                form = ('StandardForm', 'TraditionalForm', 'OutputForm',
-                        'TeXForm', 'MathMLForm',
-                        )
+                form = ('System`' + s for s in
+                        ('StandardForm', 'TraditionalForm', 'OutputForm',
+                         'TeXForm', 'MathMLForm',
+                         ))
             lhs = focus = lhs.leaves[0]
         else:
             allow_custom_tag = True
@@ -151,7 +153,7 @@ class _SetOperator(object):
         ignore_protection = False
         rhs_int_value = rhs.get_int_value()
         lhs_name = lhs.get_name()
-        if lhs_name == '$RecursionLimit':
+        if lhs_name == 'System`$RecursionLimit':
             # if (not rhs_int_value or rhs_int_value < 20) and not
             # rhs.get_name() == 'Infinity':
             if (not rhs_int_value or rhs_int_value < 20  # noqa
@@ -165,24 +167,24 @@ class _SetOperator(object):
                 # TODO: Message
                 return False
             ignore_protection = True
-        elif lhs_name == '$ModuleNumber':
+        elif lhs_name == 'System`$ModuleNumber':
             if not rhs_int_value or rhs_int_value <= 0:
                 evaluation.message('$ModuleNumber', 'set', rhs)
                 return False
             ignore_protection = True
-        elif lhs_name in ('$Line', '$HistoryLength'):
+        elif lhs_name in ('System`$Line', 'System`$HistoryLength'):
             if rhs_int_value is None or rhs_int_value < 0:
                 evaluation.message(lhs_name, 'intnn', rhs)
                 return False
             ignore_protection = True
-        elif lhs_name == '$RandomState':
+        elif lhs_name == 'System`$RandomState':
             # TODO: allow setting of legal random states!
             # (but consider pickle's insecurity!)
             evaluation.message('$RandomState', 'rndst', rhs)
             return False
 
         rhs_name = rhs.get_head_name()
-        if rhs_name == 'Condition':
+        if rhs_name == 'System`Condition':
             if len(rhs.leaves) != 2:
                 evaluation.message_args('Condition', len(rhs.leaves), 2)
                 return False
@@ -221,8 +223,8 @@ class _SetOperator(object):
         return True
 
     def assign(self, lhs, rhs, evaluation):
-        if lhs.get_head_name() == 'List':
-            if (not (rhs.get_head_name() == 'List')     # noqa
+        if lhs.get_head_name() == 'System`List':
+            if (not (rhs.get_head_name() == 'System`List')     # noqa
                 or len(lhs.leaves) != len(rhs.leaves)):
 
                 evaluation.message(self.get_name(), 'shape', lhs, rhs)
@@ -233,7 +235,7 @@ class _SetOperator(object):
                     if not self.assign(left, right, evaluation):
                         result = False
                 return result
-        elif lhs.get_head_name() == 'Part':
+        elif lhs.get_head_name() == 'System`Part':
             if len(lhs.leaves) < 1:
                 evaluation.message(self.get_name(), 'setp', lhs)
                 return False
@@ -864,8 +866,9 @@ class Unset(PostfixOperator):
         'Unset[expr_]'
 
         name = expr.get_head_name()
-        if name in ('OwnValues', 'DownValues', 'SubValues', 'UpValues',
-                    'NValues', 'Options', 'Messages'):
+        if name in ('System`' + s for s in
+                    ('OwnValues', 'DownValues', 'SubValues', 'UpValues',
+                     'NValues', 'Options', 'Messages')):
             if len(expr.leaves) != 1:
                 evaluation.message_args(name, len(expr.leaves), 1)
                 return Symbol('$Failed')
@@ -873,7 +876,7 @@ class Unset(PostfixOperator):
             if not symbol:
                 evaluation.message(name, 'fnsym', expr)
                 return Symbol('$Failed')
-            if name == 'Options':
+            if name == 'System`Options':
                 empty = {}
             else:
                 empty = []

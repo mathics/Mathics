@@ -65,7 +65,7 @@ class NotListQ(Test):
 
 def list_boxes(items, f, open=None, close=None):
     result = [Expression('MakeBoxes', item, f) for item in items]
-    if f.get_name() in ('OutputForm', 'InputForm'):
+    if f.get_name() in ('System`OutputForm', 'System`InputForm'):
         sep = ", "
     else:
         sep = ","
@@ -636,7 +636,7 @@ class Part(Builtin):
 
         i = i.get_sequence()
         list = Expression('MakeBoxes', list, f)
-        if f.get_name() in ('OutputForm', 'InputForm'):
+        if f.get_name() in ('System`OutputForm', 'System`InputForm'):
             open, close = "[[", "]]"
         else:
             open, close = u"\u301a", u"\u301b"

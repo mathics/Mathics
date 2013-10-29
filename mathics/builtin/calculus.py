@@ -606,19 +606,19 @@ class Solve(Builtin):
 
         vars_original = vars
         head_name = vars.get_head_name()
-        if head_name == 'List':
+        if head_name == 'System`List':
             vars = vars.leaves
         else:
             vars = [vars]
         for var in vars:
             if ((var.is_atom() and not var.is_symbol()) or  # noqa
-                head_name in ('Plus', 'Times', 'Power') or
+                head_name in ('System`Plus', 'System`Times', 'System`Power') or
                 'Constant' in var.get_attributes(evaluation.definitions)):
 
                 evaluation.message('Solve', 'ivar', vars_original)
                 return
         eqs_original = eqs
-        if eqs.get_head_name() in ('List', 'And'):
+        if eqs.get_head_name() in ('System`List', 'System`And'):
             eqs = eqs.leaves
         else:
             eqs = [eqs]
@@ -626,9 +626,9 @@ class Solve(Builtin):
         sympy_denoms = []
         for eq in eqs:
             symbol_name = eq.get_name()
-            if symbol_name == 'True':
+            if symbol_name == 'System`True':
                 pass
-            elif symbol_name == 'False':
+            elif symbol_name == 'System`False':
                 return Expression('List')
             elif not eq.has_form('Equal', 2):
                 return evaluation.message('Solve', 'eqf', eqs_original)

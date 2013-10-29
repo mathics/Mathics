@@ -21,6 +21,8 @@ u"""
 import pickle
 import os
 
+from mathics.core.expression import ensure_context
+
 
 def get_file_time(file):
     try:
@@ -32,7 +34,7 @@ def get_file_time(file):
 def valuesname(name):
     " 'NValues' -> 'n' "
 
-    if name == 'Messages':
+    if name == 'System`Messages':
         return 'messages'
     else:
         return name[:-6].lower()
@@ -44,6 +46,8 @@ class Definitions(object):
         self.builtin = {}
         self.user = {}
         self.autoload_stage = False
+        self.current_context = 'Global`'
+        self.context_path = ['Global`', 'System`']
 
         if add_builtin:
             from mathics.builtin import modules, contribute
@@ -83,12 +87,54 @@ class Definitions(object):
     def get_names(self):
         return self.get_builtin_names() | self.get_user_names()
 
-    def get_definition(self, name):
+    def lookup_name(self, name):
+        """
+        Determine the full name (including context) for a symbol name.
+
+        - If the name begins with a context mark, it's in the context
+          given by $Context.
+        - Otherwise, if it contains a context mark, it's already fully
+          specified.
+        - Otherwise, it doesn't contain a context mark: try $Context,
+          then each element of $ContextPath, taking the first existing
+          symbol.
+        - Otherwise, it's a new symbol in $Context.
+        """
+
+        if '`' in name:
+            if name.startswith('`'):
+                return self.current_context + name.lstrip('`')
+            return name
+
+        with_context = self.current_context + name
+        if not self.have_definition(with_context):
+            for ctx in self.context_path:
+                n = ctx + name
+                if self.have_definition(n):
+                    return n
+        return with_context
+
+    def shorten_name(self, name_with_ctx):
+        def in_ctx(name, ctx):
+            return name.startswith(ctx) and '`' not in name[len(ctx):]
+
+        if in_ctx(name_with_ctx, self.current_context):
+            return name_with_ctx[len(self.current_context):]
+        for ctx in self.context_path:
+            if in_ctx(name_with_ctx, ctx):
+                return name_with_ctx[len(ctx):]
+        return name_with_ctx
+
+    def have_definition(self, name):
+        return self.get_definition(name, only_if_exists=True) is not None
+
+    def get_definition(self, name, only_if_exists=False):
+        name = self.lookup_name(name)
         user = self.user.get(name, None)
         builtin = self.builtin.get(name, None)
 
         if user is None and builtin is None:
-            return Definition(name=name)
+            return None if only_if_exists else Definition(name=name)
         if builtin is None:
             return user
         if user is None:
@@ -185,32 +231,33 @@ class Definitions(object):
             return self.user[name]
 
     def reset_user_definition(self, name):
-        del self.user[name]
+        del self.user[self.lookup_name(name)]  # TODO don't do anything if it doesn't exist
 
     def add_user_definition(self, name, definition):
-        self.user[name] = definition
+        self.user[self.lookup_name(name)] = definition
 
     def set_attribute(self, name, attribute):
-        definition = self.get_user_definition(name)
+        definition = self.get_user_definition(self.lookup_name(name))
         definition.attributes.add(attribute)
 
     def set_attributes(self, name, attributes):
-        definition = self.get_user_definition(name)
+        definition = self.get_user_definition(self.lookup_name(name))
         definition.attributes = set(attributes)
 
     def clear_attribute(self, name, attribute):
-        definition = self.get_user_definition(name)
+        definition = self.get_user_definition(self.lookup_name(name))
         if attribute in definition.attributes:
             definition.attributes.remove(attribute)
 
     def add_rule(self, name, rule, position=None):
+        name = self.lookup_name(name)
         if position is None:
             return self.get_user_definition(name).add_rule(rule)
         else:
             return self.get_user_definition(name).add_rule_at(rule, position)
 
     def add_format(self, name, rule, form=''):
-        definition = self.get_user_definition(name)
+        definition = self.get_user_definition(self.lookup_name(name))
         if isinstance(form, tuple) or isinstance(form, list):
             forms = form
         else:
@@ -221,24 +268,24 @@ class Definitions(object):
             insert_rule(definition.formatvalues[form], rule)
 
     def add_nvalue(self, name, rule):
-        definition = self.get_user_definition(name)
+        definition = self.get_user_definition(self.lookup_name(name))
         definition.add_rule_at(rule, 'n')
 
     def add_default(self, name, rule):
-        definition = self.get_user_definition(name)
+        definition = self.get_user_definition(self.lookup_name(name))
         definition.add_rule_at(rule, 'default')
 
     def add_message(self, name, rule):
-        definition = self.get_user_definition(name)
+        definition = self.get_user_definition(self.lookup_name(name))
         definition.add_rule_at(rule, 'messages')
 
     def set_values(self, name, values, rules):
         pos = valuesname(values)
-        definition = self.get_user_definition(name)
+        definition = self.get_user_definition(self.lookup_name(name))
         definition.set_values_list(pos, rules)
 
     def get_options(self, name):
-        return self.get_definition(name).options
+        return self.get_definition(self.lookup_name(name)).options
 
     def reset_user_definitions(self):
         self.user = {}
@@ -253,7 +300,7 @@ class Definitions(object):
             self.user = {}
 
     def get_ownvalue(self, name):
-        ownvalues = self.get_definition(name).ownvalues
+        ownvalues = self.get_definition(self.lookup_name(name)).ownvalues
         if ownvalues:
             return ownvalues[0]
         return None
@@ -262,14 +309,15 @@ class Definitions(object):
         from expression import Symbol
         from rules import Rule
 
+        name = self.lookup_name(name)
         self.add_rule(name, Rule(Symbol(name), value))
 
     def set_options(self, name, options):
-        definition = self.get_user_definition(name)
+        definition = self.get_user_definition(self.lookup_name(name))
         definition.options = options
 
     def unset(self, name, expr):
-        definition = self.get_user_definition(name)
+        definition = self.get_user_definition(self.lookup_name(name))
         return definition.remove_rule(expr)
 
 
@@ -282,7 +330,7 @@ def get_tag_position(pattern, name):
         head_name = pattern.get_head_name()
         if head_name == name:
             return 'down'
-        elif head_name == 'Condition' and len(pattern.leaves) > 0:
+        elif head_name == 'System`Condition' and len(pattern.leaves) > 0:
             return get_tag_position(pattern.leaves[0], name)
         elif pattern.get_lookup_name() == name:
             return 'sub'

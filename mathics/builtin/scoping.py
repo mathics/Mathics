@@ -244,6 +244,12 @@ class DollarContext(Builtin):
 
     #> InputForm[$Context]
      = "Global`"
+
+    ## Test general context behaviour
+    #> Plus === Global`Plus
+     = False
+    #> `Plus === Global`Plus
+     = True
     """
 
     name = '$Context'

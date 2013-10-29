@@ -118,7 +118,7 @@ def get_module_doc(module):
 
 def contribute(definitions):
     # let MakeBoxes contribute first
-    builtins['MakeBoxes'].contribute(definitions)
+    builtins['System`MakeBoxes'].contribute(definitions)
     for name, item in builtins.items():
-        if name != 'MakeBoxes':
+        if name != 'System`MakeBoxes':
             item.contribute(definitions)

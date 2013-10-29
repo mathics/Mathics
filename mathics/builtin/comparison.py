@@ -50,12 +50,12 @@ class UnsameQ(BinaryOperator):
             return Symbol('True')
 
 operators = {
-    'Less': (-1,),
-    'LessEqual': (-1, 0),
-    'Equal': (0,),
-    'GreaterEqual': (0, 1),
-    'Greater': (1,),
-    'Unequal': (-1, 1),
+    'System`Less': (-1,),
+    'System`LessEqual': (-1, 0),
+    'System`Equal': (0,),
+    'System`GreaterEqual': (0, 1),
+    'System`Greater': (1,),
+    'System`Unequal': (-1, 1),
 }
 
 

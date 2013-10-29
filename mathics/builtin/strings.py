@@ -387,7 +387,7 @@ class ToString(Builtin):
     def apply(self, value, evaluation):
         'ToString[value_]'
 
-        text = value.format(evaluation, 'OutputForm').boxes_to_text(
+        text = value.format(evaluation, 'System`OutputForm').boxes_to_text(
             evaluation=evaluation)
         return String(text)
 

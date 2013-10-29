@@ -23,7 +23,7 @@ machine_precision = MACHINE_PRECISION
 
 
 def get_precision(precision, evaluation):
-    if precision.get_name() == 'MachinePrecision':
+    if precision.get_name() == 'System`MachinePrecision':
         return machine_precision
     elif isinstance(precision, (Integer, Rational, Real)):
         return prec(float(precision.to_sympy()))
@@ -119,7 +119,7 @@ class N(Builtin):
         valid_prec = get_precision(prec, evaluation)
 
         if valid_prec is not None:
-            if expr.get_head_name() in ('List', 'Rule'):
+            if expr.get_head_name() in ('System`List', 'System`Rule'):
                 return Expression(
                     expr.head, *[self.apply_other(leaf, prec, evaluation)
                                  for leaf in expr.leaves])
@@ -430,7 +430,7 @@ class BaseForm(Builtin):
         p = dps(expr.get_precision()) if isinstance(expr, Real) else 0
         val = convert_base(expr.get_real_value(), base, p)
 
-        if f.get_name() == 'OutputForm':
+        if f.get_name() == 'System`OutputForm':
             return from_python("%s_%d" % (val, base))
         else:
             return Expression(

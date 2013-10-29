@@ -194,7 +194,7 @@ class ExpressionPattern(Pattern):
                 #    self.leaves[0], self.leaves[1:], ([], expression.leaves),
                 #    pre_vars, expression, attributes, evaluation, first=True,
                 #    fully=fully, leaf_count=len(self.leaves),
-                #    wrap_oneid=expression.get_head_name() != 'MakeBoxes'):
+                #    wrap_oneid=expression.get_head_name() != 'System`MakeBoxes'):
                 # def yield_leaf(new_vars, rest):
                 #    yield_func(new_vars, rest)
                 self.match_leaf(
@@ -202,7 +202,7 @@ class ExpressionPattern(Pattern):
                     ([], expression.leaves), pre_vars, expression, attributes,
                     evaluation, first=True, fully=fully,
                     leaf_count=len(self.leaves),
-                    wrap_oneid=expression.get_head_name() != 'MakeBoxes')
+                    wrap_oneid=expression.get_head_name() != 'System`MakeBoxes')
 
             # for head_vars, _ in self.head.match(expression.get_head(), vars,
             # evaluation):
@@ -400,9 +400,10 @@ class ExpressionPattern(Pattern):
         # of pattern.
         # TODO: This could be further optimized!
         try_flattened = ('Flat' in attributes) and (leaf.get_head_name() in (
-            'Pattern', 'PatternTest', 'Condition', 'Optional',
-            'Blank', 'BlankSequence', 'BlankNullSequence', 'Alternatives',
-            'OptionsPattern', 'Repeated', 'RepeatedNull'))
+            'System`' + s for s in (
+                'Pattern', 'PatternTest', 'Condition', 'Optional',
+                'Blank', 'BlankSequence', 'BlankNullSequence', 'Alternatives',
+                'OptionsPattern', 'Repeated', 'RepeatedNull')))
 
         if try_flattened:
             set_lengths = (match_count[0], None)
@@ -419,12 +420,12 @@ class ExpressionPattern(Pattern):
 
         if 'Orderless' in attributes:
             sets = None
-            if leaf.get_head_name() == 'Pattern':
+            if leaf.get_head_name() == 'System`Pattern':
                 varname = leaf.leaves[0].get_name()
                 existing = vars.get(varname, None)
                 if existing is not None:
                     head = existing.get_head()
-                    if (head.get_name() == 'Sequence' or (
+                    if (head.get_name() == 'System`Sequence' or (
                             'Flat' in attributes and
                             head == expression.get_head())):
                         needed = existing.leaves

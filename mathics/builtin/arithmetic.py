@@ -340,7 +340,7 @@ class Minus(PrefixOperator):
         return Integer(-x.to_sympy())
 
     def post_parse(self, expression):
-        if (expression.get_head().get_name() == 'Minus'    # noqa
+        if (expression.get_head().get_name() == 'System`Minus'    # noqa
             and len(expression.leaves) == 1
             and isinstance(expression.leaves[0], Number)):
             return Number.from_mp(-expression.leaves[0].to_sympy())
@@ -757,7 +757,7 @@ class Power(BinaryOperator, SympyFunction):
     }
 
     formats = {
-        Expression('Power', Expression('Pattern', Symbol('x'),
+        Expression('Power', Expression('Pattern', Symbol('Global`x'),
                    Expression('Blank')), Rational(1, 2)): 'HoldForm[Sqrt[x]]',
         (('InputForm', 'OutputForm'), 'x_ ^ y_'): (
             'Infix[{HoldForm[x], HoldForm[y]}, "^", 590, Right]'),

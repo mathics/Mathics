@@ -16,6 +16,7 @@ from mathics.core.expression import (
     Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError)
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
+VALID_ALIGNMENTS = ('System`Center', 'System`Left', 'System`Right')
 
 
 class Format(Builtin):
@@ -72,11 +73,11 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
         if index > 0:
             result.append(ops[index - 1])
         parenthesized = False
-        if grouping == 'NonAssociative':
+        if grouping == 'System`NonAssociative':
             parenthesized = True
-        elif grouping == 'Left' and index > 0:
+        elif grouping == 'System`Left' and index > 0:
             parenthesized = True
-        elif grouping == 'Right' and index == 0:
+        elif grouping == 'System`Right' and index == 0:
             parenthesized = True
 
         leaf_boxes = MakeBoxes(leaf, form)
@@ -240,7 +241,7 @@ class MakeBoxes(Builtin):
         if expr.is_atom():
             x = expr
             if isinstance(x, Symbol):
-                return String(x.name)
+                return String(evaluation.definitions.shorten_name(x.name))
             elif isinstance(x, String):
                 return String('"' + unicode(x.value) + '"')
             elif isinstance(x, (Integer, Real)):
@@ -252,7 +253,7 @@ class MakeBoxes(Builtin):
             leaves = expr.leaves
 
             f_name = f.get_name()
-            if f_name == 'TraditionalForm':
+            if f_name == 'System`TraditionalForm':
                 left, right = '(', ')'
             else:
                 left, right = '[', ']'
@@ -266,7 +267,8 @@ class MakeBoxes(Builtin):
 
             if len(leaves) > 1:
                 row = []
-                if f_name in ('InputForm', 'OutputForm', 'FullForm'):
+                if f_name in ('System`InputForm', 'System`OutputForm',
+                              'System`FullForm'):
                     sep = ', '
                 else:
                     sep = ','
@@ -285,7 +287,7 @@ class MakeBoxes(Builtin):
             f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]'''
 
         if isinstance(x, Symbol):
-            return String(x.name)
+            return String(evaluation.definitions.shorten_name(x.name))
         elif isinstance(x, String):
             return String('"' + x.value + '"')
         elif isinstance(x, (Integer, Real)):
@@ -315,7 +317,7 @@ class MakeBoxes(Builtin):
             leaf = leaves[0]
             leaf_boxes = MakeBoxes(leaf, f)
             leaf = parenthesize(precedence, leaf, leaf_boxes, True)
-            if p.get_name() == 'Postfix':
+            if p.get_name() == 'System`Postfix':
                 args = (leaf, h)
             else:
                 args = (h, leaf)
@@ -333,9 +335,11 @@ class MakeBoxes(Builtin):
                 op = MakeBoxes(op, f)
             else:
                 op_value = op.get_string_value()
-                if f.get_name() == 'InputForm' and op_value in ['*', '^']:
+                if (f.get_name() == 'System`InputForm'
+                    and op_value in ['*', '^']):
                     pass
-                elif (f.get_name() in ('InputForm', 'OutputForm') and
+                elif (f.get_name() in ('System`InputForm',
+                                       'System`OutputForm') and
                       not op_value.startswith(' ') and
                       not op_value.endswith(' ')):
                     op = String(' ' + op_value + ' ')
@@ -358,6 +362,7 @@ class MakeBoxes(Builtin):
 
 
 class ToBoxes(Builtin):
+
     """
     >> ToBoxes[a + b]
      = RowBox[{a, +, b}]
@@ -435,7 +440,7 @@ class GridBox(BoxConstruct):
         new_box_options = box_options.copy()
         new_box_options['inside_list'] = True
         column_alignments = options['ColumnAlignments'].get_name()
-        if column_alignments in ('Center', 'Left', 'Right'):
+        if column_alignments in VALID_ALIGNMENTS:
             column_alignments = column_alignments[0].lower()
         else:
             raise BoxConstructError
@@ -456,7 +461,7 @@ class GridBox(BoxConstruct):
         items, options = self.get_array(leaves, evaluation)
         attrs = {}
         column_alignments = options['ColumnAlignments'].get_name()
-        if column_alignments in ('Center', 'Left', 'Right'):
+        if column_alignments in VALID_ALIGNMENTS:
             attrs['columnalign'] = column_alignments.lower()
         else:
             raise BoxConstructError
@@ -625,7 +630,7 @@ class MatrixForm(TableForm):
 
         result = super(MatrixForm, self).apply_makeboxes(
             table, f, evaluation, options)
-        if result.get_head_name() == 'GridBox':
+        if result.get_head_name() == 'System`GridBox':
             return Expression('RowBox', Expression(
                 'List', String("("), result, String(")")))
         return result
@@ -863,10 +868,10 @@ class Quiet(Builtin):
         def get_msg_list(expr):
             if expr.has_form('MessageName', 2):
                 expr = Expression('List', expr)
-            if expr.get_name() == 'All':
+            if expr.get_name() == 'System`All':
                 all = True
                 messages = []
-            elif expr.get_name() == 'None':
+            elif expr.get_name() == 'System`None':
                 all = False
                 messages = []
             elif expr.has_form('List', None):

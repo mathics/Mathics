@@ -25,7 +25,8 @@ import re
 from math import log10
 
 from mathics.core.expression import (BaseExpression, Expression, Integer,
-                                     Real, Symbol, String, Rational)
+                                     Real, Symbol, String, Rational,
+                                     ensure_context)
 from mathics.core.numbers import dps
 from mathics.core.characters import letters, letterlikes, named_characters
 
@@ -824,11 +825,8 @@ class MathicsScanner:
     @lex.TOKEN(ur'`?{0}(`{0})*'.format(base_symb))
     def t_symbol(self, t):
         # r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
-        s = t.value
-        if s.startswith('`'):
-            # FIXME: Replace Global with the current value of $Context
-            s = 'Global' + s
-        t.value = s
+        #import pydb;pydb.debugger()
+        t.value = self.definitions.lookup_name(t.value)
         return t
 
     def t_slotseq_1(self, t):
@@ -1006,11 +1004,11 @@ class MathicsParser:
                 if head == op:
                     args[1].leaves.append(args[3])
                     args[0] = args[1]
-                elif head == 'Inequality':
+                elif head == 'System`Inequality':
                     args[1].leaves.append(Symbol(op))
                     args[1].leaves.append(args[3])
                     args[0] = args[1]
-                elif head in innequality_operators.keys():
+                elif head in ['System`'+k for k in innequality_operators.keys()]:
                     leaves = []
                     for i, leaf in enumerate(args[1].leaves):
                         if i != 0:
@@ -1236,7 +1234,7 @@ class MathicsParser:
 
     def p_UMinus(self, args):
         'expr : Minus expr %prec UMinus'''
-        if args[2].get_head_name() in ['Integer', 'Real']:
+        if args[2].get_head_name() in ['System`Integer', 'System`Real']:
             args[2].value = -args[2].value
             args[0] = args[2]
         else:
@@ -1485,10 +1483,24 @@ parser = MathicsParser()
 parser.build()
 
 
-def parse(string):
-    scanner.lexer.begin('INITIAL')      # Reset the lexer state (known lex bug)
+# todo describe this
+class SystemDefinitions(object):
+    def lookup_name(self, name):
+        return ensure_context(name)
+system_definitions = SystemDefinitions()
 
-    string = scanner.convert_unicode_longnames(string)
-    string = scanner.convert_character_codes(string)
 
-    return parser.parse(string)
+# we need to pass in something here that can be called to look up
+# symbol names according to $Context and $ContextPath
+def parse(string, definitions=system_definitions):
+    scanner.definitions = definitions # todo context manager?
+    try:
+        scanner.lexer.begin('INITIAL')      # Reset the lexer state (known lex bug)
+
+        string = scanner.convert_unicode_longnames(string)
+        string = scanner.convert_character_codes(string)
+
+        return parser.parse(string)
+    finally:
+        scanner.definitions = None # catch errors if scanner somehow gets used outside this function
+

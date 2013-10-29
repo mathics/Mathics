@@ -95,7 +95,8 @@ def create_rules(rules_expr, expr, name, evaluation, extra_args=[]):
     else:
         result = []
         for rule in rules:
-            if rule.get_head_name() not in ('Rule', 'RuleDelayed'):
+            if rule.get_head_name() not in ('System`Rule',
+                                            'System`RuleDelayed'):
                 evaluation.message(name, 'reps', rule)
                 return None, True
             elif len(rule.leaves) != 2:
