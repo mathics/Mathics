@@ -230,3 +230,35 @@ class Context(Builtin):
             return
         context = 'System`' if name in evaluation.definitions.get_builtin_names() else 'Global`'
         return String(context)
+
+
+class DollarContext(Builtin):
+    """
+    <dl>
+    <dt>'$Context'
+        <dd>is the current context.
+    </dl>
+
+    >> $Context
+     = Global`
+
+    #> InputForm[$Context]
+     = "Global`"
+    """
+
+    name = '$Context'
+    # FIXME: Figure out if it's possible to set the initial value here
+
+
+class DollarContextPath(Builtin):
+    """
+    <dl>
+    <dt>'$ContextPath'
+        <dd>is the search path for contexts.
+    </dl>
+
+    >> $ContextPath // InputForm
+     = {"Global`", "System`"}
+    """
+
+    name = '$ContextPath'
