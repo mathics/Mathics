@@ -32,15 +32,16 @@ from mathics import settings
 
 
 class TerminalShell(object):
-    def __init__(self, definitions, colors):
+    def __init__(self, definitions, colors, want_readline):
         self.input_encoding = locale.getpreferredencoding()
 
         # Try importing readline to enable arrow keys support etc.
         self.using_readline = False
         try:
-            import readline
-            self.using_readline = sys.stdin.isatty() and sys.stdout.isatty()
-            self.ansi_color_re = re.compile("\033\\[[0-9;]+m")
+            if want_readline:
+                import readline
+                self.using_readline = sys.stdin.isatty() and sys.stdout.isatty()
+                self.ansi_color_re = re.compile("\033\\[[0-9;]+m")
         except ImportError:
             pass
 
@@ -209,6 +210,9 @@ def main():
         "$Context or $ContextPath", action='store_true')
 
     argparser.add_argument(
+        '--no-readline', help="disable line editing", action='store_true')
+
+    argparser.add_argument(
         '--version', '-v', action='version', version=get_version_string(False))
 
     args = argparser.parse_args()
@@ -220,7 +224,7 @@ def main():
     if args.show_contexts:
         definitions.always_show_contexts = True
 
-    shell = TerminalShell(definitions, args.colors)
+    shell = TerminalShell(definitions, args.colors, not(args.no_readline))
 
     if not (args.quiet or args.script):
         print_version(is_server=False)
