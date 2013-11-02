@@ -205,6 +205,10 @@ def main():
         '--colors', nargs='?', help='interactive shell colors')
 
     argparser.add_argument(
+        '--show-contexts', help="don't hide symbol contexts when found via "
+        "$Context or $ContextPath", action='store_true')
+
+    argparser.add_argument(
         '--version', '-v', action='version', version=get_version_string(False))
 
     args = argparser.parse_args()
@@ -212,8 +216,9 @@ def main():
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
 
     definitions = Definitions(add_builtin=True)
-
     definitions.set_ownvalue('$Line', Integer(0))  # Reset the line number
+    if args.show_contexts:
+        definitions.always_show_contexts = True
 
     shell = TerminalShell(definitions, args.colors)
 

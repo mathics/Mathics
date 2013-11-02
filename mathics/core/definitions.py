@@ -48,6 +48,7 @@ class Definitions(object):
         self.autoload_stage = False
         self.current_context = 'Global`'
         self.context_path = ['Global`', 'System`']
+        self.always_show_contexts = False
 
         if add_builtin:
             from mathics.builtin import modules, contribute
@@ -115,6 +116,9 @@ class Definitions(object):
         return with_context
 
     def shorten_name(self, name_with_ctx):
+        if self.always_show_contexts:
+            return name_with_ctx
+
         def in_ctx(name, ctx):
             return name.startswith(ctx) and '`' not in name[len(ctx):]
 
