@@ -228,7 +228,8 @@ class Context(Builtin):
         if not name:
             evaluation.message('Context', 'normal')
             return
-        context = 'System`' if name in evaluation.definitions.get_builtin_names() else 'Global`'
+        assert '`' in name
+        context = name[:name.rindex('`')+1]
         return String(context)
 
 
