@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 
-from mathics.builtin.base import BinaryOperator, PrefixOperator
+from mathics.builtin.base import BinaryOperator, Predefined, PrefixOperator
 from mathics.core.expression import Expression, Symbol
 
 
@@ -93,3 +93,11 @@ class Not(PrefixOperator):
         'Not[True]': 'False',
         'Not[False]': 'True',
     }
+
+
+class True_(Predefined):
+    name = 'True'
+
+
+class False_(Predefined):
+    name = 'False'
