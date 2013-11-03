@@ -207,6 +207,18 @@ class Context(Builtin):
      = Global`
     >> Context[Sin] // InputForm
      = "System`"
+
+    ## placeholder for general context-related tests
+    #> x === Global`x
+     = True
+    #> `x === Global`x
+     = True
+    #> a`x === Global`x
+     = False
+    #> a`x === a`x
+     = True
+    #> a`x === b`x
+     = False
     """
 
     def apply(self, symbol, evaluation):
