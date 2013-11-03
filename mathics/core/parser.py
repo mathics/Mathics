@@ -640,16 +640,6 @@ class MathicsScanner:
                 r'(?<!\\)(\\\.[0-9a-fA-F]{2}|\\\:[0-9a-fA-F]{4})')
         }
 
-    def tokenize(self, input_string):
-        self.tokens = []
-        self.lexer.input(input_string)
-        while True:
-            tok = self.lexer.token()
-            if not tok:
-                break
-            self.tokens.append(tok)
-        return self.tokens
-
     def convert_character_codes(self, s):
         "Converts character codes to characters E.g. \.7A -> z, \:004a -> J"
         def repl_hex_char(match):
