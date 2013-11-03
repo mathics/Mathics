@@ -6,7 +6,7 @@ List functions
 
 from mathics.builtin.base import (
     Builtin, Test, InvalidLevelspecError,
-    PartError, PartDepthError, PartRangeError, SympyFunction)
+    PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.core.expression import Expression, String, Symbol, Integer, Number
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
@@ -110,6 +110,26 @@ class Length(Builtin):
             return Integer(0)
         else:
             return Integer(len(expr.leaves))
+
+
+class All(Predefined):
+    """
+    <dl>
+    <dt>'All'
+    <dd>is a possible value for 'Span' and 'Quiet'.
+    </dl>
+    """
+    pass
+
+
+class None_(Predefined):
+    """
+    <dl>
+    <dt>'None'
+    <dd>is a possible value for 'Span' and 'Quiet'.
+    </dl>
+    """
+    name = 'None'
 
 
 class Span(Builtin):
@@ -248,7 +268,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
             if len(index.leaves) > 1:
                 stop = index.leaves[1].get_int_value()
                 if stop is None:
-                    if index.leaves[1].get_name() == 'All':
+                    if index.leaves[1].get_name() == 'System`All':
                         stop = None
                     else:
                         evaluation.message('Part', 'span', index)
@@ -526,9 +546,9 @@ def convert_seq(seq):
     start, stop, step = 1, None, 1
     name = seq.get_name()
     value = seq.get_int_value()
-    if name == 'All':
+    if name == 'System`All':
         pass
-    elif name == 'None':
+    elif name == 'System`None':
         stop = 0
     elif value is not None:
         if value > 0:
