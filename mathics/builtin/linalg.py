@@ -65,6 +65,9 @@ class Inverse(Builtin):
     >> Inverse[{{1, 0}, {0, 0}}]
      : The matrix {{1, 0}, {0, 0}} is singular.
      = Inverse[{{1, 0}, {0, 0}}]
+
+    >> Inverse[{{1, 0, 0}, {0, Sqrt[3]/2, 1/2}, {0,-1 / 2, Sqrt[3]/2}}]
+    = {{1, 0, 0}, {0, Sqrt[3] / 2, -1 / 2}, {0, 1 / 2, Sqrt[3] / 2}}
     """
 
     messages = {
