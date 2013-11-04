@@ -4,7 +4,7 @@
 Plotting
 """
 
-from math import sin, cos, pi, sqrt
+from math import sin, cos, pi, sqrt, isnan, isinf
 import numbers
 
 from mathics.core.expression import (Expression, Real, NumberError, Symbol,
@@ -71,7 +71,10 @@ def quiet_evaluate(expr, vars, evaluation, expect_list=False):
         else:
             return None
     else:
-        return chop(value).get_real_value()
+        value = chop(value).get_real_value()
+        if value is None or isinf(value) or isnan(value):
+            return None
+        return value
 
 
 def automatic_plot_range(values):
