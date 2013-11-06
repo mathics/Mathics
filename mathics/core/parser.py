@@ -826,8 +826,6 @@ class MathicsScanner:
     @lex.TOKEN(full_symb)
     def t_symbol(self, t):
         # r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
-        #import pydb;pydb.debugger()
-        t.value = self.definitions.lookup_name(t.value)
         return t
 
     def t_slotseq_1(self, t):
@@ -1035,6 +1033,9 @@ class MathicsParser:
             outputdir='mathics/core/',          # where to store parsetab
             **kwargs)
 
+    def user_symbol(self, name):
+        return Symbol(self.definitions.lookup_name(name))
+
     def p_error(self, p):
         if p is not None:
             p = p.value
@@ -1114,7 +1115,7 @@ class MathicsParser:
 
     def p_symbol(self, args):
         'expr : symbol'
-        args[0] = Symbol(args[1])
+        args[0] = self.user_symbol(args[1])
 
     def p_number(self, args):
         'expr : number'
@@ -1131,11 +1132,11 @@ class MathicsParser:
         elif count == 3:
             name = 'BlankNullSequence'
         if pieces[-1]:
-            blank = Expression(name, Symbol(pieces[-1]))
+            blank = Expression(name, self.user_symbol(pieces[-1]))
         else:
             blank = Expression(name)
         if pieces[0]:
-            args[0] = Expression('Pattern', Symbol(pieces[0]), blank)
+            args[0] = Expression('Pattern', self.user_symbol(pieces[0]), blank)
         else:
             args[0] = blank
 
@@ -1144,7 +1145,7 @@ class MathicsParser:
         name = args[1][:-2]
         if name:
             args[0] = Expression('Optional', Expression(
-                'Pattern', Symbol(name), Expression('Blank')))
+                'Pattern', self.user_symbol(name), Expression('Blank')))
         else:
             args[0] = Expression('Optional', Expression('Blank'))
 
@@ -1316,13 +1317,14 @@ class MathicsParser:
     def p_Pattern(self, args):
         '''expr : symbol RawColon pattern RawColon expr
                 | symbol RawColon expr'''
-        args[0] = Expression('Pattern', Symbol(args[1]), args[3])
+        args[0] = Expression('Pattern', self.user_symbol(args[1]), args[3])
         if len(args) == 6:
             args[0] = Expression('Optional', args[0], args[5])
         elif args[3].get_head_name() == 'Pattern':
             args[0] = Expression(
                 'Optional',
-                Expression('Pattern', Symbol(args[1]), args[3].leaves[0]),
+                Expression('Pattern', self.user_symbol(args[1]),
+                           args[3].leaves[0]),
                 args[3].leaves[1])
 
     def p_Optional(self, args):
@@ -1494,7 +1496,7 @@ system_definitions = SystemDefinitions()
 # we need to pass in something here that can be called to look up
 # symbol names according to $Context and $ContextPath
 def parse(string, definitions=system_definitions):
-    scanner.definitions = definitions # todo context manager?
+    parser.definitions = definitions # todo context manager?
     try:
         scanner.lexer.begin('INITIAL')      # Reset the lexer state (known lex bug)
 
@@ -1503,5 +1505,5 @@ def parse(string, definitions=system_definitions):
 
         return parser.parse(string)
     finally:
-        scanner.definitions = None # catch errors if scanner somehow gets used outside this function
+        parser.definitions = None # catch errors if scanner somehow gets used outside this function
 

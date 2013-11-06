@@ -219,6 +219,9 @@ class Context(Builtin):
      = True
     #> a`x === b`x
      = False
+    ## awkward parser cases
+    #> FullForm[a`b_]
+     = Pattern[a`b, Blank[]]
     """
 
     def apply(self, symbol, evaluation):

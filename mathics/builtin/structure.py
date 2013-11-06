@@ -540,7 +540,7 @@ class Symbol_(Builtin):
 
         text = string.get_string_value()
         if is_symbol_name(text):
-            return Symbol(string.value)
+            return Symbol(evaluation.definitions.lookup_name(string.value))
         else:
             evaluation.message('Symbol', 'symname', string)
 
