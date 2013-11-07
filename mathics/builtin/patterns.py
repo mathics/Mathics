@@ -101,6 +101,7 @@ def create_rules(rules_expr, expr, name, evaluation, extra_args=[]):
                 return None, True
             elif len(rule.leaves) != 2:
                 evaluation.message(
+                    # TODO: shorten names here
                     rule.get_head_name(), 'argrx', rule.get_head_name(), 3, 2)
                 return None, True
             else:
@@ -228,7 +229,7 @@ class ReplaceList(Builtin):
     def apply(self, expr, rules, max, evaluation):
         'ReplaceList[expr_, rules_, max_:Infinity]'
 
-        if max.get_name() == 'Infinity':
+        if max.get_name() == 'System`Infinity':
             max_count = None
         else:
             max_count = max.get_int_value()
@@ -270,19 +271,19 @@ class PatternTest(BinaryOperator, PatternObject):
         self.test_name = self.test.get_name()
 
     def quick_pattern_test(self, candidate, test):
-        if test == 'NumberQ':
+        if test == 'System`NumberQ':
             return isinstance(candidate, Number)
-        elif test == 'Negative':
+        elif test == 'System`Negative':
             if isinstance(candidate, (Integer, Rational, Real)):
                 return candidate.value < 0
             return False
             # pass
-        elif test == 'NegativePowerQ':
+        elif test == 'System`NegativePowerQ':
             return (
                 candidate.has_form('Power', 2) and
                 isinstance(candidate.leaves[1], (Integer, Rational, Real)) and
                 candidate.leaves[1].value < 0)
-        elif test == 'NotNegativePowerQ':
+        elif test == 'System`NotNegativePowerQ':
             return not (
                 candidate.has_form('Power', 2) and
                 isinstance(candidate.leaves[1], (Integer, Rational, Real)) and

@@ -24,7 +24,8 @@ import sympy
 from mathics.core.definitions import Definition
 from mathics.core.rules import Rule, BuiltinRule, Pattern
 from mathics.core.expression import (BaseExpression, Expression, Symbol,
-                                     String, Integer, strip_context)
+                                     String, Integer, ensure_context,
+                                     strip_context)
 
 
 class Builtin(object):
@@ -115,7 +116,7 @@ class Builtin(object):
         attributes += list(self.attributes)
         options = {}
         for option, value in self.options.iteritems():
-            options[option] = parse(value)
+            options[ensure_context(option)] = parse(value)
         defaults = []
         for spec, value in self.defaults.iteritems():
             value = parse(value)
@@ -174,6 +175,7 @@ class Builtin(object):
                     yield (pattern, function)
 
     def get_option(self, options, name, evaluation, pop=False):
+        name = ensure_context(name)
         value = options.pop(name, None) if pop else options.get(name)
         if value is not None:
             return value.evaluate(evaluation)

@@ -648,6 +648,10 @@ class Superscript(Builtin):
     }
 
 
+class SuperscriptBox(Builtin):
+    pass
+
+
 class Subscript(Builtin):
     """
     >> Subscript[x,1,2,3] // TeXForm
@@ -662,6 +666,10 @@ class Subscript(Builtin):
             'SubscriptBox', Expression('MakeBoxes', x, f), *list_boxes(y, f))
 
 
+class SubscriptBox(Builtin):
+    pass
+
+
 class Subsuperscript(Builtin):
     """
     >> Subsuperscript[a, b, c] // TeXForm
@@ -674,6 +682,10 @@ class Subsuperscript(Builtin):
             'SubsuperscriptBox[MakeBoxes[x, f], MakeBoxes[y, f], '
             'MakeBoxes[z, f]]'),
     }
+
+
+class SubsuperscriptBox(Builtin):
+    pass
 
 
 class Postfix(BinaryOperator):
@@ -970,7 +982,7 @@ class MessageName(BinaryOperator):
 
         pattern = Expression('MessageName', symbol, tag)
         return evaluation.definitions.get_value(
-            symbol.get_name(), 'Messages', pattern, evaluation)
+            symbol.get_name(), 'System`Messages', pattern, evaluation)
 
     def post_parse(self, expr):
         if len(expr.leaves) == 2 and expr.leaves[1].is_symbol():

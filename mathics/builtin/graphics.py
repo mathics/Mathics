@@ -22,12 +22,18 @@ class CoordinatesError(BoxConstructError):
 class ColorError(BoxConstructError):
     pass
 
-element_heads = ('Rectangle', 'Disk', 'Line', 'Point',
-                 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere')
-color_heads = ('RGBColor', 'CMYKColor', 'Hue', 'GrayLevel')
-thickness_heads = ('Thickness', 'AbsoluteThickness', 'Thick', 'Thin')
 
-GRAPHICS_SYMBOLS = set(['List', 'Rule', 'VertexColors'] + list(element_heads) +
+def system_symbols(*symbols):
+    return tuple('System`' + s for s in symbols)
+
+element_heads = system_symbols('Rectangle', 'Disk', 'Line', 'Point',
+                               'Circle', 'Polygon', 'Inset', 'Text', 'Sphere')
+color_heads = system_symbols('RGBColor', 'CMYKColor', 'Hue', 'GrayLevel')
+thickness_heads = system_symbols('Thickness', 'AbsoluteThickness', 'Thick',
+                                 'Thin')
+
+GRAPHICS_SYMBOLS = set(['System`List', 'System`Rule', 'System`VertexColors'] +
+                       list(element_heads) +
                        [element + 'Box' for element in element_heads] +
                        list(color_heads) + list(thickness_heads))
 
@@ -196,13 +202,13 @@ class Graphics(Builtin):
                                   *[convert(item) for item in content.leaves])
             head = content.get_head_name()
             if head in element_heads:
-                if head == 'Text':
-                    head = 'Inset'
+                if head == 'System`Text':
+                    head = 'System`Inset'
                 atoms = content.get_atoms(include_heads=False)
                 if any(not isinstance(atom, (Integer, Real)) and
                        not atom.get_name() in GRAPHICS_SYMBOLS
                        for atom in atoms):
-                    if head == 'Inset':
+                    if head == 'System`Inset':
                         n_leaves = [content.leaves[0]] + [
                             Expression('N', leaf).evaluate(evaluation)
                             for leaf in content.leaves[1:]]
@@ -786,7 +792,7 @@ class PolygonBox(_Polyline):
             raise BoxConstructError
 
     def process_option(self, name, value):
-        if name == 'VertexColors':
+        if name == 'System`VertexColors':
             if not value.has_form('List', None):
                 raise BoxConstructError
             black = RGBColor(components=[0, 0, 0, 1])
@@ -960,9 +966,9 @@ class Style(object):
             style = get_class(head)(item)
         elif head in thickness_heads:
             style = get_class(head)(self.graphics, item)
-        elif head in ('EdgeForm', 'FaceForm'):
-            style = self.klass(self.graphics, edge=head == 'EdgeForm',
-                               face=head == 'FaceForm')
+        elif head in ('System`EdgeForm', 'System`FaceForm'):
+            style = self.klass(self.graphics, edge=head == 'System`EdgeForm',
+                               face=head == 'System`FaceForm')
             if len(item.leaves) > 1:
                 raise BoxConstructError
             if item.leaves:
@@ -1047,11 +1053,11 @@ class _GraphicsElements(object):
                 items = [content]
             style = style.clone()
             for item in items:
-                if item.get_name() == 'Null':
+                if item.get_name() == 'System`Null':
                     continue
                 head = item.get_head_name()
                 if (head in color_heads or head in thickness_heads or   # noqa
-                    head in ('EdgeForm', 'FaceForm')):
+                    head in ('System`EdgeForm', 'System`FaceForm')):
                     style.append(item)
                 elif head[-3:] == 'Box':  # and head[:-3] in element_heads:
                     element_class = get_class(head)
@@ -1060,7 +1066,7 @@ class _GraphicsElements(object):
                         self.elements.append(element)
                     else:
                         raise BoxConstructError
-                elif head == 'List':
+                elif head == 'System`List':
                     convert(item, style)
                 else:
                     raise BoxConstructError
@@ -1161,7 +1167,7 @@ class GraphicsBox(BoxConstruct):
         inside_list = options.pop('inside_list', False)
         image_size_multipliers = options.pop('image_size_multipliers', None)
 
-        aspect_ratio = graphics_options['AspectRatio']
+        aspect_ratio = graphics_options['System`AspectRatio']
 
         if image_size_multipliers is None:
             image_size_multipliers = (0.5, 0.25)
@@ -1175,14 +1181,14 @@ class GraphicsBox(BoxConstruct):
                 # TODO: Custom message - MMA uses a tooltip over red graphics
                 aspect = None
 
-        image_size = graphics_options['ImageSize']
+        image_size = graphics_options['System`ImageSize']
         image_size = image_size.get_name()
         base_width, base_height = {
-            'Automatic': (400, 350),
-            'Tiny': (100, 100),
-            'Small': (200, 200),
-            'Medium': (400, 350),
-            'Large': (600, 500),
+            'System`Automatic': (400, 350),
+            'System`Tiny': (100, 100),
+            'System`Small': (200, 200),
+            'System`Medium': (400, 350),
+            'System`Large': (600, 500),
         }.get(image_size, (None, None))
         if base_width is None:
             raise BoxConstructError
@@ -1207,9 +1213,10 @@ class GraphicsBox(BoxConstruct):
         base_width, base_height, size_multiplier, size_aspect = \
             self._get_image_size(options, graphics_options, max_width)
 
-        plot_range = graphics_options['PlotRange'].to_python()
-        if plot_range == 'Automatic':
-            plot_range = ['Automatic', 'Automatic']
+        plot_range = graphics_options['System`PlotRange'].to_python()
+        if plot_range == 'System`Automatic':
+            plot_range = ['System`Automatic', 'System`Automatic']
+
         if not isinstance(plot_range, list) or len(plot_range) != 2:
             raise BoxConstructError
 
@@ -1231,11 +1238,12 @@ class GraphicsBox(BoxConstruct):
             (e.g. values using AbsoluteThickness).
             """
 
-            if 'Automatic' in plot_range:
+            if 'System`Automatic' in plot_range:
                 xmin, xmax, ymin, ymax = elements.extent()
             else:
                 xmin = xmax = ymin = ymax = None
-            if final_pass and plot_range != ['Automatic', 'Automatic']:
+            if final_pass and plot_range != ['System`Automatic',
+                                             'System`Automatic']:
                 # Take into account the dimensiosn of axes and axes labels
                 # (they should be displayed completely even when a specific
                 # PlotRange is given).
@@ -1257,7 +1265,7 @@ class GraphicsBox(BoxConstruct):
                 return min, max
 
             try:
-                if plot_range[0] == 'Automatic':
+                if plot_range[0] == 'System`Automatic':
                     if xmin is None and xmax is None:
                         xmin = 0
                         xmax = 1
@@ -1277,7 +1285,7 @@ class GraphicsBox(BoxConstruct):
                 else:
                     raise BoxConstructError
 
-                if plot_range[1] == 'Automatic':
+                if plot_range[1] == 'System`Automatic':
                     if ymin is None and ymax is None:
                         ymin = 0
                         ymax = 1
@@ -1461,16 +1469,16 @@ clip(box((%s,%s), (%s,%s)));
         return ticks, ticks_small, origin_x
 
     def create_axes(self, elements, graphics_options, xmin, xmax, ymin, ymax):
-        axes = graphics_options.get('Axes')
+        axes = graphics_options.get('System`Axes')
         if axes.is_true():
             axes = (True, True)
         elif axes.has_form('List', 2):
             axes = (axes.leaves[0].is_true(), axes.leaves[1].is_true())
         else:
             axes = (False, False)
-        ticks_style = graphics_options.get('TicksStyle')
-        axes_style = graphics_options.get('AxesStyle')
-        label_style = graphics_options.get('LabelStyle')
+        ticks_style = graphics_options.get('System`TicksStyle')
+        axes_style = graphics_options.get('System`AxesStyle')
+        label_style = graphics_options.get('System`LabelStyle')
         if ticks_style.has_form('List', 2):
             ticks_style = ticks_style.leaves
         else:
@@ -1840,7 +1848,7 @@ class Orange(_ColorObject):
         'Orange': 'RGBColor[1, 0.5, 0]',
     }
 
-GLOBALS = {
+GLOBALS = {'System`' + k: v for k, v in {
     'Rectangle': Rectangle,
     'Disk': Disk,
     'Circle': Circle,
@@ -1864,4 +1872,4 @@ GLOBALS = {
     'AbsoluteThickness': AbsoluteThickness,
     'Thick': Thick,
     'Thin': Thin,
-}
+}.iteritems()}

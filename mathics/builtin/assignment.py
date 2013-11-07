@@ -113,7 +113,8 @@ class _SetOperator(object):
                     evaluation.message('Format', 'fttp', lhs.leaves[1])
                     return False
             else:
-                form = ('System`' + s for s in
+                # tuple() here avoids creating a generator expression
+                form = tuple('System`' + s for s in
                         ('StandardForm', 'TraditionalForm', 'OutputForm',
                          'TeXForm', 'MathMLForm',
                          ))

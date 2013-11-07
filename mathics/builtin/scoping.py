@@ -9,7 +9,7 @@ def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
         if msg_symbol and evaluation:
             evaluation.message(msg_symbol, tag, *args)
 
-    if var_list.get_head_name() != 'List':
+    if not var_list.has_form('List', None):
         message('lvlist', var_list)
         return
     vars = var_list.leaves
