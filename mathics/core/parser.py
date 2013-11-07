@@ -65,8 +65,9 @@ class ParseError(TranslateError):
 
 # Symbols can be any letters
 base_symb = ur'((?![0-9])([0-9${0}{1}])+)'.format(letters, letterlikes)
+full_symb = ur'(`?{0}(`{0})*)'.format(base_symb)
 
-symbol_re = re.compile(ur'`?{0}(`{0})*'.format(base_symb))
+symbol_re = re.compile(full_symb)
 
 
 def is_symbol_name(text):
@@ -812,17 +813,17 @@ class MathicsScanner:
         t.value = self.string_escape(t.value[1:-1])
         return t
 
-    @lex.TOKEN(ur'{0}?_\.'.format(base_symb))
+    @lex.TOKEN(ur'{0}?_\.'.format(full_symb))
     def t_blankdefault(self, t):    # this must come before t_blanks
         # r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
         return t
 
-    @lex.TOKEN(ur'{0}?_(__?)?{0}?'.format(base_symb))
+    @lex.TOKEN(ur'{0}?_(__?)?{0}?'.format(full_symb))
     def t_blanks(self, t):
         # r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
         return t
 
-    @lex.TOKEN(ur'`?{0}(`{0})*'.format(base_symb))
+    @lex.TOKEN(full_symb)
     def t_symbol(self, t):
         # r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
         #import pydb;pydb.debugger()
