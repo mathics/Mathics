@@ -38,12 +38,17 @@ class TranslateError(Exception):
 
 
 class ScanError(TranslateError):
-    def __init__(self, pos):
+    def __init__(self, pos, text):
         super(ScanError, self).__init__()
         self.pos = pos
+        self.text = text
+
+    def __str__(self):
+        return self.__unicode__()
 
     def __unicode__(self):
-        return u"Lexical error at position {0}.".format(self.pos)
+        return u"Lexical error at position {0} in '{1}'.".format(
+            self.pos, self.text)
 
 
 class InvalidCharError(TranslateError):
@@ -911,8 +916,7 @@ class MathicsScanner:
         return t
 
     def t_ANY_error(self, t):
-        # print t
-        raise ScanError(self.lexer.lexpos)
+        raise ScanError(self.lexer.lexpos, t.value)
 
 
 class AbstractToken(object):
