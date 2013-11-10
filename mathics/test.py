@@ -102,7 +102,7 @@ def test_case(test, tests, index=0, quiet=False):
     return True
 
 
-def test_tests(tests, index, quiet=False):
+def test_tests(tests, index, quiet=False, stop_on_failure=False):
     # print tests
     definitions.reset_user_definitions()
     count = failed = 0
@@ -113,6 +113,8 @@ def test_tests(tests, index, quiet=False):
         if not test_case(test, tests, index, quiet):
             failed += 1
             failed_symbols.add((tests.part, tests.chapter, tests.section))
+            if stop_on_failure:
+                break
     return count, failed, failed_symbols, index
 
 
@@ -129,7 +131,7 @@ def create_output(tests, output_xml, output_tex):
             }
 
 
-def test_section(section, quiet=False):
+def test_section(section, quiet=False, stop_on_failure=False):
     failed = 0
     index = 0
     print 'Testing section %s' % section
@@ -139,6 +141,8 @@ def test_section(section, quiet=False):
                 index += 1
                 if not test_case(test, tests, index, quiet=quiet):
                     failed += 1
+                    if stop_on_failure:
+                        break
 
     print ''
     if failed > 0:
@@ -157,7 +161,7 @@ def open_ensure_dir(f, *args, **kwargs):
         return open(f, *args, **kwargs)
 
 
-def test_all(quiet=False, generate_output=False):
+def test_all(quiet=False, generate_output=False, stop_on_failure=False):
     if not quiet:
         print "Testing %s" % get_version_string(False)
 
@@ -169,12 +173,14 @@ def test_all(quiet=False, generate_output=False):
         output_tex = {}
         for tests in documentation.get_tests():
             sub_count, sub_failed, symbols, index = test_tests(
-                tests, index, quiet=quiet)
+                tests, index, quiet=quiet, stop_on_failure=stop_on_failure)
             if generate_output:
                 create_output(tests, output_xml, output_tex)
             count += sub_count
             failed += sub_failed
             failed_symbols.update(symbols)
+            if sub_failed and stop_on_failure:
+                break
         builtin_count = len(builtins)
     except KeyboardInterrupt:
         print "\nAborted.\n"
@@ -232,15 +238,18 @@ def main():
                         help="generate TeX documentation file")
     parser.add_argument('--quiet', '-q', dest="quiet",
                         action="store_true", help="hide passed tests")
+    parser.add_argument('--stop-on-failure', action="store_true",
+                        help="stop on failure")
     args = parser.parse_args()
 
     if args.tex:
         write_latex()
     else:
         if args.section:
-            test_section(args.section)
+            test_section(args.section, stop_on_failure=args.stop_on_failure)
         else:
-            test_all(quiet=args.quiet, generate_output=args.output)
+            test_all(quiet=args.quiet, generate_output=args.output,
+                     stop_on_failure=args.stop_on_failure)
 
 if __name__ == '__main__':
     main()
