@@ -1234,7 +1234,10 @@ class Increment(PostfixOperator):
     attributes = ('HoldFirst', 'ReadProtected')
 
     rules = {
-        'x_++': 'Module[{t=x}, x = x + 1; t]',
+        'x_++': ('Module[{Internal`IncrementTemporary = x}, '
+                        'x = x + 1;'
+                        'Internal`IncrementTemporary'
+                 ']'),
     }
 
 
