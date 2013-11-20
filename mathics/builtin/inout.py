@@ -1154,7 +1154,9 @@ class MathMLForm(Builtin):
         try:
             xml = boxes.boxes_to_xml(evaluation=evaluation)
         except BoxError:
-            evaluation.message('General', 'notboxes', String('%s' % boxes))
+            evaluation.message(
+                'General', 'notboxes',
+                Expression('FullForm', boxes).evaluate(evaluation))
             xml = ''
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
@@ -1183,7 +1185,9 @@ class TeXForm(Builtin):
 
             tex = tex.replace(u' \uF74c', u' \, d')  # tmp hack for Integrate
         except BoxError:
-            evaluation.message('General', 'notboxes', String('%s' % boxes))
+            evaluation.message(
+                'General', 'notboxes',
+                Expression('FullForm', boxes).evaluate(evaluation))
             tex = ''
         return Expression('RowBox', Expression('List', String(tex)))
 
