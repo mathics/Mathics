@@ -12,7 +12,8 @@ import subprocess
 class Run(Builtin):
     u"""
     >> Run["echo", "mathics"]
-     = mathics
+     : mathics
+     = 0
     """
 
     def apply(self, items, evaluation):
