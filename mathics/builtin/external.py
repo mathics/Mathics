@@ -12,8 +12,7 @@ import subprocess
 class Run(Builtin):
     u"""
     >> Run["echo", "mathics"]
-     : mathics
-     = 0
+     = mathics
     """
 
     def apply(self, items, evaluation):
@@ -25,6 +24,6 @@ class Run(Builtin):
                 stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
 
-        print(stdout) 
+        evaluation.print_out(stdout)
 
         return Integer(p.returncode)
