@@ -20,7 +20,7 @@ class Run(Builtin):
 
         items = [str(item) for item in items.get_sequence()]
 
-        p = subprocess.Popen(items, shell=True, stdout=subprocess.PIPE,
+        p = subprocess.Popen(' '.join(items), shell=True, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
 
