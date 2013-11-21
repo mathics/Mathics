@@ -18,7 +18,8 @@ class Run(Builtin):
     def apply(self, items, evaluation):
         'Run[items__]'
 
-        items = [str(item) for item in items.get_sequence()]
+        items = [str(item.format(evaluation, "InputForm"))
+                    for item in items.get_sequence()]
 
         p = subprocess.Popen(' '.join(items), shell=True, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE)
