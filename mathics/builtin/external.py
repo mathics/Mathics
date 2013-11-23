@@ -21,10 +21,7 @@ class Run(Builtin):
         items = [str(item.format(evaluation, "InputForm"))
                     for item in items.get_sequence()]
 
-        p = subprocess.Popen(' '.join(items), shell=True, stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-
-        evaluation.print_out(stdout)
+        p = subprocess.Popen(' '.join(items), shell=True)
+        p.communicate()
 
         return Integer(p.returncode)
