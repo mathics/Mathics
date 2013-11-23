@@ -4,7 +4,7 @@
 Plotting
 """
 
-from math import sin, cos, pi, sqrt
+from math import sin, cos, pi, sqrt, isnan, isinf
 import numbers
 
 from mathics.core.expression import (Expression, Real, NumberError, Symbol,
@@ -71,7 +71,16 @@ def quiet_evaluate(expr, vars, evaluation, expect_list=False):
         else:
             return None
     else:
-        return chop(value).get_real_value()
+        value = chop(value).get_real_value()
+        if value is None or isinf(value) or isnan(value):
+            return None
+        return value
+
+
+def zero_to_one(value):
+    if value == 0:
+        return 1
+    return value
 
 
 def automatic_plot_range(values):
@@ -86,7 +95,7 @@ def automatic_plot_range(values):
     thresh = 2.0
     values = sorted(values)
     valavg = sum(values) / len(values)
-    valdev = sqrt(sum([(x - valavg) ** 2 for x in values]) / (len(values) - 1))
+    valdev = sqrt(sum([(x - valavg) ** 2 for x in values]) / zero_to_one(len(values) - 1))
 
     n1, n2 = 0, len(values) - 1
     if valdev != 0:
@@ -287,11 +296,6 @@ class _Plot(Builtin):
                     if ymax is None or y > ymax:
                         ymax = y
             return xmin, xmax, ymin, ymax
-
-        def zero_to_one(value):
-            if value == 0:
-                return 1
-            return value
 
         def get_points_range(points):
             xmin, xmax, ymin, ymax = get_points_minmax(points)
@@ -875,6 +879,9 @@ class Plot(_Plot):
     #> Plot[Sin[t],  {t, 0, 2 Pi}, PlotPoints -> 1]
      : Value of option PlotPoints -> 1 is not an integer >= 2.
      = Plot[Sin[t], {t, 0, 2 Pi}, PlotPoints -> 1]
+
+    #> Plot[x*y, {x, -1, 1}]
+     = -Graphics-
     """
 
     def get_functions_param(self, functions):

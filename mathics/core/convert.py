@@ -291,6 +291,11 @@ def from_sympy(expr):
     elif isinstance(expr, sympy.StrictGreaterThan):
         return Expression('Greater',
                           [from_sympy(arg) for arg in expr.args])
-
+    elif isinstance(expr, sympy.Unequality):
+        return Expression('Unequal',
+                          [from_sympy(arg) for arg in expr.args])
+    elif isinstance(expr, sympy.Equality):
+        return Expression('Equal',
+                          [from_sympy(arg) for arg in expr.args])
     else:
         raise ValueError("Unknown SymPy expression: %s" % expr)
