@@ -23,7 +23,6 @@ from django.conf.urls.defaults import *
 urlpatterns = patterns(
     'mathics.web.views',
     ('^$', 'main_view'),
-    ('^test/$', 'test_view'),
     ('^ajax/query/$', 'query'),
     ('^ajax/login/$', 'login'),
     ('^ajax/logout/$', 'logout'),

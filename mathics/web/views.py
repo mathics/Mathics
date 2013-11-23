@@ -79,11 +79,6 @@ def main_view(request):
     }, context_instance=RequestContext(request), mimetype=mimetype)
 
 
-def test_view(request):
-    return render_to_response('test.html', {
-    }, context_instance=RequestContext(request))
-
-
 def error_404_view(request):
     t = loader.get_template('404.html')
     return HttpResponseNotFound(t.render(RequestContext(request, {
