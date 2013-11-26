@@ -37,7 +37,7 @@ function grayOut(vis, options) {
 var popup;
 
 function showPopup(element, options) {
-	options = options || {};
+	options = options || {};
 	var body = $$('body')[0];
 	var container = new Element('div', {'class': 'popupContainer'});
 	var div = new Element('div', {'class': 'popup'});
