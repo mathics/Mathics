@@ -40,12 +40,12 @@ from mathics.doc import documentation
 from mathics.doc.doc import DocPart, DocChapter, DocSection
 
 if settings.DEBUG:
-    JSON_MIMETYPE = 'text/html'
+    JSON_CONTENT_TYPE = 'text/html'
 else:
-    JSON_MIMETYPE = 'application/json'
+    JSON_CONTENT_TYPE = 'application/json'
 
 
-def get_mimetype(request):
+def get_content_type(request):
     return ('text/html' if 'MSIE' in request.META.get('HTTP_USER_AGENT', '')
             else 'application/xhtml+xml')
 
@@ -53,7 +53,7 @@ def get_mimetype(request):
 class JsonResponse(HttpResponse):
     def __init__(self, result={}):
         response = json.dumps(result)
-        super(JsonResponse, self).__init__(response, mimetype=JSON_MIMETYPE)
+        super(JsonResponse, self).__init__(response, content_type=JSON_CONTENT_TYPE)
 
 
 def require_ajax_login(func):
@@ -71,12 +71,12 @@ def require_ajax_login(f):
 
 
 def main_view(request):
-    mimetype = get_mimetype(request)
+    content_type = get_content_type(request)
     return render_to_response('main.html', {
         'login_form': LoginForm(),
         'save_form': SaveForm(),
         'require_login': settings.REQUIRE_LOGIN,
-    }, context_instance=RequestContext(request), mimetype=mimetype)
+    }, context_instance=RequestContext(request), content_type=content_type)
 
 
 def error_404_view(request):
@@ -333,7 +333,7 @@ def render_doc(request, template_name, context, data=None, ajax=False):
         return render_to_response(
             'doc/%s' % template_name, context,
             context_instance=RequestContext(request),
-            mimetype=get_mimetype(request))
+            content_type=get_content_type(request))
 
 
 def doc(request, ajax=''):
