@@ -25,7 +25,7 @@ from django.shortcuts import render_to_response
 from django.template import RequestContext, loader
 from django.http import (HttpResponse, HttpResponseNotFound,
                          HttpResponseServerError, Http404)
-from django.utils import simplejson
+import json
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.models import User
@@ -52,8 +52,8 @@ def get_mimetype(request):
 
 class JsonResponse(HttpResponse):
     def __init__(self, result={}):
-        json = simplejson.dumps(result)
-        super(JsonResponse, self).__init__(json, mimetype=JSON_MIMETYPE)
+        response = json.dumps(result)
+        super(JsonResponse, self).__init__(response, mimetype=JSON_MIMETYPE)
 
 
 def require_ajax_login(func):

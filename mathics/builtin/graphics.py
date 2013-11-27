@@ -6,7 +6,7 @@ Graphics
 
 from math import floor, ceil, log10
 
-from django.utils import simplejson
+import json
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
@@ -826,7 +826,7 @@ class PolygonBox(_Polyline):
                 data = [[coords.pos(), color.to_js()] for coords, color in zip(
                     line, self.vertex_colors[index])]
                 mesh.append(data)
-            svg += '<meshgradient data="%s" />' % simplejson.dumps(mesh)
+            svg += '<meshgradient data="%s" />' % json.dumps(mesh)
         for line in self.lines:
             svg += '<polygon points="%s" style="%s" />' % (
                 ' '.join('%f,%f' % coords.pos() for coords in line), style)

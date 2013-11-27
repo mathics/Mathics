@@ -11,7 +11,7 @@ from graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
                       LineBox, PointBox, Style, RGBColor, get_class,
                       asy_number, CoordinatesError, _GraphicsElements)
 
-from django.utils import simplejson as json
+import json
 
 from django.utils.html import escape as escape_html
 
