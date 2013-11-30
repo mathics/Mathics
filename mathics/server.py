@@ -83,7 +83,7 @@ def main():
         print u"Quit by pressing %s\n" % quit_command
 
         print u"""Open the graphical user interface at
-http://localhost:%d\n in Firefox, Chrome, or Safari to use Mathics\n""" % port
+http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port
 
     if args.external:
         addr = '0.0.0.0'

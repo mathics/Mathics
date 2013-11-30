@@ -3,7 +3,7 @@
 from django import template
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
-from django.utils import simplejson
+import json
 
 from mathics.doc.doc import escape_html
 
@@ -22,4 +22,4 @@ def link(object, ajax):
 
 @register.filter
 def js(data):
-    return mark_safe(simplejson.dumps(data))
+    return mark_safe(json.dumps(data))
