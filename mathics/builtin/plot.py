@@ -106,9 +106,9 @@ def automatic_plot_range(values):
 
 
 def get_plot_range(values, all_values, option):
-    if option == 'Automatic':
+    if option == 'System`Automatic':
         result = automatic_plot_range(values)
-    elif option == 'All':
+    elif option == 'System`All':
         if not all_values:
             result = [0, 1]
         else:
