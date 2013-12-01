@@ -86,7 +86,11 @@ def test_case(test, tests, index=0, quiet=False):
         result = None
         out = []
     if not compare(result, wanted):
-        return fail(u"Result: %s\nWanted: %s" % (result, wanted))
+        fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
+        if out:
+            fail_msg += "\nAdditional output:\n"
+            fail_msg += u'\n'.join(unicode(o) for o in out)
+        return fail(fail_msg)
     output_ok = True
     if len(out) != len(wanted_out):
         output_ok = False
