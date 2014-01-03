@@ -468,7 +468,7 @@ class GridBox(BoxConstruct):
         for row in items:
             result += '<mtr>'
             for item in row:
-                result += '<mtd {0}>{1}</mtd>'.format(
+                result += u'<mtd {0}>{1}</mtd>'.format(
                     attrs, item.boxes_to_xml(**new_box_options))
             result += '</mtr>\n'
         result += '</mtable>'
@@ -1125,9 +1125,24 @@ class OutputForm(Builtin):
 
 
 class MathMLForm(Builtin):
-    """
+    u"""
     >> MathMLForm[HoldForm[Sqrt[a^3]]]
      = <math><msqrt><msup><mi>a</mi> <mn>3</mn></msup></msqrt></math>
+
+    ## Test cases for Unicode
+    #> MathMLForm[\\[Mu]]
+     = <math><mi>μ</mi></math>
+
+    #> MathMLForm[Graphics[Text["μ"]]]
+     = <math><mtable><mtr><mtd><svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
+     .  version="1.0" width="..." height="..." viewBox="..."><foreignObject x="..." y="..." ox="0.000000" oy="0.000000" style="stroke: none; fill: none; color: rgb(0.000000%, 0.000000%, 0.000000%)"><math><mtext>μ</mtext></math></foreignObject></svg></mtd></mtr></mtable></math>
+
+    ## The <mo> should contain U+2062 INVISIBLE TIMES
+    #> MathMLForm[MatrixForm[{{2*a, 0},{0,0}}]]
+     = <math><mrow><mo>(</mo> <mtable columnalign="center">
+     . <mtr><mtd columnalign="center"><mrow><mn>2</mn> <mo>⁢</mo> <mi>a</mi></mrow></mtd><mtd columnalign="center"><mn>0</mn></mtd></mtr>
+     . <mtr><mtd columnalign="center"><mn>0</mn></mtd><mtd columnalign="center"><mn>0</mn></mtd></mtr>
+     . </mtable> <mo>)</mo></mrow></math>
     """
 
     def apply_mathml(self, expr, evaluation):
