@@ -35,9 +35,9 @@ def main():
     if not os.path.exists(database_file):
         print "Error: Mathics database not found!"
         print "Please change to the mathics install directory and run:\n"
-        print "   $> python setup.py initialize\n"
+        print "   $> {0} setup.py initialize\n".format(sys.executable)
         print "as the current user"
-        sys.exit(-1)
+        sys.exit(1)
 
     os.environ['DJANGO_SETTINGS_MODULE'] = 'mathics.settings'
     # os.putenv('DJANGO_SETTINGS_MODULE', 'mathics.settings')
