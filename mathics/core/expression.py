@@ -757,7 +757,11 @@ class Expression(BaseExpression):
             self.head, u', '.join([unicode(leaf) for leaf in self.leaves]))
 
     def __repr__(self):
-        return u'<Expression: %s>' % self
+        # This .encode("unicode_escape") is necessary because Python
+        # implicitly calls the equivalent of .encode("ascii") if we
+        # return a Unicode string here, which might raise
+        # UnicodeEncodeError in awkward places.
+        return (u'<Expression: %s>' % self).encode('unicode_escape')
 
     def process_style_box(self, options):
         if self.has_form('StyleBox', 1, None):
@@ -1136,7 +1140,8 @@ class Atom(BaseExpression):
         return self.__class__.__name__
 
     def __repr__(self):
-        return u'<%s: %s>' % (self.get_atom_name(), self)
+        return (u'<%s: %s>' % (self.get_atom_name(), self)).encode(
+            'unicode_escape')
 
     def replace_vars(self, vars, options=None, in_scoping=True):
         return self
