@@ -9,5 +9,5 @@ into setup.py. Please run:
   {python} setup.py initialize
 
 to initialize the database.
-""".format(python=sys.executable))
+""".format(python=sys.executable or 'python'))
 sys.exit(1)

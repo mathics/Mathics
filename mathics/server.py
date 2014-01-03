@@ -35,7 +35,8 @@ def main():
     if not os.path.exists(database_file):
         print "Error: Mathics database not found!"
         print "Please change to the mathics install directory and run:\n"
-        print "   $> {0} setup.py initialize\n".format(sys.executable)
+        print "   $> {python} setup.py initialize\n".format(
+            python=sys.executable or 'python')
         print "as the current user"
         sys.exit(1)
 
