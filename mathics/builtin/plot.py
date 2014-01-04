@@ -1213,7 +1213,7 @@ class DensityPlot(_Plot3D):
             options, 'ColorFunctionScaling', evaluation, pop=True)
 
         color_function_min = color_function_max = None
-        if color_function.get_name() == 'Automatic':
+        if color_function.get_name() == 'System`Automatic':
             color_function = String('LakeColors')
         if color_function.get_string_value():
             func = Expression(

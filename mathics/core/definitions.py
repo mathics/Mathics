@@ -401,6 +401,8 @@ class Definition(object):
                                  for name, list in formatvalues.items())
         self.messages = messages
         self.attributes = set(attributes)
+        for a in self.attributes:
+            assert '`' in a, "%s attribute %s has no context" % (name, a)
         self.options = options
         self.nvalues = nvalues
         self.defaultvalues = defaultvalues

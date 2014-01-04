@@ -116,7 +116,15 @@ class Builtin(object):
         attributes += list(ensure_context(a) for a in self.attributes)
         options = {}
         for option, value in self.options.iteritems():
-            options[ensure_context(option)] = parse(value)
+            option = ensure_context(option)
+            options[option] = parse(value)
+            if option.startswith('System`'):
+                # Create a definition for the option's symbol.
+                # Otherwise it'll be created in Global` when it's
+                # used, so it won't work.
+                if option not in definitions.builtin:
+                    definitions.builtin[option] = Definition(
+                        name=name, attributes=set())
         defaults = []
         for spec, value in self.defaults.iteritems():
             value = parse(value)
