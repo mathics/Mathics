@@ -22,6 +22,7 @@ import pickle
 import os
 
 from mathics.core.expression import ensure_context
+from mathics.core.expression import Symbol
 
 
 def get_file_time(file):
@@ -101,6 +102,8 @@ class Definitions(object):
           symbol.
         - Otherwise, it's a new symbol in $Context.
         """
+
+        assert not isinstance(name, Symbol)
 
         if '`' in name:
             if name.startswith('`'):
@@ -212,6 +215,8 @@ class Definitions(object):
                 return result
 
     def get_user_definition(self, name, create=True):
+        assert not isinstance(name, Symbol)
+
         if self.autoload_stage:
             existing = self.builtin.get(name)
             if existing is None:
@@ -235,9 +240,11 @@ class Definitions(object):
             return self.user[name]
 
     def reset_user_definition(self, name):
+        assert not isinstance(name, Symbol)
         del self.user[self.lookup_name(name)]  # TODO don't do anything if it doesn't exist
 
     def add_user_definition(self, name, definition):
+        assert not isinstance(name, Symbol)
         self.user[self.lookup_name(name)] = definition
 
     def set_attribute(self, name, attribute):
