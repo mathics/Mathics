@@ -45,7 +45,7 @@ class _SetOperator(object):
                 evaluation.message(name, 'tag', name, tag)
                 return False
 
-            if (name != 'System`Attributes' and 'Protected'    # noqa
+            if (name != 'System`Attributes' and 'System`Protected'    # noqa
                 in evaluation.definitions.get_attributes(tag)):
                 evaluation.message(name, 'wrsym', tag)
                 return False
@@ -60,7 +60,7 @@ class _SetOperator(object):
                     rhs, lambda item: evaluation.message(name, 'sym', item, 1))
                 if attributes is None:
                     return False
-                if 'Locked' in evaluation.definitions.get_attributes(tag):
+                if 'System`Locked' in evaluation.definitions.get_attributes(tag):
                     evaluation.message(name, 'locked', tag)
                     return False
                 evaluation.definitions.set_attributes(tag, attributes)
@@ -197,7 +197,7 @@ class _SetOperator(object):
         count = 0
         defs = evaluation.definitions
         for tag in tags:
-            if (not ignore_protection and 'Protected'   # noqa
+            if (not ignore_protection and 'System`Protected'   # noqa
                 in evaluation.definitions.get_attributes(tag)):
                 if lhs.get_name() == tag:
                     evaluation.message(self.get_name(), 'wrsym', tag)
@@ -245,7 +245,7 @@ class _SetOperator(object):
             if not name:
                 evaluation.message(self.get_name(), 'setps', symbol)
                 return False
-            if 'Protected' in evaluation.definitions.get_attributes(name):
+            if 'System`Protected' in evaluation.definitions.get_attributes(name):
                 evaluation.message(self.get_name(), 'wrsym', name)
                 return False
             rule = evaluation.definitions.get_ownvalue(name)
@@ -631,7 +631,7 @@ class Definition(Builtin):
                         'List',
                         *(Symbol(attribute) for attribute in attributes)))))
 
-        if definition is not None and not 'ReadProtected' in attributes:
+        if definition is not None and not 'System`ReadProtected' in attributes:
             for rule in definition.ownvalues:
                 print_rule(rule)
             for rule in definition.downvalues:
@@ -744,10 +744,10 @@ class Clear(Builtin):
                 evaluation.message('Clear', 'ssym', symbol)
                 continue
             attributes = evaluation.definitions.get_attributes(name)
-            if 'Protected' in attributes:
+            if 'System`Protected' in attributes:
                 evaluation.message('Clear', 'wrsym', name)
                 continue
-            if not self.allow_locked and 'Locked' in attributes:
+            if not self.allow_locked and 'System`Locked' in attributes:
                 evaluation.message('Clear', 'locked', name)
                 continue
             definition = evaluation.definitions.get_user_definition(name)

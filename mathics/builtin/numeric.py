@@ -139,11 +139,11 @@ class N(Builtin):
                 return expr.round(valid_prec)
             else:
                 attributes = expr.head.get_attributes(evaluation.definitions)
-                if 'NHoldAll' in attributes:
+                if 'System`NHoldAll' in attributes:
                     eval_range = []
-                elif 'NHoldFirst' in attributes:
+                elif 'System`NHoldFirst' in attributes:
                     eval_range = range(1, len(expr.leaves))
-                elif 'NHoldRest' in attributes:
+                elif 'System`NHoldRest' in attributes:
                     if len(expr.leaves) > 0:
                         eval_range = (0,)
                     else:

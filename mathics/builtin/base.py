@@ -112,8 +112,8 @@ class Builtin(object):
         if name == 'System`MakeBoxes':
             attributes = []
         else:
-            attributes = ['Protected']
-        attributes += list(self.attributes)
+            attributes = ['System`Protected']
+        attributes += list(ensure_context(a) for a in self.attributes)
         options = {}
         for option, value in self.options.iteritems():
             options[ensure_context(option)] = parse(value)

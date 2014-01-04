@@ -72,7 +72,7 @@ class SetAttributes(Builtin):
         if values is None:
             return
         for symbol in symbols:
-            if 'Locked' in evaluation.definitions.get_attributes(symbol):
+            if 'System`Locked' in evaluation.definitions.get_attributes(symbol):
                 evaluation.message('SetAttributes', 'locked', symbol)
             else:
                 for value in values:
@@ -108,7 +108,7 @@ class ClearAttributes(Builtin):
         if values is None:
             return
         for symbol in symbols:
-            if 'Locked' in evaluation.definitions.get_attributes(symbol):
+            if 'System`Locked' in evaluation.definitions.get_attributes(symbol):
                 evaluation.message('ClearAttributes', 'locked', symbol)
             else:
                 for value in values:

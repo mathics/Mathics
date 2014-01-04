@@ -613,7 +613,7 @@ class Solve(Builtin):
         for var in vars:
             if ((var.is_atom() and not var.is_symbol()) or  # noqa
                 head_name in ('System`Plus', 'System`Times', 'System`Power') or
-                'Constant' in var.get_attributes(evaluation.definitions)):
+                'System`Constant' in var.get_attributes(evaluation.definitions)):
 
                 evaluation.message('Solve', 'ivar', vars_original)
                 return

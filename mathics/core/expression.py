@@ -670,11 +670,11 @@ class Expression(BaseExpression):
             head = self.head.evaluate(evaluation)
             attributes = head.get_attributes(evaluation.definitions)
             leaves = self.leaves[:]
-            if 'HoldAll' in attributes or 'HoldAllComplete' in attributes:
+            if 'System`HoldAll' in attributes or 'System`HoldAllComplete' in attributes:
                 eval_range = []
-            elif 'HoldFirst' in attributes:
+            elif 'System`HoldFirst' in attributes:
                 eval_range = range(1, len(leaves))
-            elif 'HoldRest' in attributes:
+            elif 'System`HoldRest' in attributes:
                 if len(leaves) > 0:
                     eval_range = [0]
                 else:
@@ -682,7 +682,7 @@ class Expression(BaseExpression):
             else:
                 eval_range = range(len(leaves))
 
-            if 'HoldAllComplete' not in attributes:
+            if 'System`HoldAllComplete' not in attributes:
                 for index, leaf in enumerate(self.leaves):
                     if (leaf.has_form('Evaluate', 1) and    # noqa
                         index not in eval_range):
@@ -693,14 +693,14 @@ class Expression(BaseExpression):
                     leaves[index] = leaves[index].evaluate(evaluation)
 
             new = Expression(head, *leaves)
-            if ('SequenceHold' not in attributes and    # noqa
-                'HoldAllComplete' not in attributes):
+            if ('System`SequenceHold' not in attributes and    # noqa
+                'System`HoldAllComplete' not in attributes):
                 new = new.flatten(Symbol('Sequence'))
             leaves = new.leaves
 
             for leaf in leaves:
                 leaf.unevaluated = False
-            if not 'HoldAllComplete' in attributes:
+            if not 'System`HoldAllComplete' in attributes:
                 for index, leaf in enumerate(leaves):
                     if leaf.has_form('Unevaluated', 1):
                         leaves[index] = leaf.leaves[0]
@@ -711,13 +711,13 @@ class Expression(BaseExpression):
                     leaf.unevaluated = old.unevaluated
 
             new = Expression(head, *leaves)
-            if 'Flat' in attributes:
+            if 'System`Flat' in attributes:
                 new = new.flatten(new.head, callback=flatten_callback)
-            if 'Orderless' in attributes:
+            if 'System`Orderless' in attributes:
                 new.sort()
 
             new.is_evaluated = True
-            if 'Listable' in attributes:
+            if 'System`Listable' in attributes:
                 done, threaded = new.thread(evaluation)
                 if done:
                     if not threaded.same(new):
@@ -725,7 +725,7 @@ class Expression(BaseExpression):
                     return threaded
             rules = []
             rules_names = set()
-            if not 'HoldAllComplete' in attributes:
+            if not 'System`HoldAllComplete' in attributes:
                 for leaf in leaves:
                     name = leaf.get_lookup_name()
                     if name not in rules_names:

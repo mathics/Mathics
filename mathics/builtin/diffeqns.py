@@ -80,10 +80,11 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'deqn', eqn)
             return
 
+        # FIXME: This code is duplicated in calculus.py
         if ((x.is_atom() and not x.is_symbol()) or      # nopep8
             x.get_head_name() in ('System`Plus', 'System`Times',
                                   'System`Power') or
-            'Constant' in x.get_attributes(evaluation.definitions)):
+            'System`Constant' in x.get_attributes(evaluation.definitions)):
             evaluation.message('DSolve', 'dsvar')
             return
 
