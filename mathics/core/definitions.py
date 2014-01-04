@@ -103,7 +103,7 @@ class Definitions(object):
         - Otherwise, it's a new symbol in $Context.
         """
 
-        assert not isinstance(name, Symbol)
+        assert type(name) in (str, unicode)
 
         if '`' in name:
             if name.startswith('`'):
@@ -208,6 +208,8 @@ class Definitions(object):
         return self.get_definition(name).defaultvalues
 
     def get_value(self, name, pos, pattern, evaluation):
+        assert type(name) in (str, unicode)
+        assert '`' in name
         rules = self.get_definition(name).get_values_list(valuesname(pos))
         for rule in rules:
             result = rule.apply(pattern, evaluation)
