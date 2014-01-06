@@ -462,6 +462,9 @@ class IntegerDigits(Builtin):
      = {4, 13, 2}
     >> IntegerDigits[1234, 10, 5]
      = {0, 1, 2, 3, 4}
+
+    #> IntegerDigits[1000, 10]
+     = {1, 0, 0, 0}
     """
 
     attributes = ('Listable',)

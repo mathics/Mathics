@@ -1384,12 +1384,6 @@ clip(box((%s,%s), (%s,%s)));
         return xml
 
     def axis_ticks(self, xmin, xmax):
-        def round(value):
-            if value >= 0:
-                return int(value + 0.5)
-            else:
-                return int(value - 0.5)
-
         def round_to_zero(value):
             if value == 0:
                 return 0
