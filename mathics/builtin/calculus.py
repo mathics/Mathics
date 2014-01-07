@@ -27,21 +27,28 @@ class D(SympyFunction):
         <dd>gives the vector derivative of $f$ with respect to $x1$, $x2$, etc.
     </dl>
 
+    First-order derivative of a polynomial:
     >> D[x^3 + x^2, x]
      = 2 x + 3 x ^ 2
+    Second-order derivative:
+    >> D[x^3 + x^2, {x, 2}]
+     = 2 + 6 x
+
+    Trigonometric derivatives:
+    >> D[Sin[Cos[x]], x]
+     = -Cos[Cos[x]] Sin[x]
+    >> D[Sin[x], {x, 2}]
+     = -Sin[x]
+
+    Unknown variables are treated as constant:
     >> D[y, x]
      = 0
     >> D[x, x]
      = 1
     >> D[x + y, x]
      = 1
-    >> D[Sin[Cos[x]], x]
-     = -Cos[Cos[x]] Sin[x]
 
-    >> D[Sin[x], {x, 2}]
-     = -Sin[x]
-
-    Unknown functions are derived using 'Derivative':
+    Derivatives of unknown functions are represented using 'Derivative':
     >> D[f[x], x]
      = f'[x]
     >> D[f[x, x], x]
