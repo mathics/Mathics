@@ -317,7 +317,7 @@ class Evaluation(object):
         if text is None:
             pattern = Expression('MessageName', Symbol('General'), String(tag))
             text = self.definitions.get_value(
-                'General', 'System`Messages', pattern, self)
+                'System`General', 'System`Messages', pattern, self)
 
         if text is None:
             text = String("Message %s::%s not found." % (symbol, tag))
