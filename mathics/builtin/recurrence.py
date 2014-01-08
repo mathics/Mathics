@@ -56,7 +56,7 @@ class RSolve(Builtin):
             return
 
         for eqn in eqns.leaves:
-            if eqn.get_head_name() != 'Equal':
+            if eqn.get_head_name() != 'System`Equal':
                 evaluation.message('RSolve', 'deqn', eqn)
                 return
 

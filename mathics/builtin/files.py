@@ -1367,7 +1367,8 @@ class BinaryWrite(Builtin):
                         x = float('-inf')
                     else:
                         x = None
-                elif isinstance(x, Symbol) and x.get_name() == 'Indeterminate':
+                elif (isinstance(x, Symbol)
+                      and x.get_name() == 'System`Indeterminate'):
                     x = float('nan')
                 else:
                     x = None
@@ -1381,7 +1382,8 @@ class BinaryWrite(Builtin):
                     # x*float('+inf') creates nan if x.real or x.imag are zero
                     x = complex(x.real * float('+inf') if x.real != 0 else 0,
                                 x.imag * float('+inf') if x.imag != 0 else 0)
-                elif isinstance(x, Symbol) and x.get_name() == 'Indeterminate':
+                elif (isinstance(x, Symbol)
+                      and x.get_name() == 'System`Indeterminate'):
                     x = complex(float('nan'), float('nan'))
                 else:
                     x = None

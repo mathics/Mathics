@@ -32,7 +32,7 @@ class StringJoin(BinaryOperator):
 
         result = ''
         items = items.flatten(Symbol('List'))
-        if items.get_head_name() == 'List':
+        if items.get_head_name() == 'System`List':
             items = items.leaves
         else:
             items = items.get_sequence()

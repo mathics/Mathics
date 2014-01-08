@@ -71,7 +71,7 @@ class _InequalityOperator(BinaryOperator):
                 return [expression]
             name = expression.get_head().get_name()
             leaves = expression.get_leaves()
-            if name == 'Inequality':
+            if name == 'System`Inequality':
                 return leaves
             elif name in names:
                 result = []

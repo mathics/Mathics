@@ -156,7 +156,7 @@ class _SetOperator(object):
         lhs_name = lhs.get_name()
         if lhs_name == 'System`$RecursionLimit':
             # if (not rhs_int_value or rhs_int_value < 20) and not
-            # rhs.get_name() == 'Infinity':
+            # rhs.get_name() == 'System`Infinity':
             if (not rhs_int_value or rhs_int_value < 20  # noqa
                 or rhs_int_value > settings.MAX_RECURSION_DEPTH):
 

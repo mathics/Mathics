@@ -1219,7 +1219,7 @@ class MathicsParser:
         n = len(args[2])
         if (isinstance(args[1], Expression) and     # nopep8
             isinstance(args[1].head, Expression) and
-            args[1].head.get_head_name() == 'Derivative' and
+            args[1].head.get_head_name() == 'System`Derivative' and
             args[1].head.leaves[0].get_int_value() is not None):
             n += args[1].head.leaves[0].get_int_value()
             args[1] = args[1].leaves[0]
@@ -1265,15 +1265,19 @@ class MathicsParser:
                 | expr RawStar expr
                 | expr expr %prec Times'''
         if len(args) == 3:
-            assert args[2].get_head_name != 'Times'
-            if args[1].get_head_name() == 'Times':
+            # FIXME: The assert below is missing (), so it doesn't do
+            # what it looks like it should do. Unfortunately fixing
+            # that causes it to go off all the time :(
+            assert args[2].get_head_name != 'System`Times'
+            if args[1].get_head_name() == 'System`Times':
                 args[1].leaves.append(args[2])
                 args[0] = args[1]
             else:
                 args[0] = Expression('Times', args[1], args[2])
         elif len(args) == 4:
-            assert args[3].get_head_name != 'Times'
-            if args[1].get_head_name() == 'Times':
+            # ditto here
+            assert args[3].get_head_name != 'System`Times'
+            if args[1].get_head_name() == 'System`Times':
                 args[1].leaves.append(args[3])
                 args[0] = args[1]
             else:
@@ -1324,7 +1328,7 @@ class MathicsParser:
         args[0] = Expression('Pattern', self.user_symbol(args[1]), args[3])
         if len(args) == 6:
             args[0] = Expression('Optional', args[0], args[5])
-        elif args[3].get_head_name() == 'Pattern':
+        elif args[3].get_head_name() == 'System`Pattern':
             args[0] = Expression(
                 'Optional',
                 Expression('Pattern', self.user_symbol(args[1]),
@@ -1378,7 +1382,7 @@ class MathicsParser:
     def p_Compound(self, args):
         '''expr : expr Semicolon expr
                 | expr Semicolon'''
-        if args[1].get_head_name() == 'CompoundExpression':
+        if args[1].get_head_name() == 'System`CompoundExpression':
             pass
         else:
             args[1] = Expression('CompoundExpression', args[1])
@@ -1403,7 +1407,7 @@ class MathicsParser:
 
     def p_form(self, args):
         'form : expr'
-        if args[1].get_head_name() == 'Symbol':
+        if args[1].get_head_name() == 'System`Symbol':
             args[0] = args[1]
         else:
             args[0] = Expression('Removed', String("$$Failure"))

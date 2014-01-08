@@ -55,12 +55,12 @@ class ListQ(Test):
     """
 
     def test(self, expr):
-        return expr.get_head_name() == 'List'
+        return expr.get_head_name() == 'System`List'
 
 
 class NotListQ(Test):
     def test(self, expr):
-        return expr.get_head_name() != 'List'
+        return expr.get_head_name() != 'System`List'
 
 
 def list_boxes(items, f, open=None, close=None):
@@ -352,7 +352,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         def process_level(item, assignment):
             if item.is_atom():
                 replace_item(list_of_list, item.original, assignment)
-            elif (assignment.get_head_name() != 'List' or
+            elif (assignment.get_head_name() != 'System`List' or
                   len(item.leaves) != len(assignment.leaves)):
                 if item.original:
                     replace_item(list_of_list, item.original, assignment)
@@ -920,7 +920,7 @@ class ReplacePart(Builtin):
             if position is None:
                 continue
             try:
-                if replacement.get_head_name() == 'RuleDelayed':
+                if replacement.get_head_name() == 'System`RuleDelayed':
                     replace_value = replace.evaluate(evaluation)
                 else:
                     replace_value = replace

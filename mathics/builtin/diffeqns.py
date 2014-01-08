@@ -76,7 +76,7 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'symsys')
             return
 
-        if eqn.get_head_name() != 'Equal':
+        if eqn.get_head_name() != 'System`Equal':
             evaluation.message('DSolve', 'deqn', eqn)
             return
 
