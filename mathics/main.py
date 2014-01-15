@@ -188,7 +188,7 @@ def main():
         '--help', '-h', help='show this help message and exit', action='help')
 
     argparser.add_argument(
-        '--persist', help='go to interactive shell after evaluating FILE',
+        '--persist', help='go to interactive shell after evaluating FILE or -e',
         action='store_true')
 
     argparser.add_argument(
@@ -200,7 +200,9 @@ def main():
         action='store_true')
 
     argparser.add_argument(
-        '--execute', '-e', nargs='?', help='execute a command')
+        '--execute', '-e', action='append', metavar='EXPR',
+        help='evaluate EXPR before processing any input files (may be given '
+        'multiple times)')
 
     argparser.add_argument(
         '--colors', nargs='?', help='interactive shell colors')
@@ -232,10 +234,12 @@ def main():
         print u"Quit by pressing {0}\n".format(quit_command)
 
     if args.execute:
-        total_input = args.execute.decode(shell.input_encoding)
-        print shell.get_in_prompt() + total_input
-        shell.evaluate(total_input)
-        return
+        for expr in args.execute:
+            total_input = expr.decode(shell.input_encoding)
+            print shell.get_in_prompt() + total_input
+            shell.evaluate(total_input)
+        if not args.persist:
+            return
 
     if args.FILE is not None:
         total_input = ''
