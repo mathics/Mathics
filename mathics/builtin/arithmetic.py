@@ -757,7 +757,7 @@ class Power(BinaryOperator, SympyFunction):
     }
 
     formats = {
-        Expression('Power', Expression('Pattern', Symbol('Global`x'),
+        Expression('Power', Expression('Pattern', Symbol('x'),
                    Expression('Blank')), Rational(1, 2)): 'HoldForm[Sqrt[x]]',
         (('InputForm', 'OutputForm'), 'x_ ^ y_'): (
             'Infix[{HoldForm[x], HoldForm[y]}, "^", 590, Right]'),
