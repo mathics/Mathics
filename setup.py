@@ -104,7 +104,6 @@ class initialize(Command):
         try:
             subprocess.check_call(
                 [sys.executable, 'mathics/manage.py', 'syncdb', '--noinput'])
-            os.chmod(database_file, 0o766)
             print("")
             print("Mathics initialized successfully.")
         except subprocess.CalledProcessError:
