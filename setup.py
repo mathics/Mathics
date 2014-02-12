@@ -101,11 +101,15 @@ class initialize(Command):
         if not os.path.exists(settings.DATA_DIR):
             os.makedirs(settings.DATA_DIR)
         print("Creating database %s" % database_file)
-        subprocess.call(
-            [sys.executable, 'mathics/manage.py', 'syncdb', '--noinput'])
-        os.chmod(database_file, 0o766)
-        print("")
-        print("Mathics initialized successfully.")
+        try:
+            subprocess.check_call(
+                [sys.executable, 'mathics/manage.py', 'syncdb', '--noinput'])
+            os.chmod(database_file, 0o766)
+            print("")
+            print("Mathics initialized successfully.")
+        except subprocess.CalledProcessError:
+            print("error: failed to create database")
+            sys.exit(1)
 
 CMDCLASS['initialize'] = initialize
 
