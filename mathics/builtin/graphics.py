@@ -1848,6 +1848,32 @@ class Orange(_ColorObject):
         'Orange': 'RGBColor[1, 0.5, 0]',
     }
 
+
+class Automatic(Builtin):
+    # todo: doc
+    pass
+
+
+class Tiny(Builtin):
+    # todo: doc
+    pass
+
+
+class Small(Builtin):
+    # todo: doc
+    pass
+
+
+class Medium(Builtin):
+    # todo: doc
+    pass
+
+
+class Large(Builtin):
+    # todo: doc
+    pass
+
+
 GLOBALS = {'System`' + k: v for k, v in {
     'Rectangle': Rectangle,
     'Disk': Disk,
