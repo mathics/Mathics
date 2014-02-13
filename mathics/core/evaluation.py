@@ -308,8 +308,14 @@ class Evaluation(object):
         if (symbol, tag) in self.quiet_messages or self.quiet_all:
             return
 
+        # Shorten the symbol's name according to the current context
+        # settings. This makes sure we print the context if it would
+        # be necessary to find the symbol that this message is
+        # attached to.
+        symbol_shortname = self.definitions.shorten_name(symbol)
+
         if settings.DEBUG_PRINT:
-            print 'MESSAGE: %s::%s (%s)' % (symbol, tag, args)
+            print 'MESSAGE: %s::%s (%s)' % (symbol_shortname, tag, args)
 
         pattern = Expression('MessageName', Symbol(symbol), String(tag))
         text = self.definitions.get_value(
@@ -320,12 +326,12 @@ class Evaluation(object):
                 'System`General', 'System`Messages', pattern, self)
 
         if text is None:
-            text = String("Message %s::%s not found." % (symbol, tag))
+            text = String("Message %s::%s not found." % (symbol_shortname, tag))
 
         text = self.format_output(Expression(
             'StringForm', text, *(from_python(arg) for arg in args)))
 
-        self.out.append(Message(symbol, tag, text))
+        self.out.append(Message(symbol_shortname, tag, text))
         if self.out_callback:
             self.out_callback(self.out[-1])
 

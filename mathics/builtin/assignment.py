@@ -200,9 +200,9 @@ class _SetOperator(object):
             if (not ignore_protection and 'System`Protected'   # noqa
                 in evaluation.definitions.get_attributes(tag)):
                 if lhs.get_name() == tag:
-                    evaluation.message(self.get_name(), 'wrsym', tag)
+                    evaluation.message(self.get_name(), 'wrsym', Symbol(tag))
                 else:
-                    evaluation.message(self.get_name(), 'write', tag, lhs)
+                    evaluation.message(self.get_name(), 'write', Symbol(tag), lhs)
                 continue
             count += 1
             if form:
