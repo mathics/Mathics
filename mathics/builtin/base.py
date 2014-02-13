@@ -77,24 +77,32 @@ class Builtin(object):
                     new_rules.append(rule)
             rules = new_rules
 
-        formatvalues = {'': []}
-        for pattern, function in self.get_functions('format_'):
+        def extract_forms(name, pattern):
+            # Handle a tuple of (forms, pattern) as well as a pattern
+            # on the left-hand side of a format rule. 'forms' can be
+            # an empty string (=> the rule applies to all forms), or a
+            # form name (like 'System`TraditionalForm'), or a sequence
+            # of form names.
             if isinstance(pattern, tuple):
                 forms, pattern = pattern
-                forms = ['System`' + f for f in forms]
+                if isinstance(forms, str):
+                    forms = [forms]
+                else:
+                    forms = [ensure_context(f) for f in forms]
             else:
                 forms = ['']
+            return forms, pattern
+
+        formatvalues = {'': []}
+        for pattern, function in self.get_functions('format_'):
+            forms, pattern = extract_forms(name, pattern)
             for form in forms:
                 if form not in formatvalues:
                     formatvalues[form] = []
                 formatvalues[form].append(BuiltinRule(
                     pattern, function, system=True))
         for pattern, replace in self.formats.items():
-            if isinstance(pattern, tuple):
-                forms, pattern = pattern
-                forms = ['System`' + f for f in forms]
-            else:
-                forms, pattern = [''], pattern
+            forms, pattern = extract_forms(name, pattern)
             for form in forms:
                 if not form in formatvalues:
                     formatvalues[form] = []
