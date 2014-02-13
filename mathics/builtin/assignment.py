@@ -609,8 +609,9 @@ class Definition(Builtin):
         def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
             evaluation.check_stopped()
             if isinstance(rule, Rule):
-                r = rhs(rule.replace.replace_vars({'Definition': Expression(
-                    'HoldForm', Symbol('Definition'))}))
+                r = rhs(rule.replace.replace_vars(
+                        {'System`Definition': Expression(
+                                'HoldForm', Symbol('Definition'))}))
                 lines.append(Expression('HoldForm', Expression(
                     up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
 

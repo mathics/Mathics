@@ -1250,6 +1250,7 @@ class Symbol(Atom):
         return isinstance(other, Symbol) and self.name == other.name
 
     def replace_vars(self, vars, options={}, in_scoping=True):
+        assert all('`' in v for v in vars), "invalid contextless var name"
         var = vars.get(self.name, None)
         if var is None:
             return self
