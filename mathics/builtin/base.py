@@ -322,6 +322,11 @@ class BinaryOperator(Operator):
         # Prevent pattern matching symbols from gaining meaning here using
         # Verbatim
         name = 'Verbatim[%s]' % name
+
+        # For compatibility, allow grouping symbols in builtins to be
+        # specified without System`.
+        self.grouping = ensure_context(self.grouping)
+
         if self.grouping in ('System`None', 'System`NonAssociative'):
             op_pattern = '%s[items__]' % name
             replace_items = 'items'
