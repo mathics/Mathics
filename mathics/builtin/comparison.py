@@ -64,6 +64,9 @@ class _InequalityOperator(BinaryOperator):
     grouping = 'NonAssociative'
 
     def parse(self, args):
+        # Parse multiple inequalities.
+        # "a op b op c" -> op[a, b, c]
+        # "a op1 b op2 c" -> Inequality[a, op1, b, op2, c]
         names = operators.keys()
 
         def inequality_leaves(expression):

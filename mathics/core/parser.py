@@ -1004,14 +1004,15 @@ class MathicsParser:
             @ONEARG
             def tmp(args, op=innequality_op):
                 head = args[1].get_head_name()
-                if head == op:
+                if head == ensure_context(op):
                     args[1].leaves.append(args[3])
                     args[0] = args[1]
                 elif head == 'System`Inequality':
                     args[1].leaves.append(Symbol(op))
                     args[1].leaves.append(args[3])
                     args[0] = args[1]
-                elif head in ['System`'+k for k in innequality_operators.keys()]:
+                elif head in [ensure_context(k)
+                              for k in innequality_operators.keys()]:
                     leaves = []
                     for i, leaf in enumerate(args[1].leaves):
                         if i != 0:
