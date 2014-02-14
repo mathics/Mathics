@@ -224,6 +224,8 @@ class Context(Builtin):
      = Pattern[a`b, Blank[]]
     """
 
+    attributes = ('HoldFirst',)
+
     def apply(self, symbol, evaluation):
         'Context[symbol_]'
 
