@@ -27,9 +27,12 @@ from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 
 
 def ensure_context(name):
+    assert isinstance(name, (str, unicode))
     if '`' in name:
         # Symbol has a context mark -> it came from the parser
-        assert not(name.startswith('`'))
+        assert not name.startswith('`')
+        assert not name.endswith('`')
+        assert '``' not in name
         return name
     # Symbol came from Python code doing something like
     # Expression('Plus', ...) -> use System`
