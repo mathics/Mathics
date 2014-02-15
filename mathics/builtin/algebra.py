@@ -117,7 +117,7 @@ class Together(Builtin):
      = f[a / c + b / c]
 
     #> f[x]/x+f[x]/x^2//Together
-     = (1 + x) f[x] / x ^ 2
+     = f[x] (1 + x) / x ^ 2
     """
 
     attributes = ['Listable']
