@@ -147,3 +147,10 @@ class DSolve(Builtin):
                 for soln in sym_result])
 
 # TODO: NDSolve
+
+
+class C(Builtin):
+    """
+    'C'[$n$] represents the $n$th constant in a solution to a
+    differential equation.
+    """
