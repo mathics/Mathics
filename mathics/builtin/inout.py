@@ -769,6 +769,26 @@ class Infix(Builtin):
     """
 
 
+class NonAssociative(Builtin):
+    # todo: doc
+    pass
+
+
+class Left(Builtin):
+    # todo: doc
+    pass
+
+
+class Right(Builtin):
+    # todo: doc
+    pass
+
+
+class Center(Builtin):
+    # todo: doc - alignment, not associativity
+    pass
+
+
 class StringForm(Builtin):
     """
     >> StringForm["`1` bla `2` blub `` bla `2`", a, b, c]
