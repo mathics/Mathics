@@ -177,6 +177,19 @@ class Protected(Predefined):
     """
 
 
+class ReadProtected(Predefined):
+    """
+    Values associated with 'ReadProtected' symbols cannot be read:
+    >> ClearAll[p]
+    >> p = 3;
+    >> Definition[p]
+     = p = 3
+    >> SetAttributes[p, ReadProtected]
+    >> Definition[p]
+     = Attributes[p] = {ReadProtected}
+    """
+
+
 class Locked(Predefined):
     """
     The attributes of 'Locked' symbols cannot be modified:
