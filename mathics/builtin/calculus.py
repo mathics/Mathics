@@ -605,7 +605,7 @@ class Solve(Builtin):
     rules = {
         'Solve[eqs_, vars_, Complexes]': 'Solve[eqs, vars]',
         'Solve[eqs_, vars_, Reals]': (
-            'Cases[Solve[eqs, vars], {Rule[x,y_?RealNumberQ]}]'),
+            'Cases[Solve[eqs, vars], {Rule[x_,y_?RealNumberQ]}]'),
     }
 
     def apply(self, eqs, vars, evaluation):
