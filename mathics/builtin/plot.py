@@ -488,7 +488,7 @@ class _ListPlot(Builtin):
         plotrange = plotrange_option.to_python(n_evaluation=evaluation)
         if plotrange == 'System`All':
             plotrange = ['System`All', 'System`All']
-        elif plotrange == 'System`atic':
+        elif plotrange == 'System`Automatic':
             plotrange = ['System`Automatic', 'System`Automatic']
         elif isinstance(plotrange, numbers.Real):
             plotrange = [[-plotrange, plotrange], [-plotrange, plotrange]]
