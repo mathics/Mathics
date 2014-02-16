@@ -42,12 +42,12 @@ class _SetOperator(object):
                 evaluation.message(name, 'sym', lhs.leaves[0], 1)
                 return False
             if tags is not None and tags != [tag]:
-                evaluation.message(name, 'tag', name, tag)
+                evaluation.message(name, 'tag', Symbol(name), Symbol(tag))
                 return False
 
             if (name != 'System`Attributes' and 'System`Protected'    # noqa
                 in evaluation.definitions.get_attributes(tag)):
-                evaluation.message(name, 'wrsym', tag)
+                evaluation.message(name, 'wrsym', Symbol(tag))
                 return False
             if name == 'System`Options':
                 option_values = rhs.get_option_values(evaluation)
@@ -61,7 +61,7 @@ class _SetOperator(object):
                 if attributes is None:
                     return False
                 if 'System`Locked' in evaluation.definitions.get_attributes(tag):
-                    evaluation.message(name, 'locked', tag)
+                    evaluation.message(name, 'locked', Symbol(tag))
                     return False
                 evaluation.definitions.set_attributes(tag, attributes)
             else:
@@ -148,7 +148,7 @@ class _SetOperator(object):
                     allowed_names.append(leaf.get_lookup_name())
             for name in tags:
                 if name not in allowed_names:
-                    evaluation.message(self.get_name(), 'tagnfd', name)
+                    evaluation.message(self.get_name(), 'tagnfd', Symbol(name))
                     return False
 
         ignore_protection = False
@@ -246,7 +246,7 @@ class _SetOperator(object):
                 evaluation.message(self.get_name(), 'setps', symbol)
                 return False
             if 'System`Protected' in evaluation.definitions.get_attributes(name):
-                evaluation.message(self.get_name(), 'wrsym', name)
+                evaluation.message(self.get_name(), 'wrsym', symbol)
                 return False
             rule = evaluation.definitions.get_ownvalue(name)
             if rule is None:
@@ -746,10 +746,10 @@ class Clear(Builtin):
                 continue
             attributes = evaluation.definitions.get_attributes(name)
             if 'System`Protected' in attributes:
-                evaluation.message('Clear', 'wrsym', name)
+                evaluation.message('Clear', 'wrsym', symbol)
                 continue
             if not self.allow_locked and 'System`Locked' in attributes:
-                evaluation.message('Clear', 'locked', name)
+                evaluation.message('Clear', 'locked', symbol)
                 continue
             definition = evaluation.definitions.get_user_definition(name)
             self.do_clear(definition)
@@ -890,7 +890,7 @@ class Unset(PostfixOperator):
             return Symbol('$Failed')
         if not evaluation.definitions.unset(name, expr):
             if not expr.is_atom():
-                evaluation.message('Unset', 'norep', expr, name)
+                evaluation.message('Unset', 'norep', expr, Symbol(name))
                 return Symbol('$Failed')
         return Symbol('Null')
 

@@ -891,12 +891,12 @@ class FindRoot(Builtin):
         while count < 100:
             minus = dynamic_scoping(sub, {x_name: x0}, evaluation)
             if minus is None:
-                evaluation.message('FindRoot', 'dsing', x_name, x0)
+                evaluation.message('FindRoot', 'dsing', x, x0)
                 return
             x1 = Expression('Plus', x0, Expression(
                 'Times', Integer(-1), minus)).evaluate(evaluation)
             if not isinstance(x1, Number):
-                evaluation.message('FindRoot', 'nnum', x_name, x0)
+                evaluation.message('FindRoot', 'nnum', x, x0)
                 return
             if x1 == x0:
                 break

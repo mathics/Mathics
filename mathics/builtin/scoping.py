@@ -36,6 +36,7 @@ def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
 def dynamic_scoping(func, vars, evaluation):
     original_definitions = {}
     for var_name, new_def in vars.items():
+        # TODO could put an assert here on fully-qualified var_name
         original_definitions[
             var_name] = evaluation.definitions.get_user_definition(var_name)
         evaluation.definitions.reset_user_definition(var_name)

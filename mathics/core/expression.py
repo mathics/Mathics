@@ -1189,6 +1189,7 @@ class Atom(BaseExpression):
 class Symbol(Atom):
     def __init__(self, name, sympy_dummy=None, **kwargs):
         super(Symbol, self).__init__(**kwargs)
+        assert isinstance(name, (str, unicode))
         self.name = ensure_context(name)
         self.sympy_dummy = sympy_dummy
 
