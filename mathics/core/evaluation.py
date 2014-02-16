@@ -297,7 +297,8 @@ class Evaluation(object):
         try:
             boxes = result.boxes_to_text(evaluation=self)
         except BoxError:
-            self.message('General', 'notboxes', String('%s' % result))
+            self.message('General', 'notboxes',
+                         Expression('FullForm', result).evaluate(self))
             boxes = None
         return boxes
 

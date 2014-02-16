@@ -1788,7 +1788,8 @@ class WriteString(Builtin):
                 result = result.boxes_to_text(evaluation=evaluation)
             except BoxError:
                 return evaluation.message(
-                    'General', 'notboxes', String('%s' % result))
+                    'General', 'notboxes',
+                    Expression('FullForm', result).evaluate(evaluation))
             exprs.append(result)
 
         stream.write(u''.join(exprs))
