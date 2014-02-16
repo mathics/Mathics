@@ -666,7 +666,7 @@ def get_default_value(name, evaluation, k=None, n=None):
         # Try patterns from specific to general
         defaultexpr = Expression('Default', Symbol(name),
                                  *[Integer(index) for index in pos[:pos_len]])
-        result = evaluation.definitions.get_value(name, 'DefaultValues',
+        result = evaluation.definitions.get_value(name, 'System`DefaultValues',
                                                   defaultexpr, evaluation)
         if result is not None:
             if result.same(defaultexpr):

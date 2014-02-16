@@ -1136,7 +1136,7 @@ class DefaultValues(Builtin):
         'DefaultValues[symbol_]'
 
         return get_symbol_values(
-            symbol, 'DefaultValues', 'default', evaluation)
+            symbol, 'System`DefaultValues', 'default', evaluation)
 
 
 class AddTo(BinaryOperator):

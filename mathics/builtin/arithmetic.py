@@ -1672,6 +1672,6 @@ class Piecewise(SympyFunction):
 
     def from_sympy(self, args):
         # Hack to get around weird sympy.Piecewise 'otherwise' behaviour
-        if str(args[-1].leaves[1]).startswith('_True__Dummy_'):
+        if str(args[-1].leaves[1]).startswith('System`_True__Dummy_'):
             args[-1].leaves[1] = Symbol('True')
         return [args]

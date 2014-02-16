@@ -129,7 +129,7 @@ class N(Builtin):
             name = expr.get_lookup_name()
             nexpr = Expression('N', expr, prec)
             result = evaluation.definitions.get_value(
-                name, 'NValues', nexpr, evaluation)
+                name, 'System`NValues', nexpr, evaluation)
             if result is not None:
                 if not result.same(nexpr):
                     result = Expression('N', result, prec).evaluate(evaluation)
@@ -370,7 +370,7 @@ class NumericQ(Builtin):
             if isinstance(expr, Expression):
                 attr = evaluation.definitions.get_attributes(
                     expr.head.get_name())
-                return 'NumericFunction' in attr and all(
+                return 'System`NumericFunction' in attr and all(
                     test(leaf) for leaf in expr.leaves)
             else:
                 return expr.is_numeric()
