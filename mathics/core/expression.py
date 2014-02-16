@@ -27,7 +27,7 @@ from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 
 
 def ensure_context(name):
-    assert isinstance(name, (str, unicode))
+    assert isinstance(name, basestring)
     if '`' in name:
         # Symbol has a context mark -> it came from the parser
         assert not name.startswith('`')
@@ -1189,7 +1189,7 @@ class Atom(BaseExpression):
 class Symbol(Atom):
     def __init__(self, name, sympy_dummy=None, **kwargs):
         super(Symbol, self).__init__(**kwargs)
-        assert isinstance(name, (str, unicode))
+        assert isinstance(name, basestring)
         self.name = ensure_context(name)
         self.sympy_dummy = sympy_dummy
 

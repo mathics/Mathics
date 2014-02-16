@@ -1499,7 +1499,7 @@ parser.build()
 # todo describe this
 class SystemDefinitions(object):
     def lookup_name(self, name):
-        assert type(name) in (str, unicode)
+        assert isinstance(name, basestring)
         return ensure_context(name)
 system_definitions = SystemDefinitions()
 
