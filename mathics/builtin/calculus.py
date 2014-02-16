@@ -376,7 +376,7 @@ class Integrate(SympyFunction):
      = RootSum[625 #1 ^ 4 + 125 #1 ^ 3 + 25 #1 ^ 2 + 5 #1 + 1&, Log[x + 5 #1] #1&] + Log[1 + x] / 5
 
     #> Integrate[ArcTan(x), x]
-     = ArcTan x ^ 2 / 2
+     = x ^ 2 ArcTan / 2
     #> Integrate[E[x], x]
      = Integrate[E[x], x]
 
@@ -384,13 +384,13 @@ class Integrate(SympyFunction):
      = 2 Sqrt[Pi]
 
     #> Integrate[Exp[-1/(x^2)], x]
-     = Sqrt[Pi] Erf[1 / x] + x E ^ (-1 / x ^ 2)
+     = x E ^ (-1 / x ^ 2) + Sqrt[Pi] Erf[1 / x]
 
     >> Integrate[ArcSin[x / 3], x]
      = x ArcSin[x / 3] + Sqrt[9 - x ^ 2]
 
     >> Integrate[f'[x], {x, a, b}]
-     = -f[a] + f[b]
+     = f[b] - f[a]
     """
 
     # TODO
