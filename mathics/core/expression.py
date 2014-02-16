@@ -1859,7 +1859,7 @@ def get_default_value(name, evaluation, k=None, n=None):
         defaultexpr = Expression('Default', Symbol(name),
                                  *[Integer(index) for index in pos[:pos_len]])
         result = evaluation.definitions.get_value(
-            name, 'DefaultValues', defaultexpr, evaluation)
+            name, 'System`DefaultValues', defaultexpr, evaluation)
         if result is not None:
             if result.same(defaultexpr):
                 result = result.evaluate(evaluation)

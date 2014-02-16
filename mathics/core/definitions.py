@@ -35,10 +35,11 @@ def get_file_time(file):
 def valuesname(name):
     " 'NValues' -> 'n' "
 
+    assert name.startswith('System`'), name
     if name == 'System`Messages':
         return 'messages'
     else:
-        return name[:-6].lower()
+        return name[7:-6].lower()
 
 
 class Definitions(object):
@@ -411,12 +412,14 @@ class Definition(object):
         self.builtin = builtin
 
     def get_values_list(self, pos):
+        assert pos.isalpha()
         if pos == 'messages':
             return self.messages
         else:
             return getattr(self, '%svalues' % pos)
 
     def set_values_list(self, pos, rules):
+        assert pos.isalpha()
         if pos == 'messages':
             self.messages = rules
         else:
