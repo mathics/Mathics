@@ -1261,7 +1261,7 @@ class Symbol(Atom):
             return var
 
     def has_symbol(self, symbol_name):
-        return self.name == symbol_name
+        return self.name == ensure_context(symbol_name)
 
     def evaluate(self, evaluation):
         rules = evaluation.definitions.get_ownvalues(self.name)
