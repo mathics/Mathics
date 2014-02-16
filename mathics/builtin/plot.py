@@ -55,6 +55,11 @@ class Mesh(Builtin):
     }
 
 
+class Full(Builtin):
+    # todo: doc
+    pass
+
+
 def quiet_evaluate(expr, vars, evaluation, expect_list=False):
     """ Evaluates expr with given dynamic scoping values
     without producing arithmetic error messages. """
