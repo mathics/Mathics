@@ -23,6 +23,7 @@ import cPickle as pickle
 import interruptingcow
 
 from mathics import settings
+from mathics.core.expression import ensure_context
 
 FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
@@ -304,12 +305,15 @@ class Evaluation(object):
         from mathics.core.expression import (String, Symbol, Expression,
                                              from_python)
 
-        symbol = self.definitions.lookup_name(symbol)
+        # Allow evaluation.message('MyBuiltin', ...) (assume
+        # System`MyBuiltin)
+        symbol = ensure_context(symbol)
+
         if (symbol, tag) in self.quiet_messages or self.quiet_all:
             return
 
         # Shorten the symbol's name according to the current context
-        # settings. This makes sure we print the context if it would
+        # settings. This makes sure we print the context, if it would
         # be necessary to find the symbol that this message is
         # attached to.
         symbol_shortname = self.definitions.shorten_name(symbol)
