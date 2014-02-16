@@ -980,6 +980,7 @@ class MathicsParser:
 
             @ONEARG
             def tmp(args, op=flat_infix_op):
+                op = ensure_context(op)
                 if args[1].get_head_name() == op:
                     args[1].leaves.append(args[3])
                     args[0] = args[1]
