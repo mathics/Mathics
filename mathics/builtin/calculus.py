@@ -737,6 +737,14 @@ class Solve(Builtin):
                 evaluation.message('Solve', 'ivar', vars_original)
 
 
+class Reals(Builtin):
+    pass
+
+
+class Complexes(Builtin):
+    pass
+
+
 class Limit(Builtin):
     """
     <dl>
