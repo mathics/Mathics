@@ -27,7 +27,7 @@ def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
             message('lvsym', var)
             continue
         if var_name in scoping_vars:
-            message('dup', var_name)
+            message('dup', Symbol(var_name))
         else:
             scoping_vars.add(var_name)
             yield var_name, new_def
