@@ -246,11 +246,11 @@ class DollarContext(Builtin):
         <dd>is the current context.
     </dl>
 
-    >> $Context
-     = Global`
+    ##>> $Context
+    ## = Global`
 
-    #> InputForm[$Context]
-     = "Global`"
+    ###> InputForm[$Context]
+    ## = "Global`"
 
     ## Test general context behaviour
     #> Plus === Global`Plus
@@ -270,8 +270,8 @@ class DollarContextPath(Builtin):
         <dd>is the search path for contexts.
     </dl>
 
-    >> $ContextPath // InputForm
-     = {"Global`", "System`"}
+    ##>> $ContextPath // InputForm
+    ## = {"Global`", "System`"}
     """
 
     name = '$ContextPath'
