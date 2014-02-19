@@ -1,7 +1,8 @@
 # -*- coding: utf8 -*-
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
-from mathics.core.expression import Expression, String, Symbol, Integer
+from mathics.core.expression import (Expression, String, Symbol, Integer,
+                                     strip_context)
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
@@ -554,7 +555,9 @@ class SymbolName(Builtin):
     def apply(self, symbol, evaluation):
         'SymbolName[symbol_Symbol]'
 
-        return String(symbol.get_name())
+        # MMA docs say "SymbolName always gives the short name,
+        # without any context"
+        return String(strip_context(symbol.get_name()))
 
 
 class Depth(Builtin):
