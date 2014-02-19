@@ -632,42 +632,53 @@ class FromCharacterCode(Builtin):
     def apply(self, n, evaluation):
         "FromCharacterCode[n_]"
         exp = Expression('FromCharacterCode', n)
-        pyn = n.to_python()
 
-        def convert(pyn, encoding=None):
+        class InvalidCodepointError(ValueError): pass
+
+        def convert_codepoint_list(l, encoding=None):
             if encoding is not None:
                 raise NotImplementedError
 
-            for i, pyni in enumerate(pyn):
-                if not (isinstance(pyni, int) and 0 <= pyni <= 0xffff):
-                    return evaluation.message(
-                        'FromCharacterCode', 'notunicode', pyn, Integer(i + 1))
+            s = ''
+            for i, ni in enumerate(l):
+                pyni = ni.get_int_value()
+                if not(pyni is not None and 0 <= pyni <= 0xffff):
+                    evaluation.message(
+                        'FromCharacterCode', 'notunicode',
+                        Expression('List', *l), Integer(i + 1))
+                    raise InvalidCodepointError
+                s += unichr(pyni)
 
-            return ''.join(unichr(pyni) for pyni in pyn)
+            return s
 
-        if isinstance(pyn, list):
-            if pyn == []:
-                string = ''
-            elif all(isinstance(ni, list) for ni in pyn):
-                string = []
-                for pyni in pyn:
-                    stringi = convert(pyni)
-                    if stringi is None:
-                        string = None
-                        break
-                    else:
-                        string.append(stringi)
+        try:
+            if n.has_form('List', None):
+                if not n.get_leaves():
+                    return String('')
+                # Mathematica accepts FromCharacterCode[{{100}, 101}],
+                # so to match this, just check the first leaf to see
+                # if we're dealing with nested lists.
+                elif n.get_leaves()[0].has_form('List', None):
+                    list_of_strings = []
+                    for leaf in n.get_leaves():
+                        if leaf.has_form('List', None):
+                            stringi = convert_codepoint_list(leaf.get_leaves())
+                        else:
+                            stringi = convert_codepoint_list([leaf])
+                        list_of_strings.append(String(stringi))
+                    return Expression('List', *list_of_strings)
+                else:
+                    return String(convert_codepoint_list(n.get_leaves()))
             else:
-                string = convert(pyn)
-        else:
-            if not (isinstance(pyn, int) and pyn > 0):
-                evaluation.message(
-                    'FromCharacterCode', 'intnm', exp, Integer(1))
-                return
-            string = convert([pyn])
+                pyn = n.get_int_value()
+                if not (isinstance(pyn, int) and pyn > 0):
+                    return evaluation.message(
+                        'FromCharacterCode', 'intnm', exp, Integer(1))
+                return String(convert_codepoint_list([n]))
+        except InvalidCodepointError:
+            return
 
-        if string is not None:
-            return from_python(string)
+        assert False, "can't get here"
 
 
 class StringQ(Test):
