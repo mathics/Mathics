@@ -26,13 +26,19 @@ from mathics.core.numbers import get_type, dps, prec, min_prec
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 
 
+def fully_qualified_symbol_name(name):
+    return (isinstance(name, basestring)
+            and '`' in name
+            and not name.startswith('`')
+            and not name.endswith('`')
+            and '``' not in name)
+
+
 def ensure_context(name):
     assert isinstance(name, basestring)
     if '`' in name:
         # Symbol has a context mark -> it came from the parser
-        assert not name.startswith('`')
-        assert not name.endswith('`')
-        assert '``' not in name
+        assert fully_qualified_symbol_name(name)
         return name
     # Symbol came from Python code doing something like
     # Expression('Plus', ...) -> use System`
@@ -1253,7 +1259,7 @@ class Symbol(Atom):
         return isinstance(other, Symbol) and self.name == other.name
 
     def replace_vars(self, vars, options={}, in_scoping=True):
-        assert all('`' in v for v in vars), "invalid contextless var name"
+        assert all(fully_qualified_symbol_name(v) for v in vars)
         var = vars.get(self.name, None)
         if var is None:
             return self
