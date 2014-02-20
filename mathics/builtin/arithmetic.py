@@ -1110,6 +1110,15 @@ class I(Predefined):
         return Complex(sympy.Integer(0), sympy.Integer(1))
 
 
+class Indeterminate(Builtin):
+    """
+    <dl>
+    <dt>'Indeterminate'
+        <dd>represents an indeterminate result.
+    </dl>
+    """
+
+
 class NumberQ(Test):
     """
     <dl>

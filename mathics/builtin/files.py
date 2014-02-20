@@ -339,6 +339,72 @@ class OperatingSystem(Predefined):
             return String('Unknown')
 
 
+class EndOfFile(Builtin):
+    """
+    <dl>
+    <dt>'EndOfFile'
+      <dd>is returned by 'Read' when the end of an input stream is reached.
+    </dl>
+    """
+
+
+# TODO: Improve docs for these Read[] arguments.
+class Byte(Builtin):
+    """
+    <dl>
+    <dt>'Byte'
+      <dd>is a data type for 'Read'
+    </dl>
+    """
+
+
+class Character(Builtin):
+    """
+    <dl>
+    <dt>'Character'
+      <dd>is a data type for 'Read'
+    </dl>
+    """
+
+
+class Expression_(Builtin):
+    """
+    <dl>
+    <dt>'Expression'
+      <dd>is a data type for 'Read'
+    </dl>
+    """
+    name = 'Expression'
+
+
+class Number_(Builtin):
+    """
+    <dl>
+    <dt>'Number'
+      <dd>is a data type for 'Read'
+    </dl>
+    """
+    name = 'Number'
+
+
+class Record(Builtin):
+    """
+    <dl>
+    <dt>'Record'
+      <dd>is a data type for 'Read'
+    </dl>
+    """
+
+
+class Word(Builtin):
+    """
+    <dl>
+    <dt>'Word'
+      <dd>is a data type for 'Read'
+    </dl>
+    """
+
+
 class Read(Builtin):
     """
     <dl>
@@ -478,26 +544,26 @@ class Read(Builtin):
         keys = options.keys()
 
         # AnchoredSearch
-        if 'AnchoredSearch' in keys:
-            anchored_search = options['AnchoredSearch'].to_python()
+        if 'System`AnchoredSearch' in keys:
+            anchored_search = options['System`AnchoredSearch'].to_python()
             assert anchored_search in [True, False]
             result['AnchoredSearch'] = anchored_search
 
         # IgnoreCase
-        if 'IgnoreCase' in keys:
-            ignore_case = options['IgnoreCase'].to_python()
+        if 'System`IgnoreCase' in keys:
+            ignore_case = options['System`IgnoreCase'].to_python()
             assert ignore_case in [True, False]
             result['IgnoreCase'] = ignore_case
 
         # WordSearch
-        if 'WordSearch' in keys:
-            word_search = options['WordSearch'].to_python()
+        if 'System`WordSearch' in keys:
+            word_search = options['System`WordSearch'].to_python()
             assert word_search in [True, False]
             result['WordSearch'] = word_search
 
         # RecordSeparators
-        if 'RecordSeparators' in keys:
-            record_separators = options['RecordSeparators'].to_python()
+        if 'System`RecordSeparators' in keys:
+            record_separators = options['System`RecordSeparators'].to_python()
             assert isinstance(record_separators, list)
             assert all(isinstance(s, basestring) and s[
                        0] == s[-1] == '"' for s in record_separators)
@@ -505,8 +571,8 @@ class Read(Builtin):
             result['RecordSeparators'] = record_separators
 
         # WordSeparators
-        if 'WordSeparators' in keys:
-            word_separators = options['WordSeparators'].to_python()
+        if 'System`WordSeparators' in keys:
+            word_separators = options['System`WordSeparators'].to_python()
             assert isinstance(word_separators, list)
             assert all(isinstance(s, basestring) and s[
                        0] == s[-1] == '"' for s in word_separators)
@@ -514,20 +580,20 @@ class Read(Builtin):
             result['WordSeparators'] = word_separators
 
         # NullRecords
-        if 'NullRecords' in keys:
-            null_records = options['NullRecords'].to_python()
+        if 'System`NullRecords' in keys:
+            null_records = options['System`NullRecords'].to_python()
             assert null_records in [True, False]
             result['NullRecords'] = null_records
 
         # NullWords
-        if 'NullWords' in keys:
-            null_words = options['NullWords'].to_python()
+        if 'System`NullWords' in keys:
+            null_words = options['System`NullWords'].to_python()
             assert null_words in [True, False]
             result['NullWords'] = null_words
 
         # TokenWords
-        if 'TokenWords' in keys:
-            token_words = options['TokenWords'].to_python()
+        if 'System`TokenWords' in keys:
+            token_words = options['System`TokenWords'].to_python()
             assert token_words == []
             result['TokenWords'] = token_words
 
@@ -553,16 +619,17 @@ class Read(Builtin):
             evaluation.message('Read', 'openx', strm)
             return
 
-        types = types.to_python()
-        if not isinstance(types, list):
-            types = [types]
+        # Wrap types in a list (if it isn't already one)
+        if not types.has_form('List', None):
+            types = Expression('List', types)
 
-        READ_TYPES = ['Byte', 'Character', 'Expression',
-                      'Number', 'Real', 'Record', 'String', 'Word']
+        READ_TYPES = [Symbol(k) for k in
+                      ['Byte', 'Character', 'Expression',
+                       'Number', 'Real', 'Record', 'String', 'Word']]
 
-        for typ in types:
-            if not (isinstance(typ, basestring) and typ in READ_TYPES):
-                evaluation.message('Read', 'readf', from_python(typ))
+        for typ in types.leaves:
+            if typ not in READ_TYPES:
+                evaluation.message('Read', 'readf', typ)
                 return Symbol('$Failed')
 
         ## Options:
@@ -609,19 +676,19 @@ class Read(Builtin):
         read_real = reader(
             stream, word_separators + record_separators,
             ['+', '-', '.', 'e', 'E', '^', '*'] + [str(i) for i in range(10)])
-        for typ in types:
+        for typ in types.leaves:
             try:
-                if typ == 'Byte':
+                if typ == Symbol('Byte'):
                     tmp = stream.read(1)
                     if tmp == '':
                         raise EOFError
                     result.append(ord(tmp))
-                elif typ == 'Character':
+                elif typ == Symbol('Character'):
                     tmp = stream.read(1)
                     if tmp == '':
                         raise EOFError
                     result.append(tmp)
-                elif typ == 'Expression':
+                elif typ == Symbol('Expression'):
                     tmp = read_record.next()
                     try:
                         try:
@@ -636,7 +703,7 @@ class Read(Builtin):
                             'InputSteam', name, n))
                         return Symbol('$Failed')
                     result.append(tmp)
-                elif typ == 'Number':
+                elif typ == Symbol('Number'):
                     tmp = read_number.next()
                     try:
                         tmp = int(tmp)
@@ -649,7 +716,7 @@ class Read(Builtin):
                             return Symbol('$Failed')
                     result.append(tmp)
 
-                elif typ == 'Real':
+                elif typ == Symbol('Real'):
                     tmp = read_real.next()
                     tmp = tmp.replace('*^', 'E')
                     try:
@@ -659,14 +726,14 @@ class Read(Builtin):
                             'InputSteam', name, n))
                         return Symbol('$Failed')
                     result.append(tmp)
-                elif typ == 'Record':
+                elif typ == Symbol('Record'):
                     result.append(read_record.next())
-                elif typ == 'String':
+                elif typ == Symbol('String'):
                     tmp = stream.readline()
                     if len(tmp) == 0:
                         raise EOFError
                     result.append(tmp.rstrip('\n'))
-                elif typ == 'Word':
+                elif typ == Symbol('Word'):
                     result.append(read_word.next())
 
             except EOFError:
@@ -1838,7 +1905,7 @@ class _OpenAction(Builtin):
         ## Options
         # BinaryFormat
         mode = self.mode
-        if options['BinaryFormat'].is_true():
+        if options['System`BinaryFormat'].is_true():
             if not self.mode.endswith('b'):
                 mode += 'b'
 
@@ -2295,11 +2362,11 @@ class FileNameSplit(Builtin):
         path = filename.to_python()[1:-1]
 
         operating_system = options[
-            'OperatingSystem'].evaluate(evaluation).to_python()
+            'System`OperatingSystem'].evaluate(evaluation).to_python()
 
         if operating_system not in ['"MacOSX"', '"Windows"', '"Unix"']:
             evaluation.message('FileNameSplit', 'ostype', options[
-                               'OperatingSystem'])
+                               'System`OperatingSystem'])
             if os.name == 'posix':
                 operating_system = 'Unix'
             elif os.name == 'nt':
@@ -2359,11 +2426,11 @@ class FileNameJoin(Builtin):
         py_pathlist = [p[1:-1] for p in py_pathlist]
 
         operating_system = options[
-            'OperatingSystem'].evaluate(evaluation).to_python()
+            'System`OperatingSystem'].evaluate(evaluation).to_python()
 
         if operating_system not in ['"MacOSX"', '"Windows"', '"Unix"']:
             evaluation.message('FileNameSplit', 'ostype', options[
-                               'OperatingSystem'])
+                               'System`OperatingSystem'])
             if os.name == 'posix':
                 operating_system = 'Unix'
             elif os.name == 'nt':
@@ -2714,7 +2781,7 @@ class ReadList(Read):
             if tmp == Symbol('$Failed'):
                 return
 
-            if tmp.to_python() == 'EndOfFile':
+            if tmp == Symbol('EndOfFile'):
                 break
             result.append(tmp)
         return from_python(result)
@@ -2803,7 +2870,7 @@ class FilePrint(Builtin):
         pypath = path_search(pypath[1:-1])
 
         # Options
-        record_separators = options['RecordSeparators'].to_python()
+        record_separators = options['System`RecordSeparators'].to_python()
         assert isinstance(record_separators, list)
         assert all(isinstance(s, basestring) and s[
                    0] == s[-1] == '"' for s in record_separators)
@@ -3077,8 +3144,8 @@ class Skip(Read):
         for i in range(py_m):
             result = super(Skip, self).apply(
                 channel, types, evaluation, options)
-            if result.to_python() == 'EndOfFile':
-                return Symbol('EndOfFile')
+            if result == Symbol('EndOfFile'):
+                return result
         return Symbol('Null')
 
 
@@ -3148,7 +3215,7 @@ class Find(Read):
                 channel, Symbol('Record'), evaluation, options)
             py_tmp = tmp.to_python()[1:-1]
 
-            if py_tmp == 'EndOfFile':
+            if py_tmp == 'System`EndOfFile':
                 evaluation.message(
                     'Find', 'notfound', Expression('Find', channel, text))
                 return Symbol("$Failed")
@@ -4247,7 +4314,7 @@ class DeleteDirectory(Builtin):
         expr = Expression('DeleteDirectory', dirname)
         py_dirname = dirname.to_python()
 
-        delete_contents = options['DeleteContents'].to_python()
+        delete_contents = options['System`DeleteContents'].to_python()
         if not delete_contents in [True, False]:
             evaluation.message('DeleteDirectory', 'idcts')
             return
