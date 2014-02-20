@@ -158,7 +158,7 @@ class ElementData(Builtin):
         if result == "NOT_KNOWN":
             return Expression("Missing", "Unknown")
 
-        result = parse(result)
+        result = parse(result, evaluation.definitions)
         if isinstance(result, Symbol):
             result = String(strip_context(result.get_name()))
         return result

@@ -54,7 +54,7 @@ class Builtin(object):
         super(Builtin, self).__init__()
 
     def contribute(self, definitions):
-        from mathics.core.parser import parse
+        from mathics.core.parser import parse_builtin_rule
 
         name = self.get_name()
         rules = []
@@ -63,9 +63,10 @@ class Builtin(object):
         for pattern, replace in self.rules.items():
             if not isinstance(pattern, BaseExpression):
                 pattern = pattern % {'name': name}
-                pattern = parse(pattern)
+                pattern = parse_builtin_rule(pattern)
             replace = replace % {'name': name}
-            rules.append(Rule(pattern, parse(replace), system=True))
+            rules.append(Rule(
+                    pattern, parse_builtin_rule(replace), system=True))
 
         box_rules = []
         if name != 'System`MakeBoxes':
@@ -107,9 +108,9 @@ class Builtin(object):
                 if not form in formatvalues:
                     formatvalues[form] = []
                 if not isinstance(pattern, BaseExpression):
-                    pattern = parse(pattern)
+                    pattern = parse_builtin_rule(pattern)
                 formatvalues[form].append(Rule(
-                    pattern, parse(replace), system=True))
+                    pattern, parse_builtin_rule(replace), system=True))
         for form, formatrules in formatvalues.items():
             formatrules.sort()
 
@@ -125,7 +126,7 @@ class Builtin(object):
         options = {}
         for option, value in self.options.iteritems():
             option = ensure_context(option)
-            options[option] = parse(value)
+            options[option] = parse_builtin_rule(value)
             if option.startswith('System`'):
                 # Create a definition for the option's symbol.
                 # Otherwise it'll be created in Global` when it's
@@ -135,7 +136,7 @@ class Builtin(object):
                         name=name, attributes=set())
         defaults = []
         for spec, value in self.defaults.iteritems():
-            value = parse(value)
+            value = parse_builtin_rule(value)
             pattern = None
             if spec is None:
                 pattern = Expression('Default', Symbol(name))
@@ -168,7 +169,7 @@ class Builtin(object):
         return None
 
     def get_functions(self, prefix='apply'):
-        from mathics.core.parser import parse
+        from mathics.core.parser import parse_builtin_rule
 
         for name in dir(self):
             if name.startswith(prefix):
@@ -184,7 +185,7 @@ class Builtin(object):
                 else:
                     attrs = []
                 pattern = pattern % {'name': self.get_name()}
-                pattern = parse(pattern)
+                pattern = parse_builtin_rule(pattern)
                 if attrs:
                     yield (attrs, pattern), function
                 else:
@@ -284,6 +285,7 @@ class PrefixOperator(UnaryOperator):
         super(PrefixOperator, self).__init__('Prefix', *args, **kwargs)
 
     def parse(self, args):
+        assert False, "unused?"
         from mathics.core.parser import MathicsParser, Token
 
         rest = args[0].parse_tokens
@@ -305,6 +307,7 @@ class PostfixOperator(UnaryOperator):
         super(PostfixOperator, self).__init__('Postfix', *args, **kwargs)
 
     def parse(self, args):
+        assert False, "unused?"
         from mathics.core.parser import MathicsParser, Token
 
         rest = args[2].parse_tokens

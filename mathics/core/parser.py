@@ -948,6 +948,7 @@ class MathicsParser:
     tokens = tokens
     precedence = precedence
     start = 'Expression'
+    definitions = None
 
     def __init__(self):
         for prefix_op in prefix_operators:
@@ -1047,11 +1048,15 @@ class MathicsParser:
             p = p.value
         raise ParseError(p)
 
-    def parse(self, string):
-        result = self.parser.parse(string)
-        if result is not None:
-            result = result.post_parse()
-        return result
+    def parse(self, string, definitions):
+        self.definitions = definitions
+        try:
+            result = self.parser.parse(string)
+            if result is not None:
+                result = result.post_parse()
+            return result
+        finally:
+            self.definitions = None
 
     def p_Expression(self, args):
         'Expression : expr'
@@ -1496,25 +1501,26 @@ parser = MathicsParser()
 parser.build()
 
 
-# todo describe this
-class SystemDefinitions(object):
-    def lookup_name(self, name):
-        assert isinstance(name, basestring)
-        return ensure_context(name)
-system_definitions = SystemDefinitions()
+# Parse input (from the frontend, -e, input files, ToExpression etc).
+# Look up symbols according to the Definitions instance supplied.
+def parse(string, definitions):
+    scanner.lexer.begin('INITIAL')      # Reset the lexer state (known lex bug)
 
+    string = scanner.convert_unicode_longnames(string)
+    string = scanner.convert_character_codes(string)
 
-# we need to pass in something here that can be called to look up
-# symbol names according to $Context and $ContextPath
-def parse(string, definitions=system_definitions):
-    parser.definitions = definitions # todo context manager?
-    try:
-        scanner.lexer.begin('INITIAL')      # Reset the lexer state (known lex bug)
+    return parser.parse(string, definitions)
 
-        string = scanner.convert_unicode_longnames(string)
-        string = scanner.convert_character_codes(string)
+# Parse rules specified in builtin docstrings/attributes. Every symbol
+# in the input is created in the System` context.
+def parse_builtin_rule(string):
+    class SystemDefinitions(object):
+        """
+        Dummy Definitions object that puts every unqualified symbol in
+        System`.
+        """
+        def lookup_name(self, name):
+            assert isinstance(name, basestring)
+            return ensure_context(name)
 
-        return parser.parse(string)
-    finally:
-        parser.definitions = None # catch errors if scanner somehow gets used outside this function
-
+    return parse(string, SystemDefinitions())

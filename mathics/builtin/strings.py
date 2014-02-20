@@ -463,7 +463,8 @@ class ToExpression(Builtin):
             if isinstance(inp, String):
                 from mathics.core.parser import parse, ParseError
                 try:
-                    result = parse(inp.get_string_value())
+                    result = parse(
+                        inp.get_string_value(), evaluation.definitions)
                 except ParseError:
                     evaluation.message('ToExpression', 'sntxi', String(''))
                     return Symbol('$Failed')

@@ -692,10 +692,10 @@ class Read(Builtin):
                     tmp = read_record.next()
                     try:
                         try:
-                            expr = parse(tmp)
+                            expr = parse(tmp, evaluation.definitions)
                         except NameError:
                             from mathics.core.parser import parse, ParseError
-                            expr = parse(tmp)
+                            expr = parse(tmp, evaluation.definitions)
                     except ParseError:
                         expr = None
                     if expr is None:
@@ -2067,7 +2067,7 @@ class Get(PrefixOperator):
             parse
             ParseError
         except NameError:
-            from mathics.core.parser import parse
+            from mathics.core.parser import parse, ParseError
 
         from mathics.main import wait_for_line
 
@@ -2080,7 +2080,7 @@ class Get(PrefixOperator):
             if wait_for_line(total_input):
                 continue
             try:
-                expr = parse(total_input)
+                expr = parse(total_input, evaluation.definitions)
             except:  # FIXME: something weird is going on here
                 syntax_error_count += 1
                 if syntax_error_count <= 4:
@@ -2192,6 +2192,7 @@ class Put(BinaryOperator):
         return expr
 
     def parse(self, args):
+        assert False, "unused?"
         if isinstance(args[2], Symbol):
             ptokens = args[2].parse_tokens
             args[2] = String(args[2])
@@ -2276,6 +2277,7 @@ class PutAppend(BinaryOperator):
         return expr
 
     def parse(self, args):
+        assert False, "unused?"
         if isinstance(args[2], Symbol):
             ptokens = args[2].parse_tokens
             args[2] = String(args[2])
@@ -3520,10 +3522,10 @@ class Uncompress(Builtin):
         tmp = tmp.decode('utf-8')
 
         try:
-            expr = parse(tmp)
+            expr = parse(tmp, evaluation.definitions)
         except NameError:
             from mathics.core.parser import parse
-            expr = parse(tmp)
+            expr = parse(tmp, evaluation.definitions)
 
         return expr
 
