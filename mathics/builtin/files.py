@@ -2717,7 +2717,7 @@ class ReadList(Read):
      = {"abc123"}
 
     #> ReadList[str, "Invalid"]
-     : "Invalid" is not a valid format specification.
+     : Invalid is not a valid format specification.
      = ReadList[..., Invalid]
     #> Close[str];
 
