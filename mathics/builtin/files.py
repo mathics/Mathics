@@ -1850,7 +1850,7 @@ class WriteString(Builtin):
 
         exprs = []
         for expri in expr.get_sequence():
-            result = expri.format(evaluation, "OutputForm")
+            result = expri.format(evaluation, "System`OutputForm")
             try:
                 result = result.boxes_to_text(evaluation=evaluation)
             except BoxError:
@@ -2262,7 +2262,8 @@ class PutAppend(BinaryOperator):
             return
 
         text = [unicode(e.do_format(
-            evaluation, 'OutputForm').__str__()) for e in exprs.get_sequence()]
+                    evaluation, 'System`OutputForm').__str__())
+                for e in exprs.get_sequence()]
         text = u'\n'.join(text) + u'\n'
         text.encode('ascii')
 
@@ -3482,7 +3483,7 @@ class Compress(Builtin):
 
     def apply(self, expr, evaluation, options):
         'Compress[expr_, OptionsPattern[Compress]]'
-        string = expr.format(evaluation, 'FullForm')
+        string = expr.format(evaluation, 'System`FullForm')
         string = string.boxes_to_text(
             evaluation=evaluation, show_string_characters=True)
         string = string.encode('utf-8')

@@ -1427,6 +1427,7 @@ class Rational(Number):
         return Number.from_mp(self.value.as_numer_denom()[1])
 
     def do_format(self, evaluation, form):
+        assert fully_qualified_symbol_name(form)
         if form == 'System`FullForm':
             return Expression(
                 Expression('HoldForm', Symbol('Rational')), self.numerator(),
