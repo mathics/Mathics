@@ -439,7 +439,7 @@ class GridBox(BoxConstruct):
         items, options = self.get_array(leaves, evaluation)
         new_box_options = box_options.copy()
         new_box_options['inside_list'] = True
-        column_alignments = options['ColumnAlignments'].get_name()
+        column_alignments = options['System`ColumnAlignments'].get_name()
         if column_alignments in VALID_ALIGNMENTS:
             column_alignments = column_alignments[0].lower()
         else:
@@ -460,7 +460,7 @@ class GridBox(BoxConstruct):
         evaluation = box_options.get('evaluation')
         items, options = self.get_array(leaves, evaluation)
         attrs = {}
-        column_alignments = options['ColumnAlignments'].get_name()
+        column_alignments = options['System`ColumnAlignments'].get_name()
         if column_alignments in VALID_ALIGNMENTS:
             attrs['columnalign'] = column_alignments.lower()
         else:
