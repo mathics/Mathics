@@ -2179,7 +2179,7 @@ class Put(BinaryOperator):
         text = [evaluation.format_output(Expression(
             'InputForm', expr)) for expr in exprs.get_sequence()]
         text = u'\n'.join(text) + u'\n'
-        text.encode('ascii')
+        text.encode('utf-8')
 
         stream.write(text)
 
