@@ -156,7 +156,7 @@ class BuiltinRule(BaseRule):
         # The Python function implementing this builtin expects
         # argument names corresponding to the symbol names without
         # context marks.
-        vars_noctx = {strip_context(s): vars[s] for s in vars}
+        vars_noctx = dict(((strip_context(s), vars[s]) for s in vars))
         if options:
             return self.function(
                 evaluation=evaluation, options=options, **vars_noctx)
