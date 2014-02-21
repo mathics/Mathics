@@ -23,6 +23,7 @@ import os
 
 from mathics.core.expression import ensure_context
 from mathics.core.expression import Symbol
+from mathics.settings import DEBUG_CONTEXTS
 
 
 def get_file_time(file):
@@ -50,7 +51,6 @@ class Definitions(object):
         self.autoload_stage = False
         self.current_context = 'Global`'
         self.context_path = ['Global`', 'System`']
-        self.always_show_contexts = False
 
         if add_builtin:
             from mathics.builtin import modules, contribute
@@ -120,7 +120,7 @@ class Definitions(object):
         return with_context
 
     def shorten_name(self, name_with_ctx):
-        if self.always_show_contexts:
+        if DEBUG_CONTEXTS:
             return name_with_ctx
 
         def in_ctx(name, ctx):

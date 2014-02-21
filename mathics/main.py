@@ -208,10 +208,6 @@ def main():
         '--colors', nargs='?', help='interactive shell colors')
 
     argparser.add_argument(
-        '--show-contexts', help="don't hide symbol contexts when found via "
-        "$Context or $ContextPath", action='store_true')
-
-    argparser.add_argument(
         '--no-readline', help="disable line editing", action='store_true')
 
     argparser.add_argument(
@@ -223,8 +219,6 @@ def main():
 
     definitions = Definitions(add_builtin=True)
     definitions.set_ownvalue('$Line', Integer(0))  # Reset the line number
-    if args.show_contexts:
-        definitions.always_show_contexts = True
 
     shell = TerminalShell(definitions, args.colors, not(args.no_readline))
 
