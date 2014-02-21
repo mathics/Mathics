@@ -185,9 +185,26 @@ class _SetOperator(object):
             return False
         elif lhs_name == 'System`$Context':
             new_context = rhs.get_string_value()
-            if new_context is None or not valid_context_name(new_context):
+            if new_context is None or not valid_context_name(
+                    new_context, allow_initial_backquote=True):
                 evaluation.message(lhs_name, 'cxset', rhs)
                 return False
+
+            # With $Context in Mathematica you can do some strange
+            # things: e.g. with $Context set to Global`, something
+            # like:
+            #    $Context = "`test`"; newsym
+            # is accepted and creates Global`test`newsym.
+            # Implement this behaviour by interpreting
+            #    $Context = "`test`"
+            # as
+            #    $Context = $Context <> "test`"
+            #
+            if new_context.startswith('`'):
+                new_context = (
+                    evaluation.definitions.current_context
+                    + new_context.lstrip('`'))
+
             evaluation.definitions.current_context = new_context
             ignore_protection = True
         elif lhs_name == 'System`$ContextPath':
