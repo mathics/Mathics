@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.expression import (String, Symbol, Integer,
+from mathics.core.expression import (Expression, String, Symbol, Integer,
                                      fully_qualified_symbol_name)
 
 
@@ -240,18 +240,18 @@ class Context(Builtin):
         return String(context)
 
 
-class DollarContext(Builtin):
+class Context_(Predefined):
     """
     <dl>
     <dt>'$Context'
         <dd>is the current context.
     </dl>
 
-    ##>> $Context
-    ## = Global`
+    >> $Context
+    = Global`
 
-    ###> InputForm[$Context]
-    ## = "Global`"
+    #> InputForm[$Context]
+    = "Global`"
 
     ## Test general context behaviour
     #> Plus === Global`Plus
@@ -261,18 +261,33 @@ class DollarContext(Builtin):
     """
 
     name = '$Context'
-    # FIXME: Figure out if it's possible to set the initial value here
+
+    messages = {
+        'cxset': "`1` is not a valid context name ending in `."
+    }
+
+    def evaluate(self, evaluation):
+        return String(evaluation.definitions.current_context)
 
 
-class DollarContextPath(Builtin):
+class ContextPath(Predefined):
     """
     <dl>
     <dt>'$ContextPath'
         <dd>is the search path for contexts.
     </dl>
 
-    ##>> $ContextPath // InputForm
-    ## = {"Global`", "System`"}
+    >> $ContextPath // InputForm
+     = {"Global`", "System`"}
     """
 
     name = '$ContextPath'
+
+    messages = {
+        'cxlist': "`1` is not a list of valid context names ending in `."
+    }
+
+    def evaluate(self, evaluation):
+        return Expression(
+            'List', *[String(ctxt) for ctxt in
+                      evaluation.definitions.context_path])

@@ -18,7 +18,8 @@ import sympy
 import math
 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
-                                     from_python, Integer, BoxError)
+                                     from_python, Integer, BoxError,
+                                     valid_context_name)
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.settings import ROOT_DIR
@@ -4655,7 +4656,7 @@ class Needs(Builtin):
     def apply(self, context, evaluation):
         'Needs[context_String]'
 
-        if context.get_string_value()[-1] != '`':
+        if not valid_context_name(context.get_string_value()):
             evaluation.message('Needs', 'ctx', Expression(
                 'Needs', context), 1, '`')
             return

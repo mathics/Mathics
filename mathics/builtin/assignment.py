@@ -2,7 +2,7 @@
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
-from mathics.core.expression import Expression, Symbol
+from mathics.core.expression import Expression, Symbol, valid_context_name
 from mathics.core.rules import Rule
 from mathics.builtin.lists import walk_parts
 from mathics.builtin.evaluation import set_recursionlimit
@@ -183,6 +183,22 @@ class _SetOperator(object):
             # (but consider pickle's insecurity!)
             evaluation.message('$RandomState', 'rndst', rhs)
             return False
+        elif lhs_name == 'System`$Context':
+            new_context = rhs.get_string_value()
+            if new_context is None or not valid_context_name(new_context):
+                evaluation.message(lhs_name, 'cxset', rhs)
+                return False
+            evaluation.definitions.current_context = new_context
+            ignore_protection = True
+        elif lhs_name == 'System`$ContextPath':
+            if rhs.has_form('List', None) and all(
+                  valid_context_name(s.get_string_value()) for s in rhs.leaves):
+                evaluation.definitions.context_path = [
+                    s.get_string_value() for s in rhs.leaves]
+                ignore_protection = True
+            else:
+                evaluation.message(lhs_name, 'cxlist', rhs)
+                return False
 
         rhs_name = rhs.get_head_name()
         if rhs_name == 'System`Condition':

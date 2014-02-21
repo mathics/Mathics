@@ -34,6 +34,13 @@ def fully_qualified_symbol_name(name):
             and '``' not in name)
 
 
+def valid_context_name(ctx, allow_initial_backquote=False):
+    return (isinstance(ctx, basestring)
+            and ctx.endswith('`')
+            and '``' not in ctx
+            and (allow_initial_backquote or not ctx.startswith('`')))
+
+
 def ensure_context(name):
     assert isinstance(name, basestring)
     if '`' in name:
