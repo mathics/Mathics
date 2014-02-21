@@ -2191,15 +2191,6 @@ class Put(BinaryOperator):
         evaluation.message('General', 'stream', filename)
         return expr
 
-    def parse(self, args):
-        assert False, "unused?"
-        if isinstance(args[2], Symbol):
-            ptokens = args[2].parse_tokens
-            args[2] = String(args[2])
-            args[2].parse_tokens = ptokens
-
-        return super(Put, self).parse(args)
-
 
 class PutAppend(BinaryOperator):
     """
@@ -2276,15 +2267,6 @@ class PutAppend(BinaryOperator):
         expr = Expression('PutAppend', exprs, filename)
         evaluation.message('General', 'stream', filename)
         return expr
-
-    def parse(self, args):
-        assert False, "unused?"
-        if isinstance(args[2], Symbol):
-            ptokens = args[2].parse_tokens
-            args[2] = String(args[2])
-            args[2].parse_tokens = ptokens
-
-        return super(PutAppend, self).parse(args)
 
 
 class FindFile(Builtin):

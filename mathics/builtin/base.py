@@ -284,20 +284,6 @@ class PrefixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PrefixOperator, self).__init__('Prefix', *args, **kwargs)
 
-    def parse(self, args):
-        assert False, "unused?"
-        from mathics.core.parser import MathicsParser, Token
-
-        rest = args[0].parse_tokens
-        if rest:
-            parser = MathicsParser()
-            items = list(rest + [Token('(')] + [args[1]] +
-                         args[2].parse_tokens + [Token(')')])
-            result = parser.parse(items)
-            return result
-        else:
-            return Expression(self.get_name(), args[2], parse_operator=self)
-
     def is_prefix(self):
         return True
 
@@ -305,20 +291,6 @@ class PrefixOperator(UnaryOperator):
 class PostfixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PostfixOperator, self).__init__('Postfix', *args, **kwargs)
-
-    def parse(self, args):
-        assert False, "unused?"
-        from mathics.core.parser import MathicsParser, Token
-
-        rest = args[2].parse_tokens
-        if rest:
-            parser = MathicsParser()    # construct our own parser!
-            items = [Token('(')] + args[0].parse_tokens + [
-                args[1]] + [Token(')')] + rest
-            result = parser.parse(items)
-            return result
-        else:
-            return Expression(self.get_name(), args[0], parse_operator=self)
 
     def is_postfix(self):
         return True
@@ -359,40 +331,6 @@ class BinaryOperator(Operator):
             }
             default_rules.update(self.rules)
             self.rules = default_rules
-
-    def parse(self, args):
-        assert False, "turns out this function is used after all"
-        left = args[0]
-        right = args[2]
-        name = self.get_name()
-        grouping = self.grouping
-        if grouping != 'System`NonAssociative':
-            def collect_leaves(expr):
-                if expr.parenthesized or expr.get_head_name() != name:
-                    return [expr]
-                else:
-                    result = []
-                    for leaf in expr.leaves:
-                        result.extend(collect_leaves(leaf))
-                    return result
-            leaves = collect_leaves(left) + collect_leaves(right)
-            if grouping == 'System`None':
-                return Expression(name, parse_operator=self, *leaves)
-            elif grouping == 'System`Right':
-                result = Expression(name, parse_operator=self, *leaves[-2:])
-                for leaf in reversed(leaves[:-2]):
-                    result = Expression(
-                        name, leaf, result, parse_operator=self)
-                return result
-            elif grouping == 'System`Left':
-                result = Expression(name, parse_operator=self, *leaves[:2])
-                for leaf in leaves[2:]:
-                    result = Expression(
-                        name, result, leaf, parse_operator=self)
-                return result
-        else:
-            return Expression(self.get_name(), left, right,
-                              parse_operator=self)
 
     def is_binary(self):
         return True
