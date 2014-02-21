@@ -1040,9 +1040,9 @@ class Sphere3DBox(_Graphics3DElement):
         # TODO
         pass
 
-GLOBALS3D = {'System`' + k: v for k, v in {
+GLOBALS3D = dict((('System`' + k, v) for k, v in {
     'Polygon3DBox': Polygon3DBox,
     'Line3DBox': Line3DBox,
     'Point3DBox': Point3DBox,
     'Sphere3DBox': Sphere3DBox,
-}.iteritems()}
+}.iteritems()))

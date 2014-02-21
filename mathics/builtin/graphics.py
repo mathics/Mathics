@@ -1874,7 +1874,7 @@ class Large(Builtin):
     pass
 
 
-GLOBALS = {'System`' + k: v for k, v in {
+GLOBALS = dict((('System`' + k, v) for k, v in {
     'Rectangle': Rectangle,
     'Disk': Disk,
     'Circle': Circle,
@@ -1898,4 +1898,4 @@ GLOBALS = {'System`' + k: v for k, v in {
     'AbsoluteThickness': AbsoluteThickness,
     'Thick': Thick,
     'Thin': Thin,
-}.iteritems()}
+}.iteritems()))
