@@ -244,7 +244,7 @@ class Definitions(object):
 
     def reset_user_definition(self, name):
         assert not isinstance(name, Symbol)
-        del self.user[self.lookup_name(name)]  # TODO don't do anything if it doesn't exist
+        del self.user[self.lookup_name(name)]
 
     def add_user_definition(self, name, definition):
         assert not isinstance(name, Symbol)
