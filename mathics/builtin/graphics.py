@@ -12,7 +12,7 @@ from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
-    Expression, Integer, Real, NumberError, Symbol)
+    Expression, Integer, Real, NumberError, Symbol, strip_context)
 
 
 class CoordinatesError(BoxConstructError):
@@ -1712,7 +1712,7 @@ class _ColorObject(Builtin):
         super(_ColorObject, self).__init__(*args, **kwargs)
 
         if self.text_name is None:
-            text_name = self.get_name().lower()
+            text_name = strip_context(self.get_name()).lower()
         else:
             text_name = self.text_name
         doc = """
@@ -1723,7 +1723,7 @@ class _ColorObject(Builtin):
 
             >> Graphics[{%(name)s, Disk[]}, ImageSize->Small]
              = -Graphics-
-        """ % {'name': self.get_name(), 'text_name': text_name}
+        """ % {'name': strip_context(self.get_name()), 'text_name': text_name}
         if self.__doc__ is None:
             self.__doc__ = doc
         else:
