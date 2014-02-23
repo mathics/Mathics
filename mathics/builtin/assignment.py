@@ -771,21 +771,24 @@ class Clear(Builtin):
         '%(name)s[symbols___]'
 
         for symbol in symbols.get_sequence():
-            name = symbol.get_name()
-            if not name:
-                name = symbol.get_string_value()
-            if not name:
-                evaluation.message('Clear', 'ssym', symbol)
-                continue
-            attributes = evaluation.definitions.get_attributes(name)
-            if 'System`Protected' in attributes:
-                evaluation.message('Clear', 'wrsym', symbol)
-                continue
-            if not self.allow_locked and 'System`Locked' in attributes:
-                evaluation.message('Clear', 'locked', symbol)
-                continue
-            definition = evaluation.definitions.get_user_definition(name)
-            self.do_clear(definition)
+            if isinstance(symbol, Symbol):
+                names = [symbol.get_name()]
+            else:
+                pattern = symbol.get_string_value()
+                if not pattern:
+                    evaluation.message('Clear', 'ssym', symbol)
+                    continue
+                names = evaluation.definitions.get_matching_names(pattern)
+            for name in names:
+                attributes = evaluation.definitions.get_attributes(name)
+                if 'System`Protected' in attributes:
+                    evaluation.message('Clear', 'wrsym', Symbol(name))
+                    continue
+                if not self.allow_locked and 'System`Locked' in attributes:
+                    evaluation.message('Clear', 'locked', Symbol(name))
+                    continue
+                definition = evaluation.definitions.get_user_definition(name)
+                self.do_clear(definition)
 
         return Symbol('Null')
 

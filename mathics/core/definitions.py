@@ -21,6 +21,7 @@ u"""
 import cPickle as pickle
 import os
 import base64
+import re
 
 from mathics.core.expression import ensure_context
 from mathics.core.expression import Symbol
@@ -90,6 +91,49 @@ class Definitions(object):
 
     def get_names(self):
         return self.get_builtin_names() | self.get_user_names()
+
+    def get_accessible_contexts(self):
+        "Return the contexts reachable though $Context or $ContextPath."
+        accessible_ctxts = set(self.context_path)
+        accessible_ctxts.add(self.current_context)
+        return accessible_ctxts
+
+    def get_matching_names(self, pattern):
+        """
+        Return a list of the symbol names matching a string pattern.
+
+        A pattern containing a context mark (of the form
+        "ctx_pattern`short_pattern") matches symbols whose context and
+        short name individually match the two patterns. A pattern
+        without a context mark matches symbols accessible through
+        $Context and $ContextPath whose short names match the pattern.
+
+        '*' matches any sequence of symbol characters or an empty
+        string. '@' matches a non-empty sequence of symbol characters
+        which aren't uppercase letters. In the context pattern, both
+        '*' and '@' match context marks.
+        """
+
+        if '`' in pattern:
+            ctx_pattern, short_pattern = pattern.rsplit('`', 1)
+            ctx_pattern = ((ctx_pattern + '`')
+                           .replace('@', '[^A-Z`]+')
+                           .replace('*', '.*'))
+        else:
+            short_pattern = pattern
+            # start with a group matching the accessible contexts
+            ctx_pattern = ("(?:"
+                           + "|".join(re.escape(c) for c in
+                                      self.get_accessible_contexts())
+                           + ")")
+
+        short_pattern = (short_pattern
+                         .replace('@', '[^A-Z]+')
+                         .replace('*', '[^`]*'))
+        regex = re.compile('^' + ctx_pattern + short_pattern + '$')
+
+        return [name for name in self.get_names() if regex.match(name)]
+
 
     def lookup_name(self, name):
         """
