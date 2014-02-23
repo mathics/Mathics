@@ -200,15 +200,19 @@ class Context(Builtin):
     <dl>
     <dt>'Context[$symbol$]'
         <dd>yields the name of the context where $symbol$ is defined in.
+    <dt>'Context[]'
+        <dd>returns the value of '$Context'.
     </dl>
-
-    Contexts are not really implemented in \Mathics. 'Context' just returns '"System`"'
-    for built-in symbols and '"Global`"' for user-defined symbols.
 
     >> Context[a]
      = Global`
+    >> Context[b`c]
+     = b`
     >> Context[Sin] // InputForm
      = "System`"
+
+    >> InputForm[Context[]]
+     = "Global`"
 
     ## placeholder for general context-related tests
     #> x === Global`x
@@ -227,6 +231,10 @@ class Context(Builtin):
     """
 
     attributes = ('HoldFirst',)
+
+    rules = {
+        'Context[]': '$Context'
+    }
 
     def apply(self, symbol, evaluation):
         'Context[symbol_]'
