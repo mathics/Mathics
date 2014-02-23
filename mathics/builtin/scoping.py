@@ -248,6 +248,27 @@ class Context(Builtin):
         return String(context)
 
 
+class Contexts(Builtin):
+    """
+    <dl>
+    <dt>'Contexts[]'
+        <dd>yields a list of all contexts.
+    </dl>
+
+    >> Contexts[] // InputForm
+     = {"Global`", "System`"}
+    """
+
+    def apply(self, evaluation):
+        'Contexts[]'
+
+        contexts = set([])
+        for name in evaluation.definitions.get_names():
+            contexts.add(String(name[:name.rindex('`') + 1]))
+
+        return Expression('List', *sorted(contexts))
+
+
 class Context_(Predefined):
     """
     <dl>
