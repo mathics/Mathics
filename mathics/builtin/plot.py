@@ -60,6 +60,21 @@ class Full(Builtin):
     pass
 
 
+class Top(Builtin):
+    # todo: doc
+    pass
+
+
+class Bottom(Builtin):
+    # todo: doc
+    pass
+
+
+class Axis(Builtin):
+    # todo: doc
+    pass
+
+
 def quiet_evaluate(expr, vars, evaluation, expect_list=False):
     """ Evaluates expr with given dynamic scoping values
     without producing arithmetic error messages. """
