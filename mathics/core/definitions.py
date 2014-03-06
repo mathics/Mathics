@@ -134,7 +134,6 @@ class Definitions(object):
 
         return [name for name in self.get_names() if regex.match(name)]
 
-
     def lookup_name(self, name):
         """
         Determine the full name (including context) for a symbol name.
@@ -350,7 +349,8 @@ class Definitions(object):
         self.user = {}
 
     def get_user_definitions(self):
-        return base64.b64encode(pickle.dumps(self.user, protocol=pickle.HIGHEST_PROTOCOL))
+        return base64.b64encode(
+            pickle.dumps(self.user, protocol=pickle.HIGHEST_PROTOCOL))
 
     def set_user_definitions(self, definitions):
         if definitions:

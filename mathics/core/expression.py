@@ -54,7 +54,7 @@ def ensure_context(name):
 
 def strip_context(name):
     if '`' in name:
-        return name[name.rindex('`')+1:]
+        return name[name.rindex('`') + 1:]
     return name
 
 
@@ -205,7 +205,7 @@ class BaseExpression(object):
         return self, False
 
     def do_format(self, evaluation, form):
-        formats = ('System`'+s for s in
+        formats = ('System`' + s for s in
                    ('InputForm', 'OutputForm', 'StandardForm',
                    'FullForm', 'TraditionalForm', 'TeXForm', 'MathMLForm'))
 
@@ -685,7 +685,8 @@ class Expression(BaseExpression):
             head = self.head.evaluate(evaluation)
             attributes = head.get_attributes(evaluation.definitions)
             leaves = self.leaves[:]
-            if 'System`HoldAll' in attributes or 'System`HoldAllComplete' in attributes:
+            if ('System`HoldAll' in attributes or
+                    'System`HoldAllComplete' in attributes):
                 eval_range = []
             elif 'System`HoldFirst' in attributes:
                 eval_range = range(1, len(leaves))
@@ -1025,7 +1026,8 @@ class Expression(BaseExpression):
 
         leaves = self.leaves
         if in_function:
-            if (self.head.get_name() == 'System`Function' and len(self.leaves) > 1 and
+            if (self.head.get_name() == 'System`Function' and
+                len(self.leaves) > 1 and
                 (self.leaves[0].has_form('List', None) or
                  self.leaves[0].get_name())):
                 if self.leaves[0].get_name():
@@ -1068,7 +1070,8 @@ class Expression(BaseExpression):
                 if slot is None or slot < 1:
                     evaluation.error('Function', 'slot', self.leaves[0])
             return Expression('Sequence', *slots[slot:])
-        elif self.head.get_name() == 'System`Function' and len(self.leaves) == 1:
+        elif (self.head.get_name() == 'System`Function' and
+              len(self.leaves) == 1):
             # do not replace Slots in nested Functions
             return self
         return Expression(self.head.replace_slots(slots, evaluation),
