@@ -18,8 +18,9 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import pickle
+import cPickle as pickle
 import os
+import base64
 
 from mathics.core.expression import ensure_context
 from mathics.core.expression import Symbol
@@ -305,11 +306,11 @@ class Definitions(object):
         self.user = {}
 
     def get_user_definitions(self):
-        return pickle.dumps(self.user, protocol=pickle.HIGHEST_PROTOCOL)
+        return base64.b64encode(pickle.dumps(self.user, protocol=pickle.HIGHEST_PROTOCOL))
 
     def set_user_definitions(self, definitions):
         if definitions:
-            self.user = pickle.loads(definitions)
+            self.user = pickle.loads(base64.b64decode(definitions))
         else:
             self.user = {}
 

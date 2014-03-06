@@ -18,12 +18,11 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from django.conf.urls.defaults import *
+from django.conf.urls import *
 
 urlpatterns = patterns(
     'mathics.web.views',
     ('^$', 'main_view'),
-    ('^test/$', 'test_view'),
     ('^ajax/query/$', 'query'),
     ('^ajax/login/$', 'login'),
     ('^ajax/logout/$', 'logout'),

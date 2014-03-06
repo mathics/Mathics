@@ -131,7 +131,7 @@ var Publisher = Class.create({
 	},
 	
 	fire: function(event) {
-		var subscribers = this.events.get(event) || $A();
+		var subscribers = this.events.get(event) || $A();
 		var args = $A(arguments).slice(1);
 		subscribers.each(function(subscriber) {
 			subscriber.apply(this, args);

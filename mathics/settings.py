@@ -23,11 +23,8 @@ import sys
 import os
 from os import path
 
-try:
-    import django
-    DJANGO_VERSION = django.VERSION
-except ImportError:
-    DJANGO_VERSION = (1, 4)
+import django
+DJANGO_VERSION = django.VERSION
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -65,14 +62,6 @@ DOC_DIR = ROOT_DIR + 'doc/documentation/'
 DOC_TEX_DATA = ROOT_DIR + 'doc/tex/data'
 DOC_XML_DATA = ROOT_DIR + 'doc/xml/data'
 DOC_LATEX_FILE = ROOT_DIR + 'doc/tex/documentation.tex'
-
-"""
-For Django < 1.2:
-DATABASE_ENGINE = 'sqlite3'
-DATABASE_NAME = DATA_DIR + 'mathics.sqlite'
-DATABASE_HOST = ''  # Set to empty string for localhost. Not used with sqlite3.
-DATABASE_PORT = ''  # Set to empty string for default. Not used with sqlite3.
-"""
 
 DATABASES = {
     'default': {

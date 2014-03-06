@@ -21,6 +21,8 @@ u"""
 import sys
 import os
 import argparse
+import socket
+import errno
 
 import mathics
 from mathics import print_version, print_license
@@ -33,15 +35,16 @@ def main():
     if not os.path.exists(database_file):
         print "Error: Mathics database not found!"
         print "Please change to the mathics install directory and run:\n"
-        print "   $> python setup.py initialize\n"
+        print "   $> {python} setup.py initialize\n".format(
+            python=sys.executable or 'python')
         print "as the current user"
-        sys.exit(-1)
+        sys.exit(1)
 
     os.environ['DJANGO_SETTINGS_MODULE'] = 'mathics.settings'
     # os.putenv('DJANGO_SETTINGS_MODULE', 'mathics.settings')
 
     from django.conf import settings
-    from django.core.servers.basehttp import run, WSGIServerException
+    from django.core.servers.basehttp import run
     from django.core.handlers.wsgi import WSGIHandler
 
     argparser = argparse.ArgumentParser(
@@ -81,7 +84,7 @@ def main():
         print u"Quit by pressing %s\n" % quit_command
 
         print u"""Open the graphical user interface at
-http://localhost:%d\n in Firefox, Chrome, or Safari to use Mathics\n""" % port
+http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port
 
     if args.external:
         addr = '0.0.0.0'
@@ -97,16 +100,16 @@ http://localhost:%d\n in Firefox, Chrome, or Safari to use Mathics\n""" % port
                 get_internal_wsgi_application)
             handler = get_internal_wsgi_application()
         run(addr, port, handler)
-    except WSGIServerException, e:
+    except socket.error as e:
         # Use helpful error messages instead of ugly tracebacks.
         ERRORS = {
-            13: "You don't have permission to access that port.",
-            98: "That port is already in use.",
-            99: "That IP address can't be assigned to.",
+            errno.EACCES: "You don't have permission to access that port.",
+            errno.EADDRINUSE: "That port is already in use.",
+            errno.EADDRNOTAVAIL: "That IP address can't be assigned to.",
         }
         try:
-            error_text = ERRORS[e.args[0].args[0]]
-        except (AttributeError, KeyError):
+            error_text = ERRORS[e.errno]
+        except KeyError:
             error_text = str(e)
         sys.stderr.write("Error: %s" % error_text + '\n')
         # Need to use an OS exit because sys.exit doesn't work in a thread

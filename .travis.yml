@@ -5,12 +5,14 @@ python:
   - pypy
 env:
   - SYMPY_SRC=sympy-0.7.3
+  - SYMPY_SRC=sympy-0.7.4
   - SYMPY_SRC=master
 matrix:
     include:
       - python: 2.7
         env:
           - SYMPY_SRC=sympy-0.7.3
+          - SYMPY_SRC=sympy-0.7.4
           - TEST_DOC="true"
     allow_failures:
       - env: SYMPY_SRC=master

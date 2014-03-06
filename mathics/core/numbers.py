@@ -180,7 +180,7 @@ def convert_base(x, base, precision=10):
 def convert_int_to_digit_list(x, base):
     x = abs(x)
 
-    length_of_int = int(log(x, base))
+    length_of_int = int(log(x, base)) + 1
     iexps = range(length_of_int, -1, -1)
 
     def convert(x, base, exponents):
@@ -188,7 +188,8 @@ def convert_int_to_digit_list(x, base):
         for e in exponents:
             d = int(x // (base ** e))
             x -= d * (base ** e)
-            out.append(d)
+            if out or d != 0:   # drop any leading zeroes
+                out.append(d)
             if x == 0 and e < 0:
                 break
         return out
