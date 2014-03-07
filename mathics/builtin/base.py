@@ -87,7 +87,7 @@ class Builtin(object):
             if isinstance(pattern, tuple):
                 forms, pattern = pattern
                 if isinstance(forms, str):
-                    forms = [forms]
+                    forms = [ensure_context(forms)]
                 else:
                     forms = [ensure_context(f) for f in forms]
             else:
