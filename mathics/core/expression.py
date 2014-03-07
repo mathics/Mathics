@@ -1743,6 +1743,10 @@ class String(Atom):
                     return (
                         '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>'
                         % encode_mathml(text))
+                if text == u'\u2062':
+                    return (
+                        '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>'
+                        % encode_mathml(text))
                 return '<mo>%s</mo>' % encode_mathml(text)
             elif is_symbol_name(text):
                 return '<mi>%s</mi>' % encode_mathml(text)
