@@ -1133,7 +1133,7 @@ class MathMLForm(Builtin):
     #> MathMLForm[\\[Mu]]
      = <math><mi>μ</mi></math>
 
-    #> MathMLForm[Graphics[Text["μ"]]]
+    #> MathMLForm[Graphics[Text["\u03bc"]]]
      = <math><mtable><mtr><mtd><svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
      .  version="1.0" width="..." height="..." viewBox="..."><foreignObject x="..." y="..." ox="0.000000" oy="0.000000" style="stroke: none; fill: none; color: rgb(0.000000%, 0.000000%, 0.000000%)"><math><mtext>μ</mtext></math></foreignObject></svg></mtd></mtr></mtable></math>
 
