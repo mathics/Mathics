@@ -16,7 +16,6 @@ from mathics.core.expression import (
     Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError)
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
-VALID_ALIGNMENTS = ('System`Center', 'System`Left', 'System`Right')
 
 
 class Format(Builtin):
@@ -415,6 +414,18 @@ class GridBox(BoxConstruct):
      = a   bc
      .
      . d   e
+
+    #> TeXForm@Grid[{{a,bc},{d,e}}, ColumnAlignments->Left]
+     = \begin{array}{ll} a & \text{bc}\\ d & e\end{array}
+
+    #> TeXForm[TableForm[{{a,b},{c,d}}]]
+     = \begin{array}{cc} a & b\\ c & d\end{array}
+
+    #> MathMLForm[TableForm[{{a,b},{c,d}}]]
+     = <math><mtable columnalign="center">
+     . <mtr><mtd columnalign="center"><mi>a</mi></mtd><mtd columnalign="center"><mi>b</mi></mtd></mtr>
+     . <mtr><mtd columnalign="center"><mi>c</mi></mtd><mtd columnalign="center"><mi>d</mi></mtd></mtr>
+     . </mtable></math>
     """
 
     options = {
@@ -440,9 +451,14 @@ class GridBox(BoxConstruct):
         new_box_options = box_options.copy()
         new_box_options['inside_list'] = True
         column_alignments = options['System`ColumnAlignments'].get_name()
-        if column_alignments in VALID_ALIGNMENTS:
-            column_alignments = column_alignments[0].lower()
-        else:
+        try:
+            column_alignments = {
+                'System`Center': 'c',
+                'System`Left': 'l',
+                'System`Right': 'r'
+            }[column_alignments]
+        except KeyError:
+            # invalid column alignment
             raise BoxConstructError
         column_count = 0
         for row in items:
@@ -461,9 +477,14 @@ class GridBox(BoxConstruct):
         items, options = self.get_array(leaves, evaluation)
         attrs = {}
         column_alignments = options['System`ColumnAlignments'].get_name()
-        if column_alignments in VALID_ALIGNMENTS:
-            attrs['columnalign'] = column_alignments.lower()
-        else:
+        try:
+            attrs['columnalign'] = {
+                'System`Center': 'center',
+                'System`Left': 'left',
+                'System`Right': 'right',
+            }[column_alignments]
+        except KeyError:
+            # invalid column alignment
             raise BoxConstructError
         attrs = ' '.join('{0}="{1}"'.format(name, value)
                          for name, value in attrs.iteritems())
