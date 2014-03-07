@@ -1140,7 +1140,7 @@ class MathMLForm(Builtin):
     ## The <mo> should contain U+2062 INVISIBLE TIMES
     #> MathMLForm[MatrixForm[{{2*a, 0},{0,0}}]]
      = <math><mrow><mo>(</mo> <mtable columnalign="center">
-     . <mtr><mtd columnalign="center"><mrow><mn>2</mn> <mo>⁢</mo> <mi>a</mi></mrow></mtd><mtd columnalign="center"><mn>0</mn></mtd></mtr>
+     . <mtr><mtd columnalign="center"><mrow><mn>2</mn> <mo form="prefix" lspace="0" rspace="0.2em">⁢</mo> <mi>a</mi></mrow></mtd><mtd columnalign="center"><mn>0</mn></mtd></mtr>
      . <mtr><mtd columnalign="center"><mn>0</mn></mtd><mtd columnalign="center"><mn>0</mn></mtd></mtr>
      . </mtable> <mo>)</mo></mrow></math>
     """
