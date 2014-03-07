@@ -409,7 +409,7 @@ def is_constant(list):
 
 
 class GridBox(BoxConstruct):
-    """
+    r"""
     #> Grid[{{a,bc},{d,e}}, ColumnAlignments:>Symbol["Rig"<>"ht"]]
      = a   bc
      .
