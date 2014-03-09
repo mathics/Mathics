@@ -164,6 +164,13 @@ class _Plot(Builtin):
     def apply(self, functions, x, start, stop, evaluation, options):
         '''%(name)s[functions_, {x_Symbol, start_, stop_},
             OptionsPattern[%(name)s]]'''
+        if functions.is_symbol():
+            rules = evaluation.definitions.get_ownvalues(functions.name)
+            for rule in rules:
+                functions = rule.apply(functions, evaluation, fully=True)
+            
+        if functions.get_head_name() == 'List':
+            functions = functions.flatten(Symbol('List'))
 
         expr_limits = Expression('List', x, start, stop)
         expr = Expression(self.get_name(), functions, expr_limits,
