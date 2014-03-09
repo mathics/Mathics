@@ -84,12 +84,16 @@ class Builtin(object):
             # an empty string (=> the rule applies to all forms), or a
             # form name (like 'System`TraditionalForm'), or a sequence
             # of form names.
+            def contextify_form_name(f):
+                # Handle adding 'System`' to a form name, unless it's
+                # '' (meaning the rule applies to all forms).
+                return '' if f == '' else ensure_context(f)
             if isinstance(pattern, tuple):
                 forms, pattern = pattern
                 if isinstance(forms, str):
-                    forms = [ensure_context(forms)]
+                    forms = [contextify_form_name(forms)]
                 else:
-                    forms = [ensure_context(f) for f in forms]
+                    forms = [contextify_form_name(f) for f in forms]
             else:
                 forms = ['']
             return forms, pattern

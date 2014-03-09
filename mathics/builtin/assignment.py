@@ -2,7 +2,8 @@
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
-from mathics.core.expression import Expression, Symbol, valid_context_name
+from mathics.core.expression import (Expression, Symbol, valid_context_name,
+                                     system_symbols)
 from mathics.core.rules import Rule
 from mathics.builtin.lists import walk_parts
 from mathics.builtin.evaluation import set_recursionlimit
@@ -30,10 +31,9 @@ class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
         name = lhs.get_head_name()
 
-        if name in ('System`' + s for s in
-                    ('OwnValues', 'DownValues', 'SubValues', 'UpValues',
-                     'NValues', 'Options', 'DefaultValues', 'Attributes',
-                     'Messages')):
+        if name in system_symbols('OwnValues', 'DownValues', 'SubValues',
+                                  'UpValues', 'NValues', 'Options',
+                                  'DefaultValues', 'Attributes', 'Messages'):
             if len(lhs.leaves) != 1:
                 evaluation.message_args(name, len(lhs.leaves), 1)
                 return False
@@ -113,11 +113,9 @@ class _SetOperator(object):
                     evaluation.message('Format', 'fttp', lhs.leaves[1])
                     return False
             else:
-                # tuple() here avoids creating a generator expression
-                form = tuple('System`' + s for s in
-                        ('StandardForm', 'TraditionalForm', 'OutputForm',
-                         'TeXForm', 'MathMLForm',
-                         ))
+                form = system_symbols(
+                    'StandardForm', 'TraditionalForm', 'OutputForm',
+                    'TeXForm', 'MathMLForm')
             lhs = focus = lhs.leaves[0]
         else:
             allow_custom_tag = True
@@ -904,9 +902,8 @@ class Unset(PostfixOperator):
         'Unset[expr_]'
 
         name = expr.get_head_name()
-        if name in ('System`' + s for s in
-                    ('OwnValues', 'DownValues', 'SubValues', 'UpValues',
-                     'NValues', 'Options', 'Messages')):
+        if name in system_symbols('OwnValues', 'DownValues', 'SubValues',
+                                  'UpValues', 'NValues', 'Options', 'Messages'):
             if len(expr.leaves) != 1:
                 evaluation.message_args(name, len(expr.leaves), 1)
                 return Symbol('$Failed')

@@ -5,7 +5,8 @@ Graphics (3D)
 """
 
 import numbers
-from mathics.core.expression import Expression, NumberError, from_python
+from mathics.core.expression import (Expression, NumberError, from_python,
+                                     system_symbols_dict)
 from mathics.builtin.base import BoxConstructError, Builtin, InstancableBuiltin
 from graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
                       LineBox, PointBox, Style, RGBColor, get_class,
@@ -1040,9 +1041,9 @@ class Sphere3DBox(_Graphics3DElement):
         # TODO
         pass
 
-GLOBALS3D = dict((('System`' + k, v) for k, v in {
+GLOBALS3D = system_symbols_dict({
     'Polygon3DBox': Polygon3DBox,
     'Line3DBox': Line3DBox,
     'Point3DBox': Point3DBox,
     'Sphere3DBox': Sphere3DBox,
-}.iteritems()))
+})

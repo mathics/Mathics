@@ -43,6 +43,7 @@ def valid_context_name(ctx, allow_initial_backquote=False):
 
 def ensure_context(name):
     assert isinstance(name, basestring)
+    assert name != ''
     if '`' in name:
         # Symbol has a context mark -> it came from the parser
         assert fully_qualified_symbol_name(name)
@@ -56,6 +57,16 @@ def strip_context(name):
     if '`' in name:
         return name[name.rindex('`') + 1:]
     return name
+
+
+# system_symbols('A', 'B', ...) -> ['System`A', 'System`B', ...]
+def system_symbols(*symbols):
+    return [ensure_context(s) for s in symbols]
+
+
+# system_symbols_dict({'SomeSymbol': ...}) -> {'System`SomeSymbol': ...}
+def system_symbols_dict(d):
+    return dict(((ensure_context(k), v) for k, v in d.iteritems()))
 
 
 class BoxError(Exception):
@@ -205,9 +216,9 @@ class BaseExpression(object):
         return self, False
 
     def do_format(self, evaluation, form):
-        formats = ('System`' + s for s in
-                   ('InputForm', 'OutputForm', 'StandardForm',
-                   'FullForm', 'TraditionalForm', 'TeXForm', 'MathMLForm'))
+        formats = system_symbols(
+            'InputForm', 'OutputForm', 'StandardForm',
+            'FullForm', 'TraditionalForm', 'TeXForm', 'MathMLForm')
 
         evaluation.inc_recursion_depth()
         try:
@@ -1108,9 +1119,9 @@ class Expression(BaseExpression):
             return True, Expression(head, *leaves)
 
     def is_numeric(self):
-        return (self.head.get_name() in ('System`' + s for s in (
+        return (self.head.get_name() in system_symbols(
             'Sqrt', 'Times', 'Plus', 'Subtract', 'Minus', 'Power', 'Abs',
-            'Divide', 'Sin')) and
+            'Divide', 'Sin') and
             all(leaf.is_numeric() for leaf in self.leaves))
         # TODO: complete list of numeric functions, or access NumericFunction
         # attribute
@@ -1291,9 +1302,9 @@ class Symbol(Atom):
         return self.name == 'System`True'
 
     def is_numeric(self):
-        return self.name in ('System`' + s for s in
-                             ('Pi', 'E', 'EulerGamma', 'GoldenRatio',
-                              'MachinePrecision', 'Catalan'))
+        return self.name in system_symbols(
+            'Pi', 'E', 'EulerGamma', 'GoldenRatio',
+            'MachinePrecision', 'Catalan')
 
 
 class Number(Atom):

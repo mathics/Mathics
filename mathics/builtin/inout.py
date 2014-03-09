@@ -1212,6 +1212,11 @@ class TeXForm(Builtin):
 
     #> {"hi","you"} //InputForm //TeXForm
      = \left\{\text{"hi"}, \text{"you"}\right\}
+
+    #> TeXForm[a+b*c]
+     = a+b c
+    #> TeXForm[InputForm[a+b*c]]
+     = a\text{ + }b*c
     """
 
     def apply_tex(self, expr, evaluation):

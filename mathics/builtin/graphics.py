@@ -12,7 +12,8 @@ from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
-    Expression, Integer, Real, NumberError, Symbol, strip_context)
+    Expression, Integer, Real, NumberError, Symbol, strip_context,
+    system_symbols, system_symbols_dict)
 
 
 class CoordinatesError(BoxConstructError):
@@ -22,9 +23,6 @@ class CoordinatesError(BoxConstructError):
 class ColorError(BoxConstructError):
     pass
 
-
-def system_symbols(*symbols):
-    return tuple('System`' + s for s in symbols)
 
 element_heads = system_symbols('Rectangle', 'Disk', 'Line', 'Point',
                                'Circle', 'Polygon', 'Inset', 'Text', 'Sphere')
@@ -1868,7 +1866,7 @@ class Large(Builtin):
     pass
 
 
-GLOBALS = dict((('System`' + k, v) for k, v in {
+GLOBALS = system_symbols_dict({
     'Rectangle': Rectangle,
     'Disk': Disk,
     'Circle': Circle,
@@ -1892,4 +1890,4 @@ GLOBALS = dict((('System`' + k, v) for k, v in {
     'AbsoluteThickness': AbsoluteThickness,
     'Thick': Thick,
     'Thin': Thin,
-}.iteritems()))
+})
