@@ -201,6 +201,14 @@ class Sequence(Builtin):
     >> list = {1, 2, 3};
     >> f[Sequence @@ list]
      = f[1, 2, 3]
+
+    Inside 'Hold' or a function with a held argument, 'Sequence' is
+    spliced in at the first level of the argument:
+    >> Hold[a, Sequence[b, c], d]
+     = Hold[a, b, c, d]
+    If 'Sequence' appears at a deeper level, it is left unevaluated:
+    >> Hold[{a, Sequence[b, c], d}]
+     = Hold[{a, Sequence[b, c], d}]
     """
 
 
