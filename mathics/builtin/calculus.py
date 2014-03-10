@@ -40,8 +40,6 @@ class D(SympyFunction):
 
     >> D[Sin[x], {x, 2}]
      = -Sin[x]
-    >> D[R*Cos[w*t], {t,2}]
-    = - R w ^ 2 Cos[t w]
 
     Unknown functions are derived using 'Derivative':
     >> D[f[x], x]
