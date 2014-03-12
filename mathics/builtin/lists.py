@@ -1219,8 +1219,8 @@ class Range(Builtin):
 class _IterationFunction(Builtin):
     attributes = ('HoldAll',)
     rules = {
-        '%(name)s[expr_, {i_Symbol, imax_}]': (
-            '%(name)s[expr, {i, 1, imax, 1}]'),
+#        '%(name)s[expr_, {i_Symbol, imax_}]': (
+#            '%(name)s[expr, {i, 1, imax, 1}]'),
         '%(name)s[expr_, {i_Symbol, imin_, imax_}]': (
             '%(name)s[expr, {i, imin, imax, 1}]'),
     }
@@ -1230,6 +1230,16 @@ class _IterationFunction(Builtin):
 
     def get_result(self, items):
         pass
+
+    def apply_range(self, expr, i, imax, evaluation):
+        '%(name)s[expr_, {i_Symbol, imax_}]'
+
+        if imax.get_head_name() == 'Range':
+            seq = Expression('Sequence', *(imax.evaluate(evaluation).leaves))
+            return self.apply_list(expr, i, seq, evaluation)
+        else:
+            return self.apply_iter(expr, i, Integer(1), imax,
+                                   Integer(1), evaluation)
 
     def apply_max(self, expr, imax, evaluation):
         '%(name)s[expr_, {imax_}]'
