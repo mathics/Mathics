@@ -117,7 +117,7 @@ class D(SympyFunction):
         'D[f_, x_, rest__]': 'D[D[f, x], rest]',
 
         'D[expr_, {x_, n_Integer?NonNegative}]': (
-            'Nest[Function[{t}, D[t, x]], expr, n]'),
+            'Module[{}, Nest[Function[{t}, D[t, x]], expr, n]]'),
     }
 
     def apply(self, f, x, evaluation):
