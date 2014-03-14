@@ -1519,6 +1519,74 @@ class Join(Builtin):
             return Expression('List')
 
 
+class Append(Builtin):
+    """
+    <dl>
+    <dt>'Append[$expr$, $item$]'
+        <dd>returns $expr$ with $item$ appended to its leaves.
+    </dl>
+
+    >> Append[{1, 2, 3}, 4]
+     = {1, 2, 3, 4}
+
+    'Append' works on expressions with heads other than 'List':
+    >> Append[f[a, b], c]
+     = f[a, b, c]
+
+    Unlike 'Join', 'Append' does not flatten lists in $item$:
+    >> Append[{a, b}, {c, d}]
+     = {a, b, {c, d}}
+
+    #> Append[a, b]
+     : Nonatomic expression expected.
+     = Append[a, b]
+    """
+
+    def apply(self, expr, item, evaluation):
+        'Append[expr_, item_]'
+
+        if expr.is_atom():
+            return evaluation.message('Append', 'normal')
+
+        return Expression(expr.get_head(),
+                          *(expr.get_leaves() + [item]))
+
+
+class Prepend(Builtin):
+    """
+    <dl>
+    <dt>'Prepend[$expr$, $item$]'
+        <dd>returns $expr$ with $item$ prepended to its leaves.
+    </dl>
+
+    'Prepend' is similar to 'Append', but adds $item$ to the beginning
+    of $expr$:
+    >> Prepend[{2, 3, 4}, 1]
+     = {1, 2, 3, 4}
+
+    'Prepend' works on expressions with heads other than 'List':
+    >> Prepend[f[b, c], a]
+     = f[a, b, c]
+
+    Unlike 'Join', 'Prepend' does not flatten lists in $item$:
+    >> Prepend[{c, d}, {a, b}]
+     = {{a, b}, c, d}
+
+    #> Prepend[a, b]
+     : Nonatomic expression expected.
+     = Prepend[a, b]
+    """
+
+    def apply(self, expr, item, evaluation):
+        'Prepend[expr_, item_]'
+
+        if expr.is_atom():
+            return evaluation.message('Prepend', 'normal')
+
+        return Expression(expr.get_head(),
+                          *([item] + expr.get_leaves()))
+
+
 def get_tuples(items):
     if not items:
         yield []
