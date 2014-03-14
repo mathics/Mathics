@@ -200,10 +200,10 @@ class _SetOperator(object):
             #
             if new_context.startswith('`'):
                 new_context = (
-                    evaluation.definitions.current_context
+                    evaluation.definitions.get_current_context()
                     + new_context.lstrip('`'))
 
-            evaluation.definitions.current_context = new_context
+            evaluation.definitions.set_current_context(new_context)
             ignore_protection = True
         elif lhs_name == 'System`$ContextPath':
             if rhs.has_form('List', None) and all(

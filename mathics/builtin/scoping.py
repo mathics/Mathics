@@ -295,8 +295,9 @@ class Context_(Predefined):
         'cxset': "`1` is not a valid context name ending in `."
     }
 
-    def evaluate(self, evaluation):
-        return String(evaluation.definitions.current_context)
+    rules = {
+        '$Context': '"Global`"',
+    }
 
 
 class ContextPath(Predefined):
@@ -316,7 +317,6 @@ class ContextPath(Predefined):
         'cxlist': "`1` is not a list of valid context names ending in `."
     }
 
-    def evaluate(self, evaluation):
-        return Expression(
-            'List', *[String(ctxt) for ctxt in
-                      evaluation.definitions.context_path])
+    rules = {
+        '$ContextPath': '{"Global`", "System`"}',
+    }

@@ -23,8 +23,8 @@ import os
 import base64
 import re
 
-from mathics.core.expression import ensure_context
-from mathics.core.expression import Symbol
+from mathics.core.expression import (Expression, Symbol, String, ensure_context,
+                                     fully_qualified_symbol_name)
 from mathics.settings import DEBUG_CONTEXTS
 
 
@@ -51,8 +51,6 @@ class Definitions(object):
         self.builtin = {}
         self.user = {}
         self.autoload_stage = False
-        self.current_context = 'Global`'
-        self.context_path = ['Global`', 'System`']
 
         if add_builtin:
             from mathics.builtin import modules, contribute
@@ -83,6 +81,34 @@ class Definitions(object):
                         Evaluation(stream.read(), self, timeout=30)
             self.autoload_stage = False
 
+    def get_current_context(self):
+        # It's crucial to specify System` in this get_ownvalue() call,
+        # otherwise we'll end up back in this function and trigger
+        # infinite recursion.
+        context_rule = self.get_ownvalue('System`$Context')
+        context = context_rule.replace.get_string_value()
+        assert context is not None, "$Context somehow set to an invalid value"
+        return context
+
+    def get_context_path(self):
+        context_path_rule = self.get_ownvalue('System`$ContextPath')
+        context_path = context_path_rule.replace
+        assert context_path.has_form('System`List', None)
+        context_path = [c.get_string_value() for c in context_path.leaves]
+        assert not any([c is None for c in context_path])
+        return context_path
+
+    def set_current_context(self, context):
+        assert isinstance(context, basestring)
+        self.set_ownvalue('System`$Context', String(context))
+
+    def set_context_path(self, context_path):
+        assert isinstance(context_path, list)
+        assert all([isinstance(c, basestring) for c in context_path])
+        self.set_ownvalue('System`$ContextPath',
+                          Expression('System`List',
+                                     *[String(c) for c in context_path]))
+
     def get_builtin_names(self):
         return set(self.builtin)
 
@@ -94,8 +120,8 @@ class Definitions(object):
 
     def get_accessible_contexts(self):
         "Return the contexts reachable though $Context or $ContextPath."
-        accessible_ctxts = set(self.context_path)
-        accessible_ctxts.add(self.current_context)
+        accessible_ctxts = set(self.get_context_path())
+        accessible_ctxts.add(self.get_current_context())
         return accessible_ctxts
 
     def get_matching_names(self, pattern):
@@ -150,29 +176,36 @@ class Definitions(object):
 
         assert isinstance(name, basestring)
 
-        if '`' in name:
-            if name.startswith('`'):
-                return self.current_context + name.lstrip('`')
+        # Bail out if the name we're being asked to look up is already
+        # fully qualified.
+        if fully_qualified_symbol_name(name):
             return name
 
-        with_context = self.current_context + name
+        current_context = self.get_current_context()
+
+        if '`' in name:
+            if name.startswith('`'):
+                return current_context + name.lstrip('`')
+            return name
+
+        with_context = current_context + name
         if not self.have_definition(with_context):
-            for ctx in self.context_path:
+            for ctx in self.get_context_path():
                 n = ctx + name
                 if self.have_definition(n):
                     return n
         return with_context
 
     def shorten_name(self, name_with_ctx):
-        if DEBUG_CONTEXTS:
+        if '`' not in name_with_ctx or DEBUG_CONTEXTS:
             return name_with_ctx
 
         def in_ctx(name, ctx):
             return name.startswith(ctx) and '`' not in name[len(ctx):]
 
-        if in_ctx(name_with_ctx, self.current_context):
-            return name_with_ctx[len(self.current_context):]
-        for ctx in self.context_path:
+        if in_ctx(name_with_ctx, self.get_current_context()):
+            return name_with_ctx[len(self.get_current_context()):]
+        for ctx in self.get_context_path():
             if in_ctx(name_with_ctx, ctx):
                 return name_with_ctx[len(ctx):]
         return name_with_ctx
