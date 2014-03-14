@@ -1056,6 +1056,7 @@ class General(Builtin):
             "`1` called with 1 argument; `2` or `3` arguments are expected."),
         'boxfmt': "`1` is not a box formatting type.",
         'color': "`1` is not a valid color or gray-level specification.",
+        'cxt': "`1` is not a valid context name.",
         'divz': "The argument `1` should be nonzero.",
         'exact': "Argument `1` is not an exact number.",
         'fnsym': ("First argument in `1` is not a symbol "

@@ -256,7 +256,7 @@ class Contexts(Builtin):
     </dl>
 
     >> Contexts[] // InputForm
-     = {"Global`", "System`"}
+     = {"Global`", "System`", "System`Private`"}
     """
 
     def apply(self, evaluation):
@@ -319,4 +319,170 @@ class ContextPath(Predefined):
 
     rules = {
         '$ContextPath': '{"Global`", "System`"}',
+    }
+
+
+class Begin(Builtin):
+    """
+    <dl>
+    <dt>'Begin'[$context$]
+        <dd>temporarily sets the current context to $context$.
+    </dl>
+
+    >> Begin["test`"]
+     = test`
+    >> {$Context, $ContextPath}
+     = {test`, {Global`, System`}}
+    >> Context[newsymbol]
+     = test`
+    >> End[]
+     = test`
+    >> End[]
+     : Unbalanced use of Begin and End.
+     = Global`
+    """
+
+    rules = {
+        'Begin[context_String]': '''
+             Unprotect[System`Private`$ContextStack];
+             System`Private`$ContextStack = Append[System`Private`$ContextStack, $Context];
+             Protect[System`Private`$ContextStack];
+             $Context = context
+        ''',
+    }
+
+
+class End(Builtin):
+    """
+    <dl>
+    <dt>'End[]'
+        <dd>ends a context started by 'Begin'.
+    </dl>
+    """
+
+    messages = {
+        'noctx': "Unbalanced use of Begin and End.",
+    }
+
+    rules = {
+        'End[]': '''
+             Block[{old=$Context},
+                   If[Length[System`Private`$ContextStack] === 0,
+                     (* then *) Message[End::noctx]; $Context,
+                     (* else *) Unprotect[System`Private`$ContextStack];
+                                {$Context, System`Private`$ContextStack} =
+                                    {Last[System`Private`$ContextStack],
+                                     Most[System`Private`$ContextStack]};
+                                Protect[System`Private`$ContextStack];
+                                old]]
+        ''',
+    }
+
+
+class BeginPackage(Builtin):
+    """
+    <dl>
+    <dt>'BeginPackage'[$context$]
+        <dd>starts the package given by $context$.
+    </dl>
+
+    The $context$ argument must be a valid context name.
+    'BeginPackage' changes the values of '$Context' and
+    '$ContextPath', setting the current context to $context$.
+
+    >> {$Context, $ContextPath}
+     = {Global`, {Global`, System`}}
+    >> BeginPackage["test`"]
+     = test`
+    >> {$Context, $ContextPath}
+     = {test`, {test`, System`}}
+    >> Context[newsymbol]
+     = test`
+    >> EndPackage[]
+    >> {$Context, $ContextPath}
+     = {Global`, {test`, Global`, System`}}
+    >> EndPackage[]
+     : Unbalanced use of BeginPackage and EndPackage.
+    """
+
+    messages = {
+        'unimpl': "The second argument to BeginPackage is not yet implemented."
+    }
+
+    rules = {
+        'BeginPackage[context_String]': '''
+             Unprotect[System`Private`$ContextPathStack];
+             Begin[context];
+             System`Private`$ContextPathStack =
+                 Append[System`Private`$ContextPathStack, $ContextPath];
+             $ContextPath = {context, "System`"};
+             Protect[System`Private`$ContextPathStack];
+             context
+        ''',
+    }
+
+
+class EndPackage(Builtin):
+    """
+    <dl>
+    <dt>'EndPackage[]'
+        <dd>marks the end of a package, undoing a previous 'BeginPackage'.
+    </dl>
+
+    After 'EndPackage', the values of '$Context' and '$ContextPath' at
+    the time of the 'BeginPackage' call are restored, with the new
+    package's context prepended to $ContextPath.
+    """
+
+    messages = {
+        'noctx': "Unbalanced use of BeginPackage and EndPackage."
+    }
+
+    rules = {
+        'EndPackage[]': '''
+             Block[{newctx=Quiet[End[], {End::noctx}]},
+                   If[Length[System`Private`$ContextPathStack] === 0,
+                      (* then *) Message[EndPackage::noctx],
+                      (* else *) Unprotect[System`Private`$ContextPathStack];
+                                 {$ContextPath, System`Private`$ContextPathStack} =
+                                     {Prepend[Last[System`Private`$ContextPathStack],
+                                              newctx],
+                                      Most[System`Private`$ContextPathStack]};
+                                 Protect[System`Private`$ContextPathStack];
+                                 Null]]
+        ''',
+    }
+
+
+class ContextStack(Builtin):
+    """
+    <dl>
+    <dt>'System`Private`$ContextStack'
+        <dd>tracks the values of '$Context' saved by 'Begin' and
+        'BeginPackage'.
+    </dl>
+    """
+
+    context = 'System`Private`'
+    name = '$ContextStack'
+
+    rules = {
+        'System`Private`$ContextStack': '{}',
+    }
+
+
+class ContextPathStack(Builtin):
+    """
+    <dl>
+    <dt>'System`Private`$ContextPathStack'
+        <dd>tracks the values of '$ContextPath' saved by 'Begin' and
+        'BeginPackage'.
+    </dl>
+    """
+
+    context = 'System`Private`'
+    name = '$ContextPathStack'
+
+    rules = {
+        'System`Private`$ContextPathStack': '{}',
     }
