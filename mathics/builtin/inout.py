@@ -617,6 +617,12 @@ class MatrixForm(TableForm):
      . a[3, 1]   a[3, 2]   a[3, 3]
      .
      . a[4, 1]   a[4, 2]   a[4, 3]
+
+    ## Issue #182
+    #> {{2*a, 0},{0,0}}//MatrixForm
+     = 2 a   0
+     .
+     . 0     0
     """
 
     def apply_makeboxes_matrix(self, table, f, evaluation, options):
