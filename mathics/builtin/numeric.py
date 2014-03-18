@@ -102,6 +102,8 @@ class N(Builtin):
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
     #> ToString[p]
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
+    #> 3.14159 * "a string"
+     = 3.14159 a string
     """
 
     messages = {
@@ -127,13 +129,15 @@ class N(Builtin):
                 return expr.round(valid_prec)
 
             name = expr.get_lookup_name()
-            nexpr = Expression('N', expr, prec)
-            result = evaluation.definitions.get_value(
-                name, 'System`NValues', nexpr, evaluation)
-            if result is not None:
-                if not result.same(nexpr):
-                    result = Expression('N', result, prec).evaluate(evaluation)
-                return result
+            if name != '':
+                nexpr = Expression('N', expr, prec)
+                result = evaluation.definitions.get_value(
+                    name, 'System`NValues', nexpr, evaluation)
+                if result is not None:
+                    if not result.same(nexpr):
+                        result = Expression(
+                            'N', result, prec).evaluate(evaluation)
+                    return result
 
             if expr.is_atom():
                 return expr.round(valid_prec)
