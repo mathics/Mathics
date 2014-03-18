@@ -1217,6 +1217,11 @@ class Range(Builtin):
 
 
 class _IterationFunction(Builtin):
+    """
+    >> Sum[k, {k, Range[5]}]
+     = 15
+    """
+
     attributes = ('HoldAll',)
     rules = {
 #        '%(name)s[expr_, {i_Symbol, imax_}]': (
