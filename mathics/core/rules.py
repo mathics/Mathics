@@ -144,7 +144,8 @@ class Rule(BaseRule):
         return new
 
     def __repr__(self):
-        return '<Rule: %s -> %s>' % (self.pattern, self.replace)
+        return (u'<Rule: %s -> %s>' % (self.pattern, self.replace)).encode(
+            'unicode_escape')
 
 
 class BuiltinRule(BaseRule):
@@ -160,7 +161,8 @@ class BuiltinRule(BaseRule):
             return self.function(evaluation=evaluation, **vars)
 
     def __repr__(self):
-        return '<BuiltinRule: %s -> %s>' % (self.pattern, self.function)
+        s = u'<BuiltinRule: %s -> %s>' % (self.pattern, self.function)
+        return s.encode('unicode_escape')
 
     def __getstate__(self):
         odict = self.__dict__.copy()

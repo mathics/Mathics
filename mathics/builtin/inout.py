@@ -468,7 +468,7 @@ class GridBox(BoxConstruct):
         for row in items:
             result += '<mtr>'
             for item in row:
-                result += '<mtd {0}>{1}</mtd>'.format(
+                result += u'<mtd {0}>{1}</mtd>'.format(
                     attrs, item.boxes_to_xml(**new_box_options))
             result += '</mtr>\n'
         result += '</mtable>'
@@ -617,6 +617,12 @@ class MatrixForm(TableForm):
      . a[3, 1]   a[3, 2]   a[3, 3]
      .
      . a[4, 1]   a[4, 2]   a[4, 3]
+
+    ## Issue #182
+    #> {{2*a, 0},{0,0}}//MatrixForm
+     = 2 a   0
+     .
+     . 0     0
     """
 
     def apply_makeboxes_matrix(self, table, f, evaluation, options):
@@ -1125,9 +1131,24 @@ class OutputForm(Builtin):
 
 
 class MathMLForm(Builtin):
-    """
+    u"""
     >> MathMLForm[HoldForm[Sqrt[a^3]]]
      = <math><msqrt><msup><mi>a</mi> <mn>3</mn></msup></msqrt></math>
+
+    ## Test cases for Unicode
+    #> MathMLForm[\\[Mu]]
+     = <math><mi>\u03bc</mi></math>
+
+    #> MathMLForm[Graphics[Text["\u03bc"]]]
+     = <math><mtable><mtr><mtd><svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
+     .  version="1.0" width="..." height="..." viewBox="..."><foreignObject x="..." y="..." ox="0.000000" oy="0.000000" style="stroke: none; fill: none; color: rgb(0.000000%, 0.000000%, 0.000000%)"><math><mtext>\u03bc</mtext></math></foreignObject></svg></mtd></mtr></mtable></math>
+
+    ## The <mo> should contain U+2062 INVISIBLE TIMES
+    #> MathMLForm[MatrixForm[{{2*a, 0},{0,0}}]]
+     = <math><mrow><mo>(</mo> <mtable columnalign="center">
+     . <mtr><mtd columnalign="center"><mrow><mn>2</mn> <mo form="prefix" lspace="0" rspace="0.2em">\u2062</mo> <mi>a</mi></mrow></mtd><mtd columnalign="center"><mn>0</mn></mtd></mtr>
+     . <mtr><mtd columnalign="center"><mn>0</mn></mtd><mtd columnalign="center"><mn>0</mn></mtd></mtr>
+     . </mtable> <mo>)</mo></mrow></math>
     """
 
     def apply_mathml(self, expr, evaluation):
