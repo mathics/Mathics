@@ -169,16 +169,8 @@ class Dot(BinaryOperator):
     attributes = ('Flat', 'OneIdentity')
 
     rules = {
-#        'Dot[a_, b_]': 'Inner[Times, a, b, Plus]',
+        'Dot[a_List, b_List]': 'Inner[Times, a, b, Plus]',
     }
-
-    def apply(self, a, b, evaluation):
-        'Dot[a_, b_]'
-
-        if a.get_head_name() != 'List' or b.get_head_name() != 'List':
-            return Expression('Dot', a, b)
-        else:
-            return Expression('Inner', Symbol('Times'), a, b)
         
 
 class Inner(Builtin):
