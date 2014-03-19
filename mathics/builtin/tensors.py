@@ -162,6 +162,8 @@ class Dot(BinaryOperator):
     Matrix product:
     >> {{a, b}, {c, d}} . {{r, s}, {t, u}}
      = {{a r + b t, a s + b u}, {c r + d t, c s + d u}}
+    >> a . b
+     = a . b
     """
 
     operator = '.'
