@@ -173,7 +173,7 @@ class Dot(BinaryOperator):
     rules = {
         'Dot[a_List, b_List]': 'Inner[Times, a, b, Plus]',
     }
-        
+
 
 class Inner(Builtin):
     """
