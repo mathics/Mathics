@@ -19,7 +19,7 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.core.expression import Expression
+from mathics.core.expression import Expression, system_symbols
 from mathics.core.util import subsets, subranges, permutations
 
 # from mathics.core.pattern_nocython import (
@@ -401,7 +401,7 @@ class ExpressionPattern(Pattern):
         # TODO: This could be further optimized!
         try_flattened = (
             ('System`Flat' in attributes) and (leaf.get_head_name() in (
-                    'System`' + s for s in (
+                    system_symbols(
                         'Pattern', 'PatternTest', 'Condition', 'Optional',
                         'Blank', 'BlankSequence', 'BlankNullSequence',
                         'Alternatives', 'OptionsPattern', 'Repeated',
