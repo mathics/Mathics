@@ -338,7 +338,7 @@ class Begin(Builtin):
     >> End[]
      = test`
     >> End[]
-     : Unbalanced use of Begin and End.
+     : No previous context defined.
      = Global`
     """
 
@@ -361,7 +361,7 @@ class End(Builtin):
     """
 
     messages = {
-        'noctx': "Unbalanced use of Begin and End.",
+        'noctx': "No previous context defined.",
     }
 
     rules = {
@@ -402,7 +402,7 @@ class BeginPackage(Builtin):
     >> {$Context, $ContextPath}
      = {Global`, {test`, Global`, System`}}
     >> EndPackage[]
-     : Unbalanced use of BeginPackage and EndPackage.
+     : No previous context defined.
     """
 
     messages = {
@@ -435,7 +435,7 @@ class EndPackage(Builtin):
     """
 
     messages = {
-        'noctx': "Unbalanced use of BeginPackage and EndPackage."
+        'noctx': "No previous context defined.",
     }
 
     rules = {
