@@ -26,6 +26,13 @@ import re
 from mathics.core.expression import (Expression, Symbol, String, ensure_context,
                                      fully_qualified_symbol_name)
 from mathics.settings import DEBUG_CONTEXTS
+from mathics.core.characters import letters, letterlikes
+
+
+names_wildcards = "@*"
+base_names_pattern = ur'((?![0-9])([0-9${0}{1}{2}])+)'.format(
+    letters, letterlikes, names_wildcards)
+full_names_pattern = ur'(`?{0}(`{0})*)'.format(base_names_pattern)
 
 
 def get_file_time(file):
@@ -139,6 +146,15 @@ class Definitions(object):
         which aren't uppercase letters. In the context pattern, both
         '*' and '@' match context marks.
         """
+
+        if re.match(full_names_pattern, pattern) is None:
+            # The pattern contained characters which weren't allowed
+            # in symbols and aren't valid wildcards. Hence, the
+            # pattern can't match any symbols.
+            return []
+
+        # If we get here, there aren't any regexp metacharacters in
+        # the pattern.
 
         if '`' in pattern:
             ctx_pattern, short_pattern = pattern.rsplit('`', 1)
