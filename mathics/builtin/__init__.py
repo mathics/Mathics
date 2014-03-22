@@ -28,7 +28,7 @@ from mathics.builtin import (
 from mathics.builtin.base import (
     Builtin, SympyObject, BoxConstruct, Operator, PatternObject)
 
-from mathics.settings import ENABLE_FILES_MODULE, DEBUG_DUPLICATE_BUILTINS
+from mathics.settings import ENABLE_FILES_MODULE
 
 modules = [
     algebra, arithmetic, assignment, attributes, calculus, combinatorial,
@@ -69,14 +69,6 @@ for module in modules:
                 builtins.append((instance.get_name(), instance))
                 builtins_by_module[module.__name__].append(instance)
 
-if DEBUG_DUPLICATE_BUILTINS:
-    instances_by_name = {}
-    for name, instance in builtins:
-        if name in instances_by_name:
-            print "Duplicate builtin %s" % name
-            print "  defined as: %r" % instances_by_name[name]
-            print "  and as:     %r" % instance
-        instances_by_name[name] = instance
 
 # builtins = dict(builtins)
 

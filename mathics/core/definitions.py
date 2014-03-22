@@ -25,7 +25,6 @@ import re
 
 from mathics.core.expression import (Expression, Symbol, String, ensure_context,
                                      fully_qualified_symbol_name)
-from mathics.settings import DEBUG_CONTEXTS
 from mathics.core.characters import letters, letterlikes
 
 
@@ -213,7 +212,7 @@ class Definitions(object):
         return with_context
 
     def shorten_name(self, name_with_ctx):
-        if '`' not in name_with_ctx or DEBUG_CONTEXTS:
+        if '`' not in name_with_ctx:
             return name_with_ctx
 
         def in_ctx(name, ctx):
