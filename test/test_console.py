@@ -1,3 +1,4 @@
+import os
 import sys
 import pexpect
 
@@ -9,6 +10,7 @@ else:
 
 class ConsoleTest(unittest.TestCase):
     def setUp(self):
+        os.environ["TERM"] = "dumb"
         self.console = pexpect.spawn('python2 mathics/main.py --color NOCOLOR')
 
     def testLaunch(self):
