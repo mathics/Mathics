@@ -1511,16 +1511,18 @@ def parse(string, definitions):
 
     return parser.parse(string, definitions)
 
+
+class SystemDefinitions(object):
+    """
+    Dummy Definitions object that puts every unqualified symbol in
+    System`.
+    """
+    def lookup_name(self, name):
+        assert isinstance(name, basestring)
+        return ensure_context(name)
+
+
 # Parse rules specified in builtin docstrings/attributes. Every symbol
 # in the input is created in the System` context.
 def parse_builtin_rule(string):
-    class SystemDefinitions(object):
-        """
-        Dummy Definitions object that puts every unqualified symbol in
-        System`.
-        """
-        def lookup_name(self, name):
-            assert isinstance(name, basestring)
-            return ensure_context(name)
-
     return parse(string, SystemDefinitions())
