@@ -32,7 +32,7 @@ if not (2, 6) <= sys.version_info[:2] <= (2, 7):
 Python %d.%d detected" % sys.version_info[:2])
     sys.exit(-1)
 
-# Get stores __version__ in the current namespace
+# stores __version__ in the current namespace
 execfile('mathics/version.py')
 
 if sys.subversion[0] == 'PyPy':
