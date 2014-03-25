@@ -424,9 +424,7 @@ class Integrate(SympyFunction):
         if len(leaves) == 2:
             x = leaves[1]
             if x.has_form('List', 3):
-                return ('Integrate', [leaves[0]] + x.leaves)
-            else:
-                return ('Integrate', leaves)
+                return [leaves[0]] + x.leaves
         return leaves
 
     def from_sympy(self, leaves):

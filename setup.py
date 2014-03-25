@@ -32,7 +32,8 @@ if not (2, 6) <= sys.version_info[:2] <= (2, 7):
 Python %d.%d detected" % sys.version_info[:2])
     sys.exit(-1)
 
-import mathics
+# stores __version__ in the current namespace
+execfile('mathics/version.py')
 
 if sys.subversion[0] == 'PyPy':
     is_PyPy = True
@@ -94,12 +95,13 @@ class initialize(Command):
     def run(self):
         import os
         import subprocess
-        from mathics import settings
+        settings = {}
+        execfile('mathics/settings.py', settings)
 
-        database_file = settings.DATABASES['default']['NAME']
-        print("Creating data directory %s" % settings.DATA_DIR)
-        if not os.path.exists(settings.DATA_DIR):
-            os.makedirs(settings.DATA_DIR)
+        database_file = settings['DATABASES']['default']['NAME']
+        print("Creating data directory %s" % settings['DATA_DIR'])
+        if not os.path.exists(settings['DATA_DIR']):
+            os.makedirs(settings['DATA_DIR'])
         print("Creating database %s" % database_file)
         try:
             subprocess.check_call(
@@ -110,7 +112,42 @@ class initialize(Command):
             print("error: failed to create database")
             sys.exit(1)
 
+
+class test(Command):
+    """
+    Runs the unittests
+    """
+
+    description = "runs the unittests"
+    user_options = []
+
+    def __init__(self, *args):
+        self.args = args[0]  # so we can pass it to other classes
+        Command.__init__(self, *args)
+
+    def initialize_options(self):  # distutils wants this
+        pass
+
+    def finalize_options(self):    # this too
+        pass
+
+    def run(self):
+        if sys.version_info[:2] == (2, 7):
+            import unittest
+        else:
+            import unittest2 as unittest
+
+        test_loader = unittest.defaultTestLoader
+        test_runner = unittest.TextTestRunner(verbosity=3)
+        test_suite = test_loader.discover('test/')
+        test_result = test_runner.run(test_suite)
+
+        if not test_result.wasSuccessful():
+            sys.exit(1)
+
+
 CMDCLASS['initialize'] = initialize
+CMDCLASS['test'] = test
 
 mathjax_files = list(subdirs('media/js/mathjax/'))
 
@@ -118,7 +155,7 @@ setup(
     name="Mathics",
     cmdclass=CMDCLASS,
     ext_modules=EXTENSIONS,
-    version=mathics.__version__,
+    version=__version__,
 
     packages=[
         'mathics',
