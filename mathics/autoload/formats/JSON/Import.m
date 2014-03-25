@@ -1,5 +1,8 @@
 (* JSON Importer *)
 
+Begin["System`Convert`JSONDump`"]
+
+
 (* Based on converter at http://stackoverflow.com/questions/2633003/parsing-and-generating-json *)
 importJSON[filename_String]:= 
     Module[{data},
@@ -30,9 +33,12 @@ importJSON[filename_String]:=
 
 RegisterImport[
     "JSON",
-    importJSON,
+    System`Convert`JSONDump`importJSON,
     {},
     AvailableElements -> {"Data"},
     DefaultElement -> "Data",
     FunctionChannels -> {"FileNames"}
 ]
+
+
+End[]

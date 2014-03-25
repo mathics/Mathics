@@ -1,5 +1,8 @@
 (* Text Importer *)
 
+Begin["System`Convert`TextDump`"]
+
+
 DataImport[stream_]:=
     Module[{data},
         data = ReadList[stream, String];
@@ -33,12 +36,12 @@ WordsImport[stream_]:=
 RegisterImport[
     "Text",
     {
-        "Data" :> DataImport,
-        "Lines" :> LinesImport,
-        "Plaintext" :> PlaintextImport,
-        "String" :> StringImport, 
-        "Words" :> WordsImport,
-        PlaintextImport
+        "Data" :> System`Convert`TextDump`DataImport,
+        "Lines" :> System`Convert`TextDump`LinesImport,
+        "Plaintext" :> System`Convert`TextDump`PlaintextImport,
+        "String" :> System`Convert`TextDump`StringImport,
+        "Words" :> System`Convert`TextDump`WordsImport,
+        System`Convert`TextDump`PlaintextImport
     },
     {},
 	AvailableElements -> {"Data", "Lines", "Plaintext", "String", "Words"},
@@ -47,3 +50,5 @@ RegisterImport[
     FunctionChannels -> {"Streams"}
 ]
 
+
+End[]
