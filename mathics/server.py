@@ -89,7 +89,7 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port
     if args.external:
         addr = '0.0.0.0'
     else:
-        addr = ''
+        addr = '127.0.0.1'
 
     try:
         if settings.DJANGO_VERSION < (1, 4):
