@@ -14,6 +14,9 @@ Additional contributions were made by:
 - freshwater
 - proxy-sander
 - Ben Jones (bnjones)
+- Bth8
+- GitAnt
+- ogra
 
 Thanks to the authors of all projects that are used in Mathics:
 - Django

@@ -99,14 +99,20 @@ class ExpressionPointer(object):
 
 def from_python(arg):
     number_type = get_type(arg)
-    if isinstance(arg, int) or isinstance(arg, long) or number_type == 'z':
+    if isinstance(arg, (int, long)) or number_type == 'z':
         return Integer(arg)
     elif isinstance(arg, float) or number_type == 'f':
         return Real(arg)
     elif number_type == 'q':
         return Rational(arg)
+    elif isinstance(arg, complex) or number_type == 'c':
+        return Complex(arg.real, arg.imag)
     elif isinstance(arg, basestring):
         return String(arg)
+        # if arg[0] == arg[-1] == '"':
+        #     return String(arg[1:-1])
+        # else:
+        #     return Symbol(arg)
     elif isinstance(arg, BaseExpression):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
@@ -799,7 +805,11 @@ class Expression(BaseExpression):
             self.head, u', '.join([unicode(leaf) for leaf in self.leaves]))
 
     def __repr__(self):
-        return u'<Expression: %s>' % self
+        # This .encode("unicode_escape") is necessary because Python
+        # implicitly calls the equivalent of .encode("ascii") if we
+        # return a Unicode string here, which might raise
+        # UnicodeEncodeError in awkward places.
+        return (u'<Expression: %s>' % self).encode('unicode_escape')
 
     def process_style_box(self, options):
         if self.has_form('StyleBox', 1, None):
@@ -1181,7 +1191,8 @@ class Atom(BaseExpression):
         return self.__class__.__name__
 
     def __repr__(self):
-        return u'<%s: %s>' % (self.get_atom_name(), self)
+        return (u'<%s: %s>' % (self.get_atom_name(), self)).encode(
+            'unicode_escape')
 
     def replace_vars(self, vars, options=None, in_scoping=True):
         return self
@@ -1792,6 +1803,10 @@ class String(Atom):
                 if text == u'\u2146':
                     return (
                         '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>'
+                        % encode_mathml(text))
+                if text == u'\u2062':
+                    return (
+                        '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>'
                         % encode_mathml(text))
                 return '<mo>%s</mo>' % encode_mathml(text)
             elif is_symbol_name(text):

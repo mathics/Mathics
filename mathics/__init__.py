@@ -6,8 +6,11 @@ import codecs
 writer = codecs.getwriter("utf-8")
 sys.stdout = writer(sys.stdout)
 
-
-__version__ = "0.6.0rc1"
+from mathics.version import __version__
+from mathics.core.expression import (
+    Expression, Symbol, String, Number, Integer, Real, Complex, Rational,
+    from_python)
+from mathics.core.convert import from_sympy
 
 
 def get_version():
@@ -56,3 +59,5 @@ This is free software, and you are welcome to redistribute it
 under certain conditions.
 See the documentation for the full license.
 """
+
+from mathics.core.parser import parse, ScanError, ParseError
