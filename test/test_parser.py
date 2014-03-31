@@ -1,11 +1,26 @@
 import sys
 import random
-from mathics import *
+from mathics.core.parser import parse, ParseError, ScanError
+from mathics.core.expression import (Expression, Real, Integer, String,
+                                     Rational, Symbol)
+from mathics.core.definitions import Definitions
 
 if sys.version_info[:2] == (2, 7):
     import unittest
 else:
     import unittest2 as unittest
+
+definitions = None
+
+def setUpModule():
+    global definitions
+    definitions = Definitions(add_builtin=True)
+
+
+_parse = parse
+
+def parse(s):
+    return _parse(s, definitions)
 
 
 class ParserTests(unittest.TestCase):
@@ -36,7 +51,7 @@ class NumberTests(ParserTests):
         self.check('0.000000000000000000', '0.``18')
 
     def testSymbol(self):
-        self.check('xX', Symbol('xX'))
+        self.check('xX', Symbol('Global`xX'))
         self.check('context`name', Symbol('context`name'))
         self.check('`name', Symbol('Global`name'))
         self.check('`context`name', Symbol('Global`context`name'))
@@ -87,12 +102,12 @@ class NumberTests(ParserTests):
 
         self.check('1?2', Expression('PatternTest', Integer(1), Integer(2)))
 
-        self.check('x:expr', Expression('Pattern', Symbol('x'), Symbol('expr')))
-        self.check('x_:expr', Expression('Optional', Expression('Pattern', Symbol('x'), Expression('Blank')), Symbol('expr')))
-        self.check('f:a|b', Expression('Pattern', Symbol('f'), Expression('Alternatives', Symbol('a'), Symbol('b'))))
+        self.check('x:expr', Expression('Pattern', Symbol('Global`x'), Symbol('Global`expr')))
+        self.check('x_:expr', Expression('Optional', Expression('Pattern', Symbol('Global`x'), Expression('Blank')), Symbol('Global`expr')))
+        self.check('f:a|b', Expression('Pattern', Symbol('Global`f'), Expression('Alternatives', Symbol('Global`a'), Symbol('Global`b'))))
 
     def testCompound(self):
-        self.check('a ; {b}', Expression('CompoundExpression', Symbol('a'), Expression('List', Symbol('b'))))
+        self.check('a ; {b}', Expression('CompoundExpression', Symbol('Global`a'), Expression('List', Symbol('Global`b'))))
         self.check('1 ;', Expression('CompoundExpression', Integer(1), Symbol('Null')))
         self.check('1 ; 5', Expression('CompoundExpression', Integer(1), Integer(5)))
         self.check('4; 1 ; 5', Expression('CompoundExpression', Integer(4), Integer(1), Integer(5)))
@@ -116,29 +131,29 @@ class NumberTests(ParserTests):
         self.check('<< filename', Expression('Get', String('filename')))
 
     def testExpression(self):
-        self.check('expr1[expr2]', Expression('expr1', Symbol('expr2')))
-        self.check('expr1[expr2][expr3]', Expression(Expression('expr1', Symbol('expr2')), Symbol('expr3')))
-        self.check('expr1[[expr2]]', Expression('Part', Symbol('expr1'), Symbol('expr2')))
-        self.check('expr1[[expr2, expr3]]', Expression('Part', Symbol('expr1'), Symbol('expr2'), Symbol('expr3')))
-        self.check('expr1[[expr2]][[expr3]]', Expression('Part', Expression('Part', Symbol('expr1'), Symbol('expr2')), Symbol('expr3')))
+        self.check('expr1[expr2]', Expression('Global`expr1', Symbol('Global`expr2')))
+        self.check('expr1[expr2][expr3]', Expression(Expression('Global`expr1', Symbol('Global`expr2')), Symbol('Global`expr3')))
+        self.check('expr1[[expr2]]', Expression('Part', Symbol('Global`expr1'), Symbol('Global`expr2')))
+        self.check('expr1[[expr2, expr3]]', Expression('Part', Symbol('Global`expr1'), Symbol('Global`expr2'), Symbol('Global`expr3')))
+        self.check('expr1[[expr2]][[expr3]]', Expression('Part', Expression('Part', Symbol('Global`expr1'), Symbol('Global`expr2')), Symbol('Global`expr3')))
 
-        self.check('expr1 ~ expr2 ~ expr3', Expression('expr2', Symbol('expr1'), Symbol('expr3')))
+        self.check('expr1 ~ expr2 ~ expr3', Expression('Global`expr2', Symbol('Global`expr1'), Symbol('Global`expr3')))
         self.check('x~f~y', 'f[x, y]')
 
     def testFunctional(self):
-        self.check('expr1 @ expr2', Expression('expr1', Symbol('expr2')))
-        self.check('f @@ expr', Expression('Apply', Symbol('f'), Symbol('expr')))
-        self.check('f /@ expr', Expression('Map', Symbol('f'), Symbol('expr')))
+        self.check('expr1 @ expr2', Expression('Global`expr1', Symbol('Global`expr2')))
+        self.check('f @@ expr', Expression('Apply', Symbol('Global`f'), Symbol('Global`expr')))
+        self.check('f /@ expr', Expression('Map', Symbol('Global`f'), Symbol('Global`expr')))
 
-        self.check('f @@@ expr', Expression('Apply', Symbol('f'), Symbol('expr'), Expression('List', 1)))
-        self.check('f //@ expr', Expression('MapAll', Symbol('f'), Symbol('expr')))
-        self.check('a @@ b @@ c', Expression('Apply', Symbol('a'), Expression('Apply', Symbol('b'), Symbol('c'))))
+        self.check('f @@@ expr', Expression('Apply', Symbol('Global`f'), Symbol('Global`expr'), Expression('List', 1)))
+        self.check('f //@ expr', Expression('MapAll', Symbol('Global`f'), Symbol('Global`expr')))
+        self.check('a @@ b @@ c', Expression('Apply', Symbol('Global`a'), Expression('Apply', Symbol('Global`b'), Symbol('Global`c'))))
 
     def testIncDec(self):
-        self.check('a++', Expression('Increment', Symbol('a')))
-        self.check('a--', Expression('Decrement', Symbol('a')))
-        self.check('++a', Expression('PreIncrement', Symbol('a')))
-        self.check('--a', Expression('PreDecrement', Symbol('a')))
+        self.check('a++', Expression('Increment', Symbol('Global`a')))
+        self.check('a--', Expression('Decrement', Symbol('Global`a')))
+        self.check('++a', Expression('PreIncrement', Symbol('Global`a')))
+        self.check('--a', Expression('PreDecrement', Symbol('Global`a')))
 
     def testBang(self):
         self.check('5!', Expression('Factorial', Integer(5)))
@@ -146,23 +161,23 @@ class NumberTests(ParserTests):
         self.check('5 ! !', Expression('Factorial', Expression('Factorial', Integer(5))))
         self.check('!1', Expression('Not', Integer(1)))
         self.check('5 !!', Expression('Factorial2', Integer(5)))
-        self.check('x ! y', Expression('Times', Expression('Factorial', Symbol('x')), Symbol('y')))
+        self.check('x ! y', Expression('Times', Expression('Factorial', Symbol('Global`x')), Symbol('Global`y')))
 
     def testDerivative(self):
-        self.check("f'", Expression(Expression('Derivative', Integer(1)), Symbol('f')))
-        self.check("f''", Expression(Expression('Derivative', Integer(2)), Symbol('f')))
-        self.check("f' '", Expression(Expression('Derivative', Integer(2)), Symbol('f')))
+        self.check("f'", Expression(Expression('Derivative', Integer(1)), Symbol('Global`f')))
+        self.check("f''", Expression(Expression('Derivative', Integer(2)), Symbol('Global`f')))
+        self.check("f' '", Expression(Expression('Derivative', Integer(2)), Symbol('Global`f')))
 
     def testPlus(self):
         self.check('+1', Integer(1))
         self.check('1 + 2', Expression('Plus', Integer(1), Integer(2)))
         self.check('1 + 2 + 3', Expression('Plus', Integer(1), Integer(2), Integer(3)))
         self.check('1 + 2 + 3 + 4', 'Plus[1, 2, 3, 4]')
-        self.check('-a', Expression('Times', Integer(-1), Symbol('a')))
+        self.check('-a', Expression('Times', Integer(-1), Symbol('Global`a')))
         self.check('1 - 2', Expression('Plus', Integer(1), Expression('Times', Integer(-1), Integer(2))))
 
-        self.check('a*b+c', Expression('Plus', Expression('Times', Symbol('a'), Symbol('b')), Symbol('c')))
-        self.check('a*+b+c', Expression('Plus', Expression('Times', Symbol('a'), Symbol('b')), Symbol('c')))
+        self.check('a*b+c', Expression('Plus', Expression('Times', Symbol('Global`a'), Symbol('Global`b')), Symbol('Global`c')))
+        self.check('a*+b+c', Expression('Plus', Expression('Times', Symbol('Global`a'), Symbol('Global`b')), Symbol('Global`c')))
         self.check('a+b*c', 'a+(b*c)')
         self.check('a*b+c', '(a*b) + c')
 
@@ -173,7 +188,7 @@ class NumberTests(ParserTests):
         self.check('1 2 3', Expression('Times', Integer(1), Integer(2), Integer(3)))
         self.check('1*2*3', Expression('Times', Integer(1), Integer(2), Integer(3)))
 
-        self.check('x ^ 2 y', Expression('Times', Expression('Power', Symbol('x'), Integer(2)), Symbol('y')))
+        self.check('x ^ 2 y', Expression('Times', Expression('Power', Symbol('Global`x'), Integer(2)), Symbol('Global`y')))
 
     def testSpan(self):
         self.check('1;;2;;3', Expression('Span', Integer(1), Integer(2), Integer(3)))
@@ -193,27 +208,27 @@ class NumberTests(ParserTests):
         self.check('1 && 2', Expression('And', Integer(1), Integer(2)))
         self.check('1 || 2', Expression('Or', Integer(1), Integer(2)))
 
-        self.check('x /; y', Expression('Condition', Symbol('x'), Symbol('y')))
-        self.check('x -> y', Expression('Rule', Symbol('x'), Symbol('y')))
-        self.check('x :> y', Expression('RuleDelayed', Symbol('x'), Symbol('y')))
+        self.check('x /; y', Expression('Condition', Symbol('Global`x'), Symbol('Global`y')))
+        self.check('x -> y', Expression('Rule', Symbol('Global`x'), Symbol('Global`y')))
+        self.check('x :> y', Expression('RuleDelayed', Symbol('Global`x'), Symbol('Global`y')))
 
-        self.check('x /. y', Expression('ReplaceAll', Symbol('x'), Symbol('y')))
-        self.check('x //. y', Expression('ReplaceRepeated', Symbol('x'), Symbol('y')))
+        self.check('x /. y', Expression('ReplaceAll', Symbol('Global`x'), Symbol('Global`y')))
+        self.check('x //. y', Expression('ReplaceRepeated', Symbol('Global`x'), Symbol('Global`y')))
 
-        self.check('x += y', Expression('AddTo', Symbol('x'), Symbol('y')))
-        self.check('x -= y', Expression('SubtractFrom', Symbol('x'), Symbol('y')))
-        self.check('x *= y', Expression('TimesBy', Symbol('x'), Symbol('y')))
-        self.check('x /= y', Expression('DivideBy', Symbol('x'), Symbol('y')))
+        self.check('x += y', Expression('AddTo', Symbol('Global`x'), Symbol('Global`y')))
+        self.check('x -= y', Expression('SubtractFrom', Symbol('Global`x'), Symbol('Global`y')))
+        self.check('x *= y', Expression('TimesBy', Symbol('Global`x'), Symbol('Global`y')))
+        self.check('x /= y', Expression('DivideBy', Symbol('Global`x'), Symbol('Global`y')))
 
-        self.check('x &', Expression('Function', Symbol('x')))
+        self.check('x &', Expression('Function', Symbol('Global`x')))
 
-        self.check('x // y', Expression('y', Symbol('x')))
+        self.check('x // y', Expression('Global`y', Symbol('Global`x')))
 
         self.check('1 ^ 2 ^ 3', 'Power[1, Power[2, 3]]')
         self.check('3/2', Expression('Times', Integer(3), Expression('Power', Integer(2), Integer(-1))))
 
-        self.check('x ~~ y', Expression('StringExpression', Symbol('x'), Symbol('y')))
-        self.check('x ~~ y ~~ z', Expression('StringExpression', Symbol('x'), Symbol('y'), Symbol('z')))
+        self.check('x ~~ y', Expression('StringExpression', Symbol('Global`x'), Symbol('Global`y')))
+        self.check('x ~~ y ~~ z', Expression('StringExpression', Symbol('Global`x'), Symbol('Global`y'), Symbol('Global`z')))
 
     def testCompare(self):
         self.check('1 == 2', Expression('Equal', Integer(1), Integer(2)))
@@ -245,39 +260,39 @@ class NumberTests(ParserTests):
         self.check('1 | 2 | 3', Expression('Alternatives', Integer(1), Integer(2), Integer(3)))
 
     def testSet(self):
-        self.check('x = y', Expression('Set', Symbol('x'), Symbol('y')))
-        self.check('x := y', Expression('SetDelayed', Symbol('x'), Symbol('y')))
-        self.check('x ^= y', Expression('UpSet', Symbol('x'), Symbol('y')))
-        self.check('x ^:= y', Expression('UpSetDelayed', Symbol('x'), Symbol('y')))
-        self.check('x =.', Expression('Unset', Symbol('x')))
+        self.check('x = y', Expression('Set', Symbol('Global`x'), Symbol('Global`y')))
+        self.check('x := y', Expression('SetDelayed', Symbol('Global`x'), Symbol('Global`y')))
+        self.check('x ^= y', Expression('UpSet', Symbol('Global`x'), Symbol('Global`y')))
+        self.check('x ^:= y', Expression('UpSetDelayed', Symbol('Global`x'), Symbol('Global`y')))
+        self.check('x =.', Expression('Unset', Symbol('Global`x')))
 
-        self.check('x/:1=1', Expression('TagSet', Symbol('x'), Integer(1), Integer(1)))
-        self.check('x/:1:=1', Expression('TagSetDelayed', Symbol('x'), Integer(1), Integer(1)))
-        # self.check('x/:1=.', Expression('TagUnset', Symbol('x'), Integer(1)))
+        self.check('x/:1=1', Expression('TagSet', Symbol('Global`x'), Integer(1), Integer(1)))
+        self.check('x/:1:=1', Expression('TagSetDelayed', Symbol('Global`x'), Integer(1), Integer(1)))
+        # self.check('x/:1=.', Expression('TagUnset', Symbol('Global`x'), Integer(1)))
 
     def testList(self):
-        self.check('{x, y}', Expression('List', Symbol('x'), Symbol('y')))
+        self.check('{x, y}', Expression('List', Symbol('Global`x'), Symbol('Global`y')))
 
         self.check('{}', Expression('List'))
-        self.check('{a,}', Expression('List', Symbol('a'), Symbol('Null')))
+        self.check('{a,}', Expression('List', Symbol('Global`a'), Symbol('Null')))
         self.check('{,}', Expression('List', Symbol('Null'), Symbol('Null')))
 
-        self.check('{a, b,}', Expression('List', Symbol('a'), Symbol('b'), Symbol('Null')))
+        self.check('{a, b,}', Expression('List', Symbol('Global`a'), Symbol('Global`b'), Symbol('Null')))
 
-        self.check('{,a}', Expression('List', Symbol('Null'), Symbol('a')))
-        self.check('{, a, b}', Expression('List', Symbol('Null'), Symbol('a'), Symbol('b')))
-        self.check('{,a,b,}', Expression('List', Symbol('Null'), Symbol('a'), Symbol('b'), Symbol('Null')))
+        self.check('{,a}', Expression('List', Symbol('Null'), Symbol('Global`a')))
+        self.check('{, a, b}', Expression('List', Symbol('Null'), Symbol('Global`a'), Symbol('Global`b')))
+        self.check('{,a,b,}', Expression('List', Symbol('Null'), Symbol('Global`a'), Symbol('Global`b'), Symbol('Null')))
 
     def testSequence(self):
-        self.check('Sin[x, y]', Expression('Sin', Symbol('x'), Symbol('y')))
+        self.check('Sin[x, y]', Expression('Sin', Symbol('Global`x'), Symbol('Global`y')))
 
     def testPart(self):
-        self.check('a[[1]]', Expression('Part', Symbol('a'), Integer(1)))
+        self.check('a[[1]]', Expression('Part', Symbol('Global`a'), Integer(1)))
 
     def testBlank(self):
-        self.check('f_', Expression('Pattern', Symbol('f'), Expression('Blank')))
-        self.check('f__', Expression('Pattern', Symbol('f'), Expression('BlankSequence')))
-        self.check('f___', Expression('Pattern', Symbol('f'), Expression('BlankNullSequence')))
+        self.check('f_', Expression('Pattern', Symbol('Global`f'), Expression('Blank')))
+        self.check('f__', Expression('Pattern', Symbol('Global`f'), Expression('BlankSequence')))
+        self.check('f___', Expression('Pattern', Symbol('Global`f'), Expression('BlankNullSequence')))
 
         self.check('_', 'Blank[]')
         self.check('_expr', 'Blank[expr]')
@@ -308,15 +323,15 @@ class NumberTests(ParserTests):
         self.check('%', Expression('Out'))
 
     def testNonAscii(self):
-        self.check('z \\[Conjugate]', Expression('Conjugate', Symbol('z')))
-        self.check('z \\[Transpose]', Expression('Transpose', Symbol('z')))
-        self.check('z \\[ConjugateTranspose]', Expression('ConjugateTranspose', Symbol('z')))
-        self.check(u'z \uf3c7 ', Expression('Transpose', Symbol('z')))
-        self.check(u'z \uf3c8 ', Expression('Conjugate', Symbol('z')))
-        self.check(u'z \uf3c9 ', Expression('ConjugateTranspose', Symbol('z')))
-        self.check('\\[Integral] x \\[DifferentialD] x', Expression('Integrate', Symbol('x'), Symbol('x')))
-        self.check('\\[Del] x', Expression('Del', Symbol('x')))
-        self.check('\\[Square] x', Expression('Square', Symbol('x')))
+        self.check('z \\[Conjugate]', Expression('Conjugate', Symbol('Global`z')))
+        self.check('z \\[Transpose]', Expression('Transpose', Symbol('Global`z')))
+        self.check('z \\[ConjugateTranspose]', Expression('ConjugateTranspose', Symbol('Global`z')))
+        self.check(u'z \uf3c7 ', Expression('Transpose', Symbol('Global`z')))
+        self.check(u'z \uf3c8 ', Expression('Conjugate', Symbol('Global`z')))
+        self.check(u'z \uf3c9 ', Expression('ConjugateTranspose', Symbol('Global`z')))
+        self.check('\\[Integral] x \\[DifferentialD] x', Expression('Integrate', Symbol('Global`x'), Symbol('Global`x')))
+        self.check('\\[Del] x', Expression('Del', Symbol('Global`x')))
+        self.check('\\[Square] x', Expression('Square', Symbol('Global`x')))
         self.check('1 \\[SmallCircle] 2', Expression('SmallCircle', Integer(1), Integer(2)))
         self.check('1 \\[SmallCircle] 2 \\[SmallCircle] 3', Expression('SmallCircle', Integer(1), Integer(2), Integer(3)))
         self.check(u'1 \u2218 2', Expression('SmallCircle', Integer(1), Integer(2)))
@@ -338,8 +353,8 @@ class NumberTests(ParserTests):
         self.check(u'1 \u2297 2', Expression('CircleTimes', Integer(1), Integer(2)))
         self.check(u'1 \u00B7 2', Expression('CenterDot', Integer(1), Integer(2)))
         self.check(u'1 \u22C6 2', Expression('Star', Integer(1), Integer(2)))
-        self.check('expr1 ** expr2', Expression('NonCommutativeMultiply', Symbol('expr1'), Symbol('expr2')))
-        self.check('expr1 ** expr2 ** expr3', Expression('NonCommutativeMultiply', Symbol('expr1'), Symbol('expr2'), Symbol('expr3')))
+        self.check('expr1 ** expr2', Expression('NonCommutativeMultiply', Symbol('Global`expr1'), Symbol('Global`expr2')))
+        self.check('expr1 ** expr2 ** expr3', Expression('NonCommutativeMultiply', Symbol('Global`expr1'), Symbol('Global`expr2'), Symbol('Global`expr3')))
         self.check('1 \\[Cross] 2', Expression('Cross', Integer(1), Integer(2)))
         self.check(u'1 \uf4a0 2', Expression('Cross', Integer(1), Integer(2)))
         self.check('3\\[Divide]2', Expression('Times', Integer(3), Expression('Power', Integer(2), Integer(-1))))
@@ -358,8 +373,8 @@ class NumberTests(ParserTests):
         self.check('1 \\[Or] 2', Expression('Or', Integer(1), Integer(2)))
         self.check(u'1 \u2228 2', Expression('Or', Integer(1), Integer(2)))
 
-        self.check('a \\[Colon] b', Expression('Colon', Symbol('a'), Symbol('b')))
-        self.check(u'a \u2236 b', Expression('Colon', Symbol('a'), Symbol('b')))
+        self.check('a \\[Colon] b', Expression('Colon', Symbol('Global`a'), Symbol('Global`b')))
+        self.check(u'a \u2236 b', Expression('Colon', Symbol('Global`a'), Symbol('Global`b')))
         self.check('x \\[Function] y', 'Function[{x}, y]')
         self.check(u'x \uf4a1 y', 'Function[{x}, y]')
 

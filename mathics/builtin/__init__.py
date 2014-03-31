@@ -123,3 +123,15 @@ def contribute(definitions):
     for name, item in builtins.items():
         if name != 'System`MakeBoxes':
             item.contribute(definitions)
+
+    from mathics.core.expression import ensure_context
+    from mathics.core.parser import all_operator_names
+    from mathics.core.definitions import Definition
+
+    # All builtins are loaded. Create dummy builtin definitions for
+    # any remaining operators that don't have them. This allows
+    # operators like \[Cup] to behave correctly.
+    for operator in all_operator_names:
+        if not definitions.have_definition(ensure_context(operator)):
+            op = ensure_context(operator)
+            definitions.builtin[op] = Definition(name=op)

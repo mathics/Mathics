@@ -183,6 +183,10 @@ innequality_operators = {
     'LessEqual': ['op_LessEqual', 'LessEqual', 'LessSlantEqual'],
 }
 
+all_operator_names = (prefix_operators.keys() + infix_operators.keys() +
+                      flat_infix_operators.keys() + postfix_operators.keys() +
+                      innequality_operators.keys())
+
 precedence = (
     ('right', 'FormBox'),
     ('left', 'Semicolon'),                  # flat - custom
