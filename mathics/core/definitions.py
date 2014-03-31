@@ -56,7 +56,6 @@ class Definitions(object):
         super(Definitions, self).__init__()
         self.builtin = {}
         self.user = {}
-        self.autoload_stage = False
 
         if add_builtin:
             from mathics.builtin import modules, contribute
@@ -78,14 +77,12 @@ class Definitions(object):
                     builtin_file = open(builtin_filename, 'w')
                     pickle.dump(self.builtin, builtin_file, -1)
 
-            self.autoload_stage = True
             for root, dirs, files in os.walk(   # noqa
                 os.path.join(ROOT_DIR, 'autoload')):
 
                 for f in filter(lambda x: x.endswith('.m'), files):
                     with open(os.path.join(root, f)) as stream:
                         Evaluation(stream.read(), self, timeout=30)
-            self.autoload_stage = False
 
     def get_current_context(self):
         # It's crucial to specify System` in this get_ownvalue() call,
@@ -311,14 +308,6 @@ class Definitions(object):
 
     def get_user_definition(self, name, create=True):
         assert not isinstance(name, Symbol)
-
-        if self.autoload_stage:
-            existing = self.builtin.get(name)
-            if existing is None:
-                if not create:
-                    return None
-                self.builtin[name] = Definition(name=name, attributes=set())
-                return self.builtin[name]
 
         existing = self.user.get(name)
         if existing:
