@@ -1,5 +1,8 @@
 (* Text Exporter *)
 
+Begin["System`Convert`TextDump`"]
+
+
 TextExport[filename_, expr_, opts___] := 
   Module[{strm, data}, 
     strm = OpenWrite[filename];
@@ -11,9 +14,12 @@ TextExport[filename_, expr_, opts___] :=
 
 RegisterExport[
     "Text",
-	TextExport,
+	System`Convert`TextDump`TextExport,
 	FunctionChannels -> {"FileNames"},
 	Options -> {"ByteOrderMark"},
 	DefaultElement -> "Plaintext",
 	BinaryFormat -> True
 ]
+
+
+End[]
