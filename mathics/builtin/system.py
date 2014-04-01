@@ -44,7 +44,7 @@ class Names(Builtin):
 
     >> x = 5;
     >> Names["Global`*"]
-     = {CSVExport, DataImport, ImportCSV, LinesImport, PlaintextImport, StringImport, TextExport, WordsImport, importJSON, x}
+     = {x}
 
     The number of built-in symbols:
     >> Length[Names["System`*"]]
