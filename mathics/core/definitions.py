@@ -80,9 +80,10 @@ class Definitions(object):
             for root, dirs, files in os.walk(   # noqa
                 os.path.join(ROOT_DIR, 'autoload')):
 
-                for f in filter(lambda x: x.endswith('.m'), files):
-                    with open(os.path.join(root, f)) as stream:
-                        Evaluation(stream.read(), self, timeout=30)
+                for path in [os.path.join(root, f) for f in files
+                             if f.endswith('.m')]:
+                    Expression('Get', String(path)).evaluate(
+                        Evaluation(None, self, timeout=30))
 
     def get_current_context(self):
         # It's crucial to specify System` in this get_ownvalue() call,

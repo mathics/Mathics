@@ -154,18 +154,22 @@ def wait_for_line(input_string):
 
     brackets = [('(', ')'), ('[', ']'), ('{', '}')]
     kStart, kEnd, stack = 0, 1, []
+    in_string = False
     for char in input_string:
-        for bracketPair in brackets:
-            if char == bracketPair[kStart]:
-                stack.append(char)
-            elif char == bracketPair[kEnd]:
-                if len(stack) == 0:
-                    return False
-                if stack.pop() != bracketPair[kStart]:
-                    # Brackets are not balanced, but return False so that a
-                    # parse error can be raised
-                    return False
-    if len(stack) == 0 and input_string.count('"') % 2 == 0:
+        if char == '"':
+            in_string = not in_string
+        if not in_string:
+            for bracketPair in brackets:
+                if char == bracketPair[kStart]:
+                    stack.append(char)
+                elif char == bracketPair[kEnd]:
+                    if len(stack) == 0:
+                        return False
+                    if stack.pop() != bracketPair[kStart]:
+                        # Brackets are not balanced, but return False so that a
+                        # parse error can be raised
+                        return False
+    if len(stack) == 0 and not in_string:
         return False
     return True
 
