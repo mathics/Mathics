@@ -85,6 +85,19 @@ class Definitions(object):
                     Expression('Get', String(path)).evaluate(
                         Evaluation(None, self, timeout=30))
 
+            # Move any user definitions created by autoloaded files to
+            # builtins, and clear out the user definitions list. This
+            # means that any autoloaded definitions become shared
+            # between users and no longer disappear after a Quit[].
+            #
+            # Autoloads that accidentally define a name in Global`
+            # could cause confusion, so check for this.
+            #
+            if any([name.startswith('Global`') for name in self.user]):
+                raise ValueError, "autoload defined a Global` symbol"
+            self.builtin.update(self.user)
+            self.user = {}
+
     def get_current_context(self):
         # It's crucial to specify System` in this get_ownvalue() call,
         # otherwise we'll end up back in this function and trigger
