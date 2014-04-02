@@ -52,5 +52,5 @@ class SaveForm(AjaxForm):
     name = forms.CharField(
         required=True, max_length=30,
         help_text=('<p class="helptext">Worksheet names '
-                   'are notcase-sensitive.</p>')
+                   'are not case-sensitive.</p>')
     )
