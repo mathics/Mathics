@@ -1220,8 +1220,6 @@ class _IterationFunction(Builtin):
 
     attributes = ('HoldAll',)
     rules = {
-#        '%(name)s[expr_, {i_Symbol, imax_}]': (
-#            '%(name)s[expr, {i, 1, imax, 1}]'),
         '%(name)s[expr_, {i_Symbol, imin_, imax_}]': (
             '%(name)s[expr, {i, imin, imax, 1}]'),
     }
