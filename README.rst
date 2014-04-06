@@ -6,6 +6,10 @@ Mathics is a general-purpose computer algebra system (CAS). It is meant to be a 
 The homepage of Mathics is at http://www.mathics.org, where you can find installation instructions.
 There is also a server to use Mathics online at http://www.mathics.net.
 
+Installing
+----------
+`Here <https://github.com/poeschko/Mathics/wiki/Installing>`_ is short a guide on how to install Mathics on your computer.
+
 Contributing
 ------------
 
