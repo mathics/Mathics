@@ -19,7 +19,8 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.core.expression import Expression, system_symbols
+from mathics.core.expression import (Expression, system_symbols,
+                                     ensure_context)
 from mathics.core.util import subsets, subranges, permutations
 
 # from mathics.core.pattern_nocython import (
@@ -345,6 +346,7 @@ class ExpressionPattern(Pattern):
         self.expr = expr
 
     def filter_leaves(self, head_name):
+        head_name = ensure_context(head_name)
         return [leaf for leaf in self.leaves
                 if leaf.get_head_name() == head_name]
 

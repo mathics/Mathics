@@ -1003,6 +1003,7 @@ class Expression(BaseExpression):
 
     def filter_leaves(self, head_name):
         # TODO: should use sorting
+        head_name = ensure_context(head_name)
 
         return [leaf for leaf in self.leaves
                 if leaf.get_head_name() == head_name]
