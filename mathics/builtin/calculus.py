@@ -40,6 +40,8 @@ class D(SympyFunction):
 
     >> D[Sin[x], {x, 2}]
      = -Sin[x]
+    >> D[Cos[t], {t,2}]
+     = -Cos[t]
 
     Unknown functions are derived using 'Derivative':
     >> D[f[x], x]
@@ -117,7 +119,7 @@ class D(SympyFunction):
         'D[f_, x_, rest__]': 'D[D[f, x], rest]',
 
         'D[expr_, {x_, n_Integer?NonNegative}]': (
-            'Module[{t}, Nest[Function[{t}, D[t, x]], expr, n]]'),
+            'Nest[Function[{t}, D[t, x]], expr, n]'),
     }
 
     def apply(self, f, x, evaluation):
