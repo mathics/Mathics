@@ -695,7 +695,8 @@ class Solve(Builtin):
                 result = sympy.solve(sympy_eqs, vars_sympy)
             if not isinstance(result, list):
                 result = [result]
-            if result == [True]:
+            if (isinstance(result, list) and len(result) == 1 and
+                    result[0] is True):
                 return Expression('List', Expression('List'))
             if result == [None]:
                 return Expression('List')
