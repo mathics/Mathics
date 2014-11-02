@@ -17,8 +17,8 @@ Please feel encouraged to contribute to Mathics! Create your own fork, make the 
 
 |Travis|_
 
-.. |Travis| image:: https://secure.travis-ci.org/poeschko/Mathics.png?branch=master
-.. _Travis: https://travis-ci.org/poeschko/Mathics
+.. |Travis| image:: https://secure.travis-ci.org/mathics/Mathics.png?branch=master
+.. _Travis: https://travis-ci.org/mathics/Mathics
 
 License
 -------
