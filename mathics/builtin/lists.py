@@ -236,6 +236,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
             item.position.replace(new)
 
     for index in indices:
+        index = index.evaluate(evaluation)
         if index.has_form('Span', None):
             if len(index.leaves) > 3:
                 evaluation.message('Part', 'span', index)
@@ -626,6 +627,9 @@ class Part(Builtin):
     Of course, part specifications have precedence over most arithmetic operations:
     >> A[[1]] + B[[2]] + C[[3]] // Hold // FullForm
      = Hold[Plus[Part[A, 1], Part[B, 2], Part[C, 3]]]
+
+    #> a = {2,3,4}; i = 1; a[[i]] = 0; a
+     = {0, 3, 4}
     """
 
     attributes = ('NHoldRest', 'ReadProtected')
