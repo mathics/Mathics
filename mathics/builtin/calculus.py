@@ -586,6 +586,10 @@ class Solve(Builtin):
      = {{ma -> 1169 / 12 - 167 Sqrt[37] / 12, mb -> -835 / 12 + 167 Sqrt[37] / 12, x -> Sqrt[37]}, {ma -> 1169 / 12 + 167 Sqrt[37] / 12, mb -> -835 / 12 - 167 Sqrt[37] / 12, x -> -Sqrt[37]}}
     #> Solve[{(7+x)*ma == 167, (5+x)*mb == 167, (7+5)*(ma+mb) == 334}, {x, ma, mb}]
      = {{x -> -Sqrt[37], ma -> 1169 / 12 + 167 Sqrt[37] / 12, mb -> -835 / 12 - 167 Sqrt[37] / 12}, {x -> Sqrt[37], ma -> 1169 / 12 - 167 Sqrt[37] / 12, mb -> -835 / 12 + 167 Sqrt[37] / 12}}
+
+    ## Issue 208
+    #> Solve[x + 1 == 2, x]
+     = {{x -> 1}}
     """
 
     messages = {
@@ -695,7 +699,8 @@ class Solve(Builtin):
                 result = sympy.solve(sympy_eqs, vars_sympy)
             if not isinstance(result, list):
                 result = [result]
-            if result == [True]:
+            if (isinstance(result, list) and len(result) == 1 and
+                    result[0] is True):
                 return Expression('List', Expression('List'))
             if result == [None]:
                 return Expression('List')
