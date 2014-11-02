@@ -1070,8 +1070,8 @@ class Conjugate(SympyFunction):
         <dd>returns the complex conjugate of the complex number $z$.
     </dl>
 
-    >> Conjugate[3+4I]
-     = 3-4I
+    >> Conjugate[3 + 4 I]
+     = 3 - 4 I
 
     >> Conjugate[3]
      = 3
@@ -1080,7 +1080,7 @@ class Conjugate(SympyFunction):
      = Conjugate[a] - I*Conjugate[b]
 
     >> Conjugate[{{1,2+I 4,a+I b},{I}}]
-     = {{1,2-4 I,Conjugate[a]-I Conjugate[b]},{-I}}
+     = {{1,2 - 4 I,Conjugate[a] - I Conjugate[b]},{-I}}
     """
     rules = {
         'Conjugate[a_ + b_]': 'Conjugate[a] + Conjugate[b]',
