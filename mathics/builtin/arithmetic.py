@@ -1078,6 +1078,9 @@ class Conjugate(SympyFunction):
 
     >> Conjugate[a+b*I]
      = Conjugate[a] - I*Conjugate[b]
+
+    >> Conjugate[{{1,2+I 4,a+I b},{I}}]
+     = {{1,2-4 I,Conjugate[a]-I Conjugate[b]},{-I}}
     """
     rules = {
         'Conjugate[a_ + b_]': 'Conjugate[a] + Conjugate[b]',
