@@ -1076,19 +1076,18 @@ class Conjugate(SympyFunction):
     >> Conjugate[3]
      = 3
 
-    >> Conjugate[a+b*I]
+    >> Conjugate[a + b * I]
      = Conjugate[a] - I Conjugate[b]
 
-    >> Conjugate[{{1,2+I 4,a+I b},{I}}]
+    >> Conjugate[{{1, 2 + I 4, a + I b}, {I}}]
      = {{1, 2 - 4 I, Conjugate[a] - I Conjugate[b]}, {-I}}
     """
     rules = {
         'Conjugate[a_ + b_]': 'Conjugate[a] + Conjugate[b]',
-        'Conjugate[a_*b_]': 'Conjugate[a]*Conjugate[b]',
-        'Conjugate[symbol_Symbol]': 'Conjugate[symbol]',
+        'Conjugate[a_ * b_]': 'Conjugate[a] * Conjugate[b]',
         'Conjugate[number_Complex]': 'Re[number] - I*Im[number]',
         'Conjugate[number_?NumberQ]': 'number',
-        'Conjugate[matrix_List]': 'Map[Conjugate, matrix, {1}]'
+        'Conjugate[list_List]': 'Map[Conjugate, list, {1}]'
     }
 
 
