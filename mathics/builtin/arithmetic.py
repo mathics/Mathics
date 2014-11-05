@@ -1438,30 +1438,6 @@ class Factorial(PostfixOperator, _MPMathFunction):
         return mpmath.factorial(z)
 
 
-class Gamma(SympyFunction):
-    """
-    <dl>
-    <dt>'Gamma[$z$]'
-        <dd>is the Gamma function on the complex number $z$.
-    </dl>
-
-    >> Gamma[8]
-     = 5040
-    >> Gamma[1. + I]
-     = 0.498015668118356043 - 0.154949828301810685 I
-
-    Both 'Gamma' and 'Factorial' functions are continuous:
-    >> Plot[{Gamma[x], x!}, {x, 0, 4}]
-     = -Graphics-
-    """
-
-    # TODO implement the incomplete Gamma functions
-
-    rules = {
-        'Gamma[x_]': '(x - 1)!',
-    }
-
-
 class Pochhammer(SympyFunction):
     """
     <dl>

@@ -4,7 +4,6 @@
 Special functions
 """
 
-import sympy
 import sympy.mpmath as mpmath
 
 from mathics.builtin.base import Builtin
@@ -31,6 +30,90 @@ class Erf(_MPMathFunction):
     """
 
     mpmath_name = 'erf'
+
+
+class FresnelC(_MPMathFunction):
+    """
+    <dl>
+    <dt>'FresnelC[$z$]'
+        <dd>returns the Fresnels C intergral of z.
+    </dl>
+
+    >> FresnelC[4]//N
+     = 0.498426033038177616
+    >> FresnelC[1 + 2 I]//N
+     = 16.0878713741254804 - 36.2256879928816502 I
+    """
+    sympy_name = 'fresnelc'
+    mpmath_name = 'fresnelc'
+
+
+class FresnelS(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Fresnels[$z$]'
+        <dd>returns the Fresnels S intergral of z.
+    </dl>
+
+    >> FresnelS[4]//N
+     = 0.420515754246928424
+    >> FresnelS[1 + 2 I]//N
+     = 36.7254648839914384 + 15.5877511044045873 I
+
+    """
+    sympy_name = 'fresnels'
+    mpmath_name = 'fresnels'
+
+
+class Gamma(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Gamma[$z$]'
+        <dd>returns the Gamma function in $z$.
+    <dt>'Gamma[$z$, $v$]'
+        <dd>returns the Incomplete Gamma function in $z$ and $v$.
+    <dt>'Gamma[$z$, $v$, $u$]'
+        <dd>returns the Generalized Incomplete Gamma function Gamma($z$, $v$) - Gamma($z$, $u$).
+    </dl>
+
+    >> Gamma[4]
+     = 6
+    >> Gamma[3 / 4]
+     = Gamma[3 / 4]
+    >> Gamma[3 / 4]//N
+     = 1.22541670246517765
+    >> Gamma[2 + 3 I]
+     = Gamma[2 + 3 I]
+    >> Gamma[2 + 3 I]//N
+     = -0.0823952726656118837 + 0.0917742874352593146 I
+    >> Gamma[4, 2, 5]
+     = Gamma[4, 2, 5]
+    >> Gamma[4, 2, 5]//N
+     = 3.55258527120711206
+    """
+    sympy_name = 'gamma'
+    mpmath_name = 'gamma'
+
+    # TODO Implement Gamma[x + 1] = x Gamma[x] for simplification of ratios
+
+    rules = {
+        'Gamma[x_?NumberQ, y_?NumberQ]//N': 'IncompleteGamma[x,y]//N',
+        'Gamma[x_, y_, z_]//N': '(Gamma[x,y]//N) - (Gamma[x,z]//N)'
+    }
+
+
+class IncompleteGamma(_MPMathFunction):
+    """
+    <dl>
+    <dt>'IncompleteGamma[$z$, $a$]'
+        <dd>is the upper incomplete Gamma function on the complex number $z$.
+    </dl>
+    """
+    attributes = ('Listable', 'NumericFunction', 'Protected', 'ReadProtected', 'HoldAll')
+    nargs = 2
+
+    sympy_name = ''
+    mpmath_name = 'gammainc'
 
 
 class ProductLog(_MPMathFunction):
@@ -83,15 +166,17 @@ class Zeta(_MPMathFunction):
     mpmath_name = 'zeta'
 
 
+
+
+
 class _Bessel(_MPMathFunction):
 
     attributes = ('Listable', 'NumericFunction', 'Protected', 'ReadProtected')
 
     nargs = 2
 
+
 # Bessel Functions
-
-
 class BesselJ(_Bessel):
     """
     <dl>
