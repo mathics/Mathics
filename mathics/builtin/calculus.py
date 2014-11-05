@@ -342,7 +342,7 @@ class Integrate(SympyFunction):
      = -Sqrt[3] Log[-2 + Sqrt[3] + x] / 6 + Sqrt[3] Log[-2 - Sqrt[3] + x] / 6
     >> Integrate[4 Sin[x] Cos[x], x]
      = 2 Sin[x] ^ 2
-    >> Integrate[Sin[x^2],{x,a,b}]
+    >> Integrate[Sin[x^2],{x,a,b}]//Simplify
      = -(-3 Sqrt[Pi] Sqrt[2] FresnelS[Sqrt[2] b / Sqrt[Pi]] Gamma[3 / 4] + 3 Sqrt[Pi] Sqrt[2] FresnelS[Sqrt[2] a / Sqrt[Pi]] Gamma[3 / 4]) / (8 Gamma[7 / 4])
 
     ## This should better return -Infinity:
