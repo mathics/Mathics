@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+import re
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
@@ -730,25 +731,55 @@ class Clear(Builtin):
         definition.formatvalues = {}
         definition.nvalues = []
 
+    def get_names(self, symbol, evaluation):
+        name = symbol.get_name()
+        print "no no3p"
+        print name
+        if name:
+            return [name]
+        
+        pattern = symbol.get_string_value()
+        if pattern is None:
+            return None
+
+        if pattern.startswith('System`'):
+            names = evaluation.definitions.get_builtin_names()
+        elif pattern.startswith('Global`'):
+            names = (evaluation.definitions.get_user_names() -
+                     evaluation.definitions.get_builtin_names())
+        else:
+            names = evaluation.definitions.get_names()
+        if '`' in pattern:
+            pattern = pattern[pattern.find('`') + 1:]
+
+        pattern = pattern.replace('@', '[a-z]+').replace('*', '.*')
+        pattern = re.compile('^' + pattern + '$')
+
+        def match_pattern(name):
+            return pattern.match(name) is not None
+
+        return [name for name in names if match_pattern(name)]
+
     def apply(self, symbols, evaluation):
         '%(name)s[symbols___]'
 
         for symbol in symbols.get_sequence():
-            name = symbol.get_name()
-            if not name:
-                name = symbol.get_string_value()
-            if not name:
+            names = self.get_names(symbol, evaluation)
+            if not names:
                 evaluation.message('Clear', 'ssym', symbol)
                 continue
-            attributes = evaluation.definitions.get_attributes(name)
-            if 'Protected' in attributes:
-                evaluation.message('Clear', 'wrsym', name)
-                continue
-            if not self.allow_locked and 'Locked' in attributes:
-                evaluation.message('Clear', 'locked', name)
-                continue
-            definition = evaluation.definitions.get_user_definition(name)
-            self.do_clear(definition)
+            print names
+            for name in names:
+                print name
+                attributes = evaluation.definitions.get_attributes(name)
+                if 'Protected' in attributes:
+                    evaluation.message('Clear', 'wrsym', name)
+                    continue
+                if not self.allow_locked and 'Locked' in attributes:
+                    evaluation.message('Clear', 'locked', name)
+                    continue
+                definition = evaluation.definitions.get_user_definition(name)
+                self.do_clear(definition)
 
         return Symbol('Null')
 
