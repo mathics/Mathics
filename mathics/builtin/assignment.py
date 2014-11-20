@@ -771,7 +771,7 @@ class Clear(Builtin):
 
         for symbol in symbols.get_sequence():
             names = self.get_names(symbol, evaluation)
-            if not names:
+            if names == None:
                 evaluation.message('Clear', 'ssym', symbol)
                 continue
             for name in names:
