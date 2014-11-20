@@ -697,6 +697,14 @@ class Clear(Builtin):
     >> x
      = x
 
+    >> x = 2;
+    >> y = 3;
+    >> Clear["Global`*"]
+    >> x
+     = x
+    >> y
+     = y
+
     'ClearAll' may not be called for 'Protected' symbols.
     >> Clear[Sin]
      : Symbol Sin is Protected.
