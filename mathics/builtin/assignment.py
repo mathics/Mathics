@@ -758,7 +758,7 @@ class Clear(Builtin):
         if '`' in pattern:
             pattern = pattern[pattern.find('`') + 1:]
 
-        pattern = pattern.replace('@', '[a-z]+').replace('*', '.*')
+        pattern = re.escape(pattern).replace('\@', '[a-z]+').replace('\*', '.*')
         pattern = re.compile('^' + pattern + '$')
 
         def match_pattern(name):

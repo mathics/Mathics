@@ -72,7 +72,7 @@ class Names(Builtin):
             pattern = pattern[pattern.find('`') + 1:]
 
         pattern = pattern.replace('@', '[a-z]+').replace('*', '.*')
-        pattern = re.compile('^' + pattern + '$')
+        pattern = re.escape(pattern).replace('\@', '[a-z]+').replace('\*', '.*')
 
         def match_pattern(name):
             return pattern.match(name) is not None
