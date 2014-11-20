@@ -733,8 +733,6 @@ class Clear(Builtin):
 
     def get_names(self, symbol, evaluation):
         name = symbol.get_name()
-        print "no no3p"
-        print name
         if name:
             return [name]
         
@@ -768,9 +766,7 @@ class Clear(Builtin):
             if not names:
                 evaluation.message('Clear', 'ssym', symbol)
                 continue
-            print names
             for name in names:
-                print name
                 attributes = evaluation.definitions.get_attributes(name)
                 if 'Protected' in attributes:
                     evaluation.message('Clear', 'wrsym', name)
