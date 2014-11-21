@@ -1063,6 +1063,34 @@ class Im(SympyFunction):
         return Integer(0)
 
 
+class Conjugate(SympyFunction):
+    """
+    <dl>
+    <dt>'Conjugate[$z$]'
+        <dd>returns the complex conjugate of the complex number $z$.
+    </dl>
+
+    >> Conjugate[3 + 4 I]
+     = 3 - 4 I
+
+    >> Conjugate[3]
+     = 3
+
+    >> Conjugate[a + b * I]
+     = Conjugate[a] - I Conjugate[b]
+
+    >> Conjugate[{{1, 2 + I 4, a + I b}, {I}}]
+     = {{1, 2 - 4 I, Conjugate[a] - I Conjugate[b]}, {-I}}
+    """
+    rules = {
+        'Conjugate[a_ + b_]': 'Conjugate[a] + Conjugate[b]',
+        'Conjugate[a_ * b_]': 'Conjugate[a] * Conjugate[b]',
+        'Conjugate[number_Complex]': 'Re[number] - I*Im[number]',
+        'Conjugate[number_?NumberQ]': 'number',
+        'Conjugate[list_List]': 'Map[Conjugate, list, {1}]'
+    }
+
+
 class Abs(_MPMathFunction):
     """
     <dl>
