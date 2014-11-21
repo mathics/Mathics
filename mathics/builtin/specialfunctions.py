@@ -91,6 +91,9 @@ class Gamma(_MPMathFunction):
     >> Gamma[4, 2, 5]//N
      = 3.55258527120711206
     """
+
+    attributes = ('Listable', 'NumericFunction', 'Protected', 'ReadProtected')
+
     sympy_name = 'gamma'
     mpmath_name = 'gamma'
 
@@ -164,9 +167,6 @@ class Zeta(_MPMathFunction):
 
     sympy_name = 'zeta'
     mpmath_name = 'zeta'
-
-
-
 
 
 class _Bessel(_MPMathFunction):
