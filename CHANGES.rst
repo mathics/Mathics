@@ -4,6 +4,8 @@ CHANGES
 0.6
 ---
 
+New features:
+
 - ElementData using data from Wikipedia
 - added Switch
 - added DSolve and RSolve
@@ -25,6 +27,19 @@ CHANGES
 - Changes to MatrixForm/TableForm printing
 - Use interruptingcow to limit evaluation time
 - Character Code functions
+
+Bugs fixed:
+
+- Fix divide-by-zero with zero-length plot range
+- Fix zero-width space between factors in MathJax output (issue #45)
+- Fix ``{{2*a, 0},{0,0}}//MatrixForm`` crashing in the web interface
+  (issue #182)
+- Fix temporary symbols appearing in the result when taking
+  derivatives with respect to t (issue #184)
+- Fix ``Solve`` treating one solution equal to 1 as a tautology (issue
+  #208)
+- Fix mathicsserver exception on startup with Django 1.6 (issues #194,
+  #205, #209)
 
 0.5
 ---
