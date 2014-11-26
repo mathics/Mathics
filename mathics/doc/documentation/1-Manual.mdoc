@@ -100,14 +100,6 @@ In addition to installing \Mathics, this will download the required Python packa
 Two executable files will be created in a binary directory on your <con>PATH</con> (usually <con>/usr/bin</con> on Debian or <con>/Library/Frameworks/Python.framework/Versions/2.x/bin</con> on Mac OS X): <con>mathics</con> and <con>mathicsserver</con>.
 </section>
 
-<section title="Initialization">
-Before you can run the local Web server of \Mathics, you have to initialize its database used to store variable definitions. Simply run
-<console>
-$ python setup.py initialize
-</console>
-as the user who you want to execute \Mathics with (usually <em>not</em> root). This will create an SQLite database file in <con>~/.local/var/mathics/</con>. You only have to do that once for each user.
-</section>
-
 <section title="Running \Mathics">
 Run
 <console>
@@ -119,7 +111,7 @@ Run
 <console>
 $ mathicsserver
 </console>
-to start the local Web server of \Mathics which serves the Firefox GUI interface. Issue
+to start the local Web server of \Mathics which serves the web GUI interface. The first time this command is run it will create the database file for saving your sessions. Issue
 <console>
 $ mathicsserver --help
 </console>
@@ -1103,10 +1095,6 @@ This will temporarily overwrite the installed package in your Python library wit
 $ python manage.py runserver
 </console>
 It will restart automatically when you make changes to the source code.
-Don't forget to initalize the database first by running
-<console>
-$ python setup.py initialize
-</console>
 </section>
 
 <section title="Documentation and tests">
