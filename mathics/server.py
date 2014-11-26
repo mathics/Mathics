@@ -33,12 +33,21 @@ def main():
     # Check for the database
     database_file = mathics_settings.DATABASES['default']['NAME']
     if not os.path.exists(database_file):
-        print "Error: Mathics database not found!"
-        print "Please change to the mathics install directory and run:\n"
-        print "   $> {python} setup.py initialize\n".format(
-            python=sys.executable or 'python')
-        print "as the current user"
-        sys.exit(1)
+        print("warning: database file %s not found\n" % database_file)
+        import subprocess
+        if not os.path.exists(mathics_settings.DATA_DIR):
+            print("Creating data directory %s" % mathics_settings.DATA_DIR)
+            os.makedirs(mathics_settings.DATA_DIR)
+        print("Creating database %s" % database_file)
+        manage_file = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "manage.py")
+        try:
+            subprocess.check_call(
+                [sys.executable, manage_file, 'syncdb', '--noinput'])
+            print("\ndatabase initialized sucessfully")
+        except subprocess.CalledProcessError:
+            print("error: failed to create database")
+            sys.exit(1)
 
     os.environ['DJANGO_SETTINGS_MODULE'] = 'mathics.settings'
     # os.putenv('DJANGO_SETTINGS_MODULE', 'mathics.settings')
