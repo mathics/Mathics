@@ -86,7 +86,11 @@ def test_case(test, tests, index=0, quiet=False):
         result = None
         out = []
     if not compare(result, wanted):
-        return fail(u"Result: %s\nWanted: %s" % (result, wanted))
+        fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
+        if out:
+            fail_msg += "\nAdditional output:\n"
+            fail_msg += u'\n'.join(unicode(o) for o in out)
+        return fail(fail_msg)
     output_ok = True
     if len(out) != len(wanted_out):
         output_ok = False
@@ -102,18 +106,23 @@ def test_case(test, tests, index=0, quiet=False):
     return True
 
 
-def test_tests(tests, index, quiet=False):
+def test_tests(tests, index, quiet=False, stop_on_failure=False, start_at=0):
     # print tests
     definitions.reset_user_definitions()
-    count = failed = 0
+    count = failed = skipped = 0
     failed_symbols = set()
     for test in tests.tests:
         count += 1
         index += 1
+        if index < start_at:
+            skipped += 1
+            continue
         if not test_case(test, tests, index, quiet):
             failed += 1
             failed_symbols.add((tests.part, tests.chapter, tests.section))
-    return count, failed, failed_symbols, index
+            if stop_on_failure:
+                break
+    return count, failed, skipped, failed_symbols, index
 
 
 def create_output(tests, output_xml, output_tex):
@@ -129,7 +138,7 @@ def create_output(tests, output_xml, output_tex):
             }
 
 
-def test_section(section, quiet=False):
+def test_section(section, quiet=False, stop_on_failure=False):
     failed = 0
     index = 0
     print 'Testing section %s' % section
@@ -139,6 +148,8 @@ def test_section(section, quiet=False):
                 index += 1
                 if not test_case(test, tests, index, quiet=quiet):
                     failed += 1
+                    if stop_on_failure:
+                        break
 
     print ''
     if failed > 0:
@@ -157,24 +168,29 @@ def open_ensure_dir(f, *args, **kwargs):
         return open(f, *args, **kwargs)
 
 
-def test_all(quiet=False, generate_output=False):
+def test_all(quiet=False, generate_output=False, stop_on_failure=False,
+             start_at=0):
     if not quiet:
         print "Testing %s" % get_version_string(False)
 
     try:
         index = 0
-        count = failed = 0
+        count = failed = skipped = 0
         failed_symbols = set()
         output_xml = {}
         output_tex = {}
         for tests in documentation.get_tests():
-            sub_count, sub_failed, symbols, index = test_tests(
-                tests, index, quiet=quiet)
+            sub_count, sub_failed, sub_skipped, symbols, index = test_tests(
+                tests, index, quiet=quiet, stop_on_failure=stop_on_failure,
+                start_at=start_at)
             if generate_output:
                 create_output(tests, output_xml, output_tex)
             count += sub_count
             failed += sub_failed
+            skipped += sub_skipped
             failed_symbols.update(symbols)
+            if sub_failed and stop_on_failure:
+                break
         builtin_count = len(builtins)
     except KeyboardInterrupt:
         print "\nAborted.\n"
@@ -182,9 +198,11 @@ def test_all(quiet=False, generate_output=False):
 
     if failed > 0:
         print '%s' % sep
-    print "%d Tests for %d built-in symbols, %d passed, %d failed." % (
-        count, builtin_count, count - failed, failed)
+    print "%d Tests for %d built-in symbols, %d passed, %d failed, %d skipped." % (
+        count, builtin_count, count - failed - skipped, failed, skipped)
     if failed_symbols:
+        if stop_on_failure:
+            print "(not all tests are accounted for due to --stop-on-failure)"
         print "Failed:"
         for part, chapter, section in sorted(failed_symbols):
             print '  - %s in %s / %s' % (section, part, chapter)
@@ -232,15 +250,21 @@ def main():
                         help="generate TeX documentation file")
     parser.add_argument('--quiet', '-q', dest="quiet",
                         action="store_true", help="hide passed tests")
+    parser.add_argument('--stop-on-failure', action="store_true",
+                        help="stop on failure")
+    parser.add_argument('--skip', metavar='N', dest="skip", type=int,
+                        default=0, help="skip the first N tests")
     args = parser.parse_args()
 
     if args.tex:
         write_latex()
     else:
         if args.section:
-            test_section(args.section)
+            test_section(args.section, stop_on_failure=args.stop_on_failure)
         else:
-            test_all(quiet=args.quiet, generate_output=args.output)
+            test_all(quiet=args.quiet, generate_output=args.output,
+                     stop_on_failure=args.stop_on_failure,
+                     start_at=args.skip+1)
 
 if __name__ == '__main__':
     main()

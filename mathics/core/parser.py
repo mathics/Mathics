@@ -25,7 +25,8 @@ import re
 from math import log10
 
 from mathics.core.expression import (BaseExpression, Expression, Integer,
-                                     Real, Symbol, String, Rational)
+                                     Real, Symbol, String, Rational,
+                                     ensure_context)
 from mathics.core.numbers import dps
 from mathics.core.characters import letters, letterlikes, named_characters
 
@@ -37,12 +38,17 @@ class TranslateError(Exception):
 
 
 class ScanError(TranslateError):
-    def __init__(self, pos):
+    def __init__(self, pos, text):
         super(ScanError, self).__init__()
         self.pos = pos
+        self.text = text
+
+    def __str__(self):
+        return self.__unicode__()
 
     def __unicode__(self):
-        return u"Lexical error at position {0}.".format(self.pos)
+        return u"Lexical error at position {0} in '{1}'.".format(
+            self.pos, self.text)
 
 
 class InvalidCharError(TranslateError):
@@ -64,8 +70,9 @@ class ParseError(TranslateError):
 
 # Symbols can be any letters
 base_symb = ur'((?![0-9])([0-9${0}{1}])+)'.format(letters, letterlikes)
+full_symb = ur'(`?{0}(`{0})*)'.format(base_symb)
 
-symbol_re = re.compile(ur'`?{0}(`{0})*'.format(base_symb))
+symbol_re = re.compile(full_symb)
 
 
 def is_symbol_name(text):
@@ -175,6 +182,10 @@ innequality_operators = {
     'GreaterEqual': ['op_GreaterEqual', 'GreaterEqual', 'GreaterSlantEqual'],
     'LessEqual': ['op_LessEqual', 'LessEqual', 'LessSlantEqual'],
 }
+
+all_operator_names = (prefix_operators.keys() + infix_operators.keys() +
+                      flat_infix_operators.keys() + postfix_operators.keys() +
+                      innequality_operators.keys())
 
 precedence = (
     ('right', 'FormBox'),
@@ -640,16 +651,6 @@ class MathicsScanner:
                 r'(?<!\\)(\\\.[0-9a-fA-F]{2}|\\\:[0-9a-fA-F]{4})')
         }
 
-    def tokenize(self, input_string):
-        self.tokens = []
-        self.lexer.input(input_string)
-        while True:
-            tok = self.lexer.token()
-            if not tok:
-                break
-            self.tokens.append(tok)
-        return self.tokens
-
     def convert_character_codes(self, s):
         "Converts character codes to characters E.g. \.7A -> z, \:004a -> J"
         def repl_hex_char(match):
@@ -821,24 +822,19 @@ class MathicsScanner:
         t.value = self.string_escape(t.value[1:-1])
         return t
 
-    @lex.TOKEN(ur'{0}?_\.'.format(base_symb))
+    @lex.TOKEN(ur'{0}?_\.'.format(full_symb))
     def t_blankdefault(self, t):    # this must come before t_blanks
         # r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
         return t
 
-    @lex.TOKEN(ur'{0}?_(__?)?{0}?'.format(base_symb))
+    @lex.TOKEN(ur'{0}?_(__?)?{0}?'.format(full_symb))
     def t_blanks(self, t):
         # r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
         return t
 
-    @lex.TOKEN(ur'`?{0}(`{0})*'.format(base_symb))
+    @lex.TOKEN(full_symb)
     def t_symbol(self, t):
         # r' `?[a-zA-Z$][a-zA-Z0-9$]*(`[a-zA-Z$][a-zA-Z0-9$]*)* '
-        s = t.value
-        if s.startswith('`'):
-            # FIXME: Replace Global with the current value of $Context
-            s = 'Global' + s
-        t.value = s
         return t
 
     def t_slotseq_1(self, t):
@@ -924,8 +920,7 @@ class MathicsScanner:
         return t
 
     def t_ANY_error(self, t):
-        # print t
-        raise ScanError(self.lexer.lexpos)
+        raise ScanError(self.lexer.lexpos, t.value)
 
 
 class AbstractToken(object):
@@ -957,6 +952,7 @@ class MathicsParser:
     tokens = tokens
     precedence = precedence
     start = 'Expression'
+    definitions = None
 
     def __init__(self):
         for prefix_op in prefix_operators:
@@ -989,6 +985,7 @@ class MathicsParser:
 
             @ONEARG
             def tmp(args, op=flat_infix_op):
+                op = ensure_context(op)
                 if args[1].get_head_name() == op:
                     args[1].leaves.append(args[3])
                     args[0] = args[1]
@@ -1013,14 +1010,15 @@ class MathicsParser:
             @ONEARG
             def tmp(args, op=innequality_op):
                 head = args[1].get_head_name()
-                if head == op:
+                if head == ensure_context(op):
                     args[1].leaves.append(args[3])
                     args[0] = args[1]
-                elif head == 'Inequality':
+                elif head == 'System`Inequality':
                     args[1].leaves.append(Symbol(op))
                     args[1].leaves.append(args[3])
                     args[0] = args[1]
-                elif head in innequality_operators.keys():
+                elif head in [ensure_context(k)
+                              for k in innequality_operators.keys()]:
                     leaves = []
                     for i, leaf in enumerate(args[1].leaves):
                         if i != 0:
@@ -1046,16 +1044,23 @@ class MathicsParser:
             outputdir='mathics/core/',          # where to store parsetab
             **kwargs)
 
+    def user_symbol(self, name):
+        return Symbol(self.definitions.lookup_name(name))
+
     def p_error(self, p):
         if p is not None:
             p = p.value
         raise ParseError(p)
 
-    def parse(self, string):
-        result = self.parser.parse(string)
-        if result is not None:
-            result = result.post_parse()
-        return result
+    def parse(self, string, definitions):
+        self.definitions = definitions
+        try:
+            result = self.parser.parse(string)
+            if result is not None:
+                result = result.post_parse()
+            return result
+        finally:
+            self.definitions = None
 
     def p_Expression(self, args):
         'Expression : expr'
@@ -1125,7 +1130,7 @@ class MathicsParser:
 
     def p_symbol(self, args):
         'expr : symbol'
-        args[0] = Symbol(args[1])
+        args[0] = self.user_symbol(args[1])
 
     def p_number(self, args):
         'expr : number'
@@ -1142,11 +1147,11 @@ class MathicsParser:
         elif count == 3:
             name = 'BlankNullSequence'
         if pieces[-1]:
-            blank = Expression(name, Symbol(pieces[-1]))
+            blank = Expression(name, self.user_symbol(pieces[-1]))
         else:
             blank = Expression(name)
         if pieces[0]:
-            args[0] = Expression('Pattern', Symbol(pieces[0]), blank)
+            args[0] = Expression('Pattern', self.user_symbol(pieces[0]), blank)
         else:
             args[0] = blank
 
@@ -1155,7 +1160,7 @@ class MathicsParser:
         name = args[1][:-2]
         if name:
             args[0] = Expression('Optional', Expression(
-                'Pattern', Symbol(name), Expression('Blank')))
+                'Pattern', self.user_symbol(name), Expression('Blank')))
         else:
             args[0] = Expression('Optional', Expression('Blank'))
 
@@ -1225,7 +1230,7 @@ class MathicsParser:
         n = len(args[2])
         if (isinstance(args[1], Expression) and     # nopep8
             isinstance(args[1].head, Expression) and
-            args[1].head.get_head_name() == 'Derivative' and
+            args[1].head.get_head_name() == 'System`Derivative' and
             args[1].head.leaves[0].get_int_value() is not None):
             n += args[1].head.leaves[0].get_int_value()
             args[1] = args[1].leaves[0]
@@ -1246,7 +1251,7 @@ class MathicsParser:
 
     def p_UMinus(self, args):
         'expr : Minus expr %prec UMinus'''
-        if args[2].get_head_name() in ['Integer', 'Real']:
+        if args[2].get_head_name() in ['System`Integer', 'System`Real']:
             args[2].value = -args[2].value
             args[0] = args[2]
         else:
@@ -1271,15 +1276,19 @@ class MathicsParser:
                 | expr RawStar expr
                 | expr expr %prec Times'''
         if len(args) == 3:
-            assert args[2].get_head_name != 'Times'
-            if args[1].get_head_name() == 'Times':
+            # FIXME: The assert below is missing (), so it doesn't do
+            # what it looks like it should do. Unfortunately fixing
+            # that causes it to go off all the time :(
+            assert args[2].get_head_name != 'System`Times'
+            if args[1].get_head_name() == 'System`Times':
                 args[1].leaves.append(args[2])
                 args[0] = args[1]
             else:
                 args[0] = Expression('Times', args[1], args[2])
         elif len(args) == 4:
-            assert args[3].get_head_name != 'Times'
-            if args[1].get_head_name() == 'Times':
+            # ditto here
+            assert args[3].get_head_name != 'System`Times'
+            if args[1].get_head_name() == 'System`Times':
                 args[1].leaves.append(args[3])
                 args[0] = args[1]
             else:
@@ -1327,13 +1336,14 @@ class MathicsParser:
     def p_Pattern(self, args):
         '''expr : symbol RawColon pattern RawColon expr
                 | symbol RawColon expr'''
-        args[0] = Expression('Pattern', Symbol(args[1]), args[3])
+        args[0] = Expression('Pattern', self.user_symbol(args[1]), args[3])
         if len(args) == 6:
             args[0] = Expression('Optional', args[0], args[5])
-        elif args[3].get_head_name() == 'Pattern':
+        elif args[3].get_head_name() == 'System`Pattern':
             args[0] = Expression(
                 'Optional',
-                Expression('Pattern', Symbol(args[1]), args[3].leaves[0]),
+                Expression('Pattern', self.user_symbol(args[1]),
+                           args[3].leaves[0]),
                 args[3].leaves[1])
 
     def p_Optional(self, args):
@@ -1383,7 +1393,7 @@ class MathicsParser:
     def p_Compound(self, args):
         '''expr : expr Semicolon expr
                 | expr Semicolon'''
-        if args[1].get_head_name() == 'CompoundExpression':
+        if args[1].get_head_name() == 'System`CompoundExpression':
             pass
         else:
             args[1] = Expression('CompoundExpression', args[1])
@@ -1408,7 +1418,7 @@ class MathicsParser:
 
     def p_form(self, args):
         'form : expr'
-        if args[1].get_head_name() == 'Symbol':
+        if args[1].get_head_name() == 'System`Symbol':
             args[0] = args[1]
         else:
             args[0] = Expression('Removed', String("$$Failure"))
@@ -1495,10 +1505,28 @@ parser = MathicsParser()
 parser.build()
 
 
-def parse(string):
+# Parse input (from the frontend, -e, input files, ToExpression etc).
+# Look up symbols according to the Definitions instance supplied.
+def parse(string, definitions):
     scanner.lexer.begin('INITIAL')      # Reset the lexer state (known lex bug)
 
     string = scanner.convert_unicode_longnames(string)
     string = scanner.convert_character_codes(string)
 
-    return parser.parse(string)
+    return parser.parse(string, definitions)
+
+
+class SystemDefinitions(object):
+    """
+    Dummy Definitions object that puts every unqualified symbol in
+    System`.
+    """
+    def lookup_name(self, name):
+        assert isinstance(name, basestring)
+        return ensure_context(name)
+
+
+# Parse rules specified in builtin docstrings/attributes. Every symbol
+# in the input is created in the System` context.
+def parse_builtin_rule(string):
+    return parse(string, SystemDefinitions())

@@ -127,18 +127,18 @@ def truncate_line(string):
 
 def benchmark_parse(expression_string):
     print "  '{0}'".format(truncate_line(expression_string))
-    timeit(lambda: parse(expression_string))
+    timeit(lambda: parse(expression_string, definitions))
 
 
 def benchmark_format(expression_string):
     print "  '{0}'".format(expression_string)
-    expr = parse(expression_string)
+    expr = parse(expression_string, definitions)
     timeit(lambda: expr.default_format(evaluation, "FullForm"))
 
 
 def benchmark_expression(expression_string):
     print "  '{0}'".format(expression_string)
-    expr = parse(expression_string)
+    expr = parse(expression_string, definitions)
     timeit(lambda: expr.evaluate(evaluation))
 
 

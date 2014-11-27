@@ -348,7 +348,7 @@ class Import(Builtin):
                 tmp = Expression(tmp_function, findfile).evaluate(evaluation)
             elif function_channels == Expression('List', String('Streams')):
                 stream = Expression('OpenRead', findfile).evaluate(evaluation)
-                if stream.get_head_name() != 'InputStream':
+                if stream.get_head_name() != 'System`InputStream':
                     evaluation.message('Import', 'nffil')
                     return None
                 tmp = Expression(tmp_function, stream).evaluate(evaluation)

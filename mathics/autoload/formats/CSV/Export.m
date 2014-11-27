@@ -1,5 +1,8 @@
 (* CSV Exporter *)
 
+Begin["System`Convert`TableDump`"]
+
+
 CSVExport[filename_String, data_, opts___]:=
   Module[{strm, char, wraplist},
     strm = OpenWrite[filename];
@@ -13,9 +16,12 @@ CSVExport[filename_String, data_, opts___]:=
 
 RegisterExport[
   "CSV",
-  CSVExport,
+  System`Convert`TableDump`CSVExport,
   FunctionChannels -> {"FileNames"},
   Options -> {"ByteOrderMark"},
   DefaultElement -> "Plaintext",
   BinaryFormat -> True
 ]
+
+
+End[]

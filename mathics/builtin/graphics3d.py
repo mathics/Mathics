@@ -5,7 +5,8 @@ Graphics (3D)
 """
 
 import numbers
-from mathics.core.expression import Expression, NumberError, from_python
+from mathics.core.expression import (Expression, NumberError, from_python,
+                                     system_symbols_dict)
 from mathics.builtin.base import BoxConstructError, Builtin, InstancableBuiltin
 from graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
                       LineBox, PointBox, Style, RGBColor, get_class,
@@ -148,11 +149,11 @@ class Graphics3DBox(GraphicsBox):
             self._get_image_size(options, graphics_options, max_width)
 
         # TODO: Handle ImageScaled[], and Scaled[]
-        lighting_option = graphics_options['Lighting']
-        lighting = lighting_option.to_python()
+        lighting_option = graphics_options['System`Lighting']
+        lighting = lighting_option.to_python() # can take symbols or strings
         self.lighting = []
 
-        if lighting == 'Automatic':
+        if lighting == 'System`Automatic':
             self.lighting = [
                 {"type": "Ambient", "color": [0.3, 0.2, 0.4]},
                 {"type": "Directional", "color": [0.8, 0., 0.],
@@ -162,7 +163,7 @@ class Graphics3DBox(GraphicsBox):
                 {"type": "Directional", "color": [0., 0., 0.8],
                  "position": [0, 2, 2]}
             ]
-        elif lighting == 'Neutral':
+        elif lighting == 'Neutral': # Lighting->"Neutral"
             self.lighting = [
                 {"type": "Ambient", "color": [0.3, 0.3, 0.3]},
                 {"type": "Directional", "color": [0.3, 0.3, 0.3],
@@ -172,7 +173,7 @@ class Graphics3DBox(GraphicsBox):
                 {"type": "Directional", "color": [0.3, 0.3, 0.3],
                  "position": [0, 2, 2]}
             ]
-        elif lighting == 'None':
+        elif lighting == 'System`None':
             pass
 
         elif (isinstance(lighting, list) and
@@ -240,7 +241,7 @@ class Graphics3DBox(GraphicsBox):
             evaluation.message("Graphics3D", 'invlight', lighting_option)
 
         # ViewPoint Option
-        viewpoint_option = graphics_options['ViewPoint']
+        viewpoint_option = graphics_options['System`ViewPoint']
         viewpoint = viewpoint_option.to_python(n_evaluation=evaluation)
 
         if isinstance(viewpoint, list) and len(viewpoint) == 3:
@@ -269,17 +270,17 @@ class Graphics3DBox(GraphicsBox):
         # TODO Aspect Ratio
         # aspect_ratio = graphics_options['AspectRatio'].to_python()
 
-        boxratios = graphics_options['BoxRatios'].to_python()
-        if boxratios == 'Automatic':
-            boxratios = ['Automatic', 'Automatic', 'Automatic']
+        boxratios = graphics_options['System`BoxRatios'].to_python()
+        if boxratios == 'System`Automatic':
+            boxratios = ['System`Automatic'] * 3
         else:
             boxratios = boxratios
         if not isinstance(boxratios, list) or len(boxratios) != 3:
             raise BoxConstructError
 
-        plot_range = graphics_options['PlotRange'].to_python()
-        if plot_range == 'Automatic':
-            plot_range = ['Automatic', 'Automatic', 'Automatic']
+        plot_range = graphics_options['System`PlotRange'].to_python()
+        if plot_range == 'System`Automatic':
+            plot_range = ['System`Automatic'] * 3
         if not isinstance(plot_range, list) or len(plot_range) != 3:
             raise BoxConstructError
 
@@ -289,13 +290,13 @@ class Graphics3DBox(GraphicsBox):
             raise BoxConstructError
 
         def calc_dimensions(final_pass=True):
-            if 'Automatic' in plot_range:
+            if 'System`Automatic' in plot_range:
                 xmin, xmax, ymin, ymax, zmin, zmax = elements.extent()
             else:
                 xmin = xmax = ymin = ymax = zmin = zmax = None
 
             try:
-                if plot_range[0] == 'Automatic':
+                if plot_range[0] == 'System`Automatic':
                     if xmin is None and xmax is None:
                         xmin = 0
                         xmax = 1
@@ -310,7 +311,7 @@ class Graphics3DBox(GraphicsBox):
                 else:
                     raise BoxConstructError
 
-                if plot_range[1] == 'Automatic':
+                if plot_range[1] == 'System`Automatic':
                     if ymin is None and ymax is None:
                         ymin = 0
                         ymax = 1
@@ -325,7 +326,7 @@ class Graphics3DBox(GraphicsBox):
                 else:
                     raise BoxConstructError
 
-                if plot_range[2] == 'Automatic':
+                if plot_range[2] == 'System`Automatic':
                     if zmin is None and zmax is None:
                         zmin = 0
                         zmax = 1
@@ -343,11 +344,11 @@ class Graphics3DBox(GraphicsBox):
                 raise BoxConstructError
 
             boxscale = [1., 1., 1.]
-            if boxratios[0] != 'Automatic':
+            if boxratios[0] != 'System`Automatic':
                 boxscale[0] = boxratios[0] / (xmax - xmin)
-            if boxratios[1] != 'Automatic':
+            if boxratios[1] != 'System`Automatic':
                 boxscale[1] = boxratios[1] / (ymax - ymin)
-            if boxratios[2] != 'Automatic':
+            if boxratios[2] != 'System`Automatic':
                 boxscale[2] = boxratios[2] / (zmax - zmin)
 
             if final_pass:
@@ -574,16 +575,16 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
 
     def create_axes(self, elements, graphics_options,
                     xmin, xmax, ymin, ymax, zmin, zmax, boxscale):
-        axes = graphics_options.get('Axes')
+        axes = graphics_options.get('System`Axes')
         if axes.is_true():
             axes = (True, True, True)
         elif axes.has_form('List', 3):
             axes = (leaf.is_true() for leaf in axes.leaves)
         else:
             axes = (False, False, False)
-        ticks_style = graphics_options.get('TicksStyle')
-        axes_style = graphics_options.get('AxesStyle')
-        label_style = graphics_options.get('LabelStyle')
+        ticks_style = graphics_options.get('System`TicksStyle')
+        axes_style = graphics_options.get('System`AxesStyle')
+        label_style = graphics_options.get('System`LabelStyle')
         if ticks_style.has_form('List', 3):
             ticks_style = ticks_style.leaves
         else:
@@ -788,7 +789,7 @@ class Polygon3DBox(PolygonBox):
         super(Polygon3DBox, self).init(*args, **kwargs)
 
     def process_option(self, name, value):
-        if name == 'VertexNormals':
+        if name == 'System`VertexNormals':
             # TODO: process VertexNormals and use them in rendering
             pass
         else:
@@ -1040,9 +1041,9 @@ class Sphere3DBox(_Graphics3DElement):
         # TODO
         pass
 
-GLOBALS3D = {
+GLOBALS3D = system_symbols_dict({
     'Polygon3DBox': Polygon3DBox,
     'Line3DBox': Line3DBox,
     'Point3DBox': Point3DBox,
     'Sphere3DBox': Sphere3DBox,
-}
+})

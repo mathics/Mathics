@@ -55,6 +55,26 @@ class Mesh(Builtin):
     }
 
 
+class Full(Builtin):
+    # todo: doc
+    pass
+
+
+class Top(Builtin):
+    # todo: doc
+    pass
+
+
+class Bottom(Builtin):
+    # todo: doc
+    pass
+
+
+class Axis(Builtin):
+    # todo: doc
+    pass
+
+
 def quiet_evaluate(expr, vars, evaluation, expect_list=False):
     """ Evaluates expr with given dynamic scoping values
     without producing arithmetic error messages. """
@@ -115,9 +135,9 @@ def automatic_plot_range(values):
 
 
 def get_plot_range(values, all_values, option):
-    if option == 'Automatic':
+    if option == 'System`Automatic':
         result = automatic_plot_range(values)
-    elif option == 'All':
+    elif option == 'System`All':
         if not all_values:
             result = [0, 1]
         else:
@@ -201,7 +221,7 @@ class _Plot(Builtin):
 
         # PlotRange Option
         def check_range(range):
-            if range in ('Automatic', 'All'):
+            if range in ('System`Automatic', 'System`All'):
                 return True
             if isinstance(range, list) and len(range) == 2:
                 if (isinstance(range[0], numbers.Real) and  # noqa
@@ -216,20 +236,22 @@ class _Plot(Builtin):
             x_range, y_range = [start, stop], 'Automatic'
         # x_range and y_range are now either Automatic, All, or of the form
         # [min, max]
-        assert x_range in ('Automatic', 'All') or isinstance(x_range, list)
-        assert y_range in ('Automatic', 'All') or isinstance(y_range, list)
+        assert (x_range in ('System`Automatic', 'System`All')
+                or isinstance(x_range, list))
+        assert (y_range in ('System`Automatic', 'System`All')
+                or isinstance(y_range, list))
 
         # Mesh Option
         mesh_option = self.get_option(options, 'Mesh', evaluation)
         mesh = mesh_option.to_python()
-        if mesh not in ['None', 'Full', 'All']:
+        if mesh not in ['System`None', 'System`Full', 'System`All']:
             evaluation.message('Mesh', 'ilevels', mesh_option)
-            mesh = 'None'
+            mesh = 'System`None'
 
         # PlotPoints Option
         plotpoints_option = self.get_option(options, 'PlotPoints', evaluation)
         plotpoints = plotpoints_option.to_python()
-        if plotpoints == 'None':
+        if plotpoints == 'System`None':
             plotpoints = 57
         if not (isinstance(plotpoints, int) and plotpoints >= 2):
             return evaluation.message(self.get_name(), 'ppts', plotpoints)
@@ -240,7 +262,7 @@ class _Plot(Builtin):
             options, 'MaxRecursion', evaluation)
         maxrecursion = maxrecursion_option.to_python()
         try:
-            if maxrecursion == 'Automatic':
+            if maxrecursion == 'System`Automatic':
                 maxrecursion = 3
             elif maxrecursion == float('inf'):
                 maxrecursion = max_recursion_limit
@@ -265,7 +287,7 @@ class _Plot(Builtin):
         def check_exclusion(excl):
             if isinstance(excl, list):
                 return all(check_exclusion(e) for e in excl)
-            if excl == 'Automatic':
+            if excl == 'System`Automatic':
                 return True
             if not isinstance(excl, numbers.Real):
                 return False
@@ -275,8 +297,8 @@ class _Plot(Builtin):
         exclusions = exclusions_option.to_python(n_evaluation=evaluation)
         # TODO Turn expressions into points E.g. Sin[x] == 0 becomes 0, 2 Pi...
 
-        if exclusions in ['None', ['None']]:
-            exclusions = 'None'
+        if exclusions in ['System`None', ['System`None']]:
+            exclusions = 'System`None'
         elif not isinstance(exclusions, list):
             exclusions = [exclusions]
 
@@ -287,10 +309,10 @@ class _Plot(Builtin):
             else:
                 evaluation.message(
                     self.get_name(), 'invexcl', exclusions_option)
-                exclusions = ['Automatic']
+                exclusions = ['System`Automatic']
 
         # exclusions is now either 'None' or a list of reals and 'Automatic'
-        assert (exclusions == 'None' or isinstance(exclusions, list))
+        assert (exclusions == 'System`None' or isinstance(exclusions, list))
 
         # constants to generate colors
         hue = 0.67
@@ -354,7 +376,7 @@ class _Plot(Builtin):
             ymin, ymax = automatic_plot_range([yy for xx, yy in base_points])
             yscale = 1. / zero_to_one(ymax - ymin)
 
-            if mesh == 'Full':
+            if mesh == 'System`Full':
                 for line in points:
                     tmp_mesh_points.extend(line)
 
@@ -372,9 +394,9 @@ class _Plot(Builtin):
                         return l, xi + 1, True
                 return l, xi + 1, False
 
-            if exclusions != 'None':
+            if exclusions != 'System`None':
                 for excl in exclusions:
-                        if excl != 'Automatic':
+                        if excl != 'System`Automatic':
                             l, xi, split_required = find_excl(excl)
                             if split_required:
                                 xvalues.insert(l + 1, xvalues[l][xi:])
@@ -431,7 +453,7 @@ class _Plot(Builtin):
                             i += incr
                         i += 1
 
-            if exclusions == 'None':    # Join all the Lines
+            if exclusions == 'System`None':    # Join all the Lines
                 points = [[(xx, yy) for line in points for xx, yy in line]]
 
             graphics.append(Expression('Hue', hue, 0.6, 0.6))
@@ -440,11 +462,11 @@ class _Plot(Builtin):
             for line in points:
                 plot_points.extend(line)
 
-            if mesh == 'All':
+            if mesh == 'System`All':
                 for line in points:
                     tmp_mesh_points.extend(line)
 
-            if mesh != 'None':
+            if mesh != 'System`None':
                 mesh_points.append(tmp_mesh_points)
 
             function_hues.append(hue)
@@ -463,7 +485,7 @@ class _Plot(Builtin):
         y_range = get_plot_range([yy for xx, yy in base_plot_points],
                                  [yy for xx, yy in plot_points], y_range)
 
-        options['PlotRange'] = from_python([x_range, y_range])
+        options['System`PlotRange'] = from_python([x_range, y_range])
 
         if mesh != 'None':
             for hue, points in zip(function_hues, mesh_points):
@@ -492,7 +514,7 @@ class _ListPlot(Builtin):
 
         # PlotRange Option
         def check_range(range):
-            if range in ('Automatic', 'All'):
+            if range in ('System`Automatic', 'System`All'):
                 return True
             if isinstance(range, list) and len(range) == 2:
                 if (isinstance(range[0], numbers.Real) and      # noqa
@@ -502,30 +524,32 @@ class _ListPlot(Builtin):
 
         plotrange_option = self.get_option(options, 'PlotRange', evaluation)
         plotrange = plotrange_option.to_python(n_evaluation=evaluation)
-        if plotrange == 'All':
-            plotrange = ['All', 'All']
-        elif plotrange == 'Automatic':
-            plotrange = ['Automatic', 'Automatic']
+        if plotrange == 'System`All':
+            plotrange = ['System`All', 'System`All']
+        elif plotrange == 'System`Automatic':
+            plotrange = ['System`Automatic', 'System`Automatic']
         elif isinstance(plotrange, numbers.Real):
             plotrange = [[-plotrange, plotrange], [-plotrange, plotrange]]
         elif isinstance(plotrange, list) and len(plotrange) == 2:
             if all(isinstance(pr, numbers.Real) for pr in plotrange):
-                plotrange = ['All', plotrange]
+                plotrange = ['System`All', plotrange]
             elif all(check_range(pr) for pr in plotrange):
                 pass
         else:
             evaluation.message(self.get_name(), 'prng', plotrange_option)
-            plotrange = ['Automatic', 'Automatic']
+            plotrange = ['System`Automatic', 'System`Automatic']
 
         x_range, y_range = plotrange[0], plotrange[1]
-        assert x_range in ('Automatic', 'All') or isinstance(x_range, list)
-        assert y_range in ('Automatic', 'All') or isinstance(y_range, list)
+        assert (x_range in ('System`Automatic', 'System`All')
+                or isinstance(x_range, list))
+        assert (y_range in ('System`Automatic', 'System`All')
+                or isinstance(y_range, list))
 
         # Filling option
         # TODO: Fill between corresponding points in two datasets:
         filling_option = self.get_option(options, 'Filling', evaluation)
         filling = filling_option.to_python(n_evaluation=evaluation)
-        if (filling in ['Top', 'Bottom', 'Axis'] or     # noqa
+        if (filling in ['System`Top', 'System`Bottom', 'System`Axis'] or     # noqa
             isinstance(filling, numbers.Real)):
             pass
         else:
@@ -592,12 +616,12 @@ class _ListPlot(Builtin):
             [x for line in all_points for seg in line for x, y in seg],
             x_range)
 
-        if filling == 'Axis':
+        if filling == 'System`Axis':
             # TODO: Handle arbitary axis intercepts
             filling = 0.0
-        elif filling == 'Bottom':
+        elif filling == 'System`Bottom':
             filling = y_range[0]
-        elif filling == 'Top':
+        elif filling == 'System`Top':
             filling = y_range[1]
 
         hue = 0.67
@@ -634,7 +658,7 @@ class _ListPlot(Builtin):
             if hue < 0:
                 hue += 1
 
-        options['PlotRange'] = from_python([x_range, y_range])
+        options['System`PlotRange'] = from_python([x_range, y_range])
 
         return Expression('Graphics', Expression('List', *graphics),
                           *options_to_rules(options))
@@ -688,9 +712,9 @@ class _Plot3D(Builtin):
         # Mesh Option
         mesh_option = self.get_option(options, 'Mesh', evaluation)
         mesh = mesh_option.to_python()
-        if mesh not in ['None', 'Full', 'All']:
+        if mesh not in ['System`None', 'System`Full', 'System`All']:
             evaluation.message('Mesh', 'ilevels', mesh_option)
-            mesh = 'Full'
+            mesh = 'System`Full'
 
         # PlotPoints Option
         plotpoints_option = self.get_option(options, 'PlotPoints', evaluation)
@@ -701,7 +725,7 @@ class _Plot3D(Builtin):
                 return True
             return False
 
-        if plotpoints == 'None':
+        if plotpoints == 'System`None':
             plotpoints = [7, 7]
         elif check_plotpoints(plotpoints):
             plotpoints = [plotpoints, plotpoints]
@@ -719,8 +743,10 @@ class _Plot3D(Builtin):
             def eval_f(x_value, y_value):
                 value = stored.get((x_value, y_value), False)
                 if value is False:
-                    value = quiet_evaluate(f, {x: Real(
-                        x_value), y: Real(y_value)}, evaluation)
+                    value = quiet_evaluate(
+                        f, {x.get_name(): Real(x_value),
+                            y.get_name(): Real(y_value)},
+                        evaluation)
                     # value = dynamic_scoping(
                     #    f.evaluate, {x: Real(x_value), y: Real(y_value)},
                     #    evaluation)
@@ -908,18 +934,18 @@ class Plot(_Plot):
     def get_plotrange(self, plotrange, start, stop):
         x_range = y_range = None
         if isinstance(plotrange, numbers.Real):
-            plotrange = ['Full', [-plotrange, plotrange]]
-        if plotrange == 'Automatic':
-            plotrange = ['Full', 'Automatic']
-        elif plotrange == 'All':
-            plotrange = ['All', 'All']
+            plotrange = ['System`Full', [-plotrange, plotrange]]
+        if plotrange == 'System`Automatic':
+            plotrange = ['System`Full', 'System`Automatic']
+        elif plotrange == 'System`All':
+            plotrange = ['System`All', 'System`All']
         if isinstance(plotrange, list) and len(plotrange) == 2:
             if (isinstance(plotrange[0], numbers.Real) and      # noqa
                 isinstance(plotrange[1], numbers.Real)):
-                x_range, y_range = 'Full', plotrange
+                x_range, y_range = 'System`Full', plotrange
             else:
                 x_range, y_range = plotrange
-            if x_range == 'Full':
+            if x_range == 'System`Full':
                 x_range = [start, stop]
         return x_range, y_range
 
@@ -968,10 +994,10 @@ class ParametricPlot(_Plot):
         x_range = y_range = None
         if isinstance(plotrange, numbers.Real):
             plotrange = [[-plotrange, plotrange], [-plotrange, plotrange]]
-        if plotrange == 'Automatic':
-            plotrange = ['Automatic', 'Automatic']
-        elif plotrange == 'All':
-            plotrange = ['All', 'All']
+        if plotrange == 'System`Automatic':
+            plotrange = ['System`Automatic', 'System`Automatic']
+        elif plotrange == 'System`All':
+            plotrange = ['System`All', 'System`All']
         if isinstance(plotrange, list) and len(plotrange) == 2:
             if (isinstance(plotrange[0], numbers.Real) and  # noqa
                 isinstance(plotrange[1], numbers.Real)):
@@ -1014,10 +1040,10 @@ class PolarPlot(_Plot):
         x_range = y_range = None
         if isinstance(plotrange, numbers.Real):
             plotrange = [[-plotrange, plotrange], [-plotrange, plotrange]]
-        if plotrange == 'Automatic':
-            plotrange = ['Automatic', 'Automatic']
-        elif plotrange == 'All':
-            plotrange = ['All', 'All']
+        if plotrange == 'System`Automatic':
+            plotrange = ['System`Automatic', 'System`Automatic']
+        elif plotrange == 'System`All':
+            plotrange = ['System`All', 'System`All']
         if isinstance(plotrange, list) and len(plotrange) == 2:
             if (isinstance(plotrange[0], numbers.Real) and  # noqa
                 isinstance(plotrange[1], numbers.Real)):
@@ -1157,7 +1183,7 @@ class Plot3D(_Plot3D):
                 'List', Expression('List', *p1), Expression('List', *p2),
                 Expression('List', *p3))))
         # Add the Grid
-        if mesh == 'Full':
+        if mesh == 'System`Full':
             for xi in range(len(mesh_points)):
                 line = []
                 for yi in range(len(mesh_points[xi])):
@@ -1165,7 +1191,7 @@ class Plot3D(_Plot3D):
                         'List', mesh_points[xi][yi][0], mesh_points[xi][yi][1],
                         mesh_points[xi][yi][2]))
                 graphics.append(Expression('Line', Expression('List', *line)))
-        elif mesh == 'All':
+        elif mesh == 'System`All':
             for p1, p2, p3 in triangles:
                 line = [from_python(p1), from_python(p2), from_python(p3)]
                 graphics.append(Expression('Line', Expression('List', *line)))
@@ -1228,7 +1254,7 @@ class DensityPlot(_Plot3D):
             options, 'ColorFunctionScaling', evaluation, pop=True)
 
         color_function_min = color_function_max = None
-        if color_function.get_name() == 'Automatic':
+        if color_function.get_name() == 'System`Automatic':
             color_function = String('LakeColors')
         if color_function.get_string_value():
             func = Expression(
@@ -1299,14 +1325,14 @@ class DensityPlot(_Plot3D):
             Expression('Rule', Symbol('VertexColors'),
                        Expression('List', *vertex_colors))))
 
-        if mesh == 'Full':
+        if mesh == 'System`Full':
             for xi in range(len(mesh_points)):
                 line = []
                 for yi in range(len(mesh_points[xi])):
                     line.append(Expression('List', mesh_points[xi][yi][0],
                                 mesh_points[xi][yi][1]))
                 graphics.append(Expression('Line', Expression('List', *line)))
-        elif mesh == 'All':
+        elif mesh == 'System`All':
             for p in triangles:
                 graphics.append(Expression(
                     'Line',

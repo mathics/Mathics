@@ -23,7 +23,7 @@ machine_precision = MACHINE_PRECISION
 
 
 def get_precision(precision, evaluation):
-    if precision.get_name() == 'MachinePrecision':
+    if precision.get_name() == 'System`MachinePrecision':
         return machine_precision
     elif isinstance(precision, (Integer, Rational, Real)):
         return prec(float(precision.to_sympy()))
@@ -102,6 +102,8 @@ class N(Builtin):
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
     #> ToString[p]
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
+    #> 3.14159 * "a string"
+     = 3.14159 a string
     """
 
     messages = {
@@ -119,7 +121,7 @@ class N(Builtin):
         valid_prec = get_precision(prec, evaluation)
 
         if valid_prec is not None:
-            if expr.get_head_name() in ('List', 'Rule'):
+            if expr.get_head_name() in ('System`List', 'System`Rule'):
                 return Expression(
                     expr.head, *[self.apply_other(leaf, prec, evaluation)
                                  for leaf in expr.leaves])
@@ -127,23 +129,25 @@ class N(Builtin):
                 return expr.round(valid_prec)
 
             name = expr.get_lookup_name()
-            nexpr = Expression('N', expr, prec)
-            result = evaluation.definitions.get_value(
-                name, 'NValues', nexpr, evaluation)
-            if result is not None:
-                if not result.same(nexpr):
-                    result = Expression('N', result, prec).evaluate(evaluation)
-                return result
+            if name != '':
+                nexpr = Expression('N', expr, prec)
+                result = evaluation.definitions.get_value(
+                    name, 'System`NValues', nexpr, evaluation)
+                if result is not None:
+                    if not result.same(nexpr):
+                        result = Expression(
+                            'N', result, prec).evaluate(evaluation)
+                    return result
 
             if expr.is_atom():
                 return expr.round(valid_prec)
             else:
                 attributes = expr.head.get_attributes(evaluation.definitions)
-                if 'NHoldAll' in attributes:
+                if 'System`NHoldAll' in attributes:
                     eval_range = []
-                elif 'NHoldFirst' in attributes:
+                elif 'System`NHoldFirst' in attributes:
                     eval_range = range(1, len(expr.leaves))
-                elif 'NHoldRest' in attributes:
+                elif 'System`NHoldRest' in attributes:
                     if len(expr.leaves) > 0:
                         eval_range = (0,)
                     else:
@@ -370,7 +374,7 @@ class NumericQ(Builtin):
             if isinstance(expr, Expression):
                 attr = evaluation.definitions.get_attributes(
                     expr.head.get_name())
-                return 'NumericFunction' in attr and all(
+                return 'System`NumericFunction' in attr and all(
                     test(leaf) for leaf in expr.leaves)
             else:
                 return expr.is_numeric()
@@ -430,7 +434,7 @@ class BaseForm(Builtin):
         p = dps(expr.get_precision()) if isinstance(expr, Real) else 0
         val = convert_base(expr.get_real_value(), base, p)
 
-        if f.get_name() == 'OutputForm':
+        if f.get_name() == 'System`OutputForm':
             return from_python("%s_%d" % (val, base))
         else:
             return Expression(

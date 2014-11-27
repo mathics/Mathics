@@ -85,27 +85,28 @@ class If(Builtin):
         'If[condition_, t_]'
 
         name = condition.get_name()
-        if name == 'True':
+        # FIXME: can this use .is_true()?
+        if name == 'System`True':
             return t.evaluate(evaluation)
-        elif name == 'False':
+        elif name == 'System`False':
             return Symbol('Null')
 
     def apply_3(self, condition, t, f, evaluation):
         'If[condition_, t_, f_]'
 
         name = condition.get_name()
-        if name == 'True':
+        if name == 'System`True':
             return t.evaluate(evaluation)
-        elif name == 'False':
+        elif name == 'System`False':
             return f.evaluate(evaluation)
 
     def apply_4(self, condition, t, f, u, evaluation):
         'If[condition_, t_, f_, u_]'
 
         name = condition.get_name()
-        if name == 'True':
+        if name == 'System`True':
             return t.evaluate(evaluation)
-        elif name == 'False':
+        elif name == 'System`False':
             return f.evaluate(evaluation)
         else:
             return u.evaluate(evaluation)

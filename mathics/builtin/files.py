@@ -18,7 +18,8 @@ import sympy
 import math
 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
-                                     from_python, Integer, BoxError)
+                                     from_python, Integer, BoxError,
+                                     valid_context_name)
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.settings import ROOT_DIR
@@ -339,6 +340,72 @@ class OperatingSystem(Predefined):
             return String('Unknown')
 
 
+class EndOfFile(Builtin):
+    """
+    <dl>
+    <dt>'EndOfFile'
+      <dd>is returned by 'Read' when the end of an input stream is reached.
+    </dl>
+    """
+
+
+# TODO: Improve docs for these Read[] arguments.
+class Byte(Builtin):
+    """
+    <dl>
+    <dt>'Byte'
+      <dd>is a data type for 'Read'
+    </dl>
+    """
+
+
+class Character(Builtin):
+    """
+    <dl>
+    <dt>'Character'
+      <dd>is a data type for 'Read'
+    </dl>
+    """
+
+
+class Expression_(Builtin):
+    """
+    <dl>
+    <dt>'Expression'
+      <dd>is a data type for 'Read'
+    </dl>
+    """
+    name = 'Expression'
+
+
+class Number_(Builtin):
+    """
+    <dl>
+    <dt>'Number'
+      <dd>is a data type for 'Read'
+    </dl>
+    """
+    name = 'Number'
+
+
+class Record(Builtin):
+    """
+    <dl>
+    <dt>'Record'
+      <dd>is a data type for 'Read'
+    </dl>
+    """
+
+
+class Word(Builtin):
+    """
+    <dl>
+    <dt>'Word'
+      <dd>is a data type for 'Read'
+    </dl>
+    """
+
+
 class Read(Builtin):
     """
     <dl>
@@ -478,26 +545,26 @@ class Read(Builtin):
         keys = options.keys()
 
         # AnchoredSearch
-        if 'AnchoredSearch' in keys:
-            anchored_search = options['AnchoredSearch'].to_python()
+        if 'System`AnchoredSearch' in keys:
+            anchored_search = options['System`AnchoredSearch'].to_python()
             assert anchored_search in [True, False]
             result['AnchoredSearch'] = anchored_search
 
         # IgnoreCase
-        if 'IgnoreCase' in keys:
-            ignore_case = options['IgnoreCase'].to_python()
+        if 'System`IgnoreCase' in keys:
+            ignore_case = options['System`IgnoreCase'].to_python()
             assert ignore_case in [True, False]
             result['IgnoreCase'] = ignore_case
 
         # WordSearch
-        if 'WordSearch' in keys:
-            word_search = options['WordSearch'].to_python()
+        if 'System`WordSearch' in keys:
+            word_search = options['System`WordSearch'].to_python()
             assert word_search in [True, False]
             result['WordSearch'] = word_search
 
         # RecordSeparators
-        if 'RecordSeparators' in keys:
-            record_separators = options['RecordSeparators'].to_python()
+        if 'System`RecordSeparators' in keys:
+            record_separators = options['System`RecordSeparators'].to_python()
             assert isinstance(record_separators, list)
             assert all(isinstance(s, basestring) and s[
                        0] == s[-1] == '"' for s in record_separators)
@@ -505,8 +572,8 @@ class Read(Builtin):
             result['RecordSeparators'] = record_separators
 
         # WordSeparators
-        if 'WordSeparators' in keys:
-            word_separators = options['WordSeparators'].to_python()
+        if 'System`WordSeparators' in keys:
+            word_separators = options['System`WordSeparators'].to_python()
             assert isinstance(word_separators, list)
             assert all(isinstance(s, basestring) and s[
                        0] == s[-1] == '"' for s in word_separators)
@@ -514,20 +581,20 @@ class Read(Builtin):
             result['WordSeparators'] = word_separators
 
         # NullRecords
-        if 'NullRecords' in keys:
-            null_records = options['NullRecords'].to_python()
+        if 'System`NullRecords' in keys:
+            null_records = options['System`NullRecords'].to_python()
             assert null_records in [True, False]
             result['NullRecords'] = null_records
 
         # NullWords
-        if 'NullWords' in keys:
-            null_words = options['NullWords'].to_python()
+        if 'System`NullWords' in keys:
+            null_words = options['System`NullWords'].to_python()
             assert null_words in [True, False]
             result['NullWords'] = null_words
 
         # TokenWords
-        if 'TokenWords' in keys:
-            token_words = options['TokenWords'].to_python()
+        if 'System`TokenWords' in keys:
+            token_words = options['System`TokenWords'].to_python()
             assert token_words == []
             result['TokenWords'] = token_words
 
@@ -553,16 +620,17 @@ class Read(Builtin):
             evaluation.message('Read', 'openx', strm)
             return
 
-        types = types.to_python()
-        if not isinstance(types, list):
-            types = [types]
+        # Wrap types in a list (if it isn't already one)
+        if not types.has_form('List', None):
+            types = Expression('List', types)
 
-        READ_TYPES = ['Byte', 'Character', 'Expression',
-                      'Number', 'Real', 'Record', 'String', 'Word']
+        READ_TYPES = [Symbol(k) for k in
+                      ['Byte', 'Character', 'Expression',
+                       'Number', 'Real', 'Record', 'String', 'Word']]
 
-        for typ in types:
-            if not (isinstance(typ, basestring) and typ in READ_TYPES):
-                evaluation.message('Read', 'readf', from_python(typ))
+        for typ in types.leaves:
+            if typ not in READ_TYPES:
+                evaluation.message('Read', 'readf', typ)
                 return Symbol('$Failed')
 
         ## Options:
@@ -609,26 +677,26 @@ class Read(Builtin):
         read_real = reader(
             stream, word_separators + record_separators,
             ['+', '-', '.', 'e', 'E', '^', '*'] + [str(i) for i in range(10)])
-        for typ in types:
+        for typ in types.leaves:
             try:
-                if typ == 'Byte':
+                if typ == Symbol('Byte'):
                     tmp = stream.read(1)
                     if tmp == '':
                         raise EOFError
                     result.append(ord(tmp))
-                elif typ == 'Character':
+                elif typ == Symbol('Character'):
                     tmp = stream.read(1)
                     if tmp == '':
                         raise EOFError
                     result.append(tmp)
-                elif typ == 'Expression':
+                elif typ == Symbol('Expression'):
                     tmp = read_record.next()
                     try:
                         try:
-                            expr = parse(tmp)
+                            expr = parse(tmp, evaluation.definitions)
                         except NameError:
                             from mathics.core.parser import parse, ParseError
-                            expr = parse(tmp)
+                            expr = parse(tmp, evaluation.definitions)
                     except ParseError:
                         expr = None
                     if expr is None:
@@ -636,7 +704,7 @@ class Read(Builtin):
                             'InputSteam', name, n))
                         return Symbol('$Failed')
                     result.append(tmp)
-                elif typ == 'Number':
+                elif typ == Symbol('Number'):
                     tmp = read_number.next()
                     try:
                         tmp = int(tmp)
@@ -649,7 +717,7 @@ class Read(Builtin):
                             return Symbol('$Failed')
                     result.append(tmp)
 
-                elif typ == 'Real':
+                elif typ == Symbol('Real'):
                     tmp = read_real.next()
                     tmp = tmp.replace('*^', 'E')
                     try:
@@ -659,14 +727,14 @@ class Read(Builtin):
                             'InputSteam', name, n))
                         return Symbol('$Failed')
                     result.append(tmp)
-                elif typ == 'Record':
+                elif typ == Symbol('Record'):
                     result.append(read_record.next())
-                elif typ == 'String':
+                elif typ == Symbol('String'):
                     tmp = stream.readline()
                     if len(tmp) == 0:
                         raise EOFError
                     result.append(tmp.rstrip('\n'))
-                elif typ == 'Word':
+                elif typ == Symbol('Word'):
                     result.append(read_word.next())
 
             except EOFError:
@@ -1367,7 +1435,8 @@ class BinaryWrite(Builtin):
                         x = float('-inf')
                     else:
                         x = None
-                elif isinstance(x, Symbol) and x.get_name() == 'Indeterminate':
+                elif (isinstance(x, Symbol)
+                      and x.get_name() == 'System`Indeterminate'):
                     x = float('nan')
                 else:
                     x = None
@@ -1381,7 +1450,8 @@ class BinaryWrite(Builtin):
                     # x*float('+inf') creates nan if x.real or x.imag are zero
                     x = complex(x.real * float('+inf') if x.real != 0 else 0,
                                 x.imag * float('+inf') if x.imag != 0 else 0)
-                elif isinstance(x, Symbol) and x.get_name() == 'Indeterminate':
+                elif (isinstance(x, Symbol)
+                      and x.get_name() == 'System`Indeterminate'):
                     x = complex(float('nan'), float('nan'))
                 else:
                     x = None
@@ -1781,12 +1851,13 @@ class WriteString(Builtin):
 
         exprs = []
         for expri in expr.get_sequence():
-            result = expri.format(evaluation, "OutputForm")
+            result = expri.format(evaluation, "System`OutputForm")
             try:
                 result = result.boxes_to_text(evaluation=evaluation)
             except BoxError:
                 return evaluation.message(
-                    'General', 'notboxes', String('%s' % result))
+                    'General', 'notboxes',
+                    Expression('FullForm', result).evaluate(evaluation))
             exprs.append(result)
 
         stream.write(u''.join(exprs))
@@ -1835,7 +1906,7 @@ class _OpenAction(Builtin):
         ## Options
         # BinaryFormat
         mode = self.mode
-        if options['BinaryFormat'].is_true():
+        if options['System`BinaryFormat'].is_true():
             if not self.mode.endswith('b'):
                 mode += 'b'
 
@@ -1997,7 +2068,7 @@ class Get(PrefixOperator):
             parse
             ParseError
         except NameError:
-            from mathics.core.parser import parse
+            from mathics.core.parser import parse, ParseError
 
         from mathics.main import wait_for_line
 
@@ -2010,7 +2081,7 @@ class Get(PrefixOperator):
             if wait_for_line(total_input):
                 continue
             try:
-                expr = parse(total_input)
+                expr = parse(total_input, evaluation.definitions)
             except:  # FIXME: something weird is going on here
                 syntax_error_count += 1
                 if syntax_error_count <= 4:
@@ -2109,7 +2180,7 @@ class Put(BinaryOperator):
         text = [evaluation.format_output(Expression(
             'InputForm', expr)) for expr in exprs.get_sequence()]
         text = u'\n'.join(text) + u'\n'
-        text.encode('ascii')
+        text.encode('utf-8')
 
         stream.write(text)
 
@@ -2120,14 +2191,6 @@ class Put(BinaryOperator):
         expr = Expression('Put', exprs, filename)
         evaluation.message('General', 'stream', filename)
         return expr
-
-    def parse(self, args):
-        if isinstance(args[2], Symbol):
-            ptokens = args[2].parse_tokens
-            args[2] = String(args[2])
-            args[2].parse_tokens = ptokens
-
-        return super(Put, self).parse(args)
 
 
 class PutAppend(BinaryOperator):
@@ -2191,7 +2254,8 @@ class PutAppend(BinaryOperator):
             return
 
         text = [unicode(e.do_format(
-            evaluation, 'OutputForm').__str__()) for e in exprs.get_sequence()]
+                    evaluation, 'System`OutputForm').__str__())
+                for e in exprs.get_sequence()]
         text = u'\n'.join(text) + u'\n'
         text.encode('ascii')
 
@@ -2204,14 +2268,6 @@ class PutAppend(BinaryOperator):
         expr = Expression('PutAppend', exprs, filename)
         evaluation.message('General', 'stream', filename)
         return expr
-
-    def parse(self, args):
-        if isinstance(args[2], Symbol):
-            ptokens = args[2].parse_tokens
-            args[2] = String(args[2])
-            args[2].parse_tokens = ptokens
-
-        return super(PutAppend, self).parse(args)
 
 
 class FindFile(Builtin):
@@ -2292,11 +2348,11 @@ class FileNameSplit(Builtin):
         path = filename.to_python()[1:-1]
 
         operating_system = options[
-            'OperatingSystem'].evaluate(evaluation).to_python()
+            'System`OperatingSystem'].evaluate(evaluation).to_python()
 
         if operating_system not in ['"MacOSX"', '"Windows"', '"Unix"']:
             evaluation.message('FileNameSplit', 'ostype', options[
-                               'OperatingSystem'])
+                               'System`OperatingSystem'])
             if os.name == 'posix':
                 operating_system = 'Unix'
             elif os.name == 'nt':
@@ -2356,11 +2412,11 @@ class FileNameJoin(Builtin):
         py_pathlist = [p[1:-1] for p in py_pathlist]
 
         operating_system = options[
-            'OperatingSystem'].evaluate(evaluation).to_python()
+            'System`OperatingSystem'].evaluate(evaluation).to_python()
 
         if operating_system not in ['"MacOSX"', '"Windows"', '"Unix"']:
             evaluation.message('FileNameSplit', 'ostype', options[
-                               'OperatingSystem'])
+                               'System`OperatingSystem'])
             if os.name == 'posix':
                 operating_system = 'Unix'
             elif os.name == 'nt':
@@ -2647,7 +2703,7 @@ class ReadList(Read):
      = {"abc123"}
 
     #> ReadList[str, "Invalid"]
-     : "Invalid" is not a valid format specification.
+     : Invalid is not a valid format specification.
      = ReadList[..., Invalid]
     #> Close[str];
 
@@ -2711,7 +2767,7 @@ class ReadList(Read):
             if tmp == Symbol('$Failed'):
                 return
 
-            if tmp.to_python() == 'EndOfFile':
+            if tmp == Symbol('EndOfFile'):
                 break
             result.append(tmp)
         return from_python(result)
@@ -2800,7 +2856,7 @@ class FilePrint(Builtin):
         pypath = path_search(pypath[1:-1])
 
         # Options
-        record_separators = options['RecordSeparators'].to_python()
+        record_separators = options['System`RecordSeparators'].to_python()
         assert isinstance(record_separators, list)
         assert all(isinstance(s, basestring) and s[
                    0] == s[-1] == '"' for s in record_separators)
@@ -3074,8 +3130,8 @@ class Skip(Read):
         for i in range(py_m):
             result = super(Skip, self).apply(
                 channel, types, evaluation, options)
-            if result.to_python() == 'EndOfFile':
-                return Symbol('EndOfFile')
+            if result == Symbol('EndOfFile'):
+                return result
         return Symbol('Null')
 
 
@@ -3145,7 +3201,7 @@ class Find(Read):
                 channel, Symbol('Record'), evaluation, options)
             py_tmp = tmp.to_python()[1:-1]
 
-            if py_tmp == 'EndOfFile':
+            if py_tmp == 'System`EndOfFile':
                 evaluation.message(
                     'Find', 'notfound', Expression('Find', channel, text))
                 return Symbol("$Failed")
@@ -3410,7 +3466,7 @@ class Compress(Builtin):
 
     def apply(self, expr, evaluation, options):
         'Compress[expr_, OptionsPattern[Compress]]'
-        string = expr.format(evaluation, 'FullForm')
+        string = expr.format(evaluation, 'System`FullForm')
         string = string.boxes_to_text(
             evaluation=evaluation, show_string_characters=True)
         string = string.encode('utf-8')
@@ -3450,10 +3506,10 @@ class Uncompress(Builtin):
         tmp = tmp.decode('utf-8')
 
         try:
-            expr = parse(tmp)
+            expr = parse(tmp, evaluation.definitions)
         except NameError:
             from mathics.core.parser import parse
-            expr = parse(tmp)
+            expr = parse(tmp, evaluation.definitions)
 
         return expr
 
@@ -4244,7 +4300,7 @@ class DeleteDirectory(Builtin):
         expr = Expression('DeleteDirectory', dirname)
         py_dirname = dirname.to_python()
 
-        delete_contents = options['DeleteContents'].to_python()
+        delete_contents = options['System`DeleteContents'].to_python()
         if not delete_contents in [True, False]:
             evaluation.message('DeleteDirectory', 'idcts')
             return
@@ -4600,7 +4656,7 @@ class Needs(Builtin):
     def apply(self, context, evaluation):
         'Needs[context_String]'
 
-        if context.get_string_value()[-1] != '`':
+        if not valid_context_name(context.get_string_value()):
             evaluation.message('Needs', 'ctx', Expression(
                 'Needs', context), 1, '`')
             return

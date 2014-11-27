@@ -6,7 +6,7 @@ List functions
 
 from mathics.builtin.base import (
     Builtin, Test, InvalidLevelspecError,
-    PartError, PartDepthError, PartRangeError, SympyFunction)
+    PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.core.expression import Expression, String, Symbol, Integer, Number
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
@@ -55,17 +55,17 @@ class ListQ(Test):
     """
 
     def test(self, expr):
-        return expr.get_head_name() == 'List'
+        return expr.get_head_name() == 'System`List'
 
 
 class NotListQ(Test):
     def test(self, expr):
-        return expr.get_head_name() != 'List'
+        return expr.get_head_name() != 'System`List'
 
 
 def list_boxes(items, f, open=None, close=None):
     result = [Expression('MakeBoxes', item, f) for item in items]
-    if f.get_name() in ('OutputForm', 'InputForm'):
+    if f.get_name() in ('System`OutputForm', 'System`InputForm'):
         sep = ", "
     else:
         sep = ","
@@ -110,6 +110,26 @@ class Length(Builtin):
             return Integer(0)
         else:
             return Integer(len(expr.leaves))
+
+
+class All(Predefined):
+    """
+    <dl>
+    <dt>'All'
+    <dd>is a possible value for 'Span' and 'Quiet'.
+    </dl>
+    """
+    pass
+
+
+class None_(Predefined):
+    """
+    <dl>
+    <dt>'None'
+    <dd>is a possible value for 'Span' and 'Quiet'.
+    </dl>
+    """
+    name = 'None'
 
 
 class Span(Builtin):
@@ -249,7 +269,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
             if len(index.leaves) > 1:
                 stop = index.leaves[1].get_int_value()
                 if stop is None:
-                    if index.leaves[1].get_name() == 'All':
+                    if index.leaves[1].get_name() == 'System`All':
                         stop = None
                     else:
                         evaluation.message('Part', 'span', index)
@@ -333,7 +353,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         def process_level(item, assignment):
             if item.is_atom():
                 replace_item(list_of_list, item.original, assignment)
-            elif (assignment.get_head_name() != 'List' or
+            elif (assignment.get_head_name() != 'System`List' or
                   len(item.leaves) != len(assignment.leaves)):
                 if item.original:
                     replace_item(list_of_list, item.original, assignment)
@@ -527,9 +547,9 @@ def convert_seq(seq):
     start, stop, step = 1, None, 1
     name = seq.get_name()
     value = seq.get_int_value()
-    if name == 'All':
+    if name == 'System`All':
         pass
-    elif name == 'None':
+    elif name == 'System`None':
         stop = 0
     elif value is not None:
         if value > 0:
@@ -640,7 +660,7 @@ class Part(Builtin):
 
         i = i.get_sequence()
         list = Expression('MakeBoxes', list, f)
-        if f.get_name() in ('OutputForm', 'InputForm'):
+        if f.get_name() in ('System`OutputForm', 'System`InputForm'):
             open, close = "[[", "]]"
         else:
             open, close = u"\u301a", u"\u301b"
@@ -904,7 +924,7 @@ class ReplacePart(Builtin):
             if position is None:
                 continue
             try:
-                if replacement.get_head_name() == 'RuleDelayed':
+                if replacement.get_head_name() == 'System`RuleDelayed':
                     replace_value = replace.evaluate(evaluation)
                 else:
                     replace_value = replace
@@ -1514,6 +1534,74 @@ class Join(Builtin):
             return Expression(head, *result)
         else:
             return Expression('List')
+
+
+class Append(Builtin):
+    """
+    <dl>
+    <dt>'Append[$expr$, $item$]'
+        <dd>returns $expr$ with $item$ appended to its leaves.
+    </dl>
+
+    >> Append[{1, 2, 3}, 4]
+     = {1, 2, 3, 4}
+
+    'Append' works on expressions with heads other than 'List':
+    >> Append[f[a, b], c]
+     = f[a, b, c]
+
+    Unlike 'Join', 'Append' does not flatten lists in $item$:
+    >> Append[{a, b}, {c, d}]
+     = {a, b, {c, d}}
+
+    #> Append[a, b]
+     : Nonatomic expression expected.
+     = Append[a, b]
+    """
+
+    def apply(self, expr, item, evaluation):
+        'Append[expr_, item_]'
+
+        if expr.is_atom():
+            return evaluation.message('Append', 'normal')
+
+        return Expression(expr.get_head(),
+                          *(expr.get_leaves() + [item]))
+
+
+class Prepend(Builtin):
+    """
+    <dl>
+    <dt>'Prepend[$expr$, $item$]'
+        <dd>returns $expr$ with $item$ prepended to its leaves.
+    </dl>
+
+    'Prepend' is similar to 'Append', but adds $item$ to the beginning
+    of $expr$:
+    >> Prepend[{2, 3, 4}, 1]
+     = {1, 2, 3, 4}
+
+    'Prepend' works on expressions with heads other than 'List':
+    >> Prepend[f[b, c], a]
+     = f[a, b, c]
+
+    Unlike 'Join', 'Prepend' does not flatten lists in $item$:
+    >> Prepend[{c, d}, {a, b}]
+     = {{a, b}, c, d}
+
+    #> Prepend[a, b]
+     : Nonatomic expression expected.
+     = Prepend[a, b]
+    """
+
+    def apply(self, expr, item, evaluation):
+        'Prepend[expr_, item_]'
+
+        if expr.is_atom():
+            return evaluation.message('Prepend', 'normal')
+
+        return Expression(expr.get_head(),
+                          *([item] + expr.get_leaves()))
 
 
 def get_tuples(items):

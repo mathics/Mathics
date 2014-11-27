@@ -24,11 +24,13 @@ import sympy
 from mathics.core.definitions import Definition
 from mathics.core.rules import Rule, BuiltinRule, Pattern
 from mathics.core.expression import (BaseExpression, Expression, Symbol,
-                                     String, Integer)
+                                     String, Integer, ensure_context,
+                                     strip_context)
 
 
 class Builtin(object):
     name = None
+    context = 'System`'
     abstract = False
     attributes = ()
     rules = {}
@@ -52,7 +54,7 @@ class Builtin(object):
         super(Builtin, self).__init__()
 
     def contribute(self, definitions):
-        from mathics.core.parser import parse
+        from mathics.core.parser import parse_builtin_rule
 
         name = self.get_name()
         rules = []
@@ -61,45 +63,58 @@ class Builtin(object):
         for pattern, replace in self.rules.items():
             if not isinstance(pattern, BaseExpression):
                 pattern = pattern % {'name': name}
-                pattern = parse(pattern)
+                pattern = parse_builtin_rule(pattern)
             replace = replace % {'name': name}
-            rules.append(Rule(pattern, parse(replace), system=True))
+            rules.append(Rule(
+                    pattern, parse_builtin_rule(replace), system=True))
 
         box_rules = []
-        if name != 'MakeBoxes':
+        if name != 'System`MakeBoxes':
             new_rules = []
             for rule in rules:
-                if rule.pattern.get_head_name() == 'MakeBoxes':
+                if rule.pattern.get_head_name() == 'System`MakeBoxes':
                     box_rules.append(rule)
                 else:
                     new_rules.append(rule)
             rules = new_rules
 
-        formatvalues = {'': []}
-        for pattern, function in self.get_functions('format_'):
+        def extract_forms(name, pattern):
+            # Handle a tuple of (forms, pattern) as well as a pattern
+            # on the left-hand side of a format rule. 'forms' can be
+            # an empty string (=> the rule applies to all forms), or a
+            # form name (like 'System`TraditionalForm'), or a sequence
+            # of form names.
+            def contextify_form_name(f):
+                # Handle adding 'System`' to a form name, unless it's
+                # '' (meaning the rule applies to all forms).
+                return '' if f == '' else ensure_context(f)
             if isinstance(pattern, tuple):
                 forms, pattern = pattern
+                if isinstance(forms, str):
+                    forms = [contextify_form_name(forms)]
+                else:
+                    forms = [contextify_form_name(f) for f in forms]
             else:
                 forms = ['']
+            return forms, pattern
+
+        formatvalues = {'': []}
+        for pattern, function in self.get_functions('format_'):
+            forms, pattern = extract_forms(name, pattern)
             for form in forms:
                 if form not in formatvalues:
                     formatvalues[form] = []
                 formatvalues[form].append(BuiltinRule(
                     pattern, function, system=True))
         for pattern, replace in self.formats.items():
-            if isinstance(pattern, tuple):
-                forms, pattern = pattern
-                if not isinstance(forms, tuple):
-                    forms = [forms]
-            else:
-                forms, pattern = [''], pattern
+            forms, pattern = extract_forms(name, pattern)
             for form in forms:
                 if not form in formatvalues:
                     formatvalues[form] = []
                 if not isinstance(pattern, BaseExpression):
-                    pattern = parse(pattern)
+                    pattern = parse_builtin_rule(pattern)
                 formatvalues[form].append(Rule(
-                    pattern, parse(replace), system=True))
+                    pattern, parse_builtin_rule(replace), system=True))
         for form, formatrules in formatvalues.items():
             formatrules.sort()
 
@@ -107,17 +122,25 @@ class Builtin(object):
                          String(value), system=True)
                     for msg, value in self.messages.items()]
 
-        if name == 'MakeBoxes':
+        if name == 'System`MakeBoxes':
             attributes = []
         else:
-            attributes = ['Protected']
-        attributes += list(self.attributes)
+            attributes = ['System`Protected']
+        attributes += list(ensure_context(a) for a in self.attributes)
         options = {}
         for option, value in self.options.iteritems():
-            options[option] = parse(value)
+            option = ensure_context(option)
+            options[option] = parse_builtin_rule(value)
+            if option.startswith('System`'):
+                # Create a definition for the option's symbol.
+                # Otherwise it'll be created in Global` when it's
+                # used, so it won't work.
+                if option not in definitions.builtin:
+                    definitions.builtin[option] = Definition(
+                        name=name, attributes=set())
         defaults = []
         for spec, value in self.defaults.iteritems():
-            value = parse(value)
+            value = parse_builtin_rule(value)
             pattern = None
             if spec is None:
                 pattern = Expression('Default', Symbol(name))
@@ -131,16 +154,17 @@ class Builtin(object):
             defaultvalues=defaults)
         definitions.builtin[name] = definition
 
-        makeboxes_def = definitions.builtin['MakeBoxes']
+        makeboxes_def = definitions.builtin['System`MakeBoxes']
         for rule in box_rules:
             makeboxes_def.add_rule(rule)
 
     @classmethod
     def get_name(cls):
         if cls.name is None:
-            return cls.__name__
+            shortname = cls.__name__
         else:
-            return cls.name
+            shortname = cls.name
+        return cls.context + shortname
 
     def get_operator(self):
         return None
@@ -149,7 +173,7 @@ class Builtin(object):
         return None
 
     def get_functions(self, prefix='apply'):
-        from mathics.core.parser import parse
+        from mathics.core.parser import parse_builtin_rule
 
         for name in dir(self):
             if name.startswith(prefix):
@@ -165,13 +189,14 @@ class Builtin(object):
                 else:
                     attrs = []
                 pattern = pattern % {'name': self.get_name()}
-                pattern = parse(pattern)
+                pattern = parse_builtin_rule(pattern)
                 if attrs:
                     yield (attrs, pattern), function
                 else:
                     yield (pattern, function)
 
     def get_option(self, options, name, evaluation, pop=False):
+        name = ensure_context(name)
         value = options.pop(name, None) if pop else options.get(name)
         if value is not None:
             return value.evaluate(evaluation)
@@ -263,19 +288,6 @@ class PrefixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PrefixOperator, self).__init__('Prefix', *args, **kwargs)
 
-    def parse(self, args):
-        from mathics.core.parser import MathicsParser, Token
-
-        rest = args[0].parse_tokens
-        if rest:
-            parser = MathicsParser()
-            items = list(rest + [Token('(')] + [args[1]] +
-                         args[2].parse_tokens + [Token(')')])
-            result = parser.parse(items)
-            return result
-        else:
-            return Expression(self.get_name(), args[2], parse_operator=self)
-
     def is_prefix(self):
         return True
 
@@ -284,25 +296,12 @@ class PostfixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PostfixOperator, self).__init__('Postfix', *args, **kwargs)
 
-    def parse(self, args):
-        from mathics.core.parser import MathicsParser, Token
-
-        rest = args[2].parse_tokens
-        if rest:
-            parser = MathicsParser()    # construct our own parser!
-            items = [Token('(')] + args[0].parse_tokens + [
-                args[1]] + [Token(')')] + rest
-            result = parser.parse(items)
-            return result
-        else:
-            return Expression(self.get_name(), args[0], parse_operator=self)
-
     def is_postfix(self):
         return True
 
 
 class BinaryOperator(Operator):
-    grouping = 'None'  # NonAssociative, None, Left, Right
+    grouping = 'System`None'  # NonAssociative, None, Left, Right
 
     def __init__(self, *args, **kwargs):
         super(BinaryOperator, self).__init__(*args, **kwargs)
@@ -310,7 +309,12 @@ class BinaryOperator(Operator):
         # Prevent pattern matching symbols from gaining meaning here using
         # Verbatim
         name = 'Verbatim[%s]' % name
-        if self.grouping in ('None', 'NonAssociative'):
+
+        # For compatibility, allow grouping symbols in builtins to be
+        # specified without System`.
+        self.grouping = ensure_context(self.grouping)
+
+        if self.grouping in ('System`None', 'System`NonAssociative'):
             op_pattern = '%s[items__]' % name
             replace_items = 'items'
         else:
@@ -332,39 +336,6 @@ class BinaryOperator(Operator):
             default_rules.update(self.rules)
             self.rules = default_rules
 
-    def parse(self, args):
-        left = args[0]
-        right = args[2]
-        name = self.get_name()
-        grouping = self.grouping
-        if grouping != 'NonAssociative':
-            def collect_leaves(expr):
-                if expr.parenthesized or expr.get_head_name() != name:
-                    return [expr]
-                else:
-                    result = []
-                    for leaf in expr.leaves:
-                        result.extend(collect_leaves(leaf))
-                    return result
-            leaves = collect_leaves(left) + collect_leaves(right)
-            if grouping == 'None':
-                return Expression(name, parse_operator=self, *leaves)
-            elif grouping == 'Right':
-                result = Expression(name, parse_operator=self, *leaves[-2:])
-                for leaf in reversed(leaves[:-2]):
-                    result = Expression(
-                        name, leaf, result, parse_operator=self)
-                return result
-            elif grouping == 'Left':
-                result = Expression(name, parse_operator=self, *leaves[:2])
-                for leaf in leaves[2:]:
-                    result = Expression(
-                        name, result, leaf, parse_operator=self)
-                return result
-        else:
-            return Expression(self.get_name(), left, right,
-                              parse_operator=self)
-
     def is_binary(self):
         return True
 
@@ -385,7 +356,7 @@ class SympyObject(Builtin):
     def __init__(self, *args, **kwargs):
         super(SympyObject, self).__init__(*args, **kwargs)
         if self.sympy_name is None:
-            self.sympy_name = self.get_name().lower()
+            self.sympy_name = strip_context(self.get_name()).lower()
 
     def is_constant(self):
         return False

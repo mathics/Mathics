@@ -1,7 +1,8 @@
 # -*- coding: utf8 -*-
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.expression import String, Symbol, Integer
+from mathics.core.expression import (Expression, String, Symbol, Integer,
+                                     fully_qualified_symbol_name)
 
 
 def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
@@ -9,7 +10,7 @@ def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
         if msg_symbol and evaluation:
             evaluation.message(msg_symbol, tag, *args)
 
-    if var_list.get_head_name() != 'List':
+    if not var_list.has_form('List', None):
         message('lvlist', var_list)
         return
     vars = var_list.leaves
@@ -27,7 +28,7 @@ def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
             message('lvsym', var)
             continue
         if var_name in scoping_vars:
-            message('dup', var_name)
+            message('dup', Symbol(var_name))
         else:
             scoping_vars.add(var_name)
             yield var_name, new_def
@@ -36,6 +37,7 @@ def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
 def dynamic_scoping(func, vars, evaluation):
     original_definitions = {}
     for var_name, new_def in vars.items():
+        assert fully_qualified_symbol_name(var_name)
         original_definitions[
             var_name] = evaluation.definitions.get_user_definition(var_name)
         evaluation.definitions.reset_user_definition(var_name)
@@ -198,16 +200,41 @@ class Context(Builtin):
     <dl>
     <dt>'Context[$symbol$]'
         <dd>yields the name of the context where $symbol$ is defined in.
+    <dt>'Context[]'
+        <dd>returns the value of '$Context'.
     </dl>
-
-    Contexts are not really implemented in \Mathics. 'Context' just returns '"System`"'
-    for built-in symbols and '"Global`"' for user-defined symbols.
 
     >> Context[a]
      = Global`
+    >> Context[b`c]
+     = b`
     >> Context[Sin] // InputForm
      = "System`"
+
+    >> InputForm[Context[]]
+     = "Global`"
+
+    ## placeholder for general context-related tests
+    #> x === Global`x
+     = True
+    #> `x === Global`x
+     = True
+    #> a`x === Global`x
+     = False
+    #> a`x === a`x
+     = True
+    #> a`x === b`x
+     = False
+    ## awkward parser cases
+    #> FullForm[a`b_]
+     = Pattern[a`b, Blank[]]
     """
+
+    attributes = ('HoldFirst',)
+
+    rules = {
+        'Context[]': '$Context'
+    }
 
     def apply(self, symbol, evaluation):
         'Context[symbol_]'
@@ -216,5 +243,248 @@ class Context(Builtin):
         if not name:
             evaluation.message('Context', 'normal')
             return
-        context = evaluation.definitions.get_definition(name).context
+        assert '`' in name
+        context = name[:name.rindex('`')+1]
         return String(context)
+
+
+class Contexts(Builtin):
+    """
+    <dl>
+    <dt>'Contexts[]'
+        <dd>yields a list of all contexts.
+    </dl>
+
+    ## this assignment makes sure that a definition in Global` exists
+    >> x = 5;
+    >> Contexts[] // InputForm
+     = {"Global`", "System`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`"}
+    """
+
+    def apply(self, evaluation):
+        'Contexts[]'
+
+        contexts = set([])
+        for name in evaluation.definitions.get_names():
+            contexts.add(String(name[:name.rindex('`') + 1]))
+
+        return Expression('List', *sorted(contexts))
+
+
+class Context_(Predefined):
+    """
+    <dl>
+    <dt>'$Context'
+        <dd>is the current context.
+    </dl>
+
+    >> $Context
+    = Global`
+
+    #> InputForm[$Context]
+    = "Global`"
+
+    ## Test general context behaviour
+    #> Plus === Global`Plus
+     = False
+    #> `Plus === Global`Plus
+     = True
+    """
+
+    name = '$Context'
+
+    messages = {
+        'cxset': "`1` is not a valid context name ending in `."
+    }
+
+    rules = {
+        '$Context': '"Global`"',
+    }
+
+
+class ContextPath(Predefined):
+    """
+    <dl>
+    <dt>'$ContextPath'
+        <dd>is the search path for contexts.
+    </dl>
+
+    >> $ContextPath // InputForm
+     = {"Global`", "System`"}
+    """
+
+    name = '$ContextPath'
+
+    messages = {
+        'cxlist': "`1` is not a list of valid context names ending in `."
+    }
+
+    rules = {
+        '$ContextPath': '{"Global`", "System`"}',
+    }
+
+
+class Begin(Builtin):
+    """
+    <dl>
+    <dt>'Begin'[$context$]
+        <dd>temporarily sets the current context to $context$.
+    </dl>
+
+    >> Begin["test`"]
+     = test`
+    >> {$Context, $ContextPath}
+     = {test`, {Global`, System`}}
+    >> Context[newsymbol]
+     = test`
+    >> End[]
+     = test`
+    >> End[]
+     : No previous context defined.
+     = Global`
+    """
+
+    rules = {
+        'Begin[context_String]': '''
+             Unprotect[System`Private`$ContextStack];
+             System`Private`$ContextStack = Append[System`Private`$ContextStack, $Context];
+             Protect[System`Private`$ContextStack];
+             $Context = context
+        ''',
+    }
+
+
+class End(Builtin):
+    """
+    <dl>
+    <dt>'End[]'
+        <dd>ends a context started by 'Begin'.
+    </dl>
+    """
+
+    messages = {
+        'noctx': "No previous context defined.",
+    }
+
+    rules = {
+        'End[]': '''
+             Block[{old=$Context},
+                   If[Length[System`Private`$ContextStack] === 0,
+                     (* then *) Message[End::noctx]; $Context,
+                     (* else *) Unprotect[System`Private`$ContextStack];
+                                {$Context, System`Private`$ContextStack} =
+                                    {Last[System`Private`$ContextStack],
+                                     Most[System`Private`$ContextStack]};
+                                Protect[System`Private`$ContextStack];
+                                old]]
+        ''',
+    }
+
+
+class BeginPackage(Builtin):
+    """
+    <dl>
+    <dt>'BeginPackage'[$context$]
+        <dd>starts the package given by $context$.
+    </dl>
+
+    The $context$ argument must be a valid context name.
+    'BeginPackage' changes the values of '$Context' and
+    '$ContextPath', setting the current context to $context$.
+
+    >> {$Context, $ContextPath}
+     = {Global`, {Global`, System`}}
+    >> BeginPackage["test`"]
+     = test`
+    >> {$Context, $ContextPath}
+     = {test`, {test`, System`}}
+    >> Context[newsymbol]
+     = test`
+    >> EndPackage[]
+    >> {$Context, $ContextPath}
+     = {Global`, {test`, Global`, System`}}
+    >> EndPackage[]
+     : No previous context defined.
+    """
+
+    messages = {
+        'unimpl': "The second argument to BeginPackage is not yet implemented."
+    }
+
+    rules = {
+        'BeginPackage[context_String]': '''
+             Unprotect[System`Private`$ContextPathStack];
+             Begin[context];
+             System`Private`$ContextPathStack =
+                 Append[System`Private`$ContextPathStack, $ContextPath];
+             $ContextPath = {context, "System`"};
+             Protect[System`Private`$ContextPathStack];
+             context
+        ''',
+    }
+
+
+class EndPackage(Builtin):
+    """
+    <dl>
+    <dt>'EndPackage[]'
+        <dd>marks the end of a package, undoing a previous 'BeginPackage'.
+    </dl>
+
+    After 'EndPackage', the values of '$Context' and '$ContextPath' at
+    the time of the 'BeginPackage' call are restored, with the new
+    package's context prepended to $ContextPath.
+    """
+
+    messages = {
+        'noctx': "No previous context defined.",
+    }
+
+    rules = {
+        'EndPackage[]': '''
+             Block[{newctx=Quiet[End[], {End::noctx}]},
+                   If[Length[System`Private`$ContextPathStack] === 0,
+                      (* then *) Message[EndPackage::noctx],
+                      (* else *) Unprotect[System`Private`$ContextPathStack];
+                                 {$ContextPath, System`Private`$ContextPathStack} =
+                                     {Prepend[Last[System`Private`$ContextPathStack],
+                                              newctx],
+                                      Most[System`Private`$ContextPathStack]};
+                                 Protect[System`Private`$ContextPathStack];
+                                 Null]]
+        ''',
+    }
+
+
+class ContextStack(Builtin):
+    """
+    <dl>
+    <dt>'System`Private`$ContextStack'
+        <dd>tracks the values of '$Context' saved by 'Begin' and
+        'BeginPackage'.
+    </dl>
+    """
+
+    context = 'System`Private`'
+    name = '$ContextStack'
+
+    rules = {
+        'System`Private`$ContextStack': '{}',
+    }
+
+
+class ContextPathStack(Builtin):
+    """
+    <dl>
+    <dt>'System`Private`$ContextPathStack'
+        <dd>tracks the values of '$ContextPath' saved by 'Begin' and
+        'BeginPackage'.
+    </dl>
+    """
+
+    context = 'System`Private`'
+    name = '$ContextPathStack'
+
+    rules = {
+        'System`Private`$ContextPathStack': '{}',
+    }

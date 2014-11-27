@@ -18,7 +18,7 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.core.expression import Expression, Symbol
+from mathics.core.expression import Expression, Symbol, strip_context
 # from mathics.core.util import subsets, subranges, permutations
 from mathics.core.pattern import Pattern, StopGenerator
 
@@ -154,11 +154,15 @@ class BuiltinRule(BaseRule):
         self.function = function
 
     def do_replace(self, vars, options, evaluation):
+        # The Python function implementing this builtin expects
+        # argument names corresponding to the symbol names without
+        # context marks.
+        vars_noctx = dict(((strip_context(s), vars[s]) for s in vars))
         if options:
             return self.function(
-                evaluation=evaluation, options=options, **vars)
+                evaluation=evaluation, options=options, **vars_noctx)
         else:
-            return self.function(evaluation=evaluation, **vars)
+            return self.function(evaluation=evaluation, **vars_noctx)
 
     def __repr__(self):
         s = u'<BuiltinRule: %s -> %s>' % (self.pattern, self.function)

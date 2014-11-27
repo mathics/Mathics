@@ -23,6 +23,7 @@ import cPickle as pickle
 import interruptingcow
 
 from mathics import settings
+from mathics.core.expression import ensure_context
 
 FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
@@ -156,7 +157,7 @@ class Evaluation(object):
                 if line:
                     query += line
                     try:
-                        expression = parse(query)
+                        expression = parse(query, self.definitions)
                         if expression is not None:
                             queries.append(expression)
                         query = ''
@@ -284,18 +285,20 @@ class Evaluation(object):
         from mathics.core.expression import Expression, String, BoxError
 
         if self.format == 'text':
-            result = expr.format(self, 'OutputForm')
+            result = expr.format(self, 'System`OutputForm')
         elif self.format == 'xml':
             result = Expression(
-                'StandardForm', expr).format(self, 'MathMLForm')
+                'StandardForm', expr).format(self, 'System`MathMLForm')
         elif self.format == 'tex':
-            result = Expression('StandardForm', expr).format(self, 'TeXForm')
+            result = Expression('StandardForm', expr).format(
+                self, 'System`TeXForm')
         else:
             raise ValueError
         try:
             boxes = result.boxes_to_text(evaluation=self)
         except BoxError:
-            self.message('General', 'notboxes', String('%s' % result))
+            self.message('General', 'notboxes',
+                         Expression('FullForm', result).evaluate(self))
             boxes = None
         return boxes
 
@@ -303,26 +306,37 @@ class Evaluation(object):
         from mathics.core.expression import (String, Symbol, Expression,
                                              from_python)
 
+        # Allow evaluation.message('MyBuiltin', ...) (assume
+        # System`MyBuiltin)
+        symbol = ensure_context(symbol)
+
         if (symbol, tag) in self.quiet_messages or self.quiet_all:
             return
 
+        # Shorten the symbol's name according to the current context
+        # settings. This makes sure we print the context, if it would
+        # be necessary to find the symbol that this message is
+        # attached to.
+        symbol_shortname = self.definitions.shorten_name(symbol)
+
         if settings.DEBUG_PRINT:
-            print 'MESSAGE: %s::%s (%s)' % (symbol, tag, args)
+            print 'MESSAGE: %s::%s (%s)' % (symbol_shortname, tag, args)
 
         pattern = Expression('MessageName', Symbol(symbol), String(tag))
-        text = self.definitions.get_value(symbol, 'Messages', pattern, self)
+        text = self.definitions.get_value(
+            symbol, 'System`Messages', pattern, self)
         if text is None:
             pattern = Expression('MessageName', Symbol('General'), String(tag))
             text = self.definitions.get_value(
-                'General', 'Messages', pattern, self)
+                'System`General', 'System`Messages', pattern, self)
 
         if text is None:
-            text = String("Message %s::%s not found." % (symbol, tag))
+            text = String("Message %s::%s not found." % (symbol_shortname, tag))
 
         text = self.format_output(Expression(
             'StringForm', text, *(from_python(arg) for arg in args)))
 
-        self.out.append(Message(symbol, tag, text))
+        self.out.append(Message(symbol_shortname, tag, text))
         if self.out_callback:
             self.out_callback(self.out[-1])
 
@@ -387,7 +401,7 @@ class Evaluation(object):
                 value = value[0].replace
             except AttributeError:
                 return None
-            if value.get_name() == 'Infinity':
+            if value.get_name() == 'System`Infinity':
                 return None
 
             return int(value.get_int_value())

@@ -1,5 +1,8 @@
 (* CSV Importer *)
 
+Begin["System`Convert`TableDump`"]
+
+
 ImportCSV[filename_String]:=
     Module[{stream, data, grid},
         stream = OpenRead[filename];
@@ -14,7 +17,7 @@ ImportCSV[filename_String]:=
 
 RegisterImport[
     "CSV",
-    ImportCSV,
+    System`Convert`TableDump`ImportCSV,
     {
         "Data" :> GetData,
 	    "Grid" :> GetGrid
@@ -25,3 +28,5 @@ RegisterImport[
     DefaultElement -> "Data"
 ]
 
+
+End[]

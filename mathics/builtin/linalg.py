@@ -234,11 +234,11 @@ class Eigenvalues(Builtin):
         <dd>computes the eigenvalues of the matrix $m$.
     </dl>
 
-    >> Eigenvalues[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
-     = {2, -1, 1}
+    >> Eigenvalues[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}] // Sort
+     = {-1, 1, 2}
 
-    >> Eigenvalues[{{Cos[theta],Sin[theta],0},{-Sin[theta],Cos[theta],0},{0,0,1}}]
-     = {Cos[theta] + Sqrt[-1 + Cos[theta] ^ 2], Cos[theta] - Sqrt[-1 + Cos[theta] ^ 2], 1}
+    >> Eigenvalues[{{Cos[theta],Sin[theta],0},{-Sin[theta],Cos[theta],0},{0,0,1}}] // Sort
+     = {1, Cos[theta] + Sqrt[-1 + Cos[theta] ^ 2], Cos[theta] - Sqrt[-1 + Cos[theta] ^ 2]}
     """
 
     def apply(self, m, evaluation):

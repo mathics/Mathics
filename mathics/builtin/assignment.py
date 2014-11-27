@@ -3,7 +3,8 @@ import re
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
-from mathics.core.expression import Expression, Symbol
+from mathics.core.expression import (Expression, Symbol, valid_context_name,
+                                     system_symbols)
 from mathics.core.rules import Rule
 from mathics.builtin.lists import walk_parts
 from mathics.builtin.evaluation import set_recursionlimit
@@ -31,9 +32,9 @@ class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
         name = lhs.get_head_name()
 
-        if name in ('OwnValues', 'DownValues', 'SubValues', 'UpValues',
-                    'NValues', 'Options', 'DefaultValues', 'Attributes',
-                    'Messages'):
+        if name in system_symbols('OwnValues', 'DownValues', 'SubValues',
+                                  'UpValues', 'NValues', 'Options',
+                                  'DefaultValues', 'Attributes', 'Messages'):
             if len(lhs.leaves) != 1:
                 evaluation.message_args(name, len(lhs.leaves), 1)
                 return False
@@ -42,26 +43,26 @@ class _SetOperator(object):
                 evaluation.message(name, 'sym', lhs.leaves[0], 1)
                 return False
             if tags is not None and tags != [tag]:
-                evaluation.message(name, 'tag', name, tag)
+                evaluation.message(name, 'tag', Symbol(name), Symbol(tag))
                 return False
 
-            if (name != 'Attributes' and 'Protected'    # noqa
+            if (name != 'System`Attributes' and 'System`Protected'    # noqa
                 in evaluation.definitions.get_attributes(tag)):
-                evaluation.message(name, 'wrsym', tag)
+                evaluation.message(name, 'wrsym', Symbol(tag))
                 return False
-            if name == 'Options':
+            if name == 'System`Options':
                 option_values = rhs.get_option_values(evaluation)
                 if option_values is None:
                     evaluation.message(name, 'options', rhs)
                     return False
                 evaluation.definitions.set_options(tag, option_values)
-            elif name == 'Attributes':
+            elif name == 'System`Attributes':
                 attributes = get_symbol_list(
                     rhs, lambda item: evaluation.message(name, 'sym', item, 1))
                 if attributes is None:
                     return False
-                if 'Locked' in evaluation.definitions.get_attributes(tag):
-                    evaluation.message(name, 'locked', tag)
+                if 'System`Locked' in evaluation.definitions.get_attributes(tag):
+                    evaluation.message(name, 'locked', Symbol(tag))
                     return False
                 evaluation.definitions.set_attributes(tag, attributes)
             else:
@@ -81,7 +82,7 @@ class _SetOperator(object):
 
         focus = lhs
 
-        if name == 'N':
+        if name == 'System`N':
             if len(lhs.leaves) not in (1, 2):
                 evaluation.message_args('N', len(lhs.leaves), 1, 2)
                 return False
@@ -91,19 +92,19 @@ class _SetOperator(object):
                 nprec = lhs.leaves[1]
             focus = lhs.leaves[0]
             lhs = Expression('N', focus, nprec)
-        elif name == 'MessageName':
+        elif name == 'System`MessageName':
             if len(lhs.leaves) != 2:
                 evaluation.message_args('MessageName', len(lhs.leaves), 2)
                 return False
             focus = lhs.leaves[0]
             message = True
-        elif name == 'Default':
+        elif name == 'System`Default':
             if len(lhs.leaves) not in (1, 2, 3):
                 evaluation.message_args('Default', len(lhs.leaves), 1, 2, 3)
                 return False
             focus = lhs.leaves[0]
             default = True
-        elif name == 'Format':
+        elif name == 'System`Format':
             if len(lhs.leaves) not in (1, 2):
                 evaluation.message_args('Format', len(lhs.leaves), 1, 2)
                 return False
@@ -113,9 +114,9 @@ class _SetOperator(object):
                     evaluation.message('Format', 'fttp', lhs.leaves[1])
                     return False
             else:
-                form = ('StandardForm', 'TraditionalForm', 'OutputForm',
-                        'TeXForm', 'MathMLForm',
-                        )
+                form = system_symbols(
+                    'StandardForm', 'TraditionalForm', 'OutputForm',
+                    'TeXForm', 'MathMLForm')
             lhs = focus = lhs.leaves[0]
         else:
             allow_custom_tag = True
@@ -146,15 +147,15 @@ class _SetOperator(object):
                     allowed_names.append(leaf.get_lookup_name())
             for name in tags:
                 if name not in allowed_names:
-                    evaluation.message(self.get_name(), 'tagnfd', name)
+                    evaluation.message(self.get_name(), 'tagnfd', Symbol(name))
                     return False
 
         ignore_protection = False
         rhs_int_value = rhs.get_int_value()
         lhs_name = lhs.get_name()
-        if lhs_name == '$RecursionLimit':
+        if lhs_name == 'System`$RecursionLimit':
             # if (not rhs_int_value or rhs_int_value < 20) and not
-            # rhs.get_name() == 'Infinity':
+            # rhs.get_name() == 'System`Infinity':
             if (not rhs_int_value or rhs_int_value < 20  # noqa
                 or rhs_int_value > settings.MAX_RECURSION_DEPTH):
 
@@ -166,24 +167,57 @@ class _SetOperator(object):
                 # TODO: Message
                 return False
             ignore_protection = True
-        elif lhs_name == '$ModuleNumber':
+        elif lhs_name == 'System`$ModuleNumber':
             if not rhs_int_value or rhs_int_value <= 0:
                 evaluation.message('$ModuleNumber', 'set', rhs)
                 return False
             ignore_protection = True
-        elif lhs_name in ('$Line', '$HistoryLength'):
+        elif lhs_name in ('System`$Line', 'System`$HistoryLength'):
             if rhs_int_value is None or rhs_int_value < 0:
                 evaluation.message(lhs_name, 'intnn', rhs)
                 return False
             ignore_protection = True
-        elif lhs_name == '$RandomState':
+        elif lhs_name == 'System`$RandomState':
             # TODO: allow setting of legal random states!
             # (but consider pickle's insecurity!)
             evaluation.message('$RandomState', 'rndst', rhs)
             return False
+        elif lhs_name == 'System`$Context':
+            new_context = rhs.get_string_value()
+            if new_context is None or not valid_context_name(
+                    new_context, allow_initial_backquote=True):
+                evaluation.message(lhs_name, 'cxset', rhs)
+                return False
+
+            # With $Context in Mathematica you can do some strange
+            # things: e.g. with $Context set to Global`, something
+            # like:
+            #    $Context = "`test`"; newsym
+            # is accepted and creates Global`test`newsym.
+            # Implement this behaviour by interpreting
+            #    $Context = "`test`"
+            # as
+            #    $Context = $Context <> "test`"
+            #
+            if new_context.startswith('`'):
+                new_context = (
+                    evaluation.definitions.get_current_context()
+                    + new_context.lstrip('`'))
+
+            evaluation.definitions.set_current_context(new_context)
+            ignore_protection = True
+        elif lhs_name == 'System`$ContextPath':
+            if rhs.has_form('List', None) and all(
+                  valid_context_name(s.get_string_value()) for s in rhs.leaves):
+                evaluation.definitions.context_path = [
+                    s.get_string_value() for s in rhs.leaves]
+                ignore_protection = True
+            else:
+                evaluation.message(lhs_name, 'cxlist', rhs)
+                return False
 
         rhs_name = rhs.get_head_name()
-        if rhs_name == 'Condition':
+        if rhs_name == 'System`Condition':
             if len(rhs.leaves) != 2:
                 evaluation.message_args('Condition', len(rhs.leaves), 2)
                 return False
@@ -195,12 +229,12 @@ class _SetOperator(object):
         count = 0
         defs = evaluation.definitions
         for tag in tags:
-            if (not ignore_protection and 'Protected'   # noqa
+            if (not ignore_protection and 'System`Protected'   # noqa
                 in evaluation.definitions.get_attributes(tag)):
                 if lhs.get_name() == tag:
-                    evaluation.message(self.get_name(), 'wrsym', tag)
+                    evaluation.message(self.get_name(), 'wrsym', Symbol(tag))
                 else:
-                    evaluation.message(self.get_name(), 'write', tag, lhs)
+                    evaluation.message(self.get_name(), 'write', Symbol(tag), lhs)
                 continue
             count += 1
             if form:
@@ -222,8 +256,8 @@ class _SetOperator(object):
         return True
 
     def assign(self, lhs, rhs, evaluation):
-        if lhs.get_head_name() == 'List':
-            if (not (rhs.get_head_name() == 'List')     # noqa
+        if lhs.get_head_name() == 'System`List':
+            if (not (rhs.get_head_name() == 'System`List')     # noqa
                 or len(lhs.leaves) != len(rhs.leaves)):
 
                 evaluation.message(self.get_name(), 'shape', lhs, rhs)
@@ -234,7 +268,7 @@ class _SetOperator(object):
                     if not self.assign(left, right, evaluation):
                         result = False
                 return result
-        elif lhs.get_head_name() == 'Part':
+        elif lhs.get_head_name() == 'System`Part':
             if len(lhs.leaves) < 1:
                 evaluation.message(self.get_name(), 'setp', lhs)
                 return False
@@ -243,8 +277,8 @@ class _SetOperator(object):
             if not name:
                 evaluation.message(self.get_name(), 'setps', symbol)
                 return False
-            if 'Protected' in evaluation.definitions.get_attributes(name):
-                evaluation.message(self.get_name(), 'wrsym', name)
+            if 'System`Protected' in evaluation.definitions.get_attributes(name):
+                evaluation.message(self.get_name(), 'wrsym', symbol)
                 return False
             rule = evaluation.definitions.get_ownvalue(name)
             if rule is None:
@@ -607,8 +641,9 @@ class Definition(Builtin):
         def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
             evaluation.check_stopped()
             if isinstance(rule, Rule):
-                r = rhs(rule.replace.replace_vars({'Definition': Expression(
-                    'HoldForm', Symbol('Definition'))}))
+                r = rhs(rule.replace.replace_vars(
+                        {'System`Definition': Expression(
+                                'HoldForm', Symbol('Definition'))}))
                 lines.append(Expression('HoldForm', Expression(
                     up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
 
@@ -629,7 +664,7 @@ class Definition(Builtin):
                         'List',
                         *(Symbol(attribute) for attribute in attributes)))))
 
-        if definition is not None and not 'ReadProtected' in attributes:
+        if definition is not None and not 'System`ReadProtected' in attributes:
             for rule in definition.ownvalues:
                 print_rule(rule)
             for rule in definition.downvalues:
@@ -739,48 +774,25 @@ class Clear(Builtin):
         definition.formatvalues = {}
         definition.nvalues = []
 
-    def get_names(self, symbol, evaluation):
-        name = symbol.get_name()
-        if name:
-            return [name]
-        
-        pattern = symbol.get_string_value()
-        if pattern is None:
-            return None
-
-        if pattern.startswith('System`'):
-            names = evaluation.definitions.get_builtin_names()
-        elif pattern.startswith('Global`'):
-            names = (evaluation.definitions.get_user_names() -
-                     evaluation.definitions.get_builtin_names())
-        else:
-            names = evaluation.definitions.get_names()
-        if '`' in pattern:
-            pattern = pattern[pattern.find('`') + 1:]
-
-        pattern = re.escape(pattern).replace('\@', '[a-z]+').replace('\*', '.*')
-        pattern = re.compile('^' + pattern + '$')
-
-        def match_pattern(name):
-            return pattern.match(name) is not None
-
-        return [name for name in names if match_pattern(name)]
-
     def apply(self, symbols, evaluation):
         '%(name)s[symbols___]'
 
         for symbol in symbols.get_sequence():
-            names = self.get_names(symbol, evaluation)
-            if names == None:
-                evaluation.message('Clear', 'ssym', symbol)
-                continue
+            if isinstance(symbol, Symbol):
+                names = [symbol.get_name()]
+            else:
+                pattern = symbol.get_string_value()
+                if not pattern:
+                    evaluation.message('Clear', 'ssym', symbol)
+                    continue
+                names = evaluation.definitions.get_matching_names(pattern)
             for name in names:
                 attributes = evaluation.definitions.get_attributes(name)
-                if 'Protected' in attributes:
-                    evaluation.message('Clear', 'wrsym', name)
+                if 'System`Protected' in attributes:
+                    evaluation.message('Clear', 'wrsym', Symbol(name))
                     continue
-                if not self.allow_locked and 'Locked' in attributes:
-                    evaluation.message('Clear', 'locked', name)
+                if not self.allow_locked and 'System`Locked' in attributes:
+                    evaluation.message('Clear', 'locked', Symbol(name))
                     continue
                 definition = evaluation.definitions.get_user_definition(name)
                 self.do_clear(definition)
@@ -899,8 +911,8 @@ class Unset(PostfixOperator):
         'Unset[expr_]'
 
         name = expr.get_head_name()
-        if name in ('OwnValues', 'DownValues', 'SubValues', 'UpValues',
-                    'NValues', 'Options', 'Messages'):
+        if name in system_symbols('OwnValues', 'DownValues', 'SubValues',
+                                  'UpValues', 'NValues', 'Options', 'Messages'):
             if len(expr.leaves) != 1:
                 evaluation.message_args(name, len(expr.leaves), 1)
                 return Symbol('$Failed')
@@ -908,7 +920,7 @@ class Unset(PostfixOperator):
             if not symbol:
                 evaluation.message(name, 'fnsym', expr)
                 return Symbol('$Failed')
-            if name == 'Options':
+            if name == 'System`Options':
                 empty = {}
             else:
                 empty = []
@@ -920,7 +932,7 @@ class Unset(PostfixOperator):
             return Symbol('$Failed')
         if not evaluation.definitions.unset(name, expr):
             if not expr.is_atom():
-                evaluation.message('Unset', 'norep', expr, name)
+                evaluation.message('Unset', 'norep', expr, Symbol(name))
                 return Symbol('$Failed')
         return Symbol('Null')
 
@@ -1166,7 +1178,7 @@ class DefaultValues(Builtin):
         'DefaultValues[symbol_]'
 
         return get_symbol_values(
-            symbol, 'DefaultValues', 'default', evaluation)
+            symbol, 'System`DefaultValues', 'default', evaluation)
 
 
 class AddTo(BinaryOperator):
@@ -1266,7 +1278,10 @@ class Increment(PostfixOperator):
     attributes = ('HoldFirst', 'ReadProtected')
 
     rules = {
-        'x_++': 'Module[{t=x}, x = x + 1; t]',
+        'x_++': ('Module[{Internal`IncrementTemporary = x}, '
+                        'x = x + 1;'
+                        'Internal`IncrementTemporary'
+                 ']'),
     }
 
 

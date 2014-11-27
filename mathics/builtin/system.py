@@ -6,7 +6,7 @@ System functions
 
 import re
 
-from mathics.core.expression import Expression, String
+from mathics.core.expression import Expression, String, strip_context
 from mathics.builtin.base import Builtin, Predefined
 from mathics import get_version_string
 
@@ -55,29 +55,17 @@ class Names(Builtin):
     """
 
     def apply(self, pattern, evaluation):
-        'Names[pattern_String]'
+        'Names[pattern_]'
 
         pattern = pattern.get_string_value()
         if pattern is None:
             return
 
-        if pattern.startswith('System`'):
-            names = evaluation.definitions.get_builtin_names()
-        elif pattern.startswith('Global`'):
-            names = (evaluation.definitions.get_user_names() -
-                     evaluation.definitions.get_builtin_names())
-        else:
-            names = evaluation.definitions.get_names()
-        if '`' in pattern:
-            pattern = pattern[pattern.find('`') + 1:]
+        names = set([])
+        for full_name in evaluation.definitions.get_matching_names(pattern):
+            short_name = strip_context(full_name)
+            names.add(short_name if short_name not in names else full_name)
 
-        pattern = re.escape(pattern).replace('\@', '[a-z]+').replace('\*', '.*')
-        pattern = re.compile('^' + pattern + '$')
-
-        def match_pattern(name):
-            return pattern.match(name) is not None
-
-        names = [name for name in names if match_pattern(name)]
-        names.sort()
-
-        return Expression('List', *[String(name) for name in names])
+        # TODO: Mathematica ignores contexts when it sorts the list of
+        # names.
+        return Expression('List', *[String(name) for name in sorted(names)])

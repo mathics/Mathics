@@ -108,6 +108,12 @@ def filter_comments(doc):
                       if not line.lstrip().startswith('##'))
 
 
+def strip_system_prefix(name):
+    if name.startswith('System`'):
+        return name[len('System`'):]
+    return name
+
+
 def get_latex_escape_char(text):
     for escape_char in ("'", '~', '@'):
         if escape_char not in text:
@@ -601,7 +607,8 @@ class Documentation(DocElement):
                 builtins = builtins_by_module[module.__name__]
                 for instance in builtins:
                     section = DocSection(
-                        chapter, instance.get_name(), instance.__doc__ or '',
+                        chapter, strip_system_prefix(instance.get_name()),
+                        instance.__doc__ or '',
                         operator=instance.get_operator())
                     chapter.sections.append(section)
                 builtin_part.chapters.append(chapter)

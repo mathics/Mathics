@@ -16,11 +16,11 @@ class SympyConvert(unittest.TestCase):
 
     def testSymbol(self):
         self.compare(
-            mathics.Symbol('x'),
-            sympy.Symbol('_Mathics_User_x'))
+            mathics.Symbol('Global`x'),
+            sympy.Symbol('_Mathics_User_Global`x'))
         self.compare(
             mathics.Symbol('_Mathics_User_x'),
-            sympy.Symbol('_Mathics_User__Mathics_User_x'))
+            sympy.Symbol('_Mathics_User_System`_Mathics_User_x'))
 
     def testReal(self):
         self.compare(mathics.Real('1.0'), sympy.Float('1.0'))
@@ -57,31 +57,32 @@ class SympyConvert(unittest.TestCase):
     def testAdd(self):
         self.compare(
             mathics.Expression(
-                'Plus', mathics.Integer(1), mathics.Symbol('x')),
+                'Plus', mathics.Integer(1), mathics.Symbol('Global`x')),
             sympy.Add(
                 sympy.Integer(1),
-                sympy.Symbol('_Mathics_User_x')))
+                sympy.Symbol('_Mathics_User_Global`x')))
 
     def testIntegrate(self):
         self.compare(
             mathics.Expression(
-                'Integrate', mathics.Symbol('x'), mathics.Symbol('y')),
+                'Integrate', mathics.Symbol('Global`x'),
+                mathics.Symbol('Global`y')),
             sympy.Integral(
-                sympy.Symbol('_Mathics_User_x'),
-                sympy.Symbol('_Mathics_User_y')))
+                sympy.Symbol('_Mathics_User_Global`x'),
+                sympy.Symbol('_Mathics_User_Global`y')))
 
     def testDerivative(self):
         self.compare(
             mathics.Expression(
-                'D', mathics.Symbol('x'), mathics.Symbol('y')),
+                'D', mathics.Symbol('Global`x'), mathics.Symbol('Global`y')),
             sympy.Derivative(
-                sympy.Symbol('_Mathics_User_x'),
-                sympy.Symbol('_Mathics_User_y')))
+                sympy.Symbol('_Mathics_User_Global`x'),
+                sympy.Symbol('_Mathics_User_Global`y')))
 
     def testExpression(self):
         self.compare(
-            mathics.Expression('Sin', mathics.Symbol('x')),
-            sympy.sin(sympy.Symbol('_Mathics_User_x')))
+            mathics.Expression('Sin', mathics.Symbol('Global`x')),
+            sympy.sin(sympy.Symbol('_Mathics_User_Global`x')))
 
 
 class PythonConvert(unittest.TestCase):

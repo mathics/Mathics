@@ -340,7 +340,7 @@ class Minus(PrefixOperator):
         return Integer(-x.to_sympy())
 
     def post_parse(self, expression):
-        if (expression.get_head().get_name() == 'Minus'    # noqa
+        if (expression.get_head().get_name() == 'System`Minus'    # noqa
             and len(expression.leaves) == 1
             and isinstance(expression.leaves[0], Number)):
             return Number.from_mp(-expression.leaves[0].to_sympy())
@@ -1138,6 +1138,15 @@ class I(Predefined):
         return Complex(sympy.Integer(0), sympy.Integer(1))
 
 
+class Indeterminate(Builtin):
+    """
+    <dl>
+    <dt>'Indeterminate'
+        <dd>represents an indeterminate result.
+    </dl>
+    """
+
+
 class NumberQ(Test):
     """
     <dl>
@@ -1700,6 +1709,6 @@ class Piecewise(SympyFunction):
 
     def from_sympy(self, args):
         # Hack to get around weird sympy.Piecewise 'otherwise' behaviour
-        if str(args[-1].leaves[1]).startswith('_True__Dummy_'):
+        if str(args[-1].leaves[1]).startswith('System`_True__Dummy_'):
             args[-1].leaves[1] = Symbol('True')
         return [args]

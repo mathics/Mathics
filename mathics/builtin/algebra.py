@@ -117,7 +117,7 @@ class Together(Builtin):
      = f[a / c + b / c]
 
     #> f[x]/x+f[x]/x^2//Together
-     = (1 + x) f[x] / x ^ 2
+     = f[x] (1 + x) / x ^ 2
     """
 
     attributes = ['Listable']
@@ -260,7 +260,7 @@ class Expand(Builtin):
 
         def expand(expr):
             head_name = expr.get_head_name()
-            if head_name in ('List', 'Rule'):
+            if head_name in ('System`List', 'System`Rule'):
                 return Expression(
                     head_name, *[expand(leaf) for leaf in expr.leaves])
             leaves = expr.get_leaves()
@@ -282,7 +282,7 @@ class Expand(Builtin):
                                 'Power', leaf.leaves[0],
                                 Integer(sympy.Integer(-leaf.leaves[1].value)))
                             for leaf in neg_powers]), Integer(-1))]
-            if head_name in ('Plus', 'Times', 'Power'):
+            if head_name in ('System`Plus', 'System`Times', 'System`Power'):
                 leaves = [expand(leaf) for leaf in leaves]
             if expr.has_form('Times', 2, None):
                 result = [[]]

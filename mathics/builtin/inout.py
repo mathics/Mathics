@@ -72,11 +72,11 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
         if index > 0:
             result.append(ops[index - 1])
         parenthesized = False
-        if grouping == 'NonAssociative':
+        if grouping == 'System`NonAssociative':
             parenthesized = True
-        elif grouping == 'Left' and index > 0:
+        elif grouping == 'System`Left' and index > 0:
             parenthesized = True
-        elif grouping == 'Right' and index == 0:
+        elif grouping == 'System`Right' and index == 0:
             parenthesized = True
 
         leaf_boxes = MakeBoxes(leaf, form)
@@ -240,7 +240,7 @@ class MakeBoxes(Builtin):
         if expr.is_atom():
             x = expr
             if isinstance(x, Symbol):
-                return String(x.name)
+                return String(evaluation.definitions.shorten_name(x.name))
             elif isinstance(x, String):
                 return String('"' + unicode(x.value) + '"')
             elif isinstance(x, (Integer, Real)):
@@ -252,7 +252,7 @@ class MakeBoxes(Builtin):
             leaves = expr.leaves
 
             f_name = f.get_name()
-            if f_name == 'TraditionalForm':
+            if f_name == 'System`TraditionalForm':
                 left, right = '(', ')'
             else:
                 left, right = '[', ']'
@@ -266,7 +266,8 @@ class MakeBoxes(Builtin):
 
             if len(leaves) > 1:
                 row = []
-                if f_name in ('InputForm', 'OutputForm', 'FullForm'):
+                if f_name in ('System`InputForm', 'System`OutputForm',
+                              'System`FullForm'):
                     sep = ', '
                 else:
                     sep = ','
@@ -285,7 +286,7 @@ class MakeBoxes(Builtin):
             f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]'''
 
         if isinstance(x, Symbol):
-            return String(x.name)
+            return String(evaluation.definitions.shorten_name(x.name))
         elif isinstance(x, String):
             return String('"' + x.value + '"')
         elif isinstance(x, (Integer, Real)):
@@ -315,7 +316,7 @@ class MakeBoxes(Builtin):
             leaf = leaves[0]
             leaf_boxes = MakeBoxes(leaf, f)
             leaf = parenthesize(precedence, leaf, leaf_boxes, True)
-            if p.get_name() == 'Postfix':
+            if p.get_name() == 'System`Postfix':
                 args = (leaf, h)
             else:
                 args = (h, leaf)
@@ -333,9 +334,11 @@ class MakeBoxes(Builtin):
                 op = MakeBoxes(op, f)
             else:
                 op_value = op.get_string_value()
-                if f.get_name() == 'InputForm' and op_value in ['*', '^']:
+                if (f.get_name() == 'System`InputForm'
+                    and op_value in ['*', '^']):
                     pass
-                elif (f.get_name() in ('InputForm', 'OutputForm') and
+                elif (f.get_name() in ('System`InputForm',
+                                       'System`OutputForm') and
                       not op_value.startswith(' ') and
                       not op_value.endswith(' ')):
                     op = String(' ' + op_value + ' ')
@@ -358,6 +361,7 @@ class MakeBoxes(Builtin):
 
 
 class ToBoxes(Builtin):
+
     """
     >> ToBoxes[a + b]
      = RowBox[{a, +, b}]
@@ -405,11 +409,23 @@ def is_constant(list):
 
 
 class GridBox(BoxConstruct):
-    """
+    r"""
     #> Grid[{{a,bc},{d,e}}, ColumnAlignments:>Symbol["Rig"<>"ht"]]
      = a   bc
      .
      . d   e
+
+    #> TeXForm@Grid[{{a,bc},{d,e}}, ColumnAlignments->Left]
+     = \begin{array}{ll} a & \text{bc}\\ d & e\end{array}
+
+    #> TeXForm[TableForm[{{a,b},{c,d}}]]
+     = \begin{array}{cc} a & b\\ c & d\end{array}
+
+    #> MathMLForm[TableForm[{{a,b},{c,d}}]]
+     = <math><mtable columnalign="center">
+     . <mtr><mtd columnalign="center"><mi>a</mi></mtd><mtd columnalign="center"><mi>b</mi></mtd></mtr>
+     . <mtr><mtd columnalign="center"><mi>c</mi></mtd><mtd columnalign="center"><mi>d</mi></mtd></mtr>
+     . </mtable></math>
     """
 
     options = {
@@ -434,10 +450,15 @@ class GridBox(BoxConstruct):
         items, options = self.get_array(leaves, evaluation)
         new_box_options = box_options.copy()
         new_box_options['inside_list'] = True
-        column_alignments = options['ColumnAlignments'].get_name()
-        if column_alignments in ('Center', 'Left', 'Right'):
-            column_alignments = column_alignments[0].lower()
-        else:
+        column_alignments = options['System`ColumnAlignments'].get_name()
+        try:
+            column_alignments = {
+                'System`Center': 'c',
+                'System`Left': 'l',
+                'System`Right': 'r'
+            }[column_alignments]
+        except KeyError:
+            # invalid column alignment
             raise BoxConstructError
         column_count = 0
         for row in items:
@@ -455,10 +476,15 @@ class GridBox(BoxConstruct):
         evaluation = box_options.get('evaluation')
         items, options = self.get_array(leaves, evaluation)
         attrs = {}
-        column_alignments = options['ColumnAlignments'].get_name()
-        if column_alignments in ('Center', 'Left', 'Right'):
-            attrs['columnalign'] = column_alignments.lower()
-        else:
+        column_alignments = options['System`ColumnAlignments'].get_name()
+        try:
+            attrs['columnalign'] = {
+                'System`Center': 'center',
+                'System`Left': 'left',
+                'System`Right': 'right',
+            }[column_alignments]
+        except KeyError:
+            # invalid column alignment
             raise BoxConstructError
         attrs = ' '.join('{0}="{1}"'.format(name, value)
                          for name, value in attrs.iteritems())
@@ -631,7 +657,7 @@ class MatrixForm(TableForm):
 
         result = super(MatrixForm, self).apply_makeboxes(
             table, f, evaluation, options)
-        if result.get_head_name() == 'GridBox':
+        if result.get_head_name() == 'System`GridBox':
             return Expression('RowBox', Expression(
                 'List', String("("), result, String(")")))
         return result
@@ -649,6 +675,10 @@ class Superscript(Builtin):
     }
 
 
+class SuperscriptBox(Builtin):
+    pass
+
+
 class Subscript(Builtin):
     """
     >> Subscript[x,1,2,3] // TeXForm
@@ -663,6 +693,10 @@ class Subscript(Builtin):
             'SubscriptBox', Expression('MakeBoxes', x, f), *list_boxes(y, f))
 
 
+class SubscriptBox(Builtin):
+    pass
+
+
 class Subsuperscript(Builtin):
     """
     >> Subsuperscript[a, b, c] // TeXForm
@@ -675,6 +709,10 @@ class Subsuperscript(Builtin):
             'SubsuperscriptBox[MakeBoxes[x, f], MakeBoxes[y, f], '
             'MakeBoxes[z, f]]'),
     }
+
+
+class SubsuperscriptBox(Builtin):
+    pass
 
 
 class Postfix(BinaryOperator):
@@ -756,6 +794,26 @@ class Infix(Builtin):
     #> r[1]
      = ab
     """
+
+
+class NonAssociative(Builtin):
+    # todo: doc
+    pass
+
+
+class Left(Builtin):
+    # todo: doc
+    pass
+
+
+class Right(Builtin):
+    # todo: doc
+    pass
+
+
+class Center(Builtin):
+    # todo: doc - alignment, not associativity
+    pass
 
 
 class StringForm(Builtin):
@@ -869,10 +927,10 @@ class Quiet(Builtin):
         def get_msg_list(expr):
             if expr.has_form('MessageName', 2):
                 expr = Expression('List', expr)
-            if expr.get_name() == 'All':
+            if expr.get_name() == 'System`All':
                 all = True
                 messages = []
-            elif expr.get_name() == 'None':
+            elif expr.get_name() == 'System`None':
                 all = False
                 messages = []
             elif expr.has_form('List', None):
@@ -971,7 +1029,7 @@ class MessageName(BinaryOperator):
 
         pattern = Expression('MessageName', symbol, tag)
         return evaluation.definitions.get_value(
-            symbol.get_name(), 'Messages', pattern, evaluation)
+            symbol.get_name(), 'System`Messages', pattern, evaluation)
 
     def post_parse(self, expr):
         if len(expr.leaves) == 2 and expr.leaves[1].is_symbol():
@@ -1004,6 +1062,7 @@ class General(Builtin):
             "`1` called with 1 argument; `2` or `3` arguments are expected."),
         'boxfmt': "`1` is not a box formatting type.",
         'color': "`1` is not a valid color or gray-level specification.",
+        'cxt': "`1` is not a valid context name.",
         'divz': "The argument `1` should be nonzero.",
         'exact': "Argument `1` is not an exact number.",
         'fnsym': ("First argument in `1` is not a symbol "
@@ -1158,7 +1217,9 @@ class MathMLForm(Builtin):
         try:
             xml = boxes.boxes_to_xml(evaluation=evaluation)
         except BoxError:
-            evaluation.message('General', 'notboxes', String('%s' % boxes))
+            evaluation.message(
+                'General', 'notboxes',
+                Expression('FullForm', boxes).evaluate(evaluation))
             xml = ''
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
@@ -1173,6 +1234,11 @@ class TeXForm(Builtin):
 
     #> {"hi","you"} //InputForm //TeXForm
      = \left\{\text{"hi"}, \text{"you"}\right\}
+
+    #> TeXForm[a+b*c]
+     = a+b c
+    #> TeXForm[InputForm[a+b*c]]
+     = a\text{ + }b*c
     """
 
     def apply_tex(self, expr, evaluation):
@@ -1187,7 +1253,9 @@ class TeXForm(Builtin):
 
             tex = tex.replace(u' \uF74c', u' \, d')  # tmp hack for Integrate
         except BoxError:
-            evaluation.message('General', 'notboxes', String('%s' % boxes))
+            evaluation.message(
+                'General', 'notboxes',
+                Expression('FullForm', boxes).evaluate(evaluation))
             tex = ''
         return Expression('RowBox', Expression('List', String(tex)))
 

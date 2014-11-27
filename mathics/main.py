@@ -32,15 +32,16 @@ from mathics import settings
 
 
 class TerminalShell(object):
-    def __init__(self, definitions, colors):
+    def __init__(self, definitions, colors, want_readline):
         self.input_encoding = locale.getpreferredencoding()
 
         # Try importing readline to enable arrow keys support etc.
         self.using_readline = False
         try:
-            import readline
-            self.using_readline = sys.stdin.isatty() and sys.stdout.isatty()
-            self.ansi_color_re = re.compile("\033\\[[0-9;]+m")
+            if want_readline:
+                import readline
+                self.using_readline = sys.stdin.isatty() and sys.stdout.isatty()
+                self.ansi_color_re = re.compile("\033\\[[0-9;]+m")
         except ImportError:
             pass
 
@@ -153,18 +154,22 @@ def wait_for_line(input_string):
 
     brackets = [('(', ')'), ('[', ']'), ('{', '}')]
     kStart, kEnd, stack = 0, 1, []
+    in_string = False
     for char in input_string:
-        for bracketPair in brackets:
-            if char == bracketPair[kStart]:
-                stack.append(char)
-            elif char == bracketPair[kEnd]:
-                if len(stack) == 0:
-                    return False
-                if stack.pop() != bracketPair[kStart]:
-                    # Brackets are not balanced, but return False so that a
-                    # parse error can be raised
-                    return False
-    if len(stack) == 0 and input_string.count('"') % 2 == 0:
+        if char == '"':
+            in_string = not in_string
+        if not in_string:
+            for bracketPair in brackets:
+                if char == bracketPair[kStart]:
+                    stack.append(char)
+                elif char == bracketPair[kEnd]:
+                    if len(stack) == 0:
+                        return False
+                    if stack.pop() != bracketPair[kStart]:
+                        # Brackets are not balanced, but return False so that a
+                        # parse error can be raised
+                        return False
+    if len(stack) == 0 and not in_string:
         return False
     return True
 
@@ -187,7 +192,7 @@ def main():
         '--help', '-h', help='show this help message and exit', action='help')
 
     argparser.add_argument(
-        '--persist', help='go to interactive shell after evaluating FILE',
+        '--persist', help='go to interactive shell after evaluating FILE or -e',
         action='store_true')
 
     argparser.add_argument(
@@ -199,10 +204,15 @@ def main():
         action='store_true')
 
     argparser.add_argument(
-        '--execute', '-e', nargs='?', help='execute a command')
+        '--execute', '-e', action='append', metavar='EXPR',
+        help='evaluate EXPR before processing any input files (may be given '
+        'multiple times)')
 
     argparser.add_argument(
         '--colors', nargs='?', help='interactive shell colors')
+
+    argparser.add_argument(
+        '--no-readline', help="disable line editing", action='store_true')
 
     argparser.add_argument(
         '--version', '-v', action='version', version=get_version_string(False))
@@ -212,10 +222,9 @@ def main():
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
 
     definitions = Definitions(add_builtin=True)
-
     definitions.set_ownvalue('$Line', Integer(0))  # Reset the line number
 
-    shell = TerminalShell(definitions, args.colors)
+    shell = TerminalShell(definitions, args.colors, not(args.no_readline))
 
     if not (args.quiet or args.script):
         print_version(is_server=False)
@@ -223,10 +232,12 @@ def main():
         print u"Quit by pressing {0}\n".format(quit_command)
 
     if args.execute:
-        total_input = args.execute.decode(shell.input_encoding)
-        print shell.get_in_prompt() + total_input
-        shell.evaluate(total_input)
-        return
+        for expr in args.execute:
+            total_input = expr.decode(shell.input_encoding)
+            print shell.get_in_prompt() + total_input
+            shell.evaluate(total_input)
+        if not args.persist:
+            return
 
     if args.FILE is not None:
         total_input = ''

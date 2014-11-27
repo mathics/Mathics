@@ -50,12 +50,12 @@ class UnsameQ(BinaryOperator):
             return Symbol('True')
 
 operators = {
-    'Less': (-1,),
-    'LessEqual': (-1, 0),
-    'Equal': (0,),
-    'GreaterEqual': (0, 1),
-    'Greater': (1,),
-    'Unequal': (-1, 1),
+    'System`Less': (-1,),
+    'System`LessEqual': (-1, 0),
+    'System`Equal': (0,),
+    'System`GreaterEqual': (0, 1),
+    'System`Greater': (1,),
+    'System`Unequal': (-1, 1),
 }
 
 
@@ -64,6 +64,9 @@ class _InequalityOperator(BinaryOperator):
     grouping = 'NonAssociative'
 
     def parse(self, args):
+        # Parse multiple inequalities.
+        # "a op b op c" -> op[a, b, c]
+        # "a op1 b op2 c" -> Inequality[a, op1, b, op2, c]
         names = operators.keys()
 
         def inequality_leaves(expression):
@@ -71,7 +74,7 @@ class _InequalityOperator(BinaryOperator):
                 return [expression]
             name = expression.get_head().get_name()
             leaves = expression.get_leaves()
-            if name == 'Inequality':
+            if name == 'System`Inequality':
                 return leaves
             elif name in names:
                 result = []

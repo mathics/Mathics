@@ -7,7 +7,8 @@ Physical and Chemical data
 from csv import reader as csvreader
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Expression, from_python, Symbol, String
+from mathics.core.expression import (Expression, from_python, Symbol, String,
+                                     strip_context)
 from mathics.settings import ROOT_DIR
 
 
@@ -157,7 +158,7 @@ class ElementData(Builtin):
         if result == "NOT_KNOWN":
             return Expression("Missing", "Unknown")
 
-        result = parse(result)
+        result = parse(result, evaluation.definitions)
         if isinstance(result, Symbol):
-            result = String(result.get_name())
+            result = String(strip_context(result.get_name()))
         return result

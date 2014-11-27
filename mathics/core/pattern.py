@@ -19,7 +19,8 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.core.expression import Expression
+from mathics.core.expression import (Expression, system_symbols,
+                                     ensure_context)
 from mathics.core.util import subsets, subranges, permutations
 
 # from mathics.core.pattern_nocython import (
@@ -171,7 +172,7 @@ class ExpressionPattern(Pattern):
         evaluation.check_stopped()
 
         attributes = self.head.get_attributes(evaluation.definitions)
-        if 'Flat' not in attributes:
+        if 'System`Flat' not in attributes:
             fully = True
         if not expression.is_atom():
             # don't do this here, as self.get_pre_choices changes the
@@ -194,7 +195,7 @@ class ExpressionPattern(Pattern):
                 #    self.leaves[0], self.leaves[1:], ([], expression.leaves),
                 #    pre_vars, expression, attributes, evaluation, first=True,
                 #    fully=fully, leaf_count=len(self.leaves),
-                #    wrap_oneid=expression.get_head_name() != 'MakeBoxes'):
+                #    wrap_oneid=expression.get_head_name() != 'System`MakeBoxes'):
                 # def yield_leaf(new_vars, rest):
                 #    yield_func(new_vars, rest)
                 self.match_leaf(
@@ -202,7 +203,7 @@ class ExpressionPattern(Pattern):
                     ([], expression.leaves), pre_vars, expression, attributes,
                     evaluation, first=True, fully=fully,
                     leaf_count=len(self.leaves),
-                    wrap_oneid=expression.get_head_name() != 'MakeBoxes')
+                    wrap_oneid=expression.get_head_name() != 'System`MakeBoxes')
 
             # for head_vars, _ in self.head.match(expression.get_head(), vars,
             # evaluation):
@@ -224,7 +225,7 @@ class ExpressionPattern(Pattern):
                     yield_head, expression.get_head(), vars, evaluation)
             except StopGenerator_ExpressionPattern_match:
                 return
-        if (wrap_oneid and 'OneIdentity' in attributes and      # nopep8
+        if (wrap_oneid and 'System`OneIdentity' in attributes and      # nopep8
             expression.get_head() != self.head and expression != self.head):
             # and 'OneIdentity' not in
             # (expression.get_attributes(evaluation.definitions) |
@@ -252,7 +253,7 @@ class ExpressionPattern(Pattern):
                 leaf_count=len(self.leaves), wrap_oneid=True)
 
     def get_pre_choices(self, yield_func, expression, attributes, vars):
-        if 'Orderless' in attributes:
+        if 'System`Orderless' in attributes:
             self.sort()
             patterns = self.filter_leaves('Pattern')
             groups = {}
@@ -345,6 +346,7 @@ class ExpressionPattern(Pattern):
         self.expr = expr
 
     def filter_leaves(self, head_name):
+        head_name = ensure_context(head_name)
         return [leaf for leaf in self.leaves
                 if leaf.get_head_name() == head_name]
 
@@ -360,7 +362,7 @@ class ExpressionPattern(Pattern):
             yield_func(items[0])
         else:
             if max_count is None or len(items) <= max_count:
-                if 'Orderless' in attributes:
+                if 'System`Orderless' in attributes:
                     for perm in permutations(items):
                         sequence = Expression('Sequence', *perm)
                         sequence.pattern_sequence = True
@@ -369,7 +371,7 @@ class ExpressionPattern(Pattern):
                     sequence = Expression('Sequence', *items)
                     sequence.pattern_sequence = True
                     yield_func(sequence)
-            if 'Flat' in attributes and include_flattened:
+            if 'System`Flat' in attributes and include_flattened:
                 yield_func(Expression(expression.get_head(), *items))
 
     def match_leaf(self, yield_func, leaf, rest_leaves, rest_expression, vars,
@@ -399,10 +401,13 @@ class ExpressionPattern(Pattern):
         # "Artificially" only use more leaves than specified for some kind
         # of pattern.
         # TODO: This could be further optimized!
-        try_flattened = ('Flat' in attributes) and (leaf.get_head_name() in (
-            'Pattern', 'PatternTest', 'Condition', 'Optional',
-            'Blank', 'BlankSequence', 'BlankNullSequence', 'Alternatives',
-            'OptionsPattern', 'Repeated', 'RepeatedNull'))
+        try_flattened = (
+            ('System`Flat' in attributes) and (leaf.get_head_name() in (
+                    system_symbols(
+                        'Pattern', 'PatternTest', 'Condition', 'Optional',
+                        'Blank', 'BlankSequence', 'BlankNullSequence',
+                        'Alternatives', 'OptionsPattern', 'Repeated',
+                        'RepeatedNull'))))
 
         if try_flattened:
             set_lengths = (match_count[0], None)
@@ -413,19 +418,19 @@ class ExpressionPattern(Pattern):
         # into one operand may occur.
         # This can of course also be when flat and same head.
         try_flattened = try_flattened or ((
-            'Flat' in attributes) and leaf.get_head() == expression.head)
+            'System`Flat' in attributes) and leaf.get_head() == expression.head)
 
         less_first = len(rest_leaves) > 0
 
-        if 'Orderless' in attributes:
+        if 'System`Orderless' in attributes:
             sets = None
-            if leaf.get_head_name() == 'Pattern':
+            if leaf.get_head_name() == 'System`Pattern':
                 varname = leaf.leaves[0].get_name()
                 existing = vars.get(varname, None)
                 if existing is not None:
                     head = existing.get_head()
-                    if (head.get_name() == 'Sequence' or (
-                            'Flat' in attributes and
+                    if (head.get_name() == 'System`Sequence' or (
+                            'System`Flat' in attributes and
                             head == expression.get_head())):
                         needed = existing.leaves
                     else:

@@ -27,23 +27,30 @@ class D(SympyFunction):
         <dd>gives the vector derivative of $f$ with respect to $x1$, $x2$, etc.
     </dl>
 
+    First-order derivative of a polynomial:
     >> D[x^3 + x^2, x]
      = 2 x + 3 x ^ 2
+    Second-order derivative:
+    >> D[x^3 + x^2, {x, 2}]
+     = 2 + 6 x
+
+    Trigonometric derivatives:
+    >> D[Sin[Cos[x]], x]
+     = -Cos[Cos[x]] Sin[x]
+    >> D[Sin[x], {x, 2}]
+     = -Sin[x]
+    >> D[Cos[t], {t, 2}]
+     = -Cos[t]
+
+    Unknown variables are treated as constant:
     >> D[y, x]
      = 0
     >> D[x, x]
      = 1
     >> D[x + y, x]
      = 1
-    >> D[Sin[Cos[x]], x]
-     = -Cos[Cos[x]] Sin[x]
 
-    >> D[Sin[x], {x, 2}]
-     = -Sin[x]
-    >> D[Cos[t], {t,2}]
-     = -Cos[t]
-
-    Unknown functions are derived using 'Derivative':
+    Derivatives of unknown functions are represented using 'Derivative':
     >> D[f[x], x]
      = f'[x]
     >> D[f[x, x], x]
@@ -371,7 +378,7 @@ class Integrate(SympyFunction):
      = RootSum[625 #1 ^ 4 + 125 #1 ^ 3 + 25 #1 ^ 2 + 5 #1 + 1&, Log[x + 5 #1] #1&] + Log[1 + x] / 5
 
     #> Integrate[ArcTan(x), x]
-     = ArcTan x ^ 2 / 2
+     = x ^ 2 ArcTan / 2
     #> Integrate[E[x], x]
      = Integrate[E[x], x]
 
@@ -379,13 +386,13 @@ class Integrate(SympyFunction):
      = 2 Sqrt[Pi]
 
     #> Integrate[Exp[-1/(x^2)], x]
-     = Sqrt[Pi] Erf[1 / x] + x E ^ (-1 / x ^ 2)
+     = x E ^ (-1 / x ^ 2) + Sqrt[Pi] Erf[1 / x]
 
     >> Integrate[ArcSin[x / 3], x]
      = x ArcSin[x / 3] + Sqrt[9 - x ^ 2]
 
     >> Integrate[f'[x], {x, a, b}]
-     = -f[a] + f[b]
+     = f[b] - f[a]
     """
 
     # TODO
@@ -602,7 +609,7 @@ class Solve(Builtin):
     rules = {
         'Solve[eqs_, vars_, Complexes]': 'Solve[eqs, vars]',
         'Solve[eqs_, vars_, Reals]': (
-            'Cases[Solve[eqs, vars], {Rule[x,y_?RealNumberQ]}]'),
+            'Cases[Solve[eqs, vars], {Rule[x_,y_?RealNumberQ]}]'),
     }
 
     def apply(self, eqs, vars, evaluation):
@@ -610,19 +617,19 @@ class Solve(Builtin):
 
         vars_original = vars
         head_name = vars.get_head_name()
-        if head_name == 'List':
+        if head_name == 'System`List':
             vars = vars.leaves
         else:
             vars = [vars]
         for var in vars:
             if ((var.is_atom() and not var.is_symbol()) or  # noqa
-                head_name in ('Plus', 'Times', 'Power') or
-                'Constant' in var.get_attributes(evaluation.definitions)):
+                head_name in ('System`Plus', 'System`Times', 'System`Power') or
+                'System`Constant' in var.get_attributes(evaluation.definitions)):
 
                 evaluation.message('Solve', 'ivar', vars_original)
                 return
         eqs_original = eqs
-        if eqs.get_head_name() in ('List', 'And'):
+        if eqs.get_head_name() in ('System`List', 'System`And'):
             eqs = eqs.leaves
         else:
             eqs = [eqs]
@@ -630,9 +637,9 @@ class Solve(Builtin):
         sympy_denoms = []
         for eq in eqs:
             symbol_name = eq.get_name()
-            if symbol_name == 'True':
+            if symbol_name == 'System`True':
                 pass
-            elif symbol_name == 'False':
+            elif symbol_name == 'System`False':
                 return Expression('List')
             elif not eq.has_form('Equal', 2):
                 return evaluation.message('Solve', 'eqf', eqs_original)
@@ -733,6 +740,14 @@ class Solve(Builtin):
         except TypeError, exc:
             if str(exc).startswith("expected Symbol, Function or Derivative"):
                 evaluation.message('Solve', 'ivar', vars_original)
+
+
+class Reals(Builtin):
+    pass
+
+
+class Complexes(Builtin):
+    pass
 
 
 class Limit(Builtin):
@@ -889,12 +904,12 @@ class FindRoot(Builtin):
         while count < 100:
             minus = dynamic_scoping(sub, {x_name: x0}, evaluation)
             if minus is None:
-                evaluation.message('FindRoot', 'dsing', x_name, x0)
+                evaluation.message('FindRoot', 'dsing', x, x0)
                 return
             x1 = Expression('Plus', x0, Expression(
                 'Times', Integer(-1), minus)).evaluate(evaluation)
             if not isinstance(x1, Number):
-                evaluation.message('FindRoot', 'nnum', x_name, x0)
+                evaluation.message('FindRoot', 'nnum', x, x0)
                 return
             if x1 == x0:
                 break

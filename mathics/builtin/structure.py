@@ -1,7 +1,8 @@
 # -*- coding: utf8 -*-
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
-from mathics.core.expression import Expression, String, Symbol, Integer
+from mathics.core.expression import (Expression, String, Symbol, Integer,
+                                     strip_context)
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
@@ -186,7 +187,7 @@ class Apply(BinaryOperator):
 
     Convert all operations to lists:
     >> Apply[List, a + b * c ^ e * f[g], {0, Infinity}]
-     = {a, {b, {c, e}, {g}}}
+     = {a, {b, {g}, {c, e}}}
 
     #> Apply[f, {a, b, c}, x+y]
      : Level specification x + y is not of the form n, {n}, or {m, n}.
@@ -312,17 +313,17 @@ class MapIndexed(Builtin):
 
     Get the positions of atoms in an expression (convert operations to 'List' first
     to disable 'Listable' functions):
-    >> expr = a + b * c ^ e * f[g];
+    >> expr = a + b * f[g] * c ^ e;
     >> listified = Apply[List, expr, {0, Infinity}];
     >> MapIndexed[#2 &, listified, {-1}]
-     = {{1}, {{2, 1}, {{2, 2, 1}, {2, 2, 2}}, {{2, 3, 1}}}}
+     = {{1}, {{2, 1}, {{2, 2, 1}}, {{2, 3, 1}, {2, 3, 2}}}}
     Replace the heads with their positions, too:
     >> MapIndexed[#2 &, listified, {-1}, Heads -> True]
-     = {0}[{1}, {2, 0}[{2, 1}, {2, 2, 0}[{2, 2, 1}, {2, 2, 2}], {2, 3, 0}[{2, 3, 1}]]]
+     = {0}[{1}, {2, 0}[{2, 1}, {2, 2, 0}[{2, 2, 1}], {2, 3, 0}[{2, 3, 1}, {2, 3, 2}]]]
     The positions are given in the same format as used by 'Extract'.
     Thus, mapping 'Extract' on the indices given by 'MapIndexed' re-constructs the original expression:
     >> MapIndexed[Extract[expr, #2] &, listified, {-1}, Heads -> True]
-     = a + b c ^ e f[g]
+     = a + b f[g] c ^ e
 
     #> MapIndexed[f, {1, 2}, a+b]
      : Level specification a + b is not of the form n, {n}, or {m, n}.
@@ -540,7 +541,7 @@ class Symbol_(Builtin):
 
         text = string.get_string_value()
         if is_symbol_name(text):
-            return Symbol(string.value)
+            return Symbol(evaluation.definitions.lookup_name(string.value))
         else:
             evaluation.message('Symbol', 'symname', string)
 
@@ -554,7 +555,9 @@ class SymbolName(Builtin):
     def apply(self, symbol, evaluation):
         'SymbolName[symbol_Symbol]'
 
-        return String(symbol.get_name())
+        # MMA docs say "SymbolName always gives the short name,
+        # without any context"
+        return String(strip_context(symbol.get_name()))
 
 
 class Depth(Builtin):

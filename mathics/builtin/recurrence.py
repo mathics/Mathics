@@ -56,13 +56,16 @@ class RSolve(Builtin):
             return
 
         for eqn in eqns.leaves:
-            if eqn.get_head_name() != 'Equal':
+            if eqn.get_head_name() != 'System`Equal':
                 evaluation.message('RSolve', 'deqn', eqn)
                 return
 
         if (n.is_atom() and not n.is_symbol()) or \
-            n.get_head_name() in ('Plus', 'Times', 'Power') or \
-                'Constant' in n.get_attributes(evaluation.definitions):
+            n.get_head_name() in ('System`Plus', 'System`Times',
+                                  'System`Power') or \
+                'System`Constant' in n.get_attributes(evaluation.definitions):
+            # TODO: Factor out this check for dsvar into a separate
+            # function. DSolve uses this too.
             evaluation.message('RSolve', 'dsvar')
             return
 

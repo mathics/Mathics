@@ -72,8 +72,8 @@ class SetAttributes(Builtin):
         if values is None:
             return
         for symbol in symbols:
-            if 'Locked' in evaluation.definitions.get_attributes(symbol):
-                evaluation.message('SetAttributes', 'locked', symbol)
+            if 'System`Locked' in evaluation.definitions.get_attributes(symbol):
+                evaluation.message('SetAttributes', 'locked', Symbol(symbol))
             else:
                 for value in values:
                     evaluation.definitions.set_attribute(symbol, value)
@@ -108,8 +108,8 @@ class ClearAttributes(Builtin):
         if values is None:
             return
         for symbol in symbols:
-            if 'Locked' in evaluation.definitions.get_attributes(symbol):
-                evaluation.message('ClearAttributes', 'locked', symbol)
+            if 'System`Locked' in evaluation.definitions.get_attributes(symbol):
+                evaluation.message('ClearAttributes', 'locked', Symbol(symbol))
             else:
                 for value in values:
                     evaluation.definitions.clear_attribute(symbol, value)
@@ -174,6 +174,19 @@ class Protected(Predefined):
      = 2
     >> Unprotect[p]
      : Symbol p is locked.
+    """
+
+
+class ReadProtected(Predefined):
+    """
+    Values associated with 'ReadProtected' symbols cannot be read:
+    >> ClearAll[p]
+    >> p = 3;
+    >> Definition[p]
+     = p = 3
+    >> SetAttributes[p, ReadProtected]
+    >> Definition[p]
+     = Attributes[p] = {ReadProtected}
     """
 
 
@@ -322,3 +335,7 @@ class Listable(Predefined):
     >> {{1, 2}, {3, 4}} + {5, 6}
      = {{6, 7}, {9, 10}}
     """
+
+
+class Constant(Predefined):
+    pass

@@ -28,12 +28,12 @@ class DSolve(Builtin):
 
     #> Attributes[f] = {HoldAll};
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]
-     : To avoid possible ambiguity, the arguments of the dependent variable in -Sin[f'[x]] + f[x + x] should literally match the independent variables.
+     : To avoid possible ambiguity, the arguments of the dependent variable in f[x + x] - Sin[f'[x]] should literally match the independent variables.
      = DSolve[f[x + x] == Sin[f'[x]], f, x]
 
     #> Attributes[f] = {};
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]
-     : To avoid possible ambiguity, the arguments of the dependent variable in -Sin[f'[x]] + f[2 x] should literally match the independent variables.
+     : To avoid possible ambiguity, the arguments of the dependent variable in f[2 x] - Sin[f'[x]] should literally match the independent variables.
      = DSolve[f[2 x] == Sin[f'[x]], f, x]
 
     #> DSolve[f'[x] == f[x], f, x] // FullForm
@@ -76,13 +76,15 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'symsys')
             return
 
-        if eqn.get_head_name() != 'Equal':
+        if eqn.get_head_name() != 'System`Equal':
             evaluation.message('DSolve', 'deqn', eqn)
             return
 
+        # FIXME: This code is duplicated in calculus.py
         if ((x.is_atom() and not x.is_symbol()) or      # nopep8
-            x.get_head_name() in ('Plus', 'Times', 'Power') or
-            'Constant' in x.get_attributes(evaluation.definitions)):
+            x.get_head_name() in ('System`Plus', 'System`Times',
+                                  'System`Power') or
+            'System`Constant' in x.get_attributes(evaluation.definitions)):
             evaluation.message('DSolve', 'dsvar')
             return
 
@@ -145,3 +147,10 @@ class DSolve(Builtin):
                 for soln in sym_result])
 
 # TODO: NDSolve
+
+
+class C(Builtin):
+    """
+    'C'[$n$] represents the $n$th constant in a solution to a
+    differential equation.
+    """
