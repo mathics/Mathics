@@ -76,10 +76,10 @@ def subdirs(root, file='*.*', depth=10):
 
 class initialize(Command):
     """
-    Creates the database used by Django
+    Manually creates the database used by Django
     """
 
-    description = "create the database used by django"
+    description = "manually create the database used by django"
     user_options = []  # distutils complains if this is not here.
 
     def __init__(self, *args):
@@ -107,7 +107,7 @@ class initialize(Command):
             subprocess.check_call(
                 [sys.executable, 'mathics/manage.py', 'syncdb', '--noinput'])
             print("")
-            print("Mathics initialized successfully.")
+            print("database created successfully.")
         except subprocess.CalledProcessError:
             print("error: failed to create database")
             sys.exit(1)

@@ -2,12 +2,9 @@
 
 import sys
 
-sys.stderr.write(
-    """Since Mathics 0.5, the functionality of initialize.py has been moved
-into setup.py. Please run:
+sys.stderr.write("""
 
-  {python} setup.py initialize
+initialize.py is deprecated. Since Mathics 0.6 database creation is automatic.
 
-to initialize the database.
-""".format(python=sys.executable or 'python'))
+""")
 sys.exit(1)
