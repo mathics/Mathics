@@ -170,7 +170,8 @@ class Definitions(object):
             ctx_pattern, short_pattern = pattern.rsplit('`', 1)
             ctx_pattern = ((ctx_pattern + '`')
                            .replace('@', '[^A-Z`]+')
-                           .replace('*', '.*'))
+                           .replace('*', '.*')
+                           .replace('$', r'\$'))
         else:
             short_pattern = pattern
             # start with a group matching the accessible contexts
@@ -181,7 +182,8 @@ class Definitions(object):
 
         short_pattern = (short_pattern
                          .replace('@', '[^A-Z]+')
-                         .replace('*', '[^`]*'))
+                         .replace('*', '[^`]*')
+                         .replace('$', r'\$'))
         regex = re.compile('^' + ctx_pattern + short_pattern + '$')
 
         return [name for name in self.get_names() if regex.match(name)]

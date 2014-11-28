@@ -25,14 +25,14 @@ import re
 import locale
 
 from mathics.core.definitions import Definitions
-from mathics.core.expression import Integer
+from mathics.core.expression import Integer, strip_context
 from mathics.core.evaluation import Evaluation
 from mathics import print_version, print_license, get_version_string
 from mathics import settings
 
 
 class TerminalShell(object):
-    def __init__(self, definitions, colors, want_readline):
+    def __init__(self, definitions, colors, want_readline, want_completion):
         self.input_encoding = locale.getpreferredencoding()
 
         # Try importing readline to enable arrow keys support etc.
@@ -42,6 +42,15 @@ class TerminalShell(object):
                 import readline
                 self.using_readline = sys.stdin.isatty() and sys.stdout.isatty()
                 self.ansi_color_re = re.compile("\033\\[[0-9;]+m")
+                if want_completion:
+                    readline.set_completer(
+                        lambda text, state:
+                            self.complete_symbol_name(text, state))
+                    readline.set_completer_delims(
+                        # Make _ a delimiter, but not $ or `
+                        ' \t\n_~!@#%^&*()-=+[{]}\\|;:\'",<>/?')
+                    readline.parse_and_bind("tab: complete")
+                    self.completion_candidates = []
         except ImportError:
             pass
 
@@ -131,6 +140,32 @@ class TerminalShell(object):
         finally:
             sys.stdout = orig_stdout
 
+    def complete_symbol_name(self, text, state):
+        try:
+            return self._complete_symbol_name(text, state)
+        except Exception:
+            # any exception thrown inside the completer gets silently
+            # thrown away otherwise
+            print "Unhandled error in readline completion"
+
+    def _complete_symbol_name(self, text, state):
+        # The readline module calls this function repeatedly,
+        # increasing 'state' each time and expecting one string to be
+        # returned per call.
+
+        if state == 0:
+            self.completion_candidates = self.get_completion_candidates(text)
+
+        try:
+            return self.completion_candidates[state]
+        except IndexError:
+            return None
+
+    def get_completion_candidates(self, text):
+        matches = self.definitions.get_matching_names(text + '*')
+        if '`' not in text:
+            matches = [strip_context(m) for m in matches]
+        return matches
 
 def to_output(text):
     return '\n        '.join(text.splitlines())
@@ -212,7 +247,11 @@ def main():
         '--colors', nargs='?', help='interactive shell colors')
 
     argparser.add_argument(
-        '--no-readline', help="disable line editing", action='store_true')
+        '--no-completion', help="disable tab completion", action='store_true')
+
+    argparser.add_argument(
+        '--no-readline', help="disable line editing (implies --no-completion)",
+        action='store_true')
 
     argparser.add_argument(
         '--version', '-v', action='version', version=get_version_string(False))
@@ -224,7 +263,9 @@ def main():
     definitions = Definitions(add_builtin=True)
     definitions.set_ownvalue('$Line', Integer(0))  # Reset the line number
 
-    shell = TerminalShell(definitions, args.colors, not(args.no_readline))
+    shell = TerminalShell(
+        definitions, args.colors, want_readline=not(args.no_readline),
+        want_completion=not(args.no_completion))
 
     if not (args.quiet or args.script):
         print_version(is_server=False)
