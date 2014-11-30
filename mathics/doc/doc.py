@@ -110,7 +110,10 @@ def filter_comments(doc):
 
 def strip_system_prefix(name):
     if name.startswith('System`'):
-        return name[len('System`'):]
+        stripped_name = name[len('System`'):]
+        # don't return Private`sym for System`Private`sym
+        if '`' not in stripped_name:
+            return stripped_name
     return name
 
 
