@@ -2155,6 +2155,16 @@ class Put(BinaryOperator):
      | 2*x^2 + 4*z!
      | Cos[x] + I*Sin[x]
     #> DeleteFile["example_file"]
+
+    # writing to dir
+    #> x >> /var/
+     : Cannot open /var/.
+     = x >> /var/
+
+    # writing to read only file
+    #> x >> /proc/uptime
+     : Cannot open /proc/uptime.
+     = x >> /proc/uptime
     """
 
     operator = '>>'
@@ -2163,7 +2173,10 @@ class Put(BinaryOperator):
     def apply(self, exprs, filename, evaluation):
         'Put[exprs___, filename_String]'
         instream = Expression('OpenWrite', filename).evaluate(evaluation)
-        name, n = instream.leaves
+        if len(instream.leaves) == 2:
+            name, n = instream.leaves
+        else:
+            return  # opening failed
         result = self.apply_input(exprs, name, n, evaluation)
         Expression('Close', instream).evaluate(evaluation)
         return result
@@ -2230,6 +2243,16 @@ class PutAppend(BinaryOperator):
      | 8320987112741390144276341183223364380754172606361245952449277696409600000000000000
      | "string"
     #> DeleteFile["factorials"];
+
+    # writing to dir
+    #> x >>> /var/
+     : Cannot open /var/.
+     = x >>> /var/
+
+    # writing to read only file
+    #> x >>> /proc/uptime
+     : Cannot open /proc/uptime.
+     = x >>> /proc/uptime
     """
 
     operator = '>>>'
@@ -2239,7 +2262,10 @@ class PutAppend(BinaryOperator):
     def apply(self, exprs, filename, evaluation):
         'PutAppend[exprs___, filename_String]'
         instream = Expression('OpenAppend', filename).evaluate(evaluation)
-        name, n = instream.leaves
+        if len(instream.leaves) == 2:
+            name, n = instream.leaves
+        else:
+            return  # opening failed
         result = self.apply_input(exprs, name, n, evaluation)
         Expression('Close', instream).evaluate(evaluation)
         return result
