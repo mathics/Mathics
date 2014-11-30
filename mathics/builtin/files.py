@@ -2165,6 +2165,10 @@ class Put(BinaryOperator):
     #> x >> /proc/uptime
      : Cannot open /proc/uptime.
      = x >> /proc/uptime
+
+    # writing to full file
+    #> x >> /dev/full
+     : No space left on device.
     """
 
     operator = '>>'
@@ -2943,6 +2947,10 @@ class Close(Builtin):
 
     attributes = ('Protected')
 
+    messages = {
+        'closex': '`1`.',
+    }
+
     def apply(self, channel, evaluation):
         'Close[channel_]'
 
@@ -2957,7 +2965,10 @@ class Close(Builtin):
             evaluation.message('General', 'openx', channel)
             return
 
-        stream.close()
+        try:
+            stream.close()
+        except IOError as err:
+            evaluation.message('Close', 'closex', err.strerror)
         return name
 
 
