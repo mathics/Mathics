@@ -1851,6 +1851,7 @@ class WriteString(Builtin):
      : No space left on device.
     #> Close[str]
      : No space left on device.
+     = /dev/full
     """
 
     messages = {
