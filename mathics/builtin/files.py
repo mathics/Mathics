@@ -2183,17 +2183,17 @@ class Put(BinaryOperator):
      | Cos[x] + I*Sin[x]
     #> DeleteFile["example_file"]
 
-    # writing to dir
+    ## writing to dir
     #> x >> /var/
      : Cannot open /var/.
      = x >> /var/
 
-    # writing to read only file
+    ## writing to read only file
     #> x >> /proc/uptime
      : Cannot open /proc/uptime.
      = x >> /proc/uptime
 
-    # writing to full file
+    ## writing to full file
     #> x >> /dev/full
      : No space left on device.
     """
@@ -2275,12 +2275,12 @@ class PutAppend(BinaryOperator):
      | "string"
     #> DeleteFile["factorials"];
 
-    # writing to dir
+    ## writing to dir
     #> x >>> /var/
      : Cannot open /var/.
      = x >>> /var/
 
-    # writing to read only file
+    ## writing to read only file
     #> x >>> /proc/uptime
      : Cannot open /proc/uptime.
      = x >>> /proc/uptime
