@@ -1360,7 +1360,21 @@ class BinaryWrite(Builtin):
      = {108, 78, 217, 150, 88, 126, 152, 101, 231, 134, 176, 140, 118, 81, 183, 220}
     #> WRb[253033302833692126095975097811212718901, "UnsignedInteger128"]
      = {53, 83, 116, 79, 81, 100, 60, 126, 202, 52, 241, 48, 5, 113, 92, 190}
+
+    ## Full File
+    >> strm = OpenWrite["/dev/full", BinaryFormat -> True]
+     = OutputStream[...]
+    >> BinaryWrite[strm, {39, 4, 122}]
+     : No space left on device.
+     = OutputStream[...]
+    >> Close[strm]
+     : No space left on device.
+     = ...
     """
+
+    messages = {
+        'writex': '`1`.',
+    }
 
     writers = _BinaryFormat.get_writers()
 
@@ -1483,7 +1497,10 @@ class BinaryWrite(Builtin):
                 return evaluation.message('BinaryWrite', "nocoerce", b)
             i += 1
 
-        stream.flush()
+        try:
+            stream.flush()
+        except IOError as err:
+            evaluation.message('BinaryWrite', 'writex', err.strerror)
         return channel 
 
 
@@ -1828,11 +1845,18 @@ class WriteString(Builtin):
      | abc
 
     #> WriteString[OpenWrite["/dev/zero"], "abc"]   (* Null *)
+
+    #> str = OpenWrite["/dev/full"];
+    #> WriteString[str, "123"]
+     : No space left on device.
+    #> Close[str]
+     : No space left on device.
     """
 
     messages = {
         'strml': ('`1` is not a string, stream, '
                   'or list of strings and streams.'),
+        'writex': '`1`.',
     }
 
     attributes = ('Protected')
@@ -1861,7 +1885,10 @@ class WriteString(Builtin):
             exprs.append(result)
 
         stream.write(u''.join(exprs))
-        stream.flush()
+        try:
+            stream.flush()
+        except IOError as err:
+            evaluation.message('WriteString', 'writex', err.strerror)
         return Symbol('Null')
 
 
