@@ -61,7 +61,7 @@ else:
     INSTALL_REQUIRES = ['cython>=0.15.1']
 
 # General Requirements
-INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.6, < 1.7', 'ply>=3.6',
+INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.7, < 1.8', 'ply>=3.6',
                      'mpmath>=0.19', 'python-dateutil', 'colorama',
                      'interruptingcow']
 
@@ -109,7 +109,7 @@ class initialize(Command):
         print("Creating database %s" % database_file)
         try:
             subprocess.check_call(
-                [sys.executable, 'mathics/manage.py', 'syncdb', '--noinput'])
+                [sys.executable, 'mathics/manage.py', 'migrate', '--noinput'])
             print("")
             print("database created successfully.")
         except subprocess.CalledProcessError:
