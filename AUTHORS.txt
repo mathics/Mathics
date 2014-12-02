@@ -5,18 +5,20 @@ Mathics was originally created by:
 Mathics is currently maintained by:
 
 - Angus Griffith (sn6uv)
+- Ben Jones (bnjones)
 
 Additional contributions were made by:
 
+- Andrew Zhao (azhao12345)
 - Chong Jiang (cjiang)
 - Marek Šuppa (mrshu)
-- lanyjie
-- freshwater
+- Yingjie Lan (lanyjie)
+- Antonio Marquez-Raygoza (freshwater)
 - proxy-sander
-- Ben Jones (bnjones)
 - Bth8
+- Jim Radford (radford)
 - GitAnt
-- ogra
+- Toshiyuki Ogura (ogra)
 
 Thanks to the authors of all projects that are used in Mathics:
 - Django
