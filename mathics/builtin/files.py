@@ -1360,7 +1360,21 @@ class BinaryWrite(Builtin):
      = {108, 78, 217, 150, 88, 126, 152, 101, 231, 134, 176, 140, 118, 81, 183, 220}
     #> WRb[253033302833692126095975097811212718901, "UnsignedInteger128"]
      = {53, 83, 116, 79, 81, 100, 60, 126, 202, 52, 241, 48, 5, 113, 92, 190}
+
+    ## Full File
+    >> strm = OpenWrite["/dev/full", BinaryFormat -> True]
+     = OutputStream[...]
+    >> BinaryWrite[strm, {39, 4, 122}]
+     : No space left on device.
+     = OutputStream[...]
+    >> Close[strm]
+     : No space left on device.
+     = ...
     """
+
+    messages = {
+        'writex': '`1`.',
+    }
 
     writers = _BinaryFormat.get_writers()
 
@@ -1483,7 +1497,10 @@ class BinaryWrite(Builtin):
                 return evaluation.message('BinaryWrite', "nocoerce", b)
             i += 1
 
-        stream.flush()
+        try:
+            stream.flush()
+        except IOError as err:
+            evaluation.message('BinaryWrite', 'writex', err.strerror)
         return channel 
 
 
@@ -1828,11 +1845,19 @@ class WriteString(Builtin):
      | abc
 
     #> WriteString[OpenWrite["/dev/zero"], "abc"]   (* Null *)
+
+    #> str = OpenWrite["/dev/full"];
+    #> WriteString[str, "123"]
+     : No space left on device.
+    #> Close[str]
+     : No space left on device.
+     = /dev/full
     """
 
     messages = {
         'strml': ('`1` is not a string, stream, '
                   'or list of strings and streams.'),
+        'writex': '`1`.',
     }
 
     attributes = ('Protected')
@@ -1861,7 +1886,10 @@ class WriteString(Builtin):
             exprs.append(result)
 
         stream.write(u''.join(exprs))
-        stream.flush()
+        try:
+            stream.flush()
+        except IOError as err:
+            evaluation.message('WriteString', 'writex', err.strerror)
         return Symbol('Null')
 
 
@@ -2155,6 +2183,20 @@ class Put(BinaryOperator):
      | 2*x^2 + 4*z!
      | Cos[x] + I*Sin[x]
     #> DeleteFile["example_file"]
+
+    ## writing to dir
+    #> x >> /var/
+     : Cannot open /var/.
+     = x >> /var/
+
+    ## writing to read only file
+    #> x >> /proc/uptime
+     : Cannot open /proc/uptime.
+     = x >> /proc/uptime
+
+    ## writing to full file
+    #> x >> /dev/full
+     : No space left on device.
     """
 
     operator = '>>'
@@ -2163,7 +2205,10 @@ class Put(BinaryOperator):
     def apply(self, exprs, filename, evaluation):
         'Put[exprs___, filename_String]'
         instream = Expression('OpenWrite', filename).evaluate(evaluation)
-        name, n = instream.leaves
+        if len(instream.leaves) == 2:
+            name, n = instream.leaves
+        else:
+            return  # opening failed
         result = self.apply_input(exprs, name, n, evaluation)
         Expression('Close', instream).evaluate(evaluation)
         return result
@@ -2230,6 +2275,16 @@ class PutAppend(BinaryOperator):
      | 8320987112741390144276341183223364380754172606361245952449277696409600000000000000
      | "string"
     #> DeleteFile["factorials"];
+
+    ## writing to dir
+    #> x >>> /var/
+     : Cannot open /var/.
+     = x >>> /var/
+
+    ## writing to read only file
+    #> x >>> /proc/uptime
+     : Cannot open /proc/uptime.
+     = x >>> /proc/uptime
     """
 
     operator = '>>>'
@@ -2239,7 +2294,10 @@ class PutAppend(BinaryOperator):
     def apply(self, exprs, filename, evaluation):
         'PutAppend[exprs___, filename_String]'
         instream = Expression('OpenAppend', filename).evaluate(evaluation)
-        name, n = instream.leaves
+        if len(instream.leaves) == 2:
+            name, n = instream.leaves
+        else:
+            return  # opening failed
         result = self.apply_input(exprs, name, n, evaluation)
         Expression('Close', instream).evaluate(evaluation)
         return result
@@ -2917,6 +2975,10 @@ class Close(Builtin):
 
     attributes = ('Protected')
 
+    messages = {
+        'closex': '`1`.',
+    }
+
     def apply(self, channel, evaluation):
         'Close[channel_]'
 
@@ -2931,7 +2993,10 @@ class Close(Builtin):
             evaluation.message('General', 'openx', channel)
             return
 
-        stream.close()
+        try:
+            stream.close()
+        except IOError as err:
+            evaluation.message('Close', 'closex', err.strerror)
         return name
 
 
