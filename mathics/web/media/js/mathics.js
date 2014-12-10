@@ -658,7 +658,6 @@ function domLoaded() {
 	MathJax.Hub.Config({
 		"HTML-CSS": {
 			imageFont: null,
-	  	showMathMenu: false,
 	  	linebreaks: { automatic: true }
 	  },
 	  MMLorHTML: {
