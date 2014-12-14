@@ -743,11 +743,25 @@ class Solve(Builtin):
 
 
 class Reals(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'Reals'
+        <dd>is the set of real numbers.
+    </dl>
+
+    Limit a solution to real numbers:
+    >> Solve[x^3 == 1, x, Reals]
+     = {{x -> 1}}
+    """
 
 
 class Complexes(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'Complexes'
+        <dd>is the set of complex numbers.
+    </dl>
+    """
 
 
 class Limit(Builtin):
