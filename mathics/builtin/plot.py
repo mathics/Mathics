@@ -75,6 +75,12 @@ class Axis(Builtin):
     pass
 
 
+def extract_pyreal(value):
+    if isinstance(value, Real):
+        return chop(value).get_real_value()
+    return None
+
+
 def quiet_evaluate(expr, vars, evaluation, expect_list=False):
     """ Evaluates expr with given dynamic scoping values
     without producing arithmetic error messages. """
@@ -84,14 +90,14 @@ def quiet_evaluate(expr, vars, evaluation, expect_list=False):
     value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)
     if expect_list:
         if value.has_form('List', None):
-            value = [chop(item).get_real_value() for item in value.leaves]
+            value = (extract_pyreal(item) for item in value.leaves)
             if any(item is None for item in value):
                 return None
-            return value
+            return list(value)  # force generator evaluation
         else:
             return None
     else:
-        value = chop(value).get_real_value()
+        value = extract_pyreal(value)
         if value is None or isinf(value) or isnan(value):
             return None
         return value
@@ -1121,6 +1127,9 @@ class Plot3D(_Plot3D):
      = -Graphics3D-
 
     >> Plot3D[Sin[x y] /(x y), {x, -3, 3}, {y, -3, 3}, Mesh->All]
+     = -Graphics3D-
+
+    >> Plot3D[Log[x + y^2], {x, -1, 1}, {y, -1, 1}]
      = -Graphics3D-
 
     #> Plot3D[z, {x, 1, 20}, {y, 1, 10}]
