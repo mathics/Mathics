@@ -354,7 +354,7 @@ class Byte(Builtin):
     """
     <dl>
     <dt>'Byte'
-      <dd>is a data type for 'Read'
+      <dd>is a data type for 'Read'.
     </dl>
     """
 
@@ -363,7 +363,7 @@ class Character(Builtin):
     """
     <dl>
     <dt>'Character'
-      <dd>is a data type for 'Read'
+      <dd>is a data type for 'Read'.
     </dl>
     """
 
@@ -372,7 +372,7 @@ class Expression_(Builtin):
     """
     <dl>
     <dt>'Expression'
-      <dd>is a data type for 'Read'
+      <dd>is a data type for 'Read'.
     </dl>
     """
     name = 'Expression'
@@ -382,7 +382,7 @@ class Number_(Builtin):
     """
     <dl>
     <dt>'Number'
-      <dd>is a data type for 'Read'
+      <dd>is a data type for 'Read'.
     </dl>
     """
     name = 'Number'
@@ -392,7 +392,7 @@ class Record(Builtin):
     """
     <dl>
     <dt>'Record'
-      <dd>is a data type for 'Read'
+      <dd>is a data type for 'Read'.
     </dl>
     """
 
@@ -401,7 +401,7 @@ class Word(Builtin):
     """
     <dl>
     <dt>'Word'
-      <dd>is a data type for 'Read'
+      <dd>is a data type for 'Read'.
     </dl>
     """
 
