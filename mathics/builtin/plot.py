@@ -782,8 +782,9 @@ class _Plot3D(Builtin):
                             v_borders[0] = v
                         if v_borders[1] is None or v > v_borders[1]:
                             v_borders[1] = v
-                if v1 is None and v2 is None and v3 is None:
-                    # fast finish: region is totally undefined
+                if (v1 is v2 is v3 is None) and (depth < 1):
+                    # fast finish because the entire region is undefined but
+                    # recurse 'a little' to avoid missing well defined regions
                     return
                 elif v1 is None or v2 is None or v3 is None:
                     # 'triforce' pattern recursion to find the edge of defined region
