@@ -787,22 +787,20 @@ class _Plot3D(Builtin):
                     return
                 elif v1 is None or v2 is None or v3 is None:
                     # 'triforce' pattern recursion to find the edge of defined region
-                    #      (x1,y1)
+                    #         1
                     #         /\
-                    #        /__\
+                    #      4 /__\ 6
                     #       /\  /\
                     #      /__\/__\
-                    # (x2,y2)    (x3,y3)
+                    #     2   5    3
                     if depth < 2:
-                        triangle(x1, y1, (x1 + x2) / 2, (y1 + y2) / 2,
-                                 (x1 + x3) / 2, (y1 + y3) / 2, depth + 1)
-                        triangle(x2, y2, (x1 + x2) / 2, (y1 + y2) / 2,
-                                 (x2 + x3) / 2, (y2 + y3) / 2, depth + 1)
-                        triangle(x3, y3, (x1 + x3) / 2, (y1 + y3) / 2,
-                                 (x2 + x3) / 2, (y2 + y3) / 2, depth + 1)
-                        triangle((x1 + x2) / 2, (y1 + y2) / 2, (x2 + x3) / 2,
-                                 (y2 + y3) / 2, (x1 + x3) / 2, (y1 + y3) / 2,
-                                 depth + 1)
+                        x4, y4 = 0.5 * (x1 + x2), 0.5 * (y1 + y2)
+                        x5, y5 = 0.5 * (x2 + x3), 0.5 * (y2 + y3)
+                        x6, y6 = 0.5 * (x1 + x3), 0.5 * (y1 + y3)
+                        triangle(x1, y1, x4, y4, x6, y6, depth + 1)
+                        triangle(x4, y4, x2, y2, x5, y5, depth + 1)
+                        triangle(x6, y6, x5, y5, x3, y3, depth + 1)
+                        triangle(x4, y4, x5, y5, x6, y6, depth + 1)
                     return
                 triangles.append([(x1, y1, v1), (x2, y2, v2), (x3, y3, v3)])
 
