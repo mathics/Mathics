@@ -1144,6 +1144,10 @@ class Indeterminate(Builtin):
     <dt>'Indeterminate'
         <dd>represents an indeterminate result.
     </dl>
+
+    >> 0^0
+     : Indeterminate expression 0 ^ 0 encountered.
+     = Indeterminate
     """
 
 
