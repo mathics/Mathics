@@ -788,26 +788,6 @@ class _Plot3D(Builtin):
                                  (y2 + y3) / 2, (x1 + x3) / 2, (y1 + y3) / 2,
                                  depth + 1)
                     return
-                limit = (v_borders[1] - v_borders[0]) * eps
-                if depth < 2:
-                    if abs(v1 - v2) > limit:
-                        triangle(x1, y1, x3, y3, (x1 + x2) / 2, (y1 + y2) / 2,
-                                 depth + 1)
-                        triangle(x2, y2, x3, y3, (x1 + x2) / 2, (y1 + y2) / 2,
-                                 depth + 1)
-                        return
-                    if abs(v2 - v3) > limit:
-                        triangle(x1, y1, x2, y2, (
-                            x2 + x3) / 2, (y2 + y3) / 2, depth + 1)
-                        triangle(x1, y1, x3, y3, (
-                            x2 + x3) / 2, (y2 + y3) / 2, depth + 1)
-                        return
-                    if abs(v1 - v3) > limit:
-                        triangle(x2, y2, x1, y1, (
-                            x1 + x3) / 2, (y1 + y3) / 2, depth + 1)
-                        triangle(x2, y2, x3, y3, (
-                            x1 + x3) / 2, (y1 + y3) / 2, depth + 1)
-                        return
                 triangles.append([(x1, y1, v1), (x2, y2, v2), (x3, y3, v3)])
 
             numx = plotpoints[0] * 1.0
