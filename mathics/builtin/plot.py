@@ -762,11 +762,11 @@ class _Plot3D(Builtin):
                     stored[(x_value, y_value)] = value
                 return value
 
-            v_borders = [None, None]
-
             triangles = []
 
             eps = 0.01
+
+            split_edges = set([])       # subdivided edges
 
             def triangle(x1, y1, x2, y2, x3, y3, depth=None):
                 if depth is None:
@@ -775,13 +775,9 @@ class _Plot3D(Builtin):
                     y1, y2, y3 = [ystart + value * (ystop - ystart)
                                   for value in (y1, y2, y3)]
                     depth = 0
+
                 v1, v2, v3 = eval_f(x1, y1), eval_f(x2, y2), eval_f(x3, y3)
-                for v in (v1, v2, v3):
-                    if v is not None:
-                        if v_borders[0] is None or v < v_borders[0]:
-                            v_borders[0] = v
-                        if v_borders[1] is None or v > v_borders[1]:
-                            v_borders[1] = v
+
                 if (v1 is v2 is v3 is None) and (depth < 1):
                     # fast finish because the entire region is undefined but
                     # recurse 'a little' to avoid missing well defined regions
@@ -798,12 +794,15 @@ class _Plot3D(Builtin):
                         x4, y4 = 0.5 * (x1 + x2), 0.5 * (y1 + y2)
                         x5, y5 = 0.5 * (x2 + x3), 0.5 * (y2 + y3)
                         x6, y6 = 0.5 * (x1 + x3), 0.5 * (y1 + y3)
+                        split_edges.add(((x1, y1), (x2, y2)) if (x2,y2) > (x1,y1) else ((x2,y2), (x1,y1)))
+                        split_edges.add(((x2, y2), (x3, y3)) if (x3,y3) > (x2,y2) else ((x3,y3), (x2,y2)))
+                        split_edges.add(((x1, y1), (x3, y3)) if (x3,y3) > (x1,y1) else ((x3,y3), (x1,y1)))
                         triangle(x1, y1, x4, y4, x6, y6, depth + 1)
                         triangle(x4, y4, x2, y2, x5, y5, depth + 1)
                         triangle(x6, y6, x5, y5, x3, y3, depth + 1)
                         triangle(x4, y4, x5, y5, x6, y6, depth + 1)
                     return
-                triangles.append([(x1, y1, v1), (x2, y2, v2), (x3, y3, v3)])
+                triangles.append(sorted(((x1, y1, v1), (x2, y2, v2), (x3, y3, v3))))
 
             numx = plotpoints[0] * 1.0
             numy = plotpoints[1] * 1.0
@@ -814,16 +813,90 @@ class _Plot3D(Builtin):
                     triangle(xi / numx, yi / numy, (xi + 1) / numx,
                              (yi + 1) / numy, xi / numx, (yi + 1) / numy)
 
-            # Mesh should just be looking up stored values
+            ## fix up subdivided edges
+            #
+            # look at every triangle and see if its edges need updating.
+            # depending on how many edges require subdivision we proceede with
+            # one of two subdivision strategies
+            #
+            # TODO possible optimisation: don't look at every triangle again
+            made_changes = True
+            while made_changes:
+                made_changes = False
+                new_triangles = []
+                for i,t in enumerate(triangles):
+                    new_points = []
+                    if ((t[0][0], t[0][1]), (t[1][0], t[1][1])) in split_edges:
+                        new_points.append([0,1])
+                    if ((t[1][0], t[1][1]), (t[2][0], t[2][1])) in split_edges:
+                        new_points.append([1,2])
+                    if ((t[0][0], t[0][1]), (t[2][0], t[2][1])) in split_edges:
+                        new_points.append([0,2])
+
+                    if len(new_points) == 0:
+                        continue
+                    made_changes = True
+                    if len(new_points) == 1:
+                        # 'simple' subdivision
+                        #       1
+                        #      /|\
+                        #     / | \
+                        #    /__|__\
+                        #   2   4   3
+                        ni = new_points[0]
+                        t1 = [t[0], t[1], t[2]]
+                        t2 = [t[0], t[1], t[2]]
+                        x4  = 0.5 * (t[ni[0]][0] + t[ni[1]][0])
+                        y4  = 0.5 * (t[ni[0]][1] + t[ni[1]][1])
+                        v4 = stored[(x4, y4)]
+                        if v4 is not None:
+                            t1 = list(t)
+                            t2 = list(t)
+                            t1[ni[0]] = (x4, y4, v4)
+                            t2[ni[1]] = (x4, y4, v4)
+                            new_triangles.append(sorted(tuple(t1)))
+                            new_triangles.append(sorted(tuple(t2)))
+                        triangles[i] = None
+                    elif len(new_points) > 1:
+                        # 'triforce' subdivision
+                        #         1
+                        #         /\
+                        #      4 /__\ 6
+                        #       /\  /\
+                        #      /__\/__\
+                        #     2   5    3
+                        # if only two edges require subdivision bisect the
+                        # third edge but fake its value by averaging
+                        x4 = 0.5 * (t[0][0] + t[1][0])
+                        y4 = 0.5 * (t[0][1] + t[1][1])
+                        v4 = stored.get((x4, y4), 0.5*(t[0][2] + t[1][2]))
+
+                        x5 = 0.5 * (t[1][0] + t[2][0])
+                        y5 = 0.5 * (t[1][1] + t[2][1])
+                        v5 = stored.get((x5, y5), 0.5*(t[1][2] + t[2][2]))
+
+                        x6 = 0.5 * (t[0][0] + t[2][0])
+                        y6 = 0.5 * (t[0][1] + t[2][1])
+                        v6 = stored.get((x6, y6), 0.5*(t[0][2] + t[2][2]))
+
+                        new_triangles.append(sorted((t[0], (x4, y4, v4), (x6, y6, v6))))
+                        new_triangles.append(sorted((t[1], (x4, y4, v4), (x5, y5, v5))))
+                        new_triangles.append(sorted((t[2], (x5, y5, v5), (x6, y6, v6))))
+                        new_triangles.append(sorted(((x4, y4, v4), (x5, y5, v5), (x6, y6, v6))))
+                        triangles[i] = None
+
+                triangles.extend(new_triangles)
+                triangles = [t for t in triangles if t is not None]
+
+            ## add the mesh
             mesh_points = []
             for xi in range(plotpoints[0] + 1):
                 xval = xstart + xi / numx * (xstop - xstart)
                 mesh_row = []
                 for yi in range(plotpoints[1] + 1):
                     yval = ystart + yi / numy * (ystop - ystart)
-                    z = eval_f(xval, yval)
-                    if z is not None:
-                        mesh_row.append((xval, yval, z))
+                    z = stored[(xval, yval)]
+                    mesh_row.append((xval, yval, z))
                 mesh_points.append(mesh_row)
 
             for yi in range(plotpoints[1] + 1):
@@ -831,36 +904,37 @@ class _Plot3D(Builtin):
                 mesh_col = []
                 for xi in range(plotpoints[0] + 1):
                     xval = xstart + xi / numx * (xstop - xstart)
-                    z = eval_f(xval, yval)
-                    if z is not None:
-                        mesh_col.append((xval, yval, z))
+                    z = stored[(xval, yval)]
+                    mesh_col.append((xval, yval, z))
                 mesh_points.append(mesh_col)
 
-            # Fix the grid near recursions
-            x_grids = [xstart + (xi / numx) * (xstop - xstart)
-                       for xi in range(plotpoints[0] + 1)]
-            y_grids = [ystart + (yi / numy) * (ystop - ystart)
-                       for yi in range(plotpoints[1] + 1)]
+            ## handle edge subdivisions
+            made_changes = True
+            while made_changes:
+                made_changes = False
+                for mesh_line in mesh_points:
+                    i = 0
+                    while i < len(mesh_line)-1:
+                        x1, y1, v1 = mesh_line[i]
+                        x2, y2, v2 = mesh_line[i+1]
+                        key = ((x1, y1), (x2, y2)) if (x2, y2) > (x1, y1) else ((x2, y2), (x1, y1))
+                        if key in split_edges:
+                            x3 = 0.5 * (x1 + x2)
+                            y3 = 0.5 * (y1 + y2)
+                            v3 = stored[(x3, y3)]
+                            mesh_line.insert(i+1, (x3, y3, v3))
+                            made_changes = True
+                            i += 1
+                        i += 1
 
-            for (xval, yval) in stored.keys():
-                if xval in x_grids:
-                    x_index = int((xval - xstart) * numx / (xstop - xstart) +
-                                  0.5)
-                    z = eval_f(xval, yval)
-                    if z is not None:
-                        mesh_points[x_index].append((xval, yval, z))
-                if yval in y_grids:
-                    y_index = int((yval - ystart) * numy / (ystop - ystart) +
-                                  plotpoints[0] + 1.5)
-                    z = eval_f(xval, yval)
-                    if z is not None:
-                        mesh_points[y_index].append((xval, yval, z))
+            # handle missing regions
+            # TODO
 
             for mesh_line in mesh_points:
                 mesh_line.sort()
 
+            # find the max and min height
             v_min = v_max = None
-
             for t in triangles:
                 for tx, ty, v in t:
                     if v_min is None or v < v_min:
