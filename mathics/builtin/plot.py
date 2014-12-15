@@ -6,6 +6,7 @@ Plotting
 
 from math import sin, cos, pi, sqrt, isnan, isinf
 import numbers
+import itertools
 
 from mathics.core.expression import (Expression, Real, NumberError, Symbol,
                                      String, from_python)
@@ -928,10 +929,10 @@ class _Plot3D(Builtin):
                         i += 1
 
             # handle missing regions
-            # TODO
-
-            for mesh_line in mesh_points:
-                mesh_line.sort()
+            old_meshpoints, mesh_points = mesh_points, []
+            for mesh_line in old_meshpoints:
+                mesh_points.extend([sorted(g) for k,g in itertools.groupby(mesh_line, lambda x: x[2] is None)])
+            mesh_points = [mesh_line for mesh_line in mesh_points if not any(x[2] is None for x in mesh_line)]
 
             # find the max and min height
             v_min = v_max = None
