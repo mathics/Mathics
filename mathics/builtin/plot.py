@@ -769,14 +769,7 @@ class _Plot3D(Builtin):
 
             split_edges = set([])       # subdivided edges
 
-            def triangle(x1, y1, x2, y2, x3, y3, depth=None):
-                if depth is None:
-                    x1, x2, x3 = [xstart + value * (xstop - xstart)
-                                  for value in (x1, x2, x3)]
-                    y1, y2, y3 = [ystart + value * (ystop - ystart)
-                                  for value in (y1, y2, y3)]
-                    depth = 0
-
+            def triangle(x1, y1, x2, y2, x3, y3, depth=0):
                 v1, v2, v3 = eval_f(x1, y1), eval_f(x2, y2), eval_f(x3, y3)
 
                 if (v1 is v2 is v3 is None): # and (depth > max_depth / 2):
@@ -810,15 +803,49 @@ class _Plot3D(Builtin):
             numy = plotpoints[1] * 1.0
             for xi in range(plotpoints[0]):
                 for yi in range(plotpoints[1]):
-                    triangle(xi / numx, yi / numy, (xi + 1) / numx,
-                             (yi + 1) / numy, (xi + 1) / numx, yi / numy)
-                    triangle(xi / numx, yi / numy, (xi + 1) / numx,
-                             (yi + 1) / numy, xi / numx, (yi + 1) / numy)
+                    # Decide which way to break the square grid into triangles
+                    # by looking at diagonal lengths.
+                    #
+                    # 3___4        3___4
+                    # |\  |        |  /|
+                    # | \ | versus | / |
+                    # |__\|        |/__|
+                    # 1   2        1   2
+                    #
+                    # Approaching the boundary of the well defined region is
+                    # important too. Use first stategy if 1 or 4 are undefined
+                    # and stategy 2 if either 2 or 3 are undefined.
+                    #
+                    (x1, x2, x3, x4) = (
+                        xstart + value * (xstop - xstart) for value in
+                        (xi / numx, (xi + 1) / numx, xi / numx, (xi + 1) / numx))
+                    (y1, y2, y3, y4) = (
+                        ystart + value * (ystop - ystart) for value in
+                        (yi / numy, yi / numy, (yi + 1) / numy, (yi + 1) / numy))
+
+                    v1 = eval_f(x1, y1)
+                    v2 = eval_f(x2, y2)
+                    v3 = eval_f(x3, y3)
+                    v4 = eval_f(x4, y4)
+
+                    if (v1 is None or v4 is None):
+                        triangle(x1, y1, x2, y2, x3, y3)
+                        triangle(x4, y4, x3, y3, x2, y2)
+                    elif (v2 is None or v3 is None):
+                        triangle(x2, y2, x1, y1, x4, y4)
+                        triangle(x3, y3, x4, y4, x1, y1)
+                    else:
+                        if abs(v3 - v2) > abs(v4 - v1):
+                            triangle(x2, y2, x1, y1, x4, y4)
+                            triangle(x3, y3, x4, y4, x1, y1)
+                        else:
+                            triangle(x1, y1, x2, y2, x3, y3)
+                            triangle(x4, y4, x3, y3, x2, y2)
 
             ## adaptive resampling
             # TODO: optimise this
             # Cos of the maximum angle between successive line segments
-            ang_thresh = cos(25 * pi / 180)
+            ang_thresh = cos(20 * pi / 180)
             for depth in range(1, max_depth):
                 needs_removal = set([])
                 lent = len(triangles) # number of initial triangles
