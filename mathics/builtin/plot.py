@@ -869,48 +869,57 @@ class _Plot3D(Builtin):
 
             ## add the mesh
             mesh_points = []
-            for xi in range(plotpoints[0] + 1):
-                xval = xstart + xi / numx * (xstop - xstart)
-                mesh_row = []
-                for yi in range(plotpoints[1] + 1):
-                    yval = ystart + yi / numy * (ystop - ystart)
-                    z = stored[(xval, yval)]
-                    mesh_row.append((xval, yval, z))
-                mesh_points.append(mesh_row)
-
-            for yi in range(plotpoints[1] + 1):
-                yval = ystart + yi / numy * (ystop - ystart)
-                mesh_col = []
+            if mesh == 'System`Full':
                 for xi in range(plotpoints[0] + 1):
                     xval = xstart + xi / numx * (xstop - xstart)
-                    z = stored[(xval, yval)]
-                    mesh_col.append((xval, yval, z))
-                mesh_points.append(mesh_col)
+                    mesh_row = []
+                    for yi in range(plotpoints[1] + 1):
+                        yval = ystart + yi / numy * (ystop - ystart)
+                        z = stored[(xval, yval)]
+                        mesh_row.append((xval, yval, z))
+                    mesh_points.append(mesh_row)
 
-            ## handle edge subdivisions
-            made_changes = True
-            while made_changes:
-                made_changes = False
-                for mesh_line in mesh_points:
-                    i = 0
-                    while i < len(mesh_line)-1:
-                        x1, y1, v1 = mesh_line[i]
-                        x2, y2, v2 = mesh_line[i+1]
-                        key = ((x1, y1), (x2, y2)) if (x2, y2) > (x1, y1) else ((x2, y2), (x1, y1))
-                        if key in split_edges:
-                            x3 = 0.5 * (x1 + x2)
-                            y3 = 0.5 * (y1 + y2)
-                            v3 = stored[(x3, y3)]
-                            mesh_line.insert(i+1, (x3, y3, v3))
-                            made_changes = True
+                for yi in range(plotpoints[1] + 1):
+                    yval = ystart + yi / numy * (ystop - ystart)
+                    mesh_col = []
+                    for xi in range(plotpoints[0] + 1):
+                        xval = xstart + xi / numx * (xstop - xstart)
+                        z = stored[(xval, yval)]
+                        mesh_col.append((xval, yval, z))
+                    mesh_points.append(mesh_col)
+
+                ## handle edge subdivisions
+                made_changes = True
+                while made_changes:
+                    made_changes = False
+                    for mesh_line in mesh_points:
+                        i = 0
+                        while i < len(mesh_line)-1:
+                            x1, y1, v1 = mesh_line[i]
+                            x2, y2, v2 = mesh_line[i+1]
+                            key = ((x1, y1), (x2, y2)) if (x2, y2) > (x1, y1) else ((x2, y2), (x1, y1))
+                            if key in split_edges:
+                                x3 = 0.5 * (x1 + x2)
+                                y3 = 0.5 * (y1 + y2)
+                                v3 = stored[(x3, y3)]
+                                mesh_line.insert(i+1, (x3, y3, v3))
+                                made_changes = True
+                                i += 1
                             i += 1
-                        i += 1
 
-            # handle missing regions
-            old_meshpoints, mesh_points = mesh_points, []
-            for mesh_line in old_meshpoints:
-                mesh_points.extend([sorted(g) for k,g in itertools.groupby(mesh_line, lambda x: x[2] is None)])
-            mesh_points = [mesh_line for mesh_line in mesh_points if not any(x[2] is None for x in mesh_line)]
+                # handle missing regions
+                old_meshpoints, mesh_points = mesh_points, []
+                for mesh_line in old_meshpoints:
+                    mesh_points.extend([sorted(g) for k,g in itertools.groupby(mesh_line, lambda x: x[2] is None)])
+                mesh_points = [mesh_line for mesh_line in mesh_points if not any(x[2] is None for x in mesh_line)]
+            elif mesh == 'System`All':
+                for t in triangles:
+                    mesh_points = set([])
+                    for t in triangles:
+                        mesh_points.add((t[0], t[1]) if t[1] > t[0] else (t[1], t[0]))
+                        mesh_points.add((t[1], t[2]) if t[2] > t[1] else (t[2], t[1]))
+                        mesh_points.add((t[0], t[2]) if t[2] > t[0] else (t[2], t[0]))
+                mesh_points = list(mesh_points)
 
             # find the max and min height
             v_min = v_max = None
@@ -1234,18 +1243,13 @@ class Plot3D(_Plot3D):
                 'List', Expression('List', *p1), Expression('List', *p2),
                 Expression('List', *p3))))
         # Add the Grid
-        if mesh == 'System`Full':
-            for xi in range(len(mesh_points)):
-                line = []
-                for yi in range(len(mesh_points[xi])):
-                    line.append(Expression(
-                        'List', mesh_points[xi][yi][0], mesh_points[xi][yi][1],
-                        mesh_points[xi][yi][2]))
-                graphics.append(Expression('Line', Expression('List', *line)))
-        elif mesh == 'System`All':
-            for p1, p2, p3 in triangles:
-                line = [from_python(p1), from_python(p2), from_python(p3)]
-                graphics.append(Expression('Line', Expression('List', *line)))
+        for xi in range(len(mesh_points)):
+            line = []
+            for yi in range(len(mesh_points[xi])):
+                line.append(Expression(
+                    'List', mesh_points[xi][yi][0], mesh_points[xi][yi][1],
+                    mesh_points[xi][yi][2]))
+            graphics.append(Expression('Line', Expression('List', *line)))
         return graphics
 
     def final_graphics(self, graphics, options):
@@ -1376,18 +1380,14 @@ class DensityPlot(_Plot3D):
             Expression('Rule', Symbol('VertexColors'),
                        Expression('List', *vertex_colors))))
 
-        if mesh == 'System`Full':
-            for xi in range(len(mesh_points)):
-                line = []
-                for yi in range(len(mesh_points[xi])):
-                    line.append(Expression('List', mesh_points[xi][yi][0],
-                                mesh_points[xi][yi][1]))
-                graphics.append(Expression('Line', Expression('List', *line)))
-        elif mesh == 'System`All':
-            for p in triangles:
-                graphics.append(Expression(
-                    'Line',
-                    Expression('List', *(from_python(x[:2]) for x in p))))
+        # add mesh
+        for xi in range(len(mesh_points)):
+            line = []
+            for yi in range(len(mesh_points[xi])):
+                line.append(Expression('List', mesh_points[xi][yi][0],
+                            mesh_points[xi][yi][1]))
+            graphics.append(Expression('Line', Expression('List', *line)))
+
         return graphics
 
     def final_graphics(self, graphics, options):
