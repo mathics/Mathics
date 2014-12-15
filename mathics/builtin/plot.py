@@ -837,54 +837,32 @@ class _Plot3D(Builtin):
                     if len(new_points) == 0:
                         continue
                     made_changes = True
-                    if len(new_points) == 1:
-                        # 'simple' subdivision
-                        #       1
-                        #      /|\
-                        #     / | \
-                        #    /__|__\
-                        #   2   4   3
-                        ni = new_points[0]
-                        t1 = [t[0], t[1], t[2]]
-                        t2 = [t[0], t[1], t[2]]
-                        x4  = 0.5 * (t[ni[0]][0] + t[ni[1]][0])
-                        y4  = 0.5 * (t[ni[0]][1] + t[ni[1]][1])
-                        v4 = stored[(x4, y4)]
-                        if v4 is not None:
-                            t1 = list(t)
-                            t2 = list(t)
-                            t1[ni[0]] = (x4, y4, v4)
-                            t2[ni[1]] = (x4, y4, v4)
-                            new_triangles.append(sorted(tuple(t1)))
-                            new_triangles.append(sorted(tuple(t2)))
-                        triangles[i] = None
-                    elif len(new_points) > 1:
-                        # 'triforce' subdivision
-                        #         1
-                        #         /\
-                        #      4 /__\ 6
-                        #       /\  /\
-                        #      /__\/__\
-                        #     2   5    3
-                        # if only two edges require subdivision bisect the
-                        # third edge but fake its value by averaging
-                        x4 = 0.5 * (t[0][0] + t[1][0])
-                        y4 = 0.5 * (t[0][1] + t[1][1])
-                        v4 = stored.get((x4, y4), 0.5*(t[0][2] + t[1][2]))
+                    # 'triforce' subdivision
+                    #         1
+                    #         /\
+                    #      4 /__\ 6
+                    #       /\  /\
+                    #      /__\/__\
+                    #     2   5    3
+                    # if less than three edges require subdivision bisect them
+                    # anyway but fake their values by averaging
+                    x4 = 0.5 * (t[0][0] + t[1][0])
+                    y4 = 0.5 * (t[0][1] + t[1][1])
+                    v4 = stored.get((x4, y4), 0.5*(t[0][2] + t[1][2]))
 
-                        x5 = 0.5 * (t[1][0] + t[2][0])
-                        y5 = 0.5 * (t[1][1] + t[2][1])
-                        v5 = stored.get((x5, y5), 0.5*(t[1][2] + t[2][2]))
+                    x5 = 0.5 * (t[1][0] + t[2][0])
+                    y5 = 0.5 * (t[1][1] + t[2][1])
+                    v5 = stored.get((x5, y5), 0.5*(t[1][2] + t[2][2]))
 
-                        x6 = 0.5 * (t[0][0] + t[2][0])
-                        y6 = 0.5 * (t[0][1] + t[2][1])
-                        v6 = stored.get((x6, y6), 0.5*(t[0][2] + t[2][2]))
+                    x6 = 0.5 * (t[0][0] + t[2][0])
+                    y6 = 0.5 * (t[0][1] + t[2][1])
+                    v6 = stored.get((x6, y6), 0.5*(t[0][2] + t[2][2]))
 
-                        new_triangles.append(sorted((t[0], (x4, y4, v4), (x6, y6, v6))))
-                        new_triangles.append(sorted((t[1], (x4, y4, v4), (x5, y5, v5))))
-                        new_triangles.append(sorted((t[2], (x5, y5, v5), (x6, y6, v6))))
-                        new_triangles.append(sorted(((x4, y4, v4), (x5, y5, v5), (x6, y6, v6))))
-                        triangles[i] = None
+                    new_triangles.append(sorted((t[0], (x4, y4, v4), (x6, y6, v6))))
+                    new_triangles.append(sorted((t[1], (x4, y4, v4), (x5, y5, v5))))
+                    new_triangles.append(sorted((t[2], (x5, y5, v5), (x6, y6, v6))))
+                    new_triangles.append(sorted(((x4, y4, v4), (x5, y5, v5), (x6, y6, v6))))
+                    triangles[i] = None
 
                 triangles.extend(new_triangles)
                 triangles = [t for t in triangles if t is not None]
