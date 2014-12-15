@@ -765,7 +765,7 @@ class _Plot3D(Builtin):
 
             triangles = []
 
-            eps = 0.01
+            max_depth = 2   # recusion depth
 
             split_edges = set([])       # subdivided edges
 
@@ -779,7 +779,7 @@ class _Plot3D(Builtin):
 
                 v1, v2, v3 = eval_f(x1, y1), eval_f(x2, y2), eval_f(x3, y3)
 
-                if (v1 is v2 is v3 is None) and (depth < 1):
+                if (v1 is v2 is v3 is None): # and (depth > max_depth / 2):
                     # fast finish because the entire region is undefined but
                     # recurse 'a little' to avoid missing well defined regions
                     return
@@ -791,7 +791,7 @@ class _Plot3D(Builtin):
                     #       /\  /\
                     #      /__\/__\
                     #     2   5    3
-                    if depth < 2:
+                    if depth < max_depth:
                         x4, y4 = 0.5 * (x1 + x2), 0.5 * (y1 + y2)
                         x5, y5 = 0.5 * (x2 + x3), 0.5 * (y2 + y3)
                         x6, y6 = 0.5 * (x1 + x3), 0.5 * (y1 + y3)
@@ -805,6 +805,7 @@ class _Plot3D(Builtin):
                     return
                 triangles.append(sorted(((x1, y1, v1), (x2, y2, v2), (x3, y3, v3))))
 
+            ## linear (grid) sampling
             numx = plotpoints[0] * 1.0
             numy = plotpoints[1] * 1.0
             for xi in range(plotpoints[0]):
@@ -813,6 +814,77 @@ class _Plot3D(Builtin):
                              (yi + 1) / numy, (xi + 1) / numx, yi / numy)
                     triangle(xi / numx, yi / numy, (xi + 1) / numx,
                              (yi + 1) / numy, xi / numx, (yi + 1) / numy)
+
+            ## adaptive resampling
+            # TODO: optimise this
+            # Cos of the maximum angle between successive line segments
+            ang_thresh = cos(25 * pi / 180)
+            for depth in range(1, max_depth):
+                needs_removal = set([])
+                lent = len(triangles) # number of initial triangles
+                for i1 in range(lent):
+                    for i2 in range(lent):
+                        # find all edge pairings
+                        if i1 == i2:
+                            continue
+                        t1 = triangles[i1]
+                        t2 = triangles[i2]
+
+                        edge_pairing = (
+                            (t1[0], t1[1]) == (t2[0], t2[1]) or
+                            (t1[0], t1[1]) == (t2[1], t2[2]) or
+                            (t1[0], t1[1]) == (t2[0], t2[2]) or
+                            (t1[1], t1[2]) == (t2[0], t2[1]) or
+                            (t1[1], t1[2]) == (t2[1], t2[2]) or
+                            (t1[1], t1[2]) == (t2[0], t2[2]) or
+                            (t1[0], t1[2]) == (t2[0], t2[1]) or
+                            (t1[0], t1[2]) == (t2[1], t2[2]) or
+                            (t1[0], t1[2]) == (t2[0], t2[2]))
+                        if not edge_pairing:
+                            continue
+                        v1 = [t1[1][i] - t1[0][i] for i in range(3)]
+                        w1 = [t1[2][i] - t1[0][i] for i in range(3)]
+                        v2 = [t2[1][i] - t2[0][i] for i in range(3)]
+                        w2 = [t2[2][i] - t2[0][i] for i in range(3)]
+                        n1 = (   # surface normal for t1
+                            (v1[1] * w1[2]) - (v1[2] * w1[1]),
+                            (v1[2] * w1[0]) - (v1[0] * w1[2]),
+                            (v1[0] * w1[1]) - (v1[1] * w1[0]))
+                        n2 = (   # surface normal for t2
+                            (v2[1] * w2[2]) - (v2[2] * w2[1]),
+                            (v2[2] * w2[0]) - (v2[0] * w2[2]),
+                            (v2[0] * w2[1]) - (v2[1] * w2[0]))
+                        try:
+                            angle = (n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2]) \
+                                / sqrt((n1[0] ** 2 + n1[1] ** 2 + n1[2] ** 2) *
+                                       (n2[0] ** 2 + n2[1] ** 2 + n2[2] ** 2))
+                        except ZeroDivisionError:
+                            angle = 0.0
+                        if abs(angle) < ang_thresh:
+                            for i,t in ((i1,t1), (i2,t2)):
+                                # subdivide
+                                x1, y1 = t[0][0], t[0][1]
+                                x2, y2 = t[1][0], t[1][1]
+                                x3, y3 = t[2][0], t[2][1]
+                                x4, y4 = 0.5 * (x1 + x2), 0.5 * (y1 + y2)
+                                x5, y5 = 0.5 * (x2 + x3), 0.5 * (y2 + y3)
+                                x6, y6 = 0.5 * (x1 + x3), 0.5 * (y1 + y3)
+                                needs_removal.add(i)
+                                split_edges.add(
+                                    ((x1, y1), (x2, y2)) if (x2, y2) > (x1, y1)
+                                    else ((x2,y2), (x1,y1)))
+                                split_edges.add(
+                                    ((x2, y2), (x3, y3)) if (x3, y3) > (x2, y2)
+                                    else ((x3,y3), (x2,y2)))
+                                split_edges.add(
+                                    ((x1, y1), (x3, y3)) if (x3, y3) > (x1, y1)
+                                    else ((x3,y3), (x1,y1)))
+                                triangle(x1, y1, x4, y4, x6, y6, depth=depth)
+                                triangle(x2, y2, x4, y4, x5, y5, depth=depth)
+                                triangle(x3, y3, x5, y5, x6, y6, depth=depth)
+                                triangle(x4, y4, x5, y5, x6, y6, depth=depth)
+                # remove subdivided triangles which have been divided
+                triangles = [t for i,t in enumerate(triangles) if i not in needs_removal]
 
             ## fix up subdivided edges
             #
@@ -858,10 +930,14 @@ class _Plot3D(Builtin):
                     y6 = 0.5 * (t[0][1] + t[2][1])
                     v6 = stored.get((x6, y6), 0.5*(t[0][2] + t[2][2]))
 
-                    new_triangles.append(sorted((t[0], (x4, y4, v4), (x6, y6, v6))))
-                    new_triangles.append(sorted((t[1], (x4, y4, v4), (x5, y5, v5))))
-                    new_triangles.append(sorted((t[2], (x5, y5, v5), (x6, y6, v6))))
-                    new_triangles.append(sorted(((x4, y4, v4), (x5, y5, v5), (x6, y6, v6))))
+                    if not (v4 is None or v6 is None):
+                        new_triangles.append(sorted((t[0], (x4, y4, v4), (x6, y6, v6))))
+                    if not (v4 is None or v5 is None):
+                        new_triangles.append(sorted((t[1], (x4, y4, v4), (x5, y5, v5))))
+                    if not (v5 is None or v6 is None):
+                        new_triangles.append(sorted((t[2], (x5, y5, v5), (x6, y6, v6))))
+                    if not (v4 is None or v5 is None or v6 is None):
+                        new_triangles.append(sorted(((x4, y4, v4), (x5, y5, v5), (x6, y6, v6))))
                     triangles[i] = None
 
                 triangles.extend(new_triangles)
