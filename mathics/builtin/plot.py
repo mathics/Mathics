@@ -1016,12 +1016,11 @@ class _Plot3D(Builtin):
                     mesh_points.extend([sorted(g) for k,g in itertools.groupby(mesh_line, lambda x: x[2] is None)])
                 mesh_points = [mesh_line for mesh_line in mesh_points if not any(x[2] is None for x in mesh_line)]
             elif mesh == 'System`All':
+                mesh_points = set([])
                 for t in triangles:
-                    mesh_points = set([])
-                    for t in triangles:
-                        mesh_points.add((t[0], t[1]) if t[1] > t[0] else (t[1], t[0]))
-                        mesh_points.add((t[1], t[2]) if t[2] > t[1] else (t[2], t[1]))
-                        mesh_points.add((t[0], t[2]) if t[2] > t[0] else (t[2], t[0]))
+                    mesh_points.add((t[0], t[1]) if t[1] > t[0] else (t[1], t[0]))
+                    mesh_points.add((t[1], t[2]) if t[2] > t[1] else (t[2], t[1]))
+                    mesh_points.add((t[0], t[2]) if t[2] > t[0] else (t[2], t[0]))
                 mesh_points = list(mesh_points)
 
             # find the max and min height
