@@ -743,6 +743,26 @@ class _Plot3D(Builtin):
             evaluation.message(self.get_name(), 'invpltpts', plotpoints)
             plotpoints = [7, 7]
 
+        # MaxRecursion Option
+        maxrec_option = self.get_option(options, 'MaxRecursion', evaluation)
+        max_depth = maxrec_option.to_python()
+        if isinstance(max_depth, int):
+            if max_depth < 0:
+                max_depth = 0
+                evaluation.message(self.get_name(), 'invmaxrec', max_depth, 15)
+            elif max_depth > 15:
+                max_depth = 15
+                evaluation.message(self.get_name(), 'invmaxrec', max_depth, 15)
+            else:
+                pass    # valid
+        elif max_depth == float('inf'):
+            max_depth = 15
+            evaluation.message(self.get_name(), 'invmaxrec', max_depth, 15)
+        else:
+            max_depth = 0
+            evaluation.message(self.get_name(), 'invmaxrec', max_depth, 15)
+
+        ## Plot the functions
         graphics = []
         for indx, f in enumerate(functions):
             stored = {}
@@ -765,14 +785,12 @@ class _Plot3D(Builtin):
 
             triangles = []
 
-            max_depth = 2   # recusion depth
-
             split_edges = set([])       # subdivided edges
 
             def triangle(x1, y1, x2, y2, x3, y3, depth=0):
                 v1, v2, v3 = eval_f(x1, y1), eval_f(x2, y2), eval_f(x3, y3)
 
-                if (v1 is v2 is v3 is None): # and (depth > max_depth / 2):
+                if (v1 is v2 is v3 is None) and (depth > max_depth / 2):
                     # fast finish because the entire region is undefined but
                     # recurse 'a little' to avoid missing well defined regions
                     return
@@ -1308,6 +1326,23 @@ class Plot3D(_Plot3D):
     #> Plot3D[z, {x, 1, 20}, {y, 1, 10}]
      = -Graphics3D-
 
+    ## MaxRecursion Option
+    #> Plot3D[0, {x, -2, 2}, {y, -2, 2}, MaxRecursion -> 0]
+     = -Graphics3D-
+    #> Plot3D[0, {x, -2, 2}, {y, -2, 2}, MaxRecursion -> 15]
+     = -Graphics3D-
+    #> Plot3D[0, {x, -2, 2}, {y, -2, 2}, MaxRecursion -> 16]
+     : MaxRecursion must be a non-negative integer; the recursion value is limited to 15. Using MaxRecursion -> 15.
+     = -Graphics3D-
+    #> Plot3D[0, {x, -2, 2}, {y, -2, 2}, MaxRecursion -> -1]
+     : MaxRecursion must be a non-negative integer; the recursion value is limited to 15. Using MaxRecursion -> 0.
+     = -Graphics3D-
+    #> Plot3D[0, {x, -2, 2}, {y, -2, 2}, MaxRecursion -> a]
+     : MaxRecursion must be a non-negative integer; the recursion value is limited to 15. Using MaxRecursion -> 0.
+     = -Graphics3D-
+    #> Plot3D[0, {x, -2, 2}, {y, -2, 2}, MaxRecursion -> Infinity]
+     : MaxRecursion must be a non-negative integer; the recursion value is limited to 15. Using MaxRecursion -> 15.
+     = -Graphics3D-
     """
 
     # FIXME: This test passes but the result is 511 lines long !
@@ -1326,6 +1361,7 @@ class Plot3D(_Plot3D):
         'Mesh': 'Full',
         'PlotPoints': 'None',
         'BoxRatios': '{1, 1, 0.4}',
+        'MaxRecursion': '2',
     })
 
     def get_functions_param(self, functions):
