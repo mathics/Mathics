@@ -5,7 +5,7 @@ from mathics.core.expression import Expression, Integer
 from mathics.core.convert import from_sympy
 
 import sympy
-import sympy.mpmath as mpmath
+import mpmath
 
 
 def sympy_factor(expr_sympy):

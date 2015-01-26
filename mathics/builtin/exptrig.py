@@ -11,7 +11,7 @@ rules are not implemented yet.
 from __future__ import with_statement
 
 import sympy
-import sympy.mpmath as mpmath
+import mpmath
 
 from mathics.builtin.base import Builtin, SympyConstant
 from mathics.core.expression import Real, Expression, Integer

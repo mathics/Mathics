@@ -9,7 +9,7 @@ However, things like 'N[Pi, 100]' should work as expected.
 """
 
 import sympy
-import sympy.mpmath as mpmath
+import mpmath
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (dps, prec, convert_base,
