@@ -1431,6 +1431,7 @@ class DensityPlot(_Plot3D):
         'ColorFunction': 'Automatic',
         'ColorFunctionScaling': 'True',
         'PlotPoints': 'None',
+        'MaxRecursion': '2',
     })
 
     def get_functions_param(self, functions):
