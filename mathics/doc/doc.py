@@ -25,7 +25,6 @@ from os import listdir, path
 import pickle
 
 from django.utils.html import escape, linebreaks
-from django.template.defaultfilters import slugify
 from django.utils.safestring import mark_safe
 
 from mathics import settings
@@ -33,6 +32,7 @@ from mathics import settings
 from mathics import builtin
 from mathics.builtin import get_module_doc
 from mathics.core.evaluation import Message, Print
+from mathics.doc.utils import slugify
 
 CHAPTER_RE = re.compile('(?s)<chapter title="(.*?)">(.*?)</chapter>')
 SECTION_RE = re.compile('(?s)(.*?)<section title="(.*?)">(.*?)</section>')
@@ -110,7 +110,10 @@ def filter_comments(doc):
 
 def strip_system_prefix(name):
     if name.startswith('System`'):
-        return name[len('System`'):]
+        stripped_name = name[len('System`'):]
+        # don't return Private`sym for System`Private`sym
+        if '`' not in stripped_name:
+            return stripped_name
     return name
 
 

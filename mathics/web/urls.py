@@ -36,5 +36,5 @@ urlpatterns = patterns(
     ('^(?P<ajax>(?:ajax/)?)doc/(?P<part>[\w-]+)/(?P<chapter>[\w-]+)/$',
      'doc_chapter'),
     ('^(?P<ajax>(?:ajax/)?)doc/(?P<part>[\w-]+)/(?P<chapter>[\w-]+)/'
-     '(?P<section>[\w-]+)/$', 'doc_section'),
+     '(?P<section>[$\w-]+)/$', 'doc_section'),
 )

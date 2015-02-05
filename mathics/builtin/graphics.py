@@ -1842,28 +1842,55 @@ class Orange(_ColorObject):
 
 
 class Automatic(Builtin):
-    # todo: doc
-    pass
+    '''
+    <dl>
+    <dt>'Automatic'
+        <dd>is used to specify an automatically computed option value.
+    </dl>
+
+    'Automatic' is the default for 'PlotRange', 'ImageSize', and other
+    graphical options:
+
+    >> Cases[Options[Plot], _ :> Automatic]
+     = {Exclusions :> Automatic, ImageSize :> Automatic, MaxRecursion :> Automatic, PlotRange :> Automatic, PlotRangePadding :> Automatic}
+    '''
 
 
 class Tiny(Builtin):
-    # todo: doc
-    pass
+    '''
+    <dl>
+    <dt>'ImageSize' -> 'Tiny'
+        <dd>produces a tiny image.
+    </dl>
+    '''
+
 
 
 class Small(Builtin):
-    # todo: doc
-    pass
+    '''
+    <dl>
+    <dt>'ImageSize' -> 'Small'
+        <dd>produces a small image.
+    </dl>
+    '''
 
 
 class Medium(Builtin):
-    # todo: doc
-    pass
+    '''
+    <dl>
+    <dt>'ImageSize' -> 'Medium'
+        <dd>produces a medium-sized image.
+    </dl>
+    '''
 
 
 class Large(Builtin):
-    # todo: doc
-    pass
+    '''
+    <dl>
+    <dt>'ImageSize' -> 'Large'
+        <dd>produces a large image.
+    </dl>
+    '''
 
 
 GLOBALS = system_symbols_dict({

@@ -14,6 +14,13 @@ from mathics.builtin.assignment import get_symbol_list
 
 class Attributes(Builtin):
     u"""
+    <dl>
+    <dt>'Attributes'[$symbol$]
+        <dd>returns the attributes of $symbol$.
+    <dt>'Attributes'[$symbol$] = {$attr1$, $attr2$}
+        <dd>sets the attributes of $symbol$, replacing any existing attributes.
+    </dl>
+
     >> Attributes[Plus]
      = {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected}
     'Attributes' always considers the head of an expression:
@@ -50,9 +57,16 @@ class Attributes(Builtin):
 
 class SetAttributes(Builtin):
     """
+    <dl>
+    <dt>'SetAttributes'[$symbol$, $attrib$]
+        <dd>adds $attrib$ to $symbol$'s attributes.
+    </dl>
+
     >> SetAttributes[f, Flat]
     >> Attributes[f]
      = {Flat}
+
+    Multiple attributes can be set at the same time using lists:
     >> SetAttributes[{f, g}, {Flat, Orderless}]
     >> Attributes[g]
      = {Flat, Orderless}
@@ -82,6 +96,11 @@ class SetAttributes(Builtin):
 
 class ClearAttributes(Builtin):
     """
+    <dl>
+    <dt>'ClearAttributes'[$symbol$, $attrib$]
+        <dd>removes $attrib$ from $symbol$'s attributes.
+    </dl>
+
     >> SetAttributes[f, Flat]
     >> Attributes[f]
      = {Flat}
@@ -118,6 +137,11 @@ class ClearAttributes(Builtin):
 
 class Protect(Builtin):
     """
+    <dl>
+    <dt>'Protect'[$symbol$]
+        <dd>gives $symbol$ the attribute 'Protected'.
+    </dl>
+
     >> A = {1, 2, 3};
     >> Protect[A]
     >> A[[2]] = 4;
@@ -134,6 +158,12 @@ class Protect(Builtin):
 
 
 class Unprotect(Builtin):
+    """
+    <dl>
+    <dt>'Unprotect'[$symbol$]
+        <dd>removes the 'Protected' attribute from $symbol$.
+    </dl>
+    """
 
     attributes = ('HoldAll',)
 
@@ -144,6 +174,12 @@ class Unprotect(Builtin):
 
 class Protected(Predefined):
     """
+    <dl>
+    <dt>'Protected'
+        <dd>is an attribute that prevents values on a symbol from
+        being modified.
+    </dl>
+
     Values of 'Protected' symbols cannot be modified:
     >> Attributes[p] = {Protected};
     >> p = 2;
@@ -179,7 +215,14 @@ class Protected(Predefined):
 
 class ReadProtected(Predefined):
     """
-    Values associated with 'ReadProtected' symbols cannot be read:
+    <dl>
+    <dt>'ReadProtected'
+        <dd>is an attribute that prevents values on a symbol from
+        being read.
+    </dl>
+
+    Values associated with 'ReadProtected' symbols cannot be seen in
+    'Definition':
     >> ClearAll[p]
     >> p = 3;
     >> Definition[p]
@@ -192,6 +235,12 @@ class ReadProtected(Predefined):
 
 class Locked(Predefined):
     """
+    <dl>
+    <dt>'Locked'
+        <dd>is an attribute that prevents attributes on a symbol from
+        being modified.
+    </dl>
+
     The attributes of 'Locked' symbols cannot be modified:
     >> Attributes[lock] = {Flat, Locked};
     >> SetAttributes[lock, {}]
@@ -212,7 +261,19 @@ class Locked(Predefined):
 
 class Flat(Predefined):
     """
+    <dl>
+    <dt>'Flat'
+        <dd>is an attribute that specifies that nested occurrences of
+        a function should be automatically flattened.
+    </dl>
+
+    A symbol with the 'Flat' attribute represents an associative
+    mathematical operation:
     >> SetAttributes[f, Flat]
+    >> f[a, f[b, c]]
+     = f[a, b, c]
+
+    'Flat' is taken into account in pattern matching:
     >> f[a, b, c] /. f[a, b] -> d
      = f[d, c]
 
@@ -243,17 +304,37 @@ class Flat(Predefined):
 
 class Orderless(Predefined):
     """
+    <dl>
+    <dt>'Orderless'
+        <dd>is an attribute indicating that the leaves in an
+        expression f[a, b, c] can be placed in any order.
+    </dl>
+
+    The leaves of an 'Orderless' function are automatically sorted:
     >> SetAttributes[f, Orderless]
     >> f[c, a, b, a + b, 3, 1.0]
      = f[1., 3, a, b, c, a + b]
+
+    A symbol with the 'Orderless' attribute represents a commutative
+    mathematical operation.
+    >> f[a, b] == f[b, a]
+     = True
+
+    'Orderless' affects pattern matching:
     >> SetAttributes[f, Flat]
-    >> f[a, b, c] /. f[a, b] -> d
-     = f[c, d]
+    >> f[a, b, c] /. f[a, c] -> d
+     = f[b, d]
     """
 
 
 class OneIdentity(Predefined):
     """
+    <dl>
+    <dt>'OneIdentity'
+        <dd>is an attribute specifying that $f$[$x$] should be treated
+        as equivalent to $x$ in pattern matching.
+    </dl>
+
     'OneIdentity' affects pattern matching:
     >> SetAttributes[f, OneIdentity]
     >> a /. f[args___] -> {args}
@@ -266,6 +347,12 @@ class OneIdentity(Predefined):
 
 class SequenceHold(Predefined):
     """
+    <dl>
+    <dt>'SequenceHold'
+        <dd>is an attribute that prevents 'Sequence' objects from being
+        spliced into a function's arguments.
+    </dl>
+
     Normally, 'Sequence' will be spliced into a function:
     >> f[Sequence[a, b]]
      = f[a, b]
@@ -284,20 +371,46 @@ class SequenceHold(Predefined):
 
 
 class HoldFirst(Predefined):
-    pass
+    """
+    <dl>
+    <dt>'HoldFirst'
+        <dd>is an attribute specifying that the first argument of a
+        function should be left unevaluated.
+    </dl>
+    """
 
 
 class HoldRest(Predefined):
-    pass
+    """
+    <dl>
+    <dt>'HoldRest'
+        <dd>is an attribute specifying that all but the first argument
+        of a function should be left unevaluated.
+    </dl>
+    """
 
 
 class HoldAll(Predefined):
-    pass
+    """
+    <dl>
+    <dt>'HoldAll'
+        <dd>is an attribute specifying that all arguments of a
+        function should be left unevaluated.
+    </dl>
+    """
 
 
 class HoldAllComplete(Predefined):
     """
-    'HoldAllComplete' even prevents upvalues from being used, and includes 'SequenceHold'.
+    <dl>
+    <dt>'HoldAllComplete'
+        <dd>is an attribute that includes the effects of 'HoldAll' and
+        'SequenceHold', and also protects the function from being
+        affected by the upvalues of any arguments.
+    </dl>
+
+    'HoldAllComplete' even prevents upvalues from being used, and
+    includes 'SequenceHold'.
     >> SetAttributes[f, HoldAllComplete]
     >> f[a] ^= 3;
     >> f[a]
@@ -309,6 +422,12 @@ class HoldAllComplete(Predefined):
 
 class NHoldAll(Predefined):
     """
+    <dl>
+    <dt>'NHoldAll'
+        <dd>is an attribute that protects all arguments of a
+        function from numeric evaluation.
+    </dl>
+
     >> N[f[2, 3]]
      = f[2., 3.]
     >> SetAttributes[f, NHoldAll]
@@ -318,15 +437,33 @@ class NHoldAll(Predefined):
 
 
 class NHoldFirst(Predefined):
-    pass
+    """
+    <dl>
+    <dt>'NHoldFirst'
+        <dd>is an attribute that protects the first argument of a
+        function from numeric evaluation.
+    </dl>
+    """
 
 
 class NHoldRest(Predefined):
-    pass
+    """
+    <dl>
+    <dt>'NHoldRest'
+        <dd>is an attribute that protects all but the first argument
+        of a function from numeric evaluation.
+    </dl>
+    """
 
 
 class Listable(Predefined):
     """
+    <dl>
+    <dt>'Listable'
+        <dd>is an attribute specifying that a function should be
+        automatically applied to each element of a list.
+    </dl>
+
     >> SetAttributes[f, Listable]
     >> f[{1, 2, 3}, {4, 5, 6}]
      = {f[1, 4], f[2, 5], f[3, 6]}
@@ -338,4 +475,19 @@ class Listable(Predefined):
 
 
 class Constant(Predefined):
-    pass
+    """
+    <dl>
+    <dt>'Constant'
+        <dd>is an attribute that indicates that a symbol is a constant.
+    </dl>
+
+    Mathematical constants like 'E' have attribute 'Constant':
+    >> Attributes[E]
+     = {Constant, Protected, ReadProtected}
+
+    Constant symbols cannot be used as variables in 'Solve' and
+    related functions:
+    >> Solve[x + E == 0, E]
+     : E is not a valid variable.
+     = Solve[E + x == 0, E]
+    """

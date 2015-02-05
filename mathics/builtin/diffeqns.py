@@ -13,8 +13,8 @@ from mathics.core.convert import sympy_symbol_prefix, from_sympy
 class DSolve(Builtin):
     """
     <dl>
-    <dt>'DSolve[$eq$, $y[x]$, $x$]'
-        <dd>solves a differential equation for the function $y[x]$.
+    <dt>'DSolve[$eq$, $y$[$x$], $x$]'
+        <dd>solves a differential equation for the function $y$[$x$].
     </dl>
 
     >> DSolve[y''[x] == 0, y[x], x]
@@ -151,6 +151,9 @@ class DSolve(Builtin):
 
 class C(Builtin):
     """
-    'C'[$n$] represents the $n$th constant in a solution to a
-    differential equation.
+    <dl>
+    <dt>'C'[$n$]
+        <dd>represents the $n$th constant in a solution to a
+        differential equation.
+    </dl>
     """
