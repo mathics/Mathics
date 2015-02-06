@@ -469,6 +469,9 @@ class IntegerDigits(Builtin):
 
     #> IntegerDigits[1000, 10]
      = {1, 0, 0, 0}
+
+    #> IntegerDigits[0]
+     = {0}
     """
 
     attributes = ('Listable',)

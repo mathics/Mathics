@@ -178,6 +178,9 @@ def convert_base(x, base, precision=10):
 
 
 def convert_int_to_digit_list(x, base):
+    if x == 0:
+        return [0]
+
     x = abs(x)
 
     length_of_int = int(log(x, base)) + 1
