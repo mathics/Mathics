@@ -106,6 +106,14 @@ class TerminalShell(object):
         return '{1}Out[{2}{0}{3}]= {4}'.format(line_number, *self.outcolors)
 
     def evaluate(self, text):
+        def to_output(text):
+            line_number = self.get_last_line_number()
+            newline = '\n' + ' ' * len('Out[{0}]= '.format(line_number))
+            return newline.join(text.splitlines())
+
+        def out_callback(out):
+            print to_output(unicode(out))
+
         evaluation = Evaluation(text,
                                 self.definitions,
                                 timeout=settings.TIMEOUT,
@@ -167,12 +175,6 @@ class TerminalShell(object):
             matches = [strip_context(m) for m in matches]
         return matches
 
-def to_output(text):
-    return '\n        '.join(text.splitlines())
-
-
-def out_callback(out):
-    print to_output(unicode(out))
 
 # Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/       # nopep8
 
