@@ -19,7 +19,7 @@ u"""
 """
 
 import sympy
-import sympy.mpmath as mpmath
+import mpmath
 import re
 
 from mathics.core.numbers import get_type, dps, prec, min_prec

@@ -17,7 +17,7 @@ def get_version():
     version = {}
 
     import sympy
-    import sympy.mpmath as mpmath
+    import mpmath
 
     from django.core.exceptions import ImproperlyConfigured
 
