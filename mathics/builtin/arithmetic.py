@@ -806,7 +806,7 @@ class Power(BinaryOperator, SympyFunction):
             sym_x, sym_y = x.to_sympy(), y.to_sympy()
 
             try:
-                if sym_y >= 0:
+                if sympy.re(sym_y) >= 0:
                     result = sym_x ** sym_y
                 else:
                     if sym_x == 0:
