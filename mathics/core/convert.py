@@ -300,5 +300,9 @@ def from_sympy(expr):
     elif isinstance(expr, sympy.Equality):
         return Expression('Equal',
                           [from_sympy(arg) for arg in expr.args])
+    elif expr is sympy.true:
+        return Symbol('True')
+    elif expr is sympy.false:
+        return Symbol('False')
     else:
         raise ValueError("Unknown SymPy expression: %s" % expr)
