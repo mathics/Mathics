@@ -4,7 +4,7 @@ python:
   - 2.7
   - pypy
 env:
-  - SYMPY_SRC=sympy-0.7.3
+  - SYMPY_SRC=sympy-0.7.6
 matrix:
     fast_finish: true
     include:
