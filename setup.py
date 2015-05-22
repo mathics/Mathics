@@ -62,7 +62,7 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += ['sympy==0.7.3', 'django >= 1.6, < 1.7', 'ply>=3.6',
-                     'argparse', 'python-dateutil', 'colorama',
+                     'mpmath>=0.17', 'argparse', 'python-dateutil', 'colorama',
                      'interruptingcow']
 
 # if sys.platform == "darwin":
