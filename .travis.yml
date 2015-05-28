@@ -11,9 +11,9 @@ matrix:
       - python: 2.7
         env: SYMPY_SRC=sympy-0.7.3
       - python: 2.7
-        env: SYMPY_SRC=sympy-0.7.5
+        env: SYMPY_SRC=sympy-0.7.4
       - python: 2.7
-        env: SYMPY_SRC=sympy-0.7.6
+        env: SYMPY_SRC=sympy-0.7.5
       - python: 2.7
         env: SYMPY_SRC=master
       - python: 2.7
