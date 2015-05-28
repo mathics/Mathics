@@ -1651,8 +1651,9 @@ class Product(_IterationFunction, SympyFunction):
      = 7420738134810
 
     ## Used to be a bug in sympy, but now it is solved exactly!
-    #> Product[1 + 1 / i ^ 2, {i, Infinity}]
-     = 1 / ((-I)! I!)
+    ## Again a bug in sympy - regressions between 0.7.3 and 0.7.6 (and 0.7.7?)
+    ## #> Product[1 + 1 / i ^ 2, {i, Infinity}]
+    ##  = 1 / ((-I)! I!)
     """
 
     throw_iterb = False
