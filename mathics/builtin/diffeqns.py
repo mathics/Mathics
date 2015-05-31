@@ -120,13 +120,15 @@ class DSolve(Builtin):
 
         try:
             sym_result = sympy.dsolve(sym_eq, sym_func)
-            if not isinstance(sym_result, list):
-                sym_result = [sym_result]
         except ValueError:
             evaluation.message('DSolve', 'symimp')
             return
         except NotImplementedError:
             evaluation.message('DSolve', 'symimp')
+            return
+        except TypeError:
+            # Sympy bug #9446
+            evaluation.message('DSolve', 'litarg', eqn)
             return
         except AttributeError:
             evaluation.message('DSolve', 'litarg', eqn)
@@ -134,6 +136,9 @@ class DSolve(Builtin):
         except KeyError:
             evaluation.message('DSolve', 'litarg', eqn)
             return
+        else:
+            if not isinstance(sym_result, list):
+                sym_result = [sym_result]
 
         if function_form is None:
             return Expression('List', *[
