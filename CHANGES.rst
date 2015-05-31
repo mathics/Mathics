@@ -1,6 +1,27 @@
 CHANGES
 =======
 
+0.8
+---
+
+New features:
+
+- Improvements to 3D Plotting, see #238
+- Enable MathJax menu, see #236
+- Improvements to documentation
+
+Dependency Updates:
+
+- upgrade to sympy 0.7.6
+- upgrade to ply3.6 (new parsetab format, see #246)
+- upgrade to mpmath 0.19
+
+Bug Fixes:
+
+- IntegerDigits[0]
+
+
+
 0.7
 ---
 
