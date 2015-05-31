@@ -816,7 +816,6 @@ class Limit(Builtin):
 
         try:
             result = sympy.limit(expr, x, x0, dir_sympy)
-            return from_sympy(result)
         except sympy.PoleError:
             pass
         except RuntimeError:
@@ -825,6 +824,11 @@ class Limit(Builtin):
             pass
         except NotImplementedError:
             pass
+        except TypeError:
+            # Unknown SymPy0.7.6 bug
+            pass
+        else:
+            return from_sympy(result)
 
 
 class FindRoot(Builtin):
