@@ -8,7 +8,7 @@ There is also a server to use Mathics online at http://www.mathics.net.
 
 Installing
 ----------
-`Here <https://github.com/poeschko/Mathics/wiki/Installing>`_ is short a guide on how to install Mathics on your computer.
+`Here <https://github.com/mathics/Mathics/wiki/Installing>`_ is short a guide on how to install Mathics on your computer.
 
 Contributing
 ------------
