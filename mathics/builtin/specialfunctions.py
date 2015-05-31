@@ -5,7 +5,7 @@ Special functions
 """
 
 import sympy
-import sympy.mpmath as mpmath
+import mpmath
 
 from mathics.builtin.base import Builtin
 from mathics.builtin.arithmetic import _MPMathFunction

@@ -239,6 +239,9 @@ class Eigenvalues(Builtin):
 
     >> Eigenvalues[{{Cos[theta],Sin[theta],0},{-Sin[theta],Cos[theta],0},{0,0,1}}] // Sort
      = {1, Cos[theta] + Sqrt[-1 + Cos[theta] ^ 2], Cos[theta] - Sqrt[-1 + Cos[theta] ^ 2]}
+
+    >> Eigenvalues[{{7, 1}, {-4, 3}}]
+     = {5, 5}
     """
 
     def apply(self, m, evaluation):
@@ -248,12 +251,14 @@ class Eigenvalues(Builtin):
         if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Eigenvalues', 'matsq', m)
         eigenvalues = matrix.eigenvals()
-        eigenvalues = sorted(eigenvalues.iteritems(),
-                             key=lambda (v, c): (abs(v), -v), reverse=True)
-        result = []
-        for val, count in eigenvalues:
-            result.extend([val] * count)
-        return from_sympy(result)
+        try:
+            eigenvalues = sorted(eigenvalues.iteritems(),
+                                 key=lambda (v, c): (abs(v), -v), reverse=True)
+        except TypeError as e:
+            if not str(e).startswith('cannot determine truth value of'):
+                raise e
+            eigenvalues = eigenvalues.items()
+        return from_sympy([v for (v, c) in eigenvalues for _ in xrange(c)])
 
 
 class Eigenvectors(Builtin):

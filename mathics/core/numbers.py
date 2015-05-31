@@ -21,7 +21,7 @@ u"""
 from __future__ import with_statement
 
 import sympy
-import sympy.mpmath as mpmath
+import mpmath
 from math import log
 
 from mathics.core.util import unicode_superscript

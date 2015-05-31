@@ -551,7 +551,7 @@ class Solve(Builtin):
     Solve a system of equations:
     >> eqs = {3 x ^ 2 - 3 y == 0, 3 y ^ 2 - 3 x == 0};
     >> sol = Solve[eqs, {x, y}]
-     = {{x -> 0, y -> 0}, {x -> 1, y -> 1}, {x -> (-1 / 2 - I / 2 Sqrt[3]) ^ 2, y -> -1 / 2 - I / 2 Sqrt[3]}, {x -> (-1 / 2 + I / 2 Sqrt[3]) ^ 2, y -> -1 / 2 + I / 2 Sqrt[3]}}
+     = {{x -> 0, y -> 0}, {x -> 1, y -> 1}, {x -> -1 / 2 + I / 2 Sqrt[3], y -> -1 / 2 - I / 2 Sqrt[3]}, {x -> (1 - I Sqrt[3]) ^ 2 / 4, y -> -1 / 2 + I / 2 Sqrt[3]}}
     >> eqs /. sol // Simplify
      = {{True, True}, {True, True}, {True, True}, {True, True}}
 
@@ -816,7 +816,6 @@ class Limit(Builtin):
 
         try:
             result = sympy.limit(expr, x, x0, dir_sympy)
-            return from_sympy(result)
         except sympy.PoleError:
             pass
         except RuntimeError:
@@ -825,6 +824,11 @@ class Limit(Builtin):
             pass
         except NotImplementedError:
             pass
+        except TypeError:
+            # Unknown SymPy0.7.6 bug
+            pass
+        else:
+            return from_sympy(result)
 
 
 class FindRoot(Builtin):
