@@ -414,61 +414,106 @@ def expr_min(items):
     return result
 
 
-class Max(Builtin):
+class _MinMax(Builtin):
+
+    attributes = ('Flat', 'NumericFunction', 'OneIdentity', 'Orderless')
+
+    def apply(self, items, evaluation):
+        '%(name)s[items___]'
+
+        items = items.flatten(Symbol('List')).get_sequence()
+        results = set([])
+        best = None
+
+        for item in items:
+            if item.has_form('List', None):
+                leaves = item.leaves
+            else:
+                leaves = [item]
+            for leaf in leaves:
+                if best is None:
+                    best = leaf
+                    results.add(best)
+                c = do_cmp(leaf, best)
+                if c is None:
+                    results.add(leaf)
+                elif (self.sense == 1 and c > 0) or (
+                        self.sense == -1 and c < 0):
+                    results.remove(best)
+                    best = leaf
+                    results.add(leaf)
+
+        if not results:
+            return Expression('DirectedInfinity', -self.sense)
+        if len(results) == 1:
+            return results.pop()
+        if len(results) < len(items):
+            # Some simplification was possible because we discarded
+            # elements.
+            return Expression(self.get_name(), *results)
+        # If we get here, no simplification was possible.
+        return None
+
+
+class Max(_MinMax):
     """
+    <dl>
+    <dt>'Max'[$e_1$, $e_2$, ..., $e_i$]
+        <dd>returns the expression with the greatest value among the $e_i$.
+    </dl>
+
+    Maximum of a series of numbers:
     >> Max[4, -8, 1]
      = 4
+
+    'Max' flattens lists in its arguments:
     >> Max[{1,2},3,{-3,3.5,-Infinity},{{1/2}}]
      = 3.5
 
-    #> Max[]
+    'Max' with symbolic arguments remains in symbolic form:
+    >> Max[x, y]
+     = Max[x, y]
+    >> Max[5, x, -3, y, 40]
+     = Max[40, x, y]
+
+    With no arguments, 'Max' gives '-Infinity':
+    >> Max[]
      = -Infinity
+
+    #> Max[x]
+     = x
     """
 
-    attributes = ('Flat', 'NumericFunction', 'OneIdentity', 'Orderless')
-
-    def apply(self, items, evaluation):
-        'Max[items___]'
-
-        items = items.flatten(Symbol('List')).get_sequence()
-        result = Expression('DirectedInfinity', -1)
-        for item in items:
-            if item.has_form('List', None):
-                leaves = item.leaves
-            else:
-                leaves = [item]
-            for leaf in leaves:
-                c = do_cmp(leaf, result)
-                if c > 0:
-                    result = leaf
-        return result
+    sense = 1
 
 
-class Min(Builtin):
+class Min(_MinMax):
     """
+    <dl>
+    <dt>'Min'[$e_1$, $e_2$, ..., $e_i$]
+        <dd>returns the expression with the lowest value among the $e_i$.
+    </dl>
+
+    Minimum of a series of numbers:
     >> Min[4, -8, 1]
      = -8
+
+    'Min' flattens lists in its arguments:
     >> Min[{1,2},3,{-3,3.5,-Infinity},{{1/2}}]
      = -Infinity
 
-    #> Min[]
+    'Min' with symbolic arguments remains in symbolic form:
+    >> Min[x, y]
+     = Min[x, y]
+    >> Min[5, x, -3, y, 40]
+     = Min[-3, x, y]
+
+    With no arguments, 'Min' gives 'Infinity':
+    >> Min[]
      = Infinity
+
+    #> Min[x]
+     = x
     """
 
-    attributes = ('Flat', 'NumericFunction', 'OneIdentity', 'Orderless')
-
-    def apply(self, items, evaluation):
-        'Min[items___]'
-
-        items = items.flatten(Symbol('List')).get_sequence()
-        result = Expression('DirectedInfinity', 1)
-        for item in items:
-            if item.has_form('List', None):
-                leaves = item.leaves
-            else:
-                leaves = [item]
-            for leaf in leaves:
-                c = do_cmp(leaf, result)
-                if c < 0:
-                    result = leaf
-        return result
+    sense = -1
