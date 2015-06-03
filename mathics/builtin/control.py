@@ -160,14 +160,22 @@ class Which(Builtin):
     <dt>'Which[$cond1$, $expr1$, $cond2$, $expr2$, ...]'
         <dd>yields $expr1$ if $cond1$ evaluates to 'True', $expr2$ if $cond2$ evaluates to 'True', etc.
     </dl>
+
     >> n = 5;
     >> Which[n == 3, x, n == 5, y]
      = y
     >> f[x_] := Which[x < 0, -x, x == 0, 0, x > 0, x]
     >> f[-3]
      = 3
+
     If no test yields 'True', 'Which' returns 'Null':
     >> Which[False, a]
+
+    If a test does not evaluate to 'True' or 'False', evaluation stops
+    and a 'Which' expression containing the remaining cases is
+    returned:
+    >> Which[False, a, x, b, True, c]
+     = Which[x, b, True, c]
 
     'Which' must be called with an even number of arguments:
     >> Which[a, b, c]
@@ -181,15 +189,23 @@ class Which(Builtin):
         'Which[items___]'
 
         items = items.get_sequence()
+        nr_items = len(items)
         if len(items) == 1:
             evaluation.message('Which', 'argctu', 'Which')
             return
         elif len(items) % 2 == 1:
             evaluation.message('Which', 'argct', 'Which', len(items))
             return
-        for test, item in zip(items[::2], items[1::2]):
-            if test.evaluate(evaluation).is_true():
+        while items:
+            test, item = items[0], items[1]
+            test_result = test.evaluate(evaluation)
+            if test_result.is_true():
                 return item.evaluate(evaluation)
+            elif test_result.get_name() != 'System`False':
+                if len(items) == nr_items:
+                    return None
+                return Expression('Which', *items)
+            items = items[2:]
         return Symbol('Null')
 
 
