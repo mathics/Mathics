@@ -2,7 +2,7 @@
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
 from mathics.core.expression import (Expression, String, Symbol, Integer,
-                                     strip_context)
+                                     Atom, strip_context)
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
@@ -438,6 +438,9 @@ class Flatten(Builtin):
      = {a, b, c, {e}, e, f, {g, h}}
     >> Flatten[f[a, f[b, f[c, d]], e], Infinity, f]
      = f[a, b, c, d, e]
+
+    >> Flatten[{{a, b}, {c, d}}, {{2}, {1}}]
+     = {{a, c}, {b, d}}
     """
 
     rules = {
@@ -450,6 +453,48 @@ class Flatten(Builtin):
             "Level to be flattened together in `1` "
             "should be a non-negative integer."),
     }
+
+
+    def apply_list(self, expr, n, h, evaluation):
+        'Flatten[expr_, n_List, h_]'
+        levels = n.to_python()
+
+        # count the most number of elements at each level
+        maxdepth = []
+        def _depth_count(expr, i=0):
+            if isinstance(expr, Atom):
+                return
+            try:
+                maxdepth[i] = max(len(expr.leaves), maxdepth[i])
+            except IndexError:
+                maxdepth.append(len(expr.leaves))
+
+            for leaf in expr.leaves:
+                _depth_count(leaf, i + 1)
+        _depth_count(expr)
+
+        # assign new indices to each leaf
+        result = {}
+        def _flatten(expr, depth=[]):
+            if isinstance(expr, Atom):
+                assert len(depth) == len(maxdepth)
+                new_depth = [depth[i[0] - 1] for i in levels]   # TODO len(i) > 1?
+                result[tuple(new_depth)] = expr
+            else:
+                for i, leaf in enumerate(expr.leaves):
+                    _flatten(leaf, depth + [i])
+        _flatten(expr)
+
+        # reconstruct the tree
+        def _reconstruct(depth=[]):
+            if len(depth) == len(maxdepth):
+                return result[depth]
+            leaves = []
+            for i in range(maxdepth[len(depth)]):
+                leaves.append(_reconstruct(tuple(list(depth) + [i])))
+            return Expression('List', *leaves)
+        return _reconstruct()
+
 
     def apply(self, expr, n, h, evaluation):
         'Flatten[expr_, n_, h_]'
