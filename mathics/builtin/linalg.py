@@ -13,6 +13,7 @@ from six.moves import range
 from six.moves import zip
 
 import sympy
+from mpmath import mp
 
 from mathics.builtin.base import Builtin
 from mathics.core.convert import from_sympy
@@ -35,6 +36,22 @@ def to_sympy_matrix(data, **kwargs):
         data = matrix_data(data)
     try:
         return sympy.Matrix(data)
+    except (TypeError, AssertionError, ValueError):
+        return None
+
+def to_mpmath_matrix(data, **kwargs):
+    def mpmath_matrix_data(m):
+        if not m.has_form('List', None):
+            return None
+        if not all(leaf.has_form('List', None) for leaf in m.leaves):
+            return None
+        return [[str(item) for item in row.leaves] for row in m.leaves]
+
+
+    if not isinstance(data, list):
+        data = mpmath_matrix_data(data)
+    try:
+        return mp.matrix(data)
     except (TypeError, AssertionError, ValueError):
         return None
 
@@ -176,7 +193,93 @@ class Inverse(Builtin):
         if matrix.det() == 0:
             return evaluation.message('Inverse', 'sing', m)
         inv = matrix.inv()
-        return from_sympy(inv)
+        return from_sympy(inv) 
+
+
+class SingularValueDecomposition(Builtin):
+    """
+    <dl>
+    <dt>'SingularValueDecomposition[$m$]'
+        <dd>Calculate the singular value decomposition for matrix $m$.
+        Returns $u, s, w$ such that $m=u s v$, $u'u=1$, $v'v=1$, $s$ is diagonal.
+    </dl>
+
+    >> SingularValueDecomposition[{{1, 2}, {2, 3}, {3, 4}}]
+     = {{-11 / 6, -1 / 3, 7 / 6}, {4 / 3, 1 / 3, -2 / 3}}
+
+    >> PseudoInverse[{{1, 2, 0}, {2, 3, 0}, {3, 4, 1}}]
+     = {{-3, 2, 0}, {2, -1, 0}, {1, -2, 1}}
+    """
+
+
+    def apply(self, m, evaluation):
+        'SingularValueDecomposition[m_]'
+
+        matrix = to_mpmath_matrix(m)
+        U, S, V = mp.svd(matrix)
+        S = mp.diag(S)
+        print(U, S, V)
+        U_list = Expression('List', *U.tolist())
+        S_list = Expression('List', *S.tolist())
+        V_list = Expression('List', *V.tolist())
+        return Expression('List', *[U_list, S_list, V_list])
+
+
+class PseudoInverse(Builtin):
+    """
+    <dl>
+    <dt>'PseudoInverse[$m$]'
+        <dd>computes the Moore-Penrose pseudoinverse of the matrix $m$. 
+        If $m$ is invertible, the pseudoinverse equals the inverse.
+    </dl>
+
+    >> PseudoInverse[{{1, 2}, {2, 3}, {3, 4}}]
+     = {{-11 / 6, -1 / 3, 7 / 6}, {4 / 3, 1 / 3, -2 / 3}}
+
+    >> PseudoInverse[{{1, 2, 0}, {2, 3, 0}, {3, 4, 1}}]
+     = {{-3, 2, 0}, {2, -1, 0}, {1, -2, 1}}
+    """
+
+    def apply(self, m, evaluation):
+        'PseudoInverse[m_]'
+
+        matrix = to_sympy_matrix(m)
+        pinv = matrix.pinv()
+        return from_sympy(pinv) 
+
+
+class LeastSquares(Builtin):
+    """
+    <dl>
+    <dt>'LeastSquares[$m$, $b$]'
+        <dd>Compute the least squares solution to $m x = b$. 
+        Finds an x that solves for b optimally.
+    </dl>
+
+    >> LeastSquares[{{1, 2}, {2, 3}, {5, 6}}, {1, 5, 3}]
+     = {{-28 / 13}, {31 / 13}}
+
+    >> Simplify[LeastSquares[{{1, 2}, {2, 3}, {5, 6}}, {1, x, 3}]]
+     = {{12 / 13 - 8 x / 13}, {-4 / 13 + 7 x / 13}}
+
+    """
+
+    messages = {
+        'underdetermined': "Solving for underdetermined system not implemented"
+    }
+
+    def apply(self, m, b, evaluation):
+        'LeastSquares[m_, b_]'
+
+        matrix = to_sympy_matrix(m)
+        b_vector = to_sympy_matrix([el.to_sympy() for el in b.leaves])
+
+        try:
+            solution = matrix.solve_least_squares(b_vector) # default method = Cholesky
+        except NotImplementedError as e:
+            return evaluation.message('LeastSquares', 'underdetermined')
+
+        return from_sympy(solution) 
 
 
 class LinearSolve(Builtin):
