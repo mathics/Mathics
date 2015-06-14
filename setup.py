@@ -62,8 +62,12 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.6, < 1.7', 'ply>=3.6',
-                     'mpmath>=0.19', 'argparse', 'python-dateutil', 'colorama',
+                     'mpmath>=0.19', 'python-dateutil', 'colorama',
                      'interruptingcow']
+
+if sys.version_info < (2, 7):
+    # Python 2.6 support: argparse part of stdlib since 2.7
+    INSTALL_REQUIRES += ['argparse']
 
 # if sys.platform == "darwin":
 #    INSTALL_REQUIRES += ['readline']
