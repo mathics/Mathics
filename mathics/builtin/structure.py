@@ -441,6 +441,22 @@ class Flatten(Builtin):
 
     >> Flatten[{{a, b}, {c, d}}, {{2}, {1}}]
      = {{a, c}, {b, d}}
+
+    >> Flatten[{{a, b}, {c, d}}, {{1, 2}}]
+     = {a, b, c, d}
+
+    Flatten also works in irregularly shaped arrays
+    >> Flatten[{{1, 2, 3}, {4}, {6, 7}, {8, 9, 10}}, {{2}, {1}}]
+     = {{1, 4, 6, 8}, {2, 7, 9}, {3, 10}}
+
+    #> Flatten[{{{111, 112, 113}, {121, 122}}, {{211, 212}, {221, 222, 223}}}, {{3}, {1}, {2}}]
+     = {{{111, 121}, {211, 221}}, {{112, 122}, {212, 222}}, {{113}, {223}}}
+
+    #> Flatten[{{{1, 2, 3}, {4, 5}}, {{6, 7}, {8, 9,  10}}}, {{3}, {1}, {2}}]
+     = {{{1, 4}, {6, 8}}, {{2, 5}, {7, 9}}, {{3}, {10}}}
+
+    #> Flatten[{{{1, 2, 3}, {4, 5}}, {{6, 7}, {8, 9, 10}}}, {{2}, {1, 3}}]
+     = {{1, 2, 3, 6, 7}, {4, 5, 8, 9, 10}}
     """
 
     rules = {
@@ -459,7 +475,7 @@ class Flatten(Builtin):
         'Flatten[expr_, n_List, h_]'
         levels = n.to_python()
 
-        # count the most number of elements at each level
+        ## count the most number of elements at each level
         maxdepth = []
         def _depth_count(expr, i=0):
             if isinstance(expr, Atom):
@@ -473,28 +489,43 @@ class Flatten(Builtin):
                 _depth_count(leaf, i + 1)
         _depth_count(expr)
 
-        # assign new indices to each leaf
-        result = {}
+        ## assign new indices to each leaf
+        new_indices = {}
         def _flatten(expr, depth=[]):
             if isinstance(expr, Atom):
                 assert len(depth) == len(maxdepth)
-                new_depth = [depth[i[0] - 1] for i in levels]   # TODO len(i) > 1?
-                result[tuple(new_depth)] = expr
+                new_depth = tuple(tuple(depth[i - 1] for i in level) for level in levels)
+                new_indices[new_depth] = expr
             else:
                 for i, leaf in enumerate(expr.leaves):
                     _flatten(leaf, depth + [i])
         _flatten(expr)
 
-        # reconstruct the tree
-        def _reconstruct(depth=[]):
-            if len(depth) == len(maxdepth):
-                return result[depth]
-            leaves = []
-            for i in range(maxdepth[len(depth)]):
-                leaves.append(_reconstruct(tuple(list(depth) + [i])))
-            return Expression('List', *leaves)
-        return _reconstruct()
-
+        ## insert the leaves into a new tree
+        result = Expression(h)
+        def insert_leaf(expr, leaves):
+            # gather leaves into groups with the same leading index
+            # e.g. [((0, 0), a), ((0, 1), b), ((1, 0), c), ((1, 1), d)] -> [[(0, a), (1, b)], [(0, c), (1, d)]]
+            leaves.sort()
+            leading_index = None
+            grouped_leaves = []
+            for index, leaf in leaves:
+                if index[0] == leading_index:
+                    grouped_leaves[-1].append((index[1:], leaf))
+                else:
+                    leading_index = index[0]
+                    grouped_leaves.append([(index[1:], leaf)])
+            # for each group of leaves we either insert them into the current level
+            # or make a new level and recurse
+            for group in grouped_leaves:
+                if len(group[0][0]) == 0:   # bottom level leaf
+                    assert len(group) == 1
+                    expr.leaves.append(group[0][1])
+                else:
+                    expr.leaves.append(Expression(h))
+                    insert_leaf(expr.leaves[-1], group)
+        insert_leaf(result, new_indices.items())
+        return result
 
     def apply(self, expr, n, h, evaluation):
         'Flatten[expr_, n_, h_]'
