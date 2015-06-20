@@ -466,8 +466,23 @@ class Flatten(Builtin):
      = Flatten[{{1, 2}, {3, 4}}, {{-1, 2}}, List]
 
     #> Flatten[{a, b}, {{1}, {2}}]
-     : Level 2 specified in {{1}, {2}} exceeds the levels, 1, which can be flattened together in {a, b}
+     : Level 2 specified in {{1}, {2}} exceeds the levels, 1, which can be flattened together in {a, b}.
      = Flatten[{a, b}, {{1}, {2}}, List]
+
+    ## #251 tests
+    #> m = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+    #> Flatten[m, {1}]
+     = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}
+
+    #> Flatten[m, {2}]
+     = {{1, 4, 7}, {2, 5, 8}, {3, 6, 9}}
+
+    #> Flatten[m, {3}]
+     : Level 3 specified in {3} exceeds the levels, 2, which can be flattened together in {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}.
+     = Flatten[{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}, {3}, List]
+
+    #> Flatten[m, {2, 1}]
+     = {1, 4, 7, 2, 5, 8, 3, 6, 9}
     """
 
     rules = {
@@ -483,7 +498,7 @@ class Flatten(Builtin):
             "Level `1` specified in `2` should not be repeated."),
         'fldep': (
             "Level `1` specified in `2` exceeds the levels, `3`, "
-            "which can be flattened together in `4`"),
+            "which can be flattened together in `4`."),
     }
 
     @staticmethod
