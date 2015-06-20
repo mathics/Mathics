@@ -469,6 +469,20 @@ class Flatten(Builtin):
      : Level 2 specified in {{1}, {2}} exceeds the levels, 1, which can be flattened together in {a, b}.
      = Flatten[{a, b}, {{1}, {2}}, List]
 
+    ## Check `n` completion
+    #> m = {{{1, 2}, {3}}, {{4}, {5, 6}}};
+    #> Flatten[m, {2}]
+     = {{{1, 2}, {4}}, {{3}, {5, 6}}}
+    #> Flatten[m, {{2}}]
+     = {{{1, 2}, {4}}, {{3}, {5, 6}}}
+    #> Flatten[m, {{2}, {1}}]
+     = {{{1, 2}, {4}}, {{3}, {5, 6}}}
+    #> Flatten[m, {{2}, {1}, {3}}]
+     = {{{1, 2}, {4}}, {{3}, {5, 6}}}
+    #> Flatten[m, {{2}, {1}, {3}, {4}}]
+     : Level 4 specified in {{2}, {1}, {3}, {4}} exceeds the levels, 3, which can be flattened together in {{{1, 2}, {3}}, {{4}, {5, 6}}}.
+     = Flatten[{{{1, 2}, {3}}, {{4}, {5, 6}}}, {{2}, {1}, {3}, {4}}, List]
+
     ## #251 tests
     #> m = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
     #> Flatten[m, {1}]
