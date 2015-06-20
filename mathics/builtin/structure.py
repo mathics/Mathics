@@ -457,6 +457,17 @@ class Flatten(Builtin):
 
     #> Flatten[{{{1, 2, 3}, {4, 5}}, {{6, 7}, {8, 9, 10}}}, {{2}, {1, 3}}]
      = {{1, 2, 3, 6, 7}, {4, 5, 8, 9, 10}}
+
+    #> Flatten[{{1, 2}, {3,4}}, {1, 2}]
+     = {1, 2, 3, 4}
+
+    #> Flatten[{{1, 2}, {3, 4}}, {{-1, 2}}]
+     : Levels to be flattened together in {{-1, 2}} should be lists of positive integers.
+     = Flatten[{{1, 2}, {3, 4}}, {{-1, 2}}, List]
+
+    #> Flatten[{a, b}, {{1}, {2}}]
+     : Level 2 specified in {{1}, {2}} exceeds the levels, 1, which can be flattened together in {a, b}
+     = Flatten[{a, b}, {{1}, {2}}, List]
     """
 
     rules = {
@@ -466,14 +477,66 @@ class Flatten(Builtin):
 
     messages = {
         'flpi': (
-            "Level to be flattened together in `1` "
-            "should be a non-negative integer."),
+            "Levels to be flattened together in `1` "
+            "should be lists of positive integers."),
+        'flrep': (
+            "Level `1` specified in `2` should not be repeated."),
+        'fldep': (
+            "Level `1` specified in `2` exceeds the levels, `3`, "
+            "which can be flattened together in `4`"),
     }
+
+    @staticmethod
+    def _verify_levels_list(n, expr, evaluation):
+        '''
+        checks that n is a list of lists of valid levels e.g. {{1,2}, {3}}
+        '''
+        expr, max_depth = walk_levels(expr)
+        levels = n.to_python()
+
+        # mappings
+        if isinstance(levels, list) and all(isinstance(level, int) for level in levels):
+            levels = [levels]
+
+        # verify
+        if not (isinstance(levels, list) and len(levels) > 0):
+            evaluation.message('Flatten', 'flpi', n)
+            return
+        seen_levels = []
+        for level in levels:
+            if not (isinstance(level, list) and len(level) > 0):
+                evaluation.message('Flatten', 'flpi', n)
+                return
+            for l in level:
+                if not (isinstance(l, int) and l > 0):
+                    evaluation.message('Flatten', 'flpi', n)
+                    return
+                if l in seen_levels:
+                    # level repeated
+                    evaluation.message('Flatten', 'flrep', l)
+                    return
+                seen_levels.append(l)
+
+        # complete the level spec e.g. {{2}} -> {{2}, {1}, {3}}
+        for l in range(1, max_depth + 1):
+            if l not in seen_levels:
+                levels.append([l])
+
+        # verify max depth
+        for level in levels:
+            for l in level:
+                if l > max_depth:
+                    evaluation.message('Flatten', 'fldep', l, n, max_depth, expr)
+                    return
+        return levels
 
 
     def apply_list(self, expr, n, h, evaluation):
         'Flatten[expr_, n_List, h_]'
-        levels = n.to_python()
+
+        levels = self._verify_levels_list(n, expr, evaluation)
+        if levels is None:
+            return
 
         ## count the most number of elements at each level
         maxdepth = []
