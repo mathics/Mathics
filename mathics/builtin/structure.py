@@ -2,7 +2,7 @@
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
 from mathics.core.expression import (Expression, String, Symbol, Integer,
-                                     Atom, strip_context)
+                                     strip_context)
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
@@ -487,14 +487,11 @@ class Flatten(Builtin):
     #> m = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
     #> Flatten[m, {1}]
      = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}
-
     #> Flatten[m, {2}]
      = {{1, 4, 7}, {2, 5, 8}, {3, 6, 9}}
-
     #> Flatten[m, {3}]
      : Level 3 specified in {3} exceeds the levels, 2, which can be flattened together in {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}.
      = Flatten[{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}, {3}, List]
-
     #> Flatten[m, {2, 1}]
      = {1, 4, 7, 2, 5, 8, 3, 6, 9}
     """
@@ -559,7 +556,6 @@ class Flatten(Builtin):
                     return
         return levels
 
-
     def apply_list(self, expr, n, h, evaluation):
         'Flatten[expr_, n_List, h_]'
 
@@ -567,38 +563,25 @@ class Flatten(Builtin):
         if levels is None:
             return
 
-        ## count the most number of elements at each level
-        maxdepth = []
-        def _depth_count(expr, i=0):
-            if isinstance(expr, Atom):
-                return
-            try:
-                maxdepth[i] = max(len(expr.leaves), maxdepth[i])
-            except IndexError:
-                maxdepth.append(len(expr.leaves))
-
-            for leaf in expr.leaves:
-                _depth_count(leaf, i + 1)
-        _depth_count(expr)
-
         ## assign new indices to each leaf
         new_indices = {}
-        def _flatten(expr, depth=[]):
-            if isinstance(expr, Atom):
-                assert len(depth) == len(maxdepth)
-                new_depth = tuple(tuple(depth[i - 1] for i in level) for level in levels)
-                new_indices[new_depth] = expr
-            else:
-                for i, leaf in enumerate(expr.leaves):
-                    _flatten(leaf, depth + [i])
-        _flatten(expr)
 
-        ## insert the leaves into a new tree
+        def callback(expr, pos):
+            if expr.is_atom():
+                new_depth = tuple(tuple(pos[i - 1] for i in level) for level in levels)
+                new_indices[new_depth] = expr
+            return expr
+        expr, depth = walk_levels(expr, callback=callback, include_pos=True)
+
+        ## build new tree inserting nodes as needed
         result = Expression(h)
+        leaves = new_indices.items()
+        leaves.sort()
+
         def insert_leaf(expr, leaves):
             # gather leaves into groups with the same leading index
-            # e.g. [((0, 0), a), ((0, 1), b), ((1, 0), c), ((1, 1), d)] -> [[(0, a), (1, b)], [(0, c), (1, d)]]
-            leaves.sort()
+            # e.g. [((0, 0), a), ((0, 1), b), ((1, 0), c), ((1, 1), d)]
+            # -> [[(0, a), (1, b)], [(0, c), (1, d)]]
             leading_index = None
             grouped_leaves = []
             for index, leaf in leaves:
@@ -616,7 +599,7 @@ class Flatten(Builtin):
                 else:
                     expr.leaves.append(Expression(h))
                     insert_leaf(expr.leaves[-1], group)
-        insert_leaf(result, new_indices.items())
+        insert_leaf(result, leaves)
         return result
 
     def apply(self, expr, n, h, evaluation):
