@@ -494,6 +494,14 @@ class Flatten(Builtin):
      = Flatten[{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}, {3}, List]
     #> Flatten[m, {2, 1}]
      = {1, 4, 7, 2, 5, 8, 3, 6, 9}
+
+    ## Reproduce strange head behaviour
+    #> Flatten[{{1}, 2}, {1, 2}]
+     : Level 2 specified in {1, 2} exceeds the levels, 1, which can be flattened together in {{1}, 2}.
+     = Flatten[{{1}, 2}, {1, 2}, List]
+    #> Flatten[a[b[1, 2], b[3]], {1, 2}, b]     (* MMA BUG: {{1, 2}} not {1, 2}  *)
+     : Level 1 specified in {1, 2} exceeds the levels, 0, which can be flattened together in a[b[1, 2], b[3]].
+     = Flatten[a[b[1, 2], b[3]], {1, 2}, b]
     """
 
     rules = {
@@ -513,11 +521,21 @@ class Flatten(Builtin):
     }
 
     @staticmethod
-    def _verify_levels_list(n, expr, evaluation):
+    def _verify_levels_list(expr, n, h, evaluation):
         '''
         checks that n is a list of lists of valid levels e.g. {{1,2}, {3}}
         '''
+        # find max depth which matches `h`
         expr, max_depth = walk_levels(expr)
+        max_depth = {'max_depth': max_depth}    # hack to modify max_depth from callback
+
+        def callback(expr, pos):
+            if len(pos) < max_depth['max_depth'] and (expr.is_atom() or expr.head != h):
+                max_depth['max_depth'] = len(pos)
+            return expr
+        expr, depth = walk_levels(expr, callback=callback, include_pos=True, start=0)
+        max_depth = max_depth['max_depth']
+
         levels = n.to_python()
 
         # mappings
@@ -559,7 +577,7 @@ class Flatten(Builtin):
     def apply_list(self, expr, n, h, evaluation):
         'Flatten[expr_, n_List, h_]'
 
-        levels = self._verify_levels_list(n, expr, evaluation)
+        levels = self._verify_levels_list(expr, n, h, evaluation)
         if levels is None:
             return
 
