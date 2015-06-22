@@ -502,6 +502,12 @@ class Flatten(Builtin):
     #> Flatten[a[b[1, 2], b[3]], {1, 2}, b]     (* MMA BUG: {{1, 2}} not {1, 2}  *)
      : Level 1 specified in {1, 2} exceeds the levels, 0, which can be flattened together in a[b[1, 2], b[3]].
      = Flatten[a[b[1, 2], b[3]], {1, 2}, b]
+
+    #> Flatten[{{1, 2}, {3, {4}}}, {{1, 2}}]
+     = {1, 2, 3, {4}}
+    #> Flatten[{{1, 2}, {3, {4}}}, {{1, 2, 3}}]
+     : Level 3 specified in {{1, 2, 3}} exceeds the levels, 2, which can be flattened together in {{1, 2}, {3, {4}}}.
+     = Flatten[{{1, 2}, {3, {4}}}, {{1, 2, 3}}, List]
     """
 
     rules = {
@@ -520,11 +526,10 @@ class Flatten(Builtin):
             "which can be flattened together in `4`."),
     }
 
-    @staticmethod
-    def _verify_levels_list(expr, n, h, evaluation):
-        '''
-        checks that n is a list of lists of valid levels e.g. {{1,2}, {3}}
-        '''
+    def apply_list(self, expr, n, h, evaluation):
+        'Flatten[expr_, n_List, h_]'
+
+        ## prepare levels
         # find max depth which matches `h`
         expr, max_depth = walk_levels(expr)
         max_depth = {'max_depth': max_depth}    # hack to modify max_depth from callback
@@ -542,7 +547,7 @@ class Flatten(Builtin):
         if isinstance(levels, list) and all(isinstance(level, int) for level in levels):
             levels = [levels]
 
-        # verify
+        # verify levels is list of lists of positive ints
         if not (isinstance(levels, list) and len(levels) > 0):
             evaluation.message('Flatten', 'flpi', n)
             return
@@ -566,26 +571,18 @@ class Flatten(Builtin):
             if l not in seen_levels:
                 levels.append([l])
 
-        # verify max depth
+        # verify specified levels are smaller max depth
         for level in levels:
             for l in level:
                 if l > max_depth:
                     evaluation.message('Flatten', 'fldep', l, n, max_depth, expr)
                     return
-        return levels
-
-    def apply_list(self, expr, n, h, evaluation):
-        'Flatten[expr_, n_List, h_]'
-
-        levels = self._verify_levels_list(expr, n, h, evaluation)
-        if levels is None:
-            return
 
         ## assign new indices to each leaf
         new_indices = {}
 
         def callback(expr, pos):
-            if expr.is_atom():
+            if len(pos) == max_depth:
                 new_depth = tuple(tuple(pos[i - 1] for i in level) for level in levels)
                 new_indices[new_depth] = expr
             return expr
