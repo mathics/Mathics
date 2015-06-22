@@ -27,8 +27,8 @@ import sys
 from setuptools import setup, Command, Extension
 
 # Ensure user has the correct Python version
-if not (2, 6) <= sys.version_info[:2] <= (2, 7):
-    print("Mathics supports Python 2.6 upto Python 2.7. \
+if sys.version_info[:2] != (2, 7):
+    print("Mathics supports Python 2.7. \
 Python %d.%d detected" % sys.version_info[:2])
     sys.exit(-1)
 
@@ -64,10 +64,6 @@ else:
 INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.8, < 1.9', 'ply>=3.6',
                      'mpmath>=0.19', 'python-dateutil', 'colorama',
                      'interruptingcow']
-
-if sys.version_info < (2, 7):
-    # Python 2.6 support: argparse part of stdlib since 2.7
-    INSTALL_REQUIRES += ['argparse']
 
 # if sys.platform == "darwin":
 #    INSTALL_REQUIRES += ['readline']
@@ -136,11 +132,7 @@ class test(Command):
         pass
 
     def run(self):
-        if sys.version_info[:2] == (2, 7):
-            import unittest
-        else:
-            import unittest2 as unittest
-
+        import unittest
         test_loader = unittest.defaultTestLoader
         test_runner = unittest.TextTestRunner(verbosity=3)
         test_suite = test_loader.discover('test/')

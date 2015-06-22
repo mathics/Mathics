@@ -165,12 +165,9 @@ class RegisterImport(Builtin):
             # TODO: Message
             return Symbol('$Failed')
 
-        # Does not work in python <= 2.6
-        # conditionals = {elem.get_string_value(): expr for [elem, expr] in
-        # [x.get_leaves() for x in leaves[:-1]]}
-        conditionals = dict(
-            (elem.get_string_value(), expr)
-            for (elem, expr) in (x.get_leaves() for x in leaves[:-1]))
+        conditionals = {
+            elem.get_string_value(): expr for (elem, expr) in
+            (x.get_leaves() for x in leaves[:-1])}
         default = leaves[-1]
         posts = {}
 
