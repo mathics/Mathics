@@ -2012,3 +2012,113 @@ class Complement(Builtin):
                                              evaluation, same_test))
         result.sort()
         return result
+
+class Fold(Builtin):
+    """
+    <dl>
+    <dt>'Fold[$expr$, $x$, $list$]'
+        <dd>Expression on all elements of list, with initial value of x.
+    <dt>'Fold[$expr$, $list$]'
+        <dd>The same as Fold[$expr$, First[list], Rest[list]]
+    </dl>
+
+    >> Fold[Plus, 5, {1, 1, 1}]
+     = 8
+    >> Fold[f, 5, {1, 2, 3}]
+     = f[f[f[5, 1], 2], 3]
+    """
+
+    attributes = ('NHoldRest',)
+
+    rules = {
+        'Fold[exp_, x_, list_List]': 'Module[{},res=x; Do[res = exp[res, list[[i]]], {i, 1, Length[list]}]; res]',
+        'Fold[exp_, list_List]': u'Fold[exp, First[list], Rest[list]]',
+    }
+
+
+class FoldList(Builtin):
+    """
+    <dl>
+    <dt>'FoldList[$expr$, $x$, $list$]'
+        <dd>
+            Apply expr successive on all elements of list, and return list, where $x$ is the first element.
+        </dd>
+    </dt>
+    <dt>FoldList[$expr$, $list$]'
+        <dd>
+            The same as FoldList[$expr$, First[list], Rest[list]].
+        </dd>
+        </dt>
+    </dl>
+    >> FoldList[f, x, {1, 2, 3}]
+     = {x, f[x, 1], f[f[x, 1], 2], f[f[f[x, 1], 2], 3]}
+    >> FoldList[Times, {1, 2, 3}]
+     = {1, 2, 6}
+    """
+
+    rules = {
+        'FoldList[exp_, x_, list_List]': 'Prepend[Table[Fold[exp, x, Take[list, i]], {i, 1, Length[list]}], x]',
+        'FoldList[exp_, list_List]': 'FoldList[exp, First[list], Rest[list]]',
+    }
+
+
+class Accumulate(Builtin):
+    """
+    <dl>
+    <dt>'Accumulate[$list$]'
+        <dd>
+        Accumulate values from list and return new list
+        </dd>
+        </dt>
+    </dl>
+    >> Accumulate[{1, 2, 3}]
+     = {1, 3, 6}
+    """
+
+    rules = {
+        'Accumulate[list_List]': 'FoldList[Plus, list]'
+    }
+
+
+class Total(Builtin):
+    """
+    <dl>
+    <dt>'Total[$list$]'
+        <dd>
+        Add all values up to calculate total
+        Equivalent to Fold[Plus, $list$] or Apply[Plus, $list$]
+        </dd>
+    </dt>
+    <dt>'Total[$list$, $n$]'
+        <dd>
+            Total all values up to level $n$
+        </dd>
+    </dt>
+    <dt>'Total[$list$, ${n}$]'
+        <dd>
+            Total at level ${n}$
+        </dd>
+    </dt>
+    <dt>'Total[$list$, ${n_1, n_2}$]'
+        <dd>
+            Total at levels ${n_1, n_2}$
+        </dd>
+    </dt>
+    </dl>
+    >> Total[{1, 2, 3}]
+     = 6
+    >> Total[{{1, 2, 3}, {4, 5, 6}, {7, 8 ,9}}]
+     = {12, 15, 18}
+
+    Total over rows and columns
+    >> Total[{{1, 2, 3}, {4, 5, 6}, {7, 8 ,9}}, 2]
+     = 45
+
+    Total over rows instead of columns
+    >> Total[{{1, 2, 3}, {4, 5, 6}, {7, 8 ,9}}, {2}]
+     = {6, 15, 24}
+    """
+    rules = {
+        'Total[list_List]': 'Fold[Plus, list]',
+        'Total[list_List, n_]': 'Fold[Plus, Flatten[list, n]]'
+    }
