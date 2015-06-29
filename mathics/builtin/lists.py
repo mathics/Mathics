@@ -283,10 +283,18 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
                         return False
             if len(index.leaves) > 2:
                 step = index.leaves[2].get_int_value()
+
+            if start == 0 or stop == 0:
+                # index 0 is undefined
+                evaluation.message('Part', 'span', 0)
+                return False
+
             if start is None or step is None:
                 evaluation.message('Part', 'span', index)
                 return False
-            start, stop = python_seq(start, stop)
+
+            start, stop = python_seq(start, stop, step)
+
             for inner in inner_list:
                 if inner.is_atom():
                     evaluation.message('Part', 'partd')
@@ -540,14 +548,31 @@ class LevelQ(Test):
             return False
 
 
-def python_seq(start, stop):
-    if start > 0:
-        start -= 1
-    if stop is not None and stop < 0:
-        stop += 1
-        if stop == 0:
+def python_seq(start, stop, step=+1):
+    if not step: step = +1
+    if step == +1:
+        if start > 0:
+            start -= 1
+        if stop is not None and stop < 0:
+            stop += 1
+            if stop == 0:
+                stop = None
+        return start, stop
+    else:
+        if stop and stop > 0:
+            stop -= 2
+        elif stop and stop < 0:
+            stop -= 1
+        if start and start > 0:
+            start -= 1
+        if not start:
+            start = None
+        if stop == -1:
             stop = None
-    return start, stop
+        elif stop == None:
+            # No stop equals len(list)!
+            stop = -1
+        return start, stop
 
 
 def convert_seq(seq):
@@ -978,7 +1003,7 @@ class Take(Builtin):
                 evaluation.message('Take', 'seqs', seq)
                 return
             start, stop, step = seq_tuple
-            py_start, py_stop = python_seq(start, stop)
+            py_start, py_stop = python_seq(start, stop, step)
             for inner in inner_list:
                 if (inner.is_atom() or      # noqa
                     abs(start) > len(inner.leaves) or
@@ -1029,7 +1054,7 @@ class Drop(Builtin):
                 evaluation.message('Drop', 'seqs', seq)
                 return
             start, stop, step = seq_tuple
-            py_start, py_stop = python_seq(start, stop)
+            py_start, py_stop = python_seq(start, stop, step)
             for inner in inner_list:
                 if (inner.is_atom() or  # noqa
                     abs(start) > len(inner.leaves) or
