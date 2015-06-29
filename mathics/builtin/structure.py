@@ -438,6 +438,76 @@ class Flatten(Builtin):
      = {a, b, c, {e}, e, f, {g, h}}
     >> Flatten[f[a, f[b, f[c, d]], e], Infinity, f]
      = f[a, b, c, d, e]
+
+    >> Flatten[{{a, b}, {c, d}}, {{2}, {1}}]
+     = {{a, c}, {b, d}}
+
+    >> Flatten[{{a, b}, {c, d}}, {{1, 2}}]
+     = {a, b, c, d}
+
+    Flatten also works in irregularly shaped arrays
+    >> Flatten[{{1, 2, 3}, {4}, {6, 7}, {8, 9, 10}}, {{2}, {1}}]
+     = {{1, 4, 6, 8}, {2, 7, 9}, {3, 10}}
+
+    #> Flatten[{{{111, 112, 113}, {121, 122}}, {{211, 212}, {221, 222, 223}}}, {{3}, {1}, {2}}]
+     = {{{111, 121}, {211, 221}}, {{112, 122}, {212, 222}}, {{113}, {223}}}
+
+    #> Flatten[{{{1, 2, 3}, {4, 5}}, {{6, 7}, {8, 9,  10}}}, {{3}, {1}, {2}}]
+     = {{{1, 4}, {6, 8}}, {{2, 5}, {7, 9}}, {{3}, {10}}}
+
+    #> Flatten[{{{1, 2, 3}, {4, 5}}, {{6, 7}, {8, 9, 10}}}, {{2}, {1, 3}}]
+     = {{1, 2, 3, 6, 7}, {4, 5, 8, 9, 10}}
+
+    #> Flatten[{{1, 2}, {3,4}}, {1, 2}]
+     = {1, 2, 3, 4}
+
+    #> Flatten[{{1, 2}, {3, 4}}, {{-1, 2}}]
+     : Levels to be flattened together in {{-1, 2}} should be lists of positive integers.
+     = Flatten[{{1, 2}, {3, 4}}, {{-1, 2}}, List]
+
+    #> Flatten[{a, b}, {{1}, {2}}]
+     : Level 2 specified in {{1}, {2}} exceeds the levels, 1, which can be flattened together in {a, b}.
+     = Flatten[{a, b}, {{1}, {2}}, List]
+
+    ## Check `n` completion
+    #> m = {{{1, 2}, {3}}, {{4}, {5, 6}}};
+    #> Flatten[m, {2}]
+     = {{{1, 2}, {4}}, {{3}, {5, 6}}}
+    #> Flatten[m, {{2}}]
+     = {{{1, 2}, {4}}, {{3}, {5, 6}}}
+    #> Flatten[m, {{2}, {1}}]
+     = {{{1, 2}, {4}}, {{3}, {5, 6}}}
+    #> Flatten[m, {{2}, {1}, {3}}]
+     = {{{1, 2}, {4}}, {{3}, {5, 6}}}
+    #> Flatten[m, {{2}, {1}, {3}, {4}}]
+     : Level 4 specified in {{2}, {1}, {3}, {4}} exceeds the levels, 3, which can be flattened together in {{{1, 2}, {3}}, {{4}, {5, 6}}}.
+     = Flatten[{{{1, 2}, {3}}, {{4}, {5, 6}}}, {{2}, {1}, {3}, {4}}, List]
+
+    ## #251 tests
+    #> m = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+    #> Flatten[m, {1}]
+     = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}
+    #> Flatten[m, {2}]
+     = {{1, 4, 7}, {2, 5, 8}, {3, 6, 9}}
+    #> Flatten[m, {3}]
+     : Level 3 specified in {3} exceeds the levels, 2, which can be flattened together in {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}.
+     = Flatten[{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}, {3}, List]
+    #> Flatten[m, {2, 1}]
+     = {1, 4, 7, 2, 5, 8, 3, 6, 9}
+
+    ## Reproduce strange head behaviour
+    #> Flatten[{{1}, 2}, {1, 2}]
+     : Level 2 specified in {1, 2} exceeds the levels, 1, which can be flattened together in {{1}, 2}.
+     = Flatten[{{1}, 2}, {1, 2}, List]
+    #> Flatten[a[b[1, 2], b[3]], {1, 2}, b]     (* MMA BUG: {{1, 2}} not {1, 2}  *)
+     : Level 1 specified in {1, 2} exceeds the levels, 0, which can be flattened together in a[b[1, 2], b[3]].
+     = Flatten[a[b[1, 2], b[3]], {1, 2}, b]
+
+    #> Flatten[{{1, 2}, {3, {4}}}, {{1, 2}}]
+     = {1, 2, 3, {4}}
+    #> Flatten[{{1, 2}, {3, {4}}}, {{1, 2, 3}}]
+     : Level 3 specified in {{1, 2, 3}} exceeds the levels, 2, which can be flattened together in {{1, 2}, {3, {4}}}.
+     = Flatten[{{1, 2}, {3, {4}}}, {{1, 2, 3}}, List]
     """
 
     rules = {
@@ -447,9 +517,105 @@ class Flatten(Builtin):
 
     messages = {
         'flpi': (
-            "Level to be flattened together in `1` "
-            "should be a non-negative integer."),
+            "Levels to be flattened together in `1` "
+            "should be lists of positive integers."),
+        'flrep': (
+            "Level `1` specified in `2` should not be repeated."),
+        'fldep': (
+            "Level `1` specified in `2` exceeds the levels, `3`, "
+            "which can be flattened together in `4`."),
     }
+
+    def apply_list(self, expr, n, h, evaluation):
+        'Flatten[expr_, n_List, h_]'
+
+        ## prepare levels
+        # find max depth which matches `h`
+        expr, max_depth = walk_levels(expr)
+        max_depth = {'max_depth': max_depth}    # hack to modify max_depth from callback
+
+        def callback(expr, pos):
+            if len(pos) < max_depth['max_depth'] and (expr.is_atom() or expr.head != h):
+                max_depth['max_depth'] = len(pos)
+            return expr
+        expr, depth = walk_levels(expr, callback=callback, include_pos=True, start=0)
+        max_depth = max_depth['max_depth']
+
+        levels = n.to_python()
+
+        # mappings
+        if isinstance(levels, list) and all(isinstance(level, int) for level in levels):
+            levels = [levels]
+
+        # verify levels is list of lists of positive ints
+        if not (isinstance(levels, list) and len(levels) > 0):
+            evaluation.message('Flatten', 'flpi', n)
+            return
+        seen_levels = []
+        for level in levels:
+            if not (isinstance(level, list) and len(level) > 0):
+                evaluation.message('Flatten', 'flpi', n)
+                return
+            for l in level:
+                if not (isinstance(l, int) and l > 0):
+                    evaluation.message('Flatten', 'flpi', n)
+                    return
+                if l in seen_levels:
+                    # level repeated
+                    evaluation.message('Flatten', 'flrep', l)
+                    return
+                seen_levels.append(l)
+
+        # complete the level spec e.g. {{2}} -> {{2}, {1}, {3}}
+        for l in range(1, max_depth + 1):
+            if l not in seen_levels:
+                levels.append([l])
+
+        # verify specified levels are smaller max depth
+        for level in levels:
+            for l in level:
+                if l > max_depth:
+                    evaluation.message('Flatten', 'fldep', l, n, max_depth, expr)
+                    return
+
+        ## assign new indices to each leaf
+        new_indices = {}
+
+        def callback(expr, pos):
+            if len(pos) == max_depth:
+                new_depth = tuple(tuple(pos[i - 1] for i in level) for level in levels)
+                new_indices[new_depth] = expr
+            return expr
+        expr, depth = walk_levels(expr, callback=callback, include_pos=True)
+
+        ## build new tree inserting nodes as needed
+        result = Expression(h)
+        leaves = new_indices.items()
+        leaves.sort()
+
+        def insert_leaf(expr, leaves):
+            # gather leaves into groups with the same leading index
+            # e.g. [((0, 0), a), ((0, 1), b), ((1, 0), c), ((1, 1), d)]
+            # -> [[(0, a), (1, b)], [(0, c), (1, d)]]
+            leading_index = None
+            grouped_leaves = []
+            for index, leaf in leaves:
+                if index[0] == leading_index:
+                    grouped_leaves[-1].append((index[1:], leaf))
+                else:
+                    leading_index = index[0]
+                    grouped_leaves.append([(index[1:], leaf)])
+            # for each group of leaves we either insert them into the current level
+            # or make a new level and recurse
+            for group in grouped_leaves:
+                if len(group[0][0]) == 0:   # bottom level leaf
+                    assert len(group) == 1
+                    expr.leaves.append(group[0][1])
+                else:
+                    expr.leaves.append(Expression(h))
+                    insert_leaf(expr.leaves[-1], group)
+        insert_leaf(result, leaves)
+        return result
 
     def apply(self, expr, n, h, evaluation):
         'Flatten[expr_, n_, h_]'
