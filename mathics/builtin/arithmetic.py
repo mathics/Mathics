@@ -1717,3 +1717,4 @@ class Piecewise(SympyFunction):
         if str(args[-1].leaves[1]).startswith('System`_True__Dummy_'):
             args[-1].leaves[1] = Symbol('True')
         return [args]
+

@@ -82,6 +82,7 @@ class Degree(Builtin):
         'Degree': '(Pi/180)'
     }
 
+
 class Inverse(Builtin):
     """
     <dl>

@@ -6,11 +6,12 @@ Integer functions
 
 import sympy
 
-from mathics.builtin.base import Builtin
+from mathics.builtin.base import Builtin, SympyObject, SympyFunction
+from mathics.core.convert import from_sympy
 from mathics.core.expression import Integer
 
 
-class Floor(Builtin):
+class Floor(SympyFunction):
     """
     <dl>
     <dt>'Floor[$x$]'
@@ -40,22 +41,41 @@ class Floor(Builtin):
      = -10
     """
 
+    sympy_name = 'floor'
+
     rules = {
-        'Floor[x_, a_]': 'Floor[x / a] * a',
-        'Floor[z_Complex]': 'Complex[Floor[Re[z]], Floor[Im[z]]]',
+        'Floor[x_, a_]': 'Floor[x / a] * a'
     }
 
     def apply_real(self, x, evaluation):
-        'Floor[x_?RealNumberQ]'
+        'Floor[x_]'
 
-        x = x.value
-        if x < 0:
-            floor = - sympy.Integer(abs(x))
-            if x != floor:
-                floor -= 1
-        else:
-            floor = sympy.Integer(x)
-        return Integer(floor)
+        x = x.to_sympy()
+        return from_sympy(sympy.floor(x))
+
+
+
+class Ceiling(SympyFunction):
+    """
+    <dl>
+    <dt>'Ceiling[$x$]'
+        <dd>Give first integer greater than $x$.</dd>
+    </dt>
+    </dl>
+
+    """
+
+
+    sympy_name = 'ceiling'
+
+    rules = {
+        'Ceiling[x_, a_]': 'Ceiling[x / a] * a'
+    }
+    
+    def apply(self, x, evaluation):
+        'Ceiling[x_]'
+        x = x.to_sympy()
+        return from_sympy(sympy.ceiling(x))
 
 
 class IntegerLength(Builtin):

@@ -333,3 +333,11 @@ class Out(Builtin):
         '    f:StandardForm|TraditionalForm|InputForm|OutputForm]':
         r'"%%" <> ToString[k]',
     }
+
+# class Refine(Builtin):
+#     from sympy import refine
+
+#     def apply(self, expr, refinition):
+#         'Refine[expr, x, refinition]'
+#         if refinition == 'Real':
+#             return refine(expr.to_sympy(), Q.real(x))
