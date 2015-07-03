@@ -14,9 +14,12 @@ from mathics.core.expression import Expression, Integer
 def matrix_data(m):
     if not m.has_form('List', None):
         return None
-    if not all(leaf.has_form('List', None) for leaf in m.leaves):
+    if all(leaf.has_form('List', None) for leaf in m.leaves):
+        return [[item.to_sympy() for item in row.leaves] for row in m.leaves]
+    elif not any(leaf.has_form('List', None) for leaf in m.leaves):
+        return [item.to_sympy() for item in m.leaves]
+    else:
         return None
-    return [[item.to_sympy() for item in row.leaves] for row in m.leaves]
 
 
 def to_sympy_matrix(data, **kwargs):
@@ -259,6 +262,57 @@ class Eigenvalues(Builtin):
                 raise e
             eigenvalues = eigenvalues.items()
         return from_sympy([v for (v, c) in eigenvalues for _ in xrange(c)])
+
+
+class Norm(Builtin):
+    """
+    <dl>
+    <dt>'Norm[$m$, $l$]'
+        <dd>computes the l-norm of matrix m (currently only works for vectors!).</dd>
+        </dt>
+    <dt>'Norm[$m$]'
+        <dd>computes the 2-norm of matrix m (currently only works for vectors!).<dd>
+    </dt>
+    </dl>
+
+    >> Norm[{1, 2, 3, 4}, 2]
+     = Sqrt[30]
+
+    >> Norm[{10, 100, 200}, 1]
+     = 310
+
+    >> Norm[{a, b, c}]
+     = Sqrt[Abs[a] ^ 2 + Abs[b] ^ 2 + Abs[c] ^ 2]
+
+    >> Norm[{-100, 2, 3, 4}, Infinity]
+     = 100
+    """
+
+    rules = {
+        'Norm[m_]': 'Norm[m, 2]'
+    }
+
+    messages = {
+        'normnotimplemented': ('Norm is not yet implemented for matrices.')
+    }
+
+    def apply(self, m, l, evaluation):
+        'Norm[m_, l_]'
+
+        l = l.to_sympy()
+        m = to_sympy_matrix(m)
+
+        # TODO: Add check for l = 0 or leave? 
+        # Mathematica doesn't allow 0 norm (0 norm for vector should count
+        # number of elements != 0)
+        # However, sympy evaluates to 2 ^ ComplexInfinity
+
+        try:
+            res = m.norm(l)
+        except NotImplementedError:
+            return evaluation.message('Norm', 'normnotimplemented')
+
+        return from_sympy(res)
 
 
 class Eigenvectors(Builtin):
