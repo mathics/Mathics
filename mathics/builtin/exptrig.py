@@ -267,7 +267,7 @@ class Tan(_MPMathFunction):
     </dl>
 
     >> Tan[0]
-     = 0
+     = 0    
     >> Tan[Pi / 2]
      = ComplexInfinity
     """
@@ -813,4 +813,14 @@ class ArcCoth(_MPMathFunction):
     rules = {
         'ArcCoth[z:0.0]': 'N[I / 2 Pi, Precision[1+z]]',
         'Derivative[1][ArcCoth]': '1/(1-#^2)&',
+    }
+
+class Haversine(_MPMathFunction):
+    rules = {
+        'Haversine[z_]': 'Power[Sin[z/2], 2]'
+    }
+
+class InverseHaversine(_MPMathFunction):
+    rules = {
+        'InverseHaversine[z_]': '2 * ArcSin[Sqrt[z]]'
     }

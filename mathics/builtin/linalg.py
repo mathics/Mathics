@@ -56,6 +56,32 @@ class Det(Builtin):
         return from_sympy(det)
 
 
+class Cross(Builtin):
+
+    messages = {
+        'shape': 'Vectors have wrong shape for cross product.'
+    }
+
+    def apply(self, a, b, evaluation):
+        'Cross[a_, b_]'
+        a = to_sympy_matrix(a)
+        b = to_sympy_matrix(b)
+        try:
+            res = a.cross(b)
+        except ShapeError:
+            return evaluation.message('shape', 'wrong shape')
+        return from_sympy(res)
+
+class VectorAngle(Builtin):
+    rules = {
+        "VectorAngle[u_, v_]": "ArcCos[u.v/(Norm[u] Norm[v])]"
+    }
+
+class Degree(Builtin):
+    rules = {
+        'Degree': '(Pi/180)'
+    }
+
 class Inverse(Builtin):
     """
     <dl>
@@ -345,6 +371,13 @@ class Norm(Builtin):
             return evaluation.message('Norm', 'normnotimplemented')
 
         return from_sympy(res)
+
+
+class Normalize(Builtin):
+    rules = {
+        'Normalize[vec_]': 'vec / Norm[vec]',
+        # 'Normalize[vec_, f_]': 'vec / (f /@ vec)'
+    }
 
 
 class Eigenvectors(Builtin):
