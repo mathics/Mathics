@@ -2013,6 +2013,7 @@ class Complement(Builtin):
         result.sort()
         return result
 
+
 class Fold(Builtin):
     """
     <dl>
@@ -2028,11 +2029,9 @@ class Fold(Builtin):
      = f[f[f[5, 1], 2], 3]
     """
 
-    attributes = ('NHoldRest',)
-
     rules = {
-        'Fold[exp_, x_, list_List]': 'Module[{},res=x; Do[res = exp[res, list[[i]]], {i, 1, Length[list]}]; res]',
-        'Fold[exp_, list_List]': u'Fold[exp, First[list], Rest[list]]',
+        'Fold[exp_, x_, head_]': 'Module[{list = Level[head, 1], res = x, i = 1}, Do[res = exp[res, list[[i]]], {i, 1, Length[list]}]; res]',
+        'Fold[exp_, head_]': 'Module[{list = Level[head, 1]}, If[Length[list] == 0, head, Fold[exp, First[list], Rest[list]]]]'
     }
 
 
@@ -2057,8 +2056,8 @@ class FoldList(Builtin):
     """
 
     rules = {
-        'FoldList[exp_, x_, list_List]': 'Prepend[Table[Fold[exp, x, Take[list, i]], {i, 1, Length[list]}], x]',
-        'FoldList[exp_, list_List]': 'FoldList[exp, First[list], Rest[list]]',
+        'FoldList[exp_, x_, head_]': 'Module[{list = Level[head, 1]}, Prepend[Table[Fold[exp, x, Take[list, i]], {i, 1, Length[list]}], x]]',
+        'FoldList[exp_, head_]': 'Module[{list = Level[head, 1]}, If[Length[list] == 0, {}, FoldList[exp, First[list], Rest[list]]]]',
     }
 
 
@@ -2076,7 +2075,7 @@ class Accumulate(Builtin):
     """
 
     rules = {
-        'Accumulate[list_List]': 'FoldList[Plus, list]'
+        'Accumulate[head_]': 'Head[head] @@ FoldList[Plus, head]'
     }
 
 
@@ -2119,6 +2118,6 @@ class Total(Builtin):
      = {6, 15, 24}
     """
     rules = {
-        'Total[list_List]': 'Fold[Plus, list]',
-        'Total[list_List, n_]': 'Fold[Plus, Flatten[list, n]]'
+        'Total[head_]': 'Fold[Plus, head]',
+        'Total[head_, n_]': 'Fold[Plus, Flatten[head, n]]'
     }
