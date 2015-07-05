@@ -2056,8 +2056,8 @@ class FoldList(Builtin):
     """
 
     rules = {
-        'FoldList[exp_, x_, head_]': 'Module[{list = Level[head, 1]}, Prepend[Table[Fold[exp, x, Take[list, i]], {i, 1, Length[list]}], x]]',
-        'FoldList[exp_, head_]': 'Module[{list = Level[head, 1]}, If[Length[list] == 0, {}, FoldList[exp, First[list], Rest[list]]]]',
+        'FoldList[exp_, x_, head_]': 'Module[{}, Head[head] @@ Prepend[Table[Fold[exp, x, Take[head, i]], {i, 1, Length[head]}], x]]',
+        'FoldList[exp_, head_]': 'Module[{}, If[Length[Level[head, 1]] == 0, {}, FoldList[exp, First[head], Rest[head]]]]',
     }
 
 
@@ -2075,7 +2075,7 @@ class Accumulate(Builtin):
     """
 
     rules = {
-        'Accumulate[head_]': 'Head[head] @@ FoldList[Plus, head]'
+        'Accumulate[head_]': 'FoldList[Plus, head]'
     }
 
 
@@ -2118,6 +2118,6 @@ class Total(Builtin):
      = {6, 15, 24}
     """
     rules = {
-        'Total[head_]': 'Fold[Plus, head]',
-        'Total[head_, n_]': 'Fold[Plus, Flatten[head, n]]'
+        'Total[head_]': 'Apply[Plus, head]',
+        'Total[head_, n_]': 'Apply[Plus, Flatten[head, n]]'
     }
