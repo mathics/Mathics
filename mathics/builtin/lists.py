@@ -2031,7 +2031,7 @@ class Fold(Builtin):
 
     rules = {
         'Fold[exp_, x_, head_]': 'Module[{list = Level[head, 1], res = x, i = 1}, Do[res = exp[res, list[[i]]], {i, 1, Length[list]}]; res]',
-        'Fold[exp_, head_]': 'Module[{list = Level[head, 1]}, If[Length[list] == 0, head, Fold[exp, First[list], Rest[list]]]]'
+        'Fold[exp_, head_] /; Length[head] > 0': 'Fold[exp, First[head], Rest[head]]'
     }
 
 
