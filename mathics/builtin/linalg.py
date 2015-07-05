@@ -291,6 +291,54 @@ class Eigenvalues(Builtin):
         return from_sympy([v for (v, c) in eigenvalues for _ in xrange(c)])
 
 
+class Eigensystem(Builtin):
+    """
+    <dl>
+    <dt>'Eigensystem[$m$]'
+        <dd>returns a list of {Eigenvalues, Eigenvectors}.
+    </dl>
+
+    >> Eigenvalues[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}] // Sort
+     = {-1, 1, 2}
+
+    >> Eigenvalues[{{Cos[theta],Sin[theta],0},{-Sin[theta],Cos[theta],0},{0,0,1}}] // Sort
+     = {1, Cos[theta] + Sqrt[-1 + Cos[theta] ^ 2], Cos[theta] - Sqrt[-1 + Cos[theta] ^ 2]}
+
+    >> Eigenvalues[{{7, 1}, {-4, 3}}]
+     = {5, 5}
+    """
+
+    rules = {
+        'Eigensystem[m_]': '{Eigenvalues[m], Eigenvectors[m]}'
+    }
+
+
+class MatrixPower(Builtin):
+
+    messages = {
+        'matrixpowernotimplemented': ('Matrix power only implemented for real and integer values.')
+    }
+
+    def apply(self, m, power, evaluation):
+        'MatrixPower[m_, power_]'
+        m = to_sympy_matrix(m)
+        try:
+            res = m ** power.to_sympy()
+        except NotImplementedError:
+            evaluation.message('matrixpowernotimplemented', '')
+        return from_sympy(res)
+
+
+class MatrixExp(Builtin):
+
+    def apply(self, m, evaluation):
+        'MatrixExp[m_]'
+        m = to_sympy_matrix(m)
+        res = m.exp()
+        return from_sympy(res)
+
+
+
 class Norm(Builtin):
     """
     <dl>
@@ -428,7 +476,7 @@ class Eigenvectors(Builtin):
         for val, count, basis in eigenvects:
             # Select the i'th basis vector, convert matrix to vector,
             # and convert from sympy
-            vects = [from_sympy(list(b)) for b in basis]
+            vects = [from_sympy(list(b / b.norm(2))) for b in basis]
 
             # This follows Mathematica convention better; higher indexed pivots
             # are outputted first. e.g. {{0,1},{1,0}} instead of {{1,0},{0,1}}
