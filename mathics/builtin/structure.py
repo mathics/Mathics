@@ -508,11 +508,16 @@ class Flatten(Builtin):
     #> Flatten[{{1, 2}, {3, {4}}}, {{1, 2, 3}}]
      : Level 3 specified in {{1, 2, 3}} exceeds the levels, 2, which can be flattened together in {{1, 2}, {3, {4}}}.
      = Flatten[{{1, 2}, {3, {4}}}, {{1, 2, 3}}, List]
+
+    #> Flatten[p[1, p[2], p[3]]]
+     = p[1, 2, 3]
+    #> Flatten[p[1, p[2], p[3]], 2]
+     = p[1, 2, 3]
     """
 
     rules = {
-        'Flatten[expr_]': 'Flatten[expr, Infinity, List]',
-        'Flatten[expr_, n_]': 'Flatten[expr, n, List]',
+        'Flatten[expr_]': 'Flatten[expr, Infinity, Head[expr]]',
+        'Flatten[expr_, n_]': 'Flatten[expr, n, Head[expr]]',
     }
 
     messages = {
