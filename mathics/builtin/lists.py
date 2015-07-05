@@ -2056,8 +2056,8 @@ class FoldList(Builtin):
     """
 
     rules = {
-        'FoldList[exp_, x_, head_]': 'Module[{}, Head[head] @@ Prepend[Table[Fold[exp, x, Take[head, i]], {i, 1, Length[head]}], x]]',
-        'FoldList[exp_, head_]': 'Module[{}, If[Length[Level[head, 1]] == 0, {}, FoldList[exp, First[head], Rest[head]]]]',
+        'FoldList[exp_, x_, head_]': 'Module[{i = 1}, Head[head] @@ Prepend[Table[Fold[exp, x, Take[head, i]], {i, 1, Length[head]}], x]]',
+        'FoldList[exp_, head_]': 'If[Length[head] == 0, head, FoldList[exp, First[head], Rest[head]]]',
     }
 
 
