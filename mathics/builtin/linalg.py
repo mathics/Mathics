@@ -8,7 +8,7 @@ import sympy
 
 from mathics.builtin.base import Builtin
 from mathics.core.convert import from_sympy
-from mathics.core.expression import Expression, Integer
+from mathics.core.expression import Expression, Integer, Complex, Symbol, Real
 
 
 def matrix_data(m):
@@ -267,12 +267,10 @@ class Eigenvalues(Builtin):
 class Norm(Builtin):
     """
     <dl>
-    <dt>'Norm[$m$, $l$]'
+    <dt>'Norm[$m$, $l$]'</dt>
         <dd>computes the l-norm of matrix m (currently only works for vectors!).</dd>
-        </dt>
-    <dt>'Norm[$m$]'
-        <dd>computes the 2-norm of matrix m (currently only works for vectors!).<dd>
-    </dt>
+    <dt>'Norm[$m$]'</dt>
+        <dd>computes the 2-norm of matrix m (currently only works for vectors!).</dd>
     </dl>
 
     >> Norm[{1, 2, 3, 4}, 2]
@@ -286,29 +284,63 @@ class Norm(Builtin):
 
     >> Norm[{-100, 2, 3, 4}, Infinity]
      = 100
+
+    >> Norm[1 + I]
+     = Sqrt[2]
+
+    #> Norm[{1, {2, 3}}]
+     : The first Norm argument should be a number, vector, or matrix.
+     = Norm[{1, {2, 3}}, 2]
+
+    #> Norm[{x, y}]
+     = Sqrt[Abs[x] ^ 2 + Abs[y] ^ 2]
+
+    #> Norm[{x, y}, p]
+     = (Abs[x] ^ p + Abs[y] ^ p) ^ (1 / p)
+
+    #> Norm[{x, y}, 0]
+     : The second argument of Norm, 0, should be a symbol, Infinity, or an integer or real number not less than 1 for vector p-norms; or 1, 2, Infinity, or "Frobenius" for matrix norms.
+     = Norm[{x, y}, 0]
+
+    #> Norm[{x, y}, 0.5]
+     : The second argument of Norm, 0.5, should be a symbol, Infinity, or an integer or real number not less than 1 for vector p-norms; or 1, 2, Infinity, or "Frobenius" for matrix norms.
+     = Norm[{x, y}, 0.5]
     """
 
     rules = {
-        'Norm[m_]': 'Norm[m, 2]'
+        'Norm[m_]': 'Norm[m, 2]',
+        'Norm[m_Complex]': 'Abs[m]',
+        'Norm[m_, DirectedInfinity[1]]': 'Max[Abs[m]]',
     }
 
     messages = {
-        'normnotimplemented': ('Norm is not yet implemented for matrices.')
+        'nvm': 'The first Norm argument should be a number, vector, or matrix.',
+        'ptype': (
+            'The second argument of Norm, `1`, should be a symbol, Infinity, '
+            'or an integer or real number not less than 1 for vector p-norms; '
+            'or 1, 2, Infinity, or "Frobenius" for matrix norms.'),
+        'normnotimplemented': 'Norm is not yet implemented for matrices.',
     }
 
     def apply(self, m, l, evaluation):
         'Norm[m_, l_]'
 
-        l = l.to_sympy()
-        m = to_sympy_matrix(m)
 
-        # TODO: Add check for l = 0 or leave? 
-        # Mathematica doesn't allow 0 norm (0 norm for vector should count
-        # number of elements != 0)
-        # However, sympy evaluates to 2 ^ ComplexInfinity
+        if isinstance(l, Symbol):
+            pass
+        elif isinstance(l, (Real, Integer)) and l.to_python() >= 1:
+            pass
+        else:
+            return evaluation.message('Norm', 'ptype', l)
+
+        l = l.to_sympy()
+        matrix = to_sympy_matrix(m)
+
+        if matrix is None:
+            return evaluation.message('Norm', 'nvm')
 
         try:
-            res = m.norm(l)
+            res = matrix.norm(l)
         except NotImplementedError:
             return evaluation.message('Norm', 'normnotimplemented')
 
