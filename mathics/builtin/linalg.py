@@ -96,10 +96,25 @@ class Cross(Builtin):
             return evaluation.message('Cross', 'nonn1')
         return from_sympy(res)
 
+
 class VectorAngle(Builtin):
+    """
+    <dl>
+    <dt>'VectorAngle[$u$, $v$]'
+        <dd>gives the angles between vectors $u$ and $v$
+    </dl>
+
+    >> VectorAngle[{1, 0}, {0, 1}]
+     = Pi / 2
+
+    >> VectorAngle[{1, 2}, {3, 1}]
+     = Pi / 4
+    """
+
     rules = {
-        "VectorAngle[u_, v_]": "ArcCos[u.v/(Norm[u] Norm[v])]"
+        'VectorAngle[u_, v_]': 'ArcCos[u.v / (Norm[u] Norm[v])]',
     }
+
 
 class Degree(Builtin):
     """
