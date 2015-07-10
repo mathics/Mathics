@@ -2127,18 +2127,21 @@ class Mean(Builtin):
     """
     <dl>
     <dt>'Mean[$list$]'
-    <dd>
-        Mean over all values in list (Total[list] / Length[list])
-    </dd>
-    </dt>
+        <dd>Mean over all values in list (Total[list] / Length[list])
     </dl>
+
     >> Mean[{1, 2, 3}]
      = 2
+
     >> Mean[{a, b, 123}]
      = (123 + a + b) / 3
+
+    >> Mean[{}]
+     = Mean[{}]
     """
+
     rules = {
-        'Mean[list_List]': 'Total[list] / Length[list]'
+        'Mean[list_List /; Length[list] > 0]': 'Total[list] / Length[list]',
     }
 
 
@@ -2146,21 +2149,24 @@ class Variance(Builtin):
     """
     <dl>
     <dt>'Mean[$list$]'
-    <dd>
-        Mean over all values in list (Total[list] / Length[list])
-    </dd>
-    </dt>
+        <dd>Mean over all values in list (Total[list] / Length[list])
     </dl>
 
     >> Variance[{1, 2, 3}]
      = 1
 
     >> Variance[{Pi, 2.0, I}]
-     = 2.86213969796992405
+     = 2.86213969796992406
+
+    >> Variance[{}]
+     = Variance[{}]
     """
 
+    # FIXME precision
+
     rules = {
-        'Variance[list_List]': 'Re[(list-Mean[list]).Conjugate[list-Mean[list]]/(Length[list]-1)]'
+        'Variance[list_List /; Length[list] > 0]':
+            'Re[(list - Mean[list]).Conjugate[list - Mean[list]] / (Length[list] - 1)]'
     }
 
 
