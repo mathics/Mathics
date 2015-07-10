@@ -57,10 +57,34 @@ class Det(Builtin):
 
 
 class Cross(Builtin):
+    """
+    <dl>
+    <dt>'Cross[$a$, $b$]'
+        <dd>computes the vector cross product of $a$ and $b$.
+    </dl>
+
+    >> Cross[{x1, y1, z1}, {x2, y2, z2}]
+     = {y1 z2 - y2 z1, -x1 z2 + x2 z1, x1 y2 - x2 y1}
+
+    >> Cross[{x, y}]
+     = {-y, x}
+
+    >> Cross[{1, 2}, {3, 4, 5}]
+     : The arguments are expected to be vectors of equal length, and the number of arguments is expected to be 1 less than their length.
+     = Cross[{1, 2}, {3, 4, 5}]
+    """
+
+    rules = {
+        'Cross[{x_, y_}]': '{-y, x}',
+    }
 
     messages = {
-        'shape': 'Vectors have wrong shape for cross product.'
+        'nonn1': ('The arguments are expected to be vectors of equal length, '
+                  'and the number of arguments is expected to be 1 less than '
+                  'their length.'),
     }
+
+    # TODO Vectors of length other than 3
 
     def apply(self, a, b, evaluation):
         'Cross[a_, b_]'
@@ -68,8 +92,8 @@ class Cross(Builtin):
         b = to_sympy_matrix(b)
         try:
             res = a.cross(b)
-        except ShapeError:
-            return evaluation.message('shape', 'wrong shape')
+        except sympy.ShapeError:
+            return evaluation.message('Cross', 'nonn1')
         return from_sympy(res)
 
 class VectorAngle(Builtin):
