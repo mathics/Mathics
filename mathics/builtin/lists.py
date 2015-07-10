@@ -2134,7 +2134,7 @@ class Mean(Builtin):
     </dl>
     >> Mean[{1,2,3}]
      = 2
-    >> Mean[{a, b, 213}]
+    >> Mean[{a, b, 123}]
      = (123 + a + b) / 3
     """
     rules = {
