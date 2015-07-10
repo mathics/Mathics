@@ -476,7 +476,7 @@ class Eigenvectors(Builtin):
         for val, count, basis in eigenvects:
             # Select the i'th basis vector, convert matrix to vector,
             # and convert from sympy
-            vects = [from_sympy(list(b / b.norm(2))) for b in basis]
+            vects = [from_sympy(list(b)) for b in basis]
 
             # This follows Mathematica convention better; higher indexed pivots
             # are outputted first. e.g. {{0,1},{1,0}} instead of {{1,0},{0,1}}
