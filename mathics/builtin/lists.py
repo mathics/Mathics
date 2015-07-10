@@ -2132,7 +2132,7 @@ class Mean(Builtin):
     </dd>
     </dt>
     </dl>
-    >> Mean[{1,2,3}]
+    >> Mean[{1, 2, 3}]
      = 2
     >> Mean[{a, b, 123}]
      = (123 + a + b) / 3
@@ -2151,14 +2151,16 @@ class Variance(Builtin):
     </dd>
     </dt>
     </dl>
-    >> Mean[{1,2,3}]
-     = 2
-    >> Mean[{a, b, 213}]
-     = (123 + a + b) / 3
+
+    >> Variance[{1, 2, 3}]
+     = 1
+
+    >> Variance[{Pi, 2.0, I}]
+     = 2.86213969796992405
     """
 
     rules = {
-        'Variance[list_List]': '(list-Mean[list]).Conjugate[list-Mean[list]]/(Length[list]-1)'
+        'Variance[list_List]': 'Re[(list-Mean[list]).Conjugate[list-Mean[list]]/(Length[list]-1)]'
     }
 
 
