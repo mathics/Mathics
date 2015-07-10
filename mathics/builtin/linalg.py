@@ -439,7 +439,7 @@ class Norm(Builtin):
 
     #> Norm[{1, {2, 3}}]
      : The first Norm argument should be a number, vector, or matrix.
-     = Norm[{1, {2, 3}}, 2]
+     = Norm[{1, {2, 3}}]
 
     #> Norm[{x, y}]
      = Sqrt[Abs[x] ^ 2 + Abs[y] ^ 2]
@@ -454,11 +454,16 @@ class Norm(Builtin):
     #> Norm[{x, y}, 0.5]
      : The second argument of Norm, 0.5, should be a symbol, Infinity, or an integer or real number not less than 1 for vector p-norms; or 1, 2, Infinity, or "Frobenius" for matrix norms.
      = Norm[{x, y}, 0.5]
+
+    #> Norm[{}]
+     = Norm[{}]
+
+    #> Norm[0]
+     = 0
     """
 
     rules = {
-        'Norm[m_]': 'Norm[m, 2]',
-        'Norm[m_Complex]': 'Abs[m]',
+        'Norm[m_?NumberQ]': 'Abs[m]',
         'Norm[m_, DirectedInfinity[1]]': 'Max[Abs[m]]',
     }
 
@@ -470,6 +475,10 @@ class Norm(Builtin):
             'or 1, 2, Infinity, or "Frobenius" for matrix norms.'),
         'normnotimplemented': 'Norm is not yet implemented for matrices.',
     }
+
+    def apply_single(self, m, evaluation):
+        'Norm[m_]'
+        return self.apply(m, Integer(2), evaluation)
 
     def apply(self, m, l, evaluation):
         'Norm[m_, l_]'
@@ -487,6 +496,8 @@ class Norm(Builtin):
 
         if matrix is None:
             return evaluation.message('Norm', 'nvm')
+        if len(matrix) == 0:
+            return
 
         try:
             res = matrix.norm(l)
@@ -510,10 +521,19 @@ class Normalize(Builtin):
 
     >> Normalize[1 + I]
      = (1 / 2 + I / 2) Sqrt[2]
+
+    #> Normalize[0]
+     = 0
+
+    #> Normalize[{0}]
+     = {0}
+
+    #> Normalize[{}]
+     = {}
     """
 
     rules = {
-        'Normalize[v_]': 'v / Norm[v]',
+        'Normalize[v_]': 'Module[{norm = Norm[v]}, If[norm == 0, v, v / norm, v]]',
     }
 
 
