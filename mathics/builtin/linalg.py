@@ -497,9 +497,23 @@ class Norm(Builtin):
 
 
 class Normalize(Builtin):
+    """
+    <dl>
+    <dt>'Normalize[$v$]'
+        <dd>calculates the normalized vector $v$.
+    <dt>'Normalize[$z$]'
+        <dd>calculates the normalized complex number $z$.
+    </dl>
+
+    >> Normalize[{1, 1, 1, 1}]
+     = {1 / 2, 1 / 2, 1 / 2, 1 / 2}
+
+    >> Normalize[1 + I]
+     = (1 / 2 + I / 2) Sqrt[2]
+    """
+
     rules = {
-        'Normalize[vec_]': 'vec / Norm[vec]',
-        # 'Normalize[vec_, f_]': 'vec / (f /@ vec)'
+        'Normalize[v_]': 'v / Norm[v]',
     }
 
 
