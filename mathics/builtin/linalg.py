@@ -102,6 +102,16 @@ class VectorAngle(Builtin):
     }
 
 class Degree(Builtin):
+    """
+    <dl>
+    <dt>'Degree'
+        <dd>is number of radians in one degree.
+    </dl>
+
+    >> Cos[60 Degree]
+     = 1 / 2
+    """
+
     rules = {
         'Degree': '(Pi/180)'
     }
