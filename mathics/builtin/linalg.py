@@ -348,6 +348,22 @@ class Eigensystem(Builtin):
 
 
 class MatrixPower(Builtin):
+    """
+    <dl>
+    <dt>'MatrixPower[$m$, $n$]'
+        <dd>computes the $n$th power of a matrix $m$.
+    </dl>
+
+    >> MatrixPower[{{1, 2}, {1, 1}}, 10]
+     = {{3363, 4756}, {2378, 3363}}
+
+    >> MatrixPower[{{1, 2}, {2, 5}}, -3]
+     = {{169, -70}, {-70, 29}}
+
+    #> MatrixPower[{{0, x}, {0, 0}}, n]
+     : Matrix power only implemented for real and integer values.
+     = MatrixPower[{{0, x}, {0, 0}}, n]
+    """
 
     messages = {
         'matrixpowernotimplemented': ('Matrix power only implemented for real and integer values.')
@@ -359,18 +375,42 @@ class MatrixPower(Builtin):
         try:
             res = m ** power.to_sympy()
         except NotImplementedError:
-            evaluation.message('matrixpowernotimplemented', '')
+            return evaluation.message('MatrixPower', 'matrixpowernotimplemented')
         return from_sympy(res)
 
 
 class MatrixExp(Builtin):
+    """
+    <dl>
+    <dt>'MatrixExp[$m$]'
+        <dd>computes the exponential of the matrix $m$.
+    </dl>
+
+    >> MatrixExp[{{0, 2}, {0, 1}}]
+     = {{1, -2 + 2 E}, {0, E}}
+
+    >> MatrixExp[{{1.5, 0.5}, {0.5, 2.0}}]
+     = {{5.16266024276223, 3.029519834622}, {3.029519834622, 8.19218007738423}}
+
+    #> MatrixExp[{{a, 0}, {0, b}}]
+     : Matrix exp only implemented for real and integer values.
+     = MatrixExp[{{a, 0}, {0, b}}]
+    """
+
+    messages = {
+        'matrixexpnotimplemented': ('Matrix exp only implemented for real and integer values.')
+    }
+
+    # TODO fix precision
 
     def apply(self, m, evaluation):
         'MatrixExp[m_]'
         m = to_sympy_matrix(m)
-        res = m.exp()
+        try:
+            res = m.exp()
+        except NotImplementedError:
+            return evaluation.message('MatrixExp', 'matrixexpnotimplemented')
         return from_sympy(res)
-
 
 
 class Norm(Builtin):
