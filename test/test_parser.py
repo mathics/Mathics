@@ -1,14 +1,11 @@
 import sys
 import random
+import unittest
 from mathics.core.parser import parse, ParseError, ScanError
 from mathics.core.expression import (Expression, Real, Integer, String,
                                      Rational, Symbol)
 from mathics.core.definitions import Definitions
 
-if sys.version_info[:2] == (2, 7):
-    import unittest
-else:
-    import unittest2 as unittest
 
 definitions = None
 

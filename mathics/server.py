@@ -43,7 +43,7 @@ def main():
             os.path.dirname(os.path.realpath(__file__)), "manage.py")
         try:
             subprocess.check_call(
-                [sys.executable, manage_file, 'syncdb', '--noinput'])
+                [sys.executable, manage_file, 'migrate', '--noinput'])
             print("\ndatabase initialized sucessfully")
         except subprocess.CalledProcessError:
             print("error: failed to create database")

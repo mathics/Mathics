@@ -66,7 +66,7 @@ def system_symbols(*symbols):
 
 # system_symbols_dict({'SomeSymbol': ...}) -> {'System`SomeSymbol': ...}
 def system_symbols_dict(d):
-    return dict(((ensure_context(k), v) for k, v in d.iteritems()))
+    return {ensure_context(k): v for k, v in d.iteritems()}
 
 
 class BoxError(Exception):
@@ -1043,8 +1043,8 @@ class Expression(BaseExpression):
                 """for var in new_vars:
                     if var in scoping_vars:
                         del new_vars[var]"""
-                vars = dict((var, value) for var, value in vars.items()
-                            if var not in scoping_vars)
+                vars = {var: value for var, value in vars.iteritems()
+                        if var not in scoping_vars}
 
         leaves = self.leaves
         if in_function:
@@ -1059,8 +1059,7 @@ class Expression(BaseExpression):
                                    for leaf in self.leaves[0].leaves]
                 if '' not in func_params:
                     body = self.leaves[1]
-                    replacement = dict((name, Symbol(
-                        name + '$')) for name in func_params)
+                    replacement = {name: Symbol(name + '$') for name in func_params}
                     func_params = [Symbol(name + '$') for name in func_params]
                     body = body.replace_vars(replacement, options, in_scoping)
                     leaves = [Expression('List', *func_params), body] + \

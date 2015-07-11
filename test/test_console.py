@@ -1,11 +1,7 @@
 import os
 import sys
 import pexpect
-
-if sys.version_info[:2] == (2, 7):
-    import unittest
-else:
-    import unittest2 as unittest
+import unittest
 
 
 class ConsoleTest(unittest.TestCase):
