@@ -687,6 +687,30 @@ class _Blank(PatternObject):
 
 
 class Blank(_Blank):
+    """
+    <dl>
+    <dt>'_' or 'Blank'[]
+        <dd>represents any single expression in a pattern.
+    <dt>'_'$h$ or 'Blank'[$h$]
+        <dd>represents any expression with head $h$.
+    </dl>
+
+    >> MatchQ[a + b, _]
+     = True
+
+    Patterns of the form '_'$h$ can be used to test the types of
+    objects:
+    >> MatchQ[42, _Integer]
+     = True
+    >> MatchQ[1.0, _Integer]
+     = False
+    >> {42, 1.0, x} /. {_Integer -> "integer", _Real -> "real"} // InputForm
+     = {"integer", "real", x}
+
+    'Blank' only matches a single expression:
+    >> MatchQ[f[1, 2], f[_]]
+     = False
+    """
     rules = {
         'MakeBoxes[Verbatim[Blank][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"_"',
         'MakeBoxes[Verbatim[Blank][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"_" <> MakeBoxes[head, f]',
@@ -702,6 +726,37 @@ class Blank(_Blank):
 
 
 class BlankSequence(_Blank):
+    """
+    <dl>
+    <dt>'__' or 'BlankSequence'[]
+        <dd>represents any non-empty sequence of expression leaves in a pattern.
+    <dt>'__'$h$ or 'BlankSequence'[$h$]
+        <dd>represents any sequence of leaves, all of which have head $h$.
+    </dl>
+
+    Use a 'BlankSequence' pattern to stand for a non-empty sequence of
+    arguments:
+    >> MatchQ[f[1, 2, 3], f[__]]
+     = True
+    >> MatchQ[f[], f[__]]
+     = False
+
+    '__'$h$ will match only if all leaves have head $h$:
+    >> MatchQ[f[1, 2, 3], f[__Integer]]
+     = True
+    >> MatchQ[f[1, 2.0, 3], f[__Integer]]
+     = False
+
+    The value captured by a named 'BlankSequence' pattern is a
+    'Sequence' object:
+    >> f[1, 2, 3] /. f[x__] -> x
+     = Sequence[1, 2, 3]
+
+    #> f[a, b, c, d] /. f[x__, c, y__] -> {{x},{y}}
+     = {{a, b}, {d}}
+    #> a + b + c + d /. Plus[x__, c] -> {x}
+     = {a, b, d}
+    """
     rules = {
         'MakeBoxes[Verbatim[BlankSequence][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"__"',
         'MakeBoxes[Verbatim[BlankSequence][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"__" <> MakeBoxes[head, f]',
@@ -728,9 +783,27 @@ class BlankSequence(_Blank):
 
 class BlankNullSequence(_Blank):
     """
-    >> ___symbol
+    <dl>
+    <dt>'___' or 'BlankNullSequence'[]
+        <dd>represents any sequence of expression leaves in a pattern,
+        including an empty sequence.
+    </dl>
+
+    'BlankNullSequence' is like 'BlankSequence', except it can match an
+    empty sequence:
+    >> MatchQ[f[], f[___]]
+     = True
+
+    ## This test hits infinite recursion
+    ##
+    ##The value captured by a named 'BlankNullSequence' pattern is a
+    ##'Sequence' object, which can have no leaves:
+    ##>> f[] /. f[x___] -> x
+    ## = Sequence[]
+
+    #> ___symbol
      = ___symbol
-    >> ___symbol //FullForm
+    #> ___symbol //FullForm
      = BlankNullSequence[symbol]
     """
 

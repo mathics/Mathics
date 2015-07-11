@@ -296,14 +296,23 @@ class _SetOperator(object):
 
 class Set(BinaryOperator, _SetOperator):
     """
+    <dl>
+    <dt>$expr$ = $value$
+        <dd>evaluates $value$ and assigns it to $expr$.
+    <dt>{$s1$, $s2$, $s3$} = {$v1$, $v2$, $v3$}
+        <dd>sets multiple symbols ($s1$, $s2$, ...) to the
+        corresponding values ($v1$, $v2$, ...).
+    </dl>
+
+    'Set' can be used to give a symbol a value:
     >> a = 3
      = 3
     >> a
      = 3
-    >> f[x_] = x^2
-     = x ^ 2
-    >> f[10]
-     = 100
+
+    An assignment like this creates an ownvalue:
+    >> OwnValues[a]
+     = {HoldPattern[a] :> 3}
 
     You can set multiple values at once using lists:
     >> {a, b, c} = {10, 2, 3}
@@ -313,7 +322,8 @@ class Set(BinaryOperator, _SetOperator):
     >> d
      = 10
 
-    'Set' evaluates its right-hand side immediately and assigns it to the left-hand side:
+    'Set' evaluates its right-hand side immediately and assigns it to
+    the left-hand side:
     >> a
      = 1
     >> x = a
@@ -323,7 +333,8 @@ class Set(BinaryOperator, _SetOperator):
     >> x
      = 1
 
-    'Set' always returns the right-hand side, which you can again use in an assignment:
+    'Set' always returns the right-hand side, which you can again use
+    in an assignment:
     >> a = b = c = 2;
     >> a == b == c == 2
      = True
@@ -364,19 +375,30 @@ class Set(BinaryOperator, _SetOperator):
 
 class SetDelayed(Set):
     """
-    'SetDelayed' has attribute 'HoldAll', thus it does not evaluate the right-hand side immediately,
-    but evaluates it when needed.
+    <dl>
+    <dt>$expr$ := $value$
+        <dd>assigns $value$ to $expr$, without evaluating $value$.
+    </dl>
+
+    'SetDelayed' is like 'Set', except it has attribute 'HoldAll',
+    thus it does not evaluate the right-hand side immediately, but
+    evaluates it when needed.
+
     >> Attributes[SetDelayed]
      = {HoldAll, Protected, SequenceHold}
     >> a = 1
      = 1
     >> x := a
+    >> x
+     = 1
+    Changing the value of $a$ affects $x$:
     >> a = 2
      = 2
     >> x
      = 2
 
-    'Condition' can be used to make a conditioned assignment:
+    'Condition' ('/;') can be used with 'SetDelayed' to make an
+    assignment that only holds if a condition is satisfied:
     >> f[x_] := p[x] /; x>0
     >> f[3]
      = p[3]
@@ -398,6 +420,13 @@ class SetDelayed(Set):
 
 class UpSet(BinaryOperator, _SetOperator):
     """
+    <dl>
+    <dt>$f$[$x$] ^= $expression$
+        <dd>evaluates $expression$ and assigns it to the value of
+        $f$[$x$], associating the value with $x$.
+    </dl>
+
+    'UpSet' creates an upvalue:
     >> a[b] ^= 3;
     >> DownValues[a]
      = {}
@@ -835,12 +864,18 @@ class ClearAll(Clear):
 
 class Unset(PostfixOperator):
     """
+    <dl>
+    <dt>'Unset[$x$]' or '$x$=.'
+        <dd>removes any value belonging to $x$.
+    </dl>
     >> a = 2
      = 2
     >> a =.
     >> a
      = a
-    Unsetting an already unset or never defined variable will not cause anything:
+
+    Unsetting an already unset or never defined variable will not
+    change anything:
     >> a =.
     >> b =.
 
@@ -939,7 +974,10 @@ class Unset(PostfixOperator):
 
 class Quit(Builtin):
     """
-    'Quit' removes all user-defined definitions.
+    <dl>
+    <dt>'Quit'[]
+        <dd>removes all user-defined definitions.
+    </dl>
 
     >> a = 3
      = 3
