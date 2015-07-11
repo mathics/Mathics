@@ -56,6 +56,88 @@ class Det(Builtin):
         return from_sympy(det)
 
 
+class Cross(Builtin):
+    """
+    <dl>
+    <dt>'Cross[$a$, $b$]'
+        <dd>computes the vector cross product of $a$ and $b$.
+    </dl>
+
+    >> Cross[{x1, y1, z1}, {x2, y2, z2}]
+     = {y1 z2 - y2 z1, -x1 z2 + x2 z1, x1 y2 - x2 y1}
+
+    >> Cross[{x, y}]
+     = {-y, x}
+
+    >> Cross[{1, 2}, {3, 4, 5}]
+     : The arguments are expected to be vectors of equal length, and the number of arguments is expected to be 1 less than their length.
+     = Cross[{1, 2}, {3, 4, 5}]
+    """
+
+    rules = {
+        'Cross[{x_, y_}]': '{-y, x}',
+    }
+
+    messages = {
+        'nonn1': ('The arguments are expected to be vectors of equal length, '
+                  'and the number of arguments is expected to be 1 less than '
+                  'their length.'),
+    }
+
+    # TODO Vectors of length other than 3
+
+    def apply(self, a, b, evaluation):
+        'Cross[a_, b_]'
+        a = to_sympy_matrix(a)
+        b = to_sympy_matrix(b)
+        try:
+            res = a.cross(b)
+        except sympy.ShapeError:
+            return evaluation.message('Cross', 'nonn1')
+        return from_sympy(res)
+
+
+class VectorAngle(Builtin):
+    """
+    <dl>
+    <dt>'VectorAngle[$u$, $v$]'
+        <dd>gives the angles between vectors $u$ and $v$
+    </dl>
+
+    >> VectorAngle[{1, 0}, {0, 1}]
+     = Pi / 2
+
+    >> VectorAngle[{1, 2}, {3, 1}]
+     = Pi / 4
+
+    >> VectorAngle[{1, 1, 0}, {1, 0, 1}]
+     = Pi / 3
+
+    #> VectorAngle[{0, 1}, {0, 1}]
+     = 0
+    """
+
+    rules = {
+        'VectorAngle[u_, v_]': 'ArcCos[u.v / (Norm[u] Norm[v])]',
+    }
+
+
+class Degree(Builtin):
+    """
+    <dl>
+    <dt>'Degree'
+        <dd>is number of radians in one degree.
+    </dl>
+
+    >> Cos[60 Degree]
+     = 1 / 2
+    """
+
+    rules = {
+        'Degree': '(Pi/180)'
+    }
+
+
 class Inverse(Builtin):
     """
     <dl>
@@ -264,6 +346,94 @@ class Eigenvalues(Builtin):
         return from_sympy([v for (v, c) in eigenvalues for _ in xrange(c)])
 
 
+class Eigensystem(Builtin):
+    """
+    <dl>
+    <dt>'Eigensystem[$m$]'
+        <dd>returns a list of {Eigenvalues, Eigenvectors}.
+    </dl>
+
+    >> Eigenvalues[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}] // Sort
+     = {-1, 1, 2}
+
+    >> Eigenvalues[{{Cos[theta],Sin[theta],0},{-Sin[theta],Cos[theta],0},{0,0,1}}] // Sort
+     = {1, Cos[theta] + Sqrt[-1 + Cos[theta] ^ 2], Cos[theta] - Sqrt[-1 + Cos[theta] ^ 2]}
+
+    >> Eigenvalues[{{7, 1}, {-4, 3}}]
+     = {5, 5}
+    """
+
+    rules = {
+        'Eigensystem[m_]': '{Eigenvalues[m], Eigenvectors[m]}'
+    }
+
+
+class MatrixPower(Builtin):
+    """
+    <dl>
+    <dt>'MatrixPower[$m$, $n$]'
+        <dd>computes the $n$th power of a matrix $m$.
+    </dl>
+
+    >> MatrixPower[{{1, 2}, {1, 1}}, 10]
+     = {{3363, 4756}, {2378, 3363}}
+
+    >> MatrixPower[{{1, 2}, {2, 5}}, -3]
+     = {{169, -70}, {-70, 29}}
+
+    #> MatrixPower[{{0, x}, {0, 0}}, n]
+     : Matrix power only implemented for real and integer values.
+     = MatrixPower[{{0, x}, {0, 0}}, n]
+    """
+
+    messages = {
+        'matrixpowernotimplemented': ('Matrix power only implemented for real and integer values.')
+    }
+
+    def apply(self, m, power, evaluation):
+        'MatrixPower[m_, power_]'
+        m = to_sympy_matrix(m)
+        try:
+            res = m ** power.to_sympy()
+        except NotImplementedError:
+            return evaluation.message('MatrixPower', 'matrixpowernotimplemented')
+        return from_sympy(res)
+
+
+class MatrixExp(Builtin):
+    """
+    <dl>
+    <dt>'MatrixExp[$m$]'
+        <dd>computes the exponential of the matrix $m$.
+    </dl>
+
+    >> MatrixExp[{{0, 2}, {0, 1}}]
+     = {{1, -2 + 2 E}, {0, E}}
+
+    >> MatrixExp[{{1.5, 0.5}, {0.5, 2.0}}]
+     = {{5.16266024276223, 3.029519834622}, {3.029519834622, 8.19218007738423}}
+
+    #> MatrixExp[{{a, 0}, {0, b}}]
+     : Matrix exp only implemented for real and integer values.
+     = MatrixExp[{{a, 0}, {0, b}}]
+    """
+
+    messages = {
+        'matrixexpnotimplemented': ('Matrix exp only implemented for real and integer values.')
+    }
+
+    # TODO fix precision
+
+    def apply(self, m, evaluation):
+        'MatrixExp[m_]'
+        m = to_sympy_matrix(m)
+        try:
+            res = m.exp()
+        except NotImplementedError:
+            return evaluation.message('MatrixExp', 'matrixexpnotimplemented')
+        return from_sympy(res)
+
+
 class Norm(Builtin):
     """
     <dl>
@@ -290,7 +460,7 @@ class Norm(Builtin):
 
     #> Norm[{1, {2, 3}}]
      : The first Norm argument should be a number, vector, or matrix.
-     = Norm[{1, {2, 3}}, 2]
+     = Norm[{1, {2, 3}}]
 
     #> Norm[{x, y}]
      = Sqrt[Abs[x] ^ 2 + Abs[y] ^ 2]
@@ -305,11 +475,16 @@ class Norm(Builtin):
     #> Norm[{x, y}, 0.5]
      : The second argument of Norm, 0.5, should be a symbol, Infinity, or an integer or real number not less than 1 for vector p-norms; or 1, 2, Infinity, or "Frobenius" for matrix norms.
      = Norm[{x, y}, 0.5]
+
+    #> Norm[{}]
+     = Norm[{}]
+
+    #> Norm[0]
+     = 0
     """
 
     rules = {
-        'Norm[m_]': 'Norm[m, 2]',
-        'Norm[m_Complex]': 'Abs[m]',
+        'Norm[m_?NumberQ]': 'Abs[m]',
         'Norm[m_, DirectedInfinity[1]]': 'Max[Abs[m]]',
     }
 
@@ -321,6 +496,10 @@ class Norm(Builtin):
             'or 1, 2, Infinity, or "Frobenius" for matrix norms.'),
         'normnotimplemented': 'Norm is not yet implemented for matrices.',
     }
+
+    def apply_single(self, m, evaluation):
+        'Norm[m_]'
+        return self.apply(m, Integer(2), evaluation)
 
     def apply(self, m, l, evaluation):
         'Norm[m_, l_]'
@@ -338,6 +517,8 @@ class Norm(Builtin):
 
         if matrix is None:
             return evaluation.message('Norm', 'nvm')
+        if len(matrix) == 0:
+            return
 
         try:
             res = matrix.norm(l)
@@ -345,6 +526,36 @@ class Norm(Builtin):
             return evaluation.message('Norm', 'normnotimplemented')
 
         return from_sympy(res)
+
+
+class Normalize(Builtin):
+    """
+    <dl>
+    <dt>'Normalize[$v$]'
+        <dd>calculates the normalized vector $v$.
+    <dt>'Normalize[$z$]'
+        <dd>calculates the normalized complex number $z$.
+    </dl>
+
+    >> Normalize[{1, 1, 1, 1}]
+     = {1 / 2, 1 / 2, 1 / 2, 1 / 2}
+
+    >> Normalize[1 + I]
+     = (1 / 2 + I / 2) Sqrt[2]
+
+    #> Normalize[0]
+     = 0
+
+    #> Normalize[{0}]
+     = {0}
+
+    #> Normalize[{}]
+     = {}
+    """
+
+    rules = {
+        'Normalize[v_]': 'Module[{norm = Norm[v]}, If[norm == 0, v, v / norm, v]]',
+    }
 
 
 class Eigenvectors(Builtin):

@@ -814,3 +814,41 @@ class ArcCoth(_MPMathFunction):
         'ArcCoth[z:0.0]': 'N[I / 2 Pi, Precision[1+z]]',
         'Derivative[1][ArcCoth]': '1/(1-#^2)&',
     }
+
+
+class Haversine(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Haversine[$z$]'
+        <dd>returns the haversine function of $z$.
+    </dl>
+
+    >> Haversine[1.5]
+     = 0.464631399166148545
+
+    >> Haversine[0.5 + 2I]
+     = -1.15081866645704728 + 0.869404752237158167 I
+    """
+
+    rules = {
+        'Haversine[z_]': 'Power[Sin[z/2], 2]'
+    }
+
+
+class InverseHaversine(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Haversine[$z$]'
+        <dd>returns the inverse haversine function of $z$.
+    </dl>
+
+    >> InverseHaversine[0.5]
+     = 1.57079632679489662
+
+    >> InverseHaversine[1 + 2.5 I]
+     = 1.76458946334982881 + 2.33097465304931242 I
+    """
+
+    rules = {
+        'InverseHaversine[z_]': '2 * ArcSin[Sqrt[z]]'
+    }

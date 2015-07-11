@@ -6,11 +6,12 @@ Integer functions
 
 import sympy
 
-from mathics.builtin.base import Builtin
+from mathics.builtin.base import Builtin, SympyObject, SympyFunction
+from mathics.core.convert import from_sympy
 from mathics.core.expression import Integer
 
 
-class Floor(Builtin):
+class Floor(SympyFunction):
     """
     <dl>
     <dt>'Floor[$x$]'
@@ -32,6 +33,10 @@ class Floor(Builtin):
     >> Floor[-10.4]
      = -11
 
+    For complex $x$, take the floor of real an imaginary parts.
+    >> Floor[1.5 + 2.7 I]
+     = 1 + 2 I
+
     For negative $a$, the smallest multiple of $a$ greater than or equal to $x$
     is returned.
     >> Floor[10.4, -1]
@@ -41,21 +46,40 @@ class Floor(Builtin):
     """
 
     rules = {
-        'Floor[x_, a_]': 'Floor[x / a] * a',
-        'Floor[z_Complex]': 'Complex[Floor[Re[z]], Floor[Im[z]]]',
+        'Floor[x_, a_]': 'Floor[x / a] * a'
     }
 
     def apply_real(self, x, evaluation):
-        'Floor[x_?RealNumberQ]'
+        'Floor[x_]'
+        x = x.to_sympy()
+        return from_sympy(sympy.floor(x))
 
-        x = x.value
-        if x < 0:
-            floor = - sympy.Integer(abs(x))
-            if x != floor:
-                floor -= 1
-        else:
-            floor = sympy.Integer(x)
-        return Integer(floor)
+
+class Ceiling(SympyFunction):
+    """
+    <dl>
+    <dt>'Ceiling[$x$]'
+        <dd>Give first integer greater than $x$.
+    </dl>
+
+    >> Ceiling[1.2]
+     = 2
+    >> Ceiling[3/2]
+     = 2
+
+    For complex $x$, take the ceiling of real an imaginary parts.
+    >> Ceiling[1.3 + 0.7 I]
+     = 2 + I
+    """
+
+    rules = {
+        'Ceiling[x_, a_]': 'Ceiling[x / a] * a'
+    }
+
+    def apply(self, x, evaluation):
+        'Ceiling[x_]'
+        x = x.to_sympy()
+        return from_sympy(sympy.ceiling(x))
 
 
 class IntegerLength(Builtin):
