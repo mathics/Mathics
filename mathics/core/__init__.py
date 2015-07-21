@@ -2,7 +2,7 @@
 
 u"""
     Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011 Jan Pöschko
+    Copyright (C) 2011-2013 The Mathics Team
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,15 +17,3 @@ u"""
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-
-try:    
-    #try:
-    #    import django.conf.settings
-    #    from django.conf import settings
-    #except ImportError:
-    #    import settings    
-        
-    # Try to import sage, fail silently
-    import sage.all
-except (ImportError, RuntimeError):
-    pass

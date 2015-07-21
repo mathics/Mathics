@@ -8,17 +8,25 @@ However, you can set any symbol as an attribute, in contrast to \Mathematica.
 """
 
 from mathics.builtin.base import Predefined, Builtin
-from mathics.core.expression import Integer, Real, Symbol, Expression
+from mathics.core.expression import Symbol, Expression
 from mathics.builtin.assignment import get_symbol_list
+
 
 class Attributes(Builtin):
     u"""
+    <dl>
+    <dt>'Attributes'[$symbol$]
+        <dd>returns the attributes of $symbol$.
+    <dt>'Attributes'[$symbol$] = {$attr1$, $attr2$}
+        <dd>sets the attributes of $symbol$, replacing any existing attributes.
+    </dl>
+
     >> Attributes[Plus]
      = {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected}
     'Attributes' always considers the head of an expression:
     >> Attributes[a + b + c]
      = {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected}
-     
+
     You can assign values to 'Attributes' to set attributes:
     >> Attributes[f] = {Flat, Orderless}
      = {Flat, Orderless}
@@ -34,50 +42,65 @@ class Attributes(Builtin):
     >> Attributes[f]
      = {Listable}
     """
-    
+
     attributes = ('HoldAll', 'Listable')
-    
+
     def apply(self, expr, evaluation):
         'Attributes[expr_]'
-        
+
         name = expr.get_lookup_name()
         attributes = list(evaluation.definitions.get_attributes(name))
         attributes.sort()
         attr = [Symbol(attribute) for attribute in attributes]
         return Expression('List', *attr)
-    
+
+
 class SetAttributes(Builtin):
     """
+    <dl>
+    <dt>'SetAttributes'[$symbol$, $attrib$]
+        <dd>adds $attrib$ to $symbol$'s attributes.
+    </dl>
+
     >> SetAttributes[f, Flat]
     >> Attributes[f]
      = {Flat}
+
+    Multiple attributes can be set at the same time using lists:
     >> SetAttributes[{f, g}, {Flat, Orderless}]
     >> Attributes[g]
      = {Flat, Orderless}
     """
-    
+
     attributes = ('HoldFirst',)
-    
+
     def apply(self, symbols, attributes, evaluation):
         'SetAttributes[symbols_, attributes_]'
-        
-        symbols = get_symbol_list(symbols, lambda item: evaluation.message('SetAttributes', 'sym', item, 1))
+
+        symbols = get_symbol_list(symbols, lambda item: evaluation.message(
+            'SetAttributes', 'sym', item, 1))
         if symbols is None:
             return
-        values = get_symbol_list(attributes, lambda item: evaluation.message('SetAttributes', 'sym', item, 2))
+        values = get_symbol_list(attributes, lambda item: evaluation.message(
+            'SetAttributes', 'sym', item, 2))
         if values is None:
             return
         for symbol in symbols:
-            if 'Locked' in evaluation.definitions.get_attributes(symbol):
-                evaluation.message('SetAttributes', 'locked', symbol)
+            if 'System`Locked' in evaluation.definitions.get_attributes(symbol):
+                evaluation.message('SetAttributes', 'locked', Symbol(symbol))
             else:
                 for value in values:
                     evaluation.definitions.set_attribute(symbol, value)
         return Symbol('Null')
 
-    
+
 class ClearAttributes(Builtin):
     """
+    <dl>
+    <dt>'ClearAttributes'[$symbol$, $attrib$]
+        <dd>removes $attrib$ from $symbol$'s attributes.
+    </dl>
+
     >> SetAttributes[f, Flat]
     >> Attributes[f]
      = {Flat}
@@ -89,28 +112,36 @@ class ClearAttributes(Builtin):
     >> Attributes[f]
      = {}
     """
-    
+
     attributes = ('HoldFirst',)
-    
+
     def apply(self, symbols, attributes, evaluation):
         'ClearAttributes[symbols_, attributes_]'
-        
-        symbols = get_symbol_list(symbols, lambda item: evaluation.message('ClearAttributes', 'sym', item, 1))
+
+        symbols = get_symbol_list(symbols, lambda item: evaluation.message(
+            'ClearAttributes', 'sym', item, 1))
         if symbols is None:
             return
-        values = get_symbol_list(attributes, lambda item: evaluation.message('ClearAttributes', 'sym', item, 2))
+        values = get_symbol_list(attributes, lambda item: evaluation.message(
+            'ClearAttributes', 'sym', item, 2))
         if values is None:
             return
         for symbol in symbols:
-            if 'Locked' in evaluation.definitions.get_attributes(symbol):
-                evaluation.message('ClearAttributes', 'locked', symbol)
+            if 'System`Locked' in evaluation.definitions.get_attributes(symbol):
+                evaluation.message('ClearAttributes', 'locked', Symbol(symbol))
             else:
                 for value in values:
                     evaluation.definitions.clear_attribute(symbol, value)
         return Symbol('Null')
-    
+
+
 class Protect(Builtin):
     """
+    <dl>
+    <dt>'Protect'[$symbol$]
+        <dd>gives $symbol$ the attribute 'Protected'.
+    </dl>
+
     >> A = {1, 2, 3};
     >> Protect[A]
     >> A[[2]] = 4;
@@ -118,23 +149,37 @@ class Protect(Builtin):
     >> A
      = {1, 2, 3}
     """
-        
+
     attributes = ('HoldAll',)
-    
+
     rules = {
-        'Protect[symbol_]': 'SetAttributes[symbol, Protected]',
+        'Protect[symbols__]': 'SetAttributes[{symbols}, Protected]',
     }
-    
+
+
 class Unprotect(Builtin):
-    
+    """
+    <dl>
+    <dt>'Unprotect'[$symbol$]
+        <dd>removes the 'Protected' attribute from $symbol$.
+    </dl>
+    """
+
     attributes = ('HoldAll',)
-    
+
     rules = {
-        'Unprotect[symbol_]': 'ClearAttributes[symbol, Protected]',
+        'Unprotect[symbols__]': 'ClearAttributes[{symbols}, Protected]',
     }
-    
+
+
 class Protected(Predefined):
     """
+    <dl>
+    <dt>'Protected'
+        <dd>is an attribute that prevents values on a symbol from
+        being modified.
+    </dl>
+
     Values of 'Protected' symbols cannot be modified:
     >> Attributes[p] = {Protected};
     >> p = 2;
@@ -143,7 +188,7 @@ class Protected(Predefined):
      : Tag p in f[p] is Protected.
     >> Format[p] = "text";
      : Symbol p is Protected.
-     
+
     However, attributes might still be set:
     >> SetAttributes[p, Flat]
     >> Attributes[p]
@@ -157,7 +202,7 @@ class Protected(Predefined):
     >> Attributes[p]
      = {Protected}
     >> Unprotect[p]
-    
+
     If a symbol is 'Protected' and 'Locked', it can never be changed again:
     >> SetAttributes[p, {Protected, Locked}]
     >> p = 2
@@ -166,9 +211,36 @@ class Protected(Predefined):
     >> Unprotect[p]
      : Symbol p is locked.
     """
-    
+
+
+class ReadProtected(Predefined):
+    """
+    <dl>
+    <dt>'ReadProtected'
+        <dd>is an attribute that prevents values on a symbol from
+        being read.
+    </dl>
+
+    Values associated with 'ReadProtected' symbols cannot be seen in
+    'Definition':
+    >> ClearAll[p]
+    >> p = 3;
+    >> Definition[p]
+     = p = 3
+    >> SetAttributes[p, ReadProtected]
+    >> Definition[p]
+     = Attributes[p] = {ReadProtected}
+    """
+
+
 class Locked(Predefined):
     """
+    <dl>
+    <dt>'Locked'
+        <dd>is an attribute that prevents attributes on a symbol from
+        being modified.
+    </dl>
+
     The attributes of 'Locked' symbols cannot be modified:
     >> Attributes[lock] = {Flat, Locked};
     >> SetAttributes[lock, {}]
@@ -180,18 +252,31 @@ class Locked(Predefined):
      = {}
     >> Attributes[lock]
      = {Flat, Locked}
-     
+
     However, their values might be modified (as long as they are not 'Protected' too):
     >> lock = 3
      = 3
     """
 
+
 class Flat(Predefined):
     """
+    <dl>
+    <dt>'Flat'
+        <dd>is an attribute that specifies that nested occurrences of
+        a function should be automatically flattened.
+    </dl>
+
+    A symbol with the 'Flat' attribute represents an associative
+    mathematical operation:
     >> SetAttributes[f, Flat]
+    >> f[a, f[b, c]]
+     = f[a, b, c]
+
+    'Flat' is taken into account in pattern matching:
     >> f[a, b, c] /. f[a, b] -> d
      = f[d, c]
-     
+
     #> SetAttributes[{u, v}, Flat]
     #> u[x_] := {x}
     #> u[]
@@ -216,18 +301,40 @@ class Flat(Predefined):
      = $Aborted
     """
 
+
 class Orderless(Predefined):
     """
+    <dl>
+    <dt>'Orderless'
+        <dd>is an attribute indicating that the leaves in an
+        expression f[a, b, c] can be placed in any order.
+    </dl>
+
+    The leaves of an 'Orderless' function are automatically sorted:
     >> SetAttributes[f, Orderless]
     >> f[c, a, b, a + b, 3, 1.0]
      = f[1., 3, a, b, c, a + b]
+
+    A symbol with the 'Orderless' attribute represents a commutative
+    mathematical operation.
+    >> f[a, b] == f[b, a]
+     = True
+
+    'Orderless' affects pattern matching:
     >> SetAttributes[f, Flat]
-    >> f[a, b, c] /. f[a, b] -> d
-     = f[c, d]
+    >> f[a, b, c] /. f[a, c] -> d
+     = f[b, d]
     """
+
 
 class OneIdentity(Predefined):
     """
+    <dl>
+    <dt>'OneIdentity'
+        <dd>is an attribute specifying that $f$[$x$] should be treated
+        as equivalent to $x$ in pattern matching.
+    </dl>
+
     'OneIdentity' affects pattern matching:
     >> SetAttributes[f, OneIdentity]
     >> a /. f[args___] -> {args}
@@ -237,8 +344,15 @@ class OneIdentity(Predefined):
      = f[a]
     """
 
+
 class SequenceHold(Predefined):
     """
+    <dl>
+    <dt>'SequenceHold'
+        <dd>is an attribute that prevents 'Sequence' objects from being
+        spliced into a function's arguments.
+    </dl>
+
     Normally, 'Sequence' will be spliced into a function:
     >> f[Sequence[a, b]]
      = f[a, b]
@@ -246,7 +360,7 @@ class SequenceHold(Predefined):
     >> SetAttributes[f, SequenceHold]
     >> f[Sequence[a, b]]
      = f[Sequence[a, b]]
-     
+
     E.g., 'Set' has attribute 'SequenceHold' to allow assignment of sequences to variables:
     >> s = Sequence[a, b];
     >> s
@@ -255,18 +369,48 @@ class SequenceHold(Predefined):
      = a + b
     """
 
+
 class HoldFirst(Predefined):
-    pass
+    """
+    <dl>
+    <dt>'HoldFirst'
+        <dd>is an attribute specifying that the first argument of a
+        function should be left unevaluated.
+    </dl>
+    """
+
 
 class HoldRest(Predefined):
-    pass
+    """
+    <dl>
+    <dt>'HoldRest'
+        <dd>is an attribute specifying that all but the first argument
+        of a function should be left unevaluated.
+    </dl>
+    """
+
 
 class HoldAll(Predefined):
-    pass
+    """
+    <dl>
+    <dt>'HoldAll'
+        <dd>is an attribute specifying that all arguments of a
+        function should be left unevaluated.
+    </dl>
+    """
+
 
 class HoldAllComplete(Predefined):
     """
-    'HoldAllComplete' even prevents upvalues from being used, and includes 'SequenceHold'.
+    <dl>
+    <dt>'HoldAllComplete'
+        <dd>is an attribute that includes the effects of 'HoldAll' and
+        'SequenceHold', and also protects the function from being
+        affected by the upvalues of any arguments.
+    </dl>
+
+    'HoldAllComplete' even prevents upvalues from being used, and
+    includes 'SequenceHold'.
     >> SetAttributes[f, HoldAllComplete]
     >> f[a] ^= 3;
     >> f[a]
@@ -274,24 +418,52 @@ class HoldAllComplete(Predefined):
     >> f[Sequence[a, b]]
      = f[Sequence[a, b]]
     """
-    
+
+
 class NHoldAll(Predefined):
     """
+    <dl>
+    <dt>'NHoldAll'
+        <dd>is an attribute that protects all arguments of a
+        function from numeric evaluation.
+    </dl>
+
     >> N[f[2, 3]]
      = f[2., 3.]
     >> SetAttributes[f, NHoldAll]
     >> N[f[2, 3]]
      = f[2, 3]
     """
-    
+
+
 class NHoldFirst(Predefined):
-    pass
-    
+    """
+    <dl>
+    <dt>'NHoldFirst'
+        <dd>is an attribute that protects the first argument of a
+        function from numeric evaluation.
+    </dl>
+    """
+
+
 class NHoldRest(Predefined):
-    pass
+    """
+    <dl>
+    <dt>'NHoldRest'
+        <dd>is an attribute that protects all but the first argument
+        of a function from numeric evaluation.
+    </dl>
+    """
+
 
 class Listable(Predefined):
     """
+    <dl>
+    <dt>'Listable'
+        <dd>is an attribute specifying that a function should be
+        automatically applied to each element of a list.
+    </dl>
+
     >> SetAttributes[f, Listable]
     >> f[{1, 2, 3}, {4, 5, 6}]
      = {f[1, 4], f[2, 5], f[3, 6]}
@@ -300,4 +472,22 @@ class Listable(Predefined):
     >> {{1, 2}, {3, 4}} + {5, 6}
      = {{6, 7}, {9, 10}}
     """
-    
+
+
+class Constant(Predefined):
+    """
+    <dl>
+    <dt>'Constant'
+        <dd>is an attribute that indicates that a symbol is a constant.
+    </dl>
+
+    Mathematical constants like 'E' have attribute 'Constant':
+    >> Attributes[E]
+     = {Constant, Protected, ReadProtected}
+
+    Constant symbols cannot be used as variables in 'Solve' and
+    related functions:
+    >> Solve[x + E == 0, E]
+     : E is not a valid variable.
+     = Solve[E + x == 0, E]
+    """

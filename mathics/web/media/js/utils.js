@@ -1,6 +1,6 @@
 /**
     Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011 Jan Pöschko
+    Copyright (C) 2011-2013 The Mathics Team
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -131,7 +131,7 @@ var Publisher = Class.create({
 	},
 	
 	fire: function(event) {
-		var subscribers = this.events.get(event) || $A();
+		var subscribers = this.events.get(event) || $A();
 		var args = $A(arguments).slice(1);
 		subscribers.each(function(subscriber) {
 			subscriber.apply(this, args);

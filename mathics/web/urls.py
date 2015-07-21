@@ -2,7 +2,7 @@
 
 u"""
     Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011 Jan Pöschko
+    Copyright (C) 2011-2013 The Mathics Team
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,11 +18,11 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from django.conf.urls.defaults import *
+from django.conf.urls import *
 
-urlpatterns = patterns('mathics.web.views',
+urlpatterns = patterns(
+    'mathics.web.views',
     ('^$', 'main_view'),
-    ('^test/$', 'test_view'),
     ('^ajax/query/$', 'query'),
     ('^ajax/login/$', 'login'),
     ('^ajax/logout/$', 'logout'),
@@ -31,7 +31,10 @@ urlpatterns = patterns('mathics.web.views',
     ('^ajax/getworksheets/$', 'get_worksheets'),
     ('^(?P<ajax>(?:ajax/)?)doc/$', 'doc'),
     ('^ajax/doc/search/$', 'doc_search'),
-    ('^(?P<ajax>(?:ajax/)?)doc/(?P<part>[\w-]+)/$', 'doc_part'),
-    ('^(?P<ajax>(?:ajax/)?)doc/(?P<part>[\w-]+)/(?P<chapter>[\w-]+)/$', 'doc_chapter'),
-    ('^(?P<ajax>(?:ajax/)?)doc/(?P<part>[\w-]+)/(?P<chapter>[\w-]+)/(?P<section>[\w-]+)/$', 'doc_section'),
+    ('^(?P<ajax>(?:ajax/)?)doc/(?P<part>[\w-]+)/$',
+     'doc_part'),
+    ('^(?P<ajax>(?:ajax/)?)doc/(?P<part>[\w-]+)/(?P<chapter>[\w-]+)/$',
+     'doc_chapter'),
+    ('^(?P<ajax>(?:ajax/)?)doc/(?P<part>[\w-]+)/(?P<chapter>[\w-]+)/'
+     '(?P<section>[$\w-]+)/$', 'doc_section'),
 )

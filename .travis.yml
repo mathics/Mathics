@@ -1,11 +1,57 @@
 language: python
 python:
-  - 2.6
   - 2.7
-  - "pypy"
+  - pypy
+env:
+  - SYMPY_SRC=sympy-0.7.6
+matrix:
+    fast_finish: true
+    include:
+      - python: 2.7
+        env: SYMPY_SRC=sympy-0.7.3
+      - python: 2.7
+        env: SYMPY_SRC=sympy-0.7.4
+      - python: 2.7
+        env: SYMPY_SRC=sympy-0.7.5
+      - python: 2.7
+        env: SYMPY_SRC=master
+      - python: 2.7
+        env:
+          - SYMPY_SRC=sympy-0.7.6
+          - TEST_DOC="true"
+    allow_failures:
+      - env: SYMPY_SRC=sympy-0.7.3
+      - env: SYMPY_SRC=sympy-0.7.4
+      - env: SYMPY_SRC=sympy-0.7.5
+      - env: SYMPY_SRC=master
+      - env:
+          - SYMPY_SRC=sympy-0.7.6
+          - TEST_DOC="true"
+before_install:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
+  - if [[ "$TEST_DOC" == "true" ]]; then
+    sudo apt-get update -qq &&
+    sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
+    fi
+  - pip install --use-mirrors unittest2
+  - pip install --use-mirrors pexpect
+  - pip install --use-mirrors git+https://github.com/sympy/sympy.git@$SYMPY_SRC
 install:
-  - "python setup.py install"
+  - sed -i 's/sympy==0.7.3/sympy>=0.7.3/' setup.py
+  - if [[ "$TEST_DOC" == "true" ]]; then python setup.py develop; else python setup.py install; fi
 script:
-  - "python mathics/test.py"
+  - unit2 discover
+  - python setup.py test
+  - if [[ "$TEST_DOC" == "true" ]]; then
+        python mathics/test.py -o &&
+        python mathics/test.py -t &&
+        cd mathics/doc/ &&
+        ./images.sh &&
+        cd tex/ &&
+        make latex;
+    else
+        python mathics/test.py;
+    fi
 notifications:
-  email: false
+    email: false

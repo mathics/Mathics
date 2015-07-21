@@ -2,7 +2,7 @@
 
 u"""
     Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011 Jan Pöschko
+    Copyright (C) 2011-2013 The Mathics Team
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,21 +18,33 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mathics.builtin import algebra, arithmetic, assignment, attributes, calculus, combinatorial, comparison, control, datentime, diffeqns, evaluation
-from mathics.builtin import exptrig, functional, graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory, numeric, options, patterns
-from mathics.builtin import plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, strings, structure
-from mathics.builtin import information
-from mathics.builtin import system, tensors
+from mathics.builtin import (
+    algebra, arithmetic, assignment, attributes, calculus, combinatorial,
+    comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
+    graphics, graphics3d, information, inout, integer, linalg, lists, logic, numbertheory,
+    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
+    specialfunctions, scoping, strings, structure, system, tensors)
 
-from mathics.builtin.base import Builtin, SageObject, BoxConstruct, Operator, PatternObject
+from mathics.builtin.base import (
+    Builtin, SympyObject, BoxConstruct, Operator, PatternObject)
 
-modules = [algebra, arithmetic, assignment, attributes, calculus, combinatorial, comparison, control, datentime, diffeqns, evaluation,
-    exptrig, functional, graphics, graphics3d, information, inout, integer, linalg, lists, logic, numbertheory, numeric, options, patterns,
-    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, strings, structure,
-    system, tensors]
+from mathics.settings import ENABLE_FILES_MODULE
+
+modules = [
+    algebra, arithmetic, assignment, attributes, calculus, combinatorial,
+    comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
+    graphics, graphics3d, information, inout, integer, linalg, lists, logic, numbertheory,
+    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
+    specialfunctions, scoping, strings, structure, system, tensors]
+
+if ENABLE_FILES_MODULE:
+    from mathics.builtin import files, importexport
+    modules += [files, importexport]
+
 
 builtins = []
 builtins_by_module = {}
+
 
 def is_builtin(var):
     if var == Builtin:
@@ -46,18 +58,21 @@ for module in modules:
     vars = dir(module)
     for name in vars:
         var = getattr(module, name)
-        if hasattr(var, '__module__') and var.__module__.startswith('mathics.builtin.') and \
-            var.__module__ != 'mathics.builtin.base' and is_builtin(var) and not name.startswith('_') and \
-            var.__module__ == module.__name__:
+        if (hasattr(var, '__module__')
+                and var.__module__.startswith('mathics.builtin.')
+                and var.__module__ != 'mathics.builtin.base'
+                and is_builtin(var) and not name.startswith('_')
+                and var.__module__ == module.__name__):
+
             instance = var(expression=False)
+
             if isinstance(instance, Builtin):
                 builtins.append((instance.get_name(), instance))
                 builtins_by_module[module.__name__].append(instance)
 
-#builtins = dict(builtins)
 
-mathics_to_sage = {}
-sage_to_mathics = {}
+# builtins = dict(builtins)
+
 mathics_to_sympy = {}
 sympy_to_mathics = {}
 
@@ -65,15 +80,11 @@ box_constructs = {}
 pattern_objects = {}
 builtins_precedence = {}
 
+
 def add_builtins(new_builtins):
     for var_name, builtin in new_builtins:
         name = builtin.get_name()
-        if isinstance(builtin, SageObject):
-            mathics_to_sage[name] = builtin
-            if builtin.sage_name:
-                sage_to_mathics[builtin.sage_name] = builtin
-            for sage_name in builtin.sage_names_alt:
-                sage_to_mathics[sage_name] = builtin
+        if isinstance(builtin, SympyObject):
             mathics_to_sympy[name] = builtin
             if builtin.sympy_name:
                 sympy_to_mathics[builtin.sympy_name] = builtin
@@ -84,10 +95,11 @@ def add_builtins(new_builtins):
         if isinstance(builtin, PatternObject):
             pattern_objects[name] = builtin.__class__
     builtins.update(dict(new_builtins))
-            
+
 new_builtins = builtins
 builtins = {}
 add_builtins(new_builtins)
+
 
 def get_module_doc(module):
     doc = module.__doc__
@@ -105,9 +117,22 @@ def get_module_doc(module):
         text = ''
     return title, text
 
+
 def contribute(definitions):
     # let MakeBoxes contribute first
-    builtins['MakeBoxes'].contribute(definitions)    
+    builtins['System`MakeBoxes'].contribute(definitions)
     for name, item in builtins.items():
-        if name != 'MakeBoxes':
+        if name != 'System`MakeBoxes':
             item.contribute(definitions)
+
+    from mathics.core.expression import ensure_context
+    from mathics.core.parser import all_operator_names
+    from mathics.core.definitions import Definition
+
+    # All builtins are loaded. Create dummy builtin definitions for
+    # any remaining operators that don't have them. This allows
+    # operators like \[Cup] to behave correctly.
+    for operator in all_operator_names:
+        if not definitions.have_definition(ensure_context(operator)):
+            op = ensure_context(operator)
+            definitions.builtin[op] = Definition(name=op)

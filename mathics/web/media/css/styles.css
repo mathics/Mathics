@@ -1,6 +1,6 @@
 /**
     Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011 Jan Pöschko
+    Copyright (C) 2011-2013 The Mathics Team
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -428,6 +428,38 @@ li.result {
     list-style-image: none;
 	margin-top: 3px;
 	color: black;
+}
+
+li.test .submitbutton {
+    display: none;
+}
+
+li.test p.focused .submitbutton {
+    display: block;
+    position: absolute;
+    right: 10px;
+    top: 0;
+}
+
+li.test .submitbutton span {
+    display: inline-block;
+    margin-top: 3px;
+    margin-bottom: 5px;
+    /*margin-left: 10px;*/
+    background-color: #999;
+    color: white;
+    padding: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+    width: 10px;
+    line-height: 10px;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+li.test .submitbutton span:hover {
+    background-color: #666;
 }
 
 h1 {

@@ -2,7 +2,7 @@
 
 u"""
     Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011 Jan Pöschko
+    Copyright (C) 2011-2013 The Mathics Team
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -23,13 +23,8 @@ import sys
 import os
 from os import path
 
-try:
-    import django
-    DJANGO_VERSION = django.VERSION
-except ImportError:
-    DJANGO_VERSION = (1, 4)
-
-VERSION = '0.5.1dev'
+import django
+DJANGO_VERSION = django.VERSION
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -43,7 +38,10 @@ DEBUG_PRINT = False
 LOG_QUERIES = False
 
 TIMEOUT = None
-MAX_RECURSION_DEPTH = 200
+MAX_RECURSION_DEPTH = 512
+
+# number of bits of precision for inexact calculations
+MACHINE_PRECISION = 64
 
 ADMINS = (
     (u'Admin', 'mail@test.com'),
@@ -52,24 +50,16 @@ MANAGERS = ADMINS
 
 ROOT_DIR = pkg_resources.resource_filename('mathics', '') + '/'
 if sys.platform.startswith('win'):
-    DATA_DIR = '%APPDATA%/Python/Mathics/'
+    DATA_DIR = os.environ['APPDATA'].replace(os.sep, '/') + '/Python/Mathics/'
 else:
     DATA_DIR = path.expanduser('~/.local/var/mathics/')
-#if not path.exists(DATA_DIR):
+# if not path.exists(DATA_DIR):
 #    os.makedirs(DATA_DIR)
 
 DOC_DIR = ROOT_DIR + 'doc/documentation/'
 DOC_TEX_DATA = ROOT_DIR + 'doc/tex/data'
 DOC_XML_DATA = ROOT_DIR + 'doc/xml/data'
 DOC_LATEX_FILE = ROOT_DIR + 'doc/tex/documentation.tex'
-
-"""
-For Django < 1.2:
-DATABASE_ENGINE = 'sqlite3'
-DATABASE_NAME = DATA_DIR + 'mathics.sqlite'
-DATABASE_HOST = ''             # Set to empty string for localhost. Not used with sqlite3.
-DATABASE_PORT = ''             # Set to empty string for default. Not used with sqlite3.
-"""
 
 DATABASES = {
     'default': {
@@ -98,6 +88,10 @@ LANGUAGE_CODE = 'en-us'
 
 SITE_ID = 1
 
+# Leave this True unless you have specific reason for not permitting
+# users to access local files
+ENABLE_FILES_MODULE = True
+
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
 USE_I18N = True
@@ -111,8 +105,8 @@ MEDIA_ROOT = ROOT_DIR + 'web/media/'
 # Examples: "http://media.lawrence.com", "http://example.com/media/"
 MEDIA_URL = '/media/'
 
-# URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
-# trailing slash.
+# URL prefix for admin media -- CSS, JavaScript and images.
+# Make sure to use a trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
 if DJANGO_VERSION < (1, 3):
     ADMIN_MEDIA_PREFIX = '/media/admin/'
@@ -121,7 +115,7 @@ if DJANGO_VERSION < (1, 3):
 SECRET_KEY = 'uvbhuiasaeaph6Duh)r@3ex1i@et=0j4h(!p4@!r6s-=a_ev*e'
 
 # List of callables that know how to import templates from various sources.
-#TEMPLATE_LOADERS = (
+# TEMPLATE_LOADERS = (
 #    'django.template.loaders.filesystem.load_template_source',
 #    'django.template.loaders.app_directories.load_template_source',
 #)
@@ -135,7 +129,8 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'mathics.urls'
 
 TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Put strings here, like "/home/html/django_templates" or
+    # "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
     ROOT_DIR + 'web/templates/',

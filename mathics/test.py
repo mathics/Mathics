@@ -2,7 +2,7 @@
 
 u"""
     Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011 Jan Pöschko
+    Copyright (C) 2011-2013 The Mathics Team
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -26,10 +26,10 @@ import pickle
 import os
 from argparse import ArgumentParser
 
-from mathics.core.parser import parse, TranslateError
+import mathics
 from mathics.core.definitions import Definitions
-from mathics.core.expression import Evaluation
-from mathics.builtin import modules, builtins_by_module, get_module_doc, builtins
+from mathics.core.evaluation import Evaluation
+from mathics.builtin import builtins
 from mathics.doc import documentation
 from mathics import get_version_string
 
@@ -38,6 +38,7 @@ from mathics import settings
 definitions = Definitions(add_builtin=True)
 
 sep = '-' * 70 + '\n'
+
 
 def compare(result, wanted):
     if result == wanted:
@@ -56,14 +57,18 @@ def compare(result, wanted):
             return False
     return True
 
-def test_case(test, tests, index=0):
-    test, wanted_out, wanted, part, chapter, section = test.test, test.outs, test.result, tests.part, tests.chapter, tests.section
-    
+
+def test_case(test, tests, index=0, quiet=False):
+    test, wanted_out, wanted = test.test, test.outs, test.result
+    part, chapter, section = tests.part, tests.chapter, tests.section
+
     def fail(why):
-        print u"%sTest failed: %s in %s / %s\n%s\n%s\n" % (sep, section, part, chapter, test, why)
+        print u"%sTest failed: %s in %s / %s\n%s\n%s\n" % (
+            sep, section, part, chapter, test, why)
         return False
-    
-    print '%4d. TEST %s' % (index, test)
+
+    if not quiet:
+        print '%4d. TEST %s' % (index, test)
     try:
         evaluation = Evaluation(test, definitions, catch_interrupt=False)
     except Exception, exc:
@@ -71,7 +76,7 @@ def test_case(test, tests, index=0):
         info = sys.exc_info()
         sys.excepthook(*info)
         return False
-    
+
     if evaluation.results:
         if len(evaluation.results) > 1:
             return fail(u"Too many results: %s" % evaluation.results)
@@ -81,7 +86,11 @@ def test_case(test, tests, index=0):
         result = None
         out = []
     if not compare(result, wanted):
-        return fail(u"Result: %s\nWanted: %s" % (result, wanted))
+        fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
+        if out:
+            fail_msg += "\nAdditional output:\n"
+            fail_msg += u'\n'.join(unicode(o) for o in out)
+        return fail(fail_msg)
     output_ok = True
     if len(out) != len(wanted_out):
         output_ok = False
@@ -91,35 +100,45 @@ def test_case(test, tests, index=0):
                 output_ok = False
                 break
     if not output_ok:
-        return fail(u"Output:\n%s\nWanted:\n%s" % (u'\n'.join(unicode(o) for o in out),
+        return fail(u"Output:\n%s\nWanted:\n%s" % (
+            u'\n'.join(unicode(o) for o in out),
             u'\n'.join(unicode(o) for o in wanted_out)))
     return True
 
-def test_tests(tests, index):
-    #print tests
+
+def test_tests(tests, index, quiet=False, stop_on_failure=False, start_at=0):
+    # print tests
     definitions.reset_user_definitions()
-    count = failed = 0
+    count = failed = skipped = 0
     failed_symbols = set()
-    for test in tests.tests:   
+    for test in tests.tests:
         count += 1
         index += 1
-        if not test_case(test, tests, index):
+        if index < start_at:
+            skipped += 1
+            continue
+        if not test_case(test, tests, index, quiet):
             failed += 1
             failed_symbols.add((tests.part, tests.chapter, tests.section))
-    return count, failed, failed_symbols, index
+            if stop_on_failure:
+                break
+    return count, failed, skipped, failed_symbols, index
+
 
 def create_output(tests, output_xml, output_tex):
     for format, output in [('xml', output_xml), ('tex', output_tex)]:
         definitions.reset_user_definitions()
         for test in tests.tests:
             key = test.key
-            result = Evaluation(test.test, definitions, format=format, catch_interrupt=False)
+            result = Evaluation(
+                test.test, definitions, format=format, catch_interrupt=False)
             output[key] = {
                 'query': test.test,
                 'results': [r.get_data() for r in result.results],
             }
-            
-def test_section(section):
+
+
+def test_section(section, quiet=False, stop_on_failure=False):
     failed = 0
     index = 0
     print 'Testing section %s' % section
@@ -127,92 +146,125 @@ def test_section(section):
         if tests.section == section or tests.section == '$' + section:
             for test in tests.tests:
                 index += 1
-                if not test_case(test, tests, index):
+                if not test_case(test, tests, index, quiet=quiet):
                     failed += 1
-        
+                    if stop_on_failure:
+                        break
+
     print ''
     if failed > 0:
         print '%d test%s failed.' % (failed, 's' if failed != 1 else '')
     else:
         print 'OK'
-        
+
+
 def open_ensure_dir(f, *args, **kwargs):
     try:
         return open(f, *args, **kwargs)
-    except IOError, OSError:        
+    except (IOError, OSError):
         d = os.path.dirname(f)
         if d and not os.path.exists(d):
             os.makedirs(d)
         return open(f, *args, **kwargs)
 
-def test_all():
-    print "Testing %s" % get_version_string(False)
-      
+
+def test_all(quiet=False, generate_output=False, stop_on_failure=False,
+             start_at=0):
+    if not quiet:
+        print "Testing %s" % get_version_string(False)
+
     try:
         index = 0
-        count = failed = 0
+        count = failed = skipped = 0
         failed_symbols = set()
         output_xml = {}
         output_tex = {}
         for tests in documentation.get_tests():
-            sub_count, sub_failed, symbols, index = test_tests(tests, index)
-            create_output(tests, output_xml, output_tex)
+            sub_count, sub_failed, sub_skipped, symbols, index = test_tests(
+                tests, index, quiet=quiet, stop_on_failure=stop_on_failure,
+                start_at=start_at)
+            if generate_output:
+                create_output(tests, output_xml, output_tex)
             count += sub_count
             failed += sub_failed
+            skipped += sub_skipped
             failed_symbols.update(symbols)
+            if sub_failed and stop_on_failure:
+                break
         builtin_count = len(builtins)
     except KeyboardInterrupt:
         print "\nAborted.\n"
         return
-        
+
     if failed > 0:
         print '%s' % sep
-    print "%d Tests for %d built-in symbols, %d passed, %d failed." % (count, builtin_count, count - failed, failed)
+    print "%d Tests for %d built-in symbols, %d passed, %d failed, %d skipped." % (
+        count, builtin_count, count - failed - skipped, failed, skipped)
     if failed_symbols:
+        if stop_on_failure:
+            print "(not all tests are accounted for due to --stop-on-failure)"
         print "Failed:"
         for part, chapter, section in sorted(failed_symbols):
             print '  - %s in %s / %s' % (section, part, chapter)
-    
+
     if failed == 0:
         print '\nOK'
-        
-        print 'Save XML'
-        with open_ensure_dir(settings.DOC_XML_DATA, 'w') as output_xml_file:
-            pickle.dump(output_xml, output_xml_file, 0)
-            
-        print 'Save TEX'
-        with open_ensure_dir(settings.DOC_TEX_DATA, 'w') as output_tex_file:
-            pickle.dump(output_tex, output_tex_file, 0)
+
+        if generate_output:
+            print 'Save XML'
+            with open_ensure_dir(settings.DOC_XML_DATA, 'w') as output_file:
+                pickle.dump(output_xml, output_file, 0)
+
+            print 'Save TEX'
+            with open_ensure_dir(settings.DOC_TEX_DATA, 'w') as output_file:
+                pickle.dump(output_tex, output_file, 0)
     else:
         print '\nFAILED'
         return sys.exit(1)      # Travis-CI knows the tests have failed
-        
+
+
 def write_latex():
     print "Load data"
-    with open_ensure_dir(settings.DOC_TEX_DATA, 'r') as output_tex_file:
-        output_tex = pickle.load(output_tex_file)
-        
+    with open_ensure_dir(settings.DOC_TEX_DATA, 'r') as output_file:
+        output_tex = pickle.load(output_file)
+
     print 'Print documentation'
     with open_ensure_dir(settings.DOC_LATEX_FILE, 'w') as doc:
         content = documentation.latex(output_tex)
         content = content.encode('utf-8')
         doc.write(content)
 
+
 def main():
     parser = ArgumentParser(description="Mathics test suite.", add_help=False)
-    parser.add_argument('--help', '-h', help='show this help message and exit', action='help')
-    parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + settings.VERSION)
-    parser.add_argument('--section', '-s', dest="section", metavar="SECTION", help="only test SECTION")
-    parser.add_argument('--tex', '-t', dest="tex", action="store_true", help="generate TeX file")
+    parser.add_argument(
+        '--help', '-h', help='show this help message and exit', action='help')
+    parser.add_argument(
+        '--version', '-v', action='version',
+        version='%(prog)s ' + mathics.__version__)
+    parser.add_argument('--section', '-s', dest="section",
+                        metavar="SECTION", help="only test SECTION")
+    parser.add_argument('--output', '-o', dest="output", action="store_true",
+                        help="generate TeX and XML output data")
+    parser.add_argument('--tex', '-t', dest="tex", action="store_true",
+                        help="generate TeX documentation file")
+    parser.add_argument('--quiet', '-q', dest="quiet",
+                        action="store_true", help="hide passed tests")
+    parser.add_argument('--stop-on-failure', action="store_true",
+                        help="stop on failure")
+    parser.add_argument('--skip', metavar='N', dest="skip", type=int,
+                        default=0, help="skip the first N tests")
     args = parser.parse_args()
-    
+
     if args.tex:
         write_latex()
     else:
         if args.section:
-            test_section(args.section)
+            test_section(args.section, stop_on_failure=args.stop_on_failure)
         else:
-            test_all()
+            test_all(quiet=args.quiet, generate_output=args.output,
+                     stop_on_failure=args.stop_on_failure,
+                     start_at=args.skip+1)
 
 if __name__ == '__main__':
     main()

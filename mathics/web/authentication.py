@@ -2,7 +2,7 @@
 
 u"""
     Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011 Jan Pöschko
+    Copyright (C) 2011-2013 The Mathics Team
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,14 +20,15 @@ u"""
 
 from django.conf import settings
 from django.contrib.auth.models import User
- 
+
+
 class EmailModelBackend(object):
     def authenticate(self, username=None, password=None):
         try:
             user = User.objects.get(email=username)
         except User.DoesNotExist:
             return None
-            
+
         if user.check_password(password):
             return user
 

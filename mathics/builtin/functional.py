@@ -7,6 +7,7 @@ Functional programming
 from mathics.builtin.base import Builtin, PostfixOperator
 from mathics.core.expression import Expression
 
+
 class Function(PostfixOperator):
     """
     <dl>
@@ -15,7 +16,7 @@ class Function(PostfixOperator):
     <dt>'Function[{$x1$, $x2$, ...}, $body$]'
         <dd>represents a pure function with parameters $x1$, $x2$, etc.
     </dl>
-    
+
     >> f := # ^ 2 &
     >> f[3]
      = 9
@@ -23,11 +24,11 @@ class Function(PostfixOperator):
      = {1, 8, 27}
     >> #1+#2&[4, 5]
      = 9
-     
+
     You can use 'Function' with named parameters:
     >> Function[{x, y}, x * y][2, 3]
      = 6
-     
+
     Parameters are renamed, when necessary, to avoid confusion:
     >> Function[{x}, Function[{y}, f[x, y]]][y]
      = Function[{y$}, f[y, y$]]
@@ -37,49 +38,52 @@ class Function(PostfixOperator):
      = x ^ y
     >> Function[x, Function[y, x^y]][x][y]
      = x ^ y
-     
+
     Slots in inner functions are not affected by outer function application:
     >> g[#] & [h[#]] & [5]
      = g[h[5]]
-     
+
     #> g[x_,y_] := x+y
     #> g[Sequence@@Slot/@Range[2]]&[1,2]
      = #1 + #2
     #> Evaluate[g[Sequence@@Slot/@Range[2]]]&[1,2]
      = 3
     """
-    
+
     operator = '&'
     precedence = 90
     attributes = ('HoldAll',)
-    
+
     messages = {
         'slot': "`1` should contain a positive integer.",
         'slotn': "Slot number `1` cannot be filled.",
         'fpct': "Too many parameters to be filled.",
     }
-    
+
     def apply_slots(self, body, args, evaluation):
         'Function[body_][args___]'
-        
+
         args = args.get_sequence()
+        args.insert(0, Expression('Function', body))
         return body.replace_slots(args, evaluation)
-        
+
     def apply_named(self, vars, body, args, evaluation):
         'Function[vars_, body_][args___]'
-        
+
         if vars.has_form('List', None):
             vars = vars.leaves
         else:
             vars = [vars]
-        
+
         args = args.get_sequence()
         if len(vars) > len(args):
             evaluation.message('Function', 'fpct', )
         else:
-            vars = dict(zip((var.get_name() for var in vars), args[:len(vars)]))
+            vars = dict(zip((
+                var.get_name() for var in vars), args[:len(vars)]))
             return body.replace_vars(vars)
-    
+
+
 class Slot(Builtin):
     """
     <dl>
@@ -87,26 +91,38 @@ class Slot(Builtin):
         <dd>represents the $n$th argument to a pure function.
     <dt>'#'
         <dd>is short-hand for '#1'
+    <dt>'#0'
+        <dd>represents the pure function itself.
     </dl>
-    
+
     >> #
      = #1
-     
+
     Unused arguments are simply ignored:
     >> {#1, #2, #3}&[1, 2, 3, 4, 5]
      = {1, 2, 3}
-     
+
+    Recursive pure functions can be written using '#0':
+    >> If[#1<=1, 1, #1 #0[#1-1]]& [10]
+     = 3628800
+
     #> # // InputForm
      = #1
+
+    #> #0 // InputForm
+     = #0
     """
-    
+
     attributes = ('NHoldAll',)
-    
+
     rules = {
         'Slot[]': 'Slot[1]',
-        'MakeBoxes[Slot[n_Integer?Positive], f:StandardForm|TraditionalForm|InputForm|OutputForm]': '"#" <> ToString[n]',
+        'MakeBoxes[Slot[n_Integer?NonNegative],'
+        '  f:StandardForm|TraditionalForm|InputForm|OutputForm]': (
+            '"#" <> ToString[n]'),
     }
-    
+
+
 class SlotSequence(Builtin):
     """
     <dl>
@@ -115,33 +131,36 @@ class SlotSequence(Builtin):
     <dt>'##$n$'
         <dd>starts with the $n$th argument.
     </dl>
-    
+
     >> Plus[##]& [1, 2, 3]
      = 6
     >> Plus[##2]& [1, 2, 3]
      = 5
-     
+
     >> FullForm[##]
      = SlotSequence[1]
-     
+
     #> ## // InputForm
      = ##1
     """
-    
+
     attributes = ('NHoldAll',)
-    
+
     rules = {
         'SlotSequence[]': 'SlotSequence[1]',
-        'MakeBoxes[SlotSequence[n_Integer?Positive], f:StandardForm|TraditionalForm|InputForm|OutputForm]': '"##" <> ToString[n]',
+        'MakeBoxes[SlotSequence[n_Integer?Positive],'
+        'f:StandardForm|TraditionalForm|InputForm|OutputForm]': (
+            '"##" <> ToString[n]'),
     }
-    
+
+
 class Composition(Builtin):
     """
     <dl>
     <dt>'Composition[$f$, $g$]'
         <dd>returns the composition of two functions $f$ and $g$.
     </dl>
-    
+
     >> Composition[f, g][x]
      = f[g[x]]
     >> Composition[f, g, h][x, y, z]
@@ -155,23 +174,24 @@ class Composition(Builtin):
     >> Composition[f, Composition[g, h]]
      = Composition[f, g, h]
     """
-    
+
     attributes = ('Flat', 'OneIdentity')
-    
+
     rules = {
         'Composition[]': 'Identity',
     }
-    
+
     def apply(self, functions, args, evaluation):
         'Composition[functions__][args___]'
-        
+
         functions = functions.get_sequence()
         args = args.get_sequence()
         result = Expression(functions[-1], *args)
         for f in reversed(functions[:-1]):
             result = Expression(f, result)
         return result
-    
+
+
 class Identity(Builtin):
     """
     >> Identity[x]
@@ -179,8 +199,7 @@ class Identity(Builtin):
     >> Identity[x, y]
      = Identity[x, y]
     """
-    
+
     rules = {
         'Identity[x_]': 'x',
     }
-    

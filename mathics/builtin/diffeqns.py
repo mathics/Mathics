@@ -5,78 +5,86 @@ Differential equation solver functions
 """
 
 import sympy
-from mathics.builtin.base import Builtin, BinaryOperator, Test
-from mathics.core.expression import Expression, from_sympy
-from mathics.core.convert import SympyExpression, sympy_symbol_prefix
+from mathics.builtin.base import Builtin
+from mathics.core.expression import Expression
+from mathics.core.convert import sympy_symbol_prefix, from_sympy
+
 
 class DSolve(Builtin):
     """
     <dl>
-    <dt>'DSolve[$eq$, $y[x]$, $x$]'
-        <dd>solves a differential equation for the function $y[x]$.
+    <dt>'DSolve[$eq$, $y$[$x$], $x$]'
+        <dd>solves a differential equation for the function $y$[$x$].
     </dl>
 
     >> DSolve[y''[x] == 0, y[x], x]
      = {{y[x] -> x C[2] + C[1]}}
 
     >> DSolve[y''[x] == y[x], y[x], x]
-     = {{y[x] -> C[1] E ^ x + C[2] E ^ (-x)}}
+     = {{y[x] -> C[1] E ^ (-x) + C[2] E ^ x}}
 
     >> DSolve[y''[x] == y[x], y, x]
-     = {{y -> (Function[{x}, C[1] Exp[x] + C[2] Exp[-x]])}}
+     = {{y -> (Function[{x}, C[1] Exp[-x] + C[2] Exp[x]])}}
 
-    #> Attributes[f] = {HoldAll}; 
+    #> Attributes[f] = {HoldAll};
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]
-     : To avoid possible ambiguity, the arguments of the dependent variable in -Sin[f'[x]] + f[x + x] should literally match the independent variables.
+     : To avoid possible ambiguity, the arguments of the dependent variable in f[x + x] - Sin[f'[x]] should literally match the independent variables.
      = DSolve[f[x + x] == Sin[f'[x]], f, x]
 
     #> Attributes[f] = {};
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]
-     : To avoid possible ambiguity, the arguments of the dependent variable in -Sin[f'[x]] + f[2 x] should literally match the independent variables.
+     : To avoid possible ambiguity, the arguments of the dependent variable in f[2 x] - Sin[f'[x]] should literally match the independent variables.
      = DSolve[f[2 x] == Sin[f'[x]], f, x]
-    
+
     #> DSolve[f'[x] == f[x], f, x] // FullForm
-     = List[List[Rule[f, Function[List[x], Exp[Plus[x, C[1]]]]]]]
+     = List[List[Rule[f, Function[List[x], Times[C[1], Exp[x]]]]]]
 
     #> DSolve[f'[x] == f[x], f, x] /. {C[1] -> 1}
-     = {{f -> (Function[{x}, Exp[x + 1]])}}
+     = {{f -> (Function[{x}, 1 Exp[x]])}}
 
     #> DSolve[f'[x] == f[x], f, x] /. {C -> D}
-     = {{f -> (Function[{x}, Exp[x + D[1]]])}}
+     = {{f -> (Function[{x}, D[1] Exp[x]])}}
 
     #> DSolve[f'[x] == f[x], f, x] /. {C[1] -> C[0]}
-     = {{f -> (Function[{x}, Exp[x + C[0]]])}}
+     = {{f -> (Function[{x}, C[0] Exp[x]])}}
     """
 
-    #TODO: GeneratedParameters option
+    # TODO: GeneratedParameters option
 
     messages = {
-        'deqn': 'Equation or list of equations expected instead of `1` in the first argument `1`.',
-        'deqx': 'Supplied equations are not differential equations of the given functions.',
+        'deqn': ('Equation or list of equations expected instead of '
+                 '`1` in the first argument `1`.'),
+        'deqx': ('Supplied equations are not differential equations '
+                 'of the given functions.'),
         'dsfun': '`1` cannot be used as a function.',
         'dsvar': '`1` cannot be used as a variable.',
-        'litarg': 'To avoid possible ambiguity, the arguments of the dependent variable in `1` should literally match the independent variables.',
-        #FIXME: Remove these if sympy changes:
-        'symsys': 'Unfortunately SymPy, part of the Mathics backend, does not support solving systems of DEs.',
-        'symimp': 'Unfortunately SymPy, part of the Mathics backend, does not support solutions to this form of DE.',
-        'symmua': 'Unfortunately SymPy, part of the Mathics backend, does not support functions of multiple variables.',
+        'litarg': ('To avoid possible ambiguity, the arguments of the '
+                   'dependent variable in `1` should literally match the '
+                   'independent variables.'),
+        # FIXME: Remove these if sympy changes:
+        'symsys': "SymPy can't solve systems of DEs.",
+        'symimp': "SymPy can't solve this form of DE.",
+        'symmua': "SymPy can't handle functions of multiple variables.",
     }
 
     def apply(self, eqn, y, x, evaluation):
         'DSolve[eqn_, y_, x_]'
 
         if eqn.has_form('List', eqn):
-            #TODO: Try and solve BVPs using Solve or something analagous OR add this functonality to sympy.
+            # TODO: Try and solve BVPs using Solve or something analagous OR
+            # add this functonality to sympy.
             evaluation.message('DSolve', 'symsys')
             return
 
-        if eqn.get_head_name() != 'Equal':
+        if eqn.get_head_name() != 'System`Equal':
             evaluation.message('DSolve', 'deqn', eqn)
             return
 
-        if (x.is_atom() and not x.is_symbol()) or \
-          x.get_head_name() in ('Plus', 'Times', 'Power') or \
-          'Constant' in x.get_attributes(evaluation.definitions):
+        # FIXME: This code is duplicated in calculus.py
+        if ((x.is_atom() and not x.is_symbol()) or      # nopep8
+            x.get_head_name() in ('System`Plus', 'System`Times',
+                                  'System`Power') or
+            'System`Constant' in x.get_attributes(evaluation.definitions)):
             evaluation.message('DSolve', 'dsvar')
             return
 
@@ -102,31 +110,55 @@ class DSolve(Builtin):
             return
 
         left, right = eqn.leaves
-        eqn = Expression('Plus', left, Expression('Times', -1, right)).evaluate(evaluation)
+        eqn = Expression('Plus', left, Expression(
+            'Times', -1, right)).evaluate(evaluation)
 
-        sym_eq = eqn.to_sympy(converted_functions = set([func.get_head_name()]))
+        sym_eq = eqn.to_sympy(converted_functions=set([func.get_head_name()]))
         sym_x = sympy.symbols(str(sympy_symbol_prefix + x.name))
-        sym_func = sympy.Function(str(sympy_symbol_prefix + func.get_head_name())) (sym_x)
+        sym_func = sympy.Function(str(
+            sympy_symbol_prefix + func.get_head_name()))(sym_x)
 
         try:
             sym_result = sympy.dsolve(sym_eq, sym_func)
-            if not isinstance(sym_result, list):
-                sym_result = [sym_result]
-        except ValueError as e:
+        except ValueError:
             evaluation.message('DSolve', 'symimp')
             return
-        except NotImplementedError as e:
+        except NotImplementedError:
             evaluation.message('DSolve', 'symimp')
             return
-        except AttributeError as e:
+        except TypeError:
+            # Sympy bug #9446
             evaluation.message('DSolve', 'litarg', eqn)
             return
+        except AttributeError:
+            evaluation.message('DSolve', 'litarg', eqn)
+            return
+        except KeyError:
+            evaluation.message('DSolve', 'litarg', eqn)
+            return
+        else:
+            if not isinstance(sym_result, list):
+                sym_result = [sym_result]
 
         if function_form is None:
-            return Expression('List', *[Expression('List', 
-                Expression('Rule', *from_sympy(soln).leaves)) for soln in sym_result])
+            return Expression('List', *[
+                Expression(
+                    'List', Expression('Rule', *from_sympy(soln).leaves))
+                for soln in sym_result])
         else:
-            return Expression('List', *[Expression('List', Expression('Rule', y, 
-                Expression('Function', function_form, *from_sympy(soln).leaves[1:]))) for soln in sym_result])
+            return Expression('List', *[
+                Expression('List', Expression('Rule', y, Expression(
+                    'Function', function_form, *from_sympy(soln).leaves[1:])))
+                for soln in sym_result])
 
-#TODO: NDSolve
+# TODO: NDSolve
+
+
+class C(Builtin):
+    """
+    <dl>
+    <dt>'C'[$n$]
+        <dd>represents the $n$th constant in a solution to a
+        differential equation.
+    </dl>
+    """

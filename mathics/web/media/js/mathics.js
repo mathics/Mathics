@@ -1,6 +1,6 @@
 /**
     Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011 Jan Pöschko
+    Copyright (C) 2011-2013 The Mathics Team
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -658,7 +658,6 @@ function domLoaded() {
 	MathJax.Hub.Config({
 		"HTML-CSS": {
 			imageFont: null,
-	  	showMathMenu: false,
 	  	linebreaks: { automatic: true }
 	  },
 	  MMLorHTML: {

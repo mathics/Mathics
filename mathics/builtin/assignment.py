@@ -1,11 +1,16 @@
 # -*- coding: utf8 -*-
+import re
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PostfixOperator, PrefixOperator
-from mathics.core.expression import Expression, Symbol, String
+from mathics.builtin.base import (
+    Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
+from mathics.core.expression import (Expression, Symbol, valid_context_name,
+                                     system_symbols)
 from mathics.core.rules import Rule
 from mathics.builtin.lists import walk_parts
+from mathics.builtin.evaluation import set_recursionlimit
 
 from mathics import settings
+
 
 def get_symbol_list(list, error_callback):
     if list.has_form('List', None):
@@ -22,12 +27,14 @@ def get_symbol_list(list, error_callback):
             return None
     return values
 
+
 class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
         name = lhs.get_head_name()
-        
-        if name in ('OwnValues', 'DownValues', 'SubValues', 'UpValues', 'NValues', 'Options',
-            'DefaultValues', 'Attributes', 'Messages'):
+
+        if name in system_symbols('OwnValues', 'DownValues', 'SubValues',
+                                  'UpValues', 'NValues', 'Options',
+                                  'DefaultValues', 'Attributes', 'Messages'):
             if len(lhs.leaves) != 1:
                 evaluation.message_args(name, len(lhs.leaves), 1)
                 return False
@@ -36,44 +43,46 @@ class _SetOperator(object):
                 evaluation.message(name, 'sym', lhs.leaves[0], 1)
                 return False
             if tags is not None and tags != [tag]:
-                evaluation.message(name, 'tag', name, tag)
+                evaluation.message(name, 'tag', Symbol(name), Symbol(tag))
                 return False
-            
-            if name != 'Attributes' and 'Protected' in evaluation.definitions.get_attributes(tag):
-                evaluation.message(name, 'wrsym', tag)
+
+            if (name != 'System`Attributes' and 'System`Protected'    # noqa
+                in evaluation.definitions.get_attributes(tag)):
+                evaluation.message(name, 'wrsym', Symbol(tag))
                 return False
-            if name == 'Options':
+            if name == 'System`Options':
                 option_values = rhs.get_option_values(evaluation)
                 if option_values is None:
                     evaluation.message(name, 'options', rhs)
                     return False
                 evaluation.definitions.set_options(tag, option_values)
-            elif name == 'Attributes':
-                attributes = get_symbol_list(rhs, lambda item: evaluation.message(name, 'sym', item, 1))
+            elif name == 'System`Attributes':
+                attributes = get_symbol_list(
+                    rhs, lambda item: evaluation.message(name, 'sym', item, 1))
                 if attributes is None:
                     return False
-                if 'Locked' in evaluation.definitions.get_attributes(tag):
-                    evaluation.message(name, 'locked', tag)
+                if 'System`Locked' in evaluation.definitions.get_attributes(tag):
+                    evaluation.message(name, 'locked', Symbol(tag))
                     return False
                 evaluation.definitions.set_attributes(tag, attributes)
             else:
                 rules = rhs.get_rules_list()
                 if rules is None:
                     evaluation.message(name, 'vrule', lhs, rhs)
-                    return False 
+                    return False
                 evaluation.definitions.set_values(tag, name, rules)
             return True
-        
+
         form = ''
         nprec = None
         default = False
         message = False
-            
+
         allow_custom_tag = False
-            
+
         focus = lhs
-        
-        if name == 'N':
+
+        if name == 'System`N':
             if len(lhs.leaves) not in (1, 2):
                 evaluation.message_args('N', len(lhs.leaves), 1, 2)
                 return False
@@ -83,19 +92,19 @@ class _SetOperator(object):
                 nprec = lhs.leaves[1]
             focus = lhs.leaves[0]
             lhs = Expression('N', focus, nprec)
-        elif name == 'MessageName':
+        elif name == 'System`MessageName':
             if len(lhs.leaves) != 2:
                 evaluation.message_args('MessageName', len(lhs.leaves), 2)
                 return False
             focus = lhs.leaves[0]
             message = True
-        elif name == 'Default':
+        elif name == 'System`Default':
             if len(lhs.leaves) not in (1, 2, 3):
                 evaluation.message_args('Default', len(lhs.leaves), 1, 2, 3)
                 return False
             focus = lhs.leaves[0]
-            default = True  
-        elif name == 'Format':
+            default = True
+        elif name == 'System`Format':
             if len(lhs.leaves) not in (1, 2):
                 evaluation.message_args('Format', len(lhs.leaves), 1, 2)
                 return False
@@ -105,15 +114,15 @@ class _SetOperator(object):
                     evaluation.message('Format', 'fttp', lhs.leaves[1])
                     return False
             else:
-                form = ('StandardForm', 'TraditionalForm', 'OutputForm',
-                    'TeXForm', 'MathMLForm',
-                )
+                form = system_symbols(
+                    'StandardForm', 'TraditionalForm', 'OutputForm',
+                    'TeXForm', 'MathMLForm')
             lhs = focus = lhs.leaves[0]
         else:
             allow_custom_tag = True
-                    
+
         focus = focus.evaluate_leaves(evaluation)
-        
+
         if tags is None and not upset:
             name = focus.get_lookup_name()
             if not name:
@@ -138,52 +147,94 @@ class _SetOperator(object):
                     allowed_names.append(leaf.get_lookup_name())
             for name in tags:
                 if name not in allowed_names:
-                    evaluation.message(self.get_name(), 'tagnfd', name)
+                    evaluation.message(self.get_name(), 'tagnfd', Symbol(name))
                     return False
-            
+
         ignore_protection = False
         rhs_int_value = rhs.get_int_value()
         lhs_name = lhs.get_name()
-        if lhs_name == '$RecursionLimit':
-            #if (not rhs_int_value or rhs_int_value < 20) and not rhs.get_name() == 'Infinity':
-            if not rhs_int_value or rhs_int_value < 20 or rhs_int_value > settings.MAX_RECURSION_DEPTH:
+        if lhs_name == 'System`$RecursionLimit':
+            # if (not rhs_int_value or rhs_int_value < 20) and not
+            # rhs.get_name() == 'System`Infinity':
+            if (not rhs_int_value or rhs_int_value < 20  # noqa
+                or rhs_int_value > settings.MAX_RECURSION_DEPTH):
+
                 evaluation.message('$RecursionLimit', 'limset', rhs)
                 return False
+            try:
+                set_recursionlimit(rhs_int_value)
+            except OverflowError:
+                # TODO: Message
+                return False
             ignore_protection = True
-        elif lhs_name == '$ModuleNumber':
+        elif lhs_name == 'System`$ModuleNumber':
             if not rhs_int_value or rhs_int_value <= 0:
                 evaluation.message('$ModuleNumber', 'set', rhs)
                 return False
             ignore_protection = True
-        elif lhs_name in ('$Line', '$HistoryLength'):
+        elif lhs_name in ('System`$Line', 'System`$HistoryLength'):
             if rhs_int_value is None or rhs_int_value < 0:
                 evaluation.message(lhs_name, 'intnn', rhs)
                 return False
             ignore_protection = True
-        elif lhs_name == '$RandomState':
+        elif lhs_name == 'System`$RandomState':
             # TODO: allow setting of legal random states!
             # (but consider pickle's insecurity!)
             evaluation.message('$RandomState', 'rndst', rhs)
             return False
-            
+        elif lhs_name == 'System`$Context':
+            new_context = rhs.get_string_value()
+            if new_context is None or not valid_context_name(
+                    new_context, allow_initial_backquote=True):
+                evaluation.message(lhs_name, 'cxset', rhs)
+                return False
+
+            # With $Context in Mathematica you can do some strange
+            # things: e.g. with $Context set to Global`, something
+            # like:
+            #    $Context = "`test`"; newsym
+            # is accepted and creates Global`test`newsym.
+            # Implement this behaviour by interpreting
+            #    $Context = "`test`"
+            # as
+            #    $Context = $Context <> "test`"
+            #
+            if new_context.startswith('`'):
+                new_context = (
+                    evaluation.definitions.get_current_context()
+                    + new_context.lstrip('`'))
+
+            evaluation.definitions.set_current_context(new_context)
+            ignore_protection = True
+        elif lhs_name == 'System`$ContextPath':
+            if rhs.has_form('List', None) and all(
+                  valid_context_name(s.get_string_value()) for s in rhs.leaves):
+                evaluation.definitions.context_path = [
+                    s.get_string_value() for s in rhs.leaves]
+                ignore_protection = True
+            else:
+                evaluation.message(lhs_name, 'cxlist', rhs)
+                return False
+
         rhs_name = rhs.get_head_name()
-        if rhs_name == 'Condition':
+        if rhs_name == 'System`Condition':
             if len(rhs.leaves) != 2:
                 evaluation.message_args('Condition', len(rhs.leaves), 2)
                 return False
             else:
                 lhs = Expression('Condition', lhs, rhs.leaves[1])
                 rhs = rhs.leaves[0]
-                
+
         rule = Rule(lhs, rhs)
         count = 0
         defs = evaluation.definitions
         for tag in tags:
-            if not ignore_protection and 'Protected' in evaluation.definitions.get_attributes(tag):
+            if (not ignore_protection and 'System`Protected'   # noqa
+                in evaluation.definitions.get_attributes(tag)):
                 if lhs.get_name() == tag:
-                    evaluation.message(self.get_name(), 'wrsym', tag)
+                    evaluation.message(self.get_name(), 'wrsym', Symbol(tag))
                 else:
-                    evaluation.message(self.get_name(), 'write', tag, lhs)
+                    evaluation.message(self.get_name(), 'write', Symbol(tag), lhs)
                 continue
             count += 1
             if form:
@@ -201,12 +252,14 @@ class _SetOperator(object):
                     defs.add_rule(tag, rule)
         if count == 0:
             return False
-                
+
         return True
-    
+
     def assign(self, lhs, rhs, evaluation):
-        if lhs.get_head_name() == 'List':
-            if not (rhs.get_head_name() == 'List') or len(lhs.leaves) != len(rhs.leaves):
+        if lhs.get_head_name() == 'System`List':
+            if (not (rhs.get_head_name() == 'System`List')     # noqa
+                or len(lhs.leaves) != len(rhs.leaves)):
+
                 evaluation.message(self.get_name(), 'shape', lhs, rhs)
                 return False
             else:
@@ -215,7 +268,7 @@ class _SetOperator(object):
                     if not self.assign(left, right, evaluation):
                         result = False
                 return result
-        elif lhs.get_head_name() == 'Part':
+        elif lhs.get_head_name() == 'System`Part':
             if len(lhs.leaves) < 1:
                 evaluation.message(self.get_name(), 'setp', lhs)
                 return False
@@ -224,8 +277,8 @@ class _SetOperator(object):
             if not name:
                 evaluation.message(self.get_name(), 'setps', symbol)
                 return False
-            if 'Protected' in evaluation.definitions.get_attributes(name):
-                evaluation.message(self.get_name(), 'wrsym', name)
+            if 'System`Protected' in evaluation.definitions.get_attributes(name):
+                evaluation.message(self.get_name(), 'wrsym', symbol)
                 return False
             rule = evaluation.definitions.get_ownvalue(name)
             if rule is None:
@@ -239,18 +292,28 @@ class _SetOperator(object):
                 return False
         else:
             return self.assign_elementary(lhs, rhs, evaluation)
-        
+
+
 class Set(BinaryOperator, _SetOperator):
     """
+    <dl>
+    <dt>$expr$ = $value$
+        <dd>evaluates $value$ and assigns it to $expr$.
+    <dt>{$s1$, $s2$, $s3$} = {$v1$, $v2$, $v3$}
+        <dd>sets multiple symbols ($s1$, $s2$, ...) to the
+        corresponding values ($v1$, $v2$, ...).
+    </dl>
+
+    'Set' can be used to give a symbol a value:
     >> a = 3
      = 3
     >> a
      = 3
-    >> f[x_] = x^2
-     = x ^ 2
-    >> f[10]
-     = 100
-     
+
+    An assignment like this creates an ownvalue:
+    >> OwnValues[a]
+     = {HoldPattern[a] :> 3}
+
     You can set multiple values at once using lists:
     >> {a, b, c} = {10, 2, 3}
      = {10, 2, 3}
@@ -258,8 +321,9 @@ class Set(BinaryOperator, _SetOperator):
      = {1, 2, {{c1, c2}, {10}}}
     >> d
      = 10
-    
-    'Set' evaluates its right-hand side immediately and assigns it to the left-hand side:
+
+    'Set' evaluates its right-hand side immediately and assigns it to
+    the left-hand side:
     >> a
      = 1
     >> x = a
@@ -268,12 +332,13 @@ class Set(BinaryOperator, _SetOperator):
      = 2
     >> x
      = 1
-     
-    'Set' always returns the right-hand side, which you can again use in an assignment:
+
+    'Set' always returns the right-hand side, which you can again use
+    in an assignment:
     >> a = b = c = 2;
     >> a == b == c == 2
      = True
-     
+
     'Set' supports assignments to parts:
     >> A = {{1, 2}, {3, 4}};
     >> A[[1, 2]] = 5
@@ -288,70 +353,90 @@ class Set(BinaryOperator, _SetOperator):
     >> B = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
     >> B[[1;;2, 2;;-1]] = {{t, u}, {y, z}};
     >> B
-     = {{1, t, u}, {4, y, z}, {7, 8, 9}} 
+     = {{1, t, u}, {4, y, z}, {7, 8, 9}}
     """
-    
+
     operator = '='
     precedence = 40
     grouping = 'Right'
     attributes = ('HoldFirst', 'SequenceHold')
-    
+
     messages = {
         'setraw': "Cannot assign to raw object `1`.",
         'shape': "Lists `1` and `2` are not the same shape.",
     }
-    
+
     def apply(self, lhs, rhs, evaluation):
         'lhs_ = rhs_'
 
         self.assign(lhs, rhs, evaluation)
         return rhs
-    
+
+
 class SetDelayed(Set):
     """
-    'SetDelayed' has attribute 'HoldAll', thus it does not evaluate the right-hand side immediately,
-    but evaluates it when needed.
+    <dl>
+    <dt>$expr$ := $value$
+        <dd>assigns $value$ to $expr$, without evaluating $value$.
+    </dl>
+
+    'SetDelayed' is like 'Set', except it has attribute 'HoldAll',
+    thus it does not evaluate the right-hand side immediately, but
+    evaluates it when needed.
+
     >> Attributes[SetDelayed]
      = {HoldAll, Protected, SequenceHold}
     >> a = 1
      = 1
     >> x := a
+    >> x
+     = 1
+    Changing the value of $a$ affects $x$:
     >> a = 2
      = 2
     >> x
      = 2
-     
-    'Condition' can be used to make a conditioned assignment:
+
+    'Condition' ('/;') can be used with 'SetDelayed' to make an
+    assignment that only holds if a condition is satisfied:
     >> f[x_] := p[x] /; x>0
     >> f[3]
      = p[3]
     >> f[-3]
      = f[-3]
     """
-    
+
     operator = ':='
     attributes = ('HoldAll', 'SequenceHold')
-    
+
     def apply(self, lhs, rhs, evaluation):
         'lhs_ := rhs_'
-        
+
         if self.assign(lhs, rhs, evaluation):
             return Symbol('Null')
         else:
             return Symbol('$Failed')
-    
+
+
 class UpSet(BinaryOperator, _SetOperator):
     """
+    <dl>
+    <dt>$f$[$x$] ^= $expression$
+        <dd>evaluates $expression$ and assigns it to the value of
+        $f$[$x$], associating the value with $x$.
+    </dl>
+
+    'UpSet' creates an upvalue:
     >> a[b] ^= 3;
     >> DownValues[a]
      = {}
     >> UpValues[b]
      = {HoldPattern[a[b]] :> 3}
-     
+
     >> a ^= 3
      : Nonatomic expression expected.
      = 3
-     
+
     You can use 'UpSet' to specify special values like format values.
     However, these values will not be saved in 'UpValues':
     >> Format[r] ^= "custom";
@@ -359,25 +444,26 @@ class UpSet(BinaryOperator, _SetOperator):
      = custom
     >> UpValues[r]
      = {}
-     
+
     #> f[g, a + b, h] ^= 2
      : Tag Plus in f[g, a + b, h] is Protected.
      = 2
     #> UpValues[h]
      = {HoldPattern[f[g, a + b, h]] :> 2}
     """
-    
+
     operator = '^='
     precedence = 40
     attributes = ('HoldFirst', 'SequenceHold')
     grouping = 'Right'
-    
+
     def apply(self, lhs, rhs, evaluation):
         'lhs_ ^= rhs_'
-        
+
         self.assign_elementary(lhs, rhs, evaluation, upset=True)
         return rhs
-    
+
+
 class UpSetDelayed(UpSet):
     """
     >> a[b] ^:= x
@@ -386,32 +472,33 @@ class UpSetDelayed(UpSet):
      = 2
     >> UpValues[b]
      = {HoldPattern[a[b]] :> x}
-     
+
     #> f[g, a + b, h] ^:= 2
      : Tag Plus in f[g, a + b, h] is Protected.
     #> f[a+b] ^:= 2
      : Tag Plus in f[a + b] is Protected.
      = $Failed
     """
-    
+
     operator = '^:='
     attributes = ('HoldAll', 'SequenceHold')
-    
+
     def apply(self, lhs, rhs, evaluation):
         'lhs_ ^:= rhs_'
-        
+
         if self.assign_elementary(lhs, rhs, evaluation, upset=True):
             return Symbol('Null')
         else:
             return Symbol('$Failed')
-            
+
+
 class TagSet(Builtin, _SetOperator):
     """
     <dl>
     <dt>'TagSet[$f$, $lhs$, $rhs$]' or 'f /: lhs = rhs'</dt>
         <dd>sets $lhs$ to be $rhs$ and assigns the corresonding rule to the symbol $f$.
     </dl>
-    
+
     >> x /: f[x] = 2
      = 2
     >> f[x]
@@ -420,7 +507,7 @@ class TagSet(Builtin, _SetOperator):
      = {}
     >> UpValues[x]
      = {HoldPattern[f[x]] :> 2}
-     
+
     The symbol $f$ must appear as the ultimate head of $lhs$ or as the head of a leaf in $lhs$:
     >> x /: f[g[x]] = 3;
      : Tag x not found or too deep for an assigned rule.
@@ -428,25 +515,26 @@ class TagSet(Builtin, _SetOperator):
     >> f[g[x]]
      = 3
     """
-    
+
     attributes = ('HoldAll', 'SequenceHold')
-    
+
     messages = {
         'tagnfd': "Tag `1` not found or too deep for an assigned rule.",
     }
-    
+
     def apply(self, f, lhs, rhs, evaluation):
         'f_ /: lhs_ = rhs_'
-        
+
         name = f.get_name()
         if not name:
-            evaluation.message(self.get_name(), 'sym' , f, 1)
+            evaluation.message(self.get_name(), 'sym', f, 1)
             return
-        
+
         rhs = rhs.evaluate(evaluation)
         self.assign_elementary(lhs, rhs, evaluation, tags=[name])
         return rhs
-    
+
+
 class TagSetDelayed(TagSet):
     """
     <dl>
@@ -454,44 +542,45 @@ class TagSetDelayed(TagSet):
         <dd>is the delayed version of 'TagSet'.
     </dl>
     """
-    
+
     attributes = ('HoldAll', 'SequenceHold')
-    
+
     def apply(self, f, lhs, rhs, evaluation):
         'f_ /: lhs_ := rhs_'
-        
+
         name = f.get_name()
         if not name:
-            evaluation.message(self.get_name(), 'sym' , f, 1)
+            evaluation.message(self.get_name(), 'sym', f, 1)
             return
-        
+
         rhs = rhs.evaluate(evaluation)
         if self.assign_elementary(lhs, rhs, evaluation, tags=[name]):
             return Symbol('Null')
         else:
             return Symbol('$Failed')
-        
+
+
 class Definition(Builtin):
     """
     <dl>
     <dt>'Definition[$symbol$]'
         <dd>prints as the user-defined values and rules associated with $symbol$.
     </dl>
-    
+
     'Definition' does not print information for 'ReadProtected' symbols.
     'Definition' uses 'InputForm' to format values.
-    
+
     >> a = 2;
     >> Definition[a]
      = a = 2
-    
+
     >> f[x_] := x ^ 2
     >> g[f] ^:= 2
     >> Definition[f]
      = f[x_] = x ^ 2
      .
      . g[f] ^= 2
-    
+
     Definition of a rather evolved (though meaningless) symbol:
     >> Attributes[r] := {Orderless}
     >> Format[r[args___]] := Infix[{args}, "~"]
@@ -500,7 +589,7 @@ class Definition(Builtin):
     >> r::msg := "My message"
     >> Options[r] := {Opt -> 3}
     >> r[arg_., OptionsPattern[r]] := {arg, OptionValue[Opt]}
-    
+
     Some usage:
     >> r[z, x, y]
      = x ~ y ~ z
@@ -510,7 +599,7 @@ class Definition(Builtin):
      = {2, 3}
     >> r[5, Opt->7]
      = {5, 7}
-    
+
     Its definition:
     >> Definition[r]
      = Attributes[r] = {Orderless}
@@ -532,7 +621,7 @@ class Definition(Builtin):
      . Default[r, 1] = 2
      .
      . Options[r] = {Opt -> 3}
-     
+
     For 'ReadProtected' symbols, 'Definition' just prints attributes, default values and options:
     >> SetAttributes[r, ReadProtected]
     >> Definition[r]
@@ -550,7 +639,7 @@ class Definition(Builtin):
      = Attributes[Level] = {Protected}
      .
      . Options[Level] = {Heads -> False}
-     
+
     'ReadProtected' can be removed, unless the symbol is locked:
     >> ClearAttributes[r, ReadProtected]
     'Clear' clears values:
@@ -565,39 +654,46 @@ class Definition(Builtin):
     >> ClearAll[r]
     >> Definition[r]
      = Null
-    
+
     If a symbol is not defined at all, 'Null' is printed:
     >> Definition[x]
      = Null
     """
-    
+
     attributes = ('HoldAll',)
-    
+
     def format_definition(self, symbol, evaluation, grid=True):
         'StandardForm,TraditionalForm,OutputForm: Definition[symbol_]'
-        
+
         lines = []
-        
+
         def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
             evaluation.check_stopped()
             if isinstance(rule, Rule):
-                r = rhs(rule.replace.replace_vars({'Definition': Expression('HoldForm', Symbol('Definition'))}))
-                lines.append(Expression('HoldForm', Expression(up and 'UpSet' or 'Set',
-                    lhs(rule.pattern.expr), r)))
-        
+                r = rhs(rule.replace.replace_vars(
+                        {'System`Definition': Expression(
+                                'HoldForm', Symbol('Definition'))}))
+                lines.append(Expression('HoldForm', Expression(
+                    up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
+
         name = symbol.get_name()
         if not name:
             evaluation.message('Definition', 'sym', symbol, 1)
             return
         attributes = evaluation.definitions.get_attributes(name)
-        definition = evaluation.definitions.get_user_definition(name, create=False)
+        definition = evaluation.definitions.get_user_definition(
+            name, create=False)
         all = evaluation.definitions.get_definition(name)
         if attributes:
             attributes = list(attributes)
             attributes.sort()
-            lines.append(Expression('HoldForm', Expression('Set', Expression('Attributes', symbol),
-                Expression('List', *(Symbol(attribute) for attribute in attributes)))))
-        if definition is not None and not 'ReadProtected' in attributes:
+            lines.append(Expression(
+                'HoldForm', Expression(
+                    'Set', Expression('Attributes', symbol), Expression(
+                        'List',
+                        *(Symbol(attribute) for attribute in attributes)))))
+
+        if definition is not None and not 'System`ReadProtected' in attributes:
             for rule in definition.ownvalues:
                 print_rule(rule)
             for rule in definition.downvalues:
@@ -614,9 +710,11 @@ class Definition(Builtin):
                 for rule in rules:
                     def lhs(expr):
                         return Expression('Format', expr, Symbol(format))
+
                     def rhs(expr):
                         if expr.has_form('Infix', None):
-                            expr = Expression(Expression('HoldForm', expr.head), *expr.leaves)
+                            expr = Expression(Expression(
+                                'HoldForm', expr.head), *expr.leaves)
                         return Expression('InputForm', expr)
                     print_rule(rule, lhs=lhs, rhs=rhs)
         for rule in all.defaultvalues:
@@ -624,25 +722,32 @@ class Definition(Builtin):
         if all.options:
             options = all.options.items()
             options.sort()
-            lines.append(Expression('HoldForm', Expression('Set', Expression('Options', symbol),
-                Expression('List', *(Expression('Rule', Symbol(name), value) for name, value in options)))))
+            lines.append(
+                Expression('HoldForm', Expression(
+                    'Set', Expression('Options', symbol),
+                    Expression('List', *(
+                        Expression('Rule', Symbol(name), value)
+                        for name, value in options)))))
         if grid:
             if lines:
-                return Expression('Grid', Expression('List', *(Expression('List', line) for line in lines)),
-                    Expression('Rule', Symbol('ColumnAlignments'), Symbol('Left')))
+                return Expression(
+                    'Grid', Expression(
+                        'List', *(Expression('List', line) for line in lines)),
+                    Expression(
+                        'Rule', Symbol('ColumnAlignments'), Symbol('Left')))
             else:
                 return Symbol('Null')
         else:
             for line in lines:
                 evaluation.print_out(Expression('InputForm', line))
             return Symbol('Null')
-        
+
     def format_definition_input(self, symbol, evaluation):
         'InputForm: Definition[symbol_]'
-        
+
         return self.format_definition(symbol, evaluation, grid=False)
-    
-        
+
+
 class Clear(Builtin):
     """
     <dl>
@@ -650,12 +755,20 @@ class Clear(Builtin):
         <dd>clears all values of the given symbols.
         The arguments can also be given as strings containing symbol names.
     </dl>
-    
+
     >> x = 2;
     >> Clear[x]
     >> x
      = x
-    
+
+    >> x = 2;
+    >> y = 3;
+    >> Clear["Global`*"]
+    >> x
+     = x
+    >> y
+     = y
+
     'ClearAll' may not be called for 'Protected' symbols.
     >> Clear[Sin]
      : Symbol Sin is Protected.
@@ -665,7 +778,7 @@ class Clear(Builtin):
     >> Clear[Sin]
     >> Sin[Pi]
      = 0
-     
+
     'Clear' does not remove attributes, messages, options, and default values associated
     with the symbols. Use 'ClearAll' to do so.
     >> Attributes[r] = {Flat, Orderless};
@@ -673,15 +786,15 @@ class Clear(Builtin):
     >> Attributes[r]
      = {Flat, Orderless}
     """
-    
+
     attributes = ('HoldAll',)
-    
+
     messages = {
         'ssym': "`1` is not a symbol or a string.",
     }
-    
+
     allow_locked = True
-    
+
     def do_clear(self, definition):
         definition.ownvalues = []
         definition.downvalues = []
@@ -689,29 +802,33 @@ class Clear(Builtin):
         definition.upvalues = []
         definition.formatvalues = {}
         definition.nvalues = []
-    
+
     def apply(self, symbols, evaluation):
         '%(name)s[symbols___]'
-        
+
         for symbol in symbols.get_sequence():
-            name = symbol.get_name()
-            if not name:
-                name = symbol.get_string_value()
-            if not name:
-                evaluation.message('Clear', 'ssym', symbol)
-                continue
-            attributes = evaluation.definitions.get_attributes(name)
-            if 'Protected' in attributes:
-                evaluation.message('Clear', 'wrsym', name)
-                continue
-            if not self.allow_locked and 'Locked' in attributes:
-                evaluation.message('Clear', 'locked', name)
-                continue
-            definition = evaluation.definitions.get_user_definition(name)
-            self.do_clear(definition)
-            
+            if isinstance(symbol, Symbol):
+                names = [symbol.get_name()]
+            else:
+                pattern = symbol.get_string_value()
+                if not pattern:
+                    evaluation.message('Clear', 'ssym', symbol)
+                    continue
+                names = evaluation.definitions.get_matching_names(pattern)
+            for name in names:
+                attributes = evaluation.definitions.get_attributes(name)
+                if 'System`Protected' in attributes:
+                    evaluation.message('Clear', 'wrsym', Symbol(name))
+                    continue
+                if not self.allow_locked and 'System`Locked' in attributes:
+                    evaluation.message('Clear', 'locked', Symbol(name))
+                    continue
+                definition = evaluation.definitions.get_user_definition(name)
+                self.do_clear(definition)
+
         return Symbol('Null')
-    
+
+
 class ClearAll(Clear):
     """
     <dl>
@@ -719,7 +836,7 @@ class ClearAll(Clear):
         <dd>clears all values, attributes, messages and options associated with the given symbols.
         The arguments can also be given as strings containing symbol names.
     </dl>
-    
+
     >> x = 2;
     >> ClearAll[x]
     >> x
@@ -728,33 +845,40 @@ class ClearAll(Clear):
     >> ClearAll[r]
     >> Attributes[r]
      = {}
-    
+
     'ClearAll' may not be called for 'Protected' or 'Locked' symbols.
     >> Attributes[lock] = {Locked};
     >> ClearAll[lock]
      : Symbol lock is locked.
     """
-    
+
     allow_locked = False
-    
+
     def do_clear(self, definition):
         super(ClearAll, self).do_clear(definition)
         definition.attributes = set()
         definition.messages = []
         definition.options = []
         definition.defaultvalues = []
-        
+
+
 class Unset(PostfixOperator):
     """
+    <dl>
+    <dt>'Unset[$x$]' or '$x$=.'
+        <dd>removes any value belonging to $x$.
+    </dl>
     >> a = 2
      = 2
     >> a =.
     >> a
      = a
-    Unsetting an already unset or never defined variable will not cause anything:
+
+    Unsetting an already unset or never defined variable will not
+    change anything:
     >> a =.
     >> b =.
-     
+
     'Unset' can unset particular function values. It will print a message
     if no corresponding rule is found.
     >> f[x_] =.
@@ -766,19 +890,19 @@ class Unset(PostfixOperator):
     >> f[x_] =.
     >> f[3]
      = f[3]
-     
+
     You can also unset 'OwnValues', 'DownValues', 'SubValues', and 'UpValues' directly.
     This is equivalent to setting them to '{}'.
     >> f[x_] = x; f[0] = 1;
     >> DownValues[f] =.
     >> f[2]
      = f[2]
-     
+
     'Unset' threads over lists:
     >> a = b = 3;
     >> {a, {b}} =.
      = {Null, {Null}}
-     
+
     #> x = 2;
     #> OwnValues[x] =.
     #> x
@@ -794,7 +918,7 @@ class Unset(PostfixOperator):
     #> UpValues[p] =.
     #> PrimeQ[p]
      = False
-     
+
     #> a + b ^= 5;
     #> a =.
     #> a + b
@@ -803,31 +927,35 @@ class Unset(PostfixOperator):
      = {Null, Null}
     #> a + b
      = a + b
+
+    #> Unset[Messages[1]]
+     : First argument in Messages[1] is not a symbol or a string naming a symbol.
+     = $Failed
     """
-    
+
     operator = '=.'
     precedence = 670
     attributes = ('HoldFirst', 'Listable', 'ReadProtected')
-    
+
     messages = {
         'norep': "Assignment on `2` for `1` not found.",
         'usraw': "Cannot unset raw object `1`.",
     }
-    
+
     def apply(self, expr, evaluation):
         'Unset[expr_]'
-        
+
         name = expr.get_head_name()
-        if name in ('OwnValues', 'DownValues', 'SubValues', 'UpValues',
-            'NValues', 'Options', 'Messages'):
+        if name in system_symbols('OwnValues', 'DownValues', 'SubValues',
+                                  'UpValues', 'NValues', 'Options', 'Messages'):
             if len(expr.leaves) != 1:
                 evaluation.message_args(name, len(expr.leaves), 1)
                 return Symbol('$Failed')
             symbol = expr.leaves[0].get_name()
             if not symbol:
-                evaluation.message(name, normal)
+                evaluation.message(name, 'fnsym', expr)
                 return Symbol('$Failed')
-            if name == 'Options':
+            if name == 'System`Options':
                 empty = {}
             else:
                 empty = []
@@ -839,20 +967,24 @@ class Unset(PostfixOperator):
             return Symbol('$Failed')
         if not evaluation.definitions.unset(name, expr):
             if not expr.is_atom():
-                evaluation.message('Unset', 'norep', expr, name)
+                evaluation.message('Unset', 'norep', expr, Symbol(name))
                 return Symbol('$Failed')
         return Symbol('Null')
-        
+
+
 class Quit(Builtin):
     """
-    'Quit' removes all user-defined definitions.
-    
+    <dl>
+    <dt>'Quit'[]
+        <dd>removes all user-defined definitions.
+    </dl>
+
     >> a = 3
      = 3
     >> Quit[]
     >> a
      = a
-     
+
     'Quit' even removes the definitions of protected and locked symbols:
     >> x = 5;
     >> Attributes[x] = {Locked, Protected};
@@ -860,13 +992,14 @@ class Quit(Builtin):
     >> x
      = x
     """
-    
+
     def apply(self, evaluation):
         'Quit[]'
-        
+
         evaluation.definitions.set_user_definitions({})
         return Symbol('Null')
-    
+
+
 def get_symbol_values(symbol, func_name, position, evaluation):
     name = symbol.get_name()
     if not name:
@@ -884,20 +1017,22 @@ def get_symbol_values(symbol, func_name, position, evaluation):
                 pattern = pattern.expr
             else:
                 pattern = Expression('HoldPattern', pattern.expr)
-            result.leaves.append(Expression('RuleDelayed', pattern, rule.replace))
+            result.leaves.append(Expression(
+                'RuleDelayed', pattern, rule.replace))
     return result
-    
+
+
 class DownValues(Builtin):
     """
     'DownValues[$symbol$]' gives the list of downvalues associated with $symbol$.
-    
+
     'DownValues' uses 'HoldPattern' and 'RuleDelayed' to protect the downvalues from being
     evaluated. Moreover, it has attribute 'HoldAll' to get the specified symbol instead of its value.
-    
+
     >> f[x_] := x ^ 2
     >> DownValues[f]
      = {HoldPattern[f[x_]] :> x ^ 2}
-     
+
     Mathics will sort the rules you assign to a symbol according to their specifity. If it cannot decide
     which rule is more special, the newer one will get higher precedence.
     >> f[x_Integer] := 2
@@ -917,20 +1052,21 @@ class DownValues(Builtin):
     >> DownValues[g] := {g[x_] :> x ^ 2, g[x_Integer] :> x}
     >> g[2]
      = 4
-    
+
     Fibonacci numbers:
     >> DownValues[fib] := {fib[0] -> 0, fib[1] -> 1, fib[n_] :> fib[n - 1] + fib[n - 2]}
     >> fib[5]
      = 5
     """
-    
+
     attributes = ('HoldAll',)
-    
+
     def apply(self, symbol, evaluation):
         'DownValues[symbol_]'
-        
+
         return get_symbol_values(symbol, 'DownValues', 'down', evaluation)
-    
+
+
 class OwnValues(Builtin):
     """
     >> x = 3;
@@ -948,14 +1084,15 @@ class OwnValues(Builtin):
     >> Hold[x] /. OwnValues[x] // ReleaseHold
      = 5
     """
-    
+
     attributes = ('HoldAll',)
-    
+
     def apply(self, symbol, evaluation):
         'OwnValues[symbol_]'
-        
+
         return get_symbol_values(symbol, 'OwnValues', 'own', evaluation)
-    
+
+
 class SubValues(Builtin):
     """
     >> f[1][x_] := x
@@ -967,14 +1104,15 @@ class SubValues(Builtin):
      .
      . f[1][x_] = x
     """
-    
+
     attributes = ('HoldAll',)
-    
+
     def apply(self, symbol, evaluation):
         'SubValues[symbol_]'
-        
+
         return get_symbol_values(symbol, 'SubValues', 'sub', evaluation)
-    
+
+
 class UpValues(Builtin):
     """
     >> a + b ^= 2
@@ -983,20 +1121,21 @@ class UpValues(Builtin):
      = {HoldPattern[a + b] :> 2}
     >> UpValues[b]
      = {HoldPattern[a + b] :> 2}
-     
+
     You can assign values to 'UpValues':
     >> UpValues[pi] := {Sin[pi] :> 0}
     >> Sin[pi]
      = 0
     """
-    
+
     attributes = ('HoldAll',)
-    
+
     def apply(self, symbol, evaluation):
         'UpValues[symbol_]'
-        
+
         return get_symbol_values(symbol, 'UpValues', 'up', evaluation)
-    
+
+
 class NValues(Builtin):
     """
     >> NValues[a]
@@ -1004,7 +1143,7 @@ class NValues(Builtin):
     >> N[a] = 3;
     >> NValues[a]
      = {HoldPattern[N[a, MachinePrecision]] :> 3}
-     
+
     You can assign values to 'NValues':
     >> NValues[b] := {N[b, MachinePrecision] :> 2}
     >> N[b]
@@ -1015,7 +1154,7 @@ class NValues(Builtin):
     >> NValues[c] := {N[c] :> 3}
     >> N[c]
      = c
-     
+
     Mathics will gracefully assign any list of rules to 'NValues'; however, inappropriate rules will never be used:
     >> NValues[d] = {foo -> bar};
     >> NValues[d]
@@ -1023,14 +1162,15 @@ class NValues(Builtin):
     >> N[d]
      = d
     """
-    
+
     attributes = ('HoldAll',)
-    
+
     def apply(self, symbol, evaluation):
         'NValues[symbol_]'
-        
+
         return get_symbol_values(symbol, 'NValues', 'n', evaluation)
-    
+
+
 class Messages(Builtin):
     """
     >> a::b = "foo"
@@ -1043,21 +1183,22 @@ class Messages(Builtin):
     >> Message[a::c]
      : bar
     """
-    
+
     attributes = ('HoldAll',)
-    
+
     def apply(self, symbol, evaluation):
         'Messages[symbol_]'
-        
+
         return get_symbol_values(symbol, 'Messages', 'messages', evaluation)
-    
+
+
 class DefaultValues(Builtin):
     """
     >> Default[f, 1] = 4
      = 4
     >> DefaultValues[f]
      = {HoldPattern[Default[f, 1]] :> 4}
-     
+
     You can assign values to 'DefaultValues':
     >> DefaultValues[g] = {Default[g] -> 3};
     >> Default[g, 1]
@@ -1068,14 +1209,16 @@ class DefaultValues(Builtin):
     >> g[]
      = {3}
     """
-    
+
     attributes = ('HoldAll',)
-    
+
     def apply(self, symbol, evaluation):
         'DefaultValues[symbol_]'
-        
-        return get_symbol_values(symbol, 'DefaultValues', 'default', evaluation)
-    
+
+        return get_symbol_values(
+            symbol, 'System`DefaultValues', 'default', evaluation)
+
+
 class AddTo(BinaryOperator):
     """
     '$x$ += $dx$' is equivalent to '$x$ = $x$ + $dx$'.
@@ -1085,16 +1228,17 @@ class AddTo(BinaryOperator):
     >> a
      = 12
     """
-    
+
     operator = '+='
     precedence = 100
     attributes = ('HoldFirst',)
     grouping = 'Right'
-    
+
     rules = {
         'x_ += dx_': 'x = x + dx',
     }
-    
+
+
 class SubtractFrom(BinaryOperator):
     """
     '$x$ -= $dx$' is equivalent to '$x$ = $x$ - $dx$'.
@@ -1104,16 +1248,17 @@ class SubtractFrom(BinaryOperator):
     >> a
      = 8
     """
-    
+
     operator = '-='
     precedence = 100
     attributes = ('HoldFirst',)
     grouping = 'Right'
-    
+
     rules = {
         'x_ -= dx_': 'x = x - dx',
     }
-    
+
+
 class TimesBy(BinaryOperator):
     """
     '$x$ *= $dx$' is equivalent to '$x$ = $x$ * $dx$'.
@@ -1123,16 +1268,17 @@ class TimesBy(BinaryOperator):
     >> a
      = 20
     """
-    
+
     operator = '*='
     precedence = 100
     attributes = ('HoldFirst',)
     grouping = 'Right'
-    
+
     rules = {
         'x_ *= dx_': 'x = x * dx',
     }
-    
+
+
 class DivideBy(BinaryOperator):
     """
     '$x$ /= $dx$' is equivalent to '$x$ = $x$ / $dx$'.
@@ -1142,16 +1288,17 @@ class DivideBy(BinaryOperator):
     >> a
      = 5
     """
-    
+
     operator = '/='
     precedence = 100
     attributes = ('HoldFirst',)
     grouping = 'Right'
-    
+
     rules = {
         'x_ /= dx_': 'x = x / dx',
     }
-    
+
+
 class Increment(PostfixOperator):
     """
     >> a = 2;
@@ -1163,20 +1310,24 @@ class Increment(PostfixOperator):
     >> ++++a+++++2//Hold//FullForm
      = Hold[Plus[PreIncrement[PreIncrement[Increment[Increment[a]]]], 2]]
     """
-    
+
     operator = '++'
     precedence = 660
     attributes = ('HoldFirst', 'ReadProtected')
-    
+
     rules = {
-        'x_++': 'Module[{t=x}, x = x + 1; t]',
+        'x_++': ('Module[{Internal`IncrementTemporary = x}, '
+                        'x = x + 1;'
+                        'Internal`IncrementTemporary'
+                 ']'),
     }
-    
+
+
 class PreIncrement(PrefixOperator):
     """
     <dl>
     <dt>'PreIncrement[$x$]' or '++$x$'
-        <dd>is equivalent to '$x$ = $x$ + 1'.    
+        <dd>is equivalent to '$x$ = $x$ + 1'.
     </dl>
     >> a = 2;
     >> ++a
@@ -1184,15 +1335,16 @@ class PreIncrement(PrefixOperator):
     >> a
      = 3
     """
-    
+
     operator = '++'
     precedence = 660
     attributes = ('HoldFirst', 'ReadProtected')
-    
+
     rules = {
         '++x_': 'x = x + 1',
     }
-    
+
+
 class Decrement(PostfixOperator):
     """
     >> a = 5;
@@ -1201,15 +1353,16 @@ class Decrement(PostfixOperator):
     >> a
      = 4
     """
-    
+
     operator = '--'
     precedence = 660
     attributes = ('HoldFirst', 'ReadProtected')
-    
+
     rules = {
         'x_--': 'Module[{t=x}, x = x - 1; t]',
     }
-    
+
+
 class PreDecrement(PrefixOperator):
     """
     >> a = 2;
@@ -1218,13 +1371,11 @@ class PreDecrement(PrefixOperator):
     >> a
      = 1
     """
-    
+
     operator = '--'
     precedence = 660
     attributes = ('HoldFirst', 'ReadProtected')
-    
+
     rules = {
         '--x_': 'x = x - 1',
     }
-    
-

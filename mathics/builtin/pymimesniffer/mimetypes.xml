@@ -1,0 +1,1182 @@
+<?xml version='1.0' encoding='UTF-8'?>
+
+<mimeTypes>
+
+<!--
+
+COPYRIGHT
+=========
+
+Copyright (c) 2005 - 2008 Aduna.
+All rights reserved.
+
+Licensed under the Open Software License version 3.0.
+
+
+CONTENTS
+========
+
+This file describes typical magic number and file extensions of a variety of document formats.
+
+Below is a list of description elements. Each description element describes a way to identify a
+MIME type of a binary resource, based on magic number sequences and/or file extentions heuristics.
+
+A description can refer to a parent description. This means that besides the requirements
+description, a resource should also match the requirements of the parent type (recursively)
+in order to match the child description. Examples are OpenOffice documents which are a
+special type of zip files and therefore have application/zip as parent type.
+
+This file denotes a preferential order: when a resource matches several descriptions,
+the one listed first overrules all others. This does not apply to the case where one
+description has the other as parent description, in that case the most specific description
+is preferred.
+
+Each description element has the following contents:
+
+* mimeType: the MIME type whose characteristics are described. This element is mandatory.
+  Please use the most standard MIME type for this category. This is NOT the place to list
+  all alternative equivalent MIME types.
+
+* parentType: the parent type that must also be detected in order for this description to match.
+  This element is optional and defaults to no parent type.
+
+* extensions: a comma-separated list of common file extensions used for this type, e.g. "html,htm".
+  This element is optional and defaults to an empty list.
+
+* allowsLeadingWhiteSpace: a boolean ("true"/"false") that indicates whether the file format allows
+  white space before the identifying parts described in the condition occurs. A typical example is
+  text/html, which allows a file to start with white space before the <html> element.
+  This element is optional and defaults to "false".
+
+* magicNumber: a byte sequence that is indicative for the described MIME type. There can be zero
+  or more magicNumber elements.
+  
+* magicString: a character sequence that is indicative for the described MIME type. There can be zero
+  or more magicString elelements.
+
+The magicNumber element has the byte sequence as text content. The encoding is specified in the 
+mandatory encoding attribute. Use "hex" as encoding type to indicate that the element content
+contains the byte sequence in hexadecimal encoding, e.g. "ca fe ba be 00" (without the quotes).
+Use "string" as encoding type to indicate that the element content contains the bytes in UTF-8
+encoding, e.g. "PK" (without the quotes) for the application/zip MIME type.
+
+The magicString element has a character sequence as text content. The difference between a magic
+number and a magic string is that magic numbers are always tested using byte comparisons, whereas
+the MIME type identifier may use some additional encoding interpretation to test for magic strings.
+This makes it possible to classify a file starting with "<html>" as a text/html file, regardless
+of whether the file is saved as ASCII, UTF-8 or UTF-16.
+
+The magicNumber element has an optional offset attribute, indicating the position
+in the binary stream where the sequence should occur. This attribute defaults to "0".
+
+The allowsLeadingWhiteSpace property is probably only meaningful for magic strings. Nevertheless,
+it can also be specified for magic bytes.
+
+It is possible to have multiple descriptions describing the same MIME type. This is for example
+necessary in the application/presentations case, which has multiple, mutually exclusive parent
+types.
+
+
+ALGORITHM
+=========
+
+In short:
+
+- find a matching description:
+
+  - determine the list of descriptions without a parent type
+
+  - if UTF BOM detected: convert bytes to chars, loop over descriptions to find matching magic string
+  
+  - if no BOM detected or no match found: loop to find matching magic byte array
+  
+  - if still no match, find a description based on extension
+
+- when a match is found:
+
+  - repeat process on list of child descriptions. If this yields a result, this overrules the
+    previous match, else the previous match is returned.
+
+
+Detailed explanation:
+
+The MIME type of a resource is determined as follows.
+
+First we determine the list of all descriptions that have no parent type, i.e. that are not dependent
+on another description.
+
+Then we test whether the specified bytes start with a UTF Byte Order Mark. If so, then the
+bytes are converted to characters according to this encoding, yielding a string. All descriptions
+found in the previous step are looped over to find whether any of them has a magic string that matches
+the constructed string. More precisely, it tests whether the magic string occurs at its specified
+offset in the constructed string.
+
+If this did not result in a matching description (either because the byte array did not start with a BOM
+or because there was no matching magic string), we perform the same loop, this time testing for magic
+numbers. Note that magic strings are also tested as magic numbers, the magic byte array used in
+that case is simply the byte representation of the magic string in UTF-8 encoding without a BOM.
+
+If this also did not result in a matching description, a final loop is performed, testing on file name
+extension.
+
+When no description is found, 'null' is returned.
+
+When this process did find a matching description, the algorithm is recursively repeated on the list
+of descriptions whose parent type equal the found type. If this yields a result, the child type is
+returned, else the parent type is returned.
+
+
+LINKS
+=====
+
+See http://www.filext.com/ for an online database of MIME types and magic numbers.
+
+See also http://www.garykessler.net/library/file_sigs.html for magic numbers
+(still need to merge this info with our list).
+
+See http://www.wotsit.org/ for an online database of file format descriptions.
+
+-->
+
+<!-- ================== Archive Types ================== -->
+
+<description>
+	<mimeType>application/zip</mimeType>
+	<extensions>zip</extensions>
+	<magicNumber encoding="string">PK</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/gzip</mimeType>
+	<extensions>gz,tgz</extensions>
+	<magicNumber encoding="hex">1f 8b 08</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-compress</mimeType>
+	<extensions>z</extensions>
+	<magicNumber encoding="hex">1f 9d 90</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/bzip2</mimeType>
+	<extensions>bz2,tbz2</extensions>
+	<magicNumber encoding="hex">42 5a 68 39 31</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-tar</mimeType>
+	<magicNumber encoding="string" offset="257">ustar</magicNumber>
+	<extensions>tar</extensions>
+</description>
+
+<description>
+	<mimeType>application/x-rar-compressed</mimeType>
+	<extensions>rar</extensions>
+	<magicNumber encoding="hex">52 61 72 21 1a</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/stuffit</mimeType>
+	<extensions>sit</extensions>
+	<magicNumber encoding="string">SIT!</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/binhex</mimeType>
+	<extensions>hqx</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.ms-cab-compressed</mimeType>
+	<extensions>cab</extensions>
+	<magicNumber encoding="string">MSCF</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-installshield-compressedfile</mimeType>
+	<magicNumber encoding="string">ISc(</magicNumber>
+</description>
+
+<!-- ================== Web Types ================== -->
+
+<description>
+	<mimeType>text/html</mimeType>
+	<extensions>html,htm,htc,shtml,jsp,jspf,php,asp,xhtml</extensions>
+	<allowsLeadingWhiteSpace>true</allowsLeadingWhiteSpace>
+	<magicString caseSensitive="false">&lt;HTML</magicString>
+	<magicString caseSensitive="false">&lt;HEAD</magicString>
+	<magicString caseSensitive="false">&lt;BODY</magicString>
+	<magicString caseSensitive="false">&lt;!DOCTYPE HTML</magicString>
+	<magicString caseSensitive="false">&lt;!--</magicString>
+	<magicString caseSensitive="false">&lt;TITLE</magicString>
+	<magicString caseSensitive="false">&lt;H1></magicString>
+</description>
+
+<description>
+	<mimeType>text/xml</mimeType>
+	<extensions>xml</extensions>
+	<magicString>&lt;?xml</magicString>
+</description>
+
+<description>
+	<!-- This description is necessary to prevent XHTML files starting with <?xml...
+	     rather than <!DOCTYPE... to be reported as text/xml. Still, this only works when
+	     they *have* a file name extension. -->
+	<mimeType>application/xhtml+xml</mimeType>
+	<extensions>html,htm,htc,shtml,jsp,jspf,php,asp,xhtml</extensions>
+	<parentType>text/xml</parentType>
+</description>
+
+<description>
+	<mimeType>application/xslt+xml</mimeType>
+	<extensions>xsl,xslt</extensions>
+	<parentType>text/xml</parentType>
+</description>
+
+<description>
+	<mimeType>text/vnd.wap.wml</mimeType>
+	<extensions>wml</extensions>
+	<parentType>text/xml</parentType>
+</description>
+
+<description>
+	<mimeType>application/rdf+xml</mimeType>
+	<extensions>rdf,rdfs</extensions>
+	<parentType>text/xml</parentType>
+</description>
+
+<description>
+	<mimeType>application/owl+xml</mimeType>
+	<extensions>owl</extensions>
+	<parentType>text/xml</parentType>
+</description>
+
+<description>
+	<mimeType>application/trix</mimeType>
+	<extensions>trix</extensions>
+	<parentType>text/xml</parentType>
+</description>
+
+<description>
+	<mimeType>application/x-turtle</mimeType>
+	<extensions>ttl</extensions>
+</description>
+
+<description>
+	<mimeType>text/rdf+n3</mimeType>
+	<extensions>n3</extensions>
+</description>
+
+<description>
+	<mimeType>text/css</mimeType>
+	<extensions>css</extensions>
+</description>
+
+<description>
+	<mimeType>text/javascript</mimeType>
+	<extensions>js</extensions>
+</description>
+
+<description>
+    <mimeType>application/json</mimeType>
+    <extensions>json</extensions>
+</description>
+
+<description>
+	<mimeType>application/java-archive</mimeType>
+	<extensions>jar</extensions>
+	<parentType>application/zip</parentType>
+</description>
+
+<description>
+	<mimeType>application/x-java-webarchive</mimeType>
+	<extensions>war</extensions>
+	<parentType>application/zip</parentType>
+</description>
+
+<description>
+	<mimeType>application/x-java-enterprisearchive</mimeType>
+	<extensions>ear</extensions>
+	<parentType>application/zip</parentType>
+</description>
+
+<description>
+	<mimeType>application/x-url</mimeType>
+	<magicString>[InternetShortcut]</magicString>
+	<extensions>url</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.adobe.air-application-installer-package+zip</mimeType>
+	<extensions>air</extensions>
+	<parentType>application/zip</parentType>
+</description>
+
+<!-- ================== OpenOffice 1.x/StarOffice 6.x-7.x Types ================== -->
+
+<description>
+	<mimeType>application/vnd.sun.xml.calc</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>sxc</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.sun.xml.draw</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>sxd</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.sun.xml.impress</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>sxi</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.sun.xml.writer</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>sxw</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.sun.xml.math</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>sxm</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.sun.xml.calc.template</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>stc</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.sun.xml.draw.template</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>std</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.sun.xml.impress.template</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>sti</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.sun.xml.writer.template</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>stw</extensions>
+</description>
+
+<!-- ================== OpenDocument Types ================== -->
+
+<description>
+	<mimeType>application/vnd.oasis.opendocument.spreadsheet</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>ods</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.oasis.opendocument.graphics</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>odg</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.oasis.opendocument.presentation</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>odp</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.oasis.opendocument.text</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>odt</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.oasis.opendocument.formula</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>odf</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.oasis.opendocument.spreadsheet-template</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>ots</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.oasis.opendocument.graphics-template</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>otg</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.oasis.opendocument.presentation-template</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>otp</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.oasis.opendocument.text-template</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>ott</extensions>
+</description>
+
+<!-- ================== MS Office Types (up to MS Office 2003, excluding the XML-based ones) ================== -->
+<!-- some research with xvi32 seems to indicate that actually the first 32 -->
+<!-- bytes of MS Office files are always the same -->
+
+<description>
+	<mimeType>application/vnd.ms-office</mimeType>
+	<magicNumber encoding="hex">d0 cf 11 e0 a1 b1 1a e1 00 00 00 00 00 00 00 00</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/vnd.ms-word</mimeType>
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>doc,dot</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.ms-excel</mimeType>
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>xls,xlt</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.ms-powerpoint</mimeType>
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>ppt,pot,pps</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.visio</mimeType>
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>vsd,vst,vss</extensions>
+	
+	<!-- Note: there are also .vdx, .vsx and .vtx files (XML for Visio
+	     Drawing/Stencil/Template Files) but these are XML files, not binary Office files.
+	     As long as the Extractor handling application/vnd.visio does not support these
+	     formats, we're actually better off treating those files as general XML documents.
+	     See e.g. http://msdn2.microsoft.com/en-us/library/aa218409(office.10).aspx for
+	     a description of the VDX format. -->
+</description>
+
+<description>
+	<mimeType>application/x-mspublisher</mimeType>
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>pub</extensions>
+</description>
+
+<description>
+	<mimeType>application/x-slk</mimeType>
+	<extensions>slk,sylk</extensions>
+</description>
+
+<!-- ================== MS Office 2007/OpenXML/XPS Types ================== -->
+
+<description>
+	<mimeType>application/vnd.openxmlformats-officedocument.wordprocessingml</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>docx,docm,dotx,dotm</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.openxmlformats-officedocument.spreadsheetml</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>xlsx,xlsm,xltx,xltm,xlsb,xlam</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.openxmlformats-officedocument.presentationml</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>pptx,pptm,potx,potm,ppam,ppsx,ppsm</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.ms-xpsdocument</mimeType>
+	<parentType>application/zip</parentType>
+	<extensions>xps</extensions>
+</description>
+
+<!-- ================== StarOffice 5.x Types ================== -->
+<!-- they have the same magic number as MSOffice -->
+
+<description>
+	<mimeType>application/vnd.stardivision.impress</mimeType>
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>sdd</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.stardivision.draw</mimeType>
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>sda</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.stardivision.writer</mimeType>
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>sdw</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.stardivision.calc</mimeType>
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>sdc</extensions>
+</description>
+
+<!-- ================== MS Works Types ================== -->
+<!-- has either MS Office's magic number or its own -->
+
+<description>
+	<mimeType>application/vnd.ms-works</mimeType> <!-- wps = Works documents, xlr = newer Works spreadsheets -->
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>wps,xlr</extensions>
+</description>
+
+<description>
+	<mimeType>application/vnd.ms-works</mimeType>  <!-- older Works Spreadsheets -->
+	<extensions>wks</extensions>
+	<magicNumber encoding="hex">ff 00 02 00 04 04 05 54 02 00</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/vnd.ms-works-db</mimeType>
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>wdb</extensions>
+</description>
+
+<!-- ================== Corel Types ================== -->
+
+<description>
+	<mimeType>application/vnd.wordperfect</mimeType>
+	<extensions>wp,wpd,wpf,wpt,wpw,wp5,wp51,wp6,w60,w61</extensions>
+	<magicNumber encoding="hex">ff 57 50 43</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-quattropro</mimeType> <!-- user for Quattro Pro 7+ -->
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>qpw,wb3</extensions>
+</description>
+
+<description>
+	<mimeType>application/wb2</mimeType> <!-- used for a.o. Quattro Pro 6 -->
+	<extensions>wb2</extensions>
+	<magicNumber encoding="hex">00 00 02 00</magicNumber>
+</description>
+
+<description>
+	<!-- Presentations files either have the MS Office or WordPerfect magic number -->
+	<mimeType>application/presentations</mimeType>
+	<parentType>application/vnd.ms-office</parentType>
+	<extensions>shw</extensions>
+</description>	
+	
+<description>
+	<mimeType>application/presentations</mimeType>
+	<parentType>application/vnd.wordperfect</parentType>
+	<extensions>shw</extensions>
+</description>	
+
+<!-- ================== E-mail and News Types ================== -->
+
+<description>
+	<mimeType>message/rfc822</mimeType>
+	<extensions>eml,mht,mhtml</extensions>
+	
+	<!-- note: magic numbers, not magic strings: MIME messages are always in US-ASCII -->
+	<magicNumber encoding="string">Return-Path:</magicNumber>
+	<magicNumber encoding="string">From:</magicNumber>
+	<magicNumber encoding="string">Date:</magicNumber>
+	<magicNumber encoding="string">Forward to</magicNumber>
+	<magicNumber encoding="string">Pipe to</magicNumber>
+	<magicNumber encoding="string">Relay-Version:</magicNumber>
+	<magicNumber encoding="string">#! rnews</magicNumber>
+	<magicNumber encoding="string">N#! rnews</magicNumber>
+
+	<!-- the following could have been a "message/news" description, but we've
+	     decided to label them also as message/rfc822, as the distinction is very
+	     small, apps can typically treat both equally and they are
+	     very hard to differentiate using magic numbers anyway -->
+	<magicNumber encoding="string">Path:</magicNumber>
+	<magicNumber encoding="string">Xref:</magicNumber>
+	<magicNumber encoding="string">Article</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/vnd.ms-outlook</mimeType>
+	<extensions>pst</extensions>
+	<magicNumber encoding="hex">21 42 44 4e</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/vnd.ms-outlookexpress</mimeType>
+	<extensions>dbx</extensions>
+	<magicNumber encoding="hex">4a 4d 46 36 03 00 10 00</magicNumber>
+	<magicNumber encoding="hex">cf ad 12 fe c5 fd 74 6f 66 e3 d1 11 9a 4e 00 c0</magicNumber>
+</description>
+
+<!-- ================== Other Document Types ================== -->
+
+<description>
+	<mimeType>text/plain</mimeType>
+	<extensions>txt,1st,me,text,ans,asc,csv,tsv,faq,c,h,tex,latex,pv,log,nt</extensions>
+</description>
+
+<description>
+	<mimeType>text/java</mimeType>
+	<extensions>java</extensions>
+</description>
+
+<description>
+	<mimeType>application/x-java-manifest</mimeType>
+	<magicString>Manifest-Version:</magicString>
+</description>
+
+<description>
+	<mimeType>text/rtf</mimeType>
+	<extensions>rtf</extensions>
+	<magicNumber encoding="string">{\rtf</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/pdf</mimeType>
+	<extensions>pdf</extensions>
+	<magicNumber encoding="string">%PDF-</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-framemaker</mimeType>
+	<extensions>book,fm,mif,mf</extensions>
+	<magicNumber encoding="string">&lt;MakerFile</magicNumber>
+	<magicNumber encoding="string">&lt;MIFFile</magicNumber>
+	<magicNumber encoding="string">&lt;MakerDictionary</magicNumber>
+	<magicNumber encoding="string">&lt;MakerScreenFont</magicNumber>
+	<magicNumber encoding="string">&lt;MML</magicNumber>
+	<magicNumber encoding="string">&lt;BookFile</magicNumber>
+	<magicNumber encoding="string">&lt;Maker</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/postscript</mimeType>
+	<extensions>ps</extensions>
+	<magicNumber encoding="string">%!</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/winhlp</mimeType>
+	<extensions>hlp</extensions>
+	<magicNumber encoding="string">?_</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-chm</mimeType>
+	<extensions>chm</extensions>
+	<magicNumber encoding="string">ITSF</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-freemind</mimeType>
+	<extensions>mm</extensions>
+	<magicNumber encoding="string">&lt;map version</magicNumber>
+</description>
+
+<!-- ================== Executables and similar stuff ================== -->
+
+<description>
+	<mimeType>application/x-ms-dos-executable</mimeType>
+	<extensions>exe</extensions>
+	<magicNumber encoding="string">MZ</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-ms-scr</mimeType>
+	<parentType>application/x-ms-dos-executable</parentType>
+	<extensions>scr</extensions>
+</description>
+
+<description>
+	<mimeType>application/x-ms-shortcut</mimeType>
+	<extensions>lnk</extensions>
+	<magicNumber encoding="hex">4c 00 00 00 01 14 02 00 00 00 00 00 c0 00 00 00 00 00 00 46</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/bat</mimeType>
+	<extensions>bat</extensions>
+</description>
+
+<description>
+	<mimeType>application/x-java-class</mimeType>
+	<extensions>class</extensions>
+	<magicNumber encoding="hex">ca fe ba be</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-sh</mimeType>
+	<extensions>sh</extensions>
+	<magicString>#!/bin/sh</magicString>
+	<magicString>#!/usr/bin/sh</magicString>
+</description>
+
+<description>
+	<mimeType>application/x-csh</mimeType>
+	<extensions>csh</extensions>
+	<magicString>#!/bin/csh</magicString>
+	<magicString>#!/usr/bin/csh</magicString>
+</description>
+
+<description>
+	<mimeType>application/x-bash</mimeType>
+	<extensions>bash</extensions>
+	<magicString>#!/bin/bash</magicString>
+	<magicString>#!/usr/bin/bash</magicString>
+</description>
+
+<description>
+	<mimeType>application/x-ksh</mimeType>
+	<extensions>ksh</extensions>
+	<magicString>#!/bin/ksh</magicString>
+	<magicString>#!/usr/bin/ksh</magicString>
+</description>
+
+<description>
+	<mimeType>application/x-tsh</mimeType>
+	<extensions>tsh</extensions>
+	<magicString>#!/bin/tsh</magicString>
+	<magicString>#!/usr/bin/tsh</magicString>
+</description>
+
+<description>
+	<mimeType>application/x-applescript</mimeType>
+	<extensions>scpt</extensions>
+</description>
+
+<!-- ================== Image Types ================== -->
+
+<description>
+	<mimeType>image/bmp</mimeType>
+	<extensions>bmp</extensions>
+	<magicNumber encoding="string">BM</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/gif</mimeType>
+	<extensions>gif</extensions>
+	<magicNumber encoding="string">GIF8</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/jpeg</mimeType>
+	<extensions>jpg,jpeg</extensions>
+	<magicNumber encoding="hex">ff d8 ff</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/png</mimeType>
+	<extensions>png</extensions>
+	<magicNumber encoding="hex">89 50 4e 47 0d 0a 1a</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/svg+xml</mimeType>
+	<extensions>svg</extensions>
+	<parentType>text/xml</parentType>
+</description>
+
+<description>
+	<mimeType>image/x-icon</mimeType>
+	<extensions>ico</extensions>
+	<magicNumber encoding="hex">00 00 01 00</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/x-raw</mimeType>
+	<extensions>raw</extensions>
+</description>
+
+<description>
+	<mimeType>image/x-tga</mimeType>
+	<extensions>tga</extensions>
+</description>
+
+<description>
+	<mimeType>image/x-portable-bitmap</mimeType>
+	<extensions>pbm</extensions>
+	<magicNumber encoding="string">P1</magicNumber>
+	<magicNumber encoding="string">P4</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/x-portable-greymap</mimeType>
+	<extensions>pgm</extensions>
+	<magicNumber encoding="string">P2</magicNumber>
+	<magicNumber encoding="string">P5</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/x-portable-pixmap</mimeType>
+	<extensions>ppm</extensions>
+	<magicNumber encoding="string">P3</magicNumber>
+	<magicNumber encoding="string">P6</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/tiff</mimeType>
+	<extensions>tif,tiff</extensions>
+	<magicNumber encoding="hex">4d 4d 00 2a</magicNumber>
+	<magicNumber encoding="hex">49 49 2a 00</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/dng</mimeType>
+	<extensions>dng</extensions>
+	<parentType>image/tiff</parentType>
+</description>
+
+<description>
+	<mimeType>image/x-paintshoppro</mimeType>
+	<extensions>psp</extensions>
+	<magicNumber encoding="string">Paint Shop Pro Image File</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/xcf</mimeType>
+	<extensions>xcf</extensions>
+	<magicNumber encoding="hex">67 69 6d 70 20 78 63 66 20</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/vnd.corel-draw</mimeType>
+	<extensions>cdr</extensions>
+	<magicNumber encoding="string" offset="8">CDRA</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/x-xfig</mimeType>
+	<extensions>fig</extensions>
+	<magicNumber encoding="string">#FIG</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/wmf</mimeType>
+	<extensions>wmf</extensions>
+	<magicNumber encoding="hex">d7 cd c6 9a 00 00</magicNumber>
+	<magicNumber encoding="hex">01 00 09 00 00 03</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/x-xbitmap</mimeType>
+	<extensions>xbm</extensions>
+</description>
+
+<description>
+	<mimeType>image/xpm</mimeType>
+	<extensions>xpm</extensions>
+	<magicNumber encoding="hex">2f 2a 20 58 50 4d 20 2a 2f 0a</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/x-dwf</mimeType>
+	<extensions>dwf</extensions>
+	<magicNumber encoding="string">(DWF</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/x-dwg</mimeType>
+	<extensions>dwg</extensions>
+	<magicNumber encoding="string">AC</magicNumber>
+</description>
+
+<description>
+	<mimeType>image/x-dxf</mimeType>
+	<extensions>dxf</extensions>
+</description>
+
+<description>
+	<mimeType>image/x-itunes-albumartwork</mimeType>
+	<extensions>itc</extensions>
+	<magicNumber encoding="string" offset="4">itch</magicNumber>
+</description>
+
+<!-- ================== Multimedia Types ================== -->
+
+<description>
+	<mimeType>video/x-ms-asf</mimeType>
+	<extensions>asf</extensions>
+	<magicNumber encoding="hex">30 26 b2 75 8e 66 cf 11 a6 d9 00 aa 00 62 ce 6c</magicNumber>
+</description>
+
+<description>
+	<mimeType>video/x-ms-asx</mimeType>
+	<extensions>asx</extensions>
+	<magicString>&lt;asx</magicString>
+	<magicString>&lt;ASX</magicString>
+</description>
+
+<description>
+	<mimeType>audio/x-ms-wax</mimeType>
+	<extensions>wax</extensions>
+</description>
+
+<description>
+	<mimeType>video/x-ms-wvx</mimeType>
+	<extensions>wvx</extensions>
+</description>
+
+<description>
+	<mimeType>video/x-ms-wmx</mimeType>
+	<extensions>wmx</extensions>
+</description>
+
+<description>
+	<mimeType>video/x-msvideo</mimeType>
+	<extensions>avi</extensions>
+	<magicNumber encoding="hex" offset="8">41 56 49 20</magicNumber>
+</description>
+
+<description>
+	<!-- This MIME type was invented to let the wmv and wma media types
+	     share the magic number. Differentiation between these two files
+	     is only possible based on file name extension. -->
+
+	<mimeType>application/x-ms-wm</mimeType>
+	<magicNumber encoding="hex">30 26 b2 75 8e 66 cf 11 a6 d9 00 aa 00 62 ce 6c</magicNumber>
+</description>
+
+<description>
+	<mimeType>audio/x-ms-wma</mimeType>
+	<parentType>application/x-ms-wm</parentType>
+	<extensions>wma</extensions>
+</description>
+
+<description>
+	<mimeType>video/x-ms-wmv</mimeType>
+	<parentType>application/x-ms-wm</parentType>
+	<extensions>wmv,wm</extensions>
+</description>
+
+<description>
+	<mimeType>video/quicktime</mimeType>
+	<extensions>mov</extensions>
+	<magicNumber encoding="string" offset="4">moov</magicNumber>
+</description>
+
+<description>
+	<mimeType>video/mpeg</mimeType>
+	<extensions>mpg,mpeg</extensions>
+	<magicNumber encoding="hex">00 00 01 b3</magicNumber>
+	<magicNumber encoding="hex">00 00 01 ba</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-shockwave-flash</mimeType>
+	<extensions>swf</extensions>
+	<magicNumber encoding="hex">46 57 53</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-ogg</mimeType>
+	<extensions>ogg</extensions>
+	<magicNumber encoding="string">OggS</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/vnd.rn-realmedia</mimeType>
+	<extensions>rm,ram</extensions>
+	<magicNumber encoding="string">.RMF</magicNumber>
+	<magicNumber encoding="string">rtsp://</magicNumber>
+</description>
+
+<description>
+	<mimeType>audio/x-wav</mimeType>
+	<extensions>wav</extensions>
+	<magicNumber encoding="string" offset="8">WAVE</magicNumber>
+</description>
+
+<description>
+	<mimeType>audio/mpeg</mimeType>
+	<extensions>mp3,mp2</extensions>
+	<magicNumber encoding="string">ID3</magicNumber>
+</description>
+
+<description>
+	<mimeType>audio/midi</mimeType>
+	<extensions>mid,midi,rmi</extensions>
+	<magicNumber encoding="string">MThd</magicNumber> <!-- for regular MIDI files -->
+	<magicNumber encoding="string" offset="8">RMI</magicNumber> <!-- for .rmi files -->
+</description>
+
+<description>
+	<mimeType>video/x-msvideo</mimeType>
+	<extensions>avi</extensions>
+	<magicNumber encoding="hex" offset="8">41 56 49 20</magicNumber>
+</description>
+
+<description>
+	<mimeType>video/mp4</mimeType>
+	<extensions>mp4,mpg4,m4v,mp4v,divx,xvid,264</extensions>
+</description>
+
+<description>
+	<mimeType>audio/mp4</mimeType>
+	<extensions>m4a,m4p</extensions>
+</description>
+
+<description>
+	<mimeType>video/3gpp</mimeType>
+	<extensions>3gp,3g2</extensions>
+</description>
+
+<description>
+	<mimeType>audio/x-aiff</mimeType>
+	<extensions>aiff</extensions>
+	<magicNumber encoding="string">FORM</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-ms-wmd</mimeType>
+	<extensions>wmd</extensions>
+	<parentType>application/zip</parentType>
+</description>
+
+<description>
+	<mimeType>video/x-flv</mimeType>
+	<extensions>flv</extensions>
+	<magicNumber encoding="string">FLV</magicNumber>
+</description>
+
+<description>
+	<mimeType>audio/flac</mimeType>
+	<extensions>flac</extensions>
+	<magicNumber encoding="hex">66 4c 61 43 00 00 00 22</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/smil</mimeType>
+	<extensions>smi,smil</extensions>
+</description>
+
+<!-- ================== Play List Types ================== -->
+
+<description>
+	<mimeType>application/x-winamp-playlist</mimeType>
+	<extensions>m3u</extensions>
+	<magicNumber encoding="string">#EXTM3U</magicNumber>
+</description>
+
+<description>
+	<mimeType>audio/x-b4s</mimeType>
+	<parentType>text/xml</parentType>
+	<extensions>b4s</extensions>
+</description>
+
+<description>
+	<mimeType>application/xspf+xml</mimeType>
+	<parentType>text/xml</parentType>
+	<extensions>xspf</extensions>
+</description>
+
+<description>
+	<mimeType>audio/x-scpls</mimeType>
+	<extensions>pls</extensions>
+	<magicNumber encoding="string">[playlist]</magicNumber>
+</description>
+
+<description>
+	<mimeType>audio/x-kpl</mimeType>
+	<extensions>kpl</extensions>
+	<magicNumber encoding="string">[Metadata] artist=</magicNumber>
+</description>
+
+<description>
+	<mimeType>audio/x-kapsule</mimeType>
+	<parentType>text/xml</parentType>
+	<extensions>p2p</extensions>
+</description>
+
+<description>
+	<mimeType>audio/x-magma</mimeType>
+	<extensions>magma</extensions>
+	<magicString>#MAGMA</magicString>
+</description>
+
+<description>
+	<mimeType>vnd.ms-wpl</mimeType>
+	<extensions>wpl</extensions>
+	<magicNumber encoding="string">&lt;?wpl</magicNumber>
+</description>
+
+<!-- ================== Security & Integrity ================== -->
+
+<description>
+	<mimeType>application/pgp-signature</mimeType>
+	<magicNumber encoding="string">-----BEGIN PGP SIGNATURE-----</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-md5</mimeType>
+	<extensions>md5</extensions>
+	<magicNumber encoding="string">MD5</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-sha</mimeType>
+	<extensions>sha,sha0,sha1,sha2,sha256,sha512</extensions>
+</description>
+
+<description>
+	<mimeType>application/x-axcrypt</mimeType>
+	<extensions>axx</extensions>
+	<magicNumber encoding="hex">c0 b9 07 2e 4f 93 f1 46 a0 15 79 2c a1 d9 e8 21 15 00 00 00 02</magicNumber>
+</description>
+
+<!-- ================== Miscellaneous Types ================== -->
+
+<description>
+	<mimeType>text/calendar</mimeType>
+	<extensions>ics</extensions>
+	<magicNumber encoding="string">BEGIN:VCALENDAR</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-mozilla-addressbook</mimeType>
+	<extensions>mab</extensions>
+</description>
+
+<description>
+	<mimeType>application/x-ms-registry</mimeType>
+	<extensions>reg</extensions>
+	<magicNumber encoding="string">regf</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-bittorrent</mimeType>
+	<extensions>torrent</extensions>
+	<magicNumber encoding="string">d8:announce</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-pom</mimeType>
+	<extensions>pom</extensions>
+	<magicNumber encoding="string">&lt;project&gt;</magicNumber>
+</description>
+
+<description>
+	<mimeType>application/x-ms-wmz</mimeType>
+	<extensions>wmz</extensions>
+	<parentType>application/zip</parentType>
+</description>
+
+<description>
+	<mimeType>text/x-vcard</mimeType>
+	<extensions>vcf,vcard</extensions>
+	<magicString>BEGIN:VCARD</magicString>
+</description>
+
+</mimeTypes>

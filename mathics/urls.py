@@ -2,7 +2,7 @@
 
 u"""
     Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011 Jan Pöschko
+    Copyright (C) 2011-2013 The Mathics Team
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from django.conf.urls.defaults import *
+from django.conf.urls import *
 
 from django.conf import settings
 
@@ -29,15 +29,13 @@ from django.conf import settings
 handler404 = 'mathics.web.views.error_404_view'
 handler500 = 'mathics.web.views.error_500_view'
 
-urlpatterns = patterns('',    
+urlpatterns = patterns(
+    '',
     (r'^media/(?P<path>.*)$', 'django.views.static.serve', {
-        'document_root': settings.MEDIA_ROOT,
-        'show_indexes': False
-    }),
-    
+        'document_root': settings.MEDIA_ROOT, 'show_indexes': False}),
     (r'^', include('mathics.web.urls')),
 
-    # Uncomment the admin/doc line below and add 'django.contrib.admindocs' 
+    # Uncomment the admin/doc line below and add 'django.contrib.admindocs'
     # to INSTALLED_APPS to enable admin documentation:
     # (r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
