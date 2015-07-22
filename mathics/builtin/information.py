@@ -29,7 +29,6 @@ def _get_usage_string(name,evaluation):
 
 
 class Definition(PrefixOperator):
-
     """
     <dl>
     <dt>'Definition[$symbol$]'
@@ -39,11 +38,13 @@ class Definition(PrefixOperator):
          | System`Plus
          | Built - in
 
-
-     >> B::usage="A short description of B"; ? B
+    >> B::usage="A short description of B"; ? B
          | A short description of B
     
-    
+    #> Definition[Sin]
+	 | whatever the definition for Sin
+	 | prints out
+
     """
     operator="?"
     precedence=1
@@ -55,6 +56,7 @@ class Definition(PrefixOperator):
             evaluation.message('Definition','notfound',symbol)            
             return Symbol('Null');
         definition= evaluation.definitions.get_definition(symbol.name) ;
+
         if definition is None: return None
 
         textusage=_get_usage_string(symbol.name,evaluation)
@@ -63,7 +65,7 @@ class Definition(PrefixOperator):
             return Symbol('Null')
         
         from mathics.core.expression import from_python        
-        evaluation.print_out(String(definition.context+ symbol.name+"\n"))
+        evaluation.print_out(String(symbol.name+"\n"))
         
         if definition.ownvalues is not None :
             if len(definition.ownvalues)!=0: 
@@ -166,7 +168,7 @@ class Information(PrefixOperator):
         if usagetext is not None :
             evaluation.print_out(String(usagetext))
         else:
-            evaluation.print_out(String(definition.context+definition.name +"\n"))
+            evaluation.print_out(String(definition.name +"\n"))
 
 
         if definition.ownvalues is not None :
