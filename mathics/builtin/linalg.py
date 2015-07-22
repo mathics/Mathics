@@ -6,8 +6,8 @@ Linear algebra
 
 import sympy
 import numpy
-import scipy
-from scipy import linalg
+# import scipy   -> Needed for a better implementation on MatrixExp... but not supported now... 
+# from scipy import linalg    -> Needed for a better implementation on MatrixExp... but not supported now... 
 from mathics.builtin.base import Builtin
 from mathics.core.convert import from_sympy
 from mathics.core.expression import Expression, Integer, Complex, Symbol, Real
@@ -501,7 +501,10 @@ class MatrixExp(Builtin):
             matrix = to_numpy_matrix(m)
             if matrix is None or len(matrix.shape) !=2  or  matrix.shape[1] != matrix.shape[0] :
                 return evaluation.message('Eigensystem', 'matsq', m)
-            res=scipy.linalg.expm(matrix)
+#           res=scipy.linalg.expm(matrix)
+# very inefficient way, it should be improved....
+            evals,evecs=numpy.linalg.eig(matrix)
+            res=evecs.dot(numpy.diag(numpy.exp(evals))).dot(numpy.linalg.inv(evecs))
             return from_sympy(res)
         else:            # symbolic matrix
             m = to_sympy_matrix(m)
