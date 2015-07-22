@@ -704,3 +704,45 @@ class Eigenvectors(Builtin):
                 result.extend([Expression('List', *(
                                 [0] * matrix.rows))] * (matrix.rows - len(result)))
                 return Expression('List', *result)
+
+
+
+
+class QRDecomposition(Builtin):
+    u"""
+    <dl>
+    <dt>'QRDecomposition[$m$]'
+    <dd> yields the QR decomposition for numerical matrix $m$. The result is a list {$q$, $r$}, where q is an orthogonal matrix and r is an upper‐triangular matrix
+    </dl>
+
+    #> QRDecomposition[{{-2, 1, -1}, {-3, 2, 1}}]                                         
+     = {{{-0.554700196225, -0.832050294338}, {-0.832050294338, 0.554700196225}}, {{3.60555127546, -2.2188007849, -0.277350098113}, {0., 0.277350098113, 1.38675049056}}}
+    """
+
+    def apply(self, m, evaluation):
+        'QRDecomposition[m_]'
+        if Expression("MatrixQ",*[m,Symbol('NumberQ')]).evaluate(evaluation).to_python():
+            matrix = to_numpy_matrix(m)
+            try:
+                q,r=numpy.linalg.qr(matrix)
+                return Expression("List",*[from_sympy(q),from_sympy(r)])
+            except numpy.linalg.linalg.LinAlgError as err:
+                return evaluation.message('QRDecomposition', 'qrfail', m)
+
+        else:            # symbolic matrix
+            matrix = to_sympy_matrix(m)
+            try:
+#the version of QRdecomposition  in sympy does not seems to work properly with non numeric matrices...
+                q,r=matrix.QRdecomposition()
+            except:
+                return evaluation.message('QRDecomposition', 'qrnotimplemented', m)
+
+            return Expression("List",*[from_sympy(q),from_sympy(r)])
+
+    messages = {
+        'qrnotimplemented': ("Can not evaluate the QR decomposition for the matrix `1`."),
+        'qrfail': ("Fail evaluating the QR decomposition for the matrix `1`."),
+    }
+
+    
+	
