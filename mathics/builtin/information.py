@@ -28,94 +28,94 @@ def _get_usage_string(name,evaluation):
         return  usagetext            
 
 
-class Definition(PrefixOperator):
-    """
-    <dl>
-    <dt>'Definition[$symbol$]'
-        <dd>Retrieves the definition of $symbol$
-    </dl>
-    >> ? Plus
-         | System`Plus
-         | Built - in
+# class Definition(PrefixOperator):
+#     """
+#     <dl>
+#     <dt>'Definition[$symbol$]'
+#         <dd>Retrieves the definition of $symbol$
+#     </dl>
+#     >> ? Plus
+#          | System`Plus
+#          | Built - in
 
-    >> B::usage="A short description of B"; ? B
-         | A short description of B
+#     >> B::usage="A short description of B"; ? B
+#          | A short description of B
     
-    #> Definition[Sin]
-	 | whatever the definition for Sin
-	 | prints out
+#     #> Definition[Sin]
+# 	 | whatever the definition for Sin
+# 	 | prints out
 
-    """
-    operator="?"
-    precedence=1
-    attributes = ('HoldAll', 'SequenceHold','Protect','ReadProtect')
-    messages = {'notfound': 'Expression `1` is not a symbol'}
-    def apply(self, symbol, evaluation):
-        'Definition[symbol_]'
-        if not isinstance(symbol,Symbol): 
-            evaluation.message('Definition','notfound',symbol)            
-            return Symbol('Null');
-        definition= evaluation.definitions.get_definition(symbol.name) ;
+#     """
+#     operator="?"
+#     precedence=1
+#     attributes = ('HoldAll', 'SequenceHold','Protect','ReadProtect')
+#     messages = {'notfound': 'Expression `1` is not a symbol'}
+#     def apply(self, symbol, evaluation):
+#         'Definition[symbol_]'
+#         if not isinstance(symbol,Symbol): 
+#             evaluation.message('Definition','notfound',symbol)            
+#             return Symbol('Null');
+#         definition= evaluation.definitions.get_definition(symbol.name) ;
 
-        if definition is None: return None
+#         if definition is None: return None
 
-        textusage=_get_usage_string(symbol.name,evaluation)
-        if textusage is not None:
-            evaluation.print_out(String(textusage+"\n"))            
-            return Symbol('Null')
+#         textusage=_get_usage_string(symbol.name,evaluation)
+#         if textusage is not None:
+#             evaluation.print_out(String(textusage+"\n"))            
+#             return Symbol('Null')
         
-        from mathics.core.expression import from_python        
-        evaluation.print_out(String(symbol.name+"\n"))
+#         from mathics.core.expression import from_python        
+#         evaluation.print_out(String(symbol.name+"\n"))
         
-        if definition.ownvalues is not None :
-            if len(definition.ownvalues)!=0: 
-                for ownval in definition.ownvalues:
-                    if  type(ownval) == BuiltinRule:
-                        evaluation.print_out(String("Built - in"))
-			evaluation.print_out(String(ownval.function.im_class.__doc__))
-                    else:
-                        if type(ownval)==RuleDelayed:
-                            eqs=':='
-                        else:
-                            eqs='='
-                        evaluation.print_out(String(evaluation.format_output(\
-						from_python(ownval.pattern.expr))+\
-							    eqs+evaluation.format_output(from_python(ownval.replace))+'\n'))
+#         if definition.ownvalues is not None :
+#             if len(definition.ownvalues)!=0: 
+#                 for ownval in definition.ownvalues:
+#                     if  type(ownval) == BuiltinRule:
+#                         evaluation.print_out(String("Built - in"))
+# 			evaluation.print_out(String(ownval.function.im_class.__doc__))
+#                     else:
+#                         if type(ownval)==RuleDelayed:
+#                             eqs=':='
+#                         else:
+#                             eqs='='
+#                         evaluation.print_out(String(evaluation.format_output(\
+# 						from_python(ownval.pattern.expr))+\
+# 							    eqs+evaluation.format_output(from_python(ownval.replace))+'\n'))
 
 
 
-        if definition.upvalues is not None :
-            if len(definition.upvalues)!=0: 
-                for upval in definition.upvalues:
-                    if  type(upval) == BuiltinRule:
-                        evaluation.print_out("Built - in")
-			evaluation.print_out(String(upval.function.im_class.__doc__))
-                    else:
-                        if type(upval)==RuleDelayed:
-                            eqs=':^='
-                        else:
-                            eqs='^='
-                        evaluation.print_out(String(evaluation.format_output(\
-						from_python(upval.pattern.expr))+\
-                                eqs+evaluation.format_output(from_python(upval.replace))+ '\n'))
+#         if definition.upvalues is not None :
+#             if len(definition.upvalues)!=0: 
+#                 for upval in definition.upvalues:
+#                     if  type(upval) == BuiltinRule:
+#                         evaluation.print_out("Built - in")
+# 			evaluation.print_out(String(upval.function.im_class.__doc__))
+#                     else:
+#                         if type(upval)==RuleDelayed:
+#                             eqs=':^='
+#                         else:
+#                             eqs='^='
+#                         evaluation.print_out(String(evaluation.format_output(\
+# 						from_python(upval.pattern.expr))+\
+#                                 eqs+evaluation.format_output(from_python(upval.replace))+ '\n'))
                 
 
-        if definition.downvalues is not None :
-            if len(definition.downvalues)!=0: 
-                for downval in definition.downvalues:
-                    if  type(downval) == BuiltinRule:
-                        evaluation.print_out("Built - in")
-			evaluation.print_out(String(downval.function.im_class.__doc__))
-                    else:
-                        if type(downval)==RuleDelayed:
-                            eqs=':='
-                        else:
-                            eqs='='
-                        evaluation.print_out(String(\
-					evaluation.format_output(\
-						from_python(downval.pattern.expr))+\
-						eqs+evaluation.format_output(from_python(downval.replace))+ '\n'))
-        return Symbol('Null');
+#         if definition.downvalues is not None :
+#             if len(definition.downvalues)!=0: 
+#                 for downval in definition.downvalues:
+#                     if  type(downval) == BuiltinRule:
+#                         evaluation.print_out("Built - in")
+# 			evaluation.print_out(String(downval.function.im_class.__doc__))
+#                     else:
+#                         if type(downval)==RuleDelayed:
+#                             eqs=':='
+#                         else:
+#                             eqs='='
+#                         evaluation.print_out(String(\
+# 					evaluation.format_output(\
+# 						from_python(downval.pattern.expr))+\
+# 						eqs+evaluation.format_output(from_python(downval.replace))+ '\n'))
+#         return Symbol('Null');
         
 
 
