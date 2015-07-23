@@ -1,11 +1,13 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 """
 Linear algebra
 """
 
 import sympy
-
+import numpy
+# import scipy   -> Needed for a better implementation on MatrixExp... but not supported now... 
+# from scipy import linalg    -> Needed for a better implementation on MatrixExp... but not supported now... 
 from mathics.builtin.base import Builtin
 from mathics.core.convert import from_sympy
 from mathics.core.expression import Expression, Integer, Complex, Symbol, Real
@@ -22,11 +24,30 @@ def matrix_data(m):
         return None
 
 
+def numeric_matrix_data(m):
+    if not m.has_form('List', None):
+        return None
+    if all(leaf.has_form('List', None) for leaf in m.leaves):
+        return [[item.to_python() for item in row.leaves] for row in m.leaves]
+    elif not any(leaf.has_form('List', None) for leaf in m.leaves):
+        return [item.to_python() for item in m.leaves]
+    else:
+        return None
+
 def to_sympy_matrix(data, **kwargs):
     if not isinstance(data, list):
         data = matrix_data(data)
     try:
         return sympy.Matrix(data)
+    except (TypeError, AssertionError, ValueError):
+        return None
+
+
+def to_numpy_matrix(data, **kwargs):
+    if not isinstance(data, list):
+        data = numeric_matrix_data(data)
+    try:
+        return numpy.array(data)
     except (TypeError, AssertionError, ValueError):
         return None
 
@@ -48,12 +69,20 @@ class Det(Builtin):
 
     def apply(self, m, evaluation):
         'Det[m_]'
-
-        matrix = to_sympy_matrix(m)
-        if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
-            return evaluation.message('Det', 'matsq', m)
-        det = matrix.det()
-        return from_sympy(det)
+        if Expression("MatrixQ",*[m,Symbol('NumberQ')]).evaluate(evaluation).to_python():
+            matrix = to_numpy_matrix(m)
+            if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
+                return evaluation.message('Eigenvalues', 'matsq', m)
+            s,lndet= numpy.linalg.slogdet(matrix)
+            if s == 0:
+                return from_sympy(0.);
+            return Expression('Times',*[from_sympy(s),Expression("Exp",*[from_sympy(lndet)])]).evaluate(evaluation)
+        else:            # symbolic matrix
+            matrix = to_sympy_matrix(m)
+            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+                return evaluation.message('Det', 'matsq', m)
+            det = matrix.det()
+            return from_sympy(det)
 
 
 class Cross(Builtin):
@@ -157,18 +186,32 @@ class Inverse(Builtin):
 
     messages = {
         'sing': "The matrix `1` is singular.",
+        'matsq': "The matrix `1` is not square"
     }
 
     def apply(self, m, evaluation):
         'Inverse[m_]'
-
-        matrix = to_sympy_matrix(m)
-        if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
-            return evaluation.message('Inverse', 'matsq', m)
-        if matrix.det() == 0:
-            return evaluation.message('Inverse', 'sing', m)
-        inv = matrix.inv()
-        return from_sympy(inv)
+        if Expression("MatrixQ",*[m,Symbol('NumberQ')]).evaluate(evaluation).to_python():
+            matrix = to_numpy_matrix(m)
+            if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
+                return evaluation.message('Inverse', 'matsq', m)
+            try:
+                res=numpy.linalg.inv(matrix)
+                return from_sympy(res)
+            except numpy.linalg.linalg.LinAlgError as err:
+#              print "exception:"
+               if str(err) == "Singular matrix":
+                   return evaluation.message('Inverse', 'sing', m)
+               else:
+                   raise(err)
+        else:            # symbolic matrix
+            matrix = to_sympy_matrix(m)
+            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+                return evaluation.message('Inverse', 'matsq', m)
+            if matrix.det() == 0:
+                return evaluation.message('Inverse', 'sing', m)
+            inv = matrix.inv()
+            return from_sympy(inv)
 
 
 class LinearSolve(Builtin):
@@ -331,19 +374,28 @@ class Eigenvalues(Builtin):
 
     def apply(self, m, evaluation):
         'Eigenvalues[m_]'
+ #      If numeric matrix
+        if Expression("MatrixQ",*[m,Symbol('NumberQ')]).evaluate(evaluation).to_python():
+            matrix = to_numpy_matrix(m)
+            if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
+                return evaluation.message('Eigenvalues', 'matsq', m)
+            res=numpy.linalg.eigvals(matrix)
+            return from_sympy(res)
+            return evaluation.message('Eigenvalues', 'nosequehacer', m)
+        else:            # symbolic matrix
+            matrix = to_sympy_matrix(m)
 
-        matrix = to_sympy_matrix(m)
-        if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
-            return evaluation.message('Eigenvalues', 'matsq', m)
-        eigenvalues = matrix.eigenvals()
-        try:
-            eigenvalues = sorted(eigenvalues.iteritems(),
-                                 key=lambda (v, c): (abs(v), -v), reverse=True)
-        except TypeError as e:
-            if not str(e).startswith('cannot determine truth value of'):
-                raise e
-            eigenvalues = eigenvalues.items()
-        return from_sympy([v for (v, c) in eigenvalues for _ in xrange(c)])
+            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+                return evaluation.message('Eigenvalues', 'matsq', m)
+            eigenvalues = matrix.eigenvals()
+            try:
+                eigenvalues = sorted(eigenvalues.iteritems(),
+                                     key=lambda (v, c): (abs(v), -v), reverse=True)
+            except TypeError as e:
+                if not str(e).startswith('cannot determine truth value of'):
+                    raise e
+                eigenvalues = eigenvalues.items()
+            return from_sympy([v for (v, c) in eigenvalues for _ in xrange(c)])
 
 
 class Eigensystem(Builtin):
@@ -363,9 +415,21 @@ class Eigensystem(Builtin):
      = {5, 5}
     """
 
-    rules = {
-        'Eigensystem[m_]': '{Eigenvalues[m], Eigenvectors[m]}'
-    }
+#    rules = {
+#        'Eigensystem[m_]': '{Eigenvalues[m], Eigenvectors[m]}'
+#    }
+
+    def apply(self, m, evaluation):
+        'Eigensystem[m_]'
+        if Expression("MatrixQ",*[m,Symbol('NumberQ')]).evaluate(evaluation).to_python():
+            matrix = to_numpy_matrix(m)
+            if matrix is None or len(matrix.shape) !=2  or  matrix.shape[1] != matrix.shape[0] :
+                return evaluation.message('Eigensystem', 'matsq', m)
+            evals,evecs=numpy.linalg.eig(matrix)
+            return Expression("List",*[from_sympy(evals),from_sympy(evecs)])
+        else:            # symbolic matrix
+            return Expression("List",*[Expression("Eigenvalues",m),Expression("Eigenvectors",m)])
+
 
 
 class MatrixPower(Builtin):
@@ -392,12 +456,19 @@ class MatrixPower(Builtin):
 
     def apply(self, m, power, evaluation):
         'MatrixPower[m_, power_]'
-        m = to_sympy_matrix(m)
-        try:
-            res = m ** power.to_sympy()
-        except NotImplementedError:
-            return evaluation.message('MatrixPower', 'matrixpowernotimplemented')
-        return from_sympy(res)
+        if Expression("MatrixQ",*[m,Symbol('NumberQ')]).evaluate(evaluation).to_python():
+            matrix = to_numpy_matrix(m)
+            if matrix is None or len(matrix.shape) !=2  or  matrix.shape[1] != matrix.shape[0] :
+                return evaluation.message('Eigensystem', 'matsq', m)
+            res=numpy.linalg.matrix_power(matrix,power)
+            return from_sympy(res)
+        else:            # symbolic matrix
+            m = to_sympy_matrix(m)
+            try:
+                res = m ** power.to_sympy()
+            except NotImplementedError:
+                return evaluation.message('MatrixPower', 'matrixpowernotimplemented')
+            return from_sympy(res)
 
 
 class MatrixExp(Builtin):
@@ -426,12 +497,22 @@ class MatrixExp(Builtin):
 
     def apply(self, m, evaluation):
         'MatrixExp[m_]'
-        m = to_sympy_matrix(m)
-        try:
-            res = m.exp()
-        except NotImplementedError:
-            return evaluation.message('MatrixExp', 'matrixexpnotimplemented')
-        return from_sympy(res)
+        if Expression("MatrixQ",*[m,Symbol('NumberQ')]).evaluate(evaluation).to_python():
+            matrix = to_numpy_matrix(m)
+            if matrix is None or len(matrix.shape) !=2  or  matrix.shape[1] != matrix.shape[0] :
+                return evaluation.message('Eigensystem', 'matsq', m)
+#           res=scipy.linalg.expm(matrix)
+# very inefficient way, it should be improved....
+            evals,evecs=numpy.linalg.eig(matrix)
+            res=evecs.dot(numpy.diag(numpy.exp(evals))).dot(numpy.linalg.inv(evecs))
+            return from_sympy(res)
+        else:            # symbolic matrix
+            m = to_sympy_matrix(m)
+            try:
+                res = m.exp()
+            except NotImplementedError:
+                return evaluation.message('MatrixExp', 'matrixexpnotimplemented')
+            return from_sympy(res)
 
 
 class Norm(Builtin):
@@ -587,32 +668,81 @@ class Eigenvectors(Builtin):
 
     def apply(self, m, evaluation):
         'Eigenvectors[m_]'
+ #      If numeric matrix
+        if Expression("MatrixQ",*[m,Symbol('NumberQ')]).evaluate(evaluation).to_python():
+            matrix = to_numpy_matrix(m)
+            if matrix is None or len(matrix.shape) !=2  or  matrix.shape[1] != matrix.shape[0] :
+                return evaluation.message('Eigenvectors', 'matsq', m)
+            evals,evecs=numpy.linalg.eig(matrix)
+            return from_sympy(evecs)
+        else:            # symbolic matrix
+            matrix = to_sympy_matrix(m)
+            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+                return evaluation.message('Eigenvectors', 'matsq', m)
+            # sympy raises an error for some matrices that Mathematica can compute.
+            try:
+                eigenvects = matrix.eigenvects()
+            except NotImplementedError:
+                return evaluation.message(
+                    'Eigenvectors', 'eigenvecnotimplemented', m)
 
-        matrix = to_sympy_matrix(m)
-        if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
-            return evaluation.message('Eigenvectors', 'matsq', m)
-        # sympy raises an error for some matrices that Mathematica can compute.
-        try:
-            eigenvects = matrix.eigenvects()
-        except NotImplementedError:
-            return evaluation.message(
-                'Eigenvectors', 'eigenvecnotimplemented', m)
+            # The eigenvectors are given in the same order as the eigenvalues.
+            eigenvects = sorted(eigenvects, key=lambda (
+                    val, c, vect): (abs(val), -val), reverse=True)
+            result = []
+            for val, count, basis in eigenvects:
+                # Select the i'th basis vector, convert matrix to vector,
+                # and convert from sympy
+                vects = [from_sympy(list(b)) for b in basis]
+                
+                # This follows Mathematica convention better; higher indexed pivots
+                # are outputted first. e.g. {{0,1},{1,0}} instead of {{1,0},{0,1}}
+                vects.reverse()
+                
+                # Add the vectors to results
+                result.extend(vects)
+                result.extend([Expression('List', *(
+                                [0] * matrix.rows))] * (matrix.rows - len(result)))
+                return Expression('List', *result)
 
-        # The eigenvectors are given in the same order as the eigenvalues.
-        eigenvects = sorted(eigenvects, key=lambda (
-            val, c, vect): (abs(val), -val), reverse=True)
-        result = []
-        for val, count, basis in eigenvects:
-            # Select the i'th basis vector, convert matrix to vector,
-            # and convert from sympy
-            vects = [from_sympy(list(b)) for b in basis]
 
-            # This follows Mathematica convention better; higher indexed pivots
-            # are outputted first. e.g. {{0,1},{1,0}} instead of {{1,0},{0,1}}
-            vects.reverse()
 
-            # Add the vectors to results
-            result.extend(vects)
-        result.extend([Expression('List', *(
-            [0] * matrix.rows))] * (matrix.rows - len(result)))
-        return Expression('List', *result)
+
+class QRDecomposition(Builtin):
+    u"""
+    <dl>
+    <dt>'QRDecomposition[$m$]'
+    <dd> yields the QR decomposition for numerical matrix $m$. The result is a list {$q$, $r$}, where q is an orthogonal matrix and r is an upper‐triangular matrix
+    </dl>
+
+    #> QRDecomposition[{{-2, 1, -1}, {-3, 2, 1}}]                                         
+     = {{{-0.554700196225, -0.832050294338}, {-0.832050294338, 0.554700196225}}, {{3.60555127546, -2.2188007849, -0.277350098113}, {0., 0.277350098113, 1.38675049056}}}
+    """
+
+    def apply(self, m, evaluation):
+        'QRDecomposition[m_]'
+        if Expression("MatrixQ",*[m,Symbol('NumberQ')]).evaluate(evaluation).to_python():
+            matrix = to_numpy_matrix(m)
+            try:
+                q,r=numpy.linalg.qr(matrix)
+                return Expression("List",*[from_sympy(q),from_sympy(r)])
+            except numpy.linalg.linalg.LinAlgError as err:
+                return evaluation.message('QRDecomposition', 'qrfail', m)
+
+        else:            # symbolic matrix
+            matrix = to_sympy_matrix(m)
+            try:
+#the version of QRdecomposition  in sympy does not seems to work properly with non numeric matrices...
+                q,r=matrix.QRdecomposition()
+            except:
+                return evaluation.message('QRDecomposition', 'qrnotimplemented', m)
+
+            return Expression("List",*[from_sympy(q),from_sympy(r)])
+
+    messages = {
+        'qrnotimplemented': ("Can not evaluate the QR decomposition for the matrix `1`."),
+        'qrfail': ("Fail evaluating the QR decomposition for the matrix `1`."),
+    }
+
+    
+	
