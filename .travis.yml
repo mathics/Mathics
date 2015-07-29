@@ -36,9 +36,10 @@ matrix:
 before_install:
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
+  - sudo apt-get install -qq libatlas-dev liblapack-dev
   - if [[ "$TEST_DOC" == "true" ]]; then
     sudo apt-get update -qq &&
-    sudo apt-get install -qq asymptote libatlas-dev liblapack-dev imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk
+    sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
     fi
   - pip install scipy
   - pip install --use-mirrors unittest2
