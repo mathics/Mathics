@@ -4,20 +4,26 @@ python:
   - pypy
 env:
   - SYMPY_SRC=sympy-0.7.6
+  - SCIPY_SRC=scipy-0.10.1
 matrix:
     fast_finish: true
     include:
       - python: 2.7
         env: SYMPY_SRC=sympy-0.7.3
+      - SCIPY_SRC=scipy-0.10.1
       - python: 2.7
         env: SYMPY_SRC=sympy-0.7.4
+        env: SCIPY_SRC=scipy-0.10.1
       - python: 2.7
         env: SYMPY_SRC=sympy-0.7.5
+        env: SCIPY_SRC=scipy-0.10.1
       - python: 2.7
         env: SYMPY_SRC=master
+        env: SCIPY_SRC=scipy-0.10.1
       - python: 2.7
         env:
           - SYMPY_SRC=sympy-0.7.6
+          - SCIPY_SRC=scipy-0.10.1
           - TEST_DOC="true"
     allow_failures:
       - env: SYMPY_SRC=sympy-0.7.3
@@ -32,8 +38,9 @@ before_install:
   - "sh -e /etc/init.d/xvfb start"
   - if [[ "$TEST_DOC" == "true" ]]; then
     sudo apt-get update -qq &&
-    sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
+    sudo apt-get install -qq asymptote liblapack3 imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
     fi
+  - pip install --use-mirrors scipy
   - pip install --use-mirrors unittest2
   - pip install --use-mirrors pexpect
   - pip install --use-mirrors git+https://github.com/sympy/sympy.git@$SYMPY_SRC
