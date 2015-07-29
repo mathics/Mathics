@@ -127,7 +127,7 @@ class Information(PrefixOperator):
         <dd>Retrieves information about $symbol$
     </dl>
 
-    >> ?? Plus
+    >> Information[Plus]
     | System`Plus
     | Built - in
     | Attributes: {Flat, Orderless, OneIdentity, Listable, Protected, NumericFunction}
@@ -138,7 +138,7 @@ class Information(PrefixOperator):
     | 
     
 
-    >> B::usage="A short description of A"; ?? B
+    >> B::usage="A short description of B"; Information[B]
         | A short description of B
         | 
         | Options[B] = {}
