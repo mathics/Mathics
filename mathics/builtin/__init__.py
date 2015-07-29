@@ -21,7 +21,7 @@ u"""
 from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory,
+    graphics, graphics3d, information, inout, integer, linalg, lists, logic, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
     specialfunctions, scoping, strings, structure, system, tensors)
 
@@ -33,7 +33,7 @@ from mathics.settings import ENABLE_FILES_MODULE
 modules = [
     algebra, arithmetic, assignment, attributes, calculus, combinatorial,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory,
+    graphics, graphics3d, information, inout, integer, linalg, lists, logic, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
     specialfunctions, scoping, strings, structure, system, tensors]
 
