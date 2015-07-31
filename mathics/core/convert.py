@@ -24,6 +24,7 @@ u"""
 """
 
 import sympy
+import numpy
 
 sympy_symbol_prefix = '_Mathics_User_'
 sympy_slot_prefix = '_Mathics_Slot_'
