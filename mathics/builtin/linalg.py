@@ -200,9 +200,9 @@ class Inverse(Builtin):
             if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
                 return evaluation.message('Inverse', 'matsq', m)
             try:
-                res=numpy.linalg.inv(matrix)
+                res=scipy.linalg.inv(matrix)
                 return from_sympy(res)
-            except numpy.linalg.linalg.LinAlgError as err:
+            except scipy.linalg.LinAlgError as err:
 #              print "exception:"
                if str(err) == "Singular matrix":
                    return evaluation.message('Inverse', 'sing', m)
