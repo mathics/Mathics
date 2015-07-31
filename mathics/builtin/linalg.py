@@ -195,6 +195,31 @@ class Inverse(Builtin):
 
     def apply(self, m, evaluation):
         'Inverse[m_]'
+        if is_numeric_Matrix(m,evaluation):
+            matrix = to_numpy_matrix(m)
+            if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
+                return evaluation.message('Inverse', 'matsq', m)
+            try:
+                res=numpy.linalg.inv(matrix)
+                return from_sympy(res)
+            except numpy.linalg.linalg.LinAlgError as err:
+#              print "exception:"
+               if str(err) == "Singular matrix":
+                   return evaluation.message('Inverse', 'sing', m)
+               else:
+                   raise(err)
+        else:            # symbolic matrix
+            matrix = to_sympy_matrix(m)
+            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+                return evaluation.message('Inverse', 'matsq', m)
+            if matrix.det() == 0:
+                return evaluation.message('Inverse', 'sing', m)
+            inv = matrix.inv()
+            return from_sympy(inv)
+
+
+
+
 
         matrix = to_sympy_matrix(m)
         if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
