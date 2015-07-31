@@ -67,7 +67,7 @@ class Det(Builtin):
         <dd>computes the determinant of the matrix $m$.
     </dl>
 
-    >> Det[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
+    >> Chop[Det[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]]
      = -2.
 
     Symbolic determinant:
@@ -182,8 +182,8 @@ class Inverse(Builtin):
         <dd>computes the inverse of the matrix $m$.
     </dl>
 
-    >> Inverse[{{1, 2, 0}, {2, 3, 0}, {3, 4, 1}}]
-     = {{-3, 2, 0}, {2, -1, 0}, {1, -2, 1}}
+    >> Chop[Inverse[{{1, 2, 0}, {2, 3, 0}, {3, 4, 1}}]]
+     = {{-3., 2., 0}, {2., -1., 0}, {1., -2., 1.}}
     >> Inverse[{{1, 0}, {0, 0}}]
      : The matrix {{1, 0}, {0, 0}} is singular.
      = Inverse[{{1, 0}, {0, 0}}]
@@ -205,9 +205,9 @@ class Inverse(Builtin):
             try:
                 res=scipy.linalg.inv(matrix)
                 return from_sympy(res)
-            except scipy.linalg.LinAlgError as err:
+            except numpy.linalg.linalg.LinAlgError as err:
 #              print "exception:"
-               if str(err) == "Singular matrix":
+               if str(err) == "singular matrix":
                    return evaluation.message('Inverse', 'sing', m)
                else:
                    raise(err)
