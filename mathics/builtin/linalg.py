@@ -7,6 +7,9 @@ Linear algebra
 import sympy
 import numpy
 import scipy
+import numpy.linalg
+import scipy.linalg
+
 
 
 from mathics.builtin.base import Builtin
