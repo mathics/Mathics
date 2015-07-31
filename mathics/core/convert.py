@@ -133,6 +133,14 @@ def from_sympy(expr):
         else:
             return Expression('List', *[[from_sympy(item) for item in row]
                 for row in expr.tolist()])
+    if isinstance(expr,numpy.ndarray):
+        if (len(expr.shape) == 2 and (expr.shape[1] == 1)) or len(expr.shape) == 1:
+            # This is a vector (only one column)
+            # Transpose and select first row to get result equivalent to Mathematica
+            return Expression('List', *[ from_sympy(item) for item in expr.tolist() ])
+        else:
+            return Expression('List', *[[from_sympy(item) for item in row]
+                                        for row in expr.tolist()])
     if expr.is_Atom:
         name = None
         if expr.is_Symbol:
