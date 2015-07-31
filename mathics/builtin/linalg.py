@@ -5,6 +5,9 @@ Linear algebra
 """
 
 import sympy
+import numpy
+import scipy
+
 
 from mathics.builtin.base import Builtin
 from mathics.core.convert import from_sympy
@@ -31,6 +34,29 @@ def to_sympy_matrix(data, **kwargs):
         return None
 
 
+def numeric_matrix_data(m):
+    if not m.has_form('List', None):
+        return None
+    if all(leaf.has_form('List', None) for leaf in m.leaves):
+        return [[item.to_python() for item in row.leaves] for row in m.leaves]
+    elif not any(leaf.has_form('List', None) for leaf in m.leaves):
+        return [item.to_python() for item in m.leaves]
+    else:
+        return None
+
+def to_numpy_matrix(data, **kwargs):
+    'convert a mathics matrix to a numpy.ndarray object'
+    if not isinstance(data, list):
+        data = numeric_matrix_data(data)
+    try:
+        return numpy.array(data)
+    except (TypeError, AssertionError, ValueError):
+        return None
+
+def is_numeric_Matrix(m,evaluation):
+    return Expression("MatrixQ",*m,Symbol('NumberQ')]).evaluate(evaluation).to_python()
+    
+
 class Det(Builtin):
     u"""
     <dl>
@@ -39,21 +65,29 @@ class Det(Builtin):
     </dl>
 
     >> Det[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
-     = -2
+     = -2.
 
     Symbolic determinant:
     >> Det[{{a, b, c}, {d, e, f}, {g, h, i}}]
      = a e i - a f h - b d i + b f g + c d h - c e g
     """
-
     def apply(self, m, evaluation):
         'Det[m_]'
+        if is_numeric_Matrix(m,evaluation):
+            matrix = to_numpy_matrix(m)
+            if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
+                return evaluation.message('Eigenvalues', 'matsq', m)
+            s,lndet= numpy.linalg.slogdet(matrix)
+            if s == 0:
+                return from_sympy(0.);
+            return Expression('Times',*[from_sympy(s),Expression("Exp",*[from_sympy(lndet)])]).evaluate(evaluation)
+        else:            # symbolic matrix
+            matrix = to_sympy_matrix(m)
+            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+                return evaluation.message('Det', 'matsq', m)
+            det = matrix.det()
+            return from_sympy(det)
 
-        matrix = to_sympy_matrix(m)
-        if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
-            return evaluation.message('Det', 'matsq', m)
-        det = matrix.det()
-        return from_sympy(det)
 
 
 class Cross(Builtin):
