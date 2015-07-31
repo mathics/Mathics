@@ -54,7 +54,7 @@ def to_numpy_matrix(data, **kwargs):
         return None
 
 def is_numeric_Matrix(m,evaluation):
-    return Expression("MatrixQ",*m,Symbol('NumberQ')]).evaluate(evaluation).to_python()
+    return Expression("MatrixQ",*[m,Symbol('NumberQ')]).evaluate(evaluation).to_python()
     
 
 class Det(Builtin):
