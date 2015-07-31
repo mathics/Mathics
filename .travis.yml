@@ -29,6 +29,7 @@ matrix:
           - SYMPY_SRC=sympy-0.7.6
           - TEST_DOC="true"
 before_install:
+  - sudo apt-get update -qq && sudo apt-get install python-numpy python-scipy  gfortran liblapack-dev libatlas-dev
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
   - if [[ "$TEST_DOC" == "true" ]]; then
