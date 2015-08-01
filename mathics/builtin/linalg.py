@@ -56,8 +56,8 @@ def to_numpy_matrix(data, **kwargs):
     except (TypeError, AssertionError, ValueError):
         return None
 
-def is_numeric_Matrix(m,evaluation):
-    return Expression("MatrixQ",*[m,Symbol('NumberQ')]).evaluate(evaluation).to_python()
+def is_inexact_numeric_Matrix(m,evaluation):
+    return Expression("MatrixQ",*[m,Symbol('InexactNumberQ')]).evaluate(evaluation).to_python()
     
 
 class Det(Builtin):
@@ -68,7 +68,11 @@ class Det(Builtin):
     </dl>
 
     >> Det[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
-     = -2.
+     = -2
+
+
+    >> Det[N[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]]
+     = -2.00000000000010938
 
     Symbolic determinant:
     >> Det[{{a, b, c}, {d, e, f}, {g, h, i}}]
@@ -76,7 +80,7 @@ class Det(Builtin):
     """
     def apply(self, m, evaluation):
         'Det[m_]'
-        if is_numeric_Matrix(m,evaluation):
+        if is_inexact_numeric_Matrix(m,evaluation):
             matrix = to_numpy_matrix(m)
             if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
                 return evaluation.message('Eigenvalues', 'matsq', m)
@@ -198,7 +202,7 @@ class Inverse(Builtin):
 
     def apply(self, m, evaluation):
         'Inverse[m_]'
-        if is_numeric_Matrix(m,evaluation):
+        if is_inexact_numeric_Matrix(m,evaluation):
             matrix = to_numpy_matrix(m)
             if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
                 return evaluation.message('Inverse', 'matsq', m)
