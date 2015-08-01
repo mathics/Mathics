@@ -83,7 +83,7 @@ class Det(Builtin):
             s,lndet= numpy.linalg.slogdet(matrix)
             if s == 0:
                 return from_sympy(0.);
-            return Expression('Times',*[from_sympy(s),Expression("Exp",*[from_sympy(lndet)])]).evaluate(evaluation)
+            return Expression('Chop',*[Expression('Times',*[from_sympy(s),Expression("Exp",*[from_sympy(lndet)])])]).evaluate(evaluation)
         else:            # symbolic matrix
             matrix = to_sympy_matrix(m)
             if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
