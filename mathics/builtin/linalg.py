@@ -223,7 +223,7 @@ class Inverse(Builtin):
                    raise(err)
         else:            # symbolic matrix
             matrix = to_sympy_matrix(m)
-Ro            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
                 return evaluation.message('Inverse', 'matsq', m)
             if matrix.det() == 0:
                 return evaluation.message('Inverse', 'sing', m)
