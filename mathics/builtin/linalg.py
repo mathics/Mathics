@@ -87,7 +87,7 @@ class Det(Builtin):
             s,lndet= numpy.linalg.slogdet(matrix)
             if s == 0:
                 return from_sympy(0.);
-            return Expression('Chop',*[Expression('Times',*[from_sympy(s),Expression("Exp",*[from_sympy(lndet)])])]).evaluate(evaluation)
+            return Expression('Round',*[Expression('Times',*[from_sympy(s),Expression("Exp",*[from_sympy(lndet)])]),from_sympy(1.e-10)]).evaluate(evaluation)
         else:            # symbolic matrix
             matrix = to_sympy_matrix(m)
             if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
@@ -223,7 +223,7 @@ class Inverse(Builtin):
                    raise(err)
         else:            # symbolic matrix
             matrix = to_sympy_matrix(m)
-            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+Ro            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
                 return evaluation.message('Inverse', 'matsq', m)
             if matrix.det() == 0:
                 return evaluation.message('Inverse', 'sing', m)
