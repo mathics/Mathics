@@ -67,7 +67,7 @@ class Det(Builtin):
         <dd>computes the determinant of the matrix $m$.
     </dl>
 
-    >> Chop[Det[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]]
+    >> Det[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
      = -2.
 
     Symbolic determinant:
@@ -210,6 +210,7 @@ class Inverse(Builtin):
                if str(err) == "singular matrix":
                    return evaluation.message('Inverse', 'sing', m)
                else:
+                   print "'",str(err),"'"
                    raise(err)
         else:            # symbolic matrix
             matrix = to_sympy_matrix(m)
