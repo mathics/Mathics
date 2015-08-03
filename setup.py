@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """Setuptools based setup script for Mathics.
 
 For the easiest installation just type the following command (you'll probably

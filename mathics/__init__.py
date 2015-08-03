@@ -1,6 +1,6 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-# force utf8 encoding
 import sys
 import codecs
 writer = codecs.getwriter("utf-8")

@@ -1,4 +1,5 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Exponential, trigonometric and hyperbolic functions

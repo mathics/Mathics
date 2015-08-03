@@ -1,4 +1,5 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from mathics.builtin.base import BinaryOperator, Predefined, PrefixOperator
 from mathics.core.expression import Expression, Symbol
