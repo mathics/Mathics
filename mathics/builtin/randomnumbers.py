@@ -274,6 +274,7 @@ class RandomReal(Builtin):
     }
 
     rules = {
+	'Random[]': 'RandomReal[]',
         'RandomReal[]': 'RandomReal[{0, 1}]',
         'RandomReal[max_?NumberQ]': 'RandomReal[{0, max}]',
         'RandomReal[max_?NumberQ, ns_]': 'RandomReal[{0, max}, ns]',
