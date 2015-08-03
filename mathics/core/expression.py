@@ -297,7 +297,7 @@ class BaseExpression(object):
             # return False
         try:
             form.match(yield_match, self, {}, evaluation, fully=False)
-        except StopGenerator_BaseExpression_is_free, exc:
+        except StopGenerator_BaseExpression_is_free as exc:
             return exc.value
         if self.is_atom():
             return True

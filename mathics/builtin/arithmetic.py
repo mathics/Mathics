@@ -63,7 +63,7 @@ class _MPMathFunction(SympyFunction):
                 try:
                     result = self.eval(*mpmath_args)
                     result = from_sympy(mpmath2sympy(result, prec))
-                except ValueError, exc:
+                except ValueError as exc:
                     text = str(exc)
                     if text == 'gamma function pole':
                         return Symbol('ComplexInfinity')
@@ -71,7 +71,7 @@ class _MPMathFunction(SympyFunction):
                         raise
                 except ZeroDivisionError:
                     return
-                except SpecialValueError, exc:
+                except SpecialValueError as exc:
                     return Symbol(exc.name)
 
         return result

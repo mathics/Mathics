@@ -162,7 +162,7 @@ class Evaluation(object):
                             queries.append(expression)
                         query = ''
                         last_parse_error = None
-                    except TranslateError, exc:
+                    except TranslateError as exc:
                         last_parse_error = exc
                 else:
                     query += ' '
@@ -213,7 +213,7 @@ class Evaluation(object):
                         exc_result = Symbol('$Aborted')
                     else:
                         raise
-                except ValueError, exc:
+                except ValueError as exc:
                     text = unicode(exc)
                     if (text == 'mpz.pow outrageous exponent' or    # noqa
                         text == 'mpq.pow outrageous exp num'):

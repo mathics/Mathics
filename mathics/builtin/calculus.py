@@ -737,7 +737,7 @@ class Solve(Builtin):
             pass
         except NotImplementedError:
             pass
-        except TypeError, exc:
+        except TypeError as exc:
             if str(exc).startswith("expected Symbol, Function or Derivative"):
                 evaluation.message('Solve', 'ivar', vars_original)
 

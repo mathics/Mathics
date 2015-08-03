@@ -115,7 +115,7 @@ def query(request):
     try:
         evaluation = Evaluation(
             input, definitions, timeout=settings.TIMEOUT, format='xml')
-    except Exception, exc:
+    except Exception as exc:
         if settings.DEBUG and settings.DISPLAY_EXCEPTIONS:
             evaluation = Evaluation()
             info = traceback.format_exception(*sys.exc_info())

@@ -186,7 +186,7 @@ def main():
 
     try:
         evaluation = Evaluation("", definitions, catch_interrupt=False)
-    except Exception, exc:
+    except Exception as exc:
         print "Exception {0}".format(exc)
         info = sys.exc_info()
         sys.excepthook(*info)
