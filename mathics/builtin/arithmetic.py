@@ -7,8 +7,6 @@ Arithmetic functions
 Basic arithmetic functions, including complex number arithmetic.
 """
 
-from __future__ import with_statement
-
 import sympy
 import mpmath
 

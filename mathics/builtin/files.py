@@ -5,7 +5,6 @@
 File Operations
 """
 
-from __future__ import with_statement
 import os
 import io
 import shutil
