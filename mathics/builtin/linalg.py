@@ -72,7 +72,7 @@ class Det(Builtin):
 
 
     >> Det[N[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]]
-     = -2.00000000000010938
+     = -2.
 
     Symbolic determinant:
     >> Det[{{a, b, c}, {d, e, f}, {g, h, i}}]
