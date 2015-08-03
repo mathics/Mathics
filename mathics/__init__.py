@@ -53,7 +53,7 @@ def print_version(is_server):
 
 def print_license():
     print u"""
-Copyright (C) 2011-2013 The Mathics Team.
+Copyright (C) 2011-2015 The Mathics Team.
 This program comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
 under certain conditions.
