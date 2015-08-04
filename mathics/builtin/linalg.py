@@ -83,7 +83,7 @@ class Det(Builtin):
         if is_inexact_numeric_Matrix(m,evaluation):
             matrix = to_numpy_matrix(m)
             if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
-                return evaluation.message('Eigenvalues', 'matsq', m)
+                return evaluation.message('Det', 'matsq', m)
             s,lndet= numpy.linalg.slogdet(matrix)
             if s == 0:
                 return from_sympy(0.);
@@ -394,6 +394,9 @@ class Eigenvalues(Builtin):
     >> Eigenvalues[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}] // Sort
      = {-1, 1, 2}
 
+    >> Eigenvalues[N[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]] //Chop // Sort
+     = {-1., 1., 2.}
+
     >> Eigenvalues[{{Cos[theta],Sin[theta],0},{-Sin[theta],Cos[theta],0},{0,0,1}}] // Sort
      = {1, Cos[theta] + Sqrt[-1 + Cos[theta] ^ 2], Cos[theta] - Sqrt[-1 + Cos[theta] ^ 2]}
 
@@ -403,19 +406,33 @@ class Eigenvalues(Builtin):
 
     def apply(self, m, evaluation):
         'Eigenvalues[m_]'
-
-        matrix = to_sympy_matrix(m)
-        if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
-            return evaluation.message('Eigenvalues', 'matsq', m)
-        eigenvalues = matrix.eigenvals()
-        try:
-            eigenvalues = sorted(eigenvalues.iteritems(),
-                                 key=lambda (v, c): (abs(v), -v), reverse=True)
-        except TypeError as e:
-            if not str(e).startswith('cannot determine truth value of'):
-                raise e
-            eigenvalues = eigenvalues.items()
-        return from_sympy([v for (v, c) in eigenvalues for _ in xrange(c)])
+        if is_inexact_numeric_Matrix(m,evaluation):
+            matrix = to_numpy_matrix(m)
+            if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
+                return evaluation.message('Eigenvalues', 'matsq', m)
+            try:
+                res=scipy.linalg.eigvals(matrix,overwrite_a=True)
+                return from_sympy(res)
+            except numpy.linalg.linalg.LinAlgError as err:
+#              print "exception:"
+#               if str(err) == "singular matrix":
+                return evaluation.message('Eigenvalues', 'sing', m)
+#               else:
+#                   print "'",str(err),"'"
+#                   raise(err)
+	else:	
+            matrix = to_sympy_matrix(m)
+            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+            	return evaluation.message('Eigenvalues', 'matsq', m)
+            eigenvalues = matrix.eigenvals()
+            try:
+                eigenvalues = sorted(eigenvalues.iteritems(),
+                                     key=lambda (v, c): (abs(v), -v), reverse=True)
+            except TypeError as e:
+                if not str(e).startswith('cannot determine truth value of'):
+                    raise e
+                eigenvalues = eigenvalues.items()
+            return from_sympy([v for (v, c) in eigenvalues for _ in xrange(c)])
 
 
 class Eigensystem(Builtin):
