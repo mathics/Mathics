@@ -5,6 +5,12 @@ Linear algebra
 """
 
 import sympy
+import numpy
+import scipy
+import numpy.linalg
+import scipy.linalg
+
+
 
 from mathics.builtin.base import Builtin
 from mathics.core.convert import from_sympy
@@ -31,6 +37,29 @@ def to_sympy_matrix(data, **kwargs):
         return None
 
 
+def numeric_matrix_data(m):
+    if not m.has_form('List', None):
+        return None
+    if all(leaf.has_form('List', None) for leaf in m.leaves):
+        return [[item.to_python() for item in row.leaves] for row in m.leaves]
+    elif not any(leaf.has_form('List', None) for leaf in m.leaves):
+        return [item.to_python() for item in m.leaves]
+    else:
+        return None
+
+def to_numpy_matrix(data, **kwargs):
+    'convert a mathics matrix to a numpy.ndarray object'
+    if not isinstance(data, list):
+        data = numeric_matrix_data(data)
+    try:
+        return numpy.array(data)
+    except (TypeError, AssertionError, ValueError):
+        return None
+
+def is_inexact_numeric_Matrix(m,evaluation):
+    return Expression("MatrixQ",*[m,Symbol('InexactNumberQ')]).evaluate(evaluation).to_python()
+    
+
 class Det(Builtin):
     u"""
     <dl>
@@ -41,19 +70,31 @@ class Det(Builtin):
     >> Det[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
      = -2
 
+
+    >> Det[N[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]]
+     = -2.
+
     Symbolic determinant:
     >> Det[{{a, b, c}, {d, e, f}, {g, h, i}}]
      = a e i - a f h - b d i + b f g + c d h - c e g
     """
-
     def apply(self, m, evaluation):
         'Det[m_]'
+        if is_inexact_numeric_Matrix(m,evaluation):
+            matrix = to_numpy_matrix(m)
+            if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
+                return evaluation.message('Det', 'matsq', m)
+            s,lndet= numpy.linalg.slogdet(matrix)
+            if s == 0:
+                return from_sympy(0.);
+            return Expression('Round',*[Expression('Times',*[from_sympy(s),Expression("Exp",*[from_sympy(lndet)])]),from_sympy(1.e-10)]).evaluate(evaluation)
+        else:            # symbolic matrix
+            matrix = to_sympy_matrix(m)
+            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+                return evaluation.message('Det', 'matsq', m)
+            det = matrix.det()
+            return from_sympy(det)
 
-        matrix = to_sympy_matrix(m)
-        if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
-            return evaluation.message('Det', 'matsq', m)
-        det = matrix.det()
-        return from_sympy(det)
 
 
 class Cross(Builtin):
@@ -145,11 +186,16 @@ class Inverse(Builtin):
         <dd>computes the inverse of the matrix $m$.
     </dl>
 
-    >> Inverse[{{1, 2, 0}, {2, 3, 0}, {3, 4, 1}}]
+    >> Chop[Inverse[{{1, 2, 0}, {2, 3, 0}, {3, 4, 1}}]]
+     = {{-3, 2, 0}, {2, -1, 0}, {1, -2, 1}}
+    >> Round[Inverse[N[{{1, 2, 0}, {2, 3, 0}, {3, 4, 1}}]],1*^-10]
      = {{-3, 2, 0}, {2, -1, 0}, {1, -2, 1}}
     >> Inverse[{{1, 0}, {0, 0}}]
      : The matrix {{1, 0}, {0, 0}} is singular.
      = Inverse[{{1, 0}, {0, 0}}]
+    >> Inverse[N[{{1, 0}, {0, 0}}]]
+     : The matrix {{1., 0.}, {0., 0.}} is singular.
+     = Inverse[{{1., 0.}, {0., 0.}}]
 
     >> Inverse[{{1, 0, 0}, {0, Sqrt[3]/2, 1/2}, {0,-1 / 2, Sqrt[3]/2}}]
     = {{1, 0, 0}, {0, Sqrt[3] / 2, -1 / 2}, {0, 1 / 2, Sqrt[3] / 2}}
@@ -161,6 +207,32 @@ class Inverse(Builtin):
 
     def apply(self, m, evaluation):
         'Inverse[m_]'
+        if is_inexact_numeric_Matrix(m,evaluation):
+            matrix = to_numpy_matrix(m)
+            if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
+                return evaluation.message('Inverse', 'matsq', m)
+            try:
+                res=scipy.linalg.inv(matrix)
+                return from_sympy(res)
+            except numpy.linalg.linalg.LinAlgError as err:
+#              print "exception:"
+               if str(err) == "singular matrix":
+                   return evaluation.message('Inverse', 'sing', m)
+               else:
+                   print "'",str(err),"'"
+                   raise(err)
+        else:            # symbolic matrix
+            matrix = to_sympy_matrix(m)
+            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+                return evaluation.message('Inverse', 'matsq', m)
+            if matrix.det() == 0:
+                return evaluation.message('Inverse', 'sing', m)
+            inv = matrix.inv()
+            return from_sympy(inv)
+
+
+
+
 
         matrix = to_sympy_matrix(m)
         if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
@@ -322,6 +394,9 @@ class Eigenvalues(Builtin):
     >> Eigenvalues[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}] // Sort
      = {-1, 1, 2}
 
+    >> Eigenvalues[N[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]] //Chop // Sort
+     = {-1., 1., 2.}
+
     >> Eigenvalues[{{Cos[theta],Sin[theta],0},{-Sin[theta],Cos[theta],0},{0,0,1}}] // Sort
      = {1, Cos[theta] + Sqrt[-1 + Cos[theta] ^ 2], Cos[theta] - Sqrt[-1 + Cos[theta] ^ 2]}
 
@@ -331,19 +406,33 @@ class Eigenvalues(Builtin):
 
     def apply(self, m, evaluation):
         'Eigenvalues[m_]'
-
-        matrix = to_sympy_matrix(m)
-        if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
-            return evaluation.message('Eigenvalues', 'matsq', m)
-        eigenvalues = matrix.eigenvals()
-        try:
-            eigenvalues = sorted(eigenvalues.iteritems(),
-                                 key=lambda (v, c): (abs(v), -v), reverse=True)
-        except TypeError as e:
-            if not str(e).startswith('cannot determine truth value of'):
-                raise e
-            eigenvalues = eigenvalues.items()
-        return from_sympy([v for (v, c) in eigenvalues for _ in xrange(c)])
+        if is_inexact_numeric_Matrix(m,evaluation):
+            matrix = to_numpy_matrix(m)
+            if matrix is None or ( len(matrix.shape) !=2 ) or matrix.shape[0] != matrix.shape[1]:
+                return evaluation.message('Eigenvalues', 'matsq', m)
+            try:
+                res=scipy.linalg.eigvals(matrix,overwrite_a=True)
+                return from_sympy(res)
+            except numpy.linalg.linalg.LinAlgError as err:
+#              print "exception:"
+#               if str(err) == "singular matrix":
+                return evaluation.message('Eigenvalues', 'sing', m)
+#               else:
+#                   print "'",str(err),"'"
+#                   raise(err)
+	else:	
+            matrix = to_sympy_matrix(m)
+            if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+            	return evaluation.message('Eigenvalues', 'matsq', m)
+            eigenvalues = matrix.eigenvals()
+            try:
+                eigenvalues = sorted(eigenvalues.iteritems(),
+                                     key=lambda (v, c): (abs(v), -v), reverse=True)
+            except TypeError as e:
+                if not str(e).startswith('cannot determine truth value of'):
+                    raise e
+                eigenvalues = eigenvalues.items()
+            return from_sympy([v for (v, c) in eigenvalues for _ in xrange(c)])
 
 
 class Eigensystem(Builtin):
