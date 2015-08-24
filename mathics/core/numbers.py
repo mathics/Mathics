@@ -149,10 +149,13 @@ def convert_base(x, base, precision=10):
     sign = -1 if x < 0 else 1
     x *= sign
 
-    length_of_int = int(log(x, base))
+    length_of_int = 0 if x == 0 else int(log(x, base))
     iexps = range(length_of_int, -1, -1)
     import string
     digits = string.digits + string.lowercase
+
+    if base > len(digits):
+        raise ValueError
 
     def convert(x, base, exponents):
         out = []
