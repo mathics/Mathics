@@ -52,10 +52,6 @@ def main():
     os.environ['DJANGO_SETTINGS_MODULE'] = 'mathics.settings'
     # os.putenv('DJANGO_SETTINGS_MODULE', 'mathics.settings')
 
-    from django.conf import settings
-    from django.core.servers.basehttp import run
-    from django.core.handlers.wsgi import WSGIHandler
-
     argparser = argparse.ArgumentParser(
         prog='mathicsserver',
         usage='%(prog)s [options]',
@@ -101,13 +97,9 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port
         addr = '127.0.0.1'
 
     try:
-        if settings.DJANGO_VERSION < (1, 4):
-            from django.core.servers.basehttp import AdminMediaHandler
-            handler = AdminMediaHandler(WSGIHandler(), '')
-        else:
-            from django.core.servers.basehttp import (
-                get_internal_wsgi_application)
-            handler = get_internal_wsgi_application()
+        from django.core.servers.basehttp import (
+            run, get_internal_wsgi_application)
+        handler = get_internal_wsgi_application()
         run(addr, port, handler)
     except socket.error as e:
         # Use helpful error messages instead of ugly tracebacks.
