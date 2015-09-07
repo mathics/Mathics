@@ -30,7 +30,6 @@ from mathics import print_version, print_license
 from mathics import settings as mathics_settings  # Prevents UnboundLocalError
 
 
-
 def check_database():
     # Check for the database
     database_file = mathics_settings.DATABASES['default']['NAME']
