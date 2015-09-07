@@ -1063,7 +1063,7 @@ class Im(SympyFunction):
         return Integer(0)
 
 
-class Conjugate(SympyFunction):
+class Conjugate(_MPMathFunction):
     """
     <dl>
     <dt>'Conjugate[$z$]'
@@ -1081,14 +1081,16 @@ class Conjugate(SympyFunction):
 
     >> Conjugate[{{1, 2 + I 4, a + I b}, {I}}]
      = {{1, 2 - 4 I, Conjugate[a] - I Conjugate[b]}, {-I}}
+
+    ## Issue #272
+    #> {Conjugate[Pi], Conjugate[E]}
+     = {Pi, E}
+
+    >> Conjugate[1.5 + 2.5 I]
+     = 1.5 - 2.5 I
     """
-    rules = {
-        'Conjugate[a_ + b_]': 'Conjugate[a] + Conjugate[b]',
-        'Conjugate[a_ * b_]': 'Conjugate[a] * Conjugate[b]',
-        'Conjugate[number_Complex]': 'Re[number] - I*Im[number]',
-        'Conjugate[number_?NumberQ]': 'number',
-        'Conjugate[list_List]': 'Map[Conjugate, list, {1}]'
-    }
+
+    mpmath_name = 'conj'
 
 
 class Abs(_MPMathFunction):
