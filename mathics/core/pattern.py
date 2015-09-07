@@ -401,13 +401,11 @@ class ExpressionPattern(Pattern):
         # "Artificially" only use more leaves than specified for some kind
         # of pattern.
         # TODO: This could be further optimized!
-        try_flattened = (
-            ('System`Flat' in attributes) and (leaf.get_head_name() in (
-                    system_symbols(
-                        'Pattern', 'PatternTest', 'Condition', 'Optional',
-                        'Blank', 'BlankSequence', 'BlankNullSequence',
-                        'Alternatives', 'OptionsPattern', 'Repeated',
-                        'RepeatedNull'))))
+        try_flattened = (('System`Flat' in attributes) and (leaf.get_head_name() in (
+            system_symbols(
+                'Pattern', 'PatternTest', 'Condition', 'Optional', 'Blank',
+                'BlankSequence', 'BlankNullSequence', 'Alternatives',
+                'OptionsPattern', 'Repeated', 'RepeatedNull'))))
 
         if try_flattened:
             set_lengths = (match_count[0], None)

@@ -307,13 +307,10 @@ class Expand(Builtin):
                             add = [leaf]
                         result = [item + add for item in result]
                 if has_plus:
-                    return Expression(
-                        'Plus', *(expand(Expression('Times', *item))
-                        for item in result))
+                    return Expression('Plus', *(expand(Expression('Times', *item)) for item in result))
 
                 else:
-                    return Expression('Plus', *(
-                        Expression('Times', *item) for item in result))
+                    return Expression('Plus', *(Expression('Times', *item) for item in result))
 
             elif expr.has_form('Power', 2):
                 n = leaves[1].get_int_value()
@@ -330,8 +327,7 @@ class Expand(Builtin):
                                     if k == 0:
                                         this_factor = []
                                     else:
-                                        this_factor = [Expression(
-                                            'Power', rest[0], Integer(k))]
+                                        this_factor = [Expression('Power', rest[0], Integer(k))]
                                     yield (int(
                                         mpmath.binomial(n_rest, k) * coeff),
                                         this_factor + next)
@@ -342,8 +338,7 @@ class Expand(Builtin):
                         if coeff == 1:
                             return Expression('Times', *factors)
                         else:
-                            return Expression(
-                                'Times', Integer(coeff), *factors)
+                            return Expression('Times', Integer(coeff), *factors)
 
                     return Expression('Plus', *[
                         times(coeff, factors) for coeff,

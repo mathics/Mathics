@@ -244,7 +244,7 @@ class Context(Builtin):
             evaluation.message('Context', 'normal')
             return
         assert '`' in name
-        context = name[:name.rindex('`')+1]
+        context = name[:name.rindex('`') + 1]
         return String(context)
 
 

@@ -94,7 +94,7 @@ class Definitions(object):
             # could cause confusion, so check for this.
             #
             if any([name.startswith('Global`') for name in self.user]):
-                raise ValueError, "autoload defined a Global` symbol"
+                raise ValueError("autoload defined a Global` symbol")
             self.builtin.update(self.user)
             self.user = {}
 
@@ -545,8 +545,7 @@ class Definition(object):
         return False
 
     def __repr__(self):
-        s = (
-            u'<Definition: name: %s, '
-            u'downvalues: %s, formats: %s, attributes: %s>') % (
-                self.name, self.downvalues, self.formatvalues, self.attributes)
+        s = (u'<Definition: name: %s, '
+             u'downvalues: %s, formats: %s, attributes: %s>') % (
+            self.name, self.downvalues, self.formatvalues, self.attributes)
         return s.encode('unicode_escape')

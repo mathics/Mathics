@@ -129,10 +129,10 @@ def from_sympy(expr):
         if len(expr.shape) == 2 and (expr.shape[1] == 1):
             # This is a vector (only one column)
             # Transpose and select first row to get result equivalent to Mathematica
-            return Expression('List', *[ from_sympy(item) for item in expr.T.tolist()[0] ])
+            return Expression('List', *[from_sympy(item) for item in expr.T.tolist()[0]])
         else:
-            return Expression('List', *[[from_sympy(item) for item in row]
-                for row in expr.tolist()])
+            return Expression('List', *[
+                [from_sympy(item) for item in row] for row in expr.tolist()])
     if expr.is_Atom:
         name = None
         if expr.is_Symbol:

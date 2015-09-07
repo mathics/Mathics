@@ -134,6 +134,5 @@ class RSolve(Builtin):
                 for soln in sym_result])
         else:
             return Expression('List', *[
-                Expression('List', Expression(
-                    'Rule', a, Expression('Function', function_form,
-                    from_sympy(soln)))) for soln in sym_result])
+                Expression('List', Expression('Rule', a, Expression('Function', function_form, from_sympy(soln))))
+                for soln in sym_result])

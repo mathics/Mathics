@@ -9,12 +9,14 @@ from mathics.core.definitions import Definitions
 
 definitions = None
 
+
 def setUpModule():
     global definitions
     definitions = Definitions(add_builtin=True)
 
 
 _parse = parse
+
 
 def parse(s):
     return _parse(s, definitions)
