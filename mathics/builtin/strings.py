@@ -634,7 +634,8 @@ class FromCharacterCode(Builtin):
         "FromCharacterCode[n_]"
         exp = Expression('FromCharacterCode', n)
 
-        class InvalidCodepointError(ValueError): pass
+        class InvalidCodepointError(ValueError):
+            pass
 
         def convert_codepoint_list(l, encoding=None):
             if encoding is not None:

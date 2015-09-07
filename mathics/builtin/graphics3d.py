@@ -150,7 +150,7 @@ class Graphics3DBox(GraphicsBox):
 
         # TODO: Handle ImageScaled[], and Scaled[]
         lighting_option = graphics_options['System`Lighting']
-        lighting = lighting_option.to_python() # can take symbols or strings
+        lighting = lighting_option.to_python()  # can take symbols or strings
         self.lighting = []
 
         if lighting == 'System`Automatic':
@@ -163,7 +163,7 @@ class Graphics3DBox(GraphicsBox):
                 {"type": "Directional", "color": [0., 0., 0.8],
                  "position": [0, 2, 2]}
             ]
-        elif lighting == 'Neutral': # Lighting->"Neutral"
+        elif lighting == 'Neutral':     # Lighting->"Neutral"
             self.lighting = [
                 {"type": "Ambient", "color": [0.3, 0.3, 0.3]},
                 {"type": "Directional", "color": [0.3, 0.3, 0.3],

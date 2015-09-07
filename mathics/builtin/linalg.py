@@ -504,7 +504,6 @@ class Norm(Builtin):
     def apply(self, m, l, evaluation):
         'Norm[m_, l_]'
 
-
         if isinstance(l, Symbol):
             pass
         elif isinstance(l, (Real, Integer)) and l.to_python() >= 1:
