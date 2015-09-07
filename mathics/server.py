@@ -23,18 +23,18 @@ import os
 import argparse
 import socket
 import errno
+import subprocess
 
 import mathics
 from mathics import print_version, print_license
 from mathics import settings as mathics_settings  # Prevents UnboundLocalError
 
 
-def main():
+def check_database():
     # Check for the database
     database_file = mathics_settings.DATABASES['default']['NAME']
     if not os.path.exists(database_file):
         print("warning: database file %s not found\n" % database_file)
-        import subprocess
         if not os.path.exists(mathics_settings.DATA_DIR):
             print("Creating data directory %s" % mathics_settings.DATA_DIR)
             os.makedirs(mathics_settings.DATA_DIR)
@@ -49,13 +49,8 @@ def main():
             print("error: failed to create database")
             sys.exit(1)
 
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'mathics.settings'
-    # os.putenv('DJANGO_SETTINGS_MODULE', 'mathics.settings')
 
-    from django.conf import settings
-    from django.core.servers.basehttp import run
-    from django.core.handlers.wsgi import WSGIHandler
-
+def parse_args():
     argparser = argparse.ArgumentParser(
         prog='mathicsserver',
         usage='%(prog)s [options]',
@@ -82,8 +77,10 @@ def main():
         "--external", "-e", dest="external", action="store_true",
         help="allow external access to server")
 
-    args = argparser.parse_args()
+    return argparser.parse_args()
 
+
+def launch_app(args):
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-C'
     port = args.port
 
@@ -101,13 +98,9 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port
         addr = '127.0.0.1'
 
     try:
-        if settings.DJANGO_VERSION < (1, 4):
-            from django.core.servers.basehttp import AdminMediaHandler
-            handler = AdminMediaHandler(WSGIHandler(), '')
-        else:
-            from django.core.servers.basehttp import (
-                get_internal_wsgi_application)
-            handler = get_internal_wsgi_application()
+        from django.core.servers.basehttp import (
+            run, get_internal_wsgi_application)
+        handler = get_internal_wsgi_application()
         run(addr, port, handler)
     except socket.error as e:
         # Use helpful error messages instead of ugly tracebacks.
@@ -127,5 +120,9 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port
         print "\nGoodbye!\n"
         sys.exit(0)
 
+
 if __name__ == '__main__':
-    main()
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'mathics.settings'
+    check_database()
+    args = parse_args()
+    launch_app(args)
