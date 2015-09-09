@@ -80,7 +80,7 @@ $DisplayFunction=Identity
         f.write(self._initstring)
         f.close()
         
-        return REPLWrapper('mathics -initfile '+self.initfilename, orig_prompt, change_prompt,
+        return REPLWrapper('mathics -persist '+self.initfilename, orig_prompt, change_prompt,
                            prompt_emit_cmd=prompt_cmd,echo=True)
 
     def do_execute_direct(self, code):
