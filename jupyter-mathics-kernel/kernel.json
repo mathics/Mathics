@@ -1,0 +1,1 @@
+{"argv": ["/usr/bin/python", "-m", "mathics_kernel", "-f", "{connection_file}"], "display_name": "Mathics", "mathics": "math", "name": "mathics_kernel"}
