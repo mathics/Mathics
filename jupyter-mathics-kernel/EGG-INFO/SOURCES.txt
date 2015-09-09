@@ -1,0 +1,8 @@
+mathics-kernel.py
+mathics-kernel.egg-info/SOURCES.txt
+mathics-kernel.egg-info/dependency_links.txt
+mathics-kernel.egg-info/requires.txt
+mathics-kernel.egg-info/top_level.txt
+
+
+
