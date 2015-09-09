@@ -30,15 +30,15 @@ class MathicsKernel(ProcessMetaKernel):
 $PrePrint:=Module[{fn,res},    
 Switch[Head[#1],
           Graphics,            
-            fn=\"/{sessiondir}/session-figure\"<>ToString[$Line]<>\".png\";
+            fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".jpg\";
             Export[fn,#1];
             res={\"image:\"<>fn,\"- graphic -\"},
           Graphics3D,            
-            fn=\"/{sessiondir}/session-figure\"<>ToString[$Line]<>\".png\";
+            fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".jpg\";
             Export[fn,#1];
             res={\"image:\"<>fn,\"- graphic3d -\"},
           Sound,
-            fn=\"/tmp/session-sound\"<>$Line<>\".wav\";
+            fn=\"{sessiondir}/session-sound\"<>$Line<>\".wav\";
             Export[fn,#1];
             res={\"embed:\"<>fn,\"- sound -\"},
           _,            
@@ -88,6 +88,7 @@ $DisplayFunction=Identity
 #            super(MathicsKernel, self).do_execute_direct(self._setup)
 #            self._first=False
         resp = super(MathicsKernel, self).do_execute_direct(code)
+        resp = super(MathicsKernel, self).do_execute_direct("$PrePrint["+resp+"]")
         while(True):
             if(resp[0]!=u'='):
                 resp=resp[1:]
