@@ -17,8 +17,6 @@ Description: A Jupyter/IPython kernel for Mathics
         This is based on `MetaKernel <http://pypi.python.org/pypi/metakernel>`_,
         which means it features a standard set of magics.
         
-        A sample notebook is available online_.
-        
         
         
 Platform: UNKNOWN
