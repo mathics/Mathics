@@ -20,7 +20,7 @@ class MathicsKernel(ProcessMetaKernel):
     language_version = '0.1',
     banner = "Mathics Kernel"
     language_info = {
-        'exec': 'math',
+        'exec': 'mathics',
         'mimetype': 'text/x-mathics',
         'name': 'mathics_kernel',
         'file_extension': '.m',
@@ -39,7 +39,7 @@ Switch[Head[#1],
             Export[fn,#1,"JPG"];
             res={\"image:\"<>fn,\"- graphic3d -\"},
           Sound,
-            fn=\"{sessiondir}/session-sound\"<>$Line<>\".wav\";
+            fn=\"{sessiondir}/session-sound\"<>ToString[$Line]<>\".wav\";
             Export[fn,#1,"wav"];
             res={\"sound:\"<>fn,\"- sound -\"},
           _,            
@@ -134,7 +134,7 @@ $DisplayFunction=Identity;
             return resp
         else:
             if(output[:6]=='sound:'): 
-		htmlstr="<audio controls> <source src=\"file:///"
+		htmlstr="<audio controls> <source src=\"file://"
 		htmlstr=htmlstr+output[6:]
 		htmlstr=htmlstr+ "\" type=\"audio/wav\">"
 		htmlstr=htmlstr+"Your browser does not support the audio element."
