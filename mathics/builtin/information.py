@@ -111,6 +111,7 @@ class Information(PrefixOperator):
    
         usagetext=_get_usage_string(symbol.name,evaluation);
         if usagetext is not None :
+            evaluation.print_out('usage:')
             evaluation.print_out(String(usagetext))
         else:
             evaluation.print_out(String(definition.name +"\n"))
