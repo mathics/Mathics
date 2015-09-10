@@ -133,7 +133,6 @@ def from_sympy(expr):
         else:
             return Expression('List', *[[from_sympy(item) for item in row]
                 for row in expr.tolist()])
-
     if expr.is_Atom:
         name = None
         if expr.is_Symbol:
