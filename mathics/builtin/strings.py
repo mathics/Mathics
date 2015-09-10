@@ -699,3 +699,38 @@ class StringQ(Test):
 
     def test(self, expr):
         return isinstance(expr, String)
+        
+        
+        
+class StringTake(Builtin):
+    """
+    StringTake["string",n] gives the first n characters in "string"
+    StringTake["string",-n] gives the last n characters in "string"
+    StringTake["string",{m,n}] gives characters m through n in "string"
+    >> StringTake["abc", 2]
+     = ab
+    >> StringTake["abc", -2]
+     = "bc"
+    >> StringTake["abcd", {2,3}]
+     = "bc"
+    """
+    messages = {
+        'strse': 'String expected at position `1` in `2`.',
+        'naioli': 'Integer or list of two Intergers are expected at position `2` in `2`.',
+    }
+    
+    def apply(self, string, n, evaluation):
+        'StringTake[string_,n_]'
+         if not isinstance(string, String_):
+           return evaluation.message('StringTake', 'strse', string)
+         if isinstance(n, Integer):
+            pos=n.value
+            if pos>0:
+              return String(string.get_string_value()[:posf])
+            if pos<0:
+              return String(string.get_string_value()[posf:])
+         return evaluation.message('StringTake', 'naioli', n)
+         
+
+           
+        
