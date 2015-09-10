@@ -2,7 +2,7 @@ from __future__ import print_function
 
 from metakernel import MetaKernel, ProcessMetaKernel, REPLWrapper, u
 from IPython.display import Image, SVG
-from IPython.display import Latex
+from IPython.display import Latex,HTML
 
 import subprocess
 import os
@@ -20,7 +20,7 @@ class MathicsKernel(ProcessMetaKernel):
     language_version = '0.1',
     banner = "Mathics Kernel"
     language_info = {
-        'exec': 'mathics',
+        'exec': 'math',
         'mimetype': 'text/x-mathics',
         'name': 'mathics_kernel',
         'file_extension': '.m',
@@ -40,8 +40,8 @@ Switch[Head[#1],
             res={\"image:\"<>fn,\"- graphic3d -\"},
           Sound,
             fn=\"{sessiondir}/session-sound\"<>$Line<>\".wav\";
-            Export[fn,#1];
-            res={\"embed:\"<>fn,\"- sound -\"},
+            Export[fn,#1,"wav"];
+            res={\"sound:\"<>fn,\"- sound -\"},
           _,            
             res={ToString[TeXForm[#1]],ToString[InputForm[#1]]}
        ];
@@ -133,8 +133,14 @@ $DisplayFunction=Identity;
             self.Display(Image(output[6:]))
             return resp
         else:
-            if(output[:6]=='sound:'):                
-                return "sound:"+output[6:]
+            if(output[:6]=='sound:'): 
+		htmlstr="<audio controls> <source src=\"file:///"
+		htmlstr=htmlstr+output[6:]
+		htmlstr=htmlstr+ "\" type=\"audio/wav\">"
+		htmlstr=htmlstr+"Your browser does not support the audio element."
+		htmlstr=htmlstr+"</audio>"
+		self.Display(HTML(htmlstr))
+                return htmlstr
             else:
                 self.Display(Latex("$"+output+"$"))
                 if self.language_info['exec']=='mathics':
