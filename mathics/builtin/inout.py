@@ -1251,7 +1251,7 @@ class TeXForm(Builtin):
             # Replace multiple newlines by a single one e.g. between asy-blocks
             tex = MULTI_NEWLINE_RE.sub('\n', tex)
 
-            tex = tex.replace(u' \uF74c', u' \, d ')  # tmp hack for Integrate
+            tex = tex.replace(u' \uF74c', u' \, d')  # tmp hack for Integrate
         except BoxError:
             evaluation.message(
                 'General', 'notboxes',
