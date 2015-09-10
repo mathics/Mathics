@@ -781,7 +781,7 @@ class StringDrop(Builtin):
             if pos>0:
                 return String(string.get_string_value()[pos:])
             if pos<0:
-                return String(string.get_string_value()[:(pos-1)])
+                return String(string.get_string_value()[:(pos)])
         return evaluation.message('StringDrop', 'naioli', n)
 
     
