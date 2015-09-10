@@ -709,9 +709,9 @@ class StringTake(Builtin):
     >> StringTake["abc", 2]
      = ab
     >> StringTake["abc", -2]
-     = "bc"
+     = bc
     >> StringTake["abcd", {2,3}]
-     = "bc"
+     = bc
     """
     messages = {
         'strse': 'String expected at position `1` in `2`.',
@@ -760,11 +760,11 @@ class StringDrop(Builtin):
     StringDrop["string",-n] gives "string" with the last  n characters dropped.
     StringDrop["string",{m,n}] gives "string" with the characters m through n dropped.
     >> StringDrop["abcde", 2]
-     = "cde"
+     = cde
     >> StringDrop["abcde", -2]
-     = "abc"
+     = abc
     >> StringDrop["abcde", {2,3}]
-     = "ade"
+     = ade
     """
     messages = {
         'strse': 'String expected at position `1` in `2`.',
