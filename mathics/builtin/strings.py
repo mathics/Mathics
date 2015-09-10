@@ -700,8 +700,7 @@ class StringQ(Test):
     def test(self, expr):
         return isinstance(expr, String)
         
-        
-        
+      
 class StringTake(Builtin):
     """
     StringTake["string",n] gives the first n characters in "string"
@@ -719,18 +718,27 @@ class StringTake(Builtin):
         'naioli': 'Integer or list of two Intergers are expected at position `2` in `2`.',
     }
     
-    def apply(self, string, n, evaluation):
+    def apply1_(self, string, n, evaluation):
         'StringTake[string_,n_]'
-         if not isinstance(string, String_):
-           return evaluation.message('StringTake', 'strse', string)
-         if isinstance(n, Integer):
+        if not isinstance(string, String):
+            return evaluation.message('StringTake', 'strse', string)
+        if isinstance(n, Integer):
             pos=n.value
             if pos>0:
-              return String(string.get_string_value()[:posf])
+                return String(string.get_string_value()[:pos])
             if pos<0:
-              return String(string.get_string_value()[posf:])
-         return evaluation.message('StringTake', 'naioli', n)
+                return String(string.get_string_value()[pos:])
+        return evaluation.message('StringTake', 'naioli', n)
+
+
+    def apply2_(self, string, ni,nf, evaluation):
+        'StringTake[string_,{ni_,nf_}]'
+        if not isinstance(string, String):
+            return evaluation.message('StringTake', 'strse', string)
+        if isinstance(ni, Integer) and  isinstance(nf, Integer)  :
+            posi=ni.value
+            posf=nf.value
+            return String(string.get_string_value()[posi:posf])
+        return evaluation.message('StringTake', 'naioli', n)
          
 
-           
-        
