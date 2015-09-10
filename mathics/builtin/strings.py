@@ -758,12 +758,12 @@ class StringDrop(Builtin):
     """
     StringDrop["string",n] gives "string" with the first n characters dropped.
     StringDrop["string",-n] gives "string" with the last  n characters dropped.
-    StringTake["string",{m,n}] gives "string" with the characters m through n dropped.
-    >> StringTake["abcde", 2]
+    StringDrop["string",{m,n}] gives "string" with the characters m through n dropped.
+    >> StringDrop["abcde", 2]
      = "cde"
-    >> StringTake["abcde", -2]
+    >> StringDrop["abcde", -2]
      = "abc"
-    >> StringTake["abcde", {2,3}]
+    >> StringDrop["abcde", {2,3}]
      = "ade"
     """
     messages = {

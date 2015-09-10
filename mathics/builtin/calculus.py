@@ -357,7 +357,7 @@ class Integrate(SympyFunction):
 
     Integration in TeX:
     >> Integrate[f[x], {x, a, b}] // TeXForm
-     = \int_a^bf\left[x\right] \, dx
+     = \int_a^b f\left[x\right] \, dx
 
     #> DownValues[Integrate]
      = {}
