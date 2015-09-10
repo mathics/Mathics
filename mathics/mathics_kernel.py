@@ -30,6 +30,8 @@ class MathicsKernel(ProcessMetaKernel):
     _initstring = """
 $MyPrePrint:=Module[{fn,res},    
 Switch[Head[#1],
+	  Null,
+		res={Null,\"\"},
           Graphics,            
             fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".svg\";
             Export[fn,#1,"SVG"];
@@ -125,7 +127,8 @@ $DisplayFunction=Identity;
                 finpos=i
                 output=resp[initpos:finpos]
                 break
-            
+        if(output[:4]=='Null'):
+            return ""           
         if(output[:4]=='svg:'):
             self.Display(SVG(output[4:]))
             return resp
