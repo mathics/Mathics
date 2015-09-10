@@ -716,6 +716,7 @@ class StringTake(Builtin):
     messages = {
         'strse': 'String expected at position `1` in `2`.',
         'naioli': 'Integer or list of two Intergers are expected at position `2` in `2`.',
+        'badrange': 'It is not possible to take the substring for elements `2` in `2`.',
     }
     
     def apply1_(self, string, n, evaluation):
@@ -736,9 +737,71 @@ class StringTake(Builtin):
         if not isinstance(string, String):
             return evaluation.message('StringTake', 'strse', string)
         if isinstance(ni, Integer) and  isinstance(nf, Integer)  :
-            posi=ni.value
+            if ni.value==0 or nf.value==0:
+                return evaluation.message('StringTake', 'badrange', ni,nf)
+            fullstring=string.get_string_value()
+            posi=ni.value        
+            if posi<0:
+                posi=len(fullstring)+posi+1
             posf=nf.value
-            return String(string.get_string_value()[posi:posf])
+            if posf<0:
+                posf=len(fullstring)+posf+1
+            if posf<posi:
+                tmp=posf
+                posf=posi
+                posi=tmp
+            return String(fullstring[(posi-1):posf])
         return evaluation.message('StringTake', 'naioli', n)
          
 
+class StringDrop(Builtin):
+    """
+    StringDrop["string",n] gives "string" with the first n characters dropped.
+    StringDrop["string",-n] gives "string" with the last  n characters dropped.
+    StringTake["string",{m,n}] gives "string" with the characters m through n dropped.
+    >> StringTake["abcde", 2]
+     = "cde"
+    >> StringTake["abcde", -2]
+     = "abc"
+    >> StringTake["abcde", {2,3}]
+     = "ade"
+    """
+    messages = {
+        'strse': 'String expected at position `1` in `2`.',
+        'naioli': 'Integer or list of two Intergers are expected at position `2` in `2`.',
+        'badrange': 'It is not possible to take the substring for elements `2` in `2`.',
+    }
+    
+    def apply1_(self, string, n, evaluation):
+        'StringDrop[string_,n_]'
+        if not isinstance(string, String):
+            return evaluation.message('StringDrop', 'strse', string)
+        if isinstance(n, Integer):
+            pos=n.value
+            if pos>0:
+                return String(string.get_string_value()[pos:])
+            if pos<0:
+                return String(string.get_string_value()[:(pos-1)])
+        return evaluation.message('StringDrop', 'naioli', n)
+
+    
+    def apply2_(self, string, ni,nf, evaluation):
+        'StringDrop[string_,{ni_,nf_}]'
+        if not isinstance(string, String):
+            return evaluation.message('StringDrop', 'strse', string)
+        if isinstance(ni, Integer) and  isinstance(nf, Integer)  :
+            if ni.value==0 or nf.value==0:
+                return evaluation.message('StringDrop', 'badrange', ni,nf)
+            fullstring=string.get_string_value()
+            posi=ni.value        
+            if posi<0:
+                posi=len(fullstring)+posi+1
+            posf=nf.value
+            if posf<0:
+                posf=len(fullstring)+posf+1
+            if posf<posi:
+                tmp=posf
+                posf=posi
+                posi=tmp
+            return String(fullstring[:(posi-1)]+fullstring[posf:])
+        return evaluation.message('StringDrop', 'naioli', n)
