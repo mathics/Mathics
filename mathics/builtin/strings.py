@@ -716,7 +716,7 @@ class StringTake(Builtin):
     messages = {
         'strse': 'String expected at position `1` in `2`.',
         'naioli': 'Integer or list of two Intergers are expected at position `2` in `2`.',
-        'badrange': 'It is not possible to take the substring for elements `2` in `2`.',
+        'take': 'It is not possible to take the substring for elements `2` in `2`.',
     }
     
     def apply1_(self, string, n, evaluation):
@@ -769,7 +769,7 @@ class StringDrop(Builtin):
     messages = {
         'strse': 'String expected at position `1` in `2`.',
         'naioli': 'Integer or list of two Intergers are expected at position `2` in `2`.',
-        'badrange': 'It is not possible to take the substring for elements `2` in `2`.',
+        'take': 'It is not possible to take the substring for elements `1` to `2` in \"`3`\".',
     }
     
     def apply1_(self, string, n, evaluation):
