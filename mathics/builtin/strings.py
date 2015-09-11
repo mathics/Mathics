@@ -714,22 +714,28 @@ class StringTake(Builtin):
      = "bc"
     """
     messages = {
-        'strse': 'String expected at position `1` in `2`.',
-        'naioli': 'Integer or list of two Intergers are expected at position `2` in `2`.',
-        'badrange': 'It is not possible to take the substring for elements `2` in `2`.',
+        'strse': 'String expected at position `1`.',
+        'mseqs': 'Integer or list of two Intergers are expected at position `2`.',
+        'take': 'Cannot take positions `1` through `2` in \"`3`\".',
     }
     
     def apply1_(self, string, n, evaluation):
-        'StringTake[string_,n_]'
+        'StringTake[string,n]'
         if not isinstance(string, String):
             return evaluation.message('StringTake', 'strse', string)
         if isinstance(n, Integer):
             pos=n.value
+	    if pos>len(string.get_string_value()):
+		return evaluation.message('StringTake', 'take',1,pos,string)
+	    if pos<-len(string.get_string_value()):
+		return evaluation.message('StringTake', 'take',pos,-1,string)
             if pos>0:
                 return String(string.get_string_value()[:pos])
             if pos<0:
                 return String(string.get_string_value()[pos:])
-        return evaluation.message('StringTake', 'naioli', n)
+	    if pos==0:   
+		return String("")             # it is what mma does
+        return evaluation.message('StringTake', 'mseqs', n)
 
 
     def apply2_(self, string, ni,nf, evaluation):
@@ -738,20 +744,21 @@ class StringTake(Builtin):
             return evaluation.message('StringTake', 'strse', string)
         if isinstance(ni, Integer) and  isinstance(nf, Integer)  :
             if ni.value==0 or nf.value==0:
-                return evaluation.message('StringTake', 'badrange', ni,nf)
+                return evaluation.message('StringTake', 'take', ni,nf)
             fullstring=string.get_string_value()
+	    lenfullstring=len(fullstring)
             posi=ni.value        
             if posi<0:
-                posi=len(fullstring)+posi+1
+                posi=lenfullstring + posi + 1
             posf=nf.value
             if posf<0:
-                posf=len(fullstring)+posf+1
+                posf=lenfullstring + posf + 1
+            if posf>lenfullstring or posi>lenfullstring:
+		return evaluation.message('StringTake', 'take', ni,nf)
             if posf<posi:
-                tmp=posf
-                posf=posi
-                posi=tmp
+		String("") # this is what actually mma does
             return String(fullstring[(posi-1):posf])
-        return evaluation.message('StringTake', 'naioli', n)
+        return evaluation.message('StringTake', 'mseqs', n)
          
 
 class StringDrop(Builtin):
