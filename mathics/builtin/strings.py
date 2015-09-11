@@ -709,9 +709,9 @@ class StringTake(Builtin):
     >> StringTake["abc", 2]
      = ab
     >> StringTake["abc", -2]
-     = "bc"
+     = bc
     >> StringTake["abcd", {2,3}]
-     = "bc"
+     = bc
     """
     messages = {
         'strse': 'String expected at position `1`.',
@@ -765,13 +765,13 @@ class StringDrop(Builtin):
     """
     StringDrop["string",n] gives "string" with the first n characters dropped.
     StringDrop["string",-n] gives "string" with the last  n characters dropped.
-    StringTake["string",{m,n}] gives "string" with the characters m through n dropped.
-    >> StringTake["abcde", 2]
-     = "cde"
-    >> StringTake["abcde", -2]
-     = "abc"
-    >> StringTake["abcde", {2,3}]
-     = "ade"
+    StringDrop["string",{m,n}] gives "string" with the characters m through n dropped.
+    >> StringDrop["abcde", 2]
+     = cde
+    >> StringDrop["abcde", -2]
+     = abc
+    >> StringDrop["abcde", {2,3}]
+     = ade
     """
     messages = {
         'strse': 'String expected at position `1` in `2`.',
@@ -788,7 +788,7 @@ class StringDrop(Builtin):
             if pos>0:
                 return String(string.get_string_value()[pos:])
             if pos<0:
-                return String(string.get_string_value()[:(pos-1)])
+                return String(string.get_string_value()[:(pos)])
         return evaluation.message('StringDrop', 'naioli', n)
 
     
