@@ -699,8 +699,8 @@ class StringQ(Test):
 
     def test(self, expr):
         return isinstance(expr, String)
-        
-    
+
+
 class StringTake(Builtin):
     """
     StringTake["string",n] gives the first n characters in "string"
@@ -709,7 +709,7 @@ class StringTake(Builtin):
     >> StringTake["abcde", 2]
     = ab
     >> StringTake["abcde", 0]
-    = 
+    =
     >> StringTake["abcde", -2]
     = de
     >> StringTake["abcde", {2}]
@@ -721,67 +721,64 @@ class StringTake(Builtin):
         'strse': 'String expected at position 1.',
         'mseqs': 'Integer or list of two Intergers are expected \
                   at position 2.',
-        'take':  'Cannot take positions `1` through `2` in "`3`\".',
+        'take': 'Cannot take positions `1` through `2` in "`3`\".',
         }
-    
+
     def apply1_(self, string, n, evaluation):
         'StringTake[string_,n_Integer]'
         if not isinstance(string, String):
             return evaluation.message('StringTake', 'strse')
-        
-        pos=n.value
-        if pos>len(string.get_string_value()):
-            return evaluation.message('StringTake', 'take',1,pos,string)
-        if pos<-len(string.get_string_value()):
-            return evaluation.message('StringTake', 'take',pos,-1,string)
-        if pos>0:
+
+        pos = n.value
+        if pos > len(string.get_string_value()):
+            return evaluation.message('StringTake', 'take', 1, pos, string)
+        if pos < -len(string.get_string_value()):
+            return evaluation.message('StringTake', 'take', pos, -1, string)
+        if pos > 0:
             return String(string.get_string_value()[:pos])
-        if pos<0:
+        if pos < 0:
             return String(string.get_string_value()[pos:])
-        if pos==0:   
+        if pos == 0:
             return String("")             # it is what mma does
 
-
-
-    def apply2_(self, string, ni,nf, evaluation):
+    def apply2_(self, string, ni, nf, evaluation):
         'StringTake[string_,{ni_Integer,nf_Integer}]'
         if not isinstance(string, String):
             return evaluation.message('StringTake', 'strse')
 
-        if ni.value==0 or nf.value==0:
-            return evaluation.message('StringTake', 'take', ni,nf)
-        fullstring=string.get_string_value()
-        lenfullstring=len(fullstring)
-        posi=ni.value        
-        if posi<0:
-            posi=lenfullstring + posi + 1
-        posf=nf.value
-        if posf<0:
-            posf=lenfullstring + posf + 1
-        if (posf>lenfullstring or posi>lenfullstring or 
-            posf<=0 or posi<=0):
+        if ni.value == 0 or nf.value == 0:
+            return evaluation.message('StringTake', 'take', ni, nf)
+        fullstring = string.get_string_value()
+        lenfullstring = len(fullstring)
+        posi = ni.value
+        if posi < 0:
+            posi = lenfullstring + posi + 1
+        posf = nf.value
+        if posf < 0:
+            posf = lenfullstring + posf + 1
+        if (posf > lenfullstring or posi > lenfullstring or
+            posf <= 0 or posi <= 0):
             #positions out of range
-            return evaluation.message('StringTake', 'take', ni,nf,fullstring)
-        if posf<posi:
-            String("") 
-        return String(fullstring[(posi-1):posf])
-
+            return evaluation.message('StringTake', 'take', ni, nf, fullstring)
+        if posf < posi:
+            String("")
+        return String(fullstring[(posi - 1):posf])
 
     def apply3_(self, string, ni, evaluation):
         'StringTake[string_,{ni_}]'
         if not isinstance(string, String):
             return evaluation.message('StringTake', 'strse')
 
-        if ni.value==0:
-            return evaluation.message('StringTake', 'take', ni,ni)
-        fullstring=string.get_string_value()
-        lenfullstring=len(fullstring)
-        posi=ni.value        
-        if posi<0:
-            posi=lenfullstring + posi + 1
-        if posi>lenfullstring or posi<=0:
-            return evaluation.message('StringTake', 'take', ni,ni,fullstring)
-        return String(fullstring[(posi-1):posi])
+        if ni.value == 0:
+            return evaluation.message('StringTake', 'take', ni, ni)
+        fullstring = string.get_string_value()
+        lenfullstring = len(fullstring)
+        posi = ni.value
+        if posi < 0:
+            posi = lenfullstring + posi + 1
+        if posi > lenfullstring or posi <= 0:
+            return evaluation.message('StringTake', 'take', ni, ni, fullstring)
+        return String(fullstring[(posi - 1):posi])
 
 
 
@@ -789,15 +786,16 @@ class StringTake(Builtin):
     def apply4_(self, string, something, evaluation):
         'StringTake[string_,something___]'
         if not isinstance(string, String):
-            return evaluation.message('StringTake', 'strse')    
+            return evaluation.message('StringTake', 'strse')
         return evaluation.message('StringTake', 'mseqs')
+
 
 
 class StringDrop(Builtin):
     """
     StringDrop["string",n] gives "string" with the first n characters dropped.
     StringDrop["string",-n] gives "string" with the last  n characters dropped.
-    StringDrop["string",{m,n}] gives "string" with the characters m through 
+    StringDrop["string",{m,n}] gives "string" with the characters m through
     n dropped.
     >> StringDrop["abcde", 2]
     = cde
@@ -814,73 +812,69 @@ class StringDrop(Builtin):
         'drop': 'Cannot drop positions `1` through `2` in \"`3`\".',
         }
 
-    
+
     def apply1_(self, string, n, evaluation):
         'StringDrop[string_,n_Integer]'
         if not isinstance(string, String):
             return evaluation.message('StringDrop', 'strse')
         if isinstance(n, Integer):
-            pos=n.value
-            if pos>len(string.get_string_value()):
-               return evaluation.message('StringDrop', 'drop',1,pos,string)
-            if pos<-len(string.get_string_value()):
-               return evaluation.message('StringDrop', 'drop',pos,-1,string)
-            if pos>0:
-               return String(string.get_string_value()[pos:])
-            if pos<0:
-               return String(string.get_string_value()[:(pos)])
-            if pos==0:   
-               return string                             
+            pos = n.value
+            if pos > len(string.get_string_value()):
+                return evaluation.message('StringDrop', 'drop', 1, pos, string)
+            if pos < -len(string.get_string_value()):
+                return evaluation.message('StringDrop', 'drop', pos, -1, string)
+            if pos > 0:
+                return String(string.get_string_value()[pos:])
+            if pos < 0:
+                return String(string.get_string_value()[:(pos)])
+            if pos == 0:
+                return string
         return evaluation.message('StringDrop', 'mseqs')
 
-    
-    def apply2_(self, string, ni,nf, evaluation):
+
+    def apply2_(self, string, ni, nf, evaluation):
         'StringDrop[string_,{ni_Integer,nf_Integer}]'
         if not isinstance(string, String):
             return evaluation.message('StringDrop', 'strse', string)
 
-        if ni.value==0 or nf.value==0:
-            return evaluation.message('StringDrop', 'drop', ni,nf)
-        fullstring=string.get_string_value()
-        lenfullstring=len(fullstring)
-        posi=ni.value        
-        if posi<0:
-            posi=lenfullstring + posi + 1
-        posf=nf.value
-        if posf<0:
-            posf=lenfullstring + posf + 1        
-        if (posf>lenfullstring or posi>lenfullstring 
-            or posf<=0 or posi<=0):
+        if ni.value == 0 or nf.value == 0:
+            return evaluation.message('StringDrop', 'drop', ni, nf)
+        fullstring = string.get_string_value()
+        lenfullstring = len(fullstring)
+        posi = ni.value
+        if posi < 0:
+            posi = lenfullstring + posi + 1
+        posf = nf.value
+        if posf < 0:
+            posf = lenfullstring + posf + 1
+        if (posf > lenfullstring or posi > lenfullstring
+            or posf <= 0 or posi <= 0):
             #positions out or range
-            return evaluation.message('StringDrop', 
-                                      'drop', ni,nf,fullstring)
-        if posf<posi:
-            return string # this is what actually mma does
-        return String(fullstring[:(posi-1)]+fullstring[posf:])        
-    
+            return evaluation.message('StringDrop',
+                                      'drop', ni, nf, fullstring)
+        if posf < posi:
+            return string           # this is what actually mma does
+        return String(fullstring[:(posi - 1)] + fullstring[posf:])
 
 
     def apply3_(self, string, ni, evaluation):
         'StringDrop[string_,{ni_Integer}]'
         if not isinstance(string, String):
             return evaluation.message('StringDrop', 'strse', string)
-        if ni.value==0:
-            return evaluation.message('StringDrop', 'drop', ni,ni)
-        fullstring=string.get_string_value()
-        lenfullstring=len(fullstring)
-        posi=ni.value        
-        if posi<0:
-            posi=lenfullstring + posi + 1        
-        if posi>lenfullstring or posi<=0:
-            return evaluation.message('StringDrop', 'drop', ni,ni,fullstring)
-        return String(fullstring[:(posi-1)]+fullstring[posi:])
-
+        if ni.value == 0:
+            return evaluation.message('StringDrop', 'drop', ni, ni)
+        fullstring = string.get_string_value()
+        lenfullstring = len(fullstring)
+        posi = ni.value
+        if posi < 0:
+            posi = lenfullstring + posi + 1
+        if posi > lenfullstring or posi <= 0:
+            return evaluation.message('StringDrop', 'drop', ni, ni, fullstring)
+        return String(fullstring[:(posi - 1)] + fullstring[posi:])
 
 
     def apply4_(self, string, something, evaluation):
         'StringDrop[string_,something___]'
         if not isinstance(string, String):
-            return evaluation.message('StringDrop', 'strse')    
+            return evaluation.message('StringDrop', 'strse')
         return evaluation.message('StringDrop', 'mseqs')
-
-
