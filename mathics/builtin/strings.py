@@ -709,7 +709,7 @@ class StringTake(Builtin):
     >> StringTake["abcde", 2]
     = ab
     >> StringTake["abcde", 0]
-    =
+    = 
     >> StringTake["abcde", -2]
     = de
     >> StringTake["abcde", {2}]
