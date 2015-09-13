@@ -46,7 +46,7 @@ class ExportFormats(Predefined):
     </dl>
 
     >> $ExportFormats
-     = {CSV, Text}
+     = {CSV, SVG, Text}
     """
 
     name = '$ExportFormats'
