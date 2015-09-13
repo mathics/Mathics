@@ -45,7 +45,7 @@ Switch[Head[#1],
             Export[fn,#1,"wav"];
             res={\"sound:\"<>fn,\"- sound -\"},
           _,            
-            res={ToString[TeXForm[#1]],ToString[InputForm[#1]]}
+            res={StringReplace[ToString[TeXForm[#1]],\"\\n\"->\" \"],ToString[InputForm[#1]]}
        ];
     \"['\"<> res[[1]]<>\"', '\"<>res[[2]]<>\"']\"
     ]&;
@@ -91,6 +91,7 @@ $DisplayFunction=Identity;
             super(MathicsKernel, self).do_execute_direct("Get[\""+ self.initfilename+"\"]")
             self._first=False            
         resp = super(MathicsKernel, self).do_execute_direct("$MyPrePrint["+code+"]")
+	print(resp)
         while(True):
             if(resp[0]!=u'='):
                 resp=resp[1:]
