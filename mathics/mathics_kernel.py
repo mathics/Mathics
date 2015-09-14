@@ -20,7 +20,7 @@ class MathicsKernel(ProcessMetaKernel):
     language_version = '0.1',
     banner = "Mathics Kernel"
     language_info = {
-        'exec': 'mathics',
+        'exec': 'math',
         'mimetype': 'text/x-mathics',
         'name': 'mathics_kernel',
         'file_extension': '.m',
@@ -31,23 +31,26 @@ class MathicsKernel(ProcessMetaKernel):
 $MyPrePrint:=Module[{fn,res},    
 Switch[Head[#1],
 	  Null,
-		res={Null,\"\"},
+	      res="Null",
+          String,
+            res=\"string:\"<>#1,
           Graphics,            
             fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".svg\";
             Export[fn,#1,"SVG"];
-            res={\"svg:\"<>fn,\"- graphic -\"},
+            res=\"svg:\"<>fn<>\":\"<>\"- graphics -\",
           Graphics3D,            
             fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".jpg\";
             Export[fn,#1,"JPG"];
-            res={\"image:\"<>fn,\"- graphic3d -\"},
+            res=\"image:\"<>fn<>\":\"<>\"- graphics3d -\",
           Sound,
             fn=\"{sessiondir}/session-sound\"<>ToString[$Line]<>\".wav\";
             Export[fn,#1,"wav"];
-            res={\"sound:\"<>fn,\"- sound -\"},
+            res=\"sound:\"<>fn<>\":\"<>\"- sound -\",
           _,            
-            res={StringReplace[ToString[TeXForm[#1]],\"\\n\"->\" \"],ToString[InputForm[#1]]}
+	    texstr=StringReplace[ToString[TeXForm[#1]],\"\\n\"->\" \"];
+            res=\"tex:\"<>ToString[StringLength[texstr]]<>\":\"<> texstr<>\":\"<>ToString[InputForm[#1]]
        ];
-    \"['\"<> res[[1]]<>\"', '\"<>res[[2]]<>\"']\"
+       res
     ]&;
 $DisplayFunction=Identity;
 """
@@ -91,66 +94,67 @@ $DisplayFunction=Identity;
             super(MathicsKernel, self).do_execute_direct("Get[\""+ self.initfilename+"\"]")
             self._first=False            
         resp = super(MathicsKernel, self).do_execute_direct("$MyPrePrint["+code+"]")
-	print(resp)
-        while(True):
-            if(resp[0]!=u'='):
-                resp=resp[1:]
+        print(resp)
+        print("procesando...") 
+        lineresponse=resp.splitlines()
+        outputfound=False
+        outputtext=""
+        for linnum,liner in enumerate(lineresponse):
+            if not outputfound and liner[:4]  == "Out[" :
+                outputfound=True
+                for pos in xrange(len(liner)-4):
+                    if liner[pos+4]=='=':
+                        outputtext=liner[(pos + 6):]
                 continue
-            resp=resp[1:]
-            break
-        linresp=resp.splitlines()
-        resp=u''
-        for i,l in enumerate(linresp):
-            if l==u' ':
-                if len(resp)==0:
-                    continue
-                else:
-                    if  resp[-1]==u'\\' and linresp[i+1][0]==u'>':
-                        resp=resp[:-1]
-                        linresp[i+1]=linresp[i+1][1:]
-                        continue                    
+            if outputfound:
+                if liner == u' ':
+                    if outputtext[-1] == '\\' :  #and lineresponse[linnum + 1] == '>':
+                        outputtext = outputtext[:-1]
+                        lineresponse[linnum + 1] = lineresponse[linnum + 1][4:]
+                        continue                      
+                outputtext = outputtext + liner
             else:
-                resp=resp+l
-        while(resp[0]==u'>' or resp[0]==u' '):
-            resp=resp[1:]
-        i=0
+                print(liner)
 
-        output=None
-
-        openbra=False
-        initpos=0
-        for i in xrange(len(resp)-1):
-            if (not openbra) and resp[i-1]==u"[" and resp[i]==u"'":
-                initpos=i+1
-                openbra=True
-                continue
-            if openbra and resp[i]==u"'" and resp[i-1]!=u'\\' and resp[i+1]==u',': 
-                finpos=i
-                output=resp[initpos:finpos]
-                break
-        if(output[:4]=='Null'):
+        if(outputtext[:4]=='Null'):
             return ""           
-        if(output[:4]=='svg:'):
-            self.Display(SVG(output[4:]))
-            return resp
-        if(output[:6]=='image:'):
-            self.Display(Image(output[6:]))
-            return resp
-        else:
-            if(output[:6]=='sound:'): 
-		htmlstr="<audio controls> <source src=\"file://"
-		htmlstr=htmlstr+output[6:]
-		htmlstr=htmlstr+ "\" type=\"audio/wav\">"
-		htmlstr=htmlstr+"Your browser does not support the audio element."
-		htmlstr=htmlstr+"</audio>"
-		self.Display(HTML(htmlstr))
-                return htmlstr
-            else:
-                self.Display(Latex("$"+output+"$"))
-                if self.language_info['exec']=='mathics':
-                    return resp[finpos+4:-7]
-                else:
-                    return resp[finpos+4:-6]
+        if(outputtext[:4]=='svg:'):            
+            print("showing svg")
+	    for p in xrange( len(outputtext) - 4 ):
+                pp=p+4
+                if outputtext[pp]==':':
+                    self.Display(SVG(outputtext[4:pp]))
+                    return outputtext[(pp+1):]
+        if(outputtext[:6]=='image:'):
+            print("showing image")
+	    for p in xrange( len(outputtext) - 6 ):
+                pp=p+6
+                if outputtext[pp]==':':
+                    print(outputtext[6:pp])
+                    self.Display(Image(outputtext[6:pp]))
+                    return outputtext[(pp+1):]
+        if(outputtext[:6]=='sound:'): 
+	    for p in xrange( len(outputtext) - 6 ):
+                pp=p+6
+                if outputtext[pp]==':':
+                    htmlstr="<audio controls> <source src=\"file://"
+                    htmlstr=htmlstr+outputtext[6:pp]
+                    htmlstr=htmlstr+ "\" type=\"audio/wav\">"
+                    htmlstr=htmlstr+"Your browser does not support the audio element."
+                    htmlstr=htmlstr+"</audio>"
+                    self.Display(HTML(htmlstr))
+                    print(htmlstr)
+                    return outputtext[(pp + 1):]
+        if (outputtext[:7]=='string:'):
+            return outputtext[7:]
+        if (outputtext[:4]=='tex:'):
+	    for p in xrange( len(outputtext) - 4 ):
+                pp=p+4
+                if outputtext[pp]==':':
+                    lentex=int(outputtext[4:(pp)])                    
+                    self.Display(Latex('$' + outputtext[(pp+1):(pp+lentex+1)] +'$'))
+                    return outputtext[(pp + lentex+2):]
+                
 #        if self.plot_settings.get('backend', None) == 'inline':
 #            plot_dir = tempfile.mkdtemp()
 #            self._make_figs(plot_dir)
