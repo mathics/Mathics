@@ -20,7 +20,7 @@ class MathicsKernel(ProcessMetaKernel):
     language_version = '0.1',
     banner = "Mathics Kernel"
     language_info = {
-        'exec': 'math',
+        'exec': 'mathics',
         'mimetype': 'text/x-mathics',
         'name': 'mathics_kernel',
         'file_extension': '.m',
@@ -29,9 +29,8 @@ class MathicsKernel(ProcessMetaKernel):
 
     _initstring = """
 $MyPrePrint:=Module[{fn,res},    
+If[#1 === Null, res=\"null:\",
 Switch[Head[#1],
-	  Null,
-	      res="Null",
           String,
             res=\"string:\"<>#1,
           Graphics,            
@@ -49,6 +48,7 @@ Switch[Head[#1],
           _,            
 	    texstr=StringReplace[ToString[TeXForm[#1]],\"\\n\"->\" \"];
             res=\"tex:\"<>ToString[StringLength[texstr]]<>\":\"<> texstr<>\":\"<>ToString[InputForm[#1]]
+       ]
        ];
        res
     ]&;
@@ -85,10 +85,10 @@ $DisplayFunction=Identity;
         f.write(self._initstring)
         f.close()
         if self.language_info['exec'] == 'mathics':
-            replwrapper=REPLWrapper(self.language_info['exec'] + " --colors NOCOLOR", orig_prompt, change_prompt,
+            replwrapper=REPLWrapper("mathics --colors NOCOLOR", orig_prompt, change_prompt,
                            prompt_emit_cmd=prompt_cmd,echo=True)
         else:
-            replwrapper=REPLWrapper(self.language_info['exec'], orig_prompt, change_prompt,
+            replwrapper=REPLWrapper("math ", orig_prompt, change_prompt,
                            prompt_emit_cmd=prompt_cmd,echo=True)
         return replwrapper
 
@@ -119,7 +119,7 @@ $DisplayFunction=Identity;
                 print(resp)
         #Processing last valid line
         resp = super(MathicsKernel, self).do_execute_direct("$MyPrePrint["+code+"]")
-        print("procesando...") 
+
         lineresponse=resp.splitlines()
         outputfound=False
         outputtext=""
@@ -139,17 +139,15 @@ $DisplayFunction=Identity;
                 outputtext = outputtext + liner
             else:
                 print(liner)
-        if(outputtext[:4]=='Null'):
-            return ""           
+        if(outputtext[:5]=='null:'):
+            return ""
         if(outputtext[:4]=='svg:'):            
-            print("showing svg")
 	    for p in xrange( len(outputtext) - 4 ):
                 pp=p+4
                 if outputtext[pp]==':':
                     self.Display(SVG(outputtext[4:pp]))
                     return outputtext[(pp+1):]
         if(outputtext[:6]=='image:'):
-            print("showing image")
 	    for p in xrange( len(outputtext) - 6 ):
                 pp=p+6
                 if outputtext[pp]==':':
