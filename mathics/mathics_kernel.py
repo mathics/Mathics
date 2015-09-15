@@ -20,7 +20,7 @@ class MathicsKernel(ProcessMetaKernel):
     language_version = '0.1',
     banner = "Mathics Kernel"
     language_info = {
-        'exec': 'math',
+        'exec': 'mathics',
         'mimetype': 'text/x-mathics',
         'name': 'mathics_kernel',
         'file_extension': '.m',
@@ -59,7 +59,8 @@ $DisplayFunction=Identity;
     _first = True
     initfilename=""
     _banner = None
-
+    out_mark=""
+    len_out_mark=0
     @property
     def banner(self):
         if self._banner is None:
@@ -84,9 +85,16 @@ $DisplayFunction=Identity;
         f= open(self.initfilename,'w')
         f.write(self._initstring)
         f.close()
-        replwrapper=REPLWrapper(self.language_info['exec'], orig_prompt, change_prompt,
+        if self.language_info['exec'] == 'mathics':
+            self.out_mark = '\033[31mOut['
+            self.len_out_mark = len(self.out_mark)
+            replwrapper=REPLWrapper(self.language_info['exec'], orig_prompt, change_prompt,
                            prompt_emit_cmd=prompt_cmd,echo=True)
-
+        else:
+            self.out_mark = 'Out['
+            self.len_out_mark = len(self.out_mark)
+            replwrapper=REPLWrapper(self.language_info['exec'], origp_rompt, change_prompt,
+                           prompt_emit_cmd=prompt_cmd,echo=True)
         return replwrapper
 
     def do_execute_direct(self, code):
@@ -100,11 +108,12 @@ $DisplayFunction=Identity;
         outputfound=False
         outputtext=""
         for linnum,liner in enumerate(lineresponse):
-            if not outputfound and liner[:4]  == "Out[" :
+            if not outputfound and liner[:self.len_out_mark]  == self.out_mark :
                 outputfound=True
-                for pos in xrange(len(liner)-4):
-                    if liner[pos+4]=='=':
-                        outputtext=liner[(pos + 6):]
+                for pos in xrange(len(liner)-self.len_out_mark):
+                    if liner[pos+self.len_out_mark]=='=':
+                        outputtext=liner[(pos + self.len_out_mark+4):]
+                print(outputtext)
                 continue
             if outputfound:
                 if liner == u' ':
@@ -115,7 +124,7 @@ $DisplayFunction=Identity;
                 outputtext = outputtext + liner
             else:
                 print(liner)
-
+        print("Outputtext:<<<" + outputtext[:4] + ">>>")
         if(outputtext[:4]=='Null'):
             return ""           
         if(outputtext[:4]=='svg:'):            
