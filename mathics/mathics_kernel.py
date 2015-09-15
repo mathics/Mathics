@@ -59,7 +59,8 @@ $DisplayFunction=Identity;
     _first = True
     initfilename=""
     _banner = None
-
+    out_mark=""
+    len_out_mark=0
     @property
     def banner(self):
         if self._banner is None:
@@ -84,9 +85,16 @@ $DisplayFunction=Identity;
         f= open(self.initfilename,'w')
         f.write(self._initstring)
         f.close()
-        replwrapper=REPLWrapper(self.language_info['exec'], orig_prompt, change_prompt,
+        if self.language_info['exec'] == 'mathics':
+            self.out_mark = '\033[31mOut['
+            self.len_out_mark = len(self.out_mark)
+            replwrapper=REPLWrapper(self.language_info['exec'], orig_prompt, change_prompt,
                            prompt_emit_cmd=prompt_cmd,echo=True)
-
+        else:
+            self.out_mark = 'Out['
+            self.len_out_mark = len(self.out_mark)
+            replwrapper=REPLWrapper(self.language_info['exec'], origp_rompt, change_prompt,
+                           prompt_emit_cmd=prompt_cmd,echo=True)
         return replwrapper
 
     def do_execute_direct(self, code):
@@ -115,7 +123,6 @@ $DisplayFunction=Identity;
                 outputtext = outputtext + liner
             else:
                 print(liner)
-
         if(outputtext[:4]=='Null'):
             return ""           
         if(outputtext[:4]=='svg:'):            
