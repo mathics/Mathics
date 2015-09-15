@@ -59,8 +59,7 @@ $DisplayFunction=Identity;
     _first = True
     initfilename=""
     _banner = None
-    out_mark=""
-    len_out_mark=0
+
     @property
     def banner(self):
         if self._banner is None:
@@ -86,23 +85,40 @@ $DisplayFunction=Identity;
         f.write(self._initstring)
         f.close()
         if self.language_info['exec'] == 'mathics':
-            self.out_mark = '\033[31mOut['
-            self.len_out_mark = len(self.out_mark)
-            replwrapper=REPLWrapper(self.language_info['exec'], orig_prompt, change_prompt,
+            replwrapper=REPLWrapper(self.language_info['exec'] + " --colors NOCOLOR", orig_prompt, change_prompt,
                            prompt_emit_cmd=prompt_cmd,echo=True)
         else:
-            self.out_mark = 'Out['
-            self.len_out_mark = len(self.out_mark)
-            replwrapper=REPLWrapper(self.language_info['exec'], origp_rompt, change_prompt,
+            replwrapper=REPLWrapper(self.language_info['exec'], orig_prompt, change_prompt,
                            prompt_emit_cmd=prompt_cmd,echo=True)
         return replwrapper
 
     def do_execute_direct(self, code):
         if(self._first):
-            super(MathicsKernel, self).do_execute_direct("Get[\""+ self.initfilename+"\"]")
-            self._first=False            
+            super(MathicsKernel, self).do_execute_direct("Get[\""+ self.initfilename+"\"];$Line=0;")
+            self._first=False
+        #Processing multiline code        
+        codelines = code.splitlines()
+        lastline = ""
+        resp = ""
+        for codeline in codelines:
+            if codeline.strip() == "":
+                lastline = lastline.strip()
+                if lastline == "":
+                    continue
+                if resp.strip() != "":
+                    print(resp)
+                resp = self.do_execute_direct(lastline)
+                lastline = ""
+                continue
+            lastline = lastline + codeline
+        code = lastline.strip()
+        if code == "" :
+            return resp
+        else:
+            if resp != "" :
+                print(resp)
+        #Processing last valid line
         resp = super(MathicsKernel, self).do_execute_direct("$MyPrePrint["+code+"]")
-        print(resp)
         print("procesando...") 
         lineresponse=resp.splitlines()
         outputfound=False
