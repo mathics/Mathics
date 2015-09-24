@@ -981,20 +981,20 @@ class Quit(Builtin):
 
     >> a = 3
      = 3
-    >> Quit[];
+    >> Quit[]
     >> a
      = a
 
     >> a = 3
      = 3
-    >> Quit;
+    >> Quit
     >> a
      = a
 
     'Quit' even removes the definitions of protected and locked symbols:
     >> x = 5;
     >> Attributes[x] = {Locked, Protected};
-    >> Quit[];
+    >> Quit[]
     >> x
      = x
     """
