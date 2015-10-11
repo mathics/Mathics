@@ -716,8 +716,8 @@ class StringTake(Builtin):
     = b
     >> StringTake["abcd", {2,3}]
     = bc
-    >> StringTake["abcd",{3,2}]
-    = abcd
+    >> StringTake["abcd", {3,2}]
+    = 
     #> StringTake["abcd",0]
     = 
     """
@@ -810,6 +810,8 @@ class StringDrop(Builtin):
     >> StringDrop["abcde", {2,3}]
     = ade
     >> StringDrop["abcd",{3,2}]
+    = abcd
+    >> StringDrop["abcd",0]
     = abcd
     """
     messages = {
