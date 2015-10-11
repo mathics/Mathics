@@ -716,6 +716,10 @@ class StringTake(Builtin):
     = b
     >> StringTake["abcd", {2,3}]
     = bc
+    >> StringTake["abcd",{3,2}]
+    = abcd
+    #> StringTake["abcd",0]
+    = 
     """
     messages = {
         'strse': 'String expected at position 1.',
@@ -805,6 +809,8 @@ class StringDrop(Builtin):
     = acde
     >> StringDrop["abcde", {2,3}]
     = ade
+    >> StringDrop["abcd",{3,2}]
+    = abcd
     """
     messages = {
         'strse': 'String expected at position 1.',
