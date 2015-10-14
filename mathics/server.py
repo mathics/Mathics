@@ -121,8 +121,12 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port
         sys.exit(0)
 
 
-if __name__ == '__main__':
+def main():
     os.environ['DJANGO_SETTINGS_MODULE'] = 'mathics.settings'
     check_database()
     args = parse_args()
     launch_app(args)
+
+
+if __name__ == '__main__':
+    main()
