@@ -1196,7 +1196,8 @@ class PolarPlot(_Plot):
     """
     <dl>
     <dt>'PolarPlot[$r$, {$t$, $tmin$, $tmax$}]'
-      <dd>plots blah
+      <dd>creates a polar plot of $r$ with angle $t$ ranging from
+      $tmin$ to $tmax$.
     </dl>
 
     >> PolarPlot[Cos[5t], {t, 0, Pi}]
@@ -1204,7 +1205,7 @@ class PolarPlot(_Plot):
 
     >> PolarPlot[{1, 1 + Sin[20 t] / 5}, {t, 0, 2 Pi}]
      = -Graphics-
-   """
+    """
 
     def get_functions_param(self, functions):
         if functions.has_form('List', None):
