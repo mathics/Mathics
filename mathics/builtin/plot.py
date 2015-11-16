@@ -1207,6 +1207,11 @@ class PolarPlot(_Plot):
      = -Graphics-
     """
 
+    options = _Plot.options.copy()
+    options.update({
+        'AspectRatio': '1',
+    })
+
     def get_functions_param(self, functions):
         if functions.has_form('List', None):
             functions = functions.leaves
