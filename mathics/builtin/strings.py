@@ -705,6 +705,7 @@ class StringTake(Builtin):
     """
     StringTake["string",n] gives the first n characters in "string"
     StringTake["string",-n] gives the last n characters in "string"
+    StringTake["string",{n}] gives the n-esim character in "string"
     StringTake["string",{m,n}] gives characters m through n in "string"
     >> StringTake["abcde", 2]
     = ab
@@ -799,6 +800,7 @@ class StringDrop(Builtin):
     """
     StringDrop["string",n] gives "string" with the first n characters dropped.
     StringDrop["string",-n] gives "string" with the last  n characters dropped.
+    StringDrop["string",{n}] gives "string" with the character n dropped
     StringDrop["string",{m,n}] gives "string" with the characters m through
     n dropped.
     >> StringDrop["abcde", 2]
