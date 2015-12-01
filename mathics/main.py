@@ -88,8 +88,11 @@ class TerminalShell(object):
         self.definitions = definitions
 
     def get_last_line_number(self):
-        line = self.definitions.get_definition('$Line').ownvalues[0].replace
-        return line.get_int_value()
+        line = self.definitions.get_definition('$Line').ownvalues
+        if line:
+            return line[0].replace.get_int_value()
+        else:
+            return 1    # user may have deleted $Line (e.g. by calling Quit[])
 
     def get_in_prompt(self, continued=False):
         next_line_number = self.get_last_line_number() + 1
