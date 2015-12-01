@@ -984,6 +984,12 @@ class Quit(Builtin):
     >> a
      = a
 
+    >> a = 3
+     = 3
+    >> Quit
+    >> a
+     = a
+
     'Quit' even removes the definitions of protected and locked symbols:
     >> x = 5;
     >> Attributes[x] = {Locked, Protected};
@@ -992,8 +998,11 @@ class Quit(Builtin):
      = x
     """
 
+    rules = {
+        'Quit[]': 'Quit',
+        }
     def apply(self, evaluation):
-        'Quit[]'
+        'Quit'
 
         evaluation.definitions.set_user_definitions({})
         return Symbol('Null')
