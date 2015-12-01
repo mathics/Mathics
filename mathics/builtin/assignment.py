@@ -999,11 +999,15 @@ class Quit(Builtin):
      = x
     """
 
-    rules = {
-        'Quit[]': 'Quit',
-        }
+    
     def apply(self, evaluation):
         'Quit'
+
+        evaluation.definitions.set_user_definitions({})
+        return Symbol('Null')
+
+    def apply2(self, evaluation):
+        'Quit[]'
 
         evaluation.definitions.set_user_definitions({})
         return Symbol('Null')
