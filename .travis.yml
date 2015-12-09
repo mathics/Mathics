@@ -3,25 +3,17 @@ python:
   - 2.7
   - pypy
 env:
+  - SYMPY_SRC=sympy-0.7.5
   - SYMPY_SRC=sympy-0.7.6
+  - SYMPY_SRC=master
 matrix:
     fast_finish: true
     include:
-      - python: 2.7
-        env: SYMPY_SRC=sympy-0.7.3
-      - python: 2.7
-        env: SYMPY_SRC=sympy-0.7.4
-      - python: 2.7
-        env: SYMPY_SRC=sympy-0.7.5
-      - python: 2.7
-        env: SYMPY_SRC=master
       - python: 2.7
         env:
           - SYMPY_SRC=sympy-0.7.6
           - TEST_DOC="true"
     allow_failures:
-      - env: SYMPY_SRC=sympy-0.7.3
-      - env: SYMPY_SRC=sympy-0.7.4
       - env: SYMPY_SRC=sympy-0.7.5
       - env: SYMPY_SRC=master
       - env:
@@ -38,7 +30,7 @@ before_install:
   - pip install --use-mirrors pexpect
   - pip install --use-mirrors git+https://github.com/sympy/sympy.git@$SYMPY_SRC
 install:
-  - sed -i 's/sympy==0.7.3/sympy>=0.7.3/' setup.py
+  - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
   - if [[ "$TEST_DOC" == "true" ]]; then python setup.py develop; else python setup.py install; fi
 script:
   - unit2 discover

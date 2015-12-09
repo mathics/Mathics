@@ -407,15 +407,25 @@ class BaseForm(Builtin):
     >> BaseForm[12, 3] // FullForm
      = BaseForm[12, 3]
 
+    Bases must be between 2 and 36:
     >> BaseForm[12, -3]
      : Positive machine-sized integer expected at position 2 in BaseForm[12, -3].
      : MakeBoxes[BaseForm[12, -3], OutputForm] is not a valid box structure.
+    >> BaseForm[12, 100]
+     : Requested base 100 must be between 2 and 36.
+     : MakeBoxes[BaseForm[12, 100], OutputForm] is not a valid box structure.
+
+    #> BaseForm[0, 2]
+     = 0_2
+    #> BaseForm[0.0, 2]
+     = 0.0_2
     """
 
     messages = {
         'intpm': (
             "Positive machine-sized integer expected at position 2 in "
             "BaseForm[`1`, `2`]."),
+        'basf': "Requested base `1` must be between 2 and 36.",
     }
 
     def apply_makeboxes(self, expr, n, f, evaluation):
@@ -432,7 +442,11 @@ class BaseForm(Builtin):
             return Expression("MakeBoxes", expr, f)
 
         p = dps(expr.get_precision()) if isinstance(expr, Real) else 0
-        val = convert_base(expr.get_real_value(), base, p)
+
+        try:
+            val = convert_base(expr.get_real_value(), base, p)
+        except ValueError:
+            return evaluation.message('BaseForm', 'basf', n)
 
         if f.get_name() == 'System`OutputForm':
             return from_python("%s_%d" % (val, base))

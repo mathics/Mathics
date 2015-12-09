@@ -208,7 +208,7 @@ class _SetOperator(object):
             ignore_protection = True
         elif lhs_name == 'System`$ContextPath':
             if rhs.has_form('List', None) and all(
-                  valid_context_name(s.get_string_value()) for s in rhs.leaves):
+                    valid_context_name(s.get_string_value()) for s in rhs.leaves):
                 evaluation.definitions.context_path = [
                     s.get_string_value() for s in rhs.leaves]
                 ignore_protection = True
@@ -671,8 +671,7 @@ class Definition(Builtin):
             evaluation.check_stopped()
             if isinstance(rule, Rule):
                 r = rhs(rule.replace.replace_vars(
-                        {'System`Definition': Expression(
-                                'HoldForm', Symbol('Definition'))}))
+                        {'System`Definition': Expression('HoldForm', Symbol('Definition'))}))
                 lines.append(Expression('HoldForm', Expression(
                     up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
 
@@ -985,12 +984,6 @@ class Quit(Builtin):
     >> a
      = a
 
-    >> a = 3
-     = 3
-    >> Quit
-    >> a
-     = a
-
     'Quit' even removes the definitions of protected and locked symbols:
     >> x = 5;
     >> Attributes[x] = {Locked, Protected};
@@ -998,10 +991,8 @@ class Quit(Builtin):
     >> x
      = x
     """
-
-    
     def apply(self, evaluation):
-        'Quit'
+        'Quit[]'
 
         evaluation.definitions.set_user_definitions({})
         return Symbol('Null')
@@ -1329,9 +1320,9 @@ class Increment(PostfixOperator):
     attributes = ('HoldFirst', 'ReadProtected')
 
     rules = {
-        'x_++': ('Module[{Internal`IncrementTemporary = x}, '
-                        'x = x + 1;'
-                        'Internal`IncrementTemporary'
+        'x_++': ('Module[{Internal`IncrementTemporary = x},'
+                 '       x = x + 1;'
+                 '       Internal`IncrementTemporary'
                  ']'),
     }
 
