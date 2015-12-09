@@ -806,9 +806,9 @@ class _Plot3D(Builtin):
                         x4, y4 = 0.5 * (x1 + x2), 0.5 * (y1 + y2)
                         x5, y5 = 0.5 * (x2 + x3), 0.5 * (y2 + y3)
                         x6, y6 = 0.5 * (x1 + x3), 0.5 * (y1 + y3)
-                        split_edges.add(((x1, y1), (x2, y2)) if (x2,y2) > (x1,y1) else ((x2,y2), (x1,y1)))
-                        split_edges.add(((x2, y2), (x3, y3)) if (x3,y3) > (x2,y2) else ((x3,y3), (x2,y2)))
-                        split_edges.add(((x1, y1), (x3, y3)) if (x3,y3) > (x1,y1) else ((x3,y3), (x1,y1)))
+                        split_edges.add(((x1, y1), (x2, y2)) if (x2, y2) > (x1, y1) else ((x2, y2), (x1, y1)))
+                        split_edges.add(((x2, y2), (x3, y3)) if (x3, y3) > (x2, y2) else ((x3, y3), (x2, y2)))
+                        split_edges.add(((x1, y1), (x3, y3)) if (x3, y3) > (x1, y1) else ((x3, y3), (x1, y1)))
                         triangle(x1, y1, x4, y4, x6, y6, depth + 1)
                         triangle(x4, y4, x2, y2, x5, y5, depth + 1)
                         triangle(x6, y6, x5, y5, x3, y3, depth + 1)
@@ -866,7 +866,7 @@ class _Plot3D(Builtin):
             ang_thresh = cos(20 * pi / 180)
             for depth in range(1, max_depth):
                 needs_removal = set([])
-                lent = len(triangles) # number of initial triangles
+                lent = len(triangles)   # number of initial triangles
                 for i1 in range(lent):
                     for i2 in range(lent):
                         # find all edge pairings
@@ -906,7 +906,7 @@ class _Plot3D(Builtin):
                         except ZeroDivisionError:
                             angle = 0.0
                         if abs(angle) < ang_thresh:
-                            for i,t in ((i1,t1), (i2,t2)):
+                            for i, t in ((i1, t1), (i2, t2)):
                                 # subdivide
                                 x1, y1 = t[0][0], t[0][1]
                                 x2, y2 = t[1][0], t[1][1]
@@ -917,19 +917,19 @@ class _Plot3D(Builtin):
                                 needs_removal.add(i)
                                 split_edges.add(
                                     ((x1, y1), (x2, y2)) if (x2, y2) > (x1, y1)
-                                    else ((x2,y2), (x1,y1)))
+                                    else ((x2, y2), (x1, y1)))
                                 split_edges.add(
                                     ((x2, y2), (x3, y3)) if (x3, y3) > (x2, y2)
-                                    else ((x3,y3), (x2,y2)))
+                                    else ((x3, y3), (x2, y2)))
                                 split_edges.add(
                                     ((x1, y1), (x3, y3)) if (x3, y3) > (x1, y1)
-                                    else ((x3,y3), (x1,y1)))
+                                    else ((x3, y3), (x1, y1)))
                                 triangle(x1, y1, x4, y4, x6, y6, depth=depth)
                                 triangle(x2, y2, x4, y4, x5, y5, depth=depth)
                                 triangle(x3, y3, x5, y5, x6, y6, depth=depth)
                                 triangle(x4, y4, x5, y5, x6, y6, depth=depth)
                 # remove subdivided triangles which have been divided
-                triangles = [t for i,t in enumerate(triangles) if i not in needs_removal]
+                triangles = [t for i, t in enumerate(triangles) if i not in needs_removal]
 
             ## fix up subdivided edges
             #
@@ -942,14 +942,14 @@ class _Plot3D(Builtin):
             while made_changes:
                 made_changes = False
                 new_triangles = []
-                for i,t in enumerate(triangles):
+                for i, t in enumerate(triangles):
                     new_points = []
                     if ((t[0][0], t[0][1]), (t[1][0], t[1][1])) in split_edges:
-                        new_points.append([0,1])
+                        new_points.append([0, 1])
                     if ((t[1][0], t[1][1]), (t[2][0], t[2][1])) in split_edges:
-                        new_points.append([1,2])
+                        new_points.append([1, 2])
                     if ((t[0][0], t[0][1]), (t[2][0], t[2][1])) in split_edges:
-                        new_points.append([0,2])
+                        new_points.append([0, 2])
 
                     if len(new_points) == 0:
                         continue
@@ -965,15 +965,15 @@ class _Plot3D(Builtin):
                     # anyway but fake their values by averaging
                     x4 = 0.5 * (t[0][0] + t[1][0])
                     y4 = 0.5 * (t[0][1] + t[1][1])
-                    v4 = stored.get((x4, y4), 0.5*(t[0][2] + t[1][2]))
+                    v4 = stored.get((x4, y4), 0.5 * (t[0][2] + t[1][2]))
 
                     x5 = 0.5 * (t[1][0] + t[2][0])
                     y5 = 0.5 * (t[1][1] + t[2][1])
-                    v5 = stored.get((x5, y5), 0.5*(t[1][2] + t[2][2]))
+                    v5 = stored.get((x5, y5), 0.5 * (t[1][2] + t[2][2]))
 
                     x6 = 0.5 * (t[0][0] + t[2][0])
                     y6 = 0.5 * (t[0][1] + t[2][1])
-                    v6 = stored.get((x6, y6), 0.5*(t[0][2] + t[2][2]))
+                    v6 = stored.get((x6, y6), 0.5 * (t[0][2] + t[2][2]))
 
                     if not (v4 is None or v6 is None):
                         new_triangles.append(sorted((t[0], (x4, y4, v4), (x6, y6, v6))))
@@ -1015,15 +1015,15 @@ class _Plot3D(Builtin):
                     made_changes = False
                     for mesh_line in mesh_points:
                         i = 0
-                        while i < len(mesh_line)-1:
+                        while i < len(mesh_line) - 1:
                             x1, y1, v1 = mesh_line[i]
-                            x2, y2, v2 = mesh_line[i+1]
+                            x2, y2, v2 = mesh_line[i + 1]
                             key = ((x1, y1), (x2, y2)) if (x2, y2) > (x1, y1) else ((x2, y2), (x1, y1))
                             if key in split_edges:
                                 x3 = 0.5 * (x1 + x2)
                                 y3 = 0.5 * (y1 + y2)
                                 v3 = stored[(x3, y3)]
-                                mesh_line.insert(i+1, (x3, y3, v3))
+                                mesh_line.insert(i + 1, (x3, y3, v3))
                                 made_changes = True
                                 i += 1
                             i += 1
@@ -1031,7 +1031,7 @@ class _Plot3D(Builtin):
                 # handle missing regions
                 old_meshpoints, mesh_points = mesh_points, []
                 for mesh_line in old_meshpoints:
-                    mesh_points.extend([sorted(g) for k,g in itertools.groupby(mesh_line, lambda x: x[2] is None)])
+                    mesh_points.extend([sorted(g) for k, g in itertools.groupby(mesh_line, lambda x: x[2] is None)])
                 mesh_points = [mesh_line for mesh_line in mesh_points if not any(x[2] is None for x in mesh_line)]
             elif mesh == 'System`All':
                 mesh_points = set([])
@@ -1196,7 +1196,8 @@ class PolarPlot(_Plot):
     """
     <dl>
     <dt>'PolarPlot[$r$, {$t$, $tmin$, $tmax$}]'
-      <dd>plots blah
+      <dd>creates a polar plot of $r$ with angle $t$ ranging from
+      $tmin$ to $tmax$.
     </dl>
 
     >> PolarPlot[Cos[5t], {t, 0, Pi}]
@@ -1204,7 +1205,12 @@ class PolarPlot(_Plot):
 
     >> PolarPlot[{1, 1 + Sin[20 t] / 5}, {t, 0, 2 Pi}]
      = -Graphics-
-   """
+    """
+
+    options = _Plot.options.copy()
+    options.update({
+        'AspectRatio': '1',
+    })
 
     def get_functions_param(self, functions):
         if functions.has_form('List', None):

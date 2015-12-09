@@ -208,7 +208,7 @@ class _SetOperator(object):
             ignore_protection = True
         elif lhs_name == 'System`$ContextPath':
             if rhs.has_form('List', None) and all(
-                  valid_context_name(s.get_string_value()) for s in rhs.leaves):
+                    valid_context_name(s.get_string_value()) for s in rhs.leaves):
                 evaluation.definitions.context_path = [
                     s.get_string_value() for s in rhs.leaves]
                 ignore_protection = True
@@ -671,8 +671,7 @@ class Definition(Builtin):
             evaluation.check_stopped()
             if isinstance(rule, Rule):
                 r = rhs(rule.replace.replace_vars(
-                        {'System`Definition': Expression(
-                                'HoldForm', Symbol('Definition'))}))
+                        {'System`Definition': Expression('HoldForm', Symbol('Definition'))}))
                 lines.append(Expression('HoldForm', Expression(
                     up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
 
@@ -1316,9 +1315,9 @@ class Increment(PostfixOperator):
     attributes = ('HoldFirst', 'ReadProtected')
 
     rules = {
-        'x_++': ('Module[{Internal`IncrementTemporary = x}, '
-                        'x = x + 1;'
-                        'Internal`IncrementTemporary'
+        'x_++': ('Module[{Internal`IncrementTemporary = x},'
+                 '       x = x + 1;'
+                 '       Internal`IncrementTemporary'
                  ']'),
     }
 
