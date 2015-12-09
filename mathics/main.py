@@ -43,12 +43,11 @@ class TerminalShell(object):
                 self.using_readline = sys.stdin.isatty() and sys.stdout.isatty()
                 self.ansi_color_re = re.compile("\033\\[[0-9;]+m")
                 if want_completion:
-                    readline.set_completer(
-                        lambda text, state:
-                            self.complete_symbol_name(text, state))
-                    readline.set_completer_delims(
-                        # Make _ a delimiter, but not $ or `
-                        ' \t\n_~!@#%^&*()-=+[{]}\\|;:\'",<>/?')
+                    readline.set_completer(lambda text, state: self.complete_symbol_name(text, state))
+
+                    # Make _ a delimiter, but not $ or `
+                    readline.set_completer_delims(' \t\n_~!@#%^&*()-=+[{]}\\|;:\'",<>/?')
+
                     readline.parse_and_bind("tab: complete")
                     self.completion_candidates = []
         except ImportError:
@@ -63,8 +62,7 @@ class TerminalShell(object):
         else:
             colorama_init()
             if colors is None:
-                terminal_supports_color = (sys.stdout.isatty() and
-                                           os.getenv('TERM') != 'dumb')
+                terminal_supports_color = (sys.stdout.isatty() and os.getenv('TERM') != 'dumb')
                 colors = 'Linux' if terminal_supports_color else 'NoColor'
 
         color_schemes = {
@@ -90,16 +88,18 @@ class TerminalShell(object):
         self.definitions = definitions
 
     def get_last_line_number(self):
-        line = self.definitions.get_definition('$Line').ownvalues[0].replace
-        return line.get_int_value()
+        line = self.definitions.get_definition('$Line').ownvalues
+        if line:
+            return line[0].replace.get_int_value()
+        else:
+            return 1    # user may have deleted $Line (e.g. by calling Quit[])
 
     def get_in_prompt(self, continued=False):
         next_line_number = self.get_last_line_number() + 1
         if continued:
             return ' ' * len('In[{0}]:= '.format(next_line_number))
         else:
-            return '{1}In[{2}{0}{3}]:= {4}'.format(next_line_number,
-                                                   *self.incolors)
+            return '{1}In[{2}{0}{3}]:= {4}'.format(next_line_number, *self.incolors)
 
     def get_out_prompt(self):
         line_number = self.get_last_line_number()
@@ -176,8 +176,7 @@ class TerminalShell(object):
         return matches
 
 
-# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/       # nopep8
-
+# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/ 
 
 def wait_for_line(input_string):
     """

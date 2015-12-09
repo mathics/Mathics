@@ -334,8 +334,7 @@ class MakeBoxes(Builtin):
                 op = MakeBoxes(op, f)
             else:
                 op_value = op.get_string_value()
-                if (f.get_name() == 'System`InputForm'
-                    and op_value in ['*', '^']):
+                if (f.get_name() == 'System`InputForm' and op_value in ['*', '^']):
                     pass
                 elif (f.get_name() in ('System`InputForm',
                                        'System`OutputForm') and

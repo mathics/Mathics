@@ -65,8 +65,7 @@ class Builtin(object):
                 pattern = pattern % {'name': name}
                 pattern = parse_builtin_rule(pattern)
             replace = replace % {'name': name}
-            rules.append(Rule(
-                    pattern, parse_builtin_rule(replace), system=True))
+            rules.append(Rule(pattern, parse_builtin_rule(replace), system=True))
 
         box_rules = []
         if name != 'System`MakeBoxes':

@@ -2312,8 +2312,7 @@ class PutAppend(BinaryOperator):
                 'OutputSteam', name, n))
             return
 
-        text = [unicode(e.do_format(
-                    evaluation, 'System`OutputForm').__str__())
+        text = [unicode(e.do_format(evaluation, 'System`OutputForm').__str__())
                 for e in exprs.get_sequence()]
         text = u'\n'.join(text) + u'\n'
         text.encode('ascii')

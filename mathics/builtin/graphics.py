@@ -1865,7 +1865,6 @@ class Tiny(Builtin):
     '''
 
 
-
 class Small(Builtin):
     '''
     <dl>

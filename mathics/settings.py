@@ -23,8 +23,6 @@ import sys
 import os
 from os import path
 
-import django
-DJANGO_VERSION = django.VERSION
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -104,12 +102,6 @@ MEDIA_ROOT = ROOT_DIR + 'web/media/'
 # trailing slash if there is a path component (optional in other cases).
 # Examples: "http://media.lawrence.com", "http://example.com/media/"
 MEDIA_URL = '/media/'
-
-# URL prefix for admin media -- CSS, JavaScript and images.
-# Make sure to use a trailing slash.
-# Examples: "http://foo.com/media/", "/media/".
-if DJANGO_VERSION < (1, 3):
-    ADMIN_MEDIA_PREFIX = '/media/admin/'
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'uvbhuiasaeaph6Duh)r@3ex1i@et=0j4h(!p4@!r6s-=a_ev*e'
