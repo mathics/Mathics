@@ -981,6 +981,7 @@ class Quit(Builtin):
     >> a = 3
      = 3
     >> Quit[]
+     = Null[]
     >> a
      = a
 
@@ -995,6 +996,7 @@ class Quit(Builtin):
     >> x = 5;
     >> Attributes[x] = {Locked, Protected};
     >> Quit[]
+     = Null[]
     >> x
      = x
     """
