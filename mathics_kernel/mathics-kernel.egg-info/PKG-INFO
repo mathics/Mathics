@@ -1,0 +1,26 @@
+Metadata-Version: 1.1
+Name: octave-kernel
+Version: 0.11.0
+Summary: An Octave kernel for Jupyter/IPython
+Home-page: https://github.com/calysto/octave_kernel
+Author: Juan Mauricio Matera
+Author-email: matera@fisica.unlp.edu.ar
+License: GNU
+Description: A Jupyter/IPython kernel for Mathics
+        
+        To test it, install via ``pip`` or ``setup.py``, then::
+        
+            ipython qtconsole --kernel=mathics_kernel
+        
+        Or select the Mathics Kernel in the IPython Notebook.
+        
+        This is based on `MetaKernel <http://pypi.python.org/pypi/metakernel>`_,
+        which means it features a standard set of magics.
+        
+        
+        
+Platform: UNKNOWN
+Classifier: Framework :: IPython
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 2
+Classifier: Topic :: System :: Shells
