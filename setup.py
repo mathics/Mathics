@@ -93,7 +93,10 @@ class install_with_kernelspec(install):
         log.info('Installing kernel spec')
         with open('kernel.json', 'w') as f:
             json.dump(kernel_json, f, sort_keys=True)
-        install_kernel_spec(kernel_name=kernel_json['name'])
+        try:
+            install_kernel_spec(kernel_name=kernel_json['name'], user=self.user)
+        except:
+            install_kernel_spec(kernel_name=kernel_json['name'], user=not self.user)
 
 
 class test(Command):
