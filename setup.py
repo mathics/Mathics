@@ -69,7 +69,7 @@ else:
 # General Requirements
 INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.8, < 1.9', 'ply>=3.8',
                      'mpmath>=0.19', 'python-dateutil', 'colorama',
-                     'interruptingcow', 'notebook >= 4.0']
+                     'interruptingcow', 'notebook >= 4.0', 'ipython >= 3.0']
 
 # if sys.platform == "darwin":
 #    INSTALL_REQUIRES += ['readline']
