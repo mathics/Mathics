@@ -4,11 +4,13 @@ from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 from mathics.core.expression import Integer
 from mathics import settings
+from mathics.version import __version__
+
 
 class MathicsKernel(Kernel):
     implementation = 'Mathics'
-    implementation_version = '1.0'  # TODO
-    language = 'wolfram'
+    implementation_version = __version__
+    language = 'Wolfram'
     language_version = '0.1'    # TODO
     language_info = {'mimetype': 'text/plain'}
     banner = "Mathics kernel"   # TODO
