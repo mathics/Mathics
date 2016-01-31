@@ -69,7 +69,7 @@ else:
 # General Requirements
 INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.8, < 1.9', 'ply>=3.8',
                      'mpmath>=0.19', 'python-dateutil', 'colorama',
-                     'interruptingcow', 'notebook >= 4.0', 'ipython >= 3.0']
+                     'interruptingcow', 'ipykernel >= 4.2']
 
 # if sys.platform == "darwin":
 #    INSTALL_REQUIRES += ['readline']
@@ -86,65 +86,12 @@ kernel_json = {
 class install_with_kernelspec(install):
     def run(self):
         install.run(self)
-        # from ipykernel.kernelspec import install as install_kernel_spec
-        from IPython.kernel.kernelspec import install_kernel_spec
-        from IPython.utils.tempdir import TemporaryDirectory
-        with TemporaryDirectory() as td:
-            os.chmod(td, 0o755)  # Starts off as 700, not user readable
-            with open(os.path.join(td, 'kernel.json'), 'w') as f:
-                json.dump(kernel_json, f, sort_keys=True)
-            log.info('Installing kernel spec')
-            # install_kernel_resources(td, files=['logo-64x64.png'])
-            kernel_name = kernel_json['name']
-            try:
-                install_kernel_spec(td, kernel_name, user=self.user,
-                                    replace=True)
-            except:
-                install_kernel_spec(td, kernel_name, user=not self.user,
-                                    replace=True)
+        from ipykernel.kernelspec import install as install_kernel_spec
 
-def subdirs(root, file='*.*', depth=10):
-    for k in range(depth):
-        yield root + '*/' * k + file
-
-
-class initialize(Command):
-    """
-    Manually creates the database used by Django
-    """
-
-    description = "manually create the database used by django"
-    user_options = []  # distutils complains if this is not here.
-
-    def __init__(self, *args):
-        self.args = args[0]  # so we can pass it to other classes
-        Command.__init__(self, *args)
-
-    def initialize_options(self):  # distutils wants this
-        pass
-
-    def finalize_options(self):    # this too
-        pass
-
-    def run(self):
-        import os
-        import subprocess
-        settings = {}
-        execfile('mathics/settings.py', settings)
-
-        database_file = settings['DATABASES']['default']['NAME']
-        print("Creating data directory %s" % settings['DATA_DIR'])
-        if not os.path.exists(settings['DATA_DIR']):
-            os.makedirs(settings['DATA_DIR'])
-        print("Creating database %s" % database_file)
-        try:
-            subprocess.check_call(
-                [sys.executable, 'mathics/manage.py', 'migrate', '--noinput'])
-            print("")
-            print("database created successfully.")
-        except subprocess.CalledProcessError:
-            print("error: failed to create database")
-            sys.exit(1)
+        log.info('Installing kernel spec')
+        with open('kernel.json', 'w') as f:
+            json.dump(kernel_json, f, sort_keys=True)
+        install_kernel_spec(kernel_name=kernel_json['name'])
 
 
 class test(Command):
@@ -176,11 +123,8 @@ class test(Command):
             sys.exit(1)
 
 
-CMDCLASS['initialize'] = initialize
 CMDCLASS['test'] = test
 CMDCLASS['install'] = install_with_kernelspec
-
-mathjax_files = list(subdirs('media/js/mathjax/'))
 
 setup(
     name="Mathics",
@@ -207,7 +151,7 @@ setup(
             'media/js/innerdom/*.js', 'media/js/prototype/*.js',
             'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
             'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
-            'templates/doc/*.html'] + mathjax_files,
+            'templates/doc/*.html'],
         'mathics.data': ['*.csv', 'ExampleData/*'],
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
         'mathics.autoload': ['formats/*/Import.m', 'formats/*/Export.m'],
