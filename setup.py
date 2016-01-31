@@ -67,9 +67,11 @@ else:
     INSTALL_REQUIRES = ['cython>=0.15.1']
 
 # General Requirements
+SETUP_REQUIRES = ['ipykernel >= 4.2']
+
 INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.8, < 1.9', 'ply>=3.8',
                      'mpmath>=0.19', 'python-dateutil', 'colorama',
-                     'interruptingcow', 'ipykernel >= 4.2']
+                     'interruptingcow'] + SETUP_REQUIRES
 
 # if sys.platform == "darwin":
 #    INSTALL_REQUIRES += ['readline']
@@ -143,6 +145,8 @@ setup(
     ],
 
     install_requires=INSTALL_REQUIRES,
+
+    setup_requires=SETUP_REQUIRES,
 
     package_data={
         'mathics.doc': ['documentation/*.mdoc', 'xml/data'],
