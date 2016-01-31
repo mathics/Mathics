@@ -42,6 +42,36 @@ class MathicsKernel(Kernel):
                 'user_expressions': {},
                }
 
+    def do_is_complete(self, code):
+        code = code.rstrip()
+
+        trailing_ops = ['+', '-', '/', '*', '^', '=', '>', '<', '/;', '/:',
+                        '/.', '&&', '||']
+        if any(code.endswith(op) for op in trailing_ops):
+            return {'status': 'incomplete', 'indent': ''}
+
+        brackets = [('(', ')'), ('[', ']'), ('{', '}')]
+        kStart, kEnd, stack = 0, 1, []
+        in_string = False
+        for char in code:
+            if char == '"':
+                in_string = not in_string
+            if not in_string:
+                for bracketPair in brackets:
+                    if char == bracketPair[kStart]:
+                        stack.append(char)
+                    elif char == bracketPair[kEnd]:
+                        if len(stack) == 0:
+                            return {'status': 'invalid'}
+                        if stack.pop() != bracketPair[kStart]:
+                            return {'status': 'invalid'}
+        if in_string:
+            return {'status': 'incomplete', 'indent': ''}
+        elif len(stack) != 0:
+            return {'status': 'incomplete', 'indent': 4 * len(stack) * ' '}
+        else:
+            return {'status': 'complete'}
+
 if __name__ == '__main__':
     from ipykernel.kernelapp import IPKernelApp
     IPKernelApp.launch_instance(kernel_class=MathicsKernel)
