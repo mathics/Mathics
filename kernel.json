@@ -1,0 +1,3 @@
+{"argv":["python2","-m","mathicskernel", "-f", "{connection_file}"],
+ "display_name":"Mathics"
+}
