@@ -88,16 +88,20 @@ kernel_json = {
 class install_with_kernelspec(install):
     def run(self):
         install.run(self)
-        from ipykernel.kernelspec import install as install_kernel_spec
+
+        from ipykernel.kernelspec import write_kernel_spec
+        from jupyter_client.kernelspec import KernelSpecManager
+
+        kernel_spec_manager = KernelSpecManager()
+
+        log.info('Writing kernel spec')
+        kernel_spec_path = write_kernel_spec(overrides=kernel_json)
 
         log.info('Installing kernel spec')
-        with open('kernel.json', 'w') as f:
-            json.dump(kernel_json, f, sort_keys=True)
-        try:
-            install_kernel_spec(kernel_name=kernel_json['name'], user=self.user)
-        except:
-            install_kernel_spec(kernel_name=kernel_json['name'], user=not self.user)
-
+        kernel_spec_manager.install_kernel_spec(
+            kernel_spec_path,
+            kernel_name=kernel_json['name'],
+            user=self.user)
 
 class test(Command):
     """
