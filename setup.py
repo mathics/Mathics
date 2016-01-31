@@ -24,7 +24,13 @@ mathics-users@googlegroups.com and ask for help.
 """
 
 import sys
+import os
+import json
+
+from distutils import log
+
 from setuptools import setup, Command, Extension
+from setuptools.command.install import install
 
 # Ensure user has the correct Python version
 if sys.version_info[:2] != (2, 7):
@@ -68,6 +74,34 @@ INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.8, < 1.9', 'ply>=3.8',
 # if sys.platform == "darwin":
 #    INSTALL_REQUIRES += ['readline']
 
+kernel_json = {
+    'argv': [sys.executable,
+             '-m', 'mathics',
+             '-f', '{connection_file}'],
+    'display_name': 'mathics',
+    'language': 'Wolfram',
+    'name': 'mathics',
+}
+
+class install_with_kernelspec(install):
+    def run(self):
+        install.run(self)
+        # from ipykernel.kernelspec import install as install_kernel_spec
+        from IPython.kernel.kernelspec import install_kernel_spec
+        from IPython.utils.tempdir import TemporaryDirectory
+        with TemporaryDirectory() as td:
+            os.chmod(td, 0o755)  # Starts off as 700, not user readable
+            with open(os.path.join(td, 'kernel.json'), 'w') as f:
+                json.dump(kernel_json, f, sort_keys=True)
+            log.info('Installing kernel spec')
+            # install_kernel_resources(td, files=['logo-64x64.png'])
+            kernel_name = kernel_json['name']
+            try:
+                install_kernel_spec(td, kernel_name, user=self.user,
+                                    replace=True)
+            except:
+                install_kernel_spec(td, kernel_name, user=not self.user,
+                                    replace=True)
 
 def subdirs(root, file='*.*', depth=10):
     for k in range(depth):
@@ -144,6 +178,7 @@ class test(Command):
 
 CMDCLASS['initialize'] = initialize
 CMDCLASS['test'] = test
+CMDCLASS['install'] = install_with_kernelspec
 
 mathjax_files = list(subdirs('media/js/mathjax/'))
 
@@ -182,7 +217,6 @@ setup(
     entry_points={
         'console_scripts': [
             'mathics = mathics.main:main',
-            'mathicsserver = mathics.server:main',
         ],
     },
 
@@ -194,8 +228,8 @@ setup(
     author_email="jan@poeschko.com",
     description="A general-purpose computer algebra system.",
     license="GPL",
-    keywords="computer algebra system mathics mathematica sage sympy",
-    url="http://www.mathics.org/",   # project home page, if any
+    keywords="computer algebra system mathics mathematica sympy wolfram",
+    url="http://www.mathics.github.io/",   # project home page, if any
 
     # TODO: could also include long_description, download_url, classifiers,
     # etc.

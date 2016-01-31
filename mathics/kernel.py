@@ -44,7 +44,8 @@ class MathicsKernel(Kernel):
                 'user_expressions': {},
                }
 
-    def do_is_complete(self, code):
+    @staticmethod
+    def do_is_complete(code):
         code = code.rstrip()
 
         trailing_ops = ['+', '-', '/', '*', '^', '=', '>', '<', '/;', '/:',
