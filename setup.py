@@ -67,7 +67,7 @@ else:
     INSTALL_REQUIRES = ['cython>=0.15.1']
 
 # General Requirements
-SETUP_REQUIRES = ['ipykernel >= 4.2']
+SETUP_REQUIRES = [] # TODO ipython
 
 INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.8, < 1.9', 'ply>=3.8',
                      'mpmath>=0.19', 'python-dateutil', 'colorama',
