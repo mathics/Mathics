@@ -98,10 +98,16 @@ class install_with_kernelspec(install):
         kernel_spec_path = write_kernel_spec(overrides=kernel_json)
 
         log.info('Installing kernel spec')
-        kernel_spec_manager.install_kernel_spec(
-            kernel_spec_path,
-            kernel_name=kernel_json['name'],
-            user=self.user)
+        try:
+            kernel_spec_manager.install_kernel_spec(
+                kernel_spec_path,
+                kernel_name=kernel_json['name'],
+                user=self.user)
+        except IOError:
+            kernel_spec_manager.install_kernel_spec(
+                kernel_spec_path,
+                kernel_name=kernel_json['name'],
+                user=not self.user)
 
 class test(Command):
     """
