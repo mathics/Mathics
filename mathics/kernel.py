@@ -59,7 +59,7 @@ class MathicsKernel(Kernel):
             return {'status': 'ok', 'found': False, 'data': {}, 'metadata': {}}
 
         doc = Doc(instance.__doc__ or '')    # TODO Handle possible ValueError here
-        data = {'text/plain': str(doc), 'text/html': doc.html()}        # TODO 'application/x-tex': doc.latex()
+        data = {'text/plain': doc.text(detail_level), 'text/html': doc.html()}        # TODO 'application/x-tex': doc.latex()
         return {'status': 'ok', 'found': True, 'data' : data, 'metadata': {}}
 
     @staticmethod
