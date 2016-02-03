@@ -104,10 +104,7 @@ class install_with_kernelspec(install):
                 kernel_name=kernel_json['name'],
                 user=self.user)
         except IOError:
-            kernel_spec_manager.install_kernel_spec(
-                kernel_spec_path,
-                kernel_name=kernel_json['name'],
-                user=not self.user)
+            log.error('Failed to install kernel spec')
 
 class test(Command):
     """
