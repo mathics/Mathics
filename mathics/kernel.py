@@ -3,8 +3,10 @@ from ipykernel.kernelbase import Kernel
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 from mathics.core.expression import Integer
+from mathics.builtin import builtins
 from mathics import settings
 from mathics.version import __version__
+from mathics.doc import Doc
 
 
 class MathicsKernel(Kernel):
@@ -43,6 +45,22 @@ class MathicsKernel(Kernel):
                 'payload': [],
                 'user_expressions': {},
                }
+
+    def do_inspect(self, code, cursor_pos, detail_level=0):
+        # name = code[:cursor_pos]
+        name = code
+
+        if '`' not in name:
+            name = 'System`' + name
+
+        try:
+            instance = builtins[name]
+        except KeyError:
+            return {'status': 'ok', 'found': False, 'data': {}, 'metadata': {}}
+
+        doc = Doc(instance.__doc__ or '')    # TODO Handle possible ValueError here
+        data = {'text/plain': str(doc), 'text/html': doc.html()}        # TODO 'application/x-tex': doc.latex()
+        return {'status': 'ok', 'found': True, 'data' : data, 'metadata': {}}
 
     @staticmethod
     def do_is_complete(code):
