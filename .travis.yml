@@ -27,6 +27,7 @@ before_install:
     sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
     fi
   - pip install ipython
+  - pip install ipykernel
   - pip install unittest2
   - pip install pexpect
   - pip install git+https://github.com/sympy/sympy.git@$SYMPY_SRC
