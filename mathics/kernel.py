@@ -1,7 +1,10 @@
+import sys
+import traceback
+
 from ipykernel.kernelbase import Kernel
 
 from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation
+from mathics.core.evaluation import Evaluation, Message, Result
 from mathics.core.expression import Integer
 from mathics.builtin import builtins
 from mathics import settings
@@ -28,27 +31,37 @@ class MathicsKernel(Kernel):
 
     def do_execute(self, code, silent, store_history=True, user_expressions=None,
                    allow_stdin=False):
+        # TODO update user definitions
+
+        response = {
+            # FIXME Hack - base class increments the execution count
+            'execution_count': self.execution_count,
+            'payload': [],
+            'user_expressions': {},
+            }
+        try:
+            evaluation = Evaluation(code, self.definitions,
+                                    timeout=settings.TIMEOUT)
+        except Exception as exc:
+            response['status'] = 'error'
+            response['ename'] = 'System:exception'
+            response['traceback'] = traceback.format_exception(*sys.exc_info())
+            # if settings.DEBUG:
+            #     evaluation = Evaluation()
+            #     info = '\n'.join(response['traceback'])
+            #     msg = 'Exception raised: %s\n\n%s' % (exc, info)
+            #     msg = Message('System', 'exception', msg)
+            #     evaluation.results = [Result([msg], None, None)]
+        else:
+            response['status'] = 'ok'
+
         if not silent:
-
-            def out_callback(out):
-                print(out)      # TODO - self.send_xxx()
-
-            # TODO update user definitions
-
-            evaluation = Evaluation(code, self.definitions, timeout=settings.TIMEOUT,
-                                    out_callback=out_callback)
-
             for result in evaluation.results:
                 if result is not None:
                     stream_content = {'name': 'stdout', 'text': result.result}
                     self.send_response(self.iopub_socket, 'stream', stream_content)
 
-        return {'status': 'ok',
-                # The base class increments the execution count
-                'execution_count': self.execution_count,
-                'payload': [],
-                'user_expressions': {},
-               }
+        return response
 
     def do_inspect(self, code, cursor_pos, detail_level=0):
         # name = code[:cursor_pos]
