@@ -58,8 +58,12 @@ class MathicsKernel(Kernel):
         if not silent:
             for result in evaluation.results:
                 if result is not None:
-                    stream_content = {'name': 'stdout', 'text': result.result}
-                    self.send_response(self.iopub_socket, 'stream', stream_content)
+                    data = {
+                        'text/plain': result.result,
+                        # TODO html / mathjax output
+                    }
+                    content = {'execution_count': result.line_no, 'data': data, 'metadata': {}}
+                    self.send_response(self.iopub_socket, 'execute_result', content)
 
         response['execution_count'] = self.definitions.get_line()
 
