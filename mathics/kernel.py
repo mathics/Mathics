@@ -36,20 +36,22 @@ class MathicsKernel(Kernel):
         response = {
             'payload': [],
             'user_expressions': {},
-            }
+        }
+
         try:
-            evaluation = Evaluation(code, self.definitions,
+            evaluation = Evaluation(code, self.definitions, out_callback=self.out_callback,
                                     timeout=settings.TIMEOUT)
         except Exception as exc:
             response['status'] = 'error'
             response['ename'] = 'System:exception'
             response['traceback'] = traceback.format_exception(*sys.exc_info())
+            evaluation = Evaluation()
             # if settings.DEBUG:
-            #     evaluation = Evaluation()
             #     info = '\n'.join(response['traceback'])
             #     msg = 'Exception raised: %s\n\n%s' % (exc, info)
             #     msg = Message('System', 'exception', msg)
             #     evaluation.results = [Result([msg], None, None)]
+            raise exc
         else:
             response['status'] = 'ok'
 
@@ -62,6 +64,21 @@ class MathicsKernel(Kernel):
         response['execution_count'] = self.definitions.get_line()
 
         return response
+
+    def out_callback(self, out):
+        if out.is_message:
+            content = {
+                'name': 'stderr',
+                'text': '{symbol}::{tag}: {text}\n'.format(**out.get_data()),
+            }
+        elif out.is_print:
+            content = {
+                'name': 'stdout',
+                'text': out.text + '\n',
+            }
+        else:
+            raise ValueError('Unknown out')
+        self.send_response(self.iopub_socket, 'stream', content)
 
     def do_inspect(self, code, cursor_pos, detail_level=0):
         # name = code[:cursor_pos]
