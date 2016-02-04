@@ -35,7 +35,6 @@ class MathicsKernel(Kernel):
 
         response = {
             # FIXME Hack - base class increments the execution count
-            'execution_count': self.execution_count,
             'payload': [],
             'user_expressions': {},
             }
@@ -60,6 +59,14 @@ class MathicsKernel(Kernel):
                 if result is not None:
                     stream_content = {'name': 'stdout', 'text': result.result}
                     self.send_response(self.iopub_socket, 'stream', stream_content)
+
+        # set execution count
+        line = self.definitions.get_definition('$Line').ownvalues
+        if line:
+            line = line[0].replace.get_int_value()
+        else:
+            line = 1    # user may have deleted $Line (e.g. by calling Quit[])
+        response['execution_count'] = line
 
         return response
 
