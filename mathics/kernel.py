@@ -57,7 +57,7 @@ class MathicsKernel(Kernel):
 
         if not silent:
             for result in evaluation.results:
-                if result is not None:
+                if result.result is not None:
                     data = {
                         'text/plain': result.result,
                         # TODO html / mathjax output
