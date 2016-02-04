@@ -14,7 +14,11 @@ class MathicsKernel(Kernel):
     implementation_version = __version__
     language = 'Wolfram'
     language_version = '0.1'    # TODO
-    language_info = {'mimetype': 'text/plain'}
+    language_info = {
+        'name': 'mathics',
+        'mimetype': 'text/plain',
+        'file_extension': 'm',
+    }
     banner = "Mathics kernel"   # TODO
 
     def __init__(self, **kwargs):
