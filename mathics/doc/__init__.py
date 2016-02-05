@@ -18,6 +18,6 @@ u"""
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from doc import Documentation
+from doc import Documentation, Doc
 
 documentation = Documentation()

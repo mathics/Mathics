@@ -706,6 +706,7 @@ class StringTake(Builtin):
     """
     StringTake["string",n] gives the first n characters in "string"
     StringTake["string",-n] gives the last n characters in "string"
+    StringTake["string",{n}] gives the n-esim character in "string"
     StringTake["string",{m,n}] gives characters m through n in "string"
     >> StringTake["abcde", 2]
     = ab
@@ -717,6 +718,10 @@ class StringTake(Builtin):
     = b
     >> StringTake["abcd", {2,3}]
     = bc
+    >> StringTake["abcd", {3,2}]
+    = 
+    #> StringTake["abcd",0]
+    = 
     """
     messages = {
         'strse': 'String expected at position 1.',
@@ -796,6 +801,7 @@ class StringDrop(Builtin):
     """
     StringDrop["string",n] gives "string" with the first n characters dropped.
     StringDrop["string",-n] gives "string" with the last  n characters dropped.
+    StringDrop["string",{n}] gives "string" with the character n dropped
     StringDrop["string",{m,n}] gives "string" with the characters m through
     n dropped.
     >> StringDrop["abcde", 2]
@@ -806,6 +812,10 @@ class StringDrop(Builtin):
     = acde
     >> StringDrop["abcde", {2,3}]
     = ade
+    >> StringDrop["abcd",{3,2}]
+    = abcd
+    >> StringDrop["abcd",0]
+    = abcd
     """
     messages = {
         'strse': 'String expected at position 1.',

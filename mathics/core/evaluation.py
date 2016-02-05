@@ -96,7 +96,7 @@ class Print(Out):
         self.text = text
 
     def __str__(self):
-        return ' | ' + self.text
+        return self.text
 
     def __cmp__(self, other):
         if self.is_message == other.is_message and self.text == other.text:

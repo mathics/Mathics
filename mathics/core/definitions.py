@@ -432,6 +432,14 @@ class Definitions(object):
         definition = self.get_user_definition(self.lookup_name(name))
         return definition.remove_rule(expr)
 
+    def get_line(self):
+        'returns current line number'
+        line = self.get_definition('$Line').ownvalues
+        if line:
+            return line[0].replace.get_int_value()
+        else:
+            return 1    # user may have deleted $Line (e.g. by calling Quit[])
+
 
 def get_tag_position(pattern, name):
     if pattern.get_name() == name:

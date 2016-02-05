@@ -2099,7 +2099,7 @@ class Get(PrefixOperator):
         except NameError:
             from mathics.core.parser import parse, ParseError
 
-        from mathics.main import wait_for_line
+        from mathics.kernel import MathicsKernel
 
         total_input = ""
         syntax_error_count = 0
@@ -2107,7 +2107,7 @@ class Get(PrefixOperator):
 
         for lineno, tmp in enumerate(result):
             total_input += ' ' + tmp
-            if wait_for_line(total_input):
+            if MathicsKernel.do_is_complete(total_input)['status'] != 'complete':
                 continue
             try:
                 expr = parse(total_input, evaluation.definitions)

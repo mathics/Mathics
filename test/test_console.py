@@ -17,7 +17,7 @@ class ConsoleTest(unittest.TestCase):
         self.assertRegexpMatches(
             cons.readline(), 'Mathics \\d\\.\\d.*\r\n')
         self.assertRegexpMatches(
-            cons.readline(), 'on (CPython|PyPy) \\d.\\d.\\d \\(.+\\) ?\r\n')
+            cons.readline(), 'on (CPython|PyPy) \\d+.\\d+.\\d+ \\(.+\\) ?\r\n')
         self.assertRegexpMatches(
             cons.readline(), 'using ([a-zA-Z]+ [\\.\\d]+(, |\r\n$))+')
 

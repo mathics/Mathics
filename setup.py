@@ -24,7 +24,13 @@ mathics-users@googlegroups.com and ask for help.
 """
 
 import sys
+import os
+import json
+
+from distutils import log
+
 from setuptools import setup, Command, Extension
+from setuptools.command.install import install
 
 # Ensure user has the correct Python version
 if sys.version_info[:2] != (2, 7):
@@ -61,57 +67,44 @@ else:
     INSTALL_REQUIRES = ['cython>=0.15.1']
 
 # General Requirements
+SETUP_REQUIRES = [] # TODO ipython
+
 INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.8, < 1.9', 'ply>=3.8',
                      'mpmath>=0.19', 'python-dateutil', 'colorama',
-                     'interruptingcow']
+                     'interruptingcow'] + SETUP_REQUIRES
 
 # if sys.platform == "darwin":
 #    INSTALL_REQUIRES += ['readline']
 
+kernel_json = {
+    'argv': [sys.executable,
+             '-m', 'mathics',
+             '-f', '{connection_file}'],
+    'display_name': 'mathics',
+    'language': 'Wolfram',
+    'name': 'mathics',
+}
 
-def subdirs(root, file='*.*', depth=10):
-    for k in range(depth):
-        yield root + '*/' * k + file
-
-
-class initialize(Command):
-    """
-    Manually creates the database used by Django
-    """
-
-    description = "manually create the database used by django"
-    user_options = []  # distutils complains if this is not here.
-
-    def __init__(self, *args):
-        self.args = args[0]  # so we can pass it to other classes
-        Command.__init__(self, *args)
-
-    def initialize_options(self):  # distutils wants this
-        pass
-
-    def finalize_options(self):    # this too
-        pass
-
+class install_with_kernelspec(install):
     def run(self):
-        import os
-        import subprocess
-        settings = {}
-        execfile('mathics/settings.py', settings)
+        install.run(self)
 
-        database_file = settings['DATABASES']['default']['NAME']
-        print("Creating data directory %s" % settings['DATA_DIR'])
-        if not os.path.exists(settings['DATA_DIR']):
-            os.makedirs(settings['DATA_DIR'])
-        print("Creating database %s" % database_file)
+        from ipykernel.kernelspec import write_kernel_spec
+        from jupyter_client.kernelspec import KernelSpecManager
+
+        kernel_spec_manager = KernelSpecManager()
+
+        log.info('Writing kernel spec')
+        kernel_spec_path = write_kernel_spec(overrides=kernel_json)
+
+        log.info('Installing kernel spec')
         try:
-            subprocess.check_call(
-                [sys.executable, 'mathics/manage.py', 'migrate', '--noinput'])
-            print("")
-            print("database created successfully.")
-        except subprocess.CalledProcessError:
-            print("error: failed to create database")
-            sys.exit(1)
-
+            kernel_spec_manager.install_kernel_spec(
+                kernel_spec_path,
+                kernel_name=kernel_json['name'],
+                user=self.user)
+        except:
+            log.error('Failed to install kernel spec')
 
 class test(Command):
     """
@@ -142,10 +135,8 @@ class test(Command):
             sys.exit(1)
 
 
-CMDCLASS['initialize'] = initialize
 CMDCLASS['test'] = test
-
-mathjax_files = list(subdirs('media/js/mathjax/'))
+CMDCLASS['install'] = install_with_kernelspec
 
 setup(
     name="Mathics",
@@ -165,6 +156,8 @@ setup(
 
     install_requires=INSTALL_REQUIRES,
 
+    setup_requires=SETUP_REQUIRES,
+
     package_data={
         'mathics.doc': ['documentation/*.mdoc', 'xml/data'],
         'mathics.web': [
@@ -172,7 +165,7 @@ setup(
             'media/js/innerdom/*.js', 'media/js/prototype/*.js',
             'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
             'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
-            'templates/doc/*.html'] + mathjax_files,
+            'templates/doc/*.html'],
         'mathics.data': ['*.csv', 'ExampleData/*'],
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
         'mathics.autoload': ['formats/*/Import.m', 'formats/*/Export.m'],
@@ -182,7 +175,6 @@ setup(
     entry_points={
         'console_scripts': [
             'mathics = mathics.main:main',
-            'mathicsserver = mathics.server:main',
         ],
     },
 
@@ -194,8 +186,8 @@ setup(
     author_email="jan@poeschko.com",
     description="A general-purpose computer algebra system.",
     license="GPL",
-    keywords="computer algebra system mathics mathematica sage sympy",
-    url="http://www.mathics.org/",   # project home page, if any
+    keywords="computer algebra system mathics mathematica sympy wolfram",
+    url="http://www.mathics.github.io/",   # project home page, if any
 
     # TODO: could also include long_description, download_url, classifiers,
     # etc.
