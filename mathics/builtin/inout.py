@@ -821,8 +821,6 @@ class StringForm(Builtin):
      = a bla b blub c bla b
     """
 
-    format_re = re.compile(r'(\`(\d*)\`)')
-
     def apply_makeboxes(self, s, args, f, evaluation):
         '''MakeBoxes[StringForm[s_String, args___],
             f:StandardForm|TraditionalForm|OutputForm]'''
@@ -832,7 +830,7 @@ class StringForm(Builtin):
         result = []
         pos = 0
         last_index = 0
-        for match in self.format_re.finditer(s):
+        for match in re.finditer(r'(\`(\d*)\`)', s):
             start, end = match.span(1)
             if match.group(2):
                 index = int(match.group(2))
