@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import sys
 import codecs
 writer = codecs.getwriter("utf-8")
@@ -48,16 +50,15 @@ def get_version_string(is_server, newlines=False):
 
 
 def print_version(is_server):
-    print "\n" + get_version_string(is_server, newlines=True)
+    print("\n" + get_version_string(is_server, newlines=True))
 
 
 def print_license():
-    print u"""
-Copyright (C) 2011-2015 The Mathics Team.
-This program comes with ABSOLUTELY NO WARRANTY.
-This is free software, and you are welcome to redistribute it
-under certain conditions.
-See the documentation for the full license.
-"""
+    print(u"\n"
+          u"Copyright (C) 2011-2015 The Mathics Team.\n"
+          u"This program comes with ABSOLUTELY NO WARRANTY.\n"
+          u"This is free software, and you are welcome to redistribute it\n"
+          u"under certain conditions.\n"
+          u"See the documentation for the full license.\n")
 
 from mathics.core.parser import parse, ScanError, ParseError

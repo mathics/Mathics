@@ -232,7 +232,6 @@ class BaseExpression(object):
                 for rule in formats:
                     result = rule.apply(expr, evaluation)
                     if result is not None and result != expr:
-                        # print rule
                         return result.evaluate(evaluation)
                 return None
 

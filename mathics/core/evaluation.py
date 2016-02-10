@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import sys
 import cPickle as pickle
 import interruptingcow
@@ -303,7 +305,7 @@ class Evaluation(object):
         symbol_shortname = self.definitions.shorten_name(symbol)
 
         if settings.DEBUG_PRINT:
-            print 'MESSAGE: %s::%s (%s)' % (symbol_shortname, tag, args)
+            print('MESSAGE: %s::%s (%s)' % (symbol_shortname, tag, args))
 
         pattern = Expression('MessageName', Symbol(symbol), String(tag))
         text = self.definitions.get_value(
@@ -332,7 +334,7 @@ class Evaluation(object):
         if self.out_callback:
             self.out_callback(self.out[-1])
         if settings.DEBUG_PRINT:
-            print 'OUT: ' + text
+            print('OUT: ' + text)
 
     def error(self, symbol, tag, *args):
         # Temporarily reset the recursion limit, to allow the message being

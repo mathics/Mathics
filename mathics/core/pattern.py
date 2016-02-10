@@ -433,8 +433,6 @@ class ExpressionPattern(Pattern):
                              included=leaf_candidates, less_first=less_first,
                              *set_lengths)
 
-        # print "Match %s in %s" % (leaf, expression)
-
         if rest_leaves:
             next_leaf = rest_leaves[0]
             next_rest_leaves = rest_leaves[1:]
@@ -442,10 +440,6 @@ class ExpressionPattern(Pattern):
         next_index = leaf_index + 1
 
         for items, items_rest in sets:
-            # try:
-            # print (u"  " + u", ".join(unicode(item)
-            #        for item in items)).encode('utf-8')
-            # except
             # Include wrappings like Plus[a, b] only if not all items taken
             # - in that case we would match the same expression over and over.
 

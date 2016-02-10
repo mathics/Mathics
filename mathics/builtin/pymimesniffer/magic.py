@@ -199,12 +199,12 @@ class TestLoader(unittest.TestCase):
 
 def dump(mimetypes):
     for type, rules in mimetypes.items():
-        print type
+        print(type)
 
         for rule in rules:
-            print "\textenions = %s" % rule.extensions
-            print "\tmagic num = %s" % rule.magicNumbers
-            print "\tmagic str = %s" % rule.magicStrings
+            print("\textenions = %s" % rule.extensions)
+            print("\tmagic num = %s" % rule.magicNumbers)
+            print("\tmagic str = %s" % rule.magicStrings)
 
 if __name__ == '__main__':
     logging.basicConfig(

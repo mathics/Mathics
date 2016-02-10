@@ -178,7 +178,6 @@ def from_sympy(expr):
         return Expression('Equal', *[from_sympy(arg) for arg in expr.args])
 
     elif isinstance(expr, SympyExpression):
-        # print "SympyExpression: %s" % expr
         return expr.expr
 
     elif isinstance(expr, sympy.RootSum):

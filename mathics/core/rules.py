@@ -40,7 +40,6 @@ class BaseRule(object):
             return []
 
         def yield_match(vars, rest):
-            # print "Yield match %s" % vars
             if rest is None:
                 rest = ([], [])
             if 0 < len(rest[0]) + len(rest[1]) == len(expression.get_leaves()):
@@ -51,9 +50,6 @@ class BaseRule(object):
                 if name.startswith('_option_'):
                     options[name[len('_option_'):]] = value
                     del vars[name]
-            # print sorted((name.encode('utf-8'),
-            # unicode(value).encode('utf-8')) for name, value in
-            # vars.iteritems())
             new_expression = self.do_replace(vars, options, evaluation)
             if new_expression is None:
                 new_expression = expression
@@ -62,6 +58,7 @@ class BaseRule(object):
                     rest[0] + [new_expression] + rest[1]))
             else:
                 result = new_expression
+
             # Flatten out sequences (important for Rule itself!)
 
             def flatten(expr):
@@ -73,9 +70,7 @@ class BaseRule(object):
                     new_expr.options = expr.options
                 return new_expr
 
-            # print "Flatten"
             result = flatten(result)
-            # print "Flattened"
             if return_list:
                 result_list.append(result)
                 # count += 1
@@ -83,13 +78,6 @@ class BaseRule(object):
                     # return result_list
                     raise StopGenerator_BaseRule(result_list)
             else:
-                # return result
-                # print "Return %s" % result
-                # raise StopGenerator("BaseRule_apply")(result)
-                # exc = ValueError()
-                # exc.value = result
-                # print "raise"
-                # raise exc
                 raise StopGenerator_BaseRule(result)
 
                 # only first possibility counts
@@ -97,10 +85,7 @@ class BaseRule(object):
         try:
             self.pattern.match(
                 yield_match, expression, {}, evaluation, fully=fully)
-        # except StopGenerator("BaseRule_apply"), exc:
         except StopGenerator_BaseRule, exc:
-            # print "exc"
-            # print "Apply %s -> %s" % (self, exc.value)
             return exc.value
 
         if return_list:

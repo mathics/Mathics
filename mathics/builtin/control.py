@@ -472,7 +472,6 @@ class FixedPoint(Builtin):
         while count is None or index < count:
             evaluation.check_stopped()
             new_result = Expression(f, result).evaluate(evaluation)
-            # print '%d: %s' % (index, new_result)
             if new_result == result:
                 result = new_result
                 break

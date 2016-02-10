@@ -41,7 +41,6 @@ def _profile():
     global result
     prepare()
     cProfile.run('run()', 'profile')
-    # print 'Result: %s\n' % result
     p = pstats.Stats('profile')
     p.sort_stats('cumulative').print_stats(50)
     p.print_callees(20)

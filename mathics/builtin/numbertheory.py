@@ -370,18 +370,6 @@ class PrimeQ(Builtin):
         else:
             return Symbol('False')
 
-        # old variant using gmpy
-        """count = 25
-        while True:
-            evaluation.check_stopped()
-            result = n.is_prime(count)
-            print result, count
-            if result == 0:
-                return Symbol('False')
-            elif result == 2:
-                return Symbol('True')
-            count += 50"""
-
 
 class CoprimeQ(Builtin):
     """

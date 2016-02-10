@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import sys
 import os
 import argparse
@@ -64,7 +66,7 @@ class TerminalShell(object):
         term_colors = color_schemes.get(colors.upper())
         if term_colors is None:
             out_msg = "The 'colors' argument must be {0} or None"
-            print out_msg.format(repr(color_schemes.keys()))
+            print(out_msg.format(repr(color_schemes.keys())))
             quit()
 
         self.incolors, self.outcolors = term_colors
@@ -91,7 +93,7 @@ class TerminalShell(object):
             return newline.join(text.splitlines())
 
         def out_callback(out):
-            print to_output(unicode(out))
+            print(to_output(unicode(out)))
 
         evaluation = Evaluation(text,
                                 self.definitions,
@@ -133,7 +135,7 @@ class TerminalShell(object):
         except Exception:
             # any exception thrown inside the completer gets silently
             # thrown away otherwise
-            print "Unhandled error in readline completion"
+            print("Unhandled error in readline completion")
 
     def _complete_symbol_name(self, text, state):
         # The readline module calls this function repeatedly,
@@ -250,12 +252,12 @@ def main():
     if not (args.quiet or args.script):
         print_version(is_server=False)
         print_license()
-        print u"Quit by pressing {0}\n".format(quit_command)
+        print(u"Quit by pressing {0}\n".format(quit_command))
 
     if args.execute:
         for expr in args.execute:
             total_input = expr.decode(shell.input_encoding)
-            print shell.get_in_prompt() + total_input
+            print(shell.get_in_prompt() + total_input)
             shell.evaluate(total_input)
         if not args.persist:
             return
@@ -267,16 +269,16 @@ def main():
                 line = line.decode('utf-8')     # TODO: other encodings
                 if args.script and line_no == 0 and line.startswith('#!'):
                     continue
-                print shell.get_in_prompt(continued=total_input != '') + line,
+                print(shell.get_in_prompt(continued=total_input != '') + line.rstrip('\n'))
                 total_input += ' ' + line
                 if line != "" and wait_for_line(total_input):
                     continue
                 shell.evaluate(total_input)
                 total_input = ""
             except (KeyboardInterrupt):
-                print '\nKeyboardInterrupt'
+                print('\nKeyboardInterrupt')
             except (SystemExit, EOFError):
-                print "\n\nGood bye!\n"
+                print("\n\nGood bye!\n")
                 break
         if not args.persist:
             return
@@ -293,9 +295,9 @@ def main():
             shell.evaluate(total_input)
             total_input = ""
         except (KeyboardInterrupt):
-            print '\nKeyboardInterrupt'
+            print('\nKeyboardInterrupt')
         except (SystemExit, EOFError):
-            print "\n\nGood bye!\n"
+            print("\n\nGood bye!\n")
             break
 
 if __name__ == '__main__':

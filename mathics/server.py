@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import sys
 import os
 import argparse
@@ -70,10 +72,10 @@ def launch_app(args):
     if not args.quiet:
         print_version(is_server=True)
         print_license()
-        print u"Quit by pressing %s\n" % quit_command
+        print(u"Quit by pressing %s\n" % quit_command)
 
-        print u"""Open the graphical user interface at
-http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port
+        print(u"""Open the graphical user interface at
+http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port)
 
     if args.external:
         addr = '0.0.0.0'
@@ -100,7 +102,7 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port
         # Need to use an OS exit because sys.exit doesn't work in a thread
         os._exit(1)
     except KeyboardInterrupt:
-        print "\nGoodbye!\n"
+        print("\nGoodbye!\n")
         sys.exit(0)
 
 

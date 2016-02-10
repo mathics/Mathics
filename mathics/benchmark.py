@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 # Default number of times to repeat each benchmark. None -> Automatic
 TESTS_PER_BENCHMARK = None
 
@@ -98,8 +100,8 @@ def timeit(func, repeats=None):
     average_time = format_time_units((times[-1] - times[0]) / repeats)
     best_time = format_time_units(
         min([times[i + 1] - times[i] for i in range(repeats)]))
-    print "    {0:5n} loops, avg: {1} per loop, best: {2} per loop".format(
-        repeats, average_time, best_time)
+    print("    {0:5n} loops, avg: {1} per loop, best: {2} per loop".format(
+        repeats, average_time, best_time))
 
 
 def truncate_line(string):
@@ -109,34 +111,34 @@ def truncate_line(string):
 
 
 def benchmark_parse(expression_string):
-    print "  '{0}'".format(truncate_line(expression_string))
+    print("  '{0}'".format(truncate_line(expression_string)))
     timeit(lambda: parse(expression_string, definitions))
 
 
 def benchmark_format(expression_string):
-    print "  '{0}'".format(expression_string)
+    print("  '{0}'".format(expression_string))
     expr = parse(expression_string, definitions)
     timeit(lambda: expr.default_format(evaluation, "FullForm"))
 
 
 def benchmark_expression(expression_string):
-    print "  '{0}'".format(expression_string)
+    print("  '{0}'".format(expression_string))
     expr = parse(expression_string, definitions)
     timeit(lambda: expr.evaluate(evaluation))
 
 
 def benchmark_section(section_name):
-    print section_name
+    print(section_name)
     for benchmark in BENCHMARKS.get(section_name):
         benchmark_expression(benchmark)
-    print ""
+    print()
 
 
 def benchmark_all():
-    print "EVALUATION BENCHMARKS:"
+    print("EVALUATION BENCHMARKS:")
     for section_name in sorted(BENCHMARKS.keys()):
         benchmark_section(section_name)
-    print "PARSING BENCHMARKS:"
+    print("PARSING BENCHMARKS:")
     for expression_string in PARSING_BENCHMARKS:
         benchmark_parse(expression_string)
 
@@ -170,7 +172,7 @@ def main():
     try:
         evaluation = Evaluation("", definitions, catch_interrupt=False)
     except Exception as exc:
-        print "Exception {0}".format(exc)
+        print("Exception {0}".format(exc))
         info = sys.exc_info()
         sys.excepthook(*info)
         sys.exit(-1)

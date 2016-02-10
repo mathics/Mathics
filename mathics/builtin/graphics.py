@@ -368,7 +368,6 @@ class Hue(_Color):
                 return p
 
         result = tuple([trans(map(t)) for t in rgb]) + (self.components[3],)
-        print result
         return result
 
 
@@ -1406,7 +1405,6 @@ clip(box((%s,%s), (%s,%s)));
             try:
                 shift = 10.0 ** floor(log10(value))
             except ValueError:
-                print value
                 return 1, 1
             value = value / shift
             if value < 1.5:
