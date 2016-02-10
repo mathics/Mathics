@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Converts expressions from SymPy to Mathics expressions.
+Conversion to SymPy is handled directly in BaseExpression descendants.
+"""
+
 import sympy
 
 sympy_symbol_prefix = '_Mathics_User_'
