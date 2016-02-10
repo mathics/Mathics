@@ -1830,12 +1830,16 @@ def riffle(items, sep):
 
 
 def riffle_lists(items, seps):
-    if len(seps) + 1 < len(items):  # Use seperators cyclically
-        seps = seps * (len(items) / len(seps) + 1)
-    if len(seps) > len(items):
-        seps = seps[:len(items) - 1]
-    return [val for pair in (map(None, items, seps))
-            for val in pair if val is not None]
+    if len(seps) == 0:  # special case
+        seps = [Expression('List')]
+
+    i = 0
+    while i < len(items):
+        yield items[i]
+        if i == len(items) - 1 and len(items) != len(seps):
+            raise StopIteration
+        yield seps[i % len(seps)]
+        i += 1
 
 
 class Riffle(Builtin):
@@ -1853,14 +1857,20 @@ class Riffle(Builtin):
      = {1, 1, 2}
     #> Riffle[{1, 2}, {1, 2}]
      = {1, 1, 2, 2}
+
+    #> Riffle[{a,b,c}, {}]
+     = {a, {}, b, {}, c}
+    #> Riffle[{}, {}]
+     = {}
+    #> Riffle[{}, {a,b}]
+     = {}
     """
 
     def apply(self, list, sep, evaluation):
         'Riffle[list_List, sep_]'
 
         if sep.has_form('List', None):
-            return Expression('List',
-                              *riffle_lists(list.get_leaves(), sep.leaves))
+            return Expression('List', *riffle_lists(list.get_leaves(), sep.leaves))
         else:
             return Expression('List', *riffle_lists(list.get_leaves(), [sep]))
 
