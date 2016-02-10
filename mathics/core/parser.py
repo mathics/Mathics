@@ -1250,7 +1250,7 @@ class MathicsParser:
         args[0] = args[2]
 
     def p_UMinus(self, args):
-        'expr : Minus expr %prec UMinus'''
+        'expr : Minus expr %prec UMinus'
         if args[2].get_head_name() in ['System`Integer', 'System`Real']:
             args[2].value = -args[2].value
             args[0] = args[2]
@@ -1375,7 +1375,7 @@ class MathicsParser:
                 | expr Unset'''
         if len(args) == 3:
             args[0] = Expression('Unset', args[1])
-        elif len(args) == 4:
+        elif len(args) == 5:
             args[0] = Expression('TagUnset', args[1], args[3])
 
     def p_Function(self, args):
