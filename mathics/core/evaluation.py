@@ -9,7 +9,7 @@ import six
 import six.moves.cPickle as pickle
 
 import sys
-import interruptingcow
+import signal
 
 from mathics import settings
 from mathics.core.expression import ensure_context, KeyComparable
@@ -18,7 +18,6 @@ FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
            'TeXForm', 'MathMLForm',
            'MatrixForm', 'TableForm']
-
 
 class EvaluationInterrupt(Exception):
     pass
@@ -42,6 +41,37 @@ class BreakInterrupt(EvaluationInterrupt):
 
 class ContinueInterrupt(EvaluationInterrupt):
     pass
+
+
+def run_with_timeout(request, timeout):
+    '''
+    interrupts evaluation after a given time period.
+    '''
+    if timeout is None:
+        return request()
+
+    def handler(signum, frame):
+        raise TimeoutInterrupt
+
+    # register the handler
+    signal.signal(signal.SIGALRM, handler)
+
+    # start the timer
+    signal.alarm(timeout)
+
+    # do the computation
+    try:
+        result = request()
+    except TimeoutInterrupt:
+        raise
+    except:
+        # cancel the timer before raising
+        signal.alarm(0)
+        raise
+
+    # cancel the timer
+    signal.alarm(0)
+    return result
 
 
 class Out(KeyComparable):
@@ -189,11 +219,7 @@ class Evaluation(object):
                 result = None
                 exc_result = None
                 try:
-                    if timeout is None:
-                        result = evaluate()
-                    else:
-                        with interruptingcow.timeout(timeout, TimeoutInterrupt):
-                            result = evaluate()
+                    result = run_with_timeout(evaluate, timeout)
                 except KeyboardInterrupt:
                     if catch_interrupt:
                         exc_result = Symbol('$Aborted')

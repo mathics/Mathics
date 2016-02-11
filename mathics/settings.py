@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
-
 from __future__ import absolute_import
+
 import pkg_resources
 import sys
 import os
@@ -21,7 +21,10 @@ DEBUG_PRINT = False
 
 LOG_QUERIES = False
 
+# Either None (no timeout) or a positive integer.
+# unix only
 TIMEOUT = None
+
 MAX_RECURSION_DEPTH = 512
 
 # number of bits of precision for inexact calculations

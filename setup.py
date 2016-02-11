@@ -66,8 +66,7 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.8, < 1.9', 'ply>=3.8',
-                     'mpmath>=0.19', 'python-dateutil', 'colorama',
-                     'interruptingcow', 'six']
+                     'mpmath>=0.19', 'python-dateutil', 'colorama', 'six']
 
 
 def subdirs(root, file='*.*', depth=10):
