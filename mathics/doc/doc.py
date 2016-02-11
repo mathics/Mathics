@@ -84,7 +84,7 @@ SPECIAL_COMMANDS = {
 }
 
 try:
-    with open(settings.DOC_XML_DATA, 'r') as xml_data_file:
+    with open(settings.DOC_XML_DATA, 'rb') as xml_data_file:
         xml_data = pickle.load(xml_data_file)
 except IOError:
     xml_data = {}
@@ -565,7 +565,7 @@ class Documentation(DocElement):
             if part_title.endswith('.mdoc'):
                 part_title = part_title[:-len('.mdoc')]
                 part = DocPart(self, part_title)
-                text = open(dir + file, 'r').read().decode('utf8')
+                text = open(dir + file, 'rb').read().decode('utf8')
                 text = filter_comments(text)
                 chapters = CHAPTER_RE.findall(text)
                 for title, text in chapters:

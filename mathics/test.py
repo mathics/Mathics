@@ -198,11 +198,11 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
 
         if generate_output:
             print('Save XML')
-            with open_ensure_dir(settings.DOC_XML_DATA, 'w') as output_file:
+            with open_ensure_dir(settings.DOC_XML_DATA, 'wb') as output_file:
                 pickle.dump(output_xml, output_file, 0)
 
             print('Save TEX')
-            with open_ensure_dir(settings.DOC_TEX_DATA, 'w') as output_file:
+            with open_ensure_dir(settings.DOC_TEX_DATA, 'wb') as output_file:
                 pickle.dump(output_tex, output_file, 0)
     else:
         print('\nFAILED')
@@ -211,11 +211,11 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
 
 def write_latex():
     print("Load data")
-    with open_ensure_dir(settings.DOC_TEX_DATA, 'r') as output_file:
+    with open_ensure_dir(settings.DOC_TEX_DATA, 'rb') as output_file:
         output_tex = pickle.load(output_file)
 
     print('Print documentation')
-    with open_ensure_dir(settings.DOC_LATEX_FILE, 'w') as doc:
+    with open_ensure_dir(settings.DOC_LATEX_FILE, 'wb') as doc:
         content = documentation.latex(output_tex)
         content = content.encode('utf-8')
         doc.write(content)

@@ -55,13 +55,13 @@ class Definitions(object):
                                  for module in modules]
                 builtin_time = max(builtin_dates)
                 if get_file_time(builtin_filename) > builtin_time:
-                    builtin_file = open(builtin_filename, 'r')
+                    builtin_file = open(builtin_filename, 'rb')
                     self.builtin = pickle.load(builtin_file)
                     loaded = True
             if not loaded:
                 contribute(self)
                 if builtin_filename is not None:
-                    builtin_file = open(builtin_filename, 'w')
+                    builtin_file = open(builtin_filename, 'wb')
                     pickle.dump(self.builtin, builtin_file, -1)
 
             for root, dirs, files in os.walk(   # noqa
