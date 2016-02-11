@@ -414,8 +414,7 @@ class DateString(_DateFormat):
 
         pyform = map(lambda x: x.strip('"'), pyform)
 
-        if not all(isinstance(f, unicode) or isinstance(f, str)
-                   for f in pyform):
+        if not all(isinstance(f, basestring) for f in pyform):
             evaluation.message('DateString', 'fmt', form)
             return
 

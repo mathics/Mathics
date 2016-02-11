@@ -74,7 +74,7 @@ class Builtin(object):
                 return '' if f == '' else ensure_context(f)
             if isinstance(pattern, tuple):
                 forms, pattern = pattern
-                if isinstance(forms, str):
+                if isinstance(forms, basestring):
                     forms = [contextify_form_name(forms)]
                 else:
                     forms = [contextify_form_name(f) for f in forms]

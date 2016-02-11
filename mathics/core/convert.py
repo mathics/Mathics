@@ -106,7 +106,7 @@ def from_sympy(expr):
         return Real(expr)
     if isinstance(expr, complex):
         return Complex(expr.real, expr.imag)
-    if isinstance(expr, str):
+    if isinstance(expr, basestring):
         return String(expr)
     if expr is None:
         return Symbol('Null')
