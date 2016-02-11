@@ -30,7 +30,7 @@ before_install:
       sudo apt-get update -qq &&
       sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
     fi
-  - if [[ "$CYTHON"=="true" ]]; then
+  - if [[ "$CYTHON" == "true" ]]; then
       pip install cython;
     fi
   - pip install unittest2
