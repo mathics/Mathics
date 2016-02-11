@@ -4,7 +4,10 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError: # Py3
+    import pickle
 import os
 import base64
 import re

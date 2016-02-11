@@ -5,7 +5,10 @@ from __future__ import unicode_literals
 from __future__ import print_function
 
 import sys
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError: # Py3
+    import pickle
 import interruptingcow
 
 from mathics import settings

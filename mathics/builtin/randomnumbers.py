@@ -9,7 +9,10 @@ Random numbers are generated using the Mersenne Twister.
 """
 
 import random
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError: # Py3
+    import pickle
 import binascii
 import hashlib
 
