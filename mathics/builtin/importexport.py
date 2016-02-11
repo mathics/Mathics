@@ -36,7 +36,7 @@ class ImportFormats(Predefined):
     name = '$ImportFormats'
 
     def evaluate(self, evaluation):
-        return from_python(sorted(IMPORTERS.keys()))
+        return Expression('List', *sorted(IMPORTERS.keys()))
 
 
 class ExportFormats(Predefined):
@@ -53,7 +53,7 @@ class ExportFormats(Predefined):
     name = '$ExportFormats'
 
     def evaluate(self, evaluation):
-        return from_python(sorted(EXPORTERS.keys()))
+        return Expression('List', *sorted(EXPORTERS.keys()))
 
 
 # FIXME This should be private, ImportExport`RegisterImport
@@ -172,8 +172,7 @@ class RegisterImport(Builtin):
         default = leaves[-1]
         posts = {}
 
-        IMPORTERS[formatname.get_string_value()] = (
-            conditionals, default, posts, options)
+        IMPORTERS[formatname.get_string_value()] = (conditionals, default, posts, options)
 
         return Symbol('Null')
 
@@ -330,16 +329,17 @@ class Import(Builtin):
             return Symbol('$Failed')
 
         # Load the importer
-        (conditionals, default_function, posts,
-         importer_options) = IMPORTERS[filetype]
+        (conditionals, default_function, posts, importer_options) = IMPORTERS[filetype]
 
-        # XXX OptionsIssue
-        # function_channels = importer_options.get(String("FunctionChannels"))
-        function_channels = importer_options.get(Symbol("FunctionChannels"))
+        function_channels = importer_options.get("System`FunctionChannels")
+        if function_channels is None:
+            # TODO message
+            return Symbol('$Failed')
 
-        # XXX OptionsIssue
-        # default_element = importer_options.get(String("DefaultElement"))
-        default_element = importer_options.get(Symbol("DefaultElement"))
+        default_element = importer_options.get("System`DefaultElement")
+        if default_element is None:
+            # TODO message
+            return Symbol('$Failed')
 
         def get_results(tmp_function):
             if function_channels == Expression('List', String('FileNames')):
@@ -352,8 +352,8 @@ class Import(Builtin):
                 tmp = Expression(tmp_function, stream).evaluate(evaluation)
                 Expression('Close', stream).evaluate(evaluation)
             else:
-                # TODO print appropriate error message
-                raise NotImplementedError
+                # TODO message
+                return Symbol('$Failed')
             tmp = tmp.get_leaves()
             if not all(expr.has_form('Rule', None) for expr in tmp):
                 return None
