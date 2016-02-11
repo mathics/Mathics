@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 from __future__ import print_function
 
 import sys
@@ -252,7 +254,7 @@ def main():
     if not (args.quiet or args.script):
         print_version(is_server=False)
         print_license()
-        print(u"Quit by pressing {0}\n".format(quit_command))
+        print("Quit by pressing {0}\n".format(quit_command))
 
     if args.execute:
         for expr in args.execute:

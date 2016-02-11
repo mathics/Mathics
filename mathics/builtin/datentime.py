@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 """
 Date and Time
 """
@@ -141,7 +143,7 @@ class DateStringFormat(Predefined):
 
     name = '$DateStringFormat'
 
-    value = u'DateTimeShort'
+    value = 'DateTimeShort'
 
     # TODO: Methods to change this
 
@@ -659,7 +661,7 @@ class DatePlus(Builtin):
         # Process offset
         pyoff = off.to_python()
         if isinstance(pyoff, float) or isinstance(pyoff, int):
-            pyoff = [[pyoff, u'"Day"']]
+            pyoff = [[pyoff, '"Day"']]
         elif (isinstance(pyoff, list) and len(pyoff) == 2 and
               isinstance(pyoff[1], unicode)):
             pyoff = [pyoff]

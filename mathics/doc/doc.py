@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import re
 from os import listdir, path
 import pickle
@@ -85,7 +87,7 @@ except IOError:
 
 
 def filter_comments(doc):
-    return u'\n'.join(line for line in doc.splitlines()
+    return '\n'.join(line for line in doc.splitlines()
                       if not line.lstrip().startswith('##'))
 
 
@@ -125,7 +127,7 @@ def escape_latex_code(text):
 
     text = escape_latex_output(text)
     escape_char = get_latex_escape_char(text)
-    return u'\\lstinline%s%s%s' % (escape_char, text, escape_char)
+    return '\\lstinline%s%s%s' % (escape_char, text, escape_char)
 
 
 def escape_latex(text):
@@ -146,7 +148,7 @@ def escape_latex(text):
             text = _replace_all(text, [("\\'", "'"), ('^', '\\^')])
             escape_char = get_latex_escape_char(text)
             text = LATEX_RE.sub(
-                lambda m: u"%s%s\\codevar{\\textit{%s}}%s\\lstinline%s" % (
+                lambda m: "%s%s\\codevar{\\textit{%s}}%s\\lstinline%s" % (
                     escape_char, m.group(1), m.group(2), m.group(3),
                     escape_char),
                 text)
@@ -154,7 +156,7 @@ def escape_latex(text):
                 text = r'\ ' + text[1:]
             if text.endswith(' '):
                 text = text[:-1] + r'\ '
-            return u"\\code{\\lstinline%s%s%s}" % (
+            return "\\code{\\lstinline%s%s%s}" % (
                 escape_char, text, escape_char)
         else:
             # treat double '' literaly
@@ -162,28 +164,28 @@ def escape_latex(text):
 
     text = MATHICS_RE.sub(repl, text)
 
-    text = LATEX_RE.sub(lambda m: u'%s\\textit{%s}%s' % (
+    text = LATEX_RE.sub(lambda m: '%s\\textit{%s}%s' % (
         m.group(1), m.group(2), m.group(3)), text)
 
     text = text.replace("\\\\'", "'")
 
     def repl_dl(match):
         text = match.group(1)
-        text = DL_ITEM_RE.sub(lambda m: u'\\dt{%s}\n\\dd{%s}' % (
+        text = DL_ITEM_RE.sub(lambda m: '\\dt{%s}\n\\dd{%s}' % (
             m.group(1), m.group(2)), text)
-        return u'\\begin{definitions}%s\\end{definitions}' % text
+        return '\\begin{definitions}%s\\end{definitions}' % text
     text = DL_RE.sub(repl_dl, text)
 
     def repl_list(match):
         tag = match.group('tag')
         content = match.group('content')
         content = LIST_ITEM_RE.sub(
-            lambda m: u'\\item %s\n' % m.group(1), content)
+            lambda m: '\\item %s\n' % m.group(1), content)
         env = 'itemize' if tag == 'ul' else 'enumerate'
-        return u'\\begin{%s}%s\\end{%s}' % (env, content, env)
+        return '\\begin{%s}%s\\end{%s}' % (env, content, env)
     text = LIST_RE.sub(repl_list, text)
 
-    text = _replace_all(text, [('$', r'\$'), (u'\u03c0', '$\pi$')])
+    text = _replace_all(text, [('$', r'\$'), ('\u03c0', '$\pi$')])
 
     def repl_char(match):
         char = match.group(1)
@@ -221,7 +223,7 @@ def escape_latex(text):
         if tag == 'em':
             return r'\emph{%s}' % content
         elif tag == 'url':
-            return r'\url{%s}' % content
+            return '\\url{%s}' % content
 
     text = QUOTATIONS_RE.sub(repl_quotation, text)
     text = HYPERTEXT_RE.sub(repl_hypertext, text)
@@ -443,8 +445,8 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
             tag = match.group('tag')
             content = match.group('content')
             content = LIST_ITEM_RE.sub(
-                lambda m: u'<li>%s</li>' % m.group(1), content)
-            return u'<%s>%s</%s>' % (tag, content, tag)
+                lambda m: '<li>%s</li>' % m.group(1), content)
+            return '<%s>%s</%s>' % (tag, content, tag)
 
         text = LIST_RE.sub(repl_list, text)
 
@@ -802,7 +804,7 @@ class Doc(object):
         doc = filter_comments(doc)
         # pre-substitute Python code because it might contain tests
         doc, post_substitutions = pre_sub(
-            PYTHON_RE, doc, lambda m: u'<python>%s</python>' % m.group(1))
+            PYTHON_RE, doc, lambda m: '<python>%s</python>' % m.group(1))
         # HACK: Artificially construct a last testcase to get the "intertext"
         # after the last (real) testcase. Ignore the test, of course.
         doc += '\n>> test\n = test'
@@ -936,19 +938,19 @@ class DocTest(object):
         return self.test
 
     def latex(self, output):
-        text = u''
-        text += u"\\begin{testcase}\n"
-        text += u"\\test{%s}\n" % escape_latex_code(self.test)
+        text = ''
+        text += "\\begin{testcase}\n"
+        text += "\\test{%s}\n" % escape_latex_code(self.test)
         if self.key is None:
             return ''
         results = output[self.key]['results']
         for result in results:
             for out in result['out']:
                 kind = 'message' if out['message'] else 'print'
-                text += u"\\begin{test%s}%s\\end{test%s}" % (
+                text += "\\begin{test%s}%s\\end{test%s}" % (
                     kind, out['text'], kind)
             if result['result']:  # is not None and result['result'].strip():
-                text += u"\\begin{testresult}%s\\end{testresult}" % result[
+                text += "\\begin{testresult}%s\\end{testresult}" % result[
                     'result']
         text += "\\end{testcase}"
         return text

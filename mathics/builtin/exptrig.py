@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 """
 Exponential, trigonometric and hyperbolic functions
 
@@ -21,7 +23,7 @@ from mathics.builtin.arithmetic import _MPMathFunction
 
 
 class Pi(SympyConstant):
-    u"""
+    """
     <dl>
     <dt>'Pi'
         <dd>is the constant \u03c0.

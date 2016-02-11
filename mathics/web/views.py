@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
 from __future__ import print_function
 
 import sys
@@ -67,7 +68,7 @@ def main_view(request):
 def error_404_view(request):
     t = loader.get_template('404.html')
     return HttpResponseNotFound(t.render(RequestContext(request, {
-        'title': u'Page not found',
+        'title': 'Page not found',
         'request_path': request.path,
     })))
 
@@ -75,7 +76,7 @@ def error_404_view(request):
 def error_500_view(request):
     t = loader.get_template('500.html')
     return HttpResponseServerError(t.render(RequestContext(request, {
-        'title': u'Server error',
+        'title': 'Server error',
     })))
 
 
@@ -187,7 +188,7 @@ def login(request):
         if password:
             user = auth.authenticate(username=email, password=password)
             if user is None:
-                general_errors = [u"Invalid username and/or password."]
+                general_errors = ["Invalid username and/or password."]
             else:
                 result = 'ok'
                 auth.login(request, user)
@@ -198,14 +199,14 @@ def login(request):
                 result = 'reset'
                 email_user(
                     user, "Your password at mathics.net",
-                    (u"""You have reset your password at mathics.net.\n
+                    ("""You have reset your password at mathics.net.\n
 Your password is: %s\n\nYours,\nThe Mathics team""") % password)
             except User.DoesNotExist:
                 user = User(username=email, email=email)
                 result = 'created'
                 email_user(
                     user, "New account at mathics.net",
-                    u"""Welcome to mathics.net!\n
+                    """Welcome to mathics.net!\n
 Your password is: %s\n\nYours,\nThe Mathics team""" % password)
             user.set_password(password)
             user.save()
@@ -321,7 +322,7 @@ def render_doc(request, template_name, context, data=None, ajax=False):
 
 def doc(request, ajax=''):
     return render_doc(request, 'overview.html', {
-        'title': u'Documentation',
+        'title': 'Documentation',
         'doc': documentation,
     }, ajax=ajax)
 
@@ -379,6 +380,6 @@ def doc_search(request):
     result = [item for exact, item in result]
 
     return render_doc(request, 'search.html', {
-        'title': u"Search documentation",
+        'title': "Search documentation",
         'result': result,
     }, ajax=True)

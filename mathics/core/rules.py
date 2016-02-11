@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 from mathics.core.expression import Expression, Symbol, strip_context, KeyComparable
 # from mathics.core.util import subsets, subranges, permutations
 from mathics.core.pattern import Pattern, StopGenerator
@@ -108,8 +110,8 @@ class Rule(BaseRule):
         return new
 
     def __repr__(self):
-        return (u'<Rule: %s -> %s>' % (self.pattern, self.replace)).encode(
-            'unicode_escape')
+        s = '<Rule: %s -> %s>' % (self.pattern, self.replace)
+        return s.encode('unicode_escape')
 
 
 class BuiltinRule(BaseRule):
@@ -129,7 +131,7 @@ class BuiltinRule(BaseRule):
             return self.function(evaluation=evaluation, **vars_noctx)
 
     def __repr__(self):
-        s = u'<BuiltinRule: %s -> %s>' % (self.pattern, self.function)
+        s = '<BuiltinRule: %s -> %s>' % (self.pattern, self.function)
         return s.encode('unicode_escape')
 
     def __getstate__(self):

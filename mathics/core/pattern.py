@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
+from __future__ import unicode_literals
+
 from mathics.core.expression import (Expression, system_symbols,
                                      ensure_context)
 from mathics.core.util import subsets, subranges, permutations
@@ -127,7 +129,7 @@ class AtomPattern(Pattern):
         self.expr = expr
 
     def __repr__(self):
-        return (u'<AtomPattern: %s>' % self.atom).encode('unicode_escape')
+        return ('<AtomPattern: %s>' % self.atom).encode('unicode_escape')
 
     def match(self, yield_func, expression, vars, evaluation, head=None,
               leaf_index=None, leaf_count=None, fully=True, wrap_oneid=True):
@@ -334,7 +336,7 @@ class ExpressionPattern(Pattern):
                 if leaf.get_head_name() == head_name]
 
     def __repr__(self):
-        return (u'<ExpressionPattern: %s>' % self.expr).encode('unicode_escape')
+        return ('<ExpressionPattern: %s>' % self.expr).encode('unicode_escape')
 
     def get_match_count(self, vars={}):
         return (1, 1)

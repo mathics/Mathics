@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 r"""
 Attributes
 
@@ -14,7 +16,7 @@ from mathics.builtin.assignment import get_symbol_list
 
 
 class Attributes(Builtin):
-    u"""
+    """
     <dl>
     <dt>'Attributes'[$symbol$]
         <dd>returns the attributes of $symbol$.

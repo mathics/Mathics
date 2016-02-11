@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 from __future__ import print_function
 
 # Default number of times to repeat each benchmark. None -> Automatic

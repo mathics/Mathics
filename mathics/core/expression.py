@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import sympy
 import mpmath
 import re
@@ -77,7 +79,7 @@ class ExpressionPointer(object):
             self.parent.leaves[self.position - 1] = new
 
     def __str__(self):
-        return u'%s[[%s]]' % (self.parent, self.position)
+        return '%s[[%s]]' % (self.parent, self.position)
 
 
 def from_python(arg):
@@ -831,15 +833,15 @@ class Expression(BaseExpression):
         return Expression(head, *leaves)
 
     def __str__(self):
-        return u'%s[%s]' % (
-            self.head, u', '.join([unicode(leaf) for leaf in self.leaves]))
+        return '%s[%s]' % (
+            self.head, ', '.join([unicode(leaf) for leaf in self.leaves]))
 
     def __repr__(self):
         # This .encode("unicode_escape") is necessary because Python
         # implicitly calls the equivalent of .encode("ascii") if we
         # return a Unicode string here, which might raise
         # UnicodeEncodeError in awkward places.
-        return (u'<Expression: %s>' % self).encode('unicode_escape')
+        return ('<Expression: %s>' % self).encode('unicode_escape')
 
     def process_style_box(self, options):
         if self.has_form('StyleBox', 1, None):
@@ -992,9 +994,9 @@ class Expression(BaseExpression):
         elif name == 'System`SuperscriptBox' and len(self.leaves) == 2:
             tex1 = self.leaves[0].boxes_to_tex(**options)
             sup_string = self.leaves[1].get_string_value()
-            if sup_string == u'\u2032':
+            if sup_string == '\u2032':
                 return "%s'" % tex1
-            elif sup_string == u'\u2032\u2032':
+            elif sup_string == '\u2032\u2032':
                 return "%s''" % tex1
             else:
                 return '%s^%s' % (
@@ -1221,7 +1223,7 @@ class Atom(BaseExpression):
         return self.__class__.__name__
 
     def __repr__(self):
-        return (u'<%s: %s>' % (self.get_atom_name(), self)).encode(
+        return ('<%s: %s>' % (self.get_atom_name(), self)).encode(
             'unicode_escape')
 
     def replace_vars(self, vars, options=None, in_scoping=True):
@@ -1608,7 +1610,7 @@ class Real(Number):
                     'List', base, String('*^'), String(exp)))
             else:
                 return Expression('RowBox', Expression(
-                    'List', base, String(u'\u00d7'),
+                    'List', base, String('\u00d7'),
                     Expression('SuperscriptBox', String('10'), String(exp))))
         else:
             return number_boxes(base)
@@ -1791,8 +1793,8 @@ def encode_tex(text, in_text=False):
     return text
 
 extra_operators = set((',', '(', ')', '[', ']', '{', '}',
-                       u'\u301a', u'\u301b', u'\u00d7', u'\u2032',
-                       u'\u2032\u2032', ' ', u'\u2062', u'\u222b', u'\u2146'))
+                       '\u301a', '\u301b', '\u00d7', '\u2032',
+                       '\u2032\u2032', ' ', '\u2062', '\u222b', '\u2146'))
 
 
 class String(Atom):
@@ -1801,7 +1803,7 @@ class String(Atom):
         self.value = value
 
     def __str__(self):
-        return u'"%s"' % self.value
+        return '"%s"' % self.value
 
     def boxes_to_text(self, show_string_characters=False, **options):
         value = self.value
@@ -1831,11 +1833,11 @@ class String(Atom):
             return '<mn>%s</mn>' % encode_mathml(text)
         else:
             if text in operators or text in extra_operators:
-                if text == u'\u2146':
+                if text == '\u2146':
                     return (
                         '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>'
                         % encode_mathml(text))
-                if text == u'\u2062':
+                if text == '\u2062':
                     return (
                         '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>'
                         % encode_mathml(text))
@@ -1864,33 +1866,33 @@ class String(Atom):
         elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
             return encode_tex(text)
         else:
-            if text == u'\u2032':
+            if text == '\u2032':
                 return "'"
-            elif text == u'\u2032\u2032':
+            elif text == '\u2032\u2032':
                 return "''"
-            elif text == u'\u2062':
+            elif text == '\u2062':
                 return ' '
-            elif text == u'\u221e':
+            elif text == '\u221e':
                 return r'\infty '
-            elif text == u'\u00d7':
+            elif text == '\u00d7':
                 return r'\times '
             elif text in ('(', '[', '{'):
                 return r'\left%s' % encode_tex(text)
             elif text in (')', ']', '}'):
                 return r'\right%s' % encode_tex(text)
-            elif text == u'\u301a':
+            elif text == '\u301a':
                 return r'\left[\left['
-            elif text == u'\u301b':
+            elif text == '\u301b':
                 return r'\right]\right]'
             elif text == ',' or text == ', ':
                 return text
-            elif text == u'\u222b':
+            elif text == '\u222b':
                 return r'\int'
-            elif text == u'\u2146':
+            elif text == '\u2146':
                 return r'\, d'
-            elif text == u'\u2211':
+            elif text == '\u2211':
                 return r'\sum'
-            elif text == u'\u220f':
+            elif text == '\u220f':
                 return r'\prod'
             elif len(text) > 1:
                 return r'\text{%s}' % encode_tex(text, in_text=True)
@@ -1902,7 +1904,7 @@ class String(Atom):
 
     def default_format(self, evaluation, form):
         value = self.value.replace('\\', '\\\\').replace('"', '\\"')
-        return u'"%s"' % value
+        return '"%s"' % value
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 """
 Converts expressions from SymPy to Mathics expressions.
 Conversion to SymPy is handled directly in BaseExpression descendants.

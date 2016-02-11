@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+from __future__ import absolute_import
+
 import cPickle as pickle
 import os
 import base64
@@ -12,9 +15,8 @@ from mathics.core.characters import letters, letterlikes
 
 
 names_wildcards = "@*"
-base_names_pattern = ur'((?![0-9])([0-9${0}{1}{2}])+)'.format(
-    letters, letterlikes, names_wildcards)
-full_names_pattern = ur'(`?{0}(`{0})*)'.format(base_names_pattern)
+base_names_pattern = r'((?![0-9])([0-9${0}{1}{2}])+)'.format(letters, letterlikes, names_wildcards)
+full_names_pattern = r'(`?{0}(`{0})*)'.format(base_names_pattern)
 
 
 def get_file_time(file):
@@ -401,8 +403,8 @@ class Definitions(object):
         return None
 
     def set_ownvalue(self, name, value):
-        from expression import Symbol
-        from rules import Rule
+        from .expression import Symbol
+        from .rules import Rule
 
         name = self.lookup_name(name)
         self.add_rule(name, Rule(Symbol(name), value))
@@ -536,7 +538,6 @@ class Definition(object):
         return False
 
     def __repr__(self):
-        s = (u'<Definition: name: %s, '
-             u'downvalues: %s, formats: %s, attributes: %s>') % (
+        s = '<Definition: name: {}, downvalues: {}, formats: {}, attributes: {}>'.format(
             self.name, self.downvalues, self.formatvalues, self.attributes)
         return s.encode('unicode_escape')

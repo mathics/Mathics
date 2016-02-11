@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 """
 Arithmetic functions
 
@@ -462,7 +464,7 @@ class Times(BinaryOperator, SympyFunction):
     formats = {
     }
 
-    def format_times(self, items, evaluation, op=u'\u2062'):
+    def format_times(self, items, evaluation, op='\u2062'):
         'Times[items__]'
 
         def inverse(item):
@@ -1278,7 +1280,7 @@ class Integer_(Builtin):
 
 
 class Real_(Builtin):
-    u"""
+    """
     <dl>
     <dt>'Real'
         <dd>is the head of real (inexact) numbers.

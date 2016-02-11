@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import pkg_resources
 import sys
 import os
@@ -25,7 +27,7 @@ MAX_RECURSION_DEPTH = 512
 MACHINE_PRECISION = 64
 
 ADMINS = (
-    (u'Admin', 'mail@test.com'),
+    ('Admin', 'mail@test.com'),
 )
 MANAGERS = ADMINS
 

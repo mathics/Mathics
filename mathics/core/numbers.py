@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import sympy
 import mpmath
 from math import log
@@ -79,10 +81,9 @@ def format_float(value, pretty=True, parenthesize_plus=False):
     if len(s) == 2:
         man, exp = s
         if pretty:
-            return u'%s\u00d710%s' % (
-                format_float(man), unicode_superscript(exp))
+            return '%s\u00d710%s' % (format_float(man), unicode_superscript(exp))
         else:
-            result = u'%s*10^%s' % (format_float(man), exp)
+            result = '%s*10^%s' % (format_float(man), exp)
             if parenthesize_plus:
                 result = '(%s)' % result
             return result

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import ply.lex as lex
 import ply.yacc as yacc
 
@@ -30,7 +32,7 @@ class ScanError(TranslateError):
         return self.__unicode__()
 
     def __unicode__(self):
-        return u"Lexical error at position {0} in '{1}'.".format(
+        return "Lexical error at position {0} in '{1}'.".format(
             self.pos, self.text)
 
 
@@ -40,7 +42,7 @@ class InvalidCharError(TranslateError):
         self.char = char
 
     def __unicode__(self):
-        return u"Invalid character at '%s'." % self.char  # .decode('utf-8')
+        return "Invalid character at '%s'." % self.char  # .decode('utf-8')
 
 
 class ParseError(TranslateError):
@@ -49,11 +51,11 @@ class ParseError(TranslateError):
         self.token = token
 
     def __unicode__(self):
-        return u"Parse error at or near token %s." % str(self.token)
+        return "Parse error at or near token %s." % str(self.token)
 
 # Symbols can be any letters
-base_symb = ur'((?![0-9])([0-9${0}{1}])+)'.format(letters, letterlikes)
-full_symb = ur'(`?{0}(`{0})*)'.format(base_symb)
+base_symb = r'((?![0-9])([0-9${0}{1}])+)'.format(letters, letterlikes)
+full_symb = r'(`?{0}(`{0})*)'.format(base_symb)
 
 symbol_re = re.compile(full_symb)
 
@@ -478,28 +480,28 @@ class MathicsScanner:
     t_Factorial = r' \! '
     t_Factorial2 = r' \!\! '
 
-    t_Transpose = ur' \uf3c7 '
-    t_Conjugate = ur' \uf3c8 '
-    t_ConjugateTranspose = ur' \uf3c9 '
-    t_HermitianConjugate = ur' \uf3ce '
+    t_Transpose = r' \uf3c7 '
+    t_Conjugate = r' \uf3c8 '
+    t_ConjugateTranspose = r' \uf3c9 '
+    t_HermitianConjugate = r' \uf3ce '
 
     t_Derivative = r' \'+ '
     t_StringJoin = r' \<\> '
 
     t_Power = r' \^ '
 
-    t_Integral = ur' \u222b '
-    t_DifferentialD = ur' \uf74c '
+    t_Integral = r' \u222b '
+    t_DifferentialD = r' \uf74c '
     # t_PartialD = ur' \u2202 '
-    t_Del = ur' \u2207 '
+    t_Del = r' \u2207 '
 
-    t_Square = ur' \uf520 '
-    t_SmallCircle = ur' \u2218 '
-    t_CircleDot = ur' \u2299 '
+    t_Square = r' \uf520 '
+    t_SmallCircle = r' \u2218 '
+    t_CircleDot = r' \u2299 '
 
     t_NonCommutativeMultiply = r' \*\* '
 
-    t_Cross = ur' \uf4a0 '
+    t_Cross = r' \uf4a0 '
     t_RawDot = r' \. '
 
     t_Plus = r' \+ '
@@ -507,22 +509,22 @@ class MathicsScanner:
     t_RawSlash = r' \/ '
     t_RawBackslash = r' \\ '
 
-    t_Diamond = ur' \u22c4 '
-    t_Wedge = ur' \u22c0 '
-    t_Vee = ur' \u22c1 '
-    t_CircleTimes = ur' \u2297 '
-    t_CenterDot = ur' \u00b7 '
-    t_Star = ur' \u22c6'
+    t_Diamond = r' \u22c4 '
+    t_Wedge = r' \u22c0 '
+    t_Vee = r' \u22c1 '
+    t_CircleTimes = r' \u2297 '
+    t_CenterDot = r' \u00b7 '
+    t_Star = r' \u22c6'
 
     # t_Sum = ur' \u2211 '
     # t_Product = ur' \u220f '
 
     t_RawStar = r' \* '
-    t_Times = ur' \u00d7 '
-    t_Divide = ur' \u00f7 '
+    t_Times = r' \u00d7 '
+    t_Divide = r' \u00f7 '
 
-    t_PlusMinus = ur' \u00b1 '
-    t_MinusPlus = ur' \u2213 '
+    t_PlusMinus = r' \u00b1 '
+    t_MinusPlus = r' \u2213 '
 
     t_op_Equal = r' \=\= '
     t_op_Unequal = r' \!\= '
@@ -537,14 +539,14 @@ class MathicsScanner:
     t_op_And = r' \&\& '
     t_op_Or = r' \|\|  '
 
-    t_Or = ur' \u2228 '
-    t_Nor = ur' \u22BD '
+    t_Or = r' \u2228 '
+    t_Nor = r' \u22BD '
 
-    t_And = ur' \u2227 '
-    t_Nand = ur' \u22BC '
+    t_And = r' \u2227 '
+    t_Nand = r' \u22BC '
 
-    t_Xor = ur' \u22BB '
-    t_Xnor = ur' \uF4A2 '
+    t_Xor = r' \u22BB '
+    t_Xnor = r' \uF4A2 '
 
     t_Repeated = r' \.\. '
     t_RepeatedNull = r' \.\.\. '
@@ -565,7 +567,7 @@ class MathicsScanner:
     t_DivideBy = r' \/\=  '
 
     t_RawAmpersand = r' \& '
-    t_Colon = ur' \u2236 '
+    t_Colon = r' \u2236 '
     t_Postfix = r' \/\/ '
 
     t_Set = r' \= '
@@ -580,46 +582,46 @@ class MathicsScanner:
     # t_DiscreteShift = ur' \uf4a3 '
     # t_DiscreteRatio = ur' \uf4a4 '
     # t_DifferenceDelta = ur' \u2206 '
-    t_VerticalTilde = ur' \u2240 '
-    t_Coproduct = ur' \u2210 '
-    t_Cap = ur' \u2322 '
-    t_Cup = ur' \u2323 '
-    t_CirclePlus = ur' \u2295 '
-    t_CircleMinus = ur' \u2296 '
-    t_Intersection = ur' \u22c2 '
-    t_Union = ur' \u22c3 '
-    t_Equal = ur' \uf431 '
-    t_LongEqual = ur' \uf7d9 '
-    t_NotEqual = ur' \u2260 '
-    t_LessEqual = ur' \u2264 '
-    t_LessSlantEqual = ur' \u2a7d '
-    t_GreaterEqual = ur' \u2265 '
-    t_GreaterSlantEqual = ur' \u2a7e '
-    t_VerticalBar = ur' \u2223 '
-    t_NotVerticalBar = ur' \u2224 '
-    t_DoubleVerticalBar = ur' \u2225 '
-    t_NotDoubleVerticalBar = ur' \u2226 '
-    t_Element = ur' \u2208 '
-    t_NotElement = ur' \u2209 '
-    t_Subset = ur' \u2282 '
-    t_Superset = ur' \u2283 '
-    t_ForAll = ur' \u2200 '
-    t_Exists = ur' \u2203 '
-    t_NotExists = ur' \u2204 '
-    t_Not = ur' \u00AC '
-    t_Equivalent = ur' \u29E6 '
-    t_Implies = ur' \uF523 '
-    t_RightTee = ur' \u22A2 '
-    t_DoubleRightTee = ur' \u22A8 '
-    t_LeftTee = ur' \u22A3 '
-    t_DoubleLeftTee = ur' \u2AE4 '
-    t_SuchThat = ur' \u220D '
-    t_Rule = ur' \uF522 '
-    t_RuleDelayed = ur' \uF51F '
-    t_VerticalSeparator = ur' \uF432 '
-    t_Therefore = ur' \u2234 '
-    t_Because = ur' \u2235 '
-    t_Function = ur' \uF4A1 '
+    t_VerticalTilde = r' \u2240 '
+    t_Coproduct = r' \u2210 '
+    t_Cap = r' \u2322 '
+    t_Cup = r' \u2323 '
+    t_CirclePlus = r' \u2295 '
+    t_CircleMinus = r' \u2296 '
+    t_Intersection = r' \u22c2 '
+    t_Union = r' \u22c3 '
+    t_Equal = r' \uf431 '
+    t_LongEqual = r' \uf7d9 '
+    t_NotEqual = r' \u2260 '
+    t_LessEqual = r' \u2264 '
+    t_LessSlantEqual = r' \u2a7d '
+    t_GreaterEqual = r' \u2265 '
+    t_GreaterSlantEqual = r' \u2a7e '
+    t_VerticalBar = r' \u2223 '
+    t_NotVerticalBar = r' \u2224 '
+    t_DoubleVerticalBar = r' \u2225 '
+    t_NotDoubleVerticalBar = r' \u2226 '
+    t_Element = r' \u2208 '
+    t_NotElement = r' \u2209 '
+    t_Subset = r' \u2282 '
+    t_Superset = r' \u2283 '
+    t_ForAll = r' \u2200 '
+    t_Exists = r' \u2203 '
+    t_NotExists = r' \u2204 '
+    t_Not = r' \u00AC '
+    t_Equivalent = r' \u29E6 '
+    t_Implies = r' \uF523 '
+    t_RightTee = r' \u22A2 '
+    t_DoubleRightTee = r' \u22A8 '
+    t_LeftTee = r' \u22A3 '
+    t_DoubleLeftTee = r' \u2AE4 '
+    t_SuchThat = r' \u220D '
+    t_Rule = r' \uF522 '
+    t_RuleDelayed = r' \uF51F '
+    t_VerticalSeparator = r' \uF432 '
+    t_Therefore = r' \u2234 '
+    t_Because = r' \u2235 '
+    t_Function = r' \uF4A1 '
 
     def build(self, **kwargs):
         self.lexer = lex.lex(
@@ -630,12 +632,16 @@ class MathicsScanner:
         self.precompiled_regex = {
             'longnames': re.compile(r'(?<!\\)(\\\[[a-zA-Z]+\])'),
             'oct': re.compile(r'(?<!\\)(\\[0-7]{3})'),
-            'hex': re.compile(
-                r'(?<!\\)(\\\.[0-9a-fA-F]{2}|\\\:[0-9a-fA-F]{4})')
+            'hex': re.compile(r'(?<!\\)(\\\.[0-9a-fA-F]{2}|\\\:[0-9a-fA-F]{4})')
         }
 
     def convert_character_codes(self, s):
         "Converts character codes to characters E.g. \.7A -> z, \:004a -> J"
+        try:
+            unichr
+        except NameError:   # Py3
+            unichr = chr
+
         def repl_hex_char(match):
             return unichr(int(match.group(0)[2:], 16))
 
@@ -805,12 +811,12 @@ class MathicsScanner:
         t.value = self.string_escape(t.value[1:-1])
         return t
 
-    @lex.TOKEN(ur'{0}?_\.'.format(full_symb))
+    @lex.TOKEN(r'{0}?_\.'.format(full_symb))
     def t_blankdefault(self, t):    # this must come before t_blanks
         # r' ([a-zA-Z$][a-zA-Z0-9$]*)?_\. '
         return t
 
-    @lex.TOKEN(ur'{0}?_(__?)?{0}?'.format(full_symb))
+    @lex.TOKEN(r'{0}?_(__?)?{0}?'.format(full_symb))
     def t_blanks(self, t):
         # r' ([a-zA-Z$][a-zA-Z0-9$]*)?_(__?)?([a-zA-Z$][a-zA-Z0-9$]*)? '
         return t

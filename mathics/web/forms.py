@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 from django import forms
 
 
@@ -24,10 +26,10 @@ class LoginForm(AjaxForm):
     password = forms.CharField(
         required=False, max_length=40, widget=forms.PasswordInput,
         help_text=(
-            u'<p class="helptext">Leave this field empty '
-            u"if you don't have an account yet,\n"
-            u"or if you have forgotten your pass&shy;word.\n"
-            u"A new password will be sent to your e-mail address.</p>")
+            '<p class="helptext">Leave this field empty '
+            "if you don't have an account yet,\n"
+            "or if you have forgotten your pass&shy;word.\n"
+            "A new password will be sent to your e-mail address.</p>")
     )
 
 

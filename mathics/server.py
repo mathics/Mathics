@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 from __future__ import print_function
 
 import sys
@@ -72,9 +74,8 @@ def launch_app(args):
     if not args.quiet:
         print_version(is_server=True)
         print_license()
-        print(u"Quit by pressing %s\n" % quit_command)
-
-        print(u"""Open the graphical user interface at
+        print("Quit by pressing %s\n" % quit_command)
+        print("""Open the graphical user interface at
 http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port)
 
     if args.external:

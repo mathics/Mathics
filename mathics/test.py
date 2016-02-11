@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import sys
 import re
@@ -46,7 +47,7 @@ def test_case(test, tests, index=0, quiet=False):
     part, chapter, section = tests.part, tests.chapter, tests.section
 
     def fail(why):
-        print(u"%sTest failed: %s in %s / %s\n%s\n%s\n" % (
+        print("%sTest failed: %s in %s / %s\n%s\n%s\n" % (
             sep, section, part, chapter, test, why))
         return False
 
@@ -55,14 +56,14 @@ def test_case(test, tests, index=0, quiet=False):
     try:
         evaluation = Evaluation(test, definitions, catch_interrupt=False)
     except Exception as exc:
-        fail(u"Exception %s" % exc)
+        fail("Exception %s" % exc)
         info = sys.exc_info()
         sys.excepthook(*info)
         return False
 
     if evaluation.results:
         if len(evaluation.results) > 1:
-            return fail(u"Too many results: %s" % evaluation.results)
+            return fail("Too many results: %s" % evaluation.results)
         result = evaluation.results[0].result
         out = evaluation.results[0].out
     else:
@@ -72,7 +73,7 @@ def test_case(test, tests, index=0, quiet=False):
         fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
         if out:
             fail_msg += "\nAdditional output:\n"
-            fail_msg += u'\n'.join(unicode(o) for o in out)
+            fail_msg += '\n'.join(unicode(o) for o in out)
         return fail(fail_msg)
     output_ok = True
     if len(out) != len(wanted_out):
@@ -83,9 +84,9 @@ def test_case(test, tests, index=0, quiet=False):
                 output_ok = False
                 break
     if not output_ok:
-        return fail(u"Output:\n%s\nWanted:\n%s" % (
-            u'\n'.join(unicode(o) for o in out),
-            u'\n'.join(unicode(o) for o in wanted_out)))
+        return fail("Output:\n%s\nWanted:\n%s" % (
+            '\n'.join(unicode(o) for o in out),
+            '\n'.join(unicode(o) for o in wanted_out)))
     return True
 
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 """
 Calculus functions
 """
@@ -16,7 +18,7 @@ import sympy
 
 
 class D(SympyFunction):
-    u"""
+    """
     <dl>
     <dt>'D[$f$, $x$]'
         <dd>gives the partial derivative of $f$ with respect to $x$.
@@ -174,7 +176,7 @@ class D(SympyFunction):
 
 
 class Derivative(PostfixOperator, SympyFunction):
-    u"""
+    """
     <dl>
     <dt>'Derivative[$n$][$f$]'
         <dd>represents the $n$th derivative of the function $f$.

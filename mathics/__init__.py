@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
 from __future__ import print_function
 
 import sys
@@ -39,13 +40,13 @@ def get_version():
 def get_version_string(is_server, newlines=False):
     version = get_version()
     result = []
-    result.append(u"Mathics %s" % version['mathics'])
-    result.append(u"on %s" % version['python'])
+    result.append("Mathics %s" % version['mathics'])
+    result.append("on %s" % version['python'])
     libs = []
     if 'django' in version and is_server:
         libs.append("Django %s" % version['django'])
     libs += ["SymPy %s" % version['sympy'], "mpmath %s" % version['mpmath']]
-    result.append(u"using %s" % ", ".join(libs))
+    result.append("using %s" % ", ".join(libs))
     return ("\n" if newlines else " ").join(result)
 
 
@@ -54,11 +55,11 @@ def print_version(is_server):
 
 
 def print_license():
-    print(u"\n"
-          u"Copyright (C) 2011-2015 The Mathics Team.\n"
-          u"This program comes with ABSOLUTELY NO WARRANTY.\n"
-          u"This is free software, and you are welcome to redistribute it\n"
-          u"under certain conditions.\n"
-          u"See the documentation for the full license.\n")
+    print("\n"
+          "Copyright (C) 2011-2015 The Mathics Team.\n"
+          "This program comes with ABSOLUTELY NO WARRANTY.\n"
+          "This is free software, and you are welcome to redistribute it\n"
+          "under certain conditions.\n"
+          "See the documentation for the full license.\n")
 
 from mathics.core.parser import parse, ScanError, ParseError

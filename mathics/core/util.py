@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import re
 
@@ -176,4 +177,4 @@ def unicode_superscript(value):
         else:
             value = ord(c)
         return unichr(value)
-    return u''.join(repl_char(c) for c in value)
+    return ''.join(repl_char(c) for c in value)

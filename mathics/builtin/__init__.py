@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,

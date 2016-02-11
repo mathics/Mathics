@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 """
 Number theoretic functions
 """
@@ -142,7 +144,7 @@ class GCD(Builtin):
 
 # FIXME: Previosuly this used gmpy's gcdext. sympy's gcdex is not as powerful
 # class ExtendedGCD(Builtin):
-#    u"""
+#    """
 #    >> ExtendedGCD[10, 15]
 #     = {5, {-1, 1}}
 #

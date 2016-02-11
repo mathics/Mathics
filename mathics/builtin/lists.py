@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 """
 List functions
 """
@@ -664,7 +666,7 @@ class Part(Builtin):
         if f.get_name() in ('System`OutputForm', 'System`InputForm'):
             open, close = "[[", "]]"
         else:
-            open, close = u"\u301a", u"\u301b"
+            open, close = "\u301a", "\u301b"
         indices = list_boxes(i, f, open, close)
         result = Expression('RowBox', Expression('List', list, *indices))
         return result
@@ -747,7 +749,7 @@ class Extract(Builtin):
 
     rules = {
         'Extract[expr_, list_List]': 'Part[expr, Sequence @@ list]',
-        'Extract[expr_, {lists___List}]': u'Extract[expr, #]& /@ {lists}',
+        'Extract[expr_, {lists___List}]': 'Extract[expr, #]& /@ {lists}',
     }
 
 

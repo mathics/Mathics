@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 """
 Input and Output
 """
@@ -494,7 +496,7 @@ class GridBox(BoxConstruct):
         for row in items:
             result += '<mtr>'
             for item in row:
-                result += u'<mtd {0}>{1}</mtd>'.format(
+                result += '<mtd {0}>{1}</mtd>'.format(
                     attrs, item.boxes_to_xml(**new_box_options))
             result += '</mtr>\n'
         result += '</mtable>'
@@ -1146,7 +1148,7 @@ class FullForm(Builtin):
 
 
 class StandardForm(Builtin):
-    u"""
+    """
     >> StandardForm[a + b * c]
      = a + b c
     >> StandardForm["A string"]
@@ -1188,7 +1190,7 @@ class OutputForm(Builtin):
 
 
 class MathMLForm(Builtin):
-    u"""
+    """
     >> MathMLForm[HoldForm[Sqrt[a^3]]]
      = <math><msqrt><msup><mi>a</mi> <mn>3</mn></msup></msqrt></math>
 
@@ -1249,7 +1251,7 @@ class TeXForm(Builtin):
             # Replace multiple newlines by a single one e.g. between asy-blocks
             tex = MULTI_NEWLINE_RE.sub('\n', tex)
 
-            tex = tex.replace(u' \uF74c', u' \, d')  # tmp hack for Integrate
+            tex = tex.replace(' \uF74c', ' \, d')  # tmp hack for Integrate
         except BoxError:
             evaluation.message(
                 'General', 'notboxes',

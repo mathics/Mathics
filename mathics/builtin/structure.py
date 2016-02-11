@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
 from mathics.core.expression import (Expression, String, Symbol, Integer,
                                      strip_context)
@@ -153,7 +155,7 @@ class ApplyLevel(BinaryOperator):
 
 
 class Apply(BinaryOperator):
-    u"""
+    """
     <dl>
     <dt>'Apply[$f$, $expr$]' or '$f$ @@ $expr$'
         <dd>replaces the head of $expr$ with $f$.
@@ -680,7 +682,7 @@ class SymbolQ(Test):
 
 
 class Symbol_(Builtin):
-    u"""
+    """
     'Symbol' is the head of symbols.
     >> Head[x]
      = Symbol

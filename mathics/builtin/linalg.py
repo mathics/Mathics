@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 """
 Linear algebra
 """
@@ -33,7 +35,7 @@ def to_sympy_matrix(data, **kwargs):
 
 
 class Det(Builtin):
-    u"""
+    """
     <dl>
     <dt>'Det[$m$]'
         <dd>computes the determinant of the matrix $m$.
