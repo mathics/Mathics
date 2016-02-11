@@ -3609,7 +3609,7 @@ class FileByteCount(Builtin):
             with mathics_open(py_filename, 'rb') as f:
                 count = 0
                 tmp = f.read(1)
-                while tmp != '':
+                while tmp != b'':
                     count += 1
                     tmp = f.read(1)
 
