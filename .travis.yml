@@ -31,7 +31,7 @@ before_install:
       sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
     fi
   - if [[ "$CYTHON"=="true" ]]; then
-      sudo apt-get install -qq cython;
+      pip install cython;
     fi
   - pip install unittest2
   - pip install pexpect
