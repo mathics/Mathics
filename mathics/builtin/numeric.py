@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Numeric evaluation
@@ -13,6 +14,7 @@ However, things like 'N[Pi, 100]' should work as expected.
 
 import sympy
 import mpmath
+from six.moves import range
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (dps, prec, convert_base,
@@ -149,14 +151,14 @@ class N(Builtin):
                 if 'System`NHoldAll' in attributes:
                     eval_range = []
                 elif 'System`NHoldFirst' in attributes:
-                    eval_range = range(1, len(expr.leaves))
+                    eval_range = list(range(1, len(expr.leaves)))
                 elif 'System`NHoldRest' in attributes:
                     if len(expr.leaves) > 0:
                         eval_range = (0,)
                     else:
                         eval_range = ()
                 else:
-                    eval_range = range(len(expr.leaves))
+                    eval_range = list(range(len(expr.leaves)))
                 head = Expression('N', expr.head, prec).evaluate(evaluation)
                 leaves = expr.leaves[:]
                 for index in eval_range:

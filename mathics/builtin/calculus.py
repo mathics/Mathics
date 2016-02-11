@@ -2,10 +2,15 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Calculus functions
 """
+
+import six
+from six.moves import range
+from six.moves import zip
 
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import Expression, Integer, Number
@@ -675,7 +680,7 @@ class Solve(Builtin):
         def transform_dict(sols):
             if not sols:
                 yield sols
-            for var, sol in sols.iteritems():
+            for var, sol in six.iteritems(sols):
                 rest = sols.copy()
                 del rest[var]
                 rest = transform_dict(rest)
@@ -696,7 +701,7 @@ class Solve(Builtin):
             if not isinstance(sol, dict):
                 if not isinstance(sol, (list, tuple)):
                     sol = [sol]
-                sol = dict(zip(vars_sympy, sol))
+                sol = dict(list(zip(vars_sympy, sol)))
             return transform_dict(sol)
 
         if not sympy_eqs:

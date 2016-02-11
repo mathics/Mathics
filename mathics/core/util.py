@@ -3,6 +3,9 @@
 
 from __future__ import print_function
 from __future__ import unicode_literals
+from __future__ import absolute_import
+
+from six.moves import range
 
 import re
 
@@ -59,7 +62,7 @@ def permutations(items, without_duplicates=True):
 def subsets(items, min, max, included=None, less_first=False):
     if max is None:
         max = len(items)
-    lengths = range(min, max + 1)
+    lengths = list(range(min, max + 1))
     if not less_first:
         lengths = reversed(lengths)
     lengths = list(lengths)
@@ -126,7 +129,7 @@ def subsets_2(items, min, max, without_duplicates=True):
                         yield set
                 for set in decide(chosen, not_chosen + [rest[0]], rest[1:]):
                     yield set
-        for subset in decide([], [], counts.keys()):
+        for subset in decide([], [], list(counts.keys())):
             t = tuple(subset[0])
             if t not in already:
                 yield subset
@@ -143,11 +146,11 @@ def subranges(items, min_count, max, flexible_start=False, included=None,
         max = len(items)
     max = min(max, len(items))
     if flexible_start:
-        starts = range(len(items) - max + 1)
+        starts = list(range(len(items) - max + 1))
     else:
         starts = (0,)
     for start in starts:
-        lengths = range(min_count, max + 1)
+        lengths = list(range(min_count, max + 1))
         if not less_first:
             lengths = reversed(lengths)
         lengths = list(lengths)

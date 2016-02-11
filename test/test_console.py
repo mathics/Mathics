@@ -8,6 +8,7 @@ import os
 import sys
 import pexpect
 import unittest
+from six.moves import range
 
 
 class ConsoleTest(unittest.TestCase):

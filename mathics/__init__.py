@@ -3,11 +3,15 @@
 
 from __future__ import unicode_literals
 from __future__ import print_function
+from __future__ import absolute_import
 
 import sys
-import codecs
-writer = codecs.getwriter("utf-8")
-sys.stdout = writer(sys.stdout)
+import platform
+
+# TODO fix this ugly hack
+# import codecs
+# writer = codecs.getwriter("utf-8")
+# sys.stdout = writer(sys.stdout)
 
 from mathics.version import __version__
 from mathics.core.expression import (
@@ -33,7 +37,7 @@ def get_version():
     version['mathics'] = __version__
     version['sympy'] = sympy.__version__
     version['mpmath'] = mpmath.__version__
-    version['python'] = sys.subversion[0] + " " + sys.version.split('\n')[0]
+    version['python'] = platform.python_implementation() + " " + sys.version.split('\n')[0]
     return version
 
 

@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 from __future__ import print_function
+from __future__ import absolute_import
 
 """
 File Operations
@@ -20,6 +21,8 @@ import struct
 import sympy
 import mpmath
 import math
+import six
+from six.moves import range
 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError,
@@ -27,6 +30,11 @@ from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.settings import ROOT_DIR
+
+try:
+    unichr
+except NameError:   # Py3
+    unichr = chr
 
 INITIAL_DIR = os.getcwd()
 HOME_DIR = os.path.expanduser('~')
@@ -546,7 +554,7 @@ class Read(Builtin):
         # TODO: Proper error messages
 
         result = {}
-        keys = options.keys()
+        keys = list(options.keys())
 
         # AnchoredSearch
         if 'System`AnchoredSearch' in keys:
@@ -570,8 +578,8 @@ class Read(Builtin):
         if 'System`RecordSeparators' in keys:
             record_separators = options['System`RecordSeparators'].to_python()
             assert isinstance(record_separators, list)
-            assert all(isinstance(s, basestring) and s[
-                       0] == s[-1] == '"' for s in record_separators)
+            assert all(isinstance(s, six.string_types) and
+                       s[0] == s[-1] == '"' for s in record_separators)
             record_separators = [s[1:-1] for s in record_separators]
             result['RecordSeparators'] = record_separators
 
@@ -579,8 +587,8 @@ class Read(Builtin):
         if 'System`WordSeparators' in keys:
             word_separators = options['System`WordSeparators'].to_python()
             assert isinstance(word_separators, list)
-            assert all(isinstance(s, basestring) and s[
-                       0] == s[-1] == '"' for s in word_separators)
+            assert all(isinstance(s, six.string_types) and
+                       s[0] == s[-1] == '"' for s in word_separators)
             word_separators = [s[1:-1] for s in word_separators]
             result['WordSeparators'] = word_separators
 
@@ -694,7 +702,7 @@ class Read(Builtin):
                         raise EOFError
                     result.append(tmp)
                 elif typ == Symbol('Expression'):
-                    tmp = read_record.next()
+                    tmp = next(read_record)
                     try:
                         try:
                             expr = parse(tmp, evaluation.definitions)
@@ -709,7 +717,7 @@ class Read(Builtin):
                         return Symbol('$Failed')
                     result.append(tmp)
                 elif typ == Symbol('Number'):
-                    tmp = read_number.next()
+                    tmp = next(read_number)
                     try:
                         tmp = int(tmp)
                     except ValueError:
@@ -722,7 +730,7 @@ class Read(Builtin):
                     result.append(tmp)
 
                 elif typ == Symbol('Real'):
-                    tmp = read_real.next()
+                    tmp = next(read_real)
                     tmp = tmp.replace('*^', 'E')
                     try:
                         tmp = float(tmp)
@@ -732,14 +740,14 @@ class Read(Builtin):
                         return Symbol('$Failed')
                     result.append(tmp)
                 elif typ == Symbol('Record'):
-                    result.append(read_record.next())
+                    result.append(next(read_record))
                 elif typ == Symbol('String'):
                     tmp = stream.readline()
                     if len(tmp) == 0:
                         raise EOFError
                     result.append(tmp.rstrip('\n'))
                 elif typ == Symbol('Word'):
-                    result.append(read_word.next())
+                    result.append(next(read_word))
 
             except EOFError:
                 return Symbol('EndOfFile')
@@ -796,7 +804,7 @@ class Write(Builtin):
 
         evaluation.format = 'text'
         text = evaluation.format_output(from_python(expr))
-        stream.write(unicode(text) + '\n')
+        stream.write(six.text_type(text) + '\n')
         return Symbol('Null')
 
 
@@ -2313,7 +2321,7 @@ class PutAppend(BinaryOperator):
                 'OutputSteam', name, n))
             return
 
-        text = [unicode(e.do_format(evaluation, 'System`OutputForm').__str__())
+        text = [six.text_type(e.do_format(evaluation, 'System`OutputForm').__str__())
                 for e in exprs.get_sequence()]
         text = '\n'.join(text) + '\n'
         text.encode('ascii')
@@ -2360,7 +2368,7 @@ class FindFile(Builtin):
 
         py_name = name.to_python()
 
-        if not (isinstance(py_name, basestring) and
+        if not (isinstance(py_name, six.string_types) and
                 py_name[0] == py_name[-1] == '"'):
             evaluation.message(
                 'FindFile', 'string', Expression('FindFile', name))
@@ -2465,7 +2473,7 @@ class FileNameJoin(Builtin):
         'FileNameJoin[pathlist_?ListQ, OptionsPattern[FileNameJoin]]'
 
         py_pathlist = pathlist.to_python()
-        if not all(isinstance(p, basestring) and p[0] == p[-1] == '"'
+        if not all(isinstance(p, six.string_types) and p[0] == p[-1] == '"'
                    for p in py_pathlist):
             return
         py_pathlist = [p[1:-1] for p in py_pathlist]
@@ -2612,12 +2620,12 @@ class DirectoryName(Builtin):
             expr = Expression('DirectoryName', name, n)
             py_n = n.to_python()
 
-        if not (isinstance(py_n, (int, long)) and py_n > 0):
+        if not (isinstance(py_n, six.integer_types) and py_n > 0):
             evaluation.message('DirectoryName', 'intpm', expr)
             return
 
         py_name = name.to_python()
-        if not (isinstance(py_name, basestring) and
+        if not (isinstance(py_name, six.string_types) and
                 py_name[0] == py_name[-1] == '"'):
             evaluation.message('DirectoryName', 'string', expr)
             return
@@ -2693,7 +2701,7 @@ class AbsoluteFileName(Builtin):
 
         py_name = name.to_python()
 
-        if not (isinstance(py_name, basestring) and
+        if not (isinstance(py_name, six.string_types) and
                 py_name[0] == py_name[-1] == '"'):
             evaluation.message('AbsoluteFileName', 'fstr', name)
             return
@@ -2731,7 +2739,7 @@ class ExpandFileName(Builtin):
 
         py_name = name.to_python()
 
-        if not (isinstance(py_name, basestring) and
+        if not (isinstance(py_name, six.string_types) and
                 py_name[0] == py_name[-1] == '"'):
             evaluation.message('ExpandFileName', 'string',
                                Expression('ExpandFileName', name))
@@ -2908,7 +2916,7 @@ class FilePrint(Builtin):
     def apply(self, path, evaluation, options):
         'FilePrint[path_ OptionsPattern[FilePrint]]'
         pypath = path.to_python()
-        if not (isinstance(pypath, basestring) and
+        if not (isinstance(pypath, six.string_types) and
                 pypath[0] == pypath[-1] == '"' and len(pypath) > 2):
             evaluation.message('FilePrint', 'fstr', path)
             return
@@ -2917,8 +2925,8 @@ class FilePrint(Builtin):
         # Options
         record_separators = options['System`RecordSeparators'].to_python()
         assert isinstance(record_separators, list)
-        assert all(isinstance(s, basestring) and s[
-                   0] == s[-1] == '"' for s in record_separators)
+        assert all(isinstance(s, six.string_types) and
+                   s[0] == s[-1] == '"' for s in record_separators)
         record_separators = [s[1:-1] for s in record_separators]
 
         if pypath is None:
@@ -3254,7 +3262,7 @@ class Find(Read):
         if not isinstance(py_text, list):
             py_text = [py_text]
 
-        if not all(isinstance(t, basestring) and
+        if not all(isinstance(t, six.string_types) and
                    t[0] == t[-1] == '"' for t in py_text):
             evaluation.message(
                 'Find', 'unknown', Expression('Find', channel, text))
@@ -3343,12 +3351,12 @@ class FindList(Builtin):
         if not isinstance(py_name, list):
             py_name = [py_name]
 
-        if not all(isinstance(t, basestring) and
+        if not all(isinstance(t, six.string_types) and
                    t[0] == t[-1] == '"' for t in py_name):
             evaluation.message('FindList', 'strs', '1', expr)
             return Symbol('$Failed')
 
-        if not all(isinstance(t, basestring) and
+        if not all(isinstance(t, six.string_types) and
                    t[0] == t[-1] == '"' for t in py_text):
             evaluation.message('FindList', 'strs', '2', expr)
             return Symbol('$Failed')
@@ -3452,7 +3460,7 @@ class StringToStream(Builtin):
     def apply(self, string, evaluation):
         'StringToStream[string_]'
         pystring = string.to_python()[1:-1]
-        stream = io.StringIO(unicode(pystring))
+        stream = io.StringIO(six.text_type(pystring))
 
         name = Symbol('String')
         n = next(NSTREAMS)
@@ -3491,7 +3499,7 @@ class Streams(Builtin):
     def apply_name(self, name, evaluation):
         'Streams[name_String]'
         result = []
-        for n in xrange(len(STREAMS)):
+        for n in range(len(STREAMS)):
             stream = _lookup_stream(n)
             if stream is None or stream.closed:
                 continue
@@ -3599,7 +3607,7 @@ class FileByteCount(Builtin):
     def apply(self, filename, evaluation):
         'FileByteCount[filename_]'
         py_filename = filename.to_python()
-        if not (isinstance(py_filename, basestring) and
+        if not (isinstance(py_filename, six.string_types) and
                 py_filename[0] == py_filename[-1] == '"'):
             evaluation.message('FileByteCount', 'fstr', filename)
             return
@@ -3873,7 +3881,7 @@ class SetFileDate(Builtin):
             expr = Expression('SetFileDate', filename, datelist, attribute)
 
         # Check filename
-        if not (isinstance(py_filename, basestring) and
+        if not (isinstance(py_filename, six.string_types) and
                 py_filename[0] == py_filename[-1] == '"'):
             evaluation.message('SetFileDate', 'fstr', filename)
             return
@@ -3963,11 +3971,11 @@ class CopyFile(Builtin):
         py_dest = dest.to_python()
 
         # Check filenames
-        if not (isinstance(py_source, basestring) and
+        if not (isinstance(py_source, six.string_types) and
                 py_source[0] == py_source[-1] == '"'):
             evaluation.message('CopyFile', 'fstr', source)
             return
-        if not (isinstance(py_dest, basestring) and
+        if not (isinstance(py_dest, six.string_types) and
                 py_dest[0] == py_dest[-1] == '"'):
             evaluation.message('CopyFile', 'fstr', dest)
             return
@@ -4025,11 +4033,11 @@ class RenameFile(Builtin):
         py_dest = dest.to_python()
 
         # Check filenames
-        if not (isinstance(py_source, basestring) and
+        if not (isinstance(py_source, six.string_types) and
                 py_source[0] == py_source[-1] == '"'):
             evaluation.message('RenameFile', 'fstr', source)
             return
-        if not (isinstance(py_dest, basestring) and
+        if not (isinstance(py_dest, six.string_types) and
                 py_dest[0] == py_dest[-1] == '"'):
             evaluation.message('RenameFile', 'fstr', dest)
             return
@@ -4092,7 +4100,7 @@ class DeleteFile(Builtin):
         py_paths = []
         for path in py_path:
             # Check filenames
-            if not (isinstance(path, basestring) and
+            if not (isinstance(path, six.string_types) and
                     path[0] == path[-1] == '"'):
                 evaluation.message('DeleteFile', 'strs', filename,
                                    Expression('DeleteFile', filename))
@@ -4303,7 +4311,7 @@ class CreateDirectory(Builtin):
         expr = Expression('CreateDirectory', dirname)
         py_dirname = dirname.to_python()
 
-        if not (isinstance(py_dirname, basestring) and
+        if not (isinstance(py_dirname, six.string_types) and
                 py_dirname[0] == py_dirname[-1] == '"'):
             evaluation.message('CreateDirectory', 'fstr', dirname)
             return
@@ -4371,7 +4379,7 @@ class DeleteDirectory(Builtin):
             evaluation.message('DeleteDirectory', 'idcts')
             return
 
-        if not (isinstance(py_dirname, basestring) and
+        if not (isinstance(py_dirname, six.string_types) and
                 py_dirname[0] == py_dirname[-1] == '"'):
             evaluation.message('DeleteDirectory', 'strs', expr)
             return
@@ -4420,12 +4428,12 @@ class CopyDirectory(Builtin):
             return
         (dir1, dir2) = (s.to_python() for s in seq)
 
-        if not (isinstance(dir1, basestring) and dir1[0] == dir1[-1] == '"'):
+        if not (isinstance(dir1, six.string_types) and dir1[0] == dir1[-1] == '"'):
             evaluation.message('CopyDirectory', 'fstr', seq[0])
             return
         dir1 = dir1[1:-1]
 
-        if not (isinstance(dir2, basestring) and dir2[0] == dir2[-1] == '"'):
+        if not (isinstance(dir2, six.string_types) and dir2[0] == dir2[-1] == '"'):
             evaluation.message('CopyDirectory', 'fstr', seq[1])
             return
         dir2 = dir2[1:-1]
@@ -4469,12 +4477,12 @@ class RenameDirectory(Builtin):
             return
         (dir1, dir2) = (s.to_python() for s in seq)
 
-        if not (isinstance(dir1, basestring) and dir1[0] == dir1[-1] == '"'):
+        if not (isinstance(dir1, six.string_types) and dir1[0] == dir1[-1] == '"'):
             evaluation.message('RenameDirectory', 'fstr', seq[0])
             return
         dir1 = dir1[1:-1]
 
-        if not (isinstance(dir2, basestring) and dir2[0] == dir2[-1] == '"'):
+        if not (isinstance(dir2, six.string_types) and dir2[0] == dir2[-1] == '"'):
             evaluation.message('RenameDirectory', 'fstr', seq[1])
             return
         dir2 = dir2[1:-1]
@@ -4558,7 +4566,7 @@ class FileExistsQ(Builtin):
     def apply(self, filename, evaluation):
         'FileExistsQ[filename_]'
         path = filename.to_python()
-        if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
+        if not (isinstance(path, six.string_types) and path[0] == path[-1] == '"'):
             evaluation.message('FileExistsQ', 'fstr', filename)
             return
         path = path[1:-1]
@@ -4600,7 +4608,7 @@ class DirectoryQ(Builtin):
         'DirectoryQ[pathname_]'
         path = pathname.to_python()
 
-        if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
+        if not (isinstance(path, six.string_types) and path[0] == path[-1] == '"'):
             evaluation.message('DirectoryQ', 'fstr', pathname)
             return
         path = path[1:-1]

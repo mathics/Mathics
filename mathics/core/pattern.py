@@ -3,10 +3,12 @@
 # cython: profile=False
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from mathics.core.expression import (Expression, system_symbols,
                                      ensure_context)
 from mathics.core.util import subsets, subranges, permutations
+from six.moves import range
 
 # from mathics.core.pattern_nocython import (
 #    StopGenerator #, Pattern #, ExpressionPattern)
@@ -73,7 +75,7 @@ class Pattern(object):
             raise StopGenerator_Pattern(True)
         try:
             self.match(yield_match, expression, vars, evaluation, fully=fully)
-        except StopGenerator_Pattern, exc:
+        except StopGenerator_Pattern as exc:
             return exc.value
         return False
 
@@ -129,7 +131,7 @@ class AtomPattern(Pattern):
         self.expr = expr
 
     def __repr__(self):
-        return ('<AtomPattern: %s>' % self.atom).encode('unicode_escape')
+        return '<AtomPattern: %s>' % self.atom
 
     def match(self, yield_func, expression, vars, evaluation, head=None,
               leaf_index=None, leaf_count=None, fully=True, wrap_oneid=True):
@@ -314,14 +316,14 @@ class ExpressionPattern(Pattern):
                                 setting[name] = wrapping
                                 yield_name(setting)
                             per_name(yield_next, groups[1:], vars)
-                    per_expr(yield_expr, expr_groups.items())
+                    per_expr(yield_expr, list(expr_groups.items()))
                 else:  # no groups left
                     yield_name(vars)
 
             # for setting in per_name(groups.items(), vars):
             # def yield_name(setting):
             #    yield_func(setting)
-            per_name(yield_func, groups.items(), vars)
+            per_name(yield_func, list(groups.items()), vars)
         else:
             yield_func(vars)
 
@@ -336,7 +338,7 @@ class ExpressionPattern(Pattern):
                 if leaf.get_head_name() == head_name]
 
     def __repr__(self):
-        return ('<ExpressionPattern: %s>' % self.expr).encode('unicode_escape')
+        return '<ExpressionPattern: %s>' % self.expr
 
     def get_match_count(self, vars={}):
         return (1, 1)

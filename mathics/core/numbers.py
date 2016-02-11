@@ -3,11 +3,13 @@
 
 from __future__ import unicode_literals
 
+from __future__ import absolute_import
 import sympy
 import mpmath
 from math import log
 
 from mathics.core.util import unicode_superscript
+from six.moves import range
 
 
 def get_type(value):
@@ -132,7 +134,7 @@ def convert_base(x, base, precision=10):
     x *= sign
 
     length_of_int = 0 if x == 0 else int(log(x, base))
-    iexps = range(length_of_int, -1, -1)
+    iexps = list(range(length_of_int, -1, -1))
     import string
     digits = string.digits + string.lowercase
 
@@ -154,7 +156,7 @@ def convert_base(x, base, precision=10):
         int_part.insert(0, '-')
 
     if (isinstance(x, float)):
-        fexps = range(-1, -int(precision + 1), -1)
+        fexps = list(range(-1, -int(precision + 1), -1))
         real_part = convert(x - int(x), base, fexps)
 
         return "%s.%s" % (''.join(int_part), ''.join(real_part))
@@ -169,7 +171,7 @@ def convert_int_to_digit_list(x, base):
     x = abs(x)
 
     length_of_int = int(log(x, base)) + 1
-    iexps = range(length_of_int, -1, -1)
+    iexps = list(range(length_of_int, -1, -1))
 
     def convert(x, base, exponents):
         out = []

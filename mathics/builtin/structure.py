@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
 from mathics.core.expression import (Expression, String, Symbol, Integer,
@@ -10,6 +11,8 @@ from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
                                    InvalidLevelspecError)
+import six
+from six.moves import range
 
 
 class Sort(Builtin):
@@ -593,8 +596,7 @@ class Flatten(Builtin):
 
         ## build new tree inserting nodes as needed
         result = Expression(h)
-        leaves = new_indices.items()
-        leaves.sort()
+        leaves = sorted(six.iteritems(new_indices))
 
         def insert_leaf(expr, leaves):
             # gather leaves into groups with the same leading index

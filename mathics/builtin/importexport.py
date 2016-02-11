@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
+import six
 
 """
 Importing and Exporting
@@ -10,7 +12,7 @@ Importing and Exporting
 from mathics.core.expression import Expression, from_python
 from mathics.builtin.base import Builtin, Predefined, Symbol, String
 
-from pymimesniffer import magic
+from .pymimesniffer import magic
 import mimetypes
 
 
@@ -294,7 +296,7 @@ class Import(Builtin):
 
         # Check filename
         path = filename.to_python()
-        if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
+        if not (isinstance(path, six.string_types) and path[0] == path[-1] == '"'):
             evaluation.message('Import', 'chtype', filename)
             return Symbol('$Failed')
 
@@ -363,7 +365,7 @@ class Import(Builtin):
             # return {a.get_string_value() : b for (a,b) in map(lambda x:
             # x.get_leaves(), tmp)}
             return dict((a.get_string_value(), b)
-                        for (a, b) in map(lambda x: x.get_leaves(), tmp))
+                        for (a, b) in [x.get_leaves() for x in tmp])
 
         # Perform the import
         defaults = None
@@ -392,14 +394,14 @@ class Import(Builtin):
                     return Symbol('$Failed')
                 # Use set() to remove duplicates
                 return from_python(sorted(set(
-                    conditionals.keys() + defaults.keys() + posts.keys())))
+                    list(conditionals.keys()) + list(defaults.keys()) + list(posts.keys()))))
             else:
                 if el in conditionals.keys():
                     result = get_results(conditionals[el])
                     if result is None:
                         return Symbol('$Failed')
-                    if len(result.keys()) == 1 and result.keys()[0] == el:
-                        return result.values()[0]
+                    if len(list(result.keys())) == 1 and list(result.keys())[0] == el:
+                        return list(result.values())[0]
                 elif el in posts.keys():
                     # TODO: allow use of conditionals
                     result = get_results(posts[el])
@@ -573,7 +575,7 @@ class Export(Builtin):
 
     def _check_filename(self, filename, evaluation):
         path = filename.to_python()
-        if isinstance(path, basestring) and path[0] == path[-1] == '"':
+        if isinstance(path, six.string_types) and path[0] == path[-1] == '"':
             return True
         evaluation.message('Export', 'chtype', filename)
         return False

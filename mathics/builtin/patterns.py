@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Patterns and rules
@@ -34,6 +35,8 @@ Options using 'OptionsPattern' and 'OptionValue':
 
 The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 """
+
+from six.moves import range
 
 from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
 from mathics.builtin.base import PatternObject

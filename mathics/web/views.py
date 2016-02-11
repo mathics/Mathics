@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 from __future__ import print_function
+from __future__ import absolute_import
 
 import sys
 import traceback
@@ -24,6 +25,8 @@ from mathics.web.models import Query, Worksheet
 from mathics.web.forms import LoginForm, SaveForm
 from mathics.doc import documentation
 from mathics.doc.doc import DocPart, DocChapter, DocSection
+import six
+from six.moves import range
 
 if settings.DEBUG:
     JSON_CONTENT_TYPE = 'text/html'
@@ -91,7 +94,7 @@ def query(request):
                           remote_user=request.META.get('REMOTE_USER', ''),
                           remote_addr=request.META.get('REMOTE_ADDR', ''),
                           remote_host=request.META.get('REMOTE_HOST', ''),
-                          meta=unicode(request.META),
+                          meta=six.text_type(request.META),
                           log='',
                           )
         query_log.save()
@@ -118,7 +121,7 @@ def query(request):
 
     if settings.LOG_QUERIES:
         query_log.timeout = evaluation.timeout
-        query_log.result = unicode(result)  # evaluation.results
+        query_log.result = six.text_type(result)  # evaluation.results
         query_log.error = False
         query_log.save()
 

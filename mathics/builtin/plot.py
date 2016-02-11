@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
+from six.moves import range
+from six.moves import zip
 
 """
 Plotting
@@ -165,7 +168,7 @@ def get_plot_range(values, all_values, option):
 
 
 class _Plot(Builtin):
-    from graphics import Graphics
+    from .graphics import Graphics
 
     attributes = ('HoldAll',)
 
@@ -362,7 +365,7 @@ class _Plot(Builtin):
             tmp_mesh_points = []  # For this function only
             continuous = False
             d = (stop - start) / (plotpoints - 1)
-            for i in xrange(plotpoints):
+            for i in range(plotpoints):
                 x_value = start + i * d
                 point = self.eval_f(f, x_name, x_value, evaluation)
                 if point is not None:
@@ -1261,7 +1264,7 @@ class ListPlot(_ListPlot):
      = -Graphics-
     """
 
-    from graphics import Graphics
+    from .graphics import Graphics
 
     attributes = ('HoldAll',)
 
@@ -1294,7 +1297,7 @@ class ListLinePlot(_ListPlot):
     >> ListLinePlot[{{-2, -1}, {-1, -1}}]
      = -Graphics-
     """
-    from graphics import Graphics
+    from .graphics import Graphics
 
     attributes = ('HoldAll',)
 
@@ -1359,7 +1362,7 @@ class Plot3D(_Plot3D):
     #> Plot3D[x + 2y, {x, -2, 2}, {y, -2, 2}] // TeXForm
     """
 
-    from graphics import Graphics
+    from .graphics import Graphics
 
     attributes = ('HoldAll',)
 
@@ -1427,7 +1430,7 @@ class DensityPlot(_Plot3D):
      = -Graphics-
     """
 
-    from graphics import Graphics
+    from .graphics import Graphics
 
     attributes = ('HoldAll',)
 

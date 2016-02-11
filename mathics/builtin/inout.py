@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
+import six
 
 """
 Input and Output
@@ -245,7 +247,7 @@ class MakeBoxes(Builtin):
             if isinstance(x, Symbol):
                 return String(evaluation.definitions.shorten_name(x.name))
             elif isinstance(x, String):
-                return String('"' + unicode(x.value) + '"')
+                return String('"' + six.text_type(x.value) + '"')
             elif isinstance(x, (Integer, Real)):
                 return x.make_boxes(f.get_name())
             elif isinstance(x, (Rational, Complex)):
@@ -489,7 +491,7 @@ class GridBox(BoxConstruct):
             # invalid column alignment
             raise BoxConstructError
         attrs = ' '.join('{0}="{1}"'.format(name, value)
-                         for name, value in attrs.iteritems())
+                         for name, value in six.iteritems(attrs))
         result = '<mtable {0}>\n'.format(attrs)
         new_box_options = box_options.copy()
         new_box_options['inside_list'] = True

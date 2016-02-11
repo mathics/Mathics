@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 
+from __future__ import absolute_import
 import re
 import sympy
 
@@ -11,6 +12,7 @@ from mathics.core.rules import Rule, BuiltinRule, Pattern
 from mathics.core.expression import (BaseExpression, Expression, Symbol,
                                      String, Integer, ensure_context,
                                      strip_context)
+import six
 
 
 class Builtin(object):
@@ -74,7 +76,7 @@ class Builtin(object):
                 return '' if f == '' else ensure_context(f)
             if isinstance(pattern, tuple):
                 forms, pattern = pattern
-                if isinstance(forms, basestring):
+                if isinstance(forms, six.string_types):
                     forms = [contextify_form_name(forms)]
                 else:
                     forms = [contextify_form_name(f) for f in forms]
@@ -112,7 +114,7 @@ class Builtin(object):
             attributes = ['System`Protected']
         attributes += list(ensure_context(a) for a in self.attributes)
         options = {}
-        for option, value in self.options.iteritems():
+        for option, value in six.iteritems(self.options):
             option = ensure_context(option)
             options[option] = parse_builtin_rule(value)
             if option.startswith('System`'):
@@ -123,7 +125,7 @@ class Builtin(object):
                     definitions.builtin[option] = Definition(
                         name=name, attributes=set())
         defaults = []
-        for spec, value in self.defaults.iteritems():
+        for spec, value in six.iteritems(self.defaults):
             value = parse_builtin_rule(value)
             pattern = None
             if spec is None:

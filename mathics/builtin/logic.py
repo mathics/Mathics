@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 
+from __future__ import absolute_import
 from mathics.builtin.base import BinaryOperator, Predefined, PrefixOperator
 from mathics.core.expression import Expression, Symbol
 

@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
+from six.moves import map
+from six.moves import range
 
 """
 Graphics (3D)
@@ -11,7 +14,7 @@ import numbers
 from mathics.core.expression import (Expression, NumberError, from_python,
                                      system_symbols_dict)
 from mathics.builtin.base import BoxConstructError, Builtin, InstancableBuiltin
-from graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
+from .graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
                       LineBox, PointBox, Style, RGBColor, get_class,
                       asy_number, CoordinatesError, _GraphicsElements)
 
@@ -308,7 +311,7 @@ class Graphics3DBox(GraphicsBox):
                         xmax += 1
                 elif (isinstance(plot_range[0], list) and
                       len(plot_range[0]) == 2):
-                    xmin, xmax = map(float, plot_range[0])
+                    xmin, xmax = list(map(float, plot_range[0]))
                     xmin = elements.translate((xmin, 0, 0))[0]
                     xmax = elements.translate((xmax, 0, 0))[0]
                 else:
@@ -323,7 +326,7 @@ class Graphics3DBox(GraphicsBox):
                         ymax += 1
                 elif (isinstance(plot_range[1], list) and
                       len(plot_range[1]) == 2):
-                    ymin, ymax = map(float, plot_range[1])
+                    ymin, ymax = list(map(float, plot_range[1]))
                     ymin = elements.translate((0, ymin, 0))[1]
                     ymax = elements.translate((0, ymax, 0))[1]
                 else:
@@ -338,7 +341,7 @@ class Graphics3DBox(GraphicsBox):
                         zmax += 1
                 elif (isinstance(plot_range[1], list) and
                       len(plot_range[1]) == 2):
-                    zmin, zmax = map(float, plot_range[2])
+                    zmin, zmax = list(map(float, plot_range[2]))
                     zmin = elements.translate((0, 0, zmin))[2]
                     zmax = elements.translate((0, 0, zmax))[2]
                 else:
@@ -620,9 +623,9 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
 
         # Convert ticks to nice strings e.g 0.100000000000002 -> '0.1' and
         # scale ticks appropriately
-        ticks = [[map(lambda x: boxscale[i] * x, t[0]),
-                  map(lambda x: boxscale[i] * x, t[1]),
-                  map(str, t[0])] for i, t in enumerate(ticks)]
+        ticks = [[[boxscale[i] * x for x in t[0]],
+                  [boxscale[i] * x for x in t[1]],
+                  list(map(str, t[0]))] for i, t in enumerate(ticks)]
 
         return axes, ticks
 

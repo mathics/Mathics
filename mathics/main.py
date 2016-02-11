@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 from __future__ import print_function
 
+from __future__ import absolute_import
 import sys
 import os
 import argparse
@@ -15,6 +16,8 @@ from mathics.core.expression import Integer, strip_context
 from mathics.core.evaluation import Evaluation
 from mathics import print_version, print_license, get_version_string
 from mathics import settings
+import six
+from six.moves import input
 
 
 class TerminalShell(object):
@@ -67,7 +70,7 @@ class TerminalShell(object):
         term_colors = color_schemes.get(colors.upper())
         if term_colors is None:
             out_msg = "The 'colors' argument must be {0} or None"
-            print(out_msg.format(repr(color_schemes.keys())))
+            print(out_msg.format(repr(list(color_schemes.keys()))))
             quit()
 
         self.incolors, self.outcolors = term_colors
@@ -94,7 +97,7 @@ class TerminalShell(object):
             return newline.join(text.splitlines())
 
         def out_callback(out):
-            print(to_output(unicode(out)))
+            print(to_output(six.text_type(out)))
 
         evaluation = Evaluation(text,
                                 self.definitions,
@@ -103,12 +106,12 @@ class TerminalShell(object):
         for result in evaluation.results:
             if result.result is not None:
                 print(self.get_out_prompt() +
-                      to_output(unicode(result.result)) + '\n')
+                      to_output(six.text_type(result.result)) + '\n')
 
     def read_line(self, prompt):
         if self.using_readline:
             return self.rl_read_line(prompt)
-        return raw_input(prompt)
+        return input(prompt)
 
     def rl_read_line(self, prompt):
         # sys.stdout is wrapped by a codecs.StreamWriter object in
@@ -124,8 +127,8 @@ class TerminalShell(object):
             # knows that they're nonprinting.
             prompt = self.ansi_color_re.sub(
                 lambda m: "\001" + m.group(0) + "\002", prompt)
-            sys.stdout = sys.stdout.stream
-            ret = raw_input(prompt)
+            # sys.stdout = sys.stdout.stream
+            ret = input(prompt)
             return ret
         finally:
             sys.stdout = orig_stdout
@@ -289,7 +292,8 @@ def main():
         try:
             line = shell.read_line(
                 shell.get_in_prompt(continued=total_input != ''))
-            line = line.decode(shell.input_encoding)
+            # TODO
+            # line = line.decode(shell.input_encoding)
             total_input += line
             if line != "" and wait_for_line(total_input):
                 continue

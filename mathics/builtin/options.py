@@ -2,10 +2,13 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Options and default arguments
 """
+
+import six
 
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import Symbol, Expression, get_default_value
@@ -75,7 +78,7 @@ class Options(Builtin):
             return
         options = evaluation.definitions.get_options(name)
         result = []
-        for option, value in sorted(options.items(), key=lambda item: item[0]):
+        for option, value in sorted(six.iteritems(options), key=lambda item: item[0]):
             # Don't use HoldPattern, since the returned List should be
             # assignable to Options again!
             result.append(Expression('RuleDelayed', Symbol(option), value))
@@ -225,5 +228,5 @@ class NotOptionQ(Test):
 
 
 def options_to_rules(options):
-    items = sorted(options.iteritems())
+    items = sorted(six.iteritems(options))
     return [Expression('Rule', Symbol(name), value) for name, value in items]

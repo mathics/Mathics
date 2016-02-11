@@ -5,6 +5,9 @@ from __future__ import unicode_literals
 from __future__ import print_function
 
 # Default number of times to repeat each benchmark. None -> Automatic
+from __future__ import absolute_import
+from six.moves import map
+from six.moves import range
 TESTS_PER_BENCHMARK = None
 
 # Mathics expressions to benchmark
@@ -82,13 +85,13 @@ def timeit(func, repeats=None):
     times = []
     if repeats is not None:
         # Fixed number of repeats
-        for i in xrange(repeats):
+        for i in range(repeats):
             times.append(time.clock())
             func()
     else:
         # Automatic number of repeats
         repeats = 10000
-        for i in xrange(repeats):
+        for i in range(repeats):
             times.append(time.clock())
             func()
             if any(i == j for j in (5, 10, 100, 1000, 5000)):

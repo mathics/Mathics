@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
+
+import six
+from six.moves import range
 
 """
 Date and Time
@@ -158,13 +162,13 @@ class _DateFormat(Builtin):
 
         form_name = self.get_name()
 
-        if isinstance(etime, float) or isinstance(etime, (int, long)):
+        if isinstance(etime, float) or isinstance(etime, six.integer_types):
             date = EPOCH_START + timedelta(seconds=etime)
             datelist = [date.year, date.month, date.day, date.hour,
                         date.minute, date.second + 1e-06 * date.microsecond]
             return datelist
 
-        if isinstance(etime, basestring):
+        if isinstance(etime, six.string_types):
             date = dateutil.parser.parse(etime.strip('"'))
             datelist = [date.year, date.month, date.day, date.hour,
                         date.minute, date.second + 1e-06 * date.microsecond]
@@ -176,7 +180,7 @@ class _DateFormat(Builtin):
 
         if 1 <= len(etime) <= 6 and all(    # noqa
             (isinstance(val, float) and i > 1) or
-            isinstance(val, (int, long)) for i, val in enumerate(etime)):
+            isinstance(val, six.integer_types) for i, val in enumerate(etime)):
 
             default_date = [1900, 1, 1, 0, 0, 0.]
             datelist = etime + default_date[len(etime):]
@@ -198,12 +202,11 @@ class _DateFormat(Builtin):
             return datelist
 
         if len(etime) == 2:
-            if (isinstance(etime[0], basestring) and    # noqa
+            if (isinstance(etime[0], six.string_types) and    # noqa
                 isinstance(etime[1], list) and
-                all(isinstance(s, basestring) for s in etime[1])):
-                is_spec = [str(s).strip(
-                    '"') in DATE_STRING_FORMATS.keys() for s in etime[1]]
-                etime[1] = map(lambda s: str(s).strip('"'), etime[1])
+                all(isinstance(s, six.string_types) for s in etime[1])):
+                is_spec = [str(s).strip('"') in DATE_STRING_FORMATS.keys() for s in etime[1]]
+                etime[1] = [str(s).strip('"') for s in etime[1]]
 
                 if sum(is_spec) == len(is_spec):
                     forms = []
@@ -412,9 +415,9 @@ class DateString(_DateFormat):
         if not isinstance(pyform, list):
             pyform = [pyform]
 
-        pyform = map(lambda x: x.strip('"'), pyform)
+        pyform = [x.strip('"') for x in pyform]
 
-        if not all(isinstance(f, basestring) for f in pyform):
+        if not all(isinstance(f, six.string_types) for f in pyform):
             evaluation.message('DateString', 'fmt', form)
             return
 
@@ -426,11 +429,9 @@ class DateString(_DateFormat):
                 if str(p).endswith("Short") and str(p) != "YearShort":
                     if str(p) == "DateTimeShort":
                         tmp = tmp.split(' ')
-                        tmp = ' '.join(map(lambda s: s.lstrip(
-                            '0'), tmp[:-1]) + [tmp[-1]])
+                        tmp = ' '.join([s.lstrip('0') for s in tmp[:-1]] + [tmp[-1]])
                     else:
-                        tmp = ' '.join(map(lambda s: s.lstrip(
-                            '0'), tmp.split(' ')))
+                        tmp = ' '.join([s.lstrip('0') for s in tmp.split(' ')])
             else:
                 tmp = str(p)
 
@@ -650,7 +651,7 @@ class DatePlus(Builtin):
         elif isinstance(pydate, float) or isinstance(pydate, int):
             date_prec = 'absolute'
             idate = _Date(absolute=pydate)
-        elif isinstance(pydate, basestring):
+        elif isinstance(pydate, six.string_types):
             date_prec = 'string'
             idate = _Date(datestr=pydate.strip('"'))
         else:
@@ -662,11 +663,11 @@ class DatePlus(Builtin):
         if isinstance(pyoff, float) or isinstance(pyoff, int):
             pyoff = [[pyoff, '"Day"']]
         elif (isinstance(pyoff, list) and len(pyoff) == 2 and
-              isinstance(pyoff[1], unicode)):
+              isinstance(pyoff[1], six.text_type)):
             pyoff = [pyoff]
 
         # Strip " marks
-        pyoff = map(lambda x: [x[0], x[1].strip('"')], pyoff)
+        pyoff = [[x[0], x[1].strip('"')] for x in pyoff]
 
         if isinstance(pyoff, list) and all(     # noqa
             len(o) == 2 and o[1] in TIME_INCREMENTS.keys() and
@@ -745,7 +746,7 @@ class DateDifference(Builtin):
             idate = _Date(datelist=pydate1)
         elif isinstance(pydate1, (float, int)):     # Absolute Time
             idate = _Date(absolute=pydate1)
-        elif isinstance(pydate1, basestring):       # Date string
+        elif isinstance(pydate1, six.string_types):       # Date string
             idate = _Date(datestr=pydate2.strip('"'))
         else:
             evaluation.message('DateDifference', 'date', date1)
@@ -755,7 +756,7 @@ class DateDifference(Builtin):
             fdate = _Date(datelist=pydate2)
         elif isinstance(pydate2, (int, float)):  # Absolute Time
             fdate = _Date(absolute=pydate2)
-        elif isinstance(pydate1, basestring):   # Date string
+        elif isinstance(pydate1, six.string_types):   # Date string
             fdate = _Date(datestr=pydate2.strip('"'))
         else:
             evaluation.message('DateDifference', 'date', date2)
@@ -769,11 +770,11 @@ class DateDifference(Builtin):
 
         # Process Units
         pyunits = units.to_python()
-        if isinstance(pyunits, basestring):
-            pyunits = [unicode(pyunits.strip('"'))]
+        if isinstance(pyunits, six.string_types):
+            pyunits = [six.text_type(pyunits.strip('"'))]
         elif (isinstance(pyunits, list) and
-              all(isinstance(p, basestring) for p in pyunits)):
-            pyunits = map(lambda p: p.strip('"'), pyunits)
+              all(isinstance(p, six.string_types) for p in pyunits)):
+            pyunits = [p.strip('"') for p in pyunits]
 
         if not all(p in TIME_INCREMENTS.keys() for p in pyunits):
             evaluation.message('DateDifference', 'inc', units)

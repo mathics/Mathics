@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+from __future__ import absolute_import
+
+from six.moves import range
 
 """Setuptools based setup script for Mathics.
 
@@ -64,10 +67,7 @@ else:
 # General Requirements
 INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.8, < 1.9', 'ply>=3.8',
                      'mpmath>=0.19', 'python-dateutil', 'colorama',
-                     'interruptingcow']
-
-# if sys.platform == "darwin":
-#    INSTALL_REQUIRES += ['readline']
+                     'interruptingcow', 'six']
 
 
 def subdirs(root, file='*.*', depth=10):

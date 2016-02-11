@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 
+from __future__ import absolute_import
 import re
 
 from mathics.builtin.base import (
@@ -14,6 +15,7 @@ from mathics.builtin.lists import walk_parts
 from mathics.builtin.evaluation import set_recursionlimit
 
 from mathics import settings
+from six.moves import zip
 
 
 def get_symbol_list(list, error_callback):
@@ -707,8 +709,7 @@ class Definition(Builtin):
                 print_rule(rule, up=True)
             for rule in definition.nvalues:
                 print_rule(rule)
-            formats = definition.formatvalues.items()
-            formats.sort()
+            formats = sorted(definition.formatvalues.items())
             for format, rules in formats:
                 for rule in rules:
                     def lhs(expr):
@@ -723,8 +724,7 @@ class Definition(Builtin):
         for rule in all.defaultvalues:
             print_rule(rule)
         if all.options:
-            options = all.options.items()
-            options.sort()
+            options = sorted(all.options.items())
             lines.append(
                 Expression('HoldForm', Expression(
                     'Set', Expression('Options', symbol),

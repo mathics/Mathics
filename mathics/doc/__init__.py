@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 
-from doc import Documentation
+from __future__ import absolute_import
+from .doc import Documentation
 
 documentation = Documentation()

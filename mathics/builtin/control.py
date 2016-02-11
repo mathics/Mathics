@@ -2,16 +2,19 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Control statements
 """
 
+from six.moves import range
+from six.moves import zip
+
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, from_python
 from mathics.core.evaluation import (
     AbortInterrupt, BreakInterrupt, ContinueInterrupt)
-
 from mathics.builtin.lists import _IterationFunction
 from mathics.builtin.patterns import match
 

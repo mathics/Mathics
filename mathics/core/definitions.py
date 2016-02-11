@@ -4,10 +4,9 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-try:
-    import cPickle as pickle
-except ImportError: # Py3
-    import pickle
+import six
+import six.moves.cPickle as pickle
+
 import os
 import base64
 import re
@@ -104,12 +103,12 @@ class Definitions(object):
         return context_path
 
     def set_current_context(self, context):
-        assert isinstance(context, basestring)
+        assert isinstance(context, six.string_types)
         self.set_ownvalue('System`$Context', String(context))
 
     def set_context_path(self, context_path):
         assert isinstance(context_path, list)
-        assert all([isinstance(c, basestring) for c in context_path])
+        assert all([isinstance(c, six.string_types) for c in context_path])
         self.set_ownvalue('System`$ContextPath',
                           Expression('System`List',
                                      *[String(c) for c in context_path]))
@@ -190,7 +189,7 @@ class Definitions(object):
         - Otherwise, it's a new symbol in $Context.
         """
 
-        assert isinstance(name, basestring)
+        assert isinstance(name, six.string_types)
 
         # Bail out if the name we're being asked to look up is already
         # fully qualified.
@@ -254,7 +253,7 @@ class Definitions(object):
         options = builtin.options.copy()
         options.update(user.options)
         formatvalues = builtin.formatvalues.copy()
-        for form, rules in user.formatvalues.iteritems():
+        for form, rules in six.iteritems(user.formatvalues):
             if form in formatvalues:
                 formatvalues[form].extend(rules)
             else:
@@ -302,7 +301,7 @@ class Definitions(object):
         return self.get_definition(name).defaultvalues
 
     def get_value(self, name, pos, pattern, evaluation):
-        assert isinstance(name, basestring)
+        assert isinstance(name, six.string_types)
         assert '`' in name
         rules = self.get_definition(name).get_values_list(valuesname(pos))
         for rule in rules:

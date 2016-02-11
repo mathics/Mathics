@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
+import six
+from six.moves import map
+from six.moves import range
 
 """
 Number theoretic functions
@@ -234,16 +238,16 @@ class FactorInteger(Builtin):
 
         if isinstance(n, Integer):
             factors = sympy.factorint(n.value)
-            factors = sorted(factors.iteritems())
+            factors = sorted(six.iteritems(factors))
             return Expression('List', *(Expression('List', factor, exp)
                                         for factor, exp in factors))
 
         elif isinstance(n, Rational):
-            factors, factors_denom = map(
-                sympy.factorint, n.value.as_numer_denom())
-            for factor, exp in factors_denom.iteritems():
+            factors, factors_denom = list(map(
+                sympy.factorint, n.value.as_numer_denom()))
+            for factor, exp in six.iteritems(factors_denom):
                 factors[factor] = factors.get(factor, 0) - exp
-            factors = sorted(factors.iteritems())
+            factors = sorted(six.iteritems(factors))
             return Expression('List', *(Expression('List', factor, exp)
                                         for factor, exp in factors))
         else:
@@ -282,7 +286,7 @@ class IntegerExponent(Builtin):
         py_n, py_b = n.to_python(), b.to_python()
         expr = Expression('IntegerExponent', n, b)
 
-        if not (isinstance(py_n, int) or isinstance(py_n, long)):
+        if not isinstance(py_n, six.integer_types):
             evaluation.message('IntegerExponent', 'int', expr)
         py_n = abs(py_n)
 

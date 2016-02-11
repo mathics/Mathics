@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Random number generation
@@ -9,11 +10,10 @@ Random number generation
 Random numbers are generated using the Mersenne Twister.
 """
 
+from six.moves import range
+import six.moves.cPickle as pickle
+
 import random
-try:
-    import cPickle as pickle
-except ImportError: # Py3
-    import pickle
 import binascii
 import hashlib
 
@@ -228,10 +228,10 @@ class RandomInteger(Builtin):
                 if i == len(result) - 1:
                         return Expression('List', *[
                             Integer(rand.randint(rmin, rmax))
-                            for j in xrange(result[i])])
+                            for j in range(result[i])])
                 else:
                     return Expression('List', *[
-                        search_product(i + 1) for j in xrange(result[i])])
+                        search_product(i + 1) for j in range(result[i])])
             return search_product(0)
 
 
@@ -319,10 +319,10 @@ class RandomReal(Builtin):
                 if i == len(result) - 1:
                         return Expression('List', *[
                             Real(rand.randreal(min_value, max_value))
-                            for j in xrange(result[i])])
+                            for j in range(result[i])])
                 else:
                     return Expression('List', *[
-                        search_product(i + 1) for j in xrange(result[i])])
+                        search_product(i + 1) for j in range(result[i])])
             return search_product(0)
 
 
@@ -382,8 +382,7 @@ class RandomComplex(Builtin):
             zmax = Complex(zmax, 0.0)
 
         if not (isinstance(zmin, Complex) and isinstance(zmax, Complex)):
-            return evaluation.message('RandomComplex', 'unifr',
-                                      Expression('List', zmin, zmax))
+            return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
 
         min_value, max_value = zmin.to_python(), zmax.to_python()
 
@@ -401,8 +400,7 @@ class RandomComplex(Builtin):
             zmax = Complex(zmax, 0.0)
 
         if not (isinstance(zmin, Complex) and isinstance(zmax, Complex)):
-            return evaluation.message('RandomComplex', 'unifr',
-                                      Expression('List', zmin, zmax))
+            return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
 
         min_value, max_value = zmin.to_python(), zmax.to_python()
 
@@ -420,8 +418,8 @@ class RandomComplex(Builtin):
                             Complex(
                                 rand.randreal(min_value.real, max_value.real),
                                 rand.randreal(min_value.imag, max_value.imag)
-                            ) for j in xrange(py_ns[i])])
+                            ) for j in range(py_ns[i])])
                 else:
                     return Expression('List', *[
-                        search_product(i + 1) for j in xrange(py_ns[i])])
+                        search_product(i + 1) for j in range(py_ns[i])])
             return search_product(0)

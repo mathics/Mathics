@@ -2,14 +2,16 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
-
+from __future__ import absolute_import
 """
 Graphics
 """
 
 from math import floor, ceil, log10
-
 import json
+from six.moves import map
+from six.moves import range
+from six.moves import zip
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
@@ -369,7 +371,7 @@ class Hue(_Color):
             else:
                 return p
 
-        result = tuple([trans(map(t)) for t in rgb]) + (self.components[3],)
+        result = tuple([trans(list(map(t))) for t in rgb]) + (self.components[3],)
         return result
 
 
@@ -1274,7 +1276,7 @@ class GraphicsBox(BoxConstruct):
                         xmax += 1
                 elif (isinstance(plot_range[0], list) and
                       len(plot_range[0]) == 2):
-                    xmin, xmax = map(float, plot_range[0])
+                    xmin, xmax = list(map(float, plot_range[0]))
                     xmin, xmax = get_range(xmin, xmax)
                     xmin = elements.translate((xmin, 0))[0]
                     xmax = elements.translate((xmax, 0))[0]
@@ -1294,7 +1296,7 @@ class GraphicsBox(BoxConstruct):
                         ymax += 1
                 elif (isinstance(plot_range[1], list) and
                       len(plot_range[1]) == 2):
-                    ymin, ymax = map(float, plot_range[1])
+                    ymin, ymax = list(map(float, plot_range[1]))
                     ymin, ymax = get_range(ymin, ymax)
                     ymin = elements.translate((0, ymin))[1]
                     ymax = elements.translate((0, ymax))[1]

@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 
+from __future__ import absolute_import
 from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
