@@ -891,7 +891,7 @@ class _BinaryFormat(object):
         "24-bit signed integer"
         b = s.read(3)
         return Integer(*struct.unpack(
-            'i', b + ('\0' if b[-1] < '\x80' else '\xff')))
+            'i', b + (b'\0' if b[-1] < b'\x80' else b'\xff')))
 
     @staticmethod
     def _Integer32_reader(s):
@@ -967,8 +967,8 @@ class _BinaryFormat(object):
         "null-terminated string of 8-bit characters"
         b = s.read(1)
         string = ''
-        while b != '\x00':
-            if b == '':
+        while b != b'\x00':
+            if b == b'':
                 raise struct.error
             string += b
             b = s.read(1)
@@ -987,7 +987,7 @@ class _BinaryFormat(object):
     @staticmethod
     def _UnsignedInteger24_reader(s):
         "24-bit unsigned integer"
-        return Integer(*struct.unpack('I', s.read(3) + '\0'))
+        return Integer(*struct.unpack('I', s.read(3) + b'\0'))
 
     @staticmethod
     def _UnsignedInteger32_reader(s):
