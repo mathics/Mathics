@@ -1281,7 +1281,7 @@ class Symbol(Atom):
         builtin = mathics_to_sympy.get(self.name)
         if (builtin is None or not builtin.sympy_name or    # nopep8
             not builtin.is_constant()):
-            return sympy.Symbol(sympy_symbol_prefix + self.name.encode('utf8'))
+            return sympy.Symbol(sympy_symbol_prefix + self.name)
         else:
             return getattr(sympy, builtin.sympy_name)
 
