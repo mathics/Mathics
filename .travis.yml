@@ -40,7 +40,6 @@ install:
   - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
   - if [[ "$TEST_DOC" == "true" ]]; then python setup.py develop; else python setup.py install; fi
 script:
-  - unit2 discover
   - python setup.py test
   - if [[ "$TEST_DOC" == "true" ]]; then
       python mathics/test.py -o &&
