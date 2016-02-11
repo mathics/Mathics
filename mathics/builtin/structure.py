@@ -69,17 +69,14 @@ class Sort(Builtin):
         if list.is_atom():
             evaluation.message('Sort', 'normal')
         else:
-            def compare(e1, e2):
-                result = Expression(p, e1, e2).evaluate(evaluation)
-                if result.is_true():
-                    result = Expression(p, e2, e1).evaluate(evaluation)
-                    if result.is_true():
-                        return 0
-                    else:
-                        return -1
-                else:
-                    return 1
-            new_leaves = sorted(list.leaves, cmp=compare)
+            class Key(object):
+                def __init__(self, leaf):
+                    self.leaf = leaf
+
+                def __gt__(self, other):
+                    return not Expression(p, self.leaf, other.leaf).evaluate(evaluation).is_true()
+
+            new_leaves = sorted(list.leaves, key=Key)
             return Expression(list.head, *new_leaves)
 
 
@@ -96,8 +93,7 @@ class PatternsOrderedQ(Builtin):
     def apply(self, p1, p2, evaluation):
         'PatternsOrderedQ[p1_, p2_]'
 
-        result = cmp(p1.get_sort_key(True), p2.get_sort_key(True))
-        if result <= 0:
+        if p1.get_sort_key(True) <= p2.get_sort_key(True):
             return Symbol('True')
         else:
             return Symbol('False')
@@ -114,8 +110,7 @@ class OrderedQ(Builtin):
     def apply(self, e1, e2, evaluation):
         'OrderedQ[e1_, e2_]'
 
-        result = cmp(e1, e2)
-        if result <= 0:
+        if e1 <= e2:
             return Symbol('True')
         else:
             return Symbol('False')

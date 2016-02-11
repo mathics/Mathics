@@ -104,7 +104,33 @@ def from_python(arg):
         raise NotImplementedError
 
 
-class BaseExpression(object):
+class KeyComparable(object):
+    '''
+    subclassing this requires implementing the get_sort_key method
+    '''
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __lt__(self, other):
+        return self.get_sort_key() < other.get_sort_key()
+
+    def __gt__(self, other):
+        return self.get_sort_key() > other.get_sort_key()
+
+    def __le__(self, other):
+        return self.get_sort_key() <= other.get_sort_key()
+
+    def __ge__(self, other):
+        return self.get_sort_key() >= other.get_sort_key()
+
+    def __eq__(self, other):
+        return self.get_sort_key() == other.get_sort_key()
+
+    def __ne__(self, other):
+        return self.get_sort_key() != other.get_sort_key()
+
+
+class BaseExpression(KeyComparable):
     def __init__(self, *args, **kwargs):
         super(BaseExpression, self).__init__()
 
@@ -179,11 +205,6 @@ class BaseExpression(object):
         """
 
         return hash(unicode(self))
-
-    def __cmp__(self, other):
-        if not hasattr(other, 'get_sort_key'):
-            return False
-        return cmp(self.get_sort_key(), other.get_sort_key())
 
     def same(self, other):
         pass
@@ -360,6 +381,7 @@ class BaseExpression(object):
         raise NotImplementedError
 
 
+# TODO subclass KeyComparable
 class Monomial(object):
     """
     An object to sort monomials, used in Expression.get_sort_key and
@@ -369,8 +391,23 @@ class Monomial(object):
     def __init__(self, exps_dict):
         self.exps = exps_dict
 
-    def __cmp__(self, other):
-        return self.__cmp(other)
+    def __lt__(self, other):
+        return self.__cmp(other) < 0
+
+    def __gt__(self, other):
+        return self.__cmp(other) > 0
+
+    def __le__(self, other):
+        return self.__cmp(other) <= 0
+
+    def __ge__(self, other):
+        return self.__cmp(other) >= 0
+
+    def __eq__(self, other):
+        return self.__cmp(other) == 0
+
+    def __ne__(self, other):
+        return self.__cmp(other) != 0
 
     def __cmp(self, other):
         self_exps = self.exps.copy()
@@ -399,16 +436,27 @@ class Monomial(object):
                 return 1    # self > other
             self_var, self_exp = self_exps[index]
             other_var, other_exp = other_exps[index]
-            var_cmp = cmp(self_var, other_var)
-            if var_cmp != 0:
-                return var_cmp
+            if self_var < other_var:
+                return -1
+            if self_var > other_var:
+                return 1
             if self_exp != other_exp:
                 if index + 1 == self_len or index + 1 == other_len:
                     # smaller exponents first
-                    return cmp(self_exp, other_exp)
+                    if self_exp < other_exp:
+                        return -1
+                    elif self_exp == other_exp:
+                        return 0
+                    else:
+                        return 1
                 else:
                     # bigger exponents first
-                    return -cmp(self_exp, other_exp)
+                    if self_exp < other_exp:
+                        return 1
+                    elif self_exp == other_exp:
+                        return 0
+                    else:
+                        return -1
             index += 1
         return 0
 
@@ -1595,17 +1643,18 @@ class Real(Number):
     def do_copy(self):
         return Real(self.value, self.prec)
 
-    def __cmp__(self, other):
+    def __eq__(self, other):
         if isinstance(other, Real):
             # MMA Docs: "Approximate numbers that differ in their last seven
             # binary digits are considered equal"
             _prec = min_prec(self, other) - 7
-            return cmp(self.to_sympy().n(dps(_prec)),
-                       other.to_sympy().n(dps(_prec)))
-        if not hasattr(other, 'get_sort_key'):
-            return False
-        return cmp(self.get_sort_key(), other.get_sort_key())
+            return self.to_sympy().n(dps(_prec)) == other.to_sympy().n(dps(_prec))
+        else:
+            return self.get_sort_key() == other.get_sort_key()
 
+    def __ne__(self, other):
+        # Real is a total order
+        return not (self == other)
 
 class Complex(Number):
     def __init__(self, real, imag, p=None, **kwargs):

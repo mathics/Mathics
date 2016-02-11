@@ -8,7 +8,7 @@ import cPickle as pickle
 import interruptingcow
 
 from mathics import settings
-from mathics.core.expression import ensure_context
+from mathics.core.expression import ensure_context, KeyComparable
 
 FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
@@ -40,11 +40,14 @@ class ContinueInterrupt(EvaluationInterrupt):
     pass
 
 
-class Out(object):
+class Out(KeyComparable):
     def __init__(self):
         self.is_message = False
         self.is_print = False
         self.text = ''
+
+    def get_sort_key(self):
+        (self.is_message, self.is_print, self.text)
 
 
 class Message(Out):
@@ -58,11 +61,8 @@ class Message(Out):
     def __str__(self):
         return ' : ' + self.text
 
-    def __cmp__(self, other):
-        if self.is_message == other.is_message and self.text == other.text:
-            return 0
-        else:
-            return 1
+    def __eq__(self, other):
+        return self.is_message == other.is_message and self.text == other.text
 
     def get_data(self):
         return {
@@ -83,11 +83,8 @@ class Print(Out):
     def __str__(self):
         return self.text
 
-    def __cmp__(self, other):
-        if self.is_message == other.is_message and self.text == other.text:
-            return 0
-        else:
-            return 1
+    def __eq__(self, other):
+        return self.is_message == other.is_message and self.text == other.text
 
     def get_data(self):
         return {

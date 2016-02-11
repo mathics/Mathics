@@ -192,7 +192,12 @@ def do_cmp(x1, x2):
     # Bus error when not converting to mpf
 
     if real1 is not None and real2 is not None:
-        return cmp(x1, x2)
+        if x1 == x2:
+            return 0
+        elif x1 < x2:
+            return -1
+        else:
+            return 1
     elif inf1 is not None and inf2 is not None:
         return cmp(inf1, inf2)
     elif inf1 is not None and real2 is not None:

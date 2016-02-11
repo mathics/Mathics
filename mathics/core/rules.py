@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from mathics.core.expression import Expression, Symbol, strip_context
+from mathics.core.expression import Expression, Symbol, strip_context, KeyComparable
 # from mathics.core.util import subsets, subranges, permutations
 from mathics.core.pattern import Pattern, StopGenerator
 
@@ -25,7 +25,7 @@ class StopGenerator_BaseRule(StopGenerator):
     pass
 
 
-class BaseRule(object):
+class BaseRule(KeyComparable):
     def __init__(self, pattern, system=False):
         super(BaseRule, self).__init__()
         self.pattern = Pattern.create(pattern)
@@ -93,12 +93,8 @@ class BaseRule(object):
         else:
             return None
 
-    def __cmp__(self, other):
-        if other is None:
-            # None is not equal to any rule
-            return -1
-        return cmp((self.system, self.pattern.get_sort_key(True)),
-                   (other.system, other.pattern.get_sort_key(True)))
+    def get_sort_key(self):
+        return (self.system, self.pattern.get_sort_key(True))
 
 
 class Rule(BaseRule):
