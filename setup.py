@@ -167,7 +167,7 @@ setup(
         'mathics': [
             'data/*.csv', 'data/ExampleData/*',
             'autoload/formats/*/Import.m', 'autoload/formats/*/Export.m',
-            'packages/*/*.m', 'packages*/Kernel/init.m'],
+            'packages/*/*.m', 'packages/*/Kernel/init.m'],
         'mathics.doc': ['documentation/*.mdoc', 'xml/data'],
         'mathics.web': [
             'media/css/*.css', 'media/img/*.gif',
