@@ -4,8 +4,6 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
-from six.moves import range
-
 """Setuptools based setup script for Mathics.
 
 For the easiest installation just type the following command (you'll probably
@@ -66,7 +64,7 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.8, < 1.9', 'ply>=3.8',
-                     'mpmath>=0.19', 'python-dateutil', 'colorama', 'six']
+                     'mpmath>=0.19', 'python-dateutil', 'colorama', 'six>=1.10']
 
 
 def subdirs(root, file='*.*', depth=10):
