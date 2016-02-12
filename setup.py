@@ -156,16 +156,18 @@ setup(
     packages=[
         'mathics',
         'mathics.core',
-        'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.data',
+        'mathics.builtin', 'mathics.builtin.pymimesniffer',
         'mathics.doc',
-        'mathics.autoload',
-        'mathics.packages',
         'mathics.web', 'mathics.web.templatetags'
     ],
 
     install_requires=INSTALL_REQUIRES,
 
     package_data={
+        'mathics': [
+            'data/*.csv', 'data/ExampleData/*',
+            'autoload/formats/*/Import.m', 'autoload/formats/*/Export.m',
+            'packages/*/*.m', 'packages*/Kernel/init.m'],
         'mathics.doc': ['documentation/*.mdoc', 'xml/data'],
         'mathics.web': [
             'media/css/*.css', 'media/img/*.gif',
@@ -173,10 +175,7 @@ setup(
             'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
             'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
             'templates/doc/*.html'] + mathjax_files,
-        'mathics.data': ['*.csv', 'ExampleData/*'],
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
-        'mathics.autoload': ['formats/*/Import.m', 'formats/*/Export.m'],
-        'mathics.packages': ['*/*.m', '*/Kernel/init.m'],
     },
 
     entry_points={
