@@ -3,6 +3,8 @@
 
 from __future__ import unicode_literals
 from __future__ import absolute_import
+from __future__ import division
+
 """
 Graphics
 """
@@ -125,7 +127,7 @@ def create_css(edge_color=None, face_color=None, stroke_width=None,
 
 
 def asy_number(value):
-    return '%s' % value
+    return '%.5g' % value
 
 
 def create_pens(edge_color=None, face_color=None, stroke_width=None,
@@ -172,9 +174,9 @@ class Graphics(Builtin):
     >> Graphics[Circle[]] // TeXForm
      = 
      . \begin{asy}
-     . size(5.85559796438cm, 5cm);
-     . draw(ellipse((175.0,175.0),175.0,175.0), rgb(0, 0, 0)+linewidth(0.666666666667));
-     . clip(box((-0.333333333333,0.333333333333), (350.333333333,349.666666667)));
+     . size(5.8556cm, 5.8333cm);
+     . draw(ellipse((175,175),175,175), rgb(0, 0, 0)+linewidth(0.66667));
+     . clip(box((-0.33333,0.33333), (350.33,349.67)));
      . \end{asy}
 
     Invalid graphics directives yield invalid box structures:
@@ -751,7 +753,7 @@ class LineBox(_Polyline):
         pen = create_pens(edge_color=self.edge_color, stroke_width=l)
         asy = ''
         for line in self.lines:
-            path = '--'.join(['(%s,%s)' % coords.pos() for coords in line])
+            path = '--'.join(['(%.5g,%5g)' % coords.pos() for coords in line])
             asy += 'draw(%s, %s);' % (path, pen)
         return asy
 
@@ -855,7 +857,7 @@ class PolygonBox(_Polyline):
             edges = []
             for index, line in enumerate(self.lines):
                 paths.append('--'.join([
-                    '(%s,%s)' % coords.pos() for coords in line]) + '--cycle')
+                    '(%.5g,%.5g)' % coords.pos() for coords in line]) + '--cycle')
 
                 # ignore opacity
                 colors.append(','.join([
@@ -869,7 +871,7 @@ class PolygonBox(_Polyline):
         if pens and pens != 'nullpen':
             for line in self.lines:
                 path = '--'.join(
-                    ['(%s,%s)' % coords.pos() for coords in line]) + '--cycle'
+                    ['(%.5g,%.5g)' % coords.pos() for coords in line]) + '--cycle'
                 asy += 'filldraw(%s, %s);' % (path, pens)
         return asy
 
