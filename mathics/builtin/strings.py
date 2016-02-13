@@ -261,7 +261,7 @@ class StringReplace(Builtin):
             return (py_string, py_rules, None)
         else:
             py_n = n.get_int_value()
-            if py_n < 0:
+            if py_n is None or py_n < 0:
                 evaluation.message('StringReplace', 'innf', Integer(3), expr)
                 return None
             return (py_string, py_rules, py_n)
