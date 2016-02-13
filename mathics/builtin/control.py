@@ -501,7 +501,7 @@ class FixedPointList(Builtin):
     Observe the convergence of Newton's method for approximating square roots:
     >> newton[n_] := FixedPointList[.5(# + n/#) &, 1.];
     >> newton[9]
-     = {1., 5., 3.4, 3.02352941176470588, 3.00009155413138018, 3.00000000139698386, 3., 3.}
+     = {1., 5., 3.4, 3.02352941176470588, 3.00009155413138018, 3.00000000139698386, 3.00000000000000001, 3.}
 
     Plot the "hailstone" sequence of a number:
     >> collatz[1] := 1;
