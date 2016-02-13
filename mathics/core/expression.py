@@ -210,7 +210,6 @@ class BaseExpression(KeyComparable):
         To allow usage of expression as dictionary keys,
         as in Expression.get_pre_choices
         """
-
         return hash(six.text_type(self))
 
     def same(self, other):
@@ -1657,6 +1656,11 @@ class Real(Number):
     def __ne__(self, other):
         # Real is a total order
         return not (self == other)
+
+    def __hash__(self):
+        # ignore last 7 binary digits when hashing
+        _prec = self.get_precision()
+        return hash(self.to_sympy().n(dps(_prec)))
 
 class Complex(Number):
     def __init__(self, real, imag, p=None, **kwargs):

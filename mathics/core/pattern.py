@@ -115,14 +115,12 @@ class Pattern(object):
     def has_form(self, *args):
         return self.expr.has_form(*args)
 
-    def get_match_candidates(
-            self, leaves, expression, attributes, evaluation, vars={}):
+    def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
         return []
 
     def get_match_candidates_count(
             self, leaves, expression, attributes, evaluation, vars={}):
-        return len(self.get_match_candidates(
-            leaves, expression, attributes, evaluation, vars))
+        return len(self.get_match_candidates(leaves, expression, attributes, evaluation, vars))
 
 
 class AtomPattern(Pattern):
@@ -139,8 +137,7 @@ class AtomPattern(Pattern):
             # yield vars, None
             yield_func(vars, None)
 
-    def get_match_candidates(
-            self, leaves, expression, attributes, evaluation, vars={}):
+    def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
         return [leaf for leaf in leaves if leaf.same(self.atom)]
 
     def get_match_count(self, vars={}):
@@ -258,13 +255,12 @@ class ExpressionPattern(Pattern):
                             groups[name] = [prev_pattern, pattern]
                     prev_pattern = pattern
                     prev_name = name
-            expr_groups = {}
             # prev_leaf = None
+
+            # count duplicate leaves
+            expr_groups = {}
             for leaf in expression.leaves:
-                if leaf in expr_groups:
-                    expr_groups[leaf] += 1
-                else:
-                    expr_groups[leaf] = 1
+                expr_groups[leaf] = expr_groups.get(leaf, 0) + 1
 
             def per_name(yield_name, groups, vars):
                 """
@@ -295,11 +291,11 @@ class ExpressionPattern(Pattern):
                         """
 
                         if expr_groups:
-                            expr, count = expr_groups[0]
+                            expr, count = expr_groups.popitem()
                             max_per_pattern = count / len(patterns)
                             for per_pattern in range(max_per_pattern, -1, -1):
                                 for next in per_expr(   # nopep8
-                                    expr_groups[1:], sum + per_pattern):
+                                    expr_groups, sum + per_pattern):
                                     yield_expr([expr] * per_pattern + next)
                         else:
                             if sum >= match_count[0]:
@@ -316,7 +312,7 @@ class ExpressionPattern(Pattern):
                                 setting[name] = wrapping
                                 yield_name(setting)
                             per_name(yield_next, groups[1:], vars)
-                    per_expr(yield_expr, list(expr_groups.items()))
+                    per_expr(yield_expr, expr_groups)
                 else:  # no groups left
                     yield_name(vars)
 
@@ -379,11 +375,9 @@ class ExpressionPattern(Pattern):
         if len(leaf_candidates) < match_count[0]:
             return
 
-        # STRANGE: candidate in leaf_candidates causes BusError for
-        # Real ^ Integer (e.g. 2.0^3) when not converted to a set!
-        leaf_candidates = set(leaf_candidates)
-
         candidates = rest_expression[1]
+
+        leaf_candidates = set(leaf_candidates)  # for fast lookup
 
         # "Artificially" only use more leaves than specified for some kind
         # of pattern.
@@ -495,8 +489,7 @@ class ExpressionPattern(Pattern):
         """
         # TODO: fixed_vars!
 
-        return [leaf for leaf in leaves
-                if self.does_match(leaf, evaluation, vars)]
+        return [leaf for leaf in leaves if self.does_match(leaf, evaluation, vars)]
 
     def get_match_candidates_count(self, leaves, expression, attributes,
                                    evaluation, vars={}):
