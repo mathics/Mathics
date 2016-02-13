@@ -115,24 +115,27 @@ class TerminalShell(object):
         return input(prompt)
 
     def rl_read_line(self, prompt):
-        # sys.stdout is wrapped by a codecs.StreamWriter object in
-        # mathics/__init__.py, which interferes with raw_input's use
-        # of readline.
+        # Wrap ANSI colour sequences in \001 and \002, so readline
+        # knows that they're nonprinting.
+        prompt = self.ansi_color_re.sub(
+            lambda m: "\001" + m.group(0) + "\002", prompt)
+
+        # For Py2 sys.stdout is wrapped by a codecs.StreamWriter object in
+        # mathics/__init__.py which interferes with raw_input's use of readline
         #
         # To work around this issue, call raw_input with the original
         # file object as sys.stdout, which is in the undocumented
         # 'stream' field of codecs.StreamWriter.
-        orig_stdout = sys.stdout
-        try:
-            # Wrap ANSI colour sequences in \001 and \002, so readline
-            # knows that they're nonprinting.
-            prompt = self.ansi_color_re.sub(
-                lambda m: "\001" + m.group(0) + "\002", prompt)
-            # sys.stdout = sys.stdout.stream
-            ret = input(prompt)
-            return ret
-        finally:
-            sys.stdout = orig_stdout
+        if six.PY2:
+            orig_stdout = sys.stdout
+            try:
+                sys.stdout = sys.stdout.stream
+                ret = input(prompt).decode(self.input_encoding)
+                return ret
+            finally:
+                sys.stdout = orig_stdout
+        else:
+            return input(prompt)
 
     def complete_symbol_name(self, text, state):
         try:
@@ -263,9 +266,9 @@ def main():
 
     if args.execute:
         for expr in args.execute:
-            total_input = expr.decode(shell.input_encoding)
-            print(shell.get_in_prompt() + total_input)
-            shell.evaluate(total_input)
+            # expr = expr.decode(shell.input_encoding)
+            print(shell.get_in_prompt() + expr)
+            shell.evaluate(expr)
         if not args.persist:
             return
 
@@ -273,7 +276,7 @@ def main():
         total_input = ''
         for line_no, line in enumerate(args.FILE):
             try:
-                line = line.decode('utf-8')     # TODO: other encodings
+                # line = line.decode('utf-8')     # TODO: other encodings
                 if args.script and line_no == 0 and line.startswith('#!'):
                     continue
                 print(shell.get_in_prompt(continued=total_input != '') + line.rstrip('\n'))
@@ -295,8 +298,6 @@ def main():
         try:
             line = shell.read_line(
                 shell.get_in_prompt(continued=total_input != ''))
-            # TODO
-            # line = line.decode(shell.input_encoding)
             total_input += line
             if line != "" and wait_for_line(total_input):
                 continue

@@ -11,10 +11,12 @@ import sympy
 import mpmath
 import django
 
-# TODO fix this ugly hack
-# import codecs
-# writer = codecs.getwriter("utf-8")
-# sys.stdout = writer(sys.stdout)
+import six
+
+if six.PY2:
+    import codecs
+    writer = codecs.getwriter("utf-8")
+    sys.stdout = writer(sys.stdout)
 
 from mathics.version import __version__
 from mathics.core.expression import (
