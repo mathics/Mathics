@@ -101,7 +101,10 @@ class RSolve(Builtin):
                     conditions[l.leaves[0].to_python()] = r.to_sympy()
                     return False
             return True
-        relation = filter(is_relation, eqns.leaves)[0]
+
+        # evaluate is_relation on all leaves to store conditions
+        relations = [leaf for leaf in eqns.leaves if is_relation(leaf)]
+        relation = relations[0]
 
         left, right = relation.leaves
         relation = Expression('Plus', left, Expression(
