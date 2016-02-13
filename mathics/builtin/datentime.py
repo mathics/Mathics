@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 from __future__ import absolute_import
+from __future__ import division
 
 import six
 from six.moves import range
@@ -586,8 +587,7 @@ class _Date():
             self.date = dateutil.parser.parse(datestr)
 
     def addself(self, timevec):
-        years = self.date.year + timevec[0] + int(
-            (self.date.month + timevec[1]) / 12)
+        years = self.date.year + timevec[0] + int((self.date.month + timevec[1]) / 12)
         months = (self.date.month + timevec[1]) % 12
         if months == 0:
             months += 12
@@ -706,7 +706,7 @@ class DateDifference(Builtin):
      = 5476
 
     >> DateDifference[{1936, 8, 14}, {2000, 12, 1}, "Year"]
-     = {64.3424657534, Year}
+     = {64.3424657534..., Year}
 
     >> DateDifference[{2010, 6, 1}, {2015, 1, 1}, "Hour"]
      = {40200, Hour}
@@ -783,11 +783,11 @@ class DateDifference(Builtin):
             'exact integer division where possible'
             if flag:
                 if a % b == 0:
-                    return a / b
+                    return a // b
                 else:
-                    return a / float(b)
+                    return a / b
             else:
-                return a / b
+                return a // b
 
         if not isinstance(pyunits, list):
             pyunits = [pyunits]
