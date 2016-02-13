@@ -26,6 +26,7 @@ def get_random_state():
     state = random.getstate()
     state = pickle.dumps(state)
     state = binascii.b2a_hex(state)
+    state.decode('ascii')
     state = int(state, 16)
     return state
 
@@ -35,8 +36,8 @@ def set_random_state(state):
         random.seed()
     else:
         state = hex(state)[2:]  # drop leading "0x"
-        if state.endswith('L'):
-            state = state[:-1]
+        state.rstrip('L')
+        state = state.encode('ascii')
         state = binascii.a2b_hex(state)
         state = pickle.loads(state)
         random.setstate(state)
@@ -62,8 +63,8 @@ class RandomEnv:
         return random.uniform(a, b)
 
     def seed(self, x=None):
+        # This has different behavior in Python 3.2
         random.seed(x)
-
 
 class RandomState(Builtin):
     """
@@ -112,19 +113,19 @@ class SeedRandom(Builtin):
     'SeedRandom' can be used to get reproducible random numbers:
     >> SeedRandom[42]
     >> RandomInteger[100]
-     = 64
+     = ...
     >> RandomInteger[100]
-     = 2
+     = ...
     >> SeedRandom[42]
     >> RandomInteger[100]
-     = 64
+     = ...
     >> RandomInteger[100]
-     = 2
+     = ...
 
     String seeds are supported as well:
     >> SeedRandom["Mathics"]
     >> RandomInteger[100]
-     = 60
+     = ...
 
     #> SeedRandom[x]
      : Argument x should be an integer or string.
@@ -142,13 +143,10 @@ class SeedRandom(Builtin):
             value = x.value
         elif isinstance(x, String):
             # OS/version-independent hash
-            value = int(hashlib.md5(x.get_string_value()).hexdigest(), 16)
+            value = int(hashlib.md5(x.get_string_value().encode('utf8')).hexdigest(), 16)
         else:
             return evaluation.message('SeedRandom', 'seed', x)
         with RandomEnv(evaluation) as rand:
-            # TODO: This has different behavior in Python 3.2 (vs. 2.7),
-            # so SeedRandom behavior will change.
-            # Also, we should use version=1 when supporting Python 3.
             rand.seed(value)
         return Symbol('Null')
 
