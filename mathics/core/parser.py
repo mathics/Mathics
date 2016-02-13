@@ -25,35 +25,12 @@ class TranslateError(Exception):
 
 
 class ScanError(TranslateError):
-    def __init__(self, pos, text):
-        super(ScanError, self).__init__()
-        self.pos = pos
-        self.text = text
-
-    def __str__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return "Lexical error at position {0} in '{1}'.".format(
-            self.pos, self.text)
-
-
-class InvalidCharError(TranslateError):
-    def __init__(self, char):
-        super(InvalidCharError, self).__init__()
-        self.char = char
-
-    def __unicode__(self):
-        return "Invalid character at '%s'." % self.char  # .decode('utf-8')
+    pass
 
 
 class ParseError(TranslateError):
-    def __init__(self, token):
-        super(ParseError, self).__init__()
-        self.token = token
+    pass
 
-    def __unicode__(self):
-        return "Parse error at or near token %s." % str(self.token)
 
 # Symbols can be any letters
 base_symb = r'((?![0-9])([0-9${0}{1}])+)'.format(letters, letterlikes)
@@ -911,7 +888,7 @@ class MathicsScanner:
         return t
 
     def t_ANY_error(self, t):
-        raise ScanError(self.lexer.lexpos, t.value)
+        raise ScanError("Lexical error at position {0} in '{1}'.".format(self.lexer.lexpos, t.value))
 
 
 class AbstractToken(object):
@@ -1041,7 +1018,7 @@ class MathicsParser:
     def p_error(self, p):
         if p is not None:
             p = p.value
-        raise ParseError(p)
+        raise ParseError("Parse error at or near token %s." % p)
 
     def parse(self, string, definitions):
         self.definitions = definitions
