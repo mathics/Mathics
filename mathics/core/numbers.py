@@ -136,7 +136,7 @@ def convert_base(x, base, precision=10):
     length_of_int = 0 if x == 0 else int(log(x, base))
     iexps = list(range(length_of_int, -1, -1))
     import string
-    digits = string.digits + string.lowercase
+    digits = string.digits + string.ascii_lowercase
 
     if base > len(digits):
         raise ValueError
