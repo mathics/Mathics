@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
 """
 File Operations
@@ -862,7 +863,7 @@ class _BinaryFormat(object):
     @staticmethod
     def _Character8_reader(s): 
         "8-bit character"
-        return String(*struct.unpack('c', s.read(1)))
+        return String(struct.unpack('c', s.read(1))[0].decode('ascii'))
 
     @staticmethod
     def _Character16_reader(s):
@@ -898,8 +899,7 @@ class _BinaryFormat(object):
     def _Integer24_reader(s):
         "24-bit signed integer"
         b = s.read(3)
-        return Integer(*struct.unpack(
-            'i', b + (b'\0' if b[-1] < b'\x80' else b'\xff')))
+        return Integer(struct.unpack('<i', b'\x00' + b)[0] >> 8)
 
     @staticmethod
     def _Integer32_reader(s):
@@ -937,11 +937,14 @@ class _BinaryFormat(object):
 
         # Sign / Exponent
         sexp, = struct.unpack('H', sexp)
-        signbit = sexp / 0x8000
+        signbit = sexp // 0x8000
         expbits = sexp % 0x8000
 
         # Signifand
-        fracbits = int(sig[::-1].encode('hex'), 16)
+        try:
+            fracbits = int.from_bytes(sig, byteorder='little')
+        except AttributeError:  # Py2
+            fracbits = int(sig[::-1].encode('hex'), 16)
 
         if expbits == 0x0000 and fracbits == 0:
             return Real('0.' + '0' * 4965)
@@ -974,13 +977,13 @@ class _BinaryFormat(object):
     def _TerminatedString_reader(s):
         "null-terminated string of 8-bit characters"
         b = s.read(1)
-        string = ''
+        contents = b''
         while b != b'\x00':
             if b == b'':
                 raise struct.error
-            string += b
+            contents += b
             b = s.read(1)
-        return String(string)
+        return String(contents.decode('ascii'))
 
     @staticmethod
     def _UnsignedInteger8_reader(s):
@@ -1023,7 +1026,7 @@ class _BinaryFormat(object):
     @staticmethod
     def _Character8_writer(s, x): 
         "8-bit character"
-        s.write(struct.pack('c', x.encode('utf-8')))
+        s.write(struct.pack('c', x.encode('ascii')))
 
     # TODO
     # @staticmethod
@@ -1299,7 +1302,7 @@ class BinaryWrite(Builtin):
      = {113, 100, 125, 144, 211, 83, 140, 24, 206, 11, 198, 118, 222, 152, 23, 219}
 
     ## Real32
-    #> WRb[{8.398086656*^9, 1.63880017687*^16}, {"Real32", "Real32"}]
+    #> WRb[{8.398086656*^9, 1.63880017681*^16}, {"Real32", "Real32"}]
      = {81, 72, 250, 79, 52, 227, 104, 90}
     #> WRb[{5.6052915284*^32, 9.631141*^6}, {"Real32", "Real32"}]
      = {251, 22, 221, 117, 165, 245, 18, 75}
@@ -1564,17 +1567,17 @@ class BinaryRead(Builtin):
 
     ## Complex64
     #> WbR[{80, 201, 77, 239, 201, 177, 76, 79}, "Complex64"]
-     = -6.36877988924*^28 + 3.434203392*^9 I
+     = -6.36877988924...*^28 + 3.434203392*^9 I
     #> WbR[{158, 2, 185, 232, 18, 237, 0, 102}, "Complex64"]
-     = -6.98948862335*^24 + 1.52209021297*^23 I
+     = -6.98948862335...*^24 + 1.52209021297...*^23 I
     #> WbR[{195, 142, 38, 160, 238, 252, 85, 188}, "Complex64"]
-     = -1.41079828148*^-19 - 0.013060791418 I
+     = -1.41079828148...*^-19 - 0.01306079141... I
 
     ## Complex128
     #> WbR[{15,114,1,163,234,98,40,15,214,127,116,15,48,57,208,180},"Complex128"]
-     = 1.19839770357*^-235 - 2.64656391494*^-54 I
-    #> WbR[{148,119,12,126,47,94,220,91,42,69,29,68,147, 11,62,233},"Complex128"]
-     = 3.22170267142*^134 - 8.98364297498*^198 I
+     = 1.1983977035...*^-235 - 2.64656391494...*^-54 I
+    #> WbR[{148,119,12,126,47,94,220,91,42,69,29,68,147,11,62,233},"Complex128"]
+     = 3.2217026714...*^134 - 8.98364297498...*^198 I
     #> WbR[{15,42,80,125,157,4,38,97, 0,0,0,0,0,0,240,255}, "Complex128"]
       = -I Infinity
     #> WbR[{15,42,80,125,157,4,38,97, 0,0,0,0,0,0,240,127}, "Complex128"]
@@ -1635,9 +1638,11 @@ class BinaryRead(Builtin):
 
     ## Real32
     #> WbR[{81, 72, 250, 79, 52, 227, 104, 90}, {"Real32", "Real32"}]
-     = {8.398086656*^9, 1.63880017687*^16}
+     = {8.398086656*^9, 1.6388001768...*^16}
+
     #> WbR[{251, 22, 221, 117, 165, 245, 18, 75}, {"Real32", "Real32"}]
-     = {5.6052915284*^32, 9.631141*^6}
+     = {5.605291528...*^32, 9.631141*^6}
+     ## = {5.6052915284*^32, 9.631141*^6}
     #> WbR[{0, 0, 128, 127}, "Real32"]
      = Infinity
     #> WbR[{0, 0, 128, 255}, "Real32"]
@@ -1649,11 +1654,11 @@ class BinaryRead(Builtin):
 
     ## Real64
     #> WbR[{45, 243, 20, 87, 129, 185, 53, 239}, "Real64"]
-     = -5.14646619426*^227
+     = -5.14646619426...*^227
     #> WbR[{192, 60, 162, 67, 122, 71, 74, 196}, "Real64"]
-     = -9.69531698809*^20
+     = -9.6953169880...*^20
     #> WbR[{15, 42, 80, 125, 157, 4, 38, 97}, "Real64"]
-     = 9.67355569764*^159
+     = 9.6735556976...*^159
     #> WbR[{0, 0, 0, 0, 0, 0, 240, 127}, "Real64"]
      = Infinity
     #> WbR[{0, 0, 0, 0, 0, 0, 240, 255}, "Real64"]
