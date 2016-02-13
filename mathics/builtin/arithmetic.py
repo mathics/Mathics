@@ -832,8 +832,7 @@ class Power(BinaryOperator, SympyFunction):
         elif (isinstance(x, Number) and isinstance(y, Number)
               and (x.is_inexact() or y.is_inexact())):
             try:
-                prec = min(max(x.get_precision(), 64), max(
-                    y.get_precision(), 64))
+                prec = min_prec(x, y)
                 with mpmath.workprec(prec):
                     mp_x = sympy2mpmath(x.to_sympy())
                     mp_y = sympy2mpmath(y.to_sympy())
