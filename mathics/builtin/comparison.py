@@ -432,7 +432,7 @@ class _MinMax(Builtin):
         '%(name)s[items___]'
 
         items = items.flatten(Symbol('List')).get_sequence()
-        results = set([])
+        results = []
         best = None
 
         for item in items:
@@ -443,15 +443,16 @@ class _MinMax(Builtin):
             for leaf in leaves:
                 if best is None:
                     best = leaf
-                    results.add(best)
+                    results.append(best)
+                    continue
                 c = do_cmp(leaf, best)
                 if c is None:
-                    results.add(leaf)
+                    results.append(leaf)
                 elif (self.sense == 1 and c > 0) or (
                         self.sense == -1 and c < 0):
                     results.remove(best)
                     best = leaf
-                    results.add(leaf)
+                    results.append(leaf)
 
         if not results:
             return Expression('DirectedInfinity', -self.sense)
