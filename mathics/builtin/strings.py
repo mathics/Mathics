@@ -8,6 +8,7 @@ from __future__ import absolute_import
 String functions
 """
 
+import sys
 import six
 from six.moves import range
 
@@ -685,7 +686,7 @@ class FromCharacterCode(Builtin):
                     return String(convert_codepoint_list(n.get_leaves()))
             else:
                 pyn = n.get_int_value()
-                if not (isinstance(pyn, int) and pyn > 0):
+                if not (isinstance(pyn, six.integer_types) and pyn > 0 and pyn < sys.maxsize):
                     return evaluation.message(
                         'FromCharacterCode', 'intnm', exp, Integer(1))
                 return String(convert_codepoint_list([n]))
