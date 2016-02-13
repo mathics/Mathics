@@ -3535,6 +3535,12 @@ class Compress(Builtin):
 
     >> Compress[N[Pi, 10]]
      = eJwz1jM0MTS1NDIzNQEADRsCNw== 
+
+    ## Unicode char
+    #> Compress["―"]
+     = eJxTetQwVQkABwMCPA==
+    #> Uncompress[%]
+     = ―
     """
 
     attributes = ('Protected')
@@ -3552,7 +3558,7 @@ class Compress(Builtin):
 
         # TODO Implement other Methods
         result = zlib.compress(string)
-        result = base64.encodestring(result)
+        result = base64.encodestring(result).decode('utf8')
 
         return String(result)
 
@@ -3579,7 +3585,7 @@ class Uncompress(Builtin):
 
     def apply(self, string, evaluation):
         'Uncompress[string_String]'
-        string = string.get_string_value()
+        string = string.get_string_value().encode('utf-8')
         string = base64.decodestring(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode('utf-8')
