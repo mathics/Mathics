@@ -210,7 +210,7 @@ class BaseExpression(KeyComparable):
         To allow usage of expression as dictionary keys,
         as in Expression.get_pre_choices
         """
-        return hash(six.text_type(self))
+        raise NotImplementedError
 
     def same(self, other):
         pass
@@ -1198,6 +1198,9 @@ class Expression(BaseExpression):
             atoms.extend(leaf.get_atoms())
         return atoms
 
+    def __hash__(self):
+        return hash(('Expression', self.head) + tuple(self.leaves))
+
 
 class Atom(BaseExpression):
 
@@ -1348,6 +1351,9 @@ class Symbol(Atom):
             'Pi', 'E', 'EulerGamma', 'GoldenRatio',
             'MachinePrecision', 'Catalan')
 
+    def __hash__(self):
+        return hash(('Symbol', self.name))  # to distinguish from String
+
 
 class Number(Atom):
     def __str__(self):
@@ -1462,6 +1468,9 @@ class Integer(Number):
     def do_copy(self):
         return Integer(self.value)
 
+    def __hash__(self):
+        return hash(('Integer', self.value))
+
 
 class Rational(Number):
     def __init__(self, numerator, denominator=None, **kwargs):
@@ -1529,6 +1538,9 @@ class Rational(Number):
 
     def do_copy(self):
         return Rational(self.value)
+
+    def __hash__(self):
+        return hash(("Rational", self.value))
 
 
 class Real(Number):
@@ -1660,7 +1672,8 @@ class Real(Number):
     def __hash__(self):
         # ignore last 7 binary digits when hashing
         _prec = self.get_precision()
-        return hash(self.to_sympy().n(dps(_prec)))
+        return hash(("Real", self.to_sympy().n(dps(_prec))))
+
 
 class Complex(Number):
     def __init__(self, real, imag, p=None, **kwargs):
@@ -1752,6 +1765,10 @@ class Complex(Number):
 
     def do_copy(self):
         return Complex(self.real.do_copy(), self.imag.do_copy())
+
+    def __hash__(self):
+        return hash(('Complex', self.real, self.imag))
+
 
 
 def encode_mathml(text):
@@ -1927,6 +1944,9 @@ class String(Atom):
 
     def to_python(self, *args, **kwargs):
         return '"%s"' % self.value  # add quotes to distinguish from Symbols
+
+    def __hash__(self):
+        return hash(("String", self.value))
 
 
 def get_default_value(name, evaluation, k=None, n=None):
