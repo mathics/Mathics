@@ -36,7 +36,7 @@ def set_random_state(state):
         random.seed()
     else:
         state = hex(state)[2:]  # drop leading "0x"
-        state.rstrip('L')
+        state = state.rstrip('L')
         state = state.encode('ascii')
         state = binascii.a2b_hex(state)
         state = pickle.loads(state)

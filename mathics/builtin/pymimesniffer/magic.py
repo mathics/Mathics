@@ -31,7 +31,7 @@ class MagicDetector(object):
 
     def match(self, filename, data=None):
         if not data:
-            file = open(filename, 'r')
+            file = open(filename, 'rb')
         elif isinstance(data, str) or isinstance(data, six.text_type):
             from StringIO import StringIO
 
@@ -50,7 +50,7 @@ class MagicDetector(object):
 
         matches = {}
 
-        buf = ''
+        buf = b''
 
         for mimetype, rules in self.mimetypes.items():
             for rule in rules:
@@ -93,17 +93,17 @@ class MagicLoader(object):
     def getText(self, node, name=None):
         from xml.dom.minidom import Node
 
-        text = ''
+        text = b''
 
         if name:
             for child in node.getElementsByTagName(name):
-                text += self.getText(child)
+                text += self.getText(child).encode('utf-8', 'ignore')
         else:
             for child in node.childNodes:
                 if child.nodeType == child.TEXT_NODE:
                     text += child.data.encode('utf-8', 'ignore')
 
-        return text
+        return text.decode('utf-8')
 
     def getAttr(self, node, attr, default=''):
         if not node.hasAttribute(attr):
@@ -135,7 +135,7 @@ class MagicLoader(object):
                 value = self.getText(magicNumber)
 
                 if encoding == 'hex':
-                    value = unhexlify(value.replace(' ', ''))
+                    value = unhexlify(value.replace(' ', '').encode('ascii'))
 
                 magicNumbers.append((offset, value))
 
