@@ -1,6 +1,40 @@
 CHANGES
 =======
 
+0.9
+---
+
+New features:
+
+- SVD, LeastSquares, PseudoInverse #258, #321
+- Python 3 support #317
+- Improvements to Riffle #313
+- Tweaks to PolarPlot #305
+- StringTake #285
+- Norm #268 #270
+- Total, Accumulate, FoldList, Fold #264, #252
+- Flatten #253 #269
+- Which with symbolic arguments #250
+- Min/Max with symbolic arguments # 249
+
+Dependency Updates:
+
+- upgraded to ply 3.8 (issue #246)
+- dropped interrupting cow #317
+- added six (already required by django) #317
+
+Bug fixes:
+
+- Simplify issue #254 fixed by #322
+- ParametricPlot bug fixed by #320
+- DensityPlot SVG regression in the web interface.
+- main function for server.py #288, #289 fixed by #298
+- ply table regeneration #294 fixed by #295
+- Print bar issue #290 fixed by #293
+- Quit[] index error #292 partially fixed by #307
+- Quit definition fixed by #286
+- Conjugate issue #272 fixed by #281
+
 0.8
 ---
 

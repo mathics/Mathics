@@ -19,6 +19,10 @@ Additional contributions were made by:
 - Jim Radford (radford)
 - GitAnt
 - Toshiyuki Ogura (ogra)
+- limeblack
+- mmatera
+- Mingye Wang @Arthur2e5
+- Wolf Vollprecht (wolfv)
 
 Thanks to the authors of all projects that are used in Mathics:
 - Django
@@ -30,6 +34,6 @@ Thanks to the authors of all projects that are used in Mathics:
 - colorama
 - SymPy
 - Three.js
-- interruptingcow
 - dateutil
 - colorama
+- six
