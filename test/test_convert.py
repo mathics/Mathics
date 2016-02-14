@@ -32,10 +32,10 @@ class SympyConvert(unittest.TestCase):
         self.compare(mathics.Integer(0), sympy.Integer(0))
         self.compare(mathics.Integer(1), sympy.Integer(1))
 
-        n = random.randint(-sys.maxint, sys.maxint)
+        n = random.randint(-sys.maxsize, sys.maxsize)
         self.compare(mathics.Integer(n), sympy.Integer(n))
 
-        n = random.randint(sys.maxint, sys.maxint * sys.maxint)
+        n = random.randint(sys.maxsize, sys.maxsize * sys.maxsize)
         self.compare(mathics.Integer(n), sympy.Integer(n))
 
     def testComplex(self):

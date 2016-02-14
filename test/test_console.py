@@ -14,28 +14,31 @@ from six.moves import range
 class ConsoleTest(unittest.TestCase):
     def setUp(self):
         os.environ["TERM"] = "dumb"
-        self.console = pexpect.spawn('python2 mathics/main.py --color NOCOLOR')
+        self.console = pexpect.spawn(sys.executable + ' mathics/main.py --color NOCOLOR')
+
+    def readline(self):
+        return self.console.readline().decode('utf-8')
 
     def testLaunch(self):
         cons = self.console
 
-        self.assertRegexpMatches(cons.readline(), '.*\r\n')
+        self.assertRegexpMatches(self.readline(), '.*\r\n')
 
         self.assertRegexpMatches(
-            cons.readline(), 'Mathics \\d\\.\\d.*\r\n')
+            self.readline(), 'Mathics \\d\\.\\d.*\r\n')
         self.assertRegexpMatches(
-            cons.readline(), 'on (CPython|PyPy) \\d+.\\d+.\\d+ \\(.+\\) ?\r\n')
+            self.readline(), 'on (CPython|PyPy) \\d+.\\d+.\\d+ \\(.+\\) ?\r\n')
         self.assertRegexpMatches(
-            cons.readline(), 'using ([a-zA-Z]+ [\\.\\d]+(, |\r\n$))+')
+            self.readline(), 'using ([a-zA-Z]+ [\\.\\d]+(, |\r\n$))+')
 
-        self.assertRegexpMatches(cons.readline(), '\r\n')
+        self.assertRegexpMatches(self.readline(), '\r\n')
 
         self.assertRegexpMatches(
-            cons.readline(),
+            self.readline(),
             'Copyright \\(C\\) 2011\-20\\d\\d The Mathics Team.\r\n')
 
         self.assertEqual(
-            ''.join(cons.readline() for i in range(7)),
+            ''.join(self.readline() for i in range(7)),
             'This program comes with ABSOLUTELY NO WARRANTY.\r\n'
             'This is free software, and you are welcome to redistribute it\r\n'
             'under certain conditions.\r\n'
@@ -52,17 +55,14 @@ class ConsoleTest(unittest.TestCase):
 
         def check(query, result):
             inprompt = 'In[{0}]:= '.format(self.lineno)
-            self.assertEqual(
-                cons.read(len(inprompt)), inprompt)
-            cons.sendline(query)
-            self.assertEqual(
-
-                cons.readline(), '{0}\r\n'.format(query))
+            self.assertEqual(cons.read(len(inprompt)).decode('utf-8'), inprompt)
+            cons.sendline(query.encode('utf-8'))
+            self.assertEqual(self.readline(), '{0}\r\n'.format(query))
 
             outprompt = 'Out[{0}]= {1}\r\n'.format(self.lineno, result)
 
-            self.assertEqual(cons.readline(), outprompt)
-            self.assertEqual(cons.readline(), '\r\n')
+            self.assertEqual(self.readline(), outprompt)
+            self.assertEqual(self.readline(), '\r\n')
             self.lineno += 1
 
         check('1 + 1', '2')

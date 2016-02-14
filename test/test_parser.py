@@ -94,10 +94,10 @@ class NumberTests(ParserTests):
         self.check('10*^-3', Rational(1, 100))
         self.check('8^^23*^2', Integer(1216))
 
-        n = random.randint(-sys.maxint, sys.maxint)
+        n = random.randint(-sys.maxsize, sys.maxsize)
         self.check(str(n), Integer(n))
 
-        n = random.randint(sys.maxint, sys.maxint * sys.maxint)
+        n = random.randint(sys.maxsize, sys.maxsize * sys.maxsize)
         self.check(str(n), Integer(n))
 
     def testPattern(self):
