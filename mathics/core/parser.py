@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
-
 from __future__ import absolute_import
+
 import ply.lex as lex
 import ply.yacc as yacc
 
@@ -17,7 +17,9 @@ from mathics.core.numbers import dps
 from mathics.core.characters import letters, letterlikes, named_characters
 
 from mathics.builtin.numeric import machine_precision
+
 import six
+from six import unichr
 
 
 class TranslateError(Exception):
@@ -616,10 +618,6 @@ class MathicsScanner:
 
     def convert_character_codes(self, s):
         "Converts character codes to characters E.g. \.7A -> z, \:004a -> J"
-        try:
-            unichr
-        except NameError:   # Py3
-            unichr = chr
 
         def repl_hex_char(match):
             return unichr(int(match.group(0)[2:], 16))

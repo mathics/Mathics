@@ -22,8 +22,10 @@ import struct
 import sympy
 import mpmath
 import math
+
 import six
 from six.moves import range
+from six import unichr
 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError,
@@ -32,10 +34,6 @@ from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.settings import ROOT_DIR
 
-try:
-    unichr
-except NameError:   # Py3
-    unichr = chr
 
 INITIAL_DIR = os.getcwd()
 HOME_DIR = os.path.expanduser('~')

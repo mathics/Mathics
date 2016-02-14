@@ -9,17 +9,14 @@ String functions
 """
 
 import sys
+
 import six
 from six.moves import range
+from six import unichr
 
 from mathics.builtin.base import BinaryOperator, Builtin, Test
 from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
-
-try:
-    unichr
-except NameError:   # Py3
-    unichr = chr
 
 
 class StringJoin(BinaryOperator):
