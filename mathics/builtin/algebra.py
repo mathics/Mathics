@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
-
 from __future__ import absolute_import
+
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer
 from mathics.core.convert import from_sympy

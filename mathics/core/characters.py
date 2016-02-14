@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Character ranges of letters
 from __future__ import unicode_literals
+
+# Character ranges of letters
 letters = 'a-zA-Z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u0103\u0106\u0107\
 \u010c-\u010f\u0112-\u0115\u011a-\u012d\u0131\u0141\u0142\u0147\u0148\
 \u0150-\u0153\u0158-\u0161\u0164\u0165\u016e-\u0171\u017d\u017e\

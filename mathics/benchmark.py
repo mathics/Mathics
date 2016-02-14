@@ -3,11 +3,12 @@
 
 from __future__ import unicode_literals
 from __future__ import print_function
-
-# Default number of times to repeat each benchmark. None -> Automatic
 from __future__ import absolute_import
+
 from six.moves import map
 from six.moves import range
+
+# Default number of times to repeat each benchmark. None -> Automatic
 TESTS_PER_BENCHMARK = None
 
 # Mathics expressions to benchmark

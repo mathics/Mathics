@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
-
 from __future__ import absolute_import
+
 import re
+from six.moves import zip
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
@@ -15,7 +16,6 @@ from mathics.builtin.lists import walk_parts
 from mathics.builtin.evaluation import set_recursionlimit
 
 from mathics import settings
-from six.moves import zip
 
 
 def get_symbol_list(list, error_callback):

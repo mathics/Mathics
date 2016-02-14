@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
-
 from __future__ import absolute_import
+
 import sympy
 import mpmath
 from math import log
+from six.moves import range
 
 from mathics.core.util import unicode_superscript
-from six.moves import range
 
 
 def get_type(value):

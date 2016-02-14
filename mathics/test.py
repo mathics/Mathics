@@ -3,13 +3,15 @@
 
 from __future__ import print_function
 from __future__ import unicode_literals
-
 from __future__ import absolute_import
+
 import sys
 import re
 import pickle
 import os
 from argparse import ArgumentParser
+import six
+from six.moves import zip
 
 import mathics
 from mathics.core.definitions import Definitions
@@ -17,10 +19,7 @@ from mathics.core.evaluation import Evaluation
 from mathics.builtin import builtins
 from mathics.doc import documentation
 from mathics import get_version_string
-
 from mathics import settings
-import six
-from six.moves import zip
 
 definitions = Definitions(add_builtin=True)
 
