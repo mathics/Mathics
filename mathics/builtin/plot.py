@@ -3,6 +3,8 @@
 
 from __future__ import unicode_literals
 from __future__ import absolute_import
+from __future__ import division
+
 from six.moves import range
 from six.moves import zip
 
@@ -796,7 +798,7 @@ class _Plot3D(Builtin):
             def triangle(x1, y1, x2, y2, x3, y3, depth=0):
                 v1, v2, v3 = eval_f(x1, y1), eval_f(x2, y2), eval_f(x3, y3)
 
-                if (v1 is v2 is v3 is None) and (depth > max_depth / 2):
+                if (v1 is v2 is v3 is None) and (depth > max_depth // 2):
                     # fast finish because the entire region is undefined but
                     # recurse 'a little' to avoid missing well defined regions
                     return
