@@ -1425,7 +1425,7 @@ clip(box((%s,%s), (%s,%s)));
             return value * shift, sub_steps
 
         step_x, sub_x = round_step((xmax - xmin) / 5.0)
-        step_x_small = 1.0 * step_x / sub_x
+        step_x_small = step_x / sub_x
         steps_x = int(floor((xmax - xmin) / step_x))
         steps_x_small = int(floor((xmax - xmin) / step_x_small))
 
@@ -1525,7 +1525,8 @@ clip(box((%s,%s), (%s,%s)));
                                         Coords(elements, pos=p_origin(x),
                                                d=p_self0(tick_large_size))])
                     add_element(InsetBox(
-                        elements, tick_label_style, content=Real(x),
+                        elements, tick_label_style,
+                        content=Real('%g' % x), # fixes e.g. 0.6000000000000001
                         pos=Coords(elements, pos=p_origin(x),
                                    d=p_self0(-tick_label_d)), opos=p_self0(1)))
                 for x in ticks_small:

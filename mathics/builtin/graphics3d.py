@@ -627,7 +627,7 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         # scale ticks appropriately
         ticks = [[[boxscale[i] * x for x in t[0]],
                   [boxscale[i] * x for x in t[1]],
-                  list(map(str, t[0]))] for i, t in enumerate(ticks)]
+                  ['%g' % x for x in t[0]]] for i, t in enumerate(ticks)]
 
         return axes, ticks
 
