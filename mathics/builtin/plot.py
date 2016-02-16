@@ -91,10 +91,10 @@ def quiet_evaluate(expr, vars, evaluation, expect_list=False):
     value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)
     if expect_list:
         if value.has_form('List', None):
-            value = (extract_pyreal(item) for item in value.leaves)
+            value = [extract_pyreal(item) for item in value.leaves]
             if any(item is None for item in value):
                 return None
-            return list(value)  # force generator evaluation
+            return value
         else:
             return None
     else:
