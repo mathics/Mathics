@@ -1127,6 +1127,11 @@ class Print(Builtin):
      | Hello world!
     >> Print["The answer is ", 7 * 6, "."]
      | The answer is 42.
+
+    #> Print["\[Mu]"]
+     | μ
+    #> Print["μ"]
+     | μ
     """
 
     def apply(self, expr, evaluation):
