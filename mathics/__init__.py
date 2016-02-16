@@ -7,6 +7,9 @@ from __future__ import absolute_import
 
 import sys
 import platform
+import sympy
+import mpmath
+import django
 
 # TODO fix this ugly hack
 # import codecs
@@ -20,50 +23,30 @@ from mathics.core.expression import (
 from mathics.core.convert import from_sympy
 
 
-def get_version():
-    version = {}
-
-    import sympy
-    import mpmath
-
-    from django.core.exceptions import ImproperlyConfigured
-
-    try:
-        import django
-        from django.conf import settings
-        version['django'] = django.get_version()
-    except (ImportError, ImproperlyConfigured):
-        pass
-    version['mathics'] = __version__
-    version['sympy'] = sympy.__version__
-    version['mpmath'] = mpmath.__version__
-    version['python'] = platform.python_implementation() + " " + sys.version.split('\n')[0]
-    return version
+version_info = {
+    'mathics': __version__,
+    'sympy': sympy.__version__,
+    'mpmath': mpmath.__version__,
+    'python': platform.python_implementation() + " " + sys.version.split('\n')[0],
+    'django': django.__version__,
+}
 
 
-def get_version_string(is_server, newlines=False):
-    version = get_version()
-    result = []
-    result.append("Mathics %s" % version['mathics'])
-    result.append("on %s" % version['python'])
-    libs = []
-    if 'django' in version and is_server:
-        libs.append("Django %s" % version['django'])
-    libs += ["SymPy %s" % version['sympy'], "mpmath %s" % version['mpmath']]
-    result.append("using %s" % ", ".join(libs))
-    return ("\n" if newlines else " ").join(result)
+version_string = '''Mathics {mathics}
+on {python}
+using SymPy {sympy}, mpmath {mpmath}'''.format(**version_info)
 
 
-def print_version(is_server):
-    print("\n" + get_version_string(is_server, newlines=True))
+server_version_string = version_string + ', django {django}'.format(**version_info)
 
 
-def print_license():
-    print("\n"
-          "Copyright (C) 2011-2015 The Mathics Team.\n"
-          "This program comes with ABSOLUTELY NO WARRANTY.\n"
-          "This is free software, and you are welcome to redistribute it\n"
-          "under certain conditions.\n"
-          "See the documentation for the full license.\n")
+license_string = '''\
+Copyright (C) 2011-2016 The Mathics Team.
+This program comes with ABSOLUTELY NO WARRANTY.
+This is free software, and you are welcome to redistribute it
+under certain conditions.
+See the documentation for the full license.'''
 
+
+# this import is last to handle a circlular dependency on version_string
 from mathics.core.parser import parse, ScanError, ParseError

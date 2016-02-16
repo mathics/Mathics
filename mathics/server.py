@@ -13,7 +13,7 @@ import errno
 import subprocess
 
 import mathics
-from mathics import print_version, print_license
+from mathics import server_version_string, license_string
 from mathics import settings as mathics_settings  # Prevents UnboundLocalError
 
 
@@ -72,8 +72,11 @@ def launch_app(args):
     port = args.port
 
     if not args.quiet:
-        print_version(is_server=True)
-        print_license()
+        print()
+        print(server_version_string)
+        print()
+        print(license_string)
+        print()
         print("Quit by pressing %s\n" % quit_command)
         print("""Open the graphical user interface at
 http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port)

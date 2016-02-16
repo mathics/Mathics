@@ -22,7 +22,7 @@ class ConsoleTest(unittest.TestCase):
     def testLaunch(self):
         cons = self.console
 
-        self.assertRegexpMatches(self.readline(), '.*\r\n')
+        self.assertRegexpMatches(self.readline(), '\r\n')
 
         self.assertRegexpMatches(
             self.readline(), 'Mathics \\d\\.\\d.*\r\n')

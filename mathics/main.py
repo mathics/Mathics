@@ -14,8 +14,9 @@ import locale
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Integer, strip_context
 from mathics.core.evaluation import Evaluation
-from mathics import print_version, print_license, get_version_string
+from mathics import version_string, license_string, __version__
 from mathics import settings
+
 import six
 from six.moves import input
 
@@ -240,7 +241,8 @@ def main():
         action='store_true')
 
     argparser.add_argument(
-        '--version', '-v', action='version', version=get_version_string(False))
+        '--version', '-v', action='version',
+        version='%(prog)s ' + __version__)
 
     args = argparser.parse_args()
 
@@ -254,8 +256,9 @@ def main():
         want_completion=not(args.no_completion))
 
     if not (args.quiet or args.script):
-        print_version(is_server=False)
-        print_license()
+        print()
+        print(version_string + '\n')
+        print(license_string + '\n')
         print("Quit by pressing {0}\n".format(quit_command))
 
     if args.execute:
