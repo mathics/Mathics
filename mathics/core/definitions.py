@@ -389,12 +389,17 @@ class Definitions(object):
         self.user = {}
 
     def get_user_definitions(self):
-        return base64.b64encode(
-            pickle.dumps(self.user, protocol=pickle.HIGHEST_PROTOCOL))
+        if six.PY2:
+            return base64.encodestring(pickle.dumps(self.user, protocol=2)).decode('ascii')
+        else:
+            return base64.encodebytes(pickle.dumps(self.user, protocol=2)).decode('ascii')
 
     def set_user_definitions(self, definitions):
         if definitions:
-            self.user = pickle.loads(base64.b64decode(definitions))
+            if six.PY2:
+                self.user = pickle.loads(base64.decodestring(definitions.encode('ascii')))
+            else:
+                self.user = pickle.loads(base64.decodebytes(definitions.encode('ascii')))
         else:
             self.user = {}
 
