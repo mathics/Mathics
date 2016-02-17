@@ -43,9 +43,6 @@ class StopGenerator_Pattern(StopGenerator):
 
 
 class Pattern(object):
-    #@staticmethod
-    # def create(expr):
-
     create = staticmethod(Pattern_create)
 
     def match(self, yield_func, expression, vars, evaluation, head=None,

@@ -452,7 +452,7 @@ class PrimePowerQ(Builtin):
      = False
     """
 
-    #TODO: Complex args
+    # TODO: Complex args
     """
     #> PrimePowerQ[{3 + I, 3 - 2 I, 3 + 4 I, 9 + 7 I}]
      = {False, True, True, False}

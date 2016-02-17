@@ -66,6 +66,7 @@ class RandomEnv:
         # This has different behavior in Python 3.2
         random.seed(x)
 
+
 class RandomState(Builtin):
     """
     <dl>
@@ -91,7 +92,7 @@ class RandomState(Builtin):
 
     messages = {
         'rndst': "It is not possible to change the random state.",
-        #"`1` is not a valid random state.",
+        # "`1` is not a valid random state.",
     }
 
     def apply(self, evaluation):

@@ -17,8 +17,8 @@ from mathics.core.expression import (Expression, NumberError, from_python,
                                      system_symbols_dict)
 from mathics.builtin.base import BoxConstructError, Builtin, InstancableBuiltin
 from .graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
-                      LineBox, PointBox, Style, RGBColor, get_class,
-                      asy_number, CoordinatesError, _GraphicsElements)
+                       LineBox, PointBox, Style, RGBColor, get_class,
+                       asy_number, CoordinatesError, _GraphicsElements)
 
 import json
 
@@ -197,7 +197,7 @@ class Graphics3DBox(GraphicsBox):
                     if light[0] == '"Ambient"':
                         self.lighting.append({
                             "type": "Ambient",
-                            "color": color.to_rgba(), 
+                            "color": color.to_rgba(),
                         })
                     elif light[0] == '"Directional"':
                         position = [0, 0, 0]
@@ -1012,7 +1012,7 @@ class Sphere3DBox(_Graphics3DElement):
         self.radius = item.leaves[1].to_python()
 
     def to_asy(self):
-        #l = self.style.get_line_width(face_element=True)
+        # l = self.style.get_line_width(face_element=True)
 
         if self.face_color is None:
             face_color = (1, 1, 1)

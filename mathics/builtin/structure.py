@@ -535,7 +535,7 @@ class Flatten(Builtin):
     def apply_list(self, expr, n, h, evaluation):
         'Flatten[expr_, n_List, h_]'
 
-        ## prepare levels
+        # prepare levels
         # find max depth which matches `h`
         expr, max_depth = walk_levels(expr)
         max_depth = {'max_depth': max_depth}    # hack to modify max_depth from callback
@@ -584,7 +584,7 @@ class Flatten(Builtin):
                     evaluation.message('Flatten', 'fldep', l, n, max_depth, expr)
                     return
 
-        ## assign new indices to each leaf
+        # assign new indices to each leaf
         new_indices = {}
 
         def callback(expr, pos):
@@ -594,7 +594,7 @@ class Flatten(Builtin):
             return expr
         expr, depth = walk_levels(expr, callback=callback, include_pos=True)
 
-        ## build new tree inserting nodes as needed
+        # build new tree inserting nodes as needed
         result = Expression(h)
         leaves = sorted(six.iteritems(new_indices))
 

@@ -247,9 +247,10 @@ def main():
         if args.section:
             test_section(args.section, stop_on_failure=args.stop_on_failure)
         else:
+            start_at = args.skip + 1
             test_all(quiet=args.quiet, generate_output=args.output,
                      stop_on_failure=args.stop_on_failure,
-                     start_at=args.skip+1)
+                     start_at=start_at)
 
 if __name__ == '__main__':
     main()

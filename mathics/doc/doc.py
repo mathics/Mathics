@@ -34,8 +34,10 @@ TESTCASE_RE = re.compile(r'''(?mx)^
 TESTCASE_OUT_RE = re.compile(r'^\s*([:|=])(.*)$')
 
 MATHICS_RE = re.compile(r"(?<!\\)\'(.*?)(?<!\\)\'")
+
+# preserve space before and after inline code variables
 LATEX_RE = re.compile(r"(\s?)\$(\w+?)\$(\s?)")
-                      # preserve space before and after inline code variables
+
 DL_RE = re.compile(r"(?s)<dl>(.*?)</dl>")
 DL_ITEM_RE = re.compile(
     r"(?s)<dt>(.*?)(?:</dt>|)?\s*<dd>(.*?)(?:</dd>|(?=<dt>)|$)")
@@ -92,7 +94,7 @@ except IOError:
 
 def filter_comments(doc):
     return '\n'.join(line for line in doc.splitlines()
-                      if not line.lstrip().startswith('##'))
+                     if not line.lstrip().startswith('##'))
 
 
 def strip_system_prefix(name):
@@ -585,11 +587,12 @@ class Documentation(DocElement):
                     part.is_appendix = True
                     appendix.append(part)
 
-        for title, modules, builtins_by_module, start in [(     # nopep8
+        for title, modules, builtins_by_module, start in [(
             "Reference of built-in symbols", builtin.modules,
-            builtin.builtins_by_module, True)]:
-            #("Reference of optional symbols", optional.modules,
-            # optional.optional_builtins_by_module, False)]:
+            builtin.builtins_by_module, True)]:     # nopep8
+            # ("Reference of optional symbols", optional.modules,
+            #  optional.optional_builtins_by_module, False)]:
+
             builtin_part = DocPart(self, title, is_reference=start)
             for module in modules:
                 title, text = get_module_doc(module)
@@ -892,12 +895,12 @@ class DocTests(object):
     def latex(self, output):
         return '\\begin{tests}%%\n%s%%\n\\end{tests}' % (
             '%\n'.join(test.latex(output) for test in self.tests
-            if not test.private))
+                       if not test.private))
 
     def html(self, counters=None):
         return '<ul class="tests">%s</ul>' % (
             '\n'.join('<li>%s</li>' % test.html() for test in self.tests
-            if not test.private))
+                      if not test.private))
 
     def test_indices(self):
         return [test.index for test in self.tests]

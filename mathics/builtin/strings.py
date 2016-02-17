@@ -543,7 +543,7 @@ class ToCharacterCode(Builtin):
         'strse': 'String or list of strings expected at position `1` in `2`.',
     }
 
-    #TODO: encoding
+    # TODO encoding
 
     def apply(self, string, evaluation):
         "ToCharacterCode[string_]"
@@ -735,10 +735,9 @@ class StringTake(Builtin):
     """
     messages = {
         'strse': 'String expected at position 1.',
-        'mseqs': 'Integer or list of two Intergers are expected \
-                  at position 2.',
-        'take': 'Cannot take positions `1` through `2` in "`3`\".',
-        }
+        'mseqs': 'Integer or list of two Intergers are expected at position 2.',
+        'take': 'Cannot take positions `1` through `2` in "`3`".',
+    }
 
     def apply1_(self, string, n, evaluation):
         'StringTake[string_,n_Integer]'
@@ -772,9 +771,8 @@ class StringTake(Builtin):
         posf = nf.value
         if posf < 0:
             posf = lenfullstring + posf + 1
-        if (posf > lenfullstring or posi > lenfullstring or
-            posf <= 0 or posi <= 0):
-            #positions out of range
+        if posf > lenfullstring or posi > lenfullstring or posf <= 0 or posi <= 0:
+            # positions out of range
             return evaluation.message('StringTake', 'take', ni, nf, fullstring)
         if posf < posi:
             String("")
@@ -796,15 +794,11 @@ class StringTake(Builtin):
             return evaluation.message('StringTake', 'take', ni, ni, fullstring)
         return String(fullstring[(posi - 1):posi])
 
-
-
-
     def apply4_(self, string, something, evaluation):
         'StringTake[string_,something___]'
         if not isinstance(string, String):
             return evaluation.message('StringTake', 'strse')
         return evaluation.message('StringTake', 'mseqs')
-
 
 
 class StringDrop(Builtin):
@@ -830,9 +824,8 @@ class StringDrop(Builtin):
     messages = {
         'strse': 'String expected at position 1.',
         'mseqs': 'Integer or list of two Intergers are expected at position 2.',
-        'drop': 'Cannot drop positions `1` through `2` in \"`3`\".',
-        }
-
+        'drop': 'Cannot drop positions `1` through `2` in "`3`".',
+    }
 
     def apply1_(self, string, n, evaluation):
         'StringDrop[string_,n_Integer]'
@@ -852,7 +845,6 @@ class StringDrop(Builtin):
                 return string
         return evaluation.message('StringDrop', 'mseqs')
 
-
     def apply2_(self, string, ni, nf, evaluation):
         'StringDrop[string_,{ni_Integer,nf_Integer}]'
         if not isinstance(string, String):
@@ -868,15 +860,13 @@ class StringDrop(Builtin):
         posf = nf.value
         if posf < 0:
             posf = lenfullstring + posf + 1
-        if (posf > lenfullstring or posi > lenfullstring
-            or posf <= 0 or posi <= 0):
-            #positions out or range
+        if (posf > lenfullstring or posi > lenfullstring or posf <= 0 or posi <= 0):
+            # positions out or range
             return evaluation.message('StringDrop',
                                       'drop', ni, nf, fullstring)
         if posf < posi:
             return string           # this is what actually mma does
         return String(fullstring[:(posi - 1)] + fullstring[posf:])
-
 
     def apply3_(self, string, ni, evaluation):
         'StringDrop[string_,{ni_Integer}]'
@@ -892,7 +882,6 @@ class StringDrop(Builtin):
         if posi > lenfullstring or posi <= 0:
             return evaluation.message('StringDrop', 'drop', ni, ni, fullstring)
         return String(fullstring[:(posi - 1)] + fullstring[posi:])
-
 
     def apply4_(self, string, something, evaluation):
         'StringDrop[string_,something___]'

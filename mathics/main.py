@@ -165,7 +165,7 @@ class TerminalShell(object):
         return matches
 
 
-# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/ 
+# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/
 
 def wait_for_line(input_string):
     """

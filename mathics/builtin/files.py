@@ -549,8 +549,8 @@ class Read(Builtin):
     attributes = ('Protected')
 
     def check_options(self, options):
-        ## Options:
-        # TODO: Proper error messages
+        # Options
+        # TODO Proper error messages
 
         result = {}
         keys = list(options.keys())
@@ -644,8 +644,8 @@ class Read(Builtin):
                 evaluation.message('Read', 'readf', typ)
                 return Symbol('$Failed')
 
-        ## Options:
-        # TODO: Implement extra options
+        # Options
+        # TODO Implement extra options
         py_options = self.check_options(options)
         # null_records = py_options['NullRecords']
         # null_words = py_options['NullWords']
@@ -829,7 +829,7 @@ class _BinaryFormat(object):
             if math.isinf(real) and math.isinf(imag):
                 return Symbol('Indeterminate')
             return Expression('DirectedInfinity', Expression(
-                'Complex', 
+                'Complex',
                 (-1) ** (real < 0) if math.isinf(real) else 0,
                 (-1) ** (imag < 0) if math.isinf(imag) else 0))
         else:
@@ -859,7 +859,7 @@ class _BinaryFormat(object):
         return Integer(*struct.unpack('B', s.read(1)))
 
     @staticmethod
-    def _Character8_reader(s): 
+    def _Character8_reader(s):
         "8-bit character"
         return String(struct.unpack('c', s.read(1))[0].decode('ascii'))
 
@@ -874,7 +874,7 @@ class _BinaryFormat(object):
         return _BinaryFormat._IEEE_cmplx(*struct.unpack('ff', s.read(8)))
 
     @staticmethod
-    def _Complex128_reader(s): 
+    def _Complex128_reader(s):
         "IEEE double-precision complex number"
         return _BinaryFormat._IEEE_cmplx(*struct.unpack('dd', s.read(16)))
 
@@ -916,7 +916,7 @@ class _BinaryFormat(object):
         return Integer((b << 64) + a)
 
     @staticmethod
-    def _Real32_reader(s): 
+    def _Real32_reader(s):
         "IEEE single-precision real number"
         return _BinaryFormat._IEEE_real(*struct.unpack('f', s.read(4)))
 
@@ -1022,7 +1022,7 @@ class _BinaryFormat(object):
         s.write(struct.pack('B', x))
 
     @staticmethod
-    def _Character8_writer(s, x): 
+    def _Character8_writer(s, x):
         "8-bit character"
         s.write(struct.pack('c', x.encode('ascii')))
 
@@ -1039,7 +1039,7 @@ class _BinaryFormat(object):
         # return _BinaryFormat._IEEE_cmplx(*struct.unpack('ff', s.read(8)))
 
     @staticmethod
-    def _Complex128_writer(s, x): 
+    def _Complex128_writer(s, x):
         "IEEE double-precision complex number"
         s.write(struct.pack('dd', x.real, x.imag))
 
@@ -1081,7 +1081,7 @@ class _BinaryFormat(object):
         s.write(struct.pack('Qq', a, b))
 
     @staticmethod
-    def _Real32_writer(s, x): 
+    def _Real32_writer(s, x):
         "IEEE single-precision real number"
         s.write(struct.pack('f', x))
 
@@ -1462,8 +1462,7 @@ class BinaryWrite(Builtin):
                         x = float('-inf')
                     else:
                         x = None
-                elif (isinstance(x, Symbol)
-                      and x.get_name() == 'System`Indeterminate'):
+                elif (isinstance(x, Symbol) and x.get_name() == 'System`Indeterminate'):
                     x = float('nan')
                 else:
                     x = None
@@ -1477,8 +1476,7 @@ class BinaryWrite(Builtin):
                     # x*float('+inf') creates nan if x.real or x.imag are zero
                     x = complex(x.real * float('+inf') if x.real != 0 else 0,
                                 x.imag * float('+inf') if x.imag != 0 else 0)
-                elif (isinstance(x, Symbol)
-                      and x.get_name() == 'System`Indeterminate'):
+                elif (isinstance(x, Symbol) and x.get_name() == 'System`Indeterminate'):
                     x = complex(float('nan'), float('nan'))
                 else:
                     x = None
@@ -1488,13 +1486,13 @@ class BinaryWrite(Builtin):
                     pyb = pyb[:i] + x + pyb[i + 1:]
                     x = pyb[i]
                 if isinstance(x, String) and len(x.get_string_value()) > 1:
-                    x = [String(char) for char in x.get_string_value()] 
+                    x = [String(char) for char in x.get_string_value()]
                     pyb = pyb[:i] + x + pyb[i + 1:]
                     x = pyb[i]
                 x = x.get_string_value()
             elif t == 'Byte' and isinstance(x, String):
                 if len(x.get_string_value()) > 1:
-                    x = [String(char) for char in x.get_string_value()] 
+                    x = [String(char) for char in x.get_string_value()]
                     pyb = pyb[:i] + x + pyb[i + 1:]
                     x = pyb[i]
                 x = ord(x.get_string_value())
@@ -1514,7 +1512,7 @@ class BinaryWrite(Builtin):
             stream.flush()
         except IOError as err:
             evaluation.message('BinaryWrite', 'writex', err.strerror)
-        return channel 
+        return channel
 
 
 class BinaryRead(Builtin):
@@ -1913,11 +1911,11 @@ class _OpenAction(Builtin):
     attributes = ('Protected')
 
     # BinaryFormat: 'False',
-    # CharacterEncoding :> Automatic, 
+    # CharacterEncoding :> Automatic,
     # DOSTextFormat :> True,
-    # FormatType -> InputForm, 
+    # FormatType -> InputForm,
     # NumberMarks :> $NumberMarks,
-    # PageHeight -> 22, PageWidth -> 78, 
+    # PageHeight -> 22, PageWidth -> 78,
     # TotalHeight -> Infinity,
     # TotalWidth -> Infinity
 
@@ -1946,7 +1944,7 @@ class _OpenAction(Builtin):
     def apply_path(self, path, evaluation, options):
         '%(name)s[path_?NotOptionQ, OptionsPattern[]]'
 
-        ## Options
+        # Options
         # BinaryFormat
         mode = self.mode
         if options['System`BinaryFormat'].is_true():
@@ -3532,7 +3530,7 @@ class Compress(Builtin):
     </dl>
 
     >> Compress[N[Pi, 10]]
-     = eJwz1jM0MTS1NDIzNQEADRsCNw== 
+     = eJwz1jM0MTS1NDIzNQEADRsCNw==
 
     ## Unicode char
     #> Compress["―"]
@@ -4384,7 +4382,7 @@ class DeleteDirectory(Builtin):
         py_dirname = dirname.to_python()
 
         delete_contents = options['System`DeleteContents'].to_python()
-        if not delete_contents in [True, False]:
+        if delete_contents not in [True, False]:
             evaluation.message('DeleteDirectory', 'idcts')
             return
 

@@ -10,19 +10,19 @@ import platform
 import sympy
 import mpmath
 import django
-
 import six
-
-if six.PY2:
-    import codecs
-    writer = codecs.getwriter("utf-8")
-    sys.stdout = writer(sys.stdout)
 
 from mathics.version import __version__
 from mathics.core.expression import (
     Expression, Symbol, String, Number, Integer, Real, Complex, Rational,
     from_python)
 from mathics.core.convert import from_sympy
+
+
+if six.PY2:
+    import codecs
+    writer = codecs.getwriter("utf-8")
+    sys.stdout = writer(sys.stdout)
 
 
 version_info = {
@@ -51,4 +51,4 @@ See the documentation for the full license.'''
 
 
 # this import is last to handle a circlular dependency on version_string
-from mathics.core.parser import parse, ScanError, ParseError
+from mathics.core.parser import parse, ScanError, ParseError    # nopep8

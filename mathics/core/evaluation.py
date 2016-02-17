@@ -19,6 +19,7 @@ FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'TeXForm', 'MathMLForm',
            'MatrixForm', 'TableForm']
 
+
 class EvaluationInterrupt(Exception):
     pass
 

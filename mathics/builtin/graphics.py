@@ -1366,10 +1366,11 @@ size(%scm, %scm);
 clip(box((%s,%s), (%s,%s)));
 %s
 \end{asy}
-""" % (asy_number(width / 60), asy_number(height / 60),
-       asy_regular,
-       asy_number(xmin), asy_number(ymin), asy_number(xmax), asy_number(ymax),
-       asy_completely_visible)
+""" % (
+            asy_number(width / 60), asy_number(height / 60),
+            asy_regular,
+            asy_number(xmin), asy_number(ymin), asy_number(xmax), asy_number(ymax),
+            asy_completely_visible)
 
         return tex
 
@@ -1516,7 +1517,7 @@ clip(box((%s,%s), (%s,%s)));
                                                d=p_self0(tick_large_size))])
                     add_element(InsetBox(
                         elements, tick_label_style,
-                        content=Real('%g' % x), # fixes e.g. 0.6000000000000001
+                        content=Real('%g' % x),   # fix e.g. 0.6000000000000001
                         pos=Coords(elements, pos=p_origin(x),
                                    d=p_self0(-tick_label_d)), opos=p_self0(1)))
                 for x in ticks_small:

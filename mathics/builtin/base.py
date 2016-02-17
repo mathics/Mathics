@@ -95,7 +95,7 @@ class Builtin(object):
         for pattern, replace in self.formats.items():
             forms, pattern = extract_forms(name, pattern)
             for form in forms:
-                if not form in formatvalues:
+                if form not in formatvalues:
                     formatvalues[form] = []
                 if not isinstance(pattern, BaseExpression):
                     pattern = parse_builtin_rule(pattern)
@@ -262,7 +262,7 @@ class UnaryOperator(Operator):
             name = 'Verbatim[%s]' % name
         if self.default_formats:
             op_pattern = '%s[item_]' % name
-            if not op_pattern in self.formats:
+            if op_pattern not in self.formats:
                 operator = self.get_operator_display()
                 if operator is not None:
                     form = '%s[{HoldForm[item]},"%s",%d]' % (

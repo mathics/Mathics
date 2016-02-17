@@ -116,16 +116,16 @@ class D(SympyFunction):
         'D[f_ ^ g_, x_?NotListQ]': 'D[E ^ (Log[f] * g), x]',
 
         'D[f_, x_?NotListQ] /; FreeQ[f, x]': '0',
-        #'D[f_[g_], x_?NotListQ]': (
-        #  'Module[{t}, D[f[t], t] /. t -> g] * D[g, x]',
-        #'D[f_[g_], x_?NotListQ]': 'D[f[g], g] * D[g, x]',
+        # 'D[f_[g_], x_?NotListQ]': (
+        #   'Module[{t}, D[f[t], t] /. t -> g] * D[g, x]',
+        # 'D[f_[g_], x_?NotListQ]': 'D[f[g], g] * D[g, x]',
 
         'D[f_[left___, x_, right___], x_?NotListQ] /; FreeQ[{left, right}, x]':
         'Derivative[Sequence @@ UnitVector['
         '  Length[{left, x, right}], Length[{left, x}]]][f][left, x, right]',
-        #'D[f_[args___], x_?NotListQ]':
-        #'Plus @@ MapIndexed[(D[f[Sequence@@ReplacePart[{args}, #2->t]], t] '
-        #'/. t->#) * D[#, x]&, {args}]',
+        # 'D[f_[args___], x_?NotListQ]':
+        # 'Plus @@ MapIndexed[(D[f[Sequence@@ReplacePart[{args}, #2->t]], t] '
+        # '/. t->#) * D[#, x]&, {args}]',
 
         'D[{items___}, x_?NotListQ]': 'D[#, x]& /@ {items}',
         'D[f_, {list_List}]': 'D[f, #]& /@ list',
@@ -730,9 +730,10 @@ class Solve(Builtin):
                 evaluation.message('Solve', 'svars')
 
             # Filter out results for which denominator is 0
-            result = [sol for sol in result if all(sympy.simplify(
-                denom.subs(sol)) != 0 for denom in sympy_denoms)]
-                # (SymPy should actually do that itself, but it doesn't!)
+            # (SymPy should actually do that itself, but it doesn't!)
+            result = [sol for sol in result if all(
+                sympy.simplify(denom.subs(sol)) != 0 for denom in sympy_denoms)]
+
             return Expression('List', *(Expression(
                 'List',
                 *(Expression('Rule', var, from_sympy(sol[var_sympy]))

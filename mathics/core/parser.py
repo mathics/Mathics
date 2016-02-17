@@ -193,12 +193,12 @@ precedence = (
     ('left', 'Union'),                      # flat
     ('left', 'Intersection'),               # flat
     ('left', 'Plus', 'Minus', 'PlusMinus', 'MinusPlus'),  # flat
-    #('left', 'Sum'),                       # flat
+    # ('left', 'Sum'),                      # flat
     ('left', 'CirclePlus', 'CircleMinus'),  # flat
     ('left', 'Cap', 'Cup'),                 # flat
     ('left', 'Coproduct'),                  # flat
     ('left', 'VerticalTilde'),              # flat
-    #('left', 'Product'),
+    # ('left', 'Product'),
     ('left', 'Star'),                       # flat
     # This is a hack to get implicit times working properly:
     ('left', 'Times', 'RawStar', 'blanks', 'blankdefault', 'out', 'slot',
@@ -237,13 +237,13 @@ precedence = (
     ('right', 'Subscript'),
     ('right', 'Overscript', 'Underscript'),
     ('nonassoc', 'Get'),
-    #('nonassoc', 'blanks', 'blankdefault'),
-    #('nonassoc', 'out'),
-    #('nonassoc', 'slot', 'slotseq'),
+    # ('nonassoc', 'blanks', 'blankdefault'),
+    # ('nonassoc', 'out'),
+    # ('nonassoc', 'slot', 'slotseq'),
     ('nonassoc', 'MessageName'),
-    #('nonassoc', 'string'),
-    #('nonassoc', 'symbol'),
-    #('nonassoc', 'number'),
+    # ('nonassoc', 'string'),
+    # ('nonassoc', 'symbol'),
+    # ('nonassoc', 'number'),
 )
 
 tokens = (
@@ -301,7 +301,7 @@ tokens = (
     'Power',
     'Integral',
     'DifferentialD',
-    #'PartialD',
+    # 'PartialD',
     'Del',
     'Square',
     'CircleDot',
@@ -321,8 +321,8 @@ tokens = (
     'CircleTimes',
     'CenterDot',
     'Star',
-    #'Sum',
-    #'Product',
+    # 'Sum',
+    # 'Product',
     'RawStar',
     'Times',
     'Divide',
@@ -360,9 +360,9 @@ tokens = (
     'TagSet',
     'Unset',
     'Semicolon',
-    #'DiscreteShift',
-    #'DiscreteRatio',
-    #'DifferenceDelta',
+    # 'DiscreteShift',
+    # 'DiscreteRatio',
+    # 'DifferenceDelta',
     'VerticalTilde',
     'Coproduct',
     'Cap',

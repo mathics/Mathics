@@ -5,8 +5,18 @@ from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
 
+import sys
+import time
+from argparse import ArgumentParser
+
+import mathics
+from mathics.core.parser import parse
+from mathics.core.definitions import Definitions
+from mathics.core.evaluation import Evaluation
+
 from six.moves import map
 from six.moves import range
+
 
 # Default number of times to repeat each benchmark. None -> Automatic
 TESTS_PER_BENCHMARK = None
@@ -53,15 +63,6 @@ PARSING_BENCHMARKS = [
     'expr' + "& " * 1000,
     "Sin[" * 1000 + '0.5' + "]" * 1000,
 ]
-
-import sys
-import time
-from argparse import ArgumentParser
-
-import mathics
-from mathics.core.parser import parse
-from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation
 
 definitions = Definitions(add_builtin=True)
 evaluation = None

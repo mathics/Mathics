@@ -17,18 +17,18 @@ from six.moves import zip
 
 
 def fully_qualified_symbol_name(name):
-    return (isinstance(name, six.string_types)
-            and '`' in name
-            and not name.startswith('`')
-            and not name.endswith('`')
-            and '``' not in name)
+    return (isinstance(name, six.string_types) and
+            '`' in name and
+            not name.startswith('`') and
+            not name.endswith('`') and
+            '``' not in name)
 
 
 def valid_context_name(ctx, allow_initial_backquote=False):
-    return (isinstance(ctx, six.string_types)
-            and ctx.endswith('`')
-            and '``' not in ctx
-            and (allow_initial_backquote or not ctx.startswith('`')))
+    return (isinstance(ctx, six.string_types) and
+            ctx.endswith('`') and
+            '``' not in ctx and
+            (allow_initial_backquote or not ctx.startswith('`')))
 
 
 def ensure_context(name):
@@ -243,8 +243,7 @@ class BaseExpression(KeyComparable):
             include_form = False
             if head in formats and len(self.get_leaves()) == 1:
                 expr = self.leaves[0]
-                if not (form == 'System`OutputForm'
-                        and head == 'System`StandardForm'):
+                if not (form == 'System`OutputForm' and head == 'System`StandardForm'):
                     form = head
 
                     include_form = True
@@ -511,7 +510,7 @@ class Expression(BaseExpression):
 
         head_name = self.head.get_name()
         if isinstance(heads, (tuple, list, set)):
-            if not head_name in [ensure_context(h) for h in heads]:
+            if head_name not in [ensure_context(h) for h in heads]:
                 return False
         else:
             if head_name != ensure_context(heads):
@@ -657,13 +656,12 @@ class Expression(BaseExpression):
             elif name == 'System`OptionsPattern':
                 return [2, 40, 0, 1, 1, 0, self.head, self.leaves, 1]
             else:
-                # Append [4,] to leaves so that longer expressions have higher
+                # Append [4] to leaves so that longer expressions have higher
                 # precedence
-                result = [
+                return [
                     2, 0, 1, 1, 0, self.head.get_sort_key(True),
-                    [leaf.get_sort_key(True) for leaf in self.leaves] + [[4,]],
+                    [leaf.get_sort_key(True) for leaf in self.leaves] + [[4]],
                     1]
-                return result
         else:
             exps = {}
             head = self.head.get_name()
@@ -769,7 +767,7 @@ class Expression(BaseExpression):
 
             for leaf in leaves:
                 leaf.unevaluated = False
-            if not 'System`HoldAllComplete' in attributes:
+            if 'System`HoldAllComplete' not in attributes:
                 for index, leaf in enumerate(leaves):
                     if leaf.has_form('Unevaluated', 1):
                         leaves[index] = leaf.leaves[0]
@@ -794,7 +792,7 @@ class Expression(BaseExpression):
                     return threaded
             rules = []
             rules_names = set()
-            if not 'System`HoldAllComplete' in attributes:
+            if 'System`HoldAllComplete' not in attributes:
                 for leaf in leaves:
                     name = leaf.get_lookup_name()
                     if name not in rules_names:
@@ -1067,11 +1065,10 @@ class Expression(BaseExpression):
         from mathics.builtin.scoping import get_scoping_vars
 
         if not in_scoping:
-            if (self.head.get_name() in ('System`Module', 'System`Block',
-                                         'System`With')  # nopep8
-                and len(self.leaves) > 0):
-                scoping_vars = set(
-                    name for name, new_def in get_scoping_vars(self.leaves[0]))
+            if (self.head.get_name() in ('System`Module', 'System`Block', 'System`With') and
+                len(self.leaves) > 0):  # nopep8
+
+                scoping_vars = set(name for name, new_def in get_scoping_vars(self.leaves[0]))
                 """for var in new_vars:
                     if var in scoping_vars:
                         del new_vars[var]"""
@@ -1768,7 +1765,6 @@ class Complex(Number):
 
     def __hash__(self):
         return hash(('Complex', self.real, self.imag))
-
 
 
 def encode_mathml(text):

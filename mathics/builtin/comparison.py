@@ -128,8 +128,8 @@ class _InequalityOperator(BinaryOperator):
         wanted = operators[self.get_name()]
         prev = None
         for item in items:
-            if (item.get_real_value() is None   # noqa
-                and not item.has_form('DirectedInfinity', None)):
+            if (item.get_real_value() is None and
+                not item.has_form('DirectedInfinity', None)):   # nopep8
                 return
             if prev is not None and do_cmp(prev, item) not in wanted:
                 return Symbol('False')

@@ -529,7 +529,7 @@ class Export(Builtin):
         if not self._check_filename(filename, evaluation):
             return Symbol('$Failed')
 
-        ## Process elems {comp* format?, elem1*}
+        # Process elems {comp* format?, elem1*}
         leaves = elems.get_leaves()
 
         format_spec, elems_spec = [], []

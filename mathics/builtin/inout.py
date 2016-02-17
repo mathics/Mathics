@@ -1111,7 +1111,7 @@ class General(Builtin):
         'wrsym': "Symbol `1` is Protected.",
 
         # Self-defined messages
-        #'rep': "`1` is not a valid replacement rule.",
+        # 'rep': "`1` is not a valid replacement rule.",
         'options': "`1` is not a valid list of option rules.",
         'timeout': "Timeout reached.",
         'syntax': "`1`",

@@ -162,10 +162,8 @@ class Definitions(object):
         else:
             short_pattern = pattern
             # start with a group matching the accessible contexts
-            ctx_pattern = ("(?:"
-                           + "|".join(re.escape(c) for c in
-                                      self.get_accessible_contexts())
-                           + ")")
+            ctx_pattern = "(?:%s)" % "|".join(
+                re.escape(c) for c in self.get_accessible_contexts())
 
         short_pattern = (short_pattern
                          .replace('@', '[^A-Z]+')

@@ -162,8 +162,8 @@ class _SetOperator(object):
         if lhs_name == 'System`$RecursionLimit':
             # if (not rhs_int_value or rhs_int_value < 20) and not
             # rhs.get_name() == 'System`Infinity':
-            if (not rhs_int_value or rhs_int_value < 20  # noqa
-                or rhs_int_value > settings.MAX_RECURSION_DEPTH):
+            if (not rhs_int_value or rhs_int_value < 20 or
+                rhs_int_value > settings.MAX_RECURSION_DEPTH):  # nopep8
 
                 evaluation.message('$RecursionLimit', 'limset', rhs)
                 return False
@@ -206,9 +206,8 @@ class _SetOperator(object):
             #    $Context = $Context <> "test`"
             #
             if new_context.startswith('`'):
-                new_context = (
-                    evaluation.definitions.get_current_context()
-                    + new_context.lstrip('`'))
+                new_context = (evaluation.definitions.get_current_context() +
+                               new_context.lstrip('`'))
 
             evaluation.definitions.set_current_context(new_context)
             ignore_protection = True
@@ -263,8 +262,8 @@ class _SetOperator(object):
 
     def assign(self, lhs, rhs, evaluation):
         if lhs.get_head_name() == 'System`List':
-            if (not (rhs.get_head_name() == 'System`List')     # noqa
-                or len(lhs.leaves) != len(rhs.leaves)):
+            if (not (rhs.get_head_name() == 'System`List') or
+                len(lhs.leaves) != len(rhs.leaves)):    # nopep8
 
                 evaluation.message(self.get_name(), 'shape', lhs, rhs)
                 return False
@@ -698,7 +697,7 @@ class Definition(Builtin):
                         'List',
                         *(Symbol(attribute) for attribute in attributes)))))
 
-        if definition is not None and not 'System`ReadProtected' in attributes:
+        if definition is not None and 'System`ReadProtected' not in attributes:
             for rule in definition.ownvalues:
                 print_rule(rule)
             for rule in definition.downvalues:

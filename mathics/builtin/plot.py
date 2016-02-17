@@ -249,12 +249,10 @@ class _Plot(Builtin):
         if not check_range(x_range) or not check_range(y_range):
             evaluation.message(self.get_name(), 'prng', plotrange_option)
             x_range, y_range = [start, stop], 'Automatic'
-        # x_range and y_range are now either Automatic, All, or of the form
-        # [min, max]
-        assert (x_range in ('System`Automatic', 'System`All')
-                or isinstance(x_range, list))
-        assert (y_range in ('System`Automatic', 'System`All')
-                or isinstance(y_range, list))
+
+        # x_range and y_range are now either Automatic, All, or of the form [min, max]
+        assert (x_range in ('System`Automatic', 'System`All') or isinstance(x_range, list))
+        assert (y_range in ('System`Automatic', 'System`All') or isinstance(y_range, list))
 
         # Mesh Option
         mesh_option = self.get_option(options, 'Mesh', evaluation)
@@ -555,10 +553,8 @@ class _ListPlot(Builtin):
             plotrange = ['System`Automatic', 'System`Automatic']
 
         x_range, y_range = plotrange[0], plotrange[1]
-        assert (x_range in ('System`Automatic', 'System`All')
-                or isinstance(x_range, list))
-        assert (y_range in ('System`Automatic', 'System`All')
-                or isinstance(y_range, list))
+        assert (x_range in ('System`Automatic', 'System`All') or isinstance(x_range, list))
+        assert (y_range in ('System`Automatic', 'System`All') or isinstance(y_range, list))
 
         # Filling option
         # TODO: Fill between corresponding points in two datasets:
@@ -611,10 +607,8 @@ class _ListPlot(Builtin):
             while i < len(all_points[l]):
                 seg = line[i]
                 for j, point in enumerate(seg):
-                    if not ((isinstance(point[0], float) or
-                             isinstance(point[0], int))
-                            and (isinstance(point[1], float) or
-                                 isinstance(point[1], int))):
+                    if not (isinstance(point[0], (int, float)) and
+                            isinstance(point[1], (int, float))):
                         all_points[l].insert(i, seg[:j])
                         all_points[l][i + 1] = seg[j + 1:]
                         i -= 1
@@ -770,7 +764,7 @@ class _Plot3D(Builtin):
             max_depth = 0
             evaluation.message(self.get_name(), 'invmaxrec', max_depth, 15)
 
-        ## Plot the functions
+        # Plot the functions
         graphics = []
         for indx, f in enumerate(functions):
             stored = {}
@@ -824,7 +818,7 @@ class _Plot3D(Builtin):
                     return
                 triangles.append(sorted(((x1, y1, v1), (x2, y2, v2), (x3, y3, v3))))
 
-            ## linear (grid) sampling
+            # linear (grid) sampling
             numx = plotpoints[0] * 1.0
             numy = plotpoints[1] * 1.0
             for xi in range(plotpoints[0]):
@@ -868,7 +862,7 @@ class _Plot3D(Builtin):
                             triangle(x1, y1, x2, y2, x3, y3)
                             triangle(x4, y4, x3, y3, x2, y2)
 
-            ## adaptive resampling
+            # adaptive resampling
             # TODO: optimise this
             # Cos of the maximum angle between successive line segments
             ang_thresh = cos(20 * pi / 180)
@@ -939,7 +933,7 @@ class _Plot3D(Builtin):
                 # remove subdivided triangles which have been divided
                 triangles = [t for i, t in enumerate(triangles) if i not in needs_removal]
 
-            ## fix up subdivided edges
+            # fix up subdivided edges
             #
             # look at every triangle and see if its edges need updating.
             # depending on how many edges require subdivision we proceede with
@@ -996,7 +990,7 @@ class _Plot3D(Builtin):
                 triangles.extend(new_triangles)
                 triangles = [t for t in triangles if t is not None]
 
-            ## add the mesh
+            # add the mesh
             mesh_points = []
             if mesh == 'System`Full':
                 for xi in range(plotpoints[0] + 1):
@@ -1017,7 +1011,7 @@ class _Plot3D(Builtin):
                         mesh_col.append((xval, yval, z))
                     mesh_points.append(mesh_col)
 
-                ## handle edge subdivisions
+                # handle edge subdivisions
                 made_changes = True
                 while made_changes:
                     made_changes = False
