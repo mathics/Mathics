@@ -1,14 +1,20 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Control statements
 """
 
+from six.moves import range
+from six.moves import zip
+
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, from_python
 from mathics.core.evaluation import (
     AbortInterrupt, BreakInterrupt, ContinueInterrupt)
-
 from mathics.builtin.lists import _IterationFunction
 from mathics.builtin.patterns import match
 
@@ -471,7 +477,6 @@ class FixedPoint(Builtin):
         while count is None or index < count:
             evaluation.check_stopped()
             new_result = Expression(f, result).evaluate(evaluation)
-            # print '%d: %s' % (index, new_result)
             if new_result == result:
                 result = new_result
                 break
@@ -496,7 +501,7 @@ class FixedPointList(Builtin):
     Observe the convergence of Newton's method for approximating square roots:
     >> newton[n_] := FixedPointList[.5(# + n/#) &, 1.];
     >> newton[9]
-     = {1., 5., 3.4, 3.02352941176470588, 3.00009155413138018, 3.00000000139698386, 3., 3.}
+     = {1., 5., 3.4, 3.02352941176470588, 3.00009155413138018, 3.00000000139698386, 3.00000000000000001, 3.}
 
     Plot the "hailstone" sequence of a number:
     >> collatz[1] := 1;

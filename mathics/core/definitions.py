@@ -1,24 +1,12 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+import six
+import six.moves.cPickle as pickle
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
-import cPickle as pickle
 import os
 import base64
 import re
@@ -29,9 +17,8 @@ from mathics.core.characters import letters, letterlikes
 
 
 names_wildcards = "@*"
-base_names_pattern = ur'((?![0-9])([0-9${0}{1}{2}])+)'.format(
-    letters, letterlikes, names_wildcards)
-full_names_pattern = ur'(`?{0}(`{0})*)'.format(base_names_pattern)
+base_names_pattern = r'((?![0-9])([0-9${0}{1}{2}])+)'.format(letters, letterlikes, names_wildcards)
+full_names_pattern = r'(`?{0}(`{0})*)'.format(base_names_pattern)
 
 
 def get_file_time(file):
@@ -68,13 +55,13 @@ class Definitions(object):
                                  for module in modules]
                 builtin_time = max(builtin_dates)
                 if get_file_time(builtin_filename) > builtin_time:
-                    builtin_file = open(builtin_filename, 'r')
+                    builtin_file = open(builtin_filename, 'rb')
                     self.builtin = pickle.load(builtin_file)
                     loaded = True
             if not loaded:
                 contribute(self)
                 if builtin_filename is not None:
-                    builtin_file = open(builtin_filename, 'w')
+                    builtin_file = open(builtin_filename, 'wb')
                     pickle.dump(self.builtin, builtin_file, -1)
 
             for root, dirs, files in os.walk(   # noqa
@@ -116,12 +103,12 @@ class Definitions(object):
         return context_path
 
     def set_current_context(self, context):
-        assert isinstance(context, basestring)
+        assert isinstance(context, six.string_types)
         self.set_ownvalue('System`$Context', String(context))
 
     def set_context_path(self, context_path):
         assert isinstance(context_path, list)
-        assert all([isinstance(c, basestring) for c in context_path])
+        assert all([isinstance(c, six.string_types) for c in context_path])
         self.set_ownvalue('System`$ContextPath',
                           Expression('System`List',
                                      *[String(c) for c in context_path]))
@@ -175,10 +162,8 @@ class Definitions(object):
         else:
             short_pattern = pattern
             # start with a group matching the accessible contexts
-            ctx_pattern = ("(?:"
-                           + "|".join(re.escape(c) for c in
-                                      self.get_accessible_contexts())
-                           + ")")
+            ctx_pattern = "(?:%s)" % "|".join(
+                re.escape(c) for c in self.get_accessible_contexts())
 
         short_pattern = (short_pattern
                          .replace('@', '[^A-Z]+')
@@ -202,7 +187,7 @@ class Definitions(object):
         - Otherwise, it's a new symbol in $Context.
         """
 
-        assert isinstance(name, basestring)
+        assert isinstance(name, six.string_types)
 
         # Bail out if the name we're being asked to look up is already
         # fully qualified.
@@ -266,7 +251,7 @@ class Definitions(object):
         options = builtin.options.copy()
         options.update(user.options)
         formatvalues = builtin.formatvalues.copy()
-        for form, rules in user.formatvalues.iteritems():
+        for form, rules in six.iteritems(user.formatvalues):
             if form in formatvalues:
                 formatvalues[form].extend(rules)
             else:
@@ -314,7 +299,7 @@ class Definitions(object):
         return self.get_definition(name).defaultvalues
 
     def get_value(self, name, pos, pattern, evaluation):
-        assert isinstance(name, basestring)
+        assert isinstance(name, six.string_types)
         assert '`' in name
         rules = self.get_definition(name).get_values_list(valuesname(pos))
         for rule in rules:
@@ -402,12 +387,17 @@ class Definitions(object):
         self.user = {}
 
     def get_user_definitions(self):
-        return base64.b64encode(
-            pickle.dumps(self.user, protocol=pickle.HIGHEST_PROTOCOL))
+        if six.PY2:
+            return base64.encodestring(pickle.dumps(self.user, protocol=2)).decode('ascii')
+        else:
+            return base64.encodebytes(pickle.dumps(self.user, protocol=2)).decode('ascii')
 
     def set_user_definitions(self, definitions):
         if definitions:
-            self.user = pickle.loads(base64.b64decode(definitions))
+            if six.PY2:
+                self.user = pickle.loads(base64.decodestring(definitions.encode('ascii')))
+            else:
+                self.user = pickle.loads(base64.decodebytes(definitions.encode('ascii')))
         else:
             self.user = {}
 
@@ -418,8 +408,8 @@ class Definitions(object):
         return None
 
     def set_ownvalue(self, name, value):
-        from expression import Symbol
-        from rules import Rule
+        from .expression import Symbol
+        from .rules import Rule
 
         name = self.lookup_name(name)
         self.add_rule(name, Rule(Symbol(name), value))
@@ -553,7 +543,6 @@ class Definition(object):
         return False
 
     def __repr__(self):
-        s = (u'<Definition: name: %s, '
-             u'downvalues: %s, formats: %s, attributes: %s>') % (
+        s = '<Definition: name: {}, downvalues: {}, formats: {}, attributes: {}>'.format(
             self.name, self.downvalues, self.formatvalues, self.attributes)
         return s.encode('unicode_escape')

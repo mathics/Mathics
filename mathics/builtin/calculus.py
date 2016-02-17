@@ -1,8 +1,16 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Calculus functions
 """
+
+import six
+from six.moves import range
+from six.moves import zip
 
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import Expression, Integer, Number
@@ -15,7 +23,7 @@ import sympy
 
 
 class D(SympyFunction):
-    u"""
+    """
     <dl>
     <dt>'D[$f$, $x$]'
         <dd>gives the partial derivative of $f$ with respect to $x$.
@@ -108,16 +116,16 @@ class D(SympyFunction):
         'D[f_ ^ g_, x_?NotListQ]': 'D[E ^ (Log[f] * g), x]',
 
         'D[f_, x_?NotListQ] /; FreeQ[f, x]': '0',
-        #'D[f_[g_], x_?NotListQ]': (
-        #  'Module[{t}, D[f[t], t] /. t -> g] * D[g, x]',
-        #'D[f_[g_], x_?NotListQ]': 'D[f[g], g] * D[g, x]',
+        # 'D[f_[g_], x_?NotListQ]': (
+        #   'Module[{t}, D[f[t], t] /. t -> g] * D[g, x]',
+        # 'D[f_[g_], x_?NotListQ]': 'D[f[g], g] * D[g, x]',
 
         'D[f_[left___, x_, right___], x_?NotListQ] /; FreeQ[{left, right}, x]':
         'Derivative[Sequence @@ UnitVector['
         '  Length[{left, x, right}], Length[{left, x}]]][f][left, x, right]',
-        #'D[f_[args___], x_?NotListQ]':
-        #'Plus @@ MapIndexed[(D[f[Sequence@@ReplacePart[{args}, #2->t]], t] '
-        #'/. t->#) * D[#, x]&, {args}]',
+        # 'D[f_[args___], x_?NotListQ]':
+        # 'Plus @@ MapIndexed[(D[f[Sequence@@ReplacePart[{args}, #2->t]], t] '
+        # '/. t->#) * D[#, x]&, {args}]',
 
         'D[{items___}, x_?NotListQ]': 'D[#, x]& /@ {items}',
         'D[f_, {list_List}]': 'D[f, #]& /@ list',
@@ -173,7 +181,7 @@ class D(SympyFunction):
 
 
 class Derivative(PostfixOperator, SympyFunction):
-    u"""
+    """
     <dl>
     <dt>'Derivative[$n$][$f$]'
         <dd>represents the $n$th derivative of the function $f$.
@@ -672,7 +680,7 @@ class Solve(Builtin):
         def transform_dict(sols):
             if not sols:
                 yield sols
-            for var, sol in sols.iteritems():
+            for var, sol in six.iteritems(sols):
                 rest = sols.copy()
                 del rest[var]
                 rest = transform_dict(rest)
@@ -693,7 +701,7 @@ class Solve(Builtin):
             if not isinstance(sol, dict):
                 if not isinstance(sol, (list, tuple)):
                     sol = [sol]
-                sol = dict(zip(vars_sympy, sol))
+                sol = dict(list(zip(vars_sympy, sol)))
             return transform_dict(sol)
 
         if not sympy_eqs:
@@ -722,9 +730,10 @@ class Solve(Builtin):
                 evaluation.message('Solve', 'svars')
 
             # Filter out results for which denominator is 0
-            result = [sol for sol in result if all(sympy.simplify(
-                denom.subs(sol)) != 0 for denom in sympy_denoms)]
-                # (SymPy should actually do that itself, but it doesn't!)
+            # (SymPy should actually do that itself, but it doesn't!)
+            result = [sol for sol in result if all(
+                sympy.simplify(denom.subs(sol)) != 0 for denom in sympy_denoms)]
+
             return Expression('List', *(Expression(
                 'List',
                 *(Expression('Rule', var, from_sympy(sol[var_sympy]))
@@ -737,7 +746,7 @@ class Solve(Builtin):
             pass
         except NotImplementedError:
             pass
-        except TypeError, exc:
+        except TypeError as exc:
             if str(exc).startswith("expected Symbol, Function or Derivative"):
                 evaluation.message('Solve', 'ivar', vars_original)
 

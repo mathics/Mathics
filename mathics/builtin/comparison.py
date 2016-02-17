@@ -1,4 +1,8 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import sympy
 
@@ -6,6 +10,8 @@ from mathics.builtin.base import Builtin, BinaryOperator, Test, SympyFunction
 from mathics.core.expression import (Expression, Number, Integer, Rational,
                                      Real, Symbol, String)
 from mathics.core.numbers import get_type, dps
+from six.moves import range
+from six.moves import zip
 
 
 class SameQ(BinaryOperator):
@@ -67,7 +73,6 @@ class _InequalityOperator(BinaryOperator):
         # Parse multiple inequalities.
         # "a op b op c" -> op[a, b, c]
         # "a op1 b op2 c" -> Inequality[a, op1, b, op2, c]
-        names = operators.keys()
 
         def inequality_leaves(expression):
             if expression.parenthesized:
@@ -76,7 +81,7 @@ class _InequalityOperator(BinaryOperator):
             leaves = expression.get_leaves()
             if name == 'System`Inequality':
                 return leaves
-            elif name in names:
+            elif name in operators:
                 result = []
                 for leaf in leaves[:-1]:
                     result.extend([leaf, Symbol(name)])
@@ -123,8 +128,8 @@ class _InequalityOperator(BinaryOperator):
         wanted = operators[self.get_name()]
         prev = None
         for item in items:
-            if (item.get_real_value() is None   # noqa
-                and not item.has_form('DirectedInfinity', None)):
+            if (item.get_real_value() is None and
+                not item.has_form('DirectedInfinity', None)):   # nopep8
                 return
             if prev is not None and do_cmp(prev, item) not in wanted:
                 return Symbol('False')
@@ -164,7 +169,7 @@ class Inequality(Builtin):
             evaluation.message('Inequality', 'ineq', count)
         elif count == 3:
             name = items[1].get_name()
-            if name in operators.keys():
+            if name in operators:
                 return Expression(name, items[0], items[2])
         else:
             groups = [Expression('Inequality', *items[index - 1:index + 2])
@@ -191,7 +196,12 @@ def do_cmp(x1, x2):
     # Bus error when not converting to mpf
 
     if real1 is not None and real2 is not None:
-        return cmp(x1, x2)
+        if x1 == x2:
+            return 0
+        elif x1 < x2:
+            return -1
+        else:
+            return 1
     elif inf1 is not None and inf2 is not None:
         return cmp(inf1, inf2)
     elif inf1 is not None and real2 is not None:
@@ -422,7 +432,7 @@ class _MinMax(Builtin):
         '%(name)s[items___]'
 
         items = items.flatten(Symbol('List')).get_sequence()
-        results = set([])
+        results = []
         best = None
 
         for item in items:
@@ -433,15 +443,16 @@ class _MinMax(Builtin):
             for leaf in leaves:
                 if best is None:
                     best = leaf
-                    results.add(best)
+                    results.append(best)
+                    continue
                 c = do_cmp(leaf, best)
                 if c is None:
-                    results.add(leaf)
+                    results.append(leaf)
                 elif (self.sense == 1 and c > 0) or (
                         self.sense == -1 and c < 0):
                     results.remove(best)
                     best = leaf
-                    results.add(leaf)
+                    results.append(leaf)
 
         if not results:
             return Expression('DirectedInfinity', -self.sense)

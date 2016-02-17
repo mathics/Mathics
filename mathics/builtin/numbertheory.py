@@ -1,4 +1,11 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
+import six
+from six.moves import map
+from six.moves import range
 
 """
 Number theoretic functions
@@ -141,7 +148,7 @@ class GCD(Builtin):
 
 # FIXME: Previosuly this used gmpy's gcdext. sympy's gcdex is not as powerful
 # class ExtendedGCD(Builtin):
-#    u"""
+#    """
 #    >> ExtendedGCD[10, 15]
 #     = {5, {-1, 1}}
 #
@@ -231,16 +238,16 @@ class FactorInteger(Builtin):
 
         if isinstance(n, Integer):
             factors = sympy.factorint(n.value)
-            factors = sorted(factors.iteritems())
+            factors = sorted(six.iteritems(factors))
             return Expression('List', *(Expression('List', factor, exp)
                                         for factor, exp in factors))
 
         elif isinstance(n, Rational):
-            factors, factors_denom = map(
-                sympy.factorint, n.value.as_numer_denom())
-            for factor, exp in factors_denom.iteritems():
+            factors, factors_denom = list(map(
+                sympy.factorint, n.value.as_numer_denom()))
+            for factor, exp in six.iteritems(factors_denom):
                 factors[factor] = factors.get(factor, 0) - exp
-            factors = sorted(factors.iteritems())
+            factors = sorted(six.iteritems(factors))
             return Expression('List', *(Expression('List', factor, exp)
                                         for factor, exp in factors))
         else:
@@ -279,7 +286,7 @@ class IntegerExponent(Builtin):
         py_n, py_b = n.to_python(), b.to_python()
         expr = Expression('IntegerExponent', n, b)
 
-        if not (isinstance(py_n, int) or isinstance(py_n, long)):
+        if not isinstance(py_n, six.integer_types):
             evaluation.message('IntegerExponent', 'int', expr)
         py_n = abs(py_n)
 
@@ -369,18 +376,6 @@ class PrimeQ(Builtin):
         else:
             return Symbol('False')
 
-        # old variant using gmpy
-        """count = 25
-        while True:
-            evaluation.check_stopped()
-            result = n.is_prime(count)
-            print result, count
-            if result == 0:
-                return Symbol('False')
-            elif result == 2:
-                return Symbol('True')
-            count += 50"""
-
 
 class CoprimeQ(Builtin):
     """
@@ -457,7 +452,7 @@ class PrimePowerQ(Builtin):
      = False
     """
 
-    #TODO: Complex args
+    # TODO: Complex args
     """
     #> PrimePowerQ[{3 + I, 3 - 2 I, 3 + 4 I, 9 + 7 I}]
      = {False, True, True, False}

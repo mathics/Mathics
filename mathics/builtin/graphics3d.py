@@ -1,16 +1,24 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from __future__ import division
 
 """
 Graphics (3D)
 """
 
+from six.moves import map
+from six.moves import range
+
 import numbers
 from mathics.core.expression import (Expression, NumberError, from_python,
                                      system_symbols_dict)
 from mathics.builtin.base import BoxConstructError, Builtin, InstancableBuiltin
-from graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
-                      LineBox, PointBox, Style, RGBColor, get_class,
-                      asy_number, CoordinatesError, _GraphicsElements)
+from .graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
+                       LineBox, PointBox, Style, RGBColor, get_class,
+                       asy_number, CoordinatesError, _GraphicsElements)
 
 import json
 
@@ -72,22 +80,22 @@ class Graphics3D(Graphics):
      . \begin{asy}
      . import three;
      . import solids;
-     . size(6cm, 6cm);
+     . size(6.6667cm, 6.6667cm);
      . currentprojection=perspective(2.6,-4.8,4.0);
      . currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
      . draw(surface(sphere((0, 0, 0), 1)), rgb(1,1,1));
-     . draw(((-1.0,-1.0,-1.0)--(1.0,-1.0,-1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-1.0,1.0,-1.0)--(1.0,1.0,-1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-1.0,-1.0,1.0)--(1.0,-1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-1.0,1.0,1.0)--(1.0,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-1.0,-1.0,-1.0)--(-1.0,1.0,-1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((1.0,-1.0,-1.0)--(1.0,1.0,-1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-1.0,-1.0,1.0)--(-1.0,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((1.0,-1.0,1.0)--(1.0,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-1.0,-1.0,-1.0)--(-1.0,-1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((1.0,-1.0,-1.0)--(1.0,-1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-1.0,1.0,-1.0)--(-1.0,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((1.0,1.0,-1.0)--(1.0,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1,-1,-1)--(1,-1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1,1,-1)--(1,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1,-1,1)--(1,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1,1,1)--(1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1,-1,-1)--(-1,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((1,-1,-1)--(1,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1,-1,1)--(-1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((1,-1,1)--(1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1,-1,-1)--(-1,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((1,-1,-1)--(1,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-1,1,-1)--(-1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((1,1,-1)--(1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
      . \end{asy}
 
     #> Graphics3D[Point[Table[{Sin[t], Cos[t], 0}, {t, 0, 2. Pi, Pi / 15.}]]] // TeXForm
@@ -95,22 +103,22 @@ class Graphics3D(Graphics):
      . \begin{asy}
      . import three;
      . import solids;
-     . size(6cm, 6cm);
+     . size(6.6667cm, 6.6667cm);
      . currentprojection=perspective(2.6,-4.8,4.0);
      . currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
-     . path3 g=(0.0,1.0,0.0)--(0.207911690818,0.978147600734,0.0)--(0.406736643076,0.913545457643,0.0)--(0.587785252292,0.809016994375,0.0)--(0.743144825477,0.669130606359,0.0)--(0.866025403784,0.5,0.0)--(0.951056516295,0.309016994375,0.0)--(0.994521895368,0.104528463268,0.0)--(0.994521895368,-0.104528463268,0.0)--(0.951056516295,-0.309016994375,0.0)--(0.866025403784,-0.5,0.0)--(0.743144825477,-0.669130606359,0.0)--(0.587785252292,-0.809016994375,0.0)--(0.406736643076,-0.913545457643,0.0)--(0.207911690818,-0.978147600734,0.0)--(-1.56804861761e-18,-1.0,0.0)--(-0.207911690818,-0.978147600734,0.0)--(-0.406736643076,-0.913545457643,0.0)--(-0.587785252292,-0.809016994375,0.0)--(-0.743144825477,-0.669130606359,0.0)--(-0.866025403784,-0.5,0.0)--(-0.951056516295,-0.309016994375,0.0)--(-0.994521895368,-0.104528463268,0.0)--(-0.994521895368,0.104528463268,0.0)--(-0.951056516295,0.309016994375,0.0)--(-0.866025403784,0.5,0.0)--(-0.743144825477,0.669130606359,0.0)--(-0.587785252292,0.809016994375,0.0)--(-0.406736643076,0.913545457643,0.0)--(-0.207911690818,0.978147600734,0.0)--(1.26770763531e-17,1.0,0.0)--cycle;dot(g, rgb(0, 0, 0));
-     . draw(((-0.994521895368,-1.0,-1.0)--(0.994521895368,-1.0,-1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.994521895368,1.0,-1.0)--(0.994521895368,1.0,-1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.994521895368,-1.0,1.0)--(0.994521895368,-1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.994521895368,1.0,1.0)--(0.994521895368,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.994521895368,-1.0,-1.0)--(-0.994521895368,1.0,-1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((0.994521895368,-1.0,-1.0)--(0.994521895368,1.0,-1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.994521895368,-1.0,1.0)--(-0.994521895368,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((0.994521895368,-1.0,1.0)--(0.994521895368,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.994521895368,-1.0,-1.0)--(-0.994521895368,-1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((0.994521895368,-1.0,-1.0)--(0.994521895368,-1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.994521895368,1.0,-1.0)--(-0.994521895368,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((0.994521895368,1.0,-1.0)--(0.994521895368,1.0,1.0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . path3 g=(0,1,0)--(0.20791,0.97815,0)--(0.40674,0.91355,0)--(0.58779,0.80902,0)--(0.74314,0.66913,0)--(0.86603,0.5,0)--(0.95106,0.30902,0)--(0.99452,0.10453,0)--(0.99452,-0.10453,0)--(0.95106,-0.30902,0)--(0.86603,-0.5,0)--(0.74314,-0.66913,0)--(0.58779,-0.80902,0)--(0.40674,-0.91355,0)--(0.20791,-0.97815,0)--(-1.568e-18,-1,0)--(-0.20791,-0.97815,0)--(-0.40674,-0.91355,0)--(-0.58779,-0.80902,0)--(-0.74314,-0.66913,0)--(-0.86603,-0.5,0)--(-0.95106,-0.30902,0)--(-0.99452,-0.10453,0)--(-0.99452,0.10453,0)--(-0.95106,0.30902,0)--(-0.86603,0.5,0)--(-0.74314,0.66913,0)--(-0.58779,0.80902,0)--(-0.40674,0.91355,0)--(-0.20791,0.97815,0)--(1.2677e-17,1,0)--cycle;dot(g, rgb(0, 0, 0));
+     . draw(((-0.99452,-1,-1)--(0.99452,-1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-0.99452,1,-1)--(0.99452,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-0.99452,-1,1)--(0.99452,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-0.99452,1,1)--(0.99452,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-0.99452,-1,-1)--(-0.99452,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((0.99452,-1,-1)--(0.99452,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-0.99452,-1,1)--(-0.99452,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((0.99452,-1,1)--(0.99452,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-0.99452,-1,-1)--(-0.99452,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((0.99452,-1,-1)--(0.99452,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((-0.99452,1,-1)--(-0.99452,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((0.99452,1,-1)--(0.99452,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
      . \end{asy}
     """
 
@@ -189,7 +197,7 @@ class Graphics3DBox(GraphicsBox):
                     if light[0] == '"Ambient"':
                         self.lighting.append({
                             "type": "Ambient",
-                            "color": color.to_rgba(), 
+                            "color": color.to_rgba(),
                         })
                     elif light[0] == '"Directional"':
                         position = [0, 0, 0]
@@ -305,7 +313,7 @@ class Graphics3DBox(GraphicsBox):
                         xmax += 1
                 elif (isinstance(plot_range[0], list) and
                       len(plot_range[0]) == 2):
-                    xmin, xmax = map(float, plot_range[0])
+                    xmin, xmax = list(map(float, plot_range[0]))
                     xmin = elements.translate((xmin, 0, 0))[0]
                     xmax = elements.translate((xmax, 0, 0))[0]
                 else:
@@ -320,7 +328,7 @@ class Graphics3DBox(GraphicsBox):
                         ymax += 1
                 elif (isinstance(plot_range[1], list) and
                       len(plot_range[1]) == 2):
-                    ymin, ymax = map(float, plot_range[1])
+                    ymin, ymax = list(map(float, plot_range[1]))
                     ymin = elements.translate((0, ymin, 0))[1]
                     ymax = elements.translate((0, ymax, 0))[1]
                 else:
@@ -335,7 +343,7 @@ class Graphics3DBox(GraphicsBox):
                         zmax += 1
                 elif (isinstance(plot_range[1], list) and
                       len(plot_range[1]) == 2):
-                    zmin, zmax = map(float, plot_range[2])
+                    zmin, zmax = list(map(float, plot_range[2]))
                     zmin = elements.translate((0, 0, zmin))[2]
                     zmax = elements.translate((0, 0, zmax))[2]
                 else:
@@ -422,7 +430,7 @@ class Graphics3DBox(GraphicsBox):
                 pen = create_pens(edge_color=RGBColor(
                     components=(0.4, 0.4, 0.4, 1)), stroke_width=1)
 
-            path = '--'.join(['(%s,%s,%s)' % coords for coords in line])
+            path = '--'.join(['(%.5g,%.5g,%.5g)' % coords for coords in line])
             boundbox_asy += 'draw((%s), %s);\n' % (path, pen)
 
         # TODO: Intelligently draw the axis ticks such that they are always
@@ -617,9 +625,9 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
 
         # Convert ticks to nice strings e.g 0.100000000000002 -> '0.1' and
         # scale ticks appropriately
-        ticks = [[map(lambda x: boxscale[i] * x, t[0]),
-                  map(lambda x: boxscale[i] * x, t[1]),
-                  map(str, t[0])] for i, t in enumerate(ticks)]
+        ticks = [[[boxscale[i] * x for x in t[0]],
+                  [boxscale[i] * x for x in t[1]],
+                  ['%g' % x for x in t[0]]] for i, t in enumerate(ticks)]
 
         return axes, ticks
 
@@ -726,7 +734,7 @@ class Point3DBox(PointBox):
         pen = create_pens(face_color=face_color, is_face_element=False)
 
         return ''.join('path3 g={0}--cycle;dot(g, {1});'.format(
-            '--'.join('({0},{1},{2})'.format(*coords.pos()[0])
+            '--'.join('(%.5g,%.5g,%.5g)' % coords.pos()[0]
                       for coords in line), pen) for line in self.lines)
 
     def extent(self):
@@ -825,7 +833,7 @@ class Polygon3DBox(PolygonBox):
 
         asy = ''
         for line in self.lines:
-            asy += 'path3 g=' + '--'.join(['(%s,%s,%s)' % coords.pos()[0]
+            asy += 'path3 g=' + '--'.join(['(%.5g,%.5g,%.5g)' % coords.pos()[0]
                                            for coords in line]) + '--cycle;'
             asy += 'draw(surface(g), %s);' % (pen)
         return asy
@@ -1004,7 +1012,7 @@ class Sphere3DBox(_Graphics3DElement):
         self.radius = item.leaves[1].to_python()
 
     def to_asy(self):
-        #l = self.style.get_line_width(face_element=True)
+        # l = self.style.get_line_width(face_element=True)
 
         if self.face_color is None:
             face_color = (1, 1, 1)

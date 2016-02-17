@@ -1,8 +1,15 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 List functions
 """
+
+from six.moves import range
+from six.moves import zip
 
 from mathics.builtin.base import (
     Builtin, Test, InvalidLevelspecError,
@@ -663,7 +670,7 @@ class Part(Builtin):
         if f.get_name() in ('System`OutputForm', 'System`InputForm'):
             open, close = "[[", "]]"
         else:
-            open, close = u"\u301a", u"\u301b"
+            open, close = "\u301a", "\u301b"
         indices = list_boxes(i, f, open, close)
         result = Expression('RowBox', Expression('List', list, *indices))
         return result
@@ -709,8 +716,7 @@ class Partition(Builtin):
 
     def chunks(self, l, n, d):
         assert n > 0 and d > 0
-        return filter(lambda x: len(x) == n,
-                      map(lambda i: l[i:i + n], xrange(0, len(l), d)))
+        return [x for x in [l[i:i + n] for i in range(0, len(l), d)] if len(x) == n]
 
     def apply_no_overlap(self, l, n, evaluation):
         'Partition[l_List, n_Integer]'
@@ -746,7 +752,7 @@ class Extract(Builtin):
 
     rules = {
         'Extract[expr_, list_List]': 'Part[expr, Sequence @@ list]',
-        'Extract[expr_, {lists___List}]': u'Extract[expr, #]& /@ {lists}',
+        'Extract[expr_, {lists___List}]': 'Extract[expr, #]& /@ {lists}',
     }
 
 
@@ -1439,7 +1445,7 @@ class Array(Builtin):
                 return
             origins[index] = value
 
-        dims = zip(dims, origins)
+        dims = list(zip(dims, origins))
 
         def rec(rest_dims, current):
             evaluation.check_stopped()

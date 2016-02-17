@@ -1,22 +1,9 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
 
 import sys
 import os
@@ -27,8 +14,11 @@ import locale
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Integer, strip_context
 from mathics.core.evaluation import Evaluation
-from mathics import print_version, print_license, get_version_string
+from mathics import version_string, license_string, __version__
 from mathics import settings
+
+import six
+from six.moves import input
 
 
 class TerminalShell(object):
@@ -81,7 +71,7 @@ class TerminalShell(object):
         term_colors = color_schemes.get(colors.upper())
         if term_colors is None:
             out_msg = "The 'colors' argument must be {0} or None"
-            print out_msg.format(repr(color_schemes.keys()))
+            print(out_msg.format(repr(list(color_schemes.keys()))))
             quit()
 
         self.incolors, self.outcolors = term_colors
@@ -108,7 +98,7 @@ class TerminalShell(object):
             return newline.join(text.splitlines())
 
         def out_callback(out):
-            print to_output(unicode(out))
+            print(to_output(six.text_type(out)))
 
         evaluation = Evaluation(text,
                                 self.definitions,
@@ -117,32 +107,35 @@ class TerminalShell(object):
         for result in evaluation.results:
             if result.result is not None:
                 print(self.get_out_prompt() +
-                      to_output(unicode(result.result)) + '\n')
+                      to_output(six.text_type(result.result)) + '\n')
 
     def read_line(self, prompt):
         if self.using_readline:
             return self.rl_read_line(prompt)
-        return raw_input(prompt)
+        return input(prompt)
 
     def rl_read_line(self, prompt):
-        # sys.stdout is wrapped by a codecs.StreamWriter object in
-        # mathics/__init__.py, which interferes with raw_input's use
-        # of readline.
+        # Wrap ANSI colour sequences in \001 and \002, so readline
+        # knows that they're nonprinting.
+        prompt = self.ansi_color_re.sub(
+            lambda m: "\001" + m.group(0) + "\002", prompt)
+
+        # For Py2 sys.stdout is wrapped by a codecs.StreamWriter object in
+        # mathics/__init__.py which interferes with raw_input's use of readline
         #
         # To work around this issue, call raw_input with the original
         # file object as sys.stdout, which is in the undocumented
         # 'stream' field of codecs.StreamWriter.
-        orig_stdout = sys.stdout
-        try:
-            # Wrap ANSI colour sequences in \001 and \002, so readline
-            # knows that they're nonprinting.
-            prompt = self.ansi_color_re.sub(
-                lambda m: "\001" + m.group(0) + "\002", prompt)
-            sys.stdout = sys.stdout.stream
-            ret = raw_input(prompt)
-            return ret
-        finally:
-            sys.stdout = orig_stdout
+        if six.PY2:
+            orig_stdout = sys.stdout
+            try:
+                sys.stdout = sys.stdout.stream
+                ret = input(prompt).decode(self.input_encoding)
+                return ret
+            finally:
+                sys.stdout = orig_stdout
+        else:
+            return input(prompt)
 
     def complete_symbol_name(self, text, state):
         try:
@@ -150,7 +143,7 @@ class TerminalShell(object):
         except Exception:
             # any exception thrown inside the completer gets silently
             # thrown away otherwise
-            print "Unhandled error in readline completion"
+            print("Unhandled error in readline completion")
 
     def _complete_symbol_name(self, text, state):
         # The readline module calls this function repeatedly,
@@ -172,7 +165,7 @@ class TerminalShell(object):
         return matches
 
 
-# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/ 
+# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/
 
 def wait_for_line(input_string):
     """
@@ -251,7 +244,8 @@ def main():
         action='store_true')
 
     argparser.add_argument(
-        '--version', '-v', action='version', version=get_version_string(False))
+        '--version', '-v', action='version',
+        version='%(prog)s ' + __version__)
 
     args = argparser.parse_args()
 
@@ -265,15 +259,16 @@ def main():
         want_completion=not(args.no_completion))
 
     if not (args.quiet or args.script):
-        print_version(is_server=False)
-        print_license()
-        print u"Quit by pressing {0}\n".format(quit_command)
+        print()
+        print(version_string + '\n')
+        print(license_string + '\n')
+        print("Quit by pressing {0}\n".format(quit_command))
 
     if args.execute:
         for expr in args.execute:
-            total_input = expr.decode(shell.input_encoding)
-            print shell.get_in_prompt() + total_input
-            shell.evaluate(total_input)
+            # expr = expr.decode(shell.input_encoding)
+            print(shell.get_in_prompt() + expr)
+            shell.evaluate(expr)
         if not args.persist:
             return
 
@@ -281,19 +276,19 @@ def main():
         total_input = ''
         for line_no, line in enumerate(args.FILE):
             try:
-                line = line.decode('utf-8')     # TODO: other encodings
+                # line = line.decode('utf-8')     # TODO: other encodings
                 if args.script and line_no == 0 and line.startswith('#!'):
                     continue
-                print shell.get_in_prompt(continued=total_input != '') + line,
+                print(shell.get_in_prompt(continued=total_input != '') + line.rstrip('\n'))
                 total_input += ' ' + line
                 if line != "" and wait_for_line(total_input):
                     continue
                 shell.evaluate(total_input)
                 total_input = ""
             except (KeyboardInterrupt):
-                print '\nKeyboardInterrupt'
+                print('\nKeyboardInterrupt')
             except (SystemExit, EOFError):
-                print "\n\nGood bye!\n"
+                print("\n\nGood bye!\n")
                 break
         if not args.persist:
             return
@@ -303,16 +298,15 @@ def main():
         try:
             line = shell.read_line(
                 shell.get_in_prompt(continued=total_input != ''))
-            line = line.decode(shell.input_encoding)
             total_input += line
             if line != "" and wait_for_line(total_input):
                 continue
             shell.evaluate(total_input)
             total_input = ""
         except (KeyboardInterrupt):
-            print '\nKeyboardInterrupt'
+            print('\nKeyboardInterrupt')
         except (SystemExit, EOFError):
-            print "\n\nGood bye!\n"
+            print("\n\nGood bye!\n")
             break
 
 if __name__ == '__main__':

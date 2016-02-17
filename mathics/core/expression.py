@@ -1,22 +1,8 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import sympy
 import mpmath
@@ -24,25 +10,29 @@ import re
 
 from mathics.core.numbers import get_type, dps, prec, min_prec
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
+import six
+from six.moves import map
+from six.moves import range
+from six.moves import zip
 
 
 def fully_qualified_symbol_name(name):
-    return (isinstance(name, basestring)
-            and '`' in name
-            and not name.startswith('`')
-            and not name.endswith('`')
-            and '``' not in name)
+    return (isinstance(name, six.string_types) and
+            '`' in name and
+            not name.startswith('`') and
+            not name.endswith('`') and
+            '``' not in name)
 
 
 def valid_context_name(ctx, allow_initial_backquote=False):
-    return (isinstance(ctx, basestring)
-            and ctx.endswith('`')
-            and '``' not in ctx
-            and (allow_initial_backquote or not ctx.startswith('`')))
+    return (isinstance(ctx, six.string_types) and
+            ctx.endswith('`') and
+            '``' not in ctx and
+            (allow_initial_backquote or not ctx.startswith('`')))
 
 
 def ensure_context(name):
-    assert isinstance(name, basestring)
+    assert isinstance(name, six.string_types)
     assert name != ''
     if '`' in name:
         # Symbol has a context mark -> it came from the parser
@@ -66,7 +56,7 @@ def system_symbols(*symbols):
 
 # system_symbols_dict({'SomeSymbol': ...}) -> {'System`SomeSymbol': ...}
 def system_symbols_dict(d):
-    return {ensure_context(k): v for k, v in d.iteritems()}
+    return {ensure_context(k): v for k, v in six.iteritems(d)}
 
 
 class BoxError(Exception):
@@ -94,12 +84,12 @@ class ExpressionPointer(object):
             self.parent.leaves[self.position - 1] = new
 
     def __str__(self):
-        return u'%s[[%s]]' % (self.parent, self.position)
+        return '%s[[%s]]' % (self.parent, self.position)
 
 
 def from_python(arg):
     number_type = get_type(arg)
-    if isinstance(arg, (int, long)) or number_type == 'z':
+    if isinstance(arg, six.integer_types) or number_type == 'z':
         return Integer(arg)
     elif isinstance(arg, float) or number_type == 'f':
         return Real(arg)
@@ -107,7 +97,7 @@ def from_python(arg):
         return Rational(arg)
     elif isinstance(arg, complex) or number_type == 'c':
         return Complex(arg.real, arg.imag)
-    elif isinstance(arg, basestring):
+    elif isinstance(arg, six.string_types):
         return String(arg)
         # if arg[0] == arg[-1] == '"':
         #     return String(arg[1:-1])
@@ -121,7 +111,33 @@ def from_python(arg):
         raise NotImplementedError
 
 
-class BaseExpression(object):
+class KeyComparable(object):
+    '''
+    subclassing this requires implementing the get_sort_key method
+    '''
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __lt__(self, other):
+        return self.get_sort_key() < other.get_sort_key()
+
+    def __gt__(self, other):
+        return self.get_sort_key() > other.get_sort_key()
+
+    def __le__(self, other):
+        return self.get_sort_key() <= other.get_sort_key()
+
+    def __ge__(self, other):
+        return self.get_sort_key() >= other.get_sort_key()
+
+    def __eq__(self, other):
+        return self.get_sort_key() == other.get_sort_key()
+
+    def __ne__(self, other):
+        return self.get_sort_key() != other.get_sort_key()
+
+
+class BaseExpression(KeyComparable):
     def __init__(self, *args, **kwargs):
         super(BaseExpression, self).__init__()
 
@@ -194,13 +210,7 @@ class BaseExpression(object):
         To allow usage of expression as dictionary keys,
         as in Expression.get_pre_choices
         """
-
-        return hash(unicode(self))
-
-    def __cmp__(self, other):
-        if not hasattr(other, 'get_sort_key'):
-            return False
-        return cmp(self.get_sort_key(), other.get_sort_key())
+        raise NotImplementedError
 
     def same(self, other):
         pass
@@ -233,8 +243,7 @@ class BaseExpression(object):
             include_form = False
             if head in formats and len(self.get_leaves()) == 1:
                 expr = self.leaves[0]
-                if not (form == 'System`OutputForm'
-                        and head == 'System`StandardForm'):
+                if not (form == 'System`OutputForm' and head == 'System`StandardForm'):
                     form = head
 
                     include_form = True
@@ -249,7 +258,6 @@ class BaseExpression(object):
                 for rule in formats:
                     result = rule.apply(expr, evaluation)
                     if result is not None and result != expr:
-                        # print rule
                         return result.evaluate(evaluation)
                 return None
 
@@ -297,7 +305,7 @@ class BaseExpression(object):
             # return False
         try:
             form.match(yield_match, self, {}, evaluation, fully=False)
-        except StopGenerator_BaseExpression_is_free, exc:
+        except StopGenerator_BaseExpression_is_free as exc:
             return exc.value
         if self.is_atom():
             return True
@@ -378,6 +386,7 @@ class BaseExpression(object):
         raise NotImplementedError
 
 
+# TODO subclass KeyComparable
 class Monomial(object):
     """
     An object to sort monomials, used in Expression.get_sort_key and
@@ -387,8 +396,23 @@ class Monomial(object):
     def __init__(self, exps_dict):
         self.exps = exps_dict
 
-    def __cmp__(self, other):
-        return self.__cmp(other)
+    def __lt__(self, other):
+        return self.__cmp(other) < 0
+
+    def __gt__(self, other):
+        return self.__cmp(other) > 0
+
+    def __le__(self, other):
+        return self.__cmp(other) <= 0
+
+    def __ge__(self, other):
+        return self.__cmp(other) >= 0
+
+    def __eq__(self, other):
+        return self.__cmp(other) == 0
+
+    def __ne__(self, other):
+        return self.__cmp(other) != 0
 
     def __cmp(self, other):
         self_exps = self.exps.copy()
@@ -402,8 +426,8 @@ class Monomial(object):
                 other_exps[var] -= dec
                 if not other_exps[var]:
                     del other_exps[var]
-        self_exps = sorted((var, exp) for var, exp in self_exps.iteritems())
-        other_exps = sorted((var, exp) for var, exp in other_exps.iteritems())
+        self_exps = sorted((var, exp) for var, exp in six.iteritems(self_exps))
+        other_exps = sorted((var, exp) for var, exp in six.iteritems(other_exps))
 
         index = 0
         self_len = len(self_exps)
@@ -417,16 +441,27 @@ class Monomial(object):
                 return 1    # self > other
             self_var, self_exp = self_exps[index]
             other_var, other_exp = other_exps[index]
-            var_cmp = cmp(self_var, other_var)
-            if var_cmp != 0:
-                return var_cmp
+            if self_var < other_var:
+                return -1
+            if self_var > other_var:
+                return 1
             if self_exp != other_exp:
                 if index + 1 == self_len or index + 1 == other_len:
                     # smaller exponents first
-                    return cmp(self_exp, other_exp)
+                    if self_exp < other_exp:
+                        return -1
+                    elif self_exp == other_exp:
+                        return 0
+                    else:
+                        return 1
                 else:
                     # bigger exponents first
-                    return -cmp(self_exp, other_exp)
+                    if self_exp < other_exp:
+                        return 1
+                    elif self_exp == other_exp:
+                        return 0
+                    else:
+                        return -1
             index += 1
         return 0
 
@@ -434,7 +469,7 @@ class Monomial(object):
 class Expression(BaseExpression):
     def __init__(self, head, *leaves, **kwargs):
         super(Expression, self).__init__(**kwargs)
-        if isinstance(head, basestring):
+        if isinstance(head, six.string_types):
             head = Symbol(head)
         self.head = head
         self.leaves = [from_python(leaf) for leaf in leaves]
@@ -475,7 +510,7 @@ class Expression(BaseExpression):
 
         head_name = self.head.get_name()
         if isinstance(heads, (tuple, list, set)):
-            if not head_name in [ensure_context(h) for h in heads]:
+            if head_name not in [ensure_context(h) for h in heads]:
                 return False
         else:
             if head_name != ensure_context(heads):
@@ -621,13 +656,12 @@ class Expression(BaseExpression):
             elif name == 'System`OptionsPattern':
                 return [2, 40, 0, 1, 1, 0, self.head, self.leaves, 1]
             else:
-                # Append (4,) to leaves so that longer expressions have higher
+                # Append [4] to leaves so that longer expressions have higher
                 # precedence
-                result = [
+                return [
                     2, 0, 1, 1, 0, self.head.get_sort_key(True),
-                    [leaf.get_sort_key(True) for leaf in self.leaves] + [(4,)],
+                    [leaf.get_sort_key(True) for leaf in self.leaves] + [[4]],
                     1]
-                return result
         else:
             exps = {}
             head = self.head.get_name()
@@ -706,14 +740,14 @@ class Expression(BaseExpression):
                     'System`HoldAllComplete' in attributes):
                 eval_range = []
             elif 'System`HoldFirst' in attributes:
-                eval_range = range(1, len(leaves))
+                eval_range = list(range(1, len(leaves)))
             elif 'System`HoldRest' in attributes:
                 if len(leaves) > 0:
                     eval_range = [0]
                 else:
                     eval_range = []
             else:
-                eval_range = range(len(leaves))
+                eval_range = list(range(len(leaves)))
 
             if 'System`HoldAllComplete' not in attributes:
                 for index, leaf in enumerate(self.leaves):
@@ -733,7 +767,7 @@ class Expression(BaseExpression):
 
             for leaf in leaves:
                 leaf.unevaluated = False
-            if not 'System`HoldAllComplete' in attributes:
+            if 'System`HoldAllComplete' not in attributes:
                 for index, leaf in enumerate(leaves):
                     if leaf.has_form('Unevaluated', 1):
                         leaves[index] = leaf.leaves[0]
@@ -758,7 +792,7 @@ class Expression(BaseExpression):
                     return threaded
             rules = []
             rules_names = set()
-            if not 'System`HoldAllComplete' in attributes:
+            if 'System`HoldAllComplete' not in attributes:
                 for leaf in leaves:
                     name = leaf.get_lookup_name()
                     if name not in rules_names:
@@ -801,15 +835,11 @@ class Expression(BaseExpression):
         return Expression(head, *leaves)
 
     def __str__(self):
-        return u'%s[%s]' % (
-            self.head, u', '.join([unicode(leaf) for leaf in self.leaves]))
+        return '%s[%s]' % (
+            self.head, ', '.join([six.text_type(leaf) for leaf in self.leaves]))
 
     def __repr__(self):
-        # This .encode("unicode_escape") is necessary because Python
-        # implicitly calls the equivalent of .encode("ascii") if we
-        # return a Unicode string here, which might raise
-        # UnicodeEncodeError in awkward places.
-        return (u'<Expression: %s>' % self).encode('unicode_escape')
+        return '<Expression: %s>' % self
 
     def process_style_box(self, options):
         if self.has_form('StyleBox', 1, None):
@@ -962,9 +992,9 @@ class Expression(BaseExpression):
         elif name == 'System`SuperscriptBox' and len(self.leaves) == 2:
             tex1 = self.leaves[0].boxes_to_tex(**options)
             sup_string = self.leaves[1].get_string_value()
-            if sup_string == u'\u2032':
+            if sup_string == '\u2032':
                 return "%s'" % tex1
-            elif sup_string == u'\u2032\u2032':
+            elif sup_string == '\u2032\u2032':
                 return "%s''" % tex1
             else:
                 return '%s^%s' % (
@@ -1035,15 +1065,14 @@ class Expression(BaseExpression):
         from mathics.builtin.scoping import get_scoping_vars
 
         if not in_scoping:
-            if (self.head.get_name() in ('System`Module', 'System`Block',
-                                         'System`With')  # nopep8
-                and len(self.leaves) > 0):
-                scoping_vars = set(
-                    name for name, new_def in get_scoping_vars(self.leaves[0]))
+            if (self.head.get_name() in ('System`Module', 'System`Block', 'System`With') and
+                len(self.leaves) > 0):  # nopep8
+
+                scoping_vars = set(name for name, new_def in get_scoping_vars(self.leaves[0]))
                 """for var in new_vars:
                     if var in scoping_vars:
                         del new_vars[var]"""
-                vars = {var: value for var, value in vars.iteritems()
+                vars = {var: value for var, value in six.iteritems(vars)
                         if var not in scoping_vars}
 
         leaves = self.leaves
@@ -1166,6 +1195,9 @@ class Expression(BaseExpression):
             atoms.extend(leaf.get_atoms())
         return atoms
 
+    def __hash__(self):
+        return hash(('Expression', self.head) + tuple(self.leaves))
+
 
 class Atom(BaseExpression):
 
@@ -1191,8 +1223,7 @@ class Atom(BaseExpression):
         return self.__class__.__name__
 
     def __repr__(self):
-        return (u'<%s: %s>' % (self.get_atom_name(), self)).encode(
-            'unicode_escape')
+        return '<%s: %s>' % (self.get_atom_name(), self)
 
     def replace_vars(self, vars, options=None, in_scoping=True):
         return self
@@ -1227,7 +1258,7 @@ class Atom(BaseExpression):
 class Symbol(Atom):
     def __init__(self, name, sympy_dummy=None, **kwargs):
         super(Symbol, self).__init__(**kwargs)
-        assert isinstance(name, basestring)
+        assert isinstance(name, six.string_types)
         self.name = ensure_context(name)
         self.sympy_dummy = sympy_dummy
 
@@ -1249,7 +1280,7 @@ class Symbol(Atom):
         builtin = mathics_to_sympy.get(self.name)
         if (builtin is None or not builtin.sympy_name or    # nopep8
             not builtin.is_constant()):
-            return sympy.Symbol(sympy_symbol_prefix + self.name.encode('utf8'))
+            return sympy.Symbol(sympy_symbol_prefix + self.name)
         else:
             return getattr(sympy, builtin.sympy_name)
 
@@ -1317,6 +1348,9 @@ class Symbol(Atom):
             'Pi', 'E', 'EulerGamma', 'GoldenRatio',
             'MachinePrecision', 'Catalan')
 
+    def __hash__(self):
+        return hash(('Symbol', self.name))  # to distinguish from String
+
 
 class Number(Atom):
     def __str__(self):
@@ -1351,7 +1385,7 @@ class Number(Atom):
             real, imag = value.as_real_imag()
             return Complex(real, imag, prec)
 
-        if isinstance(value, (int, long)):
+        if isinstance(value, six.integer_types):
             return Integer(value)
         elif isinstance(value, float):
             return Real(value)
@@ -1431,6 +1465,9 @@ class Integer(Number):
     def do_copy(self):
         return Integer(self.value)
 
+    def __hash__(self):
+        return hash(('Integer', self.value))
+
 
 class Rational(Number):
     def __init__(self, numerator, denominator=None, **kwargs):
@@ -1499,13 +1536,16 @@ class Rational(Number):
     def do_copy(self):
         return Rational(self.value)
 
+    def __hash__(self):
+        return hash(("Rational", self.value))
+
 
 class Real(Number):
     def __init__(self, value, p=None):
         from mathics.builtin.numeric import machine_precision
         super(Real, self).__init__()
 
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             value = str(value)
             if p is None:
                 digits = (''.join(re.findall('[0-9]+', value))).lstrip('0')
@@ -1555,7 +1595,7 @@ class Real(Number):
         else:
             s = str(self.to_sympy())
             if 'e' in s:
-                base, exp = map(str, s.split('e'))
+                base, exp = list(map(str, s.split('e')))
             else:
                 if self.to_sympy() < 0:
                     prefix = '-'
@@ -1578,7 +1618,7 @@ class Real(Number):
                     'List', base, String('*^'), String(exp)))
             else:
                 return Expression('RowBox', Expression(
-                    'List', base, String(u'\u00d7'),
+                    'List', base, String('\u00d7'),
                     Expression('SuperscriptBox', String('10'), String(exp))))
         else:
             return number_boxes(base)
@@ -1613,23 +1653,30 @@ class Real(Number):
     def do_copy(self):
         return Real(self.value, self.prec)
 
-    def __cmp__(self, other):
+    def __eq__(self, other):
         if isinstance(other, Real):
             # MMA Docs: "Approximate numbers that differ in their last seven
             # binary digits are considered equal"
             _prec = min_prec(self, other) - 7
-            return cmp(self.to_sympy().n(dps(_prec)),
-                       other.to_sympy().n(dps(_prec)))
-        if not hasattr(other, 'get_sort_key'):
-            return False
-        return cmp(self.get_sort_key(), other.get_sort_key())
+            return self.to_sympy().n(dps(_prec)) == other.to_sympy().n(dps(_prec))
+        else:
+            return self.get_sort_key() == other.get_sort_key()
+
+    def __ne__(self, other):
+        # Real is a total order
+        return not (self == other)
+
+    def __hash__(self):
+        # ignore last 7 binary digits when hashing
+        _prec = self.get_precision()
+        return hash(("Real", self.to_sympy().n(dps(_prec))))
 
 
 class Complex(Number):
     def __init__(self, real, imag, p=None, **kwargs):
         super(Complex, self).__init__(**kwargs)
 
-        if isinstance(real, basestring):
+        if isinstance(real, six.string_types):
             real = str(real)
             if '.' in real:
                 self.real = Real(real, p)
@@ -1640,7 +1687,7 @@ class Complex(Number):
         else:
             self.real = Number.from_mp(real)
 
-        if isinstance(imag, basestring):
+        if isinstance(imag, six.string_types):
             imag = str(imag)
             if '.' in imag:
                 self.imag = Real(imag, p)
@@ -1716,6 +1763,9 @@ class Complex(Number):
     def do_copy(self):
         return Complex(self.real.do_copy(), self.imag.do_copy())
 
+    def __hash__(self):
+        return hash(('Complex', self.real, self.imag))
+
 
 def encode_mathml(text):
     text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
@@ -1760,8 +1810,8 @@ def encode_tex(text, in_text=False):
     return text
 
 extra_operators = set((',', '(', ')', '[', ']', '{', '}',
-                       u'\u301a', u'\u301b', u'\u00d7', u'\u2032',
-                       u'\u2032\u2032', ' ', u'\u2062', u'\u222b', u'\u2146'))
+                       '\u301a', '\u301b', '\u00d7', '\u2032',
+                       '\u2032\u2032', ' ', '\u2062', '\u222b', '\u2146'))
 
 
 class String(Atom):
@@ -1770,7 +1820,7 @@ class String(Atom):
         self.value = value
 
     def __str__(self):
-        return u'"%s"' % self.value
+        return '"%s"' % self.value
 
     def boxes_to_text(self, show_string_characters=False, **options):
         value = self.value
@@ -1784,7 +1834,7 @@ class String(Atom):
         from mathics.builtin import builtins
 
         operators = set()
-        for name, builtin in builtins.iteritems():
+        for name, builtin in six.iteritems(builtins):
             operator = builtin.get_operator_display()
             if operator is not None:
                 operators.add(operator)
@@ -1800,11 +1850,11 @@ class String(Atom):
             return '<mn>%s</mn>' % encode_mathml(text)
         else:
             if text in operators or text in extra_operators:
-                if text == u'\u2146':
+                if text == '\u2146':
                     return (
                         '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>'
                         % encode_mathml(text))
-                if text == u'\u2062':
+                if text == '\u2062':
                     return (
                         '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>'
                         % encode_mathml(text))
@@ -1818,7 +1868,7 @@ class String(Atom):
         from mathics.builtin import builtins
 
         operators = set()
-        for name, builtin in builtins.iteritems():
+        for name, builtin in six.iteritems(builtins):
             operator = builtin.get_operator_display()
             if operator is not None:
                 operators.add(operator)
@@ -1833,33 +1883,33 @@ class String(Atom):
         elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
             return encode_tex(text)
         else:
-            if text == u'\u2032':
+            if text == '\u2032':
                 return "'"
-            elif text == u'\u2032\u2032':
+            elif text == '\u2032\u2032':
                 return "''"
-            elif text == u'\u2062':
+            elif text == '\u2062':
                 return ' '
-            elif text == u'\u221e':
+            elif text == '\u221e':
                 return r'\infty '
-            elif text == u'\u00d7':
+            elif text == '\u00d7':
                 return r'\times '
             elif text in ('(', '[', '{'):
                 return r'\left%s' % encode_tex(text)
             elif text in (')', ']', '}'):
                 return r'\right%s' % encode_tex(text)
-            elif text == u'\u301a':
+            elif text == '\u301a':
                 return r'\left[\left['
-            elif text == u'\u301b':
+            elif text == '\u301b':
                 return r'\right]\right]'
             elif text == ',' or text == ', ':
                 return text
-            elif text == u'\u222b':
+            elif text == '\u222b':
                 return r'\int'
-            elif text == u'\u2146':
+            elif text == '\u2146':
                 return r'\, d'
-            elif text == u'\u2211':
+            elif text == '\u2211':
                 return r'\sum'
-            elif text == u'\u220f':
+            elif text == '\u220f':
                 return r'\prod'
             elif len(text) > 1:
                 return r'\text{%s}' % encode_tex(text, in_text=True)
@@ -1871,7 +1921,7 @@ class String(Atom):
 
     def default_format(self, evaluation, form):
         value = self.value.replace('\\', '\\\\').replace('"', '\\"')
-        return u'"%s"' % value
+        return '"%s"' % value
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1891,6 +1941,9 @@ class String(Atom):
     def to_python(self, *args, **kwargs):
         return '"%s"' % self.value  # add quotes to distinguish from Symbols
 
+    def __hash__(self):
+        return hash(("String", self.value))
+
 
 def get_default_value(name, evaluation, k=None, n=None):
     pos = []
@@ -1898,7 +1951,7 @@ def get_default_value(name, evaluation, k=None, n=None):
         pos.append(k)
     if n is not None:
         pos.append(n)
-    for pos_len in reversed(range(len(pos) + 1)):
+    for pos_len in reversed(list(range(len(pos) + 1))):
         # Try patterns from specific to general
         defaultexpr = Expression('Default', Symbol(name),
                                  *[Integer(index) for index in pos[:pos_len]])

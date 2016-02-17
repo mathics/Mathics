@@ -1,4 +1,8 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Exponential, trigonometric and hyperbolic functions
@@ -7,8 +11,6 @@ Mathics basically supports all important trigonometric and hyperbolic functions.
 Numerical values and derivatives can be computed; however, most special exact values and simplification
 rules are not implemented yet.
 """
-
-from __future__ import with_statement
 
 import sympy
 import mpmath
@@ -22,7 +24,7 @@ from mathics.builtin.arithmetic import _MPMathFunction
 
 
 class Pi(SympyConstant):
-    u"""
+    """
     <dl>
     <dt>'Pi'
         <dd>is the constant \u03c0.

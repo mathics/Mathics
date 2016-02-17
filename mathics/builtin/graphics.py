@@ -1,12 +1,19 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from __future__ import division
 
 """
 Graphics
 """
 
 from math import floor, ceil, log10
-
 import json
+from six.moves import map
+from six.moves import range
+from six.moves import zip
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
@@ -120,7 +127,7 @@ def create_css(edge_color=None, face_color=None, stroke_width=None,
 
 
 def asy_number(value):
-    return '%s' % value
+    return '%.5g' % value
 
 
 def create_pens(edge_color=None, face_color=None, stroke_width=None,
@@ -167,9 +174,9 @@ class Graphics(Builtin):
     >> Graphics[Circle[]] // TeXForm
      = 
      . \begin{asy}
-     . size(5.85559796438cm, 5cm);
-     . draw(ellipse((175.0,175.0),175.0,175.0), rgb(0, 0, 0)+linewidth(0.666666666667));
-     . clip(box((-0.333333333333,0.333333333333), (350.333333333,349.666666667)));
+     . size(5.8556cm, 5.8333cm);
+     . draw(ellipse((175,175),175,175), rgb(0, 0, 0)+linewidth(0.66667));
+     . clip(box((-0.33333,0.33333), (350.33,349.67)));
      . \end{asy}
 
     Invalid graphics directives yield invalid box structures:
@@ -366,8 +373,7 @@ class Hue(_Color):
             else:
                 return p
 
-        result = tuple([trans(map(t)) for t in rgb]) + (self.components[3],)
-        print result
+        result = tuple([trans(list(map(t))) for t in rgb]) + (self.components[3],)
         return result
 
 
@@ -747,7 +753,7 @@ class LineBox(_Polyline):
         pen = create_pens(edge_color=self.edge_color, stroke_width=l)
         asy = ''
         for line in self.lines:
-            path = '--'.join(['(%s,%s)' % coords.pos() for coords in line])
+            path = '--'.join(['(%.5g,%5g)' % coords.pos() for coords in line])
             asy += 'draw(%s, %s);' % (path, pen)
         return asy
 
@@ -851,7 +857,7 @@ class PolygonBox(_Polyline):
             edges = []
             for index, line in enumerate(self.lines):
                 paths.append('--'.join([
-                    '(%s,%s)' % coords.pos() for coords in line]) + '--cycle')
+                    '(%.5g,%.5g)' % coords.pos() for coords in line]) + '--cycle')
 
                 # ignore opacity
                 colors.append(','.join([
@@ -865,7 +871,7 @@ class PolygonBox(_Polyline):
         if pens and pens != 'nullpen':
             for line in self.lines:
                 path = '--'.join(
-                    ['(%s,%s)' % coords.pos() for coords in line]) + '--cycle'
+                    ['(%.5g,%.5g)' % coords.pos() for coords in line]) + '--cycle'
                 asy += 'filldraw(%s, %s);' % (path, pens)
         return asy
 
@@ -1272,7 +1278,7 @@ class GraphicsBox(BoxConstruct):
                         xmax += 1
                 elif (isinstance(plot_range[0], list) and
                       len(plot_range[0]) == 2):
-                    xmin, xmax = map(float, plot_range[0])
+                    xmin, xmax = list(map(float, plot_range[0]))
                     xmin, xmax = get_range(xmin, xmax)
                     xmin = elements.translate((xmin, 0))[0]
                     xmax = elements.translate((xmax, 0))[0]
@@ -1292,7 +1298,7 @@ class GraphicsBox(BoxConstruct):
                         ymax += 1
                 elif (isinstance(plot_range[1], list) and
                       len(plot_range[1]) == 2):
-                    ymin, ymax = map(float, plot_range[1])
+                    ymin, ymax = list(map(float, plot_range[1]))
                     ymin, ymax = get_range(ymin, ymax)
                     ymin = elements.translate((0, ymin))[1]
                     ymax = elements.translate((0, ymax))[1]
@@ -1360,10 +1366,11 @@ size(%scm, %scm);
 clip(box((%s,%s), (%s,%s)));
 %s
 \end{asy}
-""" % (asy_number(width / 60), asy_number(height / 60),
-       asy_regular,
-       asy_number(xmin), asy_number(ymin), asy_number(xmax), asy_number(ymax),
-       asy_completely_visible)
+""" % (
+            asy_number(width / 60), asy_number(height / 60),
+            asy_regular,
+            asy_number(xmin), asy_number(ymin), asy_number(xmax), asy_number(ymax),
+            asy_completely_visible)
 
         return tex
 
@@ -1405,7 +1412,6 @@ clip(box((%s,%s), (%s,%s)));
             try:
                 shift = 10.0 ** floor(log10(value))
             except ValueError:
-                print value
                 return 1, 1
             value = value / shift
             if value < 1.5:
@@ -1420,23 +1426,13 @@ clip(box((%s,%s), (%s,%s)));
             return value * shift, sub_steps
 
         step_x, sub_x = round_step((xmax - xmin) / 5.0)
-        step_x_small = 1.0 * step_x / sub_x
+        step_x_small = step_x / sub_x
         steps_x = int(floor((xmax - xmin) / step_x))
         steps_x_small = int(floor((xmax - xmin) / step_x_small))
 
         start_k_x = int(ceil(xmin / step_x))
         start_k_x_small = int(ceil(xmin / step_x_small))
 
-        #start_x = step_x * round_to_zero((xmax - xmin) / step_x)
-        #start_x_small = step_x_small * \
-        #    round_to_zero((xmax - xmin) / step_x_small)
-
-        zero_tolerance = 0.01
-        if xmax > min:
-            if xmin > 0 and xmin / (xmax - xmin) < zero_tolerance:
-                xmin = 0
-            if xmax < 0 and xmax / (xmax - xmin) < zero_tolerance:
-                xmax = 0
         if xmin <= 0 <= xmax:
             origin_k_x = 0
         else:
@@ -1520,7 +1516,8 @@ clip(box((%s,%s), (%s,%s)));
                                         Coords(elements, pos=p_origin(x),
                                                d=p_self0(tick_large_size))])
                     add_element(InsetBox(
-                        elements, tick_label_style, content=Real(x),
+                        elements, tick_label_style,
+                        content=Real('%g' % x),   # fix e.g. 0.6000000000000001
                         pos=Coords(elements, pos=p_origin(x),
                                    d=p_self0(-tick_label_d)), opos=p_self0(1)))
                 for x in ticks_small:

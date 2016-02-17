@@ -1,4 +1,8 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 System functions
@@ -8,7 +12,7 @@ import re
 
 from mathics.core.expression import Expression, String, strip_context
 from mathics.builtin.base import Builtin, Predefined
-from mathics import get_version_string
+from mathics import version_string
 
 
 class Version(Predefined):
@@ -25,7 +29,7 @@ class Version(Predefined):
     name = '$Version'
 
     def evaluate(self, evaluation):
-        return String(get_version_string(True))
+        return String(version_string.replace('\n', ' '))
 
 
 class Names(Builtin):

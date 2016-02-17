@@ -1,8 +1,18 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 String functions
 """
+
+import sys
+
+import six
+from six.moves import range
+from six import unichr
 
 from mathics.builtin.base import BinaryOperator, Builtin, Test
 from mathics.core.expression import (Expression, Symbol, String, Integer,
@@ -89,7 +99,7 @@ class StringSplit(Builtin):
 
         for py_sep in py_seps:
             result = [t for s in result for t in s.split(py_sep)]
-        return from_python(filter(lambda x: x != u'', result))
+        return from_python([x for x in result if x != ''])
 
     def apply_single(self, string, sep, evaluation):
         'StringSplit[string_String, sep_?NotListQ]'
@@ -103,7 +113,7 @@ class StringSplit(Builtin):
         'StringSplit[string_String]'
         py_string = string.get_string_value()
         result = py_string.split()
-        return from_python(filter(lambda x: x != u'', result))
+        return from_python([x for x in result if x != ''])
 
     def apply_strse1(self, x, evaluation):
         'StringSplit[x_/;Not[StringQ[x]]]'
@@ -249,7 +259,7 @@ class StringReplace(Builtin):
             return (py_string, py_rules, None)
         else:
             py_n = n.get_int_value()
-            if py_n < 0:
+            if py_n is None or py_n < 0:
                 evaluation.message('StringReplace', 'innf', Integer(3), expr)
                 return None
             return (py_string, py_rules, py_n)
@@ -300,7 +310,7 @@ class StringReplace(Builtin):
 
 
 class Characters(Builtin):
-    u"""
+    """
     >> Characters["abc"]
      = {a, b, c}
 
@@ -348,7 +358,7 @@ class CharacterRange(Builtin):
         start = ord(start.value[0])
         stop = ord(stop.value[0])
         return Expression('List', *[
-            String(unichr(code)) for code in xrange(start, stop + 1)])
+            String(unichr(code)) for code in range(start, stop + 1)])
 
 
 class String_(Builtin):
@@ -533,7 +543,7 @@ class ToCharacterCode(Builtin):
         'strse': 'String or list of strings expected at position `1` in `2`.',
     }
 
-    #TODO: encoding
+    # TODO encoding
 
     def apply(self, string, evaluation):
         "ToCharacterCode[string_]"
@@ -554,7 +564,7 @@ class ToCharacterCode(Builtin):
 
         if isinstance(string, list):
             codes = [[ord(char) for char in substring] for substring in string]
-        elif isinstance(string, basestring):
+        elif isinstance(string, six.string_types):
             codes = [ord(char) for char in string]
         return from_python(codes)
 
@@ -673,7 +683,7 @@ class FromCharacterCode(Builtin):
                     return String(convert_codepoint_list(n.get_leaves()))
             else:
                 pyn = n.get_int_value()
-                if not (isinstance(pyn, int) and pyn > 0):
+                if not (isinstance(pyn, six.integer_types) and pyn > 0 and pyn < sys.maxsize):
                     return evaluation.message(
                         'FromCharacterCode', 'intnm', exp, Integer(1))
                 return String(convert_codepoint_list([n]))
@@ -725,10 +735,9 @@ class StringTake(Builtin):
     """
     messages = {
         'strse': 'String expected at position 1.',
-        'mseqs': 'Integer or list of two Intergers are expected \
-                  at position 2.',
-        'take': 'Cannot take positions `1` through `2` in "`3`\".',
-        }
+        'mseqs': 'Integer or list of two Intergers are expected at position 2.',
+        'take': 'Cannot take positions `1` through `2` in "`3`".',
+    }
 
     def apply1_(self, string, n, evaluation):
         'StringTake[string_,n_Integer]'
@@ -762,9 +771,8 @@ class StringTake(Builtin):
         posf = nf.value
         if posf < 0:
             posf = lenfullstring + posf + 1
-        if (posf > lenfullstring or posi > lenfullstring or
-            posf <= 0 or posi <= 0):
-            #positions out of range
+        if posf > lenfullstring or posi > lenfullstring or posf <= 0 or posi <= 0:
+            # positions out of range
             return evaluation.message('StringTake', 'take', ni, nf, fullstring)
         if posf < posi:
             String("")
@@ -786,15 +794,11 @@ class StringTake(Builtin):
             return evaluation.message('StringTake', 'take', ni, ni, fullstring)
         return String(fullstring[(posi - 1):posi])
 
-
-
-
     def apply4_(self, string, something, evaluation):
         'StringTake[string_,something___]'
         if not isinstance(string, String):
             return evaluation.message('StringTake', 'strse')
         return evaluation.message('StringTake', 'mseqs')
-
 
 
 class StringDrop(Builtin):
@@ -820,9 +824,8 @@ class StringDrop(Builtin):
     messages = {
         'strse': 'String expected at position 1.',
         'mseqs': 'Integer or list of two Intergers are expected at position 2.',
-        'drop': 'Cannot drop positions `1` through `2` in \"`3`\".',
-        }
-
+        'drop': 'Cannot drop positions `1` through `2` in "`3`".',
+    }
 
     def apply1_(self, string, n, evaluation):
         'StringDrop[string_,n_Integer]'
@@ -842,7 +845,6 @@ class StringDrop(Builtin):
                 return string
         return evaluation.message('StringDrop', 'mseqs')
 
-
     def apply2_(self, string, ni, nf, evaluation):
         'StringDrop[string_,{ni_Integer,nf_Integer}]'
         if not isinstance(string, String):
@@ -858,15 +860,13 @@ class StringDrop(Builtin):
         posf = nf.value
         if posf < 0:
             posf = lenfullstring + posf + 1
-        if (posf > lenfullstring or posi > lenfullstring
-            or posf <= 0 or posi <= 0):
-            #positions out or range
+        if (posf > lenfullstring or posi > lenfullstring or posf <= 0 or posi <= 0):
+            # positions out or range
             return evaluation.message('StringDrop',
                                       'drop', ni, nf, fullstring)
         if posf < posi:
             return string           # this is what actually mma does
         return String(fullstring[:(posi - 1)] + fullstring[posf:])
-
 
     def apply3_(self, string, ni, evaluation):
         'StringDrop[string_,{ni_Integer}]'
@@ -882,7 +882,6 @@ class StringDrop(Builtin):
         if posi > lenfullstring or posi <= 0:
             return evaluation.message('StringDrop', 'drop', ni, ni, fullstring)
         return String(fullstring[:(posi - 1)] + fullstring[posi:])
-
 
     def apply4_(self, string, something, evaluation):
         'StringDrop[string_,something___]'

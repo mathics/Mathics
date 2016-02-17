@@ -1,8 +1,14 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Functional programming
 """
+
+from six.moves import zip
 
 from mathics.builtin.base import Builtin, PostfixOperator
 from mathics.core.expression import Expression
@@ -79,8 +85,8 @@ class Function(PostfixOperator):
         if len(vars) > len(args):
             evaluation.message('Function', 'fpct', )
         else:
-            vars = dict(zip((
-                var.get_name() for var in vars), args[:len(vars)]))
+            vars = dict(list(zip((
+                var.get_name() for var in vars), args[:len(vars)])))
             return body.replace_vars(vars)
 
 

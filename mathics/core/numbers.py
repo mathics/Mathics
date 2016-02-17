@@ -1,28 +1,13 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
-from __future__ import with_statement
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import sympy
 import mpmath
 from math import log
+from six.moves import range
 
 from mathics.core.util import unicode_superscript
 
@@ -98,10 +83,9 @@ def format_float(value, pretty=True, parenthesize_plus=False):
     if len(s) == 2:
         man, exp = s
         if pretty:
-            return u'%s\u00d710%s' % (
-                format_float(man), unicode_superscript(exp))
+            return '%s\u00d710%s' % (format_float(man), unicode_superscript(exp))
         else:
-            result = u'%s*10^%s' % (format_float(man), exp)
+            result = '%s*10^%s' % (format_float(man), exp)
             if parenthesize_plus:
                 result = '(%s)' % result
             return result
@@ -150,9 +134,9 @@ def convert_base(x, base, precision=10):
     x *= sign
 
     length_of_int = 0 if x == 0 else int(log(x, base))
-    iexps = range(length_of_int, -1, -1)
+    iexps = list(range(length_of_int, -1, -1))
     import string
-    digits = string.digits + string.lowercase
+    digits = string.digits + string.ascii_lowercase
 
     if base > len(digits):
         raise ValueError
@@ -172,7 +156,7 @@ def convert_base(x, base, precision=10):
         int_part.insert(0, '-')
 
     if (isinstance(x, float)):
-        fexps = range(-1, -int(precision + 1), -1)
+        fexps = list(range(-1, -int(precision + 1), -1))
         real_part = convert(x - int(x), base, fexps)
 
         return "%s.%s" % (''.join(int_part), ''.join(real_part))
@@ -187,7 +171,7 @@ def convert_int_to_digit_list(x, base):
     x = abs(x)
 
     length_of_int = int(log(x, base)) + 1
-    iexps = range(length_of_int, -1, -1)
+    iexps = list(range(length_of_int, -1, -1))
 
     def convert(x, base, exponents):
         out = []

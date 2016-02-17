@@ -1,29 +1,18 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+import six
+import six.moves.cPickle as pickle
 
 import sys
-import cPickle as pickle
-import interruptingcow
+import signal
 
 from mathics import settings
-from mathics.core.expression import ensure_context
+from mathics.core.expression import ensure_context, KeyComparable
 
 FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
@@ -55,11 +44,45 @@ class ContinueInterrupt(EvaluationInterrupt):
     pass
 
 
-class Out(object):
+def run_with_timeout(request, timeout):
+    '''
+    interrupts evaluation after a given time period.
+    '''
+    if timeout is None:
+        return request()
+
+    def handler(signum, frame):
+        raise TimeoutInterrupt
+
+    # register the handler
+    signal.signal(signal.SIGALRM, handler)
+
+    # start the timer
+    signal.alarm(timeout)
+
+    # do the computation
+    try:
+        result = request()
+    except TimeoutInterrupt:
+        raise
+    except:
+        # cancel the timer before raising
+        signal.alarm(0)
+        raise
+
+    # cancel the timer
+    signal.alarm(0)
+    return result
+
+
+class Out(KeyComparable):
     def __init__(self):
         self.is_message = False
         self.is_print = False
         self.text = ''
+
+    def get_sort_key(self):
+        (self.is_message, self.is_print, self.text)
 
 
 class Message(Out):
@@ -73,18 +96,15 @@ class Message(Out):
     def __str__(self):
         return ' : ' + self.text
 
-    def __cmp__(self, other):
-        if self.is_message == other.is_message and self.text == other.text:
-            return 0
-        else:
-            return 1
+    def __eq__(self, other):
+        return self.is_message == other.is_message and self.text == other.text
 
     def get_data(self):
         return {
             'message': True,
             'symbol': self.symbol,
             'tag': self.tag,
-            'prefix': u'%s::%s' % (self.symbol, self.tag),
+            'prefix': '%s::%s' % (self.symbol, self.tag),
             'text': self.text,
         }
 
@@ -98,11 +118,8 @@ class Print(Out):
     def __str__(self):
         return self.text
 
-    def __cmp__(self, other):
-        if self.is_message == other.is_message and self.text == other.text:
-            return 0
-        else:
-            return 1
+    def __eq__(self, other):
+        return self.is_message == other.is_message and self.text == other.text
 
     def get_data(self):
         return {
@@ -162,7 +179,7 @@ class Evaluation(object):
                             queries.append(expression)
                         query = ''
                         last_parse_error = None
-                    except TranslateError, exc:
+                    except TranslateError as exc:
                         last_parse_error = exc
                 else:
                     query += ' '
@@ -203,18 +220,14 @@ class Evaluation(object):
                 result = None
                 exc_result = None
                 try:
-                    if timeout is None:
-                        result = evaluate()
-                    else:
-                        with interruptingcow.timeout(timeout, TimeoutInterrupt):
-                            result = evaluate()
+                    result = run_with_timeout(evaluate, timeout)
                 except KeyboardInterrupt:
                     if catch_interrupt:
                         exc_result = Symbol('$Aborted')
                     else:
                         raise
-                except ValueError, exc:
-                    text = unicode(exc)
+                except ValueError as exc:
+                    text = six.text_type(exc)
                     if (text == 'mpz.pow outrageous exponent' or    # noqa
                         text == 'mpq.pow outrageous exp num'):
                         self.message('General', 'ovfl')
@@ -261,7 +274,7 @@ class Evaluation(object):
         if last_parse_error is not None:
             self.recursion_depth = 0
             self.stopped = False
-            self.message('General', 'syntax', unicode(last_parse_error))
+            self.message('General', 'syntax', six.text_type(last_parse_error))
             self.results.append(Result(self.out, None, None))
 
     def get_stored_result(self, result):
@@ -320,7 +333,7 @@ class Evaluation(object):
         symbol_shortname = self.definitions.shorten_name(symbol)
 
         if settings.DEBUG_PRINT:
-            print 'MESSAGE: %s::%s (%s)' % (symbol_shortname, tag, args)
+            print('MESSAGE: %s::%s (%s)' % (symbol_shortname, tag, args))
 
         pattern = Expression('MessageName', Symbol(symbol), String(tag))
         text = self.definitions.get_value(
@@ -349,7 +362,7 @@ class Evaluation(object):
         if self.out_callback:
             self.out_callback(self.out[-1])
         if settings.DEBUG_PRINT:
-            print 'OUT: ' + text
+            print('OUT: ' + text)
 
     def error(self, symbol, tag, *args):
         # Temporarily reset the recursion limit, to allow the message being

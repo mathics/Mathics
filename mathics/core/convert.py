@@ -1,27 +1,17 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Converts expressions from SymPy to Mathics expressions.
 Conversion to SymPy is handled directly in BaseExpression descendants.
 """
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+import six
+from six.moves import range
+from six.moves import zip
 
 import sympy
 
@@ -121,7 +111,7 @@ def from_sympy(expr):
         return Real(expr)
     if isinstance(expr, complex):
         return Complex(expr.real, expr.imag)
-    if isinstance(expr, str):
+    if isinstance(expr, six.string_types):
         return String(expr)
     if expr is None:
         return Symbol('Null')
@@ -136,7 +126,7 @@ def from_sympy(expr):
     if expr.is_Atom:
         name = None
         if expr.is_Symbol:
-            name = unicode(expr)
+            name = six.text_type(expr)
             if isinstance(expr, symbol.Dummy):
                 name = name + ('__Dummy_%d' % expr.dummy_index)
                 return Symbol(name, sympy_dummy=expr)
@@ -150,7 +140,7 @@ def from_sympy(expr):
                 index = name[len(sympy_slot_prefix):]
                 return Expression('Slot', int(index))
         elif expr.is_NumberSymbol:
-            name = unicode(expr)
+            name = six.text_type(expr)
         if name is not None:
             builtin = sympy_to_mathics.get(name)
             if builtin is not None:
@@ -179,7 +169,7 @@ def from_sympy(expr):
         elif isinstance(expr, numbers.NaN):
             return Symbol('Indeterminate')
         elif isinstance(expr, function.FunctionClass):
-            return Symbol(unicode(expr))
+            return Symbol(six.text_type(expr))
     elif expr.is_number and all([x.is_Number for x in expr.as_real_imag()]):
         # Hack to convert 3 * I to Complex[0, 3]
         return Complex(*[from_sympy(arg) for arg in expr.as_real_imag()])
@@ -195,7 +185,6 @@ def from_sympy(expr):
         return Expression('Equal', *[from_sympy(arg) for arg in expr.args])
 
     elif isinstance(expr, SympyExpression):
-        # print "SympyExpression: %s" % expr
         return expr.expr
 
     elif isinstance(expr, sympy.RootSum):

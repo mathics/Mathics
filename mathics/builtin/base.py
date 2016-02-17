@@ -1,22 +1,8 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import re
 import sympy
@@ -26,6 +12,7 @@ from mathics.core.rules import Rule, BuiltinRule, Pattern
 from mathics.core.expression import (BaseExpression, Expression, Symbol,
                                      String, Integer, ensure_context,
                                      strip_context)
+import six
 
 
 class Builtin(object):
@@ -89,7 +76,7 @@ class Builtin(object):
                 return '' if f == '' else ensure_context(f)
             if isinstance(pattern, tuple):
                 forms, pattern = pattern
-                if isinstance(forms, str):
+                if isinstance(forms, six.string_types):
                     forms = [contextify_form_name(forms)]
                 else:
                     forms = [contextify_form_name(f) for f in forms]
@@ -108,7 +95,7 @@ class Builtin(object):
         for pattern, replace in self.formats.items():
             forms, pattern = extract_forms(name, pattern)
             for form in forms:
-                if not form in formatvalues:
+                if form not in formatvalues:
                     formatvalues[form] = []
                 if not isinstance(pattern, BaseExpression):
                     pattern = parse_builtin_rule(pattern)
@@ -127,7 +114,7 @@ class Builtin(object):
             attributes = ['System`Protected']
         attributes += list(ensure_context(a) for a in self.attributes)
         options = {}
-        for option, value in self.options.iteritems():
+        for option, value in six.iteritems(self.options):
             option = ensure_context(option)
             options[option] = parse_builtin_rule(value)
             if option.startswith('System`'):
@@ -138,7 +125,7 @@ class Builtin(object):
                     definitions.builtin[option] = Definition(
                         name=name, attributes=set())
         defaults = []
-        for spec, value in self.defaults.iteritems():
+        for spec, value in six.iteritems(self.defaults):
             value = parse_builtin_rule(value)
             pattern = None
             if spec is None:
@@ -275,7 +262,7 @@ class UnaryOperator(Operator):
             name = 'Verbatim[%s]' % name
         if self.default_formats:
             op_pattern = '%s[item_]' % name
-            if not op_pattern in self.formats:
+            if op_pattern not in self.formats:
                 operator = self.get_operator_display()
                 if operator is not None:
                     form = '%s[{HoldForm[item]},"%s",%d]' % (

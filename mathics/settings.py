@@ -1,22 +1,8 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import pkg_resources
 import sys
@@ -35,14 +21,17 @@ DEBUG_PRINT = False
 
 LOG_QUERIES = False
 
+# Either None (no timeout) or a positive integer.
+# unix only
 TIMEOUT = None
+
 MAX_RECURSION_DEPTH = 512
 
 # number of bits of precision for inexact calculations
 MACHINE_PRECISION = 64
 
 ADMINS = (
-    (u'Admin', 'mail@test.com'),
+    ('Admin', 'mail@test.com'),
 )
 MANAGERS = ADMINS
 
@@ -110,7 +99,7 @@ SECRET_KEY = 'uvbhuiasaeaph6Duh)r@3ex1i@et=0j4h(!p4@!r6s-=a_ev*e'
 # TEMPLATE_LOADERS = (
 #    'django.template.loaders.filesystem.load_template_source',
 #    'django.template.loaders.app_directories.load_template_source',
-#)
+# )
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',

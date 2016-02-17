@@ -1,4 +1,9 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
+import six
 
 """
 Input and Output
@@ -242,7 +247,7 @@ class MakeBoxes(Builtin):
             if isinstance(x, Symbol):
                 return String(evaluation.definitions.shorten_name(x.name))
             elif isinstance(x, String):
-                return String('"' + unicode(x.value) + '"')
+                return String('"' + six.text_type(x.value) + '"')
             elif isinstance(x, (Integer, Real)):
                 return x.make_boxes(f.get_name())
             elif isinstance(x, (Rational, Complex)):
@@ -486,14 +491,14 @@ class GridBox(BoxConstruct):
             # invalid column alignment
             raise BoxConstructError
         attrs = ' '.join('{0}="{1}"'.format(name, value)
-                         for name, value in attrs.iteritems())
+                         for name, value in six.iteritems(attrs))
         result = '<mtable {0}>\n'.format(attrs)
         new_box_options = box_options.copy()
         new_box_options['inside_list'] = True
         for row in items:
             result += '<mtr>'
             for item in row:
-                result += u'<mtd {0}>{1}</mtd>'.format(
+                result += '<mtd {0}>{1}</mtd>'.format(
                     attrs, item.boxes_to_xml(**new_box_options))
             result += '</mtr>\n'
         result += '</mtable>'
@@ -1106,7 +1111,7 @@ class General(Builtin):
         'wrsym': "Symbol `1` is Protected.",
 
         # Self-defined messages
-        #'rep': "`1` is not a valid replacement rule.",
+        # 'rep': "`1` is not a valid replacement rule.",
         'options': "`1` is not a valid list of option rules.",
         'timeout': "Timeout reached.",
         'syntax': "`1`",
@@ -1122,6 +1127,11 @@ class Print(Builtin):
      | Hello world!
     >> Print["The answer is ", 7 * 6, "."]
      | The answer is 42.
+
+    #> Print["\[Mu]"]
+     | μ
+    #> Print["μ"]
+     | μ
     """
 
     def apply(self, expr, evaluation):
@@ -1145,7 +1155,7 @@ class FullForm(Builtin):
 
 
 class StandardForm(Builtin):
-    u"""
+    """
     >> StandardForm[a + b * c]
      = a + b c
     >> StandardForm["A string"]
@@ -1187,7 +1197,7 @@ class OutputForm(Builtin):
 
 
 class MathMLForm(Builtin):
-    u"""
+    """
     >> MathMLForm[HoldForm[Sqrt[a^3]]]
      = <math><msqrt><msup><mi>a</mi> <mn>3</mn></msup></msqrt></math>
 
@@ -1248,7 +1258,7 @@ class TeXForm(Builtin):
             # Replace multiple newlines by a single one e.g. between asy-blocks
             tex = MULTI_NEWLINE_RE.sub('\n', tex)
 
-            tex = tex.replace(u' \uF74c', u' \, d')  # tmp hack for Integrate
+            tex = tex.replace(' \uF74c', ' \, d')  # tmp hack for Integrate
         except BoxError:
             evaluation.message(
                 'General', 'notboxes',

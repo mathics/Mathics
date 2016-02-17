@@ -1,4 +1,8 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Random number generation
@@ -6,10 +10,10 @@ Random number generation
 Random numbers are generated using the Mersenne Twister.
 """
 
-from __future__ import with_statement
+from six.moves import range
+import six.moves.cPickle as pickle
 
 import random
-import cPickle as pickle
 import binascii
 import hashlib
 
@@ -22,6 +26,7 @@ def get_random_state():
     state = random.getstate()
     state = pickle.dumps(state)
     state = binascii.b2a_hex(state)
+    state.decode('ascii')
     state = int(state, 16)
     return state
 
@@ -31,8 +36,8 @@ def set_random_state(state):
         random.seed()
     else:
         state = hex(state)[2:]  # drop leading "0x"
-        if state.endswith('L'):
-            state = state[:-1]
+        state = state.rstrip('L')
+        state = state.encode('ascii')
         state = binascii.a2b_hex(state)
         state = pickle.loads(state)
         random.setstate(state)
@@ -58,6 +63,7 @@ class RandomEnv:
         return random.uniform(a, b)
 
     def seed(self, x=None):
+        # This has different behavior in Python 3.2
         random.seed(x)
 
 
@@ -86,7 +92,7 @@ class RandomState(Builtin):
 
     messages = {
         'rndst': "It is not possible to change the random state.",
-        #"`1` is not a valid random state.",
+        # "`1` is not a valid random state.",
     }
 
     def apply(self, evaluation):
@@ -108,19 +114,19 @@ class SeedRandom(Builtin):
     'SeedRandom' can be used to get reproducible random numbers:
     >> SeedRandom[42]
     >> RandomInteger[100]
-     = 64
+     = ...
     >> RandomInteger[100]
-     = 2
+     = ...
     >> SeedRandom[42]
     >> RandomInteger[100]
-     = 64
+     = ...
     >> RandomInteger[100]
-     = 2
+     = ...
 
     String seeds are supported as well:
     >> SeedRandom["Mathics"]
     >> RandomInteger[100]
-     = 60
+     = ...
 
     #> SeedRandom[x]
      : Argument x should be an integer or string.
@@ -138,13 +144,10 @@ class SeedRandom(Builtin):
             value = x.value
         elif isinstance(x, String):
             # OS/version-independent hash
-            value = int(hashlib.md5(x.get_string_value()).hexdigest(), 16)
+            value = int(hashlib.md5(x.get_string_value().encode('utf8')).hexdigest(), 16)
         else:
             return evaluation.message('SeedRandom', 'seed', x)
         with RandomEnv(evaluation) as rand:
-            # TODO: This has different behavior in Python 3.2 (vs. 2.7),
-            # so SeedRandom behavior will change.
-            # Also, we should use version=1 when supporting Python 3.
             rand.seed(value)
         return Symbol('Null')
 
@@ -224,10 +227,10 @@ class RandomInteger(Builtin):
                 if i == len(result) - 1:
                         return Expression('List', *[
                             Integer(rand.randint(rmin, rmax))
-                            for j in xrange(result[i])])
+                            for j in range(result[i])])
                 else:
                     return Expression('List', *[
-                        search_product(i + 1) for j in xrange(result[i])])
+                        search_product(i + 1) for j in range(result[i])])
             return search_product(0)
 
 
@@ -315,10 +318,10 @@ class RandomReal(Builtin):
                 if i == len(result) - 1:
                         return Expression('List', *[
                             Real(rand.randreal(min_value, max_value))
-                            for j in xrange(result[i])])
+                            for j in range(result[i])])
                 else:
                     return Expression('List', *[
-                        search_product(i + 1) for j in xrange(result[i])])
+                        search_product(i + 1) for j in range(result[i])])
             return search_product(0)
 
 
@@ -378,8 +381,7 @@ class RandomComplex(Builtin):
             zmax = Complex(zmax, 0.0)
 
         if not (isinstance(zmin, Complex) and isinstance(zmax, Complex)):
-            return evaluation.message('RandomComplex', 'unifr',
-                                      Expression('List', zmin, zmax))
+            return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
 
         min_value, max_value = zmin.to_python(), zmax.to_python()
 
@@ -397,8 +399,7 @@ class RandomComplex(Builtin):
             zmax = Complex(zmax, 0.0)
 
         if not (isinstance(zmin, Complex) and isinstance(zmax, Complex)):
-            return evaluation.message('RandomComplex', 'unifr',
-                                      Expression('List', zmin, zmax))
+            return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
 
         min_value, max_value = zmin.to_python(), zmax.to_python()
 
@@ -416,8 +417,8 @@ class RandomComplex(Builtin):
                             Complex(
                                 rand.randreal(min_value.real, max_value.real),
                                 rand.randreal(min_value.imag, max_value.imag)
-                            ) for j in xrange(py_ns[i])])
+                            ) for j in range(py_ns[i])])
                 else:
                     return Expression('List', *[
-                        search_product(i + 1) for j in xrange(py_ns[i])])
+                        search_product(i + 1) for j in range(py_ns[i])])
             return search_product(0)

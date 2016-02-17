@@ -1,10 +1,15 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 """
 File Operations
 """
 
-from __future__ import with_statement
 import os
 import io
 import shutil
@@ -18,12 +23,17 @@ import sympy
 import mpmath
 import math
 
+import six
+from six.moves import range
+from six import unichr
+
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError,
                                      valid_context_name)
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.settings import ROOT_DIR
+
 
 INITIAL_DIR = os.getcwd()
 HOME_DIR = os.path.expanduser('~')
@@ -539,11 +549,11 @@ class Read(Builtin):
     attributes = ('Protected')
 
     def check_options(self, options):
-        ## Options:
-        # TODO: Proper error messages
+        # Options
+        # TODO Proper error messages
 
         result = {}
-        keys = options.keys()
+        keys = list(options.keys())
 
         # AnchoredSearch
         if 'System`AnchoredSearch' in keys:
@@ -567,8 +577,8 @@ class Read(Builtin):
         if 'System`RecordSeparators' in keys:
             record_separators = options['System`RecordSeparators'].to_python()
             assert isinstance(record_separators, list)
-            assert all(isinstance(s, basestring) and s[
-                       0] == s[-1] == '"' for s in record_separators)
+            assert all(isinstance(s, six.string_types) and
+                       s[0] == s[-1] == '"' for s in record_separators)
             record_separators = [s[1:-1] for s in record_separators]
             result['RecordSeparators'] = record_separators
 
@@ -576,8 +586,8 @@ class Read(Builtin):
         if 'System`WordSeparators' in keys:
             word_separators = options['System`WordSeparators'].to_python()
             assert isinstance(word_separators, list)
-            assert all(isinstance(s, basestring) and s[
-                       0] == s[-1] == '"' for s in word_separators)
+            assert all(isinstance(s, six.string_types) and
+                       s[0] == s[-1] == '"' for s in word_separators)
             word_separators = [s[1:-1] for s in word_separators]
             result['WordSeparators'] = word_separators
 
@@ -634,8 +644,8 @@ class Read(Builtin):
                 evaluation.message('Read', 'readf', typ)
                 return Symbol('$Failed')
 
-        ## Options:
-        # TODO: Implement extra options
+        # Options
+        # TODO Implement extra options
         py_options = self.check_options(options)
         # null_records = py_options['NullRecords']
         # null_words = py_options['NullWords']
@@ -691,7 +701,7 @@ class Read(Builtin):
                         raise EOFError
                     result.append(tmp)
                 elif typ == Symbol('Expression'):
-                    tmp = read_record.next()
+                    tmp = next(read_record)
                     try:
                         try:
                             expr = parse(tmp, evaluation.definitions)
@@ -706,7 +716,7 @@ class Read(Builtin):
                         return Symbol('$Failed')
                     result.append(tmp)
                 elif typ == Symbol('Number'):
-                    tmp = read_number.next()
+                    tmp = next(read_number)
                     try:
                         tmp = int(tmp)
                     except ValueError:
@@ -719,7 +729,7 @@ class Read(Builtin):
                     result.append(tmp)
 
                 elif typ == Symbol('Real'):
-                    tmp = read_real.next()
+                    tmp = next(read_real)
                     tmp = tmp.replace('*^', 'E')
                     try:
                         tmp = float(tmp)
@@ -729,14 +739,14 @@ class Read(Builtin):
                         return Symbol('$Failed')
                     result.append(tmp)
                 elif typ == Symbol('Record'):
-                    result.append(read_record.next())
+                    result.append(next(read_record))
                 elif typ == Symbol('String'):
                     tmp = stream.readline()
                     if len(tmp) == 0:
                         raise EOFError
                     result.append(tmp.rstrip('\n'))
                 elif typ == Symbol('Word'):
-                    result.append(read_word.next())
+                    result.append(next(read_word))
 
             except EOFError:
                 return Symbol('EndOfFile')
@@ -793,7 +803,7 @@ class Write(Builtin):
 
         evaluation.format = 'text'
         text = evaluation.format_output(from_python(expr))
-        stream.write(unicode(text) + u'\n')
+        stream.write(six.text_type(text) + '\n')
         return Symbol('Null')
 
 
@@ -819,7 +829,7 @@ class _BinaryFormat(object):
             if math.isinf(real) and math.isinf(imag):
                 return Symbol('Indeterminate')
             return Expression('DirectedInfinity', Expression(
-                'Complex', 
+                'Complex',
                 (-1) ** (real < 0) if math.isinf(real) else 0,
                 (-1) ** (imag < 0) if math.isinf(imag) else 0))
         else:
@@ -849,9 +859,9 @@ class _BinaryFormat(object):
         return Integer(*struct.unpack('B', s.read(1)))
 
     @staticmethod
-    def _Character8_reader(s): 
+    def _Character8_reader(s):
         "8-bit character"
-        return String(*struct.unpack('c', s.read(1)))
+        return String(struct.unpack('c', s.read(1))[0].decode('ascii'))
 
     @staticmethod
     def _Character16_reader(s):
@@ -864,7 +874,7 @@ class _BinaryFormat(object):
         return _BinaryFormat._IEEE_cmplx(*struct.unpack('ff', s.read(8)))
 
     @staticmethod
-    def _Complex128_reader(s): 
+    def _Complex128_reader(s):
         "IEEE double-precision complex number"
         return _BinaryFormat._IEEE_cmplx(*struct.unpack('dd', s.read(16)))
 
@@ -887,8 +897,7 @@ class _BinaryFormat(object):
     def _Integer24_reader(s):
         "24-bit signed integer"
         b = s.read(3)
-        return Integer(*struct.unpack(
-            'i', b + ('\0' if b[-1] < '\x80' else '\xff')))
+        return Integer(struct.unpack('<i', b'\x00' + b)[0] >> 8)
 
     @staticmethod
     def _Integer32_reader(s):
@@ -907,7 +916,7 @@ class _BinaryFormat(object):
         return Integer((b << 64) + a)
 
     @staticmethod
-    def _Real32_reader(s): 
+    def _Real32_reader(s):
         "IEEE single-precision real number"
         return _BinaryFormat._IEEE_real(*struct.unpack('f', s.read(4)))
 
@@ -926,11 +935,14 @@ class _BinaryFormat(object):
 
         # Sign / Exponent
         sexp, = struct.unpack('H', sexp)
-        signbit = sexp / 0x8000
+        signbit = sexp // 0x8000
         expbits = sexp % 0x8000
 
         # Signifand
-        fracbits = int(sig[::-1].encode('hex'), 16)
+        try:
+            fracbits = int.from_bytes(sig, byteorder='little')
+        except AttributeError:  # Py2
+            fracbits = int(sig[::-1].encode('hex'), 16)
 
         if expbits == 0x0000 and fracbits == 0:
             return Real('0.' + '0' * 4965)
@@ -963,13 +975,13 @@ class _BinaryFormat(object):
     def _TerminatedString_reader(s):
         "null-terminated string of 8-bit characters"
         b = s.read(1)
-        string = ''
-        while b != '\x00':
-            if b == '':
+        contents = b''
+        while b != b'\x00':
+            if b == b'':
                 raise struct.error
-            string += b
+            contents += b
             b = s.read(1)
-        return String(string)
+        return String(contents.decode('ascii'))
 
     @staticmethod
     def _UnsignedInteger8_reader(s):
@@ -984,7 +996,7 @@ class _BinaryFormat(object):
     @staticmethod
     def _UnsignedInteger24_reader(s):
         "24-bit unsigned integer"
-        return Integer(*struct.unpack('I', s.read(3) + '\0'))
+        return Integer(*struct.unpack('I', s.read(3) + b'\0'))
 
     @staticmethod
     def _UnsignedInteger32_reader(s):
@@ -1010,9 +1022,9 @@ class _BinaryFormat(object):
         s.write(struct.pack('B', x))
 
     @staticmethod
-    def _Character8_writer(s, x): 
+    def _Character8_writer(s, x):
         "8-bit character"
-        s.write(struct.pack('c', x.encode('utf-8')))
+        s.write(struct.pack('c', x.encode('ascii')))
 
     # TODO
     # @staticmethod
@@ -1027,7 +1039,7 @@ class _BinaryFormat(object):
         # return _BinaryFormat._IEEE_cmplx(*struct.unpack('ff', s.read(8)))
 
     @staticmethod
-    def _Complex128_writer(s, x): 
+    def _Complex128_writer(s, x):
         "IEEE double-precision complex number"
         s.write(struct.pack('dd', x.real, x.imag))
 
@@ -1069,7 +1081,7 @@ class _BinaryFormat(object):
         s.write(struct.pack('Qq', a, b))
 
     @staticmethod
-    def _Real32_writer(s, x): 
+    def _Real32_writer(s, x):
         "IEEE single-precision real number"
         s.write(struct.pack('f', x))
 
@@ -1288,7 +1300,7 @@ class BinaryWrite(Builtin):
      = {113, 100, 125, 144, 211, 83, 140, 24, 206, 11, 198, 118, 222, 152, 23, 219}
 
     ## Real32
-    #> WRb[{8.398086656*^9, 1.63880017687*^16}, {"Real32", "Real32"}]
+    #> WRb[{8.398086656*^9, 1.63880017681*^16}, {"Real32", "Real32"}]
      = {81, 72, 250, 79, 52, 227, 104, 90}
     #> WRb[{5.6052915284*^32, 9.631141*^6}, {"Real32", "Real32"}]
      = {251, 22, 221, 117, 165, 245, 18, 75}
@@ -1450,8 +1462,7 @@ class BinaryWrite(Builtin):
                         x = float('-inf')
                     else:
                         x = None
-                elif (isinstance(x, Symbol)
-                      and x.get_name() == 'System`Indeterminate'):
+                elif (isinstance(x, Symbol) and x.get_name() == 'System`Indeterminate'):
                     x = float('nan')
                 else:
                     x = None
@@ -1465,8 +1476,7 @@ class BinaryWrite(Builtin):
                     # x*float('+inf') creates nan if x.real or x.imag are zero
                     x = complex(x.real * float('+inf') if x.real != 0 else 0,
                                 x.imag * float('+inf') if x.imag != 0 else 0)
-                elif (isinstance(x, Symbol)
-                      and x.get_name() == 'System`Indeterminate'):
+                elif (isinstance(x, Symbol) and x.get_name() == 'System`Indeterminate'):
                     x = complex(float('nan'), float('nan'))
                 else:
                     x = None
@@ -1476,13 +1486,13 @@ class BinaryWrite(Builtin):
                     pyb = pyb[:i] + x + pyb[i + 1:]
                     x = pyb[i]
                 if isinstance(x, String) and len(x.get_string_value()) > 1:
-                    x = [String(char) for char in x.get_string_value()] 
+                    x = [String(char) for char in x.get_string_value()]
                     pyb = pyb[:i] + x + pyb[i + 1:]
                     x = pyb[i]
                 x = x.get_string_value()
             elif t == 'Byte' and isinstance(x, String):
                 if len(x.get_string_value()) > 1:
-                    x = [String(char) for char in x.get_string_value()] 
+                    x = [String(char) for char in x.get_string_value()]
                     pyb = pyb[:i] + x + pyb[i + 1:]
                     x = pyb[i]
                 x = ord(x.get_string_value())
@@ -1502,7 +1512,7 @@ class BinaryWrite(Builtin):
             stream.flush()
         except IOError as err:
             evaluation.message('BinaryWrite', 'writex', err.strerror)
-        return channel 
+        return channel
 
 
 class BinaryRead(Builtin):
@@ -1553,17 +1563,17 @@ class BinaryRead(Builtin):
 
     ## Complex64
     #> WbR[{80, 201, 77, 239, 201, 177, 76, 79}, "Complex64"]
-     = -6.36877988924*^28 + 3.434203392*^9 I
+     = -6.36877988924...*^28 + 3.434203392*^9 I
     #> WbR[{158, 2, 185, 232, 18, 237, 0, 102}, "Complex64"]
-     = -6.98948862335*^24 + 1.52209021297*^23 I
+     = -6.98948862335...*^24 + 1.52209021297...*^23 I
     #> WbR[{195, 142, 38, 160, 238, 252, 85, 188}, "Complex64"]
-     = -1.41079828148*^-19 - 0.013060791418 I
+     = -1.41079828148...*^-19 - 0.01306079141... I
 
     ## Complex128
     #> WbR[{15,114,1,163,234,98,40,15,214,127,116,15,48,57,208,180},"Complex128"]
-     = 1.19839770357*^-235 - 2.64656391494*^-54 I
-    #> WbR[{148,119,12,126,47,94,220,91,42,69,29,68,147, 11,62,233},"Complex128"]
-     = 3.22170267142*^134 - 8.98364297498*^198 I
+     = 1.1983977035...*^-235 - 2.64656391494...*^-54 I
+    #> WbR[{148,119,12,126,47,94,220,91,42,69,29,68,147,11,62,233},"Complex128"]
+     = 3.2217026714...*^134 - 8.98364297498...*^198 I
     #> WbR[{15,42,80,125,157,4,38,97, 0,0,0,0,0,0,240,255}, "Complex128"]
       = -I Infinity
     #> WbR[{15,42,80,125,157,4,38,97, 0,0,0,0,0,0,240,127}, "Complex128"]
@@ -1624,9 +1634,11 @@ class BinaryRead(Builtin):
 
     ## Real32
     #> WbR[{81, 72, 250, 79, 52, 227, 104, 90}, {"Real32", "Real32"}]
-     = {8.398086656*^9, 1.63880017687*^16}
+     = {8.398086656*^9, 1.6388001768...*^16}
+
     #> WbR[{251, 22, 221, 117, 165, 245, 18, 75}, {"Real32", "Real32"}]
-     = {5.6052915284*^32, 9.631141*^6}
+     = {5.605291528...*^32, 9.631141*^6}
+     ## = {5.6052915284*^32, 9.631141*^6}
     #> WbR[{0, 0, 128, 127}, "Real32"]
      = Infinity
     #> WbR[{0, 0, 128, 255}, "Real32"]
@@ -1638,11 +1650,11 @@ class BinaryRead(Builtin):
 
     ## Real64
     #> WbR[{45, 243, 20, 87, 129, 185, 53, 239}, "Real64"]
-     = -5.14646619426*^227
+     = -5.14646619426...*^227
     #> WbR[{192, 60, 162, 67, 122, 71, 74, 196}, "Real64"]
-     = -9.69531698809*^20
+     = -9.6953169880...*^20
     #> WbR[{15, 42, 80, 125, 157, 4, 38, 97}, "Real64"]
-     = 9.67355569764*^159
+     = 9.6735556976...*^159
     #> WbR[{0, 0, 0, 0, 0, 0, 240, 127}, "Real64"]
      = Infinity
     #> WbR[{0, 0, 0, 0, 0, 0, 240, 255}, "Real64"]
@@ -1886,7 +1898,7 @@ class WriteString(Builtin):
                     Expression('FullForm', result).evaluate(evaluation))
             exprs.append(result)
 
-        stream.write(u''.join(exprs))
+        stream.write(''.join(exprs))
         try:
             stream.flush()
         except IOError as err:
@@ -1899,11 +1911,11 @@ class _OpenAction(Builtin):
     attributes = ('Protected')
 
     # BinaryFormat: 'False',
-    # CharacterEncoding :> Automatic, 
+    # CharacterEncoding :> Automatic,
     # DOSTextFormat :> True,
-    # FormatType -> InputForm, 
+    # FormatType -> InputForm,
     # NumberMarks :> $NumberMarks,
-    # PageHeight -> 22, PageWidth -> 78, 
+    # PageHeight -> 22, PageWidth -> 78,
     # TotalHeight -> Infinity,
     # TotalWidth -> Infinity
 
@@ -1932,7 +1944,7 @@ class _OpenAction(Builtin):
     def apply_path(self, path, evaluation, options):
         '%(name)s[path_?NotOptionQ, OptionsPattern[]]'
 
-        ## Options
+        # Options
         # BinaryFormat
         mode = self.mode
         if options['System`BinaryFormat'].is_true():
@@ -2114,11 +2126,9 @@ class Get(PrefixOperator):
             except:  # FIXME: something weird is going on here
                 syntax_error_count += 1
                 if syntax_error_count <= 4:
-                    print "Syntax Error (line {0} of {1})".format(
-                        lineno + 1, pypath)
+                    print("Syntax Error (line {0} of {1})".format(lineno + 1, pypath))
                 if syntax_error_count == 4:
-                    print "Supressing further syntax errors in {0}".format(
-                        pypath)
+                    print("Supressing further syntax errors in {0}".format(pypath))
             else:
                 if expr is not None:
                     expr = expr.evaluate(evaluation)
@@ -2128,8 +2138,8 @@ class Get(PrefixOperator):
             # TODO:
             # evaluation.message('Syntax', 'sntue', 'line {0} of
             # {1}'.format(lineno, pypath))
-            print 'Unexpected end of file (probably unfinished expression)'
-            print '    (line {0} of "{1}").'.format(lineno, pypath)
+            print('Unexpected end of file (probably unfinished expression)')
+            print('    (line {0} of "{1}").'.format(lineno, pypath))
             return Symbol('Null')
 
         return expr
@@ -2225,7 +2235,7 @@ class Put(BinaryOperator):
 
         text = [evaluation.format_output(Expression(
             'InputForm', expr)) for expr in exprs.get_sequence()]
-        text = u'\n'.join(text) + u'\n'
+        text = '\n'.join(text) + '\n'
         text.encode('utf-8')
 
         stream.write(text)
@@ -2312,9 +2322,9 @@ class PutAppend(BinaryOperator):
                 'OutputSteam', name, n))
             return
 
-        text = [unicode(e.do_format(evaluation, 'System`OutputForm').__str__())
+        text = [six.text_type(e.do_format(evaluation, 'System`OutputForm').__str__())
                 for e in exprs.get_sequence()]
-        text = u'\n'.join(text) + u'\n'
+        text = '\n'.join(text) + '\n'
         text.encode('ascii')
 
         stream.write(text)
@@ -2359,7 +2369,7 @@ class FindFile(Builtin):
 
         py_name = name.to_python()
 
-        if not (isinstance(py_name, basestring) and
+        if not (isinstance(py_name, six.string_types) and
                 py_name[0] == py_name[-1] == '"'):
             evaluation.message(
                 'FindFile', 'string', Expression('FindFile', name))
@@ -2464,7 +2474,7 @@ class FileNameJoin(Builtin):
         'FileNameJoin[pathlist_?ListQ, OptionsPattern[FileNameJoin]]'
 
         py_pathlist = pathlist.to_python()
-        if not all(isinstance(p, basestring) and p[0] == p[-1] == '"'
+        if not all(isinstance(p, six.string_types) and p[0] == p[-1] == '"'
                    for p in py_pathlist):
             return
         py_pathlist = [p[1:-1] for p in py_pathlist]
@@ -2611,12 +2621,12 @@ class DirectoryName(Builtin):
             expr = Expression('DirectoryName', name, n)
             py_n = n.to_python()
 
-        if not (isinstance(py_n, (int, long)) and py_n > 0):
+        if not (isinstance(py_n, six.integer_types) and py_n > 0):
             evaluation.message('DirectoryName', 'intpm', expr)
             return
 
         py_name = name.to_python()
-        if not (isinstance(py_name, basestring) and
+        if not (isinstance(py_name, six.string_types) and
                 py_name[0] == py_name[-1] == '"'):
             evaluation.message('DirectoryName', 'string', expr)
             return
@@ -2692,7 +2702,7 @@ class AbsoluteFileName(Builtin):
 
         py_name = name.to_python()
 
-        if not (isinstance(py_name, basestring) and
+        if not (isinstance(py_name, six.string_types) and
                 py_name[0] == py_name[-1] == '"'):
             evaluation.message('AbsoluteFileName', 'fstr', name)
             return
@@ -2730,7 +2740,7 @@ class ExpandFileName(Builtin):
 
         py_name = name.to_python()
 
-        if not (isinstance(py_name, basestring) and
+        if not (isinstance(py_name, six.string_types) and
                 py_name[0] == py_name[-1] == '"'):
             evaluation.message('ExpandFileName', 'string',
                                Expression('ExpandFileName', name))
@@ -2907,7 +2917,7 @@ class FilePrint(Builtin):
     def apply(self, path, evaluation, options):
         'FilePrint[path_ OptionsPattern[FilePrint]]'
         pypath = path.to_python()
-        if not (isinstance(pypath, basestring) and
+        if not (isinstance(pypath, six.string_types) and
                 pypath[0] == pypath[-1] == '"' and len(pypath) > 2):
             evaluation.message('FilePrint', 'fstr', path)
             return
@@ -2916,8 +2926,8 @@ class FilePrint(Builtin):
         # Options
         record_separators = options['System`RecordSeparators'].to_python()
         assert isinstance(record_separators, list)
-        assert all(isinstance(s, basestring) and s[
-                   0] == s[-1] == '"' for s in record_separators)
+        assert all(isinstance(s, six.string_types) and
+                   s[0] == s[-1] == '"' for s in record_separators)
         record_separators = [s[1:-1] for s in record_separators]
 
         if pypath is None:
@@ -3253,7 +3263,7 @@ class Find(Read):
         if not isinstance(py_text, list):
             py_text = [py_text]
 
-        if not all(isinstance(t, basestring) and
+        if not all(isinstance(t, six.string_types) and
                    t[0] == t[-1] == '"' for t in py_text):
             evaluation.message(
                 'Find', 'unknown', Expression('Find', channel, text))
@@ -3342,12 +3352,12 @@ class FindList(Builtin):
         if not isinstance(py_name, list):
             py_name = [py_name]
 
-        if not all(isinstance(t, basestring) and
+        if not all(isinstance(t, six.string_types) and
                    t[0] == t[-1] == '"' for t in py_name):
             evaluation.message('FindList', 'strs', '1', expr)
             return Symbol('$Failed')
 
-        if not all(isinstance(t, basestring) and
+        if not all(isinstance(t, six.string_types) and
                    t[0] == t[-1] == '"' for t in py_text):
             evaluation.message('FindList', 'strs', '2', expr)
             return Symbol('$Failed')
@@ -3451,7 +3461,7 @@ class StringToStream(Builtin):
     def apply(self, string, evaluation):
         'StringToStream[string_]'
         pystring = string.to_python()[1:-1]
-        stream = io.StringIO(unicode(pystring))
+        stream = io.StringIO(six.text_type(pystring))
 
         name = Symbol('String')
         n = next(NSTREAMS)
@@ -3490,7 +3500,7 @@ class Streams(Builtin):
     def apply_name(self, name, evaluation):
         'Streams[name_String]'
         result = []
-        for n in xrange(len(STREAMS)):
+        for n in range(len(STREAMS)):
             stream = _lookup_stream(n)
             if stream is None or stream.closed:
                 continue
@@ -3520,7 +3530,13 @@ class Compress(Builtin):
     </dl>
 
     >> Compress[N[Pi, 10]]
-     = eJwz1jM0MTS1NDIzNQEADRsCNw== 
+     = eJwz1jM0MTS1NDIzNQEADRsCNw==
+
+    ## Unicode char
+    #> Compress["―"]
+     = eJxTetQwVQkABwMCPA==
+    #> Uncompress[%]
+     = ―
     """
 
     attributes = ('Protected')
@@ -3538,7 +3554,7 @@ class Compress(Builtin):
 
         # TODO Implement other Methods
         result = zlib.compress(string)
-        result = base64.encodestring(result)
+        result = base64.encodestring(result).decode('utf8')
 
         return String(result)
 
@@ -3565,7 +3581,7 @@ class Uncompress(Builtin):
 
     def apply(self, string, evaluation):
         'Uncompress[string_String]'
-        string = string.get_string_value()
+        string = string.get_string_value().encode('utf-8')
         string = base64.decodestring(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode('utf-8')
@@ -3598,7 +3614,7 @@ class FileByteCount(Builtin):
     def apply(self, filename, evaluation):
         'FileByteCount[filename_]'
         py_filename = filename.to_python()
-        if not (isinstance(py_filename, basestring) and
+        if not (isinstance(py_filename, six.string_types) and
                 py_filename[0] == py_filename[-1] == '"'):
             evaluation.message('FileByteCount', 'fstr', filename)
             return
@@ -3608,7 +3624,7 @@ class FileByteCount(Builtin):
             with mathics_open(py_filename, 'rb') as f:
                 count = 0
                 tmp = f.read(1)
-                while tmp != '':
+                while tmp != b'':
                     count += 1
                     tmp = f.read(1)
 
@@ -3872,7 +3888,7 @@ class SetFileDate(Builtin):
             expr = Expression('SetFileDate', filename, datelist, attribute)
 
         # Check filename
-        if not (isinstance(py_filename, basestring) and
+        if not (isinstance(py_filename, six.string_types) and
                 py_filename[0] == py_filename[-1] == '"'):
             evaluation.message('SetFileDate', 'fstr', filename)
             return
@@ -3919,7 +3935,7 @@ class SetFileDate(Builtin):
             if py_attr == 'All':
                 os.utime(py_filename, (stattime, stattime))
         except OSError as e:
-            print e
+            print(e)
             # evaluation.message(...)
             return Symbol('$Failed')
 
@@ -3962,11 +3978,11 @@ class CopyFile(Builtin):
         py_dest = dest.to_python()
 
         # Check filenames
-        if not (isinstance(py_source, basestring) and
+        if not (isinstance(py_source, six.string_types) and
                 py_source[0] == py_source[-1] == '"'):
             evaluation.message('CopyFile', 'fstr', source)
             return
-        if not (isinstance(py_dest, basestring) and
+        if not (isinstance(py_dest, six.string_types) and
                 py_dest[0] == py_dest[-1] == '"'):
             evaluation.message('CopyFile', 'fstr', dest)
             return
@@ -4024,11 +4040,11 @@ class RenameFile(Builtin):
         py_dest = dest.to_python()
 
         # Check filenames
-        if not (isinstance(py_source, basestring) and
+        if not (isinstance(py_source, six.string_types) and
                 py_source[0] == py_source[-1] == '"'):
             evaluation.message('RenameFile', 'fstr', source)
             return
-        if not (isinstance(py_dest, basestring) and
+        if not (isinstance(py_dest, six.string_types) and
                 py_dest[0] == py_dest[-1] == '"'):
             evaluation.message('RenameFile', 'fstr', dest)
             return
@@ -4091,7 +4107,7 @@ class DeleteFile(Builtin):
         py_paths = []
         for path in py_path:
             # Check filenames
-            if not (isinstance(path, basestring) and
+            if not (isinstance(path, six.string_types) and
                     path[0] == path[-1] == '"'):
                 evaluation.message('DeleteFile', 'strs', filename,
                                    Expression('DeleteFile', filename))
@@ -4302,7 +4318,7 @@ class CreateDirectory(Builtin):
         expr = Expression('CreateDirectory', dirname)
         py_dirname = dirname.to_python()
 
-        if not (isinstance(py_dirname, basestring) and
+        if not (isinstance(py_dirname, six.string_types) and
                 py_dirname[0] == py_dirname[-1] == '"'):
             evaluation.message('CreateDirectory', 'fstr', dirname)
             return
@@ -4366,11 +4382,11 @@ class DeleteDirectory(Builtin):
         py_dirname = dirname.to_python()
 
         delete_contents = options['System`DeleteContents'].to_python()
-        if not delete_contents in [True, False]:
+        if delete_contents not in [True, False]:
             evaluation.message('DeleteDirectory', 'idcts')
             return
 
-        if not (isinstance(py_dirname, basestring) and
+        if not (isinstance(py_dirname, six.string_types) and
                 py_dirname[0] == py_dirname[-1] == '"'):
             evaluation.message('DeleteDirectory', 'strs', expr)
             return
@@ -4419,12 +4435,12 @@ class CopyDirectory(Builtin):
             return
         (dir1, dir2) = (s.to_python() for s in seq)
 
-        if not (isinstance(dir1, basestring) and dir1[0] == dir1[-1] == '"'):
+        if not (isinstance(dir1, six.string_types) and dir1[0] == dir1[-1] == '"'):
             evaluation.message('CopyDirectory', 'fstr', seq[0])
             return
         dir1 = dir1[1:-1]
 
-        if not (isinstance(dir2, basestring) and dir2[0] == dir2[-1] == '"'):
+        if not (isinstance(dir2, six.string_types) and dir2[0] == dir2[-1] == '"'):
             evaluation.message('CopyDirectory', 'fstr', seq[1])
             return
         dir2 = dir2[1:-1]
@@ -4468,12 +4484,12 @@ class RenameDirectory(Builtin):
             return
         (dir1, dir2) = (s.to_python() for s in seq)
 
-        if not (isinstance(dir1, basestring) and dir1[0] == dir1[-1] == '"'):
+        if not (isinstance(dir1, six.string_types) and dir1[0] == dir1[-1] == '"'):
             evaluation.message('RenameDirectory', 'fstr', seq[0])
             return
         dir1 = dir1[1:-1]
 
-        if not (isinstance(dir2, basestring) and dir2[0] == dir2[-1] == '"'):
+        if not (isinstance(dir2, six.string_types) and dir2[0] == dir2[-1] == '"'):
             evaluation.message('RenameDirectory', 'fstr', seq[1])
             return
         dir2 = dir2[1:-1]
@@ -4557,7 +4573,7 @@ class FileExistsQ(Builtin):
     def apply(self, filename, evaluation):
         'FileExistsQ[filename_]'
         path = filename.to_python()
-        if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
+        if not (isinstance(path, six.string_types) and path[0] == path[-1] == '"'):
             evaluation.message('FileExistsQ', 'fstr', filename)
             return
         path = path[1:-1]
@@ -4599,7 +4615,7 @@ class DirectoryQ(Builtin):
         'DirectoryQ[pathname_]'
         path = pathname.to_python()
 
-        if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
+        if not (isinstance(path, six.string_types) and path[0] == path[-1] == '"'):
             evaluation.message('DirectoryQ', 'fstr', pathname)
             return
         path = path[1:-1]

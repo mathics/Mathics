@@ -10,7 +10,7 @@
 #   make latex
 # Then run this file.
 
-version=`python -c "import mathics; print mathics.__version__"`
+version=`python -c "import mathics; print(mathics.__version__)"`
 echo "Releasing Mathics $version"
 
 rm -rf build/release

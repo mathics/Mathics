@@ -1,4 +1,8 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
 from mathics.core.expression import (Expression, String, Symbol, Integer,
@@ -7,6 +11,8 @@ from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
                                    InvalidLevelspecError)
+import six
+from six.moves import range
 
 
 class Sort(Builtin):
@@ -68,17 +74,14 @@ class Sort(Builtin):
         if list.is_atom():
             evaluation.message('Sort', 'normal')
         else:
-            def compare(e1, e2):
-                result = Expression(p, e1, e2).evaluate(evaluation)
-                if result.is_true():
-                    result = Expression(p, e2, e1).evaluate(evaluation)
-                    if result.is_true():
-                        return 0
-                    else:
-                        return -1
-                else:
-                    return 1
-            new_leaves = sorted(list.leaves, cmp=compare)
+            class Key(object):
+                def __init__(self, leaf):
+                    self.leaf = leaf
+
+                def __gt__(self, other):
+                    return not Expression(p, self.leaf, other.leaf).evaluate(evaluation).is_true()
+
+            new_leaves = sorted(list.leaves, key=Key)
             return Expression(list.head, *new_leaves)
 
 
@@ -95,8 +98,7 @@ class PatternsOrderedQ(Builtin):
     def apply(self, p1, p2, evaluation):
         'PatternsOrderedQ[p1_, p2_]'
 
-        result = cmp(p1.get_sort_key(True), p2.get_sort_key(True))
-        if result <= 0:
+        if p1.get_sort_key(True) <= p2.get_sort_key(True):
             return Symbol('True')
         else:
             return Symbol('False')
@@ -113,8 +115,7 @@ class OrderedQ(Builtin):
     def apply(self, e1, e2, evaluation):
         'OrderedQ[e1_, e2_]'
 
-        result = cmp(e1, e2)
-        if result <= 0:
+        if e1 <= e2:
             return Symbol('True')
         else:
             return Symbol('False')
@@ -157,7 +158,7 @@ class ApplyLevel(BinaryOperator):
 
 
 class Apply(BinaryOperator):
-    u"""
+    """
     <dl>
     <dt>'Apply[$f$, $expr$]' or '$f$ @@ $expr$'
         <dd>replaces the head of $expr$ with $f$.
@@ -534,7 +535,7 @@ class Flatten(Builtin):
     def apply_list(self, expr, n, h, evaluation):
         'Flatten[expr_, n_List, h_]'
 
-        ## prepare levels
+        # prepare levels
         # find max depth which matches `h`
         expr, max_depth = walk_levels(expr)
         max_depth = {'max_depth': max_depth}    # hack to modify max_depth from callback
@@ -583,7 +584,7 @@ class Flatten(Builtin):
                     evaluation.message('Flatten', 'fldep', l, n, max_depth, expr)
                     return
 
-        ## assign new indices to each leaf
+        # assign new indices to each leaf
         new_indices = {}
 
         def callback(expr, pos):
@@ -593,10 +594,9 @@ class Flatten(Builtin):
             return expr
         expr, depth = walk_levels(expr, callback=callback, include_pos=True)
 
-        ## build new tree inserting nodes as needed
+        # build new tree inserting nodes as needed
         result = Expression(h)
-        leaves = new_indices.items()
-        leaves.sort()
+        leaves = sorted(six.iteritems(new_indices))
 
         def insert_leaf(expr, leaves):
             # gather leaves into groups with the same leading index
@@ -684,7 +684,7 @@ class SymbolQ(Test):
 
 
 class Symbol_(Builtin):
-    u"""
+    """
     'Symbol' is the head of symbols.
     >> Head[x]
      = Symbol

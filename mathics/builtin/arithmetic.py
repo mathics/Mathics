@@ -1,12 +1,14 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Arithmetic functions
 
 Basic arithmetic functions, including complex number arithmetic.
 """
-
-from __future__ import with_statement
 
 import sympy
 import mpmath
@@ -63,7 +65,7 @@ class _MPMathFunction(SympyFunction):
                 try:
                     result = self.eval(*mpmath_args)
                     result = from_sympy(mpmath2sympy(result, prec))
-                except ValueError, exc:
+                except ValueError as exc:
                     text = str(exc)
                     if text == 'gamma function pole':
                         return Symbol('ComplexInfinity')
@@ -71,7 +73,7 @@ class _MPMathFunction(SympyFunction):
                         raise
                 except ZeroDivisionError:
                     return
-                except SpecialValueError, exc:
+                except SpecialValueError as exc:
                     return Symbol(exc.name)
 
         return result
@@ -340,9 +342,10 @@ class Minus(PrefixOperator):
         return Integer(-x.to_sympy())
 
     def post_parse(self, expression):
-        if (expression.get_head().get_name() == 'System`Minus'    # noqa
-            and len(expression.leaves) == 1
-            and isinstance(expression.leaves[0], Number)):
+        if (expression.get_head().get_name() == 'System`Minus' and
+            len(expression.leaves) == 1 and
+            isinstance(expression.leaves[0], Number)):  # nopep8
+
             return Number.from_mp(-expression.leaves[0].to_sympy())
         else:
             return super(Minus, self).post_parse(expression)
@@ -463,7 +466,7 @@ class Times(BinaryOperator, SympyFunction):
     formats = {
     }
 
-    def format_times(self, items, evaluation, op=u'\u2062'):
+    def format_times(self, items, evaluation, op='\u2062'):
         'Times[items__]'
 
         def inverse(item):
@@ -481,9 +484,10 @@ class Times(BinaryOperator, SympyFunction):
         positive = []
         negative = []
         for item in items:
-            if (item.has_form('Power', 2)   # noqa
-                and isinstance(item.leaves[1], (Integer, Rational, Real))
-                and item.leaves[1].to_sympy() < 0):
+            if (item.has_form('Power', 2) and
+                isinstance(item.leaves[1], (Integer, Rational, Real)) and
+                item.leaves[1].to_sympy() < 0):     # nopep8
+
                 negative.append(inverse(item))
             elif isinstance(item, Rational):
                 numerator = item.numerator()
@@ -492,8 +496,9 @@ class Times(BinaryOperator, SympyFunction):
                 negative.append(item.denominator())
             else:
                 positive.append(item)
-        if (positive and isinstance(positive[0], (Integer, Real))   # noqa
-            and positive[0].to_sympy() < 0):
+        if (positive and isinstance(positive[0], (Integer, Real)) and
+            positive[0].to_sympy() < 0):    # nopep8
+
             positive[0] = Number.from_mp(-positive[0].to_sympy())
             if positive[0].same(Integer(1)):
                 del positive[0]
@@ -557,18 +562,18 @@ class Times(BinaryOperator, SympyFunction):
                     number[0] * sym_imag + number[1] * sym_real)
             elif leaves and item == leaves[-1]:
                 leaves[-1] = Expression('Power', leaves[-1], Integer(2))
-            elif (leaves and item.has_form('Power', 2)
-                  and leaves[-1].has_form('Power', 2)
-                  and item.leaves[0].same(leaves[-1].leaves[0])):
+            elif (leaves and item.has_form('Power', 2) and
+                  leaves[-1].has_form('Power', 2) and
+                  item.leaves[0].same(leaves[-1].leaves[0])):
                 leaves[-1].leaves[1] = Expression(
                     'Plus', item.leaves[1], leaves[-1].leaves[1])
-            elif (leaves and item.has_form('Power', 2)
-                  and item.leaves[0].same(leaves[-1])):
+            elif (leaves and item.has_form('Power', 2) and
+                  item.leaves[0].same(leaves[-1])):
                 leaves[-1] = Expression(
                     'Power', leaves[-1],
                     Expression('Plus', item.leaves[1], Integer(1)))
-            elif (leaves and leaves[-1].has_form('Power', 2)
-                  and leaves[-1].leaves[0].same(item)):
+            elif (leaves and leaves[-1].has_form('Power', 2) and
+                  leaves[-1].leaves[0].same(item)):
                 leaves[-1] = Expression('Power', item, Expression(
                     'Plus', Integer(1), leaves[-1].leaves[1]))
             else:
@@ -576,8 +581,8 @@ class Times(BinaryOperator, SympyFunction):
         if number == (1, 0):
             number = None
         elif number == (-1, 0) and leaves and leaves[0].has_form('Plus', None):
-            leaves[0].leaves = [Expression('Times', Integer(
-                -1), leaf) for leaf in leaves[0].leaves]
+            leaves[0].leaves = [Expression('Times', Integer(-1), leaf)
+                                for leaf in leaves[0].leaves]
             number = None
 
         if number is not None:
@@ -800,8 +805,8 @@ class Power(BinaryOperator, SympyFunction):
             return Expression('Times', *[
                 Expression('Power', leaf, y) for leaf in x.leaves])
 
-        elif (isinstance(x, Number) and isinstance(y, Number)
-              and not (x.is_inexact() or y.is_inexact())):
+        elif (isinstance(x, Number) and isinstance(y, Number) and
+              not (x.is_inexact() or y.is_inexact())):
 
             sym_x, sym_y = x.to_sympy(), y.to_sympy()
 
@@ -827,11 +832,10 @@ class Power(BinaryOperator, SympyFunction):
                 evaluation.message('Power', 'infy')
                 return Symbol('ComplexInfinity')
 
-        elif (isinstance(x, Number) and isinstance(y, Number)
-              and (x.is_inexact() or y.is_inexact())):
+        elif (isinstance(x, Number) and isinstance(y, Number) and
+              (x.is_inexact() or y.is_inexact())):
             try:
-                prec = min(max(x.get_precision(), 64), max(
-                    y.get_precision(), 64))
+                prec = min_prec(x, y)
                 with mpmath.workprec(prec):
                     mp_x = sympy2mpmath(x.to_sympy())
                     mp_y = sympy2mpmath(y.to_sympy())
@@ -1279,7 +1283,7 @@ class Integer_(Builtin):
 
 
 class Real_(Builtin):
-    u"""
+    """
     <dl>
     <dt>'Real'
         <dd>is the head of real (inexact) numbers.

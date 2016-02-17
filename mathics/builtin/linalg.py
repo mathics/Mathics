@@ -1,8 +1,16 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 """
 Linear algebra
 """
+
+import six
+from six.moves import range
+from six.moves import zip
 
 import sympy
 
@@ -32,7 +40,7 @@ def to_sympy_matrix(data, **kwargs):
 
 
 class Det(Builtin):
-    u"""
+    """
     <dl>
     <dt>'Det[$m$]'
         <dd>computes the determinant of the matrix $m$.
@@ -337,13 +345,13 @@ class Eigenvalues(Builtin):
             return evaluation.message('Eigenvalues', 'matsq', m)
         eigenvalues = matrix.eigenvals()
         try:
-            eigenvalues = sorted(eigenvalues.iteritems(),
-                                 key=lambda (v, c): (abs(v), -v), reverse=True)
+            eigenvalues = sorted(six.iteritems(eigenvalues),
+                                 key=lambda v_c: (abs(v_c[0]), -v_c[0]), reverse=True)
         except TypeError as e:
             if not str(e).startswith('cannot determine truth value of'):
                 raise e
-            eigenvalues = eigenvalues.items()
-        return from_sympy([v for (v, c) in eigenvalues for _ in xrange(c)])
+            eigenvalues = list(eigenvalues.items())
+        return from_sympy([v for (v, c) in eigenvalues for _ in range(c)])
 
 
 class Eigensystem(Builtin):
@@ -598,8 +606,7 @@ class Eigenvectors(Builtin):
                 'Eigenvectors', 'eigenvecnotimplemented', m)
 
         # The eigenvectors are given in the same order as the eigenvalues.
-        eigenvects = sorted(eigenvects, key=lambda (
-            val, c, vect): (abs(val), -val), reverse=True)
+        eigenvects = sorted(eigenvects, key=lambda val_c_vect: (abs(val_c_vect[0]), -val_c_vect[0]), reverse=True)
         result = []
         for val, count, basis in eigenvects:
             # Select the i'th basis vector, convert matrix to vector,

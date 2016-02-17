@@ -1,22 +1,9 @@
-# -*- coding: UTF-8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
 
 import sys
 import traceback
@@ -38,6 +25,8 @@ from mathics.web.models import Query, Worksheet
 from mathics.web.forms import LoginForm, SaveForm
 from mathics.doc import documentation
 from mathics.doc.doc import DocPart, DocChapter, DocSection
+import six
+from six.moves import range
 
 if settings.DEBUG:
     JSON_CONTENT_TYPE = 'text/html'
@@ -82,7 +71,7 @@ def main_view(request):
 def error_404_view(request):
     t = loader.get_template('404.html')
     return HttpResponseNotFound(t.render(RequestContext(request, {
-        'title': u'Page not found',
+        'title': 'Page not found',
         'request_path': request.path,
     })))
 
@@ -90,7 +79,7 @@ def error_404_view(request):
 def error_500_view(request):
     t = loader.get_template('500.html')
     return HttpResponseServerError(t.render(RequestContext(request, {
-        'title': u'Server error',
+        'title': 'Server error',
     })))
 
 
@@ -105,7 +94,7 @@ def query(request):
                           remote_user=request.META.get('REMOTE_USER', ''),
                           remote_addr=request.META.get('REMOTE_ADDR', ''),
                           remote_host=request.META.get('REMOTE_HOST', ''),
-                          meta=unicode(request.META),
+                          meta=six.text_type(request.META),
                           log='',
                           )
         query_log.save()
@@ -115,7 +104,7 @@ def query(request):
     try:
         evaluation = Evaluation(
             input, definitions, timeout=settings.TIMEOUT, format='xml')
-    except Exception, exc:
+    except Exception as exc:
         if settings.DEBUG and settings.DISPLAY_EXCEPTIONS:
             evaluation = Evaluation()
             info = traceback.format_exception(*sys.exc_info())
@@ -132,7 +121,7 @@ def query(request):
 
     if settings.LOG_QUERIES:
         query_log.timeout = evaluation.timeout
-        query_log.result = unicode(result)  # evaluation.results
+        query_log.result = six.text_type(result)  # evaluation.results
         query_log.error = False
         query_log.save()
 
@@ -185,9 +174,7 @@ def nicepass(alpha=6, numeric=2):
 
 def email_user(user, subject, text):
     if settings.DEBUG_MAIL:
-        print '\n'.join(['-' * 70,
-                         'E-Mail to %s:\n%s\n%s' % (user.email, subject, text),
-                         '-' * 70])
+        print('\n'.join(['-' * 70, 'E-Mail to %s:\n%s\n%s' % (user.email, subject, text), '-' * 70]))
     else:
         user.email_user(subject, text)
 
@@ -204,7 +191,7 @@ def login(request):
         if password:
             user = auth.authenticate(username=email, password=password)
             if user is None:
-                general_errors = [u"Invalid username and/or password."]
+                general_errors = ["Invalid username and/or password."]
             else:
                 result = 'ok'
                 auth.login(request, user)
@@ -215,14 +202,14 @@ def login(request):
                 result = 'reset'
                 email_user(
                     user, "Your password at mathics.net",
-                    (u"""You have reset your password at mathics.net.\n
+                    ("""You have reset your password at mathics.net.\n
 Your password is: %s\n\nYours,\nThe Mathics team""") % password)
             except User.DoesNotExist:
                 user = User(username=email, email=email)
                 result = 'created'
                 email_user(
                     user, "New account at mathics.net",
-                    u"""Welcome to mathics.net!\n
+                    """Welcome to mathics.net!\n
 Your password is: %s\n\nYours,\nThe Mathics team""" % password)
             user.set_password(password)
             user.save()
@@ -338,7 +325,7 @@ def render_doc(request, template_name, context, data=None, ajax=False):
 
 def doc(request, ajax=''):
     return render_doc(request, 'overview.html', {
-        'title': u'Documentation',
+        'title': 'Documentation',
         'doc': documentation,
     }, ajax=ajax)
 
@@ -396,6 +383,6 @@ def doc_search(request):
     result = [item for exact, item in result]
 
     return render_doc(request, 'search.html', {
-        'title': u"Search documentation",
+        'title': "Search documentation",
         'result': result,
     }, ajax=True)

@@ -1,22 +1,22 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+import sys
+import time
+from argparse import ArgumentParser
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+import mathics
+from mathics.core.parser import parse
+from mathics.core.definitions import Definitions
+from mathics.core.evaluation import Evaluation
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from six.moves import map
+from six.moves import range
+
 
 # Default number of times to repeat each benchmark. None -> Automatic
 TESTS_PER_BENCHMARK = None
@@ -64,15 +64,6 @@ PARSING_BENCHMARKS = [
     "Sin[" * 1000 + '0.5' + "]" * 1000,
 ]
 
-import sys
-import time
-from argparse import ArgumentParser
-
-import mathics
-from mathics.core.parser import parse
-from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation
-
 definitions = Definitions(add_builtin=True)
 evaluation = None
 
@@ -96,13 +87,13 @@ def timeit(func, repeats=None):
     times = []
     if repeats is not None:
         # Fixed number of repeats
-        for i in xrange(repeats):
+        for i in range(repeats):
             times.append(time.clock())
             func()
     else:
         # Automatic number of repeats
         repeats = 10000
-        for i in xrange(repeats):
+        for i in range(repeats):
             times.append(time.clock())
             func()
             if any(i == j for j in (5, 10, 100, 1000, 5000)):
@@ -115,8 +106,8 @@ def timeit(func, repeats=None):
     average_time = format_time_units((times[-1] - times[0]) / repeats)
     best_time = format_time_units(
         min([times[i + 1] - times[i] for i in range(repeats)]))
-    print "    {0:5n} loops, avg: {1} per loop, best: {2} per loop".format(
-        repeats, average_time, best_time)
+    print("    {0:5n} loops, avg: {1} per loop, best: {2} per loop".format(
+        repeats, average_time, best_time))
 
 
 def truncate_line(string):
@@ -126,34 +117,34 @@ def truncate_line(string):
 
 
 def benchmark_parse(expression_string):
-    print "  '{0}'".format(truncate_line(expression_string))
+    print("  '{0}'".format(truncate_line(expression_string)))
     timeit(lambda: parse(expression_string, definitions))
 
 
 def benchmark_format(expression_string):
-    print "  '{0}'".format(expression_string)
+    print("  '{0}'".format(expression_string))
     expr = parse(expression_string, definitions)
     timeit(lambda: expr.default_format(evaluation, "FullForm"))
 
 
 def benchmark_expression(expression_string):
-    print "  '{0}'".format(expression_string)
+    print("  '{0}'".format(expression_string))
     expr = parse(expression_string, definitions)
     timeit(lambda: expr.evaluate(evaluation))
 
 
 def benchmark_section(section_name):
-    print section_name
+    print(section_name)
     for benchmark in BENCHMARKS.get(section_name):
         benchmark_expression(benchmark)
-    print ""
+    print()
 
 
 def benchmark_all():
-    print "EVALUATION BENCHMARKS:"
+    print("EVALUATION BENCHMARKS:")
     for section_name in sorted(BENCHMARKS.keys()):
         benchmark_section(section_name)
-    print "PARSING BENCHMARKS:"
+    print("PARSING BENCHMARKS:")
     for expression_string in PARSING_BENCHMARKS:
         benchmark_parse(expression_string)
 
@@ -186,8 +177,8 @@ def main():
 
     try:
         evaluation = Evaluation("", definitions, catch_interrupt=False)
-    except Exception, exc:
-        print "Exception {0}".format(exc)
+    except Exception as exc:
+        print("Exception {0}".format(exc))
         info = sys.exc_info()
         sys.excepthook(*info)
         sys.exit(-1)

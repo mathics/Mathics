@@ -1,22 +1,8 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial,
@@ -57,11 +43,11 @@ for module in modules:
     vars = dir(module)
     for name in vars:
         var = getattr(module, name)
-        if (hasattr(var, '__module__')
-                and var.__module__.startswith('mathics.builtin.')
-                and var.__module__ != 'mathics.builtin.base'
-                and is_builtin(var) and not name.startswith('_')
-                and var.__module__ == module.__name__):
+        if (hasattr(var, '__module__') and
+            var.__module__.startswith('mathics.builtin.') and
+            var.__module__ != 'mathics.builtin.base' and
+            is_builtin(var) and not name.startswith('_') and
+            var.__module__ == module.__name__):     # nopep8
 
             instance = var(expression=False)
 
