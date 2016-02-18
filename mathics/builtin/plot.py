@@ -1439,7 +1439,8 @@ class DensityPlot(_Plot3D):
         'ColorFunction': 'Automatic',
         'ColorFunctionScaling': 'True',
         'PlotPoints': 'None',
-        'MaxRecursion': '2',
+        'MaxRecursion': '0',
+        # 'MaxRecursion': '2',  # FIXME causes bugs in svg output see #303
     })
 
     def get_functions_param(self, functions):
