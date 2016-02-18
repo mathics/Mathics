@@ -80,6 +80,13 @@ class Simplify(Builtin):
      = x
     >> Simplify[f[x]]
      = f[x]
+
+    #> Simplify[a*x^2+b*x^2]
+     = x ^ 2 (a + b)
+
+    ## triggers TypeError in sympy.simplify
+    #> x f[{y}] // Simplify
+     = x f[{y}]
     """
 
     rules = {
@@ -91,18 +98,9 @@ class Simplify(Builtin):
     def apply(self, expr, evaluation):
         'Simplify[expr_]'
 
-        expr_sympy = expr.to_sympy()
-        result = expr_sympy
-        try:
-            result = sympy.simplify(result)
-        except TypeError:
-            # XXX What's going on here?
-            pass
-        result = sympy.trigsimp(result)
-        result = sympy.together(result)
-        result = sympy.cancel(result)
-        result = from_sympy(result)
-        return result
+        sympy_expr = expr.to_sympy()
+        sympy_result = sympy.simplify(sympy_expr)
+        return from_sympy(sympy_result)
 
 
 class Together(Builtin):
