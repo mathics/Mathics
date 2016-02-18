@@ -45,11 +45,23 @@ class SympyExpression(BasicSympy):
     is_Function = True
     nargs = None
 
-    def __new__(cls, expr):
-        obj = BasicSympy.__new__(
-            cls, *(expr.head.to_sympy(),) + tuple(leaf.to_sympy()
-                                                  for leaf in expr.leaves))
-        obj.expr = expr
+    def __new__(cls, *exprs):
+        # sympy simplify may also recreate the object if simplification occured
+        # in the leaves
+        from mathics.core.expression import Expression
+
+        if all(isinstance(expr, BasicSympy) for expr in exprs):
+            # called with SymPy arguments
+            obj = BasicSympy.__new__(cls, *exprs)
+        elif len(exprs) == 1 and isinstance(exprs[0], Expression):
+            # called with Mathics argument
+            expr = exprs[0]
+            obj = BasicSympy.__new__(
+                cls, expr.head.to_sympy(),
+                *tuple(leaf.to_sympy() for leaf in expr.leaves))
+            obj.expr = expr
+        else:
+            raise TypeError
         return obj
 
     """def new(self, *args):
