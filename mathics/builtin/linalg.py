@@ -39,6 +39,7 @@ def to_sympy_matrix(data, **kwargs):
     except (TypeError, AssertionError, ValueError):
         return None
 
+
 def to_mpmath_matrix(data, **kwargs):
     def mpmath_matrix_data(m):
         if not m.has_form('List', None):
@@ -46,7 +47,6 @@ def to_mpmath_matrix(data, **kwargs):
         if not all(leaf.has_form('List', None) for leaf in m.leaves):
             return None
         return [[str(item) for item in row.leaves] for row in m.leaves]
-
 
     if not isinstance(data, list):
         data = mpmath_matrix_data(data)
@@ -204,21 +204,37 @@ class SingularValueDecomposition(Builtin):
         Returns $u, s, w$ such that $m=u s v$, $u'u=1$, $v'v=1$, $s$ is diagonal.
     </dl>
 
+    >> SingularValueDecomposition[{{1.5, 2.0}, {2.5, 3.0}}]
+     = {{{0.538953533497208, 0.842335496539754}, {0.842335496539754, -0.538953533497208}}, {{4.63555452966064, 0.}, {0., 0.10786196059193}}, {{0.628677545037648, 0.77766608796156}, {-0.77766608796156, 0.628677545037648}}}
+
+    #> SingularValueDecomposition[{{3/2, 2}, {5/2, 3}}]
+     : Symbolbic SVD is not implemented, performing numerically.
+     = {{{0.538953533497208, 0.842335496539754}, {0.842335496539754, -0.538953533497208}}, {{4.63555452966064, 0.}, {0., 0.10786196059193}}, {{0.628677545037648, 0.77766608796156}, {-0.77766608796156, 0.628677545037648}}}
+    """
+
+    # Sympy lacks symbolic SVD
+    """
     >> SingularValueDecomposition[{{1, 2}, {2, 3}, {3, 4}}]
      = {{-11 / 6, -1 / 3, 7 / 6}, {4 / 3, 1 / 3, -2 / 3}}
 
-    >> PseudoInverse[{{1, 2, 0}, {2, 3, 0}, {3, 4, 1}}]
+    >> SingularValueDecomposition[{{1, 2, 0}, {2, 3, 0}, {3, 4, 1}}]
      = {{-3, 2, 0}, {2, -1, 0}, {1, -2, 1}}
     """
 
+    messages = {
+        'nosymb': "Symbolbic SVD is not implemented, performing numerically.",
+    }
 
     def apply(self, m, evaluation):
         'SingularValueDecomposition[m_]'
 
+        if not any(leaf.is_inexact() for row in m.leaves for leaf in row.leaves):
+            # symbolic argument (not implemented)
+            evaluation.message('SingularValueDecomposition', 'nosymb')
+
         matrix = to_mpmath_matrix(m)
         U, S, V = mp.svd(matrix)
         S = mp.diag(S)
-        print(U, S, V)
         U_list = Expression('List', *U.tolist())
         S_list = Expression('List', *S.tolist())
         V_list = Expression('List', *V.tolist())
@@ -229,7 +245,7 @@ class PseudoInverse(Builtin):
     """
     <dl>
     <dt>'PseudoInverse[$m$]'
-        <dd>computes the Moore-Penrose pseudoinverse of the matrix $m$. 
+        <dd>computes the Moore-Penrose pseudoinverse of the matrix $m$.
         If $m$ is invertible, the pseudoinverse equals the inverse.
     </dl>
 
@@ -238,6 +254,9 @@ class PseudoInverse(Builtin):
 
     >> PseudoInverse[{{1, 2, 0}, {2, 3, 0}, {3, 4, 1}}]
      = {{-3, 2, 0}, {2, -1, 0}, {1, -2, 1}}
+
+    >> PseudoInverse[{{1.0, 2.5}, {2.5, 1.0}}]
+     = {{-0.190476190476190476, 0.476190476190476191}, {0.47619047619047619, -0.190476190476190476}}
     """
 
     def apply(self, m, evaluation):
@@ -245,27 +264,35 @@ class PseudoInverse(Builtin):
 
         matrix = to_sympy_matrix(m)
         pinv = matrix.pinv()
-        return from_sympy(pinv) 
+        return from_sympy(pinv)
 
 
 class LeastSquares(Builtin):
     """
     <dl>
     <dt>'LeastSquares[$m$, $b$]'
-        <dd>Compute the least squares solution to $m x = b$. 
+        <dd>Compute the least squares solution to $m x = b$.
         Finds an x that solves for b optimally.
     </dl>
 
     >> LeastSquares[{{1, 2}, {2, 3}, {5, 6}}, {1, 5, 3}]
-     = {{-28 / 13}, {31 / 13}}
+     = {-28 / 13, 31 / 13}
 
     >> Simplify[LeastSquares[{{1, 2}, {2, 3}, {5, 6}}, {1, x, 3}]]
-     = {{12 / 13 - 8 x / 13}, {-4 / 13 + 7 x / 13}}
+     = {12 / 13 - 8 x / 13, -4 / 13 + 7 x / 13}
 
+    >> LeastSquares[{{1, 1, 1}, {1, 1, 2}}, {1, 3}]
+     : Solving for underdetermined system not implemented.
+     = LeastSquares[{{1, 1, 1}, {1, 1, 2}}, {1, 3}]
+
+    ## Inconsistent system - ideally we'd print a different message
+    #> LeastSquares[{{1, 1, 1}, {1, 1, 1}}, {1, 0}]
+     : Solving for underdetermined system not implemented.
+     = LeastSquares[{{1, 1, 1}, {1, 1, 1}}, {1, 0}]
     """
 
     messages = {
-        'underdetermined': "Solving for underdetermined system not implemented"
+        'underdetermined': "Solving for underdetermined system not implemented."
     }
 
     def apply(self, m, b, evaluation):
@@ -275,11 +302,11 @@ class LeastSquares(Builtin):
         b_vector = to_sympy_matrix([el.to_sympy() for el in b.leaves])
 
         try:
-            solution = matrix.solve_least_squares(b_vector) # default method = Cholesky
+            solution = matrix.solve_least_squares(b_vector)  # default method = Cholesky
         except NotImplementedError as e:
             return evaluation.message('LeastSquares', 'underdetermined')
 
-        return from_sympy(solution) 
+        return from_sympy(solution)
 
 
 class LinearSolve(Builtin):
