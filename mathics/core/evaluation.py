@@ -7,9 +7,10 @@ from __future__ import absolute_import
 
 import six
 import six.moves.cPickle as pickle
+from six.moves.queue import Queue
 
 import sys
-import signal
+from threading import Thread
 
 from mathics import settings
 from mathics.core.expression import ensure_context, KeyComparable
@@ -51,28 +52,26 @@ def run_with_timeout(request, timeout):
     if timeout is None:
         return request()
 
-    def handler(signum, frame):
-        raise TimeoutInterrupt
+    def target(request, queue):
+        try:
+            result = request()
+            queue.put((True, result))
+        except Exception as e:
+            queue.put((False, e))
 
-    # register the handler
-    signal.signal(signal.SIGALRM, handler)
+    queue = Queue(maxsize=1)
+    thread = Thread(target=target, args=(request, queue))
+    thread.start()
 
-    # start the timer
-    signal.alarm(timeout)
+    thread.join(timeout)
+    if thread.is_alive():
+        raise TimeoutInterrupt()
 
-    # do the computation
-    try:
-        result = request()
-    except TimeoutInterrupt:
-        raise
-    except:
-        # cancel the timer before raising
-        signal.alarm(0)
-        raise
-
-    # cancel the timer
-    signal.alarm(0)
-    return result
+    success, result = queue.get()
+    if success:
+        return result
+    else:
+        raise result
 
 
 class Out(KeyComparable):
