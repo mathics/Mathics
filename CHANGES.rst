@@ -6,6 +6,7 @@ CHANGES
 
 New features:
 
+- Improved syntax error messages #329
 - SVD, LeastSquares, PseudoInverse #258, #321
 - Python 3 support #317
 - Improvements to Riffle #313
@@ -25,6 +26,10 @@ Dependency Updates:
 
 Bug fixes:
 
+- Span issues with negative indices #196 fixed by #263 #325
+- SVG export bug fixed by #324
+- Django runserver threading issue #158 fixed by #323
+- asymptote bug building docs #297 fixed by #317
 - Simplify issue #254 fixed by #322
 - ParametricPlot bug fixed by #320
 - DensityPlot SVG regression in the web interface.
