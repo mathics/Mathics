@@ -45,6 +45,15 @@ class ContinueInterrupt(EvaluationInterrupt):
     pass
 
 
+def _thread_target(request, queue):
+    try:
+        result = request()
+        queue.put((True, result))
+    except BaseException:
+        exc_info = sys.exc_info()
+        queue.put((False, exc_info))
+
+
 def run_with_timeout(request, timeout):
     '''
     interrupts evaluation after a given time period.
@@ -52,15 +61,8 @@ def run_with_timeout(request, timeout):
     if timeout is None:
         return request()
 
-    def target(request, queue):
-        try:
-            result = request()
-            queue.put((True, result))
-        except Exception as e:
-            queue.put((False, e))
-
-    queue = Queue(maxsize=1)
-    thread = Thread(target=target, args=(request, queue))
+    queue = Queue(maxsize=1) # stores the result or exception
+    thread = Thread(target=_thread_target, args=(request, queue))
     thread.start()
 
     thread.join(timeout)
@@ -71,7 +73,7 @@ def run_with_timeout(request, timeout):
     if success:
         return result
     else:
-        raise result
+        six.reraise(*result)
 
 
 class Out(KeyComparable):
