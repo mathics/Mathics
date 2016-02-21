@@ -487,6 +487,13 @@ class Export(Builtin):
      | 1,2,3
      | 4,5,6
     #> DeleteFile[%%]
+
+    ## SVG
+    #> Export["sine.svg", Plot[Sin[x], {x,0,1}]]
+     = sine.svg
+    #> FileFormat[%]
+     = SVG
+    #> DeleteFile[%%]
     """
 
     messages = {
@@ -499,6 +506,7 @@ class Export(Builtin):
         'jpg': 'JPEG',
         'txt': 'Text',
         'csv': 'CSV',
+        'svg': 'SVG',
     }
 
     rules = {
