@@ -295,6 +295,9 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
 
             for inner in inner_list:
                 py_slice = python_seq(start, stop, step, len(inner.leaves))
+                if py_slice is None:
+                    evaluation.message('Part', 'take', start, stop, inner)
+                    return False
                 if inner.is_atom():
                     evaluation.message('Part', 'partd')
                     return False
@@ -719,6 +722,13 @@ class Part(Builtin):
      = {9, 6}
     #> Range[11][[7 ;; -7;; -2]]
      = {7, 5}
+
+    #> {1, 2, 3, 4}[[1;;3;;-1]]
+     : Cannot take positions 1 through 3 in {1, 2, 3, 4}.
+     = {1, 2, 3, 4}[[Span[1, 3, -1]]]
+    #> {1, 2, 3, 4}[[3;;1]]
+     : Cannot take positions 3 through 1 in {1, 2, 3, 4}.
+     = {1, 2, 3, 4}[[Span[3, 1]]]
     """
 
     attributes = ('NHoldRest', 'ReadProtected')
@@ -1025,11 +1035,11 @@ class Take(Builtin):
      = {8, 7, 6, 5, 4, 3, 2}
     #> Take[Range[10], {-3, -7, -2}]
      = {8, 6, 4}
-    """
 
-    messages = {
-        'take': "Cannot take positions `1` through `2` in `3`.",
-    }
+    #> Take[Range[6], {-5, -2, -2}]
+     : Cannot take positions -5 through -2 in {1, 2, 3, 4, 5, 6}.
+     = Take[{1, 2, 3, 4, 5, 6}, {-5, -2, -2}]
+    """
 
     def apply(self, list, seqs, evaluation):
         'Take[list_, seqs___]'
@@ -1076,6 +1086,10 @@ class Drop(Builtin):
      = {1, 2, 3, 4, 5, 7, 8, 10}
     #> Drop[Range[10], {10, 1, -3}]
      = {2, 3, 5, 6, 8, 9}
+
+    #> Drop[Range[6], {-5, -2, -2}]
+     : Cannot drop positions -5 through -2 in {1, 2, 3, 4, 5, 6}.
+     = Drop[{1, 2, 3, 4, 5, 6}, {-5, -2, -2}]
     """
 
     messages = {

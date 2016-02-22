@@ -1105,6 +1105,7 @@ class General(Builtin):
         'string': "String expected.",
         'sym': "Argument `1` at position `2` is expected to be a symbol.",
         'tag': "Rule for `1` can only be attached to `2`.",
+        'take': "Cannot take positions `1` through `2` in `3`.",
         'vrule': ("Cannot set `1` to `2`, "
                   "which is not a valid list of replacement rules."),
         'write': "Tag `1` in `2` is Protected.",
