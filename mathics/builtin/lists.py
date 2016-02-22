@@ -576,6 +576,10 @@ def python_seq(start, stop, step=+1):
 
 
 def convert_seq(seq):
+    '''
+    converts a sequence specification into a (start, stop, step) tuple.
+    returns None on failure
+    '''
     start, stop, step = 1, None, 1
     name = seq.get_name()
     value = seq.get_int_value()
@@ -592,18 +596,18 @@ def convert_seq(seq):
         if len(seq.leaves) == 1:
             start = stop = seq.leaves[0].get_int_value()
             if stop is None:
-                return False
+                return None
         else:
             start = seq.leaves[0].get_int_value()
             stop = seq.leaves[1].get_int_value()
             if start is None or stop is None:
-                return False
+                return None
         if len(seq.leaves) == 3:
             step = seq.leaves[2].get_int_value()
             if step is None:
-                return False
+                return None
     else:
-        return False
+        return None
     return (start, stop, step)
 
 
@@ -999,7 +1003,7 @@ class Take(Builtin):
 
         for seq in seqs:
             seq_tuple = convert_seq(seq)
-            if not seq_tuple:
+            if seq_tuple is None:
                 evaluation.message('Take', 'seqs', seq)
                 return
             start, stop, step = seq_tuple
@@ -1050,7 +1054,7 @@ class Drop(Builtin):
 
         for seq in seqs:
             seq_tuple = convert_seq(seq)
-            if not seq_tuple:
+            if seq_tuple is None:
                 evaluation.message('Drop', 'seqs', seq)
                 return
             start, stop, step = seq_tuple
