@@ -293,16 +293,12 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
                 evaluation.message('Part', 'span', index)
                 return False
 
-            start, stop = python_seq(start, stop, step)
-
             for inner in inner_list:
+                py_slice = python_seq(start, stop, step, len(inner.leaves))
                 if inner.is_atom():
                     evaluation.message('Part', 'partd')
                     return False
-                if stop is None:
-                    inner.leaves = inner.leaves[start::step]
-                else:
-                    inner.leaves = inner.leaves[start:stop:step]
+                inner.leaves = inner.leaves[py_slice]
                 inner.original = None
                 inner.set_positions()
             inner_list = join_lists(inner.leaves for inner in inner_list)
@@ -548,31 +544,54 @@ class LevelQ(Test):
             return False
 
 
-def python_seq(start, stop, step=+1):
-    if not step: step = +1
-    if step == +1:
-        if start > 0:
-            start -= 1
-        if stop is not None and stop < 0:
-            stop += 1
-            if stop == 0:
-                stop = None
-        return start, stop
+def python_seq(start, stop, step, length):
+    '''
+    Converts mathematica sequence tuple to python slice object.
+
+    Based on David Mashburn's generic slice:
+    https://gist.github.com/davidmashburn/9764309
+    '''
+    if step == 0:
+        return None
+
+    if start == 0 or stop == 0:
+        return None
+
+    # wrap negative values to postive and convert from 1-based to 0-based
+    if start < 0:
+        start += length
     else:
-        if stop and stop > 0:
-            stop -= 2
-        elif stop and stop < 0:
-            stop -= 1
-        if start and start > 0:
-            start -= 1
-        if not start:
-            start = None
+        start -= 1
+
+    if stop is None:
+        if step < 0:
+            stop = 0
+        else:
+            stop = length - 1
+    elif stop < 0:
+        stop += length
+    else:
+        assert stop > 0
+        stop -= 1
+
+    # check bounds
+    if (not 0 <= start < length or
+        not 0 <= stop < length or
+        step > 0 and start - stop > 1 or
+        step < 0 and stop - start > 1):     # nopep8
+        return None
+
+    # include the stop value
+    if step > 0:
+        stop += 1
+    else:
+        stop -= 1
         if stop == -1:
             stop = None
-        elif stop == None:
-            # No stop equals len(list)!
-            stop = -1
-        return start, stop
+        if start == 0:
+            start = None
+
+    return slice(start, stop, step)
 
 
 def convert_seq(seq):
@@ -686,6 +705,13 @@ class Part(Builtin):
 
     #> a = {2,3,4}; i = 1; a[[i]] = 0; a
      = {0, 3, 4}
+
+    ## Negative step
+    #> {1,2,3,4,5}[[3;;1;;-1]]
+     = {3, 2, 1}
+
+    #> {1, 2, 3, 4, 5}[[;; ;; -1]]      (* MMA bug *)
+     = {5, 4, 3, 2, 1}
     """
 
     attributes = ('NHoldRest', 'ReadProtected')
@@ -1007,18 +1033,13 @@ class Take(Builtin):
                 evaluation.message('Take', 'seqs', seq)
                 return
             start, stop, step = seq_tuple
-            py_start, py_stop = python_seq(start, stop, step)
             for inner in inner_list:
-                if (inner.is_atom() or      # noqa
-                    abs(start) > len(inner.leaves) or
-                    stop is not None and abs(stop) > len(inner.leaves)):
-                    evaluation.message('Take', 'take', start, Symbol(
-                        'Infinity') if stop is None else stop, inner)
-                    return
-                if stop is None:
-                    inner.leaves = inner.leaves[py_start::step]
-                else:
-                    inner.leaves = inner.leaves[py_start:py_stop:step]
+                py_slice = python_seq(start, stop, step, len(inner.leaves))
+                if inner.is_atom() or py_slice is None:
+                    if stop is None:
+                        stop = Symbol('Infinity')
+                    return evaluation.message('Take', 'take', start, stop, inner)
+                inner.leaves = inner.leaves[py_slice]
             inner_list = join_lists(inner.leaves for inner in inner_list)
 
         return list
@@ -1058,17 +1079,11 @@ class Drop(Builtin):
                 evaluation.message('Drop', 'seqs', seq)
                 return
             start, stop, step = seq_tuple
-            py_start, py_stop = python_seq(start, stop, step)
             for inner in inner_list:
-                if (inner.is_atom() or  # noqa
-                    abs(start) > len(inner.leaves) or
-                    stop is not None and abs(stop) > len(inner.leaves)):
-                    evaluation.message('Drop', 'drop', start, stop, inner)
-                    return
-                if stop is None:
-                    del inner.leaves[py_start::step]
-                else:
-                    del inner.leaves[py_start:py_stop:step]
+                py_slice = python_seq(start, stop, step, len(inner.leaves))
+                if inner.is_atom() or py_slice is None:
+                    return evaluation.message('Drop', 'drop', start, stop, inner)
+                del inner.leaves[py_slice]
             inner_list = join_lists(inner.leaves for inner in inner_list)
 
         return list
