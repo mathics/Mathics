@@ -14,10 +14,10 @@ Contributing
 
 Please feel encouraged to contribute to Mathics! Create your own fork, make the desired changes, commit, and make a pull request.
 
-|Travis|_
-
-.. |Travis| image:: https://secure.travis-ci.org/mathics/Mathics.png?branch=master
-.. _Travis: https://travis-ci.org/mathics/Mathics
+.. image:: https://travis-ci.org/mathics/Mathics.svg?branch=master
+    :target: https://travis-ci.org/mathics/Mathics
+.. image:: https://codecov.io/github/mathics/Mathics/coverage.svg?branch=master
+    :target: https://codecov.io/github/mathics/Mathics?branch=master
 
 License
 -------
