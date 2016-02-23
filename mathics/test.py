@@ -55,19 +55,20 @@ def test_case(test, tests, index=0, quiet=False):
 
     if not quiet:
         print('%4d. TEST %s' % (index, test))
+    evaluation = Evaluation(definitions, catch_interrupt=False)
     try:
-        evaluation = Evaluation(test, definitions, catch_interrupt=False)
+        results = evaluation.evaluate(test)
     except Exception as exc:
         fail("Exception %s" % exc)
         info = sys.exc_info()
         sys.excepthook(*info)
         return False
 
-    if evaluation.results:
-        if len(evaluation.results) > 1:
-            return fail("Too many results: %s" % evaluation.results)
-        result = evaluation.results[0].result
-        out = evaluation.results[0].out
+    if results:
+        if len(results) > 1:
+            return fail("Too many results: %s" % results)
+        result = results[0].result
+        out = results[0].out
     else:
         result = None
         out = []

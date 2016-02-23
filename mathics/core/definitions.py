@@ -69,8 +69,7 @@ class Definitions(object):
 
                 for path in [os.path.join(root, f) for f in files
                              if f.endswith('.m')]:
-                    Expression('Get', String(path)).evaluate(
-                        Evaluation(None, self, timeout=30))
+                    Expression('Get', String(path)).evaluate(Evaluation(self))
 
             # Move any user definitions created by autoloaded files to
             # builtins, and clear out the user definitions list. This

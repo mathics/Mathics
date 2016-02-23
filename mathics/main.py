@@ -100,11 +100,10 @@ class TerminalShell(object):
         def out_callback(out):
             print(to_output(six.text_type(out)))
 
-        evaluation = Evaluation(text,
-                                self.definitions,
-                                timeout=settings.TIMEOUT,
+        evaluation = Evaluation(self.definitions,
                                 out_callback=out_callback)
-        for result in evaluation.results:
+        results = evaluation.evaluate(text, timeout=settings.TIMEOUT)
+        for result in results:
             if result.result is not None:
                 print(self.get_out_prompt() +
                       to_output(six.text_type(result.result)) + '\n')
