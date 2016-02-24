@@ -46,8 +46,6 @@ before_install:
   - if [[ "$CYTHON" == "true" ]]; then
       pip install cython;
     fi
-  - pip install coverage
-  - pip install codecov
   - pip install unittest2
   - pip install pexpect
   - pip install git+https://github.com/sympy/sympy.git@$SYMPY_SRC
@@ -55,18 +53,16 @@ install:
   - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
   - if [[ "$DOC" == "true" ]]; then python setup.py develop; else python setup.py install; fi
 script:
-  - coverage run -a setup.py test
+  - python setup.py test
   - if [[ "$DOC" == "true" ]]; then
-      coverage run -a mathics/test.py -o &&
-      coverage run -a mathics/test.py -t &&
+      python mathics/test.py -o &&
+      python mathics/test.py -t &&
       cd mathics/doc/ &&
       ./images.sh &&
       cd tex/ &&
       make latex;
     else
-      coverage run -a mathics/test.py;
+      python mathics/test.py;
     fi
-after_success:
-    codecov
 notifications:
     email: false
