@@ -164,6 +164,18 @@ class Evaluation(object):
         self.format = format
         self.catch_interrupt = catch_interrupt
 
+    def parse_evaluate(self, lines, timeout=None):
+        from mathics.core.parser import parse_lines, TranslateError
+        try:
+            exprs = parse_lines(lines, self.definitions)
+        except TranslateError as exc:
+            self.recursion_depth = 0
+            self.stopped = False
+            self.message('General', 'syntax', six.text_type(exc))
+            return [Result(self.out, None, None)]
+
+        return self.evaluate(exprs, timeout=timeout)
+
     def evaluate(self, queries=[], timeout=None):
         from mathics.core.expression import Symbol, Expression, Integer
         from mathics.core.rules import Rule

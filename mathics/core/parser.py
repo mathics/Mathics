@@ -1514,8 +1514,10 @@ def parse_lines(lines, definitions):
     In the case of incomplete lines append more lines until a complete
     expression is found. If the end is reached and no complete expression is
     found then reraise the exception.
+
+    We use a generator so that each expression can be evaluated (as the parser
+    is dependent on defintions and evaluation may change the definitions).
     '''
-    result = []
     query = ''
     if isinstance(lines, six.text_type):
         lines = lines.splitlines()
@@ -1532,7 +1534,7 @@ def parse_lines(lines, definitions):
             incomplete_exc = exc
         else:
             if expression is not None:
-                result.append(expression)
+                yield expression
             query = ''
             incomplete_exc = None
 
@@ -1540,4 +1542,4 @@ def parse_lines(lines, definitions):
         # ran out of lines
         raise incomplete_exc
 
-    return result
+    raise StopIteration

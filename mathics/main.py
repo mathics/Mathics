@@ -234,12 +234,7 @@ def main():
         for expr in args.execute:
             # expr = expr.decode(shell.input_encoding)
             print(shell.get_in_prompt() + expr)
-            try:
-                query = parse(expr, shell.definitions)
-            except TranslateError as exc:
-                print(' : %s' % exc)
-            else:
-                shell.evaluate(expr, query)
+            shell.evaluate(expr, None)
         if not args.persist:
             return
 

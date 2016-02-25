@@ -14,9 +14,8 @@ import six
 from six.moves import zip
 
 import mathics
-from mathics.core.parser import parse
 from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation
+from mathics.core.evaluation import Evaluation, Result
 from mathics.builtin import builtins
 from mathics.doc import documentation
 from mathics import version_string
@@ -58,8 +57,7 @@ def test_case(test, tests, index=0, quiet=False):
         print('%4d. TEST %s' % (index, test))
     evaluation = Evaluation(definitions, catch_interrupt=False)
     try:
-        test_expr = parse(test, definitions)
-        results = evaluation.evaluate([test_expr])
+        results = evaluation.parse_evaluate(test)
     except Exception as exc:
         fail("Exception %s" % exc)
         info = sys.exc_info()
