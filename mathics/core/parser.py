@@ -665,10 +665,6 @@ class MathicsScanner:
         s = s.replace('\\n', '\n')
         return s
 
-    def t_comment(self, t):
-        r' (?s) \(\* .*? \*\) '
-        return None
-
     # Lex '1..' as [1, RepeatedNull]. MMA fails when base given e.g. '8^^1..'
     def t_intRepeated(self, t):
         r' (\d+\^\^[a-zA-Z0-9]+|\d+)(?=\.\.) '
@@ -795,6 +791,23 @@ class MathicsScanner:
         r' "([^\\"]|\\\\|\\"|\\n|\\r|\\r\\n)*" '
         t.value = self.string_escape(t.value[1:-1])
         return t
+
+    def t_comment(self, t):
+        r' \(\* '
+        count = 1
+        while count and self.lexer.lexpos <= len(self.lexer.lexdata) - 2:
+            c = self.lexer.lexdata[self.lexer.lexpos:self.lexer.lexpos+2]
+            if c == '(*':
+                count += 1
+                self.lexer.lexpos += 2
+            elif c == '*)':
+                count -= 1
+                self.lexer.lexpos += 2
+            else:
+                self.lexer.lexpos += 1
+        if count:       # reached the end with no close comment
+            raise IncompleteSyntaxError("Incomplete expression.")
+        return None
 
     @lex.TOKEN(r'{0}?_\.'.format(full_symb))
     def t_blankdefault(self, t):    # this must come before t_blanks
