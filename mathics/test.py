@@ -14,6 +14,7 @@ import six
 from six.moves import zip
 
 import mathics
+from mathics.core.parser import parse
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 from mathics.builtin import builtins
@@ -57,7 +58,8 @@ def test_case(test, tests, index=0, quiet=False):
         print('%4d. TEST %s' % (index, test))
     evaluation = Evaluation(definitions, catch_interrupt=False)
     try:
-        results = evaluation.evaluate(test)
+        test_expr = parse(test, definitions)
+        results = evaluation.evaluate([test_expr])
     except Exception as exc:
         fail("Exception %s" % exc)
         info = sys.exc_info()
@@ -116,8 +118,9 @@ def create_output(tests, output_xml, output_tex):
         definitions.reset_user_definitions()
         for test in tests.tests:
             key = test.key
-            result = Evaluation(
-                test.test, definitions, format=format, catch_interrupt=False)
+            evaluation = Evaluation(definitions, format=format, catch_interrupt=False)
+            query = parse(test.text, definitions)
+            evaluation.evaluate([query])
             output[key] = {
                 'query': test.test,
                 'results': [r.get_data() for r in result.results],

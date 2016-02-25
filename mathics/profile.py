@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import cProfile
 import pstats
 
+from mathics.core.parser import parse
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 
@@ -34,7 +35,7 @@ def run():
         # prompt = '1+2'
         prompt = 'DensityPlot[x*y,{x,-1,1},{y,-1,1}]'
         evaluation = Evaluation(definitions, format='xml')
-        results = evaluation.evaluate(prompt)
+        results = evaluation.evaluate([parse(prompt, definitions)])
         if results:
             result = results[0].result
     except KeyboardInterrupt:

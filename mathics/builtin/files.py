@@ -2097,52 +2097,26 @@ class Get(PrefixOperator):
 
     def apply(self, path, evaluation):
         'Get[path_String]'
+        from mathics.core.parser import parse_lines, TranslateError
+
         pypath = path.get_string_value()
         try:
             with mathics_open(pypath, 'r') as f:
-                result = f.readlines()
+                code = f.read()
         except IOError:
             evaluation.message('General', 'noopen', path)
             return Symbol('$Failed')
 
         try:
-            parse
-            ParseError
-        except NameError:
-            from mathics.core.parser import parse, ParseError
-
-        from mathics.main import wait_for_line
-
-        total_input = ""
-        syntax_error_count = 0
-        expr = Symbol('Null')
-
-        for lineno, tmp in enumerate(result):
-            total_input += ' ' + tmp
-            if wait_for_line(total_input):
-                continue
-            try:
-                expr = parse(total_input, evaluation.definitions)
-            except:  # FIXME: something weird is going on here
-                syntax_error_count += 1
-                if syntax_error_count <= 4:
-                    print("Syntax Error (line {0} of {1})".format(lineno + 1, pypath))
-                if syntax_error_count == 4:
-                    print("Supressing further syntax errors in {0}".format(pypath))
-            else:
-                if expr is not None:
-                    expr = expr.evaluate(evaluation)
-                total_input = ""
-
-        if total_input != "":
-            # TODO:
-            # evaluation.message('Syntax', 'sntue', 'line {0} of
-            # {1}'.format(lineno, pypath))
-            print('Unexpected end of file (probably unfinished expression)')
-            print('    (line {0} of "{1}").'.format(lineno, pypath))
+            expressions = parse_lines(code, evaluation.definitions)
+        except TranslateError as exc:
+            # TODO
+            # evaluation.message('Syntax', 'sntue', )
             return Symbol('Null')
 
-        return expr
+        for expression in expressions:
+            expression = expression.evaluate(evaluation)
+        return expression   # last expression
 
     def apply_default(self, filename, evaluation):
         'Get[filename_]'

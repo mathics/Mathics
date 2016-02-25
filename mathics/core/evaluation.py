@@ -162,34 +162,13 @@ class Evaluation(object):
         self.quiet_all = False
         self.quiet_messages = set()
         self.format = format
+        self.catch_interrupt = catch_interrupt
 
-
-    def evaluate(self, code, timeout=None):
-        from mathics.core.parser import parse, TranslateError
+    def evaluate(self, queries=[], timeout=None):
         from mathics.core.expression import Symbol, Expression, Integer
         from mathics.core.rules import Rule
 
-        queries = []
-        last_parse_error = None
-
-        lines = code.splitlines()
-        query = ''
-        for line in lines:
-            if line:
-                query += line
-                try:
-                    expression = parse(query, self.definitions)
-                    if expression is not None:
-                        queries.append(expression)
-                    query = ''
-                    last_parse_error = None
-                except TranslateError as exc:
-                    last_parse_error = exc
-            else:
-                query += ' '
-
         results = []
-
         for query in queries:
             self.recursion_depth = 0
             self.timeout = False
@@ -223,7 +202,7 @@ class Evaluation(object):
                 try:
                     result = run_with_timeout(evaluate, timeout)
                 except KeyboardInterrupt:
-                    if catch_interrupt:
+                    if self.catch_interrupt:
                         exc_result = Symbol('$Aborted')
                     else:
                         raise
@@ -270,12 +249,6 @@ class Evaluation(object):
                 if not (unset_in or unset_out):
                     break
                 line -= 1
-
-        if last_parse_error is not None:
-            self.recursion_depth = 0
-            self.stopped = False
-            self.message('General', 'syntax', six.text_type(last_parse_error))
-            results.append(Result(self.out, None, None))
         return results
 
     def get_stored_result(self, result):

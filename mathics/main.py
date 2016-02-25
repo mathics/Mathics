@@ -14,6 +14,7 @@ import locale
 from mathics.core.definitions import Definitions
 from mathics.core.expression import Integer, strip_context
 from mathics.core.evaluation import Evaluation
+from mathics.core.parser import parse, parse_lines, TranslateError, IncompleteSyntaxError
 from mathics import version_string, license_string, __version__
 from mathics import settings
 
@@ -91,7 +92,7 @@ class TerminalShell(object):
         line_number = self.get_last_line_number()
         return '{1}Out[{2}{0}{3}]= {4}'.format(line_number, *self.outcolors)
 
-    def evaluate(self, text):
+    def evaluate(self, text, query):
         def to_output(text):
             line_number = self.get_last_line_number()
             newline = '\n' + ' ' * len('Out[{0}]= '.format(line_number))
@@ -102,7 +103,7 @@ class TerminalShell(object):
 
         evaluation = Evaluation(self.definitions,
                                 out_callback=out_callback)
-        results = evaluation.evaluate(text, timeout=settings.TIMEOUT)
+        results = evaluation.evaluate(queries=[query], timeout=settings.TIMEOUT)
         for result in results:
             if result.result is not None:
                 print(self.get_out_prompt() +
@@ -162,40 +163,6 @@ class TerminalShell(object):
         if '`' not in text:
             matches = [strip_context(m) for m in matches]
         return matches
-
-
-# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/
-
-def wait_for_line(input_string):
-    """
-    Should the intepreter wait for another line of input or try to evaluate the
-    current line as is.
-    """
-    trailing_ops = ['+', '-', '/', '*', '^', '=',
-                    '>', '<', '/;', '/:', '/.', '&&', '||']
-    if any(input_string.rstrip().endswith(op) for op in trailing_ops):
-        return True
-
-    brackets = [('(', ')'), ('[', ']'), ('{', '}')]
-    kStart, kEnd, stack = 0, 1, []
-    in_string = False
-    for char in input_string:
-        if char == '"':
-            in_string = not in_string
-        if not in_string:
-            for bracketPair in brackets:
-                if char == bracketPair[kStart]:
-                    stack.append(char)
-                elif char == bracketPair[kEnd]:
-                    if len(stack) == 0:
-                        return False
-                    if stack.pop() != bracketPair[kStart]:
-                        # Brackets are not balanced, but return False so that a
-                        # parse error can be raised
-                        return False
-    if len(stack) == 0 and not in_string:
-        return False
-    return True
 
 
 def main():
@@ -267,28 +234,36 @@ def main():
         for expr in args.execute:
             # expr = expr.decode(shell.input_encoding)
             print(shell.get_in_prompt() + expr)
-            shell.evaluate(expr)
+            try:
+                query = parse(expr, shell.definitions)
+            except TranslateError as exc:
+                print(' : %s' % exc)
+            else:
+                shell.evaluate(expr, query)
         if not args.persist:
             return
 
     if args.FILE is not None:
-        total_input = ''
-        for line_no, line in enumerate(args.FILE):
+        lines = args.FILE
+        if args.script and lines[0].startswith('#!'):
+            lines[0] = ''
+        try:
+            queries = parse_lines(lines, shell.definitions)
+        except TranslateError as exc:
+            print(' : %s' % exc)
+            queries = []
+        except (KeyboardInterrupt):
+            queries = []
+
+        for query in queries:
             try:
-                # line = line.decode('utf-8')     # TODO: other encodings
-                if args.script and line_no == 0 and line.startswith('#!'):
-                    continue
-                print(shell.get_in_prompt(continued=total_input != '') + line.rstrip('\n'))
-                total_input += ' ' + line
-                if line != "" and wait_for_line(total_input):
-                    continue
-                shell.evaluate(total_input)
-                total_input = ""
+                shell.evaluate(query, '')
             except (KeyboardInterrupt):
                 print('\nKeyboardInterrupt')
             except (SystemExit, EOFError):
                 print("\n\nGood bye!\n")
                 break
+
         if not args.persist:
             return
 
@@ -298,9 +273,14 @@ def main():
             line = shell.read_line(
                 shell.get_in_prompt(continued=total_input != ''))
             total_input += line
-            if line != "" and wait_for_line(total_input):
+            try:
+                query = parse(total_input, shell.definitions)
+            except TranslateError as exc:
+                if line == '' or not isinstance(exc, IncompleteSyntaxError):
+                    print(" : %s" % exc)
+                    total_input = ""
                 continue
-            shell.evaluate(total_input)
+            shell.evaluate(total_input, query)
             total_input = ""
         except (KeyboardInterrupt):
             print('\nKeyboardInterrupt')

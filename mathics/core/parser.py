@@ -34,6 +34,14 @@ class ParseError(TranslateError):
     pass
 
 
+class InvalidSyntaxError(ParseError):
+    pass
+
+
+class IncompleteSyntaxError(ParseError):
+    pass
+
+
 # Symbols can be any letters
 base_symb = r'((?![0-9])([0-9${0}{1}])+)'.format(letters, letterlikes)
 full_symb = r'(`?{0}(`{0})*)'.format(base_symb)
@@ -1014,9 +1022,10 @@ class MathicsParser:
         return Symbol(self.definitions.lookup_name(name))
 
     def p_error(self, p):
-        if p is not None:
-            p = p.value
-        raise ParseError("Parse error at or near token %s." % p)
+        if p is None:
+            raise IncompleteSyntaxError("Incomplete expression.")
+        else:
+            raise InvalidSyntaxError("Parse error at or near token %s." % p.value)
 
     def parse(self, string, definitions):
         self.definitions = definitions
@@ -1496,3 +1505,39 @@ class SystemDefinitions(object):
 # in the input is created in the System` context.
 def parse_builtin_rule(string):
     return parse(string, SystemDefinitions())
+
+
+def parse_lines(lines, definitions):
+    '''
+    Given some lines of code try to construct a list of expressions.
+
+    In the case of incomplete lines append more lines until a complete
+    expression is found. If the end is reached and no complete expression is
+    found then reraise the exception.
+    '''
+    result = []
+    query = ''
+    if isinstance(lines, six.text_type):
+        lines = lines.splitlines()
+
+    incomplete_exc = None
+    for line in lines:
+        if not line:
+            query += ' '
+            continue
+        query += line
+        try:
+            expression = parse(query, definitions)
+        except IncompleteSyntaxError as exc:
+            incomplete_exc = exc
+        else:
+            if expression is not None:
+                result.append(expression)
+            query = ''
+            incomplete_exc = None
+
+    if incomplete_exc is not None:
+        # ran out of lines
+        raise incomplete_exc
+
+    return result

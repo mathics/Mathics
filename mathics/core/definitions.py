@@ -64,12 +64,12 @@ class Definitions(object):
                     builtin_file = open(builtin_filename, 'wb')
                     pickle.dump(self.builtin, builtin_file, -1)
 
-            for root, dirs, files in os.walk(   # noqa
-                os.path.join(ROOT_DIR, 'autoload')):
+            # for root, dirs, files in os.walk(   # noqa
+            #     os.path.join(ROOT_DIR, 'autoload')):
 
-                for path in [os.path.join(root, f) for f in files
-                             if f.endswith('.m')]:
-                    Expression('Get', String(path)).evaluate(Evaluation(self))
+            #     for path in [os.path.join(root, f) for f in files
+            #                  if f.endswith('.m')]:
+            #         Expression('Get', String(path)).evaluate(Evaluation(self))
 
             # Move any user definitions created by autoloaded files to
             # builtins, and clear out the user definitions list. This
