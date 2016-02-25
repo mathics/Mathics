@@ -61,7 +61,7 @@ def run_with_timeout(request, timeout):
     if timeout is None:
         return request()
 
-    queue = Queue(maxsize=1) # stores the result or exception
+    queue = Queue(maxsize=1)   # stores the result or exception
     thread = Thread(target=_thread_target, args=(request, queue))
     thread.start()
 
@@ -166,15 +166,14 @@ class Evaluation(object):
 
     def parse_evaluate(self, lines, timeout=None):
         from mathics.core.parser import parse_lines, TranslateError
+        expr_gen = parse_lines(lines, self.definitions)
         try:
-            exprs = parse_lines(lines, self.definitions)
+            return self.evaluate(expr_gen, timeout=timeout)
         except TranslateError as exc:
             self.recursion_depth = 0
             self.stopped = False
             self.message('General', 'syntax', six.text_type(exc))
             return [Result(self.out, None, None)]
-
-        return self.evaluate(exprs, timeout=timeout)
 
     def evaluate(self, queries=[], timeout=None):
         from mathics.core.expression import Symbol, Expression, Integer

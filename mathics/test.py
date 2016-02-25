@@ -15,7 +15,7 @@ from six.moves import zip
 
 import mathics
 from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation, Result
+from mathics.core.evaluation import Evaluation
 from mathics.builtin import builtins
 from mathics.doc import documentation
 from mathics import version_string

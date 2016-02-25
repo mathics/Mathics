@@ -2105,16 +2105,15 @@ class Get(PrefixOperator):
             evaluation.message('General', 'noopen', path)
             return Symbol('$Failed')
 
+        expr_gen = parse_lines(code, evaluation.definitions)
         try:
-            expressions = parse_lines(code, evaluation.definitions)
+            for expr in expr_gen:
+                expr = expr.evaluate(evaluation)
         except TranslateError as exc:
             # TODO
             # evaluation.message('Syntax', 'sntue', )
             return Symbol('Null')
-
-        for expression in expressions:
-            expression = expression.evaluate(evaluation)
-        return expression   # last expression
+        return expr   # last expression
 
     def apply_default(self, filename, evaluation):
         'Get[filename_]'

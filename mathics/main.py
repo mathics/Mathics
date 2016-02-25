@@ -242,22 +242,17 @@ def main():
         lines = args.FILE
         if args.script and lines[0].startswith('#!'):
             lines[0] = ''
+
+        query_gen = parse_lines(lines, shell.definitions)
         try:
-            queries = parse_lines(lines, shell.definitions)
+            for query in query_gen:
+                shell.evaluate(query, '')
         except TranslateError as exc:
             print(' : %s' % exc)
-            queries = []
         except (KeyboardInterrupt):
-            queries = []
-
-        for query in queries:
-            try:
-                shell.evaluate(query, '')
-            except (KeyboardInterrupt):
-                print('\nKeyboardInterrupt')
-            except (SystemExit, EOFError):
-                print("\n\nGood bye!\n")
-                break
+            print('\nKeyboardInterrupt')
+        except (SystemExit, EOFError):
+            print("\n\nGood bye!\n")
 
         if not args.persist:
             return
