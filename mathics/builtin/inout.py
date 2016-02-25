@@ -1041,6 +1041,28 @@ class MessageName(BinaryOperator):
             return expr
 
 
+class Syntax(Builtin):
+    """
+    'Syntax' is a symbol to which all syntax messages are assigned.
+
+    >> 1 +
+     : Syntax::tsntxi: "1+" is incomplete; more input is needed.
+     : Syntax::sntxi: Incomplete expression; more input is needed .
+
+    >> Sin[1)
+    """
+
+    messages = {
+        'bktmch': '"`1`" must be followed by "`2`", not "`3`"`4`.',
+        'bktmcp': 'Expression "`1`" has no closing "`2`"`4`.',
+        'bktmop': 'Expression "`1`" has no opening "`2`"`4`.',
+        'bktwrn': '"`1`" represents multiplication; use "`2`" to represent a function`4`.',
+        'sntue': 'Unexpected end of file (probably unfinished expression) `4`.',
+        'sntxi': 'Incomplete expression; more input is needed `4`.',
+        'tsntxi': '"`1`" is incomplete; more input is needed.`4`',
+    }
+
+
 class General(Builtin):
     """
     'General' is a symbol to which all general-purpose messages are assigned.

@@ -164,7 +164,20 @@ class Evaluation(object):
         self.format = format
         self.catch_interrupt = catch_interrupt
 
+    def parse(self, query, timeout=None):
+        'parse a single line and capture the exceptions as messages'
+        from mathics.core.parser import parse, TranslateError
+        try:
+            expr = parse(query, self.definitions)
+        except TranslateError as exc:
+            self.recursion_depth = 0
+            self.stopped = False
+            self.message('General', 'syntax', six.text_type(exc))
+            return []
+        return [expr]
+
     def parse_evaluate(self, lines, timeout=None):
+        'parse multiple lines of code and evaluate them'
         from mathics.core.parser import parse_lines, TranslateError
         expr_gen = parse_lines(lines, self.definitions)
         try:
@@ -176,6 +189,7 @@ class Evaluation(object):
             return [Result(self.out, None, None)]
 
     def evaluate(self, queries=[], timeout=None):
+        'evaluate a list of expressions'
         from mathics.core.expression import Symbol, Expression, Integer
         from mathics.core.rules import Rule
 

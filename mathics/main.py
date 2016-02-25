@@ -92,27 +92,24 @@ class TerminalShell(object):
         line_number = self.get_last_line_number()
         return '{1}Out[{2}{0}{3}]= {4}'.format(line_number, *self.outcolors)
 
-    def evaluate(self, text, query):
-        def to_output(text):
-            line_number = self.get_last_line_number()
-            newline = '\n' + ' ' * len('Out[{0}]= '.format(line_number))
-            return newline.join(text.splitlines())
+    def to_output(self, text):
+        line_number = self.get_last_line_number()
+        newline = '\n' + ' ' * len('Out[{0}]= '.format(line_number))
+        return newline.join(text.splitlines())
 
-        def out_callback(out):
-            print(to_output(six.text_type(out)))
-
-        evaluation = Evaluation(self.definitions,
-                                out_callback=out_callback)
-        results = evaluation.evaluate(queries=[query], timeout=settings.TIMEOUT)
-        for result in results:
-            if result.result is not None:
-                print(self.get_out_prompt() +
-                      to_output(six.text_type(result.result)) + '\n')
+    def out_callback(self, out):
+        print(self.to_output(six.text_type(out)))
 
     def read_line(self, prompt):
         if self.using_readline:
             return self.rl_read_line(prompt)
         return input(prompt)
+
+    def print_results(self, results):
+        for result in results:
+            if result.result is not None:
+                output = self.to_output(six.text_type(result.result))
+                print(self.get_out_prompt() + output + '\n')
 
     def rl_read_line(self, prompt):
         # Wrap ANSI colour sequences in \001 and \002, so readline
@@ -232,23 +229,30 @@ def main():
 
     if args.execute:
         for expr in args.execute:
-            # expr = expr.decode(shell.input_encoding)
             print(shell.get_in_prompt() + expr)
-            shell.evaluate(expr, None)
+            evaluation = Evaluation(shell.definitions, out_callback=shell.out_callback)
+            exprs = evaluation.parse(expr)
+            results = evaluation.evaluate(exprs, timeout=settings.TIMEOUT)
+            shell.print_results(results)
+
         if not args.persist:
             return
 
     if args.FILE is not None:
-        lines = args.FILE
+        lines = args.FILE.readlines()
         if args.script and lines[0].startswith('#!'):
             lines[0] = ''
 
+        results = []
         query_gen = parse_lines(lines, shell.definitions)
+        evaluation = Evaluation(shell.definitions, out_callback=shell.out_callback)
         try:
             for query in query_gen:
-                shell.evaluate(query, '')
+                results.extend(evaluation.evaluate([query], timeout=settings.TIMEOUT))
         except TranslateError as exc:
-            print(' : %s' % exc)
+            evaluation.recursion_depth = 0
+            evaluation.stopped = False
+            evaluation.message('General', 'syntax', six.text_type(exc))
         except (KeyboardInterrupt):
             print('\nKeyboardInterrupt')
         except (SystemExit, EOFError):
@@ -260,18 +264,21 @@ def main():
     total_input = ""
     while True:
         try:
-            line = shell.read_line(
-                shell.get_in_prompt(continued=total_input != ''))
+            evaluation = Evaluation(shell.definitions, out_callback=shell.out_callback)
+            line = shell.read_line(shell.get_in_prompt(continued=total_input != ''))
             total_input += line
             try:
                 query = parse(total_input, shell.definitions)
             except TranslateError as exc:
                 if line == '' or not isinstance(exc, IncompleteSyntaxError):
-                    print(" : %s" % exc)
+                    evaluation.message('General', 'syntax', six.text_type(exc))
                     total_input = ""
                 continue
-            shell.evaluate(total_input, query)
             total_input = ""
+            if query is None:
+                continue
+            results = evaluation.evaluate([query], timeout=settings.TIMEOUT)
+            shell.print_results(results)
         except (KeyboardInterrupt):
             print('\nKeyboardInterrupt')
         except (SystemExit, EOFError):
