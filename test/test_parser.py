@@ -8,7 +8,7 @@ import sys
 import random
 import unittest
 
-from mathics.core.parser import parse, ParseError, ScanError
+from mathics.core.parser import parse, ParseError, ScanError, IncompleteSyntaxError, InvalidSyntaxError
 from mathics.core.expression import (Expression, Real, Integer, String,
                                      Rational, Symbol)
 from mathics.core.definitions import Definitions
@@ -37,13 +37,22 @@ class ParserTests(unittest.TestCase):
         if isinstance(expr2, six.string_types):
             expr2 = parse(expr2)
 
-        self.assertTrue(expr1.same(expr2))
+        if expr1 is None:
+            self.assertTrue(expr2 is None)
+        else:
+            self.assertTrue(expr1.same(expr2))
 
     def lex_error(self, string):
         self.assertRaises(ScanError, parse, string)
 
     def parse_error(self, string):
         self.assertRaises(ParseError, parse, string)
+
+    def incomplete_error(self, string):
+        self.assertRaises(IncompleteSyntaxError, parse, string)
+
+    def invalid_error(self, string):
+        self.assertRaises(InvalidSyntaxError, parse, string)
 
 
 class NumberTests(ParserTests):
@@ -122,6 +131,16 @@ class NumberTests(ParserTests):
 
     def testComment(self):
         self.check('145 (* abf *) 345', Expression('Times', Integer(145), Integer(345)))
+        self.check(r'(*"\"\*)', None)
+        self.check(r'(**)', None)
+        self.check(r'(*)*)', None)
+        self.incomplete_error(r'(*(*(*')
+        self.incomplete_error(r'(*(*)')
+        self.incomplete_error(r'(*(**)')
+        self.invalid_error(r'*)')
+        self.invalid_error(r'(**)*)')
+        self.invalid_error(r'(*(*(**)*)*)*)')
+        self.check(r'(*(*)*) (*)*)*)', None)
 
     def testNone(self):
         self.assertIs(parse(''), None)
