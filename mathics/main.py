@@ -252,7 +252,7 @@ def main():
         except TranslateError as exc:
             evaluation.recursion_depth = 0
             evaluation.stopped = False
-            evaluation.message('General', 'syntax', six.text_type(exc))
+            evaluation.message('Syntax', exc.msg, *exc.args)
         except (KeyboardInterrupt):
             print('\nKeyboardInterrupt')
         except (SystemExit, EOFError):
@@ -271,7 +271,7 @@ def main():
                 query = parse(total_input, shell.definitions)
             except TranslateError as exc:
                 if line == '' or not isinstance(exc, IncompleteSyntaxError):
-                    evaluation.message('General', 'syntax', six.text_type(exc))
+                    evaluation.message('Syntax', exc.msg, *exc.args)
                     total_input = ""
                 continue
             total_input = ""

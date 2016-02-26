@@ -8,7 +8,7 @@ import sys
 import random
 import unittest
 
-from mathics.core.parser import parse, ParseError, ScanError, IncompleteSyntaxError, InvalidSyntaxError
+from mathics.core.parser import parse, ScanError, IncompleteSyntaxError, InvalidSyntaxError
 from mathics.core.expression import (Expression, Real, Integer, String,
                                      Rational, Symbol)
 from mathics.core.definitions import Definitions
@@ -44,9 +44,6 @@ class ParserTests(unittest.TestCase):
 
     def lex_error(self, string):
         self.assertRaises(ScanError, parse, string)
-
-    def parse_error(self, string):
-        self.assertRaises(ParseError, parse, string)
 
     def incomplete_error(self, string):
         self.assertRaises(IncompleteSyntaxError, parse, string)
@@ -444,18 +441,26 @@ class NumberTests(ParserTests):
         self.check('\\(1 \\` 2\\)', Expression('FormBox', Integer(2), Integer(1)))
 
     def testParseError(self):
-        self.assertRaises(ParseError, parse, '1+')
+        self.incomplete_error('1+')
 
-    def testBracketMatching(self):
-        self.assertRaises(ParseError, parse, 'x)')      # bktmop
-        self.assertRaises(ParseError, parse, 'x]')      # bktmop
-        self.assertRaises(ParseError, parse, 'x}')      # bktmop
-        self.assertRaises(ParseError, parse, 'x]]')     # bktmop
-        self.assertRaises(ParseError, parse, '(x,')     # bktmcp
-        self.assertRaises(ParseError, parse, '(x')      # bktmcp
-        self.assertRaises(ParseError, parse, '[x')      # bktmcp
-        self.assertRaises(ParseError, parse, '{x')      # bktmcp
-        self.assertRaises(ParseError, parse, '[[x')     # bktmcp
+    def testBracketInvalid(self):
+        self.invalid_error('x)')      # bktmop
+        self.invalid_error('x]')      # bktmop
+        self.invalid_error('x}')      # bktmop
+        self.invalid_error('x]]')     # bktmop
+
+    def testBracketIncomplete(self):
+        self.incomplete_error('(x')     # bktmcp
+        self.incomplete_error('f[x')    # bktmcp
+        self.incomplete_error('{x')     # bktmcp
+        self.incomplete_error('f[[x')   # bktmcp
+
+    def testBracketIncompleteInvalid(self):
+        self.invalid_error('(x,')
+        self.incomplete_error('(x')
+        self.invalid_error('[x')
+        self.incomplete_error('{x')
+        self.invalid_error('[[x')
 
 
 if __name__ == "__main__":

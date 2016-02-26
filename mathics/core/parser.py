@@ -23,23 +23,21 @@ from six import unichr
 
 
 class TranslateError(Exception):
-    pass
+    def __init__(self, pos, *args):
+        self.pos = pos
+        self.args = args
 
 
 class ScanError(TranslateError):
-    pass
+    msg = 'scan'
 
 
-class ParseError(TranslateError):
-    pass
+class InvalidSyntaxError(TranslateError):
+    msg = 'invalid'
 
 
-class InvalidSyntaxError(ParseError):
-    pass
-
-
-class IncompleteSyntaxError(ParseError):
-    pass
+class IncompleteSyntaxError(TranslateError):
+    msg = 'incomplete'
 
 
 # Symbols can be any letters
@@ -802,7 +800,7 @@ class MathicsScanner:
             else:
                 self.lexer.lexpos += 1
         if end_pos is None:     # reached the end still in a string
-            raise IncompleteSyntaxError("Incomplete expression.")
+            raise IncompleteSyntaxError(self.lexer.lexpos)
         t.value = self.string_escape(self.lexer.lexdata[start_pos:end_pos])
         return t
 
@@ -820,7 +818,7 @@ class MathicsScanner:
             else:
                 self.lexer.lexpos += 1
         if count:       # reached the end with no close comment
-            raise IncompleteSyntaxError("Incomplete expression.")
+            raise IncompleteSyntaxError(self.lexer.lexpos)
         return None
 
     @lex.TOKEN(r'{0}?_\.'.format(full_symb))
@@ -921,7 +919,7 @@ class MathicsScanner:
         return t
 
     def t_ANY_error(self, t):
-        raise ScanError("Lexical error at position {0} in '{1}'.".format(self.lexer.lexpos, t.value))
+        raise ScanError(self.lexer.lexpos, six.text_type(self.lexer.lexpos), t.value)
 
 
 class AbstractToken(object):
@@ -1050,9 +1048,10 @@ class MathicsParser:
 
     def p_error(self, p):
         if p is None:
-            raise IncompleteSyntaxError("Incomplete expression.")
+            # TODO find the current rule and report a better error message
+            raise IncompleteSyntaxError(-1)  # TODO proper lexpos
         else:
-            raise InvalidSyntaxError("Parse error at or near token %s." % p.value)
+            raise InvalidSyntaxError(p.lexpos, p.value)
 
     def parse(self, string, definitions):
         self.definitions = definitions

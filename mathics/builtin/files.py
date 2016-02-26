@@ -2110,7 +2110,7 @@ class Get(PrefixOperator):
             for expr in expr_gen:
                 expr = expr.evaluate(evaluation)
         except TranslateError as exc:
-            evaluation.message('Syntax', 'tsntxi', '%s' % exc, '')
+            evaluation.message('Syntax', exc.msg, *exc.args)
             return Symbol('Null')
         return expr   # last expression
 

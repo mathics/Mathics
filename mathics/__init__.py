@@ -48,7 +48,3 @@ This program comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
 under certain conditions.
 See the documentation for the full license.'''
-
-
-# this import is last to handle a circlular dependency on version_string
-from mathics.core.parser import parse, ScanError, ParseError    # nopep8

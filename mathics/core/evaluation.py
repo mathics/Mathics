@@ -172,7 +172,7 @@ class Evaluation(object):
         except TranslateError as exc:
             self.recursion_depth = 0
             self.stopped = False
-            self.message('General', 'syntax', six.text_type(exc))
+            self.message('Syntax', exc.msg, *exc.args)
             return []
         return [expr]
 
@@ -185,7 +185,7 @@ class Evaluation(object):
         except TranslateError as exc:
             self.recursion_depth = 0
             self.stopped = False
-            self.message('General', 'syntax', six.text_type(exc))
+            self.message('Syntax', exc.msg, *exc.args)
             return [Result(self.out, None, None)]
 
     def evaluate(self, queries=[], timeout=None):
