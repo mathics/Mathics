@@ -142,6 +142,14 @@ class NumberTests(ParserTests):
         self.invalid_error(r'(*(*(**)*)*)*)')
         self.check(r'(*(*)*) (*)*)*)', None)
 
+    def testString(self):
+        self.check(r'"abc"', String('abc'))
+        self.incomplete_error(r'"abc')
+        self.check(r'"abc(*def*)"', String('abc(*def*)'))
+        self.check(r'"a\"b\\c"', String(r'a"b\c'))
+        self.incomplete_error(r'"\"')
+        self.invalid_error(r'\""')
+
     def testNone(self):
         self.assertIs(parse(''), None)
         self.assertIs(parse('(*fdasf *)'), None)

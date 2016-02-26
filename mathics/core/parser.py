@@ -788,8 +788,22 @@ class MathicsScanner:
         return t
 
     def t_string(self, t):
-        r' "([^\\"]|\\\\|\\"|\\n|\\r|\\r\\n)*" '
-        t.value = self.string_escape(t.value[1:-1])
+        r' " '
+        start_pos = self.lexer.lexpos
+        end_pos = None
+        while self.lexer.lexpos < len(self.lexer.lexdata):
+            c = self.lexer.lexdata[self.lexer.lexpos]
+            if c == '"':
+                end_pos = self.lexer.lexpos
+                self.lexer.lexpos += 1
+                break
+            elif c == '\\':
+                self.lexer.lexpos += 2
+            else:
+                self.lexer.lexpos += 1
+        if end_pos is None:     # reached the end still in a string
+            raise IncompleteSyntaxError("Incomplete expression.")
+        t.value = self.string_escape(self.lexer.lexdata[start_pos:end_pos])
         return t
 
     def t_comment(self, t):
