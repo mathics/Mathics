@@ -35,7 +35,7 @@ def run():
         # prompt = '1+2'
         prompt = 'DensityPlot[x*y,{x,-1,1},{y,-1,1}]'
         evaluation = Evaluation(definitions, format='xml')
-        results = evaluation.evaluate([parse(prompt, definitions)])
+        results = evaluation.parse_evaluate(prompt)
         if results:
             result = results[0].result
     except KeyboardInterrupt:
