@@ -24,7 +24,7 @@ To get a full list of avaiable commands, read the output of:
 
     python setup.py --help-commands
 
-Or, if all else fails, feel free to write to the sympy list at
+Or, if all else fails, feel free to write to the mathics users list at
 mathics-users@googlegroups.com and ask for help.
 """
 
@@ -191,7 +191,8 @@ setup(
     author_email="mathics@angusgriffith.com",
     description="A general-purpose computer algebra system.",
     license="GPL",
-    url="http://www.mathics.github.io/",
+    url="https://mathics.github.io/",
+    download_url="https://github.com/mathics/Mathics/tarball/v0.9",
     keywords=['Mathematica', 'Wolfram', 'Interpreter', 'Shell', 'Math', 'CAS'],
     classifiers=[
         'Intended Audience :: Developers',
