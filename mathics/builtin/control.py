@@ -44,9 +44,9 @@ class CompoundExpression(BinaryOperator):
     #> FullForm[Hold[a ; ;]]
      = Hold[CompoundExpression[a, Null, Null]]
     #> FullForm[Hold[; a]]
-     : Parse error at or near token ;.
+     : Invalid syntax at or near token ;.
     #> FullForm[Hold[; a ;]]
-     : Parse error at or near token ;.
+     : Invalid syntax at or near token ;.
     """
 
     operator = ';'

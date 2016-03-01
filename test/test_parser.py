@@ -8,7 +8,7 @@ import sys
 import random
 import unittest
 
-from mathics.core.parser import parse, ParseError, ScanError
+from mathics.core.parser import parse, ScanError, IncompleteSyntaxError, InvalidSyntaxError
 from mathics.core.expression import (Expression, Real, Integer, String,
                                      Rational, Symbol)
 from mathics.core.definitions import Definitions
@@ -37,13 +37,19 @@ class ParserTests(unittest.TestCase):
         if isinstance(expr2, six.string_types):
             expr2 = parse(expr2)
 
-        self.assertTrue(expr1.same(expr2))
+        if expr1 is None:
+            self.assertTrue(expr2 is None)
+        else:
+            self.assertTrue(expr1.same(expr2))
 
     def lex_error(self, string):
         self.assertRaises(ScanError, parse, string)
 
-    def parse_error(self, string):
-        self.assertRaises(ParseError, parse, string)
+    def incomplete_error(self, string):
+        self.assertRaises(IncompleteSyntaxError, parse, string)
+
+    def invalid_error(self, string):
+        self.assertRaises(InvalidSyntaxError, parse, string)
 
 
 class NumberTests(ParserTests):
@@ -122,6 +128,24 @@ class NumberTests(ParserTests):
 
     def testComment(self):
         self.check('145 (* abf *) 345', Expression('Times', Integer(145), Integer(345)))
+        self.check(r'(*"\"\*)', None)
+        self.check(r'(**)', None)
+        self.check(r'(*)*)', None)
+        self.incomplete_error(r'(*(*(*')
+        self.incomplete_error(r'(*(*)')
+        self.incomplete_error(r'(*(**)')
+        self.invalid_error(r'*)')
+        self.invalid_error(r'(**)*)')
+        self.invalid_error(r'(*(*(**)*)*)*)')
+        self.check(r'(*(*)*) (*)*)*)', None)
+
+    def testString(self):
+        self.check(r'"abc"', String('abc'))
+        self.incomplete_error(r'"abc')
+        self.check(r'"abc(*def*)"', String('abc(*def*)'))
+        self.check(r'"a\"b\\c"', String(r'a"b\c'))
+        self.incomplete_error(r'"\"')
+        self.invalid_error(r'\""')
 
     def testNone(self):
         self.assertIs(parse(''), None)
@@ -417,18 +441,26 @@ class NumberTests(ParserTests):
         self.check('\\(1 \\` 2\\)', Expression('FormBox', Integer(2), Integer(1)))
 
     def testParseError(self):
-        self.assertRaises(ParseError, parse, '1+')
+        self.incomplete_error('1+')
 
-    def testBracketMatching(self):
-        self.assertRaises(ParseError, parse, 'x)')      # bktmop
-        self.assertRaises(ParseError, parse, 'x]')      # bktmop
-        self.assertRaises(ParseError, parse, 'x}')      # bktmop
-        self.assertRaises(ParseError, parse, 'x]]')     # bktmop
-        self.assertRaises(ParseError, parse, '(x,')     # bktmcp
-        self.assertRaises(ParseError, parse, '(x')      # bktmcp
-        self.assertRaises(ParseError, parse, '[x')      # bktmcp
-        self.assertRaises(ParseError, parse, '{x')      # bktmcp
-        self.assertRaises(ParseError, parse, '[[x')     # bktmcp
+    def testBracketInvalid(self):
+        self.invalid_error('x)')      # bktmop
+        self.invalid_error('x]')      # bktmop
+        self.invalid_error('x}')      # bktmop
+        self.invalid_error('x]]')     # bktmop
+
+    def testBracketIncomplete(self):
+        self.incomplete_error('(x')     # bktmcp
+        self.incomplete_error('f[x')    # bktmcp
+        self.incomplete_error('{x')     # bktmcp
+        self.incomplete_error('f[[x')   # bktmcp
+
+    def testBracketIncompleteInvalid(self):
+        self.invalid_error('(x,')
+        self.incomplete_error('(x')
+        self.invalid_error('[x')
+        self.incomplete_error('{x')
+        self.invalid_error('[[x')
 
 
 if __name__ == "__main__":

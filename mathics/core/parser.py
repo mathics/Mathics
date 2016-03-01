@@ -23,15 +23,21 @@ from six import unichr
 
 
 class TranslateError(Exception):
-    pass
+    def __init__(self, pos, *args):
+        self.pos = pos
+        self.args = args
 
 
 class ScanError(TranslateError):
-    pass
+    msg = 'scan'
 
 
-class ParseError(TranslateError):
-    pass
+class InvalidSyntaxError(TranslateError):
+    msg = 'invalid'
+
+
+class IncompleteSyntaxError(TranslateError):
+    msg = 'incomplete'
 
 
 # Symbols can be any letters
@@ -657,10 +663,6 @@ class MathicsScanner:
         s = s.replace('\\n', '\n')
         return s
 
-    def t_comment(self, t):
-        r' (?s) \(\* .*? \*\) '
-        return None
-
     # Lex '1..' as [1, RepeatedNull]. MMA fails when base given e.g. '8^^1..'
     def t_intRepeated(self, t):
         r' (\d+\^\^[a-zA-Z0-9]+|\d+)(?=\.\.) '
@@ -784,9 +786,40 @@ class MathicsScanner:
         return t
 
     def t_string(self, t):
-        r' "([^\\"]|\\\\|\\"|\\n|\\r|\\r\\n)*" '
-        t.value = self.string_escape(t.value[1:-1])
+        r' " '
+        start_pos = self.lexer.lexpos
+        end_pos = None
+        while self.lexer.lexpos < len(self.lexer.lexdata):
+            c = self.lexer.lexdata[self.lexer.lexpos]
+            if c == '"':
+                end_pos = self.lexer.lexpos
+                self.lexer.lexpos += 1
+                break
+            elif c == '\\':
+                self.lexer.lexpos += 2
+            else:
+                self.lexer.lexpos += 1
+        if end_pos is None:     # reached the end still in a string
+            raise IncompleteSyntaxError(self.lexer.lexpos)
+        t.value = self.string_escape(self.lexer.lexdata[start_pos:end_pos])
         return t
+
+    def t_comment(self, t):
+        r' \(\* '
+        count = 1
+        while count and self.lexer.lexpos <= len(self.lexer.lexdata) - 2:
+            c = self.lexer.lexdata[self.lexer.lexpos:self.lexer.lexpos+2]
+            if c == '(*':
+                count += 1
+                self.lexer.lexpos += 2
+            elif c == '*)':
+                count -= 1
+                self.lexer.lexpos += 2
+            else:
+                self.lexer.lexpos += 1
+        if count:       # reached the end with no close comment
+            raise IncompleteSyntaxError(self.lexer.lexpos)
+        return None
 
     @lex.TOKEN(r'{0}?_\.'.format(full_symb))
     def t_blankdefault(self, t):    # this must come before t_blanks
@@ -886,7 +919,7 @@ class MathicsScanner:
         return t
 
     def t_ANY_error(self, t):
-        raise ScanError("Lexical error at position {0} in '{1}'.".format(self.lexer.lexpos, t.value))
+        raise ScanError(self.lexer.lexpos, six.text_type(self.lexer.lexpos), t.value)
 
 
 class AbstractToken(object):
@@ -1014,9 +1047,11 @@ class MathicsParser:
         return Symbol(self.definitions.lookup_name(name))
 
     def p_error(self, p):
-        if p is not None:
-            p = p.value
-        raise ParseError("Parse error at or near token %s." % p)
+        if p is None:
+            # TODO find the current rule and report a better error message
+            raise IncompleteSyntaxError(-1)  # TODO proper lexpos
+        else:
+            raise InvalidSyntaxError(p.lexpos, p.value)
 
     def parse(self, string, definitions):
         self.definitions = definitions
@@ -1496,3 +1531,41 @@ class SystemDefinitions(object):
 # in the input is created in the System` context.
 def parse_builtin_rule(string):
     return parse(string, SystemDefinitions())
+
+
+def parse_lines(lines, definitions):
+    '''
+    Given some lines of code try to construct a list of expressions.
+
+    In the case of incomplete lines append more lines until a complete
+    expression is found. If the end is reached and no complete expression is
+    found then reraise the exception.
+
+    We use a generator so that each expression can be evaluated (as the parser
+    is dependent on defintions and evaluation may change the definitions).
+    '''
+    query = ''
+    if isinstance(lines, six.text_type):
+        lines = lines.splitlines()
+
+    incomplete_exc = None
+    for line in lines:
+        if not line:
+            query += ' '
+            continue
+        query += line
+        try:
+            expression = parse(query, definitions)
+        except IncompleteSyntaxError as exc:
+            incomplete_exc = exc
+        else:
+            if expression is not None:
+                yield expression
+            query = ''
+            incomplete_exc = None
+
+    if incomplete_exc is not None:
+        # ran out of lines
+        raise incomplete_exc
+
+    raise StopIteration

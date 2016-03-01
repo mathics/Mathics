@@ -61,7 +61,7 @@ def run_with_timeout(request, timeout):
     if timeout is None:
         return request()
 
-    queue = Queue(maxsize=1) # stores the result or exception
+    queue = Queue(maxsize=1)   # stores the result or exception
     thread = Thread(target=_thread_target, args=(request, queue))
     thread.start()
 
@@ -144,7 +144,7 @@ class Result(object):
 
 
 class Evaluation(object):
-    def __init__(self, input=None, definitions=None, timeout=None,
+    def __init__(self, definitions=None,
                  out_callback=None, format='text', catch_interrupt=True):
         from mathics.core.definitions import Definitions
 
@@ -161,39 +161,43 @@ class Evaluation(object):
 
         self.quiet_all = False
         self.quiet_messages = set()
-
         self.format = format
+        self.catch_interrupt = catch_interrupt
 
-        queries = []
-        last_parse_error = None
-        if input is not None:
-            from mathics.core.parser import parse, TranslateError
+    def parse(self, query, timeout=None):
+        'parse a single line and capture the exceptions as messages'
+        from mathics.core.parser import parse, TranslateError
+        try:
+            expr = parse(query, self.definitions)
+        except TranslateError as exc:
+            self.recursion_depth = 0
+            self.stopped = False
+            self.message('Syntax', exc.msg, *exc.args)
+            return []
+        return [expr]
 
-            lines = input.splitlines()
-            query = ''
-            for line in lines:
-                if line:
-                    query += line
-                    try:
-                        expression = parse(query, self.definitions)
-                        if expression is not None:
-                            queries.append(expression)
-                        query = ''
-                        last_parse_error = None
-                    except TranslateError as exc:
-                        last_parse_error = exc
-                else:
-                    query += ' '
+    def parse_evaluate(self, lines, timeout=None):
+        'parse multiple lines of code and evaluate them'
+        from mathics.core.parser import parse_lines, TranslateError
+        expr_gen = parse_lines(lines, self.definitions)
+        try:
+            return self.evaluate(expr_gen, timeout=timeout)
+        except TranslateError as exc:
+            self.recursion_depth = 0
+            self.stopped = False
+            self.message('Syntax', exc.msg, *exc.args)
+            return [Result(self.out, None, None)]
 
-        self.results = []
+    def evaluate(self, queries=[], timeout=None):
+        'evaluate a list of expressions'
+        from mathics.core.expression import Symbol, Expression, Integer
+        from mathics.core.rules import Rule
 
+        results = []
         for query in queries:
             self.recursion_depth = 0
             self.timeout = False
             self.stopped = False
-
-            from mathics.core.expression import Symbol, Expression, Integer
-            from mathics.core.rules import Rule
 
             line_no = self.get_config_value('$Line', 0)
             line_no += 1
@@ -223,7 +227,7 @@ class Evaluation(object):
                 try:
                     result = run_with_timeout(evaluate, timeout)
                 except KeyboardInterrupt:
-                    if catch_interrupt:
+                    if self.catch_interrupt:
                         exc_result = Symbol('$Aborted')
                     else:
                         raise
@@ -255,7 +259,7 @@ class Evaluation(object):
                     self.recursion_depth = 0
                     result = self.format_output(exc_result)
 
-                self.results.append(Result(self.out, result, line_no))
+                results.append(Result(self.out, result, line_no))
                 self.out = []
             finally:
                 self.stop()
@@ -266,17 +270,11 @@ class Evaluation(object):
             line = line_no - history_length
             while line > 0:
                 unset_in = self.definitions.unset('In', Expression('In', line))
-                unset_out = self.definitions.unset(
-                    'Out', Expression('Out', line))
+                unset_out = self.definitions.unset('Out', Expression('Out', line))
                 if not (unset_in or unset_out):
                     break
                 line -= 1
-
-        if last_parse_error is not None:
-            self.recursion_depth = 0
-            self.stopped = False
-            self.message('General', 'syntax', six.text_type(last_parse_error))
-            self.results.append(Result(self.out, None, None))
+        return results
 
     def get_stored_result(self, result):
         from mathics.core.expression import Symbol

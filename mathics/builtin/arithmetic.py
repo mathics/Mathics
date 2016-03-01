@@ -1329,9 +1329,9 @@ class Real_(Builtin):
 
     ## Don't accept *^ with spaces
     #> 1.5 *^10
-     : Parse error at or near token ^.
+     : Invalid syntax at or near token ^.
     #> 1.5*^ 10
-     : Parse error at or near token ^.
+     : Invalid syntax at or near token ^.
     """
 
     name = 'Real'
@@ -1595,7 +1595,7 @@ class Sum(_IterationFunction, SympyFunction):
      = Pi ^ 2 / 6
 
     #> a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]]
-     : Parse error at or near token ].
+     : Invalid syntax at or near token ].
     """
 
     # Do not throw warning message for symbolic iteration bounds

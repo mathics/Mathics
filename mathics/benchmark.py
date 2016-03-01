@@ -65,7 +65,7 @@ PARSING_BENCHMARKS = [
 ]
 
 definitions = Definitions(add_builtin=True)
-evaluation = None
+evaluation = Evaluation(definitions=definitions, catch_interrupt=False)
 
 
 def format_time_units(seconds):
@@ -174,14 +174,6 @@ def main():
         help="loop REPEAT number of times")
 
     args = parser.parse_args()
-
-    try:
-        evaluation = Evaluation("", definitions, catch_interrupt=False)
-    except Exception as exc:
-        print("Exception {0}".format(exc))
-        info = sys.exc_info()
-        sys.excepthook(*info)
-        sys.exit(-1)
 
     if args.repeat is not None:
         TESTS_PER_BENCHMARK = int(args.repeat)

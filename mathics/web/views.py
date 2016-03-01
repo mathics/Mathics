@@ -17,7 +17,6 @@ from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.models import User
 
-from mathics.core.parser import parse, TranslateError
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Message, Result
 
@@ -101,21 +100,19 @@ def query(request):
 
     user_definitions = request.session.get('definitions')
     definitions.set_user_definitions(user_definitions)
+    evaluation = Evaluation(definitions, format='xml')
     try:
-        evaluation = Evaluation(
-            input, definitions, timeout=settings.TIMEOUT, format='xml')
+        results = evaluation.parse_evaluate(input, timeout=settings.TIMEOUT)
     except Exception as exc:
         if settings.DEBUG and settings.DISPLAY_EXCEPTIONS:
-            evaluation = Evaluation()
             info = traceback.format_exception(*sys.exc_info())
             info = '\n'.join(info)
             msg = 'Exception raised: %s\n\n%s' % (exc, info)
-            evaluation.results = [Result([Message(
-                'System', 'exception', msg)], None, None)]
+            results = [Result([Message('System', 'exception', msg)], None, None)]
         else:
             raise
     result = {
-        'results': [result.get_data() for result in evaluation.results],
+        'results': [result.get_data() for result in results],
     }
     request.session['definitions'] = definitions.get_user_definitions()
 

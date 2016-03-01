@@ -614,6 +614,8 @@ class Read(Builtin):
     def apply(self, channel, types, evaluation, options):
         'Read[channel_, types_, OptionsPattern[Read]]'
 
+        from mathics.core.parser import parse, TranslateError
+
         if channel.has_form('OutputStream', 2):
             evaluation.message('General', 'openw', channel)
             return
@@ -703,12 +705,8 @@ class Read(Builtin):
                 elif typ == Symbol('Expression'):
                     tmp = next(read_record)
                     try:
-                        try:
-                            expr = parse(tmp, evaluation.definitions)
-                        except NameError:
-                            from mathics.core.parser import parse, ParseError
-                            expr = parse(tmp, evaluation.definitions)
-                    except ParseError:
+                        expr = parse(tmp, evaluation.definitions)
+                    except TranslateError:
                         expr = None
                     if expr is None:
                         evaluation.message('Read', 'readt', tmp, Expression(
@@ -2097,52 +2095,24 @@ class Get(PrefixOperator):
 
     def apply(self, path, evaluation):
         'Get[path_String]'
+        from mathics.core.parser import parse_lines, TranslateError
+
         pypath = path.get_string_value()
         try:
             with mathics_open(pypath, 'r') as f:
-                result = f.readlines()
+                code = f.read()
         except IOError:
             evaluation.message('General', 'noopen', path)
             return Symbol('$Failed')
 
+        expr_gen = parse_lines(code, evaluation.definitions)
         try:
-            parse
-            ParseError
-        except NameError:
-            from mathics.core.parser import parse, ParseError
-
-        from mathics.main import wait_for_line
-
-        total_input = ""
-        syntax_error_count = 0
-        expr = Symbol('Null')
-
-        for lineno, tmp in enumerate(result):
-            total_input += ' ' + tmp
-            if wait_for_line(total_input):
-                continue
-            try:
-                expr = parse(total_input, evaluation.definitions)
-            except:  # FIXME: something weird is going on here
-                syntax_error_count += 1
-                if syntax_error_count <= 4:
-                    print("Syntax Error (line {0} of {1})".format(lineno + 1, pypath))
-                if syntax_error_count == 4:
-                    print("Supressing further syntax errors in {0}".format(pypath))
-            else:
-                if expr is not None:
-                    expr = expr.evaluate(evaluation)
-                total_input = ""
-
-        if total_input != "":
-            # TODO:
-            # evaluation.message('Syntax', 'sntue', 'line {0} of
-            # {1}'.format(lineno, pypath))
-            print('Unexpected end of file (probably unfinished expression)')
-            print('    (line {0} of "{1}").'.format(lineno, pypath))
+            for expr in expr_gen:
+                expr = expr.evaluate(evaluation)
+        except TranslateError as exc:
+            evaluation.message('Syntax', exc.msg, *exc.args)
             return Symbol('Null')
-
-        return expr
+        return expr   # last expression
 
     def apply_default(self, filename, evaluation):
         'Get[filename_]'
@@ -3581,18 +3551,12 @@ class Uncompress(Builtin):
 
     def apply(self, string, evaluation):
         'Uncompress[string_String]'
+        from mathics.core.parser import parse
         string = string.get_string_value().encode('utf-8')
         string = base64.decodestring(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode('utf-8')
-
-        try:
-            expr = parse(tmp, evaluation.definitions)
-        except NameError:
-            from mathics.core.parser import parse
-            expr = parse(tmp, evaluation.definitions)
-
-        return expr
+        return parse(tmp, evaluation.definitions)
 
 
 class FileByteCount(Builtin):

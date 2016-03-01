@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import cProfile
 import pstats
 
+from mathics.core.parser import parse
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 
@@ -33,9 +34,10 @@ def run():
         # prompt = 'FullForm[Nest[1+Sqrt[1+#]&, x, 20]]'
         # prompt = '1+2'
         prompt = 'DensityPlot[x*y,{x,-1,1},{y,-1,1}]'
-        evaluation = Evaluation(prompt, definitions, format='xml')
-        if evaluation.results:
-            result = evaluation.results[0].result
+        evaluation = Evaluation(definitions, format='xml')
+        results = evaluation.parse_evaluate(prompt)
+        if results:
+            result = results[0].result
     except KeyboardInterrupt:
         result = 'INTERRUPTED'
 
