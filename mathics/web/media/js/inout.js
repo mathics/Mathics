@@ -117,8 +117,10 @@ function setContent(content) {
 	queries.each(function(item) {
 		var li = createQuery(null, true, true);
 		li.textarea.value = item.request;
-		setResult(li.ul, item.results);
-		li.textarea.results = item.results;
+		if( item.results != undefined ) {
+			setResult(li.ul, item.results);
+			li.textarea.results = item.results;
+		}
 	});
 	
 	createSortable();
