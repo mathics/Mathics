@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Date and Time
+"""
+
 from __future__ import unicode_literals
 from __future__ import absolute_import
 from __future__ import division
 
 import six
 from six.moves import range
-
-"""
-Date and Time
-"""
 
 import time
 from datetime import datetime, timedelta

@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 """
 Random number generation
 
 Random numbers are generated using the Mersenne Twister.
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from six.moves import range
 import six.moves.cPickle as pickle

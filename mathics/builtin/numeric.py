@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 """
 Numeric evaluation
 
@@ -11,6 +8,9 @@ Support for numeric evaluation with arbitrary precision is just a proof-of-conce
 Precision is not "guarded" through the evaluation process. Only integer precision is supported.
 However, things like 'N[Pi, 100]' should work as expected.
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import sympy
 import mpmath

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-import six
-
 """
 Importing and Exporting
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
+import six
 
 from mathics.core.expression import Expression, from_python
 from mathics.builtin.base import Builtin, Predefined, Symbol, String

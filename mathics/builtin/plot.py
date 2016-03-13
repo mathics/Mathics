@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Plotting
+"""
+
 from __future__ import unicode_literals
 from __future__ import absolute_import
 from __future__ import division
 
 from six.moves import range
 from six.moves import zip
-
-"""
-Plotting
-"""
 
 from math import sin, cos, pi, sqrt, isnan, isinf
 import numbers

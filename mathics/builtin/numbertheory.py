@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Number theoretic functions
+"""
+
 from __future__ import unicode_literals
 from __future__ import absolute_import
 import six
 from six.moves import map
 from six.moves import range
-
-"""
-Number theoretic functions
-"""
 
 import sympy
 from itertools import combinations

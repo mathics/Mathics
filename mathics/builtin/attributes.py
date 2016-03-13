@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 r"""
 Attributes
 
 There are several builtin-attributes which have a predefined meaning in \Mathics.
 However, you can set any symbol as an attribute, in contrast to \Mathematica.
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from mathics.builtin.base import Predefined, Builtin
 from mathics.core.expression import Symbol, Expression

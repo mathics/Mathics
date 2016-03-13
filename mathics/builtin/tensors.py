@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from six.moves import range
-
 """
 Tensor functions
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from six.moves import range
 
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, Integer
