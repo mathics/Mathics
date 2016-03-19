@@ -520,21 +520,21 @@ class MatrixPower(Builtin):
      = {{169, -70}, {-70, 29}}
 
     #> MatrixPower[{{0, x}, {0, 0}}, n]
-     : Matrix power only implemented for real and integer values.
-     = MatrixPower[{{0, x}, {0, 0}}, n]
+     = {{0 ^ n, n x 0 ^ (-1 + n)}, {0, 0 ^ n}}
+
     """
 
     messages = {
-        'matrixpowernotimplemented': ('Matrix power only implemented for real and integer values.')
+        'matrixpowernotimplemented': ('Matrix power not implemented for matrix `1`.'),
     }
 
     def apply(self, m, power, evaluation):
         'MatrixPower[m_, power_]'
-        m = to_sympy_matrix(m)
+        sympy_m = to_sympy_matrix(m)
         try:
-            res = m ** power.to_sympy()
+            res = sympy_m ** power.to_sympy()
         except NotImplementedError:
-            return evaluation.message('MatrixPower', 'matrixpowernotimplemented')
+            return evaluation.message('MatrixPower', 'matrixpowernotimplemented', m)
         return from_sympy(res)
 
 
@@ -552,23 +552,22 @@ class MatrixExp(Builtin):
      = {{5.16266024276223, 3.029519834622}, {3.029519834622, 8.19218007738423}}
 
     #> MatrixExp[{{a, 0}, {0, b}}]
-     : Matrix exp only implemented for real and integer values.
-     = MatrixExp[{{a, 0}, {0, b}}]
+     = {{E ^ a, 0}, {0, E ^ b}}
     """
 
     messages = {
-        'matrixexpnotimplemented': ('Matrix exp only implemented for real and integer values.')
+        'matrixexpnotimplemented': ('Matrix power not implemented for matrix `1`.'),
     }
 
     # TODO fix precision
 
     def apply(self, m, evaluation):
         'MatrixExp[m_]'
-        m = to_sympy_matrix(m)
+        sympy_m = to_sympy_matrix(m)
         try:
-            res = m.exp()
+            res = sympy_m.exp()
         except NotImplementedError:
-            return evaluation.message('MatrixExp', 'matrixexpnotimplemented')
+            return evaluation.message('MatrixExp', 'matrixexpnotimplemented', m)
         return from_sympy(res)
 
 
