@@ -9,7 +9,7 @@ python:
   - pypy3
 env:
   global:
-    - SYMPY_SRC=sympy-0.7.6
+    - SYMPY_SRC=sympy-1.0
     - DOC="false"
   matrix:
     - CYTHON="false"
