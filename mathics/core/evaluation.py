@@ -158,6 +158,7 @@ class Evaluation(object):
         self.out_callback = out_callback
         self.listeners = {}
         self.options = None
+        self.predetermined_out = None
 
         self.quiet_all = False
         self.quiet_messages = set()
@@ -211,7 +212,13 @@ class Evaluation(object):
                         Expression('In', line_no), query))
                 result = query.evaluate(self)
                 if history_length > 0:
-                    stored_result = self.get_stored_result(result)
+                    if self.predetermined_out is not None:
+                        out_result = self.predetermined_out
+                        self.predetermined_out = None
+                    else:
+                        out_result = result
+
+                    stored_result = self.get_stored_result(out_result)
                     self.definitions.add_rule('Out', Rule(
                         Expression('Out', line_no), stored_result))
                 if result != Symbol('Null'):

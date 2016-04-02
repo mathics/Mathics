@@ -80,7 +80,14 @@ class CompoundExpression(BinaryOperator):
         items = expr.get_sequence()
         result = Symbol('Null')
         for expr in items:
+            prev_result = result
             result = expr.evaluate(evaluation)
+
+            # `expr1; expr2;` returns `Null` but assigns `expr2` to `Out[n]`.
+            # even stranger `CompoundExpresion[expr1, Null, Null]` assigns `expr1` to `Out[n]`.
+            if result == Symbol('Null') and prev_result != Symbol('Null'):
+                evaluation.predetermined_out = prev_result
+
         return result
 
 
