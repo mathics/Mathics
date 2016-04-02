@@ -47,6 +47,27 @@ class CompoundExpression(BinaryOperator):
      : Invalid syntax at or near token ;.
     #> FullForm[Hold[; a ;]]
      : Invalid syntax at or near token ;.
+
+    ## Issue331
+    #> CompoundExpression[x, y, z]
+     = z
+    #> %
+     = z
+
+    #> CompoundExpression[x, y, Null]
+    #> %
+     = y
+
+    #> CompoundExpression[CompoundExpression[x, y, Null], Null]
+    #> %
+     = y
+
+    #> CompoundExpression[x, Null, Null]
+    #> %
+     = x
+
+    #> CompoundExpression[]
+    #> %
     """
 
     operator = ';'
