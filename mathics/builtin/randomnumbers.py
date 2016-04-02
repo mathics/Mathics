@@ -48,13 +48,13 @@ class RandomEnv:
         self.evaluation = evaluation
 
     def __enter__(self):
-        state = self.evaluation.get_config_value('$RandomState')
+        state = self.evaluation.definitions.get_config_value('$RandomState')
         set_random_state(state)
         return self
 
     def __exit__(self, exit_type, value, traceback):
         state = get_random_state()
-        self.evaluation.set_config_value('$RandomState', state)
+        self.evaluation.definitions.set_config_value('$RandomState', state)
 
     def randint(self, a, b):
         return random.randint(a, b)
