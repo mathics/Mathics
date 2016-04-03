@@ -150,7 +150,25 @@ class NumberString(Builtin):
 
 
 class DigitCharacter(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'DigitCharacter'
+      <dd>represents the digits 0-9.
+    </dl>
+
+    >> StringMatchQ["1", DigitCharacter]
+     = True
+    >> StringMatchQ["a", DigitCharacter]
+     = False
+    >> StringMatchQ["12", DigitCharacter]
+     = False
+
+    >> StringMatchQ["123245", DigitCharacter..]
+     = True
+
+    #> StringMatchQ["123245a6", DigitCharacter..]
+     = False
+    """
 
 
 class Whitespace(Builtin):
