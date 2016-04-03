@@ -20,6 +20,18 @@ from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
 
 
+def string_expression_to_regex(expr):
+    if isinstance(expr, String):
+        return re.escape(expr.get_string_value())
+    return None
+
+
+class StringExpression(Builtin):
+    messages = {
+        'invld': 'Element `1` is not a valid string or pattern element in `2`.',
+    }
+
+
 class StringJoin(BinaryOperator):
     """
     <dl>
@@ -91,8 +103,8 @@ class StringSplit(Builtin):
      : String or list of strings expected at position 1 in StringSplit[x].
      = StringSplit[x]
 
-    #> StringSplit["x", x]      (* Mathematica uses StringExpression *)
-     : String or list of strings expected at position 2 in StringSplit[x, x].
+    #> StringSplit["x", x]
+     : Element x is not a valid string or pattern element in x.
      = StringSplit[x, x]
     """
 
@@ -100,24 +112,25 @@ class StringSplit(Builtin):
         'strse': 'String or list of strings expected at position `1` in `2`.',
     }
 
-    def apply(self, string, seps, evaluation):
-        'StringSplit[string_String, seps_]'
-        result = [string.get_string_value()]
-        if seps.has_form('List', None):
-            py_seps = seps.get_leaves()
+    def apply(self, string, patt, evaluation):
+        'StringSplit[string_?StringQ, patt_]'
+        py_string = string.get_string_value()
+
+        if patt.has_form('List', None):
+            patts = patt.get_leaves()
         else:
-            py_seps = [seps]
+            patts = [patt]
+        re_patts = []
+        for p in patts:
+            py_p = string_expression_to_regex(p)
+            if py_p is None:
+                return evaluation.message('StringExpression', 'invld', p, patt)
+            re_patts.append(py_p)
 
-        py_seps = [to_regex(s) for s in py_seps]
-        if any(s is None for s in py_seps):
-            evaluation.message('StringSplit', 'strse', Integer(2),
-                               Expression('StringSplit', string, seps))
-            return
-
-        for s in py_seps:
-            result = [t for res in result for t in re.split(s, res)]
-
-        return from_python(filter(lambda x: x != u'', result))
+        result = [py_string]
+        for re_patt in re_patts:
+            result = [t for s in result for t in re.split(re_patt, s)]
+        return from_python([x for x in result if x != ''])
 
     def apply_empty(self, string, evaluation):
         'StringSplit[string_String]'
