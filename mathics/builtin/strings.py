@@ -248,7 +248,15 @@ class LetterCharacter(Builtin):
 
 
 class HexidecimalCharacter(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'HexidecimalCharacter'
+      <dd>represents the characters 0-9, a-f and A-F.
+    </dl>
+
+    >> StringMatchQ[#, HexidecimalCharacter] & /@ {"a", "1", "A", "x", "H", " ", "."}
+     = {True, True, True, False, False, False, False}
+    """
 
 class StringMatchQ(Builtin):
     """
