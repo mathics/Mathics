@@ -32,15 +32,15 @@ def to_regex(expr):
 
     if isinstance(expr, Symbol):
         return {
-            'System`NumberString': r'\d+',
+            'System`NumberString': r'[-|+]?(?:\d+(?:\.\d*)?|\.\d+)?',
             'System`Whitespace': r'\s+',
             'System`DigitCharacter': r'\d',
             'System`WhitespaceCharacter': r'\s',
             'System`WordCharacter': r'\s',
-            'System`StartOfLine': r'(?:?m)^',
-            'System`EndOfLine': r'(?:?m)$',
-            'System`StartOfString': r'^',
-            'System`EndOfString': r'$',
+            'System`StartOfLine': r'^',
+            'System`EndOfLine': r'$',
+            'System`StartOfString': r'\A',
+            'System`EndOfString': r'\Z',
             'System`WordBoundary': r'\b',
             'System`LetterCharacter': r'[a-zA-Z]',
             'System`HexidecimalCharacter': r'[0-9a-fA-F]',
@@ -115,7 +115,38 @@ class RegularExpression(Builtin):
 
 
 class NumberString(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'NumberString'
+      <dd>represents the characters in a number.
+    </dl>
+
+    >> StringMatchQ["1234", NumberString]
+     = True
+
+    >> StringMatchQ["1234.5", NumberString]
+    = True
+
+    >> StringMatchQ["1.2`20", NumberString]
+     = False
+
+    #> StringMatchQ[".12", NumberString]
+     = True
+    #> StringMatchQ["12.", NumberString]
+     = True
+    #> StringMatchQ["12.31.31", NumberString]
+     = False
+    #> StringMatchQ[".", NumberString]
+     = False
+    #> StringMatchQ["-1.23", NumberString]
+     = True
+    #> StringMatchQ["+12.3", NumberString]
+     = True
+    #> StringMatchQ["+.2", NumberString]
+     = True
+    #> StringMatchQ["1.2e4", NumberString]
+     = False
+    """
 
 
 class DigitCharacter(Builtin):
@@ -160,6 +191,39 @@ class LetterCharacter(Builtin):
 
 class HexidecimalCharacter(Builtin):
     pass
+
+class StringMatchQ(Builtin):
+    """
+    >> StringMatchQ["abc", "abc"]
+     = True
+
+    >> StringMatchQ["abc", "abd"]
+     = False
+    """
+
+    def apply(self, string, patt, evaluation):
+        'StringMatchQ[string_, patt_]'
+        py_string = string.get_string_value()
+        if py_string is None:
+            return evaluation.message('StringMatchQ', 'strse', Integer(1),
+                                      Expression('StringMatchQ', string, patt))
+
+        re_patt = to_regex(patt)
+        if re_patt is None:
+                return evaluation.message('StringExpression', 'invld', patt,
+                                          Expression ('StringExpression', patt))
+        # force matching whole of string
+        re_patt = '(?:' + re_patt + ')'
+        if not re_patt.endswith(r'\Z'):
+            re_patt = re_patt + r'\Z'
+
+        if not re_patt.startswith(r'\A'):
+            re_patt = r'\A' + re_patt
+
+        if re.match(re_patt, py_string) is None:
+            return Symbol('False')
+        else:
+            return Symbol('True')
 
 
 class StringJoin(BinaryOperator):
