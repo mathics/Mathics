@@ -2748,6 +2748,27 @@ class ExpandFileName(Builtin):
         return String(os.path.abspath(py_name))
 
 
+class FileInformation(Builtin):
+    """
+    <dl>
+    <dt>'FileInformation["$file$"]'
+      <dd>returns information about $file$.
+    </dl>
+
+    This function is totally undocumented in MMA!
+
+    >> FileInformation["ExampleData/sunflowers.jpg"]
+     = {File -> ..., FileType -> File, ByteCount -> 142286, Date -> ...}
+
+    #> FileInformation["ExampleData/missing_file.jpg"]
+     = {}
+    """
+
+    rules = {
+        'FileInformation[name_String]': 'If[FileExistsQ[name], {File -> ExpandFileName[name], FileType -> FileType[name], ByteCount -> FileByteCount[name], Date -> AbsoluteTime[FileDate[name]]}, {}]',
+    }
+
+
 class ReadList(Read):
     """
     <dl>
