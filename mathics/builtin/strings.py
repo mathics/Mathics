@@ -217,6 +217,9 @@ class StringMatchQ(Builtin):
 
     >> StringMatchQ["abc", "abd"]
      = False
+
+    >> StringMatchQ["15a94xcZ6", (DigitCharacter | LetterCharacter)..]
+     = True
     """
 
     def apply(self, string, patt, evaluation):
