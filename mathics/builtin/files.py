@@ -42,7 +42,7 @@ TMP_DIR = tempfile.gettempdir()
 DIRECTORY_STACK = [INITIAL_DIR]
 INPUT_VAR = ""
 INPUTFILE_VAR = ""
-PATH_VAR = [HOME_DIR, os.path.join(ROOT_DIR, 'data'),
+PATH_VAR = ['.', HOME_DIR, os.path.join(ROOT_DIR, 'data'),
             os.path.join(ROOT_DIR, 'packages')]
 
 
