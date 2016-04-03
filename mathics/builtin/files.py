@@ -4219,6 +4219,10 @@ class ParentDirectory(Builtin):
         return String(result)
 
 
+class File(Builtin):
+    attributes = ('Protected')
+
+
 class SetDirectory(Builtin):
     """
     <dl>
