@@ -8,7 +8,7 @@ import sys
 import random
 import unittest
 
-from mathics.core.parser import parse, ScanError, IncompleteSyntaxError, InvalidSyntaxError
+from mathics.core.parser import parse, parse_lines, ScanError, IncompleteSyntaxError, InvalidSyntaxError
 from mathics.core.expression import (Expression, Real, Integer, String,
                                      Rational, Symbol)
 from mathics.core.definitions import Definitions
@@ -23,19 +23,15 @@ def setUpModule():
     definitions = Definitions(add_builtin=True)
 
 
-_parse = parse
-
-
-def parse(s):
-    return _parse(s, definitions)
-
-
 class ParserTests(unittest.TestCase):
+    def parse(self, s):
+        return parse(s, definitions)
+
     def check(self, expr1, expr2):
         if isinstance(expr1, six.string_types):
-            expr1 = parse(expr1)
+            expr1 = self.parse(expr1)
         if isinstance(expr2, six.string_types):
-            expr2 = parse(expr2)
+            expr2 = self.parse(expr2)
 
         if expr1 is None:
             self.assertTrue(expr2 is None)
@@ -43,13 +39,13 @@ class ParserTests(unittest.TestCase):
             self.assertTrue(expr1.same(expr2))
 
     def lex_error(self, string):
-        self.assertRaises(ScanError, parse, string)
+        self.assertRaises(ScanError, self.parse, string)
 
     def incomplete_error(self, string):
-        self.assertRaises(IncompleteSyntaxError, parse, string)
+        self.assertRaises(IncompleteSyntaxError, self.parse, string)
 
     def invalid_error(self, string):
-        self.assertRaises(InvalidSyntaxError, parse, string)
+        self.assertRaises(InvalidSyntaxError, self.parse, string)
 
 
 class NumberTests(ParserTests):
@@ -148,8 +144,8 @@ class NumberTests(ParserTests):
         self.invalid_error(r'\""')
 
     def testNone(self):
-        self.assertIs(parse(''), None)
-        self.assertIs(parse('(*fdasf *)'), None)
+        self.assertIs(self.parse(''), None)
+        self.assertIs(self.parse('(*fdasf *)'), None)
 
     def testMessage(self):
         self.check('1 :: "abc"', Expression('MessageName', Integer(1), String("abc")))
@@ -462,6 +458,28 @@ class NumberTests(ParserTests):
         self.incomplete_error('{x')
         self.invalid_error('[[x')
 
+    def test_trailing_backslash(self):
+        self.incomplete_error('x \\')
+
+
+class MultiLineParserTests(ParserTests):
+    def parse(self, s):
+        exprs = list(parse_lines(s, definitions))
+        assert len(exprs) == 1
+        return exprs[0]
+
+    def test_trailing_backslash(self):
+        self.incomplete_error('x \\')
+        self.check('x \\\ny', Expression('Times', Symbol('Global`x'), Symbol('Global`y')))
+
+    def test_continuation(self):
+        self.incomplete_error('Sin[')
+        self.check('Sin[\n0]', Expression('Sin', Integer(0)))
+
+    @unittest.expectedFailure
+    def test_blanknewline(self):
+        # currently handled in the frontend
+        self.incomplete_error('Sin[\n\n0]')
 
 if __name__ == "__main__":
     unittest.main()
