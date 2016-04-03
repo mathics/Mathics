@@ -22,7 +22,7 @@ from mathics.core.expression import (Expression, Symbol, String, Integer,
 
 def string_expression_to_regex(expr):
     if isinstance(expr, String):
-        return re.escape(expr.get_string_value())
+        return '(' + re.escape(expr.get_string_value()) + ')'
     if expr.has_form('RegularExpression', 1):
         return expr.leaves[0].get_string_value()
     if expr.has_symbol('Whitespace'):
@@ -349,9 +349,8 @@ class StringReplace(Builtin):
             py_n = 0
         else:
             py_n = n.get_int_value()
-            if py_n is None py_n < 0:
-                return evaluation.message(
-                    'StringReplace', 'innf', Integer(3), expr)
+            if py_n is None or py_n < 0:
+                return evaluation.message('StringReplace', 'innf', Integer(3), expr)
 
         def do_subs(py_stri):
             for py_s, py_sp in py_rules:
