@@ -23,6 +23,16 @@ from mathics.core.expression import (Expression, Symbol, String, Integer,
 def string_expression_to_regex(expr):
     if isinstance(expr, String):
         return re.escape(expr.get_string_value())
+    if expr.has_form('RegularExpression', 1):
+        return expr.leaves[0].get_string_value()
+    if expr.has_symbol('Whitespace'):
+        return r'\s+'
+    if expr.has_symbol('WhitespaceCharacter'):
+        return r'\s'
+    if expr.has_symbol('EndOfString'):
+        return '$'
+    if expr.has_symbol('StartOfString'):
+        return '^'
     return None
 
 
@@ -30,6 +40,30 @@ class StringExpression(Builtin):
     messages = {
         'invld': 'Element `1` is not a valid string or pattern element in `2`.',
     }
+
+
+class RegularExpression(Builtin):
+    r"""
+    <dl>
+    <dt>'RegularExpression["regex"]'
+      <dd>represents the regex specified by the string $"regex"$.
+    </dl>
+
+    #> StringSplit["1.23, 4.56  7.89", RegularExpression["(\\s|,)+"]]
+     = {1.23, 4.56, 7.89}
+    """
+
+
+class Whitespace(Builtin):
+    pass
+
+
+class StartOfString(Builtin):
+    pass
+
+
+class EndOfString(Builtin):
+    pass
 
 
 class StringJoin(BinaryOperator):
@@ -96,25 +130,36 @@ class StringSplit(Builtin):
     >> StringSplit["abc,123.456", {",", "."}]
      = {abc, 123, 456}
 
+    >> StringSplit["a  b    c", RegularExpression[" +"]]
+     = {a, b, c}
+
     #> StringSplit["x", "x"]
      = {}
 
     #> StringSplit[x]
      : String or list of strings expected at position 1 in StringSplit[x].
-     = StringSplit[x]
+     = StringSplit[x, Whitespace]
 
     #> StringSplit["x", x]
      : Element x is not a valid string or pattern element in x.
      = StringSplit[x, x]
     """
 
+    rules = {
+        'StringSplit[s_]': 'StringSplit[s, Whitespace]',
+    }
+
     messages = {
         'strse': 'String or list of strings expected at position `1` in `2`.',
     }
 
     def apply(self, string, patt, evaluation):
-        'StringSplit[string_?StringQ, patt_]'
+        'StringSplit[string_, patt_]'
         py_string = string.get_string_value()
+
+        if py_string is None:
+            return evaluation.message('StringSplit', 'strse', Integer(1),
+                                      Expression('StringSplit', string))
 
         if patt.has_form('List', None):
             patts = patt.get_leaves()
@@ -131,24 +176,6 @@ class StringSplit(Builtin):
         for re_patt in re_patts:
             result = [t for s in result for t in re.split(re_patt, s)]
         return from_python([x for x in result if x != ''])
-
-    def apply_empty(self, string, evaluation):
-        'StringSplit[string_String]'
-        py_string = string.get_string_value()
-        result = py_string.split()
-        return from_python([x for x in result if x != ''])
-
-    def apply_strse1(self, x, evaluation):
-        'StringSplit[x_/;Not[StringQ[x]]]'
-        evaluation.message('StringSplit', 'strse', Integer(1),
-                           Expression('StringSplit', x))
-        return
-
-    def apply_strse2(self, x, y, evaluation):
-        'StringSplit[x_/;Not[StringQ[x]], y_]'
-        evaluation.message('StringSplit', 'strse', Integer(1),
-                           Expression('StringSplit', x))
-        return
 
 
 class StringLength(Builtin):
