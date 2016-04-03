@@ -204,7 +204,19 @@ class WordBoundary(Builtin):
 
 
 class LetterCharacter(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'LetterCharacter'
+      <dd>represents the letters a-z and A-Z.
+    </dl>
+
+    >> StringMatchQ[#, LetterCharacter] & /@ {"a", "1", "A", " ", "."}
+     = {True, False, True, False, False}
+
+    LetterCharacter does not match unicode characters.
+    >> StringMatchQ["\[Lambda]", LetterCharacter]
+     = False
+    """
 
 
 class HexidecimalCharacter(Builtin):
