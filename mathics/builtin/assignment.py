@@ -211,6 +211,7 @@ class _SetOperator(object):
 
             evaluation.definitions.set_current_context(new_context)
             ignore_protection = True
+            return True
         elif lhs_name == 'System`$ContextPath':
             if rhs.has_form('List', None) and all(
                     valid_context_name(s.get_string_value()) for s in rhs.leaves):

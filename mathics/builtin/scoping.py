@@ -347,10 +347,12 @@ class Begin(Builtin):
      : No previous context defined.
      = Global`
 
-    #> Begin["`System`"]
-     = Global`System`
+    #> Begin["`test`"]
+     = Global`test`
+    #> Context[]
+     = Global`test`
     #> End[]
-     = Global`System`
+     = Global`test`
     """
 
     rules = {
@@ -358,7 +360,8 @@ class Begin(Builtin):
              Unprotect[System`Private`$ContextStack];
              System`Private`$ContextStack = Append[System`Private`$ContextStack, $Context];
              Protect[System`Private`$ContextStack];
-             $Context = context
+             $Context = context;
+             $Context
         ''',
     }
 
