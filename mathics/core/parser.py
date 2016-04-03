@@ -1554,6 +1554,10 @@ def parse_lines(lines, definitions):
             query += ' '
             continue
         query += line
+        if query.endswith('\\'):
+            query = query.rstrip('\\')
+            incomplete_exc = IncompleteSyntaxError(len(query)-1)
+            continue
         try:
             expression = parse(query, definitions)
         except IncompleteSyntaxError as exc:
