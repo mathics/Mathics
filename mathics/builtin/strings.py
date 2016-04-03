@@ -20,19 +20,75 @@ from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
 
 
-def string_expression_to_regex(expr):
+def to_regex(expr):
+    # Note: the strange (?:xxx) expression is a non-capturing group.
+    if expr is None:
+        return None
+
     if isinstance(expr, String):
-        return '(' + re.escape(expr.get_string_value()) + ')'
+        return re.escape(expr.get_string_value())
     if expr.has_form('RegularExpression', 1):
         return expr.leaves[0].get_string_value()
-    if expr.has_symbol('Whitespace'):
-        return r'\s+'
-    if expr.has_symbol('WhitespaceCharacter'):
-        return r'\s'
-    if expr.has_symbol('EndOfString'):
-        return '$'
-    if expr.has_symbol('StartOfString'):
-        return '^'
+
+    if isinstance(expr, Symbol):
+        return {
+            'System`NumberString': r'\d+',
+            'System`Whitespace': r'\s+',
+            'System`DigitCharacter': r'\d',
+            'System`WhitespaceCharacter': r'\s',
+            'System`WordCharacter': r'\s',
+            'System`StartOfLine': r'(?:?m)^',
+            'System`EndOfLine': r'(?:?m)$',
+            'System`StartOfString': r'^',
+            'System`EndOfString': r'$',
+            'System`WordBoundary': r'\b',
+            'System`LetterCharacter': r'[a-zA-Z]',
+            'System`HexidecimalCharacter': r'[0-9a-fA-F]',
+        }.get(expr.get_name())
+
+    if expr.has_form('CharacterRange', 2):
+        (start, stop) = (leaf.get_string_value() for leaf in expr.leaves)
+        if all(x is not None and len(x) == 1 for x in (start, stop)):
+            return "[{0}-{1}]".format(re.escape(start), re.escape(stop))
+
+    if expr.has_form('Blank', 0):
+        return r'(?:.|\n)'
+    if expr.has_form('BlankSequence', 0):
+        return r'(?:.|\n)+'
+    if expr.has_form('BlankNullSequence', 0):
+        return r'(?:.|\n)*'
+    if expr.has_form('Except', 1):
+        leaf = to_regex(expr.leaves[0])
+        if leaf is not None:
+            return '^{0}'.format(leaf)
+    if expr.has_form('Characters', 1):
+        leaf = expr.leaves[0].get_string_value()
+        if leaf is not None:
+            return '[{0}]'.format(re.escape(leaf))
+    if expr.has_form('StringExpression', None):
+        leaves = [to_regex(leaf) for leaf in expr.leaves]
+        if None in leaves:
+            return None
+        return "".join(leaves)
+    if expr.has_form('Longest', 1):
+        return to_regex(expr.leaves[0])
+    if expr.has_form('Shortest', 1):
+        leaf = to_regex(expr.leaves[0])
+        if leaf is not None:
+            return '{0}*?'.format(leaf)
+            # p*?|p+?|p??
+    if expr.has_form('Repeated', 1):
+        leaf = to_regex(expr.leaves[0])
+        if leaf is not None:
+            return '(?:{0})+'.format(leaf)
+    if expr.has_form('RepeatedNull', 1):
+        leaf = to_regex(expr.leaves[0])
+        if leaf is not None:
+            return '(?:{0})*'.format(leaf)
+    if expr.has_form('Alternatives', None):
+        leaves = [to_regex(leaf) for leaf in expr.leaves]
+        if all(leaf is not None for leaf in leaves):
+            return "|".join(leaves)
     return None
 
 
@@ -49,12 +105,32 @@ class RegularExpression(Builtin):
       <dd>represents the regex specified by the string $"regex"$.
     </dl>
 
-    #> StringSplit["1.23, 4.56  7.89", RegularExpression["(\\s|,)+"]]
+    >> StringSplit["1.23, 4.56  7.89", RegularExpression["(\\s|,)+"]]
      = {1.23, 4.56, 7.89}
+
+    #> RegularExpression["[abc]"]
+     = RegularExpression[[abc]]
+
     """
 
 
+class NumberString(Builtin):
+    pass
+
+
+class DigitCharacter(Builtin):
+    pass
+
+
 class Whitespace(Builtin):
+    pass
+
+
+class WhitespaceCharacter(Builtin):
+    pass
+
+
+class WordCharacter(Builtin):
     pass
 
 
@@ -63,6 +139,26 @@ class StartOfString(Builtin):
 
 
 class EndOfString(Builtin):
+    pass
+
+
+class StartOfLine(Builtin):
+    pass
+
+
+class EndOfLine(Builtin):
+    pass
+
+
+class WordBoundary(Builtin):
+    pass
+
+
+class LetterCharacter(Builtin):
+    pass
+
+
+class HexidecimalCharacter(Builtin):
     pass
 
 
@@ -143,6 +239,9 @@ class StringSplit(Builtin):
     #> StringSplit["x", x]
      : Element x is not a valid string or pattern element in x.
      = StringSplit[x, x]
+
+    #> StringSplit["12312123", "12"..]
+     = {3, 3}
     """
 
     rules = {
@@ -167,7 +266,7 @@ class StringSplit(Builtin):
             patts = [patt]
         re_patts = []
         for p in patts:
-            py_p = string_expression_to_regex(p)
+            py_p = to_regex(p)
             if py_p is None:
                 return evaluation.message('StringExpression', 'invld', p, patt)
             re_patts.append(py_p)
@@ -978,116 +1077,3 @@ class StringDrop(Builtin):
         if not isinstance(string, String):
             return evaluation.message('StringDrop', 'strse')
         return evaluation.message('StringDrop', 'mseqs')
-
-# TODO
-class RegularExpression(Builtin):
-    """
-    >> RegularExpression["[abc]"]
-     = RegularExpression[[abc]]
-    """
-
-
-# TODO
-class StringExpression(Builtin):
-    """
-    """
-
-    # TODO
-    """
-    >> a ~~ b
-     = a~~b
-
-    >> "a" ~~ "b"
-     = "ab"
-    """
-
-    messages = {
-        'invld': 'Element `1` is not a valid string or pattern element in `2`.'
-    }
-
-
-def to_regex(expr):
-    if expr is None:
-        return None
-
-    head = expr.get_head_name()
-    if head == 'Symbol':
-        return {
-            'NumberString': r'\d+',
-            'Whitespace': r'\s+',
-            'DigitCharacter': r'\d',
-            'WhitespaceCharacter': r'\s',
-            'WordCharacter': r'\s',
-            'StartOfLine': r'(?m)^',
-            'EndOfLine': r'(?m)$',
-            'StartOfString': r'^',
-            'EndOfString': r'$',
-            'WordBoundary': r'\b',
-            'LetterCharacter': r'[a-zA-Z]',
-            'HexidecimalCharacter': r'[0-9a-fA-F]',
-        }.get(expr.get_name())
-    elif head == 'String':
-        leaf = expr.get_string_value()
-        if leaf is not None:
-            return "({0})".format(re.escape(leaf))
-    elif head == 'RegularExpression':
-        if len(expr.leaves) == 1:
-            return "({0})".format(expr.leaves[0].get_string_value())
-    elif head == 'CharacterRange':
-        if len(expr.leaves) == 2:
-            (start, stop) = (leaf.get_string_value() for leaf in expr.leaves)
-            if all(x is not None and len(x) == 1 for x in (start, stop)):
-                return "[{0}-{1}]".format(re.escape(start), re.escape(stop))
-    elif head == 'Blank':
-        if len(expr.leaves) == 0:
-            return r'(.|\n)'
-    elif head == 'BlankSequence':
-        if len(expr.leaves) == 0:
-            return r'(.|\n)+'
-    elif head == 'BlankNullSequence':
-        if len(expr.leaves) == 0:
-            return r'(.|\n)*'
-    elif head == 'Except':
-        if len(expr.leaves) == 1:
-            leaf = to_regex(expr.leaves[0])
-            if leaf is not None:
-                return '^{0}'.format(leaf)
-        # TODO
-        # if len(expr.leaves) == 2:
-        #     pass
-    elif head == 'Characters':
-        if len(expr.leaves) == 1:
-            leaf = expr.leaves[0].get_string_value()
-            if leaf is not None:
-                return '[{0}]'.format(re.escape(leaf))
-    elif head == 'StringExpression':
-        leaves = [to_regex(leaf) for leaf in expr.leaves]
-        if None in leaves:
-            return None
-        return "".join(leaves)
-    elif head == 'Longest':
-        if len(leaves) == 1:
-            return to_regex(expr.leaves[0])
-    elif head == 'Shortest':
-        if len(leaves) == 1:
-            leaf = to_regex(expr.leaves[0])
-            if leaf is not None:
-                return '{0}*?'.format(leaf)
-                # p*?|p+?|p??
-    elif head == 'Repeated':
-        if len(expr.leaves) == 1:
-            leaf = to_regex(expr.leaves[0])
-            if leaf is not None:
-                return '{0}+'.format(leaf)
-    elif head == 'RepeatedNull':
-        if len(expr.leaves) == 1:
-            leaf = to_regex(expr.leaves[0])
-            if leaf is not None:
-                return '{0}*'.format(leaf)
-    elif head == 'Alternatives':
-        leaves = [to_regex(leaf) for leaf in expr.leaves]
-        if all(leaf is not None for leaf in leaves):
-            return "|".join(leaves)
-    else:
-        #print expr, head
-        pass
