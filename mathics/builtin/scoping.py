@@ -346,6 +346,11 @@ class Begin(Builtin):
     >> End[]
      : No previous context defined.
      = Global`
+
+    #> Begin["`System`"]
+     = Global`System`
+    #> End[]
+     = Global`System`
     """
 
     rules = {
