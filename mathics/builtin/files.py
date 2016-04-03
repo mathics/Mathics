@@ -2411,6 +2411,34 @@ class FileNameSplit(Builtin):
         return from_python(result)
 
 
+class ToFileName(Builtin):
+    """
+    <dl>
+    <dt>'ToFileName[{"$dir_1$", "$dir_2$", ...}]'
+      <dd>joins the $dir_i$ togeather into one path.
+    </dl>
+
+    'ToFileName' has been superseded by 'FileNameJoin'.
+
+    #> Unprotect[$PathnameSeparator]; $PathnameSeparator = "/"; Protect[$PathnameSeparator];
+
+    >> ToFileName[{"dir1", "dir2"}, "file"]
+     = dir1/dir2/file
+
+    >> ToFileName["dir1", "file"]
+     = dir1/file
+
+    >> ToFileName[{"dir1", "dir2", "dir3"}]
+     = dir1/dir2/dir3
+    """
+
+    rules = {
+        'ToFileName[dir_String, name_String]': 'FileNameJoin[{dir, name}]',
+        'ToFileName[dirs_?ListQ, name_String]': 'FileNameJoin[Append[dirs, name]]',
+        'ToFileName[dirs_?ListQ]': 'FileNameJoin[dirs]',
+    }
+
+
 class FileNameJoin(Builtin):
     """
     <dl>
