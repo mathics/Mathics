@@ -213,11 +213,11 @@ class _SetOperator(object):
             ignore_protection = True
             return True
         elif lhs_name == 'System`$ContextPath':
-            if rhs.has_form('List', None) and all(
-                    valid_context_name(s.get_string_value()) for s in rhs.leaves):
-                evaluation.definitions.context_path = [
-                    s.get_string_value() for s in rhs.leaves]
+            context_path = [s.get_string_value() for s in rhs.get_leaves()]
+            if rhs.has_form('List', None) and all(valid_context_name(s) for s in context_path):
+                evaluation.definitions.set_context_path(context_path)
                 ignore_protection = True
+                return True
             else:
                 evaluation.message(lhs_name, 'cxlist', rhs)
                 return False
