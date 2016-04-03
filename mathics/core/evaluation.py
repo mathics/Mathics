@@ -158,6 +158,7 @@ class Evaluation(object):
         self.out_callback = out_callback
         self.listeners = {}
         self.options = None
+        self.predetermined_out = None
 
         self.quiet_all = False
         self.quiet_messages = set()
@@ -199,13 +200,11 @@ class Evaluation(object):
             self.timeout = False
             self.stopped = False
 
-            line_no = self.get_config_value('$Line', 0)
+            line_no = self.definitions.get_line_no()
             line_no += 1
-            self.definitions.set_ownvalue('$Line', Integer(line_no))
+            self.definitions.set_line_no(line_no)
 
-            history_length = self.get_config_value('$HistoryLength', 100)
-            if history_length is None or history_length > 100:
-                history_length = 100
+            history_length = self.definitions.get_history_length()
 
             def evaluate():
                 if history_length > 0:
@@ -213,7 +212,13 @@ class Evaluation(object):
                         Expression('In', line_no), query))
                 result = query.evaluate(self)
                 if history_length > 0:
-                    stored_result = self.get_stored_result(result)
+                    if self.predetermined_out is not None:
+                        out_result = self.predetermined_out
+                        self.predetermined_out = None
+                    else:
+                        out_result = result
+
+                    stored_result = self.get_stored_result(out_result)
                     self.definitions.add_rule('Out', Rule(
                         Expression('Out', line_no), stored_result))
                 if result != Symbol('Null'):
@@ -264,9 +269,8 @@ class Evaluation(object):
             finally:
                 self.stop()
 
-            history_length = self.get_config_value('$HistoryLength', 100)
-            if history_length is None or history_length > 100:
-                history_length = 100
+            history_length = self.definitions.get_history_length()
+
             line = line_no - history_length
             while line > 0:
                 unset_in = self.definitions.unset('In', Expression('In', line))
@@ -400,35 +404,9 @@ class Evaluation(object):
         if self.stopped:
             raise TimeoutInterrupt
 
-    def get_config_value(self, name, default=None):
-        # Infinity -> None, otherwise returns integer
-
-        # Temporarily reset the recursion limit, to allow the evaluation
-        # $RecursionLimit and the possible message formatting to use some
-        # recursion.
-        # self.recursion_depth, depth = 0, self.recursion_depth
-        value = self.definitions.get_definition(name).ownvalues
-        if value:
-            try:
-                value = value[0].replace
-            except AttributeError:
-                return None
-            if value.get_name() == 'System`Infinity':
-                return None
-
-            return int(value.get_int_value())
-        else:
-            return default
-
-    def set_config_value(self, name, new_value):
-        from mathics.core.expression import Integer
-
-        self.definitions.set_ownvalue(name, Integer(new_value))
-
     def inc_recursion_depth(self):
         self.check_stopped()
-
-        limit = self.get_config_value(
+        limit = self.definitions.get_config_value(
             '$RecursionLimit', settings.MAX_RECURSION_DEPTH)
         if limit is not None:
             if limit < 20:

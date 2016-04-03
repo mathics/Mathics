@@ -419,13 +419,36 @@ class Definitions(object):
         definition = self.get_user_definition(self.lookup_name(name))
         return definition.remove_rule(expr)
 
-    def get_line(self):
-        'returns current line number'
-        line = self.get_definition('$Line').ownvalues
-        if line:
-            return line[0].replace.get_int_value()
+    def get_config_value(self, name, default=None):
+        'Infinity -> None, otherwise returns integer.'
+        value = self.get_definition(name).ownvalues
+        if value:
+            try:
+                value = value[0].replace
+            except AttributeError:
+                return None
+            if value.get_name() == 'System`Infinity':
+                return None
+
+            return int(value.get_int_value())
         else:
-            return 1    # user may have deleted $Line (e.g. by calling Quit[])
+            return default
+
+    def set_config_value(self, name, new_value):
+        from mathics.core.expression import Integer
+        self.set_ownvalue(name, Integer(new_value))
+
+    def set_line_no(self, line_no):
+        self.set_config_value('$Line', line_no)
+
+    def get_line_no(self):
+        return self.get_config_value('$Line', 0)
+
+    def get_history_length(self):
+        history_length = self.get_config_value('$HistoryLength', 100)
+        if history_length is None or history_length > 100:
+            history_length = 100
+        return history_length
 
 
 def get_tag_position(pattern, name):

@@ -79,7 +79,7 @@ class TerminalShell(object):
         self.definitions = definitions
 
     def get_last_line_number(self):
-        return self.definitions.get_line()
+        return self.definitions.get_line_no()
 
     def get_in_prompt(self, continued=False):
         next_line_number = self.get_last_line_number() + 1
@@ -215,7 +215,7 @@ def main():
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
 
     definitions = Definitions(add_builtin=True)
-    definitions.set_ownvalue('$Line', Integer(0))  # Reset the line number
+    definitions.set_line_no(0)  # Reset the line number
 
     shell = TerminalShell(
         definitions, args.colors, want_readline=not(args.no_readline),

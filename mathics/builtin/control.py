@@ -47,6 +47,27 @@ class CompoundExpression(BinaryOperator):
      : Invalid syntax at or near token ;.
     #> FullForm[Hold[; a ;]]
      : Invalid syntax at or near token ;.
+
+    ## Issue331
+    #> CompoundExpression[x, y, z]
+     = z
+    #> %
+     = z
+
+    #> CompoundExpression[x, y, Null]
+    #> %
+     = y
+
+    #> CompoundExpression[CompoundExpression[x, y, Null], Null]
+    #> %
+     = y
+
+    #> CompoundExpression[x, Null, Null]
+    #> %
+     = x
+
+    #> CompoundExpression[]
+    #> %
     """
 
     operator = ';'
@@ -59,7 +80,14 @@ class CompoundExpression(BinaryOperator):
         items = expr.get_sequence()
         result = Symbol('Null')
         for expr in items:
+            prev_result = result
             result = expr.evaluate(evaluation)
+
+            # `expr1; expr2;` returns `Null` but assigns `expr2` to `Out[n]`.
+            # even stranger `CompoundExpresion[expr1, Null, Null]` assigns `expr1` to `Out[n]`.
+            if result == Symbol('Null') and prev_result != Symbol('Null'):
+                evaluation.predetermined_out = prev_result
+
         return result
 
 
