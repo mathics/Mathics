@@ -93,9 +93,37 @@ def to_regex(expr):
 
 
 class StringExpression(Builtin):
+    """
+    <dl>
+    <dt>'StringExpression[s_1, s_2, ...]'
+      <dd>represents a sequence of strings and symbolic string objects $s_i$.
+    </dl>
+
+    >> "a" ~~ "b" // FullForm
+     = "ab"
+
+    #> "a" ~~ "b" ~~ "c" // FullForm
+     = "abc"
+
+    #> a ~~ b
+     = a ~~ b
+    """
+
+    operator = '~~'
+    precedence = 135
+    attributes = ('Flat', 'OneIdentity', 'Protected')
+
     messages = {
         'invld': 'Element `1` is not a valid string or pattern element in `2`.',
     }
+
+    def apply(self, args, evaluation):
+        'StringExpression[args__String]'
+        args = args.get_sequence()
+        args = [arg.get_string_value() for arg in args]
+        if None in args:
+            return
+        return String(''.join(args))
 
 
 class RegularExpression(Builtin):
