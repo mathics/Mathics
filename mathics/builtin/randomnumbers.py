@@ -108,7 +108,7 @@ class SeedRandom(Builtin):
     <dt>'SeedRandom[$n$]'
         <dd>resets the pseudorandom generator with seed $n$.
     <dt>'SeedRandom[]'
-        <dd>uses the current date and time as seed.
+        <dd>uses the current date and time as the seed.
     </dl>
 
     'SeedRandom' can be used to get reproducible random numbers:
@@ -163,9 +163,11 @@ class RandomInteger(Builtin):
     """
     <dl>
     <dt>'RandomInteger[{$min$, $max$}]'
-        <dd>yields a pseudorandom integer in the range from $min$ to $max$.
+        <dd>yields a pseudorandom integer in the range from $min$ to
+        $max$ inclusive.
     <dt>'RandomInteger[$max$]'
-        <dd>yields a pseudorandom integer in the range from 0 to $max$.
+        <dd>yields a pseudorandom integer in the range from 0 to $max$
+        inclusive.
     <dt>'RandomInteger[]'
         <dd>gives 0 or 1.
     <dt>'RandomInteger[$range$, $n$]'

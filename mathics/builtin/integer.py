@@ -63,7 +63,7 @@ class Ceiling(SympyFunction):
     """
     <dl>
     <dt>'Ceiling[$x$]'
-        <dd>Give first integer greater than $x$.
+        <dd>gives the first integer greater than $x$.
     </dl>
 
     >> Ceiling[1.2]
@@ -88,6 +88,13 @@ class Ceiling(SympyFunction):
 
 class IntegerLength(Builtin):
     """
+    <dl>
+    <dt>'IntegerLength[$x$]'
+        <dd>gives the number of digits in the base-10 representation of $x$.
+    <dt>'IntegerLength[$x$, $b$]'
+        <dd>gives the number of base-$b$ digits in $x$.
+    </dl>
+
     >> IntegerLength[123456]
      = 6
     >> IntegerLength[10^10000]

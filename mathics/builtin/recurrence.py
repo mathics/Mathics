@@ -17,8 +17,8 @@ from mathics.core.convert import sympy_symbol_prefix, from_sympy
 class RSolve(Builtin):
     """
     <dl>
-    <dt>'RSolve[$eqn$, $a[n]$, $n$]'
-        <dd>solves a recurrence equation for the function '$a[n]$'.
+    <dt>'RSolve[$eqn$, $a$[$n$], $n$]'
+        <dd>solves a recurrence equation for the function '$a$[$n$]'.
     </dl>
 
     >> RSolve[a[n] == a[n+1], a[n], n]

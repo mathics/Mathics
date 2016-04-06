@@ -1343,7 +1343,7 @@ class Rational_(Builtin):
     <dt>'Rational'</dt>
         <dd>is the head of rational numbers.</dd>
     <dt>'Rational[$a$, $b$]'</dt>
-        <dd>constructs the rational number a / b.</dd>
+        <dd>constructs the rational number $a$ / $b$.</dd>
     </dl>
 
     >> Head[1/2]
@@ -1443,8 +1443,8 @@ class Complex_(Builtin):
 class Factorial(PostfixOperator, _MPMathFunction):
     """
     <dl>
-    <dt>'Factorial[$n$]'</dt>
-    <dt>'$n$!'</dt>
+    <dt>'Factorial[$n$]'
+    <dt>'$n$!'
         <dd>computes the factorial of $n$.
     </dl>
 
@@ -1693,9 +1693,9 @@ class Product(_IterationFunction, SympyFunction):
 class Piecewise(SympyFunction):
     """
     <dl>
-    <dt>'Picewise[{{expr1, cond1}, ...}]'
+    <dt>'Piecewise[{{expr1, cond1}, ...}]'
       <dd>represents a piecewise function.
-    <dt>'Picewise[{{expr1, cond1}, ...}, expr]'
+    <dt>'Piecewise[{{expr1, cond1}, ...}, expr]'
       <dd>represents a piecewise function with default 'expr'.
     </dl>
 

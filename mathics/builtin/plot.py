@@ -29,6 +29,20 @@ class ColorDataFunction(Builtin):
 
 
 class ColorData(Builtin):
+    """
+    <dl>
+    <dt>'ColorData["$name$"]'
+        <dd>returns a color function with the given $name$.
+    </dl>
+
+    Define a user-defined color function:
+    >> Unprotect[ColorData]; ColorData["test"] := ColorDataFunction["test", "Gradients", {0, 1}, Blend[{Red, Green, Blue}, #1] &]; Protect[ColorData]
+     = 
+
+    Compare it to the default color function, 'LakeColors':
+    >> {DensityPlot[x + y, {x, -1, 1}, {y, -1, 1}], DensityPlot[x + y, {x, -1, 1}, {y, -1, 1}, ColorFunction->"test"]}
+     = {-Graphics-, -Graphics-}
+    """
     rules = {
         'ColorData["LakeColors"]': (
             """ColorDataFunction["LakeColors", "Gradients", {0, 1},
@@ -52,10 +66,10 @@ class Mesh(Builtin):
     >> Plot[Sin[x], {x,0,4 Pi}, Mesh->Full]
      = -Graphics-
 
-    >>DensityPlot[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full]
+    >> DensityPlot[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full]
      = -Graphics-
 
-    >>Plot3D[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full]
+    >> Plot3D[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full]
      = -Graphics3D-
     """
 
@@ -65,23 +79,48 @@ class Mesh(Builtin):
 
 
 class Full(Builtin):
-    # todo: doc
-    pass
+    """
+    <dl>
+    <dt>'Full'
+        <dd>is a possible value for the 'Mesh' and 'PlotRange' options.
+    </dl>
+    """
 
 
 class Top(Builtin):
-    # todo: doc
-    pass
+    """
+    <dl>
+    <dt>'Top'
+        <dd>is a possible value for the 'Filling' option.
+    </dl>
+
+    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Top]
+     = -Graphics-
+    """
 
 
 class Bottom(Builtin):
-    # todo: doc
-    pass
+    """
+    <dl>
+    <dt>'Bottom'
+        <dd>is a possible value for the 'Filling' option.
+    </dl>
+
+    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Bottom]
+     = -Graphics-
+    """
 
 
 class Axis(Builtin):
-    # todo: doc
-    pass
+    """
+    <dl>
+    <dt>'Axis'
+        <dd>is a possible value for the 'Filling' option.
+    </dl>
+
+    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis]
+     = -Graphics-
+    """
 
 
 def extract_pyreal(value):
@@ -1139,7 +1178,7 @@ class ParametricPlot(_Plot):
     """
     <dl>
     <dt>'ParametricPlot[{$f_x$, $f_y$}, {$u$, $umin$, $umax$}]'
-        <dd>plots parametric function $f$ with paramater $u$ ranging from $umin$ to $umax$.
+        <dd>plots a parametric function $f$ with the parameter $u$ ranging from $umin$ to $umax$.
     <dt>'ParametricPlot[{{$f_x$, $f_y$}, {$g_x$, $g_y$}, ...}, {$u$, $umin$, $umax$}]'
         <dd>plots several parametric functions $f$, $g$, ...
     <dt>'ParametricPlot[{$f_x$, $f_y$}, {$u$, $umin$, $umax$}, {$v$, $vmin$, $vmax$}]'
@@ -1198,8 +1237,8 @@ class PolarPlot(_Plot):
     """
     <dl>
     <dt>'PolarPlot[$r$, {$t$, $tmin$, $tmax$}]'
-      <dd>creates a polar plot of $r$ with angle $t$ ranging from
-      $tmin$ to $tmax$.
+        <dd>creates a polar plot of $r$ with angle $t$ ranging from
+        $tmin$ to $tmax$.
     </dl>
 
     >> PolarPlot[Cos[5t], {t, 0, Pi}]
@@ -1251,9 +1290,9 @@ class ListPlot(_ListPlot):
     <dt>'ListPlot[{$y_1$, $y_2$, ...}]'
         <dd>plots a list of y-values, assuming integer x-values 1, 2, 3, ...
     <dt>'ListPlot[{{$x_1$, $y_1$}, {$x_2$, $y_2$}, ...}]'
-        <dd>plots a list of x,y pairs.
+        <dd>plots a list of $x$, $y$ pairs.
     <dt>'ListPlot[{$list_1$, $list_2$, ...}]'
-        <dd>plots a several lists of points.
+        <dd>plots several lists of points.
     </dl>
 
     >> ListPlot[Table[n ^ 2, {n, 10}]]
@@ -1280,9 +1319,9 @@ class ListLinePlot(_ListPlot):
     """
     <dl>
     <dt>'ListLinePlot[{$y_1$, $y_2$, ...}]'
-        <dd>plots a line through a list of y-values, assuming integer x-values 1, 2, 3, ...
+        <dd>plots a line through a list of $y$-values, assuming integer $x$-values 1, 2, 3, ...
     <dt>'ListLinePlot[{{$x_1$, $y_1$}, {$x_2$, $y_2$}, ...}]'
-        <dd>plots a line through a list of x,y pairs.
+        <dd>plots a line through a list of $x$, $y$ pairs.
     <dt>'ListLinePlot[{$list_1$, $list_2$, ...}]'
         <dd>plots several lines.
     </dl>

@@ -27,6 +27,7 @@ class ArrayQ(Builtin):
         <dd>furthermore tests whether $test$ yields 'True' for all elements of $expr$.
         'ArrayQ[$expr$]' is equivalent to 'ArrayQ[$expr$, _, True&]'.
     </dl>
+
     >> ArrayQ[a]
      = False
     >> ArrayQ[{a}]
@@ -80,6 +81,15 @@ class ArrayQ(Builtin):
 
 class VectorQ(Builtin):
     """
+    <dl>
+    <dt>'VectorQ[$v$]'
+        <dd>returns 'True' if $v$ is a list of elements which are
+        not themselves lists.
+    <dt>'VectorQ[$v$, $f$]'
+        <dd>returns 'True' if $v$ is a vector and '$f$[$x$]' returns
+        'True' for each element $x$ of $v$.
+    </dl>
+
     >> VectorQ[{a, b, c}]
      = True
     """
@@ -92,6 +102,14 @@ class VectorQ(Builtin):
 
 class MatrixQ(Builtin):
     """
+    <dl>
+    <dt>'MatrixQ[$m$]'
+        <dd>returns 'True' if $m$ is a list of equal-length lists.
+    <dt>'MatrixQ[$m$, $f$]'
+        <dd>only returns 'True' if '$f$[$x$]' returns 'True' for each
+        element $x$ of the matrix $m$.
+    </dl>
+
     >> MatrixQ[{{1, 3}, {4.0, 3/2}}, NumberQ]
      = True
     """
@@ -122,8 +140,16 @@ def get_dimensions(expr, head=None):
 
 class Dimensions(Builtin):
     """
+    <dl>
+    <dt>'Dimensions[$expr$]'
+        <dd>returns a list of the dimensions of the expression $expr$.
+    </dl>
+
+    A vector of length 3:
     >> Dimensions[{a, b, c}]
      = {3}
+
+    A 3x2 matrix:
     >> Dimensions[{{a, b}, {c, d}, {e, f}}]
      = {3, 2}
 
@@ -145,6 +171,12 @@ class Dimensions(Builtin):
 
 class ArrayDepth(Builtin):
     """
+    <dl>
+    <dt>'ArrayDepth[$a$]'
+        <dd>returns the depth of the non-ragged array $a$, defined as
+        'Length[Dimensions[$a$]]'.
+    </dl>
+
     >> ArrayDepth[{{a,b},{c,d}}]
      = 2
     >> ArrayDepth[x]
@@ -158,6 +190,12 @@ class ArrayDepth(Builtin):
 
 class Dot(BinaryOperator):
     """
+    <dl>
+    <dt>'Dot[$x$, $y$]'
+    <dt>'$x$ . $y$'
+        <dd>computes the vector dot product or matrix product $x$ . $y$.
+    </dl>
+
     Scalar product of vectors:
     >> {a, b, c} . {x, y, z}
      = a x + b y + c z
@@ -182,8 +220,18 @@ class Dot(BinaryOperator):
 
 class Inner(Builtin):
     """
+    <dl>
+    <dt>'Inner[$f$, $x$, $y$, $g$]'
+        <dd>computes a generalised inner product of $x$ and $y$, using
+        a multiplication function $f$ and an addition function $g$.
+    </dl>
+
     >> Inner[f, {a, b}, {x, y}, g]
      = g[f[a, x], f[b, y]]
+
+    'Inner' can be used to compute a dot product:
+    >> Inner[Times, {a, b}, {c, d}, Plus] == {a, b} . {c, d}
+     = True
 
     The inner product of two boolean matrices:
     >> Inner[And, {{False, False}, {False, True}}, {{True, False}, {True, True}}, Or]
@@ -251,6 +299,12 @@ class Inner(Builtin):
 
 class Outer(Builtin):
     """
+    <dl>
+    <dt>'Outer[$f$, $x$, $y$]'
+        <dd>computes a generalised outer product of $x$ and $y$, using
+        the function $f$ in place of multiplication.
+    </dl>
+
     >> Outer[f, {a, b}, {1, 2, 3}]
      = {{f[a, 1], f[a, 2], f[a, 3]}, {f[b, 1], f[b, 2], f[b, 3]}}
 

@@ -21,6 +21,11 @@ from mathics.core.expression import (Expression, Symbol, String, Integer,
 
 class StringJoin(BinaryOperator):
     """
+    <dl>
+    <dt>'StringJoin["$s1$", "$s2$", ...]'
+        <dd>returns the concatenation of the strings $s1$, $s2$, ….
+    </dl>
+
     >> StringJoin["a", "b", "c"]
      = abc
     >> "a" <> "b" <> "c" // InputForm
@@ -56,6 +61,16 @@ class StringJoin(BinaryOperator):
 
 class StringSplit(Builtin):
     """
+    <dl>
+    <dt>'StringSplit["$s$"]'
+        <dd>splits the string $s$ at whitespace, discarding the
+        whitespace and returning a list of strings.
+    <dt>'StringSplit["$s$", "$d$"]'
+        <dd>splits $s$ at the delimiter $d$.
+    <dt>'StringSplit[$s$, {"$d1$", "$d2$", ...}]'
+        <dd>splits $s$ using multiple delimiters.
+    </dl>
+
     >> StringSplit["abc,123", ","]
      = {abc, 123}
 
@@ -130,7 +145,11 @@ class StringSplit(Builtin):
 
 class StringLength(Builtin):
     """
-    'StringLength' gives the length of a string.
+    <dl>
+    <dt>'StringLength["$string$"]'
+        <dd>gives the length of $string$.
+    </dl>
+
     >> StringLength["abc"]
      = 3
     'StringLength' is listable:
@@ -156,15 +175,19 @@ class StringLength(Builtin):
 class StringReplace(Builtin):
     """
     <dl>
-    <dt>'StringReplace["$string$", $s$->$sp$]' or 'StringReplace["$string$", {$s1$->$sp1$, $s2$->$sp2$}]'
-      <dd>replace the string $si$ by $spi$ for all occurances in "$string$".
+    <dt>'StringReplace["$string$", "$a$"->"$b$"]'
+        <dd>replaces each occurrence of $old$ with $new$ in $string$.
+    <dt>'StringReplace["$string$", {"$s1$"->"$sp1$", "$s2$"->"$sp2$"}]'
+        <dd>performs multiple replacements of each $si$ by the
+        corresponding $spi$ in $string$.
     <dt>'StringReplace["$string$", $srules$, $n$]'
-      <dd>only perform the first $n$ replacements.
-    <dt>'StringReplace[{"$string1$", "$string2$", ...}, srules]'
-      <dd>perform replacements on a list of strings
+        <dd>only performs the first $n$ replacements.
+    <dt>'StringReplace[{"$string1$", "$string2$", ...}, $srules$]'
+        <dd>performs the replacements specified by $srules$ on a list
+        of strings.
     </dl>
 
-    StringReplace replaces all occurances of one substring with another:
+    StringReplace replaces all occurrences of one substring with another:
     >> StringReplace["xyxyxyyyxxxyyxy", "xy" -> "A"]
      = AAAyyxxAyA
 
@@ -311,6 +334,11 @@ class StringReplace(Builtin):
 
 class Characters(Builtin):
     """
+    <dl>
+    <dt>'Characters["$string$"]'
+        <dd>returns a list of the characters in $string$.
+    </dl>
+
     >> Characters["abc"]
      = {a, b, c}
 
@@ -337,6 +365,12 @@ class Characters(Builtin):
 
 class CharacterRange(Builtin):
     """
+    <dl>
+    <dt>'CharacterRange["$a$", "$b$"]'
+        <dd>returns a list of the Unicode characters from $a$ to $b$
+        inclusive.
+    </dl>
+
     >> CharacterRange["a", "e"]
      = {a, b, c, d, e}
     >> CharacterRange["b", "a"]
@@ -363,14 +397,20 @@ class CharacterRange(Builtin):
 
 class String_(Builtin):
     """
-    'String' is the head of strings.
+    <dl>
+    <dt>'String'
+        <dd>is the head of strings.
+    </dl>
+
     >> Head["abc"]
      = String
     >> "abc"
      = abc
+
     Use 'InputForm' to display quotes around strings:
     >> InputForm["abc"]
      = "abc"
+
     'FullForm' also displays quotes:
     >> FullForm["abc" + 2]
      = Plus[2, "abc"]
@@ -381,6 +421,11 @@ class String_(Builtin):
 
 class ToString(Builtin):
     """
+    <dl>
+    <dt>'ToString[$expr$]'
+        <dd>returns a string representation of $expr$.
+    </dl>
+
     >> ToString[2]
      = 2
     >> ToString[2] // InputForm
@@ -408,7 +453,7 @@ class ToExpression(Builtin):
     <dt>'ToExpression[$input$]'
       <dd>inteprets a given string as Mathics input.
     <dt>'ToExpression[$input$, $form$]'
-      <dd>reads the given input in the specified form.
+      <dd>reads the given input in the specified $form$.
     <dt>'ToExpression[$input$, $form$, $h$]'
       <dd>applies the head $h$ to the expression before evaluating it.
     </dl>
@@ -499,9 +544,10 @@ class ToExpression(Builtin):
 class ToCharacterCode(Builtin):
     """
     <dl>
-    <dt>'ToCharacterCode["string"]'
-      <dd>converts the string to a list of integer character codes.
-    <dt>'ToCharacterCode[{"string1", "string2", ...}]'
+    <dt>'ToCharacterCode["$string$"]'
+      <dd>converts the string to a list of character codes (Unicode
+      codepoints).
+    <dt>'ToCharacterCode[{"$string1$", "$string2$", ...}]'
       <dd>converts a list of strings to character codes.
     </dl>
 
@@ -572,7 +618,7 @@ class FromCharacterCode(Builtin):
     """
     <dl>
     <dt>'FromCharacterCode[$n$]'
-        <dd>returns the character corresponding to character code $n$.
+        <dd>returns the character corresponding to Unicode codepoint $n$.
     <dt>'FromCharacterCode[{$n1$, $n2$, ...}]'
         <dd>returns a string with characters corresponding to $n_i$.
     <dt>'FromCharacterCode[{{$n11$, $n12$, ...}, {$n21$, $n22$, ...}, ...}]'
@@ -696,7 +742,7 @@ class StringQ(Test):
     """
     <dl>
     <dt>'StringQ[$expr$]'
-      <dd>returns 'True' if $expr$ is a 'String' or 'False' otherwise.
+      <dd>returns 'True' if $expr$ is a 'String', or 'False' otherwise.
     </dl>
 
     >> StringQ["abc"]
@@ -713,10 +759,17 @@ class StringQ(Test):
 
 class StringTake(Builtin):
     """
-    StringTake["string",n] gives the first n characters in "string"
-    StringTake["string",-n] gives the last n characters in "string"
-    StringTake["string",{n}] gives the n-esim character in "string"
-    StringTake["string",{m,n}] gives characters m through n in "string"
+    <dl>
+    <dt>'StringTake["$string$", $n$]'
+        <dd>gives the first $n$ characters in $string$.
+    <dt>'StringTake["$string$", -$n$]'
+        <dd>gives the last $n$ characters in $string$.
+    <dt>'StringTake["$string$", {$n$}]'
+        <dd>gives the $n$th character in $string$.
+    <dt>'StringTake["$string$", {$m$, $n$}]'
+        <dd>gives characters $m$ through $n$ in $string$.
+    </dl>
+
     >> StringTake["abcde", 2]
     = ab
     >> StringTake["abcde", 0]
@@ -802,11 +855,17 @@ class StringTake(Builtin):
 
 class StringDrop(Builtin):
     """
-    StringDrop["string",n] gives "string" with the first n characters dropped.
-    StringDrop["string",-n] gives "string" with the last  n characters dropped.
-    StringDrop["string",{n}] gives "string" with the character n dropped
-    StringDrop["string",{m,n}] gives "string" with the characters m through
-    n dropped.
+    <dl>
+    <dt>'StringDrop["$string$", $n$]'
+        <dd>gives $string$ with the first $n$ characters dropped.
+    <dt>'StringDrop["$string$", -$n$]'
+        <dd>gives $string$ with the last $n$ characters dropped.
+    <dt>'StringDrop["$string$", {$n$}]'
+        <dd>gives $string$ with the $n$th character dropped.
+    <dt>'StringDrop["$string$", {$m$, $n$}]'
+        <dd>gives $string$ with the characters $m$ through $n$ dropped.
+    </dl>
+
     >> StringDrop["abcde", 2]
     = cde
     >> StringDrop["abcde", -2]

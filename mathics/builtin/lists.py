@@ -26,7 +26,13 @@ import sympy
 
 class List(Builtin):
     """
-    'List' is the head of lists.
+    <dl>
+    <dt>'List[$e1$, $e2$, ..., $ei$]'
+    <dt>'{$e1$, $e2$, ..., $ei$}'
+        <dd>represents a list containing the elements $e1$...$ei$.
+    </dl>
+
+    'List' is the head of lists:
     >> Head[{1, 2, 3}]
      = List
 
@@ -66,6 +72,12 @@ class ListQ(Test):
 
 
 class NotListQ(Test):
+    """
+    <dl>
+    <dt>'NotListQ[$expr$]'
+        <dd>returns true if $expr$ is not a list.
+    </dl>
+    """
     def test(self, expr):
         return expr.get_head_name() != 'System`List'
 
@@ -93,17 +105,27 @@ def list_boxes(items, f, open=None, close=None):
 
 class Length(Builtin):
     """
+    <dl>
+    <dt>'Length[$expr$]'
+        <dd>returns the number of leaves in $expr$.
+    </dl>
+
+    Length of a list:
     >> Length[{1, 2, 3}]
      = 3
+
     'Length' operates on the 'FullForm' of expressions:
     >> Length[Exp[x]]
      = 2
     >> FullForm[Exp[x]]
      = Power[E, x]
+
     The length of atoms is 0:
     >> Length[a]
      = 0
-    Note that rational and complex numbers are atoms, although their 'FullForm' might suggest the opposite:
+
+    Note that rational and complex numbers are atoms, although their
+    'FullForm' might suggest the opposite:
     >> Length[1/3]
      = 0
     >> FullForm[1/3]
@@ -123,7 +145,7 @@ class All(Predefined):
     """
     <dl>
     <dt>'All'
-    <dd>is a possible value for 'Span' and 'Quiet'.
+        <dd>is a possible value for 'Span' and 'Quiet'.
     </dl>
     """
     pass
@@ -133,7 +155,7 @@ class None_(Predefined):
     """
     <dl>
     <dt>'None'
-    <dd>is a possible value for 'Span' and 'Quiet'.
+        <dd>is a possible value for 'Span' and 'Quiet'.
     </dl>
     """
     name = 'None'
@@ -141,7 +163,11 @@ class None_(Predefined):
 
 class Span(Builtin):
     """
-    'Span' is the head of span ranges like '1;;3'.
+    <dl>
+    <dt>'Span'
+        <dd>is the head of span ranges like '1;;3'.
+    </dl>
+
     >> ;; // FullForm
      = Span[1, All]
     >> 1;;4;;2 // FullForm
@@ -451,7 +477,8 @@ class Level(Builtin):
     """
     <dl>
     <dt>'Level[$expr$, $levelspec$]'
-        <dd>gives a list of all subexpressions of $expr$ at the level(s) specified by $levelspec$.
+        <dd>gives a list of all subexpressions of $expr$ at the
+        level(s) specified by $levelspec$.
     </dl>
 
     Level uses standard level specifications:
@@ -635,11 +662,17 @@ def convert_seq(seq):
 
 class Part(Builtin):
     """
+    <dl>
+    <dt>'Part[$expr$, $i$]'
+        <dd>returns part $i$ of $expr$.
+    </dl>
+
+    Extract an element from a list:
     >> A = {a, b, c, d};
     >> A[[3]]
      = c
 
-    Negative indizes count from the end:
+    Negative indices count from the end:
     >> {a, b, c}[[-2]]
      = b
 
@@ -761,9 +794,10 @@ class Partition(Builtin):
     """
     <dl>
     <dt>'Partition[$list$, $n$]'
-      <dd>partitions $list$ into sublists of length $n$.
+        <dd>partitions $list$ into sublists of length $n$.
     <dt>'Parition[$list$, $n$, $d$]'
-      <dd>partitions $list$ into sublists of length $n$ which overlap $d$ indicies.
+        <dd>partitions $list$ into sublists of length $n$ which
+        overlap $d$ indicies.
     </dl>
 
     >> Partition[{a, b, c, d, e, f}, 2]
@@ -832,7 +866,7 @@ class First(Builtin):
     """
     <dl>
     <dt>'First[$expr$]'
-        <dd>returns the first elment in $expr$.
+        <dd>returns the first element in $expr$.
     </dl>
 
     'First[$expr$]' is equivalent to '$expr$[[1]]'.
@@ -859,7 +893,7 @@ class Last(Builtin):
     """
     <dl>
     <dt>'Last[$expr$]'
-        <dd>returns the last elment in $expr$.
+        <dd>returns the last element in $expr$.
     </dl>
 
     'Last[$expr$]' is equivalent to '$expr$[[-1]]'.
@@ -936,6 +970,14 @@ class Rest(Builtin):
 
 class ReplacePart(Builtin):
     """
+    <dl>
+    <dt>'ReplacePart[$expr$, $i$ -> $new$]'
+        <dd>replaces part $i$ in $expr$ with $new$.
+    <dt>'ReplacePart[$expr$, {{$i$, $j$} -> $e1$, {$k$, $l$} -> $e2$}]'
+        <dd>replaces parts $i$ and $j$ with $e1$, and parts $k$ and
+        $l$ with $e2$.
+    </dl>
+
     >> ReplacePart[{a, b, c}, 1 -> t]
      = {t, b, c}
     >> ReplacePart[{{a, b}, {c, d}}, {2, 1} -> t]
@@ -1015,6 +1057,11 @@ class ReplacePart(Builtin):
 
 class Take(Builtin):
     """
+    <dl>
+    <dt>'Take[$expr$, $n$]'
+        <dd>returns $expr$ with all but the first $n$ leaves removed.
+    </dl>
+
     >> Take[{a, b, c, d}, 3]
      = {a, b, c}
     >> Take[{a, b, c, d}, -2]
@@ -1069,6 +1116,11 @@ class Take(Builtin):
 
 class Drop(Builtin):
     """
+    <dl>
+    <dt>'Drop[$expr$, $n$]'
+        <dd>returns $expr$ with the first $n$ leaves removed.
+    </dl>
+
     >> Drop[{a, b, c, d}, 3]
      = {d}
     >> Drop[{a, b, c, d}, -2]
@@ -1122,10 +1174,20 @@ class Drop(Builtin):
 
 class Select(Builtin):
     """
+    <dl>
+    <dt>'Select[{$e1$, $e2$, ...}, $f$]'
+        <dd>returns a list of the elements $ei$ for which $f$[$ei$]
+        returns 'True'.
+    </dl>
+
+    Find numbers greater than zero:
     >> Select[{-3, 0, 1, 3, a}, #>0&]
      = {1, 3}
+
+    'Select' works on an expression with any head:
     >> Select[f[a, 2, 3], NumberQ]
      = f[2, 3]
+
     >> Select[a, True]
      : Nonatomic expression expected.
      = Select[a, True]
@@ -1149,9 +1211,10 @@ class Split(Builtin):
     """
     <dl>
     <dt>'Split[$list$]'
-      <dd>splits $list$ into collections of consecutive identical elements.
+        <dd>splits $list$ into collections of consecutive identical elements.
     <dt>'Split[$list$, $test$]'
-      <dd>splits $list$ based on whether the function $test$ yields 'True' on consecutive elements.
+        <dd>splits $list$ based on whether the function $test$ yields
+        'True' on consecutive elements.
     </dl>
 
     >> Split[{x, x, x, y, x, y, y, z}]
@@ -1210,8 +1273,9 @@ class Split(Builtin):
 class SplitBy(Builtin):
     """
     <dl>
-    <dt>'Split[$list$, $f$]'
-      <dd>splits $list$ into collections of consecutive elements that give the same result when $f$ is applied.
+    <dt>'SplitBy[$list$, $f$]'
+        <dd>splits $list$ into collections of consecutive elements
+        that give the same result when $f$ is applied.
     </dl>
 
     >> SplitBy[Range[1, 3, 1/3], Round]
@@ -1275,12 +1339,35 @@ class SplitBy(Builtin):
 
 
 class Cases(Builtin):
+    """
+    <dl>
+    <dt>'Cases[$list$, $pattern$]'
+        <dd>returns the elements of $list$ that match $pattern$.
+    </dl>
+
+    >> Cases[{a, 1, 2.5, "string"}, _Integer|_Real]
+     = {1, 2.5}
+    """
     rules = {
         'Cases[list_, pattern_]': 'Select[list, MatchQ[#, pattern]&]',
     }
 
 
 class MemberQ(Builtin):
+    """
+    <dl>
+    <dt>'MemberQ[$list$, $pattern$]'
+        <dd>returns 'True' if $pattern$ matches any element of $list$,
+        or 'False' otherwise.
+    </dl>
+
+    >> MemberQ[{a, b, c}, b]
+     = True
+    >> MemberQ[{a, b, c}, d]
+     = False
+    >> MemberQ[{"a", b, f[x]}, _?NumericQ]
+     = False
+    """
     rules = {
         'MemberQ[list_, pattern_]': (
             'Length[Select[list, MatchQ[#, pattern]&]] > 0'),
@@ -1289,6 +1376,12 @@ class MemberQ(Builtin):
 
 class Range(Builtin):
     """
+    <dl>
+    <dt>'Range[$n$]'
+        <dd>returns a list of integers from 1 to $n$.
+    <dt>'Range[$a$, $b$]'
+        <dd>returns a list of integers from $a$ to $b$.
+    </dl>
     >> Range[5]
      = {1, 2, 3, 4, 5}
     >> Range[-3, 2]
@@ -1453,6 +1546,11 @@ class _IterationFunction(Builtin):
 
 class ConstantArray(Builtin):
     """
+    <dl>
+    <dt>'ConstantArray[$expr$, $n$]'
+        <dd>returns a list of $n$ copies of $expr$.
+    </dl>
+
     >> ConstantArray[a, 3]
      = {a, a, a}
     >> ConstantArray[a, {2, 3}]
@@ -1467,6 +1565,19 @@ class ConstantArray(Builtin):
 
 class Array(Builtin):
     """
+    <dl>
+    <dt>'Array[$f$, $n$]'
+        <dd>returns the $n$-element list '{$f$[1], ..., $f$[$n$]}'.
+    <dt>'Array[$f$, $n$, $a$]'
+        <dd>returns the $n$-element list '{$f$[$a$], ..., $f$[$a$ + $n$]}'.
+    <dt>'Array[$f$, {$n$, $m$}, {$a$, $b$}]'
+        <dd>returns an $n$-by-$m$ matrix created by applying $f$ to
+        indices ranging from '($a$, $b$)' to '($a$ + $n$, $b$ + $m$)'.
+    <dt>'Array[$f$, $dims$, $origins$, $h$]'
+        <dd>returns an expression with the specified dimensions and
+        index origins, with head $h$ (instead of 'List').
+    </dl>
+
     >> Array[f, 4]
      = {f[1], f[2], f[3], f[4]}
     >> Array[f, {2, 3}]
@@ -1538,6 +1649,17 @@ class Array(Builtin):
 
 class Table(_IterationFunction):
     """
+    <dl>
+    <dt>'Table[$expr$, {$i$, $n$}]'
+        <dd>evaluates $expr$ with $i$ ranging from 1 to $n$, returning
+        a list of the results.
+    <dt>'Table[$expr$, {$i$, $start$, $stop$, $step$}]'
+        <dd>evaluates $expr$ with $i$ ranging from $start$ to $stop$,
+        incrementing by $step$.
+    <dt>'Table[$expr$, {$i$, {$e1$, $e2$, ..., $ei$}}]'
+        <dd>evaluates $expr$ with $i$ taking on the values $e1$, $e2$,
+        ..., $ei$.
+    </dl>
     >> Table[x, {4}]
      = {x, x, x, x}
     >> n = 0;
@@ -1570,16 +1692,22 @@ class Table(_IterationFunction):
 
 class Join(Builtin):
     """
-    'Join' concatenates lists.
+    <dl>
+    <dt>'Join[$l1$, $l2$]'
+        <dd>concatenates the lists $l1$ and $l2$.
+    </dl>
+
+    'Join' concatenates lists:
     >> Join[{a, b}, {c, d, e}]
      = {a, b, c, d, e}
     >> Join[{{a, b}, {c, d}}, {{1, 2}, {3, 4}}]
      = {{a, b}, {c, d}, {1, 2}, {3, 4}}
 
-    The concatenated expressions may have any head.
+    The concatenated expressions may have any head:
     >> Join[a + b, c + d, e + f]
      = a + b + c + d + e + f
-    However, it must be the same for all expressions.
+
+    However, it must be the same for all expressions:
     >> Join[a + b, c * d]
      : Heads Plus and Times are expected to be the same.
      = Join[a + b, c d]
@@ -1765,8 +1893,9 @@ class Reap(Builtin):
     """
     <dl>
     <dt>'Reap[$expr$]'
-        <dd>gives the result of evaluating $expr$, together with all values sown during
-        this evaluation. Values sown with different tags are given in different lists.
+        <dd>gives the result of evaluating $expr$, together with all
+        values sown during this evaluation. Values sown with different
+        tags are given in different lists.
     <dt>'Reap[$expr$, $pattern$]'
         <dd>only yields values sown with a tag matching $pattern$.
         'Reap[$expr$]' is equivalent to 'Reap[$expr$, _]'.
@@ -1868,6 +1997,12 @@ class Sow(Builtin):
 
 class UnitVector(Builtin):
     """
+    <dl>
+    <dt>'UnitVector[$n$, $k$]'
+        <dd>returns the $n$-dimensional unit vector with a 1 in position $k$.
+    <dt>'UnitVector[$k$]'
+        <dd>is equivalent to 'UnitVector[2, $k$]'.
+    </dl>
     >> UnitVector[2]
      = {0, 1}
     >> UnitVector[4, 3]
@@ -1925,6 +2060,14 @@ def riffle_lists(items, seps):
 
 class Riffle(Builtin):
     """
+    <dl>
+    <dt>'Riffle[$list$, $x$]'
+        <dd>inserts a copy of $x$ between each element of $list$.
+    <dt>'Riffle[{$a1$, $a2$, ...}, {$b1$, $b2$, ...}]'
+        <dd>interleaves the elements of both lists, returning
+        '{$a1$, $b1$, $a2$, $b2$, ...}'.
+    </dl>
+
     >> Riffle[{a, b, c}, x]
      = {a, x, b, x, c}
     >> Riffle[{a, b, c}, {x, y, z}]
@@ -1960,9 +2103,10 @@ class DeleteDuplicates(Builtin):
     """
     <dl>
     <dt>'DeleteDuplicates[$list$]'
-      <dd>deletes duplicates from $list$.
+        <dd>deletes duplicates from $list$.
     <dt>'DeleteDuplicates[$list$, $test$]'
-      <dd>deletes elements from $list$ based on whether the function $test$ yields 'True' on pairs of elements.
+        <dd>deletes elements from $list$ based on whether the function
+        $test$ yields 'True' on pairs of elements.
     </dl>
 
     >> DeleteDuplicates[{1, 7, 8, 4, 3, 4, 1, 9, 9, 2, 1}]
@@ -2013,11 +2157,11 @@ class Complement(Builtin):
     """
     <dl>
     <dt>'Complement[$all$, $e1$, $e2$, ...]'
-      <dd>returns an expression containing the elements in the set $all$ that
-      are not in any of $e1$, $e2$, etc.
+        <dd>returns an expression containing the elements in the set
+        $all$ that are not in any of $e1$, $e2$, etc.
     <dt>'Complement[$all$, $e1$, $e2$, ..., SameTest->$test$]'
-      <dd>applies $test$ to the elements in $all$ and each of the $ei$
-      to determine equality.
+        <dd>applies $test$ to the elements in $all$ and each of the
+        $ei$ to determine equality.
     </dl>
 
     The sets $all$, $e1$, etc can have any head, which must all match.
@@ -2108,10 +2252,11 @@ class Complement(Builtin):
 class Fold(Builtin):
     """
     <dl>
-    <dt>'Fold[$expr$, $x$, $list$]'
-        <dd>Expression on all elements of list, with initial value of x.
-    <dt>'Fold[$expr$, $list$]'
-        <dd>The same as Fold[$expr$, First[list], Rest[list]]
+    <dt>'Fold[$f$, $x$, $list$]'
+        <dd>returns the result of iteratively applying the binary
+        operator $f$ to each element of $list$, starting with $x$.
+    <dt>'Fold[$f$, $list$]'
+        <dd>is equivalent to 'Fold[$f$, First[$list$], Rest[$list$]]'.
     </dl>
 
     >> Fold[Plus, 5, {1, 1, 1}]
@@ -2129,17 +2274,14 @@ class Fold(Builtin):
 class FoldList(Builtin):
     """
     <dl>
-    <dt>'FoldList[$expr$, $x$, $list$]'
-        <dd>
-            Apply expr successive on all elements of list, and return list, where $x$ is the first element.
-        </dd>
-    </dt>
-    <dt>FoldList[$expr$, $list$]'
-        <dd>
-            The same as FoldList[$expr$, First[list], Rest[list]].
-        </dd>
-        </dt>
+    <dt>'FoldList[$f$, $x$, $list$]'
+        <dd>returns a list starting with $x$, where each element is
+        the result of applying the binary operator $f$ to the previous
+        result and the next element of $list$.
+    <dt>'FoldList[$f$, $list$]'
+        <dd>is equivalent to 'FoldList[$f$, First[$list$], Rest[$list$]]'.
     </dl>
+
     >> FoldList[f, x, {1, 2, 3}]
      = {x, f[x, 1], f[f[x, 1], 2], f[f[f[x, 1], 2], 3]}
     >> FoldList[Times, {1, 2, 3}]
@@ -2156,11 +2298,9 @@ class Accumulate(Builtin):
     """
     <dl>
     <dt>'Accumulate[$list$]'
-        <dd>
-        Accumulate values from list and return new list
-        </dd>
-        </dt>
+        <dd>accumulates the values of $list$, returning a new list.
     </dl>
+
     >> Accumulate[{1, 2, 3}]
      = {1, 3, 6}
     """
@@ -2174,27 +2314,15 @@ class Total(Builtin):
     """
     <dl>
     <dt>'Total[$list$]'
-        <dd>
-        Add all values up to calculate total
-        Equivalent to Fold[Plus, $list$] or Apply[Plus, $list$]
-        </dd>
-    </dt>
+        <dd>adds all values in $list$.
     <dt>'Total[$list$, $n$]'
-        <dd>
-            Total all values up to level $n$
-        </dd>
-    </dt>
+        <dd>adds all values up to level $n$.
     <dt>'Total[$list$, ${n}$]'
-        <dd>
-            Total at level ${n}$
-        </dd>
-    </dt>
+        <dd>totals only the values at level ${n}$.
     <dt>'Total[$list$, ${n_1, n_2}$]'
-        <dd>
-            Total at levels ${n_1, n_2}$
-        </dd>
-    </dt>
+        <dd>totals at levels ${n_1, n_2}$.
     </dl>
+
     >> Total[{1, 2, 3}]
      = 6
     >> Total[{{1, 2, 3}, {4, 5, 6}, {7, 8 ,9}}]

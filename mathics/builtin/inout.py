@@ -25,8 +25,13 @@ MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
 class Format(Builtin):
     """
-    Assign values to 'Format' to control how particular expressions should be formatted when printed
-    to the user.
+    <dl>
+    <dt>'Format[$expr$]'
+        <dd>holds values specifying how $expr$ should be printed.
+    </dl>
+
+    Assign values to 'Format' to control how particular expressions
+    should be formatted when printed to the user.
     >> Format[f[x___]] := Infix[{x}, "~"]
     >> f[1, 2, 3]
      = 1 ~ 2 ~ 3
@@ -92,6 +97,13 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
 
 class MakeBoxes(Builtin):
     """
+    <dl>
+    <dt>'MakeBoxes[$expr$]'
+        <dd>is a low-level formatting primitive that converts $expr$
+        to box form, without evaluating it.
+    <dt>'\( ... \)'
+        <dd>directly inputs box objects.
+    </dl>
 
     String representation of boxes
     >> \(x \^ 2\)
@@ -365,8 +377,16 @@ class MakeBoxes(Builtin):
 
 
 class ToBoxes(Builtin):
-
     """
+    <dl>
+    <dt>'ToBoxes[$expr$]'
+        <dd>evaluates $expr$ and converts the result to box form.
+    </dl>
+
+    Unlike 'MakeBoxes', 'ToBoxes' evaluates its argument:
+    >> ToBoxes[a + a]
+     = RowBox[{2, , a}]
+
     >> ToBoxes[a + b]
      = RowBox[{a, +, b}]
     >> ToBoxes[a ^ b] // FullForm
@@ -384,10 +404,22 @@ class ToBoxes(Builtin):
 
 
 class RowBox(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'RowBox[{...}]'
+        <dd>is a box construct that represents a sequence of boxes
+        arranged in a horizontal row.
+    </dl>
+    """
 
 
 class Row(Builtin):
+    """
+    <dl>
+    <dt>'Row[{$expr$, ...}]'
+        <dd>formats several expressions inside a 'RowBox'.
+    </dl>
+    """
     def apply_makeboxes(self, items, sep, f, evaluation):
         '''MakeBoxes[Row[{items___}, sep_:""],
             f:StandardForm|TraditionalForm|OutputForm]'''
@@ -414,6 +446,12 @@ def is_constant(list):
 
 class GridBox(BoxConstruct):
     r"""
+    <dl>
+    <dt>'GridBox[{{...}, {...}}]'
+        <dd>is a box construct that represents a sequence of boxes
+        arranged in a grid.
+    </dl>
+
     #> Grid[{{a,bc},{d,e}}, ColumnAlignments:>Symbol["Rig"<>"ht"]]
      = a   bc
      .
@@ -547,6 +585,11 @@ class GridBox(BoxConstruct):
 
 class Grid(Builtin):
     """
+    <dl>
+    <dt>'Grid[{{$a1$, $a2$, ...}, {$b1$, $b2$, ...}, ...}]'
+        <dd>formats several expressions inside a 'GridBox'.
+    </dl>
+
     >> Grid[{{a, b}, {c, d}}]
      = a   b
      .
@@ -570,6 +613,11 @@ class Grid(Builtin):
 
 class TableForm(Builtin):
     """
+    <dl>
+    <dt>'TableForm[$expr$]'
+        <dd>displays $expr$ as a table.
+    </dl>
+
     >> TableForm[Array[a, {3,2}],TableDepth->1]
      = {a[1, 1], a[1, 2]}
      .
@@ -639,6 +687,12 @@ class TableForm(Builtin):
 
 class MatrixForm(TableForm):
     """
+    <dl>
+    <dt>'MatrixForm[$m$]'
+        <dd>displays a matrix $m$, hiding the underlying list
+        structure.
+    </dl>
+
     >> Array[a,{4,3}]//MatrixForm
      = a[1, 1]   a[1, 2]   a[1, 3]
      .
@@ -669,6 +723,11 @@ class MatrixForm(TableForm):
 
 class Superscript(Builtin):
     """
+    <dl>
+    <dt>'Superscript[$x$, $y$]'
+        <dd>displays as $x^y$.
+    </dl>
+
     >> Superscript[x,3] // TeXForm
      = x^3
     """
@@ -685,6 +744,11 @@ class SuperscriptBox(Builtin):
 
 class Subscript(Builtin):
     """
+    <dl>
+    <dt>'Subscript[$a$, $i$]'
+        <dd>displays as $a_i$.
+    </dl>
+
     >> Subscript[x,1,2,3] // TeXForm
      = x_{1,2,3}
     """
@@ -703,6 +767,11 @@ class SubscriptBox(Builtin):
 
 class Subsuperscript(Builtin):
     """
+    <dl>
+    <dt>'Subsuperscript[$a$, $b$, $c$]'
+        <dd>displays as $a_b^c$.
+    </dl>
+
     >> Subsuperscript[a, b, c] // TeXForm
      = a_b^c
     """
@@ -721,6 +790,11 @@ class SubsuperscriptBox(Builtin):
 
 class Postfix(BinaryOperator):
     """
+    <dl>
+    <dt>'$x$ // $f$'
+        <dd>is equivalent to '$f$[$x$]'.
+    </dl>
+
     >> b // a
      = a[b]
     >> c // b // a
@@ -743,6 +817,11 @@ class Postfix(BinaryOperator):
 
 class Prefix(BinaryOperator):
     """
+    <dl>
+    <dt>'$f$ @ $x$'
+        <dd>is equivalent to '$f$[$x$]'.
+    </dl>
+
     >> a @ b
      = a[b]
     >> a @ b @ c
@@ -775,6 +854,14 @@ class Prefix(BinaryOperator):
 
 class Infix(Builtin):
     """
+    <dl>
+    <dt>'Infix[$expr$, $oper$, $prec$, $assoc$]'
+        <dd>displays $expr$ with the infix operator $oper$, with
+        precedence $prec$ and associativity $assoc$.
+    </dl>
+
+    'Infix' can be used with 'Format' to display certain forms with
+    user-defined infix notation:
     >> Format[g[x_, y_]] := Infix[{x, y}, "#", 350, Left]
     >> g[a, g[b, c]]
      = a # (b # c)
@@ -801,27 +888,53 @@ class Infix(Builtin):
 
 
 class NonAssociative(Builtin):
-    # todo: doc
-    pass
+    """
+    <dl>
+    <dt>'NonAssociative'
+        <dd>is used with operator formatting constructs to specify a
+        non-associative operator.
+    </dl>
+    """
 
 
 class Left(Builtin):
-    # todo: doc
-    pass
+    """
+    <dl>
+    <dt>'Left'
+        <dd>is used with operator formatting constructs to specify a
+        left-associative operator.
+    </dl>
+    """
 
 
 class Right(Builtin):
-    # todo: doc
-    pass
+    """
+    <dl>
+    <dt>'Right'
+        <dd>is used with operator formatting constructs to specify a
+        right-associative operator.
+    </dl>
+    """
 
 
 class Center(Builtin):
-    # todo: doc - alignment, not associativity
-    pass
+    """
+    <dl>
+    <dt>'Center'
+        <dd>is used with the 'ColumnAlignments' option to 'Grid' or
+        'TableForm' to specify a centered column.
+    </dl>
+    """
 
 
 class StringForm(Builtin):
     """
+    <dl>
+    <dt>'StringForm[$str$, $expr1$, $expr2$, ...]'
+        <dd>displays the string $str$, replacing placeholders in $str$
+        with the corresponding expressions.
+    </dl>
+
     >> StringForm["`1` bla `2` blub `` bla `2`", a, b, c]
      = a bla b blub c bla b
     """
@@ -856,6 +969,12 @@ class StringForm(Builtin):
 
 class Message(Builtin):
     """
+    <dl>
+    <dt>'Message[$symbol$::$msg$, $expr1$, $expr2$, ...]'
+        <dd>displays the specified message, replacing placeholders in
+        the message text with the corresponding expressions.
+    </dl>
+
     >> a::b = "Hello world!"
      = Hello world!
     >> Message[a::b]
@@ -878,8 +997,8 @@ class Message(Builtin):
 class Quiet(Builtin):
     """
     <dl>
-    <dt>'Quiet[$expr$, {$s1::t1$, ...}]'
-        <dd>evaluates $expr$, without messages '{$s1::t1$, ...}' being displayed.
+    <dt>'Quiet[$expr$, {$s1$::$t1$, ...}]'
+        <dd>evaluates $expr$, without messages '{$s1$::$t1$, ...}' being displayed.
     <dt>'Quiet[$expr$, All]'
         <dd>evaluates $expr$, without any messages being displayed.
     <dt>'Quiet[$expr$, None]'
@@ -996,6 +1115,12 @@ class Quiet(Builtin):
 
 class MessageName(BinaryOperator):
     """
+    <dl>
+    <dt>'MessageName[$symbol$, $tag$]'</dt>
+    <dt>'$symbol$::$tag$'</dt>
+        <dd>identifies a message.
+    </dl>
+
     'MessageName' is the head of message IDs of the form 'symbol::tag'.
     >> FullForm[a::b]
      = MessageName[a, "b"]
@@ -1043,7 +1168,10 @@ class MessageName(BinaryOperator):
 
 class Syntax(Builtin):
     """
-    'Syntax' is a symbol to which all syntax messages are assigned.
+    <dl>
+    <dt>'Syntax'
+        <dd>is a symbol to which all syntax messages are assigned.
+    </dl>
 
     >> 1 +
      : Incomplete expression; more input is needed.
@@ -1072,7 +1200,11 @@ class Syntax(Builtin):
 
 class General(Builtin):
     """
-    'General' is a symbol to which all general-purpose messages are assigned.
+    <dl>
+    <dt>'General'
+        <dd>is a symbol to which all general-purpose messages are assigned.
+    </dl>
+
     >> General::argr
      = `1` called with 1 argument; `2` arguments are expected.
     >> Message[Rule::argr, Rule, 2]
@@ -1153,6 +1285,11 @@ class General(Builtin):
 
 class Print(Builtin):
     """
+    <dl>
+    <dt>'Print[$expr$, ...]'
+        <dd>prints each $expr$ in string form.
+    </dl>
+
     >> Print["Hello world!"]
      | Hello world!
     >> Print["The answer is ", 7 * 6, "."]
@@ -1175,6 +1312,11 @@ class Print(Builtin):
 
 class FullForm(Builtin):
     """
+    <dl>
+    <dt>'FullForm[$expr$]'
+        <dd>displays the underlying form of $expr$.
+    </dl>
+
     >> FullForm[a + b * c]
      = Plus[a, Times[b, c]]
     >> FullForm[2/3]
@@ -1186,6 +1328,11 @@ class FullForm(Builtin):
 
 class StandardForm(Builtin):
     """
+    <dl>
+    <dt>'StandardForm[$expr$]'
+        <dd>displays $expr$ in the default form.
+    </dl>
+
     >> StandardForm[a + b * c]
      = a + b c
     >> StandardForm["A string"]
@@ -1200,6 +1347,11 @@ class StandardForm(Builtin):
 
 class InputForm(Builtin):
     """
+    <dl>
+    <dt>'InputForm[$expr$]'
+        <dd>displays $expr$ in an unambiguous form suitable for input.
+    </dl>
+
     >> InputForm[a + b * c]
      = a + b*c
     >> InputForm["A string"]
@@ -1215,6 +1367,11 @@ class InputForm(Builtin):
 
 class OutputForm(Builtin):
     """
+    <dl>
+    <dt>'OutputForm[$expr$]'
+        <dd>displays $expr$ in a plain-text form.
+    </dl>
+
     >> OutputForm[f'[x]]
      = f'[x]
     >> OutputForm[Derivative[1, 0][f][x]]
@@ -1228,6 +1385,11 @@ class OutputForm(Builtin):
 
 class MathMLForm(Builtin):
     """
+    <dl>
+    <dt>'MathMLForm[$expr$]'
+        <dd>displays $expr$ as a MathML expression.
+    </dl>
+
     >> MathMLForm[HoldForm[Sqrt[a^3]]]
      = <math><msqrt><msup><mi>a</mi> <mn>3</mn></msup></msqrt></math>
 
@@ -1266,6 +1428,11 @@ class MathMLForm(Builtin):
 
 class TeXForm(Builtin):
     r"""
+    <dl>
+    <dt>'TeXForm[$expr$]'
+        <dd>displays $expr$ using TeX math mode commands.
+    </dl>
+
     >> TeXForm[HoldForm[Sqrt[a^3]]]
      = \sqrt{a^3}
 

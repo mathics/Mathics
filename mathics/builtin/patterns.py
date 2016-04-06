@@ -49,6 +49,12 @@ from mathics.core.pattern import Pattern, StopGenerator
 
 class Rule_(BinaryOperator):
     """
+    <dl>
+    <dt>'Rule[$x$, $y$]'
+    <dt>'$x$ -> $y$'
+        <dd>represents a rule replacing $x$ with $y$.
+    </dl>
+
     >> a+b+c /. c->d
     = a + b + d
     >> {x,x^2,y} /. x->3
@@ -73,6 +79,13 @@ class Rule_(BinaryOperator):
 
 class RuleDelayed(BinaryOperator):
     """
+    <dl>
+    <dt>'RuleDelayed[$x$, $y$]'
+    <dt>'$x$ :> $y$'
+        <dd>represents a rule replacing $x$ with $y$, with $y$ held
+        unevaluated.
+    </dl>
+
     >> Attributes[RuleDelayed]
      = {HoldRest, Protected, SequenceHold}
     """
@@ -117,12 +130,26 @@ def create_rules(rules_expr, expr, name, evaluation, extra_args=[]):
 
 class ReplaceAll(BinaryOperator):
     """
+    <dl>
+    <dt>'ReplaceAll[$expr$, $x$ -> $y$]'
+    <dt>'$expr$ /. $x$ -> $y$'
+        <dd>yields the result of replacing all subexpressions of
+        $expr$ matching the pattern $x$ with $y$.
+    <dt>'$expr$ /. {$x$ -> $y$, ...}'
+        <dd>performs replacement with multiple rules, yielding a
+        single result expression.
+    <dt>'$expr$ /. {{$a$ -> $b$, ...}, {$c$ -> $d$, ...}, ...}'
+        <dd>returns a list containing the result of performing each
+        set of replacements.
+    </dl>
+
     >> a+b+c /. c->d
      = a + b + d
     >> g[a+b+c,a]/.g[x_+y_,x_]->{x,y}
      = {a, b + c}
 
-    If $rules$ is a list of lists, a list of all possible respective replacements is returned:
+    If $rules$ is a list of lists, a list of all possible respective
+    replacements is returned:
     >> {a, b} /. {{a->x, b->y}, {a->u, b->v}}
      = {{x, y}, {u, v}}
     The list can be arbitrarily nested:
@@ -159,6 +186,13 @@ class ReplaceAll(BinaryOperator):
 
 class ReplaceRepeated(BinaryOperator):
     """
+    <dl>
+    <dt>'ReplaceRepeated[$expr$, $x$ -> $y$]'
+    <dt>'$expr$ //. $x$ -> $y$'
+        <dd>repeatedly applies the rule '$x$ -> $y$' to $expr$ until
+        the result no longer changes.
+    </dl>
+
     >> a+b+c //. c->d
      = a + b + d
 
@@ -203,6 +237,12 @@ class ReplaceRepeated(BinaryOperator):
 
 class ReplaceList(Builtin):
     """
+    <dl>
+    <dt>'ReplaceList[$expr$, $rules$]'
+        <dd>returns a list of all possible results of applying $rules$
+        to $expr$.
+    </dl>
+
     Get all subsequences of a list:
     >> ReplaceList[{a, b, c}, {___, x__, ___} -> {x}]
      = {{a}, {a, b}, {a, b, c}, {b}, {b, c}, {c}}
@@ -259,6 +299,13 @@ class ReplaceList(Builtin):
 
 class PatternTest(BinaryOperator, PatternObject):
     """
+    <dl>
+    <dt>'PatternTest[$pattern$, $test$]'
+    <dt>'$pattern$ ? $test$'
+        <dd>constrains $pattern$ to match $expr$ only if the
+        evaluation of '$test$[$expr$]' yields 'True'.
+    </dl>
+
     >> MatchQ[3, _Integer?(#>0&)]
      = True
     >> MatchQ[-3, _Integer?(#>0&)]
@@ -333,6 +380,13 @@ class PatternTest(BinaryOperator, PatternObject):
 
 class Alternatives(BinaryOperator, PatternObject):
     """
+    <dl>
+    <dt>'Alternatives[$p1$, $p2$, ..., $p_i$]'
+    <dt>'$p1$ | $p2$ | ... | $p_i$'
+        <dd>is a pattern that matches any of the patterns '$p1$, $p2$,
+        ...., $p_i$'.
+    </dl>
+
     >> a+b+c+d/.(a|b)->t
      = c + d + 2 t
     """
@@ -386,7 +440,7 @@ def match(expr, form, evaluation):
 class MatchQ(Builtin):
     """
     <dl>
-        <dt>'MatchQ[$expr$, $form$]'
+    <dt>'MatchQ[$expr$, $form$]'
         <dd>tests whether $expr$ matches $form$.
     </dl>
 
@@ -406,10 +460,19 @@ class MatchQ(Builtin):
 
 class Verbatim(PatternObject):
     """
+    <dl>
+    <dt>'Verbatim[$expr$]'
+        <dd>prevents pattern constructs in $expr$ from taking effect,
+        allowing them to match themselves.
+    </dl>
+
+    Create a pattern matching 'Blank':
     >> _ /. Verbatim[_]->t
      = t
     >> x /. Verbatim[_]->t
      = x
+
+    Without 'Verbatim', 'Blank' has its normal effect:
     >> x /. _->t
      = t
     """
@@ -426,10 +489,12 @@ class Verbatim(PatternObject):
 
 
 class HoldPattern(PatternObject):
-
     """
-    'HoldPattern[$expr$]' is equivalent to $expr$ for pattern matching,
-    but maintains it in an unevaluated form.
+    <dl>
+    <dt>'HoldPattern[$expr$]'
+        <dd>is equivalent to $expr$ for pattern matching, but
+        maintains it in an unevaluated form.
+    </dl>
 
     >> HoldPattern[x + x]
      = HoldPattern[x + x]
@@ -459,10 +524,12 @@ class HoldPattern(PatternObject):
 class Pattern_(PatternObject):
     """
     <dl>
-    <dt>'Pattern[$symb$, $patt$]' or '$symb$ : $patt$'
+    <dt>'Pattern[$symb$, $patt$]'
+    <dt>'$symb$ : $patt$'
         <dd>assigns the name $symb$ to the pattern $patt$.
     <dt>'$symb$_$head$'
-        <dd>is equivalent to '$symb$ : _$head$' (accordingly with '__' and '___').
+        <dd>is equivalent to '$symb$ : _$head$' (accordingly with '__'
+        and '___').
     <dt>'$symb$ : $patt$ : $default$'
         <dd>is a pattern with name $symb$ and default value $default$,
         equivalent to 'Optional[$patt$ : $symb$, $default$]'.
@@ -564,8 +631,10 @@ class Pattern_(PatternObject):
 class Optional(BinaryOperator, PatternObject):
     """
     <dl>
-    <dt>'Optional[$patt$, $default$]' or '$patt$ : $default$'
-        <dd>is a pattern which matches $patt$ and which, if omitted should be replaced by $default$.
+    <dt>'Optional[$patt$, $default$]'
+    <dt>'$patt$ : $default$'
+        <dd>is a pattern which matches $patt$, which if omitted
+        should be replaced by $default$.
     </dl>
 
     >> f[x_, y_:1] := {x, y}
@@ -695,9 +764,11 @@ class _Blank(PatternObject):
 class Blank(_Blank):
     """
     <dl>
-    <dt>'_' or 'Blank'[]
+    <dt>'Blank[]'
+    <dt>'_'
         <dd>represents any single expression in a pattern.
-    <dt>'_'$h$ or 'Blank'[$h$]
+    <dt>'Blank[$h$]'
+    <dt>'_$h$'
         <dd>represents any expression with head $h$.
     </dl>
 
@@ -734,9 +805,12 @@ class Blank(_Blank):
 class BlankSequence(_Blank):
     """
     <dl>
-    <dt>'__' or 'BlankSequence'[]
-        <dd>represents any non-empty sequence of expression leaves in a pattern.
-    <dt>'__'$h$ or 'BlankSequence'[$h$]
+    <dt>'BlankSequence[]'
+    <dt>'__'
+        <dd>represents any non-empty sequence of expression leaves in
+        a pattern.
+    <dt>'BlankSequence[$h$]'
+    <dt>'__$h$'
         <dd>represents any sequence of leaves, all of which have head $h$.
     </dl>
 
@@ -790,7 +864,8 @@ class BlankSequence(_Blank):
 class BlankNullSequence(_Blank):
     """
     <dl>
-    <dt>'___' or 'BlankNullSequence'[]
+    <dt>'BlankNullSequence[]'
+    <dt>'___'
         <dd>represents any sequence of expression leaves in a pattern,
         including an empty sequence.
     </dl>
@@ -837,6 +912,11 @@ class BlankNullSequence(_Blank):
 
 class Repeated(PostfixOperator, PatternObject):
     """
+    <dl>
+    <dt>'Repeated[$pattern$]'
+        <dd>matches one or more occurrences of $pattern$.
+    </dl>
+
     >> a_Integer.. // FullForm
      = Repeated[Pattern[a, Blank[Integer]]]
     >> 0..1//FullForm
@@ -910,6 +990,11 @@ class Repeated(PostfixOperator, PatternObject):
 
 class RepeatedNull(Repeated):
     """
+    <dl>
+    <dt>'RepeatedNull[$pattern$]'
+        <dd>matches zero or more occurrences of $pattern$.
+    </dl>
+
     >> a___Integer...//FullForm
      = RepeatedNull[Pattern[a, BlankNullSequence[Integer]]]
     >> f[x] /. f[x, 0...] -> t
@@ -930,8 +1015,15 @@ class RepeatedNull(Repeated):
 
 class Condition(BinaryOperator, PatternObject):
     """
-    'Condition' sets a condition on the pattern to match, using variables of the pattern.
+    <dl>
+    <dt>'Condition[$pattern$, $expr$]'
+    <dt>'$pattern$ /; $expr$'
+        <dd>places an additional constraint on $pattern$ that only
+        allows it to match if $expr$ evaluates to 'True'.
+    </dl>
 
+    The controlling expression of a 'Condition' can use variables from
+    the pattern:
     >> f[3] /. f[x_] /; x>0 -> t
      = t
     >> f[-3] /. f[x_] /; x>0 -> t
@@ -973,13 +1065,14 @@ class OptionsPattern(PatternObject):
     """
     <dl>
     <dt>'OptionsPattern[$f$]'
-        <dd>is a pattern that stands for a sequence of options given to a function,
-        with default values taken from 'Options[$f$]'. The options can be of the form
-        '$opt$->$value$' or '$opt$:>$value$', and might be in arbitrarily nested lists.
+        <dd>is a pattern that stands for a sequence of options given
+        to a function, with default values taken from 'Options[$f$]'.
+        The options can be of the form '$opt$->$value$' or
+        '$opt$:>$value$', and might be in arbitrarily nested lists.
     <dt>'OptionsPattern[{$opt1$->$value1$, ...}]'
-        <dd>takes explicit default values from the given list.
-        The list may also contain symbols $f$, for which 'Options[$f$]' is taken into account;
-        it may be arbitrarily nested.
+        <dd>takes explicit default values from the given list. The
+        list may also contain symbols $f$, for which 'Options[$f$]' is
+        taken into account; it may be arbitrarily nested.
         'OptionsPattern[{}]' does not use any default values.
     </dl>
 

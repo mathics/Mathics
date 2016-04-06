@@ -21,6 +21,11 @@ from mathics.core.expression import (
 
 class PowerMod(Builtin):
     """
+    <dl>
+    <dt>'PowerMod[$x$, $y$, $m$]'
+        <dd>computes $x$^$y$ modulo $m$.
+    </dl>
+
     >> PowerMod[2, 10000000, 3]
      = 1
     >> PowerMod[3, -2, 10]
@@ -61,6 +66,11 @@ class PowerMod(Builtin):
 
 class Mod(Builtin):
     """
+    <dl>
+    <dt>'Mod[$x$, $m$]'
+        <dd>returns $x$ modulo $m$.
+    </dl>
+
     >> Mod[14, 6]
      = 2
     >> Mod[-3, 4]
@@ -87,6 +97,11 @@ class Mod(Builtin):
 
 class EvenQ(Test):
     """
+    <dl>
+    <dt>'EvenQ[$x$]'
+        <dd>returns 'True' if $x$ is even, and 'False' otherwise.
+    </dl>
+
     >> EvenQ[4]
      = True
     >> EvenQ[-3]
@@ -102,6 +117,11 @@ class EvenQ(Test):
 
 class OddQ(Test):
     """
+    <dl>
+    <dt>'OddQ[$x$]'
+        <dd>returns 'True' if $x$ is odd, and 'False' otherwise.
+    </dl>
+
     >> OddQ[-3]
      = True
     >> OddQ[0]
@@ -334,6 +354,11 @@ class Prime(Builtin):
 
 class PrimeQ(Builtin):
     """
+    <dl>
+    <dt>'PrimeQ[$n$]'
+        <dd>returns 'True' if $n$ is a prime number.
+    </dl>
+
     For very large numbers, 'PrimeQ' uses probabilistic prime testing, so it might be wrong sometimes
     (a number might be composite even though 'PrimeQ' says it is prime).
     The algorithm might be changed in the future.
@@ -379,7 +404,11 @@ class PrimeQ(Builtin):
 
 class CoprimeQ(Builtin):
     """
-    Test whether two numbers are coprime by computing their greatest common divisor
+    <dl>
+    <dt>'CoprimeQ[$x$, $y$]'
+        <dd>tests whether $x$ and $y$ are coprime by computing their
+        greatest common divisor.
+    </dl>
 
     >> CoprimeQ[7, 9]
      = True
@@ -402,7 +431,6 @@ class CoprimeQ(Builtin):
 
     >> CoprimeQ[2, 4, 5]
      = False
-
     """
     attributes = ('Listable',)
 
@@ -422,7 +450,10 @@ class CoprimeQ(Builtin):
 
 class PrimePowerQ(Builtin):
     """
-    Tests wheter a number is a prime power
+    <dl>
+    <dt>'PrimePowerQ[$n$]'
+        <dd>returns 'True' if $n$ is a power of a prime number.
+    </dl>
 
     >> PrimePowerQ[9]
      = True
@@ -481,7 +512,7 @@ class PrimePi(Builtin):
     """
     <dl>
     <dt>'PrimePi[$x$]'
-        <dd>gives the number of primes less than or equal to $x$
+        <dd>gives the number of primes less than or equal to $x$.
     </dl>
 
     >> PrimePi[100]
@@ -562,7 +593,7 @@ class RandomPrime(Builtin):
     <dl>
     <dt>'RandomPrime[{$imin$, $imax}]'
         <dd>gives a random prime between $imin$ and $imax$.
-    <dt>'RanomPrime[$imax$]
+    <dt>'RandomPrime[$imax$]'
         <dd>gives a random prime between 2 and $imax$.
     <dt>'RandomPrime[$range$, $n$]'
         <dd>gives a list of $n$ random primes in $range$.

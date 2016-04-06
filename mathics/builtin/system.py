@@ -41,8 +41,12 @@ class Names(Builtin):
 
     >> Names["List"]
      = {List}
+
+    The wildcard '*' matches any character:
     >> Names["List*"]
      = {List, ListLinePlot, ListPlot, ListQ, Listable}
+
+    The wildcard '@' matches only lowercase characters:
     >> Names["List@"]
      = {Listable}
 

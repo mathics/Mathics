@@ -87,6 +87,12 @@ class Sort(Builtin):
 
 class PatternsOrderedQ(Builtin):
     """
+    <dl>
+    <dt>'PatternsOrderedQ[$patt1$, $patt2$]'
+        <dd>returns 'True' if pattern $patt1$ would be applied before
+        $patt2$ according to canonical pattern ordering.
+    </dl>
+
     >> PatternsOrderedQ[x__, x_]
      = False
     >> PatternsOrderedQ[x_, x__]
@@ -106,6 +112,12 @@ class PatternsOrderedQ(Builtin):
 
 class OrderedQ(Builtin):
     """
+    <dl>
+    <dt>'OrderedQ[$a$, $b$]'
+        <dd>is 'True' if $a$ sorts before $b$ according to canonical
+        ordering.
+    </dl>
+
     >> OrderedQ[a, b]
      = True
     >> OrderedQ[b, a]
@@ -123,6 +135,11 @@ class OrderedQ(Builtin):
 
 class Head(Builtin):
     """
+    <dl>
+    <dt>'Head[$expr$]'
+        <dd>returns the head of the expression or atom $expr$.
+    </dl>
+
     >> Head[a * b]
      = Times
     >> Head[6]
@@ -140,7 +157,8 @@ class Head(Builtin):
 class ApplyLevel(BinaryOperator):
     """
     <dl>
-    <dt>'ApplyLevel[$f$, $expr$]' or '$f$ @@@ $expr$'
+    <dt>'ApplyLevel[$f$, $expr$]'
+    <dt>'$f$ @@@ $expr$'
         <dd>is equivalent to 'Apply[$f$, $expr$, {1}]'.
     </dl>
 
@@ -160,7 +178,8 @@ class ApplyLevel(BinaryOperator):
 class Apply(BinaryOperator):
     """
     <dl>
-    <dt>'Apply[$f$, $expr$]' or '$f$ @@ $expr$'
+    <dt>'Apply[$f$, $expr$]'
+    <dt>'$f$ @@ $expr$'
         <dd>replaces the head of $expr$ with $f$.
     <dt>'Apply[$f$, $expr$, $levelspec$]'
         <dd>applies $f$ on the parts specified by $levelspec$.
@@ -401,6 +420,12 @@ class Thread(Builtin):
 
 class FreeQ(Builtin):
     """
+    <dl>
+    <dt>'FreeQ[$expr$, $x$]'
+        <dd>returns 'True' if $expr$ does not contain the expression
+        $x$.
+    </dl>
+
     >> FreeQ[y, x]
      = True
     >> FreeQ[a+b+c, a+b]
@@ -433,6 +458,7 @@ class Flatten(Builtin):
     <dt>'Flatten[$expr$, $n$, $h$]'
         <dd>flattens expressions with head $h$ instead of 'List'.
     </dl>
+
     >> Flatten[{{a, b}, {c, {d}, e}, {f, {g, h}}}]
      = {a, b, c, d, e, f, g, h}
     >> Flatten[{{a, b}, {c, {e}, e}, {f, {g, h}}}, 1]
@@ -638,7 +664,11 @@ class Flatten(Builtin):
 
 class Null(Predefined):
     """
-    'Null' is the implicit result of expressions that do not yield a result:
+    <dl>
+    <dt>'Null'
+        <dd>is the implicit result of expressions that do not yield a result.
+    </dl>
+
     >> FullForm[a:=b]
      = Null
 
@@ -653,6 +683,13 @@ class Null(Predefined):
 
 class AtomQ(Test):
     """
+    <dl>
+    <dt>'AtomQ[$x$]'
+        <dd>is true if $x$ is an atom (an object such as a number or
+        string, which cannot be divided into subexpressions using
+        'Part').
+    </dl>
+
     >> AtomQ[x]
      = True
     >> AtomQ[1.2]
@@ -671,6 +708,11 @@ class AtomQ(Test):
 
 class SymbolQ(Test):
     """
+    <dl>
+    <dt>'SymbolQ[$x$]'
+        <dd>is 'True' if $x$ is a symbol, or 'False' otherwise.
+    </dl>
+
     >> SymbolQ[a]
      = True
     >> SymbolQ[1]
@@ -685,7 +727,11 @@ class SymbolQ(Test):
 
 class Symbol_(Builtin):
     """
-    'Symbol' is the head of symbols.
+    <dl>
+    <dt>'Symbol'
+        <dd>is the head of symbols.
+    </dl>
+
     >> Head[x]
      = Symbol
     You can use 'Symbol' to create symbols from strings:
@@ -719,7 +765,16 @@ class Symbol_(Builtin):
 
 class SymbolName(Builtin):
     """
+    <dl>
+    <dt>'SymbolName[$s$]'
+        <dd>returns the name of the symbol $s$ (without any leading
+        context name).
+    </dl>
+
     >> SymbolName[x] // InputForm
+     = "x"
+
+    #> SymbolName[a`b`x] // InputForm
      = "x"
     """
 
@@ -735,7 +790,7 @@ class Depth(Builtin):
     """
     <dl>
     <dt>'Depth[$expr$]'
-    <dd>gives the depth of $expr$
+        <dd>gives the depth of $expr$.
     </dl>
 
     The depth of an expression is defined as one plus the maximum
@@ -768,9 +823,9 @@ class Operate(Builtin):
     """
     <dl>
     <dt>'Operate[$p$, $expr$]'
-    <dd>applies $p$ to the head of $expr$.
+        <dd>applies $p$ to the head of $expr$.
     <dt>'Operate[$p$, $expr$, $n$]'
-    <dd>applies $p$ to the $n$th head of $expr$.
+        <dd>applies $p$ to the $n$th head of $expr$.
     </dl>
 
     >> Operate[p, f[a, b]]
@@ -844,7 +899,7 @@ class Through(Builtin):
     """
     <dl>
     <dt>'Through[$p$[$f$][$x$]]'
-    <dd>gives $p$[$f$[$x$]].
+        <dd>gives $p$[$f$[$x$]].
     </dl>
 
     >> Through[f[g][x]]
