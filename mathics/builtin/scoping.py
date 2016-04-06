@@ -315,6 +315,19 @@ class ContextPath(Predefined):
 
     >> $ContextPath // InputForm
      = {"Global`", "System`"}
+
+    #> $ContextPath = Sin[2]
+     : Sin[2] is not a list of valid context names ending in `.
+     = Sin[2]
+
+    #> x`x = 1; x
+     = x
+    #> $ContextPath = {"x`"};
+    #> x
+     = 1
+    #> System`$ContextPath
+     = {x`}
+    #> $ContextPath = {"Global`", "System`"};
     """
 
     name = '$ContextPath'
@@ -346,6 +359,13 @@ class Begin(Builtin):
     >> End[]
      : No previous context defined.
      = Global`
+
+    #> Begin["`test`"]
+     = Global`test`
+    #> Context[]
+     = Global`test`
+    #> End[]
+     = Global`test`
     """
 
     rules = {
@@ -353,7 +373,8 @@ class Begin(Builtin):
              Unprotect[System`Private`$ContextStack];
              System`Private`$ContextStack = Append[System`Private`$ContextStack, $Context];
              Protect[System`Private`$ContextStack];
-             $Context = context
+             $Context = context;
+             $Context
         ''',
     }
 
