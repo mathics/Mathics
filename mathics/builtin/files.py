@@ -42,7 +42,7 @@ TMP_DIR = tempfile.gettempdir()
 DIRECTORY_STACK = [INITIAL_DIR]
 INPUT_VAR = ""
 INPUTFILE_VAR = ""
-PATH_VAR = [HOME_DIR, os.path.join(ROOT_DIR, 'data'),
+PATH_VAR = ['.', HOME_DIR, os.path.join(ROOT_DIR, 'data'),
             os.path.join(ROOT_DIR, 'packages')]
 
 
@@ -2411,6 +2411,34 @@ class FileNameSplit(Builtin):
         return from_python(result)
 
 
+class ToFileName(Builtin):
+    """
+    <dl>
+    <dt>'ToFileName[{"$dir_1$", "$dir_2$", ...}]'
+      <dd>joins the $dir_i$ togeather into one path.
+    </dl>
+
+    'ToFileName' has been superseded by 'FileNameJoin'.
+
+    #> Unprotect[$PathnameSeparator]; $PathnameSeparator = "/"; Protect[$PathnameSeparator];
+
+    >> ToFileName[{"dir1", "dir2"}, "file"]
+     = dir1/dir2/file
+
+    >> ToFileName["dir1", "file"]
+     = dir1/file
+
+    >> ToFileName[{"dir1", "dir2", "dir3"}]
+     = dir1/dir2/dir3
+    """
+
+    rules = {
+        'ToFileName[dir_String, name_String]': 'FileNameJoin[{dir, name}]',
+        'ToFileName[dirs_?ListQ, name_String]': 'FileNameJoin[Append[dirs, name]]',
+        'ToFileName[dirs_?ListQ]': 'FileNameJoin[dirs]',
+    }
+
+
 class FileNameJoin(Builtin):
     """
     <dl>
@@ -2718,6 +2746,27 @@ class ExpandFileName(Builtin):
         py_name = py_name[1:-1]
 
         return String(os.path.abspath(py_name))
+
+
+class FileInformation(Builtin):
+    """
+    <dl>
+    <dt>'FileInformation["$file$"]'
+      <dd>returns information about $file$.
+    </dl>
+
+    This function is totally undocumented in MMA!
+
+    >> FileInformation["ExampleData/sunflowers.jpg"]
+     = {File -> ..., FileType -> File, ByteCount -> 142286, Date -> ...}
+
+    #> FileInformation["ExampleData/missing_file.jpg"]
+     = {}
+    """
+
+    rules = {
+        'FileInformation[name_String]': 'If[FileExistsQ[name], {File -> ExpandFileName[name], FileType -> FileType[name], ByteCount -> FileByteCount[name], Date -> AbsoluteTime[FileDate[name]]}, {}]',
+    }
 
 
 class ReadList(Read):
@@ -4168,6 +4217,10 @@ class ParentDirectory(Builtin):
 
         result = os.path.abspath(os.path.join(pypath, os.path.pardir))
         return String(result)
+
+
+class File(Builtin):
+    attributes = ('Protected')
 
 
 class SetDirectory(Builtin):
