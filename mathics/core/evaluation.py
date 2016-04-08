@@ -338,7 +338,8 @@ class Evaluation(object):
         orig_format = self.format
         known_formats = {
             'text/plain': 'text',
-            # TODO xml
+            'text/html': 'xml',
+            'text/latex': 'tex',
         }
 
         data = {}
