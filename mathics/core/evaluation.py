@@ -129,6 +129,13 @@ class Print(Out):
         }
 
 
+class EvaluationResult(object):
+    def __init__(self, line_no, data, metadata = {}):
+        self.line_no = line_no
+        self.data = data
+        self.metadata = metadata
+
+
 class Result(object):
     def __init__(self, out, result, line_no):
         self.out = out
@@ -145,6 +152,7 @@ class Result(object):
 
 class Evaluation(object):
     def __init__(self, definitions=None,
+                 result_callback=None,
                  out_callback=None, format='text', catch_interrupt=True):
         from mathics.core.definitions import Definitions
 
@@ -156,6 +164,7 @@ class Evaluation(object):
         self.stopped = False
         self.out = []
         self.out_callback = out_callback
+        self.result_callback = result_callback
         self.listeners = {}
         self.options = None
         self.predetermined_out = None
@@ -222,6 +231,8 @@ class Evaluation(object):
                     self.definitions.add_rule('Out', Rule(
                         Expression('Out', line_no), stored_result))
                 if result != Symbol('Null'):
+                    if self.result_callback:
+                        self.result_callback(EvaluationResult(line_no, self.format_all_outputs(result)))
                     return self.format_output(result)
                 else:
                     return None
@@ -263,6 +274,8 @@ class Evaluation(object):
                 if exc_result is not None:
                     self.recursion_depth = 0
                     result = self.format_output(exc_result)
+                    if self.result_callback:
+                        self.result_callback(EvaluationResult(line_no, self.format_all_outputs(exc_result)))
 
                 results.append(Result(self.out, result, line_no))
                 self.out = []
@@ -317,6 +330,23 @@ class Evaluation(object):
                          Expression('FullForm', result).evaluate(self))
             boxes = None
         return boxes
+
+    def format_all_outputs(self, expr):
+        '''
+        used by jupyter kernel
+        '''
+        orig_format = self.format
+        known_formats = {
+            'text/plain': 'text',
+            # TODO xml
+        }
+
+        data = {}
+        for mime, form in known_formats.items():
+            self.format = form
+            data[mime] = self.format_output(expr)
+        self.format = orig_format
+        return data
 
     def message(self, symbol, tag, *args):
         from mathics.core.expression import (String, Symbol, Expression,

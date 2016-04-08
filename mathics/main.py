@@ -227,6 +227,9 @@ def main():
         print(license_string + '\n')
         print("Quit by pressing {0}\n".format(quit_command))
 
+    def callback(result):
+        print('callback', result.line_no, result.data['text/plain'])
+
     if args.execute:
         for expr in args.execute:
             print(shell.get_in_prompt() + expr)
