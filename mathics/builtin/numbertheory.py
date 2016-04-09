@@ -52,11 +52,12 @@ class PowerMod(Builtin):
             return
         if b < 0:
             b = -b
-            if a == 0:
+            try:
+                a = int(sympy.invert(a, m))
+            except sympy.polys.polyerrors.NotInvertible:
                 evaluation.message('PowerMod', 'ninv', a_int, m_int)
                 return
-            a = sympy.invert(a, m)
-        return Integer(sympy.Mod(a ** b, m))
+        return Integer(pow(a, b, m))
 
 
 class Mod(Builtin):
