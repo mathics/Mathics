@@ -725,7 +725,7 @@ class Superscript(Builtin):
     """
     <dl>
     <dt>'Superscript[$x$, $y$]'
-        <dd>displays as $x^y$.
+        <dd>displays as $x$^$y$.
     </dl>
 
     >> Superscript[x,3] // TeXForm
