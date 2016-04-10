@@ -75,7 +75,7 @@ New features:
 
 Bugs fixed:
 
-- Fix unevalued index handling (issue #217)
+- Fix unevaluated index handling (issue #217)
 - Fix ``Solve`` treating one solution equal to 1 as a tautology (issue
   #208)
 - Fix temporary symbols appearing in the result when taking
@@ -84,7 +84,7 @@ Bugs fixed:
 - Fix mathicsserver wildcard address binding
 - Fix ``Dot`` acting on matrices in MatrixForm (issue #145)
 - Fix Sum behaviour when using range to generate index values (issue #149)
-- Fix behaviour of plot with unevalated arguments (issue #150)
+- Fix behaviour of plot with unevaluated arguments (issue #150)
 - Fix zero-width space between factors in MathJax output (issue #45)
 - Fix ``{{2*a, 0},{0,0}}//MatrixForm`` crashing in the web interface
   (issue #182)
