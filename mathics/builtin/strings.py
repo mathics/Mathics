@@ -9,12 +9,12 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import sys
+import re
 
 import six
 from six.moves import range
 from six import unichr
 
-import re
 from mathics.builtin.base import BinaryOperator, Builtin, Test
 from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
@@ -92,7 +92,7 @@ def to_regex(expr):
     return None
 
 
-class StringExpression(Builtin):
+class StringExpression(BinaryOperator):
     """
     <dl>
     <dt>'StringExpression[s_1, s_2, ...]'
