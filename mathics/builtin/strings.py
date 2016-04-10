@@ -138,7 +138,6 @@ class RegularExpression(Builtin):
 
     #> RegularExpression["[abc]"]
      = RegularExpression[[abc]]
-
     """
 
 
@@ -258,6 +257,7 @@ class HexidecimalCharacter(Builtin):
      = {True, True, True, False, False, False, False}
     """
 
+
 class StringMatchQ(Builtin):
     """
     >> StringMatchQ["abc", "abc"]
@@ -279,8 +279,8 @@ class StringMatchQ(Builtin):
 
         re_patt = to_regex(patt)
         if re_patt is None:
-                return evaluation.message('StringExpression', 'invld', patt,
-                                          Expression ('StringExpression', patt))
+            return evaluation.message('StringExpression', 'invld', patt,
+                                      Expression('StringExpression', patt))
         # force matching whole of string
         re_patt = '(?:' + re_patt + ')'
         if not re_patt.endswith(r'\Z'):
@@ -507,7 +507,6 @@ class StringReplace(Builtin):
     #> StringReplace["  Have a nice day.  ", (StartOfString ~~ Whitespace) | (Whitespace ~~ EndOfString) -> ""] // FullForm
      = "Have a nice day."
     """
-
 
     # TODO Special Characters
     """
