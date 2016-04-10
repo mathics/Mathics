@@ -16,7 +16,7 @@ Please feel encouraged to contribute to Mathics! Create your own fork, make the 
 
 |Travis|_
 
-.. |Travis| image:: https://secure.travis-ci.org/mathics/Mathics.png?branch=master
+.. |Travis| image:: https://secure.travis-ci.org/mathics/Mathics.svg?branch=master
 .. _Travis: https://travis-ci.org/mathics/Mathics
 
 License
