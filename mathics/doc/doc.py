@@ -40,7 +40,7 @@ LATEX_RE = re.compile(r"(\s?)\$(\w+?)\$(\s?)")
 
 DL_RE = re.compile(r"(?s)<dl>(.*?)</dl>")
 DL_ITEM_RE = re.compile(
-    r"(?s)<dt>(.*?)(?:</dt>|)?\s*<dd>(.*?)(?:</dd>|(?=<dt>)|$)")
+    r"(?s)<(?P<tag>d[td])>(?P<content>.*?)(?:</(?P=tag)>|)\s*(?:(?=<d[td]>)|$)")
 LIST_RE = re.compile(r"(?s)<(?P<tag>ul|ol)>(?P<content>.*?)</(?P=tag)>")
 LIST_ITEM_RE = re.compile(r"(?s)<li>(.*?)(?:</li>|(?=<li>)|$)")
 CONSOLE_RE = re.compile(
@@ -177,8 +177,8 @@ def escape_latex(text):
 
     def repl_dl(match):
         text = match.group(1)
-        text = DL_ITEM_RE.sub(lambda m: '\\dt{%s}\n\\dd{%s}' % (
-            m.group(1), m.group(2)), text)
+        text = DL_ITEM_RE.sub(lambda m: '\\%(tag)s{%(content)s}\n' %
+            m.groupdict(), text)
         return '\\begin{definitions}%s\\end{definitions}' % text
     text = DL_RE.sub(repl_dl, text)
 
@@ -441,8 +441,9 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
 
         def repl_dl(match):
             text = match.group(1)
-            text = DL_ITEM_RE.sub(lambda m: '<dt>%s</dt>\n<dd>%s</dd>' % (
-                m.group(1), m.group(2)), text)
+            text = DL_ITEM_RE.sub(
+                lambda m: '<%(tag)s>%(content)s</%(tag)s>\n' % m.groupdict(),
+                text)
             return '<dl>%s</dl>' % text
 
         text = DL_RE.sub(repl_dl, text)

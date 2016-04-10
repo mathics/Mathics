@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 """
 Exponential, trigonometric and hyperbolic functions
 
@@ -11,6 +8,9 @@ Mathics basically supports all important trigonometric and hyperbolic functions.
 Numerical values and derivatives can be computed; however, most special exact values and simplification
 rules are not implemented yet.
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import sympy
 import mpmath

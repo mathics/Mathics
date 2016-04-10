@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 """
 System functions
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import re
 
@@ -41,8 +41,12 @@ class Names(Builtin):
 
     >> Names["List"]
      = {List}
+
+    The wildcard '*' matches any character:
     >> Names["List*"]
      = {List, ListLinePlot, ListPlot, ListQ, Listable}
+
+    The wildcard '@' matches only lowercase characters:
     >> Names["List@"]
      = {Listable}
 

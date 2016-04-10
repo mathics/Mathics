@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 """
 Numeric evaluation
 
@@ -11,6 +8,9 @@ Support for numeric evaluation with arbitrary precision is just a proof-of-conce
 Precision is not "guarded" through the evaluation process. Only integer precision is supported.
 However, things like 'N[Pi, 100]' should work as expected.
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import sympy
 import mpmath
@@ -391,7 +391,7 @@ class BaseForm(Builtin):
     """
     <dl>
     <dt>'BaseForm[$expr$, $n$]'
-        <dd>prints mumbers in $expr$ in base $n$.
+        <dd>prints numbers in $expr$ in base $n$.
     </dl>
 
     >> BaseForm[33, 2]
@@ -464,12 +464,12 @@ class IntegerDigits(Builtin):
     """
     <dl>
     <dt>'IntegerDigits[$n$]'
-    <dd>returns a list of the base-10 digits in the integer $n$.
+        <dd>returns a list of the base-10 digits in the integer $n$.
     <dt>'IntegerDigits[$n$, $base$]'
-    <dd>returns a list of the base-$base$ digits in $n$.
+        <dd>returns a list of the base-$base$ digits in $n$.
     <dt>'IntegerDigits[$n$, $base$, $length$]'
-    <dd>returns a list of length $length$, truncating or padding with
-    zeroes on the left as necessary.
+        <dd>returns a list of length $length$, truncating or padding
+        with zeroes on the left as necessary.
     </dl>
 
     >> IntegerDigits[76543]

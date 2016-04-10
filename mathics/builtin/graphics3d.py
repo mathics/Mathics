@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from __future__ import division
-
 """
 Graphics (3D)
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from __future__ import division
 
 from six.moves import map
 from six.moves import range
@@ -856,9 +856,9 @@ class Sphere(Builtin):
     """
     <dl>
     <dt>'Sphere[{$x$, $y$, $z$}]'
-        <dd>is a sphere of radius $1$ centerd at the point {$x$, $y$, $z$}.
+        <dd>is a sphere of radius 1 centered at the point {$x$, $y$, $z$}.
     <dt>'Sphere[{$x$, $y$, $z$}, $r$]'
-        <dd>is a sphere of radius $r$ centered at the point $x$, $y$, $z$.
+        <dd>is a sphere of radius $r$ centered at the point {$x$, $y$, $z$}.
     <dt>'Sphere[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}, ... }, $r$]'
         <dd>is a collection spheres of radius $r$ centered at the points {$x1$, $y2$, $z2$}, {$x2$, $y2$, $z2$}, ...
     </dl>

@@ -59,12 +59,15 @@ def dynamic_scoping(func, vars, evaluation):
 class Block(Builtin):
     """
     <dl>
-    <dt>'Block[{$vars$}, $expr$]'
-        <dd>temporarily stores the definitions of certain variables, evaluates
-        $expr$ with reset values and restores the original definitions afterwards.
+    <dt>'Block[{$x$, $y$, ...}, $expr$]'
+        <dd>temporarily removes the definitions of the given
+        variables, evaluates $expr$, and restores the original
+        definitions afterwards.
     <dt>'Block[{$x$=$x0$, $y$=$y0$, ...}, $expr$]'
-        <dd>assigns initial values to the reset variables.
+        <dd>assigns temporary values to the variables during the
+        evaluation of $expr$.
     </dl>
+
     >> n = 10
      = 10
     >> Block[{n = 5}, n ^ 2]
@@ -143,9 +146,10 @@ class Module(Builtin):
     """
     <dl>
     <dt>'Module[{$vars$}, $expr$]'
-        <dd>localizes variables by giving them a temporary name of the form
-    'name$number', where number is the current value of '$ModuleNumber'. Each time a module
-    is evaluated, '$ModuleNumber' is incremented.
+        <dd>localizes variables by giving them a temporary name of the
+        form 'name$number', where number is the current value of
+        '$ModuleNumber'. Each time a module is evaluated,
+        '$ModuleNumber' is incremented.
     </dl>
 
     >> x = 10;
@@ -458,7 +462,7 @@ class EndPackage(Builtin):
 
     After 'EndPackage', the values of '$Context' and '$ContextPath' at
     the time of the 'BeginPackage' call are restored, with the new
-    package's context prepended to $ContextPath.
+    package\'s context prepended to $ContextPath.
     """
 
     messages = {
@@ -485,8 +489,8 @@ class ContextStack(Builtin):
     """
     <dl>
     <dt>'System`Private`$ContextStack'
-        <dd>tracks the values of '$Context' saved by 'Begin' and
-        'BeginPackage'.
+        <dd>is an internal variable tracking the values of '$Context'
+        saved by 'Begin' and 'BeginPackage'.
     </dl>
     """
 
@@ -502,8 +506,8 @@ class ContextPathStack(Builtin):
     """
     <dl>
     <dt>'System`Private`$ContextPathStack'
-        <dd>tracks the values of '$ContextPath' saved by 'Begin' and
-        'BeginPackage'.
+        <dd>is an internal variable tracking the values of
+        '$ContextPath' saved by 'Begin' and 'BeginPackage'.
     </dl>
     """
 

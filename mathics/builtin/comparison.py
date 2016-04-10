@@ -16,12 +16,20 @@ from six.moves import zip
 
 class SameQ(BinaryOperator):
     """
+    <dl>
+    <dt>'SameQ[$x$, $y$]'
+    <dt>'$x$ === $y$'
+        <dd>returns 'True' if $x$ and $y$ are structurally identical.
+    </dl>
+
+    Any object is the same as itself:
     >> a===a
      = True
-    >> 1===1
-     = True
-    >> 1===1.
-     = False
+
+    Unlike 'Equal', 'SameQ' only yields 'True' if $x$ and $y$ have the
+    same type:
+    >> {1==1., 1===1.}
+     = {True, False}
     """
 
     operator = '==='
@@ -38,6 +46,12 @@ class SameQ(BinaryOperator):
 
 class UnsameQ(BinaryOperator):
     """
+    <dl>
+    <dt>'UnsameQ[$x$, $y$]'
+    <dt>'$x$ =!= $y$'
+        <dd>returns 'True' if $x$ and $y$ are not structurally identical.
+    </dl>
+
     >> a=!=a
      = False
     >> 1=!=1.
@@ -139,8 +153,13 @@ class _InequalityOperator(BinaryOperator):
 
 class Inequality(Builtin):
     """
-    'Inequality' is the head of expressions involving different inequality operators (at least temporarily).
-    Thus, it is possible to write chains of inequalities.
+    <dl>
+    <dt>'Inequality'
+        <dd>is the head of expressions involving different inequality
+        operators (at least temporarily). Thus, it is possible to
+        write chains of inequalities.
+    </dl>
+
     >> a < b <= c
      = a < b && b <= c
     >> Inequality[a, Greater, b, LessEqual, c]
@@ -237,6 +256,15 @@ def do_compare(l1, l2):
 
 class Equal(_InequalityOperator, SympyFunction):
     """
+    <dl>
+    <dt>'Equal[$x$, $y$]'
+    <dt>'$x$ == $y$'
+        <dd>yields 'True' if $x$ and $y$ are known to be equal, or
+        'False' if $x$ and $y$ are known to be unequal.
+    <dt>'$lhs$ == $rhs$'
+        <dd>represents the equation $lhs$ = $rhs$.
+    </dl>
+
     >> a==a
      = True
     >> a==b
@@ -310,6 +338,15 @@ class Equal(_InequalityOperator, SympyFunction):
 
 class Unequal(_InequalityOperator, SympyFunction):
     """
+    <dl>
+    <dt>'Unequal[$x$, $y$]'
+    <dt>'$x$ != $y$'
+        <dd>yields 'False' if $x$ and $y$ are known to be equal, or
+        'True' if $x$ and $y$ are known to be unequal.
+    <dt>'$lhs$ == $rhs$'
+        <dd>represents the inequality $lhs$ ≠ $rhs$.
+    </dl>
+
     >> 1 != 1.
      = False
 
@@ -349,17 +386,42 @@ class Unequal(_InequalityOperator, SympyFunction):
 
 
 class Less(_InequalityOperator, SympyFunction):
+    """
+    <dl>
+    <dt>'Less[$x$, $y$]'
+    <dt>'$x$ < $y$'
+        <dd>yields 'True' if $x$ is known to be less than $y$.
+    <dt>'$lhs$ < $rhs$'
+        <dd>represents the inequality $lhs$ < $rhs$.
+    </dl>
+    """
     operator = '<'
     sympy_name = 'StrictLessThan'
 
 
 class LessEqual(_InequalityOperator, SympyFunction):
+    """
+    <dl>
+    <dt>'LessEqual[$x$, $y$]'
+    <dt>'$x$ <= $y$'
+        <dd>yields 'True' if $x$ is known to be less than or equal to $y$.
+    <dt>'$lhs$ <= $rhs$'
+        <dd>represents the inequality $lhs$ ≤ $rhs$.
+    </dl>
+    """
     operator = '<='
     sympy_name = 'LessThan'
 
 
 class Greater(_InequalityOperator, SympyFunction):
     """
+    <dl>
+    <dt>'Greater[$x$, $y$]'
+    <dt>'$x$ > $y$'
+        <dd>yields 'True' if $x$ is known to be greater than $y$.
+    <dt>'$lhs$ > $rhs$'
+        <dd>represents the inequality $lhs$ > $rhs$.
+    </dl>
     >> a > b > c //FullForm
      = Greater[a, b, c]
     >> Greater[3, 2, 1]
@@ -371,17 +433,48 @@ class Greater(_InequalityOperator, SympyFunction):
 
 
 class GreaterEqual(_InequalityOperator, SympyFunction):
+    """
+    <dl>
+    <dt>'GreaterEqual[$x$, $y$]'
+    <dt>'$x$ >= $y$'
+        <dd>yields 'True' if $x$ is known to be greater than or equal
+        to $y$.
+    <dt>'$lhs$ >= $rhs$'
+        <dd>represents the inequality $lhs$ ≥ $rhs$.
+    </dl>
+    """
     operator = '>='
     sympy_name = 'GreaterThan'
 
 
 class Positive(Test):
+    """
+    <dl>
+    <dt>'Positive[$x$]'
+        <dd>returns 'True' if $x$ is a positive real number.
+    </dl>
+
+    >> Positive[1]
+     = True
+
+    'Positive' returns 'False' if $x$ is zero or a complex number:
+    >> Positive[0]
+     = False
+    >> Positive[1 + 2 I]
+     = False
+    """
     def test(self, expr):
         return isinstance(expr, (Integer, Rational, Real)) and expr.value > 0
 
 
 class Negative(Test):
     """
+    <dl>
+    <dt>'Negative[$x$]'
+        <dd>returns 'True' if $x$ is a negative real number.
+    </dl>
+    >> Negative[0]
+     = False
     >> Negative[-3]
      = True
     >> Negative[10/7]
@@ -397,11 +490,26 @@ class Negative(Test):
 
 
 class NonNegative(Test):
+    """
+    <dl>
+    <dt>'NonNegative[$x$]'
+        <dd>returns 'True' if $x$ is a positive real number or zero.
+    </dl>
+
+    >> {Positive[0], NonNegative[0]}
+     = {False, True}
+    """
     def test(self, expr):
         return isinstance(expr, (Integer, Rational, Real)) and expr.value >= 0
 
 
 class NonPositive(Test):
+    """
+    <dl>
+    <dt>'NonNegative[$x$]'
+        <dd>returns 'True' if $x$ is a negative real number or zero.
+    </dl>
+    """
     def test(self, expr):
         return isinstance(expr, (Integer, Rational, Real)) and expr.value <= 0
 
@@ -469,7 +577,7 @@ class _MinMax(Builtin):
 class Max(_MinMax):
     """
     <dl>
-    <dt>'Max'[$e_1$, $e_2$, ..., $e_i$]
+    <dt>'Max[$e_1$, $e_2$, ..., $e_i$]'
         <dd>returns the expression with the greatest value among the $e_i$.
     </dl>
 
@@ -501,7 +609,7 @@ class Max(_MinMax):
 class Min(_MinMax):
     """
     <dl>
-    <dt>'Min'[$e_1$, $e_2$, ..., $e_i$]
+    <dt>'Min[$e_1$, $e_2$, ..., $e_i$]'
         <dd>returns the expression with the lowest value among the $e_i$.
     </dl>
 

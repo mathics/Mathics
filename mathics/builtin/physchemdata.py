@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# from __future__ import unicode_literals
-from __future__ import absolute_import
-
 """
 Physical and Chemical data
 """
+
+# from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from csv import reader as csvreader
 
@@ -32,10 +32,11 @@ _ELEMENT_DATA = load_element_data()
 class ElementData(Builtin):
     """
     <dl>
-    <dt>'ElementData["$name$", "$property$"]
-        <dd>gives the value of the $property$ for the chemical specified by $name$".
-    <dt>'ElementData[$n$, "$property$"]
-        <dd>gives the value of the $property$ for the $n$th chemical element".
+    <dt>'ElementData["$name$", "$property$"]'
+        <dd>gives the value of the $property$ for the chemical
+        specified by $name$.
+    <dt>'ElementData[$n$, "$property$"]'
+        <dd>gives the value of the $property$ for the $n$th chemical element.
     </dl>
 
     >> ElementData[74]

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 """
 Control statements
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from six.moves import range
 from six.moves import zip
@@ -22,9 +22,11 @@ from mathics.builtin.patterns import match
 class CompoundExpression(BinaryOperator):
     """
     <dl>
-    <dt>'CompoundExpression[$e1$, $e2$, ...]' or '$e1$; $e2$; ...'
+    <dt>'CompoundExpression[$e1$, $e2$, ...]'
+    <dt>'$e1$; $e2$; ...'
         <dd>evaluates its arguments in turn, returning the last result.
     </dl>
+
     >> a; b; c; d
      = d
     If the last argument is omitted, 'Null' is taken:
@@ -101,6 +103,7 @@ class If(Builtin):
     <dt>'If[$cond$, $pos$]'
         <dd>returns 'Null' if $cond$ evaluates to 'False'.
     </dl>
+
     >> If[1<2, a, b]
      = a
     If the second branch is not specified, 'Null' is taken:
@@ -150,7 +153,7 @@ class Switch(Builtin):
     """
     <dl>
     <dt>'Switch[$expr$, $pattern1$, $value1$, $pattern2$, $value2$, ...]'
-        <dd>yields the first $value$ for which $expr matches the corresponding $pattern$.
+        <dd>yields the first $value$ for which $expr$ matches the corresponding $pattern$.
     </dl>
 
     >> Switch[2, 1, x, 2, y, 3, z]
@@ -297,6 +300,7 @@ class For(Builtin):
     <dt>'For[$start$, $test$]'
         <dd>runs the loop without any body.
     </dl>
+
     Compute the factorial of 10 using 'For':
     >> n := 1
     >> For[i=1, i<=10, i=i+1, n = n * i]
@@ -338,6 +342,7 @@ class While(Builtin):
     <dt>'While[$test$]'
         <dd>runs the loop without any body.
     </dl>
+
     Compute the GCD of two numbers:
     >> {a, b} = {27, 6};
     >> While[b != 0, {a, b} = {b, Mod[a, b]}];
@@ -626,6 +631,7 @@ class Continue(Builtin):
     <dt>'Continue[]'
         <dd>continues with the next iteration in a 'For', 'While', or 'Do' loop.
     </dl>
+
     >> For[i=1, i<=8, i=i+1, If[Mod[i,2] == 0, Continue[]]; Print[i]]
      | 1
      | 3

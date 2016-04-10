@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 """
 Special functions
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import sympy
 import mpmath
@@ -499,7 +499,7 @@ class BesselJZero(_Bessel):
 class BesselYZero(_Bessel):
     """
     <dl>
-    <dt>'BesselJZero[$n$, $k$]'
+    <dt>'BesselYZero[$n$, $k$]'
       <dd>returns the $k$th zero of the Bessel function of the second kind Y_$n$($z$).
     </dl>
 
@@ -702,7 +702,7 @@ class SphericalHarmonicY(_MPMathFunction):
     """
     <dl>
     <dt>'SphericalHarmonicY[$l$, $m$, $theta$, $phi$]'
-      <dd>returns the spherical harmonic functin Y_$l$^$m$(theta, phi).
+      <dd>returns the spherical harmonic function Y_$l$^$m$(theta, phi).
     </dl>
 
     >> SphericalHarmonicY[3/4, 0.5, Pi/5, Pi/3]
@@ -728,7 +728,7 @@ class GegenbauerC(_MPMathFunction):
     """
     <dl>
     <dt>'GegenbauerC[$n$, $m$, $x$]'
-      <dd>returns the Generbauer polynomial C_$n$^($m$)($x$).
+      <dd>returns the Gegenbauer polynomial C_$n$^($m$)($x$).
     </dl>
 
     >> GegenbauerC[6, 1, x]
@@ -786,7 +786,7 @@ class ChebyshevU(_MPMathFunction):
 class HermiteH(_MPMathFunction):
     """
     <dl>
-    <dt>'ChebyshevU[$n$, $x$]'
+    <dt>'HermiteH[$n$, $x$]'
       <dd>returns the Hermite polynomial H_$n$($x$).
     </dl>
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from __future__ import division
-
 """
 Graphics
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from __future__ import division
 
 from math import floor, ceil, log10
 import json
@@ -295,6 +295,17 @@ class _Color(_GraphicsElement):
 
 
 class RGBColor(_Color):
+    """
+    <dl>
+    <dt>'RGBColor[$r$, $g$, $b$]'
+        <dd>represents a color with the specified red, green and blue
+        components.
+    </dl>
+
+    >> Graphics[MapIndexed[{RGBColor @@ #1, Disk[2*#2 ~Join~ {0}]} &, IdentityMatrix[3]], ImageSize->Small]
+     = -Graphics-
+    """
+
     components_sizes = [3, 4]
     default_components = [0, 0, 0, 1]
 
@@ -303,6 +314,17 @@ class RGBColor(_Color):
 
 
 class CMYKColor(_Color):
+    """
+    <dl>
+    <dt>'CMYKColor[$c$, $m$, $y$, $k$]'
+        <dd>represents a color with the specified cyan, magenta,
+        yellow and black components.
+    </dl>
+
+    >> Graphics[MapIndexed[{CMYKColor @@ #1, Disk[2*#2 ~Join~ {0}]} &, IdentityMatrix[4]], ImageSize->Small]
+     = -Graphics-
+    """
+
     components_sizes = [3, 4, 5]
     default_components = [0, 0, 0, 0, 1]
 
@@ -317,6 +339,17 @@ class CMYKColor(_Color):
 
 class Hue(_Color):
     """
+    <dl>
+    <dt>'Hue[$h$, $s$, $l$, $a$]'
+        <dd>represents the color with hue $h$, saturation $s$,
+        lightness $l$ and opacity $a$.
+    <dt>'Hue[$h$, $s$, $l$]'
+        <dd>is equivalent to 'Hue[$h$, $s$, $l$, 1]'.
+    <dt>'Hue[$h$, $s$]'
+        <dd>is equivalent to 'Hue[$h$, $s$, 1, 1]'.
+    <dt>'Hue[$h$]'
+        <dd>is equivalent to 'Hue[$h$, 1, 1, 1]'.
+    </dl>
     >> Graphics[Table[{EdgeForm[Gray], Hue[h, s], Disk[{12h, 8s}]}, {h, 0, 1, 1/6}, {s, 0, 1, 1/4}]]
      = -Graphics-
 
@@ -378,6 +411,15 @@ class Hue(_Color):
 
 
 class GrayLevel(_Color):
+    """
+    <dl>
+    <dt>'GrayLevel[$g$]'
+        <dd>represents a shade of gray specified by $g$, ranging from
+        0 (black) to 1 (white).
+    <dt>'GrayLevel[$g$, $a$]'
+        <dd>represents a shade of gray specified by $g$ with opacity $a$.
+    </dl>
+    """
     components_sizes = [1, 2]
     default_components = [0, 1]
 
@@ -400,22 +442,54 @@ class _Thickness(_GraphicsElement):
 
 
 class AbsoluteThickness(_Thickness):
+    """
+    <dl>
+    <dt>'AbsoluteThickness[$p$]'
+        <dd>sets the line thickness for subsequent graphics primitives
+        to $p$ points.
+    </dl>
+
+    >> Graphics[Table[{AbsoluteThickness[t], Line[{{20 t, 10}, {20 t, 80}}], Text[ToString[t]<>"pt", {20 t, 0}]}, {t, 0, 10}]]
+     = -Graphics-
+    """
     def get_thickness(self):
         return self.graphics.translate_absolute((self.value, 0))[0]
 
 
 class Thickness(_Thickness):
+    """
+    <dl>
+    <dt>'Thickness[$t$]'
+        <dd>sets the line thickness for subsequent graphics primitives
+        to $t$ times the size of the plot area.
+    </dl>
+
+    >> Graphics[{Thickness[0.2], Line[{{0, 0}, {0, 5}}]}, Axes->True, PlotRange->{{-5, 5}, {-5, 5}}]
+     = -Graphics-
+    """
     def get_thickness(self):
         return self.graphics.translate_relative(self.value)
 
 
 class Thin(Builtin):
+    """
+    <dl>
+    <dt>'Thin'
+        <dd>sets the line width for subsequent graphics primitives to 0.5pt.
+    </dl>
+    """
     rules = {
         'Thin': 'AbsoluteThickness[0.5]',
     }
 
 
 class Thick(Builtin):
+    """
+    <dl>
+    <dt>'Thick'
+        <dd>sets the line width for subsequent graphics primitives to 2pt.
+    </dl>
+    """
     rules = {
         'Thick': 'AbsoluteThickness[2]',
     }
@@ -499,6 +573,14 @@ class Inset(Builtin):
 
 class Text(Inset):
     """
+    <dl>
+    <dt>'Text["$text$", {$x$, $y$}]'
+        <dd>draws $text$ centered on position '{$x$, $y$}'.
+    </dl>
+
+    >> Graphics[{Text["First", {0, 0}], Text["Second", {1, 1}]}, Axes->True, PlotRange->{{-2, 2}, {-2, 2}}]
+     = -Graphics-
+
     #> Graphics[{Text[x, {0,0}]}]
      = -Graphics-
     """
@@ -650,9 +732,9 @@ class _Polyline(_GraphicsElement):
 class Point(Builtin):
     """
     <dl>
-    <dt>'Line[{$point_1$, $point_2$ ...}]'
+    <dt>'Point[{$point_1$, $point_2$ ...}]'
         <dd>represents the point primitive.
-    <dt>'Line[{{$p_11$, $p_12$, ...}, {$p_21$, $p_22$, ...}, ...}]'
+    <dt>'Point[{{$p_11$, $p_12$, ...}, {$p_21$, $p_22$, ...}, ...}]'
         <dd>represents a number of point primitives.
     </dl>
 
@@ -1561,6 +1643,17 @@ class Directive(Builtin):
 
 class Blend(Builtin):
     """
+    <dl>
+    <dt>'Blend[{$c1$, $c2$}]'
+        <dd>represents the color between $c1$ and $c2$.
+    <dt>'Blend[{$c1$, $c2$}, $x$]'
+        <dd>represents the color formed by blending $c1$ and $c2$ with
+        factors 1 - $x$ and $x$ respectively.
+    <dt>'Blend[{$c1$, $c2$, ..., $cn$}, $x$]'
+        <dd>blends between the colors $c1$ to $cn$ according to the
+        factor $x$.
+    </dl>
+
     >> Blend[{Red, Blue}]
      = RGBColor[0.5, 0., 0.5, 1.]
     >> Blend[{Red, Blue}, 0.3]
@@ -1710,7 +1803,7 @@ class _ColorObject(Builtin):
             <dd>represents the color %(text_name)s in graphics.
             </dl>
 
-            >> Graphics[{%(name)s, Disk[]}, ImageSize->Small]
+            >> Graphics[{EdgeForm[Black], %(name)s, Disk[]}, ImageSize->Small]
              = -Graphics-
         """ % {'name': strip_context(self.get_name()), 'text_name': text_name}
         if self.__doc__ is None:

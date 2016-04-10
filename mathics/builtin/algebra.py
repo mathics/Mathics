@@ -169,9 +169,9 @@ class Apart(Builtin):
     """
     <dl>
     <dt>'Apart[$expr$]'
-        <dd>writes $expr$ as sum of individual fractions.
+        <dd>writes $expr$ as a sum of individual fractions.
     <dt>'Apart[$expr$, $var$]'
-        <dd>treats $var$ as main variable.
+        <dd>treats $var$ as the main variable.
     </dl>
 
     >> Apart[1 / (x^2 + 5x + 6)]
@@ -226,6 +226,7 @@ class Expand(Builtin):
     <dt>'Expand[$expr$]'
         <dd>expands out positive integer powers and products of sums in $expr$.
     </dl>
+
     >> Expand[(x + y) ^ 3]
      = x ^ 3 + 3 x ^ 2 y + 3 x y ^ 2 + y ^ 3
     >> Expand[(a + b) (a + c + d)]

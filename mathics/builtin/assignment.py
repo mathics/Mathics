@@ -303,6 +303,7 @@ class _SetOperator(object):
 class Set(BinaryOperator, _SetOperator):
     """
     <dl>
+    <dt>'Set[$expr$, $value$]'
     <dt>$expr$ = $value$
         <dd>evaluates $value$ and assigns it to $expr$.
     <dt>{$s1$, $s2$, $s3$} = {$v1$, $v2$, $v3$}
@@ -382,6 +383,7 @@ class Set(BinaryOperator, _SetOperator):
 class SetDelayed(Set):
     """
     <dl>
+    <dt>'SetDelayed[$expr$, $value$]'
     <dt>$expr$ := $value$
         <dd>assigns $value$ to $expr$, without evaluating $value$.
     </dl>
@@ -472,6 +474,13 @@ class UpSet(BinaryOperator, _SetOperator):
 
 class UpSetDelayed(UpSet):
     """
+    <dl>
+    <dt>'UpSetDelayed[$expression$, $value$]'
+    <dt>'$expression$ ^:= $value$'
+        <dd>assigns $expression$ to the value of $f$[$x$] (without
+        evaluating $expression$), associating the value with $x$.
+    </dl>
+
     >> a[b] ^:= x
     >> x = 2;
     >> a[b]
@@ -501,10 +510,13 @@ class UpSetDelayed(UpSet):
 class TagSet(Builtin, _SetOperator):
     """
     <dl>
-    <dt>'TagSet[$f$, $lhs$, $rhs$]' or 'f /: lhs = rhs'</dt>
-        <dd>sets $lhs$ to be $rhs$ and assigns the corresonding rule to the symbol $f$.
+    <dt>'TagSet[$f$, $expr$, $value$]'
+    <dt>'$f$ /: $expr$ = $value$'
+        <dd>assigns $value$ to $expr$, associating the corresponding
+        rule with the symbol $f$.
     </dl>
 
+    Create an upvalue without using 'UpSet':
     >> x /: f[x] = 2
      = 2
     >> f[x]
@@ -544,7 +556,8 @@ class TagSet(Builtin, _SetOperator):
 class TagSetDelayed(TagSet):
     """
     <dl>
-    <dt>'TagSetDelayed[$f$, $lhs$, $rhs$]' or 'f /: lhs := rhs'
+    <dt>'TagSetDelayed[$f$, $expr$, $value$]'
+    <dt>'$f$ /: $expr$ := $value$'
         <dd>is the delayed version of 'TagSet'.
     </dl>
     """
@@ -868,7 +881,8 @@ class ClearAll(Clear):
 class Unset(PostfixOperator):
     """
     <dl>
-    <dt>'Unset[$x$]' or '$x$=.'
+    <dt>'Unset[$x$]'
+    <dt>'$x$=.'
         <dd>removes any value belonging to $x$.
     </dl>
     >> a = 2
@@ -1027,17 +1041,22 @@ def get_symbol_values(symbol, func_name, position, evaluation):
 
 class DownValues(Builtin):
     """
-    'DownValues[$symbol$]' gives the list of downvalues associated with $symbol$.
+    <dl>
+    <dt>'DownValues[$symbol$]'
+        <dd>gives the list of downvalues associated with $symbol$.
+    </dl>
 
-    'DownValues' uses 'HoldPattern' and 'RuleDelayed' to protect the downvalues from being
-    evaluated. Moreover, it has attribute 'HoldAll' to get the specified symbol instead of its value.
+    'DownValues' uses 'HoldPattern' and 'RuleDelayed' to protect the
+    downvalues from being evaluated. Moreover, it has attribute
+    'HoldAll' to get the specified symbol instead of its value.
 
     >> f[x_] := x ^ 2
     >> DownValues[f]
      = {HoldPattern[f[x_]] :> x ^ 2}
 
-    Mathics will sort the rules you assign to a symbol according to their specifity. If it cannot decide
-    which rule is more special, the newer one will get higher precedence.
+    Mathics will sort the rules you assign to a symbol according to
+    their specificity. If it cannot decide which rule is more special,
+    the newer one will get higher precedence.
     >> f[x_Integer] := 2
     >> f[x_Real] := 3
     >> DownValues[f]
@@ -1048,10 +1067,14 @@ class DownValues(Builtin):
      = 3
     >> f[a]
      = a ^ 2
-    The default order of patterns can be computed using 'Sort' with 'PatternsOrderedQ':
+
+    The default order of patterns can be computed using 'Sort' with
+    'PatternsOrderedQ':
     >> Sort[{x_, x_Integer}, PatternsOrderedQ]
      = {x_Integer, x_}
-    By assigning values to 'DownValues', you can override the default ordering:
+
+    By assigning values to 'DownValues', you can override the default
+    ordering:
     >> DownValues[g] := {g[x_] :> x ^ 2, g[x_Integer] :> x}
     >> g[2]
      = 4
@@ -1072,6 +1095,11 @@ class DownValues(Builtin):
 
 class OwnValues(Builtin):
     """
+    <dl>
+    <dt>'OwnValues[$symbol$]'
+        <dd>gives the list of ownvalues associated with $symbol$.
+    </dl>
+
     >> x = 3;
     >> x = 2;
     >> OwnValues[x]
@@ -1098,6 +1126,11 @@ class OwnValues(Builtin):
 
 class SubValues(Builtin):
     """
+    <dl>
+    <dt>'SubValues[$symbol$]'
+        <dd>gives the list of subvalues associated with $symbol$.
+    </dl>
+
     >> f[1][x_] := x
     >> f[2][x_] := x ^ 2
     >> SubValues[f]
@@ -1118,6 +1151,11 @@ class SubValues(Builtin):
 
 class UpValues(Builtin):
     """
+    <dl>
+    <dt>'UpValues[$symbol$]'
+        <dd>gives the list of upvalues associated with $symbol$.
+    </dl>
+
     >> a + b ^= 2
      = 2
     >> UpValues[a]
@@ -1141,6 +1179,11 @@ class UpValues(Builtin):
 
 class NValues(Builtin):
     """
+    <dl>
+    <dt>'NValues[$symbol$]'
+        <dd>gives the list of numerical values associated with $symbol$.
+    </dl>
+
     >> NValues[a]
      = {}
     >> N[a] = 3;
@@ -1176,6 +1219,11 @@ class NValues(Builtin):
 
 class Messages(Builtin):
     """
+    <dl>
+    <dt>'Messages[$symbol$]'
+        <dd>gives the list of messages associated with $symbol$.
+    </dl>
+
     >> a::b = "foo"
      = foo
     >> Messages[a]
@@ -1197,6 +1245,11 @@ class Messages(Builtin):
 
 class DefaultValues(Builtin):
     """
+    <dl>
+    <dt>'DefaultValues[$symbol$]'
+        <dd>gives the list of default values associated with $symbol$.
+    </dl>
+
     >> Default[f, 1] = 4
      = 4
     >> DefaultValues[f]
@@ -1224,7 +1277,12 @@ class DefaultValues(Builtin):
 
 class AddTo(BinaryOperator):
     """
-    '$x$ += $dx$' is equivalent to '$x$ = $x$ + $dx$'.
+    <dl>
+    <dt>'AddTo[$x$, $dx$]'</dt>
+    <dt>'$x$ += $dx$'</dt>
+        <dd>is equivalent to '$x$ = $x$ + $dx$'.
+    </dl>
+
     >> a = 10;
     >> a += 2
      = 12
@@ -1244,7 +1302,12 @@ class AddTo(BinaryOperator):
 
 class SubtractFrom(BinaryOperator):
     """
-    '$x$ -= $dx$' is equivalent to '$x$ = $x$ - $dx$'.
+    <dl>
+    <dt>'SubtractFrom[$x$, $dx$]'</dt>
+    <dt>'$x$ -= $dx$'</dt>
+        <dd>is equivalent to '$x$ = $x$ - $dx$'.
+    </dl>
+
     >> a = 10;
     >> a -= 2
      = 8
@@ -1264,7 +1327,12 @@ class SubtractFrom(BinaryOperator):
 
 class TimesBy(BinaryOperator):
     """
-    '$x$ *= $dx$' is equivalent to '$x$ = $x$ * $dx$'.
+    <dl>
+    <dt>'TimesBy[$x$, $dx$]'</dt>
+    <dt>'$x$ *= $dx$'</dt>
+        <dd>is equivalent to '$x$ = $x$ * $dx$'.
+    </dl>
+
     >> a = 10;
     >> a *= 2
      = 20
@@ -1284,7 +1352,12 @@ class TimesBy(BinaryOperator):
 
 class DivideBy(BinaryOperator):
     """
-    '$x$ /= $dx$' is equivalent to '$x$ = $x$ / $dx$'.
+    <dl>
+    <dt>'DivideBy[$x$, $dx$]'</dt>
+    <dt>'$x$ /= $dx$'</dt>
+        <dd>is equivalent to '$x$ = $x$ / $dx$'.
+    </dl>
+
     >> a = 10;
     >> a /= 2
      = 5
@@ -1304,6 +1377,12 @@ class DivideBy(BinaryOperator):
 
 class Increment(PostfixOperator):
     """
+    <dl>
+    <dt>'Increment[$x$]'</dt>
+    <dt>'$x$++'</dt>
+        <dd>increments $x$ by 1, returning the original value of $x$.
+    </dl>
+
     >> a = 2;
     >> a++
      = 2
@@ -1329,9 +1408,12 @@ class Increment(PostfixOperator):
 class PreIncrement(PrefixOperator):
     """
     <dl>
-    <dt>'PreIncrement[$x$]' or '++$x$'
-        <dd>is equivalent to '$x$ = $x$ + 1'.
+    <dt>'PreIncrement[$x$]'</dt>
+    <dt>'++$x$'</dt>
+        <dd>increments $x$ by 1, returning the new value of $x$.
     </dl>
+
+    '++$a$' is equivalent to '$a$ = $a$ + 1':
     >> a = 2;
     >> ++a
      = 3
@@ -1350,6 +1432,12 @@ class PreIncrement(PrefixOperator):
 
 class Decrement(PostfixOperator):
     """
+    <dl>
+    <dt>'Decrement[$x$]'</dt>
+    <dt>'$x$--'</dt>
+        <dd>decrements $x$ by 1, returning the original value of $x$.
+    </dl>
+
     >> a = 5;
     >> a--
      = 5
@@ -1368,6 +1456,13 @@ class Decrement(PostfixOperator):
 
 class PreDecrement(PrefixOperator):
     """
+    <dl>
+    <dt>'PreDecrement[$x$]'</dt>
+    <dt>'--$x$'</dt>
+        <dd>decrements $x$ by 1, returning the new value of $x$.
+    </dl>
+
+    '--$a$' is equivalent to '$a$ = $a$ - 1':
     >> a = 2;
     >> --a
      = 1

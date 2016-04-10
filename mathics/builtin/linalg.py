@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 """
 Linear algebra
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import six
 from six.moves import range
@@ -151,7 +151,7 @@ class Degree(Builtin):
     """
     <dl>
     <dt>'Degree'
-        <dd>is number of radians in one degree.
+        <dd>is the number of radians in one degree.
     </dl>
 
     >> Cos[60 Degree]
@@ -200,15 +200,17 @@ class SingularValueDecomposition(Builtin):
     """
     <dl>
     <dt>'SingularValueDecomposition[$m$]'
-        <dd>Calculate the singular value decomposition for matrix $m$.
-        Returns $u, s, w$ such that $m=u s v$, $u'u=1$, $v'v=1$, $s$ is diagonal.
+        <dd>calculates the singular value decomposition for the matrix $m$.
     </dl>
+
+    'SingularValueDecomposition' returns $u$, $s$, $w$ such that $m$=$u$ $s$ $v$,
+    $u$\'$u$=1, $v$\'$v$=1, and $s$ is diagonal.
 
     >> SingularValueDecomposition[{{1.5, 2.0}, {2.5, 3.0}}]
      = {{{0.538953533497208, 0.842335496539754}, {0.842335496539754, -0.538953533497208}}, {{4.63555452966064, 0.}, {0., 0.10786196059193}}, {{0.628677545037648, 0.77766608796156}, {-0.77766608796156, 0.628677545037648}}}
 
     #> SingularValueDecomposition[{{3/2, 2}, {5/2, 3}}]
-     : Symbolbic SVD is not implemented, performing numerically.
+     : Symbolic SVD is not implemented, performing numerically.
      = {{{0.538953533497208, 0.842335496539754}, {0.842335496539754, -0.538953533497208}}, {{4.63555452966064, 0.}, {0., 0.10786196059193}}, {{0.628677545037648, 0.77766608796156}, {-0.77766608796156, 0.628677545037648}}}
     """
 
@@ -222,7 +224,7 @@ class SingularValueDecomposition(Builtin):
     """
 
     messages = {
-        'nosymb': "Symbolbic SVD is not implemented, performing numerically.",
+        'nosymb': "Symbolic SVD is not implemented, performing numerically.",
     }
 
     def apply(self, m, evaluation):
@@ -271,8 +273,8 @@ class LeastSquares(Builtin):
     """
     <dl>
     <dt>'LeastSquares[$m$, $b$]'
-        <dd>Compute the least squares solution to $m x = b$.
-        Finds an x that solves for b optimally.
+        <dd>computes the least squares solution to $m$ $x$ = $b$, finding
+        an $x$ that solves for $b$ optimally.
     </dl>
 
     >> LeastSquares[{{1, 2}, {2, 3}, {5, 6}}, {1, 5, 3}]
@@ -313,7 +315,8 @@ class LinearSolve(Builtin):
     """
     <dl>
     <dt>'LinearSolve[$matrix$, $right$]'
-        <dd>solves the linear equation system '$matrix$ . x = $right$' and returns one corresponding solution 'x'.
+        <dd>solves the linear equation system '$matrix$ . $x$ = $right$'
+        and returns one corresponding solution $x$.
     </dl>
 
     >> LinearSolve[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}, {1, 2, 3}]
@@ -488,17 +491,11 @@ class Eigensystem(Builtin):
     """
     <dl>
     <dt>'Eigensystem[$m$]'
-        <dd>returns a list of {Eigenvalues, Eigenvectors}.
+        <dd>returns the list '{Eigenvalues[$m$], Eigenvectors[$m$]}'.
     </dl>
 
-    >> Eigenvalues[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}] // Sort
-     = {-1, 1, 2}
-
-    >> Eigenvalues[{{Cos[theta],Sin[theta],0},{-Sin[theta],Cos[theta],0},{0,0,1}}] // Sort
-     = {1, Cos[theta] + Sqrt[-1 + Cos[theta] ^ 2], Cos[theta] - Sqrt[-1 + Cos[theta] ^ 2]}
-
-    >> Eigenvalues[{{7, 1}, {-4, 3}}]
-     = {5, 5}
+    >> Eigensystem[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
+     = {{2, -1, 1}, {{1, 1, 1}, {1, -2, 1}, {-1, 0, 1}}}
     """
 
     rules = {

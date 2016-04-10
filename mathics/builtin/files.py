@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+File Operations
+"""
+
 from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
-
-"""
-File Operations
-"""
 
 import os
 import io
@@ -4477,7 +4477,7 @@ class CopyDirectory(Builtin):
 class RenameDirectory(Builtin):
     """
     <dl>
-    <dt>'RenameyDirectory["$dir1$", "$dir2$"]'
+    <dt>'RenameDirectory["$dir1$", "$dir2$"]'
       <dd>renames directory $dir1$ to $dir2$.
     </dl>
     """
@@ -4646,8 +4646,9 @@ class DirectoryQ(Builtin):
 
 class Needs(Builtin):
     """
-    <dl>'Needs["context`"]'
-      <dd>loads the specified context if not already in '$Packages'.
+    <dl>
+    <dt>'Needs["context`"]'
+        <dd>loads the specified context if not already in '$Packages'.
     </dl>
 
     >> Needs["VectorAnalysis`"]
