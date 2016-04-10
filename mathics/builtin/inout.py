@@ -644,6 +644,9 @@ class TableForm(Builtin):
      . -Graphics-   -Graphics-   -Graphics-
      .
      . -Graphics-   -Graphics-   -Graphics-
+
+    #> TableForm[{}]
+     = 
     """
 
     options = {

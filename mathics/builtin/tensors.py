@@ -127,6 +127,7 @@ def get_dimensions(expr, head=None):
         if head is not None and not expr.head.same(head):
             return []
         sub_dim = None
+        sub = []
         for leaf in expr.leaves:
             sub = get_dimensions(leaf, expr.head)
             if sub_dim is None:
@@ -160,6 +161,11 @@ class Dimensions(Builtin):
     The expression can have any head:
     >> Dimensions[f[f[a, b, c]]]
      = {1, 3}
+
+    #> Dimensions[{}]
+     = {0}
+    #> Dimensions[{{}}]
+     = {1, 0}
     """
 
     def apply(self, expr, evaluation):
