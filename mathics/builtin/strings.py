@@ -21,7 +21,6 @@ from mathics.core.expression import (Expression, Symbol, String, Integer,
 
 
 def to_regex(expr):
-    # Note: the strange (?:xxx) expression is a non-capturing group.
     if expr is None:
         return None
 
@@ -32,13 +31,16 @@ def to_regex(expr):
         if regex is None:
             return regex
         try:
-            return re.compile(regex)
+            re.compile(regex)
+            # Don't return the compiled regex because it may need to composed
+            # further e.g. StringExpression["abc", RegularExpression[regex2]].
+            return regex
         except re.error:
             return None # invalid regex
 
     if isinstance(expr, Symbol):
         return {
-            'System`NumberString': r'[-|+]?(?:\d+(?:\.\d*)?|\.\d+)?',
+            'System`NumberString': r'[-|+]?(\d+(\.\d*)?|\.\d+)?',
             'System`Whitespace': r'\s+',
             'System`DigitCharacter': r'\d',
             'System`WhitespaceCharacter': r'\s',
@@ -58,11 +60,11 @@ def to_regex(expr):
             return "[{0}-{1}]".format(re.escape(start), re.escape(stop))
 
     if expr.has_form('Blank', 0):
-        return r'(?:.|\n)'
+        return r'(.|\n)'
     if expr.has_form('BlankSequence', 0):
-        return r'(?:.|\n)+'
+        return r'(.|\n)+'
     if expr.has_form('BlankNullSequence', 0):
-        return r'(?:.|\n)*'
+        return r'(.|\n)*'
     if expr.has_form('Except', 1):
         leaf = to_regex(expr.leaves[0])
         if leaf is not None:
@@ -86,11 +88,11 @@ def to_regex(expr):
     if expr.has_form('Repeated', 1):
         leaf = to_regex(expr.leaves[0])
         if leaf is not None:
-            return '(?:{0})+'.format(leaf)
+            return '({0})+'.format(leaf)
     if expr.has_form('RepeatedNull', 1):
         leaf = to_regex(expr.leaves[0])
         if leaf is not None:
-            return '(?:{0})*'.format(leaf)
+            return '({0})*'.format(leaf)
     if expr.has_form('Alternatives', None):
         leaves = [to_regex(leaf) for leaf in expr.leaves]
         if all(leaf is not None for leaf in leaves):
@@ -283,6 +285,9 @@ class StringMatchQ(Builtin):
 
     >> StringMatchQ["15a94xcZ6", (DigitCharacter | LetterCharacter)..]
      = True
+
+    #> StringMatchQ["abc1", LetterCharacter]
+     = False
     """
 
     def apply(self, string, patt, evaluation):
@@ -296,11 +301,10 @@ class StringMatchQ(Builtin):
         if re_patt is None:
             return evaluation.message('StringExpression', 'invld', patt,
                                       Expression('StringExpression', patt))
-        # force matching whole of string
-        re_patt = '(?:' + re_patt + ')'
+
+        # force matching of the entire string
         if not re_patt.endswith(r'\Z'):
             re_patt = re_patt + r'\Z'
-
         if not re_patt.startswith(r'\A'):
             re_patt = r'\A' + re_patt
 
