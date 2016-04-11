@@ -216,7 +216,18 @@ class DigitCharacter(Builtin):
 
 
 class Whitespace(Builtin):
-    pass
+    r"""
+    <dl>
+    <dt>'Whitespace'
+      <dd>represents a sequence of whitespace characters.
+    </dl>
+
+    >> StringSplit["a  \n b \r\n c d", Whitespace]
+     = {a, b, c, d}
+
+    >> StringReplace[" this has leading and trailing whitespace \n ", (StartOfString ~~ Whitespace) | (Whitespace ~~ EndOfString) -> ""] <> " removed" // FullForm
+     = "this has leading and trailing whitespace removed"
+    """
 
 
 class WhitespaceCharacter(Builtin):
