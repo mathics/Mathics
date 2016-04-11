@@ -100,6 +100,17 @@ def to_regex(expr):
     return None
 
 
+def anchor_pattern(patt):
+    '''
+    anchors a regex in order to force matching against an entire string.
+    '''
+    if not patt.endswith(r'\Z'):
+        patt = patt + r'\Z'
+    if not patt.startswith(r'\A'):
+        patt = r'\A' + patt
+    return patt
+
+
 class StringExpression(BinaryOperator):
     """
     <dl>
@@ -415,11 +426,7 @@ class StringMatchQ(Builtin):
             return evaluation.message('StringExpression', 'invld', patt,
                                       Expression('StringExpression', patt))
 
-        # force matching of the entire string
-        if not re_patt.endswith(r'\Z'):
-            re_patt = re_patt + r'\Z'
-        if not re_patt.startswith(r'\A'):
-            re_patt = r'\A' + re_patt
+        re_patt = anchor_pattern(re_patt)
 
         # TODO
         flags = re.MULTILINE
@@ -547,8 +554,9 @@ class StringSplit(Builtin):
         # Python's re.split includes the text of groups if they are capturing.
         # To handle this difference ignore strings that match the pattern.
         for re_patt in re_patts:
+            anchored_patt = anchor_pattern(re_patt)
             try:
-                result = [t for s in result for t in re.split(re_patt, s, flags=flags) if not re.match(re_patt, t, flags=flags)]
+                result = [t for s in result for t in re.split(re_patt, s, flags=flags) if not re.match(anchored_patt, t, flags=flags)]
             except ValueError as exc:
                 if exc.args != ('split() requires a non-empty pattern match.',):
                     raise exc
