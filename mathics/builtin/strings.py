@@ -111,6 +111,28 @@ def anchor_pattern(patt):
     return patt
 
 
+def mathics_split(patt, string, flags):
+    '''
+    Python's re.split includes the text of groups if they are capturing.
+
+    Furthermore, you can't split on empty matches. Trying to do this returns
+    the original string for Python < 3.5, raises a ValueError for
+    Python >= 3.5, <= X and works as expected for Python >= X, where 'X' is
+    some future version of Python (> 3.6).
+
+    For these reasons we implement our own split.
+    '''
+    # (start, end) indices of splits
+    indices =  list((m.start(), m.end()) for m in re.finditer(patt, string, flags))
+
+    # (start, end) indices of stuff to keep
+    indices = [(None, 0)] + indices + [(len(string), None)]
+    indices = [(indices[i][1], indices[i+1][0]) for i in range(len(indices) - 1)]
+
+    # slice up the string
+    return [string[start:stop] for start, stop in indices]
+
+
 class StringExpression(BinaryOperator):
     """
     <dl>
@@ -331,10 +353,9 @@ class StartOfLine(Builtin):
      . cb
 
     >> StringSplit["abc\ndef\nhij", StartOfLine]
-     : As of Python 3.5 re.split does not handle empty pattern matches.
-     = StringSplit[abc
-     . def
-     . hij, StartOfLine]
+     = {abc
+     . , def
+     . , hij}
     """
 
 
@@ -352,10 +373,9 @@ class EndOfLine(Builtin):
      . ab
 
     >> StringSplit["abc\ndef\nhij", EndOfLine]
-     : As of Python 3.5 re.split does not handle empty pattern matches.
-     = StringSplit[abc
-     . def
-     . hij, EndOfLine]
+     = {abc,
+     . def,
+     . hij}
     """
 
 
@@ -551,16 +571,8 @@ class StringSplit(Builtin):
         flags = re.MULTILINE
 
         result = [py_string]
-        # Python's re.split includes the text of groups if they are capturing.
-        # To handle this difference ignore strings that match the pattern.
         for re_patt in re_patts:
-            anchored_patt = anchor_pattern(re_patt)
-            try:
-                result = [t for s in result for t in re.split(re_patt, s, flags=flags) if not re.match(anchored_patt, t, flags=flags)]
-            except ValueError as exc:
-                if exc.args != ('split() requires a non-empty pattern match.',):
-                    raise exc
-                return evaluation.message('StringSplit', 'pysplit')
+            result = [t for s in result for t in mathics_split(re_patt, s, flags=flags)]
 
         return from_python([x for x in result if x != ''])
 
