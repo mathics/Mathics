@@ -420,8 +420,10 @@ class StringSplit(Builtin):
             re_patts.append(py_p)
 
         result = [py_string]
+        # Python's re.split includes the text of groups if they are capturing.
+        # To handle this difference ignore strings that match the pattern.
         for re_patt in re_patts:
-            result = [t for s in result for t in re.split(re_patt, s)]
+            result = [t for s in result for t in re.split(re_patt, s) if not re.match(re_patt, t)]
         return from_python([x for x in result if x != ''])
 
 
