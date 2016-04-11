@@ -44,7 +44,7 @@ def to_regex(expr):
             'System`Whitespace': r'\s+',
             'System`DigitCharacter': r'\d',
             'System`WhitespaceCharacter': r'\s',
-            'System`WordCharacter': r'\s',
+            'System`WordCharacter': r'[0-9a-zA-Z]',
             'System`StartOfLine': r'^',
             'System`EndOfLine': r'$',
             'System`StartOfString': r'\A',
@@ -255,7 +255,21 @@ class WhitespaceCharacter(Builtin):
 
 
 class WordCharacter(Builtin):
-    pass
+    r"""
+    <dl>
+    <dt>'WordCharacter'
+      <dd>represents a single letter or digit character.
+    </dl>
+
+    >> StringMatchQ[#, WordCharacter] &/@ {"1", "a", "A", ",", " "}
+     = {True, True, True, False, False}
+
+    Test whether a string is alphanumeric:
+    >> StringMatchQ["abc123DEF", WordCharacter..]
+     = True
+    >> StringMatchQ["$b;123", WordCharacter..]
+     = False
+    """
 
 
 class StartOfString(Builtin):
