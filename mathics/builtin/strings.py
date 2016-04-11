@@ -273,7 +273,7 @@ class WordCharacter(Builtin):
 
 
 class StartOfString(Builtin):
-    """
+    r"""
     <dl>
     <dt>'StartOfString'
       <dd>represents the start of a string.
@@ -282,11 +282,15 @@ class StartOfString(Builtin):
     Test whether strings start with "a":
     >> StringMatchQ[#, StartOfString ~~ "a" ~~ __] &/@ {"apple", "banana", "artichoke"}
      = {True, False, True}
+
+    >> StringReplace["aba\nabb", StartOfString ~~ "a" -> "c"]
+     = cba
+     . abb
     """
 
 
 class EndOfString(Builtin):
-    """
+    r"""
     <dl>
     <dt>'EndOfString'
       <dd>represents the end of a string.
@@ -295,15 +299,53 @@ class EndOfString(Builtin):
     Test whether strings end with "e":
     >> StringMatchQ[#, __ ~~ "e" ~~ EndOfString] &/@ {"apple", "banana", "artichoke"}
      = {True, False, True}
+
+    >> StringReplace["aab\nabb", "b" ~~ EndOfString -> "c"]
+     = aab
+     . abc
     """
 
 
 class StartOfLine(Builtin):
-    pass
+    r"""
+    <dl>
+    <dt>'StartOfString'
+      <dd>represents the start of a line in a string.
+    </dl>
+
+    >> StringReplace["aba\nbba\na\nab", StartOfLine ~~ "a" -> "c"]
+     = cba
+     . bba
+     . c
+     . cb
+
+    >> StringSplit["abc\ndef\nhij", StartOfLine]
+     : As of Python 3.5 re.split does not handle empty pattern matches.
+     = StringSplit[abc
+     . def
+     . hij, StartOfLine]
+    """
 
 
 class EndOfLine(Builtin):
-    pass
+    r"""
+    <dl>
+    <dt>'EndOfString'
+      <dd>represents the end of a line in a string.
+    </dl>
+
+    >> StringReplace["aba\nbba\na\nab", "a" ~~ EndOfLine -> "c"]
+     = abc
+     . bbc
+     . c
+     . ab
+
+    >> StringSplit["abc\ndef\nhij", EndOfLine]
+     : As of Python 3.5 re.split does not handle empty pattern matches.
+     = StringSplit[abc
+     . def
+     . hij, EndOfLine]
+    """
 
 
 class WordBoundary(Builtin):
@@ -371,7 +413,10 @@ class StringMatchQ(Builtin):
         if not re_patt.startswith(r'\A'):
             re_patt = r'\A' + re_patt
 
-        if re.match(re_patt, py_string) is None:
+        # TODO
+        flags = re.MULTILINE
+
+        if re.match(re_patt, py_string, flags=flags) is None:
             return Symbol('False')
         else:
             return Symbol('True')
@@ -465,6 +510,7 @@ class StringSplit(Builtin):
 
     messages = {
         'strse': 'String or list of strings expected at position `1` in `2`.',
+        'pysplit': 'As of Python 3.5 re.split does not handle empty pattern matches.',
     }
 
     def apply(self, string, patt, evaluation):
@@ -486,11 +532,20 @@ class StringSplit(Builtin):
                 return evaluation.message('StringExpression', 'invld', p, patt)
             re_patts.append(py_p)
 
+        # TODO flags
+        flags = re.MULTILINE
+
         result = [py_string]
         # Python's re.split includes the text of groups if they are capturing.
         # To handle this difference ignore strings that match the pattern.
         for re_patt in re_patts:
-            result = [t for s in result for t in re.split(re_patt, s) if not re.match(re_patt, t)]
+            try:
+                result = [t for s in result for t in re.split(re_patt, s, flags=flags) if not re.match(re_patt, t, flags=flags)]
+            except ValueError as exc:
+                if exc.args != ('split() requires a non-empty pattern match.',):
+                    raise exc
+                return evaluation.message('StringSplit', 'pysplit')
+
         return from_python([x for x in result if x != ''])
 
 
@@ -667,9 +722,12 @@ class StringReplace(Builtin):
             if py_n is None or py_n < 0:
                 return evaluation.message('StringReplace', 'innf', Integer(3), expr)
 
+        # TODO flags
+        flags = re.MULTILINE
+
         def do_subs(py_stri):
             for py_s, py_sp in py_rules:
-                py_stri = re.sub(py_s, py_sp, py_stri, py_n)
+                py_stri = re.sub(py_s, py_sp, py_stri, py_n, flags=flags)
             return py_stri
 
         if isinstance(py_strings, list):
