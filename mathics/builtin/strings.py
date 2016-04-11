@@ -222,6 +222,9 @@ class Whitespace(Builtin):
       <dd>represents a sequence of whitespace characters.
     </dl>
 
+    >> StringMatchQ["\r \n", Whitespace]
+     = True
+
     >> StringSplit["a  \n b \r\n c d", Whitespace]
      = {a, b, c, d}
 
@@ -231,7 +234,24 @@ class Whitespace(Builtin):
 
 
 class WhitespaceCharacter(Builtin):
-    pass
+    r"""
+    <dl>
+    <dt>'WhitespaceCharacter'
+      <dd>represents a single whitespace character.
+    </dl>
+
+    >> StringMatchQ["\n", WhitespaceCharacter]
+     = True
+
+    >> StringSplit["a\nb\r\nc\rd", WhitespaceCharacter]
+     = {a, b, c, d}
+
+    For sequences of whitespace characters use 'Whitespace':
+    >> StringMatchQ[" \n", WhitespaceCharacter]
+     = False
+    >> StringMatchQ[" \n", Whitespace]
+     = True
+    """
 
 
 class WordCharacter(Builtin):
