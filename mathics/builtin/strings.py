@@ -349,7 +349,15 @@ class EndOfLine(Builtin):
 
 
 class WordBoundary(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'WordBoundary'
+      <dd>represents the boundary between words.
+    </dl>
+
+    >> StringReplace["apple banana orange artichoke", "e" ~~ WordBoundary -> "E"]
+     = applE banana orangE artichokE
+    """
 
 
 class LetterCharacter(Builtin):
