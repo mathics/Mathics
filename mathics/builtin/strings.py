@@ -273,7 +273,16 @@ class WordCharacter(Builtin):
 
 
 class StartOfString(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'StartOfString'
+      <dd>represents the start of a string.
+    </dl>
+
+    Test whether strings start with "a":
+    >> StringMatchQ[#, StartOfString ~~ "a" ~~ __] &/@ {"apple", "banana", "artichoke"}
+     = {True, False, True}
+    """
 
 
 class EndOfString(Builtin):
