@@ -28,7 +28,11 @@ def to_regex(expr):
     if isinstance(expr, String):
         return re.escape(expr.get_string_value())
     if expr.has_form('RegularExpression', 1):
-        return expr.leaves[0].get_string_value()
+        regex = expr.leaves[0].get_string_value()
+        try:
+            return re.compile(regex)
+        except re.error:
+            return None # invalid regex
 
     if isinstance(expr, Symbol):
         return {
@@ -138,6 +142,11 @@ class RegularExpression(Builtin):
 
     #> RegularExpression["[abc]"]
      = RegularExpression[[abc]]
+
+    ## Mathematica doesn't seem to verify the correctness of regex
+    #> StringSplit["ab23c", RegularExpression["[0-9]++"]]
+     : Element RegularExpression[[0-9]++] is not a valid string or pattern element in RegularExpression[[0-9]++].
+     = StringSplit[ab23c, RegularExpression[[0-9]++]]
     """
 
 
