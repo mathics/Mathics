@@ -29,6 +29,8 @@ def to_regex(expr):
         return re.escape(expr.get_string_value())
     if expr.has_form('RegularExpression', 1):
         regex = expr.leaves[0].get_string_value()
+        if regex is None:
+            return regex
         try:
             return re.compile(regex)
         except re.error:
@@ -147,6 +149,10 @@ class RegularExpression(Builtin):
     #> StringSplit["ab23c", RegularExpression["[0-9]++"]]
      : Element RegularExpression[[0-9]++] is not a valid string or pattern element in RegularExpression[[0-9]++].
      = StringSplit[ab23c, RegularExpression[[0-9]++]]
+
+    #> StringSplit["ab23c", RegularExpression[2]]
+     : Element RegularExpression[2] is not a valid string or pattern element in RegularExpression[2].
+     = StringSplit[ab23c, RegularExpression[2]]
     """
 
 
