@@ -286,7 +286,16 @@ class StartOfString(Builtin):
 
 
 class EndOfString(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'EndOfString'
+      <dd>represents the end of a string.
+    </dl>
+
+    Test whether strings end with "e":
+    >> StringMatchQ[#, __ ~~ "e" ~~ EndOfString] &/@ {"apple", "banana", "artichoke"}
+     = {True, False, True}
+    """
 
 
 class StartOfLine(Builtin):
