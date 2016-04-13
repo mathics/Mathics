@@ -389,6 +389,13 @@ class Alternatives(BinaryOperator, PatternObject):
 
     >> a+b+c+d/.(a|b)->t
      = c + d + 2 t
+
+    Alternatives can also be used for string expressions
+    >> StringReplace["0123 3210", "1" | "2" -> "X"]
+     = 0XX3 3XX0
+
+    #> StringReplace["h1d9a f483", DigitCharacter | WhitespaceCharacter -> ""]
+     = hdaf
     """
 
     operator = '|'
@@ -971,6 +978,11 @@ class Repeated(PostfixOperator, PatternObject):
      = Repeated[1]
     #> 8^^1.. // FullForm   (* Mathematica gets this wrong *)
      = Repeated[1]
+
+    #> StringReplace["010110110001010", "01".. -> "a"]
+     = a1a100a0
+    #> StringMatchQ[#, "a" ~~ ("b"..) ~~ "a"] &/@ {"aa", "aba", "abba"}
+     = {False, True, True}
     """
 
     messages = {
@@ -1045,6 +1057,9 @@ class RepeatedNull(Repeated):
      = RepeatedNull[1]
     #> 8^^1... // FullForm   (* Mathematica gets this wrong *)
      = RepeatedNull[1]
+
+    #> StringMatchQ[#, "a" ~~ ("b"...) ~~ "a"] &/@ {"aa", "aba", "abba"}
+     = {True, True, True}
     """
 
     operator = '...'
