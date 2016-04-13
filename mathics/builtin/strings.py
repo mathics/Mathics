@@ -425,10 +425,20 @@ class StringMatchQ(Builtin):
 
     #> StringMatchQ["abc1", LetterCharacter]
      = False
+
+    #> StringMatchQ["abc", "ABC"]
+     = False
+    #> StringMatchQ["abc", "ABC", IgnoreCase -> True]
+     = True
     """
 
-    def apply(self, string, patt, evaluation):
-        'StringMatchQ[string_, patt_]'
+    options = {
+        'IgnoreCase': 'False',
+        'SpellingCorrections': 'None',
+    }
+
+    def apply(self, string, patt, evaluation, options):
+        'StringMatchQ[string_, patt_, OptionsPattern[%(name)s]]'
         py_string = string.get_string_value()
         if py_string is None:
             return evaluation.message('StringMatchQ', 'strse', Integer(1),
@@ -441,8 +451,9 @@ class StringMatchQ(Builtin):
 
         re_patt = anchor_pattern(re_patt)
 
-        # TODO
         flags = re.MULTILINE
+        if options['System`IgnoreCase'] == Symbol('True'):
+            flags = flags | re.IGNORECASE
 
         if re.match(re_patt, py_string, flags=flags) is None:
             return Symbol('False')
@@ -530,10 +541,20 @@ class StringSplit(Builtin):
 
     #> StringSplit["12312123", "12"..]
      = {3, 3}
+
+    #> StringSplit["abaBa", "b"]
+     = {a, aBa}
+    #> StringSplit["abaBa", "b", IgnoreCase -> True]
+     = {a, a, a}
     """
 
     rules = {
         'StringSplit[s_]': 'StringSplit[s, Whitespace]',
+    }
+
+    options = {
+        'IgnoreCase': 'False',
+        'MetaCharacters': 'None',
     }
 
     messages = {
@@ -541,8 +562,8 @@ class StringSplit(Builtin):
         'pysplit': 'As of Python 3.5 re.split does not handle empty pattern matches.',
     }
 
-    def apply(self, string, patt, evaluation):
-        'StringSplit[string_, patt_]'
+    def apply(self, string, patt, evaluation, options):
+        'StringSplit[string_, patt_, OptionsPattern[%(name)s]]'
         py_string = string.get_string_value()
 
         if py_string is None:
@@ -560,8 +581,9 @@ class StringSplit(Builtin):
                 return evaluation.message('StringExpression', 'invld', p, patt)
             re_patts.append(py_p)
 
-        # TODO flags
         flags = re.MULTILINE
+        if options['System`IgnoreCase'] == Symbol('True'):
+            flags = flags | re.IGNORECASE
 
         result = [py_string]
         for re_patt in re_patts:
@@ -641,9 +663,9 @@ class StringReplace(Builtin):
     #> StringReplace["xyzwxyzwaxyzxyzw", x -> y]
      : Element x is not a valid string or pattern element in x.
      = StringReplace[xyzwxyzwaxyzxyzw, x -> y]
-    #> StringReplace["abcabc", "a" -> "b", x]
-     : Non-negative integer or Infinity expected at position 3 in StringReplace[abcabc, a -> b, x].
-     = StringReplace[abcabc, a -> b, x]
+    #> StringReplace["abcabc", "a" -> "b", -1]
+     : Non-negative integer or Infinity expected at position 3 in StringReplace[abcabc, a -> b, -1].
+     = StringReplace[abcabc, a -> b, -1]
 
     #> StringReplace["01101100010", "01" .. -> "x"]
      = x1x100x0
@@ -666,6 +688,11 @@ class StringReplace(Builtin):
 
     #> StringReplace["  Have a nice day.  ", (StartOfString ~~ Whitespace) | (Whitespace ~~ EndOfString) -> ""] // FullForm
      = "Have a nice day."
+
+    #> StringReplace["xyXY", "xy" -> "01"]
+     = 01XY
+    #> StringReplace["xyXY", "xy" -> "01", IgnoreCase -> True]
+     = 0101
     """
 
     # TODO Special Characters
@@ -676,7 +703,6 @@ class StringReplace(Builtin):
 
     attributes = ('Protected')
 
-    # TODO: Implement these options
     options = {
         'IgnoreCase': 'False',
         'MetaCharacters': 'None',
@@ -689,15 +715,13 @@ class StringReplace(Builtin):
                  'position `1` in `2`.'),
     }
 
-    def apply(self, string, rule, evaluation):
-        'StringReplace[string_, rule_]'
-        return self.apply_n(string, rule, None, evaluation)
+    def apply_n(self, string, rule, n, evaluation, options):
+        'StringReplace[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'
+        # this pattern is a slight hack to get around missing Shortest/Longest.
 
-    def apply_n(self, string, rule, n, evaluation):
-        'StringReplace[string_, rule_, n_]'
-
-        if n is None:
+        if n.same(Symbol('System`Private`Null')):
             expr = Expression('StringReplace', string, rule)
+            n = None
         else:
             expr = Expression('StringReplace', string, rule, n)
 
@@ -743,8 +767,10 @@ class StringReplace(Builtin):
             if py_n is None or py_n < 0:
                 return evaluation.message('StringReplace', 'innf', Integer(3), expr)
 
-        # TODO flags
+        # flags
         flags = re.MULTILINE
+        if options['System`IgnoreCase'] == Symbol('True'):
+            flags = flags | re.IGNORECASE
 
         def do_subs(py_stri):
             for py_s, py_sp in py_rules:
