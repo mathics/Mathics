@@ -397,7 +397,7 @@ class End(Builtin):
 
     rules = {
         'End[]': '''
-             Block[{old=$Context},
+             Block[{System`Private`old=$Context},
                    If[Length[System`Private`$ContextStack] === 0,
                      (* then *) Message[End::noctx]; $Context,
                      (* else *) Unprotect[System`Private`$ContextStack];
@@ -405,7 +405,7 @@ class End(Builtin):
                                     {Last[System`Private`$ContextStack],
                                      Most[System`Private`$ContextStack]};
                                 Protect[System`Private`$ContextStack];
-                                old]]
+                                System`Private`old]]
         ''',
     }
 
@@ -471,13 +471,13 @@ class EndPackage(Builtin):
 
     rules = {
         'EndPackage[]': '''
-             Block[{newctx=Quiet[End[], {End::noctx}]},
+             Block[{System`Private`newctx=Quiet[End[], {End::noctx}]},
                    If[Length[System`Private`$ContextPathStack] === 0,
                       (* then *) Message[EndPackage::noctx],
                       (* else *) Unprotect[System`Private`$ContextPathStack];
                                  {$ContextPath, System`Private`$ContextPathStack} =
                                      {Prepend[Last[System`Private`$ContextPathStack],
-                                              newctx],
+                                              System`Private`newctx],
                                       Most[System`Private`$ContextPathStack]};
                                  Protect[System`Private`$ContextPathStack];
                                  Null]]
