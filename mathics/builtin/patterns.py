@@ -422,6 +422,47 @@ class Alternatives(BinaryOperator, PatternObject):
         return range
 
 
+class Except(PatternObject):
+    """
+    <dl>
+    <dt>'Except[$c$]'
+        <dd>represents a pattern object that matches any expression except those matching $c$.
+    <dt>'Except[$c$, $p$]'
+        <dd>represents a pattern object that matches $p$ but not $c$.
+    </dl>
+
+    >> Cases[{x, a, b, x, c}, Except[x]]
+     = {a, b, c}
+
+    >> Cases[{a, 0, b, 1, c, 2, 3}, Except[1, _Integer]]
+     = {0, 2, 3}
+    """
+
+    arg_counts = [1, 2]
+
+    def init(self, expr):
+        super(Except, self).init(expr)
+        self.c = Pattern.create(expr.leaves[0])
+        if len(expr.leaves) == 2:
+            self.p = Pattern.create(expr.leaves[1])
+        else:
+            self.p = Pattern.create(Expression('Blank'))
+
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
+        class StopGenerator_Except(StopGenerator):
+            pass
+
+        def except_yield_func(vars, rest):
+            raise StopGenerator_Except(Symbol("True"))
+
+        try:
+            self.c.match(except_yield_func, expression, vars, evaluation)
+        except StopGenerator_Except:
+            pass
+        else:
+            self.p.match(yield_func, expression, vars, evaluation)
+
+
 def match(expr, form, evaluation):
     class StopGenerator_MatchQ(StopGenerator):
         pass
