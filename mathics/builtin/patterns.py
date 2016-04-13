@@ -835,6 +835,9 @@ class Blank(_Blank):
     'Blank' only matches a single expression:
     >> MatchQ[f[1, 2], f[_]]
      = False
+
+    #> StringReplace["hello world!", _ -> "x"]
+     = xxxxxxxxxxxx
     """
     rules = {
         'MakeBoxes[Verbatim[Blank][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"_"',
@@ -884,6 +887,9 @@ class BlankSequence(_Blank):
      = {{a, b}, {d}}
     #> a + b + c + d /. Plus[x__, c] -> {x}
      = {a, b, d}
+
+    #> StringReplace[{"ab", "abc", "abcd"}, "b" ~~ __ -> "x"]
+     = {ab, ax, ax}
     """
     rules = {
         'MakeBoxes[Verbatim[BlankSequence][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"__"',
@@ -934,6 +940,9 @@ class BlankNullSequence(_Blank):
      = ___symbol
     #> ___symbol //FullForm
      = BlankNullSequence[symbol]
+
+    #> StringReplace[{"ab", "abc", "abcd"}, "b" ~~ ___ -> "x"]
+     = {ax, ax, ax}
     """
 
     rules = {
