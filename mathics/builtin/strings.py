@@ -78,13 +78,6 @@ def to_regex(expr):
         if None in leaves:
             return None
         return "".join(leaves)
-    if expr.has_form('Longest', 1):
-        return to_regex(expr.leaves[0])
-    if expr.has_form('Shortest', 1):
-        leaf = to_regex(expr.leaves[0])
-        if leaf is not None:
-            return '{0}*?'.format(leaf)
-            # p*?|p+?|p??
     if expr.has_form('Repeated', 1):
         leaf = to_regex(expr.leaves[0])
         if leaf is not None:
