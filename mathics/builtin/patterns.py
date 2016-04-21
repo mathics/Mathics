@@ -443,6 +443,13 @@ class Except(PatternObject):
 
     >> Cases[{a, 0, b, 1, c, 2, 3}, Except[1, _Integer]]
      = {0, 2, 3}
+
+    Except can also be used for string expressions:
+    >> StringReplace["Hello world!", Except[LetterCharacter] -> ""]
+     = Helloworld
+
+    #> StringReplace["abc DEF 123!", Except[LetterCharacter, WordCharacter] -> "0"]
+     = abc DEF 000!
     """
 
     arg_counts = [1, 2]

@@ -65,10 +65,14 @@ def to_regex(expr):
         return r'(.|\n)+'
     if expr.has_form('BlankNullSequence', 0):
         return r'(.|\n)*'
-    if expr.has_form('Except', 1):
-        leaf = to_regex(expr.leaves[0])
-        if leaf is not None:
-            return '^{0}'.format(leaf)
+    if expr.has_form('Except', 1, 2):
+        if len(expr.leaves) == 1:
+            leaves = [expr.leaves[0], Expression('Blank')]
+        else:
+            leaves = [expr.leaves[0], expr.leaves[1]]
+        leaves = [to_regex(leaf) for leaf in leaves]
+        if all(leaf is not None for leaf in leaves):
+            return '(?!{0}){1}'.format(*leaves)
     if expr.has_form('Characters', 1):
         leaf = expr.leaves[0].get_string_value()
         if leaf is not None:
