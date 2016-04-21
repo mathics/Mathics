@@ -36,7 +36,7 @@ def to_regex(expr):
             # further e.g. StringExpression["abc", RegularExpression[regex2]].
             return regex
         except re.error:
-            return None # invalid regex
+            return None     # invalid regex
 
     if isinstance(expr, Symbol):
         return {
@@ -120,11 +120,11 @@ def mathics_split(patt, string, flags):
     For these reasons we implement our own split.
     '''
     # (start, end) indices of splits
-    indices =  list((m.start(), m.end()) for m in re.finditer(patt, string, flags))
+    indices = list((m.start(), m.end()) for m in re.finditer(patt, string, flags))
 
     # (start, end) indices of stuff to keep
     indices = [(None, 0)] + indices + [(len(string), None)]
-    indices = [(indices[i][1], indices[i+1][0]) for i in range(len(indices) - 1)]
+    indices = [(indices[i][1], indices[i + 1][0]) for i in range(len(indices) - 1)]
 
     # slice up the string
     return [string[start:stop] for start, stop in indices]
