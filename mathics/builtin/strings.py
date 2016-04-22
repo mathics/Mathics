@@ -434,7 +434,13 @@ class StringMatchQ(Builtin):
      = False
     #> StringMatchQ["abc", "ABC", IgnoreCase -> True]
      = True
+
+    ## Words containing nonword characters
+    #> StringMatchQ[{"monkey", "don't", "AAA", "S&P"}, ___ ~~ Except[WordCharacter] ~~ ___]
+     = {False, True, False, True}
     """
+
+    attributes = ('Listable',)
 
     options = {
         'IgnoreCase': 'False',
