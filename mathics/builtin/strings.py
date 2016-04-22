@@ -438,6 +438,11 @@ class StringMatchQ(Builtin):
     ## Words containing nonword characters
     #> StringMatchQ[{"monkey", "don't", "AAA", "S&P"}, ___ ~~ Except[WordCharacter] ~~ ___]
      = {False, True, False, True}
+
+    ## Try to match a literal number
+    #> StringMatchQ[1.5, NumberString]
+     : String or list of strings expected at position 1 in StringMatchQ[1.5, NumberString].
+     = StringMatchQ[1.5, NumberString]
     """
 
     attributes = ('Listable',)
@@ -445,6 +450,10 @@ class StringMatchQ(Builtin):
     options = {
         'IgnoreCase': 'False',
         'SpellingCorrections': 'None',
+    }
+
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
     }
 
     def apply(self, string, patt, evaluation, options):
