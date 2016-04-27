@@ -19,6 +19,7 @@ from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
     Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError)
+from mathics.builtin.image import ImageAtom
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
@@ -248,7 +249,7 @@ class MakeBoxes(Builtin):
                 return String(evaluation.definitions.shorten_name(x.name))
             elif isinstance(x, String):
                 return String('"' + six.text_type(x.value) + '"')
-            elif isinstance(x, (Integer, Real)):
+            elif isinstance(x, (Integer, Real, ImageAtom)):
                 return x.make_boxes(f.get_name())
             elif isinstance(x, (Rational, Complex)):
                 return x.format(evaluation, f.get_name())
@@ -294,7 +295,7 @@ class MakeBoxes(Builtin):
             return String(evaluation.definitions.shorten_name(x.name))
         elif isinstance(x, String):
             return String('"' + x.value + '"')
-        elif isinstance(x, (Integer, Real)):
+        elif isinstance(x, (Integer, Real, ImageAtom)):
             return x.make_boxes(f.get_name())
         elif isinstance(x, (Rational, Complex)):
             return x.format(evaluation, f.get_name())
