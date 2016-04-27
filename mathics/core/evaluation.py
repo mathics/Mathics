@@ -153,7 +153,8 @@ class Result(object):
 class Evaluation(object):
     def __init__(self, definitions=None,
                  result_callback=None,
-                 out_callback=None, format='text', catch_interrupt=True):
+                 out_callback=None, format='text', catch_interrupt=True,
+                 clear_output_callback=None, display_data_callback=None):
         from mathics.core.definitions import Definitions
 
         if definitions is None:
@@ -165,6 +166,8 @@ class Evaluation(object):
         self.out = []
         self.out_callback = out_callback
         self.result_callback = result_callback
+        self.clear_output_callback = clear_output_callback
+        self.display_data_callback = display_data_callback
         self.listeners = {}
         self.options = None
         self.predetermined_out = None
