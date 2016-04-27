@@ -11,9 +11,6 @@ from mathics.core.evaluation import Evaluation
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Symbol
 
-from IPython.core.formatters import DisplayFormatter
-from mathics.core.evaluation import EvaluationResult
-
 from ipywidgets import (FloatSlider, ToggleButtons, Box, DOMWidget)
 
 """
@@ -43,7 +40,7 @@ def _interactive(interact_f, kwargs_widgets):
 
 
 def _strip_namespace(name):
-    return name.split('`')[1]  # e.g. "Global`x" will turn into "x"
+    return name.split('`')[-1]  # e.g. "Global`x" will turn into "x"
 
 
 def _manipulate_label(x):
@@ -215,8 +212,13 @@ class Manipulate(Builtin):
 
         widgets = manip.get_widgets()
         if len(widgets) > 0:
-            box = _interactive(manip.build_callback(callback), widgets)
-            formatter = DisplayFormatter()
-            display_data_callback(EvaluationResult(evaluation.definitions.get_line_no(), formatter.format(box)))
+            box = _interactive(manip.build_callback(callback), widgets)  # create the widget
+
+            # the following code is a boiled down version from IPython.core.formatters.IPythonDisplayFormatter.
+            # note that '_ipython_display_' is a magic constant defined in print_method of IPythonDisplayFormatter.
+
+            method = getattr(box, '_ipython_display_')
+            if method is not None:
+                method()  # make the widget appear on the Jupyter notebook
 
         return Symbol('Null')  # the interactive output is pushed via kernel.display_data_callback (see above)
