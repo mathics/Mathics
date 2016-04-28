@@ -19,8 +19,7 @@ try:
     import skimage.exposure
     import skimage.feature
     import skimage.filters.rank
-
-    from skimage.morphology import disk
+    import skimage.morphology
 
     import PIL
     import PIL.ImageEnhance
@@ -96,19 +95,6 @@ class ImageExport(Builtin):
             return evaluation.message('ImageExport', 'noimage')
 
 
-class ImageBox(BoxConstruct):
-    def boxes_to_text(self, leaves, **options):
-        return '-Image-'
-
-    def boxes_to_xml(self, leaves, **options):
-        # see https://tools.ietf.org/html/rfc2397
-        img = '<img src="data:image/png;base64,%s" />' % (leaves[0].get_string_value())
-        return '</math><mtable>%s</mtable><math>' % img
-
-    def boxes_to_tex(self, leaves, **options):
-        return '-Image-'
-
-
 class ImageResize(Builtin):
     def apply_resize_width(self, image, width, evaluation):
         'ImageResize[image_Image, width_Integer]'
@@ -146,12 +132,12 @@ class ImageAdjust(Builtin):
 
     def apply_contrast(self, image, c, evaluation):
         'ImageAdjust[image_Image, c_?RealNumberQ]'
-        enhancer_c = PIL.ImageEnhance.Contrast(image.as_pil())
+        enhancer_c = PIL.ImageEnhance.Contrast(image.pil())
         return Image(numpy.array(enhancer_c.enhance(c.value)), image.color_space)
 
     def apply_contrast_brightness(self, image, c, b, evaluation):
         'ImageAdjust[image_Image, {c_?RealNumberQ, b_?RealNumberQ}]'
-        im = image.as_pil()
+        im = image.pil()
         enhancer_b = PIL.ImageEnhance.Brightness(im)
         im = enhancer_b.enhance(b.value)  # brightness first!
         enhancer_c = PIL.ImageEnhance.Contrast(im)
@@ -165,7 +151,7 @@ class Blur(Builtin):
 
     def apply(self, image, r, evaluation):
         'Blur[image_Image, r_?RealNumberQ]'
-        return Image(numpy.array(PIL.Image.fromarray(image.pixels).filter(
+        return Image(numpy.array(image.pil().filter(
             PIL.ImageFilter.GaussianBlur(r.value))), image.color_space)
 
 
@@ -176,7 +162,7 @@ class Sharpen(Builtin):
 
     def apply(self, image, r, evaluation):
         'Sharpen[image_Image, r_?RealNumberQ]'
-        return Image(numpy.array(PIL.Image.fromarray(image.pixels).filter(
+        return Image(numpy.array(image.pil().filter(
             PIL.ImageFilter.UnsharpMask(r.value))), image.color_space)
 
 
@@ -193,6 +179,29 @@ class GaussianFilter(Builtin):
             return Image(skimage.filters.gaussian(
                 skimage.img_as_float(image.pixels),
                 sigma=radius.value / 2, multichannel=True), image.color_space)
+
+
+class PillowImageFilter(Builtin):
+    def compute(self, image, f):
+        return Image(numpy.array(image.pil().filter(f)), image.color_space)
+
+
+class MinFilter(PillowImageFilter):
+    def apply(self, image, r, evaluation):
+        'MinFilter[image_Image, r_Integer]'
+        return self.compute(image, PIL.ImageFilter.MinFilter(1 + 2 * r.value))
+
+
+class MaxFilter(PillowImageFilter):
+    def apply(self, image, r, evaluation):
+        'MaxFilter[image_Image, r_Integer]'
+        return self.compute(image, PIL.ImageFilter.MaxFilter(1 + 2 * r.value))
+
+
+class MedianFilter(PillowImageFilter):
+    def apply(self, image, r, evaluation):
+        'MedianFilter[image_Image, r_Integer]'
+        return self.compute(image, PIL.ImageFilter.MedianFilter(1 + 2 * r.value))
 
 
 class BoxMatrix(Builtin):
@@ -442,13 +451,26 @@ class ImageCreate(Builtin):
                 return Expression('Image', array)
 
 
+class ImageBox(BoxConstruct):
+    def boxes_to_text(self, leaves, **options):
+        return '-Image-'
+
+    def boxes_to_xml(self, leaves, **options):
+        # see https://tools.ietf.org/html/rfc2397
+        img = '<img src="data:image/png;base64,%s" />' % (leaves[0].get_string_value())
+        return '</math><mtable>%s</mtable><math>' % img
+
+    def boxes_to_tex(self, leaves, **options):
+        return '-Image-'
+
+
 class Image(Atom):
     def __init__(self, pixels, color_space, **kwargs):
         super(Image, self).__init__(**kwargs)
         self.pixels = pixels
         self.color_space = color_space
 
-    def as_pil(self):
+    def pil(self):
         return PIL.Image.fromarray(self.pixels)
 
     def color_convert(self, to_color_space):
