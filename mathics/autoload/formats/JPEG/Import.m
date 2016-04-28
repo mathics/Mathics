@@ -4,9 +4,11 @@ Begin["System`Convert`JPEG`"]
 
 RegisterImport[
     "JPEG",
-    System`ImportImage,
+    System`ImageImport,
     {},
     AvailableElements -> {"Image"},
     DefaultElement -> "Image",
     FunctionChannels -> {"FileNames"}
 ]
+
+End[]
