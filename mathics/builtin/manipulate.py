@@ -11,7 +11,12 @@ from mathics.core.evaluation import Evaluation
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Symbol
 
-from ipywidgets import (FloatSlider, ToggleButtons, Box, DOMWidget)
+try:
+    from ipywidgets import (FloatSlider, ToggleButtons, Box, DOMWidget)
+    _enabled = True
+except ImportError:
+    # fallback to non-Manipulate-enabled build if we don't have ipywidgets installed.
+    _enabled = False
 
 """
 A basic implementation of Manipulate[]. There is currently no support for Dynamic[] elements.
@@ -186,6 +191,9 @@ class Manipulate(Builtin):
 
     def apply(self, expr, args, evaluation):
         'Manipulate[expr_, args__]'
+
+        if not _enabled:
+            return Symbol('$Failed')
 
         manip = Manipulations(evaluation)  # knows about the arguments and their widgets
 
