@@ -189,11 +189,15 @@ class Manipulate(Builtin):
 
     attributes = ('HoldAll',)  # we'll call ReleaseHold at the time of evaluation below
 
+    messages = {
+        'noipywidget': 'Manipulate[] needs the ipywidgets module to work.',
+    }
+
     def apply(self, expr, args, evaluation):
         'Manipulate[expr_, args__]'
 
         if not _enabled:
-            return Symbol('$Failed')
+            return evaluation.message('Manipulate', 'noipywidget')
 
         manip = Manipulations(evaluation)  # knows about the arguments and their widgets
 
