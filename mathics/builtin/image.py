@@ -1,11 +1,11 @@
+'''
+A place for Image[] and related functions.
+'''
+
 from mathics.builtin.base import (
     Builtin, Test, BoxConstruct, String)
 from mathics.core.expression import (
     Atom, Expression, Integer, Real, Symbol, from_python)
-
-'''
-A place for Image[] and related functions.
-'''
 
 import six
 import numpy
@@ -193,6 +193,77 @@ class GaussianFilter(Builtin):
             return Image(skimage.filters.gaussian(
                 skimage.img_as_float(image.pixels),
                 sigma=radius.value / 2, multichannel=True), image.color_space)
+
+
+class BoxMatrix(Builtin):
+    def apply(self, r, evaluation):
+        'BoxMatrix[r_?RealNumberQ]'
+        s = 1 + 2 * r.value
+        return from_python(skimage.morphology.rectangle(s, s).tolist())
+
+
+class DiskMatrix(Builtin):
+    def apply(self, r, evaluation):
+        'DiskMatrix[r_?RealNumberQ]'
+        return from_python(skimage.morphology.disk(r).tolist())
+
+
+class DiamondMatrix(Builtin):
+    def apply(self, r, evaluation):
+        'DiamondMatrix[r_?RealNumberQ]'
+        return from_python(skimage.morphology.diamond(r).tolist())
+
+
+class MorphologyFilter(Builtin):
+    messages = {
+        'grayscale': 'Your image has been converted to grayscale as color images are not supported yet.'
+    }
+
+    def compute(self, image, f, k, evaluation):
+        if image.color_space != 'Grayscale':
+            image = image.color_convert('Grayscale')
+            evaluation.message('MorphologyFilter', 'grayscale')
+        return Image(f(image.pixels, numpy.array(k.to_python())), 'Grayscale')
+
+
+class Dilation(MorphologyFilter):
+    rules = {
+        'Dilation[i_Image, r_?RealNumberQ]': 'Dilation[i, BoxMatrix[r]]'
+    }
+
+    def apply(self, image, k, evaluation):
+        'Dilation[image_Image, k_?MatrixQ]'
+        return self.compute(image, skimage.morphology.dilation, k, evaluation)
+
+
+class Erosion(MorphologyFilter):
+    rules = {
+        'Erosion[i_Image, r_?RealNumberQ]': 'Erosion[i, BoxMatrix[r]]'
+    }
+
+    def apply(self, image, k, evaluation):
+        'Erosion[image_Image, k_?MatrixQ]'
+        return self.compute(image, skimage.morphology.erosion, k, evaluation)
+
+
+class Opening(MorphologyFilter):
+    rules = {
+        'Opening[i_Image, r_?RealNumberQ]': 'Opening[i, BoxMatrix[r]]'
+    }
+
+    def apply(self, image, k, evaluation):
+        'Opening[image_Image, k_?MatrixQ]'
+        return self.compute(image, skimage.morphology.opening, k, evaluation)
+
+
+class Closing(MorphologyFilter):
+    rules = {
+        'Closing[i_Image, r_?RealNumberQ]': 'Closing[i, BoxMatrix[r]]'
+    }
+
+    def apply(self, image, k, evaluation):
+        'Closing[image_Image, k_?MatrixQ]'
+        return self.compute(image, skimage.morphology.closing, k, evaluation)
 
 
 class PixelValue(Builtin):
