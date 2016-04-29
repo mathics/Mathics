@@ -133,7 +133,7 @@ class Manipulations(PatternDispatcher):
         imin_value = imin.to_python()
         imax_value = imax.to_python()
         di_value = di.to_python()
-        if imin_value > imax_value or di_value <= 0 or di_value >= (imax_value - imin_value):
+        if imin_value > imax_value or di_value <= 0 or di_value > (imax_value - imin_value):
             raise IllegalWidgetArguments(i)
         else:
             idefault_value = min(max(idefault.to_python(), imin_value), imax_value)
