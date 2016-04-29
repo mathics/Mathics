@@ -443,7 +443,19 @@ class ImageTake(Builtin):
 class PixelValue(Builtin):
     def apply(self, image, x, y, evaluation):
         'PixelValue[image_Image, {x_?RealNumberQ, y_?RealNumberQ}]'
-        return Real(image.pixels[int(y.value), int(x.value)])
+        return Real(image.pixels[int(y.value - 1), int(x.value - 1)])
+
+
+class PixelValuePositions(Builtin):
+    def apply(self, image, val, evaluation):
+        'PixelValuePositions[image_Image, val_?RealNumberQ]'
+        try:
+            rows, cols = numpy.where(skimage.img_as_float(image.pixels) == float(val.value))
+            p = numpy.dstack((cols, rows)) + numpy.array([1, 1])
+            return from_python(p.tolist())
+        except:
+            import sys
+            return String(repr(sys.exc_info()))
 
 # image attribute queries
 
