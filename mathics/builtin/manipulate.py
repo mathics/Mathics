@@ -9,10 +9,10 @@ from mathics import settings
 from mathics.core.evaluation import Evaluation
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Expression, Symbol
+from mathics.core.expression import Expression, Symbol, Integer, from_python
 
 try:
-    from ipywidgetsX import (FloatSlider, ToggleButtons, Box, DOMWidget)
+    from ipywidgets import (IntSlider, FloatSlider, ToggleButtons, Box, DOMWidget)
     _enabled = True
 except ImportError:
     # fallback to non-Manipulate-enabled build if we don't have ipywidgets installed.
@@ -90,6 +90,12 @@ class PatternDispatcher:
         return False
 
 
+class IllegalWidgetArguments(Exception):
+    def __init__(self, var):
+        super(IllegalWidgetArguments, self).__init__()
+        self.var = var
+
+
 class Manipulations(PatternDispatcher):
     def __init__(self, evaluation):
         super(Manipulations, self).__init__()
@@ -114,12 +120,30 @@ class Manipulations(PatternDispatcher):
         return new_callback
 
     def _add_min_max_var(self, i, imin, imax, idefault, ilabel):
-        widget = FloatSlider(value=idefault.value, min=imin.value, max=imax.value)
-        self._add_widget(widget, i.get_name(), lambda x: Real(x), ilabel)
+        imin_value = imin.to_python()
+        imax_value = imax.to_python()
+        if imin_value > imax_value:
+            raise IllegalWidgetArguments(i)
+        else:
+            idefault_value = min(max(idefault.to_python(), imin_value), imax_value)
+            widget = FloatSlider(value=idefault_value, min=imin_value, max=imax_value)
+            self._add_widget(widget, i.get_name(), lambda x: from_python(x), ilabel)
 
     def _add_min_max_step_var(self, i, imin, imax, idefault, di, ilabel):
-        widget = FloatSlider(value=idefault.value, min=imin.value, max=imax.value, step=di.value)
-        self._add_widget(widget, i.get_name(), lambda x: Real(x), ilabel)
+        imin_value = imin.to_python()
+        imax_value = imax.to_python()
+        di_value = di.to_python()
+        if imin_value > imax_value or di_value <= 0 or di_value >= (imax_value - imin_value):
+            raise IllegalWidgetArguments(i)
+        else:
+            idefault_value = min(max(idefault.to_python(), imin_value), imax_value)
+            if all(isinstance(x, Integer) for x in [imin, imax, idefault, di]):
+                widget = IntSlider(value=idefault_value, min=imin_value, max=imax_value,
+                                   step=di_value)
+            else:
+                widget = FloatSlider(value=idefault_value, min=imin_value, max=imax_value,
+                                     step=di_value)
+            self._add_widget(widget, i.get_name(), lambda x: from_python(x), ilabel)
 
     def _add_discrete_options_var(self, symbol, options, idefault, ilabel):
         formatted_options = []
@@ -172,6 +196,13 @@ class Manipulations(PatternDispatcher):
         '{{i_Symbol, idefault_, ilabel_}, options_List}'
         self._add_discrete_options_var(i, options, idefault, ilabel)
 
+
+class ListAnimate(Builtin):
+    rules = {
+        'ListAnimate[l_List]': 'Manipulate[Part[l, i], {i, 1, Length[l], 1}]'
+    }
+
+
 class Manipulate(Builtin):
     """
     <dl>
@@ -179,14 +210,11 @@ class Manipulate(Builtin):
         <dd>allows you to interactively compute and display an expression with different argument values.
     </dl>
 
-    >> Manipulate[N[Sin[y]], {y, 1, 20, 2}] //FullForm
-	 = Null
+    Manipulate[N[Sin[y]], {y, 1, 20, 2}]
 
-    >> Manipulate[i^3, {i, {2, x^4, a}}] //FullForm
-	 = Null
+    Manipulate[i^3, {i, {2, x^4, a}}]
 
-    >> Manipulate[x^y, {x, 1, 20}, {y, 1, 3}] //FullForm
-	 = Null
+    Manipulate[x^y, {x, 1, 20}, {y, 1, 3}]
 
     """
 
@@ -194,6 +222,7 @@ class Manipulate(Builtin):
 
     messages = {
         'noipywidget': 'Manipulate[] needs the ipywidgets module to work.',
+        'widgetargs': 'Illegal variable range or step parameters for ``.'
     }
 
     def apply(self, expr, args, evaluation):
@@ -203,38 +232,45 @@ class Manipulate(Builtin):
             evaluation.message('Manipulate', 'noipywidget')
             return Symbol('Null')
 
-        manip = Manipulations(evaluation)  # knows about the arguments and their widgets
+        try:
+            manip = Manipulations(evaluation)  # knows about the arguments and their widgets
 
-        for arg in args.get_sequence():
-            if not manip.dispatch(arg, evaluation):  # not a valid argument pattern?
-                return Expression(self.get_name(), expr, *args.get_sequence())  # identity
+            for arg in args.get_sequence():
+                try:
+                    if not manip.dispatch(arg.evaluate(evaluation), evaluation):  # not a valid argument pattern?
+                        return Expression(self.get_name(), expr, *args.get_sequence())  # identity
+                except IllegalWidgetArguments as e:
+                    evaluation.message('Manipulate', 'widgetargs', _strip_namespace(str(e.var)))
 
-        clear_output_callback = evaluation.clear_output_callback
-        display_data_callback = evaluation.display_data_callback  # for pushing updates
+            clear_output_callback = evaluation.clear_output_callback
+            display_data_callback = evaluation.display_data_callback  # for pushing updates
 
-        def callback(**kwargs):
-            clear_output_callback(wait=True)
+            def callback(**kwargs):
+                clear_output_callback(wait=True)
 
-            line_no = evaluation.definitions.get_line_no()
+                line_no = evaluation.definitions.get_line_no()
 
-            new_evaluation = Evaluation(evaluation.definitions, result_callback=display_data_callback,
-                                        out_callback=evaluation.out_callback)
+                new_evaluation = Evaluation(evaluation.definitions, result_callback=display_data_callback,
+                                            out_callback=evaluation.out_callback)
 
-            vars = [Expression('Set', Symbol(name), value) for name, value in kwargs.items()]
-            evaluatable = Expression('ReleaseHold', Expression('Module', Expression('List', *vars), expr))
-            new_evaluation.evaluate([evaluatable], timeout=settings.TIMEOUT)
+                vars = [Expression('Set', Symbol(name), value) for name, value in kwargs.items()]
+                evaluatable = Expression('ReleaseHold', Expression('Module', Expression('List', *vars), expr))
+                new_evaluation.evaluate([evaluatable], timeout=settings.TIMEOUT)
 
-            evaluation.definitions.set_line_no(line_no)  # do not increment line_no for manipulate computations
+                evaluation.definitions.set_line_no(line_no)  # do not increment line_no for manipulate computations
 
-        widgets = manip.get_widgets()
-        if len(widgets) > 0:
-            box = _interactive(manip.build_callback(callback), widgets)  # create the widget
+            widgets = manip.get_widgets()
+            if len(widgets) > 0:
+                box = _interactive(manip.build_callback(callback), widgets)  # create the widget
 
-            # the following code is a boiled down version from IPython.core.formatters.IPythonDisplayFormatter.
-            # note that '_ipython_display_' is a magic constant defined in print_method of IPythonDisplayFormatter.
+                # the following code is a boiled down version from IPython.core.formatters.IPythonDisplayFormatter.
+                # note that '_ipython_display_' is a magic constant defined in print_method of IPythonDisplayFormatter.
 
-            method = getattr(box, '_ipython_display_')
-            if method is not None:
-                method()  # make the widget appear on the Jupyter notebook
+                method = getattr(box, '_ipython_display_')
+                if method is not None:
+                    method()  # make the widget appear on the Jupyter notebook
 
-        return Symbol('Null')  # the interactive output is pushed via kernel.display_data_callback (see above)
+            return Symbol('Null')  # the interactive output is pushed via kernel.display_data_callback (see above)
+        except:
+            import sys
+            return String(repr(sys.exc_info()))
