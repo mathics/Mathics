@@ -673,13 +673,12 @@ class Image(Atom):
             stream.seek(0)
             contents = stream.read()
             stream.close()
-            encoded = base64.b64encode(contents)
 
+            encoded = base64.b64encode(contents)
             if not six.PY2:
                 encoded = encoded.decode('utf8')
 
-            return Expression('ImageBox', String(base64.b64encode(contents).decode('utf8')),
-                              Integer(width), Integer(height))
+            return Expression('ImageBox', String(encoded), Integer(width), Integer(height))
         except:
             return Symbol("$Failed")
 
