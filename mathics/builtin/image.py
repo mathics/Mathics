@@ -34,10 +34,7 @@ try:
 except ImportError:
     _enabled = False
 
-if six.PY2:
-    from io import StringIO
-else:
-    import io
+from io import BytesIO
 
 if _enabled:
     _color_space_conversions = {
@@ -664,14 +661,15 @@ class Image(Atom):
                 scale = min_size / max(width, height)
                 pixels = skimage.transform.resize(pixels, (int(scale * height), int(scale * width)), order=0)
 
-            if six.PY2:
-                pass
-            else:
-                stream = io.BytesIO()
-                skimage.io.imsave(stream, pixels, 'pil', format_str='png')
-                stream.seek(0)
-                contents = stream.read()
-                stream.close()
+            stream = BytesIO()
+            skimage.io.imsave(stream, pixels, 'pil', format_str='png')
+            stream.seek(0)
+            contents = stream.read()
+            stream.close()
+            encoded = base64.b64encode(contents)
+
+            if not six.PY2:
+                encoded = encoded.decode('utf8')
 
             return Expression('ImageBox', String(base64.b64encode(contents).decode('utf8')),
                               Integer(width), Integer(height))
