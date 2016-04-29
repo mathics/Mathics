@@ -12,7 +12,7 @@ from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Symbol
 
 try:
-    from ipywidgets import (FloatSlider, ToggleButtons, Box, DOMWidget)
+    from ipywidgetsX import (FloatSlider, ToggleButtons, Box, DOMWidget)
     _enabled = True
 except ImportError:
     # fallback to non-Manipulate-enabled build if we don't have ipywidgets installed.
@@ -200,7 +200,8 @@ class Manipulate(Builtin):
         'Manipulate[expr_, args__]'
 
         if not _enabled:
-            return evaluation.message('Manipulate', 'noipywidget')
+            evaluation.message('Manipulate', 'noipywidget')
+            return Symbol('Null')
 
         manip = Manipulations(evaluation)  # knows about the arguments and their widgets
 
