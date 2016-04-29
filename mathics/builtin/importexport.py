@@ -503,7 +503,16 @@ class Export(Builtin):
     }
 
     _extdict = {
+        'bmp': 'BMP',
+        'gif': 'GIF',
+        'jp2': 'JPEG2000',
         'jpg': 'JPEG',
+        'pcx': 'PCX',
+        'png': 'PNG',
+        'ppm': 'PPM',
+        'pbm': 'PBM',
+        'pgm': 'PGM',
+        'tif': 'TIFF',
         'txt': 'Text',
         'csv': 'CSV',
         'svg': 'SVG',
