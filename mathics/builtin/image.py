@@ -1,5 +1,12 @@
 '''
 A place for Image[] and related functions.
+
+Note that you need scikit-image installed in order for this module to work.
+
+This module is part of the Mathics/iMathics branch, since the regular Mathics
+notebook seems to lack the functionality to inject <img> tags from the kernel
+into the notebook interface (yielding an error 'Unknown node type: img').
+Jupyter does not have this limitation though.
 '''
 
 from mathics.builtin.base import (
