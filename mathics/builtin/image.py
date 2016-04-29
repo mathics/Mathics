@@ -20,11 +20,14 @@ try:
     import skimage.feature
     import skimage.filters.rank
     import skimage.morphology
+    import skimage.measure
 
     import PIL
     import PIL.ImageEnhance
     import PIL.ImageOps
     import PIL.ImageFilter
+
+    import matplotlib.cm
 
     _enabled = True
 except ImportError:
@@ -112,6 +115,14 @@ class ImageReflect(Builtin):
     def apply(self, image, evaluation):
         'ImageReflect[image_Image]'
         return Image(numpy.flipud(image.pixels), image.color_space)
+
+    def apply_ud(self, image, evaluation):
+        'ImageReflect[image_Image, Top|Bottom]'
+        return Image(numpy.flipud(image.pixels), image.color_space)
+
+    def apply_lr(self, image, evaluation):
+        'ImageReflect[image_Image, Left|Right]'
+        return Image(numpy.fliplr(image.pixels), image.color_space)
 
 
 class ImageRotate(Builtin):
@@ -273,6 +284,32 @@ class Closing(MorphologyFilter):
     def apply(self, image, k, evaluation):
         'Closing[image_Image, k_?MatrixQ]'
         return self.compute(image, skimage.morphology.closing, k, evaluation)
+
+
+class MorphologicalComponents(Builtin):
+    rules = {
+        'MorphologicalComponents[i_Image]': 'MorphologicalComponents[i, 0]'
+    }
+
+    def apply(self, image, t, evaluation):
+        'MorphologicalComponents[image_Image, t_?RealNumberQ]'
+        pixels = skimage.img_as_ubyte(skimage.img_as_float(image.grayscale().pixels) > t.value)
+        return from_python(skimage.measure.label(pixels, background=0, connectivity=2).tolist())
+
+
+class Colorize(Builtin):
+    def apply(self, a, evaluation):
+        'Colorize[a_?MatrixQ]'
+
+        a = numpy.array(a.to_python())
+        n = int(numpy.max(a)) + 1
+        if n > 8192:
+            return Symbol('$Failed')
+
+        cmap = matplotlib.cm.get_cmap('hot', n)
+        p = numpy.transpose(numpy.array([cmap(i) for i in range(n)])[:, 0:3])
+        s = (a.shape[0], a.shape[1], 1)
+        return Image(numpy.concatenate([p[i][a].reshape(s) for i in range(3)], axis=2), color_space='RGB')
 
 
 class PixelValue(Builtin):
