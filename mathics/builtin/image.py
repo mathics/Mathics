@@ -8,7 +8,6 @@ from mathics.core.expression import (
     Atom, Expression, Integer, Real, Symbol, from_python)
 
 import six
-import numpy
 import base64
 
 try:
@@ -26,6 +25,8 @@ try:
     import PIL.ImageEnhance
     import PIL.ImageOps
     import PIL.ImageFilter
+
+    import numpy
 
     import matplotlib.cm
 
@@ -103,33 +104,85 @@ class ImageExport(Builtin):
 class ImageAdd(Builtin):
     def apply(self, image, x, evaluation):
         'ImageAdd[image_Image, x_?RealNumberQ]'
-        return Image((skimage.img_as_float(image.pixels) + float(x.value)).clip(0, 1), image.color_space)
+        return Image((skimage.img_as_float(image.pixels) + float(x.to_python())).clip(0, 1), image.color_space)
 
 
 class ImageSubtract(Builtin):
     def apply(self, image, x, evaluation):
         'ImageSubtract[image_Image, x_?RealNumberQ]'
-        return Image((skimage.img_as_float(image.pixels) - float(x.value)).clip(0, 1), image.color_space)
+        return Image((skimage.img_as_float(image.pixels) - float(x.to_python())).clip(0, 1), image.color_space)
 
 
 class ImageMultiply(Builtin):
     def apply(self, image, x, evaluation):
         'ImageMultiply[image_Image, x_?RealNumberQ]'
-        return Image((skimage.img_as_float(image.pixels) * float(x.value)).clip(0, 1), image.color_space)
+        return Image((skimage.img_as_float(image.pixels) * float(x.to_python())).clip(0, 1), image.color_space)
+
+
+class RandomImage(Builtin):
+    rules = {
+        'RandomImage[max_?RealNumberQ, {w_Integer, h_Integer}]': 'RandomImage[{0, max}, {w, h}]'
+    }
+
+    def apply(self, minval, maxval, w, h, evaluation):
+        'RandomImage[{minval_?RealNumberQ, maxval_?RealNumberQ}, {w_Integer, h_Integer}]'
+        try:
+            x0 = max(minval.to_python(), 0)
+            x1 = min(maxval.to_python(), 1)
+            return Image((numpy.random.rand(h.to_python(), w.to_python()) * (x1 - x0) + x0), 'Grayscale')
+        except:
+            import sys
+            return String(repr(sys.exc_info()))
 
 # simple image manipulation
 
 class ImageResize(Builtin):
-    def apply_resize_width(self, image, width, evaluation):
-        'ImageResize[image_Image, width_Integer]'
-        shape = image.pixels.shape
-        height = int((float(shape[0]) / float(shape[1])) * width.value)
-        return self.apply_resize_width_height(image, width, Integer(height), evaluation)
+    options = {
+        'Resampling': '"Bicubic"'
+    }
 
-    def apply_resize_width_height(self, image, width, height, evaluation):
-        'ImageResize[image_Image, {width_Integer, height_Integer}]'
-        return Image(skimage.transform.resize(
-            image.pixels, (int(height.value), int(width.value))), image.color_space)
+    messages = {
+        'resamplingerr': 'Resampling mode `` is not supported.',
+        'gaussaspect': 'Gaussian resampling needs to main aspect ratio.'
+    }
+
+    def apply_resize_width(self, image, width, evaluation, options):
+        'ImageResize[image_Image, width_Integer, OptionsPattern[ImageResize]]'
+        shape = image.pixels.shape
+        height = int((float(shape[0]) / float(shape[1])) * width.to_python())
+        return self.apply_resize_width_height(image, width, Integer(height), evaluation, options)
+
+    def apply_resize_width_height(self, image, width, height, evaluation, options):
+        'ImageResize[image_Image, {width_Integer, height_Integer}, OptionsPattern[ImageResize]]'
+        resampling = self.get_option(options, 'Resampling', evaluation)
+        resampling_name = resampling.get_string_value() if isinstance(resampling, String) else resampling.to_python()
+
+        w = int(width.to_python())
+        h = int(height.to_python())
+        if resampling_name == 'Nearest':
+            pixels = skimage.transform.resize(image.pixels, (h, w), order=0)
+        elif resampling_name == 'Bicubic':
+            pixels = skimage.transform.resize(image.pixels, (h, w), order=3)
+        elif resampling_name == 'Gaussian':
+            old_shape = image.pixels.shape
+            sy = h / old_shape[0]
+            sx = w / old_shape[1]
+            if sy > sx:
+                err = abs((sy * old_shape[1]) - (sx * old_shape[1]))
+                s = sy
+            else:
+                err = abs((sy * old_shape[0]) - (sx * old_shape[0]))
+                s = sx
+            if err > 1.5:
+                return evaluation.error('ImageResize', 'gaussaspect')
+            elif s > 1:
+                pixels = skimage.transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
+            else:
+                pixels = skimage.transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
+        else:
+            return evaluation.error('ImageResize', 'resamplingerr', resampling_name)
+
+        return Image(pixels, image.color_space)
 
 
 class ImageReflect(Builtin):
@@ -153,7 +206,7 @@ class ImageRotate(Builtin):
 
     def apply(self, image, angle, evaluation):
         'ImageRotate[image_Image, angle_?RealNumberQ]'
-        return Image(skimage.transform.rotate(image.pixels, angle.value, resize=True), image.color_space)
+        return Image(skimage.transform.rotate(image.pixels, angle.to_python(), resize=True), image.color_space)
 
 
 class ImagePartition(Builtin):
@@ -163,8 +216,8 @@ class ImagePartition(Builtin):
 
     def apply(self, image, w, h, evaluation):
         'ImagePartition[image_Image, {w_Integer, h_Integer}]'
-        w = w.value
-        h = h.value
+        w = w.to_python()
+        h = h.to_python()
         pixels = image.pixels
         shape = pixels.shape
         parts = [Image(pixels[y:y + w, x:x + w], image.color_space)
@@ -182,15 +235,15 @@ class ImageAdjust(Builtin):
     def apply_contrast(self, image, c, evaluation):
         'ImageAdjust[image_Image, c_?RealNumberQ]'
         enhancer_c = PIL.ImageEnhance.Contrast(image.pil())
-        return Image(numpy.array(enhancer_c.enhance(c.value)), image.color_space)
+        return Image(numpy.array(enhancer_c.enhance(c.to_python())), image.color_space)
 
     def apply_contrast_brightness(self, image, c, b, evaluation):
         'ImageAdjust[image_Image, {c_?RealNumberQ, b_?RealNumberQ}]'
         im = image.pil()
         enhancer_b = PIL.ImageEnhance.Brightness(im)
-        im = enhancer_b.enhance(b.value)  # brightness first!
+        im = enhancer_b.enhance(b.to_python())  # brightness first!
         enhancer_c = PIL.ImageEnhance.Contrast(im)
-        return Image(numpy.array(enhancer_c.enhance(c.value)), image.color_space)
+        return Image(numpy.array(enhancer_c.enhance(c.to_python())), image.color_space)
 
 
 class Blur(Builtin):
@@ -201,7 +254,7 @@ class Blur(Builtin):
     def apply(self, image, r, evaluation):
         'Blur[image_Image, r_?RealNumberQ]'
         return Image(numpy.array(image.pil().filter(
-            PIL.ImageFilter.GaussianBlur(r.value))), image.color_space)
+            PIL.ImageFilter.GaussianBlur(r.to_python()))), image.color_space)
 
 
 class Sharpen(Builtin):
@@ -212,7 +265,7 @@ class Sharpen(Builtin):
     def apply(self, image, r, evaluation):
         'Sharpen[image_Image, r_?RealNumberQ]'
         return Image(numpy.array(image.pil().filter(
-            PIL.ImageFilter.UnsharpMask(r.value))), image.color_space)
+            PIL.ImageFilter.UnsharpMask(r.to_python()))), image.color_space)
 
 
 class GaussianFilter(Builtin):
@@ -227,7 +280,7 @@ class GaussianFilter(Builtin):
         else:
             return Image(skimage.filters.gaussian(
                 skimage.img_as_float(image.pixels),
-                sigma=radius.value / 2, multichannel=True), image.color_space)
+                sigma=radius.to_python() / 2, multichannel=True), image.color_space)
 
 # morphological image filters
 
@@ -239,19 +292,19 @@ class PillowImageFilter(Builtin):
 class MinFilter(PillowImageFilter):
     def apply(self, image, r, evaluation):
         'MinFilter[image_Image, r_Integer]'
-        return self.compute(image, PIL.ImageFilter.MinFilter(1 + 2 * r.value))
+        return self.compute(image, PIL.ImageFilter.MinFilter(1 + 2 * r.to_python()))
 
 
 class MaxFilter(PillowImageFilter):
     def apply(self, image, r, evaluation):
         'MaxFilter[image_Image, r_Integer]'
-        return self.compute(image, PIL.ImageFilter.MaxFilter(1 + 2 * r.value))
+        return self.compute(image, PIL.ImageFilter.MaxFilter(1 + 2 * r.to_python()))
 
 
 class MedianFilter(PillowImageFilter):
     def apply(self, image, r, evaluation):
         'MedianFilter[image_Image, r_Integer]'
-        return self.compute(image, PIL.ImageFilter.MedianFilter(1 + 2 * r.value))
+        return self.compute(image, PIL.ImageFilter.MedianFilter(1 + 2 * r.to_python()))
 
 
 class EdgeDetect(Builtin):
@@ -262,14 +315,16 @@ class EdgeDetect(Builtin):
 
     def apply(self, image, r, t, evaluation):
         'EdgeDetect[image_Image, r_?RealNumberQ, t_?RealNumberQ]'
-        return Image(skimage.feature.canny(image.grayscale().pixels, sigma=r.value / 2,
-                                               low_threshold=0.5 * t.value, high_threshold=t.value), 'Grayscale')
+        return Image(skimage.feature.canny(
+            image.grayscale().pixels, sigma=r.to_python() / 2,
+            low_threshold=0.5 * t.to_python(), high_threshold=t.to_python()),
+            'Grayscale')
 
 
 class BoxMatrix(Builtin):
     def apply(self, r, evaluation):
         'BoxMatrix[r_?RealNumberQ]'
-        s = 1 + 2 * r.value
+        s = 1 + 2 * r.to_python()
         return from_python(skimage.morphology.rectangle(s, s).tolist())
 
 
@@ -344,7 +399,7 @@ class MorphologicalComponents(Builtin):
 
     def apply(self, image, t, evaluation):
         'MorphologicalComponents[image_Image, t_?RealNumberQ]'
-        pixels = skimage.img_as_ubyte(skimage.img_as_float(image.grayscale().pixels) > t.value)
+        pixels = skimage.img_as_ubyte(skimage.img_as_float(image.grayscale().pixels) > t.to_python())
         return from_python(skimage.measure.label(pixels, background=0, connectivity=2).tolist())
 
 # color space
@@ -365,28 +420,55 @@ class ColorQuantize(Builtin):
     def apply(self, image, n, evaluation):
         'ColorQuantize[image_Image, n_Integer]'
         pixels = skimage.img_as_ubyte(image.color_convert('RGB').pixels)
-        im = PIL.Image.fromarray(pixels).quantize(n.value)
+        im = PIL.Image.fromarray(pixels).quantize(n.to_python())
         im = im.convert('RGB')
         return Image(numpy.array(im), 'RGB')
+
+
+class Threshold(Builtin):
+    options = {
+        'Method': '"Cluster"'
+    }
+
+    messages = {
+        'illegalmethod': 'Method `` is not supported.'
+    }
+
+    def apply(self, image, evaluation, options):
+        'Threshold[image_Image, OptionsPattern[Threshold]]'
+        pixels = image.grayscale().pixels
+
+        method = self.get_option(options, 'Method', evaluation)
+        method_name = method.get_string_value() if isinstance(method, String) else method.to_python()
+        if method_name == 'Cluster':
+            threshold = skimage.filters.threshold_otsu(pixels)
+        elif method_name == 'Median':
+            threshold = numpy.median(pixels)
+        elif method_name == 'Mean':
+            threshold = numpy.mean(pixels)
+        else:
+           return evaluation.error('Threshold', 'illegalmethod', method)
+
+        return Real(threshold)
 
 
 class Binarize(Builtin):
     def apply(self, image, evaluation):
         'Binarize[image_Image]'
-        pixels = image.grayscale().pixels
-        threshold = skimage.filters.threshold_otsu(pixels)
-        return Image(pixels > threshold, 'Grayscale')
+        image = image.grayscale()
+        threshold = Expression('Threshold', image).evaluate(evaluation).to_python()
+        return Image(image.pixels > threshold, 'Grayscale')
 
     def apply_t(self, image, t, evaluation):
         'Binarize[image_Image, t_?RealNumberQ]'
         pixels = image.grayscale().pixels
-        return Image(pixels > t.value, 'Grayscale')
+        return Image(pixels > t.to_python(), 'Grayscale')
 
     def apply_t1_t2(self, image, t1, t2, evaluation):
         'Binarize[image_Image, {t1_?RealNumberQ, t2_?RealNumberQ}]'
         pixels = image.grayscale().pixels
-        mask1 = pixels > t1.value
-        mask2 = pixels < t2.value
+        mask1 = pixels > t1.to_python()
+        mask2 = pixels < t2.to_python()
         return Image(mask1 * mask2, 'Grayscale')
 
 
@@ -413,13 +495,17 @@ class ColorSeparate(Builtin):
 
 
 class Colorize(Builtin):
+    messages = {
+        'toomany': 'Too many levels.'
+    }
+
     def apply(self, a, evaluation):
         'Colorize[a_?MatrixQ]'
 
         a = numpy.array(a.to_python())
         n = int(numpy.max(a)) + 1
         if n > 8192:
-            return Symbol('$Failed')
+            return evaluation.error('Colorize', 'toomany')
 
         cmap = matplotlib.cm.get_cmap('hot', n)
         p = numpy.transpose(numpy.array([cmap(i) for i in range(n)])[:, 0:3])
@@ -429,61 +515,77 @@ class Colorize(Builtin):
 # pixel access
 
 class ImageData(Builtin):
-    def apply(self, image, evaluation):
-        'ImageData[image_Image]'
-        return from_python(skimage.img_as_float(image.pixels).tolist())
+    rules = {
+        'ImageData[image_Image]': 'ImageData[image, "Real"]'
+    }
+
+    messages = {
+        'pixelfmt': 'unsupported pixel format "``"'
+    }
+
+    def apply(self, image, stype, evaluation):
+        'ImageData[image_Image, stype_String]'
+        pixels = image.pixels
+        stype = stype.get_string_value()
+        if stype == 'Real':
+            pixels = skimage.img_as_float(pixels)
+        elif stype == 'Byte':
+            pixels = skimage.img_as_ubyte(pixels)
+        elif stype == 'Bit16':
+            pixels = skimage.img_as_uint(pixels)
+        elif stype == 'Bit':
+            pixels = pixels.as_dtype(numpy.bool)
+        else:
+            return evaluation.error('ImageData', 'pixelfmt', stype);
+        return from_python(pixels.tolist())
 
 
 class ImageTake(Builtin):
     def apply(self, image, n, evaluation):
         'ImageTake[image_Image, n_Integer]'
-        return Image(image.pixels[:int(n.value)], image.color_space)
+        return Image(image.pixels[:int(n.to_python())], image.color_space)
 
 
 class PixelValue(Builtin):
     def apply(self, image, x, y, evaluation):
         'PixelValue[image_Image, {x_?RealNumberQ, y_?RealNumberQ}]'
-        return Real(image.pixels[int(y.value - 1), int(x.value - 1)])
+        return Real(image.pixels[int(y.to_python() - 1), int(x.to_python() - 1)])
 
 
 class PixelValuePositions(Builtin):
     def apply(self, image, val, evaluation):
         'PixelValuePositions[image_Image, val_?RealNumberQ]'
-        try:
-            rows, cols = numpy.where(skimage.img_as_float(image.pixels) == float(val.value))
-            p = numpy.dstack((cols, rows)) + numpy.array([1, 1])
-            return from_python(p.tolist())
-        except:
-            import sys
-            return String(repr(sys.exc_info()))
+        rows, cols = numpy.where(skimage.img_as_float(image.pixels) == float(val.to_python()))
+        p = numpy.dstack((cols, rows)) + numpy.array([1, 1])
+        return from_python(p.tolist())
 
 # image attribute queries
 
-    class ImageDimensions(Builtin):
-        def apply(self, image, evaluation):
-            'ImageDimensions[image_Image]'
-            return Expression('List', *image.dimensions())
+class ImageDimensions(Builtin):
+    def apply(self, image, evaluation):
+        'ImageDimensions[image_Image]'
+        return Expression('List', *image.dimensions())
 
-    class ImageAspectRatio(Builtin):
-        def apply(self, image, evaluation):
-            'ImageAspectRatio[image_Image]'
-            dim = image.dimensions()
-            return Real(dim[1] / float(dim[0]))
+class ImageAspectRatio(Builtin):
+    def apply(self, image, evaluation):
+        'ImageAspectRatio[image_Image]'
+        dim = image.dimensions()
+        return Real(dim[1] / float(dim[0]))
 
-    class ImageChannels(Builtin):
-        def apply(self, image, evaluation):
-            'ImageChannels[image_Image]'
-            return Integer(image.channels())
+class ImageChannels(Builtin):
+    def apply(self, image, evaluation):
+        'ImageChannels[image_Image]'
+        return Integer(image.channels())
 
-    class ImageType(Builtin):
-        def apply(self, image, evaluation):
-            'ImageType[image_Image]'
-            return String(image.storage_type())
+class ImageType(Builtin):
+    def apply(self, image, evaluation):
+        'ImageType[image_Image]'
+        return String(image.storage_type())
 
-    class BinaryImageQ(Test):
-        def apply(self, image, evaluation):
-            'BinaryImageQ[image_Image]'
-            return Symbol('True') if image.storage_type() == 'Bit' else Symbol('False')
+class BinaryImageQ(Test):
+    def apply(self, image, evaluation):
+        'BinaryImageQ[image_Image]'
+        return Symbol('True') if image.storage_type() == 'Bit' else Symbol('False')
 
 # Image core classes
 
