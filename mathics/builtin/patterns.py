@@ -389,6 +389,13 @@ class Alternatives(BinaryOperator, PatternObject):
 
     >> a+b+c+d/.(a|b)->t
      = c + d + 2 t
+
+    Alternatives can also be used for string expressions
+    >> StringReplace["0123 3210", "1" | "2" -> "X"]
+     = 0XX3 3XX0
+
+    #> StringReplace["h1d9a f483", DigitCharacter | WhitespaceCharacter -> ""]
+     = hdaf
     """
 
     operator = '|'
@@ -436,6 +443,13 @@ class Except(PatternObject):
 
     >> Cases[{a, 0, b, 1, c, 2, 3}, Except[1, _Integer]]
      = {0, 2, 3}
+
+    Except can also be used for string expressions:
+    >> StringReplace["Hello world!", Except[LetterCharacter] -> ""]
+     = Helloworld
+
+    #> StringReplace["abc DEF 123!", Except[LetterCharacter, WordCharacter] -> "0"]
+     = abc DEF 000!
     """
 
     arg_counts = [1, 2]
@@ -828,6 +842,9 @@ class Blank(_Blank):
     'Blank' only matches a single expression:
     >> MatchQ[f[1, 2], f[_]]
      = False
+
+    #> StringReplace["hello world!", _ -> "x"]
+     = xxxxxxxxxxxx
     """
     rules = {
         'MakeBoxes[Verbatim[Blank][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"_"',
@@ -877,6 +894,9 @@ class BlankSequence(_Blank):
      = {{a, b}, {d}}
     #> a + b + c + d /. Plus[x__, c] -> {x}
      = {a, b, d}
+
+    #> StringReplace[{"ab", "abc", "abcd"}, "b" ~~ __ -> "x"]
+     = {ab, ax, ax}
     """
     rules = {
         'MakeBoxes[Verbatim[BlankSequence][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"__"',
@@ -927,6 +947,9 @@ class BlankNullSequence(_Blank):
      = ___symbol
     #> ___symbol //FullForm
      = BlankNullSequence[symbol]
+
+    #> StringReplace[{"ab", "abc", "abcd"}, "b" ~~ ___ -> "x"]
+     = {ax, ax, ax}
     """
 
     rules = {
@@ -971,6 +994,11 @@ class Repeated(PostfixOperator, PatternObject):
      = Repeated[1]
     #> 8^^1.. // FullForm   (* Mathematica gets this wrong *)
      = Repeated[1]
+
+    #> StringReplace["010110110001010", "01".. -> "a"]
+     = a1a100a0
+    #> StringMatchQ[#, "a" ~~ ("b"..) ~~ "a"] &/@ {"aa", "aba", "abba"}
+     = {False, True, True}
     """
 
     messages = {
@@ -1045,6 +1073,9 @@ class RepeatedNull(Repeated):
      = RepeatedNull[1]
     #> 8^^1... // FullForm   (* Mathematica gets this wrong *)
      = RepeatedNull[1]
+
+    #> StringMatchQ[#, "a" ~~ ("b"...) ~~ "a"] &/@ {"aa", "aba", "abba"}
+     = {True, True, True}
     """
 
     operator = '...'

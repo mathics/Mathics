@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import sys
+import re
 
 import six
 from six.moves import range
@@ -17,6 +18,466 @@ from six import unichr
 from mathics.builtin.base import BinaryOperator, Builtin, Test
 from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
+
+
+def to_regex(expr):
+    if expr is None:
+        return None
+
+    if isinstance(expr, String):
+        return re.escape(expr.get_string_value())
+    if expr.has_form('RegularExpression', 1):
+        regex = expr.leaves[0].get_string_value()
+        if regex is None:
+            return regex
+        try:
+            re.compile(regex)
+            # Don't return the compiled regex because it may need to composed
+            # further e.g. StringExpression["abc", RegularExpression[regex2]].
+            return regex
+        except re.error:
+            return None     # invalid regex
+
+    if isinstance(expr, Symbol):
+        return {
+            'System`NumberString': r'[-|+]?(\d+(\.\d*)?|\.\d+)?',
+            'System`Whitespace': r'\s+',
+            'System`DigitCharacter': r'\d',
+            'System`WhitespaceCharacter': r'\s',
+            'System`WordCharacter': r'[0-9a-zA-Z]',
+            'System`StartOfLine': r'^',
+            'System`EndOfLine': r'$',
+            'System`StartOfString': r'\A',
+            'System`EndOfString': r'\Z',
+            'System`WordBoundary': r'\b',
+            'System`LetterCharacter': r'[a-zA-Z]',
+            'System`HexidecimalCharacter': r'[0-9a-fA-F]',
+        }.get(expr.get_name())
+
+    if expr.has_form('CharacterRange', 2):
+        (start, stop) = (leaf.get_string_value() for leaf in expr.leaves)
+        if all(x is not None and len(x) == 1 for x in (start, stop)):
+            return "[{0}-{1}]".format(re.escape(start), re.escape(stop))
+
+    if expr.has_form('Blank', 0):
+        return r'(.|\n)'
+    if expr.has_form('BlankSequence', 0):
+        return r'(.|\n)+'
+    if expr.has_form('BlankNullSequence', 0):
+        return r'(.|\n)*'
+    if expr.has_form('Except', 1, 2):
+        if len(expr.leaves) == 1:
+            leaves = [expr.leaves[0], Expression('Blank')]
+        else:
+            leaves = [expr.leaves[0], expr.leaves[1]]
+        leaves = [to_regex(leaf) for leaf in leaves]
+        if all(leaf is not None for leaf in leaves):
+            return '(?!{0}){1}'.format(*leaves)
+    if expr.has_form('Characters', 1):
+        leaf = expr.leaves[0].get_string_value()
+        if leaf is not None:
+            return '[{0}]'.format(re.escape(leaf))
+    if expr.has_form('StringExpression', None):
+        leaves = [to_regex(leaf) for leaf in expr.leaves]
+        if None in leaves:
+            return None
+        return "".join(leaves)
+    if expr.has_form('Repeated', 1):
+        leaf = to_regex(expr.leaves[0])
+        if leaf is not None:
+            return '({0})+'.format(leaf)
+    if expr.has_form('RepeatedNull', 1):
+        leaf = to_regex(expr.leaves[0])
+        if leaf is not None:
+            return '({0})*'.format(leaf)
+    if expr.has_form('Alternatives', None):
+        leaves = [to_regex(leaf) for leaf in expr.leaves]
+        if all(leaf is not None for leaf in leaves):
+            return "|".join(leaves)
+    return None
+
+
+def anchor_pattern(patt):
+    '''
+    anchors a regex in order to force matching against an entire string.
+    '''
+    if not patt.endswith(r'\Z'):
+        patt = patt + r'\Z'
+    if not patt.startswith(r'\A'):
+        patt = r'\A' + patt
+    return patt
+
+
+def mathics_split(patt, string, flags):
+    '''
+    Python's re.split includes the text of groups if they are capturing.
+
+    Furthermore, you can't split on empty matches. Trying to do this returns
+    the original string for Python < 3.5, raises a ValueError for
+    Python >= 3.5, <= X and works as expected for Python >= X, where 'X' is
+    some future version of Python (> 3.6).
+
+    For these reasons we implement our own split.
+    '''
+    # (start, end) indices of splits
+    indices = list((m.start(), m.end()) for m in re.finditer(patt, string, flags))
+
+    # (start, end) indices of stuff to keep
+    indices = [(None, 0)] + indices + [(len(string), None)]
+    indices = [(indices[i][1], indices[i + 1][0]) for i in range(len(indices) - 1)]
+
+    # slice up the string
+    return [string[start:stop] for start, stop in indices]
+
+
+class StringExpression(BinaryOperator):
+    """
+    <dl>
+    <dt>'StringExpression[s_1, s_2, ...]'
+      <dd>represents a sequence of strings and symbolic string objects $s_i$.
+    </dl>
+
+    >> "a" ~~ "b" // FullForm
+     = "ab"
+
+    #> "a" ~~ "b" ~~ "c" // FullForm
+     = "abc"
+
+    #> a ~~ b
+     = a ~~ b
+    """
+
+    operator = '~~'
+    precedence = 135
+    attributes = ('Flat', 'OneIdentity', 'Protected')
+
+    messages = {
+        'invld': 'Element `1` is not a valid string or pattern element in `2`.',
+    }
+
+    def apply(self, args, evaluation):
+        'StringExpression[args__String]'
+        args = args.get_sequence()
+        args = [arg.get_string_value() for arg in args]
+        if None in args:
+            return
+        return String(''.join(args))
+
+
+class RegularExpression(Builtin):
+    r"""
+    <dl>
+    <dt>'RegularExpression["regex"]'
+      <dd>represents the regex specified by the string $"regex"$.
+    </dl>
+
+    >> StringSplit["1.23, 4.56  7.89", RegularExpression["(\\s|,)+"]]
+     = {1.23, 4.56, 7.89}
+
+    #> RegularExpression["[abc]"]
+     = RegularExpression[[abc]]
+
+    ## Mathematica doesn't seem to verify the correctness of regex
+    #> StringSplit["ab23c", RegularExpression["[0-9]++"]]
+     : Element RegularExpression[[0-9]++] is not a valid string or pattern element in RegularExpression[[0-9]++].
+     = StringSplit[ab23c, RegularExpression[[0-9]++]]
+
+    #> StringSplit["ab23c", RegularExpression[2]]
+     : Element RegularExpression[2] is not a valid string or pattern element in RegularExpression[2].
+     = StringSplit[ab23c, RegularExpression[2]]
+    """
+
+
+class NumberString(Builtin):
+    """
+    <dl>
+    <dt>'NumberString'
+      <dd>represents the characters in a number.
+    </dl>
+
+    >> StringMatchQ["1234", NumberString]
+     = True
+
+    >> StringMatchQ["1234.5", NumberString]
+    = True
+
+    >> StringMatchQ["1.2`20", NumberString]
+     = False
+
+    #> StringMatchQ[".12", NumberString]
+     = True
+    #> StringMatchQ["12.", NumberString]
+     = True
+    #> StringMatchQ["12.31.31", NumberString]
+     = False
+    #> StringMatchQ[".", NumberString]
+     = False
+    #> StringMatchQ["-1.23", NumberString]
+     = True
+    #> StringMatchQ["+12.3", NumberString]
+     = True
+    #> StringMatchQ["+.2", NumberString]
+     = True
+    #> StringMatchQ["1.2e4", NumberString]
+     = False
+    """
+
+
+class DigitCharacter(Builtin):
+    """
+    <dl>
+    <dt>'DigitCharacter'
+      <dd>represents the digits 0-9.
+    </dl>
+
+    >> StringMatchQ["1", DigitCharacter]
+     = True
+    >> StringMatchQ["a", DigitCharacter]
+     = False
+    >> StringMatchQ["12", DigitCharacter]
+     = False
+
+    >> StringMatchQ["123245", DigitCharacter..]
+     = True
+
+    #> StringMatchQ["123245a6", DigitCharacter..]
+     = False
+    """
+
+
+class Whitespace(Builtin):
+    r"""
+    <dl>
+    <dt>'Whitespace'
+      <dd>represents a sequence of whitespace characters.
+    </dl>
+
+    >> StringMatchQ["\r \n", Whitespace]
+     = True
+
+    >> StringSplit["a  \n b \r\n c d", Whitespace]
+     = {a, b, c, d}
+
+    >> StringReplace[" this has leading and trailing whitespace \n ", (StartOfString ~~ Whitespace) | (Whitespace ~~ EndOfString) -> ""] <> " removed" // FullForm
+     = "this has leading and trailing whitespace removed"
+    """
+
+
+class WhitespaceCharacter(Builtin):
+    r"""
+    <dl>
+    <dt>'WhitespaceCharacter'
+      <dd>represents a single whitespace character.
+    </dl>
+
+    >> StringMatchQ["\n", WhitespaceCharacter]
+     = True
+
+    >> StringSplit["a\nb\r\nc\rd", WhitespaceCharacter]
+     = {a, b, c, d}
+
+    For sequences of whitespace characters use 'Whitespace':
+    >> StringMatchQ[" \n", WhitespaceCharacter]
+     = False
+    >> StringMatchQ[" \n", Whitespace]
+     = True
+    """
+
+
+class WordCharacter(Builtin):
+    r"""
+    <dl>
+    <dt>'WordCharacter'
+      <dd>represents a single letter or digit character.
+    </dl>
+
+    >> StringMatchQ[#, WordCharacter] &/@ {"1", "a", "A", ",", " "}
+     = {True, True, True, False, False}
+
+    Test whether a string is alphanumeric:
+    >> StringMatchQ["abc123DEF", WordCharacter..]
+     = True
+    >> StringMatchQ["$b;123", WordCharacter..]
+     = False
+    """
+
+
+class StartOfString(Builtin):
+    r"""
+    <dl>
+    <dt>'StartOfString'
+      <dd>represents the start of a string.
+    </dl>
+
+    Test whether strings start with "a":
+    >> StringMatchQ[#, StartOfString ~~ "a" ~~ __] &/@ {"apple", "banana", "artichoke"}
+     = {True, False, True}
+
+    >> StringReplace["aba\nabb", StartOfString ~~ "a" -> "c"]
+     = cba
+     . abb
+    """
+
+
+class EndOfString(Builtin):
+    r"""
+    <dl>
+    <dt>'EndOfString'
+      <dd>represents the end of a string.
+    </dl>
+
+    Test whether strings end with "e":
+    >> StringMatchQ[#, __ ~~ "e" ~~ EndOfString] &/@ {"apple", "banana", "artichoke"}
+     = {True, False, True}
+
+    >> StringReplace["aab\nabb", "b" ~~ EndOfString -> "c"]
+     = aab
+     . abc
+    """
+
+
+class StartOfLine(Builtin):
+    r"""
+    <dl>
+    <dt>'StartOfString'
+      <dd>represents the start of a line in a string.
+    </dl>
+
+    >> StringReplace["aba\nbba\na\nab", StartOfLine ~~ "a" -> "c"]
+     = cba
+     . bba
+     . c
+     . cb
+
+    >> StringSplit["abc\ndef\nhij", StartOfLine]
+     = {abc
+     . , def
+     . , hij}
+    """
+
+
+class EndOfLine(Builtin):
+    r"""
+    <dl>
+    <dt>'EndOfString'
+      <dd>represents the end of a line in a string.
+    </dl>
+
+    >> StringReplace["aba\nbba\na\nab", "a" ~~ EndOfLine -> "c"]
+     = abc
+     . bbc
+     . c
+     . ab
+
+    >> StringSplit["abc\ndef\nhij", EndOfLine]
+     = {abc,
+     . def,
+     . hij}
+    """
+
+
+class WordBoundary(Builtin):
+    """
+    <dl>
+    <dt>'WordBoundary'
+      <dd>represents the boundary between words.
+    </dl>
+
+    >> StringReplace["apple banana orange artichoke", "e" ~~ WordBoundary -> "E"]
+     = applE banana orangE artichokE
+    """
+
+
+class LetterCharacter(Builtin):
+    """
+    <dl>
+    <dt>'LetterCharacter'
+      <dd>represents the letters a-z and A-Z.
+    </dl>
+
+    >> StringMatchQ[#, LetterCharacter] & /@ {"a", "1", "A", " ", "."}
+     = {True, False, True, False, False}
+
+    LetterCharacter does not match unicode characters.
+    >> StringMatchQ["\[Lambda]", LetterCharacter]
+     = False
+    """
+
+
+class HexidecimalCharacter(Builtin):
+    """
+    <dl>
+    <dt>'HexidecimalCharacter'
+      <dd>represents the characters 0-9, a-f and A-F.
+    </dl>
+
+    >> StringMatchQ[#, HexidecimalCharacter] & /@ {"a", "1", "A", "x", "H", " ", "."}
+     = {True, True, True, False, False, False, False}
+    """
+
+
+class StringMatchQ(Builtin):
+    """
+    >> StringMatchQ["abc", "abc"]
+     = True
+
+    >> StringMatchQ["abc", "abd"]
+     = False
+
+    >> StringMatchQ["15a94xcZ6", (DigitCharacter | LetterCharacter)..]
+     = True
+
+    #> StringMatchQ["abc1", LetterCharacter]
+     = False
+
+    #> StringMatchQ["abc", "ABC"]
+     = False
+    #> StringMatchQ["abc", "ABC", IgnoreCase -> True]
+     = True
+
+    ## Words containing nonword characters
+    #> StringMatchQ[{"monkey", "don't", "AAA", "S&P"}, ___ ~~ Except[WordCharacter] ~~ ___]
+     = {False, True, False, True}
+
+    ## Try to match a literal number
+    #> StringMatchQ[1.5, NumberString]
+     : String or list of strings expected at position 1 in StringMatchQ[1.5, NumberString].
+     = StringMatchQ[1.5, NumberString]
+    """
+
+    attributes = ('Listable',)
+
+    options = {
+        'IgnoreCase': 'False',
+        'SpellingCorrections': 'None',
+    }
+
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+    }
+
+    def apply(self, string, patt, evaluation, options):
+        'StringMatchQ[string_, patt_, OptionsPattern[%(name)s]]'
+        py_string = string.get_string_value()
+        if py_string is None:
+            return evaluation.message('StringMatchQ', 'strse', Integer(1),
+                                      Expression('StringMatchQ', string, patt))
+
+        re_patt = to_regex(patt)
+        if re_patt is None:
+            return evaluation.message('StringExpression', 'invld', patt,
+                                      Expression('StringExpression', patt))
+
+        re_patt = anchor_pattern(re_patt)
+
+        flags = re.MULTILINE
+        if options['System`IgnoreCase'] == Symbol('True'):
+            flags = flags | re.IGNORECASE
+
+        if re.match(re_patt, py_string, flags=flags) is None:
+            return Symbol('False')
+        else:
+            return Symbol('True')
 
 
 class StringJoin(BinaryOperator):
@@ -83,64 +544,71 @@ class StringSplit(Builtin):
     >> StringSplit["abc,123.456", {",", "."}]
      = {abc, 123, 456}
 
+    >> StringSplit["a  b    c", RegularExpression[" +"]]
+     = {a, b, c}
+
     #> StringSplit["x", "x"]
      = {}
 
     #> StringSplit[x]
      : String or list of strings expected at position 1 in StringSplit[x].
-     = StringSplit[x]
+     = StringSplit[x, Whitespace]
 
-    #> StringSplit["x", x]      (* Mathematica uses StringExpression *)
-     : String or list of strings expected at position 2 in StringSplit[x, x].
+    #> StringSplit["x", x]
+     : Element x is not a valid string or pattern element in x.
      = StringSplit[x, x]
+
+    #> StringSplit["12312123", "12"..]
+     = {3, 3}
+
+    #> StringSplit["abaBa", "b"]
+     = {a, aBa}
+    #> StringSplit["abaBa", "b", IgnoreCase -> True]
+     = {a, a, a}
     """
+
+    rules = {
+        'StringSplit[s_]': 'StringSplit[s, Whitespace]',
+    }
+
+    options = {
+        'IgnoreCase': 'False',
+        'MetaCharacters': 'None',
+    }
 
     messages = {
         'strse': 'String or list of strings expected at position `1` in `2`.',
+        'pysplit': 'As of Python 3.5 re.split does not handle empty pattern matches.',
     }
 
-    def apply(self, string, seps, evaluation):
-        'StringSplit[string_String, seps_List]'
-        py_string, py_seps = string.get_string_value(), seps.get_leaves()
-        result = [py_string]
-
-        for py_sep in py_seps:
-            if not isinstance(py_sep, String):
-                evaluation.message('StringSplit', 'strse', Integer(2),
-                                   Expression('StringSplit', string, seps))
-                return
-
-        py_seps = [py_sep.get_string_value() for py_sep in py_seps]
-
-        for py_sep in py_seps:
-            result = [t for s in result for t in s.split(py_sep)]
-        return from_python([x for x in result if x != ''])
-
-    def apply_single(self, string, sep, evaluation):
-        'StringSplit[string_String, sep_?NotListQ]'
-        if not isinstance(sep, String):
-            evaluation.message('StringSplit', 'strse', Integer(2),
-                               Expression('StringSplit', string, sep))
-            return
-        return self.apply(string, Expression('List', sep), evaluation)
-
-    def apply_empty(self, string, evaluation):
-        'StringSplit[string_String]'
+    def apply(self, string, patt, evaluation, options):
+        'StringSplit[string_, patt_, OptionsPattern[%(name)s]]'
         py_string = string.get_string_value()
-        result = py_string.split()
+
+        if py_string is None:
+            return evaluation.message('StringSplit', 'strse', Integer(1),
+                                      Expression('StringSplit', string))
+
+        if patt.has_form('List', None):
+            patts = patt.get_leaves()
+        else:
+            patts = [patt]
+        re_patts = []
+        for p in patts:
+            py_p = to_regex(p)
+            if py_p is None:
+                return evaluation.message('StringExpression', 'invld', p, patt)
+            re_patts.append(py_p)
+
+        flags = re.MULTILINE
+        if options['System`IgnoreCase'] == Symbol('True'):
+            flags = flags | re.IGNORECASE
+
+        result = [py_string]
+        for re_patt in re_patts:
+            result = [t for s in result for t in mathics_split(re_patt, s, flags=flags)]
+
         return from_python([x for x in result if x != ''])
-
-    def apply_strse1(self, x, evaluation):
-        'StringSplit[x_/;Not[StringQ[x]]]'
-        evaluation.message('StringSplit', 'strse', Integer(1),
-                           Expression('StringSplit', x))
-        return
-
-    def apply_strse2(self, x, y, evaluation):
-        'StringSplit[x_/;Not[StringQ[x]], y_]'
-        evaluation.message('StringSplit', 'strse', Integer(1),
-                           Expression('StringSplit', x))
-        return
 
 
 class StringLength(Builtin):
@@ -212,16 +680,48 @@ class StringReplace(Builtin):
      : x is not a valid string replacement rule.
      = StringReplace[xyzwxyzwaxyzxyzw, x]
     #> StringReplace["xyzwxyzwaxyzxyzw", x -> y]
-     : x -> y is not a valid string replacement rule.
+     : Element x is not a valid string or pattern element in x.
      = StringReplace[xyzwxyzwaxyzxyzw, x -> y]
-    #> StringReplace["abcabc", "a" -> "b", x]
-     : Non-negative integer or Infinity expected at position 3 in StringReplace[abcabc, a -> b, x].
-     = StringReplace[abcabc, a -> b, x]
+    #> StringReplace["abcabc", "a" -> "b", -1]
+     : Non-negative integer or Infinity expected at position 3 in StringReplace[abcabc, a -> b, -1].
+     = StringReplace[abcabc, a -> b, -1]
+
+    #> StringReplace["01101100010", "01" .. -> "x"]
+     = x1x100x0
+
+    #> StringReplace["abc abcb abdc", "ab" ~~ _ -> "X"]
+     = X Xb Xc
+
+    #> StringReplace["abc abcd abcd",  WordBoundary ~~ "abc" ~~ WordBoundary -> "XX"]
+     = XX abcd abcd
+
+    #> StringReplace["abcd acbd", RegularExpression["[ab]"] -> "XX"]
+     = XXXXcd XXcXXd
+
+    #> StringReplace["abcd acbd", RegularExpression["[ab]"] ~~ _ -> "YY"]
+     = YYcd YYYY
+
+    #> StringReplace["abcdabcdaabcabcd", {"abc" -> "Y", "d" -> "XXX"}]
+     = YXXXYXXXaYYXXX
+
+
+    #> StringReplace["  Have a nice day.  ", (StartOfString ~~ Whitespace) | (Whitespace ~~ EndOfString) -> ""] // FullForm
+     = "Have a nice day."
+
+    #> StringReplace["xyXY", "xy" -> "01"]
+     = 01XY
+    #> StringReplace["xyXY", "xy" -> "01", IgnoreCase -> True]
+     = 0101
+    """
+
+    # TODO Special Characters
+    """
+    #> StringReplace["product: A \[CirclePlus] B" , "\[CirclePlus]" -> "x"]
+     = A x B
     """
 
     attributes = ('Protected')
 
-    # TODO: Implement these options
     options = {
         'IgnoreCase': 'False',
         'MetaCharacters': 'None',
@@ -234,102 +734,73 @@ class StringReplace(Builtin):
                  'position `1` in `2`.'),
     }
 
-    # TODO: Implement StringExpression replacements
-    def check_arguments(self, string, rule, n, evaluation):
-        if n is None:
+    def apply_n(self, string, rule, n, evaluation, options):
+        'StringReplace[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'
+        # this pattern is a slight hack to get around missing Shortest/Longest.
+
+        if n.same(Symbol('System`Private`Null')):
             expr = Expression('StringReplace', string, rule)
+            n = None
         else:
             expr = Expression('StringReplace', string, rule, n)
 
-        # Check first argument
+        # convert string
         if string.has_form('List', None):
-            py_string = [s.get_string_value() for s in string.get_leaves()]
-            if None in py_string:
-                evaluation.message('StringReplace', 'strse', Integer(1), expr)
-                return
+            py_strings = [stri.get_string_value() for stri in string.leaves]
+            if None in py_strings:
+                return evaluation.message(
+                    'StringReplace', 'strse', Integer(1), expr)
         else:
-            py_string = string.get_string_value()
-            if py_string is None:
-                evaluation.message('StringReplace', 'strse', Integer(1), expr)
-                return
+            py_strings = string.get_string_value()
+            if py_strings is None:
+                return evaluation.message(
+                    'StringReplace', 'strse', Integer(1), expr)
 
-        # Check second argument
-        def check_rule(r):
-            tmp = [s.get_string_value() for s in r.get_leaves()]
-            if not (r.has_form('Rule', None) and len(tmp) == 2 and
-                    all(r is not None for r in tmp)):
-                evaluation.message('StringReplace', 'srep', r)
-                return None
-            return tmp
+        # convert rule
+        def convert_rule(r):
+            if r.has_form('Rule', None) and len(r.leaves) == 2:
+                py_s = to_regex(r.leaves[0])
+                if py_s is None:
+                    return evaluation.message(
+                        'StringExpression', 'invld', r.leaves[0], r.leaves[0])
+                # TODO: py_sp is allowed to be more general (function, etc)
+                py_sp = r.leaves[1].get_string_value()
+                if py_sp is not None:
+                    return (py_s, py_sp)
+            return evaluation.message('StringReplace', 'srep', r)
 
         if rule.has_form('List', None):
-            tmp_rules = rule.get_leaves()
-            py_rules = []
-            for r in tmp_rules:
-                tmp = check_rule(r)
-                if tmp is None:
-                    return None
-                py_rules.append(tmp)
+            py_rules = [convert_rule(r) for r in rule.leaves]
         else:
-            tmp = check_rule(rule)
-            if tmp is None:
-                return None
-            py_rules = [tmp]
+            py_rules = [convert_rule(rule)]
+        if None in py_rules:
+            return None
 
+        # convert n
         if n is None:
-            return (py_string, py_rules)
+            py_n = 0
         elif n == Expression('DirectedInfinity', Integer(1)):
-            return (py_string, py_rules, None)
+            py_n = 0
         else:
             py_n = n.get_int_value()
             if py_n is None or py_n < 0:
-                evaluation.message('StringReplace', 'innf', Integer(3), expr)
-                return None
-            return (py_string, py_rules, py_n)
+                return evaluation.message('StringReplace', 'innf', Integer(3), expr)
 
-    def apply(self, string, rule, evaluation):
-        'StringReplace[string_, rule_]'
+        # flags
+        flags = re.MULTILINE
+        if options['System`IgnoreCase'] == Symbol('True'):
+            flags = flags | re.IGNORECASE
 
-        args = self.check_arguments(string, rule, None, evaluation)
-        if args is None:
-            return None
-        (py_string, py_rules) = args
+        def do_subs(py_stri):
+            for py_s, py_sp in py_rules:
+                py_stri = re.sub(py_s, py_sp, py_stri, py_n, flags=flags)
+            return py_stri
 
-        def do_replace(s):
-            for sp in py_rules:
-                s = s.replace(sp[0], sp[1])
-            return s
-
-        if isinstance(py_string, list):
-            result = [do_replace(s) for s in py_string]
+        if isinstance(py_strings, list):
+            return Expression(
+                'List', *[String(do_subs(py_stri)) for py_stri in py_strings])
         else:
-            result = do_replace(py_string)
-
-        return from_python(result)
-
-    def apply_n(self, string, rule, n, evaluation):
-        'StringReplace[string_, rule_, n_]'
-
-        args = self.check_arguments(string, rule, n, evaluation)
-
-        if args is None:
-            return None
-        (py_string, py_rules, py_n) = args
-
-        def do_replace(s):
-            for sp in py_rules:
-                if py_n is None:
-                    s = s.replace(sp[0], sp[1])
-                else:
-                    s = s.replace(sp[0], sp[1], py_n)
-            return s
-
-        if isinstance(py_string, list):
-            result = [do_replace(s) for s in py_string]
-        else:
-            result = do_replace(py_string)
-
-        return from_python(result)
+            return String(do_subs(py_strings))
 
 
 class Characters(Builtin):
