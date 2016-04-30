@@ -232,7 +232,6 @@ class Manipulate(Builtin):
             evaluation.message('Manipulate', 'noipywidget')
             return Symbol('Null')
 
-        try:
             manip = Manipulations(evaluation)  # knows about the arguments and their widgets
 
             for arg in args.get_sequence():
@@ -245,32 +244,29 @@ class Manipulate(Builtin):
             clear_output_callback = evaluation.clear_output_callback
             display_data_callback = evaluation.display_data_callback  # for pushing updates
 
-            def callback(**kwargs):
-                clear_output_callback(wait=True)
+        def callback(**kwargs):
+            clear_output_callback(wait=True)
 
-                line_no = evaluation.definitions.get_line_no()
+            line_no = evaluation.definitions.get_line_no()
 
-                new_evaluation = Evaluation(evaluation.definitions, result_callback=display_data_callback,
-                                            out_callback=evaluation.out_callback)
+            new_evaluation = Evaluation(evaluation.definitions, result_callback=display_data_callback,
+                                        out_callback=evaluation.out_callback)
 
-                vars = [Expression('Set', Symbol(name), value) for name, value in kwargs.items()]
-                evaluatable = Expression('ReleaseHold', Expression('Module', Expression('List', *vars), expr))
-                new_evaluation.evaluate([evaluatable], timeout=settings.TIMEOUT)
+            vars = [Expression('Set', Symbol(name), value) for name, value in kwargs.items()]
+            evaluatable = Expression('ReleaseHold', Expression('Module', Expression('List', *vars), expr))
+            new_evaluation.evaluate([evaluatable], timeout=settings.TIMEOUT)
 
-                evaluation.definitions.set_line_no(line_no)  # do not increment line_no for manipulate computations
+            evaluation.definitions.set_line_no(line_no)  # do not increment line_no for manipulate computations
 
-            widgets = manip.get_widgets()
-            if len(widgets) > 0:
-                box = _interactive(manip.build_callback(callback), widgets)  # create the widget
+        widgets = manip.get_widgets()
+        if len(widgets) > 0:
+            box = _interactive(manip.build_callback(callback), widgets)  # create the widget
 
-                # the following code is a boiled down version from IPython.core.formatters.IPythonDisplayFormatter.
-                # note that '_ipython_display_' is a magic constant defined in print_method of IPythonDisplayFormatter.
+            # the following code is a boiled down version from IPython.core.formatters.IPythonDisplayFormatter.
+            # note that '_ipython_display_' is a magic constant defined in print_method of IPythonDisplayFormatter.
 
-                method = getattr(box, '_ipython_display_')
-                if method is not None:
-                    method()  # make the widget appear on the Jupyter notebook
+            method = getattr(box, '_ipython_display_')
+            if method is not None:
+                method()  # make the widget appear on the Jupyter notebook
 
-            return Symbol('Null')  # the interactive output is pushed via kernel.display_data_callback (see above)
-        except:
-            import sys
-            return String(repr(sys.exc_info()))
+        return Symbol('Null')  # the interactive output is pushed via kernel.display_data_callback (see above)
