@@ -222,15 +222,17 @@ class Manipulate(Builtin):
         <dd>allows you to interactively compute and display an expression with different argument values.
     </dl>
 
-    >> Manipulate[N[Sin[y]], {y, 1, 20, 2}] //FullForm
-    Null
+    >> Manipulate[N[Sin[y]], {y, 1, 20, 2}]
+     : Manipulate[] only works inside a Jupyter notebook.
+     = Manipulate[N[Sin[y]], {y, 1, 20, 2}]
 
-    Manipulate[i^3, {i, {2, x^4, a}}] //FullForm
-    Null
+    >> Manipulate[i ^ 3, {i, {2, x ^ 4, a}}]
+     : Manipulate[] only works inside a Jupyter notebook.
+     = Manipulate[i ^ 3, {i, {2, x ^ 4, a}}]
 
-    Manipulate[x^y, {x, 1, 20}, {y, 1, 3}] //FullForm
-    Null
-
+    >> Manipulate[x ^ y, {x, 1, 20}, {y, 1, 3}]
+     : Manipulate[] only works inside a Jupyter notebook.
+     = Manipulate[x ^ y, {x, 1, 20}, {y, 1, 3}]
     """
 
     attributes = ('HoldAll',)  # we'll call ReleaseHold at the time of evaluation below
@@ -245,12 +247,10 @@ class Manipulate(Builtin):
         'Manipulate[expr_, args__]'
 
         if (not _jupyter) or (not Kernel.initialized()) or (Kernel.instance() is None):
-            evaluation.error('Manipulate', 'jupyter')
-            return Symbol('Null')
+            return evaluation.message('Manipulate', 'jupyter')
 
         if not _ipywidgets:
-            evaluation.error('Manipulate', 'noipywidget')
-            return Symbol('Null')
+            return evaluation.message('Manipulate', 'noipywidget')
 
         manip = Manipulations(evaluation)  # knows about the arguments and their widgets
 
