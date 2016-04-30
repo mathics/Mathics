@@ -11,6 +11,8 @@ from mathics.core.evaluation import Evaluation
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Symbol, Integer, from_python
 
+import six
+
 try:
     from ipywidgets import (IntSlider, FloatSlider, ToggleButtons, Box, DOMWidget)
     _enabled = True
@@ -98,7 +100,10 @@ class IllegalWidgetArguments(Exception):
 
 class Manipulations(PatternDispatcher):
     def __init__(self, evaluation):
-        super(Manipulations, self).__init__()
+        if six.PY2:
+            PatternDispatcher.__init__(self)
+        else:
+            super(Manipulations, self).__init__()
         self._evaluation = evaluation
         self._widgets = []  # the ipywidget widgets to control the manipulated variables
         self._parsers = {}  # lambdas to decode the widget values into Mathics expressions
