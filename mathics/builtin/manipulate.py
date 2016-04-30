@@ -212,8 +212,18 @@ class Manipulations(PatternDispatcher):
 class Manipulate(Builtin):
     """
     <dl>
-    <dt>'Manipulate[$expr1$, $arg1$, ...]'
-        <dd>allows you to interactively compute and display an expression with different argument values.
+    <dt>'Manipulate[$expr1$, {$u$, $u_min$, $u_max$}]'
+        <dd>interactively compute and display an expression with different values of $u$.
+    <dt>'Manipulate[$expr1$, {$u$, $u_min$, $u_max$, $du$}]'
+        <dd>allows $u$ to vary between $u_min$ and $u_max$ in steps of $du$.
+    <dt>'Manipulate[$expr1$, {{$u$, $u_init$}, $u_min$, $u_max$, ...}]'
+        <dd>starts with initial value of $u_init$.
+    <dt>'Manipulate[$expr1$, {{$u$, $u_init$, $u_lbl$}, ...}]'
+        <dd>labels the $u$ controll by $u_lbl$.
+    <dt>'Manipulate[$expr1$, {$u$, {$u_1$, $u_2$, ...}}]'
+        <dd>sets $u$ to take discrete values $u_1$, $u_2$, ... .
+    <dt>'Manipulate[$expr1$, {$u$, ...}, {$v$, ...}, ...]'
+        <dd>control each of $u$, $v$, ... .
     </dl>
 
     >> Manipulate[N[Sin[y]], {y, 1, 20, 2}]
@@ -227,6 +237,24 @@ class Manipulate(Builtin):
     >> Manipulate[x ^ y, {x, 1, 20}, {y, 1, 3}]
      : Manipulate[] only works inside a Jupyter notebook.
      = Manipulate[x ^ y, {x, 1, 20}, {y, 1, 3}]
+
+    >> Manipulate[N[1 / x], {{x, 1}, 0, 2}]
+     : Manipulate[] only works inside a Jupyter notebook.
+     = Manipulate[N[1 / x], {{x, 1}, 0, 2}]
+
+    >> Manipulate[N[1 / x], {{x, 1}, 0, 2, 0.1}]
+     : Manipulate[] only works inside a Jupyter notebook.
+     = Manipulate[N[1 / x], {{x, 1}, 0, 2, 0.1}]
+    """
+
+    # TODO: correct in the jupyter interface but can't be checked in tests
+    """
+    #> Manipulate[x, {x}]
+     = Manipulate[x, {x}]
+
+    #> Manipulate[x, {x, 1, 0}]
+     : 'Illegal variable range or step parameters for `x`.
+     = Manipulate[x, {x, 1, 0}]
     """
 
     attributes = ('HoldAll',)  # we'll call ReleaseHold at the time of evaluation below
@@ -251,7 +279,7 @@ class Manipulate(Builtin):
         for arg in args.get_sequence():
             try:
                 if not manip.dispatch(arg.evaluate(evaluation), evaluation):  # not a valid argument pattern?
-                    return Expression(self.get_name(), expr, *args.get_sequence())  # identity
+                    return
             except IllegalWidgetArguments as e:
                 evaluation.message('Manipulate', 'widgetargs', _strip_namespace(str(e.var)))
 
