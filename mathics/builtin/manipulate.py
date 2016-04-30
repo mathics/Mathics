@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from mathics.core.expression import Real, String
+from mathics.core.expression import String
 from mathics import settings
 from mathics.core.evaluation import Evaluation
 
@@ -14,11 +14,18 @@ from mathics.core.expression import Expression, Symbol, Integer, from_python
 import six
 
 try:
+    from ipykernel.kernelbase import Kernel
+    _jupyter = True
+except ImportError:
+    _jupyter = False
+
+try:
     from ipywidgets import (IntSlider, FloatSlider, ToggleButtons, Box, DOMWidget)
-    _enabled = True
+    _ipywidgets = True
 except ImportError:
     # fallback to non-Manipulate-enabled build if we don't have ipywidgets installed.
-    _enabled = False
+    _ipywidgets = False
+
 
 """
 A basic implementation of Manipulate[]. There is currently no support for Dynamic[] elements.
@@ -229,6 +236,7 @@ class Manipulate(Builtin):
     attributes = ('HoldAll',)  # we'll call ReleaseHold at the time of evaluation below
 
     messages = {
+        'jupyter': 'Manipulate[] only works inside a Jupyter notebook.',
         'noipywidget': 'Manipulate[] needs the ipywidgets module to work.',
         'widgetargs': 'Illegal variable range or step parameters for ``.'
     }
@@ -236,8 +244,12 @@ class Manipulate(Builtin):
     def apply(self, expr, args, evaluation):
         'Manipulate[expr_, args__]'
 
-        if not _enabled:
-            evaluation.message('Manipulate', 'noipywidget')
+        if (not _jupyter) or (not Kernel.initialized()) or (Kernel.instance() is None):
+            evaluation.error('Manipulate', 'jupyter')
+            return Symbol('Null')
+
+        if not _ipywidgets:
+            evaluation.error('Manipulate', 'noipywidget')
             return Symbol('Null')
 
         manip = Manipulations(evaluation)  # knows about the arguments and their widgets
