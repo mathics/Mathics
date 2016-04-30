@@ -209,12 +209,6 @@ class Manipulations(PatternDispatcher):
         self._add_discrete_options_var(i, options, idefault, ilabel)
 
 
-class ListAnimate(Builtin):
-    rules = {
-        'ListAnimate[l_List]': 'Manipulate[Part[l, i], {i, 1, Length[l], 1}]'
-    }
-
-
 class Manipulate(Builtin):
     """
     <dl>
