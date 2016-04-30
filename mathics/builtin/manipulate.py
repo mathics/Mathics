@@ -210,11 +210,14 @@ class Manipulate(Builtin):
         <dd>allows you to interactively compute and display an expression with different argument values.
     </dl>
 
-    Manipulate[N[Sin[y]], {y, 1, 20, 2}]
+    >> Manipulate[N[Sin[y]], {y, 1, 20, 2}] //FullForm
+    Null
 
-    Manipulate[i^3, {i, {2, x^4, a}}]
+    Manipulate[i^3, {i, {2, x^4, a}}] //FullForm
+    Null
 
-    Manipulate[x^y, {x, 1, 20}, {y, 1, 3}]
+    Manipulate[x^y, {x, 1, 20}, {y, 1, 3}] //FullForm
+    Null
 
     """
 
@@ -232,17 +235,17 @@ class Manipulate(Builtin):
             evaluation.message('Manipulate', 'noipywidget')
             return Symbol('Null')
 
-            manip = Manipulations(evaluation)  # knows about the arguments and their widgets
+        manip = Manipulations(evaluation)  # knows about the arguments and their widgets
 
-            for arg in args.get_sequence():
-                try:
-                    if not manip.dispatch(arg.evaluate(evaluation), evaluation):  # not a valid argument pattern?
-                        return Expression(self.get_name(), expr, *args.get_sequence())  # identity
-                except IllegalWidgetArguments as e:
-                    evaluation.message('Manipulate', 'widgetargs', _strip_namespace(str(e.var)))
+        for arg in args.get_sequence():
+            try:
+                if not manip.dispatch(arg.evaluate(evaluation), evaluation):  # not a valid argument pattern?
+                    return Expression(self.get_name(), expr, *args.get_sequence())  # identity
+            except IllegalWidgetArguments as e:
+                evaluation.message('Manipulate', 'widgetargs', _strip_namespace(str(e.var)))
 
-            clear_output_callback = evaluation.clear_output_callback
-            display_data_callback = evaluation.display_data_callback  # for pushing updates
+        clear_output_callback = evaluation.clear_output_callback
+        display_data_callback = evaluation.display_data_callback  # for pushing updates
 
         def callback(**kwargs):
             clear_output_callback(wait=True)
