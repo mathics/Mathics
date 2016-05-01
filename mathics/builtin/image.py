@@ -152,14 +152,77 @@ class _ImageArithmetic(Builtin):
 
 
 class ImageAdd(_ImageArithmetic):
+    '''
+    <dl>
+    <dt>'ImageAdd[$image$, $expr_1$, $expr_2$, ...]'
+      <dd>adds all $expr_i$ to $image$ where each $expr_i$ must be an image or a real number.
+    </dl>
+
+    >> i = Image[{{0, 0.5, 0.2, 0.1, 0.9}, {1.0, 0.1, 0.3, 0.8, 0.6}}];
+
+    >> ImageAdd[i, 0.5]
+     = -Image-
+
+    >> ImageAdd[i, i]
+     = -Image-
+
+    #> ImageAdd[i, 0.2, i, 0.1]
+     = -Image-
+
+    #> ImageAdd[i, x]
+     : Expecting a number, image, or graphics instead of x.
+     = ImageAdd[-Image-, x]
+    '''
     ufunc = numpy.add
 
 
 class ImageSubtract(_ImageArithmetic):
+    '''
+    <dl>
+    <dt>'ImageSubtract[$image$, $expr_1$, $expr_2$, ...]'
+      <dd>subtracts all $expr_i$ from $image$ where each $expr_i$ must be an image or a real number.
+    </dl>
+
+    >> i = Image[{{0, 0.5, 0.2, 0.1, 0.9}, {1.0, 0.1, 0.3, 0.8, 0.6}}];
+
+    >> ImageSubtract[i, 0.2]
+     = -Image-
+
+    >> ImageSubtract[i, i]
+     = -Image-
+
+    #> ImageSubtract[i, 0.2, i, 0.1]
+     = -Image-
+
+    #> ImageSubtract[i, x]
+     : Expecting a number, image, or graphics instead of x.
+     = ImageSubtract[-Image-, x]
+    '''
     ufunc = numpy.subtract
 
 
 class ImageMultiply(_ImageArithmetic):
+    '''
+    <dl>
+    <dt>'ImageMultiply[$image$, $expr_1$, $expr_2$, ...]'
+      <dd>multiplies all $expr_i$ with $image$ where each $expr_i$ must be an image or a real number.
+    </dl>
+
+    >> i = Image[{{0, 0.5, 0.2, 0.1, 0.9}, {1.0, 0.1, 0.3, 0.8, 0.6}}];
+
+    >> ImageMultiply[i, 0.2]
+     = -Image-
+
+    >> ImageMultiply[i, i]
+     = -Image-
+
+    #> ImageMultiply[i, 0.2, i, 0.1]
+     = -Image-
+
+    #> ImageMultiply[i, x]
+     : Expecting a number, image, or graphics instead of x.
+     = ImageMultiply[-Image-, x]
+    '''
     ufunc = numpy.multiply
 
 
