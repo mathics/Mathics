@@ -722,7 +722,10 @@ class ImageBox(BoxConstruct):
     def boxes_to_xml(self, leaves, **options):
         # see https://tools.ietf.org/html/rfc2397
         img = '<img src="data:image/png;base64,%s" />' % (leaves[0].get_string_value())
-        return '</math><mtable>%s</mtable><math>' % img
+
+        # see https://github.com/mathjax/MathJax/issues/896
+        xml = '<mtext>%s</mtext>' % img
+        return xml
 
     def boxes_to_tex(self, leaves, **options):
         return '-Image-'
