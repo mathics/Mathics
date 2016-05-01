@@ -12,7 +12,7 @@ Jupyter does not have this limitation though.
 from mathics.builtin.base import (
     Builtin, Test, BoxConstruct, String)
 from mathics.core.expression import (
-    Atom, Expression, Integer, Real, Symbol, from_python)
+    Atom, Expression, Integer, Rational, Real, Symbol, from_python)
 
 import six
 import base64
@@ -105,22 +105,62 @@ class ImageExport(Builtin):
 
 # image math
 
-class ImageAdd(Builtin):
-    def apply(self, image, x, evaluation):
-        'ImageAdd[image_Image, x_?RealNumberQ]'
-        return Image((skimage.img_as_float(image.pixels) + float(x.to_python())).clip(0, 1), image.color_space)
+
+class _ImageArithmetic(Builtin):
+    ufunc = None    # must be implemented
+
+    messages = {
+        'bddarg': 'Expecting a number, image, or graphics instead of `1`.',
+    }
+
+    @staticmethod
+    def convert_Image(image):
+        assert isinstance(image, Image)
+        return skimage.img_as_float(image.pixels)
+
+    @staticmethod
+    def convert_args(*args):
+        images = []
+        for arg in args:
+            if isinstance(arg, Image):
+                images.append(_ImageArithmetic.convert_Image(arg))
+            elif isinstance(arg, (Integer, Rational, Real)):
+                images.append(float(arg.to_python()))
+            else:
+                return None, arg
+        return images, None
+
+    @staticmethod
+    def _reduce(iterable, ufunc):
+        result = None
+        for i in iterable:
+            if result is None:
+                # ufunc is destructive so copy first
+                result = numpy.copy(i)
+            else:
+                # e.g. result *= i
+                ufunc(result, i, result)
+        return result
+
+    def apply(self, image, args, evaluation):
+        '%(name)s[image_Image, args__]'
+        images, arg = self.convert_args(image, *args.get_sequence())
+        if images is None:
+            return evaluation.message(self.get_name(), 'bddarg', arg)
+        result = self._reduce(images, self.ufunc)
+        return Image(result.clip(0, 1), image.color_space)
 
 
-class ImageSubtract(Builtin):
-    def apply(self, image, x, evaluation):
-        'ImageSubtract[image_Image, x_?RealNumberQ]'
-        return Image((skimage.img_as_float(image.pixels) - float(x.to_python())).clip(0, 1), image.color_space)
+class ImageAdd(_ImageArithmetic):
+    ufunc = numpy.add
 
 
-class ImageMultiply(Builtin):
-    def apply(self, image, x, evaluation):
-        'ImageMultiply[image_Image, x_?RealNumberQ]'
-        return Image((skimage.img_as_float(image.pixels) * float(x.to_python())).clip(0, 1), image.color_space)
+class ImageSubtract(_ImageArithmetic):
+    ufunc = numpy.subtract
+
+
+class ImageMultiply(_ImageArithmetic):
+    ufunc = numpy.multiply
 
 
 class RandomImage(Builtin):
