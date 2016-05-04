@@ -9,6 +9,8 @@ into the notebook interface (yielding an error 'Unknown node type: img').
 Jupyter does not have this limitation though.
 '''
 
+from __future__ import division
+
 from mathics.builtin.base import (
     Builtin, Test, BoxConstruct, String)
 from mathics.core.expression import (
@@ -288,50 +290,157 @@ class RandomImage(Builtin):
 
 
 class ImageResize(Builtin):
+    '''
+    <dl>
+    <dt>'ImageResize[$image$, $width$]'
+      <dd>
+    <dt>'ImageResize[$image$, {$width$, $height$}]'
+      <dd>
+    </dl>
+
+    >> ein = Import["ExampleData/Einstein.jpg"];
+    >> ImageDimensions[ein]
+     = {615, 768}
+    >> ImageResize[ein, {400, 600}]
+     = -Image-
+    #> ImageDimensions[%]
+     = {400, 600}
+
+    >> ImageResize[ein, 256]
+     = -Image-
+    >> ImageDimensions[%]
+     = {256, 320}
+
+    The default sampling method is Bicubic
+    >> ImageResize[ein, 256, Resampling -> "Bicubic"]
+     = -Image-
+    >> ImageDimensions[ImageResize[ein, 256, Resampling -> "Nearest"]]
+     = -Image-
+    >> ImageDimensions[ImageResize[ein, 256, Resampling -> "Gaussian"]]
+     = -Image-
+    #> ImageResize[ein, 256, Resampling -> "Invalid"]
+     : Invalid resampling method Invalid.
+     = ImageResize[-Image-, 256, Resampling -> Invalid]
+
+    #> ImageDimensions[ImageResize[ein, {256}]]
+     = {256, 256}
+
+    #> ImageResize[ein, {x}]
+     : The size {x} is not a valid image size specification.
+     = ImageResize[-Image-, {x}]
+    #> ImageResize[ein, x]
+     : The size x is not a valid image size specification.
+     = ImageResize[-Image-, x]
+    '''
+
     options = {
-        'Resampling': '"Bicubic"'
+        'Resampling': 'Automatic',
     }
 
     messages = {
-        'resamplingerr': 'Resampling mode `` is not supported.',
-        'gaussaspect': 'Gaussian resampling needs to main aspect ratio.'
+        'imgrssz': 'The size `1` is not a valid image size specification.',
+        'imgrsm': 'Invalid resampling method `1`.',
+        'gaussaspect': 'Gaussian resampling needs to main aspect ratio.',
     }
 
-    def apply_resize_width(self, image, width, evaluation, options):
-        'ImageResize[image_Image, width_Integer, OptionsPattern[ImageResize]]'
-        shape = image.pixels.shape
-        height = int((float(shape[0]) / float(shape[1])) * width.to_python())
-        return self.apply_resize_width_height(image, width, Integer(height), evaluation, options)
+    @staticmethod
+    def _round_pixels(value):
+        return max(1, int(round(value)))
+
+    def _get_image_size_spec(self, old_size, new_size):
+        predefined_sizes = {
+            'System`Tiny': 75,
+            'System`Small': 150,
+            'System`Medium': 300,
+            'System`Large': 450,
+            'System`Automatic': 0,      # placeholder
+        }
+        result = new_size.get_real_value()
+        if result is not None:
+            result = int(result)
+            if result <= 0:
+                return None
+            return result
+
+        if isinstance(new_size, Symbol):
+            name = new_size.get_name()
+            if name == 'System`All':
+                return old_size
+            return predefined_sizes.get(name, None)
+        if new_size.has_form('Scaled', 1):
+            s = new_size.leaves[0].get_real_value()
+            if s is None:
+                return None
+            return self._round_pixels(old_size * s)     # handles negative s values silently
+        return None
+
+    def apply_resize_width(self, image, s, evaluation, options):
+        'ImageResize[image_Image, s_ OptionsPattern[ImageResize]]'
+        old_w = image.pixels.shape[1]
+        if s.has_form('List', 1):
+            width = s.leaves[0]
+        else:
+            width = s
+        w = self._get_image_size_spec(old_w, width)
+        if w is None:
+            return evaluation.message('ImageResize', 'imgrssz', s)
+        if s.has_form('List', 1):
+            height = width
+        else:
+            height = Symbol('Automatic')
+        return self.apply_resize_width_height(image, width, height, evaluation, options)
 
     def apply_resize_width_height(self, image, width, height, evaluation, options):
-        'ImageResize[image_Image, {width_Integer, height_Integer}, OptionsPattern[ImageResize]]'
-        resampling = self.get_option(options, 'Resampling', evaluation)
-        resampling_name = resampling.get_string_value() if isinstance(resampling, String) else resampling.to_python()
+        'ImageResize[image_Image, {width_, height_}, OptionsPattern[ImageResize]]'
 
-        w = int(width.to_python())
-        h = int(height.to_python())
+        # find new size
+        old_w, old_h = image.pixels.shape[1], image.pixels.shape[0]
+        w = self._get_image_size_spec(old_w, width)
+        h = self._get_image_size_spec(old_h, height)
+        if h is None or w is None:
+            return evaluation.message('ImageResize', 'imgrssz', Expression('List', width, height))
+
+        # handle Automatic
+        old_aspect_ratio = old_w / old_h
+        if w == 0 and h == 0:
+            # if both width and height are Automatic then use old values
+            w, h = old_w, old_h
+        elif w == 0:
+            w = self._round_pixels(h * old_aspect_ratio)
+        elif h == 0:
+            h = self._round_pixels(w / old_aspect_ratio)
+
+        assert isinstance(w, int) and w > 0
+        assert isinstance(h, int) and h > 0
+
+        # resampling method
+        resampling = self.get_option(options, 'Resampling', evaluation)
+        if isinstance(resampling, Symbol) and resampling.get_name() == 'System`Automatic':
+            resampling_name = 'Bicubic'
+        else:
+            resampling_name = resampling.get_string_value()
+
         if resampling_name == 'Nearest':
             pixels = skimage.transform.resize(image.pixels, (h, w), order=0)
         elif resampling_name == 'Bicubic':
             pixels = skimage.transform.resize(image.pixels, (h, w), order=3)
         elif resampling_name == 'Gaussian':
-            old_shape = image.pixels.shape
-            sy = h / old_shape[0]
-            sx = w / old_shape[1]
+            sy = h / old_h
+            sx = w / old_w
             if sy > sx:
-                err = abs((sy * old_shape[1]) - (sx * old_shape[1]))
+                err = abs((sy * old_w) - (sx * old_w))
                 s = sy
             else:
-                err = abs((sy * old_shape[0]) - (sx * old_shape[0]))
+                err = abs((sy * old_h) - (sx * old_h))
                 s = sx
             if err > 1.5:
-                return evaluation.error('ImageResize', 'gaussaspect')
+                return evaluation.message('ImageResize', 'gaussaspect')
             elif s > 1:
                 pixels = skimage.transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
             else:
                 pixels = skimage.transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
         else:
-            return evaluation.error('ImageResize', 'resamplingerr', resampling_name)
+            return evaluation.message('ImageResize', 'imgrsm', resampling)
 
         return Image(pixels, image.color_space)
 
