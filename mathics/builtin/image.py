@@ -612,56 +612,57 @@ class DiamondMatrix(Builtin):
         return from_python(skimage.morphology.diamond(r).tolist())
 
 
-class MorphologyFilter(Builtin):
+class _MorphologyFilter(Builtin):
     messages = {
         'grayscale': 'Your image has been converted to grayscale as color images are not supported yet.'
     }
 
-    def compute(self, image, f, k, evaluation):
+    rules = {
+        '%(name)s[i_Image, r_?RealNumberQ]': '%(name)s[i, BoxMatrix[r]]'
+    }
+
+    func = None # not implemented
+
+    def apply(self, image, k, evaluation):
+        '%(name)s[image_Image, k_?MatrixQ]'
         if image.color_space != 'Grayscale':
             image = image.color_convert('Grayscale')
-            evaluation.message('MorphologyFilter', 'grayscale')
-        return Image(f(image.pixels, numpy.array(k.to_python())), 'Grayscale')
+            evaluation.message(self.name, 'grayscale')
+        f = getattr(skimage.morphology, self.get_name(True).lower())
+        img = f(image.pixels, numpy.array(k.to_python()))
+        return Image(img, 'Grayscale')
 
 
-class Dilation(MorphologyFilter):
-    rules = {
-        'Dilation[i_Image, r_?RealNumberQ]': 'Dilation[i, BoxMatrix[r]]'
-    }
-
-    def apply(self, image, k, evaluation):
-        'Dilation[image_Image, k_?MatrixQ]'
-        return self.compute(image, skimage.morphology.dilation, k, evaluation)
+class Dilation(_MorphologyFilter):
+    '''
+    >> ein = Import["ExampleData/Einstein.jpg"];
+    >> Dilation[ein, 2.5]
+     = -Image-
+    '''
 
 
-class Erosion(MorphologyFilter):
-    rules = {
-        'Erosion[i_Image, r_?RealNumberQ]': 'Erosion[i, BoxMatrix[r]]'
-    }
-
-    def apply(self, image, k, evaluation):
-        'Erosion[image_Image, k_?MatrixQ]'
-        return self.compute(image, skimage.morphology.erosion, k, evaluation)
+class Erosion(_MorphologyFilter):
+    '''
+    >> ein = Import["ExampleData/Einstein.jpg"];
+    >> Erosion[ein, 2.5]
+     = -Image-
+    '''
 
 
-class Opening(MorphologyFilter):
-    rules = {
-        'Opening[i_Image, r_?RealNumberQ]': 'Opening[i, BoxMatrix[r]]'
-    }
-
-    def apply(self, image, k, evaluation):
-        'Opening[image_Image, k_?MatrixQ]'
-        return self.compute(image, skimage.morphology.opening, k, evaluation)
+class Opening(_MorphologyFilter):
+    '''
+    >> ein = Import["ExampleData/Einstein.jpg"];
+    >> Opening[ein, 2.5]
+     = -Image-
+    '''
 
 
-class Closing(MorphologyFilter):
-    rules = {
-        'Closing[i_Image, r_?RealNumberQ]': 'Closing[i, BoxMatrix[r]]'
-    }
-
-    def apply(self, image, k, evaluation):
-        'Closing[image_Image, k_?MatrixQ]'
-        return self.compute(image, skimage.morphology.closing, k, evaluation)
+class Closing(_MorphologyFilter):
+    '''
+    >> ein = Import["ExampleData/Einstein.jpg"];
+    >> Closing[ein, 2.5]
+     = -Image-
+    '''
 
 
 class MorphologicalComponents(Builtin):

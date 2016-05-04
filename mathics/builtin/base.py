@@ -145,11 +145,13 @@ class Builtin(object):
             makeboxes_def.add_rule(rule)
 
     @classmethod
-    def get_name(cls):
+    def get_name(cls, short=False):
         if cls.name is None:
             shortname = cls.__name__
         else:
             shortname = cls.name
+        if short:
+            return shortname
         return cls.context + shortname
 
     def get_operator(self):
