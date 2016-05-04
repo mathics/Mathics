@@ -148,7 +148,7 @@ class _ImageArithmetic(Builtin):
         if images is None:
             return evaluation.message(self.get_name(), 'bddarg', arg)
         result = self._reduce(images, self.ufunc)
-        return Image(result.clip(0, 1), image.color_space)
+        return Image(result, image.color_space)
 
 
 class ImageAdd(_ImageArithmetic):
@@ -227,19 +227,49 @@ class ImageMultiply(_ImageArithmetic):
 
 
 class RandomImage(Builtin):
+    '''
+    <dl>
+    <dt>'RandomImage[$max$]'
+      <dd>creates an image of random pixels with values 0 to $max$.
+    <dt>'RandomImage[{$min$, $max$}]'
+      <dd>creates an image of random pixels with values $min$ to $max$.
+    <dt>'RandomImage[..., $size$]'
+      <dd>creates an image of the given $size$.
+    </dl>
+
+    >> RandomImage[1, {100, 100}]
+     = -Image-
+
+    #> RandomImage[0.5]
+     = -Image-
+    #> RandomImage[{0.1, 0.9}]
+     = -Image-
+    #> RandomImage[0.9, {400, 600}]
+     = -Image-
+    #> RandomImage[{0.1, 0.5}, {400, 600}]
+     = -Image-
+    '''
+
     rules = {
-        'RandomImage[max_?RealNumberQ, {w_Integer, h_Integer}]': 'RandomImage[{0, max}, {w, h}]'
+        'RandomImage[]': 'RandomImage[{0, 1}, {150, 150}]',
+        'RandomImage[max_?RealNumberQ]': 'RandomImage[{0, max}, {150, 150}]',
+        'RandomImage[{minval_?RealNumberQ, maxval_?RealNumberQ}]': 'RandomImage[{minval, maxval}, {150, 150}]',
+        'RandomImage[max_?RealNumberQ, {w_Integer, h_Integer}]': 'RandomImage[{0, max}, {w, h}]',
+    }
+
+    messages = {
+        'bddim': 'The specified dimension `1` should be a pair of positive integers.',
     }
 
     def apply(self, minval, maxval, w, h, evaluation):
         'RandomImage[{minval_?RealNumberQ, maxval_?RealNumberQ}, {w_Integer, h_Integer}]'
-        try:
-            x0 = max(minval.to_python(), 0)
-            x1 = min(maxval.to_python(), 1)
-            return Image((numpy.random.rand(h.to_python(), w.to_python()) * (x1 - x0) + x0), 'Grayscale')
-        except:
-            import sys
-            return String(repr(sys.exc_info()))
+        size = [w.get_int_value(), h.get_int_value()]
+        if size[0] <= 0 or size[1] <= 0:
+            return evaluation.message('RandomImage', 'bddim', from_python(size))
+        minrange, maxrange = minval.get_real_value(), maxval.get_real_value()
+        data = numpy.random.rand(size[1], size[0]) * (maxrange - minrange) + minrange
+        return Image(data, 'Grayscale')
+
 
 # simple image manipulation
 
