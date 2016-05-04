@@ -1460,7 +1460,7 @@ class Integer(Number):
             return [0, 0, self.value, 0, 1]
 
     def get_real_value(self):
-        return sympy.Rational(self.value, 1)
+        return self.value
 
     def do_copy(self):
         return Integer(self.value)
