@@ -314,10 +314,16 @@ class ImageResize(Builtin):
     The default sampling method is Bicubic
     >> ImageResize[ein, 256, Resampling -> "Bicubic"]
      = -Image-
-    >> ImageDimensions[ImageResize[ein, 256, Resampling -> "Nearest"]]
+    #> ImageDimensions[%]
+     = {256, 320}
+    >> ImageResize[ein, 256, Resampling -> "Nearest"]
      = -Image-
-    >> ImageDimensions[ImageResize[ein, 256, Resampling -> "Gaussian"]]
+    #> ImageDimensions[%]
+     = {256, 320}
+    >> ImageResize[ein, 256, Resampling -> "Gaussian"]
      = -Image-
+    #> ImageDimensions[%]
+     = {256, 320}
     #> ImageResize[ein, 256, Resampling -> "Invalid"]
      : Invalid resampling method Invalid.
      = ImageResize[-Image-, 256, Resampling -> Invalid]
@@ -343,10 +349,6 @@ class ImageResize(Builtin):
         'gaussaspect': 'Gaussian resampling needs to main aspect ratio.',
     }
 
-    @staticmethod
-    def _round_pixels(value):
-        return max(1, int(round(value)))
-
     def _get_image_size_spec(self, old_size, new_size):
         predefined_sizes = {
             'System`Tiny': 75,
@@ -371,11 +373,11 @@ class ImageResize(Builtin):
             s = new_size.leaves[0].get_real_value()
             if s is None:
                 return None
-            return self._round_pixels(old_size * s)     # handles negative s values silently
+            return max(1, old_size * s)     # handle negative s values silently
         return None
 
     def apply_resize_width(self, image, s, evaluation, options):
-        'ImageResize[image_Image, s_ OptionsPattern[ImageResize]]'
+        'ImageResize[image_Image, s_, OptionsPattern[ImageResize]]'
         old_w = image.pixels.shape[1]
         if s.has_form('List', 1):
             width = s.leaves[0]
@@ -392,6 +394,12 @@ class ImageResize(Builtin):
 
     def apply_resize_width_height(self, image, width, height, evaluation, options):
         'ImageResize[image_Image, {width_, height_}, OptionsPattern[ImageResize]]'
+        # resampling method
+        resampling = self.get_option(options, 'Resampling', evaluation)
+        if isinstance(resampling, Symbol) and resampling.get_name() == 'System`Automatic':
+            resampling_name = 'Bicubic'
+        else:
+            resampling_name = resampling.get_string_value()
 
         # find new size
         old_w, old_h = image.pixels.shape[1], image.pixels.shape[0]
@@ -406,20 +414,16 @@ class ImageResize(Builtin):
             # if both width and height are Automatic then use old values
             w, h = old_w, old_h
         elif w == 0:
-            w = self._round_pixels(h * old_aspect_ratio)
+            w = max(1, h * old_aspect_ratio)
         elif h == 0:
-            h = self._round_pixels(w / old_aspect_ratio)
+            h = max(1, w / old_aspect_ratio)
 
-        assert isinstance(w, int) and w > 0
-        assert isinstance(h, int) and h > 0
+        if resampling_name != 'Gaussian':
+            # Gaussian need to unrounded values to compute scaling ratios.
+            # round to closest pixel for other methods.
+            h, w = int(round(h)), int(round(w))
 
-        # resampling method
-        resampling = self.get_option(options, 'Resampling', evaluation)
-        if isinstance(resampling, Symbol) and resampling.get_name() == 'System`Automatic':
-            resampling_name = 'Bicubic'
-        else:
-            resampling_name = resampling.get_string_value()
-
+        # perform the resize
         if resampling_name == 'Nearest':
             pixels = skimage.transform.resize(image.pixels, (h, w), order=0)
         elif resampling_name == 'Bicubic':
