@@ -7,7 +7,7 @@ from __future__ import absolute_import
 from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, numbertheory,
+    graphics, graphics3d, inout, integer, linalg, lists, logic, manipulate, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
     specialfunctions, scoping, strings, structure, system, tensors)
 
@@ -19,13 +19,17 @@ from mathics.settings import ENABLE_FILES_MODULE
 modules = [
     algebra, arithmetic, assignment, attributes, calculus, combinatorial,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, numbertheory,
+    graphics, graphics3d, inout, integer, linalg, lists, logic, manipulate, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
     specialfunctions, scoping, strings, structure, system, tensors]
 
 if ENABLE_FILES_MODULE:
     from mathics.builtin import files, importexport
     modules += [files, importexport]
+
+from mathics.builtin import image
+if image._enabled:
+    modules.append(image)
 
 builtins = []
 builtins_by_module = {}

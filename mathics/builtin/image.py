@@ -15,6 +15,7 @@ from mathics.builtin.base import (
     Builtin, Test, BoxConstruct, String)
 from mathics.core.expression import (
     Atom, Expression, Integer, Rational, Real, Symbol, from_python)
+from mathics.core.evaluation import Evaluation
 
 import six
 import base64
@@ -44,6 +45,7 @@ except ImportError:
     _enabled = False
 
 from io import BytesIO
+
 
 if _enabled:
     _color_space_conversions = {
@@ -76,32 +78,22 @@ if _enabled:
 
 
 class ImageImport(Builtin):
-    messages = {
-        'noskimage': 'image import needs scikit-image in order to work.'
-    }
-
     def apply(self, path, evaluation):
         '''ImageImport[path_?StringQ]'''
-        if not _enabled:
-            return evaluation.message('ImageImport', 'noskimage')
-        else:
-            pixels = skimage.io.imread(path.get_string_value())
-            is_rgb = len(pixels.shape) >= 3 and pixels.shape[2] >= 3
-            atom = Image(pixels, 'RGB' if is_rgb else 'Grayscale')
-            return Expression('List', Expression('Rule', String('Image'), atom))
+        pixels = skimage.io.imread(path.get_string_value())
+        is_rgb = len(pixels.shape) >= 3 and pixels.shape[2] >= 3
+        atom = Image(pixels, 'RGB' if is_rgb else 'Grayscale')
+        return Expression('List', Expression('Rule', String('Image'), atom))
 
 
 class ImageExport(Builtin):
     messages = {
-        'noskimage': 'image export needs scikit-image in order to work.',
         'noimage': 'only an Image[] can be exported into an image file'
     }
 
     def apply(self, path, expr, opts, evaluation):
         '''ImageExport[path_?StringQ, expr_, opts___]'''
-        if not _enabled:
-            return evaluation.message('ImageExport', 'noskimage')
-        elif isinstance(expr, Image):
+        if isinstance(expr, Image):
             skimage.io.imsave(path.get_string_value(), expr.pixels)
             return Symbol('Null')
         else:
@@ -891,22 +883,15 @@ class BinaryImageQ(Test):
 
 
 class ImageCreate(Builtin):
-    messages = {
-        'noskimage': 'image creation needs scikit-image in order to work.'
-    }
-
     def apply(self, array, evaluation):
         '''ImageCreate[array_?MatrixQ]'''
-        if not _enabled:
-            return evaluation.message('ImageCreate', 'noskimage')
+        pixels = numpy.array(array.to_python(), dtype='float64')
+        shape = pixels.shape
+        is_rgb = (len(shape) == 3 and shape[2] == 3)
+        if len(shape) == 2 or (len(shape) == 3 and shape[2] in (1, 3)):
+            return Image(pixels.clip(0, 1), 'RGB' if is_rgb else 'Grayscale')
         else:
-            pixels = numpy.array(array.to_python(), dtype='float64')
-            shape = pixels.shape
-            is_rgb = (len(shape) == 3 and shape[2] == 3)
-            if len(shape) == 2 or (len(shape) == 3 and shape[2] in (1, 3)):
-                return Image(pixels.clip(0, 1), 'RGB' if is_rgb else 'Grayscale')
-            else:
-                return Expression('Image', array)
+            return Expression('Image', array)
 
 
 class ImageBox(BoxConstruct):
