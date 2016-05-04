@@ -78,6 +78,19 @@ if _enabled:
 
 
 class ImageImport(Builtin):
+    """
+    ## Image
+    >> Import["ExampleData/Einstein.jpg"]
+     = -Image-
+    #> Import["ExampleData/sunflowers.jpg"]
+     = -Image-
+    >> Import["ExampleData/MadTeaParty.gif"]
+     = -Image-
+    >> Import["ExampleData/moon.tif"]
+     = -Image-
+    #> Import["ExampleData/lena.tif"]
+     = -Image-
+    """
     def apply(self, path, evaluation):
         '''ImageImport[path_?StringQ]'''
         pixels = skimage.io.imread(path.get_string_value())

@@ -270,18 +270,6 @@ class Import(Builtin):
     ## JSON
     >> Import["ExampleData/colors.json"]
      = {colorsArray -> {{colorName -> black, rgbValue -> (0, 0, 0), hexValue -> #000000}, {colorName -> red, rgbValue -> (255, 0, 0), hexValue -> #FF0000}, {colorName -> green, rgbValue -> (0, 255, 0), hexValue -> #00FF00}, {colorName -> blue, rgbValue -> (0, 0, 255), hexValue -> #0000FF}, {colorName -> yellow, rgbValue -> (255, 255, 0), hexValue -> #FFFF00}, {colorName -> cyan, rgbValue -> (0, 255, 255), hexValue -> #00FFFF}, {colorName -> magenta, rgbValue -> (255, 0, 255), hexValue -> #FF00FF}, {colorName -> white, rgbValue -> (255, 255, 255), hexValue -> #FFFFFF}}}
-
-    ## Image
-    >> Import["ExampleData/Einstein.jpg"]
-     = -Image-
-    #> Import["ExampleData/sunflowers.jpg"]
-     = -Image-
-    >> Import["ExampleData/MadTeaParty.gif"]
-     = -Image-
-    >> Import["ExampleData/moon.tif"]
-     = -Image-
-    #> Import["ExampleData/lena.tif"]
-     = -Image-
     """
 
     messages = {
