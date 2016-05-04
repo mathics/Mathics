@@ -34,7 +34,7 @@ class ImportFormats(Predefined):
     </dl>
 
     >> $ImportFormats
-     = {BMP, CSV, GIF, ICO, JPEG, JPEG2000, JSON, PBM, PCX, PGM, PNG, PPM, TGA, TIFF, Text}
+     = {...CSV,...JSON,...Text...}
     """
 
     name = '$ImportFormats'
@@ -51,7 +51,7 @@ class ExportFormats(Predefined):
     </dl>
 
     >> $ExportFormats
-     = {CSV, SVG, Text}
+     = {...CSV,...SVG,...Text...}
     """
 
     name = '$ExportFormats'
