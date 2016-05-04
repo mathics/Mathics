@@ -635,6 +635,11 @@ class _MorphologyFilter(Builtin):
 
 class Dilation(_MorphologyFilter):
     '''
+    <dl>
+    <dt>'Dilation[$image$, $ker$]'
+      <dd>Gives the morphological dilation of $image$ with respect to structuring element $ker$.
+    </dl>
+
     >> ein = Import["ExampleData/Einstein.jpg"];
     >> Dilation[ein, 2.5]
      = -Image-
@@ -643,6 +648,11 @@ class Dilation(_MorphologyFilter):
 
 class Erosion(_MorphologyFilter):
     '''
+    <dl>
+    <dt>'Erosion[$image$, $ker$]'
+      <dd>Gives the morphological erosion of $image$ with respect to structuring element $ker$.
+    </dl>
+
     >> ein = Import["ExampleData/Einstein.jpg"];
     >> Erosion[ein, 2.5]
      = -Image-
@@ -651,6 +661,11 @@ class Erosion(_MorphologyFilter):
 
 class Opening(_MorphologyFilter):
     '''
+    <dl>
+    <dt>'Opening[$image$, $ker$]'
+      <dd>Gives the morphological opening of $image$ with respect to structuring element $ker$.
+    </dl>
+
     >> ein = Import["ExampleData/Einstein.jpg"];
     >> Opening[ein, 2.5]
      = -Image-
@@ -659,6 +674,11 @@ class Opening(_MorphologyFilter):
 
 class Closing(_MorphologyFilter):
     '''
+    <dl>
+    <dt>'Closing[$image$, $ker$]'
+      <dd>Gives the morphological closing of $image$ with respect to structuring element $ker$.
+    </dl>
+
     >> ein = Import["ExampleData/Einstein.jpg"];
     >> Closing[ein, 2.5]
      = -Image-
