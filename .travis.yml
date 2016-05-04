@@ -11,6 +11,8 @@ env:
   global:
     - SYMPY_SRC=sympy-1.0
     - DOC="false"
+    - NUMPY="false"
+    - SKIMAGE="false"
   matrix:
     - CYTHON="false"
     - CYTHON="true"
@@ -25,6 +27,10 @@ matrix:
       env: SYMPY_SRC=master CYTHON="false"
     - python: 3.5
       env: SYMPY_SRC=master CYTHON="false"
+    - python: 2.7
+      env: NUMPY="true" SKIMAGE="true"
+    - python: 3.5
+      env: NUMPY="true" SKIMAGE="true"
   exclude:
     # PyPy is not compatible with Cython
     - python: pypy
@@ -45,6 +51,13 @@ before_install:
     fi
   - if [[ "$CYTHON" == "true" ]]; then
       pip install cython;
+    fi
+  - if [[ "$NUMPY" == "true" ]]; then
+      sudo apt-get update -qq &&
+      sudo apt-get install -qq python-numpy;
+    fi
+  - if [[ "$SKIMAGE" == "true" ]]; then
+      pip install scikit-image;
     fi
   - pip install unittest2
   - pip install pexpect
