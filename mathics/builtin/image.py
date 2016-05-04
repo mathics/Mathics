@@ -112,8 +112,6 @@ class ImageExport(Builtin):
 
 
 class _ImageArithmetic(Builtin):
-    ufunc = None    # must be implemented
-
     messages = {
         'bddarg': 'Expecting a number, image, or graphics instead of `1`.',
     }
@@ -152,7 +150,8 @@ class _ImageArithmetic(Builtin):
         images, arg = self.convert_args(image, *args.get_sequence())
         if images is None:
             return evaluation.message(self.get_name(), 'bddarg', arg)
-        result = self._reduce(images, self.ufunc)
+        ufunc = getattr(numpy, self.get_name(True)[5:].lower())
+        result = self._reduce(images, ufunc)
         return Image(result, image.color_space)
 
 
@@ -183,7 +182,6 @@ class ImageAdd(_ImageArithmetic):
     >> ImageAdd[noise, ein]
      = -Image-
     '''
-    ufunc = numpy.add
 
 
 class ImageSubtract(_ImageArithmetic):
@@ -208,7 +206,6 @@ class ImageSubtract(_ImageArithmetic):
      : Expecting a number, image, or graphics instead of x.
      = ImageSubtract[-Image-, x]
     '''
-    ufunc = numpy.subtract
 
 
 class ImageMultiply(_ImageArithmetic):
@@ -238,7 +235,6 @@ class ImageMultiply(_ImageArithmetic):
     >> ImageMultiply[noise, ein]
      = -Image-
     '''
-    ufunc = numpy.multiply
 
 
 class RandomImage(Builtin):
