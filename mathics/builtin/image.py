@@ -172,6 +172,11 @@ class ImageAdd(_ImageArithmetic):
     #> ImageAdd[i, x]
      : Expecting a number, image, or graphics instead of x.
      = ImageAdd[-Image-, x]
+
+    >> ein = Import["ExampleData/Einstein.jpg"];
+    >> noise = RandomImage[{-0.1, 0.1}, ImageDimensions[ein]];
+    >> ImageAdd[noise, ein]
+     = -Image-
     '''
     ufunc = numpy.add
 
@@ -222,6 +227,11 @@ class ImageMultiply(_ImageArithmetic):
     #> ImageMultiply[i, x]
      : Expecting a number, image, or graphics instead of x.
      = ImageMultiply[-Image-, x]
+
+    >> ein = Import["ExampleData/Einstein.jpg"];
+    >> noise = RandomImage[{0.7, 1.3}, ImageDimensions[ein]];
+    >> ImageMultiply[noise, ein]
+     = -Image-
     '''
     ufunc = numpy.multiply
 
