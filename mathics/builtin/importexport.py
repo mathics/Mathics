@@ -34,7 +34,7 @@ class ImportFormats(Predefined):
     </dl>
 
     >> $ImportFormats
-     = {CSV, JSON, Text}
+     = {BMP, CSV, GIF, ICO, JPEG, JPEG2000, JSON, PBM, PCX, PGM, PNG, PPM, TGA, TIFF, Text}
     """
 
     name = '$ImportFormats'
