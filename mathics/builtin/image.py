@@ -622,8 +622,6 @@ class _MorphologyFilter(Builtin):
         '%(name)s[i_Image, r_?RealNumberQ]': '%(name)s[i, BoxMatrix[r]]'
     }
 
-    func = None # not implemented
-
     def apply(self, image, k, evaluation):
         '%(name)s[image_Image, k_?MatrixQ]'
         if image.color_space != 'Grayscale':
