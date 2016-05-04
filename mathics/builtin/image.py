@@ -69,7 +69,9 @@ if _enabled:
         'XYZ2RGB': skimage.color.xyz2rgb,
     }
 
+
 # import and export
+
 
 class ImageImport(Builtin):
     messages = {
@@ -102,6 +104,7 @@ class ImageExport(Builtin):
             return Symbol('Null')
         else:
             return evaluation.message('ImageExport', 'noimage')
+
 
 # image math
 
@@ -283,6 +286,7 @@ class RandomImage(Builtin):
 
 # simple image manipulation
 
+
 class ImageResize(Builtin):
     options = {
         'Resampling': '"Bicubic"'
@@ -371,7 +375,9 @@ class ImagePartition(Builtin):
                  for x in range(0, shape[1], w) for y in range(0, shape[0], h)]
         return Expression('List', *parts)
 
+
 # simple image filters
+
 
 class ImageAdjust(Builtin):
     def apply_auto(self, image, evaluation):
@@ -429,7 +435,9 @@ class GaussianFilter(Builtin):
                 skimage.img_as_float(image.pixels),
                 sigma=radius.to_python() / 2, multichannel=True), image.color_space)
 
+
 # morphological image filters
+
 
 class PillowImageFilter(Builtin):
     def compute(self, image, f):
@@ -549,7 +557,9 @@ class MorphologicalComponents(Builtin):
         pixels = skimage.img_as_ubyte(skimage.img_as_float(image.grayscale().pixels) > t.to_python())
         return from_python(skimage.measure.label(pixels, background=0, connectivity=2).tolist())
 
+
 # color space
+
 
 class ImageColorSpace(Builtin):
     def apply(self, image, evaluation):
@@ -594,7 +604,7 @@ class Threshold(Builtin):
         elif method_name == 'Mean':
             threshold = numpy.mean(pixels)
         else:
-           return evaluation.error('Threshold', 'illegalmethod', method)
+            return evaluation.error('Threshold', 'illegalmethod', method)
 
         return Real(threshold)
 
@@ -659,7 +669,9 @@ class Colorize(Builtin):
         s = (a.shape[0], a.shape[1], 1)
         return Image(numpy.concatenate([p[i][a].reshape(s) for i in range(3)], axis=2), color_space='RGB')
 
+
 # pixel access
+
 
 class ImageData(Builtin):
     rules = {
@@ -683,7 +695,7 @@ class ImageData(Builtin):
         elif stype == 'Bit':
             pixels = pixels.as_dtype(numpy.bool)
         else:
-            return evaluation.error('ImageData', 'pixelfmt', stype);
+            return evaluation.error('ImageData', 'pixelfmt', stype)
         return from_python(pixels.tolist())
 
 
@@ -706,12 +718,15 @@ class PixelValuePositions(Builtin):
         p = numpy.dstack((cols, rows)) + numpy.array([1, 1])
         return from_python(p.tolist())
 
+
 # image attribute queries
+
 
 class ImageDimensions(Builtin):
     def apply(self, image, evaluation):
         'ImageDimensions[image_Image]'
         return Expression('List', *image.dimensions())
+
 
 class ImageAspectRatio(Builtin):
     def apply(self, image, evaluation):
@@ -719,22 +734,27 @@ class ImageAspectRatio(Builtin):
         dim = image.dimensions()
         return Real(dim[1] / float(dim[0]))
 
+
 class ImageChannels(Builtin):
     def apply(self, image, evaluation):
         'ImageChannels[image_Image]'
         return Integer(image.channels())
+
 
 class ImageType(Builtin):
     def apply(self, image, evaluation):
         'ImageType[image_Image]'
         return String(image.storage_type())
 
+
 class BinaryImageQ(Test):
     def apply(self, image, evaluation):
         'BinaryImageQ[image_Image]'
         return Symbol('True') if image.storage_type() == 'Bit' else Symbol('False')
 
+
 # Image core classes
+
 
 class ImageCreate(Builtin):
     messages = {
