@@ -324,6 +324,9 @@ class ImageResize(Builtin):
      = -Image-
     #> ImageDimensions[%]
      = {256, 320}
+    #> ImageResize[ein, {256, 256}, Resampling -> "Gaussian"]
+     : Gaussian resampling needs to maintain aspect ratio.
+     = ImageResize[-Image-, {256, 256}, Resampling -> Gaussian]
     #> ImageResize[ein, 256, Resampling -> "Invalid"]
      : Invalid resampling method Invalid.
      = ImageResize[-Image-, 256, Resampling -> Invalid]
@@ -346,7 +349,7 @@ class ImageResize(Builtin):
     messages = {
         'imgrssz': 'The size `1` is not a valid image size specification.',
         'imgrsm': 'Invalid resampling method `1`.',
-        'gaussaspect': 'Gaussian resampling needs to main aspect ratio.',
+        'gaussaspect': 'Gaussian resampling needs to maintain aspect ratio.',
     }
 
     def _get_image_size_spec(self, old_size, new_size):
@@ -438,6 +441,7 @@ class ImageResize(Builtin):
                 err = abs((sy * old_h) - (sx * old_h))
                 s = sx
             if err > 1.5:
+                # TODO overcome this limitation
                 return evaluation.message('ImageResize', 'gaussaspect')
             elif s > 1:
                 pixels = skimage.transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
