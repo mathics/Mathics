@@ -217,6 +217,8 @@ def do_compare(l1, l2):
         return True
     elif isinstance(l1, String) and isinstance(l2, String):
         return False
+    elif isinstance(l1, String) or isinstance(l2, String):
+        return None
     elif l1.to_sympy().is_number and l2.to_sympy().is_number:
         # assert min_prec(l1, l2) is None
         prec = 64  # TODO: Use $MaxExtraPrecision
@@ -290,6 +292,15 @@ class Equal(_InequalityOperator, SympyFunction):
 
     #> E == N[E]
      = True
+
+    #> "abc" == "def"
+     = False
+    #> "abc" == "abc"
+     = True
+    #> "abc" == Null
+     = abc == Null
+    #> Null == "def"
+     = Null == def
     """
     operator = '=='
     grouping = 'None'
