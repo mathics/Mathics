@@ -156,7 +156,7 @@ class _ImageArithmetic(Builtin):
         if images is None:
             return evaluation.message(self.get_name(), 'bddarg', arg)
         ufunc = getattr(numpy, self.get_name(True)[5:].lower())
-        result = self._reduce(images, ufunc)
+        result = self._reduce(images, ufunc).clip(0, 1)
         return Image(result, image.color_space)
 
 
@@ -185,6 +185,11 @@ class ImageAdd(_ImageArithmetic):
     >> ein = Import["ExampleData/Einstein.jpg"];
     >> noise = RandomImage[{-0.1, 0.1}, ImageDimensions[ein]];
     >> ImageAdd[noise, ein]
+     = -Image-
+
+    >> lena = Import["ExampleData/lena.tif"];
+    >> noise = RandomImage[{-0.2, 0.2}, ImageDimensions[lena], ColorSpace -> "RGB"];
+    >> ImageAdd[noise, lena]
      = -Image-
     '''
 
@@ -264,7 +269,14 @@ class RandomImage(Builtin):
      = -Image-
     #> RandomImage[{0.1, 0.5}, {400, 600}]
      = -Image-
+
+    #> RandomImage[{0.1, 0.5}, {400, 600}, ColorSpace -> "RGB"]
+     = -Image-
     '''
+
+    options = {
+        'ColorSpace': 'Automatic',
+    }
 
     rules = {
         'RandomImage[]': 'RandomImage[{0, 1}, {150, 150}]',
@@ -275,16 +287,28 @@ class RandomImage(Builtin):
 
     messages = {
         'bddim': 'The specified dimension `1` should be a pair of positive integers.',
+        'imgcstype': '`1` is an invalid color space specification.',
     }
 
-    def apply(self, minval, maxval, w, h, evaluation):
-        'RandomImage[{minval_?RealNumberQ, maxval_?RealNumberQ}, {w_Integer, h_Integer}]'
+    def apply(self, minval, maxval, w, h, evaluation, options):
+        'RandomImage[{minval_?RealNumberQ, maxval_?RealNumberQ}, {w_Integer, h_Integer}, OptionsPattern[RandomImage]]'
+        color_space = self.get_option(options, 'ColorSpace', evaluation)
+        if isinstance(color_space, Symbol) and color_space.get_name() == 'System`Automatic':
+            cs = 'Grayscale'
+        else:
+            cs = color_space.get_string_value()
         size = [w.get_int_value(), h.get_int_value()]
         if size[0] <= 0 or size[1] <= 0:
             return evaluation.message('RandomImage', 'bddim', from_python(size))
         minrange, maxrange = minval.get_real_value(), maxval.get_real_value()
-        data = numpy.random.rand(size[1], size[0]) * (maxrange - minrange) + minrange
-        return Image(data, 'Grayscale')
+
+        if cs == 'Grayscale':
+            data = numpy.random.rand(size[1], size[0]) * (maxrange - minrange) + minrange
+        elif cs == 'RGB':
+            data = numpy.random.rand(size[1], size[0], 3) * (maxrange - minrange) + minrange
+        else:
+            return evaluation.message('RandomImage', 'imgcstype', color_space)
+        return Image(data, cs)
 
 
 # simple image manipulation
@@ -741,7 +765,7 @@ class Threshold(Builtin):
         elif method_name == 'Mean':
             threshold = numpy.mean(pixels)
         else:
-            return evaluation.error('Threshold', 'illegalmethod', method)
+            return evaluation.message('Threshold', 'illegalmethod', method)
 
         return Real(threshold)
 
@@ -799,7 +823,7 @@ class Colorize(Builtin):
         a = numpy.array(a.to_python())
         n = int(numpy.max(a)) + 1
         if n > 8192:
-            return evaluation.error('Colorize', 'toomany')
+            return evaluation.message('Colorize', 'toomany')
 
         cmap = matplotlib.cm.get_cmap('hot', n)
         p = numpy.transpose(numpy.array([cmap(i) for i in range(n)])[:, 0:3])
@@ -832,7 +856,7 @@ class ImageData(Builtin):
         elif stype == 'Bit':
             pixels = pixels.as_dtype(numpy.bool)
         else:
-            return evaluation.error('ImageData', 'pixelfmt', stype)
+            return evaluation.message('ImageData', 'pixelfmt', stype)
         return from_python(pixels.tolist())
 
 
