@@ -6,11 +6,12 @@ from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
 from mathics.core.expression import (Expression, String, Symbol, Integer,
-                                     strip_context)
+                                     Rational, strip_context)
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
                                    InvalidLevelspecError)
+from mathics.builtin.functional import Identity
 import six
 from six.moves import range
 
@@ -85,6 +86,182 @@ class Sort(Builtin):
             return Expression(list.head, *new_leaves)
 
 
+class SortBy(Builtin):
+    """
+    <dl>
+    <dt>'SortBy[$list$, $f$]'
+    <dd>sorts $list$ (or the leaves of any other expression) according to canonical ordering of the keys that are
+    extracted from the $list$'s elements using $f. Chunks of leaves that appear the same under $f are sorted
+    according to their natural order (without applying $f).
+    </dl>
+
+    >> SortBy[{{5, 1}, {10, -1}}, Last]
+    """
+
+    def apply(self, l, f, evaluation):
+        'SortBy[l_, f_]'
+
+        if l.is_atom():
+            evaluation.message('Sort', 'normal')
+        else:
+            keys = Expression('Map', f, l).evaluate(evaluation).leaves  # precompute:
+            # even though our sort function has only (n log n) comparisons, we should
+            # compute f no more than n times.
+
+            raw_keys = l.leaves
+
+            class Key(object):
+                def __init__(self, index):
+                    self.index = index
+
+                def __gt__(self, other):
+                    kx, ky = keys[self.index], keys[other.index]
+                    if kx > ky:
+                        return True
+                    elif kx < ky:
+                        return False
+                    else:  # if f(x) == f(y), resort to x < y?
+                        return raw_keys[self.index] > raw_keys[other.index]
+
+            new_indices = sorted(list(range(len(raw_keys))), key=Key)
+            new_leaves = [raw_keys[i] for i in new_indices]
+            return Expression(l.head, *new_leaves)
+
+
+class Gather(Builtin):
+    """
+    <dl>
+    <dt>'Gather[$list$, $test$]'
+    <dd>gathers leaves of $list$ into sub lists of items that are the same according to $test$.
+
+    <dt>'Gather[$list$]'
+    <dd>gathers leaves of $list$ into sub lists of items that are the same.
+    </dl>
+
+    The order of the items inside the sub lists is the same as in the original list.
+
+    >> Gather[{1, 7, 3, 7, 2, 3, 9}]
+     = {{{1}, {7, 7}, {3, 3}, {2}, {9}}}
+    """
+
+    rules = {
+        'Gather[l_]': 'Gather[l, SameQ]'
+    }
+
+    def apply(self, list, test, evaluation):
+        'Gather[list_, test_]'
+        groups = []  # first element in each group serves as a prototype to test against
+        for elem in list.leaves:
+            append_to = None
+            for group in groups:
+                if Expression(test, elem, group[0]).evaluate(evaluation).is_true():
+                    append_to = group
+                    break
+            if append_to is None:
+                groups.append([elem])
+            else:
+                append_to.append(elem)
+        return Expression('List', [Expression(list.head, *group) for group in groups])
+
+
+class GatherBy(Builtin):
+    """
+    <dl>
+    <dt>'GatherBy[$list$, $f$]'
+    <dd>gathers leaves of $list$ into sub lists of items whose image under $f identical.
+    </dl>
+
+    >> GatherBy[{{1, 3}, {2, 2}, {1, 1}}, Total]
+     = {{{{1, 3}, {2, 2}}, {{1, 1}}}}
+
+    >> GatherBy[{"xy", "abc", "ab"}, StringLength]
+     = {{{"xy", "ab"}, {"abc"}}}
+
+    >> GatherBy[{{2, 0}, {1, 5}, {1, 0}}, Last]
+     = {{{{2, 0}, {1, 0}}, {{1, 5}}}}
+    """
+
+    rules = {
+        'GatherBy[l_]': 'GatherBy[l, Identity]',
+        'GatherBy[l_, f_]': 'Gather[l, SameQ[f[#1], f[#2]]&]'
+    }
+
+
+class BinarySearch(Builtin):
+    """
+    <dl>
+    <dt>'BinarySearch'[$l$, $k$]
+        <dd>searches the list $l$, which has to be sorted, for key $k$ and returns its index in $l$. If $k$ does not
+        exist in $l$, 'BinarySearch' returns (a + b) / 2, where a and b are the indices between which $k$ would have
+        to be inserted in order to maintain the sorting order in $l$. Please note that $k$ and the elements in $l$
+        need to be comparable under a strict total order (see https://en.wikipedia.org/wiki/Total_order).
+
+    <dt>'BinarySearch'[$l$, $k$, $f$]
+        <dd>the index of $k in the elements of $l$ if $f$ is applied to the latter prior to comparison. Note that $f$
+        needs to yield a sorted sequence if applied to the elements of $l.
+    </dl>
+
+    >> BinarySearch[{3, 4, 10, 100, 123}, 100]
+     = 4
+
+    >> BinarySearch[{2, 3, 9}, 7] // N
+     = 2.5
+
+    >> BinarySearch[{2, 7, 9, 10}, 3] // N
+     = 1.5
+
+    >> BinarySearch[{-10, 5, 8, 10}, -100] // N
+     = 0.5
+
+    >> BinarySearch[{-10, 5, 8, 10}, 20] // N
+     = 4.5
+
+    >> BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]
+     = 2
+    """
+
+    rules = {
+        'BinarySearch[l_List, k_]' : 'BinarySearch[l, k, Identity]'
+    }
+
+    def apply(self, l, k, f, evaluation):
+        'BinarySearch[l_List, k_, f_]'
+
+        leaves = l.leaves
+
+        lower_index = 1
+        upper_index = len(leaves)
+
+        if lower_index > upper_index:  # special case: empty list l
+            return Integer(1)  # return index 1
+
+        # "transform" is a handy wrapper for applying "f" or nothing
+        transform = (lambda x: x) if isinstance(f, Identity) else (lambda x: Expression(f, x).evaluate(evaluation))
+
+        # loop invariants (true at any time in the following loop):
+        # (1) lower_index <= upper_index
+        # (2) k > leaves[i] for all i < lower_index
+        # (3) k < leaves[i] for all i > upper_index
+        while True:
+            pivot_index = (lower_index + upper_index) >> 1  # i.e. a + (b - a) // 2
+            # as lower_index <= upper_index, lower_index <= pivot_index <= upper_index
+            pivot = transform(leaves[pivot_index - 1])  # 1-based to 0-based
+
+            # we assume a trichotomous relation: k < pivot, or k = pivot, or k > pivot
+            if k < pivot:
+                if pivot_index == lower_index:  # see invariant (2), to see that
+                    # k < leaves[pivot_index] and k > leaves[pivot_index - 1]
+                    return Rational((pivot_index - 1) + pivot_index, 2)
+                upper_index = pivot_index - 1
+            elif k == pivot:
+                return Integer(pivot_index)
+            else:  # k > pivot
+                if pivot_index == upper_index:  # see invariant (3), to see that
+                    # k > leaves[pivot_index] and k < leaves[pivot_index + 1]
+                    return Rational(pivot_index + (pivot_index + 1), 2)
+                lower_index = pivot_index + 1
+
+
 class PatternsOrderedQ(Builtin):
     """
     <dl>
@@ -131,6 +308,37 @@ class OrderedQ(Builtin):
             return Symbol('True')
         else:
             return Symbol('False')
+
+
+class Order(Builtin):
+    """
+    <dl>
+    <dt>'Order[$x$, $y$]'
+        <dd>returns a number indicating the canonical ordering of $x$ and $y$. 1 indicates that $x$ is before $y$,
+        -1 that $y$ is before $x$. 0 indicates that there is no specific ordering. Uses the same order as 'Sort'.
+    </dl>
+
+    >> Order[7, 11]
+     = 1
+
+    >> Order[100, 10]
+     = -1
+
+    >> Order[x, z]
+     = 1
+
+    >> Order[x, x]
+     = 0
+    """
+
+    def apply(self, x, y, evaluation):
+        'Order[x_, y_]'
+        if x < y:
+            return Integer(1)
+        elif x > y:
+            return Integer(-1)
+        else:
+            return Integer(0)
 
 
 class Head(Builtin):
