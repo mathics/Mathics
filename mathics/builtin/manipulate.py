@@ -72,8 +72,8 @@ class ManipulateParameter(Builtin): # parses one Manipulate[] parameter spec, e.
         # detect different kinds of widgets. on the use of the duplicate key "Default ->", see _WidgetInstantiator.add()
         'System`Private`ManipulateParameter[var_, {min_?RealNumberQ, max_?RealNumberQ}]':
             'Join[{Type -> "Continuous", Minimum -> min, Maximum -> max, Default -> min}, var]',
-        'System`Private`ManipulateParameter[var_, {min_?RealNumberQ, max_?RealNumberQ, ds_?RealNumberQ}]':
-            'Join[{Type -> "Discrete", Minimum -> min, Maximum -> max, Step -> ds, Default -> min}, var]',
+        'System`Private`ManipulateParameter[var_, {min_?RealNumberQ, max_?RealNumberQ, step_?RealNumberQ}]':
+            'Join[{Type -> "Discrete", Minimum -> min, Maximum -> max, Step -> step, Default -> min}, var]',
         'System`Private`ManipulateParameter[var_, {opt_List}] /; Length[opt] > 0':
             'Join[{Type -> "Options", Options -> opt, Default -> Part[opt, 1]}, var]'
     }
@@ -126,29 +126,29 @@ class _WidgetInstantiator():
         return new_callback
 
     def _add_continuous_widget(self, symbol, label, default, minimum, maximum, evaluation):
-        minval = minimum.to_python()
-        maxval = maximum.to_python()
-        if minval > maxval:
+        minimum_value = minimum.to_python()
+        maximum_value = maximum.to_python()
+        if minimum_value > maximum_value:
             raise IllegalWidgetArguments(symbol)
         else:
-            defval = min(max(default.to_python(), minval), maxval)
-            widget = FloatSlider(value=defval, min=minval, max=maxval)
+            defval = min(max(default.to_python(), minimum_value), maximum_value)
+            widget = FloatSlider(value=defval, min=minimum_value, max=maximum_value)
             self._add_widget(widget, symbol.get_name(), lambda x: from_python(x), label)
 
     def _add_discrete_widget(self, symbol, label, default, minimum, maximum, step, evaluation):
-        imin_value = minimum.to_python()
-        imax_value = maximum.to_python()
-        di_value = step.to_python()
-        if imin_value > imax_value or di_value <= 0 or di_value > (imax_value - imin_value):
+        minimum_value = minimum.to_python()
+        maximum_value = maximum.to_python()
+        step_value = step.to_python()
+        if minimum_value > maximum_value or step_value <= 0 or step_value > (maximum_value - minimum_value):
             raise IllegalWidgetArguments(symbol)
         else:
-            idefault_value = min(max(default.to_python(), imin_value), imax_value)
+            default_value = min(max(default.to_python(), minimum_value), maximum_value)
             if all(isinstance(x, Integer) for x in [minimum, maximum, default, step]):
-                widget = IntSlider(value=idefault_value, min=imin_value, max=imax_value,
-                                   step=di_value)
+                widget = IntSlider(value=default_value, min=minimum_value, max=maximum_value,
+                                   step=step_value)
             else:
-                widget = FloatSlider(value=idefault_value, min=imin_value, max=imax_value,
-                                     step=di_value)
+                widget = FloatSlider(value=default_value, min=minimum_value, max=maximum_value,
+                                     step=step_value)
             self._add_widget(widget, symbol.get_name(), lambda x: from_python(x), label)
 
     def _add_options_widget(self, symbol, options, default, label, evaluation):
