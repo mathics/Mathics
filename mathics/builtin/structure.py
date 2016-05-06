@@ -15,6 +15,7 @@ from mathics.builtin.functional import Identity
 import six
 from six.moves import range
 from collections import defaultdict
+import functools
 
 
 class Sort(Builtin):
@@ -314,8 +315,15 @@ class Tally(GatherBase):
 
 class DeleteDuplicates(GatherBase):
     """
-    >> DeleteDuplicates[{1, 2, 3, 1, 4, 2, 5, 2, 2, 1, 7}]
-     = {1, 2, 3, 4, 5, 7}
+    <dl>
+    <dt>'DeleteDuplicates[$list$]'
+    <dd>removes duplicates from $list$ by keeping the first occurence of
+    an element and removing all subsequent ones. Does not change the
+    order of the remaining elements.
+    </dl>
+
+    >> DeleteDuplicates[{7, 2, 3, 2, 1, 2, 5, 2, 2, 1, 7}]
+     = {7, 2, 3, 1, 5}
     """
 
     _bin = _DeleteDuplicatesBin
@@ -323,6 +331,39 @@ class DeleteDuplicates(GatherBase):
 
 class DeleteDuplicatesBy(Builtin):
     rules = {
+    }
+
+
+class _SetOperation(Builtin):
+    def apply(self, lists, evaluation):
+        '%(name)s[lists__]'
+        chunks = [l.leaves for l in lists.get_sequence() if l.get_head_name() == 'System`List']
+        if len(chunks) != len(lists.get_sequence()):
+            return Symbol('$Aborted')  # not all items are lists
+        return Expression('List', *sorted(list(functools.reduce(getattr(set, self._operation), map(set, chunks)))))
+
+
+class Union(_SetOperation):
+    _operation = 'union'
+
+
+class Intersect(_SetOperation):
+    _operation = 'intersection'
+
+
+class Complement(_SetOperation):
+    _operation = 'difference'
+
+
+class IntersectingQ(Builtin):
+    rules = {
+        'IntersectingQ[a_List, b_List]': 'Length[Intersect[a, b]] > 0'
+    }
+
+
+class DisjointQ(Test):
+    rules = {
+        'DisjointQ[a_List, b_List]': 'Not[IntersectingQ[a, b]]'
     }
 
 
