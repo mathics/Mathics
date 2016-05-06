@@ -14,6 +14,7 @@ from mathics.builtin.lists import (python_levelspec, walk_levels,
 from mathics.builtin.functional import Identity
 import six
 from six.moves import range
+from collections import defaultdict
 
 
 class Sort(Builtin):
@@ -93,10 +94,20 @@ class SortBy(Builtin):
     <dd>sorts $list$ (or the leaves of any other expression) according to canonical ordering of the keys that are
     extracted from the $list$'s elements using $f. Chunks of leaves that appear the same under $f are sorted
     according to their natural order (without applying $f).
+    <dt>'SortBy[$f$]'
+    <dd>creates an operator function that, when applied, sorts by $f.
     </dl>
 
     >> SortBy[{{5, 1}, {10, -1}}, Last]
+    = {{10, -1}, {5 ,1}}
+
+    >> SortBy[Total][{{5, 1}, {10, -9}}]
+    = {{10, -9}, {5, 1}}
     """
+
+    rules = {
+        'SortBy[f_]': 'SortBy[#, f]&'
+    }
 
     def apply(self, l, f, evaluation):
         'SortBy[l_, f_]'
@@ -109,6 +120,8 @@ class SortBy(Builtin):
             # compute f no more than n times.
 
             raw_keys = l.leaves
+            if len(raw_keys) != len(keys):  # this should never happen, I assume
+                return Symbol('$Aborted')
 
             class Key(object):
                 def __init__(self, index):
@@ -123,12 +136,114 @@ class SortBy(Builtin):
                     else:  # if f(x) == f(y), resort to x < y?
                         return raw_keys[self.index] > raw_keys[other.index]
 
+            # we sort a list of indices. after sorting, we reorder the leaves.
             new_indices = sorted(list(range(len(raw_keys))), key=Key)
-            new_leaves = [raw_keys[i] for i in new_indices]
+            new_leaves = [raw_keys[i] for i in new_indices]  # reorder leaves
             return Expression(l.head, *new_leaves)
 
 
-class Gather(Builtin):
+class _DefaultEquivalence:
+    def __init__(self, test, evaluation):
+        self._groups = []
+        self._test = test
+        self._evaluation = evaluation
+
+    def selector(self):
+        groups = self._groups
+        return lambda elem: groups
+
+    def same(self):
+        test = self._test
+        evaluation = self._evaluation
+        return lambda a, b: Expression(test, a, b).evaluate(evaluation).is_true()
+
+
+class _SamenessEquivalence:
+    # relies on the assumption that if SameQ[a, b] == true then hash(a) == hash(b)
+
+    def __init__(self):
+        self.hashes = defaultdict(list)
+
+    def selector(self):
+        hashes = self._hashes
+        return lambda elem: hashes[hash(elem)]
+
+    def same(self):
+        return lambda a, b: a.same(b)
+
+
+class _GatherBin:
+    def __init__(self, item):
+        self._items = [item]
+        self.add_to = self._items.append
+
+    def from_python(self):
+        return Expression('List', *self._items)
+
+
+class _TallyBin:
+    def __init__(self, item):
+        self._item = item
+        self._count = 1
+
+    def add_to(self, item):
+        self._count += 1
+
+    def from_python(self):
+        return Expression('List', self._item, Integer(self._count))
+
+
+class _DeleteDuplicatesBin:
+    def __init__(self, item):
+        self._item = item
+        self.add_to = lambda elem: None
+
+    def from_python(self):
+        return self._item
+
+
+def _gather(a_list, equivalence, Bin):
+    bins = []
+
+    select = equivalence.selector()
+    same = equivalence.same()
+
+    for elem in a_list.leaves:
+        selection = select(elem)
+        for prototype, add_to_bin in selection:  # find suitable bin
+            if same(elem, prototype):
+                add_to_bin(elem)  # add to existing bin
+                break
+        else:
+            a_bin = Bin(elem)  # create new bin
+            selection.append((elem, a_bin.add_to))
+            bins.append(a_bin)
+
+    return Expression('List', *[a_bin.from_python() for a_bin in bins])
+
+
+class GatherBase(Builtin):
+    rules = {
+        '%(name)s[l_]': '%(name)s[l, SameQ]'
+    }
+
+    messages = {
+        'needlist': '`` expects a List as first parameter.'
+    }
+
+    def apply(self, list, test, evaluation):
+        '%(name)s[list_, test_]'
+        if list.get_head_name() != 'System`List':
+            evaluation.error('GatherBase', 'needlist', strip_context(self.get_name()))
+            return Symbol('$Aborted')
+
+        if test.get_head_name() == 'System`SameQ':
+            return _gather(list, _SamenessEquivalence(), self._bin)
+        else:
+            return _gather(list, _DefaultEquivalence(test, evaluation), self._bin)
+
+
+class Gather(GatherBase):
     """
     <dl>
     <dt>'Gather[$list$, $test$]'
@@ -141,27 +256,10 @@ class Gather(Builtin):
     The order of the items inside the sub lists is the same as in the original list.
 
     >> Gather[{1, 7, 3, 7, 2, 3, 9}]
-     = {{{1}, {7, 7}, {3, 3}, {2}, {9}}}
+     = {{1}, {7, 7}, {3, 3}, {2}, {9}}
     """
 
-    rules = {
-        'Gather[l_]': 'Gather[l, SameQ]'
-    }
-
-    def apply(self, list, test, evaluation):
-        'Gather[list_, test_]'
-        groups = []  # first element in each group serves as a prototype to test against
-        for elem in list.leaves:
-            append_to = None
-            for group in groups:
-                if Expression(test, elem, group[0]).evaluate(evaluation).is_true():
-                    append_to = group
-                    break
-            if append_to is None:
-                groups.append([elem])
-            else:
-                append_to.append(elem)
-        return Expression('List', [Expression(list.head, *group) for group in groups])
+    _bin = _GatherBin
 
 
 class GatherBy(Builtin):
@@ -169,71 +267,114 @@ class GatherBy(Builtin):
     <dl>
     <dt>'GatherBy[$list$, $f$]'
     <dd>gathers leaves of $list$ into sub lists of items whose image under $f identical.
+
+    <dt>'GatherBy[$list$, {$f$, $g$, ...}]'
+    <dd>gathers leaves of $list$ into sub lists of items whose image under $f identical.
+    Then, gathers these sub lists again into sub sub lists, that are identical under $g.
     </dl>
 
     >> GatherBy[{{1, 3}, {2, 2}, {1, 1}}, Total]
-     = {{{{1, 3}, {2, 2}}, {{1, 1}}}}
+     = {{{1, 3}, {2, 2}}, {{1, 1}}}
 
     >> GatherBy[{"xy", "abc", "ab"}, StringLength]
-     = {{{"xy", "ab"}, {"abc"}}}
+     = {{"xy", "ab"}, {"abc"}}
 
     >> GatherBy[{{2, 0}, {1, 5}, {1, 0}}, Last]
-     = {{{{2, 0}, {1, 0}}, {{1, 5}}}}
+     = {{{2, 0}, {1, 0}}, {{1, 5}}}
+
+    >> GatherBy[{{1, 2}, {2, 1}, {3, 5}, {5, 1}, {2, 2, 2}}, {Total, Length}]
+     = {{{{1, 2}, {2, 1}}}, {{{3, 5}}} , {{{5, 1}}, {{2, 2, 2}}}}
     """
 
     rules = {
         'GatherBy[l_]': 'GatherBy[l, Identity]',
+        'GatherBy[l_, {r__, f_}]': 'Map[GatherBy[#, f]&, GatherBy[l, {r}], {Length[{r}]}]',
+        'GatherBy[l_, {f_}]': 'GatherBy[l, f]',
         'GatherBy[l_, f_]': 'Gather[l, SameQ[f[#1], f[#2]]&]'
+    }
+
+
+class Tally(GatherBase):
+    """
+    <dl>
+    <dt>'Tally[$list$]'
+    <dd>counts and returns the number of occurences of objects and returns
+    the result as a list of pairs {object, count}.
+    <dt>'Tally[$list$, $test$]'
+    <dd>counts the number of occurences of  objects and uses $test to
+    determine if two objects should be counted in the same bin.
+    </dl>
+
+    >> Tally[{a, b, c, b, a}]
+     = {{a, 2}, {b, 2}, {c, 1}}
+    """
+
+    _bin = _TallyBin
+
+
+class DeleteDuplicates(GatherBase):
+    """
+    >> DeleteDuplicates[{1, 2, 3, 1, 4, 2, 5, 2, 2, 1, 7}]
+     = {1, 2, 3, 4, 5, 7}
+    """
+
+    _bin = _DeleteDuplicatesBin
+
+
+class DeleteDuplicatesBy(Builtin):
+    rules = {
     }
 
 
 class BinarySearch(Builtin):
     """
     <dl>
-    <dt>'BinarySearch'[$l$, $k$]
+    <dt>'Combinatorica`BinarySearch[$l$, $k$]'
         <dd>searches the list $l$, which has to be sorted, for key $k$ and returns its index in $l$. If $k$ does not
         exist in $l$, 'BinarySearch' returns (a + b) / 2, where a and b are the indices between which $k$ would have
         to be inserted in order to maintain the sorting order in $l$. Please note that $k$ and the elements in $l$
         need to be comparable under a strict total order (see https://en.wikipedia.org/wiki/Total_order).
 
-    <dt>'BinarySearch'[$l$, $k$, $f$]
+    <dt>'Combinatorica`BinarySearch[$l$, $k$, $f$]'
         <dd>the index of $k in the elements of $l$ if $f$ is applied to the latter prior to comparison. Note that $f$
         needs to yield a sorted sequence if applied to the elements of $l.
     </dl>
 
-    >> BinarySearch[{3, 4, 10, 100, 123}, 100]
+    >> Combinatorica`BinarySearch[{3, 4, 10, 100, 123}, 100]
      = 4
 
-    >> BinarySearch[{2, 3, 9}, 7] // N
+    >> Combinatorica`BinarySearch[{2, 3, 9}, 7] // N
      = 2.5
 
-    >> BinarySearch[{2, 7, 9, 10}, 3] // N
+    >> Combinatorica`BinarySearch[{2, 7, 9, 10}, 3] // N
      = 1.5
 
-    >> BinarySearch[{-10, 5, 8, 10}, -100] // N
+    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, -100] // N
      = 0.5
 
-    >> BinarySearch[{-10, 5, 8, 10}, 20] // N
+    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, 20] // N
      = 4.5
 
-    >> BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]
+    >> Combinatorica`BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]
      = 2
     """
 
+    context = 'Combinatorica`'
+
     rules = {
-        'BinarySearch[l_List, k_]' : 'BinarySearch[l, k, Identity]'
+        'Combinatorica`BinarySearch[l_List, k_] /; Length[l] > 0': 'Combinatorica`BinarySearch[l, k, Identity]'
     }
 
     def apply(self, l, k, f, evaluation):
-        'BinarySearch[l_List, k_, f_]'
+        'Combinatorica`BinarySearch[l_List, k_, f_] /; Length[l] > 0'
 
         leaves = l.leaves
 
         lower_index = 1
         upper_index = len(leaves)
 
-        if lower_index > upper_index:  # special case: empty list l
-            return Integer(1)  # return index 1
+        if lower_index > upper_index:  # empty list l? Length[l] > 0 condition should guard us, but check anyway
+            return Symbol('$Aborted')
 
         # "transform" is a handy wrapper for applying "f" or nothing
         transform = (lambda x: x) if isinstance(f, Identity) else (lambda x: Expression(f, x).evaluate(evaluation))
@@ -884,7 +1025,7 @@ class Null(Predefined):
     >> a:=b
     in contrast to the empty string:
     >> ""
-     = 
+     =
     (watch the empty line).
     """
 
