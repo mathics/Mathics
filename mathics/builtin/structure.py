@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
+from mathics.builtin.comparison import SameQ
+from mathics.core.rules import BuiltinRule
 from mathics.core.expression import (Expression, String, Symbol, Integer,
                                      Rational, strip_context)
 from mathics.core.rules import Pattern
@@ -143,7 +145,11 @@ class SortBy(Builtin):
             return Expression(l.head, *new_leaves)
 
 
-class _DefaultEquivalence:
+class _SlowEquivalence:
+    # models an equivalence relation through a user defined test function. for n
+    # distinct elements (each in its own bin), we need sum(1, .., n - 1) = O(n^2)
+    # comparisons.
+
     def __init__(self, test, evaluation):
         self._groups = []
         self._test = test
@@ -159,11 +165,26 @@ class _DefaultEquivalence:
         return lambda a, b: Expression(test, a, b).evaluate(evaluation).is_true()
 
 
-class _SamenessEquivalence:
-    # relies on the assumption that if SameQ[a, b] == true then hash(a) == hash(b)
+class _FastEquivalence:
+    # models an equivalence relation through SameQ. for n distinct elements (each
+    # in its own bin), we expect to make O(n) comparisons (if the hash function
+    # does not fail us by distributing items very unevenly).
+
+    # IMPORTANT NOTE ON ATOM'S HASH FUNCTIONS / this code relies on this assumption:
+    #
+    # if SameQ[a, b] == true then hash(a) == hash(b)
+    #
+    # more specifically, this code bins items based on their hash code, and only if
+    # the hash code matches, is SameQ evoked.
+    #
+    # this assumption has been checked for these types: Integer, Real, Complex,
+    # String, Rational (*), Expression, Image; new atoms need proper hash functions
+    #
+    # (*) Rational values are sympy Rationals which are always held in reduced form
+    # and thus are hashed correctly (see sympy/core/numbers.py:Rational.__eq__()).
 
     def __init__(self):
-        self.hashes = defaultdict(list)
+        self._hashes = defaultdict(list)
 
     def selector(self):
         hashes = self._hashes
@@ -203,48 +224,51 @@ class _DeleteDuplicatesBin:
         return self._item
 
 
-def _gather(a_list, equivalence, Bin):
-    bins = []
-
-    select = equivalence.selector()
-    same = equivalence.same()
-
-    for elem in a_list.leaves:
-        selection = select(elem)
-        for prototype, add_to_bin in selection:  # find suitable bin
-            if same(elem, prototype):
-                add_to_bin(elem)  # add to existing bin
-                break
-        else:
-            a_bin = Bin(elem)  # create new bin
-            selection.append((elem, a_bin.add_to))
-            bins.append(a_bin)
-
-    return Expression('List', *[a_bin.from_python() for a_bin in bins])
-
-
-class GatherBase(Builtin):
+class _GatherOperation(Builtin):
     rules = {
-        '%(name)s[l_]': '%(name)s[l, SameQ]'
+        '%(name)s[list_]': '%(name)s[list, SameQ]'
     }
 
     messages = {
-        'needlist': '`` expects a List as first parameter.'
+        'needlist': 'expecting a List as first parameter.'
     }
 
     def apply(self, list, test, evaluation):
         '%(name)s[list_, test_]'
         if list.get_head_name() != 'System`List':
-            evaluation.error('GatherBase', 'needlist', strip_context(self.get_name()))
+            evaluation.error(self.get_name(), 'needlist')
             return Symbol('$Aborted')
 
-        if test.get_head_name() == 'System`SameQ':
-            return _gather(list, _SamenessEquivalence(), self._bin)
+        # System`SameQ is protected, so nobody should ever be able to change
+        # it (see Set::wrsym). We just check for its name here thus.
+
+        if test.is_symbol() and test.get_name() == 'System`SameQ':
+            return self._gather(list, _FastEquivalence())
         else:
-            return _gather(list, _DefaultEquivalence(test, evaluation), self._bin)
+            return self._gather(list, _SlowEquivalence(test, evaluation))
+
+    def _gather(self, a_list, equivalence):
+        bins = []
+        Bin = self._bin
+
+        select = equivalence.selector()
+        same = equivalence.same()
+
+        for elem in a_list.leaves:
+            selection = select(elem)
+            for prototype, add_to_bin in selection:  # find suitable bin
+                if same(elem, prototype):
+                    add_to_bin(elem)  # add to existing bin
+                    break
+            else:
+                a_bin = Bin(elem)  # create new bin
+                selection.append((elem, a_bin.add_to))
+                bins.append(a_bin)
+
+        return Expression('List', *[a_bin.from_python() for a_bin in bins])
 
 
-class Gather(GatherBase):
+class Gather(_GatherOperation):
     """
     <dl>
     <dt>'Gather[$list$, $test$]'
@@ -258,6 +282,9 @@ class Gather(GatherBase):
 
     >> Gather[{1, 7, 3, 7, 2, 3, 9}]
      = {{1}, {7, 7}, {3, 3}, {2}, {9}}
+
+    >> Gather[{1/3, 2/6, 1/9}]
+     = {{1/3, 1/3}, {1/9}}
     """
 
     _bin = _GatherBin
@@ -295,7 +322,7 @@ class GatherBy(Builtin):
     }
 
 
-class Tally(GatherBase):
+class Tally(_GatherOperation):
     """
     <dl>
     <dt>'Tally[$list$]'
@@ -313,7 +340,7 @@ class Tally(GatherBase):
     _bin = _TallyBin
 
 
-class DeleteDuplicates(GatherBase):
+class DeleteDuplicates(_GatherOperation):
     """
     <dl>
     <dt>'DeleteDuplicates[$list$]'
@@ -329,39 +356,105 @@ class DeleteDuplicates(GatherBase):
     _bin = _DeleteDuplicatesBin
 
 
-class DeleteDuplicatesBy(Builtin):
-    rules = {
+class _SetOperation(Builtin):
+    messages = {
+        'needlist': 'input position `` needs to be a List.'
     }
 
-
-class _SetOperation(Builtin):
     def apply(self, lists, evaluation):
         '%(name)s[lists__]'
-        chunks = [l.leaves for l in lists.get_sequence() if l.get_head_name() == 'System`List']
-        if len(chunks) != len(lists.get_sequence()):
-            return Symbol('$Aborted')  # not all items are lists
-        return Expression('List', *sorted(list(functools.reduce(getattr(set, self._operation), map(set, chunks)))))
+        no_lists = [str(1 + i) for i, l in enumerate(lists.get_sequence()) if l.get_head_name() != 'System`List']
+        if len(no_lists) > 0:
+            evaluation.error(self.get_name(), 'needlist', no_lists[0])
+            return Symbol('$Aborted')
+        return Expression('List', *sorted(list(functools.reduce(getattr(set, self._operation),
+                                                                map(set, [l.leaves for l in lists.get_sequence()])))))
 
 
 class Union(_SetOperation):
+    """
+    <dl>
+    <dt>'Union[$a$, $b$, ...]'
+    <dd>gives the union of the given set or sets. The resulting list will be sorted
+    and each element will only occur once.
+    </dl>
+
+    >> Union[{5, 1, 3, 7, 1, 8, 3}]
+     = {1, 3, 5, 7, 8}
+
+    >> Union[{a, b, c}, {c, d, e}]
+     = {a, b, c, d, e}
+
+    >> Union[{c, b, a}]
+     = {a, b, c}
+    """
+
     _operation = 'union'
 
 
 class Intersect(_SetOperation):
+    """
+    <dl>
+    <dt>'Intersect[$a$, $b$, ...]'
+    <dd>gives the intersection of the or sets. The resulting list will be sorted
+    and each element will only occur once.
+    </dl>
+
+    >> Intersect[{1000, 100, 10, 1}, {1, 5, 10, 15}]
+     = {1, 10}
+
+    >> Intersect[{{a, b}, {x, y}}, {{x, x}, {x, y}, {x, z}}]
+     = {{x, y}}
+
+    >> Intersect[{c, b, a}]
+     = {a, b, c}
+    """
+
     _operation = 'intersection'
 
 
 class Complement(_SetOperation):
+    """
+    <dl>
+    <dt>'Complement[$s0$, $s1$, ...]'
+    <dd>gives all elements that are in $s0$, but not in $s1$ (or $s2$, ...).
+    The resulting list will be sorted and each element will only occur once.
+    </dl>
+
+    >> Complement[{7, 1, 3, 5, 11}, {5, 7}]
+     = {1, 3, 11}
+
+    >> Complement[{7, 1, 3, 5, 11}, {5}, {1, 7}]
+     = {3, 11}
+
+    >> Complement[{c, b, a}]
+     = {a, b, c}
+    """
+
     _operation = 'difference'
 
 
 class IntersectingQ(Builtin):
+    """
+    <dl>
+    <dt>'IntersectingQ[$a$, $b$]'
+    <dd>gives True if there are any common elements in $a and $b, or False if $a and $b are disjoint.
+    </dl>
+    """
+
     rules = {
         'IntersectingQ[a_List, b_List]': 'Length[Intersect[a, b]] > 0'
     }
 
 
 class DisjointQ(Test):
+    """
+    <dl>
+    <dt>'DisjointQ[$a$, $b$]'
+    <dd>gives True if $a and $b are disjoint, or False if $a and $b have any common elements.
+    </dl>
+    """
+
     rules = {
         'DisjointQ[a_List, b_List]': 'Not[IntersectingQ[a, b]]'
     }
