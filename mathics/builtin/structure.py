@@ -5,14 +5,19 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
+from mathics.builtin.comparison import SameQ
+from mathics.core.rules import BuiltinRule
 from mathics.core.expression import (Expression, String, Symbol, Integer,
-                                     strip_context)
+                                     Rational, strip_context)
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
                                    InvalidLevelspecError)
+from mathics.builtin.functional import Identity
 import six
 from six.moves import range
+from collections import defaultdict
+import functools
 
 
 class Sort(Builtin):
@@ -85,6 +90,453 @@ class Sort(Builtin):
             return Expression(list.head, *new_leaves)
 
 
+class SortBy(Builtin):
+    """
+    <dl>
+    <dt>'SortBy[$list$, $f$]'
+    <dd>sorts $list$ (or the leaves of any other expression) according to canonical ordering of the keys that are
+    extracted from the $list$'s elements using $f. Chunks of leaves that appear the same under $f are sorted
+    according to their natural order (without applying $f).
+    <dt>'SortBy[$f$]'
+    <dd>creates an operator function that, when applied, sorts by $f.
+    </dl>
+
+    >> SortBy[{{5, 1}, {10, -1}}, Last]
+    = {{10, -1}, {5 ,1}}
+
+    >> SortBy[Total][{{5, 1}, {10, -9}}]
+    = {{10, -9}, {5, 1}}
+    """
+
+    rules = {
+        'SortBy[f_]': 'SortBy[#, f]&'
+    }
+
+    def apply(self, l, f, evaluation):
+        'SortBy[l_, f_]'
+
+        if l.is_atom():
+            evaluation.message('Sort', 'normal')
+        else:
+            keys = Expression('Map', f, l).evaluate(evaluation).leaves  # precompute:
+            # even though our sort function has only (n log n) comparisons, we should
+            # compute f no more than n times.
+
+            raw_keys = l.leaves
+            if len(raw_keys) != len(keys):  # this should never happen, I assume
+                return Symbol('$Aborted')
+
+            class Key(object):
+                def __init__(self, index):
+                    self.index = index
+
+                def __gt__(self, other):
+                    kx, ky = keys[self.index], keys[other.index]
+                    if kx > ky:
+                        return True
+                    elif kx < ky:
+                        return False
+                    else:  # if f(x) == f(y), resort to x < y?
+                        return raw_keys[self.index] > raw_keys[other.index]
+
+            # we sort a list of indices. after sorting, we reorder the leaves.
+            new_indices = sorted(list(range(len(raw_keys))), key=Key)
+            new_leaves = [raw_keys[i] for i in new_indices]  # reorder leaves
+            return Expression(l.head, *new_leaves)
+
+
+class _SlowEquivalence:
+    # models an equivalence relation through a user defined test function. for n
+    # distinct elements (each in its own bin), we need sum(1, .., n - 1) = O(n^2)
+    # comparisons.
+
+    def __init__(self, test, evaluation):
+        self._groups = []
+        self._test = test
+        self._evaluation = evaluation
+
+    def selector(self):
+        groups = self._groups
+        return lambda elem: groups
+
+    def same(self):
+        test = self._test
+        evaluation = self._evaluation
+        return lambda a, b: Expression(test, a, b).evaluate(evaluation).is_true()
+
+
+class _FastEquivalence:
+    # models an equivalence relation through SameQ. for n distinct elements (each
+    # in its own bin), we expect to make O(n) comparisons (if the hash function
+    # does not fail us by distributing items very unevenly).
+
+    # IMPORTANT NOTE ON ATOM'S HASH FUNCTIONS / this code relies on this assumption:
+    #
+    # if SameQ[a, b] == true then hash(a) == hash(b)
+    #
+    # more specifically, this code bins items based on their hash code, and only if
+    # the hash code matches, is SameQ evoked.
+    #
+    # this assumption has been checked for these types: Integer, Real, Complex,
+    # String, Rational (*), Expression, Image; new atoms need proper hash functions
+    #
+    # (*) Rational values are sympy Rationals which are always held in reduced form
+    # and thus are hashed correctly (see sympy/core/numbers.py:Rational.__eq__()).
+
+    def __init__(self):
+        self._hashes = defaultdict(list)
+
+    def selector(self):
+        hashes = self._hashes
+        return lambda elem: hashes[hash(elem)]
+
+    def same(self):
+        return lambda a, b: a.same(b)
+
+
+class _GatherBin:
+    def __init__(self, item):
+        self._items = [item]
+        self.add_to = self._items.append
+
+    def from_python(self):
+        return Expression('List', *self._items)
+
+
+class _TallyBin:
+    def __init__(self, item):
+        self._item = item
+        self._count = 1
+
+    def add_to(self, item):
+        self._count += 1
+
+    def from_python(self):
+        return Expression('List', self._item, Integer(self._count))
+
+
+class _DeleteDuplicatesBin:
+    def __init__(self, item):
+        self._item = item
+        self.add_to = lambda elem: None
+
+    def from_python(self):
+        return self._item
+
+
+class _GatherOperation(Builtin):
+    rules = {
+        '%(name)s[list_]': '%(name)s[list, SameQ]'
+    }
+
+    messages = {
+        'needlist': 'expecting a List as first parameter.'
+    }
+
+    def apply(self, list, test, evaluation):
+        '%(name)s[list_, test_]'
+        if list.get_head_name() != 'System`List':
+            evaluation.error(self.get_name(), 'needlist')
+            return Symbol('$Aborted')
+
+        # System`SameQ is protected, so nobody should ever be able to change
+        # it (see Set::wrsym). We just check for its name here thus.
+
+        if test.is_symbol() and test.get_name() == 'System`SameQ':
+            return self._gather(list, _FastEquivalence())
+        else:
+            return self._gather(list, _SlowEquivalence(test, evaluation))
+
+    def _gather(self, a_list, equivalence):
+        bins = []
+        Bin = self._bin
+
+        select = equivalence.selector()
+        same = equivalence.same()
+
+        for elem in a_list.leaves:
+            selection = select(elem)
+            for prototype, add_to_bin in selection:  # find suitable bin
+                if same(elem, prototype):
+                    add_to_bin(elem)  # add to existing bin
+                    break
+            else:
+                a_bin = Bin(elem)  # create new bin
+                selection.append((elem, a_bin.add_to))
+                bins.append(a_bin)
+
+        return Expression('List', *[a_bin.from_python() for a_bin in bins])
+
+
+class Gather(_GatherOperation):
+    """
+    <dl>
+    <dt>'Gather[$list$, $test$]'
+    <dd>gathers leaves of $list$ into sub lists of items that are the same according to $test$.
+
+    <dt>'Gather[$list$]'
+    <dd>gathers leaves of $list$ into sub lists of items that are the same.
+    </dl>
+
+    The order of the items inside the sub lists is the same as in the original list.
+
+    >> Gather[{1, 7, 3, 7, 2, 3, 9}]
+     = {{1}, {7, 7}, {3, 3}, {2}, {9}}
+
+    >> Gather[{1/3, 2/6, 1/9}]
+     = {{1/3, 1/3}, {1/9}}
+    """
+
+    _bin = _GatherBin
+
+
+class GatherBy(Builtin):
+    """
+    <dl>
+    <dt>'GatherBy[$list$, $f$]'
+    <dd>gathers leaves of $list$ into sub lists of items whose image under $f identical.
+
+    <dt>'GatherBy[$list$, {$f$, $g$, ...}]'
+    <dd>gathers leaves of $list$ into sub lists of items whose image under $f identical.
+    Then, gathers these sub lists again into sub sub lists, that are identical under $g.
+    </dl>
+
+    >> GatherBy[{{1, 3}, {2, 2}, {1, 1}}, Total]
+     = {{{1, 3}, {2, 2}}, {{1, 1}}}
+
+    >> GatherBy[{"xy", "abc", "ab"}, StringLength]
+     = {{"xy", "ab"}, {"abc"}}
+
+    >> GatherBy[{{2, 0}, {1, 5}, {1, 0}}, Last]
+     = {{{2, 0}, {1, 0}}, {{1, 5}}}
+
+    >> GatherBy[{{1, 2}, {2, 1}, {3, 5}, {5, 1}, {2, 2, 2}}, {Total, Length}]
+     = {{{{1, 2}, {2, 1}}}, {{{3, 5}}} , {{{5, 1}}, {{2, 2, 2}}}}
+    """
+
+    rules = {
+        'GatherBy[l_]': 'GatherBy[l, Identity]',
+        'GatherBy[l_, {r__, f_}]': 'Map[GatherBy[#, f]&, GatherBy[l, {r}], {Length[{r}]}]',
+        'GatherBy[l_, {f_}]': 'GatherBy[l, f]',
+        'GatherBy[l_, f_]': 'Gather[l, SameQ[f[#1], f[#2]]&]'
+    }
+
+
+class Tally(_GatherOperation):
+    """
+    <dl>
+    <dt>'Tally[$list$]'
+    <dd>counts and returns the number of occurences of objects and returns
+    the result as a list of pairs {object, count}.
+    <dt>'Tally[$list$, $test$]'
+    <dd>counts the number of occurences of  objects and uses $test to
+    determine if two objects should be counted in the same bin.
+    </dl>
+
+    >> Tally[{a, b, c, b, a}]
+     = {{a, 2}, {b, 2}, {c, 1}}
+    """
+
+    _bin = _TallyBin
+
+
+class DeleteDuplicates(_GatherOperation):
+    """
+    <dl>
+    <dt>'DeleteDuplicates[$list$]'
+    <dd>removes duplicates from $list$ by keeping the first occurence of
+    an element and removing all subsequent ones. Does not change the
+    order of the remaining elements.
+    </dl>
+
+    >> DeleteDuplicates[{7, 2, 3, 2, 1, 2, 5, 2, 2, 1, 7}]
+     = {7, 2, 3, 1, 5}
+    """
+
+    _bin = _DeleteDuplicatesBin
+
+
+class _SetOperation(Builtin):
+    messages = {
+        'needlist': 'input position `` needs to be a List.'
+    }
+
+    def apply(self, lists, evaluation):
+        '%(name)s[lists__]'
+        no_lists = [str(1 + i) for i, l in enumerate(lists.get_sequence()) if l.get_head_name() != 'System`List']
+        if len(no_lists) > 0:
+            evaluation.error(self.get_name(), 'needlist', no_lists[0])
+            return Symbol('$Aborted')
+        return Expression('List', *sorted(list(functools.reduce(getattr(set, self._operation),
+                                                                map(set, [l.leaves for l in lists.get_sequence()])))))
+
+
+class Union(_SetOperation):
+    """
+    <dl>
+    <dt>'Union[$a$, $b$, ...]'
+    <dd>gives the union of the given set or sets. The resulting list will be sorted
+    and each element will only occur once.
+    </dl>
+
+    >> Union[{5, 1, 3, 7, 1, 8, 3}]
+     = {1, 3, 5, 7, 8}
+
+    >> Union[{a, b, c}, {c, d, e}]
+     = {a, b, c, d, e}
+
+    >> Union[{c, b, a}]
+     = {a, b, c}
+    """
+
+    _operation = 'union'
+
+
+class Intersect(_SetOperation):
+    """
+    <dl>
+    <dt>'Intersect[$a$, $b$, ...]'
+    <dd>gives the intersection of the or sets. The resulting list will be sorted
+    and each element will only occur once.
+    </dl>
+
+    >> Intersect[{1000, 100, 10, 1}, {1, 5, 10, 15}]
+     = {1, 10}
+
+    >> Intersect[{{a, b}, {x, y}}, {{x, x}, {x, y}, {x, z}}]
+     = {{x, y}}
+
+    >> Intersect[{c, b, a}]
+     = {a, b, c}
+    """
+
+    _operation = 'intersection'
+
+
+class Complement(_SetOperation):
+    """
+    <dl>
+    <dt>'Complement[$s0$, $s1$, ...]'
+    <dd>gives all elements that are in $s0$, but not in $s1$ (or $s2$, ...).
+    The resulting list will be sorted and each element will only occur once.
+    </dl>
+
+    >> Complement[{7, 1, 3, 5, 11}, {5, 7}]
+     = {1, 3, 11}
+
+    >> Complement[{7, 1, 3, 5, 11}, {5}, {1, 7}]
+     = {3, 11}
+
+    >> Complement[{c, b, a}]
+     = {a, b, c}
+    """
+
+    _operation = 'difference'
+
+
+class IntersectingQ(Builtin):
+    """
+    <dl>
+    <dt>'IntersectingQ[$a$, $b$]'
+    <dd>gives True if there are any common elements in $a and $b, or False if $a and $b are disjoint.
+    </dl>
+    """
+
+    rules = {
+        'IntersectingQ[a_List, b_List]': 'Length[Intersect[a, b]] > 0'
+    }
+
+
+class DisjointQ(Test):
+    """
+    <dl>
+    <dt>'DisjointQ[$a$, $b$]'
+    <dd>gives True if $a and $b are disjoint, or False if $a and $b have any common elements.
+    </dl>
+    """
+
+    rules = {
+        'DisjointQ[a_List, b_List]': 'Not[IntersectingQ[a, b]]'
+    }
+
+
+class BinarySearch(Builtin):
+    """
+    <dl>
+    <dt>'Combinatorica`BinarySearch[$l$, $k$]'
+        <dd>searches the list $l$, which has to be sorted, for key $k$ and returns its index in $l$. If $k$ does not
+        exist in $l$, 'BinarySearch' returns (a + b) / 2, where a and b are the indices between which $k$ would have
+        to be inserted in order to maintain the sorting order in $l$. Please note that $k$ and the elements in $l$
+        need to be comparable under a strict total order (see https://en.wikipedia.org/wiki/Total_order).
+
+    <dt>'Combinatorica`BinarySearch[$l$, $k$, $f$]'
+        <dd>the index of $k in the elements of $l$ if $f$ is applied to the latter prior to comparison. Note that $f$
+        needs to yield a sorted sequence if applied to the elements of $l.
+    </dl>
+
+    >> Combinatorica`BinarySearch[{3, 4, 10, 100, 123}, 100]
+     = 4
+
+    >> Combinatorica`BinarySearch[{2, 3, 9}, 7] // N
+     = 2.5
+
+    >> Combinatorica`BinarySearch[{2, 7, 9, 10}, 3] // N
+     = 1.5
+
+    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, -100] // N
+     = 0.5
+
+    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, 20] // N
+     = 4.5
+
+    >> Combinatorica`BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]
+     = 2
+    """
+
+    context = 'Combinatorica`'
+
+    rules = {
+        'Combinatorica`BinarySearch[l_List, k_] /; Length[l] > 0': 'Combinatorica`BinarySearch[l, k, Identity]'
+    }
+
+    def apply(self, l, k, f, evaluation):
+        'Combinatorica`BinarySearch[l_List, k_, f_] /; Length[l] > 0'
+
+        leaves = l.leaves
+
+        lower_index = 1
+        upper_index = len(leaves)
+
+        if lower_index > upper_index:  # empty list l? Length[l] > 0 condition should guard us, but check anyway
+            return Symbol('$Aborted')
+
+        # "transform" is a handy wrapper for applying "f" or nothing
+        transform = (lambda x: x) if isinstance(f, Identity) else (lambda x: Expression(f, x).evaluate(evaluation))
+
+        # loop invariants (true at any time in the following loop):
+        # (1) lower_index <= upper_index
+        # (2) k > leaves[i] for all i < lower_index
+        # (3) k < leaves[i] for all i > upper_index
+        while True:
+            pivot_index = (lower_index + upper_index) >> 1  # i.e. a + (b - a) // 2
+            # as lower_index <= upper_index, lower_index <= pivot_index <= upper_index
+            pivot = transform(leaves[pivot_index - 1])  # 1-based to 0-based
+
+            # we assume a trichotomous relation: k < pivot, or k = pivot, or k > pivot
+            if k < pivot:
+                if pivot_index == lower_index:  # see invariant (2), to see that
+                    # k < leaves[pivot_index] and k > leaves[pivot_index - 1]
+                    return Rational((pivot_index - 1) + pivot_index, 2)
+                upper_index = pivot_index - 1
+            elif k == pivot:
+                return Integer(pivot_index)
+            else:  # k > pivot
+                if pivot_index == upper_index:  # see invariant (3), to see that
+                    # k > leaves[pivot_index] and k < leaves[pivot_index + 1]
+                    return Rational(pivot_index + (pivot_index + 1), 2)
+                lower_index = pivot_index + 1
+
+
 class PatternsOrderedQ(Builtin):
     """
     <dl>
@@ -131,6 +583,37 @@ class OrderedQ(Builtin):
             return Symbol('True')
         else:
             return Symbol('False')
+
+
+class Order(Builtin):
+    """
+    <dl>
+    <dt>'Order[$x$, $y$]'
+        <dd>returns a number indicating the canonical ordering of $x$ and $y$. 1 indicates that $x$ is before $y$,
+        -1 that $y$ is before $x$. 0 indicates that there is no specific ordering. Uses the same order as 'Sort'.
+    </dl>
+
+    >> Order[7, 11]
+     = 1
+
+    >> Order[100, 10]
+     = -1
+
+    >> Order[x, z]
+     = 1
+
+    >> Order[x, x]
+     = 0
+    """
+
+    def apply(self, x, y, evaluation):
+        'Order[x_, y_]'
+        if x < y:
+            return Integer(1)
+        elif x > y:
+            return Integer(-1)
+        else:
+            return Integer(0)
 
 
 class Head(Builtin):
@@ -676,7 +1159,7 @@ class Null(Predefined):
     >> a:=b
     in contrast to the empty string:
     >> ""
-     = 
+     =
     (watch the empty line).
     """
 
