@@ -302,9 +302,10 @@ class Evaluation(object):
 
         # Prevent too large results from being stored, as this can exceed the
         # DB's max_allowed_packet size
-        data = pickle.dumps(result)
-        if len(data) > 10000:
-            return Symbol('Null')
+        if settings.MAX_STORED_SIZE is not None:
+            data = pickle.dumps(result)
+            if len(data) > settings.MAX_STORED_SIZE:
+                return Symbol('Null')
         return result
 
     def stop(self):
