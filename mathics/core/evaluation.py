@@ -11,6 +11,7 @@ from six.moves.queue import Queue
 
 import sys
 from threading import Thread
+import itertools
 
 from mathics import settings
 from mathics.core.expression import ensure_context, KeyComparable
@@ -19,6 +20,18 @@ FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
            'TeXForm', 'MathMLForm',
            'MatrixForm', 'TableForm']
+
+
+def _interleave(*gens):  # interleaves over n generators of even or uneven lengths
+    active = [gen for gen in gens]
+    while len(active) > 0:
+        i = 0
+        while i < len(active):
+            try:
+                yield next(active[i])
+                i += 1
+            except StopIteration:
+                del active[i]
 
 
 class EvaluationInterrupt(Exception):
@@ -177,6 +190,7 @@ class Evaluation(object):
 
         self.quiet_all = False
         self.format = format
+        self.output_size_limit = None
         self.catch_interrupt = catch_interrupt
 
     def parse(self, query):
@@ -355,6 +369,82 @@ class Evaluation(object):
         if not isinstance(value, Expression):
             return []
         return value.leaves
+
+    def make_boxes(self, items, form, segment=None):
+        from mathics.core.expression import Expression, String
+
+        if self.output_size_limit is None:
+            return [Expression('MakeBoxes', item, form) for item in items]
+
+        # FIXME: special case for (long) Strings
+
+        try:
+            old_capacity = self.output_size_limit
+            capacity = old_capacity
+
+            left_leaves = []
+            right_leaves = []
+
+            middle = len(items) // 2
+            # note that we use generator expressions, not list comprehensions, here, since we
+            # might quit early in the loop below, and copying all leaves might prove inefficient.
+            from_left = ((leaf, left_leaves.append) for leaf in items[:middle])
+            from_right = ((leaf, right_leaves.append) for leaf in reversed(items[middle:]))
+
+            for item, push in _interleave(from_left, from_right):
+                self.output_size_limit = capacity
+                box = Expression('MakeBoxes', item, form).evaluate(self)  # this is a serious change to before!
+                cost = len(str(box.boxes_to_xml(evaluation=self)))
+                if capacity < cost:
+                    break
+                capacity -= cost
+                push(box)
+
+            self.output_size_limit = old_capacity
+
+            ellipsis_size = len(items) - (len(left_leaves) + len(right_leaves))
+            ellipsis = [String('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []
+
+            if segment is not None:
+                if ellipsis_size > 0:
+                    segment.extend((True, len(left_leaves), len(items) - len(right_leaves)))
+                else:
+                    segment.extend((False, 0, 0))
+
+            return list(itertools.chain(left_leaves, ellipsis, reversed(right_leaves)))
+        except:
+            import sys
+            return [String(repr(sys.exc_info()))]
+
+    def format_all_outputs(self, expr):
+        '''
+        used by jupyter kernel
+        '''
+        output_size_limit = 1000  # default
+        if self.definitions.have_definition('Global`$OutputSizeLimit'):
+            from mathics.core.expression import String
+            from mathics.core.rules import Rule
+            val = self.definitions.get_definition('Global`$OutputSizeLimit').ownvalues
+            if len(val) == 1 and isinstance(val[0], Rule) and val[0].replace.is_numeric():
+                output_size_limit = int(val[0].replace.to_python())
+
+
+        orig_format = self.format
+        orig_output_size_limit = self.output_size_limit
+        known_formats = {
+            'text/plain': 'text',
+            'text/html': 'xml',
+            'text/latex': 'tex',
+        }
+
+        data = {}
+        for mime, form in known_formats.items():
+            self.format = form
+            self.output_size_limit = output_size_limit
+            data[mime] = self.format_output(expr)
+        self.format = orig_format
+        self.output_size_limit = orig_output_size_limit
+        return data
 
     def message(self, symbol, tag, *args):
         from mathics.core.expression import (String, Symbol, Expression,
