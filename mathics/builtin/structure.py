@@ -284,7 +284,7 @@ class Gather(_GatherOperation):
      = {{1}, {7, 7}, {3, 3}, {2}, {9}}
 
     >> Gather[{1/3, 2/6, 1/9}]
-     = {{1/3, 1/3}, {1/9}}
+     = {{1 / 3, 1 / 3}, {1 / 9}}
     """
 
     _bin = _GatherBin
@@ -305,7 +305,7 @@ class GatherBy(Builtin):
      = {{{1, 3}, {2, 2}}, {{1, 1}}}
 
     >> GatherBy[{"xy", "abc", "ab"}, StringLength]
-     = {{"xy", "ab"}, {"abc"}}
+     = {{xy, ab}, {abc}}
 
     >> GatherBy[{{2, 0}, {1, 5}, {1, 0}}, Last]
      = {{{2, 0}, {1, 0}}, {{1, 5}}}
