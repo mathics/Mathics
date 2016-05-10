@@ -2290,7 +2290,7 @@ class GatherBy(Builtin):
      = {{{2, 0}, {1, 0}}, {{1, 5}}}
 
     >> GatherBy[{{1, 2}, {2, 1}, {3, 5}, {5, 1}, {2, 2, 2}}, {Total, Length}]
-     = {{{{1, 2}, {2, 1}}}, {{{3, 5}}} , {{{5, 1}}, {{2, 2, 2}}}}
+     = {{{{1, 2}, {2, 1}}}, {{{3, 5}}}, {{{5, 1}}, {{2, 2, 2}}}}
     """
 
     rules = {
@@ -2363,33 +2363,29 @@ class _SetOperation(Builtin):
     def apply(self, lists, evaluation, options={}):
         '%(name)s[lists__, OptionsPattern[%(name)s]]'
 
-        try:
-            seq = lists.get_sequence()
+        seq = lists.get_sequence()
 
-            for pos, e in enumerate(seq):
-                if e.is_atom():
-                    return evaluation.message(
-                        self.get_name(), 'normal', pos + 1, Expression(self.get_name(), *seq))
+        for pos, e in enumerate(seq):
+            if e.is_atom():
+                return evaluation.message(
+                    self.get_name(), 'normal', pos + 1, Expression(self.get_name(), *seq))
 
-            for pos, e in enumerate(zip(seq, seq[1:])):
-                e1, e2 = e
-                if e1.head != e2.head:
-                    return evaluation.message(
-                        self.get_name(), 'heads', e1.head, e2.head,
-                        pos + 1, pos + 2)
+        for pos, e in enumerate(zip(seq, seq[1:])):
+            e1, e2 = e
+            if e1.head != e2.head:
+                return evaluation.message(
+                    self.get_name(), 'heads', e1.head, e2.head,
+                    pos + 1, pos + 2)
 
-            same_test = self.get_option(options, 'SameTest', evaluation)
-            operands = [l.leaves for l in seq]
-            if not _is_sameq(same_test):
-                same = _make_test_pair(same_test, evaluation, self.get_name())
-                items = functools.reduce(lambda a, b: [e for e in self._elementwise(b, a, same)], operands)
-            else:
-                items = list(functools.reduce(getattr(set, self._operation), map(set, operands)))
+        same_test = self.get_option(options, 'SameTest', evaluation)
+        operands = [l.leaves for l in seq]
+        if not _is_sameq(same_test):
+            same = _make_test_pair(same_test, evaluation, self.get_name())
+            items = functools.reduce(lambda a, b: [e for e in self._elementwise(a, b, same)], operands)
+        else:
+            items = list(functools.reduce(getattr(set, self._operation), map(set, operands)))
 
-            return Expression(seq[0].get_head(), *sorted(items))
-        except:
-            import sys
-            return String(repr(sys.exc_info()))
+        return Expression(seq[0].get_head(), *sorted(items))
 
 
 class Union(_SetOperation):
@@ -2410,20 +2406,20 @@ class Union(_SetOperation):
      = {a, b, c}
 
     >> Union[{{a, 1}, {b, 2}}, {{c, 1}, {d, 3}}, SameTest->(SameQ[Last[#1],Last[#2]]&)]
-     = {a, 1}, {b, 2}, {d, 3}}
+     = {{b, 2}, {c, 1}, {d, 3}}
 
     >> Union[{1, 2, 3}, {2, 3, 4}, SameTest->Less]
-     = (1, 2, 2, 3, 4}
+     = {1, 2, 2, 3, 4}
     """
 
     _operation = 'union'
 
     def _elementwise(self, a, b, same):
-        for ea in a:
-            yield ea
         for eb in b:
-            if not any(same(ea, eb) for ea in a):
-                yield eb
+            yield eb
+        for ea in a:
+            if not any(same(eb, ea) for eb in b):
+                yield ea
 
 
 class Intersect(_SetOperation):
@@ -2442,13 +2438,16 @@ class Intersect(_SetOperation):
 
     >> Intersect[{c, b, a}]
      = {a, b, c}
+
+    >> Intersect[{1, 2, 3}, {2, 3, 4}, SameTest->Less]
+     = {3}
     """
 
     _operation = 'intersection'
 
     def _elementwise(self, a, b, same):
         for ea in a:
-            if any(same(ea, eb) for eb in b):
+            if any(same(eb, ea) for eb in b):
                 yield ea
 
 
@@ -2493,7 +2492,7 @@ class Complement(_SetOperation):
 
     def _elementwise(self, a, b, same):
         for ea in a:
-            if not any(same(ea, eb) for eb in b):
+            if not any(same(eb, ea) for eb in b):
                 yield ea
 
 

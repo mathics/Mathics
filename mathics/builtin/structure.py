@@ -100,7 +100,7 @@ class SortBy(Builtin):
     </dl>
 
     >> SortBy[{{5, 1}, {10, -1}}, Last]
-    = {{10, -1}, {5 ,1}}
+    = {{10, -1}, {5, 1}}
 
     >> SortBy[Total][{{5, 1}, {10, -9}}]
     = {{10, -9}, {5, 1}}
@@ -842,7 +842,7 @@ class Null(Predefined):
     >> a:=b
     in contrast to the empty string:
     >> ""
-     =
+     = 
     (watch the empty line).
     """
 
