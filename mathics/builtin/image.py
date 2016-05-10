@@ -19,6 +19,7 @@ from mathics.core.evaluation import Evaluation
 
 import six
 import base64
+import functools
 
 try:
     import skimage
@@ -812,18 +813,41 @@ class ColorSeparate(Builtin):
         return Expression('List', *images)
 
 
-class Colorize(Builtin):
-    messages = {
-        'toomany': 'Too many levels.'
-    }
+def _linearize(a):
+    # this uses a vectorized binary search to compute
+    # strictly sequential indices for all values in a.
 
+    orig_shape = a.shape
+    a = a.reshape((functools.reduce(lambda x, y: x*y, a.shape), ))  # 1 dimension
+
+    u = numpy.unique(a)
+    n = len(u)
+
+    lower = numpy.ndarray(a.shape, dtype=numpy.int)
+    lower.fill(0)
+    upper = numpy.ndarray(a.shape, dtype=numpy.int)
+    upper.fill(n - 1)
+
+    h = numpy.sort(u)
+    q = n  # worst case partition size
+
+    while q > 2:
+        m = numpy.right_shift(lower + upper, 1)
+        f = a <= h[m]
+        # (lower, m) vs (m + 1, upper)
+        lower = numpy.where(f, lower, m + 1)
+        upper = numpy.where(f, m, upper)
+        q = (q + 1) // 2
+
+    return numpy.where(a == h[lower], lower, upper).reshape(orig_shape), n
+
+
+class Colorize(Builtin):
     def apply(self, a, evaluation):
         'Colorize[a_?MatrixQ]'
 
-        a = numpy.array(a.to_python())
-        n = int(numpy.max(a)) + 1
-        if n > 8192:
-            return evaluation.message('Colorize', 'toomany')
+        a, n = _linearize(numpy.array(a.to_python()))
+        # the maximum value for n is the number of pixels in a, which is acceptable and never too large.
 
         cmap = matplotlib.cm.get_cmap('hot', n)
         p = numpy.transpose(numpy.array([cmap(i) for i in range(n)])[:, 0:3])
