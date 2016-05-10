@@ -2099,16 +2099,33 @@ class Riffle(Builtin):
             return Expression('List', *riffle_lists(list.get_leaves(), [sep]))
 
 
+def _is_sameq(same_test):
+    # System`SameQ is protected, so nobody should ever be able to change
+    # it (see Set::wrsym). We just check for its name here thus.
+    return same_test.is_symbol() and same_test.get_name() == 'System`SameQ'
+
+
+def _make_test_pair(test, evaluation, name):
+    def test_pair(a, b):
+        test_expr = Expression(test, a, b)
+        result = test_expr.evaluate(evaluation)
+        if not (result.is_symbol() and (result.has_symbol('True') or result.has_symbol('False'))):
+            evaluation.message(name, 'smtst', test_expr, result)
+        return result.is_true()
+
+    return test_pair
+
 
 class _SlowEquivalence:
     # models an equivalence relation through a user defined test function. for n
     # distinct elements (each in its own bin), we need sum(1, .., n - 1) = O(n^2)
     # comparisons.
 
-    def __init__(self, test, evaluation):
+    def __init__(self, test, evaluation, name):
         self._groups = []
         self._test = test
         self._evaluation = evaluation
+        self._name = name
 
     def selector(self):
         groups = self._groups
@@ -2117,7 +2134,7 @@ class _SlowEquivalence:
     def same(self):
         test = self._test
         evaluation = self._evaluation
-        return lambda a, b: Expression(test, a, b).evaluate(evaluation).is_true()
+        return _make_test_pair(test, evaluation, self._name)
 
 
 class _FastEquivalence:
@@ -2186,7 +2203,10 @@ class _GatherOperation(Builtin):
 
     messages = {
         'normal': 'Nonatomic expression expected at position `1` in `2`.',
-        'needlist': 'expecting a List as first parameter.'
+        'needlist': 'expecting a List as first parameter.',
+        'smtst': ("Application of the SameTest yielded `1`, which evaluates "
+                  "to `2`. The SameTest must evaluate to True or False at "
+                  "every pair of elements."),
     }
 
     def apply(self, list, test, evaluation):
@@ -2201,13 +2221,10 @@ class _GatherOperation(Builtin):
             evaluation.error(self.get_name(), 'needlist')
             return Symbol('$Aborted')
 
-        # System`SameQ is protected, so nobody should ever be able to change
-        # it (see Set::wrsym). We just check for its name here thus.
-
-        if test.is_symbol() and test.get_name() == 'System`SameQ':
+        if _is_sameq(test):
             return self._gather(list, _FastEquivalence())
         else:
-            return self._gather(list, _SlowEquivalence(test, evaluation))
+            return self._gather(list, _SlowEquivalence(test, evaluation, self.get_name()))
 
     def _gather(self, a_list, equivalence):
         bins = []
@@ -2219,7 +2236,7 @@ class _GatherOperation(Builtin):
         for elem in a_list.leaves:
             selection = select(elem)
             for prototype, add_to_bin in selection:  # find suitable bin
-                if same(elem, prototype):
+                if same(prototype, elem):
                     add_to_bin(elem)  # add to existing bin
                     break
             else:
@@ -2331,17 +2348,48 @@ class DeleteDuplicates(_GatherOperation):
 
 class _SetOperation(Builtin):
     messages = {
-        'needlist': 'input position `` needs to be a List.'
+        'normal': "Non-atomic expression expected at position `1` in `2`.",
+        'heads': ("Heads `1` and `2` at positions `3` and `4` are expected "
+                  "to be the same."),
+        'smtst': ("Application of the SameTest yielded `1`, which evaluates "
+                  "to `2`. The SameTest must evaluate to True or False at "
+                  "every pair of elements."),
     }
 
-    def apply(self, lists, evaluation):
-        '%(name)s[lists__]'
-        no_lists = [str(1 + i) for i, l in enumerate(lists.get_sequence()) if l.get_head_name() != 'System`List']
-        if len(no_lists) > 0:
-            evaluation.error(self.get_name(), 'needlist', no_lists[0])
-            return Symbol('$Aborted')
-        return Expression('List', *sorted(list(functools.reduce(getattr(set, self._operation),
-                                                                map(set, [l.leaves for l in lists.get_sequence()])))))
+    options = {
+        'SameTest': 'SameQ',
+    }
+
+    def apply(self, lists, evaluation, options={}):
+        '%(name)s[lists__, OptionsPattern[%(name)s]]'
+
+        try:
+            seq = lists.get_sequence()
+
+            for pos, e in enumerate(seq):
+                if e.is_atom():
+                    return evaluation.message(
+                        self.get_name(), 'normal', pos + 1, Expression(self.get_name(), *seq))
+
+            for pos, e in enumerate(zip(seq, seq[1:])):
+                e1, e2 = e
+                if e1.head != e2.head:
+                    return evaluation.message(
+                        self.get_name(), 'heads', e1.head, e2.head,
+                        pos + 1, pos + 2)
+
+            same_test = self.get_option(options, 'SameTest', evaluation)
+            operands = [l.leaves for l in seq]
+            if not _is_sameq(same_test):
+                same = _make_test_pair(same_test, evaluation, self.get_name())
+                items = functools.reduce(lambda a, b: [e for e in self._elementwise(b, a, same)], operands)
+            else:
+                items = list(functools.reduce(getattr(set, self._operation), map(set, operands)))
+
+            return Expression(seq[0].get_head(), *sorted(items))
+        except:
+            import sys
+            return String(repr(sys.exc_info()))
 
 
 class Union(_SetOperation):
@@ -2360,9 +2408,22 @@ class Union(_SetOperation):
 
     >> Union[{c, b, a}]
      = {a, b, c}
+
+    >> Union[{{a, 1}, {b, 2}}, {{c, 1}, {d, 3}}, SameTest->(SameQ[Last[#1],Last[#2]]&)]
+     = {a, 1}, {b, 2}, {d, 3}}
+
+    >> Union[{1, 2, 3}, {2, 3, 4}, SameTest->Less]
+     = (1, 2, 2, 3, 4}
     """
 
     _operation = 'union'
+
+    def _elementwise(self, a, b, same):
+        for ea in a:
+            yield ea
+        for eb in b:
+            if not any(same(ea, eb) for ea in a):
+                yield eb
 
 
 class Intersect(_SetOperation):
@@ -2384,6 +2445,11 @@ class Intersect(_SetOperation):
     """
 
     _operation = 'intersection'
+
+    def _elementwise(self, a, b, same):
+        for ea in a:
+            if any(same(ea, eb) for eb in b):
+                yield ea
 
 
 class Complement(_SetOperation):
@@ -2425,69 +2491,10 @@ class Complement(_SetOperation):
 
     _operation = 'difference'
 
-
-
-class ComplementOld(Builtin):
-    messages = {
-        'normal': "Non-atomic expression expected at position `1` in `2`.",
-        'heads': ("Heads `1` and `2` at positions `3` and `4` are expected "
-                  "to be the same."),
-        'smtst': ("Application of the SameTest yielded `1`, which evaluates "
-                  "to `2`. The SameTest must evaluate to True or False at "
-                  "every pair of elements."),
-    }
-
-    options = {
-        'SameTest': 'SameQ',
-    }
-
-    def complement(self, all, others, evaluation, test):
-        def test_pair(e1, e2):
-            test_expr = Expression(test, e1, e2)
-            result = test_expr.evaluate(evaluation)
-            if not(result.is_symbol() and (result.has_symbol('True') or
-                                           result.has_symbol('False'))):
-                evaluation.message('Complement', 'smtst', test_expr, result)
-            return result.is_true()
-        all = set(all)
-        for leaves in others:
-            for e2 in leaves:
-                for e1 in all.copy():
-                    if test_pair(e1, e2):
-                        all.discard(e1)
-        return all
-
-    def apply(self, all, others, evaluation, options={}):
-        'Complement[all_, others__, OptionsPattern[Complement]]'
-
-        # FIXME: is there a better way to get hold of the original
-        # expression?
-        def get_call():
-            return Expression('Complement', all, *others.get_sequence())
-
-        for pos, e in enumerate([all, others]):
-            if e.is_atom():
-                return evaluation.message(
-                    'Complement', 'normal', pos + 1, get_call())
-
-        for pos, e in enumerate([all] + others.get_sequence()):
-            if e.is_atom():
-                return evaluation.message(
-                    'Complement', 'normal', pos + 1, get_call())
-            if e.head != all.head:
-                return evaluation.message(
-                    'Complement', 'heads', all.head, e.head,
-                    1, pos + 1)
-
-        result_head = all.head
-        same_test = self.get_option(options, 'SameTest', evaluation)
-        others_leaves = [e.leaves for e in others.get_sequence()]
-
-        result = Expression(result_head,
-                            *self.complement(all.leaves, others_leaves,
-                                             evaluation, same_test))
-        result.sort()
-        return result
+    def _elementwise(self, a, b, same):
+        for ea in a:
+            if not any(same(ea, eb) for eb in b):
+                yield ea
 
 
 class IntersectingQ(Builtin):
