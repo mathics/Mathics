@@ -380,6 +380,8 @@ class Evaluation(object):
         from mathics.core.expression import Expression, String
 
         if self.output_size_limit is None:
+            if segment is not None:
+                segment.extend((False, 0, 0))
             return [Expression('MakeBoxes', item, form) for item in items]
 
         # FIXME: special case for (long) Strings
