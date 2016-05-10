@@ -941,16 +941,28 @@ class BinaryImageQ(Test):
 # Image core classes
 
 
+def _image_pixels(matrix):
+    try:
+        pixels = numpy.array(matrix, dtype='float64')
+    except ValueError:  # irregular array, e.g. {{0, 1}, {0, 1, 1}}
+        return None
+    shape = pixels.shape
+    if len(shape) == 2 or (len(shape) == 3 and shape[2] in (1, 3)):
+        return pixels
+    else:
+        return None
+
+
 class ImageCreate(Builtin):
     def apply(self, array, evaluation):
-        '''ImageCreate[array_?MatrixQ]'''
-        pixels = numpy.array(array.to_python(), dtype='float64')
-        shape = pixels.shape
-        is_rgb = (len(shape) == 3 and shape[2] == 3)
-        if len(shape) == 2 or (len(shape) == 3 and shape[2] in (1, 3)):
+        '''ImageCreate[array_]'''
+        pixels = _image_pixels(array.to_python())
+        if pixels is not None:
+            shape = pixels.shape
+            is_rgb = (len(shape) == 3 and shape[2] == 3)
             return Image(pixels.clip(0, 1), 'RGB' if is_rgb else 'Grayscale')
         else:
-            return Expression('Image', array)
+            return Symbol('$Aborted')
 
 
 class ImageBox(BoxConstruct):
