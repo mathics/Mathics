@@ -21,7 +21,7 @@ from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
     Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError,
-    from_python, MachineReal, PrecisionReal, OutputEllipsis)
+    from_python, MachineReal, PrecisionReal)
 from mathics.core.numbers import (
     dps, prec, convert_base, machine_precision, reconstruct_digits)
 from mathics.builtin.lists import riffle
