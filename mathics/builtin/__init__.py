@@ -7,7 +7,7 @@ from __future__ import absolute_import
 from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory,
+    graphics, graphics3d, image, inout, integer, linalg, lists, logic, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
     specialfunctions, scoping, strings, structure, system, tensors)
 
@@ -19,7 +19,7 @@ from mathics.settings import ENABLE_FILES_MODULE
 modules = [
     algebra, arithmetic, assignment, attributes, calculus, combinatorial,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory,
+    graphics, graphics3d, image, inout, integer, linalg, lists, logic, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
     specialfunctions, scoping, strings, structure, system, tensors]
 
@@ -121,3 +121,18 @@ def contribute(definitions):
         if not definitions.have_definition(ensure_context(operator)):
             op = ensure_context(operator)
             definitions.builtin[op] = Definition(name=op)
+
+    # Special case for Image[]: Image[] is an atom, and so Image[...]
+    # will not usually evaluate to anything, since there are no rules
+    # attached to it. we're adding one special rule here, that allows
+    # to construct Image atoms by using Image[] (using the helper
+    # builin ImageCreate).
+    from mathics.core.rules import Rule
+    from mathics.builtin.image import Image
+    from mathics.core.parser import parse_builtin_rule
+
+    definition = Definition(
+        name='System`Image', rules=[
+            Rule(parse_builtin_rule('Image[x_]'),
+                 parse_builtin_rule('ImageCreate[x]'), system=True)])
+    definitions.builtin['System`Image'] = definition
