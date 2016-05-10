@@ -345,12 +345,18 @@ class Evaluation(object):
                 self, 'System`TeXForm')
         else:
             raise ValueError
+
+        orig_output_size_limit = self.output_size_limit
         try:
+            self.output_size_limit = self.definitions.get_config_value('$OutputSizeLimit', 1000)
             boxes = result.boxes_to_text(evaluation=self)
         except BoxError:
             self.message('General', 'notboxes',
                          Expression('FullForm', result).evaluate(self))
             boxes = None
+        finally:
+            self.output_size_limit = orig_output_size_limit
+
         return boxes
 
     def set_quiet_messages(self, messages):
@@ -416,35 +422,6 @@ class Evaluation(object):
             import sys
             return [String(repr(sys.exc_info()))]
 
-    def format_all_outputs(self, expr):
-        '''
-        used by jupyter kernel
-        '''
-        output_size_limit = 1000  # default
-        if self.definitions.have_definition('Global`$OutputSizeLimit'):
-            from mathics.core.expression import String
-            from mathics.core.rules import Rule
-            val = self.definitions.get_definition('Global`$OutputSizeLimit').ownvalues
-            if len(val) == 1 and isinstance(val[0], Rule) and val[0].replace.is_numeric():
-                output_size_limit = int(val[0].replace.to_python())
-
-
-        orig_format = self.format
-        orig_output_size_limit = self.output_size_limit
-        known_formats = {
-            'text/plain': 'text',
-            'text/html': 'xml',
-            'text/latex': 'tex',
-        }
-
-        data = {}
-        for mime, form in known_formats.items():
-            self.format = form
-            self.output_size_limit = output_size_limit
-            data[mime] = self.format_output(expr)
-        self.format = orig_format
-        self.output_size_limit = orig_output_size_limit
-        return data
 
     def message(self, symbol, tag, *args):
         from mathics.core.expression import (String, Symbol, Expression,
