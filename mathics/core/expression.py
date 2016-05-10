@@ -705,14 +705,14 @@ class Expression(BaseExpression):
         sub_level = None if level is None else level - 1
         do_flatten = False
         for leaf in self.leaves:
-            if leaf.get_head() == head and (not pattern_only or
+            if leaf.get_head().same(head) and (not pattern_only or
                                             leaf.pattern_sequence):
                 do_flatten = True
                 break
         if do_flatten:
             new_leaves = []
             for leaf in self.leaves:
-                if leaf.get_head() == head and (not pattern_only or
+                if leaf.get_head().same(head) and (not pattern_only or
                                                 leaf.pattern_sequence):
                     new_leaf = leaf.flatten(head, pattern_only, callback,
                                             level=sub_level)
@@ -1135,7 +1135,7 @@ class Expression(BaseExpression):
         items = []
         dim = None
         for leaf in self.leaves:
-            if leaf.get_head() == head:
+            if leaf.get_head().same(head):
                 if dim is None:
                     dim = len(leaf.leaves)
                     items = [(items + [leaf]) for leaf in leaf.leaves]
