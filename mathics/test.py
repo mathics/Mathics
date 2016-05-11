@@ -23,6 +23,7 @@ from mathics import version_string
 from mathics import settings
 
 definitions = Definitions(add_builtin=True)
+definitions.set_config_value('$OutputSizeLimit', 1024 * 1024)  # large enough for all tests
 
 sep = '-' * 70 + '\n'
 

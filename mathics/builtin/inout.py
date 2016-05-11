@@ -840,7 +840,7 @@ class TableForm(Builtin):
      . -Graphics-   -Graphics-   -Graphics-
 
     #> TableForm[{}]
-     =
+     = 
     """
 
     options = {
