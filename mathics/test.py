@@ -23,7 +23,10 @@ from mathics import version_string
 from mathics import settings
 
 definitions = Definitions(add_builtin=True)
-definitions.set_config_value('$OutputSizeLimit', 1024 * 1024)  # large enough for all tests
+
+def reset_user_definitions():
+    definitions.reset_user_definitions()
+    definitions.set_config_value('$OutputSizeLimit', 1024 * 1024)  # large enough for all tests
 
 sep = '-' * 70 + '\n'
 
@@ -98,7 +101,7 @@ def test_case(test, tests, index=0, quiet=False):
 
 
 def test_tests(tests, index, quiet=False, stop_on_failure=False, start_at=0):
-    definitions.reset_user_definitions()
+    reset_user_definitions()
     count = failed = skipped = 0
     failed_symbols = set()
     for test in tests.tests:
@@ -117,7 +120,7 @@ def test_tests(tests, index, quiet=False, stop_on_failure=False, start_at=0):
 
 def create_output(tests, output_xml, output_tex):
     for format, output in [('xml', output_xml), ('tex', output_tex)]:
-        definitions.reset_user_definitions()
+        reset_user_definitions()
         for test in tests.tests:
             key = test.key
             evaluation = Evaluation(definitions, format=format, catch_interrupt=False)

@@ -335,25 +335,26 @@ class Evaluation(object):
 
         from mathics.core.expression import Expression, BoxError
 
-        if format == 'text':
-            result = expr.format(self, 'System`OutputForm')
-        elif format == 'xml':
-            result = Expression(
-                'StandardForm', expr).format(self, 'System`MathMLForm')
-        elif format == 'tex':
-            result = Expression('StandardForm', expr).format(
-                self, 'System`TeXForm')
-        else:
-            raise ValueError
-
-        orig_output_size_limit = self.output_size_limit
+        self.output_size_limit = self.definitions.get_config_value('$OutputSizeLimit', 1000)
         try:
-            self.output_size_limit = self.definitions.get_config_value('$OutputSizeLimit', 1000)
-            boxes = result.boxes_to_text(evaluation=self)
-        except BoxError:
-            self.message('General', 'notboxes',
-                         Expression('FullForm', result).evaluate(self))
-            boxes = None
+            if format == 'text':
+                result = expr.format(self, 'System`OutputForm')
+            elif format == 'xml':
+                result = Expression(
+                    'StandardForm', expr).format(self, 'System`MathMLForm')
+            elif format == 'tex':
+                result = Expression('StandardForm', expr).format(
+                    self, 'System`TeXForm')
+            else:
+                raise ValueError
+
+            orig_output_size_limit = self.output_size_limit
+            try:
+                boxes = result.boxes_to_text(evaluation=self)
+            except BoxError:
+                self.message('General', 'notboxes',
+                             Expression('FullForm', result).evaluate(self))
+                boxes = None
         finally:
             self.output_size_limit = orig_output_size_limit
 
@@ -401,7 +402,7 @@ class Evaluation(object):
 
             for item, push in _interleave(from_left, from_right):
                 self.output_size_limit = capacity
-                box = Expression('MakeBoxes', item, form).evaluate(self)  # this is a serious change to before!
+                box = Expression('MakeBoxes', item, form).evaluate(self)  # this is a serious change to the old impl.
                 cost = len(str(box.boxes_to_xml(evaluation=self)))
                 if capacity < cost:
                     break
