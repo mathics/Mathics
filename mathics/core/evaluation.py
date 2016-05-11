@@ -381,7 +381,7 @@ class Evaluation(object):
     def make_boxes(self, items, form, segment=None):
         from mathics.core.expression import Expression, String
 
-        if self.output_size_limit is None:
+        if self.output_size_limit is None or len(items) < 1:
             if segment is not None:
                 segment.extend((False, 0, 0))
             return [Expression('MakeBoxes', item, form) for item in items]
