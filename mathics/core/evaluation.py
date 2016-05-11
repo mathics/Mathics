@@ -403,7 +403,7 @@ class Evaluation(object):
         for item, push in _interleave(from_left, from_right):
             self.output_size_limit = capacity
             box = Expression('MakeBoxes', item, form).evaluate(self)  # this is a serious change to the old impl.
-            cost = len(str(box.boxes_to_xml(evaluation=self)))
+            cost = len(box.boxes_to_xml(evaluation=self))
             if capacity < cost:
                 break
             capacity -= cost
