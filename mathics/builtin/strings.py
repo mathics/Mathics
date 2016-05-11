@@ -802,45 +802,7 @@ class StringReplace(Builtin):
         else:
             return String(do_subs(py_strings))
 
-        
-class StringReverse(Builtin):
     
-    """
-    <dl>
-    <dt>'StringReverse[$string$]'
-        <dd>reverses the order of characters in $string$.
-    </dl>
-
-    >> StringReverse["hello world"]
-     = "dlrow olleh"
-
-    StringReverse works on string lists too:
-    >> StringReverse[{"cat", "mouse", "lion"}]
-     = {"tac", "esuom", "noil"}
-    """
-    
-    messages = {'strse': 'String or list of strings expected at position `1`'}
-    
-    def apply(self, string, evaluation):
-        'StringReverse[string_]'
-        expr = Expression('StringReverse', string)
-        if string.has_form('List', None):
-            py_strings = [stri.get_string_value()[::-1] for stri in string.leaves]
-            if None in py_strings:
-                return evaluation.message(
-                    'StringReverse', 'strse', Integer(1), expr)
-        else:
-            py_strings = string.get_string_value()
-            if py_strings is None:
-                return evaluation.message(
-                    'StringReverse', 'strse', Integer(1), expr)
-        if isinstance(py_strings, list):
-            return Expression(
-                'List', *[String(py_stri) for py_stri in py_strings])
-        else:
-            return String(py_strings)                    
-
-
 class Characters(Builtin):
     """
     <dl>
