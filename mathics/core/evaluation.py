@@ -335,8 +335,10 @@ class Evaluation(object):
 
         from mathics.core.expression import Expression, BoxError
 
-        self.output_size_limit = self.definitions.get_config_value('$OutputSizeLimit', 1000)
+        orig_output_size_limit = self.output_size_limit
         try:
+            self.output_size_limit = self.definitions.get_config_value('$OutputSizeLimit', 1000)
+
             if format == 'text':
                 result = expr.format(self, 'System`OutputForm')
             elif format == 'xml':
@@ -348,7 +350,6 @@ class Evaluation(object):
             else:
                 raise ValueError
 
-            orig_output_size_limit = self.output_size_limit
             try:
                 boxes = result.boxes_to_text(evaluation=self)
             except BoxError:
