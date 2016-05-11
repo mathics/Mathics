@@ -388,44 +388,39 @@ class Evaluation(object):
 
         # FIXME: special case for (long) Strings
 
-        try:
-            old_capacity = self.output_size_limit
-            capacity = old_capacity
+        old_capacity = self.output_size_limit
+        capacity = old_capacity
 
-            left_leaves = []
-            right_leaves = []
+        left_leaves = []
+        right_leaves = []
 
-            middle = len(items) // 2
-            # note that we use generator expressions, not list comprehensions, here, since we
-            # might quit early in the loop below, and copying all leaves might prove inefficient.
-            from_left = ((leaf, left_leaves.append) for leaf in items[:middle])
-            from_right = ((leaf, right_leaves.append) for leaf in reversed(items[middle:]))
+        middle = len(items) // 2
+        # note that we use generator expressions, not list comprehensions, here, since we
+        # might quit early in the loop below, and copying all leaves might prove inefficient.
+        from_left = ((leaf, left_leaves.append) for leaf in items[:middle])
+        from_right = ((leaf, right_leaves.append) for leaf in reversed(items[middle:]))
 
-            for item, push in _interleave(from_left, from_right):
-                self.output_size_limit = capacity
-                box = Expression('MakeBoxes', item, form).evaluate(self)  # this is a serious change to the old impl.
-                cost = len(str(box.boxes_to_xml(evaluation=self)))
-                if capacity < cost:
-                    break
-                capacity -= cost
-                push(box)
+        for item, push in _interleave(from_left, from_right):
+            self.output_size_limit = capacity
+            box = Expression('MakeBoxes', item, form).evaluate(self)  # this is a serious change to the old impl.
+            cost = len(str(box.boxes_to_xml(evaluation=self)))
+            if capacity < cost:
+                break
+            capacity -= cost
+            push(box)
 
-            self.output_size_limit = old_capacity
+        self.output_size_limit = old_capacity
 
-            ellipsis_size = len(items) - (len(left_leaves) + len(right_leaves))
-            ellipsis = [String('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []
+        ellipsis_size = len(items) - (len(left_leaves) + len(right_leaves))
+        ellipsis = [String('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []
 
-            if segment is not None:
-                if ellipsis_size > 0:
-                    segment.extend((True, len(left_leaves), len(items) - len(right_leaves)))
-                else:
-                    segment.extend((False, 0, 0))
+        if segment is not None:
+            if ellipsis_size > 0:
+                segment.extend((True, len(left_leaves), len(items) - len(right_leaves)))
+            else:
+                segment.extend((False, 0, 0))
 
-            return list(itertools.chain(left_leaves, ellipsis, reversed(right_leaves)))
-        except:
-            import sys
-            return [String(repr(sys.exc_info()))]
-
+        return list(itertools.chain(left_leaves, ellipsis, reversed(right_leaves)))
 
     def message(self, symbol, tag, *args):
         from mathics.core.expression import (String, Symbol, Expression,
