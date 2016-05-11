@@ -52,7 +52,7 @@ class Names(Builtin):
 
     >> x = 5;
     >> Names["Global`*"]
-     = {x}
+     = {$OutputSizeLimit, x}
 
     The number of built-in symbols:
     >> Length[Names["System`*"]]
