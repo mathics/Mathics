@@ -163,6 +163,7 @@ class Degree(Builtin):
     }
 
 
+
 class Inverse(Builtin):
     """
     <dl>
@@ -241,6 +242,26 @@ class SingularValueDecomposition(Builtin):
         S_list = Expression('List', *S.tolist())
         V_list = Expression('List', *V.tolist())
         return Expression('List', *[U_list, S_list, V_list])
+
+
+class QRDecomposition(Builtin):
+    """
+    <dl>
+    <dt>'QRDecomposition[$m$]'
+        <dd>computes the QR decomposition of the matrix $m$.
+    </dl>
+
+    >> QRDecomposition[{{1, 2}, {3, 4}, {5, 6}}]
+     = {{Sqrt[35]/35, 13*Sqrt[210]/210}, {3*Sqrt[35]/35, 2*Sqrt[210]/105}, {Sqrt[35]/7, -Sqrt[210]/42}}
+    """
+    
+    def apply(self, m, evaluation):
+        'QRDecomposition[m_]'
+
+        matrix = to_sympy_matrix(m)
+        Q, R = matrix.QRdecomposition()
+        Q = Q.transpose()
+        return Expression('List', *[from_sympy(Q), from_sympy(R)])
 
 
 class PseudoInverse(Builtin):
