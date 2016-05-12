@@ -26,7 +26,7 @@ definitions = Definitions(add_builtin=True)
 
 def reset_user_definitions():
     definitions.reset_user_definitions()
-    definitions.set_config_value('$OutputSizeLimit', 1024 * 1024)  # large enough for all tests
+    definitions.set_config_value('System`$OutputSizeLimit', 1024 * 1024)  # large enough for all tests
 
 sep = '-' * 70 + '\n'
 

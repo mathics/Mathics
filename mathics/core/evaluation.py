@@ -337,7 +337,7 @@ class Evaluation(object):
 
         orig_output_size_limit = self.output_size_limit
         try:
-            self.output_size_limit = self.definitions.get_config_value('$OutputSizeLimit', 1000)
+            self.output_size_limit = self.definitions.get_config_value('System`$OutputSizeLimit', 1000)
 
             if format == 'text':
                 result = expr.format(self, 'System`OutputForm')
