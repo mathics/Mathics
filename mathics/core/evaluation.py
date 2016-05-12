@@ -337,7 +337,7 @@ class Evaluation(object):
 
         orig_output_size_limit = self.output_size_limit
         try:
-            self.output_size_limit = self.definitions.get_config_value('System`$OutputSizeLimit', 1000)
+            self.output_size_limit = self.definitions.get_config_value('System`$OutputSizeLimit')
 
             if format == 'text':
                 result = expr.format(self, 'System`OutputForm')
@@ -400,16 +400,17 @@ class Evaluation(object):
         from_left = ((leaf, left_leaves.append) for leaf in items[:middle])
         from_right = ((leaf, right_leaves.append) for leaf in reversed(items[middle:]))
 
-        for item, push in _interleave(from_left, from_right):
-            self.output_size_limit = capacity
-            box = Expression('MakeBoxes', item, form).evaluate(self)  # this is a serious change to the old impl.
-            cost = len(box.boxes_to_xml(evaluation=self))
-            if capacity < cost:
-                break
-            capacity -= cost
-            push(box)
-
-        self.output_size_limit = old_capacity
+        try:
+            for item, push in _interleave(from_left, from_right):
+                self.output_size_limit = capacity
+                box = Expression('MakeBoxes', item, form).evaluate(self)  # this is a serious change to the old impl.
+                cost = len(box.boxes_to_xml(evaluation=self))
+                if capacity < cost:
+                    break
+                capacity -= cost
+                push(box)
+        finally:
+            self.output_size_limit = old_capacity
 
         ellipsis_size = len(items) - (len(left_leaves) + len(right_leaves))
         ellipsis = [String('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []

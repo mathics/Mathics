@@ -146,9 +146,6 @@ class Definitions(object):
             result = max(result, leaf_changed)
         return result
 
-            # preset config values to defaults.
-            self.set_config_value('System`$OutputSizeLimit', 1000)
-
     def get_current_context(self):
         # It's crucial to specify System` in this get_ownvalue() call,
         # otherwise we'll end up back in this function and trigger

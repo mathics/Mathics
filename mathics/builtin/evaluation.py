@@ -392,3 +392,23 @@ class Out(Builtin):
         '    f:StandardForm|TraditionalForm|InputForm|OutputForm]':
         r'"%%" <> ToString[k]',
     }
+
+
+class OutputSizeLimit(Predefined):
+    """
+    <dl>
+    <dt>'$OutputSizeLimit'
+        <dd>specifies the maximum amount of data output before the
+        output gets truncated.
+    </dl>
+    """
+
+    name = '$OutputSizeLimit'
+    value = 100
+
+    rules = {
+        '$OutputSizeLimit': str(value),
+    }
+
+    def evaluate(self, evaluation):
+        return Integer(self.value)
