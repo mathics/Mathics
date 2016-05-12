@@ -92,6 +92,10 @@ class D(SympyFunction):
 
     #> Attributes[f] = {}; Apart[f''[x + x]]
      = f''[2 x]
+
+    ## Issue #375
+    #> D[{#^2}, #]
+     = {2 #1}
     """
 
     # TODO
@@ -127,7 +131,9 @@ class D(SympyFunction):
         # 'Plus @@ MapIndexed[(D[f[Sequence@@ReplacePart[{args}, #2->t]], t] '
         # '/. t->#) * D[#, x]&, {args}]',
 
-        'D[{items___}, x_?NotListQ]': 'D[#, x]& /@ {items}',
+        'D[{items___}, x_?NotListQ]': (
+            'Function[{System`Private`item}, D[System`Private`item, x]]'
+            ' /@ {items}'),
         'D[f_, {list_List}]': 'D[f, #]& /@ list',
         'D[f_, {list_List, n_Integer?Positive}]': (
             'D[f, Sequence @@ ConstantArray[{list}, n]]'),
