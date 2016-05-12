@@ -229,7 +229,7 @@ class SingularValueDecomposition(Builtin):
     }
 
     def apply(self, m, evaluation):
-        'SingularValueDecomposition[m_]'
+        'SingularValueDecomposition[m_?MatrixQ]'
 
         if not any(leaf.is_inexact() for row in m.leaves for leaf in row.leaves):
             # symbolic argument (not implemented)
@@ -256,7 +256,7 @@ class QRDecomposition(Builtin):
     """
     
     def apply(self, m, evaluation):
-        'QRDecomposition[m_]'
+        'QRDecomposition[m_?MatrixQ]'
 
         matrix = to_sympy_matrix(m)
         Q, R = matrix.QRdecomposition()
