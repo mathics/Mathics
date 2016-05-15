@@ -262,17 +262,15 @@ class Manipulate(Builtin):
                 if not instantiator.add(arg, evaluation):  # not a valid argument pattern?
                     return
             except IllegalWidgetArguments as e:
-                evaluation.error('Manipulate', 'widgetargs', strip_context(str(e.var)))
+                return evaluation.message('Manipulate', 'widgetargs', strip_context(str(e.var)))
             except JupyterWidgetError as e:
-                evaluation.error('Manipulate', 'widgetmake', e.err)
-                return Symbol('$Aborted')
+                return evaluation.message('Manipulate', 'widgetmake', e.err)
 
         clear_output_callback = evaluation.clear_output_callback
         display_data_callback = evaluation.display_data_callback  # for pushing updates
 
         if clear_output_callback is None or display_data_callback is None:
-            evaluation.error('Manipulate', 'imathics')
-            return Symbol('$Aborted')
+            return evaluation.message('Manipulate', 'imathics')
 
         def callback(**kwargs):
             clear_output_callback(wait=True)
@@ -293,7 +291,6 @@ class Manipulate(Builtin):
             box = _interactive(instantiator.build_callback(callback), widgets)  # create the widget
             formatter = IPythonDisplayFormatter()
             if not formatter(box):  # make the widget appear on the Jupyter notebook
-                evaluation.error('Manipulate', 'widgetdisp')
-                return Symbol('$Aborted')
+                return evaluation.message('Manipulate', 'widgetdisp')
 
         return Symbol('Null')  # the interactive output is pushed via kernel.display_data_callback (see above)
