@@ -72,9 +72,9 @@ class ManipulateParameter(Builtin): # parses one Manipulate[] parameter spec, e.
         'System`Private`ManipulateParameter[{s_Symbol, r__}]':
             'System`Private`ManipulateParameter[{Symbol -> s, Label -> s}, {r}]',
         'System`Private`ManipulateParameter[{{s_Symbol, d_}, r__}]':
-            'System`Private`ManipulateParameter[{Symbol -> s, Label -> s, Default -> d}, {r}]',
+            'System`Private`ManipulateParameter[{Symbol -> s, Default -> d, Label -> s}, {r}]',
         'System`Private`ManipulateParameter[{{s_Symbol, d_, l_}, r__}]':
-            'System`Private`ManipulateParameter[{Symbol -> i, Label -> l, Default -> d}, {r}]',
+            'System`Private`ManipulateParameter[{Symbol -> s, Default -> d, Label -> l}, {r}]',
 
         # detect different kinds of widgets. on the use of the duplicate key "Default ->", see _WidgetInstantiator.add()
         'System`Private`ManipulateParameter[var_, {min_?RealNumberQ, max_?RealNumberQ}]':
