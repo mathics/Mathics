@@ -20,6 +20,7 @@ from mathics.core.evaluation import Evaluation
 import six
 import base64
 import functools
+import math
 
 try:
     import skimage
@@ -553,13 +554,44 @@ class ImageReflect(Builtin):
 
 
 class ImageRotate(Builtin):
+    '''
+    <dl>
+    <dt>'ImageRotate[$image$]'
+      <dd>Rotates $image$ 90 degrees counterclockwise.
+    <dt>'ImageRotate[$image$, $theta$]'
+      <dd>Rotates $image$ by a given angle $theta$
+    </dl>
+
+    >> ein = Import["ExampleData/Einstein.jpg"];
+
+    >> ImageRotate[ein]
+     = -Image-
+
+    >> ImageRotate[ein, 45 Degree]
+     = -Image-
+
+    >> ImageRotate[ein, Pi / 2]
+     = -Image-
+
+    #> ImageRotate[ein, ein]
+     : Angle -Image- should be a real number, one of Top, Bottom, Left, Right, or a rule from one to another.
+     = ImageRotate[-Image-, -Image-]
+    '''
+
     rules = {
-        'ImageRotate[i_Image]': 'ImageRotate[i, 90]'
+        'ImageRotate[i_Image]': 'ImageRotate[i, 90 Degree]'
+    }
+
+    messages = {
+        'imgang': 'Angle `1` should be a real number, one of Top, Bottom, Left, Right, or a rule from one to another.',
     }
 
     def apply(self, image, angle, evaluation):
-        'ImageRotate[image_Image, angle_?RealNumberQ]'
-        return Image(skimage.transform.rotate(image.pixels, angle.to_python(), resize=True), image.color_space)
+        'ImageRotate[image_Image, angle_]'
+        py_angle = angle.to_python(n_evaluation=evaluation)
+        if not isinstance(py_angle, six.integer_types + (float,)):
+            return evaluation.message('ImageRotate', 'imgang', angle)
+        return Image(skimage.transform.rotate(image.pixels, 180 * py_angle / math.pi, resize=True), image.color_space)
 
 
 class ImagePartition(Builtin):
