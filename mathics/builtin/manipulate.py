@@ -19,6 +19,7 @@ except ImportError:
 
 try:
     from ipywidgets import (IntSlider, FloatSlider, ToggleButtons, Box, DOMWidget)
+    from IPython.core.formatters import IPythonDisplayFormatter
     _ipywidgets = True
 except ImportError:
     # fallback to non-Manipulate-enabled build if we don't have ipywidgets installed.
@@ -57,6 +58,12 @@ class IllegalWidgetArguments(Exception):
         self.var = var
 
 
+class JupyterWidgetError(Exception):
+    def __init__(self, err):
+        super(JupyterWidgetError, self).__init__()
+        self.err = err
+
+
 class ManipulateParameter(Builtin): # parses one Manipulate[] parameter spec, e.g. {x, 1, 2}, see _WidgetInstantiator
     context = 'System`Private`'
 
@@ -86,6 +93,13 @@ def _manipulate_label(x):  # gets the label that is displayed for a symbol or na
         return strip_context(x.get_name())
     else:
         return str(x)
+
+
+def _create_widget(widget, **kwargs):
+    try:
+        return widget(**kwargs)
+    except Exception as e:
+        raise JupyterWidgetError(str(e))
 
 
 class _WidgetInstantiator():
@@ -132,7 +146,7 @@ class _WidgetInstantiator():
             raise IllegalWidgetArguments(symbol)
         else:
             defval = min(max(default.to_python(), minimum_value), maximum_value)
-            widget = FloatSlider(value=defval, min=minimum_value, max=maximum_value)
+            widget = _create_widget(FloatSlider, value=defval, min=minimum_value, max=maximum_value)
             self._add_widget(widget, symbol.get_name(), lambda x: from_python(x), label)
 
     def _add_discrete_widget(self, symbol, label, default, minimum, maximum, step, evaluation):
@@ -144,10 +158,10 @@ class _WidgetInstantiator():
         else:
             default_value = min(max(default.to_python(), minimum_value), maximum_value)
             if all(isinstance(x, Integer) for x in [minimum, maximum, default, step]):
-                widget = IntSlider(value=default_value, min=minimum_value, max=maximum_value,
+                widget = _create_widget(IntSlider, value=default_value, min=minimum_value, max=maximum_value,
                                    step=step_value)
             else:
-                widget = FloatSlider(value=default_value, min=minimum_value, max=maximum_value,
+                widget = _create_widget(FloatSlider, value=default_value, min=minimum_value, max=maximum_value,
                                      step=step_value)
             self._add_widget(widget, symbol.get_name(), lambda x: from_python(x), label)
 
@@ -162,7 +176,7 @@ class _WidgetInstantiator():
             if option.same(default):
                 default_index = i
 
-        widget = ToggleButtons(options=formatted_options, value=default_index)
+        widget = _create_widget(ToggleButtons, options=formatted_options, value=default_index)
         self._add_widget(widget, symbol.get_name(), lambda j: options.leaves[j], label)
 
     def _add_widget(self, widget, name, parse, label):
@@ -226,8 +240,11 @@ class Manipulate(Builtin):
     messages = {
         'jupyter': 'Manipulate[] only works inside a Jupyter notebook.',
         'noipywidget': 'Manipulate[] needs the ipywidgets module to work.',
-        'generr': 'Widget creation failed: ``',
-        'widgetargs': 'Illegal variable range or step parameters for ``.'
+        'imathics': 'Your IMathics kernel does not seem to support all necessary operations. ' +
+            'Please check that you have the latest version installed.',
+        'widgetmake': 'Jupyter widget construction failed with "``".',
+        'widgetargs': 'Illegal variable range or step parameters for ``.',
+        'widgetdisp': 'Jupyter failed to display the widget.',
     }
 
     def apply(self, expr, args, evaluation):
@@ -245,13 +262,17 @@ class Manipulate(Builtin):
                 if not instantiator.add(arg, evaluation):  # not a valid argument pattern?
                     return
             except IllegalWidgetArguments as e:
-                evaluation.message('Manipulate', 'widgetargs', strip_context(str(e.var)))
-            except Exception as e:
-                evaluation.message('Manipulate', 'generr', str(e))  # usually some Jupyter error
+                evaluation.error('Manipulate', 'widgetargs', strip_context(str(e.var)))
+            except JupyterWidgetError as e:
+                evaluation.error('Manipulate', 'widgetmake', e.err)
                 return Symbol('$Aborted')
 
         clear_output_callback = evaluation.clear_output_callback
         display_data_callback = evaluation.display_data_callback  # for pushing updates
+
+        if clear_output_callback is None or display_data_callback is None:
+            evaluation.error('Manipulate', 'imathics')
+            return Symbol('$Aborted')
 
         def callback(**kwargs):
             clear_output_callback(wait=True)
@@ -270,12 +291,9 @@ class Manipulate(Builtin):
         widgets = instantiator.get_widgets()
         if len(widgets) > 0:
             box = _interactive(instantiator.build_callback(callback), widgets)  # create the widget
-
-            # the following code is a boiled down version from IPython.core.formatters.IPythonDisplayFormatter.
-            # note that '_ipython_display_' is a magic constant defined in print_method of IPythonDisplayFormatter.
-
-            method = getattr(box, '_ipython_display_')
-            if method is not None:
-                method()  # make the widget appear on the Jupyter notebook
+            formatter = IPythonDisplayFormatter()
+            if not formatter(box):  # make the widget appear on the Jupyter notebook
+                evaluation.error('Manipulate', 'widgetdisp')
+                return Symbol('$Aborted')
 
         return Symbol('Null')  # the interactive output is pushed via kernel.display_data_callback (see above)
