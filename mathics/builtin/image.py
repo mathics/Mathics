@@ -480,17 +480,76 @@ class ImageResize(Builtin):
 
 
 class ImageReflect(Builtin):
-    def apply(self, image, evaluation):
-        'ImageReflect[image_Image]'
-        return Image(numpy.flipud(image.pixels), image.color_space)
+    '''
+    <dl>
+    <dt>'ImageReflect[$image$]'
+      <dd>Flips $image$ top to bottom.
+    <dt>'ImageReflect[$image$, $side$]'
+      <dd>Flips $image$ so that $side$ is interchanged with its opposite.
+    <dt>'ImageReflect[$image$, $side_1$ -> $side_2$]'
+      <dd>Flips $image$ so that $side_1$ is interchanged with $side_2$.
+    </dl>
 
-    def apply_ud(self, image, evaluation):
-        'ImageReflect[image_Image, Top|Bottom]'
-        return Image(numpy.flipud(image.pixels), image.color_space)
+    >> ein = Import["ExampleData/Einstein.jpg"];
+    >> ImageReflect[ein]
+     = -Image-
+    >> ImageReflect[ein, Left]
+     = -Image-
+    >> ImageReflect[ein, Left -> Top]
+     = -Image-
 
-    def apply_lr(self, image, evaluation):
-        'ImageReflect[image_Image, Left|Right]'
-        return Image(numpy.fliplr(image.pixels), image.color_space)
+    #> ein == ImageReflect[ein, Left -> Left] == ImageReflect[ein, Right -> Right] == ImageReflect[ein, Top -> Top] == ImageReflect[ein, Bottom -> Bottom]
+     = True
+    #> ImageReflect[ein, Left -> Right] == ImageReflect[Right -> Left] == ImageReflect[ein, Left] == ImageReflect[ein, Right]
+     = True
+    #> ImageReflect[ein, Bottom -> Top] == ImageReflect[ein, Top -> Bottom] == ImageReflect[ein, Top] == ImageReflect[ein, Bottom]
+     = True
+    #> ImageReflect[ein, Left -> Top] == ImageReflect[ein, Right -> Bottom]     (* Transpose *)
+     = True
+    #> ImageReflect[ein, Left -> Bottom] == ImageReflect[ein, Right -> Top]     (* Anti-Transpose *)
+     = True
+
+    #> ImageReflect[ein, x -> Top]
+     : x -> Top is not a valid 2D reflection specification.
+     = ImageReflect[-Image-, x -> Top]
+    '''
+
+    rules = {
+        'ImageReflect[image_Image]': 'ImageReflect[image, Top -> Bottom]',
+        'ImageReflect[image_Image, Top|Bottom]': 'ImageReflect[image, Top -> Bottom]',
+        'ImageReflect[image_Image, Left|Right]': 'ImageReflect[image, Left -> Right]',
+    }
+
+    messages = {
+        'bdrfl2': '`1` is not a valid 2D reflection specification.',
+    }
+
+    def apply(self, image, orig, dest, evaluation):
+        'ImageReflect[image_Image, Rule[orig_, dest_]]'
+        if isinstance(orig, Symbol) and isinstance(dest, Symbol):
+            specs = [orig.get_name(), dest.get_name()]
+            specs.sort()    # `Top -> Bottom` is the same as `Bottom -> Top`
+
+        anti_transpose = lambda i: numpy.flipud(numpy.transpose(numpy.flipud(i)))
+        no_op = lambda i: i
+
+        method = {
+            ('System`Bottom', 'System`Top'): numpy.flipud,
+            ('System`Left', 'System`Right'): numpy.fliplr,
+            ('System`Left', 'System`Top'): numpy.transpose,
+            ('System`Right', 'System`Top'): anti_transpose,
+            ('System`Bottom', 'System`Left'): anti_transpose,
+            ('System`Bottom', 'System`Right'): numpy.transpose,
+            ('System`Bottom', 'System`Bottom'): no_op,
+            ('System`Top', 'System`Top'): no_op,
+            ('System`Left', 'System`Left'): no_op,
+            ('System`Right', 'System`Right'): no_op,
+        }.get(tuple(specs), None)
+
+        if method is None:
+            return evaluation.message('ImageReflect', 'bdrfl2', Expression('Rule', orig, dest))
+
+        return Image(method(image.pixels), image.color_space)
 
 
 class ImageRotate(Builtin):
