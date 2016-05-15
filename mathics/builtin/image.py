@@ -1147,9 +1147,6 @@ class Image(Atom):
     def same(self, other):
         return isinstance(other, Image) and numpy.array_equal(self.pixels, other.pixels)
 
-    def to_sympy(self, **kwargs):
-        return '-Image-'
-
     def to_python(self, *args, **kwargs):
         return self.pixels
 
