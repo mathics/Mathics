@@ -2002,6 +2002,13 @@ def encode_mathml(text):
     text = text.replace('"', '&quot;').replace(' ', '&nbsp;')
     return text.replace('\n', '<mspace linebreak="newline" />')
 
+def _limit_string_size(text, limit):
+    limit = max(limit, 3)
+    if len(text) > limit:
+        ellipsis = "\u2026"
+        return text[:limit // 2] + ellipsis + text[len(text) - limit // 2:]
+    else:
+        return text
 
 TEX_REPLACE = {
     '{': r'\{',
@@ -2054,14 +2061,17 @@ class String(Atom):
     def __str__(self):
         return '"%s"' % self.value
 
-    def boxes_to_text(self, show_string_characters=False, **options):
+    def boxes_to_text(self, show_string_characters=False, output_size_limit=False, **options):
         value = self.value
         if (not show_string_characters and      # nopep8
             value.startswith('"') and value.endswith('"')):
             value = value[1:-1]
-        return value
+        if output_size_limit == False:
+            return value
+        else:
+            return _limit_string_size(value, output_size_limit)
 
-    def boxes_to_xml(self, show_string_characters=False, **options):
+    def boxes_to_xml(self, show_string_characters=False, output_size_limit=False, **options):
         from mathics.core.parser import is_symbol_name
         from mathics.builtin import builtins
 
@@ -2073,30 +2083,33 @@ class String(Atom):
 
         text = self.value
 
+        def render(format, string):
+            if output_size_limit != False:
+                string = _limit_string_size(string, output_size_limit - (len(format) - len('%s')))
+            return format % encode_mathml(string)
+
         if text.startswith('"') and text.endswith('"'):
             if show_string_characters:
-                return '<ms>%s</ms>' % encode_mathml(text[1:-1])
+                return render('<ms>%s</ms>', text[1:-1])
             else:
-                return '<mtext>%s</mtext>' % encode_mathml(text[1:-1])
+                return render('<mtext>%s</mtext>', text[1:-1])
         elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
-            return '<mn>%s</mn>' % encode_mathml(text)
+            return render('<mn>%s</mn>', text)
         else:
             if text in operators or text in extra_operators:
                 if text == '\u2146':
-                    return (
-                        '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>'
-                        % encode_mathml(text))
+                    return render(
+                        '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>', text)
                 if text == '\u2062':
-                    return (
-                        '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>'
-                        % encode_mathml(text))
-                return '<mo>%s</mo>' % encode_mathml(text)
+                    return render(
+                        '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>', text)
+                return render('<mo>%s</mo>', text)
             elif is_symbol_name(text):
-                return '<mi>%s</mi>' % encode_mathml(text)
+                return render('<mi>%s</mi>', text)
             else:
-                return '<mtext>%s</mtext>' % encode_mathml(text)
+                return render('<mtext>%s</mtext>', text)
 
-    def boxes_to_tex(self, show_string_characters=False, **options):
+    def boxes_to_tex(self, show_string_characters=False, output_size_limit=False, **options):
         from mathics.builtin import builtins
 
         operators = set()

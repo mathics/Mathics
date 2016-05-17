@@ -351,7 +351,7 @@ class Evaluation(object):
                 raise ValueError
 
             try:
-                boxes = result.boxes_to_text(evaluation=self)
+                boxes = result.boxes_to_text(evaluation=self, output_size_limit=self.output_size_limit)
             except BoxError:
                 self.message('General', 'notboxes',
                              Expression('FullForm', result).evaluate(self))
@@ -386,8 +386,6 @@ class Evaluation(object):
                 segment.extend((False, 0, 0))
             return [Expression('MakeBoxes', item, form) for item in items]
 
-        # FIXME: special case for (long) Strings
-
         old_capacity = self.output_size_limit
         capacity = old_capacity
 
@@ -403,8 +401,25 @@ class Evaluation(object):
         try:
             for item, push in _interleave(from_left, from_right):
                 self.output_size_limit = capacity
-                box = Expression('MakeBoxes', item, form).evaluate(self)  # this is a serious change to the old impl.
-                cost = len(box.boxes_to_xml(evaluation=self))
+
+                # calling evaluate() here is a serious difference to the implementation
+                # without $OutputSizeLimit. here, we evaluate MakeBoxes bottom up, i.e.
+                # the leaves get evaluated first, since we need to estimate their size
+                # here.
+                #
+                # without $OutputSizeLimit, on the other hand, the expression
+                # gets evaluates from the top down, i.e. first MakeBoxes is wrapped around
+                # each expression, then we call evaluate on the root node. assuming that
+                # there are no rules like MakeBoxes[x_, MakeBoxes[y_]], both approaches
+                # should be identical.
+                #
+                # we could work around this difference by pushing the unevaluated
+                # expression here (see "push(box)" below), instead of the evaluated.
+                # this would be very inefficient though, since we would get quadratic
+                # runtime (quadratic in the depth of the tree).
+                box = Expression('MakeBoxes', item, form).evaluate(self)
+
+                cost = len(box.boxes_to_xml(evaluation=self))  # evaluate len as XML
                 if capacity < cost:
                     break
                 capacity -= cost

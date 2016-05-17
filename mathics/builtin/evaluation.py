@@ -398,8 +398,10 @@ class OutputSizeLimit(Predefined):
     """
     <dl>
     <dt>'$OutputSizeLimit'
-        <dd>specifies the maximum amount of data output before the
-        output gets truncated.
+        <dd>specifies the maximum amount of data output that gets
+        displayed before the output gets truncated. The amount of
+        output is measured as the number of bytes of MathML XML
+        that has been generated to represent the output data.
     </dl>
     """
 
