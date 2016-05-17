@@ -351,7 +351,7 @@ class Evaluation(object):
                 raise ValueError
 
             try:
-                boxes = result.boxes_to_text(evaluation=self, output_size_limit=self.output_size_limit)
+                boxes = result.boxes_to_text(evaluation=self)
             except BoxError:
                 self.message('General', 'notboxes',
                              Expression('FullForm', result).evaluate(self))
