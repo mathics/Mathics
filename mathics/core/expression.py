@@ -2206,6 +2206,23 @@ class String(Atom):
         return (self.value,)
 
 
+class Omitted(String):  # represents an omitted portion like <<42>> (itself not collapsible)
+    def __init__(self, value, **kwargs):
+        super(Omitted, self).__init__(value, **kwargs)
+
+    def boxes_to_text(self, **options):
+        new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
+        return super(Omitted, self).boxes_to_text(**new_options)
+
+    def boxes_to_xml(self, **options):
+        new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
+        return super(Omitted, self).boxes_to_xml(**new_options)
+
+    def boxes_to_tex(self, **options):
+        new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
+        return super(Omitted, self).boxes_to_tex(**new_options)
+
+
 def get_default_value(name, evaluation, k=None, n=None):
     pos = []
     if k is not None:

@@ -14,7 +14,7 @@ import six
 from six.moves import zip
 
 import mathics
-from mathics.core.definitions import Definitions
+from mathics.core.definitions import Definitions, Symbol
 from mathics.core.evaluation import Evaluation
 from mathics.core.parser import SingleLineFeeder
 from mathics.builtin import builtins
@@ -26,7 +26,7 @@ definitions = Definitions(add_builtin=True)
 
 def reset_user_definitions():
     definitions.reset_user_definitions()
-    definitions.set_config_value('System`$OutputSizeLimit', 1024 * 1024)  # large enough for all tests
+    definitions.set_ownvalue('System`$OutputSizeLimit', Symbol('Infinity'))  # no limit
 
 sep = '-' * 70 + '\n'
 

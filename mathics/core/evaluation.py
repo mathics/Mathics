@@ -379,7 +379,7 @@ class Evaluation(object):
         return value.leaves
 
     def make_boxes(self, items, form, segment=None):
-        from mathics.core.expression import Expression, String
+        from mathics.core.expression import Expression, String, Omitted
 
         if self.output_size_limit is None or len(items) < 1:
             if segment is not None:
@@ -428,7 +428,7 @@ class Evaluation(object):
             self.output_size_limit = old_capacity
 
         ellipsis_size = len(items) - (len(left_leaves) + len(right_leaves))
-        ellipsis = [String('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []
+        ellipsis = [Omitted('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []
 
         if segment is not None:
             if ellipsis_size > 0:

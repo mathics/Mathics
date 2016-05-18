@@ -402,7 +402,19 @@ class OutputSizeLimit(Predefined):
         displayed before the output gets truncated. The amount of
         output is measured as the number of bytes of MathML XML
         that has been generated to represent the output data.
+
+        $OutputSizeLimit currently works for MathMLForm and TeXForm.
+
+        To set no limit on output size, use $OutputSizeLimit = Infinity.
     </dl>
+
+    >> $OutputSizeLimit = 100;
+    >> Table[i, {i, 1, 100}]
+     = {1, 2, 3, 4, 5, <<91>>, 97, 98, 99, 100}
+    >> $OutputSizeLimit = 10;
+    >> Table[i, {i, 1, 100}]
+     = {1, <<99>>}
+    >> $OutputSizeLimit = Infinity;
     """
 
     name = '$OutputSizeLimit'

@@ -1767,7 +1767,7 @@ class MathMLForm(Builtin):
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
         try:
-            xml = boxes.boxes_to_xml(evaluation=evaluation)
+            xml = boxes.boxes_to_xml(evaluation=evaluation, output_size_limit=evaluation.output_size_limit)
         except BoxError:
             evaluation.message(
                 'General', 'notboxes',
@@ -1803,7 +1803,7 @@ class TeXForm(Builtin):
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
         try:
-            tex = boxes.boxes_to_tex(evaluation=evaluation)
+            tex = boxes.boxes_to_tex(evaluation=evaluation, output_size_limit=evaluation.output_size_limit)
 
             # Replace multiple newlines by a single one e.g. between asy-blocks
             tex = MULTI_NEWLINE_RE.sub('\n', tex)
