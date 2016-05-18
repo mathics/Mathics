@@ -338,9 +338,16 @@ class Evaluation(object):
         orig_output_size_limit = self.output_size_limit
         try:
             self.output_size_limit = self.definitions.get_config_value('System`$OutputSizeLimit')
+            options = {}
 
             if format == 'text':
                 result = expr.format(self, 'System`OutputForm')
+                # for MathMLForm and TexForm, output size limits are applied in the form's apply
+                # methods (e.g. see MathMLForm.apply) and then passed through result.boxes_to_text
+                # which must, in these cases, not apply additional clipping, as this would clip
+                # already clipped string material. for OutputForm, on the other hand, the call to
+                # result.boxes_to_text is the only place we have to apply output size limits.
+                options['output_size_limit'] = self.output_size_limit
             elif format == 'xml':
                 result = Expression(
                     'StandardForm', expr).format(self, 'System`MathMLForm')
@@ -351,7 +358,7 @@ class Evaluation(object):
                 raise ValueError
 
             try:
-                boxes = result.boxes_to_text(evaluation=self)
+                boxes = result.boxes_to_text(evaluation=self, **options)
             except BoxError:
                 self.message('General', 'notboxes',
                              Expression('FullForm', result).evaluate(self))

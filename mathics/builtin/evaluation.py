@@ -403,8 +403,6 @@ class OutputSizeLimit(Predefined):
         output is measured as the number of bytes of MathML XML
         that has been generated to represent the output data.
 
-        $OutputSizeLimit currently works for MathMLForm and TeXForm.
-
         To set no limit on output size, use $OutputSizeLimit = Infinity.
     </dl>
 
