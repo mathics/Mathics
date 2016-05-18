@@ -2127,7 +2127,7 @@ class _SlowEquivalence:
         self._evaluation = evaluation
         self._name = name
 
-    def selector(self):
+    def select(self):
         groups = self._groups
         return lambda elem: groups
 
@@ -2158,7 +2158,7 @@ class _FastEquivalence:
     def __init__(self):
         self._hashes = defaultdict(list)
 
-    def selector(self):
+    def select(self):
         hashes = self._hashes
         return lambda elem: hashes[hash(elem)]
 
@@ -2203,7 +2203,7 @@ class _GatherOperation(Builtin):
 
     messages = {
         'normal': 'Nonatomic expression expected at position `1` in `2`.',
-        'needlist': 'expecting a List as first parameter.',
+        'list': 'List expected at position `2` in `1`.',
         'smtst': ("Application of the SameTest yielded `1`, which evaluates "
                   "to `2`. The SameTest must evaluate to True or False at "
                   "every pair of elements."),
@@ -2214,12 +2214,11 @@ class _GatherOperation(Builtin):
 
         if list.is_atom():
             expr = Expression(self.get_name(), list, test)
-            evaluation.message(self.get_name(), 'normal', 1, expr)
-            return
+            return evaluation.message(self.get_name(), 'normal', 1, expr)
 
         if list.get_head_name() != 'System`List':
-            evaluation.error(self.get_name(), 'needlist')
-            return Symbol('$Aborted')
+            expr = Expression(self.get_name(), list, test)
+            return evaluation.error(self.get_name(), 'list', expr, 1)
 
         if _is_sameq(test):
             return self._gather(list, _FastEquivalence())
@@ -2230,7 +2229,7 @@ class _GatherOperation(Builtin):
         bins = []
         Bin = self._bin
 
-        select = equivalence.selector()
+        select = equivalence.select()
         same = equivalence.same()
 
         for elem in a_list.leaves:
