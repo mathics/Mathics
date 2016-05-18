@@ -795,9 +795,10 @@ class Expression(BaseExpression):
             if 'System`HoldAllComplete' not in attributes:
                 for leaf in leaves:
                     name = leaf.get_lookup_name()
-                    if name not in rules_names:
-                        rules_names.add(name)
-                        rules.extend(evaluation.definitions.get_upvalues(name))
+                    if len(name) > 0:  # only lookup rules if this is a symbol
+                        if name not in rules_names:
+                            rules_names.add(name)
+                            rules.extend(evaluation.definitions.get_upvalues(name))
             lookup_name = new.get_lookup_name()
             if lookup_name == new.get_head_name():
                 rules += evaluation.definitions.get_downvalues(lookup_name)
