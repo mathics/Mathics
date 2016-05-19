@@ -563,6 +563,10 @@ class Times(BinaryOperator, SympyFunction):
         'InputForm: Times[items__]'
         return self.format_times(items, evaluation, op='*')
 
+    def format_standardform(self, items, evaluation):
+        'StandardForm: Times[items__]'
+        return self.format_times(items, evaluation, op=' ')
+
     def format_outputform(self, items, evaluation):
         'OutputForm: Times[items__]'
         return self.format_times(items, evaluation, op=' ')
