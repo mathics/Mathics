@@ -102,6 +102,7 @@ class Builtin(object):
                 if not isinstance(pattern, BaseExpression):
                     pattern = pattern % {'name': name}
                     pattern = parse_builtin_rule(pattern)
+                replace = replace % {'name': name}
                 formatvalues[form].append(Rule(
                     pattern, parse_builtin_rule(replace), system=True))
         for form, formatrules in formatvalues.items():

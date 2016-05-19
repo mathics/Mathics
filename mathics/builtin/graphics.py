@@ -241,7 +241,7 @@ class _Color(_GraphicsElement):
         # way in the notebook, so we restrict the rule to StandardForm.
 
         (('StandardForm', ), '%(name)s[x__]'):
-            'Style[Graphics[{EdgeForm[Black], x, Rectangle[]}, ImageSize -> 16], ' +
+            'Style[Graphics[{EdgeForm[Black], %(name)s[{x}], Rectangle[]}, ImageSize -> 16], ' +
             'ImageSizeMultipliers -> {1, 1}]'
     }
 
