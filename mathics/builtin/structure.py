@@ -107,22 +107,34 @@ class SortBy(Builtin):
     """
 
     rules = {
-        'SortBy[f_]': 'SortBy[#, f]&'
+        'SortBy[f_]': 'SortBy[#, f]&',
+    }
+
+    messages = {
+        'list': 'List expected at position `2` in `1`.',
+        'func': 'Function expected at position `2` in `1`.',
     }
 
     def apply(self, l, f, evaluation):
         'SortBy[l_, f_]'
 
         if l.is_atom():
-            evaluation.message('Sort', 'normal')
+            return evaluation.message('Sort', 'normal')
+        elif l.get_head_name() != 'System`List':
+            expr = Expression('SortBy', l, f)
+            return evaluation.message(self.get_name(), 'list', expr, 1)
         else:
-            keys = Expression('Map', f, l).evaluate(evaluation).leaves  # precompute:
+            keys_expr = Expression('Map', f, l).evaluate(evaluation)  # precompute:
             # even though our sort function has only (n log n) comparisons, we should
             # compute f no more than n times.
 
+            if keys_expr is None or keys_expr.get_head_name() != 'System`List'\
+                    or len(keys_expr.leaves) != len(l.leaves):
+                expr = Expression('SortBy', l, f)
+                return evaluation.message('SortBy', 'func', expr, 2)
+
+            keys = keys_expr.leaves
             raw_keys = l.leaves
-            if len(raw_keys) != len(keys):  # this should never happen, I assume
-                return Symbol('$Aborted')
 
             class Key(object):
                 def __init__(self, index):
