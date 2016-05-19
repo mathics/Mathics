@@ -2218,7 +2218,7 @@ class _GatherOperation(Builtin):
 
         if list.get_head_name() != 'System`List':
             expr = Expression(self.get_name(), list, test)
-            return evaluation.error(self.get_name(), 'list', expr, 1)
+            return evaluation.message(self.get_name(), 'list', expr, 1)
 
         if _is_sameq(test):
             return self._gather(list, _FastEquivalence())
