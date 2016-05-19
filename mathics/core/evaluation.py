@@ -386,7 +386,7 @@ class Evaluation(object):
         return value.leaves
 
     def make_boxes(self, items, form, segment=None):
-        from mathics.core.expression import Expression, String, Omitted
+        from mathics.core.expression import Expression, Omitted
 
         if self.output_size_limit is None or len(items) < 1:
             if segment is not None:

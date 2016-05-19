@@ -21,7 +21,7 @@ from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
     Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError,
-    from_python, MachineReal, PrecisionReal)
+    from_python, MachineReal, PrecisionReal, Omitted)
 from mathics.core.numbers import (
     dps, prec, convert_base, machine_precision, reconstruct_digits)
 from mathics.builtin.lists import riffle
@@ -796,13 +796,21 @@ class Grid(Builtin):
         '''MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]],
             f:StandardForm|TraditionalForm|OutputForm]'''
 
-        return Expression(
-            'GridBox',
-            Expression('List', *(
-                Expression('List', *(
-                    Expression('MakeBoxes', item, f) for item in row.leaves))
-                for row in array.leaves)),
-            *options_to_rules(options))
+        lengths = [len(row.leaves) for row in array.leaves]
+        segment = []
+        boxes = evaluation.make_boxes([item for row in array.leaves for item in row.leaves], f, segment)
+        if segment[0]:  # too long?
+            return Omitted('<<%d>>' % sum(lengths))
+        else:
+            rows = []
+            i = 0
+            for l in lengths:
+                rows.append(Expression('List', *boxes[i:i + l]))
+                i += l
+            return Expression(
+                'GridBox',
+                Expression('List', *rows),
+                *options_to_rules(options))
 
 
 class TableForm(Builtin):
