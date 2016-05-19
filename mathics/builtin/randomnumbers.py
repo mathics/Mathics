@@ -13,9 +13,9 @@ from __future__ import absolute_import
 from six.moves import range
 import six.moves.cPickle as pickle
 
-import random
 import binascii
 import hashlib
+import numpy
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import (Integer, String, Symbol, Real, Expression,
@@ -23,7 +23,7 @@ from mathics.core.expression import (Integer, String, Symbol, Real, Expression,
 
 
 def get_random_state():
-    state = random.getstate()
+    state = numpy.random.getstate()
     state = pickle.dumps(state)
     state = binascii.b2a_hex(state)
     state.decode('ascii')
@@ -33,15 +33,22 @@ def get_random_state():
 
 def set_random_state(state):
     if state is None:
-        random.seed()
+        numpy.random.seed()
     else:
         state = hex(state)[2:]  # drop leading "0x"
         state = state.rstrip('L')
         state = state.encode('ascii')
         state = binascii.a2b_hex(state)
         state = pickle.loads(state)
-        random.setstate(state)
+        numpy.random.setstate(state)
 
+
+def _from_numpy(a, new_element, d=1):
+    if len(a.shape) == d:
+        leaves = [new_element(x) for x in a]
+    else:
+        leaves = [_from_numpy(a[k], new_element, d) for k in range(a.shape[0])]
+    return Expression('List', *leaves)
 
 class RandomEnv:
     def __init__(self, evaluation):
@@ -56,15 +63,18 @@ class RandomEnv:
         state = get_random_state()
         self.evaluation.definitions.set_config_value('$RandomState', state)
 
-    def randint(self, a, b):
-        return random.randint(a, b)
+    def randint(self, a, b, size=None):
+        return numpy.random.random_integers(a, b, size)
 
-    def randreal(self, a, b):
-        return random.uniform(a, b)
+    def randreal(self, a, b, size=None):
+        return numpy.random.uniform(a, b, size)
+
+    def randchoice(self, n, size, replace, p):
+        return numpy.random.choice(n, size=size, replace=replace, p=p)
 
     def seed(self, x=None):
-        # This has different behavior in Python 3.2
-        random.seed(x)
+        # numpy implementation might be different from the old python impl.
+        numpy.random.seed(x)
 
 
 class RandomState(Builtin):
@@ -157,6 +167,30 @@ class SeedRandom(Builtin):
         with RandomEnv(evaluation) as rand:
             rand.seed()
         return Symbol('Null')
+
+
+class _RandomBase(Builtin):
+    rules = {
+        '%(name)s[spec_]': '%(name)s[spec, {1}]',
+        '%(name)s[spec_, n_Integer]': '%(name)s[spec, {n}]'
+    }
+
+    messages = {
+        'array': (
+            "The array dimensions `1` given in position 2 of `2` should be a "
+            "list of non-negative machine-sized integers giving the "
+            "dimensions for the result."),
+    }
+
+    def _size_to_python(self, domain, size, evaluation):
+        if not all(i.is_numeric() for i in size):
+            expr = Expression(self.get_name(), domain, size)
+            return evaluation.message(self.get_name(), 'array', size, expr), None
+        py_size = size.to_python()
+        if not all(isinstance(i, int) and i >= 0 for i in py_size):
+            expr = Expression(self.get_name(), domain, size)
+            return evaluation.message(self.get_name(), 'array', size, expr), None
+        return False, py_size
 
 
 class RandomInteger(Builtin):
@@ -424,3 +458,54 @@ class RandomComplex(Builtin):
                     return Expression('List', *[
                         search_product(i + 1) for j in range(py_ns[i])])
             return search_product(0)
+
+
+class _RandomSelection(_RandomBase):
+    messages = {
+        'weights': (
+            "The weights `1` given in position 1 of `2` should be a "
+            "list of non-negative numbers describing probabilities."),
+        'lengths': "The number of weights and elements in `1` has to be identical.",
+        'list': "Position 1 should be a list of elements or a rule weights -> elements."
+    }
+
+    def apply(self, domain, size, evaluation):
+        '''%(name)s[domain_, size_]'''
+        if domain.get_head_name() == 'System`Rule':
+            weights = self._weights_to_python(domain.leaves[0], Expression(self.get_name(), domain, size), evaluation)
+            weights /= numpy.sum(weights)  # normalize
+            elements = domain.leaves[1].leaves
+            if len(weights) != len(elements):
+                return evaluation.message(self.get_name(), 'lengths', domain)
+        elif domain.get_head_name() == 'System`List':
+            weights = None
+            elements = domain.leaves
+        else:
+            return evaluation.message(self.get_name(), 'list')
+        err, py_size = self._size_to_python(domain, size, evaluation)
+        if py_size is not None:
+            with RandomEnv(evaluation) as rand:
+                return _from_numpy(rand.randchoice(len(elements), size=py_size,
+                                                   replace=self._replace, p=weights), lambda i: elements[i])
+        else:
+            return err
+
+    def _weights_to_python(self, weights, expr, evaluation):
+        if not all(w.is_numeric() for w in weights):
+            return evaluation.message(self.get_name(), 'weights', weights, expr), None
+        py_weights = weights.to_python()
+        if not all(isinstance(w, (int, float)) and w >= 0 for w in py_weights):
+            return evaluation.message(self.get_name(), 'weights', weights, expr), None
+        return False, py_weights
+
+
+class RandomChoice(_RandomSelection):
+    _replace = True
+
+
+class RandomSample(_RandomSelection):
+    _replace = False
+
+
+class RandomVariate(_RandomBase):
+    pass
