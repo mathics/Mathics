@@ -559,7 +559,7 @@ class ToBoxes(Builtin):
 
     Unlike 'MakeBoxes', 'ToBoxes' evaluates its argument:
     >> ToBoxes[a + a]
-     = RowBox[{2, \u2062, a}]
+     = RowBox[{2,  , a}]
 
     >> ToBoxes[a + b]
      = RowBox[{a, +, b}]
@@ -820,7 +820,7 @@ class TableForm(Builtin):
      . -Graphics-   -Graphics-   -Graphics-
 
     #> TableForm[{}]
-     = 
+     =
     """
 
     options = {
