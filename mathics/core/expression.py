@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import sympy
 import mpmath
 import re
+import hashlib
 
 from mathics.core.numbers import get_type, dps, prec, min_prec
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
@@ -1977,6 +1978,24 @@ class String(Atom):
         # hashing a String is the one case where the user gets the untampered
         # hash value of the string's text. this corresponds to MMA behavior.
         update(self.value.encode('utf8'))
+
+
+class ByteArray(Atom):
+    def __init__(self, bytes, **kwargs):
+        super(ByteArray, self).__init__(**kwargs)
+        self.bytes = bytearray(bytes)
+
+    def __str__(self):
+        return '(' + ', '.join('%d' % x for x in self.bytes) + ')'
+
+    def same(self, other):
+        return isinstance(other, ByteArray) and self.bytes == other.bytes
+
+    def __hash__(self):
+        return hash(("ByteArray", hashlib.sha1(self.bytes).hexdigest()))
+
+    def user_hash(self, update):
+        update(self.bytes)
 
 
 def get_default_value(name, evaluation, k=None, n=None):

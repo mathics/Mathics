@@ -579,6 +579,9 @@ class Hash(Builtin):
 
     > Hash[SomeHead[3.1415]]
     = 58042316473471877315442015469706095084
+
+    >> Hash[{a, b, c}, "xyzstr"]
+     = Hash[{a, b, c}, xyzstr]
     """
 
     rules = {
