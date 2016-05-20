@@ -16,6 +16,7 @@ from six.moves import zip
 import mathics
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
+from mathics.core.expression import Expression, Integer, Rational, Real, Complex, String, Symbol
 from mathics.builtin import builtins
 from mathics.doc import documentation
 from mathics import version_string
@@ -154,6 +155,57 @@ def open_ensure_dir(f, *args, **kwargs):
         return open(f, *args, **kwargs)
 
 
+def test_sameness_and_hash(quiet=False):
+    # tests that the following assumption holds: if objects are same under SameQ, their
+    # hash is always equals. this assumption is relied upon by Gather[] and similar operations
+
+    # group below uses duplicate instantiations of same content (like Integer 5) to test
+    # for potential instantiation problems.
+    groups = ((Integer(5), Integer(5), Integer(3242), Integer(-1372)),
+              (Rational(1, 3), Rational(1, 3), Rational(2, 6),
+               Rational(-1, 3), Rational(-10, 30), Rational(10, 5)),
+              (Real(1.17361), Real(1.17361), Real(-1.42),
+               Real(42.846195714), Real(42.846195714), Real(42.846195713)),
+              (Complex(1.2, 1.2), Complex(1.2, 1.2), Complex(0.7, 1.8),
+               Complex(1.8, 0.7), Complex(-0.7, 1.8), Complex(0.7, 1.81)),
+              (String('xy'), String('xy'), String('x'), String('xyz'), String('abc')),
+              (Symbol('xy'), Symbol('xy'), Symbol('x'), Symbol('xyz'), Symbol('abc')))
+
+    def symbol_truth_value(x):
+        if x.is_true():
+            return True
+        elif isinstance(x, Symbol) and x.get_name() == 'System`False':
+            return False
+        else:
+            return 'undefined'
+
+    for k, group in enumerate(groups): # test each item in this group against each other item
+        print(' H-%1d. TEST %s' % (1 + k, 'SameQ on ' + group[0].get_head_name()))
+
+        for i, a in enumerate(group):
+            for j, b in enumerate(group):
+                evaluation = Evaluation(definitions, catch_interrupt=False)
+                try:
+                    is_same_under_sameq = Expression('SameQ', a, b).evaluate(evaluation)
+                except Exception as exc:
+                    print("Exception %s" % exc)
+                    info = sys.exc_info()
+                    sys.excepthook(*info)
+                    return False
+
+                is_same = a.same(b)
+                if is_same != symbol_truth_value(is_same_under_sameq):
+                    print("%sTest failed: %s and %s are inconsistent under same() and SameQ\n" % (
+                        sep, repr(a), repr(b)))
+                    return False
+
+                if is_same and hash(a) != hash(b):
+                    print("%sTest failed: hashes for %s and %s must be equal but are not\n" % (
+                        sep, repr(a), repr(b)))
+                    return False
+
+    return True
+
 def test_all(quiet=False, generate_output=False, stop_on_failure=False,
              start_at=0):
     if not quiet:
@@ -165,6 +217,8 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
         failed_symbols = set()
         output_xml = {}
         output_tex = {}
+        if not test_sameness_and_hash(quiet=quiet):
+            failed += 1
         for tests in documentation.get_tests():
             sub_count, sub_failed, sub_skipped, symbols, index = test_tests(
                 tests, index, quiet=quiet, stop_on_failure=stop_on_failure,
