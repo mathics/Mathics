@@ -159,17 +159,13 @@ def test_sameness_and_hash(quiet=False):
     # tests that the following assumption holds: if objects are same under SameQ, their
     # hash is always equals. this assumption is relied upon by Gather[] and similar operations
 
-    # group below uses duplicate instantiations of same content (like Integer 5) to test
-    # for potential instantiation problems.
-    groups = ((Integer(5), Integer(5), Integer(3242), Integer(-1372)),
-              (Rational(1, 3), Rational(1, 3), Rational(2, 6),
-               Rational(-1, 3), Rational(-10, 30), Rational(10, 5)),
-              (Real(1.17361), Real(1.17361), Real(-1.42),
-               Real(42.846195714), Real(42.846195714), Real(42.846195713)),
-              (Complex(1.2, 1.2), Complex(1.2, 1.2), Complex(0.7, 1.8),
-               Complex(1.8, 0.7), Complex(-0.7, 1.8), Complex(0.7, 1.81)),
-              (String('xy'), String('xy'), String('x'), String('xyz'), String('abc')),
-              (Symbol('xy'), Symbol('xy'), Symbol('x'), Symbol('xyz'), Symbol('abc')))
+    groups = ((Integer(5), Integer(3242), Integer(-1372)),
+              (Rational(1, 3), Rational(1, 3), Rational(2, 6), Rational(-1, 3), Rational(-10, 30), Rational(10, 5)),
+              (Real(1.17361), Real(-1.42), Real(42.846195714), Real(42.846195714), Real(42.846195713)),
+              (Complex(1.2, 1.2), Complex(0.7, 1.8), Complex(1.8, 0.7), Complex(-0.7, 1.8), Complex(0.7, 1.81)),
+              (String('xy'), String('x'), String('xyz'), String('abc')),
+              (Symbol('xy'), Symbol('x'), Symbol('xyz'), Symbol('abc')),
+              (Integer(1), Rational(1, 1), Real(1), Complex(1, 1), String('1'), Symbol('1')))
 
     def symbol_truth_value(x):
         if x.is_true():
@@ -179,11 +175,17 @@ def test_sameness_and_hash(quiet=False):
         else:
             return 'undefined'
 
-    for k, group in enumerate(groups): # test each item in this group against each other item
-        print(' H-%1d. TEST %s' % (1 + k, 'SameQ on ' + group[0].get_head_name()))
+    # duplicate instantiations of same content (like Integer 5) to test for potential instantiation randomness.
+    duplicates = list(map(lambda f: (f(), f()), (lambda: Integer(5), lambda: Rational(5, 2), lambda: Real(5.12345678),\
+                 lambda: Complex(5, 2), lambda: String('xy'), lambda: Symbol('xy'))))
+
+    for k, group in enumerate(duplicates + list(groups)): # test each item in this group against each other item
+        print('S-%2d. TEST %s' % (1 + k, ', '.join(map(lambda x: repr(x), group))))
 
         for i, a in enumerate(group):
             for j, b in enumerate(group):
+                if i == j:
+                    continue
                 evaluation = Evaluation(definitions, catch_interrupt=False)
                 try:
                     is_same_under_sameq = Expression('SameQ', a, b).evaluate(evaluation)
