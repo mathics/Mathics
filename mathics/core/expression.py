@@ -212,6 +212,13 @@ class BaseExpression(KeyComparable):
         """
         raise NotImplementedError
 
+    def user_hash(self, update):
+        # whereas __hash__ is for internal Mathics purposes like using Expressions as dictionary keys and fast
+        # comparison of elements, user_hash is called for Hash[]. user_hash should strive to give stable results
+        # across versions, whereas __hash__ must not. user_hash should try to hash all the data available, whereas
+        # __hash__ might only hash a sample of the data available.
+        raise NotImplementedError
+
     def same(self, other):
         pass
 
@@ -1198,6 +1205,11 @@ class Expression(BaseExpression):
     def __hash__(self):
         return hash(('Expression', self.head) + tuple(self.leaves))
 
+    def user_hash(self, update):
+        update(("%s>%d>" % (self.get_head_name(), len(self.leaves))).encode('utf8'))
+        for leaf in self.leaves:
+            leaf.user_hash(update)
+
 
 class Atom(BaseExpression):
 
@@ -1351,6 +1363,9 @@ class Symbol(Atom):
     def __hash__(self):
         return hash(('Symbol', self.name))  # to distinguish from String
 
+    def user_hash(self, update):
+        update(b'System`Symbol>' + self.name.encode('utf8'))
+
 
 class Number(Atom):
     def __str__(self):
@@ -1468,6 +1483,8 @@ class Integer(Number):
     def __hash__(self):
         return hash(('Integer', self.value))
 
+    def user_hash(self, update):
+        update(b'System`Integer>' + str(self.value).encode('utf8'))
 
 class Rational(Number):
     def __init__(self, numerator, denominator=None, **kwargs):
@@ -1538,6 +1555,9 @@ class Rational(Number):
 
     def __hash__(self):
         return hash(("Rational", self.value))
+
+    def user_hash(self, update):
+        update(b'System`Rational>' + ('%s>%s' % self.value.as_numer_denom()).encode('utf8'))
 
 
 class Real(Number):
@@ -1671,6 +1691,11 @@ class Real(Number):
         _prec = self.get_precision()
         return hash(("Real", self.to_sympy().n(dps(_prec))))
 
+    def user_hash(self, update):
+        # ignore last 7 binary digits when hashing
+        _prec = self.get_precision()
+        update(b'System`Real>' + str(self.to_sympy().n(dps(_prec))).encode('utf8'))
+
 
 class Complex(Number):
     def __init__(self, real, imag, p=None, **kwargs):
@@ -1766,6 +1791,10 @@ class Complex(Number):
     def __hash__(self):
         return hash(('Complex', self.real, self.imag))
 
+    def user_hash(self, update):
+        update(b'System`Complex>')
+        update(self.real)
+        update(self.imag)
 
 def encode_mathml(text):
     text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
@@ -1943,6 +1972,11 @@ class String(Atom):
 
     def __hash__(self):
         return hash(("String", self.value))
+
+    def user_hash(self, update):
+        # hashing a String is the one case where the user gets the untampered
+        # hash value of the string's text. this corresponds to MMA behavior.
+        update(self.value.encode('utf8'))
 
 
 def get_default_value(name, evaluation, k=None, n=None):

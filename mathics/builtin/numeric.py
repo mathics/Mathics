@@ -14,6 +14,8 @@ from __future__ import absolute_import
 
 import sympy
 import mpmath
+import hashlib
+import zlib
 from six.moves import range
 
 from mathics.builtin.base import Builtin, Predefined
@@ -539,3 +541,70 @@ class IntegerDigits(Builtin):
                 digits = [0] * (nr_elements - len(digits)) + digits
 
         return Expression('List', *digits)
+
+
+class _ZLibHash:  # make zlib hashes behave as if they were from hashlib
+    def __init__(self, fn):
+        self._bytes = b''
+        self._fn = fn
+
+    def update(self, bytes):
+        self._bytes += bytes
+
+    def hexdigest(self):
+        return format(self._fn(self._bytes), 'x')
+
+
+class Hash(Builtin):
+    """
+    <dl>
+    <dt>'Hash[$expr$]'
+      <dd>returns an integer hash for the given $expr$.
+    <dt>'Hash[$expr$, $type$]'
+      <dd>returns an integer hash of the specified $type$ for the given $expr$.</dd>
+      <dd>The types supported are "MD5", "Adler32", "CRC32", "SHA", "SHA224", "SHA256", "SHA384", and "SHA512".</dd>
+    </dl>
+
+    > Hash["That book was made by Mr. Mark Twain, and he told the truth, mainly."]
+    = 124728405849036592016661111124271805877
+
+    > Hash["That book was made by Mr. Mark Twain, and he told the truth, mainly.", "SHA256"]
+    = 80205187535742766793368712314651197079792629272387688364300850280559660013913
+
+    > Hash[1/3]
+    = 56073172797010645108327809727054836008
+
+    > Hash[{a, b, {c, {d, e, f}}}]
+    = 135682164776235407777080772547528225284
+
+    > Hash[SomeHead[3.1415]]
+    = 58042316473471877315442015469706095084
+    """
+
+    rules = {
+        'Hash[expr_]': 'Hash[expr, "MD5"]',
+    }
+
+    attributes = ('Protected', 'ReadProtected')
+
+    # FIXME md2
+    _supported_hashes = {
+        'Adler32': lambda: _ZLibHash(zlib.adler32),
+        'CRC32': lambda: _ZLibHash(zlib.crc32),
+        'MD5': hashlib.md5,
+        'SHA': hashlib.sha1,
+        'SHA224': hashlib.sha224,
+        'SHA256': hashlib.sha256,
+        'SHA384': hashlib.sha384,
+        'SHA512': hashlib.sha512,
+    }
+
+    def apply(self, expr, hashtype, evaluation):
+        'Hash[expr_, hashtype_String]'
+        py_hashtype = hashtype.get_string_value()
+        hash_func = Hash._supported_hashes.get(py_hashtype)
+        if hash_func is None:  # unknown hash function?
+            return  # return Expression
+        h = hash_func()
+        expr.user_hash(h.update)
+        return from_python(int(h.hexdigest(), 16))

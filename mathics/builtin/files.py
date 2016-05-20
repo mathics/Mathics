@@ -13,7 +13,6 @@ from __future__ import division
 import os
 import io
 import shutil
-import hashlib
 import zlib
 import base64
 import tempfile
@@ -3697,36 +3696,15 @@ class FileHash(Builtin):
 
     def apply(self, filename, hashtype, evaluation):
         'FileHash[filename_String, hashtype_String]'
-        py_hashtype = hashtype.to_python()
-        py_filename = filename.to_python()
-
-        # TODO: MD2?
-        supported_hashes = {
-            'Adler32': zlib.adler32,
-            'CRC32': zlib.crc32,
-            'MD5': lambda s: int(hashlib.md5(s).hexdigest(), 16),
-            'SHA': lambda s: int(hashlib.sha1(s).hexdigest(), 16),
-            'SHA224': lambda s: int(hashlib.sha224(s).hexdigest(), 16),
-            'SHA256': lambda s: int(hashlib.sha256(s).hexdigest(), 16),
-            'SHA384': lambda s: int(hashlib.sha384(s).hexdigest(), 16),
-            'SHA512': lambda s: int(hashlib.sha512(s).hexdigest(), 16),
-        }
-
-        py_hashtype = py_hashtype[1:-1]
-        py_filename = py_filename[1:-1]
-
-        hash_func = supported_hashes.get(py_hashtype)
-        if hash_func is None:
-            return
+        py_filename = filename.get_string_value()
 
         try:
             with mathics_open(py_filename, 'rb') as f:
                 dump = f.read()
         except IOError:
-            evaluation.message('General', 'noopen', filename)
-            return
+            return evaluation.message('General', 'noopen', filename)
 
-        return from_python(hash_func(dump))
+        return evaluation.evaluate(Expression('Hash', String(dump), hashtype))
 
 
 class FileDate(Builtin):
