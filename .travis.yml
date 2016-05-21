@@ -32,6 +32,8 @@ matrix:
       env: CYTHON="true"
     - python: pypy3
       env: CYTHON="true"
+    # Travis currently does not support PyPy4
+    - python: pypy4
   allow_failures:
     - python: 3.2
     - python: pypy3
