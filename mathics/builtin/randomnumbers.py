@@ -16,6 +16,8 @@ import six.moves.cPickle as pickle
 import binascii
 import hashlib
 import numpy
+import time
+import os
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import (Integer, String, Symbol, Real, Expression,
@@ -75,7 +77,8 @@ class RandomEnv:
         return numpy.random.choice(n, size=size, replace=replace, p=p)
 
     def seed(self, x=None):
-        # numpy implementation might be different from the old python impl.
+        if x is None:  # numpy does not know to seed itself randomly
+            x = int(time.time() * 1000) ^ hash(os.urandom(16))
         # for numpy, seed must be convertible to 32 bit unsigned integer.
         numpy.random.seed(abs(x) & 0xffffffff)
 
@@ -138,6 +141,12 @@ class SeedRandom(Builtin):
 
     String seeds are supported as well:
     >> SeedRandom["Mathics"]
+    >> RandomInteger[100]
+     = ...
+
+    Calling 'SeedRandom' without arguments will seed the random
+    number generator to a random state:
+    >> SeedRandom[]
     >> RandomInteger[100]
      = ...
 
@@ -536,10 +545,10 @@ class RandomChoice(_RandomSelection):
      = {c, a, c, c, a, a, c, b, c, c, c, c, a, c, b, a, b, b, b, b}
     >> SeedRandom[42]
     >> RandomChoice[{"a", {1, 2}, x, {}}, 10]
-     = {x, {}, a, x, x, {}, a, a, x, {1,2}}
+     = {x, {}, a, x, x, {}, a, a, x, {1, 2}}
     >> SeedRandom[42]
     >> RandomChoice[{a, b, c}, {5, 2}]
-     = {{c, b}, {a, b}, {b, b}, {b, a}, {a, b}}
+     = {{c, a}, {c, c}, {a, a}, {c, b}, {c, c}}
     >> SeedRandom[42]
     >> RandomChoice[{1, 100, 5} -> {a, b, c}, 20]
      = {b, b, b, b, b, b, b, b, b, b, b, c, b, b, b, b, b, b, b, b}
@@ -584,7 +593,7 @@ class RandomSample(_RandomSelection):
      = {{1, 2}, {}, a}
     >> SeedRandom[42]
     >> RandomSample[Range[100], {2, 3}]
-     = {84, 54, 71}, {46, 45, 40}}
+     = {{84, 54, 71}, {46, 45, 40}}
     >> SeedRandom[42]
     >> RandomSample[Range[100] -> Range[100], 5]
      = {62, 98, 86, 78, 40}
