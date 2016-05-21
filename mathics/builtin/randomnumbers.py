@@ -23,7 +23,7 @@ from mathics.core.expression import (Integer, String, Symbol, Real, Expression,
 
 
 def get_random_state():
-    state = numpy.random.getstate()
+    state = numpy.random.get_state()
     state = pickle.dumps(state)
     state = binascii.b2a_hex(state)
     state.decode('ascii')
@@ -40,7 +40,7 @@ def set_random_state(state):
         state = state.encode('ascii')
         state = binascii.a2b_hex(state)
         state = pickle.loads(state)
-        numpy.random.setstate(state)
+        numpy.random.set_state(state)
 
 
 def _from_numpy(a, new_element, d=1):
@@ -49,6 +49,7 @@ def _from_numpy(a, new_element, d=1):
     else:
         leaves = [_from_numpy(a[k], new_element, d) for k in range(a.shape[0])]
     return Expression('List', *leaves)
+
 
 class RandomEnv:
     def __init__(self, evaluation):
@@ -259,15 +260,7 @@ class RandomInteger(Builtin):
         result = ns.to_python()
 
         with RandomEnv(evaluation) as rand:
-            def search_product(i):
-                if i == len(result) - 1:
-                        return Expression('List', *[
-                            Integer(rand.randint(rmin, rmax))
-                            for j in range(result[i])])
-                else:
-                    return Expression('List', *[
-                        search_product(i + 1) for j in range(result[i])])
-            return search_product(0)
+            return _from_numpy(rand.randint(rmin, rmax, result), Integer)
 
 
 class RandomReal(Builtin):
@@ -350,15 +343,7 @@ class RandomReal(Builtin):
         assert all([isinstance(i, int) for i in result])
 
         with RandomEnv(evaluation) as rand:
-            def search_product(i):
-                if i == len(result) - 1:
-                        return Expression('List', *[
-                            Real(rand.randreal(min_value, max_value))
-                            for j in range(result[i])])
-                else:
-                    return Expression('List', *[
-                        search_product(i + 1) for j in range(result[i])])
-            return search_product(0)
+            return _from_numpy(rand.randreal(min_value, max_value, result), Real)
 
 
 class RandomComplex(Builtin):
@@ -447,17 +432,16 @@ class RandomComplex(Builtin):
             return evaluation.message('RandomComplex', 'array', ns, expr)
 
         with RandomEnv(evaluation) as rand:
-            def search_product(i):
-                if i == len(py_ns) - 1:
-                        return Expression('List', *[
-                            Complex(
-                                rand.randreal(min_value.real, max_value.real),
-                                rand.randreal(min_value.imag, max_value.imag)
-                            ) for j in range(py_ns[i])])
-                else:
-                    return Expression('List', *[
-                        search_product(i + 1) for j in range(py_ns[i])])
-            return search_product(0)
+            real = rand.randreal(min_value.real, max_value.real, py_ns)
+            imag = rand.randreal(min_value.imag, max_value.imag, py_ns)
+
+            # numpy.stack in the following code stacks real and imag along the most inner axis:
+            # e.g. numpy.stack([ [1, 2], [3, 4] ], axis=-1)
+            # gives: array([ [1, 3], [2, 4] ])
+            # e.g. numpy.stack([ [[1, 2], [3, 4]], [[4, 5], [6, 7]] ], axis=-1)
+            # gives: array([[[1, 4], [2, 5]], [[3, 6], [4, 7]]])
+
+            return _from_numpy(numpy.stack([real, imag], axis=-1), lambda c: Complex(*c), d=2)
 
 
 class _RandomSelection(_RandomBase):
