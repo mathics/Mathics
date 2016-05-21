@@ -42,6 +42,15 @@ exec(compile(open('mathics/version.py').read(), 'mathics/version.py', 'exec'))
 
 is_PyPy = (platform.python_implementation() == 'PyPy')
 
+INSTALL_REQUIRES = []
+DEPENDENCY_LINKS = []
+
+if is_PyPy:
+    DEPENDENCY_LINKS += ['git+https://bitbucket.org/pypy/numpy.git#egg=pypy_numpy-1.8']
+    INSTALL_REQUIRES += ['pypy_numpy>=1.8']
+else:
+    INSTALL_REQUIRES += ['numpy>=1.8']
+
 try:
     if is_PyPy:
         raise ImportError
@@ -49,7 +58,6 @@ try:
 except ImportError:
     EXTENSIONS = []
     CMDCLASS = {}
-    INSTALL_REQUIRES = []
 else:
     EXTENSIONS = {
         'core': ['expression', 'numbers', 'rules', 'pattern'],
@@ -60,10 +68,10 @@ else:
                   ['mathics/%s/%s.py' % (parent, module)])
         for parent, modules in EXTENSIONS.items() for module in modules]
     CMDCLASS = {'build_ext': build_ext}
-    INSTALL_REQUIRES = ['cython>=0.15.1']
+    INSTALL_REQUIRES += ['cython>=0.15.1']
 
 # General Requirements
-INSTALL_REQUIRES += ['sympy==1.0', 'numpy>=1.8', 'django >= 1.8, < 1.9', 'ply==3.8',
+INSTALL_REQUIRES += ['sympy==1.0', 'django >= 1.8, < 1.9', 'ply==3.8',
                      'mpmath>=0.19', 'python-dateutil', 'colorama', 'six>=1.10']
 
 
@@ -160,6 +168,7 @@ setup(
     ],
 
     install_requires=INSTALL_REQUIRES,
+    dependency_links=DEPENDENCY_LINKS,
 
     package_data={
         'mathics': [
