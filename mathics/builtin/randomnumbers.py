@@ -68,14 +68,16 @@ class RandomEnv:
         return numpy.random.random_integers(a, b, size)
 
     def randreal(self, a, b, size=None):
-        return numpy.random.uniform(a, b, size)
+        # numpy gives us [a, b). we want [a, b].
+        return numpy.random.uniform(a, numpy.nextafter(b, 1), size)
 
     def randchoice(self, n, size, replace, p):
         return numpy.random.choice(n, size=size, replace=replace, p=p)
 
     def seed(self, x=None):
         # numpy implementation might be different from the old python impl.
-        numpy.random.seed(x)
+        # for numpy, seed must be convertible to 32 bit unsigned integer.
+        numpy.random.seed(abs(x) & 0xffffffff)
 
 
 class RandomState(Builtin):
@@ -477,15 +479,15 @@ class _RandomSelection(_RandomBase):
         err, py_size = self._size_to_python(domain, size, evaluation)
         if py_size is None:
             return err
-        if self._replace == False:  # RandomSample?
+        if not self._replace:  # i.e. RandomSample?
             n_chosen = 1
             for n in py_size:
                 n_chosen *= n
             if len(elements) < n_chosen:
                 return evaluation.message('smplen', size, domain), None
         with RandomEnv(evaluation) as rand:
-            return _from_numpy(rand.randchoice(len(elements), size=py_size,
-                                               replace=self._replace, p=py_weights), lambda i: elements[i])
+            return _from_numpy(rand.randchoice(len(elements), size=py_size, replace=self._replace,
+                                               p=py_weights), lambda i: elements[i])
 
     def _weights_to_python(self, weights, evaluation):
         # we need to normalize weights as numpy.rand.randchoice expects this and as we can limit
