@@ -184,13 +184,13 @@ class _RandomBase(Builtin):
     }
 
     def _size_to_python(self, domain, size, evaluation):
-        if not all(i.is_numeric() for i in size):
+        is_proper_spec = size.get_head_name() == 'System`List' and all(n.is_numeric() for n in size.leaves)
+
+        py_size = size.to_python() if is_proper_spec else None
+        if (py_size is None) or (not all(isinstance(i, int) and i >= 0 for i in py_size)):
             expr = Expression(self.get_name(), domain, size)
             return evaluation.message(self.get_name(), 'array', size, expr), None
-        py_size = size.to_python()
-        if not all(isinstance(i, int) and i >= 0 for i in py_size):
-            expr = Expression(self.get_name(), domain, size)
-            return evaluation.message(self.get_name(), 'array', size, expr), None
+
         return False, py_size
 
 
@@ -445,41 +445,63 @@ class RandomComplex(Builtin):
 
 
 class _RandomSelection(_RandomBase):
+    # implementation note: weights are clipped to numpy floats. this might be different from MMA
+    # where weights might be handled with full dynamic precision support through the whole computation.
+    # we try to limit the error by normalizing weights with full precision, and then clipping to float.
+    # since weights are probabilities into a finite set, this should not make a difference.
+
     messages = {
-        'weights': (
-            "The weights `1` given in position 1 of `2` should be a "
-            "list of non-negative numbers describing probabilities."),
-        'lengths': "The number of weights and elements in `1` has to be identical.",
-        'list': "Position 1 should be a list of elements or a rule weights -> elements."
+        'wghtv':
+            "The weights on the left-hand side of `1` has to be a list of non-negative numbers " +
+            "with the same length as the list of items on the right-hand side.",
+        'lrwl': "`1` has to be a list of items or a rule of the form weights -> choices.",
+        'smplen':
+            "RandomSample cannot choose `1` samples, as this are more samples than there are in `2`. " +
+            "Use RandomChoice to choose items from a set with replacing."
     }
 
     def apply(self, domain, size, evaluation):
         '''%(name)s[domain_, size_]'''
-        if domain.get_head_name() == 'System`Rule':
-            weights = self._weights_to_python(domain.leaves[0], Expression(self.get_name(), domain, size), evaluation)
-            weights /= numpy.sum(weights)  # normalize
+        if domain.get_head_name() == 'System`Rule':  # elements and weights
+            err, py_weights = self._weights_to_python(domain.leaves[0], evaluation)
+            if py_weights is None:
+                return err
             elements = domain.leaves[1].leaves
-            if len(weights) != len(elements):
-                return evaluation.message(self.get_name(), 'lengths', domain)
-        elif domain.get_head_name() == 'System`List':
-            weights = None
+            if domain.leaves[1].get_head_name() != 'System`List' or len(py_weights) != len(elements):
+                return evaluation.message(self.get_name(), 'wghtv', domain)
+        elif domain.get_head_name() == 'System`List':  # only elements
+            py_weights = None
             elements = domain.leaves
         else:
-            return evaluation.message(self.get_name(), 'list')
+            return evaluation.message(self.get_name(), 'lrwl', domain)
         err, py_size = self._size_to_python(domain, size, evaluation)
-        if py_size is not None:
-            with RandomEnv(evaluation) as rand:
-                return _from_numpy(rand.randchoice(len(elements), size=py_size,
-                                                   replace=self._replace, p=weights), lambda i: elements[i])
-        else:
+        if py_size is None:
             return err
+        if self._replace == False:  # RandomSample?
+            n_chosen = 1
+            for n in py_size:
+                n_chosen *= n
+            if len(elements) < n_chosen:
+                return evaluation.message('smplen', size, domain), None
+        with RandomEnv(evaluation) as rand:
+            return _from_numpy(rand.randchoice(len(elements), size=py_size,
+                                               replace=self._replace, p=py_weights), lambda i: elements[i])
 
-    def _weights_to_python(self, weights, expr, evaluation):
-        if not all(w.is_numeric() for w in weights):
-            return evaluation.message(self.get_name(), 'weights', weights, expr), None
-        py_weights = weights.to_python()
-        if not all(isinstance(w, (int, float)) and w >= 0 for w in py_weights):
-            return evaluation.message(self.get_name(), 'weights', weights, expr), None
+    def _weights_to_python(self, weights, evaluation):
+        # we need to normalize weights as numpy.rand.randchoice expects this and as we can limit
+        # accuracy problems with very large or very small weights by normalizing with sympy
+        is_proper_spec = weights.get_head_name() == 'System`List' and all(w.is_numeric() for w in weights.leaves)
+
+        if is_proper_spec and len(weights.leaves) > 1:  # normalize before we lose accuracy
+            norm_weights = Expression('Divide', weights, Expression('Total', weights)).evaluate(evaluation)
+            if norm_weights is None or not all(w.is_numeric() for w in norm_weights.leaves):
+                return evaluation.message(self.get_name(), 'wghtv', weights), None
+            weights = norm_weights
+
+        py_weights = weights.to_python() if is_proper_spec else None
+        if (py_weights is None) or (not all(isinstance(w, (int, float)) and w >= 0 for w in py_weights)):
+            return evaluation.message(self.get_name(), 'wghtv', weights), None
+
         return False, py_weights
 
 
@@ -489,7 +511,3 @@ class RandomChoice(_RandomSelection):
 
 class RandomSample(_RandomSelection):
     _replace = False
-
-
-class RandomVariate(_RandomBase):
-    pass
