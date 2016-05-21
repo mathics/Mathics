@@ -565,11 +565,11 @@ class Hash(Builtin):
       <dd>The types supported are "MD5", "Adler32", "CRC32", "SHA", "SHA224", "SHA256", "SHA384", and "SHA512".</dd>
     </dl>
 
-    > Hash["That book was made by Mr. Mark Twain, and he told the truth, mainly."]
-    = 124728405849036592016661111124271805877
+    > Hash["The Adventures of Huckleberry Finn"]
+    = 213425047836523694663619736686226550816
 
-    > Hash["That book was made by Mr. Mark Twain, and he told the truth, mainly.", "SHA256"]
-    = 80205187535742766793368712314651197079792629272387688364300850280559660013913
+    > Hash["The Adventures of Huckleberry Finn", "SHA256"]
+    = 95092649594590384288057183408609254918934351811669818342876362244564858646638
 
     > Hash[1/3]
     = 56073172797010645108327809727054836008
