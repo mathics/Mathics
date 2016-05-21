@@ -595,20 +595,64 @@ class ImageRotate(Builtin):
 
 
 class ImagePartition(Builtin):
+    '''
+    <dl>
+    <dt>'ImagePartition[$image$, $s$]'
+      <dd>Partitions an image into an array of $s$ x $s$ pixel subimages.
+    <dt>'ImagePartition[$image$, {$w$, $h$}]'
+      <dd>Partitions an image into an array of $w$ x $h$ pixel subimages.
+    </dl>
+
+    >> lena = Import["ExampleData/lena.tif"];
+    >> ImageDimensions[lena]
+     = {512, 512}
+    >> ImagePartition[lena, 256]
+     = {{-Image-, -Image-}, {-Image-, -Image-}}
+
+    >> ImagePartition[lena, {512, 128}]
+     = {{-Image-}, {-Image-}, {-Image-}, {-Image-}}
+
+    #> ImagePartition[lena, 257]
+     = {{-Image-}}
+    #> ImagePartition[lena, 512]
+     = {{-Image-}}
+    #> ImagePartition[lena, 513]
+     = {}
+    #> ImagePartition[lena, {256, 300}]
+     = {{-Image-, -Image-}}
+
+    #> ImagePartition[lena, {0, 300}]
+     : {0, 300} is not a valid size specification for image partitions.
+     = ImagePartition[-Image-, {0, 300}]
+    '''
+
     rules = {
         'ImagePartition[i_Image, s_Integer]': 'ImagePartition[i, {s, s}]'
     }
 
+    messages = {
+        'arg2': '`1` is not a valid size specification for image partitions.',
+    }
+
     def apply(self, image, w, h, evaluation):
         'ImagePartition[image_Image, {w_Integer, h_Integer}]'
-        w = w.to_python()
-        h = h.to_python()
+        w = w.get_int_value()
+        h = h.get_int_value()
+        if w <= 0 or h <= 0:
+            return evaluation.message('ImagePartition', 'arg2', from_python([w, h]))
         pixels = image.pixels
         shape = pixels.shape
-        parts = [Image(pixels[y:y + w, x:x + w], image.color_space)
-                 for x in range(0, shape[1], w) for y in range(0, shape[0], h)]
-        return Expression('List', *parts)
 
+        # drop blocks less than w x h
+        parts = []
+        for yi in range(shape[0] // h):
+            row = []
+            for xi in range(shape[1] // w):
+                p = pixels[yi * h : (yi + 1) * h, xi * w : (xi + 1) * w]
+                row.append(Image(p, image.color_space))
+            if row:
+                parts.append(row)
+        return from_python(parts)
 
 # simple image filters
 
