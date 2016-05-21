@@ -72,7 +72,7 @@ class HashAndSameQ(unittest.TestCase):
     def testAcrossTypes(self):
         _test_group(Integer(1), Rational(1, 1), Real(1), Complex(1, 1), String('1'), Symbol('1'))
 
-    def _testInstances(self):
+    def testInstances(self):
         # duplicate instantiations of same content (like Integer 5) to test for potential instantiation randomness.
         _test_group(list(map(lambda f: (f(), f()),
                              (lambda: Integer(5), lambda: Rational(5, 2), lambda: Real(5.12345678),
