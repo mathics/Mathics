@@ -2421,24 +2421,24 @@ class Union(_SetOperation):
                 yield ea
 
 
-class Intersect(_SetOperation):
+class Intersection(_SetOperation):
     """
     <dl>
-    <dt>'Intersect[$a$, $b$, ...]'
-    <dd>gives the intersection of the or sets. The resulting list will be sorted
+    <dt>'Intersection[$a$, $b$, ...]'
+    <dd>gives the intersection of the sets. The resulting list will be sorted
     and each element will only occur once.
     </dl>
 
-    >> Intersect[{1000, 100, 10, 1}, {1, 5, 10, 15}]
+    >> Intersection[{1000, 100, 10, 1}, {1, 5, 10, 15}]
      = {1, 10}
 
-    >> Intersect[{{a, b}, {x, y}}, {{x, x}, {x, y}, {x, z}}]
+    >> Intersection[{{a, b}, {x, y}}, {{x, x}, {x, y}, {x, z}}]
      = {{x, y}}
 
-    >> Intersect[{c, b, a}]
+    >> Intersection[{c, b, a}]
      = {a, b, c}
 
-    >> Intersect[{1, 2, 3}, {2, 3, 4}, SameTest->Less]
+    >> Intersection[{1, 2, 3}, {2, 3, 4}, SameTest->Less]
      = {3}
     """
 
