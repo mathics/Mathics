@@ -12,7 +12,7 @@ import sympy
 
 from mathics.builtin.base import Builtin, SympyObject, SympyFunction
 from mathics.core.convert import from_sympy
-from mathics.core.expression import Integer
+from mathics.core.expression import Integer, String
 
 
 class Floor(SympyFunction):
@@ -136,3 +136,32 @@ class IntegerLength(Builtin):
 
         result = sympy.Integer(sympy.log(abs(n), b)) + 1
         return Integer(result)
+
+
+class IntegerString(Builtin):
+    _digits = [chr(i + ord('0')) for i in range(10)] + [chr(i + ord('a')) for i in range(26)]
+
+    def apply(self, n, evaluation):
+        'IntegerString[n_Integer]'
+        return String(str(abs(n.get_int_value())))
+
+    def apply(self, n, b, evaluation):
+        'IntegerString[n_Integer, b_Integer]'
+        base = b.get_int_value()
+
+        digits = IntegerString._digits
+        if base > len(digits):
+            return None
+
+        def rebase(x):
+            while x > 0:
+                yield x % base
+                x //= base
+
+        x = n.get_int_value()
+        remainders = list(rebase(x))
+        if len(remainders) == 0:
+            remainders = [0]
+
+        return String(''.join([digits[r] for r in reversed(remainders)]))
+
