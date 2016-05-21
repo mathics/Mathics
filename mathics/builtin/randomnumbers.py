@@ -15,17 +15,38 @@ import six.moves.cPickle as pickle
 
 import binascii
 import hashlib
-import numpy
-import time
-import os
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import (Integer, String, Symbol, Real, Expression,
                                      Complex)
 
+try:
+    import numpy
+    _numpy = True
+except ImportError:  # no numpy?
+    _numpy = False
+    import random
+
+if _numpy:
+    import time
+    import os
+
+    random_get_state = numpy.random.get_state
+    random_set_state = numpy.random.set_state
+
+    def random_seed(x=None):
+        if x is None:  # numpy does not know how to seed itself randomly
+            x = int(time.time() * 1000) ^ hash(os.urandom(16))
+        # for numpy, seed must be convertible to 32 bit unsigned integer
+        numpy.random.seed(abs(x) & 0xffffffff)
+else:
+    random_get_state = random.getstate
+    random_set_state = random.setstate
+    random_seed = random.seed
+
 
 def get_random_state():
-    state = numpy.random.get_state()
+    state = random_get_state()
     state = pickle.dumps(state)
     state = binascii.b2a_hex(state)
     state.decode('ascii')
@@ -35,25 +56,60 @@ def get_random_state():
 
 def set_random_state(state):
     if state is None:
-        numpy.random.seed()
+        random_seed()
     else:
         state = hex(state)[2:]  # drop leading "0x"
         state = state.rstrip('L')
         state = state.encode('ascii')
         state = binascii.a2b_hex(state)
         state = pickle.loads(state)
-        numpy.random.set_state(state)
+        random_set_state(state)
 
 
-def _from_numpy(a, new_element, d=1):
-    if len(a.shape) == d:
-        leaves = [new_element(x) for x in a]
-    else:
-        leaves = [_from_numpy(a[k], new_element, d) for k in range(a.shape[0])]
-    return Expression('List', *leaves)
+if _numpy:
+    def _from_array(a, new_element, d=1):
+        if len(a.shape) == d:
+            leaves = [new_element(x) for x in a]
+        else:
+            leaves = [_from_array(e, new_element, d) for e in a]
+        return Expression('List', *leaves)
+
+    def _stack_array(a):
+        # numpy.stack with axis=-1 stacks arrays along the most inner axis:
+        # e.g. numpy.stack([ [1, 2], [3, 4] ], axis=-1)
+        # gives: array([ [1, 3], [2, 4] ])
+        # e.g. numpy.stack([ [[1, 2], [3, 4]], [[4, 5], [6, 7]] ], axis=-1)
+        # gives: array([[[1, 4], [2, 5]], [[3, 6], [4, 7]]])
+        return numpy.stack(a, axis=-1)
+else:
+    from itertools import chain
+
+    def _create_array(size, f):
+        if size is None or len(size) == 0:
+            return f()
+        else:
+            return [_create_array(size[1:], f) for _ in range(size[0])]
+
+    def _from_array(a, new_element, d=1):
+        e = a[0]
+        depth = 1
+        while depth <= d and isinstance(e, list):
+            e = e[0]
+            depth += 1
+        if d == depth:
+            leaves = [new_element(x) for x in a]
+        else:
+            leaves = [_from_array(e, new_element, d) for e in a]
+        return Expression('List', *leaves)
+
+    def _stack_array(a):
+        if not isinstance(a[0], list):
+            return list(chain(a))
+        else:
+            return [_stack_array([x[i] for x in a]) for i in range(len(a[0]))]
 
 
-class RandomEnv:
+class _RandomEnvBase:
     def __init__(self, evaluation):
         self.evaluation = evaluation
 
@@ -66,6 +122,23 @@ class RandomEnv:
         state = get_random_state()
         self.evaluation.definitions.set_config_value('$RandomState', state)
 
+    def seed(self, x=None):
+        # This has different behavior in Python 3.2 and in numpy
+        random_seed(x)
+
+
+class NoNumPyRandomEnv(_RandomEnvBase):
+    def randint(self, a, b, size=None):
+        return _create_array(size, lambda: random.randint(a, b))
+
+    def randreal(self, a, b, size=None):
+        return _create_array(size, lambda: random.uniform(a, b))
+
+    def randchoice(self, n, size, replace, p):
+        raise NotImplementedError
+
+
+class NumPyRandomEnv(_RandomEnvBase):
     def randint(self, a, b, size=None):
         return numpy.random.random_integers(a, b, size)
 
@@ -76,11 +149,11 @@ class RandomEnv:
     def randchoice(self, n, size, replace, p):
         return numpy.random.choice(n, size=size, replace=replace, p=p)
 
-    def seed(self, x=None):
-        if x is None:  # numpy does not know to seed itself randomly
-            x = int(time.time() * 1000) ^ hash(os.urandom(16))
-        # for numpy, seed must be convertible to 32 bit unsigned integer.
-        numpy.random.seed(abs(x) & 0xffffffff)
+
+if _numpy:
+    RandomEnv = NumPyRandomEnv
+else:
+    RandomEnv = NoNumPyRandomEnv
 
 
 class RandomState(Builtin):
@@ -271,7 +344,7 @@ class RandomInteger(Builtin):
         result = ns.to_python()
 
         with RandomEnv(evaluation) as rand:
-            return _from_numpy(rand.randint(rmin, rmax, result), Integer)
+            return _from_array(rand.randint(rmin, rmax, result), Integer)
 
 
 class RandomReal(Builtin):
@@ -354,7 +427,7 @@ class RandomReal(Builtin):
         assert all([isinstance(i, int) for i in result])
 
         with RandomEnv(evaluation) as rand:
-            return _from_numpy(rand.randreal(min_value, max_value, result), Real)
+            return _from_array(rand.randreal(min_value, max_value, result), Real)
 
 
 class RandomComplex(Builtin):
@@ -445,14 +518,7 @@ class RandomComplex(Builtin):
         with RandomEnv(evaluation) as rand:
             real = rand.randreal(min_value.real, max_value.real, py_ns)
             imag = rand.randreal(min_value.imag, max_value.imag, py_ns)
-
-            # numpy.stack in the following code stacks real and imag along the most inner axis:
-            # e.g. numpy.stack([ [1, 2], [3, 4] ], axis=-1)
-            # gives: array([ [1, 3], [2, 4] ])
-            # e.g. numpy.stack([ [[1, 2], [3, 4]], [[4, 5], [6, 7]] ], axis=-1)
-            # gives: array([[[1, 4], [2, 5]], [[3, 6], [4, 7]]])
-
-            return _from_numpy(numpy.stack([real, imag], axis=-1), lambda c: Complex(*c), d=2)
+            return _from_array(_stack_array([real, imag]), lambda c: Complex(*c), d=2)
 
 
 class _RandomSelection(_RandomBase):
@@ -495,7 +561,7 @@ class _RandomSelection(_RandomBase):
             if len(elements) < n_chosen:
                 return evaluation.message('smplen', size, domain), None
         with RandomEnv(evaluation) as rand:
-            return _from_numpy(rand.randchoice(len(elements), size=py_size, replace=self._replace,
+            return _from_array(rand.randchoice(len(elements), size=py_size, replace=self._replace,
                                                p=py_weights), lambda i: elements[i])
 
     def _weights_to_python(self, weights, evaluation):
