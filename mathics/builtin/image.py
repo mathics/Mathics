@@ -658,23 +658,69 @@ class ImagePartition(Builtin):
 
 
 class ImageAdjust(Builtin):
+    '''
+    <dl>
+    <dt>'ImageAdjust[$image$]'
+      <dd>adjusts the levels in $image$.
+    <dt>'ImageAdjust[$image$, $c$]'
+      <dd>adjusts the contrast in $image$ by $c$.
+    <dt>'ImageAdjust[$image$, {$c$, $b$}]'
+      <dd>adjusts the contrast $c$, and brightness $b$ in $image$.
+    <dt>'ImageAdjust[$image$, {$c$, $b$, $g$}]'
+      <dd>adjusts the contrast $c$, brightness $b$, and gamma $g$ in $image$.
+    </dl>
+
+    >> lena = Import["ExampleData/lena.tif"];
+    >> ImageAdjust[lena]
+     = -Image-
+
+    #> img = Image[{{0.1, 0.5}, {0.5, 0.9}}];
+    #> ImageData[ImageAdjust[img]]
+     = {{0., 0.5}, {0.5, 1.}}
+    '''
+
+    rules = {
+        'ImageAdjust[image_Image, c_?RealNumberQ]': 'ImageAdjust[image, {c, 0, 1}]',
+        'ImageAdjust[image_Image, {c_?RealNumberQ, b_?RealNumberQ}]': 'ImageAdjust[image, {c, b, 1}]',
+    }
+
     def apply_auto(self, image, evaluation):
         'ImageAdjust[image_Image]'
-        pixels = skimage.img_as_ubyte(image.pixels)
-        return Image(numpy.array(PIL.ImageOps.equalize(PIL.Image.fromarray(pixels))), image.color_space)
+        pixels = skimage.img_as_float(image.pixels)
 
-    def apply_contrast(self, image, c, evaluation):
-        'ImageAdjust[image_Image, c_?RealNumberQ]'
-        enhancer_c = PIL.ImageEnhance.Contrast(image.pil())
-        return Image(numpy.array(enhancer_c.enhance(c.to_python())), image.color_space)
+        # channel limits
+        axis = (0, 1)
+        cmaxs, cmins = pixels.max(axis=axis), pixels.min(axis=axis)
 
-    def apply_contrast_brightness(self, image, c, b, evaluation):
-        'ImageAdjust[image_Image, {c_?RealNumberQ, b_?RealNumberQ}]'
+        # normalise channels
+        scales = cmaxs - cmins
+        if not scales.shape:
+            scales = numpy.array([scales])
+        scales[scales == 0.0] = 1
+        pixels -= cmins
+        pixels /= scales
+        return Image(pixels, image.color_space)
+
+    def apply_contrast_brightness_gamma(self, image, c, b, g, evaluation):
+        'ImageAdjust[image_Image, {c_?RealNumberQ, b_?RealNumberQ, g_?RealNumberQ}]'
         im = image.pil()
-        enhancer_b = PIL.ImageEnhance.Brightness(im)
-        im = enhancer_b.enhance(b.to_python())  # brightness first!
-        enhancer_c = PIL.ImageEnhance.Contrast(im)
-        return Image(numpy.array(enhancer_c.enhance(c.to_python())), image.color_space)
+
+        # gamma
+        g = g.to_python()
+        if g != 1:
+            im = PIL.ImageEnhance.Color(im).enhance(g)
+
+        # brightness
+        b = b.to_python()
+        if b != 0:
+            im = PIL.ImageEnhance.Brightness(im).enhance(b + 1)
+
+        # contrast
+        c = c.to_python()
+        if c != 0:
+            im = PIL.ImageEnhance.Contrast(im).enhance(c + 1)
+
+        return Image(numpy.array(im), image.color_space)
 
 
 class Blur(Builtin):
