@@ -46,8 +46,9 @@ INSTALL_REQUIRES = []
 DEPENDENCY_LINKS = []
 
 if is_PyPy:
-    DEPENDENCY_LINKS += ['git+https://bitbucket.org/pypy/numpy.git#egg=pypy_numpy-1.8']
-    INSTALL_REQUIRES += ['pypy_numpy>=1.8']
+    if False:  # FIXME check for >= PyPy4
+        DEPENDENCY_LINKS += ['git+https://bitbucket.org/pypy/numpy.git#egg=pypy_numpy-1.8']
+        INSTALL_REQUIRES += ['pypy_numpy>=1.8']
 else:
     INSTALL_REQUIRES += ['numpy>=1.8']
 

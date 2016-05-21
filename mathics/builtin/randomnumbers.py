@@ -15,6 +15,8 @@ import six.moves.cPickle as pickle
 
 import binascii
 import hashlib
+from operator import mul as operator_mul
+from functools import reduce
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import (Integer, String, Symbol, Real, Expression,
@@ -31,8 +33,15 @@ if _numpy:
     import time
     import os
 
-    random_get_state = numpy.random.get_state
-    random_set_state = numpy.random.set_state
+    # mathics.builtin.__init__.py module scanning logic gets confused
+    # if we assign numpy.random.get_state to a variable here. so we
+    # use defs to safely wrap the offending objects.
+
+    def random_get_state():
+        return numpy.random.get_state()
+
+    def random_set_state(state):
+        return numpy.random.set_state(state)
 
     def random_seed(x=None):
         if x is None:  # numpy does not know how to seed itself randomly
@@ -555,9 +564,7 @@ class _RandomSelection(_RandomBase):
         if py_size is None:
             return err
         if not self._replace:  # i.e. RandomSample?
-            n_chosen = 1
-            for n in py_size:
-                n_chosen *= n
+            n_chosen = reduce(operator_mul, py_size, 1)
             if len(elements) < n_chosen:
                 return evaluation.message('smplen', size, domain), None
         with RandomEnv(evaluation) as rand:
