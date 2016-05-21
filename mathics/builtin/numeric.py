@@ -602,12 +602,15 @@ class Hash(Builtin):
         'SHA512': hashlib.sha512,
     }
 
-    def apply(self, expr, hashtype, evaluation):
-        'Hash[expr_, hashtype_String]'
-        py_hashtype = hashtype.get_string_value()
+    @staticmethod
+    def compute(user_hash, py_hashtype):
         hash_func = Hash._supported_hashes.get(py_hashtype)
         if hash_func is None:  # unknown hash function?
-            return  # return Expression
+            return  # in order to return original Expression
         h = hash_func()
-        expr.user_hash(h.update)
+        user_hash(h.update)
         return from_python(int(h.hexdigest(), 16))
+
+    def apply(self, expr, hashtype, evaluation):
+        'Hash[expr_, hashtype_String]'
+        return Hash.compute(expr.user_hash, hashtype.get_string_value())

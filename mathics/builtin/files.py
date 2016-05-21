@@ -27,10 +27,11 @@ from six.moves import range
 from six import unichr
 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
-                                     from_python, Integer, BoxError, ByteArray,
+                                     from_python, Integer, BoxError,
                                      valid_context_name)
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
+from mathics.builtin.numeric import Hash
 from mathics.settings import ROOT_DIR
 
 
@@ -3704,7 +3705,7 @@ class FileHash(Builtin):
         except IOError:
             return evaluation.message('General', 'noopen', filename)
 
-        return Expression('Hash', ByteArray(dump), hashtype).evaluate(evaluation)
+        return Hash.compute(lambda update: update(dump), hashtype.get_string_value())
 
 
 class FileDate(Builtin):

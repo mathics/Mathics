@@ -1980,24 +1980,6 @@ class String(Atom):
         update(self.value.encode('utf8'))
 
 
-class ByteArray(Atom):
-    def __init__(self, bytes, **kwargs):
-        super(ByteArray, self).__init__(**kwargs)
-        self.bytes = bytearray(bytes)
-
-    def __str__(self):
-        return '(' + ', '.join('%d' % x for x in self.bytes) + ')'
-
-    def same(self, other):
-        return isinstance(other, ByteArray) and self.bytes == other.bytes
-
-    def __hash__(self):
-        return hash(("ByteArray", hashlib.sha1(self.bytes).hexdigest()))
-
-    def user_hash(self, update):
-        update(self.bytes)
-
-
 def get_default_value(name, evaluation, k=None, n=None):
     pos = []
     if k is not None:
