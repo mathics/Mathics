@@ -673,3 +673,8 @@ class RandomSample(_RandomSelection):
      """
 
     _replace = False
+
+if not _numpy:  # hide symbols from non-numpy envs
+    _RandomSelection = None
+    RandomChoice = None
+    RandomSample = None
