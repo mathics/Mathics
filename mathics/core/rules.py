@@ -94,6 +94,8 @@ class Rule(BaseRule):
     def do_replace(self, vars, options, evaluation):
         new = self.replace.replace_vars(vars)
         new.options = options
+        if len(options) > 0:  # need to trigger (re)evaluation?
+            new = new.copy()  # clear is_evaluated for whole tree
         return new
 
     def __repr__(self):

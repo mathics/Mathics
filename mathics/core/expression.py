@@ -492,6 +492,16 @@ class Expression(BaseExpression):
         result.original = self
         return result
 
+    def shallow_copy(self):
+        # this is a minimal, shallow copy: head, leaves are shared with
+        # the original, only the Expression instance is new. we transfer
+        # the is_evaluated state, so we don't reevaluate evaluated stuff.
+        expr = Expression(self.head)
+        expr.leaves = self.leaves
+        expr.options = self.options
+        expr.is_evaluated = self.is_evaluated
+        return expr
+
     def set_positions(self, position=None):
         self.position = position
         self.head.set_positions(ExpressionPointer(self, 0))
@@ -1104,7 +1114,7 @@ class Expression(BaseExpression):
                         self.leaves[2:]
 
         if len(vars) == 0:  # might just be a symbol set via Set[] we looked up here
-            return self
+            return self.shallow_copy()
 
         return Expression(
             self.head.replace_vars(
