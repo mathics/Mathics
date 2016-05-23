@@ -81,7 +81,7 @@ operators = {
 
 class _InequalityOperator(BinaryOperator):
     precedence = 290
-    grouping = 'NonAssociative'
+    grouping = 'None'
 
     def parse(self, args):
         # Parse multiple inequalities.
@@ -320,7 +320,6 @@ class Equal(_InequalityOperator, SympyFunction):
      = True
     """
     operator = '=='
-    grouping = 'None'
 
     sympy_name = 'Eq'
 
