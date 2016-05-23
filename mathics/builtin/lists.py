@@ -2105,15 +2105,12 @@ def _is_sameq(same_test):
     return same_test.is_symbol() and same_test.get_name() == 'System`SameQ'
 
 
-def _make_test_pair(test, evaluation, name):
-    def test_pair(a, b):
-        test_expr = Expression(test, a, b)
-        result = test_expr.evaluate(evaluation)
-        if not (result.is_symbol() and (result.has_symbol('True') or result.has_symbol('False'))):
-            evaluation.message(name, 'smtst', test_expr, result)
-        return result.is_true()
-
-    return test_pair
+def _test_pair(test, a, b, evaluation, name):
+    test_expr = Expression(test, a, b)
+    result = test_expr.evaluate(evaluation)
+    if not (result.is_symbol() and (result.has_symbol('True') or result.has_symbol('False'))):
+        evaluation.message(name, 'smtst', test_expr, result)
+    return result.is_true()
 
 
 class _SlowEquivalence:
@@ -2127,14 +2124,11 @@ class _SlowEquivalence:
         self._evaluation = evaluation
         self._name = name
 
-    def select(self):
-        groups = self._groups
-        return lambda elem: groups
+    def select(self, elem):
+        return self._groups
 
-    def same(self):
-        test = self._test
-        evaluation = self._evaluation
-        return _make_test_pair(test, evaluation, self._name)
+    def same(self, a, b):
+        return _test_pair(self._test, a, b, self._evaluation, self._name)
 
 
 class _FastEquivalence:
@@ -2158,12 +2152,11 @@ class _FastEquivalence:
     def __init__(self):
         self._hashes = defaultdict(list)
 
-    def select(self):
-        hashes = self._hashes
-        return lambda elem: hashes[hash(elem)]
+    def select(self, elem):
+        return self._hashes[hash(elem)]
 
-    def same(self):
-        return lambda a, b: a.same(b)
+    def same(self, a, b):
+        return a.same(b)
 
 
 class _GatherBin:
@@ -2229,13 +2222,10 @@ class _GatherOperation(Builtin):
         bins = []
         Bin = self._bin
 
-        select = equivalence.select()
-        same = equivalence.same()
-
         for elem in a_list.leaves:
-            selection = select(elem)
+            selection = equivalence.select(elem)
             for prototype, add_to_bin in selection:  # find suitable bin
-                if same(prototype, elem):
+                if equivalence.same(prototype, elem):
                     add_to_bin(elem)  # add to existing bin
                     break
             else:
@@ -2379,7 +2369,7 @@ class _SetOperation(Builtin):
         same_test = self.get_option(options, 'SameTest', evaluation)
         operands = [l.leaves for l in seq]
         if not _is_sameq(same_test):
-            same = _make_test_pair(same_test, evaluation, self.get_name())
+            same = lambda a, b: _test_pair(same_test, a, b, evaluation, self.get_name())
             items = functools.reduce(lambda a, b: [e for e in self._elementwise(a, b, same)], operands)
         else:
             items = list(functools.reduce(getattr(set, self._operation), map(set, operands)))
