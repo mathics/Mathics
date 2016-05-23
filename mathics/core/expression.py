@@ -1103,6 +1103,9 @@ class Expression(BaseExpression):
                     leaves = [Expression('List', *func_params), body] + \
                         self.leaves[2:]
 
+        if len(vars) == 0:  # might just be a symbol set via Set[] we looked up here
+            return self
+
         return Expression(
             self.head.replace_vars(
                 vars, options=options, in_scoping=in_scoping),
