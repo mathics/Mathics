@@ -798,21 +798,26 @@ class Expression(BaseExpression):
                     if not threaded.same(new):
                         threaded = threaded.evaluate(evaluation)
                     return threaded
-            rules = []
-            rules_names = set()
-            if 'System`HoldAllComplete' not in attributes:
-                for leaf in leaves:
-                    name = leaf.get_lookup_name()
-                    if len(name) > 0:  # only lookup rules if this is a symbol
-                        if name not in rules_names:
-                            rules_names.add(name)
-                            rules.extend(evaluation.definitions.get_upvalues(name))
-            lookup_name = new.get_lookup_name()
-            if lookup_name == new.get_head_name():
-                rules += evaluation.definitions.get_downvalues(lookup_name)
-            else:
-                rules += evaluation.definitions.get_subvalues(lookup_name)
-            for rule in rules:
+
+            def rules():
+                rules_names = set()
+                if 'System`HoldAllComplete' not in attributes:
+                    for leaf in leaves:
+                        name = leaf.get_lookup_name()
+                        if len(name) > 0:  # only lookup rules if this is a symbol
+                            if name not in rules_names:
+                                rules_names.add(name)
+                                for rule in evaluation.definitions.get_upvalues(name):
+                                    yield rule
+                lookup_name = new.get_lookup_name()
+                if lookup_name == new.get_head_name():
+                    for rule in evaluation.definitions.get_downvalues(lookup_name):
+                        yield rule
+                else:
+                    for rule in evaluation.definitions.get_subvalues(lookup_name):
+                        yield rule
+
+            for rule in rules():
                 result = rule.apply(new, evaluation, fully=False)
                 if result is not None:
                     if not result.same(new):
