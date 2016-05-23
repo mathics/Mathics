@@ -30,7 +30,7 @@ from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError,
                                      valid_context_name)
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
-                                  PrefixOperator)
+                                  Operator)
 from mathics.builtin.numeric import Hash
 from mathics.settings import ROOT_DIR
 
@@ -2051,7 +2051,7 @@ class OpenAppend(_OpenAction):
     stream_type = 'OutputStream'
 
 
-class Get(PrefixOperator):
+class Get(Operator):
     r"""
     <dl>
     <dt>'<<name'
