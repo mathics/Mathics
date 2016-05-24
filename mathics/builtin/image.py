@@ -1143,9 +1143,16 @@ class ImageBox(BoxConstruct):
         img = '<img src="data:image/png;base64,%s" width="%d" height="%d" />' % (
             leaves[0].get_string_value(), leaves[1].get_int_value(), leaves[2].get_int_value())
 
-        # see https://github.com/mathjax/MathJax/issues/896
-        xml = '<mtext>%s</mtext>' % img
-        return xml
+        # if we have Mathics JavaScript frontend processing that rewrites MathML tags using
+        # <mspace>, we must not embed our tag in <mtext> here.
+        uses_mathics_frontend_processing = False
+
+        if not uses_mathics_frontend_processing:
+            # see https://github.com/mathjax/MathJax/issues/896
+            xml = '<mtext>%s</mtext>' % img
+            return xml
+        else:
+            return img
 
     def boxes_to_tex(self, leaves, **options):
         return '-Image-'
