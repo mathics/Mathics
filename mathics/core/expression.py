@@ -1113,7 +1113,7 @@ class Expression(BaseExpression):
                     leaves = [Expression('List', *func_params), body] + \
                         self.leaves[2:]
 
-        if len(vars) == 0:  # might just be a symbol set via Set[] we looked up here
+        if not vars:  # might just be a symbol set via Set[] we looked up here
             return self.shallow_copy()
 
         return Expression(
