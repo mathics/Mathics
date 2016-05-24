@@ -1134,6 +1134,16 @@ def _image_pixels(matrix):
         return None
 
 
+class ImageQ(Builtin):
+    def apply_image(self, image, evaluation):
+        'ImageQ[image_Image]'
+        return Symbol('True')
+
+    def apply_no_image(self, array, evaluation):
+        'ImageQ[Image[array_]]'
+        return Symbol('False')
+
+
 class ImageBox(BoxConstruct):
     def boxes_to_text(self, leaves, **options):
         return '-Image-'
