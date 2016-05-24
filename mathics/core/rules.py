@@ -94,8 +94,23 @@ class Rule(BaseRule):
     def do_replace(self, vars, options, evaluation):
         new = self.replace.replace_vars(vars)
         new.options = options
-        if len(options) > 0:  # need to trigger (re)evaluation?
-            new = new.copy()  # clear is_evaluated for whole tree
+
+        # if options is a non-empty dict, we need to ensure reevaluation of the whole expression, since 'new' will
+        # usually contain one or more matching OptionValue[symbol_] patterns that need to get replaced with the
+        # options' values. this is achieved through Expression.evaluate(), which then triggers OptionValue.apply,
+        # which in turn consults evaluation.options to return an option value.
+
+        # in order to get there, our expression 'new' (or parts of it) must not have is_evaluated True, since this
+        # would make Expression.evaluate() quit early. doing a clean deep copy here, will reset
+        # Expression.is_evaluated for all nodes in the tree.
+
+        # if the expression contains OptionValue[] patterns, but options is empty here, we don't need to act, as the
+        # expression won't change in that case. the Expression.options would be None anyway, so OptionValue.apply
+        # would just return the unchanged expression (which is what we have already).
+
+        if options:
+            new = new.copy()
+
         return new
 
     def __repr__(self):
