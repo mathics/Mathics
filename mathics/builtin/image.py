@@ -1114,9 +1114,15 @@ class ImageType(Builtin):
 
 
 class BinaryImageQ(Test):
-    def apply(self, image, evaluation):
-        'BinaryImageQ[image_Image]'
-        return Symbol('True') if image.storage_type() == 'Bit' else Symbol('False')
+    '''
+    <dl>
+    <dt>'BinaryImageQ[$image]'
+      <dd>returns True if the pixels of $image are binary bit values, and False otherwise.
+    </dl>
+    '''
+
+    def test(self, expr):
+        return isinstance(expr, Image) and expr.storage_type() == 'Bit'
 
 
 # Image core classes
@@ -1134,14 +1140,28 @@ def _image_pixels(matrix):
         return None
 
 
-class ImageQ(Builtin):
-    def apply_image(self, image, evaluation):
-        'ImageQ[image_Image]'
-        return Symbol('True')
+class ImageQ(Test):
+    '''
+    <dl>
+    <dt>'ImageQ[Image[$pixels]]'
+      <dd>returns True if $pixels has dimensions from which an Image can be constructed, and False otherwise.
+    </dl>
 
-    def apply_no_image(self, array, evaluation):
-        'ImageQ[Image[array_]]'
-        return Symbol('False')
+    >> ImageQ[Image[{{0, 1}, {1, 0}}]]
+     = True
+
+    >> ImageQ[Image[{{{0, 0, 0}, {0, 1, 0}}, {{0, 1, 0}, {0, 1, 1}}}]]
+     = True
+
+    >> ImageQ[Image[{{{0, 0, 0}, {0, 1}}, {{0, 1, 0}, {0, 1, 1}}}]]
+     = False
+
+    >> ImageQ[Image[{1, 0, 1}]]
+     = False
+    '''
+
+    def test(self, expr):
+        return isinstance(expr, Image)
 
 
 class ImageBox(BoxConstruct):
