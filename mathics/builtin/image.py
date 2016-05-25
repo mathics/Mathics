@@ -12,7 +12,7 @@ Jupyter does not have this limitation though.
 from __future__ import division
 
 from mathics.builtin.base import (
-    Builtin, Test, BoxConstruct, String)
+    Builtin, AtomBuiltin, Test, BoxConstruct, String)
 from mathics.core.expression import (
     Atom, Expression, Integer, Rational, Real, Symbol, from_python)
 from mathics.core.evaluation import Evaluation
@@ -1114,9 +1114,15 @@ class ImageType(Builtin):
 
 
 class BinaryImageQ(Test):
-    def apply(self, image, evaluation):
-        'BinaryImageQ[image_Image]'
-        return Symbol('True') if image.storage_type() == 'Bit' else Symbol('False')
+    '''
+    <dl>
+    <dt>'BinaryImageQ[$image]'
+      <dd>returns True if the pixels of $image are binary bit values, and False otherwise.
+    </dl>
+    '''
+
+    def test(self, expr):
+        return isinstance(expr, Image) and expr.storage_type() == 'Bit'
 
 
 # Image core classes
@@ -1134,16 +1140,31 @@ def _image_pixels(matrix):
         return None
 
 
-class ImageCreate(Builtin):
-    def apply(self, array, evaluation):
-        '''ImageCreate[array_]'''
-        pixels = _image_pixels(array.to_python())
-        if pixels is not None:
-            shape = pixels.shape
-            is_rgb = (len(shape) == 3 and shape[2] == 3)
-            return Image(pixels.clip(0, 1), 'RGB' if is_rgb else 'Grayscale')
-        else:
-            return Symbol('$Aborted')
+class ImageQ(Test):
+    '''
+    <dl>
+    <dt>'ImageQ[Image[$pixels]]'
+      <dd>returns True if $pixels has dimensions from which an Image can be constructed, and False otherwise.
+    </dl>
+
+    >> ImageQ[Image[{{0, 1}, {1, 0}}]]
+     = True
+
+    >> ImageQ[Image[{{{0, 0, 0}, {0, 1, 0}}, {{0, 1, 0}, {0, 1, 1}}}]]
+     = True
+
+    >> ImageQ[Image[{{{0, 0, 0}, {0, 1}}, {{0, 1, 0}, {0, 1, 1}}}]]
+     = False
+
+    >> ImageQ[Image[{1, 0, 1}]]
+     = False
+
+    >> ImageQ["abc"]
+     = False
+    '''
+
+    def test(self, expr):
+        return isinstance(expr, Image)
 
 
 class ImageBox(BoxConstruct):
@@ -1152,11 +1173,19 @@ class ImageBox(BoxConstruct):
 
     def boxes_to_xml(self, leaves, **options):
         # see https://tools.ietf.org/html/rfc2397
-        img = '<img src="data:image/png;base64,%s" />' % (leaves[0].get_string_value())
+        img = '<img src="data:image/png;base64,%s" width="%d" height="%d" />' % (
+            leaves[0].get_string_value(), leaves[1].get_int_value(), leaves[2].get_int_value())
 
-        # see https://github.com/mathjax/MathJax/issues/896
-        xml = '<mtext>%s</mtext>' % img
-        return xml
+        # if we have Mathics JavaScript frontend processing that rewrites MathML tags using
+        # <mspace>, we must not embed our tag in <mtext> here.
+        uses_mathics_frontend_processing = False
+
+        if not uses_mathics_frontend_processing:
+            # see https://github.com/mathjax/MathJax/issues/896
+            xml = '<mtext>%s</mtext>' % img
+            return xml
+        else:
+            return img
 
     def boxes_to_tex(self, leaves, **options):
         return '-Image-'
@@ -1198,12 +1227,16 @@ class Image(Atom):
 
             width = shape[1]
             height = shape[0]
+            scaled_width = width
+            scaled_height = height
 
             # if the image is very small, scale it up using nearest neighbour.
             min_size = 128
             if width < min_size and height < min_size:
                 scale = min_size / max(width, height)
-                pixels = skimage.transform.resize(pixels, (int(scale * height), int(scale * width)), order=0)
+                scaled_width = int(scale * width)
+                scaled_height = int(scale * height)
+                pixels = skimage.transform.resize(pixels, (scaled_height, scaled_width), order=0)
 
             stream = BytesIO()
             skimage.io.imsave(stream, pixels, 'pil', format_str='png')
@@ -1215,7 +1248,7 @@ class Image(Atom):
             if not six.PY2:
                 encoded = encoded.decode('utf8')
 
-            return Expression('ImageBox', String(encoded), Integer(width), Integer(height))
+            return Expression('ImageBox', String(encoded), Integer(scaled_width), Integer(scaled_height))
         except:
             return Symbol("$Failed")
 
@@ -1268,3 +1301,15 @@ class Image(Atom):
             return 'Bit'
         else:
             return str(dtype)
+
+
+class ImageAtom(AtomBuiltin):
+    def apply_create(self, array, evaluation):
+        'Image[array_]'
+        pixels = _image_pixels(array.to_python())
+        if pixels is not None:
+            shape = pixels.shape
+            is_rgb = (len(shape) == 3 and shape[2] == 3)
+            return Image(pixels.clip(0, 1), 'RGB' if is_rgb else 'Grayscale')
+        else:
+            return Expression('Image', array)

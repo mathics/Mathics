@@ -217,6 +217,16 @@ class InstancableBuiltin(Builtin):
         pass
 
 
+class AtomBuiltin(Builtin):
+    # allows us to define apply functions, rules, messages, etc. for Atoms
+    # which are by default not in the definitions' contribution pipeline.
+    # see Image[] for an example of this.
+
+    def get_name(self):
+        name = super(AtomBuiltin, self).get_name()
+        return re.sub(r"Atom$", "", name)
+
+
 class Operator(Builtin):
     operator = None
     precedence = None
