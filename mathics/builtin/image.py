@@ -1158,6 +1158,9 @@ class ImageQ(Test):
 
     >> ImageQ[Image[{1, 0, 1}]]
      = False
+
+    >> ImageQ["abc"]
+     = False
     '''
 
     def test(self, expr):
