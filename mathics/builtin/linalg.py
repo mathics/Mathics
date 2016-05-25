@@ -163,6 +163,7 @@ class Degree(Builtin):
     }
 
 
+
 class Inverse(Builtin):
     """
     <dl>
@@ -228,7 +229,7 @@ class SingularValueDecomposition(Builtin):
     }
 
     def apply(self, m, evaluation):
-        'SingularValueDecomposition[m_]'
+        'SingularValueDecomposition[m_?MatrixQ]'
 
         if not any(leaf.is_inexact() for row in m.leaves for leaf in row.leaves):
             # symbolic argument (not implemented)
@@ -241,6 +242,26 @@ class SingularValueDecomposition(Builtin):
         S_list = Expression('List', *S.tolist())
         V_list = Expression('List', *V.tolist())
         return Expression('List', *[U_list, S_list, V_list])
+
+
+class QRDecomposition(Builtin):
+    """
+    <dl>
+    <dt>'QRDecomposition[$m$]'
+        <dd>computes the QR decomposition of the matrix $m$.
+    </dl>
+
+    >> QRDecomposition[{{1, 2}, {3, 4}, {5, 6}}]
+     = {{{Sqrt[35] / 35, 3 Sqrt[35] / 35, Sqrt[35] / 7}, {13 Sqrt[210] / 210, 2 Sqrt[210] / 105, -Sqrt[210] / 42}}, {{Sqrt[35], 44 Sqrt[35] / 35}, {0, 2 Sqrt[210] / 35}}}
+    """
+    
+    def apply(self, m, evaluation):
+        'QRDecomposition[m_?MatrixQ]'
+
+        matrix = to_sympy_matrix(m)
+        Q, R = matrix.QRdecomposition()
+        Q = Q.transpose()
+        return Expression('List', *[from_sympy(Q), from_sympy(R)])
 
 
 class PseudoInverse(Builtin):

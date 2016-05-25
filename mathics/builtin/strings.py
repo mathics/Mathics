@@ -802,7 +802,7 @@ class StringReplace(Builtin):
         else:
             return String(do_subs(py_strings))
 
-
+    
 class Characters(Builtin):
     """
     <dl>
