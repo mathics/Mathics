@@ -27,6 +27,10 @@ if ENABLE_FILES_MODULE:
     from mathics.builtin import files, importexport
     modules += [files, importexport]
 
+from mathics.builtin import image
+if image._enabled:
+    modules.append(image)
+
 builtins = []
 builtins_by_module = {}
 
