@@ -1086,15 +1086,28 @@ class Take(Builtin):
     #> Take[Range[6], {-5, -2, -2}]
      : Cannot take positions -5 through -2 in {1, 2, 3, 4, 5, 6}.
      = Take[{1, 2, 3, 4, 5, 6}, {-5, -2, -2}]
+
+    #> Take[l, {-1}]
+     : Nonatomic expression expected at position 1 in Take[l, {-1}].
+     = Take[l, {-1}]
     """
+
+    messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
+    }
 
     def apply(self, list, seqs, evaluation):
         'Take[list_, seqs___]'
 
+        expr = Expression('Take', list, seqs)
         seqs = seqs.get_sequence()
 
         list = list.copy()
         inner_list = [list]
+
+        for inner in inner_list:
+            if inner.is_atom():
+                return evaluation.message('Take', 'normal', 1, expr)
 
         for seq in seqs:
             seq_tuple = convert_seq(seq)
@@ -1104,7 +1117,7 @@ class Take(Builtin):
             start, stop, step = seq_tuple
             for inner in inner_list:
                 py_slice = python_seq(start, stop, step, len(inner.leaves))
-                if inner.is_atom() or py_slice is None:
+                if py_slice is None:
                     if stop is None:
                         stop = Symbol('Infinity')
                     return evaluation.message('Take', 'take', start, stop, inner)
