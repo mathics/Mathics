@@ -582,7 +582,7 @@ class _RandomSelection(_RandomBase):
                 return evaluation.message(self.get_name(), 'wghtv', weights), None
             weights = norm_weights
 
-        py_weights = weights.to_python() if is_proper_spec else None
+        py_weights = weights.to_python(n_evaluation=evaluation) if is_proper_spec else None
         if (py_weights is None) or (not all(isinstance(w, (int, float)) and w >= 0 for w in py_weights)):
             return evaluation.message(self.get_name(), 'wghtv', weights), None
 
