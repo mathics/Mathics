@@ -2349,6 +2349,15 @@ class _SetOperation(Builtin):
         'SameTest': 'SameQ',
     }
 
+    @staticmethod
+    def _remove_duplicates(arg, same_test):
+        'removes duplicates from a single operand'
+        result = []
+        for a in arg:
+            if not any(same_test(a, b) for b in result):
+                result.append(a)
+        return result
+
     def apply(self, lists, evaluation, options={}):
         '%(name)s[lists__, OptionsPattern[%(name)s]]'
 
@@ -2370,6 +2379,7 @@ class _SetOperation(Builtin):
         operands = [l.leaves for l in seq]
         if not _is_sameq(same_test):
             same = lambda a, b: _test_pair(same_test, a, b, evaluation, self.get_name())
+            operands = [self._remove_duplicates(op, same) for op in operands]
             items = functools.reduce(lambda a, b: [e for e in self._elementwise(a, b, same)], operands)
         else:
             items = list(functools.reduce(getattr(set, self._operation), map(set, operands)))
@@ -2399,6 +2409,9 @@ class Union(_SetOperation):
 
     >> Union[{1, 2, 3}, {2, 3, 4}, SameTest->Less]
      = {1, 2, 2, 3, 4}
+
+    #> Union[{1, -1, 2}, {-2, 3}, SameTest -> (Abs[#1] == Abs[#2] &)]
+     = {-2, 1, 3}
     """
 
     _operation = 'union'
@@ -2430,6 +2443,9 @@ class Intersection(_SetOperation):
 
     >> Intersection[{1, 2, 3}, {2, 3, 4}, SameTest->Less]
      = {3}
+
+    #> Intersection[{1, -1, -2, 2, -3}, {1, -2, 2, 3}, SameTest -> (Abs[#1] == Abs[#2] &)]
+     = {-3, -2, 1}
     """
 
     _operation = 'intersection'
