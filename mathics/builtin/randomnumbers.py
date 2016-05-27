@@ -19,6 +19,7 @@ from operator import mul as operator_mul
 from functools import reduce
 
 from mathics.builtin.base import Builtin
+from mathics.builtin.numpy_utils import instantiate_elements, stack_along_inner_axis
 from mathics.core.expression import (Integer, String, Symbol, Real, Expression,
                                      Complex)
 
@@ -53,6 +54,16 @@ else:
     random_set_state = random.setstate
     random_seed = random.seed
 
+    def _create_array(size, f):
+        # creates an array of the shape 'size' with each element being
+        # generated through a call to 'f' (which gives a random number
+        # in our case).
+
+        if size is None or len(size) == 0:
+            return f()
+        else:
+            return [_create_array(size[1:], f) for _ in range(size[0])]
+
 
 def get_random_state():
     state = random_get_state()
@@ -73,49 +84,6 @@ def set_random_state(state):
         state = binascii.a2b_hex(state)
         state = pickle.loads(state)
         random_set_state(state)
-
-
-if _numpy:
-    def _from_array(a, new_element, d=1):
-        if len(a.shape) == d:
-            leaves = [new_element(x) for x in a]
-        else:
-            leaves = [_from_array(e, new_element, d) for e in a]
-        return Expression('List', *leaves)
-
-    def _stack_array(a):
-        # numpy.stack with axis=-1 stacks arrays along the most inner axis:
-        # e.g. numpy.stack([ [1, 2], [3, 4] ], axis=-1)
-        # gives: array([ [1, 3], [2, 4] ])
-        # e.g. numpy.stack([ [[1, 2], [3, 4]], [[4, 5], [6, 7]] ], axis=-1)
-        # gives: array([[[1, 4], [2, 5]], [[3, 6], [4, 7]]])
-        return numpy.stack(a, axis=-1)
-else:
-    from itertools import chain
-
-    def _create_array(size, f):
-        if size is None or len(size) == 0:
-            return f()
-        else:
-            return [_create_array(size[1:], f) for _ in range(size[0])]
-
-    def _from_array(a, new_element, d=1):
-        e = a[0]
-        depth = 1
-        while depth <= d and isinstance(e, list):
-            e = e[0]
-            depth += 1
-        if d == depth:
-            leaves = [new_element(x) for x in a]
-        else:
-            leaves = [_from_array(e, new_element, d) for e in a]
-        return Expression('List', *leaves)
-
-    def _stack_array(a):
-        if not isinstance(a[0], list):
-            return list(chain(a))
-        else:
-            return [_stack_array([x[i] for x in a]) for i in range(len(a[0]))]
 
 
 class _RandomEnvBase:
@@ -353,7 +321,7 @@ class RandomInteger(Builtin):
         result = ns.to_python()
 
         with RandomEnv(evaluation) as rand:
-            return _from_array(rand.randint(rmin, rmax, result), Integer)
+            return instantiate_elements(rand.randint(rmin, rmax, result), Integer)
 
 
 class RandomReal(Builtin):
@@ -436,7 +404,7 @@ class RandomReal(Builtin):
         assert all([isinstance(i, int) for i in result])
 
         with RandomEnv(evaluation) as rand:
-            return _from_array(rand.randreal(min_value, max_value, result), Real)
+            return instantiate_elements(rand.randreal(min_value, max_value, result), Real)
 
 
 class RandomComplex(Builtin):
@@ -527,7 +495,7 @@ class RandomComplex(Builtin):
         with RandomEnv(evaluation) as rand:
             real = rand.randreal(min_value.real, max_value.real, py_ns)
             imag = rand.randreal(min_value.imag, max_value.imag, py_ns)
-            return _from_array(_stack_array([real, imag]), lambda c: Complex(*c), d=2)
+            return instantiate_elements(stack_along_inner_axis([real, imag]), lambda c: Complex(*c), d=2)
 
 
 class _RandomSelection(_RandomBase):
@@ -568,7 +536,7 @@ class _RandomSelection(_RandomBase):
             if len(elements) < n_chosen:
                 return evaluation.message('smplen', size, domain), None
         with RandomEnv(evaluation) as rand:
-            return _from_array(rand.randchoice(len(elements), size=py_size, replace=self._replace,
+            return instantiate_elements(rand.randchoice(len(elements), size=py_size, replace=self._replace,
                                                p=py_weights), lambda i: elements[i])
 
     def _weights_to_python(self, weights, evaluation):
