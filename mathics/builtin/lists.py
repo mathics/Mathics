@@ -23,6 +23,9 @@ from mathics.builtin.algebra import cancel
 
 import sympy
 
+from collections import defaultdict
+import functools
+
 
 class List(Builtin):
     """
@@ -2096,7 +2099,216 @@ class Riffle(Builtin):
             return Expression('List', *riffle_lists(list.get_leaves(), [sep]))
 
 
-class DeleteDuplicates(Builtin):
+def _is_sameq(same_test):
+    # System`SameQ is protected, so nobody should ever be able to change
+    # it (see Set::wrsym). We just check for its name here thus.
+    return same_test.is_symbol() and same_test.get_name() == 'System`SameQ'
+
+
+def _test_pair(test, a, b, evaluation, name):
+    test_expr = Expression(test, a, b)
+    result = test_expr.evaluate(evaluation)
+    if not (result.is_symbol() and (result.has_symbol('True') or result.has_symbol('False'))):
+        evaluation.message(name, 'smtst', test_expr, result)
+    return result.is_true()
+
+
+class _SlowEquivalence:
+    # models an equivalence relation through a user defined test function. for n
+    # distinct elements (each in its own bin), we need sum(1, .., n - 1) = O(n^2)
+    # comparisons.
+
+    def __init__(self, test, evaluation, name):
+        self._groups = []
+        self._test = test
+        self._evaluation = evaluation
+        self._name = name
+
+    def select(self, elem):
+        return self._groups
+
+    def same(self, a, b):
+        return _test_pair(self._test, a, b, self._evaluation, self._name)
+
+
+class _FastEquivalence:
+    # models an equivalence relation through SameQ. for n distinct elements (each
+    # in its own bin), we expect to make O(n) comparisons (if the hash function
+    # does not fail us by distributing items very unevenly).
+
+    # IMPORTANT NOTE ON ATOM'S HASH FUNCTIONS / this code relies on this assumption:
+    #
+    # if SameQ[a, b] == true then hash(a) == hash(b)
+    #
+    # more specifically, this code bins items based on their hash code, and only if
+    # the hash code matches, is SameQ evoked.
+    #
+    # this assumption has been checked for these types: Integer, Real, Complex,
+    # String, Rational (*), Expression, Image; new atoms need proper hash functions
+    #
+    # (*) Rational values are sympy Rationals which are always held in reduced form
+    # and thus are hashed correctly (see sympy/core/numbers.py:Rational.__eq__()).
+
+    def __init__(self):
+        self._hashes = defaultdict(list)
+
+    def select(self, elem):
+        return self._hashes[hash(elem)]
+
+    def same(self, a, b):
+        return a.same(b)
+
+
+class _GatherBin:
+    def __init__(self, item):
+        self._items = [item]
+        self.add_to = self._items.append
+
+    def from_python(self):
+        return Expression('List', *self._items)
+
+
+class _TallyBin:
+    def __init__(self, item):
+        self._item = item
+        self._count = 1
+
+    def add_to(self, item):
+        self._count += 1
+
+    def from_python(self):
+        return Expression('List', self._item, Integer(self._count))
+
+
+class _DeleteDuplicatesBin:
+    def __init__(self, item):
+        self._item = item
+        self.add_to = lambda elem: None
+
+    def from_python(self):
+        return self._item
+
+
+class _GatherOperation(Builtin):
+    rules = {
+        '%(name)s[list_]': '%(name)s[list, SameQ]'
+    }
+
+    messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
+        'list': 'List expected at position `2` in `1`.',
+        'smtst': ("Application of the SameTest yielded `1`, which evaluates "
+                  "to `2`. The SameTest must evaluate to True or False at "
+                  "every pair of elements."),
+    }
+
+    def apply(self, list, test, evaluation):
+        '%(name)s[list_, test_]'
+
+        if list.is_atom():
+            expr = Expression(self.get_name(), list, test)
+            return evaluation.message(self.get_name(), 'normal', 1, expr)
+
+        if list.get_head_name() != 'System`List':
+            expr = Expression(self.get_name(), list, test)
+            return evaluation.message(self.get_name(), 'list', expr, 1)
+
+        if _is_sameq(test):
+            return self._gather(list, _FastEquivalence())
+        else:
+            return self._gather(list, _SlowEquivalence(test, evaluation, self.get_name()))
+
+    def _gather(self, a_list, equivalence):
+        bins = []
+        Bin = self._bin
+
+        for elem in a_list.leaves:
+            selection = equivalence.select(elem)
+            for prototype, add_to_bin in selection:  # find suitable bin
+                if equivalence.same(prototype, elem):
+                    add_to_bin(elem)  # add to existing bin
+                    break
+            else:
+                a_bin = Bin(elem)  # create new bin
+                selection.append((elem, a_bin.add_to))
+                bins.append(a_bin)
+
+        return Expression('List', *[a_bin.from_python() for a_bin in bins])
+
+
+class Gather(_GatherOperation):
+    """
+    <dl>
+    <dt>'Gather[$list$, $test$]'
+    <dd>gathers leaves of $list$ into sub lists of items that are the same according to $test$.
+
+    <dt>'Gather[$list$]'
+    <dd>gathers leaves of $list$ into sub lists of items that are the same.
+    </dl>
+
+    The order of the items inside the sub lists is the same as in the original list.
+
+    >> Gather[{1, 7, 3, 7, 2, 3, 9}]
+     = {{1}, {7, 7}, {3, 3}, {2}, {9}}
+
+    >> Gather[{1/3, 2/6, 1/9}]
+     = {{1 / 3, 1 / 3}, {1 / 9}}
+    """
+
+    _bin = _GatherBin
+
+
+class GatherBy(Builtin):
+    """
+    <dl>
+    <dt>'GatherBy[$list$, $f$]'
+    <dd>gathers leaves of $list$ into sub lists of items whose image under $f identical.
+
+    <dt>'GatherBy[$list$, {$f$, $g$, ...}]'
+    <dd>gathers leaves of $list$ into sub lists of items whose image under $f identical.
+    Then, gathers these sub lists again into sub sub lists, that are identical under $g.
+    </dl>
+
+    >> GatherBy[{{1, 3}, {2, 2}, {1, 1}}, Total]
+     = {{{1, 3}, {2, 2}}, {{1, 1}}}
+
+    >> GatherBy[{"xy", "abc", "ab"}, StringLength]
+     = {{xy, ab}, {abc}}
+
+    >> GatherBy[{{2, 0}, {1, 5}, {1, 0}}, Last]
+     = {{{2, 0}, {1, 0}}, {{1, 5}}}
+
+    >> GatherBy[{{1, 2}, {2, 1}, {3, 5}, {5, 1}, {2, 2, 2}}, {Total, Length}]
+     = {{{{1, 2}, {2, 1}}}, {{{3, 5}}}, {{{5, 1}}, {{2, 2, 2}}}}
+    """
+
+    rules = {
+        'GatherBy[l_]': 'GatherBy[l, Identity]',
+        'GatherBy[l_, {r__, f_}]': 'Map[GatherBy[#, f]&, GatherBy[l, {r}], {Length[{r}]}]',
+        'GatherBy[l_, {f_}]': 'GatherBy[l, f]',
+        'GatherBy[l_, f_]': 'Gather[l, SameQ[f[#1], f[#2]]&]'
+    }
+
+
+class Tally(_GatherOperation):
+    """
+    <dl>
+    <dt>'Tally[$list$]'
+    <dd>counts and returns the number of occurences of objects and returns
+    the result as a list of pairs {object, count}.
+    <dt>'Tally[$list$, $test$]'
+    <dd>counts the number of occurences of  objects and uses $test to
+    determine if two objects should be counted in the same bin.
+    </dl>
+
+    >> Tally[{a, b, c, b, a}]
+     = {{a, 2}, {b, 2}, {c, 1}}
+    """
+
+    _bin = _TallyBin
+
+
+class DeleteDuplicates(_GatherOperation):
     """
     <dl>
     <dt>'DeleteDuplicates[$list$]'
@@ -2104,6 +2316,7 @@ class DeleteDuplicates(Builtin):
     <dt>'DeleteDuplicates[$list$, $test$]'
         <dd>deletes elements from $list$ based on whether the function
         $test$ yields 'True' on pairs of elements.
+    DeleteDuplicates does not change the order of the remaining elements.
     </dl>
 
     >> DeleteDuplicates[{1, 7, 8, 4, 3, 4, 1, 9, 9, 2, 1}]
@@ -2119,71 +2332,10 @@ class DeleteDuplicates(Builtin):
      = {}
     """
 
-    rules = {
-        'DeleteDuplicates[list_]': 'DeleteDuplicates[list, SameQ]',
-    }
-
-    messages = {
-        'normal': 'Nonatomic expression expected at position `1` in `2`.',
-    }
-
-    def apply(self, mlist, test, evaluation):
-        'DeleteDuplicates[mlist_, test_]'
-
-        expr = Expression('DeleteDuplicates', mlist, test)
-
-        if mlist.is_atom():
-            evaluation.message('Select', 'normal', 1, expr)
-            return
-
-        result = []
-        for leaf in mlist.leaves:
-            matched = False
-            for res in result:
-                applytest = Expression(test, res, leaf)
-                if applytest.evaluate(evaluation).is_true():
-                    matched = True
-                    break
-            if not matched:
-                result.append(leaf)
-
-        return Expression(mlist.head, *result)
+    _bin = _DeleteDuplicatesBin
 
 
-class Complement(Builtin):
-    """
-    <dl>
-    <dt>'Complement[$all$, $e1$, $e2$, ...]'
-        <dd>returns an expression containing the elements in the set
-        $all$ that are not in any of $e1$, $e2$, etc.
-    <dt>'Complement[$all$, $e1$, $e2$, ..., SameTest->$test$]'
-        <dd>applies $test$ to the elements in $all$ and each of the
-        $ei$ to determine equality.
-    </dl>
-
-    The sets $all$, $e1$, etc can have any head, which must all match.
-    The returned expression has the same head as the input
-    expressions.
-
-    >> Complement[{a, b, c}, {a, c}]
-     = {b}
-    >> Complement[{a, b, c}, {a, c}, {b}]
-     = {}
-    >> Complement[f[z, y, x, w], f[x], f[x, z]]
-     = f[w, y]
-
-    #> Complement[a, b]
-     : Non-atomic expression expected at position 1 in Complement[a, b].
-     = Complement[a, b]
-    #> Complement[f[a], g[b]]
-     : Heads f and g at positions 1 and 2 are expected to be the same.
-     = Complement[f[a], g[b]]
-    #> Complement[{a, b, c}, {a, c}, SameTest->(True&)]
-     = {}
-    #> Complement[{a, b, c}, {a, c}, SameTest->(False&)]
-     = {a, b, c}
-    """
-
+class _SetOperation(Builtin):
     messages = {
         'normal': "Non-atomic expression expected at position `1` in `2`.",
         'heads': ("Heads `1` and `2` at positions `3` and `4` are expected "
@@ -2197,53 +2349,182 @@ class Complement(Builtin):
         'SameTest': 'SameQ',
     }
 
-    def complement(self, all, others, evaluation, test):
-        def test_pair(e1, e2):
-            test_expr = Expression(test, e1, e2)
-            result = test_expr.evaluate(evaluation)
-            if not(result.is_symbol() and (result.has_symbol('True') or
-                                           result.has_symbol('False'))):
-                evaluation.message('Complement', 'smtst', test_expr, result)
-            return result.is_true()
-        all = set(all)
-        for leaves in others:
-            for e2 in leaves:
-                for e1 in all.copy():
-                    if test_pair(e1, e2):
-                        all.discard(e1)
-        return all
-
-    def apply(self, all, others, evaluation, options={}):
-        'Complement[all_, others__, OptionsPattern[Complement]]'
-
-        # FIXME: is there a better way to get hold of the original
-        # expression?
-        def get_call():
-            return Expression('Complement', all, *others.get_sequence())
-
-        for pos, e in enumerate([all, others]):
-            if e.is_atom():
-                return evaluation.message(
-                    'Complement', 'normal', pos + 1, get_call())
-
-        for pos, e in enumerate([all] + others.get_sequence()):
-            if e.is_atom():
-                return evaluation.message(
-                    'Complement', 'normal', pos + 1, get_call())
-            if e.head != all.head:
-                return evaluation.message(
-                    'Complement', 'heads', all.head, e.head,
-                    1, pos + 1)
-
-        result_head = all.head
-        same_test = self.get_option(options, 'SameTest', evaluation)
-        others_leaves = [e.leaves for e in others.get_sequence()]
-
-        result = Expression(result_head,
-                            *self.complement(all.leaves, others_leaves,
-                                             evaluation, same_test))
-        result.sort()
+    @staticmethod
+    def _remove_duplicates(arg, same_test):
+        'removes duplicates from a single operand'
+        result = []
+        for a in arg:
+            if not any(same_test(a, b) for b in result):
+                result.append(a)
         return result
+
+    def apply(self, lists, evaluation, options={}):
+        '%(name)s[lists__, OptionsPattern[%(name)s]]'
+
+        seq = lists.get_sequence()
+
+        for pos, e in enumerate(seq):
+            if e.is_atom():
+                return evaluation.message(
+                    self.get_name(), 'normal', pos + 1, Expression(self.get_name(), *seq))
+
+        for pos, e in enumerate(zip(seq, seq[1:])):
+            e1, e2 = e
+            if e1.head != e2.head:
+                return evaluation.message(
+                    self.get_name(), 'heads', e1.head, e2.head,
+                    pos + 1, pos + 2)
+
+        same_test = self.get_option(options, 'SameTest', evaluation)
+        operands = [l.leaves for l in seq]
+        if not _is_sameq(same_test):
+            same = lambda a, b: _test_pair(same_test, a, b, evaluation, self.get_name())
+            operands = [self._remove_duplicates(op, same) for op in operands]
+            items = functools.reduce(lambda a, b: [e for e in self._elementwise(a, b, same)], operands)
+        else:
+            items = list(functools.reduce(getattr(set, self._operation), map(set, operands)))
+
+        return Expression(seq[0].get_head(), *sorted(items))
+
+
+class Union(_SetOperation):
+    """
+    <dl>
+    <dt>'Union[$a$, $b$, ...]'
+    <dd>gives the union of the given set or sets. The resulting list will be sorted
+    and each element will only occur once.
+    </dl>
+
+    >> Union[{5, 1, 3, 7, 1, 8, 3}]
+     = {1, 3, 5, 7, 8}
+
+    >> Union[{a, b, c}, {c, d, e}]
+     = {a, b, c, d, e}
+
+    >> Union[{c, b, a}]
+     = {a, b, c}
+
+    >> Union[{{a, 1}, {b, 2}}, {{c, 1}, {d, 3}}, SameTest->(SameQ[Last[#1],Last[#2]]&)]
+     = {{b, 2}, {c, 1}, {d, 3}}
+
+    >> Union[{1, 2, 3}, {2, 3, 4}, SameTest->Less]
+     = {1, 2, 2, 3, 4}
+
+    #> Union[{1, -1, 2}, {-2, 3}, SameTest -> (Abs[#1] == Abs[#2] &)]
+     = {-2, 1, 3}
+    """
+
+    _operation = 'union'
+
+    def _elementwise(self, a, b, same):
+        for eb in b:
+            yield eb
+        for ea in a:
+            if not any(same(eb, ea) for eb in b):
+                yield ea
+
+
+class Intersection(_SetOperation):
+    """
+    <dl>
+    <dt>'Intersection[$a$, $b$, ...]'
+    <dd>gives the intersection of the sets. The resulting list will be sorted
+    and each element will only occur once.
+    </dl>
+
+    >> Intersection[{1000, 100, 10, 1}, {1, 5, 10, 15}]
+     = {1, 10}
+
+    >> Intersection[{{a, b}, {x, y}}, {{x, x}, {x, y}, {x, z}}]
+     = {{x, y}}
+
+    >> Intersection[{c, b, a}]
+     = {a, b, c}
+
+    >> Intersection[{1, 2, 3}, {2, 3, 4}, SameTest->Less]
+     = {3}
+
+    #> Intersection[{1, -1, -2, 2, -3}, {1, -2, 2, 3}, SameTest -> (Abs[#1] == Abs[#2] &)]
+     = {-3, -2, 1}
+    """
+
+    _operation = 'intersection'
+
+    def _elementwise(self, a, b, same):
+        for ea in a:
+            if any(same(eb, ea) for eb in b):
+                yield ea
+
+
+class Complement(_SetOperation):
+    """
+    <dl>
+    <dt>'Complement[$all$, $e1$, $e2$, ...]'
+        <dd>returns an expression containing the elements in the set
+        $all$ that are not in any of $e1$, $e2$, etc.
+    <dt>'Complement[$all$, $e1$, $e2$, ..., SameTest->$test$]'
+        <dd>applies $test$ to the elements in $all$ and each of the
+        $ei$ to determine equality.
+    </dl>
+
+    The sets $all$, $e1$, etc can have any head, which must all match.
+    The returned expression has the same head as the input
+    expressions. The expression will be sorted and each element will
+    only occur once.
+
+    >> Complement[{a, b, c}, {a, c}]
+     = {b}
+    >> Complement[{a, b, c}, {a, c}, {b}]
+     = {}
+    >> Complement[f[z, y, x, w], f[x], f[x, z]]
+     = f[w, y]
+    >> Complement[{c, b, a}]
+     = {a, b, c}
+
+    #> Complement[a, b]
+     : Non-atomic expression expected at position 1 in Complement[a, b].
+     = Complement[a, b]
+    #> Complement[f[a], g[b]]
+     : Heads f and g at positions 1 and 2 are expected to be the same.
+     = Complement[f[a], g[b]]
+    #> Complement[{a, b, c}, {a, c}, SameTest->(True&)]
+     = {}
+    #> Complement[{a, b, c}, {a, c}, SameTest->(False&)]
+     = {a, b, c}
+    """
+
+    _operation = 'difference'
+
+    def _elementwise(self, a, b, same):
+        for ea in a:
+            if not any(same(eb, ea) for eb in b):
+                yield ea
+
+
+class IntersectingQ(Builtin):
+    """
+    <dl>
+    <dt>'IntersectingQ[$a$, $b$]'
+    <dd>gives True if there are any common elements in $a and $b, or False if $a and $b are disjoint.
+    </dl>
+    """
+
+    rules = {
+        'IntersectingQ[a_List, b_List]': 'Length[Intersect[a, b]] > 0'
+    }
+
+
+class DisjointQ(Test):
+    """
+    <dl>
+    <dt>'DisjointQ[$a$, $b$]'
+    <dd>gives True if $a and $b are disjoint, or False if $a and $b have any common elements.
+    </dl>
+    """
+
+    rules = {
+        'DisjointQ[a_List, b_List]': 'Not[IntersectingQ[a, b]]'
+    }
 
 
 class Fold(Builtin):

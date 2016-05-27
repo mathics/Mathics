@@ -5,12 +5,15 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
+from mathics.builtin.comparison import SameQ
+from mathics.core.rules import BuiltinRule
 from mathics.core.expression import (Expression, String, Symbol, Integer,
-                                     strip_context)
+                                     Rational, strip_context)
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
                                    InvalidLevelspecError)
+from mathics.builtin.functional import Identity
 import six
 from six.moves import range
 
@@ -85,6 +88,150 @@ class Sort(Builtin):
             return Expression(list.head, *new_leaves)
 
 
+class SortBy(Builtin):
+    """
+    <dl>
+    <dt>'SortBy[$list$, $f$]'
+    <dd>sorts $list$ (or the leaves of any other expression) according to canonical ordering of the keys that are
+    extracted from the $list$'s elements using $f. Chunks of leaves that appear the same under $f are sorted
+    according to their natural order (without applying $f).
+    <dt>'SortBy[$f$]'
+    <dd>creates an operator function that, when applied, sorts by $f.
+    </dl>
+
+    >> SortBy[{{5, 1}, {10, -1}}, Last]
+    = {{10, -1}, {5, 1}}
+
+    >> SortBy[Total][{{5, 1}, {10, -9}}]
+    = {{10, -9}, {5, 1}}
+    """
+
+    rules = {
+        'SortBy[f_]': 'SortBy[#, f]&',
+    }
+
+    messages = {
+        'list': 'List expected at position `2` in `1`.',
+        'func': 'Function expected at position `2` in `1`.',
+    }
+
+    def apply(self, l, f, evaluation):
+        'SortBy[l_, f_]'
+
+        if l.is_atom():
+            return evaluation.message('Sort', 'normal')
+        elif l.get_head_name() != 'System`List':
+            expr = Expression('SortBy', l, f)
+            return evaluation.message(self.get_name(), 'list', expr, 1)
+        else:
+            keys_expr = Expression('Map', f, l).evaluate(evaluation)  # precompute:
+            # even though our sort function has only (n log n) comparisons, we should
+            # compute f no more than n times.
+
+            if keys_expr is None or keys_expr.get_head_name() != 'System`List'\
+                    or len(keys_expr.leaves) != len(l.leaves):
+                expr = Expression('SortBy', l, f)
+                return evaluation.message('SortBy', 'func', expr, 2)
+
+            keys = keys_expr.leaves
+            raw_keys = l.leaves
+
+            class Key(object):
+                def __init__(self, index):
+                    self.index = index
+
+                def __gt__(self, other):
+                    kx, ky = keys[self.index], keys[other.index]
+                    if kx > ky:
+                        return True
+                    elif kx < ky:
+                        return False
+                    else:  # if f(x) == f(y), resort to x < y?
+                        return raw_keys[self.index] > raw_keys[other.index]
+
+            # we sort a list of indices. after sorting, we reorder the leaves.
+            new_indices = sorted(list(range(len(raw_keys))), key=Key)
+            new_leaves = [raw_keys[i] for i in new_indices]  # reorder leaves
+            return Expression(l.head, *new_leaves)
+
+
+class BinarySearch(Builtin):
+    """
+    <dl>
+    <dt>'Combinatorica`BinarySearch[$l$, $k$]'
+        <dd>searches the list $l$, which has to be sorted, for key $k$ and returns its index in $l$. If $k$ does not
+        exist in $l$, 'BinarySearch' returns (a + b) / 2, where a and b are the indices between which $k$ would have
+        to be inserted in order to maintain the sorting order in $l$. Please note that $k$ and the elements in $l$
+        need to be comparable under a strict total order (see https://en.wikipedia.org/wiki/Total_order).
+
+    <dt>'Combinatorica`BinarySearch[$l$, $k$, $f$]'
+        <dd>the index of $k in the elements of $l$ if $f$ is applied to the latter prior to comparison. Note that $f$
+        needs to yield a sorted sequence if applied to the elements of $l.
+    </dl>
+
+    >> Combinatorica`BinarySearch[{3, 4, 10, 100, 123}, 100]
+     = 4
+
+    >> Combinatorica`BinarySearch[{2, 3, 9}, 7] // N
+     = 2.5
+
+    >> Combinatorica`BinarySearch[{2, 7, 9, 10}, 3] // N
+     = 1.5
+
+    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, -100] // N
+     = 0.5
+
+    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, 20] // N
+     = 4.5
+
+    >> Combinatorica`BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]
+     = 2
+    """
+
+    context = 'Combinatorica`'
+
+    rules = {
+        'Combinatorica`BinarySearch[l_List, k_] /; Length[l] > 0': 'Combinatorica`BinarySearch[l, k, Identity]'
+    }
+
+    def apply(self, l, k, f, evaluation):
+        'Combinatorica`BinarySearch[l_List, k_, f_] /; Length[l] > 0'
+
+        leaves = l.leaves
+
+        lower_index = 1
+        upper_index = len(leaves)
+
+        if lower_index > upper_index:  # empty list l? Length[l] > 0 condition should guard us, but check anyway
+            return Symbol('$Aborted')
+
+        # "transform" is a handy wrapper for applying "f" or nothing
+        transform = (lambda x: x) if isinstance(f, Identity) else (lambda x: Expression(f, x).evaluate(evaluation))
+
+        # loop invariants (true at any time in the following loop):
+        # (1) lower_index <= upper_index
+        # (2) k > leaves[i] for all i < lower_index
+        # (3) k < leaves[i] for all i > upper_index
+        while True:
+            pivot_index = (lower_index + upper_index) >> 1  # i.e. a + (b - a) // 2
+            # as lower_index <= upper_index, lower_index <= pivot_index <= upper_index
+            pivot = transform(leaves[pivot_index - 1])  # 1-based to 0-based
+
+            # we assume a trichotomous relation: k < pivot, or k = pivot, or k > pivot
+            if k < pivot:
+                if pivot_index == lower_index:  # see invariant (2), to see that
+                    # k < leaves[pivot_index] and k > leaves[pivot_index - 1]
+                    return Rational((pivot_index - 1) + pivot_index, 2)
+                upper_index = pivot_index - 1
+            elif k == pivot:
+                return Integer(pivot_index)
+            else:  # k > pivot
+                if pivot_index == upper_index:  # see invariant (3), to see that
+                    # k > leaves[pivot_index] and k < leaves[pivot_index + 1]
+                    return Rational(pivot_index + (pivot_index + 1), 2)
+                lower_index = pivot_index + 1
+
+
 class PatternsOrderedQ(Builtin):
     """
     <dl>
@@ -131,6 +278,37 @@ class OrderedQ(Builtin):
             return Symbol('True')
         else:
             return Symbol('False')
+
+
+class Order(Builtin):
+    """
+    <dl>
+    <dt>'Order[$x$, $y$]'
+        <dd>returns a number indicating the canonical ordering of $x$ and $y$. 1 indicates that $x$ is before $y$,
+        -1 that $y$ is before $x$. 0 indicates that there is no specific ordering. Uses the same order as 'Sort'.
+    </dl>
+
+    >> Order[7, 11]
+     = 1
+
+    >> Order[100, 10]
+     = -1
+
+    >> Order[x, z]
+     = 1
+
+    >> Order[x, x]
+     = 0
+    """
+
+    def apply(self, x, y, evaluation):
+        'Order[x_, y_]'
+        if x < y:
+            return Integer(1)
+        elif x > y:
+            return Integer(-1)
+        else:
+            return Integer(0)
 
 
 class Head(Builtin):
