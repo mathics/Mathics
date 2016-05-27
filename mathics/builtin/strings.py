@@ -1431,10 +1431,14 @@ class _StringDistance(Builtin):
             py_a = a.get_string_value()
             py_b = b.get_string_value()
             if options['System`IgnoreCase'] == Symbol('True'):
-                def normalize(c):
-                    return unicodedata.normalize("NFKD", c.casefold())
-                py_a = [normalize(c) for c in py_a]
-                py_b = [normalize(c) for c in py_b]
+                if hasattr(str, 'casefold'):
+                    def normalize(c):
+                        return unicodedata.normalize("NFKD", c.casefold())
+                    py_a = [normalize(c) for c in py_a]
+                    py_b = [normalize(c) for c in py_b]
+                else:  # python2, PyPy
+                    py_a = py_a.lower()
+                    py_b = py_b.lower()
             return Integer(self._distance(
                 py_a, py_b, lambda u, v: u == v))
         elif a.get_head_name() == 'System`List' and b.get_head_name() == 'System`List':
