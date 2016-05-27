@@ -246,8 +246,8 @@ def power(evaluation, *items_sequence):
             evaluation.message('Power', 'infy')
             return Symbol('ComplexInfinity')
     else:
-        numerified_items = [item.numerify(evaluation) for item in items_sequence]
-        return Expression('Power', *numerified_items)
+        numerified_items = Expression('System`Sequence', *items_sequence).numerify(evaluation)
+        return Expression('Power', *numerified_items.get_sequence())
 
 
 def divide(x, y, evaluation):
