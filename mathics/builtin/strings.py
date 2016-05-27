@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 import sys
 import re
+import unicodedata
 
 import six
 from six.moves import range
@@ -1417,3 +1418,73 @@ class StringDrop(Builtin):
         if not isinstance(string, String):
             return evaluation.message('StringDrop', 'strse')
         return evaluation.message('StringDrop', 'mseqs')
+
+
+class EditDistance(Builtin):
+    options = {
+        'IgnoreCase': 'False'
+    }
+
+    @staticmethod
+    def _levenshtein(s1, s2, same):
+        if len(s1) < len(s2):
+            s1, s2 = s2, s1
+
+        if len(s2) == 0:
+            return len(s1)
+
+        if len(s1) == len(s2) and all(same(c1, c2) for c1, c2 in zip(s1, s2)):
+            return 0
+
+        # Levenshtein's algorithm is defined by the following construction:
+        # (adapted from https://de.wikipedia.org/wiki/Levenshtein-Distanz)
+
+        # (1) D(0, 0) = 0
+        # (2) D(i, 0) = i, 1 <= i <= len(s1)
+        # (3) D(0, j) = j, 1 <= j <= len(s2)
+        # (4) D(i, j) = minimum of
+        #     D(i - 1, j - 1) + 0 if s1(j) = s2(j)
+        #     D(i - 1, j - 1) + 1 (substitution)
+        #     D(i, j - 1) + 1     (insertion)
+        #     D(i - 1, j) + 1     (deletion)
+
+        def one_based_enumerate(l):
+            return ((i + 1, x) for i, x in enumerate(l))
+
+        def next_row(d_prev, i, c1):  # compute row #i
+            d_curr_pj = i  # start with D(i, 0) = i, see (2)
+            yield d_curr_pj
+            for j, c2 in one_based_enumerate(s2):
+                d_curr_j = min(  # see (4)
+                    d_prev[j - 1] + (0 if same(c1, c2) else 1),  # substitution
+                    d_curr_pj + 1,  # insertion
+                    d_prev[j] + 1)  # deletion
+                yield d_curr_j
+                d_curr_pj = d_curr_j
+
+        d_prev = list(range(len(s2) + 1))  # see (1), (3)
+        for i, c1 in one_based_enumerate(s1):
+            d_prev = list(next_row(d_prev, i, c1))
+
+        return d_prev[-1]
+
+    def apply(self, a, b, evaluation, options):
+        'EditDistance[a_, b_, OptionsPattern[EditDistance]]'
+        if isinstance(a, String) and isinstance(b, String):
+            py_a = a.get_string_value()
+            py_b = b.get_string_value()
+            if options['System`IgnoreCase'] == Symbol('True'):
+                def normalize(c):
+                    return unicodedata.normalize("NFKD", c.casefold())
+                py_a = [normalize(c) for c in py_a]
+                py_b = [normalize(c) for c in py_b]
+            return Integer(EditDistance._levenshtein(
+                py_a, py_b, lambda u, v: u == v))
+        elif a.get_head_name() == 'System`List' and b.get_head_name() == 'System`List':
+            return Integer(EditDistance._levenshtein(
+                a.leaves, b.leaves, lambda u, v: u.same(v)))
+        else:
+            return Expression('EditDistance', a, b)
+
+
+
