@@ -338,6 +338,10 @@ class Definitions(object):
         definition.attributes = set(attributes)
 
     def clear_attribute(self, name, attribute):
+        if attribute == 'System`Protected':
+            if name in ('System`Plus', 'System`Times'):
+                # mathics.built.arithmetic.plus() assumes std behavior
+                return
         definition = self.get_user_definition(self.lookup_name(name))
         if attribute in definition.attributes:
             definition.attributes.remove(attribute)
