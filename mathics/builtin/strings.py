@@ -1420,13 +1420,23 @@ class StringDrop(Builtin):
         return evaluation.message('StringDrop', 'mseqs')
 
 
-class EditDistance(Builtin):
+def _one_based(l):
+    return ((i + 1, x) for i, x in l)
+
+
+def _prev_curr(l):
+    prev = None
+    for curr in l:
+        yield prev, curr
+        prev = curr
+
+
+class _StringDistance(Builtin):
     options = {
         'IgnoreCase': 'False'
     }
 
-    @staticmethod
-    def _levenshtein(s1, s2, same):
+    def _distance(self, s1, s2, same):
         if len(s1) < len(s2):
             s1, s2 = s2, s1
 
@@ -1436,40 +1446,10 @@ class EditDistance(Builtin):
         if len(s1) == len(s2) and all(same(c1, c2) for c1, c2 in zip(s1, s2)):
             return 0
 
-        # Levenshtein's algorithm is defined by the following construction:
-        # (adapted from https://de.wikipedia.org/wiki/Levenshtein-Distanz)
-
-        # (1) D(0, 0) = 0
-        # (2) D(i, 0) = i, 1 <= i <= len(s1)
-        # (3) D(0, j) = j, 1 <= j <= len(s2)
-        # (4) D(i, j) = minimum of
-        #     D(i - 1, j - 1) + 0 if s1(j) = s2(j)
-        #     D(i - 1, j - 1) + 1 (substitution)
-        #     D(i, j - 1) + 1     (insertion)
-        #     D(i - 1, j) + 1     (deletion)
-
-        def one_based_enumerate(l):
-            return ((i + 1, x) for i, x in enumerate(l))
-
-        def next_row(d_prev, i, c1):  # compute row #i
-            d_curr_pj = i  # start with D(i, 0) = i, see (2)
-            yield d_curr_pj
-            for j, c2 in one_based_enumerate(s2):
-                d_curr_j = min(  # see (4)
-                    d_prev[j - 1] + (0 if same(c1, c2) else 1),  # substitution
-                    d_curr_pj + 1,  # insertion
-                    d_prev[j] + 1)  # deletion
-                yield d_curr_j
-                d_curr_pj = d_curr_j
-
-        d_prev = list(range(len(s2) + 1))  # see (1), (3)
-        for i, c1 in one_based_enumerate(s1):
-            d_prev = list(next_row(d_prev, i, c1))
-
-        return d_prev[-1]
+        return self._compute_distance(s1, s2, same)
 
     def apply(self, a, b, evaluation, options):
-        'EditDistance[a_, b_, OptionsPattern[EditDistance]]'
+        '%(name)s[a_, b_, OptionsPattern[%(name)s]]'
         if isinstance(a, String) and isinstance(b, String):
             py_a = a.get_string_value()
             py_b = b.get_string_value()
@@ -1478,13 +1458,87 @@ class EditDistance(Builtin):
                     return unicodedata.normalize("NFKD", c.casefold())
                 py_a = [normalize(c) for c in py_a]
                 py_b = [normalize(c) for c in py_b]
-            return Integer(EditDistance._levenshtein(
+            return Integer(self._distance(
                 py_a, py_b, lambda u, v: u == v))
         elif a.get_head_name() == 'System`List' and b.get_head_name() == 'System`List':
-            return Integer(EditDistance._levenshtein(
+            return Integer(self._distance(
                 a.leaves, b.leaves, lambda u, v: u.same(v)))
         else:
             return Expression('EditDistance', a, b)
 
 
+# Levenshtein's algorithm is defined by the following construction:
+# (adapted from https://de.wikipedia.org/wiki/Levenshtein-Distanz)
 
+# (1) D(0, 0) = 0
+# (2) D(i, 0) = i, 1 <= i <= len(s1)
+# (3) D(0, j) = j, 1 <= j <= len(s2)
+# (4) D(i, j) = minimum of
+#     D(i - 1, j - 1) + 0 if s1(j) = s2(j)
+#     D(i - 1, j - 1) + 1 (substitution)
+#     D(i, j - 1) + 1     (insertion)
+#     D(i - 1, j) + 1     (deletion)
+
+# note: double brackets indicate 1-based indices below, e.g. s1[[1]]
+
+def _levenshtein_row(c1, s2, i, d_prev, same):  # compute D(i, ...), d_prev = D(i - 1, ...)
+    yield i  # start with D(i, 0) = i, see (2)
+    d_curr_prev_j = i  # models D(i, j - 1)
+
+    for j, c2 in _one_based(enumerate(s2)):  # c2 = s2[[j]]
+        d_curr_j = min(  # see (4)
+            d_prev[j - 1] + (0 if same(c1, c2) else 1),  # D(i - 1, j - 1) + cond; substitution
+            d_curr_prev_j + 1,  # D(i, j - 1) + 1; insertion
+            d_prev[j] + 1)  # D(i - 1, j) + 1; deletion
+
+        yield d_curr_j
+        d_curr_prev_j = d_curr_j
+
+
+def _levenshtein_row_zero(s2):  # compute D(0, ...)
+    return list(range(len(s2) + 1))  # see (1), (3)
+
+
+def _levenshtein(s1, s2, same):
+    d_prev = _levenshtein_row_zero(s2)
+    for i, c1 in _one_based(enumerate(s1)):  # c1 = s1[[i]]
+        d_prev = list(_levenshtein_row(c1, s2, i, d_prev, same))
+    return d_prev[-1]
+
+
+def _damerau_levenshtein(s1, s2, same):
+    # _damerau_levenshtein works like _levenshtein, except for one additional
+    # rule covering transposition:
+    #
+    # if i > 1 and j > 1 and a[i] == b[j - 1] and a[i - 1] == b[j] then
+    #     D(i, j) = minimum(D(i, j), D(i - 2, j - 2) + transposition_cost)
+    #
+    # note: double brackets indicate 1-based indices below, e.g. s1[[1]]
+
+    def row(d_prev_prev, d_prev, i, prev_c1, c1):  # compute D(i, ...) with:
+        # d_prev = D(i - 1), d_prev_prev = D(i - 2), prev_c1 = s1[[i - 1]], c1 = s1[[i]]
+        for j, d_curr_j in enumerate(_levenshtein_row(c1, s2, i, d_prev, same)):
+            if i > 1 and j > 1:
+                if same(c1, s2[j - 2]) and same(prev_c1, s2[j - 1]):
+                    # i.e. if s1[[i]] = s2[[j-1]] and s1[[i-1]] = s2[[j]]
+                    d_curr_j = min(d_curr_j, d_prev_prev[j - 2] + 1)  # transposition cost
+            yield d_curr_j
+
+    d_prev_prev = None
+    d_prev = _levenshtein_row_zero(s2)
+    for i, (prev_c1, c1) in _one_based(enumerate(_prev_curr(s1))):
+        d_curr = list(row(d_prev_prev, d_prev, i, prev_c1, c1))
+        d_prev_prev = d_prev
+        d_prev = d_curr
+
+    return d_prev[-1]
+
+
+class EditDistance(_StringDistance):
+    def _compute_distance(self, s1, s2, same):
+        return _levenshtein(s1, s2, same)
+
+
+class DamerauLevenshteinDistance(_StringDistance):
+    def _compute_distance(self, s1, s2, same):
+        return _damerau_levenshtein(s1, s2, same)
