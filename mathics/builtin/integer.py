@@ -246,7 +246,7 @@ class IntegerString(Builtin):
 
     def apply_n(self, n, b, evaluation):
         'IntegerString[n_Integer, b_Integer]'
-        return self._symbols(n.get_int_value(), b.get_int_value(), evaluation)
+        s = self._symbols(n.get_int_value(), b.get_int_value(), evaluation)
         return String(s) if s else None
 
     def apply_n_b_length(self, n, b, length, evaluation):
