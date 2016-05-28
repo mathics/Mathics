@@ -227,8 +227,8 @@ class IntegerString(Builtin):
     _python_builtin = {
         16: lambda number: hex(abs(number))[2:],
         10: lambda number: str(abs(number)),
-        8: lambda number: oct(abs(number))[1:],
-        2: lambda number: bin(abs(number))[2:]
+        2: lambda number: bin(abs(number))[2:],
+        # oct() changed definition for Python 3
     }
 
     def _symbols(self, n, b, evaluation):
