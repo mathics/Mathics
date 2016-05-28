@@ -227,7 +227,7 @@ class IntegerString(Builtin):
     _python_builtin = {
         16: lambda number: hex(abs(number))[2:],
         10: lambda number: str(abs(number)),
-        8: lambda number: oct(abs(number))[2:],
+        8: lambda number: oct(abs(number))[1:],
         2: lambda number: bin(abs(number))[2:]
     }
 
