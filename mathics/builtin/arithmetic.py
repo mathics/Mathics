@@ -26,7 +26,7 @@ from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
 
 
-def plus(evaluation, *items):
+def add(*items):
     leaves = []
     last_item = last_count = None
 
@@ -106,7 +106,7 @@ def plus(evaluation, *items):
         return Expression('Plus', *leaves)
 
 
-def times(evaluation, *items):
+def mul(*items):
     # TODO: Clean this up and optimise it
 
     number = (sympy.Integer(1), sympy.Integer(0))
@@ -174,8 +174,17 @@ def times(evaluation, *items):
         return Expression('Times', *leaves)
 
 
-def subtract(evaluation, x, y):
-    return plus(evaluation, x, times(evaluation, Integer(-1), y))
+def pow(x, y):
+    return Expression('Power', x, y)
+
+
+def sub(x, y):
+    return add(x, mul(Integer(-1), y))
+
+
+def div(x, y):
+    return mul(x, pow(y, Integer(-1)))
+
 
 
 class _MPMathFunction(SympyFunction):
@@ -343,7 +352,7 @@ class Plus(BinaryOperator, SympyFunction):
 
     def apply(self, items, evaluation):
         'Plus[items___]'
-        return plus(evaluation, *items.numerify(evaluation).get_sequence())
+        return add(*items.numerify(evaluation).get_sequence())
 
 
 class Subtract(BinaryOperator):
@@ -607,7 +616,7 @@ class Times(BinaryOperator, SympyFunction):
 
     def apply(self, items, evaluation):
         'Times[items___]'
-        return times(evaluation, *items.numerify(evaluation).get_sequence())
+        return mul(*items.numerify(evaluation).get_sequence())
 
 
 class Divide(BinaryOperator):
