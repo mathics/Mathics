@@ -20,7 +20,7 @@ from mathics.builtin.base import (
 from mathics.core.expression import (Expression, Number, Integer, Rational,
                                      Real, Symbol, Complex, String)
 from mathics.core.numbers import (
-    add, min_prec, dps, sympy2mpmath, mpmath2sympy, SpecialValueError)
+    add as add_numbers, min_prec, dps, sympy2mpmath, mpmath2sympy, SpecialValueError)
 
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
@@ -84,7 +84,7 @@ def add(*items):
                 count = sympy.Integer(1)
                 rest = item
             if last_item is not None and last_item == rest:
-                last_count = add(last_count, count)
+                last_count = add_numbers(last_count, count)
             else:
                 append_last()
                 last_item = rest
