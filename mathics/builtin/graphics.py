@@ -326,6 +326,36 @@ class _Color(_GraphicsElement):
     def to_expr(self):
         return Expression(self.get_name(), *self.components)
 
+    def to_cmyka(self):
+        rgba = self.to_rgba()
+        r, g, b = rgba[:3]
+        k = 1 - max(r, g, b)
+        w = 1 - k
+        return [(1 - r - k) / w, (1 - g - k) / w, (1 - b - k) / w] + rgba[3:]
+
+    def to_ga(self):
+        # see https://en.wikipedia.org/wiki/Grayscale
+        rgba = self.to_rgba()
+        r, g, b = rgba[:3]
+        y = 0.299 * r + 0.587 * g + 0.114 * b  # Y of Y'UV
+        return [y] + rgba[3:]
+
+    def to_hsb(self):
+        raise NotImplementedError
+
+    def to_lcha(self):
+        # see http://www.brucelindbloom.com/Eqn_Lab_to_LCH.html
+        laba = self.to_laba()
+        l, a, b = laba[:3]
+        h = math.atan2(b, a)
+        if h < 0:
+            h += 2 * math.pi
+        h /= 2 * math.pi  # MMA specific
+        return [l, math.sqrt(a * a + b * b), h] + laba[3:]
+
+
+def _clip(components):
+    return [max(0, min(1, c)) for c in components]
 
 class RGBColor(_Color):
     """
@@ -352,22 +382,19 @@ class RGBColor(_Color):
         return self.components
 
     def to_xyza(self):
-        components = [max(0, min(1, c)) for c in self.components]
+        components = _clip(self.components)
 
         # inverse sRGB companding. see http://www.brucelindbloom.com/Eqn_RGB_to_XYZ.html
         r, g, b = (math.pow(((c + 0.055) / 1.055), 2.4)
                    if c > 0.04045 else c / 12.92 for c in components[:3])
 
         # use rRGB D50 conversion like MMA. see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
-        return [0.4360747 * r + 0.3850649 * g + 0.1430804 * b,
+        return _clip([0.4360747 * r + 0.3850649 * g + 0.1430804 * b,
             0.2225045 * r + 0.7168786 * g + 0.0606169 * b,
-            0.0139322 * r + 0.0971045 * g + 0.7141733 * b] + components[3:]
+            0.0139322 * r + 0.0971045 * g + 0.7141733 * b]) + components[3:]
 
     def to_laba(self):
         return XYZColor(components=self.to_xyza()).to_laba()
-
-    def to_lcha(self):
-        return XYZColor(components=self.to_xyza()).to_lcha()
 
 
 class LABColor(_Color):
@@ -378,7 +405,7 @@ class LABColor(_Color):
         return XYZColor(components=self.to_xyza()).to_rgba()
 
     def to_xyza(self):
-        components = [max(0, min(1, c)) for c in self.components]
+        components = self.components
 
         # see https://en.wikipedia.org/wiki/Lab_color_space´
         def inv_f(t):
@@ -394,7 +421,7 @@ class LABColor(_Color):
         # D50 white; taken from http://www.easyrgb.com/index.php?X=MATH&H=15#text15
         xyz_ref_white = (0.96422, 1.0, 0.82521)
 
-        return [xyz * w for xyz, w in zip((x, y, z), xyz_ref_white)] + components[3:]
+        return _clip([xyz * w for xyz, w in zip((x, y, z), xyz_ref_white)]) + components[3:]
 
     def to_laba(self):
         return self.components
@@ -408,7 +435,15 @@ class LCHColor(_Color):
         return XYZColor(components=self.to_xyza()).to_rgba()
 
     def to_xyza(self):
-        raise NotImplementedError
+        return LABColor(components=self.to_laba()).to_xyza()
+
+    def to_laba(self):
+        lcha = self.to_lcha()
+        l, c, h = lcha[:3]
+        h *= 2 * math.pi  # MMA specific
+        a = c * math.cos(h)
+        b = c * math.sin(h)
+        return [l, a, b] + lcha[3:]
 
     def to_lcha(self):
         return self.components
@@ -419,9 +454,7 @@ class XYZColor(_Color):
     default_components = [0, 0, 0, 1]
 
     def to_rgba(self):
-        # FIXME this is still somewhat inexact compared to MMA
-
-        components = [max(0, min(1, c)) for c in self.components]
+        components = _clip(self.components)
 
         # the inverse matrix of the one in RGBColor.to_xyza()
         x, y, z = components[:3]
@@ -429,11 +462,14 @@ class XYZColor(_Color):
                    x * -0.978769 + y * 1.91614 + z * 0.0334541,
                    x * 0.0719452 + y * -0.228991 + z * 1.40524]
 
-        return [1.055 * math.pow(c, 1. / 2.4) - 0.055 if c > 0.0031308
-                else c * 12.92 for c in (r, g, b)] + components[3:]
+        return _clip([1.055 * math.pow(c, 1. / 2.4) - 0.055 if c > 0.0031308
+                else c * 12.92 for c in (r, g, b)]) + components[3:]
+
+    def to_xyza(self):
+        return self.components
 
     def to_laba(self):
-        components = [max(0, min(1, c)) for c in self.components]
+        components = _clip(self.components)
 
         # D50 white; taken from http://www.easyrgb.com/index.php?X=MATH&H=15#text15
         xyz_ref_white = (0.96422, 1.0, 0.82521)
@@ -448,17 +484,6 @@ class XYZColor(_Color):
 
         # MMA scales by 1/100
         return [(1.16 * y) - 0.16, 5. * (x - y), 2. * (y - z)] + components[3:]
-
-    def to_lcha(self):
-        # see https://en.wikipedia.org/wiki/Lab_color_space
-        # see http://www.brucelindbloom.com/Eqn_Lab_to_LCH.html
-        laba = self.to_laba()
-        l, a, b = laba[:3]
-        h = math.atan2(b, a)
-        if h < 0:
-            h += 2 * math.pi
-        h /= 2 * math.pi  # MMA specific
-        return [l, math.sqrt(a * a + b * b), h] + laba[3:]
 
 
 class CMYKColor(_Color):
@@ -476,6 +501,9 @@ class CMYKColor(_Color):
     components_sizes = [3, 4, 5]
     default_components = [0, 0, 0, 0, 1]
 
+    def to_cmyka(self):
+        return self.components
+
     def to_rgba(self):
         k = self.components[3]
         k_ = 1 - k
@@ -483,6 +511,15 @@ class CMYKColor(_Color):
         cmy = [c[0] * k_ + k, c[1] * k_ + k, c[2] * k_ + k]
         rgb = (1 - cmy[0], 1 - cmy[1], 1 - cmy[2])
         return rgb + (c[4],)
+
+    def to_xyza(self):
+        return RGBColor(components=self.to_rgba()).to_xyza()
+
+    def to_laba(self):
+        return RGBColor(components=self.to_rgba()).to_laba()
+
+    def to_lcha(self):
+        return RGBColor(components=self.to_rgba()).to_lcha()
 
 
 class Hue(_Color):
@@ -557,6 +594,8 @@ class Hue(_Color):
         result = tuple([trans(list(map(t))) for t in rgb]) + (self.components[3],)
         return result
 
+    def to_hsb(self):
+        return self.components
 
 class GrayLevel(_Color):
     """
@@ -575,9 +614,24 @@ class GrayLevel(_Color):
         g = self.components[0]
         return (g, g, g, self.components[1])
 
+    def to_ga(self):
+        return self.components
+
+    def to_xyza(self):
+        return RGBColor(components=self.to_rgba()).to_xyza()
+
+    def to_laba(self):
+        return RGBColor(components=self.to_rgba()).to_laba()
+
+    def to_lcha(self):
+        return RGBColor(components=self.to_rgba()).to_lcha()
+
 
 class ColorConvert(Builtin):
     _convert = {
+        'CMYK': lambda color: CMYKColor(components=color.to_cmyk()),
+        'Grayscale': lambda color: GrayLevel(components=color.to_ga()),
+        'HSB': lambda color: Hue(components=color.to_hsb()),
         'LAB': lambda color: LABColor(components=color.to_laba()),
         'LCH': lambda color: LCHColor(components=color.to_lcha()),
         'RGB': lambda color: RGBColor(components=color.to_rgba()),
