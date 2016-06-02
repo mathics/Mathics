@@ -10,6 +10,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 from math import floor, ceil, log10
+import math
 import json
 import base64
 from six.moves import map
@@ -183,7 +184,7 @@ class Graphics(Builtin):
 
     In 'TeXForm', 'Graphics' produces Asymptote figures:
     >> Graphics[Circle[]] // TeXForm
-     = 
+     =
      . \begin{asy}
      . size(5.8556cm, 5.8333cm);
      . draw(ellipse((175,175),175,175), rgb(0, 0, 0)+linewidth(0.66667));
@@ -350,6 +351,115 @@ class RGBColor(_Color):
     def to_rgba(self):
         return self.components
 
+    def to_xyza(self):
+        components = [max(0, min(1, c)) for c in self.components]
+
+        # inverse sRGB companding. see http://www.brucelindbloom.com/Eqn_RGB_to_XYZ.html
+        r, g, b = (math.pow(((c + 0.055) / 1.055), 2.4)
+                   if c > 0.04045 else c / 12.92 for c in components[:3])
+
+        # use rRGB D50 conversion like MMA. see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
+        return [0.4360747 * r + 0.3850649 * g + 0.1430804 * b,
+            0.2225045 * r + 0.7168786 * g + 0.0606169 * b,
+            0.0139322 * r + 0.0971045 * g + 0.7141733 * b] + components[3:]
+
+    def to_laba(self):
+        return XYZColor(components=self.to_xyza()).to_laba()
+
+    def to_lcha(self):
+        return XYZColor(components=self.to_xyza()).to_lcha()
+
+
+class LABColor(_Color):
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
+
+    def to_rgba(self):
+        return XYZColor(components=self.to_xyza()).to_rgba()
+
+    def to_xyza(self):
+        components = [max(0, min(1, c)) for c in self.components]
+
+        # see https://en.wikipedia.org/wiki/Lab_color_space´
+        def inv_f(t):
+            if t > (6. / 29.):
+                return math.pow(t, 3)
+            else:
+                return 3. * (36. / 841.) * (t - (4. / 29.))
+
+        l, a, b = components[:3]
+        l0 = (l + 0.16) / 1.16
+        x, y, z = [inv_f(l0 + a / 5.), inv_f(l0), inv_f(l0 - b / 2.)]
+
+        # D50 white; taken from http://www.easyrgb.com/index.php?X=MATH&H=15#text15
+        xyz_ref_white = (0.96422, 1.0, 0.82521)
+
+        return [xyz * w for xyz, w in zip((x, y, z), xyz_ref_white)] + components[3:]
+
+    def to_laba(self):
+        return self.components
+
+
+class LCHColor(_Color):
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
+
+    def to_rgba(self):
+        return XYZColor(components=self.to_xyza()).to_rgba()
+
+    def to_xyza(self):
+        raise NotImplementedError
+
+    def to_lcha(self):
+        return self.components
+
+
+class XYZColor(_Color):
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
+
+    def to_rgba(self):
+        # FIXME this is still somewhat inexact compared to MMA
+
+        components = [max(0, min(1, c)) for c in self.components]
+
+        # the inverse matrix of the one in RGBColor.to_xyza()
+        x, y, z = components[:3]
+        r, g, b = [x * 3.13386 + y * -1.61687 + z * -0.490615,
+                   x * -0.978769 + y * 1.91614 + z * 0.0334541,
+                   x * 0.0719452 + y * -0.228991 + z * 1.40524]
+
+        return [1.055 * math.pow(c, 1. / 2.4) - 0.055 if c > 0.0031308
+                else c * 12.92 for c in (r, g, b)] + components[3:]
+
+    def to_laba(self):
+        components = [max(0, min(1, c)) for c in self.components]
+
+        # D50 white; taken from http://www.easyrgb.com/index.php?X=MATH&H=15#text15
+        xyz_ref_white = (0.96422, 1.0, 0.82521)
+
+        # computation of x, y, z; see https://en.wikipedia.org/wiki/Lab_color_space
+        components = [xyz / w for xyz, w in zip(components, xyz_ref_white)]
+
+        t0 = 0.0088564516790356308172  # math.pow(6. / 29., 3)
+        a = 7.7870370370370  # (1. / 3.) * math.pow(29. / 6., 2)
+        x, y, z = (math.pow(t, 1. / 3.) if t > t0
+                   else a * t + (4. / 29.) for t in components)
+
+        # MMA scales by 1/100
+        return [(1.16 * y) - 0.16, 5. * (x - y), 2. * (y - z)] + components[3:]
+
+    def to_lcha(self):
+        # see https://en.wikipedia.org/wiki/Lab_color_space
+        # see http://www.brucelindbloom.com/Eqn_Lab_to_LCH.html
+        laba = self.to_laba()
+        l, a, b = laba[:3]
+        h = math.atan2(b, a)
+        if h < 0:
+            h += 2 * math.pi
+        h /= 2 * math.pi  # MMA specific
+        return [l, math.sqrt(a * a + b * b), h] + laba[3:]
+
 
 class CMYKColor(_Color):
     """
@@ -464,6 +574,36 @@ class GrayLevel(_Color):
     def to_rgba(self):
         g = self.components[0]
         return (g, g, g, self.components[1])
+
+
+class ColorConvert(Builtin):
+    _convert = {
+        'LAB': lambda color: LABColor(components=color.to_laba()),
+        'LCH': lambda color: LCHColor(components=color.to_lcha()),
+        'RGB': lambda color: RGBColor(components=color.to_rgba()),
+        'XYZ': lambda color: XYZColor(components=color.to_xyza())
+    }
+
+    def apply(self, color, colorspace, evaluation):
+        'ColorConvert[color_, colorspace_String]'
+        py_color = _Color.create(color)
+        if not isinstance(py_color, _Color):
+            return
+
+        convert = ColorConvert._convert.get(colorspace.get_string_value())
+        if not convert:
+            return
+
+        converted_color = convert(py_color)
+        return Expression(converted_color.get_name(), *converted_color.components)
+
+
+def _euclidean_distance(a, b):
+    return math.sqrt(sum((x1 - x2) * (x1 - x2) for x1, x2 in zip(a, b)))
+
+
+def _component_distance(a, b, i):
+    return abs(a[i] - b[i])
 
 
 class _Size(_GraphicsElement):
@@ -2364,6 +2504,9 @@ element_heads = frozenset(system_symbols(
 
 styles = system_symbols_dict({
     'RGBColor': RGBColor,
+    'XYZColor': XYZColor,
+    'LABColor': LABColor,
+    'LCHColor': LCHColor,
     'CMYKColor': CMYKColor,
     'Hue': Hue,
     'GrayLevel': GrayLevel,
