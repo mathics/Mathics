@@ -2,18 +2,18 @@
 # -*- coding: utf-8 -*-
 
 
-class ParseError(Exception):
+class TranslateError(Exception):
     def __init__(self, pos):
         self.pos = pos
 
 
-class ScanError(ParseError):
+class ScanError(TranslateError):
     pass
 
 
-class InvalidSyntaxError(ParseError):
+class InvalidSyntaxError(TranslateError):
     pass
 
 
-class IncompleteSyntaxError(ParseError):
+class IncompleteSyntaxError(TranslateError):
     pass
