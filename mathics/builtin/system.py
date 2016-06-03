@@ -77,3 +77,29 @@ class Names(Builtin):
         # TODO: Mathematica ignores contexts when it sorts the list of
         # names.
         return Expression('List', *[String(name) for name in sorted(names)])
+
+
+class Aborted(Predefined):
+    """
+    <dl>
+    <dt>'$Aborted'
+        <dd>is returned by a calculation that has been aborted.
+    </dl>
+    """
+
+    name = '$Aborted'
+
+
+class Failed(Predefined):
+    """
+    <dl>
+    <dt>'$Failed'
+        <dd>is returned by some functions in the event of an error.
+    </dl>
+
+    >> Get["nonexistent_file.m"]
+     : Cannot open nonexistent_file.m.
+     = $Failed
+    """
+
+    name = '$Failed'
