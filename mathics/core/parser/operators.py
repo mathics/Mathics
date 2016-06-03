@@ -32,6 +32,10 @@ flat_binary_ops = {
     'CompoundExpression': 10,
 }
 
+nonassoc_binary_ops = {
+    'PatternTest': 680,
+}
+
 ternary_ops = {
     'Span': 305,
     'Infix': 630,   # TODO
@@ -39,7 +43,7 @@ ternary_ops = {
 
 # binary_ops = left_binary_ops V right_binary_ops V flat_binary_ops
 binary_ops = {}
-for ops in (left_binary_ops, right_binary_ops, flat_binary_ops):
+for ops in (left_binary_ops, right_binary_ops, flat_binary_ops, nonassoc_binary_ops):
     for op, prec in ops.items():
         binary_ops[op] = prec
 

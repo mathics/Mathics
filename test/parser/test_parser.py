@@ -110,6 +110,7 @@ class NumberTests(ParserTests):
         self.check('MakeBoxes[expr_, f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]', 'MakeBoxes[Pattern[expr, Blank[]], Pattern[f, Alternatives[TraditionalForm, StandardForm, OutputForm, InputForm, FullForm]]]')
 
         self.check('1?2', Expression('PatternTest', Integer(1), Integer(2)))
+        self.invalid_error('a?b?c')
 
         self.check('x:expr', Expression('Pattern', Symbol('Global`x'), Symbol('Global`expr')))
         self.check('x_:expr', Expression('Optional', Expression('Pattern', Symbol('Global`x'), Expression('Blank')), Symbol('Global`expr')))

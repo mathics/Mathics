@@ -10,7 +10,7 @@ from mathics.core.parser.tokeniser import Tokeniser
 from mathics.core.parser.errors import InvalidSyntaxError, IncompleteSyntaxError
 from mathics.core.parser.operators import (
     prefix_ops, postfix_ops, left_binary_ops, right_binary_ops,
-    flat_binary_ops, ternary_ops, binary_ops, all_ops)
+    nonassoc_binary_ops, flat_binary_ops, ternary_ops, binary_ops, all_ops)
 
 
 class Parser(object):
@@ -76,11 +76,13 @@ class Parser(object):
                 if q < p:
                     break
                 self.consume()
-                if tag in right_binary_ops:
+                if tag not in left_binary_ops:
                     q += 1
                 child = self.parse_exp(q)
                 # flatten or associate
-                if tag in flat_binary_ops and result.get_head_name() == tag and not result.parenthesised:
+                if tag in nonassoc_binary_ops and result.get_head_name() == tag and not result.parenthesised:
+                    raise InvalidSyntaxError(token.pos)
+                elif tag in flat_binary_ops and result.get_head_name() == tag and not result.parenthesised:
                     result.children.append(child)
                 else:
                     result = Node(tag, result, child)
@@ -201,9 +203,35 @@ class Parser(object):
         expr2 = self.parse_exp(outer_prec)
         return Node('Integrate', expr1, expr2)
 
-    def p_Get(self, tokens):
+    def p_Get(self, token):
         self.consume()
         return Node('Get', self.next_filename())
+
+    def p_Pattern(self, token):
+        self.consume()
+        text = token.text
+        if '.' in text:
+            name = text[:-2]
+            if name:
+                return Node('Optional', Node('Pattern', Symbol(name), Node('Blank')))
+            else:
+                return Node('Optional', Node('Blank'))
+        pieces = text.split('_')
+        count = len(pieces) - 1
+        if count == 1:
+            name = 'Blank'
+        elif count == 2:
+            name = 'BlankSequence'
+        elif count == 3:
+            name = 'BlankNullSequence'
+        if pieces[-1]:
+            blank = Node(name, Symbol(pieces[-1]))
+        else:
+            blank = Node(name)
+        if pieces[0]:
+            return Node('Pattern', Symbol(pieces[0]), blank)
+        else:
+            return blank
 
     # E methods
     #
