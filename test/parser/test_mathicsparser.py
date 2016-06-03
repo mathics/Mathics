@@ -9,22 +9,17 @@ import sys
 import random
 import unittest
 
-from mathics.core.parser import parse, parse_lines, ScanError, IncompleteSyntaxError, InvalidSyntaxError
-from mathics.core.expression import Expression, Real, Integer, String, Rational, Symbol
+from mathics.core.parser import parse, InvalidSyntaxError, IncompleteSyntaxError, ScanError
 from mathics.core.definitions import Definitions
+from mathics.core.expression import Expression, String, Symbol, Integer, Real
 
 
-definitions = None
-
-
-def setUpModule():
-    global definitions
-    definitions = Definitions(add_builtin=True)
+definitions = Definitions(add_builtin=True)
 
 
 class ParserTests(unittest.TestCase):
-    def parse(self, s):
-        return parse(s, definitions)
+    def setUp(self):
+        self.parse = lambda code: parse(code, definitions)
 
     def check(self, expr1, expr2):
         if isinstance(expr1, six.string_types):
@@ -35,7 +30,7 @@ class ParserTests(unittest.TestCase):
         if expr1 is None:
             self.assertTrue(expr2 is None)
         else:
-            self.assertTrue(expr1.same(expr2))
+            self.assertEqual(expr1, expr2)
 
     def lex_error(self, string):
         self.assertRaises(ScanError, self.parse, string)
@@ -224,6 +219,8 @@ class NumberTests(ParserTests):
         self.check(' ;;2', Expression('Span', Integer(1), Integer(2)))
         self.check('1;; ', Expression('Span', Integer(1), Symbol('All')))
         self.check(' ;; ', Expression('Span', Integer(1), Symbol('All')))
+        self.check('a;;-b', Expression('Span', Symbol('a'), Expression('Minus', Symbol('b'))))
+        self.check('a;;!b', Expression('Times', Expression('Factorial', Expression('Span', Symbol('a'), Symbol('All'))), Symbol('b')))    # MMA Bug
 
     def testBinOp(self):
         self.check('1 <> 2 ', Expression('StringJoin', Integer(1), Integer(2)))
@@ -461,24 +458,24 @@ class NumberTests(ParserTests):
         self.incomplete_error('x \\')
 
 
-class MultiLineParserTests(ParserTests):
-    def parse(self, s):
-        exprs = list(parse_lines(s, definitions))
-        assert len(exprs) == 1
-        return exprs[0]
-
-    def test_trailing_backslash(self):
-        self.incomplete_error('x \\')
-        self.check('x \\\ny', Expression('Times', Symbol('Global`x'), Symbol('Global`y')))
-
-    def test_continuation(self):
-        self.incomplete_error('Sin[')
-        self.check('Sin[\n0]', Expression('Sin', Integer(0)))
-
-    @unittest.expectedFailure
-    def test_blanknewline(self):
-        # currently handled in the frontend
-        self.incomplete_error('Sin[\n\n0]')
+# class MultiLineParserTests(ParserTests):
+#     def parse(self, s):
+#         exprs = list(parse_lines(s, definitions))
+#         assert len(exprs) == 1
+#         return exprs[0]
+#
+#     def test_trailing_backslash(self):
+#         self.incomplete_error('x \\')
+#         self.check('x \\\ny', Expression('Times', Symbol('Global`x'), Symbol('Global`y')))
+#
+#     def test_continuation(self):
+#         self.incomplete_error('Sin[')
+#         self.check('Sin[\n0]', Expression('Sin', Integer(0)))
+#
+#     @unittest.expectedFailure
+#     def test_blanknewline(self):
+#         # currently handled in the frontend
+#         self.incomplete_error('Sin[\n\n0]')
 
 if __name__ == "__main__":
     unittest.main()

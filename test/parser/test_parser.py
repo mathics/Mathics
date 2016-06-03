@@ -4,14 +4,15 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import six
 import sys
 import random
 import unittest
 
 from mathics.core.parser import parse, parse_lines, ScanError, IncompleteSyntaxError, InvalidSyntaxError
-from mathics.core.expression import Expression, Real, Integer, String, Rational, Symbol
+from mathics.core.expression import (Expression, Real, Integer, String,
+                                     Rational, Symbol)
 from mathics.core.definitions import Definitions
+import six
 
 
 definitions = None
@@ -461,24 +462,24 @@ class NumberTests(ParserTests):
         self.incomplete_error('x \\')
 
 
-class MultiLineParserTests(ParserTests):
-    def parse(self, s):
-        exprs = list(parse_lines(s, definitions))
-        assert len(exprs) == 1
-        return exprs[0]
-
-    def test_trailing_backslash(self):
-        self.incomplete_error('x \\')
-        self.check('x \\\ny', Expression('Times', Symbol('Global`x'), Symbol('Global`y')))
-
-    def test_continuation(self):
-        self.incomplete_error('Sin[')
-        self.check('Sin[\n0]', Expression('Sin', Integer(0)))
-
-    @unittest.expectedFailure
-    def test_blanknewline(self):
-        # currently handled in the frontend
-        self.incomplete_error('Sin[\n\n0]')
+# class MultiLineParserTests(ParserTests):
+#     def parse(self, s):
+#         exprs = list(parse_lines(s, definitions))
+#         assert len(exprs) == 1
+#         return exprs[0]
+# 
+#     def test_trailing_backslash(self):
+#         self.incomplete_error('x \\')
+#         self.check('x \\\ny', Expression('Times', Symbol('Global`x'), Symbol('Global`y')))
+# 
+#     def test_continuation(self):
+#         self.incomplete_error('Sin[')
+#         self.check('Sin[\n0]', Expression('Sin', Integer(0)))
+# 
+#     @unittest.expectedFailure
+#     def test_blanknewline(self):
+#         # currently handled in the frontend
+#         self.incomplete_error('Sin[\n\n0]')
 
 if __name__ == "__main__":
     unittest.main()
