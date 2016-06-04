@@ -763,14 +763,14 @@ class ColorConvert(Builtin):
 
     Valid values for $colspace$ are:
 
-    CMYK
-    Grayscale
-    HSB
-    LAB
-    LCH
-    LUV
-    RGB
-    XYZ
+    CMYK: convert to CMYKColor
+    Grayscale: convert to GrayLevel
+    HSB: convert to Hue
+    LAB: concert to LABColor
+    LCH: convert to LCHColor
+    LUV: convert to LUVColor
+    RGB: convert to RGBColor
+    XYZ: convert to XYZColor
     """
 
     _convert = {
@@ -784,17 +784,22 @@ class ColorConvert(Builtin):
         'XYZ': lambda color: XYZColor(components=color.to_xyza())
     }
 
+    messages = {
+        'ccvinput': '`` should be a color.',
+        'imgcstype': '`` is not a valid color space.',
+    }
+
     def apply(self, color, colorspace, evaluation):
         'ColorConvert[color_, colorspace_String]'
         try:
             py_color = _Color.create(color)
         except ColorError:
-            return
-        if not isinstance(py_color, _Color):
+            evaluation.message('ColorConvert', 'ccvinput', color)
             return
 
         convert = ColorConvert._convert.get(colorspace.get_string_value())
         if not convert:
+            evaluation.message('ColorConvert', 'imgcstype', colorspace)
             return
 
         converted_color = convert(py_color)
@@ -810,22 +815,27 @@ class ColorDistance(Builtin):
         <dd>returns a list of color distances between the colors in $list$ and $c2$.
     </dl>
 
-    The optional parameter "Distance" specified the method used to measure the color
+    The option DistanceFunction specifies the method used to measure the color
     distance. Available options are:
 
-    CIE76
-    CIE74
-    DeltaL
-    DeltaC
-    DeltaH
+    CIE76: euclidean distance in the LABColor space
+    CIE94: euclidean distance in the LCHColor space
+    DeltaL: difference in the L component of LCHColor
+    DeltaC: difference in the C component of LCHColor
+    DeltaH: difference in the H component of LCHColor
+
+    >> N[ColorDistance[Magenta, Green], 5]
+     = 2.2507
     """
 
     options = {
-        'Distance': 'CIE76',
+        'DistanceFunction': '"CIE76"',
     }
 
-    rules = {
-        'ColorDistance[l_List, c2_]': 'ColorDistance[#, c2]& /@ l',
+    messages = {
+        'invdist': '`` is not a valid color distance function.',
+        'invarg': '`1` and `2` should be two colors or a color and a lists of colors or ' +
+                  'two lists of colors of the same length.'
     }
 
     _distances = {
@@ -838,21 +848,41 @@ class ColorDistance(Builtin):
 
     def apply(self, c1, c2, evaluation, options):
         'ColorDistance[c1_, c2_, OptionsPattern[ColorDistance]]'
-        distance = options.get('System`Distance')
-        if isinstance(distance, String):
-            compute = ColorDistance._distances.get(distance.get_string_value())
+        distance_function = options.get('System`DistanceFunction')
+        if isinstance(distance_function, String):
+            compute = ColorDistance._distances.get(distance_function.get_string_value())
             if not compute:
-                evaluation.message('ColorDistance')
+                evaluation.message('ColorDistance', 'invdist', distance_function)
                 return
         else:
-            compute = lambda a, b: Expression(distance, a.to_laba(), b.to_laba())
+            def compute(a, b):
+                Expression(distance_function, a.to_laba(), b.to_laba())
 
-        if c1.get_head_name() == 'System`List' and isinstance(c2, _Color):
-            if any(not isinstance(c, _Color) for c in c1.leaves):
-                return  # fail
-            return Expression('List', *[from_python(compute(c, c2)) for c in c1.leaves])
-        elif isinstance(c1, _Color) and isinstance(c2, _Color):
-            return from_python(compute(c1, c2))
+        def distance(a, b):
+            try:
+                py_a = _Color.create(a)
+                py_b = _Color.create(b)
+            except ColorError:
+                evaluation.message('ColorDistance', 'invarg', a, b)
+                raise
+            return from_python(compute(py_a, py_b))
+
+        try:
+            if c1.get_head_name() == 'System`List':
+                if c2.get_head_name() == 'System`List':
+                    if len(c1.leaves) != len(c2.leaves):
+                        evaluation.message('ColorDistance', 'invarg', c1, c2)
+                        return
+                    else:
+                        return Expression('List', *[distance(a, b) for a, b in zip(c1.leaves, c2.leaves)])
+                else:
+                    return Expression('List', *[distance(c, c2) for c in c1.leaves])
+            elif c2.get_head_name() == 'System`List':
+                return Expression('List', *[distance(c1, c) for c in c2.leaves])
+            else:
+                return distance(c1, c2)
+        except ColorError:
+            return
 
 
 class _Size(_GraphicsElement):

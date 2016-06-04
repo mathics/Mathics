@@ -20,6 +20,10 @@ class ColorTest(unittest.TestCase):
         self.evaluation = Evaluation(definitions, format='xml')
 
     def testInverseConversions(self):
+        # check that a conversion A -> B -> A restores the original
+        # components. this tests color space transformations and their
+        # inverse transformations.
+
         spaces = ("CMYK", "HSB", "LAB", "LCH", "LUV", "RGB", "XYZ")
         places = 4
         for i, from_space in enumerate(spaces):
