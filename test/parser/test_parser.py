@@ -11,6 +11,7 @@ import unittest
 from mathics.core.parser.errors import ScanError, IncompleteSyntaxError, InvalidSyntaxError
 from mathics.core.parser.ast import Node, Symbol, Number, String, Filename
 from mathics.core.parser.parser import Parser
+from mathics.core.parser.prescanner import prescan
 
 import six
 
@@ -21,6 +22,9 @@ class ParserTests(unittest.TestCase):
 
     def parse(self, s):
         return self.parser.parse(s)
+
+    def parse_prescan(self, s):
+        return self.parse(prescan(s))
 
     def check(self, expr1, expr2):
         if isinstance(expr1, six.string_types):
@@ -295,28 +299,28 @@ class GeneralTests(ParserTests):
         self.check('%', Node('Out'))
 
     def testNonAscii(self):
-        self.check('z \\[Conjugate]', Node('Conjugate', Symbol('z')))
-        self.check('z \\[Transpose]', Node('Transpose', Symbol('z')))
-        self.check('z \\[ConjugateTranspose]', Node('ConjugateTranspose', Symbol('z')))
+        self.check_prescan('z \\[Conjugate]', Node('Conjugate', Symbol('z')))
+        self.check_prescan('z \\[Transpose]', Node('Transpose', Symbol('z')))
+        self.check_prescan('z \\[ConjugateTranspose]', Node('ConjugateTranspose', Symbol('z')))
         self.check('z \uf3c7 ', Node('Transpose', Symbol('z')))
         self.check('z \uf3c8 ', Node('Conjugate', Symbol('z')))
         self.check('z \uf3c9 ', Node('ConjugateTranspose', Symbol('z')))
-        self.check('\\[Integral] x \\[DifferentialD] x', Node('Integrate', Symbol('x'), Symbol('x')))
-        self.check('\\[Del] x', Node('Del', Symbol('x')))
-        self.check('\\[Square] x', Node('Square', Symbol('x')))
-        self.check('1 \\[SmallCircle] 2', Node('SmallCircle', Number('1'), Number('2')))
-        self.check('1 \\[SmallCircle] 2 \\[SmallCircle] 3', Node('SmallCircle', Number('1'), Number('2'), Number('3')))
+        self.check_prescan('\\[Integral] x \\[DifferentialD] x', Node('Integrate', Symbol('x'), Symbol('x')))
+        self.check_prescan('\\[Del] x', Node('Del', Symbol('x')))
+        self.check_prescan('\\[Square] x', Node('Square', Symbol('x')))
+        self.check_prescan('1 \\[SmallCircle] 2', Node('SmallCircle', Number('1'), Number('2')))
+        self.check_prescan('1 \\[SmallCircle] 2 \\[SmallCircle] 3', Node('SmallCircle', Number('1'), Number('2'), Number('3')))
         self.check('1 \u2218 2', Node('SmallCircle', Number('1'), Number('2')))
-        self.check('1 \\[CircleDot] 2', Node('CircleDot', Number('1'), Number('2')))
+        self.check_prescan('1 \\[CircleDot] 2', Node('CircleDot', Number('1'), Number('2')))
         self.check('1 \u2299 2', Node('CircleDot', Number('1'), Number('2')))
-        self.check('1 \\[Diamond] 2', Node('Diamond', Number('1'), Number('2')))
-        self.check('1 \\[Wedge] 2', Node('Wedge', Number('1'), Number('2')))
-        self.check('1 \\[Vee] 2', Node('Vee', Number('1'), Number('2')))
-        self.check('1 \\[CircleTimes] 2', Node('CircleTimes', Number('1'), Number('2')))
-        self.check('1 \\[CenterDot] 2', Node('CenterDot', Number('1'), Number('2')))
-        self.check('1 \\[Star] 2', Node('Star', Number('1'), Number('2')))
-        self.check('a \\[Cap] b', 'Cap[a,b]')
-        self.check('a \\[Cup] b \\[Cup] c', 'Cup[a,b,c]')
+        self.check_prescan('1 \\[Diamond] 2', Node('Diamond', Number('1'), Number('2')))
+        self.check_prescan('1 \\[Wedge] 2', Node('Wedge', Number('1'), Number('2')))
+        self.check_prescan('1 \\[Vee] 2', Node('Vee', Number('1'), Number('2')))
+        self.check_prescan('1 \\[CircleTimes] 2', Node('CircleTimes', Number('1'), Number('2')))
+        self.check_prescan('1 \\[CenterDot] 2', Node('CenterDot', Number('1'), Number('2')))
+        self.check_prescan('1 \\[Star] 2', Node('Star', Number('1'), Number('2')))
+        self.check_prescan('a \\[Cap] b', 'Cap[a,b]')
+        self.check_prescan('a \\[Cup] b \\[Cup] c', 'Cup[a,b,c]')
         self.check('a \u2322 b \u2322 c', 'Cap[a,b,c]')
         self.check('a \u2323 b', 'Cup[a, b]')
         self.check('1 \u22C4 2', Node('Diamond', Number('1'), Number('2')))
@@ -327,17 +331,17 @@ class GeneralTests(ParserTests):
         self.check('1 \u22C6 2', Node('Star', Number('1'), Number('2')))
         self.check('expr1 ** expr2', Node('NonCommutativeMultiply', Symbol('expr1'), Symbol('expr2')))
         self.check('expr1 ** expr2 ** expr3', Node('NonCommutativeMultiply', Symbol('expr1'), Symbol('expr2'), Symbol('expr3')))
-        self.check('1 \\[Cross] 2', Node('Cross', Number('1'), Number('2')))
+        self.check_prescan('1 \\[Cross] 2', Node('Cross', Number('1'), Number('2')))
         self.check('1 \uf4a0 2', Node('Cross', Number('1'), Number('2')))
-        self.check('3\\[Divide]2', Node('Times', Number('3'), Node('Power', Number('2'), Number(-1))))
+        self.check_prescan('3\\[Divide]2', Node('Times', Number('3'), Node('Power', Number('2'), Number(-1))))
         self.check('3 \u00f7 2', Node('Times', Number('3'), Node('Power', Number('2'), Number(-1))))
         self.check('3\\2', Node('Backslash', Number('3'), Number('2')))
-        self.check('1 \\[Times] 2', Node('Times', Number('1'), Number('2')))
+        self.check_prescan('1 \\[Times] 2', Node('Times', Number('1'), Number('2')))
         self.check('1 \u00d7 2', Node('Times', Number('1'), Number('2')))
-        self.check('1 \[PlusMinus] 2', Node('PlusMinus', Number('1'), Number('2')))
-        self.check('1 \[MinusPlus] 2', Node('MinusPlus', Number('1'), Number('2')))
-        self.check('\[PlusMinus] 1', Node('PlusMinus', Number('1')))
-        self.check('\[MinusPlus] 1', Node('MinusPlus', Number('1')))
+        self.check_precan('1 \[PlusMinus] 2', Node('PlusMinus', Number('1'), Number('2')))
+        self.check_precan('1 \[MinusPlus] 2', Node('MinusPlus', Number('1'), Number('2')))
+        self.check_precan('\[PlusMinus] 1', Node('PlusMinus', Number('1')))
+        self.check_precan('\[MinusPlus] 1', Node('MinusPlus', Number('1')))
         self.check('\u00b1 1', Node('PlusMinus', Number('1')))
         self.check('\u2213 1', Node('MinusPlus', Number('1')))
         self.check('1 \\[And] 2', Node('And', Number('1'), Number('2')))
@@ -345,15 +349,15 @@ class GeneralTests(ParserTests):
         self.check('1 \\[Or] 2', Node('Or', Number('1'), Number('2')))
         self.check('1 \u2228 2', Node('Or', Number('1'), Number('2')))
 
-        self.check('a \\[Colon] b', Node('Colon', Symbol('a'), Symbol('b')))
+        self.check_precan('a \\[Colon] b', Node('Colon', Symbol('a'), Symbol('b')))
         self.check('a \u2236 b', Node('Colon', Symbol('a'), Symbol('b')))
-        self.check('x \\[Function] y', 'Function[{x}, y]')
+        self.check_prescan('x \\[Function] y', 'Function[{x}, y]')
         self.check('x \uf4a1 y', 'Function[{x}, y]')
 
-        self.check('x1 \\[RightTee] x2', 'RightTee[x1, x2]')
-        self.check('x1 \\[DoubleRightTee] x2', 'DoubleRightTee[x1, x2]')
-        self.check('x1 \\[LeftTee] x2', 'LeftTee[x1, x2]')
-        self.check('x1 \\[DoubleLeftTee] x2', 'DoubleLeftTee[x1, x2]')
+        self.check_prescan('x1 \\[RightTee] x2', 'RightTee[x1, x2]')
+        self.check_prescan('x1 \\[DoubleRightTee] x2', 'DoubleRightTee[x1, x2]')
+        self.check_prescan('x1 \\[LeftTee] x2', 'LeftTee[x1, x2]')
+        self.check_prescan('x1 \\[DoubleLeftTee] x2', 'DoubleLeftTee[x1, x2]')
 
     @unittest.expectedFailure
     def testBoxes(self):
@@ -440,9 +444,6 @@ class IncompleteTests(ParserTests):
         self.invalid_error('[x')
         self.incomplete_error('{x')
         self.invalid_error('[[x')
-
-    def test_trailing_backslash(self):
-        self.incomplete_error('x \\')
 
 
 class CommentTests(ParserTests):

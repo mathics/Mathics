@@ -88,7 +88,7 @@ tokens = [
     ('TimesBy', r' \*\= '),
     ('DivideBy', r' \/\=  '),
 
-    ('RawDot', r' \. '),
+    ('Dot', r' \. '),
 
     ('Plus', r' \+ '),
     ('Minus', r' \- '),
@@ -226,7 +226,7 @@ filename_pattern = re.compile(
 class Token(object):
     def __init__(self, tag, text, pos):
         self.tag = tag
-        self.text = prescan(text)
+        self.text = text
         self.pos = pos
 
     def __eq__(self, other):

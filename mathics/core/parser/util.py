@@ -12,8 +12,9 @@ parser = Parser()
 
 # Parse input (from the frontend, -e, input files, ToExpression etc).
 # Look up symbols according to the Definitions instance supplied.
-def parse(string, definitions):
-    ast = parser.parse(string)
+def parse(raw_code, definitions):
+    code = prescan(raw_code)
+    ast = parser.parse(code)
     return convert(ast, definitions)
 
 

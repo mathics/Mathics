@@ -21,6 +21,7 @@ class PrescannerTest(unittest.TestCase):
         self.equal(r'\[Theta]', '\u03B8')
         self.equal(r'\[CapitalPi]', '\u03A0')
         self.equal(r'\[Fake]', r'\[Fake]')
+        self.equal('z \\[Conjugate]', 'z \uF3C8')
 
     def test_oct(self):
         self.equal(r'\051', ')')
@@ -61,3 +62,6 @@ class PrescannerTest(unittest.TestCase):
 
     def test_nested(self):
         self.equal(r'\[Thet\141]', r'\[Thet\141]')
+
+    def test_trailing_backslash(self):
+        self.incomplete('x \\')
