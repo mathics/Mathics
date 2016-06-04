@@ -439,9 +439,10 @@ class RGBColor(_Color):
                    if c > 0.04045 else c / 12.92 for c in components[:3])
 
         # use rRGB D50 conversion like MMA. see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
-        return _clip(0.4360747 * r + 0.3850649 * g + 0.1430804 * b,
-            0.2225045 * r + 0.7168786 * g + 0.0606169 * b,
-            0.0139322 * r + 0.0971045 * g + 0.7141733 * b) + tuple(components[3:])
+        # MMA seems to round matrix values to six significant digits. we do the same.
+        return _clip(0.436075 * r + 0.385065 * g + 0.14308 * b,
+            0.222504 * r + 0.716879 * g + 0.0606169 * b,
+            0.0139322 * r + 0.0971045 * g + 0.714173 * b) + tuple(components[3:])
 
     def to_hsba(self):
         # see https://en.wikipedia.org/wiki/HSB_color_space. HSB is also known as HSV.
@@ -578,10 +579,12 @@ class XYZColor(_Color):
         components = _clip(*self.components)
 
         x, y, z = components[:3]
-        # multiply with the inverse matrix of the one in RGBColor.to_xyza()
+
+        # for matrix, see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
+        # MMA seems to round matrix values to six significant digits. we do the same.
         r, g, b = [x * 3.13386 + y * -1.61687 + z * -0.490615,
-                   x * -0.978769 + y * 1.91614 + z * 0.0334541,
-                   x * 0.0719452 + y * -0.228991 + z * 1.40524]
+                   x * -0.978768 + y * 1.91614 + z * 0.033454,
+                   x * 0.0719453 + y * -0.228991 + z * 1.40524]
 
         return _clip(*[1.055 * math.pow(c, 1. / 2.4) - 0.055 if c > 0.0031308
                        else c * 12.92 for c in (r, g, b)]) + tuple(components[3:])

@@ -54,12 +54,19 @@ class ColorTest(unittest.TestCase):
                           (from_space, to_space, from_space))
                     raise
 
-    def testConversionsFromXYZ(self):
-        self._checkConversion("XYZ", (0.5, 0.5, 0.5), "LAB", (0.7606, 0.0484, -0.1049))
-        self._checkConversion("XYZ", (0.5, 0.5, 0.5), "RGB", (0.7440, 0.7257, 0.8118))
+    def testConversions(self):
+        self._checkConversion("RGB", (0.5, 0.5, 0.5),
+                              "XYZ", (.20638274847577825, 0.2140411190781185, 0.17662882532500096))
+        self._checkConversion("RGB", (0.4, 0.2, 0.3),
+                              "XYZ", (0.08116707006828128, 0.05773536343816594, 0.057371054671583044))
+
+        self._checkConversion("XYZ", (0.5, 0.5, 0.5),
+                              "RGB", (0.743976775016277, 0.7256665017497576, 0.8118438573490818))
+        self._checkConversion("XYZ", (0.4, 0.2, 0.3),
+                              "RGB", (0.8977592548573999, 0.022700440000000155, 0.6685886356522144))
 
     def _checkConversion(self, from_space, from_components, to_space, to_components):
-        places = 3
+        places = 12
 
         if from_space == 'HSB':
             construct_name = 'Hue'
