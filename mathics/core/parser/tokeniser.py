@@ -287,7 +287,7 @@ class Tokeniser(object):
                 break
         if comment:
             self.pos = comment[0]
-            raise IncompleteSyntaxError()
+            raise IncompleteSyntaxError(self.pos)
 
     def t_String(self, match):
         start, end = self.pos, None

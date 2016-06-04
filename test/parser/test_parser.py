@@ -9,7 +9,7 @@ import random
 import unittest
 
 from mathics.core.parser.errors import ScanError, IncompleteSyntaxError, InvalidSyntaxError
-from mathics.core.parser.ast import Node, Symbol, Number, String
+from mathics.core.parser.ast import Node, Symbol, Number, String, Filename
 from mathics.core.parser.parser import Parser
 
 import six
@@ -52,7 +52,7 @@ class PrecedenceTests(ParserTests):
 
 class AtomTests(ParserTests):
     def check_number(self, s):
-        self.assertEqual(parse(s), Number(s))
+        self.assertEqual(self.parse(s), Number(s))
 
     def testSymbol(self):
         self.check('xX', Symbol('xX'))
@@ -95,21 +95,15 @@ class AtomTests(ParserTests):
 
     def testAccuracy(self):
         self.lex_error('1.5``')
-        self.check('1.0``20', Real('1.0', p=20))
-
-    @unittest.expectedFailure
-    def testLowAccuracy(self):
-        self.check('1.4``0', Real(0))
-        self.check('1.4``-20', Real(0))
+        self.check_number('1.0``20')
+        self.check_number('1.4``0')
+        self.check_number('1.4``-20')
 
     def testPrecision(self):
-        self.check('1.`20', Real(1, p=20))
-        self.check('1.00000000000000000000000`', Real(1))
-        self.check('1.00000000000000000000000`30', Real(1, p=30))
-
-    @unittest.expectedFailure
-    def testLowPrecision(self):
-        self.check('1.4`1', Real('1', p=1))
+        self.check_number('1.`20')
+        self.check_number('1.00000000000000000000000`')
+        self.check_number('1.00000000000000000000000`30')
+        self.check_number('1.4`1')
 
 class GeneralTests(ParserTests):
     def testCompound(self):
@@ -124,10 +118,10 @@ class GeneralTests(ParserTests):
         self.check('1 :: "abc" :: "123"', Node('MessageName', Number('1'), String("abc"), String("123")))
 
     def testGetPut(self):
-        self.check('<<"filename"', Node('Get', String('filename')))
-        self.check('1 >> filename', Node('Put', Number('1'), String('filename')))
-        self.check('1 >>> filename', Node('PutAppend', Number('1'), String('filename')))
-        self.check('<< filename', Node('Get', String('filename')))
+        self.check('<<"filename"', Node('Get', Filename('filename')))
+        self.check('1 >> filename', Node('Put', Number('1'), Filename('filename')))
+        self.check('1 >>> filename', Node('PutAppend', Number('1'), Filename('filename')))
+        self.check('<< filename', Node('Get', Filename('filename')))
 
     def testExpression(self):
         self.check('expr1[expr2]', Node('expr1', Symbol('expr2')))
