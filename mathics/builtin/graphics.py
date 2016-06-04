@@ -23,7 +23,7 @@ from mathics.builtin.base import (
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
     Expression, Integer, Real, String, Symbol, strip_context,
-    system_symbols, system_symbols_dict)
+    system_symbols, system_symbols_dict, from_python)
 
 
 class CoordinatesError(BoxConstructError):
@@ -164,6 +164,34 @@ def _data_and_options(leaves, defined_options):
     return data, options
 
 
+class _PerfectReflectingDiffuser:
+    def __init__(self, x1, x2):
+        scale = 1.0 / x2
+        self.xyz = (x1 * scale, 1.0, (1.0 - x1 - x2) * scale)
+
+        q_r = self.xyz[0] + 15. * self.xyz[1] + 3. * self.xyz[2]
+        self.u_r = 4. * self.xyz[0] / q_r
+        self.v_r = 9. * self.xyz[1] / q_r
+
+
+# MMA's reference white is a # D50, 2 degrees diffuser; for the
+# values, see https://en.wikipedia.org/wiki/Standard_illuminant
+
+_ref_white = _PerfectReflectingDiffuser(0.34567, 0.35850)
+
+
+def _clip(components):  # clip to [0, 1]
+    return [max(0, min(1, c)) for c in components]
+
+
+def _euclidean_distance(a, b):
+    return math.sqrt(sum((x1 - x2) * (x1 - x2) for x1, x2 in zip(a, b)))
+
+
+def _component_distance(a, b, i):
+    return abs(a[i] - b[i])
+
+
 class Graphics(Builtin):
     r"""
     <dl>
@@ -288,9 +316,13 @@ class _Color(_GraphicsElement):
                 components = [value.round_to_float() for value in leaves]
                 if None in components or not all(0 <= c <= 1 for c in components):
                     raise ColorError
-                if len(components) < len(self.default_components):
-                    components.extend(self.default_components[
-                                      len(components):])
+                # the following lines always extend to the maximum available
+                # default_components, so RGBColor[0, 0, 0] will _always_
+                # become RGBColor[0, 0, 0, 1]. does not seem the right thing
+                # to do in this general context. poke1024
+                # if len(components) < len(self.default_components):
+                #    components.extend(self.default_components[
+                #                      len(components):])
                 self.components = components
             else:
                 raise ColorError
@@ -340,8 +372,11 @@ class _Color(_GraphicsElement):
         y = 0.299 * r + 0.587 * g + 0.114 * b  # Y of Y'UV
         return [y] + rgba[3:]
 
-    def to_hsb(self):
-        raise NotImplementedError
+    def to_hsba(self):
+        return RGBColor(components=self.to_rgba()).to_hsba()
+
+    def to_laba(self):
+        return XYZColor(components=self.to_xyza()).to_laba()
 
     def to_lcha(self):
         # see http://www.brucelindbloom.com/Eqn_Lab_to_LCH.html
@@ -353,9 +388,15 @@ class _Color(_GraphicsElement):
         h /= 2 * math.pi  # MMA specific
         return [l, math.sqrt(a * a + b * b), h] + laba[3:]
 
+    def to_luva(self):
+        return XYZColor(components=self.to_xyza()).to_luva()
 
-def _clip(components):
-    return [max(0, min(1, c)) for c in components]
+    def to_rgba(self):
+        return XYZColor(components=self.to_xyza()).to_rgba()
+
+    def to_xyza(self):
+        raise NotImplementedError
+
 
 class RGBColor(_Color):
     """
@@ -393,16 +434,45 @@ class RGBColor(_Color):
             0.2225045 * r + 0.7168786 * g + 0.0606169 * b,
             0.0139322 * r + 0.0971045 * g + 0.7141733 * b]) + components[3:]
 
-    def to_laba(self):
-        return XYZColor(components=self.to_xyza()).to_laba()
+    def to_hsba(self):
+        # see https://en.wikipedia.org/wiki/HSB_color_space. HSB is also known as HSV.
+
+        components = _clip(self.components)
+
+        r, g, b = components[:3]
+        m1 = max(r, g, b)
+        m0 = min(r, g, b)
+        c = m1 - m0
+
+        if c < 1e-5:  # FIXME
+            h = 0
+        elif m1 == r:
+            h = ((g - b) / c) % 6
+        elif m1 == g:
+            h = (b - r) / c + 2
+        else:  # m1 == b
+            h = (r - g) / c + 4
+        h = (h * 60.) / 360.
+        if h < 0.:
+            h += 1.
+
+        b = m1
+        s = c / b
+
+        return [h, s, b] + components[3:]
 
 
 class LABColor(_Color):
+    """
+    <dl>
+    <dt>'LABColor[$l$, $a$, $b$]'
+        <dd>represents a color with the specified lightness, red/green and yellow/blue
+        components in the CIE 1976 L*a*b* (CIELAB) color space.
+    </dl>
+    """
+
     components_sizes = [3, 4]
     default_components = [0, 0, 0, 1]
-
-    def to_rgba(self):
-        return XYZColor(components=self.to_xyza()).to_rgba()
 
     def to_xyza(self):
         components = self.components
@@ -418,21 +488,23 @@ class LABColor(_Color):
         l0 = (l + 0.16) / 1.16
         x, y, z = [inv_f(l0 + a / 5.), inv_f(l0), inv_f(l0 - b / 2.)]
 
-        # D50 white; taken from http://www.easyrgb.com/index.php?X=MATH&H=15#text15
-        xyz_ref_white = (0.96422, 1.0, 0.82521)
-
-        return _clip([xyz * w for xyz, w in zip((x, y, z), xyz_ref_white)]) + components[3:]
+        return _clip([xyz * w for xyz, w in zip((x, y, z), _ref_white.xyz)]) + components[3:]
 
     def to_laba(self):
         return self.components
 
 
 class LCHColor(_Color):
+    """
+    <dl>
+    <dt>'LCHColor[$l$, $c$, $h$]'
+        <dd>represents a color with the specified lightness, chroma and hue
+        components in the CIELCh CIELab cube color space.
+    </dl>
+    """
+
     components_sizes = [3, 4]
     default_components = [0, 0, 0, 1]
-
-    def to_rgba(self):
-        return XYZColor(components=self.to_xyza()).to_rgba()
 
     def to_xyza(self):
         return LABColor(components=self.to_laba()).to_xyza()
@@ -449,15 +521,52 @@ class LCHColor(_Color):
         return self.components
 
 
+class LUVColor(_Color):
+    """
+    <dl>
+    <dt>'LCHColor[$l$, $u$, $v$]'
+        <dd>represents a color with the specified components in the CIE 1976 L*u*v* (CIELUV) color space.
+    </dl>
+    """
+
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
+
+    def to_xyza(self):
+        lum, u, v = self.components[:3]
+
+        u_0 = u / (13. * lum) + _ref_white.u_r
+        v_0 = v / (13. * lum) + _ref_white.v_r
+
+        lum *= 100.0  # MMA specific
+
+        if lum <= 8.:
+            y = _ref_white.xyz[1] * lum * math.pow(3. / 29., 3)
+        else:
+            y = _ref_white.xyz[1] * math.pow((lum + 16.) / 116., 3)
+
+        x = y * (9. * u_0) / (4. * v_0)
+        z = y * (12. - 3. * u_0 - 20. * v_0) / (4. * v_0)
+
+        return _clip([x, y, z]) + self.components[3:]
+
+
 class XYZColor(_Color):
+    """
+    <dl>
+    <dt>'XYZColor[$x$, $y$, $z$]'
+        <dd>represents a color with the specified components in the CIE 1931 XYZ color space.
+    </dl>
+    """
+
     components_sizes = [3, 4]
     default_components = [0, 0, 0, 1]
 
     def to_rgba(self):
         components = _clip(self.components)
 
-        # the inverse matrix of the one in RGBColor.to_xyza()
         x, y, z = components[:3]
+        # multiply with the inverse matrix of the one in RGBColor.to_xyza()
         r, g, b = [x * 3.13386 + y * -1.61687 + z * -0.490615,
                    x * -0.978769 + y * 1.91614 + z * 0.0334541,
                    x * 0.0719452 + y * -0.228991 + z * 1.40524]
@@ -471,11 +580,8 @@ class XYZColor(_Color):
     def to_laba(self):
         components = _clip(self.components)
 
-        # D50 white; taken from http://www.easyrgb.com/index.php?X=MATH&H=15#text15
-        xyz_ref_white = (0.96422, 1.0, 0.82521)
-
         # computation of x, y, z; see https://en.wikipedia.org/wiki/Lab_color_space
-        components = [xyz / w for xyz, w in zip(components, xyz_ref_white)]
+        components = [xyz / w for xyz, w in zip(components, _ref_white.xyz)]
 
         t0 = 0.0088564516790356308172  # math.pow(6. / 29., 3)
         a = 7.7870370370370  # (1. / 3.) * math.pow(29. / 6., 2)
@@ -484,6 +590,27 @@ class XYZColor(_Color):
 
         # MMA scales by 1/100
         return [(1.16 * y) - 0.16, 5. * (x - y), 2. * (y - z)] + components[3:]
+
+    def to_luva(self):
+        # see http://www.brucelindbloom.com/Eqn_XYZ_to_Luv.html
+        # and https://en.wikipedia.org/wiki/CIELUV
+
+        components = _clip(self.components)
+
+        x_orig, y_orig, z_orig = components[:3]
+        y = y_orig / _ref_white.xyz[1]
+
+        lum = 116. * math.pow(y, 1. / 3.) - 16. if y > 0.008856 else 903.3 * y
+
+        q_0 = x_orig + 15. * y_orig + 3. * z_orig
+        u_0 = 4. * x_orig / q_0
+        v_0 = 9. * y_orig / q_0
+
+        lum /= 100.0  # MMA specific
+        u = 13. * lum * (u_0 - _ref_white.u_r)
+        v = 13. * lum * (v_0 - _ref_white.v_r)
+
+        return [lum, u, v] + components[3:]
 
 
 class CMYKColor(_Color):
@@ -514,12 +641,6 @@ class CMYKColor(_Color):
 
     def to_xyza(self):
         return RGBColor(components=self.to_rgba()).to_xyza()
-
-    def to_laba(self):
-        return RGBColor(components=self.to_rgba()).to_laba()
-
-    def to_lcha(self):
-        return RGBColor(components=self.to_rgba()).to_lcha()
 
 
 class Hue(_Color):
@@ -594,8 +715,12 @@ class Hue(_Color):
         result = tuple([trans(list(map(t))) for t in rgb]) + (self.components[3],)
         return result
 
-    def to_hsb(self):
+    def to_xyza(self):
+        return RGBColor(components=self.to_rgba()).to_xyza()
+
+    def to_hsba(self):
         return self.components
+
 
 class GrayLevel(_Color):
     """
@@ -620,20 +745,33 @@ class GrayLevel(_Color):
     def to_xyza(self):
         return RGBColor(components=self.to_rgba()).to_xyza()
 
-    def to_laba(self):
-        return RGBColor(components=self.to_rgba()).to_laba()
-
-    def to_lcha(self):
-        return RGBColor(components=self.to_rgba()).to_lcha()
-
 
 class ColorConvert(Builtin):
+    """
+    <dl>
+    <dt>'ColorConvert[$c$, $colspace$]'
+        <dd>returns the representation of color $c$ in the color space $colspace$.
+    </dl>
+
+    Valid values for $colspace$ are:
+
+    CMYK
+    Grayscale
+    HSB
+    LAB
+    LCH
+    LUV
+    RGB
+    XYZ
+    """
+
     _convert = {
-        'CMYK': lambda color: CMYKColor(components=color.to_cmyk()),
+        'CMYK': lambda color: CMYKColor(components=color.to_cmyka()),
         'Grayscale': lambda color: GrayLevel(components=color.to_ga()),
-        'HSB': lambda color: Hue(components=color.to_hsb()),
+        'HSB': lambda color: Hue(components=color.to_hsba()),
         'LAB': lambda color: LABColor(components=color.to_laba()),
         'LCH': lambda color: LCHColor(components=color.to_lcha()),
+        'LUV': lambda color: LUVColor(components=color.to_luva()),
         'RGB': lambda color: RGBColor(components=color.to_rgba()),
         'XYZ': lambda color: XYZColor(components=color.to_xyza())
     }
@@ -652,12 +790,58 @@ class ColorConvert(Builtin):
         return Expression(converted_color.get_name(), *converted_color.components)
 
 
-def _euclidean_distance(a, b):
-    return math.sqrt(sum((x1 - x2) * (x1 - x2) for x1, x2 in zip(a, b)))
+class ColorDistance(Builtin):
+    """
+    <dl>
+    <dt>'ColorDistance[$c1$, $c2$]'
+        <dd>returns a measure of color distance between the colors $c1$ and $c2$.
+    <dt>'ColorDistance[$list$, $c2$]'
+        <dd>returns a list of color distances between the colors in $list$ and $c2$.
+    </dl>
 
+    The optional parameter "Distance" specified the method used to measure the color
+    distance. Available options are:
 
-def _component_distance(a, b, i):
-    return abs(a[i] - b[i])
+    CIE76
+    CIE74
+    DeltaL
+    DeltaC
+    DeltaH
+    """
+
+    options = {
+        'Distance': 'CIE76',
+    }
+
+    rules = {
+        'ColorDistance[l_List, c2_]': 'ColorDistance[#, c2]& /@ l',
+    }
+
+    _distances = {
+        "CIE76": lambda c1, c2: _euclidean_distance(c1.to_laba()[:3], c2.to_laba()[:3]),
+        "CIE94": lambda c1, c2: _euclidean_distance(c1.to_lcha()[:3], c2.to_lcha()[:3]),
+        "DeltaL": lambda c1, c2: _component_distance(c1.to_lcha(), c2.to_lcha(), 0),
+        "DeltaC": lambda c1, c2: _component_distance(c1.to_lcha(), c2.to_lcha(), 1),
+        "DeltaH": lambda c1, c2: _component_distance(c1.to_lcha(), c2.to_lcha(), 2),
+    }
+
+    def apply(self, c1, c2, evaluation, options):
+        'ColorDistance[c1_, c2_, OptionsPattern[ColorDistance]]'
+        distance = options.get('System`Distance')
+        if isinstance(distance, String):
+            compute = ColorDistance._distances.get(distance.get_string_value())
+            if not compute:
+                evaluation.message('ColorDistance')
+                return
+        else:
+            compute = lambda a, b: Expression(distance, a.to_laba(), b.to_laba())
+
+        if c1.get_head_name() == 'System`List' and isinstance(c2, _Color):
+            if any(not isinstance(c, _Color) for c in c1.leaves):
+                return  # fail
+            return Expression('List', *[from_python(compute(c, c2)) for c in c1.leaves])
+        elif isinstance(c1, _Color) and isinstance(c2, _Color):
+            return from_python(compute(c1, c2))
 
 
 class _Size(_GraphicsElement):
@@ -2561,6 +2745,7 @@ styles = system_symbols_dict({
     'XYZColor': XYZColor,
     'LABColor': LABColor,
     'LCHColor': LCHColor,
+    'LUVColor': LUVColor,
     'CMYKColor': CMYKColor,
     'Hue': Hue,
     'GrayLevel': GrayLevel,
