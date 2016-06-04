@@ -27,8 +27,8 @@ pattern_pattern = r'{0}?_(\.|(__?)?{0}?)?'.format(full_symbol_pattern)
 tokens = [
     ('Number', number_pattern),
     ('String', r'"'),
-    ('Symbol', full_symbol_pattern),
     ('Pattern', pattern_pattern),
+    ('Symbol', full_symbol_pattern),
     ('SlotSequence', r'\#\#\d*'),
     ('Slot', r'\#\d*'),
     ('Out', r'\%(\%+|\d+)?'),

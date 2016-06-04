@@ -45,8 +45,8 @@ class ParserTests(unittest.TestCase):
 
 class PrecedenceTests(ParserTests):
     def test_minuslike(self):
-        self.check('a * + b', Node('Times', Symbol('a'), Symbol('b')))
-        self.check('- a * b', Node('Times', Number(-1), Node('Dot', Symbol('a'), Symbol('b'))))
+        self.check('a * + b', Node('Times', Symbol('a'), Node('Plus', Symbol('b'))))
+        self.check('- a . b', Node('Times', Number(-1), Node('Dot', Symbol('a'), Symbol('b'))))
         self.check('- a / b', Node('Times', Number(-1), Symbol('a'), Node('Power', Symbol('b'), Number(-1))))
 
 
