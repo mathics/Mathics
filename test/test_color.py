@@ -54,11 +54,9 @@ class ColorTest(unittest.TestCase):
                           (from_space, to_space, from_space))
                     raise
 
-    def testConversionsFromRGB(self):
-        pass
-
     def testConversionsFromXYZ(self):
         self._checkConversion("XYZ", (0.5, 0.5, 0.5), "LAB", (0.7606, 0.0484, -0.1049))
+        self._checkConversion("XYZ", (0.5, 0.5, 0.5), "RGB", (0.7440, 0.7257, 0.8118))
 
     def _checkConversion(self, from_space, from_components, to_space, to_components):
         places = 3
@@ -73,9 +71,6 @@ class ColorTest(unittest.TestCase):
         self.assertEqual(len(components), len(to_components))
         for x, y in zip(components, to_components):
             self.assertAlmostEqual(x, y, places)
-
-    def testDistance(self):
-        pass
 
 if __name__ == "__main__":
     unittest.main()
