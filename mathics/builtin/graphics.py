@@ -180,8 +180,8 @@ class _PerfectReflectingDiffuser:
 _ref_white = _PerfectReflectingDiffuser(0.34567, 0.35850)
 
 
-def _clip(components):  # clip to [0, 1]
-    return [max(0, min(1, c)) for c in components]
+def _clip(*components):  # clip to [0, 1]
+    return tuple(max(0, min(1, c)) for c in components)
 
 
 def _euclidean_distance(a, b):
@@ -313,16 +313,23 @@ class _Color(_GraphicsElement):
         if item is not None:
             leaves = item.leaves
             if len(leaves) in self.components_sizes:
+                # we must not clip here; we copy the components, without clipping,
+                # e.g. RGBColor[-1, 0, 0] stays RGBColor[-1, 0, 0]. this is especially
+                # important for color spaces like LAB that have negative components.
+
                 components = [value.round_to_float() for value in leaves]
-                if None in components or not all(0 <= c <= 1 for c in components):
+                if None in components:
                     raise ColorError
+
                 # the following lines always extend to the maximum available
                 # default_components, so RGBColor[0, 0, 0] will _always_
                 # become RGBColor[0, 0, 0, 1]. does not seem the right thing
                 # to do in this general context. poke1024
+
                 # if len(components) < len(self.default_components):
                 #    components.extend(self.default_components[
                 #                      len(components):])
+
                 self.components = components
             else:
                 raise ColorError
@@ -362,15 +369,15 @@ class _Color(_GraphicsElement):
         rgba = self.to_rgba()
         r, g, b = rgba[:3]
         k = 1 - max(r, g, b)
-        w = 1 - k
-        return [(1 - r - k) / w, (1 - g - k) / w, (1 - b - k) / w] + rgba[3:]
+        k_ = 1 - k
+        return ((1 - r - k) / k_, (1 - g - k) / k_, (1 - b - k) / k_, k) + tuple(rgba[3:])
 
     def to_ga(self):
         # see https://en.wikipedia.org/wiki/Grayscale
         rgba = self.to_rgba()
         r, g, b = rgba[:3]
         y = 0.299 * r + 0.587 * g + 0.114 * b  # Y of Y'UV
-        return [y] + rgba[3:]
+        return (y,) + tuple(rgba[3:])
 
     def to_hsba(self):
         return RGBColor(components=self.to_rgba()).to_hsba()
@@ -386,7 +393,7 @@ class _Color(_GraphicsElement):
         if h < 0:
             h += 2 * math.pi
         h /= 2 * math.pi  # MMA specific
-        return [l, math.sqrt(a * a + b * b), h] + laba[3:]
+        return (l, math.sqrt(a * a + b * b), h) + tuple(laba[3:])
 
     def to_luva(self):
         return XYZColor(components=self.to_xyza()).to_luva()
@@ -423,21 +430,21 @@ class RGBColor(_Color):
         return self.components
 
     def to_xyza(self):
-        components = _clip(self.components)
+        components = _clip(*self.components)
 
         # inverse sRGB companding. see http://www.brucelindbloom.com/Eqn_RGB_to_XYZ.html
         r, g, b = (math.pow(((c + 0.055) / 1.055), 2.4)
                    if c > 0.04045 else c / 12.92 for c in components[:3])
 
         # use rRGB D50 conversion like MMA. see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
-        return _clip([0.4360747 * r + 0.3850649 * g + 0.1430804 * b,
+        return _clip(0.4360747 * r + 0.3850649 * g + 0.1430804 * b,
             0.2225045 * r + 0.7168786 * g + 0.0606169 * b,
-            0.0139322 * r + 0.0971045 * g + 0.7141733 * b]) + components[3:]
+            0.0139322 * r + 0.0971045 * g + 0.7141733 * b) + tuple(components[3:])
 
     def to_hsba(self):
         # see https://en.wikipedia.org/wiki/HSB_color_space. HSB is also known as HSV.
 
-        components = _clip(self.components)
+        components = _clip(*self.components)
 
         r, g, b = components[:3]
         m1 = max(r, g, b)
@@ -459,7 +466,7 @@ class RGBColor(_Color):
         b = m1
         s = c / b
 
-        return [h, s, b] + components[3:]
+        return (h, s, b) + tuple(components[3:])
 
 
 class LABColor(_Color):
@@ -477,7 +484,7 @@ class LABColor(_Color):
     def to_xyza(self):
         components = self.components
 
-        # see https://en.wikipedia.org/wiki/Lab_color_space´
+        # see https://en.wikipedia.org/wiki/Lab_color_space
         def inv_f(t):
             if t > (6. / 29.):
                 return math.pow(t, 3)
@@ -486,9 +493,9 @@ class LABColor(_Color):
 
         l, a, b = components[:3]
         l0 = (l + 0.16) / 1.16
-        x, y, z = [inv_f(l0 + a / 5.), inv_f(l0), inv_f(l0 - b / 2.)]
+        xyz = [inv_f(l0 + a / 5.), inv_f(l0), inv_f(l0 - b / 2.)]
 
-        return _clip([xyz * w for xyz, w in zip((x, y, z), _ref_white.xyz)]) + components[3:]
+        return _clip(*[c * w for c, w in zip(xyz, _ref_white.xyz)]) + tuple(components[3:])
 
     def to_laba(self):
         return self.components
@@ -515,7 +522,7 @@ class LCHColor(_Color):
         h *= 2 * math.pi  # MMA specific
         a = c * math.cos(h)
         b = c * math.sin(h)
-        return [l, a, b] + lcha[3:]
+        return (l, a, b) + tuple(lcha[3:])
 
     def to_lcha(self):
         return self.components
@@ -548,7 +555,7 @@ class LUVColor(_Color):
         x = y * (9. * u_0) / (4. * v_0)
         z = y * (12. - 3. * u_0 - 20. * v_0) / (4. * v_0)
 
-        return _clip([x, y, z]) + self.components[3:]
+        return _clip(x, y, z) + tuple(self.components[3:])
 
 
 class XYZColor(_Color):
@@ -562,8 +569,11 @@ class XYZColor(_Color):
     components_sizes = [3, 4]
     default_components = [0, 0, 0, 1]
 
+    _lab_t0 = math.pow(6. / 29., 3)
+    _lab_a = math.pow(29. / 6., 2)
+
     def to_rgba(self):
-        components = _clip(self.components)
+        components = _clip(*self.components)
 
         x, y, z = components[:3]
         # multiply with the inverse matrix of the one in RGBColor.to_xyza()
@@ -571,31 +581,29 @@ class XYZColor(_Color):
                    x * -0.978769 + y * 1.91614 + z * 0.0334541,
                    x * 0.0719452 + y * -0.228991 + z * 1.40524]
 
-        return _clip([1.055 * math.pow(c, 1. / 2.4) - 0.055 if c > 0.0031308
-                else c * 12.92 for c in (r, g, b)]) + components[3:]
+        return _clip(*[1.055 * math.pow(c, 1. / 2.4) - 0.055 if c > 0.0031308
+                       else c * 12.92 for c in (r, g, b)]) + tuple(components[3:])
 
     def to_xyza(self):
         return self.components
 
     def to_laba(self):
-        components = _clip(self.components)
+        components = _clip(*self.components)
 
         # computation of x, y, z; see https://en.wikipedia.org/wiki/Lab_color_space
-        components = [xyz / w for xyz, w in zip(components, _ref_white.xyz)]
+        components = [c / w for c, w in zip(components, _ref_white.xyz)]
 
-        t0 = 0.0088564516790356308172  # math.pow(6. / 29., 3)
-        a = 7.7870370370370  # (1. / 3.) * math.pow(29. / 6., 2)
-        x, y, z = (math.pow(t, 1. / 3.) if t > t0
-                   else a * t + (4. / 29.) for t in components)
+        x, y, z = (math.pow(t, 1. / 3.) if t > XYZColor._lab_t0
+                   else XYZColor._lab_a * t + (4. / 29.) for t in components)
 
         # MMA scales by 1/100
-        return [(1.16 * y) - 0.16, 5. * (x - y), 2. * (y - z)] + components[3:]
+        return ((1.16 * y) - 0.16, 5. * (x - y), 2. * (y - z)) + tuple(components[3:])
 
     def to_luva(self):
         # see http://www.brucelindbloom.com/Eqn_XYZ_to_Luv.html
         # and https://en.wikipedia.org/wiki/CIELUV
 
-        components = _clip(self.components)
+        components = _clip(*self.components)
 
         x_orig, y_orig, z_orig = components[:3]
         y = y_orig / _ref_white.xyz[1]
@@ -610,7 +618,7 @@ class XYZColor(_Color):
         u = 13. * lum * (u_0 - _ref_white.u_r)
         v = 13. * lum * (v_0 - _ref_white.v_r)
 
-        return [lum, u, v] + components[3:]
+        return (lum, u, v) + tuple(components[3:])
 
 
 class CMYKColor(_Color):
@@ -632,12 +640,12 @@ class CMYKColor(_Color):
         return self.components
 
     def to_rgba(self):
-        k = self.components[3]
+        k = self.components[3] if len(self.components) >= 4 else 0
         k_ = 1 - k
         c = self.components
         cmy = [c[0] * k_ + k, c[1] * k_ + k, c[2] * k_ + k]
         rgb = (1 - cmy[0], 1 - cmy[1], 1 - cmy[2])
-        return rgb + (c[4],)
+        return rgb + tuple(c[4:])
 
     def to_xyza(self):
         return RGBColor(components=self.to_rgba()).to_xyza()
@@ -683,7 +691,7 @@ class Hue(_Color):
             4: (t, p, v),
             5: (v, p, q),
         }[i]
-        return rgb + (self.components[3],)
+        return rgb + tuple(self.components[3:])
 
     def hsl_to_rgba(self):
         h, s, l = self.components[:3]
@@ -778,7 +786,10 @@ class ColorConvert(Builtin):
 
     def apply(self, color, colorspace, evaluation):
         'ColorConvert[color_, colorspace_String]'
-        py_color = _Color.create(color)
+        try:
+            py_color = _Color.create(color)
+        except ColorError:
+            return
         if not isinstance(py_color, _Color):
             return
 
