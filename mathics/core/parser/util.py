@@ -4,6 +4,7 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+from mathics.core.parser.convert import convert
 from mathics.core.parser.parser import Parser
 
 parser = Parser()
@@ -12,7 +13,8 @@ parser = Parser()
 # Parse input (from the frontend, -e, input files, ToExpression etc).
 # Look up symbols according to the Definitions instance supplied.
 def parse(string, definitions):
-    return parser.parse(string, definitions)
+    ast = parser.parse(string)
+    return convert(ast, definitions)
 
 
 class SystemDefinitions(object):

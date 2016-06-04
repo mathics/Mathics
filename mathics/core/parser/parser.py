@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from mathics.core.parser.ast import Node, Number, Symbol, String, Filename
-from mathics.core.parser.convert import convert
 from mathics.core.parser.tokeniser import Tokeniser
 from mathics.core.parser.errors import InvalidSyntaxError, IncompleteSyntaxError
 from mathics.core.parser.operators import (
@@ -14,13 +13,12 @@ from mathics.core.parser.operators import (
 
 
 class Parser(object):
-    def parse(self, code, definitions):
+    def parse(self, code):
         self.tokeniser = Tokeniser(code)
         self.current_token = None
         if self.next().tag == 'END':
             return None
-        ast = self.parse_e()
-        return convert(ast, definitions)
+        return self.parse_e()
 
     def next(self):
         if self.current_token is None:
@@ -232,6 +230,22 @@ class Parser(object):
             return Node('Pattern', Symbol(pieces[0]), blank)
         else:
             return blank
+
+    def p_Plus(self, token):
+        self.consume()
+        q = prefix_ops['Minus']
+        return self.parse_exp(q)
+
+    def p_PlusMinus(self, token):
+        self.consume()
+        q = prefix_ops['Minus']
+        return Node('PlusMinus', self.parse_exp(q))
+
+    def p_MinusPlus(self, token):
+        self.consume()
+        q = prefix_ops['Minus']
+        return Node('MinusPlus', self.parse_exp(q))
+
 
     # E methods
     #
