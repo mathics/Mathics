@@ -212,7 +212,7 @@ class Graphics(Builtin):
 
     In 'TeXForm', 'Graphics' produces Asymptote figures:
     >> Graphics[Circle[]] // TeXForm
-     =
+     = 
      . \begin{asy}
      . size(5.8556cm, 5.8333cm);
      . draw(ellipse((175,175),175,175), rgb(0, 0, 0)+linewidth(0.66667));
@@ -2550,7 +2550,7 @@ class Lighter(Builtin):
     </dl>
 
     >> Lighter[Orange, 1/4]
-     = RGBColor[1., 0.625, 0.25, 1.]
+     = RGBColor[1., 0.625, 0.25]
     >> Graphics[{Lighter[Orange, 1/4], Disk[]}]
      = -Graphics-
     >> Graphics[Table[{Lighter[Orange, x], Disk[{12x, 0}]}, {x, 0, 1, 1/6}]]
