@@ -29,6 +29,7 @@ right_binary_ops = {
 flat_binary_ops = {
     'Plus': 310,
     'Times': 400,
+    'Dot': 409,
     'CompoundExpression': 10,
 }
 
