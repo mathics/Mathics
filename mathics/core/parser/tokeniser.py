@@ -13,6 +13,7 @@ from mathics.core.characters import letters, letterlikes, named_characters
 
 # special patterns
 number_pattern = r'''
+-?      (?# optional leading -)
 ( (?# Two possible forms depending on whether base is specified)
     (\d+\^\^([a-zA-Z0-9]+\.?[a-zA-Z0-9]*|[a-zA-Z0-9]*\.?[a-zA-Z0-9]+))
     | (\d+\.?\d*|\d*\.?\d+)
@@ -227,6 +228,14 @@ class Token(object):
         self.tag = tag
         self.text = prescan(text)
         self.pos = pos
+
+    def __eq__(self, other):
+        if not isinstance(other, Token):
+            raise TypeError()
+        return self.tag == other.tag and self.text == other.text    # and self.pos == other.pos
+
+    def __repr__(self):
+        return 'Token(%s, %s, %i)' % (tag, text, pos)
 
 
 class Tokeniser(object):

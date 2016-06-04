@@ -51,21 +51,47 @@ class PrecedenceTests(ParserTests):
 
 
 class AtomTests(ParserTests):
-    def testReal(self):
-        self.check('1.5', Real('1.5'))
-        self.check('1.5`', Real('1.5'))
-        self.check('0.0', Real(0))
-        self.check('-1.5`', Real('-1.5'))
-
-        self.check('0.00000000000000000', '0.')
-        self.check('0.000000000000000000`', '0.')
-        self.check('0.000000000000000000', '0.``18')
+    def check_number(self, s):
+        self.assertEqual(parse(s), Number(s))
 
     def testSymbol(self):
-        self.check('xX', Symbol('Global`xX'))
+        self.check('xX', Symbol('xX'))
         self.check('context`name', Symbol('context`name'))
-        self.check('`name', Symbol('Global`name'))
-        self.check('`context`name', Symbol('Global`context`name'))
+        self.check('`name', Symbol('`name'))
+        self.check('`context`name', Symbol('`context`name'))
+
+    def testNumber(self):
+        self.check_number('0')
+        self.check_number('-1')
+
+    def testNumberBase(self):
+        self.check_number('8^^23')
+        self.check_number('10*^3')
+        self.check_number('10*^-3')
+        self.check_number('8^^23*^2')
+
+    def testNumberBig(self):
+        for _ in range(10):
+            self.check_number(str(random.randint(-sys.maxsize, sys.maxsize)))
+            self.check_number(str(random.randint(sys.maxsize, sys.maxsize * sys.maxsize)))
+
+    def testNumberReal(self):
+        self.check_number('1.5')
+        self.check_number('1.5`')
+        self.check_number('0.0')
+        self.check_number('-1.5`')
+
+        self.check_number('0.00000000000000000')
+        self.check_number('0.000000000000000000`')
+        self.check_number('0.000000000000000000')
+
+    def testString(self):
+        self.check(r'"abc"', String('abc'))
+        self.incomplete_error(r'"abc')
+        self.check(r'"abc(*def*)"', String('abc(*def*)'))
+        self.check(r'"a\"b\\c"', String(r'a"b\c'))
+        self.incomplete_error(r'"\"')
+        self.invalid_error(r'\""')
 
     def testAccuracy(self):
         self.lex_error('1.5``')
@@ -84,8 +110,6 @@ class AtomTests(ParserTests):
     @unittest.expectedFailure
     def testLowPrecision(self):
         self.check('1.4`1', Real('1', p=1))
-        self.check('1.4`0', Real(0, p=0))
-        self.check('1.4`-5', Real(0, p=0))
 
 class GeneralTests(ParserTests):
     def testCompound(self):

@@ -43,6 +43,9 @@ def filename_escape(s):
 
 
 def parse_number(s):
+    negative = (s[0] == '-')
+    sign = -1 if negative else 0
+
     # Look for base
     s = s.split('^^')
     if len(s) == 1:
@@ -81,9 +84,9 @@ def parse_number(s):
     if s.count('.') == 0:
         if suffix is None:
             if n < 0:
-                return ma.Rational(int(s, base), base ** abs(n))
+                return ma.Rational(sign * int(s, base), base ** abs(n))
             else:
-                return ma.Integer(int(s, base) * (base ** n))
+                return ma.Integer(sign * int(s, base) * (base ** n))
         else:
             s = s + '.'
     if base == 10:
@@ -98,7 +101,7 @@ def parse_number(s):
         if prec is not None:
             prec = dps(prec)
         # return ma.Real(s, prec, acc)
-        return ma.Real(s, prec)
+        return ma.Real('-' * negative + s, prec)
     else:
         # Convert the base
         assert isinstance(base, int) and 2 <= base <= 36
@@ -111,7 +114,7 @@ def parse_number(s):
             n -= len(s[1])
             man = s[0] + s[1]
 
-        man = int(man, base)
+        man = sign * int(man, base)
         if n >= 0:
             result = ma.Integer(man * base ** n)
         else:
