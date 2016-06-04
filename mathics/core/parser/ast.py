@@ -38,6 +38,9 @@ class Atom(Node):
     def __repr__(self):
         return '%s[%s]' % (self.head, self.value)
 
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and self.value == self.value
+
 
 class Number(Atom):
     pass
@@ -59,7 +62,7 @@ class Symbol(Atom):
 
 class String(Atom):
     def __repr__(self):
-        return self.value
+        return '"' + self.value + '"'
 
 
 class Filename(Atom):

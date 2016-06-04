@@ -91,7 +91,7 @@ class AtomTests(ParserTests):
         self.check(r'"abc(*def*)"', String('abc(*def*)'))
         self.check(r'"a\"b\\c"', String(r'a"b\c'))
         self.incomplete_error(r'"\"')
-        self.invalid_error(r'\""')
+        self.incomplete_error(r'\""')
 
     def testAccuracy(self):
         self.lex_error('1.5``')
@@ -168,7 +168,7 @@ class GeneralTests(ParserTests):
         self.check("f' '", Node(Node('Derivative', Number('2')), Symbol('f')))
 
     def testPlus(self):
-        self.check('+1', Number('1'))
+        self.check('+1', Node('Plus', Number('1')))
         self.check('1 + 2', Node('Plus', Number('1'), Number('2')))
         self.check('1 + 2 + 3', Node('Plus', Number('1'), Number('2'), Number('3')))
         self.check('1 + 2 + 3 + 4', 'Plus[1, 2, 3, 4]')

@@ -181,7 +181,7 @@ class Parser(object):
         return result
 
     def p_String(self, token):
-        result = String(token.text)
+        result = String(token.text[1:-1])
         self.consume()
         return result
 
