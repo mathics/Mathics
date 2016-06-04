@@ -42,7 +42,7 @@ ternary_ops = {
     'Infix': 630,   # TODO
 }
 
-# binary_ops = left_binary_ops V right_binary_ops V flat_binary_ops
+# binary_ops = left_binary_ops V right_binary_ops V flat_binary_ops V nonassoc_binary_ops
 binary_ops = {}
 for ops in (left_binary_ops, right_binary_ops, flat_binary_ops, nonassoc_binary_ops):
     for op, prec in ops.items():
@@ -50,7 +50,7 @@ for ops in (left_binary_ops, right_binary_ops, flat_binary_ops, nonassoc_binary_
 
 # all ops - check they're disjoint
 all_ops = {}
-for ops in (prefix_ops, postfix_ops, left_binary_ops, right_binary_ops, flat_binary_ops, ternary_ops):
+for ops in (prefix_ops, postfix_ops, left_binary_ops, right_binary_ops, flat_binary_ops, ternary_ops, nonassoc_binary_ops):
     for op, prec in ops.items():
         if op in all_ops:
             raise AssertionError
