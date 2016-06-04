@@ -350,14 +350,16 @@ class _Color(_GraphicsElement):
 
     def to_css(self):
         rgba = self.to_rgba()
+        alpha = rgba[3] if len(rgba) > 3 else 1.
         return (r'rgb(%f%%, %f%%, %f%%)' % (
-            rgba[0] * 100, rgba[1] * 100, rgba[2] * 100), rgba[3])
+            rgba[0] * 100, rgba[1] * 100, rgba[2] * 100), alpha)
 
     def to_asy(self):
         rgba = self.to_rgba()
+        alpha = rgba[3] if len(rgba) > 3 else 1.
         return (r'rgb(%s, %s, %s)' % (
             asy_number(rgba[0]), asy_number(rgba[1]), asy_number(rgba[2])),
-            rgba[3])
+                alpha)
 
     def to_js(self):
         return self.to_rgba()
