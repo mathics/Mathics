@@ -451,7 +451,7 @@ class RGBColor(_Color):
         m0 = min(r, g, b)
         c = m1 - m0
 
-        if c < 1e-5:  # FIXME
+        if c < 1e-15:
             h = 0
         elif m1 == r:
             h = ((g - b) / c) % 6
