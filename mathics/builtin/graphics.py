@@ -745,7 +745,7 @@ class GrayLevel(_Color):
 
     def to_rgba(self):
         g = self.components[0]
-        return (g, g, g, self.components[1])
+        return (g, g, g) + tuple(self.components[1:])
 
     def to_ga(self):
         return self.components
@@ -2441,11 +2441,11 @@ class Blend(Builtin):
     </dl>
 
     >> Blend[{Red, Blue}]
-     = RGBColor[0.5, 0., 0.5, 1.]
+     = RGBColor[0.5, 0., 0.5]
     >> Blend[{Red, Blue}, 0.3]
-     = RGBColor[0.7, 0., 0.3, 1.]
+     = RGBColor[0.7, 0., 0.3]
     >> Blend[{Red, Blue, Green}, 0.75]
-     = RGBColor[0., 0.5, 0.5, 1.]
+     = RGBColor[0., 0.5, 0.5]
 
     >> Graphics[Table[{Blend[{Red, Green, Blue}, x], Rectangle[{10 x, 0}]}, {x, 0, 1, 1/10}]]
      = -Graphics-
