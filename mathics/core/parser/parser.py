@@ -57,9 +57,8 @@ class Parser(object):
         self.expect('END')
         return result
 
-    def parse_exp(self, p, result=None):
-        if result is None:
-            result = self.parse_p()
+    def parse_exp(self, p):
+        result = self.parse_p()
         while True:
             token = self.next()
             tag = token.tag
