@@ -101,8 +101,11 @@ class Parser(object):
                 result = Node(tag, result)
             elif tag not in ('END', 'RawRightParenthesis', 'RawComma', 'RawRightBrace', 'RawRightBracket') and flat_binary_ops['Times'] >= p:  # implicit times
                 q = flat_binary_ops['Times']
-                child = self.parse_exp(q)
-                result = Node('Times', result, child)
+                child = self.parse_exp(q + 1)
+                if result.get_head_name() == 'Times' and not result.parenthesised:
+                    result.children.append(child)
+                else:
+                    result = Node('Times', result, child)
             else:
                 break
         return result
@@ -336,7 +339,7 @@ class Parser(object):
             expr2 = Symbol('Null')
         else:
             expr2 = self.parse_exp(q + 1)
-        if expr1.get_head_name() == 'CompoundExpression':
+        if expr1.get_head_name() == 'CompoundExpression' and not expr.parenthesised:
             expr1.append(expr2)
             return expr1
         return Node('CompoundExpression', expr1, expr2)

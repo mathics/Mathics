@@ -111,3 +111,6 @@ class TokeniserTest(unittest.TestCase):
         self.check_number('1.0``20')
         self.check_number('1.0``0')
         self.check_number('1.4``-20')
+
+    def testSet(self):
+        self.assertEqual(self.tokens('x = y'), [Token('Symbol', 'x', 0), Token('Set', '=', 2), Token('Symbol', 'y', 4)])
