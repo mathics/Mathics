@@ -115,7 +115,7 @@ class AtomTests(ParserTests):
         self.check(r'"abc(*def*)"', String('abc(*def*)'))
         self.check(r'"a\"b\\c"', String(r'a"b\c'))
         self.incomplete_error(r'"\"')
-        self.incomplete_error(r'\""')
+        self.invalid_error(r'\""')
 
     def testAccuracy(self):
         self.lex_error('1.5``')
