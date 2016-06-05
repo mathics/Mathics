@@ -118,3 +118,6 @@ class TokeniserTest(unittest.TestCase):
     def testIntRepeated(self):
         self.assertEqual(self.tokens('1..'), [Token('Number', '1', 0), Token('Repeated', '..', 1)])
         self.assertEqual(self.tokens('1. .'), [Token('Number', '1.', 0), Token('Dot', '.', 2)])
+
+    def testIntegeral(self):
+        self.assertEqual(self.tokens('\u222B x \uF74C y'), [Token('Integral', '\u222B', 0), Token('Symbol', 'x', 2), Token('DifferentialD', '\uF74C', 4), Token('Symbol', 'y', 6)])
