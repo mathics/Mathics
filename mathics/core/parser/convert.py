@@ -25,6 +25,14 @@ class Converter(object):
 
     def do_convert(self, node):
         head_name = node.get_head_name()
+        if isinstance(node, Symbol):
+            return self.convert_Symbol(node)
+        elif isinstance(node, String):
+            return self.convert_String(node)
+        elif isinstance(node, Number):
+            return self.convert_Number(node)
+        elif isinstance(node, Filename):
+            return self.convert_Filename(node)
         method = getattr(self, head_name, None)
         if method is not None:
             return method(node)
@@ -41,15 +49,15 @@ class Converter(object):
         s = s.replace('\\n', '\n')
         return s
 
-    def Symbol(self, node):
+    def convert_Symbol(self, node):
         value = self.definitions.lookup_name(node.value)
         return ma.Symbol(value)
 
-    def String(self, node):
+    def convert_String(self, node):
         value = self.string_escape(node.value[1:-1])
         return ma.String(value)
 
-    def Filename(self, node):
+    def convert_Filename(self, node):
         s = node.value
         if s.startswith('"'):
             assert s.endswith('"')
@@ -58,10 +66,14 @@ class Converter(object):
         s = s.replace('\\', '\\\\')
         return ma.String(value)
 
-    def Number(self, node):
+    def convert_Number(self, node):
         s = node.value
-        negative = (s[0] == '-')
-        sign = -1 if negative else 0
+        if s[0] == '-':
+            sign_prefix, s = s[0], s[1:]
+            sign = -1
+        else:
+            sign_prefix = ''
+            sign = 1
 
         # Look for base
         s = s.split('^^')
@@ -118,7 +130,7 @@ class Converter(object):
             if prec is not None:
                 prec = dps(prec)
             # return ma.Real(s, prec, acc)
-            return ma.Real('-' * negative + s, prec)
+            return ma.Real(sign_prefix + s, prec)
         else:
             # Convert the base
             assert isinstance(base, int) and 2 <= base <= 36
