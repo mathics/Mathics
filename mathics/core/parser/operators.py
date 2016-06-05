@@ -8,6 +8,8 @@ from collections import defaultdict
 
 prefix_ops = {
     'Get': 720,
+    'PreIncrement': 660,
+    'PreDecrement': 660,
     'Del': 550,
     'Minus': 480,
     'Square': 540,

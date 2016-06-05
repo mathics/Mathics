@@ -278,6 +278,15 @@ class Parser(object):
             n = text[2:]
         return Node('SlotSequence', Number(n))
 
+    def p_Increment(self, token):
+        self.consume()
+        q = prefix_ops['PreIncrement']
+        return Node('PreIncrement', self.parse_exp(q))
+
+    def p_Decrement(self, token):
+        self.consume()
+        q = prefix_ops['PreDecrement']
+        return Node('PreDecrement', self.parse_exp(q))
 
     # E methods
     #

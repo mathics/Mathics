@@ -121,3 +121,6 @@ class TokeniserTest(unittest.TestCase):
 
     def testIntegeral(self):
         self.assertEqual(self.tokens('\u222B x \uF74C y'), [Token('Integral', '\u222B', 0), Token('Symbol', 'x', 2), Token('DifferentialD', '\uF74C', 4), Token('Symbol', 'y', 6)])
+
+    def testPre(self):
+        self.assertEqual(self.tokens('++x++'), [Token('Increment', '++', 0), Token('Symbol', 'x', 2), Token('Increment', '++', 3)])
