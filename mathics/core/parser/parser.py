@@ -99,7 +99,7 @@ class Parser(object):
                 self.consume()
                 q = postfix_ops[tag]
                 result = Node(tag, result)
-            elif tag not in ('END', 'RawRightParenthesis', 'RawComma', 'RawRightBrace', 'RawRightBracket') and flat_binary_ops['Times'] >= p:  # implicit times
+            elif tag not in ('END', 'RawRightParenthesis', 'RawComma', 'RawRightBrace', 'RawRightBracket', 'DifferentialD') and flat_binary_ops['Times'] >= p:  # implicit times
                 q = flat_binary_ops['Times']
                 child = self.parse_exp(q + 1)
                 if result.get_head_name() == 'Times' and not result.parenthesised:
@@ -198,7 +198,7 @@ class Parser(object):
 
     def p_Integral(self, token):
         self.consume()
-        inner_prec, outer_prec = all_ops['Sum'] + 1, all_ops['Power'] - 1  # TODO Check
+        inner_prec, outer_prec = all_ops['Sum'] + 1, all_ops['Power'] - 1
         expr1 = self.parse_exp(inner_prec)
         self.expect('DifferentialD')
         expr2 = self.parse_exp(outer_prec)

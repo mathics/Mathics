@@ -134,6 +134,7 @@ ternary_ops = {
 
 misc_ops = {
     'Sum': 320,
+    'DifferentialD': 550,
 }
 
 # binary_ops = left_binary_ops V right_binary_ops V flat_binary_ops V nonassoc_binary_ops
