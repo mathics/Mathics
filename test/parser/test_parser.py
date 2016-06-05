@@ -421,6 +421,7 @@ class PatternTests(ParserTests):
         self.check('a:b:c', 'Optional[Pattern[a, b], c]')
         self.check('a?b:c', 'PatternTest[a, Pattern[b, c]]')
         self.check('a:b:c:d:e:f', 'Optional[Pattern[a, b], Pattern[c, d], Pattern[e, f]]')
+        self.check('a:b|c', 'Pattern[a, Alternatives[b, c]]')
 
         self.check('Map[f_, expr_, ls_?LevelQ:{1}, OptionsPattern[Map]]', 'Map[Pattern[f, Blank[]], Pattern[expr, Blank[]], PatternTest[Pattern[ls, Blank[]], Pattern[LevelQ, List[1]]], OptionsPattern[Map]]')
         self.check('_^_?t', 'Power[Blank[], PatternTest[Blank[], t]]')
