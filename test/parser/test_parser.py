@@ -154,6 +154,13 @@ class GeneralTests(ParserTests):
         self.check('f //@ expr', Node('MapAll', Symbol('f'), Symbol('expr')))
         self.check('a @@ b @@ c', Node('Apply', Symbol('a'), Node('Apply', Symbol('b'), Symbol('c'))))
 
+    def testFunction(self):
+        self.check('x &', Node('Function', Symbol('x')))
+        self.check_prescan('x \\[Function] y', 'Function[x, y]')
+        self.check('x \uf4a1 y', 'Function[x, y]')
+        self.incomplete_error('x \uf4a1')
+        self.check('x & y', Node('Times', Node('Function', Symbol('x')), Symbol('y')))
+
     def testIncDec(self):
         self.check('a++', Node('Increment', Symbol('a')))
         self.check('a--', Node('Decrement', Symbol('a')))
@@ -225,8 +232,6 @@ class GeneralTests(ParserTests):
         self.check('x -= y', Node('SubtractFrom', Symbol('x'), Symbol('y')))
         self.check('x *= y', Node('TimesBy', Symbol('x'), Symbol('y')))
         self.check('x /= y', Node('DivideBy', Symbol('x'), Symbol('y')))
-
-        self.check('x &', Node('Function', Symbol('x')))
 
         self.check('x // y', Node('y', Symbol('x')))
 
@@ -360,8 +365,6 @@ class GeneralTests(ParserTests):
 
         self.check_prescan('a \\[Colon] b', Node('Colon', Symbol('a'), Symbol('b')))
         self.check('a \u2236 b', Node('Colon', Symbol('a'), Symbol('b')))
-        self.check_prescan('x \\[Function] y', 'Function[{x}, y]')
-        self.check('x \uf4a1 y', 'Function[{x}, y]')
 
         self.check_prescan('x1 \\[RightTee] x2', 'RightTee[x1, x2]')
         self.check_prescan('x1 \\[DoubleRightTee] x2', 'DoubleRightTee[x1, x2]')

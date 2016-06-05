@@ -73,9 +73,6 @@ tokens = [
     ('StringExpression', r' \~\~ '),
     ('Infix', r' \~ '),
 
-    ('Factorial2', r' \!\! '),
-    ('Factorial', r' \! '),
-
     ('Derivative', r' \' '),
     ('StringJoin', r' \<\> '),
 
@@ -86,19 +83,18 @@ tokens = [
     ('TimesBy', r' \*\= '),
     ('DivideBy', r' \/\=  '),
 
-    ('Plus', r' \+ '),
-    ('Minus', r' \- '),
-    ('RawBackslash', r' \\ '),
-
     ('Times', r' \*|\u00d7 '),
 
     ('SameQ', r' \=\=\= '),
     ('UnsameQ', r' \=\!\= '),
 
-    ('op_Equal', r' \=\= '),
-    ('op_Unequal', r' \!\= '),
-    ('op_GreaterEqual', r' \>\= '),
-    ('op_LessEqual', r' \<\= '),
+    ('Equal', r' (\=\=) | \uf431 | \uf7d9 '),
+    ('Unequal', r' (\!\= ) | \u2260 '),
+    ('LessEqual', r' (\<\=) | \u2264 '),
+    ('LessSlantEqual', r' \u2a7d '),
+    ('GreaterEqual', r' (\>\=) | \u2265 '),
+    ('GreaterSlantEqual', r' \u2a7e '),
+
     ('Greater', r' \> '),
     ('Less', r' \< '),
 
@@ -114,7 +110,6 @@ tokens = [
     ('ReplaceRepeated', r' \/\/\. '),
     ('ReplaceAll', r' \/\. '),
 
-    ('RawAmpersand', r' \& '),
     ('Postfix', r' \/\/ '),
 
     ('UpSetDelayed', r' \^\:\= '),
@@ -131,6 +126,13 @@ tokens = [
     ('Divide', r' \/|\u00f7 '),
     ('Power', r' \^ '),
     ('Dot', r' \. '),
+    ('Minus', r' \- '),
+    ('Plus', r' \+ '),
+    ('RawBackslash', r' \\ '),
+
+    ('Factorial2', r' \!\! '),
+    ('Factorial', r' \! '),
+    ('Function', r' \& | \uF4A1 '),
 
     # ('DiscreteShift', r' \uf4a3 '),
     # ('DiscreteRatio', r' \uf4a4 '),
@@ -172,13 +174,6 @@ tokens = [
     ('CircleMinus', r' \u2296 '),
     ('Intersection', r' \u22c2 '),
     ('Union', r' \u22c3 '),
-    ('Equal', r' \uf431 '),
-    ('LongEqual', r' \uf7d9 '),
-    ('NotEqual', r' \u2260 '),
-    ('LessEqual', r' \u2264 '),
-    ('LessSlantEqual', r' \u2a7d '),
-    ('GreaterEqual', r' \u2265 '),
-    ('GreaterSlantEqual', r' \u2a7e '),
     ('VerticalBar', r' \u2223 '),
     ('NotVerticalBar', r' \u2224 '),
     ('DoubleVerticalBar', r' \u2225 '),
@@ -201,7 +196,6 @@ tokens = [
     ('VerticalSeparator', r' \uF432 '),
     ('Therefore', r' \u2234 '),
     ('Because', r' \u2235 '),
-    ('Function', r' \uF4A1 '),
 ]
 
 

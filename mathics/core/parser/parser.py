@@ -363,9 +363,13 @@ class Parser(object):
         q = postfix_ops['Function']
         if q < p:
             return None
+        # postfix or right-binary determined by symbol
         self.consume()
-        expr2 = self.parse_exp(q)
-        return Node('Function', Node('List', expr1), expr2)
+        if token.text == '&':
+            return Node('Function', expr1)
+        else:
+            expr2 = self.parse_exp(q + 1)
+            return Node('Function', expr1, expr2)
 
     def e_Semicolon(self, expr1, token, p):
         q = flat_binary_ops['CompoundExpression']

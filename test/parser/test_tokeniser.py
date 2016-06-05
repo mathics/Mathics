@@ -124,3 +124,7 @@ class TokeniserTest(unittest.TestCase):
 
     def testPre(self):
         self.assertEqual(self.tokens('++x++'), [Token('Increment', '++', 0), Token('Symbol', 'x', 2), Token('Increment', '++', 3)])
+
+    def testFunction(self):
+        self.assertEqual(self.tokens('x&'), [Token('Symbol', 'x', 0), Token('Function', '&', 1)])
+        self.assertEqual(self.tokens('x\uf4a1'), [Token('Symbol', 'x', 0), Token('Function', '\uf4a1', 1)])
