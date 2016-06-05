@@ -249,6 +249,35 @@ class Parser(object):
         q = prefix_ops['Minus']
         return Node('MinusPlus', self.parse_exp(q))
 
+    def p_Out(self, token):
+        self.consume()
+        text = token.text
+        if text == '%':
+            return Node('Out')
+        if text.endswith('%'):
+            n = str(-len(text))
+        else:
+            n = text[1:]
+        return Node('Out', Number(n))
+
+    def p_Slot(self, token):
+        self.consume()
+        text = token.text
+        if len(text) == 1:
+            n = '1'
+        else:
+            n = text[1:]
+        return Node('Slot', Number(n))
+
+    def p_SlotSequence(self, token):
+        self.consume()
+        text = token.text
+        if len(text) == 2:
+            n = '1'
+        else:
+            n = text[2:]
+        return Node('SlotSequence', Number(n))
+
 
     # E methods
     #
