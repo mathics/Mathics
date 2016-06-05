@@ -21,7 +21,7 @@ class Node(object):
             return ''
 
     def __repr__(self):
-        return '%s[%s]' % (self.head, ','.join(str(child) for child in self.children))
+        return '%s[%s]' % (self.head, ', '.join(str(child) for child in self.children))
 
     def __eq__(self, other):
         if not isinstance(other, Node):
@@ -43,7 +43,8 @@ class Atom(Node):
 
 
 class Number(Atom):
-    pass
+    def __repr__(self):
+        return self.value
 
 
 class Symbol(Atom):
