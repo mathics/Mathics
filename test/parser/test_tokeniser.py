@@ -99,7 +99,6 @@ class TokeniserTest(unittest.TestCase):
         self.check_string(r'"abc(*def*)"')
         self.check_string(r'"a\"b\\c"')
         self.incomplete_error(r'"\"')
-        self.incomplete_error(r'\""')
 
     def testPrecision(self):
         self.check_number('1.5`-5')
