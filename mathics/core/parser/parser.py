@@ -99,7 +99,7 @@ class Parser(object):
                 self.consume()
                 q = postfix_ops[tag]
                 result = Node(tag, result)
-            elif tag not in ('END', 'RawRightParenthesis', 'RawComma', 'RawRightBrace', 'RawRightBracket', 'DifferentialD') and flat_binary_ops['Times'] >= p:  # implicit times
+            elif tag not in ('END', 'RawRightParenthesis', 'RawComma', 'RawRightBrace', 'RawRightBracket', 'RawColon', 'DifferentialD') and flat_binary_ops['Times'] >= p:  # implicit times
                 q = flat_binary_ops['Times']
                 child = self.parse_exp(q + 1)
                 if result.get_head_name() == 'Times' and not result.parenthesised:
@@ -387,6 +387,27 @@ class Parser(object):
         else:
             expr2 = self.parse_exp(q + 1)
             return Node('Function', expr1, expr2)
+
+    def e_RawColon(self, expr1, token, p):
+        '''
+        Pattern  : patt <- symb ':' expr
+        Optional : patt <- patt ':' expr
+        '''
+        if expr1.get_head_name() == 'Symbol':
+            head = 'Pattern'
+        elif expr1.get_head_name() in ('Blank', 'BlankSequence', 'BlankNullSequence', 'Optional', 'Pattern'):
+            head = 'Optional'
+        else:
+            raise InvalidSyntaxError(token.pos)
+        q = all_ops[head] + 1000    # HACK: add 1000 to ensure patterns are parsed first
+        if q < p:
+            return None
+        self.consume()
+        expr2 = self.parse_exp(q + 1)
+        if expr1.get_head_name() == head == 'Optional' and not expr1.parenthesised:
+            expr1.children.append(expr2)
+            return expr1
+        return Node(head, expr1, expr2)
 
     def e_Semicolon(self, expr1, token, p):
         q = flat_binary_ops['CompoundExpression']

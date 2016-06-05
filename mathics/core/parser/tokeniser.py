@@ -132,6 +132,7 @@ tokens = [
     ('Factorial2', r' \!\! '),
     ('Factorial', r' \! '),
     ('Function', r' \& | \uF4A1 '),
+    ('RawColon', r' \: '),
 
     # ('DiscreteShift', r' \uf4a3 '),
     # ('DiscreteRatio', r' \uf4a4 '),
@@ -139,7 +140,7 @@ tokens = [
     # ('PartialD', r' \u2202 '),
 
     ('Cross', r' \uf4a0 '),
-    ('Colon', r' \: | \u2236 '),
+    ('Colon', r' \u2236 '),
     ('Transpose', r' \uf3c7 '),
     ('Conjugate', r' \uf3c8 '),
     ('ConjugateTranspose', r' \uf3c9 '),

@@ -415,9 +415,16 @@ class GeneralTests(ParserTests):
 
 class PatternTests(ParserTests):
     def testPattern(self):
+        self.check('a:b', 'Pattern[a, b]')
+        self.check('_:b', 'Optional[Blank[], b]')
+        self.check('a:_', 'Pattern[a, Blank[]]')
+        self.check('a:b:c', 'Optional[Pattern[a, b], c]')
+        self.check('a?b:c', 'PatternTest[a, Pattern[b, c]]')
+        self.check('a:b:c:d:e:f', 'Optional[Pattern[a, b], Pattern[c, d], Pattern[e, f]]')
+
         self.check('Map[f_, expr_, ls_?LevelQ:{1}, OptionsPattern[Map]]', 'Map[Pattern[f, Blank[]], Pattern[expr, Blank[]], PatternTest[Pattern[ls, Blank[]], Pattern[LevelQ, List[1]]], OptionsPattern[Map]]')
         self.check('_^_?t', 'Power[Blank[], PatternTest[Blank[], t]]')
-        self.check('-Sin[x]', 'Times[-1, Sin[x]]')
+        self.check('-Sin[x]', 'Minus[Sin[x]]')
         self.check('a[x_] := x^2', 'SetDelayed[a[Pattern[x, Blank[]]], Power[x, 2]]')
         self.check('MakeBoxes[expr_, f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]', 'MakeBoxes[Pattern[expr, Blank[]], Pattern[f, Alternatives[TraditionalForm, StandardForm, OutputForm, InputForm, FullForm]]]')
 
