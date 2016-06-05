@@ -354,3 +354,11 @@ class Parser(object):
             return None
         self.consume()
         return Node('PutAppend', expr1, self.next_filename())
+
+    def e_Minus(self, expr1, token, p):
+        q = left_binary_ops['Subtract']
+        if q < p:
+            return None
+        self.consume()
+        expr2 = self.parse_exp(q)
+        return Node('Subtract', expr1, expr2)
