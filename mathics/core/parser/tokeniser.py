@@ -79,8 +79,6 @@ tokens = [
     ('Derivative', r' \' '),
     ('StringJoin', r' \<\> '),
 
-    ('Power', r' \^ '),
-
     ('NonCommutativeMultiply', r' \*\* '),
 
     ('AddTo', r' \+\= '),
@@ -88,15 +86,11 @@ tokens = [
     ('TimesBy', r' \*\= '),
     ('DivideBy', r' \/\=  '),
 
-    ('Dot', r' \. '),
-
     ('Plus', r' \+ '),
     ('Minus', r' \- '),
     ('RawBackslash', r' \\ '),
 
     ('Times', r' \*|\u00d7 '),
-
-    ('Divide', r' \/|\u00f7 '),
 
     ('SameQ', r' \=\=\= '),
     ('UnsameQ', r' \=\!\= '),
@@ -115,9 +109,6 @@ tokens = [
     ('Repeated', r' \.\. '),
     ('Alternatives', r' \| '),
 
-    ('RawColon', r' \: '),
-    ('Condition', r' \/\; '),
-
     ('op_Rule', r' \-\> '),
     ('op_RuleDelayed', r' \:\> '),
     ('ReplaceRepeated', r' \/\/\. '),
@@ -133,7 +124,13 @@ tokens = [
     ('Unset', r' \=\. '),
     ('Set', r' \= '),
 
+    ('Condition', r' \/\; '),
     ('Semicolon', r' \; '),
+    ('RawColon', r' \: '),
+
+    ('Divide', r' \/|\u00f7 '),
+    ('Power', r' \^ '),
+    ('Dot', r' \. '),
 
     # ('DiscreteShift', r' \uf4a3 '),
     # ('DiscreteRatio', r' \uf4a4 '),
@@ -235,7 +232,7 @@ class Token(object):
         return self.tag == other.tag and self.text == other.text    # and self.pos == other.pos
 
     def __repr__(self):
-        return 'Token(%s, %s, %i)' % (tag, text, pos)
+        return 'Token(%s, %s, %i)' % (self.tag, self.text, self.pos)
 
 
 class Tokeniser(object):

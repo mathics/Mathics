@@ -394,3 +394,26 @@ class Parser(object):
         self.consume()
         expr2 = self.parse_exp(q)
         return Node('Subtract', expr1, expr2)
+
+    def e_TagSet(self, expr1, token, p):
+        q = all_ops['TagSet']
+        if q < p:
+            return None
+        self.consume()
+        expr2 = self.parse_exp(q)
+
+        # examine next token
+        token = self.next()
+        tag = token.tag
+        if tag == 'Set':
+            head = 'TagSet'
+        elif tag == 'SetDelayed':
+            head = 'TagSetDelayed'
+        else:
+            if head == 'END':
+                raise IncompleteSyntaxError(token.pos)
+            raise InvalidSyntaxError(token.pos)
+        self.consume()
+
+        expr3 = self.parse_exp(q)
+        return Node(head, expr1, expr2, expr3)

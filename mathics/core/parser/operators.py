@@ -18,6 +18,7 @@ prefix_ops = {
 }
 
 postfix_ops = {
+    'Unset': 670,
     'Conjugate': 670,
     'Transpose': 670,
     'ConjugateTranspose': 670,
@@ -60,6 +61,8 @@ right_binary_ops = {
     'DivideBy': 100,
     'Therefore': 50,
     'UpSet': 40,
+    'Set': 40,
+    'SetDelayed': 40,
     'UpSetDelayed': 40,
 }
 

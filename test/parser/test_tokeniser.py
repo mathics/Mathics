@@ -114,3 +114,4 @@ class TokeniserTest(unittest.TestCase):
 
     def testSet(self):
         self.assertEqual(self.tokens('x = y'), [Token('Symbol', 'x', 0), Token('Set', '=', 2), Token('Symbol', 'y', 4)])
+        self.assertEqual(self.tokens('x /: y = z'), [Token('Symbol', 'x', 0), Token('TagSet', '/:', 2), Token('Symbol', 'y', 5), Token('Set', '=', 7), Token('Symbol', 'z', 9)])
