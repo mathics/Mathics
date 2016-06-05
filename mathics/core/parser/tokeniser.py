@@ -121,7 +121,6 @@ tokens = [
 
     ('Condition', r' \/\; '),
     ('Semicolon', r' \; '),
-    ('RawColon', r' \: '),
 
     ('Divide', r' \/|\u00f7 '),
     ('Power', r' \^ '),
@@ -140,7 +139,7 @@ tokens = [
     # ('PartialD', r' \u2202 '),
 
     ('Cross', r' \uf4a0 '),
-    ('Colon', r' \u2236 '),
+    ('Colon', r' \: | \u2236 '),
     ('Transpose', r' \uf3c7 '),
     ('Conjugate', r' \uf3c8 '),
     ('ConjugateTranspose', r' \uf3c9 '),

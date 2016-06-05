@@ -299,6 +299,7 @@ class GeneralTests(ParserTests):
     def testList(self):
         self.check('{x, y}', Node('List', Symbol('x'), Symbol('y')))
 
+        self.check('{1}', Node('List', Number('1')))
         self.check('{}', Node('List'))
         self.check('{a,}', Node('List', Symbol('a'), Symbol('Null')))
         self.check('{,}', Node('List', Symbol('Null'), Symbol('Null')))
