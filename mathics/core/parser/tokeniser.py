@@ -102,15 +102,15 @@ tokens = [
     ('Greater', r' \> '),
     ('Less', r' \< '),
 
-    ('op_And', r' \&\& '),
-    ('op_Or', r' \|\|  '),
+    ('Or', r' (\|\|) | \u2228 '),
+    ('And', r' (\&\&) | \u2227 '),
 
     ('RepeatedNull', r' \.\.\. '),
     ('Repeated', r' \.\. '),
     ('Alternatives', r' \| '),
 
-    ('op_Rule', r' \-\> '),
-    ('op_RuleDelayed', r' \:\> '),
+    ('Rule', r' (\-\>)|\uF522 '),
+    ('RuleDelayed', r' (\:\>)|\uF51F '),
     ('ReplaceRepeated', r' \/\/\. '),
     ('ReplaceAll', r' \/\. '),
 
@@ -154,9 +154,7 @@ tokens = [
     # ('Product', r' \u220f '),
     ('PlusMinus', r' \u00b1 '),
     ('MinusPlus', r' \u2213 '),
-    ('Or', r' \u2228 '),
     ('Nor', r' \u22BD '),
-    ('And', r' \u2227 '),
     ('Nand', r' \u22BC '),
     ('Xor', r' \u22BB '),
     ('Xnor', r' \uF4A2 '),
@@ -200,8 +198,6 @@ tokens = [
     ('LeftTee', r' \u22A3 '),
     ('DoubleLeftTee', r' \u2AE4 '),
     ('SuchThat', r' \u220D '),
-    ('Rule', r' \uF522 '),
-    ('RuleDelayed', r' \uF51F '),
     ('VerticalSeparator', r' \uF432 '),
     ('Therefore', r' \u2234 '),
     ('Because', r' \u2235 '),

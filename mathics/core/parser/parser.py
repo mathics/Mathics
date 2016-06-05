@@ -351,7 +351,7 @@ class Parser(object):
         return Node('Apply', expr1, expr2, expr3)
 
     def e_Function(self, expr1, token, p):
-        q = right_binary_ops['Function']
+        q = postfix_ops['Function']
         if q < p:
             return None
         self.consume()
