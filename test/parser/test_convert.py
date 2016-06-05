@@ -3,7 +3,7 @@ import six
 
 from mathics.core.definitions import Definitions
 from mathics.core.parser import parse
-from mathics.core.expression import Symbol, Integer
+from mathics.core.expression import Symbol, Integer, Expression, Real
 
 
 class ConvertTests(unittest.TestCase):

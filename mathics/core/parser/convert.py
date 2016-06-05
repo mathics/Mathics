@@ -160,11 +160,16 @@ class Converter(object):
 
     def Derivative(self, node):
         n = 0
-        while node.get_head_name() == 'Derivative' and not node.parenthesised:
+        while node.get_head_name() == 'Derivative':
             assert len(node.children) == 1
-            node = node.children[0]
-            n += 1
-        return Expression(Expression('Derivative', ma.Integer(n)), self.do_convert(node))
+            if node.parenthesised:
+                node = ma.Expression(ma.Expression('Derivative', ma.Integer(n)), self.do_convert(node))
+                n = 0
+            else:
+                node = node.children[0]
+                n += 1
+        print(node, node.parenthesised)
+        return ma.Expression(ma.Expression('Derivative', ma.Integer(n)), self.do_convert(node))
 
 
 converter = Converter()
