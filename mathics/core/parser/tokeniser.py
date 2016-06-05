@@ -68,6 +68,7 @@ tokens = [
     ('Map', r' \/\@ '),
     ('ApplyList', r' \@\@\@ '),
     ('Apply', r' \@\@ '),
+    ('Composition', r' \@\* '),
     ('Prefix', r' \@ '),
 
     ('StringExpression', r' \~\~ '),
