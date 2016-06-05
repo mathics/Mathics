@@ -163,7 +163,7 @@ class GeneralTests(ParserTests):
         self.check('f @@ expr', Node('Apply', Symbol('f'), Symbol('expr')))
         self.check('f /@ expr', Node('Map', Symbol('f'), Symbol('expr')))
 
-        self.check('f @@@ expr', Node('Apply', Symbol('f'), Symbol('expr'), Node('List', 1)))
+        self.check('f @@@ expr', Node('Apply', Symbol('f'), Symbol('expr'), Node('List', Number('1'))))
         self.check('f //@ expr', Node('MapAll', Symbol('f'), Symbol('expr')))
         self.check('a @@ b @@ c', Node('Apply', Symbol('a'), Node('Apply', Symbol('b'), Symbol('c'))))
 
