@@ -76,7 +76,7 @@ tokens = [
     ('Factorial2', r' \!\! '),
     ('Factorial', r' \! '),
 
-    ('Derivative', r' \'+ '),
+    ('Derivative', r' \' '),
     ('StringJoin', r' \<\> '),
 
     ('Power', r' \^ '),

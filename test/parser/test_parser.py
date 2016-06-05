@@ -50,8 +50,8 @@ class ParserTests(unittest.TestCase):
 class PrecedenceTests(ParserTests):
     def test_minuslike(self):
         self.check('a * + b', Node('Times', Symbol('a'), Node('Plus', Symbol('b'))))
-        self.check('- a . b', Node('Times', Number(-1), Node('Dot', Symbol('a'), Symbol('b'))))
-        self.check('- a / b', Node('Times', Number(-1), Symbol('a'), Node('Power', Symbol('b'), Number(-1))))
+        self.check('- a . b', Node('Minus', Node('Dot', Symbol('a'), Symbol('b'))))
+        self.check('- a / b', Node('Divide', Node('Minus', Symbol('a')), Symbol('b')))
 
 
 class AtomTests(ParserTests):
@@ -161,17 +161,17 @@ class GeneralTests(ParserTests):
         self.check('x ! y', Node('Times', Node('Factorial', Symbol('x')), Symbol('y')))
 
     def testDerivative(self):
-        self.check("f'", Node(Node('Derivative',   Number('1')), Symbol('f')))
-        self.check("f''", Node(Node('Derivative',  Number('2')), Symbol('f')))
-        self.check("f' '", Node(Node('Derivative', Number('2')), Symbol('f')))
+        self.check("f'", Node('Derivative',   Symbol('f')))
+        self.check("f''", Node('Derivative', Node('Derivative', Symbol('f'))))
+        self.check("f' '", Node('Derivative', Node('Derivative', Symbol('f'))))
 
     def testPlus(self):
         self.check('+1', Node('Plus', Number('1')))
         self.check('1 + 2', Node('Plus', Number('1'), Number('2')))
         self.check('1 + 2 + 3', Node('Plus', Number('1'), Number('2'), Number('3')))
         self.check('1 + 2 + 3 + 4', 'Plus[1, 2, 3, 4]')
-        self.check('-a', Node('Times', Number(-1), Symbol('a')))
-        self.check('1 - 2', Node('Plus', Number('1'), Node('Times', Number(-1), Number('2'))))
+        self.check('-a', Node('Minus', Symbol('a')))
+        self.check('1 - 2', Node('Subtract', Number('1'), Number('2')))
 
         self.check('a*b+c', Node('Plus', Node('Times', Symbol('a'), Symbol('b')), Symbol('c')))
         self.check('a*+b+c', Node('Plus', Node('Times', Symbol('a'), Symbol('b')), Symbol('c')))

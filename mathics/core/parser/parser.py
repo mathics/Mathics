@@ -336,6 +336,9 @@ class Parser(object):
             expr2 = Symbol('Null')
         else:
             expr2 = self.parse_exp(q + 1)
+        if expr1.get_head_name() == 'CompoundExpression':
+            expr1.append(expr2)
+            return expr1
         return Node('CompoundExpression', expr1, expr2)
 
     def e_Put(self, expr1, token, p):
