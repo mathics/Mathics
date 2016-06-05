@@ -61,6 +61,19 @@ class PrecedenceTests(ParserTests):
         self.check('- a / b', Node('Divide', Node('Minus', Symbol('a')), Symbol('b')))
 
 
+class AssocTests(ParserTests):
+    def test_right(self):
+        self.check('a ^ b ^ c', 'a ^ (b ^ c)')
+
+    def test_flat(self):
+        self.check('a + b + c', 'Plus[a, b, c]')
+
+    def test_left(self):
+        self.check('a - b - c', '(a - b) - c')
+
+    def test_nonassoc(self):
+        self.invalid_error('a \u00b1 b \u00b1 c')
+
 class AtomTests(ParserTests):
     def check_number(self, s):
         self.assertEqual(self.parse(s), Number(s))
@@ -161,6 +174,11 @@ class GeneralTests(ParserTests):
         self.incomplete_error('x \uf4a1')
         self.check('x & y', Node('Times', Node('Function', Symbol('x')), Symbol('y')))
 
+    def testPostfix(self):
+        self.check('x // y', Node('y', Symbol('x')))
+        self.check('x // y // z', '(x // y) // z')
+        self.check('a | b // c | d', '(a | b) // (c | d)')
+
     def testIncDec(self):
         self.check('a++', Node('Increment', Symbol('a')))
         self.check('a--', Node('Decrement', Symbol('a')))
@@ -233,10 +251,7 @@ class GeneralTests(ParserTests):
         self.check('x *= y', Node('TimesBy', Symbol('x'), Symbol('y')))
         self.check('x /= y', Node('DivideBy', Symbol('x'), Symbol('y')))
 
-        self.check('x // y', Node('y', Symbol('x')))
-
-        self.check('1 ^ 2 ^ 3', 'Power[1, Power[2, 3]]')
-        self.check('3/2', Node('Times', Number('3'), Node('Power', Number('2'), Number(-1))))
+        self.check('3/2', Node('Divide', Number('3'), Number('2')))
 
         self.check('x ~~ y', Node('StringExpression', Symbol('x'), Symbol('y')))
         self.check('x ~~ y ~~ z', Node('StringExpression', Symbol('x'), Symbol('y'), Symbol('z')))

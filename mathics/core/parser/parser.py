@@ -74,7 +74,7 @@ class Parser(object):
                 if q < p:
                     break
                 self.consume()
-                if tag not in left_binary_ops:
+                if tag not in right_binary_ops:
                     q += 1
                 child = self.parse_exp(q)
                 # flatten or associate
@@ -355,7 +355,7 @@ class Parser(object):
             return None
         self.consume()
         # postix has lowest prec and is left assoc
-        expr2 = self.parse_exp(0)
+        expr2 = self.parse_exp(1)
         return Node(expr2, expr1)
 
     def e_ApplyList(self, expr1, token, p):
@@ -413,7 +413,7 @@ class Parser(object):
         if q < p:
             return None
         self.consume()
-        expr2 = self.parse_exp(q)
+        expr2 = self.parse_exp(q + 1)
         return Node('Subtract', expr1, expr2)
 
     def e_TagSet(self, expr1, token, p):
