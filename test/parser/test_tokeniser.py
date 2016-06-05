@@ -128,3 +128,6 @@ class TokeniserTest(unittest.TestCase):
     def testFunction(self):
         self.assertEqual(self.tokens('x&'), [Token('Symbol', 'x', 0), Token('Function', '&', 1)])
         self.assertEqual(self.tokens('x\uf4a1'), [Token('Symbol', 'x', 0), Token('Function', '\uf4a1', 1)])
+
+    def testApply(self):
+        self.assertEqual(self.tokens('f // x'), [Token('Symbol', 'f', 0), Token('Postfix', '//', 2), Token('Symbol', 'x', 5)])

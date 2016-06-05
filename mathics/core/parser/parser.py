@@ -350,6 +350,14 @@ class Parser(object):
         expr3 = self.parse_exp(q + 1)
         return Node(expr2, expr1, expr3)
 
+    def e_Postfix(self, expr1, token, p):
+        if 0 < p:
+            return None
+        self.consume()
+        # postix has lowest prec and is left assoc
+        expr2 = self.parse_exp(0)
+        return Node(expr2, expr1)
+
     def e_ApplyList(self, expr1, token, p):
         q = right_binary_ops['Apply']
         if q < p:
