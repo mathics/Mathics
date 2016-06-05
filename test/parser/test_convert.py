@@ -91,3 +91,11 @@ class ConvertTests(unittest.TestCase):
         self.check('1.4`0', Real(0, p=0))
         self.check('1.4`-5', Real(0, p=0))
 
+
+    def testDerivative(self):
+        f = Symbol('Global`f')
+        self.check("f'", Expression(Expression('Derivative', Integer(1)), f))
+        self.check("f''", Expression(Expression('Derivative', Integer(2)), f))
+        self.check("(f'')'''", Expression(Expression('Derivative', Integer(3)), Expression(Expression('Derivative', Integer(2)), f)))
+        self.check("Derivative[f]", Expression('Derivative', f))
+        self.check("Derivative[1][f]''", "(f')'")
