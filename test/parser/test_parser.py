@@ -37,6 +37,13 @@ class ParserTests(unittest.TestCase):
         else:
             self.assertEqual(expr1, expr2)
 
+    def check_prescan(self, expr1, expr2):
+        if isinstance(expr1, six.string_types):
+            expr1 = prescan(expr1)
+        if isinstance(expr2, six.string_types):
+            expr2 = prescan(expr2)
+        return self.check(expr1, expr2)
+
     def lex_error(self, string):
         self.assertRaises(ScanError, self.parse, string)
 
@@ -175,7 +182,7 @@ class GeneralTests(ParserTests):
         self.check('1 - 2', Node('Subtract', Number('1'), Number('2')))
 
         self.check('a*b+c', Node('Plus', Node('Times', Symbol('a'), Symbol('b')), Symbol('c')))
-        self.check('a*+b+c', Node('Plus', Node('Times', Symbol('a'), Symbol('b')), Symbol('c')))
+        self.check('a*+b+c', Node('Plus', Node('Times', Symbol('a'), Node('Plus', Symbol('b'))), Symbol('c')))
         self.check('a+b*c', 'a+(b*c)')
         self.check('a*b+c', '(a*b) + c')
 

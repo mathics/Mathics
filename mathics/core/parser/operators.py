@@ -3,6 +3,8 @@
 
 from __future__ import unicode_literals
 
+from collections import defaultdict
+
 
 prefix_ops = {
     'Get': 720,
@@ -127,6 +129,10 @@ ternary_ops = {
     'Infix': 630,   # TODO
 }
 
+misc_ops = {
+    'Sum': 320,
+}
+
 # binary_ops = left_binary_ops V right_binary_ops V flat_binary_ops V nonassoc_binary_ops
 binary_ops = {}
 for ops in (left_binary_ops, right_binary_ops, flat_binary_ops, nonassoc_binary_ops):
@@ -134,13 +140,9 @@ for ops in (left_binary_ops, right_binary_ops, flat_binary_ops, nonassoc_binary_
         binary_ops[op] = prec
 
 # all ops - check they're disjoint
-all_ops = {}
-for ops in (prefix_ops, postfix_ops, left_binary_ops, right_binary_ops, flat_binary_ops, ternary_ops, nonassoc_binary_ops):
+all_ops = defaultdict(lambda: 670)
+for ops in (prefix_ops, postfix_ops, left_binary_ops, right_binary_ops, flat_binary_ops, ternary_ops, nonassoc_binary_ops, misc_ops):
     for op, prec in ops.items():
         if op in all_ops:
             raise AssertionError
         all_ops[op] = prec
-
-all_ops['Number'] = 670
-all_ops['String'] = 670
-all_ops['Symbol'] = 670
