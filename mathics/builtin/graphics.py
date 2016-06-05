@@ -166,8 +166,11 @@ def _data_and_options(leaves, defined_options):
 
 class _PerfectReflectingDiffuser:
     def __init__(self, x1, x2):
-        scale = 1.0 / x2
-        self.xyz = (x1 * scale, 1.0, (1.0 - x1 - x2) * scale)
+        # MMA seems to use the following constants, and not the
+        # values derived via calculation (commented out below)
+        self.xyz = (0.96422, 1., 0.82521)
+        #scale = 1.0 / x2
+        #self.xyz = (x1 * scale, 1.0, (1.0 - x1 - x2) * scale)
 
         q_r = self.xyz[0] + 15. * self.xyz[1] + 3. * self.xyz[2]
         self.u_r = 4. * self.xyz[0] / q_r
@@ -487,18 +490,21 @@ class LABColor(_Color):
     def to_xyza(self):
         components = self.components
 
-        # see https://en.wikipedia.org/wiki/Lab_color_space
+        # see http://www.brucelindbloom.com/Eqn_Lab_to_XYZ.html
         def inv_f(t):
-            if t > (6. / 29.):
+            if t > 0.008856:
                 return math.pow(t, 3)
             else:
-                return 3. * (36. / 841.) * (t - (4. / 29.))
+                return (116 * t - 16) / 903.3
 
         l, a, b = components[:3]
-        l0 = (l + 0.16) / 1.16
-        xyz = [inv_f(l0 + a / 5.), inv_f(l0), inv_f(l0 - b / 2.)]
+        f_y = (l * 100. + 16.) / 116.
 
-        return _clip(*[c * w for c, w in zip(xyz, _ref_white.xyz)]) + tuple(components[3:])
+        x = inv_f(a / 5. + f_y)
+        y = math.pow(f_y, 3) if (l * 100.0) > 903.3 * 0.008856 else (l * 100.0) / 903.3
+        z = inv_f(f_y - b / 2.)
+
+        return tuple(c * w for c, w in zip((x, y, z), _ref_white.xyz)) + tuple(components[3:])
 
     def to_laba(self):
         return self.components
@@ -572,9 +578,6 @@ class XYZColor(_Color):
     components_sizes = [3, 4]
     default_components = [0, 0, 0, 1]
 
-    _lab_t0 = math.pow(6. / 29., 3)
-    _lab_a = math.pow(29. / 6., 2)
-
     def to_rgba(self):
         components = _clip(*self.components)
 
@@ -593,13 +596,14 @@ class XYZColor(_Color):
         return self.components
 
     def to_laba(self):
-        components = _clip(*self.components)
+        components = self.components[:3]
 
-        # computation of x, y, z; see https://en.wikipedia.org/wiki/Lab_color_space
+        # see http://www.brucelindbloom.com/Eqn_XYZ_to_Lab.html
+
         components = [c / w for c, w in zip(components, _ref_white.xyz)]
 
-        x, y, z = (math.pow(t, 1. / 3.) if t > XYZColor._lab_t0
-                   else XYZColor._lab_a * t + (4. / 29.) for t in components)
+        x, y, z = (math.pow(t, 0.33333333) if t > 0.008856
+                   else (903.3 * t + 16.) / 116. for t in components)
 
         # MMA scales by 1/100
         return ((1.16 * y) - 0.16, 5. * (x - y), 2. * (y - z)) + tuple(components[3:])

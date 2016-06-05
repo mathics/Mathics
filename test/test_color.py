@@ -25,34 +25,32 @@ class ColorTest(unittest.TestCase):
         # inverse transformations.
 
         spaces = ("CMYK", "HSB", "LAB", "LCH", "LUV", "RGB", "XYZ")
-        places = 4
-        for i, from_space in enumerate(spaces):
-            for to_space in spaces[i + 1:]:
-                try:
-                    if from_space == 'HSB':
-                        construct_name = 'Hue'
-                    else:
-                        construct_name = from_space + 'Color'
+        places = 3
+        for original in ((0.5, 0.1, 0.2), (0.9, 0.1, 0.1)):
+            for i, from_space in enumerate(spaces):
+                for to_space in spaces[i + 1:]:
+                    try:
+                        if from_space == 'HSB':
+                            construct_name = 'Hue'
+                        else:
+                            construct_name = from_space + 'Color'
 
-                    original = (0.5, 0.1, 0.2)  # carefully chosen components
-                    # that give useful transformations along all color spaces
-
-                    # now calculate from_space -> to_space -> from_space
-                    inverted = [c.to_python() for c in Expression('ColorConvert',
-                        Expression('ColorConvert',
-                            Expression(construct_name, *original),
-                            to_space),
-                        from_space).evaluate(self.evaluation).leaves]
-                    if from_space == 'CMYK':  # if cmyk, cmyk -> cmy
-                        k = inverted[3]
-                        inverted = [c * (1 - k) + k for c in inverted[:3]]
-                    self.assertEqual(len(original), len(inverted))
-                    for x, y in zip(original, inverted):
-                        self.assertAlmostEqual(x, y, places)
-                except:
-                    print('test failed for %s -> %s -> %s' %
-                          (from_space, to_space, from_space))
-                    raise
+                        # now calculate from_space -> to_space -> from_space
+                        inverted = [c.to_python() for c in Expression('ColorConvert',
+                            Expression('ColorConvert',
+                                Expression(construct_name, *original),
+                                to_space),
+                            from_space).evaluate(self.evaluation).leaves]
+                        if from_space == 'CMYK':  # if cmyk, cmyk -> cmy
+                            k = inverted[3]
+                            inverted = [c * (1 - k) + k for c in inverted[:3]]
+                        self.assertEqual(len(original), len(inverted))
+                        for x, y in zip(original, inverted):
+                            self.assertAlmostEqual(x, y, places)
+                    except:
+                        print('test failed for %s(%f, %f, %f) -> %s -> %s' %
+                              (from_space, original[0], original[1], original[2], to_space, from_space))
+                        raise
 
     def testConversions(self):
         self._checkConversion("RGB", (0.5, 0.5, 0.5),
@@ -64,6 +62,9 @@ class ColorTest(unittest.TestCase):
                               "RGB", (0.743976775016277, 0.7256665017497576, 0.8118438573490818))
         self._checkConversion("XYZ", (0.4, 0.2, 0.3),
                               "RGB", (0.8977592548573999, 0.022700440000000155, 0.6685886356522144))
+
+        self._checkConversion("XYZ", (0.1, 0.1, 0.1),
+                              "LAB", (0.3784243088316416, 0.02835852516741566, -0.06139347105996884))
 
     def _checkConversion(self, from_space, from_components, to_space, to_components):
         places = 12
