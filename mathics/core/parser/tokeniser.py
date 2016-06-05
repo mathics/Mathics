@@ -255,7 +255,7 @@ class Tokeniser(object):
                 else:
                     text = match.group(0)
                     self.pos = match.end(0)
-                    return Token(tag, text, self.pos)
+                    return Token(tag, text, match.start(0))
         raise ScanError(self.pos)
 
     def next_filename(self):
@@ -304,3 +304,14 @@ class Tokeniser(object):
             self.pos = start - 1
             raise IncompleteSyntaxError(self.pos)
         return Token('String', self.code[start:end], start)
+
+    def t_Number(self, match):
+        text = match.group(0)
+        pos = match.end(0)
+        if self.code[pos-1:pos+1] == '..':
+            # Trailing .. should be ignored. That is, `1..` is `Repeated[1]`.
+            text = text[:-1]
+            self.pos = pos - 1
+        else:
+            self.pos = pos
+        return Token('Number', text, match.start(0))
