@@ -230,6 +230,7 @@ class GeneralTests(ParserTests):
         self.check('1;;2;;3', Node('Span', Number('1'), Number('2'), Number('3')))
         self.check('1;; ;;3', Node('Span', Number('1'), Symbol('All'), Number('3')))
         self.check('1;;;;3', Node('Span', Number('1'), Symbol('All'), Number('3')))
+        self.check('1;;2;;', Node('Times', Node('Span', Number('1'), Number('2')), Node('Span', Number('1'), Symbol('All'))))
         self.check(' ;;2;;3', Node('Span', Number('1'), Number('2'), Number('3')))
         self.check(' ;;2', Node('Span', Number('1'), Number('2')))
         self.check('1;; ', Node('Span', Number('1'), Symbol('All')))

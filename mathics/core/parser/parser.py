@@ -313,25 +313,30 @@ class Parser(object):
         self.consume()
 
         # Span[expr1, expr2]
-        pos = self.tokeniser.pos
-        if self.next().tag in ('Span', 'END'):
+        token = self.next()
+        if token.tag in ('Span', 'END'):
             expr2 = Symbol('All')
         else:
-            expr2 = self.parse_exp(q + 1)
-        if all_ops[expr2.get_head_name()] < ternary_ops['Span']:
-            self.backtrack(pos)
-            return Node('Span', expr1, Symbol('All'))
+            try:
+                expr2 = self.parse_exp(q + 1)
+            except TranslateError:
+                expr2 = Symbol('All')
+                self.backtrack(token.pos)
+
         token = self.next()
         if token.tag != 'Span':
             return Node('Span', expr1, expr2)
 
         # Span[expr1, expr2, expr3]
-        pos = self.tokeniser.pos
         self.consume()
-        expr3 = self.parse_exp(q + 1)
-        if all_ops[expr3.get_head_name()] < ternary_ops['Span']:
-            self.backtrack(pos)
-            return Node('Span', expr1, expr2)
+        try:
+            expr3 = self.parse_exp(q + 1)
+        except TranslateError:
+            # XXX a;;b;;c is Span[a, b, c] but a;;b;; is Times[Span[a, b], Span[1, All]]
+            self.backtrack(token.pos)
+            lhs = Node('Span', expr1, expr2)
+            rhs = self.parse_exp(p)
+            return Node('Times', lhs, rhs)
         return Node('Span', expr1, expr2, expr3)
 
     def e_RawLeftBracket(self, expr, token, p):
