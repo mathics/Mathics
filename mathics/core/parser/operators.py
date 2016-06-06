@@ -156,3 +156,5 @@ for ops in (prefix_ops, postfix_ops, left_binary_ops, right_binary_ops, flat_bin
         if op in all_ops:
             raise AssertionError
         all_ops[op] = prec
+
+all_operator_names = list(all_ops.keys())
