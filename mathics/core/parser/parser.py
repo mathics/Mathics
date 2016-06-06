@@ -6,7 +6,8 @@ from __future__ import unicode_literals
 
 from mathics.core.parser.ast import Node, Number, Symbol, String, Filename
 from mathics.core.parser.tokeniser import Tokeniser
-from mathics.core.parser.errors import InvalidSyntaxError, IncompleteSyntaxError
+from mathics.core.parser.errors import (
+    InvalidSyntaxError, IncompleteSyntaxError, TranslateError)
 from mathics.core.parser.operators import (
     prefix_ops, postfix_ops, left_binary_ops, right_binary_ops,
     nonassoc_binary_ops, flat_binary_ops, ternary_ops, binary_ops, all_ops)
@@ -413,11 +414,15 @@ class Parser(object):
         if q < p:
             return None
         self.consume()
-        # CompoundExpression has the lowest precedence so no need to backtrack
-        if self.next().tag == 'END':
-            expr2 = Symbol('Null')
-        else:
+
+        # XXX look for next expr otherwise backtrack
+        pos = self.tokeniser.pos
+        try:
             expr2 = self.parse_exp(q + 1)
+        except TranslateError:
+            self.backtrack(pos)
+            expr2 = Symbol('Null')
+
         if expr1.get_head_name() == 'CompoundExpression' and not expr1.parenthesised:
             expr1.children.append(expr2)
             return expr1

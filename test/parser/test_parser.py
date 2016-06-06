@@ -137,6 +137,7 @@ class GeneralTests(ParserTests):
         self.check('4; 1 ; 5', Node('CompoundExpression', Number('4'), Number('1'), Number('5')))
         self.check('4;1;', Node('CompoundExpression', Number('4'), Number('1'), Symbol('Null')))
         self.check('(a;b);c', Node('CompoundExpression', Node('CompoundExpression', Symbol('a'), Symbol('b')), Symbol('c')))
+        self.check('f[a;]', 'f[CompoundExpression[a, Null]]')
 
     def testMessage(self):
         self.check('1 :: "abc"', Node('MessageName', Number('1'), String("abc")))
