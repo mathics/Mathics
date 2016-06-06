@@ -56,9 +56,10 @@ class ParserTests(unittest.TestCase):
 
 class PrecedenceTests(ParserTests):
     def test_minuslike(self):
-        self.check('a * + b', Node('Times', Symbol('a'), Node('Plus', Symbol('b'))))
-        self.check('- a . b', Node('Minus', Node('Dot', Symbol('a'), Symbol('b'))))
-        self.check('- a / b', Node('Divide', Node('Minus', Symbol('a')), Symbol('b')))
+        self.check('a * + b', 'Times[a, Plus[b]]')
+        self.check('- a . b', 'Times[-1, Dot[a, b]]'),
+        self.check('- a / b', 'Times[-1, a, Power[b, -1]]'),
+        self.check('- a / - b', 'Times[-1, a, Power[Times[-1, b], -1]]')
 
 
 class AssocTests(ParserTests):
@@ -204,7 +205,7 @@ class GeneralTests(ParserTests):
         self.check('1 + 2', Node('Plus', Number('1'), Number('2')))
         self.check('1 + 2 + 3', Node('Plus', Number('1'), Number('2'), Number('3')))
         self.check('1 + 2 + 3 + 4', 'Plus[1, 2, 3, 4]')
-        self.check('-a', Node('Minus', Symbol('a')))
+        self.check('-a', Node('Times', Number('-1'), Symbol('a')))
         self.check('1 - 2', Node('Subtract', Number('1'), Number('2')))
 
         self.check('a*b+c', Node('Plus', Node('Times', Symbol('a'), Symbol('b')), Symbol('c')))
@@ -252,7 +253,7 @@ class GeneralTests(ParserTests):
         self.check('x *= y', Node('TimesBy', Symbol('x'), Symbol('y')))
         self.check('x /= y', Node('DivideBy', Symbol('x'), Symbol('y')))
 
-        self.check('3/2', Node('Divide', Number('3'), Number('2')))
+        self.check('3/2', Node('Times', Number('3'), Node('Power', Number('2'), Number('-1'))))
 
         self.check('x ~~ y', Node('StringExpression', Symbol('x'), Symbol('y')))
         self.check('x ~~ y ~~ z', Node('StringExpression', Symbol('x'), Symbol('y'), Symbol('z')))
@@ -364,8 +365,8 @@ class GeneralTests(ParserTests):
         self.check('expr1 ** expr2 ** expr3', Node('NonCommutativeMultiply', Symbol('expr1'), Symbol('expr2'), Symbol('expr3')))
         self.check_prescan('1 \\[Cross] 2', Node('Cross', Number('1'), Number('2')))
         self.check('1 \uf4a0 2', Node('Cross', Number('1'), Number('2')))
-        self.check_prescan('3\\[Divide]2', Node('Divide', Number('3'), Number('2')))
-        self.check('3 \u00f7 2', Node('Divide', Number('3'), Number('2')))
+        self.check_prescan('3\\[Divide]2', Node('Times', Number('3'), Node('Power', Number('2'), Number('-1'))))
+        self.check('3 \u00f7 2', 'Times[3, Power[2, -1]]')
         self.invalid_error('3\\2')
         self.check_prescan('1 \\[Times] 2', Node('Times', Number('1'), Number('2')))
         self.check('1 \u00d7 2', Node('Times', Number('1'), Number('2')))

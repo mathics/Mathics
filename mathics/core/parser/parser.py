@@ -80,10 +80,9 @@ class Parser(object):
                 # flatten or associate
                 if tag in nonassoc_binary_ops and result.get_head_name() == tag and not result.parenthesised:
                     raise InvalidSyntaxError(token.pos)
-                elif tag in flat_binary_ops and result.get_head_name() == tag and not result.parenthesised:
-                    result.children.append(child)
-                else:
-                    result = Node(tag, result, child)
+                result = Node(tag, result, child)
+                if tag in flat_binary_ops:
+                    result.flatten()
             elif tag in ternary_ops:
                 if ternary_ops[tag] < p:
                     break
@@ -233,6 +232,11 @@ class Parser(object):
             return Node('Pattern', Symbol(pieces[0]), blank)
         else:
             return blank
+
+    def p_Minus(self, token):
+        self.consume()
+        q = prefix_ops['Minus']
+        return Node('Times', Number('-1'), self.parse_exp(q)).flatten()
 
     def p_Plus(self, token):
         self.consume()
@@ -422,11 +426,7 @@ class Parser(object):
         except TranslateError:
             self.backtrack(pos)
             expr2 = Symbol('Null')
-
-        if expr1.get_head_name() == 'CompoundExpression' and not expr1.parenthesised:
-            expr1.children.append(expr2)
-            return expr1
-        return Node('CompoundExpression', expr1, expr2)
+        return Node('CompoundExpression', expr1, expr2).flatten()
 
     def e_Put(self, expr1, token, p):
         q = left_binary_ops['Put']
@@ -483,3 +483,11 @@ class Parser(object):
             n += 1
         head = Node('Derivative', Number(str(n)))
         return Node(head, expr1)
+
+    def e_Divide(self, expr1, token, p):
+        q = left_binary_ops['Divide']
+        if q < p:
+            return None
+        self.consume()
+        expr2 = self.parse_exp(q + 1)
+        return Node('Times', expr1, Node('Power', expr2, Number('-1'))).flatten()

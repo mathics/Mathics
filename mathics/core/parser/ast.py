@@ -28,6 +28,17 @@ class Node(object):
             raise TypeError()
         return (self.get_head_name() == other.get_head_name()) and (len(self.children) == len(other.children)) and all(cs == co for cs, co in zip(self.children, other.children))
 
+    def flatten(self):
+        head_name = self.get_head_name()
+        new_children = []
+        for child in self.children:
+            if child.get_head_name() == head_name and not child.parenthesised:
+                new_children.extend(child.children)
+            else:
+                new_children.append(child)
+        self.children = new_children
+        return self
+
 
 class Atom(Node):
     def __init__(self, value):
