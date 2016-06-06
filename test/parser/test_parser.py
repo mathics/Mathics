@@ -235,6 +235,7 @@ class GeneralTests(ParserTests):
         self.check(' ;;2', Node('Span', Number('1'), Number('2')))
         self.check('1;; ', Node('Span', Number('1'), Symbol('All')))
         self.check(' ;; ', Node('Span', Number('1'), Symbol('All')))
+        self.check('1;;2;;3;;4;;5;;6', 'Times[Span[1, 2, 3], Span[1, 4, 5], Span[1, 6]]')
 
     def testBinOp(self):
         self.check('1 <> 2 ', Node('StringJoin', Number('1'), Number('2')))

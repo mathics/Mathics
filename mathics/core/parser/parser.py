@@ -17,8 +17,6 @@ class Parser(object):
     def parse(self, code):
         self.tokeniser = Tokeniser(code)
         self.current_token = None
-        if self.next().tag == 'END':
-            return None
         return self.parse_e()
 
     def next(self):
@@ -54,9 +52,15 @@ class Parser(object):
         self.current_token = None
 
     def parse_e(self):
-        result = self.parse_exp(0)
-        self.expect('END')
-        return result
+        result = []
+        while self.next().tag != 'END':
+            result.append(self.parse_exp(0))
+        if len(result) > 1:
+            return Node('Times', *result)
+        if len(result) == 1:
+            return result[0]
+        else:
+            return None
 
     def parse_exp(self, p):
         result = self.parse_p()
@@ -309,6 +313,8 @@ class Parser(object):
         q = ternary_ops['Span']
         if q < p:
             return None
+        if expr1.get_head_name() == 'Span':
+            return None
 
         self.consume()
 
@@ -334,9 +340,7 @@ class Parser(object):
         except TranslateError:
             # XXX a;;b;;c is Span[a, b, c] but a;;b;; is Times[Span[a, b], Span[1, All]]
             self.backtrack(token.pos)
-            lhs = Node('Span', expr1, expr2)
-            rhs = self.parse_exp(p)
-            return Node('Times', lhs, rhs)
+            return Node('Span', expr1, expr2)
         return Node('Span', expr1, expr2, expr3)
 
     def e_RawLeftBracket(self, expr, token, p):
