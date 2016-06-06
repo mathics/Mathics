@@ -9,6 +9,7 @@ from math import log10
 
 import mathics.core.expression as ma
 from mathics.core.parser.ast import Symbol, String, Number, Filename
+from mathics.core.parser.operators import all_ops
 from mathics.core.numbers import dps
 from mathics.builtin.numeric import machine_precision
 
@@ -50,6 +51,8 @@ class Converter(object):
         return s
 
     def convert_Symbol(self, node):
+        if node.value in all_ops:
+            return 'System`' + node.value
         value = self.definitions.lookup_name(node.value)
         return ma.Symbol(value)
 
