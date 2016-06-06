@@ -106,4 +106,4 @@ class ConvertTests(unittest.TestCase):
         self.check("f''", Expression(Expression('Derivative', Integer(2)), f))
         self.check("(f'')'''", Expression(Expression('Derivative', Integer(3)), Expression(Expression('Derivative', Integer(2)), f)))
         self.check("Derivative[f]", Expression('Derivative', f))
-        self.check("Derivative[1][f]''", "(f')'")
+        self.check("Derivative[1][f]'", "(f')'")

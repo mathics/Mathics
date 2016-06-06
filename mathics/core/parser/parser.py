@@ -472,3 +472,14 @@ class Parser(object):
 
         expr3 = self.parse_exp(q)
         return Node(head, expr1, expr2, expr3)
+
+    def e_Derivative(self, expr1, token, p):
+        q = postfix_ops['Derivative']
+        if q < p:
+            return None
+        n = 0
+        while self.next().tag == 'Derivative':
+            self.consume()
+            n += 1
+        head = Node('Derivative', Number(str(n)))
+        return Node(head, expr1)

@@ -195,9 +195,9 @@ class GeneralTests(ParserTests):
         self.check('x ! y', Node('Times', Node('Factorial', Symbol('x')), Symbol('y')))
 
     def testDerivative(self):
-        self.check("f'", Node('Derivative',   Symbol('f')))
-        self.check("f''", Node('Derivative', Node('Derivative', Symbol('f'))))
-        self.check("f' '", Node('Derivative', Node('Derivative', Symbol('f'))))
+        self.check("f'", 'Derivative[1][f]')
+        self.check("f''", 'Derivative[2][f]')
+        self.check("f' '", 'Derivative[1][f]')
 
     def testPlus(self):
         self.check('+1', Node('Plus', Number('1')))

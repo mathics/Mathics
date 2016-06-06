@@ -170,17 +170,6 @@ class Converter(object):
                 prec10 = dps(prec10)
             return result.round(prec10)
 
-    def Derivative(self, node):
-        n = 0
-        while node.get_head_name() == 'Derivative' and not node.parenthesised and len(node.children) == 1:
-            node = node.children[0]
-            n += 1
-        if node.get_head_name() == 'Derivative':
-            child = ma.Expression('Derivative', *[self.do_convert(child) for child in node.children])
-        else:
-            child = self.do_convert(node)
-        return ma.Expression(ma.Expression('Derivative', ma.Integer(n)), child)
-
 
 converter = Converter()
 convert = converter.convert
