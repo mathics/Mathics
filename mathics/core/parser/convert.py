@@ -54,7 +54,7 @@ class Converter(object):
         return ma.Symbol(value)
 
     def convert_String(self, node):
-        value = self.string_escape(node.value[1:-1])
+        value = self.string_escape(node.value)
         return ma.String(value)
 
     def convert_Filename(self, node):

@@ -1,14 +1,21 @@
 import unittest
 import six
+import random
+import sys
 
-from mathics.core.definitions import Definitions
-from mathics.core.parser import parse
-from mathics.core.expression import Symbol, Integer, Expression, Real
+# from mathics.core.definitions import Definitions
+from mathics.core.parser import (
+    parse, TranslateError, InvalidSyntaxError, IncompleteSyntaxError,
+    ScanError)
+from mathics.core.parser.util import SystemDefinitions
+from mathics.core.expression import (
+    Symbol, Integer, Expression, Real, Rational, String)
 
 
 class ConvertTests(unittest.TestCase):
     def setUp(self):
-        self.definitions = Definitions(add_builtin=True)
+        # self.definitions = Definitions(add_builtin=True)
+        self.definitions = SystemDefinitions()
         self.parse = lambda code: parse(code, self.definitions)
 
     def parse(self, s):
@@ -23,7 +30,10 @@ class ConvertTests(unittest.TestCase):
         if expr1 is None:
             self.assertIsNone(expr2)
         else:
-            self.assertIsTrue(expr1.same(expr2))
+            self.assertTrue(expr1.same(expr2))
+
+    def scan_error(self, string):
+        self.assertRaises(ScanError, self.parse, string)
 
     def incomplete_error(self, string):
         self.assertRaises(IncompleteSyntaxError, self.parse, string)
@@ -72,7 +82,7 @@ class ConvertTests(unittest.TestCase):
         self.invalid_error(r'\""')
 
     def testAccuracy(self):
-        self.lex_error('1.5``')
+        self.scan_error('1.5``')
         self.check('1.0``20', Real('1.0', p=20))
 
     @unittest.expectedFailure
