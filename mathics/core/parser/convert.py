@@ -75,6 +75,10 @@ class Converter(object):
             sign_prefix = ''
             sign = 1
 
+        # fast exit
+        if s.isnumeric():
+            return ma.Integer(sign * int(s))
+
         # Look for base
         s = s.split('^^')
         if len(s) == 1:
