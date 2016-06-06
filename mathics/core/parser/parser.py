@@ -164,6 +164,12 @@ class Parser(object):
         child = self.parse_exp(q)
         return Node('Not', child)
 
+    def p_Factorial2(self, token):
+        self.consume()
+        q = prefix_ops['Not']
+        child = self.parse_exp(q)
+        return Node('Not', Node('Not', child))
+
     def p_RawLeftParenthesis(self, token):
         self.consume()
         result = self.parse_exp(0)
