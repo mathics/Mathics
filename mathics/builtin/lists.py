@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 from six.moves import range
 from six.moves import zip
+from itertools import chain
 
 from mathics.builtin.base import (
     Builtin, Test, InvalidLevelspecError,
@@ -2337,3 +2338,115 @@ class Total(Builtin):
         'Total[head_]': 'Apply[Plus, head]',
         'Total[head_, n_]': 'Apply[Plus, Flatten[head, n]]'
     }
+
+
+class _Rotate(Builtin):
+    messages = {
+        'rspec': '`` should be an integer or a list of integers.'
+    }
+
+    def _rotate(self, expr, n):
+        if not isinstance(expr, Expression):
+            return expr
+
+        leaves = expr.leaves
+        if not leaves:
+            return expr
+
+        index = (self._sign * n[0]) % len(leaves)  # with Python's modulo: index >= 1
+        new_leaves = chain(leaves[index:], leaves[:index])
+
+        if len(n) > 1:
+            new_leaves = [self._rotate(item, n[1:]) for item in new_leaves]
+
+        return Expression(expr.get_head(), *new_leaves)
+
+    def apply_one(self, expr, evaluation):
+        '%(name)s[expr_]'
+        return self._rotate(expr, [1])
+
+    def apply(self, expr, n, evaluation):
+        '%(name)s[expr_, n_]'
+        if isinstance(n, Integer):
+            py_cycles = [n.get_int_value()]
+        elif n.get_head_name() == 'System`List' and not any(not isinstance(x, Integer) for x in n.leaves):
+            py_cycles = [x.get_int_value() for x in n.leaves]
+            if not py_cycles:
+                return expr
+        else:
+            evaluation.message(self.get_name(), 'rspec', n)
+            return
+
+        return self._rotate(expr, py_cycles)
+
+
+class RotateLeft(_Rotate):
+    """
+    <dl>
+    <dt>'RotateLeft[$expr$]'
+        <dd>
+        rotates the items of $expr$' by one item to the left
+        </dd>
+        </dt>
+    </dl>
+    <dt>'RotateLeft[$expr$, $n$]'
+        <dd>
+        rotates the items of $expr$' by $n$ items to the left
+        </dd>
+        </dt>
+    </dl>
+    <dt>'RotateLeft[$expr$, {$n1$, $n2$, ...}]'
+        <dd>
+        rotates the items of $expr$' by $n1$ items to the left at the first level, by $n2$ items to the left at
+        the second level, and so on.
+        </dd>
+        </dt>
+    </dl>
+
+    >> RotateLeft[{1, 2, 3}]
+     = {2, 3, 1}
+    >> RotateLeft[Range[10], 3]
+     = {4, 5, 6, 7, 8, 9, 10, 1, 2, 3}
+    >> RotateLeft[x[a, b, c], 2]
+     = x[c, a, b]
+    >> RotateLeft[{{a, b, c}, {d, e, f}, {g, h, i}}, {1, 2}]
+     = {{f, d, e}, {i, g, h}, {c, a, b}}
+    """
+
+    _sign = 1
+
+
+class RotateRight(_Rotate):
+    """
+    <dl>
+    <dt>'RotateRight[$expr$]'
+        <dd>
+        rotates the items of $expr$' by one item to the right
+        </dd>
+        </dt>
+    </dl>
+    <dt>'RotateRight[$expr$, $n$]'
+        <dd>
+        rotates the items of $expr$' by $n$ items to the right
+        </dd>
+        </dt>
+    </dl>
+    <dt>'RotateRight[$expr$, {$n1$, $n2$, ...}]'
+        <dd>
+        rotates the items of $expr$' by $n1$ items to the right at the first level, by $n2$ items to the right at
+        the second level, and so on.
+        </dd>
+        </dt>
+    </dl>
+
+    >> RotateRight[{1, 2, 3}]
+     = {3, 1, 2}
+    >> RotateRight[Range[10], 3]
+     = {8, 9, 10, 1, 2, 3, 4, 5, 6, 7}
+    >> RotateRight[x[a, b, c], 2]
+     = x[b, c, a]
+    >> RotateRight[{{a, b, c}, {d, e, f}, {g, h, i}}, {1, 2}]
+     = {{h, i, g}, {b, c, a}, {e, f, d}}
+    """
+
+    _sign = -1
