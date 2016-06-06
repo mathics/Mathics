@@ -34,9 +34,6 @@ class Converter(object):
             return self.convert_Number(node)
         elif isinstance(node, Filename):
             return self.convert_Filename(node)
-        method = getattr(self, head_name, None)
-        if method is not None:
-            return method(node)
         else:
             head = self.do_convert(node.head)
             children = [self.do_convert(child) for child in node.children]
