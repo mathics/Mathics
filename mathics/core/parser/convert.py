@@ -64,7 +64,7 @@ class Converter(object):
             s = s[1:-1]
         s = self.string_escape(s)
         s = s.replace('\\', '\\\\')
-        return ma.String(value)
+        return ma.String(s)
 
     def convert_Number(self, node):
         s = node.value
