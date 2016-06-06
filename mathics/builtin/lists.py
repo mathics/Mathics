@@ -2384,23 +2384,12 @@ class RotateLeft(_Rotate):
     """
     <dl>
     <dt>'RotateLeft[$expr$]'
-        <dd>
-        rotates the items of $expr$' by one item to the left
-        </dd>
-        </dt>
-    </dl>
+        <dd>rotates the items of $expr$' by one item to the left
     <dt>'RotateLeft[$expr$, $n$]'
-        <dd>
-        rotates the items of $expr$' by $n$ items to the left
-        </dd>
-        </dt>
-    </dl>
+        <dd>rotates the items of $expr$' by $n$ items to the left
     <dt>'RotateLeft[$expr$, {$n1$, $n2$, ...}]'
-        <dd>
-        rotates the items of $expr$' by $n1$ items to the left at the first level, by $n2$ items to the left at
+        <dd>rotates the items of $expr$' by $n1$ items to the left at the first level, by $n2$ items to the left at
         the second level, and so on.
-        </dd>
-        </dt>
     </dl>
 
     >> RotateLeft[{1, 2, 3}]
@@ -2420,23 +2409,12 @@ class RotateRight(_Rotate):
     """
     <dl>
     <dt>'RotateRight[$expr$]'
-        <dd>
-        rotates the items of $expr$' by one item to the right
-        </dd>
-        </dt>
-    </dl>
+        <dd>rotates the items of $expr$' by one item to the right
     <dt>'RotateRight[$expr$, $n$]'
-        <dd>
-        rotates the items of $expr$' by $n$ items to the right
-        </dd>
-        </dt>
-    </dl>
+        <dd>rotates the items of $expr$' by $n$ items to the right
     <dt>'RotateRight[$expr$, {$n1$, $n2$, ...}]'
-        <dd>
-        rotates the items of $expr$' by $n1$ items to the right at the first level, by $n2$ items to the right at
+        <dd>rotates the items of $expr$' by $n1$ items to the right at the first level, by $n2$ items to the right at
         the second level, and so on.
-        </dd>
-        </dt>
     </dl>
 
     >> RotateRight[{1, 2, 3}]
