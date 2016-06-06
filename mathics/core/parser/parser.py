@@ -105,10 +105,7 @@ class Parser(object):
             elif tag not in ('END', 'RawRightParenthesis', 'RawComma', 'RawRightBrace', 'RawRightBracket', 'RawColon', 'DifferentialD') and flat_binary_ops['Times'] >= p:  # implicit times
                 q = flat_binary_ops['Times']
                 child = self.parse_exp(q + 1)
-                if result.get_head_name() == 'Times' and not result.parenthesised:
-                    result.children.append(child)
-                else:
-                    result = Node('Times', result, child)
+                result = Node('Times', result, child).flatten()
             else:
                 break
         return result
