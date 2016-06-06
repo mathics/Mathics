@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import six
 
+from mathics.core.parser.errors import IncompleteSyntaxError
 from mathics.core.parser.prescanner import prescan
 from mathics.core.parser.parser import Parser
 from mathics.core.parser.convert import convert
