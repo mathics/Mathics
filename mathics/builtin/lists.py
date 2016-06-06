@@ -2343,21 +2343,13 @@ class Reverse(Builtin):
     """
     <dl>
     <dt>'Reverse[$expr$]'
-        <dd>
-        reverses the order of $expr$'s items (on the top level)
-        </dd>
-        </dt>
+        <dd>reverses the order of $expr$'s items (on the top level)
     <dt>'Reverse[$expr$, $n$]'
-        <dd>
-        reverses the order of items in $expr$ on level $n$
-        </dd>
-        </dt>
+        <dd>reverses the order of items in $expr$ on level $n$
     <dt>'Reverse[$expr$, {$n1$, $n2$, ...}]'
-        <dd>
-        reverses the order of items in $expr$ on levels $n1$, $n2$, ...
-        </dd>
-        </dt>
+        <dd>reverses the order of items in $expr$ on levels $n1$, $n2$, ...
     </dl>
+
     >> Reverse[{1, 2, 3}]
      = {3, 2, 1}
     >> Reverse[x[a, b, c]]
