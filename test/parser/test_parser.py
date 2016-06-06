@@ -60,6 +60,9 @@ class PrecedenceTests(ParserTests):
         self.check('- a . b', 'Times[-1, Dot[a, b]]'),
         self.check('- a / b', 'Times[-1, a, Power[b, -1]]'),
         self.check('- a / - b', 'Times[-1, a, Power[Times[-1, b], -1]]')
+        self.check('- a / - b', 'Times[-1, a, Power[Times[-1, b], -1]]')
+        self.check('a + b!', 'Plus[a, Factorial[b]]')
+        self.check('!a!', 'Not[Factorial[a]]')
 
 
 class AssocTests(ParserTests):
