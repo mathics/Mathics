@@ -3,19 +3,17 @@ import six
 import random
 import sys
 
-# from mathics.core.definitions import Definitions
+from mathics.core.definitions import Definitions
 from mathics.core.parser import (
     parse, TranslateError, InvalidSyntaxError, IncompleteSyntaxError,
     ScanError)
-from mathics.core.parser.util import SystemDefinitions
 from mathics.core.expression import (
     Symbol, Integer, Expression, Real, Rational, String)
 
 
 class ConvertTests(unittest.TestCase):
     def setUp(self):
-        # self.definitions = Definitions(add_builtin=True)
-        self.definitions = SystemDefinitions()
+        self.definitions = Definitions(add_builtin=True)
         self.parse = lambda code: parse(code, self.definitions)
 
     def parse(self, s):
