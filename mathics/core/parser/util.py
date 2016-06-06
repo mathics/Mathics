@@ -20,6 +20,8 @@ parser = Parser()
 def parse(raw_code, definitions):
     code = prescan(raw_code)
     ast = parser.parse(code)
+    if ast is None:
+        return None
     return convert(ast, definitions)
 
 
