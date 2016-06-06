@@ -199,10 +199,10 @@ class Definitions(object):
             return name
 
         with_context = current_context + name
-        if not self.have_definition(with_context):
+        if not self.have_qualified_definition(with_context):
             for ctx in self.get_context_path():
                 n = ctx + name
-                if self.have_definition(n):
+                if self.have_qualified_definition(n):
                     return n
         return with_context
 
@@ -220,8 +220,8 @@ class Definitions(object):
                 return name_with_ctx[len(ctx):]
         return name_with_ctx
 
-    def have_definition(self, name):
-        return self.get_definition(name, only_if_exists=True) is not None
+    def have_qualified_definition(self, name):
+        return name in self.builtin or name in self.user
 
     def get_definition(self, name, only_if_exists=False):
         name = self.lookup_name(name)
