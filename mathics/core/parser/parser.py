@@ -401,7 +401,7 @@ class Parser(object):
         if token.text == '&':
             return Node('Function', expr1)
         else:
-            expr2 = self.parse_exp(q + 1)
+            expr2 = self.parse_exp(q)
             return Node('Function', expr1, expr2)
 
     def e_RawColon(self, expr1, token, p):
