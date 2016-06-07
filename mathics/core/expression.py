@@ -393,6 +393,47 @@ class BaseExpression(KeyComparable):
     def to_sympy(self, **kwargs):
         raise NotImplementedError
 
+    def __abs__(self):
+        from mathics.builtin.arithmetic import mathics_abs
+        return mathics_abs(self)
+
+    def __pos__(self):
+        return self
+
+    def __neg__(self):
+        from mathics.builtin.arithmetic import mathics_mul
+        return mathics_mul(self, Integer(-1))
+
+    def __floor__(self):
+        return Expression('Floor', self)
+
+    def __ceil__(self):
+        return Expression('Ceiling', self)
+
+    def __add__(self, other):
+        from mathics.builtin.arithmetic import mathics_add
+        return mathics_add(self, from_python(other))
+
+    def __sub__(self, other):
+        from mathics.builtin.arithmetic import mathics_sub
+        return mathics_sub(self, from_python(other))
+
+    def __mul__(self, other):
+        from mathics.builtin.arithmetic import mathics_mul
+        return mathics_mul(self, from_python(other))
+
+    def __truediv__(self, other):
+        from mathics.builtin.arithmetic import mathics_div
+        return mathics_div(self, from_python(other))
+
+    def __floordiv__(self, other):
+        from mathics.builtin.arithmetic import mathics_div
+        return Expression('Floor', mathics_div(self, from_python(other)))
+
+    def __pow__(self, other):
+        from mathics.builtin.arithmetic import mathics_pow
+        return mathics_pow(self, from_python(other))
+
 
 # TODO subclass KeyComparable
 class Monomial(object):
