@@ -235,7 +235,7 @@ class Tokeniser(object):
         'return next token'
         self.skip_blank()
         if self.pos >= len(self.code):
-            return Token('END', '', len(self.code) - 1)
+            return Token('END', '', len(self.code))
         for tag, pattern in tokens:
             match = pattern.match(self.code, self.pos)
             if match is not None:

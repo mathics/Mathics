@@ -227,6 +227,8 @@ class GeneralTests(ParserTests):
         self.check('x ^ 2 y', Node('Times', Node('Power', Symbol('x'), Number('2')), Symbol('y')))
 
     def testSpan(self):
+        self.check(';;', Node('Span', Number('1'), Symbol('All')))
+        self.check('a;;b;;', Node('Times', Node('Span', Symbol('a'), Symbol('b')), Node('Span', Number('1'), Symbol('All'))))
         self.check('1;;2;;3', Node('Span', Number('1'), Number('2'), Number('3')))
         self.check('1;; ;;3', Node('Span', Number('1'), Symbol('All'), Number('3')))
         self.check('1;;;;3', Node('Span', Number('1'), Symbol('All'), Number('3')))
@@ -236,6 +238,7 @@ class GeneralTests(ParserTests):
         self.check('1;; ', Node('Span', Number('1'), Symbol('All')))
         self.check(' ;; ', Node('Span', Number('1'), Symbol('All')))
         self.check('1;;2;;3;;4;;5;;6', 'Times[Span[1, 2, 3], Span[1, 4, 5], Span[1, 6]]')
+        self.check('(a;;b);;c', 'Span[Span[a, b], c]')
 
     def testBinOp(self):
         self.check('1 <> 2 ', Node('StringJoin', Number('1'), Number('2')))
