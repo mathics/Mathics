@@ -10,7 +10,8 @@ import sys
 import pexpect
 import unittest
 from six.moves import range
-from mathics.core.expression import Expression, Integer, Rational, Symbol
+from math import floor, ceil
+from mathics.core.expression import Expression, Integer, Rational, Symbol, Real
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 
@@ -64,6 +65,24 @@ class ArithmeticTest(unittest.TestCase):
         cases = (
             (Integer(8) ** 2, Integer(64)),
             (Expression('List', 2, 5) ** Expression('List', 3, 4), Expression('List', 8, 625)))
+        self._testCases(cases)
+
+    def testAbs(self):
+        cases = (
+            (abs(Integer(-8)), Integer(8)),
+            (abs(Expression('List')), Expression('Abs', Expression('List'))))
+        self._testCases(cases)
+
+    def testFloor(self):
+        cases = (
+            (floor(Real(7.2)), Integer(7)),
+            (floor(Expression('List')), Expression('Floor', Expression('List'))))
+        self._testCases(cases)
+
+    def testCeil(self):
+        cases = (
+            (ceil(Real(7.2)), Integer(8)),
+            (ceil(Expression('List')), Expression('Ceiling', Expression('List'))))
         self._testCases(cases)
 
     def _testCases(self, cases):
