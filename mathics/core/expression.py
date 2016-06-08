@@ -402,12 +402,6 @@ class BaseExpression(KeyComparable):
     def __neg__(self):
         return Expression('Times', self, -1)
 
-    def __floor__(self):
-        return Expression('Floor', self)
-
-    def __ceil__(self):
-        return Expression('Ceiling', self)
-
     def __add__(self, other):
         return Expression('Plus', self, other)
 
