@@ -2337,3 +2337,25 @@ class Total(Builtin):
         'Total[head_]': 'Apply[Plus, head]',
         'Total[head_, n_]': 'Apply[Plus, Flatten[head, n]]'
     }
+
+
+class Mean(Builtin):
+    """
+    <dl>
+    <dt>'Mean[$list$]'
+      <dd>returns the statistical mean of $list$.
+    </dl>
+
+    >> Mean[{26, 64, 36}]
+     = 42
+
+    >> Mean[{1, 1, 2, 3, 5, 8}]
+     = 10 / 3
+
+    >> Mean[{a, b}]
+     = (a + b) / 2
+    """
+
+    rules = {
+        'Mean[list_]': 'Total[list] / Length[list]',
+    }
