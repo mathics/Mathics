@@ -412,7 +412,7 @@ class Parser(object):
             head = 'Optional'
         else:
             raise InvalidSyntaxError(token.pos)
-        q = all_ops[head] + 1000    # HACK: add 1000 to ensure patterns are parsed first
+        q = all_ops[head]
         if q < p:
             return None
         self.consume()
@@ -500,3 +500,29 @@ class Parser(object):
         self.consume()
         expr2 = self.parse_exp(q + 1)
         return Node('Times', expr1, Node('Power', expr2, Number('-1'))).flatten()
+
+    def e_Alternatives(self, expr1, token, p):
+        q = flat_binary_ops['Alternatives']
+        if q < p:
+            return None
+        self.consume()
+        expr2 = self.parse_exp(q + 1)
+        return Node('Alternatives', expr1, expr2).flatten()
+
+    def e_PatternTest(self, expr1, token, p):
+        q = nonassoc_binary_ops['PatternTest']
+        if q < p:
+            return None
+        self.consume()
+        expr2 = self.parse_exp(q + 1)
+        token = self.next()
+        tag = token.tag
+        # XXX Hack: PatternTest parsing is weird. It's precedence is super high 680
+        # but disobeys this around patterns
+        if tag == 'Alternatives':
+            expr2 = self.e_Alternatives(expr2, token, 159)
+        elif tag == 'RawColon':
+            expr2 = self.e_RawColon(expr2, token, 139)
+        elif tag == 'PatternTest':
+            raise InvalidSyntaxError(token.pos)
+        return Node('PatternTest', expr1, expr2)
