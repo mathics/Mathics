@@ -1723,3 +1723,31 @@ class Piecewise(SympyFunction):
         if str(args[-1].leaves[1]).startswith('System`_True__Dummy_'):
             args[-1].leaves[1] = Symbol('True')
         return [args]
+
+
+class Boole(Builtin):
+    """
+    <dl>
+    <dt>'Boole[expr]'
+      <dd>returns 1 if expr is True and 0 if expr is False.
+    </dl>
+
+    >> Boole[2 == 2]
+     = 1
+    >> Boole[7 < 5]
+     = 0
+    >> Boole[a == 7]
+     = Boole[a == 7]
+    """
+
+    attributes = ('Listable',)
+
+    def apply(self, expr, evaluation):
+        'Boole[expr_]'
+        if isinstance(expr, Symbol):
+            name = expr.get_name()
+            if name == 'System`True':
+                return Integer(1)
+            elif name == 'System`False':
+                return Integer(0)
+        return None
