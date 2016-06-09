@@ -2696,3 +2696,25 @@ class Reverse(Builtin):
             evaluation.message('Reverse', 'ilsmp', Expression('Reverse', expr, levels))
         else:
             return Reverse._reverse(expr, 1, py_levels)
+
+
+class Mean(Builtin):
+    """
+    <dl>
+    <dt>'Mean[$list$]'
+      <dd>returns the statistical mean of $list$.
+    </dl>
+
+    >> Mean[{26, 64, 36}]
+     = 42
+
+    >> Mean[{1, 1, 2, 3, 5, 8}]
+     = 10 / 3
+
+    >> Mean[{a, b}]
+     = (a + b) / 2
+    """
+
+    rules = {
+        'Mean[list_]': 'Total[list] / Length[list]',
+    }
