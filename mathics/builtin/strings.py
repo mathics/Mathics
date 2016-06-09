@@ -1417,3 +1417,52 @@ class StringDrop(Builtin):
         if not isinstance(string, String):
             return evaluation.message('StringDrop', 'strse')
         return evaluation.message('StringDrop', 'mseqs')
+
+
+class HammingDistance(Builtin):
+    """
+    <dl>
+    <dt>'HammingDistance[$u$, $v$]'
+      <dd>returns the Hamming distance between $u$ and $v$, i.e. the number of different elements.
+      $u$ and $v$ may be lists or strings.
+    </dl>
+
+    >> HammingDistance[{1, 0, 1, 0}, {1, 0, 0, 1}]
+    = 2
+
+    >> HammingDistance["time", "dime"]
+    = 1
+
+    >> HammingDistance["TIME", "dime", IgnoreCase -> True]
+    = 1
+    """
+
+    messages = {
+        'idim': '`1` and `2` must be of same length.',
+    }
+
+    options = {
+        'IgnoreCase': 'False',
+    }
+
+    @staticmethod
+    def _compute(u, v, same, evaluation):
+        if len(u) != len(v):
+            evaluation.message('HammingDistance', 'idim', u, v)
+            return None
+        else:
+            return Integer(sum(0 if same(x, y) else 1 for x, y in zip(u, v)))
+
+    def apply_list(self, u, v, evaluation):
+        'HammingDistance[u_List, v_List]'
+        return HammingDistance._compute(u.leaves, v.leaves, lambda x, y: x.same(y), evaluation)
+
+    def apply_string(self, u, v, evaluation, options):
+        'HammingDistance[u_String, v_String, OptionsPattern[HammingDistance]]'
+        ignore_case = self.get_option(options, 'IgnoreCase', evaluation)
+        py_u = u.get_string_value()
+        py_v = v.get_string_value()
+        if ignore_case and ignore_case.is_true():
+            py_u = py_u.lower()
+            py_v = py_v.lower()
+        return HammingDistance._compute(py_u, py_v, lambda x, y: x == y, evaluation)
