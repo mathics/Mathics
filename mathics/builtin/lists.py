@@ -3402,3 +3402,224 @@ class TakeSmallestBy(_RankedTakeSmallest):
     def apply(self, l, f, n, evaluation, options):
         'TakeSmallestBy[l_List, f_, n_, OptionsPattern[TakeSmallestBy]]'
         return self._compute(l, n, evaluation, options, f=f)
+
+
+class _IllegalPaddingDepth(Exception):
+    def __init__(self, level):
+        self.level = level
+
+
+class _Pad(Builtin):
+    messages = {
+        'normal': 'Expression at position 1 in `` must not be an atom.',
+        'level': 'Cannot pad list `3` which has `4` using padding `1` which specifies `2`.',
+        'ilsm': 'Expected an integer or a list of integers at position `1` in `2`.'
+    }
+
+    rules = {
+        '%(name)s[l_]': '%(name)s[l, Automatic]'
+    }
+
+    @staticmethod
+    def _find_dims(expr):
+        def dive(expr, level):
+            if isinstance(expr, Expression):
+                if expr.leaves:
+                    return max(dive(x, level + 1) for x in expr.leaves)
+                else:
+                    return level + 1
+            else:
+                return level
+
+        def calc(expr, dims, level):
+            if isinstance(expr, Expression):
+                for x in expr.leaves:
+                    calc(x, dims, level + 1)
+                dims[level] = max(dims[level], len(expr.leaves))
+
+        dims = [0] * dive(expr, 0)
+        calc(expr, dims, 0)
+        return dims
+
+    @staticmethod
+    def _build(l, n, x, m, level, mode):  # mode < 0 for left pad, > 0 for right pad
+        if not n:
+            return l
+        if not isinstance(l, Expression):
+            raise _IllegalPaddingDepth(level)
+
+        if isinstance(m, (list, tuple)):
+            current_m = m[0] if m else 0
+            next_m = m[1:]
+        else:
+            current_m = m
+            next_m = m
+
+        def clip(a, d, s):
+            assert d != 0
+            if s < 0:
+                return a[-d:]  # end with a[-1]
+            else:
+                return a[:d]  # start with a[0]
+
+        def padding(amount, sign):
+            if amount == 0:
+                return []
+            elif len(n) > 1:
+                return [_Pad._build(Expression('List'), n[1:], x, next_m, level + 1, mode)] * amount
+            else:
+                return clip(x * (1 + amount // len(x)), amount, sign)
+
+        leaves = l.leaves
+        d = n[0] - len(leaves)
+        if d < 0:
+            new_leaves = clip(leaves, d, mode)
+            padding_main = []
+        elif d >= 0:
+            new_leaves = leaves
+            padding_main = padding(d, mode)
+
+        if current_m > 0:
+            padding_margin = padding(min(current_m, len(new_leaves) + len(padding_main)), -mode)
+
+            if len(padding_margin) > len(padding_main):
+                padding_main = []
+                new_leaves = clip(new_leaves, -(len(padding_margin) - len(padding_main)), mode)
+            elif len(padding_margin) > 0:
+                padding_main = clip(padding_main, -len(padding_margin), mode)
+        else:
+            padding_margin = []
+
+        if len(n) > 1:
+            new_leaves = (_Pad._build(e, n[1:], x, next_m, level + 1, mode) for e in new_leaves)
+
+        if mode < 0:
+            parts = (padding_main, new_leaves, padding_margin)
+        else:
+            parts = (padding_margin, new_leaves, padding_main)
+
+        return Expression(l.get_head(), *list(chain(*parts)))
+
+    def _pad(self, l, n, x, m, evaluation, expr):
+        if not isinstance(l, Expression):
+            evaluation.message(self.get_name(), 'normal', expr())
+            return
+
+        py_n = None
+        if isinstance(n, Symbol) and n.get_name() == 'System`Automatic':
+            py_n = _Pad._find_dims(l)
+        elif n.get_head_name() == 'System`List':
+            if all(isinstance(x, Integer) for x in n.leaves):
+                py_n = [x.get_int_value() for x in n.leaves]
+        elif isinstance(n, Integer):
+            py_n = [n.get_int_value()]
+
+        if py_n is None:
+            evaluation.message(self.get_name(), 'ilsm', 2, expr())
+            return
+
+        if x.get_head_name() == 'System`List':
+            py_x = x.leaves
+        else:
+            py_x = [x]
+
+        if isinstance(m, Integer):
+            py_m = m.get_int_value()
+        else:
+            if not all(isinstance(x, Integer) for x in m.leaves):
+                evaluation.message(self.get_name(), 'ilsm', 4, expr())
+                return
+            py_m = [x.get_int_value() for x in m.leaves]
+
+        try:
+            return _Pad._build(l, py_n, py_x, py_m, 1, self._mode)
+        except _IllegalPaddingDepth as e:
+            def levels(k):
+                if k == 1:
+                    return '1 level'
+                else:
+                    return '%d levels' % k
+            evaluation.message(self.get_name(), 'level', n, levels(len(py_n)), l, levels(e.level - 1))
+            return None
+
+    def apply_zero(self, l, n, evaluation):
+        '%(name)s[l_, n_]'
+        return self._pad(l, n, Integer(0), Integer(0), evaluation, lambda: Expression(self.get_name(), l, n))
+
+    def apply(self, l, n, x, evaluation):
+        '%(name)s[l_, n_, x_]'
+        return self._pad(l, n, x, Integer(0), evaluation, lambda: Expression(self.get_name(), l, n, x))
+
+    def apply_margin(self, l, n, x, m, evaluation):
+        '%(name)s[l_, n_, x_, m_]'
+        return self._pad(l, n, x, m, evaluation, lambda: Expression(self.get_name(), l, n, x, m))
+
+
+class PadLeft(_Pad):
+    """
+    <dl>
+    <dt>'PadLeft[$list$, $n$]'
+        <dd>pads $list$ to length $n$ by adding 0 on the left.
+    <dt>'PadLeft[$list$, $n$, $x$]'
+        <dd>pads $list$ to length $n$ by adding $x$ on the left.
+    <dt>'PadLeft[$list$, {$n1$, $n2, ...}, $x$]'
+        <dd>pads $list$ to lengths $n1$, $n2$ at levels 1, 2, ... respectively by adding $x$ on the left.
+    <dt>'PadLeft[$list$, $n$, $x$, $m$]'
+        <dd>pads $list$ to length $n$ by adding $x$ on the left and adding a margin of $m$ on the right.
+    <dt>'PadLeft[$list$, $n$, $x$, {$m1$, $m2$, ...}]'
+        <dd>pads $list$ to length $n$ by adding $x$ on the left and adding margins of $m1$, $m2$, ...
+         on levels 1, 2, ... on the right.
+    <dt>'PadLeft[$list$]'
+        <dd>turns the ragged list $list$ into a regular list by adding 0 on the left.
+    </dl>
+
+    >> PadLeft[{1, 2, 3}, 5]
+     = {0, 0, 1, 2, 3}
+    >> PadLeft[x[a, b, c], 5]
+     = x[0, 0, a, b, c]
+    >> PadLeft[{1, 2, 3}, 2]
+     = {2, 3}
+    >> PadLeft[{{}, {1, 2}, {1, 2, 3}}]
+     = {{0, 0, 0}, {0, 1, 2}, {1, 2, 3}}
+    >> PadLeft[{1, 2, 3}, 10, {a, b, c}, 2]
+     = {b, c, a, b, c, 1, 2, 3, a, b}
+    >> PadLeft[{{1, 2, 3}}, {5, 2}, x, 1]
+     = {{x, x}, {x, x}, {x, x}, {3, x}, {x, x}}
+    """
+
+    _mode = -1
+
+
+class PadRight(_Pad):
+    """
+    <dl>
+    <dt>'PadRight[$list$, $n$]'
+        <dd>pads $list$ to length $n$ by adding 0 on the right.
+    <dt>'PadRight[$list$, $n$, $x$]'
+        <dd>pads $list$ to length $n$ by adding $x$ on the right.
+    <dt>'PadRight[$list$, {$n1$, $n2, ...}, $x$]'
+        <dd>pads $list$ to lengths $n1$, $n2$ at levels 1, 2, ... respectively by adding $x$ on the right.
+    <dt>'PadRight[$list$, $n$, $x$, $m$]'
+        <dd>pads $list$ to length $n$ by adding $x$ on the left and adding a margin of $m$ on the left.
+    <dt>'PadRight[$list$, $n$, $x$, {$m1$, $m2$, ...}]'
+        <dd>pads $list$ to length $n$ by adding $x$ on the right and adding margins of $m1$, $m2$, ...
+         on levels 1, 2, ... on the left.
+    <dt>'PadRight[$list$]'
+        <dd>turns the ragged list $list$ into a regular list by adding 0 on the right.
+    </dl>
+
+    >> PadRight[{1, 2, 3}, 5]
+     = {1, 2, 3, 0, 0}
+    >> PadRight[x[a, b, c], 5]
+     = x[a, b, c, 0, 0]
+    >> PadRight[{1, 2, 3}, 2]
+     = {1, 2}
+    >> PadRight[{{}, {1, 2}, {1, 2, 3}}]
+     = {{0, 0, 0}, {1, 2, 0}, {1, 2, 3}}
+    >> PadRight[{1, 2, 3}, 10, {a, b, c}, 2]
+     = {b, c, 1, 2, 3, a, b, c, a, b}
+    >> PadRight[{{1, 2, 3}}, {5, 2}, x, 1]
+     = {{x, x}, {x, 1}, {x, x}, {x, x}, {x, x}}
+    """
+
+    _mode = 1
