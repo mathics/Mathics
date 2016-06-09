@@ -2369,7 +2369,7 @@ class _Rotate(Builtin):
         '%(name)s[expr_, n_]'
         if isinstance(n, Integer):
             py_cycles = [n.get_int_value()]
-        elif n.get_head_name() == 'System`List' and not any(not isinstance(x, Integer) for x in n.leaves):
+        elif n.get_head_name() == 'System`List' and all(isinstance(x, Integer) for x in n.leaves):
             py_cycles = [x.get_int_value() for x in n.leaves]
             if not py_cycles:
                 return expr
@@ -2384,9 +2384,9 @@ class RotateLeft(_Rotate):
     """
     <dl>
     <dt>'RotateLeft[$expr$]'
-        <dd>rotates the items of $expr$' by one item to the left
+        <dd>rotates the items of $expr$' by one item to the left.
     <dt>'RotateLeft[$expr$, $n$]'
-        <dd>rotates the items of $expr$' by $n$ items to the left
+        <dd>rotates the items of $expr$' by $n$ items to the left.
     <dt>'RotateLeft[$expr$, {$n1$, $n2$, ...}]'
         <dd>rotates the items of $expr$' by $n1$ items to the left at the first level, by $n2$ items to the left at
         the second level, and so on.
@@ -2409,9 +2409,9 @@ class RotateRight(_Rotate):
     """
     <dl>
     <dt>'RotateRight[$expr$]'
-        <dd>rotates the items of $expr$' by one item to the right
+        <dd>rotates the items of $expr$' by one item to the right.
     <dt>'RotateRight[$expr$, $n$]'
-        <dd>rotates the items of $expr$' by $n$ items to the right
+        <dd>rotates the items of $expr$' by $n$ items to the right.
     <dt>'RotateRight[$expr$, {$n1$, $n2$, ...}]'
         <dd>rotates the items of $expr$' by $n1$ items to the right at the first level, by $n2$ items to the right at
         the second level, and so on.
