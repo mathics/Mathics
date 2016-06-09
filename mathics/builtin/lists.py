@@ -2618,3 +2618,68 @@ class Total(Builtin):
         'Total[head_]': 'Apply[Plus, head]',
         'Total[head_, n_]': 'Apply[Plus, Flatten[head, n]]'
     }
+
+
+class Reverse(Builtin):
+    """
+    <dl>
+    <dt>'Reverse[$expr$]'
+        <dd>reverses the order of $expr$'s items (on the top level)
+    <dt>'Reverse[$expr$, $n$]'
+        <dd>reverses the order of items in $expr$ on level $n$
+    <dt>'Reverse[$expr$, {$n1$, $n2$, ...}]'
+        <dd>reverses the order of items in $expr$ on levels $n1$, $n2$, ...
+    </dl>
+
+    >> Reverse[{1, 2, 3}]
+     = {3, 2, 1}
+    >> Reverse[x[a, b, c]]
+     = x[c, b, a]
+    >> Reverse[{{1, 2}, {3, 4}}, 1]
+     = {{3, 4}, {1, 2}}
+    >> Reverse[{{1, 2}, {3, 4}}, 2]
+     = {{2, 1}, {4, 3}}
+    >> Reverse[{{1, 2}, {3, 4}}, {1, 2}]
+     = {{4, 3}, {2, 1}}
+    """
+
+    messages = {
+        'ilsmp': 'Positive integer or list of positive integers expected at position 2 of ``.'
+    }
+
+    @staticmethod
+    def _reverse(expr, level, levels):  # depth >= 1, levels are expected to be unique and sorted
+        if not isinstance(expr, Expression):
+            return expr
+        if levels[0] == level:
+            new_leaves = reversed(expr.leaves)
+            if len(levels) > 1:
+                new_leaves = (Reverse._reverse(leaf, level + 1, levels[1:]) for leaf in new_leaves)
+        else:
+            new_leaves = (Reverse._reverse(leaf, level + 1, levels) for leaf in expr.leaves)
+        return Expression(expr.get_head(), *new_leaves)
+
+    def apply_top_level(self, expr, evaluation):
+        'Reverse[expr_]'
+        return Reverse._reverse(expr, 1, (1,))
+
+    def apply(self, expr, levels, evaluation):
+        'Reverse[expr_, levels_]'
+        if isinstance(levels, Integer):
+            py_levels = [levels.get_int_value()]
+        elif levels.get_head_name() == 'System`List':
+            if not levels.leaves:
+                return expr
+            if any(not isinstance(level, Integer) for level in levels.leaves):
+                py_levels = None
+            else:
+                py_levels = sorted(list(set(
+                    level.get_int_value() for level in levels.leaves)))
+        else:
+            py_levels = None
+        if py_levels and py_levels[0] < 1:  # if py_level is not None, it's sorted
+            py_levels = None
+        if py_levels is None:
+            evaluation.message('Reverse', 'ilsmp', Expression('Reverse', expr, levels))
+        else:
+            return Reverse._reverse(expr, 1, py_levels)
