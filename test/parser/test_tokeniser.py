@@ -74,7 +74,6 @@ class TokeniserTest(unittest.TestCase):
 
     def testNumber(self):
         self.check_number('0')
-        self.check_number('-1')
 
     def testNumberBase(self):
         self.check_number('8^^23')
@@ -84,14 +83,13 @@ class TokeniserTest(unittest.TestCase):
 
     def testNumberBig(self):
         for _ in range(10):
-            self.check_number(str(random.randint(-sys.maxsize, sys.maxsize)))
+            self.check_number(str(random.randint(0, sys.maxsize)))
             self.check_number(str(random.randint(sys.maxsize, sys.maxsize * sys.maxsize)))
 
     def testNumberReal(self):
         self.check_number('1.5')
         self.check_number('1.5`')
         self.check_number('0.0')
-        self.check_number('-1.5`')
 
     def testString(self):
         self.check_string(r'"abc"')

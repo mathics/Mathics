@@ -2,8 +2,8 @@ import unittest
 import six
 
 from mathics.core.definitions import Definitions
-from mathics.core.parser import parse
-from mathics.core.expression import Symbol, Integer
+from mathics.core.parser import parse, InvalidSyntaxError, IncompleteSyntaxError
+from mathics.core.parser import parse, InvalidSyntaxError, IncompleteSyntaxError
 
 
 class UtilTests(unittest.TestCase):
@@ -23,7 +23,7 @@ class UtilTests(unittest.TestCase):
         if expr1 is None:
             self.assertIsNone(expr2)
         else:
-            self.assertIsTrue(expr1.same(expr2))
+            self.assertTrue(expr1.same(expr2))
 
     def incomplete_error(self, string):
         self.assertRaises(IncompleteSyntaxError, self.parse, string)
@@ -39,11 +39,11 @@ class MultiLineParserTests(UtilTests):
 
     def test_trailing_backslash(self):
         self.incomplete_error('x \\')
-        self.check('x \\\ny', Node('Times', Symbol('Global`x'), Symbol('Global`y')))
+        self.check('x \\\ny', 'Times[Global`x' 'Global`y]')
 
     def test_continuation(self):
         self.incomplete_error('Sin[')
-        self.check('Sin[\n0]', Node('Sin', Integer(0)))
+        self.check('Sin[\n0]', 'Sin[0]')
 
     @unittest.expectedFailure
     def test_blanknewline(self):
