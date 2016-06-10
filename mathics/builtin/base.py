@@ -6,6 +6,7 @@ from __future__ import absolute_import
 
 import re
 import sympy
+from functools import total_ordering
 
 from mathics.core.definitions import Definition
 from mathics.core.rules import Rule, BuiltinRule, Pattern
@@ -465,3 +466,86 @@ class PatternObject(InstancableBuiltin, Pattern):
 
     def get_attributes(self, definitions):
         return self.head.get_attributes(definitions)
+
+
+class MessageException(Exception):
+    def __init__(self, *message):
+        self._message = message
+
+    def message(self, evaluation):
+        evaluation.message(*self._message)
+
+
+class NegativeIntegerException(Exception):
+    pass
+
+
+@total_ordering
+class TakeInteger:
+    _support_infinity = False
+
+    def __init__(self, value='Infinity', upper_limit=True):
+        self._finite = (value != 'Infinity')
+        if self._finite:
+            assert isinstance(value, int) and value >= 0
+            self._integer = value
+        else:
+            assert upper_limit
+            self._integer = None
+        self._upper_limit = upper_limit
+
+    def is_upper_limit(self):
+        return self._upper_limit
+
+    def integer(self):
+        assert self._finite
+        return self._integer
+
+    def __eq__(self, other):
+        if isinstance(other, TakeInteger):
+            if self._finite:
+                return other._finite and self._integer == other._integer
+            else:
+                return not other._finite
+        elif isinstance(other, int):
+            return self._finite and self._integer == other
+        else:
+            return False
+
+    def __lt__(self, other):
+        if isinstance(other, TakeInteger):
+            if self._finite:
+                return other._finite and self._integer < other._value
+            else:
+                return False
+        elif isinstance(other, int):
+            return self._finite and self._integer < other
+        else:
+            return False
+
+    @staticmethod
+    def from_expression(expr):  # callers need to deal with MessageException and NegativeIntegerException.
+        # this function may also return None, which means: leave whole original expression unevaluated.
+        if isinstance(expr, Integer):
+            py_n = expr.get_int_value()
+            if py_n >= 0:
+                return TakeInteger(py_n, upper_limit=False)
+            else:
+                raise NegativeIntegerException()
+        elif expr.get_head_name() == 'System`UpTo':
+            if len(expr.leaves) != 1:
+                raise MessageException('UpTo', 'argx', len(expr.leaves))
+            else:
+                n = expr.leaves[0]
+                if isinstance(n, Integer):
+                    py_n = n.get_int_value()
+                    if py_n < 0:
+                        raise MessageException('UpTo', 'innf', expr)
+                    else:
+                        return TakeInteger(py_n, upper_limit=True)
+                elif TakeInteger._support_infinity and n.get_head_name() == 'System`DirectedInfinity':
+                    return TakeInteger('Infinity', upper_limit=True)  # FIXME
+                else:
+                    return None
+        else:
+            return None
