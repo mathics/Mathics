@@ -643,6 +643,24 @@ class RandomSample(_RandomSelection):
 
     _replace = False
 
+
+class Random(Builtin):
+    '''
+    Legacy function. Superseded by RandomReal, RandomInteger and RandomComplex.
+    '''
+    rules = {
+        'Random[Integer]': 'RandomInteger[]',
+        'Random[Integer,  zmax_Integer]': 'RandomInteger[zmax]',
+        'Random[Integer, {zmin_Integer, zmax_Integer}]': 'RandomInteger[{zmin, zmax}]',
+        'Random[Real]': 'RandomReal[]',
+        'Random[Real,  zmax_?NumberQ]': 'RandomReal[zmax]',
+        'Random[Real, {zmin_Real, zmax_Real}]': 'RandomReal[{zmin, zmax}]',
+        'Random[Complex]': 'RandomComplex[]',
+        'Random[Complex,  zmax_Complex]': 'RandomComplex[zmax]',
+        'Random[Complex, {zmin_Complex, zmax_Complex}]': 'RandomComplex[{zmin, zmax}]',
+    }
+
+
 if not _numpy:  # hide symbols from non-numpy envs
     _RandomSelection = None
     RandomChoice = None
