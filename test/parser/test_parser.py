@@ -73,7 +73,11 @@ class AssocTests(ParserTests):
         self.check('a + b + c', 'Plus[a, b, c]')
 
     def test_left(self):
-        self.check('a - b - c', '(a - b) - c')
+        self.check('a /; b /; c', '(a /; b) /; c')
+
+    def test_Subtract(self):
+        self.check('a - b - c', 'Plus[a, Times[-1, b], Times[-1, c]]')
+        self.check('(a - b) - c', 'Plus[Plus[a, Times[-1, b]], Times[-1, c]]')
 
     def test_nonassoc(self):
         self.invalid_error('a \u00b1 b \u00b1 c')
@@ -209,7 +213,7 @@ class GeneralTests(ParserTests):
         self.check('1 + 2 + 3', Node('Plus', Number('1'), Number('2'), Number('3')))
         self.check('1 + 2 + 3 + 4', 'Plus[1, 2, 3, 4]')
         self.check('-a', Node('Times', Number('-1'), Symbol('a')))
-        self.check('1 - 2', Node('Subtract', Number('1'), Number('2')))
+        self.check('a - b', Node('Plus', Symbol('a'), Node('Times', Number('-1'), Symbol('b'))))
 
         self.check('a*b+c', Node('Plus', Node('Times', Symbol('a'), Symbol('b')), Symbol('c')))
         self.check('a*+b+c', Node('Plus', Node('Times', Symbol('a'), Node('Plus', Symbol('b'))), Symbol('c')))

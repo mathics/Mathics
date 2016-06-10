@@ -457,7 +457,8 @@ class Parser(object):
             return None
         self.consume()
         expr2 = self.parse_exp(q + 1)
-        return Node('Subtract', expr1, expr2)
+        expr2 = Node('Times', Number('-1'), expr2).flatten()
+        return Node('Plus', expr1, expr2).flatten()
 
     def e_TagSet(self, expr1, token, p):
         q = all_ops['TagSet']
