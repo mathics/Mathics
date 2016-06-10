@@ -25,13 +25,13 @@ postfix_ops = {
     'Transpose': 670,
     'ConjugateTranspose': 670,
     'Derivative': 670,
-    'Function': 670,
     'Increment': 660,
     'Decrement': 660,
     'Factorial': 610,
     'Factorial2': 610,
     'Repeated': 170,
     'RepeatedNull': 170,
+    'Function': 90,
 }
 
 left_binary_ops = {

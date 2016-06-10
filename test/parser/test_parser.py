@@ -82,6 +82,11 @@ class AssocTests(ParserTests):
     def test_nonassoc(self):
         self.invalid_error('a \u00b1 b \u00b1 c')
 
+    def test_Function(self):
+        self.check('a==b&', 'Function[Equal[a, b]]')
+        self.check('First[#]==sse&', 'Function[Equal[First[Slot[1]], sse]]')
+
+
 class AtomTests(ParserTests):
     def check_number(self, s):
         self.assertEqual(self.parse(s), Number(s))
