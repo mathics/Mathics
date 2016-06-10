@@ -13,7 +13,6 @@ from mathics.core.characters import letters, letterlikes, named_characters
 
 # special patterns
 number_pattern = r'''
--?      (?# optional leading -)
 ( (?# Two possible forms depending on whether base is specified)
     (\d+\^\^([a-zA-Z0-9]+\.?[a-zA-Z0-9]*|[a-zA-Z0-9]*\.?[a-zA-Z0-9]+))
     | (\d+\.?\d*|\d*\.?\d+)

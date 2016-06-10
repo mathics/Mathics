@@ -95,6 +95,8 @@ class AtomTests(ParserTests):
     def testNumber(self):
         self.check_number('0')
         self.check_number('-1')
+        self.check('- 1', '-1')
+        self.check('- - 1', 'Times[-1, -1]')
 
     def testNumberBase(self):
         self.check_number('8^^23')
@@ -219,6 +221,7 @@ class GeneralTests(ParserTests):
         self.check('a*+b+c', Node('Plus', Node('Times', Symbol('a'), Node('Plus', Symbol('b'))), Symbol('c')))
         self.check('a+b*c', 'a+(b*c)')
         self.check('a*b+c', '(a*b) + c')
+        self.check('1-2', '1 - 2')
 
     def testTimes(self):
         self.check('1 2', Node('Times', Number('1'), Number('2')))

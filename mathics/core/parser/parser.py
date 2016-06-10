@@ -243,7 +243,12 @@ class Parser(object):
     def p_Minus(self, token):
         self.consume()
         q = prefix_ops['Minus']
-        return Node('Times', Number('-1'), self.parse_exp(q)).flatten()
+        expr = self.parse_exp(q)
+        if isinstance(expr, Number) and not expr.value.startswith('-'):
+            expr.value = '-' + expr.value
+            return expr
+        else:
+            return Node('Times', Number('-1'), expr).flatten()
 
     def p_Plus(self, token):
         self.consume()
@@ -457,7 +462,10 @@ class Parser(object):
             return None
         self.consume()
         expr2 = self.parse_exp(q + 1)
-        expr2 = Node('Times', Number('-1'), expr2).flatten()
+        if isinstance(expr2, Number) and not expr2.value.startswith('-'):
+            expr2.value = '-' + expr2.value
+        else:
+            expr2 = Node('Times', Number('-1'), expr2).flatten()
         return Node('Plus', expr1, expr2).flatten()
 
     def e_TagSet(self, expr1, token, p):
