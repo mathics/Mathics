@@ -526,3 +526,19 @@ class Parser(object):
         elif tag == 'PatternTest':
             raise InvalidSyntaxError(token.pos)
         return Node('PatternTest', expr1, expr2)
+
+    def e_MessageName(self, expr1, token, p):
+        leaves = [expr1]
+        while self.next().tag == 'MessageName':
+            self.consume()
+            token = self.next()
+            if token.tag == 'Symbol':
+                # silently convert Symbol to String
+                self.consume()
+                leaf = String(token.text)
+            elif token.tag == 'String':
+                leaf = self.p_String(token)
+            else:
+                raise InvalidSyntaxError(token.pos)
+            leaves.append(leaf)
+        return Node('MessageName', *leaves)

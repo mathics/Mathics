@@ -423,6 +423,11 @@ class GeneralTests(ParserTests):
         self.check('\\( a + b \\)', 'RowBox[List["a", "+", "b"]]')
         self.check('\\(1 \\` 2\\)', Node('FormBox', Number('2'), Number('1')))
 
+    def testMessageName(self):
+        self.check('a::b', 'MessageName[a, "b"]')
+        self.check('a::"b"', 'MessageName[a, "b"]')
+        self.check('a::b::c', 'MessageName[a, "b", "c"]')
+
 class PatternTests(ParserTests):
     def testPattern(self):
         self.check('a:b', 'Pattern[a, b]')
