@@ -483,7 +483,7 @@ class Parser(object):
         elif tag == 'SetDelayed':
             head = 'TagSetDelayed'
         else:
-            if head == 'END':
+            if tag == 'END':
                 raise IncompleteSyntaxError(token.pos)
             raise InvalidSyntaxError(token.pos)
         self.consume()
