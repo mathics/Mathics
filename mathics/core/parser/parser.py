@@ -369,7 +369,7 @@ class Parser(object):
         return Node(expr2, expr1, expr3)
 
     def e_Postfix(self, expr1, token, p):
-        q = 0
+        q = left_binary_ops['Postfix']
         if q < p:
             return None
         self.consume()

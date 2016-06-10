@@ -45,6 +45,7 @@ left_binary_ops = {
     'Because': 50,
     'PutAppend': 30,
     'Put': 30,
+    'Postfix': 70,
 }
 
 right_binary_ops = {
