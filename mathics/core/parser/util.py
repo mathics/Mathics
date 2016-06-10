@@ -41,7 +41,7 @@ def parse_builtin_rule(string):
     return parse(string, SystemDefinitions())
 
 
-def parse_lines(lines, definitions):
+def parse_lines(lines, definitions, yield_lineno=False):
     '''
     Given some lines of code try to construct a list of expressions.
 
@@ -57,7 +57,9 @@ def parse_lines(lines, definitions):
         lines = lines.splitlines()
 
     incomplete_exc = None
+    lineno = 0
     for line in lines:
+        lineno += 1
         if not line:
             query += ' '
             continue
@@ -72,7 +74,10 @@ def parse_lines(lines, definitions):
             incomplete_exc = exc
         else:
             if expression is not None:
-                yield expression
+                if yield_lineno:
+                    yield (expression, lineno)
+                else:
+                    yield expression
             query = ''
             incomplete_exc = None
 
