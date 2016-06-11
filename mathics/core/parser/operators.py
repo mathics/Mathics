@@ -35,8 +35,8 @@ postfix_ops = {
 }
 
 left_binary_ops = {
-    'Subtract': 310,
     'Divide': 470,
+    'Subtract': 310,
     'LeftTee': 190,
     'DoubleLeftTee': 190,
     'Condition': 130,
@@ -138,8 +138,8 @@ ternary_ops = {
 }
 
 misc_ops = {
-    'Sum': 320,
     'DifferentialD': 550,
+    'Sum': 320,
     'Pattern': 150,
     'Optional': 140,
 }
