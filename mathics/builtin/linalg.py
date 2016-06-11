@@ -779,3 +779,180 @@ class Eigenvectors(Builtin):
         result.extend([Expression('List', *(
             [0] * matrix.rows))] * (matrix.rows - len(result)))
         return Expression('List', *result)
+
+
+def _norm_calc(head, u, v, evaluation):
+    expr = Expression(head, u, v)
+    old_quiet_all = evaluation.quiet_all
+    try:
+        evaluation.quiet_all = True
+        expr_eval = expr.evaluate(evaluation)
+    finally:
+        evaluation.quiet_all = old_quiet_all
+    if expr_eval.same(expr):
+        evaluation.message('Norm', 'nvm')
+        return None
+    else:
+        return expr_eval
+
+
+class EuclideanDistance(Builtin):
+    """
+    <dl>
+    <dt>'EuclideanDistance[$u$, $v$]'
+        <dd>returns the euclidean distance between $u$ and $v$.
+    </dl>
+
+    >> EuclideanDistance[-7, 5]
+     = 12
+
+    >> EuclideanDistance[{-1, -1}, {1, 1}]
+     = 2 Sqrt[2]
+
+    >> EuclideanDistance[{a, b}, {c, d}]
+     = Sqrt[Abs[a - c] ^ 2 + Abs[b - d] ^ 2]
+    """
+
+    def apply(self, u, v, evaluation):
+        'EuclideanDistance[u_, v_]'
+        t = _norm_calc('Subtract', u, v, evaluation)
+        if t is not None:
+            return Expression('Norm', t)
+
+
+class SquaredEuclideanDistance(Builtin):
+    """
+    <dl>
+    <dt>'SquaredEuclideanDistance[$u$, $v$]'
+        <dd>returns squared the euclidean distance between $u$ and $v$.
+    </dl>
+
+    >> SquaredEuclideanDistance[-7, 5]
+     = 144
+
+    >> SquaredEuclideanDistance[{-1, -1}, {1, 1}]
+     = 8
+    """
+
+    def apply(self, u, v, evaluation):
+        'SquaredEuclideanDistance[u_, v_]'
+        t = _norm_calc('Subtract', u, v, evaluation)
+        if t is not None:
+            return Expression('Power', Expression('Norm', t), 2)
+
+
+class ManhattanDistance(Builtin):
+    """
+    <dl>
+    <dt>'ManhattanDistance[$u$, $v$]'
+        <dd>returns the Manhattan distance between $u$ and $v$, which is the number of horizontal or vertical
+        moves in the gridlike Manhattan city layout to get from $u$ to $v$.
+    </dl>
+
+    >> ManhattanDistance[-7, 5]
+     = 12
+
+    >> ManhattanDistance[{-1, -1}, {1, 1}]
+     = 4
+    """
+
+    def apply(self, u, v, evaluation):
+        'ManhattanDistance[u_, v_]'
+        t = _norm_calc('Subtract', u, v, evaluation)
+        if t is not None:
+            return Expression('Total', Expression('Abs', t))
+
+
+class ChessboardDistance(Builtin):
+    """
+    <dl>
+    <dt>'ChessboardDistance[$u$, $v$]'
+        <dd>returns the chessboard distance (also known as Chebyshev distance) between $u$ and $v$, which is
+        the number of moves a king on a chessboard needs to get from square $u$ to square $v$.
+    </dl>
+
+    >> ChessboardDistance[-7, 5]
+     = 12
+
+    >> ChessboardDistance[{-1, -1}, {1, 1}]
+     = 2
+    """
+
+    def apply(self, u, v, evaluation):
+        'ChessboardDistance[u_, v_]'
+        t = _norm_calc('Subtract', u, v, evaluation)
+        if t is not None:
+            return Expression('Max', Expression('Abs', t))
+
+
+class CanberraDistance(Builtin):
+    """
+    <dl>
+    <dt>'CanberraDistance[$u$, $v$]'
+        <dd>returns the canberra distance between $u$ and $v$, which is a weighted version of the Manhattan
+        distance.
+    </dl>
+
+    >> CanberraDistance[-7, 5]
+     = 1
+
+    >> CanberraDistance[{-1, -1}, {1, 1}]
+     = 2
+    """
+
+    def apply(self, u, v, evaluation):
+        'CanberraDistance[u_, v_]'
+        t = _norm_calc('Subtract', u, v, evaluation)
+        if t is not None:
+            return Expression('Total',
+                              Expression('Divide',
+                                         Expression('Abs', t),
+                                         Expression('Plus', Expression('Abs', u), Expression('Abs', v))))
+
+
+class BrayCurtisDistance(Builtin):
+    """
+    <dl>
+    <dt>'BrayCurtisDistance[$u$, $v$]'
+        <dd>returns the Bray Curtis distance between $u$ and $v$.
+    </dl>
+
+    >> BrayCurtisDistance[-7, 5]
+     = 6
+
+    >> BrayCurtisDistance[{-1, -1}, {10, 10}]
+     = 11 / 9
+    """
+
+    def apply(self, u, v, evaluation):
+        'BrayCurtisDistance[u_, v_]'
+        t = _norm_calc('Subtract', u, v, evaluation)
+        if t is not None:
+            return Expression('Divide',
+                              Expression('Total', Expression('Abs', t)),
+                              Expression('Total', Expression('Abs', Expression('Plus', u, v))))
+
+
+class CosineDistance(Builtin):
+    """
+    <dl>
+    <dt>'CosineDistance[$u$, $v$]'
+      <dd>returns the cosine distance between $u$ and $v$.
+    </dl>
+
+    >> N[CosineDistance[{7, 9}, {71, 89}]]
+     = 0.0000759645721323140522
+
+    >> CosineDistance[{a, b}, {c, d}]
+     = 1 + (-a c - b d) / (Sqrt[Abs[a] ^ 2 + Abs[b] ^ 2] Sqrt[Abs[c] ^ 2 + Abs[d] ^ 2])
+    """
+
+    def apply(self, u, v, evaluation):
+        'CosineDistance[u_, v_]'
+        dot = _norm_calc('Dot', u, v, evaluation)
+        if dot is not None:
+            return Expression('Subtract', 1,
+                              Expression('Divide', dot,
+                                         Expression('Times',
+                                                    Expression('Norm', u),
+                                                    Expression('Norm', v))))
