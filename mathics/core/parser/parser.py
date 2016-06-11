@@ -10,7 +10,8 @@ from mathics.core.parser.errors import (
     InvalidSyntaxError, IncompleteSyntaxError, TranslateError)
 from mathics.core.parser.operators import (
     prefix_ops, postfix_ops, left_binary_ops, right_binary_ops,
-    nonassoc_binary_ops, flat_binary_ops, ternary_ops, binary_ops, all_ops)
+    nonassoc_binary_ops, flat_binary_ops, ternary_ops, binary_ops, all_ops,
+    inequality_ops)
 
 
 class Parser(object):
@@ -69,45 +70,24 @@ class Parser(object):
             tag = token.tag
             method = getattr(self, 'e_' + tag, None)
             if method is not None:
-                expr = method(result, token, p)
-                if expr is None:
-                    break
-                result = expr
+                new_result = method(result, token, p)
             elif tag in binary_ops:
-                q = binary_ops[tag]
-                if q < p:
-                    break
-                self.consume()
-                if tag not in right_binary_ops:
-                    q += 1
-                child = self.parse_exp(q)
-                # flatten or associate
-                if tag in nonassoc_binary_ops and result.get_head_name() == tag and not result.parenthesised:
-                    raise InvalidSyntaxError(token.pos)
-                result = Node(tag, result, child)
-                if tag in flat_binary_ops:
-                    result.flatten()
+                new_result = self.parse_binary(result, token, p)
             elif tag in ternary_ops:
-                if ternary_ops[tag] < p:
-                    break
-                self.consume()
-                q = ternary_ops[tag] + 1
-                child1 = self.parse_exp(q)
-                self.expect(tag)
-                child2 = self.parse_exp(q)
-                result = Node(tag, result, child1, child2)
+                new_result = self.parse_ternary(result, token, p)
             elif tag in postfix_ops:
-                if postfix_ops[tag] < p:
-                    break
-                self.consume()
-                q = postfix_ops[tag]
-                result = Node(tag, result)
+                new_result = self.parse_postfix(result, token, p)
             elif tag not in ('END', 'RawRightParenthesis', 'RawComma', 'RawRightBrace', 'RawRightBracket', 'RawColon', 'DifferentialD') and flat_binary_ops['Times'] >= p:  # implicit times
                 q = flat_binary_ops['Times']
                 child = self.parse_exp(q + 1)
-                result = Node('Times', result, child).flatten()
+                new_result = Node('Times', result, child).flatten()
             else:
+                new_result = None
+
+            if new_result is None:
                 break
+            else:
+                result = new_result
         return result
 
     def parse_p(self):
@@ -149,6 +129,42 @@ class Parser(object):
                 elif tag in ('END', 'RawRightBrace', 'RawRightBracket'):
                     break
         return result
+
+    def parse_binary(self, expr1, token, p):
+        tag = token.tag
+        q = binary_ops[tag]
+        if q < p:
+            return None
+        self.consume()
+        if tag not in right_binary_ops:
+            q += 1
+        expr2 = self.parse_exp(q)
+        # flatten or associate
+        if tag in nonassoc_binary_ops and expr1.get_head_name() == tag and not expr1.parenthesised:
+            raise InvalidSyntaxError(token.pos)
+        result = Node(tag, expr1, expr2)
+        if tag in flat_binary_ops:
+            result.flatten()
+        return result
+
+    def parse_ternary(self, expr1, token, p):
+        tag = token.tag
+        q = ternary_ops[tag]
+        if q < p:
+            return None
+        self.consume()
+        expr2 = self.parse_exp(q + 1)
+        self.expect(tag)
+        expr3 = self.parse_exp(q + 1)
+        return Node(tag, expr1, expr2, expr3)
+
+    def parse_postfix(self, expr1, token, p):
+        tag = token.tag
+        q = postfix_ops[tag]
+        if q < p:
+            return None
+        self.consume()
+        return Node(tag, expr1)
 
     # P methods
     #
