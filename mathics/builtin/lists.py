@@ -21,6 +21,7 @@ from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
 from mathics.builtin.algebra import cancel
+from mathics.algorithm.introselect import introselect
 
 import sympy
 
@@ -2809,3 +2810,52 @@ class RotateRight(_Rotate):
     """
 
     _sign = -1
+
+
+class Median(Builtin):
+    """
+    <dl>
+    <dt>'Median[$list$]'
+      <dd>returns the median of $list$.
+    </dl>
+
+    >> Median[{26, 64, 36}]
+     = 36
+    """
+
+    messages = {
+        'rectn': 'Expected a list of numbers or a list of lists at position 1 in ``.'
+    }
+
+    def apply(self, l, evaluation):
+        'Median[l_List]'
+        v = l.leaves[:]  # copy needed for introselect
+        n = len(v)
+        if n % 2 == 0:  # even number of elements?
+            i = n // 2
+            a = introselect(v, i)
+            b = introselect(v, i - 1)
+            return Expression('Divide', Expression('Plus', a, b))
+        else:
+            i = n // 2
+            return introselect(v, i)
+
+
+class RankedMin(Builtin):
+    def apply(self, l, n, evaluation):
+        'RankedMin[l_List, n_Integer]'
+        py_n = n.get_int_value()
+        if py_n < 1 or py_n > len(l.leaves):
+            return
+        v = l.leaves[:]  # copy needed for introselect
+        return introselect(v, py_n - 1)
+
+
+class RankedMax(Builtin):
+    def apply(self, l, n, evaluation):
+        'RankedMax[l_List, n_Integer]'
+        py_n = n.get_int_value()
+        if py_n < 1 or py_n > len(l.leaves):
+            return
+        v = l.leaves[:]  # copy needed for introselect
+        return introselect(v, len(v) - py_n)
