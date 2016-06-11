@@ -118,6 +118,6 @@ def contribute(definitions):
     # any remaining operators that don't have them. This allows
     # operators like \[Cup] to behave correctly.
     for operator in all_operator_names:
-        if not definitions.have_definition(ensure_context(operator)):
+        if not definitions.have_qualified_definition(ensure_context(operator)):
             op = ensure_context(operator)
             definitions.builtin[op] = Definition(name=op)
