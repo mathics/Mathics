@@ -481,7 +481,16 @@ class NegativeIntegerException(Exception):
 
 
 @total_ordering
-class TakeInteger:
+class CountableInteger:
+    """
+    CountableInteger is an integer specifying a countable amount (including
+    zero) that can optionally be specified as an upper bound through UpTo[].
+    """
+
+    # currently MMA does not support UpTo[Infinity], but Infinity already shows
+    # up in UpTo's parameter error messages as supported option; it would make
+    # perfect sense. currently, we stick with MMA's current behaviour and set
+    # _support_infinity to False.
     _support_infinity = False
 
     def __init__(self, value='Infinity', upper_limit=True):
@@ -497,12 +506,12 @@ class TakeInteger:
     def is_upper_limit(self):
         return self._upper_limit
 
-    def integer(self):
+    def get_int_value(self):
         assert self._finite
         return self._integer
 
     def __eq__(self, other):
-        if isinstance(other, TakeInteger):
+        if isinstance(other, CountableInteger):
             if self._finite:
                 return other._finite and self._integer == other._integer
             else:
@@ -513,7 +522,7 @@ class TakeInteger:
             return False
 
     def __lt__(self, other):
-        if isinstance(other, TakeInteger):
+        if isinstance(other, CountableInteger):
             if self._finite:
                 return other._finite and self._integer < other._value
             else:
@@ -524,12 +533,18 @@ class TakeInteger:
             return False
 
     @staticmethod
-    def from_expression(expr):  # callers need to deal with MessageException and NegativeIntegerException.
-        # this function may also return None, which means: leave whole original expression unevaluated.
+    def from_expression(expr):
+        """
+        :param expr: expression from which to build a CountableInteger
+        :return: an instance of CountableInteger or None, if the whole
+        original expression should remain unevaluated.
+        :raises: MessageException, NegativeIntegerException
+        """
+
         if isinstance(expr, Integer):
             py_n = expr.get_int_value()
             if py_n >= 0:
-                return TakeInteger(py_n, upper_limit=False)
+                return CountableInteger(py_n, upper_limit=False)
             else:
                 raise NegativeIntegerException()
         elif expr.get_head_name() == 'System`UpTo':
@@ -542,10 +557,12 @@ class TakeInteger:
                     if py_n < 0:
                         raise MessageException('UpTo', 'innf', expr)
                     else:
-                        return TakeInteger(py_n, upper_limit=True)
-                elif TakeInteger._support_infinity and n.get_head_name() == 'System`DirectedInfinity':
-                    return TakeInteger('Infinity', upper_limit=True)  # FIXME
-                else:
-                    return None
-        else:
-            return None
+                        return CountableInteger(py_n, upper_limit=True)
+                elif CountableInteger._support_infinity:
+                    if n.get_head_name() == 'System`DirectedInfinity' and len(n.leaves) == 1:
+                        if n.leaves[0].get_int_value() > 0:
+                            return CountableInteger('Infinity', upper_limit=True)
+                        else:
+                            return CountableInteger(0, upper_limit=True)
+
+        return None  # leave original expression unevaluated

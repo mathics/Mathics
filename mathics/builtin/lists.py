@@ -16,7 +16,7 @@ from mathics.builtin.base import (
     Builtin, Test, InvalidLevelspecError,
     PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
-from mathics.builtin.base import MessageException, NegativeIntegerException, TakeInteger
+from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
 from mathics.core.expression import Expression, String, Symbol, Integer, Number
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
 from mathics.core.rules import Pattern
@@ -2825,7 +2825,7 @@ class _RankedTake(Builtin):
 
     def _compute(self, l, n, evaluation, options, f=None):
         try:
-            limit = TakeInteger.from_expression(n)
+            limit = CountableInteger.from_expression(n)
         except MessageException as e:
             e.message(evaluation)
             return
@@ -2867,12 +2867,12 @@ class _RankedTake(Builtin):
 
             if limit > len(filtered):
                 if not limit.is_upper_limit():
-                    evaluation.message(self.get_name(), 'rank', limit.integer(), len(filtered))
+                    evaluation.message(self.get_name(), 'rank', limit.get_int_value(), len(filtered))
                     return
                 else:
                     py_n = len(filtered)
             else:
-                py_n = limit.integer()
+                py_n = limit.get_int_value()
 
             if py_n < 1:
                 return Expression('List')
@@ -2911,13 +2911,19 @@ class _RankedTakeLargest(_RankedTake):
 class TakeLargest(_RankedTakeLargest):
     """
     <dl>
-    <dt>'TakeSmallest[$list$, $f$, $n$]'
-        <dd>returns the a sorted list of the n smallest items in $list$.
+    <dt>'TakeLargest[$list$, $f$, $n$]'
+        <dd>returns the a sorted list of the $n$ largest items in $list$.
     </dl>
 
+    >> TakeLargest[{100, -1, 50, 10}, 2]
+     = {100, 50}
+
+    None, Null, Indeterminate and expressions with head Missing are ignored
+    by default:
     >> TakeLargest[{-8, 150, Missing[abc]}, 2]
      = {150, -8}
 
+    You may specify which items are ignored using the option ExcludedForms:
     >> TakeLargest[{-8, 150, Missing[abc]}, 2, ExcludedForms -> {}]
      = {Missing[abc], 150}
     """
@@ -2928,6 +2934,22 @@ class TakeLargest(_RankedTakeLargest):
 
 
 class TakeLargestBy(_RankedTakeLargest):
+    """
+    <dl>
+    <dt>'TakeLargestBy[$list$, $f$, $n$]'
+        <dd>returns the a sorted list of the $n$ largest items in $list$
+        using $f$ to retrieve the items' keys to compare them.
+    </dl>
+
+    For details on how to use the ExcludedForms option, see TakeLargest[].
+
+    >> TakeLargestBy[{{1, -1}, {10, 100}, {23, 7, 8}, {5, 1}}, Total, 2]
+     = {{10, 100}, {23, 7, 8}}
+
+    >> TakeLargestBy[{"abc", "ab", "x"}, StringLength, 1]
+     = {abc}
+    """
+
     def apply(self, l, f, n, evaluation, options):
         'TakeLargestBy[l_List, f_, n_, OptionsPattern[TakeLargestBy]]'
         return self._compute(l, n, evaluation, options, f=f)
@@ -2937,8 +2959,13 @@ class TakeSmallest(_RankedTakeSmallest):
     """
     <dl>
     <dt>'TakeSmallest[$list$, $f$, $n$]'
-        <dd>returns the a sorted list of the n smallest items in $list$.
+        <dd>returns the a sorted list of the $n$ smallest items in $list$.
     </dl>
+
+    For details on how to use the ExcludedForms option, see TakeLargest[].
+
+    >> TakeSmallest[{100, -1, 50, 10}, 2]
+     = {-1, 10}
     """
 
     def apply(self, l, n, evaluation, options):
@@ -2950,12 +2977,17 @@ class TakeSmallestBy(_RankedTakeSmallest):
     """
     <dl>
     <dt>'TakeSmallestBy[$list$, $f$, $n$]'
-        <dd>returns the a sorted list of the n smallest items in $list$ using $f$ to retrieve the items' keys to
-        compare them.
+        <dd>returns the a sorted list of the $n$ smallest items in $list$
+        using $f$ to retrieve the items' keys to compare them.
     </dl>
 
+    For details on how to use the ExcludedForms option, see TakeLargest[].
+
+    >> TakeSmallestBy[{{1, -1}, {10, 100}, {23, 7, 8}, {5, 1}}, Total, 2]
+     = {{1, -1}, {5, 1}}
+
     >> TakeSmallestBy[{"abc", "ab", "x"}, StringLength, 1]
-     = {'x'}
+     = {x}
     """
 
     def apply(self, l, f, n, evaluation, options):
