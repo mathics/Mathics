@@ -2929,7 +2929,7 @@ class TakeLargest(_RankedTakeLargest):
 
 class TakeLargestBy(_RankedTakeLargest):
     def apply(self, l, f, n, evaluation, options):
-        'TakeLargest[l_List, f_, n_, OptionsPattern[TakeLargestBy]]'
+        'TakeLargestBy[l_List, f_, n_, OptionsPattern[TakeLargestBy]]'
         return self._compute(l, n, evaluation, options, f=f)
 
 
