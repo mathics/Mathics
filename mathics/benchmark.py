@@ -53,15 +53,16 @@ BENCHMARKS = {
         'RandomInteger[{0,10}, {10,10}] + RandomInteger[{0,10}, {10,10}]'],
 }
 
+NREPEATS = 300
 PARSING_BENCHMARKS = [
-    "+".join(map(str, range(1, 1000))),
-    ";".join(map(str, range(1, 1000))),
-    "/".join(map(str, range(1, 1000))),
-    "^".join(map(str, range(1, 1000))),
-    "! " * 1000 + 'expr',
-    "!" * 1000 + 'expr',
-    'expr' + "& " * 1000,
-    "Sin[" * 1000 + '0.5' + "]" * 1000,
+    "+".join(map(str, range(1, NREPEATS))),
+    ";".join(map(str, range(1, NREPEATS))),
+    "/".join(map(str, range(1, NREPEATS))),
+    "^".join(map(str, range(1, NREPEATS))),
+    "! " * NREPEATS + 'expr',
+    "!" * NREPEATS + 'expr',
+    'expr' + "& " * NREPEATS,
+    "Sin[" * NREPEATS + '0.5' + "]" * NREPEATS,
 ]
 
 definitions = Definitions(add_builtin=True)
@@ -141,9 +142,9 @@ def benchmark_section(section_name):
 
 
 def benchmark_all():
-    print("EVALUATION BENCHMARKS:")
-    for section_name in sorted(BENCHMARKS.keys()):
-        benchmark_section(section_name)
+    # print("EVALUATION BENCHMARKS:")
+    # for section_name in sorted(BENCHMARKS.keys()):
+    #     benchmark_section(section_name)
     print("PARSING BENCHMARKS:")
     for expression_string in PARSING_BENCHMARKS:
         benchmark_parse(expression_string)

@@ -221,6 +221,7 @@ class Definitions(object):
         return name_with_ctx
 
     def have_qualified_definition(self, name):
+        assert fully_qualified_symbol_name(name)
         return name in self.builtin or name in self.user
 
     def get_definition(self, name, only_if_exists=False):
