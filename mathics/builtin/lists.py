@@ -2887,7 +2887,6 @@ class _RankedTake(Builtin):
             if py_n == 1:
                 result = [self._get_1(heap)]
             else:
-                heapq.heapify(heap)
                 result = self._get_n(py_n, heap)
 
             return Expression('List', *[x[leaf_pos] for x in result])
