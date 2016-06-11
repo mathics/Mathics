@@ -3,7 +3,6 @@ import six
 
 from mathics.core.definitions import Definitions
 from mathics.core.parser import parse, InvalidSyntaxError, IncompleteSyntaxError
-from mathics.core.parser import parse, InvalidSyntaxError, IncompleteSyntaxError
 
 
 class UtilTests(unittest.TestCase):
