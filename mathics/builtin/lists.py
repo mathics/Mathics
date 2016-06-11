@@ -2821,6 +2821,14 @@ class Median(Builtin):
 
     >> Median[{26, 64, 36}]
      = 36
+
+    For lists with an even number of elements, Median returns the mean of the two middle values:
+    >> Median[{-11, 38, 501, 1183}]
+     = 539 / 2
+
+    Passing a matrix returns the medians of the respective columns:
+    >> Median[{{100, 1, 10, 50}, {-1, 1, -2, 2}}]
+     = {99 / 2, 1, 4, 26}
     """
 
     messages = {
@@ -2829,33 +2837,86 @@ class Median(Builtin):
 
     def apply(self, l, evaluation):
         'Median[l_List]'
-        v = l.leaves[:]  # copy needed for introselect
-        n = len(v)
-        if n % 2 == 0:  # even number of elements?
-            i = n // 2
-            a = introselect(v, i)
-            b = introselect(v, i - 1)
-            return Expression('Divide', Expression('Plus', a, b))
+        if not l.leaves:
+            return
+        if all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
+            lengths = [len(leaf.leaves) for leaf in l.leaves]
+            if all(length == 0 for length in lengths):
+                return
+            n_columns = lengths[0]
+            if any(length != n_columns for length in lengths[1:]):
+                evaluation.message('Median', 'rectn', Expression('Median', l))
+            else:
+                return Expression('List', *[Expression('Median', Expression('List', *items)) for items in [
+                    [leaf.leaves[i] for leaf in l.leaves] for i in range(n_columns)]])
+        elif all(leaf.is_numeric() for leaf in l.leaves):
+            v = l.leaves[:]  # copy needed for introselect
+            n = len(v)
+            if n % 2 == 0:  # even number of elements?
+                i = n // 2
+                a = introselect(v, i)
+                b = introselect(v, i - 1)
+                return Expression('Divide', Expression('Plus', a, b), 2)
+            else:
+                i = n // 2
+                return introselect(v, i)
         else:
-            i = n // 2
-            return introselect(v, i)
+            evaluation.message('Median', 'rectn', Expression('Median', l))
 
 
 class RankedMin(Builtin):
+    """
+    <dl>
+    <dt>'RankedMin[$list$, $n$]'
+      <dd>returns the $n$th smallest element of $list$ (with $n$ = 1 yielding the smallest element,
+      $n$ = 2 yielding the second smallest element, and so on).
+    </dl>
+
+    >> RankedMin[{482, 17, 181, -12}, 2]
+     = 17
+    """
+
+    messages = {
+        'intpm': 'Expected positive integer at position 2 in ``.',
+        'rank': 'The specified rank `1` is not between 1 and `2`.'
+    }
+
     def apply(self, l, n, evaluation):
         'RankedMin[l_List, n_Integer]'
         py_n = n.get_int_value()
-        if py_n < 1 or py_n > len(l.leaves):
-            return
-        v = l.leaves[:]  # copy needed for introselect
-        return introselect(v, py_n - 1)
+        if py_n < 1:
+            evaluation.message('RankedMin', 'intpm', Expression('RankedMin', l, n))
+        elif py_n > len(l.leaves):
+            evaluation.message('RankedMin', 'rank', py_n, len(l.leaves))
+        else:
+            return introselect(l.leaves[:], py_n - 1)
 
 
 class RankedMax(Builtin):
+    """
+    <dl>
+    <dt>'RankedMax[$list$, $n$]'
+      <dd>returns the $n$th largest element of $list$ (with $n$ = 1 yielding the largest element,
+      $n$ = 2 yielding the second largest element, and so on).
+    </dl>
+
+    >> RankedMax[{482, 17, 181, -12}, 2]
+     = 181
+    """
+
+    messages = {
+        'intpm': 'Expected positive integer at position 2 in ``.',
+        'rank': 'The specified rank `1` is not between 1 and `2`.'
+    }
+
     def apply(self, l, n, evaluation):
         'RankedMax[l_List, n_Integer]'
         py_n = n.get_int_value()
-        if py_n < 1 or py_n > len(l.leaves):
-            return
-        v = l.leaves[:]  # copy needed for introselect
-        return introselect(v, len(v) - py_n)
+        if py_n < 1:
+            evaluation.message('RankedMax', 'intpm', Expression('RankedMax', l, n))
+        elif py_n > len(l.leaves):
+            evaluation.message('RankedMax', 'rank', py_n, len(l.leaves))
+        else:
+            return introselect(l.leaves[:], len(l.leaves) - py_n)
+
+
