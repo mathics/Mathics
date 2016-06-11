@@ -137,28 +137,32 @@ def introselect(a, k):  # changes a
 if __name__ == "__main__":
     import random
 
-    def test_algorithm(l, name, f):
-        a = [random.randint(-1000, 1000) for _ in range(l)]
+    def test_algorithm(l, r_max, name, f):
+        a = [random.randint(-r_max, r_max) for _ in range(l)]
         b = sorted(a)
         c = [f(a[:], i) for i in range(len(a))]
         if b == c:
-            print('OK %s %d' % (name, l))
+            print('OK %s r: %d l: %d' % (name, r_max, l))
             return True
         else:
-            print('FAIL %s %d' % (name, l))
+            print('FAIL %s r: %d l: %d' % (name, r_max, l))
             print(a, b, c)
             return False
 
-    def test_range(l_max):
+    def test_configuration(l_max, r_max):
         for l in range(l_max):
-            if not test_algorithm(l, 'bfprt', bfprt):
+            if not test_algorithm(l, r_max, 'bfprt', bfprt):
                 return False
 
         for l in range(l_max):
-            if not test_algorithm(l, 'introselect', introselect):
+            if not test_algorithm(l, r_max, 'introselect', introselect):
                 return False
 
         return True
+
+    def test_range(l_max):
+        # we test two cases: many same elements, and few same elements.
+        return test_configuration(l_max, 10) and test_configuration(200, 1000)
 
     if test_range(200):
         print('ALL OK.')
