@@ -144,6 +144,8 @@ misc_ops = {
     'Optional': 140,
 }
 
+inequality_ops = ['Less', 'LessEqual', 'Greater', 'GreaterEqual', 'Equal', 'Unequal']
+
 # binary_ops = left_binary_ops V right_binary_ops V flat_binary_ops V nonassoc_binary_ops
 binary_ops = {}
 for ops in (left_binary_ops, right_binary_ops, flat_binary_ops, nonassoc_binary_ops):

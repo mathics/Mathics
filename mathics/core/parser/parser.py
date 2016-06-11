@@ -71,6 +71,8 @@ class Parser(object):
             method = getattr(self, 'e_' + tag, None)
             if method is not None:
                 new_result = method(result, token, p)
+            elif tag in inequality_ops:
+                new_result = self.parse_inequality(result, token, p)
             elif tag in binary_ops:
                 new_result = self.parse_binary(result, token, p)
             elif tag in ternary_ops:
@@ -129,6 +131,34 @@ class Parser(object):
                 elif tag in ('END', 'RawRightBrace', 'RawRightBracket'):
                     break
         return result
+
+    def parse_inequality(self, expr1, token, p):
+        tag = token.tag
+        q = flat_binary_ops[tag]
+        if q < p:
+            return None
+        self.consume()
+
+        head = expr1.get_head_name()
+        expr2 = self.parse_exp(q + 1)
+
+        if head == 'Inequality' and not expr1.parenthesised:
+            expr1.children.append(Symbol(tag))
+            expr1.children.append(expr2)
+        elif head in inequality_ops and head != tag and not expr1.parenthesised:
+            children = []
+            first = True
+            for child in expr1.children:
+                if not first:
+                    children.append(Symbol(head))
+                children.append(child)
+                first = False
+            children.append(Symbol(tag))
+            children.append(expr2)
+            expr1 = Node('Inequality', *children)
+        else:
+            expr1 = Node(tag, expr1, expr2).flatten()
+        return expr1
 
     def parse_binary(self, expr1, token, p):
         tag = token.tag

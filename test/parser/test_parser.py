@@ -492,6 +492,12 @@ class PatternTests(ParserTests):
         self.check('symb___expr', 'Pattern[symb, BlankNullSequence[expr]]')
         self.check('symb_.', 'Optional[Pattern[symb, Blank[]]]')
 
+    def testInequality(self):
+        self.check('a < b <= c', 'Inequality[a, Less, b, LessEqual, c]')
+        self.check('a < b < c', 'Less[a, b, c]')
+        self.check('a < b <= c > d >= e != f == g',
+                   'Inequality[a, Less, b, LessEqual, c, Greater, d, GreaterEqual, e,  Equal, f, Unequal, g]')
+
 
 class IncompleteTests(ParserTests):
     def testParseError(self):

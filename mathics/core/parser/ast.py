@@ -45,6 +45,7 @@ class Atom(Node):
         self.head = Symbol(self.__class__.__name__)
         self.value = value
         self.children = []
+        self.parenthesised = False
 
     def __repr__(self):
         return '%s[%s]' % (self.head, self.value)
