@@ -164,7 +164,23 @@ if __name__ == "__main__":
         # we test two cases: many same elements, and few same elements.
         return test_configuration(l_max, 10) and test_configuration(200, 1000)
 
-    if test_range(200):
+    def test_median(median, l_min, l_max, repeat):
+        for length in range(l_min, l_max + 1):
+            for i in range(repeat):
+                a = [random.randint(-10, 10) for _ in range(length)]
+                b = sorted(a)
+                index = median(a)
+                if a[index] != b[len(b) // 2]:
+                    print('FAIL median', a, b)
+                    return False
+                else:
+                    print('OK median %d %d' % (length, i))
+        return True
+
+    def test_medians(repeat):
+        return test_median(_median3, 3, 3, repeat) and test_median(_median5, 1, 5, repeat)
+
+    if test_medians(10000) and test_range(200):
         print('ALL OK.')
     else:
         print('ABORTED WITH FAILURE.')
