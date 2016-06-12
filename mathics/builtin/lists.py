@@ -2832,7 +2832,7 @@ class Median(Builtin):
     """
 
     messages = {
-        'rectn': 'Expected a list of numbers or a list of lists at position 1 in ``.'
+        'rectn': 'Expected a rectangular array of numbers at position 1 in ``.'
     }
 
     def apply(self, l, evaluation):
@@ -2918,5 +2918,6 @@ class RankedMax(Builtin):
             evaluation.message('RankedMax', 'rank', py_n, len(l.leaves))
         else:
             return introselect(l.leaves[:], len(l.leaves) - py_n)
+
 
 
