@@ -30,6 +30,7 @@ mathics-users@googlegroups.com and ask for help.
 
 import sys
 import platform
+import os
 from setuptools import setup, Command, Extension
 
 # Ensure user has the correct Python version
@@ -46,7 +47,7 @@ INSTALL_REQUIRES = []
 DEPENDENCY_LINKS = []
 
 if is_PyPy:
-    if False:  # FIXME check for >= PyPy4
+    if os.environ.get('PYPY_NUMPY') == 'true':
         DEPENDENCY_LINKS += ['git+https://bitbucket.org/pypy/numpy.git#egg=pypy_numpy-1.8']
         INSTALL_REQUIRES += ['pypy_numpy>=1.8']
 else:

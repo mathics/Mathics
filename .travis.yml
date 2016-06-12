@@ -7,7 +7,6 @@ python:
   - 3.3
   - 3.2
   - pypy3
-  - pypy4
 env:
   global:
     - SYMPY_SRC=sympy-1.0
@@ -32,12 +31,11 @@ matrix:
       env: CYTHON="true"
     - python: pypy3
       env: CYTHON="true"
-    # Travis currently does not support PyPy4
-    - python: pypy4
   allow_failures:
+    - pypy
+      env: PYPY_NUMPY="true"
     - python: 3.2
     - python: pypy3
-    - python: pypy4
     - env: SYMPY_SRC=master CYTHON="false"
     - env: DOC="true" CYTHON="false"
 before_install:
