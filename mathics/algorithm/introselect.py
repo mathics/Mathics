@@ -39,7 +39,7 @@ def _median5(v):  # for len(a) <= 5
 
     # we compute "sts", the second-to-smallest value in (a, b, c, d), and "stl", the
     # second-to-largest value in (a, b, c, d). we then compute median5(a, b, c, d, e)
-    # as median3(sts, stl, g).
+    # as median3(sts, stl, e).
 
     # note that sts = max(min(a, b), min(c, d)) and stl = min(max(a, b), max(c, d)).
     # by asserting that a <= b and c <= d, this becomes sts = max(a, c), stl = min(b, d).
