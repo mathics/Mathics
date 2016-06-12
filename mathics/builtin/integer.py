@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import sympy
+import string
 
 from mathics.builtin.base import Builtin, SympyObject, SympyFunction
 from mathics.core.convert import from_sympy
@@ -157,7 +158,10 @@ class BitLength(Builtin):
 
     def apply(self, n, evaluation):
         'BitLength[n_Integer]'
-        return Integer(n.get_int_value().bit_length())
+        n = n.get_int_value()
+        if n < 0:
+            n = -1 - n
+        return Integer(n.bit_length())
 
 
 def _reversed_digits(number, base):  # yield digits for number in base "base" in reverse order
@@ -221,8 +225,7 @@ class IntegerString(Builtin):
         'basf': 'Base `` must be an integer in the range from 2 to 36.',
     }
 
-    list_of_symbols = [chr(i + ord('0')) for i in range(10)] +\
-                      [chr(i + ord('a')) for i in range(26)]
+    list_of_symbols = string.digits + string.ascii_letters
 
     _python_builtin = {
         16: lambda number: hex(abs(number))[2:],
@@ -376,6 +379,8 @@ class IntegerReverse(_IntBaseBuiltin):
      = 4321
     >> IntegerReverse[1022, 2]
      = 511
+    >> IntegerReverse[-123]
+     = 321
     """
 
     rules = {
