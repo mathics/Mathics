@@ -163,6 +163,7 @@ setup(
 
     packages=[
         'mathics',
+        'mathics.algorithm',
         'mathics.core',
         'mathics.builtin', 'mathics.builtin.pymimesniffer',
         'mathics.doc',
