@@ -76,7 +76,7 @@ class Converter(object):
             sign = 1
 
         # fast exit
-        if s.isnumeric():
+        if s.isdigit():
             return ma.Integer(sign * int(s))
 
         # Look for base
