@@ -440,6 +440,32 @@ class GeneralTests(ParserTests):
         self.check('a::"b"', 'MessageName[a, "b"]')
         self.check('a::b::c', 'MessageName[a, "b", "c"]')
 
+    def testBoolean(self):
+        # And = Nand > Xor = Xnor > Or = Nor
+        self.check(r'a && b || c', r'(a && b) || c')
+        self.check(r'a || b && c', r'a || (b && c)')
+        self.check_prescan(r'a && b \[Xor] c', r'(a && b) \[Xor] c')
+        self.check_prescan(r'a && b \[Xnor] c', r'(a && b) \[Xnor] c')
+        self.check_prescan(r'a && b \[Nor] c', r'(a && b) \[Nor] c')
+        self.check_prescan(r'a \[Xor] b || c', r'(a \[Xor] b) || c')
+        self.check_prescan(r'a \[Xnor] b || c', r'(a \[Xnor] b) || c')
+        self.check_prescan(r'a \[Xor] b \[Nor] c', r'(a \[Xor] b) \[Nor] c')
+        self.check_prescan(r'a \[Xnor] b \[Nor] c', r'(a \[Xnor] b) \[Nor] c')
+
+        # when the precs agree be left assoc
+        self.check_prescan(r'a && b \[Nand] c', r'(a && b) \[Nand] c')
+        self.check_prescan(r'a \[Nand] b && c', r'(a \[Nand] b) && c')
+        self.check_prescan(r'a \[Xor] b \[Xnor] c', r'(a \[Xor] b) \[Xnor] c')
+        self.check_prescan(r'a \[Xnor] b \[Xor] c', r'(a \[Xnor] b) \[Xor] c')
+        self.check_prescan(r'a \[Or] b \[Nor] c', r'(a \[Or] b) \[Nor] c')
+        self.check_prescan(r'a \[Nor] b \[Or] c', r'(a \[Nor] b) \[Or] c')
+
+        # boolean ops are flat
+        self.check('a && b && c', 'And[a, b, c]')
+        self.check('a || b || c', 'Or[a, b, c]')
+        self.check('a || b || c && d || e', 'a || b || (c && d) || e')
+        self.check('a && b && c || d && e', '(a && b && c) || (d && e)')
+
 class PatternTests(ParserTests):
     def testPattern(self):
         self.check('a:b', 'Pattern[a, b]')

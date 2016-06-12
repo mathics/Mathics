@@ -111,10 +111,12 @@ flat_binary_ops = {
     'NotElement': 250,
     'Subset': 250,
     'Superset': 250,
-    'And': 215,
-    'Nand': 215,
-    'Xor': 215,
-    'Xnor': 215,
+    # HACK: although the should be 215 for all boolean_ops we adjust slightly
+    # to get the subprecedences correct
+    'And': 225,
+    'Nand': 225,
+    'Xor': 220,
+    'Xnor': 220,
     'Or': 215,
     'Nor': 215,
     'Equivalent': 205,
