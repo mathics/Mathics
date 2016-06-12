@@ -2317,6 +2317,10 @@ class Tally(_GatherOperation):
 
     >> Tally[{a, b, c, b, a}]
      = {{a, 2}, {b, 2}, {c, 1}}
+
+    Tally always returns items in the order as they first appear in $list$:
+    >> Tally[{b, b, a, a, a, d, d, d, d, c}]
+     = {{b, 2}, {a, 3}, {d, 4}, {c, 1}}
     """
 
     _bin = _TallyBin
