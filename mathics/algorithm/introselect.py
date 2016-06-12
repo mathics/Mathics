@@ -15,15 +15,7 @@
 from heapq import nsmallest
 
 
-def _median3(v):
-    index_a = 0
-    index_b = len(v) - 1
-    index_c = index_b // 2
-
-    a = v[index_a]
-    b = v[index_b]
-    c = v[index_c]
-
+def _median3(a, b, c, index_a, index_b, index_c):
     if a < b:
         if b < c:
             return index_b  # a < b < c
@@ -40,9 +32,39 @@ def _median3(v):
             return index_a  # b <= a <= c
 
 
-def _median5(a):  # for len(a) <= 5
-    median = len(a) // 2
-    return nsmallest(median + 1, [(x, i) for i, x in enumerate(a)])[median][1]
+def _median5(v):  # for len(a) <= 5
+    if len(v) != 5:
+        median = len(v) // 2
+        return nsmallest(median + 1, [(x, i) for i, x in enumerate(v)])[median][1]
+
+    # we compute "sts", the second-to-smallest value in (a, b, c, d), and "stl", the
+    # second-to-largest value in (a, b, c, d). we then compute median5(a, b, c, d, e)
+    # as median3(sts, stl, g).
+
+    # note that sts = max(min(a, b), min(c, d)) and stl = min(max(a, b), max(c, d)).
+    # by asserting that a <= b and c <= d, this becomes sts = max(a, c), stl = min(b, d).
+
+    a, b, c, d, e = v
+    index_a, index_b, index_c, index_d, index_e = range(5)
+
+    if a > b:
+        a, b = b, a
+        index_a, index_b = index_b, index_a
+
+    if c > d:
+        c, d = d, c
+        index_c, index_d = index_d, index_c
+
+    if a > c:  # second to smallest = a
+        if b < d:  # second to largest = b
+            return _median3(a, b, e, index_a, index_b, index_e)
+        else:  # second to largest = d
+            return _median3(a, d, e, index_a, index_d, index_e)
+    else: # second to smallest = c
+        if b < d:  # second to largest = b
+            return _median3(c, b, e, index_c, index_b, index_e)
+        else:  # second to largest = d
+            return _median3(c, d, e, index_c, index_d, index_e)
 
 
 def _partition(a, f):
@@ -114,7 +136,10 @@ def introselect(a, k):  # changes a
     depth = len(a).bit_length() * 2  # see algorithm INTROSORT in [2], page 5
 
     while len(a) >= 3 and depth > 0:
-        p = _median3(a)
+        # find median of (a[0], a[-1], a[middle])
+        i1 = len(a) - 1
+        i2 = i1 // 2
+        p = _median3(a[0], a[i1], a[i2], 0, i1, i2)
 
         # see Algorithm 65 FIND in [1]
         i, j = _partition(a, p)
@@ -136,6 +161,7 @@ def introselect(a, k):  # changes a
 
 if __name__ == "__main__":
     import random
+    import itertools
 
     def test_algorithm(l, r_max, name, f):
         a = [random.randint(-r_max, r_max) for _ in range(l)]
@@ -164,10 +190,9 @@ if __name__ == "__main__":
         # we test two cases: many same elements, and few same elements.
         return test_configuration(l_max, 10) and test_configuration(200, 1000)
 
-    def test_median(median, l_min, l_max, repeat):
+    def test_median(median, l_min, l_max):
         for length in range(l_min, l_max + 1):
-            for i in range(repeat):
-                a = [random.randint(-10, 10) for _ in range(length)]
+            for i, a in enumerate(itertools.permutations([x * 10 for x in range(length)])):
                 b = sorted(a)
                 index = median(a)
                 if a[index] != b[len(b) // 2]:
@@ -177,10 +202,10 @@ if __name__ == "__main__":
                     print('OK median %d %d' % (length, i))
         return True
 
-    def test_medians(repeat):
-        return test_median(_median3, 3, 3, repeat) and test_median(_median5, 1, 5, repeat)
+    def test_medians():
+        return test_median(lambda a: _median3(a[0], a[1], a[2], 0, 1, 2), 3, 3) and test_median(_median5, 1, 5)
 
-    if test_medians(10000) and test_range(200):
+    if test_medians() and test_range(200):
         print('ALL OK.')
     else:
         print('ABORTED WITH FAILURE.')
