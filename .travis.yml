@@ -11,6 +11,7 @@ env:
   global:
     - SYMPY_SRC=sympy-1.0
     - DOC="false"
+    - PYPY_NUMPY="false"
   matrix:
     - CYTHON="false"
     - CYTHON="true"
@@ -25,6 +26,8 @@ matrix:
       env: SYMPY_SRC=master CYTHON="false"
     - python: 3.5
       env: SYMPY_SRC=master CYTHON="false"
+    - python: pypy
+      env: PYPY_NUMPY="true"
   exclude:
     # PyPy is not compatible with Cython
     - python: pypy
@@ -32,12 +35,11 @@ matrix:
     - python: pypy3
       env: CYTHON="true"
   allow_failures:
-    - pypy
-      env: PYPY_NUMPY="true"
     - python: 3.2
     - python: pypy3
     - env: SYMPY_SRC=master CYTHON="false"
     - env: DOC="true" CYTHON="false"
+    - env: PYPY_NUMPY="true"
 before_install:
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
