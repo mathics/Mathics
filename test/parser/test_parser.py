@@ -313,10 +313,10 @@ class GeneralTests(ParserTests):
         self.check('x ^= y', Node('UpSet', Symbol('x'), Symbol('y')))
         self.check('x ^:= y', Node('UpSetDelayed', Symbol('x'), Symbol('y')))
         self.check('x =.', Node('Unset', Symbol('x')))
-
         self.check('x/:1=1', Node('TagSet', Symbol('x'), Number('1'), Number('1')))
         self.check('x/:1:=1', Node('TagSetDelayed', Symbol('x'), Number('1'), Number('1')))
-        # self.check('x/:1=.', Node('TagUnset', Symbol('x'), Number('1')))
+        self.check('x/:1=.', Node('TagUnset', Symbol('x'), Number('1')))
+        self.check('f /: f[x_] + f[y_] := x + y', 'TagSetDelayed[f, f[x_] + f[y_], x + y]')
 
     def testList(self):
         self.check('{x, y}', Node('List', Symbol('x'), Symbol('y')))

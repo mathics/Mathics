@@ -515,11 +515,11 @@ class Parser(object):
         return Node('Plus', expr1, expr2).flatten()
 
     def e_TagSet(self, expr1, token, p):
-        q = all_ops['TagSet']
+        q = all_ops['Set']
         if q < p:
             return None
         self.consume()
-        expr2 = self.parse_exp(q)
+        expr2 = self.parse_exp(q + 1)
 
         # examine next token
         token = self.next()
@@ -528,14 +528,27 @@ class Parser(object):
             head = 'TagSet'
         elif tag == 'SetDelayed':
             head = 'TagSetDelayed'
+        elif tag == 'Unset':
+            head = 'TagUnset'
         else:
+            print(tag, expr2)
             if tag == 'END':
                 raise IncompleteSyntaxError(token.pos)
             raise InvalidSyntaxError(token.pos)
         self.consume()
 
-        expr3 = self.parse_exp(q)
+        if head == 'TagUnset':
+            return Node(head, expr1, expr2)
+
+        expr3 = self.parse_exp(q + 1)
         return Node(head, expr1, expr2, expr3)
+
+    def e_Unset(self, expr1, token, p):
+        q = all_ops['Set']
+        if q < p:
+            return None
+        self.consume()
+        return Node('Unset', expr1)
 
     def e_Derivative(self, expr1, token, p):
         q = postfix_ops['Derivative']
