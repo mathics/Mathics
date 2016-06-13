@@ -33,9 +33,9 @@ class Parser(object):
         tag = token.tag
         if tag == expected_tag:
             self.consume()
+        elif tag == 'END':
+            raise IncompleteSyntaxError(token.pos)
         else:
-            if tag == 'END':
-                raise IncompleteSyntaxError(token.pos)
             raise InvalidSyntaxError(token.pos)
 
     def next_filename(self):
@@ -43,9 +43,9 @@ class Parser(object):
         tag = token.tag
         if tag == 'filename':
             return Filename(token.text)
+        elif tag == 'END':
+            raise IncompleteSyntaxError(token.pos)
         else:
-            if tag == 'END':
-                raise IncompleteSyntaxError(token.pos)
             raise InvalidSyntaxError(token.pos)
 
     def backtrack(self, pos):
@@ -530,9 +530,9 @@ class Parser(object):
             head = 'TagSetDelayed'
         elif tag == 'Unset':
             head = 'TagUnset'
+        elif tag == 'END':
+            raise IncompleteSyntaxError(token.pos)
         else:
-            if tag == 'END':
-                raise IncompleteSyntaxError(token.pos)
             raise InvalidSyntaxError(token.pos)
         self.consume()
 
