@@ -261,20 +261,18 @@ def main():
         if not args.persist:
             return
 
-    total_input = ""
+    def feed_callback():
+        return shell.read_line(shell.get_in_prompt(continued=True))
+
     while True:
         try:
             evaluation = Evaluation(shell.definitions, out_callback=shell.out_callback)
-            line = shell.read_line(shell.get_in_prompt(continued=total_input != ''))
-            total_input += line
+            line = shell.read_line(shell.get_in_prompt(continued=False))
             try:
-                query = parse(total_input, shell.definitions)
+                query = parse(line, shell.definitions, feed_callback)
             except TranslateError as exc:
-                if line == '' or not isinstance(exc, IncompleteSyntaxError):
-                    evaluation.message('Syntax', exc.msg, *exc.args)
-                    total_input = ""
+                evaluation.message('Syntax', exc.msg, *exc.args)
                 continue
-            total_input = ""
             if query is None:
                 continue
             results = evaluation.evaluate([query], timeout=settings.TIMEOUT)

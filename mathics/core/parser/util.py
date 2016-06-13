@@ -17,9 +17,11 @@ parser = Parser()
 
 # Parse input (from the frontend, -e, input files, ToExpression etc).
 # Look up symbols according to the Definitions instance supplied.
-def parse(raw_code, definitions):
+def parse(raw_code, definitions, feed_callback=None):
     code = prescan(raw_code)
-    ast = parser.parse(code)
+    def prescan_feed_callback():
+        return prescan(feed_callback())
+    ast = parser.parse(code, prescan_feed_callback)
     if ast is None:
         return None
     return convert(ast, definitions)
@@ -56,8 +58,17 @@ def parse_lines(lines, definitions, yield_lineno=False):
     if isinstance(lines, six.text_type):
         lines = lines.splitlines()
 
-    incomplete_exc = None
     lineno = 0
+    def feed_callback():
+        nonlocal lineno
+        if lineno < len(lines):
+            result = lines[lineno]
+            lineno += 1
+        else:
+            result = ''
+        return result
+
+    incomplete_exc = None
     for line in lines:
         lineno += 1
         if not line:
@@ -69,7 +80,7 @@ def parse_lines(lines, definitions, yield_lineno=False):
             incomplete_exc = IncompleteSyntaxError(len(query) - 1)
             continue
         try:
-            expression = parse(query, definitions)
+            expression = parse(query, definitions, feed_callback)
         except IncompleteSyntaxError as exc:
             incomplete_exc = exc
         else:

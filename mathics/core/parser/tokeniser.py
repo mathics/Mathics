@@ -226,9 +226,10 @@ class Token(object):
 
 
 class Tokeniser(object):
-    def __init__(self, code):
+    def __init__(self, code, feed_callback=None):
         self.pos = 0
         self.code = code
+        self.feed_callback = feed_callback
 
     def next(self, tokens=tokens):
         'return next token'
@@ -252,10 +253,25 @@ class Tokeniser(object):
         'return next filename token'
         return self.next(tokens=[('filename', filename_pattern)])
 
+    def incomplete(self, pos):
+        'get more code and continue otherwise raise IncompleteSyntaxError'
+        if self.feed_callback is not None:
+            line = self.feed_callback()
+            if line:
+                self.code += line
+                self.pos = pos
+                return
+        raise IncompleteSyntaxError(pos)
+
     def skip_blank(self):
         'skip whitespace and comments'
         comment = []   # start positions of comments
-        while self.pos < len(self.code):
+        while True:
+            if self.pos >= len(self.code):
+                if comment:
+                    self.incomplete(self.pos)
+                else:
+                    break
             if comment:
                 if self.code.startswith('(*', self.pos):
                     comment.append(self.pos)
@@ -272,14 +288,19 @@ class Tokeniser(object):
                 self.pos += 1
             else:
                 break
-        if comment:
-            self.pos = comment[0]
-            raise IncompleteSyntaxError(self.pos)
 
     def t_String(self, match):
         start, end = self.pos, None
         self.pos += 1   # skip opening '"'
-        while self.pos < len(self.code):
+        newlines = []
+        while True:
+            if self.pos >= len(self.code):
+                if end is None:
+                    # reached end while still inside string
+                    self.incomplete(self.pos)
+                    newlines.append(self.pos)
+                else:
+                    break
             c = self.code[self.pos]
             if c == '"':
                 self.pos += 1
@@ -289,11 +310,10 @@ class Tokeniser(object):
                 self.pos += 2
             else:
                 self.pos += 1
-        if end is None:
-            # reached end while still inside string
-            self.pos = start - 1
-            raise IncompleteSyntaxError(self.pos)
-        return Token('String', self.code[start:end], start)
+        # Since the tokeniser accepts one line at a time we must reinsert newlines
+        indices = [start] + newlines + [end]
+        result = '\n'.join(self.code[indices[i]:indices[i + 1]] for i in range(len(indices) - 1))
+        return Token('String', result, start)
 
     def t_Number(self, match):
         text = match.group(0)

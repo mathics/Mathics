@@ -15,8 +15,8 @@ from mathics.core.parser.operators import (
 
 
 class Parser(object):
-    def parse(self, code):
-        self.tokeniser = Tokeniser(code)
+    def parse(self, code, feed_callback=None):
+        self.tokeniser = Tokeniser(code, feed_callback)
         self.current_token = None
         return self.parse_e()
 
@@ -531,7 +531,6 @@ class Parser(object):
         elif tag == 'Unset':
             head = 'TagUnset'
         else:
-            print(tag, expr2)
             if tag == 'END':
                 raise IncompleteSyntaxError(token.pos)
             raise InvalidSyntaxError(token.pos)
