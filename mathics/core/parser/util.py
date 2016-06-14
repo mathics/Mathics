@@ -61,7 +61,7 @@ def parse_lines(lines, definitions, yield_lineno=False):
 
     If yield_lines is True return `(lineno, expr)` otherwise just `expr`.
 
-    The line number (lineno) corresponds to the start of the expression.
+    The line number (lineno) corresponds to the range of the expression.
 
     A generator is used so that each expression can be evaluated before
     continuing; the parser is dependent on defintions and evaluation may change
@@ -77,6 +77,6 @@ def parse_lines(lines, definitions, yield_lineno=False):
         expression = parse_convert(definitions, feeder)
         if expression is not None:
             if yield_lineno:
-                yield (expression, lineno)
+                yield (expression, (lineno, feeder.lineno + 1))
             else:
                 yield expression
