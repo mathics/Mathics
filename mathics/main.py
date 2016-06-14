@@ -15,7 +15,8 @@ from mathics.core.definitions import Definitions
 from mathics.core.expression import Integer, strip_context
 from mathics.core.evaluation import Evaluation
 from mathics.core.parser import parse, parse_lines, TranslateError, IncompleteSyntaxError
-from mathics.core.parser.feed import LineFeeder
+from mathics.core.parser.feed import LineFeeder, FileLineFeeder
+from mathics.core.parser.util import ExpressionGenerator
 from mathics import version_string, license_string, __version__
 from mathics import settings
 
@@ -252,12 +253,8 @@ def main():
             return
 
     if args.FILE is not None:
-        lines = args.FILE.readlines()
-        if args.script and lines[0].startswith('#!'):
-            lines[0] = ''
-
         results = []
-        query_gen = parse_lines(lines, shell.definitions)
+        query_gen = ExpressionGenerator(shell.definitions, FileLineFeeder(args.FILE))
         evaluation = Evaluation(shell.definitions, out_callback=shell.out_callback)
         try:
             for query in query_gen:

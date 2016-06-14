@@ -33,6 +33,29 @@ def parse(definitions, feeder):
     return parse_convert(definitions, feeder)
 
 
+class ExpressionGenerator(object):
+    def __init__(self, definitions, feeder):
+        self.definitions = definitions
+        self.feeder = feeder
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.next()
+
+    def next(self):
+        while not self.feeder.empty():
+            result = parse_convert(self.definitions, self.feeder)
+            if result is not None:
+                return result
+        raise StopIteration()
+
+    def code(self):
+        'Code of last expression to be parsed.'
+        return parser.tokeniser.code
+
+
 class SystemDefinitions(object):
     """
     Dummy Definitions object that puts every unqualified symbol in
@@ -69,14 +92,5 @@ def parse_lines(lines, definitions, yield_lineno=False):
     '''
     if isinstance(lines, six.text_type):
         lines = lines.splitlines()
-
     feeder = MultiLineFeeder(lines)
-
-    while not feeder.empty():
-        lineno = feeder.lineno
-        expression = parse_convert(definitions, feeder)
-        if expression is not None:
-            if yield_lineno:
-                yield (expression, (lineno, feeder.lineno + 1))
-            else:
-                yield expression
+    return ExpressionGenerator(definitions, feeder)

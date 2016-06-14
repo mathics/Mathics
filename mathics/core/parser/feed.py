@@ -43,3 +43,25 @@ class MultiLineFeeder(LineFeeder):
 
     def empty(self):
         return self.lineno >= len(self.lines) 
+
+
+class FileLineFeeder(LineFeeder):
+    'Feeds lines from an open file object'
+    def __init__(self, fileobject):
+        self.fileobject = fileobject
+        self.lineno = 0
+        self.eof = False
+
+    def feed(self):
+        result = self.fileobject.readline()
+        while result == '\n':
+            result = self.fileobject.readline()
+            self.lineno += 1
+        if result:
+            self.lineno += 1
+        else:
+            self.eof = True
+        return result
+
+    def empty(self):
+        return self.eof
