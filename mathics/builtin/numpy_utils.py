@@ -9,6 +9,7 @@ from mathics.core.expression import Expression
 from itertools import chain
 from functools import reduce
 from math import sin as sinf, cos as cosf, sqrt as sqrtf, atan2 as atan2f, floor as floorf
+import operator
 
 try:
     import numpy
@@ -160,20 +161,22 @@ else:
     def concat(a, b):
         return stack(*(unstack(a) + unstack(b)))
 
-    def _apply(a, f):
+    def _apply(f, a):
         if isinstance(a, (list, tuple)):
-            return [_apply(t, f) for t in a]
+            return [_apply(f, t) for t in a]
         else:
             return f(a)
 
-    def _apply_n(*p, f):
+    def _apply_n(f, *p):
         if isinstance(p[0], list):
-            return [_apply_n(*q, f=f) for q in zip(*p)]
+            return [_apply_n(f, *q) for q in zip(*p)]
         else:
             return f(*p)
 
     def conditional(a, cond, t, f):
-        return _apply(a, lambda x: t(x) if cond(x) else f(x))
+        def _eval(x):
+            return t(x) if cond(x) else f(x)
+        return _apply(_eval, a)
 
     def switch(*a):
         assert a and len(a) % 2 == 0
@@ -186,31 +189,33 @@ else:
         return options[i]
 
     def clip(a, t0, t1):
-        return _apply(a, lambda x: max(t0, min(t1, x)))
+        def _eval(x):
+            return max(t0, min(t1, x))
+        return _apply(_eval, a)
 
     def dot_t(u, v):
         return [sum(x * y for x, y in zip(u, r)) for r in v]
 
     def mod(a, b):
-        return _apply_n(a, b, f=lambda x, y: x % y)
+        return _apply_n(operator.mod, a, b)
 
     def sin(a):
-        return _apply(a, lambda t: sinf(t))
+        return _apply(sinf, a)
 
     def cos(a):
-        return _apply(a, lambda t: cosf(t))
+        return _apply(cosf, a)
 
     def arctan2(y, x):
-        return _apply_n(y, x, f=atan2f)
+        return _apply_n(atan2f, y, x)
 
     def sqrt(a):
-        return _apply(a, lambda t: sqrtf(t))
+        return _apply(sqrtf, a)
 
     def floor(a):
-        return _apply(a, lambda t: floorf(t))
+        return _apply(floorf, a)
 
     def maximum(*a):
-        return _apply_n(*a, f=lambda *x: max(*x))
+        return _apply_n(max, *a)
 
     def minimum(*a):
-        return _apply_n(*a, f=lambda *x: min(*x))
+        return _apply_n(min, *a)
