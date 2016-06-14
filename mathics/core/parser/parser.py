@@ -180,7 +180,7 @@ class Parser(object):
         expr2 = self.parse_exp(q)
         # flatten or associate
         if tag in nonassoc_binary_ops and expr1.get_head_name() == tag and not expr1.parenthesised:
-            raise InvalidSyntaxError(token.pos)
+            raise InvalidSyntaxError(token)
         result = Node(tag, expr1, expr2)
         if tag in flat_binary_ops:
             result.flatten()

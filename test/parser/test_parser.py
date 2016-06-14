@@ -34,7 +34,7 @@ class ParserTests(unittest.TestCase):
         else:
             self.assertEqual(expr1, expr2)
 
-    def lex_error(self, string):
+    def scan_error(self, string):
         self.assertRaises(ScanError, self.parse, string)
 
     def incomplete_error(self, string):
@@ -123,7 +123,7 @@ class AtomTests(ParserTests):
         self.invalid_error(r'\""')
 
     def testAccuracy(self):
-        self.lex_error('1.5``')
+        self.scan_error('1.5``')
         self.check_number('1.0``20')
         self.check_number('1.4``0')
         self.check_number('1.4``-20')
@@ -377,7 +377,7 @@ class GeneralTests(ParserTests):
         self.check('1 \uf4a0 2', Node('Cross', Number('1'), Number('2')))
         self.check('3\\[Divide]2', Node('Times', Number('3'), Node('Power', Number('2'), Number('-1'))))
         self.check('3 \u00f7 2', 'Times[3, Power[2, -1]]')
-        self.invalid_error('3\\2')
+        self.scan_error('3\\2')
         self.check('1 \\[Times] 2', Node('Times', Number('1'), Number('2')))
         self.check('1 \u00d7 2', Node('Times', Number('1'), Number('2')))
         self.check('1 \[PlusMinus] 2', Node('PlusMinus', Number('1'), Number('2')))
