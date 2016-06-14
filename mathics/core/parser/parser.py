@@ -15,8 +15,8 @@ from mathics.core.parser.operators import (
 
 
 class Parser(object):
-    def parse(self, code, feed_callback=None):
-        self.tokeniser = Tokeniser(code, feed_callback)
+    def parse(self, feeder):
+        self.tokeniser = Tokeniser(feeder)
         self.current_token = None
         return self.parse_e()
 
@@ -28,15 +28,20 @@ class Parser(object):
     def consume(self):
         self.current_token = None
 
+    def incomplete(self, pos):
+        self.tokeniser.incomplete(pos)
+        self.consume()
+
     def expect(self, expected_tag):
         token = self.next()
-        tag = token.tag
-        if tag == expected_tag:
+        while token.tag == 'END':
+            self.incomplete(token.pos)
+            token = self.next()
+
+        if token.tag == expected_tag:
             self.consume()
-        elif tag == 'END':
-            raise IncompleteSyntaxError(token.pos)
         else:
-            raise InvalidSyntaxError(token.pos)
+            raise InvalidSyntaxError(token)
 
     def next_filename(self):
         token = self.tokeniser.next_filename()
@@ -44,9 +49,9 @@ class Parser(object):
         if tag == 'filename':
             return Filename(token.text)
         elif tag == 'END':
-            raise IncompleteSyntaxError(token.pos)
+            raise IncompleteSyntaxError()
         else:
-            raise InvalidSyntaxError(token.pos)
+            raise InvalidSyntaxError(token)
 
     def backtrack(self, pos):
         self.tokeniser.pos = pos
@@ -94,6 +99,10 @@ class Parser(object):
 
     def parse_p(self):
         token = self.next()
+        while token.tag == 'END':
+            self.incomplete(token.pos)
+            token = self.next()
+
         tag = token.tag
         method = getattr(self, 'p_' + tag, None)
 
@@ -105,7 +114,7 @@ class Parser(object):
             child = self.parse_exp(q)
             return Node(tag, child)
         else:
-            raise InvalidSyntaxError(token.pos)
+            raise InvalidSyntaxError(token)
 
     def parse_seq(self):
         result = []
@@ -116,7 +125,7 @@ class Parser(object):
                 # TODO message Syntax:com
                 result.append(Symbol('Null'))
                 self.consume()
-            elif tag in ('END', 'RawRightBrace', 'RawRightBracket'):
+            elif tag in ('RawRightBrace', 'RawRightBracket'):
                 if result:
                     # TODO message Syntax:com
                     result.append(Symbol('Null'))
@@ -128,7 +137,7 @@ class Parser(object):
                 if tag == 'RawComma':
                     self.consume()
                     continue
-                elif tag in ('END', 'RawRightBrace', 'RawRightBracket'):
+                elif tag in ('RawRightBrace', 'RawRightBracket'):
                     break
         return result
 
@@ -201,9 +210,6 @@ class Parser(object):
     # p_xxx methods are called from parse_p.
     # Called with one Token and return a Node.
     # Used for prefix operators and brackets.
-
-    def p_END(self, token):
-        raise IncompleteSyntaxError(token.pos)
 
     def p_Factorial(self, token):
         self.consume()
@@ -462,7 +468,7 @@ class Parser(object):
         elif expr1.get_head_name() in ('Blank', 'BlankSequence', 'BlankNullSequence', 'Optional', 'Pattern'):
             head = 'Optional'
         else:
-            raise InvalidSyntaxError(token.pos)
+            raise InvalidSyntaxError(token)
         q = all_ops[head]
         if q < p:
             return None
@@ -523,6 +529,10 @@ class Parser(object):
 
         # examine next token
         token = self.next()
+        while token.tag == 'END':
+            self.incomplete(token.pos)
+            token = self.next()
+
         tag = token.tag
         if tag == 'Set':
             head = 'TagSet'
@@ -530,10 +540,8 @@ class Parser(object):
             head = 'TagSetDelayed'
         elif tag == 'Unset':
             head = 'TagUnset'
-        elif tag == 'END':
-            raise IncompleteSyntaxError(token.pos)
         else:
-            raise InvalidSyntaxError(token.pos)
+            raise InvalidSyntaxError(token)
         self.consume()
 
         if head == 'TagUnset':
@@ -591,7 +599,7 @@ class Parser(object):
         elif tag == 'RawColon':
             expr2 = self.e_RawColon(expr2, token, 139)
         elif tag == 'PatternTest':
-            raise InvalidSyntaxError(token.pos)
+            raise InvalidSyntaxError(token)
         return Node('PatternTest', expr1, expr2)
 
     def e_MessageName(self, expr1, token, p):
@@ -606,6 +614,6 @@ class Parser(object):
             elif token.tag == 'String':
                 leaf = self.p_String(token)
             else:
-                raise InvalidSyntaxError(token.pos)
+                raise InvalidSyntaxError(token)
             leaves.append(leaf)
         return Node('MessageName', *leaves)

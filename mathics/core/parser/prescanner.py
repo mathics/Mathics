@@ -10,7 +10,7 @@ from mathics.core.characters import named_characters
 from mathics.core.parser.errors import ScanError, IncompleteSyntaxError, InvalidSyntaxError
 
 
-class PreScanner(object):
+class Prescanner(object):
     r'''
     Converts:
         character codes to characters:
@@ -26,23 +26,28 @@ class PreScanner(object):
 
     PreScanner works by breaking the partitioning code into stubs.
     '''
-    def __init__(self):
-        self.code = None    # input code
-        self.stubs = None   # stubs of code to be joined
-        self.pos = None     # current position within code
-        self.start = None   # start of current stub
+    def __init__(self, feeder):
+        self.feeder = feeder        # returns more code when asked
+        self.code = feeder.feed()   # input code
+        self.pos = 0                # current position within code
 
-    def scan(self, code):
-        # initialise
-        self.code = code
-        self.stubs = []
-        self.pos = 0
-        self.start = 0
+    def feed(self):
+        return self.feeder.feed()
+
+    def incomplete(self):
+        line = self.feeder.feed()
+        if not line:
+            raise IncompleteSyntaxError()
+        self.code += line
+
+    def scan(self):
         # main loop
+        self.stubs = []         # stubs of code to be joined
+        self.start = 0          # start of current stub
         while self.pos < len(self.code):
             if self.code[self.pos] == '\\':
                 if self.pos + 1 == len(self.code):
-                    raise IncompleteSyntaxError(self.pos)
+                    self.incomplete()
                 c = self.code[self.pos + 1]
                 if c == '.':
                     self.try_parse_base(2, 4, 16)
@@ -82,12 +87,12 @@ class PreScanner(object):
 
     def try_parse_longname(self, start_shift):
         i = self.pos + start_shift
-        while i < len(self.code):
+        while True:
+            if i == len(self.code):
+                self.incomplete()
             if self.code[i] == ']':
                 break
             i += 1
-        else:
-            raise IncompleteSyntaxError(i)
 
         longname = self.code[self.pos + start_shift:i]
         if longname.isalpha():
@@ -100,9 +105,3 @@ class PreScanner(object):
                 self.stubs.append(char)
                 self.newstub(i + 1)
         self.pos = i + 1    # stay in same stub but skip ahead
-
-prescanner = PreScanner()   # singleton instance
-
-
-def prescan(code):
-    return prescanner.scan(code)

@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 import re
 
 from mathics.core.parser.errors import ScanError, IncompleteSyntaxError
-from mathics.core.parser.prescanner import prescan
+from mathics.core.parser.prescanner import Prescanner
 from mathics.core.characters import letters, letterlikes, named_characters
 
 
@@ -226,10 +226,19 @@ class Token(object):
 
 
 class Tokeniser(object):
-    def __init__(self, code, feed_callback=None):
+    def __init__(self, feeder):
         self.pos = 0
-        self.code = code
-        self.feed_callback = feed_callback
+        self.feeder = feeder
+        self.prescanner = Prescanner(feeder)
+        self.code = self.prescanner.scan()
+
+    def incomplete(self):
+        self.prescanner.incomplete()
+        self.prescanner.scan()
+        self.code += self.prescanner.scan()
+
+    def feed_callback(self):
+        return self.feeder.feed()
 
     def next(self, tokens=tokens):
         'return next token'
@@ -261,7 +270,7 @@ class Tokeniser(object):
                 self.code += line
                 self.pos = pos
                 return
-        raise IncompleteSyntaxError(pos)
+        raise IncompleteSyntaxError()
 
     def skip_blank(self):
         'skip whitespace and comments'

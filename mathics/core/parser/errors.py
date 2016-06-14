@@ -3,17 +3,28 @@
 
 
 class TranslateError(Exception):
-    def __init__(self, pos):
-        self.pos = pos
-
+    pos = None
+    msg = None
+    args = None
 
 class ScanError(TranslateError):
-    pass
+    def __init__(self, pos):
+        self.pos = pos
+        self.msg = 'scan'
+        self.args = [pos]
 
 
 class InvalidSyntaxError(TranslateError):
-    pass
+    def __init__(self, token):
+        self.token = token
+        self.pos = token.pos
+        self.msg = 'invalid'
+        self.args = [token.text]
 
 
 class IncompleteSyntaxError(TranslateError):
-    pass
+    def __init__(self, token):
+        self.token = token
+        self.pos = token.pos
+        self.msg = 'incomplete'
+        self.args = [token.text]

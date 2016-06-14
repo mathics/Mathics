@@ -6,25 +6,31 @@ from __future__ import unicode_literals
 
 import six
 
-from mathics.core.parser.errors import IncompleteSyntaxError
-from mathics.core.parser.prescanner import prescan
 from mathics.core.parser.parser import Parser
 from mathics.core.parser.convert import convert
+from mathics.core.parser.feed import SingleLineFeeder, MultiLineFeeder
 from mathics.core.expression import ensure_context
+
 
 parser = Parser()
 
 
-# Parse input (from the frontend, -e, input files, ToExpression etc).
-# Look up symbols according to the Definitions instance supplied.
-def parse(raw_code, definitions, feed_callback=None):
-    code = prescan(raw_code)
-    def prescan_feed_callback():
-        return prescan(feed_callback())
-    ast = parser.parse(code, prescan_feed_callback)
-    if ast is None:
+def parse_convert(definitions, feeder):
+    ast = parser.parse(feeder)
+    if ast is not None:
+        return convert(ast, definitions)
+    else:
         return None
-    return convert(ast, definitions)
+
+
+def parse(definitions, feeder):
+    '''
+    Parse input (from the frontend, -e, input files, ToExpression etc).
+    Look up symbols according to the Definitions instance supplied.
+
+    Feeder must implement the feed and empty methods, see core/parser/feed.py.
+    '''
+    return parse_convert(definitions, feeder)
 
 
 class SystemDefinitions(object):
@@ -37,63 +43,36 @@ class SystemDefinitions(object):
         return ensure_context(name)
 
 
-# Parse rules specified in builtin docstrings/attributes. Every symbol
-# in the input is created in the System` context.
 def parse_builtin_rule(string):
-    return parse(string, SystemDefinitions())
+    '''
+    Parse rules specified in builtin docstrings/attributes. Every symbol
+    in the input is created in the System` context.
+    '''
+    return parse_convert(SystemDefinitions(), SingleLineFeeder(string))
 
 
 def parse_lines(lines, definitions, yield_lineno=False):
     '''
-    Given some lines of code try to construct a list of expressions.
+    Given a list of lines of code yield expressions until all code is parsed.
 
-    In the case of incomplete lines append more lines until a complete
-    expression is found. If the end is reached and no complete expression is
-    found then reraise the exception.
+    If yield_lines is True return `(lineno, expr)` otherwise just `expr`.
 
-    We use a generator so that each expression can be evaluated (as the parser
-    is dependent on defintions and evaluation may change the definitions).
+    The line number (lineno) corresponds to the start of the expression.
+
+    A generator is used so that each expression can be evaluated before
+    continuing; the parser is dependent on defintions and evaluation may change
+    the definitions.
     '''
-    query = ''
     if isinstance(lines, six.text_type):
         lines = lines.splitlines()
 
-    lineno = 0
-    def feed_callback():
-        nonlocal lineno
-        if lineno < len(lines):
-            result = lines[lineno]
-            lineno += 1
-        else:
-            result = ''
-        return result
+    feeder = MultiLineFeeder(lines)
 
-    incomplete_exc = None
-    for line in lines:
-        lineno += 1
-        if not line:
-            query += ' '
-            continue
-        query += line
-        if query.endswith('\\'):
-            query = query.rstrip('\\')
-            incomplete_exc = IncompleteSyntaxError(len(query) - 1)
-            continue
-        try:
-            expression = parse(query, definitions, feed_callback)
-        except IncompleteSyntaxError as exc:
-            incomplete_exc = exc
-        else:
-            if expression is not None:
-                if yield_lineno:
-                    yield (expression, lineno)
-                else:
-                    yield expression
-            query = ''
-            incomplete_exc = None
-
-    if incomplete_exc is not None:
-        # ran out of lines
-        raise incomplete_exc
-
-    raise StopIteration
+    while not feeder.empty():
+        lineno = feeder.lineno
+        expression = parse_convert(definitions, feeder)
+        if expression is not None:
+            if yield_lineno:
+                yield (expression, lineno)
+            else:
+                yield expression

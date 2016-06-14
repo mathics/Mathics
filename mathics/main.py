@@ -15,6 +15,7 @@ from mathics.core.definitions import Definitions
 from mathics.core.expression import Integer, strip_context
 from mathics.core.evaluation import Evaluation
 from mathics.core.parser import parse, parse_lines, TranslateError, IncompleteSyntaxError
+from mathics.core.parser.feed import LineFeeder
 from mathics import version_string, license_string, __version__
 from mathics import settings
 
@@ -22,9 +23,10 @@ import six
 from six.moves import input
 
 
-class TerminalShell(object):
+class TerminalShell(LineFeeder):
     def __init__(self, definitions, colors, want_readline, want_completion):
         self.input_encoding = locale.getpreferredencoding()
+        self.continued = False  # continued input on later lines
 
         # Try importing readline to enable arrow keys support etc.
         self.using_readline = False
@@ -81,9 +83,9 @@ class TerminalShell(object):
     def get_last_line_number(self):
         return self.definitions.get_line_no()
 
-    def get_in_prompt(self, continued=False):
+    def get_in_prompt(self):
         next_line_number = self.get_last_line_number() + 1
-        if continued:
+        if self.continued:
             return ' ' * len('In[{0}]:= '.format(next_line_number))
         else:
             return '{1}In[{2}{0}{3}]:= {4}'.format(next_line_number, *self.incolors)
@@ -160,6 +162,17 @@ class TerminalShell(object):
         if '`' not in text:
             matches = [strip_context(m) for m in matches]
         return matches
+
+    def reset_continued(self):
+        self.continued = False
+
+    def feed(self):
+        result = self.read_line(self.get_in_prompt())
+        self.continued = True
+        return result
+
+    def empty(self):
+        return False
 
 
 def main():
@@ -261,15 +274,12 @@ def main():
         if not args.persist:
             return
 
-    def feed_callback():
-        return shell.read_line(shell.get_in_prompt(continued=True))
 
     while True:
         try:
             evaluation = Evaluation(shell.definitions, out_callback=shell.out_callback)
-            line = shell.read_line(shell.get_in_prompt(continued=False))
             try:
-                query = parse(line, shell.definitions, feed_callback)
+                query = parse(shell.definitions, shell)
             except TranslateError as exc:
                 evaluation.message('Syntax', exc.msg, *exc.args)
                 continue
@@ -282,6 +292,8 @@ def main():
         except (SystemExit, EOFError):
             print("\n\nGood bye!\n")
             break
+        finally:
+            shell.reset_continued()
 
 if __name__ == '__main__':
     main()
