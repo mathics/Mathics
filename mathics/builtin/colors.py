@@ -4,6 +4,7 @@
 from math import pi
 from mathics.builtin.numpy_utils import stack, unstack, concat, array, clip, conditional, switch, choose
 from mathics.builtin.numpy_utils import sqrt, floor, mod, cos, sin, arctan2, minimum, maximum, dot_t
+from itertools import chain
 
 # use rRGB D50 conversion like MMA. see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
 # MMA seems to round matrix values to six significant digits. we do the same.
@@ -270,7 +271,7 @@ functions = (
     lab_to_xyz,
 )
 
-_rewrites = {  # see http://www.brucelindbloom.com/Math.html
+_flows = {  # see http://www.brucelindbloom.com/Math.html
     'XYZ>LCH': ('XYZ', 'LAB', 'LCH'),
     'LAB>LUV': ('LAB', 'XYZ', 'LUV'),
     'LAB>RGB': ('LAB', 'XYZ', 'RGB'),
@@ -284,6 +285,18 @@ _rewrites = {  # see http://www.brucelindbloom.com/Math.html
     'RGB>LCH': ('RGB', 'XYZ', 'LAB', 'LCH'),
     'RGB>LUV': ('RGB', 'XYZ', 'LUV'),
 }
+
+
+_rgb_flows = set(['Grayscale', 'CMYK', 'HSB'])
+
+
+def _flow(src, dst):
+    if (src in _rgb_flows and dst != 'RGB') or (dst in _rgb_flows and src != 'RGB'):
+        return list(chain(_flow(src, 'RGB'), _flow('RGB', dst)))
+    else:
+        r = _flows.get('%s>%s' % (src, dst))
+        return list(r) if r else [src, dst]
+
 
 _conversions = {
     'Grayscale>RGB': grayscale_to_rgb,
@@ -302,24 +315,13 @@ _conversions = {
     'RGB>XYZ': rgb_to_xyz,
 }
 
-_rgb_transitions = set(['Grayscale', 'CMYK', 'HSB'])
-
 
 def convert(components, src, dst):
     if src == dst:
         return components
 
-    if src in _rgb_transitions or dst in _rgb_transitions:
-        flow = (src, 'RGB', dst)
-    else:
-        flow = (src, dst)
-
-    new_flow = [flow[0]]
-    for s, d in (flow[i:i + 2] for i in range(len(flow) - 1)):
-        r = _rewrites.get('%s>%s' % (s, d))
-        new_flow.extend(r[1:] if r else [d])
-
-    for s, d in (new_flow[i:i + 2] for i in range(len(new_flow) - 1)):
+    flows = _flow(src, dst)
+    for s, d in (flows[i:i + 2] for i in range(len(flows) - 1)):
         if s == d:
             continue
         func = _conversions.get('%s>%s' % (s, d))
