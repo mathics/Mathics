@@ -25,6 +25,14 @@ class Parser(object):
             self.current_token = self.tokeniser.next()
         return self.current_token
 
+    def next_noend(self):
+        'returns next token which is not END'
+        while True:
+            token = self.next()
+            if token.tag != 'END':
+                return token
+            self.incomplete(token.pos)
+
     def consume(self):
         self.current_token = None
 
@@ -33,11 +41,7 @@ class Parser(object):
         self.backtrack(pos)
 
     def expect(self, expected_tag):
-        token = self.next()
-        while token.tag == 'END':
-            self.incomplete(token.pos)
-            token = self.next()
-
+        token = self.next_noend()
         if token.tag == expected_tag:
             self.consume()
         else:
@@ -98,11 +102,7 @@ class Parser(object):
         return result
 
     def parse_p(self):
-        token = self.next()
-        while token.tag == 'END':
-            self.incomplete(token.pos)
-            token = self.next()
-
+        token = self.next_noend()
         tag = token.tag
         method = getattr(self, 'p_' + tag, None)
 
@@ -119,7 +119,7 @@ class Parser(object):
     def parse_seq(self):
         result = []
         while True:
-            token = self.next()
+            token = self.next_noend()
             tag = token.tag
             if tag == 'RawComma':
                 # TODO message Syntax:com
@@ -132,7 +132,7 @@ class Parser(object):
                 break
             else:
                 result.append(self.parse_exp(0))
-                token = self.next()
+                token = self.next_noend()
                 tag = token.tag
                 if tag == 'RawComma':
                     self.consume()
@@ -528,11 +528,7 @@ class Parser(object):
         expr2 = self.parse_exp(q + 1)
 
         # examine next token
-        token = self.next()
-        while token.tag == 'END':
-            self.incomplete(token.pos)
-            token = self.next()
-
+        token = self.next_noend()
         tag = token.tag
         if tag == 'Set':
             head = 'TagSet'
