@@ -233,8 +233,8 @@ class Tokeniser(object):
         self.code = self.prescanner.scan()
 
     def incomplete(self):
+        'get more code from the prescanner and continue'
         self.prescanner.incomplete()
-        self.prescanner.scan()
         self.code += self.prescanner.scan()
 
     def feed_callback(self):
@@ -262,23 +262,13 @@ class Tokeniser(object):
         'return next filename token'
         return self.next(tokens=[('filename', filename_pattern)])
 
-    def incomplete(self, pos):
-        'get more code and continue otherwise raise IncompleteSyntaxError'
-        if self.feed_callback is not None:
-            line = self.feed_callback()
-            if line:
-                self.code += line
-                self.pos = pos
-                return
-        raise IncompleteSyntaxError()
-
     def skip_blank(self):
         'skip whitespace and comments'
         comment = []   # start positions of comments
         while True:
             if self.pos >= len(self.code):
                 if comment:
-                    self.incomplete(self.pos)
+                    self.incomplete()
                 else:
                     break
             if comment:
@@ -306,7 +296,7 @@ class Tokeniser(object):
             if self.pos >= len(self.code):
                 if end is None:
                     # reached end while still inside string
-                    self.incomplete(self.pos)
+                    self.incomplete()
                     newlines.append(self.pos)
                 else:
                     break

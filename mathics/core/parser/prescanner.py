@@ -35,7 +35,7 @@ class Prescanner(object):
         return self.feeder.feed()
 
     def incomplete(self):
-        line = self.feeder.feed()
+        line = self.feed()
         if not line:
             raise IncompleteSyntaxError()
         self.code += line
@@ -43,7 +43,7 @@ class Prescanner(object):
     def scan(self):
         # main loop
         self.stubs = []         # stubs of code to be joined
-        self.start = 0          # start of current stub
+        self.start = self.pos   # start of current stub
         while self.pos < len(self.code):
             if self.code[self.pos] == '\\':
                 if self.pos + 1 == len(self.code):
@@ -80,7 +80,7 @@ class Prescanner(object):
                 pass    # result remains None
         if result is None:
             # TODO Syntax  message
-            raise InvalidSyntaxError(self.pos)
+            raise ScanError(self.pos)
         self.stubs.append(self.code[self.start:self.pos])
         self.stubs.append(unichr(result))
         self.newstub(end)

@@ -29,8 +29,8 @@ class Parser(object):
         self.current_token = None
 
     def incomplete(self, pos):
-        self.tokeniser.incomplete(pos)
-        self.consume()
+        self.tokeniser.incomplete()
+        self.backtrack(pos)
 
     def expect(self, expected_tag):
         token = self.next()

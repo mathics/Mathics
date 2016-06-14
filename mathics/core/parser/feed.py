@@ -18,6 +18,8 @@ class SingleLineFeeder(LineFeeder):
         self.empty = False
 
     def feed(self):
+        if self.empty:
+            return ''
         self.empty = True
         return self.code
 

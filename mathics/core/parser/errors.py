@@ -7,6 +7,7 @@ class TranslateError(Exception):
     msg = None
     args = None
 
+
 class ScanError(TranslateError):
     def __init__(self, pos):
         self.pos = pos
@@ -23,8 +24,6 @@ class InvalidSyntaxError(TranslateError):
 
 
 class IncompleteSyntaxError(TranslateError):
-    def __init__(self, token):
-        self.token = token
-        self.pos = token.pos
+    def __init__(self):
         self.msg = 'incomplete'
-        self.args = [token.text]
+        self.args = []

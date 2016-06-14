@@ -8,12 +8,13 @@ import urllib.request
 
 from mathics.core.parser.tokeniser import Tokeniser, ScanError, IncompleteSyntaxError, Token
 from mathics.core.parser.errors import *
+from mathics.core.parser.feed import SingleLineFeeder
 
 
 class TokeniserTest(unittest.TestCase):
 
     def tokens(self, code):
-        tokeniser = Tokeniser(code)
+        tokeniser = Tokeniser(SingleLineFeeder(code))
         tokens = []
         while True:
             token = tokeniser.next()
@@ -60,7 +61,7 @@ class TokeniserTest(unittest.TestCase):
     def test_combinatorica(self):
         with urllib.request.urlopen('http://www.cs.uiowa.edu/~sriram/Combinatorica/NewCombinatorica.m') as f:
             code = f.read().decode('utf-8')
-        t = Tokeniser(code)
+        t = Tokeniser(SingleLineFeeder(code))
         while True:
             tag = t.next().tag
             if tag == 'END':
