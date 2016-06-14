@@ -186,7 +186,7 @@ else:
         raise ValueError('no matching case in switch')
 
     def choose(i, *options):
-        return options[i]
+        return options[int(i)]  # int cast needed for PyPy
 
     def clip(a, t0, t1):
         def _eval(x):
