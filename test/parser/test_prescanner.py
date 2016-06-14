@@ -3,19 +3,24 @@ from __future__ import unicode_literals
 
 import unittest
 
-from mathics.core.parser import IncompleteSyntaxError, InvalidSyntaxError
-from mathics.core.parser.prescanner import prescan
+from mathics.core.parser import IncompleteSyntaxError, InvalidSyntaxError, ScanError
+from mathics.core.parser.prescanner import Prescanner
+from mathics.core.parser.feed import SingleLineFeeder
 
 
 class PrescannerTest(unittest.TestCase):
+    def prescan(self, code):
+        prescanner = Prescanner(SingleLineFeeder(code))
+        return prescanner.scan()
+
     def invalid(self, code):
-        self.assertRaises(InvalidSyntaxError, prescan, code)
+        self.assertRaises(ScanError, self.prescan, code)
 
     def incomplete(self, code):
-        self.assertRaises(IncompleteSyntaxError, prescan, code)
+        self.assertRaises(IncompleteSyntaxError, self.prescan, code)
 
     def equal(self, code, result):
-        self.assertEqual(prescan(code), result)
+        self.assertEqual(self.prescan(code), result)
 
     def test_longnames(self):
         self.equal(r'\[Theta]', '\u03B8')
