@@ -65,7 +65,7 @@ def rgb_to_xyz(pixels):
                           lambda t: t / 12.92)
     xyz = dot_t(stack(x, y, z), xyz_from_rgb)
 
-    return concat(clip(xyz, 0, 1), components[3:])
+    return clip(concat(xyz, components[3:]), 0, 1)
 
 
 def rgb_to_hsb(pixels):
@@ -127,9 +127,9 @@ def cmyk_to_rgb(pixels):
     k_ = 1 - k
 
     cmy = [(x * k_ + k) for x in c[:3]]
-    rgb = [1 - x for x in cmy]
+    r, g, b = [1 - x for x in cmy]
 
-    return stack(*rgb, *c[4:])
+    return concat(stack(r, g, b), c[4:])
 
 
 def rgb_to_cmyk(pixels):
