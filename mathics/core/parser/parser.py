@@ -72,10 +72,13 @@ class Parser(object):
         else:
             return None
 
-    def parse_exp(self, p):
+    def parse_exp(self, p, stop_on_end=True):
         result = self.parse_p()
         while True:
-            token = self.next()
+            if stop_on_end:
+                token = self.next()
+            else:
+                token = self.next_noend()
             tag = token.tag
             method = getattr(self, 'e_' + tag, None)
             if method is not None:
@@ -131,7 +134,7 @@ class Parser(object):
                     result.append(Symbol('Null'))
                 break
             else:
-                result.append(self.parse_exp(0))
+                result.append(self.parse_exp(0, stop_on_end=False))
                 token = self.next_noend()
                 tag = token.tag
                 if tag == 'RawComma':
@@ -396,7 +399,7 @@ class Parser(object):
 
     def e_RawLeftBracket(self, expr, token, p):
         self.consume()
-        token = self.next()
+        token = self.next_noend()
         if token.tag == 'RawLeftBracket':
             self.consume()
             seq = self.parse_seq()
