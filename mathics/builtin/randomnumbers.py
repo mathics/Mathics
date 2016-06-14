@@ -20,7 +20,7 @@ from operator import mul as operator_mul
 from functools import reduce
 
 from mathics.builtin.base import Builtin
-from mathics.builtin.numpy_utils import instantiate_elements, stack_along_inner_axis
+from mathics.builtin.numpy_utils import instantiate_elements, stack
 from mathics.core.expression import (Integer, String, Symbol, Real, Expression,
                                      Complex)
 
@@ -502,7 +502,7 @@ class RandomComplex(Builtin):
             real = rand.randreal(min_value.real, max_value.real, py_ns)
             imag = rand.randreal(min_value.imag, max_value.imag, py_ns)
             return instantiate_elements(
-                stack_along_inner_axis([real, imag]),
+                stack(real, imag),
                 lambda c: Complex(Real(c[0]), Real(c[1])),
                 d=2)
 

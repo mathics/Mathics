@@ -7,6 +7,8 @@ A couple of helper functions for working with numpy (and a couple of fallbacks, 
 
 from mathics.core.expression import Expression
 from itertools import chain
+from functools import reduce
+from math import sin as sinf, cos as cosf, sqrt as sqrtf, atan2 as atan2f, floor as floorf
 
 try:
     import numpy
@@ -31,15 +33,6 @@ def py_instantiate_elements(a, new_element, d=1):
         leaves = [py_instantiate_elements(e, new_element, d) for e in a]
     return Expression('List', *leaves)
 
-
-def py_stack_along_inner_axis(a):
-    # explanation of functionality: see numpy version of _stack_array above
-
-    if not isinstance(a[0], list):
-        return list(chain(a))
-    else:
-        return [py_stack_along_inner_axis([x[i] for x in a]) for i in range(len(a[0]))]
-
 if _numpy:
     def instantiate_elements(a, new_element, d=1):
         # given a numpy array 'a' and a python element constructor 'new_element', generate a python array of the
@@ -52,7 +45,14 @@ if _numpy:
             leaves = [instantiate_elements(e, new_element, d) for e in a]
         return Expression('List', *leaves)
 
-    def stack_along_inner_axis(a):
+    def array(a):
+        return numpy.array(a)
+
+    def unstack(a):
+        a = array(a)
+        return array(numpy.split(a, a.shape[-1], axis=-1))
+
+    def stack(*a):
         # numpy.stack with axis=-1 stacks arrays along the most inner axis:
 
         # e.g. numpy.stack([ [1, 2], [3, 4] ], axis=-1)
@@ -61,10 +61,156 @@ if _numpy:
         # e.g. numpy.stack([ [[1, 2], [3, 4]], [[4, 5], [6, 7]] ], axis=-1)
         # gives: array([[[1, 4], [2, 5]], [[3, 6], [4, 7]]])
 
-        return numpy.stack(a, axis=-1)
+        a = array(a)
+        b = numpy.stack(a, axis=-1)
+
+        if a.shape[-1] == 1 and b.shape[0] > 0:  # e.g. [[a], [b], [c]]
+            b = b[0]  # makes stack(unstack(x)) == x
+        return b
+
+    def concat(*a):
+        a = [x for x in a if x.shape[0]]  # skip empty
+        return numpy.concatenate(a, axis=-1)
+
+    def conditional(a, cond, t, f):
+        b = array(a)[:]
+        mask = cond(a)
+        b[mask] = t(b[mask])
+        b[~mask] = f(b[~mask])
+        return b
+
+    def switch(*a):
+        assert a and len(a) % 2 == 0
+        b = numpy.ndarray(a[0].shape)
+        # we apply the rules in reversed order, so that the first rules
+        # always make the last changes, which corresponds to the unreversed
+        # processing in the non-vectorized (non-numpy) implementation.
+        for mask, v in reversed([a[i:i + 2] for i in range(0, len(a), 2)]):
+            b[mask] = v(lambda x: x[mask])
+        return b
+
+    def choose(i, *options):
+        assert 0 < len(options) < 256
+        i_int = i.astype(numpy.uint8)
+        dim = len(options[0])
+        return [numpy.choose(i_int, [o[d] for o in options]) for d in range(dim)]
+
+    def clip(a, t0, t1):
+        return numpy.clip(array(a), t0, t1)
+
+    def dot_t(u, v):
+        return numpy.dot(array(u), array(v).T)
+
+    def mod(a, b):
+        return numpy.mod(a, b)
+
+    def sin(a):
+        return numpy.sin(array(a))
+
+    def cos(a):
+        return numpy.cos(array(a))
+
+    def arctan2(y, x):
+        return numpy.arctan2(array(y), array(x))
+
+    def sqrt(a):
+        return numpy.sqrt(array(a))
+
+    def floor(a):
+        return numpy.floor(array(a))
+
+    def maximum(*a):
+        return reduce(numpy.maximum, [array(x) for x in a])
+
+    def minimum(*a):
+        return reduce(numpy.minimum, [array(x) for x in a])
 else:
     # If numpy is not available, we define the following fallbacks that are useful for implementing a similar
     # logic in pure python without numpy. They obviously work on regular python array though, not numpy arrays.
 
     instantiate_elements = py_instantiate_elements
-    stack_along_inner_axis = py_stack_along_inner_axis
+
+    def array(a):
+        return a
+
+    def _is_bottom(a):
+        return any(not isinstance(x, list) for x in a)
+
+    def unstack(a):
+        if not a:
+            return []
+
+        def length(b):
+            return max(length(x) for x in b) if not _is_bottom(b) else len(b)
+
+        def split(b, i):
+            if not _is_bottom(b):
+                return [split(x, i) for x in b]
+            else:
+                return b[i]
+
+        return [split(a, i) for i in range(length(a))]
+
+    def stack(*a):
+        if _is_bottom(a):
+            return list(chain(a))
+        else:
+            return [stack(*[x[i] for x in a]) for i in range(len(a[0]))]
+
+    def concat(a, b):
+        return stack(*(unstack(a) + unstack(b)))
+
+    def _apply(a, f):
+        if isinstance(a, (list, tuple)):
+            return [_apply(t, f) for t in a]
+        else:
+            return f(a)
+
+    def _apply_n(*p, f):
+        if isinstance(p[0], list):
+            return [_apply_n(*q, f=f) for q in zip(*p)]
+        else:
+            return f(*p)
+
+    def conditional(a, cond, t, f):
+        return _apply(a, lambda x: t(x) if cond(x) else f(x))
+
+    def switch(*a):
+        assert a and len(a) % 2 == 0
+        for cond, v in (a[i:i + 2] for i in range(0, len(a), 2)):
+            if cond:
+                return v(lambda x: x)
+        raise ValueError('no matching case in switch')
+
+    def choose(i, *options):
+        return options[i]
+
+    def clip(a, t0, t1):
+        return _apply(a, lambda x: max(t0, min(t1, x)))
+
+    def dot_t(u, v):
+        return [sum(x * y for x, y in zip(u, r)) for r in v]
+
+    def mod(a, b):
+        return _apply_n(a, b, f=lambda x, y: x % y)
+
+    def sin(a):
+        return _apply(a, lambda t: sinf(t))
+
+    def cos(a):
+        return _apply(a, lambda t: cosf(t))
+
+    def arctan2(y, x):
+        return _apply_n(y, x, f=atan2f)
+
+    def sqrt(a):
+        return _apply(a, lambda t: sqrtf(t))
+
+    def floor(a):
+        return _apply(a, lambda t: floorf(t))
+
+    def maximum(*a):
+        return _apply_n(*a, f=lambda *x: max(*x))
+
+    def minimum(*a):
+        return _apply_n(*a, f=lambda *x: min(*x))
