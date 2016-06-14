@@ -38,7 +38,7 @@ class Prescanner(object):
         line = self.feed()
         if not line:
             raise IncompleteSyntaxError()
-        self.code += ('\n' + line)
+        self.code += line
 
     def scan(self):
         # main loop

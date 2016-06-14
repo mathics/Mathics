@@ -2095,20 +2095,17 @@ class Get(PrefixOperator):
 
     def apply(self, path, evaluation):
         'Get[path_String]'
-        from mathics.core.parser import parse_lines, TranslateError
+        from mathics.core.parser import TranslateError, ExpressionGenerator, FileLineFeeder
 
+        expr = None
         pypath = path.get_string_value()
         try:
             with mathics_open(pypath, 'r') as f:
-                code = f.read()
+                for expr in ExpressionGenerator(evaluation.definitions, FileLineFeeder(f)):
+                    expr = expr.evaluate(evaluation)
         except IOError:
             evaluation.message('General', 'noopen', path)
             return Symbol('$Failed')
-
-        expr_gen = parse_lines(code, evaluation.definitions)
-        try:
-            for expr in expr_gen:
-                expr = expr.evaluate(evaluation)
         except TranslateError as exc:
             evaluation.message('Syntax', exc.msg, *exc.args)
             return Symbol('Null')

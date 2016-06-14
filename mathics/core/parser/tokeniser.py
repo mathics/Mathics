@@ -309,9 +309,8 @@ class Tokeniser(object):
                 self.pos += 2
             else:
                 self.pos += 1
-        # Since the tokeniser accepts one line at a time we must reinsert newlines
         indices = [start] + newlines + [end]
-        result = '\n'.join(self.code[indices[i]:indices[i + 1]] for i in range(len(indices) - 1))
+        result = ''.join(self.code[indices[i]:indices[i + 1]] for i in range(len(indices) - 1))
         return Token('String', result, start)
 
     def t_Number(self, match):
