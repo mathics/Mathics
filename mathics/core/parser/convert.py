@@ -49,7 +49,7 @@ class Converter(object):
 
     def convert_Symbol(self, node):
         if node.value in all_ops:
-            return 'System`' + node.value
+            return ma.Symbol('System`' + node.value)
         value = self.definitions.lookup_name(node.value)
         return ma.Symbol(value)
 
