@@ -7,17 +7,15 @@ from mathics.core.definitions import Definitions
 from mathics.core.parser import (
     parse, TranslateError, InvalidSyntaxError, IncompleteSyntaxError,
     ScanError)
+from mathics.core.parser.feed import SingleLineFeeder
 from mathics.core.expression import (
     Symbol, Integer, Expression, Real, Rational, String)
 
 
+definitions = Definitions(add_builtin=True)
 class ConvertTests(unittest.TestCase):
-    def setUp(self):
-        self.definitions = Definitions(add_builtin=True)
-        self.parse = lambda code: parse(code, self.definitions)
-
-    def parse(self, s):
-        return self.parser.parse(s)
+    def parse(self, code):
+        return parse(definitions, SingleLineFeeder(code))
 
     def check(self, expr1, expr2):
         if isinstance(expr1, six.string_types):

@@ -38,7 +38,7 @@ class Prescanner(object):
         line = self.feed()
         if not line:
             raise IncompleteSyntaxError()
-        self.code += line
+        self.code += ('\n' + line)
 
     def scan(self):
         # main loop
@@ -57,6 +57,9 @@ class Prescanner(object):
                     self.try_parse_longname(2)
                 elif c in '01234567':
                     self.try_parse_base(1, 4, 8)
+                elif c == '\n':
+                    self.stubs.append(self.code[self.start:self.pos])
+                    self.newstub(self.pos + 1)
                 else:
                     self.pos += 1
             else:

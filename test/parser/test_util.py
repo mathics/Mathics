@@ -3,15 +3,17 @@ import six
 
 from mathics.core.definitions import Definitions
 from mathics.core.parser import parse, InvalidSyntaxError, IncompleteSyntaxError
+from mathics.core.parser.feed import SingleLineFeeder, MultiLineFeeder
 
+
+definitions = Definitions(add_builtin=True)
 
 class UtilTests(unittest.TestCase):
-    def setUp(self):
-        self.definitions = Definitions(add_builtin=True)
-        self.parse = lambda code: parse(code, self.definitions)
+    def parse(self, code):
+        raise NotImplementedError
 
-    def parse(self, s):
-        return self.parser.parse(s)
+    def compare(self, expr1, expr2):
+        raise NotImplementedError
 
     def check(self, expr1, expr2):
         if isinstance(expr1, six.string_types):
@@ -22,7 +24,7 @@ class UtilTests(unittest.TestCase):
         if expr1 is None:
             self.assertIsNone(expr2)
         else:
-            self.assertTrue(expr1.same(expr2))
+            self.compare(expr1, expr2)
 
     def incomplete_error(self, string):
         self.assertRaises(IncompleteSyntaxError, self.parse, string)
@@ -30,22 +32,35 @@ class UtilTests(unittest.TestCase):
     def invalid_error(self, string):
         self.assertRaises(InvalidSyntaxError, self.parse, string)
 
+
+class SingleLineParserTests(UtilTests):
+    def parse(self, code):
+        return parse(definitions, SingleLineFeeder(code))
+
+    def compare(self, expr1, expr2):
+        self.assertTrue(expr1.same(expr2))
+
+    def test_continuation(self):
+        self.incomplete_error('Sin[')
+        self.check('Sin[\n0]', 'Sin[0]')
+        self.check('Sin[\n\n0]', 'Sin[0]')
+
+
 class MultiLineParserTests(UtilTests):
-    def parse(self, s):
-        exprs = list(parse_lines(s, definitions))
-        assert len(exprs) == 1
-        return exprs[0]
+    def parse(self, code):
+        return parse(definitions, MultiLineFeeder(code.split('\n')))
+
+    def compare(self, expr1, expr2):
+        self.assertTrue(expr1.same(expr2))
 
     def test_trailing_backslash(self):
         self.incomplete_error('x \\')
-        self.check('x \\\ny', 'Times[Global`x' 'Global`y]')
+        self.check('x \\\ny', 'Times[x, y]')
 
     def test_continuation(self):
         self.incomplete_error('Sin[')
         self.check('Sin[\n0]', 'Sin[0]')
 
-    @unittest.expectedFailure
     def test_blanknewline(self):
-        # currently handled in the frontend
         self.incomplete_error('Sin[\n\n0]')
 

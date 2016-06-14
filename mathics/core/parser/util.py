@@ -51,6 +51,10 @@ def parse_builtin_rule(string):
     return parse_convert(SystemDefinitions(), SingleLineFeeder(string))
 
 
+def parse_code(code, definitions):
+    return parse(definitions, SingleLineFeeder(code))
+
+
 def parse_lines(lines, definitions, yield_lineno=False):
     '''
     Given a list of lines of code yield expressions until all code is parsed.
