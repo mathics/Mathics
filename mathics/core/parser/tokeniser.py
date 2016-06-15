@@ -200,6 +200,59 @@ tokens = [
 ]
 
 
+literal_tokens = {
+    '!': ['Unequal', 'Factorial2', 'Factorial'],
+    '"': ['String'],
+    '#': ['SlotSequence', 'Slot'],
+    '%': ['Out'],
+    '&': ['And', 'Function'],
+    "'": ['Derivative'],
+    '(': ['RawLeftParenthesis'],
+    ')': ['RawRightParenthesis'],
+    '*': ['NonCommutativeMultiply', 'TimesBy', 'Times'],
+    '+': ['Increment', 'AddTo', 'Plus'],
+    ',': ['RawComma'],
+    '-': ['Decrement', 'SubtractFrom', 'Rule', 'Minus'],
+    '.': ['Number', 'RepeatedNull', 'Repeated', 'Dot'],
+    '/': ['MapAll', 'Map', 'DivideBy', 'ReplaceRepeated', 'ReplaceAll', 'Postfix', 'TagSet', 'Condition', 'Divide'],
+    ':': ['MessageName', 'RuleDelayed', 'SetDelayed', 'RawColon'],
+    ';': ['Span', 'Semicolon'],
+    '<': ['Get', 'StringJoin', 'LessEqual', 'Less'],
+    '=': ['SameQ', 'UnsameQ', 'Equal', 'Unset', 'Set'],
+    '>': ['PutAppend', 'Put', 'GreaterEqual', 'Greater'],
+    '?': ['PatternTest'],
+    '@': ['ApplyList', 'Apply', 'Composition', 'Prefix'],
+    '[': ['RawLeftBracket'],
+    '\\': ['RawBackslash'],
+    ']': ['RawRightBracket'],
+    '^': ['UpSetDelayed', 'UpSet', 'Power'],
+    '_': ['Pattern'],
+    '`': ['Pattern', 'Symbol'],
+    '|': ['Or', 'Alternatives'],
+    '{': ['RawLeftBrace'],
+    '}': ['RawRightBrace'],
+    '~': ['StringExpression', 'Infix']
+}
+
+for c in string.ascii_letters:
+    literal_tokens[c] = ['Pattern', 'Symbol']
+
+for c in string.digits:
+    literal_tokens[c] = ['Number']
+
+# find indices of literal tokens
+literal_token_indices = {}
+for key, tags in literal_tokens.items():
+    indices = []
+    for tag in tags:
+        for i, (tag2, pattern) in enumerate(tokens):
+            if tag == tag2:
+                indices.append(i)
+                break
+    literal_token_indices[key] = tuple(indices)
+    assert len(indices) == len(tags)
+
+
 # compile tokens
 tokens = [(tag, re.compile(pattern, re.VERBOSE)) for tag, pattern in tokens]
 
@@ -209,16 +262,6 @@ filename_pattern = re.compile(
         [a-zA-Z0-9\`/\.\\\!\-\:\_\$\*\~\?]+     (?# Literal characters)
     (?P=quote)                                  (?# Closing quotation mark)
     ''', re.VERBOSE)
-
-d = {
-    '[': 10,
-    ']': 11,
-    '{': 12,
-    '}': 13,
-    '(': 14,
-    ')': 15,
-    ",": 16,
-}
 
 class Token(object):
     def __init__(self, tag, text, pos):
@@ -250,25 +293,31 @@ class Tokeniser(object):
     def feed_callback(self):
         return self.feeder.feed()
 
-    def next(self, tokens=tokens):
+    def next(self):
         'return next token'
         self.skip_blank()
         if self.pos >= len(self.code):
             return Token('END', '', len(self.code))
 
-        try:
-            index = d[self.code[self.pos]]
-            tag, pattern = tokens[index]
-            match = pattern.match(self.code, self.pos)
-            assert match is not None
-        except KeyError:
-            match = None
-        if match is None:
+        # look for a matching pattern
+        indices = literal_token_indices.get(self.code[self.pos], ())
+        if indices:
+            for index in indices:
+                tag, pattern = tokens[index]
+                match = pattern.match(self.code, self.pos)
+                if match is not None:
+                    break
+        else:
             for tag, pattern in tokens:
                 match = pattern.match(self.code, self.pos)
                 if match is not None:
                     break
-        # look for custom tokenisation rule
+
+        # no matching pattern found
+        if match is None:
+            raise ScanError(self.pos)
+
+        # custom tokenisation rules defined with t_tag
         override = getattr(self, 't_' + tag, None)
         if override is not None:
             return override(match)
@@ -276,11 +325,19 @@ class Tokeniser(object):
             text = match.group(0)
             self.pos = match.end(0)
             return Token(tag, text, match.start(0))
-        raise ScanError(self.pos)
 
     def next_filename(self):
         'return next filename token'
-        return self.next(tokens=[('filename', filename_pattern)])
+        self.skip_blank()
+        if self.pos >= len(self.code):
+            return Token('END', '', len(self.code))
+        tag = 'filename'
+        match = filename_pattern.match(self.code, self.pos)
+        if match is None:
+            raise ScanError(self.pos)
+        text = match.group(0)
+        self.pos = match.end(0)
+        return Token(tag, text, match.start(0))
 
     def skip_blank(self):
         'skip whitespace and comments'
