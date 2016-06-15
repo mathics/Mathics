@@ -92,6 +92,7 @@ class AtomTests(ParserTests):
         self.check_number('-1')
         self.check('- 1', '-1')
         self.check('- - 1', 'Times[-1, -1]')
+        self.check('x=.01', 'x = 0.01')
 
     def testNumberBase(self):
         self.check_number('8^^23')
