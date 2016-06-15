@@ -14,7 +14,7 @@ from mathics.core.expression import Expression, Integer, Rational, Symbol
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 import mathics.builtin.colors as colors
-from mathics.builtin.numpy_utils import array, vectorize
+from mathics.builtin.numpy_utils import array, vectorized
 
 
 class ColorTest(unittest.TestCase):
@@ -91,10 +91,10 @@ class ColorTest(unittest.TestCase):
 
     def _checkImageConversion(self, size, convert):
         pixels = [[random(), random(), random()] for _ in range(size * size)]
-        refs = [vectorize(convert, p) for p in pixels]
+        refs = [vectorized(convert, p, 1) for p in pixels]
 
         image = [[pixels[x * size + y] for y in range(size)] for x in range(size)]
-        image = vectorize(convert, array(image))
+        image = vectorized(convert, array(image), 1)
 
         for x in range(size):
             for y in range(size):

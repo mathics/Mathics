@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from math import pi
-from mathics.builtin.numpy_utils import vectorize, stack, unstack, concat, array, clip, conditional, switch, choose
+from mathics.builtin.numpy_utils import vectorized, stack, unstack, concat, array, clip, conditional, compose, choose
 from mathics.builtin.numpy_utils import sqrt, floor, mod, cos, sin, arctan2, minimum, maximum, dot_t
 from itertools import chain
 
@@ -78,7 +78,7 @@ def rgb_to_hsb(pixels):
     m0 = minimum(r, g, b)
     c = m1 - m0
 
-    h = switch(
+    h = compose(
         c < 1e-15,
         lambda s: 0,
         m1 == r,
@@ -307,6 +307,6 @@ def convert(components, src, dst):
         func = conversions.get('%s>%s' % (s, d))
         if not func:
             return None
-        components = vectorize(func, components)
+        components = vectorized(func, components, 1)
 
     return components

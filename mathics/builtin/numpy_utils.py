@@ -49,13 +49,14 @@ if _numpy:
     def array(a):
         return numpy.array(a)
 
-    def vectorize(f, a):
-        # if a is a flat array, we embed the components in an array, i.e.
-        # [[a, b, c]], so that unstack will yield [a], [b], [c], and we operate on
-        # arrays of length 1 insteaf of scalars.
+    def vectorized(f, a, depth):
+        # we ignore depth, as numpy arrays will handle the vectorized cases.
         a = array(a)
         if len(a.shape) == 1:
-            return f([a])[0]
+            # if a is a flat array, we embed the components in an array, i.e.
+            # [[a, b, c]], so that unstack will yield [a], [b], [c], and we
+            # operate on arrays of length 1 instead of scalars.
+            return f(array([a]))[0]
         else:
             return f(a)
 
@@ -80,6 +81,7 @@ if _numpy:
         return b
 
     def concat(*a):
+        a = [array(x) for x in a]
         a = [x for x in a if x.shape[0]]  # skip empty
         return numpy.concatenate(a, axis=-1)
 
@@ -90,7 +92,7 @@ if _numpy:
         b[~mask] = f(b[~mask])
         return b
 
-    def switch(*a):
+    def compose(*a):
         assert a and len(a) % 2 == 0
         b = numpy.ndarray(a[0].shape)
         # we apply the rules in reversed order, so that the first rules
@@ -99,12 +101,6 @@ if _numpy:
         for mask, v in reversed([a[i:i + 2] for i in range(0, len(a), 2)]):
             b[mask] = v(lambda x: x[mask])
         return b
-
-    def choose(i, *options):
-        assert 0 < len(options) < 256
-        i_int = i.astype(numpy.uint8)
-        dim = len(options[0])
-        return [numpy.choose(i_int, [o[d] for o in options]) for d in range(dim)]
 
     def clip(a, t0, t1):
         return numpy.clip(array(a), t0, t1)
@@ -135,6 +131,20 @@ if _numpy:
 
     def minimum(*a):
         return reduce(numpy.minimum, [array(x) for x in a])
+
+    def choose(i, *options):
+        assert options
+        dim = len(options[0])
+        columns = [[o[d] for o in options] for d in range(dim)]
+        if isinstance(i, (int, float)):
+            return [column[int(i)] for column in columns]  # int cast needed for PyPy
+        else:
+            assert len(options) < 256
+            i_int = array(i).astype(numpy.uint8)
+            return [numpy.choose(i_int, column) for column in columns]
+
+    def allclose(a, b):
+        return numpy.allclose(array(a), array(b))
 else:
     # If numpy is not available, we define the following fallbacks that are useful for implementing a similar
     # logic in pure python without numpy. They obviously work on regular python array though, not numpy arrays.
@@ -147,14 +157,16 @@ else:
     def array(a):
         return a
 
-    def vectorize(f, a):
-        # we work on a scalar level, i.e. we always pass flat arrays like
-        # [a, b, c, ...] to f, and unstack will resolve this
-        # into a, b, c there.
+    def vectorized(f, a, depth):
+        # depth == 0 means: f will get only scalars. depth == 1 means: f will
+        # get lists of scalars.
         if _is_bottom(a):
-            return f(a)
+            if depth == 0:
+                return [f(x) for x in a]
+            else:
+                return f(a)
         else:
-            return [vectorize(f, x) for x in a]
+            return [vectorized(f, x, depth) for x in a]
 
     def unstack(a):
         if not a:
@@ -197,15 +209,12 @@ else:
             return t(x) if cond(x) else f(x)
         return _apply(_eval, a)
 
-    def switch(*a):
+    def compose(*a):
         assert a and len(a) % 2 == 0
         for cond, v in (a[i:i + 2] for i in range(0, len(a), 2)):
             if cond:
                 return v(lambda x: x)
-        raise ValueError('no matching case in switch')
-
-    def choose(i, *options):
-        return options[int(i)]  # int cast needed for PyPy
+        raise ValueError('no matching case in compose')
 
     def clip(a, t0, t1):
         def _eval(x):
@@ -213,7 +222,10 @@ else:
         return _apply(_eval, a)
 
     def dot_t(u, v):
-        return [sum(x * y for x, y in zip(u, r)) for r in v]
+        if not isinstance(v[0], list):
+            return sum(x * y for x, y in zip(u, v))
+        else:
+            return [sum(x * y for x, y in zip(u, r)) for r in v]
 
     def mod(a, b):
         return _apply_n(operator.mod, a, b)
@@ -238,3 +250,25 @@ else:
 
     def minimum(*a):
         return _apply_n(min, *a)
+
+    def _choose_descend(i, options):
+        if isinstance(i, (int, float)):
+            return options[int(i)]  # int cast needed for PyPy
+        else:
+            return [_choose_descend(next_i, [o[k] for o in options]) for k, next_i in enumerate(i)]
+
+    def choose(i, *options):
+        assert options
+        dim = len(options[0])
+        columns = [[o[d] for o in options] for d in range(dim)]
+        return [_choose_descend(i, column) for column in columns]
+
+    def allclose(a, b):
+        if isinstance(a, list) and isinstance(b, list):
+            if len(a) != len(b):
+                return False
+            return all(allclose(x, y) for x, y in zip(a, b))
+        elif isinstance(a, list) or isinstance(b, list):
+            return False
+        else:
+            return abs(a - b) < 1e-12
