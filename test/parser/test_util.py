@@ -46,10 +46,14 @@ class SingleLineParserTests(UtilTests):
         self.check('Sin[\n0]', 'Sin[0]')
         self.check('Sin[\n\n0]', 'Sin[0]')
 
+    def test_trailing_backslash(self):
+        self.incomplete_error('x \\')
+        self.check('x \\\ny', 'Times[x, y]')
+
 
 class MultiLineParserTests(UtilTests):
     def parse(self, code):
-        return parse(definitions, MultiLineFeeder(code.split('\n')))
+        return parse(definitions, MultiLineFeeder(code))
 
     def compare(self, expr1, expr2):
         self.assertTrue(expr1.same(expr2))
@@ -62,9 +66,7 @@ class MultiLineParserTests(UtilTests):
         self.incomplete_error('Sin[')
         self.check('Sin[\n0]', 'Sin[0]')
         self.check('Sin[0\n]', 'Sin[0]')
-
-    def test_blanknewline(self):
-        self.incomplete_error('Sin[\n\n0]')
+        self.check('Sin[\n\n0]', 'Sin[0]')
 
 
 class ParseLinesTests(UtilTests):

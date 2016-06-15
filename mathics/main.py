@@ -168,7 +168,9 @@ class TerminalShell(LineFeeder):
         self.continued = False
 
     def feed(self):
-        result = self.read_line(self.get_in_prompt())
+        result = self.read_line(self.get_in_prompt()) + '\n'
+        if result == '\n':
+            return ''   # end of input
         self.continued = True
         return result
 

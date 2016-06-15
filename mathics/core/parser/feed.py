@@ -3,6 +3,9 @@ Rather than trying to parse all the code at once this module implemets methods
 for returning one line code at a time.
 '''
 
+import six
+
+
 class LineFeeder(object):
     def feed(self):
         return ''
@@ -31,7 +34,10 @@ class MultiLineFeeder(LineFeeder):
     'Feeds one line at a time.'
     def __init__(self, lines):
         self.lineno = 0
-        self.lines = lines
+        if isinstance(lines, six.text_type):
+            self.lines = lines.splitlines(True)
+        else:
+            self.lines = lines
 
     def feed(self):
         if self.lineno < len(self.lines):

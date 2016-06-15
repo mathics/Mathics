@@ -58,8 +58,10 @@ class Prescanner(object):
                 elif c in '01234567':
                     self.try_parse_base(1, 4, 8)
                 elif c == '\n':
+                    if self.pos + 2 == len(self.code):
+                        self.incomplete()
                     self.stubs.append(self.code[self.start:self.pos])
-                    self.newstub(self.pos + 1)
+                    self.newstub(self.pos + 2)
                 else:
                     self.pos += 1
             else:
