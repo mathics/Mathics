@@ -24,6 +24,7 @@ number_pattern = r'''
 base_symbol_pattern = r'((?![0-9])([0-9${0}{1}])+)'.format(letters, letterlikes)
 full_symbol_pattern = r'(`?{0}(`{0})*)'.format(base_symbol_pattern)
 pattern_pattern = r'{0}?_(\.|(__?)?{0}?)?'.format(full_symbol_pattern)
+slot_pattern = r'\#(\d+|{0})?'.format(base_symbol_pattern)
 
 tokens = [
     ('Number', number_pattern),
@@ -31,7 +32,7 @@ tokens = [
     ('Pattern', pattern_pattern),
     ('Symbol', full_symbol_pattern),
     ('SlotSequence', r'\#\#\d*'),
-    ('Slot', r'\#\d*'),
+    ('Slot', slot_pattern),
     ('Out', r'\%(\%+|\d+)?'),
     ('PutAppend', r'\>\>\>'),
     ('Put', r'\>\>'),

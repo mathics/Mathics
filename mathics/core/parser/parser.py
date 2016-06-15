@@ -340,10 +340,14 @@ class Parser(object):
         self.consume()
         text = token.text
         if len(text) == 1:
-            n = '1'
+            n = Number('1')
         else:
             n = text[1:]
-        return Node('Slot', Number(n))
+            if n.isdigit():
+                n = Number(n)
+            else:
+                n = String(n)
+        return Node('Slot', n)
 
     def p_SlotSequence(self, token):
         self.consume()
