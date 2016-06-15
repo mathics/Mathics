@@ -18,6 +18,7 @@ class Parser(object):
     def parse(self, feeder):
         self.tokeniser = Tokeniser(feeder)
         self.current_token = None
+        self.bracket_depth = 0
         return self.parse_e()
 
     def next(self):
@@ -72,13 +73,13 @@ class Parser(object):
         else:
             return None
 
-    def parse_exp(self, p, stop_on_end=True):
+    def parse_exp(self, p):
         result = self.parse_p()
         while True:
-            if stop_on_end:
-                token = self.next()
-            else:
+            if self.bracket_depth > 0:
                 token = self.next_noend()
+            else:
+                token = self.next()
             tag = token.tag
             method = getattr(self, 'e_' + tag, None)
             if method is not None:
@@ -134,7 +135,7 @@ class Parser(object):
                     result.append(Symbol('Null'))
                 break
             else:
-                result.append(self.parse_exp(0, stop_on_end=False))
+                result.append(self.parse_exp(0))
                 token = self.next_noend()
                 tag = token.tag
                 if tag == 'RawComma':
@@ -228,15 +229,19 @@ class Parser(object):
 
     def p_RawLeftParenthesis(self, token):
         self.consume()
+        self.bracket_depth += 1
         result = self.parse_exp(0)
         self.expect('RawRightParenthesis')
+        self.bracket_depth -= 1
         result.parenthesised = True
         return result
 
     def p_RawLeftBrace(self, token):
         self.consume()
+        self.bracket_depth += 1
         seq = self.parse_seq()
         self.expect('RawRightBrace')
+        self.bracket_depth -= 1
         return Node('List', *seq)
 
     def p_Number(self, token):
@@ -399,16 +404,19 @@ class Parser(object):
 
     def e_RawLeftBracket(self, expr, token, p):
         self.consume()
+        self.bracket_depth += 1
         token = self.next_noend()
         if token.tag == 'RawLeftBracket':
             self.consume()
             seq = self.parse_seq()
             self.expect('RawRightBracket')
             self.expect('RawRightBracket')
+            self.bracket_depth -= 1
             return Node('Part', expr, *seq)
         else:
             seq = self.parse_seq()
             self.expect('RawRightBracket')
+            self.bracket_depth -= 1
             result = Node(expr, *seq)
             result.parenthesised = True
             return result
