@@ -117,7 +117,7 @@ tokens = [
     ('SetDelayed', r' \:\= '),
     ('UpSet', r' \^\= '),
     ('TagSet', r' \/\: '),
-    ('Unset', r' \=\. '),
+    ('Unset', r' \=\.(?!\d) '),     # negative lookahed fixes e.g. x=.01
     ('Set', r' \= '),
 
     ('Condition', r' \/\; '),
