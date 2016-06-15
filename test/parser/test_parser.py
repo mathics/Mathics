@@ -338,6 +338,8 @@ class GeneralTests(ParserTests):
         self.check('##2', Node('SlotSequence', Number('2')))
         self.check('##', Node('SlotSequence', Number('1')))
         self.check('%2', Node('Out', Number('2')))
+        self.check('#a', 'Slot["a"]')
+
 
     def testOut(self):
         self.check('%%', Node('Out', Number(-2)))
