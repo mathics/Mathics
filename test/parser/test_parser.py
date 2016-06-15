@@ -173,6 +173,9 @@ class GeneralTests(ParserTests):
         self.check('f //@ expr', Node('MapAll', Symbol('f'), Symbol('expr')))
         self.check('a @@ b @@ c', Node('Apply', Symbol('a'), Node('Apply', Symbol('b'), Symbol('c'))))
 
+        self.check('a /@ b @@ c', 'Map[a, Apply[b, c]]')
+        self.check('a @@ b /@ c', 'Apply[a, Map[b, c]]')
+
     def testFunction(self):
         self.check('x &', Node('Function', Symbol('x')))
         self.check('x \\[Function] y', 'Function[x, y]')
