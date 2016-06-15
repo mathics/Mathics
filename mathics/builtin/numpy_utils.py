@@ -49,9 +49,22 @@ if _numpy:
     def array(a):
         return numpy.array(a)
 
+    def vectorize(f, a):
+        # if a is a flat array, we embed the components in an array, i.e.
+        # [[a, b, c]], so that unstack will yield [a], [b], [c], and we operate on
+        # arrays of length 1 insteaf of scalars.
+        a = array(a)
+        if len(a.shape) == 1:
+            return f([a])[0]
+        else:
+            return f(a)
+
     def unstack(a):
         a = array(a)
-        return array(numpy.split(a, a.shape[-1], axis=-1))
+        b = array(numpy.split(a, a.shape[-1], axis=-1))
+        if b.shape[-1] == 1:
+            b = b.reshape(b.shape[:-1])
+        return b
 
     def stack(*a):
         # numpy.stack with axis=-1 stacks arrays along the most inner axis:
@@ -64,9 +77,6 @@ if _numpy:
 
         a = array(a)
         b = numpy.stack(a, axis=-1)
-
-        if a.shape[-1] == 1 and b.shape[0] > 0:  # e.g. [[a], [b], [c]]
-            b = b[0]  # makes stack(unstack(x)) == x
         return b
 
     def concat(*a):
@@ -131,11 +141,20 @@ else:
 
     instantiate_elements = py_instantiate_elements
 
+    def _is_bottom(a):
+        return any(not isinstance(x, list) for x in a)
+
     def array(a):
         return a
 
-    def _is_bottom(a):
-        return any(not isinstance(x, list) for x in a)
+    def vectorize(f, a):
+        # we work on a scalar level, i.e. we always pass flat arrays like
+        # [a, b, c, ...] to f, and unstack will resolve this
+        # into a, b, c there.
+        if _is_bottom(a):
+            return f(a)
+        else:
+            return [vectorize(f, x) for x in a]
 
     def unstack(a):
         if not a:

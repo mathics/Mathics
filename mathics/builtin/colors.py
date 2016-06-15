@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from math import pi
-from mathics.builtin.numpy_utils import stack, unstack, concat, array, clip, conditional, switch, choose
+from mathics.builtin.numpy_utils import vectorize, stack, unstack, concat, array, clip, conditional, switch, choose
 from mathics.builtin.numpy_utils import sqrt, floor, mod, cos, sin, arctan2, minimum, maximum, dot_t
 from itertools import chain
 
@@ -180,9 +180,9 @@ def xyz_to_luv(pixels):
     x_orig, y_orig, z_orig = xyz
     y = y_orig / _ref_white.xyz[1]
 
-    lum = conditional(y, lambda y: y > 0.008856,
-                      lambda y: 116. * (y ** (1. / 3.)) - 16,
-                      lambda y: 903.3 * y)
+    lum = conditional(y, lambda t: t > 0.008856,
+                      lambda t: 116. * (t ** (1. / 3.)) - 16,
+                      lambda t: 903.3 * t)
 
     q_0 = x_orig + 15. * y_orig + 3. * z_orig
     u_0 = 4. * x_orig / q_0
@@ -204,9 +204,9 @@ def luv_to_xyz(pixels):
     v_0 = v / (13. * lum) + _ref_white.v_r
 
     lum *= 100.0  # MMA specific
-    y = conditional(lum, lambda y: lum <= 8.,
-                    lambda y: _ref_white.xyz[1] * lum * ((3. / 29.) ** 3),
-                    lambda y: _ref_white.xyz[1] * (((lum + 16.) / 116.) ** 3))
+    y = conditional(lum, lambda t: t <= 8.,
+                    lambda t: _ref_white.xyz[1] * t * ((3. / 29.) ** 3),
+                    lambda t: _ref_white.xyz[1] * (((t + 16.) / 116.) ** 3))
     x = y * (9. * u_0) / (4. * v_0)
     z = y * (12. - 3. * u_0 - 20. * v_0) / (4. * v_0)
 
@@ -223,10 +223,9 @@ def lch_to_lab(pixels):
 def lab_to_lch(pixels):
     components = unstack(pixels)
     l, a, b = components[:3]
-    h = arctan2(b, a)
-    h = conditional(h, lambda t: t < 0,
-                    lambda t: t + 2 * pi, lambda t: t)
-    h /= 2 * pi  # MMA specific
+    h = conditional(arctan2(b, a), lambda t: t < 0.,
+                    lambda t: t + 2. * pi, lambda t: t)
+    h /= 2. * pi  # MMA specific
     return stack(l, sqrt(a * a + b * b), h, *components[3:])
 
 
@@ -251,25 +250,6 @@ def lab_to_xyz(pixels):
 
     return stack(x, y, z, *components[3:])
 
-
-spaces = ('rgb', 'lab', 'luv')
-
-functions = (
-    rgb_to_grayscale,
-    grayscale_to_rgb,
-    rgb_to_xyz,
-    rgb_to_hsb,
-    hsb_to_rgb,
-    cmyk_to_rgb,
-    rgb_to_cmyk,
-    xyz_to_rgb,
-    xyz_to_lab,
-    xyz_to_luv,
-    luv_to_xyz,
-    lch_to_lab,
-    lab_to_lch,
-    lab_to_xyz,
-)
 
 _flows = {  # see http://www.brucelindbloom.com/Math.html
     'XYZ>LCH': ('XYZ', 'LAB', 'LCH'),
@@ -298,7 +278,7 @@ def _flow(src, dst):
         return list(r) if r else [src, dst]
 
 
-_conversions = {
+conversions = {
     'Grayscale>RGB': grayscale_to_rgb,
     'RGB>Grayscale': rgb_to_grayscale,
     'CMYK>RGB': cmyk_to_rgb,
@@ -324,9 +304,9 @@ def convert(components, src, dst):
     for s, d in (flows[i:i + 2] for i in range(len(flows) - 1)):
         if s == d:
             continue
-        func = _conversions.get('%s>%s' % (s, d))
+        func = conversions.get('%s>%s' % (s, d))
         if not func:
             return None
-        components = func(components)
+        components = vectorize(func, components)
 
     return components

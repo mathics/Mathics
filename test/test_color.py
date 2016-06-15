@@ -9,9 +9,12 @@ import sys
 import pexpect
 import unittest
 from six.moves import range
+from random import random
 from mathics.core.expression import Expression, Integer, Rational, Symbol
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
+import mathics.builtin.colors as colors
+from mathics.builtin.numpy_utils import array, vectorize
 
 
 class ColorTest(unittest.TestCase):
@@ -66,6 +69,12 @@ class ColorTest(unittest.TestCase):
         self._checkConversion("XYZ", (0.1, 0.1, 0.1),
                               "LAB", (0.3784243088316416, 0.02835852516741566, -0.06139347105996884))
 
+    def testImageConversions(self):
+        # test that f([x, y, ...]) = [f(x), f(y), ...] for rectangular image arrays.
+
+        for convert in colors.conversions.values():
+            self._checkImageConversion(4, convert)
+
     def _checkConversion(self, from_space, from_components, to_space, to_components):
         places = 12
 
@@ -79,6 +88,21 @@ class ColorTest(unittest.TestCase):
         self.assertEqual(len(components), len(to_components))
         for x, y in zip(components, to_components):
             self.assertAlmostEqual(x, y, places)
+
+    def _checkImageConversion(self, size, convert):
+        pixels = [[random(), random(), random()] for _ in range(size * size)]
+        refs = [vectorize(convert, p) for p in pixels]
+
+        image = [[pixels[x * size + y] for y in range(size)] for x in range(size)]
+        image = vectorize(convert, array(image))
+
+        for x in range(size):
+            for y in range(size):
+                p1 = image[x][y]
+                p2 = refs[x * size + y]
+                self.assertEqual(len(p1), len(p2))
+                for a, b in zip(p1, p2):
+                    self.assertAlmostEqual(a, b, 12)
 
 if __name__ == "__main__":
     unittest.main()
