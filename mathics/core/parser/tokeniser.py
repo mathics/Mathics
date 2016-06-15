@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import re
+import string
 
 from mathics.core.parser.errors import ScanError, IncompleteSyntaxError
 from mathics.core.parser.prescanner import Prescanner
@@ -209,6 +210,15 @@ filename_pattern = re.compile(
     (?P=quote)                                  (?# Closing quotation mark)
     ''', re.VERBOSE)
 
+d = {
+    '[': 10,
+    ']': 11,
+    '{': 12,
+    '}': 13,
+    '(': 14,
+    ')': 15,
+    ",": 16,
+}
 
 class Token(object):
     def __init__(self, tag, text, pos):
@@ -245,17 +255,27 @@ class Tokeniser(object):
         self.skip_blank()
         if self.pos >= len(self.code):
             return Token('END', '', len(self.code))
-        for tag, pattern in tokens:
+
+        try:
+            index = d[self.code[self.pos]]
+            tag, pattern = tokens[index]
             match = pattern.match(self.code, self.pos)
-            if match is not None:
-                # look for custom tokenisation rule
-                override = getattr(self, 't_' + tag, None)
-                if override is not None:
-                    return override(match)
-                else:
-                    text = match.group(0)
-                    self.pos = match.end(0)
-                    return Token(tag, text, match.start(0))
+            assert match is not None
+        except KeyError:
+            match = None
+        if match is None:
+            for tag, pattern in tokens:
+                match = pattern.match(self.code, self.pos)
+                if match is not None:
+                    break
+        # look for custom tokenisation rule
+        override = getattr(self, 't_' + tag, None)
+        if override is not None:
+            return override(match)
+        else:
+            text = match.group(0)
+            self.pos = match.end(0)
+            return Token(tag, text, match.start(0))
         raise ScanError(self.pos)
 
     def next_filename(self):
