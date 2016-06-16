@@ -10,7 +10,7 @@ import time
 from argparse import ArgumentParser
 
 import mathics
-from mathics.core.parser import parse
+from mathics.core.parser import parse_code
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 
@@ -53,15 +53,17 @@ BENCHMARKS = {
         'RandomInteger[{0,10}, {10,10}] + RandomInteger[{0,10}, {10,10}]'],
 }
 
+DEPTH = 300
+
 PARSING_BENCHMARKS = [
-    "+".join(map(str, range(1, 1000))),
-    ";".join(map(str, range(1, 1000))),
-    "/".join(map(str, range(1, 1000))),
-    "^".join(map(str, range(1, 1000))),
-    "! " * 1000 + 'expr',
-    "!" * 1000 + 'expr',
-    'expr' + "& " * 1000,
-    "Sin[" * 1000 + '0.5' + "]" * 1000,
+    "+".join(map(str, range(1, DEPTH))),
+    ";".join(map(str, range(1, DEPTH))),
+    "/".join(map(str, range(1, DEPTH))),
+    "^".join(map(str, range(1, DEPTH))),
+    "! " * DEPTH + 'expr',
+    "!" * DEPTH + 'expr',
+    'expr' + "& " * DEPTH,
+    "Sin[" * DEPTH + '0.5' + "]" * DEPTH,
 ]
 
 definitions = Definitions(add_builtin=True)
@@ -118,18 +120,18 @@ def truncate_line(string):
 
 def benchmark_parse(expression_string):
     print("  '{0}'".format(truncate_line(expression_string)))
-    timeit(lambda: parse(expression_string, definitions))
+    timeit(lambda: parse_code(expression_string, definitions))
 
 
 def benchmark_format(expression_string):
     print("  '{0}'".format(expression_string))
-    expr = parse(expression_string, definitions)
+    expr = parse_code(expression_string, definitions)
     timeit(lambda: expr.default_format(evaluation, "FullForm"))
 
 
 def benchmark_expression(expression_string):
     print("  '{0}'".format(expression_string))
-    expr = parse(expression_string, definitions)
+    expr = parse_code(expression_string, definitions)
     timeit(lambda: expr.evaluate(evaluation))
 
 
