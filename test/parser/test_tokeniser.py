@@ -132,3 +132,8 @@ class TokeniserTest(unittest.TestCase):
         self.assertEqual(self.tokens('f // x'), [Token('Symbol', 'f', 0), Token('Postfix', '//', 2), Token('Symbol', 'x', 5)])
         self.assertEqual(self.tokens('f @ x'), [Token('Symbol', 'f', 0), Token('Prefix', '@', 2), Token('Symbol', 'x', 4)])
         self.assertEqual(self.tokens('f ~ x'), [Token('Symbol', 'f', 0), Token('Infix', '~', 2), Token('Symbol', 'x', 4)])
+
+    def testBackslash(self):
+        self.assertEqual(self.tokens('\[Backslash]'), [Token('Backslash', '\u2216', 0)])
+        self.assertEqual(self.tokens('\\ a'), [Token('RawBackslash', '\\', 0), Token('Symbol', 'a', 2)])
+        self.incomplete_error('\\')

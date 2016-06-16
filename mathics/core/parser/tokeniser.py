@@ -198,6 +198,7 @@ tokens = [
     ('VerticalSeparator', r' \uF432 '),
     ('Therefore', r' \u2234 '),
     ('Because', r' \u2235 '),
+    ('Backslash', r' \u2216 '),
 ]
 
 
