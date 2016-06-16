@@ -49,6 +49,7 @@ def unstack(a):
         b = b.reshape(b.shape[:-1])
     return b
 
+
 def stack(*a):
     # numpy.stack with axis=-1 stacks arrays along the most inner axis:
 
@@ -58,7 +59,7 @@ def stack(*a):
     # e.g. numpy.stack([ [[1, 2], [3, 4]], [[4, 5], [6, 7]] ], axis=-1)
     # gives: array([[[1, 4], [2, 5]], [[3, 6], [4, 7]]])
 
-    a = array(a)
+    a = [array(x) for x in a]
     b = numpy.stack(a, axis=-1)
     return b
 
@@ -142,3 +143,13 @@ def choose(i, *options):
 
 def allclose(a, b):
     return numpy.allclose(array(a), array(b))
+
+
+def errstate(**kwargs):
+    return numpy.errstate(**kwargs)
+
+
+def constant(x, a):
+    b = numpy.ndarray(a.shape)
+    b.fill(x)
+    return b

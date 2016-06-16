@@ -4,8 +4,9 @@
 from itertools import chain
 from math import pi
 
-from mathics.builtin.numpy_utils import sqrt, floor, mod, cos, sin, arctan2, minimum, maximum, dot_t
+from mathics.builtin.numpy_utils import sqrt, floor, mod, cos, sin, arctan2, minimum, maximum, dot_t, errstate
 from mathics.builtin.numpy_utils import vectorized, stack, unstack, concat, array, clip, conditional, compose, choose
+from mathics.builtin.numpy_utils import constant
 
 # use rRGB D50 conversion like MMA. see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
 # MMA seems to round matrix values to six significant digits. we do the same.
@@ -79,22 +80,26 @@ def rgb_to_hsb(pixels):
     m0 = minimum(r, g, b)
     c = m1 - m0
 
-    h = compose(
-        c < 1e-15,
-        lambda s: 0,
-        m1 == r,
-        lambda s: mod(((s(g) - s(b)) / s(c)), 6.),
-        m1 == g,
-        lambda s: (s(b) - s(r)) / s(c) + 2.,
-        m1 == b,
-        lambda s: (s(r) - s(g)) / s(c) + 4.
-    )
+    with errstate(divide='ignore', invalid='ignore'):
+        eps = 1e-15
+
+        h = compose(
+            c < eps,
+            lambda mask: 0,
+            m1 == r,
+            lambda mask: mod(((mask(g) - mask(b)) / mask(c)), 6.),
+            m1 == g,
+            lambda mask: (mask(b) - mask(r)) / mask(c) + 2.,
+            m1 == b,
+            lambda mask: (mask(r) - mask(g)) / mask(c) + 4.)
+
+        s = compose(m1 < eps, lambda mask: 0, m1 >= eps, lambda mask: mask(c / m1))
 
     h = conditional(h * (60. / 360.), lambda t: t < 0.,
                     lambda t: t + 1.,
                     lambda t: t)
 
-    return stack(h, c / m1, m1, *components[3:])
+    return stack(h, s, m1, *components[3:])
 
 
 def hsb_to_rgb(pixels):
@@ -138,10 +143,15 @@ def rgb_to_cmyk(pixels):
     c = unstack(pixels)
 
     r, g, b = c[:3]
-    k = 1 - maximum(r, g, b)
-    k_ = 1 - k
+    k_ = maximum(r, g, b)
+    k = 1 - k_
 
-    return stack((1 - r - k) / k_, (1 - g - k) / k_, (1 - b - k) / k_, k, *c[3:])
+    eps = 1e-15
+    with errstate(divide='ignore', invalid='ignore'):
+        c, m, y = [compose(k_ < eps, lambda s: s(constant(0, a)),
+                           k_ >= eps, lambda s: (1 - s(a) - s(k)) / s(k_)) for a in (r, g, b)]
+
+    return stack(c, m, y, k, *c[3:])
 
 
 def xyz_to_rgb(pixels):
@@ -190,7 +200,6 @@ def xyz_to_luv(pixels):
     v_0 = 9. * y_orig / q_0
 
     lum /= 100.0  # MMA specific
-
     u = 13. * lum * (u_0 - _ref_white.u_r)
     v = 13. * lum * (v_0 - _ref_white.v_r)
 
@@ -199,19 +208,23 @@ def xyz_to_luv(pixels):
 
 def luv_to_xyz(pixels):
     components = unstack(pixels)
-    lum, u, v = components[:3]
+    cie_l, cie_u, cie_v = components[:3]
 
-    u_0 = u / (13. * lum) + _ref_white.u_r
-    v_0 = v / (13. * lum) + _ref_white.v_r
+    # see http://www.easyrgb.com/index.php?X=MATH&H=17#text17
+    u = cie_u / (13. * cie_l) + _ref_white.u_r
+    v = cie_v / (13. * cie_l) + _ref_white.v_r
 
-    lum *= 100.0  # MMA specific
-    y = conditional(lum, lambda t: t <= 8.,
-                    lambda t: _ref_white.xyz[1] * t * ((3. / 29.) ** 3),
-                    lambda t: _ref_white.xyz[1] * (((t + 16.) / 116.) ** 3))
-    x = y * (9. * u_0) / (4. * v_0)
-    z = y * (12. - 3. * u_0 - 20. * v_0) / (4. * v_0)
+    cie_l_100 = cie_l * 100.0  # MMA specific
+    y = conditional((cie_l_100 + 16.) / 116., lambda t: t > 0.2068930,  # 0.008856 ** (1/3)
+                    lambda t: t ** 3,
+                    lambda t: (t - 16. / 116.) / 7.787)
 
-    return stack(x, y, z, *components[3:])
+    x = -(9 * y * u) / ((u - 4) * v - u * v)
+    z = (9 * y - (15 * v * y) - (v * x)) / (3 * v)
+
+    x, y, z = [compose(cie_l < 0.078, lambda s: s(constant(0, a)),
+                       cie_l >= 0.078, lambda s: s(a)) for a in (x, y, z)]
+    return clip(stack(x, y, z, *components[3:]), 0, 1)
 
 
 def lch_to_lab(pixels):
@@ -232,24 +245,21 @@ def lab_to_lch(pixels):
 
 def lab_to_xyz(pixels):
     components = unstack(pixels)
-
-    # see http://www.brucelindbloom.com/Eqn_Lab_to_XYZ.html
     l, a, b = components[:3]
+
+    # see http://www.easyrgb.com/index.php?X=MATH&H=08#text8
     f_y = (l * 100. + 16.) / 116.
 
-    x = conditional(a / 5. + f_y, lambda t: t > 0.008856,
-                    lambda t: t ** 3,
-                    lambda t: (116 * t - 16) / 903.3)
-    y = conditional(l * 100.0, lambda t: t > 903.3 * 0.008856,
-                    lambda t: ((t + 16.) / 116.) ** 3,
-                    lambda t: t / 903.3)
-    z = conditional(f_y - b / 2., lambda t: t > 0.008856,
-                    lambda t: t ** 3,
-                    lambda t: (116 * t - 16) / 903.3)
+    xyz = stack(a / 5. + f_y, f_y, f_y - b / 2.)
 
+    xyz = conditional(xyz, lambda t: t > 0.2068930,  # 0.008856 ** (1/3)
+                      lambda t: t ** 3,
+                      lambda t: (t - 16. / 116.) / 7.787)
+
+    x, y, z = unstack(xyz)
     x, y, z = [u * v for u, v in zip((x, y, z), _ref_white.xyz)]
 
-    return stack(x, y, z, *components[3:])
+    return clip(stack(x, y, z, *components[3:]), 0, 1)
 
 
 _flows = {  # see http://www.brucelindbloom.com/Math.html

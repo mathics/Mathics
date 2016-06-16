@@ -7,6 +7,7 @@ A couple of helper functions for doing numpy-like stuff without numpy.
 
 from mathics.core.expression import Expression
 from itertools import chain
+from contextlib import contextmanager
 from math import sin as sinf, cos as cosf, sqrt as sqrtf, atan2 as atan2f, floor as floorf
 import operator
 
@@ -180,3 +181,12 @@ def allclose(a, b):
         return False
     else:
         return abs(a - b) < 1e-12
+
+
+@contextmanager
+def errstate(**kwargs):
+    yield
+
+
+def constant(x, a):
+    return x
