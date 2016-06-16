@@ -71,7 +71,6 @@ right_binary_ops = {
 
 flat_binary_ops = {
     'MessageName': 750,
-    'Backslash': 670,
     'Composition': 625,
     'StringJoin': 600,
     'SmallCircle': 530,
@@ -80,6 +79,7 @@ flat_binary_ops = {
     'Cross': 500,
     'Union': 300,
     'Dot': 490,
+    'Backslash': 460,
     'Diamond': 450,
     'Wedge': 440,
     'Vee': 430,
