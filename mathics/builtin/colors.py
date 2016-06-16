@@ -140,9 +140,9 @@ def cmyk_to_rgb(pixels):
 
 
 def rgb_to_cmyk(pixels):
-    c = unstack(pixels)
+    components = unstack(pixels)
 
-    r, g, b = c[:3]
+    r, g, b = components[:3]
     k_ = maximum(r, g, b)
     k = 1 - k_
 
@@ -151,7 +151,7 @@ def rgb_to_cmyk(pixels):
         c, m, y = [compose(k_ < eps, lambda s: s(constant(0, a)),
                            k_ >= eps, lambda s: (1 - s(a) - s(k)) / s(k_)) for a in (r, g, b)]
 
-    return stack(c, m, y, k, *c[3:])
+    return stack(c, m, y, k, *components[3:])
 
 
 def xyz_to_rgb(pixels):

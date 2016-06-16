@@ -257,13 +257,14 @@ class ColorTest(unittest.TestCase):
                     self.assertIsNotNone(result, '%s -> %s != %s' % (res_name, dst_name, exp_name))
                     self.assertEqual(len(result), len(expected), '%s -> %s != %s' % (res_name, dst_name, exp_name))
                     for a, b in zip(result, expected):
-                        self.assertAlmostEqual(a, b, 2, '%s -> %s != %s' % (res_name, dst_name, exp_name))
+                        self.assertAlmostEqual(a, b, 4, '%s -> %s != %s' % (res_name, dst_name, exp_name))
 
     def testImageConversions(self):
         # test that f([x, y, ...]) = [f(x), f(y), ...] for rectangular image arrays.
 
-        for convert in colors.conversions.values():
-            self._checkImageConversion(4, convert)
+        for name, convert in colors.conversions.items():
+            if name.find('CMYK') < 0:
+                self._checkImageConversion(4, convert)
 
     def _checkConversion(self, from_space, from_components, to_space, to_components):
         places = 12
