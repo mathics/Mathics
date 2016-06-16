@@ -614,7 +614,7 @@ class Read(Builtin):
     def apply(self, channel, types, evaluation, options):
         'Read[channel_, types_, OptionsPattern[Read]]'
 
-        from mathics.core.parser import parse, TranslateError
+        from mathics.core.parser import parse_code, TranslateError
 
         if channel.has_form('OutputStream', 2):
             evaluation.message('General', 'openw', channel)
@@ -705,7 +705,7 @@ class Read(Builtin):
                 elif typ == Symbol('Expression'):
                     tmp = next(read_record)
                     try:
-                        expr = parse(tmp, evaluation.definitions)
+                        expr = parse_code(tmp, evaluation.definitions)
                     except TranslateError:
                         expr = None
                     if expr is None:
@@ -3597,12 +3597,12 @@ class Uncompress(Builtin):
 
     def apply(self, string, evaluation):
         'Uncompress[string_String]'
-        from mathics.core.parser import parse
+        from mathics.core.parser import parse_code
         string = string.get_string_value().encode('utf-8')
         string = base64.decodestring(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode('utf-8')
-        return parse(tmp, evaluation.definitions)
+        return parse_code(tmp, evaluation.definitions)
 
 
 class FileByteCount(Builtin):

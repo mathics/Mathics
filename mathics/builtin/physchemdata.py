@@ -119,7 +119,7 @@ class ElementData(Builtin):
     def apply_int(self, n, prop, evaluation):
         "ElementData[n_?IntegerQ, prop_]"
 
-        from mathics.core.parser import parse
+        from mathics.core.parser import parse_code
 
         py_n = n.to_python()
         py_prop = prop.to_python()
@@ -164,7 +164,7 @@ class ElementData(Builtin):
         if result == "NOT_KNOWN":
             return Expression("Missing", "Unknown")
 
-        result = parse(result, evaluation.definitions)
+        result = parse_code(result, evaluation.definitions)
         if isinstance(result, Symbol):
             result = String(strip_context(result.get_name()))
         return result

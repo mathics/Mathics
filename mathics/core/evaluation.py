@@ -167,9 +167,9 @@ class Evaluation(object):
 
     def parse(self, query, timeout=None):
         'parse a single line and capture the exceptions as messages'
-        from mathics.core.parser import parse, TranslateError
+        from mathics.core.parser import parse_code, TranslateError
         try:
-            expr = parse(query, self.definitions)
+            expr = parse_code(query, self.definitions)
         except TranslateError as exc:
             self.recursion_depth = 0
             self.stopped = False
