@@ -8,9 +8,11 @@ from __future__ import absolute_import
 import sys
 import time
 from argparse import ArgumentParser
+import urllib.request
 
 import mathics
-from mathics.core.parser import parse_code
+from mathics.core.parser import parse_code, ExpressionGenerator
+from mathics.core.parser.feed import MultiLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 
@@ -123,6 +125,13 @@ def benchmark_parse(expression_string):
     timeit(lambda: parse_code(expression_string, definitions))
 
 
+def benchmark_parse_file(fname):
+    print("  '{0}'".format(truncate_line(fname)))
+    with urllib.request.urlopen(fname) as f:
+        code = f.read().decode('utf-8')
+    timeit(lambda: list(ExpressionGenerator(definitions, MultiLineFeeder(code))))
+
+
 def benchmark_format(expression_string):
     print("  '{0}'".format(expression_string))
     expr = parse_code(expression_string, definitions)
@@ -149,6 +158,7 @@ def benchmark_all():
     print("PARSING BENCHMARKS:")
     for expression_string in PARSING_BENCHMARKS:
         benchmark_parse(expression_string)
+    benchmark_parse_file('http://www.cs.uiowa.edu/~sriram/Combinatorica/NewCombinatorica.m')
 
 
 def main():
