@@ -340,6 +340,11 @@ class GeneralTests(ParserTests):
         self.check('%2', Node('Out', Number('2')))
         self.check('#a', 'Slot["a"]')
 
+    @unittest.expectedFailure
+    def testNonLetterSymbol(self):
+        self.incomplete_error('#\[Equal]')
+        self.check('#\uf431', 'Slot["\[Equal]"]')
+        self.check('a\uf431c', Node('Symbol', 'a\uf431c'))
 
     def testOut(self):
         self.check('%%', Node('Out', Number(-2)))
