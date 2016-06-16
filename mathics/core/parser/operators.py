@@ -49,7 +49,7 @@ left_binary_ops = {
 }
 
 right_binary_ops = {
-    'Apply': 670,
+    'Apply': 620,
     'Map': 620,
     'MapAll': 620,
     'Power': 590,
