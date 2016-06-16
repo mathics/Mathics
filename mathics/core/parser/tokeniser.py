@@ -264,6 +264,14 @@ filename_pattern = re.compile(
     (?P=quote)                                  (?# Closing quotation mark)
     ''', re.VERBOSE)
 
+
+full_symbol_pattern = re.compile(full_symbol_pattern, re.VERBOSE)
+
+
+def is_symbol_name(text):
+    return full_symbol_pattern.sub('', text) == ''
+
+
 class Token(object):
     def __init__(self, tag, text, pos):
         self.tag = tag
