@@ -345,6 +345,7 @@ class GeneralTests(ParserTests):
         self.incomplete_error('#\[Equal]')
         self.check('#\uf431', 'Slot["\[Equal]"]')
         self.check('a\uf431c', Node('Symbol', 'a\uf431c'))
+        self.check('a\uf522c', Node('Symbol', 'a\uf522c'))
 
     def testOut(self):
         self.check('%%', Node('Out', Number(-2)))
