@@ -4,13 +4,13 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-from mathics.builtin.numpy_utils import allclose, stack, unstack, concat, conditional, compose, clip, array, choose
-from mathics.builtin.numpy_utils import vectorized, minimum, maximum, sin, dot_t, mod, floor, sqrt
-import sys
 import unittest
 
+from mathics.builtin.numpy.with_numpy import stack, unstack, concat, conditional, compose, clip, array, choose
+from mathics.builtin.numpy.with_numpy import vectorized, minimum, maximum, dot_t, mod, floor, sqrt, allclose
 
-class NumpyUtils(unittest.TestCase):
+
+class Numpy(unittest.TestCase):
     def testUnstack(self):
         # flat lists remain flat lists.
         self.assertEqualArrays(

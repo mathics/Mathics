@@ -4,17 +4,16 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import os
-import sys
-import pexpect
 import unittest
-from six.moves import range
 from random import random
-from mathics.core.expression import Expression, Integer, Rational, Symbol
+
+from six.moves import range
+
+import mathics.builtin.colors as colors
+from mathics.builtin.numpy.with_numpy import array, vectorized
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
-import mathics.builtin.colors as colors
-from mathics.builtin.numpy_utils import array, vectorized
+from mathics.core.expression import Expression
 
 
 class ColorTest(unittest.TestCase):
