@@ -6,9 +6,9 @@ from __future__ import absolute_import
 
 try:
     import numpy
-    from mathics.builtin.numpy import with_numpy as numpy_layer
+    from mathics.builtin.numpy_utils import with_numpy as numpy_layer
 except ImportError:
-    from mathics.builtin.numpy import without_numpy as numpy_layer
+    from mathics.builtin.numpy_utils import without_numpy as numpy_layer
 
 import types
 

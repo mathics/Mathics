@@ -4,8 +4,8 @@
 from itertools import chain
 from math import pi
 
-from mathics.builtin.numpy import sqrt, floor, mod, cos, sin, arctan2, minimum, maximum, dot_t
-from mathics.builtin.numpy import vectorized, stack, unstack, concat, array, clip, conditional, compose, choose
+from mathics.builtin.numpy_utils import sqrt, floor, mod, cos, sin, arctan2, minimum, maximum, dot_t
+from mathics.builtin.numpy_utils import vectorized, stack, unstack, concat, array, clip, conditional, compose, choose
 
 # use rRGB D50 conversion like MMA. see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
 # MMA seems to round matrix values to six significant digits. we do the same.

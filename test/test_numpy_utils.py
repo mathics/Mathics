@@ -6,8 +6,8 @@ from __future__ import unicode_literals
 
 import unittest
 
-from mathics.builtin.numpy.with_numpy import stack, unstack, concat, conditional, compose, clip, array, choose
-from mathics.builtin.numpy.with_numpy import vectorized, minimum, maximum, dot_t, mod, floor, sqrt, allclose
+from mathics.builtin.numpy_utils import stack, unstack, concat, conditional, compose, clip, array, choose
+from mathics.builtin.numpy_utils import vectorized, minimum, maximum, dot_t, mod, floor, sqrt, allclose
 
 
 class Numpy(unittest.TestCase):
