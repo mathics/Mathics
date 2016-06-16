@@ -467,6 +467,13 @@ class GeneralTests(ParserTests):
         self.check('a || b || c && d || e', 'a || b || (c && d) || e')
         self.check('a && b && c || d && e', '(a && b && c) || (d && e)')
 
+    def testInequality(self):
+        self.check('a < b <= c', 'Inequality[a, Less, b, LessEqual, c]')
+        self.check('a < b < c', 'Less[a, b, c]')
+        self.check('a < b <= c > d >= e != f == g',
+                   'Inequality[a, Less, b, LessEqual, c, Greater, d, GreaterEqual, e,  Equal, f, Unequal, g]')
+
+
 class PatternTests(ParserTests):
     def testPattern(self):
         self.check('a:b', 'Pattern[a, b]')
@@ -476,22 +483,20 @@ class PatternTests(ParserTests):
         self.check('a?b:c', 'PatternTest[a, Pattern[b, c]]')
         self.check('a:b:c:d:e:f', 'Optional[Pattern[a, b], Pattern[c, d], Pattern[e, f]]')
         self.check('a:b|c', 'Pattern[a, Alternatives[b, c]]')
-        self.check('_a?b|_c', 'Alternatives[PatternTest[Blank[a], b], Blank[c]]')
 
         self.check('Map[f_, expr_, ls_?LevelQ:{1}, OptionsPattern[Map]]', 'Map[Pattern[f, Blank[]], Pattern[expr, Blank[]], PatternTest[Pattern[ls, Blank[]], Pattern[LevelQ, List[1]]], OptionsPattern[Map]]')
-        self.check('_^_?t', 'Power[Blank[], PatternTest[Blank[], t]]')
         self.check('-Sin[x]', 'Times[-1, Sin[x]]')
         self.check('a[x_] := x^2', 'SetDelayed[a[Pattern[x, Blank[]]], Power[x, 2]]')
         self.check('MakeBoxes[expr_, f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]', 'MakeBoxes[Pattern[expr, Blank[]], Pattern[f, Alternatives[TraditionalForm, StandardForm, OutputForm, InputForm, FullForm]]]')
 
-        self.check('1?2', Node('PatternTest', Number('1'), Number('2')))
-        self.invalid_error('a?b?c')
-
-        self.check('x:expr', Node('Pattern', Symbol('x'), Symbol('expr')))
-        self.check('x_:expr', Node('Optional', Node('Pattern', Symbol('x'), Node('Blank')), Symbol('expr')))
-        self.check('f:a|b', Node('Pattern', Symbol('f'), Node('Alternatives', Symbol('a'), Symbol('b'))))
-
     def testPatternTest(self):
+        self.check('1?2', Node('PatternTest', Number('1'), Number('2')))
+        self.check('_a?b|_c', 'Alternatives[PatternTest[Blank[a], b], Blank[c]]')
+        self.invalid_error('a?b?c')
+        self.check('a?b[c]]', 'PatternTest[a, b][c]')
+        self.check('_^_?t', 'Power[Blank[], PatternTest[Blank[], t]]')
+
+    def testAutoPatternTest(self):
         autogen = [('a?b', 'PatternTest[a, b]'), ('a:b', 'Pattern[a, b]'), ('a|b', 'Alternatives[a, b]'), ('a?b?c', None), ('a?b:c', 'PatternTest[a, Pattern[b, c]]'), ('a?b|c', 'Alternatives[PatternTest[a, b], c]'), ('a:b?c', 'Pattern[a, PatternTest[b, c]]'), ('a:b:c', 'Optional[Pattern[a, b], c]'), ('a:b|c', 'Pattern[a, Alternatives[b, c]]'), ('a|b?c', 'Alternatives[a, PatternTest[b, c]]'), ('a|b:c', 'Alternatives[a, Pattern[b, c]]'), ('a|b|c', 'Alternatives[a, b, c]'), ('a?b?c?d', None), ('a?b?c:d', None), ('a?b?c|d', None), ('a?b:c?d', 'PatternTest[a, Pattern[b, PatternTest[c, d]]]'), ('a?b:c:d', 'PatternTest[a, Optional[Pattern[b, c], d]]'), ('a?b:c|d', 'PatternTest[a, Pattern[b, Alternatives[c, d]]]'), ('a?b|c?d', 'Alternatives[PatternTest[a, b], PatternTest[c, d]]'), ('a?b|c:d', 'Alternatives[PatternTest[a, b], Pattern[c, d]]'), ('a?b|c|d', 'Alternatives[PatternTest[a, b], c, d]'), ('a:b?c?d', None), ('a:b?c:d', 'Optional[Pattern[a, PatternTest[b, c]], d]'), ('a:b?c|d', 'Pattern[a, Alternatives[PatternTest[b, c], d]]'), ('a:b:c?d', 'Optional[Pattern[a, b], PatternTest[c, d]]'), ('a:b:c:d', 'Optional[Pattern[a, b], Pattern[c, d]]'), ('a:b:c|d', 'Optional[Pattern[a, b], Alternatives[c, d]]'), ('a:b|c?d', 'Pattern[a, Alternatives[b, PatternTest[c, d]]]'), ('a:b|c:d', 'Optional[Pattern[a, Alternatives[b, c]], d]'), ('a:b|c|d', 'Pattern[a, Alternatives[b, c, d]]'), ('a|b?c?d', None), ('a|b?c:d', 'Alternatives[a, PatternTest[b, Pattern[c, d]]]'), ('a|b?c|d', 'Alternatives[a, PatternTest[b, c], d]'), ('a|b:c?d', 'Alternatives[a, Pattern[b, PatternTest[c, d]]]'), ('a|b:c:d', 'Alternatives[a, Optional[Pattern[b, c], d]]'), ('a|b:c|d', 'Alternatives[a, Pattern[b, Alternatives[c, d]]]'), ('a|b|c?d', 'Alternatives[a, b, PatternTest[c, d]]'), ('a|b|c:d', 'Alternatives[a, b, Pattern[c, d]]'), ('a|b|c|d', 'Alternatives[a, b, c, d]'), ('a?b?c?d?e', None), ('a?b?c?d:e', None), ('a?b?c?d|e', None), ('a?b?c:d?e', None), ('a?b?c:d:e', None), ('a?b?c:d|e', None), ('a?b?c|d?e', None), ('a?b?c|d:e', None), ('a?b?c|d|e', None), ('a?b:c?d?e', None), ('a?b:c?d:e', 'PatternTest[a, Optional[Pattern[b, PatternTest[c, d]], e]]'), ('a?b:c?d|e', 'PatternTest[a, Pattern[b, Alternatives[PatternTest[c, d], e]]]'), ('a?b:c:d?e', 'PatternTest[a, Optional[Pattern[b, c], PatternTest[d, e]]]'), ('a?b:c:d:e', 'PatternTest[a, Optional[Pattern[b, c], Pattern[d, e]]]'), ('a?b:c:d|e', 'PatternTest[a, Optional[Pattern[b, c], Alternatives[d, e]]]'), ('a?b:c|d?e', 'PatternTest[a, Pattern[b, Alternatives[c, PatternTest[d, e]]]]'), ('a?b:c|d:e', 'PatternTest[a, Optional[Pattern[b, Alternatives[c, d]], e]]'), ('a?b:c|d|e', 'PatternTest[a, Pattern[b, Alternatives[c, d, e]]]'), ('a?b|c?d?e', None), ('a?b|c?d:e', 'Alternatives[PatternTest[a, b], PatternTest[c, Pattern[d, e]]]'), ('a?b|c?d|e', 'Alternatives[PatternTest[a, b], PatternTest[c, d], e]'), ('a?b|c:d?e', 'Alternatives[PatternTest[a, b], Pattern[c, PatternTest[d, e]]]'), ('a?b|c:d:e', 'Alternatives[PatternTest[a, b], Optional[Pattern[c, d], e]]'), ('a?b|c:d|e', 'Alternatives[PatternTest[a, b], Pattern[c, Alternatives[d, e]]]'), ('a?b|c|d?e', 'Alternatives[PatternTest[a, b], c, PatternTest[d, e]]'), ('a?b|c|d:e', 'Alternatives[PatternTest[a, b], c, Pattern[d, e]]'), ('a?b|c|d|e', 'Alternatives[PatternTest[a, b], c, d, e]'), ('a:b?c?d?e', None), ('a:b?c?d:e', None), ('a:b?c?d|e', None), ('a:b?c:d?e', 'Optional[Pattern[a, PatternTest[b, c]], PatternTest[d, e]]'), ('a:b?c:d:e', 'Optional[Pattern[a, PatternTest[b, c]], Pattern[d, e]]'), ('a:b?c:d|e', 'Optional[Pattern[a, PatternTest[b, c]], Alternatives[d, e]]'), ('a:b?c|d?e', 'Pattern[a, Alternatives[PatternTest[b, c], PatternTest[d, e]]]'), ('a:b?c|d:e', 'Optional[Pattern[a, Alternatives[PatternTest[b, c], d]], e]'), ('a:b?c|d|e', 'Pattern[a, Alternatives[PatternTest[b, c], d, e]]'), ('a:b:c?d?e', None), ('a:b:c?d:e', 'Optional[Pattern[a, b], PatternTest[c, Pattern[d, e]]]'), ('a:b:c?d|e', 'Optional[Pattern[a, b], Alternatives[PatternTest[c, d], e]]'), ('a:b:c:d?e', 'Optional[Pattern[a, b], Pattern[c, PatternTest[d, e]]]'), ('a:b:c:d:e', 'Optional[Pattern[a, b], Optional[Pattern[c, d], e]]'), ('a:b:c:d|e', 'Optional[Pattern[a, b], Pattern[c, Alternatives[d, e]]]'), ('a:b:c|d?e', 'Optional[Pattern[a, b], Alternatives[c, PatternTest[d, e]]]'), ('a:b:c|d:e', 'Optional[Pattern[a, b], Alternatives[c, Pattern[d, e]]]'), ('a:b:c|d|e', 'Optional[Pattern[a, b], Alternatives[c, d, e]]'), ('a:b|c?d?e', None), ('a:b|c?d:e', 'Optional[Pattern[a, Alternatives[b, PatternTest[c, d]]], e]'), ('a:b|c?d|e', 'Pattern[a, Alternatives[b, PatternTest[c, d], e]]'), ('a:b|c:d?e', 'Optional[Pattern[a, Alternatives[b, c]], PatternTest[d, e]]'), ('a:b|c:d:e', 'Optional[Pattern[a, Alternatives[b, c]], Pattern[d, e]]'), ('a:b|c:d|e', 'Optional[Pattern[a, Alternatives[b, c]], Alternatives[d, e]]'), ('a:b|c|d?e', 'Pattern[a, Alternatives[b, c, PatternTest[d, e]]]'), ('a:b|c|d:e', 'Optional[Pattern[a, Alternatives[b, c, d]], e]'), ('a:b|c|d|e', 'Pattern[a, Alternatives[b, c, d, e]]'), ('a|b?c?d?e', None), ('a|b?c?d:e', None), ('a|b?c?d|e', None), ('a|b?c:d?e', 'Alternatives[a, PatternTest[b, Pattern[c, PatternTest[d, e]]]]'), ('a|b?c:d:e', 'Alternatives[a, PatternTest[b, Optional[Pattern[c, d], e]]]'), ('a|b?c:d|e', 'Alternatives[a, PatternTest[b, Pattern[c, Alternatives[d, e]]]]'), ('a|b?c|d?e', 'Alternatives[a, PatternTest[b, c], PatternTest[d, e]]'), ('a|b?c|d:e', 'Alternatives[a, PatternTest[b, c], Pattern[d, e]]'), ('a|b?c|d|e', 'Alternatives[a, PatternTest[b, c], d, e]'), ('a|b:c?d?e', None), ('a|b:c?d:e', 'Alternatives[a, Optional[Pattern[b, PatternTest[c, d]], e]]'), ('a|b:c?d|e', 'Alternatives[a, Pattern[b, Alternatives[PatternTest[c, d], e]]]'), ('a|b:c:d?e', 'Alternatives[a, Optional[Pattern[b, c], PatternTest[d, e]]]'), ('a|b:c:d:e', 'Alternatives[a, Optional[Pattern[b, c], Pattern[d, e]]]'), ('a|b:c:d|e', 'Alternatives[a, Optional[Pattern[b, c], Alternatives[d, e]]]'), ('a|b:c|d?e', 'Alternatives[a, Pattern[b, Alternatives[c, PatternTest[d, e]]]]'), ('a|b:c|d:e', 'Alternatives[a, Optional[Pattern[b, Alternatives[c, d]], e]]'), ('a|b:c|d|e', 'Alternatives[a, Pattern[b, Alternatives[c, d, e]]]'), ('a|b|c?d?e', None), ('a|b|c?d:e', 'Alternatives[a, b, PatternTest[c, Pattern[d, e]]]'), ('a|b|c?d|e', 'Alternatives[a, b, PatternTest[c, d], e]'), ('a|b|c:d?e', 'Alternatives[a, b, Pattern[c, PatternTest[d, e]]]'), ('a|b|c:d:e', 'Alternatives[a, b, Optional[Pattern[c, d], e]]'), ('a|b|c:d|e', 'Alternatives[a, b, Pattern[c, Alternatives[d, e]]]'), ('a|b|c|d?e', 'Alternatives[a, b, c, PatternTest[d, e]]'), ('a|b|c|d:e', 'Alternatives[a, b, c, Pattern[d, e]]'), ('a|b|c|d|e', 'Alternatives[a, b, c, d, e]')]
         for code, result in autogen:
             if result is None:
@@ -520,11 +525,11 @@ class PatternTests(ParserTests):
         self.check('symb___expr', 'Pattern[symb, BlankNullSequence[expr]]')
         self.check('symb_.', 'Optional[Pattern[symb, Blank[]]]')
 
-    def testInequality(self):
-        self.check('a < b <= c', 'Inequality[a, Less, b, LessEqual, c]')
-        self.check('a < b < c', 'Less[a, b, c]')
-        self.check('a < b <= c > d >= e != f == g',
-                   'Inequality[a, Less, b, LessEqual, c, Greater, d, GreaterEqual, e,  Equal, f, Unequal, g]')
+    def testOptional(self):
+        self.check('x:expr', Node('Pattern', Symbol('x'), Symbol('expr')))
+        self.check('x_:expr', Node('Optional', Node('Pattern', Symbol('x'), Node('Blank')), Symbol('expr')))
+        self.check('f:a|b', Node('Pattern', Symbol('f'), Node('Alternatives', Symbol('a'), Symbol('b'))))
+        self.check('rev:(True|False):False', 'Optional[Pattern[rev, Alternatives[True, False]], False]')
 
 
 class IncompleteTests(ParserTests):
