@@ -25,6 +25,11 @@ base_symbol_pattern = r'((?![0-9])([0-9${0}{1}])+)'.format(letters, letterlikes)
 full_symbol_pattern = r'(`?{0}(`{0})*)'.format(base_symbol_pattern)
 pattern_pattern = r'{0}?_(\.|(__?)?{0}?)?'.format(full_symbol_pattern)
 slot_pattern = r'\#(\d+|{0})?'.format(base_symbol_pattern)
+filename_pattern = r'''
+(?P<quote>\"?)                              (?# Opening quotation mark)
+    [a-zA-Z0-9\`/\.\\\!\-\:\_\$\*\~\?]+     (?# Literal characters)
+(?P=quote)                                  (?# Closing quotation mark)
+'''
 
 tokens = [
     ('Number', number_pattern),
@@ -254,19 +259,24 @@ for key, tags in literal_tokens.items():
     literal_token_indices[key] = tuple(indices)
     assert len(indices) == len(tags)
 
-
-# compile tokens
-tokens = [(tag, re.compile(pattern, re.VERBOSE)) for tag, pattern in tokens]
-
-filename_pattern = re.compile(
-    r'''
-    (?P<quote>\"?)                              (?# Opening quotation mark)
-        [a-zA-Z0-9\`/\.\\\!\-\:\_\$\*\~\?]+     (?# Literal characters)
-    (?P=quote)                                  (?# Closing quotation mark)
-    ''', re.VERBOSE)
+filename_tokens = [
+    ('Filename', filename_pattern),
+]
 
 
-full_symbol_pattern = re.compile(full_symbol_pattern, re.VERBOSE)
+def compile_pattern(pattern):
+    return re.compile(pattern, re.VERBOSE)
+
+
+def compile_tokens(token_list):
+    return [(tag, compile_pattern(pattern)) for tag, pattern in token_list]
+
+
+tokens = compile_tokens(tokens)
+filename_tokens = compile_tokens(filename_tokens)
+
+
+full_symbol_pattern = compile_pattern(full_symbol_pattern)
 
 
 def is_symbol_name(text):
@@ -289,11 +299,21 @@ class Token(object):
 
 
 class Tokeniser(object):
+    modes = {
+        'expr': (tokens, literal_token_indices),
+        'filename': (filename_tokens, {}),
+    }
+
     def __init__(self, feeder):
         self.pos = 0
         self.feeder = feeder
         self.prescanner = Prescanner(feeder)
         self.code = self.prescanner.scan()
+        self.change_mode('expr')
+
+    def change_mode(self, mode):
+        self.mode = mode
+        self.tokens, self.token_indices = self.modes[mode]
 
     def incomplete(self):
         'get more code from the prescanner and continue'
@@ -310,15 +330,15 @@ class Tokeniser(object):
             return Token('END', '', len(self.code))
 
         # look for a matching pattern
-        indices = literal_token_indices.get(self.code[self.pos], ())
+        indices = self.token_indices.get(self.code[self.pos], ())
         if indices:
             for index in indices:
-                tag, pattern = tokens[index]
+                tag, pattern = self.tokens[index]
                 match = pattern.match(self.code, self.pos)
                 if match is not None:
                     break
         else:
-            for tag, pattern in tokens:
+            for tag, pattern in self.tokens:
                 match = pattern.match(self.code, self.pos)
                 if match is not None:
                     break
@@ -335,19 +355,6 @@ class Tokeniser(object):
             text = match.group(0)
             self.pos = match.end(0)
             return Token(tag, text, match.start(0))
-
-    def next_filename(self):
-        'return next filename token'
-        self.skip_blank()
-        if self.pos >= len(self.code):
-            return Token('END', '', len(self.code))
-        tag = 'filename'
-        match = filename_pattern.match(self.code, self.pos)
-        if match is None:
-            raise ScanError(self.pos)
-        text = match.group(0)
-        self.pos = match.end(0)
-        return Token(tag, text, match.start(0))
 
     def skip_blank(self):
         'skip whitespace and comments'
@@ -410,3 +417,22 @@ class Tokeniser(object):
         else:
             self.pos = pos
         return Token('Number', text, match.start(0))
+
+    def token_mode(self, match, tag, mode):
+        'consume a token and switch mode'
+        text = match.group(0)
+        self.pos = match.end(0)
+        self.change_mode(mode)
+        return Token(tag, text, match.start(0))
+
+    def t_Get(self, match):
+        return self.begin_filename(match, 'Get', 'filename')
+
+    def t_Put(self, match):
+        return self.begin_filename(match, 'Put', 'filename')
+
+    def t_PutAppend(self, match):
+        return self.begin_filename(match, 'PutAppend', 'filename')
+
+    def t_Filename(self, match):
+        return self.begin_filename(match, 'Filename', 'filename', 'expr')

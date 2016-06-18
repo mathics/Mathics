@@ -48,16 +48,6 @@ class Parser(object):
         else:
             raise InvalidSyntaxError(token)
 
-    def next_filename(self):
-        token = self.tokeniser.next_filename()
-        tag = token.tag
-        if tag == 'filename':
-            return Filename(token.text)
-        elif tag == 'END':
-            raise IncompleteSyntaxError()
-        else:
-            raise InvalidSyntaxError(token)
-
     def backtrack(self, pos):
         self.tokeniser.pos = pos
         self.current_token = None
@@ -259,6 +249,11 @@ class Parser(object):
         self.consume()
         return result
 
+    def p_Filename(self, token):
+        result = Filename(token.text)
+        self.consume()
+        return result
+
     def p_Span(self, token):
         return self.e_Span(Number('1'), token, 0)
 
@@ -269,10 +264,6 @@ class Parser(object):
         self.expect('DifferentialD')
         expr2 = self.parse_exp(outer_prec)
         return Node('Integrate', expr1, expr2)
-
-    def p_Get(self, token):
-        self.consume()
-        return Node('Get', self.next_filename())
 
     def p_Pattern(self, token):
         self.consume()
@@ -508,20 +499,6 @@ class Parser(object):
             self.backtrack(pos)
             expr2 = Symbol('Null')
         return Node('CompoundExpression', expr1, expr2).flatten()
-
-    def e_Put(self, expr1, token, p):
-        q = left_binary_ops['Put']
-        if q < p:
-            return None
-        self.consume()
-        return Node('Put', expr1, self.next_filename())
-
-    def e_PutAppend(self, expr1, token, p):
-        q = left_binary_ops['PutAppend']
-        if q < p:
-            return None
-        self.consume()
-        return Node('PutAppend', expr1, self.next_filename())
 
     def e_Minus(self, expr1, token, p):
         q = left_binary_ops['Subtract']
