@@ -32,6 +32,7 @@ class ParserTests(unittest.TestCase):
         if expr1 is None:
             self.assertIsNone(expr2)
         else:
+            self.assertEqual(repr(expr1), repr(expr2))
             self.assertEqual(expr1, expr2)
 
     def scan_error(self, string):
@@ -134,6 +135,7 @@ class AtomTests(ParserTests):
         self.check_number('1.00000000000000000000000`')
         self.check_number('1.00000000000000000000000`30')
         self.check_number('1.4`1')
+
 
 class GeneralTests(ParserTests):
     def testCompound(self):
@@ -411,32 +413,6 @@ class GeneralTests(ParserTests):
         self.check('x1 \\[LeftTee] x2', 'LeftTee[x1, x2]')
         self.check('x1 \\[DoubleLeftTee] x2', 'DoubleLeftTee[x1, x2]')
 
-    @unittest.expectedFailure
-    def testBoxes(self):
-        self.check('\\(1 \\^ 2\\)', 'SuperscriptBox["1", "2"]')
-        self.check('\\(1 \\^ 2 \\% 3\\)', 'SubsuperscriptBox["1", "3", "2"]')
-        self.check('\\(1 \\_ 2\\)', 'SubscriptBox["1", "2"]')
-        self.check('\\(1 \\_ 2 \\% 3\\)', 'SubsuperscriptBox["1", "2", "3"]')
-
-        self.check('\\( 1 \\& 2 \\)', 'OverscriptBox["1", "2"]')
-        self.check('\\( 1 \\& 2 \\% 3 \\)', 'UnderoverscriptBox["1", "3", "2"]')
-        self.check('\\( 1 \\+ 2 \\)', 'UnderscriptBox["1", "2"]')
-        self.check('\\( 1 \\+ 2 \\% 3 \\)', 'UnderoverscriptBox["1", "2", "3"]')
-
-        self.check('\\( 1 \\/ 2 \\)', 'FractionBox["1", "2"]')
-
-        self.check('\\( \\@ 2 \\)', 'SqrtBox["2"]')
-        self.check('\\( \\@ 2 \\% 3 \\)', 'RadicalBox["2", "3"]')
-
-        self.check('\\( 1 \\` 2 \\)', 'FormBox["2", Removed["$$Failure"]]')
-        self.check('\\( FullForm \\` 2 \\)', 'FormBox["2", FullForm]')
-
-        self.check('\\( \\)', String(""))
-        self.check('\\( a \\)', String("a"))
-        self.check('\\( \\@ 1 \\_ 2 \\)', 'SqrtBox[SubscriptBox["1", "2"]]')
-        self.check('\\( a + b \\)', 'RowBox[List["a", "+", "b"]]')
-        self.check('\\(1 \\` 2\\)', Node('FormBox', Number('2'), Number('1')))
-
     def testMessageName(self):
         self.check('a::b', 'MessageName[a, "b"]')
         self.check('a::"b"', 'MessageName[a, "b"]')
@@ -472,7 +448,105 @@ class GeneralTests(ParserTests):
         self.check('a < b <= c', 'Inequality[a, Less, b, LessEqual, c]')
         self.check('a < b < c', 'Less[a, b, c]')
         self.check('a < b <= c > d >= e != f == g',
-                   'Inequality[a, Less, b, LessEqual, c, Greater, d, GreaterEqual, e,  Equal, f, Unequal, g]')
+                   'Inequality[a, Less, b, LessEqual, c, Greater, d, GreaterEqual, e,  Unequal, f, Equal, g]')
+
+
+class BoxTests(ParserTests):
+    def testSqrt(self):
+        self.check('\\( \\@ b \\)', 'SqrtBox["b"]')
+        self.check('\\( \\@ b \\% c \\)', 'RadicalBox["b", "c"]')
+        self.check('\\(a \@ b \\)', 'RowBox[{"a", SqrtBox["b"]}]')
+        self.check('\\( \\@ \\)', 'SqrtBox[""]')
+
+    def testSuperscript(self):
+        self.check('\\(a \\^ b \\)', 'SuperscriptBox["a", "b"]')
+        self.check('\\(a \\^ b \\% c\\)', 'SubsuperscriptBox["a", "c", "b"]')
+        self.check('\\(a \\_ b \\)', 'SubscriptBox["a", "b"]')
+        self.check('\\(a \\_ b \\% c\\)', 'SubsuperscriptBox["a", "b", "c"]')
+
+        self.check('\\(  \\^ a \\)', 'SuperscriptBox["", "a"]')
+        self.check('\\(a \\^   \\)', 'SuperscriptBox["a", ""]')
+        self.check('\\(  \\^   \\)', 'SuperscriptBox["", ""]')
+
+        self.check('\\(  \\_ a \\)', 'SubscriptBox["", "a"]')
+        self.check('\\(a \\_   \\)', 'SubscriptBox["a", ""]')
+        self.check('\\(  \\_   \\)', 'SubscriptBox["", ""]')
+
+        self.check('\\(   \\^ b \\% c \\)', 'SubsuperscriptBox["", "c", "b"]')
+        self.check('\\( a \\^   \\% c \\)', 'SubsuperscriptBox["a", "c", ""]')
+        self.check('\\( a \\^ b \\%   \\)', 'SubsuperscriptBox["a", "", "b"]')
+        self.check('\\(   \\^   \\% c \\)', 'SubsuperscriptBox["", "c", ""]')
+        self.check('\\(   \\^ b \\%   \\)', 'SubsuperscriptBox["", "", "b"]')
+        self.check('\\( a \\^   \\%   \\)', 'SubsuperscriptBox["a", "", ""]')
+        self.check('\\(   \\^   \\%   \\)', 'SubsuperscriptBox["", "", ""]')
+
+        self.check('\\(   \\_ b \\% c \\)', 'SubsuperscriptBox["", "b", "c"]')
+        self.check('\\( a \\_   \\% c \\)', 'SubsuperscriptBox["a", "", "c"]')
+        self.check('\\( a \\_ b \\%   \\)', 'SubsuperscriptBox["a", "b", ""]')
+        self.check('\\(   \\_   \\% c \\)', 'SubsuperscriptBox["", "", "c"]')
+        self.check('\\(   \\_ b \\%   \\)', 'SubsuperscriptBox["", "b", ""]')
+        self.check('\\( a \\_   \\%   \\)', 'SubsuperscriptBox["a", "", ""]')
+        self.check('\\(   \\_   \\%   \\)', 'SubsuperscriptBox["", "", ""]')
+
+    def testOverscript(self):
+        self.check('\\( a \\& b \\)', 'OverscriptBox["a", "b"]')
+        self.check('\\( a \\& b \\% c \\)', 'UnderoverscriptBox["a", "c", "b"]')
+
+        self.check('\\( a \\+ b \\)', 'UnderscriptBox["a", "b"]')
+        self.check('\\( a \\+ b \\% c \\)', 'UnderoverscriptBox["a", "b", "c"]')
+
+        self.check('\\(   \\& a \\)', 'OverscriptBox["", "a"]')
+        self.check('\\( a \\&   \\)', 'OverscriptBox["a", ""]')
+        self.check('\\(   \\&   \\)', 'OverscriptBox["", ""]')
+
+        self.check('\\(   \\+ a \\)', 'UnderscriptBox["", "a"]')
+        self.check('\\( a \\+   \\)', 'UnderscriptBox["a", ""]')
+        self.check('\\(   \\+   \\)', 'UnderscriptBox["", ""]')
+
+        self.check('\\(   \\& b \\% c \\)', 'UnderoverscriptBox["", "c", "b"]')
+        self.check('\\( a \\&   \\% c \\)', 'UnderoverscriptBox["a", "c", ""]')
+        self.check('\\( a \\& b \\%   \\)', 'UnderoverscriptBox["a", "", "b"]')
+        self.check('\\(   \\&   \\% c \\)', 'UnderoverscriptBox["", "c", ""]')
+        self.check('\\(   \\& b \\%   \\)', 'UnderoverscriptBox["", "", "b"]')
+        self.check('\\( a \\&   \\%   \\)', 'UnderoverscriptBox["a", "", ""]')
+        self.check('\\(   \\&   \\%   \\)', 'UnderoverscriptBox["", "", ""]')
+
+        self.check('\\(   \\+ b \\% c \\)', 'UnderoverscriptBox["", "b", "c"]')
+        self.check('\\( a \\+   \\% c \\)', 'UnderoverscriptBox["a", "", "c"]')
+        self.check('\\( a \\+ b \\%   \\)', 'UnderoverscriptBox["a", "b", ""]')
+        self.check('\\(   \\+   \\% c \\)', 'UnderoverscriptBox["", "", "c"]')
+        self.check('\\(   \\+ b \\%   \\)', 'UnderoverscriptBox["", "b", ""]')
+        self.check('\\( a \\+   \\%   \\)', 'UnderoverscriptBox["a", "", ""]')
+        self.check('\\(   \\+   \\%   \\)', 'UnderoverscriptBox["", "", ""]')
+
+    def testFraction(self):
+        self.check('\\( a \\/ b \\)', 'FractionBox["a", "b"]')
+        self.check('\\(   \\/ b \\)', 'FractionBox["", "b"]')
+        self.check('\\( a \\/   \\)', 'FractionBox["a", ""]')
+        self.check('\\(   \\/   \\)', 'FractionBox["", ""]')
+
+    def testFormBox(self):
+        self.check('\\( 1 \\` b \\)', 'FormBox["b", Removed["$$Failure"]]')
+        self.check('\\( \\` b \\)', 'FormBox["b", StandardForm]')
+        self.check('\\( a \\` b \\)', 'FormBox["b", a]')
+        self.check('\\( a \` \\)', 'FormBox["", a]')
+
+    def testRow(self):
+        self.check('\\( \\)', String(""))
+        self.check('\\( a \\)', String("a"))
+        self.check('\\( \\@ a \\_ b \\)', 'SqrtBox[SubscriptBox["a", "b"]]')
+        self.check('\\( a + b \\)', 'RowBox[List["a", "+", "b"]]')
+        self.check('\\(a \\^ b \\+ c\\)', 'SuperscriptBox["a", UnderscriptBox["b", "c"]]')
+        self.check('\\(a \\+ b \\^ c\\)', 'SuperscriptBox[UnderscriptBox["a", "b"], "c"]')
+
+    def testInvalid(self):
+        self.invalid_error('\( a \% b \)')
+        self.invalid_error('\( a \+ \% b \% c \)')
+
+    def testNoRow(self):
+        self.invalid_error('a \% b')
+        self.invalid_error('a \+ b')
+        self.invalid_error('\@ a')
 
 
 class PatternTests(ParserTests):

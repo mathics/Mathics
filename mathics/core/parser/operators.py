@@ -144,6 +144,15 @@ misc_ops = {
     'Sum': 320,
     'Pattern': 150,
     'Optional': 140,
+    'SqrtBox': 670,
+    'FractionBox': 670,
+    'OverscriptBox': 710,
+    'UnderscriptBox': 710,
+    'SubscriptBox': 695,
+    'FormBox': 670,
+    'SuperscriptBox': 590,
+    'UnderoverscriptBox': 700,
+    'SubsuperscriptBox': 690,
 }
 
 inequality_ops = ['Less', 'LessEqual', 'Greater', 'GreaterEqual', 'Equal', 'Unequal']

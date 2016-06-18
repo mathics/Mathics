@@ -137,3 +137,6 @@ class TokeniserTest(unittest.TestCase):
         self.assertEqual(self.tokens('\[Backslash]'), [Token('Backslash', '\u2216', 0)])
         self.assertEqual(self.tokens('\\ a'), [Token('RawBackslash', '\\', 0), Token('Symbol', 'a', 2)])
         self.incomplete_error('\\')
+
+    def testBoxes(self):
+        self.assertEqual(self.tokens('\\(1\\)'),[Token('LeftRowBox', '\\(', 0), Token('Number', "1", 2), Token('RightRowBox', '\\)', 3)])

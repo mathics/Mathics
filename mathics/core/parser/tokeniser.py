@@ -55,16 +55,18 @@ tokens = [
 
     ('MessageName', r' \:\: '),
 
-    # # Box Constructors
-    # ('InterpretedBox', r' \\\! '),
-    # ('boxes_Superscript', r' \\\^ '),
-    # ('boxes_Subscript', r' \\\_ '),
-    # ('boxes_Overscript', r' \\\& '),
-    # ('boxes_Underscript', r' \\\+ '),
-    # ('boxes_Otherscript', r' \\\% '),
-    # ('boxes_Fraction', r' \\\/ '),
-    # ('boxes_Sqrt', r' \\\@ '),
-    # ('boxes_FormBox', r' \\\` '),
+    # boxes
+    ('LeftRowBox', r' \\\( '),
+    ('RightRowBox', r' \\\) '),
+    ('InterpretedBox', r' \\\! '),
+    ('SuperscriptBox', r' \\\^ '),
+    ('SubscriptBox', r' \\\_ '),
+    ('OverscriptBox', r' \\\& '),
+    ('UnderscriptBox', r' \\\+ '),
+    ('OtherscriptBox', r' \\\% '),
+    ('FractionBox', r' \\\/ '),
+    ('SqrtBox', r' \\\@ '),
+    ('FormBox', r' \\\` '),
 
     ('PatternTest', r' \? '),
     ('Increment', r' \+\+ '),
@@ -230,7 +232,9 @@ literal_tokens = {
     '?': ['PatternTest'],
     '@': ['ApplyList', 'Apply', 'Composition', 'Prefix'],
     '[': ['RawLeftBracket'],
-    '\\': ['RawBackslash'],
+    '\\': ['LeftRowBox', 'RightRowBox', 'InterpretedBox', 'SuperscriptBox',
+           'SubscriptBox', 'OverscriptBox', 'UnderscriptBox', 'OtherscriptBox',
+           'FractionBox', 'SqrtBox', 'FormBox', 'RawBackslash'],
     ']': ['RawRightBracket'],
     '^': ['UpSetDelayed', 'UpSet', 'Power'],
     '_': ['Pattern'],
@@ -247,21 +251,20 @@ for c in string.ascii_letters:
 for c in string.digits:
     literal_tokens[c] = ['Number']
 
-# find indices of literal tokens
-literal_token_indices = {}
-for key, tags in literal_tokens.items():
-    indices = []
-    for tag in tags:
-        for i, (tag2, pattern) in enumerate(tokens):
-            if tag == tag2:
-                indices.append(i)
-                break
-    literal_token_indices[key] = tuple(indices)
-    assert len(indices) == len(tags)
 
-filename_tokens = [
-    ('Filename', filename_pattern),
-]
+def find_indices(literals):
+    'find indices of literal tokens'
+    literal_indices = {}
+    for key, tags in literals.items():
+        indices = []
+        for tag in tags:
+            for i, (tag2, pattern) in enumerate(tokens):
+                if tag == tag2:
+                    indices.append(i)
+                    break
+        literal_indices[key] = tuple(indices)
+        assert len(indices) == len(tags)
+    return literal_indices
 
 
 def compile_pattern(pattern):
@@ -272,10 +275,13 @@ def compile_tokens(token_list):
     return [(tag, compile_pattern(pattern)) for tag, pattern in token_list]
 
 
+filename_tokens = [
+    ('Filename', filename_pattern),
+]
+
+token_indices = find_indices(literal_tokens)
 tokens = compile_tokens(tokens)
 filename_tokens = compile_tokens(filename_tokens)
-
-
 full_symbol_pattern = compile_pattern(full_symbol_pattern)
 
 
@@ -300,7 +306,7 @@ class Token(object):
 
 class Tokeniser(object):
     modes = {
-        'expr': (tokens, literal_token_indices),
+        'expr': (tokens, token_indices),
         'filename': (filename_tokens, {}),
     }
 
@@ -426,13 +432,13 @@ class Tokeniser(object):
         return Token(tag, text, match.start(0))
 
     def t_Get(self, match):
-        return self.begin_filename(match, 'Get', 'filename')
+        return self.token_mode(match, 'Get', 'filename')
 
     def t_Put(self, match):
-        return self.begin_filename(match, 'Put', 'filename')
+        return self.token_mode(match, 'Put', 'filename')
 
     def t_PutAppend(self, match):
-        return self.begin_filename(match, 'PutAppend', 'filename')
+        return self.token_mode(match, 'PutAppend', 'filename')
 
     def t_Filename(self, match):
-        return self.begin_filename(match, 'Filename', 'filename', 'expr')
+        return self.token_mode(match, 'Filename', 'expr')

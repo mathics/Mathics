@@ -5,20 +5,27 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from mathics.core.parser.ast import Node, Number, Symbol, String, Filename
-from mathics.core.parser.tokeniser import Tokeniser
+from mathics.core.parser.tokeniser import Tokeniser, is_symbol_name
 from mathics.core.parser.errors import (
     InvalidSyntaxError, IncompleteSyntaxError, TranslateError)
 from mathics.core.parser.operators import (
     prefix_ops, postfix_ops, left_binary_ops, right_binary_ops,
     nonassoc_binary_ops, flat_binary_ops, ternary_ops, binary_ops, all_ops,
-    inequality_ops)
+    inequality_ops, misc_ops)
 
 
 class Parser(object):
+    def __init__(self):
+        # no implicit times on these tokens
+        self.halt_tags = set([
+            'END', 'RawRightParenthesis', 'RawComma', 'RawRightBrace',
+            'RawRightBracket', 'RawColon', 'DifferentialD'])
+
     def parse(self, feeder):
         self.tokeniser = Tokeniser(feeder)
         self.current_token = None
         self.bracket_depth = 0
+        self.box_depth = 0
         return self.parse_e()
 
     def next(self):
@@ -82,7 +89,8 @@ class Parser(object):
                 new_result = self.parse_ternary(result, token, p)
             elif tag in postfix_ops:
                 new_result = self.parse_postfix(result, token, p)
-            elif tag not in ('END', 'RawRightParenthesis', 'RawComma', 'RawRightBrace', 'RawRightBracket', 'RawColon', 'DifferentialD') and flat_binary_ops['Times'] >= p:  # implicit times
+            elif tag not in self.halt_tags and flat_binary_ops['Times'] >= p:
+                # implicit times
                 q = flat_binary_ops['Times']
                 child = self.parse_exp(q + 1)
                 new_result = Node('Times', result, child).flatten()
@@ -109,6 +117,32 @@ class Parser(object):
             return Node(tag, child)
         else:
             raise InvalidSyntaxError(token)
+
+    def parse_box(self, p):
+        result = None
+        while True:
+            token = self.next()
+            tag = token.tag
+            method = getattr(self, 'b_' + tag, None)
+            if method is not None:
+                new_result = method(result, token, p)
+            elif tag in ('OtherscriptBox', 'RightRowBox'):
+                break
+            elif tag == 'END':
+                self.incomplete(token.pos)
+            elif result is None and tag != 'END':
+                self.consume()
+                new_result = String(token.text)
+            else:
+                new_result = None
+
+            if new_result is None:
+                break
+            else:
+                result = new_result
+        if result is None:
+            result = String('')
+        return result
 
     def parse_seq(self):
         result = []
@@ -233,6 +267,28 @@ class Parser(object):
         self.expect('RawRightBrace')
         self.bracket_depth -= 1
         return Node('List', *seq)
+
+    def p_LeftRowBox(self, token):
+        self.consume()
+        children = []
+        self.box_depth += 1
+        self.bracket_depth += 1
+        token = self.next()
+        while token.tag not in ('RightRowBox', 'OtherscriptBox'):
+            children.append(self.parse_box(0))
+            token = self.next()
+
+        if len(children) == 0:
+            result = String('')
+        elif len(children) == 1:
+            result = children[0]
+        else:
+            result = Node('RowBox', Node('List', *children))
+        self.expect('RightRowBox')
+        self.box_depth -= 1
+        self.bracket_depth -= 1
+        result.parenthesised = True
+        return result
 
     def p_Number(self, token):
         result = Number(token.text)
@@ -605,3 +661,110 @@ class Parser(object):
                 raise InvalidSyntaxError(token)
             leaves.append(leaf)
         return Node('MessageName', *leaves)
+
+    # B methods
+    #
+    # b_xxx methods are called from parse_box.
+    # They expect args (Node, Token precedence) and return Node or None.
+    # The first argument may be None if the LHS is absent.
+    # Used for boxes.
+
+    def b_SqrtBox(self, box0, token, p):
+        if box0 is not None:
+            return None
+        self.consume()
+        if self.box_depth == 0:
+            # TODO syntyp
+            raise InvalidSyntaxError(token)
+        q = misc_ops['SqrtBox']
+        box1 = self.parse_box(q)
+        if self.next().tag == 'OtherscriptBox':
+            self.consume()
+            box2 = self.parse_box(q)
+            return Node('RadicalBox', box1, box2)
+        else:
+            return Node('SqrtBox', box1)
+
+    def b_SuperscriptBox(self, box1, token, p):
+        q = misc_ops['SuperscriptBox']
+        if q < p:
+            return None
+        if box1 is None:
+            box1 = String('')
+        self.consume()
+        box2 = self.parse_box(q)
+        if self.next().tag == 'OtherscriptBox':
+            self.consume()
+            box3 = self.parse_box(misc_ops['SubsuperscriptBox'])
+            return Node('SubsuperscriptBox', box1, box3, box2)
+        else:
+            return Node('SuperscriptBox', box1, box2)
+
+    def b_SubscriptBox(self, box1, token, p):
+        q = misc_ops['SubscriptBox']
+        if q < p:
+            return None
+        if box1 is None:
+            box1 = String('')
+        self.consume()
+        box2 = self.parse_box(q)
+        if self.next().tag == 'OtherscriptBox':
+            self.consume()
+            box3 = self.parse_box(misc_ops['SubsuperscriptBox'])
+            return Node('SubsuperscriptBox', box1, box2, box3)
+        else:
+            return Node('SubscriptBox', box1, box2)
+
+    def b_UnderscriptBox(self, box1, token, p):
+        q = misc_ops['UnderscriptBox']
+        if q < p:
+            return None
+        if box1 is None:
+            box1 = String('')
+        self.consume()
+        box2 = self.parse_box(q)
+        if self.next().tag == 'OtherscriptBox':
+            self.consume()
+            box3 = self.parse_box(misc_ops['UnderoverscriptBox'])
+            return Node('UnderoverscriptBox', box1, box2, box3)
+        else:
+            return Node('UnderscriptBox', box1, box2)
+
+    def b_FractionBox(self, box1, token, p):
+        q = misc_ops['FractionBox']
+        if q < p:
+            return None
+        if box1 is None:
+            box1 = String('')
+        self.consume()
+        box2 = self.parse_box(q + 1)
+        return Node('FractionBox', box1, box2)
+
+    def b_FormBox(self, box1, token, p):
+        q = misc_ops['FormBox']
+        if q < p:
+            return None
+        if box1 is None:
+            box1 = Symbol('StandardForm')   # RawForm
+        elif is_symbol_name(box1.value):
+            box1 = Symbol(box1.value)
+        else:
+            box1 = Node('Removed', String('$$Failure'))
+        self.consume()
+        box2 = self.parse_box(q)
+        return Node('FormBox', box2, box1)
+
+    def b_OverscriptBox(self, box1, token, p):
+        q = misc_ops['OverscriptBox']
+        if q < p:
+            return None
+        if box1 is None:
+            box1 = String('')
+        self.consume()
+        box2 = self.parse_box(q)
+        if self.next().tag == 'OtherscriptBox':
+            self.consume()
+            box3 = self.parse_box(misc_ops['UnderoverscriptBox'])
+            return Node('UnderoverscriptBox', box1, box3, box2)
+        else:
+            return Node('OverscriptBox', box1, box2)
