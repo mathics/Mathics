@@ -92,7 +92,7 @@ class AtomTests(ParserTests):
         self.check_number('-1')
         self.check('- 1', '-1')
         self.check('- - 1', 'Times[-1, -1]')
-        self.check('x=.01', 'x = 0.01')
+        self.check('x=.01', 'x = .01')
 
     def testNumberBase(self):
         self.check_number('8^^23')
@@ -119,7 +119,7 @@ class AtomTests(ParserTests):
         self.check(r'"abc"', String('abc'))
         self.incomplete_error(r'"abc')
         self.check(r'"abc(*def*)"', String('abc(*def*)'))
-        self.check(r'"a\"b\\c"', String(r'a"b\c'))
+        self.check(r'"a\"b\\c"', String(r'a\"b\\c'))
         self.incomplete_error(r'"\"')
         self.invalid_error(r'\""')
 
@@ -150,7 +150,7 @@ class GeneralTests(ParserTests):
         self.check('1 :: "abc" :: "123"', Node('MessageName', Number('1'), String("abc"), String("123")))
 
     def testGetPut(self):
-        self.check('<<"filename"', Node('Get', Filename('filename')))
+        self.check('<<"filename"', Node('Get', Filename('"filename"')))
         self.check('1 >> filename', Node('Put', Number('1'), Filename('filename')))
         self.check('1 >>> filename', Node('PutAppend', Number('1'), Filename('filename')))
         self.check('<< filename', Node('Get', Filename('filename')))
@@ -206,7 +206,7 @@ class GeneralTests(ParserTests):
     def testDerivative(self):
         self.check("f'", 'Derivative[1][f]')
         self.check("f''", 'Derivative[2][f]')
-        self.check("f' '", 'Derivative[1][f]')
+        self.check("f' '", 'Derivative[2][f]')
 
     def testPlus(self):
         self.check('+1', Node('Plus', Number('1')))
@@ -348,8 +348,8 @@ class GeneralTests(ParserTests):
         self.check('a\uf522c', Node('Symbol', 'a\uf522c'))
 
     def testOut(self):
-        self.check('%%', Node('Out', Number(-2)))
-        self.check('%%%%', Node('Out', Number(-4)))
+        self.check('%%', Node('Out', Number('-2')))
+        self.check('%%%%', Node('Out', Number('-4')))
         self.check('%', Node('Out'))
 
     def testNonAscii(self):

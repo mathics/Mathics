@@ -51,7 +51,7 @@ class Atom(Node):
         return '%s[%s]' % (self.head, self.value)
 
     def __eq__(self, other):
-        return self.__class__ == other.__class__ and self.value == self.value
+        return self.__class__ == other.__class__ and self.value == other.value
 
 
 class Number(Atom):
