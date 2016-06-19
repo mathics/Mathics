@@ -165,6 +165,7 @@ setup(
         'mathics',
         'mathics.algorithm',
         'mathics.core',
+        'mathics.core.parser',
         'mathics.builtin', 'mathics.builtin.pymimesniffer',
         'mathics.doc',
         'mathics.web', 'mathics.web.templatetags'
