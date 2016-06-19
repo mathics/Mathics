@@ -603,24 +603,17 @@ class Pattern_(PatternObject):
 
     Nested 'Pattern' assign multiple names to the same pattern. Still,
     the last parameter is the default value.
-    >> f[y] /. f[a:b:_:d] -> {a, b}
-     = {y, y}
+    >> f[y] /. f[a:b,_:d] -> {a, b}
+     = f[y]
     This is equivalent to:
-    >> f[] /. f[a:b_:d] -> {a, b}
-     = {d, d}
+    >> f[a] /. f[a:_:b] -> {a, b}
+     = {a, b}
     'FullForm':
     >> FullForm[a:b:c:d:e]
      = Optional[Pattern[a, b], Optional[Pattern[c, d], e]]
 
-    ## Test parsing for following TODO test
-    #> Hold[f[] /. f[a:b:_:d] -> {a, b}] // FullForm
-     = Hold[ReplaceAll[f[], Rule[f[Pattern[a, Optional[Pattern[b, Blank[]], d]]], List[a, b]]]]
-    """
-
-    # TODO: This parses correctly (see above test) but computes incorrectly
-    """
-    >> f[] /. f[a:b:_:d] -> {a, b}
-     = {d, d}
+    >> f[] /. f[a:_:b] -> {a, b}
+     = {b, b}
     """
 
     name = 'Pattern'
