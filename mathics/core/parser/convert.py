@@ -48,8 +48,8 @@ class Converter(object):
         return s
 
     def convert_Symbol(self, node):
-        if node.value in all_ops:
-            return ma.Symbol('System`' + node.value)
+        if node.context is not None:
+            return ma.Symbol(node.context + '`' + node.value)
         value = self.definitions.lookup_name(node.value)
         return ma.Symbol(value)
 

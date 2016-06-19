@@ -301,7 +301,7 @@ class Parser(object):
         return result
 
     def p_Symbol(self, token):
-        result = Symbol(token.text)
+        result = Symbol(token.text, context=None)
         self.consume()
         return result
 
@@ -327,7 +327,7 @@ class Parser(object):
         if '.' in text:
             name = text[:-2]
             if name:
-                return Node('Optional', Node('Pattern', Symbol(name), Node('Blank')))
+                return Node('Optional', Node('Pattern', Symbol(name, context=None), Node('Blank')))
             else:
                 return Node('Optional', Node('Blank'))
         pieces = text.split('_')
@@ -339,11 +339,11 @@ class Parser(object):
         elif count == 3:
             name = 'BlankNullSequence'
         if pieces[-1]:
-            blank = Node(name, Symbol(pieces[-1]))
+            blank = Node(name, Symbol(pieces[-1], context=None))
         else:
             blank = Node(name)
         if pieces[0]:
-            return Node('Pattern', Symbol(pieces[0]), blank)
+            return Node('Pattern', Symbol(pieces[0], context=None), blank)
         else:
             return blank
 
@@ -728,7 +728,7 @@ class Parser(object):
         if box1 is None:
             box1 = Symbol('StandardForm')   # RawForm
         elif is_symbol_name(box1.value):
-            box1 = Symbol(box1.value)
+            box1 = Symbol(box1.value, context=None)
         else:
             box1 = Node('Removed', String('$$Failure'))
         self.consume()

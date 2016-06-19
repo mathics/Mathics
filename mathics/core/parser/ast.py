@@ -60,7 +60,8 @@ class Number(Atom):
 
 
 class Symbol(Atom):
-    def __init__(self, value):
+    def __init__(self, value, context='System'):
+        self.context = context
         self.value = value
         self.children = []
 
