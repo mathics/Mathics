@@ -9,7 +9,6 @@ from math import log10
 
 import mathics.core.expression as ma
 from mathics.core.parser.ast import Symbol, String, Number, Filename
-from mathics.core.parser.operators import all_ops
 from mathics.core.numbers import dps
 from mathics.builtin.numeric import machine_precision
 
@@ -25,7 +24,6 @@ class Converter(object):
         return result
 
     def do_convert(self, node):
-        head_name = node.get_head_name()
         if isinstance(node, Symbol):
             return self.convert_Symbol(node)
         elif isinstance(node, String):

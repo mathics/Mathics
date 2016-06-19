@@ -9,6 +9,7 @@ from mathics.core.expression import Symbol
 
 definitions = Definitions(add_builtin=True)
 
+
 class UtilTests(unittest.TestCase):
     def parse(self, code):
         raise NotImplementedError

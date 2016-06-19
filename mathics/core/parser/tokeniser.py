@@ -7,9 +7,9 @@ from __future__ import unicode_literals
 import re
 import string
 
-from mathics.core.parser.errors import ScanError, IncompleteSyntaxError
+from mathics.core.parser.errors import ScanError
 from mathics.core.parser.prescanner import Prescanner
-from mathics.core.characters import letters, letterlikes, named_characters
+from mathics.core.characters import letters, letterlikes
 
 
 # special patterns
@@ -223,7 +223,8 @@ literal_tokens = {
     ',': ['RawComma'],
     '-': ['Decrement', 'SubtractFrom', 'Rule', 'Minus'],
     '.': ['Number', 'RepeatedNull', 'Repeated', 'Dot'],
-    '/': ['MapAll', 'Map', 'DivideBy', 'ReplaceRepeated', 'ReplaceAll', 'Postfix', 'TagSet', 'Condition', 'Divide'],
+    '/': ['MapAll', 'Map', 'DivideBy', 'ReplaceRepeated', 'ReplaceAll',
+          'Postfix', 'TagSet', 'Condition', 'Divide'],
     ':': ['MessageName', 'RuleDelayed', 'SetDelayed', 'RawColon'],
     ';': ['Span', 'Semicolon'],
     '<': ['Get', 'StringJoin', 'LessEqual', 'Less'],
@@ -298,7 +299,7 @@ class Token(object):
     def __eq__(self, other):
         if not isinstance(other, Token):
             raise TypeError()
-        return self.tag == other.tag and self.text == other.text    # and self.pos == other.pos
+        return self.tag == other.tag and self.text == other.text and self.pos == other.pos
 
     def __repr__(self):
         return 'Token(%s, %s, %i)' % (self.tag, self.text, self.pos)
@@ -410,13 +411,14 @@ class Tokeniser(object):
             else:
                 self.pos += 1
         indices = [start] + newlines + [end]
-        result = ''.join(self.code[indices[i]:indices[i + 1]] for i in range(len(indices) - 1))
+        result = ''.join(self.code[indices[i]:indices[i + 1]]
+                         for i in range(len(indices) - 1))
         return Token('String', result, start)
 
     def t_Number(self, match):
         text = match.group(0)
         pos = match.end(0)
-        if self.code[pos-1:pos+1] == '..':
+        if self.code[pos - 1:pos + 1] == '..':
             # Trailing .. should be ignored. That is, `1..` is `Repeated[1]`.
             text = text[:-1]
             self.pos = pos - 1

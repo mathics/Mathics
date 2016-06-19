@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 from six import unichr
 
 from mathics.core.characters import named_characters
-from mathics.core.parser.errors import ScanError, IncompleteSyntaxError, InvalidSyntaxError
+from mathics.core.parser.errors import ScanError, IncompleteSyntaxError
 
 
 class Prescanner(object):

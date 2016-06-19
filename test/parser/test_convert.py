@@ -5,7 +5,7 @@ import sys
 
 from mathics.core.definitions import Definitions
 from mathics.core.parser import (
-    parse, TranslateError, InvalidSyntaxError, IncompleteSyntaxError,
+    parse, InvalidSyntaxError, IncompleteSyntaxError,
     ScanError)
 from mathics.core.parser.feed import SingleLineFeeder
 from mathics.core.expression import (
@@ -13,6 +13,8 @@ from mathics.core.expression import (
 
 
 definitions = Definitions(add_builtin=True)
+
+
 class ConvertTests(unittest.TestCase):
     def parse(self, code):
         return parse(definitions, SingleLineFeeder(code))
@@ -96,7 +98,6 @@ class ConvertTests(unittest.TestCase):
         self.check('1.4`1', Real('1', p=1))
         self.check('1.4`0', Real(0, p=0))
         self.check('1.4`-5', Real(0, p=0))
-
 
     def testDerivative(self):
         f = Symbol('Global`f')

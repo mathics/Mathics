@@ -26,7 +26,9 @@ class Node(object):
     def __eq__(self, other):
         if not isinstance(other, Node):
             raise TypeError()
-        return (self.get_head_name() == other.get_head_name()) and (len(self.children) == len(other.children)) and all(cs == co for cs, co in zip(self.children, other.children))
+        return ((self.get_head_name() == other.get_head_name()) and
+                (len(self.children) == len(other.children)) and
+                all(cs == co for cs, co in zip(self.children, other.children)))
 
     def flatten(self):
         head_name = self.get_head_name()

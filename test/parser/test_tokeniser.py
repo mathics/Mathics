@@ -6,8 +6,8 @@ import random
 import sys
 import urllib.request
 
-from mathics.core.parser.tokeniser import Tokeniser, ScanError, IncompleteSyntaxError, Token
-from mathics.core.parser.errors import *
+from mathics.core.parser.tokeniser import Tokeniser, Token
+from mathics.core.parser.errors import ScanError, IncompleteSyntaxError, InvalidSyntaxError
 from mathics.core.parser.feed import SingleLineFeeder
 
 
@@ -116,7 +116,7 @@ class TokeniserTest(unittest.TestCase):
 
     def testIntRepeated(self):
         self.assertEqual(self.tokens('1..'), [Token('Number', '1', 0), Token('Repeated', '..', 1)])
-        self.assertEqual(self.tokens('1. .'), [Token('Number', '1.', 0), Token('Dot', '.', 2)])
+        self.assertEqual(self.tokens('1. .'), [Token('Number', '1.', 0), Token('Dot', '.', 3)])
 
     def testIntegeral(self):
         self.assertEqual(self.tokens('\u222B x \uF74C y'), [Token('Integral', '\u222B', 0), Token('Symbol', 'x', 2), Token('DifferentialD', '\uF74C', 4), Token('Symbol', 'y', 6)])
@@ -139,4 +139,4 @@ class TokeniserTest(unittest.TestCase):
         self.incomplete_error('\\')
 
     def testBoxes(self):
-        self.assertEqual(self.tokens('\\(1\\)'),[Token('LeftRowBox', '\\(', 0), Token('Number', "1", 2), Token('RightRowBox', '\\)', 3)])
+        self.assertEqual(self.tokens('\\(1\\)'), [Token('LeftRowBox', '\\(', 0), Token('Number', "1", 2), Token('RightRowBox', '\\)', 3)])

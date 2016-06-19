@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import unittest
 
-from mathics.core.parser import IncompleteSyntaxError, InvalidSyntaxError, ScanError
+from mathics.core.parser import IncompleteSyntaxError, ScanError
 from mathics.core.parser.prescanner import Prescanner
 from mathics.core.parser.feed import SingleLineFeeder
 

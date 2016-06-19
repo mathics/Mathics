@@ -26,7 +26,7 @@ class SingleLineFeeder(LineFeeder):
         self.empty = True
         return self.code
 
-    def empty():
+    def empty(self):
         return self.empty
 
 
@@ -48,7 +48,7 @@ class MultiLineFeeder(LineFeeder):
         return result
 
     def empty(self):
-        return self.lineno >= len(self.lines) 
+        return self.lineno >= len(self.lines)
 
 
 class FileLineFeeder(LineFeeder):

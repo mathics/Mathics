@@ -163,9 +163,15 @@ for ops in (left_binary_ops, right_binary_ops, flat_binary_ops, nonassoc_binary_
     for op, prec in ops.items():
         binary_ops[op] = prec
 
+all_op_collections = (
+    prefix_ops, postfix_ops,
+    left_binary_ops, right_binary_ops, flat_binary_ops,
+    ternary_ops, nonassoc_binary_ops, misc_ops)
+
 # all ops - check they're disjoint
 all_ops = defaultdict(lambda: 670)
-for ops in (prefix_ops, postfix_ops, left_binary_ops, right_binary_ops, flat_binary_ops, ternary_ops, nonassoc_binary_ops, misc_ops):
+
+for ops in all_op_collections:
     for op, prec in ops.items():
         if op in all_ops:
             raise AssertionError
