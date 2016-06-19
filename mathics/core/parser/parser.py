@@ -454,6 +454,9 @@ class Parser(object):
         return Node('Span', expr1, expr2)
 
     def e_RawLeftBracket(self, expr, token, p):
+        q = all_ops['Part']
+        if q < p:
+            return None
         self.consume()
         self.bracket_depth += 1
         token = self.next_noend()
@@ -521,24 +524,20 @@ class Parser(object):
             return Node('Function', expr1, expr2)
 
     def e_RawColon(self, expr1, token, p):
-        '''
-        Pattern  : patt <- symb ':' expr
-        Optional : patt <- patt ':' expr
-        '''
-        if expr1.get_head_name() == 'Symbol':
+        head_name = expr1.get_head_name()
+        if head_name == 'Symbol':
             head = 'Pattern'
-        elif expr1.get_head_name() in ('Blank', 'BlankSequence', 'BlankNullSequence', 'Optional', 'Pattern'):
+        elif head_name in ('Blank', 'BlankSequence', 'BlankNullSequence', 'Pattern', 'Optional'):
             head = 'Optional'
         else:
-            raise InvalidSyntaxError(token)
-        q = all_ops[head]
-        if q < p:
             return None
+
+        q = all_ops[head]
+        if p == 151:
+            return None
+
         self.consume()
         expr2 = self.parse_exp(q + 1)
-        if expr1.get_head_name() == head == 'Optional' and not expr1.parenthesised:
-            expr1.children.append(expr2)
-            return expr1
         return Node(head, expr1, expr2)
 
     def e_Semicolon(self, expr1, token, p):
@@ -627,24 +626,6 @@ class Parser(object):
         self.consume()
         expr2 = self.parse_exp(q + 1)
         return Node('Alternatives', expr1, expr2).flatten()
-
-    def e_PatternTest(self, expr1, token, p):
-        q = nonassoc_binary_ops['PatternTest']
-        if q < p:
-            return None
-        self.consume()
-        expr2 = self.parse_exp(q + 1)
-        token = self.next()
-        tag = token.tag
-        # XXX Hack: PatternTest parsing is weird. It's precedence is super high 680
-        # but disobeys this around patterns
-        if tag == 'Alternatives':
-            expr2 = self.e_Alternatives(expr2, token, 159)
-        elif tag == 'RawColon':
-            expr2 = self.e_RawColon(expr2, token, 139)
-        elif tag == 'PatternTest':
-            raise InvalidSyntaxError(token)
-        return Node('PatternTest', expr1, expr2)
 
     def e_MessageName(self, expr1, token, p):
         leaves = [expr1]
