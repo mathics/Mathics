@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 import unittest
 import random
 import sys
-import urllib.request
 
 from mathics.core.parser.tokeniser import Tokeniser, Token
 from mathics.core.parser.errors import ScanError, IncompleteSyntaxError, InvalidSyntaxError
@@ -57,15 +56,6 @@ class TokeniserTest(unittest.TestCase):
 
     def invalid_error(self, string):
         self.assertRaises(InvalidSyntaxError, self.tokens, string)
-
-    def test_combinatorica(self):
-        with urllib.request.urlopen('http://www.cs.uiowa.edu/~sriram/Combinatorica/NewCombinatorica.m') as f:
-            code = f.read().decode('utf-8')
-        t = Tokeniser(SingleLineFeeder(code))
-        while True:
-            tag = t.next().tag
-            if tag == 'END':
-                break
 
     def testSymbol(self):
         self.check_symbol('xX')
