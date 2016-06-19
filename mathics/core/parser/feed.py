@@ -18,23 +18,23 @@ class SingleLineFeeder(LineFeeder):
     'Feeds all the code as a single line.'
     def __init__(self, code):
         self.code = code
-        self.empty = False
+        self._empty = False
 
     def feed(self):
-        if self.empty:
+        if self._empty:
             return ''
-        self.empty = True
+        self._empty = True
         return self.code
 
     def empty(self):
-        return self.empty
+        return self._empty
 
 
 class MultiLineFeeder(LineFeeder):
     'Feeds one line at a time.'
     def __init__(self, lines):
         self.lineno = 0
-        if isinstance(lines, six.text_type):
+        if isinstance(lines, six.string_types):
             self.lines = lines.splitlines(True)
         else:
             self.lines = lines
