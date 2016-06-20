@@ -987,10 +987,10 @@ class ToExpression(Builtin):
         # Apply the differnet forms
         if form == Symbol('InputForm'):
             if isinstance(inp, String):
-                from mathics.core.parser import parse_code, TranslateError
-                try:
-                    result = parse_code(inp.get_string_value(), evaluation.definitions)
-                except TranslateError:
+                result = evaluation.parse(inp.get_string_value())
+                if results:
+                    result = results[0]
+                else:
                     evaluation.message('ToExpression', 'sntxi', String(''))
                     return Symbol('$Failed')
             else:

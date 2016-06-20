@@ -2,7 +2,7 @@ import unittest
 import six
 
 from mathics.core.definitions import Definitions
-from mathics.core.parser import parse, parse_lines, InvalidSyntaxError, IncompleteSyntaxError
+from mathics.core.parser import parse, InvalidSyntaxError, IncompleteSyntaxError
 from mathics.core.parser.feed import SingleLineFeeder, MultiLineFeeder
 from mathics.core.expression import Symbol
 
@@ -68,21 +68,3 @@ class MultiLineParserTests(UtilTests):
         self.check('Sin[\n0]', 'Sin[0]')
         self.check('Sin[0\n]', 'Sin[0]')
         self.check('Sin[\n\n0]', 'Sin[0]')
-
-
-class ParseLinesTests(UtilTests):
-    def parse(self, lines):
-        return list(parse_lines(lines, definitions))
-
-    def compare(self, expr1, expr2):
-        self.assertEqual(len(expr1), len(expr2))
-        for e1, e2 in zip(expr1, expr2):
-            self.assertEqual(e1, e2)
-
-    def test_basic(self):
-        self.check('x\ny', [Symbol('Global`x'), Symbol('Global`y')])
-
-    def test_continued(self):
-        self.check('x +\ny', 'x + y')
-        self.check('{1, 2,\n3}', '{1,2,3}')
-        self.check('{{1,2},\n{3,4},\n{5,6}}', '{{1,2}, {3,4}, {5,6}}')

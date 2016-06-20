@@ -16,6 +16,7 @@ from six.moves import zip
 import mathics
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
+from mathics.core.parser import SingleLineFeeder
 from mathics.builtin import builtins
 from mathics.doc import documentation
 from mathics import version_string
@@ -55,23 +56,25 @@ def test_case(test, tests, index=0, quiet=False):
 
     if not quiet:
         print('%4d. TEST %s' % (index, test))
+
+    feeder = SingleLineFeeder(test, '<test>')
     evaluation = Evaluation(definitions, catch_interrupt=False)
     try:
-        results = evaluation.parse_evaluate(test)
+        query = evaluation.parse_feeder(feeder)
+        if query is None:
+            # parsed expression is None
+            result = None
+            out = evaluation.out
+        else:
+            result = evaluation.evaluate(query)
+            out = result.out
+            result = result.result
     except Exception as exc:
         fail("Exception %s" % exc)
         info = sys.exc_info()
         sys.excepthook(*info)
         return False
 
-    if results:
-        if len(results) > 1:
-            return fail("Too many results: %s" % results)
-        result = results[0].result
-        out = results[0].out
-    else:
-        result = None
-        out = []
     if not compare(result, wanted):
         fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
         if out:

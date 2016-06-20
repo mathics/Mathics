@@ -1170,34 +1170,92 @@ class MessageName(BinaryOperator):
 
 
 class Syntax(Builtin):
-    """
+    r"""
     <dl>
     <dt>'Syntax'
         <dd>is a symbol to which all syntax messages are assigned.
     </dl>
 
     >> 1 +
-     : Incomplete expression; more input is needed.
+     : Incomplete expression; more input is needed (line 1 of "<test>").
 
     >> Sin[1)
-     : Invalid syntax at or near token ).
+     : "Sin[1" cannot be followed by ")" (line 1 of "<test>").
+
+    >> ^ 2
+     : Expression cannot begin with "^ 2" (line 1 of "<test>").
 
     >> 1.5``
-     : Scan error at position 4.
+     : "1.5`" cannot be followed by "`" (line 1 of "<test>").
+
+    #> (x]
+     : "(x" cannot be followed by "]" (line 1 of "<test>").
+
+    #> (x,)
+     : "(x" cannot be followed by ",)" (line 1 of "<test>").
+
+    #> {x]
+     : "{x" cannot be followed by "]" (line 1 of "<test>").
+
+    #> f[x)
+     : "f[x" cannot be followed by ")" (line 1 of "<test>").
+
+    #> a[[x)]
+     : "a[[x" cannot be followed by ")]" (line 1 of "<test>").
+
+    #> x /: y , z
+     : "x /: y " cannot be followed by ", z" (line 1 of "<test>").
+
+    #> a :: 1
+     : "a :: " cannot be followed by "1" (line 1 of "<test>").
+
+    #> a ? b ? c
+     : "a ? b " cannot be followed by "? c" (line 1 of "<test>").
+
+    #> \:000G
+     : 4 hexadecimal digits are required after \: to construct a 16-bit character (line 1 of "<test>").
+     : Expression cannot begin with "\:000G" (line 1 of "<test>").
+
+    #> \:000
+     : 4 hexadecimal digits are required after \: to construct a 16-bit character (line 1 of "<test>").
+     : Expression cannot begin with "\:000" (line 1 of "<test>").
+
+    #> \009
+     : 3 octal digits are required after \ to construct an 8-bit character (line 1 of "<test>").
+     : Expression cannot begin with "\009" (line 1 of "<test>").
+
+    #> \00
+     : 3 octal digits are required after \ to construct an 8-bit character (line 1 of "<test>").
+     : Expression cannot begin with "\00" (line 1 of "<test>").
+
+    #> \.0G
+     : 2 hexadecimal digits are required after \. to construct an 8-bit character (line 1 of "<test>").
+     : Expression cannot begin with "\.0G" (line 1 of "<test>").
+
+    #> \.0
+     : 2 hexadecimal digits are required after \. to construct an 8-bit character (line 1 of "<test>").
+     : Expression cannot begin with "\.0" (line 1 of "<test>").
+
+    #> "abc \[fake]"
+     : Unknown unicode longname "fake" (line 1 of "<test>").
+     = abc \[fake]
+
+    #> a ~ b + c
+     : "a ~ b " cannot be followed by "+ c" (line 1 of "<test>").
     """
 
+    # Extension: MMA does not provide lineno and filename in its error messages
     messages = {
-        'scan': 'Scan error at position `1`.',
-        'incomplete': 'Incomplete expression; more input is needed.',
-        'invalid': 'Invalid syntax at or near token `1`.',
-        # TODO
-        'bktmch': '"`1`" must be followed by "`2`", not "`3`"`4`.',
-        'bktmcp': 'Expression "`1`" has no closing "`2`"`4`.',
-        'bktmop': 'Expression "`1`" has no opening "`2`"`4`.',
-        'bktwrn': '"`1`" represents multiplication; use "`2`" to represent a function`4`.',
-        'sntue': 'Unexpected end of file (probably unfinished expression) `4`.',
-        'sntxi': 'Incomplete expression; more input is needed `4`.',
-        'tsntxi': '"`1`" is incomplete; more input is needed.`4`',
+        'snthex': r'4 hexadecimal digits are required after \: to construct a 16-bit character (line `4` of `5`).',
+        'sntoct1': r'3 octal digits are required after \ to construct an 8-bit character (line `4` of `5`).',
+        'sntoct2': r'2 hexadecimal digits are required after \. to construct an 8-bit character (line `4` of `5`).',
+        'sntxi': 'Incomplete expression; more input is needed (line `4` of `5`).',
+        'sntxb': 'Expression cannot begin with `1` (line `4` of `5`).',
+        'sntxf': '`1` cannot be followed by `2` (line `4` of `5`).',
+        'bktwrn': '`1` represents multiplication; use `2` to represent a function (line `4` of `5`).',    # TODO
+        'bktmch': '`1` must be followed by `2`, not `3` (line `4` of `5`).',
+        'sntue': 'Unexpected end of file; probably unfinished expression (line `4` of `5`).',
+        'sntufn': 'Unknown unicode longname `1` (line `4` of `5`).',
     }
 
 

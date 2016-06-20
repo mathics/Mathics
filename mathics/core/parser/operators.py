@@ -136,7 +136,7 @@ nonassoc_binary_ops = {
 
 ternary_ops = {
     'Span': 305,
-    'Infix': 630,   # TODO
+    'Infix': 630,
 }
 
 misc_ops = {

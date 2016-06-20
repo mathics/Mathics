@@ -15,7 +15,7 @@ from mathics.core.definitions import Definitions
 from mathics.core.expression import Integer, strip_context
 from mathics.core.evaluation import Evaluation
 from mathics.core.parser import (
-    parse, parse_lines, TranslateError, IncompleteSyntaxError, LineFeeder,
+    parse, TranslateError, IncompleteSyntaxError, LineFeeder,
     FileLineFeeder, ExpressionGenerator)
 from mathics import version_string, license_string, __version__
 from mathics import settings
@@ -26,8 +26,9 @@ from six.moves import input
 
 class TerminalShell(LineFeeder):
     def __init__(self, definitions, colors, want_readline, want_completion):
+        super(TerminalShell, self).__init__('<stdin>')
         self.input_encoding = locale.getpreferredencoding()
-        self.continued = False  # continued input on later lines
+        self.lineno = 0
 
         # Try importing readline to enable arrow keys support etc.
         self.using_readline = False
@@ -86,7 +87,7 @@ class TerminalShell(LineFeeder):
 
     def get_in_prompt(self):
         next_line_number = self.get_last_line_number() + 1
-        if self.continued:
+        if self.lineno > 0:
             return ' ' * len('In[{0}]:= '.format(next_line_number))
         else:
             return '{1}In[{2}{0}{3}]:= {4}'.format(next_line_number, *self.incolors)
@@ -108,11 +109,10 @@ class TerminalShell(LineFeeder):
             return self.rl_read_line(prompt)
         return input(prompt)
 
-    def print_results(self, results):
-        for result in results:
-            if result.result is not None:
-                output = self.to_output(six.text_type(result.result))
-                print(self.get_out_prompt() + output + '\n')
+    def print_result(self, result):
+        if result is not None and result.result is not None:
+            output = self.to_output(six.text_type(result.result))
+            print(self.get_out_prompt() + output + '\n')
 
     def rl_read_line(self, prompt):
         # Wrap ANSI colour sequences in \001 and \002, so readline
@@ -164,14 +164,14 @@ class TerminalShell(LineFeeder):
             matches = [strip_context(m) for m in matches]
         return matches
 
-    def reset_continued(self):
-        self.continued = False
+    def reset_lineno(self):
+        self.lineno = 0
 
     def feed(self):
         result = self.read_line(self.get_in_prompt()) + '\n'
         if result == '\n':
             return ''   # end of input
-        self.continued = True
+        self.lineno += 1
         return result
 
     def empty(self):
@@ -231,68 +231,61 @@ def main():
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
 
     definitions = Definitions(add_builtin=True)
-    definitions.set_line_no(0)  # Reset the line number
+    definitions.set_line_no(0)
 
     shell = TerminalShell(
         definitions, args.colors, want_readline=not(args.no_readline),
         want_completion=not(args.no_completion))
 
-    if not (args.quiet or args.script):
-        print()
-        print(version_string + '\n')
-        print(license_string + '\n')
-        print("Quit by pressing {0}\n".format(quit_command))
-
     if args.execute:
         for expr in args.execute:
             print(shell.get_in_prompt() + expr)
             evaluation = Evaluation(shell.definitions, out_callback=shell.out_callback)
-            exprs = evaluation.parse(expr)
-            results = evaluation.evaluate(exprs, timeout=settings.TIMEOUT)
-            shell.print_results(results)
+            results = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
+            shell.print_result(results)
 
         if not args.persist:
             return
 
     if args.FILE is not None:
-        results = []
-        query_gen = ExpressionGenerator(shell.definitions, FileLineFeeder(args.FILE))
-        evaluation = Evaluation(shell.definitions, out_callback=shell.out_callback)
+        feeder = FileLineFeeder(args.FILE)
         try:
-            for query in query_gen:
-                results.extend(evaluation.evaluate([query], timeout=settings.TIMEOUT))
-        except TranslateError as exc:
-            evaluation.recursion_depth = 0
-            evaluation.stopped = False
-            evaluation.message('Syntax', exc.msg, *exc.args)
+            while not feeder.empty():
+                evaluation = Evaluation(shell.definitions, out_callback=shell.out_callback, catch_interrupt=False)
+                query = evaluation.parse_feeder(feeder)
+                if query is None:
+                    continue
+                evaluation.evaluate(query, timeout=settings.TIMEOUT)
         except (KeyboardInterrupt):
             print('\nKeyboardInterrupt')
-        except (SystemExit, EOFError):
-            print("\n\nGood bye!\n")
 
-        if not args.persist:
+        if args.persist:
+            definitions.set_line_no(0)
+        else:
             return
 
+    if not args.quiet:
+        print()
+        print(version_string + '\n')
+        print(license_string + '\n')
+        print("Quit by pressing {0}\n".format(quit_command))
 
     while True:
         try:
             evaluation = Evaluation(shell.definitions, out_callback=shell.out_callback)
-            try:
-                query = parse(shell.definitions, shell)
-            except TranslateError as exc:
-                evaluation.message('Syntax', exc.msg, *exc.args)
-                continue
+            query = evaluation.parse_feeder(shell)
             if query is None:
                 continue
-            results = evaluation.evaluate([query], timeout=settings.TIMEOUT)
-            shell.print_results(results)
+            result = evaluation.evaluate(query, timeout=settings.TIMEOUT)
+            if result is not None:
+                shell.print_result(result)
         except (KeyboardInterrupt):
             print('\nKeyboardInterrupt')
         except (SystemExit, EOFError):
             print("\n\nGood bye!\n")
             break
         finally:
-            shell.reset_continued()
+            shell.reset_lineno()
 
 if __name__ == '__main__':
     main()

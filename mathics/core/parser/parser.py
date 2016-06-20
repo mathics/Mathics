@@ -21,6 +21,7 @@ class Parser(object):
             'RawRightBracket', 'RawColon', 'DifferentialD'])
 
     def parse(self, feeder):
+        self.feeder = feeder
         self.tokeniser = Tokeniser(feeder)
         self.current_token = None
         self.bracket_depth = 0
@@ -52,7 +53,8 @@ class Parser(object):
         if token.tag == expected_tag:
             self.consume()
         else:
-            raise InvalidSyntaxError(token)
+            self.tokeniser.sntx_message(token.pos)
+            raise InvalidSyntaxError()
 
     def backtrack(self, pos):
         self.tokeniser.pos = pos
@@ -115,7 +117,8 @@ class Parser(object):
             child = self.parse_exp(q)
             return Node(tag, child)
         else:
-            raise InvalidSyntaxError(token)
+            self.tokeniser.sntx_message(token.pos)
+            raise InvalidSyntaxError()
 
     def parse_box(self, p):
         result = None
@@ -207,22 +210,12 @@ class Parser(object):
         expr2 = self.parse_exp(q)
         # flatten or associate
         if tag in nonassoc_binary_ops and expr1.get_head_name() == tag and not expr1.parenthesised:
-            raise InvalidSyntaxError(token)
+            self.tokeniser.sntx_message(token.pos)
+            raise InvalidSyntaxError()
         result = Node(tag, expr1, expr2)
         if tag in flat_binary_ops:
             result.flatten()
         return result
-
-    def parse_ternary(self, expr1, token, p):
-        tag = token.tag
-        q = ternary_ops[tag]
-        if q < p:
-            return None
-        self.consume()
-        expr2 = self.parse_exp(q + 1)
-        self.expect(tag)
-        expr3 = self.parse_exp(q + 1)
-        return Node(tag, expr1, expr2, expr3)
 
     def parse_postfix(self, expr1, token, p):
         tag = token.tag
@@ -254,6 +247,9 @@ class Parser(object):
         self.consume()
         self.bracket_depth += 1
         result = self.parse_exp(0)
+
+        close_token = self.next_noend()
+        tag = close_token.tag
         self.expect('RawRightParenthesis')
         self.bracket_depth -= 1
         result.parenthesised = True
@@ -583,7 +579,8 @@ class Parser(object):
         elif tag == 'Unset':
             head = 'TagUnset'
         else:
-            raise InvalidSyntaxError(token)
+            self.tokeniser.sntx_message(token.pos)
+            raise InvalidSyntaxError()
         self.consume()
 
         if head == 'TagUnset':
@@ -638,7 +635,8 @@ class Parser(object):
             elif token.tag == 'String':
                 leaf = self.p_String(token)
             else:
-                raise InvalidSyntaxError(token)
+                self.tokeniser.sntx_message(token.pos)
+                raise InvalidSyntaxError()
             leaves.append(leaf)
         return Node('MessageName', *leaves)
 
@@ -653,9 +651,6 @@ class Parser(object):
         if box0 is not None:
             return None
         self.consume()
-        if self.box_depth == 0:
-            # TODO syntyp
-            raise InvalidSyntaxError(token)
         q = misc_ops['SqrtBox']
         box1 = self.parse_box(q)
         if self.next().tag == 'OtherscriptBox':

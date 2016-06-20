@@ -4,7 +4,7 @@
 from __future__ import absolute_import
 
 from mathics.core.parser.util import (
-    parse, parse_lines, parse_builtin_rule, parse_code, ExpressionGenerator)
+    parse, parse_builtin_rule, ExpressionGenerator)
 from mathics.core.parser.tokeniser import is_symbol_name
 from mathics.core.parser.errors import (
     InvalidSyntaxError, IncompleteSyntaxError, ScanError, TranslateError)

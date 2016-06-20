@@ -327,8 +327,14 @@ class Tokeniser(object):
         self.prescanner.incomplete()
         self.code += self.prescanner.scan()
 
-    def feed_callback(self):
-        return self.feeder.feed()
+    def sntx_message(self, pos=None):
+        if pos is None:
+            pos = self.pos
+        pre, post = self.code[:pos], self.code[pos:].rstrip('\n')
+        if pos == 0:
+            self.feeder.message('Syntax', 'sntxb', post)
+        else:
+            self.feeder.message('Syntax', 'sntxf', pre, post)
 
     def next(self):
         'return next token'
@@ -352,7 +358,8 @@ class Tokeniser(object):
 
         # no matching pattern found
         if match is None:
-            raise ScanError(self.pos)
+            self.sntx_message()
+            raise ScanError()
 
         # custom tokenisation rules defined with t_tag
         override = getattr(self, 't_' + tag, None)
