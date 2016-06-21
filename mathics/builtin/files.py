@@ -2093,21 +2093,27 @@ class Get(PrefixOperator):
 
     def apply(self, path, evaluation):
         'Get[path_String]'
-        from mathics.core.parser import TranslateError, ExpressionGenerator, FileLineFeeder
+        from mathics.core.parser import parse, TranslateError, FileLineFeeder
 
-        expr = None
+        result = None
         pypath = path.get_string_value()
         try:
             with mathics_open(pypath, 'r') as f:
-                for expr in ExpressionGenerator(evaluation.definitions, FileLineFeeder(f)):
-                    expr = expr.evaluate(evaluation)
+                feeder = FileLineFeeder(f)
+                while not feeder.empty():
+                    try:
+                        query = parse(evaluation.definitions, feeder)
+                    except TranslateError:
+                        return Symbol('Null')
+                    finally:
+                        feeder.send_messages(evaluation)
+                    if query is None:   # blank line / comment
+                        continue
+                    result = query.evaluate(evaluation)
         except IOError:
             evaluation.message('General', 'noopen', path)
             return Symbol('$Failed')
-        except TranslateError as exc:
-            evaluation.message('Syntax', exc.msg, *exc.args)
-            return Symbol('Null')
-        return expr   # last expression
+        return result
 
     def apply_default(self, filename, evaluation):
         'Get[filename_]'
