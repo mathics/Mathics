@@ -154,7 +154,8 @@ def benchmark_expression(expression_string):
     timeit(lambda: expr.evaluate(evaluation))
 
 
-def benchmark_section(section_name): print(section_name)
+def benchmark_section(section_name):
+    print(section_name)
     for benchmark in BENCHMARKS.get(section_name):
         benchmark_expression(benchmark)
     print()

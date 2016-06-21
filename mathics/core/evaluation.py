@@ -170,6 +170,11 @@ class Evaluation(object):
         from mathics.core.parser import parse, SingleLineFeeder
         return self.parse_feeder(SingleLineFeeder(query))
 
+    def parse_evaluate(self, query, timeout=None):
+        expr = self.parse(query)
+        if expr is not None:
+            return self.evaluate(expr, timeout)
+
     def parse_feeder(self, feeder):
         'Parse a single expression from feeder and print the messages.'
         from mathics.core.parser import parse, TranslateError

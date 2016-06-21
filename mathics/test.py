@@ -120,10 +120,14 @@ def create_output(tests, output_xml, output_tex):
         for test in tests.tests:
             key = test.key
             evaluation = Evaluation(definitions, format=format, catch_interrupt=False)
-            results = evaluation.parse_evaluate(test.test)
+            result = evaluation.parse_evaluate(test.test)
+            if result is None:
+                result = []
+            else:
+                result = [result.get_data()]
             output[key] = {
                 'query': test.test,
-                'results': [r.get_data() for r in results],
+                'results': result,
             }
 
 

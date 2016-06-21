@@ -241,8 +241,8 @@ def main():
         for expr in args.execute:
             print(shell.get_in_prompt() + expr)
             evaluation = Evaluation(shell.definitions, out_callback=shell.out_callback)
-            results = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
-            shell.print_result(results)
+            result = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
+            shell.print_result(result)
 
         if not args.persist:
             return
