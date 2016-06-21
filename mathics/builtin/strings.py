@@ -964,7 +964,7 @@ class ToExpression(Builtin):
                       'Valid interpretation formats include InputForm '
                       'and any member of $BoxForms.'),
         'notstr': 'The format type `1` is valid only for string input.',
-        'sntxi': 'Incomplete expression; more input is needed `1`.',
+        'sntxi': 'Incomplete expression; more input is needed (line 1 of "<string>")',
     }
 
     def apply(self, seq, evaluation):
@@ -988,9 +988,7 @@ class ToExpression(Builtin):
         if form == Symbol('InputForm'):
             if isinstance(inp, String):
                 result = evaluation.parse(inp.get_string_value())
-                if results:
-                    result = results[0]
-                else:
+                if result is None:
                     evaluation.message('ToExpression', 'sntxi', String(''))
                     return Symbol('$Failed')
             else:
