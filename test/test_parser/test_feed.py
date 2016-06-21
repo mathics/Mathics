@@ -1,8 +1,8 @@
 import unittest
-import six
 import tempfile
 
 from mathics.core.parser.feed import SingleLineFeeder, MultiLineFeeder, FileLineFeeder
+
 
 class LineFeederTests(unittest.TestCase):
     def test_multi(self):

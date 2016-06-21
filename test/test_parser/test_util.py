@@ -4,7 +4,6 @@ import six
 from mathics.core.definitions import Definitions
 from mathics.core.parser import parse, InvalidSyntaxError, IncompleteSyntaxError
 from mathics.core.parser.feed import SingleLineFeeder, MultiLineFeeder
-from mathics.core.expression import Symbol
 
 
 definitions = Definitions(add_builtin=True)

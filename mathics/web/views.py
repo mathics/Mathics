@@ -109,7 +109,7 @@ def query(request):
         while not feeder.empty():
             expr = evaluation.parse_feeder(feeder)
             if expr is None:
-                results.append(Result(evaluation.out, None, None)) # syntax errors
+                results.append(Result(evaluation.out, None, None))  # syntax errors
                 evaluation.out = []
                 continue
             result = evaluation.evaluate(expr, timeout=settings.TIMEOUT)

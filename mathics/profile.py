@@ -7,7 +7,6 @@ from __future__ import absolute_import
 import cProfile
 import pstats
 
-from mathics.core.parser import parse
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 

@@ -97,7 +97,6 @@ class Parser(object):
                 new_result = Node('Times', result, child).flatten()
             else:
                 new_result = None
-
             if new_result is None:
                 break
             else:
@@ -108,7 +107,6 @@ class Parser(object):
         token = self.next_noend()
         tag = token.tag
         method = getattr(self, 'p_' + tag, None)
-
         if method is not None:
             return method(token)
         elif tag in prefix_ops:
@@ -137,7 +135,6 @@ class Parser(object):
                 new_result = String(token.text)
             else:
                 new_result = None
-
             if new_result is None:
                 break
             else:
@@ -177,10 +174,8 @@ class Parser(object):
         if q < p:
             return None
         self.consume()
-
         head = expr1.get_head_name()
         expr2 = self.parse_exp(q + 1)
-
         if head == 'Inequality' and not expr1.parenthesised:
             expr1.children.append(Symbol(tag))
             expr1.children.append(expr2)
@@ -247,9 +242,6 @@ class Parser(object):
         self.consume()
         self.bracket_depth += 1
         result = self.parse_exp(0)
-
-        close_token = self.next_noend()
-        tag = close_token.tag
         self.expect('RawRightParenthesis')
         self.bracket_depth -= 1
         result.parenthesised = True
@@ -272,7 +264,6 @@ class Parser(object):
         while token.tag not in ('RightRowBox', 'OtherscriptBox'):
             children.append(self.parse_box(0))
             token = self.next()
-
         if len(children) == 0:
             result = String('')
         elif len(children) == 1:
@@ -424,9 +415,7 @@ class Parser(object):
 
         if expr1.get_head_name() == 'Span' and not expr1.parenthesised:
             return None
-
         self.consume()
-
         # Span[expr1, expr2]
         token = self.next()
         if token.tag == 'Span':
@@ -439,7 +428,6 @@ class Parser(object):
                 expr2 = Symbol('All')
                 self.backtrack(token.pos)
                 self.feeder.messages = messages
-
         token = self.next()
         if token.tag == 'Span':
             self.consume()
@@ -530,11 +518,9 @@ class Parser(object):
             head = 'Optional'
         else:
             return None
-
         q = all_ops[head]
         if p == 151:
             return None
-
         self.consume()
         expr2 = self.parse_exp(q + 1)
         return Node(head, expr1, expr2)
@@ -544,7 +530,6 @@ class Parser(object):
         if q < p:
             return None
         self.consume()
-
         # XXX look for next expr otherwise backtrack
         pos = self.tokeniser.pos
         messages = list(self.feeder.messages)
@@ -574,7 +559,6 @@ class Parser(object):
             return None
         self.consume()
         expr2 = self.parse_exp(q + 1)
-
         # examine next token
         token = self.next_noend()
         tag = token.tag
@@ -588,10 +572,8 @@ class Parser(object):
             self.tokeniser.sntx_message(token.pos)
             raise InvalidSyntaxError()
         self.consume()
-
         if head == 'TagUnset':
             return Node(head, expr1, expr2)
-
         expr3 = self.parse_exp(q + 1)
         return Node(head, expr1, expr2, expr3)
 

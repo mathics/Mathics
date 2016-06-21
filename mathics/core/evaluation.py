@@ -167,7 +167,7 @@ class Evaluation(object):
 
     def parse(self, query):
         'Parse a single expression and print the messages.'
-        from mathics.core.parser import parse, SingleLineFeeder
+        from mathics.core.parser import SingleLineFeeder
         return self.parse_feeder(SingleLineFeeder(query))
 
     def parse_evaluate(self, query, timeout=None):

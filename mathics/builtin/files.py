@@ -702,10 +702,7 @@ class Read(Builtin):
                     result.append(tmp)
                 elif typ == Symbol('Expression'):
                     tmp = next(read_record)
-                    try:
-                        expr = evaluation.parse(tmp)
-                    except TranslateError:
-                        expr = None
+                    expr = evaluation.parse(tmp)
                     if expr is None:
                         evaluation.message('Read', 'readt', tmp, Expression(
                             'InputSteam', name, n))

@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
 
-import sys
 import time
 from argparse import ArgumentParser
 import urllib.request
@@ -128,6 +127,7 @@ def benchmark_parse_file(fname):
     print("  '{0}'".format(truncate_line(fname)))
     with urllib.request.urlopen(fname) as f:
         code = f.read().decode('utf-8')
+
     def do_parse():
         feeder = MultiLineFeeder(code)
         while not feeder.empty():
@@ -139,7 +139,8 @@ def benchmark_parser():
     print("PARSING BENCHMARKS:")
     for expression_string in PARSING_BENCHMARKS:
         benchmark_parse(expression_string)
-    benchmark_parse_file('http://www.cs.uiowa.edu/~sriram/Combinatorica/NewCombinatorica.m')
+    benchmark_parse_file(
+        'http://www.cs.uiowa.edu/~sriram/Combinatorica/NewCombinatorica.m')
 
 
 def benchmark_format(expression_string):
