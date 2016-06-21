@@ -432,7 +432,7 @@ class Parser(object):
         if token.tag == 'Span':
             expr2 = Symbol('All')
         else:
-            messages = self.feeder.messages.copy()
+            messages = list(self.feeder.messages)
             try:
                 expr2 = self.parse_exp(q + 1)
             except TranslateError:
@@ -443,13 +443,13 @@ class Parser(object):
         token = self.next()
         if token.tag == 'Span':
             self.consume()
-            messages = self.feeder.messages.copy()
+            messages = list(self.feeder.messages)
             try:
                 expr3 = self.parse_exp(q + 1)
                 return Node('Span', expr1, expr2, expr3)
             except TranslateError:
                 self.backtrack(token.pos)
-                messages = self.feeder.messages.copy()
+                self.feeder.messages = messages
         return Node('Span', expr1, expr2)
 
     def e_RawLeftBracket(self, expr, token, p):
@@ -547,7 +547,7 @@ class Parser(object):
 
         # XXX look for next expr otherwise backtrack
         pos = self.tokeniser.pos
-        messages = self.feeder.messages.copy()
+        messages = list(self.feeder.messages)
         try:
             expr2 = self.parse_exp(q + 1)
         except TranslateError:
