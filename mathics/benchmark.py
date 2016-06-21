@@ -135,6 +135,13 @@ def benchmark_parse_file(fname):
     timeit(do_parse)
 
 
+def benchmark_parser():
+    print("PARSING BENCHMARKS:")
+    for expression_string in PARSING_BENCHMARKS:
+        benchmark_parse(expression_string)
+    benchmark_parse_file('http://www.cs.uiowa.edu/~sriram/Combinatorica/NewCombinatorica.m')
+
+
 def benchmark_format(expression_string):
     print("  '{0}'".format(expression_string))
     expr = parse(definitions, SingleLineFeeder(expression_string))
@@ -147,21 +154,16 @@ def benchmark_expression(expression_string):
     timeit(lambda: expr.evaluate(evaluation))
 
 
-def benchmark_section(section_name):
-    print(section_name)
+def benchmark_section(section_name): print(section_name)
     for benchmark in BENCHMARKS.get(section_name):
         benchmark_expression(benchmark)
     print()
 
 
-def benchmark_all():
+def benchmark_all_sections():
     print("EVALUATION BENCHMARKS:")
     for section_name in sorted(BENCHMARKS.keys()):
         benchmark_section(section_name)
-    print("PARSING BENCHMARKS:")
-    for expression_string in PARSING_BENCHMARKS:
-        benchmark_parse(expression_string)
-    benchmark_parse_file('http://www.cs.uiowa.edu/~sriram/Combinatorica/NewCombinatorica.m')
 
 
 def main():
@@ -181,6 +183,9 @@ def main():
         help="only test SECTION")
 
     parser.add_argument(
+        '-p', '--parser', action='store_true', help="only test parser")
+
+    parser.add_argument(
         '--expression', '-e', dest="expression", metavar="EXPRESSION",
         help="benchmark a valid Mathics expression")
 
@@ -197,8 +202,11 @@ def main():
         benchmark_expression(args.expression)
     elif args.section:
         benchmark_section(args.section)
+    elif args.parser:
+        benchmark_parser()
     else:
-        benchmark_all()
+        benchmark_all_sections()
+        benchmark_parser()
 
 if __name__ == '__main__':
     main()
