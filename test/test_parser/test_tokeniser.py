@@ -108,7 +108,7 @@ class TokeniserTest(unittest.TestCase):
         self.assertEqual(self.tokens('=.'), [Token('Unset', '=.', 0)])
         self.assertEqual(self.tokens('= .'), [Token('Unset', '= .', 0)])
         self.assertEqual(self.tokens('=.5'), [Token('Set', '=', 0), Token('Number', '.5', 1)])
-        self.assertEqual(self.tokens('= .5'), [Token('Set', '=', 0), Token('Number', '.5', 2)])
+        self.assertEqual(self.tokens('= ..'), [Token('Set', '=', 0), Token('Repeated', '..', 2)])
 
     def testIntRepeated(self):
         self.assertEqual(self.tokens('1..'), [Token('Number', '1', 0), Token('Repeated', '..', 1)])
