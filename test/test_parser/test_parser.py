@@ -71,7 +71,7 @@ class AssocTests(ParserTests):
         self.check('(a - b) - c', 'Plus[Plus[a, Times[-1, b]], Times[-1, c]]')
 
     def test_nonassoc(self):
-        self.invalid_error('a \u00b1 b \u00b1 c')
+        self.invalid_error('a ? b ? c')
 
     def test_Function(self):
         self.check('a==b&', 'Function[Equal[a, b]]')

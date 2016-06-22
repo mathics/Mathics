@@ -36,6 +36,8 @@ postfix_ops = {
 
 left_binary_ops = {
     'Divide': 470,
+    'PlusMinus': 310,
+    'MinusPlus': 310,
     'Subtract': 310,
     'LeftTee': 190,
     'DoubleLeftTee': 190,
@@ -53,6 +55,7 @@ right_binary_ops = {
     'Map': 620,
     'MapAll': 620,
     'Power': 590,
+    'Implies': 200,
     'RightTee': 190,
     'DoubleRightTee': 190,
     'SuchThat': 180,
@@ -129,9 +132,6 @@ flat_binary_ops = {
 
 nonassoc_binary_ops = {
     'PatternTest': 680,
-    'PlusMinus': 310,
-    'MinusPlus': 310,
-    'Implies': 200,
 }
 
 ternary_ops = {
