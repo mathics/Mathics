@@ -420,6 +420,10 @@ class Parser(object):
         token = self.next()
         if token.tag == 'Span':
             expr2 = Symbol('All')
+        elif token.tag == 'END' and self.bracket_depth == 0:
+            # So that e.g. 'x = 1 ;;' doesn't wait for newline in the frontend
+            expr2 = Symbol('All')
+            return Node('Span', expr1, expr2)
         else:
             messages = list(self.feeder.messages)
             try:
@@ -530,9 +534,18 @@ class Parser(object):
         if q < p:
             return None
         self.consume()
-        # XXX look for next expr otherwise backtrack
+
+        # XXX this has to come before call to self.next()
         pos = self.tokeniser.pos
         messages = list(self.feeder.messages)
+
+        # So that e.g. 'x = 1;' doesn't wait for newline in the frontend
+        tag = self.next().tag
+        if tag == 'END' and self.bracket_depth == 0:
+            expr2 = Symbol('Null')
+            return Node('CompoundExpression', expr1, expr2).flatten()
+
+        # XXX look for next expr otherwise backtrack
         try:
             expr2 = self.parse_exp(q + 1)
         except TranslateError:
