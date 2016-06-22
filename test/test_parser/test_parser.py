@@ -248,6 +248,10 @@ class GeneralTests(ParserTests):
         self.check('1;;2;;3;;4;;5;;6', 'Times[Span[1, 2, 3], Span[1, 4, 5], Span[1, 6]]')
         self.check('(a;;b);;c', 'Span[Span[a, b], c]')
 
+    @unittest.expectedFailure
+    def testSpanNot(self):
+        self.check('a ;; !b', 'Times[Span[a, All], Not[b]]')
+
     def testBinOp(self):
         self.check('1 <> 2 ', Node('StringJoin', Number('1'), Number('2')))
         self.check('1 <> 2 <> 3', Node('StringJoin', Number('1'), Number('2'), Number('3')))
