@@ -104,6 +104,12 @@ class TokeniserTest(unittest.TestCase):
         self.assertEqual(self.tokens('x = y'), [Token('Symbol', 'x', 0), Token('Set', '=', 2), Token('Symbol', 'y', 4)])
         self.assertEqual(self.tokens('x /: y = z'), [Token('Symbol', 'x', 0), Token('TagSet', '/:', 2), Token('Symbol', 'y', 5), Token('Set', '=', 7), Token('Symbol', 'z', 9)])
 
+    def testUnset(self):
+        self.assertEqual(self.tokens('=.'), [Token('Unset', '=.', 0)])
+        self.assertEqual(self.tokens('= .'), [Token('Unset', '= .', 0)])
+        self.assertEqual(self.tokens('=.5'), [Token('Set', '=', 0), Token('Number', '.5', 1)])
+        self.assertEqual(self.tokens('= .5'), [Token('Set', '=', 0), Token('Number', '.5', 2)])
+
     def testIntRepeated(self):
         self.assertEqual(self.tokens('1..'), [Token('Number', '1', 0), Token('Repeated', '..', 1)])
         self.assertEqual(self.tokens('1. .'), [Token('Number', '1.', 0), Token('Dot', '.', 3)])
