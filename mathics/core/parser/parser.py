@@ -346,7 +346,8 @@ class Parser(object):
     def p_Plus(self, token):
         self.consume()
         q = prefix_ops['Minus']
-        return Node('Plus', self.parse_exp(q))
+        # note flattening here even flattens e.g. + a + b
+        return Node('Plus', self.parse_exp(q)).flatten()
 
     def p_PlusMinus(self, token):
         self.consume()
