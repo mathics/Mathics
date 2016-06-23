@@ -45,26 +45,3 @@ def parse_builtin_rule(string):
     in the input is created in the System` context.
     '''
     return parse(SystemDefinitions(), SingleLineFeeder(string, '<builtin_rules>'))
-
-
-class ExpressionGenerator(object):
-    def __init__(self, definitions, feeder):
-        self.definitions = definitions
-        self.feeder = feeder
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return self.next()
-
-    def next(self):
-        while not self.feeder.empty():
-            result = parse(self.definitions, self.feeder)
-            if result is not None:
-                return result
-        raise StopIteration()
-
-    def code(self):
-        'Code of last expression to be parsed.'
-        return parser.tokeniser.code
