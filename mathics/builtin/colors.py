@@ -160,9 +160,9 @@ def cmyk_to_rgb(c, m, y, *rest):
 @conditional
 def _scale_rgb_to_cmyk(t, k, k_, eps):
     if k_ < eps:
-       return 0
+        return 0
     else:
-       return (1 - t - k) / k_
+        return (1 - t - k) / k_
 
 
 def rgb_to_cmyk(r, g, b, *rest):
