@@ -149,12 +149,12 @@ class Parser(object):
             token = self.next_noend()
             tag = token.tag
             if tag == 'RawComma':
-                # TODO message Syntax:com
+                self.tokeniser.feeder.message('Syntax', 'com')
                 result.append(Symbol('Null'))
                 self.consume()
             elif tag in ('RawRightBrace', 'RawRightBracket'):
                 if result:
-                    # TODO message Syntax:com
+                    self.tokeniser.feeder.message('Syntax', 'com')
                     result.append(Symbol('Null'))
                 break
             else:

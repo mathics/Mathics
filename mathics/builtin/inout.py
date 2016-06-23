@@ -1242,6 +1242,18 @@ class Syntax(Builtin):
 
     #> a ~ b + c
      : "a ~ b " cannot be followed by "+ c" (line 1 of "<test>").
+
+    #> {1,}
+     : Warning: comma encountered with no adjacent expression. The expression will be treated as Null (line 1 of "<test>").
+     = {1, Null}
+    #> {, 1}
+     : Warning: comma encountered with no adjacent expression. The expression will be treated as Null (line 1 of "<test>").
+     = {Null, 1}
+    #> {,,}
+     : Warning: comma encountered with no adjacent expression. The expression will be treated as Null (line 1 of "<test>").
+     : Warning: comma encountered with no adjacent expression. The expression will be treated as Null (line 1 of "<test>").
+     : Warning: comma encountered with no adjacent expression. The expression will be treated as Null (line 1 of "<test>").
+     = {Null, Null, Null}
     """
 
     # Extension: MMA does not provide lineno and filename in its error messages
@@ -1256,6 +1268,8 @@ class Syntax(Builtin):
         'bktmch': '`1` must be followed by `2`, not `3` (line `4` of `5`).',
         'sntue': 'Unexpected end of file; probably unfinished expression (line `4` of `5`).',
         'sntufn': 'Unknown unicode longname `1` (line `4` of `5`).',
+        'com': 'Warning: comma encountered with no adjacent expression. The expression will be treated as Null (line `4` of `5`).',
+
     }
 
 
