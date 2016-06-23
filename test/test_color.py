@@ -10,7 +10,7 @@ from random import random
 from six.moves import range
 
 import mathics.builtin.colors as colors
-from mathics.builtin.numpy_utils import array, vectorized
+from mathics.builtin.numpy_utils import array, stacked, vectorize
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 from mathics.core.expression import Expression
@@ -264,7 +264,7 @@ class ColorTest(unittest.TestCase):
 
         for name, convert in colors.conversions.items():
             if name.find('CMYK') < 0:
-                self._checkImageConversion(4, convert)
+                self._checkImageConversion(4, lambda p: vectorize(p, 1, lambda q: stacked(convert, q)))
 
     def _checkConversion(self, from_space, from_components, to_space, to_components):
         places = 12
@@ -282,10 +282,10 @@ class ColorTest(unittest.TestCase):
 
     def _checkImageConversion(self, size, convert):
         pixels = [[random(), random(), random()] for _ in range(size * size)]
-        refs = [vectorized(convert, p, 1) for p in pixels]
+        refs = [convert(p) for p in pixels]
 
         image = [[pixels[x * size + y] for y in range(size)] for x in range(size)]
-        image = vectorized(convert, array(image), 1)
+        image = convert(array(image))
 
         for x in range(size):
             for y in range(size):

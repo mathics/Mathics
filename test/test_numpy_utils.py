@@ -6,8 +6,25 @@ from __future__ import unicode_literals
 
 import unittest
 
-from mathics.builtin.numpy_utils import stack, unstack, concat, conditional, compose, clip, array, choose
-from mathics.builtin.numpy_utils import vectorized, minimum, maximum, dot_t, mod, floor, sqrt, allclose
+from mathics.builtin.numpy_utils import stack, unstack, concat, vectorize, conditional, clip, array, choose
+from mathics.builtin.numpy_utils import minimum, maximum, dot_t, mod, floor, sqrt, allclose
+
+
+@conditional
+def _test_simple_conditional(t):
+    if t > 0.5:
+        return t + 1.
+    else:
+        return -t
+
+@conditional
+def _test_complex_conditional(t):
+    if t > 10:
+        return t * 10 + 1
+    elif t > 3:
+        return t * 10
+    elif t <= 3:
+        return -1
 
 
 class Numpy(unittest.TestCase):
@@ -53,29 +70,6 @@ class Numpy(unittest.TestCase):
         b = [[[3], [6]], [[9], [12]]]
         c = [[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]]
         self.assertEqualArrays(concat(a, b), c)
-
-    def testConditional(self):
-        # conditional operates on each element independently.
-        a = array([[[0.1, 0.6], [1.8, 0.4]], [[-0.1, -0.8], [1.1, 0.5]]])
-        a = conditional(a, lambda t: t > 0.5,  # if
-                        lambda t: t + 1.,  # true
-                        lambda t: -t)  # false
-        self.assertEqualArrays(a, [[[-0.1, 1.6], [2.8, -0.4]], [[0.1, 0.8], [2.1, -0.5]]])
-
-    def testCompose(self):
-        a = array([[[1, 2], [4, 5]], [[7, 8], [10, 11]]])
-
-        def f(a):
-            return compose(
-                a > 10,
-                lambda s: s(a * 10 + 1),
-                a > 3,
-                lambda s: s(a * 10),
-                a < 3,
-                lambda s: -1)
-
-        a = vectorized(f, a, 0)
-        self.assertEqualArrays(a, [[[-1, -1], [40, 50]], [[70, 80], [100, 111]]])
 
     def testChooseSimple(self):
         # select a single value from a list of values.
@@ -161,6 +155,16 @@ class Numpy(unittest.TestCase):
 
     def testSqrt(self):
         self.assertEqualArrays(sqrt([[9, 100], [25, 16]]), [[3, 10], [5, 4]])
+
+    def testSimpleConditional(self):
+        a = array([[[0.1, 0.6], [1.8, 0.4]], [[-0.1, -0.8], [1.1, 0.5]]])
+        a = vectorize(a, 0, _test_simple_conditional)
+        self.assertEqualArrays(a, [[[-0.1, 1.6], [2.8, -0.4]], [[0.1, 0.8], [2.1, -0.5]]])
+
+    def testConditionalComplex(self):
+        a = array([[[1, 2], [4, 5]], [[7, 8], [10, 11]]])
+        a = vectorize(a, 0, _test_complex_conditional)
+        self.assertEqualArrays(a, [[[-1, -1], [40, 50]], [[70, 80], [100, 111]]])
 
     def assertEqualArrays(self, a, b):
         self.assertEqual(allclose(a, b), True)

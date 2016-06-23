@@ -4,14 +4,43 @@
 from itertools import chain
 from math import pi
 
-from mathics.builtin.numpy_utils import sqrt, floor, mod, cos, sin, arctan2, minimum, maximum, dot_t, errstate
-from mathics.builtin.numpy_utils import vectorized, stack, unstack, concat, array, clip, conditional, compose, choose
-from mathics.builtin.numpy_utils import constant
+from mathics.builtin.numpy_utils import sqrt, floor, mod, cos, sin, arctan2, minimum, maximum, dot_t
+from mathics.builtin.numpy_utils import stack, unstack, array, clip, conditional, choose, stacked
+
+# in the long run, we might want to implement these functions using Compile[]. until Compile[] is available for all
+# Mathics configurations, this implementation works on Python and PyPy and with or without numpy.
+
+
+def _clip1(t):
+    return clip(t, 0, 1)
+
+
+class _PerfectReflectingDiffuser:
+    def __init__(self, *x):  # accepts (x1, y2) or (x, y, z)
+        assert 2 <= len(x) <= 3
+
+        if len(x) == 3:
+            self.xyz = x
+        else:
+            x1, x2 = x
+            scale = 1.0 / x2
+            self.xyz = (x1 * scale, 1.0, (1.0 - x1 - x2) * scale)
+
+        q_r = self.xyz[0] + 15. * self.xyz[1] + 3. * self.xyz[2]
+        self.u_r = 4. * self.xyz[0] / q_r
+        self.v_r = 9. * self.xyz[1] / q_r
+
+
+# MMA's reference white is a D50, 2 degrees diffuser; the standard values for this configuration
+# can be found at https://en.wikipedia.org/wiki/Standard_illuminant, MMA seems to use slightly
+# different values though.
+
+_ref_white = _PerfectReflectingDiffuser(0.96422, 1., 0.82521)
 
 # use rRGB D50 conversion like MMA. see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
 # MMA seems to round matrix values to six significant digits. we do the same.
 
-xyz_from_rgb = [
+_xyz_from_rgb = [
     [0.436075, 0.385065, 0.14308],
     [0.222504, 0.716879, 0.0606169],
     [0.0139322, 0.0971045, 0.714173]
@@ -19,93 +48,83 @@ xyz_from_rgb = [
 
 # for matrix, see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
 # MMA seems to round matrix values to six significant digits. we do the same.
-rgb_from_xyz = [
+
+_rgb_from_xyz = [
     [3.13386, -1.61687, -0.490615],
     [-0.978768, 1.91614, 0.033454],
     [0.0719453, -0.228991, 1.40524]
 ]
 
 
-class _PerfectReflectingDiffuser:
-    def __init__(self, x1, x2):
-        # MMA seems to use the following constants, and not the
-        # values derived via calculation (commented out below)
-        self.xyz = [0.96422, 1., 0.82521]
-        # scale = 1.0 / x2
-        # self.xyz = (x1 * scale, 1.0, (1.0 - x1 - x2) * scale)
-
-        q_r = self.xyz[0] + 15. * self.xyz[1] + 3. * self.xyz[2]
-        self.u_r = 4. * self.xyz[0] / q_r
-        self.v_r = 9. * self.xyz[1] / q_r
-
-
-# MMA's reference white is a # D50, 2 degrees diffuser; for the
-# values, see https://en.wikipedia.org/wiki/Standard_illuminant
-
-_ref_white = _PerfectReflectingDiffuser(0.34567, 0.35850)
-
-
-def rgb_to_grayscale(pixels):
+def rgb_to_grayscale(r, g, b, *rest):
     # see https://en.wikipedia.org/wiki/Grayscale
-    components = unstack(pixels)
-    r, g, b = components[:3]
     y = 0.299 * r + 0.587 * g + 0.114 * b  # Y of Y'UV
-    return stack(y, *components[3:])
+    return (y,) + rest
 
 
-def grayscale_to_rgb(pixels):
-    components = unstack(pixels)
-    g = components[0]
-    return stack(g, g, g, *components[1:])
+def grayscale_to_rgb(g, *rest):
+    return (g, g, g) + rest
 
 
-def rgb_to_xyz(pixels):
-    components = unstack(pixels)
-    rgb = components[:3]
-
-    x, y, z = conditional(rgb, lambda t: t > 0.04045,
-                          lambda t: ((t + 0.055) / 1.055) ** 2.4,
-                          lambda t: t / 12.92)
-    xyz = dot_t(stack(x, y, z), xyz_from_rgb)
-
-    return clip(concat(xyz, components[3:]), 0, 1)
+@conditional
+def _inverse_compand_srgb(x):
+    if x > 0.04045:
+        return ((x + 0.055) / 1.055) ** 2.4
+    else:
+        return x / 12.92
 
 
-def rgb_to_hsb(pixels):
+def rgb_to_xyz(r, g, b, *rest):
+    r, g, b = map(_inverse_compand_srgb, (r, g, b))
+    x, y, z = unstack(_clip1(dot_t(stack(r, g, b), _xyz_from_rgb)))
+    return map(_clip1, (x, y, z) + rest)
+
+
+@conditional
+def _compute_hsb_s(m1, c, eps):
+    if m1 < eps:
+        return 0
+    else:
+        return c / m1
+
+
+@conditional
+def _compute_hsb_h(m1, c, eps, r, g, b):
+    if c < eps:
+        return 0
+    elif m1 == r:
+        return mod(((g - b) / c), 6.)
+    elif m1 == g:
+        return (b - r) / c + 2.
+    elif m1 == b:
+        return (r - g) / c + 4.
+
+
+@conditional
+def _wrap_hsb_h(h):
+    if h < 0.:
+        return h + 1.
+    else:
+        return h
+
+
+def rgb_to_hsb(r, g, b, *rest):
     # see https://en.wikipedia.org/wiki/HSB_color_space. HSB is also known as HSV.
-    components = unstack(pixels)
-    r, g, b = clip(components[:3], 0, 1)
+    r, g, b = _clip1((r, g, b))
 
     m1 = maximum(r, g, b)
     m0 = minimum(r, g, b)
     c = m1 - m0
+    eps = 1e-15
 
-    with errstate(divide='ignore', invalid='ignore'):
-        eps = 1e-15
+    h = _compute_hsb_h(m1, c, eps, r, g, b)
+    h = _wrap_hsb_h(h * (60. / 360.))
+    s = _compute_hsb_s(m1, c, eps)
 
-        h = compose(
-            c < eps,
-            lambda mask: 0,
-            m1 == r,
-            lambda mask: mod(((mask(g) - mask(b)) / mask(c)), 6.),
-            m1 == g,
-            lambda mask: (mask(b) - mask(r)) / mask(c) + 2.,
-            m1 == b,
-            lambda mask: (mask(r) - mask(g)) / mask(c) + 4.)
-
-        s = compose(m1 < eps, lambda mask: 0, m1 >= eps, lambda mask: mask(c / m1))
-
-    h = conditional(h * (60. / 360.), lambda t: t < 0.,
-                    lambda t: t + 1.,
-                    lambda t: t)
-
-    return stack(h, s, m1, *components[3:])
+    return (h, s, m1) + rest
 
 
-def hsb_to_rgb(pixels):
-    components = unstack(pixels)
-    h, s, v = components[:3]
-
+def hsb_to_rgb(h, s, v, *rest):
     i = floor(6 * h)
     f = 6 * h - i
     i = mod(i, 6)
@@ -121,79 +140,88 @@ def hsb_to_rgb(pixels):
         (t, p, v),
         (v, p, q))
 
-    return stack(r, g, b, *components[3:])
+    return (r, g, b) + rest
 
 
-def cmyk_to_rgb(pixels):
-    c = unstack(pixels)
-
-    if len(c) >= 4:
-        k = c[3]
+def cmyk_to_rgb(c, m, y, *rest):
+    if rest:
+        k = rest[0]
+        rest = rest[1:]
     else:
         k = 0
     k_ = 1 - k
 
-    cmy = [(x * k_ + k) for x in c[:3]]
+    cmy = [(x * k_ + k) for x in (c, m, y)]
     r, g, b = [1 - x for x in cmy]
 
-    return concat(stack(r, g, b), c[4:])
+    return (r, g, b) + rest
 
 
-def rgb_to_cmyk(pixels):
-    components = unstack(pixels)
+@conditional
+def _scale_rgb_to_cmyk(t, k, k_, eps):
+    if k_ < eps:
+       return 0
+    else:
+       return (1 - t - k) / k_
 
-    r, g, b = components[:3]
+
+def rgb_to_cmyk(r, g, b, *rest):
     k_ = maximum(r, g, b)
     k = 1 - k_
-
-    eps = 1e-15
-    with errstate(divide='ignore', invalid='ignore'):
-        c, m, y = [compose(k_ < eps, lambda s: s(constant(0, a)),
-                           k_ >= eps, lambda s: (1 - s(a) - s(k)) / s(k_)) for a in (r, g, b)]
-
-    return stack(c, m, y, k, *components[3:])
+    c, m, y = map(lambda t: _scale_rgb_to_cmyk(t, k, k_, 1e-15), (r, g, b))
+    return (c, m, y, k) + rest
 
 
-def xyz_to_rgb(pixels):
-    components = unstack(pixels)
-    x, y, z = clip(components[:3], 0, 1)
-    xyz = dot_t(stack(x, y, z), rgb_from_xyz)
-
-    rgb = conditional(xyz, lambda t: t > 0.0031308,
-                      lambda t: 1.055 * (t ** (1. / 2.4)) - 0.055,
-                      lambda t: t * 12.92)
-
-    return concat(clip(rgb, 0, 1), components[3:])
+@conditional
+def _compand_srgb(t):
+    if t > 0.0031308:
+        return 1.055 * (t ** (1. / 2.4)) - 0.055
+    else:
+        return t * 12.92
 
 
-def xyz_to_lab(pixels):
+def xyz_to_rgb(x, y, z, *rest):
+    x, y, z = map(_clip1, (x, y, z))
+    r, g, b = unstack(dot_t(stack(x, y, z), _rgb_from_xyz))
+    r, g, b = map(_clip1, (r, g, b))
+    r, g, b = map(_compand_srgb, (r, g, b))
+    return map(_clip1, (r, g, b) + rest)
+
+
+@conditional
+def _scale_xyz_to_lab(t):
+    if t > 0.008856:
+        return t ** 0.33333333  # MMA specific
+    else:
+        return (903.3 * t + 16.) / 116.
+
+
+def xyz_to_lab(x, y, z, *rest):
     # see http://www.brucelindbloom.com/Eqn_XYZ_to_Lab.html
-    components = unstack(pixels)
-    xyz = components[:3]
-
-    xyz = array([u / v for u, v in zip(xyz, _ref_white.xyz)])
-    xyz = conditional(xyz, lambda c: c > 0.008856,
-                      lambda c: c ** 0.33333333,
-                      lambda c: (903.3 * c + 16.) / 116.)
-    x, y, z = xyz
+    xyz = array([u / v for u, v in zip([x, y, z], _ref_white.xyz)])
+    x, y, z = map(_scale_xyz_to_lab, xyz)
 
     # MMA scales by 1/100
-    return stack((1.16 * y) - 0.16, 5. * (x - y), 2. * (y - z), *components[3:])
+    return ((1.16 * y) - 0.16, 5. * (x - y), 2. * (y - z)) + rest
 
 
-def xyz_to_luv(pixels):
+@conditional
+def _xyz_to_luv_scale_y(y):
+    if y > 0.008856:
+        return 116. * (y ** (1. / 3.)) - 16
+    else:
+        return 903.3 * y
+
+
+def xyz_to_luv(x, y, z, *rest):
     # see http://www.brucelindbloom.com/Eqn_XYZ_to_Luv.html
     # and https://en.wikipedia.org/wiki/CIELUV
-
-    components = unstack(pixels)
-    xyz = clip(components[:3], 0, 1)
+    xyz = _clip1((x, y, z))
 
     x_orig, y_orig, z_orig = xyz
     y = y_orig / _ref_white.xyz[1]
 
-    lum = conditional(y, lambda t: t > 0.008856,
-                      lambda t: 116. * (t ** (1. / 3.)) - 16,
-                      lambda t: 903.3 * t)
+    lum = _xyz_to_luv_scale_y(y)
 
     q_0 = x_orig + 15. * y_orig + 3. * z_orig
     u_0 = 4. * x_orig / q_0
@@ -203,63 +231,73 @@ def xyz_to_luv(pixels):
     u = 13. * lum * (u_0 - _ref_white.u_r)
     v = 13. * lum * (v_0 - _ref_white.v_r)
 
-    return stack(lum, u, v, *components[3:])
+    return (lum, u, v) + rest
 
 
-def luv_to_xyz(pixels):
-    components = unstack(pixels)
-    cie_l, cie_u, cie_v = components[:3]
+@conditional
+def _scale_lab_to_xyz(t):
+    if t > 0.2068930:  # 0.008856 ** (1/3)
+        return t ** 3
+    else:
+        return (t - 16. / 116.) / 7.787
 
+
+@conditional
+def _luv_to_xyz_clip_zero(cie_l_is_zero, t):
+    if cie_l_is_zero:
+        return 0
+    else:
+        return t
+
+
+def luv_to_xyz(cie_l, cie_u, cie_v, *rest):
     # see http://www.easyrgb.com/index.php?X=MATH&H=17#text17
     u = cie_u / (13. * cie_l) + _ref_white.u_r
     v = cie_v / (13. * cie_l) + _ref_white.v_r
 
     cie_l_100 = cie_l * 100.0  # MMA specific
-    y = conditional((cie_l_100 + 16.) / 116., lambda t: t > 0.2068930,  # 0.008856 ** (1/3)
-                    lambda t: t ** 3,
-                    lambda t: (t - 16. / 116.) / 7.787)
+    y = (cie_l_100 + 16.) / 116.
+    y = _scale_lab_to_xyz(y)
 
     x = -(9 * y * u) / ((u - 4) * v - u * v)
     z = (9 * y - (15 * v * y) - (v * x)) / (3 * v)
 
-    x, y, z = [compose(cie_l < 0.078, lambda s: s(constant(0, a)),
-                       cie_l >= 0.078, lambda s: s(a)) for a in (x, y, z)]
-    return clip(stack(x, y, z, *components[3:]), 0, 1)
+    cie_l_is_zero = cie_l < 0.078
+    x, y, z = map(lambda t: _luv_to_xyz_clip_zero(cie_l_is_zero, t), (x, y, z))
+    x, y, z = clip([x, y, z], 0, 1)
+
+    return (x, y, z) + rest
 
 
-def lch_to_lab(pixels):
-    components = unstack(pixels)
-    l, c, h = components[:3]
+def lch_to_lab(l, c, h, *rest):
     h *= 2 * pi  # MMA specific
-    return stack(l, c * cos(h), c * sin(h), *components[3:])
+    return (l, c * cos(h), c * sin(h)) + rest
 
 
-def lab_to_lch(pixels):
-    components = unstack(pixels)
-    l, a, b = components[:3]
-    h = conditional(arctan2(b, a), lambda t: t < 0.,
-                    lambda t: t + 2. * pi, lambda t: t)
+@conditional
+def _wrap_lch_h(h, pi2):
+    if h < 0.:
+        return h + pi2
+    else:
+        return h
+
+
+def lab_to_lch(l, a, b, *rest):
+    h = _wrap_lch_h(arctan2(b, a), 2. * pi)
     h /= 2. * pi  # MMA specific
-    return stack(l, sqrt(a * a + b * b), h, *components[3:])
+    return (l, sqrt(a * a + b * b), h) + rest
 
 
-def lab_to_xyz(pixels):
-    components = unstack(pixels)
-    l, a, b = components[:3]
-
+def lab_to_xyz(l, a, b, *rest):
     # see http://www.easyrgb.com/index.php?X=MATH&H=08#text8
     f_y = (l * 100. + 16.) / 116.
+    x, y, z = a / 5. + f_y, f_y, f_y - b / 2.
+    x, y, z = map(_scale_lab_to_xyz, (x, y, z))
 
-    xyz = stack(a / 5. + f_y, f_y, f_y - b / 2.)
-
-    xyz = conditional(xyz, lambda t: t > 0.2068930,  # 0.008856 ** (1/3)
-                      lambda t: t ** 3,
-                      lambda t: (t - 16. / 116.) / 7.787)
-
-    x, y, z = unstack(xyz)
     x, y, z = [u * v for u, v in zip((x, y, z), _ref_white.xyz)]
+    x, y, z = clip([x, y, z], 0, 1)
 
-    return clip(stack(x, y, z, *components[3:]), 0, 1)
+    return (x, y, z) + rest
 
 
 _flows = {  # see http://www.brucelindbloom.com/Math.html
@@ -318,6 +356,6 @@ def convert(components, src, dst):
         func = conversions.get('%s>%s' % (s, d))
         if not func:
             return None
-        components = vectorized(func, components, 1)
+        components = stacked(func, components)
 
     return components
