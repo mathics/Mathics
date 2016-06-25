@@ -86,6 +86,14 @@ class SympyConvert(unittest.TestCase):
             mathics.Expression('Sin', mathics.Symbol('Global`x')),
             sympy.sin(sympy.Symbol('_Mathics_User_Global`x')))
 
+    def testConstant(self):
+        self.compare(
+            mathics.Symbol('System`E'),
+            sympy.E)
+        self.compare(
+            mathics.Symbol('System`Pi'),
+            sympy.pi)
+
 
 class PythonConvert(unittest.TestCase):
     def compare(self, mathics_expr, python_expr):
