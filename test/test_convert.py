@@ -94,6 +94,19 @@ class SympyConvert(unittest.TestCase):
             mathics.Symbol('System`Pi'),
             sympy.pi)
 
+    def testGamma(self):
+        self.compare(
+            mathics.Expression('Gamma', mathics.Symbol('Global`z')),
+            sympy.gamma(sympy.Symbol('_Mathics_User_Global`z')))
+        self.compare(
+            mathics.Expression(
+                'Gamma',
+                mathics.Symbol('Global`z'),
+                mathics.Symbol('Global`x')),
+            sympy.uppergamma(
+                sympy.Symbol('_Mathics_User_Global`z'),
+                sympy.Symbol('_Mathics_User_Global`x')))
+
 
 class PythonConvert(unittest.TestCase):
     def compare(self, mathics_expr, python_expr):
