@@ -1527,6 +1527,7 @@ class Gamma(_MPMathFunction):
 
     rules = {
         'Gamma[z_, x0_, x1_]': 'Gamma[z, x0] - Gamma[z, x1]',
+        'Gamma[1 + z_]': 'z!',
     }
 
     def get_sympy_names(self):
