@@ -1499,8 +1499,21 @@ class Gamma(_MPMathFunction):
         <dd>is equivalent to 'Gamma[$z$, $x0$] - Gamma[$z$, $x1$]'.
     </dl>
 
+    'Gamma[$z$]' is equivalent to '($z$ - 1)!':
+    >> Simplify[Gamma[z] - (z - 1)!]
+     = 0
+
+    Exact arguments:
     >> Gamma[8]
      = 5040
+    >> Gamma[1/2]
+     = Sqrt[Pi]
+    >> Gamma[1, x]
+     = E ^ (-x)
+
+    Numeric arguments:
+    >> Gamma[1.*^20]
+     = 1.93284951431009771*^1956570551809674817225
     >> Gamma[1. + I]
      = 0.498015668118356043 - 0.154949828301810685 I
 
