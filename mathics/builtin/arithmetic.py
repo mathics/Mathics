@@ -41,12 +41,15 @@ class _MPMathFunction(SympyFunction):
         mpmath_function = getattr(mpmath, self.mpmath_name)
         return mpmath_function(*args)
 
+    def check_nargs(self, nargs):
+        return nargs == self.nargs
+
     def apply(self, z, evaluation):
         '%(name)s[z__]'
 
         args = z.get_sequence()
 
-        if len(args) != self.nargs:
+        if not self.check_nargs(len(args)):
             return
 
         # if no arguments are inexact attempt to use sympy
@@ -1507,6 +1510,7 @@ class Gamma(_MPMathFunction):
     """
 
     mpmath_name = 'gamma'
+    nargs = (1, 2)
 
     rules = {
         'Gamma[z_, x0_, x1_]': 'Gamma[z, x0] - Gamma[z, x1]',
@@ -1514,6 +1518,9 @@ class Gamma(_MPMathFunction):
 
     def get_sympy_names(self):
         return ['gamma', 'uppergamma']
+
+    def check_nargs(self, nargs):
+        return self.nargs[0] <= nargs <= self.nargs[1]
 
     def to_sympy(self, expr, **kwargs):
         try:
