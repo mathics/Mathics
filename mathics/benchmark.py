@@ -5,12 +5,12 @@ from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
 
-import sys
 import time
 from argparse import ArgumentParser
+import urllib.request
 
 import mathics
-from mathics.core.parser import parse
+from mathics.core.parser import parse, MultiLineFeeder, SingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 
@@ -53,15 +53,17 @@ BENCHMARKS = {
         'RandomInteger[{0,10}, {10,10}] + RandomInteger[{0,10}, {10,10}]'],
 }
 
+DEPTH = 300
+
 PARSING_BENCHMARKS = [
-    "+".join(map(str, range(1, 1000))),
-    ";".join(map(str, range(1, 1000))),
-    "/".join(map(str, range(1, 1000))),
-    "^".join(map(str, range(1, 1000))),
-    "! " * 1000 + 'expr',
-    "!" * 1000 + 'expr',
-    'expr' + "& " * 1000,
-    "Sin[" * 1000 + '0.5' + "]" * 1000,
+    "+".join(map(str, range(1, DEPTH))),
+    ";".join(map(str, range(1, DEPTH))),
+    "/".join(map(str, range(1, DEPTH))),
+    "^".join(map(str, range(1, DEPTH))),
+    "! " * DEPTH + 'expr',
+    "!" * DEPTH + 'expr',
+    'expr' + "& " * DEPTH,
+    "Sin[" * DEPTH + '0.5' + "]" * DEPTH,
 ]
 
 definitions = Definitions(add_builtin=True)
@@ -118,18 +120,38 @@ def truncate_line(string):
 
 def benchmark_parse(expression_string):
     print("  '{0}'".format(truncate_line(expression_string)))
-    timeit(lambda: parse(expression_string, definitions))
+    timeit(lambda: parse(definitions, SingleLineFeeder(expression_string)))
+
+
+def benchmark_parse_file(fname):
+    print("  '{0}'".format(truncate_line(fname)))
+    with urllib.request.urlopen(fname) as f:
+        code = f.read().decode('utf-8')
+
+    def do_parse():
+        feeder = MultiLineFeeder(code)
+        while not feeder.empty():
+            parse(definitions, feeder)
+    timeit(do_parse)
+
+
+def benchmark_parser():
+    print("PARSING BENCHMARKS:")
+    for expression_string in PARSING_BENCHMARKS:
+        benchmark_parse(expression_string)
+    benchmark_parse_file(
+        'http://www.cs.uiowa.edu/~sriram/Combinatorica/NewCombinatorica.m')
 
 
 def benchmark_format(expression_string):
     print("  '{0}'".format(expression_string))
-    expr = parse(expression_string, definitions)
+    expr = parse(definitions, SingleLineFeeder(expression_string))
     timeit(lambda: expr.default_format(evaluation, "FullForm"))
 
 
 def benchmark_expression(expression_string):
     print("  '{0}'".format(expression_string))
-    expr = parse(expression_string, definitions)
+    expr = parse(definitions, SingleLineFeeder(expression_string))
     timeit(lambda: expr.evaluate(evaluation))
 
 
@@ -140,13 +162,10 @@ def benchmark_section(section_name):
     print()
 
 
-def benchmark_all():
+def benchmark_all_sections():
     print("EVALUATION BENCHMARKS:")
     for section_name in sorted(BENCHMARKS.keys()):
         benchmark_section(section_name)
-    print("PARSING BENCHMARKS:")
-    for expression_string in PARSING_BENCHMARKS:
-        benchmark_parse(expression_string)
 
 
 def main():
@@ -166,6 +185,9 @@ def main():
         help="only test SECTION")
 
     parser.add_argument(
+        '-p', '--parser', action='store_true', help="only test parser")
+
+    parser.add_argument(
         '--expression', '-e', dest="expression", metavar="EXPRESSION",
         help="benchmark a valid Mathics expression")
 
@@ -182,8 +204,11 @@ def main():
         benchmark_expression(args.expression)
     elif args.section:
         benchmark_section(args.section)
+    elif args.parser:
+        benchmark_parser()
     else:
-        benchmark_all()
+        benchmark_all_sections()
+        benchmark_parser()
 
 if __name__ == '__main__':
     main()

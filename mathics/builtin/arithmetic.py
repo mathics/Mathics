@@ -1329,9 +1329,9 @@ class Real_(Builtin):
 
     ## Don't accept *^ with spaces
     #> 1.5 *^10
-     : Invalid syntax at or near token ^.
+     : "1.5 *" cannot be followed by "^10" (line 1 of "<test>").
     #> 1.5*^ 10
-     : Invalid syntax at or near token ^.
+     : "1.5*" cannot be followed by "^ 10" (line 1 of "<test>").
     """
 
     name = 'Real'
@@ -1595,7 +1595,7 @@ class Sum(_IterationFunction, SympyFunction):
      = Pi ^ 2 / 6
 
     #> a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]]
-     : Invalid syntax at or near token ].
+     : "a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]" cannot be followed by "]" (line 1 of "<test>").
     """
 
     # Do not throw warning message for symbolic iteration bounds

@@ -83,6 +83,8 @@ def error_500_view(request):
 
 
 def query(request):
+    from mathics.core.parser import MultiLineFeeder
+
     input = request.POST.get('query', '')
     if settings.DEBUG and not input:
         input = request.GET.get('query', '')
@@ -101,14 +103,24 @@ def query(request):
     user_definitions = request.session.get('definitions')
     definitions.set_user_definitions(user_definitions)
     evaluation = Evaluation(definitions, format='xml')
+    feeder = MultiLineFeeder(input, '<notebook>')
+    results = []
     try:
-        results = evaluation.parse_evaluate(input, timeout=settings.TIMEOUT)
+        while not feeder.empty():
+            expr = evaluation.parse_feeder(feeder)
+            if expr is None:
+                results.append(Result(evaluation.out, None, None))  # syntax errors
+                evaluation.out = []
+                continue
+            result = evaluation.evaluate(expr, timeout=settings.TIMEOUT)
+            if result is not None:
+                results.append(result)
     except Exception as exc:
         if settings.DEBUG and settings.DISPLAY_EXCEPTIONS:
             info = traceback.format_exception(*sys.exc_info())
             info = '\n'.join(info)
             msg = 'Exception raised: %s\n\n%s' % (exc, info)
-            results = [Result([Message('System', 'exception', msg)], None, None)]
+            results.append(Result([Message('System', 'exception', msg)], None, None))
         else:
             raise
     result = {

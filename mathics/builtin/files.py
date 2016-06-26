@@ -614,8 +614,6 @@ class Read(Builtin):
     def apply(self, channel, types, evaluation, options):
         'Read[channel_, types_, OptionsPattern[Read]]'
 
-        from mathics.core.parser import parse, TranslateError
-
         if channel.has_form('OutputStream', 2):
             evaluation.message('General', 'openw', channel)
             return
@@ -704,10 +702,7 @@ class Read(Builtin):
                     result.append(tmp)
                 elif typ == Symbol('Expression'):
                     tmp = next(read_record)
-                    try:
-                        expr = parse(tmp, evaluation.definitions)
-                    except TranslateError:
-                        expr = None
+                    expr = evaluation.parse(tmp)
                     if expr is None:
                         evaluation.message('Read', 'readt', tmp, Expression(
                             'InputSteam', name, n))
@@ -2095,24 +2090,27 @@ class Get(PrefixOperator):
 
     def apply(self, path, evaluation):
         'Get[path_String]'
-        from mathics.core.parser import parse_lines, TranslateError
+        from mathics.core.parser import parse, TranslateError, FileLineFeeder
 
+        result = None
         pypath = path.get_string_value()
         try:
             with mathics_open(pypath, 'r') as f:
-                code = f.read()
+                feeder = FileLineFeeder(f)
+                while not feeder.empty():
+                    try:
+                        query = parse(evaluation.definitions, feeder)
+                    except TranslateError:
+                        return Symbol('Null')
+                    finally:
+                        feeder.send_messages(evaluation)
+                    if query is None:   # blank line / comment
+                        continue
+                    result = query.evaluate(evaluation)
         except IOError:
             evaluation.message('General', 'noopen', path)
             return Symbol('$Failed')
-
-        expr_gen = parse_lines(code, evaluation.definitions)
-        try:
-            for expr in expr_gen:
-                expr = expr.evaluate(evaluation)
-        except TranslateError as exc:
-            evaluation.message('Syntax', exc.msg, *exc.args)
-            return Symbol('Null')
-        return expr   # last expression
+        return result
 
     def apply_default(self, filename, evaluation):
         'Get[filename_]'
@@ -3600,12 +3598,11 @@ class Uncompress(Builtin):
 
     def apply(self, string, evaluation):
         'Uncompress[string_String]'
-        from mathics.core.parser import parse
         string = string.get_string_value().encode('utf-8')
         string = base64.decodestring(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode('utf-8')
-        return parse(tmp, evaluation.definitions)
+        return evaluation.parse(tmp)
 
 
 class FileByteCount(Builtin):

@@ -940,7 +940,7 @@ class ToExpression(Builtin):
      = log x
 
     #> ToExpression["1+"]
-     : Incomplete expression; more input is needed .
+     : Incomplete expression; more input is needed (line 1 of "").
      = $Failed
 
     #> ToExpression[]
@@ -965,7 +965,6 @@ class ToExpression(Builtin):
                       'Valid interpretation formats include InputForm '
                       'and any member of $BoxForms.'),
         'notstr': 'The format type `1` is valid only for string input.',
-        'sntxi': 'Incomplete expression; more input is needed `1`.',
     }
 
     def apply(self, seq, evaluation):
@@ -988,11 +987,8 @@ class ToExpression(Builtin):
         # Apply the differnet forms
         if form == Symbol('InputForm'):
             if isinstance(inp, String):
-                from mathics.core.parser import parse, TranslateError
-                try:
-                    result = parse(inp.get_string_value(), evaluation.definitions)
-                except TranslateError:
-                    evaluation.message('ToExpression', 'sntxi', String(''))
+                result = evaluation.parse(inp.get_string_value())
+                if result is None:
                     return Symbol('$Failed')
             else:
                 result = inp

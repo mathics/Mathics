@@ -46,9 +46,9 @@ class CompoundExpression(BinaryOperator):
     #> FullForm[Hold[a ; ;]]
      = Hold[CompoundExpression[a, Null, Null]]
     #> FullForm[Hold[; a]]
-     : Invalid syntax at or near token ;.
+     : "FullForm[Hold[" cannot be followed by "; a]]" (line 1 of "<test>").
     #> FullForm[Hold[; a ;]]
-     : Invalid syntax at or near token ;.
+     : "FullForm[Hold[" cannot be followed by "; a ;]]" (line 1 of "<test>").
 
     ## Issue331
     #> CompoundExpression[x, y, z]

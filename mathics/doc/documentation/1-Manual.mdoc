@@ -727,7 +727,7 @@ For instance, you can override 'MakeBoxes' to format lists in a different way:
  = \left[1 2 3\right]
 However, this will not be accepted as input to \Mathics anymore:
 >> [1 2 3]
- : Invalid syntax at or near token [.
+ : Expression cannot begin with "[1 2 3]" (line 1 of "<test>").
 >> Clear[MakeBoxes]
 By the way, 'MakeBoxes' is the only built-in symbol that is not protected by default:
 >> Attributes[MakeBoxes]
@@ -1242,7 +1242,7 @@ Python functions starting with 'apply' are converted to built-in rules. Their do
 ## Internal tests
 
 #> expand{%]
- : Invalid syntax at or near token ].
+ : "expand{%" cannot be followed by "]" (line 1 of "<test>").
 
 
 </section>
