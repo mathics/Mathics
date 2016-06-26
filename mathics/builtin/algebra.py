@@ -486,3 +486,14 @@ class Variables(Builtin):
         variables = Expression('List', *variables)
         variables.sort()        # MMA doesn't do this
         return variables
+
+
+class UpTo(Builtin):
+    messages = {
+        'innf': 'Expected non-negative integer or infinity at position 1 in ``.',
+        'argx': 'UpTo expects 1 argument, `1` arguments were given.'
+    }
+
+
+class Missing(Builtin):
+    pass

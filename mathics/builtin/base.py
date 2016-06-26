@@ -6,6 +6,7 @@ from __future__ import absolute_import
 
 import re
 import sympy
+from functools import total_ordering
 
 from mathics.core.definitions import Definition
 from mathics.core.rules import Rule, BuiltinRule, Pattern
@@ -465,3 +466,103 @@ class PatternObject(InstancableBuiltin, Pattern):
 
     def get_attributes(self, definitions):
         return self.head.get_attributes(definitions)
+
+
+class MessageException(Exception):
+    def __init__(self, *message):
+        self._message = message
+
+    def message(self, evaluation):
+        evaluation.message(*self._message)
+
+
+class NegativeIntegerException(Exception):
+    pass
+
+
+@total_ordering
+class CountableInteger:
+    """
+    CountableInteger is an integer specifying a countable amount (including
+    zero) that can optionally be specified as an upper bound through UpTo[].
+    """
+
+    # currently MMA does not support UpTo[Infinity], but Infinity already shows
+    # up in UpTo's parameter error messages as supported option; it would make
+    # perfect sense. currently, we stick with MMA's current behaviour and set
+    # _support_infinity to False.
+    _support_infinity = False
+
+    def __init__(self, value='Infinity', upper_limit=True):
+        self._finite = (value != 'Infinity')
+        if self._finite:
+            assert isinstance(value, int) and value >= 0
+            self._integer = value
+        else:
+            assert upper_limit
+            self._integer = None
+        self._upper_limit = upper_limit
+
+    def is_upper_limit(self):
+        return self._upper_limit
+
+    def get_int_value(self):
+        assert self._finite
+        return self._integer
+
+    def __eq__(self, other):
+        if isinstance(other, CountableInteger):
+            if self._finite:
+                return other._finite and self._integer == other._integer
+            else:
+                return not other._finite
+        elif isinstance(other, int):
+            return self._finite and self._integer == other
+        else:
+            return False
+
+    def __lt__(self, other):
+        if isinstance(other, CountableInteger):
+            if self._finite:
+                return other._finite and self._integer < other._value
+            else:
+                return False
+        elif isinstance(other, int):
+            return self._finite and self._integer < other
+        else:
+            return False
+
+    @staticmethod
+    def from_expression(expr):
+        """
+        :param expr: expression from which to build a CountableInteger
+        :return: an instance of CountableInteger or None, if the whole
+        original expression should remain unevaluated.
+        :raises: MessageException, NegativeIntegerException
+        """
+
+        if isinstance(expr, Integer):
+            py_n = expr.get_int_value()
+            if py_n >= 0:
+                return CountableInteger(py_n, upper_limit=False)
+            else:
+                raise NegativeIntegerException()
+        elif expr.get_head_name() == 'System`UpTo':
+            if len(expr.leaves) != 1:
+                raise MessageException('UpTo', 'argx', len(expr.leaves))
+            else:
+                n = expr.leaves[0]
+                if isinstance(n, Integer):
+                    py_n = n.get_int_value()
+                    if py_n < 0:
+                        raise MessageException('UpTo', 'innf', expr)
+                    else:
+                        return CountableInteger(py_n, upper_limit=True)
+                elif CountableInteger._support_infinity:
+                    if n.get_head_name() == 'System`DirectedInfinity' and len(n.leaves) == 1:
+                        if n.leaves[0].get_int_value() > 0:
+                            return CountableInteger('Infinity', upper_limit=True)
+                        else:
+                            return CountableInteger(0, upper_limit=True)
+
+        return None  # leave original expression unevaluated
