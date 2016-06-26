@@ -1485,11 +1485,15 @@ class Factorial(PostfixOperator, _MPMathFunction):
         return mpmath.factorial(z)
 
 
-class Gamma(SympyFunction):
+class Gamma(_MPMathFunction):
     """
     <dl>
     <dt>'Gamma[$z$]'
-        <dd>is the Gamma function on the complex number $z$.
+        <dd>is the gamma function on the complex number $z$.
+    <dt>'Gamma[$z$, $x$]'
+        <dd>is the upper incomplete gamma function.
+    <dt>'Gamma[$z$, $x0$, $x1$]'
+        <dd>is equivalent to 'Gamma[$z$, $x0$] - Gamma[$z$, $x1$]'.
     </dl>
 
     >> Gamma[8]
@@ -1502,11 +1506,28 @@ class Gamma(SympyFunction):
      = -Graphics-
     """
 
-    # TODO implement the incomplete Gamma functions
+    mpmath_name = 'gamma'
 
     rules = {
-        'Gamma[x_]': '(x - 1)!',
+        'Gamma[z_, x0_, x1_]': 'Gamma[z, x0] - Gamma[z, x1]',
     }
+
+    def get_sympy_names(self):
+        return ['gamma', 'uppergamma']
+
+    def to_sympy(self, expr, **kwargs):
+        try:
+            sympy_function = {
+                1: sympy.gamma,
+                2: sympy.uppergamma,
+            }[len(expr.leaves)]
+            leaves = self.prepare_sympy(expr.leaves)
+            return sympy_function(*(
+                    leaf.to_sympy(**kwargs) for leaf in leaves))
+        except KeyError:
+            return None
+        except TypeError:
+            pass
 
 
 class Pochhammer(SympyFunction):
