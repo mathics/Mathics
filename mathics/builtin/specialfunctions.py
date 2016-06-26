@@ -889,3 +889,39 @@ class ExpIntegralE(_MPMathFunction):
     nargs = 2
     sympy_name = 'expint'
     mpmath_name = 'expint'
+
+
+class FresnelS(_MPMathFunction):
+    """
+    <dl>
+    <dt>'FresnelS[$z$]'
+        <dd>is the Fresnel S integral $S$($z$).
+    </dl>
+
+    >> FresnelS[{0, Infinity}]
+     = {0, 1 / 2}
+
+    ## SymPy can't currently simplify this all the way to FresnelS[z].
+    >> Integrate[Sin[x^2 Pi/2], {x, 0, z}]
+     = 3 FresnelS[z] Gamma[3 / 4] / (4 Gamma[7 / 4])
+    """
+
+    mpmath_name = 'fresnels'
+
+
+class FresnelC(_MPMathFunction):
+    """
+    <dl>
+    <dt>'FresnelC[$z$]'
+        <dd>is the Fresnel C integral $C$($z$).
+    </dl>
+
+    >> FresnelC[{0, Infinity}]
+     = {0, 1 / 2}
+
+    ## SymPy can't currently simplify this all the way to FresnelC[z].
+    >> Integrate[Cos[x^2 Pi/2], {x, 0, z}]
+     = FresnelC[z] Gamma[1 / 4] / (4 Gamma[5 / 4])
+    """
+
+    mpmath_name = 'fresnelc'
