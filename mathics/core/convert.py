@@ -242,8 +242,7 @@ def from_sympy(expr):
         args = [from_sympy(arg) for arg in expr.args]
         builtin = sympy_to_mathics.get(name)
         if builtin is not None:
-            name = builtin.get_name()
-            args = builtin.from_sympy(args)
+            return builtin.from_sympy(name, args)
         return Expression(Symbol(name), *args)
 
     elif isinstance(expr, sympy.Tuple):

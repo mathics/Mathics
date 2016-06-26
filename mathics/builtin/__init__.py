@@ -71,8 +71,8 @@ def add_builtins(new_builtins):
         name = builtin.get_name()
         if isinstance(builtin, SympyObject):
             mathics_to_sympy[name] = builtin
-            if builtin.sympy_name:
-                sympy_to_mathics[builtin.sympy_name] = builtin
+            for sympy_name in builtin.get_sympy_names():
+                sympy_to_mathics[sympy_name] = builtin
         if isinstance(builtin, BoxConstruct):
             box_constructs[name] = builtin
         if isinstance(builtin, Operator):

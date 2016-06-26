@@ -1341,7 +1341,7 @@ class Symbol(Atom):
             not builtin.is_constant()):
             return sympy.Symbol(sympy_symbol_prefix + self.name)
         else:
-            return getattr(sympy, builtin.sympy_name)
+            return builtin.to_sympy(self)
 
     def to_python(self, *args, **kwargs):
         if self.name == 'System`True':

@@ -1718,11 +1718,11 @@ class Piecewise(SympyFunction):
             return leaves[0].leaves + [
                 Expression('List', leaves[1], Symbol('True'))]
 
-    def from_sympy(self, args):
+    def from_sympy(self, sympy_name, args):
         # Hack to get around weird sympy.Piecewise 'otherwise' behaviour
         if str(args[-1].leaves[1]).startswith('System`_True__Dummy_'):
             args[-1].leaves[1] = Symbol('True')
-        return [args]
+        return Expression(self.get_name(), args)
 
 
 class Boole(Builtin):
