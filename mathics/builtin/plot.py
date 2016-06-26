@@ -735,17 +735,18 @@ class _Plot3D(Builtin):
         functions = self.get_functions_param(functions)
         plot_name = self.get_name()
 
-        try:
-            xstart, xstop, ystart, ystop = \
-                [value.to_number(n_evaluation=evaluation)
-                 for value in (xstart, xstop, ystart, ystop)]
+        def convert_limit(value, limits):
+            try:
+                return value.to_number(n_evaluation=evaluation)
+            except NumberError:
+                evaluation.message(plot_name, 'plln', value, limits)
+                return None
 
-        except NumberError:
-            expr = Expression(
-                plot_name, functions, Expression('List', x, xstart, xstop),
-                Expression('List', y, ystart, ystop),
-                *options_to_rules(options))
-            evaluation.message(plot_name, 'plln', value, expr)
+        xstart = convert_limit(xstart, xexpr_limits)
+        xstop = convert_limit(xstop, xexpr_limits)
+        ystart = convert_limit(ystart, yexpr_limits)
+        ystop = convert_limit(ystop, yexpr_limits)
+        if None in (xstart, xstop, ystart, ystop):
             return
 
         if ystart >= ystop:
@@ -1389,6 +1390,10 @@ class Plot3D(_Plot3D):
     #> Plot3D[0, {x, -2, 2}, {y, -2, 2}, MaxRecursion -> Infinity]
      : MaxRecursion must be a non-negative integer; the recursion value is limited to 15. Using MaxRecursion -> 15.
      = -Graphics3D-
+
+    #> Plot3D[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, z}]
+     : Limiting value z in {y, 1, z} is not a machine-size real number.
+     = Plot3D[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, z}]
     """
 
     # FIXME: This test passes but the result is 511 lines long !
@@ -1418,9 +1423,6 @@ class Plot3D(_Plot3D):
 
     def construct_graphics(self, triangles, mesh_points, v_min, v_max,
                            options, evaluation):
-        mesh_option = self.get_option(options, 'Mesh', evaluation)
-        mesh = mesh_option.to_python()
-
         graphics = []
         for p1, p2, p3 in triangles:
             graphics.append(Expression('Polygon', Expression(
@@ -1486,9 +1488,6 @@ class DensityPlot(_Plot3D):
 
     def construct_graphics(self, triangles, mesh_points, v_min, v_max,
                            options, evaluation):
-        mesh_option = self.get_option(options, 'Mesh', evaluation)
-        mesh = mesh_option.to_python()
-
         color_function = self.get_option(
             options, 'ColorFunction', evaluation, pop=True)
         color_function_scaling = self.get_option(

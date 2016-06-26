@@ -7,7 +7,6 @@ from __future__ import absolute_import
 import sympy
 import mpmath
 import re
-import hashlib
 
 from mathics.core.numbers import get_type, dps, prec, min_prec
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
@@ -750,17 +749,14 @@ class Expression(BaseExpression):
         sub_level = None if level is None else level - 1
         do_flatten = False
         for leaf in self.leaves:
-            if leaf.get_head().same(head) and (not pattern_only or
-                                            leaf.pattern_sequence):
+            if leaf.get_head().same(head) and (not pattern_only or leaf.pattern_sequence):
                 do_flatten = True
                 break
         if do_flatten:
             new_leaves = []
             for leaf in self.leaves:
-                if leaf.get_head().same(head) and (not pattern_only or
-                                                leaf.pattern_sequence):
-                    new_leaf = leaf.flatten(head, pattern_only, callback,
-                                            level=sub_level)
+                if leaf.get_head().same(head) and (not pattern_only or leaf.pattern_sequence):
+                    new_leaf = leaf.flatten(head, pattern_only, callback, level=sub_level)
                     if callback is not None:
                         callback(new_leaf.leaves, leaf)
                     new_leaves.extend(new_leaf.leaves)
@@ -1533,6 +1529,7 @@ class Integer(Number):
     def user_hash(self, update):
         update(b'System`Integer>' + str(self.value).encode('utf8'))
 
+
 class Rational(Number):
     def __init__(self, numerator, denominator=None, **kwargs):
         super(Rational, self).__init__(**kwargs)
@@ -1843,10 +1840,12 @@ class Complex(Number):
         update(self.real)
         update(self.imag)
 
+
 def encode_mathml(text):
     text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     text = text.replace('"', '&quot;').replace(' ', '&nbsp;')
     return text.replace('\n', '<mspace linebreak="newline" />')
+
 
 TEX_REPLACE = {
     '{': r'\{',

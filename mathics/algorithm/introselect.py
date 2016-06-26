@@ -65,8 +65,8 @@ def _median5(v):  # for len(v) <= 5
             return _median3(a, b, e, index_a, index_b, index_e)
         else:  # second to largest = d
             return _median3(a, d, e, index_a, index_d, index_e)
-    else: # second to smallest = c
-        if b < d:  # second to largest = b
+    else:   # second to smallest = c
+        if b < d:   # second to largest = b
             return _median3(c, b, e, index_c, index_b, index_e)
         else:  # second to largest = d
             return _median3(c, d, e, index_c, index_d, index_e)

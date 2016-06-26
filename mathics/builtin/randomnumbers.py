@@ -536,8 +536,9 @@ class _RandomSelection(_RandomBase):
             if len(elements) < n_chosen:
                 return evaluation.message('smplen', size, domain), None
         with RandomEnv(evaluation) as rand:
-            return instantiate_elements(rand.randchoice(len(elements), size=py_size, replace=self._replace,
-                                               p=py_weights), lambda i: elements[i])
+            return instantiate_elements(
+                rand.randchoice(len(elements), size=py_size, replace=self._replace, p=py_weights),
+                lambda i: elements[i])
 
     def _weights_to_python(self, weights, evaluation):
         # we need to normalize weights as numpy.rand.randchoice expects this and as we can limit

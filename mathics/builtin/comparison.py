@@ -222,7 +222,12 @@ def do_cmp(x1, x2):
         else:
             return 1
     elif inf1 is not None and inf2 is not None:
-        return cmp(inf1, inf2)
+        if inf1 == inf2:
+            return 0
+        elif inf1 < inf2:
+            return -1
+        else:
+            return 1
     elif inf1 is not None and real2 is not None:
         return inf1
     elif real1 is not None and inf2 is not None:

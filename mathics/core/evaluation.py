@@ -189,7 +189,7 @@ class Evaluation(object):
 
     def evaluate(self, query, timeout=None):
         'Evaluate an expression.'
-        from mathics.core.expression import Symbol, Expression, Integer
+        from mathics.core.expression import Symbol, Expression
         from mathics.core.rules import Rule
 
         self.recursion_depth = 0
@@ -294,7 +294,7 @@ class Evaluation(object):
         self.stopped = True
 
     def format_output(self, expr):
-        from mathics.core.expression import Expression, String, BoxError
+        from mathics.core.expression import Expression, BoxError
 
         if self.format == 'text':
             result = expr.format(self, 'System`OutputForm')

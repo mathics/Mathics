@@ -11,8 +11,7 @@ import os
 import base64
 import re
 
-from mathics.core.expression import (Expression, Symbol, String, ensure_context,
-                                     fully_qualified_symbol_name)
+from mathics.core.expression import Expression, Symbol, String, fully_qualified_symbol_name
 from mathics.core.characters import letters, letterlikes
 
 

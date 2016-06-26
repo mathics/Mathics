@@ -4,8 +4,6 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-import six
-
 from mathics.core.expression import Expression, Symbol, strip_context, KeyComparable
 from mathics.core.pattern import Pattern, StopGenerator
 
