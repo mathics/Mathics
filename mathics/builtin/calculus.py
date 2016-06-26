@@ -450,7 +450,7 @@ class Integrate(SympyFunction):
                 return [leaves[0]] + x.leaves
         return leaves
 
-    def from_sympy(self, leaves):
+    def from_sympy(self, sympy_name, leaves):
         args = []
         for leaf in leaves[1:]:
             if leaf.has_form('List', 1):
@@ -458,7 +458,8 @@ class Integrate(SympyFunction):
                 args.append(leaf.leaves[0])
             else:
                 args.append(leaf)
-        return [leaves[0]] + args
+        new_leaves = [leaves[0]] + args
+        return Expression(self.get_name(), *new_leaves)
 
     def apply(self, f, xs, evaluation):
         'Integrate[f_, xs__]'

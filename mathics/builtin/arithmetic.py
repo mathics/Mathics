@@ -41,12 +41,15 @@ class _MPMathFunction(SympyFunction):
         mpmath_function = getattr(mpmath, self.mpmath_name)
         return mpmath_function(*args)
 
+    def check_nargs(self, nargs):
+        return nargs == self.nargs
+
     def apply(self, z, evaluation):
         '%(name)s[z__]'
 
         args = z.get_sequence()
 
-        if len(args) != self.nargs:
+        if not self.check_nargs(len(args)):
             return
 
         # if no arguments are inexact attempt to use sympy
@@ -1485,15 +1488,32 @@ class Factorial(PostfixOperator, _MPMathFunction):
         return mpmath.factorial(z)
 
 
-class Gamma(SympyFunction):
+class Gamma(_MPMathFunction):
     """
     <dl>
     <dt>'Gamma[$z$]'
-        <dd>is the Gamma function on the complex number $z$.
+        <dd>is the gamma function on the complex number $z$.
+    <dt>'Gamma[$z$, $x$]'
+        <dd>is the upper incomplete gamma function.
+    <dt>'Gamma[$z$, $x0$, $x1$]'
+        <dd>is equivalent to 'Gamma[$z$, $x0$] - Gamma[$z$, $x1$]'.
     </dl>
 
+    'Gamma[$z$]' is equivalent to '($z$ - 1)!':
+    >> Simplify[Gamma[z] - (z - 1)!]
+     = 0
+
+    Exact arguments:
     >> Gamma[8]
      = 5040
+    >> Gamma[1/2]
+     = Sqrt[Pi]
+    >> Gamma[1, x]
+     = E ^ (-x)
+
+    Numeric arguments:
+    >> Gamma[1.*^20]
+     = 1.93284951431009771*^1956570551809674817225
     >> Gamma[1. + I]
      = 0.498015668118356043 - 0.154949828301810685 I
 
@@ -1502,11 +1522,33 @@ class Gamma(SympyFunction):
      = -Graphics-
     """
 
-    # TODO implement the incomplete Gamma functions
+    mpmath_name = 'gamma'
+    nargs = (1, 2)
 
     rules = {
-        'Gamma[x_]': '(x - 1)!',
+        'Gamma[z_, x0_, x1_]': 'Gamma[z, x0] - Gamma[z, x1]',
+        'Gamma[1 + z_]': 'z!',
     }
+
+    def get_sympy_names(self):
+        return ['gamma', 'uppergamma']
+
+    def check_nargs(self, nargs):
+        return self.nargs[0] <= nargs <= self.nargs[1]
+
+    def to_sympy(self, expr, **kwargs):
+        try:
+            sympy_function = {
+                1: sympy.gamma,
+                2: sympy.uppergamma,
+            }[len(expr.leaves)]
+            leaves = self.prepare_sympy(expr.leaves)
+            return sympy_function(*(
+                    leaf.to_sympy(**kwargs) for leaf in leaves))
+        except KeyError:
+            return None
+        except TypeError:
+            pass
 
 
 class Pochhammer(SympyFunction):
@@ -1718,11 +1760,11 @@ class Piecewise(SympyFunction):
             return leaves[0].leaves + [
                 Expression('List', leaves[1], Symbol('True'))]
 
-    def from_sympy(self, args):
+    def from_sympy(self, sympy_name, args):
         # Hack to get around weird sympy.Piecewise 'otherwise' behaviour
         if str(args[-1].leaves[1]).startswith('System`_True__Dummy_'):
             args[-1].leaves[1] = Symbol('True')
-        return [args]
+        return Expression(self.get_name(), args)
 
 
 class Boole(Builtin):

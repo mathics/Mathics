@@ -348,6 +348,11 @@ class SympyObject(Builtin):
     def is_constant(self):
         return False
 
+    def get_sympy_names(self):
+        if self.sympy_name:
+            return [self.sympy_name]
+        return []
+
 
 class SympyFunction(SympyObject):
     def prepare_sympy(self, leaves):
@@ -362,8 +367,8 @@ class SympyFunction(SympyObject):
         except TypeError:
             pass
 
-    def from_sympy(self, leaves):
-        return leaves
+    def from_sympy(self, sympy_name, leaves):
+        return Expression(self.get_name(), *leaves)
 
     def prepare_mathics(self, sympy_expr):
         return sympy_expr
@@ -377,8 +382,11 @@ class SympyConstant(SympyObject, Predefined):
         return True
 
     def to_sympy(self, expr, **kwargs):
-        # there is no "native" SymPy expression for e.g. E[x]
-        return None
+        if expr.is_atom():
+            return getattr(sympy, self.sympy_name)
+        else:
+            # there is no "native" SymPy expression for e.g. E[x]
+            return None
 
 
 class InvalidLevelspecError(Exception):
