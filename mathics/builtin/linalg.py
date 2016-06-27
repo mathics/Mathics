@@ -17,7 +17,7 @@ from mpmath import mp
 
 from mathics.builtin.base import Builtin
 from mathics.core.convert import from_sympy
-from mathics.core.expression import Expression, Integer, Complex, Symbol, Real
+from mathics.core.expression import Expression, Integer, Symbol, Real
 
 
 def matrix_data(m):

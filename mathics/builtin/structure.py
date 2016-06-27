@@ -5,8 +5,6 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
-from mathics.builtin.comparison import SameQ
-from mathics.core.rules import BuiltinRule
 from mathics.core.expression import (Expression, String, Symbol, Integer,
                                      Rational, strip_context)
 from mathics.core.rules import Pattern

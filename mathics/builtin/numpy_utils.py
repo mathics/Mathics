@@ -14,6 +14,7 @@ try:
 except ImportError:  # no numpy?
     _numpy = False
 
+
 def py_instantiate_elements(a, new_element, d=1):
     # given a python array 'a' and a python element constructor 'new_element', generate a python array of the
     # same shape as 'a' with python elements constructed through 'new_element'. 'new_element' will get called
@@ -67,5 +68,3 @@ else:
 
     instantiate_elements = py_instantiate_elements
     stack_along_inner_axis = py_stack_along_inner_axis
-
-

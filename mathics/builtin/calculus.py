@@ -483,7 +483,6 @@ class Integrate(SympyFunction):
                 b = b.to_sympy()
             else:
                 a = b = None
-                a_mathics, b_mathics = a, b
             if not x.get_name():
                 evaluation.message('Integrate', 'ilim')
                 return

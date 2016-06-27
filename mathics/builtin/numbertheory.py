@@ -88,8 +88,7 @@ class Mod(Builtin):
     def apply(self, n, m, evaluation):
         'Mod[n_Integer, m_Integer]'
 
-        n_int, m_int = n, m
-        n, m = n.value, m.value
+        n, m = n.get_int_value(), m.get_int_value()
         if m == 0:
             evaluation.message('Mod', 'divz', m)
             return

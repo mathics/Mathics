@@ -11,7 +11,7 @@ from __future__ import absolute_import
 import sympy
 import string
 
-from mathics.builtin.base import Builtin, SympyObject, SympyFunction
+from mathics.builtin.base import Builtin, SympyFunction
 from mathics.core.convert import from_sympy
 from mathics.core.expression import Integer, String, Expression
 

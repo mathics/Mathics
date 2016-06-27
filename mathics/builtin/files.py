@@ -18,7 +18,6 @@ import base64
 import tempfile
 import time
 import struct
-import sympy
 import mpmath
 import math
 
@@ -788,8 +787,8 @@ class Write(Builtin):
         stream = _lookup_stream(n)
 
         if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
-            return
+            evaluation.message('General', 'openx', channel)
+            return Symbol('Null')
 
         expr = expr.get_sequence()
         expr = Expression('Row', Expression('List', *expr))
@@ -871,10 +870,9 @@ class _BinaryFormat(object):
         "IEEE double-precision complex number"
         return _BinaryFormat._IEEE_cmplx(*struct.unpack('dd', s.read(16)))
 
-    @staticmethod
-    def _Complex256_reader(s):
+    def _Complex256_reader(self, s):
         "IEEE quad-precision complex number"
-        return Complex(_Real128_reader(s), _Real128_reader(s))
+        return Complex(self._Real128_reader(s), self._Real128_reader(s))
 
     @staticmethod
     def _Integer8_reader(s):
@@ -1393,23 +1391,23 @@ class BinaryWrite(Builtin):
 
         channel = Expression('OutputStream', name, n)
 
-        # Check channel
-        stream = _lookup_stream(n.get_int_value())
-
-        if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
-            return
-
-        if stream.mode not in ['wb', 'ab']:
-            evaluation.message('BinaryWrite', 'openr', channel)
-            return
-
         # Check Empty Type
         if typ is None:
             expr = Expression('BinaryWrite', channel, b)
             typ = Expression('List')
         else:
             expr = Expression('BinaryWrite', channel, b, typ)
+
+        # Check channel
+        stream = _lookup_stream(n.get_int_value())
+
+        if stream is None or stream.closed:
+            evaluation.message('General', 'openx', name)
+            return expr
+
+        if stream.mode not in ['wb', 'ab']:
+            evaluation.message('BinaryWrite', 'openr', channel)
+            return expr
 
         # Check b
         if b.has_form('List', None):
@@ -1429,10 +1427,9 @@ class BinaryWrite(Builtin):
         types = [t.get_string_value() for t in types]
         if not all(t in self.writers for t in types):
             evaluation.message('BinaryRead', 'format', typ)
-            return
+            return expr
 
         # Write to stream
-        result = []
         i = 0
         while i < len(pyb):
             x = pyb[i]
@@ -1762,23 +1759,23 @@ class BinaryRead(Builtin):
 
         channel = Expression('InputStream', name, n)
 
-        # Check channel
-        stream = _lookup_stream(n.get_int_value())
-
-        if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
-            return
-
-        if stream.mode not in ['rb']:
-            evaluation.message('BinaryRead', 'bfmt', channel)
-            return
-
         # Check typ
         if typ is None:
             expr = Expression('BinaryRead', channel)
             typ = String('Byte')
         else:
             expr = Expression('BinaryRead', channel, typ)
+
+        # Check channel
+        stream = _lookup_stream(n.get_int_value())
+
+        if stream is None or stream.closed:
+            evaluation.message('General', 'openx', name)
+            return expr
+
+        if stream.mode not in ['rb']:
+            evaluation.message('BinaryRead', 'bfmt', channel)
+            return expr
 
         if typ.has_form('List', None):
             types = typ.get_leaves()
@@ -1788,7 +1785,7 @@ class BinaryRead(Builtin):
         types = [t.get_string_value() for t in types]
         if not all(t in self.readers for t in types):
             evaluation.message('BinaryRead', 'format', typ)
-            return
+            return expr
 
         # Read from stream
         result = []
@@ -1960,7 +1957,7 @@ class _OpenAction(Builtin):
 
         try:
             opener = mathics_open(path_string, mode=mode)
-            stream = opener.__enter__()
+            opener.__enter__()
             n = opener.n
         except IOError:
             evaluation.message('General', 'noopen', path)
