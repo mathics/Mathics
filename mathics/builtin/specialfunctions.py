@@ -36,6 +36,24 @@ class Erf(_MPMathFunction):
     mpmath_name = 'erf'
 
 
+class Erfc(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Erfc[$z$]'
+        <dd>returns the complementary error function of $z$.
+    </dl>
+
+    >> Erfc[1.0]
+     = 0.157299207050285131
+    >> Erfc[0]
+     = 1
+    >> Plot[Erfc[x], {x, -2, 2}]
+     = -Graphics-
+    """
+
+    mpmath_name = 'erfc'
+
+
 class ProductLog(_MPMathFunction):
     """
     <dl>
