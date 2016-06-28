@@ -1481,7 +1481,7 @@ class Gamma(_MPMathFunction):
     }
 
     def get_sympy_names(self):
-        return ['gamma', 'uppergamma']
+        return ['gamma', 'uppergamma', 'lowergamma']
 
     def check_nargs(self, nargs):
         return self.nargs[0] <= nargs <= self.nargs[1]
@@ -1501,6 +1501,15 @@ class Gamma(_MPMathFunction):
             return None
         except TypeError:
             pass
+
+    def from_sympy(self, sympy_name, leaves):
+        if sympy_name == 'lowergamma':
+            # lowergamma(z, x) -> Gamma[z, 0, x]
+            z, x = leaves
+            return Expression(
+                self.get_name(), z, Integer(0), x)
+        else:
+            return Expression(self.get_name(), *leaves)
 
 
 class Pochhammer(SympyFunction):
