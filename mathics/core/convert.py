@@ -19,25 +19,6 @@ sympy_symbol_prefix = '_Mathics_User_'
 sympy_slot_prefix = '_Mathics_Slot_'
 
 
-def create_symbol(self, name):
-    from mathics.core import expression
-    return expression.Symbol(name)
-
-
-class ConvertSubstitutions(object):
-    head_name = '___SageSubst___'
-
-    def __init__(self):
-        self.subs = []
-
-    def substitute(self, expr):
-        from mathics.core import expression
-
-        index = len(self.subs)
-        self.subs.append(expr)
-        return expression.Expression(self.head_name, expression.Integer(index),
-                                     *expr.get_atoms())
-
 BasicSympy = sympy.Expr
 
 
