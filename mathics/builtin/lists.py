@@ -2758,6 +2758,9 @@ class Variance(_Rectangular):
     >> Variance[{7, -5, 101, 3}]
      = 7475 / 3
 
+    >> Variance[{1 + 2I, 3 - 10I}]
+     = 74
+
     >> Variance[{a, a}]
      = 0
 
