@@ -10,6 +10,7 @@ Random numbers are generated using the Mersenne Twister.
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
+import six
 from six.moves import range
 import six.moves.cPickle as pickle
 
@@ -437,6 +438,12 @@ class RandomComplex(Builtin):
 
     >> RandomComplex[{1+I, 2+2I}, {2, 2}]
      = {{..., ...}, {..., ...}}
+
+    #> RandomComplex[{6, 2 Pi + I}]
+     = 6...
+
+    #> RandomComplex[{6.3, 2.5 I}] // FullForm
+     = Complex[..., ...]
     """
 
     messages = {
@@ -455,17 +462,21 @@ class RandomComplex(Builtin):
         'RandomComplex[zmax_?NumberQ, ns_]': 'RandomComplex[{0, zmax}, ns]',
     }
 
+    @staticmethod
+    def to_complex(value, evaluation):
+        result = value.to_python(n_evaluation=evaluation)
+        if isinstance(result, (float,) + six.integer_types):
+            result = complex(result)
+        if isinstance(result, complex):
+            return result
+        return None
+
     def apply(self, zmin, zmax, evaluation):
         'RandomComplex[{zmin_, zmax_}]'
-        if Expression('RealNumberQ', zmin).evaluate(evaluation):
-            zmin = Complex(zmin, 0.0)
-        if Expression('RealNumberQ', zmax).evaluate(evaluation):
-            zmax = Complex(zmax, 0.0)
 
-        if not (isinstance(zmin, Complex) and isinstance(zmax, Complex)):
+        min_value, max_value = self.to_complex(zmin, evaluation), self.to_complex(zmax, evaluation)
+        if min_value is None or max_value is None:
             return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
-
-        min_value, max_value = zmin.to_python(), zmax.to_python()
 
         with RandomEnv(evaluation) as rand:
             return Complex(rand.randreal(min_value.real, max_value.real),
@@ -475,21 +486,15 @@ class RandomComplex(Builtin):
         'RandomComplex[{zmin_, zmax_}, ns_]'
         expr = Expression('RandomComplex', Expression('List', zmin, zmax), ns)
 
-        if Expression('RealNumberQ', zmin).evaluate(evaluation):
-            zmin = Complex(zmin, 0.0)
-        if Expression('RealNumberQ', zmax).evaluate(evaluation):
-            zmax = Complex(zmax, 0.0)
-
-        if not (isinstance(zmin, Complex) and isinstance(zmax, Complex)):
+        min_value, max_value = self.to_complex(zmin, evaluation), self.to_complex(zmax, evaluation)
+        if min_value is None or max_value is None:
             return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
-
-        min_value, max_value = zmin.to_python(), zmax.to_python()
 
         py_ns = ns.to_python()
         if not isinstance(py_ns, list):
             py_ns = [py_ns]
 
-        if not all([isinstance(i, int) and i >= 0 for i in py_ns]):
+        if not all([isinstance(i, six.integer_types) and i >= 0 for i in py_ns]):
             return evaluation.message('RandomComplex', 'array', ns, expr)
 
         with RandomEnv(evaluation) as rand:
@@ -642,6 +647,24 @@ class RandomSample(_RandomSelection):
      """
 
     _replace = False
+
+
+class Random(Builtin):
+    '''
+    Legacy function. Superseded by RandomReal, RandomInteger and RandomComplex.
+    '''
+    rules = {
+        'Random[Integer]': 'RandomInteger[]',
+        'Random[Integer,  zmax_Integer]': 'RandomInteger[zmax]',
+        'Random[Integer, {zmin_Integer, zmax_Integer}]': 'RandomInteger[{zmin, zmax}]',
+        'Random[Real]': 'RandomReal[]',
+        'Random[Real,  zmax_?NumberQ]': 'RandomReal[zmax]',
+        'Random[Real, {zmin_Real, zmax_Real}]': 'RandomReal[{zmin, zmax}]',
+        'Random[Complex]': 'RandomComplex[]',
+        'Random[Complex,  zmax_Complex]': 'RandomComplex[zmax]',
+        'Random[Complex, {zmin_?NumericQ, zmax_?NumericQ}]': 'RandomComplex[{zmin, zmax}]',
+    }
+
 
 if not _numpy:  # hide symbols from non-numpy envs
     _RandomSelection = None
