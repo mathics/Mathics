@@ -239,6 +239,10 @@ def do_cmp(x1, x2):
 def do_compare(l1, l2):
     if l1.same(l2):
         return True
+    elif l1 == Symbol('System`True') and l2 == Symbol('System`False'):
+        return False
+    elif l1 == Symbol('System`False') and l2 == Symbol('System`True'):
+        return False
     elif isinstance(l1, String) and isinstance(l2, String):
         return False
     elif l1.to_sympy().is_number and l2.to_sympy().is_number:
@@ -323,6 +327,12 @@ class Equal(_InequalityOperator, SympyFunction):
 
     #> E == N[E]
      = True
+
+    ## Issue260
+    #> {Equal[Equal[0, 0], True], Equal[0, 0] == True}
+     = {True, True}
+    #> {Mod[6, 2] == 0, Mod[6, 4] == 0, (Mod[6, 2] == 0) == (Mod[6, 4] == 0), (Mod[6, 2] == 0) != (Mod[6, 4] == 0)}
+     = {True, False, False, True}
     """
     operator = '=='
     grouping = 'None'
