@@ -11,7 +11,7 @@ from mathics.core.expression import Expression, Integer
 from mathics.builtin.arithmetic import _MPMathFunction
 from mathics.core.rules import Pattern
 
-##Assumptions given by DistributionParameterAssumptions, used to check if the distribution is valid
+##these lists will be deleted
 
 distribsAssumptions = {'BernoulliDistribution[p]':'0 <= p <= 1',
                        'BetaBinomialDistribution[alpha, beta, n]':'n \[Element] Integers && n > 0 && alpha > 0 && beta > 0',
@@ -132,9 +132,126 @@ distribsAssumptions = {'BernoulliDistribution[p]':'0 <= p <= 1',
                        'WaringYuleDistribution[alpha]':'alpha > 0',
                        'WaringYuleDistribution[alpha, beta]':'alpha > 0 && beta > 0'}
 
-
-
-class DistributionParameterQ(Builtin):
+distribs = ['BinomialDistribution[n, p]',
+            'PoissonDistribution[mu]',
+            'SkellamDistribution[mu1, mu2]',
+            'FRatioDistribution[n, m]',
+            'MinStableDistribution[mu, sigma, zeta]',
+            'BernoulliDistribution[p]',
+            'ParetoDistribution[k, alpha, mu]',
+            'BetaNegativeBinomialDistribution[alpha, beta, n]',
+            'BenktanderWeibullDistribution[a, b]',
+            'LogLogisticDistribution[gamma, sigma]',
+            'HotellingTSquareDistribution[p, m]',
+            'UniformSumDistribution[n, {min, max}]',
+            'BorelTannerDistribution[alpha, n]',
+            'LogGammaDistribution[alpha, beta, mu]',
+            'LogNormalDistribution[mu, sigma]',
+            'BatesDistribution[n]',
+            'HoytDistribution[q, omega]',
+            'MaxwellDistribution[sigma]',
+            'NoncentralFRatioDistribution[n, m, lambda]',
+            'WaringYuleDistribution[alpha]',
+            'ZipfDistribution[rho]',
+            'FisherHypergeometricDistribution[n, nsucc, ntot, w]',
+            'TukeyLambdaDistribution[{lambda1, lambda2}, mu, {sigma1, sigma2}]',
+            'BetaPrimeDistribution[p, q, beta]',
+            'FrechetDistribution[alpha, beta, mu]',
+            'UniformSumDistribution[n, {0, 1}]',
+            'PowerDistribution[k, a]',
+            'NoncentralFRatioDistribution[n, m, lambda, eta]',
+            'SuzukiDistribution[mu, nu]',
+            'NormalDistribution[0, 1]',
+            'VonMisesDistribution[mu, k]',
+            'MaxStableDistribution[mu, sigma, zeta]',
+            'InverseGammaDistribution[alpha, beta]',
+            'BetaPrimeDistribution[p, q]',
+            'FisherZDistribution[n, m]',
+            'InverseGaussianDistribution[mu, lambda, theta]',
+            'FrechetDistribution[alpha, beta]',
+            'WignerSemicircleDistribution[a, r]',
+            'DavisDistribution[b, n, mu]',
+            'MoyalDistribution[mu, sigma]',
+            'PearsonDistribution[a1, a0, b2, b1, b0]',
+            'TsallisQGaussianDistribution[mu, beta, q]',
+            'LaplaceDistribution[mu, beta]',
+            'KumaraswamyDistribution[alpha, beta]',
+            'ArcSinDistribution[{xmin, xmax}]',
+            'TsallisQExponentialDistribution[lambda, q]',
+            'HalfNormalDistribution[theta]',
+            'InverseGammaDistribution[alpha, beta, gamma, mu]',
+            'GompertzMakehamDistribution[lambda, zeta]',
+            'SechDistribution[mu, sigma]',
+            'StudentTDistribution[nu]',
+            'HyperbolicDistribution[alpha, beta, delta, mu]',
+            'BatesDistribution[n, {min, max}]',
+            'BeniniDistribution[alpha, beta, sigma]',
+            'ExponentialDistribution[lambda]',
+            'WeibullDistribution[alpha, beta]',
+            'NoncentralChiSquareDistribution[nu, lambda]',
+            'ParetoDistribution[k, alpha, gamma, mu]',
+            'GammaDistribution[alpha, beta, gamma, nu]',
+            'LandauDistribution[mu, sigma]',
+            'PoissonConsulDistribution[mu, lambda]',
+            'InverseGaussianDistribution[mu, lambda]',
+            'HypergeometricDistribution[n, nsucc, ntot]',
+            'SkewNormalDistribution[mu, sigma, alpha]',
+            'ParetoDistribution[k, alpha]',
+            'NakagamiDistribution[mu, omega]',
+            'BenktanderGibratDistribution[a, b]',
+            'RiceDistribution[alpha, beta]',
+            'NegativeBinomialDistribution[n, p]',
+            'LevyDistribution[mu, sigma]',
+            'RiceDistribution[m, alpha, beta]',
+            'UniformDistribution[{0, 1}]',
+            'GammaDistribution[alpha, beta]',
+            'NoncentralStudentTDistribution[nu, delta]',
+            'BinormalDistribution[rho]',
+            'UniformDistribution[{min, max}]',
+            'WeibullDistribution[alpha, beta, mu]',
+            'HyperbolicDistribution[lambda, alpha, beta, delta, mu]',
+            'BetaBinomialDistribution[alpha, beta, n]',
+            'BinormalDistribution[{mu1, mu2}, {sigma1, sigma2}, rho]',
+            'BirnbaumSaundersDistribution[alpha, lambda]',
+            'BetaDistribution[alpha, beta]',
+            'StudentTDistribution[mu, sigma, nu]',
+            'PERTDistribution[{min, max}, c, lambda]',
+            'DiscreteUniformDistribution[{imin, imax}]',
+            'ChiDistribution[nu]',
+            'PolyaAeppliDistribution[theta, p]',
+            'PascalDistribution[n, p]',
+            'ChiSquareDistribution[nu]',
+            'ExtremeValueDistribution[alpha, beta]',
+            'GumbelDistribution[alpha, beta]',
+            'ErlangDistribution[k, lambda]',
+            'WignerSemicircleDistribution[r]',
+            'InverseChiSquareDistribution[nu, zeta]',
+            'MeixnerDistribution[a, b, m, d]',
+            'LogisticDistribution[mu, beta]',
+            'TriangularDistribution[{min, max}]',
+            'PERTDistribution[{min, max}, c]',
+            'BenfordDistribution[b]',
+            'ExponentialPowerDistribution[k, mu, sigma]',
+            'LindleyDistribution[delta]',
+            'DagumDistribution[p, a, b]',
+            'ExpGammaDistribution[k, theta, mu]',
+            'TriangularDistribution[{min, max}, c]',
+            'CauchyDistribution[a, b]',
+            'BinormalDistribution[{sigma1, sigma2}, rho]',
+            'LogSeriesDistribution[theta]',
+            'ZipfDistribution[n, rho]',
+            'KDistribution[nu, w]',
+            'BetaPrimeDistribution[p, q, alpha, beta]',
+            'TukeyLambdaDistribution[lambda]',
+            'SinghMaddalaDistribution[q, a, b]',
+            'RayleighDistribution[sigma]',
+            'InverseChiSquareDistribution[nu]',
+            'WaringYuleDistribution[alpha, beta]',
+            'TukeyLambdaDistribution[lambda, mu, sigma]',
+            'GeometricDistribution[p]',
+            'NoncentralBetaDistribution[alpha, beta, delta]',
+            'NormalDistribution[mu, sigma]',
+            'WakebyDistribution[alpha, beta, gamma, delta, mu]']
 
 
 
@@ -227,22 +344,6 @@ class Multinomial(Builtin):
         return result
 
 
-def Mean(Builtin):
-    """
-    <dl>
-    <dt>'Mean[$list$]'
-        <dd>gives the (arithmetic) mean of the elements in list'.
-    </dl>
-
-    >> Mean[{1.21, 3.4, 2.15, 4, 1.55}]
-     = 2.462
-    """
-    
-    ##TODO: mean for distributions, faster overall implementation
-    
-    rules = {'Mean[list_]':'Total[list]/Length[list]'}
-
-
 
 def Quantile(Builtin):
     """
@@ -271,7 +372,8 @@ def Variance(Builtin):
      = 1.43547
     """
 
-    rules = {'Variance[list_]':'(list - Mean[list])*Conjugate[list - Mean[list]]/(Length[list] - 1)'}
+    rules = {'Variance[list_]':
+             '(list - Mean[list])*Conjugate[list - Mean[list]]/(Length[list] - 1)'}
     
 
 def StandardDeviation(Builtin):
@@ -285,28 +387,69 @@ def StandardDeviation(Builtin):
      = 1.19811
     """
     
-    rules = {'StandardDeviation[list_]':'Sqrt[Variance[list]]'}
+    rules = {'StandardDeviation[list_?ListQ]':'Sqrt[Variance[list]]'}
 
 
 
-class ProbabilityDistribution(Builtin):
+class Distribution(Builtin):
+    ##todo
+        
+    def cdf_sym(self, symbol):
 
+
+
+    def expectation(self):
+
+
+
+    def probability(self, conditions):
+
+
+
+class DistributionParameterQ(Builtin):
+
+    def apply(self, expr, evaluation):
+        'DistributionParameterQ[expr]'
+    ##todo
+
+
+class DistributionParameterAssumptions(Builtin):
+
+    def apply(self, distribution, evaluation):
+        'DistributionParameterAssumptions[distribution]'
+
+        if isinstance(distribution, Distribution):
+            return String(distribution.arg_assumptions)
 
 
 class CDF(Builtin):
 
+    def apply(self, distribution, evaluation):
+        'CDF[distribution, symbol]'
 
+        if isinstance(distribution, Distribution):
+            return distribution.cdf(str(symbol)))
+            
 
 class PDF(Builtin):
 
+    def apply(self, distribution, evaluation):
+        'PDF[distribution, symbol]'
+
+        if isinstance(distribution, Distribution):
+            return distribution.pdf(str(symbol)))
 
 
 class InverseCDF(Builtin):
-    
+
 
 
 class SurvivalFunction(Builtin):
 
+    def apply(self, distribution, evaluation):
+        'SurvivalFunction[distribution]'
+        
+        return Expression(evaluate('1 - CDF[distribution, x]'))
 
     
 class InverseSurvivalFunction(Builtin):
@@ -321,12 +464,18 @@ class BernoulliDistribution(Builtin):
 
 
 
-class BetaBinomialDistribution(Builtin):
+class BetaBinomialDistribution(Distribution):
 
 
 
-class BetaDistribution(Builtin):
+class BetaDistribution(Distribution):
 
+    'BetaDistribution[alpha, beta]'
+    
+    parameters = [alpha, beta]
+    nargs = 2
+    sympy_name = 'Beta'
+    arg_assumptions = 'alpha > 0 && beta > 0'
 
 
 class BetaNegativeBinomialDistribution(Builtin):
