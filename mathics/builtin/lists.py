@@ -2780,8 +2780,8 @@ class Variance(_Rectangular):
         elif len(l.leaves) <= 1:
             evaluation.message('Variance', 'shlen', l)
         else:
-            d = l - Expression('Mean', l)
-            return Expression('Dot', d, Expression('Conjugate', d)) / (len(l.leaves) - 1)
+            d = Expression('Subtract', l, Expression('Mean', l))
+            return Expression('Divide', Expression('Dot', d, Expression('Conjugate', d)), len(l.leaves) - 1)
 
 
 class StandardDeviation(_Rectangular):
