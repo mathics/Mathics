@@ -2778,10 +2778,10 @@ class Variance(_Rectangular):
 
     def apply(self, l, evaluation):
         'Variance[l_]'
-        if all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
-            return self.rect(l, 'rectt', evaluation)
-        elif len(l.leaves) <= 1:
+        if len(l.leaves) <= 1:
             evaluation.message('Variance', 'shlen', l)
+        elif all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
+            return self.rect(l, 'rectt', evaluation)
         else:
             d = Expression('Subtract', l, Expression('Mean', l))
             return Expression('Divide', Expression('Dot', d, Expression('Conjugate', d)), len(l.leaves) - 1)
@@ -2818,12 +2818,11 @@ class StandardDeviation(_Rectangular):
 
     def apply(self, l, evaluation):
         'StandardDeviation[l_]'
-        if all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
-            return self.rect(l, 'rectt', evaluation)
-        elif len(l.leaves) <= 1:
+        if len(l.leaves) <= 1:
             evaluation.message('StandardDeviation', 'shlen', l)
+        elif all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
+            return self.rect(l, 'rectt', evaluation)
         else:
-            d = l - Expression('Mean', l)
             return Expression('Sqrt', Expression('Variance', l))
 
 
