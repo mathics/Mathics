@@ -2770,7 +2770,7 @@ class Variance(_Rectangular):
 
     messages = {
         'shlen': '`` must contain at least two elements.',
-        'rectt': 'Expected a rectangular array at position 1 in ``',
+        'rectt': 'Expected a rectangular array at position 1 in ``.',
     }
 
     # for the general formulation of real and complex variance below, see for example
@@ -2813,7 +2813,7 @@ class StandardDeviation(_Rectangular):
 
     messages = {
         'shlen': '`` must contain at least two elements.',
-        'rectt': 'Expected a rectangular array at position 1 in ``',
+        'rectt': 'Expected a rectangular array at position 1 in ``.',
     }
 
     def apply(self, l, evaluation):
