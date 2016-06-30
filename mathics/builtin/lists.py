@@ -2728,6 +2728,102 @@ class Mean(Builtin):
     }
 
 
+class _Rectangular(Builtin):
+    def rect(self, l, err, evaluation):
+        lengths = [len(leaf.leaves) for leaf in l.leaves]
+        if all(length == 0 for length in lengths):
+            return
+        n_columns = lengths[0]
+        if any(length != n_columns for length in lengths[1:]):
+            evaluation.message(self.get_name(), err, Expression(self.get_name(), l))
+        else:
+            return Expression('List', *[Expression(self.get_name(), Expression('List', *items)) for items in [
+                [leaf.leaves[i] for leaf in l.leaves] for i in range(n_columns)]])
+
+
+class Variance(_Rectangular):
+    """
+    <dl>
+    <dt>'Variance[$list$]'
+      <dd>computes the variance of $list. $list$ may consist of numerical values
+      or symbols. Numerical values may be real or complex.
+
+      Variance[{{$a1$, $a2$, ...}, {$b1$, $b2$, ...}, ...}] will yield
+      {Variance[{$a1$, $b1$, ...}, Variance[{$a2$, $b2$, ...}], ...}.
+    </dl>
+
+    >> Variance[{1, 2, 3}]
+     = 1
+
+    >> Variance[{7, -5, 101, 3}]
+     = 7475 / 3
+
+    >> Variance[{a, a}]
+     = 0
+
+    >> Variance[{{1, 3, 5}, {4, 10, 100}}]
+     = {9 / 2, 49 / 2, 9025 / 2}
+    """
+
+    messages = {
+        'shlen': '`` must contain at least two elements.',
+        'rectt': 'Expected a rectangular array at position 1 in ``',
+    }
+
+    # for the general formulation of real and complex variance below, see for example
+    # https://en.wikipedia.org/wiki/Variance#Generalizations
+
+    def apply(self, l, evaluation):
+        'Variance[l_]'
+        if all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
+            return self.rect(l, 'rectt', evaluation)
+        elif len(l.leaves) <= 1:
+            evaluation.message('Variance', 'shlen', l)
+        else:
+            d = l - Expression('Mean', l)
+            return Expression('Dot', d, Expression('Conjugate', d)) / (len(l.leaves) - 1)
+
+
+class StandardDeviation(_Rectangular):
+    """
+    <dl>
+    <dt>'StandardDeviation[$list$]'
+      <dd>computes the standard deviation of $list. $list$ may consist of numerical values
+      or symbols. Numerical values may be real or complex.
+
+      StandardDeviation[{{$a1$, $a2$, ...}, {$b1$, $b2$, ...}, ...}] will yield
+      {StandardDeviation[{$a1$, $b1$, ...}, StandardDeviation[{$a2$, $b2$, ...}], ...}.
+    </dl>
+
+    >> StandardDeviation[{1, 2, 3}]
+     = 1
+
+    >> StandardDeviation[{7, -5, 101, 100}]
+     = Sqrt[13297] / 2
+
+    >> StandardDeviation[{a, a}]
+     = 0
+
+    >> StandardDeviation[{{1, 10}, {-1, 20}}]
+     = {Sqrt[2], 5 Sqrt[2]}
+    """
+
+    messages = {
+        'shlen': '`` must contain at least two elements.',
+        'rectt': 'Expected a rectangular array at position 1 in ``',
+    }
+
+    def apply(self, l, evaluation):
+        'StandardDeviation[l_]'
+        if all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
+            return self.rect(l, 'rectt', evaluation)
+        elif len(l.leaves) <= 1:
+            evaluation.message('StandardDeviation', 'shlen', l)
+        else:
+            d = l - Expression('Mean', l)
+            return Expression('Sqrt', Expression('Variance', l))
+
+
 class _Rotate(Builtin):
     messages = {
         'rspec': '`` should be an integer or a list of integers.'
@@ -2818,7 +2914,7 @@ class RotateRight(_Rotate):
     _sign = -1
 
 
-class Median(Builtin):
+class Median(_Rectangular):
     """
     <dl>
     <dt>'Median[$list$]'
@@ -2846,15 +2942,7 @@ class Median(Builtin):
         if not l.leaves:
             return
         if all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
-            lengths = [len(leaf.leaves) for leaf in l.leaves]
-            if all(length == 0 for length in lengths):
-                return
-            n_columns = lengths[0]
-            if any(length != n_columns for length in lengths[1:]):
-                evaluation.message('Median', 'rectn', Expression('Median', l))
-            else:
-                return Expression('List', *[Expression('Median', Expression('List', *items)) for items in [
-                    [leaf.leaves[i] for leaf in l.leaves] for i in range(n_columns)]])
+            return self.rect(l, 'rectn', evaluation)
         elif all(leaf.is_numeric() for leaf in l.leaves):
             v = l.leaves[:]  # copy needed for introselect
             n = len(v)
