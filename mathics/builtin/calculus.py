@@ -298,14 +298,6 @@ class Derivative(PostfixOperator, SympyFunction):
     def __init__(self, *args, **kwargs):
         super(Derivative, self).__init__(*args, **kwargs)
 
-    def post_parse(self, expression):
-        count = 0
-        inner = expression
-        while inner.has_form('Derivative', 1):
-            inner = inner.leaves[0]
-            count += 1
-        return Expression(Expression('Derivative', Integer(count)), inner)
-
     def to_sympy(self, expr, **kwargs):
         inner = expr
         exprs = [inner]

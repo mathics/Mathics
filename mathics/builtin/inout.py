@@ -813,10 +813,6 @@ class Postfix(BinaryOperator):
     precedence = 70
     grouping = 'Left'
 
-    def post_parse(self, expression):
-        return Expression(expression.leaves[1].post_parse(),
-                          expression.leaves[0].post_parse())
-
 
 class Prefix(BinaryOperator):
     """
@@ -849,10 +845,6 @@ class Prefix(BinaryOperator):
     operator_display = None
     precedence = 640
     grouping = 'Right'
-
-    def post_parse(self, expression):
-        return Expression(expression.leaves[0].post_parse(),
-                          expression.leaves[1].post_parse())
 
 
 class Infix(Builtin):
@@ -1160,13 +1152,6 @@ class MessageName(BinaryOperator):
         pattern = Expression('MessageName', symbol, tag)
         return evaluation.definitions.get_value(
             symbol.get_name(), 'System`Messages', pattern, evaluation)
-
-    def post_parse(self, expr):
-        if len(expr.leaves) == 2 and expr.leaves[1].is_symbol():
-            msg = expr.leaves[1].get_name()
-            return Expression('MessageName', expr.leaves[0], String(msg))
-        else:
-            return expr
 
 
 class Syntax(Builtin):

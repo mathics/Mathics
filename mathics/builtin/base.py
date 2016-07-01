@@ -242,10 +242,6 @@ class Operator(Builtin):
     def is_postfix(self):
         return False
 
-    def post_parse(self, expression):
-        return Expression(expression.head.post_parse(), *[
-            leaf.post_parse() for leaf in expression.leaves])
-
 
 class Predefined(Builtin):
     def get_functions(self, prefix='apply'):

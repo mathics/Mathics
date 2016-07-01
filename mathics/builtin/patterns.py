@@ -717,23 +717,6 @@ class Optional(BinaryOperator, PatternObject):
 
     default_formats = False
 
-    def post_parse(self, expression):
-        leaves = [leaf.post_parse() for leaf in expression.leaves]
-        expression = Expression(expression.head.post_parse(), *leaves)
-        if (expression.has_form('Optional', 2) and expression.leaves[0].get_name()):
-            sub = expression.leaves[1]
-            if sub.has_form(('Pattern', 'Optional'), 2):
-                return Expression(
-                    'Optional',
-                    Expression('Pattern', expression.leaves[0], sub.leaves[0]),
-                    sub.leaves[1])
-            else:
-                return Expression(
-                    'Pattern',
-                    *[leaf.post_parse() for leaf in expression.leaves])
-        else:
-            return expression
-
     rules = {
         'MakeBoxes[Verbatim[Optional][Verbatim[Pattern][symbol_Symbol, Verbatim[_]]], f:StandardForm|TraditionalForm|InputForm|OutputForm]': 'MakeBoxes[symbol, f] <> "_."',
         'MakeBoxes[Verbatim[Optional][Verbatim[_]], f:StandardForm|TraditionalForm|InputForm|OutputForm]': '"_."',
