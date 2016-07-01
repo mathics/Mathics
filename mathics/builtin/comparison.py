@@ -85,9 +85,11 @@ class _InequalityOperator(BinaryOperator):
     grouping = 'NonAssociative'
 
     def apply(self, items, evaluation):
-        '%(name)s[items__]'
+        '%(name)s[items___]'
 
         items_sequence = items.get_sequence()
+        if len(items_sequence) <= 1:
+            return Symbol('True')
         all_numeric = all(item.is_numeric() and item.get_precision() is None
                           for item in items_sequence)
 
@@ -303,13 +305,16 @@ class Equal(_InequalityOperator, SympyFunction):
 
     #> a == a == a
      = True
+
+    #> {Equal[], Equal[x], Equal[1]}
+     = {True, True, True}
     """
     operator = '=='
     grouping = 'None'
     sympy_name = 'Eq'
 
     def apply_other(self, args, evaluation):
-        'Equal[args__?(!RealNumberQ[#]&)]'
+        'Equal[args___?(!RealNumberQ[#]&)]'
         args = numerify(args.get_sequence(), evaluation)
         for x, y in itertools.combinations(args, 2):
             c = do_compare(x, y)
@@ -363,13 +368,16 @@ class Unequal(_InequalityOperator, SympyFunction):
      = False
     #> a != b != a
      = a != b != a
+
+    #> {Unequal[], Unequal[x], Unequal[1]}
+     = {True, True, True}
     """
 
     operator = '!='
     sympy_name = 'Ne'
 
     def apply_other(self, args, evaluation):
-        'Unequal[args__?(!RealNumberQ[#]&)]'
+        'Unequal[args___?(!RealNumberQ[#]&)]'
         args = numerify(args.get_sequence(), evaluation)
         for x, y in itertools.combinations(args, 2):
             c = do_compare(x, y)
@@ -390,6 +398,9 @@ class Less(_InequalityOperator, SympyFunction):
     <dt>'$lhs$ < $rhs$'
         <dd>represents the inequality $lhs$ < $rhs$.
     </dl>
+
+    #> {Less[], Less[x], Less[1]}
+     = {True, True, True}
     """
     operator = '<'
     sympy_name = 'StrictLessThan'
