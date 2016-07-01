@@ -14,7 +14,7 @@ CSVExport[filename_String, data_, opts___]:=
     Close[strm];
   ]
 
-RegisterExport[
+ImportExport`RegisterExport[
   "CSV",
   System`Convert`TableDump`CSVExport,
   FunctionChannels -> {"FileNames"},

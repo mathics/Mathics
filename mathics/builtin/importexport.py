@@ -60,7 +60,6 @@ class ExportFormats(Predefined):
         return Expression('List', *sorted(EXPORTERS.keys()))
 
 
-# FIXME This should be private, ImportExport`RegisterImport
 class RegisterImport(Builtin):
     """
     <dl>
@@ -76,7 +75,7 @@ class RegisterImport(Builtin):
     >> ExampleFormat1Import[filename_String] := Module[{stream, head, data}, stream = OpenRead[filename]; head = ReadList[stream, String, 2]; data = Partition[ReadList[stream, Number], 2]; Close[stream]; {"Header" -> head, "Data" -> data}]
 
     'RegisterImport' is then used to register the above function to a new data format.
-    >> RegisterImport["ExampleFormat1", ExampleFormat1Import]
+    >> ImportExport`RegisterImport["ExampleFormat1", ExampleFormat1Import]
 
     >> FilePrint["ExampleData/ExampleData.txt"]
      | Example File Format
@@ -103,7 +102,7 @@ class RegisterImport(Builtin):
 
     >> ExampleFormat2DataImport[filename_String] := Module[{stream, data}, stream = OpenRead[filename]; Skip[stream, String, 2]; data = Partition[ReadList[stream, Number], 2]; Close[stream]; {"Data" -> data}]
 
-    >> RegisterImport["ExampleFormat2", {"Data" :> ExampleFormat2DataImport, ExampleFormat2DefaultImport}]
+    >> ImportExport`RegisterImport["ExampleFormat2", {"Data" :> ExampleFormat2DataImport, ExampleFormat2DefaultImport}]
 
     >> Import["ExampleData/ExampleData.txt", {"ExampleFormat2", "Elements"}]
      = {Data, Header}
@@ -134,6 +133,8 @@ class RegisterImport(Builtin):
 
     """
 
+    context = 'ImportExport`'
+
     attributes = ('Protected', 'ReadProtected')
 
     # XXX OptionsIssue
@@ -152,13 +153,13 @@ class RegisterImport(Builtin):
     }
 
     rules = {
-        'RegisterImport[formatname_String, function_]':
-        'RegisterImport[formatname, function, {}]',
+        'ImportExport`RegisterImport[formatname_String, function_]':
+        'ImportExport`RegisterImport[formatname, function, {}]',
     }
 
     def apply(self, formatname, function, posts, evaluation, options):
-        '''RegisterImport[formatname_String, function_, posts_,
-               OptionsPattern[RegisterImport]]'''
+        '''ImportExport`RegisterImport[formatname_String, function_, posts_,
+                OptionsPattern[ImportExport`RegisterImport]]'''
 
         if function.has_form('List', None):
             leaves = function.get_leaves()
@@ -181,7 +182,6 @@ class RegisterImport(Builtin):
         return Symbol('Null')
 
 
-# FIXME This should be private, ImportExport`RegisterExport
 class RegisterExport(Builtin):
     """
     <dl>
@@ -192,7 +192,7 @@ class RegisterExport(Builtin):
     Simple text exporter
     >> ExampleExporter1[filename_, data_, opts___] := Module[{strm = OpenWrite[filename], char = data}, WriteString[strm, char]; Close[strm]]
 
-    >> RegisterExport["ExampleFormat1", ExampleExporter1]
+    >> ImportExport`RegisterExport["ExampleFormat1", ExampleExporter1]
 
     >> Export["sample.txt", "Encode this string!", "ExampleFormat1"];
 
@@ -204,7 +204,7 @@ class RegisterExport(Builtin):
     Very basic encrypted text exporter
     >> ExampleExporter2[filename_, data_, opts___] := Module[{strm = OpenWrite[filename], char}, (* TODO: Check data *) char = FromCharacterCode[Mod[ToCharacterCode[data] - 84, 26] + 97]; WriteString[strm, char]; Close[strm]]
 
-    >> RegisterExport["ExampleFormat2", ExampleExporter2]
+    >> ImportExport`RegisterExport["ExampleFormat2", ExampleExporter2]
 
     >> Export["sample.txt", "encodethisstring", "ExampleFormat2"];
 
@@ -213,6 +213,8 @@ class RegisterExport(Builtin):
 
     #> DeleteFile["sample.txt"]
     """
+
+    context = 'ImportExport`'
 
     options = {
         'Path': 'Automatic',
@@ -229,7 +231,8 @@ class RegisterExport(Builtin):
     }
 
     def apply(self, formatname, function, evaluation, options):
-        'RegisterExport[formatname_String, function_, OptionsPattern[RegisterExport]]'
+        '''ImportExport`RegisterExport[formatname_String, function_,
+                OptionsPattern[ImportExport`RegisterExport]]'''
         EXPORTERS[formatname.get_string_value()] = function
 
         return Symbol('Null')

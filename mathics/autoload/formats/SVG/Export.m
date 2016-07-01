@@ -12,7 +12,7 @@ SVGExport[filename_, expr_, opts___] :=
     Close[strm];
   ]
 
-RegisterExport[
+ImportExport`RegisterExport[
     "SVG",
 	System`Convert`TextDump`SVGExport,
 	FunctionChannels -> {"FileNames"},
