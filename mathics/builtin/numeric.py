@@ -388,6 +388,35 @@ class NumericQ(Builtin):
         return Symbol('True') if test(expr) else Symbol('False')
 
 
+class RealValuedNumericQ(Builtin):
+    '''
+    #> Internal`RealValuedNumericQ /@ {1, N[Pi], 1/2, Sin[1.], Pi, 3/4, aa,  I}
+     = {True, True, True, True, True, True, False, False}
+    '''
+
+    context = 'Internal`'
+
+    rules = {
+        'Internal`RealValuedNumericQ[x_]': 'Head[N[x]] === Real',
+    }
+
+
+class RealValuedNumberQ(Builtin):
+    '''
+    #>  Internal`RealValuedNumberQ /@ {1, N[Pi], 1/2, Sin[1.], Pi, 3/4, aa, I}
+     = {True, True, True, True, False, True, False, False}
+    '''
+
+    context = 'Internal`'
+
+    rules = {
+        'Internal`RealValuedNumberQ[x_Real]': 'True',
+        'Internal`RealValuedNumberQ[x_Integer]': 'True',
+        'Internal`RealValuedNumberQ[x_Rational]': 'True',
+        'Internal`RealValuedNumberQ[x_]': 'False',
+    }
+
+
 class BaseForm(Builtin):
     """
     <dl>
