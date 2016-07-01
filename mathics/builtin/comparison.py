@@ -143,7 +143,6 @@ class _EqualityOperator(_InequalityOperator):
             return Symbol('True')
         args = self.numerify_args(items, evaluation)
         wanted = operators[self.get_name()]
-        args = numerify(items.get_sequence(), evaluation)
         for x, y in itertools.combinations(args, 2):
             c = do_cmp(x, y)
             if c is None:
@@ -155,7 +154,7 @@ class _EqualityOperator(_InequalityOperator):
 
     def apply_other(self, args, evaluation):
         '%(name)s[args___?(!RealNumberQ[#]&)]'
-        args = numerify(args.get_sequence(), evaluation)
+        args = args.get_sequence()
         for x, y in itertools.combinations(args, 2):
             c = self.do_compare(x, y)
             if c is None:
@@ -229,10 +228,6 @@ class Inequality(Builtin):
             groups = [Expression('Inequality', *items[index - 1:index + 2])
                       for index in range(1, count - 1, 2)]
             return Expression('And', *groups)
-
-
-def numerify(vars, evaluation):
-    return Expression('List', *vars).numerify(evaluation).leaves
 
 
 def do_cmp(x1, x2):
