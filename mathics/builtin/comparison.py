@@ -428,7 +428,7 @@ class GreaterEqual(_InequalityOperator, SympyFunction):
     sympy_name = 'GreaterThan'
 
 
-class Positive(Test):
+class Positive(Builtin):
     """
     <dl>
     <dt>'Positive[$x$]'
@@ -443,12 +443,22 @@ class Positive(Test):
      = False
     >> Positive[1 + 2 I]
      = False
+
+    #> Positive[Pi]
+     = True
+    #> Positive[x]
+     = Positive[x]
+    #> Positive[Sin[{11, 14}]]
+     = {False, True}
     """
-    def test(self, expr):
-        return isinstance(expr, (Integer, Rational, Real)) and expr.value > 0
+    attributes = ('Listable',)
+
+    rules = {
+        'Positive[x_?NumericQ]': 'If[x > 0, True, False, False]',
+    }
 
 
-class Negative(Test):
+class Negative(Builtin):
     """
     <dl>
     <dt>'Negative[$x$]'
@@ -462,15 +472,22 @@ class Negative(Test):
      = False
     >> Negative[1+2I]
      = False
-    >> Negative[a+b]
-     = False
+    >> Negative[a + b]
+     = Negative[a + b]
+    #> Negative[-E]
+     = True
+    #> Negative[Sin[{11, 14}]]
+     = {True, False}
     """
 
-    def test(self, expr):
-        return isinstance(expr, (Integer, Rational, Real)) and expr.value < 0
+    attributes = ('Listable',)
+
+    rules = {
+        'Negative[x_?NumericQ]': 'If[x < 0, True, False, False]',
+    }
 
 
-class NonNegative(Test):
+class NonNegative(Builtin):
     """
     <dl>
     <dt>'NonNegative[$x$]'
@@ -480,19 +497,30 @@ class NonNegative(Test):
     >> {Positive[0], NonNegative[0]}
      = {False, True}
     """
-    def test(self, expr):
-        return isinstance(expr, (Integer, Rational, Real)) and expr.value >= 0
+
+    attributes = ('Listable',)
+
+    rules = {
+        'NonNegative[x_?NumericQ]': 'If[x >= 0, True, False, False]',
+    }
 
 
-class NonPositive(Test):
+class NonPositive(Builtin):
     """
     <dl>
     <dt>'NonNegative[$x$]'
         <dd>returns 'True' if $x$ is a negative real number or zero.
     </dl>
+
+    >> {Negative[0], NonPositive[0]}
+     = {False, True}
     """
-    def test(self, expr):
-        return isinstance(expr, (Integer, Rational, Real)) and expr.value <= 0
+
+    attributes = ('Listable',)
+
+    rules = {
+        'NonPositive[x_?NumericQ]': 'If[x <= 0, True, False, False]',
+    }
 
 
 def expr_max(items):
