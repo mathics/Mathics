@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import sympy
+import itertools
 
 from mathics.builtin.base import Builtin, BinaryOperator, Test, SympyFunction
 from mathics.core.expression import (Expression, Number, Integer, Rational,
@@ -299,22 +300,25 @@ class Equal(_InequalityOperator, SympyFunction):
      = {True, True}
     #> {Mod[6, 2] == 0, Mod[6, 4] == 0, (Mod[6, 2] == 0) == (Mod[6, 4] == 0), (Mod[6, 2] == 0) != (Mod[6, 4] == 0)}
      = {True, False, False, True}
+
+    #> a == a == a
+     = True
     """
     operator = '=='
     grouping = 'None'
-
     sympy_name = 'Eq'
 
-    def apply_other(self, x, y, evaluation):
-        'Equal[x_?(!RealNumberQ[#]&), y_?(!RealNumberQ[#]&)]'
-
-        x, y = numerify([x, y], evaluation)
-        result = do_compare(x, y)
-        if result is not None:
-            if result:
-                return Symbol('True')
-            else:
+    def apply_other(self, args, evaluation):
+        'Equal[args__?(!RealNumberQ[#]&)]'
+        args = numerify(args.get_sequence(), evaluation)
+        for x, y in itertools.combinations(args, 2):
+            c = do_compare(x, y)
+            if c is None:
+                return
+            elif c is False:
                 return Symbol('False')
+            assert c is True
+        return Symbol('True')
 
 
 class Unequal(_InequalityOperator, SympyFunction):
@@ -348,22 +352,33 @@ class Unequal(_InequalityOperator, SympyFunction):
 
     #> a_ != b_
      = a_ != b_
+
+    #> a != a != a
+     = False
+    #> "abc" != "def" != "abc"
+     = False
+
+    ## Reproduce strange MMA behaviour
+    #> a != a != b
+     = False
+    #> a != b != a
+     = a != b != a
     """
 
     operator = '!='
-
     sympy_name = 'Ne'
 
-    def apply_other(self, x, y, evaluation):
-        'Unequal[x_?(!RealNumberQ[#]&), y_?(!RealNumberQ[#]&)]'
-
-        x, y = numerify([x, y], evaluation)
-        result = do_compare(x, y)
-        if result is not None:
-            if result:
+    def apply_other(self, args, evaluation):
+        'Unequal[args__?(!RealNumberQ[#]&)]'
+        args = numerify(args.get_sequence(), evaluation)
+        for x, y in itertools.combinations(args, 2):
+            c = do_compare(x, y)
+            if c is None:
+                return
+            elif c is True:
                 return Symbol('False')
-            else:
-                return Symbol('True')
+            assert c is False
+        return Symbol('True')
 
 
 class Less(_InequalityOperator, SympyFunction):
