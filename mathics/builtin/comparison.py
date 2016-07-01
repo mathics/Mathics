@@ -84,12 +84,9 @@ class _InequalityOperator(BinaryOperator):
     precedence = 290
     grouping = 'NonAssociative'
 
-    def apply(self, items, evaluation):
-        '%(name)s[items___]'
-
+    @staticmethod
+    def numerify_args(items, evaluation):
         items_sequence = items.get_sequence()
-        if len(items_sequence) <= 1:
-            return Symbol('True')
         all_numeric = all(item.is_numeric() and item.get_precision() is None
                           for item in items_sequence)
 
@@ -108,15 +105,84 @@ class _InequalityOperator(BinaryOperator):
             items = n_items
         else:
             items = items.numerify(evaluation).get_sequence()
+        return items
+
+
+class _EqualityOperator(_InequalityOperator):
+    'Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c.'
+    def do_compare(self, l1, l2):
+        if l1.same(l2):
+            return True
+        elif l1 == Symbol('System`True') and l2 == Symbol('System`False'):
+            return False
+        elif l1 == Symbol('System`False') and l2 == Symbol('System`True'):
+            return False
+        elif isinstance(l1, String) and isinstance(l2, String):
+            return False
+        elif l1.to_sympy().is_number and l2.to_sympy().is_number:
+            # assert min_prec(l1, l2) is None
+            prec = 64  # TODO: Use $MaxExtraPrecision
+            if l1.to_sympy().n(dps(prec)) == l2.to_sympy().n(dps(prec)):
+                return True
+            return False
+        elif l1.has_form('List', None) and l2.has_form('List', None):
+            if len(l1.leaves) != len(l2.leaves):
+                return False
+            for item1, item2 in zip(l1.leaves, l2.leaves):
+                result = self.do_compare(item1, item2)
+                if not result:
+                    return result
+            return True
+        else:
+            return None
+
+    def apply(self, items, evaluation):
+        '%(name)s[items___]'
+        items_sequence = items.get_sequence()
+        if len(items_sequence) <= 1:
+            return Symbol('True')
+        args = self.numerify_args(items, evaluation)
         wanted = operators[self.get_name()]
-        prev = None
-        for item in items:
-            if (item.get_real_value() is None and
-                not item.has_form('DirectedInfinity', None)):   # nopep8
+        args = numerify(items.get_sequence(), evaluation)
+        for x, y in itertools.combinations(args, 2):
+            c = do_cmp(x, y)
+            if c is None:
                 return
-            if prev is not None and do_cmp(prev, item) not in wanted:
+            elif c not in wanted:
                 return Symbol('False')
-            prev = item
+            assert c in wanted
+        return Symbol('True')
+
+    def apply_other(self, args, evaluation):
+        '%(name)s[args___?(!RealNumberQ[#]&)]'
+        args = numerify(args.get_sequence(), evaluation)
+        for x, y in itertools.combinations(args, 2):
+            c = self.do_compare(x, y)
+            if c is None:
+                return
+            if self._op(c) is False:
+                return Symbol('False')
+        return Symbol('True')
+
+
+class _ComparisonOperator(_InequalityOperator):
+    'Compares arguments in a chain e.g. a < b < c compares a < b and b < c.'
+    def apply(self, items, evaluation):
+        '%(name)s[items___]'
+        items_sequence = items.get_sequence()
+        if len(items_sequence) <= 1:
+            return Symbol('True')
+        items = self.numerify_args(items, evaluation)
+        wanted = operators[self.get_name()]
+        for i in range(len(items) - 1):
+            x = items[i]
+            y = items[i + 1]
+            c = do_cmp(x, y)
+            if c is None:
+                return
+            elif c not in wanted:
+                return Symbol('False')
+            assert c in wanted
         return Symbol('True')
 
 
@@ -205,34 +271,7 @@ def do_cmp(x1, x2):
         return None
 
 
-def do_compare(l1, l2):
-    if l1.same(l2):
-        return True
-    elif l1 == Symbol('System`True') and l2 == Symbol('System`False'):
-        return False
-    elif l1 == Symbol('System`False') and l2 == Symbol('System`True'):
-        return False
-    elif isinstance(l1, String) and isinstance(l2, String):
-        return False
-    elif l1.to_sympy().is_number and l2.to_sympy().is_number:
-        # assert min_prec(l1, l2) is None
-        prec = 64  # TODO: Use $MaxExtraPrecision
-        if l1.to_sympy().n(dps(prec)) == l2.to_sympy().n(dps(prec)):
-            return True
-        return False
-    elif l1.has_form('List', None) and l2.has_form('List', None):
-        if len(l1.leaves) != len(l2.leaves):
-            return False
-        for item1, item2 in zip(l1.leaves, l2.leaves):
-            result = do_compare(item1, item2)
-            if not result:
-                return result
-        return True
-    else:
-        return None
-
-
-class Equal(_InequalityOperator, SympyFunction):
+class Equal(_EqualityOperator, SympyFunction):
     """
     <dl>
     <dt>'Equal[$x$, $y$]'
@@ -313,20 +352,12 @@ class Equal(_InequalityOperator, SympyFunction):
     grouping = 'None'
     sympy_name = 'Eq'
 
-    def apply_other(self, args, evaluation):
-        'Equal[args___?(!RealNumberQ[#]&)]'
-        args = numerify(args.get_sequence(), evaluation)
-        for x, y in itertools.combinations(args, 2):
-            c = do_compare(x, y)
-            if c is None:
-                return
-            elif c is False:
-                return Symbol('False')
-            assert c is True
-        return Symbol('True')
+    @staticmethod
+    def _op(x):
+        return x
 
 
-class Unequal(_InequalityOperator, SympyFunction):
+class Unequal(_EqualityOperator, SympyFunction):
     """
     <dl>
     <dt>'Unequal[$x$, $y$]'
@@ -376,20 +407,12 @@ class Unequal(_InequalityOperator, SympyFunction):
     operator = '!='
     sympy_name = 'Ne'
 
-    def apply_other(self, args, evaluation):
-        'Unequal[args___?(!RealNumberQ[#]&)]'
-        args = numerify(args.get_sequence(), evaluation)
-        for x, y in itertools.combinations(args, 2):
-            c = do_compare(x, y)
-            if c is None:
-                return
-            elif c is True:
-                return Symbol('False')
-            assert c is False
-        return Symbol('True')
+    @staticmethod
+    def _op(x):
+        return not x
 
 
-class Less(_InequalityOperator, SympyFunction):
+class Less(_ComparisonOperator, SympyFunction):
     """
     <dl>
     <dt>'Less[$x$, $y$]'
@@ -401,12 +424,13 @@ class Less(_InequalityOperator, SympyFunction):
 
     #> {Less[], Less[x], Less[1]}
      = {True, True, True}
+
     """
     operator = '<'
     sympy_name = 'StrictLessThan'
 
 
-class LessEqual(_InequalityOperator, SympyFunction):
+class LessEqual(_ComparisonOperator, SympyFunction):
     """
     <dl>
     <dt>'LessEqual[$x$, $y$]'
@@ -420,7 +444,7 @@ class LessEqual(_InequalityOperator, SympyFunction):
     sympy_name = 'LessThan'
 
 
-class Greater(_InequalityOperator, SympyFunction):
+class Greater(_ComparisonOperator, SympyFunction):
     """
     <dl>
     <dt>'Greater[$x$, $y$]'
@@ -439,7 +463,7 @@ class Greater(_InequalityOperator, SympyFunction):
     sympy_name = 'StrictGreaterThan'
 
 
-class GreaterEqual(_InequalityOperator, SympyFunction):
+class GreaterEqual(_ComparisonOperator, SympyFunction):
     """
     <dl>
     <dt>'GreaterEqual[$x$, $y$]'
