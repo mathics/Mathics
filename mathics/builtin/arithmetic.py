@@ -344,41 +344,6 @@ class Minus(PrefixOperator):
 
         return Integer(-x.to_sympy())
 
-    def post_parse(self, expression):
-        if (expression.get_head().get_name() == 'System`Minus' and
-            len(expression.leaves) == 1 and
-            isinstance(expression.leaves[0], Number)):  # nopep8
-
-            return Number.from_mp(-expression.leaves[0].to_sympy())
-        else:
-            return super(Minus, self).post_parse(expression)
-
-
-class PrePlus(PrefixOperator):
-    """
-    Hack to help the parser distinguish between binary and unary Plus.
-
-    >> +a //FullForm
-     = a
-
-    #> +(x - 2/3 + y)
-     = -2 / 3 + x + y
-
-    #> +Infinity
-     = Infinity
-    """
-
-    operator = '+'
-    precedence = 480
-    attributes = ('Listable', 'NumericFunction')
-
-    def apply_int(self, x, evaluation):
-        'PrePlus[x_]'
-        return x
-
-    def post_parse(self, expression):
-        return expression.leaves[0]
-
 
 def create_infix(items, operator, prec, grouping):
     if len(items) == 1:
@@ -663,31 +628,6 @@ class Divide(BinaryOperator):
         (('InputForm', 'OutputForm'), 'Divide[x_, y_]'): (
             'Infix[{HoldForm[x], HoldForm[y]}, "/", 400, Left]'),
     }
-
-    def post_parse(self, expression):
-        if len(expression.leaves) == 2:
-            if (isinstance(expression.leaves[0], Integer) and   # noqa
-                isinstance(expression.leaves[1], Integer) and
-                expression.leaves[1].to_sympy() != 0):
-
-                return Number.from_mp(Rational(
-                    expression.leaves[0].to_sympy(),
-                    expression.leaves[1].to_sympy()).to_sympy())
-            else:
-                if (isinstance(expression.leaves[0], Integer) and   # noqa
-                    expression.leaves[0].to_sympy() == 1):
-
-                    return Expression('Power',
-                                      expression.leaves[1].post_parse(),
-                                      Integer(-1))
-                else:
-                    return Expression(
-                        'Times', expression.leaves[0].post_parse(),
-                        Expression('Power', expression.leaves[1].post_parse(),
-                                   Integer(-1)))
-        else:
-            return super(Divide, self).post_parse(expression)
-
 
 class Power(BinaryOperator, SympyFunction):
     """

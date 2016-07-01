@@ -320,9 +320,6 @@ class BaseExpression(KeyComparable):
             return self.head.is_free(form, evaluation) and all(
                 leaf.is_free(form, evaluation) for leaf in self.leaves)
 
-    def post_parse(self):
-        return self
-
     def is_inexact(self):
         return self.get_precision() is not None
 
@@ -868,13 +865,6 @@ class Expression(BaseExpression):
         finally:
             evaluation.options = old_options
             evaluation.dec_recursion_depth()
-
-    def post_parse(self):
-        if self.parse_operator is not None:
-            return self.parse_operator.post_parse(self)
-        else:
-            return Expression(self.head.post_parse(),
-                              *[leaf.post_parse() for leaf in self.leaves])
 
     def evaluate_leaves(self, evaluation):
         leaves = [leaf.evaluate(evaluation) for leaf in self.leaves]

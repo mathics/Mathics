@@ -83,40 +83,6 @@ class _InequalityOperator(BinaryOperator):
     precedence = 290
     grouping = 'NonAssociative'
 
-    def parse(self, args):
-        # Parse multiple inequalities.
-        # "a op b op c" -> op[a, b, c]
-        # "a op1 b op2 c" -> Inequality[a, op1, b, op2, c]
-
-        def inequality_leaves(expression):
-            if expression.parenthesized:
-                return [expression]
-            name = expression.get_head().get_name()
-            leaves = expression.get_leaves()
-            if name == 'System`Inequality':
-                return leaves
-            elif name in operators:
-                result = []
-                for leaf in leaves[:-1]:
-                    result.extend([leaf, Symbol(name)])
-                result.extend(leaves[-1:])
-                return result
-            else:
-                return [expression]
-
-        left = args[0]
-        right = args[2]
-        name = self.get_name()
-
-        left_leaves = inequality_leaves(left)
-        right_leaves = inequality_leaves(right)
-        leaves = left_leaves + [Symbol(name)] + right_leaves
-        ops = set(leaves[1::2])
-        if len(ops) == 1:
-            return Expression(ops.pop(), *leaves[0::2])
-        else:
-            return Expression('Inequality', *leaves)
-
     def apply(self, items, evaluation):
         '%(name)s[items__]'
 
