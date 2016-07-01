@@ -2777,7 +2777,7 @@ class Variance(_Rectangular):
     # https://en.wikipedia.org/wiki/Variance#Generalizations
 
     def apply(self, l, evaluation):
-        'Variance[l_]'
+        'Variance[l_List]'
         if len(l.leaves) <= 1:
             evaluation.message('Variance', 'shlen', l)
         elif all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
@@ -2817,7 +2817,7 @@ class StandardDeviation(_Rectangular):
     }
 
     def apply(self, l, evaluation):
-        'StandardDeviation[l_]'
+        'StandardDeviation[l_List]'
         if len(l.leaves) <= 1:
             evaluation.message('StandardDeviation', 'shlen', l)
         elif all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
