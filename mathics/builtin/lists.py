@@ -2728,17 +2728,27 @@ class Mean(Builtin):
     }
 
 
+class _NotRectangularException(Exception):
+    pass
+
+
 class _Rectangular(Builtin):
-    def rect(self, l, err, evaluation):
+    # A helper for Builtins X that allow X[{a1, a2, ...}, {b1, b2, ...}, ...] to be evaluated
+    # as {X[{a1, b1, ...}, {a1, b2, ...}, ...]}.
+
+    def rect(self, l):
         lengths = [len(leaf.leaves) for leaf in l.leaves]
         if all(length == 0 for length in lengths):
-            return
+            return  # leave as is, without error
+
         n_columns = lengths[0]
         if any(length != n_columns for length in lengths[1:]):
-            evaluation.message(self.get_name(), err, Expression(self.get_name(), l))
-        else:
-            return Expression('List', *[Expression(self.get_name(), Expression('List', *items)) for items in [
-                [leaf.leaves[i] for leaf in l.leaves] for i in range(n_columns)]])
+            raise _NotRectangularException()
+
+        transposed = [[leaf.leaves[i] for leaf in l.leaves] for i in range(n_columns)]
+
+        return Expression('List', *[Expression(
+            self.get_name(), Expression('List', *items)) for items in transposed])
 
 
 class Variance(_Rectangular):
@@ -2781,7 +2791,10 @@ class Variance(_Rectangular):
         if len(l.leaves) <= 1:
             evaluation.message('Variance', 'shlen', l)
         elif all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
-            return self.rect(l, 'rectt', evaluation)
+            try:
+                return self.rect(l)
+            except _NotRectangularException:
+                evaluation.message('Variance', 'rectt', Expression('Variance', l))
         else:
             d = Expression('Subtract', l, Expression('Mean', l))
             return Expression('Divide', Expression('Dot', d, Expression('Conjugate', d)), len(l.leaves) - 1)
@@ -2821,7 +2834,10 @@ class StandardDeviation(_Rectangular):
         if len(l.leaves) <= 1:
             evaluation.message('StandardDeviation', 'shlen', l)
         elif all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
-            return self.rect(l, 'rectt', evaluation)
+            try:
+                return self.rect(l)
+            except _NotRectangularException:
+                evaluation.message('StandardDeviation', 'rectt', Expression('StandardDeviation', l))
         else:
             return Expression('Sqrt', Expression('Variance', l))
 
@@ -2944,7 +2960,10 @@ class Median(_Rectangular):
         if not l.leaves:
             return
         if all(leaf.get_head_name() == 'System`List' for leaf in l.leaves):
-            return self.rect(l, 'rectn', evaluation)
+            try:
+                return self.rect(l)
+            except _NotRectangularException:
+                evaluation.message('Median', 'rectn', Expression('Median', l))
         elif all(leaf.is_numeric() for leaf in l.leaves):
             v = l.leaves[:]  # copy needed for introselect
             n = len(v)
