@@ -23,6 +23,8 @@ class Erf(_MPMathFunction):
     <dl>
     <dt>'Erf[$z$]'
         <dd>returns the error function of $z$.
+    <dt>'Erf[$z0$, $z1$]'
+        <dd>returns the result of 'Erf[$z1$] - Erf[$z0$]'.
     </dl>
 
     >> Erf[1.0]
@@ -32,6 +34,10 @@ class Erf(_MPMathFunction):
     >> Plot[Erf[x], {x, -2, 2}]
      = -Graphics-
     """
+
+    rules = {
+        'Erf[z0_, z1_]': 'Erf[z1] - Erf[z0]',
+    }
 
     mpmath_name = 'erf'
 
