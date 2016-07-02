@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 import mpmath
 
-from mathics.builtin.base import Builtin
+from mathics.builtin.base import Builtin, SympyFunction
 from mathics.builtin.arithmetic import _MPMathFunction
 from mathics.core.expression import Integer
 from mathics.core.numbers import mpmath2sympy
@@ -36,6 +36,23 @@ class Erf(_MPMathFunction):
     mpmath_name = 'erf'
 
 
+class InverseErf(_MPMathFunction):
+    """
+    <dl>
+    <dt>'InverseErf[$z$]'
+        <dd>returns the inverse error function of $z$.
+    </dl>
+
+    >> InverseErf /@ {-1, 0, 1}
+     = {-Infinity, 0, Infinity}
+    >> Plot[InverseErf[x], {x, -1, 1}]
+     = -Graphics-
+    """
+
+    sympy_name = 'erfinv'
+    mpmath_name = 'erfinv'
+
+
 class Erfc(_MPMathFunction):
     """
     <dl>
@@ -52,6 +69,20 @@ class Erfc(_MPMathFunction):
     """
 
     mpmath_name = 'erfc'
+
+
+class InverseErfc(_MPMathFunction):
+    """
+    <dl>
+    <dt>'InverseErfc[$z$]'
+        <dd>returns the inverse complementary error function of $z$.
+    </dl>
+
+    >> InverseErfc /@ {0, 1, 2}
+     = {Infinity, 0, -Infinity}
+    """
+
+    sympy_name = 'erfcinv'
 
 
 class ProductLog(_MPMathFunction):
