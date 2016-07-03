@@ -57,7 +57,8 @@ class Floor(SympyFunction):
     def apply_real(self, x, evaluation):
         'Floor[x_]'
         x = x.to_sympy()
-        return from_sympy(sympy.floor(x))
+        if x is not None:
+            return from_sympy(sympy.floor(x))
 
 
 class Ceiling(SympyFunction):

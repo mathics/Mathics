@@ -99,7 +99,7 @@ class SympyExpression(BasicSympy):
 
     @property
     def is_commutative(self):
-        if all(getattr(t, 'is_commutative') for t in self.args):
+        if all(getattr(t, 'is_commutative', False) for t in self.args):
             return True
         else:
             return False
