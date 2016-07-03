@@ -480,29 +480,33 @@ class Variables(Builtin):
 
         variables = set()
 
-        def find_vars(e):
-            e_sympy = e.to_sympy()
-            if e_sympy is None or e_sympy.is_constant():
+        def find_vars(e, e_sympy):
+            assert e_sympy is not None
+            if e_sympy.is_constant():
                 return
             elif e.is_symbol():
                 variables.add(e)
             elif (e.has_form('Plus', None) or
                   e.has_form('Times', None)):
                 for l in e.leaves:
-                    find_vars(l)
+                    l_sympy = l.to_sympy()
+                    if l_sympy is not None:
+                        find_vars(l, l_sympy)
             elif e.has_form('Power', 2):
                 (a, b) = e.leaves  # a^b
                 a_sympy, b_sympy = a.to_sympy(), b.to_sympy()
                 if a_sympy is None or b_sympy is None:
                     return
                 if not(a_sympy.is_constant()) and b_sympy.is_rational:
-                    find_vars(a)
+                    find_vars(a, a_sympy)
             elif not(e.is_atom()):
                 variables.add(e)
 
         exprs = expr.leaves if expr.has_form('List', None) else [expr]
         for e in exprs:
-            find_vars(from_sympy(e_sympy.expand()))
+            e_sympy = e.to_sympy()
+            if e_sympy is not None:
+                find_vars(e, e_sympy)
 
         variables = Expression('List', *variables)
         variables.sort()        # MMA doesn't do this
