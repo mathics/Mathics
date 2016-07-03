@@ -1414,18 +1414,7 @@ class Factorial(PostfixOperator, _MPMathFunction):
 
     operator = '!'
     precedence = 610
-
-    def apply_int(self, n, evaluation):
-        'Factorial[n_Integer]'
-
-        n = n.to_sympy()
-        if n < 0:
-            return Symbol('ComplexInfinity')
-        else:
-            return Integer(sympy.factorial(n))
-
-    def eval(self, z):
-        return mpmath.factorial(z)
+    mpmath_name = 'factorial'
 
 
 class Gamma(_MPMathFunction):
