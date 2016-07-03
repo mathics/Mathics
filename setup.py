@@ -46,13 +46,6 @@ is_PyPy = (platform.python_implementation() == 'PyPy')
 INSTALL_REQUIRES = []
 DEPENDENCY_LINKS = []
 
-if is_PyPy:
-    if os.environ.get('PYPY_NUMPY') == 'true':
-        DEPENDENCY_LINKS += ['git+https://bitbucket.org/pypy/numpy.git#egg=pypy_numpy-1.8']
-        INSTALL_REQUIRES += ['pypy_numpy>=1.8']
-else:
-    INSTALL_REQUIRES += ['numpy>=1.8']
-
 try:
     if is_PyPy:
         raise ImportError
