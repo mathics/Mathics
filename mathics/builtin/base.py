@@ -354,6 +354,11 @@ class SympyFunction(SympyObject):
     def prepare_sympy(self, leaves):
         return leaves
 
+    def get_sympy_function(self, leaves):
+        if self.sympy_name:
+            return getattr(sympy, self.sympy_name)
+        return None
+
     def to_sympy(self, expr, **kwargs):
         try:
             if self.sympy_name:
@@ -361,8 +366,8 @@ class SympyFunction(SympyObject):
                 sympy_args = [leaf.to_sympy(**kwargs) for leaf in leaves]
                 if None in sympy_args:
                     return None
-                method = getattr(sympy, self.sympy_name)
-                return method(*sympy_args)
+                sympy_function = self.get_sympy_function(leaves)
+                return sympy_function(*sympy_args)
         except TypeError:
             pass
 

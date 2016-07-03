@@ -34,23 +34,20 @@ class _MPMathFunction(SympyFunction):
 
     nargs = 1
 
-    def eval(self, *args):
-        if self.mpmath_name is None:
+    def get_mpmath_function(self, args):
+        if self.mpmath_name is None or len(args) != self.nargs:
             return None
+        return getattr(mpmath, self.mpmath_name)
 
-        mpmath_function = getattr(mpmath, self.mpmath_name)
-        return mpmath_function(*args)
-
-    def check_nargs(self, nargs):
-        return nargs == self.nargs
+    def eval(self, *args):
+        return self.get_mpmath_function(args)(*args)
 
     def apply(self, z, evaluation):
         '%(name)s[z__]'
 
         args = z.get_sequence()
-
-        if not self.check_nargs(len(args)):
-            return
+        mpmath_function = self.get_mpmath_function(args)
+        result = None
 
         # if no arguments are inexact attempt to use sympy
         if all(not x.is_inexact() for x in args):
@@ -59,7 +56,7 @@ class _MPMathFunction(SympyFunction):
             result = from_sympy(result)
             # evaluate leaves to convert e.g. Plus[2, I] -> Complex[2, 1]
             result = result.evaluate_leaves(evaluation)
-        else:
+        elif mpmath_function is not None:
             prec = min_prec(*args)
             with mpmath.workprec(prec):
                 sympy_args = [x.to_sympy() for x in args]
@@ -83,6 +80,34 @@ class _MPMathFunction(SympyFunction):
                     return Symbol(exc.name)
 
         return result
+
+
+class _MPMathMultiFunction(_MPMathFunction):
+
+    sympy_names = None
+    mpmath_names = None
+
+    def get_sympy_names(self):
+        if self.sympy_names is None:
+            return [self.sympy_name]
+        return self.sympy_names.values()
+
+    def get_function(self, module, names, fallback_name, leaves):
+        try:
+            name = fallback_name
+            if names is not None:
+                name = names[len(leaves)]
+            return getattr(module, name)
+        except KeyError:
+            return None
+
+    def get_sympy_function(self, leaves):
+        return self.get_function(
+            sympy, self.sympy_names, self.sympy_name, leaves)
+
+    def get_mpmath_function(self, leaves):
+        return self.get_function(
+            mpmath, self.mpmath_names, self.mpmath_name, leaves)
 
 
 class Plus(BinaryOperator, SympyFunction):
@@ -1428,7 +1453,7 @@ class Factorial(PostfixOperator, _MPMathFunction):
     mpmath_name = 'factorial'
 
 
-class Gamma(_MPMathFunction):
+class Gamma(_MPMathMultiFunction):
     """
     <dl>
     <dt>'Gamma[$z$]'
@@ -1470,10 +1495,19 @@ class Gamma(_MPMathFunction):
      = 1.4
     #> % // Precision
      = 100.
+
+    ## Needs mpmath support for lowergamma
+    #> Gamma[1., 2.]
+     = Gamma[1., 2.]
     """
 
-    mpmath_name = 'gamma'
-    nargs = (1, 2)
+    mpmath_names = {
+        1: 'gamma',
+    }
+    sympy_names = {
+        1: 'gamma',
+        2: 'uppergamma',
+    }
 
     rules = {
         'Gamma[z_, x0_, x1_]': 'Gamma[z, x0] - Gamma[z, x1]',
@@ -1482,25 +1516,6 @@ class Gamma(_MPMathFunction):
 
     def get_sympy_names(self):
         return ['gamma', 'uppergamma', 'lowergamma']
-
-    def check_nargs(self, nargs):
-        return self.nargs[0] <= nargs <= self.nargs[1]
-
-    def to_sympy(self, expr, **kwargs):
-        try:
-            sympy_function = {
-                1: sympy.gamma,
-                2: sympy.uppergamma,
-            }[len(expr.leaves)]
-            leaves = self.prepare_sympy(expr.leaves)
-            sympy_leaves = [leaf.to_sympy(**kwargs) for leaf in leaves]
-            if None in sympy_leaves:
-                return
-            return sympy_function(*sympy_leaves)
-        except KeyError:
-            return None
-        except TypeError:
-            pass
 
     def from_sympy(self, sympy_name, leaves):
         if sympy_name == 'lowergamma':
