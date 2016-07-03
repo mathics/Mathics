@@ -11,14 +11,14 @@ from __future__ import absolute_import
 import mpmath
 
 from mathics.builtin.base import Builtin, SympyFunction
-from mathics.builtin.arithmetic import _MPMathFunction
+from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
 from mathics.core.expression import Integer
 from mathics.core.numbers import mpmath2sympy
 from mathics.core.convert import from_sympy
 from mathics.builtin.numeric import get_precision
 
 
-class Erf(_MPMathFunction):
+class Erf(_MPMathMultiFunction):
     """
     <dl>
     <dt>'Erf[$z$]'
@@ -31,15 +31,19 @@ class Erf(_MPMathFunction):
      = 0.842700792949714869
     >> Erf[0]
      = 0
+    >> {Erf[0, x], Erf[x, 0]}
+     = {Erf[x], -Erf[x]}
     >> Plot[Erf[x], {x, -2, 2}]
      = -Graphics-
     """
 
-    rules = {
-        'Erf[z0_, z1_]': 'Erf[z1] - Erf[z0]',
+    mpmath_names = {
+        1: 'erf',
     }
-
-    mpmath_name = 'erf'
+    sympy_names = {
+        1: 'erf',
+        2: 'erf2',
+    }
 
 
 class InverseErf(_MPMathFunction):
