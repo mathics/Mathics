@@ -33,7 +33,7 @@ class Fibonacci(Builtin):
     def apply(self, n, evaluation):
         'Fibonacci[n_Integer]'
 
-        return Integer(sympy.fibonacci(n.to_sympy()))
+        return Integer(sympy.fibonacci(n.get_int_value()))
 
 
 class Binomial(_MPMathFunction):

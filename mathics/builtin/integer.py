@@ -85,6 +85,8 @@ class Ceiling(SympyFunction):
     def apply(self, x, evaluation):
         'Ceiling[x_]'
         x = x.to_sympy()
+        if x is None:
+            return
         return from_sympy(sympy.ceiling(x))
 
 

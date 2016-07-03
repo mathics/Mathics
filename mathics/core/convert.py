@@ -56,9 +56,11 @@ class SympyExpression(BasicSympy):
         elif len(exprs) == 1 and isinstance(exprs[0], Expression):
             # called with Mathics argument
             expr = exprs[0]
-            obj = BasicSympy.__new__(
-                cls, expr.head.to_sympy(),
-                *tuple(leaf.to_sympy() for leaf in expr.leaves))
+            sympy_head = expr.head.to_sympy()
+            sympy_leaves = [leaf.to_sympy() for leaf in expr.leaves]
+            if sympy_head is None or None in sympy_leaves:
+                return None
+            obj = BasicSympy.__new__(cls, sympy_head, *sympy_leaves)
             obj.expr = expr
         else:
             raise TypeError

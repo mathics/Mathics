@@ -313,6 +313,8 @@ class Derivative(PostfixOperator, SympyFunction):
             return
 
         sym_x = exprs[0].leaves[0].to_sympy()
+        if sym_x is None:
+            return
         func = exprs[1].leaves[0]
         sym_func = sympy.Function(str(
             sympy_symbol_prefix + func.__str__()))(sym_x)
@@ -457,7 +459,7 @@ class Integrate(SympyFunction):
         'Integrate[f_, xs__]'
 
         f_sympy = f.to_sympy()
-        if isinstance(f_sympy, SympyExpression):
+        if f_sympy is None or isinstance(f_sympy, SympyExpression):
             return
         xs = xs.get_sequence()
         vars = []
@@ -473,12 +475,16 @@ class Integrate(SympyFunction):
                         prec = prec_new
                 a = a.to_sympy()
                 b = b.to_sympy()
+                if a is None or b is None:
+                    return
             else:
                 a = b = None
             if not x.get_name():
                 evaluation.message('Integrate', 'ilim')
                 return
             x = x.to_sympy()
+            if x is None:
+                return
             if a is None or b is None:
                 vars.append(x)
             else:
@@ -653,6 +659,8 @@ class Solve(Builtin):
                 left, right = eq.leaves
                 left = left.to_sympy()
                 right = right.to_sympy()
+                if left is None or right is None:
+                    return
                 eq = left - right
                 eq = sympy.together(eq)
                 eq = sympy.cancel(eq)
@@ -661,6 +669,8 @@ class Solve(Builtin):
                 sympy_denoms.append(denom)
 
         vars_sympy = [var.to_sympy() for var in vars]
+        if None in vars_sympy:
+            return
 
         # delete unused variables to avoid SymPy's
         # PolynomialError: Not a zero-dimensional system
@@ -811,6 +821,9 @@ class Limit(Builtin):
         expr = expr.to_sympy()
         x = x.to_sympy()
         x0 = x0.to_sympy()
+
+        if expr is None or x is None or x0 is None:
+            return
 
         direction = self.get_option(options, 'Direction', evaluation)
         value = direction.get_int_value()
