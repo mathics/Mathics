@@ -581,6 +581,7 @@ named_characters = {
     'Mercury': '\u263F',
     'Mho': '\u2127',
     'Micro': '\u00B5',
+    'Minus': '\u2212',
     'MinusPlus': '\u2213',
     'Mu': '\u03BC',
     'Nand': '\u22BC',
