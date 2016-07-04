@@ -823,6 +823,9 @@ class Sqrt(SympyFunction):
 
     >> Plot[Sqrt[a^2], {a, -2, 2}]
      = -Graphics-
+
+    #> N[Sqrt[2], 50]
+     = 1.4142135623730950488016887242096980785696718753769
     """
 
     attributes = ('Listable', 'NumericFunction')

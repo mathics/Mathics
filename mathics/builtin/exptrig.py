@@ -226,6 +226,9 @@ class Sin(_MPMathFunction):
 
     >> Plot[Sin[x], {x, -Pi, Pi}]
      = -Graphics-
+
+    #> N[Sin[1], 40]
+     = 0.8414709848078965066525023216302989996226
     """
 
     mpmath_name = 'sin'
