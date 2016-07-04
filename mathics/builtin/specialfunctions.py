@@ -858,3 +858,34 @@ class LaguerreL(_MPMathFunction):
 #    nargs = 3
 #    sympy_name = ''
 #    mpmath_name = ''
+
+
+class ExpIntegralEi(_MPMathFunction):
+    '''
+    <dl>
+    <dt>'ExpIntegralEi[$z$]'
+      <dd>returns the exponential integral function $Ei(z)$.
+    </dl>
+
+    >> ExpIntegralEi[2.0]
+     = 4.95423435600189016
+    '''
+
+    sympy_name = 'Ei'
+    mpmath_name = 'ei'
+
+
+class ExpIntegralE(_MPMathFunction):
+    '''
+    <dl>
+    <dt>'ExpIntegralE[$n$, $z$]'
+      <dd>returns the exponential integral function $E_n(z)$.
+    </dl>
+
+    >> ExpIntegralE[2.0, 2.0]
+     = 0.0375342618204904528
+    '''
+
+    nargs = 2
+    sympy_name = 'expint'
+    mpmath_name = 'expint'

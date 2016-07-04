@@ -1439,6 +1439,8 @@ class Gamma(_MPMathFunction):
      = Sqrt[Pi]
     >> Gamma[1, x]
      = E ^ (-x)
+    >> Gamma[0, x]
+     = ExpIntegralE[1, x]
 
     Numeric arguments:
     >> Gamma[1.*^20]
