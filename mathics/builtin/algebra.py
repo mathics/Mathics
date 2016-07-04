@@ -32,6 +32,9 @@ def cancel(expr):
     else:
         try:
             result = expr.to_sympy()
+            if result is None:
+                return None
+
             # result = sympy.powsimp(result, deep=True)
             result = sympy.cancel(result)
 
@@ -99,6 +102,8 @@ class Simplify(Builtin):
         'Simplify[expr_]'
 
         sympy_expr = expr.to_sympy()
+        if sympy_expr is None:
+            return
         sympy_result = sympy.simplify(sympy_expr)
         return from_sympy(sympy_result)
 
@@ -129,6 +134,8 @@ class Together(Builtin):
         'Together[expr_]'
 
         expr_sympy = expr.to_sympy()
+        if expr_sympy is None:
+            return None
         result = sympy.together(expr_sympy)
         result = from_sympy(result)
         result = cancel(result)
@@ -153,6 +160,9 @@ class Factor(Builtin):
         'Factor[expr_]'
 
         expr_sympy = expr.to_sympy()
+        if expr_sympy is None:
+            return None
+
         try:
             result = sympy.together(expr_sympy)
             numer, denom = result.as_numer_denom()
@@ -211,6 +221,9 @@ class Apart(Builtin):
 
         expr_sympy = expr.to_sympy()
         var_sympy = var.to_sympy()
+        if expr_sympy is None or var_sympy is None:
+            return None
+
         try:
             result = sympy.apart(expr_sympy, var_sympy)
             result = from_sympy(result)
@@ -408,6 +421,8 @@ class Numerator(Builtin):
         'Numerator[expr_]'
 
         sympy_expr = expr.to_sympy()
+        if sympy_expr is None:
+            return None
         numer, denom = sympy_expr.as_numer_denom()
         return from_sympy(numer)
 
@@ -431,6 +446,8 @@ class Denominator(Builtin):
         'Denominator[expr_]'
 
         sympy_expr = expr.to_sympy()
+        if sympy_expr is None:
+            return None
         numer, denom = sympy_expr.as_numer_denom()
         return from_sympy(denom)
 
@@ -463,25 +480,33 @@ class Variables(Builtin):
 
         variables = set()
 
-        def find_vars(e):
-            if e.to_sympy().is_constant():
+        def find_vars(e, e_sympy):
+            assert e_sympy is not None
+            if e_sympy.is_constant():
                 return
             elif e.is_symbol():
                 variables.add(e)
             elif (e.has_form('Plus', None) or
                   e.has_form('Times', None)):
                 for l in e.leaves:
-                    find_vars(l)
+                    l_sympy = l.to_sympy()
+                    if l_sympy is not None:
+                        find_vars(l, l_sympy)
             elif e.has_form('Power', 2):
                 (a, b) = e.leaves  # a^b
-                if not(a.to_sympy().is_constant()) and b.to_sympy().is_rational:
-                    find_vars(a)
+                a_sympy, b_sympy = a.to_sympy(), b.to_sympy()
+                if a_sympy is None or b_sympy is None:
+                    return
+                if not(a_sympy.is_constant()) and b_sympy.is_rational:
+                    find_vars(a, a_sympy)
             elif not(e.is_atom()):
                 variables.add(e)
 
         exprs = expr.leaves if expr.has_form('List', None) else [expr]
         for e in exprs:
-            find_vars(from_sympy(e.to_sympy().expand()))
+            e_sympy = e.to_sympy()
+            if e_sympy is not None:
+                find_vars(e, e_sympy)
 
         variables = Expression('List', *variables)
         variables.sort()        # MMA doesn't do this

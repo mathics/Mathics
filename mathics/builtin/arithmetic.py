@@ -62,7 +62,10 @@ class _MPMathFunction(SympyFunction):
         else:
             prec = min_prec(*args)
             with mpmath.workprec(prec):
-                mpmath_args = [sympy2mpmath(x.to_sympy()) for x in args]
+                sympy_args = [x.to_sympy() for x in args]
+                if None in sympy_args:
+                    return
+                mpmath_args = [sympy2mpmath(x) for x in sympy_args]
                 if None in mpmath_args:
                     return
                 try:
@@ -1474,8 +1477,10 @@ class Gamma(_MPMathFunction):
                 2: sympy.uppergamma,
             }[len(expr.leaves)]
             leaves = self.prepare_sympy(expr.leaves)
-            return sympy_function(*(
-                    leaf.to_sympy(**kwargs) for leaf in leaves))
+            sympy_leaves = [leaf.to_sympy(**kwargs) for leaf in leaves]
+            if None in sympy_leaves:
+                return
+            return sympy_function(*sympy_leaves)
         except KeyError:
             return None
         except TypeError:
@@ -1591,10 +1596,10 @@ class Sum(_IterationFunction, SympyFunction):
     def to_sympy(self, expr, **kwargs):
         if expr.has_form('Sum', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
-            result = sympy.summation(expr.leaves[0].to_sympy(), (
-                index.leaves[0].to_sympy(), index.leaves[1].to_sympy(),
-                index.leaves[2].to_sympy()))
-            return result
+            arg = expr.leaves[0].to_sympy()
+            bounds = (index.leaves[0].to_sympy(), index.leaves[1].to_sympy(), index.leaves[2].to_sympy())
+            if arg is not None and None not in bounds:
+                return sympy.summation(arg, bounds)
 
 
 class Product(_IterationFunction, SympyFunction):

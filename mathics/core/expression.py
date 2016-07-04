@@ -579,6 +579,8 @@ class Expression(BaseExpression):
             functions = kwargs['converted_functions']
             if len(self.leaves) > 0 and self.get_head_name() in functions:
                 sym_args = [leaf.to_sympy() for leaf in self.leaves]
+                if None in sym_args:
+                    return None
                 func = sympy.Function(str(
                     sympy_symbol_prefix + self.get_head_name()))(*sym_args)
                 return func
@@ -2001,7 +2003,7 @@ class String(Atom):
         return self.value
 
     def to_sympy(self, **kwargs):
-        return self.value
+        return None
 
     def to_python(self, *args, **kwargs):
         return '"%s"' % self.value  # add quotes to distinguish from Symbols

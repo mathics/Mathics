@@ -1489,6 +1489,8 @@ class _IterationFunction(Builtin):
             whole_expr = Expression(
                 self.get_name(), expr, Expression('List', i, imin, imax))
             sympy_expr = whole_expr.to_sympy()
+            if sympy_expr is None:
+                return None
 
             # apply Together to produce results similar to Mathematica
             result = sympy.together(sympy_expr)

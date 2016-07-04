@@ -98,12 +98,18 @@ class RSolve(Builtin):
                     isinstance(l.leaves[0].to_python(), int) and
                     r.is_numeric()):
 
-                    conditions[l.leaves[0].to_python()] = r.to_sympy()
+                    r_sympy = r.to_sympy()
+                    if r_sympy is None:
+                        raise ValueError
+                    conditions[l.leaves[0].to_python()] = r_sympy
                     return False
             return True
 
         # evaluate is_relation on all leaves to store conditions
-        relations = [leaf for leaf in eqns.leaves if is_relation(leaf)]
+        try:
+            relations = [leaf for leaf in eqns.leaves if is_relation(leaf)]
+        except ValueError:
+            return
         relation = relations[0]
 
         left, right = relation.leaves
@@ -112,6 +118,8 @@ class RSolve(Builtin):
 
         sym_eq = relation.to_sympy(
             converted_functions=set([func.get_head_name()]))
+        if sym_eq is None:
+            return
         sym_n = sympy.symbols(str(sympy_symbol_prefix + n.name))
         sym_func = sympy.Function(str(
             sympy_symbol_prefix + func.get_head_name()))(sym_n)
