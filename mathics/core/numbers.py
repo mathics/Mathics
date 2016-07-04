@@ -52,10 +52,7 @@ class SpecialValueError(Exception):
         self.name = name
 
 
-def mpmath2sympy(value, prec=None):
-    if prec is None:
-        from mathics.builtin.numeric import machine_precision
-        prec = machine_precision
+def mpmath2sympy(value, prec):
     if isinstance(value, mpmath.mpc):
         return (sympy.Float(str(value.real), dps(prec)) +
                 sympy.I * sympy.Float(str(value.imag), dps(prec)))
