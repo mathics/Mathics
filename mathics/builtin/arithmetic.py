@@ -688,7 +688,7 @@ class Power(BinaryOperator, SympyFunction):
      = 4.
 
     #> Pi ^ 4.
-     = 97.4090910340024374
+     = 97.4090910340024372
     """
 
     operator = '^'

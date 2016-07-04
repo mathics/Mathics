@@ -868,7 +868,7 @@ class FindRoot(Builtin):
      = {x -> -0.588532743981861077}
 
     >> FindRoot[Sin[x] + Exp[x] == Pi,{x, 0}]
-     = {x -> 0.866815239911458064}
+     = {x -> 0.866815239911458065}
 
     'FindRoot' has attribute 'HoldAll' and effectively uses 'Block' to localize $x$.
     However, in the result $x$ will eventually still be replaced by its value.
@@ -884,7 +884,7 @@ class FindRoot(Builtin):
 
     Find complex roots:
     >> FindRoot[x ^ 2 + x + 1, {x, -I}]
-     = {x -> -0.5 - 0.866025403784438647 I}
+     = {x -> -0.499999999999999999 - 0.866025403784438646 I}
 
     The function has to return numerical values:
     >> FindRoot[f[x] == 0, {x, 0}]

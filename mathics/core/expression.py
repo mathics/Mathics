@@ -1836,6 +1836,12 @@ class Complex(Number):
         update(self.real)
         update(self.imag)
 
+    def __eq__(self, other):
+        if isinstance(other, Complex):
+            return self.real == other.real and self.imag == other.imag
+        else:
+            return self.get_sort_key() == other.get_sort_key()
+
 
 def encode_mathml(text):
     text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')

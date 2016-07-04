@@ -104,7 +104,7 @@ class Exp(_MPMathFunction):
     >> Exp[1]
      = E
     >> Exp[10.0]
-     = 22026.4657948067169
+     = 22026.4657948067165
     >> Exp[x] //FullForm
      = Power[E, x]
 
