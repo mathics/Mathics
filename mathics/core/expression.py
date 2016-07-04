@@ -1612,7 +1612,7 @@ class Real(Number):
                     p = prec(len(digits.zfill(dps(machine_precision))))
         elif isinstance(value, sympy.Float):
             self.value = value
-            self.prec = value._prec
+            self.prec = value._prec + 1
             return
         elif isinstance(value,
                         (Integer, sympy.Number, mpmath.mpf, float, int)):
