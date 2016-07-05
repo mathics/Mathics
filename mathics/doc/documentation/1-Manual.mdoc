@@ -877,14 +877,14 @@ To get the extreme values of 'f', compute the zeroes of the first derivatives:
  = {{x -> -Sqrt[5]}, {x -> Sqrt[5]}}
 And test the second derivative:
 >> f''[x] /. extremes // N
- = {1.65085581947099374, -0.0640789599668615036}
+ = {1.65085581947099374, -0.0640789599668615035}
 Thus, there is a local maximum at 'x = Sqrt[5]' and a local minimum at 'x = -Sqrt[5]'.
 Compute the inflection points numerically, choping imaginary parts close to 0:
 >> inflections = Solve[f''[x] == 0, x] // N // Chop
  = {{x -> -1.08519961543710476}, {x -> -3.21462740739519024}, {x -> 4.299827022832295}}
 Insert into the third derivative:
 >> f'''[x] /. inflections
- = {-3.67683091753987803, 0.694905362720454084, 0.0067189432491760176}
+ = {-3.67683091753987803, 0.694905362720454079, 0.00671894324917601735}
 Being different from 0, all three points are actual inflection points.
 'f' is not defined where its denominator is 0:
 >> Solve[Denominator[f[x]] == 0, x]

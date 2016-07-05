@@ -65,7 +65,7 @@ class _MPMathFunction(SympyFunction):
                 sympy_args = [x.to_sympy() for x in args]
                 if None in sympy_args:
                     return
-                mpmath_args = [sympy2mpmath(x) for x in sympy_args]
+                mpmath_args = [sympy2mpmath(x, prec) for x in sympy_args]
                 if None in mpmath_args:
                     return
                 try:
@@ -632,6 +632,7 @@ class Divide(BinaryOperator):
             'Infix[{HoldForm[x], HoldForm[y]}, "/", 400, Left]'),
     }
 
+
 class Power(BinaryOperator, SympyFunction):
     """
     <dl>
@@ -687,7 +688,7 @@ class Power(BinaryOperator, SympyFunction):
      = 4.
 
     #> Pi ^ 4.
-     = 97.4090910340024374
+     = 97.4090910340024372
     """
 
     operator = '^'
@@ -783,8 +784,8 @@ class Power(BinaryOperator, SympyFunction):
             try:
                 prec = min_prec(x, y)
                 with mpmath.workprec(prec):
-                    mp_x = sympy2mpmath(x.to_sympy())
-                    mp_y = sympy2mpmath(y.to_sympy())
+                    mp_x = sympy2mpmath(x.to_sympy(), prec)
+                    mp_y = sympy2mpmath(y.to_sympy(), prec)
                     result = mp_x ** mp_y
                     if isinstance(result, mpmath.mpf):
                         return Real(str(result), prec)
@@ -823,6 +824,9 @@ class Sqrt(SympyFunction):
 
     >> Plot[Sqrt[a^2], {a, -2, 2}]
      = -Graphics-
+
+    #> N[Sqrt[2], 50]
+     = 1.4142135623730950488016887242096980785696718753769
     """
 
     attributes = ('Listable', 'NumericFunction')
@@ -1454,6 +1458,14 @@ class Gamma(_MPMathFunction):
     Both 'Gamma' and 'Factorial' functions are continuous:
     >> Plot[{Gamma[x], x!}, {x, 0, 4}]
      = -Graphics-
+
+    ## Issue 203
+    #> N[Gamma[24/10], 100]
+     = 1.242169344504305404913070252268300492431517240992022966055507541481863694148882652446155342679460339
+    #> N[N[Gamma[24/10],100]/N[Gamma[14/10],100],100]
+     = 1.4
+    #> % // Precision
+     = 100.
     """
 
     mpmath_name = 'gamma'

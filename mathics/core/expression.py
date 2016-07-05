@@ -1573,7 +1573,7 @@ class Rational(Number):
         return self
 
     def round(self, precision):
-        return Real(self.value.n(dps(precision)), precision)
+        return Real(self.value.n(dps(precision)))
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1610,6 +1610,10 @@ class Real(Number):
                             machine_precision)
                 else:
                     p = prec(len(digits.zfill(dps(machine_precision))))
+        elif isinstance(value, sympy.Float):
+            self.value = value
+            self.prec = value._prec + 1
+            return
         elif isinstance(value,
                         (Integer, sympy.Number, mpmath.mpf, float, int)):
             value = str(value)
@@ -1693,7 +1697,7 @@ class Real(Number):
         return self
 
     def round(self, precision):
-        return Real(self.to_sympy().n(dps(precision)), precision)
+        return Real(self.to_sympy().n(dps(precision)))
 
     def get_precision(self):
         return self.prec
@@ -1816,7 +1820,7 @@ class Complex(Number):
     def round(self, precision):
         real = self.real.round(precision)
         imag = self.imag.round(precision)
-        return Complex(real, imag, precision)
+        return Complex(real, imag)
 
     def get_precision(self):
         return self.prec
@@ -1831,6 +1835,12 @@ class Complex(Number):
         update(b'System`Complex>')
         update(self.real)
         update(self.imag)
+
+    def __eq__(self, other):
+        if isinstance(other, Complex):
+            return self.real == other.real and self.imag == other.imag
+        else:
+            return self.get_sort_key() == other.get_sort_key()
 
 
 def encode_mathml(text):
