@@ -1590,6 +1590,10 @@ class Sum(_IterationFunction, SympyFunction):
 
     #> a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]]
      : "a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]" cannot be followed by "]" (line 1 of "<test>").
+
+    ## Issue431
+    #> Sum[2^(-i), {i, 1, \[Infinity]}]
+     = 1
     """
 
     # Do not throw warning message for symbolic iteration bounds

@@ -158,6 +158,10 @@ class Degree(Builtin):
 
     >> Cos[60 Degree]
      = 1 / 2
+
+    ## Issue 274
+    #> \[Degree] == ° == Degree
+     = True
     """
 
     rules = {
