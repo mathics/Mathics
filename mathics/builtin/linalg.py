@@ -15,7 +15,7 @@ from six.moves import zip
 import sympy
 from mpmath import mp
 
-from mathics.builtin.base import Builtin
+from mathics.builtin.base import Builtin, SympyConstant
 from mathics.core.convert import from_sympy
 from mathics.core.expression import Expression, Integer, Symbol, Real
 
@@ -149,7 +149,7 @@ class VectorAngle(Builtin):
     }
 
 
-class Degree(Builtin):
+class Degree(SympyConstant):
     """
     <dl>
     <dt>'Degree'
@@ -159,14 +159,21 @@ class Degree(Builtin):
     >> Cos[60 Degree]
      = 1 / 2
 
+    Degree has the value of Pi / 180
+    >> Degree == Pi / 180
+     = True
+
+    #> Cos[Degree[x]]
+     = Cos[Degree[x]]
+
     ## Issue 274
     #> \[Degree] == ° == Degree
      = True
     """
 
-    rules = {
-        'Degree': '(Pi/180)'
-    }
+    def to_sympy(self, expr):
+        if expr == Symbol('System`Degree'):
+            return sympy.pi / 180
 
 
 class Inverse(Builtin):
