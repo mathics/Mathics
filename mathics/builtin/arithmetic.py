@@ -1094,7 +1094,7 @@ class I(Predefined):
         return Complex(sympy.Integer(0), sympy.Integer(1))
 
 
-class Indeterminate(Builtin):
+class Indeterminate(SympyConstant):
     """
     <dl>
     <dt>'Indeterminate'
@@ -1104,7 +1104,11 @@ class Indeterminate(Builtin):
     >> 0^0
      : Indeterminate expression 0 ^ 0 encountered.
      = Indeterminate
+
+    >> Tan[Indeterminate]
+     = Indeterminate
     """
+    sympy_name = 'nan'
 
 
 class NumberQ(Test):
