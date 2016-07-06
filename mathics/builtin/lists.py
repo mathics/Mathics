@@ -1797,6 +1797,51 @@ class Append(Builtin):
                           *(expr.get_leaves() + [item]))
 
 
+class AppendTo(Builtin):
+    """
+    <dl>
+    <dt>'AppendTo[$s$, $item$]'
+        <dd>append $item$ to value of $s$ and sets $s$ to the result.
+    </dl>
+
+    >> s = {};
+    >> AppendTo[s, 1]
+     = {1}
+    >> s
+     = {1}
+
+    'Append' works on expressions with heads other than 'List':
+    >> y = f[];
+    >> AppendTo[y, x]
+     = f[x]
+    >> y
+     = f[x]
+
+    #> AppendTo[{}, 1]
+     : {} is not a variable with a value, so its value cannot be changed.
+     = AppendTo[{}, 1]
+
+    #> AppendTo[a, b]
+     : a is not a variable with a value, so its value cannot be changed.
+     = AppendTo[a, b]
+    """
+
+    attributes = ('HoldFirst',)
+
+    messages = {
+        'rvalue': '`1` is not a variable with a value, so its value cannot be changed.',
+    }
+
+    def apply(self, s, item, evaluation):
+        'AppendTo[s_, item_]'
+        if isinstance(s, Symbol):
+            resolved_s = s.evaluate(evaluation)
+            if not resolved_s.is_atom():
+                result = Expression('Set', s, Expression('Append', resolved_s, item))
+                return result.evaluate(evaluation)
+        return evaluation.message('AppendTo', 'rvalue', s)
+
+
 class Prepend(Builtin):
     """
     <dl>
