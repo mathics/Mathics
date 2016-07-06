@@ -93,6 +93,33 @@ class TrueQ(Builtin):
     }
 
 
+class ValueQ(Builtin):
+    """
+    <dl>
+    <dt>'ValueQ[$expr$]'
+        <dd>returns 'True' if and only if $expr$ is defined.
+    </dl>
+
+    >> ValueQ[x]
+     = False
+    >> x = 1;
+    >> ValueQ[x]
+     = True
+
+    #> ValueQ[True]
+     = False
+    """
+
+    attributes = ('HoldFirst',)
+
+    def apply(self, expr, evaluation):
+        'ValueQ[expr_]'
+        evaluated_expr = expr.evaluate(evaluation)
+        if expr.same(evaluated_expr):
+            return Symbol('False')
+        return Symbol('True')
+
+
 operators = {
     'System`Less': (-1,),
     'System`LessEqual': (-1, 0),
