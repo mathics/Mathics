@@ -1370,6 +1370,25 @@ class Cases(Builtin):
     }
 
 
+class DeleteCases(Builtin):
+    """
+    <dl>
+    <dt>'DeleteCases[$list$, $pattern$]'
+        <dd>returns the elements of $list$ that do not match $pattern$.
+    </dl>
+
+    >> DeleteCases[{a, 1, 2.5, "string"}, _Integer|_Real]
+     = {a, string}
+
+    >> DeleteCases[{a, b, 1, c, 2, 3}, _Symbol]
+     = {1, 2, 3}
+    """
+
+    rules = {
+        'DeleteCases[list_, pattern_]': 'Select[list, ! MatchQ[#, pattern]&]',
+    }
+
+
 class MemberQ(Builtin):
     """
     <dl>
