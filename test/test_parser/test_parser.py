@@ -89,6 +89,14 @@ class AtomTests(ParserTests):
         self.check('`name', Symbol('`name'))
         self.check('`context`name', Symbol('`context`name'))
 
+    def testSpecialSymbol(self):
+        self.check('\[Pi]', 'Pi')
+        self.check('\[Degree]', 'Degree')
+        self.check('\[ExponentialE]', 'E')
+        self.check('\[ImaginaryI]', 'I')
+        self.check('\[ImaginaryJ]', 'I')
+        self.check('\[Infinity]', 'Infinity')
+
     def testNumber(self):
         self.check_number('0')
         self.check_number('-1')
