@@ -70,6 +70,29 @@ class UnsameQ(BinaryOperator):
         else:
             return Symbol('True')
 
+
+class TrueQ(Builtin):
+    """
+    <dl>
+    <dt>'TrueQ[$expr$]'
+        <dd>returns 'True' if and only if $expr$ is 'True'.
+    </dl>
+
+    >> TrueQ[True]
+     = True
+
+    >> TrueQ[False]
+     = False
+
+    >> TrueQ[a]
+     = False
+    """
+
+    rules = {
+        'TrueQ[expr_]': 'If[expr, True, False, False]',
+    }
+
+
 operators = {
     'System`Less': (-1,),
     'System`LessEqual': (-1, 0),
