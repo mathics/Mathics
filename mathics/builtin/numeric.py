@@ -490,6 +490,67 @@ class BaseForm(Builtin):
                 'SubscriptBox', from_python(val), from_python(base))
 
 
+class NumberForm(Builtin):
+    '''
+    <dl>
+    <dt>'NumberForm[$expr$, $n$]'
+        <dd>prints a real number $expr$ with $n$-digits of precision.
+    <dt>'NumberForm[$expr$, {$n$, $f$}]'
+        <dd>prints with $n$-digits and $f$ digits to the right of the decimal point.
+    </dl>
+
+    #> NumberForm[1.5, -4]
+     : Formatting specification -4 should be a positive integer or a pair of positive integers.
+     = 1.5
+    #> NumberForm[1.5, {1.5, 2}]
+     : Formatting specification {1.5, 2} should be a positive integer or a pair of positive integers.
+     = 1.5
+    #> NumberForm[1.5, {1, 2.5}]
+     : Formatting specification {1, 2.5} should be a positive integer or a pair of positive integers.
+     = 1.5
+    '''
+
+    messages = {
+        'iprf': 'Formatting specification `1` should be a positive integer or a pair of positive integers.',
+    }
+
+    options = {
+        'DigitBlock': 'Infinity',
+        'ExponentFunction': 'Automatic',
+        'ExponentStep': '1',
+        'NumberFormat': 'Automatic',
+        'NumberMultiplier': '"×"',
+        'NumberPadding': '{"", "0"}',
+        'NumberPoint': '"."',
+        'NumberSeparator': '{",", " "}',
+        'NumberSigns': '{"-", ""}',
+        'SignPadding': 'False',
+    }
+
+    def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
+        '''MakeBoxes[NumberForm[expr_, n_],
+            form:StandardForm|TraditionalForm|OutputForm,
+            OptionsPattern[NumberForm]]'''
+
+        py_n = n.get_int_value()
+        if py_n is None or py_n <= 0:
+            evaluation.message('NumberForm', 'iprf', n)
+            return Expression('MakeBoxes', expr, form)
+        return self.apply_makeboxes_nf(expr, n, None, form, evaluation, options)
+
+    def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
+        '''MakeBoxes[NumberForm[expr_, {n_, f_}],
+            form:StandardForm|TraditionalForm|OutputForm,
+            OptionsPattern[NumberForm]]'''
+
+        nf = Expression('List', n, f)
+        py_n = n.get_int_value()
+        py_f = f.get_int_value()
+        if py_n is None or py_n <= 0 or py_f is None or py_f <= 0:
+            evaluation.message('NumberForm', 'iprf', nf)
+            return Expression('MakeBoxes', expr, form)
+
+
 class IntegerDigits(Builtin):
     """
     <dl>
