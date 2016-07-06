@@ -1370,6 +1370,25 @@ class Cases(Builtin):
     }
 
 
+class DeleteCases(Builtin):
+    """
+    <dl>
+    <dt>'DeleteCases[$list$, $pattern$]'
+        <dd>returns the elements of $list$ that do not match $pattern$.
+    </dl>
+
+    >> DeleteCases[{a, 1, 2.5, "string"}, _Integer|_Real]
+     = {a, string}
+
+    >> DeleteCases[{a, b, 1, c, 2, 3}, _Symbol]
+     = {1, 2, 3}
+    """
+
+    rules = {
+        'DeleteCases[list_, pattern_]': 'Select[list, ! MatchQ[#, pattern]&]',
+    }
+
+
 class MemberQ(Builtin):
     """
     <dl>
@@ -1795,6 +1814,51 @@ class Append(Builtin):
 
         return Expression(expr.get_head(),
                           *(expr.get_leaves() + [item]))
+
+
+class AppendTo(Builtin):
+    """
+    <dl>
+    <dt>'AppendTo[$s$, $item$]'
+        <dd>append $item$ to value of $s$ and sets $s$ to the result.
+    </dl>
+
+    >> s = {};
+    >> AppendTo[s, 1]
+     = {1}
+    >> s
+     = {1}
+
+    'Append' works on expressions with heads other than 'List':
+    >> y = f[];
+    >> AppendTo[y, x]
+     = f[x]
+    >> y
+     = f[x]
+
+    #> AppendTo[{}, 1]
+     : {} is not a variable with a value, so its value cannot be changed.
+     = AppendTo[{}, 1]
+
+    #> AppendTo[a, b]
+     : a is not a variable with a value, so its value cannot be changed.
+     = AppendTo[a, b]
+    """
+
+    attributes = ('HoldFirst',)
+
+    messages = {
+        'rvalue': '`1` is not a variable with a value, so its value cannot be changed.',
+    }
+
+    def apply(self, s, item, evaluation):
+        'AppendTo[s_, item_]'
+        if isinstance(s, Symbol):
+            resolved_s = s.evaluate(evaluation)
+            if not resolved_s.is_atom():
+                result = Expression('Set', s, Expression('Append', resolved_s, item))
+                return result.evaluate(evaluation)
+        return evaluation.message('AppendTo', 'rvalue', s)
 
 
 class Prepend(Builtin):
