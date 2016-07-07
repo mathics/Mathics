@@ -21,7 +21,8 @@ from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (dps, prec, convert_base,
                                   convert_int_to_digit_list)
 from mathics.core.expression import (Integer, Rational, Real, Complex,
-                                     Expression, Number, Symbol, from_python)
+                                     Expression, Number, Symbol, from_python,
+                                     ensure_context)
 from mathics.core.convert import from_sympy
 from mathics.settings import MACHINE_PRECISION
 
@@ -489,8 +490,118 @@ class BaseForm(Builtin):
             return Expression(
                 'SubscriptBox', from_python(val), from_python(base))
 
+class _NumberForm(Builtin):
+    '''
+    Base class for NumberForm, AccountingForm, EngineeringForm, and ScientificForm.
+    '''
 
-class NumberForm(Builtin):
+    default_ExponentFunction = None
+    default_NumberFormat = None
+
+    messages = {
+        'npad': 'Value for option NumberPadding -> `1` should be a string or a pair of strings.',
+        'dblk': 'Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.',
+        'npt': 'Value for option `1` -> `2` is expected to be a string.',
+        'nsgn': 'Value for option NumberSigns -> `1` should be a pair of strings or two pairs of strings.',
+        'nspr': 'Value for option NumberSeparator -> `1` should be a string or a pair of strings.',
+        'opttf': 'Value of option `1` -> `2` should be True or False.',
+        'estep': 'Value of option `1` -> `2` is not a positive integer.',
+        'iprf': 'Formatting specification `1` should be a positive integer or a pair of positive integers.',    # NumberFormat only
+    }
+
+    def check_options(self, options, evaluation):
+        '''
+        Checks options are valid and converts them to python.
+        '''
+        result = {}
+        for option_name in self.options:
+            method = getattr(self, 'check_' + option_name)
+            arg = options['System`' + option_name]
+            value = method(arg, evaluation)
+            if value is None:
+                return None
+            result[option_name] = value
+        return result
+
+    def check_DigitBlock(self, value, evaluation):
+        py_value = value.get_int_value()
+        if value.same(Symbol('Infinity')):
+            return [0, 0]
+        elif py_value is not None and py_value > 0:
+            return [py_value, py_value]
+        elif value.has_form('List', 2):
+            nleft, nright = value.leaves
+            py_left, py_right = nleft.get_int_value(), nright.get_int_value()
+            if nleft.same(Symbol('Infinity')):
+                nleft = 0
+            elif py_left is not None and py_left > 0:
+                nleft = py_left
+            else:
+                nleft = None
+            if nright.same(Symbol('Infinity')):
+                nright = 0
+            elif py_right is not None and py_right > 0:
+                nright = py_right
+            else:
+                nright = None
+            result = [nleft, nright]
+            if None not in result:
+                return result
+        return evaluation.message(self.get_name(), 'dblk', value)
+
+    def check_ExponentFunction(self, value, evaluation):
+        if value.same(Symbol('Automatic')):
+            return self.default_ExponentFunction
+        # TODO user defined NumberFormat
+
+    def check_NumberFormat(self, value, evaluation):
+        if value.same(Symbol('Automatic')):
+            return self.default_NumberFormat
+        # TODO user defined NumberFormat
+
+    def check_NumberMultiplier(self, value, evaluation):
+        result = value.get_string_value()
+        if result is None:
+            evaluation.message(self.get_name(), 'npt', 'NumberMultiplier', value)
+        return result
+
+    def check_NumberPoint(self, value, evaluation):
+        result = value.get_string_value()
+        if result is None:
+            evaluation.message(self.get_name(), 'npt', 'NumberPoint', value)
+        return result
+
+    def check_ExponentStep(self, value, evaluation):
+        result = value.get_int_value()
+        if result is None or result <= 0:
+            return evaluation.message(self.get_name(), 'estep', 'ExponentStep', value)
+        return result
+
+    def check_SignPadding(self, value, evaluation):
+        if value.same(Symbol('True')):
+            return True
+        elif value.same(Symbol('False')):
+            return False
+        return evaluation.message(self.get_name(), 'opttf', value)
+
+    def _check_List2str(self, value, msg, evaluation):
+        if value.has_form('List', 2):
+            result = [leaf.get_string_value() for leaf in value.leaves]
+            if None not in result:
+                return result
+        return evaluation.message(self.get_name(), msg, value)
+
+    def check_NumberSigns(self, value, evaluation):
+        return self._check_List2str(value, 'nsgn', evaluation)
+
+    def check_NumberPadding(self, value, evaluation):
+        return self._check_List2str(value, 'npad', evaluation)
+
+    def check_NumberSeparator(self, value, evaluation):
+        return self._check_List2str(value, 'nspr', evaluation)
+
+
+class NumberForm(_NumberForm):
     '''
     <dl>
     <dt>'NumberForm[$expr$, $n$]'
@@ -499,6 +610,7 @@ class NumberForm(Builtin):
         <dd>prints with $n$-digits and $f$ digits to the right of the decimal point.
     </dl>
 
+    ## Check arguments
     #> NumberForm[1.5, -4]
      : Formatting specification -4 should be a positive integer or a pair of positive integers.
      = 1.5
@@ -508,11 +620,60 @@ class NumberForm(Builtin):
     #> NumberForm[1.5, {1, 2.5}]
      : Formatting specification {1, 2.5} should be a positive integer or a pair of positive integers.
      = 1.5
-    '''
 
-    messages = {
-        'iprf': 'Formatting specification `1` should be a positive integer or a pair of positive integers.',
-    }
+    ## Check options
+
+    ## DigitBlock
+    #> NumberForm[1.2345, 3, DigitBlock -> -4]
+     : Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.
+     = 1.2345
+    #> NumberForm[1.2345, 3, DigitBlock -> x]
+     : Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.
+     = 1.2345
+    #> NumberForm[1.2345, 3, DigitBlock -> {x, 3}]
+     : Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.
+     = 1.2345
+    #> NumberForm[1.2345, 3, DigitBlock -> {5, -3}]
+     : Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.
+     = 1.2345
+
+    ## ExponentFunction
+
+    ## ExponentStep
+    #> NumberForm[1.2345, 3, ExponentStep -> x]
+     : Value of option ExponentStep -> x is not a positive integer.
+     = 1.2345
+    #> NumberForm[1.2345, 3, ExponentStep -> 0]
+     : Value of option ExponentStep -> 0 is not a positive integer.
+     = 1.2345
+
+    ## NumberFormat
+
+    ## NumberMultiplier
+    #> NumberForm[1.2345, 3, NumberMultiplier -> 0]
+     : Value for option NumberMultiplier -> 0 is expected to be a string.
+     = 1.2345
+
+    ## NumberPoint
+    #> NumberForm[1.2345, 3, NumberPoint -> 0]
+     : Value for option NumberPoint -> 0 is expected to be a string.
+     = 1.2345
+
+    ## NumberPadding
+    #> NumberForm[1.2345, 3, NumberPadding -> 0]
+     :  Value for option NumberPadding -> 0 should be a string or a pair of strings.
+     = 1.2345
+
+    ## NumberSeparator
+    #> NumberForm[1.2345, 3, NumberSeparator -> 0]
+     :  Value for option NumberSeparator -> 0 should be a string or a pair of strings.
+     = 1.2345
+
+    ## NumberSigns
+    #> NumberForm[1.2345, 3, NumberSigns -> 0]
+     : Value for option NumberSigns -> 0 should be a pair of strings or two pairs of strings.
+     = 1.2345
+    '''
 
     options = {
         'DigitBlock': 'Infinity',
@@ -527,28 +688,48 @@ class NumberForm(Builtin):
         'SignPadding': 'False',
     }
 
+    @staticmethod
+    def default_ExponentFunction(value):
+        # TODO
+        return value
+
+    @staticmethod
+    def default_NumberFormat(value):
+        # TODO
+        return value
+
     def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
-        '''MakeBoxes[NumberForm[expr_, n_],
-            form:StandardForm|TraditionalForm|OutputForm,
-            OptionsPattern[NumberForm]]'''
+        '''MakeBoxes[NumberForm[expr_, n_, OptionsPattern[NumberForm]],
+            form:StandardForm|TraditionalForm|OutputForm]'''
+
+        fallback = Expression('MakeBoxes', expr, form)
 
         py_n = n.get_int_value()
         if py_n is None or py_n <= 0:
             evaluation.message('NumberForm', 'iprf', n)
-            return Expression('MakeBoxes', expr, form)
-        return self.apply_makeboxes_nf(expr, n, None, form, evaluation, options)
+            return fallback
+
+        py_options = self.check_options(options, evaluation)
+        if py_options is None:
+            return fallback
+
 
     def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
-        '''MakeBoxes[NumberForm[expr_, {n_, f_}],
-            form:StandardForm|TraditionalForm|OutputForm,
-            OptionsPattern[NumberForm]]'''
+        '''MakeBoxes[NumberForm[expr_, {n_, f_}, OptionsPattern[NumberForm]],
+            form:StandardForm|TraditionalForm|OutputForm]'''
+
+        fallback = Expression('MakeBoxes', expr, form)
 
         nf = Expression('List', n, f)
         py_n = n.get_int_value()
         py_f = f.get_int_value()
         if py_n is None or py_n <= 0 or py_f is None or py_f <= 0:
             evaluation.message('NumberForm', 'iprf', nf)
-            return Expression('MakeBoxes', expr, form)
+            return fallback
+
+        py_options = self.check_options(options, evaluation)
+        if py_options is None:
+            return fallback
 
 
 class IntegerDigits(Builtin):
