@@ -57,10 +57,25 @@ class InverseErf(_MPMathFunction):
      = {-Infinity, 0, Infinity}
     >> Plot[InverseErf[x], {x, -1, 1}]
      = -Graphics-
+
+    'InverseErf[$z$]' only returns numeric values for '-1 <= $z$ <= 1':
+    >> InverseErf /@ {0.9, 1.0, 1.1}
+     = {1.16308715367667409, ComplexInfinity, InverseErf[1.1]}
     """
 
     sympy_name = 'erfinv'
     mpmath_name = 'erfinv'
+
+    def apply(self, z, evaluation):
+        '%(name)s[z__]'
+
+        try:
+            return super(InverseErf, self).apply(z, evaluation)
+        except ValueError as exc:
+            if str(exc) == 'erfinv(x) is defined only for -1 <= x <= 1':
+                return
+            else:
+                raise
 
 
 class Erfc(_MPMathFunction):
