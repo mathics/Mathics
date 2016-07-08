@@ -5,8 +5,8 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Expression, Integer
-from mathics.core.convert import from_sympy
+from mathics.core.expression import Expression, Integer, Symbol
+from mathics.core.convert import from_sympy, sympy_symbol_prefix
 
 import sympy
 import mpmath
@@ -45,6 +45,71 @@ def cancel(expr):
         except sympy.PolynomialError:
             # e.g. for non-commutative expressions
             return expr
+
+
+def expand(expr, numer=True, denom=False):
+    sub_exprs = {}
+    sub_count = 0
+
+    def store_sub_expr(expr):
+        nonlocal sub_count, sub_exprs
+        sub_exprs[sub_count] = expr
+        result = sympy.Symbol(sympy_symbol_prefix + str(sub_count))
+        sub_count += 1
+        return result
+
+    def get_sub_expr(expr):
+        nonlocal sub_count, sub_exprs
+        name = expr.get_name()
+        assert isinstance(expr, Symbol) and name.startswith('System`')
+        i = int(name[len('System`'):])
+        return sub_exprs[i]
+
+    def convert_sympy(expr):
+        "converts top-level to sympy"
+        leaves = expr.get_leaves()
+        if isinstance(expr, Integer):
+            return sympy.Integer(expr.get_int_value())
+        if expr.has_form('Power', 2):
+            leaf1 = leaves[1].get_int_value()
+            if (leaf1 is None or leaf1 == 0) or (leaf1 > 0 and numer) or (leaf1 < 0 and denom):
+                return sympy.Pow(*[convert_sympy(leaf) for leaf in leaves])
+            else:
+                return store_sub_expr(expr)
+        elif expr.has_form('Times', 2, None):
+            return sympy.Mul(*[convert_sympy(leaf) for leaf in leaves])
+        elif expr.has_form('Plus', 2, None):
+            return sympy.Add(*[convert_sympy(leaf) for leaf in leaves])
+        else:
+            return store_sub_expr(expr)
+
+    def unconvert_subexprs(expr):
+        if expr.is_atom():
+            if isinstance(expr, Symbol):
+                return get_sub_expr(expr)
+            else:
+                return expr
+        else:
+            return Expression(expr.head, *[unconvert_subexprs(leaf) for leaf in expr.get_leaves()])
+
+    sympy_expr = convert_sympy(expr)
+
+    # thread over Lists etc.
+    threaded_heads = ('List', 'Rule')
+    for i, sub_expr in sub_exprs.items():
+        for head in threaded_heads:
+            if sub_expr.has_form(head, None):
+                leaves = sub_expr.get_leaves()
+                leaves = [expand(leaf) for leaf in leaves]
+                sub_exprs[i] = Expression(head, *leaves)
+                break
+
+    sympy_expr = sympy.expand_multinomial(sympy_expr)
+    sympy_expr = sympy.expand_mul(sympy_expr)
+    result = from_sympy(sympy_expr)
+    result = unconvert_subexprs(result)
+
+    return result
 
 
 class Cancel(Builtin):
@@ -275,101 +340,7 @@ class Expand(Builtin):
     def apply(self, expr, evaluation):
         'Expand[expr_]'
 
-        def expand(expr):
-            head_name = expr.get_head_name()
-            if head_name in ('System`List', 'System`Rule'):
-                return Expression(
-                    head_name, *[expand(leaf) for leaf in expr.leaves])
-            leaves = expr.get_leaves()
-            if expr.has_form('Times', 2, None):
-                " Group negative powers into one negative power "
-                neg_powers = []
-                other_leaves = []
-                for leaf in leaves:
-                    if (leaf.has_form('Power', 2) and   # nopep8
-                        leaf.leaves[1].get_int_value() is not None and
-                        leaf.leaves[1].get_int_value() < 0):
-                        neg_powers.append(leaf)
-                    else:
-                        other_leaves.append(leaf)
-                if len(neg_powers) > 1:
-                    leaves = other_leaves + [
-                        Expression('Power', Expression('Times', *[
-                            Expression(
-                                'Power', leaf.leaves[0],
-                                Integer(sympy.Integer(-leaf.leaves[1].value)))
-                            for leaf in neg_powers]), Integer(-1))]
-            if head_name in ('System`Plus', 'System`Times', 'System`Power'):
-                leaves = [expand(leaf) for leaf in leaves]
-            if expr.has_form('Times', 2, None):
-                result = [[]]
-                has_plus = False
-                for leaf in leaves:
-                    if leaf.has_form('Plus', 1):
-                        leaf = leaf.leaves[0]
-                    if leaf.has_form('Plus', 2, None):
-                        new_result = []
-                        for summand in leaf.leaves:
-                            if summand.has_form('Times', None):
-                                add = summand.leaves
-                            else:
-                                add = [summand]
-                            new_result.extend(item + add for item in result)
-                        result = new_result
-                        has_plus = True
-                    else:
-                        if leaf.has_form('Times', None):
-                            add = leaf.leaves
-                        else:
-                            add = [leaf]
-                        result = [item + add for item in result]
-                if has_plus:
-                    return Expression('Plus', *(expand(Expression('Times', *item)) for item in result))
-
-                else:
-                    return Expression('Plus', *(Expression('Times', *item) for item in result))
-
-            elif expr.has_form('Power', 2):
-                n = leaves[1].get_int_value()
-                sum = leaves[0]
-                if sum.has_form('Plus', None) and n is not None and n > 0:
-                    result = []
-                    items = sum.leaves
-
-                    def iterate(rest, n_rest):
-                        if rest and n_rest > 0:
-                            for k in range(n_rest + 1):
-                                for coeff, next in iterate(rest[1:],
-                                                           n_rest - k):
-                                    if k == 0:
-                                        this_factor = []
-                                    else:
-                                        this_factor = [Expression('Power', rest[0], Integer(k))]
-                                    yield (int(
-                                        mpmath.binomial(n_rest, k) * coeff),
-                                        this_factor + next)
-                        elif n_rest == 0:
-                            yield (sympy.Integer(1), [])
-
-                    def times(coeff, factors):
-                        if coeff == 1:
-                            return Expression('Times', *factors)
-                        else:
-                            return Expression('Times', Integer(coeff), *factors)
-
-                    return Expression('Plus', *[
-                        times(coeff, factors) for coeff,
-                        factors in iterate(items, n)])
-                else:
-                    return Expression(
-                        expr.head, *[expand(leaf) for leaf in expr.leaves])
-            elif expr.has_form('Plus', 2, None):
-                return Expression('Plus', *leaves)
-            else:
-                return expr
-
-        result = expand(expr)
-        return result
+        return expand(expr, True, False)
 
 
 class PowerExpand(Builtin):
