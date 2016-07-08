@@ -612,6 +612,127 @@ class StringSplit(Builtin):
         return from_python([x for x in result if x != ''])
 
 
+class StringPosition(Builtin):
+    '''
+    >> StringPosition["123ABCxyABCzzzABCABC", "ABC"]
+     = {{4, 6}, {9, 11}, {15, 17}, {18, 20}}
+
+    >> StringPosition["123ABCxyABCzzzABCABC", "ABC", 2]
+     = {{4, 6}, {9, 11}}
+
+    #> StringPosition["123ABCxyABCzzzABCABC", "ABC", -1]
+     : Non-negative integer or Infinity expected at position 3 in StringPosition[123ABCxyABCzzzABCABC, ABC, -1].
+     = StringPosition[123ABCxyABCzzzABCABC, ABC, -1]
+
+    ## Overlaps
+    #> StringPosition["1231221312112332", RegularExpression["[12]+"]]
+     = {{1, 2}, {2, 2}, {4, 7}, {5, 7}, {6, 7}, {7, 7}, {9, 13}, {10, 13}, {11, 13}, {12, 13}, {13, 13}, {16, 16}}
+    #> StringPosition["1231221312112332", RegularExpression["[12]+"], Overlaps -> False]
+     = {{1, 2}, {4, 7}, {9, 13}, {16, 16}}
+    #> StringPosition["1231221312112332", RegularExpression["[12]+"], Overlaps -> x]
+     = {{1, 2}, {4, 7}, {9, 13}, {16, 16}}
+    #> StringPosition["1231221312112332", RegularExpression["[12]+"], Overlaps -> All]
+     : Overlaps -> All option is not currently implemented in Mathics.
+     = {{1, 2}, {2, 2}, {4, 7}, {5, 7}, {6, 7}, {7, 7}, {9, 13}, {10, 13}, {11, 13}, {12, 13}, {13, 13}, {16, 16}}
+
+    #> StringPosition["21211121122", {"121", "11"}]
+     = {{2, 4}, {4, 5}, {5, 6}, {6, 8}, {8, 9}}
+    #> StringPosition["21211121122", {"121", "11"}, Overlaps -> False]
+     = {{2, 4}, {5, 6}, {8, 9}}
+
+    #> StringPosition[{"abc", "abcda"}, "a"]
+     = {{{1, 1}}, {{1, 1}, {5, 5}}}
+    '''
+
+    options = {
+        'IgnoreCase': 'False',
+        'MetaCharacters': 'None',
+        'Overlaps': 'True',
+    }
+
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+        'overall': 'Overlaps -> All option is not currently implemented in Mathics.',
+        'innf': 'Non-negative integer or Infinity expected at position `2` in `1`.',
+    }
+
+    def apply(self, string, patt, evaluation, options):
+        'StringPosition[string_, patt_, OptionsPattern[StringPosition]]'
+
+        return self.apply_n(string, patt, Symbol('Infinity'), evaluation, options)
+
+    def apply_n(self, string, patt, n, evaluation, options):
+        'StringPosition[string_, patt_, n_Integer|Infinity, OptionsPattern[StringPosition]]'
+
+        expr = Expression('StringPosition', string, patt, n)
+
+        # check n
+        if n == Symbol('Infinity'):
+            py_n = float('inf')
+        else:
+            py_n = n.get_int_value()
+            if py_n is None or py_n < 0:
+                return evaluation.message('StringPosition', 'innf', expr, Integer(3))
+
+        # check options
+        if options['System`Overlaps'] == Symbol('True'):
+            overlap = True
+        elif options['System`Overlaps'] == Symbol('False'):
+            overlap = False
+        elif options['System`Overlaps'] == Symbol('All'):
+            # TODO
+            evaluation.message('StringPosition', 'overall')
+            overlap = True
+        else:
+            overlap = False    # unknown options are teated as False
+
+        # convert patterns
+        if patt.has_form('List', None):
+            patts = patt.get_leaves()
+        else:
+            patts = [patt]
+        re_patts = []
+        for p in patts:
+            py_p = to_regex(p)
+            if py_p is None:
+                return evaluation.message('StringExpression', 'invld', p, patt)
+            re_patts.append(py_p)
+        compiled_patts = [re.compile(re_patt) for re_patt in re_patts]
+
+        # string or list of strings
+        if string.has_form('List', None):
+            py_strings = [s.get_string_value() for s in string.leaves]
+            if None in py_strings:
+                return
+            results = [self.do_apply(py_string, compiled_patts, py_n, overlap) for py_string in py_strings]
+            return Expression('List', *results)
+        else:
+            py_string = string.get_string_value()
+            if py_string is None:
+                return
+            return self.do_apply(py_string, compiled_patts, py_n, overlap)
+
+    @staticmethod
+    def do_apply(py_string, compiled_patts, py_n, overlap):
+        result = []
+        start = 0
+        while start < len(py_string):
+            found_match = False
+            for compiled_patt in compiled_patts:
+                m = compiled_patt.match(py_string, start)
+                if m is None:
+                    continue
+                found_match = True
+                result.append([m.start() + 1, m.end()])    # 0 to 1 based indexing
+                if len(result) == py_n:
+                    return from_python(result)
+                if not overlap:
+                    start = m.end()
+            if overlap or not found_match:
+                start += 1
+        return from_python(result)
+
+
 class StringLength(Builtin):
     """
     <dl>
