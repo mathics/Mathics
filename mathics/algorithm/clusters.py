@@ -50,7 +50,7 @@ def _index(i, j):  # i > j, returns j + sum(1, 2, ..., i - 1)
     return j + ((i - 1) * i) // 2
 
 
-class PrecomputedDistances:
+class PrecomputedDistances(object):
     def __init__(self, distances):
         self._distances = distances
 
@@ -61,7 +61,7 @@ class PrecomputedDistances:
         return self._distances
 
 
-class LazyDistances:
+class LazyDistances(object):
     def __init__(self):
         self._computed = {}
 
@@ -428,7 +428,7 @@ class _Clusterer:
             return r
 
 
-def optimize(p, k, distances):
+def optimize(p, k, distances, mode='clusters', seed=12345):
     if k == 1:
         return [p]
 
@@ -436,7 +436,7 @@ def optimize(p, k, distances):
     try:
         # we want the same output on every call on the same data, so we use
         # a fixed random seed at this point.
-        random.seed(12345)
+        random.seed(seed)
 
         clusterer = _Clusterer(len(p), tuple(range(len(p))), p, distances.distance)
 
@@ -448,7 +448,17 @@ def optimize(p, k, distances):
         # sort clusters by order of their first element in the original list.
         clusters = sorted(clusters, key=lambda c: c[0])
 
-        return list(map(lambda c: map(lambda i: p[i], c), clusters))
+        if mode == 'clusters':
+            return list(map(lambda c: map(lambda i: p[i], c), clusters))
+        elif mode == 'components':
+            components = [0] * len(p)
+            for i, c in enumerate(clusters):
+                component_index = i + 1
+                for j in c:
+                    components[j] = component_index
+            return components
+        else:
+            raise ValueError('illegal mode %s' % mode)
     finally:
         random.setstate(random_state)
 
@@ -513,7 +523,8 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
     # k: number of clusters to form or None for automatic detection
     # distances: an instance of PrecomputedDistances
     # mode: 'clusters' returns clusters, 'dominant' returns one dominant
-    # representant of each cluster only
+    # representant of each cluster only, 'components' returns the index of
+    # the cluster each element is in for each element.
     # merge_limit: do not merge points above this distance; if the merged
     # distance falls above this limit, the clustering is stopped and the
     # best clustering so far is returned.
@@ -632,13 +643,20 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
 
         if mode == 'dominant':
             dominant = list(range(n))
+            components = None
             result = dominant
-        else:
+        elif mode == 'components':
             dominant = None
+            components = list(range(n))
+            result = components
+        elif mode == 'clusters':
+            dominant = None
+            components = None
             result = clusters
+        else:
+            raise ValueError('illegal mode %s' % mode)
 
         if index:
-            best = [c[:] for c in result if c]
             # compute a limit that rougly corresponds the the Optimize method:
             # with each split in two, the McClain-Rao-Index limit divides by 10
             limit = 1. / (math.log2(n) * _mcclain_rao_limit_factor)
@@ -652,6 +670,11 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
 
             if i > j:
                 i, j = j, i  # merge later chunk to earlier one to preserve order
+
+            if index:
+                index.merge(i, j)
+                if index.compute() >= limit:
+                    break
 
             heap = remove(where[p], heap, where)  # remove distance (i, j)
 
@@ -668,17 +691,17 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
                     dominant[i] = dominant[j]
                 dominant[j] = None
 
+            if components:
+                components[j] = components[i]
+
             clusters[i].extend(clusters[j])
             clusters[j] = None
             n_clusters -= 1
 
-            if index:
-                index.merge(i, j)
-                if index.compute() < limit:
-                    best = [c[:] for c in result if c]
-
-        if index:
-            return best
+        if mode == 'components':
+            component_indices = list(set(components))
+            component_mapping = dict((j, i + 1) for i, j in enumerate(component_indices))
+            return [component_mapping[c] for c in components]
         else:
             return [c for c in result if c]
 

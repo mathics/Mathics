@@ -17,7 +17,7 @@ from mathics.builtin.base import (
     PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
-from mathics.core.expression import Expression, String, Symbol, Integer, Number, from_python
+from mathics.core.expression import Expression, String, Symbol, Integer, Number, strip_context, from_python
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
@@ -3450,13 +3450,106 @@ class _LazyDistances(LazyDistances):
         return sympy_d
 
 
-class FindClusters(Builtin):
+class _Cluster(Builtin):
+    options = {
+        'Method': 'Optimize',
+        'DistanceFunction': 'Automatic',
+        'RandomSeed': 'Automatic'
+    }
+
+    messages = {
+        'amtd': '`1` failed to pick a suitable distance function for `2`.',
+        'bdmtd': 'Method in `` must be either "Optimize" or "Agglomerate".',
+        'intpm': 'Positive integer expected at position 2 in ``.',
+        'list': 'Expected a list or a rule with equally sized lists at position 1 in ``.',
+        'nclst': 'Cannot find more clusters than there are elements (`1` is larger than `2`).',
+        'xnum': 'The distance function returned ``, which is not a non-negative real value.',
+        'rseed': 'The random seed specified through `` must be an integer or Automatic.'
+    }
+
+    def _cluster(self, p, k, mode, evaluation, options, expr):
+        dist_p = None
+        if p.get_head_name() == 'System`Rule':
+            if all(q.get_head_name() == 'System`List' for q in p.leaves):
+                dist_p, repr_p = (q.leaves for q in p.leaves)
+        elif p.get_head_name() == 'System`List':
+            if all(q.get_head_name() == 'System`Rule' for q in p.leaves):
+                dist_p, repr_p = ([q.leaves[i] for q in p.leaves] for i in range(2))
+            else:
+                dist_p = repr_p = p.leaves
+
+        if dist_p is None or len(dist_p) != len(repr_p):
+            evaluation.message(self.get_name(), 'list', expr)
+
+        if k is not None:
+            if not isinstance(k, Integer):
+                evaluation.message(self.get_name(), 'intpm', expr)
+                return
+            py_k = k.get_int_value()
+            if py_k < 1:
+                evaluation.message(self.get_name(), 'intpm', expr)
+                return
+            if py_k > len(dist_p):
+                evaluation.message(self.get_name(), 'nclst', py_k, len(dist_p))
+                return
+            elif py_k == 1:
+                return Expression('List', *repr_p)
+            elif py_k == len(dist_p):
+                return Expression('List', [Expression('List', q) for q in repr_p])
+        else:
+            py_k = None
+
+        seed_string, seed = self.get_option_string(options, 'RandomSeed', evaluation)
+        if seed_string == 'Automatic':
+            py_seed = 12345
+        elif isinstance(seed, Integer):
+            py_seed = seed.get_int_value()
+        else:
+            evaluation.message(self.get_name(), 'rseed', Expression('Rule', 'RandomSeed', seed))
+            return
+
+        distance_function_string, distance_function = self.get_option_string(
+            options, 'DistanceFunction', evaluation)
+        if distance_function_string == 'Automatic':
+            from mathics.builtin.tensors import get_default_distance
+            distance_function = get_default_distance(dist_p)
+            if distance_function is None:
+                name_of_builtin = strip_context(self.get_name())
+                evaluation.message(self.get_name(), 'amtd', name_of_builtin, Expression('List', *dist_p))
+                return
+
+        def df(i, j):
+            return Expression(distance_function, i, j)
+
+        method_string, method = self.get_option_string(options, 'Method', evaluation)
+        try:
+            if method_string == 'Agglomerate':
+                clusters = agglomerate(repr_p, py_k, _PrecomputedDistances(df, dist_p, evaluation), mode)
+            elif method_string == 'Optimize':
+                clusters = optimize(repr_p, py_k, _LazyDistances(df, dist_p, evaluation), mode, py_seed)
+            else:
+                evaluation.message(self.get_name(), 'bdmtd', Expression('Rule', 'Method', method))
+                return
+        except _IllegalDistance as e:
+            evaluation.message(self.get_name(), 'xnum', e.distance)
+            return
+
+        if mode == 'clusters':
+            return Expression('List', *[Expression('List', *c) for c in clusters])
+        elif mode == 'components':
+            return Expression('List', *clusters)
+        else:
+            raise ValueError('illegal mode %s' % mode)
+
+
+class FindClusters(_Cluster):
     """
     <dl>
     <dt>'FindClusters[$list$]'
-        <dd>returns a list of clusters of the elements of $list$. The number of cluster is determined automatically.
+        <dd>returns a list of clusters formed from the elements of $list$. The number of cluster is determined
+        automatically.
     <dt>'FindClusters[$list$, $k$]'
-        <dd>returns a list of $k$ clusters of the elements of $list$.
+        <dd>returns a list of $k$ clusters formed from the elements of $list$.
     </dl>
 
     >> FindClusters[{1, 2, 20, 10, 11, 40, 19, 42}]
@@ -3500,84 +3593,45 @@ class FindClusters(Builtin):
     Optimize builds the clustering from top down, and uses random sampling.
     """
 
-    options = {
-        'Method': 'Optimize',
-        'DistanceFunction': 'Automatic'
-    }
-
-    messages = {
-        'amtd': 'FindClusters failed to pick a suitable distance function for ``.',
-        'bdmtd': 'Method in `` must be either "Optimize" or "Agglomerate".',
-        'intpm': 'Positive integer expected at position 2 in ``.',
-        'list': 'Expected a list or a rule with equally sized lists at position 1 in ``.',
-        'nclst': 'Cannot find more clusters than there are elements (`1` is larger than `2`).',
-        'xnum': 'The distance function returned ``, but it has to return non-negative real values.'
-    }
-
-    def _cluster(self, p, k, evaluation, options, expr):
-        dist_p = None
-        if p.get_head_name() == 'System`Rule':
-            if all(q.get_head_name() == 'System`List' for q in p.leaves):
-                dist_p, repr_p = (q.leaves for q in p.leaves)
-        elif p.get_head_name() == 'System`List':
-            if all(q.get_head_name() == 'System`Rule' for q in p.leaves):
-                dist_p, repr_p = ([q.leaves[i] for q in p.leaves] for i in range(2))
-            else:
-                dist_p = repr_p = p.leaves
-
-        if dist_p is None or len(dist_p) != len(repr_p):
-            evaluation.message('FindClusters', 'list', expr)
-
-        if k is not None:
-            if not isinstance(k, Integer):
-                evaluation.message('FindClusters', 'intpm', expr)
-                return
-            py_k = k.get_int_value()
-            if py_k < 1:
-                evaluation.message('FindClusters', 'intpm', expr)
-                return
-            if py_k > len(dist_p):
-                evaluation.message('FindClusters', 'nclst', py_k, len(dist_p))
-                return
-            elif py_k == 1:
-                return Expression('List', *repr_p)
-            elif py_k == len(dist_p):
-                return Expression('List', [Expression('List', q) for q in repr_p])
-        else:
-            py_k = None
-
-        distance_function_string, distance_function = self.get_option_string(
-            options, 'DistanceFunction', evaluation)
-        if distance_function_string == 'Automatic':
-            from mathics.builtin.tensors import get_default_distance
-            distance_function = get_default_distance(dist_p)
-            if distance_function is None:
-                evaluation.message('FindClusters', 'amtd', Expression('List', *dist_p))
-                return
-
-        def df(i, j):
-            return Expression(distance_function, i, j)
-
-        method_string, method = self.get_option_string(options, 'Method', evaluation)
-        try:
-            if method_string == 'Agglomerate':
-                clusters = agglomerate(repr_p, py_k, _PrecomputedDistances(df, dist_p, evaluation))
-            elif method_string == 'Optimize':
-                clusters = optimize(repr_p, py_k, _LazyDistances(df, dist_p, evaluation))
-            else:
-                evaluation.message('FindClusters', 'bdmtd', Expression('Rule', 'Method', method))
-                return
-        except _IllegalDistance as e:
-            evaluation.message('FindClusters', 'xnum', e.distance)
-            return
-
-        return Expression('List', *[Expression('List', *c) for c in clusters])
-
     def apply(self, p, evaluation, options):
         'FindClusters[p_, OptionsPattern[%(name)s]]'
-        return self._cluster(p, None, evaluation, options, Expression('FindClusters', p, *options_to_rules(options)))
+        return self._cluster(p, None, 'clusters', evaluation, options,
+                             Expression('FindClusters', p, *options_to_rules(options)))
 
     def apply_k(self, p, k, evaluation, options):
         'FindClusters[p_, k_Integer, OptionsPattern[%(name)s]]'
-        return self._cluster(p, k, evaluation, options, Expression('FindClusters', p, k, *options_to_rules(options)))
+        return self._cluster(p, k, 'clusters', evaluation, options,
+                             Expression('FindClusters', p, k, *options_to_rules(options)))
 
+
+class ClusteringComponents(_Cluster):
+    """
+    <dl>
+    <dt>'ClusteringComponents[$list$]'
+        <dd>forms clusters from $list$ and returns a list of cluster indices, in which each
+        element shows the index of the cluster in which the corresponding element in $list$
+        ended up.
+    <dt>'ClusteringComponents[$list$, $k$]'
+        <dd>forms $k$ clusters from $list$ and returns a list of cluster indices, in which
+        each element shows the index of the cluster in which the corresponding element in
+        $list$ ended up.
+    </dl>
+
+    For more detailed documentation regarding options and behavior, see FindClusters[].
+
+    >> ClusteringComponents[{1, 10, 11, 2}]
+     = {1, 2, 2, 1}
+
+    >> ClusteringComponents[{"meep", "heap", "deep", "weep", "sheep", "leap", "keep"}, 3]
+     = {1, 2, 1, 1, 3, 2, 1}
+    """
+
+    def apply(self, p, evaluation, options):
+        'ClusteringComponents[p_, OptionsPattern[%(name)s]]'
+        return self._cluster(p, None, 'components', evaluation, options,
+                             Expression('ClusteringComponents', p, *options_to_rules(options)))
+
+    def apply_k(self, p, k, evaluation, options):
+        'ClusteringComponents[p_, k_Integer, OptionsPattern[%(name)s]]'
+        return self._cluster(p, k, 'components', evaluation, options,
+                             Expression('ClusteringComponents', p, k, *options_to_rules(options)))
