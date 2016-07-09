@@ -47,7 +47,7 @@ def cancel(expr):
             return expr
 
 
-def expand(expr, numer=True, denom=False, modulus=None, deep=False):
+def expand(expr, numer=True, denom=False, deep=False, **kwargs):
     sub_exprs = []
     sub_count = 0
 
@@ -92,13 +92,16 @@ def expand(expr, numer=True, denom=False, modulus=None, deep=False):
 
     sympy_expr = convert_sympy(expr)
 
+    def _expand(expr):
+        return expand(expr, numer=numer, denom=denom, deep=deep, **kwargs)
+
     if deep:
         # thread over everything
         for i, sub_expr,in enumerate(sub_exprs):
             if not sub_expr.is_atom():
-                head = expand(sub_expr.head)    # also expand head
+                head = _expand(sub_expr.head)    # also expand head
                 leaves = sub_expr.get_leaves()
-                leaves = [expand(leaf) for leaf in leaves]
+                leaves = [_expand(leaf) for leaf in leaves]
                 sub_exprs[i] = Expression(head, *leaves)
     else:
         # thread over Lists etc.
@@ -107,7 +110,7 @@ def expand(expr, numer=True, denom=False, modulus=None, deep=False):
             for head in threaded_heads:
                 if sub_expr.has_form(head, None):
                     leaves = sub_expr.get_leaves()
-                    leaves = [expand(leaf) for leaf in leaves]
+                    leaves = [_expand(leaf) for leaf in leaves]
                     sub_exprs[i] = Expression(head, *leaves)
                     break
 
@@ -116,17 +119,20 @@ def expand(expr, numer=True, denom=False, modulus=None, deep=False):
         'multinomial': True,
         'power_exp': False,
         'power_base': False,
-        'baseic': False,
+        'basic': False,
         'log': False,
     }
 
-    if not (numer and denom):
+    hints.update(kwargs)
+
+    if numer and denom:
+        # don't expand fractions when modulus is True
+        if hints['modulus'] is not None:
+            hints['frac'] = True
+    else:
         # setting both True doesn't expand denom
         hints['numer'] = numer
         hints['denom'] = denom
-
-    if modulus is not None:
-        hints['modulus'] = modulus
 
     sympy_expr = sympy_expr.expand(**hints)
     result = from_sympy(sympy_expr)
@@ -321,7 +327,33 @@ class Apart(Builtin):
             return expr
 
 
-class Expand(Builtin):
+class _Expand(Builtin):
+
+    options = {
+        'Trig': 'False',
+        'Modulus': '0',
+    }
+
+    def convert_options(self, options, evaluation):
+        modulus = options['System`Modulus']
+        py_modulus = modulus.get_int_value()
+        if py_modulus is None:
+            return evaluation.message(self.get_name(), 'modn', Expression('Rule', Symbol('Modulus'), modulus))
+        if py_modulus == 0:
+            py_modulus = None
+
+        trig = options['System`Trig']
+        if trig == Symbol('True'):
+            py_trig = True
+        elif trig == Symbol('False'):
+            py_trig = False
+        else:
+            return evaluation.message(self.get_name(), 'opttf', Expression('Rule', Symbol('Trig'), trig))
+
+        return {'modulus': py_modulus, 'trig': py_trig}
+
+
+class Expand(_Expand):
     """
     <dl>
     <dt>'Expand[$expr$]'
@@ -349,6 +381,13 @@ class Expand(Builtin):
     >> Expand[Sin[x (1 + y)]]
      = Sin[x (1 + y)]
 
+    'Expand' also works in Galois fields
+    >> Expand[(1 + a)^12, Modulus -> 3]
+     = 1 + a ^ 3 + a ^ 9 + a ^ 12
+
+    >> Expand[(1 + a)^12, Modulus -> 4]
+     = 1 + 2 a ^ 2 + 3 a ^ 4 + 3 a ^ 8 + 2 a ^ 10 + a ^ 12
+
     #> a(b(c+d)+e) // Expand
      = a b c + a b d + a e
 
@@ -360,13 +399,22 @@ class Expand(Builtin):
      = 24 x / (5 + 3 x + x ^ 2) ^ 3 + 8 x ^ 2 / (5 + 3 x + x ^ 2) ^ 3 + 18 / (5 + 3 x + x ^ 2) ^ 3
     """
 
-    def apply(self, expr, evaluation):
-        'Expand[expr_]'
+    # TODO unwrap trig expressions in expand() so the following works
+    """
+    >> Expand[Sin[x + y], Trig -> True]
+     = Cos[y] Sin[x] + Cos[x] Sin[y]
+    """
 
-        return expand(expr, True, False)
+    def apply(self, expr, evaluation, options):
+        'Expand[expr_, OptionsPattern[Expand]]'
+
+        kwargs = self.convert_options(options, evaluation)
+        if kwargs is None:
+            return
+        return expand(expr, True, False, **kwargs)
 
 
-class ExpandDenominator(Builtin):
+class ExpandDenominator(_Expand):
     """
     <dl>
     <dt>'ExpandDenominator[$expr$]'
@@ -376,18 +424,26 @@ class ExpandDenominator(Builtin):
     >> ExpandDenominator[(a + b) ^ 2 / ((c + d)^2 (e + f))]
      = (a + b) ^ 2 / (c ^ 2 e + c ^ 2 f + 2 c d e + 2 c d f + d ^ 2 e + d ^ 2 f)
 
+    ## Modulus option
+    #> ExpandDenominator[1 / (x + y)^3, Modulus -> 3]
+     = 1 / (x ^ 3 + y ^ 3)
+    #> ExpandDenominator[1 / (x + y)^6, Modulus -> 4]
+     = 1 / (x ^ 6 + 2 x ^ 5 y + 3 x ^ 4 y ^ 2 + 3 x ^ 2 y ^ 4 + 2 x y ^ 5 + y ^ 6)
+
     #> ExpandDenominator[2(3+2x)^2/(5+x^2+3x)^3]
      = 2 (3 + 2 x) ^ 2 / (125 + 225 x + 210 x ^ 2 + 117 x ^ 3 + 42 x ^ 4 + 9 x ^ 5 + x ^ 6)
-
     """
 
-    def apply(self, expr, evaluation):
-        'ExpandDenominator[expr_]'
+    def apply(self, expr, evaluation, options):
+        'ExpandDenominator[expr_, OptionsPattern[ExpandDenominator]]'
 
-        return expand(expr, False, True)
+        kwargs = self.convert_options(options, evaluation)
+        if kwargs is None:
+            return
+        return expand(expr, False, True, **kwargs)
 
 
-class ExpandAll(Builtin):
+class ExpandAll(_Expand):
     """
     <dl>
     <dt>'ExpandAll[$expr$]'
@@ -404,12 +460,19 @@ class ExpandAll(Builtin):
     ExpandAll also expands heads
     >> ExpandAll[((1 + x)(1 + y))[x]]
      = (1 + x + y + x y)[x]
+
+    #> ExpandAll[(1 + a) ^ 6 / (x + y)^3, Modulus -> 3]
+     = (1 + 2 a ^ 3 + a ^ 6) / (x ^ 3 + y ^ 3)
     """
 
-    def apply(self, expr, evaluation):
-        'ExpandAll[expr_]'
+    def apply(self, expr, evaluation, options):
+        'ExpandAll[expr_, OptionsPattern[ExpandAll]]'
 
-        return expand(expr, True, True, deep=True)
+        kwargs = self.convert_options(options, evaluation)
+        if kwargs is None:
+            return
+        return expand(expr, numer=True, denom=True, deep=True, **kwargs)
+
 
 class PowerExpand(Builtin):
     """
