@@ -50,6 +50,14 @@ def _index(i, j):  # i > j, returns j + sum(1, 2, ..., i - 1)
     return j + ((i - 1) * i) // 2
 
 
+def _components(clusters, n):
+    components = [0] * n
+    for i, c in enumerate(clusters):
+        component_index = i + 1
+        for j in c:
+            components[j] = component_index
+    return components
+
 class PrecomputedDistances(object):
     def __init__(self, distances):
         self._distances = distances
@@ -451,12 +459,7 @@ def optimize(p, k, distances, mode='clusters', seed=12345):
         if mode == 'clusters':
             return list(map(lambda c: map(lambda i: p[i], c), clusters))
         elif mode == 'components':
-            components = [0] * len(p)
-            for i, c in enumerate(clusters):
-                component_index = i + 1
-                for j in c:
-                    components[j] = component_index
-            return components
+            return _components(clusters, len(p))
         else:
             raise ValueError('illegal mode %s' % mode)
     finally:
@@ -529,7 +532,12 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
     # distance falls above this limit, the clustering is stopped and the
     # best clustering so far is returned.
 
-    clusters = [[q] for q in points]
+    if mode == 'clusters':
+        clusters = [[q] for q in points]
+    elif mode == 'components':
+        clusters = [[i] for i in range(len(points))]
+    else:
+        raise ValueError('illegal mode %s' % mode)
 
     def shiftdown(s, heap, where):
         e = len(heap) - 1
@@ -643,21 +651,15 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
 
         if mode == 'dominant':
             dominant = list(range(n))
-            components = None
             result = dominant
-        elif mode == 'components':
+        elif mode in ('clusters', 'components'):
             dominant = None
-            components = list(range(n))
-            result = components
-        elif mode == 'clusters':
-            dominant = None
-            components = None
             result = clusters
         else:
             raise ValueError('illegal mode %s' % mode)
 
         if index:
-            # compute a limit that rougly corresponds the the Optimize method:
+            # compute a limit that rougly corresponds to the Optimize method:
             # with each split in two, the McClain-Rao-Index limit divides by 10
             limit = 1. / (math.log(n, 2) * _mcclain_rao_limit_factor)
 
@@ -691,17 +693,13 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
                     dominant[i] = dominant[j]
                 dominant[j] = None
 
-            if components:
-                components[j] = components[i]
-
             clusters[i].extend(clusters[j])
             clusters[j] = None
+
             n_clusters -= 1
 
         if mode == 'components':
-            component_indices = list(set(components))
-            component_mapping = dict((j, i + 1) for i, j in enumerate(component_indices))
-            return [component_mapping[c] for c in components]
+            return _components([c for c in clusters if c], n)
         else:
             return [c for c in result if c]
 

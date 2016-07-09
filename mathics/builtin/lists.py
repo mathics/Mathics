@@ -3570,6 +3570,9 @@ class FindClusters(_Cluster):
     >> FindClusters[{1, 2, 3, 1, 2, 10, 100}]
      = {{1, 2, 3, 1, 2}, {10}, {100}}
 
+    >> FindClusters[{1, 2, 3, 1, 2, 10, 100}, Method -> "Agglomerate"]
+     = {{1, 1, 2, 2, 3, 10}, {100}}
+
     >> FindClusters[{1 -> a, 2 -> b, 10 -> c}]
      = {{a, b}, {c}}
 
@@ -3584,6 +3587,12 @@ class FindClusters(_Cluster):
 
     >> FindClusters[{{1}, {5, 6}, {7}, {2, 4}}, DistanceFunction -> (Abs[Length[#1] - Length[#2]]&)]
      = {{{1}, {7}}, {{5, 6}, {2, 4}}}
+
+    >> FindClusters[{"meep", "heap", "deep", "weep", "sheep", "leap", "keep"}, 3]
+     = {{meep, deep, weep, keep}, {heap, leap}, {sheep}}
+
+    FindClusters' automatic distance function detection supports scalars, numeric tensors, boolean vectors and
+    strings.
 
     The Method option must be either "Agglomerate" or "Optimize". If not specified, it defaults to "Optimize".
     Note that the Agglomerate and Optimize methods usually produce different clusterings.
@@ -3619,11 +3628,11 @@ class ClusteringComponents(_Cluster):
 
     For more detailed documentation regarding options and behavior, see FindClusters[].
 
-    >> ClusteringComponents[{1, 10, 11, 2}]
-     = {1, 2, 2, 1}
+    >> ClusteringComponents[{1, 2, 3, 1, 2, 10, 100}]
+     = {1, 1, 1, 1, 1, 2, 3}
 
-    >> ClusteringComponents[{"meep", "heap", "deep", "weep", "sheep", "leap", "keep"}, 3]
-     = {1, 2, 1, 1, 3, 2, 1}
+    >> ClusteringComponents[{1, 2, 3, 1, 2, 10, 100}, Method -> "Agglomerate"]
+     = {1, 1, 1, 1, 1, 1, 2}
     """
 
     def apply(self, p, evaluation, options):
