@@ -659,7 +659,7 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
         if index:
             # compute a limit that rougly corresponds the the Optimize method:
             # with each split in two, the McClain-Rao-Index limit divides by 10
-            limit = 1. / (math.log2(n) * _mcclain_rao_limit_factor)
+            limit = 1. / (math.log(n, 2) * _mcclain_rao_limit_factor)
 
         while len(heap) > 1 and n_clusters > n_clusters_target:
             d, _, p = heap[0]
