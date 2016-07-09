@@ -210,6 +210,15 @@ class Builtin(object):
 
         return None
 
+    def get_option_string(self, *params):
+        s = self.get_option(*params)
+        if isinstance(s, String):
+            return s.get_string_value(), s
+        elif isinstance(s, Symbol):
+            for prefix in ('Global`', 'System`'):
+                if s.get_name().startswith(prefix):
+                    return s.get_name()[len(prefix):], s
+        return None, s
 
 class InstancableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):
