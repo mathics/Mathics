@@ -10,7 +10,7 @@ from __future__ import absolute_import
 from six.moves import range
 
 from mathics.builtin.base import Builtin, BinaryOperator
-from mathics.core.expression import Expression, Symbol, Integer
+from mathics.core.expression import Expression, Symbol, Integer, String
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import get_part
@@ -449,3 +449,19 @@ class IdentityMatrix(Builtin):
     rules = {
         'IdentityMatrix[n_Integer]': 'DiagonalMatrix[Table[1, {n}]]',
     }
+
+
+def get_default_distance(p):
+    if all(q.is_numeric() for q in p):
+        return 'SquaredEuclideanDistance'
+    elif all(q.get_head_name() == 'System`List' for q in p):
+        dimensions = [get_dimensions(q) for q in p]
+        if len(dimensions) > 1:
+            d0 = dimensions[0]
+            if not all(d == d0 for d in dimensions[1:]):
+                return None
+        return 'SquaredEuclideanDistance'
+    elif all(isinstance(q, String) for q in p):
+        return 'EditDistance'
+    else:
+        return None
