@@ -47,19 +47,16 @@ def cancel(expr):
             return expr
 
 
-def expand(expr, numer=True, denom=False, modulus=None):
-    sub_exprs = {}
+def expand(expr, numer=True, denom=False, modulus=None, deep=False):
+    sub_exprs = []
     sub_count = 0
 
     def store_sub_expr(expr):
-        nonlocal sub_count, sub_exprs
-        sub_exprs[sub_count] = expr
-        result = sympy.Symbol(sympy_symbol_prefix + str(sub_count))
-        sub_count += 1
+        sub_exprs.append(expr)
+        result = sympy.Symbol(sympy_symbol_prefix + str(len(sub_exprs) - 1))
         return result
 
     def get_sub_expr(expr):
-        nonlocal sub_count, sub_exprs
         name = expr.get_name()
         assert isinstance(expr, Symbol) and name.startswith('System`')
         i = int(name[len('System`'):])
@@ -95,15 +92,24 @@ def expand(expr, numer=True, denom=False, modulus=None):
 
     sympy_expr = convert_sympy(expr)
 
-    # thread over Lists etc.
-    threaded_heads = ('List', 'Rule')
-    for i, sub_expr in sub_exprs.items():
-        for head in threaded_heads:
-            if sub_expr.has_form(head, None):
+    if deep:
+        # thread over everything
+        for i, sub_expr,in enumerate(sub_exprs):
+            if not sub_expr.is_atom():
+                head = expand(sub_expr.head)    # also expand head
                 leaves = sub_expr.get_leaves()
                 leaves = [expand(leaf) for leaf in leaves]
                 sub_exprs[i] = Expression(head, *leaves)
-                break
+    else:
+        # thread over Lists etc.
+        threaded_heads = ('List', 'Rule')
+        for i, sub_expr in enumerate(sub_exprs):
+            for head in threaded_heads:
+                if sub_expr.has_form(head, None):
+                    leaves = sub_expr.get_leaves()
+                    leaves = [expand(leaf) for leaf in leaves]
+                    sub_exprs[i] = Expression(head, *leaves)
+                    break
 
     hints = {
         'mul': True,
@@ -113,8 +119,12 @@ def expand(expr, numer=True, denom=False, modulus=None):
         'baseic': False,
         'log': False,
     }
-    hints['numer'] = numer
-    hints['denom'] = denom
+
+    if not (numer and denom):
+        # setting both True doesn't expand denom
+        hints['numer'] = numer
+        hints['denom'] = denom
+
     if modulus is not None:
         hints['modulus'] = modulus
 
@@ -367,7 +377,8 @@ class ExpandDenominator(Builtin):
      = (a + b) ^ 2 / (c ^ 2 e + c ^ 2 f + 2 c d e + 2 c d f + d ^ 2 e + d ^ 2 f)
 
     #> ExpandDenominator[2(3+2x)^2/(5+x^2+3x)^3]
-     = 2 (3 + 2 x) ^ 2 / (125 + 225 x + 210 x ^ 2 + 117 x ^ 3 + 42 x ^ 4 + 9 x ^ 5 + x ^ 6
+     = 2 (3 + 2 x) ^ 2 / (125 + 225 x + 210 x ^ 2 + 117 x ^ 3 + 42 x ^ 4 + 9 x ^ 5 + x ^ 6)
+
     """
 
     def apply(self, expr, evaluation):
@@ -375,6 +386,30 @@ class ExpandDenominator(Builtin):
 
         return expand(expr, False, True)
 
+
+class ExpandAll(Builtin):
+    """
+    <dl>
+    <dt>'ExpandAll[$expr$]'
+        <dd>expands out negative integer powers and products of sums in $expr$.
+    </dl>
+
+    >> ExpandAll[(a + b) ^ 2 / (c + d)^2]
+     = a ^ 2 / (c ^ 2 + 2 c d + d ^ 2) + 2 a b / (c ^ 2 + 2 c d + d ^ 2) + b ^ 2 / (c ^ 2 + 2 c d + d ^ 2)
+
+    ExpandAll descends into sub expressions
+    >> ExpandAll[(a + Sin[x (1 + y)])^2]
+     = a ^ 2 + 2 a Sin[x + x y] + Sin[x + x y] ^ 2
+
+    ExpandAll also expands heads
+    >> ExpandAll[((1 + x)(1 + y))[x]]
+     = (1 + x + y + x y)[x]
+    """
+
+    def apply(self, expr, evaluation):
+        'ExpandAll[expr_]'
+
+        return expand(expr, True, True, deep=True)
 
 class PowerExpand(Builtin):
     """
