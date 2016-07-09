@@ -48,8 +48,11 @@ def cancel(expr):
 
 
 def expand(expr, numer=True, denom=False, deep=False, **kwargs):
+
+    if kwargs['modulus'] is not None and kwargs['modulus'] <= 0:
+        return Integer(0)
+
     sub_exprs = []
-    sub_count = 0
 
     def store_sub_expr(expr):
         sub_exprs.append(expr)
@@ -334,11 +337,16 @@ class _Expand(Builtin):
         'Modulus': '0',
     }
 
+    messages = {
+        'modn': 'Value of option `1` -> `2` should be an integer.',
+        'opttf': 'Value of option `1` -> `2` should be True or False.',
+    }
+
     def convert_options(self, options, evaluation):
         modulus = options['System`Modulus']
         py_modulus = modulus.get_int_value()
         if py_modulus is None:
-            return evaluation.message(self.get_name(), 'modn', Expression('Rule', Symbol('Modulus'), modulus))
+            return evaluation.message(self.get_name(), 'modn', Symbol('Modulus'), modulus)
         if py_modulus == 0:
             py_modulus = None
 
@@ -348,7 +356,7 @@ class _Expand(Builtin):
         elif trig == Symbol('False'):
             py_trig = False
         else:
-            return evaluation.message(self.get_name(), 'opttf', Expression('Rule', Symbol('Trig'), trig))
+            return evaluation.message(self.get_name(), 'opttf', Symbol('Trig'), trig)
 
         return {'modulus': py_modulus, 'trig': py_trig}
 
@@ -387,6 +395,12 @@ class Expand(_Expand):
 
     >> Expand[(1 + a)^12, Modulus -> 4]
      = 1 + 2 a ^ 2 + 3 a ^ 4 + 3 a ^ 8 + 2 a ^ 10 + a ^ 12
+
+    #> Expand[x, Modulus -> -1]  (* copy odd MMA behaviour *)
+     = 0
+    #> Expand[x, Modulus -> x]
+     : Value of option Modulus -> x should be an integer.
+     = Expand[x, Modulus -> x]
 
     #> a(b(c+d)+e) // Expand
      = a b c + a b d + a e
