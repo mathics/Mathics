@@ -47,7 +47,7 @@ def cancel(expr):
             return expr
 
 
-def expand(expr, numer=True, denom=False):
+def expand(expr, numer=True, denom=False, modulus=None):
     sub_exprs = {}
     sub_count = 0
 
@@ -71,11 +71,12 @@ def expand(expr, numer=True, denom=False):
         if isinstance(expr, Integer):
             return sympy.Integer(expr.get_int_value())
         if expr.has_form('Power', 2):
-            leaf1 = leaves[1].get_int_value()
-            if (leaf1 is None or leaf1 == 0) or (leaf1 > 0 and numer) or (leaf1 < 0 and denom):
-                return sympy.Pow(*[convert_sympy(leaf) for leaf in leaves])
-            else:
+            # sympy won't expand `(a + b) / x` to `a / x + b / x` if denom is False
+            # if denom is False we store negative powers to prevent this.
+            n1 = leaves[1].get_int_value()
+            if not denom and n1 is not None and n1 < 0:
                 return store_sub_expr(expr)
+            return sympy.Pow(*[convert_sympy(leaf) for leaf in leaves])
         elif expr.has_form('Times', 2, None):
             return sympy.Mul(*[convert_sympy(leaf) for leaf in leaves])
         elif expr.has_form('Plus', 2, None):
@@ -104,8 +105,20 @@ def expand(expr, numer=True, denom=False):
                 sub_exprs[i] = Expression(head, *leaves)
                 break
 
-    sympy_expr = sympy.expand_multinomial(sympy_expr)
-    sympy_expr = sympy.expand_mul(sympy_expr)
+    hints = {
+        'mul': True,
+        'multinomial': True,
+        'power_exp': False,
+        'power_base': False,
+        'baseic': False,
+        'log': False,
+    }
+    hints['numer'] = numer
+    hints['denom'] = denom
+    if modulus is not None:
+        hints['modulus'] = modulus
+
+    sympy_expr = sympy_expr.expand(**hints)
     result = from_sympy(sympy_expr)
     result = unconvert_subexprs(result)
 
@@ -341,6 +354,26 @@ class Expand(Builtin):
         'Expand[expr_]'
 
         return expand(expr, True, False)
+
+
+class ExpandDenominator(Builtin):
+    """
+    <dl>
+    <dt>'ExpandDenominator[$expr$]'
+        <dd>expands out negative integer powers and products of sums in $expr$.
+    </dl>
+
+    >> ExpandDenominator[(a + b) ^ 2 / ((c + d)^2 (e + f))]
+     = (a + b) ^ 2 / (c ^ 2 e + c ^ 2 f + 2 c d e + 2 c d f + d ^ 2 e + d ^ 2 f)
+
+    #> ExpandDenominator[2(3+2x)^2/(5+x^2+3x)^3]
+     = 2 (3 + 2 x) ^ 2 / (125 + 225 x + 210 x ^ 2 + 117 x ^ 3 + 42 x ^ 4 + 9 x ^ 5 + x ^ 6
+    """
+
+    def apply(self, expr, evaluation):
+        'ExpandDenominator[expr_]'
+
+        return expand(expr, False, True)
 
 
 class PowerExpand(Builtin):
