@@ -23,6 +23,8 @@ from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
 from mathics.builtin.algebra import cancel
 from mathics.algorithm.introselect import introselect
+from mathics.algorithm.clusters import optimize, agglomerate, PrecomputedDistances, LazyDistances
+from mathics.builtin.options import options_to_rules
 
 import sympy
 import heapq
@@ -3625,3 +3627,169 @@ class PadRight(_Pad):
     """
 
     _mode = 1
+
+
+class _IllegalDistance(Exception):
+    pass
+
+
+class _PrecomputedDistances(PrecomputedDistances):
+    def __init__(self, df, p, evaluation):
+        distances_form = [df(p[i], p[j]) for i in range(len(p)) for j in range(i)]
+        distances = Expression('N', Expression('List', *distances_form)).evaluate(evaluation)
+
+        if any(not d.is_numeric() for d in distances.leaves):
+            raise _IllegalDistance()
+
+        sympy_distances = [d.to_sympy() for d in distances.leaves]
+        if any(not d.is_real for d in sympy_distances):
+            raise _IllegalDistance()
+
+        super(_PrecomputedDistances, self).__init__(sympy_distances)
+
+
+class _LazyDistances(LazyDistances):
+    def __init__(self, df, p, evaluation):
+        super(_LazyDistances, self).__init__()
+        self._df = df
+        self._p = p
+        self._evaluation = evaluation
+
+    def _compute_distance(self, i, j):
+        p = self._p
+        d = Expression('N', self._df(p[i], p[j])).evaluate(self._evaluation)
+        if not d.is_numeric():
+            raise _IllegalDistance()
+        sympy_d = d.to_sympy()
+        if not sympy_d.is_real:
+            raise _IllegalDistance()
+        return sympy_d
+
+
+class FindClusters(Builtin):
+    """
+    <dl>
+    <dt>'FindClusters[$list$]'
+        <dd>returns a list of clusters of the elements of $list$. The number of cluster is determined automatically.
+    <dt>'FindClusters[$list$, $k$]'
+        <dd>returns a list of $k$ clusters of the elements of $list$.
+    </dl>
+
+    >> FindClusters[{1, 2, 20, 10, 11, 40, 19, 42}]
+     = {{1, 2, 20, 10, 11, 19}, {40, 42}}
+
+    >> FindClusters[{25, 100, 17, 20}]
+     = {{25, 17, 20}, {100}}
+
+    >> FindClusters[{3, 6, 1, 100, 20, 5, 25, 17, -10, 2}]
+     = {{3, 6, 1, 5, -10, 2}, {100}, {20, 25, 17}}
+
+    >> FindClusters[{1, 2, 10, 11, 20, 21}]
+     = {{1, 2}, {10, 11}, {20, 21}}
+
+    >> FindClusters[{1, 2, 10, 11, 20, 21}, 2]
+     = {{1, 2, 10, 11}, {20, 21}}
+
+    >> FindClusters[{1, 2, 3, 1, 2, 10, 100}]
+     = {{1, 2, 3, 1, 2}, {10}, {100}}
+
+    >> FindClusters[{1 -> a, 2 -> b, 10 -> c}]
+     = {{a, b}, {c}}
+
+    >> FindClusters[{1, 2, 5} -> {a, b, c}]
+     = {{a, b}, {c}}
+
+    >> FindClusters[{1, 2, 3, 10, 16, 18}, Method -> "Agglomerate"]
+     = {{1, 2, 3}, {10, 16, 18}}
+
+    >> FindClusters[{1, 2, 3, 10, 17, 18}, Method -> "Agglomerate"]
+     = {{1, 2, 3}, {10}, {17, 18}}
+
+    The Method option must be either "Agglomerate" or "Optimize". If not specified, it defaults to "Optimize".
+    The Agglomerate and Optimize methods produce different clusterings.
+
+    The Agglomerate method is quadratic in the number of points n, builds the clustering from the bottom up, and
+    is exact (no element of randomness). The Optimize method is linear in n, builds the clustering from top down,
+    and uses random sampling.
+    """
+
+    options = {
+        'Method': 'Optimize',
+    }
+
+    messages = {
+        'amtd': 'FindClusters failed to pick a suitable distance function for ``.',
+        'bdmtd': 'Method must be either "Optimize" or "Agglomerate".',
+        'intpm': 'Positive integer expected at position 2 in ``.',
+        'list': 'Expected a list or a rule with equally sized lists at position 1 in ``.',
+        'nclst': 'Cannot find more clusters than there are elements (`1` is larger than `2`).',
+    }
+
+    def _cluster(self, p, k, evaluation, options, expr):
+        dist_p = None
+        if p.get_head_name() == 'System`Rule':
+            if all(q.get_head_name() == 'System`List' for q in p.leaves):
+                dist_p, repr_p = (q.leaves for q in p.leaves)
+        elif p.get_head_name() == 'System`List':
+            if all(q.get_head_name() == 'System`Rule' for q in p.leaves):
+                dist_p, repr_p = ([q.leaves[i] for q in p.leaves] for i in range(2))
+            else:
+                dist_p = repr_p = p.leaves
+
+        if dist_p is None or len(dist_p) != len(repr_p):
+            evaluation.message('FindClusters', 'list', expr)
+
+        if k is not None:
+            if not isinstance(k, Integer):
+                evaluation.message('FindClusters', 'intpm', expr)
+                return
+            py_k = k.get_int_value()
+            if py_k < 1:
+                evaluation.message('FindClusters', 'intpm', expr)
+                return
+            if py_k > len(dist_p):
+                evaluation.message('FindClusters', 'nclst', py_k, len(dist_p))
+                return
+            elif py_k == 1:
+                return Expression('List', *repr_p)
+            elif py_k == len(dist_p):
+                return Expression('List', [Expression('List', q) for q in repr_p])
+        else:
+            py_k = None
+
+        from mathics.builtin.tensors import get_default_distance
+        df_name = get_default_distance(dist_p)
+        if df_name is None:
+            evaluation.message('FindClusters', 'amtd', Expression('List', *dist_p))
+            return
+
+        def df(i, j):
+            return Expression(df_name, i, j)
+
+        py_method = None
+        method = self.get_option(options, 'Method', evaluation)
+        if isinstance(method, String):
+            py_method = method.get_string_value()
+        elif isinstance(method, Symbol) and method.get_name().startswith('Global`'):
+            py_method = method.get_name()[len('Global`'):]
+
+        try:
+            if py_method == 'Agglomerate':
+                clusters = agglomerate(repr_p, py_k, _PrecomputedDistances(df, dist_p, evaluation))
+            elif py_method == 'Optimize':
+                clusters = optimize(repr_p, py_k, _LazyDistances(df, dist_p, evaluation))
+            else:
+                evaluation.message('FindClusters', 'bdmtd')
+                return
+        except _IllegalDistance:
+            return
+
+        return Expression('List', *[Expression('List', *c) for c in clusters])
+
+    def apply(self, p, evaluation, options):
+        'FindClusters[p_, OptionsPattern[%(name)s]]'
+        return self._cluster(p, None, evaluation, options, Expression('FindClusters', p, *options_to_rules(options)))
+
+    def apply_k(self, p, k, evaluation, options):
+        'FindClusters[p_, k_Integer, OptionsPattern[%(name)s]]'
+        return self._cluster(p, k, evaluation, options, Expression('FindClusters', p, k, *options_to_rules(options)))
