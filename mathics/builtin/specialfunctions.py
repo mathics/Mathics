@@ -27,6 +27,10 @@ class Erf(_MPMathMultiFunction):
         <dd>returns the result of 'Erf[$z1$] - Erf[$z0$]'.
     </dl>
 
+    'Erf[$x$]' is an odd function:
+    >> Erf[-x]
+     = -Erf[x]
+
     >> Erf[1.0]
      = 0.842700792949714869
     >> Erf[0]
@@ -85,6 +89,8 @@ class Erfc(_MPMathFunction):
         <dd>returns the complementary error function of $z$.
     </dl>
 
+    >> Erfc[-x] / 2
+     = (2 - Erfc[x]) / 2
     >> Erfc[1.0]
      = 0.157299207050285131
     >> Erfc[0]
