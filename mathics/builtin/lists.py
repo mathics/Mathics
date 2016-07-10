@@ -1394,10 +1394,16 @@ class Position(Builtin):
     <dl>
     <dt>'Position[$expr$, $patt$]'
         <dd>returns the list of positions for which $expr$ matches $patt$.
+    <dt>'Position[$expr$, $patt$, $ls$]'
+        <dd>returns the positions on levels specified by levelspec $ls$.
     </dl>
 
     >> Position[{1, 2, 2, 1, 2, 3, 2}, 2]
      = {{2}, {3}, {5}, {7}}
+
+    Find positions upto 3 levels deep
+    >> Position[{1 + Sin[x], x, (Tan[x] - y)^2}, x, 3]
+     = {{1, 2, 1}, {2}}
     '''
 
     options = {
