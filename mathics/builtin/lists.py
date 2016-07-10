@@ -1404,6 +1404,10 @@ class Position(Builtin):
     Find positions upto 3 levels deep
     >> Position[{1 + Sin[x], x, (Tan[x] - y)^2}, x, 3]
      = {{1, 2, 1}, {2}}
+
+    Find all powers of x
+    >> Position[{1 + x^2, x y ^ 2,  4 y,  x ^ z}, x^_]
+     = {{1, 2}, {4}}
     '''
 
     options = {
@@ -1416,7 +1420,7 @@ class Position(Builtin):
         return evaluation.message('Position', 'level', ls)
 
     def apply_level(self, expr, patt, ls, evaluation, options={}):
-        '''Position[expr_, patt_, Optional[Pattern[ls, _?LevelQ], {1}],
+        '''Position[expr_, patt_, Optional[Pattern[ls, _?LevelQ], {0, Infinity}],
                     OptionsPattern[Position]]'''
 
         try:
@@ -1426,7 +1430,7 @@ class Position(Builtin):
 
         result = []
         def callback(level, pos):
-            expr = Expression('MatchQ', patt, level)
+            expr = Expression('MatchQ', level, patt)
             if expr.evaluate(evaluation).is_true():
                 result.append(pos)
             return level
