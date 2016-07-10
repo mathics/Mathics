@@ -5,8 +5,8 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Expression, Integer
-from mathics.core.convert import from_sympy
+from mathics.core.expression import Expression, Integer, Symbol
+from mathics.core.convert import from_sympy, sympy_symbol_prefix
 
 import sympy
 import mpmath
@@ -45,6 +45,103 @@ def cancel(expr):
         except sympy.PolynomialError:
             # e.g. for non-commutative expressions
             return expr
+
+
+def expand(expr, numer=True, denom=False, deep=False, **kwargs):
+
+    if kwargs['modulus'] is not None and kwargs['modulus'] <= 0:
+        return Integer(0)
+
+    sub_exprs = []
+
+    def store_sub_expr(expr):
+        sub_exprs.append(expr)
+        result = sympy.Symbol(sympy_symbol_prefix + str(len(sub_exprs) - 1))
+        return result
+
+    def get_sub_expr(expr):
+        name = expr.get_name()
+        assert isinstance(expr, Symbol) and name.startswith('System`')
+        i = int(name[len('System`'):])
+        return sub_exprs[i]
+
+    def convert_sympy(expr):
+        "converts top-level to sympy"
+        leaves = expr.get_leaves()
+        if isinstance(expr, Integer):
+            return sympy.Integer(expr.get_int_value())
+        if expr.has_form('Power', 2):
+            # sympy won't expand `(a + b) / x` to `a / x + b / x` if denom is False
+            # if denom is False we store negative powers to prevent this.
+            n1 = leaves[1].get_int_value()
+            if not denom and n1 is not None and n1 < 0:
+                return store_sub_expr(expr)
+            return sympy.Pow(*[convert_sympy(leaf) for leaf in leaves])
+        elif expr.has_form('Times', 2, None):
+            return sympy.Mul(*[convert_sympy(leaf) for leaf in leaves])
+        elif expr.has_form('Plus', 2, None):
+            return sympy.Add(*[convert_sympy(leaf) for leaf in leaves])
+        else:
+            return store_sub_expr(expr)
+
+    def unconvert_subexprs(expr):
+        if expr.is_atom():
+            if isinstance(expr, Symbol):
+                return get_sub_expr(expr)
+            else:
+                return expr
+        else:
+            return Expression(expr.head, *[unconvert_subexprs(leaf) for leaf in expr.get_leaves()])
+
+    sympy_expr = convert_sympy(expr)
+
+    def _expand(expr):
+        return expand(expr, numer=numer, denom=denom, deep=deep, **kwargs)
+
+    if deep:
+        # thread over everything
+        for i, sub_expr,in enumerate(sub_exprs):
+            if not sub_expr.is_atom():
+                head = _expand(sub_expr.head)    # also expand head
+                leaves = sub_expr.get_leaves()
+                leaves = [_expand(leaf) for leaf in leaves]
+                sub_exprs[i] = Expression(head, *leaves)
+    else:
+        # thread over Lists etc.
+        threaded_heads = ('List', 'Rule')
+        for i, sub_expr in enumerate(sub_exprs):
+            for head in threaded_heads:
+                if sub_expr.has_form(head, None):
+                    leaves = sub_expr.get_leaves()
+                    leaves = [_expand(leaf) for leaf in leaves]
+                    sub_exprs[i] = Expression(head, *leaves)
+                    break
+
+    hints = {
+        'mul': True,
+        'multinomial': True,
+        'power_exp': False,
+        'power_base': False,
+        'basic': False,
+        'log': False,
+    }
+
+    hints.update(kwargs)
+
+    if numer and denom:
+        # don't expand fractions when modulus is True
+        if hints['modulus'] is not None:
+            hints['frac'] = True
+    else:
+        # setting both True doesn't expand denom
+        hints['numer'] = numer
+        hints['denom'] = denom
+
+    sympy_expr = sympy_expr.expand(**hints)
+    result = from_sympy(sympy_expr)
+    result = unconvert_subexprs(result)
+
+    return result
 
 
 class Cancel(Builtin):
@@ -233,7 +330,38 @@ class Apart(Builtin):
             return expr
 
 
-class Expand(Builtin):
+class _Expand(Builtin):
+
+    options = {
+        'Trig': 'False',
+        'Modulus': '0',
+    }
+
+    messages = {
+        'modn': 'Value of option `1` -> `2` should be an integer.',
+        'opttf': 'Value of option `1` -> `2` should be True or False.',
+    }
+
+    def convert_options(self, options, evaluation):
+        modulus = options['System`Modulus']
+        py_modulus = modulus.get_int_value()
+        if py_modulus is None:
+            return evaluation.message(self.get_name(), 'modn', Symbol('Modulus'), modulus)
+        if py_modulus == 0:
+            py_modulus = None
+
+        trig = options['System`Trig']
+        if trig == Symbol('True'):
+            py_trig = True
+        elif trig == Symbol('False'):
+            py_trig = False
+        else:
+            return evaluation.message(self.get_name(), 'opttf', Symbol('Trig'), trig)
+
+        return {'modulus': py_modulus, 'trig': py_trig}
+
+
+class Expand(_Expand):
     """
     <dl>
     <dt>'Expand[$expr$]'
@@ -261,6 +389,19 @@ class Expand(Builtin):
     >> Expand[Sin[x (1 + y)]]
      = Sin[x (1 + y)]
 
+    'Expand' also works in Galois fields
+    >> Expand[(1 + a)^12, Modulus -> 3]
+     = 1 + a ^ 3 + a ^ 9 + a ^ 12
+
+    >> Expand[(1 + a)^12, Modulus -> 4]
+     = 1 + 2 a ^ 2 + 3 a ^ 4 + 3 a ^ 8 + 2 a ^ 10 + a ^ 12
+
+    #> Expand[x, Modulus -> -1]  (* copy odd MMA behaviour *)
+     = 0
+    #> Expand[x, Modulus -> x]
+     : Value of option Modulus -> x should be an integer.
+     = Expand[x, Modulus -> x]
+
     #> a(b(c+d)+e) // Expand
      = a b c + a b d + a e
 
@@ -272,104 +413,80 @@ class Expand(Builtin):
      = 24 x / (5 + 3 x + x ^ 2) ^ 3 + 8 x ^ 2 / (5 + 3 x + x ^ 2) ^ 3 + 18 / (5 + 3 x + x ^ 2) ^ 3
     """
 
-    def apply(self, expr, evaluation):
-        'Expand[expr_]'
+    # TODO unwrap trig expressions in expand() so the following works
+    """
+    >> Expand[Sin[x + y], Trig -> True]
+     = Cos[y] Sin[x] + Cos[x] Sin[y]
+    """
 
-        def expand(expr):
-            head_name = expr.get_head_name()
-            if head_name in ('System`List', 'System`Rule'):
-                return Expression(
-                    head_name, *[expand(leaf) for leaf in expr.leaves])
-            leaves = expr.get_leaves()
-            if expr.has_form('Times', 2, None):
-                " Group negative powers into one negative power "
-                neg_powers = []
-                other_leaves = []
-                for leaf in leaves:
-                    if (leaf.has_form('Power', 2) and   # nopep8
-                        leaf.leaves[1].get_int_value() is not None and
-                        leaf.leaves[1].get_int_value() < 0):
-                        neg_powers.append(leaf)
-                    else:
-                        other_leaves.append(leaf)
-                if len(neg_powers) > 1:
-                    leaves = other_leaves + [
-                        Expression('Power', Expression('Times', *[
-                            Expression(
-                                'Power', leaf.leaves[0],
-                                Integer(sympy.Integer(-leaf.leaves[1].value)))
-                            for leaf in neg_powers]), Integer(-1))]
-            if head_name in ('System`Plus', 'System`Times', 'System`Power'):
-                leaves = [expand(leaf) for leaf in leaves]
-            if expr.has_form('Times', 2, None):
-                result = [[]]
-                has_plus = False
-                for leaf in leaves:
-                    if leaf.has_form('Plus', 1):
-                        leaf = leaf.leaves[0]
-                    if leaf.has_form('Plus', 2, None):
-                        new_result = []
-                        for summand in leaf.leaves:
-                            if summand.has_form('Times', None):
-                                add = summand.leaves
-                            else:
-                                add = [summand]
-                            new_result.extend(item + add for item in result)
-                        result = new_result
-                        has_plus = True
-                    else:
-                        if leaf.has_form('Times', None):
-                            add = leaf.leaves
-                        else:
-                            add = [leaf]
-                        result = [item + add for item in result]
-                if has_plus:
-                    return Expression('Plus', *(expand(Expression('Times', *item)) for item in result))
+    def apply(self, expr, evaluation, options):
+        'Expand[expr_, OptionsPattern[Expand]]'
 
-                else:
-                    return Expression('Plus', *(Expression('Times', *item) for item in result))
+        kwargs = self.convert_options(options, evaluation)
+        if kwargs is None:
+            return
+        return expand(expr, True, False, **kwargs)
 
-            elif expr.has_form('Power', 2):
-                n = leaves[1].get_int_value()
-                sum = leaves[0]
-                if sum.has_form('Plus', None) and n is not None and n > 0:
-                    result = []
-                    items = sum.leaves
 
-                    def iterate(rest, n_rest):
-                        if rest and n_rest > 0:
-                            for k in range(n_rest + 1):
-                                for coeff, next in iterate(rest[1:],
-                                                           n_rest - k):
-                                    if k == 0:
-                                        this_factor = []
-                                    else:
-                                        this_factor = [Expression('Power', rest[0], Integer(k))]
-                                    yield (int(
-                                        mpmath.binomial(n_rest, k) * coeff),
-                                        this_factor + next)
-                        elif n_rest == 0:
-                            yield (sympy.Integer(1), [])
+class ExpandDenominator(_Expand):
+    """
+    <dl>
+    <dt>'ExpandDenominator[$expr$]'
+        <dd>expands out negative integer powers and products of sums in $expr$.
+    </dl>
 
-                    def times(coeff, factors):
-                        if coeff == 1:
-                            return Expression('Times', *factors)
-                        else:
-                            return Expression('Times', Integer(coeff), *factors)
+    >> ExpandDenominator[(a + b) ^ 2 / ((c + d)^2 (e + f))]
+     = (a + b) ^ 2 / (c ^ 2 e + c ^ 2 f + 2 c d e + 2 c d f + d ^ 2 e + d ^ 2 f)
 
-                    return Expression('Plus', *[
-                        times(coeff, factors) for coeff,
-                        factors in iterate(items, n)])
-                else:
-                    return Expression(
-                        expr.head, *[expand(leaf) for leaf in expr.leaves])
-            elif expr.has_form('Plus', 2, None):
-                return Expression('Plus', *leaves)
-            else:
-                return expr
+    ## Modulus option
+    #> ExpandDenominator[1 / (x + y)^3, Modulus -> 3]
+     = 1 / (x ^ 3 + y ^ 3)
+    #> ExpandDenominator[1 / (x + y)^6, Modulus -> 4]
+     = 1 / (x ^ 6 + 2 x ^ 5 y + 3 x ^ 4 y ^ 2 + 3 x ^ 2 y ^ 4 + 2 x y ^ 5 + y ^ 6)
 
-        result = expand(expr)
-        return result
+    #> ExpandDenominator[2(3+2x)^2/(5+x^2+3x)^3]
+     = 2 (3 + 2 x) ^ 2 / (125 + 225 x + 210 x ^ 2 + 117 x ^ 3 + 42 x ^ 4 + 9 x ^ 5 + x ^ 6)
+    """
+
+    def apply(self, expr, evaluation, options):
+        'ExpandDenominator[expr_, OptionsPattern[ExpandDenominator]]'
+
+        kwargs = self.convert_options(options, evaluation)
+        if kwargs is None:
+            return
+        return expand(expr, False, True, **kwargs)
+
+
+class ExpandAll(_Expand):
+    """
+    <dl>
+    <dt>'ExpandAll[$expr$]'
+        <dd>expands out negative integer powers and products of sums in $expr$.
+    </dl>
+
+    >> ExpandAll[(a + b) ^ 2 / (c + d)^2]
+     = a ^ 2 / (c ^ 2 + 2 c d + d ^ 2) + 2 a b / (c ^ 2 + 2 c d + d ^ 2) + b ^ 2 / (c ^ 2 + 2 c d + d ^ 2)
+
+    'ExpandAll' descends into sub expressions
+    >> ExpandAll[(a + Sin[x (1 + y)])^2]
+     = 2 a Sin[x + x y] + a ^ 2 + Sin[x + x y] ^ 2
+
+    'ExpandAll' also expands heads
+    >> ExpandAll[((1 + x)(1 + y))[x]]
+     = (1 + x + y + x y)[x]
+
+    'ExpandAll' can also work in finite fields
+    >> ExpandAll[(1 + a) ^ 6 / (x + y)^3, Modulus -> 3]
+     = (1 + 2 a ^ 3 + a ^ 6) / (x ^ 3 + y ^ 3)
+    """
+
+    def apply(self, expr, evaluation, options):
+        'ExpandAll[expr_, OptionsPattern[ExpandAll]]'
+
+        kwargs = self.convert_options(options, evaluation)
+        if kwargs is None:
+            return
+        return expand(expr, numer=True, denom=True, deep=True, **kwargs)
 
 
 class PowerExpand(Builtin):
