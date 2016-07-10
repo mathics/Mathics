@@ -1420,7 +1420,7 @@ class Position(Builtin):
         return evaluation.message('Position', 'level', ls)
 
     def apply_level(self, expr, patt, ls, evaluation, options={}):
-        '''Position[expr_, patt_, Optional[Pattern[ls, _?LevelQ], {0, Infinity}],
+        '''Position[expr_, patt_, Optional[Pattern[ls, _?LevelQ], {0, DirectedInfinity[1]}],
                     OptionsPattern[Position]]'''
 
         try:
