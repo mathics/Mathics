@@ -1405,13 +1405,13 @@ class Position(Builtin):
     }
 
     def apply_invalidlevel(self, patt, expr, ls, evaluation, options={}):
-        'Position[expr_, patt_, ls_, OptionsPattern[Map]]'
+        'Position[expr_, patt_, ls_, OptionsPattern[Position]]'
 
         return evaluation.message('Position', 'level', ls)
 
     def apply_level(self, expr, patt, ls, evaluation, options={}):
         '''Position[expr_, patt_, Optional[Pattern[ls, _?LevelQ], {1}],
-                    OptionsPattern[Map]]'''
+                    OptionsPattern[Position]]'''
 
         try:
             start, stop = python_levelspec(ls)
