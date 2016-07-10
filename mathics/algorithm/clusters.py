@@ -58,6 +58,7 @@ def _components(clusters, n):
             components[j] = component_index
     return components
 
+
 class PrecomputedDistances(object):
     def __init__(self, distances):
         self._distances = distances
@@ -78,7 +79,14 @@ class LazyDistances(object):
         index = _index(max(i, j), min(i, j))
         d = computed.get(index, None)
         if d is None:
-            d = self._compute_distance(i, j)
+            # we are probably in the middle of a (seeded) random
+            # computation, and we do not want the distance function
+            # to mess with that state.
+            random_state = random.getstate()
+            try:
+                d = self._compute_distance(i, j)
+            finally:
+                random.setstate(random_state)
             computed[index] = d
         return d
 
