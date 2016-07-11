@@ -17,7 +17,7 @@ from mathics.builtin.base import (
     PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
-from mathics.core.expression import Expression, String, Symbol, Integer, Number
+from mathics.core.expression import Expression, String, Symbol, Integer, Number, from_python
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
@@ -1387,6 +1387,57 @@ class DeleteCases(Builtin):
     rules = {
         'DeleteCases[list_, pattern_]': 'Select[list, ! MatchQ[#, pattern]&]',
     }
+
+
+class Position(Builtin):
+    '''
+    <dl>
+    <dt>'Position[$expr$, $patt$]'
+        <dd>returns the list of positions for which $expr$ matches $patt$.
+    <dt>'Position[$expr$, $patt$, $ls$]'
+        <dd>returns the positions on levels specified by levelspec $ls$.
+    </dl>
+
+    >> Position[{1, 2, 2, 1, 2, 3, 2}, 2]
+     = {{2}, {3}, {5}, {7}}
+
+    Find positions upto 3 levels deep
+    >> Position[{1 + Sin[x], x, (Tan[x] - y)^2}, x, 3]
+     = {{1, 2, 1}, {2}}
+
+    Find all powers of x
+    >> Position[{1 + x^2, x y ^ 2,  4 y,  x ^ z}, x^_]
+     = {{1, 2}, {4}}
+    '''
+
+    options = {
+        'Heads': 'True'
+    }
+
+    def apply_invalidlevel(self, patt, expr, ls, evaluation, options={}):
+        'Position[expr_, patt_, ls_, OptionsPattern[Position]]'
+
+        return evaluation.message('Position', 'level', ls)
+
+    def apply_level(self, expr, patt, ls, evaluation, options={}):
+        '''Position[expr_, patt_, Optional[Pattern[ls, _?LevelQ], {0, DirectedInfinity[1]}],
+                    OptionsPattern[Position]]'''
+
+        try:
+            start, stop = python_levelspec(ls)
+        except InvalidLevelspecError:
+            return evaluation.message('Position', 'level', ls)
+
+        result = []
+        def callback(level, pos):
+            expr = Expression('MatchQ', level, patt)
+            if expr.evaluate(evaluation).is_true():
+                result.append(pos)
+            return level
+
+        heads = self.get_option(options, 'Heads', evaluation).is_true()
+        walk_levels(expr, start, stop, heads=heads, callback=callback, include_pos=True)
+        return from_python(result)
 
 
 class MemberQ(Builtin):
