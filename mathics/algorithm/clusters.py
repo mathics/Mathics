@@ -98,22 +98,29 @@ class LazyDistances(object):
 
 
 def _shuffled_range(n):
-    # returns all numbers from [0, ..., n - 1] in random order,
-    # never returning any number twice. we assume that n is large,
-    # and the number of items retrieved small.
+    # returns all numbers from [0, ..., n - 1] in random order, never returning any number twice.
 
-    r = []
-    n -= 1
-    while True:
-        m = n - len(r)
-        if m < 0:  # if m == 0, one is left.
-            return
-        x = random.randint(0, m)
-        for t in r:
-            if x >= t:
-                x += 1
-        bisect.insort(r, x)
-        yield x
+    # basically a Fisher-Yates shuffle that does not materialize the data, which means it's especially suited for
+    # k << n, where k is the count of random numbers actually retrieved.
+
+    # performs surprisingly well even if all random numbers are retrieved. getting all available numbers from
+    # shuffled_range(10^7) only takes only 70% longer than generating just the raw 10 million random numbers.
+
+    a = dict()
+
+    def nth(k):
+        return a.get(k, k)
+
+    for i in range(n - 1):
+        ai = nth(i)
+
+        j = random.randint(i, n - 1)
+        aj = nth(j)
+
+        a[j] = ai
+        yield aj
+
+    yield nth(n - 1)
 
 
 def _shuffled_tuples(*t):
