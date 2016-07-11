@@ -192,6 +192,48 @@ def _agoras(n, k, distance):  # see [Rangel2016]
             return s[-1]
 
 
+class _Cluster:
+    def __init__(self, medoid, members, within_cluster_cost):
+        self.medoid = medoid
+        self.members = members
+        self.within_cluster_cost = within_cluster_cost
+
+    def translate(self, i_to_i0):
+        return _Cluster(i_to_i0[self.medoid], [i_to_i0[i] for i in self.members], self. within_cluster_cost)
+
+    @staticmethod
+    def criterion(clusters, distance):
+        # gives a measure of how good the current clustering is, and if it should be split further or left as is.
+        # what we actually calculate here is a bit like a simplified, PAM suitable version of the McClain-Rao index;
+        # it would not make sense to use a criterion needing O(n^2) computations, if the actual clustering is O(n).
+        # see [Desgraupes2013] for similar measures that inspired this one and an overview of other measures. For
+        # an even more general overview, see [Greutert2003].
+
+        s_w = 0
+        n_w = 0
+
+        # s_w is the sum of within-cluster (point to its medoid) distances.
+        for c in clusters:
+            m = c.medoid
+            for i in c.members:
+                if i != m:
+                    s_w += distance(i, m)
+                n_w += 1
+
+        if n_w == 0:
+            return None
+
+        # s_b is the sum of between-cluster (medoid to medoid) distances.
+        s_b = 0
+        n_b = 0
+        for z, c in enumerate(clusters):
+            for d in clusters[:z]:
+                s_b += distance(c.medoid, d.medoid)
+                n_b += 1
+
+        return (s_w / n_w) / (s_b / n_b)
+
+
 class _Medoids:
     def __init__(self, clusterer, k):
         distance = clusterer._distance_lambda()
@@ -213,10 +255,10 @@ class _Medoids:
         clusters = self._clusters
         solution = []
         for i in self._selected:
-            cluster = [j for j in self._unselected if clusters[j][0] == i]
+            members = [j for j in self._unselected if clusters[j][0] == i]
             # preserve the original order of the elements by inserting i.
-            bisect.insort(cluster, i)
-            solution.append(cluster)
+            bisect.insort(members, i)
+            solution.append(_Cluster(i, members, 0))
         return solution
 
     @property
@@ -263,33 +305,6 @@ class _Medoids:
 
     def cost(self):
         return self._cost
-
-    def criterion(self):
-        # gives a measure of how good the current clustering is, and if it should be split further or left as is.
-        # what we actually calculate here is a bit like a simplified, PAM suitable version of the McClain-Rao index;
-        # it would not make sense to use a criterion needing O(n^2) computations, if the actual clustering is O(n).
-        # see [Desgraupes2013] for similar measures that inspired this one and an overview of other measures. For
-        # an even more general overview, see [Greutert2003].
-
-        distance = self._distance
-
-        # s_w is the sum of within-cluster (point to its medoid) distances.
-        s_w = self._cost
-        n_w = self._n - self._k
-
-        if n_w == 0:
-            return None
-
-        # s_b is the sum of between-cluster (medoid to medoid) distances.
-        selected = self._selected
-        s_b = 0
-        n_b = 0
-        for z, i in enumerate(selected):
-            for j in selected[:z]:
-                s_b += distance(i, j)
-                n_b += 1
-
-        return (s_w / n_w) / (s_b / n_b)
 
     def swap(self):
         try:
@@ -376,9 +391,10 @@ class _Medoids:
 class _Clusterer:
     debug_output = False
 
-    def __init__(self, n, i_to_i0, p0, d0):
+    def __init__(self, n, i_to_i0, siblings, p0, d0):
         self._n = n
         self._i_to_i0 = i_to_i0
+        self._siblings = siblings
         self._p0 = p0
         self._d0 = d0
 
@@ -421,7 +437,7 @@ class _Clusterer:
             if min_cost_medoids is None or medoids.cost() < min_cost_medoids.cost():
                 min_cost_medoids = medoids
 
-        return min_cost_medoids.clusters(), min_cost_medoids.criterion()
+        return min_cost_medoids.clusters()
 
     def without_k(self, limit=1.):
         # we estimate k using the approach described in [Hamerly2003].
@@ -436,18 +452,22 @@ class _Clusterer:
         if n < 2:
             return [[i_to_i0[0]]]
 
-        clusters, criterion = self.with_k(2)
-        if self.debug_output:
-            print([[self._p0[i_to_i0[i]] for i in c] for c in clusters], criterion, limit)
+        clusters = self.with_k(2)
+        clusters0 = [c.translate(i_to_i0) for c in clusters]
+        criterion = _Cluster.criterion(self._siblings + clusters0, self._d0)
 
-        if criterion is None or criterion > limit:
+        if self.debug_output:
+            print([[self._p0[i] for i in c.members] for c in self._siblings + clusters0], criterion, limit)
+
+        if limit < 1. and criterion / limit > 1.0 / _mcclain_rao_limit_factor:
             return [[i_to_i0[i] for i in range(n)]]
         else:
             r = []
-            for c in clusters:
-                t = [i_to_i0[i] for i in c]
-                sub = _Clusterer(len(t), t, self._p0, self._d0)
-                r.extend(sub.without_k(limit / _mcclain_rao_limit_factor))
+            for i, c in enumerate(clusters):
+                t = [i_to_i0[i] for i in c.members]
+                d = clusters0[1 - i]
+                sub = _Clusterer(len(t), t, self._siblings + [d], self._p0, self._d0)
+                r.extend(sub.without_k(criterion))
             return r
 
 
@@ -461,12 +481,12 @@ def optimize(p, k, distances, mode='clusters', seed=12345):
         # a fixed random seed at this point.
         random.seed(seed)
 
-        clusterer = _Clusterer(len(p), tuple(range(len(p))), p, distances.distance)
+        clusterer = _Clusterer(len(p), tuple(range(len(p))), [], p, distances.distance)
 
         if k is None:
             clusters = clusterer.without_k()
         else:
-            clusters, _ = clusterer.with_k(k)
+            clusters = [c.members for c in clusterer.with_k(k)]
 
         # sort clusters by order of their first element in the original list.
         clusters = sorted(clusters, key=lambda c: c[0])
