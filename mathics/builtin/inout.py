@@ -1132,6 +1132,10 @@ class Message(Builtin):
 
     attributes = ('HoldFirst',)
 
+    messages = {
+        'name': 'Message name `1` is not of the form symbol::name or symbol::name::language.',
+    }
+
     def apply(self, symbol, tag, params, evaluation):
         'Message[MessageName[symbol_Symbol, tag_String], params___]'
 
@@ -1257,6 +1261,100 @@ class Quiet(Builtin):
         finally:
             evaluation.quiet_all, evaluation.quiet_messages =\
                 old_quiet_all, old_quiet_messages
+
+
+class Off(Builtin):
+    '''
+    <dl>
+    <dt>'Off[$symbol$::$tag$]'
+        <dd>turns a message off so it is no longer printed.
+    </dl>
+
+    >> Off[Power::infy]
+    >> 1 / 0
+     = ComplexInfinity
+
+    >> Off[Power::indet, Syntax::com]
+    >> {0 ^ 0,}
+     = {Indeterminate, Null}
+
+    #> Off[1]
+     :  Message name 1 is not of the form symbol::name or symbol::name::language.
+    #> Off[Message::name, 1]
+
+    #> On[Power::infy, Power::indet, Syntax::com]
+    '''
+
+    attributes = ('HoldAll',)
+
+    def apply(self, expr, evaluation):
+        'Off[expr___]'
+        seq = expr.get_sequence()
+
+        if not seq:
+            # TODO Off[s::trace] for all symbols
+            return
+
+        for e in seq:
+            if isinstance(e, Symbol):
+                evaluation.quiet_messages.add((e.get_name(), 'trace'))
+                continue
+            elif e.has_form('MessageName', 2):
+                symb, msg = e.get_leaves()
+                symb_name = symb.get_name()
+                msg_string = msg.get_string_value()
+                if not (symb_name is None or msg_string is None):
+                    evaluation.quiet_messages.add((symb_name, msg_string))
+                    continue
+            evaluation.message('Message', 'name', e)
+        return Symbol('Null')
+
+
+class On(Builtin):
+    '''
+    <dl>
+    <dt>'On[$symbol$::$tag$]'
+        <dd>turns a message on for printing.
+    </dl>
+
+    >> Off[Power::infy]
+    >> 1 / 0
+     = ComplexInfinity
+    >> On[Power::infy]
+    >> 1 / 0
+     : Infinite expression (division by zero) encountered.
+     = ComplexInfinity
+    '''
+
+    # TODO
+    '''
+    #> On[f::x]
+     : Message f::x not found.
+    '''
+
+    attributes = ('HoldAll',)
+
+    def apply(self, expr, evaluation):
+        'On[expr___]'
+        seq = expr.get_sequence()
+
+        if not seq:
+            # TODO On[s::trace] for all symbols
+            return
+
+        for e in seq:
+            if isinstance(e, Symbol):
+                evaluation.quiet_messages.discard((e.get_name(), 'trace'))
+                continue
+            elif e.has_form('MessageName', 2):
+                symb, msg = e.get_leaves()
+                symb_name = symb.get_name()
+                msg_string = msg.get_string_value()
+                if not (symb_name is None or msg_string is None):
+                    evaluation.quiet_messages.discard((symb_name, msg_string))
+                    continue
+            evaluation.message('Message', 'name', e)
+        return Symbol('Null')
 
 
 class MessageName(BinaryOperator):
