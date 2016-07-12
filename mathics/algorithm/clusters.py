@@ -534,7 +534,11 @@ class _McClainRao:
         self.groups[j] = None
         self.k -= 1
 
-    def compute(self):
+    def average_within_distance(self):
+        return self.w / self.b
+
+    def ratio(self):
+        assert self.n_w >= 1 and self.n_b >= 1
         return (self.n_b / self.n_w) * (self.w / self.b)
 
 
@@ -551,7 +555,7 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
     # uses 1-based indices.
 
     # (2) when comparing heap elements h[i], h[j], we actually
-    # compare tuples of (distance, pair of elements, index), which
+    # compare tuples of (distance, index, pair of elements), which
     # guarantees that clusterings will produce the same results
     # no matter how the input data is ordered, and that h[i] != h[j]
     # as long as i != j.
@@ -582,7 +586,7 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
         if j > e:
             return
 
-        x, _, p = xp = heap[i]
+        x, p, _ = xp = heap[i]
 
         while j <= e:
             if j < e and heap[j] > heap[j + 1]:
@@ -590,7 +594,7 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
             if xp <= heap[j]:
                 break
 
-            xx, _, pp = heap[i] = heap[j]
+            xx, pp, _ = heap[i] = heap[j]
             where[pp] = i
 
             i = j
@@ -605,13 +609,13 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
         if j < 0:
             return
 
-        x, _, p = xp = heap[i]
+        x, p, _ = xp = heap[i]
 
         while j >= 0:
             if heap[j] <= xp:
                 break
 
-            xx, _, pp = heap[i] = heap[j]
+            xx, pp, _ = heap[i] = heap[j]
             where[pp] = i
 
             i = j
@@ -635,7 +639,7 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
         if s == len(heap) - 1:
             heap = heap[:-1]
         else:
-            xx, _, pp = xxpp = heap[-1]
+            xx, pp, _ = xxpp = heap[-1]
             heap = heap[:-1]
             where[pp] = s
             update(s, xxpp, heap, where)
@@ -667,7 +671,7 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
 
         if k is None:
             index = _McClainRao(triangular_distance_matrix, n)
-            n_clusters_target = 2
+            n_clusters_target = 1
             last_criterion = None
         else:
             index = None
@@ -677,8 +681,8 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
         lookup = [(i, j) for i in range(n) for j in range(i)]
 
         where = list(range(len(triangular_distance_matrix)))
-        heap = [(d, u, z) for d, u, z in zip(
-            triangular_distance_matrix, pairs, where)]
+        heap = [(d, z, u) for d, z, u in zip(
+            triangular_distance_matrix, where, pairs)]
 
         for s in range(len(heap) // 2 - 1, -1, -1):  # ..., 1, 0
             shiftdown(s, heap, where)
@@ -695,7 +699,7 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
             raise ValueError('illegal mode %s' % mode)
 
         while len(heap) > 0 and n_clusters > n_clusters_target:
-            d, _, p = heap[0]
+            d, p, _ = heap[0]
             if merge_limit is not None and d > merge_limit:
                 break
 
@@ -705,24 +709,31 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
                 i, j = j, i  # merge later chunk to earlier one to preserve order
 
             if index:
-                index.merge(i, j)
-                criterion = index.compute()
-                if last_criterion:
-                    # compute a limit that roughly mimics the one used in the Optimize method.
-                    limit = math.pow(_mcclain_rao_limit_factor, math.floor(math.log(n_clusters, 2)))
-                    if criterion / last_criterion > limit:
+                if n_clusters == 2:  # can no longer call index.compute() here as n_b will become 0.
+                    # if the last external point's distance from the cluster is not more than
+                    # x times the cluster's within-distance, we should merge that last point.
+                    if d > index.average_within_distance():
                         break
-                last_criterion = criterion
+                    index.merge(i, j)
+                else:
+                    index.merge(i, j)
+                    criterion = index.ratio()
+                    if last_criterion:
+                        # compute a limit that roughly mimics the one used in the Optimize method.
+                        limit = math.pow(_mcclain_rao_limit_factor, math.log(n_clusters - 1, 2))
+                        if criterion / last_criterion > limit:
+                            break
+                    last_criterion = criterion
 
             heap = remove(where[p], heap, where)  # remove distance (i, j)
 
             for a, b in zip(unmerged_pairs(i, j, n), unmerged_pairs(j, i, n)):
-                y, u, py = heap[where[b]]
+                y, py, u = heap[where[b]]
                 heap = remove(where[b], heap, where)
 
-                x, _, px = heap[where[a]]
+                x, px, _ = heap[where[a]]
                 if y < x:  # compare only values here, and not tuples (x, p)
-                    update(where[a], (y, u, px), heap, where)
+                    update(where[a], (y, px, u), heap, where)
 
             if dominant:
                 if len(clusters[j]) > len(clusters[i]):
