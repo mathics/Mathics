@@ -503,22 +503,22 @@ def optimize(p, k, distances, mode='clusters', seed=12345):
 
 class _McClainRao:
     def __init__(self, distances, n):
-        self.d2 = list(map(lambda d: d * d, distances))
+        self.distances = distances
         self.groups = list(map(lambda i: [i], range(n)))
-        self.b = sum(self.d2)
+        self.b = sum(self.distances)
         self.w = 0
         self.k = self.n = n
 
-        self.n_w = 0
+        self.n_w = n  # (i, i) distances
         self.n_b = len(distances)
 
     def _update(self, i, j):
         groups = self.groups
-        d2 = self.d2
+        distances = self.distances
         d = 0
         for x in groups[i]:
             for y in groups[j]:
-                d += d2[_index(max(x, y), min(x, y))]
+                d += distances[_index(max(x, y), min(x, y))]
 
         n = len(groups[i]) * len(groups[j])
         self.n_w += n
@@ -668,6 +668,7 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
         if k is None:
             index = _McClainRao(triangular_distance_matrix, n)
             n_clusters_target = 2
+            last_criterion = None
         else:
             index = None
             n_clusters_target = k
@@ -693,12 +694,7 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
         else:
             raise ValueError('illegal mode %s' % mode)
 
-        if index:
-            # compute a limit that rougly corresponds to the Optimize method:
-            # with each split in two, the McClain-Rao-Index limit divides by 10
-            limit = 1. / (math.log(n, 2) * _mcclain_rao_limit_factor)
-
-        while len(heap) > 1 and n_clusters > n_clusters_target:
+        while len(heap) > 0 and n_clusters > n_clusters_target:
             d, _, p = heap[0]
             if merge_limit is not None and d > merge_limit:
                 break
@@ -710,8 +706,13 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None):
 
             if index:
                 index.merge(i, j)
-                if index.compute() >= limit:
-                    break
+                criterion = index.compute()
+                if last_criterion:
+                    # compute a limit that roughly mimics the one used in the Optimize method.
+                    limit = math.pow(_mcclain_rao_limit_factor, math.floor(math.log(n_clusters, 2)))
+                    if criterion / last_criterion > limit:
+                        break
+                last_criterion = criterion
 
             heap = remove(where[p], heap, where)  # remove distance (i, j)
 
