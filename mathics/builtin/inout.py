@@ -1222,7 +1222,8 @@ class Quiet(Builtin):
             return all, messages
 
         old_quiet_all, old_quiet_messages = \
-            evaluation.quiet_all, evaluation.quiet_messages.copy()
+            evaluation.quiet_all, evaluation.quiet_messages
+        evaluation.quiet_messages = evaluation.quiet_messages.copy()
         try:
             quiet_expr = Expression('Quiet', expr, moff, mon)
             try:
