@@ -20,6 +20,8 @@ FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'TeXForm', 'MathMLForm',
            'MatrixForm', 'TableForm']
 
+QUIET_MESSAGES = set()
+
 
 class EvaluationInterrupt(Exception):
     pass
@@ -162,7 +164,7 @@ class Evaluation(object):
         self.predetermined_out = None
 
         self.quiet_all = False
-        self.quiet_messages = set()
+        self.quiet_messages = QUIET_MESSAGES
         self.format = format
         self.catch_interrupt = catch_interrupt
 
