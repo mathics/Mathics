@@ -3803,7 +3803,7 @@ class FindClusters(_Cluster):
      = {{1, 2, 3, 1, 2}, {10}, {100}}
 
     >> FindClusters[{1, 2, 3, 1, 2, 10, 100}, Method -> "Agglomerate"]
-     = {{1, 1, 2, 2, 3, 10}, {100}}
+     = {{1, 2, 3, 1, 2, 10}, {100}}
 
     >> FindClusters[{1 -> a, 2 -> b, 10 -> c}]
      = {{a, b}, {c}}
