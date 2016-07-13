@@ -3747,12 +3747,16 @@ class _Cluster(Builtin):
         method_string, method = self.get_option_string(options, 'Method', evaluation)
         try:
             if method_string == 'Agglomerate':
-                def mma_reverse(l):  # reverse happens only for MMA compatibility sake
+                def mma_reverse(l):
                     return list(reversed(l))
 
-                clusters = agglomerate(mma_reverse(repr_p), py_k, _PrecomputedDistances(
-                    df, mma_reverse(dist_p), evaluation), mode)
-                clusters = mma_reverse([mma_reverse(c) for c in clusters])
+                if mode == 'clusters':  # reverse stuff for MMA compatibility sake
+                    clusters = agglomerate(mma_reverse(repr_p), py_k, _PrecomputedDistances(
+                        df, mma_reverse(dist_p), evaluation), mode)
+                    clusters = mma_reverse([mma_reverse(c) for c in clusters])
+                elif mode == 'components':
+                    clusters = agglomerate(repr_p, py_k, _PrecomputedDistances(
+                        df, dist_p, evaluation), mode)
             elif method_string == 'Optimize':
                 clusters = optimize(repr_p, py_k, _LazyDistances(df, dist_p, evaluation), mode, py_seed)
             else:
