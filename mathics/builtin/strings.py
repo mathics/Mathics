@@ -642,6 +642,9 @@ class StringPosition(Builtin):
 
     #> StringPosition[{"abc", "abcda"}, "a"]
      = {{{1, 1}}, {{1, 1}, {5, 5}}}
+
+    #> StringPosition[{"abc"}, "a", Infinity]
+     = {{{1, 1}}}
     '''
 
     options = {
@@ -659,15 +662,15 @@ class StringPosition(Builtin):
     def apply(self, string, patt, evaluation, options):
         'StringPosition[string_, patt_, OptionsPattern[StringPosition]]'
 
-        return self.apply_n(string, patt, Symbol('Infinity'), evaluation, options)
+        return self.apply_n(string, patt, Expression('DirectedInfinity', Integer(1)), evaluation, options)
 
     def apply_n(self, string, patt, n, evaluation, options):
-        'StringPosition[string_, patt_, n_Integer|Infinity, OptionsPattern[StringPosition]]'
+        'StringPosition[string_, patt_, n:(_Integer|DirectedInfinity[1]), OptionsPattern[StringPosition]]'
 
         expr = Expression('StringPosition', string, patt, n)
 
         # check n
-        if n == Symbol('Infinity'):
+        if n.has_form('DirectedInfinity', 1):
             py_n = float('inf')
         else:
             py_n = n.get_int_value()
