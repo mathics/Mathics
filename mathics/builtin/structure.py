@@ -486,6 +486,63 @@ class Map(BinaryOperator):
         return result
 
 
+class Scan(Builtin):
+    '''
+    <dl>
+    <dt>'Scan[$f$, $expr$]'
+      <dd>applies $f$ to each element of $expr$ and returns 'Null'.
+    <dt>'Scan[$f$, $expr$, $levelspec$]
+      <dd>applies $f$ to each level specified by $levelspec$ of $expr$.
+    </dl>
+
+    >> Scan[Print, {1, 2, 3}]
+     | 1
+     | 2
+     | 3
+
+    #> Scan[Print, f[g[h[x]]], 2]
+     | h[x]
+     | g[h[x]]
+
+    #> Scan[Print][{1, 2}]
+     | 1
+     | 2
+    '''
+
+    options = {
+        'Heads': 'False',
+    }
+
+    rules = {
+        'Scan[f_][expr_]': 'Scan[f, expr]',
+    }
+
+    def apply_invalidlevel(self, f, expr, ls, evaluation, options={}):
+        'Scan[f_, expr_, ls_, OptionsPattern[Map]]'
+
+        return evaluation.message('Map', 'level', ls)
+
+    def apply_level(self, f, expr, ls, evaluation, options={}):
+        '''Scan[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}],
+                OptionsPattern[Map]]'''
+
+        try:
+            start, stop = python_levelspec(ls)
+        except InvalidLevelspecError:
+            evaluation.message('Map', 'level', ls)
+            return
+
+        def callback(level):
+            Expression(f, level).evaluate(evaluation)
+            return level
+
+        heads = self.get_option(options, 'Heads', evaluation).is_true()
+        result, depth = walk_levels(
+            expr, start, stop, heads=heads, callback=callback)
+
+        return Symbol('Null')
+
+
 class MapIndexed(Builtin):
     """
     <dl>
