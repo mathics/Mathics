@@ -611,7 +611,13 @@ class Return(Builtin):
     >> f[-1]
      = 0
 
-    >> g[x_] := (Do[If[x < 0, Return[0]], {2, 1, 0, -1}]; x)
+    >> Do[If[i > 3, Return[]]; Print[i], {i, 10}]
+     | 1
+     | 2
+     | 3
+
+    'Return' only exits from the innermost control flow construct.
+    >> g[x_] := (Do[If[x < 0, Return[0]], {i, {2, 1, 0, -1}}]; x)
     >> g[-1]
      = -1
 
