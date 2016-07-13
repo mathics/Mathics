@@ -34,7 +34,8 @@ class TimeoutInterrupt(EvaluationInterrupt):
 
 
 class ReturnInterrupt(EvaluationInterrupt):
-    pass
+    def __init__(self, expr):
+        self.expr = expr
 
 
 class BreakInterrupt(EvaluationInterrupt):
@@ -256,9 +257,12 @@ class Evaluation(object):
                 exc_result = Symbol('$Aborted')
             except AbortInterrupt:  # , error:
                 exc_result = Symbol('$Aborted')
+            except ReturnInterrupt as ret:
+                exc_result = ret.expr
             if exc_result is not None:
                 self.recursion_depth = 0
-                result = self.format_output(exc_result)
+                if exc_result != Symbol('Null'):
+                    result = self.format_output(exc_result)
 
             result = Result(self.out, result, line_no)
             self.out = []

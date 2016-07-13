@@ -507,6 +507,9 @@ class Scan(Builtin):
     #> Scan[Print][{1, 2}]
      | 1
      | 2
+
+    #> Scan[Return, {1, 2}]
+     = 1
     '''
 
     options = {

@@ -14,7 +14,7 @@ from six.moves import zip
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, from_python
 from mathics.core.evaluation import (
-    AbortInterrupt, BreakInterrupt, ContinueInterrupt)
+    AbortInterrupt, BreakInterrupt, ContinueInterrupt, ReturnInterrupt)
 from mathics.builtin.lists import _IterationFunction
 from mathics.builtin.patterns import match
 
@@ -599,8 +599,36 @@ class Abort(Builtin):
 
         raise AbortInterrupt
 
-# class Return(Builtin):
-#    pass
+
+class Return(Builtin):
+    '''
+    <dl>
+    <dt>'Return[$expr$]'
+      <dd>aborts a function call and returns $expr$.
+    </dl>
+
+    >> f[x_] := (If[x < 0, Return[0]]; x)
+    >> f[-1]
+     = 0
+
+    >> g[x_] := (Do[If[x < 0, Return[0]], {2, 1, 0, -1}]; x)
+    >> g[-1]
+     = -1
+
+    #> h[x_] := (If[x < 0, Return[]]; x)
+    #> h[1]
+     = 1
+    #> h[-1]
+    '''
+
+    rules = {
+        'Return[]': 'Return[Null]',
+    }
+
+    def apply(self, expr, evaluation):
+        'Return[expr_]'
+
+        raise ReturnInterrupt(expr)
 
 
 class Break(Builtin):
