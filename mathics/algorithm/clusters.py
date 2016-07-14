@@ -456,17 +456,17 @@ class _Clusterer:
 
         limit = 0.25 * self._granularity
 
-        # "ratio" is the relative change in our criterion as we apply the split.
-        # we expect "ratio" to get smaller and smaller as we split smaller and
-        # smaller clusters. if not, the split is not good. if "ratio" is larger
-        # than the given "limit", we also stop, as the relative change in the
-        # criterion produced by the split was too small to be worth the split.
-
-        # this might seem convoluted. but really, "ratio" just measures how much
-        # more "within-to-between-ness" we got with this particular split. if we
-        # got less than with the previous split, we did a good split. if we got
-        # more, there's more distance within the clusters than between them than
-        # before, and that signifies a bad split.
+        # the following might seem convoluted, but it turns out to be a good
+        # measure. it checks if the solution converges by checking that the
+        # rate of improvement gets larger and larger as we split smaller and
+        # smaller areas. "ratio" measures how much "within-to-between-ness"
+        # improvement we got with a particular split, and the smaller this
+        # value gets, the larger the improvement for "within-to-between-ness"
+        # is. if the improvement is larger or equal from the improvement we
+        # got from the previous split, it's a sign for converging, and we
+        # accept it. if the improvement is smaller (i.e. "ratio" is larger")
+        # than before, we assume the split is bad. when the improvement falls
+        # below a certain absolute value "limit", we also stop.
 
         criterion = _Cluster.criterion(self._siblings + clusters0, self._d0)
         if criterion is None:
@@ -727,16 +727,19 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None, granula
                 i, j = j, i  # merge later chunk to earlier one to preserve order
 
             if index:
-                index.merge(i, j)
+                if n_clusters > 2:
+                    # the distance between the merged clusters gets compared to the
+                    # average of all existing cluster distances.
 
-                # if there is only one cluster left, we cannot calculate the
-                # between distance. we go for within distance instead, which
-                # is the only measure of global distances left.
-
-                if n_clusters == 2:
-                    cluster_distance = index.average_within_distance()
-                else:
+                    index.merge(i, j)
                     cluster_distance = index.average_between_distance()
+                else:
+                    # if there is only one cluster left after the merge, we cannot
+                    # calculate the between distance as above. we go for "within"
+                    # instead, which is the only measure of global distances left.
+
+                    cluster_distance = index.average_within_distance()
+                    index.merge(i, j)
 
                 if d / cluster_distance > cluster_limit:
                     break
