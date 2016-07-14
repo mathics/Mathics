@@ -187,46 +187,115 @@ def _agoras(n, k, distance):  # see [Rangel2016]
             return s[-1]
 
 
-class _Cluster:
-    def __init__(self, medoid, members):
-        self.medoid = medoid
-        self.members = members
+class SplitCriterion(object):
+    def should_split(self, siblings, merged, unmerged, distance):
+        raise NotImplementedError()
 
-    def translate(self, i_to_i0):
-        return _Cluster(i_to_i0[self.medoid], [i_to_i0[i] for i in self.members])
-
-    @staticmethod
-    def criterion(clusters, distance):
+    def _approximate_mcclain_rao(self, clusters, distance):
         # gives a measure of how good the current clustering is, and if it should be split further or left as is.
         # what we actually calculate here is a bit like a simplified, PAM suitable version of the McClain-Rao index;
         # it would not make sense to use a criterion needing O(n^2) computations, if the actual clustering is O(n).
         # see [Desgraupes2013] for similar measures that inspired this one and an overview of other measures. For
         # an even more general overview, see [Greutert2003].
 
+        w = self._approximate_within_distance(clusters, distance)
+        if w is None:
+            return None
+
+        b = self._approximate_between_distance(clusters, distance)
+        return w / b
+
+    def _approximate_within_distance(self, clusters, distance):
         s_w = 0
         n_w = 0
 
         # s_w is the sum of within-cluster (point to its medoid) distances.
         for c in clusters:
-            m = c.medoid
-            for i in c.members:
-                if i != m:
-                    s_w += distance(i, m)
-                n_w += 1
+            s, n = c.within(distance)
+            s_w += s
+            n_w += n
 
         if n_w <= len(clusters):  # only single-medoid clusters remain.
             return None
 
+        return s_w / n_w
+
+    def _approximate_between_distance(self, clusters, distance):
         # s_b is the sum of between-cluster (medoid to medoid) distances.
         s_b = 0
         n_b = len(clusters)
+
         for z, c in enumerate(clusters):
             for d in clusters[:z]:
                 s_b += distance(c.medoid, d.medoid)
                 n_b += 1
 
-        return (s_w / n_w) / (s_b / n_b)
+        return s_b / n_b
 
+
+class ConvergingCriterion(SplitCriterion):
+    def __init__(self, granularity, last_criterion=None, last_ratio=None):
+        self._granularity = granularity
+        self._last_criterion = last_criterion
+        self._last_ratio = last_ratio
+
+    def should_split(self, siblings, merged, unmerged, distance):
+        # the following might seem convoluted, but it turns out to be a good
+        # measure. it checks if the solution converges by checking that the
+        # rate of improvement gets larger and larger as we split smaller and
+        # smaller areas. "ratio" measures how much "within-to-between-ness"
+        # improvement we got with a particular split, and the smaller this
+        # value gets, the larger the improvement for "within-to-between-ness"
+        # is. if the improvement is larger or equal from the improvement we
+        # got from the previous split, it's a sign for converging, and we
+        # accept it. if the improvement is smaller (i.e. "ratio" is larger")
+        # than before, we assume the split is bad. when the improvement falls
+        # below a certain absolute value "limit", we also stop.
+
+        criterion = self._approximate_mcclain_rao(siblings + unmerged, distance)
+        last_criterion = self._last_criterion
+        last_ratio = self._last_ratio
+
+        limit = 0.25 * self._granularity
+
+        if criterion is None:
+            ratio = limit + 1.  # always stop
+        elif last_criterion is None:
+            ratio = 0.  # first call, depth=0
+        elif last_criterion < 1e-15:
+            ratio = limit + 1.  # always stop
+        else:
+            ratio = criterion / last_criterion
+        if not last_ratio:
+            last_ratio = limit
+
+        return ratio <= min(limit, last_ratio), ConvergingCriterion(self._granularity, criterion, ratio)
+
+
+class _Cluster:
+    def __init__(self, medoid, members):
+        self.medoid = medoid
+        self.members = members
+        self._within = None
+
+    def translate(self, i_to_i0):
+        return _Cluster(i_to_i0[self.medoid], [i_to_i0[i] for i in self.members])
+
+    def within(self, distance):
+        if self._within is None:
+            s_w = 0
+            n_w = 0
+
+            # s_w is the sum of within-cluster (point to its medoid) distances.
+            m = self.medoid
+            for i in self.members:
+                if i != m:
+                    s_w += distance(i, m)
+                n_w += 1
+
+                self._within = (s_w, n_w)
+
+        return self._within
 
 class _Medoids:
     def __init__(self, clusterer, k):
@@ -385,11 +454,11 @@ class _Medoids:
 class _Clusterer:
     debug_output = False
 
-    def __init__(self, n, i_to_i0, siblings, granularity, p0, d0):
+    def __init__(self, n, i_to_i0, medoid0, siblings, p0, d0):
         self._n = n
         self._i_to_i0 = i_to_i0
+        self._medoid0 = medoid0
         self._siblings = siblings
-        self._granularity = granularity
         self._p0 = p0
         self._d0 = d0
 
@@ -434,7 +503,7 @@ class _Clusterer:
 
         return min_cost_medoids.clusters()
 
-    def without_k(self, last_criterion=None, last_ratio=None):
+    def without_k(self, criterion):
         # we estimate k using the approach described in [Hamerly2003].
 
         # this chunks the points (0, 1, ..., n - 1) into clusters. each point i
@@ -454,33 +523,12 @@ class _Clusterer:
             print([[self._p0[i] for i in c.members]
                    for c in self._siblings + clusters0])
 
-        limit = 0.25 * self._granularity
+        merged = _Cluster(self._medoid0, list(chain(*[c.members for c in clusters0])))
 
-        # the following might seem convoluted, but it turns out to be a good
-        # measure. it checks if the solution converges by checking that the
-        # rate of improvement gets larger and larger as we split smaller and
-        # smaller areas. "ratio" measures how much "within-to-between-ness"
-        # improvement we got with a particular split, and the smaller this
-        # value gets, the larger the improvement for "within-to-between-ness"
-        # is. if the improvement is larger or equal from the improvement we
-        # got from the previous split, it's a sign for converging, and we
-        # accept it. if the improvement is smaller (i.e. "ratio" is larger")
-        # than before, we assume the split is bad. when the improvement falls
-        # below a certain absolute value "limit", we also stop.
+        split, new_criterion = criterion.should_split(
+            self._siblings, merged, clusters0, self._d0)
 
-        criterion = _Cluster.criterion(self._siblings + clusters0, self._d0)
-        if criterion is None:
-            ratio = limit + 1.  # always stop
-        elif last_criterion is None:
-            ratio = 0.  # first call, depth=0
-        elif last_criterion < 1e-15:
-            ratio = limit + 1.  # always stop
-        else:
-            ratio = criterion / last_criterion
-        if not last_ratio:
-            last_ratio = limit
-
-        if ratio > min(limit, last_ratio):
+        if not split:
             return [[i_to_i0[i] for i in range(n)]]
         else:
             r = []
@@ -488,8 +536,8 @@ class _Clusterer:
                 t = clusters0[i].members
                 d = clusters0[1 - i]
 
-                sub = _Clusterer(len(t), t, self._siblings + [d], self._granularity, self._p0, self._d0)
-                r.extend(sub.without_k(criterion, ratio))
+                sub = _Clusterer(len(t), t, clusters0[i].medoid, self._siblings + [d], self._p0, self._d0)
+                r.extend(sub.without_k(new_criterion))
             return r
 
 
@@ -504,10 +552,11 @@ def optimize(p, k, distances, mode='clusters', seed=12345, granularity=1.):
         random.seed(seed)
 
         clusterer = _Clusterer(
-            len(p), tuple(range(len(p))), [], granularity, p, distances.distance)
+            len(p), tuple(range(len(p))), None, [], p, distances.distance)
 
         if k is None:
-            clusters = clusterer.without_k()
+            criterion = ConvergingCriterion(granularity)
+            clusters = clusterer.without_k(criterion)
         else:
             clusters = [c.members for c in clusterer.with_k(k)]
 
@@ -524,7 +573,7 @@ def optimize(p, k, distances, mode='clusters', seed=12345, granularity=1.):
         random.setstate(random_state)
 
 
-class _McClainRao:
+class MergeCriterion(object):
     def __init__(self, distances, n):
         self.distances = distances
         self.groups = list(map(lambda i: [i], range(n)))
@@ -534,6 +583,9 @@ class _McClainRao:
 
         self.n_w = 0  # (i, i) distances
         self.n_b = len(distances)
+
+    def try_merge(self, i, j, d):
+        raise NotImplementedError()
 
     def _update(self, i, j):
         groups = self.groups
@@ -550,18 +602,41 @@ class _McClainRao:
         self.b -= d
         self.w += d
 
-    def merge(self, i, j):
+    def _merge(self, i, j):
         self._update(i, j)
 
         self.groups[i].extend(self.groups[j])
         self.groups[j] = None
         self.k -= 1
 
-    def average_within_distance(self):
+    def _average_within_distance(self):
         return self.w / self.n_w
 
-    def average_between_distance(self):
+    def _average_between_distance(self):
         return self.b / self.n_b
+
+
+class CloserThanAverageCriterion(MergeCriterion):
+    def __init__(self, distances, n, granularity):
+        super(CloserThanAverageCriterion, self).__init__(distances, n)
+        self._limit = 0.25 * granularity
+
+    def try_merge(self, i, j, d):
+        if self.k > 2:
+            # the distance between the merged clusters gets compared to the
+            # average of all existing cluster distances.
+
+            self._merge(i, j)
+            cluster_distance = self._average_between_distance()
+        else:
+            # if there is only one cluster left after the merge, we cannot
+            # calculate the between distance as above. we go for "within"
+            # instead, which is the only measure of global distances left.
+
+            cluster_distance = self._average_within_distance()
+            self._merge(i, j)
+
+        return d / cluster_distance <= self._limit
 
 
 def agglomerate(points, k, distances, mode='clusters', merge_limit=None, granularity=1.):
@@ -687,10 +762,11 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None, granula
         triangular_distance_matrix = distances.matrix()
 
         if k is None:
-            index = _McClainRao(triangular_distance_matrix, n)
+            criterion = CloserThanAverageCriterion(
+                triangular_distance_matrix, n, granularity)
             n_clusters_target = 1
         else:
-            index = None
+            criterion = None
             n_clusters_target = k
 
         pairs = [(points[i], points[j]) for i in range(n) for j in range(i)]
@@ -714,8 +790,6 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None, granula
         else:
             raise ValueError('illegal mode %s' % mode)
 
-        cluster_limit = 0.25 * granularity
-
         while len(heap) > 0 and n_clusters > n_clusters_target:
             d, p, _ = heap[0]
             if merge_limit is not None and d > merge_limit:
@@ -726,23 +800,8 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None, granula
             if i > j:
                 i, j = j, i  # merge later chunk to earlier one to preserve order
 
-            if index:
-                if n_clusters > 2:
-                    # the distance between the merged clusters gets compared to the
-                    # average of all existing cluster distances.
-
-                    index.merge(i, j)
-                    cluster_distance = index.average_between_distance()
-                else:
-                    # if there is only one cluster left after the merge, we cannot
-                    # calculate the between distance as above. we go for "within"
-                    # instead, which is the only measure of global distances left.
-
-                    cluster_distance = index.average_within_distance()
-                    index.merge(i, j)
-
-                if d / cluster_distance > cluster_limit:
-                    break
+            if criterion and not criterion.try_merge(i, j, d):
+                break
 
             heap = remove(where[p], heap, where)  # remove distance (i, j)
 
