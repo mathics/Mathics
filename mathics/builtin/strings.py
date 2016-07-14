@@ -631,6 +631,11 @@ class StringPosition(Builtin):
     >> StringPosition["123ABCxyABCzzzABCABC", "ABC", 2]
      = {{4, 6}, {9, 11}}
 
+    'StringPosition' can be useful for searching through text.
+    >> data = Import["ExampleData/EinsteinSzilLetter.txt"];
+    >> StringPosition[data, "uranium"]
+     = {{299, 305}, {870, 876}, {1538, 1544}, {1671, 1677}, {2300, 2306}, {2784, 2790}, {3093, 3099}}
+
     #> StringPosition["123ABCxyABCzzzABCABC", "ABC", -1]
      : Non-negative integer or Infinity expected at position 3 in StringPosition[123ABCxyABCzzzABCABC, ABC, -1].
      = StringPosition[123ABCxyABCzzzABCABC, ABC, -1]
