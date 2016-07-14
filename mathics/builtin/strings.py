@@ -614,6 +614,17 @@ class StringSplit(Builtin):
 
 class StringPosition(Builtin):
     '''
+    <dl>
+    <dt>'StringPosition["$string$", $patt$]'
+      <dd>gives a list of starting and ending positions where $patt$ matches "$string$".
+    <dt>'StringPosition["$string$", $patt$, $n$]'
+      <dd>returns the first $n$ matches only.
+    <dt>'StringPosition["$string$", {$patt1$, $patt2$, ...}, $n$]'
+      <dd>matches multiple patterns.
+    <dt>'StringPosition[{$s1$, $s2$, ...}, $patt$]'
+      <dd>returns a list of matches for multiple strings.
+    </dl>
+
     >> StringPosition["123ABCxyABCzzzABCABC", "ABC"]
      = {{4, 6}, {9, 11}, {15, 17}, {18, 20}}
 
@@ -645,6 +656,9 @@ class StringPosition(Builtin):
 
     #> StringPosition[{"abc"}, "a", Infinity]
      = {{{1, 1}}}
+
+    #> StringPosition["abc"]["123AabcDEabc"]
+     = {{5, 7}, {10, 12}}
     '''
 
     options = {
@@ -657,6 +671,10 @@ class StringPosition(Builtin):
         'strse': 'String or list of strings expected at position `1` in `2`.',
         'overall': 'Overlaps -> All option is not currently implemented in Mathics.',
         'innf': 'Non-negative integer or Infinity expected at position `2` in `1`.',
+    }
+
+    rules = {
+        'StringPosition[patt_][s_]': 'StringPosition[s, patt]',
     }
 
     def apply(self, string, patt, evaluation, options):
