@@ -18,7 +18,7 @@ from mathics.builtin.base import (
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
 from mathics.core.expression import Expression, String, Symbol, Integer, Number, from_python
-from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
+from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
 from mathics.builtin.algebra import cancel
@@ -1544,6 +1544,11 @@ class _IterationFunction(Builtin):
                     break
                 else:
                     raise
+            except ReturnInterrupt as e:
+                if self.allow_loopcontrol:
+                    return e.expr
+                else:
+                    raise
             index += 1
         return self.get_result(result)
 
@@ -1599,6 +1604,11 @@ class _IterationFunction(Builtin):
                     break
                 else:
                     raise
+            except ReturnInterrupt as e:
+                if self.allow_loopcontrol:
+                    return e.expr
+                else:
+                    raise
             index = Expression('Plus', index, di).evaluate(evaluation)
         return self.get_result(result)
 
@@ -1621,6 +1631,11 @@ class _IterationFunction(Builtin):
             except BreakInterrupt:
                 if self.allow_loopcontrol:
                     break
+                else:
+                    raise
+            except ReturnInterrupt as e:
+                if self.allow_loopcontrol:
+                    return e.expr
                 else:
                     raise
         return self.get_result(result)

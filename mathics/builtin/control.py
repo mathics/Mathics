@@ -308,6 +308,12 @@ class For(Builtin):
      = 3628800
     >> n == 10!
      = True
+
+    #> n := 1
+    #> For[i=1, i<=10, i=i+1, If[i > 5, Return[i]]; n = n * i]
+     = 6
+    #> n
+     = 120
     """
 
     attributes = ('HoldRest',)
@@ -331,6 +337,8 @@ class For(Builtin):
                     pass
             except BreakInterrupt:
                 break
+            except ReturnInterrupt as e:
+                return e.expr
         return Symbol('Null')
 
 
@@ -348,6 +356,9 @@ class While(Builtin):
     >> While[b != 0, {a, b} = {b, Mod[a, b]}];
     >> a
      = 3
+
+    #> i = 1; While[True, If[i^2 > 100, Return[i + 1], i++]]
+     = 12
     """
 
     attributes = ('HoldAll',)
@@ -366,6 +377,8 @@ class While(Builtin):
                 pass
             except BreakInterrupt:
                 break
+            except ReturnInterrupt as e:
+                return e.expr
         return Symbol('Null')
 
 
