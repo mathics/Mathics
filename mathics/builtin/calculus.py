@@ -803,6 +803,10 @@ class Limit(Builtin):
 
     #> Limit[(1 + cos[x]) / x, x -> 0]
      = Limit[(1 + cos[x]) / x, x -> 0]
+
+    #> Limit[x, x -> x0, Direction -> x]
+     : Value of Direction -> x should be -1 or 1.
+     = Limit[x, x -> x0, Direction -> x]
     """
 
     attributes = ('Listable',)
@@ -827,12 +831,12 @@ class Limit(Builtin):
 
         direction = self.get_option(options, 'Direction', evaluation)
         value = direction.get_int_value()
-        if value not in (-1, 1):
-            evaluation.message('Limit', 'ldir', direction)
-        if value > 0:
+        if value == -1:
+            dir_sympy = '+'
+        elif value == 1:
             dir_sympy = '-'
         else:
-            dir_sympy = '+'
+            return evaluation.message('Limit', 'ldir', direction)
 
         try:
             result = sympy.limit(expr, x, x0, dir_sympy)
