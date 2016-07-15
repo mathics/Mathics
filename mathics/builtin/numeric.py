@@ -698,9 +698,15 @@ class NumberForm(_NumberForm):
      = 1.41000
     #> NumberForm[1.41, {10, 5}, NumberPadding -> {"", "X"}]
      = 1.41XXX
+    #> NumberForm[1.41, {10, 5}, NumberPadding -> {"X", "Y"}]
+     = XXXXX1.41YYY
+    #> NumberForm[1.41, 10, NumberPadding -> {"X", "Y"}]
+     = XXXXXXXX1.41
     #> NumberForm[1.2345, 3, NumberPadding -> 0]
      :  Value for option NumberPadding -> 0 should be a string or a pair of strings.
      = 1.2345
+    #> NumberForm[1.41, 10, NumberPadding -> {"X", "Y"}, NumberSigns -> {"-------------", ""}]
+     = XXXXXXXXXXXXXXXXXXXX1.41
 
     ## NumberSeparator
     #> NumberForm[N[10^ 5 Pi], 15, DigitBlock -> 3, NumberSeparator -> " "]
@@ -723,6 +729,16 @@ class NumberForm(_NumberForm):
     #> NumberForm[1.2345, 3, NumberSigns -> 0]
      : Value for option NumberSigns -> 0 should be a pair of strings or two pairs of strings.
      = 1.2345
+
+    ## SignPadding
+    #> NumberForm[1.234, 6, SignPadding -> True, NumberPadding -> {"X", "Y"}]
+     = XXX1.234
+    #> NumberForm[-1.234, 6, SignPadding -> True, NumberPadding -> {"X", "Y"}]
+     = -XX1.234
+    #> NumberForm[-1.234, 6, SignPadding -> False, NumberPadding -> {"X", "Y"}]
+     = XX-1.234
+    #> NumberForm[-1.234, {6, 4}, SignPadding -> False, NumberPadding -> {"X", "Y"}]
+     = X-1.234Y
     '''
 
     options = {
@@ -871,16 +887,26 @@ class NumberForm(_NumberForm):
             # pad with NumberPadding
             if f is not None:
                 if len(right) < f:
+                    # pad right
                     right = right + (f - len(right)) * options['NumberPadding'][1]
                 elif len(right) > f:
+                    # truncate right
                     right = right[:f]
-            # if len(left) + len(right) > n:
+            left_padding = ''
+            l = len(sign_prefix) + len(left) + len(right) - max(len(options['NumberSigns'][0]), len(options['NumberSigns'][0]))
+            if l < n:
+                # pad left
+                left_padding = (n - l) * options['NumberPadding'][0]
 
             # insert NumberPoint
-            s = sign_prefix + left + options['NumberPoint'] + right
+            if options['SignPadding']:
+                prefix = sign_prefix + left_padding
+            else:
+                prefix = left_padding + sign_prefix
+
+            s = prefix + left + options['NumberPoint'] + right
 
             # base
-            # TODO other forms?
             base = '10'
 
             # build number
