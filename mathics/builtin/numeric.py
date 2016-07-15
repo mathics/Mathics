@@ -670,12 +670,17 @@ class NumberForm(_NumberForm):
     ## ExponentFunction
 
     ## ExponentStep
+    #> NumberForm[10^8 N[Pi], 10, ExponentStep -> 3]
+     = 314.1592654×10^6
     #> NumberForm[1.2345, 3, ExponentStep -> x]
      : Value of option ExponentStep -> x is not a positive integer.
      = 1.2345
     #> NumberForm[1.2345, 3, ExponentStep -> 0]
      : Value of option ExponentStep -> 0 is not a positive integer.
      = 1.2345
+    #> x = N[Pi^Range[-20, 40, 15]];
+    #> (NumberForm[#1, 10, ExponentStep -> 6] &) /@ x
+     =  {114.0256472×10^-12, 3267.763643×10^-6, 93648.04748, 2.683779414×10^12, 76.91214221×10^18}
 
     ## NumberFormat
 
@@ -846,8 +851,19 @@ class NumberForm(_NumberForm):
             else:
                 exp = s.index('.') - 1
                 s = s[:exp + 1] + s[exp + 2:]
+
+                # consume leading '0's.
+                i = 0
+                while s[i] == '0':
+                    i += 1
+                    exp -= 1
+                s = s[i:]
+
+            # round exponent to ExponentStep
+            rexp = (exp // options['ExponentStep']) * options['ExponentStep']
+
             method = options['ExponentFunction']
-            pexp = method(Integer(exp)).get_int_value()
+            pexp = method(Integer(rexp)).get_int_value()
             if pexp is not None:
                 exp -= pexp
                 pexp = str(pexp)
