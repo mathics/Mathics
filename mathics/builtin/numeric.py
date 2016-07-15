@@ -688,6 +688,8 @@ class NumberForm(_NumberForm):
      = 314 159.265,358,979
     #> NumberForm[N[10^ 5 Pi], 15, DigitBlock -> 3, NumberSeparator -> {",", " "}]
      = 314,159.265 358 979
+    #> NumberForm[N[10^ 7 Pi], 15, DigitBlock -> 3, NumberSeparator -> {",", " "}]
+     = 3.141 592 653 589 79*^7
 
     #> NumberForm[1.2345, 3, NumberSeparator -> 0]
      :  Value for option NumberSeparator -> 0 should be a string or a pair of strings.
@@ -719,13 +721,15 @@ class NumberForm(_NumberForm):
         if -5 <= n <= 5:
             return Symbol('Null')
         else:
-            return Integer(value)
+            return value
 
     @staticmethod
     def default_NumberFormat(man, base, exp):
         py_exp = exp.get_string_value()
         if py_exp:
-            return Expression('RowBox', Expression('List', man, base, exp))
+            # mul = String(options['NumberMultiplier'])
+            # return Expression('RowBox', Expression('List', man, mul, Expression('SuperscriptBox', base, exp)))
+            return Expression('RowBox', Expression('List', man, String('*^'), exp))
         else:
             return man
 
