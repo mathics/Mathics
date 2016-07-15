@@ -670,6 +670,8 @@ class NumberForm(_NumberForm):
     #> NumberForm[1.2345, 3, NumberMultiplier -> 0]
      : Value for option NumberMultiplier -> 0 is expected to be a string.
      = 1.2345
+    #> NumberForm[N[10^ 7 Pi], 15, NumberMultiplier -> "*"]
+     = 3.14159265358979*10^7
 
     ## NumberPoint
     #> NumberForm[1.2345, 3, NumberPoint -> 0]
@@ -689,7 +691,7 @@ class NumberForm(_NumberForm):
     #> NumberForm[N[10^ 5 Pi], 15, DigitBlock -> 3, NumberSeparator -> {",", " "}]
      = 314,159.265 358 979
     #> NumberForm[N[10^ 7 Pi], 15, DigitBlock -> 3, NumberSeparator -> {",", " "}]
-     = 3.141 592 653 589 79*^7
+     = 3.141 592 653 589 79×10^7
 
     #> NumberForm[1.2345, 3, NumberSeparator -> 0]
      :  Value for option NumberSeparator -> 0 should be a string or a pair of strings.
@@ -724,12 +726,11 @@ class NumberForm(_NumberForm):
             return value
 
     @staticmethod
-    def default_NumberFormat(man, base, exp):
+    def default_NumberFormat(man, base, exp, options):
         py_exp = exp.get_string_value()
         if py_exp:
-            # mul = String(options['NumberMultiplier'])
-            # return Expression('RowBox', Expression('List', man, mul, Expression('SuperscriptBox', base, exp)))
-            return Expression('RowBox', Expression('List', man, String('*^'), exp))
+            mul = String(options['NumberMultiplier'])
+            return Expression('RowBox', Expression('List', man, mul, Expression('SuperscriptBox', base, exp)))
         else:
             return man
 
@@ -824,7 +825,7 @@ class NumberForm(_NumberForm):
 
             # build number
             method = options['NumberFormat']
-            return method(String(s), String(base), String(pexp))
+            return method(String(s), String(base), String(pexp), options)
 
 
     def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):

@@ -920,6 +920,9 @@ class Expression(BaseExpression):
             self.leaves[0].has_form('List', None)):
             return ''.join([leaf.boxes_to_text(**options)
                             for leaf in self.leaves[0].leaves])
+        elif self.has_form('SuperscriptBox', 2):
+            return '^'.join([leaf.boxes_to_text(**options)
+                               for leaf in self.leaves])
         else:
             raise BoxError(self, 'text')
 
