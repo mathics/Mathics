@@ -20,7 +20,7 @@ from six.moves import range
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (dps, prec, convert_base,
                                   convert_int_to_digit_list)
-from mathics.core.expression import (Integer, Rational, Real, Complex,
+from mathics.core.expression import (Integer, Rational, Real, Complex, String,
                                      Expression, Number, Symbol, from_python,
                                      ensure_context)
 from mathics.core.convert import from_sympy
@@ -507,6 +507,7 @@ class _NumberForm(Builtin):
         'opttf': 'Value of option `1` -> `2` should be True or False.',
         'estep': 'Value of option `1` -> `2` is not a positive integer.',
         'iprf': 'Formatting specification `1` should be a positive integer or a pair of positive integers.',    # NumberFormat only
+        'sigz': 'In addition to the number of digits requested, one or more zeros will appear as placeholders.',
     }
 
     def check_options(self, options, evaluation):
@@ -621,6 +622,13 @@ class NumberForm(_NumberForm):
      : Formatting specification {1, 2.5} should be a positive integer or a pair of positive integers.
      = 1.5
 
+    ## Right padding
+    #> NumberForm[153., 2]
+     : In addition to the number of digits requested, one or more zeros will appear as placeholders.
+     = 150.
+    #> NumberForm[0.00125, 1]
+     = 0.001
+
     ## Check options
 
     ## DigitBlock
@@ -688,15 +696,22 @@ class NumberForm(_NumberForm):
         'SignPadding': 'False',
     }
 
-    @staticmethod
-    def default_ExponentFunction(value):
-        # TODO
-        return value
 
     @staticmethod
-    def default_NumberFormat(value):
-        # TODO
-        return value
+    def default_ExponentFunction(value):
+        n = value.get_int_value()
+        if -5 <= n <= 5:
+            return Symbol('Null')
+        else:
+            return Integer(value)
+
+    @staticmethod
+    def default_NumberFormat(man, base, exp):
+        py_exp = exp.get_string_value()
+        if py_exp:
+            return Expression('RowBox', Expression('List', man, base, exp))
+        else:
+            return man
 
     def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
         '''MakeBoxes[NumberForm[expr_, n_, OptionsPattern[NumberForm]],
@@ -709,9 +724,72 @@ class NumberForm(_NumberForm):
             evaluation.message('NumberForm', 'iprf', n)
             return fallback
 
-        py_options = self.check_options(options, evaluation)
-        if py_options is None:
+        options = self.check_options(options, evaluation)
+        if options is None:
             return fallback
+
+        if not isinstance(expr, Real):
+            # TODO
+            return
+
+        sym_expr = expr.to_sympy()
+        if sym_expr == sympy.Float(0):
+            raise NotImplementedError()
+        else:
+            s = str(sym_expr.n(py_n))
+
+            # sign prefix
+            if s[0] == '-':
+                assert sym_expr < 0
+                sign_prefix = 0
+                s = s[1:]
+            else:
+                assert sym_expr >= 0
+                sign_prefix = 1
+            sign_prefix = options['NumberSigns'][sign_prefix]
+
+            # exponent (exp is actual, pexp is printed)
+            if 'e' in s:
+                s, exp = s.split('e')
+                exp = int(exp)
+                assert s[1] == '.'
+                s = s[0] + s[2:]
+            else:
+                exp = s.index('.') - 1
+                s = s[:exp + 1] + s[exp + 3:]
+            method = options['ExponentFunction']
+            pexp = method(Integer(exp)).get_int_value()
+            if pexp is not None:
+                exp -= pexp
+                pexp = str(pexp)
+            else:
+                pexp = ''
+
+            s = s.rstrip('0')
+
+            # pad right with '0'.
+            if len(s) < exp + 1:
+                evaluation.message('NumberForm', 'sigz')
+                # TODO NumberPadding?
+                s = s + '0' * (1 + exp - len(s))
+            # pad left with '0'.
+            if exp <= 0:
+                s = '0' * (1 - exp) + s
+                exp = 0
+
+            # insert NumberPoint
+            s = s[:exp + 1] + options['NumberPoint'] + s[exp + 1:]
+
+            # insert NumberSeparator
+            # TODO
+
+            # base
+            # TODO other forms?
+            base = '10'
+
+            # build number
+            method = options['NumberFormat']
+            return method(String(s), String(base), String(pexp))
 
 
     def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
