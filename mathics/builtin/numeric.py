@@ -553,7 +553,9 @@ class _NumberForm(Builtin):
     def check_ExponentFunction(self, value, evaluation):
         if value.same(Symbol('Automatic')):
             return self.default_ExponentFunction
-        # TODO user defined NumberFormat
+        def exp_function(x):
+            return Expression(value, x).evaluate(evaluation)
+        return exp_function
 
     def check_NumberFormat(self, value, evaluation):
         if value.same(Symbol('Automatic')):
@@ -668,6 +670,17 @@ class NumberForm(_NumberForm):
      = 1.2345
 
     ## ExponentFunction
+    #> NumberForm[12345.123456789, 14, ExponentFunction -> ((#) &)]
+     = 1.2345123456789×10^4
+    #> NumberForm[12345.123456789, 14, ExponentFunction -> (Null&)]
+     = 12345.123456789
+    #> y = N[Pi^Range[-20, 40, 15]];
+    #> NumberForm[y, 10, ExponentFunction -> (3 Quotient[#, 3] &)]
+     =  {114.0256472×10^-12, 3.267763643×10^-3, 93.64804748×10^3, 2.683779414×10^12, 76.91214221×10^18}
+    #> NumberForm[y, 10, ExponentFunction -> (Null &)]
+     : In addition to the number of digits requested, one or more zeros will appear as placeholders.
+     : In addition to the number of digits requested, one or more zeros will appear as placeholders.
+     = {0.0000000001140256472, 0.003267763643, 93648.04748, 2683779414000., 76912142210000000000.}
 
     ## ExponentStep
     #> NumberForm[10^8 N[Pi], 10, ExponentStep -> 3]
@@ -678,9 +691,8 @@ class NumberForm(_NumberForm):
     #> NumberForm[1.2345, 3, ExponentStep -> 0]
      : Value of option ExponentStep -> 0 is not a positive integer.
      = 1.2345
-    #> x = N[Pi^Range[-20, 40, 15]];
-    #> (NumberForm[#1, 10, ExponentStep -> 6] &) /@ x
-     =  {114.0256472×10^-12, 3267.763643×10^-6, 93648.04748, 2.683779414×10^12, 76.91214221×10^18}
+    #> NumberForm[y, 10, ExponentStep -> 6]
+     = {114.0256472×10^-12, 3267.763643×10^-6, 93648.04748, 2.683779414×10^12, 76.91214221×10^18}
 
     ## NumberFormat
 
@@ -759,7 +771,6 @@ class NumberForm(_NumberForm):
         'SignPadding': 'False',
     }
 
-
     @staticmethod
     def default_ExponentFunction(value):
         n = value.get_int_value()
@@ -776,6 +787,16 @@ class NumberForm(_NumberForm):
             return Expression('RowBox', Expression('List', man, mul, Expression('SuperscriptBox', base, exp)))
         else:
             return man
+
+    def apply_list_n(self, expr, n, evaluation, options):
+        'NumberForm[expr_?ListQ, n_, OptionsPattern[NumberForm]]'
+        options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
+        return Expression('List', *[Expression('NumberForm', leaf, n, *options) for leaf in expr.leaves])
+
+    def apply_list_nf(self, expr, n, f, evaluation, options):
+        'NumberForm[expr_?ListQ, {n_, f_}, OptionsPattern[NumberForm]]'
+        options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
+        return Expression('List', *[Expression('NumberForm', leaf, n, f, *options) for leaf in expr.leaves])
 
     def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
         '''MakeBoxes[NumberForm[expr_, n_, OptionsPattern[NumberForm]],
@@ -817,7 +838,6 @@ class NumberForm(_NumberForm):
         if not isinstance(expr, Real):
             # TODO
             return
-
         return self.do_makeboxes_real(expr, py_n, py_f, evaluation, py_options)
 
     @staticmethod
