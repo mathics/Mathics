@@ -1834,6 +1834,37 @@ class Join(Builtin):
             return Expression('List')
 
 
+class Catenate(Builtin):
+    """
+    <dl>
+    <dt>'Catenate[{$l1$, $l2$, ...}]'
+        <dd>concatenates the lists $l1$, $l2$, ...
+    </dl>
+
+    >> Catenate[{{1, 2, 3}, {4, 5}}]
+     = {1, 2, 3, 4, 5}
+    """
+
+    messages = {
+        'invrp': '`1` is not a list.'
+    }
+
+    def apply(self, lists, evaluation):
+        'Catenate[lists_List]'
+        def parts():
+            for l in lists.leaves:
+                head_name = l.get_head_name()
+                if head_name == 'System`List':
+                    yield l.leaves
+                elif head_name != 'System`Missing':
+                    raise MessageException('Catenate', 'invrp', l)
+
+        try:
+            return Expression('List', *list(chain(*list(parts()))))
+        except MessageException as e:
+            e.message(evaluation)
+
+
 class Append(Builtin):
     """
     <dl>
