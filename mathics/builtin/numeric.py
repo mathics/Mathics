@@ -560,7 +560,9 @@ class _NumberForm(Builtin):
     def check_NumberFormat(self, value, evaluation):
         if value.same(Symbol('Automatic')):
             return self.default_NumberFormat
-        # TODO user defined NumberFormat
+        def num_function(man, base, exp, options):
+            return Expression(value, man, base, exp).evaluate(evaluation)
+        return num_function
 
     def check_NumberMultiplier(self, value, evaluation):
         result = value.get_string_value()
@@ -695,6 +697,8 @@ class NumberForm(_NumberForm):
      = {114.0256472×10^-12, 3267.763643×10^-6, 93648.04748, 2.683779414×10^12, 76.91214221×10^18}
 
     ## NumberFormat
+    #> NumberForm[y, 10, NumberFormat -> (#1 &)]
+     = {1.140256472, 0.003267763643, 93648.04748, 2.683779414, 7.691214221}
 
     ## NumberMultiplier
     #> NumberForm[1.2345, 3, NumberMultiplier -> 0]
