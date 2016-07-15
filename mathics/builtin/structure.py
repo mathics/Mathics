@@ -4,7 +4,8 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
+from mathics.builtin.base import (Builtin, Predefined, BinaryOperator, Test,
+                                  MessageException)
 from mathics.core.expression import (Expression, String, Symbol, Integer,
                                      Rational, strip_context)
 from mathics.core.rules import Pattern
@@ -627,14 +628,6 @@ class MapThread(Builtin):
         if not expr.has_form('List', None):
             return evaluation.message('MapThread', 'list', 2, full_expr)
 
-        class mptcError(Exception):
-            def __init__(self, *args):
-                self.args = args
-
-        class mptdError(Exception):
-            def __init__(self, *args):
-                self.args = args
-
         heads = expr.get_leaves()
 
         def walk(args, depth=0):
@@ -645,19 +638,17 @@ class MapThread(Builtin):
                 dim = None
                 for i, arg in enumerate(args):
                     if not arg.has_form('List', None):
-                        raise mptdError(heads[i], i + 1, full_expr, depth, n)
+                        raise MessageException('MapThread', 'mptd', heads[i], i + 1, full_expr, depth, n)
                     if dim is None:
                         dim = len(arg.leaves)
                     if dim != len(arg.leaves):
-                        raise mptcError(1, i + 1, full_expr, dim, len(arg.leaves))
+                        raise MessageException('MapThread', 'mptc', 1, i + 1, full_expr, dim, len(arg.leaves))
                 return Expression('List', *[walk([arg.leaves[i] for arg in args], depth + 1) for i in range(dim)])
 
         try:
             return walk(heads)
-        except mptcError as e:
-            return evaluation.message('MapThread', 'mptc', *e.args)
-        except mptdError as e:
-            return evaluation.message('MapThread', 'mptd', *e.args)
+        except MessageException as e:
+            return e.message(evaluation)
 
 
 class Thread(Builtin):
