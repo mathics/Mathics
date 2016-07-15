@@ -599,6 +599,9 @@ class _NumberForm(Builtin):
         return self._check_List2str(value, 'npad', evaluation)
 
     def check_NumberSeparator(self, value, evaluation):
+        py_str = value.get_string_value()
+        if py_str is not None:
+            return [py_str, py_str]
         return self._check_List2str(value, 'nspr', evaluation)
 
 
@@ -636,6 +639,8 @@ class NumberForm(_NumberForm):
      = 12,345.123 456 789
     #> NumberForm[12345.12345678, 14, DigitBlock -> 3]
      = 12,345.123 456 78
+    #> NumberForm[N[10^ 5 Pi], 15, DigitBlock -> {4, 2}]
+     = 31,4159.26 53 58 97 9
     #> NumberForm[1.2345, 3, DigitBlock -> -4]
      : Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.
      = 1.2345
@@ -677,6 +682,13 @@ class NumberForm(_NumberForm):
      = 1.2345
 
     ## NumberSeparator
+    #> NumberForm[N[10^ 5 Pi], 15, DigitBlock -> 3, NumberSeparator -> " "]
+     = 314 159.265 358 979
+    #> NumberForm[N[10^ 5 Pi], 15, DigitBlock -> 3, NumberSeparator -> {" ", ","}]
+     = 314 159.265,358,979
+    #> NumberForm[N[10^ 5 Pi], 15, DigitBlock -> 3, NumberSeparator -> {",", " "}]
+     = 314,159.265 358 979
+
     #> NumberForm[1.2345, 3, NumberSeparator -> 0]
      :  Value for option NumberSeparator -> 0 should be a string or a pair of strings.
      = 1.2345
