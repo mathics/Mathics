@@ -674,6 +674,8 @@ class NumberForm(_NumberForm):
      = 3.14159265358979*10^7
 
     ## NumberPoint
+    #> NumberForm[1.2345, 5, NumberPoint -> ","]
+     = 1,2345
     #> NumberForm[1.2345, 3, NumberPoint -> 0]
      : Value for option NumberPoint -> 0 is expected to be a string.
      = 1.2345
@@ -692,12 +694,15 @@ class NumberForm(_NumberForm):
      = 314,159.265 358 979
     #> NumberForm[N[10^ 7 Pi], 15, DigitBlock -> 3, NumberSeparator -> {",", " "}]
      = 3.141 592 653 589 79×10^7
-
     #> NumberForm[1.2345, 3, NumberSeparator -> 0]
      :  Value for option NumberSeparator -> 0 should be a string or a pair of strings.
      = 1.2345
 
     ## NumberSigns
+    #> NumberForm[1.2345, 5, NumberSigns -> {"-", "+"}]
+     = +1.2345
+    #> NumberForm[-1.2345, 5, NumberSigns -> {"- ", ""}]
+     = - 1.2345
     #> NumberForm[1.2345, 3, NumberSigns -> 0]
      : Value for option NumberSigns -> 0 should be a pair of strings or two pairs of strings.
      = 1.2345
@@ -817,7 +822,7 @@ class NumberForm(_NumberForm):
                 right = options['NumberSeparator'][1].join(right)
 
             # insert NumberPoint
-            s = left + options['NumberPoint'] + right
+            s = sign_prefix + left + options['NumberPoint'] + right
 
             # base
             # TODO other forms?
