@@ -670,3 +670,40 @@ class RandomPrime(Builtin):
         except ValueError:
             evaluation.message('RandomPrime', 'noprime')
             return
+
+
+class Quotient(Builtin):
+    '''
+    <dl>
+    <dt>'Quotient[m, n]'
+      <dd>computes the integer quotient of $m$ and $n$.
+    </dl>
+
+    >> Quotient[23, 7]
+     = 3
+
+    #> Quotient[13, 0]
+     : Infinite expression Quotient[13, 0] encountered.
+     = ComplexInfinity
+    #> Quotient[-17, 7]
+     = -3
+    #> Quotient[-17, -4]
+     = 4
+    #> Quotient[19, -4]
+     = -5
+    '''
+
+    attributes = ('Listable', 'NumericFunction')
+
+    messages = {
+        'infy': 'Infinite expression `1` encountered.',
+    }
+
+    def apply(self, m, n, evaluation):
+        'Quotient[m_Integer, n_Integer]'
+        py_m = m.get_int_value()
+        py_n = n.get_int_value()
+        if py_n == 0:
+            evaluation.message('Quotient', 'infy', Expression('Quotient', m, n))
+            return Symbol('ComplexInfinity')
+        return Integer(py_m // py_n)
