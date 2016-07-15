@@ -614,6 +614,12 @@ class NumberForm(_NumberForm):
         <dd>prints with $n$-digits and $f$ digits to the right of the decimal point.
     </dl>
 
+    >> NumberForm[N[Pi], 10]
+     = 3.141592654
+
+    >> NumberForm[N[Pi], {10, 5}]
+     = 3.14159
+
     ## Check arguments
     #> NumberForm[1.5, -4]
      : Formatting specification -4 should be a positive integer or a pair of positive integers.
@@ -631,6 +637,13 @@ class NumberForm(_NumberForm):
      = 150.
     #> NumberForm[0.00125, 1]
      = 0.001
+    #> NumberForm[10^5 N[Pi], {5, 3}]
+     : In addition to the number of digits requested, one or more zeros will appear as placeholders.
+     = 314160.000
+    #> NumberForm[10^5 N[Pi], {6, 3}]
+     = 314159.000
+    #> NumberForm[10^5 N[Pi], {6, 10}]
+     = 314159.0000000000
 
     ## Check options
 
@@ -681,6 +694,10 @@ class NumberForm(_NumberForm):
      = 1.2345
 
     ## NumberPadding
+    #> NumberForm[1.41, {10, 5}]
+     = 1.41000
+    #> NumberForm[1.41, {10, 5}, NumberPadding -> {"", "X"}]
+     = 1.41XXX
     #> NumberForm[1.2345, 3, NumberPadding -> 0]
      :  Value for option NumberPadding -> 0 should be a string or a pair of strings.
      = 1.2345
@@ -750,19 +767,49 @@ class NumberForm(_NumberForm):
             evaluation.message('NumberForm', 'iprf', n)
             return fallback
 
-        options = self.check_options(options, evaluation)
-        if options is None:
+        py_options = self.check_options(options, evaluation)
+        if py_options is None:
+            return fallback
+
+        if not isinstance(expr, Real):
+            # TODO
+            return
+        return self.do_makeboxes_real(expr, py_n, None, evaluation, py_options)
+
+    def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
+        '''MakeBoxes[NumberForm[expr_, {n_, f_}, OptionsPattern[NumberForm]],
+            form:StandardForm|TraditionalForm|OutputForm]'''
+
+        fallback = Expression('MakeBoxes', expr, form)
+
+        nf = Expression('List', n, f)
+        py_n = n.get_int_value()
+        py_f = f.get_int_value()
+        if py_n is None or py_n <= 0 or py_f is None or py_f < 0:
+            evaluation.message('NumberForm', 'iprf', nf)
+            return fallback
+
+        py_options = self.check_options(options, evaluation)
+        if py_options is None:
             return fallback
 
         if not isinstance(expr, Real):
             # TODO
             return
 
+        return self.do_makeboxes_real(expr, py_n, py_f, evaluation, py_options)
+
+    @staticmethod
+    def do_makeboxes_real(expr, n, f, evaluation, options):
+        assert isinstance(expr, Real)
+        assert isinstance(n, int) and n > 0
+        assert f is None or (isinstance(f, int) and f >= 0)
+
         sym_expr = expr.to_sympy()
         if sym_expr == sympy.Float(0):
             raise NotImplementedError()
         else:
-            s = str(sym_expr.n(py_n))
+            s = str(sym_expr.n(n))
 
             # sign prefix
             if s[0] == '-':
@@ -821,6 +868,14 @@ class NumberForm(_NumberForm):
                 right = split_string(right, 0, digit_block[1])
                 right = options['NumberSeparator'][1].join(right)
 
+            # pad with NumberPadding
+            if f is not None:
+                if len(right) < f:
+                    right = right + (f - len(right)) * options['NumberPadding'][1]
+                elif len(right) > f:
+                    right = right[:f]
+            # if len(left) + len(right) > n:
+
             # insert NumberPoint
             s = sign_prefix + left + options['NumberPoint'] + right
 
@@ -831,24 +886,6 @@ class NumberForm(_NumberForm):
             # build number
             method = options['NumberFormat']
             return method(String(s), String(base), String(pexp), options)
-
-
-    def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
-        '''MakeBoxes[NumberForm[expr_, {n_, f_}, OptionsPattern[NumberForm]],
-            form:StandardForm|TraditionalForm|OutputForm]'''
-
-        fallback = Expression('MakeBoxes', expr, form)
-
-        nf = Expression('List', n, f)
-        py_n = n.get_int_value()
-        py_f = f.get_int_value()
-        if py_n is None or py_n <= 0 or py_f is None or py_f <= 0:
-            evaluation.message('NumberForm', 'iprf', nf)
-            return fallback
-
-        py_options = self.check_options(options, evaluation)
-        if py_options is None:
-            return fallback
 
 
 class IntegerDigits(Builtin):
