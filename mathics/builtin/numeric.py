@@ -632,6 +632,10 @@ class NumberForm(_NumberForm):
     ## Check options
 
     ## DigitBlock
+    #> NumberForm[12345.123456789, 14, DigitBlock -> 3]
+     = 12,345.123 456 789
+    #> NumberForm[12345.12345678, 14, DigitBlock -> 3]
+     = 12,345.123 456 78
     #> NumberForm[1.2345, 3, DigitBlock -> -4]
      : Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.
      = 1.2345
@@ -756,7 +760,7 @@ class NumberForm(_NumberForm):
                 s = s[0] + s[2:]
             else:
                 exp = s.index('.') - 1
-                s = s[:exp + 1] + s[exp + 3:]
+                s = s[:exp + 1] + s[exp + 2:]
             method = options['ExponentFunction']
             pexp = method(Integer(exp)).get_int_value()
             if pexp is not None:
@@ -773,15 +777,30 @@ class NumberForm(_NumberForm):
                 # TODO NumberPadding?
                 s = s + '0' * (1 + exp - len(s))
             # pad left with '0'.
-            if exp <= 0:
-                s = '0' * (1 - exp) + s
+            if exp < 0:
+                s = '0' * (-exp) + s
                 exp = 0
 
-            # insert NumberPoint
-            s = s[:exp + 1] + options['NumberPoint'] + s[exp + 1:]
+            # left and right of NumberPoint
+            left, right = s[:exp + 1], s[exp + 1:]
+
+            def split_string(s, start, step):
+                if start > 0:
+                    yield s[:start]
+                for i in range(start, len(s), step):
+                    yield s[i:i+step]
 
             # insert NumberSeparator
-            # TODO
+            digit_block = options['DigitBlock']
+            if digit_block[0] != 0:
+                left = split_string(left, len(left) % digit_block[0], digit_block[0])
+                left = options['NumberSeparator'][0].join(left)
+            if digit_block[1] != 0:
+                right = split_string(right, 0, digit_block[1])
+                right = options['NumberSeparator'][1].join(right)
+
+            # insert NumberPoint
+            s = left + options['NumberPoint'] + right
 
             # base
             # TODO other forms?
