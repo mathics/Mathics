@@ -14,7 +14,6 @@ class StopGenerator_BaseRule(StopGenerator):
 
 class BaseRule(KeyComparable):
     def __init__(self, pattern, system=False):
-        super(BaseRule, self).__init__()
         self.pattern = Pattern.create(pattern)
         self.system = system
 
