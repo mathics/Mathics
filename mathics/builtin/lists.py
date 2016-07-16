@@ -13,7 +13,7 @@ from six.moves import zip
 from itertools import chain
 
 from mathics.builtin.base import (
-    Builtin, Test, InvalidLevelspecError,
+    Builtin, Test, InvalidLevelspecError, BinaryOperator,
     PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
@@ -168,7 +168,7 @@ class None_(Predefined):
     name = 'None'
 
 
-class Span(Builtin):
+class Span(BinaryOperator):
     """
     <dl>
     <dt>'Span'
@@ -184,7 +184,7 @@ class Span(Builtin):
     >> ;;3 // FullForm
      = Span[1, 3]
 
-    ## Test parsing : 8 cases to consider
+    ## Parsing: 8 cases to consider
     #> a ;; b ;; c // FullForm
      = Span[a, b, c]
     #>   ;; b ;; c // FullForm
@@ -201,11 +201,18 @@ class Span(Builtin):
      = Span[a, All]
     #>   ;;        // FullForm
      = Span[1, All]
+
+    ## Formatting
+    #> a ;; b ;; c
+     = a ;; b ;; c
+    #> a ;; b
+     = a ;; b
+    #> a ;; b ;; c ;; d
+     = (1 ;; d) (a ;; b ;; c)
     """
 
-    # operator = ';;'
-    # precedence = 305
-    pass
+    operator = ';;'
+    precedence = 305
 
 
 def join_lists(lists):
@@ -765,10 +772,10 @@ class Part(Builtin):
 
     #> {1, 2, 3, 4}[[1;;3;;-1]]
      : Cannot take positions 1 through 3 in {1, 2, 3, 4}.
-     = {1, 2, 3, 4}[[Span[1, 3, -1]]]
+     = {1, 2, 3, 4}[[1 ;; 3 ;; -1]]
     #> {1, 2, 3, 4}[[3;;1]]
      : Cannot take positions 3 through 1 in {1, 2, 3, 4}.
-     = {1, 2, 3, 4}[[Span[3, 1]]]
+     = {1, 2, 3, 4}[[3 ;; 1]]
     """
 
     attributes = ('NHoldRest', 'ReadProtected')

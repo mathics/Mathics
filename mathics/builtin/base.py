@@ -233,16 +233,6 @@ class Operator(Builtin):
         else:
             return self.operator
 
-    def is_binary(self):
-        return False
-
-    def is_prefix(self):
-        return False
-
-    def is_postfix(self):
-        return False
-
-
 class Predefined(Builtin):
     def get_functions(self, prefix='apply'):
         functions = list(super(Predefined, self).get_functions(prefix))
@@ -271,16 +261,10 @@ class PrefixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PrefixOperator, self).__init__('Prefix', *args, **kwargs)
 
-    def is_prefix(self):
-        return True
-
 
 class PostfixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PostfixOperator, self).__init__('Postfix', *args, **kwargs)
-
-    def is_postfix(self):
-        return True
 
 
 class BinaryOperator(Operator):
@@ -318,9 +302,6 @@ class BinaryOperator(Operator):
             }
             default_rules.update(self.rules)
             self.rules = default_rules
-
-    def is_binary(self):
-        return True
 
 
 class Test(Builtin):
