@@ -1450,15 +1450,36 @@ class Number(Atom):
         return True
 
 
-def number_boxes(text):
-    assert text is not None
-    if text.endswith('.0'):
-        text = text[:-1]
-    if text.startswith('-'):
-        return Expression('RowBox',
-                          Expression('List', String('-'), String(text[1:])))
+def _ExponentFunction(value):
+    n = value.get_int_value()
+    if -5 <= n <= 5:
+        return Symbol('Null')
     else:
-        return String(text)
+        return value
+
+
+def _NumberFormat(man, base, exp, options):
+    if exp.get_string_value():
+        if options['_Form'] in ('System`InputForm', 'System`OutputForm', 'System`FullForm'):
+            return Expression('RowBox', Expression('List', man, String('*^'), exp))
+        else:
+            return Expression('RowBox', Expression('List', man, String(options['NumberMultiplier']),
+                                                   Expression('SuperscriptBox', base, exp)))
+    else:
+        return man
+
+
+_number_form_options = {
+    'DigitBlock': [0, 0],
+    'ExponentFunction': _ExponentFunction,
+    'ExponentStep': 1,
+    'NumberFormat': _NumberFormat,
+    'NumberPadding': ['', '0'],
+    'NumberPoint': '.',
+    'NumberSigns': ['-', ''],
+    'SignPadding': False,
+    'NumberMultiplier': '\u00d7',
+}
 
 
 class Integer(Number):
@@ -1482,7 +1503,7 @@ class Integer(Number):
         return str(self.value)
 
     def make_boxes(self, form):
-        return number_boxes(str(self.value))
+        return String(str(self.value))
 
     def default_format(self, evaluation, form):
         return str(self.value)
@@ -1648,40 +1669,10 @@ class Real(Number):
     def boxes_to_tex(self, **options):
         return self.make_boxes('System`TeXForm').boxes_to_tex(**options)
 
-    @staticmethod
-    def _NumberFormat(man, base, exp, options):
-        if exp.get_string_value():
-            if options['_Form'] in ('System`InputForm', 'System`OutputForm', 'System`FullForm'):
-                return Expression('RowBox', Expression('List', man, String('*^'), exp))
-            else:
-                return Expression('RowBox', Expression('List', man, String(options['NumberMultiplier']),
-                                                       Expression('SuperscriptBox', base, exp)))
-        else:
-            return man
-
-    @staticmethod
-    def _ExponentFunction(value):
-        n = value.get_int_value()
-        if -5 <= n <= 5:
-            return Symbol('Null')
-        else:
-            return value
-
     def make_boxes(self, form):
-        from mathics.builtin.inout import make_boxes_real
-        options = {
-            'DigitBlock': [0, 0],
-            'ExponentFunction': self._ExponentFunction,
-            'ExponentStep': 1,
-            'NumberFormat': self._NumberFormat,
-            'NumberPadding': ['', '0'],
-            'NumberPoint': '.',
-            'NumberSigns': ['-', ''],
-            'SignPadding': False,
-            'NumberMultiplier': '\u00d7',
-            '_Form': form,  # passed to NumberFormat
-        }
-        return make_boxes_real(self, dps(self.prec), None, None, options)
+        from mathics.builtin.inout import number_form
+        _number_form_options['_Form'] = form    # passed to _NumberFormat
+        return number_form(self, dps(self.prec), None, None, _number_form_options)
 
     def to_sympy(self, **kwargs):
         return self.value

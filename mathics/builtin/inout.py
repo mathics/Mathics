@@ -99,21 +99,7 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
     return Expression('RowBox', Expression('List', *result))
 
 
-def make_boxes_real(expr, n, f, evaluation, options):
-    '''
-    Converts a Real instance to Boxes.
-
-    n digits of precision with f (can be None) digits after the decimal point.
-    evaluation (can be None) is used for messages.
-
-    The allowed options are python versions of the options permitted to
-    NumberForm and must be supplied. See NumberForm or Real.make_boxes
-    for correct option examples.
-    '''
-    assert isinstance(expr, Real)
-    assert isinstance(n, int) and n > 0
-    assert f is None or (isinstance(f, int) and f >= 0)
-
+def real_to_s_exp(expr, n):
     sym_expr = expr.to_sympy()
     if sym_expr == sympy.Float(0):
         s = '0'
@@ -123,18 +109,18 @@ def make_boxes_real(expr, n, f, evaluation, options):
             exp = 0
         else:
             exp = -dps(p)
+        nonnegative = 1
     else:
         s = str(sym_expr.n(n))
 
         # sign prefix
         if s[0] == '-':
             assert sym_expr < 0
-            sign_prefix = 0
+            nonnegative = 0
             s = s[1:]
         else:
             assert sym_expr >= 0
-            sign_prefix = 1
-        sign_prefix = options['NumberSigns'][sign_prefix]
+            nonnegative = 1
 
         # exponent (exp is actual, pexp is printed)
         if 'e' in s:
@@ -153,17 +139,62 @@ def make_boxes_real(expr, n, f, evaluation, options):
                 exp -= 1
             s = s[i:]
         s = s.rstrip('0')
+    return s, exp, nonnegative
+
+
+def int_to_s_exp(expr, n):
+    n = expr.get_int_value()
+    if n < 0:
+        nonnegative = 0
+        s = str(-n)
+    else:
+        nonnegative = 1
+        s = str(n)
+    exp = len(s) - 1
+    return s, exp, nonnegative
+
+
+def number_form(expr, n, f, evaluation, options):
+    '''
+    Converts a Real or Integer instance to Boxes.
+
+    n digits of precision with f (can be None) digits after the decimal point.
+    evaluation (can be None) is used for messages.
+
+    The allowed options are python versions of the options permitted to
+    NumberForm and must be supplied. See NumberForm or Real.make_boxes
+    for correct option examples.
+    '''
+
+    assert isinstance(n, int) and n > 0
+    assert f is None or (isinstance(f, int) and f >= 0)
+
+    is_int = False
+    if isinstance(expr, Integer):
+        s, exp, nonnegative = int_to_s_exp(expr, n)
+        if f is None:
+            is_int = True
+    elif isinstance(expr, Real):
+        s, exp, nonnegative = real_to_s_exp(expr, n)
+    else:
+        raise ValueError('Expected Real or Integer.')
+
+    sign_prefix = options['NumberSigns'][nonnegative]
 
     # round exponent to ExponentStep
     rexp = (exp // options['ExponentStep']) * options['ExponentStep']
 
-    method = options['ExponentFunction']
-    pexp = method(Integer(rexp)).get_int_value()
-    if pexp is not None:
-        exp -= pexp
-        pexp = str(pexp)
-    else:
+    if is_int:
+        # integer never uses scientific notation
         pexp = ''
+    else:
+        method = options['ExponentFunction']
+        pexp = method(Integer(rexp)).get_int_value()
+        if pexp is not None:
+            exp -= pexp
+            pexp = str(pexp)
+        else:
+            pexp = ''
 
     # pad right with '0'.
     if len(s) < exp + 1:
@@ -217,7 +248,10 @@ def make_boxes_real(expr, n, f, evaluation, options):
     else:
         prefix = left_padding + sign_prefix
 
-    s = prefix + left + options['NumberPoint'] + right
+    if is_int:
+        s = prefix + left
+    else:
+        s = prefix + left + options['NumberPoint'] + right
 
     # base
     base = '10'
@@ -1846,6 +1880,14 @@ class NumberForm(_NumberForm):
     #> NumberForm[{z0, z1}, {10, 4}]
      = {0.0000, 0.0000×10^-28}
 
+    ## Integer case
+    #> NumberForm[{0, 2, -415, 83515161451}, 5]
+     = {0, 2, -415, 83515161451}
+    #> NumberForm[{2^123, 2^123.}, 4, ExponentFunction -> ((#1) &)]
+     = {10633823966279326983230456482242756608, 1.063×10^37}
+    #> NumberForm[{0, 10, -512}, {10, 3}]
+     = {0.000, 10.000, -512.000}
+
     ## Check arguments
     #> NumberForm[1.5, -4]
      : Formatting specification -4 should be a positive integer or a pair of positive integers.
@@ -2041,10 +2083,8 @@ class NumberForm(_NumberForm):
         if py_options is None:
             return fallback
 
-        if not isinstance(expr, Real):
-            # TODO
-            return
-        return make_boxes_real(expr, py_n, None, evaluation, py_options)
+        if isinstance(expr, (Integer, Real)):
+            return number_form(expr, py_n, None, evaluation, py_options)
 
     def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
         '''MakeBoxes[NumberForm[expr_, {n_, f_}, OptionsPattern[NumberForm]],
@@ -2063,10 +2103,8 @@ class NumberForm(_NumberForm):
         if py_options is None:
             return fallback
 
-        if not isinstance(expr, Real):
-            # TODO
-            return
-        return make_boxes_real(expr, py_n, py_f, evaluation, py_options)
+        if isinstance(expr, (Integer, Real)):
+            return number_form(expr, py_n, py_f, evaluation, py_options)
 
 
 class BaseForm(Builtin):
