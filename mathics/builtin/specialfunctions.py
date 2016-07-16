@@ -340,9 +340,13 @@ class AiryAi(_MPMathFunction):
       <dd>returns the Airy function Ai($x$).
     </dl>
 
+    Exact values:
+    >> AiryAi[0]
+     = 3 ^ (1 / 3) / (3 Gamma[2 / 3])
+
+    'AiryAi' can be evaluated numerically:
     >> AiryAi[0.5]
      = 0.23169360648083349
-
     >> AiryAi[0.5 + I]
      = 0.157118446499986172 - 0.241039813840210768 I
 
@@ -350,7 +354,7 @@ class AiryAi(_MPMathFunction):
      = -Graphics-
     """
 
-    sympy_name = ''
+    sympy_name = 'airyai'
     mpmath_name = 'airyai'
 
 
@@ -361,9 +365,13 @@ class AiryBi(_MPMathFunction):
       <dd>returns the Airy function Bi($x$).
     </dl>
 
+    Exact values:
+    >> AiryBi[0]
+     = 3 ^ (5 / 6) / (3 Gamma[2 / 3])
+
+    Numeric evaluation:
     >> AiryBi[0.5]
      = 0.854277043103155493
-
     >> AiryBi[0.5 + I]
      = 0.688145273113482414 + 0.370815390737010831 I
 
@@ -371,7 +379,7 @@ class AiryBi(_MPMathFunction):
      = -Graphics-
     """
 
-    sympy_name = ''
+    sympy_name = 'airybi'
     mpmath_name = 'airybi'
 
 # Kelvin Functions
