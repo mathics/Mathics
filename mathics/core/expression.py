@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import sympy
 import mpmath
 import re
+import abc
 
 from mathics.core.numbers import get_type, dps, prec, min_prec
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
@@ -111,12 +112,12 @@ def from_python(arg):
         raise NotImplementedError
 
 
-class KeyComparable(object):
-    '''
-    subclassing this requires implementing the get_sort_key method
-    '''
-    def __init__(self, *args, **kwargs):
-        pass
+class KeyComparable:
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def get_sort_key(self):
+        return
 
     def __lt__(self, other):
         return self.get_sort_key() < other.get_sort_key()
@@ -139,12 +140,8 @@ class KeyComparable(object):
 
 class BaseExpression(KeyComparable):
     def __init__(self, *args, **kwargs):
-        super(BaseExpression, self).__init__()
-
         self.options = None
-
         self.pattern_sequence = False
-
         self.unformatted = self
 
     def get_attributes(self, definitions):
@@ -413,7 +410,6 @@ class BaseExpression(KeyComparable):
         return Expression('Power', self, other)
 
 
-# TODO subclass KeyComparable
 class Monomial(object):
     """
     An object to sort monomials, used in Expression.get_sort_key and
