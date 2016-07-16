@@ -3459,21 +3459,20 @@ class _Cluster(Builtin):
         'RandomSeed': 'Automatic',
 
         # options specific to Mathics
-        'DetectK': 'Automatic',
         'Granularity': 'Automatic',
     }
 
     messages = {
         'amtd': '`1` failed to pick a suitable distance function for `2`.',
         'bdmtd': 'Method in `` must be either "Optimize" or "Agglomerate".',
-        'intpm': 'Positive integer expected at position 2 in ``.',
+        'intpm': 'Positive integer or k-detection algorithm expected at position 2 in ``.',
         'list': 'Expected a list or a rule with equally sized lists at position 1 in ``.',
-        'nclst': 'Cannot find more clusters than there are elements (`1` is larger than `2`).',
+        'nclst': 'Cannot find more clusters than there are elements: `1` is larger than `2`.',
         'xnum': 'The distance function returned ``, which is not a non-negative real value.',
         'rseed': 'The random seed specified through `` must be an integer or Automatic.',
 
         # specific to Mathics
-        'detk': '`1` is not a valid value for DetectK.',
+        'detk': '`1` is not a valid k-detection algorithm.',
         'gran': 'Granularity expects a numeric value, but `1` is not.',
     }
 
@@ -3503,7 +3502,20 @@ class _Cluster(Builtin):
         if dist_p is None or len(dist_p) != len(repr_p):
             evaluation.message(self.get_name(), 'list', expr)
 
-        if k is not None:  # the number of clusters k is specified as an integer.
+        if isinstance(k, String):  # automatic detection of k. choose a suitable method here.
+            detect_k_string = k.get_string_value()
+            constructor = self._criteria.get('%s/%s' % (detect_k_string, method_string))
+            if constructor is None:
+                evaluation.message(self.get_name(), 'detk', k)
+                return
+            if detect_k_string == 'Automatic':
+                granularity = self._granularity(evaluation, options)
+                if granularity is None:
+                    return
+                py_k = (constructor, {'granularity': granularity})
+            else:
+                py_k = (constructor, {})
+        else:  # the number of clusters k is specified as an integer.
             if not isinstance(k, Integer):
                 evaluation.message(self.get_name(), 'intpm', expr)
                 return
@@ -3518,19 +3530,6 @@ class _Cluster(Builtin):
                 return Expression('List', *repr_p)
             elif py_k == len(dist_p):
                 return Expression('List', [Expression('List', q) for q in repr_p])
-        else:  # automatic detection of k. choose a suitable method here.
-            detect_k_string, detect_k = self.get_option_string(options, 'DetectK', evaluation)
-            constructor = self._criteria.get('%s/%s' % (detect_k_string, method_string))
-            if constructor is None:
-                evaluation.message(self.get_name(), 'detk', detect_k)
-                return
-            if detect_k_string == 'Automatic':
-                granularity = self._granularity(evaluation, options)
-                if granularity is None:
-                    return
-                py_k = (constructor, {'granularity': granularity})
-            else:
-                py_k = (constructor, {})
 
         seed_string, seed = self.get_option_string(options, 'RandomSeed', evaluation)
         if seed_string == 'Automatic':
@@ -3656,11 +3655,16 @@ class FindClusters(_Cluster):
 
     def apply(self, p, evaluation, options):
         'FindClusters[p_, OptionsPattern[%(name)s]]'
-        return self._cluster(p, None, 'clusters', evaluation, options,
+        return self._cluster(p, String("Automatic"), 'clusters', evaluation, options,
                              Expression('FindClusters', p, *options_to_rules(options)))
 
-    def apply_k(self, p, k, evaluation, options):
+    def apply_manual_k(self, p, k, evaluation, options):
         'FindClusters[p_, k_Integer, OptionsPattern[%(name)s]]'
+        return self._cluster(p, k, 'clusters', evaluation, options,
+                             Expression('FindClusters', p, k, *options_to_rules(options)))
+
+    def apply_auto_k(self, p, k, evaluation, options):
+        'FindClusters[p_, k_String, OptionsPattern[%(name)s]]'
         return self._cluster(p, k, 'clusters', evaluation, options,
                              Expression('FindClusters', p, k, *options_to_rules(options)))
 
@@ -3689,10 +3693,15 @@ class ClusteringComponents(_Cluster):
 
     def apply(self, p, evaluation, options):
         'ClusteringComponents[p_, OptionsPattern[%(name)s]]'
-        return self._cluster(p, None, 'components', evaluation, options,
+        return self._cluster(p, String("Automatic"), 'components', evaluation, options,
                              Expression('ClusteringComponents', p, *options_to_rules(options)))
 
-    def apply_k(self, p, k, evaluation, options):
-        'ClusteringComponents[p_, k_Integer, OptionsPattern[%(name)s]]'
+    def apply_manual_k(self, p, k, evaluation, options):
+        'ClusteringComponents[p_, k_String, OptionsPattern[%(name)s]]'
+        return self._cluster(p, k, 'components', evaluation, options,
+                             Expression('ClusteringComponents', p, k, *options_to_rules(options)))
+
+    def apply_auto_k(self, p, k, evaluation, options):
+        'ClusteringComponents[p_, k__String, OptionsPattern[%(name)s]]'
         return self._cluster(p, k, 'components', evaluation, options,
                              Expression('ClusteringComponents', p, k, *options_to_rules(options)))
