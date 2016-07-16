@@ -8,6 +8,7 @@ from heapq import nsmallest
 from itertools import chain
 import bisect
 import math
+import sympy
 
 # publications used for this file:
 
@@ -43,6 +44,14 @@ def _index(i, j):  # i > j, returns j + sum(1, 2, ..., i - 1)
 
     # a = 0, b = 1, c = 2
     return j + ((i - 1) * i) // 2
+
+
+def _robust_min(iterable):
+    minimum = None
+    for i in iterable:
+        if minimum is None or i < minimum:
+            minimum = i
+    return minimum
 
 
 def _components(clusters, n):
@@ -232,8 +241,46 @@ class SplitCriterion(object):
 
         return s_b / n_b
 
+    def _approximate_global_silhouette_index(self, clusters, distance):
+        if len(clusters) <= 1:
+            return None
+        else:
+            return sum(self._approximate_mean_silhouette_widths(clusters, distance)) / len(clusters)
 
-class ConvergingCriterion(SplitCriterion):
+    def _approximate_mean_silhouette_widths(self, clusters, distance):
+        d_in = self._approximate_within_distances(clusters, distance)
+        d_out = self._approximate_mins_of_betweens_distances(clusters, distance)
+        # the mean is just s(i) here, as we only use medoids for approximation.
+        return ((b - a) / max(a, b) for a, b in zip(d_in, d_out))
+
+    def _approximate_within_distances(self, clusters, distance):
+        for c in clusters:
+            s, n = c.within(distance)
+            yield s / n
+
+    def _approximate_mins_of_betweens_distances(self, clusters, distance):
+        def medoids():
+            for i, a in enumerate(clusters):
+                yield i, a.medoid
+
+        def other_medoids(i):
+            for j, c in enumerate(clusters):
+                if i != j:
+                    yield c.medoid
+
+        def other_members(i):
+            for j, c in enumerate(clusters):
+                if i != j:
+                    for p in c.members:
+                        yield p
+
+        other = other_medoids  # fast version
+
+        for i, a in medoids():
+            yield _robust_min((distance(a, b) for b in other(i)))
+
+
+class _ConvergingSplitCriterion(SplitCriterion):
     def __init__(self, granularity, last_criterion=None, last_ratio=None):
         self._granularity = granularity
         self._last_criterion = last_criterion
@@ -262,14 +309,30 @@ class ConvergingCriterion(SplitCriterion):
             ratio = limit + 1.  # always stop
         elif last_criterion is None:
             ratio = 0.  # first call, depth=0
-        elif last_criterion < 1e-15:
-            ratio = limit + 1.  # always stop
         else:
             ratio = criterion / last_criterion
         if not last_ratio:
             last_ratio = limit
 
-        return ratio <= min(limit, last_ratio), ConvergingCriterion(self._granularity, criterion, ratio)
+        if ratio == sympy.nan:  # last_criterion was too small
+            return False, None
+
+        return ratio <= min(limit, last_ratio), _ConvergingSplitCriterion(self._granularity, criterion, ratio)
+
+
+AutomaticSplitCriterion = _ConvergingSplitCriterion
+
+
+class SilhouetteSplitCriterion(SplitCriterion):
+    def __init__(self, last_criterion=None):
+        self._last_criterion = last_criterion
+
+    def should_split(self, siblings, merged, unmerged, distance):
+        criterion = self._approximate_global_silhouette_index(siblings + unmerged, distance)
+        if self._last_criterion is None or criterion < self._last_criterion:
+            return True, SilhouetteSplitCriterion(criterion)
+        else:
+            return False, None
 
 
 class _Cluster:
@@ -554,11 +617,14 @@ def optimize(p, k, distances, mode='clusters', seed=12345, granularity=1.):
         clusterer = _Clusterer(
             len(p), tuple(range(len(p))), None, [], p, distances.distance)
 
-        if k is None:
-            criterion = ConvergingCriterion(granularity)
+        if isinstance(k, tuple) and len(k) == 2:
+            criterion = k[0](**k[1])
+            assert isinstance(criterion, SplitCriterion)
             clusters = clusterer.without_k(criterion)
-        else:
+        elif isinstance(k, int):
             clusters = [c.members for c in clusterer.with_k(k)]
+        else:
+            raise ValueError('illegal parameter k "%s"' % str(k))
 
         # sort clusters by order of their first element in the original list.
         clusters = sorted(clusters, key=lambda c: c[0])
@@ -587,13 +653,24 @@ class MergeCriterion(object):
     def try_merge(self, i, j, d):
         raise NotImplementedError()
 
-    def _update(self, i, j):
-        groups = self.groups
+    def save(self, clusters):
+        pass
+
+    def best(self, clusters):
+        return clusters
+
+    def _fast_distance(self):
         distances = self.distances
+        return lambda x, y: distances[_index(max(x, y), min(x, y))]
+
+    def _merge(self, i, j):
+        groups = self.groups
+        distance = self._fast_distance()
+
         d = 0
         for x in groups[i]:
             for y in groups[j]:
-                d += distances[_index(max(x, y), min(x, y))]
+                d += distance(x, y)
 
         n = len(groups[i]) * len(groups[j])
         self.n_w += n
@@ -602,12 +679,14 @@ class MergeCriterion(object):
         self.b -= d
         self.w += d
 
-    def _merge(self, i, j):
-        self._update(i, j)
-
         self.groups[i].extend(self.groups[j])
         self.groups[j] = None
-        self.k -= 1
+        self.k -= 1  # number of remaining clusters
+
+    def _groups(self):
+        for g in self.groups:
+            if g:
+                yield g
 
     def _average_within_distance(self):
         return self.w / self.n_w
@@ -615,13 +694,53 @@ class MergeCriterion(object):
     def _average_between_distance(self):
         return self.b / self.n_b
 
+    def _global_silhouette_index(self):
+        if self.k == 1:
+            return -1.
+        else:
+            return sum(self._cluster_mean_silhouette(c) for c in self._groups()) / self.k
 
-class CloserThanAverageCriterion(MergeCriterion):
-    def __init__(self, distances, n, granularity):
-        super(CloserThanAverageCriterion, self).__init__(distances, n)
+    def _cluster_mean_silhouette(self, cluster):
+        if len(cluster) <= 1:
+            return -1.
+        else:
+            i = self._within_cluster_mean_distances(cluster)
+            o = self._mins_of_between_cluster_mean_distances(cluster)
+            return sum((b - a) / max(a, b) for a, b in zip(i, o)) / len(cluster)
+
+    def _within_cluster_mean_distances(self, cluster):
+        distance = self._fast_distance()
+
+        for u in cluster:
+            s = sum(distance(u, v) for v in cluster if u != v)
+            yield s / (len(cluster) - 1)
+
+    def _mins_of_between_cluster_mean_distances(self, cluster):
+        distance = self._fast_distance()
+
+        def mean_distances(u):
+            for other in self._groups():
+                if other is not cluster:
+                    yield sum(distance(u, v) for v in other) / len(other)
+
+        for u in cluster:
+            yield _robust_min(mean_distances(u))
+
+
+class _CloserThanAverageMergeCriterion(MergeCriterion):
+    # merge_limit: do not merge points above this distance; if the merged
+    # distance falls above this limit, the clustering is stopped and the
+    # best clustering so far is returned.
+
+    def __init__(self, distances, n, granularity=1., merge_limit=None):
+        super(_CloserThanAverageMergeCriterion, self).__init__(distances, n)
         self._limit = 0.25 * granularity
+        self._merge_limit = merge_limit
 
     def try_merge(self, i, j, d):
+        if self._merge_limit is not None and d > self._merge_limit:
+            return False
+
         if self.k > 2:
             # the distance between the merged clusters gets compared to the
             # average of all existing cluster distances.
@@ -638,8 +757,23 @@ class CloserThanAverageCriterion(MergeCriterion):
 
         return d / cluster_distance <= self._limit
 
+AutomaticMergeCriterion = _CloserThanAverageMergeCriterion
 
-def agglomerate(points, k, distances, mode='clusters', merge_limit=None, granularity=1.):
+
+class SilhouetteMergeCriterion(MergeCriterion):
+    def __init__(self, distances, n):
+        super(SilhouetteMergeCriterion, self).__init__(distances, n)
+        self._last_index = self._global_silhouette_index()
+
+    def try_merge(self, i, j, d):
+        self._merge(i, j)
+        index = self._global_silhouette_index()
+        merge = self._last_index is None or index > self._last_index
+        self._last_index = index
+        return merge
+
+
+def agglomerate(points, k, distances, mode='clusters'):
     # this is an implementation of heap-based clustering as described
     # by [Kurita1991].
 
@@ -664,9 +798,6 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None, granula
     # mode: 'clusters' returns clusters, 'dominant' returns one dominant
     # representant of each cluster only, 'components' returns the index of
     # the cluster each element is in for each element.
-    # merge_limit: do not merge points above this distance; if the merged
-    # distance falls above this limit, the clustering is stopped and the
-    # best clustering so far is returned.
 
     clusters = [[i] for i in range(len(points))]
 
@@ -761,13 +892,15 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None, granula
         n = len(points)
         triangular_distance_matrix = distances.matrix()
 
-        if k is None:
-            criterion = CloserThanAverageCriterion(
-                triangular_distance_matrix, n, granularity)
+        if isinstance(k, tuple) and len(k) == 2:
+            criterion = k[0](triangular_distance_matrix, n, **k[1])
+            assert isinstance(criterion, MergeCriterion)
             n_clusters_target = 1
-        else:
+        elif isinstance(k, int):
             criterion = None
             n_clusters_target = k
+        else:
+            raise ValueError('illegal k "%s"' % str(k))
 
         pairs = [(points[i], points[j]) for i in range(n) for j in range(i)]
         lookup = [(i, j) for i in range(n) for j in range(i)]
@@ -792,8 +925,6 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None, granula
 
         while len(heap) > 0 and n_clusters > n_clusters_target:
             d, p, _ = heap[0]
-            if merge_limit is not None and d > merge_limit:
-                break
 
             i, j = lookup[p]
 
@@ -823,8 +954,14 @@ def agglomerate(points, k, distances, mode='clusters', merge_limit=None, granula
 
             n_clusters -= 1
 
+            if criterion:
+                criterion.save(result)
+
+        if criterion:
+            result = criterion.best(result)
+
         if mode == 'components':
-            return _components([c for c in clusters if c], n)
+            return _components([c for c in result if c], n)
         elif mode == 'clusters':
             return [[points[i] for i in sorted(c)] for c in result if c]
         else:

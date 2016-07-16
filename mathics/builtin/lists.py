@@ -24,6 +24,8 @@ from mathics.core.convert import from_sympy
 from mathics.builtin.algebra import cancel
 from mathics.algorithm.introselect import introselect
 from mathics.algorithm.clusters import optimize, agglomerate, PrecomputedDistances, LazyDistances
+from mathics.algorithm.clusters import AutomaticSplitCriterion, AutomaticMergeCriterion
+from mathics.algorithm.clusters import SilhouetteSplitCriterion, SilhouetteMergeCriterion
 from mathics.builtin.options import options_to_rules
 
 import sympy
@@ -3677,7 +3679,11 @@ class _Cluster(Builtin):
     options = {
         'Method': 'Optimize',
         'DistanceFunction': 'Automatic',
-        'RandomSeed': 'Automatic'
+        'RandomSeed': 'Automatic',
+
+        # options specific to Mathics
+        'DetectK': 'Automatic',
+        'Granularity': 'Automatic',
     }
 
     messages = {
@@ -3687,10 +3693,26 @@ class _Cluster(Builtin):
         'list': 'Expected a list or a rule with equally sized lists at position 1 in ``.',
         'nclst': 'Cannot find more clusters than there are elements (`1` is larger than `2`).',
         'xnum': 'The distance function returned ``, which is not a non-negative real value.',
-        'rseed': 'The random seed specified through `` must be an integer or Automatic.'
+        'rseed': 'The random seed specified through `` must be an integer or Automatic.',
+
+        # specific to Mathics
+        'detk': '`1` is not a valid value for DetectK.',
+        'gran': 'Granularity expects a numeric value, but `1` is not.',
+    }
+
+    _criteria = {
+        'Automatic/Optimize': AutomaticSplitCriterion,
+        'Automatic/Agglomerate': AutomaticMergeCriterion,
+        'Silhouette/Optimize': SilhouetteSplitCriterion,
+        'Silhouette/Agglomerate': SilhouetteMergeCriterion,
     }
 
     def _cluster(self, p, k, mode, evaluation, options, expr):
+        method_string, method = self.get_option_string(options, 'Method', evaluation)
+        if method_string not in ('Optimize', 'Agglomerate'):
+            evaluation.message(self.get_name(), 'bdmtd', Expression('Rule', 'Method', method))
+            return
+
         dist_p = None
         if p.get_head_name() == 'System`Rule':
             if all(q.get_head_name() == 'System`List' for q in p.leaves):
@@ -3704,7 +3726,7 @@ class _Cluster(Builtin):
         if dist_p is None or len(dist_p) != len(repr_p):
             evaluation.message(self.get_name(), 'list', expr)
 
-        if k is not None:
+        if k is not None:  # the number of clusters k is specified as an integer.
             if not isinstance(k, Integer):
                 evaluation.message(self.get_name(), 'intpm', expr)
                 return
@@ -3719,8 +3741,19 @@ class _Cluster(Builtin):
                 return Expression('List', *repr_p)
             elif py_k == len(dist_p):
                 return Expression('List', [Expression('List', q) for q in repr_p])
-        else:
-            py_k = None
+        else:  # automatic detection of k. choose a suitable method here.
+            detect_k_string, detect_k = self.get_option_string(options, 'DetectK', evaluation)
+            constructor = self._criteria.get('%s/%s' % (detect_k_string, method_string))
+            if constructor is None:
+                evaluation.message(self.get_name(), 'detk', detect_k)
+                return
+            if detect_k_string == 'Automatic':
+                granularity = self._granularity(evaluation, options)
+                if granularity is None:
+                    return
+                py_k = (constructor, {'granularity': granularity})
+            else:
+                py_k = (constructor, {})
 
         seed_string, seed = self.get_option_string(options, 'RandomSeed', evaluation)
         if seed_string == 'Automatic':
@@ -3744,24 +3777,11 @@ class _Cluster(Builtin):
         def df(i, j):
             return Expression(distance_function, i, j)
 
-        method_string, method = self.get_option_string(options, 'Method', evaluation)
         try:
             if method_string == 'Agglomerate':
-                def mma_reverse(l):
-                    return list(reversed(l))
-
-                if mode == 'clusters':  # reverse stuff for MMA compatibility sake
-                    clusters = agglomerate(mma_reverse(repr_p), py_k, _PrecomputedDistances(
-                        df, mma_reverse(dist_p), evaluation), mode)
-                    clusters = mma_reverse([mma_reverse(c) for c in clusters])
-                elif mode == 'components':
-                    clusters = agglomerate(repr_p, py_k, _PrecomputedDistances(
-                        df, dist_p, evaluation), mode)
+                clusters = self._agglomerate(mode, repr_p, dist_p, py_k, df, evaluation)
             elif method_string == 'Optimize':
                 clusters = optimize(repr_p, py_k, _LazyDistances(df, dist_p, evaluation), mode, py_seed)
-            else:
-                evaluation.message(self.get_name(), 'bdmtd', Expression('Rule', 'Method', method))
-                return
         except _IllegalDistance as e:
             evaluation.message(self.get_name(), 'xnum', e.distance)
             return
@@ -3772,6 +3792,29 @@ class _Cluster(Builtin):
             return Expression('List', *clusters)
         else:
             raise ValueError('illegal mode %s' % mode)
+
+    def _agglomerate(self, mode, repr_p, dist_p, py_k, df, evaluation):
+        def mma_reverse(l):  # reverse stuff for MMA compatibility sake
+            return list(reversed(l))
+
+        if mode == 'clusters':
+            clusters = agglomerate(mma_reverse(repr_p), py_k, _PrecomputedDistances(
+                df, mma_reverse(dist_p), evaluation), mode)
+            clusters = mma_reverse([mma_reverse(c) for c in clusters])
+        elif mode == 'components':
+            clusters = agglomerate(repr_p, py_k, _PrecomputedDistances(
+                df, dist_p, evaluation), mode)
+
+        return clusters
+
+    def _granularity(self, evaluation, options):
+        granularity_string, granularity = self.get_option_string(options, 'Granularity', evaluation)
+        if granularity_string == 'Automatic':
+            granularity = from_python(1.0)
+        if not granularity.is_numeric():
+            evaluation.message(self.get_name(), 'gran', granularity)
+            return None
+        return granularity.numerify(evaluation).to_python()
 
 
 class FindClusters(_Cluster):
