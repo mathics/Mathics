@@ -99,6 +99,134 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
     return Expression('RowBox', Expression('List', *result))
 
 
+def make_boxes_real(expr, n, f, evaluation, options):
+    '''
+    Converts a Real instance to Boxes.
+
+    n digits of precision with f (can be None) digits after the decimal point.
+    evaluation (can be None) is used for messages.
+
+    The allowed options are python versions of the options permitted to
+    NumberForm and must be supplied. See NumberForm or Real.make_boxes
+    for correct option examples.
+    '''
+    assert isinstance(expr, Real)
+    assert isinstance(n, int) and n > 0
+    assert f is None or (isinstance(f, int) and f >= 0)
+
+    sym_expr = expr.to_sympy()
+    if sym_expr == sympy.Float(0):
+        s = '0'
+        sign_prefix = ''
+        p = expr.get_precision()
+        if p == machine_precision:
+            exp = 0
+        else:
+            exp = -dps(p)
+    else:
+        s = str(sym_expr.n(n))
+
+        # sign prefix
+        if s[0] == '-':
+            assert sym_expr < 0
+            sign_prefix = 0
+            s = s[1:]
+        else:
+            assert sym_expr >= 0
+            sign_prefix = 1
+        sign_prefix = options['NumberSigns'][sign_prefix]
+
+        # exponent (exp is actual, pexp is printed)
+        if 'e' in s:
+            s, exp = s.split('e')
+            exp = int(exp)
+            assert s[1] == '.'
+            s = s[0] + s[2:]
+        else:
+            exp = s.index('.') - 1
+            s = s[:exp + 1] + s[exp + 2:]
+
+            # consume leading '0's.
+            i = 0
+            while s[i] == '0':
+                i += 1
+                exp -= 1
+            s = s[i:]
+        s = s.rstrip('0')
+
+    # round exponent to ExponentStep
+    rexp = (exp // options['ExponentStep']) * options['ExponentStep']
+
+    method = options['ExponentFunction']
+    pexp = method(Integer(rexp)).get_int_value()
+    if pexp is not None:
+        exp -= pexp
+        pexp = str(pexp)
+    else:
+        pexp = ''
+
+    # pad right with '0'.
+    if len(s) < exp + 1:
+        if evaluation is not None:
+            evaluation.message('NumberForm', 'sigz')
+        # TODO NumberPadding?
+        s = s + '0' * (1 + exp - len(s))
+    # pad left with '0'.
+    if exp < 0:
+        s = '0' * (-exp) + s
+        exp = 0
+
+    # left and right of NumberPoint
+    left, right = s[:exp + 1], s[exp + 1:]
+
+    def split_string(s, start, step):
+        if start > 0:
+            yield s[:start]
+        for i in range(start, len(s), step):
+            yield s[i:i+step]
+
+    # insert NumberSeparator
+    digit_block = options['DigitBlock']
+    if digit_block[0] != 0:
+        left = split_string(left, len(left) % digit_block[0], digit_block[0])
+        left = options['NumberSeparator'][0].join(left)
+    if digit_block[1] != 0:
+        right = split_string(right, 0, digit_block[1])
+        right = options['NumberSeparator'][1].join(right)
+
+    # pad with NumberPadding
+    if f is not None:
+        if len(right) < f:
+            # pad right
+            right = right + (f - len(right)) * options['NumberPadding'][1]
+        elif len(right) > f:
+            # truncate right
+            right = right[:f]
+    left_padding = 0
+    max_sign_len = max(len(options['NumberSigns'][0]), len(options['NumberSigns'][1]))
+    l = len(sign_prefix) + len(left) + len(right) - max_sign_len
+    if l < n:
+        left_padding = n - l
+    elif len(sign_prefix) < max_sign_len:
+        left_padding = max_sign_len - len(sign_prefix)
+    left_padding = left_padding * options['NumberPadding'][0]
+
+    # insert NumberPoint
+    if options['SignPadding']:
+        prefix = sign_prefix + left_padding
+    else:
+        prefix = left_padding + sign_prefix
+
+    s = prefix + left + options['NumberPoint'] + right
+
+    # base
+    base = '10'
+
+    # build number
+    method = options['NumberFormat']
+    return method(String(s), String(base), String(pexp), options)
+
+
 class MakeBoxes(Builtin):
     """
     <dl>
@@ -1694,123 +1822,6 @@ class _NumberForm(Builtin):
             return [py_str, py_str]
         return self._check_List2str(value, 'nspr', evaluation)
 
-    @staticmethod
-    def do_makeboxes_real(expr, n, f, evaluation, options):
-        assert isinstance(expr, Real)
-        assert isinstance(n, int) and n > 0
-        assert f is None or (isinstance(f, int) and f >= 0)
-
-        sym_expr = expr.to_sympy()
-        if sym_expr == sympy.Float(0):
-            s = '0'
-            sign_prefix = ''
-            p = expr.get_precision()
-            if p == machine_precision:
-                exp = 0
-            else:
-                exp = -dps(p)
-        else:
-            s = str(sym_expr.n(n))
-
-            # sign prefix
-            if s[0] == '-':
-                assert sym_expr < 0
-                sign_prefix = 0
-                s = s[1:]
-            else:
-                assert sym_expr >= 0
-                sign_prefix = 1
-            sign_prefix = options['NumberSigns'][sign_prefix]
-
-            # exponent (exp is actual, pexp is printed)
-            if 'e' in s:
-                s, exp = s.split('e')
-                exp = int(exp)
-                assert s[1] == '.'
-                s = s[0] + s[2:]
-            else:
-                exp = s.index('.') - 1
-                s = s[:exp + 1] + s[exp + 2:]
-
-                # consume leading '0's.
-                i = 0
-                while s[i] == '0':
-                    i += 1
-                    exp -= 1
-                s = s[i:]
-            s = s.rstrip('0')
-
-        # round exponent to ExponentStep
-        rexp = (exp // options['ExponentStep']) * options['ExponentStep']
-
-        method = options['ExponentFunction']
-        pexp = method(Integer(rexp)).get_int_value()
-        if pexp is not None:
-            exp -= pexp
-            pexp = str(pexp)
-        else:
-            pexp = ''
-
-        # pad right with '0'.
-        if len(s) < exp + 1:
-            evaluation.message('NumberForm', 'sigz')
-            # TODO NumberPadding?
-            s = s + '0' * (1 + exp - len(s))
-        # pad left with '0'.
-        if exp < 0:
-            s = '0' * (-exp) + s
-            exp = 0
-
-        # left and right of NumberPoint
-        left, right = s[:exp + 1], s[exp + 1:]
-
-        def split_string(s, start, step):
-            if start > 0:
-                yield s[:start]
-            for i in range(start, len(s), step):
-                yield s[i:i+step]
-
-        # insert NumberSeparator
-        digit_block = options['DigitBlock']
-        if digit_block[0] != 0:
-            left = split_string(left, len(left) % digit_block[0], digit_block[0])
-            left = options['NumberSeparator'][0].join(left)
-        if digit_block[1] != 0:
-            right = split_string(right, 0, digit_block[1])
-            right = options['NumberSeparator'][1].join(right)
-
-        # pad with NumberPadding
-        if f is not None:
-            if len(right) < f:
-                # pad right
-                right = right + (f - len(right)) * options['NumberPadding'][1]
-            elif len(right) > f:
-                # truncate right
-                right = right[:f]
-        left_padding = 0
-        max_sign_len = max(len(options['NumberSigns'][0]), len(options['NumberSigns'][1]))
-        l = len(sign_prefix) + len(left) + len(right) - max_sign_len
-        if l < n:
-            left_padding = n - l
-        elif len(sign_prefix) < max_sign_len:
-            left_padding = max_sign_len - len(sign_prefix)
-        left_padding = left_padding * options['NumberPadding'][0]
-
-        # insert NumberPoint
-        if options['SignPadding']:
-            prefix = sign_prefix + left_padding
-        else:
-            prefix = left_padding + sign_prefix
-
-        s = prefix + left + options['NumberPoint'] + right
-
-        # base
-        base = '10'
-
-        # build number
-        method = options['NumberFormat']
-        return method(String(s), String(base), String(pexp), options)
-
 
 class NumberForm(_NumberForm):
     '''
@@ -2033,7 +2044,7 @@ class NumberForm(_NumberForm):
         if not isinstance(expr, Real):
             # TODO
             return
-        return self.do_makeboxes_real(expr, py_n, None, evaluation, py_options)
+        return make_boxes_real(expr, py_n, None, evaluation, py_options)
 
     def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
         '''MakeBoxes[NumberForm[expr_, {n_, f_}, OptionsPattern[NumberForm]],
@@ -2055,7 +2066,7 @@ class NumberForm(_NumberForm):
         if not isinstance(expr, Real):
             # TODO
             return
-        return self.do_makeboxes_real(expr, py_n, py_f, evaluation, py_options)
+        return make_boxes_real(expr, py_n, py_f, evaluation, py_options)
 
 
 class BaseForm(Builtin):
