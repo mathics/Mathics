@@ -161,6 +161,7 @@ class ProductLog(_MPMathFunction):
         'ProductLog[0]': '0',
         'ProductLog[E]': '1',
         'ProductLog[z_] * E ^ ProductLog[z_]': 'z',
+        'Derivative[1][ProductLog]': 'ProductLog[#] / (# (ProductLog[#] + 1))&',
     }
 
 
