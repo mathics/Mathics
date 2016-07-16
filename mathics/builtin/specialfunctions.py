@@ -357,12 +357,39 @@ class AiryAi(_MPMathFunction):
     sympy_name = 'airyai'
     mpmath_name = 'airyai'
 
+    rules = {
+        'Derivative[1][AiryAi]': 'AiryAiPrime',
+    }
+
+
+class AiryAiPrime(_MPMathFunction):
+    """
+    <dl>
+    <dt>'AiryAiPrime[$x$]'
+        <dd>returns the derivative of the Airy function 'AiryAi[$x$]'.
+    </dl>
+
+    Exact values:
+    >> AiryAiPrime[0]
+     = -3 ^ (2 / 3) / (3 Gamma[1 / 3])
+
+    Numeric evaluation:
+    >> AiryAiPrime[0.5]
+     = -0.224910532664683893
+    """
+
+    sympy_name = 'airyaiprime'
+    mpmath_name = ''
+
+    def get_mpmath_function(self, args):
+        return lambda x: mpmath.airyai(x, derivative=1)
+
 
 class AiryBi(_MPMathFunction):
     """
     <dl>
     <dt>'AiryBi[$x$]'
-      <dd>returns the Airy function Bi($x$).
+      <dd>returns the Airy function of the second kind Bi($x$).
     </dl>
 
     Exact values:
@@ -381,6 +408,34 @@ class AiryBi(_MPMathFunction):
 
     sympy_name = 'airybi'
     mpmath_name = 'airybi'
+
+    rules = {
+        'Derivative[1][AiryBi]': 'AiryBiPrime',
+    }
+
+
+class AiryBiPrime(_MPMathFunction):
+    """
+    <dl>
+    <dt>'AiryBiPrime[$x$]'
+        <dd>returns the derivative of the Airy function of the second
+        kind 'AiryBi[$x$]'.
+    </dl>
+
+    Exact values:
+    >> AiryBiPrime[0]
+     = 3 ^ (1 / 6) / Gamma[1 / 3]
+
+    Numeric evaluation:
+    >> AiryBiPrime[0.5]
+     = 0.544572564140592302
+    """
+
+    sympy_name = 'airybiprime'
+    mpmath_name = ''
+
+    def get_mpmath_function(self, args):
+        return lambda x: mpmath.airybi(x, derivative=1)
 
 # Kelvin Functions
 
