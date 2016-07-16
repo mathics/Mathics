@@ -39,9 +39,6 @@ class _MPMathFunction(SympyFunction):
             return None
         return getattr(mpmath, self.mpmath_name)
 
-    def eval(self, *args):
-        return self.get_mpmath_function(args)(*args)
-
     def apply(self, z, evaluation):
         '%(name)s[z__]'
 
@@ -66,7 +63,7 @@ class _MPMathFunction(SympyFunction):
                 if None in mpmath_args:
                     return
                 try:
-                    result = self.eval(*mpmath_args)
+                    result = self.get_mpmath_function(mpmath_args)(*mpmath_args)
                     result = from_sympy(mpmath2sympy(result, prec))
                 except ValueError as exc:
                     text = str(exc)
