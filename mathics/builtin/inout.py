@@ -1787,11 +1787,14 @@ class _NumberForm(Builtin):
             elif len(right) > f:
                 # truncate right
                 right = right[:f]
-        left_padding = ''
-        l = len(sign_prefix) + len(left) + len(right) - max(len(options['NumberSigns'][0]), len(options['NumberSigns'][0]))
+        left_padding = 0
+        max_sign_len = max(len(options['NumberSigns'][0]), len(options['NumberSigns'][1]))
+        l = len(sign_prefix) + len(left) + len(right) - max_sign_len
         if l < n:
-            # pad left
-            left_padding = (n - l) * options['NumberPadding'][0]
+            left_padding = n - l
+        elif len(sign_prefix) < max_sign_len:
+            left_padding = max_sign_len - len(sign_prefix)
+        left_padding = left_padding * options['NumberPadding'][0]
 
         # insert NumberPoint
         if options['SignPadding']:
@@ -1936,6 +1939,8 @@ class NumberForm(_NumberForm):
      = 1.2345
     #> NumberForm[1.41, 10, NumberPadding -> {"X", "Y"}, NumberSigns -> {"-------------", ""}]
      = XXXXXXXXXXXXXXXXXXXX1.41
+    #> NumberForm[{1., -1., 2.5, -2.5}, {4, 6}, NumberPadding->{"X", "Y"}]
+     = {X1.YYYYYY, -1.YYYYYY, X2.5YYYYY, -2.5YYYYY}
 
     ## NumberSeparator
     #> NumberForm[N[10^ 5 Pi], 15, DigitBlock -> 3, NumberSeparator -> " "]
