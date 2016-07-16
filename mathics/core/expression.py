@@ -143,10 +143,6 @@ class BaseExpression(KeyComparable):
 
         self.options = None
 
-        # For parsing purposes (could in fact be stored only for parsed
-        # expressions):
-        self.parenthesized = False
-
         self.pattern_sequence = False
 
         self.unformatted = self
