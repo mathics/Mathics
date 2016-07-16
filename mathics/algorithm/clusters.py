@@ -8,7 +8,6 @@ from heapq import nsmallest
 from itertools import chain
 import bisect
 import math
-import sympy
 
 # publications used for this file:
 
@@ -306,18 +305,20 @@ class _ConvergingSplitCriterion(SplitCriterion):
         limit = 0.25 * self._granularity
 
         if criterion is None:
-            ratio = limit + 1.  # always stop
-        elif last_criterion is None:
-            ratio = 0.  # first call, depth=0
-        else:
-            ratio = criterion / last_criterion
-        if not last_ratio:
-            last_ratio = limit
+            return False, None
+        elif last_criterion is None:  # first call, depth == 0
+            return True, _ConvergingSplitCriterion(self._granularity, criterion, None)
 
-        if ratio == sympy.nan:  # last_criterion was too small
+        # instead of checking ratio >= limit * last_criterion, we multiply with last_criterion
+        # to handle cases in which last_criterion is nearly zero (and ratio would be infinite).
+
+        if criterion >= limit * last_criterion:
+            return False, None
+        if last_ratio and criterion >= last_ratio * last_criterion:
             return False, None
 
-        return ratio <= min(limit, last_ratio), _ConvergingSplitCriterion(self._granularity, criterion, ratio)
+        ratio = criterion / last_criterion
+        return True, _ConvergingSplitCriterion(self._granularity, criterion, ratio)
 
 
 AutomaticSplitCriterion = _ConvergingSplitCriterion
