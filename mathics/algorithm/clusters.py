@@ -8,6 +8,7 @@ from heapq import nsmallest
 from itertools import chain
 import bisect
 import math
+import sympy
 
 # publications used for this file:
 
@@ -60,6 +61,18 @@ def _components(clusters, n):
         for j in c:
             components[j] = component_index
     return components
+
+
+class InfiniteSilhouette(Exception):
+    pass
+
+
+def _silhouette(a, b):
+    s = (b - a) / max(a, b)
+    if s == sympy.nan:  # b == 0?
+        raise InfiniteSilhouette
+    else:
+        return s
 
 
 class PrecomputedDistances(object):
@@ -242,7 +255,7 @@ class SplitCriterion(object):
 
     def _approximate_global_silhouette_index(self, clusters, distance):
         if len(clusters) <= 1:
-            return None
+            return -1.
         else:
             return sum(self._approximate_mean_silhouette_widths(clusters, distance)) / len(clusters)
 
@@ -250,7 +263,7 @@ class SplitCriterion(object):
         d_in = self._approximate_within_distances(clusters, distance)
         d_out = self._approximate_mins_of_betweens_distances(clusters, distance)
         # the mean is just s(i) here, as we only use medoids for approximation.
-        return ((b - a) / max(a, b) for a, b in zip(d_in, d_out))
+        return (_silhouette(a, b) for a, b in zip(d_in, d_out))
 
     def _approximate_within_distances(self, clusters, distance):
         for c in clusters:
@@ -329,7 +342,10 @@ class SilhouetteSplitCriterion(SplitCriterion):
         self._last_criterion = last_criterion
 
     def should_split(self, siblings, merged, unmerged, distance):
-        criterion = self._approximate_global_silhouette_index(siblings + unmerged, distance)
+        try:
+            criterion = self._approximate_global_silhouette_index(siblings + unmerged, distance)
+        except InfiniteSilhouette:  # zero distance between two clusters
+            return False, None
         if self._last_criterion is None or criterion < self._last_criterion:
             return True, SilhouetteSplitCriterion(criterion)
         else:
@@ -707,7 +723,7 @@ class MergeCriterion(object):
         else:
             i = self._within_cluster_mean_distances(cluster)
             o = self._mins_of_between_cluster_mean_distances(cluster)
-            return sum((b - a) / max(a, b) for a, b in zip(i, o)) / len(cluster)
+            return sum(_silhouette(a, b) for a, b in zip(i, o)) / len(cluster)
 
     def _within_cluster_mean_distances(self, cluster):
         distance = self._fast_distance()
@@ -768,7 +784,10 @@ class SilhouetteMergeCriterion(MergeCriterion):
 
     def try_merge(self, i, j, d):
         self._merge(i, j)
-        index = self._global_silhouette_index()
+        try:
+            index = self._global_silhouette_index()
+        except InfiniteSilhouette:  # two chunks with zero distance
+            return True
         merge = self._last_index is None or index > self._last_index
         self._last_index = index
         return merge
