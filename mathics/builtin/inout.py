@@ -14,6 +14,7 @@ import sympy
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator)
+from mathics.builtin.numeric import machine_precision
 from mathics.builtin.tensors import get_dimensions
 from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
@@ -1701,7 +1702,13 @@ class _NumberForm(Builtin):
 
         sym_expr = expr.to_sympy()
         if sym_expr == sympy.Float(0):
-            raise NotImplementedError()
+            s = '0'
+            sign_prefix = ''
+            p = expr.get_precision()
+            if p == machine_precision:
+                exp = 0
+            else:
+                exp = -dps(p)
         else:
             s = str(sym_expr.n(n))
 
@@ -1731,76 +1738,75 @@ class _NumberForm(Builtin):
                     i += 1
                     exp -= 1
                 s = s[i:]
-
-            # round exponent to ExponentStep
-            rexp = (exp // options['ExponentStep']) * options['ExponentStep']
-
-            method = options['ExponentFunction']
-            pexp = method(Integer(rexp)).get_int_value()
-            if pexp is not None:
-                exp -= pexp
-                pexp = str(pexp)
-            else:
-                pexp = ''
-
             s = s.rstrip('0')
 
-            # pad right with '0'.
-            if len(s) < exp + 1:
-                evaluation.message('NumberForm', 'sigz')
-                # TODO NumberPadding?
-                s = s + '0' * (1 + exp - len(s))
-            # pad left with '0'.
-            if exp < 0:
-                s = '0' * (-exp) + s
-                exp = 0
+        # round exponent to ExponentStep
+        rexp = (exp // options['ExponentStep']) * options['ExponentStep']
 
-            # left and right of NumberPoint
-            left, right = s[:exp + 1], s[exp + 1:]
+        method = options['ExponentFunction']
+        pexp = method(Integer(rexp)).get_int_value()
+        if pexp is not None:
+            exp -= pexp
+            pexp = str(pexp)
+        else:
+            pexp = ''
 
-            def split_string(s, start, step):
-                if start > 0:
-                    yield s[:start]
-                for i in range(start, len(s), step):
-                    yield s[i:i+step]
+        # pad right with '0'.
+        if len(s) < exp + 1:
+            evaluation.message('NumberForm', 'sigz')
+            # TODO NumberPadding?
+            s = s + '0' * (1 + exp - len(s))
+        # pad left with '0'.
+        if exp < 0:
+            s = '0' * (-exp) + s
+            exp = 0
 
-            # insert NumberSeparator
-            digit_block = options['DigitBlock']
-            if digit_block[0] != 0:
-                left = split_string(left, len(left) % digit_block[0], digit_block[0])
-                left = options['NumberSeparator'][0].join(left)
-            if digit_block[1] != 0:
-                right = split_string(right, 0, digit_block[1])
-                right = options['NumberSeparator'][1].join(right)
+        # left and right of NumberPoint
+        left, right = s[:exp + 1], s[exp + 1:]
 
-            # pad with NumberPadding
-            if f is not None:
-                if len(right) < f:
-                    # pad right
-                    right = right + (f - len(right)) * options['NumberPadding'][1]
-                elif len(right) > f:
-                    # truncate right
-                    right = right[:f]
-            left_padding = ''
-            l = len(sign_prefix) + len(left) + len(right) - max(len(options['NumberSigns'][0]), len(options['NumberSigns'][0]))
-            if l < n:
-                # pad left
-                left_padding = (n - l) * options['NumberPadding'][0]
+        def split_string(s, start, step):
+            if start > 0:
+                yield s[:start]
+            for i in range(start, len(s), step):
+                yield s[i:i+step]
 
-            # insert NumberPoint
-            if options['SignPadding']:
-                prefix = sign_prefix + left_padding
-            else:
-                prefix = left_padding + sign_prefix
+        # insert NumberSeparator
+        digit_block = options['DigitBlock']
+        if digit_block[0] != 0:
+            left = split_string(left, len(left) % digit_block[0], digit_block[0])
+            left = options['NumberSeparator'][0].join(left)
+        if digit_block[1] != 0:
+            right = split_string(right, 0, digit_block[1])
+            right = options['NumberSeparator'][1].join(right)
 
-            s = prefix + left + options['NumberPoint'] + right
+        # pad with NumberPadding
+        if f is not None:
+            if len(right) < f:
+                # pad right
+                right = right + (f - len(right)) * options['NumberPadding'][1]
+            elif len(right) > f:
+                # truncate right
+                right = right[:f]
+        left_padding = ''
+        l = len(sign_prefix) + len(left) + len(right) - max(len(options['NumberSigns'][0]), len(options['NumberSigns'][0]))
+        if l < n:
+            # pad left
+            left_padding = (n - l) * options['NumberPadding'][0]
 
-            # base
-            base = '10'
+        # insert NumberPoint
+        if options['SignPadding']:
+            prefix = sign_prefix + left_padding
+        else:
+            prefix = left_padding + sign_prefix
 
-            # build number
-            method = options['NumberFormat']
-            return method(String(s), String(base), String(pexp), options)
+        s = prefix + left + options['NumberPoint'] + right
+
+        # base
+        base = '10'
+
+        # build number
+        method = options['NumberFormat']
+        return method(String(s), String(base), String(pexp), options)
 
 
 class NumberForm(_NumberForm):
@@ -1817,6 +1823,14 @@ class NumberForm(_NumberForm):
 
     >> NumberForm[N[Pi], {10, 5}]
      = 3.14159
+
+    ## Zero case
+    #> z0 = 0.0;
+    #> z1 = 0.0000000000000000000000000000;
+    #> NumberForm[{z0, z1}, 10]
+     = {0., 0.×10^-28}
+    #> NumberForm[{z0, z1}, {10, 4}]
+     = {0.0000, 0.0000×10^-28}
 
     ## Check arguments
     #> NumberForm[1.5, -4]
@@ -1994,7 +2008,7 @@ class NumberForm(_NumberForm):
     def apply_list_nf(self, expr, n, f, evaluation, options):
         'NumberForm[expr_?ListQ, {n_, f_}, OptionsPattern[NumberForm]]'
         options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
-        return Expression('List', *[Expression('NumberForm', leaf, n, f, *options) for leaf in expr.leaves])
+        return Expression('List', *[Expression('NumberForm', leaf, Expression('List', n, f), *options) for leaf in expr.leaves])
 
     def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
         '''MakeBoxes[NumberForm[expr_, n_, OptionsPattern[NumberForm]],
