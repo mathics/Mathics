@@ -49,6 +49,10 @@ class Erf(_MPMathMultiFunction):
         2: 'erf2',
     }
 
+    rules = {
+        'Derivative[1][Erf]': '2 Exp[-#^2] / Sqrt[Pi] &',
+    }
+
 
 class InverseErf(_MPMathFunction):
     """
@@ -69,6 +73,10 @@ class InverseErf(_MPMathFunction):
 
     sympy_name = 'erfinv'
     mpmath_name = 'erfinv'
+
+    rules = {
+        'Derivative[1][InverseErf]': 'Sqrt[Pi] Exp[InverseErf[#]^2] / 2 &',
+    }
 
     def apply(self, z, evaluation):
         '%(name)s[z__]'
@@ -101,6 +109,10 @@ class Erfc(_MPMathFunction):
 
     mpmath_name = 'erfc'
 
+    rules = {
+        'Derivative[1][Erfc]': '-2 Exp[-#^2] / Sqrt[Pi] &',
+    }
+
 
 class InverseErfc(_MPMathFunction):
     """
@@ -114,6 +126,10 @@ class InverseErfc(_MPMathFunction):
     """
 
     sympy_name = 'erfcinv'
+
+    rules = {
+        'Derivative[1][InverseErfc]': '-Sqrt[Pi] Exp[InverseErfc[#]^2] / 2 &',
+    }
 
 
 class ProductLog(_MPMathFunction):
