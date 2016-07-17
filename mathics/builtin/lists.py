@@ -25,7 +25,6 @@ from mathics.builtin.algebra import cancel
 from mathics.algorithm.introselect import introselect
 from mathics.algorithm.clusters import optimize, agglomerate, PrecomputedDistances, LazyDistances
 from mathics.algorithm.clusters import AutomaticSplitCriterion, AutomaticMergeCriterion
-from mathics.algorithm.clusters import SilhouetteSplitCriterion, SilhouetteMergeCriterion
 from mathics.builtin.options import options_to_rules
 
 import sympy
@@ -3680,30 +3679,21 @@ class _Cluster(Builtin):
         'Method': 'Optimize',
         'DistanceFunction': 'Automatic',
         'RandomSeed': 'Automatic',
-
-        # options specific to Mathics
-        'Granularity': 'Automatic',
     }
 
     messages = {
         'amtd': '`1` failed to pick a suitable distance function for `2`.',
         'bdmtd': 'Method in `` must be either "Optimize" or "Agglomerate".',
-        'intpm': 'Positive integer or k-detection algorithm expected at position 2 in ``.',
+        'intpm': 'Positive integer expected at position 2 in ``.',
         'list': 'Expected a list or a rule with equally sized lists at position 1 in ``.',
         'nclst': 'Cannot find more clusters than there are elements: `1` is larger than `2`.',
         'xnum': 'The distance function returned ``, which is not a non-negative real value.',
         'rseed': 'The random seed specified through `` must be an integer or Automatic.',
-
-        # specific to Mathics
-        'detk': '`1` is not a valid k-detection algorithm.',
-        'gran': 'Granularity expects a numeric value, but `1` is not.',
     }
 
     _criteria = {
-        'Automatic/Optimize': AutomaticSplitCriterion,
-        'Automatic/Agglomerate': AutomaticMergeCriterion,
-        'Silhouette/Optimize': SilhouetteSplitCriterion,
-        'Silhouette/Agglomerate': SilhouetteMergeCriterion,
+        'Optimize': AutomaticSplitCriterion,
+        'Agglomerate': AutomaticMergeCriterion,
     }
 
     def _cluster(self, p, k, mode, evaluation, options, expr):
@@ -3725,20 +3715,7 @@ class _Cluster(Builtin):
         if dist_p is None or len(dist_p) != len(repr_p):
             evaluation.message(self.get_name(), 'list', expr)
 
-        if isinstance(k, String):  # automatic detection of k. choose a suitable method here.
-            detect_k_string = k.get_string_value()
-            constructor = self._criteria.get('%s/%s' % (detect_k_string, method_string))
-            if constructor is None:
-                evaluation.message(self.get_name(), 'detk', k)
-                return
-            if detect_k_string == 'Automatic':
-                granularity = self._granularity(evaluation, options)
-                if granularity is None:
-                    return
-                py_k = (constructor, {'granularity': granularity})
-            else:
-                py_k = (constructor, {})
-        else:  # the number of clusters k is specified as an integer.
+        if k is not None:  # the number of clusters k is specified as an integer.
             if not isinstance(k, Integer):
                 evaluation.message(self.get_name(), 'intpm', expr)
                 return
@@ -3753,6 +3730,9 @@ class _Cluster(Builtin):
                 return Expression('List', *repr_p)
             elif py_k == len(dist_p):
                 return Expression('List', [Expression('List', q) for q in repr_p])
+        else:  # automatic detection of k. choose a suitable method here.
+            constructor = self._criteria.get(method_string)
+            py_k = (constructor, {})
 
         seed_string, seed = self.get_option_string(options, 'RandomSeed', evaluation)
         if seed_string == 'Automatic':
@@ -3793,28 +3773,15 @@ class _Cluster(Builtin):
             raise ValueError('illegal mode %s' % mode)
 
     def _agglomerate(self, mode, repr_p, dist_p, py_k, df, evaluation):
-        def mma_reverse(l):  # reverse stuff for MMA compatibility sake
-            return list(reversed(l))
-
         if mode == 'clusters':
-            clusters = agglomerate(mma_reverse(repr_p), py_k, _PrecomputedDistances(
-                df, mma_reverse(dist_p), evaluation), mode)
-            clusters = mma_reverse([mma_reverse(c) for c in clusters])
+            clusters = agglomerate(repr_p, py_k, _PrecomputedDistances(
+                df, dist_p, evaluation), mode)
         elif mode == 'components':
             clusters = agglomerate(repr_p, py_k, _PrecomputedDistances(
                 df, dist_p, evaluation), mode)
 
         return clusters
-
-    def _granularity(self, evaluation, options):
-        granularity_string, granularity = self.get_option_string(options, 'Granularity', evaluation)
-        if granularity_string == 'Automatic':
-            granularity = from_python(1.0)
-        if not granularity.is_numeric():
-            evaluation.message(self.get_name(), 'gran', granularity)
-            return None
-        return granularity.numerify(evaluation).to_python()
-
+    
 
 class FindClusters(_Cluster):
     """
@@ -3841,20 +3808,14 @@ class FindClusters(_Cluster):
     >> FindClusters[{1, 2, 10, 11, 20, 21}, 2]
      = {{1, 2, 10, 11}, {20, 21}}
 
-    >> FindClusters[{1, 2, 3, 1, 2, 10, 100}]
-     = {{1, 2, 3, 1, 2}, {10}, {100}}
-
-    >> FindClusters[{1, 2, 3, 1, 2, 10, 100}, Method -> "Agglomerate"]
-     = {{1, 2, 3, 1, 2, 10}, {100}}
-
     >> FindClusters[{1 -> a, 2 -> b, 10 -> c}]
      = {{a, b}, {c}}
 
     >> FindClusters[{1, 2, 5} -> {a, b, c}]
      = {{a, b}, {c}}
 
-    >> FindClusters[{1, 2, 3, 10, 16, 18}, Method -> "Agglomerate"]
-     = {{1, 2, 3}, {10, 16, 18}}
+    >> FindClusters[{1, 2, 3, 1, 2, 10, 100}, Method -> "Agglomerate"]
+     = {{1, 2, 3, 1, 2, 10}, {100}}
 
     >> FindClusters[{1, 2, 3, 10, 17, 18}, Method -> "Agglomerate"]
      = {{1, 2, 3}, {10}, {17, 18}}
@@ -3878,16 +3839,11 @@ class FindClusters(_Cluster):
 
     def apply(self, p, evaluation, options):
         'FindClusters[p_, OptionsPattern[%(name)s]]'
-        return self._cluster(p, String("Automatic"), 'clusters', evaluation, options,
+        return self._cluster(p, None, 'clusters', evaluation, options,
                              Expression('FindClusters', p, *options_to_rules(options)))
 
     def apply_manual_k(self, p, k, evaluation, options):
         'FindClusters[p_, k_Integer, OptionsPattern[%(name)s]]'
-        return self._cluster(p, k, 'clusters', evaluation, options,
-                             Expression('FindClusters', p, k, *options_to_rules(options)))
-
-    def apply_auto_k(self, p, k, evaluation, options):
-        'FindClusters[p_, k_String, OptionsPattern[%(name)s]]'
         return self._cluster(p, k, 'clusters', evaluation, options,
                              Expression('FindClusters', p, k, *options_to_rules(options)))
 
@@ -3908,23 +3864,15 @@ class ClusteringComponents(_Cluster):
     For more detailed documentation regarding options and behavior, see FindClusters[].
 
     >> ClusteringComponents[{1, 2, 3, 1, 2, 10, 100}]
-     = {1, 1, 1, 1, 1, 2, 3}
-
-    >> ClusteringComponents[{1, 2, 3, 1, 2, 10, 100}, Method -> "Agglomerate"]
      = {1, 1, 1, 1, 1, 1, 2}
     """
 
     def apply(self, p, evaluation, options):
         'ClusteringComponents[p_, OptionsPattern[%(name)s]]'
-        return self._cluster(p, String("Automatic"), 'components', evaluation, options,
+        return self._cluster(p, None, 'components', evaluation, options,
                              Expression('ClusteringComponents', p, *options_to_rules(options)))
 
     def apply_manual_k(self, p, k, evaluation, options):
-        'ClusteringComponents[p_, k_String, OptionsPattern[%(name)s]]'
-        return self._cluster(p, k, 'components', evaluation, options,
-                             Expression('ClusteringComponents', p, k, *options_to_rules(options)))
-
-    def apply_auto_k(self, p, k, evaluation, options):
-        'ClusteringComponents[p_, k__String, OptionsPattern[%(name)s]]'
+        'ClusteringComponents[p_, k_Integer, OptionsPattern[%(name)s]]'
         return self._cluster(p, k, 'components', evaluation, options,
                              Expression('ClusteringComponents', p, k, *options_to_rules(options)))
