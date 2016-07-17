@@ -8,6 +8,7 @@ from __future__ import absolute_import
 import time
 from argparse import ArgumentParser
 import urllib.request
+import statistics
 
 import mathics
 from mathics.core.parser import parse, MultiLineFeeder, SingleLineFeeder
@@ -17,9 +18,9 @@ from mathics.core.evaluation import Evaluation
 from six.moves import map
 from six.moves import range
 
-
 # Default number of times to repeat each benchmark. None -> Automatic
 TESTS_PER_BENCHMARK = None
+
 
 # Mathics expressions to benchmark
 BENCHMARKS = {
@@ -98,18 +99,21 @@ def timeit(func, repeats=None):
         for i in range(repeats):
             times.append(time.clock())
             func()
-            if any(i == j for j in (5, 10, 100, 1000, 5000)):
+            if (i + 1) in (5, 10, 100, 1000, 5000):
                 if times[-1] > times[0] + 1:
-                    repeats = i
+                    repeats = i + 1
                     break
 
     times.append(time.clock())
 
-    average_time = format_time_units((times[-1] - times[0]) / repeats)
-    best_time = format_time_units(
-        min([times[i + 1] - times[i] for i in range(repeats)]))
-    print("    {0:5n} loops, avg: {1} per loop, best: {2} per loop".format(
-        repeats, average_time, best_time))
+    times = [times[i+1] - times[i] for i in range(repeats)]
+
+    average_time = format_time_units(statistics.mean(times))
+    best_time = format_time_units(min(times))
+    median_time = format_time_units(statistics.median(times))
+
+    print("    {0:5n} loops, avg: {1}, best: {2}, median: {3} per loop".format(
+        repeats, average_time, best_time, median_time))
 
 
 def truncate_line(string):
