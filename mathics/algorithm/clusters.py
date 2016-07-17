@@ -8,7 +8,9 @@ from heapq import nsmallest
 from itertools import chain
 import bisect
 import math
+
 import sympy
+from mpmath import fsum
 
 # publications used for this file:
 
@@ -25,16 +27,14 @@ import sympy
 # https://cran.r-project.org/web/packages/clusterCrit/vignettes/clusterCrit.pdf
 # [Greutert2003] Andreas Greutert. Methoden zur Schätzung der Clusteranzahl. Ausgabe: 29. Oktober 2003.
 # Diplomarbeit. ETH Zürich.
+# [Frey2007] Brendan J. Frey, Delbert Dueck, "Clustering by Passing Messages Between Data Points",
+# Science 16 Feb 2007: Vol. 315, Issue 5814, pp. 972-976
 
 # for agglomerative clustering, we use [Kurita1991].
 
 # for hierarchical clustering, we use ClaraNS (see [Ng1994]), but we start local searches not with a random sample,
 # but with a seed computed via AGORAS (see [Rangel2016]). for clustering without knowing the number of clusters k,
-# we use the approach described in [Hamerly2003]. clustering quality is measures using McClain-Rao's measure (see
-# [Desgraupes2013]).
-
-# we modify ClaraNS by keeping track of the randomly picked swaps and not trying the same swap twice if no
-# improvement was made in the meantime.
+# we use the approach described in [Hamerly2003]. further improvements might be gained through [Frey2007].
 
 
 def _index(i, j):  # i > j, returns j + sum(1, 2, ..., i - 1)
@@ -63,14 +63,29 @@ def _components(clusters, n):
     return components
 
 
+def _ratio_bigger_than(a, b):
+    # check if (a1 / a2) > (b1 / b2)
+    a1, a2 = a
+    b1, b2 = b
+    return a1 * b2 > b1 * a2
+
+
 class InfiniteSilhouette(Exception):
+    # thrown when two clusters have distance 0
     pass
 
 
 def _silhouette(a, b):
+    if a is None:
+        # a is infinite, i.e. only one element
+        # in the cluster and thus no distances?
+        return 0.
+
+    # for the formula, see [Desgraupes2013].
     s = (b - a) / max(a, b)
-    if s == sympy.nan:  # b == 0?
-        raise InfiniteSilhouette
+
+    if s == sympy.nan:  # max(a, b) == 0?
+        raise InfiniteSilhouette()
     else:
         return s
 
@@ -209,55 +224,42 @@ def _agoras(n, k, distance):  # see [Rangel2016]
 
 
 class SplitCriterion(object):
+    # note that as this runs as part of an O(n) algorithm, this
+    # should not introduce an O(n^2) algorithm. see [Desgraupes2013]
+    # and [Greutert2003] for possible algorithms,
+
     def should_split(self, siblings, merged, unmerged, distance):
         raise NotImplementedError()
 
-    def _approximate_mcclain_rao(self, clusters, distance):
-        # gives a measure of how good the current clustering is, and if it should be split further or left as is.
-        # what we actually calculate here is a bit like a simplified, PAM suitable version of the McClain-Rao index;
-        # it would not make sense to use a criterion needing O(n^2) computations, if the actual clustering is O(n).
-        # see [Desgraupes2013] for similar measures that inspired this one and an overview of other measures. For
-        # an even more general overview, see [Greutert2003].
 
-        w = self._approximate_within_distance(clusters, distance)
-        if w is None:
-            return None
+class ApproximateSilhouetteSplitCriterion(SplitCriterion):
+    # a fast, approximate version of the Silhouette index (see e.g.
+    # [Desgraupes2013], that operates on medoids instead of points,
+    # thereby reducing its runtime to O(nk) as opposed to O(n^2).
 
-        b = self._approximate_between_distance(clusters, distance)
-        return w / b
+    def __init__(self, last_criterion=None):
+        self._last_criterion = last_criterion
 
-    def _approximate_within_distance(self, clusters, distance):
-        s_w = 0
-        n_w = 0
+    def should_split(self, siblings, merged, unmerged, distance):
+        try:
+            criterion = self._approximate_global_silhouette_index(
+                siblings + unmerged, distance)
+        except InfiniteSilhouette:
+            # zero distance between two clusters, do not accept split.
+            return False, None
 
-        # s_w is the sum of within-cluster (point to its medoid) distances.
-        for c in clusters:
-            s, n = c.within(distance)
-            s_w += s
-            n_w += n
-
-        if n_w <= len(clusters):  # only single-medoid clusters remain.
-            return None
-
-        return s_w / n_w
-
-    def _approximate_between_distance(self, clusters, distance):
-        # s_b is the sum of between-cluster (medoid to medoid) distances.
-        s_b = 0
-        n_b = len(clusters)
-
-        for z, c in enumerate(clusters):
-            for d in clusters[:z]:
-                s_b += distance(c.medoid, d.medoid)
-                n_b += 1
-
-        return s_b / n_b
+        # if the index is bigger than before, then more clusters are
+        # in the right places than before, and we accept the split.
+        if self._last_criterion is None or criterion > self._last_criterion:
+            return True, ApproximateSilhouetteSplitCriterion(criterion)
+        else:
+            return False, None
 
     def _approximate_global_silhouette_index(self, clusters, distance):
         if len(clusters) <= 1:
             return -1.
         else:
-            return sum(self._approximate_mean_silhouette_widths(clusters, distance)) / len(clusters)
+            return fsum(self._approximate_mean_silhouette_widths(clusters, distance)) / len(clusters)
 
     def _approximate_mean_silhouette_widths(self, clusters, distance):
         d_in = self._approximate_within_distances(clusters, distance)
@@ -268,7 +270,10 @@ class SplitCriterion(object):
     def _approximate_within_distances(self, clusters, distance):
         for c in clusters:
             s, n = c.within(distance)
-            yield s / n
+            if n == 1:
+                yield None
+            else:
+                yield s / (n - 1)
 
     def _approximate_mins_of_betweens_distances(self, clusters, distance):
         def medoids():
@@ -291,65 +296,7 @@ class SplitCriterion(object):
         for i, a in medoids():
             yield _robust_min((distance(a, b) for b in other(i)))
 
-
-class _ConvergingSplitCriterion(SplitCriterion):
-    def __init__(self, granularity, last_criterion=None, last_ratio=None):
-        self._granularity = granularity
-        self._last_criterion = last_criterion
-        self._last_ratio = last_ratio
-
-    def should_split(self, siblings, merged, unmerged, distance):
-        # the following might seem convoluted, but it turns out to be a good
-        # measure. it checks if the solution converges by checking that the
-        # rate of improvement gets larger and larger as we split smaller and
-        # smaller areas. "ratio" measures how much "within-to-between-ness"
-        # improvement we got with a particular split, and the smaller this
-        # value gets, the larger the improvement for "within-to-between-ness"
-        # is. if the improvement is larger or equal from the improvement we
-        # got from the previous split, it's a sign for converging, and we
-        # accept it. if the improvement is smaller (i.e. "ratio" is larger")
-        # than before, we assume the split is bad. when the improvement falls
-        # below a certain absolute value "limit", we also stop.
-
-        criterion = self._approximate_mcclain_rao(siblings + unmerged, distance)
-        last_criterion = self._last_criterion
-        last_ratio = self._last_ratio
-
-        limit = 0.25 * self._granularity
-
-        if criterion is None:
-            return False, None
-        elif last_criterion is None:  # first call, depth == 0
-            return True, _ConvergingSplitCriterion(self._granularity, criterion, None)
-
-        # instead of checking ratio >= limit * last_criterion, we multiply with last_criterion
-        # to handle cases in which last_criterion is nearly zero (and ratio would be infinite).
-
-        if criterion >= limit * last_criterion:
-            return False, None
-        if last_ratio and criterion >= last_ratio * last_criterion:
-            return False, None
-
-        ratio = criterion / last_criterion
-        return True, _ConvergingSplitCriterion(self._granularity, criterion, ratio)
-
-
-AutomaticSplitCriterion = _ConvergingSplitCriterion
-
-
-class SilhouetteSplitCriterion(SplitCriterion):
-    def __init__(self, last_criterion=None):
-        self._last_criterion = last_criterion
-
-    def should_split(self, siblings, merged, unmerged, distance):
-        try:
-            criterion = self._approximate_global_silhouette_index(siblings + unmerged, distance)
-        except InfiniteSilhouette:  # zero distance between two clusters
-            return False, None
-        if self._last_criterion is None or criterion < self._last_criterion:
-            return True, SilhouetteSplitCriterion(criterion)
-        else:
-            return False, None
+AutomaticSplitCriterion = ApproximateSilhouetteSplitCriterion
 
 
 class _Cluster:
@@ -363,17 +310,11 @@ class _Cluster:
 
     def within(self, distance):
         if self._within is None:
-            s_w = 0
-            n_w = 0
-
             # s_w is the sum of within-cluster (point to its medoid) distances.
             m = self.medoid
-            for i in self.members:
-                if i != m:
-                    s_w += distance(i, m)
-                n_w += 1
-
-                self._within = (s_w, n_w)
+            s_w = fsum(distance(i, m) for i in self.members if i != m)
+            n_w = len(self.members)
+            self._within = (s_w, n_w)
 
         return self._within
 
@@ -391,7 +332,7 @@ class _Medoids:
         self._selected.sort()
 
         self._clusters = [None] * n
-        self._cost = sum(self._update_clusters(self._unselected))
+        self._cost = fsum(self._update_clusters(self._unselected))
         self._debug = clusterer.debug
 
     def clusters(self):
@@ -425,6 +366,9 @@ class _Medoids:
         self._random_swap = iter(_shuffled_tuples(self._k, self._n - self._k))
 
     def _next_random_swap(self):
+        # we modify ClaraNS by keeping track of the randomly picked swaps and not trying the same swap twice if no
+        # improvement was made in the meantime. this is where the next not-yet-picked tuple is produced.
+
         n_i, h = next(self._random_swap)
 
         for j in self._selected:
@@ -456,44 +400,51 @@ class _Medoids:
             self._debug('all swaps tried')
             return False
 
+        self._debug('eval swap', i, h)
+
         # try to swap medoid i with non-medoid h
         clusters = self._clusters
         distance = self._distance
-
-        # initialize t
-        t = min(distance(i, j) for j in chain(self._selected, [h]) if j != i)  # i attaches to a medoid
-        t -= distance(h, clusters[h][0])  # h detaches from its medoid
-        self._debug('eval swap t:%f' % t, i, h)
 
         # we differentiate fast_updates and slow_updates. fast_updates
         # need to update only the second-nearest medoid. slow_updates
         # need to update the nearest and second-nearest medoid.
         fast_updates = []
 
-        for j in self._unselected:
-            if j == h:
-                continue
-            # see [Ng1994] for a description of the following calculations
-            n1, n2 = clusters[j]  # nearest two medoids
-            dh = distance(j, h)  # d(Oj, Oh)
-            if n1 == i:  # is j in cluster i?
-                d2 = distance(j, n2)  # d(Oj, Oj,2)
-                if dh >= d2:  # case (1); j does not go to h
-                    t += d2 - distance(j, i)
-                    fast_updates.append((j, n2))
-                else:  # case (2); j goes to h
-                    t += dh - distance(j, i)
-                    fast_updates.append((j, h))
-            else:
-                k = clusters[j][0]
-                d2 = distance(j, k)
-                if dh >= d2:  # case (3)
-                    # j stays in current cluster. second nearest medoid
-                    # to j might change with the introduction of h though.
-                    fast_updates.append((j, k))
-                else:  # case (4)
-                    t += dh - d2
-                    fast_updates.append((j, h))
+        def calculate_t():
+            # i attaches to a medoid
+            yield min(distance(i, j) for j in chain(self._selected, [h]) if j != i)
+
+            # h detaches from its medoid
+            yield -distance(h, clusters[h][0])
+
+            # look at all other points
+            for j in self._unselected:
+                if j == h:
+                    continue
+                # see [Ng1994] for a description of the following calculations
+                n1, n2 = clusters[j]  # nearest two medoids
+                dh = distance(j, h)  # d(Oj, Oh)
+                if n1 == i:  # is j in cluster i?
+                    d2 = distance(j, n2)  # d(Oj, Oj,2)
+                    if dh >= d2:  # case (1); j does not go to h
+                        yield d2 - distance(j, i)
+                        fast_updates.append((j, n2))
+                    else:  # case (2); j goes to h
+                        yield dh - distance(j, i)
+                        fast_updates.append((j, h))
+                else:
+                    k = clusters[j][0]
+                    d2 = distance(j, k)
+                    if dh >= d2:  # case (3)
+                        # j stays in current cluster. second nearest medoid
+                        # to j might change with the introduction of h though.
+                        fast_updates.append((j, k))
+                    else:  # case (4)
+                        yield dh - d2
+                        fast_updates.append((j, h))
+
+        t = fsum(calculate_t())
 
         if t < 0:  # swap is an improvement?
             self._debug('ACCEPT swap t:%f' % t, i, h)
@@ -599,14 +550,13 @@ class _Clusterer:
         clusters = self.with_k(2)
         clusters0 = [c.translate(i_to_i0) for c in clusters]
 
-        if self.debug_output:
-            print([[self._p0[i] for i in c.members]
-                   for c in self._siblings + clusters0])
-
         merged = _Cluster(self._medoid0, list(chain(*[c.members for c in clusters0])))
 
         split, new_criterion = criterion.should_split(
             self._siblings, merged, clusters0, self._d0)
+
+        if self.debug_output:
+            print([[self._p0[i] for i in c.members] for c in self._siblings + clusters0], split, new_criterion)
 
         if not split:
             return [[i_to_i0[i] for i in range(n)]]
@@ -659,19 +609,10 @@ def optimize(p, k, distances, mode='clusters', seed=12345, granularity=1.):
 class MergeCriterion(object):
     def __init__(self, distances, n):
         self.distances = distances
-        self.groups = list(map(lambda i: [i], range(n)))
-        self.b = sum(self.distances)
-        self.w = 0
-        self.k = self.n = n
+        self.n = n
 
-        self.n_w = 0  # (i, i) distances
-        self.n_b = len(distances)
-
-    def try_merge(self, i, j, d):
+    def save_and_merge(self, clusters, i, j, d_min):
         raise NotImplementedError()
-
-    def save(self, clusters):
-        pass
 
     def best(self, clusters):
         return clusters
@@ -680,117 +621,54 @@ class MergeCriterion(object):
         distances = self.distances
         return lambda x, y: distances[_index(max(x, y), min(x, y))]
 
-    def _merge(self, i, j):
-        groups = self.groups
-        distance = self._fast_distance()
 
-        d = 0
-        for x in groups[i]:
-            for y in groups[j]:
-                d += distance(x, y)
+class _DunnMergeCriterion(MergeCriterion):
+    # implements a Dunn index, as for example described in [Desgraupes2013].
 
-        n = len(groups[i]) * len(groups[j])
-        self.n_w += n
-        self.n_b -= n
+    def __init__(self, distances, n, merge_limit=None):
+        # merge_limit: do not merge points above this distance; if the merged
+        # distance falls above this limit, the clustering is stopped and the
+        # best clustering so far is returned.
 
-        self.b -= d
-        self.w += d
+        super(_DunnMergeCriterion, self).__init__(distances, n)
 
-        self.groups[i].extend(self.groups[j])
-        self.groups[j] = None
-        self.k -= 1  # number of remaining clusters
+        self._diameters = [0.] * n
+        self._max_diameter = 0.
 
-    def _groups(self):
-        for g in self.groups:
-            if g:
-                yield g
+        self._best_dunn = None
+        self._best_partition = None
 
-    def _average_within_distance(self):
-        return self.w / self.n_w
-
-    def _average_between_distance(self):
-        return self.b / self.n_b
-
-    def _global_silhouette_index(self):
-        if self.k == 1:
-            return -1.
-        else:
-            return sum(self._cluster_mean_silhouette(c) for c in self._groups()) / self.k
-
-    def _cluster_mean_silhouette(self, cluster):
-        if len(cluster) <= 1:
-            return -1.
-        else:
-            i = self._within_cluster_mean_distances(cluster)
-            o = self._mins_of_between_cluster_mean_distances(cluster)
-            return sum(_silhouette(a, b) for a, b in zip(i, o)) / len(cluster)
-
-    def _within_cluster_mean_distances(self, cluster):
-        distance = self._fast_distance()
-
-        for u in cluster:
-            s = sum(distance(u, v) for v in cluster if u != v)
-            yield s / (len(cluster) - 1)
-
-    def _mins_of_between_cluster_mean_distances(self, cluster):
-        distance = self._fast_distance()
-
-        def mean_distances(u):
-            for other in self._groups():
-                if other is not cluster:
-                    yield sum(distance(u, v) for v in other) / len(other)
-
-        for u in cluster:
-            yield _robust_min(mean_distances(u))
-
-
-class _CloserThanAverageMergeCriterion(MergeCriterion):
-    # merge_limit: do not merge points above this distance; if the merged
-    # distance falls above this limit, the clustering is stopped and the
-    # best clustering so far is returned.
-
-    def __init__(self, distances, n, granularity=1., merge_limit=None):
-        super(_CloserThanAverageMergeCriterion, self).__init__(distances, n)
-        self._limit = 0.25 * granularity
         self._merge_limit = merge_limit
 
-    def try_merge(self, i, j, d):
-        if self._merge_limit is not None and d > self._merge_limit:
+    def best(self, clusters):
+        return self._best_partition
+
+    def save_and_merge(self, clusters, i, j, d_min):
+        # save the current partition if it's better than before.
+
+        dunn = (d_min, self._max_diameter)
+        if self._best_dunn is None or _ratio_bigger_than(dunn, self._best_dunn):
+            self._best_partition = [c[:] for c in clusters if c]
+            if self._max_diameter > 0.:
+                self._best_dunn = dunn
+
+        # now perform the merge.
+
+        if self._merge_limit is not None and d_min > self._merge_limit:
             return False
 
-        if self.k > 2:
-            # the distance between the merged clusters gets compared to the
-            # average of all existing cluster distances.
+        distance = self._fast_distance()
+        new_diameter = max(distance(x, y) for x in clusters[i] for y in clusters[j])
 
-            self._merge(i, j)
-            cluster_distance = self._average_between_distance()
-        else:
-            # if there is only one cluster left after the merge, we cannot
-            # calculate the between distance as above. we go for "within"
-            # instead, which is the only measure of global distances left.
+        diameters = self._diameters
+        diameters[i] = max(diameters[i], diameters[j], new_diameter)
+        diameters[j] = None
+        self._max_diameter = max(self._max_diameter, diameters[i])
 
-            cluster_distance = self._average_within_distance()
-            self._merge(i, j)
-
-        return d / cluster_distance <= self._limit
-
-AutomaticMergeCriterion = _CloserThanAverageMergeCriterion
+        return True
 
 
-class SilhouetteMergeCriterion(MergeCriterion):
-    def __init__(self, distances, n):
-        super(SilhouetteMergeCriterion, self).__init__(distances, n)
-        self._last_index = self._global_silhouette_index()
-
-    def try_merge(self, i, j, d):
-        self._merge(i, j)
-        try:
-            index = self._global_silhouette_index()
-        except InfiniteSilhouette:  # two chunks with zero distance
-            return True
-        merge = self._last_index is None or index > self._last_index
-        self._last_index = index
-        return merge
+AutomaticMergeCriterion = _DunnMergeCriterion
 
 
 def agglomerate(points, k, distances, mode='clusters'):
@@ -812,6 +690,7 @@ def agglomerate(points, k, distances, mode='clusters'):
     # as long as i != j.
 
     # parameters:
+
     # points: list of points to cluster
     # k: number of clusters to form or None for automatic detection
     # distances: an instance of PrecomputedDistances
@@ -951,7 +830,7 @@ def agglomerate(points, k, distances, mode='clusters'):
             if i > j:
                 i, j = j, i  # merge later chunk to earlier one to preserve order
 
-            if criterion and not criterion.try_merge(i, j, d):
+            if criterion and not criterion.save_and_merge(clusters, i, j, d):
                 break
 
             heap = remove(where[p], heap, where)  # remove distance (i, j)
@@ -974,16 +853,17 @@ def agglomerate(points, k, distances, mode='clusters'):
 
             n_clusters -= 1
 
-            if criterion:
-                criterion.save(result)
-
         if criterion:
             result = criterion.best(result)
 
+        # sort, so clusters appear in order of their first element appearance
+        # in the original list.
+        result = sorted([sorted(c) for c in result if c], key=lambda c: c[0])
+
         if mode == 'components':
-            return _components([c for c in result if c], n)
+            return _components(result, n)
         elif mode == 'clusters':
-            return [[points[i] for i in sorted(c)] for c in result if c]
+            return [[points[i] for i in c] for c in result]
         else:
             raise ValueError('illegal mode %s' % mode)
 
