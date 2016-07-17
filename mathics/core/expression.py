@@ -410,7 +410,6 @@ class BaseExpression(KeyComparable):
         return Expression('Power', self, other)
 
 
-# TODO subclass KeyComparable
 class Monomial(object):
     """
     An object to sort monomials, used in Expression.get_sort_key and
