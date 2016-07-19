@@ -636,7 +636,7 @@ class Pattern_(PatternObject):
     formats = {
         'Verbatim[Pattern][symbol_, '
         'pattern_?(!MatchQ[#, _Blank|_BlankSequence|_BlankNullSequence]&)]': (
-            'Infix[{symbol, pattern}, ":", 140]'),
+            'Infix[{symbol, pattern}, ":", 150, Left]'),
     }
 
     def init(self, expr):
@@ -709,6 +709,15 @@ class Optional(BinaryOperator, PatternObject):
     >> Default[h, k_] := k
     >> h[a] /. h[x_, y_.] -> {x, y}
      = {a, 2}
+
+    #> a:b:c
+     = a : b : c
+    #> FullForm[a:b:c]
+     = Optional[Pattern[a, b], c]
+    #> (a:b):c
+     = a : b : c
+    #> a:(b:c)
+     = a : (b : c)
     """
 
     operator = ':'
@@ -723,7 +732,7 @@ class Optional(BinaryOperator, PatternObject):
     }
 
     formats = {
-        'Verbatim[Optional][pattern_Pattern, default_]': 'Infix[{HoldForm[pattern], HoldForm[default]}, ":", 150]',
+        'Verbatim[Optional][pattern_Pattern, default_]': 'Infix[{HoldForm[pattern], HoldForm[default]}, ":", 140, Right]',
     }
 
     arg_counts = [1, 2]
