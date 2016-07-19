@@ -11,6 +11,7 @@ from __future__ import absolute_import
 from six.moves import range
 from six.moves import zip
 from itertools import chain
+from mpmath import mpf
 
 from mathics.builtin.base import (
     Builtin, Test, InvalidLevelspecError, BinaryOperator,
@@ -3428,7 +3429,9 @@ class _PrecomputedDistances(PrecomputedDistances):
             if not d.is_real or d < 0:
                 raise _IllegalDistance(d)
 
-        super(_PrecomputedDistances, self).__init__(sympy_distances)
+        mpmath_distances = [mpf(d) for d in sympy_distances]
+
+        super(_PrecomputedDistances, self).__init__(mpmath_distances)
 
 
 class _LazyDistances(LazyDistances):
@@ -3448,7 +3451,7 @@ class _LazyDistances(LazyDistances):
         sympy_d = d.to_sympy()
         if not sympy_d.is_real or sympy_d < 0:
             raise _IllegalDistance(d)
-        return sympy_d
+        return mpf(sympy_d)
 
 
 class _Cluster(Builtin):
