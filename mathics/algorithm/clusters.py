@@ -4,7 +4,6 @@
 from __future__ import division
 
 import random
-from heapq import nsmallest
 from itertools import chain
 import bisect
 import math
@@ -52,6 +51,44 @@ def _robust_min(iterable):
         if minimum is None or i < minimum:
             minimum = i
     return minimum
+
+
+def _ordered2(a, cmp):
+    iterator = iter(a)
+
+    min_i1 = 0
+    min_i2 = 1
+
+    min_x1 = next(iterator)
+    min_x2 = next(iterator)
+
+    if not cmp(min_x1, min_x2):
+        min_i1, min_i2 = min_i2, min_i1
+        min_x1, min_x2 = min_x2, min_x1
+
+    try:
+        i = 2
+        while True:
+            x = next(iterator)
+            if cmp(x, min_x1):
+                min_x2 = min_x1
+                min_i2 = min_i1
+                min_x1 = x
+                min_i1 = i
+            elif cmp(x, min_x2):
+                min_x2 = x
+                min_i2 = i
+            i += 1
+    except StopIteration:
+        return min_i1, min_x1, min_i2, min_x2
+
+
+def _smallest2(a):
+    return _ordered2(a, lambda x, y: x < y)
+
+
+def _largest2(a):
+    return _ordered2(a, lambda x, y: x > y)
 
 
 def _components(clusters, n):
@@ -383,9 +420,9 @@ class _Medoids:
         distance = self._distance
 
         for j in a:
-            s1, s2 = nsmallest(2, [(distance(i, j), i) for i in selected])
-            d1, i1 = s1
-            d2, i2 = s2
+            s1, d1, s2, d2 = _smallest2(distance(i, j) for i in selected)
+            i1 = selected[s1]
+            i2 = selected[s2]
             assert i1 != i2
             clusters[j] = (i1, i2)
             yield d1
