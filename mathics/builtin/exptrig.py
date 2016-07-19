@@ -890,3 +890,151 @@ class InverseHaversine(_MPMathFunction):
     rules = {
         'InverseHaversine[z_]': '2 * ArcSin[Sqrt[z]]'
     }
+
+
+class AngleVector(Builtin):
+    """
+    <dl>
+    <dt>'AngleVector[$phi$]'
+        <dd>returns the point at angle $phi$ on the unit circle.
+    <dt>'AngleVector[{$r$, $phi$}]'
+        <dd>returns the point at angle $phi$ on a circle of radius $r$.
+    <dt>'AngleVector[{$x$, $y$}, $phi$]'
+        <dd>returns the point at angle $phi$ on a circle of radius 1 centered at {$x$, $y$}.
+    <dt>'AngleVector[{$x$, $y$}, {$r$, $phi$}]'
+        <dd>returns point at angle $phi$ on a circle of radius $r$ centered at {$x$, $y$}.
+    </dl>
+
+    >> AngleVector[90 Degree]
+     = {0, 1}
+
+    >> AngleVector[{1, 10}, a]
+     = {1 + Cos[a], 10 + Sin[a]}
+    """
+
+    rules = {
+        'AngleVector[phi_]': '{Cos[phi], Sin[phi]}',
+        'AngleVector[{r_, phi_}]': '{r * Cos[phi], r * Sin[phi]}',
+        'AngleVector[{x_, y_}, phi_]': '{x + Cos[phi], y + Sin[phi]}',
+        'AngleVector[{x_, y_}, {r_, phi_}]': '{x + r * Cos[phi], y + r * Sin[phi]}',
+    }
+
+
+class AnglePath(Builtin):
+    """
+    <dl>
+    <dt>'AnglePath[{$phi1$, $phi2$, ...}]'
+        <dd>returns the points formed by a turtle starting at {0, 0} and angled at 0 degrees going through
+        the turns given by angles $phi1$, $phi2$, ... and using distance 1 for each step.
+    <dt>'AnglePath[{{$r1$, $phi1$}, {$r2$, $phi2$}, ...}]'
+        <dd>instead of using 1 as distance, use $r1$, $r2$, ... as distances for the respective steps.
+    <dt>'AngleVector[$phi0$, {$phi1$, $phi2$, ...}]'
+        <dd>returns the points on a path formed by a turtle starting with direction $phi0$ instead of 0.
+    <dt>'AngleVector[{$x$, $y$}, {$phi1$, $phi2$, ...}]'
+        <dd>returns the points on a path formed by a turtle starting at {$x, $y} instead of {0, 0}.
+    <dt>'AngleVector[{{$x$, $y$}, $phi0$}, {$phi1$, $phi2$, ...}]'
+        <dd>specifies initial position {$x$, $y$} and initial direction $phi0$.
+    <dt>'AngleVector[{{$x$, $y$}, {$dx$, $dy$}}, {$phi1$, $phi2$, ...}]'
+        <dd>specifies initial position {$x$, $y$} and a slope {$dx$, $dy$} that is understood to be the
+        initial direction of the turtle.
+    </dl>
+
+    >> AnglePath[{90 Degree, 90 Degree, 90 Degree, 90 Degree}]
+     = {{0, 0}, {0, 1}, {-1, 1}, {-1, 0}, {0, 0}}
+
+    >> AnglePath[{a, b}]
+     = {{0, 0}, {Cos[a], Sin[a]}, {Cos[a] + Cos[a + b], Sin[a] + Sin[a + b]}}
+
+    >> Graphics[Line[AnglePath[Table[1.7, {50}]]]]
+     = -Graphics-
+
+    >> Graphics[Line[AnglePath[RandomReal[{-1, 1}, {100}]]]]
+     = -Graphics-
+    """
+
+    messages = {
+        'steps': '`1` is not a valid description of steps.'
+    }
+
+    @staticmethod
+    def _path(x0, y0, phi0, steps, parse, sin, cos):
+        yield x0, y0
+
+        x = x0
+        y = y0
+        phi = phi0
+
+        for step in steps:
+            distance, delta_phi = parse(step)
+
+            phi = phi + delta_phi if phi else delta_phi
+            dx = cos(phi)
+            dy = sin(phi)
+
+            if distance:
+                dx *= distance
+                dy *= distance
+
+            x += dx
+            y += dy
+
+            yield x, y
+
+    def _compute(self, x0, y0, phi0, steps, evaluation):
+        class IllegalStepSpecification(Exception):
+            pass
+
+        def phi_step(step):
+            if step.get_head_name() == 'System`List':
+                raise IllegalStepSpecification
+            return None, step.to_sympy()
+
+        def distance_phi_step(step):
+            if step.get_head_name() != 'System`List':
+                raise IllegalStepSpecification
+            arguments = step.leaves
+            if len(arguments) != 2:
+                raise IllegalStepSpecification
+            return (a.to_sympy() for a in arguments)
+
+        if not steps:
+            return Expression('List')
+
+        if steps[0].get_head_name() == 'System`List':
+            parse = distance_phi_step
+        else:
+            parse = phi_step
+
+        phi0_sym = None if phi0 is None else phi0.to_sympy()
+
+        try:
+            from sympy import sin, cos
+            points = AnglePath._path(x0.to_sympy(), y0.to_sympy(), phi0_sym, steps, parse, sin, cos)
+
+            from mathics.core.convert import from_sympy
+            leaves = [Expression('List', from_sympy(x), from_sympy(y)) for x, y in points]
+
+            return Expression('List', *leaves)
+        except IllegalStepSpecification:
+            evaluation.message('AnglePath', 'steps', Expression('List', *steps))
+
+    def apply(self, steps, evaluation):
+        'AnglePath[{steps___}]'
+        return self._compute(Integer(0), Integer(0), None, steps.get_sequence(), evaluation)
+
+    def apply_phi0(self, phi0, steps, evaluation):
+        'AnglePath[phi0_, {steps___}]'
+        return self._compute(Integer(0), Integer(0), phi0, steps.get_sequence(), evaluation)
+
+    def apply_xy(self, x, y, steps, evaluation):
+        'AnglePath[{x_, y_}, {steps___}]'
+        return self._compute(x, y, None, steps.get_sequence(), evaluation)
+
+    def apply_xy_phi0(self, x, y, phi0, steps, evaluation):
+        'AnglePath[{{x_, y_}, phi0_}, {steps___}]'
+        return self._compute(x, y, phi0, steps.get_sequence(), evaluation)
+
+    def apply_xy_dx(self, x, y, dx, dy, steps, evaluation):
+        'AnglePath[{{x_, y_}, {dx_, dy_}}, {steps___}]'
+        phi0 = Expression('ArcTan', dx, dy)
+        return self._compute(x, y, phi0, steps.get_sequence(), evaluation)
