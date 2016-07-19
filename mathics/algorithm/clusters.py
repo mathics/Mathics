@@ -8,7 +8,6 @@ from itertools import chain
 import bisect
 import math
 
-import sympy
 from mpmath import fsum
 
 # publications used for this file:
@@ -119,12 +118,12 @@ def _silhouette(a, b):
         return 0.
 
     # for the formula, see [Desgraupes2013].
-    s = (b - a) / max(a, b)
-
-    if s == sympy.nan:  # max(a, b) == 0?
+    try:
+        s = (b - a) / max(a, b)
+    except ZeroDivisionError:  # max(a, b) == 0?
         raise InfiniteSilhouette()
-    else:
-        return s
+
+    return s
 
 
 class PrecomputedDistances(object):
