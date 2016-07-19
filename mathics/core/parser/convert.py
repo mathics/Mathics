@@ -9,8 +9,7 @@ from math import log10
 
 import mathics.core.expression as ma
 from mathics.core.parser.ast import Symbol, String, Number, Filename
-from mathics.core.numbers import dps
-from mathics.builtin.numeric import machine_precision
+from mathics.core.numbers import dps, machine_precision
 
 
 class Converter(object):

@@ -9,7 +9,7 @@ import mpmath
 import re
 import abc
 
-from mathics.core.numbers import get_type, dps, prec, min_prec
+from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 import six
 from six.moves import map
@@ -1599,7 +1599,6 @@ class Rational(Number):
             return [0, 0, sympy.Float(self.value), 0, 1]
 
     def get_real_value(self):
-        from mathics.builtin.numeric import machine_precision
         return self.value.n(machine_precision)
 
     def do_copy(self):
