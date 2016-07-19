@@ -12,6 +12,9 @@ from six.moves import range
 from mathics.core.util import unicode_superscript
 
 
+machine_precision = 64
+
+
 def get_type(value):
     if isinstance(value, sympy.Integer):
         return 'z'
@@ -36,7 +39,6 @@ def is_0(value):
 
 def sympy2mpmath(value, prec=None):
     if prec is None:
-        from mathics.builtin.numeric import machine_precision
         prec = machine_precision
     value = value.n(dps(prec))
     if value.is_real:
