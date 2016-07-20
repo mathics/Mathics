@@ -11,7 +11,6 @@ import abc
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
-from mathics.algorithm.caching import lru_cache
 
 import six
 from six.moves import map
@@ -1306,7 +1305,6 @@ class Atom(BaseExpression):
 
 
 class Symbol(Atom):
-    @lru_cache()
     def __new__(cls, name, sympy_dummy=None):
         self = super(Symbol, cls).__new__(cls)
         self.name = ensure_context(name)
@@ -1486,7 +1484,6 @@ _number_form_options = {
 }
 
 class Integer(Number):
-    @lru_cache()
     def __new__(cls, value):
         n = int(value)
         self = super(Integer, cls).__new__(cls)
@@ -1556,7 +1553,6 @@ class Integer(Number):
 
 
 class Rational(Number):
-    @lru_cache()
     def __new__(cls, numerator, denominator=None, **kwargs):
         self = super(Rational, cls).__new__(cls)
         self.value = sympy.Rational(numerator, denominator)
@@ -1745,8 +1741,74 @@ class Real(Number):
         update(b'System`Real>' + str(self.to_sympy().n(dps(_prec))).encode('utf8'))
 
 
+class MachineReal(Real):
+    '''
+    Machine precision real number.
+
+    Stored internally as a python float.
+    '''
+    def __new__(cls, value):
+        self = Number.__new__(cls)
+        self.value = float(value)
+        self.prec = machine_precision
+        return self
+
+    def to_python(self):
+        return self.value
+
+    def to_sympy(self):
+        return sympy.Float(self.value)
+
+    def same(self, other):
+        if isinstance(other, MachineReal):
+            return self.value == other.value
+        elif isinstance(other, PrecisionReal):
+            return self.to_sympy() == other.value
+        return False
+
+    def __getstate__(self):
+        return self.value
+
+    def __setstate__(self, value):
+        self.value = value
+
+
+class PrecisionReal(Real):
+    '''
+    Arbitrary precision real number.
+
+    Stored internally as a sympy.Float.
+    '''
+    def __new__(cls, value, prec):
+        self = Number.__new__(cls)
+        self.value = sympy.Float(value)
+        self.prec = prec
+        return self
+
+    def to_python(self):
+        return float(self.value)
+
+    def to_sympy(self):
+        return self.value
+
+    def same(self, other):
+        if isinstance(other, PrecisionReal):
+            return self.value == other.value
+        elif isinstance(other, MachineReal):
+            return self.value == other.to_sympy()
+        return False
+
+    def __getstate__(self):
+        p = self.prec
+        s = self.value
+        return {'value': s, 'prec': p}
+
+    def __setstate__(self, dict):
+        self.prec = dict['prec']
+        self.value = dict['value']
+
+
 class Complex(Number):
-    @lru_cache()
     def __new__(cls, real, imag, p=None, **kwargs):
         self = super(Complex, cls).__new__(cls)
 
@@ -1905,7 +1967,6 @@ extra_operators = set((',', '(', ')', '[', ']', '{', '}',
 
 
 class String(Atom):
-    @lru_cache()
     def __new__(cls, value, **kwargs):
         self = super(String, cls).__new__(cls)
         self.value = value

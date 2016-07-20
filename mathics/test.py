@@ -14,7 +14,6 @@ import six
 from six.moves import zip
 
 import mathics
-from mathics.core.expression import Integer, Rational, Real, Complex, String, Symbol
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 from mathics.core.parser import SingleLineFeeder
@@ -201,8 +200,6 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
         for part, chapter, section in sorted(failed_symbols):
             print('  - %s in %s / %s' % (section, part, chapter))
 
-    print_cache_info()
-
     if failed == 0:
         print('\nOK')
 
@@ -217,20 +214,6 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
     else:
         print('\nFAILED')
         return sys.exit(1)      # Travis-CI knows the tests have failed
-
-
-def print_cache_info():
-    print(sep)
-    print('Cache info:')
-    print()
-    print('Integer ', Integer(0).__new__.cache_info())
-    print('Rational', Rational(1, 2).__new__.cache_info())
-    print('Real    ', Real(0).__new__.cache_info())
-    print('Complex ', Complex(1, 1).__new__.cache_info())
-    print('String  ', String('').__new__.cache_info())
-    print('Symbol  ', Symbol('a').__new__.cache_info())
-    print(sep)
-    print()
 
 
 def write_latex():
