@@ -1666,22 +1666,8 @@ class Real(Number):
     def boxes_to_tex(self, **options):
         return self.make_boxes('System`TeXForm').boxes_to_tex(**options)
 
-    def make_boxes(self, form):
-        from mathics.builtin.inout import number_form
-        _number_form_options['_Form'] = form    # passed to _NumberFormat
-        return number_form(self, dps(self.prec), None, None, _number_form_options)
-
     def atom_to_boxes(self, f, evaluation):
         return self.make_boxes(f.get_name())
-
-    def to_sympy(self, **kwargs):
-        return self.value
-
-    def to_python(self, *args, **kwargs):
-        return float(self.value)
-
-    def same(self, other):
-        return isinstance(other, Real) and self.to_sympy() == other.to_sympy()
 
     def evaluate(self, evaluation):
         evaluation.check_stopped()
@@ -1689,9 +1675,6 @@ class Real(Number):
 
     def round(self, precision):
         return Real(self.to_sympy().n(dps(precision)))
-
-    def get_precision(self):
-        return self.prec
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -1737,7 +1720,6 @@ class MachineReal(Real):
     def __new__(cls, value):
         self = Number.__new__(cls)
         self.value = float(value)
-        self.prec = machine_precision
         return self
 
     def to_python(self):
@@ -1759,12 +1741,25 @@ class MachineReal(Real):
     def __setstate__(self, value):
         self.value = value
 
+    def get_precision(self):
+        return machine_precision
+
+    def make_boxes(self, form):
+        from mathics.builtin.inout import number_form
+        _number_form_options['_Form'] = form    # passed to _NumberFormat
+        if form in ('System`InputForm', 'System`FullForm'):
+            n = 16
+        else:
+            n = 6
+        return number_form(self, n, None, None, _number_form_options)
+
 
 class PrecisionReal(Real):
     '''
     Arbitrary precision real number.
 
-    Stored internally as a sympy.Float.
+    value is stored internally as a sympy.Float.
+    prec is the number of bits of precision (differs from Mathematica).
     '''
     def __new__(cls, value, prec):
         self = Number.__new__(cls)
@@ -1793,6 +1788,14 @@ class PrecisionReal(Real):
     def __setstate__(self, dict):
         self.prec = dict['prec']
         self.value = dict['value']
+
+    def get_precision(self):
+        return self.prec
+
+    def make_boxes(self, form):
+        from mathics.builtin.inout import number_form
+        _number_form_options['_Form'] = form    # passed to _NumberFormat
+        return number_form(self, dps(self.get_precision()), None, None, _number_form_options)
 
 
 class Complex(Number):
