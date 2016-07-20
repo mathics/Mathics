@@ -197,13 +197,14 @@ class Precision(Builtin):
     >> Precision[1/2]
      = Infinity
     >> Precision[0.5]
-     = 18.
+     = MachinePrecision
+
     #> Precision[0.0]
-     = 0.
+     = MachinePrecision
     #> Precision[0.000000000000000000000000000000000000]
      = 0.
-    #> Precision[-0.0]      (*Matematica gets this wrong *)
-     = 0.
+    #> Precision[-0.0]
+     = MachinePrecision
     #> Precision[-0.000000000000000000000000000000000000]
      = 0.
     """
@@ -212,14 +213,16 @@ class Precision(Builtin):
         'Precision[_Integer]': 'Infinity',
         'Precision[_Rational]': 'Infinity',
         'Precision[_Symbol]': 'Infinity',
-        'Precision[z:0.0]': '0.',
-        'Precision[z:-0.0]': '0.',
+        'Precision[z_Real?MachineNumberQ]': 'MachinePrecision',
     }
 
     def apply_real(self, x, evaluation):
         'Precision[x_Real]'
 
-        return Real(dps(x.get_precision()))
+        if x.to_sympy().is_zero:
+            return Real(0)
+        else:
+            return Real(dps(x.get_precision()))
 
     def apply_complex(self, x, evaluation):
         'Precision[x_Complex]'
