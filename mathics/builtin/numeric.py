@@ -13,10 +13,14 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import sympy
+import mpmath
+from mpmath import mpf
+import math
 import hashlib
 import zlib
 import math
 from six.moves import range
+from collections import namedtuple
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (
@@ -890,3 +894,80 @@ class Hash(Builtin):
     def apply(self, expr, hashtype, evaluation):
         'Hash[expr_, hashtype_String]'
         return Hash.compute(expr.user_hash, hashtype.get_string_value())
+
+
+class NoMachinePrecision(Exception):
+    pass
+
+
+class GenericPrecisionComputation(object):
+    # useful helper for computations that usually operate identically under
+    # machine precision, arbitrary precision and symbolic evaluation, and
+    # usually want to go for machine precision.
+
+    ComputationFunctions = namedtuple(
+        'ComputationFunctions', ('sin', 'cos'))
+
+    machine_precision_functions = ComputationFunctions(
+        cos=math.cos,
+        sin=math.sin,
+    )
+
+    arbitrary_precision_functions = ComputationFunctions(
+        cos=mpmath.cos,
+        sin=mpmath.sin,
+    )
+
+    symbolic_functions = ComputationFunctions(
+        cos=lambda x: Expression('Cos', x),
+        sin=lambda x: Expression('Sin', x),
+    )
+
+    def _compute(self, convert, functions):
+        raise NotImplementedError
+
+    def compute(self):
+        # tries to compute with machine precision first, then with arbitrary
+        # precision if machine precision fails. only evaluates symbolically
+        # if all else fails.
+
+        # here are rough runtimes to give you an idea of the costs involved:
+        # machine precision : arbitrary precision = 1 : 1.3 (mpmath is fast)
+        # arbitrary precision : symbolic = 1 : 40
+
+        # in general, the cost of trying out machine and arbitrary precision
+        # first before going to symbolic evaluation should be negligible.
+
+        try:
+            try:
+                return self._compute(
+                    GenericPrecisionComputation.to_machine_precision,
+                    GenericPrecisionComputation.machine_precision_functions)
+            except NoMachinePrecision:
+                return self._compute(
+                    GenericPrecisionComputation.to_arbitrary_precision,
+                    GenericPrecisionComputation.arbitrary_precision_functions)
+        except TypeError:
+            return self._compute(
+                lambda *args: args,
+                GenericPrecisionComputation.symbolic_functions)
+
+    @staticmethod
+    def to_arbitrary_precision(*args):
+        for arg in args:
+            if arg is None:
+                yield None
+            else:
+                yield mpf(arg.to_sympy())  # raises TypeError
+
+    @staticmethod
+    def to_machine_precision(*args):
+        for arg in args:
+            if arg is None:
+                yield None
+            else:
+                precision = arg.get_precision()
+                if precision is None or precision <= machine_precision:
+                    yield float(arg.to_sympy())  # raises TypeError
+                else:
+                    raise NoMachinePrecision

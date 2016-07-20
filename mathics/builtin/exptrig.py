@@ -21,6 +21,7 @@ from mathics.core.expression import (
     Expression, Real, Integer, Symbol, PrecisionReal, MachineReal, Number)
 from mathics.core.numbers import dps, get_precision, PrecisionValueError
 
+from mathics.builtin.numeric import GenericPrecisionComputation
 from mathics.builtin.arithmetic import _MPMathFunction
 
 
@@ -920,6 +921,55 @@ class AngleVector(Builtin):
     }
 
 
+class AnglePathComputation(GenericPrecisionComputation):
+    def __init__(self, x0, y0, phi0, steps, parse):
+        self._origin = (x0, y0, phi0)
+        self._steps = steps
+        self._parse = parse
+
+    def _compute(self, convert, functions):
+        x0, y0, phi0 = convert(*self._origin)
+        parse = self._parse
+
+        def parse_and_convert(step):
+            return convert(*parse(step))
+
+        return [Expression('List', x, y) for x, y in
+                AnglePathComputation._path(
+                    x0, y0, phi0,
+                    self._steps,
+                    parse_and_convert,
+                    functions.sin, functions.cos)]
+
+    @staticmethod
+    def _path(x0, y0, phi0, steps, parse, sin, cos):
+        yield x0, y0
+
+        x = x0
+        y = y0
+        phi = phi0
+
+        for step in steps:
+            distance, delta_phi = parse(step)
+
+            if phi is None:
+                phi = delta_phi
+            else:
+                phi += delta_phi
+
+            dx = cos(phi)
+            dy = sin(phi)
+
+            if distance is not None:
+                dx *= distance
+                dy *= distance
+
+            x += dx
+            y += dy
+
+            yield x, y
+
+
 class AnglePath(Builtin):
     """
     <dl>
@@ -960,74 +1010,6 @@ class AnglePath(Builtin):
     }
 
     @staticmethod
-    def _path(x0, y0, phi0, steps, parse, sin, cos):
-        yield x0, y0
-
-        x = x0
-        y = y0
-        phi = phi0
-
-        for step in steps:
-            distance, delta_phi = parse(step)
-
-            if phi is None:
-                phi = delta_phi
-            else:
-                phi += delta_phi
-
-            dx = cos(phi)
-            dy = sin(phi)
-
-            if distance is not None:
-                dx *= distance
-                dy *= distance
-
-            x += dx
-            y += dy
-
-            yield x, y
-
-    @staticmethod
-    def _numeric(x0, y0, phi0, steps, parse):
-        # try to perform the actual computation using mpmath directly, since for numerical data (which is
-        # a very common input for this function) this takes only about 1/100 of the time than going through
-        # Expression.evaluate() and 1/3 of the time of using sympy. if this fails due to encountered symbols
-        # or irrational values like Pi (mpf will raise a TypeError in all these cases) we fall back to symbolic
-        # evaluation.
-
-        from mpmath import mpf, sin as mp_sin, cos as mp_cos
-
-        def to_mpf(*args):
-            for arg in args:
-                if arg is None:
-                    yield arg
-                else:
-                    yield mpf(arg.to_sympy())
-
-        def parse_n(step):
-            return to_mpf(*parse(step))
-
-        x0_n, y0_n, phi0_n = to_mpf(x0, y0, phi0)
-        points = AnglePath._path(x0_n, y0_n, phi0_n, steps, parse_n, mp_sin, mp_cos)
-
-        return [Expression('List', x, y) for x, y in points]
-
-    @staticmethod
-    def _symbolic(x0, y0, phi0, steps, parse):
-        # numeric evaluation failed as symbols were involved. we do a proper symbolical evaluation instead.
-
-        def symbolic_sin(x):
-            return Expression('Sin', x)
-
-        def symbolic_cos(x):
-            return Expression('Cos', x)
-
-        points = AnglePath._path(
-            x0, y0, phi0, steps, parse, symbolic_sin, symbolic_cos)
-
-        return [Expression('List', x, y) for x, y in points]
-
-    @staticmethod
     def _compute(x0, y0, phi0, steps, evaluation):
         if not steps:
             return Expression('List')
@@ -1050,14 +1032,10 @@ class AnglePath(Builtin):
                 return None, step
 
         try:
-            try:
-                leaves = AnglePath._numeric(x0, y0, phi0, steps, parse)
-            except TypeError:
-                leaves = AnglePath._symbolic(x0, y0, phi0, steps, parse)
+            computation = AnglePathComputation(x0, y0, phi0, steps, parse)
+            return Expression('List', *computation.compute())
         except IllegalStepSpecification:
             evaluation.message('AnglePath', 'steps', Expression('List', *steps))
-
-        return Expression('List', *leaves)
 
     def apply(self, steps, evaluation):
         'AnglePath[{steps___}]'
