@@ -12,7 +12,7 @@ from six.moves import range
 from mathics.core.util import unicode_superscript
 
 
-machine_precision = 64
+machine_precision = 53
 
 
 def get_type(value):
