@@ -1710,6 +1710,9 @@ class Real(Number):
         _prec = self.get_precision()
         update(b'System`Real>' + str(self.to_sympy().n(dps(_prec))).encode('utf8'))
 
+    def get_atom_name(self):
+        return 'Real'
+
 
 class MachineReal(Real):
     '''
