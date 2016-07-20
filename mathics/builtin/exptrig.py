@@ -942,6 +942,9 @@ class AnglePath(Builtin):
     >> AnglePath[{90 Degree, 90 Degree, 90 Degree, 90 Degree}]
      = {{0, 0}, {0, 1}, {-1, 1}, {-1, 0}, {0, 0}}
 
+    >> AnglePath[{{1, 1}, 90 Degree}, {{1, 90 Degree}, {2, 90 Degree}, {1, 90 Degree}, {2, 90 Degree}}]
+     = {{1, 1}, {0, 1}, {0, -1}, {1, -1}, {1, 1}}
+
     >> AnglePath[{a, b}]
      = {{0, 0}, {Cos[a], Sin[a]}, {Cos[a] + Cos[a + b], Sin[a] + Sin[a + b]}}
 
@@ -967,11 +970,15 @@ class AnglePath(Builtin):
         for step in steps:
             distance, delta_phi = parse(step)
 
-            phi = phi + delta_phi if phi else delta_phi
+            if phi is None:
+                phi = delta_phi
+            else:
+                phi += delta_phi
+
             dx = cos(phi)
             dy = sin(phi)
 
-            if distance:
+            if distance is not None:
                 dx *= distance
                 dy *= distance
 
@@ -980,61 +987,95 @@ class AnglePath(Builtin):
 
             yield x, y
 
-    def _compute(self, x0, y0, phi0, steps, evaluation):
-        class IllegalStepSpecification(Exception):
-            pass
+    @staticmethod
+    def _numeric(x0, y0, phi0, steps, parse):
+        # try to perform the actual computation using mpmath directly, since for numerical data (which is
+        # a very common input for this function) this takes only about 1/100 of the time than going through
+        # Expression.evaluate() and 1/3 of the time of using sympy. if this fails due to encountered symbols
+        # or irrational values like Pi (mpf will raise a TypeError in all these cases) we fall back to symbolic
+        # evaluation.
 
-        def phi_step(step):
-            if step.get_head_name() == 'System`List':
-                raise IllegalStepSpecification
-            return None, step.to_sympy()
+        from mpmath import mpf, sin as mp_sin, cos as mp_cos
 
-        def distance_phi_step(step):
-            if step.get_head_name() != 'System`List':
-                raise IllegalStepSpecification
-            arguments = step.leaves
-            if len(arguments) != 2:
-                raise IllegalStepSpecification
-            return (a.to_sympy() for a in arguments)
+        def to_mpf(*args):
+            for arg in args:
+                if arg is None:
+                    yield arg
+                else:
+                    yield mpf(arg.to_sympy())
 
+        def parse_n(step):
+            return to_mpf(*parse(step))
+
+        x0_n, y0_n, phi0_n = to_mpf(x0, y0, phi0)
+        points = AnglePath._path(x0_n, y0_n, phi0_n, steps, parse_n, mp_sin, mp_cos)
+
+        return [Expression('List', x, y) for x, y in points]
+
+    @staticmethod
+    def _symbolic(x0, y0, phi0, steps, parse):
+        # numeric evaluation failed as symbols were involved. we do a proper symbolical evaluation instead.
+
+        def symbolic_sin(x):
+            return Expression('Sin', x)
+
+        def symbolic_cos(x):
+            return Expression('Cos', x)
+
+        points = AnglePath._path(
+            x0, y0, phi0, steps, parse, symbolic_sin, symbolic_cos)
+
+        return [Expression('List', x, y) for x, y in points]
+
+    @staticmethod
+    def _compute(x0, y0, phi0, steps, evaluation):
         if not steps:
             return Expression('List')
 
-        if steps[0].get_head_name() == 'System`List':
-            parse = distance_phi_step
-        else:
-            parse = phi_step
+        class IllegalStepSpecification(Exception):
+            pass
 
-        phi0_sym = None if phi0 is None else phi0.to_sympy()
+        if steps[0].get_head_name() == 'System`List':
+            def parse(step):
+                if step.get_head_name() != 'System`List':
+                    raise IllegalStepSpecification
+                arguments = step.leaves
+                if len(arguments) != 2:
+                    raise IllegalStepSpecification
+                return arguments
+        else:
+            def parse(step):
+                if step.get_head_name() == 'System`List':
+                    raise IllegalStepSpecification
+                return None, step
 
         try:
-            from sympy import sin, cos
-            points = AnglePath._path(x0.to_sympy(), y0.to_sympy(), phi0_sym, steps, parse, sin, cos)
-
-            from mathics.core.convert import from_sympy
-            leaves = [Expression('List', from_sympy(x), from_sympy(y)) for x, y in points]
-
-            return Expression('List', *leaves)
+            try:
+                leaves = AnglePath._numeric(x0, y0, phi0, steps, parse)
+            except TypeError:
+                leaves = AnglePath._symbolic(x0, y0, phi0, steps, parse)
         except IllegalStepSpecification:
             evaluation.message('AnglePath', 'steps', Expression('List', *steps))
 
+        return Expression('List', *leaves)
+
     def apply(self, steps, evaluation):
         'AnglePath[{steps___}]'
-        return self._compute(Integer(0), Integer(0), None, steps.get_sequence(), evaluation)
+        return AnglePath._compute(Integer(0), Integer(0), None, steps.get_sequence(), evaluation)
 
     def apply_phi0(self, phi0, steps, evaluation):
         'AnglePath[phi0_, {steps___}]'
-        return self._compute(Integer(0), Integer(0), phi0, steps.get_sequence(), evaluation)
+        return AnglePath._compute(Integer(0), Integer(0), phi0, steps.get_sequence(), evaluation)
 
     def apply_xy(self, x, y, steps, evaluation):
         'AnglePath[{x_, y_}, {steps___}]'
-        return self._compute(x, y, None, steps.get_sequence(), evaluation)
+        return AnglePath._compute(x, y, None, steps.get_sequence(), evaluation)
 
     def apply_xy_phi0(self, x, y, phi0, steps, evaluation):
         'AnglePath[{{x_, y_}, phi0_}, {steps___}]'
-        return self._compute(x, y, phi0, steps.get_sequence(), evaluation)
+        return AnglePath._compute(x, y, phi0, steps.get_sequence(), evaluation)
 
     def apply_xy_dx(self, x, y, dx, dy, steps, evaluation):
         'AnglePath[{{x_, y_}, {dx_, dy_}}, {steps___}]'
         phi0 = Expression('ArcTan', dx, dy)
-        return self._compute(x, y, phi0, steps.get_sequence(), evaluation)
+        return AnglePath._compute(x, y, phi0, steps.get_sequence(), evaluation)
