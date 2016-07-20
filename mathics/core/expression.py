@@ -1630,10 +1630,7 @@ class Rational(Number):
 
 
 class Real(Number):
-    @lru_cache()
     def __new__(cls, value, p=None):
-        self = super(Real, cls).__new__(cls)
-
         if isinstance(value, six.string_types):
             value = str(value)
             if p is None:
@@ -1644,31 +1641,21 @@ class Real(Number):
                 else:
                     p = prec(len(digits.zfill(dps(machine_precision))))
         elif isinstance(value, sympy.Float):
-            self.value = value
-            self.prec = value._prec + 1
-            return self
+            if p is None:
+                p = value._prec + 1
         elif isinstance(value,
                         (Integer, sympy.Number, mpmath.mpf, float, int)):
-            value = str(value)
+            if p is not None and p > machine_precision:
+                value = str(value)
         else:
             raise TypeError('Unknown number type: %s (type %s)' % (
                 value, type(value)))
-        if p is None:
-            p = machine_precision
 
-        self.value = sympy.Float(value, dps(p))
-        self.prec = p
-        return self
-
-    def __getstate__(self):
-        p = self.prec
-        s = self.value
-        return {'value': s, 'prec': p}
-
-    def __setstate__(self, dict):
-        # TODO: Check this
-        self.prec = dict['prec']
-        self.value = dict['value']
+        # return either machine precision or arbitrary precision real
+        if p is None or p <= machine_precision:
+            return MachineReal.__new__(MachineReal, value)
+        else:
+            return PrecisionReal.__new__(PrecisionReal, value, p)
 
     def boxes_to_text(self, **options):
         return self.make_boxes('System`OutputForm').boxes_to_text(**options)
