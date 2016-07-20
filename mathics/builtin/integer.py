@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 import sympy
 import string
+import math
 
 from mathics.builtin.base import Builtin, SympyFunction
 from mathics.core.convert import from_sympy
@@ -115,6 +116,13 @@ class IntegerLength(Builtin):
     >> IntegerLength[3, -2]
      : Base -2 is not an integer greater than 1.
      = IntegerLength[3, -2]
+
+    '0' is a special case:
+    >> IntegerLength[0]
+     = 0
+
+    #> IntegerLength /@ (10 ^ Range[100] - 1) == Range[1, 100]
+     = True
     """
 
     rules = {
@@ -128,8 +136,6 @@ class IntegerLength(Builtin):
     def apply(self, n, b, evaluation):
         'IntegerLength[n_, b_]'
 
-        # Use interval arithmetic to account for "right" rounding
-
         n, b = n.get_int_value(), b.get_int_value()
         if n is None or b is None:
             evaluation.message('IntegerLength', 'int')
@@ -138,8 +144,29 @@ class IntegerLength(Builtin):
             evaluation.message('IntegerLength', 'base', b)
             return
 
-        result = sympy.Integer(sympy.log(abs(n), b)) + 1
-        return Integer(result)
+        if n == 0:
+            # special case
+            return Integer(0)
+
+        n = abs(n)
+
+        # O(log(digits))
+
+        # find bounds
+        j = 1
+        while b ** j <= n:
+            j *= 2
+        i = j // 2
+
+        # bisection
+        while i + 1 < j:
+            # assert b ** i <= n <= b ** j
+            k = (i + j) // 2
+            if b ** k <= n:
+                i = k
+            else:
+                j = k
+        return Integer(j)
 
 
 class BitLength(Builtin):
