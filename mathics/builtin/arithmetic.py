@@ -17,8 +17,9 @@ from mathics.builtin.base import (
     Builtin, Predefined, BinaryOperator, PrefixOperator, PostfixOperator, Test,
     SympyFunction, SympyConstant)
 
-from mathics.core.expression import (Expression, Number, Integer, Rational,
-                                     Real, Symbol, Complex, String, from_python)
+from mathics.core.expression import (
+    Expression, Number, Integer, Rational, Real, Symbol, Complex, String,
+    MachineReal)
 from mathics.core.numbers import (
     add, min_prec, dps, sympy2mpmath, mpmath2sympy, SpecialValueError)
 
@@ -1161,6 +1162,32 @@ class RealNumberQ(Test):
 
     def test(self, expr):
         return isinstance(expr, (Integer, Rational, Real))
+
+
+class MachineNumberQ(Test):
+    '''
+    <dl>
+    <dt>'MachineNumberQ[$expr$]'
+        <dd>returns 'True' if $expr$ is a machine-precision real or complex number.
+    </dl>
+
+     = True
+    >> MachineNumberQ[3.14159265358979324]
+     = False
+    >> MachineNumberQ[1.5 + 2.3 I]
+     = True
+    >> MachineNumberQ[1.5 + 3.14159265358979324 I]
+     = False
+    >> MachineNumberQ[1.5 + 5 I]
+     = False
+    '''
+
+    rules = {
+        'MachineNumberQ[z_Complex]': 'MachineNumberQ[Re[z]] && MachineNumberQ[Im[z]]',
+    }
+
+    def test(self, expr):
+        return isinstance(expr, MachineReal)
 
 
 class ExactNumberQ(Test):
