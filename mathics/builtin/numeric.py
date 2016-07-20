@@ -18,7 +18,7 @@ import zlib
 from six.moves import range
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import (dps, prec, convert_base,
+from mathics.core.numbers import (dps, prec,
                                   convert_int_to_digit_list)
 from mathics.core.expression import (Integer, Rational, Real, Complex,
                                      Expression, Number, Symbol, from_python)
@@ -415,79 +415,6 @@ class RealValuedNumberQ(Builtin):
         'Internal`RealValuedNumberQ[x_Rational]': 'True',
         'Internal`RealValuedNumberQ[x_]': 'False',
     }
-
-
-class BaseForm(Builtin):
-    """
-    <dl>
-    <dt>'BaseForm[$expr$, $n$]'
-        <dd>prints numbers in $expr$ in base $n$.
-    </dl>
-
-    >> BaseForm[33, 2]
-     = 100001_2
-
-    >> BaseForm[234, 16]
-     = ea_16
-
-    >> BaseForm[12.3, 2]
-     = 1100.010011001100110011_2
-
-    >> BaseForm[-42, 16]
-     = -2a_16
-
-    >> BaseForm[x, 2]
-     = x
-
-    >> BaseForm[12, 3] // FullForm
-     = BaseForm[12, 3]
-
-    Bases must be between 2 and 36:
-    >> BaseForm[12, -3]
-     : Positive machine-sized integer expected at position 2 in BaseForm[12, -3].
-     : MakeBoxes[BaseForm[12, -3], OutputForm] is not a valid box structure.
-    >> BaseForm[12, 100]
-     : Requested base 100 must be between 2 and 36.
-     : MakeBoxes[BaseForm[12, 100], OutputForm] is not a valid box structure.
-
-    #> BaseForm[0, 2]
-     = 0_2
-    #> BaseForm[0.0, 2]
-     = 0.0_2
-    """
-
-    messages = {
-        'intpm': (
-            "Positive machine-sized integer expected at position 2 in "
-            "BaseForm[`1`, `2`]."),
-        'basf': "Requested base `1` must be between 2 and 36.",
-    }
-
-    def apply_makeboxes(self, expr, n, f, evaluation):
-        '''MakeBoxes[BaseForm[expr_, n_],
-            f:StandardForm|TraditionalForm|OutputForm]'''
-
-        base = n.get_int_value()
-
-        if base <= 0:
-            evaluation.message('BaseForm', 'intpm', expr, n)
-            return
-
-        if not (isinstance(expr, Integer) or isinstance(expr, Real)):
-            return Expression("MakeBoxes", expr, f)
-
-        p = dps(expr.get_precision()) if isinstance(expr, Real) else 0
-
-        try:
-            val = convert_base(expr.get_real_value(), base, p)
-        except ValueError:
-            return evaluation.message('BaseForm', 'basf', n)
-
-        if f.get_name() == 'System`OutputForm':
-            return from_python("%s_%d" % (val, base))
-        else:
-            return Expression(
-                'SubscriptBox', from_python(val), from_python(base))
 
 
 class IntegerDigits(Builtin):

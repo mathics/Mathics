@@ -276,7 +276,7 @@ class BaseExpression(KeyComparable):
                 head = expr.get_head_name()
                 if head in formats:
                     expr = expr.do_format(evaluation, form)
-                elif (head != 'System`FullForm' and not expr.is_atom() and
+                elif (head != 'System`NumberForm' and not expr.is_atom() and
                       head != 'System`Graphics'):
                     new_leaves = [leaf.do_format(evaluation, form)
                                   for leaf in expr.leaves]
@@ -916,6 +916,9 @@ class Expression(BaseExpression):
             self.leaves[0].has_form('List', None)):
             return ''.join([leaf.boxes_to_text(**options)
                             for leaf in self.leaves[0].leaves])
+        elif self.has_form('SuperscriptBox', 2):
+            return '^'.join([leaf.boxes_to_text(**options)
+                               for leaf in self.leaves])
         else:
             raise BoxError(self, 'text')
 
@@ -1443,15 +1446,36 @@ class Number(Atom):
         return True
 
 
-def number_boxes(text):
-    assert text is not None
-    if text.endswith('.0'):
-        text = text[:-1]
-    if text.startswith('-'):
-        return Expression('RowBox',
-                          Expression('List', String('-'), String(text[1:])))
+def _ExponentFunction(value):
+    n = value.get_int_value()
+    if -5 <= n <= 5:
+        return Symbol('Null')
     else:
-        return String(text)
+        return value
+
+
+def _NumberFormat(man, base, exp, options):
+    if exp.get_string_value():
+        if options['_Form'] in ('System`InputForm', 'System`OutputForm', 'System`FullForm'):
+            return Expression('RowBox', Expression('List', man, String('*^'), exp))
+        else:
+            return Expression('RowBox', Expression('List', man, String(options['NumberMultiplier']),
+                                                   Expression('SuperscriptBox', base, exp)))
+    else:
+        return man
+
+
+_number_form_options = {
+    'DigitBlock': [0, 0],
+    'ExponentFunction': _ExponentFunction,
+    'ExponentStep': 1,
+    'NumberFormat': _NumberFormat,
+    'NumberPadding': ['', '0'],
+    'NumberPoint': '.',
+    'NumberSigns': ['-', ''],
+    'SignPadding': False,
+    'NumberMultiplier': '\u00d7',
+}
 
 
 class Integer(Number):
@@ -1475,7 +1499,7 @@ class Integer(Number):
         return str(self.value)
 
     def make_boxes(self, form):
-        return number_boxes(str(self.value))
+        return String(str(self.value))
 
     def default_format(self, evaluation, form):
         return str(self.value)
@@ -1642,42 +1666,9 @@ class Real(Number):
         return self.make_boxes('System`TeXForm').boxes_to_tex(**options)
 
     def make_boxes(self, form):
-        from mathics.builtin.numeric import machine_precision
-        if self.to_sympy() == sympy.Float('0.0'):
-            if self.prec == machine_precision:
-                base, exp = ('0.', '0')
-            else:
-                base, exp = ('0.', '-' + str(dps(self.prec)))
-        else:
-            s = str(self.to_sympy())
-            if 'e' in s:
-                base, exp = list(map(str, s.split('e')))
-            else:
-                if self.to_sympy() < 0:
-                    prefix = '-'
-                    s = s[1:]
-                else:
-                    prefix = ''
-                iexp = s.index('.') - 1
-                if -6 < iexp < 6:
-                    base, exp = prefix + s, '0'
-                else:
-                    s = s.replace('.', '') + '0'
-                    base = s[0] + '.' + s[1:]
-                    base = prefix + base.lstrip('0')
-                    exp = str(iexp)
-            base, exp = base.rstrip('0'), exp.lstrip('+')
-        if exp != '0':
-            if form in ('System`InputForm', 'System`OutputForm',
-                        'System`FullForm'):
-                return Expression('RowBox', Expression(
-                    'List', base, String('*^'), String(exp)))
-            else:
-                return Expression('RowBox', Expression(
-                    'List', base, String('\u00d7'),
-                    Expression('SuperscriptBox', String('10'), String(exp))))
-        else:
-            return number_boxes(base)
+        from mathics.builtin.inout import number_form
+        _number_form_options['_Form'] = form    # passed to _NumberFormat
+        return number_form(self, dps(self.prec), None, None, _number_form_options)
 
     def to_sympy(self, **kwargs):
         return self.value
