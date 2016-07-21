@@ -1442,6 +1442,13 @@ class Number(Atom):
     def is_numeric(self):
         return True
 
+    def round(self, d):
+        if d is None:
+            return MachineReal(self.get_float_value())
+        else:
+            result = self.to_sympy().n(d)
+            return PrecisionReal(result, result._prec)
+
 
 def _ExponentFunction(value):
     n = value.get_int_value()
@@ -1515,9 +1522,6 @@ class Integer(Number):
         evaluation.check_stopped()
         return self
 
-    def round(self, precision):
-        return Real(sympy.Float(self.value, dps(precision)))
-
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Integer, self).get_sort_key(True)
@@ -1588,9 +1592,6 @@ class Rational(Number):
         evaluation.check_stopped()
         return self
 
-    def round(self, precision):
-        return Real(self.value.n(dps(precision)))
-
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Rational, self).get_sort_key(True)
@@ -1657,9 +1658,6 @@ class Real(Number):
     def evaluate(self, evaluation):
         evaluation.check_stopped()
         return self
-
-    def round(self, precision):
-        return Real(self.to_sympy().n(dps(precision)))
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:

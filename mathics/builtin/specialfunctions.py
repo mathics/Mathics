@@ -13,9 +13,9 @@ import mpmath
 from mathics.builtin.base import Builtin, SympyFunction
 from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
 from mathics.core.expression import Integer
-from mathics.core.numbers import mpmath2sympy
+from mathics.core.numbers import mpmath2sympy, machine_precision
 from mathics.core.convert import from_sympy
-from mathics.builtin.numeric import get_precision
+from mathics.core.numbers import prec as _prec
 
 
 class Erf(_MPMathMultiFunction):
@@ -702,12 +702,23 @@ class AiryAiZero(Builtin):
     def apply_N(self, k, precision, evaluation):
         'N[AiryAiZero[k_Integer], precision_]'
 
-        prec = get_precision(precision, evaluation)
+        if precision.get_name() == 'System`MachinePrecision':
+            d = None
+        else:
+            d = precision.get_float_value(n_evaluation=evaluation)
+            if d is None:
+                return evaluation.message('N', 'precbd', precision)
+
         k_int = k.get_int_value()
+
+        if d is None:
+            prec = machine_precision
+        else:
+            prec = _prec(d)
 
         with mpmath.workprec(prec):
             result = mpmath2sympy(mpmath.airyaizero(k_int), prec)
-        return from_sympy(result)
+        return from_sympy(result).round(d)
 
 
 class AiryBiZero(Builtin):
@@ -742,12 +753,25 @@ class AiryBiZero(Builtin):
     def apply_N(self, k, precision, evaluation):
         'N[AiryBiZero[k_Integer], precision_]'
 
-        prec = get_precision(precision, evaluation)
+        if precision.get_name() == 'System`MachinePrecision':
+            d = None
+        else:
+            d = precision.get_float_value(n_evaluation=evaluation)
+            if d is None:
+                return evaluation.message('N', 'precbd', precision)
+
+        k_int = k.get_int_value()
+
+        if d is None:
+            prec = machine_precision
+        else:
+            prec = _prec(d)
+
         k_int = k.get_int_value()
 
         with mpmath.workprec(prec):
             result = mpmath2sympy(mpmath.airybizero(k_int), prec)
-        return from_sympy(result)
+        return from_sympy(result).round(d)
 
 # Orthogonal Polynomials
 

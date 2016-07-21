@@ -14,12 +14,13 @@ from __future__ import absolute_import
 
 import sympy
 import mpmath
+import math
 
 from mathics.builtin.base import Builtin, SympyConstant
-from mathics.core.expression import Real, Expression, Integer, Symbol
+from mathics.core.expression import (
+    Expression, Real, Integer, Symbol, PrecisionReal, MachineReal)
 from mathics.core.numbers import dps
 
-from mathics.builtin.numeric import get_precision
 from mathics.builtin.arithmetic import _MPMathFunction
 
 
@@ -43,9 +44,17 @@ class Pi(SympyConstant):
 
     def apply_N(self, precision, evaluation):
         'N[Pi, precision_]'
-        precision = get_precision(precision, evaluation)
-        if precision is not None:
-            return Real(sympy.pi.n(dps(precision)), p=precision)
+        if precision.get_name() == 'System`MachinePrecision':
+            d = None
+        else:
+            d = precision.get_float_value(n_evaluation=evaluation)
+            if d is None:
+                return evaluation.message('N', 'precbd', precision)
+        if d is None:
+            return MachineReal(math.pi)
+        else:
+            result = sympy.pi.n(d)
+            return PrecisionReal(result, result._prec + 1)
 
 
 class E(SympyConstant):
@@ -71,9 +80,17 @@ class E(SympyConstant):
 
     def apply_N(self, precision, evaluation):
         'N[E, precision_]'
-        precision = get_precision(precision, evaluation)
-        if precision is not None:
-            return Real(sympy.E.n(dps(precision)), p=precision)
+        if precision.get_name() == 'System`MachinePrecision':
+            d = None
+        else:
+            d = precision.get_float_value(n_evaluation=evaluation)
+            if d is None:
+                return evaluation.message('N', 'precbd', precision)
+        if d is None:
+            return MachineReal(math.e)
+        else:
+            result = sympy.E.n(d)
+            return PrecisionReal(result, result._prec + 1)
 
 
 class GoldenRatio(SympyConstant):

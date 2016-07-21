@@ -20,20 +20,11 @@ from six.moves import range
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (dps, prec,
                                   convert_int_to_digit_list)
-from mathics.core.expression import (Integer, Rational, Real, Complex,
-                                     Expression, Number, Symbol, from_python)
+from mathics.core.expression import (
+    Integer, Rational, Real, Complex, Expression, Number, Symbol, from_python,
+    MachineReal, PrecisionReal)
 from mathics.core.convert import from_sympy
 from mathics.core.numbers import machine_precision
-
-
-def get_precision(precision, evaluation):
-    if precision.get_name() == 'System`MachinePrecision':
-        return machine_precision
-    elif isinstance(precision, (Integer, Rational, Real)):
-        return prec(float(precision.to_sympy()))
-    else:
-        evaluation.message('N', 'precbd', precision)
-        return None
 
 
 class N(Builtin):
@@ -46,7 +37,7 @@ class N(Builtin):
      = 3.1415926535897932384626433832795028841971693993751
 
     >> N[1/7]
-     = 0.142857142857142857
+     = 0.142857
 
     >> N[1/7, 5]
      = 0.14286
@@ -99,8 +90,8 @@ class N(Builtin):
     >> SetAttributes[g, NHoldRest]
     >> N[g[1, 1]]
      = g[1., 1]
-    >> N[g[2, 2]]
-     = 8.28318530717958648
+    >> N[g[2, 2]] // InputForm
+     = 8.283185307179586
 
     #> p=N[Pi,100]
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
@@ -108,6 +99,9 @@ class N(Builtin):
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
     #> 3.14159 * "a string"
      = 3.14159 a string
+
+    #> N[Pi, Pi]
+     = 3.14
     """
 
     messages = {
@@ -122,48 +116,53 @@ class N(Builtin):
     def apply_other(self, expr, prec, evaluation):
         'N[expr_, prec_]'
 
-        valid_prec = get_precision(prec, evaluation)
+        if prec.get_name() == 'System`MachinePrecision':
+            d = None
+        else:
+            d = prec.get_float_value(n_evaluation=evaluation)
+            if d is None:
+                return evaluation.message('N', 'precbd', prec)
 
-        if valid_prec is not None:
-            if expr.get_head_name() in ('System`List', 'System`Rule'):
-                return Expression(
-                    expr.head, *[self.apply_other(leaf, prec, evaluation)
-                                 for leaf in expr.leaves])
-            if isinstance(expr, Number):
-                return expr.round(valid_prec)
+        if expr.get_head_name() in ('System`List', 'System`Rule'):
+            return Expression(
+                expr.head, *[self.apply_other(leaf, prec, evaluation)
+                             for leaf in expr.leaves])
 
-            name = expr.get_lookup_name()
-            if name != '':
-                nexpr = Expression('N', expr, prec)
-                result = evaluation.definitions.get_value(
-                    name, 'System`NValues', nexpr, evaluation)
-                if result is not None:
-                    if not result.same(nexpr):
-                        result = Expression(
-                            'N', result, prec).evaluate(evaluation)
-                    return result
+        if isinstance(expr, Number):
+            return expr.round(d)
 
-            if expr.is_atom():
-                return expr.round(valid_prec)
-            else:
-                attributes = expr.head.get_attributes(evaluation.definitions)
-                if 'System`NHoldAll' in attributes:
-                    eval_range = []
-                elif 'System`NHoldFirst' in attributes:
-                    eval_range = list(range(1, len(expr.leaves)))
-                elif 'System`NHoldRest' in attributes:
-                    if len(expr.leaves) > 0:
-                        eval_range = (0,)
-                    else:
-                        eval_range = ()
+        name = expr.get_lookup_name()
+        if name != '':
+            nexpr = Expression('N', expr, prec)
+            result = evaluation.definitions.get_value(
+                name, 'System`NValues', nexpr, evaluation)
+            if result is not None:
+                if not result.same(nexpr):
+                    result = Expression(
+                        'N', result, prec).evaluate(evaluation)
+                return result
+
+        if expr.is_atom():
+            return expr.round(d)
+        else:
+            attributes = expr.head.get_attributes(evaluation.definitions)
+            if 'System`NHoldAll' in attributes:
+                eval_range = []
+            elif 'System`NHoldFirst' in attributes:
+                eval_range = list(range(1, len(expr.leaves)))
+            elif 'System`NHoldRest' in attributes:
+                if len(expr.leaves) > 0:
+                    eval_range = (0,)
                 else:
-                    eval_range = list(range(len(expr.leaves)))
-                head = Expression('N', expr.head, prec).evaluate(evaluation)
-                leaves = expr.leaves[:]
-                for index in eval_range:
-                    leaves[index] = Expression(
-                        'N', leaves[index], prec).evaluate(evaluation)
-                return Expression(head, *leaves)
+                    eval_range = ()
+            else:
+                eval_range = list(range(len(expr.leaves)))
+            head = Expression('N', expr.head, prec).evaluate(evaluation)
+            leaves = expr.leaves[:]
+            for index in eval_range:
+                leaves[index] = Expression(
+                    'N', leaves[index], prec).evaluate(evaluation)
+            return Expression(head, *leaves)
 
 
 class MachinePrecision(Predefined):
