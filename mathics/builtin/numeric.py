@@ -207,6 +207,11 @@ class Precision(Builtin):
      = MachinePrecision
     #> Precision[-0.000000000000000000000000000000000000]
      = 0.
+
+    #> 1.0000000000000000 // Precision
+     = MachinePrecision
+    #> 1.00000000000000000 // Precision
+     = 17.
     """
 
     rules = {
