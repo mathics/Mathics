@@ -182,7 +182,7 @@ class BaseExpression(KeyComparable):
     def get_int_value(self):
         return None
 
-    def get_real_value(self):
+    def get_float_value(self):
         return None
 
     def get_string_value(self):
@@ -1539,8 +1539,8 @@ class Integer(Number):
         else:
             return [0, 0, self.value, 0, 1]
 
-    def get_real_value(self):
-        return sympy.Rational(self.value, 1)
+    def get_float_value(self):
+        return float(self.value)
 
     def do_copy(self):
         return Integer(self.value)
@@ -1616,8 +1616,8 @@ class Rational(Number):
             # HACK: otherwise "Bus error" when comparing 1==1.
             return [0, 0, sympy.Float(self.value), 0, 1]
 
-    def get_real_value(self):
-        return self.value.n(machine_precision)
+    def get_float_value(self):
+        return float(self.value)
 
     def do_copy(self):
         return Rational(self.value)
@@ -1652,7 +1652,7 @@ class Real(Number):
                 value, type(value)))
 
         # return either machine precision or arbitrary precision real
-        if p is None or p <= machine_precision:
+        if p is None or p == machine_precision:
             return MachineReal.__new__(MachineReal, value)
         else:
             return PrecisionReal.__new__(PrecisionReal, value, p)
@@ -1681,7 +1681,7 @@ class Real(Number):
             return super(Real, self).get_sort_key(True)
         return [0, 0, self.value, 0, 1]
 
-    def get_real_value(self):
+    def get_float_value(self):
         return float(self.value)
 
     def do_copy(self):
