@@ -53,8 +53,7 @@ class Pi(SympyConstant):
         if d is None:
             return MachineReal(math.pi)
         else:
-            result = sympy.pi.n(d)
-            return PrecisionReal(result, result._prec + 1)
+            return PrecisionReal(sympy.pi.n(d))
 
 
 class E(SympyConstant):
@@ -89,8 +88,7 @@ class E(SympyConstant):
         if d is None:
             return MachineReal(math.e)
         else:
-            result = sympy.E.n(d)
-            return PrecisionReal(result, result._prec + 1)
+            return PrecisionReal(sympy.E.n(d))
 
 
 class GoldenRatio(SympyConstant):

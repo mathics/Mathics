@@ -1447,7 +1447,7 @@ class Number(Atom):
             return MachineReal(self.get_float_value())
         else:
             result = self.to_sympy().n(d)
-            return PrecisionReal(result, result._prec)
+            return PrecisionReal(result)
 
 
 def _ExponentFunction(value):
@@ -1641,7 +1641,7 @@ class Real(Number):
         if p is None or p == machine_precision:
             return MachineReal.__new__(MachineReal, value)
         else:
-            return PrecisionReal.__new__(PrecisionReal, value, p)
+            return PrecisionReal.__new__(PrecisionReal, value)
 
     def boxes_to_text(self, **options):
         return self.make_boxes('System`OutputForm').boxes_to_text(**options)
@@ -1744,10 +1744,9 @@ class PrecisionReal(Real):
     value is stored internally as a sympy.Float.
     prec is the number of bits of precision (differs from Mathematica).
     '''
-    def __new__(cls, value, prec):
+    def __new__(cls, value):
         self = Number.__new__(cls)
         self.value = sympy.Float(value)
-        self.prec = prec
         return self
 
     def to_python(self, *args, **kwargs):
@@ -1764,7 +1763,7 @@ class PrecisionReal(Real):
         return False
 
     def get_precision(self):
-        return self.prec
+        return self.value._prec + 1
 
     def make_boxes(self, form):
         from mathics.builtin.inout import number_form
@@ -1772,10 +1771,10 @@ class PrecisionReal(Real):
         return number_form(self, dps(self.get_precision()), None, None, _number_form_options)
 
     def __getnewargs__(self):
-        return (self.value, self.prec)
+        return (self.value,)
 
     def do_copy(self):
-        return PrecisionReal(self.value, self.prec)
+        return PrecisionReal(self.value)
 
 
 class Complex(Number):

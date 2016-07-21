@@ -142,7 +142,7 @@ class Converter(object):
             if isinstance(result, float):
                 return ma.MachineReal(result)
             elif isinstance(result, sympy.Float):
-                return ma.PrecisionReal(result, result._prec + 1)
+                return ma.PrecisionReal(result)
 
         # Put into standard form mantissa * base ^ n
         s = s.split('.')
@@ -186,7 +186,7 @@ class Converter(object):
             return ma.MachineReal(x)
         else:
             result = sympy.Float(result, prec10)
-            return ma.PrecisionReal(result, result._prec + 1)
+            return ma.PrecisionReal(result)
 
 
 converter = Converter()
