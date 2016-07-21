@@ -18,13 +18,13 @@ from mathics.builtin.base import (
     PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
-from mathics.core.expression import Expression, String, Symbol, Integer, Number, strip_context, from_python
+from mathics.core.expression import Expression, String, Symbol, Integer, Number, Real, strip_context, from_python
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
 from mathics.builtin.algebra import cancel
 from mathics.algorithm.introselect import introselect
-from mathics.algorithm.clusters import optimize, agglomerate, PrecomputedDistances, LazyDistances
+from mathics.algorithm.clusters import optimize, agglomerate, kmeans, PrecomputedDistances, LazyDistances
 from mathics.algorithm.clusters import AutomaticSplitCriterion, AutomaticMergeCriterion
 from mathics.builtin.options import options_to_rules
 
@@ -3636,6 +3636,10 @@ class _IllegalDistance(Exception):
         self.distance = distance
 
 
+class _IllegalDataPoint(Exception):
+    pass
+
+
 class _PrecomputedDistances(PrecomputedDistances):
     # computes all n^2 distances for n points with one big evaluation in the beginning.
 
@@ -3677,6 +3681,16 @@ class _LazyDistances(LazyDistances):
         return mpf(sympy_d)
 
 
+# to_precision_float should be somewhere more central than this.
+def _to_precision_float(x):
+    if isinstance(x, Real):
+        return x.to_sympy().num
+    elif isinstance(x, Integer):
+        return mpf(x.get_int_value())
+    else:
+        raise _IllegalDataPoint
+
+
 class _Cluster(Builtin):
     options = {
         'Method': 'Optimize',
@@ -3686,22 +3700,24 @@ class _Cluster(Builtin):
 
     messages = {
         'amtd': '`1` failed to pick a suitable distance function for `2`.',
-        'bdmtd': 'Method in `` must be either "Optimize" or "Agglomerate".',
+        'bdmtd': 'Method in `` must be either "Optimize", "Agglomerate" or "KMeans".',
         'intpm': 'Positive integer expected at position 2 in ``.',
         'list': 'Expected a list or a rule with equally sized lists at position 1 in ``.',
         'nclst': 'Cannot find more clusters than there are elements: `1` is larger than `2`.',
         'xnum': 'The distance function returned ``, which is not a non-negative real value.',
         'rseed': 'The random seed specified through `` must be an integer or Automatic.',
+        'kmsud': 'KMeans only supports SquaredEuclideanDistance as distance measure.',
     }
 
     _criteria = {
         'Optimize': AutomaticSplitCriterion,
         'Agglomerate': AutomaticMergeCriterion,
+        'KMeans': None,
     }
 
     def _cluster(self, p, k, mode, evaluation, options, expr):
         method_string, method = self.get_option_string(options, 'Method', evaluation)
-        if method_string not in ('Optimize', 'Agglomerate'):
+        if method_string not in ('Optimize', 'Agglomerate', 'KMeans'):
             evaluation.message(self.get_name(), 'bdmtd', Expression('Rule', 'Method', method))
             return
 
@@ -3717,6 +3733,10 @@ class _Cluster(Builtin):
 
         if dist_p is None or len(dist_p) != len(repr_p):
             evaluation.message(self.get_name(), 'list', expr)
+            return
+
+        if not dist_p:
+            return Expression('List')
 
         if k is not None:  # the number of clusters k is specified as an integer.
             if not isinstance(k, Integer):
@@ -3734,8 +3754,10 @@ class _Cluster(Builtin):
             elif py_k == len(dist_p):
                 return Expression('List', [Expression('List', q) for q in repr_p])
         else:  # automatic detection of k. choose a suitable method here.
+            if len(dist_p) <= 2:
+                return Expression('List', *repr_p)
             constructor = self._criteria.get(method_string)
-            py_k = (constructor, {})
+            py_k = (constructor, {}) if constructor else None
 
         seed_string, seed = self.get_option_string(options, 'RandomSeed', evaluation)
         if seed_string == 'Automatic':
@@ -3756,6 +3778,10 @@ class _Cluster(Builtin):
                 evaluation.message(self.get_name(), 'amtd', name_of_builtin, Expression('List', *dist_p))
                 return
 
+        if method_string == 'KMeans' and distance_function != 'SquaredEuclideanDistance':
+            evaluation.message(self.get_name(), 'kmsud')
+            return
+
         def df(i, j):
             return Expression(distance_function, i, j)
 
@@ -3764,8 +3790,14 @@ class _Cluster(Builtin):
                 clusters = self._agglomerate(mode, repr_p, dist_p, py_k, df, evaluation)
             elif method_string == 'Optimize':
                 clusters = optimize(repr_p, py_k, _LazyDistances(df, dist_p, evaluation), mode, py_seed)
+            elif method_string == 'KMeans':
+                clusters = self._kmeans(mode, repr_p, dist_p, py_k, py_seed, evaluation)
         except _IllegalDistance as e:
             evaluation.message(self.get_name(), 'xnum', e.distance)
+            return
+        except _IllegalDataPoint:
+            name_of_builtin = strip_context(self.get_name())
+            evaluation.message(self.get_name(), 'amtd', name_of_builtin, Expression('List', *dist_p))
             return
 
         if mode == 'clusters':
@@ -3784,7 +3816,31 @@ class _Cluster(Builtin):
                 df, dist_p, evaluation), mode)
 
         return clusters
-    
+
+    def _kmeans(self, mode, repr_p, dist_p, py_k, py_seed, evaluation):
+        def convert_scalars(p):
+            for q in p:
+                yield _to_precision_float(q)
+
+        def convert_vectors(p):
+            d = None
+            for q in p:
+                if q.get_head_name() != 'System`List':
+                    raise _IllegalDataPoint
+                v = list(convert_scalars(q.leaves))
+                if d is None:
+                    d = len(v)
+                elif len(v) != d:
+                    raise _IllegalDataPoint
+                yield v
+
+        if dist_p[0].is_numeric():
+            numeric_p = [[x] for x in convert_scalars(dist_p)]
+        else:
+            numeric_p = list(convert_vectors(dist_p))
+
+        return kmeans(numeric_p, repr_p, py_k, mode, py_seed)
+
 
 class FindClusters(_Cluster):
     """
