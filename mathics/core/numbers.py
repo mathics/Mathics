@@ -6,13 +6,29 @@ from __future__ import absolute_import
 
 import sympy
 import mpmath
-from math import log
+from math import log, ceil
 from six.moves import range
 
 from mathics.core.util import unicode_superscript
 
 
+C = log(10, 2)  # ~ 3.3219280948873626
+
+
+# Number of bits of machine precision
 machine_precision = 53
+
+
+def reconstruct_digits(bits):
+    '''
+    Number of digits needed to reconstruct a number with given bits of precision.
+
+    >>> reconstruct_digits(53)
+    17
+    '''
+    return int(ceil(bits / C) + 1)
+
+machine_digits = reconstruct_digits(53)     # 17
 
 
 def get_type(value):
@@ -64,9 +80,6 @@ def mpmath2sympy(value, prec):
         return sympy.Float(str(value), dps(prec))
     else:
         return None
-
-C = log(10, 2)  # ~ 3.3219280948873626
-
 
 def dps(prec):
     return max(1, int(round(int(prec) / C - 1)))
@@ -143,7 +156,7 @@ def convert_base(x, base, precision=10):
     def convert(x, base, exponents):
         out = []
         for e in exponents:
-            d = int(x // (base ** e))
+            d = int(x / (base ** e))
             x -= d * (base ** e)
             out.append(digits[d])
             if x == 0 and e < 0:
@@ -154,7 +167,7 @@ def convert_base(x, base, precision=10):
     if sign == -1:
         int_part.insert(0, '-')
 
-    if (isinstance(x, float)):
+    if isinstance(x, (float, sympy.Float)):
         fexps = list(range(-1, -int(precision + 1), -1))
         real_part = convert(x - int(x), base, fexps)
 

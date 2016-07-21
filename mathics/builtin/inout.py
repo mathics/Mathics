@@ -14,15 +14,15 @@ import sympy
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator)
-from mathics.builtin.numeric import machine_precision
 from mathics.builtin.tensors import get_dimensions
 from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
     Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError,
-    from_python)
-from mathics.core.numbers import dps, convert_base
+    from_python, MachineReal, PrecisionReal)
+from mathics.core.numbers import (
+    dps, convert_base, machine_precision, reconstruct_digits)
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
@@ -2108,7 +2108,7 @@ class BaseForm(Builtin):
      = ea_16
 
     >> BaseForm[12.3, 2]
-     = 1100.010011001100110011_2
+     = 1100.01001100110011001_2
 
     >> BaseForm[-42, 16]
      = -2a_16
@@ -2131,6 +2131,9 @@ class BaseForm(Builtin):
      = 0_2
     #> BaseForm[0.0, 2]
      = 0.0_2
+
+    #> BaseForm[N[Pi, 30], 16]
+     = 3.243f6a8885a308d313198a2e_16
     """
 
     messages = {
@@ -2150,13 +2153,20 @@ class BaseForm(Builtin):
             evaluation.message('BaseForm', 'intpm', expr, n)
             return
 
-        if not (isinstance(expr, Integer) or isinstance(expr, Real)):
+        if isinstance(expr, PrecisionReal):
+            x = expr.to_sympy()
+            p = reconstruct_digits(expr.get_precision())
+        elif isinstance(expr, MachineReal):
+            x = expr.get_float_value()
+            p = reconstruct_digits(machine_precision)
+        elif isinstance(expr, Integer):
+            x = expr.get_int_value()
+            p = 0
+        else:
             return Expression("MakeBoxes", expr, f)
 
-        p = dps(expr.get_precision()) if isinstance(expr, Real) else 0
-
         try:
-            val = convert_base(expr.get_real_value(), base, p)
+            val = convert_base(x, base, p)
         except ValueError:
             return evaluation.message('BaseForm', 'basf', n)
 
@@ -2164,4 +2174,4 @@ class BaseForm(Builtin):
             return from_python("%s_%d" % (val, base))
         else:
             return Expression(
-                'SubscriptBox', from_python(val), from_python(base))
+                'SubscriptBox', String(val), String(base))
