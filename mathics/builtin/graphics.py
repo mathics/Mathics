@@ -19,7 +19,7 @@ from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
-    Expression, Integer, Real, NumberError, Symbol, strip_context,
+    Expression, Integer, Real, Symbol, strip_context,
     system_symbols, system_symbols_dict)
 
 
@@ -46,7 +46,7 @@ def get_class(name):
 
 def coords(value):
     if value.has_form('List', 2):
-        x, y = value.leaves[0].to_number(), value.leaves[1].to_number()
+        x, y = value.leaves[0].get_float_value(), value.leaves[1].get_float_value()
         if x is None or y is None:
             raise CoordinatesError
         return (x, y)
@@ -246,10 +246,8 @@ class _Color(_GraphicsElement):
             else:
                 leaves = item.leaves
             if len(leaves) in self.components_sizes:
-                try:
-                    components = [value.to_number(
-                        min=0, max=1) for value in leaves]
-                except NumberError:
+                components = [value.get_float_value() for value in leaves]
+                if None in components or not all(0 <= c <= 1 for c in components):
                     raise ColorError
                 if len(components) < len(self.default_components):
                     components.extend(self.default_components[
@@ -428,7 +426,7 @@ class _Thickness(_GraphicsElement):
     def init(self, graphics, item=None, value=None):
         super(_Thickness, self).init(graphics, item)
         if item is not None:
-            self.value = item.leaves[0].to_number()
+            self.value = item.leaves[0].get_float_value()
         elif value is not None:
             self.value = value
         else:
@@ -643,10 +641,10 @@ class _RoundBox(_GraphicsElement):
         elif len(item.leaves) == 2:
             r = item.leaves[1]
             if r.has_form('List', 2):
-                rx = r.leaves[0].to_number()
-                ry = r.leaves[1].to_number()
+                rx = r.leaves[0].get_float_value()
+                ry = r.leaves[1].get_float_value()
             else:
-                rx = ry = r.to_number()
+                rx = ry = r.get_float_value()
         self.r = self.c.add(rx, ry)
 
     def extent(self):
@@ -1255,11 +1253,7 @@ class GraphicsBox(BoxConstruct):
         if aspect_ratio == Symbol('Automatic'):
             aspect = None
         else:
-            try:
-                aspect = aspect_ratio.to_number()
-            except NumberError:
-                # TODO: Custom message - MMA uses a tooltip over red graphics
-                aspect = None
+            aspect = aspect_ratio.get_float_value()
 
         image_size = graphics_options['System`ImageSize']
         image_size = image_size.get_name()
@@ -1300,11 +1294,7 @@ class GraphicsBox(BoxConstruct):
         if not isinstance(plot_range, list) or len(plot_range) != 2:
             raise BoxConstructError
 
-        try:
-            elements = GraphicsElements(leaves[
-                                        0], options['evaluation'], neg_y)
-        except NumberError:
-            raise BoxConstructError
+        elements = GraphicsElements(leaves[0], options['evaluation'], neg_y)
 
         def calc_dimensions(final_pass=True):
             """
@@ -1712,19 +1702,22 @@ class Blend(Builtin):
         except ColorError:
             evaluation.message('Blend', 'arg', Expression('List', colors_orig))
             return
-        try:
-            if u.has_form('List', None):
-                values = [value.to_number() for value in u.leaves]
-                if len(u.leaves) != len(colors):
-                    raise NumberError(None)  # pseudo NumberError caught below
-                use_list = True
-            else:
-                values = u.to_number(min=0, max=1)
-                use_list = False
-        except NumberError:
-            evaluation.message('Blend', 'argl', u, Expression(
+
+        if u.has_form('List', None):
+            values = [value.get_float_value() for value in u.leaves]
+            if None in values:
+                values = None
+            if len(u.leaves) != len(colors):
+                values = None
+            use_list = True
+        else:
+            values = u.get_float_value()
+            if not (0 <= values <= 1):
+                values = None
+            use_list = False
+        if values is None:
+            return evaluation.message('Blend', 'argl', u, Expression(
                 'List', colors_orig))
-            return
 
         if use_list:
             return self.do_blend(colors, values).to_expr()

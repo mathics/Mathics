@@ -28,8 +28,6 @@ def reconstruct_digits(bits):
     '''
     return int(ceil(bits / C) + 1)
 
-machine_digits = reconstruct_digits(53)     # 17
-
 
 def get_type(value):
     if isinstance(value, sympy.Integer):

@@ -352,7 +352,7 @@ class Chop(Builtin):
     def apply(self, expr, delta, evaluation):
         'Chop[expr_, delta_:(10^-10)]'
 
-        delta = delta.evaluate(evaluation).get_real_value()
+        delta = delta.evaluate(evaluation).get_float_value()
         if delta is None or delta < 0:
             return evaluation.message('Chop', 'tolnn')
 

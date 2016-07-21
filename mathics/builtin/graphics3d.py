@@ -13,7 +13,7 @@ from six.moves import map
 from six.moves import range
 
 import numbers
-from mathics.core.expression import (Expression, NumberError, from_python,
+from mathics.core.expression import (Expression, from_python,
                                      system_symbols_dict)
 from mathics.builtin.base import BoxConstructError, Builtin, InstancableBuiltin
 from .graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
@@ -27,9 +27,9 @@ from django.utils.html import escape as escape_html
 
 def coords3D(value):
     if value.has_form('List', 3):
-        return (value.leaves[0].to_number(),
-                value.leaves[1].to_number(),
-                value.leaves[2].to_number())
+        return (value.leaves[0].get_float_value(),
+                value.leaves[1].get_float_value(),
+                value.leaves[2].get_float_value())
     raise CoordinatesError
 
 
@@ -292,10 +292,7 @@ class Graphics3DBox(GraphicsBox):
         if not isinstance(plot_range, list) or len(plot_range) != 3:
             raise BoxConstructError
 
-        try:
-            elements = Graphics3DElements(leaves[0], evaluation)
-        except NumberError:
-            raise BoxConstructError
+        elements = Graphics3DElements(leaves[0], evaluation)
 
         def calc_dimensions(final_pass=True):
             if 'System`Automatic' in plot_range:
@@ -899,18 +896,15 @@ class Cuboid(Builtin):
     def apply_full(self, xmin, ymin, zmin, xmax, ymax, zmax, evaluation):
         'Cuboid[{xmin_, ymin_, zmin_}, {xmax_, ymax_, zmax_}]'
 
-        try:
-            xmin, ymin, zmin = [value.to_number(n_evaluation=evaluation)
-                                for value in (xmin, ymin, zmin)]
-            xmax, ymax, zmax = [value.to_number(n_evaluation=evaluation)
-                                for value in (xmax, ymax, zmax)]
-        except NumberError:
-            # TODO
-            return
+        xmin, ymin, zmin = [value.get_float_value(n_evaluation=evaluation)
+                            for value in (xmin, ymin, zmin)]
+        xmax, ymax, zmax = [value.get_float_value(n_evaluation=evaluation)
+                            for value in (xmax, ymax, zmax)]
+        if None in (xmin, ymin, zmin, xmax, ymax, zmax):
+            return  # TODO
 
         if (xmax <= xmin) or (ymax <= ymin) or (zmax <= zmin):
-            # TODO
-            return
+            return  # TODO
 
         polygons = [
             # X
@@ -970,12 +964,11 @@ class Cuboid(Builtin):
 
     def apply_min(self, xmin, ymin, zmin, evaluation):
         'Cuboid[{xmin_, ymin_, zmin_}]'
-        try:
-            xmin, ymin, zmin = [value.to_number(
-                n_evaluation=evaluation) for value in (xmin, ymin, zmin)]
-        except NumberError:
-            # TODO
-            return
+        xmin, ymin, zmin = [value.get_float_value(n_evaluation=evaluation)
+                            for value in (xmin, ymin, zmin)]
+        if None in (xmin, ymin, zmin):
+            return  # TODO
+
         (xmax, ymax, zmax) = (from_python(value + 1)
                               for value in (xmin, ymin, zmin))
         (xmin, ymin, zmin) = (from_python(value)

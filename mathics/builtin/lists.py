@@ -1531,7 +1531,7 @@ class _IterationFunction(Builtin):
         '%(name)s[expr_, {imax_}]'
 
         index = 0
-        imax = imax.evaluate(evaluation).get_real_value()
+        imax = imax.evaluate(evaluation).get_float_value()
         if imax is None:
             if self.throw_iterb:
                 evaluation.message(self.get_name(), 'iterb')

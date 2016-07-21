@@ -69,11 +69,6 @@ class BoxError(Exception):
         self.form = form
 
 
-class NumberError(Exception):
-    def __init__(self, value):
-        super(NumberError, self).__init__()
-
-
 class ExpressionPointer(object):
     def __init__(self, parent, position):
         self.parent = parent
@@ -182,7 +177,11 @@ class BaseExpression(KeyComparable):
     def get_int_value(self):
         return None
 
-    def get_float_value(self):
+    def get_float_value(self, n_evaluation=None):
+        if n_evaluation is not None:
+            value = Expression('N', self).evaluate(n_evaluation)
+            if isinstance(value, Number):
+                return value.get_float_value()
         return None
 
     def get_string_value(self):
@@ -367,20 +366,6 @@ class BaseExpression(KeyComparable):
             rule = Rule(item.leaves[0], item.leaves[1])
             rules.append(rule)
         return rules
-
-    def to_number(self, min=None, max=None, n_evaluation=None):
-        if n_evaluation is not None:
-            value = Expression('N', self).evaluate(n_evaluation)
-        else:
-            value = self
-        number = value.get_real_value()
-        if number is None:
-            raise NumberError(self)
-        if min is not None and number < min:
-            number = min
-        if max is not None and number > max:
-            number = max
-        return float(number)
 
     def to_sympy(self, **kwargs):
         raise NotImplementedError
@@ -709,14 +694,14 @@ class Expression(BaseExpression):
                     name = leaf.get_name()
                     if leaf.has_form('Power', 2):
                         var = leaf.leaves[0].get_name()
-                        exp = leaf.leaves[1].get_real_value()
+                        exp = leaf.leaves[1].get_float_value()
                         if var and exp is not None:
                             exps[var] = exps.get(var, 0) + exp
                     elif name:
                         exps[name] = exps.get(name, 0) + 1
             elif self.has_form('Power', 2):
                 var = self.leaves[0].get_name()
-                exp = self.leaves[1].get_real_value()
+                exp = self.leaves[1].get_float_value()
                 if var and exp is not None:
                     exps[var] = exps.get(var, 0) + exp
             if exps:
@@ -889,8 +874,8 @@ class Expression(BaseExpression):
                         options['show_string_characters'] = value
                     elif name == 'System`ImageSizeMultipliers':
                         if value.has_form('List', 2):
-                            m1 = value.leaves[0].get_real_value()
-                            m2 = value.leaves[1].get_real_value()
+                            m1 = value.leaves[0].get_float_value()
+                            m2 = value.leaves[1].get_float_value()
                             if m1 is not None and m2 is not None:
                                 options = options.copy()
                                 options['image_size_multipliers'] = (m1, m2)
@@ -1539,7 +1524,7 @@ class Integer(Number):
         else:
             return [0, 0, self.value, 0, 1]
 
-    def get_float_value(self):
+    def get_float_value(self, n_evaluation=None):
         return float(self.value)
 
     def do_copy(self):
@@ -1616,7 +1601,7 @@ class Rational(Number):
             # HACK: otherwise "Bus error" when comparing 1==1.
             return [0, 0, sympy.Float(self.value), 0, 1]
 
-    def get_float_value(self):
+    def get_float_value(self, n_evaluation=None):
         return float(self.value)
 
     def do_copy(self):
@@ -1681,7 +1666,7 @@ class Real(Number):
             return super(Real, self).get_sort_key(True)
         return [0, 0, self.value, 0, 1]
 
-    def get_float_value(self):
+    def get_float_value(self, n_evaluation=None):
         return float(self.value)
 
     def do_copy(self):
