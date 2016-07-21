@@ -1707,7 +1707,7 @@ class MachineReal(Real):
         self.value = float(value)
         return self
 
-    def to_python(self):
+    def to_python(self, *args, **kwargs):
         return self.value
 
     def to_sympy(self):
@@ -1752,7 +1752,7 @@ class PrecisionReal(Real):
         self.prec = prec
         return self
 
-    def to_python(self):
+    def to_python(self, *args, **kwargs):
         return float(self.value)
 
     def to_sympy(self):
