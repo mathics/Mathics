@@ -1669,9 +1669,6 @@ class Real(Number):
     def get_float_value(self, n_evaluation=None):
         return float(self.value)
 
-    def do_copy(self):
-        return Real(self.value, self.prec)
-
     def __eq__(self, other):
         if isinstance(other, Real):
             # MMA Docs: "Approximate numbers that differ in their last seven
@@ -1738,6 +1735,9 @@ class MachineReal(Real):
     def __getnewargs__(self):
         return (self.value,)
 
+    def do_copy(self):
+        return MachineReal(self.value)
+
 
 class PrecisionReal(Real):
     '''
@@ -1775,6 +1775,9 @@ class PrecisionReal(Real):
 
     def __getnewargs__(self):
         return (self.value, self.prec)
+
+    def do_copy(self):
+        return PrecisionReal(self.value, self.prec)
 
 
 class Complex(Number):
