@@ -4,7 +4,7 @@
 from __future__ import division
 
 import random
-from itertools import chain
+from itertools import chain, islice
 import bisect
 import math
 
@@ -23,10 +23,15 @@ from mpmath import fsum
 # annual conference on neural information processing systems (NIPS), pages 281-288, December 2003.
 # [Desgraupes2013] Bernard Desgraupes, Package clusterCrit for R: Clustering Indices, available online at
 # https://cran.r-project.org/web/packages/clusterCrit/vignettes/clusterCrit.pdf
-# [Greutert2003] Andreas Greutert. Methoden zur Schätzung der Clusteranzahl. Ausgabe: 29. Oktober 2003.
+# [Greutert2003] Andreas Greutert, "Methoden zur Schätzung der Clusteranzahl", Ausgabe: 29. Oktober 2003.
 # Diplomarbeit. ETH Zürich.
 # [Frey2007] Brendan J. Frey, Delbert Dueck, "Clustering by Passing Messages Between Data Points",
 # Science 16 Feb 2007: Vol. 315, Issue 5814, pp. 972-976
+# [Arthur2007] Arthur, D.; Vassilvitskii, S. (2007). "k-means++: the advantages of careful seeding",
+# Proceedings of the eighteenth annual ACM-SIAM symposium on Discrete algorithms. Society for Industrial and
+# Applied Mathematics Philadelphia, PA, USA. pp. 1027–1035.
+# [Hamerly2010] Greg Hamerly, Making k-means even faster In proceedings of the 2010 SIAM international
+# conference on data mining (SDM 2010), April 2010.
 
 # for agglomerative clustering, we use [Kurita1991].
 
@@ -97,6 +102,14 @@ def _components(clusters, n):
         for j in c:
             components[j] = component_index
     return components
+
+
+def _clusters(x, a, k):
+    clusters = [[] for _ in range(k)]
+    add = [c.append for c in clusters]
+    for i, j in enumerate(a):
+        add[j](x[i])
+    return clusters
 
 
 def _ratio_bigger_than(a, b):
@@ -904,3 +917,237 @@ def agglomerate(points, k, distances, mode='clusters'):
             raise ValueError('illegal mode %s' % mode)
 
     return reduce()
+
+
+class _KMeans:
+    def __init__(self, x, d, epsilon):
+        self.x = x
+        self.d = d
+        self.epsilon = epsilon
+
+    def _pick_initial(self):
+        # use k-means++, see [Arthur2007]
+
+        x = self.x
+        d = self.d
+
+        candidates = list(range(len(x)))
+
+        i = random.randint(0, len(candidates) - 1)
+        new_centroid = x[candidates[i]]
+        yield new_centroid
+
+        def swap_delete(a, i):
+            j = len(a) - 1
+            a[i] = a[j]
+            del a[j]
+
+        def random_choice(m, p):  # weighted random choice
+            r = random.uniform(0, m)
+            for i, z in enumerate(chain(p, [None])):
+                if z is None:
+                    return i - 1
+                if r < z:
+                    return i
+                r -= z
+
+        def d2(x, y):
+            distance = d(x, y)
+            return distance * distance
+
+        swap_delete(candidates, i)
+
+        distances = [d2(new_centroid, x[candidate]) for candidate in candidates]
+        sum_of_distances = sum(distances)
+        while True:
+            i = random_choice(sum_of_distances, distances)
+            new_centroid = x[candidates[i]]
+            yield new_centroid
+
+            swap_delete(candidates, i)
+            sum_of_distances -= distances[i]
+            swap_delete(distances, i)
+
+            for i, candidate_distance in enumerate(zip(candidates, distances)):
+                candidate, old_distance = candidate_distance
+                new_distance = d2(new_centroid, x[candidate])
+                if new_distance < old_distance:
+                    distances[i] = new_distance
+                    sum_of_distances -= old_distance - new_distance
+
+    def _distances(self, c):
+        d = self.d
+        k = len(c)
+
+        between = {}
+        for j1, c1 in enumerate(c):
+            z = j1 * k
+            for j2, c2 in enumerate(c[:j1]):
+                between[z + j2] = d(c1, c2)
+
+        return lambda x, y: between[max(x, y) * k + min(x, y)]
+
+    def _kmeans(self, k):
+        # implements an improved version of kmeans, see [Hamerly2010].
+        x = self.x
+        d = self.d
+
+        assert k <= len(x)
+
+        # pick initial clusters. actually quite an important step.
+        c = list(islice(self._pick_initial(), 0, k))
+        assert len(c) == k
+
+        q = [0] * len(c)
+        cc = [[0] * len(x[0]) for _ in range(k)]
+
+        a = [0] * len(x)
+        u = [0] * len(x)
+        l = [0] * len(x)
+
+        for i, xi in enumerate(x):
+            ai, u[i], _, l[i] = _smallest2(d(xi, cj) for cj in c)
+            q[ai] += 1
+            cc[ai] = [a + b for a, b in zip(cc[ai], xi)]
+            a[i] = ai
+
+        s = [0] * len(c)
+        p = [0] * len(c)
+        change = None
+
+        while change is None or change > self.epsilon:
+            # find cluster distances
+            cd = self._distances(c)
+            s = [min(cd(j1, j2) for j2 in range(k) if j2 != j1) for j1 in range(k)]
+
+            # find new assignments
+            for i, ai in enumerate(a):
+                m = max(s[ai] / 2., l[i])
+
+                if u[i] > m:
+                    xi = x[i]
+                    u[i] = d(xi, c[ai])
+
+                    if u[i] > m:
+                        new_ai, u[i], _, l[i] = _smallest2(d(xi, cj) for cj in c)
+
+                        if new_ai != ai:
+                            q[ai] -= 1
+                            q[new_ai] += 1
+                            cc[ai] = [a - b for a, b in zip(cc[ai], xi)]
+                            cc[new_ai] = [a + b for a, b in zip(cc[new_ai], xi)]
+
+                            a[i] = new_ai
+
+            # move centers
+            empty_cluster = False
+
+            for j in range(len(c)):
+                qj = q[j]
+                if qj == 0:
+                    empty_cluster = True
+                    break
+                c_old = c[j]
+                c_new = [ccj / qj for ccj in cc[j]]
+                distance = d(c_old, c_new)
+                c[j] = c_new
+                p[j] = distance
+
+            if empty_cluster:
+                break
+
+            # update bounds
+            r1, p1, r2, p2 = _largest2(p)
+            for i, ai in enumerate(a):
+                u[i] += p[ai]
+                if r1 == ai:
+                    l[i] -= p2
+                else:
+                    l[i] -= p1
+
+            change = sum(p)
+
+        # compute an approximate silhouette index
+        within = [0] * len(c)
+        for i, ai in enumerate(a):
+            within[ai] += d(x[i], c[ai])
+        for j in range(len(c)):
+            if q[j] == 1:
+                return a, -1.  # no good config
+            within[j] /= q[j] - 1
+
+        silhouette = fsum(_silhouette(a, b) for a, b in zip(within, s)) / len(c)
+        return a, silhouette
+
+    def _optimize(self, solutions):
+        best_a = None
+        best_silhouette = None
+        best_k = None
+
+        for a, silhouette, k in solutions():
+            if best_silhouette is None:
+                pass
+            elif silhouette <= best_silhouette:
+                break
+            best_silhouette = silhouette
+            best_a = a
+            best_k = k
+
+        return best_a, best_silhouette, best_k
+
+    def with_k(self, k):
+        def solutions():
+            while True:
+                a, s = self._kmeans(k)
+                yield a, s, k
+
+        return self._optimize(solutions)
+
+    def without_k(self):
+        def solutions():
+            k = 2
+            while k < len(self.x):
+                yield self.with_k(k)
+                k += 1
+
+        return self._optimize(solutions)
+
+
+def _squared_euclidean_distance(a, b):
+    s = None
+    for x, y in zip(a, b):
+        d = x - y
+        if s is None:
+            s = d * d
+        else:
+            s += d * d
+    return s
+
+
+def _clusters(x, a, k):
+    clusters = [[] for _ in range(k)]
+    add = [c.append for c in clusters]
+    for i, j in enumerate(a):
+        add[j](x[i])
+    return clusters
+
+
+def kmeans(x, x_repr, k, mode, seed):
+    assert len(x) == len(x_repr)
+
+    random.seed(seed)
+    epsilon = 1e-10  # FIXME
+    km = _KMeans(x, _squared_euclidean_distance, epsilon)
+
+    if k is None:
+        a, _, k = km.without_k()
+    else:
+        assert 1 < k < len(x)
+        a, _, k = km.with_k(k)
+
+    if mode == 'clusters':
+        return _clusters(x_repr, a, k)
+    elif mode == 'components':
+        return a
+    else:
+        raise ValueError('illegal mode %s' % mode)
