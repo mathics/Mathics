@@ -21,7 +21,7 @@ from mathics.core.expression import (
     Expression, Real, Integer, Symbol, PrecisionReal, MachineReal, Number)
 from mathics.core.numbers import dps, get_precision, PrecisionValueError
 
-from mathics.builtin.numeric import GenericPrecisionComputation
+from mathics.builtin.numeric import Fold
 from mathics.builtin.arithmetic import _MPMathFunction
 
 
@@ -921,53 +921,35 @@ class AngleVector(Builtin):
     }
 
 
-class AnglePathComputation(GenericPrecisionComputation):
-    def __init__(self, x0, y0, phi0, steps, parse):
-        self._origin = (x0, y0, phi0)
-        self._steps = steps
+class AnglePathFold(Fold):
+    def __init__(self, parse):
         self._parse = parse
 
-    def _compute(self, convert, functions):
-        x0, y0, phi0 = convert(*self._origin)
+    def _fold(self, state, steps, convert, math):
+        sin = math.sin
+        cos = math.cos
         parse = self._parse
 
         def parse_and_convert(step):
             return convert(*parse(step))
 
-        return [Expression('List', x, y) for x, y in
-                AnglePathComputation._path(
-                    x0, y0, phi0,
-                    self._steps,
-                    parse_and_convert,
-                    functions.sin, functions.cos)]
-
-    @staticmethod
-    def _path(x0, y0, phi0, steps, parse, sin, cos):
-        yield x0, y0
-
-        x = x0
-        y = y0
-        phi = phi0
+        x, y, phi = state
 
         for step in steps:
-            distance, delta_phi = parse(step)
+            distance, delta_phi = parse_and_convert(step)
 
-            if phi is None:
-                phi = delta_phi
-            else:
-                phi += delta_phi
-
+            phi = phi + delta_phi if phi else delta_phi
             dx = cos(phi)
             dy = sin(phi)
 
-            if distance is not None:
+            if distance:
                 dx *= distance
                 dy *= distance
 
             x += dx
             y += dy
 
-            yield x, y
+            yield x, y, phi
 
 
 class AnglePath(Builtin):
@@ -1032,8 +1014,9 @@ class AnglePath(Builtin):
                 return None, step
 
         try:
-            computation = AnglePathComputation(x0, y0, phi0, steps, parse)
-            return Expression('List', *computation.compute())
+            fold = AnglePathFold(parse)
+            leaves = [Expression('List', x, y) for x, y, _ in fold.fold((x0, y0, phi0), steps)]
+            return Expression('List', *leaves)
         except IllegalStepSpecification:
             evaluation.message('AnglePath', 'steps', Expression('List', *steps))
 

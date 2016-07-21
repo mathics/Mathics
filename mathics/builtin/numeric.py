@@ -21,6 +21,8 @@ import zlib
 import math
 from six.moves import range
 from collections import namedtuple
+import sys
+
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (
@@ -31,6 +33,7 @@ from mathics.core.expression import (
     MachineReal)
 from mathics.core.convert import from_sympy
 
+_float_mantissa_digits = sys.float_info.mant_dig
 
 class N(Builtin):
     """
@@ -896,78 +899,116 @@ class Hash(Builtin):
         return Hash.compute(expr.user_hash, hashtype.get_string_value())
 
 
-class NoMachinePrecision(Exception):
-    pass
+class Fold(object):
+    # allows inherited classes to specify a single algorithm implementation that
+    # can be called with machine precision, arbitrary precision or symbolically.
 
+    class PrecisionExhausted(Exception):
+        pass
 
-class GenericPrecisionComputation(object):
-    # useful helper for computations that usually operate identically under
-    # machine precision, arbitrary precision and symbolic evaluation, and
-    # usually want to go for machine precision.
+    class SymbolicEvaluation(Exception):
+        pass
+
+    def to_machine_float(self, expr):
+        if isinstance(expr, Real):
+            precision = expr.get_precision()
+            if precision is not None and precision > _float_mantissa_digits:
+                raise Fold.PrecisionExhausted
+            return expr.to_python()
+        elif isinstance(expr, Integer):
+            x = expr.get_int_value()
+            if x.bit_length() > _float_mantissa_digits:
+                raise Fold.PrecisionExhausted
+            return x
+        else:
+            raise Fold.SymbolicEvaluation
+
+    def to_precision_float(self, expr):
+        if isinstance(expr, Real):
+            y = expr.to_sympy()
+            assert y.is_real
+            return y.num
+        elif isinstance(expr, Integer):
+            return mpf(expr.get_int_value())
+        else:
+            raise Fold.SymbolicEvaluation
 
     ComputationFunctions = namedtuple(
         'ComputationFunctions', ('sin', 'cos'))
 
-    machine_precision_functions = ComputationFunctions(
-        cos=math.cos,
-        sin=math.sin,
-    )
+    math = {
+        'machine': ComputationFunctions(
+            cos=math.cos,
+            sin=math.sin,
+        ),
+        'precision': ComputationFunctions(
+            cos=mpmath.cos,
+            sin=mpmath.sin,
+        ),
+        'symbolic': ComputationFunctions(
+            cos=lambda x: Expression('Cos', x),
+            sin=lambda x: Expression('Sin', x),
+        )
+    }
 
-    arbitrary_precision_functions = ComputationFunctions(
-        cos=mpmath.cos,
-        sin=mpmath.sin,
-    )
+    def converter(self, mode):
+        if mode == 'symbolic':
+            return lambda *args: args
 
-    symbolic_functions = ComputationFunctions(
-        cos=lambda x: Expression('Cos', x),
-        sin=lambda x: Expression('Sin', x),
-    )
+        f = getattr(self, 'to_%s_float' % mode)
 
-    def _compute(self, convert, functions):
+        def convert(*args):
+            for arg in args:
+                if arg is None:
+                    yield None
+                else:
+                    yield f(arg)
+
+        return convert
+
+    def _fold(self, state, steps, convert, math):
         raise NotImplementedError
 
-    def compute(self):
-        # tries to compute with machine precision first, then with arbitrary
-        # precision if machine precision fails. only evaluates symbolically
-        # if all else fails.
+    def fold(self, x, l):
+        # computes fold(x, l) with the internal _fold function. will start
+        # its evaluation machine precision, and will escalate to arbitrary
+        # precision if or symbolical evaluation only if necessary. folded
+        # items already computed are carried over to new evaluation modes.
 
         # here are rough runtimes to give you an idea of the costs involved:
         # machine precision : arbitrary precision = 1 : 1.3 (mpmath is fast)
         # arbitrary precision : symbolic = 1 : 40
 
-        # in general, the cost of trying out machine and arbitrary precision
-        # first before going to symbolic evaluation should be negligible.
+        mode = 'machine'
 
-        try:
+        n = 0
+        init = None
+
+        for _ in range(3):
             try:
-                return self._compute(
-                    GenericPrecisionComputation.to_machine_precision,
-                    GenericPrecisionComputation.machine_precision_functions)
-            except NoMachinePrecision:
-                return self._compute(
-                    GenericPrecisionComputation.to_arbitrary_precision,
-                    GenericPrecisionComputation.arbitrary_precision_functions)
-        except TypeError:
-            return self._compute(
-                lambda *args: args,
-                GenericPrecisionComputation.symbolic_functions)
+                convert = self.converter(mode)
 
-    @staticmethod
-    def to_arbitrary_precision(*args):
-        for arg in args:
-            if arg is None:
-                yield None
-            else:
-                yield mpf(arg.to_sympy())  # raises TypeError
+                if n == 0:
+                    init = tuple(convert(*x))
+                elif mode == 'precision':
+                    init = tuple(mpf(z) for z in init)
+                elif mode == 'symbolic':  # any -> symbolic
+                    init = tuple(Real(z) for z in init)
 
-    @staticmethod
-    def to_machine_precision(*args):
-        for arg in args:
-            if arg is None:
-                yield None
-            else:
-                precision = arg.get_precision()
-                if precision is None or precision <= machine_precision:
-                    yield float(arg.to_sympy())  # raises TypeError
-                else:
-                    raise NoMachinePrecision
+                generator = self._fold(
+                    init, l[n:], convert, self.math.get(mode))
+
+                for y in generator:
+                    yield y
+                    init = y
+                    n += 1
+
+                return
+            except Fold.PrecisionExhausted:
+                assert mode == 'machine'
+                mode = 'precision'
+            except Fold.SymbolicEvaluation:
+                assert mode in ('machine', 'precision')
+                mode = 'symbolic'
+
+        raise ValueError  # should have evaluated symbolically and succeeded.
