@@ -1229,6 +1229,9 @@ class Expression(BaseExpression):
         for leaf in self.leaves:
             leaf.user_hash(update)
 
+    def __getnewargs__(self):
+        return (self.head, self.leaves)
+
 
 class Atom(BaseExpression):
 
@@ -1391,6 +1394,9 @@ class Symbol(Atom):
     def user_hash(self, update):
         update(b'System`Symbol>' + self.name.encode('utf8'))
 
+    def __getnewargs__(self):
+        return (self.name, self.sympy_dummy)
+
 
 class Number(Atom):
     def __str__(self):
@@ -1475,12 +1481,6 @@ class Integer(Number):
         self.value = n
         return self
 
-    def __getstate__(self):
-        return {'value': self.value}
-
-    def __setstate__(self, dict):
-        self.value = dict['value']
-
     def boxes_to_text(self, **options):
         return str(self.value)
 
@@ -1536,18 +1536,15 @@ class Integer(Number):
     def user_hash(self, update):
         update(b'System`Integer>' + str(self.value).encode('utf8'))
 
+    def __getnewargs__(self):
+        return (self.value,)
+
 
 class Rational(Number):
     def __new__(cls, numerator, denominator=None, **kwargs):
         self = super(Rational, cls).__new__(cls)
         self.value = sympy.Rational(numerator, denominator)
         return self
-
-    def __getstate__(self):
-        return {'value': str(self.value)}
-
-    def __setstate__(self, dict):
-        self.value = sympy.Rational(dict['value'])
 
     def atom_to_boxes(self, f, evaluation):
         return self.format(evaluation, f.get_name())
@@ -1612,6 +1609,9 @@ class Rational(Number):
 
     def user_hash(self, update):
         update(b'System`Rational>' + ('%s>%s' % self.value.as_numer_denom()).encode('utf8'))
+
+    def __getnewargs__(self):
+        return (self.numerator().get_int_value(), self.denominator().get_int_value())
 
 
 class Real(Number):
@@ -1723,12 +1723,6 @@ class MachineReal(Real):
             return self.to_sympy() == other.value
         return False
 
-    def __getstate__(self):
-        return self.value
-
-    def __setstate__(self, value):
-        self.value = value
-
     def get_precision(self):
         return machine_precision
 
@@ -1740,6 +1734,9 @@ class MachineReal(Real):
         else:
             n = 6
         return number_form(self, n, None, None, _number_form_options)
+
+    def __getnewargs__(self):
+        return (self.value,)
 
 
 class PrecisionReal(Real):
@@ -1768,15 +1765,6 @@ class PrecisionReal(Real):
             return self.value == other.to_sympy()
         return False
 
-    def __getstate__(self):
-        p = self.prec
-        s = self.value
-        return {'value': s, 'prec': p}
-
-    def __setstate__(self, dict):
-        self.prec = dict['prec']
-        self.value = dict['value']
-
     def get_precision(self):
         return self.prec
 
@@ -1784,6 +1772,9 @@ class PrecisionReal(Real):
         from mathics.builtin.inout import number_form
         _number_form_options['_Form'] = form    # passed to _NumberFormat
         return number_form(self, dps(self.get_precision()), None, None, _number_form_options)
+
+    def __getnewargs__(self):
+        return (self.value, self.prec)
 
 
 class Complex(Number):
@@ -1894,6 +1885,9 @@ class Complex(Number):
             return self.real == other.real and self.imag == other.imag
         else:
             return self.get_sort_key() == other.get_sort_key()
+
+    def __getnewargs__(self):
+        return (self.real, self.imag, self.prec)
 
 
 def encode_mathml(text):
@@ -2082,6 +2076,9 @@ class String(Atom):
         # hashing a String is the one case where the user gets the untampered
         # hash value of the string's text. this corresponds to MMA behavior.
         update(self.value.encode('utf8'))
+
+    def __getnewargs__(self):
+        return (self.value,)
 
 
 def get_default_value(name, evaluation, k=None, n=None):
