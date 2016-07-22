@@ -102,6 +102,20 @@ class N(Builtin):
 
     #> N[Pi, Pi]
      = 3.14
+
+    #> N[1/9, 30]
+     = 0.111111111111111111111111111111
+    #> Precision[%]
+     = 30.
+
+    #> N[1.5, 30]
+     = 1.5
+    #> Precision[%]
+     = MachinePrecision
+    #> N[1.5, 5]
+     = 1.5
+    #> Precision[%]
+     = MachinePrecision
     """
 
     messages = {
@@ -128,6 +142,8 @@ class N(Builtin):
                 expr.head, *[self.apply_other(leaf, prec, evaluation)
                              for leaf in expr.leaves])
 
+        if isinstance(expr, MachineReal):
+            return expr
         if isinstance(expr, Number):
             return expr.round(d)
 
