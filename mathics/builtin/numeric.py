@@ -21,7 +21,6 @@ import zlib
 import math
 from six.moves import range
 from collections import namedtuple
-import sys
 
 
 from mathics.builtin.base import Builtin, Predefined
@@ -903,36 +902,6 @@ class Fold(object):
     # allows inherited classes to specify a single algorithm implementation that
     # can be called with machine precision, arbitrary precision or symbolically.
 
-    class PrecisionExhausted(Exception):
-        pass
-
-    class SymbolicEvaluation(Exception):
-        pass
-
-    def to_machine_float(self, expr):
-        if isinstance(expr, Real):
-            precision = expr.get_precision()
-            if precision is not None and precision > _float_mantissa_digits:
-                raise Fold.PrecisionExhausted
-            return expr.to_python()
-        elif isinstance(expr, Integer):
-            x = expr.get_int_value()
-            if x.bit_length() > _float_mantissa_digits:
-                raise Fold.PrecisionExhausted
-            return x
-        else:
-            raise Fold.SymbolicEvaluation
-
-    def to_precision_float(self, expr):
-        if isinstance(expr, Real):
-            y = expr.to_sympy()
-            assert y.is_real
-            return y.num
-        elif isinstance(expr, Integer):
-            return mpf(expr.get_int_value())
-        else:
-            raise Fold.SymbolicEvaluation
-
     ComputationFunctions = namedtuple(
         'ComputationFunctions', ('sin', 'cos'))
 
@@ -955,14 +924,15 @@ class Fold(object):
         if mode == 'symbolic':
             return lambda *args: args
 
-        f = getattr(self, 'to_%s_float' % mode)
+        func_name = 'to_%s_float' % mode
 
         def convert(*args):
             for arg in args:
                 if arg is None:
                     yield None
                 else:
-                    yield f(arg)
+                    f = getattr(arg, func_name)
+                    yield f()
 
         return convert
 
@@ -984,6 +954,8 @@ class Fold(object):
         n = 0
         init = None
 
+        yield x
+
         for _ in range(3):
             try:
                 convert = self.converter(mode)
@@ -1004,10 +976,10 @@ class Fold(object):
                     n += 1
 
                 return
-            except Fold.PrecisionExhausted:
+            except PrecisionExhausted:
                 assert mode == 'machine'
                 mode = 'precision'
-            except Fold.SymbolicEvaluation:
+            except SymbolicEvaluation:
                 assert mode in ('machine', 'precision')
                 mode = 'symbolic'
 
