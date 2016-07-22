@@ -116,6 +116,9 @@ class N(Builtin):
      = 1.5
     #> Precision[%]
      = MachinePrecision
+
+    #> {N[x], N[x, 30], N["abc"], N["abc", 30]}
+     = {x, x, abc, abc}
     """
 
     messages = {
@@ -159,7 +162,7 @@ class N(Builtin):
                 return result
 
         if expr.is_atom():
-            return expr.round(d)
+            return expr
         else:
             attributes = expr.head.get_attributes(evaluation.definitions)
             if 'System`NHoldAll' in attributes:
