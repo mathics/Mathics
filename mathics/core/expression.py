@@ -92,7 +92,9 @@ def from_python(arg):
         return Real(arg)
     elif number_type == 'q':
         return Rational(arg)
-    elif isinstance(arg, complex) or number_type == 'c':
+    elif isinstance(arg, complex):
+        return Complex(Real(arg.real), Real(arg.imag))
+    elif number_type == 'c':
         return Complex(arg.real, arg.imag)
     elif isinstance(arg, six.string_types):
         return String(arg)
@@ -158,6 +160,9 @@ class BaseExpression(KeyComparable):
         return ''
 
     def is_symbol(self):
+        return False
+
+    def is_machine_precision(self):
         return False
 
     def get_lookup_name(self):
@@ -1232,6 +1237,16 @@ class Expression(BaseExpression):
     def __getnewargs__(self):
         return (self.head, self.leaves)
 
+    def round(self, d=None):
+        new_leaves = []
+        for leaf in self.leaves:
+            x = leaf.round(d)
+            if x is not None:
+                new_leaves.append(x)
+            else:
+                new_leaves.append(leaf)
+        return Expression(self.head, *new_leaves)
+
 
 class Atom(BaseExpression):
 
@@ -1265,7 +1280,7 @@ class Atom(BaseExpression):
     def replace_slots(self, slots, evaluation):
         return self
 
-    def round(self, prec):
+    def round(self, d=None):
         return self
 
     def numerify(self, evaluation):
@@ -1429,7 +1444,8 @@ class Number(Atom):
             return Real(value, prec)
         elif t == 'c':
             real, imag = value.as_real_imag()
-            return Complex(real, imag, prec)
+            real, imag = Real(real, prec), Real(imag, prec)
+            return Complex(real, imag)
 
         if isinstance(value, six.integer_types):
             return Integer(value)
@@ -1442,7 +1458,7 @@ class Number(Atom):
     def is_numeric(self):
         return True
 
-    def round(self, d):
+    def round(self, d=None):
         if d is None:
             return MachineReal(self.get_float_value())
         else:
@@ -1718,6 +1734,9 @@ class MachineReal(Real):
             return self.to_sympy() == other.value
         return False
 
+    def is_machine_precision(self):
+        return True
+
     def get_precision(self):
         return machine_precision
 
@@ -1778,69 +1797,57 @@ class PrecisionReal(Real):
 
 
 class Complex(Number):
-    def __new__(cls, real, imag, p=None, **kwargs):
+    '''
+    Complex wraps two real-valued Numbers.
+    '''
+    def __new__(cls, real, imag, **kwargs):
         self = super(Complex, cls).__new__(cls)
+        if isinstance(real, Complex) or not isinstance(real, Number):
+            raise ValueError("Argument 'real' must be a real number.")
+        if isinstance(imag, Complex) or not isinstance(imag, Number):
+            raise ValueError("Argument 'imag' must be a real number.")
 
-        if isinstance(real, six.string_types):
-            real = str(real)
-            if '.' in real:
-                self.real = Real(real, p)
-            else:
-                self.real = Integer(real)
-        elif isinstance(real, Number):
-            self.real = real
-        else:
-            self.real = Number.from_mp(real)
+        if imag.same(Integer(0)):
+            return real
 
-        if isinstance(imag, six.string_types):
-            imag = str(imag)
-            if '.' in imag:
-                self.imag = Real(imag, p)
-            else:
-                self.imag = Integer(imag)
-        elif isinstance(imag, Number):
-            self.imag = imag
-        else:
-            self.imag = Number.from_mp(imag)
+        if isinstance(real, MachineReal) and not isinstance(imag, MachineReal):
+            imag = imag.round()
+        if isinstance(imag, MachineReal) and not isinstance(real, MachineReal):
+            real = real.round()
 
-        if p is None:
-            p = min_prec(self.real, self.imag)
-
-        if p is not None:
-            self.real = self.real.round(p)
-            self.imag = self.imag.round(p)
-
-        self.sympy = self.real.to_sympy() + sympy.I * self.imag.to_sympy()
-        self.value = (self.real, self.imag)
-        self.prec = p
+        self.real = real
+        self.imag = imag
         return self
 
     def atom_to_boxes(self, f, evaluation):
         return self.format(evaluation, f.get_name())
 
+    def __str__(self):
+        return str(self.to_sympy())
+
     def to_sympy(self, **kwargs):
-        return self.sympy
+        return self.real.to_sympy() + sympy.I * self.imag.to_sympy()
 
     def to_python(self, *args, **kwargs):
-        return complex(*self.sympy.as_real_imag())
+        return complex(self.real.to_python(), self.imag.to_python())
 
     def do_format(self, evaluation, form):
         if form == 'System`FullForm':
             return Expression(Expression('HoldForm', Symbol('Complex')),
                               self.real, self.imag).do_format(evaluation, form)
 
-        sum = []
+        result = []
         if not self.real.same(Integer(0)):
-            sum.append(self.real)
+            result.append(self.real)
         if self.imag.same(Integer(1)):
-            sum.append(Symbol('I'))
+            result.append(Symbol('I'))
         else:
-            sum.append(Expression('Times', self.imag, Symbol('I')))
-        if len(sum) == 1:
-            sum = sum[0]
+            result.append(Expression('Times', self.imag, Symbol('I')))
+        if len(result) == 1:
+            result = result[0]
         else:
-            sum = Expression('Plus', *sum)
-        return Expression('HoldForm', sum).do_format(evaluation, form)
+            result = Expression('Plus', *result)
+        return Expression('HoldForm', result).do_format(evaluation, form)
 
     def default_format(self, evaluation, form):
         return 'Complex[%s, %s]' % (self.real.default_format(evaluation, form),
@@ -1861,13 +1868,22 @@ class Complex(Number):
         evaluation.check_stopped()
         return self
 
-    def round(self, precision):
-        real = self.real.round(precision)
-        imag = self.imag.round(precision)
+    def round(self, d=None):
+        real = self.real.round(d)
+        imag = self.imag.round(d)
         return Complex(real, imag)
 
+    def is_machine_precision(self):
+        if self.real.is_machine_precision() or self.imag.is_machine_precision():
+            return True
+        return False
+
     def get_precision(self):
-        return self.prec
+        real_prec = self.real.get_precision()
+        imag_prec = self.imag.get_precision()
+        if imag_prec is None or real_prec is None:
+            return None
+        return min(real_prec, imag_prec)
 
     def do_copy(self):
         return Complex(self.real.do_copy(), self.imag.do_copy())
@@ -1887,7 +1903,7 @@ class Complex(Number):
             return self.get_sort_key() == other.get_sort_key()
 
     def __getnewargs__(self):
-        return (self.real, self.imag, self.prec)
+        return (self.real, self.imag)
 
 
 def encode_mathml(text):
