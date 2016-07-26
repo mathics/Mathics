@@ -11,8 +11,10 @@ Natural language functions
 # nltk: functions using WordNet
 # pattern: finding inflections (Pluralize[] and WordData[])
 # langid, pycountry: LanguageIdentify[]
+# pyenchant: SpellingCorrectionList[]
 
 # If a module is not installed, all functions will gracefully alert the user to the missing functionality/packages.
+# All modules above (except for "pattern", see below) are available in Python 2 and Python 3 versions.
 
 # NOTES
 
@@ -25,6 +27,9 @@ Natural language functions
 # Python 2, but there exists for Python 3 an official, though preliminary version: https://github.com/pattern3/pattern,
 # which is not in pip, but can be installed manually. on OS X make sure to "pip install Pillow lxml" and after installing,
 # uncompress pattern.egg into folder. you may also need to run "export STATIC_DEPS=true" before you run setup.py
+
+# "pyenchant" OS X python 3 fix: patch enchant/_enchant.py:
+# prefix_dir.contents = c_char_p(e_dir.encode('utf8'))
 
 from mathics.builtin.base import Builtin, MessageException
 from mathics.builtin.randomnumbers import RandomEnv
@@ -235,7 +240,7 @@ class WordFrequencyData(_SpacyBuiltin):
     </dl>
     """
 
-    # Mathematica uses the Google n-gram corpus, see
+    # Mathematica uses the gargantuan Google n-gram corpus, see
     # http://commondatastorage.googleapis.com/books/syntactic-ngrams/index.html
 
     def apply(self, word, evaluation, options):
@@ -1008,6 +1013,9 @@ class WordDefinition(_WordNetBuiltin):
     <dt>'WordDefinition[$word$]'
       <dd>returns a definition of $word$ or Missing["Available"] if $word$ is not known.
     </dl>
+
+    >> WordDefinition["gram"]
+     = {a metric unit of weight equal to one thousandth of a kilogram}
     """
 
     def apply(self, word, evaluation, options):
@@ -1118,6 +1126,7 @@ class _WordListBuiltin(_WordNetBuiltin):
                 words = []
                 for pos in filtered_pos:
                     words.extend(list(wordnet.all_lemma_names(pos, language_code)))
+                words.sort()
                 self._dictionary[key] = words
             except nltk.corpus.reader.wordnet.WordNetError as err:
                 evaluation.message(self.get_name(), 'wordnet', str(err))
@@ -1136,8 +1145,15 @@ class WordData(_WordListBuiltin):
     </dl>
 
     The following are valid properties:
-    - Definitions
-    - Examples
+    - Definitions, Examples
+    - InflectedForms
+    - Synonyms, Antonyms
+    - BroaderTerms, NarrowerTerms
+    - WholeTerms, PartTerms, MaterialTerms
+    - EntailedTerms, CausesTerms
+    - UsageField
+    - WordNetID
+    - Lookup
 
     >> WordData["riverside", "Definitions"]
     = {{riverside, Noun, Bank} -> the bank of a river}
@@ -1189,9 +1205,6 @@ class WordData(_WordListBuiltin):
             else:
                 return
 
-        #if py_property == 'Lookup':
-        #    return
-
         wordnet, language_code = self._load_wordnet(evaluation, self._language_name(evaluation, options))
         if not wordnet:
             return
@@ -1210,6 +1223,13 @@ class WordData(_WordListBuiltin):
 
     def apply(self, word, evaluation, options):
         'WordData[word_, OptionsPattern[%(name)s]]'
+        if word.get_head_name() == 'System`StringExpression':
+            return Expression('DictionaryLookup', word)
+        elif isinstance(word, String) or word.get_head_name() == 'System`List':
+            pass
+        else:
+            return
+
         wordnet, language_code = self._load_wordnet(evaluation, self._language_name(evaluation, options))
         if not wordnet:
             return
@@ -1224,11 +1244,16 @@ class WordData(_WordListBuiltin):
 
     def apply_property(self, word, property, evaluation, options):
         'WordData[word_, property_String, OptionsPattern[%(name)s]]'
-        return self._property(word, property.get_string_value(), "ShortRules", evaluation, options)
+        if word.get_head_name() == 'System`StringExpression':
+            if property.get_string_value() == 'Lookup':
+                return Expression('DictionaryLookup', word)
+        elif isinstance(word, String) or word.get_head_name() == 'System`List':
+            return self._property(word, property.get_string_value(), "ShortRules", evaluation, options)
 
     def apply_property_form(self, word, property, form, evaluation, options):
         'WordData[word_, property_String, form_String, OptionsPattern[%(name)s]]'
-        return self._property(word, property.get_string_value(), form.get_string_value(), evaluation, options)
+        if isinstance(word, String) or word.get_head_name() == 'System`List':
+            return self._property(word, property.get_string_value(), form.get_string_value(), evaluation, options)
 
 
 class DictionaryWordQ(_WordNetBuiltin):
@@ -1258,6 +1283,19 @@ class DictionaryWordQ(_WordNetBuiltin):
 
 
 class DictionaryLookup(_WordListBuiltin):
+    """
+    <dl>
+    <dt>'DictionaryLookup[$word$]'
+      <dd>lookup words that match the given $word$ or pattern.
+
+    <dt>'DictionaryLookup[$word$, $n$]'
+      <dd>lookup first $n$ words that match the given $word$ or pattern.
+    </dl>
+
+    >> DictionaryLookup["bake" ~~ ___, 3]
+     = {baked, bakehouse, bake}
+    """
+
     def compile(self, pattern, evaluation):
         re_patt = to_regex(pattern)
         if re_patt is None:
@@ -1281,7 +1319,7 @@ class DictionaryLookup(_WordListBuiltin):
                 if n is None:
                     matches = sorted(list(matches))
                 else:
-                    matches = list(itertools.islice(matches), 0, n)
+                    matches = list(itertools.islice(matches, 0, n))
                 return Expression('List', *matches)
 
     def apply_english(self, word, evaluation):
@@ -1296,6 +1334,9 @@ class DictionaryLookup(_WordListBuiltin):
         'DictionaryLookup[word_, n_Integer]'
         return self.lookup(String('English'), word, n.get_int_value(), evaluation)
 
+    def apply_language_n(self, language, word, n, evaluation):
+        'DictionaryLookup[{language_String, word_}, n_Integer]'
+        return self.lookup(language, word, n.get_int_value(), evaluation)
 
 
 class WordList(_WordListBuiltin):
@@ -1306,6 +1347,9 @@ class WordList(_WordListBuiltin):
     <dt>'WordList[$type]'
       <dd>returns a list of common words of type $type$.
     </dl>
+
+    >> N[Mean[StringLength /@ WordList["Adjective"]], 2]
+     = 9.3
     """
 
     def apply(self, evaluation, options):
@@ -1314,9 +1358,9 @@ class WordList(_WordListBuiltin):
         if words:
             return Expression('List', *[String(w) for w in words])
 
-    def apply_type(self, evaluation, options):
-        'WordList[type, OptionsPattern[%(name)s]]'
-        words = self._words(self._language_name(evaluation, options), type.get_string_value(), evaluation)
+    def apply_type(self, wordtype, evaluation, options):
+        'WordList[wordtype_String, OptionsPattern[%(name)s]]'
+        words = self._words(self._language_name(evaluation, options), wordtype.get_string_value(), evaluation)
         if words:
             return Expression('List', *[String(w) for w in words])
 
@@ -1402,3 +1446,59 @@ class Pluralize(Builtin):
         'Pluralize[word_String]'
         from pattern.en import pluralize
         return String(pluralize(word.get_string_value()))
+
+
+class SpellingCorrectionList(Builtin):
+    '''
+    <dl>
+    <dt>'SpellingCorrectionList[$word$]'
+      <dd>returns a list of suggestions for spelling corrected versions of $word$.
+    </dl>
+
+    >> SpellingCorrectionList["lisbin"]
+     = {Lisbon, Lisbeth, listing, listen}
+    '''
+
+    requires = (
+        'enchant',
+    )
+
+    options = {
+        'Language': '"English"',
+    }
+
+    messages = {
+        'lang': 'SpellingCorrectionList does not support `1` as a language.',
+    }
+
+    _languages = {
+        'English': 'en_US',  # en_GB, en_AU
+        'German': 'de_DE',
+        'French': 'fr_FR',
+    }
+
+    _dictionaries = {}
+
+    def apply(self, word, evaluation, options):
+        'SpellingCorrectionList[word_String, OptionsPattern[%(name)s]]'
+        import enchant
+
+        language_name = self.get_option(options, 'Language', evaluation)
+        if not isinstance(language_name, String):
+            return
+        language_code = SpellingCorrectionList._languages.get(
+            language_name.get_string_value(), None)
+        if not language_code:
+            return evaluation.message('SpellingCorrectionList', 'lang', language_name)
+
+        d = SpellingCorrectionList._dictionaries.get(language_code, None)
+        if not d:
+            d = enchant.Dict(language_code)
+            SpellingCorrectionList._dictionaries[language_code] = d
+
+        py_word = word.get_string_value()
+
+        if d.check(py_word):
+            return Expression('List', word)
+        else:
+            return Expression('List', *[String(s) for s in d.suggest(py_word)])
