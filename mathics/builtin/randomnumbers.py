@@ -479,8 +479,9 @@ class RandomComplex(Builtin):
             return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
 
         with RandomEnv(evaluation) as rand:
-            return Complex(rand.randreal(min_value.real, max_value.real),
-                           rand.randreal(min_value.imag, max_value.imag))
+            real = Real(rand.randreal(min_value.real, max_value.real))
+            imag = Real(rand.randreal(min_value.imag, max_value.imag))
+            return Complex(real, imag)
 
     def apply_list(self, zmin, zmax, ns, evaluation):
         'RandomComplex[{zmin_, zmax_}, ns_]'
@@ -500,7 +501,10 @@ class RandomComplex(Builtin):
         with RandomEnv(evaluation) as rand:
             real = rand.randreal(min_value.real, max_value.real, py_ns)
             imag = rand.randreal(min_value.imag, max_value.imag, py_ns)
-            return instantiate_elements(stack_along_inner_axis([real, imag]), lambda c: Complex(*c), d=2)
+            return instantiate_elements(
+                stack_along_inner_axis([real, imag]),
+                lambda c: Complex(Real(c[0]), Real(c[1])),
+                d=2)
 
 
 class _RandomSelection(_RandomBase):

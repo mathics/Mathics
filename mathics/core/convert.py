@@ -105,7 +105,7 @@ def from_sympy(expr):
     if isinstance(expr, float):
         return Real(expr)
     if isinstance(expr, complex):
-        return Complex(expr.real, expr.imag)
+        return Complex(Real(expr.real), Real(expr.imag))
     if isinstance(expr, six.string_types):
         return String(expr)
     if expr is None:
@@ -146,7 +146,7 @@ def from_sympy(expr):
         elif isinstance(expr, numbers.NegativeInfinity):
             return Expression('Times', Integer(-1), Symbol('Infinity'))
         elif isinstance(expr, numbers.ImaginaryUnit):
-            return Complex(0, 1)
+            return Complex(Integer(0), Integer(1))
         elif isinstance(expr, numbers.Integer):
             return Integer(expr.p)
         elif isinstance(expr, numbers.Rational):

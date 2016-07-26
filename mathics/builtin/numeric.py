@@ -328,17 +328,13 @@ def chop(expr, delta=10.0 ** (-10.0)):
     if isinstance(expr, Real):
         if -delta < expr.to_python() < delta:
             return Integer(0)
-        # return expr
-    elif isinstance(expr, Complex) and expr.get_precision() is not None:
+    elif isinstance(expr, Complex):
         real, imag = expr.real, expr.imag
         if -delta < real.to_python() < delta:
-            real = sympy.Integer(0)
+            real = Integer(0)
         if -delta < imag.to_python() < delta:
-            imag = sympy.Integer(0)
-        if imag != 0:
-            return Complex(real, imag)
-        else:
-            return Number.from_mp(real)
+            imag = Integer(0)
+        return Complex(real, imag)
     elif isinstance(expr, Expression):
         return Expression(chop(expr.head), *[
             chop(leaf) for leaf in expr.leaves])

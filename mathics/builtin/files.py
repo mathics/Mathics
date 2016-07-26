@@ -27,7 +27,7 @@ from six import unichr
 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError,
-                                     valid_context_name)
+                                     MachineReal, valid_context_name)
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.builtin.numeric import Hash
@@ -825,7 +825,7 @@ class _BinaryFormat(object):
                 (-1) ** (real < 0) if math.isinf(real) else 0,
                 (-1) ** (imag < 0) if math.isinf(imag) else 0))
         else:
-            return Complex(real, imag)
+            return Complex(MachineReal(real), MachineReal(imag))
 
     @classmethod
     def get_readers(cls):

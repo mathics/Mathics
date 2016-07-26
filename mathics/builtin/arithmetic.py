@@ -291,7 +291,9 @@ class Plus(BinaryOperator, SympyFunction):
             elif number[1].is_zero and number[1].is_Integer and prec is None:
                 leaves.insert(0, Number.from_mp(number[0], prec))
             else:
-                leaves.insert(0, Complex(number[0], number[1], prec))
+                real = Number.from_mp(number[0], prec)
+                imag = Number.from_mp(number[1], prec)
+                leaves.insert(0, Complex(real, imag))
         if not leaves:
             return Integer(0)
         elif len(leaves) == 1:
@@ -585,8 +587,9 @@ class Times(BinaryOperator, SympyFunction):
             elif number[1].is_zero and number[1].is_Integer and prec is None:
                 leaves.insert(0, Number.from_mp(number[0], prec))
             else:
-                leaves.insert(0, Complex(from_sympy(
-                    number[0]), from_sympy(number[1]), prec))
+                real = Number.from_mp(number[0], prec)
+                imag = Number.from_mp(number[1], prec)
+                leaves.insert(0, Complex(real, imag))
 
         if not leaves:
             return Integer(1)
@@ -1102,7 +1105,7 @@ class I(Predefined):
     """
 
     def evaluate(self, evaluation):
-        return Complex(sympy.Integer(0), sympy.Integer(1))
+        return Complex(Integer(0), Integer(1))
 
 
 class Indeterminate(SympyConstant):
@@ -1422,13 +1425,9 @@ class Complex_(Builtin):
         if isinstance(r, Complex) or isinstance(i, Complex):
             sym_form = r.to_sympy() + sympy.I * i.to_sympy()
             sym_r, sym_i = sym_form.simplify().as_real_imag()
-        else:
-            sym_r, sym_i = r.to_sympy(), i.to_sympy()
-
-        if isinstance(sym_i, sympy.Integer) and sym_i == 0:
-            return Number.from_mp(sym_r)
-        else:
-            return Complex(sym_r, sym_i)
+            r = Number.from_mp(sym_r)
+            i = Number.from_mp(sym_i)
+        return Complex(r, i)
 
 
 class Factorial(PostfixOperator, _MPMathFunction):
