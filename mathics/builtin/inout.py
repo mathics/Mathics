@@ -104,10 +104,10 @@ def real_to_s_exp(expr, n):
     if sym_expr == sympy.Float(0):
         s = '0'
         sign_prefix = ''
-        p = expr.get_precision()
-        if p == machine_precision:
+        if expr.is_machine_precision():
             exp = 0
         else:
+            p = expr.get_precision()
             exp = -dps(p)
         nonnegative = 1
     else:
