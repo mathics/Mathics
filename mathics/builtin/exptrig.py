@@ -164,8 +164,8 @@ class Log(_MPMathFunction):
             leaves = [leaves[1], leaves[0]]
         return leaves
 
-    def eval(self, *args):
-        return mpmath.log(args[1], args[0])
+    def get_mpmath_function(self, args):
+        return lambda base, x: mpmath.log(x, base)
 
 
 class Log2(Builtin):

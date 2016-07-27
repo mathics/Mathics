@@ -10,30 +10,126 @@ from __future__ import absolute_import
 
 import mpmath
 
-from mathics.builtin.base import Builtin
-from mathics.builtin.arithmetic import _MPMathFunction
+from mathics.builtin.base import Builtin, SympyFunction
+from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
 from mathics.core.expression import Integer
 from mathics.core.numbers import mpmath2sympy
 from mathics.core.convert import from_sympy
 from mathics.builtin.numeric import get_precision
 
 
-class Erf(_MPMathFunction):
+class Erf(_MPMathMultiFunction):
     """
     <dl>
     <dt>'Erf[$z$]'
         <dd>returns the error function of $z$.
+    <dt>'Erf[$z0$, $z1$]'
+        <dd>returns the result of 'Erf[$z1$] - Erf[$z0$]'.
     </dl>
+
+    'Erf[$x$]' is an odd function:
+    >> Erf[-x]
+     = -Erf[x]
 
     >> Erf[1.0]
      = 0.842700792949714869
     >> Erf[0]
      = 0
+    >> {Erf[0, x], Erf[x, 0]}
+     = {Erf[x], -Erf[x]}
     >> Plot[Erf[x], {x, -2, 2}]
      = -Graphics-
     """
 
-    mpmath_name = 'erf'
+    mpmath_names = {
+        1: 'erf',
+    }
+    sympy_names = {
+        1: 'erf',
+        2: 'erf2',
+    }
+
+    rules = {
+        'Derivative[1][Erf]': '2 Exp[-#^2] / Sqrt[Pi] &',
+    }
+
+
+class InverseErf(_MPMathFunction):
+    """
+    <dl>
+    <dt>'InverseErf[$z$]'
+        <dd>returns the inverse error function of $z$.
+    </dl>
+
+    >> InverseErf /@ {-1, 0, 1}
+     = {-Infinity, 0, Infinity}
+    >> Plot[InverseErf[x], {x, -1, 1}]
+     = -Graphics-
+
+    'InverseErf[$z$]' only returns numeric values for '-1 <= $z$ <= 1':
+    >> InverseErf /@ {0.9, 1.0, 1.1}
+     = {1.16308715367667409, ComplexInfinity, InverseErf[1.1]}
+    """
+
+    sympy_name = 'erfinv'
+    mpmath_name = 'erfinv'
+
+    rules = {
+        'Derivative[1][InverseErf]': 'Sqrt[Pi] Exp[InverseErf[#]^2] / 2 &',
+    }
+
+    def apply(self, z, evaluation):
+        '%(name)s[z__]'
+
+        try:
+            return super(InverseErf, self).apply(z, evaluation)
+        except ValueError as exc:
+            if str(exc) == 'erfinv(x) is defined only for -1 <= x <= 1':
+                return
+            else:
+                raise
+
+
+class Erfc(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Erfc[$z$]'
+        <dd>returns the complementary error function of $z$.
+    </dl>
+
+    >> Erfc[-x] / 2
+     = (2 - Erfc[x]) / 2
+    >> Erfc[1.0]
+     = 0.157299207050285131
+    >> Erfc[0]
+     = 1
+    >> Plot[Erfc[x], {x, -2, 2}]
+     = -Graphics-
+    """
+
+    mpmath_name = 'erfc'
+
+    rules = {
+        'Derivative[1][Erfc]': '-2 Exp[-#^2] / Sqrt[Pi] &',
+    }
+
+
+class InverseErfc(_MPMathFunction):
+    """
+    <dl>
+    <dt>'InverseErfc[$z$]'
+        <dd>returns the inverse complementary error function of $z$.
+    </dl>
+
+    >> InverseErfc /@ {0, 1, 2}
+     = {Infinity, 0, -Infinity}
+    """
+
+    sympy_name = 'erfcinv'
+
+    rules = {
+        'Derivative[1][InverseErfc]': '-Sqrt[Pi] Exp[InverseErfc[#]^2] / 2 &',
+    }
 
 
 class ProductLog(_MPMathFunction):
@@ -65,6 +161,7 @@ class ProductLog(_MPMathFunction):
         'ProductLog[0]': '0',
         'ProductLog[E]': '1',
         'ProductLog[z_] * E ^ ProductLog[z_]': 'z',
+        'Derivative[1][ProductLog]': 'ProductLog[#] / (# (ProductLog[#] + 1))&',
     }
 
 
@@ -243,9 +340,13 @@ class AiryAi(_MPMathFunction):
       <dd>returns the Airy function Ai($x$).
     </dl>
 
+    Exact values:
+    >> AiryAi[0]
+     = 3 ^ (1 / 3) / (3 Gamma[2 / 3])
+
+    'AiryAi' can be evaluated numerically:
     >> AiryAi[0.5]
      = 0.23169360648083349
-
     >> AiryAi[0.5 + I]
      = 0.157118446499986172 - 0.241039813840210768 I
 
@@ -253,20 +354,51 @@ class AiryAi(_MPMathFunction):
      = -Graphics-
     """
 
-    sympy_name = ''
+    sympy_name = 'airyai'
     mpmath_name = 'airyai'
+
+    rules = {
+        'Derivative[1][AiryAi]': 'AiryAiPrime',
+    }
+
+
+class AiryAiPrime(_MPMathFunction):
+    """
+    <dl>
+    <dt>'AiryAiPrime[$x$]'
+        <dd>returns the derivative of the Airy function 'AiryAi[$x$]'.
+    </dl>
+
+    Exact values:
+    >> AiryAiPrime[0]
+     = -3 ^ (2 / 3) / (3 Gamma[1 / 3])
+
+    Numeric evaluation:
+    >> AiryAiPrime[0.5]
+     = -0.224910532664683893
+    """
+
+    sympy_name = 'airyaiprime'
+    mpmath_name = ''
+
+    def get_mpmath_function(self, args):
+        return lambda x: mpmath.airyai(x, derivative=1)
 
 
 class AiryBi(_MPMathFunction):
     """
     <dl>
     <dt>'AiryBi[$x$]'
-      <dd>returns the Airy function Bi($x$).
+      <dd>returns the Airy function of the second kind Bi($x$).
     </dl>
 
+    Exact values:
+    >> AiryBi[0]
+     = 3 ^ (5 / 6) / (3 Gamma[2 / 3])
+
+    Numeric evaluation:
     >> AiryBi[0.5]
      = 0.854277043103155493
-
     >> AiryBi[0.5 + I]
      = 0.688145273113482414 + 0.370815390737010831 I
 
@@ -274,8 +406,36 @@ class AiryBi(_MPMathFunction):
      = -Graphics-
     """
 
-    sympy_name = ''
+    sympy_name = 'airybi'
     mpmath_name = 'airybi'
+
+    rules = {
+        'Derivative[1][AiryBi]': 'AiryBiPrime',
+    }
+
+
+class AiryBiPrime(_MPMathFunction):
+    """
+    <dl>
+    <dt>'AiryBiPrime[$x$]'
+        <dd>returns the derivative of the Airy function of the second
+        kind 'AiryBi[$x$]'.
+    </dl>
+
+    Exact values:
+    >> AiryBiPrime[0]
+     = 3 ^ (1 / 6) / Gamma[1 / 3]
+
+    Numeric evaluation:
+    >> AiryBiPrime[0.5]
+     = 0.544572564140592302
+    """
+
+    sympy_name = 'airybiprime'
+    mpmath_name = ''
+
+    def get_mpmath_function(self, args):
+        return lambda x: mpmath.airybi(x, derivative=1)
 
 # Kelvin Functions
 
@@ -889,3 +1049,39 @@ class ExpIntegralE(_MPMathFunction):
     nargs = 2
     sympy_name = 'expint'
     mpmath_name = 'expint'
+
+
+class FresnelS(_MPMathFunction):
+    """
+    <dl>
+    <dt>'FresnelS[$z$]'
+        <dd>is the Fresnel S integral $S$($z$).
+    </dl>
+
+    >> FresnelS[{0, Infinity}]
+     = {0, 1 / 2}
+
+    ## SymPy can't currently simplify this all the way to FresnelS[z].
+    >> Integrate[Sin[x^2 Pi/2], {x, 0, z}]
+     = 3 FresnelS[z] Gamma[3 / 4] / (4 Gamma[7 / 4])
+    """
+
+    mpmath_name = 'fresnels'
+
+
+class FresnelC(_MPMathFunction):
+    """
+    <dl>
+    <dt>'FresnelC[$z$]'
+        <dd>is the Fresnel C integral $C$($z$).
+    </dl>
+
+    >> FresnelC[{0, Infinity}]
+     = {0, 1 / 2}
+
+    ## SymPy can't currently simplify this all the way to FresnelC[z].
+    >> Integrate[Cos[x^2 Pi/2], {x, 0, z}]
+     = FresnelC[z] Gamma[1 / 4] / (4 Gamma[5 / 4])
+    """
+
+    mpmath_name = 'fresnelc'
