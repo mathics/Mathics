@@ -230,30 +230,29 @@ class Precision(Builtin):
      = MachinePrecision
     #> 1.00000000000000000 // Precision
      = 17.
+
+    #> 0.4 + 2.4 I // Precision
+     = MachinePrecision
+    #> Precision[2 + 3 I]
+     = Infinity
+
+    #> Precision["abc"]
+     = Infinity
     """
 
     rules = {
-        'Precision[_Integer]': 'Infinity',
-        'Precision[_Rational]': 'Infinity',
-        'Precision[_Symbol]': 'Infinity',
-        'Precision[z_Real?MachineNumberQ]': 'MachinePrecision',
+        'Precision[z_?MachineNumberQ]': 'MachinePrecision',
     }
 
-    def apply_real(self, x, evaluation):
-        'Precision[x_Real]'
+    def apply(self, z, evaluation):
+        'Precision[z_]'
 
-        if x.to_sympy().is_zero:
+        if not z.is_inexact():
+            return Symbol('Infinity')
+        elif z.to_sympy().is_zero:
             return Real(0)
         else:
-            return Real(dps(x.get_precision()))
-
-    def apply_complex(self, x, evaluation):
-        'Precision[x_Complex]'
-
-        if x.is_inexact():
-            return Real(dps(x.get_precision()))
-        else:
-            return Symbol('Infinity')
+            return Real(dps(z.get_precision()))
 
 
 def round(value, k):
