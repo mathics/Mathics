@@ -15,14 +15,14 @@ from __future__ import absolute_import
 import sympy
 import hashlib
 import zlib
+import math
 from six.moves import range
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import (dps, prec,
-                                  convert_int_to_digit_list)
+from mathics.core.numbers import dps, convert_int_to_digit_list
 from mathics.core.expression import (
-    Integer, Rational, Real, Complex, Expression, Number, Symbol, from_python,
-    MachineReal, PrecisionReal)
+    Integer, Real, Complex, Expression, Number, Symbol, from_python,
+    MachineReal)
 from mathics.core.convert import from_sympy
 from mathics.core.numbers import machine_precision
 
@@ -190,16 +190,22 @@ class MachinePrecision(Predefined):
     <dt>'MachinePrecision'
         <dd>is a "pessimistic" (integer) estimation of the internally used standard precision.
     </dl>
+
     >> N[MachinePrecision]
-     = 18.
+     = 15.9546
+    >> N[MachinePrecision, 30]
+     = 15.9545897701910033463281614204
     """
 
     def apply_N(self, prec, evaluation):
         'N[MachinePrecision, prec_]'
 
-        prec = get_precision(prec, evaluation)
-        if prec is not None:
-            return Real(dps(machine_precision), prec)
+        if prec == Symbol('MachinePrecision'):
+            # avoids recursion
+            return MachineReal(machine_precision * math.log10(2))
+        return Expression('N',
+            Expression('Times', Expression('Log', Integer(10), Integer(2)),
+                       Integer(machine_precision)), prec)
 
 
 class Precision(Builtin):
