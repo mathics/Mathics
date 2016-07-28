@@ -331,13 +331,13 @@ class Round(Builtin):
 
 def chop(expr, delta=10.0 ** (-10.0)):
     if isinstance(expr, Real):
-        if -delta < expr.to_python() < delta:
+        if -delta < expr.get_float_value() < delta:
             return Integer(0)
-    elif isinstance(expr, Complex):
+    elif isinstance(expr, Complex) and expr.is_inexact():
         real, imag = expr.real, expr.imag
-        if -delta < real.to_python() < delta:
+        if -delta < real.get_float_value() < delta:
             real = Integer(0)
-        if -delta < imag.to_python() < delta:
+        if -delta < imag.get_float_value() < delta:
             imag = Integer(0)
         return Complex(real, imag)
     elif isinstance(expr, Expression):
