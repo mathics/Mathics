@@ -182,11 +182,11 @@ class BaseExpression(KeyComparable):
     def get_int_value(self):
         return None
 
-    def get_float_value(self, n_evaluation=None):
+    def get_float_value(self, n_evaluation=None, permit_complex=False):
         if n_evaluation is not None:
             value = Expression('N', self).evaluate(n_evaluation)
             if isinstance(value, Number):
-                return value.get_float_value()
+                return value.get_float_value(permit_complex=permit_complex)
         return None
 
     def get_string_value(self):
@@ -1544,7 +1544,7 @@ class Integer(Number):
         else:
             return [0, 0, self.value, 0, 1]
 
-    def get_float_value(self, n_evaluation=None):
+    def get_float_value(self, n_evaluation=None, permit_complex=False):
         return float(self.value)
 
     def do_copy(self):
@@ -1615,7 +1615,7 @@ class Rational(Number):
             # HACK: otherwise "Bus error" when comparing 1==1.
             return [0, 0, sympy.Float(self.value), 0, 1]
 
-    def get_float_value(self, n_evaluation=None):
+    def get_float_value(self, n_evaluation=None, permit_complex=False):
         return float(self.value)
 
     def do_copy(self):
@@ -1680,7 +1680,7 @@ class Real(Number):
             return super(Real, self).get_sort_key(True)
         return [0, 0, self.value, 0, 1]
 
-    def get_float_value(self, n_evaluation=None):
+    def get_float_value(self, n_evaluation=None, permit_complex=False):
         return float(self.value)
 
     def __eq__(self, other):
@@ -1877,6 +1877,12 @@ class Complex(Number):
         if self.real.is_machine_precision() or self.imag.is_machine_precision():
             return True
         return False
+
+    def get_float_value(self, n_evaluation=None, permit_complex=False):
+        if permit_complex:
+            return complex(self.real.get_float_value(), self.imag.get_float_value())
+        else:
+            return None
 
     def get_precision(self):
         real_prec = self.real.get_precision()
