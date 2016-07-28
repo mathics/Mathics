@@ -987,6 +987,11 @@ class Re(SympyFunction):
 
     >> Plot[{Cos[a], Re[E^(I a)]}, {a, 0, 2 Pi}]
      = -Graphics-
+
+    #> Im[0.5 + 2.3 I]
+     = 2.3
+    #> % // Precision
+     = MachinePrecision
     """
 
     attributes = ('Listable', 'NumericFunction')
@@ -994,8 +999,7 @@ class Re(SympyFunction):
     def apply_complex(self, number, evaluation):
         'Re[number_Complex]'
 
-        real, imag = number.to_sympy().as_real_imag()
-        return Number.from_mp(real)
+        return number.real
 
     def apply_number(self, number, evaluation):
         'Re[number_?NumberQ]'
@@ -1015,6 +1019,11 @@ class Im(SympyFunction):
 
     >> Plot[{Sin[a], Im[E^(I a)]}, {a, 0, 2 Pi}]
      = -Graphics-
+
+    #> Re[0.5 + 2.3 I]
+     = 0.5
+    #> % // Precision
+     = MachinePrecision
     """
 
     attributes = ('Listable', 'NumericFunction')
@@ -1022,8 +1031,7 @@ class Im(SympyFunction):
     def apply_complex(self, number, evaluation):
         'Im[number_Complex]'
 
-        real, imag = number.to_sympy().as_real_imag()
-        return Number.from_mp(imag)
+        return number.imag
 
     def apply_number(self, number, evaluation):
         'Im[number_?NumberQ]'
