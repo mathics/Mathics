@@ -53,8 +53,21 @@ class _MPMathFunction(SympyFunction):
             result = self.prepare_mathics(result)
             result = from_sympy(result)
             # evaluate leaves to convert e.g. Plus[2, I] -> Complex[2, 1]
-            result = result.evaluate_leaves(evaluation)
-        elif mpmath_function is not None:
+            return result.evaluate_leaves(evaluation)
+        elif mpmath_function is None:
+            return
+
+        if any(arg.is_machine_precision() for arg in args):
+            # if any argument has machine precision then the entire calculation
+            # is done with machine precision.
+            float_args = [arg.get_float_value(n_evaluation=evaluation, permit_complex=True) for arg in args]
+            if None in float_args:
+                return
+
+            result = self.call_mpmath(mpmath_function, float_args)
+            if isinstance(result, (mpmath.mpc, mpmath.mpf)):
+                result = Number.from_mp(result)
+        else:
             prec = min_prec(*args)
             with mpmath.workprec(prec):
                 sympy_args = [x.to_sympy() for x in args]
@@ -63,21 +76,24 @@ class _MPMathFunction(SympyFunction):
                 mpmath_args = [sympy2mpmath(x, prec) for x in sympy_args]
                 if None in mpmath_args:
                     return
-                try:
-                    result = self.get_mpmath_function(mpmath_args)(*mpmath_args)
+                result = self.call_mpmath(mpmath_function, mpmath_args)
+                if isinstance(result, (mpmath.mpc, mpmath.mpf)):
                     result = from_sympy(mpmath2sympy(result, prec))
-                except ValueError as exc:
-                    text = str(exc)
-                    if text == 'gamma function pole':
-                        return Symbol('ComplexInfinity')
-                    else:
-                        raise
-                except ZeroDivisionError:
-                    return
-                except SpecialValueError as exc:
-                    return Symbol(exc.name)
-
         return result
+
+    def call_mpmath(self, mpmath_function, mpmath_args):
+        try:
+            return mpmath_function(*mpmath_args)
+        except ValueError as exc:
+            text = str(exc)
+            if text == 'gamma function pole':
+                return Symbol('ComplexInfinity')
+            else:
+                raise
+        except ZeroDivisionError:
+            return
+        except SpecialValueError as exc:
+            return Symbol(exc.name)
 
 
 class _MPMathMultiFunction(_MPMathFunction):
@@ -701,6 +717,7 @@ class Power(BinaryOperator, _MPMathFunction):
     #> 1/0
      : Infinite expression 1 / 0 encountered.
      = ComplexInfinity
+<<<<<<< c8cf8396356bf74ab270ea44bbd48df07f69cd66
     #> 0 ^ -2
      : Infinite expression 1 / 0 ^ 2 encountered.
      = ComplexInfinity
@@ -711,6 +728,8 @@ class Power(BinaryOperator, _MPMathFunction):
     #> 0 ^ 0
      : Indeterminate expression 0 ^ 0 encountered.
      = Indeterminate
+=======
+>>>>>>> implement mpmath machine precision workaround
 
     #> Sqrt[-3+2. I]
      = 0.550250522700337511 + 1.81735402102397062 I

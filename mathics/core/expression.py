@@ -1441,9 +1441,15 @@ class Number(Atom):
         elif t == 'q':
             return Rational(value)
         elif t == 'f':
-            return Real(value, prec)
+            if prec is None:
+                value = float(value)
+                if mpmath.isinf(value):
+                    raise OverflowError()
+                return MachineReal(value)
+            else:
+                return Real(value, prec)
         elif t == 'c':
-            real, imag = value.as_real_imag()
+            real, imag = value.real, value.imag
             real, imag = Real(real, prec), Real(imag, prec)
             return Complex(real, imag)
 
