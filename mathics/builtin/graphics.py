@@ -1712,8 +1712,12 @@ class Blend(Builtin):
             use_list = True
         else:
             values = u.get_float_value()
-            if not (0 <= values <= 1):
-                values = None
+            if values is None:
+                pass
+            elif values > 1:
+                values = 1.0
+            elif values < 0:
+                values = 0.0
             use_list = False
         if values is None:
             return evaluation.message('Blend', 'argl', u, Expression(
