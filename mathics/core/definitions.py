@@ -476,7 +476,9 @@ def insert_rule(values, rule):
         if existing.pattern.same(rule.pattern):
             del values[index]
             break
-    bisect.insort(values, rule)
+    # use insort_left to guarantee that if equal rules exist, newer rules will
+    # get higher precedence by being inserted before them. see DownValues[].
+    bisect.insort_left(values, rule)
 
 
 class Definition(object):
