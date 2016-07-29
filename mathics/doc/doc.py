@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import re
 from os import listdir, path
 import pickle
+import importlib
 
 from django.utils.html import escape, linebreaks
 from django.utils.safestring import mark_safe
@@ -600,10 +601,18 @@ class Documentation(DocElement):
                 chapter = DocChapter(builtin_part, title, Doc(text))
                 builtins = builtins_by_module[module.__name__]
                 for instance in builtins:
+                    installed = True
+                    for package in getattr(instance, 'requires', []):
+                        try:
+                            importlib.import_module(package)
+                        except ImportError:
+                            installed = False
+                            break
                     section = DocSection(
                         chapter, strip_system_prefix(instance.get_name()),
                         instance.__doc__ or '',
-                        operator=instance.get_operator())
+                        operator=instance.get_operator(),
+                        installed=installed)
                     chapter.sections.append(section)
                 builtin_part.chapters.append(chapter)
             self.parts.append(builtin_part)
@@ -627,10 +636,11 @@ class Documentation(DocElement):
                 if tests:
                     yield Tests(part.title, chapter.title, '', tests)
                 for section in chapter.sections:
-                    tests = section.doc.get_tests()
-                    if tests:
-                        yield Tests(
-                            part.title, chapter.title, section.title, tests)
+                    if section.installed:
+                        tests = section.doc.get_tests()
+                        if tests:
+                            yield Tests(
+                                part.title, chapter.title, section.title, tests)
 
     def get_part(self, part_slug):
         return self.parts_by_slug.get(part_slug)
@@ -758,7 +768,7 @@ class DocChapter(DocElement):
 
 
 class DocSection(DocElement):
-    def __init__(self, chapter, title, text, operator=None):
+    def __init__(self, chapter, title, text, operator=None, installed=True):
         self.chapter = chapter
         self.title = title
         self.slug = slugify(title)
@@ -767,6 +777,7 @@ class DocSection(DocElement):
                              "{} documentation".format(title))
         self.doc = Doc(text)
         self.operator = operator
+        self.installed = installed
         chapter.sections_by_slug[self.slug] = self
 
     def __str__(self):
