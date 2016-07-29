@@ -14,7 +14,7 @@ from six.moves import zip
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, from_python
 from mathics.core.evaluation import (
-    AbortInterrupt, BreakInterrupt, ContinueInterrupt)
+    AbortInterrupt, BreakInterrupt, ContinueInterrupt, ReturnInterrupt)
 from mathics.builtin.lists import _IterationFunction
 from mathics.builtin.patterns import match
 
@@ -308,6 +308,12 @@ class For(Builtin):
      = 3628800
     >> n == 10!
      = True
+
+    #> n := 1
+    #> For[i=1, i<=10, i=i+1, If[i > 5, Return[i]]; n = n * i]
+     = 6
+    #> n
+     = 120
     """
 
     attributes = ('HoldRest',)
@@ -331,6 +337,8 @@ class For(Builtin):
                     pass
             except BreakInterrupt:
                 break
+            except ReturnInterrupt as e:
+                return e.expr
         return Symbol('Null')
 
 
@@ -348,6 +356,9 @@ class While(Builtin):
     >> While[b != 0, {a, b} = {b, Mod[a, b]}];
     >> a
      = 3
+
+    #> i = 1; While[True, If[i^2 > 100, Return[i + 1], i++]]
+     = 12
     """
 
     attributes = ('HoldAll',)
@@ -366,6 +377,8 @@ class While(Builtin):
                 pass
             except BreakInterrupt:
                 break
+            except ReturnInterrupt as e:
+                return e.expr
         return Symbol('Null')
 
 
@@ -599,8 +612,42 @@ class Abort(Builtin):
 
         raise AbortInterrupt
 
-# class Return(Builtin):
-#    pass
+
+class Return(Builtin):
+    '''
+    <dl>
+    <dt>'Return[$expr$]'
+      <dd>aborts a function call and returns $expr$.
+    </dl>
+
+    >> f[x_] := (If[x < 0, Return[0]]; x)
+    >> f[-1]
+     = 0
+
+    >> Do[If[i > 3, Return[]]; Print[i], {i, 10}]
+     | 1
+     | 2
+     | 3
+
+    'Return' only exits from the innermost control flow construct.
+    >> g[x_] := (Do[If[x < 0, Return[0]], {i, {2, 1, 0, -1}}]; x)
+    >> g[-1]
+     = -1
+
+    #> h[x_] := (If[x < 0, Return[]]; x)
+    #> h[1]
+     = 1
+    #> h[-1]
+    '''
+
+    rules = {
+        'Return[]': 'Return[Null]',
+    }
+
+    def apply(self, expr, evaluation):
+        'Return[expr_]'
+
+        raise ReturnInterrupt(expr)
 
 
 class Break(Builtin):
