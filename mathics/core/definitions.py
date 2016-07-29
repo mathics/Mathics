@@ -10,6 +10,7 @@ import six.moves.cPickle as pickle
 import os
 import base64
 import re
+import bisect
 
 from mathics.core.expression import Expression, Symbol, String, fully_qualified_symbol_name
 from mathics.core.characters import letters, letterlikes
@@ -475,8 +476,7 @@ def insert_rule(values, rule):
         if existing.pattern.same(rule.pattern):
             del values[index]
             break
-    values.insert(0, rule)
-    values.sort()
+    bisect.insort(values, rule)
 
 
 class Definition(object):
