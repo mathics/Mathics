@@ -214,8 +214,9 @@ class Graphics(Builtin):
             return content
 
         for option in options:
-            options[option] = Expression(
-                'N', options[option]).evaluate(evaluation)
+            if option not in ('System`ImageSize',):
+                options[option] = Expression(
+                    'N', options[option]).evaluate(evaluation)
         box_name = 'Graphics' + self.box_suffix
         return Expression(box_name, convert(content),
                           *options_to_rules(options))
@@ -1273,10 +1274,10 @@ class GraphicsBox(BoxConstruct):
 
         image_size = graphics_options['System`ImageSize']
         try:
-            if image_size.is_numeric():
-                base_width = int(image_size.to_number())
+            if isinstance(image_size, Integer):
+                base_width = image_size.get_int_value()
                 base_height = None  # will be computed later in calc_dimensions
-            elif image_size.get_head_name() == 'System`List':
+            elif image_size.has_form('System`List', 2):
                 base_width, base_height = ([x.to_number() for x in image_size.leaves] + [0, 0])[:2]
                 aspect = base_height / base_width
             else:
