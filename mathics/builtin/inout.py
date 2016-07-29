@@ -1340,6 +1340,8 @@ class General(Builtin):
         'invalidargs': "Invalid arguments.",
 
         'notboxes': "`1` is not a valid box structure.",
+
+        'pyimport': "`1`[] is not available. Your Python installation misses the \"`2`\" module.",
     }
 
 

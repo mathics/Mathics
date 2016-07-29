@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import re
 import sympy
 from functools import total_ordering
+import importlib
 
 from mathics.core.definitions import Definition
 from mathics.core.rules import Rule, BuiltinRule, Pattern
@@ -162,6 +163,7 @@ class Builtin(object):
     def get_functions(self, prefix='apply'):
         from mathics.core.parser import parse_builtin_rule
 
+        unavailable_function = self._get_unavailable_function()
         for name in dir(self):
             if name.startswith(prefix):
                 function = getattr(self, name)
@@ -177,6 +179,8 @@ class Builtin(object):
                     attrs = []
                 pattern = pattern % {'name': self.get_name()}
                 pattern = parse_builtin_rule(pattern)
+                if unavailable_function:
+                    function = unavailable_function
                 if attrs:
                     yield (attrs, pattern), function
                 else:
@@ -189,6 +193,22 @@ class Builtin(object):
             return value.evaluate(evaluation)
         else:
             return None
+
+    def _get_unavailable_function(self):
+        requires = getattr(self, 'requires', [])
+
+        for package in requires:
+            try:
+                importlib.import_module(package)
+            except ImportError:
+                def apply(**kwargs):  # will override apply method
+                    kwargs['evaluation'].message(
+                        'General', 'pyimport',  # see inout.py
+                        strip_context(self.get_name()), package)
+
+                return apply
+
+        return None
 
 
 class InstancableBuiltin(Builtin):
