@@ -700,18 +700,9 @@ class Power(BinaryOperator, _MPMathFunction):
     #> 0 ^ -2
      : Infinite expression 1 / 0 ^ 2 encountered.
      = ComplexInfinity
-    #> 0 ^ -Pi
-     : Infinite expression 1 / 0 ^ 3.141592653589793 encountered.
-     = ComplexInfinity
-    #> 0 ^ - (Pi + 2 E I)
-     : Infinite expression 0 ^ (-3.141592653589793 - 5.43656365691809 I) encountered.
-     = ComplexInfinity
 
     #> 0 ^ 0
      : Indeterminate expression 0 ^ 0 encountered.
-     = Indeterminate
-    #> 0 ^ (2 I E)
-     : Indeterminate expression 0 ^ (0. + 5.43656365691809 I) encountered.
      = Indeterminate
 
     #> Sqrt[-3+2. I]
@@ -732,6 +723,21 @@ class Power(BinaryOperator, _MPMathFunction):
     #> a ^ b
      = a ^ b
     """
+
+    # TODO
+    '''
+    #> 0 ^ -Pi
+     : Infinite expression 1 / 0 ^ 3.141592653589793 encountered.
+     = ComplexInfinity
+
+    #> 0 ^ (2 I E)
+     : Indeterminate expression 0 ^ (0. + 5.43656365691809 I) encountered.
+     = Indeterminate
+
+    #> 0 ^ - (Pi + 2 E I)
+     : Infinite expression 0 ^ (-3.141592653589793 - 5.43656365691809 I) encountered.
+     = ComplexInfinity
+    '''
 
     operator = '^'
     precedence = 590
