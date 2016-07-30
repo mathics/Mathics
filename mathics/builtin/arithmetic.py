@@ -794,7 +794,9 @@ class Power(BinaryOperator, _MPMathFunction):
                     evaluation.message('Power', 'infy', Expression('Power', x, y_err))
                     return Symbol('ComplexInfinity')
 
-        return self.apply(Expression('Sequence', x, y), evaluation)
+        result = self.apply(Expression('Sequence', x, y), evaluation)
+        if result is None or result != Symbol('Null'):
+            return result
 
 
 class Sqrt(SympyFunction):
