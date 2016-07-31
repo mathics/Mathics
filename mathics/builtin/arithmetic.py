@@ -726,19 +726,25 @@ class Power(BinaryOperator, _MPMathFunction):
     #> 1/0
      : Infinite expression 1 / 0 encountered.
      = ComplexInfinity
-<<<<<<< c8cf8396356bf74ab270ea44bbd48df07f69cd66
     #> 0 ^ -2
      : Infinite expression 1 / 0 ^ 2 encountered.
      = ComplexInfinity
     #> 0 ^ (-1/2)
      : Infinite expression 1 / Sqrt[0] encountered.
      = ComplexInfinity
+    #> 0 ^ -Pi
+     : Infinite expression 1 / 0 ^ 3.141592653589793 encountered.
+     = ComplexInfinity
+    #> 0 ^ (2 I E)
+     : Indeterminate expression 0 ^ (0. + 5.43656365691809 I) encountered.
+     = Indeterminate
+    #> 0 ^ - (Pi + 2 E I)
+     : Infinite expression 0 ^ (-3.141592653589793 - 5.43656365691809 I) encountered.
+     = ComplexInfinity
 
     #> 0 ^ 0
      : Indeterminate expression 0 ^ 0 encountered.
      = Indeterminate
-=======
->>>>>>> implement mpmath machine precision workaround
 
     #> Sqrt[-3+2. I]
      = 0.550250522700337511 + 1.81735402102397062 I
@@ -758,21 +764,6 @@ class Power(BinaryOperator, _MPMathFunction):
     #> a ^ b
      = a ^ b
     """
-
-    # TODO
-    '''
-    #> 0 ^ -Pi
-     : Infinite expression 1 / 0 ^ 3.141592653589793 encountered.
-     = ComplexInfinity
-
-    #> 0 ^ (2 I E)
-     : Indeterminate expression 0 ^ (0. + 5.43656365691809 I) encountered.
-     = Indeterminate
-
-    #> 0 ^ - (Pi + 2 E I)
-     : Infinite expression 0 ^ (-3.141592653589793 - 5.43656365691809 I) encountered.
-     = ComplexInfinity
-    '''
 
     operator = '^'
     precedence = 590
