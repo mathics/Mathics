@@ -1537,6 +1537,9 @@ class Integer(Number):
     def __getnewargs__(self):
         return (self.value,)
 
+    def __neg__(self):
+        return Integer(-self.value)
+
 
 class Rational(Number):
     def __new__(cls, numerator, denominator=None, **kwargs):
@@ -1607,6 +1610,9 @@ class Rational(Number):
 
     def __getnewargs__(self):
         return (self.numerator().get_int_value(), self.denominator().get_int_value())
+
+    def __neg__(self):
+        return Rational(-self.numerator().get_int_value(), self.denominator().get_int_value())
 
 
 class Real(Number):
@@ -1735,6 +1741,9 @@ class MachineReal(Real):
     def do_copy(self):
         return MachineReal(self.value)
 
+    def __neg__(self):
+        return MachineReal(-self.value)
+
 
 class PrecisionReal(Real):
     '''
@@ -1774,6 +1783,9 @@ class PrecisionReal(Real):
 
     def do_copy(self):
         return PrecisionReal(self.value)
+
+    def __neg__(self):
+        return PrecisionReal(-self.value)
 
 
 class Complex(Number):
@@ -1890,6 +1902,9 @@ class Complex(Number):
 
     def __getnewargs__(self):
         return (self.real, self.imag)
+
+    def __neg__(self):
+        return Complex(-self.real, -self.imag)
 
 
 def encode_mathml(text):

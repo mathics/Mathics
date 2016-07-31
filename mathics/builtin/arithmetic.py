@@ -205,7 +205,7 @@ class Plus(BinaryOperator, SympyFunction):
         def negate(item):
             if item.has_form('Times', 1, None):
                 if isinstance(item.leaves[0], Number):
-                    neg = from_sympy(-item.leaves[0].to_sympy())
+                    neg = -item.leaves[0]
                     if neg.same(Integer(1)):
                         if len(item.leaves) == 1:
                             return neg
@@ -215,8 +215,8 @@ class Plus(BinaryOperator, SympyFunction):
                         return Expression('Times', neg, *item.leaves[1:])
                 else:
                     return Expression('Times', -1, *item.leaves)
-            elif isinstance(item, (Integer, Rational, Real, Complex)):
-                return from_sympy(-item.to_sympy())
+            elif isinstance(item, Number):
+                return -item.to_sympy()
             else:
                 return Expression('Times', -1, item)
 
@@ -475,6 +475,8 @@ class Times(BinaryOperator, SympyFunction):
 
     #> -2.123456789 x
      = -2.12346 x
+    #> -2.123456789 I
+     = 0. - 2.12346 I
     """
 
     operator = '*'
@@ -503,7 +505,7 @@ class Times(BinaryOperator, SympyFunction):
         def inverse(item):
             if item.has_form('Power', 2) and isinstance(    # noqa
                 item.leaves[1], (Integer, Rational, Real)):
-                neg = from_sympy(-item.leaves[1].to_sympy())
+                neg = -item.leaves[1]
                 if neg.same(Integer(1)):
                     return item.leaves[0]
                 else:
