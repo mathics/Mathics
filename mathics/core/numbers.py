@@ -29,6 +29,11 @@ def reconstruct_digits(bits):
     return int(ceil(bits / C) + 1)
 
 
+class SpecialValueError(Exception):
+    def __init__(self, name):
+        self.name = name
+
+
 def get_type(value):
     if isinstance(value, sympy.Integer):
         return 'z'
@@ -50,34 +55,6 @@ def same(v1, v2):
 def is_0(value):
     return get_type(value) == 'z' and value == 0
 
-
-def sympy2mpmath(value, prec=None):
-    if prec is None:
-        prec = machine_precision
-    value = value.n(dps(prec))
-    if value.is_real:
-        return mpmath.mpf(value)
-    elif value.is_number:
-        return mpmath.mpc(*value.as_real_imag())
-    else:
-        return None
-
-
-class SpecialValueError(Exception):
-    def __init__(self, name):
-        self.name = name
-
-
-def mpmath2sympy(value, prec):
-    if isinstance(value, mpmath.mpc):
-        return (sympy.Float(str(value.real), dps(prec)) +
-                sympy.I * sympy.Float(str(value.imag), dps(prec)))
-    elif isinstance(value, mpmath.mpf):
-        if str(value) in ('+inf', '-inf'):
-            raise SpecialValueError('ComplexInfinity')
-        return sympy.Float(str(value), dps(prec))
-    else:
-        return None
 
 def dps(prec):
     return max(1, int(round(int(prec) / C - 1)))

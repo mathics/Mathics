@@ -376,6 +376,9 @@ class BaseExpression(KeyComparable):
     def to_sympy(self, **kwargs):
         raise NotImplementedError
 
+    def to_mpmath(self):
+        return None
+
     def __abs__(self):
         return Expression('Abs', self)
 
@@ -1431,7 +1434,7 @@ class Number(Atom):
             imag = Number.from_mpmath(value.imag, prec)
             return Complex(real, imag)
         else:
-            raise TypeError
+            raise TypeError(type(value))
 
     def is_numeric(self):
         return True

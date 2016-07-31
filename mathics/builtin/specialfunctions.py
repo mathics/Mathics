@@ -12,8 +12,8 @@ import mpmath
 
 from mathics.builtin.base import Builtin, SympyFunction
 from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
-from mathics.core.expression import Integer
-from mathics.core.numbers import mpmath2sympy, machine_precision
+from mathics.core.expression import Integer, Number
+from mathics.core.numbers import machine_precision
 from mathics.core.convert import from_sympy
 from mathics.core.numbers import prec as _prec
 
@@ -717,8 +717,8 @@ class AiryAiZero(Builtin):
             prec = _prec(d)
 
         with mpmath.workprec(prec):
-            result = mpmath2sympy(mpmath.airyaizero(k_int), prec)
-        return from_sympy(result).round(d)
+            result = mpmath.airyaizero(k_int)
+        return Number.from_mpmath(result, d)
 
 
 class AiryBiZero(Builtin):
@@ -770,8 +770,8 @@ class AiryBiZero(Builtin):
         k_int = k.get_int_value()
 
         with mpmath.workprec(prec):
-            result = mpmath2sympy(mpmath.airybizero(k_int), prec)
-        return from_sympy(result).round(d)
+            result = mpmath.airybizero(k_int)
+        return Number.from_mpmath(result, d)
 
 # Orthogonal Polynomials
 

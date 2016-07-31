@@ -21,7 +21,7 @@ from mathics.core.expression import (
     Expression, Number, Integer, Rational, Real, Symbol, Complex, String,
     MachineReal)
 from mathics.core.numbers import (
-    add, min_prec, dps, sympy2mpmath, mpmath2sympy, SpecialValueError)
+    add, min_prec, dps, SpecialValueError)
 
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
@@ -78,16 +78,15 @@ class _MPMathFunction(SympyFunction):
                     result = Number.from_mpmath(result)
         else:
             prec = min_prec(*args)
+            d = dps(prec)
+            args = [Expression('N', arg, Integer(d)).evaluate(evaluation) for arg in args]
             with mpmath.workprec(prec):
-                sympy_args = [x.to_sympy() for x in args]
-                if None in sympy_args:
-                    return
-                mpmath_args = [sympy2mpmath(x, prec) for x in sympy_args]
+                mpmath_args = [x.to_mpmath() for x in args]
                 if None in mpmath_args:
                     return
                 result = self.call_mpmath(mpmath_function, mpmath_args)
                 if isinstance(result, (mpmath.mpc, mpmath.mpf)):
-                    result = from_sympy(mpmath2sympy(result, prec))
+                    result = Number.from_mpmath(result, d)
         return result
 
     def call_mpmath(self, mpmath_function, mpmath_args):
