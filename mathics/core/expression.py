@@ -1503,6 +1503,9 @@ class Integer(Number):
     def to_sympy(self, **kwargs):
         return sympy.Integer(self.value)
 
+    def to_mpmath(self):
+        return mpmath.mpf(self.value)
+
     def to_python(self, *args, **kwargs):
         return self.value
 
@@ -1552,6 +1555,9 @@ class Rational(Number):
 
     def to_sympy(self, **kwargs):
         return self.value
+
+    def to_mpmath(self):
+        return mpmath.mpf(self.value)
 
     def to_python(self, *args, **kwargs):
         return float(self.value)
@@ -1713,6 +1719,9 @@ class MachineReal(Real):
     def to_sympy(self):
         return sympy.Float(self.value)
 
+    def to_mpmath(self):
+        return mpmath.mpf(self.value)
+
     def same(self, other):
         if isinstance(other, MachineReal):
             return self.value == other.value
@@ -1762,6 +1771,9 @@ class PrecisionReal(Real):
 
     def to_sympy(self):
         return self.value
+
+    def to_mpmath(self):
+        return mpmath.mpf(self.value)
 
     def same(self, other):
         if isinstance(other, PrecisionReal):
@@ -1822,6 +1834,9 @@ class Complex(Number):
 
     def to_python(self, *args, **kwargs):
         return complex(self.real.to_python(), self.imag.to_python())
+
+    def to_mpmath(self):
+        return mpmath.mpc(self.real.to_mpmath(), self.imag.to_mpmath())
 
     def do_format(self, evaluation, form):
         if form == 'System`FullForm':
