@@ -700,6 +700,9 @@ class Power(BinaryOperator, _MPMathFunction):
     #> 0 ^ -2
      : Infinite expression 1 / 0 ^ 2 encountered.
      = ComplexInfinity
+    #> 0 ^ (-1/2)
+     : Infinite expression 1 / Sqrt[0] encountered.
+     = ComplexInfinity
 
     #> 0 ^ 0
      : Indeterminate expression 0 ^ 0 encountered.
@@ -783,10 +786,12 @@ class Power(BinaryOperator, _MPMathFunction):
 
         # Power uses _MPMathFunction but does some error checking first
         if isinstance(x, Number) and x.to_sympy() == 0:
-            py_y = y.to_python(n_evaluation=evaluation)
-            if isinstance(py_y, (int, float, complex)):
-                y_err = from_python(py_y)
-                py_y = float(py_y.real)     # take the real part if complex
+            if isinstance(y, Number):
+                y_err = y
+            else:
+                y_err = Expression('N', y).evaluate(evaluation)
+            if isinstance(y_err, Number):
+                py_y = complex(y_err.to_sympy()).real   # take real part
                 if py_y > 0:
                     return x
                 elif py_y == 0.0:
