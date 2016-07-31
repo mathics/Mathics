@@ -286,8 +286,11 @@ class Inequality(Builtin):
 
 
 def do_cmp(x1, x2):
-    real1, real2 = x1.get_float_value(), x2.get_float_value()
-    inf1 = inf2 = None
+    inf1 = inf2 = real1 = real2 = None
+    if isinstance(x1, (Real, Integer, Rational)):
+        real1 = x1.to_sympy()
+    if isinstance(x2, (Real, Integer, Rational)):
+        real2 = x2.to_sympy()
     if x1.has_form('DirectedInfinity', 1):
         inf1 = x1.leaves[0].get_int_value()
     if x2.has_form('DirectedInfinity', 1):
