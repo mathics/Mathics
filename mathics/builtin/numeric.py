@@ -23,9 +23,7 @@ from mathics.core.numbers import (dps, prec,
 from mathics.core.expression import (Integer, Rational, Real, Complex,
                                      Expression, Number, Symbol, from_python)
 from mathics.core.convert import from_sympy
-from mathics.settings import MACHINE_PRECISION
-
-machine_precision = MACHINE_PRECISION
+from mathics.core.numbers import machine_precision
 
 
 def get_precision(precision, evaluation):

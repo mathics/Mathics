@@ -7,9 +7,11 @@ from __future__ import absolute_import
 import sympy
 import mpmath
 import re
+import abc
 
-from mathics.core.numbers import get_type, dps, prec, min_prec
+from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
+
 import six
 from six.moves import map
 from six.moves import range
@@ -111,12 +113,12 @@ def from_python(arg):
         raise NotImplementedError
 
 
-class KeyComparable(object):
-    '''
-    subclassing this requires implementing the get_sort_key method
-    '''
-    def __init__(self, *args, **kwargs):
-        pass
+class KeyComparable:
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def get_sort_key(self):
+        return
 
     def __lt__(self, other):
         return self.get_sort_key() < other.get_sort_key()
@@ -138,14 +140,12 @@ class KeyComparable(object):
 
 
 class BaseExpression(KeyComparable):
-    def __init__(self, *args, **kwargs):
-        super(BaseExpression, self).__init__()
-
+    def __new__(cls, *args, **kwargs):
+        self = object.__new__(cls)
         self.options = None
-
         self.pattern_sequence = False
-
         self.unformatted = self
+        return self
 
     def get_attributes(self, definitions):
         return set()
@@ -413,7 +413,6 @@ class BaseExpression(KeyComparable):
         return Expression('Power', self, other)
 
 
-# TODO subclass KeyComparable
 class Monomial(object):
     """
     An object to sort monomials, used in Expression.get_sort_key and
@@ -494,8 +493,8 @@ class Monomial(object):
 
 
 class Expression(BaseExpression):
-    def __init__(self, head, *leaves, **kwargs):
-        super(Expression, self).__init__(**kwargs)
+    def __new__(cls, head, *leaves, **kwargs):
+        self = super(Expression, cls).__new__(cls)
         if isinstance(head, six.string_types):
             head = Symbol(head)
         self.head = head
@@ -503,6 +502,7 @@ class Expression(BaseExpression):
 
         self.parse_operator = kwargs.get('parse_operator')
         self.is_evaluated = False
+        return self
 
     def copy(self):
         result = Expression(
@@ -1302,11 +1302,11 @@ class Atom(BaseExpression):
 
 
 class Symbol(Atom):
-    def __init__(self, name, sympy_dummy=None, **kwargs):
-        super(Symbol, self).__init__(**kwargs)
-        assert isinstance(name, six.string_types)
+    def __new__(cls, name, sympy_dummy=None):
+        self = super(Symbol, cls).__new__(cls)
         self.name = ensure_context(name)
         self.sympy_dummy = sympy_dummy
+        return self
 
     def __str__(self):
         return self.name
@@ -1477,11 +1477,12 @@ _number_form_options = {
     'NumberMultiplier': '\u00d7',
 }
 
-
 class Integer(Number):
-    def __init__(self, value, **kwargs):
-        super(Integer, self).__init__(**kwargs)
-        self.value = int(value)
+    def __new__(cls, value):
+        n = int(value)
+        self = super(Integer, cls).__new__(cls)
+        self.value = n
+        return self
 
     def __getstate__(self):
         return {'value': self.value}
@@ -1543,9 +1544,10 @@ class Integer(Number):
 
 
 class Rational(Number):
-    def __init__(self, numerator, denominator=None, **kwargs):
-        super(Rational, self).__init__(**kwargs)
+    def __new__(cls, numerator, denominator=None, **kwargs):
+        self = super(Rational, cls).__new__(cls)
         self.value = sympy.Rational(numerator, denominator)
+        return self
 
     def __getstate__(self):
         return {'value': str(self.value)}
@@ -1603,7 +1605,6 @@ class Rational(Number):
             return [0, 0, sympy.Float(self.value), 0, 1]
 
     def get_real_value(self):
-        from mathics.builtin.numeric import machine_precision
         return self.value.n(machine_precision)
 
     def do_copy(self):
@@ -1617,9 +1618,8 @@ class Rational(Number):
 
 
 class Real(Number):
-    def __init__(self, value, p=None):
-        from mathics.builtin.numeric import machine_precision
-        super(Real, self).__init__()
+    def __new__(cls, value, p=None):
+        self = super(Real, cls).__new__(cls)
 
         if isinstance(value, six.string_types):
             value = str(value)
@@ -1633,7 +1633,7 @@ class Real(Number):
         elif isinstance(value, sympy.Float):
             self.value = value
             self.prec = value._prec + 1
-            return
+            return self
         elif isinstance(value,
                         (Integer, sympy.Number, mpmath.mpf, float, int)):
             value = str(value)
@@ -1645,6 +1645,7 @@ class Real(Number):
 
         self.value = sympy.Float(value, dps(p))
         self.prec = p
+        return self
 
     def __getstate__(self):
         p = self.prec
@@ -1725,8 +1726,8 @@ class Real(Number):
 
 
 class Complex(Number):
-    def __init__(self, real, imag, p=None, **kwargs):
-        super(Complex, self).__init__(**kwargs)
+    def __new__(cls, real, imag, p=None, **kwargs):
+        self = super(Complex, cls).__new__(cls)
 
         if isinstance(real, six.string_types):
             real = str(real)
@@ -1760,6 +1761,7 @@ class Complex(Number):
         self.sympy = self.real.to_sympy() + sympy.I * self.imag.to_sympy()
         self.value = (self.real, self.imag)
         self.prec = p
+        return self
 
     def to_sympy(self, **kwargs):
         return self.sympy
@@ -1879,9 +1881,10 @@ extra_operators = set((',', '(', ')', '[', ']', '{', '}',
 
 
 class String(Atom):
-    def __init__(self, value, **kwargs):
-        super(String, self).__init__(**kwargs)
+    def __new__(cls, value, **kwargs):
+        self = super(String, cls).__new__(cls)
         self.value = value
+        return self
 
     def __str__(self):
         return '"%s"' % self.value
