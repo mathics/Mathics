@@ -472,6 +472,9 @@ class Times(BinaryOperator, SympyFunction):
      = 3*a
     #> 3 * a //OutputForm
      = 3 a
+
+    #> -2.123456789 x
+     = -2.12346 x
     """
 
     operator = '*'
@@ -524,12 +527,8 @@ class Times(BinaryOperator, SympyFunction):
                 negative.append(item.denominator())
             else:
                 positive.append(item)
-        if (positive and isinstance(positive[0], (Integer, Real)) and
-            positive[0].to_sympy() < 0):    # nopep8
-
-            positive[0] = from_sympy(-positive[0].to_sympy())
-            if positive[0].same(Integer(1)):
-                del positive[0]
+        if positive and positive[0].get_int_value() == -1:
+            del positive[0]
             minus = True
         else:
             minus = False
