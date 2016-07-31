@@ -319,6 +319,8 @@ class Plus(BinaryOperator, SympyFunction):
             else:
                 real = from_sympy(number[0])
                 imag = from_sympy(number[1])
+                if prec is not None:
+                    real, imag = real.round(dps(prec)), imag.round(dps(prec))
                 leaves.insert(0, Complex(real, imag))
 
         if is_machine_precision:
@@ -620,6 +622,8 @@ class Times(BinaryOperator, SympyFunction):
             else:
                 real = from_sympy(number[0])
                 imag = from_sympy(number[1])
+                if prec is not None:
+                    real, imag = real.round(dps(prec)), imag.round(dps(prec))
                 leaves.insert(0, Complex(real, imag))
 
         if is_machine_precision:
