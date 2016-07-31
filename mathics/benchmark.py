@@ -4,11 +4,19 @@
 from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
 import time
 from argparse import ArgumentParser
-import urllib.request
-import statistics
+
+
+try:
+    from statistics import mean
+    from statistics import median_low as median
+except ImportError:
+    mean = lambda l: sum(l) / len(l)
+    median = lambda l: sorted(l)[len(l) // 2]
+
 
 import mathics
 from mathics.core.parser import parse, MultiLineFeeder, SingleLineFeeder
@@ -108,9 +116,9 @@ def timeit(func, repeats=None):
 
     times = [times[i+1] - times[i] for i in range(repeats)]
 
-    average_time = format_time_units(statistics.mean(times))
+    average_time = format_time_units(mean(times))
     best_time = format_time_units(min(times))
-    median_time = format_time_units(statistics.median(times))
+    median_time = format_time_units(median(times))
 
     print("    {0:5n} loops, avg: {1}, best: {2}, median: {3} per loop".format(
         repeats, average_time, best_time, median_time))
@@ -128,6 +136,11 @@ def benchmark_parse(expression_string):
 
 
 def benchmark_parse_file(fname):
+    try:
+        import urllib.request
+    except ImportError:
+        print('install urllib for Combinatorica parsing test')
+        return
     print("  '{0}'".format(truncate_line(fname)))
     with urllib.request.urlopen(fname) as f:
         code = f.read().decode('utf-8')
