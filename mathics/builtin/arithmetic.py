@@ -66,7 +66,16 @@ class _MPMathFunction(SympyFunction):
 
             result = self.call_mpmath(mpmath_function, float_args)
             if isinstance(result, (mpmath.mpc, mpmath.mpf)):
-                result = Number.from_mp(result)
+                if mpmath.isinf(result) and isinstance(result, mpmath.mpc):
+                    result = Symbol('ComplexInfinity')
+                elif mpmath.isinf(result) and result > 0:
+                    result = Expression('DirectedInfinity', Integer(1))
+                elif mpmath.isinf(result) and result < 0:
+                    result = Expression('DirectedInfinity', Integer(-1))
+                elif mpmath.isnan(result):
+                    result = Symbol('Indeterminate')
+                else:
+                    result = Number.from_mpmath(result)
         else:
             prec = min_prec(*args)
             with mpmath.workprec(prec):
@@ -196,7 +205,7 @@ class Plus(BinaryOperator, SympyFunction):
         def negate(item):
             if item.has_form('Times', 1, None):
                 if isinstance(item.leaves[0], Number):
-                    neg = Number.from_mp(-item.leaves[0].to_sympy())
+                    neg = from_sympy(-item.leaves[0].to_sympy())
                     if neg.same(Integer(1)):
                         if len(item.leaves) == 1:
                             return neg
@@ -207,7 +216,7 @@ class Plus(BinaryOperator, SympyFunction):
                 else:
                     return Expression('Times', -1, *item.leaves)
             elif isinstance(item, (Integer, Rational, Real, Complex)):
-                return Number.from_mp(-item.to_sympy())
+                return from_sympy(-item.to_sympy())
             else:
                 return Expression('Times', -1, item)
 
@@ -257,11 +266,11 @@ class Plus(BinaryOperator, SympyFunction):
                     leaves.append(last_item)
                 else:
                     if last_item.has_form('Times', None):
-                        last_item.leaves.insert(0, Number.from_mp(last_count))
+                        last_item.leaves.insert(0, from_sympy(last_count))
                         leaves.append(last_item)
                     else:
                         leaves.append(Expression(
-                            'Times', Number.from_mp(last_count), last_item))
+                            'Times', from_sympy(last_count), last_item))
 
         for item in items:
             if isinstance(item, Number):
@@ -303,12 +312,12 @@ class Plus(BinaryOperator, SympyFunction):
         append_last()
         if prec is not None or number != (0, 0):
             if number[1].is_zero and is_real:
-                leaves.insert(0, Number.from_mp(number[0], prec))
+                leaves.insert(0, from_sympy(number[0]))
             elif number[1].is_zero and number[1].is_Integer and prec is None:
-                leaves.insert(0, Number.from_mp(number[0], prec))
+                leaves.insert(0, from_sympy(number[0], prec))
             else:
-                real = Number.from_mp(number[0], prec)
-                imag = Number.from_mp(number[1], prec)
+                real = from_sympy(number[0])
+                imag = from_sympy(number[1])
                 leaves.insert(0, Complex(real, imag))
         if not leaves:
             return Integer(0)
@@ -484,7 +493,7 @@ class Times(BinaryOperator, SympyFunction):
         def inverse(item):
             if item.has_form('Power', 2) and isinstance(    # noqa
                 item.leaves[1], (Integer, Rational, Real)):
-                neg = Number.from_mp(-item.leaves[1].to_sympy())
+                neg = from_sympy(-item.leaves[1].to_sympy())
                 if neg.same(Integer(1)):
                     return item.leaves[0]
                 else:
@@ -511,7 +520,7 @@ class Times(BinaryOperator, SympyFunction):
         if (positive and isinstance(positive[0], (Integer, Real)) and
             positive[0].to_sympy() < 0):    # nopep8
 
-            positive[0] = Number.from_mp(-positive[0].to_sympy())
+            positive[0] = from_sympy(-positive[0].to_sympy())
             if positive[0].same(Integer(1)):
                 del positive[0]
             minus = True
@@ -599,12 +608,12 @@ class Times(BinaryOperator, SympyFunction):
 
         if number is not None:
             if number[1].is_zero and is_real:
-                leaves.insert(0, Number.from_mp(number[0], prec))
+                leaves.insert(0, from_sympy(number[0]))
             elif number[1].is_zero and number[1].is_Integer and prec is None:
-                leaves.insert(0, Number.from_mp(number[0], prec))
+                leaves.insert(0, from_sympy(number[0]))
             else:
-                real = Number.from_mp(number[0], prec)
-                imag = Number.from_mp(number[1], prec)
+                real = from_sympy(number[0])
+                imag = from_sympy(number[1])
                 leaves.insert(0, Complex(real, imag))
 
         if not leaves:
@@ -1449,9 +1458,8 @@ class Complex_(Builtin):
 
         if isinstance(r, Complex) or isinstance(i, Complex):
             sym_form = r.to_sympy() + sympy.I * i.to_sympy()
-            sym_r, sym_i = sym_form.simplify().as_real_imag()
-            r = Number.from_mp(sym_r)
-            i = Number.from_mp(sym_i)
+            r, i = sym_form.simplify().as_real_imag()
+            r, i = from_sympy(r), from_sympy(i)
         return Complex(r, i)
 
 

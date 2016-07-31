@@ -6,6 +6,7 @@ from __future__ import absolute_import
 
 import sympy
 import mpmath
+import math
 import re
 import abc
 
@@ -1418,48 +1419,19 @@ class Number(Atom):
         return str(self.value)
 
     @staticmethod
-    def from_string(value):
-        if 'I' in value:
-            return Complex(value)
-        elif '.' in value:
-            return Real(value)
-        elif '/' in value:
-            return Rational(value)
-        else:
-            return Integer(value)
-
-    @staticmethod
-    def from_mp(value, prec=None):
-        # assert(value.is_number)
-        if isinstance(value, Number):
+    def from_mpmath(value, prec=None):
+        'Converts mpf or mpc to Number.'
+        if isinstance(value, mpmath.mpf):
             if prec is None:
-                return value
-            return value.round(prec)
-        t = get_type(value)
-        if t == 'z':
-            return Integer(value)
-        elif t == 'q':
-            return Rational(value)
-        elif t == 'f':
-            if prec is None:
-                value = float(value)
-                if mpmath.isinf(value):
-                    raise OverflowError()
-                return MachineReal(value)
+                return MachineReal(float(value))
             else:
-                return Real(value, prec)
-        elif t == 'c':
-            real, imag = value.real, value.imag
-            real, imag = Real(real, prec), Real(imag, prec)
+                return PrecisionReal(sympy.Float(value, prec))
+        elif isinstance(value, mpmath.mpc):
+            real = Number.from_mpmath(value.real, prec)
+            imag = Number.from_mpmath(value.imag, prec)
             return Complex(real, imag)
-
-        if isinstance(value, six.integer_types):
-            return Integer(value)
-        elif isinstance(value, float):
-            return Real(value)
-
-        raise TypeError('Unknown number type: %s (type %s)' % (
-            value, type(value)))
+        else:
+            raise TypeError
 
     def is_numeric(self):
         return True
@@ -1585,10 +1557,10 @@ class Rational(Number):
         return isinstance(other, Rational) and self.value == other.value
 
     def numerator(self):
-        return Number.from_mp(self.value.as_numer_denom()[0])
+        return Integer(self.value.as_numer_denom()[0])
 
     def denominator(self):
-        return Number.from_mp(self.value.as_numer_denom()[1])
+        return Integer(self.value.as_numer_denom()[1])
 
     def do_format(self, evaluation, form):
         assert fully_qualified_symbol_name(form)
@@ -1725,6 +1697,8 @@ class MachineReal(Real):
     def __new__(cls, value):
         self = Number.__new__(cls)
         self.value = float(value)
+        if math.isinf(self.value) or math.isnan(self.value):
+            raise OverflowError
         return self
 
     def to_python(self, *args, **kwargs):
