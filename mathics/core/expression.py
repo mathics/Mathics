@@ -1428,7 +1428,8 @@ class Number(Atom):
             if prec is None:
                 return MachineReal(float(value))
             else:
-                return PrecisionReal(sympy.Float(value, prec))
+                # HACK: use str here to prevent loss of precision
+                return PrecisionReal(sympy.Float(str(value), prec))
         elif isinstance(value, mpmath.mpc):
             real = Number.from_mpmath(value.real, prec)
             imag = Number.from_mpmath(value.imag, prec)
