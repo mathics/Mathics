@@ -16,7 +16,7 @@ import sympy
 import mpmath
 
 from mathics.builtin.base import Builtin, SympyConstant
-from mathics.core.expression import Real, Expression, Integer
+from mathics.core.expression import Real, Expression, Integer, Symbol
 from mathics.core.numbers import dps
 
 from mathics.builtin.numeric import get_precision
@@ -116,6 +116,9 @@ class Exp(_MPMathFunction):
         'Exp[x_]': 'E ^ x',
         'Derivative[1][Exp]': 'Exp',
     }
+
+    def from_sympy(self, sympy_name, leaves):
+        return Expression('Power', Symbol('E'), leaves[0])
 
 
 class Log(_MPMathFunction):

@@ -18,7 +18,7 @@ from mathics.builtin.base import (
     SympyFunction, SympyConstant)
 
 from mathics.core.expression import (Expression, Number, Integer, Rational,
-                                     Real, Symbol, Complex, String)
+                                     Real, Symbol, Complex, String, from_python)
 from mathics.core.numbers import (
     add, min_prec, dps, sympy2mpmath, mpmath2sympy, SpecialValueError)
 
@@ -655,7 +655,7 @@ class Divide(BinaryOperator):
     }
 
 
-class Power(BinaryOperator, SympyFunction):
+class Power(BinaryOperator, _MPMathFunction):
     """
     <dl>
     <dt>'Power[$a$, $b$]'</dt>
@@ -695,8 +695,19 @@ class Power(BinaryOperator, SympyFunction):
      = -3.19181629045628082 + 0.645658509416156807 I
 
     #> 1/0
-     : Infinite expression (division by zero) encountered.
+     : Infinite expression 1 / 0 encountered.
      = ComplexInfinity
+    #> 0 ^ -2
+     : Infinite expression 1 / 0 ^ 2 encountered.
+     = ComplexInfinity
+    #> 0 ^ (-1/2)
+     : Infinite expression 1 / Sqrt[0] encountered.
+     = ComplexInfinity
+
+    #> 0 ^ 0
+     : Indeterminate expression 0 ^ 0 encountered.
+     = Indeterminate
+
     #> Sqrt[-3+2. I]
      = 0.550250522700337511 + 1.81735402102397062 I
     #> Sqrt[-3+2 I]
@@ -711,7 +722,25 @@ class Power(BinaryOperator, SympyFunction):
 
     #> Pi ^ 4.
      = 97.4090910340024372
+
+    #> a ^ b
+     = a ^ b
     """
+
+    # TODO
+    '''
+    #> 0 ^ -Pi
+     : Infinite expression 1 / 0 ^ 3.141592653589793 encountered.
+     = ComplexInfinity
+
+    #> 0 ^ (2 I E)
+     : Indeterminate expression 0 ^ (0. + 5.43656365691809 I) encountered.
+     = Indeterminate
+
+    #> 0 ^ - (Pi + 2 E I)
+     : Infinite expression 0 ^ (-3.141592653589793 - 5.43656365691809 I) encountered.
+     = ComplexInfinity
+    '''
 
     operator = '^'
     precedence = 590
@@ -721,9 +750,13 @@ class Power(BinaryOperator, SympyFunction):
     default_formats = False
 
     sympy_name = 'Pow'
+    mpmath_name = 'power'
+    nargs = 2
 
     messages = {
-        'infy': "Infinite expression (division by zero) encountered.",
+        'infy': "Infinite expression `1` encountered.",
+        'indet': 'Indeterminate expression `1` encountered.',
+
     }
 
     defaults = {
@@ -744,82 +777,37 @@ class Power(BinaryOperator, SympyFunction):
     }
 
     rules = {
+        'Power[]': '1',
+        'Power[x_]': 'x',
     }
 
-    def apply(self, items, evaluation):
-        'Power[items__]'
+    def apply_check(self, x, y, evaluation):
+        'Power[x_, y_]'
 
-        items_sequence = items.get_sequence()
-
-        if len(items_sequence) == 2:
-            x, y = items_sequence
-        else:
-            return Expression('Power', *items_sequence)
-
-        if y.get_int_value() == 1:
-            return x
-        elif x.get_int_value() == 1:
-            return x
-        elif y.get_int_value() == 0:
-            if x.get_int_value() == 0:
-                evaluation.message('Power', 'indet', Expression('Power', x, y))
-                return Symbol('Indeterminate')
+        # Power uses _MPMathFunction but does some error checking first
+        if isinstance(x, Number) and x.to_sympy() == 0:
+            if isinstance(y, Number):
+                y_err = y
             else:
-                return Integer(1)
+                y_err = Expression('N', y).evaluate(evaluation)
+            if isinstance(y_err, Number):
+                py_y = complex(y_err.to_sympy()).real   # take real part
+                if py_y > 0:
+                    return x
+                elif py_y == 0.0:
+                    if not isinstance(y, Number):
+                        y = Real(py_y)
+                    evaluation.message('Power', 'indet', Expression('Power', x, y_err))
+                    return Symbol('Indeterminate')
+                elif py_y < 0:
+                    if not isinstance(y, Number):
+                        y = Real(py_y)
+                    evaluation.message('Power', 'infy', Expression('Power', x, y_err))
+                    return Symbol('ComplexInfinity')
 
-        elif x.has_form('Power', 2) and isinstance(y, Integer):
-            return Expression('Power', x.leaves[0],
-                              Expression('Times', x.leaves[1], y))
-        elif x.has_form('Times', None) and isinstance(y, Integer):
-            return Expression('Times', *[
-                Expression('Power', leaf, y) for leaf in x.leaves])
-
-        elif (isinstance(x, Number) and isinstance(y, Number) and
-              not (x.is_inexact() or y.is_inexact())):
-
-            sym_x, sym_y = x.to_sympy(), y.to_sympy()
-
-            try:
-                if sympy.re(sym_y) >= 0:
-                    result = sym_x ** sym_y
-                else:
-                    if sym_x == 0:
-                        evaluation.message('Power', 'infy')
-                        return Symbol('ComplexInfinity')
-                    result = sympy.Integer(1) / (sym_x ** (-sym_y))
-                if isinstance(result, sympy.Pow):
-                    result = result.simplify()
-                    args = [from_sympy(expr) for expr in result.as_base_exp()]
-                    result = Expression('Power', *args)
-                    result = result.evaluate_leaves(evaluation)
-                    return result
-
-                return from_sympy(result)
-            except ValueError:
-                return Expression('Power', x, y)
-            except ZeroDivisionError:
-                evaluation.message('Power', 'infy')
-                return Symbol('ComplexInfinity')
-
-        elif (isinstance(x, Number) and isinstance(y, Number) and
-              (x.is_inexact() or y.is_inexact())):
-            try:
-                prec = min_prec(x, y)
-                with mpmath.workprec(prec):
-                    mp_x = sympy2mpmath(x.to_sympy(), prec)
-                    mp_y = sympy2mpmath(y.to_sympy(), prec)
-                    result = mp_x ** mp_y
-                    if isinstance(result, mpmath.mpf):
-                        return Real(str(result), prec)
-                    elif isinstance(result, mpmath.mpc):
-                        return Complex(str(result.real),
-                                       str(result.imag), prec)
-            except ZeroDivisionError:
-                evaluation.message('Power', 'infy')
-                return Symbol('ComplexInfinity')
-        else:
-            numerified_items = items.numerify(evaluation)
-            return Expression('Power', *numerified_items.get_sequence())
+        result = self.apply(Expression('Sequence', x, y), evaluation)
+        if result is None or result != Symbol('Null'):
+            return result
 
 
 class Sqrt(SympyFunction):
