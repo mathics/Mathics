@@ -251,7 +251,8 @@ class Plus(BinaryOperator, SympyFunction):
         last_item = last_count = None
 
         prec = min_prec(*items)
-        is_real = all([not isinstance(i, Complex) for i in items])
+        is_real = all(not isinstance(i, Complex) for i in items)
+        is_machine_precision = any(item.is_machine_precision() for item in items)
 
         if prec is None:
             number = (sympy.Integer(0), sympy.Integer(0))
@@ -319,6 +320,10 @@ class Plus(BinaryOperator, SympyFunction):
                 real = from_sympy(number[0])
                 imag = from_sympy(number[1])
                 leaves.insert(0, Complex(real, imag))
+
+        if is_machine_precision:
+            leaves = [Expression('N', leaf).evaluate(evaluation) for leaf in leaves]
+
         if not leaves:
             return Integer(0)
         elif len(leaves) == 1:
@@ -562,7 +567,8 @@ class Times(BinaryOperator, SympyFunction):
         leaves = []
 
         prec = min_prec(*items)
-        is_real = all([not isinstance(i, Complex) for i in items])
+        is_real = all(not isinstance(i, Complex) for i in items)
+        is_machine_precision = any(item.is_machine_precision() for item in items)
 
         for item in items:
             if isinstance(item, Number):
@@ -615,6 +621,9 @@ class Times(BinaryOperator, SympyFunction):
                 real = from_sympy(number[0])
                 imag = from_sympy(number[1])
                 leaves.insert(0, Complex(real, imag))
+
+        if is_machine_precision:
+            leaves = [Expression('N', leaf).evaluate(evaluation) for leaf in leaves]
 
         if not leaves:
             return Integer(1)
