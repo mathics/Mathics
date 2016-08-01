@@ -1547,6 +1547,10 @@ class Integer(Number):
     def __neg__(self):
         return Integer(-self.value)
 
+    @property
+    def is_zero(self):
+        return self.value == 0
+
 
 class Rational(Number):
     def __new__(cls, numerator, denominator=None, **kwargs):
@@ -1623,6 +1627,10 @@ class Rational(Number):
 
     def __neg__(self):
         return Rational(-self.numerator().get_int_value(), self.denominator().get_int_value())
+
+    @property
+    def is_zero(self):
+        return self.numerator == 0
 
 
 class Real(Number):
@@ -1757,6 +1765,10 @@ class MachineReal(Real):
     def __neg__(self):
         return MachineReal(-self.value)
 
+    @property
+    def is_zero(self):
+        return self.value == 0.0
+
 
 class PrecisionReal(Real):
     '''
@@ -1802,6 +1814,10 @@ class PrecisionReal(Real):
 
     def __neg__(self):
         return PrecisionReal(-self.value)
+
+    @property
+    def is_zero(self):
+        return self.value == 0.0
 
 
 class Complex(Number):
@@ -1924,6 +1940,10 @@ class Complex(Number):
 
     def __neg__(self):
         return Complex(-self.real, -self.imag)
+
+    @property
+    def is_zero(self):
+        return self.real.is_zero and self.imag.is_zero
 
 
 def encode_mathml(text):

@@ -476,6 +476,18 @@ class Times(BinaryOperator, SympyFunction):
      = -2.12346 x
     #> -2.123456789 I
      = 0. - 2.12346 I
+
+    #> N[Pi, 30] * I
+     = 3.14159265358979323846264338328 I
+
+    #> N[Pi * E, 30]
+     = 8.53973422267356706546355086955
+    #> N[Pi, 30] * N[E, 30]
+     = 8.53973422267356706546355086955
+    #> N[Pi, 30] * E
+     = 8.53973422267356706546355086955
+    #> % // Precision
+     = 30.
     """
 
     operator = '*'
@@ -562,33 +574,17 @@ class Times(BinaryOperator, SympyFunction):
     def apply(self, items, evaluation):
         'Times[items___]'
 
-        # TODO: Clean this up and optimise it
-
         items = items.numerify(evaluation).get_sequence()
-        number = (sympy.Integer(1), sympy.Integer(0))
         leaves = []
+        numbers = []
 
         prec = min_prec(*items)
-        is_real = all(not isinstance(i, Complex) for i in items)
         is_machine_precision = any(item.is_machine_precision() for item in items)
 
+        # find numbers and simplify Times -> Power
         for item in items:
             if isinstance(item, Number):
-                if isinstance(item, Complex):
-                    sym_real, sym_imag = item.real.to_sympy(
-                    ), item.imag.to_sympy()
-                else:
-                    sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
-
-                if prec is not None:
-                    sym_real = sym_real.n(dps(prec))
-                    sym_imag = sym_imag.n(dps(prec))
-
-                if sym_real.is_zero and sym_imag.is_zero and prec is None:
-                    return Integer('0')
-                number = (
-                    number[0] * sym_real - number[1] * sym_imag,
-                    number[0] * sym_imag + number[1] * sym_real)
+                numbers.append(item)
             elif leaves and item == leaves[-1]:
                 leaves[-1] = Expression('Power', leaves[-1], Integer(2))
             elif (leaves and item.has_form('Power', 2) and
@@ -607,27 +603,35 @@ class Times(BinaryOperator, SympyFunction):
                     'Plus', Integer(1), leaves[-1].leaves[1]))
             else:
                 leaves.append(item)
-        if number == (1, 0):
+
+        if numbers:
+            if prec is not None:
+                if is_machine_precision:
+                    numbers = [item.to_mpmath() for item in numbers]
+                    number = mpmath.fprod(numbers)
+                    number = Number.from_mpmath(number)
+                else:
+                    with mpmath.workprec(prec):
+                        numbers = [item.to_mpmath() for item in numbers]
+                        number = mpmath.fprod(numbers)
+                        number = Number.from_mpmath(number, dps(prec))
+            else:
+                number = sympy.Mul(*[item.to_sympy() for item in numbers])
+                number = from_sympy(number)
+        else:
+            number = Integer(1)
+
+        if number.same(Integer(1)):
             number = None
-        elif number == (-1, 0) and leaves and leaves[0].has_form('Plus', None):
+        elif number.is_zero:
+            return number
+        elif number.same(Integer(-1)) and leaves and leaves[0].has_form('Plus', None):
             leaves[0].leaves = [Expression('Times', Integer(-1), leaf)
                                 for leaf in leaves[0].leaves]
             number = None
 
         if number is not None:
-            if number[1].is_zero and is_real:
-                leaves.insert(0, from_sympy(number[0]))
-            elif number[1].is_zero and number[1].is_Integer and prec is None:
-                leaves.insert(0, from_sympy(number[0]))
-            else:
-                real = from_sympy(number[0])
-                imag = from_sympy(number[1])
-                if prec is not None:
-                    real, imag = real.round(dps(prec)), imag.round(dps(prec))
-                leaves.insert(0, Complex(real, imag))
-
-        if is_machine_precision:
-            leaves = [Expression('N', leaf).evaluate(evaluation) for leaf in leaves]
+            leaves.insert(0, number)
 
         if not leaves:
             return Integer(1)
