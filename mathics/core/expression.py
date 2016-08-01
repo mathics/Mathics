@@ -1440,13 +1440,6 @@ class Number(Atom):
     def is_numeric(self):
         return True
 
-    def round(self, d=None):
-        if d is None:
-            return MachineReal(self.get_float_value())
-        else:
-            result = self.to_sympy().n(d)
-            return PrecisionReal(result)
-
 
 def _ExponentFunction(value):
     n = value.get_int_value()
@@ -1513,6 +1506,12 @@ class Integer(Number):
     def to_python(self, *args, **kwargs):
         return self.value
 
+    def round(self, d=None):
+        if d is None:
+            return MachineReal(float(self.value))
+        else:
+            return PrecisionReal(sympy.Float(self.value, d))
+
     def get_int_value(self):
         return self.value
 
@@ -1569,6 +1568,12 @@ class Rational(Number):
 
     def to_python(self, *args, **kwargs):
         return float(self.value)
+
+    def round(self, d=None):
+        if d is None:
+            return MachineReal(float(self.value))
+        else:
+            return PrecisionReal(self.value.n(d))
 
     def same(self, other):
         return isinstance(other, Rational) and self.value == other.value

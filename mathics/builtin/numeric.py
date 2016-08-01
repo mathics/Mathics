@@ -119,6 +119,9 @@ class N(Builtin):
 
     #> {N[x], N[x, 30], N["abc"], N["abc", 30]}
      = {x, x, abc, abc}
+
+    #> N[I, 30]
+     = 1.00000000000000000000000000000 I
     """
 
     messages = {
