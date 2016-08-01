@@ -20,6 +20,7 @@ import time
 import struct
 import mpmath
 import math
+import sympy
 
 import six
 from six.moves import range
@@ -27,7 +28,8 @@ from six import unichr
 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError,
-                                     MachineReal, valid_context_name)
+                                     MachineReal, Number, valid_context_name)
+from mathics.core.numbers import dps
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.builtin.numeric import Hash
@@ -936,31 +938,30 @@ class _BinaryFormat(object):
             fracbits = int(sig[::-1].encode('hex'), 16)
 
         if expbits == 0x0000 and fracbits == 0:
-            return Real('0.' + '0' * 4965)
+            return Real(sympy.Float(0, 4965))
         elif expbits == 0x7FFF:
             if fracbits == 0:
                 return Expression('DirectedInfinity', Integer((-1) ** signbit))
             else:
                 return Symbol('Indeterminate')
 
-        core = mpmath.fdiv(fracbits, 2 ** 112, prec=128)
-        if expbits == 0x000:
-            assert fracbits != 0
-            exp = -16382
-            core = mpmath.fmul((-1) ** signbit, core, prec=128)
-        else:
-            assert 0x0001 <= expbits <= 0x7FFE
-            exp = expbits - 16383
-            core = mpmath.fmul(
-                (-1) ** signbit,
-                mpmath.fadd(1, core, prec=128), prec=128)
+        with mpmath.workprec(112):
+            core = mpmath.fdiv(fracbits, 2 ** 112)
+            if expbits == 0x000:
+                assert fracbits != 0
+                exp = -16382
+                core = mpmath.fmul((-1) ** signbit, core)
+            else:
+                assert 0x0001 <= expbits <= 0x7FFE
+                exp = expbits - 16383
+                core = mpmath.fmul((-1) ** signbit, mpmath.fadd(1, core))
 
-        if exp >= 0:
-            result = mpmath.fmul(core, 2 ** exp, prec=128)
-        else:
-            result = mpmath.fdiv(core, 2 ** -exp, prec=128)
+            if exp >= 0:
+                result = mpmath.fmul(core, 2 ** exp)
+            else:
+                result = mpmath.fdiv(core, 2 ** -exp)
 
-        return Real(mpmath.nstr(result, n=38), p=112)
+            return Number.from_mpmath(result, dps(112))
 
     @staticmethod
     def _TerminatedString_reader(s):
@@ -1436,9 +1437,6 @@ class BinaryWrite(Builtin):
             # Types are "repeated as many times as necessary"
             t = types[i % len(types)]
 
-            if t in ('Real128', 'Complex256'):
-                evaluation.message('BinaryRead', 'warnquad', t)
-
             # Coerce x
             if t == 'TerminatedString':
                 x = x.get_string_value() + '\x00'
@@ -1552,18 +1550,22 @@ class BinaryRead(Builtin):
     ##  = {\:925b, \:36ce}
 
     ## Complex64
-    #> WbR[{80, 201, 77, 239, 201, 177, 76, 79}, "Complex64"]
-     = -6.36877988924...*^28 + 3.434203392*^9 I
-    #> WbR[{158, 2, 185, 232, 18, 237, 0, 102}, "Complex64"]
-     = -6.98948862335...*^24 + 1.52209021297...*^23 I
-    #> WbR[{195, 142, 38, 160, 238, 252, 85, 188}, "Complex64"]
-     = -1.41079828148...*^-19 - 0.01306079141... I
+    #> WbR[{80, 201, 77, 239, 201, 177, 76, 79}, "Complex64"] // InputForm
+     = -6.368779889243691*^28 + 3.434203392*^9*I
+    #> % // Precision
+     = MachinePrecision
+    #> WbR[{158, 2, 185, 232, 18, 237, 0, 102}, "Complex64"] // InputForm
+     = -6.989488623351118*^24 + 1.522090212973691*^23*I
+    #> WbR[{195, 142, 38, 160, 238, 252, 85, 188}, "Complex64"] // InputForm
+     = -1.410798281480728*^-19 - 0.01306079141795635*I
 
     ## Complex128
-    #> WbR[{15,114,1,163,234,98,40,15,214,127,116,15,48,57,208,180},"Complex128"]
-     = 1.1983977035...*^-235 - 2.64656391494...*^-54 I
-    #> WbR[{148,119,12,126,47,94,220,91,42,69,29,68,147,11,62,233},"Complex128"]
-     = 3.2217026714...*^134 - 8.98364297498...*^198 I
+    #> WbR[{15,114,1,163,234,98,40,15,214,127,116,15,48,57,208,180},"Complex128"] // InputForm
+     = 1.198397703565381*^-235 - 2.646563914943395*^-54*I
+    #> WbR[{148,119,12,126,47,94,220,91,42,69,29,68,147,11,62,233},"Complex128"] // InputForm
+     = 3.221702671415633*^134 - 8.98364297498066*^198*I
+    #> % // Precision
+     = MachinePrecision
     #> WbR[{15,42,80,125,157,4,38,97, 0,0,0,0,0,0,240,255}, "Complex128"]
       = -I Infinity
     #> WbR[{15,42,80,125,157,4,38,97, 0,0,0,0,0,0,240,127}, "Complex128"]
@@ -1623,12 +1625,14 @@ class BinaryRead(Builtin):
      = -49058912464625098822365387707690163087
 
     ## Real32
-    #> WbR[{81, 72, 250, 79, 52, 227, 104, 90}, {"Real32", "Real32"}]
-     = {8.398086656*^9, 1.6388001768...*^16}
-
-    #> WbR[{251, 22, 221, 117, 165, 245, 18, 75}, {"Real32", "Real32"}]
-     = {5.605291528...*^32, 9.631141*^6}
-     ## = {5.6052915284*^32, 9.631141*^6}
+    #> WbR[{81, 72, 250, 79, 52, 227, 104, 90}, {"Real32", "Real32"}] // InputForm
+     = {8.398086656*^9, 1.638800176866918*^16}
+    #> WbR[{251, 22, 221, 117, 165, 245, 18, 75}, {"Real32", "Real32"}] // InputForm
+     = {5.605291528399748*^32, 9.631141*^6}
+    #> WbR[{126, 82, 143, 43}, "Real32"] // InputForm
+     = 1.018365730284798*^-12
+    #> % // Precision
+     = MachinePrecision
     #> WbR[{0, 0, 128, 127}, "Real32"]
      = Infinity
     #> WbR[{0, 0, 128, 255}, "Real32"]
@@ -1639,12 +1643,14 @@ class BinaryRead(Builtin):
      = Indeterminate
 
     ## Real64
-    #> WbR[{45, 243, 20, 87, 129, 185, 53, 239}, "Real64"]
-     = -5.14646619426...*^227
-    #> WbR[{192, 60, 162, 67, 122, 71, 74, 196}, "Real64"]
-     = -9.6953169880...*^20
-    #> WbR[{15, 42, 80, 125, 157, 4, 38, 97}, "Real64"]
-     = 9.6735556976...*^159
+    #> WbR[{45, 243, 20, 87, 129, 185, 53, 239}, "Real64"] // InputForm
+     = -5.146466194262116*^227
+    #> WbR[{192, 60, 162, 67, 122, 71, 74, 196}, "Real64"] // InputForm
+     = -9.695316988087658*^20
+    #> WbR[{15, 42, 80, 125, 157, 4, 38, 97}, "Real64"] // InputForm
+     = 9.67355569763742*^159
+    #> % // Precision
+     = MachinePrecision
     #> WbR[{0, 0, 0, 0, 0, 0, 240, 127}, "Real64"]
      = Infinity
     #> WbR[{0, 0, 0, 0, 0, 0, 240, 255}, "Real64"]
@@ -1657,39 +1663,30 @@ class BinaryRead(Builtin):
     ## Real128
     ## 0x0000
     #> WbR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0}, "Real128"]
-     : Results for the format Real128 may not be correct.
      = 0.*^-4965
     #> WbR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,128}, "Real128"]
-     : Results for the format Real128 may not be correct.
      = 0.*^-4965
     ## 0x0001 - 0x7FFE
     #> WbR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,63}, "Real128"]
-     : Results for the format Real128 may not be correct.
      = 1.
     #> WbR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,191}, "Real128"]
-     : Results for the format Real128 may not be correct.
      = -1.
     #> WbR[{135, 62, 233, 137, 22, 208, 233, 210, 133, 82, 251, 92, 220, 216, 255, 63}, "Real128"]
-     : Results for the format Real128 may not be correct.
      = 1.84711247573661489653389674493896
     #> WbR[{135, 62, 233, 137, 22, 208, 233, 210, 133, 82, 251, 92, 220, 216, 207, 72}, "Real128"]
-     : Results for the format Real128 may not be correct.
      = 2.45563355727491021879689747166252*^679
     #> WbR[{74, 95, 30, 234, 116, 130, 1, 84, 20, 133, 245, 221, 113, 110, 219, 212}, "Real128"]
-     : Results for the format Real128 may not be correct.
      = -4.52840681592341879518366539335138*^1607
+    #> % // Precision
+     = 33.
     ## 0x7FFF
     #> WbR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,127}, "Real128"]
-     : Results for the format Real128 may not be correct.
      = Infinity
     #> WbR[{0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,255}, "Real128"]
-     : Results for the format Real128 may not be correct.
      = -Infinity
     #> WbR[{1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,127}, "Real128"]
-     : Results for the format Real128 may not be correct.
      = Indeterminate
     #> WbR[{1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,255,255}, "Real128"]
-     : Results for the format Real128 may not be correct.
      = Indeterminate
 
     ## TerminatedString
@@ -1747,7 +1744,6 @@ class BinaryRead(Builtin):
         'format': '`1` is not a recognized binary format.',
         'openw': '`1` is open for output.',
         'bfmt': 'The stream `1` has been opened with BinaryFormat -> False and cannot be used with binary data.',
-        'warnquad': 'Results for the format `1` may not be correct.',   # FIXME
     }
 
     def apply_empty(self, name, n, evaluation):
@@ -1790,8 +1786,6 @@ class BinaryRead(Builtin):
         # Read from stream
         result = []
         for t in types:
-            if t in ('Real128', 'Complex256'):
-                evaluation.message('BinaryRead', 'warnquad', t)
             try:
                 result.append(self.readers[t](stream))
             except struct.error:
