@@ -183,6 +183,11 @@ class Plus(BinaryOperator, SympyFunction):
 
     #> Head[3 + 2 I]
      = Complex
+
+    #> N[Pi, 30] + N[E, 30]
+     = 5.85987448204883847382293085463
+    #> % // Precision
+     = 30.
     """
 
     operator = '+'
@@ -250,15 +255,8 @@ class Plus(BinaryOperator, SympyFunction):
         last_item = last_count = None
 
         prec = min_prec(*items)
-        is_real = all(not isinstance(i, Complex) for i in items)
         is_machine_precision = any(item.is_machine_precision() for item in items)
-
-        if prec is None:
-            number = (sympy.Integer(0), sympy.Integer(0))
-        else:
-            number = (
-                sympy.Float('0.0', dps(prec)),
-                sympy.Float('0.0', dps(prec)))
+        numbers = []
 
         def append_last():
             if last_item is not None:
@@ -274,18 +272,7 @@ class Plus(BinaryOperator, SympyFunction):
 
         for item in items:
             if isinstance(item, Number):
-                # TODO: Optimise this for the case of adding many real numbers
-                if isinstance(item, Complex):
-                    sym_real, sym_imag = item.real.to_sympy(
-                    ), item.imag.to_sympy()
-                else:
-                    sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
-
-                if prec is not None:
-                    sym_real = sym_real.n(dps(prec))
-                    sym_imag = sym_imag.n(dps(prec))
-
-                number = (number[0] + sym_real, number[1] + sym_imag)
+                numbers.append(item)
             else:
                 count = rest = None
                 if item.has_form('Times', None):
@@ -310,20 +297,25 @@ class Plus(BinaryOperator, SympyFunction):
                     last_item = rest
                     last_count = count
         append_last()
-        if prec is not None or number != (0, 0):
-            if number[1].is_zero and is_real:
-                leaves.insert(0, from_sympy(number[0]))
-            elif number[1].is_zero and number[1].is_Integer and prec is None:
-                leaves.insert(0, from_sympy(number[0], prec))
-            else:
-                real = from_sympy(number[0])
-                imag = from_sympy(number[1])
-                if prec is not None:
-                    real, imag = real.round(dps(prec)), imag.round(dps(prec))
-                leaves.insert(0, Complex(real, imag))
 
-        if is_machine_precision:
-            leaves = [Expression('N', leaf).evaluate(evaluation) for leaf in leaves]
+        if numbers:
+            if prec is not None:
+                if is_machine_precision:
+                    numbers = [item.to_mpmath() for item in numbers]
+                    number = mpmath.fsum(numbers)
+                    number = Number.from_mpmath(number)
+                else:
+                    with mpmath.workprec(prec):
+                        numbers = [item.to_mpmath() for item in numbers]
+                        number = mpmath.fsum(numbers)
+                        number = Number.from_mpmath(number, dps(prec))
+            else:
+                number = from_sympy(sum(item.to_sympy() for item in numbers))
+        else:
+            number = Integer(0)
+
+        if not number.same(Integer(0)):
+            leaves.insert(0, number)
 
         if not leaves:
             return Integer(0)
