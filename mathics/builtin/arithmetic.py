@@ -18,8 +18,7 @@ from mathics.builtin.base import (
     SympyFunction, SympyConstant)
 
 from mathics.core.expression import (
-    Expression, Number, Integer, Rational, Real, Symbol, Complex, String,
-    MachineReal)
+    Expression, Number, Integer, Rational, Real, Symbol, Complex, String)
 from mathics.core.numbers import (
     add, min_prec, dps, SpecialValueError)
 
@@ -817,23 +816,19 @@ class Power(BinaryOperator, _MPMathFunction):
         'Power[x_, y_]'
 
         # Power uses _MPMathFunction but does some error checking first
-        if isinstance(x, Number) and x.to_sympy() == 0:
+        if isinstance(x, Number) and x.is_zero:
             if isinstance(y, Number):
                 y_err = y
             else:
                 y_err = Expression('N', y).evaluate(evaluation)
             if isinstance(y_err, Number):
-                py_y = complex(y_err.to_sympy()).real   # take real part
+                py_y = y_err.round().get_float_value(permit_complex=True).real
                 if py_y > 0:
                     return x
                 elif py_y == 0.0:
-                    if not isinstance(y, Number):
-                        y = Real(py_y)
                     evaluation.message('Power', 'indet', Expression('Power', x, y_err))
                     return Symbol('Indeterminate')
                 elif py_y < 0:
-                    if not isinstance(y, Number):
-                        y = Real(py_y)
                     evaluation.message('Power', 'infy', Expression('Power', x, y_err))
                     return Symbol('ComplexInfinity')
 
