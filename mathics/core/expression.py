@@ -1241,16 +1241,6 @@ class Expression(BaseExpression):
     def __getnewargs__(self):
         return (self.head, self.leaves)
 
-    def round(self, d=None):
-        new_leaves = []
-        for leaf in self.leaves:
-            x = leaf.round(d)
-            if x is not None:
-                new_leaves.append(x)
-            else:
-                new_leaves.append(leaf)
-        return Expression(self.head, *new_leaves)
-
 
 class Atom(BaseExpression):
 
@@ -1282,9 +1272,6 @@ class Atom(BaseExpression):
         return self
 
     def replace_slots(self, slots, evaluation):
-        return self
-
-    def round(self, d=None):
         return self
 
     def numerify(self, evaluation):
@@ -1739,6 +1726,9 @@ class MachineReal(Real):
     def to_mpmath(self):
         return mpmath.mpf(self.value)
 
+    def round(self, d=None):
+        return self
+
     def same(self, other):
         if isinstance(other, MachineReal):
             return self.value == other.value
@@ -1795,6 +1785,13 @@ class PrecisionReal(Real):
 
     def to_mpmath(self):
         return mpmath.mpf(self.value)
+
+    def round(self, d=None):
+        if d is None:
+            return MachineReal(float(self.value))
+        else:
+            d = min(dps(self.get_precision()), d)
+            return PrecisionReal(self.value.n(d))
 
     def same(self, other):
         if isinstance(other, PrecisionReal):

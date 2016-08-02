@@ -122,6 +122,30 @@ class N(Builtin):
 
     #> N[I, 30]
      = 1.00000000000000000000000000000 I
+
+    #> N[1.01234567890123456789]
+     = 1.01235
+    #> N[1.012345678901234567890123, 20]
+     = 1.0123456789012345679
+    #> N[1.012345678901234567890123, 5]
+     = 1.0123
+    #> % // Precision
+     = 5.
+    #> N[1.012345678901234567890123, 50]
+     = 1.01234567890123456789012
+    #> % // Precision
+     = 24.
+
+    #> N[1.01234567890123456789`]
+     = 1.01235
+    #> N[1.01234567890123456789`, 20]
+     = 1.01235
+    #> % // Precision
+     = MachinePrecision
+    #> N[1.01234567890123456789`, 2]
+     = 1.01235
+    #> % // Precision
+     = MachinePrecision
     """
 
     messages = {
@@ -148,8 +172,6 @@ class N(Builtin):
                 expr.head, *[self.apply_other(leaf, prec, evaluation)
                              for leaf in expr.leaves])
 
-        if isinstance(expr, MachineReal):
-            return expr
         if isinstance(expr, Number):
             return expr.round(d)
 
