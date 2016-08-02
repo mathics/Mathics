@@ -421,15 +421,7 @@ class MakeBoxes(Builtin):
             f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]'''
 
         if expr.is_atom():
-            x = expr
-            if isinstance(x, Symbol):
-                return String(evaluation.definitions.shorten_name(x.name))
-            elif isinstance(x, String):
-                return String('"' + six.text_type(x.value) + '"')
-            elif isinstance(x, (Integer, Real)):
-                return x.make_boxes(f.get_name())
-            elif isinstance(x, (Rational, Complex)):
-                return x.format(evaluation, f.get_name())
+            return expr.atom_to_boxes(f, evaluation)
         else:
             head = expr.head
             leaves = expr.leaves
@@ -468,14 +460,7 @@ class MakeBoxes(Builtin):
         '''MakeBoxes[x_?AtomQ,
             f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]'''
 
-        if isinstance(x, Symbol):
-            return String(evaluation.definitions.shorten_name(x.name))
-        elif isinstance(x, String):
-            return String('"' + x.value + '"')
-        elif isinstance(x, (Integer, Real)):
-            return x.make_boxes(f.get_name())
-        elif isinstance(x, (Rational, Complex)):
-            return x.format(evaluation, f.get_name())
+        return x.atom_to_boxes(f, evaluation)
 
     def apply_outerprecedenceform(self, expr, prec, f, evaluation):
         '''MakeBoxes[OuterPrecedenceForm[expr_, prec_],
