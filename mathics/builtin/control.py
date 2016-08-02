@@ -494,7 +494,7 @@ class FixedPoint(Builtin):
     </dl>
 
     >> FixedPoint[Cos, 1.0]
-     = 0.739085133215160639
+     = 0.739085
 
     >> FixedPoint[#+1 &, 1, 20]
      = 21
@@ -505,7 +505,7 @@ class FixedPoint(Builtin):
      : Non-negative integer expected.
      = FixedPoint[f, x, -1]
     #> FixedPoint[Cos, 1.0, Infinity]
-     = 0.739085133215160639
+     = 0.739085
     """
 
     def apply(self, f, expr, n, evaluation):
@@ -542,12 +542,12 @@ class FixedPointList(Builtin):
     </dl>
 
     >> FixedPointList[Cos, 1.0, 4]
-     = {1., 0.540302305868139717, 0.857553215846393416, 0.65428979049777915, 0.793480358742565592}
+     = {1., 0.540302, 0.857553, 0.65429, 0.79348}
 
     Observe the convergence of Newton's method for approximating square roots:
     >> newton[n_] := FixedPointList[.5(# + n/#) &, 1.];
     >> newton[9]
-     = {1., 5., 3.4, 3.02352941176470588, 3.00009155413138018, 3.00000000139698386, 3., 3.}
+     = {1., 5., 3.4, 3.02353, 3.00009, 3., 3., 3.}
 
     Plot the "hailstone" sequence of a number:
     >> collatz[1] := 1;
@@ -564,7 +564,7 @@ class FixedPointList(Builtin):
      : Non-negative integer expected.
      = FixedPointList[f, x, -1]
     #> Last[FixedPointList[Cos, 1.0, Infinity]]
-     = 0.739085133215160639
+     = 0.739085
     """
 
     def apply(self, f, expr, n, evaluation):

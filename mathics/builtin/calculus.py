@@ -867,18 +867,18 @@ class FindRoot(Builtin):
     'FindRoot' uses Newton\'s method, so the function of interest should have a first derivative.
 
     >> FindRoot[Cos[x], {x, 1}]
-     = {x -> 1.57079632679489662}
+     = {x -> 1.5708}
     >> FindRoot[Sin[x] + Exp[x],{x, 0}]
-     = {x -> -0.588532743981861077}
+     = {x -> -0.588533}
 
     >> FindRoot[Sin[x] + Exp[x] == Pi,{x, 0}]
-     = {x -> 0.866815239911458065}
+     = {x -> 0.866815}
 
     'FindRoot' has attribute 'HoldAll' and effectively uses 'Block' to localize $x$.
     However, in the result $x$ will eventually still be replaced by its value.
     >> x = 3;
     >> FindRoot[Tan[x] + Sin[x] == Pi, {x, 1}]
-     = {3 -> 1.14911295431426855}
+     = {3 -> 1.14911}
     >> Clear[x]
 
     'FindRoot' stops after 100 iterations:
@@ -888,7 +888,7 @@ class FindRoot(Builtin):
 
     Find complex roots:
     >> FindRoot[x ^ 2 + x + 1, {x, -I}]
-     = {x -> -0.499999999999999999 - 0.866025403784438646 I}
+     = {x -> -0.5 - 0.866025 I}
 
     The function has to return numerical values:
     >> FindRoot[f[x] == 0, {x, 0}]

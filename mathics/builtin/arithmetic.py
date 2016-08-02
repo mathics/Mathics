@@ -447,7 +447,7 @@ class Times(BinaryOperator, SympyFunction):
      = 2
 
     #> 3. Pi
-     = 9.42477796076937972
+     = 9.42478
 
     #> Head[3 * I]
      = Complex
@@ -650,7 +650,7 @@ class Divide(BinaryOperator):
 
     Use 'N' or a decimal point to force numeric evaluation:
     >> Pi / 4.0
-     = 0.78539816339744831
+     = 0.785398
     >> 1 / 8
      = 1 / 8
     >> N[%]
@@ -719,7 +719,7 @@ class Power(BinaryOperator, _MPMathFunction):
 
     Use a decimal point to force numeric evaluation:
     >> 4.0 ^ (1/3)
-     = 1.58740105196819947
+     = 1.5874
 
     'Power' has default value 1 for its second argument:
     >> DefaultValues[Power]
@@ -729,9 +729,9 @@ class Power(BinaryOperator, _MPMathFunction):
 
     'Power' can be used with complex numbers:
     >> (1.5 + 1.0 I) ^ 3.5
-     = -3.68294005782191823 + 6.9513926640285049 I
+     = -3.68294 + 6.95139 I
     >> (1.5 + 1.0 I) ^ (3.5 + 1.5 I)
-     = -3.19181629045628082 + 0.645658509416156807 I
+     = -3.19182 + 0.645659 I
 
     #> 1/0
      : Infinite expression 1 / 0 encountered.
@@ -757,7 +757,7 @@ class Power(BinaryOperator, _MPMathFunction):
      = Indeterminate
 
     #> Sqrt[-3+2. I]
-     = 0.550250522700337511 + 1.81735402102397062 I
+     = 0.550251 + 1.81735 I
     #> Sqrt[-3+2 I]
      = Sqrt[-3 + 2 I]
     #> (3/2+1/2I)^2
@@ -769,7 +769,7 @@ class Power(BinaryOperator, _MPMathFunction):
      = 4.
 
     #> Pi ^ 4.
-     = 97.4090910340024372
+     = 97.4091
 
     #> a ^ b
      = a ^ b
@@ -851,7 +851,7 @@ class Sqrt(SympyFunction):
     >> Sqrt[5]
      = Sqrt[5]
     >> Sqrt[5] // N
-     = 2.2360679774997897
+     = 2.23607
     >> Sqrt[a]^2
      = a
 
@@ -1107,7 +1107,7 @@ class Abs(_MPMathFunction):
     >> Abs[3 + I]
      = Sqrt[10]
     >> Abs[3.0 + I]
-     = 3.16227766016837933
+     = 3.16228
     >> Plot[Abs[x], {x, -4, 4}]
      = -Graphics-
 
@@ -1316,7 +1316,7 @@ class Real_(Builtin):
 
     >> x = 3. ^ -20;
     >> InputForm[x]
-     = 2.86797199079244131*^-10
+     = 2.8679719907924413*^-10
     >> Head[x]
      = Real
 
@@ -1409,7 +1409,7 @@ class Complex_(Builtin):
      = 5
 
     #> OutputForm[Complex[2.0 ^ 40, 3]]
-     = 1.099511627776*^12 + 3. I
+     = 1.09951*^12 + 3. I
     #> InputForm[Complex[2.0 ^ 40, 3]]
      = 1.099511627776*^12 + 3.*I
 
@@ -1473,9 +1473,9 @@ class Factorial(PostfixOperator, _MPMathFunction):
 
     'Factorial' handles numeric (real and complex) values using the gamma function:
     >> 10.5!
-     = 1.18994230839622485*^7
+     = 1.18994*^7
     >> (-3.0+1.5*I)!
-     = 0.0427943437183768611 - 0.00461565252860394996 I
+     = 0.0427943 - 0.00461565 I
 
     However, the value at poles is 'ComplexInfinity':
     >> (-1.)!
@@ -1520,10 +1520,10 @@ class Gamma(_MPMathMultiFunction):
      = ExpIntegralE[1, x]
 
     Numeric arguments:
-    >> Gamma[1.*^20]
-     = 1.93284951431009771*^1956570551809674817225
+    >> Gamma[123.78]
+     = 4.21078*^204
     >> Gamma[1. + I]
-     = 0.498015668118356043 - 0.154949828301810685 I
+     = 0.498016 - 0.15495 I
 
     Both 'Gamma' and 'Factorial' functions are continuous:
     >> Plot[{Gamma[x], x!}, {x, 0, 4}]
@@ -1536,6 +1536,10 @@ class Gamma(_MPMathMultiFunction):
      = 1.4
     #> % // Precision
      = 100.
+
+    #> Gamma[1.*^20]
+     : Overflow occurred in computation.
+     = Overflow[]
 
     ## Needs mpmath support for lowergamma
     #> Gamma[1., 2.]
@@ -1597,10 +1601,10 @@ class HarmonicNumber(_MPMathFunction):
      = {1, 3 / 2, 11 / 6, 25 / 12, 137 / 60, 49 / 20, 363 / 140, 761 / 280}
 
     >> HarmonicNumber[3.8]
-     =  2.0380634056306492
+     = 2.03806
 
     #> HarmonicNumber[-1.5]
-     = 0.613705638880109381
+     = 0.613706
     """
 
     rules = {

@@ -4667,9 +4667,9 @@ class Needs(Builtin):
     ## #> CoordinatesFromCartesian[%, Cylindrical]
     ##  = {2, Pi / 4, -1}
     #> CoordinatesToCartesian[{0.27, 0.51, 0.92}, Cylindrical]
-     = {0.235641017064352841, 0.131807856658385023, 0.92}
+     = {0.235641, 0.131808, 0.92}
     #> CoordinatesToCartesian[{0.27, 0.51, 0.92}, Spherical]
-     = {0.0798518563676219116, 0.10486654429093224, 0.235641017064352841}
+     = {0.0798519, 0.104867, 0.235641}
 
     #> Coordinates[]
      = {Xx, Yy, Zz}

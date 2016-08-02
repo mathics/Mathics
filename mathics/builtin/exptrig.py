@@ -32,7 +32,7 @@ class Pi(SympyConstant):
     </dl>
 
     >> N[Pi]
-     = 3.14159265358979324
+     = 3.14159
     >> N[Pi, 50]
      = 3.1415926535897932384626433832795028841971693993751
 
@@ -64,7 +64,7 @@ class E(SympyConstant):
     </dl>
 
     >> N[E]
-     = 2.71828182845904524
+     = 2.71828
     >> N[E, 50]
      = 2.7182818284590452353602874713526624977572470937
 
@@ -72,7 +72,7 @@ class E(SympyConstant):
      = {Constant, Protected, ReadProtected}
 
     #> 5. E
-     = 13.5914091422952262
+     = 13.5914
     """
 
     sympy_name = 'E'
@@ -99,7 +99,7 @@ class GoldenRatio(SympyConstant):
     </dl>
 
     >> N[GoldenRatio]
-     = 1.61803398874989485
+     = 1.61803
     """
 
     sympy_name = 'GoldenRatio'
@@ -119,12 +119,16 @@ class Exp(_MPMathFunction):
     >> Exp[1]
      = E
     >> Exp[10.0]
-     = 22026.4657948067165
+     = 22026.5
     >> Exp[x] //FullForm
      = Power[E, x]
 
     >> Plot[Exp[x], {x, 0, 3}]
      = -Graphics-
+
+    #> Exp[1.*^20]
+     : Overflow occurred in computation.
+     = Overflow[]
     """
 
     rules = {
@@ -154,13 +158,13 @@ class Log(_MPMathFunction):
      = 3
 
     #> Log[1.4]
-     = 0.336472236621212931
+     = 0.336472
 
-    #> Log[1.4]
-     = 0.336472236621212931
+    #> Log[Exp[1.4]]
+     = 1.4
 
     #> Log[-1.4]
-     = 0.336472236621212931 + 3.14159265358979324 I
+     = 0.336472 + 3.14159 I
 
     #> N[Log[10], 30]
      = 2.30258509299404568401799145468
@@ -199,7 +203,7 @@ class Log2(Builtin):
     >> Log2[4 ^ 8]
      = 16
     >> Log2[5.6]
-     = 2.48542682717024176
+     = 2.48543
     >> Log2[E ^ 2]
      = 2 / Log[2]
     """
@@ -219,7 +223,7 @@ class Log10(Builtin):
     >> Log10[1000]
      = 3
     >> Log10[{2., 5.}]
-     = {0.301029995663981195, 0.698970004336018805}
+     = {0.30103, 0.69897}
     >> Log10[E ^ 3]
      = 3 / Log[10]
     """
@@ -239,11 +243,11 @@ class Sin(_MPMathFunction):
     >> Sin[0]
      = 0
     >> Sin[0.5]
-     = 0.479425538604203
+     = 0.479426
     >> Sin[3 Pi]
      = 0
     >> Sin[1.0 + I]
-     = 1.29845758141597729 + 0.634963914784736108 I
+     = 1.29846 + 0.634964 I
 
     >> Plot[Sin[x], {x, -Pi, Pi}]
      = -Graphics-
@@ -272,6 +276,9 @@ class Cos(_MPMathFunction):
 
     >> Cos[3 Pi]
      = -1
+
+    #> Cos[1.5 Pi]
+     = -1.83697*^-16
     """
 
     mpmath_name = 'cos'
@@ -296,6 +303,9 @@ class Tan(_MPMathFunction):
      = 0
     >> Tan[Pi / 2]
      = ComplexInfinity
+
+    #> Tan[0.5 Pi]
+     = 1.63312*^16
     """
 
     mpmath_name = 'tan'
@@ -319,7 +329,7 @@ class Sec(_MPMathFunction):
     >> Sec[1] (* Sec[1] in Mathematica *)
      = 1 / Cos[1]
     >> Sec[1.]
-     = 1.85081571768092562
+     = 1.85082
     """
 
     mpmath_name = 'sec'
@@ -347,7 +357,7 @@ class Csc(_MPMathFunction):
     >> Csc[1] (* Csc[1] in Mathematica *)
      = 1 / Sin[1]
     >> Csc[1.]
-     = 1.18839510577812122
+     = 1.1884
     """
 
     mpmath_name = 'csc'
@@ -373,7 +383,7 @@ class Cot(_MPMathFunction):
     >> Cot[0]
      = ComplexInfinity
     >> Cot[1.]
-     = 0.642092615934330703
+     = 0.642093
     """
 
     mpmath_name = 'cot'
@@ -442,9 +452,9 @@ class ArcTan(_MPMathFunction):
     >> ArcTan[1]
      = Pi / 4
     >> ArcTan[1.0]
-     = 0.78539816339744831
+     = 0.785398
     >> ArcTan[-1.0]
-     = -0.78539816339744831
+     = -0.785398
 
     >> ArcTan[1, 1]
      = Pi / 4
@@ -693,7 +703,7 @@ class ArcSinh(_MPMathFunction):
     >> ArcSinh[0.]
      = 0.
     >> ArcSinh[1.0]
-     = 0.881373587019543025
+     = 0.881374
     """
 
     sympy_name = 'asinh'
@@ -714,12 +724,12 @@ class ArcCosh(_MPMathFunction):
     >> ArcCosh[0]
      = I / 2 Pi
     >> ArcCosh[0.]
-     = 0. + 1.57079632679489662 I
+     = 0. + 1.5708 I
     >> ArcCosh[0.00000000000000000000000000000000000000]
      = 1.5707963267948966192313216916397514421 I
 
     #> ArcCosh[1.4]
-     = 0.867014726490565104
+     = 0.867015
     """
 
     sympy_name = 'acosh'
@@ -744,7 +754,7 @@ class ArcTanh(_MPMathFunction):
     >> ArcTanh[0]
      = 0
     >> ArcTanh[.5 + 2 I]
-     = 0.0964156202029961672 + 1.12655644083482235 I
+     = 0.0964156 + 1.12656 I
     >> ArcTanh[2 + I]
      = ArcTanh[2 + I]
     """
@@ -769,7 +779,7 @@ class ArcSech(_MPMathFunction):
     >> ArcSech[1]
      = 0
     >> ArcSech[0.5]
-     = 1.31695789692481671
+     = 1.31696
     """
 
     sympy_name = ''
@@ -797,7 +807,7 @@ class ArcCsch(_MPMathFunction):
     >> ArcCsch[0]
      = ComplexInfinity
     >> ArcCsch[1.0]
-     = 0.881373587019543025
+     = 0.881374
     """
 
     sympy_name = ''
@@ -827,9 +837,9 @@ class ArcCoth(_MPMathFunction):
     >> ArcCoth[1]
      = Infinity
     >> ArcCoth[0.0]
-     = 0. + 1.57079632679489662 I
+     = 0. + 1.5708 I
     >> ArcCoth[0.5]
-     = 0.549306144334054846 - 1.57079632679489662 I
+     = 0.549306 - 1.5708 I
 
     #> ArcCoth[0.000000000000000000000000000000000000000]
      = 1.57079632679489661923132169163975144210 I
@@ -852,10 +862,10 @@ class Haversine(_MPMathFunction):
     </dl>
 
     >> Haversine[1.5]
-     = 0.464631399166148545
+     = 0.464631
 
     >> Haversine[0.5 + 2I]
-     = -1.15081866645704728 + 0.869404752237158167 I
+     = -1.15082 + 0.869405 I
     """
 
     rules = {
@@ -871,10 +881,10 @@ class InverseHaversine(_MPMathFunction):
     </dl>
 
     >> InverseHaversine[0.5]
-     = 1.57079632679489662
+     = 1.5708
 
     >> InverseHaversine[1 + 2.5 I]
-     = 1.76458946334982881 + 2.33097465304931242 I
+     = 1.76459 + 2.33097 I
     """
 
     rules = {
