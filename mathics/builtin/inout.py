@@ -1464,7 +1464,7 @@ class General(Builtin):
             "Symbol `1` in part assignment does not have an immediate value."),
         'openx': "`1` is not open.",
         'optb': "Optional object `1` in `2` is not a single blank.",
-        'ovfl': "Overflow occured in computation.",
+        'ovfl': "Overflow occurred in computation.",
         'partd': "Part specification is longer than depth of object.",
         'partw': "Part `1` of `2` does not exist.",
         'plld': "Endpoints in `1` must be distinct machine-size real numbers.",

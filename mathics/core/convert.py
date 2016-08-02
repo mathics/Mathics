@@ -27,7 +27,7 @@ class SympyExpression(BasicSympy):
     nargs = None
 
     def __new__(cls, *exprs):
-        # sympy simplify may also recreate the object if simplification occured
+        # sympy simplify may also recreate the object if simplification occurred
         # in the leaves
         from mathics.core.expression import Expression
 
