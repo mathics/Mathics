@@ -11,6 +11,7 @@ import six
 
 import re
 import sympy
+import mpmath
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator)
@@ -22,7 +23,7 @@ from mathics.core.expression import (
     Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError,
     from_python, MachineReal, PrecisionReal)
 from mathics.core.numbers import (
-    dps, convert_base, machine_precision, reconstruct_digits)
+    dps, prec, convert_base, machine_precision, reconstruct_digits)
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
@@ -100,8 +101,7 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
 
 
 def real_to_s_exp(expr, n):
-    sym_expr = expr.to_sympy()
-    if sym_expr == sympy.Float(0):
+    if expr.is_zero:
         s = '0'
         sign_prefix = ''
         if expr.is_machine_precision():
@@ -111,15 +111,17 @@ def real_to_s_exp(expr, n):
             exp = -dps(p)
         nonnegative = 1
     else:
-        s = str(sym_expr.n(n))
+        with mpmath.workprec(prec(n)):
+            mpmath_expr = expr.to_mpmath()
+            s = mpmath.nstr(mpmath_expr, n)
 
         # sign prefix
         if s[0] == '-':
-            assert sym_expr < 0
+            assert mpmath_expr < 0
             nonnegative = 0
             s = s[1:]
         else:
-            assert sym_expr >= 0
+            assert mpmath_expr >= 0
             nonnegative = 1
 
         # exponent (exp is actual, pexp is printed)
