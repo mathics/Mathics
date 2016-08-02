@@ -1869,7 +1869,7 @@ class Complex(Number):
                               self.real, self.imag).do_format(evaluation, form)
 
         result = []
-        if not self.real.same(Integer(0)):
+        if self.is_machine_precision() or not self.real.is_zero:
             result.append(self.real)
         if self.imag.same(Integer(1)):
             result.append(Symbol('I'))
