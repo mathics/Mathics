@@ -31,18 +31,6 @@ class ColorError(BoxConstructError):
     pass
 
 
-element_heads = system_symbols('Rectangle', 'Disk', 'Line', 'Point',
-                               'Circle', 'Polygon', 'Inset', 'Text', 'Sphere')
-color_heads = system_symbols('RGBColor', 'CMYKColor', 'Hue', 'GrayLevel')
-thickness_heads = system_symbols('Thickness', 'AbsoluteThickness', 'Thick',
-                                 'Thin')
-
-GRAPHICS_SYMBOLS = set(['System`List', 'System`Rule', 'System`VertexColors'] +
-                       list(element_heads) +
-                       [element + 'Box' for element in element_heads] +
-                       list(color_heads) + list(thickness_heads))
-
-
 def get_class(name):
     from mathics.builtin.graphics3d import GLOBALS3D
 
@@ -241,6 +229,10 @@ class _GraphicsElement(InstancableBuiltin):
         self.style = style
         self.is_completely_visible = False  # True for axis elements
 
+    @staticmethod
+    def create_as_style(klass, graphics, item):
+        return klass(graphics, item)
+
 
 class _Color(_GraphicsElement):
     components_sizes = []
@@ -275,6 +267,10 @@ class _Color(_GraphicsElement):
         if cls is None:
             raise ColorError
         return cls(expr)
+
+    @staticmethod
+    def create_as_style(klass, graphics, item):
+        return klass(item)
 
     def to_css(self):
         rgba = self.to_rgba()
@@ -1048,10 +1044,9 @@ class Style(object):
 
     def append(self, item, allow_forms=True):
         head = item.get_head_name()
-        if head in color_heads:
-            style = get_class(head)(item)
-        elif head in thickness_heads:
-            style = get_class(head)(self.graphics, item)
+        if head in style_heads:
+            klass = get_class(head)
+            style = klass.create_as_style(klass, self.graphics, item)
         elif head in ('System`EdgeForm', 'System`FaceForm'):
             style = self.klass(self.graphics, edge=head == 'System`EdgeForm',
                                face=head == 'System`FaceForm')
@@ -1142,8 +1137,7 @@ class _GraphicsElements(object):
                 if item.get_name() == 'System`Null':
                     continue
                 head = item.get_head_name()
-                if (head in color_heads or head in thickness_heads or   # noqa
-                    head in ('System`EdgeForm', 'System`FaceForm')):
+                if head in style_heads or head in ('System`EdgeForm', 'System`FaceForm'):
                     style.append(item)
                 elif head[-3:] == 'Box':  # and head[:-3] in element_heads:
                     element_class = get_class(head)
@@ -1982,6 +1976,23 @@ class Large(Builtin):
     '''
 
 
+element_heads = frozenset(system_symbols(
+    'Rectangle', 'Disk', 'Line', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere'))
+
+styles = system_symbols_dict({
+    'RGBColor': RGBColor,
+    'CMYKColor': CMYKColor,
+    'Hue': Hue,
+    'GrayLevel': GrayLevel,
+
+    'Thickness': Thickness,
+    'AbsoluteThickness': AbsoluteThickness,
+    'Thick': Thick,
+    'Thin': Thin,
+})
+
+style_heads = frozenset(styles.keys())
+
 GLOBALS = system_symbols_dict({
     'Rectangle': Rectangle,
     'Disk': Disk,
@@ -1996,14 +2007,12 @@ GLOBALS = system_symbols_dict({
     'PolygonBox': PolygonBox,
     'PointBox': PointBox,
     'InsetBox': InsetBox,
-
-    'RGBColor': RGBColor,
-    'CMYKColor': CMYKColor,
-    'Hue': Hue,
-    'GrayLevel': GrayLevel,
-
-    'Thickness': Thickness,
-    'AbsoluteThickness': AbsoluteThickness,
-    'Thick': Thick,
-    'Thin': Thin,
 })
+
+GLOBALS.update(styles)
+
+GRAPHICS_SYMBOLS = frozenset(
+    ['System`List', 'System`Rule', 'System`VertexColors'] +
+    list(element_heads) +
+    [element + 'Box' for element in element_heads] +
+    list(style_heads))
