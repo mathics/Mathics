@@ -1300,6 +1300,9 @@ class Atom(BaseExpression):
     def get_atoms(self, include_heads=True):
         return [self]
 
+    def atom_to_boxes(self, f, evaluation):
+        raise NotImplementedError
+
 
 class Symbol(Atom):
     def __init__(self, name, sympy_dummy=None, **kwargs):
@@ -1316,6 +1319,9 @@ class Symbol(Atom):
 
     def boxes_to_text(self, **options):
         return str(self.name)
+
+    def atom_to_boxes(self, f, evaluation):
+        return String(evaluation.definitions.shorten_name(self.name))
 
     def to_sympy(self, **kwargs):
         from mathics.builtin import mathics_to_sympy
@@ -1501,6 +1507,9 @@ class Integer(Number):
     def make_boxes(self, form):
         return String(str(self.value))
 
+    def atom_to_boxes(self, f, evaluation):
+        return self.make_boxes(f.get_name())
+
     def default_format(self, evaluation, form):
         return str(self.value)
 
@@ -1552,6 +1561,9 @@ class Rational(Number):
 
     def __setstate__(self, dict):
         self.value = sympy.Rational(dict['value'])
+
+    def atom_to_boxes(self, f, evaluation):
+        return self.format(evaluation, f.get_name())
 
     def to_sympy(self, **kwargs):
         return self.value
@@ -1670,6 +1682,9 @@ class Real(Number):
         _number_form_options['_Form'] = form    # passed to _NumberFormat
         return number_form(self, dps(self.prec), None, None, _number_form_options)
 
+    def atom_to_boxes(self, f, evaluation):
+        return self.make_boxes(f.get_name())
+
     def to_sympy(self, **kwargs):
         return self.value
 
@@ -1760,6 +1775,9 @@ class Complex(Number):
         self.sympy = self.real.to_sympy() + sympy.I * self.imag.to_sympy()
         self.value = (self.real, self.imag)
         self.prec = p
+
+    def atom_to_boxes(self, f, evaluation):
+        return self.format(evaluation, f.get_name())
 
     def to_sympy(self, **kwargs):
         return self.sympy
@@ -1979,6 +1997,9 @@ class String(Atom):
                 return r'\text{%s}' % encode_tex(text, in_text=True)
             else:
                 return encode_tex(text)
+
+    def atom_to_boxes(self, f, evaluation):
+        return String('"' + six.text_type(self.value) + '"')
 
     def do_copy(self):
         return String(self.value)
