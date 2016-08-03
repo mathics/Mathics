@@ -1861,6 +1861,21 @@ class NumberForm(_NumberForm):
     >> NumberForm[N[Pi], {10, 5}]
      = 3.14159
 
+
+    ## Undocumented edge cases
+    #> NumberForm[Pi, 20]
+     = Pi
+    #> NumberForm[2/3, 10]
+     = 2 / 3
+
+    ## No n or f
+    #> NumberForm[N[Pi]]
+     = 3.14159
+    #> NumberForm[N[Pi, 20]]
+     = 3.1415926535897932385
+    #> NumberForm[14310983091809]
+     = 14310983091809
+
     ## Zero case
     #> z0 = 0.0;
     #> z1 = 0.0000000000000000000000000000;
@@ -1868,6 +1883,16 @@ class NumberForm(_NumberForm):
      = {0., 0.×10^-28}
     #> NumberForm[{z0, z1}, {10, 4}]
      = {0.0000, 0.0000×10^-28}
+
+    ## Trailing zeros
+    #> NumberForm[1.0, 10]
+     = 1.
+    #> NumberForm[1.000000000000000000000000, 10]
+     = 1.000000000
+    #> NumberForm[1.0, {10, 8}]
+     = 1.00000000
+    #> NumberForm[N[Pi, 33], 33]
+     = 3.14159265358979323846264338327950
 
     ## Integer case
     #> NumberForm[{0, 2, -415, 83515161451}, 5]
@@ -2057,6 +2082,30 @@ class NumberForm(_NumberForm):
         options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
         return Expression('List', *[Expression('NumberForm', leaf, Expression('List', n, f), *options) for leaf in expr.leaves])
 
+    def apply_makeboxes(self, expr, form, evaluation, options={}):
+        '''MakeBoxes[NumberForm[expr_, OptionsPattern[NumberForm]],
+            form:StandardForm|TraditionalForm|OutputForm]'''
+
+        fallback = Expression('MakeBoxes', expr, form)
+
+        py_options = self.check_options(options, evaluation)
+        if py_options is None:
+            return fallback
+
+        if isinstance(expr, Integer):
+            py_n = len(str(abs(expr.get_int_value())))
+        elif isinstance(expr, Real):
+            if expr.is_machine_precision():
+                py_n = 6
+            else:
+                py_n = dps(expr.get_precision())
+        else:
+            py_n = None
+
+        if py_n is not None:
+            return number_form(expr, py_n, None, evaluation, py_options)
+        return Expression('MakeBoxes', expr, form)
+
     def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
         '''MakeBoxes[NumberForm[expr_, n_, OptionsPattern[NumberForm]],
             form:StandardForm|TraditionalForm|OutputForm]'''
@@ -2074,6 +2123,7 @@ class NumberForm(_NumberForm):
 
         if isinstance(expr, (Integer, Real)):
             return number_form(expr, py_n, None, evaluation, py_options)
+        return Expression('MakeBoxes', expr, form)
 
     def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
         '''MakeBoxes[NumberForm[expr_, {n_, f_}, OptionsPattern[NumberForm]],
@@ -2094,6 +2144,7 @@ class NumberForm(_NumberForm):
 
         if isinstance(expr, (Integer, Real)):
             return number_form(expr, py_n, py_f, evaluation, py_options)
+        return Expression('MakeBoxes', expr, form)
 
 
 class BaseForm(Builtin):
