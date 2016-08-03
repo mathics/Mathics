@@ -31,13 +31,6 @@ class ColorError(BoxConstructError):
     pass
 
 
-element_heads = set(system_symbols(
-    'Rectangle', 'Disk', 'Line', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere'))
-
-# the following variables are declared here but initialized only at the end of this file.
-style_heads = None
-GRAPHICS_SYMBOLS = None
-
 def get_class(name):
     from mathics.builtin.graphics3d import GLOBALS3D
 
@@ -1983,6 +1976,23 @@ class Large(Builtin):
     '''
 
 
+element_heads = frozenset(system_symbols(
+    'Rectangle', 'Disk', 'Line', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere'))
+
+styles = system_symbols_dict({
+    'RGBColor': RGBColor,
+    'CMYKColor': CMYKColor,
+    'Hue': Hue,
+    'GrayLevel': GrayLevel,
+
+    'Thickness': Thickness,
+    'AbsoluteThickness': AbsoluteThickness,
+    'Thick': Thick,
+    'Thin': Thin,
+})
+
+style_heads = frozenset(styles.keys())
+
 GLOBALS = system_symbols_dict({
     'Rectangle': Rectangle,
     'Disk': Disk,
@@ -1999,23 +2009,10 @@ GLOBALS = system_symbols_dict({
     'InsetBox': InsetBox,
 })
 
-styles = system_symbols_dict({
-    'RGBColor': RGBColor,
-    'CMYKColor': CMYKColor,
-    'Hue': Hue,
-    'GrayLevel': GrayLevel,
-
-    'Thickness': Thickness,
-    'AbsoluteThickness': AbsoluteThickness,
-    'Thick': Thick,
-    'Thin': Thin,
-})
-
 GLOBALS.update(styles)
 
-style_heads = styles.keys()
-
-GRAPHICS_SYMBOLS = set(['System`List', 'System`Rule', 'System`VertexColors'] +
-                       list(element_heads) +
-                       [element + 'Box' for element in element_heads] +
-                       list(style_heads))
+GRAPHICS_SYMBOLS = frozenset(
+    ['System`List', 'System`Rule', 'System`VertexColors'] +
+    list(element_heads) +
+    [element + 'Box' for element in element_heads] +
+    list(style_heads))
