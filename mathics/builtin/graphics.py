@@ -1144,8 +1144,7 @@ class _GraphicsElements(object):
                 if item.get_name() == 'System`Null':
                     continue
                 head = item.get_head_name()
-                if (head in style_heads or  # noqa
-                    head in ('System`EdgeForm', 'System`FaceForm')):
+                if head in style_heads or head in ('System`EdgeForm', 'System`FaceForm'):
                     style.append(item)
                 elif head[-3:] == 'Box':  # and head[:-3] in element_heads:
                     element_class = get_class(head)
