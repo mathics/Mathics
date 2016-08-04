@@ -286,15 +286,6 @@ class Precision(Builtin):
             return Real(dps(z.get_precision()))
 
 
-def round(value, k):
-    n = (1. * value / k).as_real_imag()[0]
-    if n >= 0:
-        n = sympy.Integer(n + 0.5)
-    else:
-        n = sympy.Integer(n - 0.5)
-    return n * k
-
-
 class Round(Builtin):
     """
     <dl>
@@ -308,9 +299,8 @@ class Round(Builtin):
      = 11
     >> Round[0.06, 0.1]
      = 0.1
-    ## This should return 0. but doesn't due to a bug in sympy
     >> Round[0.04, 0.1]
-     = 0
+     = 0.
 
     Constants can be rounded too
     >> Round[Pi, .5]
@@ -345,13 +335,17 @@ class Round(Builtin):
 
     rules = {
         'Round[expr_?NumericQ]': 'Round[Re[expr], 1] + I * Round[Im[expr], 1]',
-        'Round[expr_Complex, k_RealNumberQ]': (
+        'Round[expr_Complex, k_?RealNumberQ]': (
             'Round[Re[expr], k] + I * Round[Im[expr], k]'),
     }
 
     def apply(self, expr, k, evaluation):
         "Round[expr_?NumericQ, k_?NumericQ]"
-        return from_sympy(round(expr.to_sympy(), k.to_sympy()))
+        nexpr = expr.numerify(evaluation)
+        nexpr.to_mpmath()
+
+        n = int((expr.to_sympy() / k.to_sympy()).round().as_real_imag()[0])
+        return Expression('Times', Integer(n), k)
 
 
 def chop(expr, delta=10.0 ** (-10.0)):
