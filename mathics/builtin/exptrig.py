@@ -66,7 +66,7 @@ class E(SympyConstant):
     >> N[E]
      = 2.71828
     >> N[E, 50]
-     = 2.7182818284590452353602874713526624977572470937
+     = 2.7182818284590452353602874713526624977572470937000
 
     >> Attributes[E]
      = {Constant, Protected, ReadProtected}

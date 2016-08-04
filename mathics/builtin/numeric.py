@@ -56,7 +56,7 @@ class N(Builtin):
      = a
     >> N[a, 20] = 11;
     >> N[a + b, 20]
-     = 11. + b
+     = 11.000000000000000000 + b
     >> N[f[a, b]]
      = f[10.9, b]
     >> SetAttributes[f, NHoldAll]
