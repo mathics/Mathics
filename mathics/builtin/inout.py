@@ -141,6 +141,10 @@ def real_to_s_exp(expr, n):
                 exp -= 1
             s = s[i:]
         s = s.rstrip('0')
+
+        # add trailing zeros for precision reals
+        if not expr.is_machine_precision() and len(s) < n:
+            s = s + '0' * (n - len(s))
     return s, exp, nonnegative
 
 
@@ -180,6 +184,7 @@ def number_form(expr, n, f, evaluation, options):
         s, exp, nonnegative = real_to_s_exp(expr, n)
     else:
         raise ValueError('Expected Real or Integer.')
+
 
     sign_prefix = options['NumberSigns'][nonnegative]
 
@@ -1926,6 +1931,8 @@ class NumberForm(_NumberForm):
      = 314159.000
     #> NumberForm[10^5 N[Pi], {6, 10}]
      = 314159.0000000000
+    #> NumberForm[1.0000000000000000000, 10, NumberPadding -> {"X", "Y"}]
+     = X1.000000000
 
     ## Check options
 
