@@ -111,25 +111,35 @@ def real_to_s_exp(expr, n):
             exp = -dps(p)
         nonnegative = 1
     else:
-        with mpmath.workprec(expr.get_precision()):
-            mpmath_expr = expr.to_mpmath()
-            s = mpmath.nstr(mpmath_expr, n)
+        if n is None:
+            if expr.is_machine_precision():
+                value = expr.get_float_value()
+                s = str(value)
+            else:
+                with mpmath.workprec(expr.get_precision()):
+                    value = expr.to_mpmath()
+                    s = mpmath.nstr(value, dps(expr.get_precision()) + 1)
+        else:
+            with mpmath.workprec(expr.get_precision()):
+                value = expr.to_mpmath()
+                s = mpmath.nstr(value, n)
 
         # sign prefix
         if s[0] == '-':
-            assert mpmath_expr < 0
+            assert value < 0
             nonnegative = 0
             s = s[1:]
         else:
-            assert mpmath_expr >= 0
+            assert value >= 0
             nonnegative = 1
 
         # exponent (exp is actual, pexp is printed)
         if 'e' in s:
             s, exp = s.split('e')
             exp = int(exp)
-            assert s[1] == '.'
-            s = s[0] + s[2:]
+            if len(s) > 1 and s[1] == '.':
+                # str(float) doesn't always include '.' if 'e' is present.
+                s = s[0] + s[2:]
         else:
             exp = s.index('.') - 1
             s = s[:exp + 1] + s[exp + 2:]
@@ -143,7 +153,7 @@ def real_to_s_exp(expr, n):
         s = s.rstrip('0')
 
         # add trailing zeros for precision reals
-        if not expr.is_machine_precision() and len(s) < n:
+        if n is not None and not expr.is_machine_precision() and len(s) < n:
             s = s + '0' * (n - len(s))
     return s, exp, nonnegative
 
@@ -172,19 +182,25 @@ def number_form(expr, n, f, evaluation, options):
     for correct option examples.
     '''
 
-    assert isinstance(n, int) and n > 0
+    assert isinstance(n, int) and n > 0 or n is None
     assert f is None or (isinstance(f, int) and f >= 0)
 
     is_int = False
     if isinstance(expr, Integer):
+        assert n is not None
         s, exp, nonnegative = int_to_s_exp(expr, n)
         if f is None:
             is_int = True
     elif isinstance(expr, Real):
-        n = min(n, dps(expr.get_precision()) + 1)
+        if n is not None:
+            n = min(n, dps(expr.get_precision()) + 1)
         s, exp, nonnegative = real_to_s_exp(expr, n)
+        if n is None:
+            n = len(s)
     else:
         raise ValueError('Expected Real or Integer.')
+
+    assert isinstance(n, int) and n > 0
 
     sign_prefix = options['NumberSigns'][nonnegative]
 
