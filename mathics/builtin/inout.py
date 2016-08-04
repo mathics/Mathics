@@ -181,6 +181,7 @@ def number_form(expr, n, f, evaluation, options):
         if f is None:
             is_int = True
     elif isinstance(expr, Real):
+        n = min(n, dps(expr.get_precision()) + 1)
         s, exp, nonnegative = real_to_s_exp(expr, n)
     else:
         raise ValueError('Expected Real or Integer.')
@@ -1901,6 +1902,8 @@ class NumberForm(_NumberForm):
     ## Correct rounding - see sympy/issues/11472
     #> NumberForm[0.645658509, 6]
      = 0.645659
+    #> NumberForm[N[1/7], 30]
+     = 0.1428571428571428
 
     ## Integer case
     #> NumberForm[{0, 2, -415, 83515161451}, 5]

@@ -1746,7 +1746,7 @@ class MachineReal(Real):
         from mathics.builtin.inout import number_form
         _number_form_options['_Form'] = form    # passed to _NumberFormat
         if form in ('System`InputForm', 'System`FullForm'):
-            n = 16
+            n = dps(machine_precision) + 1
         else:
             n = 6
         return number_form(self, n, None, None, _number_form_options)
