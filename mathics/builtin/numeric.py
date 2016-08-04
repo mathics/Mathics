@@ -182,8 +182,7 @@ class N(Builtin):
                 name, 'System`NValues', nexpr, evaluation)
             if result is not None:
                 if not result.same(nexpr):
-                    result = Expression(
-                        'N', result, prec).evaluate(evaluation)
+                    result = Expression('N', result, prec).evaluate(evaluation)
                 return result
 
         if expr.is_atom():

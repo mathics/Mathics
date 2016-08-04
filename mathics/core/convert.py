@@ -94,7 +94,8 @@ class SympyExpression(BasicSympy):
 def from_sympy(expr):
     from mathics.builtin import sympy_to_mathics
     from mathics.core.expression import (
-        Symbol, Integer, Rational, Real, Complex, String, Expression)
+        Symbol, Integer, Rational, Real, Complex, String, Expression, MachineReal)
+    from mathics.core.numbers import machine_precision
 
     from sympy.core import numbers, function, symbol
 
@@ -160,6 +161,8 @@ def from_sympy(expr):
                     return Symbol('Indeterminate')
             return Rational(expr.p, expr.q)
         elif isinstance(expr, numbers.Float):
+            if expr._prec == machine_precision:
+                return MachineReal(float(expr))
             return Real(expr)
         elif isinstance(expr, numbers.NaN):
             return Symbol('Indeterminate')
