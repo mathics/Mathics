@@ -111,7 +111,7 @@ def real_to_s_exp(expr, n):
             exp = -dps(p)
         nonnegative = 1
     else:
-        with mpmath.workprec(prec(n)):
+        with mpmath.workprec(expr.get_precision()):
             mpmath_expr = expr.to_mpmath()
             s = mpmath.nstr(mpmath_expr, n)
 
@@ -184,7 +184,6 @@ def number_form(expr, n, f, evaluation, options):
         s, exp, nonnegative = real_to_s_exp(expr, n)
     else:
         raise ValueError('Expected Real or Integer.')
-
 
     sign_prefix = options['NumberSigns'][nonnegative]
 
@@ -1898,6 +1897,10 @@ class NumberForm(_NumberForm):
      = 1.00000000
     #> NumberForm[N[Pi, 33], 33]
      = 3.14159265358979323846264338327950
+
+    ## Correct rounding - see sympy/issues/11472
+    #> NumberForm[0.645658509, 6]
+     = 0.645659
 
     ## Integer case
     #> NumberForm[{0, 2, -415, 83515161451}, 5]
