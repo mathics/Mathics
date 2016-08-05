@@ -114,7 +114,7 @@ def real_to_s_exp(expr, n):
         if n is None:
             if expr.is_machine_precision():
                 value = expr.get_float_value()
-                s = str(value)
+                s = repr(value)
             else:
                 with mpmath.workprec(expr.get_precision()):
                     value = expr.to_mpmath()
