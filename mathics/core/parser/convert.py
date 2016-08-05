@@ -125,7 +125,7 @@ class Converter(object):
                 if d < reconstruct_digits(machine_precision):
                     result = float(sign_prefix + s)
                 else:
-                    result = sympy.Float(sign_prefix + s, d)
+                    result = sympy.Float(str(sign_prefix + s), d)
             elif suffix == '':
                 result = float(sign_prefix + s)
             elif suffix.startswith('`'):
@@ -135,9 +135,9 @@ class Converter(object):
                     prec10 = acc
                 else:
                     prec10 = acc + log10(x)
-                result = sympy.Float(sign_prefix + s, prec10)
+                result = sympy.Float(str(sign_prefix + s), prec10)
             else:
-                result = sympy.Float(sign_prefix + s, float(suffix))
+                result = sympy.Float(str(sign_prefix + s), float(suffix))
 
             if isinstance(result, float):
                 return ma.MachineReal(result)
