@@ -1681,8 +1681,10 @@ class Real(Number):
         if isinstance(other, Real):
             # MMA Docs: "Approximate numbers that differ in their last seven
             # binary digits are considered equal"
-            _prec = min_prec(self, other) - 7
-            return self.to_sympy().n(dps(_prec)) == other.to_sympy().n(dps(_prec))
+            _prec = min_prec(self, other)
+            with mpmath.workprec(_prec):
+                rel_eps = 0.5 ** (_prec - 7)
+                return mpmath.almosteq(self.to_mpmath(), other.to_mpmath(), abs_eps=0, rel_eps=rel_eps)
         else:
             return self.get_sort_key() == other.get_sort_key()
 
