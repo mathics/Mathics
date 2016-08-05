@@ -68,7 +68,7 @@ class N(Builtin):
     >> N[c, 3]
      = c
     >> N[c, 11]
-     = 11.
+     = 11.000000000
 
     You can also use 'UpSet' or 'TagSet' to specify values for 'N':
     >> N[d] ^= 5;
