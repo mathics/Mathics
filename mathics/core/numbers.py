@@ -8,8 +8,7 @@ import sympy
 import mpmath
 from math import log, ceil
 from six.moves import range
-
-from mathics.core.util import unicode_superscript
+import string
 
 
 C = log(10, 2)  # ~ 3.3219280948873626
@@ -52,40 +51,12 @@ def same(v1, v2):
     return get_type(v1) == get_type(v2) and v1 == v2
 
 
-def is_0(value):
-    return get_type(value) == 'z' and value == 0
-
-
 def dps(prec):
     return max(1, int(round(int(prec) / C - 1)))
 
 
 def prec(dps):
     return max(1, int(round((int(dps) + 1) * C)))
-
-
-def format_float(value, pretty=True, parenthesize_plus=False):
-    s = str(value)
-    s = s.split('e')
-    if len(s) == 2:
-        man, exp = s
-        if pretty:
-            return '%s\u00d710%s' % (format_float(man), unicode_superscript(exp))
-        else:
-            result = '%s*10^%s' % (format_float(man), exp)
-            if parenthesize_plus:
-                result = '(%s)' % result
-            return result
-    else:
-        return s[0]
-
-
-def mul(x, y):
-    return x * y
-
-
-def add(x, y):
-    return x + y
 
 
 def min_prec(*args):
@@ -122,7 +93,6 @@ def convert_base(x, base, precision=10):
 
     length_of_int = 0 if x == 0 else int(log(x, base))
     iexps = list(range(length_of_int, -1, -1))
-    import string
     digits = string.digits + string.ascii_lowercase
 
     if base > len(digits):
