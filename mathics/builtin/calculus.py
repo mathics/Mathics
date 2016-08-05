@@ -17,6 +17,7 @@ from mathics.core.expression import Expression, Integer, Number
 from mathics.core.convert import (
     sympy_symbol_prefix, SympyExpression, from_sympy)
 from mathics.core.rules import Pattern
+from mathics.core.numbers import dps
 from mathics.builtin.scoping import dynamic_scoping
 
 import sympy
@@ -379,7 +380,10 @@ class Integrate(SympyFunction):
     #> Integrate[x ^ 3.5 + x, x]
      = x ^ 2 / 2 + 0.222222 x ^ 4.5
 
-    #> Integrate[Abs[Sin[phi]],{phi,0,2Pi}]//N
+    Sometimes there is a loss of precision during integration
+    >> Integrate[Abs[Sin[phi]],{phi,0,2Pi}]//N
+     = 4.000
+    >> % // Precision
      = 4.
 
     #> Integrate[1/(x^5+1), x]
@@ -501,8 +505,9 @@ class Integrate(SympyFunction):
             # -sign(_Mathics_User_j)*sign(_Mathics_User_w)
             return
 
-        if prec is not None:
-            result = sympy.N(result)
+        if prec is not None and isinstance(result, sympy.Integral):
+            # TODO MaxExtaPrecision -> maxn
+            result = result.evalf(dps(prec))
         result = from_sympy(result)
         return result
 
