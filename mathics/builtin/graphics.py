@@ -856,6 +856,114 @@ class LineBox(_Polyline):
         return asy
 
 
+class BezierCurve(Builtin):
+    """
+    <dl>
+    <dt>'BezierCurve[{$point_1$, $point_2$ ...}]'
+        <dd>represents a bezier curve with $point_1$, $point_2$ as control points.
+    </dl>
+
+    >> Graphics[BezierCurve[{{0, 0},{1, 1},{2, -1},{3, 0}}]]
+    = -Graphics-
+
+    >> Graphics3D[BezierCurve[{{0,0,0},{0,1,1},{1,0,0}}]]
+    = -Graphics3D-
+    """
+    pass
+
+
+class BezierCurveBox(_Polyline):
+    def init(self, graphics, style, item=None, lines=None):
+        super(BezierCurveBox, self).init(graphics, item, style)
+        self.edge_color, _ = style.get_style(_Color, face_element=False)
+        if item is not None:
+            if len(item.leaves) != 1:
+                raise BoxConstructError
+            points = item.leaves[0]
+            self.do_init(graphics, points)
+        elif lines is not None:
+            self.lines = lines
+        else:
+            raise BoxConstructError
+
+    def to_svg(self):
+        l = self.style.get_line_width(face_element=False)
+        style = create_css(edge_color=self.edge_color, stroke_width=l)
+
+        # see https://www.w3.org/TR/SVG/paths.html#PathDataCubicBezierCommands
+        # see https://docs.webplatform.org/wiki/svg/tutorials/smarter_svg_shapes
+
+        forms = ((3, 'C'), (2, 'Q'), (1, 'L'))
+
+        def path(p):
+            if p:
+                yield 'M%f,%f ' % p[0].pos()
+                p = p[1:]
+
+            while p:
+                for n, command in forms:
+                    if len(p) >= n:
+                        yield command
+                        for xy in p[:n]:
+                            yield '%f,%f ' % xy.pos()
+                        p = p[n:]
+                        break
+
+        svg = ''
+        for line in self.lines:
+            svg += '<path d="%s" style="%s"/>' % (''.join(path(line)), style)
+        return svg
+
+    def to_asy(self):
+        l = self.style.get_line_width(face_element=False)
+        pen = create_pens(edge_color=self.edge_color, stroke_width=l)
+
+        # see http://asymptote.sourceforge.net/doc/Bezier-curves.html#Bezier-curves
+
+        def cubic(p0, p1, p2, p3):
+            return '(%.5g,%5g)..controls(%.5g,%5g) and (%.5g,%5g)..(%.5g,%5g)' % (*p0, *p1, *p2, *p3)
+
+        def quadratric(qp0, qp1, qp2):
+            # asymptote only supports cubic bezier, so we need to convert this quadratic
+            # bezier so a cubic bezier, see http://fontforge.github.io/bezier.html
+
+            # CP0 = QP0
+            # CP3 = QP2
+            # CP1 = QP0 + 2 / 3 * (QP1 - QP0)
+            # CP2 = QP2 + 2 / 3 * (QP1 - QP2)
+
+            qp0x, qp0y = qp0
+            qp1x, qp1y = qp1
+            qp2x, qp2y = qp2
+
+            t = 2. / 3.
+            cp0 = qp0
+            cp1 = (qp0x + t * (qp1x - qp0x), qp0y + t * (qp1y - qp0y))
+            cp2 = (qp2x + t * (qp1x - qp2x), qp2y + t * (qp1y - qp2y))
+            cp3 = qp2
+
+            return cubic(cp0, cp1, cp2, cp3)
+
+        def linear(p0, p1):
+            return '(%.5g,%5g)--(%.5g,%5g)' % (*p0, *p1)
+
+        forms = ((3, cubic), (2, quadratric), (1, linear))
+
+        def path(p):
+            while len(p) > 1:
+                for n, f in forms:
+                    if len(p) >= n + 1:
+                        yield f(*[xy.pos() for xy in p[:n + 1]])
+                        p = p[n:]
+                        break
+
+        asy = ''
+        for line in self.lines:
+            for draw in path(line):
+                asy += 'draw(%s, %s);' % (draw, pen)
+        return asy
+
+
 class Polygon(Builtin):
     """
     <dl>
@@ -2045,7 +2153,7 @@ class Large(Builtin):
 
 
 element_heads = frozenset(system_symbols(
-    'Rectangle', 'Disk', 'Line', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere', 'Style'))
+    'Rectangle', 'Disk', 'Line', 'BezierCurve', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere', 'Style'))
 
 styles = system_symbols_dict({
     'RGBColor': RGBColor,
@@ -2073,6 +2181,7 @@ GLOBALS = system_symbols_dict({
     'RectangleBox': RectangleBox,
     'DiskBox': DiskBox,
     'LineBox': LineBox,
+    'BezierCurveBox': BezierCurveBox,
     'CircleBox': CircleBox,
     'PolygonBox': PolygonBox,
     'PointBox': PointBox,
