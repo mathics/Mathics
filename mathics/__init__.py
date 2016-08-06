@@ -15,7 +15,7 @@ import six
 from mathics.version import __version__
 from mathics.core.expression import (
     Expression, Symbol, String, Number, Integer, Real, Complex, Rational,
-    from_python)
+    from_python, MachineReal, PrecisionReal)
 from mathics.core.convert import from_sympy
 
 

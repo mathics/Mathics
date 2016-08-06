@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from mathics.core.evaluation import Evaluation
-from mathics.core.expression import Expression, Integer, Rational, Real, Complex, String, Symbol
+from mathics.core.expression import Expression, Integer, Rational, Real, MachineReal, PrecisionReal, Complex, String, Symbol
 from mathics.core.definitions import Definitions
 import sys
 import unittest
@@ -58,10 +58,12 @@ class HashAndSameQ(unittest.TestCase):
         _test_group(Rational(1, 3), Rational(1, 3), Rational(2, 6), Rational(-1, 3), Rational(-10, 30), Rational(10, 5))
 
     def testReal(self):
-        _test_group(Real(1.17361), Real(-1.42), Real(42.846195714), Real(42.846195714), Real(42.846195713))
+        _test_group(MachineReal(1.17361), MachineReal(-1.42), MachineReal(42.846195714), MachineReal(42.846195714), MachineReal(42.846195713), Real('42.846195713', 18), Real('-1.42', 3))
 
     def testComplex(self):
-        _test_group(Complex(1.2, 1.2), Complex(0.7, 1.8), Complex(1.8, 0.7), Complex(-0.7, 1.8), Complex(0.7, 1.81))
+        def c(i, r):
+            return Complex(MachineReal(i), MachineReal(i))
+        _test_group(c(1.2, 1.2), c(0.7, 1.8), c(1.8, 0.7), c(-0.7, 1.8), c(0.7, 1.81))
 
     def testString(self):
         _test_group(String('xy'), String('x'), String('xyz'), String('abc'))
@@ -70,13 +72,13 @@ class HashAndSameQ(unittest.TestCase):
         _test_group(Symbol('xy'), Symbol('x'), Symbol('xyz'), Symbol('abc'))
 
     def testAcrossTypes(self):
-        _test_group(Integer(1), Rational(1, 1), Real(1), Complex(1, 1), String('1'), Symbol('1'))
+        _test_group(Integer(1), Rational(1, 1), Real(1), Complex(Integer(1), Integer(1)), String('1'), Symbol('1'))
 
     def testInstances(self):
         # duplicate instantiations of same content (like Integer 5) to test for potential instantiation randomness.
         _test_group(list(map(lambda f: (f(), f()),
-                             (lambda: Integer(5), lambda: Rational(5, 2), lambda: Real(5.12345678),
-                              lambda: Complex(5, 2), lambda: String('xy'), lambda: Symbol('xy')))))
+                             (lambda: Integer(5), lambda: Rational(5, 2), lambda: MachineReal(5.12345678),
+                              lambda: Complex(Integer(5), Integer(2)), lambda: String('xy'), lambda: Symbol('xy')))))
 
 
 if __name__ == '__main__':
