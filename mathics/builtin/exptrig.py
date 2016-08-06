@@ -18,8 +18,8 @@ import math
 
 from mathics.builtin.base import Builtin, SympyConstant
 from mathics.core.expression import (
-    Expression, Real, Integer, Symbol, PrecisionReal, MachineReal)
-from mathics.core.numbers import dps
+    Expression, Real, Integer, Symbol, PrecisionReal, MachineReal, Number)
+from mathics.core.numbers import dps, round_to_float
 
 from mathics.builtin.arithmetic import _MPMathFunction
 
@@ -45,14 +45,11 @@ class Pi(SympyConstant):
     def apply_N(self, precision, evaluation):
         'N[Pi, precision_]'
         if precision.get_name() == 'System`MachinePrecision':
-            d = None
-        else:
-            d = precision.get_float_value(n_evaluation=evaluation)
-            if d is None:
-                return evaluation.message('N', 'precbd', precision)
-        if d is None:
             return MachineReal(math.pi)
         else:
+            d = round_to_float(precision, evaluation)
+            if d is None:
+                return evaluation.message('N', 'precbd', precision)
             return PrecisionReal(sympy.pi.n(d))
 
 
@@ -80,14 +77,11 @@ class E(SympyConstant):
     def apply_N(self, precision, evaluation):
         'N[E, precision_]'
         if precision.get_name() == 'System`MachinePrecision':
-            d = None
-        else:
-            d = precision.get_float_value(n_evaluation=evaluation)
-            if d is None:
-                return evaluation.message('N', 'precbd', precision)
-        if d is None:
             return MachineReal(math.e)
         else:
+            d = round_to_float(precision, evaluation)
+            if d is None:
+                return evaluation.message('N', 'precbd', precision)
             return PrecisionReal(sympy.E.n(d))
 
 

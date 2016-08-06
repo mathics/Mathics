@@ -42,7 +42,7 @@ class _MPMathFunction(SympyFunction):
     def apply(self, z, evaluation):
         '%(name)s[z__]'
 
-        args = z.get_sequence()
+        args = z.numerify(evaluation).get_sequence()
         mpmath_function = self.get_mpmath_function(args)
         result = None
 
@@ -56,10 +56,13 @@ class _MPMathFunction(SympyFunction):
         elif mpmath_function is None:
             return
 
+        if not all(isinstance(arg, Number) for arg in args):
+            return
+
         if any(arg.is_machine_precision() for arg in args):
             # if any argument has machine precision then the entire calculation
             # is done with machine precision.
-            float_args = [arg.get_float_value(n_evaluation=evaluation, permit_complex=True) for arg in args]
+            float_args = [arg.round().get_float_value(permit_complex=True) for arg in args]
             if None in float_args:
                 return
 

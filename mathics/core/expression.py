@@ -10,7 +10,7 @@ import math
 import re
 import abc
 
-from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
+from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision, round_to_float
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 
 import six
@@ -183,11 +183,7 @@ class BaseExpression(KeyComparable):
     def get_int_value(self):
         return None
 
-    def get_float_value(self, n_evaluation=None, permit_complex=False):
-        if n_evaluation is not None:
-            value = Expression('N', self).evaluate(n_evaluation)
-            if isinstance(value, Number):
-                return value.get_float_value(permit_complex=permit_complex)
+    def get_float_value(self, permit_complex=False):
         return None
 
     def get_string_value(self):
@@ -703,14 +699,17 @@ class Expression(BaseExpression):
                     name = leaf.get_name()
                     if leaf.has_form('Power', 2):
                         var = leaf.leaves[0].get_name()
-                        exp = leaf.leaves[1].get_float_value()
+                        if isinstance(leaf.leaves[1], Number):
+                            exp = round_to_float(leaf.leaves[1])
+                        else:
+                            exp = None
                         if var and exp is not None:
                             exps[var] = exps.get(var, 0) + exp
                     elif name:
                         exps[name] = exps.get(name, 0) + 1
             elif self.has_form('Power', 2):
                 var = self.leaves[0].get_name()
-                exp = self.leaves[1].get_float_value()
+                exp = round_to_float(self.leaves[1])
                 if var and exp is not None:
                     exps[var] = exps.get(var, 0) + exp
             if exps:
@@ -883,8 +882,8 @@ class Expression(BaseExpression):
                         options['show_string_characters'] = value
                     elif name == 'System`ImageSizeMultipliers':
                         if value.has_form('List', 2):
-                            m1 = value.leaves[0].get_float_value()
-                            m2 = value.leaves[1].get_float_value()
+                            m1 = round_to_float(value.leaves[0])
+                            m2 = round_to_float(value.leaves[1])
                             if m1 is not None and m2 is not None:
                                 options = options.copy()
                                 options['image_size_multipliers'] = (m1, m2)
@@ -1515,9 +1514,6 @@ class Integer(Number):
         else:
             return [0, 0, self.value, 0, 1]
 
-    def get_float_value(self, n_evaluation=None, permit_complex=False):
-        return float(self.value)
-
     def do_copy(self):
         return Integer(self.value)
 
@@ -1602,9 +1598,6 @@ class Rational(Number):
             # HACK: otherwise "Bus error" when comparing 1==1.
             return [0, 0, sympy.Float(self.value), 0, 1]
 
-    def get_float_value(self, n_evaluation=None, permit_complex=False):
-        return float(self.value)
-
     def do_copy(self):
         return Rational(self.value)
 
@@ -1674,9 +1667,6 @@ class Real(Number):
             return super(Real, self).get_sort_key(True)
         return [0, 0, self.value, 0, 1]
 
-    def get_float_value(self, n_evaluation=None, permit_complex=False):
-        return float(self.value)
-
     def __eq__(self, other):
         if isinstance(other, Real):
             # MMA Docs: "Approximate numbers that differ in their last seven
@@ -1743,6 +1733,9 @@ class MachineReal(Real):
 
     def get_precision(self):
         return machine_precision
+
+    def get_float_value(self, permit_complex=False):
+        return self.value
 
     def make_boxes(self, form):
         from mathics.builtin.inout import number_form
@@ -1909,9 +1902,12 @@ class Complex(Number):
             return True
         return False
 
-    def get_float_value(self, n_evaluation=None, permit_complex=False):
+    def get_float_value(self, permit_complex=False):
         if permit_complex:
-            return complex(self.real.get_float_value(), self.imag.get_float_value())
+            real = self.real.get_float_value()
+            imag = self.imag.get_float_value()
+            if real is not None and imag is not None:
+                return complex(real, imag)
         else:
             return None
 

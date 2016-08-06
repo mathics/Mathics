@@ -19,12 +19,12 @@ import math
 from six.moves import range
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import dps, convert_int_to_digit_list
+from mathics.core.numbers import (
+    dps, convert_int_to_digit_list, machine_precision, round_to_float)
 from mathics.core.expression import (
     Integer, Real, Complex, Expression, Number, Symbol, from_python,
     MachineReal)
 from mathics.core.convert import from_sympy
-from mathics.core.numbers import machine_precision
 
 
 class N(Builtin):
@@ -163,7 +163,7 @@ class N(Builtin):
         if prec.get_name() == 'System`MachinePrecision':
             d = None
         else:
-            d = prec.get_float_value(n_evaluation=evaluation)
+            d = round_to_float(prec, evaluation)
             if d is None:
                 return evaluation.message('N', 'precbd', prec)
 
@@ -394,7 +394,7 @@ class Chop(Builtin):
     def apply(self, expr, delta, evaluation):
         'Chop[expr_, delta_:(10^-10)]'
 
-        delta = delta.evaluate(evaluation).get_float_value()
+        delta = round_to_float(delta, evaluation)
         if delta is None or delta < 0:
             return evaluation.message('Chop', 'tolnn')
 

@@ -709,18 +709,15 @@ class AiryAiZero(Builtin):
         'N[AiryAiZero[k_Integer], precision_]'
 
         if precision.get_name() == 'System`MachinePrecision':
+            prec = machine_precision
             d = None
         else:
-            d = precision.get_float_value(n_evaluation=evaluation)
+            d = round_to_float(precision, evaluation)
             if d is None:
                 return evaluation.message('N', 'precbd', precision)
+            prec = _prec(d)
 
         k_int = k.get_int_value()
-
-        if d is None:
-            prec = machine_precision
-        else:
-            prec = _prec(d)
 
         with mpmath.workprec(prec):
             result = mpmath.airyaizero(k_int)
@@ -760,17 +757,12 @@ class AiryBiZero(Builtin):
         'N[AiryBiZero[k_Integer], precision_]'
 
         if precision.get_name() == 'System`MachinePrecision':
+            prec = machine_precision
             d = None
         else:
-            d = precision.get_float_value(n_evaluation=evaluation)
+            d = round_to_float(precision, evaluation)
             if d is None:
                 return evaluation.message('N', 'precbd', precision)
-
-        k_int = k.get_int_value()
-
-        if d is None:
-            prec = machine_precision
-        else:
             prec = _prec(d)
 
         k_int = k.get_int_value()
