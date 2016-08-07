@@ -1748,7 +1748,6 @@ class Piecewise(SympyFunction):
             return
 
         sympy_cases = []
-        no_true_seen = True
         for case in leaves[0].leaves:
             if case.get_head_name() != 'System`List':
                 return
@@ -1761,7 +1760,6 @@ class Piecewise(SympyFunction):
                 cond_name = cond.get_name()
                 if cond_name == 'System`True':
                     sympy_cond = True
-                    no_true_seen = False
                 elif cond_name == 'System`False':
                     sympy_cond = False
             if sympy_cond is None:
@@ -1771,7 +1769,7 @@ class Piecewise(SympyFunction):
 
         if len(leaves) == 2:  # default case
             sympy_cases.append((leaves[1].to_sympy(**kwargs), True))
-        elif no_true_seen:
+        else:
             sympy_cases.append((Integer(0), True))
 
         return sympy.Piecewise(*sympy_cases)

@@ -183,8 +183,19 @@ def from_sympy(expr):
         return expr.expr
 
     elif isinstance(expr, sympy.Piecewise):
-        return Expression('Piecewise', Expression(
-            'List', *[Expression('List', from_sympy(case), from_sympy(cond)) for case, cond in expr.args]))
+        args = expr.args
+        default = []
+        if len(args) > 0:
+            default_case, default_cond = args[-1]
+            if default_cond == sympy.true:
+                args = args[:-1]
+                if isinstance(default_case, sympy.Integer) and int(default_case) == 0:
+                    pass  # ignore
+                else:
+                    default = [from_sympy(default_case)]
+        return Expression('Piecewise', Expression('List', *[Expression(
+            'List', from_sympy(case), from_sympy(cond)) for case, cond in args]), *default)
+
     elif isinstance(expr, sympy.RootSum):
         return Expression('RootSum', from_sympy(expr.poly),
                           from_sympy(expr.fun))
