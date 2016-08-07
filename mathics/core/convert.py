@@ -182,6 +182,9 @@ def from_sympy(expr):
     elif isinstance(expr, SympyExpression):
         return expr.expr
 
+    elif isinstance(expr, sympy.Piecewise):
+        return Expression('Piecewise', Expression(
+            'List', *[Expression('List', from_sympy(case), from_sympy(cond)) for case, cond in expr.args]))
     elif isinstance(expr, sympy.RootSum):
         return Expression('RootSum', from_sympy(expr.poly),
                           from_sympy(expr.fun))
@@ -236,22 +239,22 @@ def from_sympy(expr):
 
     elif isinstance(expr, sympy.LessThan):
         return Expression('LessEqual',
-                          [from_sympy(arg) for arg in expr.args])
+                          *[from_sympy(arg) for arg in expr.args])
     elif isinstance(expr, sympy.StrictLessThan):
         return Expression('Less',
-                          [from_sympy(arg) for arg in expr.args])
+                          *[from_sympy(arg) for arg in expr.args])
     elif isinstance(expr, sympy.GreaterThan):
         return Expression('GreaterEqual',
-                          [from_sympy(arg) for arg in expr.args])
+                          *[from_sympy(arg) for arg in expr.args])
     elif isinstance(expr, sympy.StrictGreaterThan):
         return Expression('Greater',
-                          [from_sympy(arg) for arg in expr.args])
+                          *[from_sympy(arg) for arg in expr.args])
     elif isinstance(expr, sympy.Unequality):
         return Expression('Unequal',
-                          [from_sympy(arg) for arg in expr.args])
+                          *[from_sympy(arg) for arg in expr.args])
     elif isinstance(expr, sympy.Equality):
         return Expression('Equal',
-                          [from_sympy(arg) for arg in expr.args])
+                          *[from_sympy(arg) for arg in expr.args])
     elif expr is sympy.true:
         return Symbol('True')
     elif expr is sympy.false:

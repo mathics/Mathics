@@ -1718,6 +1718,9 @@ class Piecewise(SympyFunction):
     #> D[%, x]
      = Piecewise({{0, Or[x < 0, x > 0]}}, Indeterminate)
 
+    #> Integrate[Piecewise[{{1, x < 0}, {-1, x > 0}}], x]
+     = Piecewise[{{x, x <= 0}, {-x, x > 0}}]
+
     >> Integrate[Piecewise[{{1, x < 0}, {-1, x > 0}}], {x, -1, 2}]
      = -1
 
@@ -1745,6 +1748,7 @@ class Piecewise(SympyFunction):
             return
 
         sympy_cases = []
+        no_true_seen = True
         for case in leaves[0].leaves:
             if case.get_head_name() != 'System`List':
                 return
@@ -1757,6 +1761,7 @@ class Piecewise(SympyFunction):
                 cond_name = cond.get_name()
                 if cond_name == 'System`True':
                     sympy_cond = True
+                    no_true_seen = False
                 elif cond_name == 'System`False':
                     sympy_cond = False
             if sympy_cond is None:
@@ -1766,7 +1771,7 @@ class Piecewise(SympyFunction):
 
         if len(leaves) == 2:  # default case
             sympy_cases.append((leaves[1].to_sympy(**kwargs), True))
-        else:
+        elif no_true_seen:
             sympy_cases.append((Integer(0), True))
 
         return sympy.Piecewise(*sympy_cases)
