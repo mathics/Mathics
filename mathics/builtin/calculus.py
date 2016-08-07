@@ -143,6 +143,28 @@ class D(SympyFunction):
             'Nest[Function[{t}, D[t, x]], expr, n]'),
     }
 
+    def apply_piecewise(self, p, x, evaluation):
+        'D[Piecewise[p___], x_]'
+
+        p = p.get_sequence()
+        if len(p) not in (1, 2):
+            return
+        if p[0].get_head_name() != 'System`List':
+            return
+        cases = []
+        for leaf in p[0].leaves:
+            if leaf.get_head_name() != 'System`List':
+                return
+            if len(leaf.leaves) != 2:
+                return
+            expr, cond = leaf.leaves
+            cases.append(Expression('List', Expression('D', expr, x), cond))
+        if len(p) == 2:
+            default = [Expression('D', p[1], x)]
+        else:
+            default = []
+        return Expression('Piecewise', Expression('List', *cases), *default)
+
     def apply(self, f, x, evaluation):
         'D[f_, x_?NotListQ]'
 

@@ -1702,7 +1702,6 @@ class Product(_IterationFunction, SympyFunction):
                 pass
 
 
-# TODO: Proper symbolic computation
 class Piecewise(SympyFunction):
     """
     <dl>
@@ -1715,21 +1714,62 @@ class Piecewise(SympyFunction):
     Heaviside function
     >> Piecewise[{{0, x <= 0}}, 1]
      = Piecewise[{{0, x <= 0}}, 1]
-    """
 
-    # TODO
-    """
     #> D[%, x]
+     = Piecewise({{0, Or[x < 0, x > 0]}}, Indeterminate)
+
+    >> Integrate[Piecewise[{{1, x < 0}, {-1, x > 0}}], {x, -1, 2}]
+     = -1
+
+    Piecewise defaults to 0 if no other case is matching.
+    >> Piecewise[{{1, False}}]
+     = 0
+
+    >> Plot[Piecewise[{{Log[x], x > 0}, {x*-0.5, x < 0}}], {x, -1, 1}]
+     = -Graphics-
     """
 
     sympy_name = 'Piecewise'
 
-    def prepare_sympy(self, leaves):
-        if len(leaves) == 1:
-            return leaves[0]
-        if len(leaves) == 2:
-            return leaves[0].leaves + [
-                Expression('List', leaves[1], Symbol('True'))]
+    def apply(self, items, evaluation):
+        'Piecewise[items__]'
+        result = self.to_sympy(
+            Expression('Piecewise', *items.get_sequence()))
+        if not isinstance(result, sympy.Piecewise):
+            return from_sympy(result)
+
+    def to_sympy(self, expr, **kwargs):
+        leaves = expr.leaves
+
+        if len(leaves) not in (1, 2):
+            return
+
+        sympy_cases = []
+        for case in leaves[0].leaves:
+            if case.get_head_name() != 'System`List':
+                return
+            if len(case.leaves) != 2:
+                return
+            then, cond = case.leaves
+
+            sympy_cond = None
+            if isinstance(cond, Symbol):
+                cond_name = cond.get_name()
+                if cond_name == 'System`True':
+                    sympy_cond = True
+                elif cond_name == 'System`False':
+                    sympy_cond = False
+            if sympy_cond is None:
+                sympy_cond = cond.to_sympy(**kwargs)
+
+            sympy_cases.append((then.to_sympy(**kwargs), sympy_cond))
+
+        if len(leaves) == 2:  # default case
+            sympy_cases.append((leaves[1].to_sympy(**kwargs), True))
+        else:
+            sympy_cases.append((Integer(0), True))
+
+        return sympy.Piecewise(*sympy_cases)
 
     def from_sympy(self, sympy_name, args):
         # Hack to get around weird sympy.Piecewise 'otherwise' behaviour
