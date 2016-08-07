@@ -142,20 +142,3 @@ def convert_int_to_digit_list(x, base):
         return out
 
     return convert(x, base, iexps)
-
-
-def round_to_float(expr, evaluation=None, permit_complex=False):
-    '''
-    Try to round an expression to a python float.
-    Return None if not possible.
-    '''
-    from mathics.core.expression import BaseExpression, Expression, Number
-    if not isinstance(expr, BaseExpression):
-        raise ValueError(type(expr))
-    if evaluation is None:
-        value = expr
-    else:
-        value = Expression('N', expr).evaluate(evaluation)
-    if isinstance(value, Number):
-        value = value.round()
-        return value.get_float_value(permit_complex=permit_complex)

@@ -694,6 +694,9 @@ class AiryAiZero(Builtin):
 
     #> AiryAi[AiryAiZero[1]]
      = 0
+
+    #> N[AiryAiZero[2], 100]
+     = -4.087949444130970616636988701457391060224764699108529754984160876025121946836047394331169160758270562
     """
 
     # TODO: 'AiryAiZero[$k$, $x0$]' - $k$th zero less than x0
@@ -712,7 +715,7 @@ class AiryAiZero(Builtin):
             prec = machine_precision
             d = None
         else:
-            d = round_to_float(precision, evaluation)
+            d = precision.round_to_float(evaluation)
             if d is None:
                 return evaluation.message('N', 'precbd', precision)
             prec = _prec(d)
@@ -721,7 +724,7 @@ class AiryAiZero(Builtin):
 
         with mpmath.workprec(prec):
             result = mpmath.airyaizero(k_int)
-        return Number.from_mpmath(result, d)
+            return Number.from_mpmath(result, d)
 
 
 class AiryBiZero(Builtin):
@@ -742,6 +745,9 @@ class AiryBiZero(Builtin):
 
     #> AiryBi[AiryBiZero[1]]
      = 0
+
+    #> N[AiryBiZero[2], 100]
+     = -3.271093302836352715680228240166413806300935969100284801485032396261130864238742879252000673830055014
     """
 
     # TODO: 'AiryBiZero[$k$, $x0$]' - $k$th zero less than x0
@@ -760,7 +766,7 @@ class AiryBiZero(Builtin):
             prec = machine_precision
             d = None
         else:
-            d = round_to_float(precision, evaluation)
+            d = precision.round_to_float(evaluation)
             if d is None:
                 return evaluation.message('N', 'precbd', precision)
             prec = _prec(d)
@@ -769,7 +775,7 @@ class AiryBiZero(Builtin):
 
         with mpmath.workprec(prec):
             result = mpmath.airybizero(k_int)
-        return Number.from_mpmath(result, d)
+            return Number.from_mpmath(result, d)
 
 # Orthogonal Polynomials
 

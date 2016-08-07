@@ -16,7 +16,6 @@ from math import sin, cos, pi, sqrt, isnan, isinf
 import numbers
 import itertools
 
-from mathics.core.numbers import round_to_float
 from mathics.core.expression import (Expression, Real, Symbol,
                                      String, from_python)
 from mathics.builtin.base import Builtin
@@ -125,7 +124,7 @@ class Axis(Builtin):
 
 def extract_pyreal(value):
     if isinstance(value, Real):
-        return round_to_float(chop(value))
+        return chop(value).round_to_float()
     return None
 
 
@@ -259,8 +258,8 @@ class _Plot(Builtin):
         functions = self.get_functions_param(functions)
         x_name = x.get_name()
 
-        py_start = round_to_float(start, evaluation)
-        py_stop = round_to_float(stop, evaluation)
+        py_start = start.round_to_float(evaluation)
+        py_stop = stop.round_to_float(evaluation)
         if py_start is None or py_stop is None:
             return evaluation.message(self.get_name(), 'plln', stop, expr)
         if py_start >= py_stop:
@@ -731,7 +730,7 @@ class _Plot3D(Builtin):
         plot_name = self.get_name()
 
         def convert_limit(value, limits):
-            result = round_to_float(value, evaluation)
+            result = value.round_to_float(evaluation)
             if result is None:
                 evaluation.message(plot_name, 'plln', value, limits)
             return result
@@ -1495,16 +1494,16 @@ class DensityPlot(_Plot3D):
                 'ColorData',
                 color_function.get_string_value()).evaluate(evaluation)
             if func.has_form('ColorDataFunction', 4):
-                color_function_min = round_to_float(func.leaves[2].leaves[0])
-                color_function_max = round_to_float(func.leaves[2].leaves[1])
+                color_function_min = func.leaves[2].leaves[0].round_to_float()
+                color_function_max = func.leaves[2].leaves[1].round_to_float()
                 color_function = Expression('Function', Expression(
                     func.leaves[3], Expression('Slot', 1)))
             else:
                 evaluation.message('DensityPlot', 'color', func)
                 return
         if color_function.has_form('ColorDataFunction', 4):
-            color_function_min = round_to_float(color_function.leaves[2].leaves[0])
-            color_function_max = round_to_float(color_function.leaves[2].leaves[1])
+            color_function_min = color_function.leaves[2].leaves[0].round_to_float()
+            color_function_max = color_function.leaves[2].leaves[1].round_to_float()
 
         color_function_scaling = color_function_scaling.is_true()
         v_range = v_max - v_min

@@ -10,7 +10,7 @@ import math
 import re
 import abc
 
-from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision, round_to_float
+from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 
 import six
@@ -375,6 +375,18 @@ class BaseExpression(KeyComparable):
     def to_mpmath(self):
         return None
 
+    def round_to_float(self, evaluation=None, permit_complex=False):
+        '''
+        Try to round to python float. Return None if not possible.
+        '''
+        if evaluation is None:
+            value = self
+        else:
+            value = Expression('N', self).evaluate(evaluation)
+        if isinstance(value, Number):
+            value = value.round()
+            return value.get_float_value(permit_complex=permit_complex)
+
     def __abs__(self):
         return Expression('Abs', self)
 
@@ -700,7 +712,7 @@ class Expression(BaseExpression):
                     if leaf.has_form('Power', 2):
                         var = leaf.leaves[0].get_name()
                         if isinstance(leaf.leaves[1], Number):
-                            exp = round_to_float(leaf.leaves[1])
+                            exp = leaf.leaves[1].round_to_float()
                         else:
                             exp = None
                         if var and exp is not None:
@@ -709,7 +721,7 @@ class Expression(BaseExpression):
                         exps[name] = exps.get(name, 0) + 1
             elif self.has_form('Power', 2):
                 var = self.leaves[0].get_name()
-                exp = round_to_float(self.leaves[1])
+                exp = self.leaves[1].round_to_float()
                 if var and exp is not None:
                     exps[var] = exps.get(var, 0) + exp
             if exps:
@@ -882,8 +894,8 @@ class Expression(BaseExpression):
                         options['show_string_characters'] = value
                     elif name == 'System`ImageSizeMultipliers':
                         if value.has_form('List', 2):
-                            m1 = round_to_float(value.leaves[0])
-                            m2 = round_to_float(value.leaves[1])
+                            m1 = value.leaves[0].round_to_float()
+                            m2 = value.leaves[1].round_to_float()
                             if m1 is not None and m2 is not None:
                                 options = options.copy()
                                 options['image_size_multipliers'] = (m1, m2)

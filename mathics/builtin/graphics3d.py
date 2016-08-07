@@ -19,7 +19,6 @@ from mathics.builtin.base import BoxConstructError, Builtin, InstancableBuiltin
 from .graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
                        LineBox, PointBox, Style, RGBColor, get_class,
                        asy_number, CoordinatesError, _GraphicsElements)
-from mathics.core.numbers import round_to_float
 
 import json
 
@@ -28,9 +27,9 @@ from django.utils.html import escape as escape_html
 
 def coords3D(value):
     if value.has_form('List', 3):
-        result = (round_to_float(value.leaves[0]),
-                  round_to_float(value.leaves[1]),
-                  round_to_float(value.leaves[2]))
+        result = (value.leaves[0].round_to_float(),
+                  value.leaves[1].round_to_float(),
+                  value.leaves[2].round_to_float())
         if None not in result:
             return result
     raise CoordinatesError
@@ -899,10 +898,8 @@ class Cuboid(Builtin):
     def apply_full(self, xmin, ymin, zmin, xmax, ymax, zmax, evaluation):
         'Cuboid[{xmin_, ymin_, zmin_}, {xmax_, ymax_, zmax_}]'
 
-        xmin, ymin, zmin = [round_to_float(value, evaluation)
-                            for value in (xmin, ymin, zmin)]
-        xmax, ymax, zmax = [round_to_float(value, evaluation)
-                            for value in (xmax, ymax, zmax)]
+        xmin, ymin, zmin = [value.round_to_float(evaluation) for value in (xmin, ymin, zmin)]
+        xmax, ymax, zmax = [value.round_to_float(evaluation) for value in (xmax, ymax, zmax)]
         if None in (xmin, ymin, zmin, xmax, ymax, zmax):
             return  # TODO
 
@@ -967,7 +964,7 @@ class Cuboid(Builtin):
 
     def apply_min(self, xmin, ymin, zmin, evaluation):
         'Cuboid[{xmin_, ymin_, zmin_}]'
-        xmin, ymin, zmin = [round_to_float(value, evaluation)
+        xmin, ymin, zmin = [value.round_to_float(evaluation)
                             for value in (xmin, ymin, zmin)]
         if None in (xmin, ymin, zmin):
             return  # TODO

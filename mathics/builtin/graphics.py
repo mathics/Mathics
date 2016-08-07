@@ -21,7 +21,6 @@ from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
     Expression, Integer, Real, Symbol, strip_context,
     system_symbols, system_symbols_dict)
-from mathics.core.numbers import round_to_float
 
 
 class CoordinatesError(BoxConstructError):
@@ -47,7 +46,7 @@ def get_class(name):
 
 def coords(value):
     if value.has_form('List', 2):
-        x, y = round_to_float(value.leaves[0]), round_to_float(value.leaves[1])
+        x, y = value.leaves[0].round_to_float(), value.leaves[1].round_to_float()
         if x is None or y is None:
             raise CoordinatesError
         return (x, y)
@@ -247,7 +246,7 @@ class _Color(_GraphicsElement):
             else:
                 leaves = item.leaves
             if len(leaves) in self.components_sizes:
-                components = [round_to_float(value) for value in leaves]
+                components = [value.round_to_float() for value in leaves]
                 if None in components or not all(0 <= c <= 1 for c in components):
                     raise ColorError
                 if len(components) < len(self.default_components):
@@ -427,7 +426,7 @@ class _Thickness(_GraphicsElement):
     def init(self, graphics, item=None, value=None):
         super(_Thickness, self).init(graphics, item)
         if item is not None:
-            self.value = round_to_float(item.leaves[0])
+            self.value = item.leaves[0].round_to_float()
         elif value is not None:
             self.value = value
         else:
@@ -642,10 +641,10 @@ class _RoundBox(_GraphicsElement):
         elif len(item.leaves) == 2:
             r = item.leaves[1]
             if r.has_form('List', 2):
-                rx = round_to_float(r.leaves[0])
-                ry = round_to_float(r.leaves[1])
+                rx = r.leaves[0].round_to_float()
+                ry = r.leaves[1].round_to_float()
             else:
-                rx = ry = round_to_float(r)
+                rx = ry = r.round_to_float()
         self.r = self.c.add(rx, ry)
 
     def extent(self):
@@ -1254,7 +1253,7 @@ class GraphicsBox(BoxConstruct):
         if aspect_ratio == Symbol('Automatic'):
             aspect = None
         else:
-            aspect = round_to_float(aspect_ratio)
+            aspect = aspect_ratio.round_to_float()
 
         image_size = graphics_options['System`ImageSize']
         image_size = image_size.get_name()
@@ -1705,14 +1704,14 @@ class Blend(Builtin):
             return
 
         if u.has_form('List', None):
-            values = [round_to_float(value, evaluation) for value in u.leaves]
+            values = [value.round_to_float(evaluation) for value in u.leaves]
             if None in values:
                 values = None
             if len(u.leaves) != len(colors):
                 values = None
             use_list = True
         else:
-            values = round_to_float(u, evaluation)
+            values = u.round_to_float(evaluation)
             if values is None:
                 pass
             elif values > 1:

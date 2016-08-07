@@ -19,7 +19,7 @@ import math
 from mathics.builtin.base import Builtin, SympyConstant
 from mathics.core.expression import (
     Expression, Real, Integer, Symbol, PrecisionReal, MachineReal, Number)
-from mathics.core.numbers import dps, round_to_float
+from mathics.core.numbers import dps
 
 from mathics.builtin.arithmetic import _MPMathFunction
 
@@ -47,7 +47,7 @@ class Pi(SympyConstant):
         if precision.get_name() == 'System`MachinePrecision':
             return MachineReal(math.pi)
         else:
-            d = round_to_float(precision, evaluation)
+            d = precision.round_to_float(evaluation)
             if d is None:
                 return evaluation.message('N', 'precbd', precision)
             return PrecisionReal(sympy.pi.n(d))
@@ -79,7 +79,7 @@ class E(SympyConstant):
         if precision.get_name() == 'System`MachinePrecision':
             return MachineReal(math.e)
         else:
-            d = round_to_float(precision, evaluation)
+            d = precision.round_to_float(evaluation)
             if d is None:
                 return evaluation.message('N', 'precbd', precision)
             return PrecisionReal(sympy.E.n(d))
