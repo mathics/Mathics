@@ -911,9 +911,14 @@ def _svg_bezier(*segments):
 
 class BernsteinBasis(Builtin):
     rules = {
-        'BernsteinBasis[d_, n_, x_]': 'Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]'
+        'BernsteinBasis[d_, n_, x_]': 'Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]',
     }
 
+
+class BezierFunction(Builtin):
+    rules = {
+        'BezierFunction[p_]': 'Function[x, Total[p * BernsteinBasis[Length[p] - 1, Range[0, Length[p] - 1], x]]]',
+    }
 
 class BezierCurve(Builtin):
     """
