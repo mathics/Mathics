@@ -1132,12 +1132,25 @@ class Message(Builtin):
 
     attributes = ('HoldFirst',)
 
+    messages = {
+        'name': 'Message name `1` is not of the form symbol::name or symbol::name::language.',
+    }
+
     def apply(self, symbol, tag, params, evaluation):
         'Message[MessageName[symbol_Symbol, tag_String], params___]'
 
         params = params.get_sequence()
         evaluation.message(symbol.name, tag.value, *params)
         return Symbol('Null')
+
+
+def check_message(expr):
+    'checks if an expression is a valid message'
+    if expr.has_form('MessageName', 2):
+        symbol, tag = expr.get_leaves()
+        if symbol.get_name() and tag.get_string_value():
+            return True
+    return False
 
 
 class Quiet(Builtin):
@@ -1192,7 +1205,7 @@ class Quiet(Builtin):
         'Quiet[expr_, moff_, mon_]'
 
         def get_msg_list(expr):
-            if expr.has_form('MessageName', 2):
+            if check_message(expr):
                 expr = Expression('List', expr)
             if expr.get_name() == 'System`All':
                 all = True
@@ -1204,21 +1217,17 @@ class Quiet(Builtin):
                 all = False
                 messages = []
                 for item in expr.leaves:
-                    if item.has_form('MessageName', 2):
-                        symbol = item.leaves[0].get_name()
-                        tag = item.leaves[1].get_string_value()
-                        if symbol and tag:
-                            messages.append((symbol, tag))
-                        else:
-                            raise ValueError
+                    if check_message(item):
+                        messages.append(item)
                     else:
                         raise ValueError
             else:
                 raise ValueError
             return all, messages
 
-        old_quiet_all, old_quiet_messages = \
-            evaluation.quiet_all, evaluation.quiet_messages.copy()
+        old_quiet_all = evaluation.quiet_all
+        old_quiet_messages = set(evaluation.get_quiet_messages())
+        quiet_messages = old_quiet_messages.copy()
         try:
             quiet_expr = Expression('Quiet', expr, moff, mon)
             try:
@@ -1241,22 +1250,111 @@ class Quiet(Builtin):
                     conflict.append(off)
                     break
             if conflict:
-                evaluation.message(
-                    'Quiet', 'conflict', quiet_expr, Expression('List', *(
-                        Expression('MessageName', Symbol(symbol), String(tag))
-                        for symbol, tag in conflict)))
+                evaluation.message('Quiet', 'conflict', quiet_expr, Expression('List', *conflict))
                 return
             for off in off_messages:
-                evaluation.quiet_messages.add(off)
+                quiet_messages.add(off)
             for on in on_messages:
-                evaluation.quiet_messages.discard(on)
+                quiet_messages.discard(on)
             if on_all:
-                evaluation.quiet_messages = set()
+                quiet_messages = set()
+            evaluation.set_quiet_messages(quiet_messages)
 
             return expr.evaluate(evaluation)
         finally:
-            evaluation.quiet_all, evaluation.quiet_messages =\
-                old_quiet_all, old_quiet_messages
+            evaluation.quiet_all = old_quiet_all
+            evaluation.set_quiet_messages(old_quiet_messages)
+
+
+class Off(Builtin):
+    '''
+    <dl>
+    <dt>'Off[$symbol$::$tag$]'
+        <dd>turns a message off so it is no longer printed.
+    </dl>
+
+    >> Off[Power::infy]
+    >> 1 / 0
+     = ComplexInfinity
+
+    >> Off[Power::indet, Syntax::com]
+    >> {0 ^ 0,}
+     = {Indeterminate, Null}
+
+    #> Off[1]
+     :  Message name 1 is not of the form symbol::name or symbol::name::language.
+    #> Off[Message::name, 1]
+
+    #> On[Power::infy, Power::indet, Syntax::com]
+    '''
+
+    attributes = ('HoldAll',)
+
+    def apply(self, expr, evaluation):
+        'Off[expr___]'
+
+        seq = expr.get_sequence()
+        quiet_messages = set(evaluation.get_quiet_messages())
+
+        if not seq:
+            # TODO Off[s::trace] for all symbols
+            return
+
+        for e in seq:
+            if isinstance(e, Symbol):
+                quiet_messages.add(Expression('MessageName', e, String('trace')))
+            elif check_message(e):
+                quiet_messages.add(e)
+            else:
+                evaluation.message('Message', 'name', e)
+            evaluation.set_quiet_messages(quiet_messages)
+
+        return Symbol('Null')
+
+
+class On(Builtin):
+    '''
+    <dl>
+    <dt>'On[$symbol$::$tag$]'
+        <dd>turns a message on for printing.
+    </dl>
+
+    >> Off[Power::infy]
+    >> 1 / 0
+     = ComplexInfinity
+    >> On[Power::infy]
+    >> 1 / 0
+     : Infinite expression 1 / 0 encountered.
+     = ComplexInfinity
+    '''
+
+    # TODO
+    '''
+    #> On[f::x]
+     : Message f::x not found.
+    '''
+
+    attributes = ('HoldAll',)
+
+    def apply(self, expr, evaluation):
+        'On[expr___]'
+
+        seq = expr.get_sequence()
+        quiet_messages = set(evaluation.get_quiet_messages())
+
+        if not seq:
+            # TODO On[s::trace] for all symbols
+            return
+
+        for e in seq:
+            if isinstance(e, Symbol):
+                quiet_messages.discard(Expression('MessageName', e, String('trace')))
+            elif check_message(e):
+                quiet_messages.discard(e)
+            else:
+                evaluation.message('Message', 'name', e)
+            evaluation.set_quiet_messages(quiet_messages)
+        return Symbol('Null')
 
 
 class MessageName(BinaryOperator):
