@@ -1324,7 +1324,7 @@ class On(Builtin):
      = ComplexInfinity
     >> On[Power::infy]
     >> 1 / 0
-     : Infinite expression (division by zero) encountered.
+     : Infinite expression 1 / 0 encountered.
      = ComplexInfinity
     '''
 
