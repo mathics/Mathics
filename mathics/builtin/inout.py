@@ -1144,6 +1144,15 @@ class Message(Builtin):
         return Symbol('Null')
 
 
+def check_message(expr):
+    'checks if an expression is a valid message'
+    if expr.has_form('MessageName', 2):
+        symbol, tag = expr.get_leaves()
+        if symbol.get_name() and tag.get_string_value():
+            return True
+    return False
+
+
 class Quiet(Builtin):
     """
     <dl>
@@ -1196,7 +1205,7 @@ class Quiet(Builtin):
         'Quiet[expr_, moff_, mon_]'
 
         def get_msg_list(expr):
-            if expr.has_form('MessageName', 2):
+            if check_message(expr):
                 expr = Expression('List', expr)
             if expr.get_name() == 'System`All':
                 all = True
@@ -1208,22 +1217,17 @@ class Quiet(Builtin):
                 all = False
                 messages = []
                 for item in expr.leaves:
-                    if item.has_form('MessageName', 2):
-                        symbol = item.leaves[0].get_name()
-                        tag = item.leaves[1].get_string_value()
-                        if symbol and tag:
-                            messages.append((symbol, tag))
-                        else:
-                            raise ValueError
+                    if check_message(item):
+                        messages.append(item)
                     else:
                         raise ValueError
             else:
                 raise ValueError
             return all, messages
 
-        old_quiet_all, old_quiet_messages = \
-            evaluation.quiet_all, evaluation.quiet_messages
-        evaluation.quiet_messages = evaluation.quiet_messages.copy()
+        old_quiet_all = evaluation.quiet_all
+        old_quiet_messages = set(evaluation.get_quiet_messages())
+        quiet_messages = old_quiet_messages.copy()
         try:
             quiet_expr = Expression('Quiet', expr, moff, mon)
             try:
@@ -1246,22 +1250,20 @@ class Quiet(Builtin):
                     conflict.append(off)
                     break
             if conflict:
-                evaluation.message(
-                    'Quiet', 'conflict', quiet_expr, Expression('List', *(
-                        Expression('MessageName', Symbol(symbol), String(tag))
-                        for symbol, tag in conflict)))
+                evaluation.message('Quiet', 'conflict', quiet_expr, Expression('List', *conflict))
                 return
             for off in off_messages:
-                evaluation.quiet_messages.add(off)
+                quiet_messages.add(off)
             for on in on_messages:
-                evaluation.quiet_messages.discard(on)
+                quiet_messages.discard(on)
             if on_all:
-                evaluation.quiet_messages = set()
+                quiet_messages = set()
+            evaluation.set_quiet_messages(quiet_messages)
 
             return expr.evaluate(evaluation)
         finally:
-            evaluation.quiet_all, evaluation.quiet_messages =\
-                old_quiet_all, old_quiet_messages
+            evaluation.quiet_all = old_quiet_all
+            evaluation.set_quiet_messages(old_quiet_messages)
 
 
 class Off(Builtin):
@@ -1290,7 +1292,9 @@ class Off(Builtin):
 
     def apply(self, expr, evaluation):
         'Off[expr___]'
+
         seq = expr.get_sequence()
+        quiet_messages = set(evaluation.get_quiet_messages())
 
         if not seq:
             # TODO Off[s::trace] for all symbols
@@ -1298,16 +1302,13 @@ class Off(Builtin):
 
         for e in seq:
             if isinstance(e, Symbol):
-                evaluation.quiet_messages.add((e.get_name(), 'trace'))
-                continue
-            elif e.has_form('MessageName', 2):
-                symb, msg = e.get_leaves()
-                symb_name = symb.get_name()
-                msg_string = msg.get_string_value()
-                if not (symb_name is None or msg_string is None):
-                    evaluation.quiet_messages.add((symb_name, msg_string))
-                    continue
-            evaluation.message('Message', 'name', e)
+                quiet_messages.add(Expression('MessageName', e, String('trace')))
+            elif check_message(e):
+                quiet_messages.add(e)
+            else:
+                evaluation.message('Message', 'name', e)
+            evaluation.set_quiet_messages(quiet_messages)
+
         return Symbol('Null')
 
 
@@ -1337,7 +1338,9 @@ class On(Builtin):
 
     def apply(self, expr, evaluation):
         'On[expr___]'
+
         seq = expr.get_sequence()
+        quiet_messages = set(evaluation.get_quiet_messages())
 
         if not seq:
             # TODO On[s::trace] for all symbols
@@ -1345,16 +1348,12 @@ class On(Builtin):
 
         for e in seq:
             if isinstance(e, Symbol):
-                evaluation.quiet_messages.discard((e.get_name(), 'trace'))
-                continue
-            elif e.has_form('MessageName', 2):
-                symb, msg = e.get_leaves()
-                symb_name = symb.get_name()
-                msg_string = msg.get_string_value()
-                if not (symb_name is None or msg_string is None):
-                    evaluation.quiet_messages.discard((symb_name, msg_string))
-                    continue
-            evaluation.message('Message', 'name', e)
+                quiet_messages.discard(Expression('MessageName', e, String('trace')))
+            elif check_message(e):
+                quiet_messages.discard(e)
+            else:
+                evaluation.message('Message', 'name', e)
+            evaluation.set_quiet_messages(quiet_messages)
         return Symbol('Null')
 
 

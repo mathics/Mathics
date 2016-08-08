@@ -20,8 +20,6 @@ FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'TeXForm', 'MathMLForm',
            'MatrixForm', 'TableForm']
 
-QUIET_MESSAGES = set()
-
 
 class EvaluationInterrupt(Exception):
     pass
@@ -164,7 +162,6 @@ class Evaluation(object):
         self.predetermined_out = None
 
         self.quiet_all = False
-        self.quiet_messages = QUIET_MESSAGES
         self.format = format
         self.catch_interrupt = catch_interrupt
 
@@ -320,6 +317,23 @@ class Evaluation(object):
             boxes = None
         return boxes
 
+    def set_quiet_messages(self, messages):
+        from mathics.core.expression import Expression, String
+        value = Expression('List', *messages)
+        self.definitions.set_ownvalue('Internal`$QuietMessages', value)
+
+    def get_quiet_messages(self):
+        from mathics.core.expression import Expression
+        value = self.definitions.get_definition('Internal`$QuietMessages').ownvalues
+        if value:
+            try:
+                value = value[0].replace
+            except AttributeError:
+                return []
+        if not isinstance(value, Expression):
+            return []
+        return value.leaves
+
     def message(self, symbol, tag, *args):
         from mathics.core.expression import (String, Symbol, Expression,
                                              from_python)
@@ -327,8 +341,11 @@ class Evaluation(object):
         # Allow evaluation.message('MyBuiltin', ...) (assume
         # System`MyBuiltin)
         symbol = ensure_context(symbol)
+        quiet_messages = set(self.get_quiet_messages())
 
-        if (symbol, tag) in self.quiet_messages or self.quiet_all:
+        pattern = Expression('MessageName', Symbol(symbol), String(tag))
+
+        if pattern in quiet_messages or self.quiet_all:
             return
 
         # Shorten the symbol's name according to the current context
@@ -340,7 +357,6 @@ class Evaluation(object):
         if settings.DEBUG_PRINT:
             print('MESSAGE: %s::%s (%s)' % (symbol_shortname, tag, args))
 
-        pattern = Expression('MessageName', Symbol(symbol), String(tag))
         text = self.definitions.get_value(
             symbol, 'System`Messages', pattern, self)
         if text is None:
