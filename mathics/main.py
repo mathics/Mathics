@@ -280,7 +280,7 @@ def main():
         except (KeyboardInterrupt):
             print('\nKeyboardInterrupt')
         except (SystemExit, EOFError):
-            print("\n\nGood bye!\n")
+            print("\n\nGoodbye!\n")
             break
         finally:
             shell.reset_lineno()
