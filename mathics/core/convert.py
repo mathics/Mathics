@@ -190,7 +190,7 @@ def from_sympy(expr):
             if default_cond == sympy.true:
                 args = args[:-1]
                 if isinstance(default_case, sympy.Integer) and int(default_case) == 0:
-                    pass  # ignore
+                    pass  # ignore, as 0 default case is always implicit in Piecewise[]
                 else:
                     default = [from_sympy(default_case)]
         return Expression('Piecewise', Expression('List', *[Expression(
