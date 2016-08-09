@@ -1715,15 +1715,13 @@ class Piecewise(SympyFunction):
     >> Piecewise[{{0, x <= 0}}, 1]
      = Piecewise[{{0, x <= 0}}, 1]
 
-    >> D[%, x]
-     = 0
+    ## D[%, x]
+    ## Piecewise({{0, Or[x < 0, x > 0]}}, Indeterminate).
 
-    In MMA, D[%, x] = Piecewise({{0, Or[x < 0, x > 0]}}, Indeterminate).
+    >> Integrate[Piecewise[{{1, x <= 0}, {-1, x > 0}}], x]
+     = Piecewise[{{x, x <= 0}, {-x, x > 0}}]
 
-    >> Integrate[Piecewise[{{1, x < 0}, {-1, x > 0}}], x]
-     = Piecewise[{{x, x < 0}, {-x, x > 0}}]
-
-    >> Integrate[Piecewise[{{1, x < 0}, {-1, x > 0}}], {x, -1, 2}]
+    >> Integrate[Piecewise[{{1, x <= 0}, {-1, x > 0}}], {x, -1, 2}]
      = -1
 
     Piecewise defaults to 0 if no other case is matching.
