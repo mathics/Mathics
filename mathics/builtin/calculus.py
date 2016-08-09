@@ -308,7 +308,7 @@ class Derivative(PostfixOperator, SympyFunction):
         except AttributeError:
             pass
 
-        if len(exprs) != 4 or not all(len(expr.leaves) >= 1
+        if len(exprs) != 4 or not all(len(exp.leaves) >= 1
                                       for exp in exprs[:3]):
             return
 
