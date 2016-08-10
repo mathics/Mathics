@@ -40,6 +40,7 @@ from six.moves import range
 
 from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
 from mathics.builtin.base import PatternObject
+from mathics.builtin.lists import python_levelspec
 
 from mathics.core.expression import (
     Symbol, Expression, Number, Integer, Rational, Real)
@@ -126,6 +127,65 @@ def create_rules(rules_expr, expr, name, evaluation, extra_args=[]):
             else:
                 result.append(Rule(rule.leaves[0], rule.leaves[1]))
         return result, False
+
+
+class Replace(Builtin):
+    """
+    <dl>
+    <dt>'Replace[$expr$, $x$ -> $y$]'
+        <dd>yields the result of replacing $expr$ with $y$ if it
+        matches the pattern $x$.
+    <dt>'Replace[$expr$, $x$ -> $y$, $levelspec$]'
+        <dd>replaces only subexpressions at levels specified through
+        $levelspec$.
+    <dt>'Replace[$expr$, {$x$ -> $y$, ...}]'
+        <dd>performs replacement with multiple rules, yielding a
+        single result expression.
+    <dt>'Replace[$expr$, {{$a$ -> $b$, ...}, {$c$ -> $d$, ...}, ...}]'
+        <dd>returns a list containing the result of performing each
+        set of replacements.
+    </dl>
+
+    >> Replace[x, {x -> 2}]
+     = 2
+
+    By default, only the top level gets replaced.
+    >> Replace[1 + x, {x -> 2}]
+     = 1 + x
+
+    >> Replace[x, {{x -> 1}, {x -> 2}}]
+     = {1, 2}
+
+    You can use Replace as an operator:
+    >> Replace[{x_ -> x + 1}][10]
+     = 11
+    """
+
+    messages = {
+        'reps': "`1` is not a valid replacement rule.",
+        'rmix': "Elements of `1` are a mixture of lists and nonlists.",
+    }
+
+    rules = {
+        'Replace[rules_][expr_]': 'Replace[expr, rules]',
+    }
+
+    def _replace(self, expr, rules, levelspec, evaluation):
+        rules, ret = create_rules(rules, expr, 'Replace', evaluation)
+        if ret:
+            return rules
+
+        result, applied = expr.apply_rules(
+            rules, evaluation, level=0, levelspec=levelspec)
+        return result
+
+    def apply(self, expr, rules, evaluation):
+        'Replace[expr_, rules_]'
+        return self._replace(expr, rules, (0, 0), evaluation)
+
+    def apply_levelspec(self, expr, rules, levelspec, evaluation):
+        'Replace[expr_, rules_, levelspec_]'
+        return self._replace(expr, rules, python_levelspec(levelspec), evaluation)
 
 
 class ReplaceAll(BinaryOperator):

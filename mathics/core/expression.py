@@ -227,7 +227,14 @@ class BaseExpression(KeyComparable):
     def evaluate_leaves(self, evaluation):
         return self
 
-    def apply_rules(self, rules, evaluation):
+    def apply_rules(self, rules, evaluation, level=0, levelspec=None):
+        if levelspec is not None:
+            l1, l2 = levelspec
+            if level < l1:
+                return self, False
+            elif l2 is not None and level > l2:
+                return self, False
+
         for rule in rules:
             result = rule.apply(self, evaluation, fully=False)
             if result is not None:
@@ -1076,22 +1083,39 @@ class Expression(BaseExpression):
         return [leaf for leaf in self.leaves
                 if leaf.get_head_name() == head_name]
 
-    def apply_rules(self, rules, evaluation):
+    def apply_rules(self, rules, evaluation, level=0, levelspec=None):
         """for rule in rules:
             result = rule.apply(self, evaluation, fully=False)
             if result is not None:
                 return result"""
-        result, applied = super(
-            Expression, self).apply_rules(rules, evaluation)
-        if applied:
-            return result, True
-        head, applied = self.head.apply_rules(rules, evaluation)
+
+        if levelspec is None:
+            apply = True
+        else:
+            l1, l2 = levelspec
+            if level < l1:
+                apply = False
+            elif l2 is not None and level > l2:
+                return self, False
+            else:
+                apply = True
+
+        if apply:
+            result, applied = super(
+                Expression, self).apply_rules(rules, evaluation, level, levelspec)
+            if applied:
+                return result, True
+            head, applied = self.head.apply_rules(rules, evaluation, level, levelspec)
+        else:
+            head = self.head
+            applied = False
 
         # to be able to access it inside inner function
         new_applied = [applied]
 
         def apply_leaf(leaf):
-            new, sub_applied = leaf.apply_rules(rules, evaluation)
+            new, sub_applied = leaf.apply_rules(
+                rules, evaluation, level + 1, levelspec)
             new_applied[0] = new_applied[0] or sub_applied
             return new
 
