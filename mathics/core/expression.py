@@ -1222,7 +1222,9 @@ class Expression(BaseExpression):
                 # and we don't want to lose exactness in e.g. 1.0+I.
                 if not isinstance(leaf, Number):
                     n_expr = Expression('N', leaf, Integer(dps(_prec)))
-                    new_leaves[index] = n_expr.evaluate(evaluation)
+                    n_result = n_expr.evaluate(evaluation)
+                    if isinstance(n_result, Number):
+                        new_leaves[index] = n_result
             return Expression(self.head, *new_leaves)
         else:
             return self

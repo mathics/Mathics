@@ -125,7 +125,7 @@ class Plus(BinaryOperator, SympyFunction):
     >> a + a + 3 * a
      = 5 a
     >> a + b + 4.5 + a + b + a + 2 + 1.5 b
-     = 6.5 + 3. a + 3.5 b
+     = 6.5 + 3 a + 3.5 b
 
     Apply 'Plus' on a list to sum up its elements:
     >> Plus @@ {2, 4, 6}
