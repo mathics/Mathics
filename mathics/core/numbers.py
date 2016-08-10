@@ -28,9 +28,49 @@ def reconstruct_digits(bits):
     return int(ceil(bits / C) + 1)
 
 
+class PrecisionValueError(Exception):
+    pass
+
+
 class SpecialValueError(Exception):
     def __init__(self, name):
         self.name = name
+
+
+def _get_float_inf(value, evaluation):
+    value = value.evaluate(evaluation)
+    if value.has_form('DirectedInfinity', 1):
+        if value.leaves[0].get_int_value() == 1:
+            return float('inf')
+        elif value.leaves[0].get_int_value() == -1:
+            return float('-inf')
+        else:
+            return None
+    return value.round_to_float(evaluation)
+
+
+def get_precision(value, evaluation):
+    from mathics.core.expression import Symbol, MachineReal
+    if value.get_name() == 'System`MachinePrecision':
+        return None
+    else:
+        dmin = _get_float_inf(Symbol('$MinPrecision'), evaluation)
+        dmax = _get_float_inf(Symbol('$MaxPrecision'), evaluation)
+        d = value.round_to_float(evaluation)
+        assert dmin is not None and dmax is not None
+        if d is None:
+            evaluation.message('N', 'precbd', value)
+        elif d < dmin:
+            dmin = int(dmin)
+            evaluation.message('N', 'precsm', value, MachineReal(dmin))
+            return dmin
+        elif d > dmax:
+            dmax = int(dmax)
+            evaluation.message('N', 'preclg', value, MachineReal(dmax))
+            return dmax
+        else:
+            return d
+        raise PrecisionValueError()
 
 
 def get_type(value):

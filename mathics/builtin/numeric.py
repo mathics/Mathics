@@ -20,7 +20,8 @@ from six.moves import range
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (
-    dps, convert_int_to_digit_list, machine_precision) 
+    dps, convert_int_to_digit_list, machine_precision, get_precision,
+    PrecisionValueError)
 from mathics.core.expression import (
     Integer, Real, Complex, Expression, Number, Symbol, from_python,
     MachineReal)
@@ -149,8 +150,11 @@ class N(Builtin):
     """
 
     messages = {
-        'precbd': (
-            "Requested precision `1` is not a machine-sized real number."),
+        'precbd': "Requested precision `1` is not a machine-sized real number.",
+        'preclg': ('Requested precision `1` is larger than $MaxPrecision. '
+                   'Using current $MaxPrecision of `2` instead. '
+                   '$MaxPrecision = Infinity specifies that any precision should be allowed.'),
+        'precsm': 'Requested precision `1` is smaller than $MinPrecision. Using current $MinPrecision of `2` instead.',
     }
 
     rules = {
@@ -160,12 +164,10 @@ class N(Builtin):
     def apply_other(self, expr, prec, evaluation):
         'N[expr_, prec_]'
 
-        if prec.get_name() == 'System`MachinePrecision':
-            d = None
-        else:
-            d = prec.round_to_float(evaluation)
-            if d is None:
-                return evaluation.message('N', 'precbd', prec)
+        try:
+            d = get_precision(prec, evaluation)
+        except PrecisionValueError:
+            return
 
         if expr.get_head_name() in ('System`List', 'System`Rule'):
             return Expression(
@@ -283,6 +285,95 @@ class Precision(Builtin):
             return Real(0)
         else:
             return Real(dps(z.get_precision()))
+
+
+class MinPrecision(Builtin):
+    '''
+    >> $MinPrecision
+     = 0
+
+    >> $MinPrecision = 10;
+
+    >> N[Pi, 9]
+     : Requested precision 9 is smaller than $MinPrecision. Using current $MinPrecision of 10. instead.
+     = 3.141592654
+
+    #> N[Pi, 10]
+     = 3.141592654
+
+    #> $MinPrecision = x
+     : Cannot set $MinPrecision to x; value must be a non-negative number.
+     = x
+    #> $MinPrecision = -Infinity
+     : Cannot set $MinPrecision to -Infinity; value must be a non-negative number.
+     = -Infinity
+    #> $MinPrecision = -1
+     : Cannot set $MinPrecision to -1; value must be a non-negative number.
+     = -1
+    #> $MinPrecision = 0;
+
+    #> $MaxPrecision = 10;
+    #> $MinPrecision = 15
+     : Cannot set $MinPrecision such that $MaxPrecision < $MinPrecision.
+     = 15
+    #> $MinPrecision
+     = 0
+    #> $MaxPrecision = Infinity;
+    '''
+    name = '$MinPrecision'
+    rules = {
+        '$MinPrecision': '0',
+    }
+
+    messages = {
+        'precset': 'Cannot set `1` to `2`; value must be a non-negative number.',
+        'preccon': 'Cannot set `1` such that $MaxPrecision < $MinPrecision.',
+    }
+
+
+class MaxPrecision(Predefined):
+    '''
+    >> $MaxPrecision
+     = Infinity
+
+    >> $MaxPrecision = 10;
+
+    >> N[Pi, 11]
+     : Requested precision 11 is larger than $MaxPrecision. Using current $MaxPrecision of 10. instead. $MaxPrecision = Infinity specifies that any precision should be allowed.
+     = 3.141592654
+
+    #> N[Pi, 10]
+     = 3.141592654
+
+    #> $MaxPrecision = x
+     : Cannot set $MaxPrecision to x; value must be a positive number or Infinity.
+     = x
+    #> $MaxPrecision = -Infinity
+     : Cannot set $MaxPrecision to -Infinity; value must be a positive number or Infinity.
+     = -Infinity
+    #> $MaxPrecision = 0
+     : Cannot set $MaxPrecision to 0; value must be a positive number or Infinity.
+     = 0
+    #> $MaxPrecision = Infinity;
+
+    #> $MinPrecision = 15;
+    #> $MaxPrecision = 10
+     : Cannot set $MaxPrecision such that $MaxPrecision < $MinPrecision.
+     = 10
+    #> $MaxPrecision
+     = Infinity
+    #> $MinPrecision = 0;
+    '''
+    name = '$MaxPrecision'
+
+    rules = {
+        '$MaxPrecision': 'Infinity',
+    }
+
+    messages = {
+        'precset': 'Cannot set `1` to `2`; value must be a positive number or Infinity.',
+        'preccon': 'Cannot set `1` such that $MaxPrecision < $MinPrecision.',
+    }
 
 
 class Round(Builtin):
