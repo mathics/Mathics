@@ -13,7 +13,7 @@ import mpmath
 from mathics.builtin.base import Builtin, SympyFunction
 from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
 from mathics.core.expression import Integer, Number
-from mathics.core.numbers import machine_precision
+from mathics.core.numbers import machine_precision, prec, get_precision, PrecisionValueError
 from mathics.core.convert import from_sympy
 from mathics.core.numbers import prec as _prec
 
@@ -711,18 +711,19 @@ class AiryAiZero(Builtin):
     def apply_N(self, k, precision, evaluation):
         'N[AiryAiZero[k_Integer], precision_]'
 
-        if precision.get_name() == 'System`MachinePrecision':
-            prec = machine_precision
-            d = None
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        if d is None:
+            p = machine_precision
         else:
-            d = precision.round_to_float(evaluation)
-            if d is None:
-                return evaluation.message('N', 'precbd', precision)
-            prec = _prec(d)
+            p = _prec(d)
 
         k_int = k.get_int_value()
 
-        with mpmath.workprec(prec):
+        with mpmath.workprec(p):
             result = mpmath.airyaizero(k_int)
             return Number.from_mpmath(result, d)
 
@@ -762,18 +763,19 @@ class AiryBiZero(Builtin):
     def apply_N(self, k, precision, evaluation):
         'N[AiryBiZero[k_Integer], precision_]'
 
-        if precision.get_name() == 'System`MachinePrecision':
-            prec = machine_precision
-            d = None
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        if d is None:
+            p = machine_precision
         else:
-            d = precision.round_to_float(evaluation)
-            if d is None:
-                return evaluation.message('N', 'precbd', precision)
-            prec = _prec(d)
+            p = _prec(d)
 
         k_int = k.get_int_value()
 
-        with mpmath.workprec(prec):
+        with mpmath.workprec(p):
             result = mpmath.airybizero(k_int)
             return Number.from_mpmath(result, d)
 
