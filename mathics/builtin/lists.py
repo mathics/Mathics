@@ -1371,9 +1371,12 @@ class Cases(Builtin):
 
     >> Cases[{a, 1, 2.5, "string"}, _Integer|_Real]
      = {1, 2.5}
+    >> Cases[_Complex][{1, 2I, 3, 4-I, 5}]
+     = {2 I, 4 - I}
     """
     rules = {
         'Cases[list_, pattern_]': 'Select[list, MatchQ[#, pattern]&]',
+        'Cases[pattern_][list_]': 'Cases[list, pattern]',
     }
 
 
@@ -1415,10 +1418,18 @@ class Position(Builtin):
     Find all powers of x
     >> Position[{1 + x^2, x y ^ 2,  4 y,  x ^ z}, x^_]
      = {{1, 2}, {4}}
+
+    Use Position as an operator
+    >> Position[_Integer][{1.5, 2, 2.5}]
+     = {{2}}
     '''
 
     options = {
         'Heads': 'True'
+    }
+
+    rules = {
+        'Position[pattern_][expr_]': 'Position[expr, pattern]',
     }
 
     def apply_invalidlevel(self, patt, expr, ls, evaluation, options={}):
@@ -1461,10 +1472,13 @@ class MemberQ(Builtin):
      = False
     >> MemberQ[{"a", b, f[x]}, _?NumericQ]
      = False
+    >> MemberQ[_List][{{}}]
+     = True
     """
     rules = {
         'MemberQ[list_, pattern_]': (
             'Length[Select[list, MatchQ[#, pattern]&]] > 0'),
+        'MemberQ[pattern_][expr_]': 'MemberQ[expr, pattern]',
     }
 
 

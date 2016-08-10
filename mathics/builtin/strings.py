@@ -444,6 +444,10 @@ class StringMatchQ(Builtin):
     #> StringMatchQ[1.5, NumberString]
      : String or list of strings expected at position 1 in StringMatchQ[1.5, NumberString].
      = StringMatchQ[1.5, NumberString]
+
+    Use StringMatchQ as an operator
+    >> StringMatchQ[LetterCharacter]["a"]
+     = True
     """
 
     attributes = ('Listable',)
@@ -455,6 +459,10 @@ class StringMatchQ(Builtin):
 
     messages = {
         'strse': 'String or list of strings expected at position `1` in `2`.',
+    }
+
+    rules = {
+        'StringMatchQ[patt_][expr_]': 'StringMatchQ[expr, patt]',
     }
 
     def apply(self, string, patt, evaluation, options):
@@ -860,6 +868,10 @@ class StringReplace(Builtin):
      = 01XY
     #> StringReplace["xyXY", "xy" -> "01", IgnoreCase -> True]
      = 0101
+
+    StringReplace also can be used as an operator:
+    >> StringReplace["y" -> "ies"]["city"]
+     = cities
     """
 
     # TODO Special Characters
@@ -880,6 +892,10 @@ class StringReplace(Builtin):
         'srep': '`1` is not a valid string replacement rule.',
         'innf': ('Non-negative integer or Infinity expected at '
                  'position `1` in `2`.'),
+    }
+
+    rules = {
+        'StringReplace[rule_][string_]': 'StringReplace[string, rule]',
     }
 
     def apply_n(self, string, rule, n, evaluation, options):

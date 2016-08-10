@@ -159,6 +159,10 @@ class ReplaceAll(BinaryOperator):
      : Elements of {{a -> x, b -> y}, a -> w, b -> z} are a mixture of lists and nonlists.
      = {{a, b} /. {{a -> x, b -> y}, a -> w, b -> z}, {u, v}}
 
+    ReplaceAll also can be used as an operator:
+    >> ReplaceAll[{a -> 1}][{a, b}]
+     = {1, b}
+
     #> a + b /. x_ + y_ -> {x, y}
      = {a, b}
     """
@@ -171,6 +175,10 @@ class ReplaceAll(BinaryOperator):
     messages = {
         'reps': "`1` is not a valid replacement rule.",
         'rmix': "Elements of `1` are a mixture of lists and nonlists.",
+    }
+
+    rules = {
+        'ReplaceAll[rules_][expr_]': 'ReplaceAll[expr, rules]',
     }
 
     def apply(self, expr, rules, evaluation):
@@ -503,7 +511,13 @@ class MatchQ(Builtin):
      = True
     >> MatchQ[123, _Real]
      = False
+    >> MatchQ[_Integer][123]
+     = True
     """
+
+    rules = {
+        'MatchQ[form_][expr_]': 'MatchQ[expr, form]',
+    }
 
     def apply(self, expr, form, evaluation):
         'MatchQ[expr_, form_]'
