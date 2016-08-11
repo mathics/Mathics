@@ -827,7 +827,7 @@ class Power(BinaryOperator, _MPMathFunction):
             else:
                 y_err = Expression('N', y).evaluate(evaluation)
             if isinstance(y_err, Number):
-                py_y = y_err.round().get_float_value(permit_complex=True).real
+                py_y = y_err.round_to_float(permit_complex=True).real
                 if py_y > 0:
                     return x
                 elif py_y == 0.0:
