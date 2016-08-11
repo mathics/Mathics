@@ -214,24 +214,24 @@ class MachinePrecision(Predefined):
     """
     <dl>
     <dt>'MachinePrecision'
-        <dd>is a "pessimistic" (integer) estimation of the internally used standard precision.
+        <dd>represents the precision of machine precision numbers.
     </dl>
 
     >> N[MachinePrecision]
      = 15.9546
     >> N[MachinePrecision, 30]
      = 15.9545897701910033463281614204
+
+    #> N[E, MachinePrecision]
+     = 2.71828
+
+    #> Round[MachinePrecision]
+     = 16
     """
 
-    def apply_N(self, prec, evaluation):
-        'N[MachinePrecision, prec_]'
-
-        if prec == Symbol('MachinePrecision'):
-            # avoids recursion
-            return MachineReal(machine_precision * math.log10(2))
-        return Expression('N',
-            Expression('Times', Expression('Log', Integer(10), Integer(2)),
-                       Integer(machine_precision)), prec)
+    rules = {
+        'N[MachinePrecision, prec_]': 'N[Log[10, 2] * %i, prec]' % machine_precision,
+    }
 
 
 class Precision(Builtin):
@@ -431,10 +431,15 @@ class Round(Builtin):
 
     def apply(self, expr, k, evaluation):
         "Round[expr_?NumericQ, k_?NumericQ]"
-        nexpr = expr.numerify(evaluation)
-        nexpr.to_mpmath()
 
-        n = int((expr.to_sympy() / k.to_sympy()).round().as_real_imag()[0])
+        n = Expression('Divide', expr, k).round_to_float(evaluation, permit_complex=True)
+        if n is None:
+            return
+        elif isinstance(n, complex):
+            n = round(n.real)
+        else:
+            n = round(n)
+        n = int(n)
         return Expression('Times', Integer(n), k)
 
 
