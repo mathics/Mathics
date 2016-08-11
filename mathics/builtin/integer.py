@@ -461,13 +461,17 @@ class FromDigits(Builtin):
      = 0
     >> FromDigits[""]
      = 0
+
+    #> FromDigits[x]
+     : The input must be a string of digits or a list.
+     = FromDigits[x, 10]
     """
 
     rules = {
         'FromDigits[l_]': 'FromDigits[l, 10]'
     }
 
-    message = {
+    messages = {
         'nlst': 'The input must be a string of digits or a list.'
     }
 
