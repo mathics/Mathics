@@ -711,10 +711,7 @@ class Expression(BaseExpression):
                     name = leaf.get_name()
                     if leaf.has_form('Power', 2):
                         var = leaf.leaves[0].get_name()
-                        if isinstance(leaf.leaves[1], Number):
-                            exp = leaf.leaves[1].round_to_float()
-                        else:
-                            exp = None
+                        exp = leaf.leaves[1].round_to_float()
                         if var and exp is not None:
                             exps[var] = exps.get(var, 0) + exp
                     elif name:
