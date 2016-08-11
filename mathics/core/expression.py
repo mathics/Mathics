@@ -1773,8 +1773,7 @@ class PrecisionReal(Real):
     '''
     Arbitrary precision real number.
 
-    value is stored internally as a sympy.Float.
-    prec is the number of bits of precision (differs from Mathematica).
+    Stored internally as a sympy.Float.
     '''
     def __new__(cls, value):
         self = Number.__new__(cls)
