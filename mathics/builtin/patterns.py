@@ -149,14 +149,22 @@ class Replace(Builtin):
     >> Replace[x, {x -> 2}]
      = 2
 
-    By default, only the top level gets replaced.
+    By default, only the top level is searched for matches
     >> Replace[1 + x, {x -> 2}]
      = 1 + x
 
     >> Replace[x, {{x -> 1}, {x -> 2}}]
      = {1, 2}
 
-    You can use Replace as an operator:
+    Replace stops after the first replacement
+    >> Replace[x, {x -> {}, _List -> y}]
+     = {}
+
+    Replace replaces the deepest levels first
+    >> Replace[x[1], {x[1] -> y, 1 -> 2}, All]
+     = x[2]
+
+    You can use Replace as an operator
     >> Replace[{x_ -> x + 1}][10]
      = 11
     """
@@ -176,7 +184,7 @@ class Replace(Builtin):
             return rules
 
         result, applied = expr.apply_rules(
-            rules, evaluation, level=0, levelspec=levelspec)
+            rules, evaluation, level=0, options={'levelspec': levelspec})
         return result
 
     def apply(self, expr, rules, evaluation):
@@ -221,6 +229,10 @@ class ReplaceAll(BinaryOperator):
 
     #> a + b /. x_ + y_ -> {x, y}
      = {a, b}
+
+    ReplaceAll replaces the shallowest levels first:
+    >> ReplaceAll[x[1], {x[1] -> y, 1 -> 2}]
+     = y
     """
 
     operator = '/.'
