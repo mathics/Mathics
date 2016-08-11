@@ -1110,23 +1110,15 @@ class Expression(BaseExpression):
             new_applied[0] = applied
             return descend(Expression(head, *self.leaves)), new_applied[0]
         else:  # Replace mode; replace depth first
-            l1, l2 = options['levelspec']
-            if level < l1:
-                apply_this_level = False
-            elif l2 is not None and level > l2:
-                return self, False
-            else:
-                apply_this_level = True
-
             expr = descend(self)
-            if apply_this_level:
-                expr, applied = super(
-                    Expression, expr).apply_rules(rules, evaluation, level, options)
+            expr, applied = super(
+                Expression, expr).apply_rules(rules, evaluation, level, options)
+            new_applied[0] = new_applied[0] or applied
+            if not applied and options['heads']:
+                # heads in Replace are treated at the level of the arguments, i.e. level + 1
+                head, applied = expr.head.apply_rules(rules, evaluation, level + 1, options)
                 new_applied[0] = new_applied[0] or applied
-                if not applied:
-                    head, applied = expr.head.apply_rules(rules, evaluation, level, options)
-                    new_applied[0] = new_applied[0] or applied
-                    expr = Expression(head, *expr.leaves)
+                expr = Expression(head, *expr.leaves)
             return expr, new_applied[0]
 
 

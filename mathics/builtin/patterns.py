@@ -40,7 +40,7 @@ from six.moves import range
 
 from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
 from mathics.builtin.base import PatternObject
-from mathics.builtin.lists import python_levelspec
+from mathics.builtin.lists import python_levelspec, InvalidLevelspecError
 
 from mathics.core.expression import (
     Symbol, Expression, Number, Integer, Rational, Real)
@@ -164,6 +164,18 @@ class Replace(Builtin):
     >> Replace[x[1], {x[1] -> y, 1 -> 2}, All]
      = x[2]
 
+    By default, heads are not replaced
+    >> Replace[x[x[y]], x -> z, All]
+     = x[x[y]]
+
+    Heads can be replaced using the Heads option
+    >> Replace[x[x[y]], x -> z, All, Heads -> True]
+     = z[z[y]]
+
+    Note that heads are handled at the level of leaves
+    >> Replace[x[x[y]], x -> z, {1}, Heads -> True]
+     = z[x[y]]
+
     You can use Replace as an operator
     >> Replace[{x_ -> x + 1}][10]
      = 11
@@ -178,22 +190,25 @@ class Replace(Builtin):
         'Replace[rules_][expr_]': 'Replace[expr, rules]',
     }
 
-    def _replace(self, expr, rules, levelspec, evaluation):
-        rules, ret = create_rules(rules, expr, 'Replace', evaluation)
-        if ret:
-            return rules
+    options = {
+        'Heads': 'False',
+    }
 
-        result, applied = expr.apply_rules(
-            rules, evaluation, level=0, options={'levelspec': levelspec})
-        return result
+    def apply_levelspec(self, expr, rules, ls, evaluation, options):
+        'Replace[expr_, rules_, Optional[Pattern[ls, _?LevelQ], {0}], OptionsPattern[Replace]]'
+        try:
+            rules, ret = create_rules(rules, expr, 'Replace', evaluation)
+            if ret:
+                return rules
 
-    def apply(self, expr, rules, evaluation):
-        'Replace[expr_, rules_]'
-        return self._replace(expr, rules, (0, 0), evaluation)
+            heads = self.get_option(options, 'Heads', evaluation).is_true()
 
-    def apply_levelspec(self, expr, rules, levelspec, evaluation):
-        'Replace[expr_, rules_, levelspec_]'
-        return self._replace(expr, rules, python_levelspec(levelspec), evaluation)
+            result, applied = expr.apply_rules(
+                rules, evaluation, level=0, options={
+                    'levelspec': python_levelspec(ls), 'heads': heads})
+            return result
+        except InvalidLevelspecError:
+            evaluation.message('General', 'level', ls)
 
 
 class ReplaceAll(BinaryOperator):
