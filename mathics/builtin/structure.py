@@ -767,7 +767,13 @@ class FreeQ(Builtin):
      = True
     >> FreeQ[a+b+c, x_+y_+z_]
      = False
+    >> FreeQ[x_+y_+z_][a+b]
+     = True
     """
+
+    rules = {
+        'FreeQ[form_][expr_]': 'FreeQ[expr, form]',
+    }
 
     def apply(self, expr, form, evaluation):
         'FreeQ[expr_, form_]'
