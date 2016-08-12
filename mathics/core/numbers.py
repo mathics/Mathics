@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
+import six
 import sympy
 import mpmath
 from math import log, ceil
@@ -157,8 +158,10 @@ def convert_base(x, base, precision=10):
         real_part = convert(x - int(x), base, fexps)
 
         return "%s.%s" % (''.join(int_part), ''.join(real_part))
-    else:
+    elif isinstance(x, six.integer_types):
         return ''.join(int_part)
+    else:
+        raise TypeError(x)
 
 
 def convert_int_to_digit_list(x, base):
