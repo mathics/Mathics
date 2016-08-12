@@ -795,8 +795,7 @@ class Write(Builtin):
         expr = expr.get_sequence()
         expr = Expression('Row', Expression('List', *expr))
 
-        evaluation.format = 'text'
-        text = evaluation.format_output(from_python(expr))
+        text = evaluation.format_output(from_python(expr), 'text')
         stream.write(six.text_type(text) + '\n')
         return Symbol('Null')
 

@@ -144,9 +144,16 @@ class Result(object):
         }
 
 
+class Callbacks(object):
+    def __init__(self, out=None, clear_output=None, display_data=None):
+        self.out = out
+        self.clear_output = clear_output
+        self.display_data = display_data
+
+
 class Evaluation(object):
     def __init__(self, definitions=None,
-                 out_callback=None, format='text', catch_interrupt=True):
+                 callbacks=None, format='text', catch_interrupt=True):
         from mathics.core.definitions import Definitions
 
         if definitions is None:
@@ -156,7 +163,7 @@ class Evaluation(object):
         self.timeout = False
         self.stopped = False
         self.out = []
-        self.out_callback = out_callback
+        self.callbacks = callbacks if callbacks else Callbacks()
         self.listeners = {}
         self.options = None
         self.predetermined_out = None
@@ -221,7 +228,7 @@ class Evaluation(object):
                 self.definitions.add_rule('Out', Rule(
                     Expression('Out', line_no), stored_result))
             if result != Symbol('Null'):
-                return self.format_output(result)
+                return self.format_output(result, self.format)
             else:
                 return None
         try:
@@ -261,7 +268,7 @@ class Evaluation(object):
             if exc_result is not None:
                 self.recursion_depth = 0
                 if exc_result != Symbol('Null'):
-                    result = self.format_output(exc_result)
+                    result = self.format_output(exc_result, self.format)
 
             result = Result(self.out, result, line_no)
             self.out = []
@@ -288,23 +295,27 @@ class Evaluation(object):
 
         # Prevent too large results from being stored, as this can exceed the
         # DB's max_allowed_packet size
-        data = pickle.dumps(result)
-        if len(data) > 10000:
-            return Symbol('Null')
+        if settings.MAX_STORED_SIZE is not None:
+            data = pickle.dumps(result)
+            if len(data) > settings.MAX_STORED_SIZE:
+                return Symbol('Null')
         return result
 
     def stop(self):
         self.stopped = True
 
-    def format_output(self, expr):
+    def format_output(self, expr, format):
+        if isinstance(format, dict):
+            return dict((k, self.format_output(expr, f)) for k, f in format.items())
+
         from mathics.core.expression import Expression, BoxError
 
-        if self.format == 'text':
+        if format == 'text':
             result = expr.format(self, 'System`OutputForm')
-        elif self.format == 'xml':
+        elif format == 'xml':
             result = Expression(
                 'StandardForm', expr).format(self, 'System`MathMLForm')
-        elif self.format == 'tex':
+        elif format == 'tex':
             result = Expression('StandardForm', expr).format(
                 self, 'System`TeXForm')
         else:
@@ -368,20 +379,20 @@ class Evaluation(object):
             text = String("Message %s::%s not found." % (symbol_shortname, tag))
 
         text = self.format_output(Expression(
-            'StringForm', text, *(from_python(arg) for arg in args)))
+            'StringForm', text, *(from_python(arg) for arg in args)), 'text')
 
         self.out.append(Message(symbol_shortname, tag, text))
-        if self.out_callback:
-            self.out_callback(self.out[-1])
+        if self.callbacks.out:
+            self.callbacks.out(self.out[-1])
 
     def print_out(self, text):
         from mathics.core.expression import from_python
 
-        text = self.format_output(from_python(text))
+        text = self.format_output(from_python(text), 'text')
 
         self.out.append(Print(text))
-        if self.out_callback:
-            self.out_callback(self.out[-1])
+        if self.callbacks.out:
+            self.callbacks.out(self.out[-1])
         if settings.DEBUG_PRINT:
             print('OUT: ' + text)
 
