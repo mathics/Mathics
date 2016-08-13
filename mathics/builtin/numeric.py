@@ -23,7 +23,7 @@ from mathics.core.numbers import (
     dps, convert_int_to_digit_list, machine_precision, machine_epsilon,
     get_precision, PrecisionValueError)
 from mathics.core.expression import (
-    Integer, Real, Complex, Expression, Number, Symbol, from_python,
+    Integer, Real, Complex, Expression, Number, Symbol, Rational, from_python,
     MachineReal)
 from mathics.core.convert import from_sympy
 
@@ -504,6 +504,125 @@ class Round(Builtin):
             n = round(n)
         n = int(n)
         return Expression('Times', Integer(n), k)
+
+
+class Rationalize(Builtin):
+    '''
+    <dl>
+    <dt>'Rationalize[$x$]'
+        <dd>converts a real number $x$ to a nearby rational number.
+    <dt>'Rationalize[$x$, $dx$]'
+        <dd>finds the rational number within $dx$ of $x$ with the smallest denominator.
+    </dl>
+
+    >> Rationalize[2.2]
+    = 11 / 5
+
+    Not all numbers can be well approximated.
+    >> Rationalize[N[Pi]]
+     = 3.14159
+
+    Find the exact rational representation of 'N[Pi]'
+    >> Rationalize[N[Pi], 0]
+     = 245850922 / 78256779
+
+    #> Rationalize[1.6 + 0.8 I]
+     = 8 / 5 + 4 I / 5
+
+    #> Rationalize[N[Pi] + 0.8 I, 1*^-6]
+     = 355 / 113 + 4 I / 5
+
+    #> Rationalize[N[Pi] + 0.8 I, x]
+     : Tolerance specification x must be a non-negative number.
+     = Rationalize[3.14159 + 0.8 I, x]
+
+    #> Rationalize[N[Pi] + 0.8 I, -1]
+     : Tolerance specification -1 must be a non-negative number.
+     = Rationalize[3.14159 + 0.8 I, -1]
+
+    #> Rationalize[N[Pi] + 0.8 I, 0]
+     = 245850922 / 78256779 + 4 I / 5
+
+    #> Rationalize[17 / 7]
+     = 17 / 7
+
+    #> Rationalize[x]
+     = x
+
+    #> Table[Rationalize[E, 0.1^n], {n, 1, 10}]
+     = {8 / 3, 19 / 7, 87 / 32, 193 / 71, 1071 / 394, 2721 / 1001, 15062 / 5541, 23225 / 8544, 49171 / 18089, 419314 / 154257}
+
+    #> Rationalize[x, y]
+     : Tolerance specification y must be a non-negative number.
+     = Rationalize[x, y]
+    '''
+
+    messages = {
+        'tolnn': 'Tolerance specification `1` must be a non-negative number.',
+    }
+
+    rules = {
+        'Rationalize[z_Complex]': 'Rationalize[Re[z]] + I Rationalize[Im[z]]',
+        'Rationalize[z_Complex, dx_?Internal`RealValuedNumberQ]/;dx >= 0': 'Rationalize[Re[z], dx] + I Rationalize[Im[z], dx]',
+    }
+
+    def apply(self, x, evaluation):
+        'Rationalize[x_]'
+
+        py_x = x.to_sympy()
+        if py_x is None or (not py_x.is_number) or (not py_x.is_real):
+            return x
+        return from_sympy(self.find_approximant(py_x))
+
+    @staticmethod
+    def find_approximant(x):
+        c = 1e-4
+        it = sympy.ntheory.continued_fraction_convergents(sympy.ntheory.continued_fraction_iterator(x))
+        for i in it:
+            p, q = i.as_numer_denom()
+            tol = c / q**2
+            if abs(i - x) <= tol:
+                return i
+            if tol < machine_epsilon:
+                break
+        return x
+
+    @staticmethod
+    def find_exact(x):
+        p, q = x.as_numer_denom()
+        it = sympy.ntheory.continued_fraction_convergents(sympy.ntheory.continued_fraction_iterator(x))
+        for i in it:
+            p, q = i.as_numer_denom()
+            if abs(x - i) < machine_epsilon:
+                return i
+
+    def apply_dx(self, x, dx, evaluation):
+        'Rationalize[x_, dx_]'
+        py_x = x.to_sympy()
+        if py_x is None:
+            return x
+        py_dx = dx.to_sympy()
+        if py_dx is None or (not py_dx.is_number) or (not py_dx.is_real) or py_dx.is_negative:
+            return evaluation.message('Rationalize', 'tolnn', dx)
+        elif py_dx == 0:
+            return from_sympy(self.find_exact(py_x))
+        a = self.approx_interval_continued_fraction(py_x - py_dx, py_x + py_dx)
+        sym_x = sympy.ntheory.continued_fraction_reduce(a)
+        return Rational(sym_x)
+
+    @staticmethod
+    def approx_interval_continued_fraction(xmin, xmax):
+        result = []
+        a_gen = sympy.ntheory.continued_fraction_iterator(xmin)
+        b_gen = sympy.ntheory.continued_fraction_iterator(xmax)
+        while True:
+            a, b = next(a_gen), next(b_gen)
+            if a == b:
+                result.append(a)
+            else:
+                result.append(min(a, b) + 1)
+                break
+        return result
 
 
 def chop(expr, delta=10.0 ** (-10.0)):
