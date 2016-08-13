@@ -303,6 +303,11 @@ class Precision(Builtin):
 
 class MinPrecision(Builtin):
     '''
+    <dl>
+    <dt>'$MinPrecision'
+      <dd>represents the minimum number of digits of precision permitted in abitrary-precision numbers.
+    </dl>
+
     >> $MinPrecision
      = 0
 
@@ -347,6 +352,11 @@ class MinPrecision(Builtin):
 
 class MaxPrecision(Predefined):
     '''
+    <dl>
+    <dt>'$MaxPrecision'
+      <dd>represents the maximum number of digits of precision permitted in abitrary-precision numbers.
+    </dl>
+
     >> $MaxPrecision
      = Infinity
 
