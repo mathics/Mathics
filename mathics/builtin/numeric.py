@@ -615,7 +615,8 @@ class Rationalize(Builtin):
         result = []
         a_gen = sympy.ntheory.continued_fraction_iterator(xmin)
         b_gen = sympy.ntheory.continued_fraction_iterator(xmax)
-        for a, b in zip(a_gen, b_gen):
+        while True:
+            a, b = next(a_gen), next(b_gen)
             if a == b:
                 result.append(a)
             else:
