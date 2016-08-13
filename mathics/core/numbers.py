@@ -17,6 +17,7 @@ C = log(10, 2)  # ~ 3.3219280948873626
 
 # Number of bits of machine precision
 machine_precision = 53
+machine_epsilon = 2 ** (1 - machine_precision)
 
 
 def reconstruct_digits(bits):

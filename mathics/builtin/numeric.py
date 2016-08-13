@@ -20,8 +20,8 @@ from six.moves import range
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (
-    dps, convert_int_to_digit_list, machine_precision, get_precision,
-    PrecisionValueError)
+    dps, convert_int_to_digit_list, machine_precision, machine_epsilon,
+    get_precision, PrecisionValueError)
 from mathics.core.expression import (
     Integer, Real, Complex, Expression, Number, Symbol, from_python,
     MachineReal)
@@ -245,6 +245,45 @@ class MachinePrecision(Predefined):
 
     rules = {
         'N[MachinePrecision, prec_]': 'N[Log[10, 2] * %i, prec]' % machine_precision,
+    }
+
+
+class MachineEpsilon_(Predefined):
+    '''
+    <dl>
+    <dt>'$MachineEpsilon'
+        <dd>is the distance between '1.0' and the next nearest representable machine-precision number.
+    </dl>
+
+    >> $MachineEpsilon
+     = 2.22045*^-16
+
+    >> x = 1.0 + {0.4, 0.5, 0.6} $MachineEpsilon;
+    >> x - 1
+     = {0., 0., 2.22045*^-16}
+    '''
+
+    name = '$MachineEpsilon'
+
+    def evaluate(self, evaluation):
+        return MachineReal(machine_epsilon)
+
+
+class MachinePrecision_(Predefined):
+    '''
+    <dl>
+    <dt>'$MachinePrecision'
+        <dd>is the number of decimal digits of precision for machine-precision numbers.
+    </dl>
+
+    >> $MachinePrecision
+     = 15.9546
+    '''
+
+    name = '$MachinePrecision'
+
+    rules = {
+        '$MachinePrecision': 'N[MachinePrecision]',
     }
 
 
