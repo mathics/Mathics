@@ -707,7 +707,7 @@ class DateDifference(Builtin):
      = 5476
 
     >> DateDifference[{1936, 8, 14}, {2000, 12, 1}, "Year"]
-     = {64.3424657534..., Year}
+     = {64.3425, Year}
 
     >> DateDifference[{2010, 6, 1}, {2015, 1, 1}, "Hour"]
      = {40200, Hour}

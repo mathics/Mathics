@@ -1506,14 +1506,14 @@ class Range(Builtin):
     def apply(self, imin, imax, di, evaluation):
         'Range[imin_?RealNumberQ, imax_?RealNumberQ, di_?RealNumberQ]'
 
-        imin = imin.value
-        imax = imax.value
-        di = di.value
+        imin = imin.to_sympy()
+        imax = imax.to_sympy()
+        di = di.to_sympy()
         index = imin
         result = []
         while index <= imax:
             evaluation.check_stopped()
-            result.append(Number.from_mp(index))
+            result.append(from_sympy(index))
             index += di
         return Expression('List', *result)
 
@@ -1545,7 +1545,10 @@ class _IterationFunction(Builtin):
         '%(name)s[expr_, {imax_}]'
 
         index = 0
-        imax = imax.evaluate(evaluation).get_real_value()
+        imax = imax.evaluate(evaluation).numerify(evaluation)
+        if isinstance(imax, Number):
+            imax = imax.round()
+        imax = imax.get_float_value()
         if imax is None:
             if self.throw_iterb:
                 evaluation.message(self.get_name(), 'iterb')

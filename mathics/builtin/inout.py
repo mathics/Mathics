@@ -11,18 +11,19 @@ import six
 
 import re
 import sympy
+import mpmath
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator)
-from mathics.builtin.numeric import machine_precision
 from mathics.builtin.tensors import get_dimensions
 from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
     Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError,
-    from_python)
-from mathics.core.numbers import dps, convert_base
+    from_python, MachineReal, PrecisionReal)
+from mathics.core.numbers import (
+    dps, prec, convert_base, machine_precision, reconstruct_digits)
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
@@ -100,34 +101,45 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
 
 
 def real_to_s_exp(expr, n):
-    sym_expr = expr.to_sympy()
-    if sym_expr == sympy.Float(0):
+    if expr.is_zero:
         s = '0'
         sign_prefix = ''
-        p = expr.get_precision()
-        if p == machine_precision:
+        if expr.is_machine_precision():
             exp = 0
         else:
+            p = expr.get_precision()
             exp = -dps(p)
         nonnegative = 1
     else:
-        s = str(sym_expr.n(n))
+        if n is None:
+            if expr.is_machine_precision():
+                value = expr.get_float_value()
+                s = repr(value)
+            else:
+                with mpmath.workprec(expr.get_precision()):
+                    value = expr.to_mpmath()
+                    s = mpmath.nstr(value, dps(expr.get_precision()) + 1)
+        else:
+            with mpmath.workprec(expr.get_precision()):
+                value = expr.to_mpmath()
+                s = mpmath.nstr(value, n)
 
         # sign prefix
         if s[0] == '-':
-            assert sym_expr < 0
+            assert value < 0
             nonnegative = 0
             s = s[1:]
         else:
-            assert sym_expr >= 0
+            assert value >= 0
             nonnegative = 1
 
         # exponent (exp is actual, pexp is printed)
         if 'e' in s:
             s, exp = s.split('e')
             exp = int(exp)
-            assert s[1] == '.'
-            s = s[0] + s[2:]
+            if len(s) > 1 and s[1] == '.':
+                # str(float) doesn't always include '.' if 'e' is present.
+                s = s[0] + s[2:]
         else:
             exp = s.index('.') - 1
             s = s[:exp + 1] + s[exp + 2:]
@@ -139,6 +151,10 @@ def real_to_s_exp(expr, n):
                 exp -= 1
             s = s[i:]
         s = s.rstrip('0')
+
+        # add trailing zeros for precision reals
+        if n is not None and not expr.is_machine_precision() and len(s) < n:
+            s = s + '0' * (n - len(s))
     return s, exp, nonnegative
 
 
@@ -166,18 +182,25 @@ def number_form(expr, n, f, evaluation, options):
     for correct option examples.
     '''
 
-    assert isinstance(n, int) and n > 0
+    assert isinstance(n, int) and n > 0 or n is None
     assert f is None or (isinstance(f, int) and f >= 0)
 
     is_int = False
     if isinstance(expr, Integer):
+        assert n is not None
         s, exp, nonnegative = int_to_s_exp(expr, n)
         if f is None:
             is_int = True
     elif isinstance(expr, Real):
+        if n is not None:
+            n = min(n, dps(expr.get_precision()) + 1)
         s, exp, nonnegative = real_to_s_exp(expr, n)
+        if n is None:
+            n = len(s)
     else:
         raise ValueError('Expected Real or Integer.')
+
+    assert isinstance(n, int) and n > 0
 
     sign_prefix = options['NumberSigns'][nonnegative]
 
@@ -1560,7 +1583,7 @@ class General(Builtin):
             "Symbol `1` in part assignment does not have an immediate value."),
         'openx': "`1` is not open.",
         'optb': "Optional object `1` in `2` is not a single blank.",
-        'ovfl': "Overflow occured in computation.",
+        'ovfl': "Overflow occurred in computation.",
         'partd': "Part specification is longer than depth of object.",
         'partw': "Part `1` of `2` does not exist.",
         'plld': "Endpoints in `1` must be distinct machine-size real numbers.",
@@ -1957,6 +1980,21 @@ class NumberForm(_NumberForm):
     >> NumberForm[N[Pi], {10, 5}]
      = 3.14159
 
+
+    ## Undocumented edge cases
+    #> NumberForm[Pi, 20]
+     = Pi
+    #> NumberForm[2/3, 10]
+     = 2 / 3
+
+    ## No n or f
+    #> NumberForm[N[Pi]]
+     = 3.14159
+    #> NumberForm[N[Pi, 20]]
+     = 3.1415926535897932385
+    #> NumberForm[14310983091809]
+     = 14310983091809
+
     ## Zero case
     #> z0 = 0.0;
     #> z1 = 0.0000000000000000000000000000;
@@ -1964,6 +2002,22 @@ class NumberForm(_NumberForm):
      = {0., 0.×10^-28}
     #> NumberForm[{z0, z1}, {10, 4}]
      = {0.0000, 0.0000×10^-28}
+
+    ## Trailing zeros
+    #> NumberForm[1.0, 10]
+     = 1.
+    #> NumberForm[1.000000000000000000000000, 10]
+     = 1.000000000
+    #> NumberForm[1.0, {10, 8}]
+     = 1.00000000
+    #> NumberForm[N[Pi, 33], 33]
+     = 3.14159265358979323846264338327950
+
+    ## Correct rounding - see sympy/issues/11472
+    #> NumberForm[0.645658509, 6]
+     = 0.645659
+    #> NumberForm[N[1/7], 30]
+     = 0.1428571428571428
 
     ## Integer case
     #> NumberForm[{0, 2, -415, 83515161451}, 5]
@@ -1997,6 +2051,8 @@ class NumberForm(_NumberForm):
      = 314159.000
     #> NumberForm[10^5 N[Pi], {6, 10}]
      = 314159.0000000000
+    #> NumberForm[1.0000000000000000000, 10, NumberPadding -> {"X", "Y"}]
+     = X1.000000000
 
     ## Check options
 
@@ -2153,6 +2209,30 @@ class NumberForm(_NumberForm):
         options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
         return Expression('List', *[Expression('NumberForm', leaf, Expression('List', n, f), *options) for leaf in expr.leaves])
 
+    def apply_makeboxes(self, expr, form, evaluation, options={}):
+        '''MakeBoxes[NumberForm[expr_, OptionsPattern[NumberForm]],
+            form:StandardForm|TraditionalForm|OutputForm]'''
+
+        fallback = Expression('MakeBoxes', expr, form)
+
+        py_options = self.check_options(options, evaluation)
+        if py_options is None:
+            return fallback
+
+        if isinstance(expr, Integer):
+            py_n = len(str(abs(expr.get_int_value())))
+        elif isinstance(expr, Real):
+            if expr.is_machine_precision():
+                py_n = 6
+            else:
+                py_n = dps(expr.get_precision())
+        else:
+            py_n = None
+
+        if py_n is not None:
+            return number_form(expr, py_n, None, evaluation, py_options)
+        return Expression('MakeBoxes', expr, form)
+
     def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
         '''MakeBoxes[NumberForm[expr_, n_, OptionsPattern[NumberForm]],
             form:StandardForm|TraditionalForm|OutputForm]'''
@@ -2170,6 +2250,7 @@ class NumberForm(_NumberForm):
 
         if isinstance(expr, (Integer, Real)):
             return number_form(expr, py_n, None, evaluation, py_options)
+        return Expression('MakeBoxes', expr, form)
 
     def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
         '''MakeBoxes[NumberForm[expr_, {n_, f_}, OptionsPattern[NumberForm]],
@@ -2190,6 +2271,7 @@ class NumberForm(_NumberForm):
 
         if isinstance(expr, (Integer, Real)):
             return number_form(expr, py_n, py_f, evaluation, py_options)
+        return Expression('MakeBoxes', expr, form)
 
 
 class BaseForm(Builtin):
@@ -2206,7 +2288,7 @@ class BaseForm(Builtin):
      = ea_16
 
     >> BaseForm[12.3, 2]
-     = 1100.010011001100110011_2
+     = 1100.01001100110011001_2
 
     >> BaseForm[-42, 16]
      = -2a_16
@@ -2229,6 +2311,9 @@ class BaseForm(Builtin):
      = 0_2
     #> BaseForm[0.0, 2]
      = 0.0_2
+
+    #> BaseForm[N[Pi, 30], 16]
+     = 3.243f6a8885a308d313198a2e_16
     """
 
     messages = {
@@ -2248,13 +2333,20 @@ class BaseForm(Builtin):
             evaluation.message('BaseForm', 'intpm', expr, n)
             return
 
-        if not (isinstance(expr, Integer) or isinstance(expr, Real)):
+        if isinstance(expr, PrecisionReal):
+            x = expr.to_sympy()
+            p = reconstruct_digits(expr.get_precision())
+        elif isinstance(expr, MachineReal):
+            x = expr.get_float_value()
+            p = reconstruct_digits(machine_precision)
+        elif isinstance(expr, Integer):
+            x = expr.get_int_value()
+            p = 0
+        else:
             return Expression("MakeBoxes", expr, f)
 
-        p = dps(expr.get_precision()) if isinstance(expr, Real) else 0
-
         try:
-            val = convert_base(expr.get_real_value(), base, p)
+            val = convert_base(x, base, p)
         except ValueError:
             return evaluation.message('BaseForm', 'basf', n)
 
@@ -2262,4 +2354,4 @@ class BaseForm(Builtin):
             return from_python("%s_%d" % (val, base))
         else:
             return Expression(
-                'SubscriptBox', from_python(val), from_python(base))
+                'SubscriptBox', String(val), String(base))

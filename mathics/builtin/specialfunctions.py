@@ -12,10 +12,10 @@ import mpmath
 
 from mathics.builtin.base import Builtin, SympyFunction
 from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
-from mathics.core.expression import Integer
-from mathics.core.numbers import mpmath2sympy
+from mathics.core.expression import Integer, Number
+from mathics.core.numbers import machine_precision, prec, get_precision, PrecisionValueError
 from mathics.core.convert import from_sympy
-from mathics.builtin.numeric import get_precision
+from mathics.core.numbers import prec as _prec
 
 
 class Erf(_MPMathMultiFunction):
@@ -32,7 +32,7 @@ class Erf(_MPMathMultiFunction):
      = -Erf[x]
 
     >> Erf[1.0]
-     = 0.842700792949714869
+     = 0.842701
     >> Erf[0]
      = 0
     >> {Erf[0, x], Erf[x, 0]}
@@ -68,7 +68,7 @@ class InverseErf(_MPMathFunction):
 
     'InverseErf[$z$]' only returns numeric values for '-1 <= $z$ <= 1':
     >> InverseErf /@ {0.9, 1.0, 1.1}
-     = {1.16308715367667409, ComplexInfinity, InverseErf[1.1]}
+     = {1.16309, Infinity, InverseErf[1.1]}
     """
 
     sympy_name = 'erfinv'
@@ -100,7 +100,7 @@ class Erfc(_MPMathFunction):
     >> Erfc[-x] / 2
      = (2 - Erfc[x]) / 2
     >> Erfc[1.0]
-     = 0.157299207050285131
+     = 0.157299
     >> Erfc[0]
      = 1
     >> Plot[Erfc[x], {x, -2, 2}]
@@ -176,7 +176,7 @@ class Zeta(_MPMathFunction):
      = Pi ^ 2 / 6
 
     >> Zeta[-2.5 + I]
-     = 0.0235936105863796486 + 0.00140779960583837704 I
+     = 0.0235936 + 0.0014078 I
     """
 
     sympy_name = 'zeta'
@@ -200,10 +200,10 @@ class BesselJ(_Bessel):
     </dl>
 
     >> BesselJ[0, 5.2]
-     = -0.11029043979098654
+     = -0.11029
 
     #> BesselJ[2.5, 1]
-     = 0.0494968102284779423
+     = 0.0494968
 
     ## >> D[BesselJ[n, z], z]
     ##  = BesselJ[n - 1, z] / 2 - BesselJ[n + 1, z] / 2
@@ -235,7 +235,7 @@ class BesselY(_Bessel):
     </dl>
 
     >> BesselY[1.5, 4]
-     = 0.367112032460934155
+     = 0.367112
 
     ## Returns ComplexInfinity instead
     ## #> BesselY[0., 0.]
@@ -265,7 +265,7 @@ class BesselI(_Bessel):
     </dl>
 
     >> BesselI[1.5, 4]
-     = 8.17263323168659544
+     = 8.17263
 
     >> Plot[BesselI[0, x], {x, 0, 5}]
      = -Graphics-
@@ -285,7 +285,7 @@ class BesselK(_Bessel):
     </dl>
 
     >> BesselK[1.5, 4]
-     = 0.0143470307207600668
+     = 0.014347
 
     >> Plot[BesselK[0, x], {x, 0, 5}]
      = -Graphics-
@@ -309,7 +309,7 @@ class HankelH1(_Bessel):
     </dl>
 
     >> HankelH1[1.5, 4]
-     = 0.185285948354268953 + 0.367112032460934155 I
+     = 0.185286 + 0.367112 I
     """
 
     sympy_name = 'hankel1'
@@ -324,7 +324,7 @@ class HankelH2(_Bessel):
     </dl>
 
     >> HankelH2[1.5, 4]
-     = 0.185285948354268953 - 0.367112032460934155 I
+     = 0.185286 - 0.367112 I
     """
 
     sympy_name = 'hankel2'
@@ -346,9 +346,9 @@ class AiryAi(_MPMathFunction):
 
     'AiryAi' can be evaluated numerically:
     >> AiryAi[0.5]
-     = 0.23169360648083349
+     = 0.231694
     >> AiryAi[0.5 + I]
-     = 0.157118446499986172 - 0.241039813840210768 I
+     = 0.157118 - 0.24104 I
 
     >> Plot[AiryAi[x], {x, -10, 10}]
      = -Graphics-
@@ -375,7 +375,7 @@ class AiryAiPrime(_MPMathFunction):
 
     Numeric evaluation:
     >> AiryAiPrime[0.5]
-     = -0.224910532664683893
+     = -0.224911
     """
 
     sympy_name = 'airyaiprime'
@@ -398,9 +398,9 @@ class AiryBi(_MPMathFunction):
 
     Numeric evaluation:
     >> AiryBi[0.5]
-     = 0.854277043103155493
+     = 0.854277
     >> AiryBi[0.5 + I]
-     = 0.688145273113482414 + 0.370815390737010831 I
+     = 0.688145 + 0.370815 I
 
     >> Plot[AiryBi[x], {x, -10, 2}]
      = -Graphics-
@@ -428,7 +428,7 @@ class AiryBiPrime(_MPMathFunction):
 
     Numeric evaluation:
     >> AiryBiPrime[0.5]
-     = 0.544572564140592302
+     = 0.544573
     """
 
     sympy_name = 'airybiprime'
@@ -450,13 +450,13 @@ class KelvinBer(_Bessel):
     </dl>
 
     >> KelvinBer[0.5]
-     = 0.999023463990838256
+     = 0.999023
 
     >> KelvinBer[1.5 + I]
-     = 1.11620420872233787 - 0.117944469093970067 I
+     = 1.1162 - 0.117944 I
 
     >> KelvinBer[0.5, 0.25]
-     = 0.148824330530639942
+     = 0.148824
 
     >> Plot[KelvinBer[x], {x, 0, 10}]
      = -Graphics-
@@ -480,13 +480,13 @@ class KelvinBei(_Bessel):
     </dl>
 
     >> KelvinBei[0.5]
-     = 0.0624932183821994586
+     = 0.0624932
 
     >> KelvinBei[1.5 + I]
-     = 0.326323348699806294 + 0.75560557861089228 I
+     = 0.326323 + 0.755606 I
 
     >> KelvinBei[0.5, 0.25]
-     = 0.370152900194021013
+     = 0.370153
 
     >> Plot[KelvinBei[x], {x, 0, 10}]
      = -Graphics-
@@ -510,13 +510,13 @@ class KelvinKer(_Bessel):
     </dl>
 
     >> KelvinKer[0.5]
-     = 0.855905872118634214
+     = 0.855906
 
     >> KelvinKer[1.5 + I]
-     = -0.167162242027385125 - 0.184403720314419905 I
+     = -0.167162 - 0.184404 I
 
     >> KelvinKer[0.5, 0.25]
-     = 0.450022838747182502
+     = 0.450023
 
     >> Plot[KelvinKer[x], {x, 0, 10}]
      = -Graphics-
@@ -540,13 +540,13 @@ class KelvinKei(_Bessel):
     </dl>
 
     >> KelvinKei[0.5]
-     = -0.671581695094367603
+     = -0.671582
 
     >> KelvinKei[1.5 + I]
-     = -0.248993863536003923 + 0.303326291875385478 I
+     = -0.248994 + 0.303326 I
 
     >> KelvinKei[0.5, 0.25]
-     = -2.05169683896315934
+     = -2.0517
 
     >> Plot[KelvinKei[x], {x, 0, 10}]
      = -Graphics-
@@ -570,7 +570,7 @@ class StruveH(_Bessel):
     </dl>
 
     >> StruveH[1.5, 3.5]
-     = 1.13192125271801312
+     = 1.13192
 
     >> Plot[StruveH[0, x], {x, 0, 20}]
      = -Graphics-
@@ -588,7 +588,7 @@ class StruveL(_Bessel):
     </dl>
 
     >> StruveL[1.5, 3.5]
-     = 4.41126360920433996
+     = 4.41126
 
     >> Plot[StruveL[0, x], {x, 0, 5}]
      = -Graphics-
@@ -606,7 +606,7 @@ class AngerJ(_Bessel):
     </dl>
 
     >> AngerJ[1.5, 3.5]
-     = 0.294478574459563408
+     = 0.294479
 
     >> Plot[AngerJ[1, x], {x, -10, 10}]
      = -Graphics-
@@ -626,7 +626,7 @@ class WeberE(_Bessel):
     </dl>
 
     >> WeberE[1.5, 3.5]
-     = -0.397256259210030809
+     = -0.397256
 
     >> Plot[WeberE[1, x], {x, -10, 10}]
      = -Graphics-
@@ -648,7 +648,10 @@ class BesselJZero(_Bessel):
     </dl>
 
     >> N[BesselJZero[0, 1]]
-     = 2.40482555769577277
+     = 2.40483
+
+    #> N[BesselJZero[0, 1], 20]
+     = 2.4048255576957727686
     """
 
     sympy_name = ''
@@ -663,7 +666,10 @@ class BesselYZero(_Bessel):
     </dl>
 
     >> N[BesselYZero[0, 1]]
-     = 0.893576966279167522
+     = 0.893577
+
+    #> N[BesselYZero[0, 1]]
+     = 0.893577
     """
 
     sympy_name = ''
@@ -678,7 +684,7 @@ class AiryAiZero(Builtin):
     </dl>
 
     >> N[AiryAiZero[1]]
-     = -2.33810741045976704
+     = -2.33811
 
     #> AiryAiZero[1]
      = AiryAiZero[1]
@@ -688,6 +694,9 @@ class AiryAiZero(Builtin):
 
     #> AiryAi[AiryAiZero[1]]
      = 0
+
+    #> N[AiryAiZero[2], 100]
+     = -4.087949444130970616636988701457391060224764699108529754984160876025121946836047394331169160758270562
     """
 
     # TODO: 'AiryAiZero[$k$, $x0$]' - $k$th zero less than x0
@@ -702,12 +711,21 @@ class AiryAiZero(Builtin):
     def apply_N(self, k, precision, evaluation):
         'N[AiryAiZero[k_Integer], precision_]'
 
-        prec = get_precision(precision, evaluation)
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        if d is None:
+            p = machine_precision
+        else:
+            p = _prec(d)
+
         k_int = k.get_int_value()
 
-        with mpmath.workprec(prec):
-            result = mpmath2sympy(mpmath.airyaizero(k_int), prec)
-        return from_sympy(result)
+        with mpmath.workprec(p):
+            result = mpmath.airyaizero(k_int)
+            return Number.from_mpmath(result, d)
 
 
 class AiryBiZero(Builtin):
@@ -718,7 +736,7 @@ class AiryBiZero(Builtin):
     </dl>
 
     >> N[AiryBiZero[1]]
-     = -1.17371322270912792
+     = -1.17371
 
     #> AiryBiZero[1]
      = AiryBiZero[1]
@@ -728,6 +746,9 @@ class AiryBiZero(Builtin):
 
     #> AiryBi[AiryBiZero[1]]
      = 0
+
+    #> N[AiryBiZero[2], 100]
+     = -3.271093302836352715680228240166413806300935969100284801485032396261130864238742879252000673830055014
     """
 
     # TODO: 'AiryBiZero[$k$, $x0$]' - $k$th zero less than x0
@@ -742,12 +763,21 @@ class AiryBiZero(Builtin):
     def apply_N(self, k, precision, evaluation):
         'N[AiryBiZero[k_Integer], precision_]'
 
-        prec = get_precision(precision, evaluation)
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        if d is None:
+            p = machine_precision
+        else:
+            p = _prec(d)
+
         k_int = k.get_int_value()
 
-        with mpmath.workprec(prec):
-            result = mpmath2sympy(mpmath.airybizero(k_int), prec)
-        return from_sympy(result)
+        with mpmath.workprec(p):
+            result = mpmath.airybizero(k_int)
+            return Number.from_mpmath(result, d)
 
 # Orthogonal Polynomials
 
@@ -765,13 +795,13 @@ class LegendreP(_MPMathFunction):
      = 3 / 8 - 15 x ^ 2 / 4 + 35 x ^ 4 / 8
 
     >> LegendreP[5/2, 1.5]
-     = 4.17761913892745532
+     = 4.17762
 
     >> LegendreP[1.75, 1.4, 0.53]
-     = -1.32619280980662145
+     = -1.32619
 
     >> LegendreP[1.6, 3.1, 1.5]
-     = -0.303998161489593441 - 1.91936885256334894 I
+     = -0.303998 - 1.91937 I
 
     'LegendreP' can be used to draw generalized Lissajous figures:
     >> ParametricPlot[ {LegendreP[7, x], LegendreP[5, x]}, {x, -1, 1}]
@@ -808,13 +838,13 @@ class LegendreQ(_MPMathFunction):
     </dl>
 
     >> LegendreQ[5/2, 1.5]
-     = 0.0362109671796812979 - 6.56218879817530572 I
+     = 0.036211 - 6.56219 I
 
     >> LegendreQ[1.75, 1.4, 0.53]
-     = 2.05498907857609114
+     = 2.05499
 
     >> LegendreQ[1.6, 3.1, 1.5]
-     = -1.71931290970694153 - 7.70273279782676974 I
+     = -1.71931 - 7.70273 I
     """
 
     # FIXME: Sympy is missing the Legendre function of the second kind so
@@ -849,7 +879,7 @@ class JacobiP(_MPMathFunction):
      = a / 2 - b / 2 + z (1 + a / 2 + b / 2)
 
     >> JacobiP[3.5 + I, 3, 2, 4 - I]
-     = 1410.02011674512937 + 5797.29855312717469 I
+     = 1410.02 + 5797.3 I
     """
 
     nargs = 4
@@ -865,7 +895,7 @@ class SphericalHarmonicY(_MPMathFunction):
     </dl>
 
     >> SphericalHarmonicY[3/4, 0.5, Pi/5, Pi/3]
-     = 0.254247340352667373 + 0.146789770393358909 I
+     = 0.254247 + 0.14679 I
 
     ## Results depend on sympy version
     >> SphericalHarmonicY[3, 1, theta, phi]
@@ -894,7 +924,7 @@ class GegenbauerC(_MPMathFunction):
      = -1 + 24 x ^ 2 - 80 x ^ 4 + 64 x ^ 6
 
     >> GegenbauerC[4 - I, 1 + 2 I, 0.7]
-     = -3.26209595216525854 - 24.9739397455269944 I
+     = -3.2621 - 24.9739 I
     """
 
     # TODO: Two argument renormalized form GegenbauerC[n, x]
@@ -915,7 +945,7 @@ class ChebyshevT(_MPMathFunction):
      = 1 - 32 x ^ 2 + 160 x ^ 4 - 256 x ^ 6 + 128 x ^ 8
 
     >> ChebyshevT[1 - I, 0.5]
-     = 0.800143428851193116 + 1.08198360440499884 I
+     = 0.800143 + 1.08198 I
     """
 
     nargs = 2
@@ -934,7 +964,7 @@ class ChebyshevU(_MPMathFunction):
      = 1 - 40 x ^ 2 + 240 x ^ 4 - 448 x ^ 6 + 256 x ^ 8
 
     >> ChebyshevU[1 - I, 0.5]
-     = 1.60028685770238623 + 0.721322402936665892 I
+     = 1.60029 + 0.721322 I
     """
 
     nargs = 2
@@ -956,7 +986,7 @@ class HermiteH(_MPMathFunction):
      = -28 + 4 I
 
     >> HermiteH[4.2, 2]
-     = 77.5290837369752225
+     = 77.5291
     """
 
     nargs = 2
@@ -977,7 +1007,7 @@ class LaguerreL(_MPMathFunction):
      = 1 - 8 x + 14 x ^ 2 - 28 x ^ 3 / 3 + 35 x ^ 4 / 12 - 7 x ^ 5 / 15 + 7 x ^ 6 / 180 - x ^ 7 / 630 + x ^ 8 / 40320
 
     >> LaguerreL[3/2, 1.7]
-     = -0.94713399725341823
+     = -0.947134
 
     >> LaguerreL[5, 2, x]
      = 21 - 35 x + 35 x ^ 2 / 2 - 7 x ^ 3 / 2 + 7 x ^ 4 / 24 - x ^ 5 / 120
@@ -1012,7 +1042,7 @@ class LaguerreL(_MPMathFunction):
 #     = 5 / 16
 #
 #    >> ZernikeR[3 - I, 4.5, 1.5 + I]
-#     = 1.12642179606815007 - 1.21017262353631061 I
+#     = 1.12642 - 1.21017 I
 #    """
 #
 #    nargs = 3
@@ -1028,7 +1058,7 @@ class ExpIntegralEi(_MPMathFunction):
     </dl>
 
     >> ExpIntegralEi[2.0]
-     = 4.95423435600189016
+     = 4.95423
     '''
 
     sympy_name = 'Ei'
@@ -1043,7 +1073,7 @@ class ExpIntegralE(_MPMathFunction):
     </dl>
 
     >> ExpIntegralE[2.0, 2.0]
-     = 0.0375342618204904528
+     = 0.0375343
     '''
 
     nargs = 2

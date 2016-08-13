@@ -128,13 +128,15 @@ class PythonConvert(unittest.TestCase):
         self.compare(mathics.Symbol("abc"), "abc")
 
     def testComplex(self):
-        self.compare(mathics.Complex(1, 1), 1 + 1j)
-        self.compare(mathics.Complex(1.0, 1.0), 1.0 + 1.0j)
-        self.compare(mathics.Complex(1, 1.0), 1 + 1.0j)
-        self.compare(mathics.Complex(1.0, 1), 1.0 + 1j)
+        self.compare(mathics.Complex(mathics.Integer(1), mathics.Integer(1)), 1 + 1j)
+        self.compare(mathics.Complex(mathics.MachineReal(1.0), mathics.MachineReal(1.0)), 1.0 + 1.0j)
+        self.compare(mathics.Complex(mathics.Integer(1), mathics.MachineReal(1.0)), 1 + 1.0j)
+        self.compare(mathics.Complex(mathics.MachineReal(1.0), mathics.Integer(1)), 1.0 + 1j)
+        self.compare(mathics.Complex(mathics.Real('1.0', 5), mathics.Integer(1)), 1.0 + 1j)
+        self.compare(mathics.Complex(mathics.Integer(1), mathics.Real('1.0', 20)), 1 + 1.0j)
 
-        self.compare(mathics.Complex(0, 1), 1j)
-        self.compare(mathics.Complex(1, 0), 1)
+        self.compare(mathics.Complex(mathics.Integer(0), mathics.Integer(1)), 1j)
+        self.compare(mathics.Complex(mathics.Integer(1), mathics.Integer(0)), 1)
 
     def testList(self):
         self.compare(mathics.Expression('List', mathics.Integer(1)), [1])

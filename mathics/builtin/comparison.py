@@ -286,18 +286,15 @@ class Inequality(Builtin):
 
 
 def do_cmp(x1, x2):
-    real1, real2 = x1.get_real_value(), x2.get_real_value()
-    inf1 = inf2 = None
+    inf1 = inf2 = real1 = real2 = None
+    if isinstance(x1, (Real, Integer, Rational)):
+        real1 = x1.to_sympy()
+    if isinstance(x2, (Real, Integer, Rational)):
+        real2 = x2.to_sympy()
     if x1.has_form('DirectedInfinity', 1):
         inf1 = x1.leaves[0].get_int_value()
     if x2.has_form('DirectedInfinity', 1):
         inf2 = x2.leaves[0].get_int_value()
-
-    if real1 is not None and get_type(real1) != 'f':
-        real1 = sympy.Float(real1)
-    if real2 is not None and get_type(real2) != 'f':
-        real2 = sympy.Float(real2)
-    # Bus error when not converting to mpf
 
     if real1 is not None and real2 is not None:
         if x1 == x2:
@@ -351,17 +348,21 @@ class Equal(_EqualityOperator, SympyFunction):
     >> 0.73908513321516064200000000 == 0.73908513321516064100000000
      = False
 
-    >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10016
-     = False
-    >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10017
+    ## TODO Needs power precision tracking
+    ## >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10012
+    ##  = False
+    ## >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10013
+    ##  = True
+
+    #> 0.1111111111111111 ==  0.1111111111111126
      = True
+    #> 0.1111111111111111 ==  0.1111111111111127
+     = False
 
-    ## TODO: Needs ^^ opperator
-
-    ## Real numbers are considered equal if they only differ in their last seven binary digits
+    ## TODO needs better precision tracking
     ## #> 2^^1.000000000000000000000000000000000000000000000000000000000000 ==  2^^1.000000000000000000000000000000000000000000000000000001111111
     ##  = True
-    ## 2^^1.000000000000000000000000000000000000000000000000000000000000 ==  2^^1.000000000000000000000000000000000000000000000000000010000000
+    ## #> 2^^1.000000000000000000000000000000000000000000000000000000000000 ==  2^^1.000000000000000000000000000000000000000000000000000010000000
     ##  = False
 
     Comparisons are done using the lower precision:

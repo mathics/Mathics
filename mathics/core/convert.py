@@ -27,7 +27,7 @@ class SympyExpression(BasicSympy):
     nargs = None
 
     def __new__(cls, *exprs):
-        # sympy simplify may also recreate the object if simplification occured
+        # sympy simplify may also recreate the object if simplification occurred
         # in the leaves
         from mathics.core.expression import Expression
 
@@ -94,7 +94,8 @@ class SympyExpression(BasicSympy):
 def from_sympy(expr):
     from mathics.builtin import sympy_to_mathics
     from mathics.core.expression import (
-        Symbol, Integer, Rational, Real, Complex, String, Expression)
+        Symbol, Integer, Rational, Real, Complex, String, Expression, MachineReal)
+    from mathics.core.numbers import machine_precision
 
     from sympy.core import numbers, function, symbol
 
@@ -105,7 +106,7 @@ def from_sympy(expr):
     if isinstance(expr, float):
         return Real(expr)
     if isinstance(expr, complex):
-        return Complex(expr.real, expr.imag)
+        return Complex(Real(expr.real), Real(expr.imag))
     if isinstance(expr, six.string_types):
         return String(expr)
     if expr is None:
@@ -146,7 +147,7 @@ def from_sympy(expr):
         elif isinstance(expr, numbers.NegativeInfinity):
             return Expression('Times', Integer(-1), Symbol('Infinity'))
         elif isinstance(expr, numbers.ImaginaryUnit):
-            return Complex(0, 1)
+            return Complex(Integer(0), Integer(1))
         elif isinstance(expr, numbers.Integer):
             return Integer(expr.p)
         elif isinstance(expr, numbers.Rational):
@@ -160,6 +161,8 @@ def from_sympy(expr):
                     return Symbol('Indeterminate')
             return Rational(expr.p, expr.q)
         elif isinstance(expr, numbers.Float):
+            if expr._prec == machine_precision:
+                return MachineReal(float(expr))
             return Real(expr)
         elif isinstance(expr, numbers.NaN):
             return Symbol('Indeterminate')

@@ -149,7 +149,7 @@ As you can see, functions are applied using square braces '[' and ']', in contra
 >> Sin[Pi]
  = 0
 >> Cos[0.5]
- = 0.877582561890372716
+ = 0.877583
 When entering floating point numbers in your query, \Mathics will perform a numerical evaluation and present a numerical result, pretty much like if you had applied 'N'.
 
 Of course, \Mathics has complex numbers:
@@ -160,9 +160,9 @@ Of course, \Mathics has complex numbers:
 >> (3 + 2 I) ^ 4
  = -119 + 120 I
 >> (3 + 2 I) ^ (2.5 - I)
- = 43.6630044263147016 + 8.28556100627573406 I
+ = 43.663 + 8.28556 I
 >> Tan[I + 0.5]
- = 0.195577310065933999 + 0.842966204845783229 I
+ = 0.195577 + 0.842966 I
  
 'Abs' calculates absolute values:
 >> Abs[-3]
@@ -877,14 +877,14 @@ To get the extreme values of 'f', compute the zeroes of the first derivatives:
  = {{x -> -Sqrt[5]}, {x -> Sqrt[5]}}
 And test the second derivative:
 >> f''[x] /. extremes // N
- = {1.65085581947099374, -0.0640789599668615035}
+ = {1.65086, -0.064079}
 Thus, there is a local maximum at 'x = Sqrt[5]' and a local minimum at 'x = -Sqrt[5]'.
 Compute the inflection points numerically, choping imaginary parts close to 0:
 >> inflections = Solve[f''[x] == 0, x] // N // Chop
- = {{x -> -1.08519961543710476}, {x -> -3.21462740739519024}, {x -> 4.299827022832295}}
+ = {{x -> -1.0852}, {x -> -3.21463}, {x -> 4.29983}}
 Insert into the third derivative:
 >> f'''[x] /. inflections
- = {-3.67683091753987803, 0.694905362720454079, 0.00671894324917601735}
+ = {-3.67683, 0.694905, 0.00671894}
 Being different from 0, all three points are actual inflection points.
 'f' is not defined where its denominator is 0:
 >> Solve[Denominator[f[x]] == 0, x]

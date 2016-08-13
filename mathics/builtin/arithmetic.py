@@ -17,10 +17,10 @@ from mathics.builtin.base import (
     Builtin, Predefined, BinaryOperator, PrefixOperator, PostfixOperator, Test,
     SympyFunction, SympyConstant)
 
-from mathics.core.expression import (Expression, Number, Integer, Rational,
-                                     Real, Symbol, Complex, String, from_python)
+from mathics.core.expression import (
+    Expression, Number, Integer, Rational, Real, Symbol, Complex, String)
 from mathics.core.numbers import (
-    add, min_prec, dps, sympy2mpmath, mpmath2sympy, SpecialValueError)
+    min_prec, dps, SpecialValueError)
 
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
@@ -42,7 +42,7 @@ class _MPMathFunction(SympyFunction):
     def apply(self, z, evaluation):
         '%(name)s[z__]'
 
-        args = z.get_sequence()
+        args = z.numerify(evaluation).get_sequence()
         mpmath_function = self.get_mpmath_function(args)
         result = None
 
@@ -52,31 +52,58 @@ class _MPMathFunction(SympyFunction):
             result = self.prepare_mathics(result)
             result = from_sympy(result)
             # evaluate leaves to convert e.g. Plus[2, I] -> Complex[2, 1]
-            result = result.evaluate_leaves(evaluation)
-        elif mpmath_function is not None:
+            return result.evaluate_leaves(evaluation)
+        elif mpmath_function is None:
+            return
+
+        if not all(isinstance(arg, Number) for arg in args):
+            return
+
+        if any(arg.is_machine_precision() for arg in args):
+            # if any argument has machine precision then the entire calculation
+            # is done with machine precision.
+            float_args = [arg.round().get_float_value(permit_complex=True) for arg in args]
+            if None in float_args:
+                return
+
+            result = self.call_mpmath(mpmath_function, float_args)
+            if isinstance(result, (mpmath.mpc, mpmath.mpf)):
+                if mpmath.isinf(result) and isinstance(result, mpmath.mpc):
+                    result = Symbol('ComplexInfinity')
+                elif mpmath.isinf(result) and result > 0:
+                    result = Expression('DirectedInfinity', Integer(1))
+                elif mpmath.isinf(result) and result < 0:
+                    result = Expression('DirectedInfinity', Integer(-1))
+                elif mpmath.isnan(result):
+                    result = Symbol('Indeterminate')
+                else:
+                    result = Number.from_mpmath(result)
+        else:
             prec = min_prec(*args)
+            d = dps(prec)
+            args = [Expression('N', arg, Integer(d)).evaluate(evaluation) for arg in args]
             with mpmath.workprec(prec):
-                sympy_args = [x.to_sympy() for x in args]
-                if None in sympy_args:
-                    return
-                mpmath_args = [sympy2mpmath(x, prec) for x in sympy_args]
+                mpmath_args = [x.to_mpmath() for x in args]
                 if None in mpmath_args:
                     return
-                try:
-                    result = self.get_mpmath_function(mpmath_args)(*mpmath_args)
-                    result = from_sympy(mpmath2sympy(result, prec))
-                except ValueError as exc:
-                    text = str(exc)
-                    if text == 'gamma function pole':
-                        return Symbol('ComplexInfinity')
-                    else:
-                        raise
-                except ZeroDivisionError:
-                    return
-                except SpecialValueError as exc:
-                    return Symbol(exc.name)
-
+                result = self.call_mpmath(mpmath_function, mpmath_args)
+                if isinstance(result, (mpmath.mpc, mpmath.mpf)):
+                    result = Number.from_mpmath(result, d)
         return result
+
+    def call_mpmath(self, mpmath_function, mpmath_args):
+        try:
+            return mpmath_function(*mpmath_args)
+        except ValueError as exc:
+            text = str(exc)
+            if text == 'gamma function pole':
+                return Symbol('ComplexInfinity')
+            else:
+                raise
+        except ZeroDivisionError:
+            return
+        except SpecialValueError as exc:
+            return Symbol(exc.name)
 
 
 class _MPMathMultiFunction(_MPMathFunction):
@@ -158,6 +185,11 @@ class Plus(BinaryOperator, SympyFunction):
 
     #> Head[3 + 2 I]
      = Complex
+
+    #> N[Pi, 30] + N[E, 30]
+     = 5.85987448204883847382293085463
+    #> % // Precision
+     = 30.
     """
 
     operator = '+'
@@ -179,7 +211,7 @@ class Plus(BinaryOperator, SympyFunction):
         def negate(item):
             if item.has_form('Times', 1, None):
                 if isinstance(item.leaves[0], Number):
-                    neg = Number.from_mp(-item.leaves[0].to_sympy())
+                    neg = -item.leaves[0]
                     if neg.same(Integer(1)):
                         if len(item.leaves) == 1:
                             return neg
@@ -189,8 +221,8 @@ class Plus(BinaryOperator, SympyFunction):
                         return Expression('Times', neg, *item.leaves[1:])
                 else:
                     return Expression('Times', -1, *item.leaves)
-            elif isinstance(item, (Integer, Rational, Real, Complex)):
-                return Number.from_mp(-item.to_sympy())
+            elif isinstance(item, Number):
+                return -item.to_sympy()
             else:
                 return Expression('Times', -1, item)
 
@@ -225,14 +257,8 @@ class Plus(BinaryOperator, SympyFunction):
         last_item = last_count = None
 
         prec = min_prec(*items)
-        is_real = all([not isinstance(i, Complex) for i in items])
-
-        if prec is None:
-            number = (sympy.Integer(0), sympy.Integer(0))
-        else:
-            number = (
-                sympy.Float('0.0', dps(prec)),
-                sympy.Float('0.0', dps(prec)))
+        is_machine_precision = any(item.is_machine_precision() for item in items)
+        numbers = []
 
         def append_last():
             if last_item is not None:
@@ -240,26 +266,15 @@ class Plus(BinaryOperator, SympyFunction):
                     leaves.append(last_item)
                 else:
                     if last_item.has_form('Times', None):
-                        last_item.leaves.insert(0, Number.from_mp(last_count))
+                        last_item.leaves.insert(0, from_sympy(last_count))
                         leaves.append(last_item)
                     else:
                         leaves.append(Expression(
-                            'Times', Number.from_mp(last_count), last_item))
+                            'Times', from_sympy(last_count), last_item))
 
         for item in items:
             if isinstance(item, Number):
-                # TODO: Optimise this for the case of adding many real numbers
-                if isinstance(item, Complex):
-                    sym_real, sym_imag = item.real.to_sympy(
-                    ), item.imag.to_sympy()
-                else:
-                    sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
-
-                if prec is not None:
-                    sym_real = sym_real.n(dps(prec))
-                    sym_imag = sym_imag.n(dps(prec))
-
-                number = (number[0] + sym_real, number[1] + sym_imag)
+                numbers.append(item)
             else:
                 count = rest = None
                 if item.has_form('Times', None):
@@ -278,19 +293,32 @@ class Plus(BinaryOperator, SympyFunction):
                     count = sympy.Integer(1)
                     rest = item
                 if last_item is not None and last_item == rest:
-                    last_count = add(last_count, count)
+                    last_count = last_count + count
                 else:
                     append_last()
                     last_item = rest
                     last_count = count
         append_last()
-        if prec is not None or number != (0, 0):
-            if number[1].is_zero and is_real:
-                leaves.insert(0, Number.from_mp(number[0], prec))
-            elif number[1].is_zero and number[1].is_Integer and prec is None:
-                leaves.insert(0, Number.from_mp(number[0], prec))
+
+        if numbers:
+            if prec is not None:
+                if is_machine_precision:
+                    numbers = [item.to_mpmath() for item in numbers]
+                    number = mpmath.fsum(numbers)
+                    number = Number.from_mpmath(number)
+                else:
+                    with mpmath.workprec(prec):
+                        numbers = [item.to_mpmath() for item in numbers]
+                        number = mpmath.fsum(numbers)
+                        number = Number.from_mpmath(number, dps(prec))
             else:
-                leaves.insert(0, Complex(number[0], number[1], prec))
+                number = from_sympy(sum(item.to_sympy() for item in numbers))
+        else:
+            number = Integer(0)
+
+        if not number.same(Integer(0)):
+            leaves.insert(0, number)
+
         if not leaves:
             return Integer(0)
         elif len(leaves) == 1:
@@ -422,7 +450,7 @@ class Times(BinaryOperator, SympyFunction):
      = 2
 
     #> 3. Pi
-     = 9.42477796076937972
+     = 9.42478
 
     #> Head[3 * I]
      = Complex
@@ -437,6 +465,25 @@ class Times(BinaryOperator, SympyFunction):
      = 3*a
     #> 3 * a //OutputForm
      = 3 a
+
+    #> -2.123456789 x
+     = -2.12346 x
+    #> -2.123456789 I
+     = 0. - 2.12346 I
+
+    #> N[Pi, 30] * I
+     = 3.14159265358979323846264338328 I
+    #> N[I Pi, 30]
+     = 3.14159265358979323846264338328 I
+
+    #> N[Pi * E, 30]
+     = 8.53973422267356706546355086955
+    #> N[Pi, 30] * N[E, 30]
+     = 8.53973422267356706546355086955
+    #> N[Pi, 30] * E
+     = 8.53973422267356706546355086955
+    #> % // Precision
+     = 30.
     """
 
     operator = '*'
@@ -465,7 +512,7 @@ class Times(BinaryOperator, SympyFunction):
         def inverse(item):
             if item.has_form('Power', 2) and isinstance(    # noqa
                 item.leaves[1], (Integer, Rational, Real)):
-                neg = Number.from_mp(-item.leaves[1].to_sympy())
+                neg = -item.leaves[1]
                 if neg.same(Integer(1)):
                     return item.leaves[0]
                 else:
@@ -489,12 +536,8 @@ class Times(BinaryOperator, SympyFunction):
                 negative.append(item.denominator())
             else:
                 positive.append(item)
-        if (positive and isinstance(positive[0], (Integer, Real)) and
-            positive[0].to_sympy() < 0):    # nopep8
-
-            positive[0] = Number.from_mp(-positive[0].to_sympy())
-            if positive[0].same(Integer(1)):
-                del positive[0]
+        if positive and positive[0].get_int_value() == -1:
+            del positive[0]
             minus = True
         else:
             minus = False
@@ -527,32 +570,17 @@ class Times(BinaryOperator, SympyFunction):
     def apply(self, items, evaluation):
         'Times[items___]'
 
-        # TODO: Clean this up and optimise it
-
         items = items.numerify(evaluation).get_sequence()
-        number = (sympy.Integer(1), sympy.Integer(0))
         leaves = []
+        numbers = []
 
         prec = min_prec(*items)
-        is_real = all([not isinstance(i, Complex) for i in items])
+        is_machine_precision = any(item.is_machine_precision() for item in items)
 
+        # find numbers and simplify Times -> Power
         for item in items:
             if isinstance(item, Number):
-                if isinstance(item, Complex):
-                    sym_real, sym_imag = item.real.to_sympy(
-                    ), item.imag.to_sympy()
-                else:
-                    sym_real, sym_imag = item.to_sympy(), sympy.Integer(0)
-
-                if prec is not None:
-                    sym_real = sym_real.n(dps(prec))
-                    sym_imag = sym_imag.n(dps(prec))
-
-                if sym_real.is_zero and sym_imag.is_zero and prec is None:
-                    return Integer('0')
-                number = (
-                    number[0] * sym_real - number[1] * sym_imag,
-                    number[0] * sym_imag + number[1] * sym_real)
+                numbers.append(item)
             elif leaves and item == leaves[-1]:
                 leaves[-1] = Expression('Power', leaves[-1], Integer(2))
             elif (leaves and item.has_form('Power', 2) and
@@ -571,21 +599,35 @@ class Times(BinaryOperator, SympyFunction):
                     'Plus', Integer(1), leaves[-1].leaves[1]))
             else:
                 leaves.append(item)
-        if number == (1, 0):
+
+        if numbers:
+            if prec is not None:
+                if is_machine_precision:
+                    numbers = [item.to_mpmath() for item in numbers]
+                    number = mpmath.fprod(numbers)
+                    number = Number.from_mpmath(number)
+                else:
+                    with mpmath.workprec(prec):
+                        numbers = [item.to_mpmath() for item in numbers]
+                        number = mpmath.fprod(numbers)
+                        number = Number.from_mpmath(number, dps(prec))
+            else:
+                number = sympy.Mul(*[item.to_sympy() for item in numbers])
+                number = from_sympy(number)
+        else:
+            number = Integer(1)
+
+        if number.same(Integer(1)):
             number = None
-        elif number == (-1, 0) and leaves and leaves[0].has_form('Plus', None):
+        elif number.is_zero:
+            return number
+        elif number.same(Integer(-1)) and leaves and leaves[0].has_form('Plus', None):
             leaves[0].leaves = [Expression('Times', Integer(-1), leaf)
                                 for leaf in leaves[0].leaves]
             number = None
 
         if number is not None:
-            if number[1].is_zero and is_real:
-                leaves.insert(0, Number.from_mp(number[0], prec))
-            elif number[1].is_zero and number[1].is_Integer and prec is None:
-                leaves.insert(0, Number.from_mp(number[0], prec))
-            else:
-                leaves.insert(0, Complex(from_sympy(
-                    number[0]), from_sympy(number[1]), prec))
+            leaves.insert(0, number)
 
         if not leaves:
             return Integer(1)
@@ -611,7 +653,7 @@ class Divide(BinaryOperator):
 
     Use 'N' or a decimal point to force numeric evaluation:
     >> Pi / 4.0
-     = 0.78539816339744831
+     = 0.785398
     >> 1 / 8
      = 1 / 8
     >> N[%]
@@ -680,7 +722,7 @@ class Power(BinaryOperator, _MPMathFunction):
 
     Use a decimal point to force numeric evaluation:
     >> 4.0 ^ (1/3)
-     = 1.58740105196819947
+     = 1.5874
 
     'Power' has default value 1 for its second argument:
     >> DefaultValues[Power]
@@ -690,9 +732,9 @@ class Power(BinaryOperator, _MPMathFunction):
 
     'Power' can be used with complex numbers:
     >> (1.5 + 1.0 I) ^ 3.5
-     = -3.68294005782191823 + 6.9513926640285049 I
+     = -3.68294 + 6.95139 I
     >> (1.5 + 1.0 I) ^ (3.5 + 1.5 I)
-     = -3.19181629045628082 + 0.645658509416156807 I
+     = -3.19182 + 0.645659 I
 
     #> 1/0
      : Infinite expression 1 / 0 encountered.
@@ -703,13 +745,22 @@ class Power(BinaryOperator, _MPMathFunction):
     #> 0 ^ (-1/2)
      : Infinite expression 1 / Sqrt[0] encountered.
      = ComplexInfinity
+    #> 0 ^ -Pi
+     : Infinite expression 1 / 0 ^ 3.14159 encountered.
+     = ComplexInfinity
+    #> 0 ^ (2 I E)
+     : Indeterminate expression 0 ^ (0. + 5.43656 I) encountered.
+     = Indeterminate
+    #> 0 ^ - (Pi + 2 E I)
+     : Infinite expression 0 ^ (-3.14159 - 5.43656 I) encountered.
+     = ComplexInfinity
 
     #> 0 ^ 0
      : Indeterminate expression 0 ^ 0 encountered.
      = Indeterminate
 
     #> Sqrt[-3+2. I]
-     = 0.550250522700337511 + 1.81735402102397062 I
+     = 0.550251 + 1.81735 I
     #> Sqrt[-3+2 I]
      = Sqrt[-3 + 2 I]
     #> (3/2+1/2I)^2
@@ -721,26 +772,11 @@ class Power(BinaryOperator, _MPMathFunction):
      = 4.
 
     #> Pi ^ 4.
-     = 97.4090910340024372
+     = 97.4091
 
     #> a ^ b
      = a ^ b
     """
-
-    # TODO
-    '''
-    #> 0 ^ -Pi
-     : Infinite expression 1 / 0 ^ 3.141592653589793 encountered.
-     = ComplexInfinity
-
-    #> 0 ^ (2 I E)
-     : Indeterminate expression 0 ^ (0. + 5.43656365691809 I) encountered.
-     = Indeterminate
-
-    #> 0 ^ - (Pi + 2 E I)
-     : Infinite expression 0 ^ (-3.141592653589793 - 5.43656365691809 I) encountered.
-     = ComplexInfinity
-    '''
 
     operator = '^'
     precedence = 590
@@ -785,23 +821,19 @@ class Power(BinaryOperator, _MPMathFunction):
         'Power[x_, y_]'
 
         # Power uses _MPMathFunction but does some error checking first
-        if isinstance(x, Number) and x.to_sympy() == 0:
+        if isinstance(x, Number) and x.is_zero:
             if isinstance(y, Number):
                 y_err = y
             else:
                 y_err = Expression('N', y).evaluate(evaluation)
             if isinstance(y_err, Number):
-                py_y = complex(y_err.to_sympy()).real   # take real part
+                py_y = y_err.round_to_float(permit_complex=True).real
                 if py_y > 0:
                     return x
                 elif py_y == 0.0:
-                    if not isinstance(y, Number):
-                        y = Real(py_y)
                     evaluation.message('Power', 'indet', Expression('Power', x, y_err))
                     return Symbol('Indeterminate')
                 elif py_y < 0:
-                    if not isinstance(y, Number):
-                        y = Real(py_y)
                     evaluation.message('Power', 'infy', Expression('Power', x, y_err))
                     return Symbol('ComplexInfinity')
 
@@ -822,7 +854,7 @@ class Sqrt(SympyFunction):
     >> Sqrt[5]
      = Sqrt[5]
     >> Sqrt[5] // N
-     = 2.2360679774997897
+     = 2.23607
     >> Sqrt[a]^2
      = a
 
@@ -983,6 +1015,11 @@ class Re(SympyFunction):
 
     >> Plot[{Cos[a], Re[E^(I a)]}, {a, 0, 2 Pi}]
      = -Graphics-
+
+    #> Im[0.5 + 2.3 I]
+     = 2.3
+    #> % // Precision
+     = MachinePrecision
     """
 
     attributes = ('Listable', 'NumericFunction')
@@ -990,8 +1027,7 @@ class Re(SympyFunction):
     def apply_complex(self, number, evaluation):
         'Re[number_Complex]'
 
-        real, imag = number.to_sympy().as_real_imag()
-        return Number.from_mp(real)
+        return number.real
 
     def apply_number(self, number, evaluation):
         'Re[number_?NumberQ]'
@@ -1011,6 +1047,11 @@ class Im(SympyFunction):
 
     >> Plot[{Sin[a], Im[E^(I a)]}, {a, 0, 2 Pi}]
      = -Graphics-
+
+    #> Re[0.5 + 2.3 I]
+     = 0.5
+    #> % // Precision
+     = MachinePrecision
     """
 
     attributes = ('Listable', 'NumericFunction')
@@ -1018,8 +1059,7 @@ class Im(SympyFunction):
     def apply_complex(self, number, evaluation):
         'Im[number_Complex]'
 
-        real, imag = number.to_sympy().as_real_imag()
-        return Number.from_mp(imag)
+        return number.imag
 
     def apply_number(self, number, evaluation):
         'Im[number_?NumberQ]'
@@ -1070,7 +1110,7 @@ class Abs(_MPMathFunction):
     >> Abs[3 + I]
      = Sqrt[10]
     >> Abs[3.0 + I]
-     = 3.16227766016837933
+     = 3.16228
     >> Plot[Abs[x], {x, -4, 4}]
      = -Graphics-
 
@@ -1101,7 +1141,7 @@ class I(Predefined):
     """
 
     def evaluate(self, evaluation):
-        return Complex(sympy.Integer(0), sympy.Integer(1))
+        return Complex(Integer(0), Integer(1))
 
 
 class Indeterminate(SympyConstant):
@@ -1161,6 +1201,30 @@ class RealNumberQ(Test):
 
     def test(self, expr):
         return isinstance(expr, (Integer, Rational, Real))
+
+
+class MachineNumberQ(Test):
+    '''
+    <dl>
+    <dt>'MachineNumberQ[$expr$]'
+        <dd>returns 'True' if $expr$ is a machine-precision real or complex number.
+    </dl>
+
+     = True
+    >> MachineNumberQ[3.14159265358979324]
+     = False
+    >> MachineNumberQ[1.5 + 2.3 I]
+     = True
+    >> MachineNumberQ[2.71828182845904524 + 3.14159265358979324 I]
+     = False
+    #> MachineNumberQ[1.5 + 3.14159265358979324 I]
+     = True
+    #> MachineNumberQ[1.5 + 5 I]
+     = True
+    '''
+
+    def test(self, expr):
+        return expr.is_machine_precision()
 
 
 class ExactNumberQ(Test):
@@ -1255,7 +1319,7 @@ class Real_(Builtin):
 
     >> x = 3. ^ -20;
     >> InputForm[x]
-     = 2.86797199079244131*^-10
+     = 2.8679719907924413*^-10
     >> Head[x]
      = Real
 
@@ -1348,7 +1412,7 @@ class Complex_(Builtin):
      = 5
 
     #> OutputForm[Complex[2.0 ^ 40, 3]]
-     = 1.099511627776*^12 + 3. I
+     = 1.09951*^12 + 3. I
     #> InputForm[Complex[2.0 ^ 40, 3]]
      = 1.099511627776*^12 + 3.*I
 
@@ -1394,14 +1458,9 @@ class Complex_(Builtin):
 
         if isinstance(r, Complex) or isinstance(i, Complex):
             sym_form = r.to_sympy() + sympy.I * i.to_sympy()
-            sym_r, sym_i = sym_form.simplify().as_real_imag()
-        else:
-            sym_r, sym_i = r.to_sympy(), i.to_sympy()
-
-        if isinstance(sym_i, sympy.Integer) and sym_i == 0:
-            return Number.from_mp(sym_r)
-        else:
-            return Complex(sym_r, sym_i)
+            r, i = sym_form.simplify().as_real_imag()
+            r, i = from_sympy(r), from_sympy(i)
+        return Complex(r, i)
 
 
 class Factorial(PostfixOperator, _MPMathFunction):
@@ -1417,9 +1476,9 @@ class Factorial(PostfixOperator, _MPMathFunction):
 
     'Factorial' handles numeric (real and complex) values using the gamma function:
     >> 10.5!
-     = 1.18994230839622485*^7
+     = 1.18994*^7
     >> (-3.0+1.5*I)!
-     = 0.0427943437183768611 - 0.00461565252860394996 I
+     = 0.0427943 - 0.00461565 I
 
     However, the value at poles is 'ComplexInfinity':
     >> (-1.)!
@@ -1464,10 +1523,10 @@ class Gamma(_MPMathMultiFunction):
      = ExpIntegralE[1, x]
 
     Numeric arguments:
-    >> Gamma[1.*^20]
-     = 1.93284951431009771*^1956570551809674817225
+    >> Gamma[123.78]
+     = 4.21078*^204
     >> Gamma[1. + I]
-     = 0.498015668118356043 - 0.154949828301810685 I
+     = 0.498016 - 0.15495 I
 
     Both 'Gamma' and 'Factorial' functions are continuous:
     >> Plot[{Gamma[x], x!}, {x, 0, 4}]
@@ -1477,9 +1536,13 @@ class Gamma(_MPMathMultiFunction):
     #> N[Gamma[24/10], 100]
      = 1.242169344504305404913070252268300492431517240992022966055507541481863694148882652446155342679460339
     #> N[N[Gamma[24/10],100]/N[Gamma[14/10],100],100]
-     = 1.4
+     = 1.400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
     #> % // Precision
      = 100.
+
+    #> Gamma[1.*^20]
+     : Overflow occurred in computation.
+     = Overflow[]
 
     ## Needs mpmath support for lowergamma
     #> Gamma[1., 2.]
@@ -1541,10 +1604,10 @@ class HarmonicNumber(_MPMathFunction):
      = {1, 3 / 2, 11 / 6, 25 / 12, 137 / 60, 49 / 20, 363 / 140, 761 / 280}
 
     >> HarmonicNumber[3.8]
-     =  2.0380634056306492
+     = 2.03806
 
     #> HarmonicNumber[-1.5]
-     = 0.613705638880109381
+     = 0.613706
     """
 
     rules = {

@@ -427,7 +427,7 @@ class Definitions(object):
                 value = value[0].replace
             except AttributeError:
                 return None
-            if value.get_name() == 'System`Infinity':
+            if value.get_name() == 'System`Infinity' or value.has_form('DirectedInfinity', 1):
                 return None
 
             return int(value.get_int_value())

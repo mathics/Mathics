@@ -15,27 +15,17 @@ from __future__ import absolute_import
 import sympy
 import hashlib
 import zlib
+import math
 from six.moves import range
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.core.numbers import (dps, prec,
-                                  convert_int_to_digit_list)
-from mathics.core.expression import (Integer, Rational, Real, Complex,
-                                     Expression, Number, Symbol, from_python)
+from mathics.core.numbers import (
+    dps, convert_int_to_digit_list, machine_precision, get_precision,
+    PrecisionValueError)
+from mathics.core.expression import (
+    Integer, Real, Complex, Expression, Number, Symbol, from_python,
+    MachineReal)
 from mathics.core.convert import from_sympy
-from mathics.settings import MACHINE_PRECISION
-
-machine_precision = MACHINE_PRECISION
-
-
-def get_precision(precision, evaluation):
-    if precision.get_name() == 'System`MachinePrecision':
-        return machine_precision
-    elif isinstance(precision, (Integer, Rational, Real)):
-        return prec(float(precision.to_sympy()))
-    else:
-        evaluation.message('N', 'precbd', precision)
-        return None
 
 
 class N(Builtin):
@@ -48,7 +38,7 @@ class N(Builtin):
      = 3.1415926535897932384626433832795028841971693993751
 
     >> N[1/7]
-     = 0.142857142857142857
+     = 0.142857
 
     >> N[1/7, 5]
      = 0.14286
@@ -67,7 +57,7 @@ class N(Builtin):
      = a
     >> N[a, 20] = 11;
     >> N[a + b, 20]
-     = 11. + b
+     = 11.000000000000000000 + b
     >> N[f[a, b]]
      = f[10.9, b]
     >> SetAttributes[f, NHoldAll]
@@ -79,7 +69,7 @@ class N(Builtin):
     >> N[c, 3]
      = c
     >> N[c, 11]
-     = 11.
+     = 11.000000000
 
     You can also use 'UpSet' or 'TagSet' to specify values for 'N':
     >> N[d] ^= 5;
@@ -101,8 +91,22 @@ class N(Builtin):
     >> SetAttributes[g, NHoldRest]
     >> N[g[1, 1]]
      = g[1., 1]
-    >> N[g[2, 2]]
-     = 8.28318530717958648
+    >> N[g[2, 2]] // InputForm
+     = 8.283185307179586
+
+    The precision of the result is no higher than the precision of the input
+    >> N[Exp[0.1], 100]
+     = 1.10517
+    >> % // Precision
+     = MachinePrecision
+    >> N[Exp[1/10], 100]
+     = 1.105170918075647624811707826490246668224547194737518718792863289440967966747654302989143318970748654
+    >> % // Precision
+     = 100.
+    >> N[Exp[1.0`20], 100]
+     = 2.7182818284590452354
+    >> % // Precision
+     = 20.
 
     #> p=N[Pi,100]
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
@@ -110,11 +114,61 @@ class N(Builtin):
      = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
     #> 3.14159 * "a string"
      = 3.14159 a string
+
+    #> N[Pi, Pi]
+     = 3.14
+
+    #> N[1/9, 30]
+     = 0.111111111111111111111111111111
+    #> Precision[%]
+     = 30.
+
+    #> N[1.5, 30]
+     = 1.5
+    #> Precision[%]
+     = MachinePrecision
+    #> N[1.5, 5]
+     = 1.5
+    #> Precision[%]
+     = MachinePrecision
+
+    #> {N[x], N[x, 30], N["abc"], N["abc", 30]}
+     = {x, x, abc, abc}
+
+    #> N[I, 30]
+     = 1.00000000000000000000000000000 I
+
+    #> N[1.01234567890123456789]
+     = 1.01235
+    #> N[1.012345678901234567890123, 20]
+     = 1.0123456789012345679
+    #> N[1.012345678901234567890123, 5]
+     = 1.0123
+    #> % // Precision
+     = 5.
+    #> N[1.012345678901234567890123, 50]
+     = 1.01234567890123456789012
+    #> % // Precision
+     = 24.
+
+    #> N[1.01234567890123456789`]
+     = 1.01235
+    #> N[1.01234567890123456789`, 20]
+     = 1.01235
+    #> % // Precision
+     = MachinePrecision
+    #> N[1.01234567890123456789`, 2]
+     = 1.01235
+    #> % // Precision
+     = MachinePrecision
     """
 
     messages = {
-        'precbd': (
-            "Requested precision `1` is not a machine-sized real number."),
+        'precbd': "Requested precision `1` is not a machine-sized real number.",
+        'preclg': ('Requested precision `1` is larger than $MaxPrecision. '
+                   'Using current $MaxPrecision of `2` instead. '
+                   '$MaxPrecision = Infinity specifies that any precision should be allowed.'),
+        'precsm': 'Requested precision `1` is smaller than $MinPrecision. Using current $MinPrecision of `2` instead.',
     }
 
     rules = {
@@ -124,66 +178,74 @@ class N(Builtin):
     def apply_other(self, expr, prec, evaluation):
         'N[expr_, prec_]'
 
-        valid_prec = get_precision(prec, evaluation)
+        try:
+            d = get_precision(prec, evaluation)
+        except PrecisionValueError:
+            return
 
-        if valid_prec is not None:
-            if expr.get_head_name() in ('System`List', 'System`Rule'):
-                return Expression(
-                    expr.head, *[self.apply_other(leaf, prec, evaluation)
-                                 for leaf in expr.leaves])
-            if isinstance(expr, Number):
-                return expr.round(valid_prec)
+        if expr.get_head_name() in ('System`List', 'System`Rule'):
+            return Expression(
+                expr.head, *[self.apply_other(leaf, prec, evaluation)
+                             for leaf in expr.leaves])
 
-            name = expr.get_lookup_name()
-            if name != '':
-                nexpr = Expression('N', expr, prec)
-                result = evaluation.definitions.get_value(
-                    name, 'System`NValues', nexpr, evaluation)
-                if result is not None:
-                    if not result.same(nexpr):
-                        result = Expression(
-                            'N', result, prec).evaluate(evaluation)
-                    return result
+        if isinstance(expr, Number):
+            return expr.round(d)
 
-            if expr.is_atom():
-                return expr.round(valid_prec)
-            else:
-                attributes = expr.head.get_attributes(evaluation.definitions)
-                if 'System`NHoldAll' in attributes:
-                    eval_range = []
-                elif 'System`NHoldFirst' in attributes:
-                    eval_range = list(range(1, len(expr.leaves)))
-                elif 'System`NHoldRest' in attributes:
-                    if len(expr.leaves) > 0:
-                        eval_range = (0,)
-                    else:
-                        eval_range = ()
+        name = expr.get_lookup_name()
+        if name != '':
+            nexpr = Expression('N', expr, prec)
+            result = evaluation.definitions.get_value(
+                name, 'System`NValues', nexpr, evaluation)
+            if result is not None:
+                if not result.same(nexpr):
+                    result = Expression('N', result, prec).evaluate(evaluation)
+                return result
+
+        if expr.is_atom():
+            return expr
+        else:
+            attributes = expr.head.get_attributes(evaluation.definitions)
+            if 'System`NHoldAll' in attributes:
+                eval_range = ()
+            elif 'System`NHoldFirst' in attributes:
+                eval_range = range(1, len(expr.leaves))
+            elif 'System`NHoldRest' in attributes:
+                if len(expr.leaves) > 0:
+                    eval_range = (0,)
                 else:
-                    eval_range = list(range(len(expr.leaves)))
-                head = Expression('N', expr.head, prec).evaluate(evaluation)
-                leaves = expr.leaves[:]
-                for index in eval_range:
-                    leaves[index] = Expression(
-                        'N', leaves[index], prec).evaluate(evaluation)
-                return Expression(head, *leaves)
+                    eval_range = ()
+            else:
+                eval_range = range(len(expr.leaves))
+            head = Expression('N', expr.head, prec).evaluate(evaluation)
+            leaves = expr.leaves[:]
+            for index in eval_range:
+                leaves[index] = Expression(
+                    'N', leaves[index], prec).evaluate(evaluation)
+            return Expression(head, *leaves)
 
 
 class MachinePrecision(Predefined):
     """
     <dl>
     <dt>'MachinePrecision'
-        <dd>is a "pessimistic" (integer) estimation of the internally used standard precision.
+        <dd>represents the precision of machine precision numbers.
     </dl>
+
     >> N[MachinePrecision]
-     = 18.
+     = 15.9546
+    >> N[MachinePrecision, 30]
+     = 15.9545897701910033463281614204
+
+    #> N[E, MachinePrecision]
+     = 2.71828
+
+    #> Round[MachinePrecision]
+     = 16
     """
 
-    def apply_N(self, prec, evaluation):
-        'N[MachinePrecision, prec_]'
-
-        prec = get_precision(prec, evaluation)
-        if prec is not None:
-            return Real(dps(machine_precision), prec)
+    rules = {
+        'N[MachinePrecision, prec_]': 'N[Log[10, 2] * %i, prec]' % machine_precision,
+    }
 
 
 class Precision(Builtin):
@@ -199,46 +261,143 @@ class Precision(Builtin):
     >> Precision[1/2]
      = Infinity
     >> Precision[0.5]
-     = 18.
+     = MachinePrecision
+
     #> Precision[0.0]
-     = 0.
+     = MachinePrecision
     #> Precision[0.000000000000000000000000000000000000]
      = 0.
-    #> Precision[-0.0]      (*Matematica gets this wrong *)
-     = 0.
+    #> Precision[-0.0]
+     = MachinePrecision
     #> Precision[-0.000000000000000000000000000000000000]
      = 0.
+
+    #> 1.0000000000000000 // Precision
+     = MachinePrecision
+    #> 1.00000000000000000 // Precision
+     = 17.
+
+    #> 0.4 + 2.4 I // Precision
+     = MachinePrecision
+    #> Precision[2 + 3 I]
+     = Infinity
+
+    #> Precision["abc"]
+     = Infinity
     """
 
     rules = {
-        'Precision[_Integer]': 'Infinity',
-        'Precision[_Rational]': 'Infinity',
-        'Precision[_Symbol]': 'Infinity',
-        'Precision[z:0.0]': '0.',
-        'Precision[z:-0.0]': '0.',
+        'Precision[z_?MachineNumberQ]': 'MachinePrecision',
     }
 
-    def apply_real(self, x, evaluation):
-        'Precision[x_Real]'
+    def apply(self, z, evaluation):
+        'Precision[z_]'
 
-        return Real(dps(x.get_precision()))
-
-    def apply_complex(self, x, evaluation):
-        'Precision[x_Complex]'
-
-        if x.is_inexact():
-            return Real(dps(x.get_precision()))
-        else:
+        if not z.is_inexact():
             return Symbol('Infinity')
+        elif z.to_sympy().is_zero:
+            return Real(0)
+        else:
+            return Real(dps(z.get_precision()))
 
 
-def round(value, k):
-    n = (1. * value / k).as_real_imag()[0]
-    if n >= 0:
-        n = sympy.Integer(n + 0.5)
-    else:
-        n = sympy.Integer(n - 0.5)
-    return n * k
+class MinPrecision(Builtin):
+    '''
+    <dl>
+    <dt>'$MinPrecision'
+      <dd>represents the minimum number of digits of precision permitted in abitrary-precision numbers.
+    </dl>
+
+    >> $MinPrecision
+     = 0
+
+    >> $MinPrecision = 10;
+
+    >> N[Pi, 9]
+     : Requested precision 9 is smaller than $MinPrecision. Using current $MinPrecision of 10. instead.
+     = 3.141592654
+
+    #> N[Pi, 10]
+     = 3.141592654
+
+    #> $MinPrecision = x
+     : Cannot set $MinPrecision to x; value must be a non-negative number.
+     = x
+    #> $MinPrecision = -Infinity
+     : Cannot set $MinPrecision to -Infinity; value must be a non-negative number.
+     = -Infinity
+    #> $MinPrecision = -1
+     : Cannot set $MinPrecision to -1; value must be a non-negative number.
+     = -1
+    #> $MinPrecision = 0;
+
+    #> $MaxPrecision = 10;
+    #> $MinPrecision = 15
+     : Cannot set $MinPrecision such that $MaxPrecision < $MinPrecision.
+     = 15
+    #> $MinPrecision
+     = 0
+    #> $MaxPrecision = Infinity;
+    '''
+    name = '$MinPrecision'
+    rules = {
+        '$MinPrecision': '0',
+    }
+
+    messages = {
+        'precset': 'Cannot set `1` to `2`; value must be a non-negative number.',
+        'preccon': 'Cannot set `1` such that $MaxPrecision < $MinPrecision.',
+    }
+
+
+class MaxPrecision(Predefined):
+    '''
+    <dl>
+    <dt>'$MaxPrecision'
+      <dd>represents the maximum number of digits of precision permitted in abitrary-precision numbers.
+    </dl>
+
+    >> $MaxPrecision
+     = Infinity
+
+    >> $MaxPrecision = 10;
+
+    >> N[Pi, 11]
+     : Requested precision 11 is larger than $MaxPrecision. Using current $MaxPrecision of 10. instead. $MaxPrecision = Infinity specifies that any precision should be allowed.
+     = 3.141592654
+
+    #> N[Pi, 10]
+     = 3.141592654
+
+    #> $MaxPrecision = x
+     : Cannot set $MaxPrecision to x; value must be a positive number or Infinity.
+     = x
+    #> $MaxPrecision = -Infinity
+     : Cannot set $MaxPrecision to -Infinity; value must be a positive number or Infinity.
+     = -Infinity
+    #> $MaxPrecision = 0
+     : Cannot set $MaxPrecision to 0; value must be a positive number or Infinity.
+     = 0
+    #> $MaxPrecision = Infinity;
+
+    #> $MinPrecision = 15;
+    #> $MaxPrecision = 10
+     : Cannot set $MaxPrecision such that $MaxPrecision < $MinPrecision.
+     = 10
+    #> $MaxPrecision
+     = Infinity
+    #> $MinPrecision = 0;
+    '''
+    name = '$MaxPrecision'
+
+    rules = {
+        '$MaxPrecision': 'Infinity',
+    }
+
+    messages = {
+        'precset': 'Cannot set `1` to `2`; value must be a positive number or Infinity.',
+        'preccon': 'Cannot set `1` such that $MaxPrecision < $MinPrecision.',
+    }
 
 
 class Round(Builtin):
@@ -254,9 +413,8 @@ class Round(Builtin):
      = 11
     >> Round[0.06, 0.1]
      = 0.1
-    ## This should return 0. but doesn't due to a bug in sympy
     >> Round[0.04, 0.1]
-     = 0
+     = 0.
 
     Constants can be rounded too
     >> Round[Pi, .5]
@@ -291,30 +449,35 @@ class Round(Builtin):
 
     rules = {
         'Round[expr_?NumericQ]': 'Round[Re[expr], 1] + I * Round[Im[expr], 1]',
-        'Round[expr_Complex, k_RealNumberQ]': (
+        'Round[expr_Complex, k_?RealNumberQ]': (
             'Round[Re[expr], k] + I * Round[Im[expr], k]'),
     }
 
     def apply(self, expr, k, evaluation):
         "Round[expr_?NumericQ, k_?NumericQ]"
-        return from_sympy(round(expr.to_sympy(), k.to_sympy()))
+
+        n = Expression('Divide', expr, k).round_to_float(evaluation, permit_complex=True)
+        if n is None:
+            return
+        elif isinstance(n, complex):
+            n = round(n.real)
+        else:
+            n = round(n)
+        n = int(n)
+        return Expression('Times', Integer(n), k)
 
 
 def chop(expr, delta=10.0 ** (-10.0)):
     if isinstance(expr, Real):
-        if -delta < expr.to_python() < delta:
+        if -delta < expr.get_float_value() < delta:
             return Integer(0)
-        # return expr
-    elif isinstance(expr, Complex) and expr.get_precision() is not None:
+    elif isinstance(expr, Complex) and expr.is_inexact():
         real, imag = expr.real, expr.imag
-        if -delta < real.to_python() < delta:
-            real = sympy.Integer(0)
-        if -delta < imag.to_python() < delta:
-            imag = sympy.Integer(0)
-        if imag != 0:
-            return Complex(real, imag)
-        else:
-            return Number.from_mp(real)
+        if -delta < real.get_float_value() < delta:
+            real = Integer(0)
+        if -delta < imag.get_float_value() < delta:
+            imag = Integer(0)
+        return Complex(real, imag)
     elif isinstance(expr, Expression):
         return Expression(chop(expr.head), *[
             chop(leaf) for leaf in expr.leaves])
@@ -351,7 +514,7 @@ class Chop(Builtin):
     def apply(self, expr, delta, evaluation):
         'Chop[expr_, delta_:(10^-10)]'
 
-        delta = delta.evaluate(evaluation).get_real_value()
+        delta = delta.round_to_float(evaluation)
         if delta is None or delta < 0:
             return evaluation.message('Chop', 'tolnn')
 
