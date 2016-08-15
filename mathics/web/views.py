@@ -75,11 +75,9 @@ class WebOutput(Output):
         raise NotImplementedError
 
     def svg_xml(self, data, width, height, viewbox):
-        svg = self.svg.substitute(
+        return self.svg.substitute(
             data=data, width='%d' % width, height='%d' % height,
             viewbox=' '.join(['%f' % t for t in viewbox]))
-        print(svg)
-        return svg
 
     def img_xml(self, data, width, height):
         return self.img.substitue(
