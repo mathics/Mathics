@@ -1453,14 +1453,8 @@ clip(box((%s,%s), (%s,%s)));
         w += 2
         h += 2
 
-        xml = (
-            '<svg xmlns:svg="http://www.w3.org/2000/svg" '
-            'xmlns="http://www.w3.org/2000/svg"\nversion="1.0" width="%f" '
-            'height="%f" viewBox="%f %f %f %f">%s</svg>') % (
-                width, height, xmin, ymin, w, h, svg)
-
-        xml = """<mtable><mtr><mtd>%s</mtd></mtr></mtable>""" % xml
-        return xml
+        return options['evaluation'].output.svg_xml(
+            data=svg, width=width, height=height, viewbox=[xmin, ymin, w, h])
 
     def axis_ticks(self, xmin, xmax):
         def round_to_zero(value):

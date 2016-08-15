@@ -13,7 +13,7 @@ import locale
 
 from mathics.core.definitions import Definitions
 from mathics.core.expression import strip_context
-from mathics.core.evaluation import Evaluation, Callbacks
+from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import LineFeeder, FileLineFeeder
 from mathics import version_string, license_string, __version__
 from mathics import settings
@@ -176,6 +176,14 @@ class TerminalShell(LineFeeder):
         return False
 
 
+class TerminalOutput(Output):
+    def __init__(self, shell):
+        self.shell = shell
+
+    def out(self, out):
+        return self.shell.out_callback(out)
+
+
 def main():
     argparser = argparse.ArgumentParser(
         prog='mathics',
@@ -238,7 +246,7 @@ def main():
     if args.execute:
         for expr in args.execute:
             print(shell.get_in_prompt() + expr)
-            evaluation = Evaluation(shell.definitions, callbacks=Callbacks(out=shell.out_callback))
+            evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
             result = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
             shell.print_result(result)
 
@@ -250,7 +258,7 @@ def main():
         try:
             while not feeder.empty():
                 evaluation = Evaluation(
-                    shell.definitions, callbacks=Callbacks(out=shell.out_callback), catch_interrupt=False)
+                    shell.definitions, output=TerminalOutput(shell), catch_interrupt=False)
                 query = evaluation.parse_feeder(feeder)
                 if query is None:
                     continue
@@ -271,7 +279,7 @@ def main():
 
     while True:
         try:
-            evaluation = Evaluation(shell.definitions, callbacks=Callbacks(out=shell.out_callback))
+            evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
             query = evaluation.parse_feeder(shell)
             if query is None:
                 continue

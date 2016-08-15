@@ -144,16 +144,26 @@ class Result(object):
         }
 
 
-class Callbacks(object):
-    def __init__(self, out=None, clear_output=None, display_data=None):
-        self.out = out
-        self.clear_output = clear_output
-        self.display_data = display_data
+class Output(object):
+    def out(self, out):
+        pass
+
+    def clear_output(wait=False):
+        raise NotImplementedError
+
+    def display_data(self, result):
+        raise NotImplementedError
+
+    def svg_xml(self, data, width, height, viewbox):
+        raise NotImplementedError
+
+    def img_xml(self, data, width, height):
+        raise NotImplementedError
 
 
 class Evaluation(object):
     def __init__(self, definitions=None,
-                 callbacks=None, format='text', catch_interrupt=True):
+                 output=None, format='text', catch_interrupt=True):
         from mathics.core.definitions import Definitions
 
         if definitions is None:
@@ -163,7 +173,7 @@ class Evaluation(object):
         self.timeout = False
         self.stopped = False
         self.out = []
-        self.callbacks = callbacks if callbacks else Callbacks()
+        self.output = output if output else Output()
         self.listeners = {}
         self.options = None
         self.predetermined_out = None
@@ -382,8 +392,7 @@ class Evaluation(object):
             'StringForm', text, *(from_python(arg) for arg in args)), 'text')
 
         self.out.append(Message(symbol_shortname, tag, text))
-        if self.callbacks.out:
-            self.callbacks.out(self.out[-1])
+        self.output.out(self.out[-1])
 
     def print_out(self, text):
         from mathics.core.expression import from_python
@@ -391,8 +400,7 @@ class Evaluation(object):
         text = self.format_output(from_python(text), 'text')
 
         self.out.append(Print(text))
-        if self.callbacks.out:
-            self.callbacks.out(self.out[-1])
+        self.output.out(self.out[-1])
         if settings.DEBUG_PRINT:
             print('OUT: ' + text)
 
