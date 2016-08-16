@@ -32,8 +32,6 @@ from mathics.core.expression import (
     MachineReal)
 from mathics.core.convert import from_sympy
 
-_float_mantissa_digits = sys.float_info.mant_dig
-
 class N(Builtin):
     """
     <dl>
@@ -898,6 +896,14 @@ class Hash(Builtin):
         return Hash.compute(expr.user_hash, hashtype.get_string_value())
 
 
+class PrecisionExhausted(Exception):
+    pass
+
+
+class SymbolicEvaluation(Exception):
+    pass
+
+
 class Fold(object):
     # allows inherited classes to specify a single algorithm implementation that
     # can be called with machine precision, arbitrary precision or symbolically.
@@ -921,18 +927,28 @@ class Fold(object):
     }
 
     def converter(self, mode):
-        if mode == 'symbolic':
+        if mode == 'machine':
+            def number(x):
+                if not x.is_machine_precision():
+                    raise PrecisionExhausted
+                return x.to_python()
+        elif mode == 'precision':
+            def number(x):
+                mpx = x.to_mpmath()
+                if mpx is None:
+                    raise SymbolicEvaluation
+                return mpx
+        elif mode == 'symbolic':
             return lambda *args: args
-
-        func_name = 'to_%s_float' % mode
+        else:
+            raise ValueError('illegal mode %s' % mode)
 
         def convert(*args):
             for arg in args:
                 if arg is None:
                     yield None
                 else:
-                    f = getattr(arg, func_name)
-                    yield f()
+                    yield number(arg)
 
         return convert
 
@@ -945,10 +961,6 @@ class Fold(object):
         # precision if or symbolical evaluation only if necessary. folded
         # items already computed are carried over to new evaluation modes.
 
-        # here are rough runtimes to give you an idea of the costs involved:
-        # machine precision : arbitrary precision = 1 : 1.3 (mpmath is fast)
-        # arbitrary precision : symbolic = 1 : 40
-
         mode = 'machine'
 
         n = 0
@@ -960,11 +972,13 @@ class Fold(object):
             try:
                 convert = self.converter(mode)
 
+                # initialize init from first values or carry over values
+                # computed with a previous type to continue computation.
                 if n == 0:
                     init = tuple(convert(*x))
-                elif mode == 'precision':
+                elif mode == 'precision':  # python floats -> mpmath numbers
                     init = tuple(mpf(z) for z in init)
-                elif mode == 'symbolic':  # any -> symbolic
+                elif mode == 'symbolic':  # mpmath numbers -> symbolic exprs
                     init = tuple(Real(z) for z in init)
 
                 generator = self._fold(

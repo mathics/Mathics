@@ -1022,11 +1022,11 @@ class AnglePath(Builtin):
 
     def apply(self, steps, evaluation):
         'AnglePath[{steps___}]'
-        return AnglePath._compute(Integer(0), Integer(0), None, steps.get_sequence(), evaluation)
+        return AnglePath._compute(MachineReal(0), MachineReal(0), None, steps.get_sequence(), evaluation)
 
     def apply_phi0(self, phi0, steps, evaluation):
         'AnglePath[phi0_, {steps___}]'
-        return AnglePath._compute(Integer(0), Integer(0), phi0, steps.get_sequence(), evaluation)
+        return AnglePath._compute(MachineReal(0), MachineReal(0), phi0, steps.get_sequence(), evaluation)
 
     def apply_xy(self, x, y, steps, evaluation):
         'AnglePath[{x_, y_}, {steps___}]'
