@@ -314,7 +314,10 @@ class Evaluation(object):
     def stop(self):
         self.stopped = True
 
-    def format_output(self, expr, format):
+    def format_output(self, expr, format=None):
+        if format is None:
+            format = self.format
+
         if isinstance(format, dict):
             return dict((k, self.format_output(expr, f)) for k, f in format.items())
 
