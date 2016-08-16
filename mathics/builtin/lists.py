@@ -3701,8 +3701,8 @@ class ClusteringComponents(_Cluster):
     >> ClusteringComponents[{1, 2, 3, 1, 2, 10, 100}]
      = {1, 1, 1, 1, 1, 1, 2}
 
-    >> ClusteringComponents[{5, 10, 100, 11, 3, 50, 1000, 900, 200}, Method -> "KMeans"]
-     = {1, 1, 1, 1, 1, 1, 0, 0, 1}
+    >> ClusteringComponents[{10, 100, 20}, Method -> "KMeans"]
+     = {1, 0, 1}
     """
 
     def apply(self, p, evaluation, options):
