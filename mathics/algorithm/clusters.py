@@ -119,6 +119,9 @@ def _ratio_bigger_than(a, b):
     return a1 * b2 > b1 * a2
 
 
+def _pairwise_sum(a, b):
+    return [x + y for x, y in zip(a, b)]
+
 class InfiniteSilhouette(Exception):
     # thrown when two clusters have distance 0
     pass
@@ -1008,7 +1011,7 @@ class _KMeans:
         for i, xi in enumerate(x):
             ai, u[i], _, l[i] = _smallest2(d(xi, cj) for cj in c)
             q[ai] += 1
-            cc[ai] = [a + b for a, b in zip(cc[ai], xi)]
+            cc[ai] = _pairwise_sum(cc[ai], xi)
             a[i] = ai
 
         s = [0] * len(c)
