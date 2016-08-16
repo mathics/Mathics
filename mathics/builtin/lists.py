@@ -11,7 +11,6 @@ from __future__ import absolute_import
 from six.moves import range
 from six.moves import zip
 from itertools import chain
-from mpmath import mpf
 
 from mathics.builtin.base import (
     Builtin, Test, InvalidLevelspecError, BinaryOperator,
@@ -3640,24 +3639,24 @@ class _IllegalDataPoint(Exception):
     pass
 
 
+def _to_real_distance(d):
+    if not isinstance(d, (Real, Integer)):
+        raise _IllegalDistance(d)
+
+    mpd = d.to_mpmath()
+    if mpd is None or mpd < 0:
+        raise _IllegalDistance(d)
+
+    return mpd
+
+
 class _PrecomputedDistances(PrecomputedDistances):
     # computes all n^2 distances for n points with one big evaluation in the beginning.
 
     def __init__(self, df, p, evaluation):
         distances_form = [df(p[i], p[j]) for i in range(len(p)) for j in range(i)]
         distances = Expression('N', Expression('List', *distances_form)).evaluate(evaluation)
-
-        for d in distances.leaves:
-            if not d.is_numeric():
-                raise _IllegalDistance(d)
-
-        sympy_distances = [d.to_sympy() for d in distances.leaves]
-        for d in sympy_distances:
-            if not d.is_real or d < 0:
-                raise _IllegalDistance(d)
-
-        mpmath_distances = [mpf(d) for d in sympy_distances]
-
+        mpmath_distances = [_to_real_distance(d) for d in distances.leaves]
         super(_PrecomputedDistances, self).__init__(mpmath_distances)
 
 
@@ -3673,22 +3672,7 @@ class _LazyDistances(LazyDistances):
     def _compute_distance(self, i, j):
         p = self._p
         d = Expression('N', self._df(p[i], p[j])).evaluate(self._evaluation)
-        if not d.is_numeric():
-            raise _IllegalDistance(d)
-        sympy_d = d.to_sympy()
-        if not sympy_d.is_real or sympy_d < 0:
-            raise _IllegalDistance(d)
-        return mpf(sympy_d)
-
-
-# to_precision_float should be somewhere more central than this.
-def _to_precision_float(x):
-    if isinstance(x, Real):
-        return x.to_sympy().num
-    elif isinstance(x, Integer):
-        return mpf(x.get_int_value())
-    else:
-        raise _IllegalDataPoint
+        return _to_real_distance(d)
 
 
 class _Cluster(Builtin):
@@ -3820,7 +3804,12 @@ class _Cluster(Builtin):
     def _kmeans(self, mode, repr_p, dist_p, py_k, py_seed, evaluation):
         def convert_scalars(p):
             for q in p:
-                yield _to_precision_float(q)
+                if not isinstance(q, (Real, Integer)):
+                    raise _IllegalDataPoint
+                mpq = q.to_mpmath()
+                if mpq is None:
+                    raise _IllegalDataPoint
+                yield mpq
 
         def convert_vectors(p):
             d = None
@@ -3924,6 +3913,9 @@ class ClusteringComponents(_Cluster):
 
     >> ClusteringComponents[{1, 2, 3, 1, 2, 10, 100}]
      = {1, 1, 1, 1, 1, 1, 2}
+
+    >> ClusteringComponents[{5, 10, 100, 11, 3, 50, 1000, 900, 200}, Method -> "KMeans"]
+     = {1, 1, 1, 1, 1, 1, 0, 0, 1}
     """
 
     def apply(self, p, evaluation, options):
