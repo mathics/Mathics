@@ -241,9 +241,13 @@ class _Color(_GraphicsElement):
         # diminish in size when they appear in lists or rows. we only want the display of colors this
         # way in the notebook, so we restrict the rule to StandardForm.
 
-        (('StandardForm', ), '%(name)s[x__]'):
+        (('StandardForm', ), '%(name)s[x__?NumericQ]'):
             'Style[Graphics[{EdgeForm[Black], %(name)s[x], Rectangle[]}, ImageSize -> 16], ' +
             'ImageSizeMultipliers -> {1, 1}]'
+    }
+
+    rules = {
+        '%(name)s[x_List]': 'Apply[%(name)s, x]',
     }
 
     components_sizes = []
@@ -252,10 +256,7 @@ class _Color(_GraphicsElement):
     def init(self, item=None, components=None):
         super(_Color, self).init(None, item)
         if item is not None:
-            if len(item.leaves) == 1 and item.leaves[0].has_form('List', None):
-                leaves = item.leaves[0].leaves
-            else:
-                leaves = item.leaves
+            leaves = item.leaves
             if len(leaves) in self.components_sizes:
                 components = [value.round_to_float() for value in leaves]
                 if None in components or not all(0 <= c <= 1 for c in components):
