@@ -21,7 +21,6 @@ import zlib
 import math
 from six.moves import range
 from collections import namedtuple
-import sys
 
 
 from mathics.builtin.base import Builtin, Predefined
@@ -897,22 +896,9 @@ class Hash(Builtin):
         return Hash.compute(expr.user_hash, hashtype.get_string_value())
 
 
-class PrecisionExhausted(Exception):
-    pass
-
-
-class SymbolicEvaluation(Exception):
-    pass
-
-
-def _is_machine_precision_or_int(x):
-    if x.is_machine_precision():
-        return True
-
-    if isinstance(x, Integer) and x.get_int_value().bit_length() < sys.float_info.mant_dig:
-        return True
-
-    return False
+class TypeEscalation(Exception):
+    def __init__(self, mode):
+        self.mode = mode
 
 
 class Fold(object):
@@ -922,46 +908,30 @@ class Fold(object):
     ComputationFunctions = namedtuple(
         'ComputationFunctions', ('sin', 'cos'))
 
+    FLOAT = 0
+    MPMATH = 1
+    SYMBOLIC = 2
+
     math = {
-        'machine': ComputationFunctions(
+        FLOAT: ComputationFunctions(
             cos=math.cos,
             sin=math.sin,
         ),
-        'precision': ComputationFunctions(
+        MPMATH: ComputationFunctions(
             cos=mpmath.cos,
             sin=mpmath.sin,
         ),
-        'symbolic': ComputationFunctions(
+        SYMBOLIC: ComputationFunctions(
             cos=lambda x: Expression('Cos', x),
             sin=lambda x: Expression('Sin', x),
         )
     }
 
-    def converter(self, mode):
-        if mode == 'machine':
-            def number(x):
-                if not _is_machine_precision_or_int(x):
-                    raise PrecisionExhausted
-                return x.to_python()
-        elif mode == 'precision':
-            def number(x):
-                mpx = x.to_mpmath()
-                if mpx is None:
-                    raise SymbolicEvaluation
-                return mpx
-        elif mode == 'symbolic':
-            return lambda *args: args
-        else:
-            raise ValueError('illegal mode %s' % mode)
-
-        def convert(*args):
-            for arg in args:
-                if arg is None:
-                    yield None
-                else:
-                    yield number(arg)
-
-        return convert
+    operands = {
+        FLOAT: lambda x: x.to_python(),
+        MPMATH: lambda x: x.to_mpmath(),
+        SYMBOLIC: lambda x: x,
+    }
 
     def _fold(self, state, steps, convert, math):
         raise NotImplementedError
@@ -972,40 +942,39 @@ class Fold(object):
         # precision if or symbolical evaluation only if necessary. folded
         # items already computed are carried over to new evaluation modes.
 
-        mode = 'machine'
+        mode = self.FLOAT
 
         n = 0
-        init = None
+
+        init = x
+        init_dirty = False
 
         yield x
 
         for _ in range(3):
             try:
-                convert = self.converter(mode)
+                as_operand = self.operands.get(mode)
 
-                # initialize init from first values or carry over values
-                # computed with a previous type to continue computation.
-                if n == 0:
-                    init = tuple(convert(*x))
-                elif mode == 'precision':  # python floats -> mpmath numbers
-                    init = tuple(mpf(z) for z in init)
-                elif mode == 'symbolic':  # mpmath numbers -> symbolic exprs
-                    init = tuple(Real(z) for z in init)
+                if init_dirty:
+                    init = tuple(from_python(x) for x in init)
+                    init_dirty = False
+
+                def at_least(m):
+                    if mode < m:
+                        raise TypeEscalation(m)
 
                 generator = self._fold(
-                    init, l[n:], convert, self.math.get(mode))
+                    init, l[n:], as_operand, self.math.get(mode), at_least)
 
                 for y in generator:
                     yield y
                     init = y
+                    init_dirty = True
                     n += 1
 
                 return
-            except PrecisionExhausted:
-                assert mode == 'machine'
-                mode = 'precision'
-            except SymbolicEvaluation:
-                assert mode in ('machine', 'precision')
-                mode = 'symbolic'
+            except TypeEscalation as t:
+                assert t.mode > mode
+                mode = t.mode
 
         raise ValueError  # should have evaluated symbolically and succeeded.

@@ -925,24 +925,58 @@ class AnglePathFold(Fold):
     def __init__(self, parse):
         self._parse = parse
 
-    def _fold(self, state, steps, convert, math):
+    def _fold(self, state, steps, as_operand, math, at_least):
         sin = math.sin
         cos = math.cos
+
+        SYMBOLIC = self.SYMBOLIC
+        MPMATH = self.MPMATH
+
+        def pos_operand(x):
+            if isinstance(x, Integer) and x.get_int_value() in (0, 1):
+                pass
+            elif not isinstance(x, Real):
+                at_least(SYMBOLIC)
+            elif not x.is_machine_precision():
+                at_least(MPMATH)
+
+            return as_operand(x)
+
+        def angle_operand(phi):
+            if not isinstance(phi, Real):
+                at_least(SYMBOLIC)
+            elif not phi.is_machine_precision():
+                at_least(MPMATH)
+
+            return as_operand(phi)
+
+        expr_x, expr_y, expr_phi = state
+
+        x = pos_operand(expr_x)
+        y = pos_operand(expr_y)
+
+        if expr_phi is None:
+            phi = None
+        else:
+            phi = angle_operand(expr_phi)
+
         parse = self._parse
 
-        def parse_and_convert(step):
-            return convert(*parse(step))
-
-        x, y, phi = state
-
         for step in steps:
-            distance, delta_phi = parse_and_convert(step)
+            expr_distance, expr_delta_phi = parse(step)
+            delta_phi = angle_operand(expr_delta_phi)
 
-            phi = phi + delta_phi if phi else delta_phi
+            if phi is None:
+                phi = delta_phi
+            else:
+                phi += delta_phi
+
             dx = cos(phi)
             dy = sin(phi)
 
-            if distance:
+            if expr_distance is not None:
+                distance = pos_operand(expr_distance)
+
                 dx *= distance
                 dy *= distance
 
