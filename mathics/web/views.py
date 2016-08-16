@@ -46,25 +46,6 @@ class JsonResponse(HttpResponse):
 
 
 class WebOutput(Output):
-    svg = Template('''
-        <mtable>
-            <mtr>
-                <mtd>
-                    <svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
-                        version="1.1" width="$width" height="$height" viewBox="$viewbox">
-                        $data
-                    </svg>
-                </mtd>
-            </mtr>
-        </mtable>
-        ''')
-
-    img = Template('''
-        <mtext>
-            <img src="$data" width="$width" height="$height" />
-        </mtext>
-        ''')
-
     def out(self, out):
         pass
 
@@ -73,15 +54,6 @@ class WebOutput(Output):
 
     def display_data(self, result):
         raise NotImplementedError
-
-    def svg_xml(self, data, width, height, viewbox):
-        return self.svg.substitute(
-            data=data, width='%d' % width, height='%d' % height,
-            viewbox=' '.join(['%f' % t for t in viewbox]))
-
-    def img_xml(self, data, width, height):
-        return self.img.substitue(
-            data=data, width=width, height=height)
 
 
 def require_ajax_login(func):

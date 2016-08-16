@@ -274,10 +274,38 @@ function translateDOMElement(element, svg) {
 	return dom;
 }
 
+function convertMathGlyphs(dom) {
+    // convert mglyphs to their classic representation (<svg> or <img>), so the new mglyph logic does not make
+    // anything worse in the classic Mathics frontend for now. In the long run, this code should vanish.
+
+    var MML = "http://www.w3.org/1998/Math/MathML";
+    var glyphs = dom.getElementsByTagName("mglyph");
+    for (var i = 0; i < glyphs.length; i++) {
+        var glyph = glyphs[i];
+        var src = glyph.getAttribute('src');
+        if (src.startsWith('data:image/svg+xml;base64,')) {
+            var svgText = atob(src.substring(src.indexOf(",") + 1));
+            var mtable =document.createElementNS(MML, "mtable");
+            mtable.innerHTML = '<mtr><mtd>' + svgText + '</mtd></mtr>';
+            var svg = mtable.getElementsByTagNameNS("*", "svg")[0];
+            svg.setAttribute('width', glyph.getAttribute('width'));
+            svg.setAttribute('height', glyph.getAttribute('height'));
+            glyph.parentNode.replaceChild(mtable, glyph);
+        } else if (src.startsWith('data:image/')) {
+            var img = document.createElement('img');
+            img.setAttribute('src', src)
+            img.setAttribute('width', glyph.getAttribute('width'));
+            img.setAttribute('height', glyph.getAttribute('height'));
+            glyph.parentNode.replaceChild(img, glyph);
+        }
+    }
+}
+
 function createLine(value) {
 	if (value.startsWith('<math')) {
 		var dom = document.createElement('div');
 		dom.updateDOM(value);
+		convertMathGlyphs(dom);
 		return translateDOMElement(dom.childNodes[0]);
 	} else {
 		var lines = value.split('\n');

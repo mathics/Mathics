@@ -1732,8 +1732,7 @@ class MathMLForm(Builtin):
      = <math><mi>\u03bc</mi></math>
 
     #> MathMLForm[Graphics[Text["\u03bc"]]]
-     = <math><mtable><mtr><mtd><svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
-     .  version="1.0" width="..." height="..." viewBox="..."><foreignObject x="..." y="..." ox="0.000000" oy="0.000000" style="stroke: none; fill: none; color: rgb(0.000000%, 0.000000%, 0.000000%)"><math><mtext>\u03bc</mtext></math></foreignObject></svg></mtd></mtr></mtable></math>
+     = <math><mglyph width="..." height="..." src="data:image/svg+xml;base64,..."/></math>
 
     ## The <mo> should contain U+2062 INVISIBLE TIMES
     #> MathMLForm[MatrixForm[{{2*a, 0},{0,0}}]]

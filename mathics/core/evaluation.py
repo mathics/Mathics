@@ -154,12 +154,6 @@ class Output(object):
     def display_data(self, result):
         raise NotImplementedError
 
-    def svg_xml(self, data, width, height, viewbox):
-        raise NotImplementedError
-
-    def img_xml(self, data, width, height):
-        raise NotImplementedError
-
 
 class Evaluation(object):
     def __init__(self, definitions=None,
