@@ -21,6 +21,7 @@ import zlib
 import math
 from six.moves import range
 from collections import namedtuple
+import sys
 
 
 from mathics.builtin.base import Builtin, Predefined
@@ -904,6 +905,16 @@ class SymbolicEvaluation(Exception):
     pass
 
 
+def _is_machine_precision_or_int(x):
+    if x.is_machine_precision():
+        return True
+
+    if isinstance(x, Integer) and x.get_int_value().bit_length() < sys.float_info.mant_dig:
+        return True
+
+    return False
+
+
 class Fold(object):
     # allows inherited classes to specify a single algorithm implementation that
     # can be called with machine precision, arbitrary precision or symbolically.
@@ -929,7 +940,7 @@ class Fold(object):
     def converter(self, mode):
         if mode == 'machine':
             def number(x):
-                if not x.is_machine_precision():
+                if not _is_machine_precision_or_int(x):
                     raise PrecisionExhausted
                 return x.to_python()
         elif mode == 'precision':
