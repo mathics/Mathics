@@ -18,6 +18,7 @@ from mathics.builtin.base import (
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
 from mathics.core.expression import Expression, String, Symbol, Integer, Number, Real, strip_context, from_python
+from mathics.core.expression import min_prec, machine_precision
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
@@ -3802,6 +3803,8 @@ class _Cluster(Builtin):
         return clusters
 
     def _kmeans(self, mode, repr_p, dist_p, py_k, py_seed, evaluation):
+        items = []
+
         def convert_scalars(p):
             for q in p:
                 if not isinstance(q, (Real, Integer)):
@@ -3809,6 +3812,7 @@ class _Cluster(Builtin):
                 mpq = q.to_mpmath()
                 if mpq is None:
                     raise _IllegalDataPoint
+                items.append(q)
                 yield mpq
 
         def convert_vectors(p):
@@ -3828,7 +3832,13 @@ class _Cluster(Builtin):
         else:
             numeric_p = list(convert_vectors(dist_p))
 
-        return kmeans(numeric_p, repr_p, py_k, mode, py_seed)
+        # compute epsilon similar to Real.__eq__, such that "numbers that differ in their last seven binary digits
+        # are considered equal"
+
+        prec = min_prec(*items) or machine_precision
+        eps = 0.5 ** (prec - 7)
+
+        return kmeans(numeric_p, repr_p, py_k, mode, py_seed, eps)
 
 
 class FindClusters(_Cluster):

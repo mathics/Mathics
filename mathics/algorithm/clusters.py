@@ -122,6 +122,7 @@ def _ratio_bigger_than(a, b):
 def _pairwise_sum(a, b):
     return [x + y for x, y in zip(a, b)]
 
+
 class InfiniteSilhouette(Exception):
     # thrown when two clusters have distance 0
     pass
@@ -369,6 +370,7 @@ class _Cluster:
             self._within = (s_w, n_w)
 
         return self._within
+
 
 class _Medoids:
     def __init__(self, clusterer, k):
@@ -1135,11 +1137,10 @@ def _clusters(x, a, k):
     return clusters
 
 
-def kmeans(x, x_repr, k, mode, seed):
+def kmeans(x, x_repr, k, mode, seed, epsilon):
     assert len(x) == len(x_repr)
 
     random.seed(seed)
-    epsilon = 1e-10  # FIXME
     km = _KMeans(x, _squared_euclidean_distance, epsilon)
 
     if k is None:
