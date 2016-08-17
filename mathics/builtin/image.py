@@ -1,12 +1,7 @@
 '''
-A place for Image[] and related functions.
+Image[] and image related functions.
 
-Note that you need scikit-image installed in order for this module to work.
-
-This module is part of the Mathics/iMathics branch, since the regular Mathics
-notebook seems to lack the functionality to inject <img> tags from the kernel
-into the notebook interface (yielding an error 'Unknown node type: img').
-Jupyter does not have this limitation though.
+Note that you (currently) need scikit-image installed in order for this module to work.
 '''
 
 from __future__ import division
@@ -22,6 +17,14 @@ import base64
 import functools
 import math
 
+_image_requires = (
+    'skimage',
+    'warnings',
+    'numpy',
+    'PIL',
+    'matplotlib',
+)
+
 try:
     import skimage
     import skimage.io
@@ -32,6 +35,8 @@ try:
     import skimage.filters.rank
     import skimage.morphology
     import skimage.measure
+
+    import warnings
 
     import PIL
     import PIL.ImageEnhance
@@ -76,10 +81,17 @@ if _enabled:
     }
 
 
+class _ImageBuiltin(Builtin):
+    requires = _image_requires
+
+
+class _ImageTest(Test):
+    requires = _image_requires
+
 # import and export
 
 
-class ImageImport(Builtin):
+class ImageImport(_ImageBuiltin):
     """
     ## Image
     >> Import["ExampleData/Einstein.jpg"]
@@ -101,7 +113,7 @@ class ImageImport(Builtin):
         return Expression('List', Expression('Rule', String('Image'), atom))
 
 
-class ImageExport(Builtin):
+class ImageExport(_ImageBuiltin):
     messages = {
         'noimage': 'only an Image[] can be exported into an image file'
     }
@@ -118,7 +130,7 @@ class ImageExport(Builtin):
 # image math
 
 
-class _ImageArithmetic(Builtin):
+class _ImageArithmetic(_ImageBuiltin):
     messages = {
         'bddarg': 'Expecting a number, image, or graphics instead of `1`.',
     }
@@ -249,7 +261,7 @@ class ImageMultiply(_ImageArithmetic):
     '''
 
 
-class RandomImage(Builtin):
+class RandomImage(_ImageBuiltin):
     '''
     <dl>
     <dt>'RandomImage[$max$]'
@@ -316,7 +328,7 @@ class RandomImage(Builtin):
 # simple image manipulation
 
 
-class ImageResize(Builtin):
+class ImageResize(_ImageBuiltin):
     '''
     <dl>
     <dt>'ImageResize[$image$, $width$]'
@@ -480,7 +492,7 @@ class ImageResize(Builtin):
         return Image(pixels, image.color_space)
 
 
-class ImageReflect(Builtin):
+class ImageReflect(_ImageBuiltin):
     '''
     <dl>
     <dt>'ImageReflect[$image$]'
@@ -553,7 +565,7 @@ class ImageReflect(Builtin):
         return Image(method(image.pixels), image.color_space)
 
 
-class ImageRotate(Builtin):
+class ImageRotate(_ImageBuiltin):
     '''
     <dl>
     <dt>'ImageRotate[$image$]'
@@ -594,7 +606,7 @@ class ImageRotate(Builtin):
         return Image(skimage.transform.rotate(image.pixels, 180 * py_angle / math.pi, resize=True), image.color_space)
 
 
-class ImagePartition(Builtin):
+class ImagePartition(_ImageBuiltin):
     '''
     <dl>
     <dt>'ImagePartition[$image$, $s$]'
@@ -657,7 +669,7 @@ class ImagePartition(Builtin):
 # simple image filters
 
 
-class ImageAdjust(Builtin):
+class ImageAdjust(_ImageBuiltin):
     '''
     <dl>
     <dt>'ImageAdjust[$image$]'
@@ -723,7 +735,7 @@ class ImageAdjust(Builtin):
         return Image(numpy.array(im), image.color_space)
 
 
-class Blur(Builtin):
+class Blur(_ImageBuiltin):
     rules = {
         'Blur[i_Image]': 'Blur[i, 2]'
     }
@@ -734,7 +746,7 @@ class Blur(Builtin):
             PIL.ImageFilter.GaussianBlur(r.to_python()))), image.color_space)
 
 
-class Sharpen(Builtin):
+class Sharpen(_ImageBuiltin):
     rules = {
         'Sharpen[i_Image]': 'Sharpen[i, 2]'
     }
@@ -745,7 +757,7 @@ class Sharpen(Builtin):
             PIL.ImageFilter.UnsharpMask(r.to_python()))), image.color_space)
 
 
-class GaussianFilter(Builtin):
+class GaussianFilter(_ImageBuiltin):
     messages = {
         'only3': 'GaussianFilter only supports up to three channels.'
     }
@@ -763,7 +775,7 @@ class GaussianFilter(Builtin):
 # morphological image filters
 
 
-class PillowImageFilter(Builtin):
+class PillowImageFilter(_ImageBuiltin):
     def compute(self, image, f):
         return Image(numpy.array(image.pil().filter(f)), image.color_space)
 
@@ -786,7 +798,7 @@ class MedianFilter(PillowImageFilter):
         return self.compute(image, PIL.ImageFilter.MedianFilter(1 + 2 * r.to_python()))
 
 
-class EdgeDetect(Builtin):
+class EdgeDetect(_ImageBuiltin):
     rules = {
         'EdgeDetect[i_Image]': 'EdgeDetect[i, 2, 0.2]',
         'EdgeDetect[i_Image, r_?RealNumberQ]': 'EdgeDetect[i, r, 0.2]'
@@ -800,26 +812,26 @@ class EdgeDetect(Builtin):
             'Grayscale')
 
 
-class BoxMatrix(Builtin):
+class BoxMatrix(_ImageBuiltin):
     def apply(self, r, evaluation):
         'BoxMatrix[r_?RealNumberQ]'
         s = 1 + 2 * r.to_python()
         return from_python(skimage.morphology.rectangle(s, s).tolist())
 
 
-class DiskMatrix(Builtin):
+class DiskMatrix(_ImageBuiltin):
     def apply(self, r, evaluation):
         'DiskMatrix[r_?RealNumberQ]'
         return from_python(skimage.morphology.disk(r).tolist())
 
 
-class DiamondMatrix(Builtin):
+class DiamondMatrix(_ImageBuiltin):
     def apply(self, r, evaluation):
         'DiamondMatrix[r_?RealNumberQ]'
         return from_python(skimage.morphology.diamond(r).tolist())
 
 
-class _MorphologyFilter(Builtin):
+class _MorphologyFilter(_ImageBuiltin):
     messages = {
         'grayscale': 'Your image has been converted to grayscale as color images are not supported yet.'
     }
@@ -890,7 +902,7 @@ class Closing(_MorphologyFilter):
     '''
 
 
-class MorphologicalComponents(Builtin):
+class MorphologicalComponents(_ImageBuiltin):
     rules = {
         'MorphologicalComponents[i_Image]': 'MorphologicalComponents[i, 0]'
     }
@@ -904,19 +916,19 @@ class MorphologicalComponents(Builtin):
 # color space
 
 
-class ImageColorSpace(Builtin):
+class ImageColorSpace(_ImageBuiltin):
     def apply(self, image, evaluation):
         'ImageColorSpace[image_Image]'
         return String(image.color_space)
 
 
-class ColorConvert(Builtin):
+class ColorConvert(_ImageBuiltin):
     def apply(self, image, colorspace, evaluation):
         'ColorConvert[image_Image, colorspace_String]'
         return image.color_convert(colorspace.get_string_value())
 
 
-class ColorQuantize(Builtin):
+class ColorQuantize(_ImageBuiltin):
     def apply(self, image, n, evaluation):
         'ColorQuantize[image_Image, n_Integer]'
         pixels = skimage.img_as_ubyte(image.color_convert('RGB').pixels)
@@ -925,7 +937,7 @@ class ColorQuantize(Builtin):
         return Image(numpy.array(im), 'RGB')
 
 
-class Threshold(Builtin):
+class Threshold(_ImageBuiltin):
     options = {
         'Method': '"Cluster"'
     }
@@ -952,7 +964,7 @@ class Threshold(Builtin):
         return Real(threshold)
 
 
-class Binarize(Builtin):
+class Binarize(_ImageBuiltin):
     def apply(self, image, evaluation):
         'Binarize[image_Image]'
         image = image.grayscale()
@@ -972,7 +984,7 @@ class Binarize(Builtin):
         return Image(mask1 * mask2, 'Grayscale')
 
 
-class ColorNegate(Builtin):
+class ColorNegate(_ImageBuiltin):
     def apply(self, image, evaluation):
         'ColorNegate[image_Image]'
         pixels = image.pixels
@@ -981,7 +993,7 @@ class ColorNegate(Builtin):
         return Image(anchor - pixels, image.color_space)
 
 
-class ColorSeparate(Builtin):
+class ColorSeparate(_ImageBuiltin):
     def apply(self, image, evaluation):
         'ColorSeparate[image_Image]'
         images = []
@@ -1023,7 +1035,7 @@ def _linearize(a):
     return numpy.where(a == h[lower], lower, upper).reshape(orig_shape), n
 
 
-class Colorize(Builtin):
+class Colorize(_ImageBuiltin):
     def apply(self, a, evaluation):
         'Colorize[a_?MatrixQ]'
 
@@ -1039,7 +1051,7 @@ class Colorize(Builtin):
 # pixel access
 
 
-class ImageData(Builtin):
+class ImageData(_ImageBuiltin):
     rules = {
         'ImageData[image_Image]': 'ImageData[image, "Real"]'
     }
@@ -1065,19 +1077,19 @@ class ImageData(Builtin):
         return from_python(pixels.tolist())
 
 
-class ImageTake(Builtin):
+class ImageTake(_ImageBuiltin):
     def apply(self, image, n, evaluation):
         'ImageTake[image_Image, n_Integer]'
         return Image(image.pixels[:int(n.to_python())], image.color_space)
 
 
-class PixelValue(Builtin):
+class PixelValue(_ImageBuiltin):
     def apply(self, image, x, y, evaluation):
         'PixelValue[image_Image, {x_?RealNumberQ, y_?RealNumberQ}]'
         return Real(image.pixels[int(y.to_python() - 1), int(x.to_python() - 1)])
 
 
-class PixelValuePositions(Builtin):
+class PixelValuePositions(_ImageBuiltin):
     def apply(self, image, val, evaluation):
         'PixelValuePositions[image_Image, val_?RealNumberQ]'
         rows, cols = numpy.where(skimage.img_as_float(image.pixels) == float(val.to_python()))
@@ -1088,32 +1100,32 @@ class PixelValuePositions(Builtin):
 # image attribute queries
 
 
-class ImageDimensions(Builtin):
+class ImageDimensions(_ImageBuiltin):
     def apply(self, image, evaluation):
         'ImageDimensions[image_Image]'
         return Expression('List', *image.dimensions())
 
 
-class ImageAspectRatio(Builtin):
+class ImageAspectRatio(_ImageBuiltin):
     def apply(self, image, evaluation):
         'ImageAspectRatio[image_Image]'
         dim = image.dimensions()
         return Real(dim[1] / float(dim[0]))
 
 
-class ImageChannels(Builtin):
+class ImageChannels(_ImageBuiltin):
     def apply(self, image, evaluation):
         'ImageChannels[image_Image]'
         return Integer(image.channels())
 
 
-class ImageType(Builtin):
+class ImageType(_ImageBuiltin):
     def apply(self, image, evaluation):
         'ImageType[image_Image]'
         return String(image.storage_type())
 
 
-class BinaryImageQ(Test):
+class BinaryImageQ(_ImageTest):
     '''
     <dl>
     <dt>'BinaryImageQ[$image]'
@@ -1140,7 +1152,7 @@ def _image_pixels(matrix):
         return None
 
 
-class ImageQ(Test):
+class ImageQ(_ImageTest):
     '''
     <dl>
     <dt>'ImageQ[Image[$pixels]]'
@@ -1173,19 +1185,8 @@ class ImageBox(BoxConstruct):
 
     def boxes_to_xml(self, leaves, **options):
         # see https://tools.ietf.org/html/rfc2397
-        img = '<img src="data:image/png;base64,%s" width="%d" height="%d" />' % (
+        return '<img src="%s" width="%d" height="%d" />' % (
             leaves[0].get_string_value(), leaves[1].get_int_value(), leaves[2].get_int_value())
-
-        # if we have Mathics JavaScript frontend processing that rewrites MathML tags using
-        # <mspace>, we must not embed our tag in <mtext> here.
-        uses_mathics_frontend_processing = False
-
-        if not uses_mathics_frontend_processing:
-            # see https://github.com/mathjax/MathJax/issues/896
-            xml = '<mtext>%s</mtext>' % img
-            return xml
-        else:
-            return img
 
     def boxes_to_tex(self, leaves, **options):
         return '-Image-'
@@ -1213,7 +1214,7 @@ class Image(Atom):
     def grayscale(self):
         return self.color_convert('Grayscale')
 
-    def make_boxes(self, form):
+    def atom_to_boxes(self, f, evaluation):
         try:
             if self.color_space == 'Grayscale':
                 pixels = self.pixels
@@ -1238,15 +1239,19 @@ class Image(Atom):
                 scaled_height = int(scale * height)
                 pixels = skimage.transform.resize(pixels, (scaled_height, scaled_width), order=0)
 
-            stream = BytesIO()
-            skimage.io.imsave(stream, pixels, 'pil', format_str='png')
-            stream.seek(0)
-            contents = stream.read()
-            stream.close()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+
+                stream = BytesIO()
+                skimage.io.imsave(stream, pixels, 'pil', format_str='png')
+                stream.seek(0)
+                contents = stream.read()
+                stream.close()
 
             encoded = base64.b64encode(contents)
             if not six.PY2:
                 encoded = encoded.decode('utf8')
+            encoded = 'data:image/png;base64,' + encoded
 
             return Expression('ImageBox', String(encoded), Integer(scaled_width), Integer(scaled_height))
         except:
@@ -1304,6 +1309,8 @@ class Image(Atom):
 
 
 class ImageAtom(AtomBuiltin):
+    requires = _image_requires
+
     def apply_create(self, array, evaluation):
         'Image[array_]'
         pixels = _image_pixels(array.to_python())
