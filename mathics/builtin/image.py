@@ -10,7 +10,6 @@ from mathics.builtin.base import (
     Builtin, AtomBuiltin, Test, BoxConstruct, String)
 from mathics.core.expression import (
     Atom, Expression, Integer, Rational, Real, Symbol, from_python)
-from mathics.core.evaluation import Evaluation
 
 import six
 import base64
@@ -1186,7 +1185,7 @@ class ImageBox(BoxConstruct):
 
     def boxes_to_xml(self, leaves, **options):
         # see https://tools.ietf.org/html/rfc2397
-        return '<img src="%s" width="%d" height="%d" />' % (
+        return '<mglyph src="%s" width="%dpx" height="%dpx" />' % (
             leaves[0].get_string_value(), leaves[1].get_int_value(), leaves[2].get_int_value())
 
     def boxes_to_tex(self, leaves, **options):
@@ -1321,3 +1320,103 @@ class ImageAtom(AtomBuiltin):
             return Image(pixels.clip(0, 1), 'RGB' if is_rgb else 'Grayscale')
         else:
             return Expression('Image', array)
+
+
+# word clouds
+
+class WordCloud(Builtin):
+    '''
+    <dl>
+    <dt>'WordCloud[{$word1$, $word2$, ...}]'
+      <dd>Gives a word cloud with the given list of words.
+    </dl>
+
+    >> WordCloud[StringSplit[Import["ExampleData/EinsteinSzilLetter.txt"]]]
+     = -Image-
+    '''
+
+    requires = _image_requires + (
+        'wordcloud',
+    )
+
+    options = {
+        'IgnoreCase': 'True',
+        'ImageSize': 'Automatic',
+        'MaxItems': 'Automatic',
+    }
+
+    # this is the palettable.colorbrewer.qualitative.Dark2_8 palette
+    default_colors = (
+        (27, 158, 119),
+        (217, 95, 2),
+        (117, 112, 179),
+        (231, 41, 138),
+        (102, 166, 30),
+        (230, 171, 2),
+        (166, 118, 29),
+        (102, 102, 102),
+    )
+
+    def apply_words(self, words, evaluation, options):
+        'WordCloud[words_List, OptionsPattern[%(name)s]]'
+        ignore_case = self.get_option(options, 'IgnoreCase', evaluation) == Symbol('True')
+
+        freq = dict()
+        for word in words.leaves:
+            if not isinstance(word, String):
+                return
+            py_word = word.get_string_value()
+            if ignore_case:
+                key = py_word.lower()
+            else:
+                key = py_word
+            record = freq.get(key, None)
+            if record is None:
+                freq[key] = [py_word, 1]
+            else:
+                record[1] += 1
+
+        max_items = self.get_option(options, 'MaxItems', evaluation)
+        if isinstance(max_items, Integer):
+            py_max_items = max_items.get_int_value()
+        else:
+            py_max_items = 200
+
+        image_size = self.get_option(options, 'ImageSize', evaluation)
+        if image_size == Symbol('Automatic'):
+            py_image_size = (800, 600)
+        elif image_size.get_head_name() == 'System`List' and len(image_size.leaves) == 2:
+            py_image_size = []
+            for leaf in image_size.leaves:
+                if not isinstance(leaf, Integer):
+                    return
+                py_image_size.append(leaf.get_int_value())
+        elif isinstance(image_size, Integer):
+            size = image_size.get_int_value()
+            py_image_size = (size, size)
+        else:
+            return
+
+        # inspired by http://minimaxir.com/2016/05/wordclouds/
+        import random
+        import os
+
+        def color_func(word, font_size, position, orientation, random_state=None, **kwargs):
+            return self.default_colors[random.randint(0, 7)]
+
+        font_base_path = os.path.dirname(os.path.abspath(__file__)) + '/../fonts/'
+
+        font_path = os.path.realpath(font_base_path + 'AmaticSC-Bold.ttf')
+        if not os.path.exists(font_path):
+            font_path = None
+
+        from wordcloud import WordCloud
+        wc = WordCloud(
+            width=py_image_size[0], height=py_image_size[1],
+            font_path=font_path, max_font_size=300, mode='RGB',
+            background_color='white', max_words=py_max_items,
+            color_func=color_func, random_state=42, stopwords=set())
+        wc.generate_from_frequencies(freq.values())
+
+        image = wc.to_image()
+        return Image(numpy.array(image), 'RGB')
