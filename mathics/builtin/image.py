@@ -21,6 +21,7 @@ _image_requires = (
     'skimage',
     'warnings',
     'numpy',
+    'scipy',
     'PIL',
     'matplotlib',
 )
