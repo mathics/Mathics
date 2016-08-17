@@ -46,14 +46,7 @@ class JsonResponse(HttpResponse):
 
 
 class WebOutput(Output):
-    def out(self, out):
-        pass
-
-    def clear_output(wait=False):
-        raise NotImplementedError
-
-    def display_data(self, result):
-        raise NotImplementedError
+    pass
 
 
 def require_ajax_login(func):

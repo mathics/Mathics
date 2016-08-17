@@ -151,10 +151,10 @@ class Output(object):
     def out(self, out):
         pass
 
-    def clear_output(wait=False):
+    def clear(self, wait):
         raise NotImplementedError
 
-    def display_data(self, result):
+    def display(self, data, metadata):
         raise NotImplementedError
 
 
