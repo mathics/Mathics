@@ -314,8 +314,8 @@ class RGBColor(_Color):
     >> RGBColor[0, 1, 0]
      = RGBColor[0, 1, 0]
 
-    >> RGBColor[0, 1, 0] // StandardForm
-     = -Graphics-
+    >> RGBColor[0, 1, 0] // ToBoxes
+     = StyleBox[GraphicsBox[...], ...]
     """
 
     components_sizes = [3, 4]
