@@ -241,7 +241,7 @@ class _Color(_GraphicsElement):
         # diminish in size when they appear in lists or rows. we only want the display of colors this
         # way in the notebook, so we restrict the rule to StandardForm.
 
-        (('StandardForm', ), '%(name)s[x__?NumericQ]'):
+        (('StandardForm', ), '%(name)s[x__?(NumericQ[#] && 0 <= # <= 1&)]'):
             'Style[Graphics[{EdgeForm[Black], %(name)s[x], Rectangle[]}, ImageSize -> 16], ' +
             'ImageSizeMultipliers -> {1, 1}]'
     }
