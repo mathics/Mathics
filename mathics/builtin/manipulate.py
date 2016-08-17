@@ -6,7 +6,7 @@ from __future__ import absolute_import
 
 from mathics.core.expression import String, strip_context
 from mathics import settings
-from mathics.core.evaluation import Evaluation
+from mathics.core.evaluation import Evaluation, Output
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Symbol, Integer, from_python
@@ -18,7 +18,7 @@ except ImportError:
     _jupyter = False
 
 try:
-    from ipywidgets import (IntSlider, FloatSlider, ToggleButtons, Box, DOMWidget)
+    from ipywidgets import IntSlider, FloatSlider, ToggleButtons, Box, DOMWidget
     from IPython.core.formatters import IPythonDisplayFormatter
     _ipywidgets = True
 except ImportError:
@@ -187,6 +187,20 @@ class _WidgetInstantiator():
         self._widgets.append(widget)
 
 
+class ManipulateOutput(Output):
+    def max_stored_size(self, settings):
+        return self.output.max_stored_size(settings)
+
+    def out(self, out):
+        return self.output.out(out)
+
+    def clear_output(wait=False):
+        raise NotImplementedError
+
+    def display_data(self, result):
+        raise NotImplementedError
+
+
 class Manipulate(Builtin):
     """
     <dl>
@@ -239,7 +253,6 @@ class Manipulate(Builtin):
 
     messages = {
         'jupyter': 'Manipulate[] only works inside a Jupyter notebook.',
-        'noipywidget': 'Manipulate[] needs the ipywidgets module to work.',
         'imathics': 'Your IMathics kernel does not seem to support all necessary operations. ' +
             'Please check that you have the latest version installed.',
         'widgetmake': 'Jupyter widget construction failed with "``".',
@@ -247,13 +260,14 @@ class Manipulate(Builtin):
         'widgetdisp': 'Jupyter failed to display the widget.',
     }
 
+    requires = (
+        'ipywidgets',
+    )
+
     def apply(self, expr, args, evaluation):
         'Manipulate[expr_, args__]'
         if (not _jupyter) or (not Kernel.initialized()) or (Kernel.instance() is None):
             return evaluation.message('Manipulate', 'jupyter')
-
-        if not _ipywidgets:
-            return evaluation.message('Manipulate', 'noipywidget')
 
         instantiator = _WidgetInstantiator()  # knows about the arguments and their widgets
 
@@ -266,10 +280,12 @@ class Manipulate(Builtin):
             except JupyterWidgetError as e:
                 return evaluation.message('Manipulate', 'widgetmake', e.err)
 
-        clear_output_callback = evaluation.clear_output_callback
-        display_data_callback = evaluation.display_data_callback  # for pushing updates
+        clear_output_callback = evaluation.output.clear
+        display_data_callback = evaluation.output.display  # for pushing updates
 
-        if clear_output_callback is None or display_data_callback is None:
+        try:
+            clear_output_callback(wait=True)
+        except NotImplementedError:
             return evaluation.message('Manipulate', 'imathics')
 
         def callback(**kwargs):
@@ -277,12 +293,12 @@ class Manipulate(Builtin):
 
             line_no = evaluation.definitions.get_line_no()
 
-            new_evaluation = Evaluation(evaluation.definitions, result_callback=display_data_callback,
-                                        out_callback=evaluation.out_callback)
-
             vars = [Expression('Set', Symbol(name), value) for name, value in kwargs.items()]
             evaluatable = Expression('ReleaseHold', Expression('Module', Expression('List', *vars), expr))
-            new_evaluation.evaluate([evaluatable], timeout=settings.TIMEOUT)
+
+            result = evaluation.evaluate(evaluatable, timeout=settings.TIMEOUT)
+            if result:
+                display_data_callback(data=result.result, metadata={})
 
             evaluation.definitions.set_line_no(line_no)  # do not increment line_no for manipulate computations
 
