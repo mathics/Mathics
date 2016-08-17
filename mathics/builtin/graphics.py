@@ -1274,24 +1274,23 @@ class GraphicsBox(BoxConstruct):
             aspect = aspect_ratio.round_to_float()
 
         image_size = graphics_options['System`ImageSize']
-        try:
-            if isinstance(image_size, Integer):
-                base_width = image_size.get_int_value()
-                base_height = None  # will be computed later in calc_dimensions
-            elif image_size.has_form('System`List', 2):
-                base_width, base_height = ([x.to_number() for x in image_size.leaves] + [0, 0])[:2]
-                aspect = base_height / base_width
-            else:
-                image_size = image_size.get_name()
-                base_width, base_height = {
-                    'System`Automatic': (400, 350),
-                    'System`Tiny': (100, 100),
-                    'System`Small': (200, 200),
-                    'System`Medium': (400, 350),
-                    'System`Large': (600, 500),
-                }.get(image_size, (None, None))
-        except NumberError:
-            raise BoxConstructError
+        if isinstance(image_size, Integer):
+            base_width = image_size.get_int_value()
+            base_height = None  # will be computed later in calc_dimensions
+        elif image_size.has_form('System`List', 2):
+            base_width, base_height = ([x.round_to_float() for x in image_size.leaves] + [0, 0])[:2]
+            if base_width is None or base_height is None:
+                raise BoxConstructError
+            aspect = base_height / base_width
+        else:
+            image_size = image_size.get_name()
+            base_width, base_height = {
+                'System`Automatic': (400, 350),
+                'System`Tiny': (100, 100),
+                'System`Small': (200, 200),
+                'System`Medium': (400, 350),
+                'System`Large': (600, 500),
+            }.get(image_size, (None, None))
         if base_width is None:
             raise BoxConstructError
         if max_width is not None and base_width > max_width:
