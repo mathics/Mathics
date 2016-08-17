@@ -1827,8 +1827,8 @@ class _ColorObject(Builtin):
             >> Graphics[{EdgeForm[Black], %(name)s, Disk[]}, ImageSize->Small]
              = -Graphics-
 
-            >> %(name)s // StandardForm
-             = -Graphics-
+            >> %(name)s // ToBoxes
+             = StyleBox[GraphicsBox[...], ...]
         """ % {'name': strip_context(self.get_name()), 'text_name': text_name}
         if self.__doc__ is None:
             self.__doc__ = doc
