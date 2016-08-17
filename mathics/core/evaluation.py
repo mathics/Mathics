@@ -145,6 +145,9 @@ class Result(object):
 
 
 class Output(object):
+    def max_stored_size(self, settings):
+        return settings.MAX_STORED_SIZE
+
     def out(self, out):
         pass
 
@@ -299,9 +302,10 @@ class Evaluation(object):
 
         # Prevent too large results from being stored, as this can exceed the
         # DB's max_allowed_packet size
-        if settings.MAX_STORED_SIZE is not None:
+        max_stored_size = self.output.max_stored_size(settings)
+        if max_stored_size is not None:
             data = pickle.dumps(result)
-            if len(data) > settings.MAX_STORED_SIZE:
+            if len(data) > max_stored_size:
                 return Symbol('Null')
         return result
 
