@@ -247,8 +247,7 @@ class BaseExpression(KeyComparable):
             include_form = False
             if head in formats and len(self.get_leaves()) == 1:
                 expr = self.leaves[0]
-                # removing 'True' below breaks the 'RGBColor[1,0,0]//StandardForm' test cases.
-                if True or not (form == 'System`OutputForm' and head == 'System`StandardForm'):
+                if not (form == 'System`OutputForm' and head == 'System`StandardForm'):
                     form = head
 
                     include_form = True
