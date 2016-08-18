@@ -483,6 +483,8 @@ def python_levelspec(levelspec):
             return values[0], values[1]
         else:
             raise InvalidLevelspecError
+    elif isinstance(levelspec, Symbol) and levelspec.get_name() == 'System`All':
+        return 0, None
     else:
         return 1, value_to_level(levelspec)
 

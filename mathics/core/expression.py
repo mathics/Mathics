@@ -228,7 +228,14 @@ class BaseExpression(KeyComparable):
     def evaluate_leaves(self, evaluation):
         return self
 
-    def apply_rules(self, rules, evaluation):
+    def apply_rules(self, rules, evaluation, level=0, options=None):
+        if options:
+            l1, l2 = options['levelspec']
+            if level < l1:
+                return self, False
+            elif l2 is not None and level > l2:
+                return self, False
+
         for rule in rules:
             result = rule.apply(self, evaluation, fully=False)
             if result is not None:
@@ -1078,27 +1085,44 @@ class Expression(BaseExpression):
         return [leaf for leaf in self.leaves
                 if leaf.get_head_name() == head_name]
 
-    def apply_rules(self, rules, evaluation):
+    def apply_rules(self, rules, evaluation, level=0, options=None):
         """for rule in rules:
             result = rule.apply(self, evaluation, fully=False)
             if result is not None:
                 return result"""
-        result, applied = super(
-            Expression, self).apply_rules(rules, evaluation)
-        if applied:
-            return result, True
-        head, applied = self.head.apply_rules(rules, evaluation)
 
         # to be able to access it inside inner function
-        new_applied = [applied]
+        new_applied = [False]
 
         def apply_leaf(leaf):
-            new, sub_applied = leaf.apply_rules(rules, evaluation)
+            new, sub_applied = leaf.apply_rules(
+                rules, evaluation, level + 1, options)
             new_applied[0] = new_applied[0] or sub_applied
             return new
 
-        return (Expression(head, *[apply_leaf(leaf) for leaf in self.leaves]),
-                new_applied[0])
+        def descend(expr):
+            return Expression(expr.head, *[apply_leaf(leaf) for leaf in expr.leaves])
+
+        if options is None:  # default ReplaceAll mode; replace breadth first
+            result, applied = super(
+                Expression, self).apply_rules(rules, evaluation, level, options)
+            if applied:
+                return result, True
+            head, applied = self.head.apply_rules(rules, evaluation, level, options)
+            new_applied[0] = applied
+            return descend(Expression(head, *self.leaves)), new_applied[0]
+        else:  # Replace mode; replace depth first
+            expr = descend(self)
+            expr, applied = super(
+                Expression, expr).apply_rules(rules, evaluation, level, options)
+            new_applied[0] = new_applied[0] or applied
+            if not applied and options['heads']:
+                # heads in Replace are treated at the level of the arguments, i.e. level + 1
+                head, applied = expr.head.apply_rules(rules, evaluation, level + 1, options)
+                new_applied[0] = new_applied[0] or applied
+                expr = Expression(head, *expr.leaves)
+            return expr, new_applied[0]
+
 
     def replace_vars(self, vars, options=None,
                      in_scoping=True, in_function=True):
