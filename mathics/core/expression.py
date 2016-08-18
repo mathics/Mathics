@@ -2207,8 +2207,8 @@ class String(Atom):
 
 
 class Omitted(String):  # represents an omitted portion like <<42>> (itself not collapsible)
-    def __init__(self, value, **kwargs):
-        super(Omitted, self).__init__(value, **kwargs)
+    def __new__(cls, value, **kwargs):
+        return super(Omitted, cls).__new__(cls, value, **kwargs)
 
     def boxes_to_text(self, **options):
         new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
