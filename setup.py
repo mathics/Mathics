@@ -32,6 +32,7 @@ import sys
 import platform
 import os
 from setuptools import setup, Command, Extension
+from setuptools.command.install import install as _install
 
 # Ensure user has the correct Python version
 if sys.version_info[:2] != (2, 7) and sys.version_info < (3, 2):
@@ -66,7 +67,7 @@ else:
     INSTALL_REQUIRES += ['cython>=0.15.1']
 
 # General Requirements
-INSTALL_REQUIRES += ['sympy==1.0', 'django >= 1.8, < 1.9',
+INSTALL_REQUIRES += ['sympy==1.0', 'django >= 1.8, < 1.9a0',
                      'mpmath>=0.19', 'python-dateutil', 'colorama', 'six>=1.10']
 
 
@@ -77,10 +78,10 @@ def subdirs(root, file='*.*', depth=10):
 
 class initialize(Command):
     """
-    Manually creates the database used by Django
+    Manually create the Django database used by the web notebook
     """
 
-    description = "manually create the database used by django"
+    description = "manually create the Django database used by the web notebook"
     user_options = []  # distutils complains if this is not here.
 
     def __init__(self, *args):
@@ -108,18 +109,18 @@ class initialize(Command):
             subprocess.check_call(
                 [sys.executable, 'mathics/manage.py', 'migrate', '--noinput'])
             print("")
-            print("database created successfully.")
+            print("Database created successfully.")
         except subprocess.CalledProcessError:
-            print("error: failed to create database")
+            print("Error: failed to create database")
             sys.exit(1)
 
 
 class test(Command):
     """
-    Runs the unittests
+    Run the unittests
     """
 
-    description = "runs the unittests"
+    description = "run the unittests"
     user_options = []
 
     def __init__(self, *args):
@@ -143,8 +144,19 @@ class test(Command):
             sys.exit(1)
 
 
+class install(_install):
+    def initialize_database(_):
+        import os, sys, subprocess
+        subprocess.call([sys.executable, 'setup.py', 'initialize'], cwd=os.getcwd())
+
+    def run(self):
+        self.do_egg_install()
+        self.execute(self.initialize_database, [])
+
+
 CMDCLASS['initialize'] = initialize
 CMDCLASS['test'] = test
+CMDCLASS['install'] = install
 
 mathjax_files = list(subdirs('media/js/mathjax/'))
 
