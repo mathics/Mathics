@@ -2046,3 +2046,4 @@ GRAPHICS_SYMBOLS = frozenset(
     list(element_heads) +
     [element + 'Box' for element in element_heads] +
     list(style_heads))
+
