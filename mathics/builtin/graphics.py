@@ -15,6 +15,7 @@ import base64
 from six.moves import map
 from six.moves import range
 from six.moves import zip
+from itertools import chain
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
@@ -909,6 +910,63 @@ def _svg_bezier(*segments):
             yield s
 
 
+def _asy_bezier(*segments):
+    # see http://asymptote.sourceforge.net/doc/Bezier-curves.html#Bezier-curves
+
+    while segments and not segments[0][1]:
+        segments = segments[1:]
+
+    if not segments:
+        return
+
+    def cubic(p0, p1, p2, p3):
+        return '..controls(%.5g,%.5g) and (%.5g,%.5g)..(%.5g,%.5g)' % (*p1, *p2, *p3)
+
+    def quadratric(qp0, qp1, qp2):
+        # asymptote only supports cubic beziers, so we convert this quadratic
+        # bezier to a cubic bezier, see http://fontforge.github.io/bezier.html
+
+        # CP0 = QP0
+        # CP3 = QP2
+        # CP1 = QP0 + 2 / 3 * (QP1 - QP0)
+        # CP2 = QP2 + 2 / 3 * (QP1 - QP2)
+
+        qp0x, qp0y = qp0
+        qp1x, qp1y = qp1
+        qp2x, qp2y = qp2
+
+        t = 2. / 3.
+        cp0 = qp0
+        cp1 = (qp0x + t * (qp1x - qp0x), qp0y + t * (qp1y - qp0y))
+        cp2 = (qp2x + t * (qp1x - qp2x), qp2y + t * (qp1y - qp2y))
+        cp3 = qp2
+
+        return cubic(cp0, cp1, cp2, cp3)
+
+    def linear(p0, p1):
+        return '--(%.5g,%.5g)' % p1
+
+    forms = (linear, quadratric, cubic)
+
+    def path(max_degree, p):
+        max_degree = min(max_degree, len(forms))
+        while p:
+            n = min(max_degree, len(p) - 1)  # 1, 2, or 3
+            if n < 1:
+                break
+            yield forms[n - 1](*p[:n + 1])
+            p = p[n:]
+
+    k, p = segments[0]
+    yield '(%.5g,%.5g)' % p[0]
+
+    connect = []
+    for k, p in segments:
+        for s in path(k, list(chain(connect, p))):
+            yield s
+        connect = p[-1:]
+
+
 class BernsteinBasis(Builtin):
     rules = {
         'BernsteinBasis[d_, n_, x_]': 'Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]',
@@ -928,7 +986,10 @@ class BezierCurve(Builtin):
     </dl>
 
     >> Graphics[BezierCurve[{{0, 0},{1, 1},{2, -1},{3, 0}}]]
-    = -Graphics-
+     = -Graphics-
+
+    >> Module[{p={{0, 0},{1, 1},{2, -1},{4, 0}}}, Graphics[{BezierCurve[p], Red, Point[Table[BezierFunction[p][x], {x, 0, 1, 0.1}]]}]]
+     = -Graphics-
     """
 
     options = {
@@ -944,7 +1005,10 @@ class BezierCurveBox(_Polyline):
         self.edge_color, _ = style.get_style(_Color, face_element=False)
         points = item.leaves[0]
         self.do_init(graphics, points)
-        self.spline_degree = int(options.get('System`SplineDegree').to_number())
+        spline_degree = options.get('System`SplineDegree')
+        if not isinstance(spline_degree, Integer):
+            raise BoxConstructError
+        self.spline_degree = spline_degree.get_int_value()
 
     def to_svg(self):
         l = self.style.get_line_width(face_element=False)
@@ -960,49 +1024,10 @@ class BezierCurveBox(_Polyline):
         l = self.style.get_line_width(face_element=False)
         pen = create_pens(edge_color=self.edge_color, stroke_width=l)
 
-        # see http://asymptote.sourceforge.net/doc/Bezier-curves.html#Bezier-curves
-
-        def cubic(p0, p1, p2, p3):
-            return '(%.5g,%5g)..controls(%.5g,%5g) and (%.5g,%5g)..(%.5g,%5g)' % (*p0, *p1, *p2, *p3)
-
-        def quadratric(qp0, qp1, qp2):
-            # asymptote only supports cubic beziers, so we convert this quadratic
-            # bezier to a cubic bezier, see http://fontforge.github.io/bezier.html
-
-            # CP0 = QP0
-            # CP3 = QP2
-            # CP1 = QP0 + 2 / 3 * (QP1 - QP0)
-            # CP2 = QP2 + 2 / 3 * (QP1 - QP2)
-
-            qp0x, qp0y = qp0
-            qp1x, qp1y = qp1
-            qp2x, qp2y = qp2
-
-            t = 2. / 3.
-            cp0 = qp0
-            cp1 = (qp0x + t * (qp1x - qp0x), qp0y + t * (qp1y - qp0y))
-            cp2 = (qp2x + t * (qp1x - qp2x), qp2y + t * (qp1y - qp2y))
-            cp3 = qp2
-
-            return cubic(cp0, cp1, cp2, cp3)
-
-        def linear(p0, p1):
-            return '(%.5g,%5g)--(%.5g,%5g)' % (*p0, *p1)
-
-        forms = ((3, cubic), (2, quadratric), (1, linear))
-
-        def path(p):
-            while len(p) > 1:
-                for n, f in forms:
-                    if len(p) >= n + 1:
-                        yield f(*[xy.pos() for xy in p[:n + 1]])
-                        p = p[n:]
-                        break
-
         asy = ''
         for line in self.lines:
-            for draw in path(line):
-                asy += 'draw(%s, %s);' % (draw, pen)
+            for path in _asy_bezier((self.spline_degree, [xy.pos() for xy in line])):
+                asy += 'draw(%s, %s);' % (path, pen)
         return asy
 
 
@@ -1014,6 +1039,9 @@ class FilledCurve(Builtin):
     </dl>
 
     >> Graphics[FilledCurve[{Line[{{0, 0}, {1, 1}, {2, 0}}]}]]
+    = -Graphics-
+
+    >> Graphics[FilledCurve[{BezierCurve[{{0, 0}, {1, 1}, {2, 0}}], Line[{{3, 0}, {0, 2}}]}]]
     = -Graphics-
     """
     pass
@@ -1038,9 +1066,12 @@ class FilledCurveBox(_GraphicsElement):
                         parts = segment.leaves
                     elif head == 'System`BezierCurve':
                         parts, options = _data_and_options(segment.leaves, {})
-                        k = int(options.get('SplineDegree', Integer(3)).to_number())
+                        spline_degree = options.get('SplineDegree', Integer(3))
+                        if not isinstance(spline_degree, Integer):
+                            raise BoxConstructError
+                        k = spline_degree.get_int_value()
                     elif head == 'System`BSplineCurve':
-                        raise NotImplementedError  # convert bspline to bezier here
+                        raise NotImplementedError  # FIXME convert bspline to bezier here
                         parts = segment.leaves
                     else:
                         raise BoxConstructError
@@ -1071,6 +1102,20 @@ class FilledCurveBox(_GraphicsElement):
                 yield ' '.join(_svg_bezier(*transformed)) + ' Z'
 
         return '<path d="%s" style="%s" fill-rule="evenodd"/>' % (' '.join(components()), style)
+
+    def to_asy(self):
+        l = self.style.get_line_width(face_element=False)
+        pen = create_pens(edge_color=self.edge_color, stroke_width=l)
+
+        if not pen:
+            pen = 'currentpen'
+
+        def components():
+            for component in self.components:
+                transformed = [(k, [xy.pos() for xy in p]) for k, p in component]
+                yield 'fill(%s--cycle, %s);' % (''.join(_asy_bezier(*transformed)), pen)
+
+        return ''.join(components())
 
     def extent(self):
         l = self.style.get_line_width(face_element=False)
