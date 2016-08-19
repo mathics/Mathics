@@ -19,7 +19,7 @@ from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
-    Expression, Integer, Real, Symbol, strip_context,
+    Expression, Integer, Rational, Real, Symbol, strip_context,
     system_symbols, system_symbols_dict)
 
 
@@ -1123,8 +1123,11 @@ class Arrowheads(_GraphicsElement):
         if isinstance(s, Symbol):
             size = self.symbolic_sizes.get(s.get_name(), 0)
             return self.graphics.translate_absolute((size, 0))[0]
+        elif isinstance(s, (Real, Rational, Integer)):
+            size = s.to_python()
+            return size * extent
         else:
-            return s.to_number() * extent
+            raise BoxConstructError
 
     def heads(self, extent, default_arrow, custom_arrow):
         # see https://reference.wolfram.com/language/ref/Arrowheads.html
@@ -1152,7 +1155,10 @@ class Arrowheads(_GraphicsElement):
                     else:
                         arrow = default_arrow
 
-                    yield s, spec[1].to_number(), arrow
+                    if not isinstance(spec[1], (Real, Rational, Integer)):
+                        raise BoxConstructError
+
+                    yield s, spec[1].to_python(), arrow
             else:
                 n = max(1., len(leaves) - 1.)
                 for i, head in enumerate(leaves):
