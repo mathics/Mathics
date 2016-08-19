@@ -74,12 +74,13 @@ class Coords(object):
                 self.p = coords(expr)
 
     def pos(self):
-        p = self.graphics.translate(self.p)
+        p = self.p
         p = (cut(p[0]), cut(p[1]))
         if self.d is not None:
             d = self.graphics.translate_absolute(self.d)
-            return (p[0] + d[0], p[1] + d[1])
-        return p
+            return p[0] + d[0], p[1] + d[1]
+        else:
+            return p
 
     def add(self, x, y):
         p = (self.p[0] + x, self.p[1] + y)
@@ -1237,7 +1238,7 @@ class _RoundBox(_GraphicsElement):
         x, y = self.c.pos()
         rx, ry = self.r.pos()
         rx -= x
-        ry = y - ry
+        ry = abs(y - ry)
         l = self.style.get_line_width(face_element=self.face_element)
         style = create_css(self.edge_color, self.face_color, stroke_width=l)
         return '<ellipse cx="%f" cy="%f" rx="%f" ry="%f" style="%s" />' % (
@@ -1247,7 +1248,7 @@ class _RoundBox(_GraphicsElement):
         x, y = self.c.pos()
         rx, ry = self.r.pos()
         rx -= x
-        ry -= y
+        ry = abs(ry - y)
         l = self.style.get_line_width(face_element=self.face_element)
         pen = create_pens(edge_color=self.edge_color,
                           face_color=self.face_color, stroke_width=l,
@@ -2458,11 +2459,14 @@ class GeometricTransformationBox(_GraphicsElement):
         evaluation = graphics.evaluation
         self.transforms = [_Transform(Expression('N', f).evaluate(evaluation)) for f in functions]
 
+    def patch_transforms(self, transforms):
+        self.transforms = transforms
+
     def extent(self):
         def points():
-            fixed_transforms = [self.graphics.fix_transform(transform) for transform in self.transforms]
+            #fixed_transforms = [self.graphics.fix_transform(transform) for transform in self.transforms]
             for content in self.contents:
-                for transform in fixed_transforms:
+                for transform in self.transforms:
                     p = content.extent()
                     for q in transform.transform(p):
                         yield q
@@ -2470,20 +2474,20 @@ class GeometricTransformationBox(_GraphicsElement):
 
     def to_svg(self):
         def instances():
-            fixed_transforms = [self.graphics.fix_transform(transform) for transform in self.transforms]
+            # fixed_transforms = [self.graphics.fix_transform(transform) for transform in self.transforms]
             for content in self.contents:
                 content_svg = content.to_svg()
-                for transform in fixed_transforms:
+                for transform in self.transforms:
                     yield transform.to_svg(content_svg)
         return ''.join(instances())
 
     def to_asy(self):
         def instances():
-            graphics = self.graphics
+            # graphics = self.graphics
             for content in self.contents:
                 content_asy = content.to_asy()
                 for transform in self.transforms:
-                    yield graphics.fix_transform(transform).to_asy(content_asy)
+                    yield transform.to_asy(content_asy)
         return ''.join(instances())
 
 
@@ -2668,7 +2672,7 @@ class Style(object):
         return self.options.get(name, None)
 
     def get_line_width(self, face_element=True):
-        if self.graphics.pixel_width is None:
+        if self.graphics.local_to_world is None:
             return 0
         edge_style, _ = self.get_style(
             _Thickness, default_to_faces=face_element,
@@ -2789,66 +2793,58 @@ class GraphicsElements(_GraphicsElements):
         self.xmin = self.ymin = self.pixel_width = None
         self.pixel_height = self.extent_width = self.extent_height = None
         self.view_width = None
+        self.local_to_world = None
 
-    def fix_transform(self, transform):
-        # mirror what happens in GraphicsElements.translate() in order to get out transformation matrices right.
+    def set_size(self, xmin, ymin, extent_width, extent_height, pixel_width, pixel_height):
+        self.pixel_width = pixel_width
+        self.extent_width = extent_width
 
-        if self.pixel_width is not None:
-            tx = -self.xmin
-            ty = -self.ymin
+        tx = -xmin
+        ty = -ymin
 
-            w = self.extent_width if self.extent_width > 0 else 1
-            h = self.extent_height if self.extent_height > 0 else 1
+        w = extent_width if extent_width > 0 else 1
+        h = extent_height if extent_height > 0 else 1
 
-            sx = self.pixel_width / w
-            sy = self.pixel_height / h
+        sx = pixel_width / w
+        sy = pixel_height / h
 
-            if self.neg_y:
-                sy = -sy
-
-            qx = 0
-            if self.neg_y:
-                qy = self.pixel_height
-            else:
-                qy = 0
-
-            # we compute M1 = TranslationTransform[{qx, qy}].ScalingTransform[{sx, sy}].TranslationTransform[{tx, ty}]
-            # and its inverse M2 = Inverse[M1]
-
-            m1 = [[sx, 0, sx * tx + qx], [0, sy, sy * ty + qy], [0, 0, 1]]
-
-            m2 = [[1. / sx, 0, (-qx * sy - sx * sy * tx) / (sx * sy)],
-                  [0, 1. / sy, (-qy * sx - sx * sy * ty) / (sx * sy)],
-                  [0, 0, 1]]
-
-            return _Transform(m1).multiply(transform).multiply(_Transform(m2))
+        qx = 0
+        if self.neg_y:
+            sy = -sy
+            qy = pixel_height
         else:
-            return transform
+            qy = 0
+
+        # now build a transform matrix that mimics what used to happen in GraphicsElements.translate().
+        # m = TranslationTransform[{qx, qy}].ScalingTransform[{sx, sy}].TranslationTransform[{tx, ty}]
+
+        m = [[sx, 0, sx * tx + qx], [0, sy, sy * ty + qy], [0, 0, 1]]
+        transform = _Transform(m)
+
+        # update the GeometricTransformationBox, that always has to be the root element.
+
+        self.elements[0].patch_transforms([transform])
+        self.local_to_world = transform
 
     def translate(self, coords):
-        if self.pixel_width is not None:
-            w = self.extent_width if self.extent_width > 0 else 1
-            h = self.extent_height if self.extent_height > 0 else 1
-            result = [(coords[0] - self.xmin) * self.pixel_width / w,
-                      (coords[1] - self.ymin) * self.pixel_height / h]
-            if self.neg_y:
-                result[1] = self.pixel_height - result[1]
-            return tuple(result)
+        if self.local_to_world:
+            return list(self.local_to_world.transform([coords]))[0]
         else:
-            return (coords[0], coords[1])
+            return coords[0], coords[1]
 
     def translate_absolute(self, d):
-        if self.pixel_width is None:
-            return (0, 0)
+        if self.local_to_world is None:
+            return 0, 0
         else:
-            l = 96.0 / 72
-            return (d[0] * l, (-1 if self.neg_y else 1) * d[1] * l)
+            s = self.extent_width / self.pixel_width  # d is a pixel size
+            l = s * 96.0 / 72
+            return d[0] * l, (-1 if self.neg_y else 1) * d[1] * l
 
     def translate_relative(self, x):
-        if self.pixel_width is None:
+        if self.local_to_world is None:
             return 0
         else:
-            return x * self.pixel_width
+            return x * self.extent_width
 
     def extent(self, completely_visible_only=False):
         if completely_visible_only:
@@ -2870,13 +2866,6 @@ class GraphicsElements(_GraphicsElements):
 
     def to_asy(self):
         return '\n'.join(element.to_asy() for element in self.elements)
-
-    def set_size(self, xmin, ymin, extent_width, extent_height, pixel_width,
-                 pixel_height):
-
-        self.xmin, self.ymin = xmin, ymin
-        self.extent_width, self.extent_height = extent_width, extent_height
-        self.pixel_width, self.pixel_height = pixel_width, pixel_height
 
 
 class GraphicsBox(BoxConstruct):
@@ -2957,7 +2946,12 @@ class GraphicsBox(BoxConstruct):
         if not isinstance(plot_range, list) or len(plot_range) != 2:
             raise BoxConstructError
 
-        elements = GraphicsElements(leaves[0], options['evaluation'], neg_y)
+        transformation = Expression('System`TransformationFunction', [[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+
+        elements = GraphicsElements(
+            Expression('System`GeometricTransformationBox', leaves[0], transformation),
+            options['evaluation'], neg_y)
+
         axes = []  # to be filled further down
 
         def calc_dimensions(final_pass=True):
