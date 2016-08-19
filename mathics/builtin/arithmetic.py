@@ -1811,7 +1811,9 @@ class Piecewise(SympyFunction):
     def apply(self, items, evaluation):
         'Piecewise[items__]'
         result = self.to_sympy(
-            Expression('Piecewise', *items.get_sequence()))
+            Expression('Piecewise', *items.get_sequence()), evaluation=evaluation)
+        if result is None:
+            return
         if not isinstance(result, sympy.Piecewise):
             return from_sympy(result)
 
@@ -1821,6 +1823,8 @@ class Piecewise(SympyFunction):
         if len(leaves) not in (1, 2):
             return
 
+        evaluation = kwargs['evaluation']
+
         sympy_cases = []
         for case in leaves[0].leaves:
             if case.get_head_name() != 'System`List':
@@ -1828,6 +1832,7 @@ class Piecewise(SympyFunction):
             if len(case.leaves) != 2:
                 return
             then, cond = case.leaves
+            cond = cond.evaluate(evaluation)
 
             sympy_cond = None
             if isinstance(cond, Symbol):
@@ -1838,6 +1843,8 @@ class Piecewise(SympyFunction):
                     sympy_cond = False
             if sympy_cond is None:
                 sympy_cond = cond.to_sympy(**kwargs)
+                if not (sympy_cond.is_Relational or sympy_cond.is_Boolean):
+                    return
 
             sympy_cases.append((then.to_sympy(**kwargs), sympy_cond))
 
