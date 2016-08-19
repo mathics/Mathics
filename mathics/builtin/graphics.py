@@ -374,13 +374,10 @@ class _Transform():
 
         self.matrix = [[_to_float(x) for x in row.leaves] for row in rows]
 
-    def scaled(self, x, y):
-        # we compute ABC, where A is the scale matrix (x, y, 1), C is the
-        # scale matrix (1 / x, 1 / y, 1) and B is self.matrix.
-        m = self.matrix
-        ab = [[t * x for t in m[0]], [t * y for t in m[1]], m[2]]
-        s = (1. / x, 1. / y, 1.)
-        return _Transform([[s[i] * t for i, t in enumerate(row)] for row in ab])
+    def multiply(self, other):
+        a = self.matrix
+        b = other.matrix
+        return _Transform([[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)])
 
     def transform(self, p):
         m = self.matrix
@@ -447,64 +444,6 @@ class _Transform():
         """
 
         return template % (t, asy)
-
-
-class _SVGTransform():
-    def __init__(self):
-        self.transforms = []
-
-    def matrix(self, a, b, c, d, e, f):
-        # a c e
-        # b d f
-        # 0 0 1
-        self.transforms.append('matrix(%f, %f, %f, %f, %f, %f)' % (a, b, c, d, e, f))
-
-    def translate(self, x, y):
-        self.transforms.append('translate(%f, %f)' % (x, y))
-
-    def scale(self, x, y):
-        self.transforms.append('scale(%f, %f)' % (x, y))
-
-    def rotate(self, x):
-        self.transforms.append('rotate(%f)' % x)
-
-    def apply(self, svg):
-        return '<g transform="%s">%s</g>' % (' '.join(self.transforms), svg)
-
-
-class _ASYTransform():
-    _template = """
-    add(%s * (new picture() {
-        picture saved = currentpicture;
-        picture transformed = new picture;
-        currentpicture = transformed;
-        %s
-        currentpicture = saved;
-        return transformed;
-    })());
-    """
-
-    def __init__(self):
-        self.transforms = []
-
-    def matrix(self, a, b, c, d, e, f):
-        # a c e
-        # b d f
-        # 0 0 1
-        # see http://asymptote.sourceforge.net/doc/Transforms.html#Transforms
-        self.transforms.append('(%f, %f, %f, %f, %f, %f)' % (e, f, a, c, b, d))
-
-    def translate(self, x, y):
-        self.transforms.append('shift(%f, %f)' % (x, y))
-
-    def scale(self, x, y):
-        self.transforms.append('scale(%f, %f)' % (x, y))
-
-    def rotate(self, x):
-        self.transforms.append('rotate(%f)' % x)
-
-    def apply(self, asy):
-        return self._template % (' * '.join(self.transforms), asy)
 
 
 class Graphics(Builtin):
@@ -1225,10 +1164,17 @@ class RectangleBox(_GraphicsElement):
     def extent(self):
         l = self.style.get_line_width(face_element=True) / 2
         result = []
-        for p in [self.p1, self.p2]:
-            x, y = p.pos()
-            result.extend([(x - l, y - l), (
-                x - l, y + l), (x + l, y - l), (x + l, y + l)])
+
+        tx1, ty1 = self.p1.pos()
+        tx2, ty2 = self.p2.pos()
+
+        x1 = min(tx1, tx2) - l
+        x2 = max(tx1, tx2) + l
+        y1 = min(ty1, ty2) - l
+        y2 = max(ty1, ty2) + l
+
+        result.extend([(x1, y1), (x1, y2), (x2, y1), (x2, y2)])
+
         return result
 
     def to_svg(self):
@@ -2458,6 +2404,9 @@ class Rotate(Builtin):
 
     >> Graphics[Rotate[Rectangle[], Pi / 3]]
      = -Graphics-
+
+    >> Graphics[{Rotate[Rectangle[{0, 0}, {0.2, 0.2}], 1.2, {0.1, 0.1}], Red, Disk[{0.1, 0.1}, 0.05]}]
+     = -Graphics-
     """
 
     rules = {
@@ -2475,6 +2424,9 @@ class Scale(Builtin):
 
     >> Graphics[Rotate[Rectangle[], Pi / 3]]
      = -Graphics-
+
+    >> Graphics[{Scale[Rectangle[{0, 0}, {0.2, 0.2}], 3, {0.1, 0.1}], Red, Disk[{0.1, 0.1}, 0.05]}]
+     = -Graphics-
     """
 
     rules = {
@@ -2488,8 +2440,8 @@ class Scale(Builtin):
 class GeometricTransformation(Builtin):
     """
     <dl>
-    <dt>'GeometricTransformation[g, tfm]'
-        <dd>transforms an object by the given transformation.
+    <dt>'GeometricTransformation[$g$, $tfm$]'
+        <dd>transforms an object $g$ with the transformation $tfm$.
     </dl>
     """
     pass
@@ -2508,21 +2460,21 @@ class GeometricTransformationBox(_GraphicsElement):
 
     def extent(self):
         def points():
-            graphics = self.graphics
+            fixed_transforms = [self.graphics.fix_transform(transform) for transform in self.transforms]
             for content in self.contents:
-                for transform in self.transforms:
+                for transform in fixed_transforms:
                     p = content.extent()
-                    for q in graphics.fix_transform(transform).transform(p):
+                    for q in transform.transform(p):
                         yield q
         return list(points())
 
     def to_svg(self):
         def instances():
-            graphics = self.graphics
+            fixed_transforms = [self.graphics.fix_transform(transform) for transform in self.transforms]
             for content in self.contents:
                 content_svg = content.to_svg()
-                for transform in self.transforms:
-                    yield graphics.fix_transform(transform).to_svg(content_svg)
+                for transform in fixed_transforms:
+                    yield transform.to_svg(content_svg)
         return ''.join(instances())
 
     def to_asy(self):
@@ -2839,12 +2791,37 @@ class GraphicsElements(_GraphicsElements):
         self.view_width = None
 
     def fix_transform(self, transform):
+        # mirror what happens in GraphicsElements.translate() in order to get out transformation matrices right.
+
         if self.pixel_width is not None:
+            tx = -self.xmin
+            ty = -self.ymin
+
             w = self.extent_width if self.extent_width > 0 else 1
             h = self.extent_height if self.extent_height > 0 else 1
-            x = self.pixel_width / w
-            y = self.pixel_height / h
-            return transform.scaled(x, y)
+
+            sx = self.pixel_width / w
+            sy = self.pixel_height / h
+
+            if self.neg_y:
+                sy = -sy
+
+            qx = 0
+            if self.neg_y:
+                qy = self.pixel_height
+            else:
+                qy = 0
+
+            # we compute M1 = TranslationTransform[{qx, qy}].ScalingTransform[{sx, sy}].TranslationTransform[{tx, ty}]
+            # and its inverse M2 = Inverse[M1]
+
+            m1 = [[sx, 0, sx * tx + qx], [0, sy, sy * ty + qy], [0, 0, 1]]
+
+            m2 = [[1. / sx, 0, (-qx * sy - sx * sy * tx) / (sx * sy)],
+                  [0, 1. / sy, (-qy * sx - sx * sy * ty) / (sx * sy)],
+                  [0, 0, 1]]
+
+            return _Transform(m1).multiply(transform).multiply(_Transform(m2))
         else:
             return transform
 

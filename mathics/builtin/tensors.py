@@ -475,3 +475,100 @@ def get_default_distance(p):
             return 'ColorDistance'
 
         return None
+
+
+
+class TransformationFunction(Builtin):
+    """
+    <dl>
+    <dt>'TransformationFunction[$m$]'
+        <dd>represents a transformation.
+    </dl>
+
+    >> RotationTransform[Pi].TranslationTransform[{1, -1}]
+     = TransformationFunction[{{-1, 0, -1}, {0, -1, 1}, {0, 0, 1}}]
+
+    >> TranslationTransform[{1, -1}].RotationTransform[Pi]
+     = TransformationFunction[{{-1, 0, 1}, {0, -1, -1}, {0, 0, 1}}]
+    """
+
+    rules = {
+        'Dot[TransformationFunction[a_], TransformationFunction[b_]]': 'TransformationFunction[a . b]',
+        'TransformationFunction[m_][v_]': 'Take[m . Join[v, {1}], Length[v]]',
+    }
+
+
+class TranslationTransform(Builtin):
+    """
+    <dl>
+    <dt>'TranslationTransform[$v$]'
+        <dd>gives the translation by the vector $v$.
+    </dl>
+
+    >> TranslationTransform[{1, 2}]
+     = TransformationFunction[{{1, 0, 1}, {0, 1, 2}, {0, 0, 1}}]
+    """
+
+    rules = {
+        'TranslationTransform[v_]':
+            'TransformationFunction[IdentityMatrix[Length[v] + 1] + '
+            '(Join[ConstantArray[0, Length[v]], {#}]& /@ Join[v, {0}])]',
+    }
+
+
+class RotationTransform(Builtin):
+    """
+    <dl>
+    <dt>'RotationTransform[$phi$]'
+        <dd>gives a rotation by $phi$.
+    <dt>'RotationTransform[$phi$, $p$]'
+        <dd>gives a rotation by $phi$ around the point $p$.
+    </dl>
+    """
+
+    rules = {
+        'RotationTransform[phi_]':
+            'TransformationFunction[{{Cos[phi], -Sin[phi], 0}, {Sin[phi], Cos[phi], 0}, {0, 0, 1}}]',
+        'RotationTransform[phi_, p_]':
+            'TranslationTransform[p] . RotationTransform[phi] . TranslationTransform[-p]',
+    }
+
+
+class ScalingTransform(Builtin):
+    """
+    <dl>
+    <dt>'ScalingTransform[$v$]'
+        <dd>gives a scaling transform of $v$. $v$ may be a scalar or a vector.
+    <dt>'ScalingTransform[$phi$, $p$]'
+        <dd>gives a scaling transform of $v$ that is centered at the point $p$.
+    </dl>
+    """
+
+    rules = {
+        'ScalingTransform[v_]':
+            'TransformationFunction[DiagonalMatrix[Join[v, {1}]]]',
+        'ScalingTransform[v_, p_]':
+            'TranslationTransform[p] . ScalingTransform[v] . TranslationTransform[-p]',
+    }
+
+
+class ShearingTransform(Builtin):
+    """
+    <dl>
+    <dt>'ShearingTransform[$phi$, {1, 0}, {0, 1}]'
+        <dd>gives a horizontal shear by the angle $phi$.
+    <dt>'ShearingTransform[$phi$, {0, 1}, {1, 0}]'
+        <dd>gives a vertical shear by the angle $phi$.
+    <dt>'ShearingTransform[$phi$, $u$, $u$, $p$]'
+        <dd>gives a shear centered at the point $p$.
+    </dl>
+    """
+
+    rules = {
+        'ShearingTransform[phi_, {1, 0}, {0, 1}]':
+            'TransformationFunction[{{1, Tan[phi], 0}, {0, 1, 0}, {0, 0, 1}}]',
+        'ShearingTransform[phi_, {0, 1}, {1, 0}]':
+            'TransformationFunction[{{1, 0, 0}, {Tan[phi], 1, 0}, {0, 0, 1}}]',
+        'ShearingTransform[phi_, u_, v_, p_]':
+            'TranslationTransform[p] . ShearingTransform[phi, u, v] . TranslationTransform[-p]',
+    }
