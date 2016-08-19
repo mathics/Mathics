@@ -1797,9 +1797,16 @@ class Piecewise(SympyFunction):
 
     >> Plot[Piecewise[{{Log[x], x > 0}, {x*-0.5, x < 0}}], {x, -1, 1}]
      = -Graphics-
+
+    >> Piecewise[{{0 ^ 0, False}}, -1]
+     = -1
     """
 
     sympy_name = 'Piecewise'
+
+    attributes = (
+        'HoldAll',
+    )
 
     def apply(self, items, evaluation):
         'Piecewise[items__]'
