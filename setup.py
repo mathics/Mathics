@@ -32,7 +32,6 @@ import sys
 import platform
 import os
 from setuptools import setup, Command, Extension
-from setuptools.command.install import install as _install
 
 # Ensure user has the correct Python version
 if sys.version_info[:2] != (2, 7) and sys.version_info < (3, 2):
@@ -144,19 +143,8 @@ class test(Command):
             sys.exit(1)
 
 
-class install(_install):
-    def initialize_database(_):
-        import os, sys, subprocess
-        subprocess.call([sys.executable, 'setup.py', 'initialize'], cwd=os.getcwd())
-
-    def run(self):
-        self.do_egg_install()
-        self.execute(self.initialize_database, [])
-
-
 CMDCLASS['initialize'] = initialize
 CMDCLASS['test'] = test
-CMDCLASS['install'] = install
 
 mathjax_files = list(subdirs('media/js/mathjax/'))
 
