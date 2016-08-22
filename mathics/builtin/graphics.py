@@ -431,20 +431,11 @@ class _Transform():
         # b d f
         # 0 0 1
         # see http://asymptote.sourceforge.net/doc/Transforms.html#Transforms
-        t = '(%f, %f, %f, %f, %f, %f)' % (e, f, a, c, b, d)
+        t = ','.join(map(asy_number, (e, f, a, c, b, d)))
 
-        template = """
-        add(%s * (new picture() {
-            picture saved = currentpicture;
-            picture transformed = new picture;
-            currentpicture = transformed;
-            %s
-            currentpicture = saved;
-            return transformed;
-        })());
-        """
-
-        return template % (t, asy)
+        return ''.join(("add((", t, ")*(new picture(){",
+                        "picture s=currentpicture,t=new picture;currentpicture=t;", asy,
+                        "currentpicture=s;return t;})());"))
 
 
 class Graphics(Builtin):
@@ -473,7 +464,7 @@ class Graphics(Builtin):
      = 
      . \begin{asy}
      . size(5.8556cm, 5.8333cm);
-     . draw(ellipse((175,175),175,175), rgb(0, 0, 0)+linewidth(0.66667));
+     . add((175,175,175,0,0,175)*(new picture(){picture s=currentpicture,t=new picture;currentpicture=t;draw(ellipse((0,0),1,1), rgb(0, 0, 0)+linewidth(0.0038095));currentpicture=s;return t;})());
      . clip(box((-0.33333,0.33333), (350.33,349.67)));
      . \end{asy}
 
