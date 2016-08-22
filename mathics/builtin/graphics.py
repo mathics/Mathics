@@ -11,6 +11,7 @@ from __future__ import division
 
 from math import floor, ceil, log10
 import json
+import base64
 from six.moves import map
 from six.moves import range
 from six.moves import zip
@@ -1453,14 +1454,19 @@ clip(box((%s,%s), (%s,%s)));
         w += 2
         h += 2
 
-        xml = (
-            '<svg xmlns:svg="http://www.w3.org/2000/svg" '
-            'xmlns="http://www.w3.org/2000/svg"\nversion="1.0" width="%f" '
-            'height="%f" viewBox="%f %f %f %f">%s</svg>') % (
-                width, height, xmin, ymin, w, h, svg)
+        svg_xml = '''
+            <svg xmlns:svg="http://www.w3.org/2000/svg"
+                xmlns="http://www.w3.org/2000/svg"
+                version="1.1"
+                viewBox="%s">
+                %s
+            </svg>
+        ''' % (' '.join('%f' % t for t in (xmin, ymin, w, h)), svg)
 
-        xml = """<mtable><mtr><mtd>%s</mtd></mtr></mtable>""" % xml
-        return xml
+        return '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>' % (
+            int(width),
+            int(height),
+            base64.b64encode(svg_xml.encode('utf8')).decode('utf8'))
 
     def axis_ticks(self, xmin, xmax):
         def round_to_zero(value):
