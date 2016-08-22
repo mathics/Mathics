@@ -59,10 +59,9 @@ def coords(value):
 
 
 class Coords(object):
-    def __init__(self, graphics, expr=None, pos=None, d=None):
+    def __init__(self, graphics, expr=None, pos=None):
         self.graphics = graphics
         self.p = pos
-        self.d = d
         if expr is not None:
             if expr.has_form('Offset', 1, 2):
                 self.d = coords(expr.leaves[0])
@@ -76,15 +75,27 @@ class Coords(object):
     def pos(self):
         p = self.p
         p = (cut(p[0]), cut(p[1]))
-        if self.d is not None:
-            d = self.graphics.translate_absolute(self.d)
-            return p[0] + d[0], p[1] + d[1]
-        else:
-            return p
+        return p
 
     def add(self, x, y):
         p = (self.p[0] + x, self.p[1] + y)
         return Coords(self.graphics, pos=p, d=self.d)
+
+
+class AxisCoords(Coords):
+    def __init__(self, graphics, expr=None, pos=None, d=None):
+        super(AxisCoords, self).__init__(graphics, expr=expr, pos=pos)
+        self.d = d
+
+    def pos(self):
+        p = self.p
+        p = self.graphics.translate(p)
+        p = (cut(p[0]), cut(p[1]))
+        if self.d is not None:
+            d = self.graphics.translate_absolute_in_pixels(self.d)
+            return p[0] + d[0], p[1] + d[1]
+        else:
+            return p
 
 
 def cut(value):
@@ -2455,7 +2466,6 @@ class GeometricTransformationBox(_GraphicsElement):
 
     def extent(self):
         def points():
-            #fixed_transforms = [self.graphics.fix_transform(transform) for transform in self.transforms]
             for content in self.contents:
                 for transform in self.transforms:
                     p = content.extent()
@@ -2465,7 +2475,6 @@ class GeometricTransformationBox(_GraphicsElement):
 
     def to_svg(self):
         def instances():
-            # fixed_transforms = [self.graphics.fix_transform(transform) for transform in self.transforms]
             for content in self.contents:
                 content_svg = content.to_svg()
                 for transform in self.transforms:
@@ -2817,6 +2826,11 @@ class GraphicsElements(_GraphicsElements):
         self.elements[0].patch_transforms([transform])
         self.local_to_world = transform
 
+    def add_axis_element(self, e):
+        # axis elements are added after the GeometricTransformationBox and are thus not
+        # subject to the transformation from local to pixel space.
+        self.elements.append(e)
+
     def translate(self, coords):
         if self.local_to_world:
             return list(self.local_to_world.transform([coords]))[0]
@@ -2824,11 +2838,15 @@ class GraphicsElements(_GraphicsElements):
             return coords[0], coords[1]
 
     def translate_absolute(self, d):
+        s = self.extent_width / self.pixel_width
+        x, y = self.translate_absolute_in_pixels(d)
+        return x * s, y * s
+
+    def translate_absolute_in_pixels(self, d):
         if self.local_to_world is None:
             return 0, 0
         else:
-            s = self.extent_width / self.pixel_width  # d is a pixel size
-            l = s * 96.0 / 72
+            l = 96.0 / 72  # d is measured in printer's points
             return d[0] * l, (-1 if self.neg_y else 1) * d[1] * l
 
     def translate_relative(self, x):
@@ -3225,7 +3243,7 @@ clip(%s);
 
         def add_element(element):
             element.is_completely_visible = True
-            elements.elements.append(element)
+            elements.add_axis_element(element)
 
         ticks_x, ticks_x_small, origin_x = self.axis_ticks(xmin, xmax)
         ticks_y, ticks_y_small, origin_y = self.axis_ticks(ymin, ymax)
@@ -3248,16 +3266,14 @@ clip(%s);
             if axes[index]:
                 add_element(LineBox(
                     elements, axes_style[index],
-                    lines=[[Coords(elements, pos=p_origin(min),
-                                   d=p_other0(-axes_extra)),
-                            Coords(elements, pos=p_origin(max),
-                                   d=p_other0(axes_extra))]]))
+                    lines=[[AxisCoords(elements, pos=p_origin(min), d=p_other0(-axes_extra)),
+                            AxisCoords(elements, pos=p_origin(max), d=p_other0(axes_extra))]]))
                 ticks_lines = []
                 tick_label_style = ticks_style[index].clone()
                 tick_label_style.extend(label_style)
                 for x in ticks:
-                    ticks_lines.append([Coords(elements, pos=p_origin(x)),
-                                        Coords(elements, pos=p_origin(x),
+                    ticks_lines.append([AxisCoords(elements, pos=p_origin(x)),
+                                        AxisCoords(elements, pos=p_origin(x),
                                                d=p_self0(tick_large_size))])
                     if ticks_int:
                         content = String(str(int(x)))
@@ -3268,12 +3284,12 @@ clip(%s);
                     add_element(InsetBox(
                         elements, tick_label_style,
                         content=content,
-                        pos=Coords(elements, pos=p_origin(x),
+                        pos=AxisCoords(elements, pos=p_origin(x),
                                    d=p_self0(-tick_label_d)), opos=p_self0(1)))
                 for x in ticks_small:
                     pos = p_origin(x)
-                    ticks_lines.append([Coords(elements, pos=pos),
-                                        Coords(elements, pos=pos,
+                    ticks_lines.append([AxisCoords(elements, pos=pos),
+                                        AxisCoords(elements, pos=pos,
                                                d=p_self0(tick_small_size))])
                 add_element(LineBox(elements, axes_style[0],
                                     lines=ticks_lines))
