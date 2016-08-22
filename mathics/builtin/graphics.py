@@ -79,7 +79,7 @@ class Coords(object):
 
     def add(self, x, y):
         p = (self.p[0] + x, self.p[1] + y)
-        return Coords(self.graphics, pos=p, d=self.d)
+        return Coords(self.graphics, pos=p)
 
 
 class AxisCoords(Coords):
@@ -96,6 +96,9 @@ class AxisCoords(Coords):
             return p[0] + d[0], p[1] + d[1]
         else:
             return p
+
+    def add(self, x, y):
+        raise NotImplementedError
 
 
 def cut(value):
