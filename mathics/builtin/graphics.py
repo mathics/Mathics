@@ -118,6 +118,12 @@ def asy_number(value):
     return '%.5g' % value
 
 
+def _to_float(x):
+    x = x.round_to_float()
+    if x is None:
+        raise BoxConstructError
+    return x
+
 def create_pens(edge_color=None, face_color=None, stroke_width=None,
                 is_face_element=False):
     result = []
@@ -1100,7 +1106,7 @@ class Arrowheads(_GraphicsElement):
     >> Graphics[{Circle[], Arrowheads[{{0.04, 1, Graphics[{Red, Disk[]}]}}], Arrow[{{0, 0}, {Cos[Pi/3],Sin[Pi/3]}}]}]
      = -Graphics-
 
-    >> Graphics[{Arrowheads[Table[{0.04, i/10,Graphics[Disk[]]},{i,1,10}]], Arrow[{{0, 0}, {5, 5}, {1, -3}, {10, 2}}]}]
+    >> Graphics[{Arrowheads[Table[{0.04, i/10, Graphics[Disk[]]},{i,1,10}]], Arrow[{{0, 0}, {6, 5}, {1, -3}, {-2, 2}}]}]
      = -Graphics-
     """
 
@@ -1123,11 +1129,8 @@ class Arrowheads(_GraphicsElement):
         if isinstance(s, Symbol):
             size = self.symbolic_sizes.get(s.get_name(), 0)
             return self.graphics.translate_absolute((size, 0))[0]
-        elif isinstance(s, (Real, Rational, Integer)):
-            size = s.to_python()
-            return size * extent
         else:
-            raise BoxConstructError
+            return _to_float(s) * extent
 
     def heads(self, extent, default_arrow, custom_arrow):
         # see https://reference.wolfram.com/language/ref/Arrowheads.html
@@ -1158,7 +1161,7 @@ class Arrowheads(_GraphicsElement):
                     if not isinstance(spec[1], (Real, Rational, Integer)):
                         raise BoxConstructError
 
-                    yield s, spec[1].to_python(), arrow
+                    yield s, _to_float(spec[1]), arrow
             else:
                 n = max(1., len(leaves) - 1.)
                 for i, head in enumerate(leaves):
@@ -1194,9 +1197,9 @@ class ArrowBox(_Polyline):
             leaves = expr.leaves
             if len(leaves) != 2:
                 raise BoxConstructError
-            return tuple(max(l.to_number(), 0.) for l in leaves)
+            return tuple(max(_to_float(l), 0.) for l in leaves)
         else:
-            s = max(expr.to_number(), 0.)
+            s = max(_to_float(expr), 0.)
             return s, s
 
     @staticmethod
