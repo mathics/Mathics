@@ -3500,46 +3500,46 @@ class _Pad(Builtin):
 
         return Expression(l.get_head(), *list(chain(*parts)))
 
-    def _pad(self, l, n, x, m, evaluation, expr):
-        if not isinstance(l, Expression):
+    def _pad(self, in_l, in_n, in_x, in_m, evaluation, expr):
+        if not isinstance(in_l, Expression):
             evaluation.message(self.get_name(), 'normal', expr())
             return
 
         py_n = None
-        if isinstance(n, Symbol) and n.get_name() == 'System`Automatic':
-            py_n = _Pad._find_dims(l)
-        elif n.get_head_name() == 'System`List':
-            if all(isinstance(x, Integer) for x in n.leaves):
-                py_n = [x.get_int_value() for x in n.leaves]
-        elif isinstance(n, Integer):
-            py_n = [n.get_int_value()]
+        if isinstance(in_n, Symbol) and in_n.get_name() == 'System`Automatic':
+            py_n = _Pad._find_dims(in_l)
+        elif in_n.get_head_name() == 'System`List':
+            if all(isinstance(leaf, Integer) for leaf in in_n.leaves):
+                py_n = [leaf.get_int_value() for leaf in in_n.leaves]
+        elif isinstance(in_n, Integer):
+            py_n = [in_n.get_int_value()]
 
         if py_n is None:
             evaluation.message(self.get_name(), 'ilsm', 2, expr())
             return
 
-        if x.get_head_name() == 'System`List':
-            py_x = x.leaves
+        if in_x.get_head_name() == 'System`List':
+            py_x = in_x.leaves
         else:
-            py_x = [x]
+            py_x = [in_x]
 
-        if isinstance(m, Integer):
-            py_m = m.get_int_value()
+        if isinstance(in_m, Integer):
+            py_m = in_m.get_int_value()
         else:
-            if not all(isinstance(x, Integer) for x in m.leaves):
+            if not all(isinstance(x, Integer) for x in in_m.leaves):
                 evaluation.message(self.get_name(), 'ilsm', 4, expr())
                 return
-            py_m = [x.get_int_value() for x in m.leaves]
+            py_m = [x.get_int_value() for x in in_m.leaves]
 
         try:
-            return _Pad._build(l, py_n, py_x, py_m, 1, self._mode)
+            return _Pad._build(in_l, py_n, py_x, py_m, 1, self._mode)
         except _IllegalPaddingDepth as e:
             def levels(k):
                 if k == 1:
                     return '1 level'
                 else:
                     return '%d levels' % k
-            evaluation.message(self.get_name(), 'level', n, levels(len(py_n)), l, levels(e.level - 1))
+            evaluation.message(self.get_name(), 'level', in_n, levels(len(py_n)), in_l, levels(e.level - 1))
             return None
 
     def apply_zero(self, l, n, evaluation):
