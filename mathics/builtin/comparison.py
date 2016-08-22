@@ -318,7 +318,21 @@ def do_cmp(x1, x2):
         return None
 
 
-class Equal(_EqualityOperator, SympyFunction):
+class SympyComparison(SympyFunction):
+    def to_sympy(self, expr, **kwargs):
+        to_sympy = super(SympyComparison, self).to_sympy
+        if len(expr.leaves) > 2:
+            def pairs(items):
+                yield Expression(expr.get_head_name(), *items[:2])
+                items = items[1:]
+                while len(items) >= 2:
+                    yield Expression(expr.get_head_name(), *items[:2])
+                    items = items[1:]
+            return sympy.And(*[to_sympy(p, **kwargs) for p in pairs(expr.leaves)])
+        return to_sympy(expr, **kwargs)
+
+
+class Equal(_EqualityOperator, SympyComparison):
     """
     <dl>
     <dt>'Equal[$x$, $y$]'
@@ -408,7 +422,7 @@ class Equal(_EqualityOperator, SympyFunction):
         return x
 
 
-class Unequal(_EqualityOperator, SympyFunction):
+class Unequal(_EqualityOperator, SympyComparison):
     """
     <dl>
     <dt>'Unequal[$x$, $y$]'
@@ -463,7 +477,7 @@ class Unequal(_EqualityOperator, SympyFunction):
         return not x
 
 
-class Less(_ComparisonOperator, SympyFunction):
+class Less(_ComparisonOperator, SympyComparison):
     """
     <dl>
     <dt>'Less[$x$, $y$]'
@@ -481,7 +495,7 @@ class Less(_ComparisonOperator, SympyFunction):
     sympy_name = 'StrictLessThan'
 
 
-class LessEqual(_ComparisonOperator, SympyFunction):
+class LessEqual(_ComparisonOperator, SympyComparison):
     """
     <dl>
     <dt>'LessEqual[$x$, $y$]'
@@ -495,7 +509,7 @@ class LessEqual(_ComparisonOperator, SympyFunction):
     sympy_name = 'LessThan'
 
 
-class Greater(_ComparisonOperator, SympyFunction):
+class Greater(_ComparisonOperator, SympyComparison):
     """
     <dl>
     <dt>'Greater[$x$, $y$]'
@@ -514,7 +528,7 @@ class Greater(_ComparisonOperator, SympyFunction):
     sympy_name = 'StrictGreaterThan'
 
 
-class GreaterEqual(_ComparisonOperator, SympyFunction):
+class GreaterEqual(_ComparisonOperator, SympyComparison):
     """
     <dl>
     <dt>'GreaterEqual[$x$, $y$]'
