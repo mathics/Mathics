@@ -202,11 +202,11 @@ function translateDOMElement(element, svg) {
 		drawGraphics3D(div, data);
 		dom = div;
 	}
-	if (nodeName == 'svg' || nodeName == 'graphics3d') {
+	if (nodeName == 'svg' || nodeName == 'graphics3d' || nodeName.toLowerCase() == 'img') {
 		// create <mspace> that will contain the graphics
 		object = createMathNode('mspace');
 		var width, height;
-		if (nodeName == 'svg') {
+		if (nodeName == 'svg' || nodeName.toLowerCase() == 'img') {
 			width = dom.getAttribute('width');
 			height = dom.getAttribute('height');
 		} else {

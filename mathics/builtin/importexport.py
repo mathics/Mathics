@@ -34,7 +34,7 @@ class ImportFormats(Predefined):
     </dl>
 
     >> $ImportFormats
-     = {CSV, JSON, Text}
+     = {...CSV,...JSON,...Text...}
     """
 
     name = '$ImportFormats'
@@ -51,7 +51,7 @@ class ExportFormats(Predefined):
     </dl>
 
     >> $ExportFormats
-     = {CSV, SVG, Text}
+     = {...CSV,...SVG,...Text...}
     """
 
     name = '$ExportFormats'
@@ -273,12 +273,6 @@ class Import(Builtin):
     ## JSON
     >> Import["ExampleData/colors.json"]
      = {colorsArray -> {{colorName -> black, rgbValue -> (0, 0, 0), hexValue -> #000000}, {colorName -> red, rgbValue -> (255, 0, 0), hexValue -> #FF0000}, {colorName -> green, rgbValue -> (0, 255, 0), hexValue -> #00FF00}, {colorName -> blue, rgbValue -> (0, 0, 255), hexValue -> #0000FF}, {colorName -> yellow, rgbValue -> (255, 255, 0), hexValue -> #FFFF00}, {colorName -> cyan, rgbValue -> (0, 255, 255), hexValue -> #00FFFF}, {colorName -> magenta, rgbValue -> (255, 0, 255), hexValue -> #FF00FF}, {colorName -> white, rgbValue -> (255, 255, 255), hexValue -> #FFFFFF}}}
-    """
-
-    # TODO: Images tests
-    """
-    >> Import["ExampleData/sunflowers.jpg"]
-     = -Image-
     """
 
     messages = {
@@ -506,7 +500,16 @@ class Export(Builtin):
     }
 
     _extdict = {
+        'bmp': 'BMP',
+        'gif': 'GIF',
+        'jp2': 'JPEG2000',
         'jpg': 'JPEG',
+        'pcx': 'PCX',
+        'png': 'PNG',
+        'ppm': 'PPM',
+        'pbm': 'PBM',
+        'pgm': 'PGM',
+        'tif': 'TIFF',
         'txt': 'Text',
         'csv': 'CSV',
         'svg': 'SVG',
