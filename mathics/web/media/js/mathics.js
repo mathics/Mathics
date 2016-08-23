@@ -141,7 +141,7 @@ var objects = {};
 
 function translateDOMElement(element, svg) {
 	if (element.nodeType == 3) {
-		var text = element.nodeValue;
+		var text = element.value;
 		return $T(text);
 	}
 	var dom = null;
@@ -151,7 +151,7 @@ function translateDOMElement(element, svg) {
 		for (var i = 0; i < element.attributes.length; ++i) {
 			var attr = element.attributes[i];
 			if (attr.nodeName != 'ox' && attr.nodeName != 'oy')
-				dom.setAttribute(attr.nodeName, attr.nodeValue);
+				dom.setAttribute(attr.nodeName, attr.value);
 		}
 	}
 	if (nodeName == 'foreignObject') {
@@ -164,7 +164,7 @@ function translateDOMElement(element, svg) {
 		dom.setAttribute('oy', oy);
 	}
 	if (nodeName == 'mo') {
-		var op = element.childNodes[0].nodeValue;
+		var op = element.childNodes[0].value;
 		if (op == '[' || op == ']' || op == '{' || op == '}' || op == String.fromCharCode(12314) || op == String.fromCharCode(12315))
 			dom.setAttribute('maxsize', '3');
 	}
