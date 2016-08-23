@@ -920,7 +920,7 @@ def _asy_bezier(*segments):
         return
 
     def cubic(p0, p1, p2, p3):
-        return '..controls(%.5g,%.5g) and (%.5g,%.5g)..(%.5g,%.5g)' % (*p1, *p2, *p3)
+        return '..controls(%.5g,%.5g) and (%.5g,%.5g)..(%.5g,%.5g)' % tuple(list(chain(p1, p2, p3)))
 
     def quadratric(qp0, qp1, qp2):
         # asymptote only supports cubic beziers, so we convert this quadratic
