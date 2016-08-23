@@ -215,8 +215,9 @@ class Graphics(Builtin):
             return content
 
         for option in options:
-            options[option] = Expression(
-                'N', options[option]).evaluate(evaluation)
+            if option not in ('System`ImageSize',):
+                options[option] = Expression(
+                    'N', options[option]).evaluate(evaluation)
         box_name = 'Graphics' + self.box_suffix
         return Expression(box_name, convert(content),
                           *options_to_rules(options))
@@ -236,16 +237,27 @@ class _GraphicsElement(InstancableBuiltin):
 
 
 class _Color(_GraphicsElement):
+    formats = {
+        # we are adding ImageSizeMultipliers in the rule below, because we do _not_ want color boxes to
+        # diminish in size when they appear in lists or rows. we only want the display of colors this
+        # way in the notebook, so we restrict the rule to StandardForm.
+
+        (('StandardForm', ), '%(name)s[x__?(NumericQ[#] && 0 <= # <= 1&)]'):
+            'Style[Graphics[{EdgeForm[Black], %(name)s[x], Rectangle[]}, ImageSize -> 16], ' +
+            'ImageSizeMultipliers -> {1, 1}]'
+    }
+
+    rules = {
+        '%(name)s[x_List]': 'Apply[%(name)s, x]',
+    }
+
     components_sizes = []
     default_components = []
 
     def init(self, item=None, components=None):
         super(_Color, self).init(None, item)
         if item is not None:
-            if len(item.leaves) == 1 and item.leaves[0].has_form('List', None):
-                leaves = item.leaves[0].leaves
-            else:
-                leaves = item.leaves
+            leaves = item.leaves
             if len(leaves) in self.components_sizes:
                 components = [value.round_to_float() for value in leaves]
                 if None in components or not all(0 <= c <= 1 for c in components):
@@ -299,6 +311,12 @@ class RGBColor(_Color):
 
     >> Graphics[MapIndexed[{RGBColor @@ #1, Disk[2*#2 ~Join~ {0}]} &, IdentityMatrix[3]], ImageSize->Small]
      = -Graphics-
+
+    >> RGBColor[0, 1, 0]
+     = RGBColor[0, 1, 0]
+
+    >> RGBColor[0, 1, 0] // ToBoxes
+     = StyleBox[GraphicsBox[...], ...]
     """
 
     components_sizes = [3, 4]
@@ -1257,14 +1275,23 @@ class GraphicsBox(BoxConstruct):
             aspect = aspect_ratio.round_to_float()
 
         image_size = graphics_options['System`ImageSize']
-        image_size = image_size.get_name()
-        base_width, base_height = {
-            'System`Automatic': (400, 350),
-            'System`Tiny': (100, 100),
-            'System`Small': (200, 200),
-            'System`Medium': (400, 350),
-            'System`Large': (600, 500),
-        }.get(image_size, (None, None))
+        if isinstance(image_size, Integer):
+            base_width = image_size.get_int_value()
+            base_height = None  # will be computed later in calc_dimensions
+        elif image_size.has_form('System`List', 2):
+            base_width, base_height = ([x.round_to_float() for x in image_size.leaves] + [0, 0])[:2]
+            if base_width is None or base_height is None:
+                raise BoxConstructError
+            aspect = base_height / base_width
+        else:
+            image_size = image_size.get_name()
+            base_width, base_height = {
+                'System`Automatic': (400, 350),
+                'System`Tiny': (100, 100),
+                'System`Small': (200, 200),
+                'System`Medium': (400, 350),
+                'System`Large': (600, 500),
+            }.get(image_size, (None, None))
         if base_width is None:
             raise BoxConstructError
         if max_width is not None and base_width > max_width:
@@ -1309,7 +1336,8 @@ class GraphicsBox(BoxConstruct):
             (e.g. values using AbsoluteThickness).
             """
 
-            if 'System`Automatic' in plot_range:
+            # always need to compute extent if size aspect is automatic
+            if 'System`Automatic' in plot_range or size_aspect is None:
                 xmin, xmax, ymin, ymax = elements.extent()
             else:
                 xmin = xmax = ymin = ymax = None
@@ -1378,8 +1406,8 @@ class GraphicsBox(BoxConstruct):
             except (ValueError, TypeError):
                 raise BoxConstructError
 
-            w = xmax - xmin
-            h = ymax - ymin
+            w = 0 if (xmin is None or xmax is None) else xmax - xmin
+            h = 0 if (ymin is None or ymax is None) else ymax - ymin
 
             if size_aspect is None:
                 aspect = h / w
@@ -1387,6 +1415,8 @@ class GraphicsBox(BoxConstruct):
                 aspect = size_aspect
 
             height = base_height
+            if height is None:
+                height = base_width * aspect
             width = height / aspect
             if width > base_width:
                 width = base_width
@@ -1802,6 +1832,9 @@ class _ColorObject(Builtin):
 
             >> Graphics[{EdgeForm[Black], %(name)s, Disk[]}, ImageSize->Small]
              = -Graphics-
+
+            >> %(name)s // ToBoxes
+             = StyleBox[GraphicsBox[...], ...]
         """ % {'name': strip_context(self.get_name()), 'text_name': text_name}
         if self.__doc__ is None:
             self.__doc__ = doc
@@ -2019,3 +2052,4 @@ GRAPHICS_SYMBOLS = frozenset(
     list(element_heads) +
     [element + 'Box' for element in element_heads] +
     list(style_heads))
+
