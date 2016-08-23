@@ -17,12 +17,16 @@ from mathics.builtin.base import (
     PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
-from mathics.core.expression import Expression, String, Symbol, Integer, Number, from_python
+from mathics.core.expression import Expression, String, Symbol, Integer, Number, Real, strip_context, from_python
+from mathics.core.expression import min_prec, machine_precision
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
 from mathics.builtin.algebra import cancel
 from mathics.algorithm.introselect import introselect
+from mathics.algorithm.clusters import optimize, agglomerate, kmeans, PrecomputedDistances, LazyDistances
+from mathics.algorithm.clusters import AutomaticSplitCriterion, AutomaticMergeCriterion
+from mathics.builtin.options import options_to_rules
 
 import sympy
 import heapq
@@ -3625,3 +3629,311 @@ class PadRight(_Pad):
     """
 
     _mode = 1
+
+
+class _IllegalDistance(Exception):
+    def __init__(self, distance):
+        self.distance = distance
+
+
+class _IllegalDataPoint(Exception):
+    pass
+
+
+def _to_real_distance(d):
+    if not isinstance(d, (Real, Integer)):
+        raise _IllegalDistance(d)
+
+    mpd = d.to_mpmath()
+    if mpd is None or mpd < 0:
+        raise _IllegalDistance(d)
+
+    return mpd
+
+
+class _PrecomputedDistances(PrecomputedDistances):
+    # computes all n^2 distances for n points with one big evaluation in the beginning.
+
+    def __init__(self, df, p, evaluation):
+        distances_form = [df(p[i], p[j]) for i in range(len(p)) for j in range(i)]
+        distances = Expression('N', Expression('List', *distances_form)).evaluate(evaluation)
+        mpmath_distances = [_to_real_distance(d) for d in distances.leaves]
+        super(_PrecomputedDistances, self).__init__(mpmath_distances)
+
+
+class _LazyDistances(LazyDistances):
+    # computes single distances only as needed, caches already computed distances.
+
+    def __init__(self, df, p, evaluation):
+        super(_LazyDistances, self).__init__()
+        self._df = df
+        self._p = p
+        self._evaluation = evaluation
+
+    def _compute_distance(self, i, j):
+        p = self._p
+        d = Expression('N', self._df(p[i], p[j])).evaluate(self._evaluation)
+        return _to_real_distance(d)
+
+
+class _Cluster(Builtin):
+    options = {
+        'Method': 'Optimize',
+        'DistanceFunction': 'Automatic',
+        'RandomSeed': 'Automatic',
+    }
+
+    messages = {
+        'amtd': '`1` failed to pick a suitable distance function for `2`.',
+        'bdmtd': 'Method in `` must be either "Optimize", "Agglomerate" or "KMeans".',
+        'intpm': 'Positive integer expected at position 2 in ``.',
+        'list': 'Expected a list or a rule with equally sized lists at position 1 in ``.',
+        'nclst': 'Cannot find more clusters than there are elements: `1` is larger than `2`.',
+        'xnum': 'The distance function returned ``, which is not a non-negative real value.',
+        'rseed': 'The random seed specified through `` must be an integer or Automatic.',
+        'kmsud': 'KMeans only supports SquaredEuclideanDistance as distance measure.',
+    }
+
+    _criteria = {
+        'Optimize': AutomaticSplitCriterion,
+        'Agglomerate': AutomaticMergeCriterion,
+        'KMeans': None,
+    }
+
+    def _cluster(self, p, k, mode, evaluation, options, expr):
+        method_string, method = self.get_option_string(options, 'Method', evaluation)
+        if method_string not in ('Optimize', 'Agglomerate', 'KMeans'):
+            evaluation.message(self.get_name(), 'bdmtd', Expression('Rule', 'Method', method))
+            return
+
+        dist_p = None
+        if p.get_head_name() == 'System`Rule':
+            if all(q.get_head_name() == 'System`List' for q in p.leaves):
+                dist_p, repr_p = (q.leaves for q in p.leaves)
+        elif p.get_head_name() == 'System`List':
+            if all(q.get_head_name() == 'System`Rule' for q in p.leaves):
+                dist_p, repr_p = ([q.leaves[i] for q in p.leaves] for i in range(2))
+            else:
+                dist_p = repr_p = p.leaves
+
+        if dist_p is None or len(dist_p) != len(repr_p):
+            evaluation.message(self.get_name(), 'list', expr)
+            return
+
+        if not dist_p:
+            return Expression('List')
+
+        if k is not None:  # the number of clusters k is specified as an integer.
+            if not isinstance(k, Integer):
+                evaluation.message(self.get_name(), 'intpm', expr)
+                return
+            py_k = k.get_int_value()
+            if py_k < 1:
+                evaluation.message(self.get_name(), 'intpm', expr)
+                return
+            if py_k > len(dist_p):
+                evaluation.message(self.get_name(), 'nclst', py_k, len(dist_p))
+                return
+            elif py_k == 1:
+                return Expression('List', *repr_p)
+            elif py_k == len(dist_p):
+                return Expression('List', [Expression('List', q) for q in repr_p])
+        else:  # automatic detection of k. choose a suitable method here.
+            if len(dist_p) <= 2:
+                return Expression('List', *repr_p)
+            constructor = self._criteria.get(method_string)
+            py_k = (constructor, {}) if constructor else None
+
+        seed_string, seed = self.get_option_string(options, 'RandomSeed', evaluation)
+        if seed_string == 'Automatic':
+            py_seed = 12345
+        elif isinstance(seed, Integer):
+            py_seed = seed.get_int_value()
+        else:
+            evaluation.message(self.get_name(), 'rseed', Expression('Rule', 'RandomSeed', seed))
+            return
+
+        distance_function_string, distance_function = self.get_option_string(
+            options, 'DistanceFunction', evaluation)
+        if distance_function_string == 'Automatic':
+            from mathics.builtin.tensors import get_default_distance
+            distance_function = get_default_distance(dist_p)
+            if distance_function is None:
+                name_of_builtin = strip_context(self.get_name())
+                evaluation.message(self.get_name(), 'amtd', name_of_builtin, Expression('List', *dist_p))
+                return
+
+        if method_string == 'KMeans' and distance_function != 'SquaredEuclideanDistance':
+            evaluation.message(self.get_name(), 'kmsud')
+            return
+
+        def df(i, j):
+            return Expression(distance_function, i, j)
+
+        try:
+            if method_string == 'Agglomerate':
+                clusters = self._agglomerate(mode, repr_p, dist_p, py_k, df, evaluation)
+            elif method_string == 'Optimize':
+                clusters = optimize(repr_p, py_k, _LazyDistances(df, dist_p, evaluation), mode, py_seed)
+            elif method_string == 'KMeans':
+                clusters = self._kmeans(mode, repr_p, dist_p, py_k, py_seed, evaluation)
+        except _IllegalDistance as e:
+            evaluation.message(self.get_name(), 'xnum', e.distance)
+            return
+        except _IllegalDataPoint:
+            name_of_builtin = strip_context(self.get_name())
+            evaluation.message(self.get_name(), 'amtd', name_of_builtin, Expression('List', *dist_p))
+            return
+
+        if mode == 'clusters':
+            return Expression('List', *[Expression('List', *c) for c in clusters])
+        elif mode == 'components':
+            return Expression('List', *clusters)
+        else:
+            raise ValueError('illegal mode %s' % mode)
+
+    def _agglomerate(self, mode, repr_p, dist_p, py_k, df, evaluation):
+        if mode == 'clusters':
+            clusters = agglomerate(repr_p, py_k, _PrecomputedDistances(
+                df, dist_p, evaluation), mode)
+        elif mode == 'components':
+            clusters = agglomerate(repr_p, py_k, _PrecomputedDistances(
+                df, dist_p, evaluation), mode)
+
+        return clusters
+
+    def _kmeans(self, mode, repr_p, dist_p, py_k, py_seed, evaluation):
+        items = []
+
+        def convert_scalars(p):
+            for q in p:
+                if not isinstance(q, (Real, Integer)):
+                    raise _IllegalDataPoint
+                mpq = q.to_mpmath()
+                if mpq is None:
+                    raise _IllegalDataPoint
+                items.append(q)
+                yield mpq
+
+        def convert_vectors(p):
+            d = None
+            for q in p:
+                if q.get_head_name() != 'System`List':
+                    raise _IllegalDataPoint
+                v = list(convert_scalars(q.leaves))
+                if d is None:
+                    d = len(v)
+                elif len(v) != d:
+                    raise _IllegalDataPoint
+                yield v
+
+        if dist_p[0].is_numeric():
+            numeric_p = [[x] for x in convert_scalars(dist_p)]
+        else:
+            numeric_p = list(convert_vectors(dist_p))
+
+        # compute epsilon similar to Real.__eq__, such that "numbers that differ in their last seven binary digits
+        # are considered equal"
+
+        prec = min_prec(*items) or machine_precision
+        eps = 0.5 ** (prec - 7)
+
+        return kmeans(numeric_p, repr_p, py_k, mode, py_seed, eps)
+
+
+class FindClusters(_Cluster):
+    """
+    <dl>
+    <dt>'FindClusters[$list$]'
+        <dd>returns a list of clusters formed from the elements of $list$. The number of cluster is determined
+        automatically.
+    <dt>'FindClusters[$list$, $k$]'
+        <dd>returns a list of $k$ clusters formed from the elements of $list$.
+    </dl>
+
+    >> FindClusters[{1, 2, 20, 10, 11, 40, 19, 42}]
+     = {{1, 2, 20, 10, 11, 19}, {40, 42}}
+
+    >> FindClusters[{25, 100, 17, 20}]
+     = {{25, 17, 20}, {100}}
+
+    >> FindClusters[{3, 6, 1, 100, 20, 5, 25, 17, -10, 2}]
+     = {{3, 6, 1, 5, -10, 2}, {100}, {20, 25, 17}}
+
+    >> FindClusters[{1, 2, 10, 11, 20, 21}]
+     = {{1, 2}, {10, 11}, {20, 21}}
+
+    >> FindClusters[{1, 2, 10, 11, 20, 21}, 2]
+     = {{1, 2, 10, 11}, {20, 21}}
+
+    >> FindClusters[{1 -> a, 2 -> b, 10 -> c}]
+     = {{a, b}, {c}}
+
+    >> FindClusters[{1, 2, 5} -> {a, b, c}]
+     = {{a, b}, {c}}
+
+    >> FindClusters[{1, 2, 3, 1, 2, 10, 100}, Method -> "Agglomerate"]
+     = {{1, 2, 3, 1, 2, 10}, {100}}
+
+    >> FindClusters[{1, 2, 3, 10, 17, 18}, Method -> "Agglomerate"]
+     = {{1, 2, 3}, {10}, {17, 18}}
+
+    >> FindClusters[{{1}, {5, 6}, {7}, {2, 4}}, DistanceFunction -> (Abs[Length[#1] - Length[#2]]&)]
+     = {{{1}, {7}}, {{5, 6}, {2, 4}}}
+
+    >> FindClusters[{"meep", "heap", "deep", "weep", "sheep", "leap", "keep"}, 3]
+     = {{meep, deep, weep, keep}, {heap, leap}, {sheep}}
+
+    FindClusters' automatic distance function detection supports scalars, numeric tensors, boolean vectors and
+    strings.
+
+    The Method option must be either "Agglomerate" or "Optimize". If not specified, it defaults to "Optimize".
+    Note that the Agglomerate and Optimize methods usually produce different clusterings.
+
+    The runtime of the Agglomerate method is quadratic in the number of clustered points n, builds the clustering
+    from the bottom up, and is exact (no element of randomness). The Optimize method's runtime is linear in n,
+    Optimize builds the clustering from top down, and uses random sampling.
+    """
+
+    def apply(self, p, evaluation, options):
+        'FindClusters[p_, OptionsPattern[%(name)s]]'
+        return self._cluster(p, None, 'clusters', evaluation, options,
+                             Expression('FindClusters', p, *options_to_rules(options)))
+
+    def apply_manual_k(self, p, k, evaluation, options):
+        'FindClusters[p_, k_Integer, OptionsPattern[%(name)s]]'
+        return self._cluster(p, k, 'clusters', evaluation, options,
+                             Expression('FindClusters', p, k, *options_to_rules(options)))
+
+
+class ClusteringComponents(_Cluster):
+    """
+    <dl>
+    <dt>'ClusteringComponents[$list$]'
+        <dd>forms clusters from $list$ and returns a list of cluster indices, in which each
+        element shows the index of the cluster in which the corresponding element in $list$
+        ended up.
+    <dt>'ClusteringComponents[$list$, $k$]'
+        <dd>forms $k$ clusters from $list$ and returns a list of cluster indices, in which
+        each element shows the index of the cluster in which the corresponding element in
+        $list$ ended up.
+    </dl>
+
+    For more detailed documentation regarding options and behavior, see FindClusters[].
+
+    >> ClusteringComponents[{1, 2, 3, 1, 2, 10, 100}]
+     = {1, 1, 1, 1, 1, 1, 2}
+
+    >> ClusteringComponents[{10, 100, 20}, Method -> "KMeans"]
+     = {1, 0, 1}
+    """
+
+    def apply(self, p, evaluation, options):
+        'ClusteringComponents[p_, OptionsPattern[%(name)s]]'
+        return self._cluster(p, None, 'components', evaluation, options,
+                             Expression('ClusteringComponents', p, *options_to_rules(options)))
+
+    def apply_manual_k(self, p, k, evaluation, options):
+        'ClusteringComponents[p_, k_Integer, OptionsPattern[%(name)s]]'
+        return self._cluster(p, k, 'components', evaluation, options,
+                             Expression('ClusteringComponents', p, k, *options_to_rules(options)))
