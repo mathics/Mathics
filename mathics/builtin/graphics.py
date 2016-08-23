@@ -20,7 +20,7 @@ from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
-    Expression, Integer, Real, Symbol, strip_context,
+    Expression, Integer, Real, String, Symbol, strip_context,
     system_symbols, system_symbols_dict)
 
 
@@ -1649,13 +1649,16 @@ clip(box((%s,%s), (%s,%s)));
         tick_large_size = 5
         tick_label_d = 2
 
+        ticks_x_int = all(floor(x) == x for x in ticks_x)
+        ticks_y_int = all(floor(x) == x for x in ticks_y)
+
         for index, (
             min, max, p_self0, p_other0, p_origin,
-            ticks, ticks_small) in enumerate([
+            ticks, ticks_small, ticks_int) in enumerate([
                 (xmin, xmax, lambda y: (0, y), lambda x: (x, 0),
-                 lambda x: (x, origin_y), ticks_x, ticks_x_small),
+                 lambda x: (x, origin_y), ticks_x, ticks_x_small, ticks_x_int),
                 (ymin, ymax, lambda x: (x, 0), lambda y: (0, y),
-                 lambda y: (origin_x, y), ticks_y, ticks_y_small)]):
+                 lambda y: (origin_x, y), ticks_y, ticks_y_small, ticks_y_int)]):
             if axes[index]:
                 add_element(LineBox(
                     elements, axes_style[index],
@@ -1670,9 +1673,15 @@ clip(box((%s,%s), (%s,%s)));
                     ticks_lines.append([Coords(elements, pos=p_origin(x)),
                                         Coords(elements, pos=p_origin(x),
                                                d=p_self0(tick_large_size))])
+                    if ticks_int:
+                        content = String(str(int(x)))
+                    elif x == floor(x):
+                        content = String('%.1f' % x)  # e.g. 1.0 (instead of 1.)
+                    else:
+                        content = String('%g' % x)  # fix e.g. 0.6000000000000001
                     add_element(InsetBox(
                         elements, tick_label_style,
-                        content=Real('%g' % x),   # fix e.g. 0.6000000000000001
+                        content=content,
                         pos=Coords(elements, pos=p_origin(x),
                                    d=p_self0(-tick_label_d)), opos=p_self0(1)))
                 for x in ticks_small:
