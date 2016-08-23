@@ -423,9 +423,9 @@ class GrayLevel(_Color):
         return (g, g, g, self.components[1])
 
 
-class _Thickness(_GraphicsElement):
+class _Size(_GraphicsElement):
     def init(self, graphics, item=None, value=None):
-        super(_Thickness, self).init(graphics, item)
+        super(_Size, self).init(graphics, item)
         if item is not None:
             self.value = item.leaves[0].round_to_float()
         elif value is not None:
@@ -434,6 +434,10 @@ class _Thickness(_GraphicsElement):
             raise BoxConstructError
         if self.value < 0:
             raise BoxConstructError
+
+
+class _Thickness(_Size):
+    pass
 
 
 class AbsoluteThickness(_Thickness):
@@ -488,6 +492,17 @@ class Thick(Builtin):
     rules = {
         'Thick': 'AbsoluteThickness[2]',
     }
+
+
+class PointSize(_Size):
+    """
+    <dl>
+    <dt>'PointSize[$t$]'
+        <dd>sets the diameter of points to $t$.
+    </dl>
+    """
+    def get_size(self):
+        return self.graphics.extent_width * self.value
 
 
 class Offset(Builtin):
@@ -763,14 +778,18 @@ class PointBox(_Polyline):
             raise BoxConstructError
 
     def to_svg(self):
-        l = self.style.get_line_width(face_element=False)
+        point_size, _ = self.style.get_style(PointSize, face_element=False)
+        if point_size is None:
+            point_size = PointSize(self.graphics, value=0.005)
+        size = point_size.get_size()
+
         style = create_css(edge_color=self.edge_color,
-                           stroke_width=l, face_color=self.face_color)
+                           stroke_width=0, face_color=self.face_color)
         svg = ''
         for line in self.lines:
             for coords in line:
-                svg += '<circle cx="%f" cy="%f" r="1" style="%s" />' % (
-                    coords.pos()[0], coords.pos()[1], style)
+                svg += '<circle cx="%f" cy="%f" r="%f" style="%s" />' % (
+                    coords.pos()[0], coords.pos()[1], size, style)
         return svg
 
     def to_asy(self):
@@ -1992,6 +2011,7 @@ styles = system_symbols_dict({
     'AbsoluteThickness': AbsoluteThickness,
     'Thick': Thick,
     'Thin': Thin,
+    'PointSize': PointSize,
 })
 
 style_heads = frozenset(styles.keys())
