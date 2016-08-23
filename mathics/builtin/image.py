@@ -1367,7 +1367,41 @@ class ImageAtom(AtomBuiltin):
             return Expression('Image', array)
 
 
-# word clouds
+# complex operations
+
+class TextRecognize(Builtin):
+    '''
+    <dl>
+    <dt>'TextRecognize[{$image$}]'
+      <dd>Recognizes text in $image$ and returns it as string.
+    </dl>
+    '''
+
+    requires = _image_requires + (
+        'pyocr',
+    )
+
+    def apply(self, image, evaluation, options):
+        'TextRecognize[image_Image]'
+        import pyocr
+        import pyocr.builders
+
+        tools = pyocr.get_available_tools()
+        if not tools:
+            return
+        best_tool = tools[0]
+
+        langs = best_tool.get_available_languages()
+        print('LANGS', langs)
+        lang = langs[0]
+
+        text = best_tool.image_to_string(
+            image.pil(),
+            lang=lang,
+            builder=pyocr.builders.TextBuilder())
+
+        return String(text)
+
 
 class WordCloud(Builtin):
     '''
