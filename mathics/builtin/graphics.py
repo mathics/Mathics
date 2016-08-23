@@ -191,10 +191,13 @@ class Graphics(Builtin):
                 StandardForm|TraditionalForm|OutputForm]'''
 
         def convert(content):
-            if content.has_form('List', None):
-                return Expression('List',
-                                  *[convert(item) for item in content.leaves])
             head = content.get_head_name()
+
+            if head == 'System`List':
+                return Expression('List', *[convert(item) for item in content.leaves])
+            elif head == 'System`Style':
+                return Expression('StyleBox', *[convert(item) for item in content.leaves])
+
             if head in element_heads:
                 if head == 'System`Text':
                     head = 'System`Inset'
@@ -1044,6 +1047,13 @@ def total_extent(extents):
 
 
 class EdgeForm(Builtin):
+    """
+    >> Graphics[{EdgeForm[{Thick, Green}], Disk[]}]
+     = -Graphics-
+
+    >> Graphics[{Style[Disk[],EdgeForm[{Thick,Red}]], Circle[{1,1}]}]
+     = -Graphics-
+    """
     pass
 
 
@@ -1139,6 +1149,19 @@ class Style(object):
         return edge_style.get_thickness()
 
 
+def _flatten(leaves):
+    for leaf in leaves:
+        if leaf.get_head_name() == 'System`List':
+            flattened = leaf.flatten(Symbol('List'))
+            if flattened.get_head_name() == 'System`List':
+                for x in flattened.leaves:
+                    yield x
+            else:
+                yield flattened
+        else:
+            yield leaf
+
+
 class _GraphicsElements(object):
     def __init__(self, content, evaluation):
         self.evaluation = evaluation
@@ -1154,8 +1177,17 @@ class _GraphicsElements(object):
                 if item.get_name() == 'System`Null':
                     continue
                 head = item.get_head_name()
-                if head in style_heads or head in ('System`EdgeForm', 'System`FaceForm'):
+                if head in style_and_form_heads:
                     style.append(item)
+                elif head == 'System`StyleBox':
+                    if len(item.leaves) < 1:
+                        raise BoxConstructError
+                    new_style = style.clone()
+                    for spec in _flatten(item.leaves[1:]):
+                        if spec.get_head_name() not in style_and_form_heads:
+                            raise BoxConstructError
+                        new_style.append(spec)
+                    convert(item.leaves[0], new_style)
                 elif head[-3:] == 'Box':  # and head[:-3] in element_heads:
                     element_class = get_class(head)
                     if element_class is not None:
@@ -2013,7 +2045,7 @@ class Large(Builtin):
 
 
 element_heads = frozenset(system_symbols(
-    'Rectangle', 'Disk', 'Line', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere'))
+    'Rectangle', 'Disk', 'Line', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere', 'Style'))
 
 styles = system_symbols_dict({
     'RGBColor': RGBColor,
@@ -2028,6 +2060,8 @@ styles = system_symbols_dict({
 })
 
 style_heads = frozenset(styles.keys())
+
+style_and_form_heads = frozenset(style_heads.union(set(['System`EdgeForm', 'System`FaceForm'])))
 
 GLOBALS = system_symbols_dict({
     'Rectangle': Rectangle,
