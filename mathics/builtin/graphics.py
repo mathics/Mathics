@@ -1439,6 +1439,13 @@ class _GraphicsElements(object):
         self.evaluation = evaluation
         self.elements = []
 
+        builtins = evaluation.definitions.builtin
+        def get_options(name):
+            builtin = builtins.get(name)
+            if builtin is None:
+                return None
+            return builtin.options
+
         def convert(content, style):
             if content.has_form('List', None):
                 items = content.leaves
@@ -1463,7 +1470,7 @@ class _GraphicsElements(object):
                 elif head[-3:] == 'Box':  # and head[:-3] in element_heads:
                     element_class = get_class(head)
                     if element_class is not None:
-                        options = evaluation.definitions.builtin[head[:-3]].options
+                        options = get_options(head[:-3])
                         if options:
                             data, options = _data_and_options(item.leaves, options)
                             new_item = Expression(head, *data)
