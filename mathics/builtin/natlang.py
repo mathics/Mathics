@@ -44,9 +44,16 @@ import math
 
 
 def _status_message(text, evaluation):
-    # currently this uses "print" as everything else interferes with the test cases.
-    # FIXME find a better solution that is clean and works with web based notebooks.
-    print('# ' + text)
+    evaluation.print_out('# ' + text)
+
+
+def _parse_nltk_lookup_error(e):
+    m = re.search("Resource '([^']+)' not found\.", str(e))
+    if m:
+        return m.group(1)
+    else:
+        return 'unknown'
+
 
 def _make_forms():
     forms = {
@@ -154,6 +161,7 @@ def _merge_dictionaries(a, b):
     c = a.copy()
     c.update(b)
     return c
+
 
 def _position(t):
     if isinstance(t, Span):
@@ -738,163 +746,187 @@ class _WordNetBuiltin(Builtin):
     }
 
     _wordnet_language_codes = {
-	    # see http://compling.hss.ntu.edu.sg/omw/summx.html
-		'Afar': 'aar',
-		'Afrikaans': 'afr',
-		'Akan': 'aka',
-		'Albanian': 'als',
-		'Amharic': 'amh',
-		'Old English': 'ang',
-		'Arabic': 'arb',
-		'Egyptian Arabic': 'arz',
-		'Assamese': 'asm',
-		'Asturian': 'ast',
-		'Azerbaijani': 'aze',
-		'Bambara': 'bam',
-		'Belarusian': 'bel',
-		'Bengali': 'ben',
-		'Tibetan': 'bod',
-		'Bosnian': 'bos',
-		'Breton': 'bre',
-		'Bulgarian': 'bul',
-		'Catalan': 'cat',
-		'Czech': 'ces',
-		'Cherokee': 'chr',
-		'Simplified Chinese': 'cmn',
-		'Cornish': 'cor',
-		'Welsh': 'cym',
-		'Danish': 'dan',
-		'German': 'deu',
-		'Dzongkha': 'dzo',
-		'Greek': 'ell',
-		'English': 'eng',
-		'Esperanto': 'epo',
-		'Estonian': 'est',
-		'Basque': 'eus',
-		'Ewe': 'ewe',
-		'Faroese': 'fao',
-		'Farsi': 'fas',
-		'Finnish': 'fin',
-		'French': 'fra',
-		'Western Frisian': 'fry',
-		'Fulah': 'ful',
-		'Friulian': 'fur',
-		'Scottish Gaelic': 'gla',
-		'Irish': 'gle',
-		'Galician': 'glg',
-		'Manx': 'glv',
-		'Ancient Greek': 'grc',
-		'Gujarati': 'guj',
-		'Haitian': 'hat',
-		'Hausa': 'hau',
-		'Serbo-Croatian': 'hbs',
-		'Hebrew': 'heb',
-		'Hindi': 'hin',
-		'Croatian': 'hrv',
-		'Hungarian': 'hun',
-		'Armenian': 'hye',
-		'Igbo': 'ibo',
-		'Ido': 'ido',
-		'Sichuan Yi': 'iii',
-		'Interlingua': 'ina',
-		'Indonesian': 'ind',
-		'Icelandic': 'isl',
-		'Italian': 'ita',
-		'Japanese': 'jpn',
-		'Kalaallisut': 'kal',
-		'Kannada': 'kan',
-		'Georgian': 'kat',
-		'Kazakh': 'kaz',
-		'Central Khmer': 'khm',
-		'Kikuyu': 'kik',
-		'Kinyarwanda': 'kin',
-		'Kirghiz': 'kir',
-		'Korean': 'kor',
-		'Kurdish': 'kur',
-		'Lao': 'lao',
-		'Latin': 'lat',
-		'Latvian': 'lav',
-		'Lingala': 'lin',
-		'Lithuanian': 'lit',
-		'Latgalian': 'ltg',
-		'Luxembourgish': 'ltz',
-		'Luba-Katanga': 'lub',
-		'Ganda': 'lug',
-		'Malayalam': 'mal',
-		'Marathi': 'mar',
-		'Macedonian': 'mkd',
-		'Malagasy': 'mlg',
-		'Maltese': 'mlt',
-		'Mongolian': 'mon',
-		'Maori': 'mri',
-		'Burmese': 'mya',
-		'Min Nan Chinese': 'nan',
-		'Navajo': 'nav',
-		'South Ndebele': 'nbl',
-		'North Ndebele': 'nde',
-		'Nepali': 'nep',
-		'Dutch': 'nld',
-		'Nynorsk': 'nno',
-		'Bokmål': 'nob',
-		'Occitan': 'oci',
-		'Oriya': 'ori',
-		'Oromo': 'orm',
-		'Panjabi': 'pan',
-		'Polish': 'pol',
-		'Portuguese': 'por',
-		'Pushto': 'pus',
-		'Traditional Chinese': 'qcn',
-		'Romansh': 'roh',
-		'Romanian': 'ron',
-		'Rundi': 'run',
-		'Macedo-Romanian': 'rup',
-		'Russian': 'rus',
-		'Sango': 'sag',
-		'Sanskrit': 'san',
-		'Sicilian': 'scn',
-		'Sinhala': 'sin',
-		'Slovak': 'slk',
-		'Slovene': 'slv',
-		'Northern Sami': 'sme',
-		'Shona': 'sna',
-		'Somali': 'som',
-		'Southern Sotho': 'sot',
-		'Spanish': 'spa',
-		'Sardinian': 'srd',
-		'Serbian': 'srp',
-		'Swati': 'ssw',
-		'Swahili': 'swa',
-		'Swedish': 'swe',
-		'Tamil': 'tam',
-		'Tatar': 'tat',
-		'Telugu': 'tel',
-		'Tajik': 'tgk',
-		'Tagalog': 'tgl',
-		'Thai': 'tha',
-		'Tigrinya': 'tir',
-		'Tonga': 'ton',
-		'Tswana': 'tsn',
-		'Tsonga': 'tso',
-		'Turkmen': 'tuk',
-		'Turkish': 'tur',
-		'Ukrainian': 'ukr',
-		'Urdu': 'urd',
-		'Uzbek': 'uzb',
-		'Venda': 'ven',
-		'Vietnamese': 'vie',
-		'Volapük': 'vol',
-		'Xhosa': 'xho',
-		'Yiddish': 'yid',
-		'Yoruba': 'yor',
-		'Yue Chinese': 'yue',
-		'Malaysian': 'zsm',
-		'Zulu': 'zul',
+        # see http://compling.hss.ntu.edu.sg/omw/summx.html
+        'Afar': 'aar',
+        'Afrikaans': 'afr',
+        'Akan': 'aka',
+        'Albanian': 'als',
+        'Amharic': 'amh',
+        'Old English': 'ang',
+        'Arabic': 'arb',
+        'Egyptian Arabic': 'arz',
+        'Assamese': 'asm',
+        'Asturian': 'ast',
+        'Azerbaijani': 'aze',
+        'Bambara': 'bam',
+        'Belarusian': 'bel',
+        'Bengali': 'ben',
+        'Tibetan': 'bod',
+        'Bosnian': 'bos',
+        'Breton': 'bre',
+        'Bulgarian': 'bul',
+        'Catalan': 'cat',
+        'Czech': 'ces',
+        'Cherokee': 'chr',
+        'Simplified Chinese': 'cmn',
+        'Cornish': 'cor',
+        'Welsh': 'cym',
+        'Danish': 'dan',
+        'German': 'deu',
+        'Dzongkha': 'dzo',
+        'Greek': 'ell',
+        'English': 'eng',
+        'Esperanto': 'epo',
+        'Estonian': 'est',
+        'Basque': 'eus',
+        'Ewe': 'ewe',
+        'Faroese': 'fao',
+        'Farsi': 'fas',
+        'Finnish': 'fin',
+        'French': 'fra',
+        'Western Frisian': 'fry',
+        'Fulah': 'ful',
+        'Friulian': 'fur',
+        'Scottish Gaelic': 'gla',
+        'Irish': 'gle',
+        'Galician': 'glg',
+        'Manx': 'glv',
+        'Ancient Greek': 'grc',
+        'Gujarati': 'guj',
+        'Haitian': 'hat',
+        'Hausa': 'hau',
+        'Serbo-Croatian': 'hbs',
+        'Hebrew': 'heb',
+        'Hindi': 'hin',
+        'Croatian': 'hrv',
+        'Hungarian': 'hun',
+        'Armenian': 'hye',
+        'Igbo': 'ibo',
+        'Ido': 'ido',
+        'Sichuan Yi': 'iii',
+        'Interlingua': 'ina',
+        'Indonesian': 'ind',
+        'Icelandic': 'isl',
+        'Italian': 'ita',
+        'Japanese': 'jpn',
+        'Kalaallisut': 'kal',
+        'Kannada': 'kan',
+        'Georgian': 'kat',
+        'Kazakh': 'kaz',
+        'Central Khmer': 'khm',
+        'Kikuyu': 'kik',
+        'Kinyarwanda': 'kin',
+        'Kirghiz': 'kir',
+        'Korean': 'kor',
+        'Kurdish': 'kur',
+        'Lao': 'lao',
+        'Latin': 'lat',
+        'Latvian': 'lav',
+        'Lingala': 'lin',
+        'Lithuanian': 'lit',
+        'Latgalian': 'ltg',
+        'Luxembourgish': 'ltz',
+        'Luba-Katanga': 'lub',
+        'Ganda': 'lug',
+        'Malayalam': 'mal',
+        'Marathi': 'mar',
+        'Macedonian': 'mkd',
+        'Malagasy': 'mlg',
+        'Maltese': 'mlt',
+        'Mongolian': 'mon',
+        'Maori': 'mri',
+        'Burmese': 'mya',
+        'Min Nan Chinese': 'nan',
+        'Navajo': 'nav',
+        'South Ndebele': 'nbl',
+        'North Ndebele': 'nde',
+        'Nepali': 'nep',
+        'Dutch': 'nld',
+        'Nynorsk': 'nno',
+        'Bokmål': 'nob',
+        'Occitan': 'oci',
+        'Oriya': 'ori',
+        'Oromo': 'orm',
+        'Panjabi': 'pan',
+        'Polish': 'pol',
+        'Portuguese': 'por',
+        'Pushto': 'pus',
+        'Traditional Chinese': 'qcn',
+        'Romansh': 'roh',
+        'Romanian': 'ron',
+        'Rundi': 'run',
+        'Macedo-Romanian': 'rup',
+        'Russian': 'rus',
+        'Sango': 'sag',
+        'Sanskrit': 'san',
+        'Sicilian': 'scn',
+        'Sinhala': 'sin',
+        'Slovak': 'slk',
+        'Slovene': 'slv',
+        'Northern Sami': 'sme',
+        'Shona': 'sna',
+        'Somali': 'som',
+        'Southern Sotho': 'sot',
+        'Spanish': 'spa',
+        'Sardinian': 'srd',
+        'Serbian': 'srp',
+        'Swati': 'ssw',
+        'Swahili': 'swa',
+        'Swedish': 'swe',
+        'Tamil': 'tam',
+        'Tatar': 'tat',
+        'Telugu': 'tel',
+        'Tajik': 'tgk',
+        'Tagalog': 'tgl',
+        'Thai': 'tha',
+        'Tigrinya': 'tir',
+        'Tonga': 'ton',
+        'Tswana': 'tsn',
+        'Tsonga': 'tso',
+        'Turkmen': 'tuk',
+        'Turkish': 'tur',
+        'Ukrainian': 'ukr',
+        'Urdu': 'urd',
+        'Uzbek': 'uzb',
+        'Venda': 'ven',
+        'Vietnamese': 'vie',
+        'Volapük': 'vol',
+        'Xhosa': 'xho',
+        'Yiddish': 'yid',
+        'Yoruba': 'yor',
+        'Yue Chinese': 'yue',
+        'Malaysian': 'zsm',
+        'Zulu': 'zul',
     }
 
     _wordnet_instances = {}
 
     def _language_name(self, evaluation, options):
         return self.get_option(options, 'Language', evaluation)
+
+    def _init_wordnet(self, evaluation, language_name, language_code):
+        try:
+            wordnet_resource = nltk.data.find('corpora/wordnet')
+        except LookupError:
+            evaluation.message(self.get_name(), 'package', 'wordnet')
+            return None
+
+        try:
+            omw = nltk.corpus.util.LazyCorpusLoader(
+                'omw', nltk.corpus.reader.CorpusReader, r'.*/wn-data-.*\.tab', encoding='utf8')
+        except LookupError:
+            evaluation.message(self.get_name(), 'package', 'omw')
+            return None
+
+        _status_message('Loading %s word data. Please wait.' % language_name, evaluation)
+
+        wordnet = nltk.corpus.reader.wordnet.WordNetCorpusReader(wordnet_resource, omw)
+
+        if language_code not in wordnet.langs():
+            evaluation.message(self.get_name(), 'lang', language_name, strip_context(self.get_name()))
+            return None
+
+        return wordnet
 
     def _load_wordnet(self, evaluation, language_name):
         language_code = None
@@ -907,25 +939,9 @@ class _WordNetBuiltin(Builtin):
         wordnet = _WordNetBuiltin._wordnet_instances.get(language_code)
         if not wordnet:
             try:
-                wordnet_resource = nltk.data.find('corpora/wordnet')
-            except LookupError:
-                evaluation.message(self.get_name(), 'package', 'wordnet')
-                return None, None
-
-            try:
-                omw = nltk.corpus.util.LazyCorpusLoader(
-                    'omw', nltk.corpus.reader.CorpusReader, r'.*/wn-data-.*\.tab', encoding='utf8')
-            except LookupError:
-                evaluation.message(self.get_name(), 'package', omw)
-                return None, None
-
-            _status_message('Loading %s word data. Please wait.' % language_name, evaluation)
-
-            wordnet = nltk.corpus.reader.wordnet.WordNetCorpusReader(
-                wordnet_resource, omw)
-
-            if language_code not in wordnet.langs():
-                evaluation.message(self.get_name(), 'lang', language_name, strip_context(self.get_name()))
+                wordnet = self._init_wordnet(evaluation, language_name, language_code)
+            except LookupError as e:
+                evaluation.message(self.get_name(), 'package', _parse_nltk_lookup_error(e))
                 return None, None
 
             _WordNetBuiltin._wordnet_instances[language_code] = wordnet
@@ -940,10 +956,6 @@ class _WordNetBuiltin(Builtin):
     @staticmethod
     def _capitalize(s):
         return re.sub(r'^[a-z]|\s[a-z]', lambda m: m.group(0).upper().lstrip(' '), s)
-
-    #@staticmethod
-    #def _camelize(s):
-    #    return re.sub(r'^[a-z]|_[a-z]', lambda m: m.group(0).upper().lstrip('_'), s).replace('_', ' ')
 
     @staticmethod
     def _underscore(s):
