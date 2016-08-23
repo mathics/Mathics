@@ -2,7 +2,7 @@
 
 Begin["System`Convert`Image`"]
 
-RegisterImageImport[type_] := RegisterImport[
+RegisterImageImport[type_] := ImportExport`RegisterImport[
     type,
     System`ImageImport,
     {},
