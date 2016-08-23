@@ -596,7 +596,7 @@ class Export(Builtin):
 
     def _infer_form(self, filename, evaluation):
         ext = Expression('FileExtension', filename).evaluate(evaluation)
-        ext = ext.get_string_value()
+        ext = ext.get_string_value().lower()
         return self._extdict.get(ext)
 
 
