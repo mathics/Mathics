@@ -498,11 +498,11 @@ class PointSize(_Size):
     """
     <dl>
     <dt>'PointSize[$t$]'
-        <dd>sets the diameter of points to $t$.
+        <dd>sets the diameter of points to $t$, which is relative to the overall width.
     </dl>
     """
     def get_size(self):
-        return self.graphics.extent_width * self.value
+        return self.graphics.view_width * self.value
 
 
 class Offset(Builtin):
@@ -1435,6 +1435,9 @@ class GraphicsBox(BoxConstruct):
         elements, calc_dimensions = self._prepare_elements(
             leaves, options, max_width=450)
 
+        xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
+        elements.view_width = w
+
         asy_completely_visible = '\n'.join(
             element.to_asy() for element in elements.elements
             if element.is_completely_visible)
@@ -1442,8 +1445,6 @@ class GraphicsBox(BoxConstruct):
         asy_regular = '\n'.join(
             element.to_asy() for element in elements.elements
             if not element.is_completely_visible)
-
-        xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
 
         tex = r"""
 \begin{asy}
@@ -1464,9 +1465,10 @@ clip(box((%s,%s), (%s,%s)));
         elements, calc_dimensions = self._prepare_elements(
             leaves, options, neg_y=True)
 
-        svg = elements.to_svg()
-
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
+        elements.view_width = w
+
+        svg = elements.to_svg()
 
         xmin -= 1
         ymin -= 1
