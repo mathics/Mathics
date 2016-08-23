@@ -1381,23 +1381,45 @@ class TextRecognize(Builtin):
         'pyocr',
     )
 
+    messages = {
+        'tool': 'No text recognition tools were found in the paths available to the Mathics kernel.',
+        'lang': 'Language `1` is not supported in your installation of `2`. Please install it.',
+    }
+
+    options = {
+        'Language': '"English"',
+    }
+
+    languages = {
+        'English': 'eng',
+    }
+
     def apply(self, image, evaluation, options):
-        'TextRecognize[image_Image]'
+        'TextRecognize[image_Image, OptionsPattern[%(name)s]]'
         import pyocr
-        import pyocr.builders
+
+        language = self.get_option(options, 'Language', evaluation)
+        if not isinstance(language, String):
+            return
+        py_language = language.get_string_value()
+        py_language_code = self.languages.get(py_language)
 
         tools = pyocr.get_available_tools()
         if not tools:
+            evaluation.message('TextRecognize', 'tool')
             return
         best_tool = tools[0]
 
         langs = best_tool.get_available_languages()
-        print('LANGS', langs)
-        lang = langs[0]
+        if py_language_code not in langs:
+            evaluation.message('TextRecognize', 'lang', py_language, best_tool.get_name())
+            return
+
+        import pyocr.builders
 
         text = best_tool.image_to_string(
             image.pil(),
-            lang=lang,
+            lang=py_language_code,
             builder=pyocr.builders.TextBuilder())
 
         return String(text)
