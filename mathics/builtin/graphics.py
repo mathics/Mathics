@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from __future__ import division
 
-from math import floor, ceil, log10, sqrt, atan2, degrees
+from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees
 import json
 import base64
 from six.moves import map
@@ -870,6 +870,8 @@ class Circle(Builtin):
 
     >> Graphics[{Red, Circle[{0, 0}, {2, 1}]}]
      = -Graphics-
+    >> Graphics[{Circle[], Disk[{0, 0}, {1, 1}, {0, 2.1}]}]
+     = -Graphics-
     """
 
     rules = {
@@ -999,11 +1001,104 @@ class _RoundBox(_GraphicsElement):
             pen)
 
 
-class DiskBox(_RoundBox):
+class _ArcBox(_RoundBox):
+    def init(self, graphics, style, item):
+        if len(item.leaves) == 3:
+            arc_expr = item.leaves[2]
+            if arc_expr.get_head_name() != 'System`List':
+                raise BoxConstructError
+            arc = arc_expr.leaves
+            pi2 = 2 * pi
+
+            start_angle = arc[0].to_python()
+            end_angle = arc[1].to_python()
+
+            if end_angle <= start_angle:
+                self.arc = (0, 0)
+            elif end_angle >= start_angle + pi2:  # full circle?
+                self.arc = None
+            else:
+                self.arc = (start_angle, end_angle)
+
+            item = Expression(item.get_head_name(), *item.leaves[:2])
+        else:
+            self.arc = None
+        super(_ArcBox, self).init(graphics, style, item)
+
+    def _arc_params(self):
+        x, y = self.c.pos()
+        rx, ry = self.r.pos()
+
+        rx -= x
+        ry -= y
+
+        start_angle, end_angle = self.arc
+
+        if end_angle - start_angle <= pi:
+            large_arc = 0
+        else:
+            large_arc = 1
+
+        sx = x + rx * cos(start_angle)
+        sy = y + ry * sin(start_angle)
+
+        ex = x + rx * cos(end_angle)
+        ey = y + ry * sin(end_angle)
+
+        return x, y, abs(rx), abs(ry), sx, sy, ex, ey, large_arc
+
+    def to_svg(self):
+        if self.arc is None:
+            return super(_ArcBox, self).to_svg()
+
+        x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
+
+        def path(closed):
+            if closed:
+                yield 'M %f,%f' % (x, y)
+                yield 'L %f,%f' % (sx, sy)
+            else:
+                yield 'M %f,%f' % (sx, sy)
+
+            yield 'A %f,%f,0,%d,0,%f,%f' % (rx, ry, large_arc, ex, ey)
+
+            if closed:
+                yield 'Z'
+
+        l = self.style.get_line_width(face_element=self.face_element)
+        style = create_css(self.edge_color, self.face_color, stroke_width=l)
+        return '<path d="%s" style="%s" />' % (' '.join(path(self.face_element)), style)
+
+    def to_asy(self):
+        if self.arc is None:
+            return super(_ArcBox, self).to_asy()
+
+        x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
+
+        def path(closed):
+            if closed:
+                yield '(%s,%s)--(%s,%s)--' % tuple(
+                    asy_number(t) for t in (x, y, sx, sy))
+
+            yield 'arc((%s,%s), (%s, %s), (%s, %s))' % tuple(
+                asy_number(t) for t in (x, y, sx, sy, ex, ey))
+
+            if closed:
+                yield '--cycle'
+
+        l = self.style.get_line_width(face_element=self.face_element)
+        pen = create_pens(edge_color=self.edge_color,
+                          face_color=self.face_color, stroke_width=l,
+                          is_face_element=self.face_element)
+        command = 'filldraw' if self.face_element else 'draw'
+        return '%s(%s, %s);' % (command, ''.join(path(self.face_element)), pen)
+
+
+class DiskBox(_ArcBox):
     face_element = True
 
 
-class CircleBox(_RoundBox):
+class CircleBox(_ArcBox):
     face_element = False
 
 
