@@ -600,8 +600,8 @@ class ImageRotate(_ImageBuiltin):
 
     def apply(self, image, angle, evaluation):
         'ImageRotate[image_Image, angle_]'
-        py_angle = angle.to_python(n_evaluation=evaluation)
-        if not isinstance(py_angle, six.integer_types + (float,)):
+        py_angle = angle.round_to_float(evaluation)
+        if py_angle is None:
             return evaluation.message('ImageRotate', 'imgang', angle)
         return Image(skimage.transform.rotate(image.pixels, 180 * py_angle / math.pi, resize=True), image.color_space)
 
