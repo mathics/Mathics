@@ -15,6 +15,7 @@ import base64
 from six.moves import map
 from six.moves import range
 from six.moves import zip
+from itertools import chain
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
@@ -139,6 +140,27 @@ def create_pens(edge_color=None, face_color=None, stroke_width=None,
     elif is_face_element:
         result.append('nullpen')
     return ', '.join(result)
+
+
+def _data_and_options(leaves, defined_options):
+    data = []
+    options = defined_options.copy()
+    for leaf in leaves:
+        if leaf.get_head_name() == 'System`Rule':
+            if len(leaf.leaves) != 2:
+                raise BoxConstructError
+            name, value = leaf.leaves
+            name_head = name.get_head_name()
+            if name_head == 'System`Symbol':
+                py_name = name.get_name()
+            elif name_head == 'System`String':
+                py_name = 'System`' + name.get_string_value()
+            else:  # unsupported name type
+                raise BoxConstructError
+            options[py_name] = value
+        else:
+            data.append(leaf)
+    return data, options
 
 
 class Graphics(Builtin):
@@ -875,6 +897,256 @@ class LineBox(_Polyline):
         return asy
 
 
+def _svg_bezier(*segments):
+    # see https://www.w3.org/TR/SVG/paths.html#PathDataCubicBezierCommands
+    # see https://docs.webplatform.org/wiki/svg/tutorials/smarter_svg_shapes
+
+    while segments and not segments[0][1]:
+        segments = segments[1:]
+
+    if not segments:
+        return
+
+    forms = 'LQC'  # SVG commands for line, quadratic bezier, cubic bezier
+
+    def path(max_degree, p):
+        max_degree = min(max_degree, len(forms))
+        while p:
+            n = min(max_degree, len(p))  # 1, 2, or 3
+            if n < 1:
+                raise BoxConstructError
+            yield forms[n - 1] + ' '.join('%f,%f' % xy for xy in p[:n])
+            p = p[n:]
+
+    k, p = segments[0]
+    yield 'M%f,%f' % p[0]
+
+    for s in path(k, p[1:]):
+        yield s
+
+    for k, p in segments[1:]:
+        for s in path(k, p):
+            yield s
+
+
+def _asy_bezier(*segments):
+    # see http://asymptote.sourceforge.net/doc/Bezier-curves.html#Bezier-curves
+
+    while segments and not segments[0][1]:
+        segments = segments[1:]
+
+    if not segments:
+        return
+
+    def cubic(p0, p1, p2, p3):
+        return '..controls(%.5g,%.5g) and (%.5g,%.5g)..(%.5g,%.5g)' % tuple(list(chain(p1, p2, p3)))
+
+    def quadratric(qp0, qp1, qp2):
+        # asymptote only supports cubic beziers, so we convert this quadratic
+        # bezier to a cubic bezier, see http://fontforge.github.io/bezier.html
+
+        # CP0 = QP0
+        # CP3 = QP2
+        # CP1 = QP0 + 2 / 3 * (QP1 - QP0)
+        # CP2 = QP2 + 2 / 3 * (QP1 - QP2)
+
+        qp0x, qp0y = qp0
+        qp1x, qp1y = qp1
+        qp2x, qp2y = qp2
+
+        t = 2. / 3.
+        cp0 = qp0
+        cp1 = (qp0x + t * (qp1x - qp0x), qp0y + t * (qp1y - qp0y))
+        cp2 = (qp2x + t * (qp1x - qp2x), qp2y + t * (qp1y - qp2y))
+        cp3 = qp2
+
+        return cubic(cp0, cp1, cp2, cp3)
+
+    def linear(p0, p1):
+        return '--(%.5g,%.5g)' % p1
+
+    forms = (linear, quadratric, cubic)
+
+    def path(max_degree, p):
+        max_degree = min(max_degree, len(forms))
+        while p:
+            n = min(max_degree, len(p) - 1)  # 1, 2, or 3
+            if n < 1:
+                break
+            yield forms[n - 1](*p[:n + 1])
+            p = p[n:]
+
+    k, p = segments[0]
+    yield '(%.5g,%.5g)' % p[0]
+
+    connect = []
+    for k, p in segments:
+        for s in path(k, list(chain(connect, p))):
+            yield s
+        connect = p[-1:]
+
+
+class BernsteinBasis(Builtin):
+    rules = {
+        'BernsteinBasis[d_, n_, x_]': 'Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]',
+    }
+
+
+class BezierFunction(Builtin):
+    rules = {
+        'BezierFunction[p_]': 'Function[x, Total[p * BernsteinBasis[Length[p] - 1, Range[0, Length[p] - 1], x]]]',
+    }
+
+class BezierCurve(Builtin):
+    """
+    <dl>
+    <dt>'BezierCurve[{$p1$, $p2$ ...}]'
+        <dd>represents a bezier curve with $p1$, $p2$ as control points.
+    </dl>
+
+    >> Graphics[BezierCurve[{{0, 0},{1, 1},{2, -1},{3, 0}}]]
+     = -Graphics-
+
+    >> Module[{p={{0, 0},{1, 1},{2, -1},{4, 0}}}, Graphics[{BezierCurve[p], Red, Point[Table[BezierFunction[p][x], {x, 0, 1, 0.1}]]}]]
+     = -Graphics-
+    """
+
+    options = {
+        'SplineDegree': '3',
+    }
+
+
+class BezierCurveBox(_Polyline):
+    def init(self, graphics, style, item, options):
+        super(BezierCurveBox, self).init(graphics, item, style)
+        if len(item.leaves) != 1 or item.leaves[0].get_head_name() != 'System`List':
+            raise BoxConstructError
+        self.edge_color, _ = style.get_style(_Color, face_element=False)
+        points = item.leaves[0]
+        self.do_init(graphics, points)
+        spline_degree = options.get('System`SplineDegree')
+        if not isinstance(spline_degree, Integer):
+            raise BoxConstructError
+        self.spline_degree = spline_degree.get_int_value()
+
+    def to_svg(self):
+        l = self.style.get_line_width(face_element=False)
+        style = create_css(edge_color=self.edge_color, stroke_width=l)
+
+        svg = ''
+        for line in self.lines:
+            s = ' '.join(_svg_bezier((self.spline_degree, [xy.pos() for xy in line])))
+            svg += '<path d="%s" style="%s"/>' % (s, style)
+        return svg
+
+    def to_asy(self):
+        l = self.style.get_line_width(face_element=False)
+        pen = create_pens(edge_color=self.edge_color, stroke_width=l)
+
+        asy = ''
+        for line in self.lines:
+            for path in _asy_bezier((self.spline_degree, [xy.pos() for xy in line])):
+                asy += 'draw(%s, %s);' % (path, pen)
+        return asy
+
+
+class FilledCurve(Builtin):
+    """
+    <dl>
+    <dt>'FilledCurve[{$segment1$, $segment2$ ...}]'
+        <dd>represents a filled curve.
+    </dl>
+
+    >> Graphics[FilledCurve[{Line[{{0, 0}, {1, 1}, {2, 0}}]}]]
+    = -Graphics-
+
+    >> Graphics[FilledCurve[{BezierCurve[{{0, 0}, {1, 1}, {2, 0}}], Line[{{3, 0}, {0, 2}}]}]]
+    = -Graphics-
+    """
+    pass
+
+
+class FilledCurveBox(_GraphicsElement):
+    def init(self, graphics, style, item=None):
+        super(FilledCurveBox, self).init(graphics, item, style)
+        self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
+
+        if item is not None and item.leaves and item.leaves[0].has_form('List', None):
+            if len(item.leaves) != 1:
+                raise BoxConstructError
+            leaves = item.leaves[0].leaves
+
+            def parse_component(segments):
+                for segment in segments:
+                    head = segment.get_head_name()
+
+                    if head == 'System`Line':
+                        k = 1
+                        parts = segment.leaves
+                    elif head == 'System`BezierCurve':
+                        parts, options = _data_and_options(segment.leaves, {})
+                        spline_degree = options.get('SplineDegree', Integer(3))
+                        if not isinstance(spline_degree, Integer):
+                            raise BoxConstructError
+                        k = spline_degree.get_int_value()
+                    elif head == 'System`BSplineCurve':
+                        raise NotImplementedError  # FIXME convert bspline to bezier here
+                        parts = segment.leaves
+                    else:
+                        raise BoxConstructError
+
+                    coords = []
+
+                    for part in parts:
+                        if part.get_head_name() != 'System`List':
+                            raise BoxConstructError
+                        coords.extend([graphics.coords(graphics, xy) for xy in part.leaves])
+
+                    yield k, coords
+
+            if all(x.get_head_name() == 'System`List' for x in leaves):
+                self.components = [list(parse_component(x)) for x in leaves]
+            else:
+                self.components = [list(parse_component(leaves))]
+        else:
+            raise BoxConstructError
+
+    def to_svg(self):
+        l = self.style.get_line_width(face_element=False)
+        style = create_css(edge_color=self.edge_color, face_color=self.face_color, stroke_width=l)
+
+        def components():
+            for component in self.components:
+                transformed = [(k, [xy.pos() for xy in p]) for k, p in component]
+                yield ' '.join(_svg_bezier(*transformed)) + ' Z'
+
+        return '<path d="%s" style="%s" fill-rule="evenodd"/>' % (' '.join(components()), style)
+
+    def to_asy(self):
+        l = self.style.get_line_width(face_element=False)
+        pen = create_pens(edge_color=self.edge_color, stroke_width=l)
+
+        if not pen:
+            pen = 'currentpen'
+
+        def components():
+            for component in self.components:
+                transformed = [(k, [xy.pos() for xy in p]) for k, p in component]
+                yield 'fill(%s--cycle, %s);' % (''.join(_asy_bezier(*transformed)), pen)
+
+        return ''.join(components())
+
+    def extent(self):
+        l = self.style.get_line_width(face_element=False)
+        result = []
+        for component in self.components:
+            for _, points in component:
+                for p in points:
+                    x, y = p.pos()
+                    result.extend([(x - l, y - l), (x - l, y + l), (x + l, y - l), (x + l, y + l)])
+        return result
+
+
 class Polygon(Builtin):
     """
     <dl>
@@ -1186,6 +1458,13 @@ class _GraphicsElements(object):
         self.evaluation = evaluation
         self.elements = []
 
+        builtins = evaluation.definitions.builtin
+        def get_options(name):
+            builtin = builtins.get(name)
+            if builtin is None:
+                return None
+            return builtin.options
+
         def convert(content, style):
             if content.has_form('List', None):
                 items = content.leaves
@@ -1210,7 +1489,13 @@ class _GraphicsElements(object):
                 elif head[-3:] == 'Box':  # and head[:-3] in element_heads:
                     element_class = get_class(head)
                     if element_class is not None:
-                        element = get_class(head)(self, style, item)
+                        options = get_options(head[:-3])
+                        if options:
+                            data, options = _data_and_options(item.leaves, options)
+                            new_item = Expression(head, *data)
+                            element = get_class(head)(self, style, new_item, options)
+                        else:
+                            element = get_class(head)(self, style, item)
                         self.elements.append(element)
                     else:
                         raise BoxConstructError
@@ -2075,7 +2360,7 @@ class Large(Builtin):
 
 
 element_heads = frozenset(system_symbols(
-    'Rectangle', 'Disk', 'Line', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere', 'Style'))
+    'Rectangle', 'Disk', 'Line', 'FilledCurve', 'BezierCurve', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere', 'Style'))
 
 styles = system_symbols_dict({
     'RGBColor': RGBColor,
@@ -2104,6 +2389,8 @@ GLOBALS = system_symbols_dict({
     'RectangleBox': RectangleBox,
     'DiskBox': DiskBox,
     'LineBox': LineBox,
+    'BezierCurveBox': BezierCurveBox,
+    'FilledCurveBox': FilledCurveBox,
     'CircleBox': CircleBox,
     'PolygonBox': PolygonBox,
     'PointBox': PointBox,

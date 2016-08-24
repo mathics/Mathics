@@ -1797,14 +1797,22 @@ class Piecewise(SympyFunction):
 
     >> Plot[Piecewise[{{Log[x], x > 0}, {x*-0.5, x < 0}}], {x, -1, 1}]
      = -Graphics-
+
+    >> Piecewise[{{0 ^ 0, False}}, -1]
+     = -1
     """
 
     sympy_name = 'Piecewise'
 
+    attributes = (
+        'HoldAll',
+    )
+
     def apply(self, items, evaluation):
         'Piecewise[items__]'
-        result = self.to_sympy(
-            Expression('Piecewise', *items.get_sequence()))
+        result = self.to_sympy(Expression('Piecewise', *items.get_sequence()))
+        if result is None:
+            return
         if not isinstance(result, sympy.Piecewise):
             return from_sympy(result)
 
@@ -1831,6 +1839,8 @@ class Piecewise(SympyFunction):
                     sympy_cond = False
             if sympy_cond is None:
                 sympy_cond = cond.to_sympy(**kwargs)
+                if not (sympy_cond.is_Relational or sympy_cond.is_Boolean):
+                    return
 
             sympy_cases.append((then.to_sympy(**kwargs), sympy_cond))
 
