@@ -708,7 +708,7 @@ class BarChart(Builtin):
                     name = names[k - 1]
                     yield Expression('Text', name, Expression('List', (x0 + x1) / 2, -0.2))
 
-        x_coords = list(itertools.chain(*[[x0, x1] for (k, n), x0, x1, y in boxes()]))
+        x_coords = [0] + list(itertools.chain(*[[x0, x1] for (k, n), x0, x1, y in boxes()]))
         y_coords = [0] + [y for (k, n), x0, x1, y in boxes()]
 
         graphics = list(rectangles()) + list(axes())
@@ -716,13 +716,17 @@ class BarChart(Builtin):
         x_range = 'System`All'
         y_range = 'System`All'
 
-        x_range = get_plot_range(x_coords, x_coords, x_range)
+        x_range = list(get_plot_range(x_coords, x_coords, x_range))
         y_range = list(get_plot_range(y_coords, y_coords, y_range))
 
         chart_labels = self.get_option(options, 'ChartLabels', evaluation)
         if chart_labels.get_head_name() == 'System`List':
             graphics.extend(list(labels(chart_labels.leaves)))
             y_range[0] = -0.4  # room for labels at the bottom
+
+        # always specify -.1 as the minimum x plot range, as this will make the y axis apppear
+        # at origin (0,0); otherwise it will be shifted right; see GraphicsBox.axis_ticks().
+        x_range[0] = -.1
 
         options['System`PlotRange'] = from_python([x_range, y_range])
 
