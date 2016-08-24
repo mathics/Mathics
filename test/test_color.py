@@ -196,28 +196,36 @@ class ColorTest(unittest.TestCase):
         # components. this tests color space transformations and their
         # inverse transformations.
 
+        def space_to_head(name):
+            if name == 'HSB':
+                return 'System`Hue'
+            else:
+                return 'System`%sColor' % name
+
         spaces = ("CMYK", "HSB", "LAB", "LCH", "LUV", "RGB", "XYZ")
         places = 3
         for original in ((0.5, 0.1, 0.2), (0.9, 0.1, 0.1)):
             for i, from_space in enumerate(spaces):
                 for to_space in spaces[i + 1:]:
                     try:
-                        if from_space == 'HSB':
-                            construct_name = 'Hue'
-                        else:
-                            construct_name = from_space + 'Color'
+                        construct_name = space_to_head(from_space)
+                        source_color = Expression(construct_name, *original)
 
                         # now calculate from_space -> to_space -> from_space
-                        inverted = [c.to_python() for c in Expression('ColorConvert',
-                                                                      Expression('ColorConvert',
-                                                                                 Expression(construct_name, *original),
-                                                                                 to_space),
-                                                                      from_space).evaluate(self.evaluation).leaves]
+                        target_color = Expression('ColorConvert', source_color, to_space).evaluate(self.evaluation)
+                        self.assertEqual(target_color.get_head_name(), space_to_head(to_space))
+
+                        checked_color = Expression('ColorConvert', target_color, from_space).evaluate(self.evaluation)
+                        self.assertEqual(checked_color.get_head_name(), source_color.get_head_name())
+
+                        checked_components = [c.to_python() for c in checked_color.leaves]
                         if from_space == 'CMYK':  # if cmyk, cmyk -> cmy
-                            k = inverted[3]
-                            inverted = [c * (1 - k) + k for c in inverted[:3]]
-                        self.assertEqual(len(original), len(inverted))
-                        for x, y in zip(original, inverted):
+                            k = checked_components[3]
+                            checked_components = [c * (1 - k) + k for c in checked_components[:3]]
+
+                        self.assertEqual(len(original), len(checked_components))
+
+                        for x, y in zip(original, checked_components):
                             self.assertAlmostEqual(x, y, places)
                     except:
                         print('test failed for %s -> %s -> %s' %
@@ -244,6 +252,7 @@ class ColorTest(unittest.TestCase):
         for components, t1 in zip(values, _color_tests):
             for src, t2 in zip(spaces, t1):
                 for dst, expected in zip(spaces, t2):
+                    components = list(components)
                     if src == "Grayscale":
                         c = components[:1]
                     elif src == 'CMYK':

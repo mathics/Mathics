@@ -56,6 +56,15 @@ _rgb_from_xyz = [
 ]
 
 
+def omit_alpha(*c):
+    if len(c) == 2:
+        return (c,)
+    elif len(c) == 4:
+        return c[:3]
+    else:
+        return c
+
+
 def rgb_to_grayscale(r, g, b, *rest):
     # see https://en.wikipedia.org/wiki/Grayscale
     y = 0.299 * r + 0.587 * g + 0.114 * b  # Y of Y'UV
@@ -345,7 +354,10 @@ conversions = {
 }
 
 
-def convert(components, src, dst):
+def convert(components, src, dst, preserve_alpha=True):
+    if not preserve_alpha:
+        components = stacked(omit_alpha, components)
+
     if src == dst:
         return components
 

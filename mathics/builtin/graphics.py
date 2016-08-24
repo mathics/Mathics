@@ -165,29 +165,6 @@ def _data_and_options(leaves, defined_options):
     return data, options
 
 
-class _PerfectReflectingDiffuser:
-    def __init__(self, x1, x2):
-        # MMA seems to use the following constants, and not the
-        # values derived via calculation (commented out below)
-        self.xyz = (0.96422, 1., 0.82521)
-        #scale = 1.0 / x2
-        #self.xyz = (x1 * scale, 1.0, (1.0 - x1 - x2) * scale)
-
-        q_r = self.xyz[0] + 15. * self.xyz[1] + 3. * self.xyz[2]
-        self.u_r = 4. * self.xyz[0] / q_r
-        self.v_r = 9. * self.xyz[1] / q_r
-
-
-# MMA's reference white is a # D50, 2 degrees diffuser; for the
-# values, see https://en.wikipedia.org/wiki/Standard_illuminant
-
-_ref_white = _PerfectReflectingDiffuser(0.34567, 0.35850)
-
-
-def _clip(*components):  # clip to [0, 1]
-    return tuple(max(0, min(1, c)) for c in components)
-
-
 def _euclidean_distance(a, b):
     return math.sqrt(sum((x1 - x2) * (x1 - x2) for x1, x2 in zip(a, b)))
 
@@ -549,55 +526,22 @@ class GrayLevel(_Color):
     default_components = [0, 1]
 
 
-class ColorConvert(Builtin):
-    """
-    <dl>
-    <dt>'ColorConvert[$c$, $colspace$]'
-        <dd>returns the representation of color $c$ in the color space $colspace$.
-    </dl>
+def expression_to_color(color):
+    try:
+        return _Color.create(color)
+    except ColorError:
+        return None
 
-    Valid values for $colspace$ are:
 
-    CMYK: convert to CMYKColor
-    Grayscale: convert to GrayLevel
-    HSB: convert to Hue
-    LAB: concert to LABColor
-    LCH: convert to LCHColor
-    LUV: convert to LUVColor
-    RGB: convert to RGBColor
-    XYZ: convert to XYZColor
-    """
+def color_to_expression(components, colorspace):
+    if colorspace == 'Grayscale':
+        converted_color_name = 'GrayLevel'
+    elif colorspace == 'HSB':
+        converted_color_name = 'Hue'
+    else:
+        converted_color_name = colorspace + 'Color'
 
-    messages = {
-        'ccvinput': '`` should be a color.',
-        'imgcstype': '`` is not a valid color space.',
-    }
-
-    def apply(self, color, colorspace, evaluation):
-        'ColorConvert[color_, colorspace_String]'
-        try:
-            py_color = _Color.create(color)
-        except ColorError:
-            evaluation.message('ColorConvert', 'ccvinput', color)
-            return
-
-        py_colorspace = colorspace.get_string_value()
-        converted_components = convert_color(py_color.components,
-                                             py_color.color_space,
-                                             py_colorspace)
-
-        if converted_components is None:
-            evaluation.message('ColorConvert', 'imgcstype', colorspace)
-            return
-
-        if py_colorspace == 'Grayscale':
-            converted_color_name = 'GrayLevel'
-        elif py_colorspace == 'HSB':
-            converted_color_name = 'Hue'
-        else:
-            converted_color_name = py_colorspace + 'Color'
-
-        return Expression(converted_color_name, *converted_components)
+    return Expression(converted_color_name, *components)
 
 
 class ColorDistance(Builtin):
