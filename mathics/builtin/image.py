@@ -1101,6 +1101,19 @@ class PixelValuePositions(_ImageBuiltin):
 
 
 class ImageDimensions(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageDimensions[image]'
+      <dd>Returns the dimensions of an image in pixels.
+    </dl>
+
+    >> lena = Import["ExampleData/lena.tif"];
+    >> ImageDimensions[lena]
+     = {512, 512}
+
+    >> ImageDimensions[RandomImage[1, {50, 70}]]
+     = {50, 70}
+    '''
     def apply(self, image, evaluation):
         'ImageDimensions[image_Image]'
         return Expression('List', *image.dimensions())
