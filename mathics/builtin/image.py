@@ -314,7 +314,7 @@ class RandomImage(_ImageBuiltin):
         size = [w.get_int_value(), h.get_int_value()]
         if size[0] <= 0 or size[1] <= 0:
             return evaluation.message('RandomImage', 'bddim', from_python(size))
-        minrange, maxrange = minval.get_real_value(), maxval.get_real_value()
+        minrange, maxrange = minval.round_to_float(), maxval.round_to_float()
 
         if cs == 'Grayscale':
             data = numpy.random.rand(size[1], size[0]) * (maxrange - minrange) + minrange
@@ -399,7 +399,7 @@ class ImageResize(_ImageBuiltin):
             'System`Large': 450,
             'System`Automatic': 0,      # placeholder
         }
-        result = new_size.get_real_value()
+        result = new_size.round_to_float()
         if result is not None:
             result = int(result)
             if result <= 0:
@@ -412,7 +412,7 @@ class ImageResize(_ImageBuiltin):
                 return old_size
             return predefined_sizes.get(name, None)
         if new_size.has_form('Scaled', 1):
-            s = new_size.leaves[0].get_real_value()
+            s = new_size.leaves[0].round_to_float()
             if s is None:
                 return None
             return max(1, old_size * s)     # handle negative s values silently
