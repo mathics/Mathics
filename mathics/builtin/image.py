@@ -513,7 +513,7 @@ class ImageReflect(_ImageBuiltin):
 
     #> ein == ImageReflect[ein, Left -> Left] == ImageReflect[ein, Right -> Right] == ImageReflect[ein, Top -> Top] == ImageReflect[ein, Bottom -> Bottom]
      = True
-    #> ImageReflect[ein, Left -> Right] == ImageReflect[Right -> Left] == ImageReflect[ein, Left] == ImageReflect[ein, Right]
+    #> ImageReflect[ein, Left -> Right] == ImageReflect[ein, Right -> Left] == ImageReflect[ein, Left] == ImageReflect[ein, Right]
      = True
     #> ImageReflect[ein, Bottom -> Top] == ImageReflect[ein, Top -> Bottom] == ImageReflect[ein, Top] == ImageReflect[ein, Bottom]
      = True
