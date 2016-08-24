@@ -601,6 +601,134 @@ class _Plot(Builtin):
                           *options_to_rules(options))
 
 
+class BarChart(Builtin):
+    """
+    <dl>
+    <dt>'BarChart[{$p1$, $p2$ ...}]'
+        <dd>draws a bar chart.
+    </dl>
+
+    >> BarChart[{1, 4, 2}]
+     = -Graphics-
+
+    >> BarChart[{{1, 2, 3}, {2, 3, 4}}]
+     = -Graphics-
+
+    >> BarChart[{{1, 2, 3}, {2, 3, 4}}, ChartLabels -> {"a", "b", "c"}]
+     = -Graphics-
+    """
+
+    from .graphics import Graphics
+
+    attributes = ('HoldAll',)
+
+    options = Graphics.options.copy()
+    options.update({
+        'Axes': '{False, True}',
+        'AspectRatio': '1 / GoldenRatio',
+        'Mesh': 'None',
+        'PlotRange': 'Automatic',
+        'ChartLabels': 'None',
+    })
+
+    requires = (
+        'palettable',
+    )
+
+    def apply(self, points, evaluation, options):
+        '%(name)s[points_, OptionsPattern[%(name)s]]'
+
+        py_bars = points.to_python(n_evaluation=evaluation)
+
+        if not py_bars:
+            return
+
+        if not isinstance(py_bars[0], list):
+            py_bars = [py_bars]
+            multiple = False
+        else:
+            multiple = True
+
+        import palettable
+        colors = palettable.colorbrewer.qualitative.Set3_9.mpl_colors
+
+        def boxes():
+            w = 0.9
+            x = 0.6
+
+            for ys in py_bars:
+                l = len(ys)
+                for i, y in enumerate(ys):
+                    x0 = x - 0.5 * w
+                    x1 = x0 + w
+                    yield (i + 1, l), x0, x1, y
+                    x += 1
+
+                x += 0.2
+
+        def rectangles():
+            yield Expression('EdgeForm', Expression('RGBColor', 0, 0, 0))
+
+            last_x1 = 0
+
+            for (k, n), x0, x1, y in boxes():
+                if multiple:
+                    color = colors[k % len(colors)]
+                else:
+                    color = colors[1]  # a nice yellow in the default scheme
+
+                yield Expression('FaceForm', Expression('RGBColor', *color))
+
+                yield Expression(
+                    'Rectangle',
+                    Expression('List', x0, 0),
+                    Expression('List', x1, y))
+
+                last_x1 = x1
+
+            yield Expression('Line', Expression('List', Expression('List', 0, 0), Expression('List', last_x1, 0)))
+
+        def axes():
+            yield Expression('FaceForm', Expression('RGBColor', 0, 0, 0))
+
+            def points(x):
+                return Expression('List', Expression('List', x, 0), Expression('List', x, -0.2))
+
+            for (k, n), x0, x1, y in boxes():
+                if k == 1:
+                    yield Expression('Line', points(x0))
+                if k == n:
+                    yield Expression('Line', points(x1))
+
+        def labels(names):
+            yield Expression('FaceForm', Expression('RGBColor', 0, 0, 0))
+
+            for (k, n), x0, x1, y in boxes():
+                if k <= len(names):
+                    name = names[k - 1]
+                    yield Expression('Text', name, Expression('List', (x0 + x1) / 2, -0.2))
+
+        x_coords = list(itertools.chain(*[[x0, x1] for (k, n), x0, x1, y in boxes()]))
+        y_coords = [0] + [y for (k, n), x0, x1, y in boxes()]
+
+        graphics = list(rectangles()) + list(axes())
+
+        x_range = 'System`All'
+        y_range = 'System`All'
+
+        x_range = get_plot_range(x_coords, x_coords, x_range)
+        y_range = list(get_plot_range(y_coords, y_coords, y_range))
+
+        chart_labels = self.get_option(options, 'ChartLabels', evaluation)
+        if chart_labels.get_head_name() == 'System`List':
+            graphics.extend(list(labels(chart_labels.leaves)))
+            y_range[0] = -0.4  # room for labels at the bottom
+
+        options['System`PlotRange'] = from_python([x_range, y_range])
+
+        return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
+
+
 class _ListPlot(Builtin):
     messages = {
         'prng': ("Value of option PlotRange -> `1` is not All, Automatic or "
