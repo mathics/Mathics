@@ -314,7 +314,7 @@ class RandomImage(_ImageBuiltin):
         size = [w.get_int_value(), h.get_int_value()]
         if size[0] <= 0 or size[1] <= 0:
             return evaluation.message('RandomImage', 'bddim', from_python(size))
-        minrange, maxrange = minval.get_real_value(), maxval.get_real_value()
+        minrange, maxrange = minval.round_to_float(), maxval.round_to_float()
 
         if cs == 'Grayscale':
             data = numpy.random.rand(size[1], size[0]) * (maxrange - minrange) + minrange
@@ -399,7 +399,7 @@ class ImageResize(_ImageBuiltin):
             'System`Large': 450,
             'System`Automatic': 0,      # placeholder
         }
-        result = new_size.get_real_value()
+        result = new_size.round_to_float()
         if result is not None:
             result = int(result)
             if result <= 0:
@@ -412,7 +412,7 @@ class ImageResize(_ImageBuiltin):
                 return old_size
             return predefined_sizes.get(name, None)
         if new_size.has_form('Scaled', 1):
-            s = new_size.leaves[0].get_real_value()
+            s = new_size.leaves[0].round_to_float()
             if s is None:
                 return None
             return max(1, old_size * s)     # handle negative s values silently
@@ -513,7 +513,7 @@ class ImageReflect(_ImageBuiltin):
 
     #> ein == ImageReflect[ein, Left -> Left] == ImageReflect[ein, Right -> Right] == ImageReflect[ein, Top -> Top] == ImageReflect[ein, Bottom -> Bottom]
      = True
-    #> ImageReflect[ein, Left -> Right] == ImageReflect[Right -> Left] == ImageReflect[ein, Left] == ImageReflect[ein, Right]
+    #> ImageReflect[ein, Left -> Right] == ImageReflect[ein, Right -> Left] == ImageReflect[ein, Left] == ImageReflect[ein, Right]
      = True
     #> ImageReflect[ein, Bottom -> Top] == ImageReflect[ein, Top -> Bottom] == ImageReflect[ein, Top] == ImageReflect[ein, Bottom]
      = True
@@ -600,8 +600,8 @@ class ImageRotate(_ImageBuiltin):
 
     def apply(self, image, angle, evaluation):
         'ImageRotate[image_Image, angle_]'
-        py_angle = angle.to_python(n_evaluation=evaluation)
-        if not isinstance(py_angle, six.integer_types + (float,)):
+        py_angle = angle.round_to_float(evaluation)
+        if py_angle is None:
             return evaluation.message('ImageRotate', 'imgang', angle)
         return Image(skimage.transform.rotate(image.pixels, 180 * py_angle / math.pi, resize=True), image.color_space)
 
@@ -1101,6 +1101,19 @@ class PixelValuePositions(_ImageBuiltin):
 
 
 class ImageDimensions(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageDimensions[image]'
+      <dd>Returns the dimensions of an image in pixels.
+    </dl>
+
+    >> lena = Import["ExampleData/lena.tif"];
+    >> ImageDimensions[lena]
+     = {512, 512}
+
+    >> ImageDimensions[RandomImage[1, {50, 70}]]
+     = {50, 70}
+    '''
     def apply(self, image, evaluation):
         'ImageDimensions[image_Image]'
         return Expression('List', *image.dimensions())

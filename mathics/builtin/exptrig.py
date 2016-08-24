@@ -109,6 +109,51 @@ class GoldenRatio(SympyConstant):
     }
 
 
+class Degree(SympyConstant):
+    """
+    <dl>
+    <dt>'Degree'
+        <dd>is the number of radians in one degree.
+    </dl>
+
+    >> Cos[60 Degree]
+     = 1 / 2
+
+    Degree has the value of Pi / 180
+    >> Degree == Pi / 180
+     = True
+
+    #> Cos[Degree[x]]
+     = Cos[Degree[x]]
+
+    ## Issue 274
+    #> \[Degree] == ° == Degree
+     = True
+
+    #> N[Degree]
+     = 0.0174533
+    #> N[Degree, 30]
+     = 0.0174532925199432957692369076849
+    """
+
+    def to_sympy(self, expr):
+        if expr == Symbol('System`Degree'):
+            return sympy.pi / 180
+
+    def apply_N(self, precision, evaluation):
+        'N[Degree, precision_]'
+
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        if d is None:
+            return MachineReal(math.pi / 180)
+        else:
+            return PrecisionReal((sympy.pi / 180).n(d))
+
+
 class Exp(_MPMathFunction):
     """
     <dl>
