@@ -1392,6 +1392,9 @@ class TextRecognize(Builtin):
 
     languages = {
         'English': 'eng',
+        'Spanish': 'spa',
+        'French': 'fra',
+        'German': 'deu',
     }
 
     def apply(self, image, evaluation, options):
