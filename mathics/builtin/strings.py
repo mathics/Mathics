@@ -977,7 +977,7 @@ class StringRepeat(Builtin):
     </dl>
 
     >> StringRepeat["abc", 3]
-     = "abcabcabc"
+     = abcabcabc
 
     >> StringRepeat["abc", 10, 7]
      = abcabcabca
