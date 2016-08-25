@@ -14,6 +14,7 @@ import bisect
 
 from mathics.core.expression import Expression, Symbol, String, fully_qualified_symbol_name
 from mathics.core.characters import letters, letterlikes
+from mathics import settings
 
 
 names_wildcards = "@*"
@@ -43,6 +44,7 @@ class Definitions(object):
         super(Definitions, self).__init__()
         self.builtin = {}
         self.user = {}
+        self.recursionlimit = settings.MAX_RECURSION_DEPTH
 
         if add_builtin:
             from mathics.builtin import modules, contribute
@@ -418,6 +420,12 @@ class Definitions(object):
     def unset(self, name, expr):
         definition = self.get_user_definition(self.lookup_name(name))
         return definition.remove_rule(expr)
+
+    def set_recursionlimit(self, limit):
+        self.recursionlimit = limit
+
+    def get_recursionlimit(self):
+        return self.recursionlimit
 
     def get_config_value(self, name, default=None):
         'Infinity -> None, otherwise returns integer.'
