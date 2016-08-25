@@ -3035,6 +3035,70 @@ class StandardDeviation(_Rectangular):
             return Expression('Sqrt', Expression('Variance', l))
 
 
+class Covariance(Builtin):
+    """
+    <dl>
+    <dt>'Covariance[$a$, $b$]'
+      <dd>computes the covariance between the equal-sized vectors $a$ and $b$.
+    </dl>
+
+    >> Covariance[{0.2, 0.3, 0.1}, {0.3, 0.3, -0.2}]
+     = 0.025
+    """
+
+    messages = {
+        'shlen': '`` must contain at least two elements.',
+        'vctmat': '`1` and `2` need to be of equal length.',
+    }
+
+    def apply(self, a, b, evaluation):
+        'Covariance[a_List, b_List]'
+
+        if len(a.leaves) != len(b.leaves):
+            evaluation.message('Covariance', 'vctmat', a, b)
+        elif len(a.leaves) < 2:
+            evaluation.message('Covariance', 'shlen', a)
+        elif len(b.leaves) < 2:
+            evaluation.message('Covariance', 'shlen', b)
+        else:
+            ma = Expression('Subtract', a, Expression('Mean', a))
+            mb = Expression('Subtract', b, Expression('Mean', b))
+            return Expression('Divide', Expression('Dot', ma, Expression('Conjugate', mb)), len(a.leaves) - 1)
+
+
+class Correlation(Builtin):
+    """
+    <dl>
+    <dt>'Correlation[$a$, $b$]'
+      <dd>computes Pearson's correlation of two equal-sized vectors $a$ and $b$.
+    </dl>
+
+    An example from Wikipedia:
+
+    >> Correlation[{10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5}, {8.04, 6.95, 7.58, 8.81, 8.33, 9.96, 7.24, 4.26, 10.84, 4.82, 5.68}]
+     = 0.816421
+    """
+
+    messages = {
+        'shlen': '`` must contain at least two elements.',
+        'vctmat': '`1` and `2` need to be of equal length.',
+    }
+
+    def apply(self, a, b, evaluation):
+        'Correlation[a_List, b_List]'
+
+        if len(a.leaves) != len(b.leaves):
+            evaluation.message('Correlation', 'vctmat', a, b)
+        elif len(a.leaves) < 2:
+            evaluation.message('Correlation', 'shlen', a)
+        elif len(b.leaves) < 2:
+            evaluation.message('Correlation', 'shlen', b)
+        else:
+            da = Expression('StandardDeviation', a)
+            db = Expression('StandardDeviation', b)
+            return Expression('Divide', Expression('Covariance', a, b), Expression('Times', da, db))
+
+
 class _Rotate(Builtin):
     messages = {
         'rspec': '`` should be an integer or a list of integers.'
