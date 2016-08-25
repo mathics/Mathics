@@ -14,6 +14,7 @@ import bisect
 
 from mathics.core.expression import Expression, Symbol, String, fully_qualified_symbol_name
 from mathics.core.characters import letters, letterlikes
+from mathics import settings
 
 
 names_wildcards = "@*"
@@ -43,6 +44,7 @@ class Definitions(object):
         super(Definitions, self).__init__()
         self.builtin = {}
         self.user = {}
+        self.recursionlimit = None
 
         if add_builtin:
             from mathics.builtin import modules, contribute
@@ -324,10 +326,12 @@ class Definitions(object):
     def reset_user_definition(self, name):
         assert not isinstance(name, Symbol)
         del self.user[self.lookup_name(name)]
+        self.recursionlimit = None
 
     def add_user_definition(self, name, definition):
         assert not isinstance(name, Symbol)
         self.user[self.lookup_name(name)] = definition
+        self.recursionlimit = None
 
     def set_attribute(self, name, attribute):
         definition = self.get_user_definition(self.lookup_name(name))
@@ -345,9 +349,11 @@ class Definitions(object):
     def add_rule(self, name, rule, position=None):
         name = self.lookup_name(name)
         if position is None:
-            return self.get_user_definition(name).add_rule(rule)
+            result = self.get_user_definition(name).add_rule(rule)
         else:
-            return self.get_user_definition(name).add_rule_at(rule, position)
+            result = self.get_user_definition(name).add_rule_at(rule, position)
+        self.recursionlimit = None
+        return result
 
     def add_format(self, name, rule, form=''):
         definition = self.get_user_definition(self.lookup_name(name))
@@ -376,12 +382,14 @@ class Definitions(object):
         pos = valuesname(values)
         definition = self.get_user_definition(self.lookup_name(name))
         definition.set_values_list(pos, rules)
+        self.recursionlimit = None
 
     def get_options(self, name):
         return self.get_definition(self.lookup_name(name)).options
 
     def reset_user_definitions(self):
         self.user = {}
+        self.recursionlimit = None
 
     def get_user_definitions(self):
         if six.PY2:
@@ -397,6 +405,7 @@ class Definitions(object):
                 self.user = pickle.loads(base64.decodebytes(definitions.encode('ascii')))
         else:
             self.user = {}
+        self.recursionlimit = None
 
     def get_ownvalue(self, name):
         ownvalues = self.get_definition(self.lookup_name(name)).ownvalues
@@ -417,7 +426,14 @@ class Definitions(object):
 
     def unset(self, name, expr):
         definition = self.get_user_definition(self.lookup_name(name))
-        return definition.remove_rule(expr)
+        result = definition.remove_rule(expr)
+        self.recursionlimit = None
+        return result
+
+    def get_recursionlimit(self):
+        if self.recursionlimit is None:
+            self.recursionlimit = self.get_config_value('$RecursionLimit', settings.MAX_RECURSION_DEPTH)
+        return self.recursionlimit
 
     def get_config_value(self, name, default=None):
         'Infinity -> None, otherwise returns integer.'

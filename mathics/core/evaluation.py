@@ -444,8 +444,7 @@ class Evaluation(object):
 
     def inc_recursion_depth(self):
         self.check_stopped()
-        limit = self.definitions.get_config_value(
-            '$RecursionLimit', settings.MAX_RECURSION_DEPTH)
+        limit = self.definitions.get_recursionlimit()
         if limit is not None:
             if limit < 20:
                 limit = 20
