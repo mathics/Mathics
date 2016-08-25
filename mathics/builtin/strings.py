@@ -1081,7 +1081,7 @@ class ToLowerCase(Builtin):
     </dl>
 
     >> ToLowerCase["New York"]
-     = "new york"
+     = new york
     """
 
     def apply(self, s, evaluation):
@@ -1115,8 +1115,8 @@ class ToUpperCase(Builtin):
         <dd>returns $s$ in all upper case.
     </dl>
 
-    >> ToLowerCase["New York"]
-     = "NEW YORK"
+    >> ToUpperCase["New York"]
+     = NEW YORK
     """
 
     def apply(self, s, evaluation):
