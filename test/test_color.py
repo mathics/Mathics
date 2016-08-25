@@ -276,7 +276,7 @@ class ColorTest(unittest.TestCase):
                 self._checkImageConversion(4, lambda p: vectorize(p, 1, lambda q: stacked(convert, q)))
 
     def _checkConversion(self, from_space, from_components, to_space, to_components):
-        places = 12
+        places = 6
 
         if from_space == 'HSB':
             construct_name = 'Hue'

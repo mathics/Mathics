@@ -896,7 +896,7 @@ class ImageColorSpace(_ImageBuiltin):
         return String(image.color_space)
 
 
-class ColorConvert(_ImageBuiltin):
+class ColorConvert(Builtin):
     """
     <dl>
     <dt>'ColorConvert[$c$, $colspace$]'
