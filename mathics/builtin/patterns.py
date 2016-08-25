@@ -572,19 +572,26 @@ class Except(PatternObject):
             self.p.match(yield_func, expression, vars, evaluation)
 
 
+class Matcher(object):
+    def __init__(self, form):
+        self.form = Pattern.create(form)
+
+    def match(self, expr, evaluation):
+        class StopGenerator_MatchQ(StopGenerator):
+            pass
+
+        def yield_func(vars, rest):
+            raise StopGenerator_MatchQ(Symbol("True"))
+
+        try:
+            self.form.match(yield_func, expr, {}, evaluation)
+        except StopGenerator_MatchQ:
+            return True
+        return False
+
+
 def match(expr, form, evaluation):
-    class StopGenerator_MatchQ(StopGenerator):
-        pass
-
-    form = Pattern.create(form)
-
-    def yield_func(vars, rest):
-        raise StopGenerator_MatchQ(Symbol("True"))
-    try:
-        form.match(yield_func, expr, {}, evaluation)
-    except StopGenerator_MatchQ:
-        return True
-    return False
+    return Matcher(form).match(expr, evaluation)
 
 
 class MatchQ(Builtin):

@@ -1381,9 +1381,18 @@ class Cases(Builtin):
      = {2 I, 4 - I}
     """
     rules = {
-        'Cases[list_, pattern_]': 'Select[list, MatchQ[#, pattern]&]',
         'Cases[pattern_][list_]': 'Cases[list, pattern]',
     }
+
+    def apply(self, items, pattern, evaluation):
+        'Cases[items_, pattern_]'
+        if items.is_atom():
+            evaluation.message('Select', 'normal')
+            return
+
+        from mathics.builtin.patterns import Matcher
+        match = Matcher(pattern).match
+        return Expression('List', *[leaf for leaf in items.leaves if match(leaf, evaluation)])
 
 
 class DeleteCases(Builtin):
@@ -1400,9 +1409,15 @@ class DeleteCases(Builtin):
      = {1, 2, 3}
     """
 
-    rules = {
-        'DeleteCases[list_, pattern_]': 'Select[list, ! MatchQ[#, pattern]&]',
-    }
+    def apply(self, items, pattern, evaluation):
+        'DeleteCases[items_, pattern_]'
+        if items.is_atom():
+            evaluation.message('Select', 'normal')
+            return
+
+        from mathics.builtin.patterns import Matcher
+        match = Matcher(pattern).match
+        return Expression('List', *[leaf for leaf in items.leaves if not match(leaf, evaluation)])
 
 
 class Position(Builtin):
@@ -1452,10 +1467,13 @@ class Position(Builtin):
         except InvalidLevelspecError:
             return evaluation.message('Position', 'level', ls)
 
+        from mathics.builtin.patterns import Matcher
+
+        match = Matcher(patt).match
         result = []
+
         def callback(level, pos):
-            expr = Expression('MatchQ', level, patt)
-            if expr.evaluate(evaluation).is_true():
+            if match(level, evaluation):
                 result.append(pos)
             return level
 
