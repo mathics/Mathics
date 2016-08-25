@@ -232,6 +232,7 @@ class Definitions(object):
             if definition is not None:
                 return definition
 
+        original_name = name
         name = self.lookup_name(name)
         user = self.user.get(name, None)
         builtin = self.builtin.get(name, None)
@@ -277,7 +278,7 @@ class Definitions(object):
                               )
 
         if not only_if_exists:
-            self.cache[name] = definition
+            self.cache[original_name] = definition
 
         return definition
 
