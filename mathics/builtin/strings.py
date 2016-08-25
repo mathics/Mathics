@@ -1054,6 +1054,76 @@ class String_(Builtin):
     name = 'String'
 
 
+class LowerCaseQ(Test):
+    """
+    <dl>
+    <dt>'LowerCaseQ[$s$]'
+        <dd>returns True if $s$ consists wholly of lower case characters.
+    </dl>
+
+    >> LowerCaseQ["abc"]
+     = True
+
+    An empty string returns True.
+    >> LowerCaseQ[""]
+     = True
+    """
+
+    def test(self, s):
+        return isinstance(s, String) and all(c.islower() for c in s.get_string_value())
+
+
+class ToLowerCase(Builtin):
+    """
+    <dl>
+    <dt>'ToLowerCase[$s$]'
+        <dd>returns $s$ in all lower case.
+    </dl>
+
+    >> ToLowerCase["New York"]
+     = "new york"
+    """
+
+    def apply(self, s, evaluation):
+        'ToLowerCase[s_String]'
+        return String(s.get_string_value().lower())
+
+
+class UpperCaseQ(Test):
+    """
+    <dl>
+    <dt>'UpperCaseQ[$s$]'
+        <dd>returns True if $s$ consists wholly of upper case characters.
+    </dl>
+
+    >> UpperCaseQ["ABC"]
+     = True
+
+    An empty string returns True.
+    >> UpperCaseQ[""]
+     = True
+    """
+
+    def test(self, s):
+        return isinstance(s, String) and all(c.isupper() for c in s.get_string_value())
+
+
+class ToUpperCase(Builtin):
+    """
+    <dl>
+    <dt>'ToUpperCase[$s$]'
+        <dd>returns $s$ in all upper case.
+    </dl>
+
+    >> ToLowerCase["New York"]
+     = "NEW YORK"
+    """
+
+    def apply(self, s, evaluation):
+        'ToUpperCase[s_String]'
+        return String(s.get_string_value().upper())
+
+
 class ToString(Builtin):
     """
     <dl>
