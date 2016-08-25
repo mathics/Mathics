@@ -980,7 +980,7 @@ class StringRepeat(Builtin):
      = abcabcabc
 
     >> StringRepeat["abc", 10, 7]
-     = abcabcabca
+     = abcabca
     """
 
     messages = {
