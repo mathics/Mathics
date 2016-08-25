@@ -83,6 +83,9 @@ class Definitions(object):
             self.builtin.update(self.user)
             self.user = {}
 
+    def clear_cache(self):
+        self.cache = {}
+
     def get_current_context(self):
         # It's crucial to specify System` in this get_ownvalue() call,
         # otherwise we'll end up back in this function and trigger
@@ -103,7 +106,7 @@ class Definitions(object):
     def set_current_context(self, context):
         assert isinstance(context, six.string_types)
         self.set_ownvalue('System`$Context', String(context))
-        self.cache = {}
+        self.clear_cache()
 
     def set_context_path(self, context_path):
         assert isinstance(context_path, list)
@@ -111,7 +114,7 @@ class Definitions(object):
         self.set_ownvalue('System`$ContextPath',
                           Expression('System`List',
                                      *[String(c) for c in context_path]))
-        self.cache = {}
+        self.clear_cache()
 
     def get_builtin_names(self):
         return set(self.builtin)
@@ -227,10 +230,9 @@ class Definitions(object):
         return self.get_definition(name, only_if_exists=True) is not None
 
     def get_definition(self, name, only_if_exists=False):
-        if not only_if_exists:
-            definition = self.cache.get(name, None)
-            if definition is not None:
-                return definition
+        definition = self.cache.get(name, None)
+        if definition is not None:
+            return definition
 
         original_name = name
         name = self.lookup_name(name)
@@ -238,7 +240,7 @@ class Definitions(object):
         builtin = self.builtin.get(name, None)
 
         if user is None and builtin is None:
-            definition = None if only_if_exists else Definition(name=name)
+            definition = None
         elif builtin is None:
             definition = user
         elif user is None:
@@ -277,8 +279,10 @@ class Definitions(object):
                               builtin.defaultvalues,
                               )
 
-        if not only_if_exists:
+        if definition is not None:
             self.cache[original_name] = definition
+        elif not only_if_exists:
+            definition = Definition(name=name)
 
         return definition
 
@@ -338,28 +342,28 @@ class Definitions(object):
     def reset_user_definition(self, name):
         assert not isinstance(name, Symbol)
         del self.user[self.lookup_name(name)]
-        self.cache = {}
+        self.clear_cache()
 
     def add_user_definition(self, name, definition):
         assert not isinstance(name, Symbol)
         self.user[self.lookup_name(name)] = definition
-        self.cache = {}
+        self.clear_cache()
 
     def set_attribute(self, name, attribute):
         definition = self.get_user_definition(self.lookup_name(name))
         definition.attributes.add(attribute)
-        self.cache = {}
+        self.clear_cache()
 
     def set_attributes(self, name, attributes):
         definition = self.get_user_definition(self.lookup_name(name))
         definition.attributes = set(attributes)
-        self.cache = {}
+        self.clear_cache()
 
     def clear_attribute(self, name, attribute):
         definition = self.get_user_definition(self.lookup_name(name))
         if attribute in definition.attributes:
             definition.attributes.remove(attribute)
-        self.cache = {}
+        self.clear_cache()
 
     def add_rule(self, name, rule, position=None):
         name = self.lookup_name(name)
@@ -367,7 +371,7 @@ class Definitions(object):
             result = self.get_user_definition(name).add_rule(rule)
         else:
             result = self.get_user_definition(name).add_rule_at(rule, position)
-        self.cache = {}
+        self.clear_cache()
         return result
 
     def add_format(self, name, rule, form=''):
@@ -380,35 +384,35 @@ class Definitions(object):
             if form not in definition.formatvalues:
                 definition.formatvalues[form] = []
             insert_rule(definition.formatvalues[form], rule)
-        self.cache = {}
+        self.clear_cache()
 
     def add_nvalue(self, name, rule):
         definition = self.get_user_definition(self.lookup_name(name))
         definition.add_rule_at(rule, 'n')
-        self.cache = {}
+        self.clear_cache()
 
     def add_default(self, name, rule):
         definition = self.get_user_definition(self.lookup_name(name))
         definition.add_rule_at(rule, 'default')
-        self.cache = {}
+        self.clear_cache()
 
     def add_message(self, name, rule):
         definition = self.get_user_definition(self.lookup_name(name))
         definition.add_rule_at(rule, 'messages')
-        self.cache = {}
+        self.clear_cache()
 
     def set_values(self, name, values, rules):
         pos = valuesname(values)
         definition = self.get_user_definition(self.lookup_name(name))
         definition.set_values_list(pos, rules)
-        self.cache = {}
+        self.clear_cache()
 
     def get_options(self, name):
         return self.get_definition(self.lookup_name(name)).options
 
     def reset_user_definitions(self):
         self.user = {}
-        self.cache = {}
+        self.clear_cache()
 
     def get_user_definitions(self):
         if six.PY2:
@@ -424,7 +428,7 @@ class Definitions(object):
                 self.user = pickle.loads(base64.decodebytes(definitions.encode('ascii')))
         else:
             self.user = {}
-        self.cache = {}
+        self.clear_cache()
 
     def get_ownvalue(self, name):
         ownvalues = self.get_definition(self.lookup_name(name)).ownvalues
@@ -438,17 +442,18 @@ class Definitions(object):
 
         name = self.lookup_name(name)
         self.add_rule(name, Rule(Symbol(name), value))
-        self.cache = {}
+        self.clear_cache()
 
     def set_options(self, name, options):
         definition = self.get_user_definition(self.lookup_name(name))
         definition.options = options
-        self.cache = {}
+        self.clear_cache()
 
     def unset(self, name, expr):
         definition = self.get_user_definition(self.lookup_name(name))
-        return definition.remove_rule(expr)
-        self.cache = {}
+        result = definition.remove_rule(expr)
+        self.clear_cache()
+        return result
 
     def get_config_value(self, name, default=None):
         'Infinity -> None, otherwise returns integer.'
@@ -468,11 +473,11 @@ class Definitions(object):
     def set_config_value(self, name, new_value):
         from mathics.core.expression import Integer
         self.set_ownvalue(name, Integer(new_value))
-        self.cache = {}
+        self.clear_cache()
 
     def set_line_no(self, line_no):
         self.set_config_value('$Line', line_no)
-        self.cache = {}
+        self.clear_cache()
 
     def get_line_no(self):
         return self.get_config_value('$Line', 0)
