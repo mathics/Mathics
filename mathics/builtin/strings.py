@@ -617,7 +617,7 @@ class StringSplit(Builtin):
         for re_patt in re_patts:
             result = [t for s in result for t in mathics_split(re_patt, s, flags=flags)]
 
-        return from_python([x for x in result if x != ''])
+        return Expression('List', *[String(x) for x in result if x != ''])
 
 
 class StringPosition(Builtin):
