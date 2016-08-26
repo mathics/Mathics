@@ -17,7 +17,7 @@ import numbers
 import itertools
 
 from mathics.core.expression import (Expression, Real, MachineReal, Symbol,
-                                     String, from_python)
+                                     String, Integer, from_python)
 from mathics.builtin.base import Builtin
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.options import options_to_rules
@@ -606,6 +606,40 @@ class _Plot(Builtin):
                           *options_to_rules(options))
 
 
+class ColorData(Builtin):
+    messages = {
+        'notent': '`1` is not a known color scheme. ColorData[] gives you lists of schemes.',
+    }
+
+    palettes = {
+        'Pastel': (lambda palettable: palettable.colorbrewer.qualitative.Pastel1_9, False),
+        'Rainbow': (lambda palettable: palettable.colorbrewer.diverging.Spectral_9, True),
+        'RedBlueTones': (lambda palettable: palettable.colorbrewer.diverging.RdBu_11, False),
+        'GreenPinkTones': (lambda palettable: palettable.colorbrewer.diverging.PiYG_9, False),
+        'GrayTones': (lambda palettable: palettable.colorbrewer.sequential.Greys_9, False),
+        'SolarColors': (lambda palettable: palettable.colorbrewer.sequential.OrRd_9, True),
+        'CherryTones': (lambda palettable: palettable.colorbrewer.sequential.Reds_9, True),
+        'FuchsiaTones': (lambda palettable: palettable.colorbrewer.sequential.RdPu_9, True),
+        'SiennaTones': (lambda palettable: palettable.colorbrewer.sequential.Oranges_9, True),
+
+        # specific to Mathics
+        'Paired': (lambda palettable: palettable.colorbrewer.qualitative.Paired_9, False),
+        'Accent': (lambda palettable: palettable.colorbrewer.qualitative.Accent_8, False),
+        'Aquatic': (lambda palettable: palettable.wesanderson.Aquatic1_5, False),
+        'Zissou': (lambda palettable: palettable.wesanderson.Zissou_5, False),
+        'Tableau': (lambda palettable: palettable.tableau.Tableau_20, False),
+        'TrafficLight': (lambda palettable: palettable.tableau.TrafficLight_9, False),
+    }
+
+    def apply(self, evaluation):
+        'ColorData[]'
+        return Expression('List', String("Gradients"))
+
+    def apply_gradients(self, evaluation):
+        'ColorData["Gradients"]'
+        return Expression('List', *[String(name) for name in self.palettes.keys()])
+
+
 class BarChart(Builtin):
     """
     <dl>
@@ -616,10 +650,16 @@ class BarChart(Builtin):
     >> BarChart[{1, 4, 2}]
      = -Graphics-
 
+    >> BarChart[{1, 4, 2}, ChartStyle -> {Red, Green, Blue}]
+     = -Graphics-
+
     >> BarChart[{{1, 2, 3}, {2, 3, 4}}]
      = -Graphics-
 
     >> BarChart[{{1, 2, 3}, {2, 3, 4}}, ChartLabels -> {"a", "b", "c"}]
+     = -Graphics-
+
+    >> BarChart[{{1, 5}, {3, 4}}, ChartStyle -> {{EdgeForm[Thin], White}, {EdgeForm[Thick], White}}]
      = -Graphics-
     """
 
@@ -634,6 +674,7 @@ class BarChart(Builtin):
         'Mesh': 'None',
         'PlotRange': 'Automatic',
         'ChartLabels': 'None',
+        'ChartStyle': 'Automatic',
     })
 
     requires = (
@@ -643,31 +684,78 @@ class BarChart(Builtin):
     def apply(self, points, evaluation, options):
         '%(name)s[points_, OptionsPattern[%(name)s]]'
 
-        py_bars = points.to_python(n_evaluation=evaluation)
+        points = points.evaluate(evaluation)
 
-        if not py_bars:
+        if points.get_head_name() != 'System`List' or not points.leaves:
             return
 
-        if not isinstance(py_bars[0], list):
-            py_bars = [py_bars]
-            multiple = False
+        if points.leaves[0].get_head_name() == 'System`List':
+            if not all(group.get_head_name() == 'System`List' for group in points.leaves):
+                return
+            multiple_colors = True
+            groups = points.leaves
         else:
-            multiple = True
+            multiple_colors = False
+            groups = [points]
 
-        import palettable
-        colors = palettable.colorbrewer.qualitative.Set3_9.mpl_colors
+        def to_number(x):
+            if isinstance(x, Integer):
+                return float(x.get_int_value())
+            y = x.get_float_value()
+            if y is None:
+                return 0.
+            return y
+
+        data = [[to_number(x) for x in group.leaves] for group in groups]
+
+        chart_style = self.get_option(options, 'ChartStyle', evaluation)
+        if isinstance(chart_style, Symbol) and chart_style.get_name() == 'System`Automatic':
+            chart_style = String('Automatic')
+
+        if chart_style.get_head_name() == 'System`List':
+            colors = chart_style.leaves
+            spread_colors = False
+        elif isinstance(chart_style, String):
+            if chart_style.get_string_value() == 'Automatic':
+                get_palette = lambda palettable: palettable.wesanderson.Moonrise1_5
+                rotate_palette = 0
+                reverse_palette = True
+            else:
+                get_palette, reverse_palette = ColorData.palettes.get(
+                    chart_style.get_string_value(), (None, None))
+                if get_palette is None:
+                    evaluation.message('ColorData', 'notent', chart_style)
+                    return
+                rotate_palette = 0
+                multiple_colors = True
+
+            import palettable
+            palette = get_palette(palettable)
+            mpl_colors = palette.mpl_colors
+            if reverse_palette:
+                mpl_colors = list(reversed(mpl_colors))
+            if rotate_palette:
+                mpl_colors = mpl_colors[rotate_palette:] + mpl_colors[:rotate_palette]
+            if not multiple_colors:
+                colors = [Expression('RGBColor', *mpl_colors[0])]
+            else:
+                colors = [Expression('RGBColor', *c) for c in mpl_colors]
+            spread_colors = True
+        else:
+            return
 
         def boxes():
             w = 0.9
+            s = 0.1
             x = 0.6
 
-            for ys in py_bars:
-                l = len(ys)
-                for i, y in enumerate(ys):
+            for y_values in data:
+                y_length = len(y_values)
+                for i, y in enumerate(y_values):
                     x0 = x - 0.5 * w
                     x1 = x0 + w
-                    yield (i + 1, l), x0, x1, y
-                    x += 1
+                    yield (i + 1, y_length), x0, x1, y
+                    x = x1 + s
 
                 x += 0.2
 
@@ -677,17 +765,16 @@ class BarChart(Builtin):
             last_x1 = 0
 
             for (k, n), x0, x1, y in boxes():
-                if multiple:
-                    color = colors[k % len(colors)]
+                if spread_colors and n < len(colors):
+                    index = int(k * (len(colors) - 1)) // n
+                    color = colors[index]
                 else:
-                    color = colors[1]  # a nice yellow in the default scheme
+                    color = colors[(k - 1) % len(colors)]
 
-                yield Expression('FaceForm', Expression('RGBColor', *color))
-
-                yield Expression(
+                yield Expression('Style', Expression(
                     'Rectangle',
                     Expression('List', x0, 0),
-                    Expression('List', x1, y))
+                    Expression('List', x1, y)), color)
 
                 last_x1 = x1
 
@@ -713,7 +800,7 @@ class BarChart(Builtin):
                     name = names[k - 1]
                     yield Expression('Text', name, Expression('List', (x0 + x1) / 2, -0.2))
 
-        x_coords = [0] + list(itertools.chain(*[[x0, x1] for (k, n), x0, x1, y in boxes()]))
+        x_coords = list(itertools.chain(*[[x0, x1] for (k, n), x0, x1, y in boxes()]))
         y_coords = [0] + [y for (k, n), x0, x1, y in boxes()]
 
         graphics = list(rectangles()) + list(axes())
@@ -736,6 +823,216 @@ class BarChart(Builtin):
         options['System`PlotRange'] = from_python([x_range, y_range])
 
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
+
+
+class Histogram(Builtin):
+    """
+    <dl>
+    <dt>'Histogram[{$x1$, $x2$ ...}]'
+        <dd>gives a histogram using the values $x1$, $x2$, ....
+    </dl>
+
+    >> Histogram[{3, 8, 10, 100, 1000, 500, 300, 200, 10, 20, 200, 100, 200, 300, 500}]
+     = -Graphics-
+
+    >> Histogram[{{1, 2, 10, 5, 50, 20}, {90, 100, 101, 120, 80}}]
+     = -Graphics-
+    """
+
+    from .graphics import Graphics
+
+    attributes = ('HoldAll',)
+
+    options = Graphics.options.copy()
+    options.update({
+        'Axes': '{True, True}',
+        'AspectRatio': '1 / GoldenRatio',
+        'Mesh': 'None',
+        'PlotRange': 'Automatic',
+    })
+
+    requires = (
+        'palettable',
+    )
+
+    def apply(self, points, spec, evaluation, options):
+        '%(name)s[points_, spec___, OptionsPattern[%(name)s]]'
+
+        points = points.evaluate(evaluation)
+        spec = spec.evaluate(evaluation).get_sequence()
+
+        if spec and len(spec) not in (1, 2):
+            return
+
+        if points.get_head_name() != 'System`List' or not points.leaves:
+            return
+
+        if points.leaves[0].get_head_name() == 'System`List':
+            if not all(q.get_head_name() == 'System`List' for q in points.leaves):
+                return
+            input = points.leaves
+        else:
+            input = [points]
+
+        def to_numbers(l):
+            for x in l:
+                y = x.to_mpmath()
+                if y is not None:
+                    yield y
+
+        matrix = [list(to_numbers(data.leaves)) for data in input]
+        minima = [min(data) for data in matrix]
+        maxima = [max(data) for data in matrix]
+        max_bins = max(len(data) for data in matrix)
+
+        minimum = min(minima)
+        maximum = max(maxima)
+
+        if minimum > 0:
+            minimum = 0
+
+        span = maximum - minimum
+
+        from math import ceil
+        from mpmath import floor as mpfloor, ceil as mpceil
+
+        class Distribution():
+            def __init__(self, data, n_bins):
+                bin_width = span / n_bins
+                bins = [0] * n_bins
+                for x in data:
+                    b = int(mpfloor((x - minimum) / bin_width))
+                    if b < 0:
+                        b = 0
+                    elif b >= n_bins:
+                        b = n_bins - 1
+                    bins[b] += 1
+                self.bins = bins
+                self.bin_width = bin_width
+
+            def n_bins(self):
+                return len(self.bins)
+
+            def cost(self):
+                # see http://toyoizumilab.brain.riken.jp/hideaki/res/histogram.html
+                bins = self.bins
+                n_bins = len(bins)
+                k = sum(bins) / n_bins
+                v = sum(x * x for x in ((b - k) for b in bins)) / n_bins
+                bin_width = self.bin_width
+                return (2 * k - v) / (bin_width * bin_width)
+
+            def graphics(self, color):
+                bins = self.bins
+                n_bins = len(bins)
+                bin_width = self.bin_width
+
+                def boxes():
+                    x = minimum
+
+                    for i, count in enumerate(bins):
+                        x1 = x + bin_width
+                        yield x, x1, count
+                        x = minimum + ((i + 1) * span) / n_bins
+
+                def rectangles():
+                    yield Expression('EdgeForm', Expression('RGBColor', 0, 0, 0))
+
+                    last_x1 = 0
+                    style = Expression('RGBColor', *color)
+
+                    for x0, x1, y in boxes():
+                        yield Expression('Style', Expression(
+                            'Rectangle',
+                            Expression('List', x0, 0),
+                            Expression('List', x1, y)), style)
+
+                        last_x1 = x1
+
+                    yield Expression('Line', Expression(
+                        'List', Expression('List', 0, 0), Expression('List', last_x1, 0)))
+
+                return list(rectangles())
+
+        def compute_cost(n_bins):
+            distributions = [Distribution(data, n_bins) for data in matrix]
+            return sum(d.cost() for d in distributions), distributions
+
+        def best_distributions(n_bins, dir, cost0, distributions0):
+            while True:
+                n_bins += dir
+                if n_bins < 1 or n_bins > max_bins:
+                    break
+                cost, distributions = compute_cost(n_bins)
+                if cost > cost0:
+                    break
+                cost0 = cost
+                distributions0 = distributions
+            return cost0, distributions0
+
+        def graphics(distributions):
+            import palettable
+            palette = palettable.wesanderson.FantasticFox1_5
+            colors = list(reversed(palette.mpl_colors))
+
+            from itertools import chain
+
+            n_bins = distributions[0].n_bins()
+            x_coords = [minimum + (i * span) / n_bins for i in range(n_bins + 1)]
+            y_coords = [0] + list(chain(*[distribution.bins for distribution in distributions]))
+
+            graphics = []
+            for i, distribution in enumerate(distributions):
+                color = colors[i % len(colors)]
+                graphics.extend(list(chain(*[distribution.graphics(color)])))
+
+            x_range = 'System`All'
+            y_range = 'System`All'
+
+            x_range = list(get_plot_range(x_coords, x_coords, x_range))
+            y_range = list(get_plot_range(y_coords, y_coords, y_range))
+
+            # always specify -.1 as the minimum x plot range, as this will make the y axis apppear
+            # at origin (0,0); otherwise it will be shifted right; see GraphicsBox.axis_ticks().
+            x_range[0] = -.1
+
+            options['System`PlotRange'] = from_python([x_range, y_range])
+
+            return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
+
+        def manual_bins(bspec, hspec):
+            if isinstance(bspec, Integer):
+                distributions = [Distribution(data, bspec.get_int_value()) for data in matrix]
+                return graphics(distributions)
+            elif bspec.get_head_name() == 'System`List' and len(bspec.leaves) == 1:
+                bin_width = bspec[0].to_mpmath()
+                distributions = [Distribution(data, int(mpceil(span / bin_width))) for data in matrix]
+                return graphics(distributions)
+
+        def auto_bins():
+            # start with Rice's rule, see https://en.wikipedia.org/wiki/Histogram
+            n_bins = int(ceil(2 * (max_bins ** (1. / 3.))))
+
+            # now optimize the bin size by going into both directions and looking
+            # for local minima.
+
+            cost0, distributions0 = compute_cost(n_bins)
+            cost_r, distributions_r = best_distributions(n_bins, 1, cost0, distributions0)
+            cost_l, distributions_l = best_distributions(n_bins, -1, cost0, distributions0)
+
+            if cost_r < cost_l:
+                distributions = distributions_r
+            else:
+                distributions = distributions_l
+
+            return graphics(distributions)
+
+        if not spec:
+            return auto_bins()
+        else:
+            if len(spec) < 2:
+                spec.append(None)
+            return manual_bins(*spec)
 
 
 class _ListPlot(Builtin):
