@@ -37,9 +37,9 @@ function refreshInputSizes() {
 	$$('textarea.request').each(function(textarea) {
 		refreshInputSize(textarea);
 	});
-	
+
 	$$('#queries ul').each(function(ul) {
-		afterProcessResult(ul, 'Rerender');		
+		afterProcessResult(ul, 'Rerender');
 	});
 }
 
@@ -56,7 +56,7 @@ function prepareText(text) {
 		text = String.fromCharCode(160);
 	}
 	return text;
-	
+
 	/*
 	// Place &shy; between every two characters.
 	// Problem: Copy & paste yields weird results!
@@ -77,7 +77,7 @@ function getDimensions(math, callback) {
 	body.appendChild(all);
 	var container = all.select('.calc_container')[0];
 	container.appendChild(translateDOMElement(math));
-	
+
 	MathJax.Hub.Queue(["Typeset", MathJax.Hub, container]);
 	MathJax.Hub.Queue(function() {
 		var pos = container.cumulativeOffset();
@@ -96,7 +96,7 @@ function drawMeshGradient(ctx, points) {
 			Math.round(c[2]*255) + ', ' + a + ')';
 		return result;
 	}
-	
+
 	var grad1 = ctx.createLinearGradient(0, 0, 0.5, 0.5);
 	grad1.addColorStop(0, color(points[0][1], 1));
 	grad1.addColorStop(1, color(points[0][1], 0));
@@ -106,11 +106,11 @@ function drawMeshGradient(ctx, points) {
 	var grad3 = ctx.createLinearGradient(0, 1, 0, 0);
 	grad3.addColorStop(0, color(points[2][1], 1));
 	grad3.addColorStop(1, color(points[2][1], 0));
-	
+
 	ctx.save();
 	ctx.setTransform(points[1][0][0]-points[0][0][0], points[1][0][1]-points[0][0][1],
 			points[2][0][0]-points[0][0][0], points[2][0][1]-points[0][0][1], points[0][0][0], points[0][0][1]);
-	
+
 	ctx.beginPath();
 	ctx.moveTo(0, 0);
 	ctx.lineTo(1, 0);
@@ -178,12 +178,12 @@ function translateDOMElement(element, svg) {
 			foreign.setAttribute('x', '0px');
 			foreign.setAttribute('y', '0px');
 			foreign.appendChild(div);
-			
+
 			var canvas = createMathNode('canvas');
 			canvas.setAttribute('width', svg.getAttribute('width'));
 			canvas.setAttribute('height', svg.getAttribute('height'));
 			div.appendChild(canvas);
-			
+
 			var ctx = canvas.getContext('2d');
 			for (var index = 0; index < data.length; ++index) {
 				var points = data[index];
@@ -191,7 +191,7 @@ function translateDOMElement(element, svg) {
 					drawMeshGradient(ctx, points);
 				}
 			}
-			
+
 			dom = foreign;
 		}
 	}
@@ -210,7 +210,7 @@ function translateDOMElement(element, svg) {
 			width = dom.getAttribute('width');
 			height = dom.getAttribute('height');
 		} else {
-			// TODO: calculate appropriate height and recalculate on every view change 
+			// TODO: calculate appropriate height and recalculate on every view change
 			width = height = '400';
 		}
 		object.setAttribute('width', width  + 'px');
@@ -383,7 +383,7 @@ function setResult(ul, results) {
 
 function submitQuery(textarea, onfinish) {
 	$('welcomeContainer').fade({duration: 0.5});
-	
+
 	textarea.li.addClassName('loading');
 	new Ajax.Request('/ajax/query/', {
 		method: 'post',
@@ -411,7 +411,7 @@ function submitQuery(textarea, onfinish) {
 		onFailure: function(transport) {
 			textarea.ul.select('li[class!=request]').invoke('deleteElement');
 			var li = $E('li', {'class': 'serverError'}, $T("Sorry, an error occurred while processing your request!"));
-			textarea.ul.appendChild(li);					
+			textarea.ul.appendChild(li);
 			textarea.submitted = true;
 		},
 		onComplete: function() {
@@ -431,11 +431,11 @@ function keyDown(event) {
 	if (!textarea)
 		return;
 	refreshInputSize(textarea);
-	
-	if (event.keyCode == Event.KEY_RETURN && (event.shiftKey || event.keyLocation == 3)) {
+
+	if (event.keyCode == Event.KEY_RETURN && (event.shiftKey || event.location == 3)) {
 		if (!Prototype.Browser.IE)
 			event.stop();
-		
+
 		var query = textarea.value.strip();
 		if (query) {
 			submitQuery(textarea);
@@ -456,6 +456,7 @@ function keyDown(event) {
 			} else
 				createQuery(textarea.li.nextSibling);
 		}
+	//} else if (event.keyCode == 90 && )
 	} else
 		if (isGlobalKey(event))
 			event.stop();
@@ -549,7 +550,7 @@ function createQuery(before, noFocus, updatingAll) {
 	if (before)
 		$('queries').insertBefore(li, before);
 	else
-		$('queries').appendChild(li);	
+		$('queries').appendChild(li);
 	if (!updatingAll)
 		refreshInputSize(textarea);
 	new Form.Element.Observer(textarea, 0.2, inputChange.bindAsEventListener(textarea));
@@ -684,19 +685,19 @@ function domLoaded() {
 	  }
 	});
 	MathJax.Hub.Configured();
-	
+
 	if ($('welcomeBrowser'))
 		if (!(Prototype.Browser.WebKit || Prototype.Browser.MobileSafari || Prototype.Browser.Gecko))
 			$('welcomeBrowser').show();
-	
+
 	$$('body')[0].observe('resize', refreshInputSizes);
-	
+
 	if ($('queriesContainer')) {
 		$('queriesContainer').appendChild($E('ul', {'id': 'queries'}));
-		
+
 		$('document').observe('mousedown', documentMouseDown.bindAsEventListener($('document')));
 		$('document').observe('click', documentClick.bindAsEventListener($('document')));
-		
+
 		$(document).observe('keydown', keyDown.bindAsEventListener());
 		if (Prototype.Browser.IE) {
 			document.body.addEventListener('keydown', function(event) {
@@ -714,9 +715,9 @@ function domLoaded() {
 					event.stop();
 			}.bindAsEventListener());
 		}
-		
+
 		$(document).observe('keyup', globalKeyUp.bindAsEventListener($('document')));
-		
+
 		if (!loadLink())
 			createQuery();
 	}
