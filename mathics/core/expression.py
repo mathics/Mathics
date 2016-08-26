@@ -796,21 +796,17 @@ class Expression(BaseExpression):
                         leaves[index] = leaf.evaluate(evaluation)
 
             if 'System`HoldAll' in attributes or 'System`HoldAllComplete' in attributes:
-                eval_range([])
+                # eval_range(range(0, 0))
                 rest_range(range(len(leaves)))
             elif 'System`HoldFirst' in attributes:
-                rest_range([0])
+                rest_range(range(0, min(1, len(leaves))))
                 eval_range(range(1, len(leaves)))
             elif 'System`HoldRest' in attributes:
-                if len(leaves) > 0:
-                    eval_range([0])
-                    rest_range(range(1, len(leaves)))
-                else:
-                    eval_range([])
-                    rest_range(range(len(leaves)))
+                eval_range(range(0, min(1, len(leaves))))
+                rest_range(range(1, len(leaves)))
             else:
                 eval_range(range(len(leaves)))
-                rest_range([])
+                # rest_range(range(0, 0))
 
             new = Expression(head, *leaves)
             if ('System`SequenceHold' not in attributes and    # noqa
