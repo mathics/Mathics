@@ -67,6 +67,45 @@ class ColorDataFunction(Builtin):
     pass
 
 
+class _GradientColorScheme(object):
+    def installed(self):
+        return True
+
+    def color_data_function(self, name):
+        colors = Expression('List', *[Expression('RGBColor', *color) for color in self.colors()])
+        blend = Expression('Function', Expression('Blend', colors, Expression('Slot', 1)))
+        arguments = [String(name), String('Gradients'), Expression('List', 0, 1), blend]
+        return Expression('ColorDataFunction', *arguments)
+
+
+class _PredefinedGradient(_GradientColorScheme):
+    def __init__(self, colors):
+        self._colors = colors
+
+    def colors(self):
+        return self._colors
+
+
+class _PalettableGradient(_GradientColorScheme):
+    def __init__(self, palette, reversed):
+        self.palette = palette
+        self.reversed = reversed
+
+    def installed(self):
+        try:
+            import palettable
+        except ImportError:
+            return False
+        return True
+
+    def colors(self):
+        import palettable
+        colors = self.palette(palettable).mpl_colors
+        if self.reversed:
+            colors = list(reversed(colors))
+        return colors
+
+
 class ColorData(Builtin):
     """
     <dl>
@@ -81,14 +120,72 @@ class ColorData(Builtin):
     >> {DensityPlot[x + y, {x, -1, 1}, {y, -1, 1}], DensityPlot[x + y, {x, -1, 1}, {y, -1, 1}, ColorFunction->"test"]}
      = {-Graphics-, -Graphics-}
     """
-    rules = {
-        'ColorData["LakeColors"]': (
-            """ColorDataFunction["LakeColors", "Gradients", {0, 1},
-                Blend[{RGBColor[0.293416, 0.0574044, 0.529412],
-                    RGBColor[0.563821, 0.527565, 0.909499],
-                    RGBColor[0.762631, 0.846998, 0.914031],
-                    RGBColor[0.941176, 0.906538, 0.834043]}, #1] &]"""),
+    #rules = {
+    #    'ColorData["LakeColors"]': (
+    #        """ColorDataFunction["LakeColors", "Gradients", {0, 1},
+    #            Blend[{RGBColor[0.293416, 0.0574044, 0.529412],
+    #                RGBColor[0.563821, 0.527565, 0.909499],
+    #                RGBColor[0.762631, 0.846998, 0.914031],
+    #                RGBColor[0.941176, 0.906538, 0.834043]}, #1] &]"""),
+    #}
+
+    messages = {
+        'notent': '`1` is not a known color scheme. ColorData[] gives you lists of schemes.',
     }
+
+    palettes = {
+        'LakeColors': _PredefinedGradient([
+            (0.293416, 0.0574044, 0.529412),
+            (0.563821, 0.527565, 0.909499),
+            (0.762631, 0.846998, 0.914031),
+            (0.941176, 0.906538, 0.834043)]),
+
+        'Pastel': _PalettableGradient(lambda p: p.colorbrewer.qualitative.Pastel1_9, False),
+        'Rainbow': _PalettableGradient(lambda p: p.colorbrewer.diverging.Spectral_9, True),
+        'RedBlueTones': _PalettableGradient(lambda p: p.colorbrewer.diverging.RdBu_11, False),
+        'GreenPinkTones': _PalettableGradient(lambda p: p.colorbrewer.diverging.PiYG_9, False),
+        'GrayTones': _PalettableGradient(lambda p: p.colorbrewer.sequential.Greys_9, False),
+        'SolarColors': _PalettableGradient(lambda p: p.colorbrewer.sequential.OrRd_9, True),
+        'CherryTones': _PalettableGradient(lambda p: p.colorbrewer.sequential.Reds_9, True),
+        'FuchsiaTones':_PalettableGradient (lambda p: p.colorbrewer.sequential.RdPu_9, True),
+        'SiennaTones': _PalettableGradient(lambda p: p.colorbrewer.sequential.Oranges_9, True),
+
+        # specific to Mathics
+        'Paired': _PalettableGradient(lambda p: p.colorbrewer.qualitative.Paired_9, False),
+        'Accent': _PalettableGradient(lambda p: p.colorbrewer.qualitative.Accent_8, False),
+        'Aquatic': _PalettableGradient(lambda p: p.wesanderson.Aquatic1_5, False),
+        'Zissou': _PalettableGradient(lambda p: p.wesanderson.Zissou_5, False),
+        'Tableau': _PalettableGradient(lambda p: p.tableau.Tableau_20, False),
+        'TrafficLight': _PalettableGradient(lambda p: p.tableau.TrafficLight_9, False),
+        'Moonrise1': _PalettableGradient(lambda p: p.wesanderson.Moonrise1_5, False),
+    }
+
+    def apply_directory(self, evaluation):
+        'ColorData[]'
+        return Expression('List', String("Gradients"))
+
+    def apply(self, name, evaluation):
+        'ColorData[name_String]'
+        py_name = name.get_string_value()
+        if py_name == 'Gradients':
+            names = []
+            for name, palette in self.palettes.items():
+                if palette.installed():
+                    names.append(String(name))
+            return Expression('List', *names)
+        palette = ColorData.palettes.get(py_name, None)
+        if palette is None or not palette.installed():
+            evaluation.message('ColorData', 'notent', name)
+            return
+        return palette.color_data_function(py_name)
+
+    @staticmethod
+    def colors(name, evaluation):
+        palette = ColorData.palettes.get(name, None)
+        if palette is None or not palette.installed():
+            evaluation.message('ColorData', 'notent', name)
+            return None
+        return palette.colors()
 
 
 class Mesh(Builtin):
@@ -606,40 +703,6 @@ class _Plot(Builtin):
                           *options_to_rules(options))
 
 
-class ColorData(Builtin):
-    messages = {
-        'notent': '`1` is not a known color scheme. ColorData[] gives you lists of schemes.',
-    }
-
-    palettes = {
-        'Pastel': (lambda palettable: palettable.colorbrewer.qualitative.Pastel1_9, False),
-        'Rainbow': (lambda palettable: palettable.colorbrewer.diverging.Spectral_9, True),
-        'RedBlueTones': (lambda palettable: palettable.colorbrewer.diverging.RdBu_11, False),
-        'GreenPinkTones': (lambda palettable: palettable.colorbrewer.diverging.PiYG_9, False),
-        'GrayTones': (lambda palettable: palettable.colorbrewer.sequential.Greys_9, False),
-        'SolarColors': (lambda palettable: palettable.colorbrewer.sequential.OrRd_9, True),
-        'CherryTones': (lambda palettable: palettable.colorbrewer.sequential.Reds_9, True),
-        'FuchsiaTones': (lambda palettable: palettable.colorbrewer.sequential.RdPu_9, True),
-        'SiennaTones': (lambda palettable: palettable.colorbrewer.sequential.Oranges_9, True),
-
-        # specific to Mathics
-        'Paired': (lambda palettable: palettable.colorbrewer.qualitative.Paired_9, False),
-        'Accent': (lambda palettable: palettable.colorbrewer.qualitative.Accent_8, False),
-        'Aquatic': (lambda palettable: palettable.wesanderson.Aquatic1_5, False),
-        'Zissou': (lambda palettable: palettable.wesanderson.Zissou_5, False),
-        'Tableau': (lambda palettable: palettable.tableau.Tableau_20, False),
-        'TrafficLight': (lambda palettable: palettable.tableau.TrafficLight_9, False),
-    }
-
-    def apply(self, evaluation):
-        'ColorData[]'
-        return Expression('List', String("Gradients"))
-
-    def apply_gradients(self, evaluation):
-        'ColorData["Gradients"]'
-        return Expression('List', *[String(name) for name in self.palettes.keys()])
-
-
 class BarChart(Builtin):
     """
     <dl>
@@ -717,25 +780,14 @@ class BarChart(Builtin):
             spread_colors = False
         elif isinstance(chart_style, String):
             if chart_style.get_string_value() == 'Automatic':
-                get_palette = lambda palettable: palettable.wesanderson.Moonrise1_5
-                rotate_palette = 0
-                reverse_palette = True
+                import palettable
+                mpl_colors = palettable.wesanderson.Moonrise1_5.mpl_colors
             else:
-                get_palette, reverse_palette = ColorData.palettes.get(
-                    chart_style.get_string_value(), (None, None))
-                if get_palette is None:
-                    evaluation.message('ColorData', 'notent', chart_style)
+                mpl_colors = ColorData.colors(chart_style.get_string_value())
+                if mpl_colors is None:
                     return
-                rotate_palette = 0
                 multiple_colors = True
 
-            import palettable
-            palette = get_palette(palettable)
-            mpl_colors = palette.mpl_colors
-            if reverse_palette:
-                mpl_colors = list(reversed(mpl_colors))
-            if rotate_palette:
-                mpl_colors = mpl_colors[rotate_palette:] + mpl_colors[:rotate_palette]
             if not multiple_colors:
                 colors = [Expression('RGBColor', *mpl_colors[0])]
             else:
