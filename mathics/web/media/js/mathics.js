@@ -7,6 +7,13 @@ var clickedQuery;
 
 var lastFocus = null;
 
+// Undo-redo functionality
+const UNDO_LIMIT = 250;
+var previousState = {};
+var saveNextState = false;
+var undoStates = [];
+var redoStates = [];
+
 function getLetterWidth(element) {
 	var letter = $E('span', $T('m'));
 	letter.setStyle({
@@ -456,7 +463,11 @@ function keyDown(event) {
 			} else
 				createQuery(textarea.li.nextSibling);
 		}
-	//} else if (event.keyCode == 90 && )
+	} else if (event.ctrlKey && (event.keyCode == 89 || (event.shiftKey && event.keyCode == 90))) { // Redo
+		window.alert("Redo");
+	} else if (event.ctrlKey && event.keyCode == 90) {  // Undo
+		event.preventDefault(); event.stopImmediatePropagation(); event.stopPropagation();  // Block browser's native undo.
+		undo();
 	} else
 		if (isGlobalKey(event))
 			event.stop();
@@ -497,6 +508,16 @@ function onFocus(event) {
 	var textarea = this;
 	textarea.li.addClassName('focused');
 	lastFocus = textarea;
+
+	// Undo-redo
+	var _id = this.parentNode.parentNode.parentNode.id;
+	var _query = textarea.value;
+	var _selectionStart = textarea.selectionStart;
+	var _selectionEnd = textarea.selectionEnd;
+	saveState(_id, _query, _selectionStart, _selectionEnd);
+	previousState['query'] = _query;
+	previousState['selectionStart'] = _selectionStart;
+	previousState['selectionEnd'] = _selectionEnd;
 }
 
 function onBlur(event) {
@@ -509,6 +530,13 @@ function onBlur(event) {
 		window.setTimeout(function() {
 			textarea.li.deleteElement();
 		}, 10);
+
+		for (var i = 0; i < undoStates.length; i++) {
+			if (undoStates[i].id == this.parentNode.parentNode.parentNode.id) {
+				undoStates.splice(i, 1);
+			}
+		}
+		console.log(undoStates);
 	}
 	textarea.li.removeClassName('focused');
 }
@@ -665,6 +693,93 @@ function globalKeyUp(event) {
 	}
 }
 
+// Undo-redo functionality.
+function trackState(event) {
+	var textarea = lastFocus;
+	var _id = textarea.parentNode.parentNode.parentNode.id;
+	var _query = null;
+	var _selectionStart;
+	var _selectionEnd;
+
+	switch (event.keyCode) {
+		case Event.KEY_DELETE:
+		case Event.KEY_BACKSPACE:
+			if (textarea.value === previousState) {
+				break;
+			} else {
+				_query = previousState.query;
+				_selectionStart = previousState.selectionStart;
+				_selectionEnd = previousState.selectionEnd;
+			}
+			break;
+		case Event.KEY_RETURN:
+			if (event.shiftKey) break;
+		case Event.KEY_LEFT:
+		case Event.KEY_RIGHT:
+		case Event.KEY_HOME:
+		case Event.KEY_END:
+		case 32:  // Space
+			_query = textarea.value;
+			_selectionStart = textarea.selectionStart;
+			_selectionEnd = textarea.selectionEnd;
+			if (event.keyCode !== 32) {
+				saveNextState = true;
+			}
+			break;
+		default:
+			if (saveNextState) {
+				_query = textarea.value;
+				_selectionStart = textarea.selectionStart;
+				_selectionEnd = textarea.selectionEnd;
+				saveNextState = false;
+			}
+	}
+	if (!!_query) {
+		saveState(_id, _query, _selectionStart, _selectionEnd);
+	}
+	previousState = {query: textarea.value, selectionStart: textarea.selectionStart, selectionEnd: textarea.selectionEnd};
+}
+
+function saveState(_id, _query, _selectionStart, _selectionEnd) {
+	if (undoStates.length == 0
+		|| undoStates[undoStates.length-1].query !== _query
+		|| undoStates[undoStates.length-1].id !== _id) {
+		undoStates.push({id: _id, query: _query, selectionStart: _selectionStart, selectionEnd: _selectionEnd});
+	}
+	if (undoStates.length > 0) {
+		var lastSavedState = undoStates[undoStates.length-1];
+		if (lastSavedState.query === _query
+			&& lastSavedState.id === _id
+			&& (lastSavedState.selectionStart !== _selectionStart || lastSavedState.selectionEnd !== _selectionEnd)) {
+			undoStates.pop();
+			undoStates.push({id: _id, query: _query, selectionStart: _selectionStart, selectionEnd: _selectionEnd});
+		}
+	}
+	if (undoStates.length > UNDO_LIMIT) {
+		undoStates.splice(UNDO_LIMIT);
+	}
+	console.log("New state saved.", undoStates);
+}
+
+function undo() {
+	if (undoStates.length > 0) {
+		var state = undoStates.pop();
+		var textarea = $(state.id).getElementsByTagName('textarea')[0];
+		if (textarea.value === state.query) {
+			undo();  // Occasionally the stack will contain a copy of the current input contents due to the way states are saved. We skip over these.
+		} else {
+			document.getElementById(state.id).getElementsByTagName('textarea')[0].value = state.query;
+			document.getElementById(state.id).getElementsByTagName('textarea')[0].focus();
+			document.getElementById(state.id).getElementsByTagName('textarea')[0].selectionStart = state.selectionStart;
+			document.getElementById(state.id).getElementsByTagName('textarea')[0].selectionEnd = state.selectionEnd;
+			redoStates.push(state);
+		}
+	} else {
+		lastFocus.value = '';
+	}
+	console.log(undoStates);
+}
+
 function domLoaded() {
 	MathJax.Hub.Config({
 		"HTML-CSS": {
@@ -694,6 +809,7 @@ function domLoaded() {
 
 	if ($('queriesContainer')) {
 		$('queriesContainer').appendChild($E('ul', {'id': 'queries'}));
+		$('queriesContainer').observe('keydown', trackState);
 
 		$('document').observe('mousedown', documentMouseDown.bindAsEventListener($('document')));
 		$('document').observe('click', documentClick.bindAsEventListener($('document')));
