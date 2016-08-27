@@ -23,6 +23,12 @@ from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.options import options_to_rules
 from mathics.builtin.numeric import chop
 
+try:
+    import palettable
+    palettable_installed = True
+except ImportError:
+    palettable_installed = False
+
 
 try:
     from mathics.builtin.compile import _compile, CompileArg, CompileError, real_type
@@ -68,9 +74,6 @@ class ColorDataFunction(Builtin):
 
 
 class _GradientColorScheme(object):
-    def installed(self):
-        return True
-
     def color_data_function(self, name):
         colors = Expression('List', *[Expression('RGBColor', *color) for color in self.colors()])
         blend = Expression('Function', Expression('Blend', colors, Expression('Slot', 1)))
@@ -91,16 +94,8 @@ class _PalettableGradient(_GradientColorScheme):
         self.palette = palette
         self.reversed = reversed
 
-    def installed(self):
-        try:
-            import palettable
-        except ImportError:
-            return False
-        return True
-
     def colors(self):
-        import palettable
-        colors = self.palette(palettable).mpl_colors
+        colors = self.palette.mpl_colors
         if self.reversed:
             colors = list(reversed(colors))
         return colors
@@ -139,26 +134,29 @@ class ColorData(Builtin):
             (0.563821, 0.527565, 0.909499),
             (0.762631, 0.846998, 0.914031),
             (0.941176, 0.906538, 0.834043)]),
-
-        'Pastel': _PalettableGradient(lambda p: p.colorbrewer.qualitative.Pastel1_9, False),
-        'Rainbow': _PalettableGradient(lambda p: p.colorbrewer.diverging.Spectral_9, True),
-        'RedBlueTones': _PalettableGradient(lambda p: p.colorbrewer.diverging.RdBu_11, False),
-        'GreenPinkTones': _PalettableGradient(lambda p: p.colorbrewer.diverging.PiYG_9, False),
-        'GrayTones': _PalettableGradient(lambda p: p.colorbrewer.sequential.Greys_9, False),
-        'SolarColors': _PalettableGradient(lambda p: p.colorbrewer.sequential.OrRd_9, True),
-        'CherryTones': _PalettableGradient(lambda p: p.colorbrewer.sequential.Reds_9, True),
-        'FuchsiaTones':_PalettableGradient (lambda p: p.colorbrewer.sequential.RdPu_9, True),
-        'SiennaTones': _PalettableGradient(lambda p: p.colorbrewer.sequential.Oranges_9, True),
-
-        # specific to Mathics
-        'Paired': _PalettableGradient(lambda p: p.colorbrewer.qualitative.Paired_9, False),
-        'Accent': _PalettableGradient(lambda p: p.colorbrewer.qualitative.Accent_8, False),
-        'Aquatic': _PalettableGradient(lambda p: p.wesanderson.Aquatic1_5, False),
-        'Zissou': _PalettableGradient(lambda p: p.wesanderson.Zissou_5, False),
-        'Tableau': _PalettableGradient(lambda p: p.tableau.Tableau_20, False),
-        'TrafficLight': _PalettableGradient(lambda p: p.tableau.TrafficLight_9, False),
-        'Moonrise1': _PalettableGradient(lambda p: p.wesanderson.Moonrise1_5, False),
     }
+
+    if palettable_installed:
+        palettes.update({
+            'Pastel': _PalettableGradient(palettable.colorbrewer.qualitative.Pastel1_9, False),
+            'Rainbow': _PalettableGradient(palettable.colorbrewer.diverging.Spectral_9, True),
+            'RedBlueTones': _PalettableGradient(palettable.colorbrewer.diverging.RdBu_11, False),
+            'GreenPinkTones': _PalettableGradient(palettable.colorbrewer.diverging.PiYG_9, False),
+            'GrayTones': _PalettableGradient(palettable.colorbrewer.sequential.Greys_9, False),
+            'SolarColors': _PalettableGradient(palettable.colorbrewer.sequential.OrRd_9, True),
+            'CherryTones': _PalettableGradient(palettable.colorbrewer.sequential.Reds_9, True),
+            'FuchsiaTones':_PalettableGradient(palettable.colorbrewer.sequential.RdPu_9, True),
+            'SiennaTones': _PalettableGradient(palettable.colorbrewer.sequential.Oranges_9, True),
+
+            # specific to Mathics
+            'Paired': _PalettableGradient(palettable.colorbrewer.qualitative.Paired_9, False),
+            'Accent': _PalettableGradient(palettable.colorbrewer.qualitative.Accent_8, False),
+            'Aquatic': _PalettableGradient(palettable.wesanderson.Aquatic1_5, False),
+            'Zissou': _PalettableGradient(palettable.wesanderson.Zissou_5, False),
+            'Tableau': _PalettableGradient(palettable.tableau.Tableau_20, False),
+            'TrafficLight': _PalettableGradient(palettable.tableau.TrafficLight_9, False),
+            'Moonrise1': _PalettableGradient(palettable.wesanderson.Moonrise1_5, False),
+        })
 
     def apply_directory(self, evaluation):
         'ColorData[]'
@@ -168,13 +166,9 @@ class ColorData(Builtin):
         'ColorData[name_String]'
         py_name = name.get_string_value()
         if py_name == 'Gradients':
-            names = []
-            for name, palette in self.palettes.items():
-                if palette.installed():
-                    names.append(String(name))
-            return Expression('List', *names)
+            return Expression('List', *[String(name) for name in self.palettes.keys()])
         palette = ColorData.palettes.get(py_name, None)
-        if palette is None or not palette.installed():
+        if palette is None:
             evaluation.message('ColorData', 'notent', name)
             return
         return palette.color_data_function(py_name)
@@ -182,7 +176,7 @@ class ColorData(Builtin):
     @staticmethod
     def colors(name, evaluation):
         palette = ColorData.palettes.get(name, None)
-        if palette is None or not palette.installed():
+        if palette is None:
             evaluation.message('ColorData', 'notent', name)
             return None
         return palette.colors()
