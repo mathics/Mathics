@@ -520,7 +520,6 @@ function onFocus(event) {
 	var _query = textarea.value;
 	var _selectionStart = textarea.selectionStart;
 	var _selectionEnd = textarea.selectionEnd;
-	console.log('Focusing.\n');
 	previousState['query'] = _query;
 	previousState['selectionStart'] = _selectionStart;
 	previousState['selectionEnd'] = _selectionEnd;
@@ -541,7 +540,6 @@ function onBlur(event) {
 		}, 10);
 		// Remove corresponding states in undo-redo history.
 		cleanUndoRedoHistory(textarea);
-		console.log('Blurring...\nundo stack:\n', undoStates, '\n\nredo stack:\n', redoStates);
 	}
 	textarea.li.removeClassName('focused');
 }
@@ -757,7 +755,6 @@ function saveState(_id, _query, _selectionStart, _selectionEnd) {
 		|| undoStates[undoStates.length-1].query !== _query
 		|| undoStates[undoStates.length-1].id !== _id) {
 		undoStates.push(state);
-		console.log("New state pushed to undo stack.\nundo stack:\n", undoStates, "\n\nredo stack:\n", redoStates);
 	}
 	if (undoStates.length > 0) {
 		var lastSavedState = undoStates[undoStates.length-1];
@@ -766,7 +763,6 @@ function saveState(_id, _query, _selectionStart, _selectionEnd) {
 			&& (lastSavedState.selectionStart !== _selectionStart || lastSavedState.selectionEnd !== _selectionEnd)) {
 			undoStates[undoStates.length-1].selectionStart = _selectionStart;
 			undoStates[undoStates.length-1].selectionEnd = _selectionEnd;
-			console.log("Modified cursor position.\n", undoStates);
 		}
 	}
 	if (undoStates.length > UNDO_LIMIT) {
@@ -792,8 +788,6 @@ function undo() {
 			textarea.value = state.query;
 			textarea.selectionStart = state.selectionStart;
 			textarea.selectionEnd = state.selectionEnd;
-
-			console.log('Undoing.\nundo stack:', undoStates, '\n\nredo stack:', redoStates);
 		}
 	} else {
 		lastFocus.value = '';
@@ -819,7 +813,6 @@ function redo() {
 		textarea.selectionStart = state.selectionStart;
 		textarea.selectionEnd = state.selectionEnd;
 	}
-	console.log('Redoing.\nundo stack:', undoStates, '\n\nredo stack:', redoStates);
 }
 
 function cleanUndoRedoHistory(textarea) {
