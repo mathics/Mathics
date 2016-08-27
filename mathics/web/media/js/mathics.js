@@ -463,11 +463,15 @@ function keyDown(event) {
 			} else
 				createQuery(textarea.li.nextSibling);
 		}
-	} else if (event.ctrlKey && (event.keyCode == 89 || (event.shiftKey && event.keyCode == 90))) { // Redo
-		window.alert("Redo");
-	} else if (event.ctrlKey && event.keyCode == 90) {  // Undo
-		event.preventDefault(); event.stopImmediatePropagation(); event.stopPropagation();  // Block browser's native undo.
-		undo();
+	} else if (event.ctrlKey) {
+		// Undo-redo
+		if (event.keyCode === 89 || (event.shiftKey && event.keyCode === 90)) { // Redo: Ctrl-y or Ctrl-Shift-z.
+			event.preventDefault(); event.stopImmediatePropagation(); event.stopPropagation();  // Suppress browser's native undo-redo.
+			redo();
+		} else if (event.keyCode === 90) {  // Undo.
+			event.preventDefault(); event.stopImmediatePropagation(); event.stopPropagation();
+			undo();
+		}
 	} else
 		if (isGlobalKey(event))
 			event.stop();
@@ -479,6 +483,7 @@ function deleteMouseDown(event) {
 }
 
 function deleteClick(event) {
+	cleanUndoRedoHistory(this.li.textarea);
 	if (lastFocus == this.li.textarea)
 		lastFocus = null;
 	this.li.deleteElement();
@@ -489,6 +494,7 @@ function deleteClick(event) {
 	}
 	if ($('queries').childElements().length == 0)
 		createQuery();
+
 }
 
 function moveMouseDown(event) {
@@ -514,10 +520,13 @@ function onFocus(event) {
 	var _query = textarea.value;
 	var _selectionStart = textarea.selectionStart;
 	var _selectionEnd = textarea.selectionEnd;
-	saveState(_id, _query, _selectionStart, _selectionEnd);
+	console.log('Focusing.\n');
 	previousState['query'] = _query;
 	previousState['selectionStart'] = _selectionStart;
 	previousState['selectionEnd'] = _selectionEnd;
+	if (!_query) {
+		saveState(_id, _query, _selectionStart, _selectionEnd);
+	}
 }
 
 function onBlur(event) {
@@ -530,13 +539,9 @@ function onBlur(event) {
 		window.setTimeout(function() {
 			textarea.li.deleteElement();
 		}, 10);
-
-		for (var i = 0; i < undoStates.length; i++) {
-			if (undoStates[i].id == this.parentNode.parentNode.parentNode.id) {
-				undoStates.splice(i, 1);
-			}
-		}
-		console.log(undoStates);
+		// Remove corresponding states in undo-redo history.
+		cleanUndoRedoHistory(textarea);
+		console.log('Blurring...\nundo stack:\n', undoStates, '\n\nredo stack:\n', redoStates);
 	}
 	textarea.li.removeClassName('focused');
 }
@@ -702,6 +707,9 @@ function trackState(event) {
 	var _selectionEnd;
 
 	switch (event.keyCode) {
+		case Event.KEY_UP:
+		case Event.KEY_DOWN:
+			break;
 		case Event.KEY_DELETE:
 		case Event.KEY_BACKSPACE:
 			if (textarea.value === previousState) {
@@ -711,6 +719,7 @@ function trackState(event) {
 				_selectionStart = previousState.selectionStart;
 				_selectionEnd = previousState.selectionEnd;
 			}
+			redoStates.clear();
 			break;
 		case Event.KEY_RETURN:
 			if (event.shiftKey) break;
@@ -727,12 +736,14 @@ function trackState(event) {
 			}
 			break;
 		default:
+			if (event.ctrlKey) break;  // Prevent redo stack from resetting unless something is actually typed.
 			if (saveNextState) {
 				_query = textarea.value;
 				_selectionStart = textarea.selectionStart;
 				_selectionEnd = textarea.selectionEnd;
 				saveNextState = false;
 			}
+			redoStates.clear();
 	}
 	if (!!_query) {
 		saveState(_id, _query, _selectionStart, _selectionEnd);
@@ -741,43 +752,89 @@ function trackState(event) {
 }
 
 function saveState(_id, _query, _selectionStart, _selectionEnd) {
+	var state = {id: _id, query: _query, selectionStart: _selectionStart, selectionEnd: _selectionEnd};
 	if (undoStates.length == 0
 		|| undoStates[undoStates.length-1].query !== _query
 		|| undoStates[undoStates.length-1].id !== _id) {
-		undoStates.push({id: _id, query: _query, selectionStart: _selectionStart, selectionEnd: _selectionEnd});
+		undoStates.push(state);
+		console.log("New state pushed to undo stack.\nundo stack:\n", undoStates, "\n\nredo stack:\n", redoStates);
 	}
 	if (undoStates.length > 0) {
 		var lastSavedState = undoStates[undoStates.length-1];
 		if (lastSavedState.query === _query
 			&& lastSavedState.id === _id
 			&& (lastSavedState.selectionStart !== _selectionStart || lastSavedState.selectionEnd !== _selectionEnd)) {
-			undoStates.pop();
-			undoStates.push({id: _id, query: _query, selectionStart: _selectionStart, selectionEnd: _selectionEnd});
+			undoStates[undoStates.length-1].selectionStart = _selectionStart;
+			undoStates[undoStates.length-1].selectionEnd = _selectionEnd;
+			console.log("Modified cursor position.\n", undoStates);
 		}
 	}
 	if (undoStates.length > UNDO_LIMIT) {
 		undoStates.splice(UNDO_LIMIT);
 	}
-	console.log("New state saved.", undoStates);
 }
 
 function undo() {
 	if (undoStates.length > 0) {
 		var state = undoStates.pop();
 		var textarea = $(state.id).getElementsByTagName('textarea')[0];
-		if (textarea.value === state.query) {
+		var currentQuery = textarea.value;
+		if (currentQuery === state.query) {
 			undo();  // Occasionally the stack will contain a copy of the current input contents due to the way states are saved. We skip over these.
 		} else {
-			document.getElementById(state.id).getElementsByTagName('textarea')[0].value = state.query;
-			document.getElementById(state.id).getElementsByTagName('textarea')[0].focus();
-			document.getElementById(state.id).getElementsByTagName('textarea')[0].selectionStart = state.selectionStart;
-			document.getElementById(state.id).getElementsByTagName('textarea')[0].selectionEnd = state.selectionEnd;
-			redoStates.push(state);
+			redoStates.push({
+				id: state.id,
+				query: currentQuery,
+				selectionStart: textarea.selectionStart,
+				selectionEnd: textarea.selectionEnd
+			});
+			textarea.focus();
+			textarea.value = state.query;
+			textarea.selectionStart = state.selectionStart;
+			textarea.selectionEnd = state.selectionEnd;
+
+			console.log('Undoing.\nundo stack:', undoStates, '\n\nredo stack:', redoStates);
 		}
 	} else {
 		lastFocus.value = '';
+		lastFocus.focus();
 	}
-	console.log(undoStates);
+}
+
+function redo() {
+	if (redoStates.length > 0) {
+		var state = redoStates.pop();
+		var textarea = $(state.id).getElementsByTagName('textarea')[0];
+		var currentState = {
+			id: state.id,
+			query: textarea.value,
+			selectionStart: textarea.selectionStart,
+			selectionEnd: textarea.selectionEnd
+		};
+
+		undoStates.push(currentState);
+
+		textarea.focus();
+		textarea.value = state.query;
+		textarea.selectionStart = state.selectionStart;
+		textarea.selectionEnd = state.selectionEnd;
+	}
+	console.log('Redoing.\nundo stack:', undoStates, '\n\nredo stack:', redoStates);
+}
+
+function cleanUndoRedoHistory(textarea) {
+	for (var i = 0; i < undoStates.length; i++) {
+		if (undoStates[i].id === textarea.parentNode.parentNode.parentNode.id) {
+			undoStates.splice(i, 1);
+			i--;
+		}
+	}
+	for (var i = 0; i < redoStates.length; i++) {
+		if (redoStates[i].id === textarea.parentNode.parentNode.parentNode.id) {
+			redoStates.splice(i, 1);
+			i--;
+		}
+	}
 }
 
 function domLoaded() {
