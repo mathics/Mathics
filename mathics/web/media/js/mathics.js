@@ -8,7 +8,7 @@ var clickedQuery;
 var lastFocus = null;
 
 // Undo-redo functionality
-const UNDO_LIMIT = 250;
+const UNDO_LIMIT = 500;
 var previousState = {};
 var saveNextState = false;
 var undoStates = [];
@@ -463,15 +463,12 @@ function keyDown(event) {
 			} else
 				createQuery(textarea.li.nextSibling);
 		}
-	} else if (event.ctrlKey) {
-		// Undo-redo
-		if (event.keyCode === 89 || (event.shiftKey && event.keyCode === 90)) { // Redo: Ctrl-y or Ctrl-Shift-z.
+	} else if (event.ctrlKey && (event.keyCode === 89 || (event.shiftKey && event.keyCode === 90))) { // Redo: Ctrl-y or Ctrl-Shift-z.
 			event.preventDefault(); event.stopImmediatePropagation(); event.stopPropagation();  // Suppress browser's native undo-redo.
 			redo();
-		} else if (event.keyCode === 90) {  // Undo.
-			event.preventDefault(); event.stopImmediatePropagation(); event.stopPropagation();
-			undo();
-		}
+	} else if (event.ctrlKey && event.keyCode === 90) {  // Undo.
+		event.preventDefault(); event.stopImmediatePropagation(); event.stopPropagation();
+		undo();
 	} else
 		if (isGlobalKey(event))
 			event.stop();
