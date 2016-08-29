@@ -1373,26 +1373,77 @@ class Cases(Builtin):
     <dl>
     <dt>'Cases[$list$, $pattern$]'
         <dd>returns the elements of $list$ that match $pattern$.
+    <dt>'Cases[$list$, $pattern$, $ls$]'
+        <dd>returns the elements matching at levelspec $ls$.
     </dl>
 
     >> Cases[{a, 1, 2.5, "string"}, _Integer|_Real]
      = {1, 2.5}
     >> Cases[_Complex][{1, 2I, 3, 4-I, 5}]
      = {2 I, 4 - I}
+
+    #> Cases[1, 2]
+     = {}
+
+    #> Cases[f[1, 2], 2]
+     = {2}
+
+    #> Cases[f[f[1, 2], f[2]], 2]
+     = {}
+    #> Cases[f[f[1, 2], f[2]], 2, 2]
+     = {2, 2}
+    #> Cases[f[f[1, 2], f[2], 2], 2, Infinity]
+     = {2, 2, 2}
+
+    #> Cases[{1, f[2], f[3, 3, 3], 4, f[5, 5]}, f[x__] :> Plus[x]]
+     = {2, 9, 10}
+    #> Cases[{1, f[2], f[3, 3, 3], 4, f[5, 5]}, f[x__] -> Plus[x]]
+     = {2, 3, 3, 3, 5, 5}
     """
+
+
     rules = {
         'Cases[pattern_][list_]': 'Cases[list, pattern]',
     }
 
-    def apply(self, items, pattern, evaluation):
-        'Cases[items_, pattern_]'
+    def apply(self, items, pattern, ls, evaluation):
+        'Cases[items_, pattern_, ls_:{1}]'
         if items.is_atom():
-            evaluation.message('Select', 'normal')
-            return
+            return Expression('List')
+
+        try:
+            start, stop = python_levelspec(ls)
+        except InvalidLevelspecError:
+            return evaluation.message('Position', 'level', ls)
+
+        results = []
 
         from mathics.builtin.patterns import Matcher
-        match = Matcher(pattern).match
-        return Expression('List', *[leaf for leaf in items.leaves if match(leaf, evaluation)])
+
+        if pattern.has_form('Rule', 2) or pattern.has_form('RuleDelayed', 2):
+            from mathics.core.rules import Rule
+            match = Matcher(pattern.leaves[0]).match
+            rule = Rule(pattern.leaves[0], pattern.leaves[1])
+            def callback(level):
+                if match(level, evaluation):
+                    result = rule.apply(level, evaluation)
+                    result = result.evaluate(evaluation)
+                    results.append(result)
+                return level
+        else:
+            match = Matcher(pattern).match
+            def callback(level):
+                if match(level, evaluation):
+                    results.append(level)
+                return level
+
+        # TODO
+        # heads = self.get_option(options, 'Heads', evaluation).is_true()
+        heads = False
+
+        walk_levels(items, start, stop, heads=heads, callback=callback)
+
+        return Expression('List', *results)
 
 
 class DeleteCases(Builtin):

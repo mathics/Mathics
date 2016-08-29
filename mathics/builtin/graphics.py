@@ -2318,7 +2318,7 @@ class Automatic(Builtin):
     'Automatic' is the default for 'PlotRange', 'ImageSize', and other
     graphical options:
 
-    >> Cases[Options[Plot], _ :> Automatic]
+    >> Cases[Options[Plot], HoldPattern[_ :> Automatic]]
      = {Exclusions :> Automatic, ImageSize :> Automatic, MaxRecursion :> Automatic, PlotRange :> Automatic, PlotRangePadding :> Automatic}
     '''
 
