@@ -781,28 +781,32 @@ class Expression(BaseExpression):
             head = self.head.evaluate(evaluation)
             attributes = head.get_attributes(evaluation.definitions)
             leaves = self.leaves[:]
-            if ('System`HoldAll' in attributes or
-                    'System`HoldAllComplete' in attributes):
-                eval_range = []
-            elif 'System`HoldFirst' in attributes:
-                eval_range = list(range(1, len(leaves)))
-            elif 'System`HoldRest' in attributes:
-                if len(leaves) > 0:
-                    eval_range = [0]
-                else:
-                    eval_range = []
-            else:
-                eval_range = list(range(len(leaves)))
 
-            if 'System`HoldAllComplete' not in attributes:
-                for index, leaf in enumerate(self.leaves):
-                    if (leaf.has_form('Evaluate', 1) and    # noqa
-                        index not in eval_range):
-                        eval_range.append(index)
-            eval_range.sort()
-            for index in eval_range:
-                if not leaves[index].has_form('Unevaluated', 1):
-                    leaves[index] = leaves[index].evaluate(evaluation)
+            def rest_range(indices):
+                if 'System`HoldAllComplete' not in attributes:
+                    for index in indices:
+                        leaf = leaves[index]
+                        if leaf.has_form('Evaluate', 1):
+                            leaves[index] = leaf.evaluate(evaluation)
+
+            def eval_range(indices):
+                for index in indices:
+                    leaf = leaves[index]
+                    if not leaf.has_form('Unevaluated', 1):
+                        leaves[index] = leaf.evaluate(evaluation)
+
+            if 'System`HoldAll' in attributes or 'System`HoldAllComplete' in attributes:
+                # eval_range(range(0, 0))
+                rest_range(range(len(leaves)))
+            elif 'System`HoldFirst' in attributes:
+                rest_range(range(0, min(1, len(leaves))))
+                eval_range(range(1, len(leaves)))
+            elif 'System`HoldRest' in attributes:
+                eval_range(range(0, min(1, len(leaves))))
+                rest_range(range(1, len(leaves)))
+            else:
+                eval_range(range(len(leaves)))
+                # rest_range(range(0, 0))
 
             new = Expression(head, *leaves)
             if ('System`SequenceHold' not in attributes and    # noqa
