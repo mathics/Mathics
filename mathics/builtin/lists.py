@@ -1394,6 +1394,11 @@ class Cases(Builtin):
      = {2, 2}
     #> Cases[f[f[1, 2], f[2], 2], 2, Infinity]
      = {2, 2, 2}
+
+    #> Cases[{1, f[2], f[3, 3, 3], 4, f[5, 5]}, f[x__] :> Plus[x]]
+     = {2, 9, 10}
+    #> Cases[{1, f[2], f[3, 3, 3], 4, f[5, 5]}, f[x__] -> Plus[x]]
+     = {2, 3, 3, 3, 5, 5}
     """
 
 
@@ -1411,14 +1416,26 @@ class Cases(Builtin):
         except InvalidLevelspecError:
             return evaluation.message('Position', 'level', ls)
 
-        result = []
-        from mathics.builtin.patterns import Matcher
-        match = Matcher(pattern).match
+        results = []
 
-        def callback(level):
-            if match(level, evaluation):
-                result.append(level)
-            return level
+        from mathics.builtin.patterns import Matcher
+
+        if pattern.has_form('Rule', 2) or pattern.has_form('RuleDelayed', 2):
+            from mathics.core.rules import Rule
+            match = Matcher(pattern.leaves[0]).match
+            rule = Rule(pattern.leaves[0], pattern.leaves[1])
+            def callback(level):
+                if match(level, evaluation):
+                    result = rule.apply(level, evaluation)
+                    result = result.evaluate(evaluation)
+                    results.append(result)
+                return level
+        else:
+            match = Matcher(pattern).match
+            def callback(level):
+                if match(level, evaluation):
+                    results.append(level)
+                return level
 
         # TODO
         # heads = self.get_option(options, 'Heads', evaluation).is_true()
@@ -1426,7 +1443,7 @@ class Cases(Builtin):
 
         walk_levels(items, start, stop, heads=heads, callback=callback)
 
-        return Expression('List', *result)
+        return Expression('List', *results)
 
 
 class DeleteCases(Builtin):
