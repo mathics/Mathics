@@ -14,7 +14,12 @@ from mathics.builtin.base import Builtin, Predefined, Symbol, String
 
 from .pymimesniffer import magic
 import mimetypes
+import sys
 
+if sys.version_info >= (3, 0):
+    from urllib.request import urlretrieve
+else:
+    from urllib import urlretrieve
 
 mimetypes.add_type('application/vnd.wolfram.mathematica.package', '.m')
 
@@ -290,6 +295,19 @@ class Import(Builtin):
 
     def apply(self, filename, elements, evaluation):
         'Import[filename_, elements_]'
+
+        # Handle http downloads
+        if isinstance(filename, String) and filename.get_string_value().startswith('http://'):
+            url = filename.get_string_value()
+            import tempfile
+            import os
+            temp_handle, temp_path = tempfile.mkstemp(suffix='')
+            try:
+                urlretrieve(url, temp_path)
+                result = Expression('Import', String(temp_path), elements).evaluate(evaluation)
+            finally:
+                os.unlink(temp_path)
+            return result
 
         # Check filename
         path = filename.to_python()
