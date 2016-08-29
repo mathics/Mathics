@@ -967,6 +967,49 @@ class StringReplace(Builtin):
             return String(do_subs(py_strings))
 
 
+class StringRepeat(Builtin):
+    """
+    <dl>
+    <dt>'StringRepeat["$string$", $n$]'
+        <dd>gives $string$ repeated $n$ times.
+    <dt>'StringRepeat["$string$", $n$, $max$]'
+        <dd>gives $string$ repeated $n$ times, but not more than $max$ characters.
+    </dl>
+
+    >> StringRepeat["abc", 3]
+     = abcabcabc
+
+    >> StringRepeat["abc", 10, 7]
+     = abcabca
+    """
+
+    messages = {
+        'intp': 'A positive integer is expected at position `1` in `2`.',
+    }
+
+    def apply(self, s, n, evaluation):
+        'StringRepeat[s_String, n_]'
+        py_n = n.get_int_value() if isinstance(n, Integer) else 0
+        if py_n < 1:
+            evaluation.message('StringRepeat', 'intp', 2, Expression('StringRepeat', s, n))
+        return String(s.get_string_value() * py_n)
+
+    def apply_truncated(self, s, n, m, evaluation):
+        'StringRepeat[s_String, n_Integer, m_Integer]'
+        py_n = n.get_int_value() if isinstance(n, Integer) else 0
+        py_m = m.get_int_value() if isinstance(m, Integer) else 0
+
+        if py_n < 1:
+            evaluation.message('StringRepeat', 'intp', 2, Expression('StringRepeat', s, n, m))
+        if py_m < 1:
+            evaluation.message('StringRepeat', 'intp', 3, Expression('StringRepeat', s, n, m))
+
+        py_s = s.get_string_value()
+        py_n = min(1 + py_m // len(py_s), py_n)
+
+        return String((py_s * py_n)[:py_m])
+
+
 class Characters(Builtin):
     """
     <dl>
