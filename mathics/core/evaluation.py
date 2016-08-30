@@ -177,6 +177,15 @@ class Result(object):
 
 
 class Output(object):
+    def __init__(self, layout_engine=None):
+        self.layout_engine = layout_engine
+
+    def svgify(self):
+        # True if the MathML output should be instantly rendered into SVG
+        # in the backend, i.e. the browser will only see SVG. False for the
+        # classic mode, i.e. Mathics gives <math> tags to the browser.
+        return False
+
     def max_stored_size(self, settings) -> int:
         return settings.MAX_STORED_SIZE
 
@@ -188,6 +197,22 @@ class Output(object):
 
     def display(self, data, metadata):
         raise NotImplementedError
+
+    def mathml_to_svg(self, mathml):
+        svg = None
+        if self.layout_engine:
+            svg = self.layout_engine.mathml_to_svg(mathml)
+        if svg is None:
+            raise RuntimeError("LayoutEngine is unavailable")
+        return svg
+
+    def rasterize(self, svg):
+        png = None
+        if self.layout_engine:
+            png = self.layout_engine.rasterize(svg)
+        if png is None:
+            raise RuntimeError("LayoutEngine is unavailable")
+        return png
 
 
 class Evaluation(object):

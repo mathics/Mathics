@@ -1897,8 +1897,16 @@ class MathMLForm(Builtin):
             xml = ''
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
-        mathml = '<math>%s</math>' % xml  # convert_box(boxes)
-        return Expression('RowBox', Expression('List', String(mathml)))
+
+        if not evaluation.output.svgify():
+            result = '<math>%s</math>' % xml
+        else:
+            if xml.startswith('<svg'):
+                result = xml
+            else:
+                result = evaluation.output.mathml_to_svg('<math>%s</math>' % xml)
+
+        return Expression('RowBox', Expression('List', String(result)))
 
 
 class TeXForm(Builtin):
