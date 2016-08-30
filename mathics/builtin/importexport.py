@@ -27,6 +27,125 @@ mimetypes.add_type('application/vnd.wolfram.mathematica.package', '.m')
 # Keep in mind that mimetypes has system-dependent aspects (it inspects "/etc/mime.types" and other files).
 mimetypes.add_type('application/json', '.json')
 
+# TODO: Add more file formats
+
+mimetype_dict = {
+    'application/dicom': 'DICOM',
+    'application/dbase': 'DBF',
+    'application/dbf': 'DBF',
+    'application/eps': 'EPS',
+    'application/fits': 'FITS',
+    'application/json': 'JSON',
+    'application/mathematica': 'NB',
+    'application/mdb': 'MDB',
+    'application/mbox': 'MBOX',
+    'application/msaccess': 'MDB',
+    'application/octet-stream': 'OBJ',
+    'application/pdf': 'PDF',
+    'application/pcx': 'PCX',
+    'application/postscript': 'EPS',
+    'application/rss+xml': 'RSS',
+    'application/rtf': 'RTF',
+    'application/sla': 'STL',
+    'application/tga': 'TGA',
+    'application/vnd.google-earth.kml+xml': 'KML',
+    'application/vnd.ms-excel': 'XLS',
+    'application/vnd.ms-pki.stl': 'STL',
+    'application/vnd.oasis.opendocument.spreadsheet': 'ODS',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',  # nopep8
+    'application/vnd.sun.xml.calc': 'SXC',
+    'application/vnd.msaccess': 'MDB',
+    'application/vnd.wolfram.cdf': 'CDF',
+    'application/vnd.wolfram.cdf.text': 'CDF',
+    'application/vnd.wolfram.mathematica.package': 'Package',
+    'application/xhtml+xml': 'XHTML',
+    'application/xml': 'XML',
+    'application/x-3ds': '3DS',
+    'application/x-cdf': 'NASACDF',
+    'application/x-eps': 'EPS',
+    'application/x-flac': 'FLAC',
+    'application/x-font-bdf': 'BDF',
+    'application/x-hdf': 'HDF',
+    'application/x-msaccess': 'MDB',
+    'application/x-netcdf': 'NetCDF',
+    'application/x-shockwave-flash': 'SWF',
+    'application/x-tex': 'TeX',  # Also TeX
+    'audio/aiff': 'AIFF',
+    'audio/basic': 'AU',  # Also SND
+    'audio/midi': 'MIDI',
+    'audio/x-aifc': 'AIFF',
+    'audio/x-aiff': 'AIFF',
+    'audio/x-flac': 'FLAC',
+    'audio/x-wav': 'WAV',
+    'chemical/seq-na-genbank': 'GenBank',
+    'chemical/seq-aa-fasta': 'FASTA',
+    'chemical/seq-na-fasta': 'FASTA',
+    'chemical/seq-na-fastq': 'FASTQ',
+    'chemical/seq-na-sff': 'SFF',
+    'chemical/x-cif': 'CIF',
+    'chemical/x-daylight-smiles': 'SMILES',
+    'chemical/x-hin': 'HIN',
+    'chemical/x-jcamp-dx': 'JCAMP-DX',
+    'chemical/x-mdl-molfile': 'MOL',
+    'chemical/x-mdl-sdf': 'SDF',
+    'chemical/x-mdl-sdfile': 'SDF',
+    'chemical/x-mdl-tgf': 'TGF',
+    'chemical/x-mmcif': 'CIF',
+    'chemical/x-mol2': 'MOL2',
+    'chemical/x-mopac-input': 'Table',
+    'chemical/x-pdb': 'PDB',
+    'chemical/x-xyz': 'XYZ',
+    'image/bmp': 'BMP',
+    'image/eps': 'EPS',
+    'image/fits': 'FITS',
+    'image/gif': 'GIF',
+    'image/jp2': 'JPEG2000',
+    'image/jpeg': 'JPEG',
+    'image/pbm': 'PNM',
+    'image/pcx': 'PCX',
+    'image/pict': 'PICT',
+    'image/png': 'PNG',
+    'image/svg+xml': 'SVG',
+    'image/tga': 'TGA',
+    'image/tiff': 'TIFF',
+    'image/vnd.dxf': 'DXF',
+    'image/vnd.microsoft.icon': 'ICO',
+    'image/x-3ds': '3DS',
+    'image/x-dxf': 'DXF',
+    'image/x-exr': 'OpenEXR',
+    'image/x-icon': 'ICO',
+    'image/x-ms-bmp': 'BMP',
+    'image/x-pcx': 'PCX',
+    'image/x-portable-anymap': 'PNM',
+    'image/x-portable-bitmap': 'PBM',
+    'image/x-portable-graymap': 'PGM',
+    'image/x-portable-pixmap': 'PPM',
+    'image/x-xbitmap': 'XBM',
+    'model/x3d+xml': 'X3D',
+    'model/vrml': 'VRML',
+    'model/x-lwo': 'LWO',
+    'model/x-pov': 'POV',
+    'text/calendar': 'ICS',
+    'text/comma-separated-values': 'CSV',
+    'text/csv': 'CSV',
+    'text/html': 'HTML',
+    'text/mathml': 'MathML',
+    'text/plain': 'Text',
+    'text/rtf': 'RTF',
+    'text/scriptlet': 'SCT',
+    'text/tab-separated-values': 'TSV',
+    'text/texmacs': 'Text',
+    'text/vnd.graphviz': 'DOT',
+    'text/x-csrc': 'C',
+    'text/x-tex': 'TeX',
+    'text/x-vcalendar': 'VCS',
+    'text/x-vcard': 'VCF',
+    'video/avi': 'AVI',
+    'video/quicktime': 'QuickTime',
+    'video/x-flv': 'FLV',
+    # None: 'Binary',
+}
+
 IMPORTERS = {}
 EXPORTERS = {}
 
@@ -307,9 +426,11 @@ class Import(Builtin):
                     with urllib2.urlopen(url) as f:
                         content_type = f.info().get_content_type()
                         os.write(temp_handle, f.read())
-                    result = Expression('Import', String(temp_path), elements).evaluate(evaluation)
+                    filetype = mimetype_dict.get(content_type)
+                    result = self._import(temp_path, filetype, elements, evaluation)
                 finally:
                     os.unlink(temp_path)
+
                 return result
 
         # Check filename
@@ -346,6 +467,9 @@ class Import(Builtin):
             filetype = Expression('FileFormat', findfile).evaluate(
                 evaluation=evaluation).get_string_value()
 
+        return self._import(findfile, filetype, elements, evaluation)
+
+    def _import(self, findfile, filetype, elements, evaluation):
         if filetype not in IMPORTERS.keys():
             evaluation.message('Import', 'fmtnosup', filetype)
             return Symbol('$Failed')
@@ -388,7 +512,7 @@ class Import(Builtin):
         # Perform the import
         defaults = None
 
-        if elements == []:
+        if not elements:
             defaults = get_results(default_function)
             if defaults is None:
                 return Symbol('$Failed')
@@ -707,129 +831,10 @@ class FileFormat(Builtin):
             else:
                 mime = set([mime])
 
-        # TODO: Add more file formats
-
-        typedict = {
-            'application/dicom': 'DICOM',
-            'application/dbase': 'DBF',
-            'application/dbf': 'DBF',
-            'application/eps': 'EPS',
-            'application/fits': 'FITS',
-            'application/json': 'JSON',
-            'application/mathematica': 'NB',
-            'application/mdb': 'MDB',
-            'application/mbox': 'MBOX',
-            'application/msaccess': 'MDB',
-            'application/octet-stream': 'OBJ',
-            'application/pdf': 'PDF',
-            'application/pcx': 'PCX',
-            'application/postscript': 'EPS',
-            'application/rss+xml': 'RSS',
-            'application/rtf': 'RTF',
-            'application/sla': 'STL',
-            'application/tga': 'TGA',
-            'application/vnd.google-earth.kml+xml': 'KML',
-            'application/vnd.ms-excel': 'XLS',
-            'application/vnd.ms-pki.stl': 'STL',
-            'application/vnd.oasis.opendocument.spreadsheet': 'ODS',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',    # nopep8
-            'application/vnd.sun.xml.calc': 'SXC',
-            'application/vnd.msaccess': 'MDB',
-            'application/vnd.wolfram.cdf': 'CDF',
-            'application/vnd.wolfram.cdf.text': 'CDF',
-            'application/vnd.wolfram.mathematica.package': 'Package',
-            'application/xhtml+xml': 'XHTML',
-            'application/xml': 'XML',
-            'application/x-3ds': '3DS',
-            'application/x-cdf': 'NASACDF',
-            'application/x-eps': 'EPS',
-            'application/x-flac': 'FLAC',
-            'application/x-font-bdf': 'BDF',
-            'application/x-hdf': 'HDF',
-            'application/x-msaccess': 'MDB',
-            'application/x-netcdf': 'NetCDF',
-            'application/x-shockwave-flash': 'SWF',
-            'application/x-tex': 'TeX',  # Also TeX
-            'audio/aiff': 'AIFF',
-            'audio/basic': 'AU',        # Also SND
-            'audio/midi': 'MIDI',
-            'audio/x-aifc': 'AIFF',
-            'audio/x-aiff': 'AIFF',
-            'audio/x-flac': 'FLAC',
-            'audio/x-wav': 'WAV',
-            'chemical/seq-na-genbank': 'GenBank',
-            'chemical/seq-aa-fasta': 'FASTA',
-            'chemical/seq-na-fasta': 'FASTA',
-            'chemical/seq-na-fastq': 'FASTQ',
-            'chemical/seq-na-sff': 'SFF',
-            'chemical/x-cif': 'CIF',
-            'chemical/x-daylight-smiles': 'SMILES',
-            'chemical/x-hin': 'HIN',
-            'chemical/x-jcamp-dx': 'JCAMP-DX',
-            'chemical/x-mdl-molfile': 'MOL',
-            'chemical/x-mdl-sdf': 'SDF',
-            'chemical/x-mdl-sdfile': 'SDF',
-            'chemical/x-mdl-tgf': 'TGF',
-            'chemical/x-mmcif': 'CIF',
-            'chemical/x-mol2': 'MOL2',
-            'chemical/x-mopac-input': 'Table',
-            'chemical/x-pdb': 'PDB',
-            'chemical/x-xyz': 'XYZ',
-            'image/bmp': 'BMP',
-            'image/eps': 'EPS',
-            'image/fits': 'FITS',
-            'image/gif': 'GIF',
-            'image/jp2': 'JPEG2000',
-            'image/jpeg': 'JPEG',
-            'image/pbm': 'PNM',
-            'image/pcx': 'PCX',
-            'image/pict': 'PICT',
-            'image/png': 'PNG',
-            'image/svg+xml': 'SVG',
-            'image/tga': 'TGA',
-            'image/tiff': 'TIFF',
-            'image/vnd.dxf': 'DXF',
-            'image/vnd.microsoft.icon': 'ICO',
-            'image/x-3ds': '3DS',
-            'image/x-dxf': 'DXF',
-            'image/x-exr': 'OpenEXR',
-            'image/x-icon': 'ICO',
-            'image/x-ms-bmp': 'BMP',
-            'image/x-pcx': 'PCX',
-            'image/x-portable-anymap': 'PNM',
-            'image/x-portable-bitmap': 'PBM',
-            'image/x-portable-graymap': 'PGM',
-            'image/x-portable-pixmap': 'PPM',
-            'image/x-xbitmap': 'XBM',
-            'model/x3d+xml': 'X3D',
-            'model/vrml': 'VRML',
-            'model/x-lwo': 'LWO',
-            'model/x-pov': 'POV',
-            'text/calendar': 'ICS',
-            'text/comma-separated-values': 'CSV',
-            'text/csv': 'CSV',
-            'text/html': 'HTML',
-            'text/mathml': 'MathML',
-            'text/plain': 'Text',
-            'text/rtf': 'RTF',
-            'text/scriptlet': 'SCT',
-            'text/tab-separated-values': 'TSV',
-            'text/texmacs': 'Text',
-            'text/vnd.graphviz': 'DOT',
-            'text/x-csrc': 'C',
-            'text/x-tex': 'TeX',
-            'text/x-vcalendar': 'VCS',
-            'text/x-vcard': 'VCF',
-            'video/avi': 'AVI',
-            'video/quicktime': 'QuickTime',
-            'video/x-flv': 'FLV',
-            # None: 'Binary',
-        }
-
         result = []
-        for key in typedict.keys():
+        for key in mimetype_dict.keys():
             if key in mime:
-                result.append(typedict[key])
+                result.append(mimetype_dict[key])
 
         if len(result) == 0:
             result = 'Binary'
