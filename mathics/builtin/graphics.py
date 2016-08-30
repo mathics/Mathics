@@ -942,6 +942,54 @@ class FontColor(Builtin):
     pass
 
 
+class FontSize(_GraphicsElement):
+    """
+    <dl>
+    <dt>'FontSize[$s$]'
+        <dd>sets the font size to $s$ printer's points.
+    </dl>
+    """
+
+    def init(self, graphics, item=None, value=None):
+        super(FontSize, self).init(graphics, item)
+
+        self.scaled = False
+        if item is not None and len(item.leaves) == 1:
+            if item.leaves[0].get_head_name() == 'System`Scaled':
+                scaled = item.leaves[0]
+                if len(scaled.leaves) == 1:
+                    self.scaled = True
+                    self.value = scaled.leaves[0].round_to_float()
+
+        if self.scaled:
+            pass
+        elif item is not None:
+            self.value = item.leaves[0].round_to_float()
+        elif value is not None:
+            self.value = value
+        else:
+            raise BoxConstructError
+
+        if self.value < 0:
+            raise BoxConstructError
+
+    def get_size(self):
+        if self.scaled:
+            if self.graphics.view_width is None:
+                return 1.
+            else:
+                return self.graphics.view_width * self.value
+        else:
+            if self.graphics.view_width is None or self.graphics.pixel_width is None:
+                return 1.
+            else:
+                return (96. / 72.) * (self.value * self.graphics.pixel_width) / self.graphics.view_width
+
+
+class Scaled(Builtin):
+    pass
+
+
 class Offset(Builtin):
     pass
 
@@ -2222,7 +2270,12 @@ class InsetBox(_GraphicsElement):
         if self.color is None:
             self.color, _ = style.get_style(_Color, face_element=False)
 
-        self.font_size = font_size
+        if font_size is not None:
+            self.font_size = FontSize(self.graphics, value=font_size)
+        else:
+            self.font_size, _ = self.style.get_style(FontSize, face_element=False)
+            if self.font_size is None:
+                self.font_size = FontSize(self.graphics, value=10.)
 
         if item is not None:
             if len(item.leaves) not in (1, 2, 3):
@@ -2296,17 +2349,9 @@ class InsetBox(_GraphicsElement):
         self.svg = (svg, width, height)
 
     def _text_svg_scale(self):
-        svg, width, height = self.svg
-
-        x, y = self.pos.pos()
-        x2, y2 = self.pos.add(width, height).pos()
-        target_height = abs(y2 - y)
-
-        if self.font_size is None:
-            font_size = 0.5
-            return font_size * target_height / height
-        else:
-            return self.font_size / height  # absolute coords
+        size = self.font_size.get_size()
+        # multiplying with 0.5 makes FontSize[] and FontSize[Scaled[]] work as expected
+        return size * 0.5
 
     def _text_svg_xml(self, style, x, y):
         svg, width, height = self.svg
@@ -2495,6 +2540,7 @@ class _GraphicsElements(object):
     def __init__(self, content, evaluation):
         self.evaluation = evaluation
         self.elements = []
+        self.view_width = None
 
         builtins = evaluation.definitions.builtin
         def get_options(name):
@@ -3018,6 +3064,8 @@ clip(%s);
         tick_large_size = 5
         tick_label_d = 2
 
+        font_size = tick_large_size * 2.
+
         ticks_x_int = all(floor(x) == x for x in ticks_x)
         ticks_y_int = all(floor(x) == x for x in ticks_y)
 
@@ -3038,7 +3086,6 @@ clip(%s);
                 ticks_lines = []
                 tick_label_style = ticks_style[index].clone()
                 tick_label_style.extend(label_style)
-                font_size = tick_large_size * 3.
                 for x in ticks:
                     ticks_lines.append([Coords(elements, pos=p_origin(x)),
                                         Coords(elements, pos=p_origin(x),
@@ -3465,6 +3512,7 @@ styles = system_symbols_dict({
     'Thick': Thick,
     'Thin': Thin,
     'PointSize': PointSize,
+    'FontSize': FontSize,
     'Arrowheads': Arrowheads,
 })
 
