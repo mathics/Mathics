@@ -107,9 +107,11 @@ def query(request):
                           )
         query_log.save()
 
+    from mathics.server import layout_engine
+
     user_definitions = request.session.get('definitions')
     definitions.set_user_definitions(user_definitions)
-    evaluation = Evaluation(definitions, format='xml', output=WebOutput())
+    evaluation = Evaluation(definitions, format='xml', output=WebOutput(layout_engine))
     feeder = MultiLineFeeder(input, '<notebook>')
     results = []
     try:
