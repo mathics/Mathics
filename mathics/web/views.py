@@ -26,6 +26,7 @@ from mathics.web.models import Query, Worksheet
 from mathics.web.forms import LoginForm, SaveForm
 from mathics.doc import documentation
 from mathics.doc.doc import DocPart, DocChapter, DocSection
+from mathics.server import layout_engine
 import six
 from six.moves import range
 from string import Template
@@ -48,7 +49,8 @@ class JsonResponse(HttpResponse):
 
 
 class WebOutput(Output):
-    pass
+    def svgify(self):
+        return layout_engine is not None
 
 
 def require_ajax_login(func):
