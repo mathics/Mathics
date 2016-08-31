@@ -40,10 +40,14 @@ class LayoutEngine(object):
                 if settings.NODE_PATH:
                     popen_env["NODE_PATH"] = settings.NODE_PATH
 
-                base = os.path.dirname(os.path.realpath(__file__))
+                server_path = os.path.dirname(os.path.realpath(__file__)) + "/server.js"
+
+                def abort(message):
+                    error_text = 'Node.js failed to start %s:\n' % server_path
+                    raise RuntimeError(error_text + message)
 
                 self.process = Popen(
-                    [settings.NODE, base + "/server.js"],
+                    [settings.NODE, server_path],
                     stdout=subprocess.PIPE,
                     env=popen_env)
 
@@ -58,11 +62,9 @@ class LayoutEngine(object):
 
                     self.process.terminate()
 
-                    raise RuntimeError(
-                        'Node.js failed to start web layout engine:\n' + error + '\n' +
-                        'Check necessary node.js modules and that NODE_PATH is set correctly.')
+                    abort(error + '\nCheck Node.js modules and that NODE_PATH.')
             except OSError as e:
-                raise RuntimeError('Failed to start web layout engine: ' + str(e))
+                abort(str(e))
 
         if self.process is None:
             self.client = None
@@ -73,9 +75,7 @@ class LayoutEngine(object):
             except Exception as e:
                 self.client = None
                 self.process.terminate()
-                raise RuntimeError(
-                    'node.js failed to start web layout engine: \n' + str(e) + '\n' +
-                    'Probably you are missing node.js modules.')
+                abort(str(e))
 
     def mathml_to_svg(self, mathml):
         if self.client:
