@@ -604,6 +604,10 @@ def python_seq(start, stop, step, length):
     if step == 0:
         return None
 
+    # special empty case
+    if start is not None and stop is not None and stop + 1 == start and step > 0:
+        return slice(0, 0, 1)
+
     if start == 0 or stop == 0:
         return None
 
@@ -1110,6 +1114,21 @@ class Take(Builtin):
     #> Take[l, {-1}]
      : Nonatomic expression expected at position 1 in Take[l, {-1}].
      = Take[l, {-1}]
+
+    ## Empty case
+    #> Take[{1, 2, 3, 4, 5}, {-1, -2}]
+     = {}
+    #> Take[{1, 2, 3, 4, 5}, {0, -1}]
+     = {}
+    #> Take[{1, 2, 3, 4, 5}, {1, 0}]
+     = {}
+    #> Take[{1, 2, 3, 4, 5}, {2, 1}]
+     = {}
+    #> Take[{1, 2, 3, 4, 5}, {1, 0, 2}]
+     = {}
+    #> Take[{1, 2, 3, 4, 5}, {1, 0, -1}]
+     : Cannot take positions 1 through 0 in {1, 2, 3, 4, 5}.
+     = Take[{1, 2, 3, 4, 5}, {1, 0, -1}]
     """
 
     messages = {
