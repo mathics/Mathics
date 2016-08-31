@@ -548,6 +548,16 @@ class PointSize(_Size):
         return self.graphics.view_width * self.value
 
 
+class FontColor(Builtin):
+    """
+    <dl>
+    <dt>'FontColor'
+        <dd>is an option for Style to set the font color.
+    </dl>
+    """
+    pass
+
+
 class Offset(Builtin):
     pass
 
@@ -1269,7 +1279,11 @@ class InsetBox(_GraphicsElement):
     def init(self, graphics, style, item=None, content=None, pos=None,
              opos=(0, 0)):
         super(InsetBox, self).init(graphics, item, style)
-        self.color, _ = style.get_style(_Color, face_element=False)
+
+        self.color = self.style.get_option('System`FontColor')
+        if self.color is None:
+            self.color, _ = style.get_style(_Color, face_element=False)
+
         if item is not None:
             if len(item.leaves) not in (1, 2, 3):
                 raise BoxConstructError
@@ -1352,33 +1366,41 @@ class FaceForm(Builtin):
     pass
 
 
+def _style(graphics, item):
+    head = item.get_head_name()
+    if head in style_heads:
+        klass = get_class(head)
+        style = klass.create_as_style(klass, graphics, item)
+    elif head in ('System`EdgeForm', 'System`FaceForm'):
+        style = graphics.get_style_class()(graphics, edge=head == 'System`EdgeForm',
+                           face=head == 'System`FaceForm')
+        if len(item.leaves) > 1:
+            raise BoxConstructError
+        if item.leaves:
+            if item.leaves[0].has_form('List', None):
+                for dir in item.leaves[0].leaves:
+                    style.append(dir, allow_forms=False)
+            else:
+                style.append(item.leaves[0], allow_forms=False)
+    else:
+        raise BoxConstructError
+    return style
+
+
 class Style(object):
     def __init__(self, graphics, edge=False, face=False):
         self.styles = []
+        self.options = {}
         self.graphics = graphics
         self.edge = edge
         self.face = face
         self.klass = graphics.get_style_class()
 
     def append(self, item, allow_forms=True):
-        head = item.get_head_name()
-        if head in style_heads:
-            klass = get_class(head)
-            style = klass.create_as_style(klass, self.graphics, item)
-        elif head in ('System`EdgeForm', 'System`FaceForm'):
-            style = self.klass(self.graphics, edge=head == 'System`EdgeForm',
-                               face=head == 'System`FaceForm')
-            if len(item.leaves) > 1:
-                raise BoxConstructError
-            if item.leaves:
-                if item.leaves[0].has_form('List', None):
-                    for dir in item.leaves[0].leaves:
-                        style.append(dir, allow_forms=False)
-                else:
-                    style.append(item.leaves[0], allow_forms=False)
-        else:
-            raise BoxConstructError
-        self.styles.append(style)
+        self.styles.append(_style(self.graphics, item))
+
+    def set_option(self, name, value):
+        self.options[name] = value
 
     def extend(self, style, pre=True):
         if pre:
@@ -1389,6 +1411,7 @@ class Style(object):
     def clone(self):
         result = self.klass(self.graphics, edge=self.edge, face=self.face)
         result.styles = self.styles[:]
+        result.options = self.options.copy()
         return result
 
     def get_default_face_color(self):
@@ -1429,6 +1452,9 @@ class Style(object):
 
         return edge_style, face_style
 
+    def get_option(self, name):
+        return self.options.get(name, None)
+
     def get_line_width(self, face_element=True):
         if self.graphics.pixel_width is None:
             return 0
@@ -1465,6 +1491,27 @@ class _GraphicsElements(object):
                 return None
             return builtin.options
 
+        def stylebox_style(style, specs):
+            new_style = style.clone()
+            for spec in _flatten(specs):
+                head_name = spec.get_head_name()
+                if head_name in style_and_form_heads:
+                    new_style.append(spec)
+                elif head_name == 'System`Rule' and len(spec.leaves) == 2:
+                    option, expr = spec.leaves
+                    if not isinstance(option, Symbol):
+                        raise BoxConstructError
+
+                    name = option.get_name()
+                    create = style_options.get(name, None)
+                    if create is None:
+                        raise BoxConstructError
+
+                    new_style.set_option(name, create(style.graphics, expr))
+                else:
+                    raise BoxConstructError
+            return new_style
+
         def convert(content, style):
             if content.has_form('List', None):
                 items = content.leaves
@@ -1480,12 +1527,8 @@ class _GraphicsElements(object):
                 elif head == 'System`StyleBox':
                     if len(item.leaves) < 1:
                         raise BoxConstructError
-                    new_style = style.clone()
-                    for spec in _flatten(item.leaves[1:]):
-                        if spec.get_head_name() not in style_and_form_heads:
-                            raise BoxConstructError
-                        new_style.append(spec)
-                    convert(item.leaves[0], new_style)
+                    for element in convert(item.leaves[0], stylebox_style(style, item.leaves[1:])):
+                        yield element
                 elif head[-3:] == 'Box':  # and head[:-3] in element_heads:
                     element_class = get_class(head)
                     if element_class is not None:
@@ -1496,15 +1539,16 @@ class _GraphicsElements(object):
                             element = get_class(head)(self, style, new_item, options)
                         else:
                             element = get_class(head)(self, style, item)
-                        self.elements.append(element)
+                        yield element
                     else:
                         raise BoxConstructError
                 elif head == 'System`List':
-                    convert(item, style)
+                    for element in convert(item, style):
+                        yield element
                 else:
                     raise BoxConstructError
 
-        convert(content, self.get_style_class()(self))
+        self.elements = list(convert(content, self.get_style_class()(self)))
 
     def create_style(self, expr):
         style = self.get_style_class()(self)
@@ -2373,6 +2417,10 @@ styles = system_symbols_dict({
     'Thick': Thick,
     'Thin': Thin,
     'PointSize': PointSize,
+})
+
+style_options = system_symbols_dict({
+    'FontColor': _style,
 })
 
 style_heads = frozenset(styles.keys())
