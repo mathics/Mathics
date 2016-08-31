@@ -49,14 +49,14 @@ class LayoutEngine(object):
 
                 status = self.process.stdout.readline().decode('utf8').strip()
                 if status != 'OK':
-                    self.process.terminate()
-
                     error = ''
                     while True:
                         line = self.process.stdout.readline().decode('utf8')
                         if not line:
                             break
                         error += '  ' + line
+
+                    self.process.terminate()
 
                     raise RuntimeError(
                         'Node.js failed to start web layout engine:\n' + error + '\n' +
