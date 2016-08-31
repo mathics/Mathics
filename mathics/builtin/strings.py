@@ -19,6 +19,7 @@ from six import unichr
 from mathics.builtin.base import BinaryOperator, Builtin, Test
 from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
+from mathics.builtin.lists import python_seq, convert_seq
 
 
 def to_regex(expr):
@@ -1512,6 +1513,8 @@ class StringTake(Builtin):
         <dd>gives the $n$th character in $string$.
     <dt>'StringTake["$string$", {$m$, $n$}]'
         <dd>gives characters $m$ through $n$ in $string$.
+    <dt>'StringTake["$string$", {$m$, $n$, $s$}]'
+        <dd>gives characters $m$ through $n$ in steps of $s$.
     </dl>
 
     >> StringTake["abcde", 2]
@@ -1524,77 +1527,57 @@ class StringTake(Builtin):
     = b
     >> StringTake["abcd", {2,3}]
     = bc
-    >> StringTake["abcd", {3,2}]
-    = 
-    #> StringTake["abcd",0]
-    = 
+    >> StringTake["abcdefgh", {1, 5, 2}]
+     = ace
+
+    StringTake also supports standard sequence specifications
+    >> StringTake["abcdef", All]
+     = abcdef
+
+    #> StringTake["abcd", 0] // InputForm
+    = ""
+    #> StringTake["abcd", {3, 2}] // InputForm
+    = ""
+    #> StringTake["", {1, 0}] // InputForm
+    = ""
+
+    #> StringTake["abc", {0, 0}]
+    : Cannot take positions 0 through 0 in "abc".
+    = StringTake[abc, {0, 0}]
     """
+
     messages = {
         'strse': 'String expected at position 1.',
         'mseqs': 'Integer or list of two Intergers are expected at position 2.',
         'take': 'Cannot take positions `1` through `2` in "`3`".',
     }
 
-    def apply1_(self, string, n, evaluation):
-        'StringTake[string_,n_Integer]'
-        if not isinstance(string, String):
+    def apply(self, string, seqspec, evaluation):
+        'StringTake[string_, seqspec_]'
+
+        result = string.get_string_value()
+        if result is None:
             return evaluation.message('StringTake', 'strse')
 
-        pos = n.value
-        if pos > len(string.get_string_value()):
-            return evaluation.message('StringTake', 'take', 1, pos, string)
-        if pos < -len(string.get_string_value()):
-            return evaluation.message('StringTake', 'take', pos, -1, string)
-        if pos > 0:
-            return String(string.get_string_value()[:pos])
-        if pos < 0:
-            return String(string.get_string_value()[pos:])
-        if pos == 0:
-            return String("")             # it is what mma does
+        if isinstance(seqspec, Integer):
+            pos = seqspec.get_int_value()
+            if pos >= 0:
+                seq = (1, pos, 1)
+            else:
+                seq = (pos, None, 1)
+        else:
+            seq = convert_seq(seqspec)
 
-    def apply2_(self, string, ni, nf, evaluation):
-        'StringTake[string_,{ni_Integer,nf_Integer}]'
-        if not isinstance(string, String):
-            return evaluation.message('StringTake', 'strse')
+        if seq is None:
+            return evaluation.message('StringTake', 'mseqs')
 
-        if ni.value == 0 or nf.value == 0:
-            return evaluation.message('StringTake', 'take', ni, nf)
-        fullstring = string.get_string_value()
-        lenfullstring = len(fullstring)
-        posi = ni.value
-        if posi < 0:
-            posi = lenfullstring + posi + 1
-        posf = nf.value
-        if posf < 0:
-            posf = lenfullstring + posf + 1
-        if posf > lenfullstring or posi > lenfullstring or posf <= 0 or posi <= 0:
-            # positions out of range
-            return evaluation.message('StringTake', 'take', ni, nf, fullstring)
-        if posf < posi:
-            String("")
-        return String(fullstring[(posi - 1):posf])
+        start, stop, step = seq
+        py_slice = python_seq(start, stop, step, len(result))
 
-    def apply3_(self, string, ni, evaluation):
-        'StringTake[string_,{ni_}]'
-        if not isinstance(string, String):
-            return evaluation.message('StringTake', 'strse')
+        if py_slice is None:
+            return evaluation.message('StringTake', 'take', start, stop, string)
 
-        if ni.value == 0:
-            return evaluation.message('StringTake', 'take', ni, ni)
-        fullstring = string.get_string_value()
-        lenfullstring = len(fullstring)
-        posi = ni.value
-        if posi < 0:
-            posi = lenfullstring + posi + 1
-        if posi > lenfullstring or posi <= 0:
-            return evaluation.message('StringTake', 'take', ni, ni, fullstring)
-        return String(fullstring[(posi - 1):posi])
-
-    def apply4_(self, string, something, evaluation):
-        'StringTake[string_,something___]'
-        if not isinstance(string, String):
-            return evaluation.message('StringTake', 'strse')
-        return evaluation.message('StringTake', 'mseqs')
+        return String(result[py_slice])
 
 
 class StringDrop(Builtin):
