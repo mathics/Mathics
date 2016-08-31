@@ -12,7 +12,9 @@ import base64
 import re
 import bisect
 
-from mathics.core.expression import Expression, Symbol, String, fully_qualified_symbol_name
+from collections import defaultdict
+
+from mathics.core.expression import Expression, Symbol, String, fully_qualified_symbol_name, strip_context
 from mathics.core.characters import letters, letterlikes
 
 
@@ -43,7 +45,10 @@ class Definitions(object):
         super(Definitions, self).__init__()
         self.builtin = {}
         self.user = {}
-        self.cache = {}
+
+        self.definitions_cache = {}
+        self.lookup_cache = {}
+        self.proxy = defaultdict(set)
 
         if add_builtin:
             from mathics.builtin import modules, contribute
@@ -82,9 +87,41 @@ class Definitions(object):
                     raise ValueError("autoload defined %s." % name)
             self.builtin.update(self.user)
             self.user = {}
+            self.clear_cache()
 
-    def clear_cache(self):
-        self.cache = {}
+    def clear_cache(self, name=None):
+        # the definitions cache (self.definitions_cache) caches (incomplete and complete) names -> Definition(),
+        # e.g. "xy" -> d and "MyContext`xy" -> d. we need to clear this cache if a Definition() changes (which
+        # would happen if a Definition is combined from a builtin and a user definition and some content in the
+        # user definition is updated) or if the lookup rules change and we could end up at a completely different
+        # Definition.
+
+        # the lookup cache (self.lookup_cache) caches what lookup_name() does. we only need to update this if some
+        # change happens that might change the result lookup_name() calculates. we do not need to change it if a
+        # Definition() changes.
+
+        # self.proxy keeps track of all the names we cache. if we need to clear the caches for only one name, e.g.
+        # 'MySymbol', then we need to be able to look up all the entries that might be related to it, e.g. 'MySymbol',
+        # 'A`MySymbol', 'C`A`MySymbol', and so on. proxy identifies symbols using their stripped name and thus might
+        # give us symbols in other contexts that are actually not affected. still, this is a safe solution.
+
+        if name is None:
+            self.definitions_cache = {}
+            self.lookup_cache = {}
+            self.proxy = defaultdict(set)
+        else:
+            definitions_cache = self.definitions_cache
+            lookup_cache = self.lookup_cache
+            tail = strip_context(name)
+            for k in self.proxy.pop(tail, []):
+                definitions_cache.pop(k, None)
+                lookup_cache.pop(k, None)
+
+    def clear_definitions_cache(self, name):
+        definitions_cache = self.definitions_cache
+        tail = strip_context(name)
+        for k in self.proxy.pop(tail, []):
+            definitions_cache.pop(k, None)
 
     def get_current_context(self):
         # It's crucial to specify System` in this get_ownvalue() call,
@@ -190,6 +227,10 @@ class Definitions(object):
         - Otherwise, it's a new symbol in $Context.
         """
 
+        cached = self.lookup_cache.get(name, None)
+        if cached is not None:
+            return cached
+
         assert isinstance(name, six.string_types)
 
         # Bail out if the name we're being asked to look up is already
@@ -230,7 +271,7 @@ class Definitions(object):
         return self.get_definition(name, only_if_exists=True) is not None
 
     def get_definition(self, name, only_if_exists=False):
-        definition = self.cache.get(name, None)
+        definition = self.definitions_cache.get(name, None)
         if definition is not None:
             return definition
 
@@ -280,7 +321,9 @@ class Definitions(object):
                               )
 
         if definition is not None:
-            self.cache[original_name] = definition
+            self.proxy[strip_context(original_name)].add(original_name)
+            self.definitions_cache[original_name] = definition
+            self.lookup_cache[original_name] = name
         elif not only_if_exists:
             definition = Definition(name=name)
 
@@ -337,33 +380,36 @@ class Definitions(object):
             else:
                 attributes = set()
             self.user[name] = Definition(name=name, attributes=attributes)
+            self.clear_cache(name)
             return self.user[name]
 
     def reset_user_definition(self, name):
         assert not isinstance(name, Symbol)
-        del self.user[self.lookup_name(name)]
-        self.clear_cache()
+        fullname = self.lookup_name(name)
+        del self.user[fullname]
+        self.clear_cache(fullname)
 
     def add_user_definition(self, name, definition):
         assert not isinstance(name, Symbol)
-        self.user[self.lookup_name(name)] = definition
-        self.clear_cache()
+        fullname = self.lookup_name(name)
+        self.user[fullname] = definition
+        self.clear_cache(fullname)
 
     def set_attribute(self, name, attribute):
         definition = self.get_user_definition(self.lookup_name(name))
         definition.attributes.add(attribute)
-        self.clear_cache()
+        self.clear_definitions_cache(name)
 
     def set_attributes(self, name, attributes):
         definition = self.get_user_definition(self.lookup_name(name))
         definition.attributes = set(attributes)
-        self.clear_cache()
+        self.clear_definitions_cache(name)
 
     def clear_attribute(self, name, attribute):
         definition = self.get_user_definition(self.lookup_name(name))
         if attribute in definition.attributes:
             definition.attributes.remove(attribute)
-        self.clear_cache()
+        self.clear_definitions_cache(name)
 
     def add_rule(self, name, rule, position=None):
         name = self.lookup_name(name)
@@ -371,7 +417,7 @@ class Definitions(object):
             result = self.get_user_definition(name).add_rule(rule)
         else:
             result = self.get_user_definition(name).add_rule_at(rule, position)
-        self.clear_cache()
+        self.clear_definitions_cache(name)
         return result
 
     def add_format(self, name, rule, form=''):
@@ -384,28 +430,28 @@ class Definitions(object):
             if form not in definition.formatvalues:
                 definition.formatvalues[form] = []
             insert_rule(definition.formatvalues[form], rule)
-        self.clear_cache()
+        self.clear_definitions_cache(name)
 
     def add_nvalue(self, name, rule):
         definition = self.get_user_definition(self.lookup_name(name))
         definition.add_rule_at(rule, 'n')
-        self.clear_cache()
+        self.clear_definitions_cache(name)
 
     def add_default(self, name, rule):
         definition = self.get_user_definition(self.lookup_name(name))
         definition.add_rule_at(rule, 'default')
-        self.clear_cache()
+        self.clear_definitions_cache(name)
 
     def add_message(self, name, rule):
         definition = self.get_user_definition(self.lookup_name(name))
         definition.add_rule_at(rule, 'messages')
-        self.clear_cache()
+        self.clear_definitions_cache(name)
 
     def set_values(self, name, values, rules):
         pos = valuesname(values)
         definition = self.get_user_definition(self.lookup_name(name))
         definition.set_values_list(pos, rules)
-        self.clear_cache()
+        self.clear_definitions_cache(name)
 
     def get_options(self, name):
         return self.get_definition(self.lookup_name(name)).options
@@ -442,17 +488,17 @@ class Definitions(object):
 
         name = self.lookup_name(name)
         self.add_rule(name, Rule(Symbol(name), value))
-        self.clear_cache()
+        self.clear_cache(name)
 
     def set_options(self, name, options):
         definition = self.get_user_definition(self.lookup_name(name))
         definition.options = options
-        self.clear_cache()
+        self.clear_definitions_cache(name)
 
     def unset(self, name, expr):
         definition = self.get_user_definition(self.lookup_name(name))
         result = definition.remove_rule(expr)
-        self.clear_cache()
+        self.clear_definitions_cache(name)
         return result
 
     def get_config_value(self, name, default=None):
@@ -473,11 +519,9 @@ class Definitions(object):
     def set_config_value(self, name, new_value):
         from mathics.core.expression import Integer
         self.set_ownvalue(name, Integer(new_value))
-        self.clear_cache()
 
     def set_line_no(self, line_no):
         self.set_config_value('$Line', line_no)
-        self.clear_cache()
 
     def get_line_no(self):
         return self.get_config_value('$Line', 0)
