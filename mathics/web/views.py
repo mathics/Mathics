@@ -38,7 +38,8 @@ class JsonResponse(HttpResponse):
 
 
 class WebOutput(Output):
-    pass
+    def svgify(self):
+        return layout_engine is not None
 
 
 def require_ajax_login(func):

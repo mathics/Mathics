@@ -65,6 +65,9 @@ def parse_args():
     argparser.add_argument(
         "--external", "-e", dest="external", action="store_true",
         help="allow external access to server")
+    argparser.add_argument(
+        '--svg-math', '-s', dest="svg_math", action='store_true',
+        help='prerender all math using svg (experimental)')
 
     return argparser.parse_args()
 
@@ -89,7 +92,8 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port)
         addr = '127.0.0.1'
 
     global layout_engine
-    layout_engine = LayoutEngine()
+    if args.svg_math:
+        layout_engine = LayoutEngine()
 
     try:
         from django.core.servers.basehttp import (
@@ -108,12 +112,14 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port)
         except KeyError:
             error_text = str(e)
         sys.stderr.write("Error: %s" % error_text + '\n')
-        layout_engine.terminate()
+        if layout_engine is not None:
+            layout_engine.terminate()
         # Need to use an OS exit because sys.exit doesn't work in a thread
         os._exit(1)
     except KeyboardInterrupt:
         print("\nGoodbye!\n")
-        layout_engine.terminate()
+        if layout_engine is not None:
+            layout_engine.terminate()
         sys.exit(0)
 
 
