@@ -30,15 +30,10 @@ except ImportError:
     supported = False
 
 
-def warn(s):
-    print(s)
-
-
 class LayoutEngine(object):
     def __init__(self):
         if not supported:
-            self.process = None
-            warn('Web layout engine is disabled as zerorpc is not installed.')
+            raise RuntimeError('Web layout engine is disabled as zerorpc is not installed.')
         else:
             try:
                 popen_env = os.environ.copy()
@@ -54,21 +49,20 @@ class LayoutEngine(object):
 
                 status = self.process.stdout.readline().decode('utf8').strip()
                 if status != 'OK':
+                    self.process.terminate()
+
                     error = ''
                     while True:
                         line = self.process.stdout.readline().decode('utf8')
                         if not line:
                             break
                         error += '  ' + line
-                    warn('Node.js failed to start web layout engine:')
-                    warn(error)
-                    warn('Check necessary node.js modules and that NODE_PATH is set correctly.')
-                    self.process.terminate()
-                    self.process = None
+
+                    raise RuntimeError(
+                        'Node.js failed to start web layout engine:\n' + error + '\n' +
+                        'Check necessary node.js modules and that NODE_PATH is set correctly.')
             except OSError as e:
-                warn('Failed to start web layout engine:')
-                warn(str(e))
-                self.process = None
+                raise RuntimeError('Failed to start web layout engine: ' + str(e))
 
         if self.process is None:
             self.client = None
@@ -78,9 +72,10 @@ class LayoutEngine(object):
                 self.client.connect("tcp://127.0.0.1:4241")
             except Exception as e:
                 self.client = None
-                warn('node.js failed to start web layout engine:')
-                warn(str(e))
-                warn('Probably you are missing node.js modules.')
+                self.process.terminate()
+                raise RuntimeError(
+                    'node.js failed to start web layout engine: \n' + str(e) + '\n' +
+                    'Probably you are missing node.js modules.')
 
     def mathml_to_svg(self, mathml):
         if self.client:
