@@ -21,12 +21,40 @@ from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
 
 
-def to_regex(expr):
+def to_regex(expr, abbreviated_patterns=False):
     if expr is None:
         return None
 
     if isinstance(expr, String):
-        return re.escape(expr.get_string_value())
+        result = expr.get_string_value()
+        if abbreviated_patterns:
+            pieces = []
+            i, j = 0, 0
+            while j < len(result):
+                c = result[j]
+                if c == '\\' and j + 1 < len(result):
+                    pieces.append(re.escape(result[i:j]))
+                    pieces.append(re.escape(result[j+1]))
+                    j += 2
+                    i = j
+                elif c == '*':
+                    pieces.append(re.escape(result[i:j]))
+                    pieces.append('(.*)')
+                    j += 1
+                    i = j
+                elif c == '@':
+                    pieces.append(re.escape(result[i:j]))
+                    # one or more characters, excluding uppercase letters
+                    pieces.append('([^A-Z]+)')
+                    j += 1
+                    i = j
+                else:
+                    j += 1
+            pieces.append(re.escape(result[i:j]))
+            result = ''.join(pieces)
+        else:
+            result = re.escape(result)
+        return result
     if expr.has_form('RegularExpression', 1):
         regex = expr.leaves[0].get_string_value()
         if regex is None:
@@ -418,7 +446,7 @@ class HexidecimalCharacter(Builtin):
 
 
 class StringMatchQ(Builtin):
-    """
+    r"""
     >> StringMatchQ["abc", "abc"]
      = True
 
@@ -448,6 +476,27 @@ class StringMatchQ(Builtin):
     Use StringMatchQ as an operator
     >> StringMatchQ[LetterCharacter]["a"]
      = True
+
+    ## Abbreviated string patterns Issue #517
+    #> StringMatchQ["abcd", "abc*"]
+     = True
+    #> StringMatchQ["abc", "abc*"]
+     = True
+    #> StringMatchQ["abc\\", "abc\\"]
+     = True
+    #> StringMatchQ["abc*d", "abc\\*d"]
+     = True
+    #> StringMatchQ["abc*d", "abc\\**"]
+     = True
+    #> StringMatchQ["abcde", "a*f"]
+     = False
+
+    #> StringMatchQ["abcde", "a@e"]
+     = True
+    #> StringMatchQ["aBCDe", "a@e"]
+     = False
+    #> StringMatchQ["ae", "a@e"]
+     = False
     """
 
     attributes = ('Listable',)
@@ -472,7 +521,7 @@ class StringMatchQ(Builtin):
             return evaluation.message('StringMatchQ', 'strse', Integer(1),
                                       Expression('StringMatchQ', string, patt))
 
-        re_patt = to_regex(patt)
+        re_patt = to_regex(patt, abbreviated_patterns=True)
         if re_patt is None:
             return evaluation.message('StringExpression', 'invld', patt,
                                       Expression('StringExpression', patt))
