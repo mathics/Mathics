@@ -415,10 +415,16 @@ class Import(Builtin):
     def apply(self, filename, elements, evaluation):
         'Import[filename_, elements_]'
 
-        # Handle http downloads
+        # Check filename
+        path = filename.to_python()
+        if not (isinstance(path, six.string_types) and path[0] == path[-1] == '"'):
+            evaluation.message('Import', 'chtype', filename)
+            return Symbol('$Failed')
+
+        # Download via URL
         if isinstance(filename, String):
             url = filename.get_string_value()
-            if url.startswith('http://') or url.startswith('https://'):
+            if any(url.startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
                 import tempfile
                 import os
                 temp_handle, temp_path = tempfile.mkstemp(suffix='')
@@ -426,24 +432,29 @@ class Import(Builtin):
                     with urllib2.urlopen(url) as f:
                         content_type = f.info().get_content_type()
                         os.write(temp_handle, f.read())
-                    filetype = mimetype_dict.get(content_type)
-                    result = self._import(temp_path, filetype, elements, evaluation)
+
+                    def determine_filetype():
+                        return mimetype_dict.get(content_type)
+
+                    result = self._import(temp_path, determine_filetype, elements, evaluation)
                 finally:
                     os.unlink(temp_path)
 
                 return result
 
-        # Check filename
-        path = filename.to_python()
-        if not (isinstance(path, six.string_types) and path[0] == path[-1] == '"'):
-            evaluation.message('Import', 'chtype', filename)
-            return Symbol('$Failed')
-
+        # Load local file
         findfile = Expression('FindFile', filename).evaluate(evaluation)
         if findfile == Symbol('$Failed'):
             evaluation.message('Import', 'nffil')
             return findfile
 
+        def determine_filetype():
+            return Expression('FileFormat', findfile).evaluate(
+                evaluation=evaluation).get_string_value()
+
+        return self._import(findfile, determine_filetype, elements, evaluation)
+
+    def _import(self, findfile, determine_filetype, elements, evaluation):
         # Check elements
         if elements.has_form('List', None):
             elements = elements.get_leaves()
@@ -464,12 +475,8 @@ class Import(Builtin):
                 elements.remove(el)
                 break
         else:
-            filetype = Expression('FileFormat', findfile).evaluate(
-                evaluation=evaluation).get_string_value()
+            filetype = determine_filetype()
 
-        return self._import(findfile, filetype, elements, evaluation)
-
-    def _import(self, findfile, filetype, elements, evaluation):
         if filetype not in IMPORTERS.keys():
             evaluation.message('Import', 'fmtnosup', filetype)
             return Symbol('$Failed')
