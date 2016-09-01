@@ -79,8 +79,8 @@ class LayoutEngine(object):
     def __init__(self):
         try:
             popen_env = os.environ.copy()
-            if settings.NODE_PATH:
-                popen_env["NODE_PATH"] = settings.NODE_PATH
+            if settings.NODE_MODULES:
+                popen_env["NODE_PATH"] = os.path.expandvars(settings.NODE_MODULES)
 
             server_path = os.path.dirname(os.path.realpath(__file__)) + "/server.js"
 
@@ -89,7 +89,7 @@ class LayoutEngine(object):
                 raise RuntimeError(error_text + message)
 
             self.process = Popen(
-                [settings.NODE, server_path],
+                [os.path.expandvars(settings.NODE), server_path],
                 stdout=subprocess.PIPE,
                 env=popen_env)
 
