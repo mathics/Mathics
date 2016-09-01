@@ -392,3 +392,42 @@ class Out(Builtin):
         '    f:StandardForm|TraditionalForm|InputForm|OutputForm]':
         r'"%%" <> ToString[k]',
     }
+
+
+class Exit(Builtin):
+    '''
+    <dl>
+    <dt>'Exit[]'
+      <dd>terminates the Mathics session.
+    <dt>'Exit[n]'
+      <dd>terminates with exit code $n$.
+    </dl>
+
+    Exit is an alias for Quit.
+    '''
+
+    def apply(self, evaluation):
+        'Exit[]'
+        sys.exit()
+
+    def apply_n(self, n, evaluation):
+        'Exit[n_Integer]'
+        sys.exit(n.get_int_value())
+
+
+class Quit(Builtin):
+    '''
+    <dl>
+    <dt>'Quit[]'
+      <dd>terminates the Mathics session.
+    <dt>'Quit[n]'
+      <dd>terminates with exit code $n$.
+    </dl>
+
+    Quit is an alias for Exit.
+    '''
+
+    rules = {
+        'Quit[n_Integer]': 'Exit[n]',
+        'Quit[]': 'Exit[]',
+    }
