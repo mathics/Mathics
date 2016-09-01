@@ -15,6 +15,7 @@ from six.moves import zip
 from math import sin, cos, pi, sqrt, isnan, isinf
 import numbers
 import itertools
+import palettable
 
 from mathics.core.expression import (Expression, Real, MachineReal, Symbol,
                                      String, Integer, from_python)
@@ -22,12 +23,6 @@ from mathics.builtin.base import Builtin
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.options import options_to_rules
 from mathics.builtin.numeric import chop
-
-try:
-    import palettable
-    palettable_installed = True
-except ImportError:
-    palettable_installed = False
 
 
 try:
@@ -115,14 +110,6 @@ class ColorData(Builtin):
     >> {DensityPlot[x + y, {x, -1, 1}, {y, -1, 1}], DensityPlot[x + y, {x, -1, 1}, {y, -1, 1}, ColorFunction->"test"]}
      = {-Graphics-, -Graphics-}
     """
-    #rules = {
-    #    'ColorData["LakeColors"]': (
-    #        """ColorDataFunction["LakeColors", "Gradients", {0, 1},
-    #            Blend[{RGBColor[0.293416, 0.0574044, 0.529412],
-    #                RGBColor[0.563821, 0.527565, 0.909499],
-    #                RGBColor[0.762631, 0.846998, 0.914031],
-    #                RGBColor[0.941176, 0.906538, 0.834043]}, #1] &]"""),
-    #}
 
     messages = {
         'notent': '`1` is not a known color scheme. ColorData[] gives you lists of schemes.',
@@ -134,29 +121,26 @@ class ColorData(Builtin):
             (0.563821, 0.527565, 0.909499),
             (0.762631, 0.846998, 0.914031),
             (0.941176, 0.906538, 0.834043)]),
+
+        'Pastel': _PalettableGradient(palettable.colorbrewer.qualitative.Pastel1_9, False),
+        'Rainbow': _PalettableGradient(palettable.colorbrewer.diverging.Spectral_9, True),
+        'RedBlueTones': _PalettableGradient(palettable.colorbrewer.diverging.RdBu_11, False),
+        'GreenPinkTones': _PalettableGradient(palettable.colorbrewer.diverging.PiYG_9, False),
+        'GrayTones': _PalettableGradient(palettable.colorbrewer.sequential.Greys_9, False),
+        'SolarColors': _PalettableGradient(palettable.colorbrewer.sequential.OrRd_9, True),
+        'CherryTones': _PalettableGradient(palettable.colorbrewer.sequential.Reds_9, True),
+        'FuchsiaTones':_PalettableGradient(palettable.colorbrewer.sequential.RdPu_9, True),
+        'SiennaTones': _PalettableGradient(palettable.colorbrewer.sequential.Oranges_9, True),
+
+        # specific to Mathics
+        'Paired': _PalettableGradient(palettable.colorbrewer.qualitative.Paired_9, False),
+        'Accent': _PalettableGradient(palettable.colorbrewer.qualitative.Accent_8, False),
+        'Aquatic': _PalettableGradient(palettable.wesanderson.Aquatic1_5, False),
+        'Zissou': _PalettableGradient(palettable.wesanderson.Zissou_5, False),
+        'Tableau': _PalettableGradient(palettable.tableau.Tableau_20, False),
+        'TrafficLight': _PalettableGradient(palettable.tableau.TrafficLight_9, False),
+        'Moonrise1': _PalettableGradient(palettable.wesanderson.Moonrise1_5, False),
     }
-
-    if palettable_installed:
-        palettes.update({
-            'Pastel': _PalettableGradient(palettable.colorbrewer.qualitative.Pastel1_9, False),
-            'Rainbow': _PalettableGradient(palettable.colorbrewer.diverging.Spectral_9, True),
-            'RedBlueTones': _PalettableGradient(palettable.colorbrewer.diverging.RdBu_11, False),
-            'GreenPinkTones': _PalettableGradient(palettable.colorbrewer.diverging.PiYG_9, False),
-            'GrayTones': _PalettableGradient(palettable.colorbrewer.sequential.Greys_9, False),
-            'SolarColors': _PalettableGradient(palettable.colorbrewer.sequential.OrRd_9, True),
-            'CherryTones': _PalettableGradient(palettable.colorbrewer.sequential.Reds_9, True),
-            'FuchsiaTones':_PalettableGradient(palettable.colorbrewer.sequential.RdPu_9, True),
-            'SiennaTones': _PalettableGradient(palettable.colorbrewer.sequential.Oranges_9, True),
-
-            # specific to Mathics
-            'Paired': _PalettableGradient(palettable.colorbrewer.qualitative.Paired_9, False),
-            'Accent': _PalettableGradient(palettable.colorbrewer.qualitative.Accent_8, False),
-            'Aquatic': _PalettableGradient(palettable.wesanderson.Aquatic1_5, False),
-            'Zissou': _PalettableGradient(palettable.wesanderson.Zissou_5, False),
-            'Tableau': _PalettableGradient(palettable.tableau.Tableau_20, False),
-            'TrafficLight': _PalettableGradient(palettable.tableau.TrafficLight_9, False),
-            'Moonrise1': _PalettableGradient(palettable.wesanderson.Moonrise1_5, False),
-        })
 
     def apply_directory(self, evaluation):
         'ColorData[]'
@@ -734,10 +718,6 @@ class BarChart(Builtin):
         'ChartStyle': 'Automatic',
     })
 
-    requires = (
-        'palettable',
-    )
-
     def apply(self, points, evaluation, options):
         '%(name)s[points_, OptionsPattern[%(name)s]]'
 
@@ -774,7 +754,6 @@ class BarChart(Builtin):
             spread_colors = False
         elif isinstance(chart_style, String):
             if chart_style.get_string_value() == 'Automatic':
-                import palettable
                 mpl_colors = palettable.wesanderson.Moonrise1_5.mpl_colors
             else:
                 mpl_colors = ColorData.colors(chart_style.get_string_value())
@@ -792,16 +771,17 @@ class BarChart(Builtin):
 
         def boxes():
             w = 0.9
-            s = 0.1
-            x = 0.6
+            s = 0.06
+            w_half = 0.5 * w
+            x = 0.1 + s + w_half
 
             for y_values in data:
                 y_length = len(y_values)
                 for i, y in enumerate(y_values):
-                    x0 = x - 0.5 * w
+                    x0 = x - w_half
                     x1 = x0 + w
                     yield (i + 1, y_length), x0, x1, y
-                    x = x1 + s
+                    x = x1 + s + w_half
 
                 x += 0.2
 
@@ -896,10 +876,6 @@ class Histogram(Builtin):
         'Mesh': 'None',
         'PlotRange': 'Automatic',
     })
-
-    requires = (
-        'palettable',
-    )
 
     def apply(self, points, spec, evaluation, options):
         '%(name)s[points_, spec___, OptionsPattern[%(name)s]]'
@@ -1017,7 +993,6 @@ class Histogram(Builtin):
             return cost0, distributions0
 
         def graphics(distributions):
-            import palettable
             palette = palettable.wesanderson.FantasticFox1_5
             colors = list(reversed(palette.mpl_colors))
 
