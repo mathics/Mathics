@@ -308,33 +308,75 @@ def lab_to_xyz(l, a, b, *rest):
 
     return (x, y, z) + rest
 
+# for an overview of color conversions see http://www.brucelindbloom.com/Math.html
 
-_flows = {  # see http://www.brucelindbloom.com/Math.html
-    'XYZ>LCH': ('XYZ', 'LAB', 'LCH'),
-    'LAB>LUV': ('LAB', 'XYZ', 'LUV'),
-    'LAB>RGB': ('LAB', 'XYZ', 'RGB'),
-    'LCH>XYZ': ('LCH', 'LAB', 'XYZ'),
-    'LCH>LUV': ('LCH', 'LAB', 'XYZ', 'LUV'),
-    'LCH>RGB': ('LCH', 'LAB', 'XYZ', 'RGB'),
-    'LUV>LAB': ('LUV', 'XYZ', 'LAB'),
-    'LUV>LCH': ('LUV', 'XYZ', 'LAB', 'LCH'),
-    'LUV>RGB': ('LUV', 'XYZ', 'RGB'),
-    'RGB>LAB': ('RGB', 'XYZ', 'LAB'),
-    'RGB>LCH': ('RGB', 'XYZ', 'LAB', 'LCH'),
-    'RGB>LUV': ('RGB', 'XYZ', 'LUV'),
-}
+# the following table was computed by starting with the allowed hard
+# coded conversions from "conversions" and then finding the shortest
+# paths:
 
+# g = Graph[{"Grayscale" -> "RGB", "RGB" -> "Grayscale", "CMYK" -> "RGB", "RGB" -> "CMYK", "RGB" -> "HSB",
+#   "HSB" -> "RGB", "XYZ" -> "LAB", "XYZ" -> "LUV", "XYZ" -> "RGB", "LAB" -> "XYZ", "LAB" -> "LCH",
+#   "LCH" -> "LAB", "LUV" -> "XYZ", "RGB" -> "XYZ"}]
+# s = FindShortestPath[g, All, All]; {#, s @@ #} & /@ Permutations[{
+#   "Grayscale", "RGB", "CMYK", "HSB", "XYZ", "LAB", "LUV", "LCH"}, {2}] // CForm
 
-_rgb_flows = set(['Grayscale', 'CMYK', 'HSB'])
-
-
-def _flow(src, dst):
-    if (src in _rgb_flows and dst != 'RGB') or (dst in _rgb_flows and src != 'RGB'):
-        return list(chain(_flow(src, 'RGB'), _flow('RGB', dst)))
-    else:
-        r = _flows.get('%s>%s' % (src, dst))
-        return list(r) if r else [src, dst]
-
+_paths = dict((
+    (("Grayscale","RGB"),("Grayscale","RGB")),
+    (("Grayscale","CMYK"),("Grayscale","RGB","CMYK")),
+    (("Grayscale","HSB"),("Grayscale","RGB","HSB")),
+    (("Grayscale","XYZ"),("Grayscale","RGB","XYZ")),
+    (("Grayscale","LAB"),("Grayscale","RGB","XYZ","LAB")),
+    (("Grayscale","LUV"),("Grayscale","RGB","XYZ","LUV")),
+    (("Grayscale","LCH"),("Grayscale","RGB","XYZ","LAB","LCH")),
+    (("RGB","Grayscale"),("RGB","Grayscale")),
+    (("RGB","CMYK"),("RGB","CMYK")),
+    (("RGB","HSB"),("RGB","HSB")),
+    (("RGB","XYZ"),("RGB","XYZ")),
+    (("RGB","LAB"),("RGB","XYZ","LAB")),
+    (("RGB","LUV"),("RGB","XYZ","LUV")),
+    (("RGB","LCH"),("RGB","XYZ","LAB","LCH")),
+    (("CMYK","Grayscale"),("CMYK","RGB","Grayscale")),
+    (("CMYK","RGB"),("CMYK","RGB")),
+    (("CMYK","HSB"),("CMYK","RGB","HSB")),
+    (("CMYK","XYZ"),("CMYK","RGB","XYZ")),
+    (("CMYK","LAB"),("CMYK","RGB","XYZ","LAB")),
+    (("CMYK","LUV"),("CMYK","RGB","XYZ","LUV")),
+    (("CMYK","LCH"),("CMYK","RGB","XYZ","LAB","LCH")),
+    (("HSB","Grayscale"),("HSB","RGB","Grayscale")),
+    (("HSB","RGB"),("HSB","RGB")),
+    (("HSB","CMYK"),("HSB","RGB","CMYK")),
+    (("HSB","XYZ"),("HSB","RGB","XYZ")),
+    (("HSB","LAB"),("HSB","RGB","XYZ","LAB")),
+    (("HSB","LUV"),("HSB","RGB","XYZ","LUV")),
+    (("HSB","LCH"),("HSB","RGB","XYZ","LAB","LCH")),
+    (("XYZ","Grayscale"),("XYZ","RGB","Grayscale")),
+    (("XYZ","RGB"),("XYZ","RGB")),
+    (("XYZ","CMYK"),("XYZ","RGB","CMYK")),
+    (("XYZ","HSB"),("XYZ","RGB","HSB")),
+    (("XYZ","LAB"),("XYZ","LAB")),
+    (("XYZ","LUV"),("XYZ","LUV")),
+    (("XYZ","LCH"),("XYZ","LAB","LCH")),
+    (("LAB","Grayscale"),("LAB","XYZ","RGB","Grayscale")),
+    (("LAB","RGB"),("LAB","XYZ","RGB")),
+    (("LAB","CMYK"),("LAB","XYZ","RGB","CMYK")),
+    (("LAB","HSB"),("LAB","XYZ","RGB","HSB")),
+    (("LAB","XYZ"),("LAB","XYZ")),
+    (("LAB","LUV"),("LAB","XYZ","LUV")),
+    (("LAB","LCH"),("LAB","LCH")),
+    (("LUV","Grayscale"),("LUV","XYZ","RGB","Grayscale")),
+    (("LUV","RGB"),("LUV","XYZ","RGB")),
+    (("LUV","CMYK"),("LUV","XYZ","RGB","CMYK")),
+    (("LUV","HSB"),("LUV","XYZ","RGB","HSB")),
+    (("LUV","XYZ"),("LUV","XYZ")),
+    (("LUV","LAB"),("LUV","XYZ","LAB")),
+    (("LUV","LCH"),("LUV","XYZ","LAB","LCH")),
+    (("LCH","Grayscale"),("LCH","LAB","XYZ","RGB","Grayscale")),
+    (("LCH","RGB"),("LCH","LAB","XYZ","RGB")),
+    (("LCH","CMYK"),("LCH","LAB","XYZ","RGB","CMYK")),
+    (("LCH","HSB"),("LCH","LAB","XYZ","RGB","HSB")),
+    (("LCH","XYZ"),("LCH","LAB","XYZ")),
+    (("LCH","LAB"),("LCH","LAB")),
+    (("LCH","LUV"),("LCH","LAB","XYZ","LUV"))))
 
 conversions = {
     'Grayscale>RGB': grayscale_to_rgb,
@@ -361,10 +403,11 @@ def convert(components, src, dst, preserve_alpha=True):
     if src == dst:
         return components
 
-    flows = _flow(src, dst)
-    for s, d in (flows[i:i + 2] for i in range(len(flows) - 1)):
-        if s == d:
-            continue
+    path = _paths.get((src, dst), None)
+    if path is None:
+        return None
+
+    for s, d in zip(path[:-1], path[1:]):
         func = conversions.get('%s>%s' % (s, d))
         if not func:
             return None
