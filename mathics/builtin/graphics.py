@@ -303,7 +303,7 @@ class Graphics(Builtin):
 
     Invalid graphics directives yield invalid box structures:
     >> Graphics[Circle[{a, b}]]
-     : GraphicsBox[CircleBox[List[a, b]], Rule[AspectRatio, Automatic], Rule[Axes, False], Rule[AxesStyle, List[]], Rule[ImageSize, Automatic], Rule[LabelStyle, List[]], Rule[PlotRange, Automatic], Rule[PlotRangePadding, Automatic], Rule[TicksStyle, List[]]] is not a valid box structure.
+     : GraphicsBox[CircleBox[List[a, b]], Rule[AspectRatio, Automatic], Rule[Axes, False], Rule[AxesStyle, List[]], Rule[Background, Automatic], Rule[ImageSize, Automatic], Rule[LabelStyle, List[]], Rule[PlotRange, Automatic], Rule[PlotRangePadding, Automatic], Rule[TicksStyle, List[]]] is not a valid box structure.
     """
 
     options = {
@@ -315,6 +315,7 @@ class Graphics(Builtin):
         'PlotRange': 'Automatic',
         'PlotRangePadding': 'Automatic',
         'ImageSize': 'Automatic',
+        'Background': 'Automatic',
     }
 
     box_suffix = 'Box'
@@ -2437,6 +2438,12 @@ class GraphicsBox(BoxConstruct):
 
         graphics_options = self.get_option_values(leaves[1:], **options)
 
+        background = graphics_options['System`Background']
+        if isinstance(background, Symbol) and background.get_name() == 'System`Automatic':
+            self.background_color = None
+        else:
+            self.background_color =_Color.create(background)
+
         base_width, base_height, size_multiplier, size_aspect = \
             self._get_image_size(options, graphics_options, max_width)
 
@@ -2585,17 +2592,27 @@ class GraphicsBox(BoxConstruct):
             element.to_asy() for element in elements.elements
             if not element.is_completely_visible)
 
+        asy_box = 'box((%s,%s), (%s,%s))' % (asy_number(xmin), asy_number(ymin), asy_number(xmax), asy_number(ymax))
+
+        if self.background_color is not None:
+            color, opacity = self.background_color.to_asy()
+            asy_background = 'filldraw(%s, %s);' % (asy_box, color)
+        else:
+            asy_background = ''
+
         tex = r"""
 \begin{asy}
 size(%scm, %scm);
 %s
-clip(box((%s,%s), (%s,%s)));
+%s
+clip(%s);
 %s
 \end{asy}
 """ % (
             asy_number(width / 60), asy_number(height / 60),
+            asy_background,
             asy_regular,
-            asy_number(xmin), asy_number(ymin), asy_number(xmax), asy_number(ymax),
+            asy_box,
             asy_completely_visible)
 
         return tex
@@ -2608,6 +2625,10 @@ clip(box((%s,%s), (%s,%s)));
         elements.view_width = w
 
         svg = elements.to_svg()
+
+        if self.background_color is not None:
+            svg = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
+                xmin, ymin, w, h, self.background_color.to_css()[0], svg)
 
         xmin -= 1
         ymin -= 1
@@ -3112,7 +3133,7 @@ class Automatic(Builtin):
     graphical options:
 
     >> Cases[Options[Plot], HoldPattern[_ :> Automatic]]
-     = {Exclusions :> Automatic, ImageSize :> Automatic, MaxRecursion :> Automatic, PlotRange :> Automatic, PlotRangePadding :> Automatic}
+     = {Background :> Automatic, Exclusions :> Automatic, ImageSize :> Automatic, MaxRecursion :> Automatic, PlotRange :> Automatic, PlotRangePadding :> Automatic}
     '''
 
 
