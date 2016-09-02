@@ -5,7 +5,7 @@
 Natural language functions
 """
 
-# Uses the following Python modules:
+# PYTHON MODULES USED IN HERE
 
 # spacy: everything related to parsing natural language
 # nltk: functions using WordNet
@@ -16,20 +16,30 @@ Natural language functions
 # If a module is not installed, all functions will gracefully alert the user to the missing functionality/packages.
 # All modules above (except for "pattern", see below) are available in Python 2 and Python 3 versions.
 
-# NOTES
+# ADDING MORE LANGUAGES TO OMW
 
 # In order to use the Extended Open Multilingual Wordnet with NLTK and use even more languages, you need to install
 # them manually. Go to http://compling.hss.ntu.edu.sg/omw/summx.html, download the data, and then create a new folder
 # under $HOME/nltk_data/corpora/omw/your_language where you put the file from wiki/wn-wikt-your_language.tab, and
 # rename it to wn-data-your_language.tab.
 
+# PATTERN MODULE
+
 # This module uses "pattern" for various tasks (http://www.clips.ua.ac.be/pattern). Pattern currently only supports
 # Python 2, but there exists for Python 3 an official, though preliminary version: https://github.com/pattern3/pattern,
-# which is not in pip, but can be installed manually. on OS X make sure to "pip install Pillow lxml" and after installing,
-# uncompress pattern.egg into folder. you may also need to run "export STATIC_DEPS=true" before you run setup.py
+# which is not in pip, but can be installed manually. on OS X make sure to "pip install Pillow lxml" and after
+# installing, uncompress pattern.egg into folder. you may also need to run "export STATIC_DEPS=true" before you run
+# setup.py
+
+# PYENCHANT MODULE
 
 # "pyenchant" OS X python 3 fix: patch enchant/_enchant.py:
 # prefix_dir.contents = c_char_p(e_dir.encode('utf8'))
+
+# PORTABLE INSTALLATION
+
+# for nltk, use the environment variable NLTK_DATA to specify a custom data path (instead of $HOME/.nltk).
+# for spacy, use SPACY_DATA; the latter is a custom Mathics variable.
 
 from mathics.builtin.base import Builtin, MessageException
 from mathics.builtin.randomnumbers import RandomEnv
@@ -37,6 +47,7 @@ from mathics.builtin.codetables import iso639_3
 from mathics.builtin.strings import to_regex, anchor_pattern
 from mathics.core.expression import Expression, String, Integer, Real, Symbol, strip_context
 
+import os
 import re
 import itertools
 from itertools import chain
@@ -220,7 +231,11 @@ class _SpacyBuiltin(Builtin):
 
         _status_message('Loading %s language data. This might take a moment.' % language_name, evaluation)
         try:
-            instance = spacy.load(language_code)
+            if 'SPACY_DATA' in os.environ:
+                instance = spacy.load(language_code, via=os.environ['SPACY_DATA'])
+            else:
+                instance = spacy.load(language_code)
+
             _SpacyBuiltin._spacy_instances[language_code] = instance
             return instance
         except RuntimeError as e:
