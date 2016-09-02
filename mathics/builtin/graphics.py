@@ -841,12 +841,20 @@ class Disk(Builtin):
         <dd>chooses radius 1.
     <dt>'Disk[]'
         <dd>chooses center '(0, 0)' and radius 1.
+    <dt>'Disk[{$x$, $y$}, ..., {$t1$, $t2$}]'
+        <dd>is a sector from angle $t1$ to $t2$.
     </dl>
 
     >> Graphics[{Blue, Disk[{0, 0}, {2, 1}]}]
      = -Graphics-
     The outer border can be drawn using 'EdgeForm':
     >> Graphics[{EdgeForm[Black], Red, Disk[]}]
+     = -Graphics-
+
+    Disk can also draw sectors of circles and ellipses
+    >> Graphics[Disk[{0, 0}, 1, {Pi / 3, 2 Pi / 3}]]
+     = -Graphics-
+    >> Graphics[{Blue, Disk[{0, 0}, {1, 2}, {Pi / 3, 5 Pi / 3}]}]
      = -Graphics-
     """
 
