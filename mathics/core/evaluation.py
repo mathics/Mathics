@@ -96,7 +96,7 @@ class Message(Out):
         self.text = text
 
     def __str__(self):
-        return ' : ' + self.text
+        return '{}::{}: {}'.format(self.symbol, self.tag, self.text)
 
     def __eq__(self, other):
         return self.is_message == other.is_message and self.text == other.text
