@@ -1430,7 +1430,7 @@ class TextRecognize(Builtin):
             builder=pyocr.builders.TextBuilder())
 
         if isinstance(text, (list, tuple)):
-            text = ''.join(text)
+            text = '\n'.join(text)
 
         return String(text)
 
