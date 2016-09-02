@@ -1429,6 +1429,9 @@ class TextRecognize(Builtin):
             lang=py_language_code,
             builder=pyocr.builders.TextBuilder())
 
+        if isinstance(text, (list, tuple)):
+            text = ''.join(text)
+
         return String(text)
 
 
