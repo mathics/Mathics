@@ -285,6 +285,9 @@ class Graphics(Builtin):
     >> Graphics[{Rectangle[{1, 1}]}, Axes -> True, PlotRange -> {{-2, 1.5}, {-1, 1.5}}]
      = -Graphics-
 
+    >> Graphics[{Rectangle[],Red,Disk[{1,0}]},PlotRange->{{0,1},{0,1}}]
+     = -Graphics-
+
     'Graphics' produces 'GraphicsBox' boxes:
     >> Graphics[Rectangle[]] // ToBoxes // Head
      = GraphicsBox
@@ -2401,6 +2404,7 @@ class GraphicsBox(BoxConstruct):
             raise BoxConstructError
 
         elements = GraphicsElements(leaves[0], options['evaluation'], neg_y)
+        axes = []  # to be filled further down
 
         def calc_dimensions(final_pass=True):
             """
@@ -2419,8 +2423,8 @@ class GraphicsBox(BoxConstruct):
                 xmin, xmax, ymin, ymax = elements.extent()
             else:
                 xmin = xmax = ymin = ymax = None
-            if final_pass and plot_range != ['System`Automatic',
-                                             'System`Automatic']:
+
+            if final_pass and any(x for x in axes) and plot_range != ['System`Automatic', 'System`Automatic']:
                 # Take into account the dimensiosn of axes and axes labels
                 # (they should be displayed completely even when a specific
                 # PlotRange is given).
@@ -2475,6 +2479,8 @@ class GraphicsBox(BoxConstruct):
                     ymin, ymax = get_range(ymin, ymax)
                     ymin = elements.translate((0, ymin))[1]
                     ymax = elements.translate((0, ymax))[1]
+                    if ymin > ymax:
+                        ymin, ymax = ymax, ymin
                     if eymin is not None and eymin < ymin:
                         ymin = eymin
                     if eymax is not None and eymax > ymax:
@@ -2516,7 +2522,7 @@ class GraphicsBox(BoxConstruct):
         ymin -= h * 0.02
         ymax += h * 0.02
 
-        self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax)
+        axes.extend(self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax))
 
         return elements, calc_dimensions
 
@@ -2718,6 +2724,7 @@ clip(box((%s,%s), (%s,%s)));
                                                d=p_self0(tick_small_size))])
                 add_element(LineBox(elements, axes_style[0],
                                     lines=ticks_lines))
+        return axes
 
         """if axes[1]:
             add_element(LineBox(elements, axes_style[1], lines=[[Coords(elements, pos=(origin_x,ymin), d=(0,-axes_extra)),
