@@ -10,6 +10,7 @@ from mathics.builtin.base import (
     Builtin, AtomBuiltin, Test, BoxConstruct, String)
 from mathics.core.expression import (
     Atom, Expression, Integer, Rational, Real, Symbol, from_python)
+from mathics.builtin.colors import convert as convert_color
 
 import six
 import base64
@@ -52,33 +53,6 @@ except ImportError:
     _enabled = False
 
 from io import BytesIO
-
-
-if _enabled:
-    _color_space_conversions = {
-        'RGB2Grayscale': skimage.color.rgb2gray,
-        'Grayscale2RGB': skimage.color.gray2rgb,
-
-        'HSV2RGB': skimage.color.hsv2rgb,
-        'RGB2HSV': skimage.color.rgb2hsv,
-
-        'LAB2LCH': skimage.color.lab2lch,
-        'LCH2LAB': skimage.color.lch2lab,
-
-        'LAB2RGB': skimage.color.lab2rgb,
-        'LAB2XYZ': skimage.color.lab2xyz,
-
-        'LUV2RGB': skimage.color.luv2rgb,
-        'LUV2XYZ': skimage.color.luv2xyz,
-
-        'RGB2LAB': skimage.color.rgb2lab,
-        'RGB2LUV': skimage.color.rgb2luv,
-        'RGB2XYZ': skimage.color.rgb2xyz,
-
-        'XYZ2LAB': skimage.color.xyz2lab,
-        'XYZ2LUV': skimage.color.xyz2luv,
-        'XYZ2RGB': skimage.color.xyz2rgb,
-    }
 
 
 class _ImageBuiltin(Builtin):
@@ -843,7 +817,7 @@ class _MorphologyFilter(_ImageBuiltin):
     def apply(self, image, k, evaluation):
         '%(name)s[image_Image, k_?MatrixQ]'
         if image.color_space != 'Grayscale':
-            image = image.color_convert('Grayscale')
+            image = image.grayscale()
             evaluation.message(self.name, 'grayscale')
         f = getattr(skimage.morphology, self.get_name(True).lower())
         img = f(image.pixels, numpy.array(k.to_python()))
@@ -922,16 +896,62 @@ class ImageColorSpace(_ImageBuiltin):
         return String(image.color_space)
 
 
-class ColorConvert(_ImageBuiltin):
-    def apply(self, image, colorspace, evaluation):
-        'ColorConvert[image_Image, colorspace_String]'
-        return image.color_convert(colorspace.get_string_value())
+class ColorConvert(Builtin):
+    """
+    <dl>
+    <dt>'ColorConvert[$c$, $colspace$]'
+        <dd>returns the representation of $c$ in the color space $colspace$. $c$
+        may be a color or an image.
+    </dl>
+
+    Valid values for $colspace$ are:
+
+    CMYK: convert to CMYKColor
+    Grayscale: convert to GrayLevel
+    HSB: convert to Hue
+    LAB: concert to LABColor
+    LCH: convert to LCHColor
+    LUV: convert to LUVColor
+    RGB: convert to RGBColor
+    XYZ: convert to XYZColor
+    """
+
+    messages = {
+        'ccvinput': '`` should be a color.',
+        'imgcstype': '`` is not a valid color space.',
+    }
+
+    def apply(self, input, colorspace, evaluation):
+        'ColorConvert[input_, colorspace_String]'
+
+        if isinstance(input, Image):
+            return input.color_convert(colorspace.get_string_value())
+        else:
+            from mathics.builtin.graphics import expression_to_color, color_to_expression
+
+            py_color = expression_to_color(input)
+            if py_color is None:
+                evaluation.message('ColorConvert', 'ccvinput', input)
+                return
+
+            py_colorspace = colorspace.get_string_value()
+            converted_components = convert_color(
+                py_color.components, py_color.color_space, py_colorspace)
+
+            if converted_components is None:
+                evaluation.message('ColorConvert', 'imgcstype', colorspace)
+                return
+
+            return color_to_expression(converted_components, py_colorspace)
 
 
 class ColorQuantize(_ImageBuiltin):
     def apply(self, image, n, evaluation):
         'ColorQuantize[image_Image, n_Integer]'
-        pixels = skimage.img_as_ubyte(image.color_convert('RGB').pixels)
+        converted = image.color_convert('RGB')
+        if converted is None:
+            return
+        pixels = skimage.img_as_ubyte(converted.pixels)
         im = PIL.Image.fromarray(pixels).quantize(n.to_python())
         im = im.convert('RGB')
         return Image(numpy.array(im), 'RGB')
@@ -1086,7 +1106,11 @@ class ImageTake(_ImageBuiltin):
 class PixelValue(_ImageBuiltin):
     def apply(self, image, x, y, evaluation):
         'PixelValue[image_Image, {x_?RealNumberQ, y_?RealNumberQ}]'
-        return Real(image.pixels[int(y.to_python() - 1), int(x.to_python() - 1)])
+        pixel = image.pixels[int(y.to_python() - 1), int(x.to_python() - 1)]
+        if isinstance(pixel, (numpy.ndarray, numpy.generic, list)):
+            return Expression('List', *[Real(float(x)) for x in list(pixel)])
+        else:
+            return Real(float(pixel))
 
 
 class PixelValuePositions(_ImageBuiltin):
@@ -1214,25 +1238,31 @@ class Image(Atom):
     def pil(self):
         return PIL.Image.fromarray(self.pixels)
 
-    def color_convert(self, to_color_space):
+    def color_convert(self, to_color_space, preserve_alpha=True):
         if to_color_space == self.color_space:
             return self
         else:
-            conversion = '%s2%s' % (self.color_space, to_color_space)
-            if conversion in _color_space_conversions:
-                return Image(_color_space_conversions[conversion](self.pixels), to_color_space)
-            else:
-                raise ValueError('cannot convert from color space %s to %s' % (self.color_space, to_color_space))
+            pixels = skimage.img_as_float(self.pixels)
+            converted = convert_color(pixels, self.color_space, to_color_space, preserve_alpha)
+            if converted is None:
+                return None
+            return Image(converted, to_color_space)
 
     def grayscale(self):
         return self.color_convert('Grayscale')
 
     def atom_to_boxes(self, f, evaluation):
         try:
-            if self.color_space == 'Grayscale':
+            if self.color_space == 'Grayscale' and self.pixels.shape[2] == 1:
                 pixels = self.pixels
+                # convert_color gives us [[[a], [b], ...]], but
+                # skimage.io.imsave only wants [[a, b, ...]], so:
+                pixels = pixels.reshape(pixels.shape[:2])
             else:
-                pixels = self.color_convert('RGB').pixels
+                pixels = self.color_convert('RGB', False).pixels
+
+            if pixels is None:
+                raise ValueError('could not convert pixels to RGB.')
 
             if pixels.dtype == numpy.bool:
                 pixels = skimage.img_as_ubyte(pixels)
@@ -1267,8 +1297,10 @@ class Image(Atom):
             encoded = 'data:image/png;base64,' + encoded
 
             return Expression('ImageBox', String(encoded), Integer(scaled_width), Integer(scaled_height))
-        except:
-            return Symbol("$Failed")
+        except Exception as e:
+            evaluation.print_out('Image processing failed: %s' % str(e))
+            return String('')
+
 
     def __str__(self):
         return '-Image-'

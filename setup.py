@@ -159,7 +159,7 @@ setup(
         'mathics.algorithm',
         'mathics.core',
         'mathics.core.parser',
-        'mathics.builtin', 'mathics.builtin.pymimesniffer',
+        'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.builtin.numpy_utils',
         'mathics.doc',
         'mathics.web', 'mathics.web.templatetags'
     ],

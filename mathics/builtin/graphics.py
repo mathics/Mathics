@@ -10,6 +10,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 from math import floor, ceil, log10
+import math
 import json
 import base64
 from six.moves import map
@@ -22,7 +23,8 @@ from mathics.builtin.base import (
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
     Expression, Integer, Real, String, Symbol, strip_context,
-    system_symbols, system_symbols_dict)
+    system_symbols, system_symbols_dict, from_python)
+from mathics.builtin.colors import convert as convert_color
 
 
 class CoordinatesError(BoxConstructError):
@@ -163,6 +165,14 @@ def _data_and_options(leaves, defined_options):
     return data, options
 
 
+def _euclidean_distance(a, b):
+    return math.sqrt(sum((x1 - x2) * (x1 - x2) for x1, x2 in zip(a, b)))
+
+
+def _component_distance(a, b, i):
+    return abs(a[i] - b[i])
+
+
 class Graphics(Builtin):
     r"""
     <dl>
@@ -284,12 +294,23 @@ class _Color(_GraphicsElement):
         if item is not None:
             leaves = item.leaves
             if len(leaves) in self.components_sizes:
+                # we must not clip here; we copy the components, without clipping,
+                # e.g. RGBColor[-1, 0, 0] stays RGBColor[-1, 0, 0]. this is especially
+                # important for color spaces like LAB that have negative components.
+
                 components = [value.round_to_float() for value in leaves]
-                if None in components or not all(0 <= c <= 1 for c in components):
+                if None in components:
                     raise ColorError
-                if len(components) < len(self.default_components):
-                    components.extend(self.default_components[
-                                      len(components):])
+
+                # the following lines always extend to the maximum available
+                # default_components, so RGBColor[0, 0, 0] will _always_
+                # become RGBColor[0, 0, 0, 1]. does not seem the right thing
+                # to do in this general context. poke1024
+
+                # if len(components) < len(self.default_components):
+                #    components.extend(self.default_components[
+                #                      len(components):])
+
                 self.components = components
             else:
                 raise ColorError
@@ -310,20 +331,31 @@ class _Color(_GraphicsElement):
 
     def to_css(self):
         rgba = self.to_rgba()
+        alpha = rgba[3] if len(rgba) > 3 else 1.
         return (r'rgb(%f%%, %f%%, %f%%)' % (
-            rgba[0] * 100, rgba[1] * 100, rgba[2] * 100), rgba[3])
+            rgba[0] * 100, rgba[1] * 100, rgba[2] * 100), alpha)
 
     def to_asy(self):
         rgba = self.to_rgba()
+        alpha = rgba[3] if len(rgba) > 3 else 1.
         return (r'rgb(%s, %s, %s)' % (
             asy_number(rgba[0]), asy_number(rgba[1]), asy_number(rgba[2])),
-            rgba[3])
+                alpha)
 
     def to_js(self):
         return self.to_rgba()
 
     def to_expr(self):
         return Expression(self.get_name(), *self.components)
+
+    def to_rgba(self):
+        return self.to_color_space("RGB")
+
+    def to_color_space(self, color_space):
+        components = convert_color(self.components, self.color_space, color_space)
+        if components is None:
+            raise ValueError('cannot convert from color space %s to %s.' % (self.color_space, color_space))
+        return components
 
 
 class RGBColor(_Color):
@@ -344,11 +376,66 @@ class RGBColor(_Color):
      = StyleBox[GraphicsBox[...], ...]
     """
 
+    color_space = 'RGB'
     components_sizes = [3, 4]
     default_components = [0, 0, 0, 1]
 
     def to_rgba(self):
         return self.components
+
+
+class LABColor(_Color):
+    """
+    <dl>
+    <dt>'LABColor[$l$, $a$, $b$]'
+        <dd>represents a color with the specified lightness, red/green and yellow/blue
+        components in the CIE 1976 L*a*b* (CIELAB) color space.
+    </dl>
+    """
+
+    color_space = 'LAB'
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
+
+
+class LCHColor(_Color):
+    """
+    <dl>
+    <dt>'LCHColor[$l$, $c$, $h$]'
+        <dd>represents a color with the specified lightness, chroma and hue
+        components in the CIELCh CIELab cube color space.
+    </dl>
+    """
+
+    color_space = 'LCH'
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
+
+
+class LUVColor(_Color):
+    """
+    <dl>
+    <dt>'LCHColor[$l$, $u$, $v$]'
+        <dd>represents a color with the specified components in the CIE 1976 L*u*v* (CIELUV) color space.
+    </dl>
+    """
+
+    color_space = 'LUV'
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
+
+
+class XYZColor(_Color):
+    """
+    <dl>
+    <dt>'XYZColor[$x$, $y$, $z$]'
+        <dd>represents a color with the specified components in the CIE 1931 XYZ color space.
+    </dl>
+    """
+
+    color_space = 'XYZ'
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
 
 
 class CMYKColor(_Color):
@@ -363,16 +450,9 @@ class CMYKColor(_Color):
      = -Graphics-
     """
 
+    color_space = 'CMYK'
     components_sizes = [3, 4, 5]
     default_components = [0, 0, 0, 0, 1]
-
-    def to_rgba(self):
-        k = self.components[3]
-        k_ = 1 - k
-        c = self.components
-        cmy = [c[0] * k_ + k, c[1] * k_ + k, c[2] * k_ + k]
-        rgb = (1 - cmy[0], 1 - cmy[1], 1 - cmy[2])
-        return rgb + (c[4],)
 
 
 class Hue(_Color):
@@ -395,27 +475,9 @@ class Hue(_Color):
      = -Graphics-
     """
 
+    color_space = 'HSB'
     components_sizes = [1, 2, 3, 4]
     default_components = [0, 1, 1, 1]
-
-    def to_rgba(self):
-        h, s, v = self.components[:3]
-        i = floor(6 * h)
-        f = 6 * h - i
-        i = i % 6
-        p = v * (1 - s)
-        q = v * (1 - f * s)
-        t = v * (1 - (1 - f) * s)
-
-        rgb = {
-            0: (v, t, p),
-            1: (q, v, p),
-            2: (p, v, t),
-            3: (p, q, v),
-            4: (t, p, v),
-            5: (v, p, q),
-        }[i]
-        return rgb + (self.components[3],)
 
     def hsl_to_rgba(self):
         h, s, l = self.components[:3]
@@ -458,12 +520,109 @@ class GrayLevel(_Color):
         <dd>represents a shade of gray specified by $g$ with opacity $a$.
     </dl>
     """
+
+    color_space = 'Grayscale'
     components_sizes = [1, 2]
     default_components = [0, 1]
 
-    def to_rgba(self):
-        g = self.components[0]
-        return (g, g, g, self.components[1])
+
+def expression_to_color(color):
+    try:
+        return _Color.create(color)
+    except ColorError:
+        return None
+
+
+def color_to_expression(components, colorspace):
+    if colorspace == 'Grayscale':
+        converted_color_name = 'GrayLevel'
+    elif colorspace == 'HSB':
+        converted_color_name = 'Hue'
+    else:
+        converted_color_name = colorspace + 'Color'
+
+    return Expression(converted_color_name, *components)
+
+
+class ColorDistance(Builtin):
+    """
+    <dl>
+    <dt>'ColorDistance[$c1$, $c2$]'
+        <dd>returns a measure of color distance between the colors $c1$ and $c2$.
+    <dt>'ColorDistance[$list$, $c2$]'
+        <dd>returns a list of color distances between the colors in $list$ and $c2$.
+    </dl>
+
+    The option DistanceFunction specifies the method used to measure the color
+    distance. Available options are:
+
+    CIE76: euclidean distance in the LABColor space
+    CIE94: euclidean distance in the LCHColor space
+    DeltaL: difference in the L component of LCHColor
+    DeltaC: difference in the C component of LCHColor
+    DeltaH: difference in the H component of LCHColor
+
+    >> N[ColorDistance[Magenta, Green], 5]
+     = 2.2507
+    """
+
+    options = {
+        'DistanceFunction': '"CIE76"',
+    }
+
+    messages = {
+        'invdist': '`` is not a valid color distance function.',
+        'invarg': '`1` and `2` should be two colors or a color and a lists of colors or ' +
+                  'two lists of colors of the same length.'
+    }
+
+    _distances = {
+        "CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
+        "CIE94": lambda c1, c2: _euclidean_distance(c1.to_color_space('LCH')[:3], c2.to_color_space('LCH')[:3]),
+        "DeltaL": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 0),
+        "DeltaC": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 1),
+        "DeltaH": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 2),
+    }
+
+    def apply(self, c1, c2, evaluation, options):
+        'ColorDistance[c1_, c2_, OptionsPattern[ColorDistance]]'
+        distance_function = options.get('System`DistanceFunction')
+        if isinstance(distance_function, String):
+            compute = ColorDistance._distances.get(distance_function.get_string_value())
+            if not compute:
+                evaluation.message('ColorDistance', 'invdist', distance_function)
+                return
+        else:
+            def compute(a, b):
+                Expression(distance_function,
+                           a.to_color_space('LAB'),
+                           b.to_color_space('LAB'))
+
+        def distance(a, b):
+            try:
+                py_a = _Color.create(a)
+                py_b = _Color.create(b)
+            except ColorError:
+                evaluation.message('ColorDistance', 'invarg', a, b)
+                raise
+            return from_python(compute(py_a, py_b))
+
+        try:
+            if c1.get_head_name() == 'System`List':
+                if c2.get_head_name() == 'System`List':
+                    if len(c1.leaves) != len(c2.leaves):
+                        evaluation.message('ColorDistance', 'invarg', c1, c2)
+                        return
+                    else:
+                        return Expression('List', *[distance(a, b) for a, b in zip(c1.leaves, c2.leaves)])
+                else:
+                    return Expression('List', *[distance(c, c2) for c in c1.leaves])
+            elif c2.get_head_name() == 'System`List':
+                return Expression('List', *[distance(c1, c) for c in c2.leaves])
+            else:
+                return distance(c1, c2)
+        except ColorError:
+            return
 
 
 class _Size(_GraphicsElement):
@@ -2022,11 +2181,11 @@ class Blend(Builtin):
     </dl>
 
     >> Blend[{Red, Blue}]
-     = RGBColor[0.5, 0., 0.5, 1.]
+     = RGBColor[0.5, 0., 0.5]
     >> Blend[{Red, Blue}, 0.3]
-     = RGBColor[0.7, 0., 0.3, 1.]
+     = RGBColor[0.7, 0., 0.3]
     >> Blend[{Red, Blue, Green}, 0.75]
-     = RGBColor[0., 0.5, 0.5, 1.]
+     = RGBColor[0., 0.5, 0.5]
 
     >> Graphics[Table[{Blend[{Red, Green, Blue}, x], Rectangle[{10 x, 0}]}, {x, 0, 1, 1/10}]]
      = -Graphics-
@@ -2129,7 +2288,7 @@ class Lighter(Builtin):
     </dl>
 
     >> Lighter[Orange, 1/4]
-     = RGBColor[1., 0.625, 0.25, 1.]
+     = RGBColor[1., 0.625, 0.25]
     >> Graphics[{Lighter[Orange, 1/4], Disk[]}]
      = -Graphics-
     >> Graphics[Table[{Lighter[Orange, x], Disk[{12x, 0}]}, {x, 0, 1, 1/6}]]
@@ -2364,6 +2523,10 @@ element_heads = frozenset(system_symbols(
 
 styles = system_symbols_dict({
     'RGBColor': RGBColor,
+    'XYZColor': XYZColor,
+    'LABColor': LABColor,
+    'LCHColor': LCHColor,
+    'LUVColor': LUVColor,
     'CMYKColor': CMYKColor,
     'Hue': Hue,
     'GrayLevel': GrayLevel,
