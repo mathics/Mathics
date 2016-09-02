@@ -1018,15 +1018,18 @@ class _ArcBox(_RoundBox):
             arc = arc_expr.leaves
             pi2 = 2 * pi
 
-            start_angle = arc[0].to_python()
-            end_angle = arc[1].to_python()
+            start_angle = arc[0].round_to_float()
+            end_angle = arc[1].round_to_float()
 
-            if end_angle <= start_angle:
-                self.arc = (0, 0)
+            if start_angle is None or end_angle is None:
+                raise BoxConstructError
             elif end_angle >= start_angle + pi2:  # full circle?
                 self.arc = None
             else:
-                self.arc = (start_angle, end_angle)
+                if end_angle <= start_angle:
+                    self.arc = (end_angle, start_angle)
+                else:
+                    self.arc = (start_angle, end_angle)
 
             item = Expression(item.get_head_name(), *item.leaves[:2])
         else:
