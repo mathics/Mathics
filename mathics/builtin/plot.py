@@ -981,15 +981,30 @@ class Histogram(Builtin):
             return sum(d.cost() for d in distributions), distributions
 
         def best_distributions(n_bins, dir, cost0, distributions0):
+            if dir > 0:
+                step_size = (max_bins - n_bins) // 2
+            else:
+                step_size = (n_bins - 1) // 2
+            if step_size < 1:
+                step_size = 1
+
             while True:
-                n_bins += dir
-                if n_bins < 1 or n_bins > max_bins:
-                    break
-                cost, distributions = compute_cost(n_bins)
-                if cost > cost0:
-                    break
-                cost0 = cost
-                distributions0 = distributions
+                new_n_bins = n_bins + dir * step_size
+                if new_n_bins < 1 or new_n_bins > max_bins:
+                    good = False
+                else:
+                    cost, distributions = compute_cost(new_n_bins)
+                    good = cost < cost0
+
+                if not good:
+                    if step_size == 1:
+                        break
+                    step_size = max(step_size // 2, 1)
+                else:
+                    n_bins = new_n_bins
+                    cost0 = cost
+                    distributions0 = distributions
+
             return cost0, distributions0
 
         def graphics(distributions):
