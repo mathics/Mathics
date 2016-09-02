@@ -9,8 +9,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from __future__ import division
 
-from math import floor, ceil, log10
-import math
+from math import floor, ceil, log10, sqrt, atan2, degrees
 import json
 import base64
 from six.moves import map
@@ -22,7 +21,7 @@ from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
-    Expression, Integer, Real, String, Symbol, strip_context,
+    Expression, Integer, Rational, Real, String, Symbol, strip_context,
     system_symbols, system_symbols_dict, from_python)
 from mathics.builtin.colors import convert as convert_color
 
@@ -122,6 +121,12 @@ def asy_number(value):
     return '%.5g' % value
 
 
+def _to_float(x):
+    x = x.round_to_float()
+    if x is None:
+        raise BoxConstructError
+    return x
+
 def create_pens(edge_color=None, face_color=None, stroke_width=None,
                 is_face_element=False):
     result = []
@@ -166,11 +171,104 @@ def _data_and_options(leaves, defined_options):
 
 
 def _euclidean_distance(a, b):
-    return math.sqrt(sum((x1 - x2) * (x1 - x2) for x1, x2 in zip(a, b)))
+    return sqrt(sum((x1 - x2) * (x1 - x2) for x1, x2 in zip(a, b)))
 
 
 def _component_distance(a, b, i):
     return abs(a[i] - b[i])
+
+
+def _extract_graphics(graphics, format, evaluation):
+    graphics_box = Expression('MakeBoxes', graphics).evaluate(evaluation)
+    builtin = GraphicsBox(expression=False)
+    elements, calc_dimensions = builtin._prepare_elements(
+        graphics_box.leaves, {'evaluation': evaluation}, neg_y=True)
+    xmin, xmax, ymin, ymax, _, _, _, _ = calc_dimensions()
+
+    # xmin, xmax have always been moved to 0 here. the untransformed
+    # and unscaled bounds are found in elements.xmin, elements.ymin,
+    # elements.extent_width, elements.extent_height.
+
+    # now compute the position of origin (0, 0) in the transformed
+    # coordinate space.
+
+    ex = elements.extent_width
+    ey = elements.extent_height
+
+    sx = (xmax - xmin) / ex
+    sy = (ymax - ymin) / ey
+
+    ox = -elements.xmin * sx + xmin
+    oy = -elements.ymin * sy + ymin
+
+    # generate code for svg or asy.
+
+    if format == 'asy':
+        code = '\n'.join(element.to_asy() for element in elements.elements)
+    elif format == 'svg':
+        code = elements.to_svg()
+    else:
+        raise NotImplementedError
+
+    return xmin, xmax, ymin, ymax, ox, oy, ex, ey, code
+
+
+class _SVGTransform():
+    def __init__(self):
+        self.transforms = []
+
+    def matrix(self, a, b, c, d, e, f):
+        # a c e
+        # b d f
+        # 0 0 1
+        self.transforms.append('matrix(%f, %f, %f, %f, %f, %f)' % (a, b, c, d, e, f))
+
+    def translate(self, x, y):
+        self.transforms.append('translate(%f, %f)' % (x, y))
+
+    def scale(self, x, y):
+        self.transforms.append('scale(%f, %f)' % (x, y))
+
+    def rotate(self, x):
+        self.transforms.append('rotate(%f)' % x)
+
+    def apply(self, svg):
+        return '<g transform="%s">%s</g>' % (' '.join(self.transforms), svg)
+
+
+class _ASYTransform():
+    _template = """
+    add(%s * (new picture() {
+        picture saved = currentpicture;
+        picture transformed = new picture;
+        currentpicture = transformed;
+        %s
+        currentpicture = saved;
+        return transformed;
+    })());
+    """
+
+    def __init__(self):
+        self.transforms = []
+
+    def matrix(self, a, b, c, d, e, f):
+        # a c e
+        # b d f
+        # 0 0 1
+        # see http://asymptote.sourceforge.net/doc/Transforms.html#Transforms
+        self.transforms.append('(%f, %f, %f, %f, %f, %f)' % (e, f, a, c, b, d))
+
+    def translate(self, x, y):
+        self.transforms.append('shift(%f, %f)' % (x, y))
+
+    def scale(self, x, y):
+        self.transforms.append('scale(%f, %f)' % (x, y))
+
+    def rotate(self, x):
+        self.transforms.append('rotate(%f)' % x)
+
+    def apply(self, asy):
+        return self._template % (' * '.join(self.transforms), asy)
 
 
 class Graphics(Builtin):
@@ -1424,6 +1522,384 @@ class PolygonBox(_Polyline):
         return asy
 
 
+class Arrow(Builtin):
+    """
+    <dl>
+    <dt>'Arrow[{$p1$, $p2$}]'
+        <dd>represents a line from $p1$ to $p2$ that ends with an arrow at $p2$.
+    <dt>'Arrow[{$p1$, $p2$}, $s$]'
+        <dd>represents a line with arrow that keeps a distance of $s$ from $p1$
+        and $p2$.
+    <dt>'Arrow[{$point_1$, $point_2$}, {$s1$, $s2$}]'
+        <dd>represents a line with arrow that keeps a distance of $s1$ from $p1$
+        and a distance of $s2$ from $p2$.
+    </dl>
+
+    >> Graphics[Arrow[{{0,0}, {1,1}}]]
+    = -Graphics-
+
+    >> Graphics[{Circle[], Arrow[{{2, 1}, {0, 0}}, 1]}]
+    = -Graphics-
+
+    Keeping distances may happen across multiple segments:
+
+    >> Table[Graphics[{Circle[], Arrow[Table[{Cos[phi],Sin[phi]},{phi,0,2*Pi,Pi/2}],{d, d}]}],{d,0,2,0.5}]
+     = {-Graphics-, -Graphics-, -Graphics-, -Graphics-, -Graphics-}
+    """
+
+    pass
+
+
+class Arrowheads(_GraphicsElement):
+    """
+    <dl>
+    <dt>'Arrowheads[$s$]'
+        <dd>specifies that Arrow[] draws one arrow of size $s$ (relative to width of image, defaults to 0.04).
+    <dt>'Arrowheads[{$spec1$, $spec2$, ..., $specn$}]'
+        <dd>specifies that Arrow[] draws n arrows as defined by $spec1$, $spec2$, ... $specn$.
+    <dt>'Arrowheads[{{$s$}}]'
+        <dd>specifies that one arrow of size $s$ should be drawn.
+    <dt>'Arrowheads[{{$s$, $pos$}}]'
+        <dd>specifies that one arrow of size $s$ should be drawn at position $pos$ (for the arrow to
+        be on the line, $pos$ has to be between 0, i.e. the start for the line, and 1, i.e. the end
+        of the line).
+    <dt>'Arrowheads[{{$s$, $pos$, $g$}}]'
+        <dd>specifies that one arrow of size $s$ should be drawn at position $pos$ using Graphics $g$.
+    </dl>
+
+    Arrows on both ends can be achieved using negative sizes:
+
+    >> Graphics[{Circle[],Arrowheads[{-0.04, 0.04}], Arrow[{{0, 0}, {2, 2}}, {1,1}]}]
+     = -Graphics-
+
+    You may also specify our own arrow shapes:
+
+    >> Graphics[{Circle[], Arrowheads[{{0.04, 1, Graphics[{Red, Disk[]}]}}], Arrow[{{0, 0}, {Cos[Pi/3],Sin[Pi/3]}}]}]
+     = -Graphics-
+
+    >> Graphics[{Arrowheads[Table[{0.04, i/10, Graphics[Disk[]]},{i,1,10}]], Arrow[{{0, 0}, {6, 5}, {1, -3}, {-2, 2}}]}]
+     = -Graphics-
+    """
+
+    default_size = 0.04
+
+    symbolic_sizes = {
+        'System`Tiny': 3,
+        'System`Small': 5,
+        'System`Medium': 9,
+        'System`Large': 18,
+    }
+
+    def init(self, graphics, item=None):
+        super(Arrowheads, self).init(graphics, item)
+        if len(item.leaves) != 1:
+            raise BoxConstructError
+        self.spec = item.leaves[0]
+
+    def _arrow_size(self, s, extent):
+        if isinstance(s, Symbol):
+            size = self.symbolic_sizes.get(s.get_name(), 0)
+            return self.graphics.translate_absolute((size, 0))[0]
+        else:
+            return _to_float(s) * extent
+
+    def heads(self, extent, default_arrow, custom_arrow):
+        # see https://reference.wolfram.com/language/ref/Arrowheads.html
+
+        if self.spec.get_head_name() == 'System`List':
+            leaves = self.spec.leaves
+            if all(x.get_head_name() == 'System`List' for x in leaves):
+                for head in leaves:
+                    spec = head.leaves
+                    if len(spec) not in (2, 3):
+                        raise BoxConstructError
+                    size_spec = spec[0]
+                    if isinstance(size_spec, Symbol) and size_spec.get_name() == 'System`Automatic':
+                        s = self.default_size * extent
+                    elif size_spec.is_numeric():
+                        s = self._arrow_size(size_spec, extent)
+                    else:
+                        raise BoxConstructError
+
+                    if len(spec) == 3 and custom_arrow:
+                        graphics = spec[2]
+                        if graphics.get_head_name() != 'System`Graphics':
+                            raise BoxConstructError
+                        arrow = custom_arrow(graphics)
+                    else:
+                        arrow = default_arrow
+
+                    if not isinstance(spec[1], (Real, Rational, Integer)):
+                        raise BoxConstructError
+
+                    yield s, _to_float(spec[1]), arrow
+            else:
+                n = max(1., len(leaves) - 1.)
+                for i, head in enumerate(leaves):
+                    yield self._arrow_size(head, extent), i / n, default_arrow
+        else:
+            yield self._arrow_size(self.spec, extent), 1, default_arrow
+
+
+class ArrowBox(_Polyline):
+    def init(self, graphics, style, item=None):
+        super(ArrowBox, self).init(graphics, item, style)
+
+        if not item:
+            raise BoxConstructError
+
+        leaves = item.leaves
+        if len(leaves) == 2:
+            setback = self._setback_spec(leaves[1])
+        elif len(leaves) == 1:
+            setback = (0, 0)
+        else:
+            raise BoxConstructError
+
+        self.setback = setback
+        self.do_init(graphics, leaves[0])
+        self.graphics = graphics
+        self.edge_color, _ = style.get_style(_Color, face_element=False)
+        self.heads, _ = style.get_style(Arrowheads, face_element=False)
+
+    @staticmethod
+    def _setback_spec(expr):
+        if expr.get_head_name() == 'System`List':
+            leaves = expr.leaves
+            if len(leaves) != 2:
+                raise BoxConstructError
+            return tuple(max(_to_float(l), 0.) for l in leaves)
+        else:
+            s = max(_to_float(expr), 0.)
+            return s, s
+
+    @staticmethod
+    def _default_arrow(polygon):
+        # the default arrow drawn by draw() below looks looks like this:
+        #
+        #       H
+        #      .:.
+        #     . : .
+        #    .  :  .
+        #   .  .B.  .
+        #  . .  :  . .
+        # S.    E    .S
+        #       :
+        #       :
+        #       :
+        #
+        # the head H is where the arrow's point is. at base B, the arrow spreads out at right angles from the line
+        # it attaches to. the arrow size 's' given in the Arrowheads specification always specifies the length H-B.
+        #
+        # the spread out points S are defined via two constants: arrow_edge (which defines the factor to get from
+        # H-B to H-E) and arrow_spread (which defines the factor to get from H-B to E-S).
+
+        arrow_spread = 0.3
+        arrow_edge = 1.1
+
+        def draw(px, py, vx, vy, t1, s):
+            hx = px + t1 * vx  # compute H
+            hy = py + t1 * vy
+
+            t0 = t1 - s
+            bx = px + t0 * vx  # compute B
+            by = py + t0 * vy
+
+            te = t1 - arrow_edge * s
+            ex = px + te * vx  # compute E
+            ey = py + te * vy
+
+            ts = arrow_spread * s
+            sx = -vy * ts
+            sy = vx * ts
+
+            head_points = ((hx, hy),
+                           (ex + sx, ey + sy),
+                           (bx, by),
+                           (ex - sx, ey - sy))
+
+            for shape in polygon(head_points):
+                yield shape
+
+        return draw
+
+    def _draw(self, polyline, default_arrow, custom_arrow, extent):
+        if self.heads:
+            heads = list(self.heads.heads(extent, default_arrow, custom_arrow))
+            heads = sorted(heads, key=lambda spec: spec[1])  # sort by pos
+        else:
+            heads = ((extent * Arrowheads.default_size, 1, default_arrow),)
+
+        def norm(p, q):
+            px, py = p
+            qx, qy = q
+
+            dx = qx - px
+            dy = qy - py
+
+            length = sqrt(dx * dx + dy * dy)
+            return dx, dy, length
+
+        def segments(points):
+            for i in range(len(points) - 1):
+                px, py = points[i]
+                dx, dy, dl = norm((px, py), points[i + 1])
+                yield dl, px, py, dx, dy
+
+        def setback(p, q, d):
+            dx, dy, length = norm(p, q)
+            if d >= length:
+                return None, length
+            else:
+                s = d / length
+                return (s * dx, s * dy), d
+
+        def shrink_one_end(line, s):
+            while s > 0.:
+                if len(line) < 2:
+                    return []
+                xy, length = setback(line[0].p, line[1].p, s)
+                if xy is not None:
+                    line[0] = line[0].add(*xy)
+                else:
+                    line = line[1:]
+                s -= length
+            return line
+
+        def shrink(line, s1, s2):
+            return list(reversed(shrink_one_end(
+                list(reversed(shrink_one_end(line[:], s1))), s2)))
+
+        def render(points, heads):  # heads has to be sorted by pos
+            seg = list(segments(points))
+
+            if not seg:
+                return
+
+            i = 0
+            t0 = 0.
+            n = len(seg)
+            dl, px, py, dx, dy = seg[i]
+            total = sum(segment[0] for segment in seg)
+
+            for s, t, draw in ((s, pos * total - t0, draw) for s, pos, draw in heads):
+                if s == 0.:  # ignore zero-sized arrows
+                    continue
+
+                if i < n:  # not yet past last segment?
+                    while t > dl:  # position past current segment?
+                        t -= dl
+                        t0 += dl
+                        i += 1
+                        if i == n:
+                            px += dx  # move to last segment's end
+                            py += dy
+                            break
+                        else:
+                            dl, px, py, dx, dy = seg[i]
+
+                for shape in draw(px, py, dx / dl, dy / dl, t, s):
+                    yield shape
+
+        for line in self.lines:
+            if len(line) < 2:
+                continue
+
+            # note that shrinking needs to happen in the Graphics[] coordinate space, whereas the
+            # subsequent position calculation needs to happen in pixel space.
+
+            transformed_points = [xy.pos() for xy in shrink(line, *self.setback)]
+
+            for s in polyline(transformed_points):
+                yield s
+
+            for s in render(transformed_points, heads):
+                yield s
+
+    def _custom_arrow(self, format, format_transform):
+        def make(graphics):
+            xmin, xmax, ymin, ymax, ox, oy, ex, ey, code = _extract_graphics(
+                graphics, format, self.graphics.evaluation)
+            boxw = xmax - xmin
+            boxh = ymax - ymin
+
+            def draw(px, py, vx, vy, t1, s):
+                t0 = t1
+                cx = px + t0 * vx
+                cy = py + t0 * vy
+
+                transform = format_transform()
+                transform.translate(cx, cy)
+                transform.scale(-s / boxw * ex, -s / boxh * ey)
+                transform.rotate(90 + degrees(atan2(vy, vx)))
+                transform.translate(-ox, -oy)
+                yield transform.apply(code)
+
+            return draw
+
+        return make
+
+    def to_svg(self):
+        width = self.style.get_line_width(face_element=False)
+        style = create_css(edge_color=self.edge_color, stroke_width=width)
+        arrow_style = create_css(face_color=self.edge_color, stroke_width=width)
+
+        def polyline(points):
+            yield '<polyline points="'
+            yield ' '.join('%f,%f' % xy for xy in points)
+            yield '" style="%s" />' % style
+
+        def polygon(points):
+            yield '<polygon points="'
+            yield ' '.join('%f,%f' % xy for xy in points)
+            yield '" style="%s" />' % arrow_style
+
+        extent = self.graphics.view_width or 0
+        default_arrow = self._default_arrow(polygon)
+        custom_arrow = self._custom_arrow('svg', _SVGTransform)
+        return ''.join(self._draw(polyline, default_arrow, custom_arrow, extent))
+
+    def to_asy(self):
+        width = self.style.get_line_width(face_element=False)
+        pen = create_pens(edge_color=self.edge_color, stroke_width=width)
+        arrow_pen = create_pens(face_color=self.edge_color, stroke_width=width)
+
+        def polyline(points):
+            yield 'draw('
+            yield '--'.join(['(%.5g,%5g)' % xy for xy in points])
+            yield ', % s);' % pen
+
+        def polygon(points):
+            yield 'filldraw('
+            yield '--'.join(['(%.5g,%5g)' % xy for xy in points])
+            yield '--cycle, % s);' % arrow_pen
+
+        extent = self.graphics.view_width or 0
+        default_arrow = self._default_arrow(polygon)
+        custom_arrow = self._custom_arrow('asy', _ASYTransform)
+        return ''.join(self._draw(polyline, default_arrow, custom_arrow, extent))
+
+    def extent(self):
+        width = self.style.get_line_width(face_element=False)
+
+        def polyline(points):
+            for p in points:
+                x, y = p
+                yield x - width, y - width
+                yield x - width, y + width
+                yield x + width, y - width
+                yield x + width, y + width
+
+        def polygon(points):
+            for p in points:
+                yield p
+
+        def default_arrow(px, py, vx, vy, t1, s):
+            yield px, py
+
+        return list(self._draw(polyline, default_arrow, None, 0))
+
+
 class InsetBox(_GraphicsElement):
     def init(self, graphics, style, item=None, content=None, pos=None,
              opos=(0, 0)):
@@ -1690,6 +2166,7 @@ class GraphicsElements(_GraphicsElements):
         self.neg_y = neg_y
         self.xmin = self.ymin = self.pixel_width = None
         self.pixel_height = self.extent_width = self.extent_height = None
+        self.view_width = None
 
     def translate(self, coords):
         if self.pixel_width is not None:
@@ -2519,7 +2996,7 @@ class Large(Builtin):
 
 
 element_heads = frozenset(system_symbols(
-    'Rectangle', 'Disk', 'Line', 'FilledCurve', 'BezierCurve', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere', 'Style'))
+    'Rectangle', 'Disk', 'Line', 'Arrow', 'FilledCurve', 'BezierCurve', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere', 'Style'))
 
 styles = system_symbols_dict({
     'RGBColor': RGBColor,
@@ -2536,6 +3013,7 @@ styles = system_symbols_dict({
     'Thick': Thick,
     'Thin': Thin,
     'PointSize': PointSize,
+    'Arrowheads': Arrowheads,
 })
 
 style_heads = frozenset(styles.keys())
@@ -2554,6 +3032,7 @@ GLOBALS = system_symbols_dict({
     'LineBox': LineBox,
     'BezierCurveBox': BezierCurveBox,
     'FilledCurveBox': FilledCurveBox,
+    'ArrowBox': ArrowBox,
     'CircleBox': CircleBox,
     'PolygonBox': PolygonBox,
     'PointBox': PointBox,
