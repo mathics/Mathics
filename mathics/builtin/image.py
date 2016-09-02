@@ -1383,6 +1383,7 @@ class TextRecognize(Builtin):
 
     messages = {
         'tool': 'No text recognition tools were found in the paths available to the Mathics kernel.',
+        'langinv': 'No language data for `1` is available.',
         'lang': 'Language `1` is not supported in your installation of `2`. Please install it.',
     }
 
@@ -1390,22 +1391,20 @@ class TextRecognize(Builtin):
         'Language': '"English"',
     }
 
-    languages = {
-        'English': 'eng',
-        'Spanish': 'spa',
-        'French': 'fra',
-        'German': 'deu',
-    }
-
     def apply(self, image, evaluation, options):
         'TextRecognize[image_Image, OptionsPattern[%(name)s]]'
         import pyocr
+        from mathics.builtin.codetables import iso639_3
 
         language = self.get_option(options, 'Language', evaluation)
         if not isinstance(language, String):
             return
         py_language = language.get_string_value()
-        py_language_code = self.languages.get(py_language)
+        py_language_code = iso639_3.get(py_language)
+
+        if py_language_code is None:
+            evaluation.message('TextRecognize', 'langcode', py_language)
+            return
 
         tools = pyocr.get_available_tools()
         if not tools:
@@ -1415,6 +1414,11 @@ class TextRecognize(Builtin):
 
         langs = best_tool.get_available_languages()
         if py_language_code not in langs:
+            # if we use Tesseract, then this means copying the necessary language files from
+            # https://github.com/tesseract-ocr/tessdatainstalling to tessdata, which is
+            # usually located at /usr/share/tessdata or similar, but there's no API to query
+            # the exact location, so we cannot, for now, give a better message.
+
             evaluation.message('TextRecognize', 'lang', py_language, best_tool.get_name())
             return
 
