@@ -56,7 +56,7 @@ import math
 
 
 def _status_message(text, evaluation):
-    evaluation.print_out('# ' + text)
+    evaluation.print_out(text)
 
 
 def _parse_nltk_lookup_error(e):
