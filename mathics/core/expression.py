@@ -771,6 +771,7 @@ class Expression(BaseExpression):
             return self
 
     def evaluate(self, evaluation):
+        from mathics.core.evaluation import ReturnInterrupt
         evaluation.inc_recursion_depth()
         old_options = evaluation.options
         if hasattr(self, 'options') and self.options:
@@ -873,6 +874,16 @@ class Expression(BaseExpression):
             new.unformatted = self.unformatted
             return new
 
+        # "Return gets discarded only if it was called from within the r.h.s.
+        # of a user-defined rule."
+        # http://mathematica.stackexchange.com/questions/29353/how-does-return-work
+        # Otherwise it propogates up.
+        #
+        except ReturnInterrupt as ret:
+            if self.get_lookup_name() in evaluation.definitions.user:
+                return ret.expr
+            else:
+                raise ret
         finally:
             evaluation.options = old_options
             evaluation.dec_recursion_depth()

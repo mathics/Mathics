@@ -638,6 +638,12 @@ class Return(Builtin):
     #> h[1]
      = 1
     #> h[-1]
+
+    ## Issue 513
+    #> f[x_] := Return[x];
+    #> g[y_] := Module[{}, z = f[y]; 2]
+    #> g[1]
+     = 2
     '''
 
     rules = {
