@@ -2418,7 +2418,7 @@ class InsetBox(_GraphicsElement):
                 7  # rough approximation by numbers of characters
         else:
             _, w, h = self.svg
-            scale = self._text_svg_scale()
+            scale = self._text_svg_scale(h)
             w *= scale
             h *= scale
 
@@ -2433,6 +2433,8 @@ class InsetBox(_GraphicsElement):
 
         svg = self.graphics.evaluation.output.mathml_to_svg(
             '<math>%s</math>' % content)
+
+        svg = svg.replace('style', 'data-style', 1)  # HACK
 
         # we could parse the svg and edit it. using regexps here should be
         # a lot faster though.
@@ -2453,16 +2455,15 @@ class InsetBox(_GraphicsElement):
 
         self.svg = (svg, width, height)
 
-    def _text_svg_scale(self):
+    def _text_svg_scale(self, height):
         size = self.font_size.get_size()
-        # multiplying with 0.5 makes FontSize[] and FontSize[Scaled[]] work as expected
-        return size * 0.5
+        return size / height
 
     def _text_svg_xml(self, style, x, y):
         svg, width, height = self.svg
         svg = re.sub(r'<svg ', '<svg style="%s" ' % style, svg, 1)
 
-        scale = self._text_svg_scale()
+        scale = self._text_svg_scale(height)
         ox, oy = self.opos
 
         return '<g transform="translate(%f,%f) scale(%f) translate(%f, %f)">%s</g>' % (
@@ -3053,23 +3054,13 @@ clip(%s);
         w += 2
         h += 2
 
-        svgify = options['evaluation'].output.svgify()
-
-        if not svgify:
-            params = ''
-        else:
-            params = 'width="%dpx" height="%dpx"' % (width, height)
-
         svg_xml = '<svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" ' \
-            'version="1.1" viewBox="%s" %s>%s</svg>' % (' '.join('%f' % t for t in (xmin, ymin, w, h)), params, svg)
+            'version="1.1" viewBox="%s">%s</svg>' % (' '.join('%f' % t for t in (xmin, ymin, w, h)), svg)
 
-        if not svgify:
-            return '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>' % (
-                int(width),
-                int(height),
-                base64.b64encode(svg_xml.encode('utf8')).decode('utf8'))
-        else:
-            return svg_xml
+        return '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>' % (
+            int(width),
+            int(height),
+            base64.b64encode(svg_xml.encode('utf8')).decode('utf8'))
 
     def axis_ticks(self, xmin, xmax):
         def round_to_zero(value):
