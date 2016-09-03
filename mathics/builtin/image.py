@@ -24,17 +24,6 @@ _image_requires = (
 )
 
 try:
-    #import skimage
-    #import skimage.io
-    #import skimage.transform
-    #import skimage.filters
-    #import skimage.exposure
-    #import skimage.feature
-    #import skimage.filters.rank
-    #import skimage.morphology
-    #import skimage.measure
-    #import matplotlib.cm
-
     import warnings
 
     import PIL
@@ -470,29 +459,29 @@ class ImageResize(_ImageBuiltin):
 
         # perform the resize
         if resampling_name == 'Nearest':
-            pixels = numpy.asarray(image.pil().resize((w, h), resample=PIL.Image.NEAREST))
+            return image.filter(lambda im: im.resize((w, h), resample=PIL.Image.NEAREST))
         elif resampling_name == 'Bicubic':
-            pixels = numpy.asarray(image.pil().resize((w, h), resample=PIL.Image.BICUBIC))
-        elif resampling_name == 'Gaussian':
-            import skimage  # FIXME
-
-            sy = h / old_h
-            sx = w / old_w
-            if sy > sx:
-                err = abs((sy * old_w) - (sx * old_w))
-                s = sy
-            else:
-                err = abs((sy * old_h) - (sx * old_h))
-                s = sx
-            if err > 1.5:
-                # TODO overcome this limitation
-                return evaluation.message('ImageResize', 'gaussaspect')
-            elif s > 1:
-                pixels = skimage.transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
-            else:
-                pixels = skimage.transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
-        else:
+            return image.filter(lambda im: im.resize((w, h), resample=PIL.Image.BICUBIC))
+        elif resampling_name != 'Gaussian':
             return evaluation.message('ImageResize', 'imgrsm', resampling)
+
+        import skimage  # FIXME
+
+        sy = h / old_h
+        sx = w / old_w
+        if sy > sx:
+            err = abs((sy * old_w) - (sx * old_w))
+            s = sy
+        else:
+            err = abs((sy * old_h) - (sx * old_h))
+            s = sx
+        if err > 1.5:
+            # TODO overcome this limitation
+            return evaluation.message('ImageResize', 'gaussaspect')
+        elif s > 1:
+            pixels = skimage.transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
+        else:
+            pixels = skimage.transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
 
         return Image(pixels, image.color_space)
 
@@ -608,8 +597,10 @@ class ImageRotate(_ImageBuiltin):
         py_angle = angle.round_to_float(evaluation)
         if py_angle is None:
             return evaluation.message('ImageRotate', 'imgang', angle)
-        pillow = image.pil().rotate(180 * py_angle / math.pi, resample=PIL.Image.BICUBIC, expand=True)
-        return Image(numpy.asarray(pillow), image.color_space)
+
+        def rotate(im):
+            return im.rotate(180 * py_angle / math.pi, resample=PIL.Image.BICUBIC, expand=True)
+        return image.filter(rotate)
 
 
 class ImagePartition(_ImageBuiltin):
@@ -748,8 +739,8 @@ class Blur(_ImageBuiltin):
 
     def apply(self, image, r, evaluation):
         'Blur[image_Image, r_?RealNumberQ]'
-        return Image(numpy.array(image.pil().filter(
-            PIL.ImageFilter.GaussianBlur(r.to_python()))), image.color_space)
+        f = PIL.ImageFilter.GaussianBlur(r.round_to_float())
+        return image.filter(lambda im: im.filter(f))
 
 
 class Sharpen(_ImageBuiltin):
@@ -759,8 +750,8 @@ class Sharpen(_ImageBuiltin):
 
     def apply(self, image, r, evaluation):
         'Sharpen[image_Image, r_?RealNumberQ]'
-        return Image(numpy.array(image.pil().filter(
-            PIL.ImageFilter.UnsharpMask(r.to_python()))), image.color_space)
+        f = PIL.ImageFilter.UnsharpMask(r.round_to_float())
+        return image.filter(lambda im: im.filter(f))
 
 
 class GaussianFilter(_ImageBuiltin):
@@ -773,8 +764,8 @@ class GaussianFilter(_ImageBuiltin):
         if len(image.pixels.shape) > 2 and image.pixels.shape[2] > 3:
             return evaluation.message('GaussianFilter', 'only3')
         else:
-            pillow = image.pil().filter(PIL.ImageFilter.GaussianBlur(radius.to_python()))
-            return Image(numpy.asarray(pillow), image.color_space)
+            f = PIL.ImageFilter.GaussianBlur(radius.round_to_float())
+            return image.filter(lambda im: im.filter(f))
 
 
 # morphological image filters
@@ -782,7 +773,7 @@ class GaussianFilter(_ImageBuiltin):
 
 class PillowImageFilter(_ImageBuiltin):
     def compute(self, image, f):
-        return Image(numpy.array(image.pil().filter(f)), image.color_space)
+        return image.filter(lambda im: im.filter(f))
 
 
 class MinFilter(PillowImageFilter):
@@ -817,23 +808,55 @@ class EdgeDetect(_ImageBuiltin):
             'Grayscale')
 
 
+def _matrix(rows):
+    return Expression('List', *[Expression('List', *r) for r in rows])
+
+
 class BoxMatrix(_ImageBuiltin):
     def apply(self, r, evaluation):
         'BoxMatrix[r_?RealNumberQ]'
-        s = 1 + 2 * r.to_python()
-        return from_python(skimage.morphology.rectangle(s, s).tolist())
+        py_r = abs(r.round_to_float())
+        s = int(math.floor(1 + 2 * py_r))
+        return _matrix([[Integer(1)] * s] * s)
 
 
 class DiskMatrix(_ImageBuiltin):
     def apply(self, r, evaluation):
         'DiskMatrix[r_?RealNumberQ]'
-        return from_python(skimage.morphology.disk(r).tolist())
+        py_r = abs(r.round_to_float())
+        s = int(math.floor(0.5 + py_r))
+
+        m = (Integer(0), Integer(1))
+        r_sqr = (py_r + 0.5) * (py_r + 0.5)
+
+        def rows():
+            for y in range(-s, s + 1):
+                yield [m[int((x) * (x) + (y) * (y) <= r_sqr)] for x in range(-s, s + 1)]
+
+        return _matrix(rows())
 
 
 class DiamondMatrix(_ImageBuiltin):
     def apply(self, r, evaluation):
         'DiamondMatrix[r_?RealNumberQ]'
-        return from_python(skimage.morphology.diamond(r).tolist())
+        py_r = abs(r.round_to_float())
+        t = int(math.floor(0.5 + py_r))
+
+        zero = Integer(0)
+        one = Integer(1)
+
+        def rows():
+            for d in range(0, t):
+                p = [zero] * (t - d)
+                yield p + ([one] * (1 + d * 2)) + p
+
+            yield [one] * (2 * t + 1)
+
+            for d in reversed(range(0, t)):
+                p = [zero] * (t - d)
+                yield p + ([one] * (1 + d * 2)) + p
+
+        return _matrix(rows())
 
 
 class _MorphologyFilter(_ImageBuiltin):
@@ -914,7 +937,7 @@ class MorphologicalComponents(_ImageBuiltin):
 
     def apply(self, image, t, evaluation):
         'MorphologicalComponents[image_Image, t_?RealNumberQ]'
-        pixels = skimage.img_as_ubyte(skimage.img_as_float(image.grayscale().pixels) > t.to_python())
+        pixels = pixels_as_ubyte(pixels_as_float(image.grayscale().pixels) > t.to_python())
         return from_python(skimage.measure.label(pixels, background=0, connectivity=2).tolist())
 
 
@@ -1038,10 +1061,7 @@ class Binarize(_ImageBuiltin):
 class ColorNegate(_ImageBuiltin):
     def apply(self, image, evaluation):
         'ColorNegate[image_Image]'
-        pixels = image.pixels
-        anchor = numpy.ndarray(pixels.shape, dtype=pixels.dtype)
-        anchor.fill(skimage.dtype_limits(pixels)[1])
-        return Image(anchor - pixels, image.color_space)
+        return image.filter(lambda im: PIL.ImageOps.invert(im))
 
 
 class ColorSeparate(_ImageBuiltin):
@@ -1267,14 +1287,21 @@ class ImageBox(BoxConstruct):
 class Image(Atom):
     def __init__(self, pixels, color_space, **kwargs):
         super(Image, self).__init__(**kwargs)
+        if len(pixels.shape) == 2:
+            pixels = pixels.reshape(list(pixels.shape) + [1])
         self.pixels = pixels
         self.color_space = color_space
+
+    def filter(self, f):  # apply PIL filters component-wise
+        pixels = self.pixels
+        n = pixels.shape[2]
+        channels = [f(PIL.Image.fromarray(c, 'L')) for c in (pixels[:, :, i] for i in range(n))]
+        return Image(numpy.dstack(channels), self.color_space)
 
     def pil(self):
         # see http://pillow.readthedocs.io/en/3.1.x/handbook/concepts.html#concept-modes
         n = self.channels()
 
-        # we make every 3 or 4 component color space appear as RGB/RGBA to Pillow.
         if n == 1:
             dtype = self.pixels.dtype
 
@@ -1288,11 +1315,32 @@ class Image(Atom):
                 pixels = pixels_as_ubyte(self.pixels)
                 mode = 'L'
         elif n == 3:
-            pixels = pixels_as_ubyte(self.pixels)
-            mode = 'RGB'
+            if self.color_space == 'LAB':
+                mode = 'LAB'
+                pixels = self.pixels
+            elif self.color_space == 'HSB':
+                mode = 'HSV'
+                pixels = self.pixels
+            elif self.color_space == 'RGB':
+                mode = 'RGB'
+                pixels = self.pixels
+            else:
+                mode = 'RGB'
+                pixels = self.color_convert('RGB').pixels
+
+            pixels = pixels_as_ubyte(pixels)
         elif n == 4:
-            pixels = pixels_as_ubyte(self.pixels)
-            mode = 'RGBA'
+            if self.color_space == 'CMYK':
+                mode ='CMYK'
+                pixels = self.pixels
+            elif self.color_space == 'RGB':
+                mode = 'RGBA'
+                pixels = self.pixels
+            else:
+                mode = 'RGBA'
+                pixels = self.color_convert('RGB').pixels
+
+            pixels = pixels_as_ubyte(pixels)
         else:
             raise NotImplementedError
 
@@ -1303,10 +1351,6 @@ class Image(Atom):
             return self
         else:
             pixels = pixels_as_float(self.pixels)
-
-            if len(pixels.shape) == 2:
-                pixels = pixels.reshape(list(pixels.shape) + [1])
-
             converted = convert_color(pixels, self.color_space, to_color_space, preserve_alpha)
             if converted is None:
                 return None
@@ -1317,13 +1361,7 @@ class Image(Atom):
 
     def atom_to_boxes(self, f, evaluation):
         try:
-            pixels = self.color_convert('RGB', False).pixels
-
-            if pixels is None:
-                raise ValueError('could not convert pixels to RGB.')
-
-            pixels = pixels_as_ubyte(pixels)
-
+            pixels = pixels_as_ubyte(self.color_convert('RGB', False).pixels)
             shape = pixels.shape
 
             width = shape[1]
@@ -1388,14 +1426,10 @@ class Image(Atom):
 
     def dimensions(self):
         shape = self.pixels.shape
-        return (shape[1], shape[0])
+        return shape[1], shape[0]
 
     def channels(self):
-        shape = self.pixels.shape
-        if len(shape) < 3:
-            return 1
-        else:
-            return shape[2]
+        return self.pixels.shape[2]
 
     def storage_type(self):
         dtype = self.pixels.dtype
