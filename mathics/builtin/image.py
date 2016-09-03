@@ -18,24 +18,22 @@ import functools
 import math
 
 _image_requires = (
-    'skimage',
     'warnings',
     'numpy',
-    'scipy',
     'PIL',
-    'matplotlib',
 )
 
 try:
-    import skimage
-    import skimage.io
-    import skimage.transform
-    import skimage.filters
-    import skimage.exposure
-    import skimage.feature
-    import skimage.filters.rank
-    import skimage.morphology
-    import skimage.measure
+    #import skimage
+    #import skimage.io
+    #import skimage.transform
+    #import skimage.filters
+    #import skimage.exposure
+    #import skimage.feature
+    #import skimage.filters.rank
+    #import skimage.morphology
+    #import skimage.measure
+    #import matplotlib.cm
 
     import warnings
 
@@ -43,10 +41,9 @@ try:
     import PIL.ImageEnhance
     import PIL.ImageOps
     import PIL.ImageFilter
+    from PIL.ExifTags import TAGS as ExifTags
 
     import numpy
-
-    import matplotlib.cm
 
     _enabled = True
 except ImportError:
@@ -62,8 +59,39 @@ class _ImageBuiltin(Builtin):
 class _ImageTest(Test):
     requires = _image_requires
 
+# helpers
+
+
+def pixels_as_float(pixels):
+    dtype = pixels.dtype
+    if dtype in (numpy.float32, numpy.float64):
+        return pixels
+    elif dtype == numpy.uint8:
+        return pixels.astype(numpy.float32) / 255.
+    elif dtype == numpy.uint16:
+        return pixels.astype(numpy.float32) / 65535.
+    else:
+        raise NotImplementedError
+
+
+def pixels_as_ubyte(pixels):
+    dtype = pixels.dtype
+    if dtype in (numpy.float32, numpy.float64):
+        return (pixels * 255.).astype(numpy.uint8)
+    elif dtype == numpy.uint8:
+        return pixels
+    elif dtype == numpy.uint16:
+        return (pixels / 256).astype(numpy.uint8)
+    else:
+        raise NotImplementedError
+
 # import and export
 
+def extract_exif(img):
+    for k, v in img._getexif().items():
+        name = ExifTags.get(k)
+        if name:
+            yield(name, v)
 
 class ImageImport(_ImageBuiltin):
     """
@@ -81,7 +109,8 @@ class ImageImport(_ImageBuiltin):
     """
     def apply(self, path, evaluation):
         '''ImageImport[path_?StringQ]'''
-        pixels = skimage.io.imread(path.get_string_value())
+        pillow = PIL.Image.open(path.get_string_value())
+        pixels = numpy.asarray(pillow)
         is_rgb = len(pixels.shape) >= 3 and pixels.shape[2] >= 3
         atom = Image(pixels, 'RGB' if is_rgb else 'Grayscale')
         return Expression('List', Expression('Rule', String('Image'), atom))
@@ -95,7 +124,7 @@ class ImageExport(_ImageBuiltin):
     def apply(self, path, expr, opts, evaluation):
         '''ImageExport[path_?StringQ, expr_, opts___]'''
         if isinstance(expr, Image):
-            skimage.io.imsave(path.get_string_value(), expr.pixels)
+            expr.pil().save(path.get_string_value())
             return Symbol('Null')
         else:
             return evaluation.message('ImageExport', 'noimage')
@@ -112,7 +141,7 @@ class _ImageArithmetic(_ImageBuiltin):
     @staticmethod
     def convert_Image(image):
         assert isinstance(image, Image)
-        return skimage.img_as_float(image.pixels)
+        return pixels_as_float(image.pixels)
 
     @staticmethod
     def convert_args(*args):
@@ -441,10 +470,12 @@ class ImageResize(_ImageBuiltin):
 
         # perform the resize
         if resampling_name == 'Nearest':
-            pixels = skimage.transform.resize(image.pixels, (h, w), order=0)
+            pixels = numpy.asarray(image.pil().resize((w, h), resample=PIL.Image.NEAREST))
         elif resampling_name == 'Bicubic':
-            pixels = skimage.transform.resize(image.pixels, (h, w), order=3)
+            pixels = numpy.asarray(image.pil().resize((w, h), resample=PIL.Image.BICUBIC))
         elif resampling_name == 'Gaussian':
+            import skimage  # FIXME
+
             sy = h / old_h
             sx = w / old_w
             if sy > sx:
@@ -577,7 +608,8 @@ class ImageRotate(_ImageBuiltin):
         py_angle = angle.round_to_float(evaluation)
         if py_angle is None:
             return evaluation.message('ImageRotate', 'imgang', angle)
-        return Image(skimage.transform.rotate(image.pixels, 180 * py_angle / math.pi, resize=True), image.color_space)
+        pillow = image.pil().rotate(180 * py_angle / math.pi, resample=PIL.Image.BICUBIC, expand=True)
+        return Image(numpy.asarray(pillow), image.color_space)
 
 
 class ImagePartition(_ImageBuiltin):
@@ -672,7 +704,7 @@ class ImageAdjust(_ImageBuiltin):
 
     def apply_auto(self, image, evaluation):
         'ImageAdjust[image_Image]'
-        pixels = skimage.img_as_float(image.pixels)
+        pixels = pixels_as_float(image.pixels)
 
         # channel limits
         axis = (0, 1)
@@ -741,9 +773,8 @@ class GaussianFilter(_ImageBuiltin):
         if len(image.pixels.shape) > 2 and image.pixels.shape[2] > 3:
             return evaluation.message('GaussianFilter', 'only3')
         else:
-            return Image(skimage.filters.gaussian(
-                skimage.img_as_float(image.pixels),
-                sigma=radius.to_python() / 2, multichannel=True), image.color_space)
+            pillow = image.pil().filter(PIL.ImageFilter.GaussianBlur(radius.to_python()))
+            return Image(numpy.asarray(pillow), image.color_space)
 
 
 # morphological image filters
@@ -951,7 +982,7 @@ class ColorQuantize(_ImageBuiltin):
         converted = image.color_convert('RGB')
         if converted is None:
             return
-        pixels = skimage.img_as_ubyte(converted.pixels)
+        pixels = pixels_as_ubyte(converted.pixels)
         im = PIL.Image.fromarray(pixels).quantize(n.to_python())
         im = im.convert('RGB')
         return Image(numpy.array(im), 'RGB')
@@ -1056,13 +1087,17 @@ def _linearize(a):
 
 
 class Colorize(_ImageBuiltin):
+    requires = (
+        "matplotlib",  # FIXME; use ColorData[] schemes
+    )
+
     def apply(self, a, evaluation):
         'Colorize[a_?MatrixQ]'
 
         a, n = _linearize(numpy.array(a.to_python()))
         # the maximum value for n is the number of pixels in a, which is acceptable and never too large.
 
-        cmap = matplotlib.cm.get_cmap('hot', n)
+        cmap = matplotlib.cm.get_cmap('hot', n)  # FIXME; use ColorData[] schemes
         p = numpy.transpose(numpy.array([cmap(i) for i in range(n)])[:, 0:3])
         s = (a.shape[0], a.shape[1], 1)
         return Image(numpy.concatenate([p[i][a].reshape(s) for i in range(3)], axis=2), color_space='RGB')
@@ -1085,13 +1120,13 @@ class ImageData(_ImageBuiltin):
         pixels = image.pixels
         stype = stype.get_string_value()
         if stype == 'Real':
-            pixels = skimage.img_as_float(pixels)
+            pixels = pixels_as_float(pixels)
         elif stype == 'Byte':
-            pixels = skimage.img_as_ubyte(pixels)
+            pixels = pixels_as_ubyte(pixels)
         elif stype == 'Bit16':
-            pixels = skimage.img_as_uint(pixels)
+            pixels = pixels_as_uint(pixels)
         elif stype == 'Bit':
-            pixels = pixels.as_dtype(numpy.bool)
+            pixels = pixels.astype(numpy.bool)
         else:
             return evaluation.message('ImageData', 'pixelfmt', stype)
         return from_python(pixels.tolist())
@@ -1116,7 +1151,7 @@ class PixelValue(_ImageBuiltin):
 class PixelValuePositions(_ImageBuiltin):
     def apply(self, image, val, evaluation):
         'PixelValuePositions[image_Image, val_?RealNumberQ]'
-        rows, cols = numpy.where(skimage.img_as_float(image.pixels) == float(val.to_python()))
+        rows, cols = numpy.where(pixels_as_float(image.pixels) == float(val.to_python()))
         p = numpy.dstack((cols, rows)) + numpy.array([1, 1])
         return from_python(p.tolist())
 
@@ -1236,13 +1271,42 @@ class Image(Atom):
         self.color_space = color_space
 
     def pil(self):
-        return PIL.Image.fromarray(self.pixels)
+        # see http://pillow.readthedocs.io/en/3.1.x/handbook/concepts.html#concept-modes
+        n = self.channels()
+
+        # we make every 3 or 4 component color space appear as RGB/RGBA to Pillow.
+        if n == 1:
+            dtype = self.pixels.dtype
+
+            if dtype in (numpy.float32, numpy.float64):
+                pixels = self.pixels.astype(numpy.float32)
+                mode = 'F'
+            elif dtype == numpy.uint32:
+                pixels = self.pixels
+                mode = 'I'
+            else:
+                pixels = pixels_as_ubyte(self.pixels)
+                mode = 'L'
+        elif n == 3:
+            pixels = pixels_as_ubyte(self.pixels)
+            mode = 'RGB'
+        elif n == 4:
+            pixels = pixels_as_ubyte(self.pixels)
+            mode = 'RGBA'
+        else:
+            raise NotImplementedError
+
+        return PIL.Image.fromarray(pixels, mode)
 
     def color_convert(self, to_color_space, preserve_alpha=True):
         if to_color_space == self.color_space:
             return self
         else:
-            pixels = skimage.img_as_float(self.pixels)
+            pixels = pixels_as_float(self.pixels)
+
+            if len(pixels.shape) == 2:
+                pixels = pixels.reshape(list(pixels.shape) + [1])
+
             converted = convert_color(pixels, self.color_space, to_color_space, preserve_alpha)
             if converted is None:
                 return None
@@ -1253,19 +1317,12 @@ class Image(Atom):
 
     def atom_to_boxes(self, f, evaluation):
         try:
-            if self.color_space == 'Grayscale' and self.pixels.shape[2] == 1:
-                pixels = self.pixels
-                # convert_color gives us [[[a], [b], ...]], but
-                # skimage.io.imsave only wants [[a, b, ...]], so:
-                pixels = pixels.reshape(pixels.shape[:2])
-            else:
-                pixels = self.color_convert('RGB', False).pixels
+            pixels = self.color_convert('RGB', False).pixels
 
             if pixels is None:
                 raise ValueError('could not convert pixels to RGB.')
 
-            if pixels.dtype == numpy.bool:
-                pixels = skimage.img_as_ubyte(pixels)
+            pixels = pixels_as_ubyte(pixels)
 
             shape = pixels.shape
 
@@ -1274,19 +1331,22 @@ class Image(Atom):
             scaled_width = width
             scaled_height = height
 
+            pillow = PIL.Image.fromarray(pixels, 'RGB')
+
             # if the image is very small, scale it up using nearest neighbour.
             min_size = 128
             if width < min_size and height < min_size:
                 scale = min_size / max(width, height)
                 scaled_width = int(scale * width)
                 scaled_height = int(scale * height)
-                pixels = skimage.transform.resize(pixels, (scaled_height, scaled_width), order=0)
+                pillow = pillow.resize(
+                    (scaled_height, scaled_width), resample=PIL.Image.NEAREST)
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
 
                 stream = BytesIO()
-                skimage.io.imsave(stream, pixels, 'pil', format_str='png')
+                pillow.save(stream, format='png')
                 stream.seek(0)
                 contents = stream.read()
                 stream.close()
@@ -1298,7 +1358,7 @@ class Image(Atom):
 
             return Expression('ImageBox', String(encoded), Integer(scaled_width), Integer(scaled_height))
         except Exception as e:
-            evaluation.print_out('Image processing failed: %s' % str(e))
+            evaluation.print_out('An error prevented the display of this image: %s' % str(e))
             return String('')
 
 
