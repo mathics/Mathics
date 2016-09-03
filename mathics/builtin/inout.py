@@ -1774,13 +1774,7 @@ class MathMLForm(Builtin):
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
 
-        if not evaluation.output.svgify():
-            result = '<math>%s</math>' % xml
-        else:
-            if xml.startswith('<svg'):
-                result = xml
-            else:
-                result = evaluation.output.mathml_to_svg('<math>%s</math>' % xml)
+        result = '<math>%s</math>' % xml
 
         return Expression('RowBox', Expression('List', String(result)))
 
