@@ -119,3 +119,25 @@ class CommandLine(Predefined):
 
     def evaluate(self, evaluation):
         return Expression('List', *(String(arg) for arg in sys.argv))
+
+
+class ScriptCommandLine(Predefined):
+    '''
+    <dl>
+    <dt>'$ScriptCommandLine'
+      <dd>is a list of string arguments when running the kernel is script mode.
+    </dl>
+    >> $ScriptCommandLine
+     = {...}
+    '''
+
+    name = '$ScriptCommandLine'
+
+    def evaluate(self, evaluation):
+        try:
+            dash_index = sys.argv.index('--')
+        except ValueError:
+            # not run in script mode
+            return Expression('List')
+
+        return Expression('List', *(String(arg) for arg in sys.argv[dash_index + 1:]))
