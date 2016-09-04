@@ -2410,10 +2410,9 @@ class InsetBox(_GraphicsElement):
             self.content_text = self.content.boxes_to_text(
                 evaluation=self.graphics.evaluation)
 
-            if not self.graphics.web_engine_warning_issued:
+            if self.graphics.evaluation.output.warn_about_web_engine():
                 self.graphics.evaluation.message(
-                    'General', 'nowebeng', str(e))
-                self.graphics.web_engine_warning_issued = True
+                    'General', 'nowebeng', str(e), once=True)
 
     def extent(self):
         p = self.pos.pos()

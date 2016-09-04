@@ -192,8 +192,11 @@ class Output(object):
     def display(self, data, metadata):
         raise NotImplementedError
 
-    def is_web_engine_available(self):
-        return self.web_engine.is_available()
+    def warn_about_web_engine(self):
+        return False
+
+    def assume_web_engine(self):
+        return self.web_engine.assume_is_available()
 
     def mathml_to_svg(self, mathml):
         return self.web_engine.mathml_to_svg(mathml)
@@ -222,6 +225,7 @@ class Evaluation(object):
         self.quiet_all = False
         self.format = format
         self.catch_interrupt = catch_interrupt
+        self.once_messages = set()
 
     def parse(self, query):
         'Parse a single expression and print the messages.'
@@ -417,7 +421,7 @@ class Evaluation(object):
             return []
         return value.leaves
 
-    def message(self, symbol, tag, *args) -> None:
+    def message(self, symbol, tag, *args, once=False) -> None:
         from mathics.core.expression import (String, Symbol, Expression,
                                              from_python)
 
@@ -427,6 +431,11 @@ class Evaluation(object):
         quiet_messages = set(self.get_quiet_messages())
 
         pattern = Expression('MessageName', Symbol(symbol), String(tag))
+
+        if once:
+            if pattern in self.once_messages:
+                return
+            self.once_messages.add(pattern)
 
         if pattern in quiet_messages or self.quiet_all:
             return
