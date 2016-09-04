@@ -21,44 +21,49 @@ import socket
 import json
 import struct
 
-# the following three functions are taken from
-# http://stackoverflow.com/questions/17667903/python-socket-receive-large-amount-of-data
 
-def send_msg(sock, msg):
-    # Prefix each message with a 4-byte length (network byte order)
-    msg = struct.pack('>I', len(msg)) + msg
-    sock.sendall(msg)
+class Pipe:
+    def __init__(self, sock):
+        self.sock = sock
 
+    # the following three functions are taken from
+    # http://stackoverflow.com/questions/17667903/python-socket-receive-large-amount-of-data
 
-def recv_msg(sock):
-    # Read message length and unpack it into an integer
-    raw_msglen = recvall(sock, 4)
-    if not raw_msglen:
-        return None
-    msglen = struct.unpack('>I', raw_msglen)[0]
-    # Read the message data
-    return recvall(sock, msglen)
+    def _recvall(self, n):
+        # Helper function to recv n bytes or return None if EOF is hit
+        data = b''
+        sock = self.sock
+        while len(data) < n:
+            packet = sock.recv(n - len(data))
+            if not packet:
+                return None
+            data += packet
+        return data
 
+    def put(self, msg):
+        msg = json.dumps(msg).encode('utf8')
+        # Prefix each message with a 4-byte length (network byte order)
+        msg = struct.pack('>I', len(msg)) + msg
+        self.sock.sendall(msg)
 
-def recvall(sock, n):
-    # Helper function to recv n bytes or return None if EOF is hit
-    data = b''
-    while len(data) < n:
-        packet = sock.recv(n - len(data))
-        if not packet:
+    def get(self):
+        # Read message length and unpack it into an integer
+        raw_msglen = self.recvall(4)
+        if not raw_msglen:
             return None
-        data += packet
-    return data
+        msglen = struct.unpack('>I', raw_msglen)[0]
+        # Read the message data
+        return json.loads(self.recvall(msglen).decode('utf8'))
 
 
 class RemoteMethod:
     def __init__(self, socket, name):
-        self.socket = socket
+        self.pipe = Pipe(socket)
         self.name = name
 
     def __call__(self, data):
-        send_msg(self.socket, json.dumps({'call': self.name, 'data': data}).encode('utf8'))
-        return json.loads(recv_msg(self.socket).decode('utf8'))
+        self.pipe.put({'call': self.name, 'data': data})
+        return self.pipe.get()
 
 
 class Client:
@@ -73,8 +78,22 @@ class Client:
         return self.socket.close()
 
 
-class LayoutEngine(object):
+# Why WebEngine? Well, QT calls its class for similar stuff "web engine", an engine
+# that "provides functionality for rendering regions of dynamic web content". This
+# is not about web servers but layout (http://doc.qt.io/qt-5/qtwebengine-index.html).
+
+
+class WebEngineUnavailable(RuntimeError):
+    pass
+
+
+class WebEngine(object):
     def __init__(self):
+        self.process = None
+        self.client = None
+        self.unavailable = None
+
+    def _create_client(self):
         try:
             popen_env = os.environ.copy()
             if settings.NODE_MODULES:
@@ -85,47 +104,65 @@ class LayoutEngine(object):
 
             def abort(message):
                 error_text = 'Node.js failed to startup %s:\n\n' % server_path
-                raise RuntimeError(error_text + message)
+                raise WebEngineUnavailable(error_text + message)
 
-            self.process = Popen(
+            process = Popen(
                 [os.path.expandvars(settings.NODE), server_path],
                 stdout=subprocess.PIPE,
                 env=popen_env)
 
-            status = self.process.stdout.readline().decode('utf8').strip()
-            if not status.startswith('HELLO:'):
+            hello = 'HELLO:'  # agreed upon "all ok" hello message.
+
+            status = process.stdout.readline().decode('utf8').strip()
+            if not status.startswith(hello):
                 error = ''
                 while True:
-                    line = self.process.stdout.readline().decode('utf8')
+                    line = process.stdout.readline().decode('utf8')
                     if not line:
                         break
                     error += '  ' + line
 
-                self.process.terminate()
+                process.terminate()
                 abort(error + '\nPlease check Node.js modules and NODE_PATH.')
 
-            port = int(status[len('HELLO:'):])
+            port = int(status[len(hello):])
         except OSError as e:
             abort(str(e))
 
-        if self.process is None:
+        try:
+            self.client = Client('127.0.0.1', port)
+            self.process = process
+        except Exception as e:
             self.client = None
-        else:
+            self.process = None
+            process.terminate()
+            abort(str(e))
+
+    def _ensure_client(self):
+        if not self.client:
+            if self.unavailable is not None:
+                raise WebEngineUnavailable(self.unavailable)
             try:
-                self.client = Client('127.0.0.1', port)
-            except Exception as e:
-                self.client = None
-                self.process.terminate()
-                abort(str(e))
+                self._create_client()
+            except WebEngineUnavailable as e:
+                self.unavailable = str(e)
+                raise e
+
+        return self.client
+
+    def assume_is_available(self):
+        if self.unavailable is not None:
+            raise WebEngineUnavailable(self.unavailable)
 
     def mathml_to_svg(self, mathml):
-        if self.client:
-            return self.client.mathml_to_svg(mathml)
+        return self._ensure_client().mathml_to_svg(mathml)
 
     def rasterize(self, svg):
-        if self.client:
-            return self.client.rasterize(svg)
+        return self._ensure_client().rasterize(svg)
 
     def terminate(self):
         if self.process:
             self.process.terminate()
+            self.process = None
+            self.client = None
+

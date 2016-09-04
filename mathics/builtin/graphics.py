@@ -22,6 +22,7 @@ from math import sin, cos, pi
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
 from mathics.builtin.options import options_to_rules
+from mathics.layout.client import WebEngineUnavailable
 from mathics.core.expression import (
     Expression, Integer, Rational, Real, String, Symbol, strip_context,
     system_symbols, system_symbols_dict, from_python)
@@ -2296,13 +2297,18 @@ class InsetBox(_GraphicsElement):
             self.pos = pos
             self.opos = opos
 
-        if self.graphics.evaluation.output.svgify():
+        try:
             self._prepare_text_svg()
-        else:
+        except WebEngineUnavailable as e:
             self.svg = None
 
             self.content_text = self.content.boxes_to_text(
                 evaluation=self.graphics.evaluation)
+
+            if not self.graphics.web_engine_warning_issued:
+                self.graphics.evaluation.message(
+                    'General', 'nowebeng', str(e))
+                self.graphics.web_engine_warning_issued = True
 
     def extent(self):
         p = self.pos.pos()
@@ -2323,6 +2329,8 @@ class InsetBox(_GraphicsElement):
         return [(x, y), (x + w, y + h)]
 
     def _prepare_text_svg(self):
+        self.graphics.evaluation.output.assume_web_engine()
+
         content = self.content.boxes_to_xml(
             evaluation=self.graphics.evaluation)
 
@@ -2542,6 +2550,7 @@ class _GraphicsElements(object):
         self.evaluation = evaluation
         self.elements = []
         self.view_width = None
+        self.web_engine_warning_issued = False
 
         builtins = evaluation.definitions.builtin
         def get_options(name):

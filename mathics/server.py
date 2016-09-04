@@ -15,9 +15,9 @@ import subprocess
 import mathics
 from mathics import server_version_string, license_string
 from mathics import settings as mathics_settings  # Prevents UnboundLocalError
-from mathics.layout.client import LayoutEngine
+from mathics.layout.client import WebEngine
 
-layout_engine = None
+web_engine = None
 
 
 def check_database():
@@ -66,9 +66,6 @@ def parse_args():
     argparser.add_argument(
         "--external", "-e", dest="external", action="store_true",
         help="allow external access to server")
-    argparser.add_argument(
-        '--svg-math', '-s', dest="svg_math", action='store_true',
-        help='prerender all math using svg (experimental)')
 
     return argparser.parse_args()
 
@@ -92,9 +89,8 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port)
     else:
         addr = '127.0.0.1'
 
-    global layout_engine
-    if args.svg_math:
-        layout_engine = LayoutEngine()
+    global web_engine
+    web_engine = WebEngine()
 
     try:
         from django.core.servers.basehttp import (
@@ -113,14 +109,14 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port)
         except KeyError:
             error_text = str(e)
         sys.stderr.write("Error: %s" % error_text + '\n')
-        if layout_engine is not None:
-            layout_engine.terminate()
+        if web_engine is not None:
+            web_engine.terminate()
         # Need to use an OS exit because sys.exit doesn't work in a thread
         os._exit(1)
     except KeyboardInterrupt:
         print("\nGoodbye!\n")
-        if layout_engine is not None:
-            layout_engine.terminate()
+        if web_engine is not None:
+            web_engine.terminate()
         sys.exit(0)
 
 
