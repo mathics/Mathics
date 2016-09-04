@@ -7,10 +7,8 @@
 # Your installation of nodejs with the following packages: mathjax-node svg2png (install them using
 # npm).
 
-# Some tips for installing nodejs and zmq on OS X:
+# Tips for installing nodejs on OS X:
 # see https://gist.github.com/DanHerbert/9520689
-# https://github.com/JustinTulloss/zeromq.node/issues/283
-# brew install zmq && npm install zmq
 # export NODE_PATH=/your/path/to/homebrew/bin/node_modules:$NODE_PATH
 
 import subprocess
@@ -82,10 +80,11 @@ class LayoutEngine(object):
             if settings.NODE_MODULES:
                 popen_env["NODE_PATH"] = os.path.expandvars(settings.NODE_MODULES)
 
-            server_path = os.path.dirname(os.path.realpath(__file__)) + "/server.js"
+            server_path = os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), 'server.js')
 
             def abort(message):
-                error_text = 'Node.js failed to start %s:\n' % server_path
+                error_text = 'Node.js failed to startup %s:\n\n' % server_path
                 raise RuntimeError(error_text + message)
 
             self.process = Popen(
@@ -94,7 +93,7 @@ class LayoutEngine(object):
                 env=popen_env)
 
             status = self.process.stdout.readline().decode('utf8').strip()
-            if status != 'OK':
+            if not status.startswith('HELLO:'):
                 error = ''
                 while True:
                     line = self.process.stdout.readline().decode('utf8')
@@ -103,8 +102,9 @@ class LayoutEngine(object):
                     error += '  ' + line
 
                 self.process.terminate()
+                abort(error + '\nPlease check Node.js modules and NODE_PATH.')
 
-                abort(error + '\nCheck Node.js modules and that NODE_PATH.')
+            port = int(status[len('HELLO:'):])
         except OSError as e:
             abort(str(e))
 
@@ -112,7 +112,7 @@ class LayoutEngine(object):
             self.client = None
         else:
             try:
-                self.client = Client('127.0.0.1', 5000)
+                self.client = Client('127.0.0.1', port)
             except Exception as e:
                 self.client = None
                 self.process.terminate()
