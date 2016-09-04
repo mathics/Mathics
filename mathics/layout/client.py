@@ -48,12 +48,12 @@ class Pipe:
 
     def get(self):
         # Read message length and unpack it into an integer
-        raw_msglen = self.recvall(4)
+        raw_msglen = self._recvall(4)
         if not raw_msglen:
             return None
         msglen = struct.unpack('>I', raw_msglen)[0]
         # Read the message data
-        return json.loads(self.recvall(msglen).decode('utf8'))
+        return json.loads(self._recvall(msglen).decode('utf8'))
 
 
 class RemoteMethod:
@@ -123,7 +123,7 @@ class WebEngine(object):
                     error += '  ' + line
 
                 process.terminate()
-                abort(error + '\nPlease check Node.js modules and NODE_PATH.')
+                abort(error + '\nPlease check Node.js modules and NODE_PATH')
 
             port = int(status[len(hello):])
         except OSError as e:

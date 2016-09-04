@@ -26,7 +26,6 @@ from mathics.web.models import Query, Worksheet
 from mathics.web.forms import LoginForm, SaveForm
 from mathics.doc import documentation
 from mathics.doc.doc import DocPart, DocChapter, DocSection
-from mathics.server import layout_engine
 import six
 from six.moves import range
 from string import Template
@@ -108,11 +107,11 @@ def query(request):
                           )
         query_log.save()
 
-    from mathics.server import layout_engine
+    from mathics.server import web_engine
 
     user_definitions = request.session.get('definitions')
     definitions.set_user_definitions(user_definitions)
-    evaluation = Evaluation(definitions, format='xml', output=WebOutput(layout_engine))
+    evaluation = Evaluation(definitions, format='xml', output=WebOutput(web_engine))
     feeder = MultiLineFeeder(input, '<notebook>')
     results = []
     try:
