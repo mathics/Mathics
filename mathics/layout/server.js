@@ -41,6 +41,11 @@ try {
                 }
             }
 
+            socket.on('close', function() {
+                // means our Python client has lost us. quit.
+                process.exit();
+            });
+
             socket.on('data', function(data) {
                 state.buffer = Buffer.concat(
                     [state.buffer, data]);
@@ -56,10 +61,11 @@ try {
         });
 
         server.on('listening', function() {
-            console.log('OK');
+            var port = server.address().port;
+            process.stdout.write('HELLO:' + port.toString() + '\n');
         });
 
-        server.listen(5000);
+        server.listen(0);  // pick a free port
     }
 
     var mathjax = require("mathjax-node/lib/mj-single.js");
@@ -94,6 +100,5 @@ try {
         }
     });
 } catch (ex) {
-    console.log('FAIL')
-    console.log(ex)
+    process.stdout.write('FAIL.' + '\n' + ex.toString() + '\n');
 }
