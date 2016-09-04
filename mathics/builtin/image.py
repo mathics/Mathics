@@ -76,11 +76,6 @@ def pixels_as_ubyte(pixels):
 
 # import and export
 
-def extract_exif(img):
-    for k, v in img._getexif().items():
-        name = ExifTags.get(k)
-        if name:
-            yield(name, v)
 
 class ImageImport(_ImageBuiltin):
     """
@@ -96,12 +91,28 @@ class ImageImport(_ImageBuiltin):
     #> Import["ExampleData/lena.tif"]
      = -Image-
     """
+    @staticmethod
+    def _extract_exif(im):
+        if hasattr(im, '_getexif'):
+            for k, v in im._getexif().items():
+                name = ExifTags.get(k)
+                if name:
+                    if isinstance(v, (int, str)):
+                        pass
+                    elif isinstance(v, (list, tuple)) and all(isinstance(x, (int, str)) for x in v):
+                        pass
+                    else:
+                        continue
+
+                    yield name, from_python(v)
+
     def apply(self, path, evaluation):
         '''ImageImport[path_?StringQ]'''
         pillow = PIL.Image.open(path.get_string_value())
         pixels = numpy.asarray(pillow)
         is_rgb = len(pixels.shape) >= 3 and pixels.shape[2] >= 3
-        atom = Image(pixels, 'RGB' if is_rgb else 'Grayscale')
+        metadata = dict(ImageImport._extract_exif(pillow))
+        atom = Image(pixels, 'RGB' if is_rgb else 'Grayscale', metadata)
         return Expression('List', Expression('Rule', String('Image'), atom))
 
 
@@ -1123,6 +1134,10 @@ class Colorize(_ImageBuiltin):
         return Image(numpy.concatenate([p[i][a].reshape(s) for i in range(3)], axis=2), color_space='RGB')
 
 
+class DominantColors(Builtin):
+    pass
+
+
 # pixel access
 
 
@@ -1285,12 +1300,14 @@ class ImageBox(BoxConstruct):
 
 
 class Image(Atom):
-    def __init__(self, pixels, color_space, **kwargs):
+    def __init__(self, pixels, color_space, metadata={}, **kwargs):
         super(Image, self).__init__(**kwargs)
         if len(pixels.shape) == 2:
             pixels = pixels.reshape(list(pixels.shape) + [1])
         self.pixels = pixels
         self.color_space = color_space
+        self.metadata = metadata
+        print('created', self.color_space, self.metadata)
 
     def filter(self, f):  # apply PIL filters component-wise
         pixels = self.pixels
@@ -1399,12 +1416,11 @@ class Image(Atom):
             evaluation.print_out('An error prevented the display of this image: %s' % str(e))
             return String('')
 
-
     def __str__(self):
         return '-Image-'
 
     def do_copy(self):
-        return Image(self.pixels)
+        return Image(self.pixels, self.color_space, self.metadata)
 
     def default_format(self, evaluation, form):
         return '-Image-'
@@ -1416,13 +1432,17 @@ class Image(Atom):
             return hash(self)
 
     def same(self, other):
-        return isinstance(other, Image) and numpy.array_equal(self.pixels, other.pixels)
+        if not isinstance(other, Image):
+            return False
+        if self.self.color_space != other.self.color_space or self.metadata != other.metadata:
+            return False
+        return numpy.array_equal(self.pixels, other.pixels)
 
     def to_python(self, *args, **kwargs):
         return self.pixels
 
     def __hash__(self):
-        return hash(("Image", self.pixels.tobytes()))
+        return hash(("Image", self.pixels.tobytes(), self.color_space, frozenset(self.metadata.items())))
 
     def dimensions(self):
         shape = self.pixels.shape
@@ -1445,6 +1465,12 @@ class Image(Atom):
             return 'Bit'
         else:
             return str(dtype)
+
+    def options(self):
+        return Expression(
+            'List',
+            Expression('Rule', String('ColorSpace'), String(self.color_space)),
+            Expression('Rule', String('MetaInformation'), self.metadata))
 
 
 class ImageAtom(AtomBuiltin):
