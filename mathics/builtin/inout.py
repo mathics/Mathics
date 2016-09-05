@@ -2166,6 +2166,10 @@ class NumberForm(_NumberForm):
      = XX-1.234
     #> NumberForm[-1.234, {6, 4}, SignPadding -> False, NumberPadding -> {"X", "Y"}]
      = X-1.234Y
+
+    ## 1-arg, Option case
+    #> NumberForm[34, ExponentFunction->(Null&)]
+     = 34
     '''
 
     options = {
@@ -2233,7 +2237,7 @@ class NumberForm(_NumberForm):
         return Expression('MakeBoxes', expr, form)
 
     def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
-        '''MakeBoxes[NumberForm[expr_, n_, OptionsPattern[NumberForm]],
+        '''MakeBoxes[NumberForm[expr_, n_?NotOptionQ, OptionsPattern[NumberForm]],
             form:StandardForm|TraditionalForm|OutputForm]'''
 
         fallback = Expression('MakeBoxes', expr, form)
