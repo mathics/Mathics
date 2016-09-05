@@ -239,7 +239,10 @@ def number_form(expr, n, f, evaluation, options):
             right = right + (f - len(right)) * options['NumberPadding'][1]
         elif len(right) > f:
             # round right
-            right = str(int(round(int(right) * 10**(f - len(right)))))
+            tmp = int(left + right)
+            tmp *= 10 ** (f - len(right))
+            tmp = str(int(round(tmp)))
+            left, right = tmp[:exp + 1], tmp[exp + 1:]
 
     def split_string(s, start, step):
         if start > 0:
