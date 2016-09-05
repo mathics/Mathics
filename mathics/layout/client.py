@@ -22,6 +22,14 @@ import json
 import struct
 
 
+class WebEngineError(RuntimeError):
+    pass
+
+
+class WebEngineUnavailable(WebEngineError):
+    pass
+
+
 class Pipe:
     def __init__(self, sock):
         self.sock = sock
@@ -63,7 +71,13 @@ class RemoteMethod:
 
     def __call__(self, *args):
         self.pipe.put({'call': self.name, 'args': args})
-        return self.pipe.get()
+        reply = self.pipe.get()
+
+        error = reply.get('error')
+        if error:
+            raise WebEngineError(str(error))
+        else:
+            return reply.get('data')
 
 
 class Client:
@@ -81,11 +95,6 @@ class Client:
 # Why WebEngine? Well, QT calls its class for similar stuff "web engine", an engine
 # that "provides functionality for rendering regions of dynamic web content". This
 # is not about web servers but layout (http://doc.qt.io/qt-5/qtwebengine-index.html).
-
-
-class WebEngineUnavailable(RuntimeError):
-    pass
-
 
 class NoWebEngine:
     def assume_is_available(self):
@@ -169,7 +178,8 @@ class WebEngine:
         return self._ensure_client().mathml_to_svg(mathml)
 
     def rasterize(self, svg, size):
-        return self._ensure_client().rasterize(svg, size)
+        buffer = self._ensure_client().rasterize(svg, size)
+        return bytearray(buffer['data'])
 
     def terminate(self):
         if self.process:
