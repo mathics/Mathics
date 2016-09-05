@@ -142,138 +142,159 @@ var objectsCount = 0;
 var objects = {};
 
 function translateDOMElement(element, svg) {
-  if (element.nodeType == 3) {
-    var text = element.nodeValue;
-    return $T(text);
-  }
-  var dom = null;
-  var nodeName = element.nodeName;
-  if (nodeName != 'meshgradient' && nodeName != 'graphics3d') {
-    dom = createMathNode(element.nodeName);
-    for (var i = 0; i < element.attributes.length; ++i) {
-      var attr = element.attributes[i];
-      if (attr.nodeName != 'ox' && attr.nodeName != 'oy')
-        dom.setAttribute(attr.nodeName, attr.nodeValue);
-    }
-  }
-  if (nodeName == 'foreignObject') {
-    dom.setAttribute('width', svg.getAttribute('width'));
-    dom.setAttribute('height', svg.getAttribute('height'));
-    dom.setAttribute('style', dom.getAttribute('style') + '; text-align: left; padding-left: 2px; padding-right: 2px;');
-    var ox = parseFloat(element.getAttribute('ox'));
-    var oy = parseFloat(element.getAttribute('oy'));
-    dom.setAttribute('ox', ox);
-    dom.setAttribute('oy', oy);
-  }
-  if (nodeName == 'mo') {
-    var op = element.childNodes[0].nodeValue;
-    if (op == '[' || op == ']' || op == '{' || op == '}' || op == String.fromCharCode(12314) || op == String.fromCharCode(12315))
-      dom.setAttribute('maxsize', '3');
-  }
-  if (nodeName == 'meshgradient') {
-    if (!MathJax.Hub.Browser.isOpera) {
-      var data = element.getAttribute('data').evalJSON();
-      var div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
-      var foreign = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-      foreign.setAttribute('width', svg.getAttribute('width'));
-      foreign.setAttribute('height', svg.getAttribute('height'));
-      foreign.setAttribute('x', '0px');
-      foreign.setAttribute('y', '0px');
-      foreign.appendChild(div);
+	if (element.nodeType == 3) {
+		var text = element.nodeValue;
+		return $T(text);
+	}
 
-      var canvas = createMathNode('canvas');
-      canvas.setAttribute('width', svg.getAttribute('width'));
-      canvas.setAttribute('height', svg.getAttribute('height'));
-      div.appendChild(canvas);
+	if (svg && element.nodeName == 'svg') {
+	    // leave <svg>s embedded in <svg>s alone, if they are
+	    // not <svg> > <foreignObject> > <svg>. this fixes the
+	    // node.js web engine svg rendering, which embeds text
+	    // as <svg> in the Graphics <svg>.
+    	var node = element;
+    	var ok = false;
+	    while (node != svg && node.parentNode) {
+	        if (node.nodeName == 'foreignObject') {
+	            ok = true;
+	            break;
+	        }
+	        node = node.parentNode;
+	    }
+	    if (!ok) {
+	        return element;
+	    }
+	}
 
-      var ctx = canvas.getContext('2d');
-      for (var index = 0; index < data.length; ++index) {
-        var points = data[index];
-        if (points.length == 3) {
-          drawMeshGradient(ctx, points);
-        }
-      }
+	var dom = null;
+	var nodeName = element.nodeName;
+	if (nodeName != 'meshgradient' && nodeName != 'graphics3d') {
+		dom = createMathNode(element.nodeName);
+		for (var i = 0; i < element.attributes.length; ++i) {
+			var attr = element.attributes[i];
+			if (attr.nodeName != 'ox' && attr.nodeName != 'oy')
+				dom.setAttribute(attr.nodeName, attr.nodeValue);
+		}
+	}
+	if (nodeName == 'foreignObject') {
+		dom.setAttribute('width', svg.getAttribute('width'));
+		dom.setAttribute('height', svg.getAttribute('height'));
+		dom.setAttribute('style', dom.getAttribute('style') + '; text-align: left; padding-left: 2px; padding-right: 2px;');
+		var ox = parseFloat(element.getAttribute('ox'));
+		var oy = parseFloat(element.getAttribute('oy'));
+		dom.setAttribute('ox', ox);
+		dom.setAttribute('oy', oy);
+	}
+	if (nodeName == 'mo') {
+		var op = element.childNodes[0].nodeValue;
+		if (op == '[' || op == ']' || op == '{' || op == '}' || op == String.fromCharCode(12314) || op == String.fromCharCode(12315))
+			dom.setAttribute('maxsize', '3');
+	}
+	if (nodeName == 'meshgradient') {
+		if (!MathJax.Hub.Browser.isOpera) {
+			var data = element.getAttribute('data').evalJSON();
+			var div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+			var foreign = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+			foreign.setAttribute('width', svg.getAttribute('width'));
+			foreign.setAttribute('height', svg.getAttribute('height'));
+			foreign.setAttribute('x', '0px');
+			foreign.setAttribute('y', '0px');
+			foreign.appendChild(div);
 
-      dom = foreign;
+			var canvas = createMathNode('canvas');
+			canvas.setAttribute('width', svg.getAttribute('width'));
+			canvas.setAttribute('height', svg.getAttribute('height'));
+			div.appendChild(canvas);
+
+			var ctx = canvas.getContext('2d');
+			for (var index = 0; index < data.length; ++index) {
+				var points = data[index];
+				if (points.length == 3) {
+					drawMeshGradient(ctx, points);
+				}
+			}
+
+			dom = foreign;
+		}
+	}
+	var object = null;
+	if (nodeName == 'graphics3d') {
+		var data = element.getAttribute('data').evalJSON();
+		var div = document.createElement('div');
+		drawGraphics3D(div, data);
+		dom = div;
+	}
+	if (nodeName == 'svg' || nodeName == 'graphics3d' || nodeName.toLowerCase() == 'img') {
+		// create <mspace> that will contain the graphics
+		object = createMathNode('mspace');
+		var width, height;
+		if (nodeName == 'svg' || nodeName.toLowerCase() == 'img') {
+			width = dom.getAttribute('width');
+			height = dom.getAttribute('height');
+		} else {
+			// TODO: calculate appropriate height and recalculate on every view change
+			width = height = '400';
+		}
+		object.setAttribute('width', width  + 'px');
+		object.setAttribute('height', height + 'px');
+	}
+	if (nodeName == 'svg')
+		svg = dom;
+	var rows = [[]];
+	$A(element.childNodes).each(function(child) {
+		if (child.nodeName == 'mspace' && child.getAttribute('linebreak') == 'newline')
+			rows.push([]);
+		else
+			rows[rows.length - 1].push(child);
+	});
+	var childParent = dom;
+	if (nodeName == 'math') {
+		var mstyle = createMathNode('mstyle');
+		mstyle.setAttribute('displaystyle', 'true');
+		dom.appendChild(mstyle);
+		childParent = mstyle;
+	}
+	if (rows.length > 1) {
+		var mtable = createMathNode('mtable');
+		mtable.setAttribute('rowspacing', '0');
+		mtable.setAttribute('columnalign', 'left');
+		var nospace = 'cell-spacing: 0; cell-padding: 0; row-spacing: 0; row-padding: 0; border-spacing: 0; padding: 0; margin: 0';
+		mtable.setAttribute('style', nospace);
+		rows.each(function(row) {
+			var mtr = createMathNode('mtr');
+			mtr.setAttribute('style', nospace);
+			var mtd = createMathNode('mtd');
+			mtd.setAttribute('style', nospace);
+			row.each(function(element) {
+				var elmt = translateDOMElement(element, svg);
+				if (nodeName == 'mtext') {
+					// wrap element in mtext
+					var outer = createMathNode('mtext');
+					outer.appendChild(elmt);
+					elmt = outer;
+				}
+				mtd.appendChild(elmt);
+			});
+			mtr.appendChild(mtd);
+			mtable.appendChild(mtr);
+		});
+		if (nodeName == 'mtext') {
+			// no mtable inside mtext, but mtable instead of mtext
+			dom = mtable;
+		} else
+			childParent.appendChild(mtable);
+	} else {
+		rows[0].each(function(element) {
+			childParent.appendChild(translateDOMElement(element, svg));
+		});
     }
-  }
-  var object = null;
-  if (nodeName == 'graphics3d') {
-    var data = element.getAttribute('data').evalJSON();
-    var div = document.createElement('div');
-    drawGraphics3D(div, data);
-    dom = div;
-  }
-  if (nodeName == 'svg' || nodeName == 'graphics3d' || nodeName.toLowerCase() == 'img') {
-    // create <mspace> that will contain the graphics
-    object = createMathNode('mspace');
-    var width, height;
-    if (nodeName == 'svg' || nodeName.toLowerCase() == 'img') {
-      width = dom.getAttribute('width');
-      height = dom.getAttribute('height');
-    } else {
-      // TODO: calculate appropriate height and recalculate on every view change
-      width = height = '400';
-    }
-    object.setAttribute('width', width  + 'px');
-    object.setAttribute('height', height + 'px');
-  }
-  if (nodeName == 'svg')
-    svg = dom;
-  var rows = [[]];
-  $A(element.childNodes).each(function(child) {
-    if (child.nodeName == 'mspace' && child.getAttribute('linebreak') == 'newline')
-      rows.push([]);
-    else
-      rows[rows.length - 1].push(child);
-  });
-  var childParent = dom;
-  if (nodeName == 'math') {
-    var mstyle = createMathNode('mstyle');
-    mstyle.setAttribute('displaystyle', 'true');
-    dom.appendChild(mstyle);
-    childParent = mstyle;
-  }
-  if (rows.length > 1) {
-    var mtable = createMathNode('mtable');
-    mtable.setAttribute('rowspacing', '0');
-    mtable.setAttribute('columnalign', 'left');
-    var nospace = 'cell-spacing: 0; cell-padding: 0; row-spacing: 0; row-padding: 0; border-spacing: 0; padding: 0; margin: 0';
-    mtable.setAttribute('style', nospace);
-    rows.each(function(row) {
-      var mtr = createMathNode('mtr');
-      mtr.setAttribute('style', nospace);
-      var mtd = createMathNode('mtd');
-      mtd.setAttribute('style', nospace);
-      row.each(function(element) {
-        var elmt = translateDOMElement(element, svg);
-        if (nodeName == 'mtext') {
-          // wrap element in mtext
-          var outer = createMathNode('mtext');
-          outer.appendChild(elmt);
-          elmt = outer;
-        }
-        mtd.appendChild(elmt);
-      });
-      mtr.appendChild(mtd);
-      mtable.appendChild(mtr);
-    });
-    if (nodeName == 'mtext') {
-      // no mtable inside mtext, but mtable instead of mtext
-      dom = mtable;
-    } else
-      childParent.appendChild(mtable);
-  } else
-    rows[0].each(function(element) {
-      childParent.appendChild(translateDOMElement(element, svg));
-    });
-  if (object) {
-    var id = objectsCount++;
-    object.setAttribute('id', objectsPrefix + id);
-    objects[id] = dom;
-    return object;
-  }
-  return dom;
+	if (object) {
+		var id = objectsCount++;
+		object.setAttribute('id', objectsPrefix + id);
+		objects[id] = dom;
+		return object;
+	}
+	return dom;
 }
 
 function convertMathGlyphs(dom) {
@@ -287,17 +308,19 @@ function convertMathGlyphs(dom) {
         var src = glyph.getAttribute('src');
         if (src.startsWith('data:image/svg+xml;base64,')) {
             var svgText = atob(src.substring(src.indexOf(",") + 1));
-            var mtable =document.createElementNS(MML, "mtable");
+            var mtable = document.createElementNS(MML, "mtable");
             mtable.innerHTML = '<mtr><mtd>' + svgText + '</mtd></mtr>';
             var svg = mtable.getElementsByTagNameNS("*", "svg")[0];
             svg.setAttribute('width', glyph.getAttribute('width'));
             svg.setAttribute('height', glyph.getAttribute('height'));
+            svg.setAttribute('data-mathics', 'format');
             glyph.parentNode.replaceChild(mtable, glyph);
         } else if (src.startsWith('data:image/')) {
             var img = document.createElement('img');
             img.setAttribute('src', src)
             img.setAttribute('width', glyph.getAttribute('width'));
             img.setAttribute('height', glyph.getAttribute('height'));
+            img.setAttribute('data-mathics', 'format');
             glyph.parentNode.replaceChild(img, glyph);
         }
     }

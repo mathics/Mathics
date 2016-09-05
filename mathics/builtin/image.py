@@ -9,6 +9,7 @@ from mathics.builtin.base import (
 from mathics.core.expression import (
     Atom, Expression, Integer, Rational, Real, MachineReal, Symbol, from_python)
 from mathics.builtin.colors import convert as convert_color, colorspaces as known_colorspaces
+from mathics.layout.client import WebEngineUnavailable
 
 import base64
 import functools
@@ -2463,3 +2464,49 @@ class WordCloud(Builtin):
 
         image = wc.to_image()
         return Image(numpy.array(image), 'RGB')
+
+
+class Rasterize(Builtin):
+    requires = _image_requires
+
+    options = {
+        'RasterSize': '300',
+    }
+
+    messages = {
+        'err': 'Rasterize[] failed: `1`',
+    }
+
+    def apply(self, expr, evaluation, options):
+        'Rasterize[expr_, OptionsPattern[%(name)s]]'
+
+        raster_size = self.get_option(options, 'RasterSize', evaluation)
+        if isinstance(raster_size, Integer):
+            s = raster_size.get_int_value()
+            py_raster_size = (s, s)
+        elif raster_size.has_form('List', 2) and all(isinstance(s, Integer) for s in raster_size.leaves):
+            py_raster_size = tuple(s.get_int_value for s in raster_size.leaves)
+        else:
+            return
+
+        mathml = evaluation.format_output(expr, 'xml')
+        try:
+            svg = evaluation.output.mathml_to_svg(mathml)
+            reply = evaluation.output.rasterize(svg, py_raster_size)
+            buffer = reply.get('buffer')
+
+            if buffer:
+                stream = BytesIO()
+                stream.write(bytearray(buffer['data']))
+                stream.seek(0)
+                pixels = skimage.io.imread(stream)
+                stream.close()
+
+                return Image(pixels, 'RGB')
+            else:
+                error = reply.get('error', 'could not identify the reason for the error')
+                evaluation.message('Rasterize', 'err', error)
+
+        except WebEngineUnavailable as e:
+            evaluation.message(
+                'General', 'nowebeng', 'Rasterize[] is not available: ' + str(e), once=True)
