@@ -232,6 +232,31 @@ def number_form(expr, n, f, evaluation, options):
     # left and right of NumberPoint
     left, right = s[:exp + 1], s[exp + 1:]
 
+    def _round(number, ndigits):
+        '''
+        python round() for integers but with correct rounding.
+        e.g. `_round(14225, -1)` is `14230` not `14220`.
+        '''
+        assert isinstance(ndigits, six.integer_types)
+        assert ndigits < 0
+        assert isinstance(number, six.integer_types)
+        assert number >= 0
+        number += 5 * int(10 ** -(1 + ndigits))
+        number //= int(10 ** -ndigits)
+        return number
+
+    # pad with NumberPadding
+    if f is not None:
+        if len(right) < f:
+            # pad right
+            right = right + (f - len(right)) * options['NumberPadding'][1]
+        elif len(right) > f:
+            # round right
+            tmp = int(left + right)
+            tmp = _round(tmp, f - len(right))
+            tmp = str(tmp)
+            left, right = tmp[:exp + 1], tmp[exp + 1:]
+
     def split_string(s, start, step):
         if start > 0:
             yield s[:start]
@@ -247,14 +272,6 @@ def number_form(expr, n, f, evaluation, options):
         right = split_string(right, 0, digit_block[1])
         right = options['NumberSeparator'][1].join(right)
 
-    # pad with NumberPadding
-    if f is not None:
-        if len(right) < f:
-            # pad right
-            right = right + (f - len(right)) * options['NumberPadding'][1]
-        elif len(right) > f:
-            # truncate right
-            right = right[:f]
     left_padding = 0
     max_sign_len = max(len(options['NumberSigns'][0]), len(options['NumberSigns'][1]))
     l = len(sign_prefix) + len(left) + len(right) - max_sign_len
@@ -2175,6 +2192,16 @@ class NumberForm(_NumberForm):
      = 50.0
     #> NumberForm[50, {5, 1}]
      = 50.0
+
+    ## Rounding correctly
+    #> NumberForm[43.157, {10, 1}]
+     = 43.2
+    #> NumberForm[43.15752525, {10, 5}, NumberSeparator -> ",", DigitBlock -> 1]
+     = 4,3.1,5,7,5,3
+    #> NumberForm[80.96, {16, 1}]
+     = 81.0
+    #> NumberForm[142.25, {10, 1}]
+     = 142.3
     '''
 
     options = {
