@@ -232,6 +232,19 @@ def number_form(expr, n, f, evaluation, options):
     # left and right of NumberPoint
     left, right = s[:exp + 1], s[exp + 1:]
 
+    def _round(number, ndigits):
+        '''
+        python round() for integers but with correct rounding.
+        e.g. `_round(14225, -1)` is `14230` not `14220`.
+        '''
+        assert isinstance(ndigits, six.integer_types)
+        assert ndigits < 0
+        assert isinstance(number, six.integer_types)
+        assert number >= 0
+        number += 5 * int(10 ** -(1 + ndigits))
+        number //= int(10 ** -ndigits)
+        return number
+
     # pad with NumberPadding
     if f is not None:
         if len(right) < f:
@@ -240,8 +253,8 @@ def number_form(expr, n, f, evaluation, options):
         elif len(right) > f:
             # round right
             tmp = int(left + right)
-            tmp *= 10 ** (f - len(right))
-            tmp = str(int(round(tmp)))
+            tmp = _round(tmp, f - len(right))
+            tmp = str(tmp)
             left, right = tmp[:exp + 1], tmp[exp + 1:]
 
     def split_string(s, start, step):
