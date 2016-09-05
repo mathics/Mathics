@@ -9,7 +9,7 @@ from __future__ import division
 from mathics.builtin.base import (
     Builtin, AtomBuiltin, Test, BoxConstruct, String)
 from mathics.core.expression import (
-    Atom, Expression, Integer, Rational, Real, Symbol, from_python)
+    Atom, Expression, Integer, Rational, Real, MachineReal, Symbol, from_python)
 from mathics.builtin.colors import convert as convert_color
 
 import six
@@ -76,6 +76,47 @@ def pixels_as_ubyte(pixels):
 
 # import and export
 
+class _Exif:
+    _ratios = frozenset((
+        'XResolution', 'YResolution', 'MaxApertureValue', 'SubjectDistance', 'FNumber', 'ExposureTime',
+        'ExposureBiasValue', 'CompressedBitsPerPixel', 'FocalLength'))
+
+    _bytes = frozenset((
+        'ExifVersion', 'FlashPixVersion', 'ComponentsConfiguration', 'InteropabilityVersion'
+    ))
+
+    _renames = {
+        'Flash': 'FlashInfo',
+        'FlashPixVersion': 'FlashpixVersion',
+        'ExifImageWidth': 'PixelXDimension',
+        'ExifImageHeight': 'PixelYDimension',
+    }
+
+    @staticmethod
+    def extract(im, evaluation):
+        if hasattr(im, '_getexif'):
+            for k, v in sorted(im._getexif().items(), key=lambda x: x[0]):
+                name = ExifTags.get(k)
+                if not name:
+                    continue
+
+                if name in _Exif._ratios and isinstance(v, tuple) and len(v) == 2:
+                    value = Rational(v[0], v[1])
+                    if name == 'FocalLength':
+                        value = value.round(2)
+                    else:
+                        value = Expression('Simplify', value).evaluate(evaluation)
+                elif name in _Exif._bytes and isinstance(v, bytes):
+                    value = String(' '.join(['%d' % x for x in v]))
+                elif isinstance(v, (int, str)):
+                    value = v
+                else:
+                    continue
+
+                name = _Exif._renames.get(name, name)
+
+                yield Expression('Rule', String(name), value)
+
 
 class ImageImport(_ImageBuiltin):
     """
@@ -91,29 +132,19 @@ class ImageImport(_ImageBuiltin):
     #> Import["ExampleData/lena.tif"]
      = -Image-
     """
-    @staticmethod
-    def _extract_exif(im):
-        if hasattr(im, '_getexif'):
-            for k, v in im._getexif().items():
-                name = ExifTags.get(k)
-                if name:
-                    if isinstance(v, (int, str)):
-                        pass
-                    elif isinstance(v, (list, tuple)) and all(isinstance(x, (int, str)) for x in v):
-                        pass
-                    else:
-                        continue
-
-                    yield name, from_python(v)
 
     def apply(self, path, evaluation):
         '''ImageImport[path_?StringQ]'''
         pillow = PIL.Image.open(path.get_string_value())
         pixels = numpy.asarray(pillow)
         is_rgb = len(pixels.shape) >= 3 and pixels.shape[2] >= 3
-        metadata = dict(ImageImport._extract_exif(pillow))
-        atom = Image(pixels, 'RGB' if is_rgb else 'Grayscale', metadata)
-        return Expression('List', Expression('Rule', String('Image'), atom))
+        exif = Expression('List', *list(_Exif.extract(pillow, evaluation)))
+
+        atom = Image(pixels, 'RGB' if is_rgb else 'Grayscale', exif)  # FIXME
+        return Expression(
+            'List',
+            Expression('Rule', String('Image'), atom),
+            Expression('Rule', String('RawExif'), exif))
 
 
 class ImageExport(_ImageBuiltin):
@@ -1307,7 +1338,6 @@ class Image(Atom):
         self.pixels = pixels
         self.color_space = color_space
         self.metadata = metadata
-        print('created', self.color_space, self.metadata)
 
     def filter(self, f):  # apply PIL filters component-wise
         pixels = self.pixels
