@@ -1,6 +1,12 @@
 // to install: npm install mathjax-node svg2png
 
 try {
+    var fs = require('fs');
+    function debug(s) {
+        fs.writeFile((process.env.HOME || process.env.USERPROFILE) + "/debug.txt", s, function(err) {
+        });
+    }
+
     function server(methods) {
         net = require('net');
 
@@ -37,7 +43,7 @@ try {
                 state.buffer = state.buffer.slice(size + 4)
                 var method = methods[json.call];
                 if (method) {
-                    method(json.data, write);
+                    method.apply(null, json.args.concat([write]));
                 }
             }
 
@@ -86,17 +92,22 @@ try {
                 svg: true,
             }, function (data) {
                 if (!data.errors) {
+                    debug(data.svg);
                     reply(data.svg);
                 }
             });
         },
-        rasterize: function(svg, reply) {
+        rasterize: function(svg, size, reply) {
             svg2png(Buffer.from(svg, 'utf8'), {
-                width: 300,
-                height: 400
+                width: size[0],
+                height: size[1]
             })
-            .then(buffer => reply(buffer))
-            .catch(e => console.error(e));
+            .then(function(buffer) {
+                reply({buffer: buffer});
+            })
+            .catch(function(e) {
+                reply({error: e.toString()});
+            });
         }
     });
 } catch (ex) {

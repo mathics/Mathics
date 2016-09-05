@@ -61,8 +61,8 @@ class RemoteMethod:
         self.pipe = Pipe(socket)
         self.name = name
 
-    def __call__(self, data):
-        self.pipe.put({'call': self.name, 'data': data})
+    def __call__(self, *args):
+        self.pipe.put({'call': self.name, 'args': args})
         return self.pipe.get()
 
 
@@ -87,7 +87,18 @@ class WebEngineUnavailable(RuntimeError):
     pass
 
 
-class WebEngine(object):
+class NoWebEngine:
+    def assume_is_available(self):
+        raise WebEngineUnavailable
+
+    def mathml_to_svg(self, mathml):
+        raise WebEngineUnavailable
+
+    def rasterize(self, svg, *args, **kwargs):
+        raise WebEngineUnavailable
+
+
+class WebEngine:
     def __init__(self):
         self.process = None
         self.client = None
@@ -157,8 +168,8 @@ class WebEngine(object):
     def mathml_to_svg(self, mathml):
         return self._ensure_client().mathml_to_svg(mathml)
 
-    def rasterize(self, svg):
-        return self._ensure_client().rasterize(svg)
+    def rasterize(self, svg, size):
+        return self._ensure_client().rasterize(svg, size)
 
     def terminate(self):
         if self.process:

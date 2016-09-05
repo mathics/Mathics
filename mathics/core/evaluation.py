@@ -15,6 +15,7 @@ from threading import Thread, stack_size as set_thread_stack_size
 
 from mathics import settings
 from mathics.core.expression import ensure_context, KeyComparable
+from mathics.layout.client import NoWebEngine
 
 FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
@@ -180,7 +181,7 @@ class Result(object):
 
 
 class Output(object):
-    def __init__(self, web_engine=None):
+    def __init__(self, web_engine=NoWebEngine()):
         self.web_engine = web_engine
 
     def max_stored_size(self, settings):
@@ -204,8 +205,8 @@ class Output(object):
     def mathml_to_svg(self, mathml):
         return self.web_engine.mathml_to_svg(mathml)
 
-    def rasterize(self, svg):
-        return self.web_engine.rasterize(svg)
+    def rasterize(self, svg, *args, **kwargs):
+        return self.web_engine.rasterize(svg, *args, **kwargs)
 
 
 class Evaluation(object):
