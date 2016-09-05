@@ -9,7 +9,7 @@ from __future__ import division
 from mathics.builtin.base import (
     Builtin, AtomBuiltin, Test, BoxConstruct, String)
 from mathics.core.expression import (
-    Atom, Expression, Integer, Rational, Real, MachineReal, Symbol, from_python)
+    Atom, Expression, Integer, Rational, Real, Symbol, from_python)
 from mathics.builtin.colors import convert as convert_color
 
 import six
@@ -18,7 +18,6 @@ import functools
 import math
 
 _image_requires = (
-    'warnings',
     'numpy',
     'PIL',
 )
@@ -71,6 +70,18 @@ def pixels_as_ubyte(pixels):
         return pixels
     elif dtype == numpy.uint16:
         return (pixels / 256).astype(numpy.uint8)
+    else:
+        raise NotImplementedError
+
+
+def pixels_as_uint(pixels):
+    dtype = pixels.dtype
+    if dtype in (numpy.float32, numpy.float64):
+        return (pixels * 65535.).astype(numpy.uint16)
+    elif dtype == numpy.uint8:
+        return pixels.astype(numpy.uint16) * 256
+    elif dtype == numpy.uint16:
+        return pixels
     else:
         raise NotImplementedError
 
@@ -417,6 +428,7 @@ class ImageResize(_ImageBuiltin):
         'imgrssz': 'The size `1` is not a valid image size specification.',
         'imgrsm': 'Invalid resampling method `1`.',
         'gaussaspect': 'Gaussian resampling needs to maintain aspect ratio.',
+        'skimage': 'Please install skimage to use Resampling -> Gaussian.',
     }
 
     def _get_image_size_spec(self, old_size, new_size):
@@ -501,25 +513,28 @@ class ImageResize(_ImageBuiltin):
         elif resampling_name != 'Gaussian':
             return evaluation.message('ImageResize', 'imgrsm', resampling)
 
-        import skimage  # FIXME
+        try:
+            import skimage
 
-        sy = h / old_h
-        sx = w / old_w
-        if sy > sx:
-            err = abs((sy * old_w) - (sx * old_w))
-            s = sy
-        else:
-            err = abs((sy * old_h) - (sx * old_h))
-            s = sx
-        if err > 1.5:
-            # TODO overcome this limitation
-            return evaluation.message('ImageResize', 'gaussaspect')
-        elif s > 1:
-            pixels = skimage.transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
-        else:
-            pixels = skimage.transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
+            sy = h / old_h
+            sx = w / old_w
+            if sy > sx:
+                err = abs((sy * old_w) - (sx * old_w))
+                s = sy
+            else:
+                err = abs((sy * old_h) - (sx * old_h))
+                s = sx
+            if err > 1.5:
+                # TODO overcome this limitation
+                return evaluation.message('ImageResize', 'gaussaspect')
+            elif s > 1:
+                pixels = skimage.transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
+            else:
+                pixels = skimage.transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
 
-        return Image(pixels, image.color_space)
+            return Image(pixels, image.color_space)
+        except ImportError:
+            evaluation.message('ImageResize', 'skimage')
 
 
 class ImageReflect(_ImageBuiltin):
@@ -831,6 +846,10 @@ class MedianFilter(PillowImageFilter):
 
 
 class EdgeDetect(_ImageBuiltin):
+    requires = _image_requires + (
+        'skimage',
+    )
+
     rules = {
         'EdgeDetect[i_Image]': 'EdgeDetect[i, 2, 0.2]',
         'EdgeDetect[i_Image, r_?RealNumberQ]': 'EdgeDetect[i, r, 0.2]'
@@ -838,6 +857,7 @@ class EdgeDetect(_ImageBuiltin):
 
     def apply(self, image, r, t, evaluation):
         'EdgeDetect[image_Image, r_?RealNumberQ, t_?RealNumberQ]'
+        import skimage.feature
         return Image(skimage.feature.canny(
             image.grayscale().pixels, sigma=r.to_python() / 2,
             low_threshold=0.5 * t.to_python(), high_threshold=t.to_python()),
@@ -896,6 +916,10 @@ class DiamondMatrix(_ImageBuiltin):
 
 
 class _MorphologyFilter(_ImageBuiltin):
+    requires = _image_requires + (
+        'skimage',
+    )
+
     messages = {
         'grayscale': 'Your image has been converted to grayscale as color images are not supported yet.'
     }
@@ -909,6 +933,7 @@ class _MorphologyFilter(_ImageBuiltin):
         if image.color_space != 'Grayscale':
             image = image.grayscale()
             evaluation.message(self.name, 'grayscale')
+        import skimage.morphology
         f = getattr(skimage.morphology, self.get_name(True).lower())
         img = f(image.pixels, numpy.array(k.to_python()))
         return Image(img, 'Grayscale')
@@ -967,6 +992,10 @@ class Closing(_MorphologyFilter):
 
 
 class MorphologicalComponents(_ImageBuiltin):
+    requires = _image_requires + (
+        'skimage',
+    )
+
     rules = {
         'MorphologicalComponents[i_Image]': 'MorphologicalComponents[i, 0]'
     }
@@ -974,6 +1003,7 @@ class MorphologicalComponents(_ImageBuiltin):
     def apply(self, image, t, evaluation):
         'MorphologicalComponents[image_Image, t_?RealNumberQ]'
         pixels = pixels_as_ubyte(pixels_as_float(image.grayscale().pixels) > t.to_python())
+        import skimage.measure
         return from_python(skimage.measure.label(pixels, background=0, connectivity=2).tolist())
 
 
@@ -1053,7 +1083,8 @@ class Threshold(_ImageBuiltin):
     }
 
     messages = {
-        'illegalmethod': 'Method `` is not supported.'
+        'illegalmethod': 'Method `` is not supported.',
+        'skimage': 'Please install scikit-image to use Method -> Cluster.',
     }
 
     def apply(self, image, evaluation, options):
@@ -1063,7 +1094,12 @@ class Threshold(_ImageBuiltin):
         method = self.get_option(options, 'Method', evaluation)
         method_name = method.get_string_value() if isinstance(method, String) else method.to_python()
         if method_name == 'Cluster':
-            threshold = skimage.filters.threshold_otsu(pixels)
+            try:
+                import skimage.filters
+                threshold = skimage.filters.threshold_otsu(pixels)
+            except ImportError:
+                evaluation.message('Threshold', 'skimage')
+                return
         elif method_name == 'Median':
             threshold = numpy.median(pixels)
         elif method_name == 'Mean':
@@ -1143,7 +1179,7 @@ def _linearize(a):
 
 
 class Colorize(_ImageBuiltin):
-    requires = (
+    requires = _image_requires + (
         "matplotlib",  # FIXME; use ColorData[] schemes
     )
 
