@@ -77,19 +77,11 @@ def pixels_as_ubyte(pixels):
 # import and export
 
 class _Exif:
-    _ratios = frozenset((
-        'XResolution', 'YResolution', 'MaxApertureValue', 'SubjectDistance', 'FNumber', 'ExposureTime',
-        'ExposureBiasValue', 'CompressedBitsPerPixel', 'FocalLength'))
-
-    _bytes = frozenset((
-        'ExifVersion', 'FlashPixVersion', 'ComponentsConfiguration', 'InteropabilityVersion'
-    ))
-
-    _renames = {
-        'Flash': 'FlashInfo',
-        'FlashPixVersion': 'FlashpixVersion',
-        'ExifImageWidth': 'PixelXDimension',
-        'ExifImageHeight': 'PixelYDimension',
+    _names = {  # names overriding the ones given by Pillow
+        37385: 'FlashInfo',
+        40960: 'FlashpixVersion',
+        40962: 'PixelXDimension',
+        40963: 'PixelYDimension',
     }
 
     @staticmethod
@@ -100,22 +92,24 @@ class _Exif:
                 if not name:
                     continue
 
-                if name in _Exif._ratios and isinstance(v, tuple) and len(v) == 2:
+                # EXIF has the following types: Short, Long, Rational, Ascii, Byte
+                # (see http://www.exiv2.org/tags.html). we detect the type from the
+                # Python type Pillow gives us and do the appropiate MMA handling.
+
+                if isinstance(v, tuple) and len(v) == 2:  # Rational
                     value = Rational(v[0], v[1])
                     if name == 'FocalLength':
                         value = value.round(2)
                     else:
                         value = Expression('Simplify', value).evaluate(evaluation)
-                elif name in _Exif._bytes and isinstance(v, bytes):
+                elif isinstance(v, bytes):  # Byte
                     value = String(' '.join(['%d' % x for x in v]))
-                elif isinstance(v, (int, str)):
+                elif isinstance(v, (int, str)):  # Short, Long, Ascii
                     value = v
                 else:
                     continue
 
-                name = _Exif._renames.get(name, name)
-
-                yield Expression('Rule', String(name), value)
+                yield Expression('Rule', String(_Exif._names.get(k, name)), value)
 
 
 class ImageImport(_ImageBuiltin):
