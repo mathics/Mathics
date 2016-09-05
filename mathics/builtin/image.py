@@ -11,7 +11,7 @@ from mathics.builtin.base import (
 from mathics.core.expression import (
     Atom, Expression, Integer, Rational, Real, MachineReal, Symbol, from_python)
 from mathics.builtin.colors import convert as convert_color, colorspaces as known_colorspaces
-from mathics.layout.client import WebEngineUnavailable
+from mathics.layout.client import WebEngineError
 
 import six
 import base64
@@ -2434,10 +2434,6 @@ class Rasterize(Builtin):
         'RasterSize': '300',
     }
 
-    messages = {
-        'err': 'Rasterize[] failed: `1`',
-    }
-
     def apply(self, expr, evaluation, options):
         'Rasterize[expr_, OptionsPattern[%(name)s]]'
 
@@ -2453,21 +2449,15 @@ class Rasterize(Builtin):
         mathml = evaluation.format_output(expr, 'xml')
         try:
             svg = evaluation.output.mathml_to_svg(mathml)
-            reply = evaluation.output.rasterize(svg, py_raster_size)
-            buffer = reply.get('buffer')
+            png = evaluation.output.rasterize(svg, py_raster_size)
 
-            if buffer:
-                stream = BytesIO()
-                stream.write(bytearray(buffer['data']))
-                stream.seek(0)
-                pixels = skimage.io.imread(stream)
-                stream.close()
+            stream = BytesIO()
+            stream.write(png)
+            stream.seek(0)
+            pixels = skimage.io.imread(stream)
+            stream.close()
 
-                return Image(pixels, 'RGB')
-            else:
-                error = reply.get('error', 'could not identify the reason for the error')
-                evaluation.message('Rasterize', 'err', error)
-
-        except WebEngineUnavailable as e:
+            return Image(pixels, 'RGB')
+        except WebEngineError as e:
             evaluation.message(
-                'General', 'nowebeng', 'Rasterize[] is not available: ' + str(e), once=True)
+                'General', 'nowebeng', 'Rasterize[] did not succeed: ' + str(e), once=True)
