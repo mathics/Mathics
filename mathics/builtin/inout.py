@@ -232,6 +232,15 @@ def number_form(expr, n, f, evaluation, options):
     # left and right of NumberPoint
     left, right = s[:exp + 1], s[exp + 1:]
 
+    # pad with NumberPadding
+    if f is not None:
+        if len(right) < f:
+            # pad right
+            right = right + (f - len(right)) * options['NumberPadding'][1]
+        elif len(right) > f:
+            # round right
+            right = str(int(round(int(right) * 10**(f - len(right)))))
+
     def split_string(s, start, step):
         if start > 0:
             yield s[:start]
@@ -247,14 +256,6 @@ def number_form(expr, n, f, evaluation, options):
         right = split_string(right, 0, digit_block[1])
         right = options['NumberSeparator'][1].join(right)
 
-    # pad with NumberPadding
-    if f is not None:
-        if len(right) < f:
-            # pad right
-            right = right + (f - len(right)) * options['NumberPadding'][1]
-        elif len(right) > f:
-            # truncate right
-            right = right[:f]
     left_padding = 0
     max_sign_len = max(len(options['NumberSigns'][0]), len(options['NumberSigns'][1]))
     l = len(sign_prefix) + len(left) + len(right) - max_sign_len
@@ -2175,6 +2176,12 @@ class NumberForm(_NumberForm):
      = 50.0
     #> NumberForm[50, {5, 1}]
      = 50.0
+
+    ## Rounding correctly
+    #> NumberForm[43.157, {10, 1}]
+     = 43.2
+    #> NumberForm[43.15752525, {10, 5}, NumberSeparator -> ",", DigitBlock -> 1]
+     = 4,3.1,5,7,5,3
     '''
 
     options = {
