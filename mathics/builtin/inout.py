@@ -139,10 +139,10 @@ def real_to_s_exp(expr, n):
             exp = int(exp)
             if len(s) > 1 and s[1] == '.':
                 # str(float) doesn't always include '.' if 'e' is present.
-                s = s[0] + s[2:]
+                s = s[0] + s[2:].rstrip('0')
         else:
             exp = s.index('.') - 1
-            s = s[:exp + 1] + s[exp + 2:]
+            s = s[:exp + 1] + s[exp + 2:].rstrip('0')
 
             # consume leading '0's.
             i = 0
@@ -150,7 +150,6 @@ def real_to_s_exp(expr, n):
                 i += 1
                 exp -= 1
             s = s[i:]
-        s = s.rstrip('0')
 
         # add trailing zeros for precision reals
         if n is not None and not expr.is_machine_precision() and len(s) < n:
@@ -2166,6 +2165,16 @@ class NumberForm(_NumberForm):
      = XX-1.234
     #> NumberForm[-1.234, {6, 4}, SignPadding -> False, NumberPadding -> {"X", "Y"}]
      = X-1.234Y
+
+    ## 1-arg, Option case
+    #> NumberForm[34, ExponentFunction->(Null&)]
+     = 34
+
+    ## zero padding integer x0.0 case
+    #> NumberForm[50.0, {5, 1}]
+     = 50.0
+    #> NumberForm[50, {5, 1}]
+     = 50.0
     '''
 
     options = {
@@ -2233,7 +2242,7 @@ class NumberForm(_NumberForm):
         return Expression('MakeBoxes', expr, form)
 
     def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
-        '''MakeBoxes[NumberForm[expr_, n_, OptionsPattern[NumberForm]],
+        '''MakeBoxes[NumberForm[expr_, n_?NotOptionQ, OptionsPattern[NumberForm]],
             form:StandardForm|TraditionalForm|OutputForm]'''
 
         fallback = Expression('MakeBoxes', expr, form)
