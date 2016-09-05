@@ -148,7 +148,7 @@ class BaseExpression(KeyComparable):
     def get_attributes(self, definitions):
         return set()
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation, **kwargs):
         evaluation.check_stopped()
         return self
 
@@ -770,16 +770,16 @@ class Expression(BaseExpression):
         else:
             return self
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation, reevaluate=False):
         from mathics.core.evaluation import ReturnInterrupt
         evaluation.inc_recursion_depth()
         old_options = evaluation.options
         if hasattr(self, 'options') and self.options:
             evaluation.options = self.options
         try:
-            if self.is_evaluated:
+            if self.is_evaluated and not reevaluate:
                 return self
-            head = self.head.evaluate(evaluation)
+            head = self.head.evaluate(evaluation, reevaluate=reevaluate)
             attributes = head.get_attributes(evaluation.definitions)
             leaves = self.leaves[:]
 
@@ -788,13 +788,13 @@ class Expression(BaseExpression):
                     for index in indices:
                         leaf = leaves[index]
                         if leaf.has_form('Evaluate', 1):
-                            leaves[index] = leaf.evaluate(evaluation)
+                            leaves[index] = leaf.evaluate(evaluation, reevaluate=reevaluate)
 
             def eval_range(indices):
                 for index in indices:
                     leaf = leaves[index]
                     if not leaf.has_form('Unevaluated', 1):
-                        leaves[index] = leaf.evaluate(evaluation)
+                        leaves[index] = leaf.evaluate(evaluation, reevaluate=reevaluate)
 
             if 'System`HoldAll' in attributes or 'System`HoldAllComplete' in attributes:
                 # eval_range(range(0, 0))
@@ -1427,7 +1427,7 @@ class Symbol(Atom):
     def has_symbol(self, symbol_name):
         return self.name == ensure_context(symbol_name)
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation, **kwargs):
         rules = evaluation.definitions.get_ownvalues(self.name)
         for rule in rules:
             result = rule.apply(self, evaluation, fully=True)
@@ -1554,7 +1554,7 @@ class Integer(Number):
     def same(self, other):
         return isinstance(other, Integer) and self.value == other.value
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation, **kwargs):
         evaluation.check_stopped()
         return self
 
@@ -1637,7 +1637,7 @@ class Rational(Number):
     def default_format(self, evaluation, form):
         return 'Rational[%s, %s]' % self.value.as_numer_denom()
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation, **kwargs):
         evaluation.check_stopped()
         return self
 
@@ -1708,7 +1708,7 @@ class Real(Number):
     def atom_to_boxes(self, f, evaluation):
         return self.make_boxes(f.get_name())
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation, **kwargs):
         evaluation.check_stopped()
         return self
 
@@ -1937,7 +1937,7 @@ class Complex(Number):
         return (isinstance(other, Complex) and self.real == other.real and
                 self.imag == other.imag)
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation, **kwargs):
         evaluation.check_stopped()
         return self
 
