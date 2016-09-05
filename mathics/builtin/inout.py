@@ -2187,6 +2187,8 @@ class NumberForm(_NumberForm):
      = 4,3.1,5,7,5,3
     #> NumberForm[80.96, {16, 1}]
      = 81.0
+    #> NumberForm[142.25, {10, 1}]
+     = 142.3
     '''
 
     options = {
