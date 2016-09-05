@@ -2182,6 +2182,8 @@ class NumberForm(_NumberForm):
      = 43.2
     #> NumberForm[43.15752525, {10, 5}, NumberSeparator -> ",", DigitBlock -> 1]
      = 4,3.1,5,7,5,3
+    #> NumberForm[80.96, {16, 1}]
+     = 81.0
     '''
 
     options = {
