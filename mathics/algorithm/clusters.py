@@ -676,6 +676,20 @@ class MergeCriterion(object):
         return lambda x, y: distances[_index(max(x, y), min(x, y))]
 
 
+class FixedDistanceCriterion(MergeCriterion):
+    def __init__(self, distances, n, merge_limit):
+        super(FixedDistanceCriterion, self).__init__(distances, n)
+        self._merge_limit = merge_limit
+        self._best_partition = None
+
+    def best(self, clusters):
+        return self._best_partition
+
+    def save_and_merge(self, clusters, i, j, d_min):
+        self._best_partition = [c[:] for c in clusters if c]
+        return d_min <= self._merge_limit
+
+
 class _DunnMergeCriterion(MergeCriterion):
     # implements a Dunn index, as for example described in [Desgraupes2013].
 
@@ -725,7 +739,7 @@ class _DunnMergeCriterion(MergeCriterion):
 AutomaticMergeCriterion = _DunnMergeCriterion
 
 
-def agglomerate(points, k, distances, mode='clusters'):
+def agglomerate(points_and_weights, k, distances, mode='clusters'):
     # this is an implementation of heap-based clustering as described
     # by [Kurita1991].
 
@@ -751,6 +765,12 @@ def agglomerate(points, k, distances, mode='clusters'):
     # mode: 'clusters' returns clusters, 'dominant' returns one dominant
     # representant of each cluster only, 'components' returns the index of
     # the cluster each element is in for each element.
+
+    if mode == 'dominant':
+        points, weight_ = points_and_weights
+        weight = [x for x in weight_]
+    else:
+        points = points_and_weights
 
     clusters = [[i] for i in range(len(points))]
 
@@ -898,26 +918,32 @@ def agglomerate(points, k, distances, mode='clusters'):
                     update(where[a], (y, px, u), heap, where)
 
             if dominant:
-                if len(clusters[j]) > len(clusters[i]):
+                if weight[j] > weight[i]:
                     dominant[i] = dominant[j]
+                weight[i] += weight[j]
                 dominant[j] = None
+                weight[j] = None
 
             clusters[i].extend(clusters[j])
             clusters[j] = None
 
             n_clusters -= 1
 
-        if criterion:
-            result = criterion.best(result)
+        if mode in ('components', 'clusters'):
+            if criterion:
+                result = criterion.best(result)
 
-        # sort, so clusters appear in order of their first element appearance
-        # in the original list.
-        result = sorted([sorted(c) for c in result if c], key=lambda c: c[0])
+            # sort, so clusters appear in order of their first element appearance
+            # in the original list.
+            result = sorted([sorted(c) for c in result if c], key=lambda c: c[0])
 
-        if mode == 'components':
-            return _components(result, n)
-        elif mode == 'clusters':
-            return [[points[i] for i in c] for c in result]
+            if mode == 'components':
+                return _components(result, n)
+            elif mode == 'clusters':
+                return [[points[i] for i in c] for c in result]
+        elif mode == 'dominant':
+            prototypes = [(points[dominant[i]], weight[i], c) for i, c in enumerate(clusters) if c is not None]
+            return sorted(prototypes, key=lambda t: t[1], reverse=True)  # most weighted first
         else:
             raise ValueError('illegal mode %s' % mode)
 

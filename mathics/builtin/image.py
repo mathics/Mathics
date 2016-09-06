@@ -145,7 +145,7 @@ class ImageImport(_ImageBuiltin):
         is_rgb = len(pixels.shape) >= 3 and pixels.shape[2] >= 3
         exif = Expression('List', *list(_Exif.extract(pillow, evaluation)))
 
-        atom = Image(pixels, 'RGB' if is_rgb else 'Grayscale', exif)  # FIXME
+        atom = Image(pixels, 'RGB' if is_rgb else 'Grayscale')
         return Expression(
             'List',
             Expression('Rule', String('Image'), atom),
@@ -1256,46 +1256,39 @@ class DominantColors(Builtin):
     def apply(self, image, evaluation):
         'DominantColors[image_Image]'
 
-        try:
-            # reduce complexity: reduce to 256 colors (this is something that has been done
-            # before in algorithms for detecting dominant colors, see Kiranyaz et al.)
-            im = image.color_convert('LAB').pil().convert(
-                'P', palette=PIL.Image.ADAPTIVE, colors=256)
+        # reduce complexity: reduce to 256 colors (this is something that has been done
+        # before in algorithms for detecting dominant colors, see Kiranyaz et al.)
+        im = image.color_convert('RGB').pil().convert(
+            'P', palette=PIL.Image.ADAPTIVE, colors=256)
 
-            flat_palette = numpy.array(list(im.getpalette())) / 255.0  # float values now
-            lab_palette = [flat_palette[i:i + 3] for i in range(0, len(flat_palette), 3)]
+        flat = numpy.array(list(im.getpalette())) / 255.0  # float values now
+        rgb_palette = [flat[i:i + 3] for i in range(0, len(flat), 3)]
+        lab_palette = convert_color(rgb_palette, 'RGB', 'LAB', False)
 
-            merge_distance = 50
+        bins = numpy.bincount(numpy.array(list(im.getdata())), minlength=len(rgb_palette))
 
+        from mathics.algorithm.clusters import agglomerate, PrecomputedDistances,\
+            FixedDistanceCriterion, _squared_euclidean_distance
 
+        def df(i, j):
+            return _squared_euclidean_distance(lab_palette[i], lab_palette[j])
 
-            palette = [tuple(x) for x in lab_palette]  # hashable now, thus usable in set
+        lab_distances = [df(i, j) for i in range(len(lab_palette)) for j in range(i)]
 
-            bins = numpy.bincount(numpy.array(list(im.getdata())), minlength=len(palette))
+        merge_distance = 0.125
 
-            from scipy import spatial
+        dominant = agglomerate(
+            (rgb_palette, bins),
+            (FixedDistanceCriterion, {'merge_limit': merge_distance * merge_distance}),
+            PrecomputedDistances(lab_distances),
+            mode='dominant')
 
-            r = 50
+        result = []
 
-            tree = spatial.KDTree(palette)
+        for prototype, weight, members in dominant:
+            result.append(Expression('RGBColor', *prototype))
 
-            for i, _ in sorted([(i, xs) for i, xs in enumerate(bins)],
-                               key=lambda k: k[1], reverse=True):
-                if bins[i] > 0:  # not merged yet?
-                    for j in tree.query_ball_point(palette[i], r):
-                        bins[i] += bins[j]
-                        bins[j] = 0
-
-            min_xs = 0
-            lab_dominant = sorted([(palette[i], xs) for i, xs in enumerate(bins) if xs > min_xs],
-                                  key=lambda k: k[1], reverse=True)
-            rgb_dominant = skimage.color.lab2rgb([list(map(lambda k: k[0], lab_dominant))])[0]
-
-            return Expression('List', *list(map(lambda x: Expression('RGBColor', *x), rgb_dominant)))
-
-        except:
-            import sys
-            return String(repr(sys.exc_info()))
+        return Expression('List', *result)
 
 
 # pixel access

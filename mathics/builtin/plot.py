@@ -56,6 +56,7 @@ def gradient_palette(color_function, n, evaluation):  # always returns RGB value
     except ColorError:
         return
 
+
 class ColorDataFunction(Builtin):
     pass
 
