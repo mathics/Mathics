@@ -1418,6 +1418,11 @@ class Cases(Builtin):
      = {2, 9, 10}
     #> Cases[{1, f[2], f[3, 3, 3], 4, f[5, 5]}, f[x__] -> Plus[x]]
      = {2, 3, 3, 3, 5, 5}
+
+    #> z = f[x, y];
+    #> x = 1;
+    #> Cases[z, _Symbol, Infinity]
+     = {y}
     """
 
 
@@ -1427,6 +1432,9 @@ class Cases(Builtin):
 
     def apply(self, items, pattern, ls, evaluation):
         'Cases[items_, pattern_, ls_:{1}]'
+
+        items = items.evaluate(evaluation, reevaluate=True)
+
         if items.is_atom():
             return Expression('List')
 
