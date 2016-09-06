@@ -630,6 +630,9 @@ class Times(BinaryOperator, SympyFunction):
                                 for leaf in leaves[0].leaves]
             number = None
 
+        for leaf in leaves:
+            leaf.last_evaluated = None
+
         if number is not None:
             leaves.insert(0, number)
 

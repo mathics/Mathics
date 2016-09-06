@@ -143,6 +143,7 @@ class BaseExpression(KeyComparable):
         self.options = None
         self.pattern_sequence = False
         self.unformatted = self
+        self.last_evaluated = None
         return self
 
     def get_attributes(self, definitions):
@@ -510,7 +511,6 @@ class Expression(BaseExpression):
         self.leaves = [from_python(leaf) for leaf in leaves]
 
         self.parse_operator = kwargs.get('parse_operator')
-        self.is_evaluated = False
         return self
 
     def copy(self):
@@ -518,16 +518,16 @@ class Expression(BaseExpression):
             self.head.copy(), *[leaf.copy() for leaf in self.leaves])
         result.options = self.options
         result.original = self
+        # result.last_evaluated = self.last_evaluated
         return result
 
     def shallow_copy(self):
         # this is a minimal, shallow copy: head, leaves are shared with
-        # the original, only the Expression instance is new. we transfer
-        # the is_evaluated state, so we don't reevaluate evaluated stuff.
+        # the original, only the Expression instance is new.
         expr = Expression(self.head)
         expr.leaves = self.leaves
         expr.options = self.options
-        expr.is_evaluated = self.is_evaluated
+        expr.last_evaluated = self.last_evaluated
         return expr
 
     def set_positions(self, position=None):
@@ -777,7 +777,8 @@ class Expression(BaseExpression):
         if hasattr(self, 'options') and self.options:
             evaluation.options = self.options
         try:
-            if self.is_evaluated:
+            # changed before last evaluated
+            if self.last_evaluated is not None and evaluation.definitions.last_changed(self) <= self.last_evaluated:
                 return self
             head = self.head.evaluate(evaluation)
             attributes = head.get_attributes(evaluation.definitions)
@@ -810,6 +811,7 @@ class Expression(BaseExpression):
                 # rest_range(range(0, 0))
 
             new = Expression(head, *leaves)
+
             if ('System`SequenceHold' not in attributes and    # noqa
                 'System`HoldAllComplete' not in attributes):
                 new = new.flatten(Symbol('Sequence'))
@@ -833,13 +835,16 @@ class Expression(BaseExpression):
             if 'System`Orderless' in attributes:
                 new.sort()
 
-            new.is_evaluated = True
+            new.last_evaluated = self.last_evaluated
+
             if 'System`Listable' in attributes:
                 done, threaded = new.thread(evaluation)
                 if done:
-                    if not threaded.same(new):
-                        threaded = threaded.evaluate(evaluation)
-                    return threaded
+                    if threaded.same(new):
+                        new.last_evaluated = evaluation.definitions.now
+                        return new
+                    else:
+                        return threaded.evaluate(evaluation)
 
             def rules():
                 rules_names = set()
@@ -862,9 +867,11 @@ class Expression(BaseExpression):
             for rule in rules():
                 result = rule.apply(new, evaluation, fully=False)
                 if result is not None:
-                    if not result.same(new):
-                        result = result.evaluate(evaluation)
-                    return result
+                    if result.same(new):
+                        new.last_evaluated = evaluation.definitions.now
+                        return new
+                    else:
+                        return result.evaluate(evaluation)
 
             # Expression did not change, re-apply Unevaluated
             for index, leaf in enumerate(new.leaves):
@@ -872,6 +879,7 @@ class Expression(BaseExpression):
                     new.leaves[index] = Expression('Unevaluated', leaf)
 
             new.unformatted = self.unformatted
+            new.last_evaluated = evaluation.definitions.now
             return new
 
         # "Return gets discarded only if it was called from within the r.h.s.

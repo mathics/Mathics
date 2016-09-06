@@ -97,9 +97,9 @@ class Rule(BaseRule):
         # options' values. this is achieved through Expression.evaluate(), which then triggers OptionValue.apply,
         # which in turn consults evaluation.options to return an option value.
 
-        # in order to get there, our expression 'new' (or parts of it) must not have is_evaluated True, since this
+        # in order to get there, our expression 'new' (or parts of it) must have last_evaluated None, since this
         # would make Expression.evaluate() quit early. doing a clean deep copy here, will reset
-        # Expression.is_evaluated for all nodes in the tree.
+        # Expression.last_evaluated for all nodes in the tree.
 
         # if the expression contains OptionValue[] patterns, but options is empty here, we don't need to act, as the
         # expression won't change in that case. the Expression.options would be None anyway, so OptionValue.apply

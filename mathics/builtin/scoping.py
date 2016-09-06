@@ -107,10 +107,6 @@ class Block(Builtin):
 
         vars = dict(get_scoping_vars(vars, 'Block', evaluation))
         result = dynamic_scoping(expr.evaluate, vars, evaluation)
-
-        # Variables may have changed: must revalute
-        result.is_evaluated = False
-
         return result
 
 

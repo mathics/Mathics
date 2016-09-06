@@ -423,9 +423,9 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
                                                     assignment.leaves):
                     process_level(sub_item, sub_assignment)
         process_level(result, assign_list)
-        return list_of_list[0]
-    else:
-        return result
+        result = list_of_list[0]
+    result.last_evaluated = None
+    return result
 
 
 def is_in_level(current, depth, start=1, stop=None):
