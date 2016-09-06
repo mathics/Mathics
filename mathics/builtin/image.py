@@ -869,6 +869,16 @@ def _matrix(rows):
 
 
 class BoxMatrix(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'BoxMatrix[$s]'
+      <dd>Gives a box shaped kernel of size 2 $s$ + 1.
+    </dl>
+
+    >> BoxMatrix[3]
+     = {{1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}}
+    '''
+
     def apply(self, r, evaluation):
         'BoxMatrix[r_?RealNumberQ]'
         py_r = abs(r.round_to_float())
@@ -877,6 +887,16 @@ class BoxMatrix(_ImageBuiltin):
 
 
 class DiskMatrix(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'DiskMatrix[$s]'
+      <dd>Gives a disk shaped kernel of size 2 $s$ + 1.
+    </dl>
+
+    >> DiskMatrix[3]
+     = {{0, 0, 1, 1, 1, 0, 0}, {0, 1, 1, 1, 1, 1, 0}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {0, 1, 1, 1, 1, 1, 0}, {0, 0, 1, 1, 1, 0, 0}}
+    '''
+
     def apply(self, r, evaluation):
         'DiskMatrix[r_?RealNumberQ]'
         py_r = abs(r.round_to_float())
@@ -893,6 +913,16 @@ class DiskMatrix(_ImageBuiltin):
 
 
 class DiamondMatrix(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'DiamondMatrix[$s]'
+      <dd>Gives a diamond shaped kernel of size 2 $s$ + 1.
+    </dl>
+
+    >> DiamondMatrix[3]
+     = {{0, 0, 0, 1, 0, 0, 0}, {0, 0, 1, 1, 1, 0, 0}, {0, 1, 1, 1, 1, 1, 0}, {1, 1, 1, 1, 1, 1, 1}, {0, 1, 1, 1, 1, 1, 0}, {0, 0, 1, 1, 1, 0, 0}, {0, 0, 0, 1, 0, 0, 0}}
+    '''
+
     def apply(self, r, evaluation):
         'DiamondMatrix[r_?RealNumberQ]'
         py_r = abs(r.round_to_float())
@@ -1179,24 +1209,93 @@ def _linearize(a):
 
 
 class Colorize(_ImageBuiltin):
-    requires = _image_requires + (
-        "matplotlib",  # FIXME; use ColorData[] schemes
-    )
+    '''
+    <dl>
+    <dt>'Colorize[$a$]'
+      <dd>returns an image where each number is a pixel and each occurence of the same number is displayed
+      in the same unique color, which is different from the colors of all non-identical numbers.
+    </dl>
 
-    def apply(self, a, evaluation):
-        'Colorize[a_?MatrixQ]'
+    >> Colorize[{{1.3, 2.1, 1.5}, {1.3, 1.3, 2.1}, {1.3, 2.1, 1.5}}]
+     = -Image-
+
+    >> Colorize[{{1, 2}, {2, 2}, {2, 3}}, ColorFunction -> (Blend[{White, Blue}, #]&)]
+     = -Image-
+    '''
+
+    options = {
+        'ColorFunction': 'Automatic',
+    }
+
+    messages = {
+        'cfun': '`1` is neither a gradient ColorData nor a pure function suitable as ColorFunction.',
+    }
+
+    def apply(self, a, evaluation, options):
+        'Colorize[a_?MatrixQ, OptionsPattern[%(name)s]]'
 
         a, n = _linearize(numpy.array(a.to_python()))
         # the maximum value for n is the number of pixels in a, which is acceptable and never too large.
 
-        cmap = matplotlib.cm.get_cmap('hot', n)  # FIXME; use ColorData[] schemes
-        p = numpy.transpose(numpy.array([cmap(i) for i in range(n)])[:, 0:3])
+        color_function = self.get_option(options, 'ColorFunction', evaluation)
+        if isinstance(color_function, Symbol) and color_function.get_name() == 'System`Automatic':
+            color_function = String('LakeColors')
+
+        from mathics.builtin.plot import gradient_palette
+        cmap = gradient_palette(color_function, n, evaluation)
+        if not cmap:
+            evaluation.message('Colorize', 'cfun', color_function)
+            return
+
+        p = numpy.transpose(numpy.array([cmap[i] for i in range(n)])[:, 0:3])
         s = (a.shape[0], a.shape[1], 1)
         return Image(numpy.concatenate([p[i][a].reshape(s) for i in range(3)], axis=2), color_space='RGB')
 
 
 class DominantColors(Builtin):
-    pass
+    def apply(self, image, evaluation):
+        'DominantColors[image_Image]'
+
+        try:
+            # reduce complexity: reduce to 256 colors (this is something that has been done
+            # before in algorithms for detecting dominant colors, see Kiranyaz et al.)
+            im = image.color_convert('LAB').pil().convert(
+                'P', palette=PIL.Image.ADAPTIVE, colors=256)
+
+            flat_palette = numpy.array(list(im.getpalette())) / 255.0  # float values now
+            lab_palette = [flat_palette[i:i + 3] for i in range(0, len(flat_palette), 3)]
+
+            merge_distance = 50
+
+
+
+            palette = [tuple(x) for x in lab_palette]  # hashable now, thus usable in set
+
+            bins = numpy.bincount(numpy.array(list(im.getdata())), minlength=len(palette))
+
+            from scipy import spatial
+
+            r = 50
+
+            tree = spatial.KDTree(palette)
+
+            for i, _ in sorted([(i, xs) for i, xs in enumerate(bins)],
+                               key=lambda k: k[1], reverse=True):
+                if bins[i] > 0:  # not merged yet?
+                    for j in tree.query_ball_point(palette[i], r):
+                        bins[i] += bins[j]
+                        bins[j] = 0
+
+            min_xs = 0
+            lab_dominant = sorted([(palette[i], xs) for i, xs in enumerate(bins) if xs > min_xs],
+                                  key=lambda k: k[1], reverse=True)
+            rgb_dominant = skimage.color.lab2rgb([list(map(lambda k: k[0], lab_dominant))])[0]
+
+            return Expression('List', *list(map(lambda x: Expression('RGBColor', *x), rgb_dominant)))
+
+        except:
+            import sys
+            return String(repr(sys.exc_info()))
 
 
 # pixel access

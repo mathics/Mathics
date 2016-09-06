@@ -16,13 +16,45 @@ from math import sin, cos, pi, sqrt, isnan, isinf
 import numbers
 import itertools
 
-from mathics.core.expression import (Expression, Real, Symbol,
+from mathics.core.expression import (Expression, Real, MachineReal, Symbol,
                                      String, from_python)
 from mathics.builtin.base import Builtin
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.options import options_to_rules
 from mathics.builtin.numeric import chop
 
+
+def gradient_palette(color_function, n, evaluation):  # always returns RGB values
+    if isinstance(color_function, String):
+        color_data = Expression('ColorData', color_function).evaluate(evaluation)
+        if not color_data.has_form('ColorDataFunction', 4):
+            return
+        name, kind, interval, blend = color_data.leaves
+        if not isinstance(kind, String) or kind.get_string_value() != 'Gradients':
+            return
+        if not interval.has_form('List', 2):
+            return
+        x0, x1 = (x.round_to_float() for x in interval.leaves)
+    else:
+        blend = color_function
+        x0 = 0.
+        x1 = 1.
+
+    xd = x1 - x0
+    offsets = [MachineReal(x0 + float(xd * i) / float(n - 1)) for i in range(n)]
+    colors = Expression('Map', blend, Expression('List', *offsets)).evaluate(evaluation)
+    if len(colors.leaves) != n:
+        return
+
+    from mathics.builtin.graphics import expression_to_color, ColorError
+
+    try:
+        objects = [expression_to_color(x) for x in colors.leaves]
+        if any(x is None for x in objects):
+            return None
+        return [x.to_rgba()[:3] for x in objects]
+    except ColorError:
+        return
 
 class ColorDataFunction(Builtin):
     pass
