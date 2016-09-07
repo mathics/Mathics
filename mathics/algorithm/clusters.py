@@ -665,11 +665,8 @@ class MergeCriterion(object):
         self.distances = distances
         self.n = n
 
-    def save_and_merge(self, clusters, i, j, d_min):
+    def merge(self, clusters, i, j, d_min, save):
         raise NotImplementedError()
-
-    def best(self, clusters):
-        return clusters
 
     def _fast_distance(self):
         distances = self.distances
@@ -680,13 +677,8 @@ class FixedDistanceCriterion(MergeCriterion):
     def __init__(self, distances, n, merge_limit):
         super(FixedDistanceCriterion, self).__init__(distances, n)
         self._merge_limit = merge_limit
-        self._best_partition = None
 
-    def best(self, clusters):
-        return self._best_partition
-
-    def save_and_merge(self, clusters, i, j, d_min):
-        self._best_partition = [c[:] for c in clusters if c]
+    def merge(self, clusters, i, j, d_min, save):
         return d_min <= self._merge_limit
 
 
@@ -702,21 +694,16 @@ class _DunnMergeCriterion(MergeCriterion):
 
         self._diameters = [0.] * n
         self._max_diameter = 0.
-
         self._best_dunn = None
-        self._best_partition = None
 
         self._merge_limit = merge_limit
 
-    def best(self, clusters):
-        return self._best_partition
-
-    def save_and_merge(self, clusters, i, j, d_min):
+    def merge(self, clusters, i, j, d_min, save):
         # save the current partition if it's better than before.
 
         dunn = (d_min, self._max_diameter)
         if self._best_dunn is None or _ratio_bigger_than(dunn, self._best_dunn):
-            self._best_partition = [c[:] for c in clusters if c]
+            save()
             if self._max_diameter > 0.:
                 self._best_dunn = dunn
 
@@ -887,12 +874,41 @@ def agglomerate(points_and_weights, k, distances, mode='clusters'):
 
         n_clusters = n
 
-        if mode == 'dominant':
-            dominant = list(range(n))
-            result = dominant
-        elif mode in ('clusters', 'components'):
+        # if the criterion does not call save(), "best" is always the current (last) configuration.
+        # save() allows to put a different configuration into "best" and keep on clustering and
+        # return the "best" configuration later on as result.
+
+        if mode in ('clusters', 'components'):
             dominant = None
-            result = clusters
+            best = [clusters]
+
+            def save():  # save current configuration
+                best[0] = [c[:] for c in clusters if c]
+
+            def result():
+                best_clusters = best[0]
+
+                # sort, so clusters appear in order of their first element appearance in the original list.
+                r = sorted([sorted(c) for c in best_clusters if c], key=lambda c: c[0])
+
+                if mode == 'components':
+                    return _components(r, n)
+                elif mode == 'clusters':
+                    return [[points[i] for i in c] for c in r]
+        elif mode == 'dominant':
+            dominant = list(range(n))
+            best = [clusters, dominant, weight]
+
+            def save():  # save current configuration
+                best[0] = [c[:] for c in clusters if c]
+                best[1] = dominant[:]
+                best[2] = weight[:]
+
+            def result():
+                best_clusters, best_dominant, best_weight = best
+                prototypes = [(points[best_dominant[i]], best_weight[i], c)
+                              for i, c in enumerate(best_clusters) if c is not None]
+                return sorted(prototypes, key=lambda t: t[1], reverse=True)  # most weighted first
         else:
             raise ValueError('illegal mode %s' % mode)
 
@@ -904,7 +920,7 @@ def agglomerate(points_and_weights, k, distances, mode='clusters'):
             if i > j:
                 i, j = j, i  # merge later chunk to earlier one to preserve order
 
-            if criterion and not criterion.save_and_merge(clusters, i, j, d):
+            if criterion and not criterion.merge(clusters, i, j, d, save):
                 break
 
             heap = remove(where[p], heap, where)  # remove distance (i, j)
@@ -929,23 +945,7 @@ def agglomerate(points_and_weights, k, distances, mode='clusters'):
 
             n_clusters -= 1
 
-        if mode in ('components', 'clusters'):
-            if criterion:
-                result = criterion.best(result)
-
-            # sort, so clusters appear in order of their first element appearance
-            # in the original list.
-            result = sorted([sorted(c) for c in result if c], key=lambda c: c[0])
-
-            if mode == 'components':
-                return _components(result, n)
-            elif mode == 'clusters':
-                return [[points[i] for i in c] for c in result]
-        elif mode == 'dominant':
-            prototypes = [(points[dominant[i]], weight[i], c) for i, c in enumerate(clusters) if c is not None]
-            return sorted(prototypes, key=lambda t: t[1], reverse=True)  # most weighted first
-        else:
-            raise ValueError('illegal mode %s' % mode)
+        return result()
 
     return reduce()
 
