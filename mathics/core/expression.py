@@ -2149,7 +2149,10 @@ class String(Atom):
                 return encode_tex(text)
 
     def atom_to_boxes(self, f, evaluation):
-        return String('"' + six.text_type(self.value) + '"')
+        inner = six.text_type(self.value)
+        if f.get_name() in system_symbols('InputForm', 'FullForm'):
+            inner = inner.replace('\\', '\\\\')
+        return String('"' + inner + '"')
 
     def do_copy(self):
         return String(self.value)
