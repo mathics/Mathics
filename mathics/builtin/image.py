@@ -1253,40 +1253,72 @@ class Colorize(_ImageBuiltin):
 
 
 class DominantColors(Builtin):
-    def apply(self, image, evaluation):
-        'DominantColors[image_Image]'
+    rules = {
+        'DominantColors[image_Image, options___]': 'DominantColors[image, 256, options]',
+    }
 
-        # reduce complexity: reduce to 256 colors (this is something that has been done
-        # before in algorithms for detecting dominant colors, see Kiranyaz et al.)
+    options = {
+        'ColorCoverage': 'Automatic',
+        'MinColorDistance': '0.15',
+    }
+
+    def apply(self, image, n, evaluation, options):
+        'DominantColors[image_Image, n_Integer, OptionsPattern[%(name)s]]'
+
+        color_coverage_option = self.get_option(options, 'ColorCoverage', evaluation)
+        min_color_distance = self.get_option(options, 'MinColorDistance', evaluation)
+
+        py_min_color_distance = min_color_distance.round_to_float()
+        if py_min_color_distance is None:
+            return
+
+        py_min_color_coverage = 0.05
+        py_max_color_coverage = 1.
+        at_most = n.get_int_value()
+
+        if at_most > 256:
+            return
+
+        # reduce complexity by reducing to 256 colors. this is not uncommon; see Kiranyaz et al.,
+        # "Perceptual Dominant Color Extraction by Multidimensional Particle Swarm Optimization":
+        # "to reduce the computational complexity [...] a preprocessing step, which creates a
+        # limited color palette in RGB color domain, is first performed."
         im = image.color_convert('RGB').pil().convert(
             'P', palette=PIL.Image.ADAPTIVE, colors=256)
 
         flat = numpy.array(list(im.getpalette())) / 255.0  # float values now
-        rgb_palette = [flat[i:i + 3] for i in range(0, len(flat), 3)]
+        rgb_palette = [flat[i:i + 3] for i in range(0, len(flat), 3)]  # group by 3
         lab_palette = convert_color(rgb_palette, 'RGB', 'LAB', False)
+        palette = [numpy.array(x) for x in lab_palette]
 
         bins = numpy.bincount(numpy.array(list(im.getdata())), minlength=len(rgb_palette))
+        num_pixels = im.size[0] * im.size[1]
 
-        from mathics.algorithm.clusters import agglomerate, PrecomputedDistances,\
-            FixedDistanceCriterion, _squared_euclidean_distance
+        from mathics.algorithm.clusters import agglomerate, PrecomputedDistances, FixedDistanceCriterion
+
+        norm = numpy.linalg.norm
 
         def df(i, j):
-            return _squared_euclidean_distance(lab_palette[i], lab_palette[j])
+            return norm(palette[i] - palette[j])
 
         lab_distances = [df(i, j) for i in range(len(lab_palette)) for j in range(i)]
 
-        merge_distance = 0.125
-
         dominant = agglomerate(
             (rgb_palette, bins),
-            (FixedDistanceCriterion, {'merge_limit': merge_distance * merge_distance}),
+            (FixedDistanceCriterion, {'merge_limit': py_min_color_distance}),
             PrecomputedDistances(lab_distances),
             mode='dominant')
 
         result = []
 
-        for prototype, weight, members in dominant:
-            result.append(Expression('RGBColor', *prototype))
+        min_coverage = max(0, int(num_pixels * py_min_color_coverage))
+        max_coverage = min(num_pixels, int(num_pixels * py_max_color_coverage))
+
+        for prototype, coverage, members in dominant:
+            if len(result) >= at_most:
+                break
+            if max_coverage >= coverage > min_coverage:
+                result.append(Expression('RGBColor', *prototype))
 
         return Expression('List', *result)
 

@@ -879,7 +879,7 @@ def agglomerate(points_and_weights, k, distances, mode='clusters'):
         # return the "best" configuration later on as result.
 
         if mode in ('clusters', 'components'):
-            dominant = None
+            dominant = False
             best = [clusters]
 
             def save():  # save current configuration
@@ -896,18 +896,16 @@ def agglomerate(points_and_weights, k, distances, mode='clusters'):
                 elif mode == 'clusters':
                     return [[points[i] for i in c] for c in r]
         elif mode == 'dominant':
-            dominant = list(range(n))
-            best = [clusters, dominant, weight]
+            dominant = True
+            best = [clusters, weight]
 
             def save():  # save current configuration
                 best[0] = [c[:] for c in clusters if c]
-                best[1] = dominant[:]
-                best[2] = weight[:]
+                best[1] = weight[:]
 
             def result():
-                best_clusters, best_dominant, best_weight = best
-                prototypes = [(points[best_dominant[i]], best_weight[i], c)
-                              for i, c in enumerate(best_clusters) if c is not None]
+                best_clusters, best_weight = best
+                prototypes = [(points[i], best_weight[i], c) for i, c in enumerate(best_clusters) if c is not None]
                 return sorted(prototypes, key=lambda t: t[1], reverse=True)  # most weighted first
         else:
             raise ValueError('illegal mode %s' % mode)
@@ -917,7 +915,10 @@ def agglomerate(points_and_weights, k, distances, mode='clusters'):
 
             i, j = lookup[p]
 
-            if i > j:
+            if dominant:
+                if weight[j] > weight[i]:  # always merge smaller into larger
+                    i, j = j, i
+            elif i > j:
                 i, j = j, i  # merge later chunk to earlier one to preserve order
 
             if criterion and not criterion.merge(clusters, i, j, d, save):
@@ -929,16 +930,14 @@ def agglomerate(points_and_weights, k, distances, mode='clusters'):
                 y, py, u = heap[where[b]]
                 heap = remove(where[b], heap, where)
 
-                x, px, _ = heap[where[a]]
-                if y < x:  # compare only values here, and not tuples (x, p)
-                    update(where[a], (y, px, u), heap, where)
+                if not dominant:
+                    x, px, _ = heap[where[a]]
+                    if y < x:  # compare only values here, and not tuples (x, p)
+                        update(where[a], (y, px, u), heap, where)
 
             if dominant:
-                if weight[j] > weight[i]:
-                    dominant[i] = dominant[j]
                 weight[i] += weight[j]
-                dominant[j] = None
-                weight[j] = None
+                weight[j] = 0
 
             clusters[i].extend(clusters[j])
             clusters[j] = None
