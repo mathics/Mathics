@@ -16,22 +16,22 @@
 {% block html_body %}
 
 <div id="head">
-	<div class="headright">
-		<a href="javascript:createLink()">#</a>
-	</div>
-	<div class="headright">
-		<div id="notAuthenticated">
-		    {% if require_login %}
-			<a href="javascript:showLogin()">Login</a><br />
+  <div class="headright">
+    <a href="javascript:createLink()">#</a>
+  </div>
+  <div class="headright">
+    <div id="notAuthenticated">
+        {% if require_login %}
+      <a href="javascript:showLogin()">Login</a><br />
             {% endif %}
-		</div>
-		<div id="authenticated" style="display: none">
-			<span id="username"></span><br />
-			<a id="logout" href="javascript:logout()">Logout</a>
-		</div>
-	</div>
+    </div>
+    <div id="authenticated" style="display: none">
+      <span id="username"></span><br />
+      <a id="logout" href="javascript:logout()">Logout</a>
+    </div>
+  </div>
 
-	<span id="logo"><a href="http://www.mathics.org" target="_blank"><img src="/media/img/logo.svg" height="24" alt="Mathics" /></a></span>
+  <span id="logo"><a href="http://www.mathics.org" target="_blank"><img src="/media/img/logo.svg" height="24" alt="Mathics" /></a></span>
 </div>
 
 <div id="menu">
@@ -39,8 +39,8 @@
     <span><a href="javascript:showSave()">Save</a></span><span><a href="javascript:showOpen()">Load</a></span>
 </div>
 <div id="menuright">
-	<a id="doclink" href="javascript:toggleDoc()">Documentation</a>
-	<input id="search" type="text" />
+  <a id="doclink" href="javascript:toggleDoc()">Documentation</a>
+  <input id="search" type="text" />
 </div>
 </div>
 
@@ -49,11 +49,11 @@
 </script>
 
 {% if user.is_authenticated %}
-	<script type="text/javascript">
-		$(document).observe('dom:loaded', function() {
-			onLogin("{{ user.email }}");
-		});
-	</script>
+<script type="text/javascript">
+  $(document).observe('dom:loaded', function() {
+    onLogin("{{ user.email }}");
+  });
+</script>
 {% endif %}
 
 {% block main %}
