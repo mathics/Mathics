@@ -8,7 +8,6 @@ import sympy
 import mpmath
 import math
 import re
-import abc
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
@@ -111,12 +110,9 @@ def from_python(arg):
         raise NotImplementedError
 
 
-class KeyComparable:
-    __metaclass__ = abc.ABCMeta
-
-    @abc.abstractmethod
+class KeyComparable(object):
     def get_sort_key(self):
-        return
+        raise NotImplemented
 
     def __lt__(self, other):
         return self.get_sort_key() < other.get_sort_key()
@@ -503,14 +499,12 @@ class Monomial(object):
 
 
 class Expression(BaseExpression):
-    def __new__(cls, head, *leaves, **kwargs):
+    def __new__(cls, head, *leaves):
         self = super(Expression, cls).__new__(cls)
         if isinstance(head, six.string_types):
             head = Symbol(head)
         self.head = head
         self.leaves = [from_python(leaf) for leaf in leaves]
-
-        self.parse_operator = kwargs.get('parse_operator')
         return self
 
     def copy(self):
@@ -835,7 +829,7 @@ class Expression(BaseExpression):
             if 'System`Orderless' in attributes:
                 new.sort()
 
-            new.last_evaluated = self.last_evaluated
+            new.last_evaluated = evaluation.definitions.now
 
             if 'System`Listable' in attributes:
                 done, threaded = new.thread(evaluation)
@@ -1593,7 +1587,7 @@ class Integer(Number):
 
 
 class Rational(Number):
-    def __new__(cls, numerator, denominator=None, **kwargs):
+    def __new__(cls, numerator, denominator=None):
         self = super(Rational, cls).__new__(cls)
         self.value = sympy.Rational(numerator, denominator)
         return self
@@ -1878,7 +1872,7 @@ class Complex(Number):
     '''
     Complex wraps two real-valued Numbers.
     '''
-    def __new__(cls, real, imag, **kwargs):
+    def __new__(cls, real, imag):
         self = super(Complex, cls).__new__(cls)
         if isinstance(real, Complex) or not isinstance(real, Number):
             raise ValueError("Argument 'real' must be a real number.")
@@ -2052,7 +2046,7 @@ extra_operators = set((',', '(', ')', '[', ']', '{', '}',
 
 
 class String(Atom):
-    def __new__(cls, value, **kwargs):
+    def __new__(cls, value):
         self = super(String, cls).__new__(cls)
         self.value = value
         return self
