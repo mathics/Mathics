@@ -1211,9 +1211,12 @@ def _linearize(a):
 class Colorize(_ImageBuiltin):
     '''
     <dl>
-    <dt>'Colorize[$a$]'
-      <dd>returns an image where each number is a pixel and each occurence of the same number is displayed
-      in the same unique color, which is different from the colors of all non-identical numbers.
+    <dt>'Colorize[$values$]'
+      <dd>returns an image where each number in the rectangular matrix $values$ is a pixel and each
+      occurence of the same number is displayed in the same unique color, which is different from the
+      colors of all non-identical numbers.
+    <dt>'Colorize[$image$]'
+      <dd>gives a colorized version of $image$.
     </dl>
 
     >> Colorize[{{1.3, 2.1, 1.5}, {1.3, 1.3, 2.1}, {1.3, 2.1, 1.5}}]
@@ -1231,10 +1234,18 @@ class Colorize(_ImageBuiltin):
         'cfun': '`1` is neither a gradient ColorData nor a pure function suitable as ColorFunction.',
     }
 
-    def apply(self, a, evaluation, options):
-        'Colorize[a_?MatrixQ, OptionsPattern[%(name)s]]'
+    def apply(self, values, evaluation, options):
+        'Colorize[values_, OptionsPattern[%(name)s]]'
 
-        a, n = _linearize(numpy.array(a.to_python()))
+        if isinstance(values, Image):
+            pixels = values.grayscale().pixels
+            matrix = pixels_as_ubyte(pixels.reshape(pixels.shape[:2]))
+        else:
+            if not Expression('MatrixQ', values).evaluate(evaluation).is_true():
+                return
+            matrix = numpy.array(values.to_python())
+
+        a, n = _linearize(matrix)
         # the maximum value for n is the number of pixels in a, which is acceptable and never too large.
 
         color_function = self.get_option(options, 'ColorFunction', evaluation)
@@ -1247,12 +1258,21 @@ class Colorize(_ImageBuiltin):
             evaluation.message('Colorize', 'cfun', color_function)
             return
 
-        p = numpy.transpose(numpy.array([cmap[i] for i in range(n)])[:, 0:3])
         s = (a.shape[0], a.shape[1], 1)
+        p = numpy.transpose(numpy.array([cmap[i] for i in range(n)])[:, 0:3])
         return Image(numpy.concatenate([p[i][a].reshape(s) for i in range(3)], axis=2), color_space='RGB')
 
 
 class DominantColors(Builtin):
+    '''
+    <dl>
+    <dt>'DominantColors[$image$]'
+      <dd>gives a list of colors which are dominant in the given image.
+    <dt>'DominantColors[$image$, $n$]'
+      <dd>returns at most $n$ colors.
+    </dl>
+    '''
+
     rules = {
         'DominantColors[image_Image, options___]': 'DominantColors[image, 256, options]',
     }
@@ -1515,6 +1535,8 @@ class Image(Atom):
             else:
                 pixels = pixels_as_ubyte(self.pixels)
                 mode = 'L'
+
+            pixels = pixels.reshape(pixels.shape[:2])
         elif n == 3:
             if self.color_space == 'LAB':
                 mode = 'LAB'
