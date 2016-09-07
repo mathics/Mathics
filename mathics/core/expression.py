@@ -8,7 +8,6 @@ import sympy
 import mpmath
 import math
 import re
-import abc
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
@@ -111,12 +110,9 @@ def from_python(arg):
         raise NotImplementedError
 
 
-class KeyComparable:
-    __metaclass__ = abc.ABCMeta
-
-    @abc.abstractmethod
+class KeyComparable(object):
     def get_sort_key(self):
-        return
+        raise NotImplemented
 
     def __lt__(self, other):
         return self.get_sort_key() < other.get_sort_key()
