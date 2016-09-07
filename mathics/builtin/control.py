@@ -70,6 +70,10 @@ class CompoundExpression(BinaryOperator):
 
     #> CompoundExpression[]
     #> %
+
+    ## Issue 531
+    #> z = Max[1, 1 + x]; x = 2; z
+     = 3
     """
 
     operator = ';'
@@ -168,6 +172,12 @@ class Switch(Builtin):
 
     #> a; Switch[b, b]
      : Switch called with 2 arguments. Switch must be called with an odd number of arguments.
+     = Switch[b, b]
+
+    ## Issue 531
+    #> z = Switch[b, b];
+     : Switch called with 2 arguments. Switch must be called with an odd number of arguments.
+    #> z
      = Switch[b, b]
     """
 
