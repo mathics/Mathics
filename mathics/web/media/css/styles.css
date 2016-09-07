@@ -1,564 +1,563 @@
 body {
-	margin: 0;
-	padding: 0;
-	font-family: sans-serif;
-	font-size: 11pt;
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+  font-size: 11pt;
 }
 
 #head {
-	color: black;
-    padding: 5px 20px 0;
-    margin: 0;
-	height: 40px;
-    position: relative;
+  color: black;
+  padding: 5px 20px 0;
+  margin: 0;
+  height: 40px;
+  position: relative;
 }
 
 #head a {
-	color: #666;
-	text-decoration: none;
+  color: #666;
+  text-decoration: none;
 }
 
 #head a:hover {
-	color: #999;
+  color: #999;
 }
 
 div.headright {
-	/*padding-top: 5px;*/
-	float: right;
-	margin-left: 1em;
-	text-align: right;
-	font-size: 0.85em;
+  /*padding-top: 5px;*/
+  float: right;
+  margin-left: 1em;
+  text-align: right;
+  font-size: 0.85em;
 }
 
 #logo {
-    position: absolute;
-    top: 7px;
-	display: block;
+  position: absolute;
+  top: 7px;
+  display: block;
 }
 
 #menu {
-    padding: 0 20px;
-    font-family: "Arial",sans-serif;
-	font-size: 14px;
-    line-height: 16px;
-	color: #222;
-	height: 30px;
-    background: url(/media/img/menu_default.gif) left top repeat-x;
+  padding: 0 20px;
+  font-family: sans-serif;
+  font-size: 14px;
+  line-height: 16px;
+  color: #222;
+  height: 30px;
 }
 
 #menuleft {
-    float: left;
-	border-left: 1px solid #999;
+  float: left;
+  border-left: 1px solid #999;
 }
 
 #menuright {
-	border-left: 1px solid #999;
-	float: right;
+  border-left: 1px solid #999;
+  float: right;
 }
 
 #menuleft {
-    float: left;
+  float: left;
 }
 
 #menu a,
 #menu a:hover {
-	text-decoration: none;
-	font-weight: bold;
-	font-size: 0.95em;
-	color: inherit;
-	margin: 0;
-	padding: 6px 10px;
-	display: inline-block;
-	border-right: 1px solid #999;
-    height: 18px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.95em;
+  color: inherit;
+  margin: 0;
+  padding: 6px 10px;
+  display: inline-block;
+  border-right: 1px solid #999;
+  height: 18px;
 }
 
 #menu a:hover {
-	background: url(/media/img/menu_hover.gif) left top repeat-x;
-	color: white;
-	cursor: default;
+  background: url(/media/img/menu_hover.gif) left top repeat-x;
+  color: white;
+  cursor: default;
 }
 
 #doclink:focus {
-	outline: none;
+  outline: none;
 }
 #doclink.active {
-	background: url(/media/img/menu_inverted.gif) left top repeat-x;
+  background: url(/media/img/menu_inverted.gif) left top repeat-x;
 }
 #doclink.active:hover {
-	background: url(/media/img/menu_inverted_hover.gif) left top repeat-x;
+  background: url(/media/img/menu_inverted_hover.gif) left top repeat-x;
 }
 
 #search {
-   font-size: 0.9em;
-    margin: 0;
-    margin-left: 5px;
-    width: 120px;
-    padding: 2px 5px;
-    border: 1px solid #999;
-    -moz-border-radius: 5px;
-    -webkit-border-radius: 5px;
+  font-size: 0.9em;
+  margin: 0;
+  margin-left: 5px;
+  width: 120px;
+  padding: 2px 5px;
+  border: 1px solid #999;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
 }
 
 #search.empty {
-	color: #888;
+  color: #888;
 }
 
 #version {
-	color: #aaa;
-	font-size: 11px;
-	position: absolute;
-	top: 5px;
-	left: 155px;
+  color: #aaa;
+  font-size: 11px;
+  position: absolute;
+  top: 5px;
+  left: 155px;
 }
 
 #username {
-	color: #333;
+  color: #333;
 }
 
 #head #authenticated #logout {
-	color: #633;
+  color: #633;
 }
 
 #head #authenticated #logout:hover {
-	color: #966;
+  color: #966;
 }
 
 a.pdf {
-	background-image: url(/media/img/pdf.gif);
-	background-position: left center;
-	background-repeat: no-repeat;
-	padding-left: 24px;
-	font-size: 0.9em;
-	color: white;
-	text-decoration: none;
-	line-height: 20px;
-	display: inline-block;
+  background-image: url(/media/img/pdf.gif);
+  background-position: left center;
+  background-repeat: no-repeat;
+  padding-left: 24px;
+  font-size: 0.9em;
+  color: white;
+  text-decoration: none;
+  line-height: 20px;
+  display: inline-block;
 }
 
 #content {
-	padding: 10px 20px 40px;
+  padding: 10px 20px 40px;
 }
 
 #document,
 #code,
 #doc {
-	top: 75px;
+  top: 75px;
 }
 
 #document,
 #code {
-	padding: 0;
-	position: absolute;
-	bottom: 0px;
-	left: 0;
-	right: 0;
-	background-color: white;
-	overflow: auto;
+  padding: 0;
+  position: absolute;
+  bottom: 0px;
+  left: 0;
+  right: 0;
+  background-color: white;
+  overflow: auto;
 }
 
 #document {
-	cursor: vertical-text;
-	font-size: 0.9em;
+  cursor: vertical-text;
+  font-size: 0.9em;
 }
 
 #document.doc,
 #code.doc {
-	right: 50%;
+  right: 50%;
 }
 
 #welcomeContainer {
-	position: absolute;
-	margin-left: auto;
-	margin-right: auto;
-	left: 25%;
-	width: 50%;
-	bottom: 20px;   
+  position: absolute;
+  margin-left: auto;
+  margin-right: auto;
+  left: 25%;
+  width: 50%;
+  bottom: 20px;
 }
 
 #welcome,
 #welcomeBrowser {
-	/*background-color: #666;*/
-	border: 2px solid #999;
-	color: #333;
-	cursor: default; 
-	padding: 10px;
-	-moz-border-radius: 10px;
-	-webkit-border-radius: 10px;	
+  /*background-color: #666;*/
+  border: 2px solid #999;
+  color: #333;
+  cursor: default;
+  padding: 10px;
+  -moz-border-radius: 10px;
+  -webkit-border-radius: 10px;
 }
 
 #welcomeContainer p {
-	margin-top: 0;
-	margin-bottom: 3px;
+  margin-top: 0;
+  margin-bottom: 3px;
 }
 
 #welcomeContainer a {
-	color: #666;
+  color: #666;
 }
 
 #welcomeContainer a:hover {
-	color: #999;
+  color: #999;
 }
 
 #welcomeBrowser {
-    border-color: red;
-    background-color: red;
-    color: white;
-    margin-top: 20px;
+  border-color: red;
+  background-color: red;
+  color: white;
+  margin-top: 20px;
 }
 
 #welcomeBrowser a,
 #welcomeBrowser a:hover {
-    color: white;
+  color: white;
 }
 
 #doc {
-	position: absolute;
-	bottom: 0px;
-	width: 50%;
-	right: 0;
-	border: none;
-	border-left: 2px solid #999;
-	overflow: auto;
-	font-size: 0.9em;
+  position: absolute;
+  bottom: 0px;
+  width: 50%;
+  right: 0;
+  border: none;
+  border-left: 2px solid #999;
+  overflow: auto;
+  font-size: 0.9em;
 }
 
 #docContent {
-	padding: 10px 20px 20px;
+  padding: 10px 20px 20px;
 }
 
 #queries {
-	list-style-type: none;
-	margin: 0;
-	padding: 0;
-	padding-bottom: 50px;
-	padding-left: 0;
-	position: relative;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  padding-bottom: 50px;
+  padding-left: 0;
+  position: relative;
 }
 
 #queries li {
-    list-style-type: none;
+  list-style-type: none;
 }
 
 li.query {
-    list-style-type: none;
-	padding-left: 30px;
-	margin-top: 10px;
-	cursor: text;
-	position: relative;
+  list-style-type: none;
+  padding-left: 30px;
+  margin-top: 10px;
+  cursor: text;
+  position: relative;
 }
 
 li.query.focused span.move {
-	border-left-width: 2px;
+  border-left-width: 2px;
 }
 
 li.query .submitbutton {
-    display: none;
+  display: none;
 }
 li.query.focused .submitbutton {
-    display: block;
-    position: absolute;
-    right: 10px;
-    top: 0;
+  display: block;
+  position: absolute;
+  right: 10px;
+  top: 0;
 }
 li.query .submitbutton span {
-    display: inline-block;
-    margin-top: 3px;
-    margin-bottom: 5px;
-    /*margin-left: 10px;*/
-    background-color: #999;
-    color: white;
-    padding: 5px;
-	-moz-border-radius: 5px;
-	-webkit-border-radius: 5px;
-    width: 10px;
-    line-height: 10px;
-    text-align: center;
-    vertical-align: middle;
-    cursor: pointer;
+  display: inline-block;
+  margin-top: 3px;
+  margin-bottom: 5px;
+  /*margin-left: 10px;*/
+  background-color: #999;
+  color: white;
+  padding: 5px;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  width: 10px;
+  line-height: 10px;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
 }
 li.query .submitbutton span:hover {
-    background-color: #666;
+  background-color: #666;
 }
 
 li.query.moving,
 li.query.moving textarea,
 li.query.moving span.delete {
-	cursor: move;
+  cursor: move;
 }
 
 span.move {
-	position: absolute;
-	top: 0;
-	left: 20px;
-	bottom: 0;
-	width: 3px;
-	cursor: move;
-	background-color: white;
-	border: 1px solid #999;
-	border-right-width: 0;
+  position: absolute;
+  top: 0;
+  left: 20px;
+  bottom: 0;
+  width: 3px;
+  cursor: move;
+  background-color: white;
+  border: 1px solid #999;
+  border-right-width: 0;
 }
 
 li.query.moving span.move,
 li.query.moving.focused span.move,
 span.move:hover,
 li.query.focused span.move:hover {
-	background-color: #9f9;
-	width: 6px;
+  background-color: #9f9;
+  width: 6px;
 }
 
 li.query.loading span.move {
-	border-color: orange;
-	border-left-width: 2px;
+  border-color: orange;
+  border-left-width: 2px;
 }
 
 span.delete {
-	position: absolute;
-	top: 0;
-	left: 5px;
-	color: #f66;
-	font-family: sans-serif;
-	cursor: pointer;
-	cursor: hand;
-	font-size: 12px;
+  position: absolute;
+  top: 0;
+  left: 5px;
+  color: #f66;
+  font-family: sans-serif;
+  cursor: pointer;
+  cursor: hand;
+  font-size: 12px;
 }
 
 span.delete:hover {
-	font-weight: bold;
-	color: red;
+  font-weight: bold;
+  color: red;
 }
 
 ul.query {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-	font-family: monospace;
-	font-size: 1em;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: monospace;
+  font-size: 1em;
 }
 ul.query li {
-    list-style-type: none;
-    list-style-image: none;
+  list-style-type: none;
+  list-style-image: none;
 }
 
 ul.query li.request {
-    list-style-type: none;
-    list-style-image: none;
-	margin: 0;
-	padding: 0;
+  list-style-type: none;
+  list-style-image: none;
+  margin: 0;
+  padding: 0;
 }
 
 textarea.request {
-	width: 99%;
-	overflow: hidden;
-	border: none;
-	line-height: 17px;
-	color: navy;
-	margin: 0;
-	font-family: monospace;
-	font-size: 1em;
-	background: white;
-	
-	/* hide the blue border in Safari */
-	outline-style: none;
-	outline-width: 0px;
-	
-	/* disable resize grid in Safari */
-	resize: none;
+  width: 99%;
+  overflow: hidden;
+  border: none;
+  line-height: 17px;
+  color: navy;
+  margin: 0;
+  font-family: monospace;
+  font-size: 1em;
+  background: white;
+
+  /* hide the blue border in Safari */
+  outline-style: none;
+  outline-width: 0px;
+
+  /* disable resize grid in Safari */
+  resize: none;
 }
 
 li.out {
-    list-style-type: none;
-    list-style-image: none;
-	margin: 0;
-	padding: 0;
+  list-style-type: none;
+  list-style-image: none;
+  margin: 0;
+  padding: 0;
 }
 
 #docContent ul.out,
 ul.out {
-	list-style-type: none;
-	margin: 0;
-	padding: 0;
-	font-family: monospace;
-	font-size: 1em;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  font-family: monospace;
+  font-size: 1em;
 }
 
 li.serverError,
 li.message,
 li.print,
 li.result {
-	margin-left: 10px;
-	padding: 0;
+  margin-left: 10px;
+  padding: 0;
 }
 
 li.serverError {
-	color: #f00;
-	font-size: 0.9em;
+  color: #f00;
+  font-size: 0.9em;
 }
 
 li.message {
-	color: #b30;
-	font-size: 0.9em;
+  color: #b30;
+  font-size: 0.9em;
 }
 
 li.print {
-	color: #666;
-	font-size: 0.9em;
+  color: #666;
+  font-size: 0.9em;
 }
 
 li.result {
-    list-style-type: none;
-    list-style-image: none;
-	margin-top: 3px;
-	color: black;
+  list-style-type: none;
+  list-style-image: none;
+  margin-top: 3px;
+  color: black;
 }
 
 li.test .submitbutton {
-    display: none;
+  display: none;
 }
 
 li.test p.focused .submitbutton {
-    display: block;
-    position: absolute;
-    right: 10px;
-    top: 0;
+  display: block;
+  position: absolute;
+  right: 10px;
+  top: 0;
 }
 
 li.test .submitbutton span {
-    display: inline-block;
-    margin-top: 3px;
-    margin-bottom: 5px;
-    /*margin-left: 10px;*/
-    background-color: #999;
-    color: white;
-    padding: 5px;
-	-moz-border-radius: 5px;
-	-webkit-border-radius: 5px;
-    width: 10px;
-    line-height: 10px;
-    text-align: center;
-    vertical-align: middle;
-    cursor: pointer;
+  display: inline-block;
+  margin-top: 3px;
+  margin-bottom: 5px;
+  /*margin-left: 10px;*/
+  background-color: #999;
+  color: white;
+  padding: 5px;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  width: 10px;
+  line-height: 10px;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
 }
 
 li.test .submitbutton span:hover {
-    background-color: #666;
+  background-color: #666;
 }
 
 h1 {
-	font-weight: normal;
-	color: #333;
+  font-weight: normal;
+  color: #333;
 }
 
 form {
-	margin: 0;
+  margin: 0;
 }
 
 form table {
-	margin: 0;
+  margin: 0;
 }
 
 form table th,
 form table td {
-	text-align: left;
+  text-align: left;
 }
 
 form table th {
-	font-weight: normal;
-	color: #666;
-	vertical-align: top;
-	padding-right: 20px;
-	padding-top: 10px;
+  font-weight: normal;
+  color: #666;
+  vertical-align: top;
+  padding-right: 20px;
+  padding-top: 10px;
 }
 
 form table td {
-	padding-top: 5px;
-	padding-right: 10px;
+  padding-top: 5px;
+  padding-right: 10px;
 }
 
 form table input[type="text"],
 form table input[type="password"] {
-	width: 100%;
-	font-size: 12pt;
+  width: 100%;
+  font-size: 12pt;
 }
 
 form table td.submit {
-	padding-top: 10px;
-	text-align: center;
+  padding-top: 10px;
+  text-align: center;
 }
 
 button,
 input[type="button"] {
-	font-size: 13pt;
+  font-size: 13pt;
 }
 
 ul.errorlist {
-	border: 2px solid red;
-	list-style-type: none;
-	margin: 0;
-	margin-bottom: 5px;
-	padding: 2px 5px;
+  border: 2px solid red;
+  list-style-type: none;
+  margin: 0;
+  margin-bottom: 5px;
+  padding: 2px 5px;
 }
 
 ul.errorlist li {
-	margin: 0;
-	padding: 0;
-	text-align: left;
+  margin: 0;
+  padding: 0;
+  text-align: left;
 }
 
 form table p.helptext {
-	text-align: left;
-	font-size: 0.875em;
-	color: #666;
-	margin: 0;
-	margin-top: 2px;
+  text-align: left;
+  font-size: 0.875em;
+  color: #666;
+  margin: 0;
+  margin-top: 2px;
 }
 
 p.formsuccess {
-	border: 2px solid green;
-	text-align: left;
-	padding: 2px 5px;
+  border: 2px solid green;
+  text-align: left;
+  padding: 2px 5px;
 }
 
 div.dialog h1 {
-	text-align: center;
-	margin-top: 0;
-	margin-bottom: 10px;
-	color: #333;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #333;
 }
 
 div.dialog form table {
-	width: 100%;
+  width: 100%;
 }
 
 div.filelist {
-	height: 250px;
-	overflow: auto;
-	border: 1px solid #999;
-	margin-bottom: 10px;
+  height: 250px;
+  overflow: auto;
+  border: 1px solid #999;
+  margin-bottom: 10px;
 }
 
 div.filelist table {
-	width: 382px;
-	border-collapse: collapse;
+  width: 382px;
+  border-collapse: collapse;
 }
 
 div.filelist table th,
 div.filelist table td {
-	text-align: left;
-	padding: 1px 5px;
+  text-align: left;
+  padding: 1px 5px;
 }
 
 div.filelist table th {
-	font-weight: normal;
-	color: #666;
-	border-bottom: 1px solid #ccc;
+  font-weight: normal;
+  color: #666;
+  border-bottom: 1px solid #ccc;
 }
 
 div.filelist table a {
-	color: #006;
-	text-decoration: underline;
+  color: #006;
+  text-decoration: underline;
 }
 
 div.filelist table a:hover {
-	color: #33c;
+  color: #33c;
 }
