@@ -232,7 +232,7 @@ def main():
         '--version', '-v', action='version',
         version='%(prog)s ' + __version__)
 
-    args = argparser.parse_args()
+    args, script_args = argparser.parse_known_args()
 
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
 
