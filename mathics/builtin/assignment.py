@@ -384,6 +384,8 @@ class Set(BinaryOperator, _SetOperator):
     >> B[[1;;2, 2;;-1]] = {{t, u}, {y, z}};
     >> B
      = {{1, t, u}, {4, y, z}, {7, 8, 9}}
+
+    #> x = Infinity;
     """
 
     operator = '='

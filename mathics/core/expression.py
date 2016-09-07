@@ -829,7 +829,7 @@ class Expression(BaseExpression):
             if 'System`Orderless' in attributes:
                 new.sort()
 
-            new.last_evaluated = self.last_evaluated
+            new.last_evaluated = evaluation.definitions.now
 
             if 'System`Listable' in attributes:
                 done, threaded = new.thread(evaluation)
