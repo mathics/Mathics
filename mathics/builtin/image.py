@@ -826,6 +826,15 @@ class ImageAdjust(_ImageBuiltin):
 
 
 class Blur(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'Blur[$image$]'
+      <dd>gives a blurred version of $image$.
+    <dt>'Blur[$image$, $r$]'
+      <dd>blurs $image$ with a kernel of size $r$.
+    </dl>
+    '''
+
     rules = {
         'Blur[image_Image]': 'Blur[image, 2]',
         'Blur[image_Image, r_?RealNumberQ]': 'ImageConvolve[image, BoxMatrix[r] / Total[Flatten[BoxMatrix[r]]]]',
@@ -833,6 +842,15 @@ class Blur(_ImageBuiltin):
 
 
 class Sharpen(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'Sharpen[$image$]'
+      <dd>gives a sharpened version of $image$.
+    <dt>'Sharpen[$image$, $r$]'
+      <dd>sharpens $image$ with a kernel of size $r$.
+    </dl>
+    '''
+
     rules = {
         'Sharpen[i_Image]': 'Sharpen[i, 2]'
     }
@@ -844,6 +862,13 @@ class Sharpen(_ImageBuiltin):
 
 
 class GaussianFilter(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'GaussianFilter[$image$, $r$]'
+      <dd>blurs $image$ using a Gaussian blur filter of radius $r$.
+    </dl>
+    '''
+
     messages = {
         'only3': 'GaussianFilter only supports up to three channels.'
     }
@@ -866,24 +891,55 @@ class PillowImageFilter(_ImageBuiltin):
 
 
 class MinFilter(PillowImageFilter):
+    '''
+    <dl>
+    <dt>'MinFilter[$image$, $r$]'
+      <dd>gives $image$ with a minimum filter of radius $r$ applied on it. This always
+      picks the smallest value in the filter's area.
+    </dl>
+    '''
+
     def apply(self, image, r, evaluation):
         'MinFilter[image_Image, r_Integer]'
         return self.compute(image, PIL.ImageFilter.MinFilter(1 + 2 * r.get_int_value()))
 
 
 class MaxFilter(PillowImageFilter):
+    '''
+    <dl>
+    <dt>'MaxFilter[$image$, $r$]'
+      <dd>gives $image$ with a maximum filter of radius $r$ applied on it. This always
+      picks the largest value in the filter's area.
+    </dl>
+    '''
+
     def apply(self, image, r, evaluation):
         'MaxFilter[image_Image, r_Integer]'
         return self.compute(image, PIL.ImageFilter.MaxFilter(1 + 2 * r.get_int_value()))
 
 
 class MedianFilter(PillowImageFilter):
+    '''
+    <dl>
+    <dt>'MedianFilter[$image$, $r$]'
+      <dd>gives $image$ with a median filter of radius $r$ applied on it. This always
+      picks the median value in the filter's area.
+    </dl>
+    '''
+
     def apply(self, image, r, evaluation):
         'MedianFilter[image_Image, r_Integer]'
         return self.compute(image, PIL.ImageFilter.MedianFilter(1 + 2 * r.get_int_value()))
 
 
 class EdgeDetect(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'EdgeDetect[$image$]'
+      <dd>returns an image showing the edges in $image$.
+    </dl>
+    '''
+
     requires = _image_requires + (
         'skimage',
     )
@@ -1160,6 +1216,13 @@ class ColorConvert(Builtin):
 
 
 class ColorQuantize(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ColorQuantize[$image$, $n$]'
+      <dd>gives a version of $image$ using only $n$ colors.
+    </dl>
+    '''
+
     def apply(self, image, n, evaluation):
         'ColorQuantize[image_Image, n_Integer]'
         converted = image.color_convert('RGB')
@@ -1172,6 +1235,15 @@ class ColorQuantize(_ImageBuiltin):
 
 
 class Threshold(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'Threshold[$image$]'
+      <dd>gives a value suitable for binarizing $image$.
+    </dl>
+
+    The option "Method" may be "Cluster" (use Otsu's threshold), "Median", or "Mean".
+    '''
+
     options = {
         'Method': '"Cluster"'
     }
@@ -1205,6 +1277,17 @@ class Threshold(_ImageBuiltin):
 
 
 class Binarize(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'Binarize[$image$]'
+      <dd>gives a binarized version of $image$, in which each pixel is either 0 or 1.
+    <dt>'Binarize[$image$, $t$]'
+      <dd>map values $x$ > $t$ to 1, and values $x$ <= $t$ to 0.
+    <dt>'Binarize[$image$, $t1$, $t2$]'
+      <dd>map $t1$ < $x$ < $t2$ to 1, and all other values to 0.
+    </dl>
+    '''
+
     def apply(self, image, evaluation):
         'Binarize[image_Image]'
         image = image.grayscale()
@@ -1381,7 +1464,18 @@ class DominantColors(Builtin):
       <dd>gives a list of colors which are dominant in the given image.
     <dt>'DominantColors[$image$, $n$]'
       <dd>returns at most $n$ colors.
+    <dt>'DominantColors[$image$, $n$, $prop$]'
+      <dd>returns the given property $prop$, which may be "Color" (return RGB colors), "LABColor" (return
+      LAB colors), "Count" (return the number of pixels a dominant color covers), "Coverage" (return the
+      fraction of the image a dominant color covers), or "CoverageImage" (return a black and white image
+      indicating with white the parts that are covered by a dominant color).
     </dl>
+
+    The option "ColorCoverage" specifies the minimum amount of coverage needed to include a dominant color
+    in the result.
+
+    The option "MinColorDistance" specifies the distance (in LAB color space) up to which colors are merged
+    and thus regarded as belonging to the same dominant color.
     '''
 
     rules = {
@@ -1492,6 +1586,13 @@ class DominantColors(Builtin):
 
 
 class ImageData(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageData[$image$]'
+      <dd>gives a list of all color values of $image$ as a matrix.
+    </dl>
+    '''
+
     rules = {
         'ImageData[image_Image]': 'ImageData[image, "Real"]'
     }
@@ -1518,12 +1619,51 @@ class ImageData(_ImageBuiltin):
 
 
 class ImageTake(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageTake[$image$, $n$]'
+      <dd>gives the first $n$ rows of $image$.
+    <dt>'ImageTake[$image$, -$n$]'
+      <dd>gives the last $n$ rows of $image$.
+    <dt>'ImageTake[$image$, {$r1$, $r2$}]'
+      <dd>gives rows $r1$, ..., $r2$ of $image$.
+    <dt>'ImageTake[$image$, {$r1$, $r2$}, {$c1$, $c2$}]'
+      <dd>gives a cropped version of $image$.
+    </dl>
+    '''
+
     def apply(self, image, n, evaluation):
         'ImageTake[image_Image, n_Integer]'
-        return Image(image.pixels[:n.get_int_value()], image.color_space)
+        py_n = n.get_int_value()
+        if py_n >= 0:
+            pixels = image.pixels[:py_n]
+        elif py_n < 0:
+            pixels = image.pixels[py_n:]
+        return Image(pixels, image.color_space)
+
+    def apply_rows(self, image, r1, r2, evaluation):
+        'ImageTake[image_Image, {r1_Integer, r2_Integer}]'
+        py_r1 = max(r1.get_int_value() - 1, 0)
+        py_r2 = max(r2.get_int_value() - 1, 0)
+        return Image(image.pixels[py_r1:1 + py_r2], image.color_space)
+
+    def apply_rows_cols(self, image, r1, r2, c1, c2, evaluation):
+        'ImageTake[image_Image, {r1_Integer, r2_Integer}, {c1_Integer, c2_Integer}]'
+        py_r1 = max(r1.get_int_value() - 1, 0)
+        py_r2 = max(r2.get_int_value() - 1, 0)
+        py_c1 = max(c1.get_int_value() - 1, 0)
+        py_c2 = max(c2.get_int_value() - 1, 0)
+        return Image(image.pixels[py_r1:1 + py_r2, py_c1:1 + py_c2], image.color_space)
 
 
 class PixelValue(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'PixelValue[$image$, {$x$, $y$}]'
+      <dd>gives the value of the pixel at position {$x$, $y$} in $image$.
+    </dl>
+    '''
+
     def apply(self, image, x, y, evaluation):
         'PixelValue[image_Image, {x_?RealNumberQ, y_?RealNumberQ}]'
         pixel = image.pixels[int(y.round_to_float() - 1), int(x.round_to_float() - 1)]
@@ -1534,6 +1674,13 @@ class PixelValue(_ImageBuiltin):
 
 
 class PixelValuePositions(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'PixelValuePositions[$image$, $val$]'
+      <dd>gives the positions of all pixels in $image$ that have value $val$.
+    </dl>
+    '''
+
     def apply(self, image, val, evaluation):
         'PixelValuePositions[image_Image, val_?RealNumberQ]'
         rows, cols = numpy.where(pixels_as_float(image.pixels) == float(val.round_to_float()))
@@ -1547,8 +1694,8 @@ class PixelValuePositions(_ImageBuiltin):
 class ImageDimensions(_ImageBuiltin):
     '''
     <dl>
-    <dt>'ImageDimensions[image]'
-      <dd>Returns the dimensions of an image in pixels.
+    <dt>'ImageDimensions[$image$]'
+      <dd>Returns the dimensions of $image$ in pixels.
     </dl>
 
     >> lena = Import["ExampleData/lena.tif"];
@@ -1564,6 +1711,13 @@ class ImageDimensions(_ImageBuiltin):
 
 
 class ImageAspectRatio(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageAspectRatio[$image$]'
+      <dd>gives the aspect ratio of $image$.
+    </dl>
+    '''
+
     def apply(self, image, evaluation):
         'ImageAspectRatio[image_Image]'
         dim = image.dimensions()
@@ -1571,12 +1725,26 @@ class ImageAspectRatio(_ImageBuiltin):
 
 
 class ImageChannels(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageChannels[$image$]'
+      <dd>gives the number of channels in $image$.
+    </dl>
+    '''
+
     def apply(self, image, evaluation):
         'ImageChannels[image_Image]'
         return Integer(image.channels())
 
 
 class ImageType(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageType[$image$]'
+      <dd>gives the interval storage type of $image$, e.g. "Real", "Bit32", or "Bit".
+    </dl>
+    '''
+
     def apply(self, image, evaluation):
         'ImageType[image_Image]'
         return String(image.storage_type())
