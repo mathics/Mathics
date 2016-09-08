@@ -5,6 +5,70 @@ body {
   font-size: 11pt;
 }
 
+body > header {
+  position: relative;
+  height: 32px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 14px 1em 24px 1em;
+  z-index: 1;
+
+  background: -moz-linear-gradient(top, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 66%, rgba(255,255,255,0.2) 100%);
+  background: -webkit-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(255,255,255,1) 66%,rgba(255,255,255,0.2) 100%);
+  background: linear-gradient(to bottom, rgba(255,255,255,1) 0%,rgba(255,255,255,1) 66%,rgba(255,255,255,0.2) 100%);
+}
+
+#headerleft {
+  display: flex;
+  flex-direction: row;
+}
+
+#logotext {
+  margin-top: 8px;
+  margin-left: 5px;
+  margin-right: 1em;
+}
+
+#menu {
+  margin-left: 0em;
+  background-color: #3f3f3f;
+  color: #fff;
+  border-radius: 5px;
+  box-shadow: 0px 1px 1px 0px #666;
+  border: #cccecb 1px solid;
+  height: 32px;
+}
+#menu a {
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.95em;
+  color: white;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 8px;
+  display: inline-block;
+  margin: 0;
+  width: 1em;
+  text-align: center;
+  height: 24px;
+}
+#menu a:hover {
+  background-color: #000;
+  color: #f6f6f6;
+}
+#menu a+a {
+  border-left: #666 1px solid;
+}
+#menu a:first-child {
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+}
+#menu a:last-child {
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
 #head {
   color: black;
   padding: 5px 20px 0;
@@ -30,21 +94,6 @@ div.headright {
   font-size: 0.85em;
 }
 
-#logo {
-  position: absolute;
-  top: 7px;
-  display: block;
-}
-
-#menu {
-  padding: 0 20px;
-  font-family: sans-serif;
-  font-size: 14px;
-  line-height: 16px;
-  color: #222;
-  height: 30px;
-}
-
 #menuleft {
   float: left;
   border-left: 1px solid #999;
@@ -57,25 +106,6 @@ div.headright {
 
 #menuleft {
   float: left;
-}
-
-#menu a,
-#menu a:hover {
-  text-decoration: none;
-  font-weight: bold;
-  font-size: 0.95em;
-  color: inherit;
-  margin: 0;
-  padding: 6px 10px;
-  display: inline-block;
-  border-right: 1px solid #999;
-  height: 18px;
-}
-
-#menu a:hover {
-  background: url(/media/img/menu_hover.gif) left top repeat-x;
-  color: white;
-  cursor: default;
 }
 
 #doclink:focus {
@@ -95,6 +125,7 @@ div.headright {
   width: 120px;
   padding: 2px 5px;
   border: 1px solid #999;
+  border-radius: 5px;
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
 }
@@ -134,26 +165,32 @@ a.pdf {
   line-height: 20px;
   display: inline-block;
 }
-/*
-#content {
-  padding: 10px 20px 40px;
-}
-*/
+
 #document,
 #code,
 #doc {
-  top: 75px;
-}
-
-#document,
-#code {
-  padding: 0;
   position: absolute;
-  bottom: 0px;
+  top: 50px;
+  bottom: 0;
   left: 0;
   right: 0;
   background-color: white;
   overflow: auto;
+  padding-top: 10px;
+  z-index: 0;
+}
+
+#doc {
+  top: 50px;
+  padding-top: 10px;
+  position: absolute;
+  bottom: 0px;
+  width: 50%;
+  right: 0;
+  border: none;
+  border-left: 2px solid #999;
+  overflow: auto;
+  font-size: 0.9em;
 }
 
 #document {
@@ -174,52 +211,37 @@ a.pdf {
   width: 50%;
   bottom: 20px;
 }
-
-#welcome,
-#welcomeBrowser {
-  /*background-color: #666;*/
-  border: 2px solid #999;
-  color: #333;
-  cursor: default;
-  padding: 10px;
-  -moz-border-radius: 10px;
-  -webkit-border-radius: 10px;
-}
-
 #welcomeContainer p {
   margin-top: 0;
   margin-bottom: 3px;
 }
-
 #welcomeContainer a {
   color: #666;
 }
-
 #welcomeContainer a:hover {
   color: #999;
 }
 
+#welcome,
+#welcomeBrowser {
+  background-color: white;
+  border: 2px solid #999;
+  color: #333;
+  cursor: default;
+  padding: 10px;
+  border-radius: 10px;
+  -moz-border-radius: 10px;
+  -webkit-border-radius: 10px;
+}
 #welcomeBrowser {
   border-color: red;
   background-color: red;
   color: white;
   margin-top: 20px;
 }
-
 #welcomeBrowser a,
 #welcomeBrowser a:hover {
   color: white;
-}
-
-#doc {
-  position: absolute;
-  bottom: 0px;
-  width: 50%;
-  right: 0;
-  border: none;
-  border-left: 2px solid #999;
-  overflow: auto;
-  font-size: 0.9em;
 }
 
 #docContent {
@@ -268,6 +290,7 @@ li.query .submitbutton span {
   background-color: #999;
   color: white;
   padding: 5px;
+  border-radius: 5px;
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
   width: 10px;
@@ -430,6 +453,7 @@ li.test .submitbutton span {
   background-color: #999;
   color: white;
   padding: 5px;
+  border-radius: 5px;
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
   width: 10px;

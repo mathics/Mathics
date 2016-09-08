@@ -15,7 +15,7 @@
 
 {% block html_body %}
 
-<div id="head">
+<!-- <div id="head">
   <div class="headright">
     <a href="javascript:createLink()">#</a>
   </div>
@@ -42,10 +42,26 @@
   <a id="doclink" href="javascript:toggleDoc()">Documentation</a>
   <input id="search" type="text" />
 </div>
+</div> -->
+
+<header>
+<div id="headerleft">
+  <img id="logo" src="/media/img/logo-heptatom.svg" height="32" alt="Logo" />
+  <img id="logotext" src="/media/img/logo-text.svg" height="24" alt="Mathics" />
+
+  <div id="menu">
+    <a href="javascript:showOpen()"><i class="fa fa-folder-open" title="Open"></i></a><a href="javascript:showSave()"><i class="fa fa-download" title="Save"></i></a><a href="javascript:createLink()"><i class="fa fa-hashtag" title="Share hash"></i></a>
+  </div>
 </div>
 
+<div id="headerright">
+  Right
+</div>
+</header>
+
+<!-- Login -->
 <script type="text/javascript">
-    var REQUIRE_LOGIN = {% if require_login %}true{% else %}false{% endif %};
+  var REQUIRE_LOGIN = {% if require_login %}true{% else %}false{% endif %};
 </script>
 
 {% if user.is_authenticated %}

@@ -392,6 +392,7 @@ function submitQuery(textarea, onfinish) {
 	$('welcomeContainer').fade({duration: 0.5});
 
 	textarea.li.addClassName('loading');
+  // $('logo').addClassName('fa fa-spin');
 	new Ajax.Request('/ajax/query/', {
 		method: 'post',
 		parameters: {
@@ -423,6 +424,7 @@ function submitQuery(textarea, onfinish) {
 		},
 		onComplete: function() {
 			textarea.li.removeClassName('loading');
+      // $('logo').removeClassName('fa fa-spin');
 			if (onfinish)
 				onfinish();
 		}
