@@ -1885,7 +1885,7 @@ class Image(Atom):
         return PIL.Image.fromarray(pixels, mode)
 
     def color_convert(self, to_color_space, preserve_alpha=True):
-        if to_color_space == self.color_space:
+        if to_color_space == self.color_space and preserve_alpha:
             return self
         else:
             pixels = pixels_as_float(self.pixels)
