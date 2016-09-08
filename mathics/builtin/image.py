@@ -1098,6 +1098,13 @@ class MorphologicalComponents(_ImageBuiltin):
 
 
 class ImageColorSpace(_ImageBuiltin):
+    """
+    <dl>
+    <dt>'ImageColorSpace[$image$]'
+        <dd>gives $image$'s color space, e.g. "RGB" or "CMYK".
+    </dl>
+    """
+
     def apply(self, image, evaluation):
         'ImageColorSpace[image_Image]'
         return String(image.color_space)
@@ -1378,7 +1385,8 @@ class DominantColors(Builtin):
     '''
 
     rules = {
-        'DominantColors[image_Image, options___]': 'DominantColors[image, 256, options]',
+        'DominantColors[image_Image, n_Integer, options___]': 'DominantColors[image, n, "Color", options]',
+        'DominantColors[image_Image, options___]': 'DominantColors[image, 256, "Color", options]',
     }
 
     options = {
@@ -1386,8 +1394,12 @@ class DominantColors(Builtin):
         'MinColorDistance': 'Automatic',
     }
 
-    def apply(self, image, n, evaluation, options):
-        'DominantColors[image_Image, n_Integer, OptionsPattern[%(name)s]]'
+    def apply(self, image, n, prop, evaluation, options):
+        'DominantColors[image_Image, n_Integer, prop_String, OptionsPattern[%(name)s]]'
+
+        py_prop = prop.get_string_value()
+        if py_prop not in ('Color', 'LABColor', 'Count', 'Coverage', 'CoverageImage'):
+            return
 
         color_coverage = self.get_option(options, 'ColorCoverage', evaluation)
         min_color_distance = self.get_option(options, 'MinColorDistance', evaluation)
@@ -1402,7 +1414,13 @@ class DominantColors(Builtin):
         if isinstance(color_coverage, Symbol) and color_coverage.get_name() == 'System`Automatic':
             py_min_color_coverage = 0.05
             py_max_color_coverage = 1.
+        elif color_coverage.has_form('List', 2):
+            py_min_color_coverage = color_coverage.leaves[0].round_to_float()
+            py_max_color_coverage = color_coverage.leaves[1].round_to_float()
         else:
+            py_min_color_coverage = color_coverage.round_to_float()
+
+        if py_min_color_coverage is None or py_max_color_coverage is None:
             return
 
         at_most = n.get_int_value()
@@ -1417,12 +1435,13 @@ class DominantColors(Builtin):
 
         im = image.color_convert('RGB').pil().convert(
             'P', palette=PIL.Image.ADAPTIVE, colors=256)
+        pixels = numpy.array(list(im.getdata()))
 
         flat = numpy.array(list(im.getpalette())) / 255.0  # float values now
         rgb_palette = [flat[i:i + 3] for i in range(0, len(flat), 3)]  # group by 3
         lab_palette = [numpy.array(x) for x in convert_color(rgb_palette, 'RGB', 'LAB', False)]
 
-        bins = numpy.bincount(numpy.array(list(im.getdata())), minlength=len(rgb_palette))
+        bins = numpy.bincount(pixels, minlength=len(rgb_palette))
         num_pixels = im.size[0] * im.size[1]
 
         from mathics.algorithm.clusters import agglomerate, PrecomputedDistances, FixedDistanceCriterion
@@ -1434,19 +1453,37 @@ class DominantColors(Builtin):
 
         lab_distances = [df(i, j) for i in range(len(lab_palette)) for j in range(i)]
 
+        if py_prop == 'LABColor':
+            out_palette = lab_palette
+            out_palette_head = 'LABColor'
+        else:
+            out_palette = rgb_palette
+            out_palette_head = 'RGBColor'
+
         dominant = agglomerate(
-            (rgb_palette, bins),
+            (out_palette, bins),
             (FixedDistanceCriterion, {'merge_limit': py_min_color_distance}),
             PrecomputedDistances(lab_distances),
             mode='dominant')
 
         def result():
-            min_coverage = max(0, int(num_pixels * py_min_color_coverage))
-            max_coverage = min(num_pixels, int(num_pixels * py_max_color_coverage))
+            min_count = max(0, int(num_pixels * py_min_color_coverage))
+            max_count = min(num_pixels, int(num_pixels * py_max_color_coverage))
 
-            for prototype, coverage, members in dominant:
-                if max_coverage >= coverage > min_coverage:
-                    yield Expression('RGBColor', *prototype)
+            for prototype, count, members in dominant:
+                if max_count >= count > min_count:
+                    if py_prop == 'Count':
+                        yield Integer(count)
+                    elif py_prop == 'Coverage':
+                        yield Rational(count, num_pixels)
+                    elif py_prop == 'CoverageImage':
+                        mask = numpy.ndarray(shape=pixels.shape, dtype=numpy.bool)
+                        mask.fill(0)
+                        for i in members:
+                            mask = mask | (pixels == i)
+                        yield Image(mask.reshape(tuple(reversed(im.size))), 'Grayscale')
+                    else:
+                        yield Expression(out_palette_head, *prototype)
 
         return Expression('List', *itertools.islice(result(), 0, at_most))
 
@@ -1691,44 +1728,40 @@ class Image(Atom):
         return self.color_convert('Grayscale')
 
     def atom_to_boxes(self, f, evaluation):
-        try:
-            pixels = pixels_as_ubyte(self.color_convert('RGB', False).pixels)
-            shape = pixels.shape
+        pixels = pixels_as_ubyte(self.color_convert('RGB', False).pixels)
+        shape = pixels.shape
 
-            width = shape[1]
-            height = shape[0]
-            scaled_width = width
-            scaled_height = height
+        width = shape[1]
+        height = shape[0]
+        scaled_width = width
+        scaled_height = height
 
-            pillow = PIL.Image.fromarray(pixels, 'RGB')
+        pillow = PIL.Image.fromarray(pixels, 'RGB')
 
-            # if the image is very small, scale it up using nearest neighbour.
-            min_size = 128
-            if width < min_size and height < min_size:
-                scale = min_size / max(width, height)
-                scaled_width = int(scale * width)
-                scaled_height = int(scale * height)
-                pillow = pillow.resize(
-                    (scaled_height, scaled_width), resample=PIL.Image.NEAREST)
+        # if the image is very small, scale it up using nearest neighbour.
+        min_size = 128
+        if width < min_size and height < min_size:
+            scale = min_size / max(width, height)
+            scaled_width = int(scale * width)
+            scaled_height = int(scale * height)
+            pillow = pillow.resize(
+                (scaled_height, scaled_width), resample=PIL.Image.NEAREST)
 
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
 
-                stream = BytesIO()
-                pillow.save(stream, format='png')
-                stream.seek(0)
-                contents = stream.read()
-                stream.close()
+            stream = BytesIO()
+            pillow.save(stream, format='png')
+            stream.seek(0)
+            contents = stream.read()
+            stream.close()
 
-            encoded = base64.b64encode(contents)
-            if not six.PY2:
-                encoded = encoded.decode('utf8')
-            encoded = 'data:image/png;base64,' + encoded
+        encoded = base64.b64encode(contents)
+        if not six.PY2:
+            encoded = encoded.decode('utf8')
+        encoded = 'data:image/png;base64,' + encoded
 
-            return Expression('ImageBox', String(encoded), Integer(scaled_width), Integer(scaled_height))
-        except Exception as e:
-            evaluation.print_out('An error prevented the display of this image: %s' % str(e))
-            return String('')
+        return Expression('ImageBox', String(encoded), Integer(scaled_width), Integer(scaled_height))
 
     def __str__(self):
         return '-Image-'
