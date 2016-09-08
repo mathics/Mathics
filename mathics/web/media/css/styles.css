@@ -11,12 +11,12 @@ body > header {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  padding: 14px 1em 24px 1em;
+  padding: 14px 1em 24px 1.5em;
   z-index: 1;
 
-  background: -moz-linear-gradient(top, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 66%, rgba(255,255,255,0.2) 100%);
-  background: -webkit-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(255,255,255,1) 66%,rgba(255,255,255,0.2) 100%);
-  background: linear-gradient(to bottom, rgba(255,255,255,1) 0%,rgba(255,255,255,1) 66%,rgba(255,255,255,0.2) 100%);
+  background: -moz-linear-gradient(top, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 66%, rgba(255,255,255,0) 100%);
+  background: -webkit-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(255,255,255,1) 66%,rgba(255,255,255,0) 100%);
+  background: linear-gradient(to bottom, rgba(255,255,255,1) 0%,rgba(255,255,255,1) 66%,rgba(255,255,255,0) 100%);
 }
 
 #headerleft {
@@ -30,16 +30,17 @@ body > header {
   margin-right: 1em;
 }
 
-#menu {
+div.menu {
   margin-left: 0em;
   background-color: #3f3f3f;
   color: #fff;
   border-radius: 5px;
-  box-shadow: 0px 1px 1px 0px #666;
+  box-shadow: 0px 1px 1px 0px #cccecb;
   border: #cccecb 1px solid;
   height: 32px;
+  min-width: 7.2em;
 }
-#menu a {
+div.menu a {
   text-decoration: none;
   font-weight: bold;
   font-size: 0.95em;
@@ -52,86 +53,73 @@ body > header {
   width: 1em;
   text-align: center;
   height: 24px;
+  /*transition: 0.1s;*/
 }
-#menu a:hover {
+div.menu a:hover {
   background-color: #000;
   color: #f6f6f6;
 }
-#menu a+a {
+div.menu a+a {
   border-left: #666 1px solid;
 }
-#menu a:first-child {
+div.menu a:first-child {
   border-top-left-radius: 5px;
   border-bottom-left-radius: 5px;
 }
-#menu a:last-child {
+div.menu a:last-child {
   border-top-right-radius: 5px;
   border-bottom-right-radius: 5px;
 }
 
-#head {
-  color: black;
-  padding: 5px 20px 0;
-  margin: 0;
-  height: 40px;
-  position: relative;
+div.transparent {
+  opacity: 0.25;
 }
 
-#head a {
-  color: #666;
-  text-decoration: none;
-}
-
-#head a:hover {
-  color: #999;
-}
-
-div.headright {
-  /*padding-top: 5px;*/
-  float: right;
-  margin-left: 1em;
-  text-align: right;
-  font-size: 0.85em;
-}
-
-#menuleft {
-  float: left;
-  border-left: 1px solid #999;
-}
-
-#menuright {
-  border-left: 1px solid #999;
-  float: right;
-}
-
-#menuleft {
-  float: left;
-}
-
-#doclink:focus {
-  outline: none;
-}
-#doclink.active {
-  background: url(/media/img/menu_inverted.gif) left top repeat-x;
-}
-#doclink.active:hover {
-  background: url(/media/img/menu_inverted_hover.gif) left top repeat-x;
+#headerright {
+  padding-top: 8px;
+  padding-left: 0.5em;
+  width: 50%;
+  display: flex;
+  flex-wrap: nowrap;
+  flex-direction: row;
+  justify-content: space-between;
 }
 
 #search {
+  font-family: sans-serif;
   font-size: 0.9em;
   margin: 0;
-  margin-left: 5px;
-  width: 120px;
-  padding: 2px 5px;
-  border: 1px solid #999;
-  border-radius: 5px;
-  -moz-border-radius: 5px;
-  -webkit-border-radius: 5px;
+  margin-left: 0.5em;
+  padding: 5px;
+  padding-bottom: 0.2em;
+  transform: scaleX(0);
+  transform-origin: right;
+  border: 0;
+  border-bottom: 1px solid #cccecb;
+  outline: 0;
+  width: 94%;
+  font-size: 1.2em;
+  color: #3f3f3f;
+  transition: 0.2s ease;
+}
+#search.empty {
+  font-family: "FontAwesome";
+}
+#search.shown {
+  transform: scaleX(1);
 }
 
-#search.empty {
-  color: #888;
+#doclink {
+  color: #cccecb;
+}
+#doclink:hover {
+  color: #666;
+}
+#doclink.active { /* Yes, .active is not a typo */
+  color: #3f3f3f;
+}
+#doclink:focus {
+  outline: none;
 }
 
 #version {
@@ -142,16 +130,29 @@ div.headright {
   left: 155px;
 }
 
+div.login {
+  padding-left: 1em;
+}
+div.login a {
+  text-decoration: none;
+  color: #cccecb;
+}
+div.login a:hover {
+  color: #3f3f3f;
+}
+
 #username {
-  color: #333;
+  color: #3f3f3f;
+  margin-right: 0.5em;
+  font-size: 0.9em;
 }
 
-#head #authenticated #logout {
-  color: #633;
+#authenticated #logout {
+  color: #cccecb;
 }
 
-#head #authenticated #logout:hover {
-  color: #966;
+#authenticated #logout:hover {
+  color: #c00;
 }
 
 a.pdf {
@@ -167,8 +168,7 @@ a.pdf {
 }
 
 #document,
-#code,
-#doc {
+#code {
   position: absolute;
   top: 50px;
   bottom: 0;
@@ -182,19 +182,18 @@ a.pdf {
 
 #doc {
   top: 50px;
-  padding-top: 10px;
+  padding-top: 12px;
   position: absolute;
   bottom: 0px;
   width: 50%;
   right: 0;
   border: none;
-  border-left: 2px solid #999;
+  border-left: 2px solid #cccecb;
   overflow: auto;
   font-size: 0.9em;
 }
 
 #document {
-  cursor: vertical-text;
   font-size: 0.9em;
 }
 
@@ -203,35 +202,50 @@ a.pdf {
   right: 50%;
 }
 
+#queriesContainer {
+  cursor: vertical-text;
+}
+
 #welcomeContainer {
   position: absolute;
   margin-left: auto;
   margin-right: auto;
   left: 25%;
   width: 50%;
-  bottom: 20px;
+  bottom: 2em;
 }
 #welcomeContainer p {
   margin-top: 0;
-  margin-bottom: 3px;
+  margin-bottom: 1em;
 }
 #welcomeContainer a {
-  color: #666;
+  color: #fff;
 }
 #welcomeContainer a:hover {
-  color: #999;
+  color: #fff;
 }
 
 #welcome,
 #welcomeBrowser {
-  background-color: white;
-  border: 2px solid #999;
-  color: #333;
+  background-color: #3f3f3f;
+  box-shadow: 0px 1px 1px 0px #cccecb;
+  border: #cccecb 1px solid;
+  color: #fff;
   cursor: default;
-  padding: 10px;
-  border-radius: 10px;
-  -moz-border-radius: 10px;
-  -webkit-border-radius: 10px;
+  border-radius: 8px;
+  -moz-border-radius: 8px;
+  -webkit-border-radius: 8px;
+}
+#welcome {
+  padding: 1em 1em 0 1em;
+}
+#welcome h1 {
+  color: white;
+  font-size: 1.2em;
+  font-weight: bold;
+  margin: 0;
+  margin-bottom: 0.5em;
+  padding: 0;
 }
 #welcomeBrowser {
   border-color: red;
@@ -287,7 +301,7 @@ li.query .submitbutton span {
   margin-top: 3px;
   margin-bottom: 5px;
   /*margin-left: 10px;*/
-  background-color: #999;
+  background-color: #cccecb;
   color: white;
   padding: 5px;
   border-radius: 5px;
@@ -300,7 +314,8 @@ li.query .submitbutton span {
   cursor: pointer;
 }
 li.query .submitbutton span:hover {
-  background-color: #666;
+  background-color: #3f3f3f;
+  border: 1px solid #cccecb;
 }
 
 li.query.moving,
@@ -325,7 +340,7 @@ li.query.moving span.move,
 li.query.moving.focused span.move,
 span.move:hover,
 li.query.focused span.move:hover {
-  background-color: #9f9;
+  background-color: #6f3;
   width: 6px;
 }
 
@@ -469,7 +484,7 @@ li.test .submitbutton span:hover {
 
 h1 {
   font-weight: normal;
-  color: #333;
+  color: #3f3f3f;
 }
 
 form {
@@ -537,7 +552,7 @@ form table p.helptext {
 }
 
 p.formsuccess {
-  border: 2px solid green;
+  border: 1px solid #6f3;
   text-align: left;
   padding: 2px 5px;
 }
@@ -546,7 +561,7 @@ div.dialog h1 {
   text-align: center;
   margin-top: 0;
   margin-bottom: 10px;
-  color: #333;
+  color: #3f3f3f;
 }
 
 div.dialog form table {

@@ -678,7 +678,8 @@ function globalKeyUp(event) {
 	if (!popup && event.ctrlKey) {
 		switch (event.keyCode) {
 		case 68: // D
-			$('search').select();
+      showDoc();
+      $('search').select();
 			event.stop();
 			break;
 		case 67: // C

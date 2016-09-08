@@ -49,13 +49,22 @@
   <img id="logo" src="/media/img/logo-heptatom.svg" height="32" alt="Logo" />
   <img id="logotext" src="/media/img/logo-text.svg" height="24" alt="Mathics" />
 
-  <div id="menu">
-    <a href="javascript:showOpen()"><i class="fa fa-folder-open" title="Open"></i></a><a href="javascript:showSave()"><i class="fa fa-download" title="Save"></i></a><a href="javascript:createLink()"><i class="fa fa-hashtag" title="Share hash"></i></a>
+  <div class="menu">
+    <a href="javascript:showOpen()" title="Open"><i class="fa fa-file-text"></i></a><a href="javascript:showSave()" title="Save"><i class="fa fa-download"></i></a><a href="javascript:createLink()" title="Generate hash"><i class="fa fa-hashtag"></i></a>
   </div>
 </div>
 
 <div id="headerright">
-  Right
+  <input id="search" type="text" /><a id="doclink" href="javascript:toggleDoc()" title="Docs"><i class="fa fa-lg fa-question-circle-o"></i></a>
+
+  <div id="notAuthenticated" class="login">
+    {% if require_login %}
+    <a href="javascript:showLogin()" class="fa fa-lg fa-sign-in" title="Sign in"></a>
+    {% endif %}
+  </div>
+  <div id="authenticated" class="login" style="display: none">
+    <span id="username"></span><a id="logout" href="javascript:logout()" class="fa fa-lg fa-sign-out" title="Sign out"></a>
+  </div>
 </div>
 </header>
 
