@@ -395,6 +395,17 @@ conversions = {
     'RGB>XYZ': rgb_to_xyz,
 }
 
+colorspaces = frozenset((
+    'Grayscale',
+    'RGB',
+    'CMYK',
+    'HSB',
+    'XYZ',
+    'LAB',
+    'LCH',
+    'LUV',
+))
+
 
 def convert(components, src, dst, preserve_alpha=True):
     if not preserve_alpha:

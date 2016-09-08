@@ -10,7 +10,7 @@ from mathics.builtin.base import (
     Builtin, AtomBuiltin, Test, BoxConstruct, String)
 from mathics.core.expression import (
     Atom, Expression, Integer, Rational, Real, MachineReal, Symbol, from_python)
-from mathics.builtin.colors import convert as convert_color
+from mathics.builtin.colors import convert as convert_color, colorspaces as known_colorspaces
 
 import six
 import base64
@@ -179,10 +179,12 @@ class ImageImport(_ImageBuiltin):
         is_rgb = len(pixels.shape) >= 3 and pixels.shape[2] >= 3
         exif = Expression('List', *list(_Exif.extract(pillow, evaluation)))
 
-        atom = Image(pixels, 'RGB' if is_rgb else 'Grayscale')
+        image = Image(pixels, 'RGB' if is_rgb else 'Grayscale')
         return Expression(
             'List',
-            Expression('Rule', String('Image'), atom),
+            Expression('Rule', String('Image'), image),
+            Expression('Rule', String('ColorSpace'), String(image.color_space)),
+            Expression('Rule', String('ImageSize'), from_python(image.dimensions())),
             Expression('Rule', String('RawExif'), exif))
 
 
@@ -1240,6 +1242,39 @@ class ColorSeparate(_ImageBuiltin):
             for i in range(pixels.shape[2]):
                 images.append(Image(pixels[:, :, i], 'Grayscale'))
         return Expression('List', *images)
+
+
+class ColorCombine(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ColorCombine[$channels$, $colorspace$]'
+      <dd>Gives an image with $colorspace$ and the respective components described by the given channels.
+    </dl>
+
+    >> ColorCombine[{{{1, 0}, {0, 0.75}}, {{0, 1}, {0, 0.25}}, {{0, 0}, {1, 0.5}}}, "RGB"]
+     = -Image-
+    '''
+
+    def apply(self, channels, colorspace, evaluation):
+        'ColorCombine[channels_List, colorspace_String]'
+
+        py_colorspace = colorspace.get_string_value()
+        if py_colorspace not in known_colorspaces:
+            return
+
+        numpy_channels = []
+        for channel in channels.leaves:
+            if not Expression('MatrixQ', channel).evaluate(evaluation).is_true():
+                return
+            numpy_channels.append(matrix_to_numpy(channel))
+
+        if not numpy_channels:
+            return
+
+        if not all(x.shape == numpy_channels[0].shape for x in numpy_channels[1:]):
+            return
+
+        return Image(numpy.dstack(numpy_channels), py_colorspace)
 
 
 def _linearize(a):
