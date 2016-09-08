@@ -9,12 +9,13 @@ from __future__ import division
 from mathics.builtin.base import (
     Builtin, AtomBuiltin, Test, BoxConstruct, String)
 from mathics.core.expression import (
-    Atom, Expression, Integer, Rational, Real, Symbol, from_python)
+    Atom, Expression, Integer, Rational, Real, MachineReal, Symbol, from_python)
 from mathics.builtin.colors import convert as convert_color
 
 import six
 import base64
 import functools
+import itertools
 import math
 
 _image_requires = (
@@ -65,6 +66,7 @@ def pixels_as_float(pixels):
 def pixels_as_ubyte(pixels):
     dtype = pixels.dtype
     if dtype in (numpy.float32, numpy.float64):
+        pixels = numpy.maximum(numpy.minimum(pixels, 1.), 0.)
         return (pixels * 255.).astype(numpy.uint8)
     elif dtype == numpy.uint8:
         return pixels
@@ -77,6 +79,7 @@ def pixels_as_ubyte(pixels):
 def pixels_as_uint(pixels):
     dtype = pixels.dtype
     if dtype in (numpy.float32, numpy.float64):
+        pixels = numpy.maximum(numpy.minimum(pixels, 1.), 0.)
         return (pixels * 65535.).astype(numpy.uint16)
     elif dtype == numpy.uint8:
         return pixels.astype(numpy.uint16) * 256
@@ -84,6 +87,37 @@ def pixels_as_uint(pixels):
         return pixels
     else:
         raise NotImplementedError
+
+
+def matrix_to_numpy(a):
+    def matrix():
+        for y in a.leaves:
+            yield [x.round_to_float() for x in y.leaves]
+    return numpy.array(list(matrix()))
+
+
+def convolve(in1, in2, fixed=True):
+    # a very much boiled down version scipy.signal.signaltools.fftconvolve with added padding, see
+    # https://github.com/scipy/scipy/blob/master/scipy/signal/signaltools.py; please see the Scipy
+    # LICENSE in the accompanying files.
+
+    in1 = numpy.asarray(in1)
+    in2 = numpy.asarray(in2)
+
+    padding = numpy.array(in2.shape) // 2
+    if fixed:  # add "Fixed" padding?
+        in1 = numpy.pad(in1, padding, 'edge')
+
+    s1 = numpy.array(in1.shape)
+    s2 = numpy.array(in2.shape)
+    shape = s1 + s2 - 1
+
+    sp1 = numpy.fft.rfftn(in1, shape)
+    sp2 = numpy.fft.rfftn(in2, shape)
+    ret = numpy.fft.irfftn(sp1 * sp2, shape)
+
+    excess = (numpy.array(ret.shape) - s1) // 2 + padding
+    return ret[tuple(slice(p, -p) for p in excess)]
 
 # import and export
 
@@ -766,17 +800,17 @@ class ImageAdjust(_ImageBuiltin):
         im = image.pil()
 
         # gamma
-        g = g.to_python()
+        g = g.round_to_float()
         if g != 1:
             im = PIL.ImageEnhance.Color(im).enhance(g)
 
         # brightness
-        b = b.to_python()
+        b = b.round_to_float()
         if b != 0:
             im = PIL.ImageEnhance.Brightness(im).enhance(b + 1)
 
         # contrast
-        c = c.to_python()
+        c = c.round_to_float()
         if c != 0:
             im = PIL.ImageEnhance.Contrast(im).enhance(c + 1)
 
@@ -785,13 +819,9 @@ class ImageAdjust(_ImageBuiltin):
 
 class Blur(_ImageBuiltin):
     rules = {
-        'Blur[i_Image]': 'Blur[i, 2]'
+        'Blur[image_Image]': 'Blur[image, 2]',
+        'Blur[image_Image, r_?RealNumberQ]': 'ImageConvolve[image, BoxMatrix[r] / Total[Flatten[BoxMatrix[r]]]]',
     }
-
-    def apply(self, image, r, evaluation):
-        'Blur[image_Image, r_?RealNumberQ]'
-        f = PIL.ImageFilter.GaussianBlur(r.round_to_float())
-        return image.filter(lambda im: im.filter(f))
 
 
 class Sharpen(_ImageBuiltin):
@@ -830,19 +860,19 @@ class PillowImageFilter(_ImageBuiltin):
 class MinFilter(PillowImageFilter):
     def apply(self, image, r, evaluation):
         'MinFilter[image_Image, r_Integer]'
-        return self.compute(image, PIL.ImageFilter.MinFilter(1 + 2 * r.to_python()))
+        return self.compute(image, PIL.ImageFilter.MinFilter(1 + 2 * r.get_int_value()))
 
 
 class MaxFilter(PillowImageFilter):
     def apply(self, image, r, evaluation):
         'MaxFilter[image_Image, r_Integer]'
-        return self.compute(image, PIL.ImageFilter.MaxFilter(1 + 2 * r.to_python()))
+        return self.compute(image, PIL.ImageFilter.MaxFilter(1 + 2 * r.get_int_value()))
 
 
 class MedianFilter(PillowImageFilter):
     def apply(self, image, r, evaluation):
         'MedianFilter[image_Image, r_Integer]'
-        return self.compute(image, PIL.ImageFilter.MedianFilter(1 + 2 * r.to_python()))
+        return self.compute(image, PIL.ImageFilter.MedianFilter(1 + 2 * r.get_int_value()))
 
 
 class EdgeDetect(_ImageBuiltin):
@@ -859,8 +889,8 @@ class EdgeDetect(_ImageBuiltin):
         'EdgeDetect[image_Image, r_?RealNumberQ, t_?RealNumberQ]'
         import skimage.feature
         return Image(skimage.feature.canny(
-            image.grayscale().pixels, sigma=r.to_python() / 2,
-            low_threshold=0.5 * t.to_python(), high_threshold=t.to_python()),
+            image.grayscale().pixels, sigma=r.round_to_float() / 2,
+            low_threshold=0.5 * t.round_to_float(), high_threshold=t.round_to_float()),
             'Grayscale')
 
 
@@ -945,6 +975,25 @@ class DiamondMatrix(_ImageBuiltin):
         return _matrix(rows())
 
 
+class ImageConvolve(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageConvolve[$image$, $kernel$]'
+      <dd>Computes the convolution of $image$ using $kernel$.
+    </dl>
+    '''
+
+    def apply(self, image, kernel, evaluation):
+        '%(name)s[image_Image, kernel_?MatrixQ]'
+        numpy_kernel = matrix_to_numpy(kernel)
+        pixels = pixels_as_float(image.pixels)
+        shape = pixels.shape[:2]
+        channels = []
+        for c in (pixels[:, :, i] for i in range(pixels.shape[2])):
+            channels.append(convolve(c.reshape(shape), numpy_kernel, fixed=True))
+        return Image(numpy.dstack(channels), image.color_space)
+
+
 class _MorphologyFilter(_ImageBuiltin):
     requires = _image_requires + (
         'skimage',
@@ -965,7 +1014,7 @@ class _MorphologyFilter(_ImageBuiltin):
             evaluation.message(self.name, 'grayscale')
         import skimage.morphology
         f = getattr(skimage.morphology, self.get_name(True).lower())
-        img = f(image.pixels, numpy.array(k.to_python()))
+        img = f(image.pixels, matrix_to_numpy(k))
         return Image(img, 'Grayscale')
 
 
@@ -1032,7 +1081,7 @@ class MorphologicalComponents(_ImageBuiltin):
 
     def apply(self, image, t, evaluation):
         'MorphologicalComponents[image_Image, t_?RealNumberQ]'
-        pixels = pixels_as_ubyte(pixels_as_float(image.grayscale().pixels) > t.to_python())
+        pixels = pixels_as_ubyte(pixels_as_float(image.grayscale().pixels) > t.round_to_float())
         import skimage.measure
         return from_python(skimage.measure.label(pixels, background=0, connectivity=2).tolist())
 
@@ -1102,7 +1151,7 @@ class ColorQuantize(_ImageBuiltin):
         if converted is None:
             return
         pixels = pixels_as_ubyte(converted.pixels)
-        im = PIL.Image.fromarray(pixels).quantize(n.to_python())
+        im = PIL.Image.fromarray(pixels).quantize(n.get_int_value())
         im = im.convert('RGB')
         return Image(numpy.array(im), 'RGB')
 
@@ -1144,29 +1193,43 @@ class Binarize(_ImageBuiltin):
     def apply(self, image, evaluation):
         'Binarize[image_Image]'
         image = image.grayscale()
-        threshold = Expression('Threshold', image).evaluate(evaluation).to_python()
+        threshold = Expression('Threshold', image).evaluate(evaluation).round_to_float()
         return Image(image.pixels > threshold, 'Grayscale')
 
     def apply_t(self, image, t, evaluation):
         'Binarize[image_Image, t_?RealNumberQ]'
         pixels = image.grayscale().pixels
-        return Image(pixels > t.to_python(), 'Grayscale')
+        return Image(pixels > t.round_to_float(), 'Grayscale')
 
     def apply_t1_t2(self, image, t1, t2, evaluation):
         'Binarize[image_Image, {t1_?RealNumberQ, t2_?RealNumberQ}]'
         pixels = image.grayscale().pixels
-        mask1 = pixels > t1.to_python()
-        mask2 = pixels < t2.to_python()
+        mask1 = pixels > t1.round_to_float()
+        mask2 = pixels < t2.round_to_float()
         return Image(mask1 * mask2, 'Grayscale')
 
 
 class ColorNegate(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ColorNegate[$image$]'
+      <dd>Gives a version of $image$ with all colors negated.
+    </dl>
+    '''
+
     def apply(self, image, evaluation):
         'ColorNegate[image_Image]'
         return image.filter(lambda im: PIL.ImageOps.invert(im))
 
 
 class ColorSeparate(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ColorSeparate[$image$]'
+      <dd>Gives each channel of $image$ as a separate grayscale image.
+    </dl>
+    '''
+
     def apply(self, image, evaluation):
         'ColorSeparate[image_Image]'
         images = []
@@ -1243,7 +1306,7 @@ class Colorize(_ImageBuiltin):
         else:
             if not Expression('MatrixQ', values).evaluate(evaluation).is_true():
                 return
-            matrix = numpy.array(values.to_python())
+            matrix = matrix_to_numpy(values)
 
         a, n = _linearize(matrix)
         # the maximum value for n is the number of pixels in a, which is acceptable and never too large.
@@ -1279,21 +1342,28 @@ class DominantColors(Builtin):
 
     options = {
         'ColorCoverage': 'Automatic',
-        'MinColorDistance': '0.15',
+        'MinColorDistance': 'Automatic',
     }
 
     def apply(self, image, n, evaluation, options):
         'DominantColors[image_Image, n_Integer, OptionsPattern[%(name)s]]'
 
-        color_coverage_option = self.get_option(options, 'ColorCoverage', evaluation)
+        color_coverage = self.get_option(options, 'ColorCoverage', evaluation)
         min_color_distance = self.get_option(options, 'MinColorDistance', evaluation)
 
-        py_min_color_distance = min_color_distance.round_to_float()
-        if py_min_color_distance is None:
+        if isinstance(min_color_distance, Symbol) and min_color_distance.get_name() == 'System`Automatic':
+            py_min_color_distance = 0.15
+        else:
+            py_min_color_distance = min_color_distance.round_to_float()
+            if py_min_color_distance is None:
+                return
+
+        if isinstance(color_coverage, Symbol) and color_coverage.get_name() == 'System`Automatic':
+            py_min_color_coverage = 0.05
+            py_max_color_coverage = 1.
+        else:
             return
 
-        py_min_color_coverage = 0.05
-        py_max_color_coverage = 1.
         at_most = n.get_int_value()
 
         if at_most > 256:
@@ -1303,13 +1373,13 @@ class DominantColors(Builtin):
         # "Perceptual Dominant Color Extraction by Multidimensional Particle Swarm Optimization":
         # "to reduce the computational complexity [...] a preprocessing step, which creates a
         # limited color palette in RGB color domain, is first performed."
+
         im = image.color_convert('RGB').pil().convert(
             'P', palette=PIL.Image.ADAPTIVE, colors=256)
 
         flat = numpy.array(list(im.getpalette())) / 255.0  # float values now
         rgb_palette = [flat[i:i + 3] for i in range(0, len(flat), 3)]  # group by 3
-        lab_palette = convert_color(rgb_palette, 'RGB', 'LAB', False)
-        palette = [numpy.array(x) for x in lab_palette]
+        lab_palette = [numpy.array(x) for x in convert_color(rgb_palette, 'RGB', 'LAB', False)]
 
         bins = numpy.bincount(numpy.array(list(im.getdata())), minlength=len(rgb_palette))
         num_pixels = im.size[0] * im.size[1]
@@ -1319,7 +1389,7 @@ class DominantColors(Builtin):
         norm = numpy.linalg.norm
 
         def df(i, j):
-            return norm(palette[i] - palette[j])
+            return norm(lab_palette[i] - lab_palette[j])
 
         lab_distances = [df(i, j) for i in range(len(lab_palette)) for j in range(i)]
 
@@ -1329,18 +1399,15 @@ class DominantColors(Builtin):
             PrecomputedDistances(lab_distances),
             mode='dominant')
 
-        result = []
+        def result():
+            min_coverage = max(0, int(num_pixels * py_min_color_coverage))
+            max_coverage = min(num_pixels, int(num_pixels * py_max_color_coverage))
 
-        min_coverage = max(0, int(num_pixels * py_min_color_coverage))
-        max_coverage = min(num_pixels, int(num_pixels * py_max_color_coverage))
+            for prototype, coverage, members in dominant:
+                if max_coverage >= coverage > min_coverage:
+                    yield Expression('RGBColor', *prototype)
 
-        for prototype, coverage, members in dominant:
-            if len(result) >= at_most:
-                break
-            if max_coverage >= coverage > min_coverage:
-                result.append(Expression('RGBColor', *prototype))
-
-        return Expression('List', *result)
+        return Expression('List', *itertools.islice(result(), 0, at_most))
 
 
 # pixel access
@@ -1375,23 +1442,23 @@ class ImageData(_ImageBuiltin):
 class ImageTake(_ImageBuiltin):
     def apply(self, image, n, evaluation):
         'ImageTake[image_Image, n_Integer]'
-        return Image(image.pixels[:int(n.to_python())], image.color_space)
+        return Image(image.pixels[:n.get_int_value()], image.color_space)
 
 
 class PixelValue(_ImageBuiltin):
     def apply(self, image, x, y, evaluation):
         'PixelValue[image_Image, {x_?RealNumberQ, y_?RealNumberQ}]'
-        pixel = image.pixels[int(y.to_python() - 1), int(x.to_python() - 1)]
+        pixel = image.pixels[int(y.round_to_float() - 1), int(x.round_to_float() - 1)]
         if isinstance(pixel, (numpy.ndarray, numpy.generic, list)):
-            return Expression('List', *[Real(float(x)) for x in list(pixel)])
+            return Expression('List', *[MachineReal(float(x)) for x in list(pixel)])
         else:
-            return Real(float(pixel))
+            return MachineReal(float(pixel))
 
 
 class PixelValuePositions(_ImageBuiltin):
     def apply(self, image, val, evaluation):
         'PixelValuePositions[image_Image, val_?RealNumberQ]'
-        rows, cols = numpy.where(pixels_as_float(image.pixels) == float(val.to_python()))
+        rows, cols = numpy.where(pixels_as_float(image.pixels) == float(val.round_to_float()))
         p = numpy.dstack((cols, rows)) + numpy.array([1, 1])
         return from_python(p.tolist())
 
@@ -1640,7 +1707,7 @@ class Image(Atom):
     def same(self, other):
         if not isinstance(other, Image):
             return False
-        if self.self.color_space != other.self.color_space or self.metadata != other.metadata:
+        if self.color_space != other.color_space or self.metadata != other.metadata:
             return False
         return numpy.array_equal(self.pixels, other.pixels)
 
