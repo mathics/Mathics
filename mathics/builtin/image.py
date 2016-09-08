@@ -1869,7 +1869,7 @@ class Image(Atom):
             pixels = pixels_as_ubyte(pixels)
         elif n == 4:
             if self.color_space == 'CMYK':
-                mode ='CMYK'
+                mode = 'CMYK'
                 pixels = self.pixels
             elif self.color_space == 'RGB':
                 mode = 'RGBA'

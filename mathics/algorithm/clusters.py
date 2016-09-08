@@ -916,7 +916,7 @@ def agglomerate(points_and_weights, k, distances, mode='clusters'):
             i, j = lookup[p]
 
             if dominant:
-                if weight[j] > weight[i]:  # always merge smaller into larger
+                if weight[j] > weight[i]:  # always merge smaller (j) into larger, dominant (i)
                     i, j = j, i
             elif i > j:
                 i, j = j, i  # merge later chunk to earlier one to preserve order
@@ -926,11 +926,27 @@ def agglomerate(points_and_weights, k, distances, mode='clusters'):
 
             heap = remove(where[p], heap, where)  # remove distance (i, j)
 
+            # look at each connection to i, and each connection to j, so that we look at the same
+            # points connection to the cluster, i.e. (a=(1, i), b=(1, j)), (a=(2, i), b=(2,i)), etc.
             for a, b in zip(unmerged_pairs(i, j, n), unmerged_pairs(j, i, n)):
+                # first, remove the distance to j from the heap, as only the distance to i should
+                # remain, as the new cluster will be i.
+
                 y, py, u = heap[where[b]]
                 heap = remove(where[b], heap, where)
 
-                if not dominant:
+                # now update the distance to i with j's distance, if j was a shorter distance. this
+                # implements a "single linkage" clustering, where the distance of an outside point to
+                # the cluster is always the shortest distance from that outside point to any point in
+                # the cluster.
+
+                # in the "dominant" mode, we do not want this. instead, we want to keep the distance
+                # from outside points to the dominant element in the cluster, which is always "a",
+                # so that the clustering depends on the distance of cluster center to new elements.
+                # using single linkage with "dominant" would fray the borders of the clustering, so
+                # that the dominant elements are not really dominant anymore.
+
+                if not dominant:  # use single linkage?
                     x, px, _ = heap[where[a]]
                     if y < x:  # compare only values here, and not tuples (x, p)
                         update(where[a], (y, px, u), heap, where)
