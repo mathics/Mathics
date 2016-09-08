@@ -952,8 +952,9 @@ class EdgeDetect(_ImageBuiltin):
     def apply(self, image, r, t, evaluation):
         'EdgeDetect[image_Image, r_?RealNumberQ, t_?RealNumberQ]'
         import skimage.feature
+        pixels = image.grayscale().pixels
         return Image(skimage.feature.canny(
-            image.grayscale().pixels, sigma=r.round_to_float() / 2,
+            pixels.reshape(pixels.shape[:2]), sigma=r.round_to_float() / 2,
             low_threshold=0.5 * t.round_to_float(), high_threshold=t.round_to_float()),
             'Grayscale')
 
@@ -1075,10 +1076,11 @@ class _MorphologyFilter(_ImageBuiltin):
         '%(name)s[image_Image, k_?MatrixQ]'
         if image.color_space != 'Grayscale':
             image = image.grayscale()
-            evaluation.message(self.name, 'grayscale')
+            evaluation.message(self.get_name(), 'grayscale')
         import skimage.morphology
         f = getattr(skimage.morphology, self.get_name(True).lower())
-        img = f(image.pixels, matrix_to_numpy(k))
+        shape = image.pixels.shape[:2]
+        img = f(image.pixels.reshape(shape), matrix_to_numpy(k))
         return Image(img, 'Grayscale')
 
 
