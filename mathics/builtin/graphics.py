@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from __future__ import division
 
-from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians
+from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians, exp
 import json
 import base64
 from six.moves import map
