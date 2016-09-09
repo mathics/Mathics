@@ -174,7 +174,8 @@ setup(
             'packages/*/*.m', 'packages/*/Kernel/init.m'],
         'mathics.doc': ['documentation/*.mdoc', 'xml/data'],
         'mathics.web': [
-            'media/css/*.css', 'media/img/*', 'media/fonts/*',
+            'media/css/*.css', 'media/img/*.svg', 'media/fonts/*',
+            'media/img/favicons/*',
             'media/js/innerdom/*.js', 'media/js/prototype/*.js',
             'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
             'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',

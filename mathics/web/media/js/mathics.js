@@ -7,6 +7,8 @@ var clickedQuery;
 
 var lastFocus = null;
 
+var welcome = true;
+
 // Undo-redo functionality
 const UNDO_LIMIT = 500;
 var previousState = {};
@@ -389,7 +391,11 @@ function setResult(ul, results) {
 }
 
 function submitQuery(textarea, onfinish) {
-	$('welcomeContainer').fade({duration: 0.5});
+  if (welcome) {
+  	$('welcomeContainer').fade({duration: 0.2});
+    if ($('hideStartupMsg').checked) localStorage.setItem('hideMathicsStartupMsg', 'true');
+    welcome = false;
+  }
 
 	textarea.li.addClassName('loading');
   // $('logo').addClassName('fa fa-spin');
@@ -850,6 +856,10 @@ function domLoaded() {
 	  }
 	});
 	MathJax.Hub.Configured();
+
+  if (localStorage.getItem('hideMathicsStartupMsg') === 'true') {
+    $('welcome').hide();
+  }
 
 	if ($('welcomeBrowser'))
 		if (!(Prototype.Browser.WebKit || Prototype.Browser.MobileSafari || Prototype.Browser.Gecko))

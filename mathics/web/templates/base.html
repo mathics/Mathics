@@ -50,18 +50,18 @@
   <img id="logotext" src="/media/img/logo-text.svg" height="24" alt="Mathics" />
 
   <div class="menu">
-    <a href="javascript:showOpen()" title="Open"><i class="fa fa-file-text"></i></a><a href="javascript:showSave()" title="Save"><i class="fa fa-download"></i></a><a href="javascript:createLink()" title="Generate hash"><i class="fa fa-hashtag"></i></a>
+    <a href="javascript:showOpen()" title="Open"><i class="fa fa-file-text"></i></a><a href="javascript:showSave()" title="Save"><i class="fa fa-download"></i></a><a href="javascript:createLink()" title="Generate hash"><i class="fa fa-share-alt"></i></a>
   </div>
 </div>
 
 <div id="headerright">
   <input id="search" type="text" /><a id="doclink" href="javascript:toggleDoc()" title="Docs"><i class="fa fa-lg fa-question-circle-o"></i></a>
 
+  {% if require_login %}
   <div id="notAuthenticated" class="login">
-    {% if require_login %}
     <a href="javascript:showLogin()" class="fa fa-lg fa-sign-in" title="Sign in"></a>
-    {% endif %}
   </div>
+  {% endif %}
   <div id="authenticated" class="login" style="display: none">
     <span id="username"></span><a id="logout" href="javascript:logout()" class="fa fa-lg fa-sign-out" title="Sign out"></a>
   </div>

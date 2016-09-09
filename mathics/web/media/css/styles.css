@@ -7,16 +7,16 @@ body {
 
 body > header {
   position: relative;
-  height: 32px;
+  height: 36px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  padding: 14px 1em 24px 1.5em;
+  padding: 14px 1.5em 28px 1.5em;
   z-index: 1;
 
-  background: -moz-linear-gradient(top, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 66%, rgba(255,255,255,0) 100%);
-  background: -webkit-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(255,255,255,1) 66%,rgba(255,255,255,0) 100%);
-  background: linear-gradient(to bottom, rgba(255,255,255,1) 0%,rgba(255,255,255,1) 66%,rgba(255,255,255,0) 100%);
+  background: -moz-linear-gradient(top, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 70%, rgba(255,255,255,0) 100%);
+  background: -webkit-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(255,255,255,1) 70%,rgba(255,255,255,0) 100%);
+  background: linear-gradient(to bottom, rgba(255,255,255,1) 0%,rgba(255,255,255,1) 70%,rgba(255,255,255,0) 100%);
 }
 
 #headerleft {
@@ -27,22 +27,95 @@ body > header {
 #logotext {
   margin-top: 8px;
   margin-left: 5px;
-  margin-right: 1em;
+  margin-right: 0em;
+}
+#logo,
+#logotext {
+  -webkit-animation: fadein-anim 0.4s;
+  -moz-animation: fadein-anim 0.4s;
+  animation: fadein-anim 0.4s;
+}
+@keyframes fadein-anim {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@-moz-keyframes fadein-anim {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@-webkit-keyframes fadein-anim {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 div.menu {
-  margin-left: 0em;
+  position: relative;
+  margin-left: 1.5em;
+  height: 32px;
+  min-width: 7.05em;
+
   background-color: #3f3f3f;
   color: #fff;
   border-radius: 5px;
-  box-shadow: 0px 1px 1px 0px #cccecb;
+  box-shadow: 0px 1px 2px 0px #cccecb;
   border: #cccecb 1px solid;
-  height: 32px;
-  min-width: 7.2em;
+
+  -webkit-animation: menu-anim 0.4s;
+  -webkit-animation-delay: 0.2s;
+  -webkit-animation-fill-mode: forwards;
+  -moz-animation: menu-anim 0.4s;
+  -moz-animation-delay: 0.2s;
+  -moz-animation-fill-mode: forwards;
+  animation: menu-anim 0.4s;
+  animation-delay: 0.2s;
+  animation-fill-mode: forwards;
+  opacity: 0;
 }
+@-webkit-keyframes menu-anim {
+  from {
+    opacity: 0.2;
+    top: 0.5em;
+  }
+  to {
+    opacity: 1;
+    top: 0;
+  }
+}
+@-moz-keyframes menu-anim {
+  from {
+    opacity: 0.2;
+    top: 0.5em;
+  }
+  to {
+    opacity: 1;
+    top: 0;
+  }
+}
+@keyframes menu-anim {
+  from {
+    opacity: 0.2;
+    top: 0.5em;
+  }
+  to {
+    opacity: 1;
+    top: 0;
+  }
+}
+
 div.menu a {
   text-decoration: none;
-  font-weight: bold;
   font-size: 0.95em;
   color: white;
   padding-left: 10px;
@@ -53,7 +126,6 @@ div.menu a {
   width: 1em;
   text-align: center;
   height: 24px;
-  /*transition: 0.1s;*/
 }
 div.menu a:hover {
   background-color: #000;
@@ -76,7 +148,6 @@ div.transparent {
 }
 
 #headerright {
-  padding-top: 8px;
   padding-left: 0.5em;
   width: 50%;
   display: flex;
@@ -88,16 +159,16 @@ div.transparent {
 #search {
   font-family: sans-serif;
   font-size: 0.9em;
-  margin: 0;
-  margin-left: 0.5em;
+  margin: 4px 0.5em 4px 0.3em;
   padding: 5px;
-  padding-bottom: 0.2em;
   transform: scaleX(0);
   transform-origin: right;
   border: 0;
   border-bottom: 1px solid #cccecb;
+  box-shadow: 0px 1px 1px -1px #cccecb;
+  /*border-radius: 4px;*/
   outline: 0;
-  width: 94%;
+  width: 100%;
   font-size: 1.2em;
   color: #3f3f3f;
   transition: 0.2s ease;
@@ -110,13 +181,16 @@ div.transparent {
 }
 
 #doclink {
+  padding-top: 8px;
   color: #cccecb;
 }
 #doclink:hover {
-  color: #666;
+  /*color: #666;*/
+  color: #3f3f3f;
 }
 #doclink.active { /* Yes, .active is not a typo */
-  color: #3f3f3f;
+  /*color: #3f3f3f;*/
+  color: black;
 }
 #doclink:focus {
   outline: none;
@@ -170,18 +244,18 @@ a.pdf {
 #document,
 #code {
   position: absolute;
-  top: 50px;
+  top: 54px;
   bottom: 0;
   left: 0;
   right: 0;
   background-color: white;
   overflow: auto;
-  padding-top: 10px;
+  padding-top: 14px;
   z-index: 0;
 }
 
 #doc {
-  top: 50px;
+  top: 54px;
   padding-top: 12px;
   position: absolute;
   bottom: 0px;
@@ -204,6 +278,7 @@ a.pdf {
 
 #queriesContainer {
   cursor: vertical-text;
+  animation: fadein-anim 0.4s;
 }
 
 #welcomeContainer {
@@ -212,14 +287,16 @@ a.pdf {
   margin-right: auto;
   left: 25%;
   width: 50%;
-  bottom: 2em;
+  bottom: 4em;
 }
 #welcomeContainer p {
   margin-top: 0;
   margin-bottom: 1em;
 }
 #welcomeContainer a {
-  color: #fff;
+  color: #cccecb;
+  text-decoration: underline;
+  font-weight: bold;
 }
 #welcomeContainer a:hover {
   color: #fff;
@@ -232,12 +309,12 @@ a.pdf {
   border: #cccecb 1px solid;
   color: #fff;
   cursor: default;
-  border-radius: 8px;
-  -moz-border-radius: 8px;
-  -webkit-border-radius: 8px;
+  border-radius: 6px;
+  -moz-border-radius: 6px;
+  -webkit-border-radius: 6px;
 }
 #welcome {
-  padding: 1em 1em 0 1em;
+  padding: 1.5em 1em 0.5em 1.5em;
 }
 #welcome h1 {
   color: white;
@@ -355,8 +432,7 @@ span.delete {
   left: 5px;
   color: #f66;
   font-family: sans-serif;
-  cursor: pointer;
-  cursor: hand;
+  cursor: default;
   font-size: 12px;
 }
 
@@ -599,4 +675,14 @@ div.filelist table a {
 
 div.filelist table a:hover {
   color: #33c;
+}
+
+code {
+  border-radius: 4px;
+  border: 1px solid #fff;
+  background-color: #cccecb;
+  color: #3f3f3f;
+  padding: 1px 2px 1px 2px;
+  margin: 1px;
+  font-size: 0.95em;
 }
