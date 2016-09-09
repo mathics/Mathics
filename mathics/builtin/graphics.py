@@ -196,48 +196,48 @@ def _euclidean_distance(a, b):
 def _component_distance(a, b, i):
     return abs(a[i] - b[i])
 
-	
+
 def _cie2000_distance(lab1, lab2):
     #reference: https://en.wikipedia.org/wiki/Color_difference#CIEDE2000
     e = machine_epsilon
     kL = kC = kH = 1 #common values
-    
+
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
-    
+
     dL = L2 - L1
     Lm = (L1 + L2)/2
     C1 = sqrt(a1**2 + b1**2)
     C2 = sqrt(a2**2 + b2**2)
     Cm = (C1 + C2)/2;
-    
+
     a1 = a1 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
     a2 = a2 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
-    
+
     C1 = sqrt(a1**2 + b1**2)
     C2 = sqrt(a2**2 + b2**2)
     Cm = (C1 + C2)/2
     dC = C2 - C1
-    
+
     h1 = (180 * atan2(b1, a1 + e))/pi % 360
     h2 = (180 * atan2(b2, a2 + e))/pi % 360
     if abs(h2 - h1) <= 180:
-        dh = h2 - h1 
+        dh = h2 - h1
     elif abs(h2 - h1) > 180 and h2 <= h1:
         dh = h2 - h1 + 360
     elif abs(h2 - h1) > 180 and h2 > h1:
         dh = h2 - h1 - 360
-                    
+
     dH = 2*sqrt(C1*C2)*sin(radians(dh)/2)
-    
+
     Hm = (h1 + h2)/2 if abs(h2 - h1) <= 180 else (h1 + h2 + 360)/2
     T = 1 - 0.17*cos(radians(Hm - 30)) + 0.24*cos(radians(2*Hm)) + 0.32*cos(radians(3*Hm + 6)) - 0.2*cos(radians(4*Hm - 63))
-    
+
     SL = 1 + (0.015*(Lm - 50)**2)/sqrt(20 + (Lm - 50)**2)
     SC = 1 + 0.045*Cm
     SH = 1 + 0.015*Cm*T
-    
+
     rT = -2 * sqrt(Cm**7/(Cm**7 + 25**7))*sin(radians(60*exp(-((Hm - 275)**2 / 25**2))))
     return sqrt((dL/(SL*kL))**2 + (dC/(SC*kC))**2 + (dH/(SH*kH))**2 + rT*(dC/(SC*kC))*(dH/(SH*kH)))
 
@@ -247,19 +247,19 @@ def _CMC_distance(lab1, lab2, l, c):
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
-    
+
     dL, da, db = L2-L1, a2-a1, b2-b1
     e = machine_epsilon
-    
+
     C1 = sqrt(a1**2 + b1**2);
     C2 = sqrt(a2**2 + b2**2);
-    
+
     h1 = (180 * atan2(b1, a1 + e))/pi % 360;
     dC = C2 - C1;
     dH2 = da**2 + db**2 - dC**2;
     F = C1**2/sqrt(C1**4 + 1900);
     T = 0.56 + abs(0.2*cos(radians(h1 + 168))) if (164 <= h1 and h1 <= 345) else 0.36 + abs(0.4*cos(radians(h1 + 35)));
-    
+
     SL = 0.511 if L1 < 16 else (0.040975*L1)/(1 + 0.01765*L1);
     SC = (0.0638*C1)/(1 + 0.0131*C1) + 0.638;
     SH = SC*(F*T + 1 - F);
@@ -288,64 +288,6 @@ def _extract_graphics(graphics, format, evaluation):
         raise NotImplementedError
 
     return code
-
-
-class _SVGTransform():
-    def __init__(self):
-        self.transforms = []
-
-    def matrix(self, a, b, c, d, e, f):
-        # a c e
-        # b d f
-        # 0 0 1
-        self.transforms.append('matrix(%f, %f, %f, %f, %f, %f)' % (a, b, c, d, e, f))
-
-    def translate(self, x, y):
-        self.transforms.append('translate(%f, %f)' % (x, y))
-
-    def scale(self, x, y):
-        self.transforms.append('scale(%f, %f)' % (x, y))
-
-    def rotate(self, x):
-        self.transforms.append('rotate(%f)' % x)
-
-    def apply(self, svg):
-        return '<g transform="%s">%s</g>' % (' '.join(self.transforms), svg)
-
-
-class _ASYTransform():
-    _template = """
-    add(%s * (new picture() {
-        picture saved = currentpicture;
-        picture transformed = new picture;
-        currentpicture = transformed;
-        %s
-        currentpicture = saved;
-        return transformed;
-    })());
-    """
-
-    def __init__(self):
-        self.transforms = []
-
-    def matrix(self, a, b, c, d, e, f):
-        # a c e
-        # b d f
-        # 0 0 1
-        # see http://asymptote.sourceforge.net/doc/Transforms.html#Transforms
-        self.transforms.append('(%f, %f, %f, %f, %f, %f)' % (e, f, a, c, b, d))
-
-    def translate(self, x, y):
-        self.transforms.append('shift(%f, %f)' % (x, y))
-
-    def scale(self, x, y):
-        self.transforms.append('scale(%f, %f)' % (x, y))
-
-    def rotate(self, x):
-        self.transforms.append('rotate(%f)' % x)
-
-    def apply(self, asy):
-        return self._template % (' * '.join(self.transforms), asy)
 
 
 def _to_float(x):
@@ -852,7 +794,7 @@ class ColorDistance(Builtin):
      = 0.557976
     #> ColorDistance[Red, Black, DistanceFunction -> (Abs[#1[[1]] - #2[[1]]] &)]
      = 0.542917
-    
+
     """
 
     options = {
@@ -863,17 +805,17 @@ class ColorDistance(Builtin):
         'invdist': '`1` is not Automatic or a valid distance specification.',
         'invarg': '`1` and `2` should be two colors or a color and a lists of colors or ' +
                   'two lists of colors of the same length.'
-        
+
     }
-    
-    # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space 
+
+    # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space
     # with {l,a,b}={L^*,a^*,b^*}/100. Corrections factors are put accordingly.
-    
+
     _distances = {
         "CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
         "CIE94": lambda c1, c2: _euclidean_distance(c1.to_color_space('LCH')[:3], c2.to_color_space('LCH')[:3]),
         "CIE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
-        "CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,	
+        "CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
         "DeltaL": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 0),
         "DeltaC": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 1),
         "DeltaH": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 2),
@@ -898,7 +840,7 @@ class ColorDistance(Builtin):
                                                             100*c2.to_color_space('LAB')[:3], 2, 1)/100
                 elif distance_function.leaves[1].get_string_value() == 'Perceptibility':
                     compute = ColorDistance._distances.get("CMC")
-                    
+
                 elif distance_function.leaves[1].has_form('List', 2):
                     if (isinstance(distance_function.leaves[1].leaves[0], Integer)
                     and isinstance(distance_function.leaves[1].leaves[1], Integer)):
@@ -2241,21 +2183,28 @@ class ArrowBox(_Polyline):
             for s in render(transformed_points, heads):
                 yield s
 
-    def _custom_arrow(self, format, format_transform):
+    def _custom_arrow(self, format, transform):
         def make(graphics):
             code = _extract_graphics(
                 graphics, format, self.graphics.evaluation)
 
+            half_pi = pi / 2.
+
             def draw(px, py, vx, vy, t1, s):
                 t0 = t1
-                cx = px + t0 * vx
-                cy = py + t0 * vy
 
-                transform = format_transform()
-                transform.translate(cx, cy)
-                transform.scale(-s, -s)
-                transform.rotate(90 + degrees(atan2(vy, vx)))
-                yield transform.apply(code)
+                tx = px + t0 * vx
+                ty = py + t0 * vy
+
+                r = half_pi + atan2(vy, vx)
+
+                s = -s
+
+                cos_r = cos(r)
+                sin_r = sin(r)
+
+                # see TranslationTransform[{tx,ty}].ScalingTransform[{s,s}].RotationTransform[r]
+                yield transform([[s * cos_r, -s * sin_r, tx], [s * sin_r, s * cos_r, ty], [0, 0, 1]], code)
 
             return draw
 
@@ -2276,9 +2225,12 @@ class ArrowBox(_Polyline):
             yield ' '.join('%f,%f' % xy for xy in points)
             yield '" style="%s" />' % arrow_style
 
+        def svg_transform(m, code):
+            return _Transform(m).to_svg(code)
+
         extent = self.graphics.extent_width or 0
         default_arrow = self._default_arrow(polygon)
-        custom_arrow = self._custom_arrow('svg', _SVGTransform)
+        custom_arrow = self._custom_arrow('svg', svg_transform)
         return ''.join(self._draw(polyline, default_arrow, custom_arrow, extent))
 
     def to_asy(self):
@@ -2296,9 +2248,12 @@ class ArrowBox(_Polyline):
             yield '--'.join(['(%.5g,%5g)' % xy for xy in points])
             yield '--cycle, % s);' % arrow_pen
 
+        def asy_transform(m, code):
+            return _Transform(m).to_asy(code)
+
         extent = self.graphics.extent_width or 0
         default_arrow = self._default_arrow(polygon)
-        custom_arrow = self._custom_arrow('asy', _ASYTransform)
+        custom_arrow = self._custom_arrow('asy', asy_transform)
         return ''.join(self._draw(polyline, default_arrow, custom_arrow, extent))
 
     def extent(self):
