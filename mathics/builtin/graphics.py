@@ -202,8 +202,8 @@ def _cie2000_distance(lab1, lab2):
     Cm = (C1 + C2)/2
     dC = C2 - C1
     
-    h1 = (180 * atan2(a1 + e, b1))/pi % 360
-    h2 = (180 * atan2(a2 + e, b2))/pi % 360
+    h1 = (180 * atan2(b1, a1 + e))/pi % 360
+    h2 = (180 * atan2(b2, a2 + e))/pi % 360
     if abs(h2 - h1) <= 180:
         dh = h2 - h1 
     elif abs(h2 - h1) > 180 and h2 <= h1:
@@ -720,19 +720,23 @@ class ColorDistance(Builtin):
     }
 
     messages = {
-        'invdist': '`` is not a valid color distance function.',
+        'invdist': '`1` is not Automatic or a valid distance specification.',
         'invarg': '`1` and `2` should be two colors or a color and a lists of colors or ' +
                   'two lists of colors of the same length.'
     }
-
+    
+    # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space 
+    # with {l,a,b}={L^*,a^*,b^*}/100. Corrections factors are put accordingly.
+    
     _distances = {
-        "CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
+	"CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
         "CIE94": lambda c1, c2: _euclidean_distance(c1.to_color_space('LCH')[:3], c2.to_color_space('LCH')[:3]),
-		"CIE2000": lambda c1, c2: _cie2000_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
-		"CIEDE2000": lambda c1, c2: _cie2000_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),	
+	"CIE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
+	"CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,	
         "DeltaL": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 0),
         "DeltaC": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 1),
         "DeltaH": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 2),
+
     }
 
     def apply(self, c1, c2, evaluation, options):
