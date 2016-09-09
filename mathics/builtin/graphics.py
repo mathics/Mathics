@@ -17,6 +17,7 @@ from six.moves import range
 from six.moves import zip
 from itertools import chain
 from math import sin, cos, pi
+from sympy.matrices import Matrix
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
@@ -389,6 +390,9 @@ class _Transform():
 
         self.matrix = [[_to_float(x) for x in row.leaves] for row in rows]
 
+    def inverse(self):
+        return _Transform(Matrix(self.matrix).inv().tolist())
+
     def multiply(self, other):
         a = self.matrix
         b = other.matrix
@@ -475,7 +479,7 @@ class Graphics(Builtin):
 
     In 'TeXForm', 'Graphics' produces Asymptote figures:
     >> Graphics[Circle[]] // TeXForm
-     = 
+     =
      . \begin{asy}
      . size(5.8556cm, 5.8333cm);
      . add((175,175,175,0,0,175)*(new picture(){picture s=currentpicture,t=new picture;currentpicture=t;draw(ellipse((0,0),1,1), rgb(0, 0, 0)+linewidth(0.0038095));currentpicture=s;return t;})());
@@ -2496,12 +2500,13 @@ class GeometricTransformationBox(_GraphicsElement):
 
 class InsetBox(_GraphicsElement):
     def init(self, graphics, style, item=None, content=None, pos=None,
-             opos=(0, 0)):
+             opos=(0, 0), absolute_coordinates=False):
         super(InsetBox, self).init(graphics, item, style)
 
         self.color = self.style.get_option('System`FontColor')
         if self.color is None:
             self.color, _ = style.get_style(_Color, face_element=False)
+        self.absolute_coordinates = absolute_coordinates
 
         if item is not None:
             if len(item.leaves) not in (1, 2, 3):
@@ -2526,9 +2531,10 @@ class InsetBox(_GraphicsElement):
 
     def extent(self):
         p = self.pos.pos()
-        h = 25
+        s = 0.01
+        h = s * 25
         w = len(self.content_text) * \
-            7  # rough approximation by numbers of characters
+            s * 7  # rough approximation by numbers of characters
         opos = self.opos
         x = p[0] - w / 2.0 - opos[0] * w / 2.0
         y = p[1] - h / 2.0 + opos[1] * h / 2.0
@@ -2543,6 +2549,8 @@ class InsetBox(_GraphicsElement):
             '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
             '<math>%s</math></foreignObject>') % (
                 x, y, self.opos[0], self.opos[1], style, content)
+        if not self.absolute_coordinates:
+            svg = self.graphics.text_matrix.to_svg(svg)
         return svg
 
     def to_asy(self):
@@ -2675,7 +2683,7 @@ class Style(object):
         return self.options.get(name, None)
 
     def get_line_width(self, face_element=True):
-        if self.graphics.local_to_world is None:
+        if self.graphics.local_to_screen is None:
             return 0
         edge_style, _ = self.get_style(
             _Thickness, default_to_faces=face_element,
@@ -2796,7 +2804,7 @@ class GraphicsElements(_GraphicsElements):
         self.xmin = self.ymin = self.pixel_width = None
         self.pixel_height = self.extent_width = self.extent_height = None
         self.view_width = None
-        self.local_to_world = None
+        self.local_to_screen = None
 
     def set_size(self, xmin, ymin, extent_width, extent_height, pixel_width, pixel_height):
         self.pixel_width = pixel_width
@@ -2827,7 +2835,8 @@ class GraphicsElements(_GraphicsElements):
         # update the GeometricTransformationBox, that always has to be the root element.
 
         self.elements[0].patch_transforms([transform])
-        self.local_to_world = transform
+        self.local_to_screen = transform
+        self.text_matrix = _Transform([[1. / sx, 0, 0], [0, 1. / sy, 0], [0, 0, 1]])
 
     def add_axis_element(self, e):
         # axis elements are added after the GeometricTransformationBox and are thus not
@@ -2835,8 +2844,8 @@ class GraphicsElements(_GraphicsElements):
         self.elements.append(e)
 
     def translate(self, coords):
-        if self.local_to_world:
-            return list(self.local_to_world.transform([coords]))[0]
+        if self.local_to_screen:
+            return list(self.local_to_screen.transform([coords]))[0]
         else:
             return coords[0], coords[1]
 
@@ -2846,14 +2855,14 @@ class GraphicsElements(_GraphicsElements):
         return x * s, y * s
 
     def translate_absolute_in_pixels(self, d):
-        if self.local_to_world is None:
+        if self.local_to_screen is None:
             return 0, 0
         else:
             l = 96.0 / 72  # d is measured in printer's points
             return d[0] * l, (-1 if self.neg_y else 1) * d[1] * l
 
     def translate_relative(self, x):
-        if self.local_to_world is None:
+        if self.local_to_screen is None:
             return 0
         else:
             return x * self.extent_width
@@ -3288,7 +3297,7 @@ clip(%s);
                         elements, tick_label_style,
                         content=content,
                         pos=AxisCoords(elements, pos=p_origin(x),
-                                   d=p_self0(-tick_label_d)), opos=p_self0(1)))
+                                   d=p_self0(-tick_label_d)), opos=p_self0(1), absolute_coordinates=True))
                 for x in ticks_small:
                     pos = p_origin(x)
                     ticks_lines.append([AxisCoords(elements, pos=pos),
