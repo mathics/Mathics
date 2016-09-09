@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from __future__ import division
 
-from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees
+from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians, abs
 import json
 import base64
 from six.moves import map
@@ -176,6 +176,51 @@ def _euclidean_distance(a, b):
 
 def _component_distance(a, b, i):
     return abs(a[i] - b[i])
+
+	
+def _cie2000_distance(lab1, lab2):
+    #reference: https://en.wikipedia.org/wiki/Color_difference#CIEDE2000
+    e = machine_epsilon
+    kL = kC = kH = 1 #settings as in MMA docs
+    
+    L1, L2 = lab1[0], lab2[0]
+    a1, a2 = lab1[1], lab2[1]
+    b1, b2 = lab1[2], lab2[2]
+    
+    dL = L2 - L1
+    Lm = (L1 + L2)/2
+    C1 = sqrt(a1**2 + b1**2)
+    C2 = sqrt(a2**2 + b2**2)
+    Cm = (C1 + C2)/2;
+    
+    a1 = a1 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
+    a2 = a2 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
+    
+    C1 = sqrt(a1**2 + b1**2)
+    C2 = sqrt(a2**2 + b2**2)
+    Cm = (C1 + C2)/2
+    dC = C2 - C1
+    
+    h1 = (180 * atan2(a1, b1))/pi % 360
+    h2 = (180 * atan2(a2, b2))/pi % 360
+    if abs(h2 - h1) <= 180:
+        dh = h2 - h1 
+    elif abs(h2 - h1) > 180 and h2 <= h1:
+        dh = h2 - h1 + 360
+    elif abs(h2 - h1) > 180 and h2 > h1:
+        dh = h2 - h1 - 360
+                    
+    dH = 2*sqrt(C1*C2)*sin(radians(dh)/2)
+    
+    Hm = (h1 + h2)/2 if abs(h2 - h1) <= 180 else (h1 + h2 + 360)/2
+    T = 1 - 0.17*cos(radians(Hm - 30)) + 0.24*cos(radians(2*Hm)) + 0.32*cos(radians(3*Hm + 6)) - 0.2*cos(radians(4*Hm - 63))
+    
+    SL = 1 + (0.015*(Lm - 50)**2)/sqrt(20 + (Lm - 50)**2)
+    SC = 1 + 0.045*Cm
+    SH = 1 + 0.015*Cm*T
+    
+    rT = -2 * sqrt(Cm**7/(Cm**7 + 25**7))*sin(radians(60*exp(-((Hm - 275)**2 / 25**2))))
+    return sqrt((dL/(SL*kL))**2 + (dC/(SC*kC))**2 + (dH/(SH*kH))**2 + rT*(dC/(SC*kC))*(dH/(SH*kH)))
 
 
 def _extract_graphics(graphics, format, evaluation):
@@ -681,6 +726,8 @@ class ColorDistance(Builtin):
     _distances = {
         "CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
         "CIE94": lambda c1, c2: _euclidean_distance(c1.to_color_space('LCH')[:3], c2.to_color_space('LCH')[:3]),
+		"CIE2000": lambda c1, c2: _cie2000_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
+		"CIEDE2000": lambda c1, c2: _cie2000_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),	
         "DeltaL": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 0),
         "DeltaC": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 1),
         "DeltaH": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 2),
