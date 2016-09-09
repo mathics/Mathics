@@ -29,8 +29,8 @@ body > header {
   margin-left: 5px;
   margin-right: 0em;
 }
-#logo,
-#logotext {
+#logo.load,
+#logotext.load {
   -webkit-animation: fadein-anim 0.4s;
   -moz-animation: fadein-anim 0.4s;
   animation: fadein-anim 0.4s;
@@ -54,6 +54,50 @@ body > header {
 @-webkit-keyframes fadein-anim {
   from {
     opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+#logo.working {
+  -webkit-animation: pulse 4s;
+  -webkit-animation-iteration-count: infinite;
+  -webkit-animation-timing-function: linear;
+  -moz-animation: pulse 4s;
+  -moz-animation-iteration-count: infinite;
+  -moz-animation-timing-function: linear;
+  animation: pulse 4s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+@-webkit-keyframes pulse {
+  from {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@-moz-keyframes pulse {
+  from {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pulse {
+  from {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
   }
   to {
     opacity: 1;

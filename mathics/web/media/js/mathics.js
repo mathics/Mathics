@@ -395,10 +395,11 @@ function submitQuery(textarea, onfinish) {
   	$('welcomeContainer').fade({duration: 0.2});
     if ($('hideStartupMsg').checked) localStorage.setItem('hideMathicsStartupMsg', 'true');
     welcome = false;
+    $('logo').removeClassName('load');
   }
 
 	textarea.li.addClassName('loading');
-  // $('logo').addClassName('fa fa-spin');
+  $('logo').addClassName('working');
 	new Ajax.Request('/ajax/query/', {
 		method: 'post',
 		parameters: {
@@ -430,7 +431,7 @@ function submitQuery(textarea, onfinish) {
 		},
 		onComplete: function() {
 			textarea.li.removeClassName('loading');
-      // $('logo').removeClassName('fa fa-spin');
+      $('logo').removeClassName('working');
 			if (onfinish)
 				onfinish();
 		}
