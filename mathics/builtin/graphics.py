@@ -201,8 +201,8 @@ def _cie2000_distance(lab1, lab2):
     Cm = (C1 + C2)/2
     dC = C2 - C1
     
-    h1 = (180 * atan2(a1, b1))/pi % 360
-    h2 = (180 * atan2(a2, b2))/pi % 360
+    h1 = (180 * atan2(a1 + e, b1))/pi % 360
+    h2 = (180 * atan2(a2 + e, b2))/pi % 360
     if abs(h2 - h1) <= 180:
         dh = h2 - h1 
     elif abs(h2 - h1) > 180 and h2 <= h1:
