@@ -145,6 +145,7 @@ def _to_float(x):
         raise BoxConstructError
     return x
 
+
 def create_pens(edge_color=None, face_color=None, stroke_width=None,
                 is_face_element=False):
     result = []
@@ -268,36 +269,25 @@ def _CMC_distance(lab1, lab2, l, c):
 def _extract_graphics(graphics, format, evaluation):
     graphics_box = Expression('MakeBoxes', graphics).evaluate(evaluation)
     builtin = GraphicsBox(expression=False)
+
     elements, calc_dimensions = builtin._prepare_elements(
         graphics_box.leaves, {'evaluation': evaluation}, neg_y=True)
-    xmin, xmax, ymin, ymax, _, _, _, _ = calc_dimensions()
 
-    # xmin, xmax have always been moved to 0 here. the untransformed
-    # and unscaled bounds are found in elements.xmin, elements.ymin,
-    # elements.extent_width, elements.extent_height.
+    if not isinstance(elements.elements[0], GeometricTransformationBox):
+        raise ValueError('expected GeometricTransformationBox')
 
-    # now compute the position of origin (0, 0) in the transformed
-    # coordinate space.
-
-    ex = elements.extent_width
-    ey = elements.extent_height
-
-    sx = (xmax - xmin) / ex
-    sy = (ymax - ymin) / ey
-
-    ox = -elements.xmin * sx + xmin
-    oy = -elements.ymin * sy + ymin
+    contents = elements.elements[0].contents
 
     # generate code for svg or asy.
 
     if format == 'asy':
-        code = '\n'.join(element.to_asy() for element in elements.elements)
+        code = '\n'.join(element.to_asy() for element in contents)
     elif format == 'svg':
-        code = elements.to_svg()
+        code = ''.join(element.to_svg() for element in contents)
     else:
         raise NotImplementedError
 
-    return xmin, xmax, ymin, ymax, ox, oy, ex, ey, code
+    return code
 
 
 class _SVGTransform():
@@ -2253,10 +2243,8 @@ class ArrowBox(_Polyline):
 
     def _custom_arrow(self, format, format_transform):
         def make(graphics):
-            xmin, xmax, ymin, ymax, ox, oy, ex, ey, code = _extract_graphics(
+            code = _extract_graphics(
                 graphics, format, self.graphics.evaluation)
-            boxw = xmax - xmin
-            boxh = ymax - ymin
 
             def draw(px, py, vx, vy, t1, s):
                 t0 = t1
@@ -2265,9 +2253,8 @@ class ArrowBox(_Polyline):
 
                 transform = format_transform()
                 transform.translate(cx, cy)
-                transform.scale(-s / boxw * ex, -s / boxh * ey)
+                transform.scale(-s, -s)
                 transform.rotate(90 + degrees(atan2(vy, vx)))
-                transform.translate(-ox, -oy)
                 yield transform.apply(code)
 
             return draw
@@ -2808,6 +2795,7 @@ class GraphicsElements(_GraphicsElements):
     def set_size(self, xmin, ymin, extent_width, extent_height, pixel_width, pixel_height):
         self.pixel_width = pixel_width
         self.extent_width = extent_width
+        self.extent_height = extent_height
 
         tx = -xmin
         ty = -ymin
