@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from __future__ import division
 
-from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians, abs
+from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians
 import json
 import base64
 from six.moves import map
@@ -181,7 +181,7 @@ def _component_distance(a, b, i):
 def _cie2000_distance(lab1, lab2):
     #reference: https://en.wikipedia.org/wiki/Color_difference#CIEDE2000
     e = machine_epsilon
-    kL = kC = kH = 1 #settings as in MMA docs
+    kL = kC = kH = 1 #common values
     
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
