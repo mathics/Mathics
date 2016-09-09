@@ -24,6 +24,7 @@ from mathics.core.expression import (
     Expression, Integer, Rational, Real, String, Symbol, strip_context,
     system_symbols, system_symbols_dict, from_python)
 from mathics.builtin.colors import convert as convert_color
+from mathics.core.numbers import machine_epsilon
 
 
 class CoordinatesError(BoxConstructError):
