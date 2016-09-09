@@ -2359,6 +2359,9 @@ class Rotate(Builtin):
 
     >> Graphics[{Rotate[Rectangle[{0, 0}, {0.2, 0.2}], 1.2, {0.1, 0.1}], Red, Disk[{0.1, 0.1}, 0.05]}]
      = -Graphics-
+
+    >> Graphics[Table[Rotate[Scale[{RGBColor[i,1-i,1],Rectangle[],Black,Text["ABC",{0.5,0.5}]},1-i],Pi*i], {i,0,1,0.2}]]
+     = -Graphics-
     """
 
     rules = {
@@ -2473,7 +2476,7 @@ class InsetBox(_GraphicsElement):
 
     def extent(self):
         p = self.pos.pos()
-        s = 0.01
+        s = 0.01  # .1 / (self.graphics.pixel_width or 1.)
         h = s * 25
         w = len(self.content_text) * \
             s * 7  # rough approximation by numbers of characters
@@ -2487,12 +2490,18 @@ class InsetBox(_GraphicsElement):
         content = self.content.boxes_to_xml(
             evaluation=self.graphics.evaluation)
         style = create_css(font_color=self.color)
+
+        if not self.absolute_coordinates:
+            x, y = list(self.graphics.local_to_screen.transform([(x, y)]))[0]
+
         svg = (
             '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
             '<math>%s</math></foreignObject>') % (
                 x, y, self.opos[0], self.opos[1], style, content)
+
         if not self.absolute_coordinates:
-            svg = self.graphics.text_matrix.to_svg(svg)
+            svg = self.graphics.inverse_local_to_screen.to_svg(svg)
+
         return svg
 
     def to_asy(self):
@@ -2778,7 +2787,7 @@ class GraphicsElements(_GraphicsElements):
 
         self.elements[0].patch_transforms([transform])
         self.local_to_screen = transform
-        self.text_matrix = _Transform([[1. / sx, 0, 0], [0, 1. / sy, 0], [0, 0, 1]])
+        self.inverse_local_to_screen = transform.inverse()
 
     def add_axis_element(self, e):
         # axis elements are added after the GeometricTransformationBox and are thus not
