@@ -1044,7 +1044,7 @@ class PointSize(_Size):
     </dl>
     """
     def get_size(self):
-        return self.graphics.view_width * self.value
+        return self.graphics.extent_width * self.value
 
 
 class FontColor(Builtin):
@@ -2289,7 +2289,7 @@ class ArrowBox(_Polyline):
             yield ' '.join('%f,%f' % xy for xy in points)
             yield '" style="%s" />' % arrow_style
 
-        extent = self.graphics.view_width or 0
+        extent = self.graphics.extent_width or 0
         default_arrow = self._default_arrow(polygon)
         custom_arrow = self._custom_arrow('svg', _SVGTransform)
         return ''.join(self._draw(polyline, default_arrow, custom_arrow, extent))
@@ -2309,7 +2309,7 @@ class ArrowBox(_Polyline):
             yield '--'.join(['(%.5g,%5g)' % xy for xy in points])
             yield '--cycle, % s);' % arrow_pen
 
-        extent = self.graphics.view_width or 0
+        extent = self.graphics.extent_width or 0
         default_arrow = self._default_arrow(polygon)
         custom_arrow = self._custom_arrow('asy', _ASYTransform)
         return ''.join(self._draw(polyline, default_arrow, custom_arrow, extent))
@@ -2801,9 +2801,8 @@ class GraphicsElements(_GraphicsElements):
     def __init__(self, content, evaluation, neg_y=False):
         super(GraphicsElements, self).__init__(content, evaluation)
         self.neg_y = neg_y
-        self.xmin = self.ymin = self.pixel_width = None
-        self.pixel_height = self.extent_width = self.extent_height = None
-        self.view_width = None
+        self.pixel_width = None
+        self.extent_width = self.extent_height = None
         self.local_to_screen = None
 
     def set_size(self, xmin, ymin, extent_width, extent_height, pixel_width, pixel_height):
@@ -3100,7 +3099,6 @@ class GraphicsBox(BoxConstruct):
             leaves, options, max_width=450)
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
-        elements.view_width = w
 
         asy_completely_visible = '\n'.join(
             element.to_asy() for element in elements.elements
@@ -3140,7 +3138,6 @@ clip(%s);
             leaves, options, neg_y=True)
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
-        elements.view_width = w
 
         svg = elements.to_svg()
 
