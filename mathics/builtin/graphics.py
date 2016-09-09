@@ -705,6 +705,7 @@ class ColorDistance(Builtin):
 
     CIE76: euclidean distance in the LABColor space
     CIE94: euclidean distance in the LCHColor space
+    CIE2000 or CIEDE2000: CIE94 distance with corrections
     DeltaL: difference in the L component of LCHColor
     DeltaC: difference in the C component of LCHColor
     DeltaH: difference in the H component of LCHColor
