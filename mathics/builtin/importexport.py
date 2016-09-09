@@ -16,6 +16,8 @@ from .pymimesniffer import magic
 import mimetypes
 import sys
 
+import urllib
+
 try:
     import urllib.request as urllib2
 except ImportError:
@@ -362,6 +364,46 @@ class RegisterExport(Builtin):
         return Symbol('Null')
 
 
+class FetchURL(Builtin):
+    messages = {
+        'httperr': '`1` could not be retrieved; `2`.',
+    }
+
+    def apply(self, url, elements, evaluation):
+        'FetchURL[url_String, elements_]'
+
+        import tempfile
+        import os
+
+        py_url = url.get_string_value()
+
+        temp_handle, temp_path = tempfile.mkstemp(suffix='')
+        try:
+            with urllib2.urlopen(py_url) as f:
+                content_type = f.info().get_content_type()
+                os.write(temp_handle, f.read())
+
+            def determine_filetype():
+                return mimetype_dict.get(content_type)
+
+            result = Import._import(temp_path, determine_filetype, elements, evaluation)
+        except urllib.error.HTTPError as e:
+            evaluation.message(
+                'FetchURL', 'httperr', url,
+                'the server returned an HTTP status code of %s (%s)' % (e.code, e.reason))
+            return Symbol('$Failed')
+        except urllib.error.URLError as e:  # see https://docs.python.org/3/howto/urllib2.html
+            if hasattr(e, 'reason'):
+                evaluation.message('FetchURL', 'httperr', url, e.reason)
+            elif hasattr(e, 'code'):
+                evaluation.message('FetchURL', 'httperr', url, 'server returned %s' % e.code)
+            return Symbol('$Failed')
+        finally:
+            os.unlink(temp_path)
+
+        return result
+
+
 class Import(Builtin):
     """
     <dl>
@@ -423,24 +465,8 @@ class Import(Builtin):
 
         # Download via URL
         if isinstance(filename, String):
-            url = filename.get_string_value()
-            if any(url.startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
-                import tempfile
-                import os
-                temp_handle, temp_path = tempfile.mkstemp(suffix='')
-                try:
-                    with urllib2.urlopen(url) as f:
-                        content_type = f.info().get_content_type()
-                        os.write(temp_handle, f.read())
-
-                    def determine_filetype():
-                        return mimetype_dict.get(content_type)
-
-                    result = self._import(temp_path, determine_filetype, elements, evaluation)
-                finally:
-                    os.unlink(temp_path)
-
-                return result
+            if any(filename.get_string_value().startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
+                return Expression('FetchURL', filename, elements)
 
         # Load local file
         findfile = Expression('FindFile', filename).evaluate(evaluation)
@@ -454,7 +480,8 @@ class Import(Builtin):
 
         return self._import(findfile, determine_filetype, elements, evaluation)
 
-    def _import(self, findfile, determine_filetype, elements, evaluation):
+    @staticmethod
+    def _import(findfile, determine_filetype, elements, evaluation):
         # Check elements
         if elements.has_form('List', None):
             elements = elements.get_leaves()
