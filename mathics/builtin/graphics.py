@@ -225,7 +225,7 @@ def _cie2000_distance(lab1, lab2):
 
 
 def _CMC_distance(lab1, lab2, l, c):
-    
+    #refernce https://en.wikipedia.org/wiki/Color_difference#CMC_l:c_.281984.29
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
@@ -731,6 +731,7 @@ class ColorDistance(Builtin):
     CIE76: euclidean distance in the LABColor space
     CIE94: euclidean distance in the LCHColor space
     CIE2000 or CIEDE2000: CIE94 distance with corrections
+    CMC: Colour Measurement Committee metric (1984)
     DeltaL: difference in the L component of LCHColor
     DeltaC: difference in the C component of LCHColor
     DeltaH: difference in the H component of LCHColor
