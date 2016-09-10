@@ -30,21 +30,6 @@ def xml_comments(node):
         return Expression('List', *[String(s.text) for s in node.xpath('//comment()')])
 
 
-def xml_plaintext(node):
-    return String('\n'.join(node.itertext()))
-
-
-def xml_tags(root):
-    tags = set()
-
-    def gather(node):
-        tags.add(node.tag)
-        for child in node:
-            gather(child)
-    gather(root)
-    return Expression('List', *[String(tag) for tag in tags])
-
-
 def node_to_xml_element(node, strip_whitespace=True):
     if lxml_available:
         if isinstance(node, ET._Comment):
@@ -123,15 +108,27 @@ class PlaintextImport(Builtin):
 class TagsImport(Builtin):
     """
     >> Take[Import["ExampleData/InventionNo1.xml", "Tags"], 10]
-     = {backup,score-instrument,tie,midi-program,fifths,pitch,software,defaults,staccato,tied}
+     = {accidental,alter,arpeggiate,articulations,attributes,backup,bar-style,barline,beam,beat-type}
     """
 
     context = 'System`XML`'
 
+    @staticmethod
+    def _tags(root):
+        tags = set()
+
+        def gather(node):
+            tags.add(node.tag)
+            for child in node:
+                gather(child)
+
+        gather(root)
+        return Expression('List', *[String(tag) for tag in sorted(list(tags))])
+
     def apply(self, text, evaluation):
         '''%(name)s[text_String]'''
         root = parse_xml(text.get_string_value())
-        return Expression('List', Expression('Rule', 'Tags', xml_tags(root)))
+        return Expression('List', Expression('Rule', 'Tags', self._tags(root)))
 
 
 class XMLObjectImport(Builtin):
