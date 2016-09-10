@@ -9,6 +9,9 @@ from mathics.builtin.base import Builtin
 from mathics.builtin.files import mathics_open
 from mathics.core.expression import Expression, String
 
+# use lxml, if available, as it has some additional features such as parsing XML
+# versions, comments and cdata. fallback on python builtin xml parser otherwise.
+
 try:
     from lxml import etree as ET
     lxml_available = True
@@ -16,16 +19,20 @@ except ImportError:
     import xml.etree.ElementTree as ET
     lxml_available = False
 
+
 def xml_cdata(node):
     if lxml_available:
         return String('\n'.join(node.itertext()))
+
 
 def xml_comments(node):
     if lxml_available:
         return Expression('List', *[String(s.text) for s in node.xpath('//comment()')])
 
+
 def xml_plaintext(node):
     return String('\n'.join(node.itertext()))
+
 
 def xml_tags(root):
     tags = set()
@@ -37,35 +44,48 @@ def xml_tags(root):
     gather(root)
     return Expression('List', *[String(tag) for tag in tags])
 
-def node_to_xml_element(node):
+
+def node_to_xml_element(node, strip_whitespace=True):
     if lxml_available:
         if isinstance(node, ET._Comment):
-            items = [Expression(Expression('XMLObject', String('Comment')), String(node.text))]  # FIXME
+            items = [Expression(Expression('XMLObject', String('Comment')), String(node.text))]
             if node.tail is not None:
                 items.append(String(node.tail))
             return items
 
     def children():
-        if node.text is not None:
-            yield String(node.text)
+        text = node.text
+        if text:
+            if strip_whitespace:
+                text = text.strip()
+            if text:
+                yield String(text)
         for child in node:
             for element in node_to_xml_element(child):
                 yield element
-        if node.tail is not None:
-            yield String(node.tail)
+        tail = node.tail
+        if tail:
+            if strip_whitespace:
+                tail = tail.strip()
+            if tail:
+                yield String(tail)
 
     return [Expression('XMLElement', String(node.tag), Expression('List'), Expression('List', *list(children())))]
+
 
 def xml_object(root):
     if lxml_available:
         tree = root.getroottree()
-        declaration = [Expression(Expression('XMLObject', String('Declaration')),
+        declaration = [
+            Expression(Expression('XMLObject', String('Declaration')),
             Expression('Rule', String('Version'), String(tree.docinfo.xml_version)),
             Expression('Rule', String('Encoding'), String(tree.docinfo.encoding)))]
     else:
         declaration = []
 
-    return Expression(Expression('XMLObject', String('Document')), Expression('List', *declaration), *node_to_xml_element(root))
+    return Expression(
+        Expression('XMLObject', String('Document')),
+        Expression('List', *declaration), *node_to_xml_element(root))
 
 
 def parse_xml(filename):
@@ -80,19 +100,31 @@ def parse_xml(filename):
 
 
 class PlaintextImport(Builtin):
-    # Import["ExampleData/InventionNo1.xml", "Plaintext"]
+    """
+    >> StringReplace[StringTake[Import["ExampleData/InventionNo1.xml", "Plaintext"],31],"\n"->"/"]
+     = MuseScore 1.2/2012-09-12/5.7/40
+    """
 
     context = 'System`XML`'
 
     def apply(self, text, evaluation):
         '''%(name)s[text_String]'''
         root = parse_xml(text.get_string_value())
-        plaintext = String('\n'.join(root.itertext()))
+
+        def lines():
+            for line in root.itertext():
+                s = line.strip()
+                if s:
+                    yield s
+        plaintext = String('\n'.join(lines()))
         return Expression('List', Expression('Rule', 'Plaintext', plaintext))
 
 
 class TagsImport(Builtin):
-    # Import["ExampleData/InventionNo1.xml", "Tags"]]
+    """
+    >> Take[Import["ExampleData/InventionNo1.xml", "Tags"], 10]
+     = {backup,score-instrument,tie,midi-program,fifths,pitch,software,defaults,staccato,tied}
+    """
 
     context = 'System`XML`'
 
@@ -101,8 +133,9 @@ class TagsImport(Builtin):
         root = parse_xml(text.get_string_value())
         return Expression('List', Expression('Rule', 'Tags', xml_tags(root)))
 
+
 class XMLObjectImport(Builtin):
-    # Import["ExampleData/InventionNo1.xml", "XMLObject"]]
+    # Import["ExampleData/InventionNo1.xml", "XMLObject"]
 
     context = 'System`XML`'
 
