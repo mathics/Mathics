@@ -224,6 +224,30 @@ def _cie2000_distance(lab1, lab2):
     return sqrt((dL/(SL*kL))**2 + (dC/(SC*kC))**2 + (dH/(SH*kH))**2 + rT*(dC/(SC*kC))*(dH/(SH*kH)))
 
 
+def _CMC_distance(lab1, lab2, l, c):
+    
+    L1, L2 = lab1[0], lab2[0]
+    a1, a2 = lab1[1], lab2[1]
+    b1, b2 = lab1[2], lab2[2]
+    
+    dL, da, db = L2-L1, a2-a1, b2-b1
+    e = machine_epsilon
+    
+    C1 = sqrt(a1**2 + b1**2);
+    C2 = sqrt(a2**2 + b2**2);
+    
+    h1 = (180 * atan2(b1, a1 + e))/pi % 360;
+    dC = C2 - C1;
+    dH2 = da**2 + db**2 - dC**2;
+    F = C1**2/sqrt(C1**4 + 1900);
+    T = 0.56 + abs(0.2*cos(radians(h1 + 168))) if (164 <= h1 and h1 <= 345) else 0.36 + abs(0.4*cos(radians(h1 + 35)));
+    
+    SL = 0.511 if L1 < 16 else (0.040975*L1)/(1 + 0.01765*L1);
+    SC = (0.0638*C1)/(1 + 0.0131*C1) + 0.638;
+    SH = SC*(F*T + 1 - F);
+    return sqrt((dL/(l*SL))**2 + (dC/(c*SC))**2 + dH2/SH**2)
+
+
 def _extract_graphics(graphics, format, evaluation):
     graphics_box = Expression('MakeBoxes', graphics).evaluate(evaluation)
     builtin = GraphicsBox(expression=False)
@@ -736,6 +760,7 @@ class ColorDistance(Builtin):
         "DeltaL": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 0),
         "DeltaC": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 1),
         "DeltaH": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 2),
+        "CMC": lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3], 1, 1)/100
 
     }
 
