@@ -82,6 +82,9 @@ class Coords(object):
         p = (self.p[0] + x, self.p[1] + y)
         return Coords(self.graphics, pos=p)
 
+    def is_absolute(self):
+        return False
+
 
 class AxisCoords(Coords):
     def __init__(self, graphics, expr=None, pos=None, d=None):
@@ -100,6 +103,9 @@ class AxisCoords(Coords):
 
     def add(self, x, y):
         raise NotImplementedError
+
+    def is_absolute(self):
+        return True
 
 
 def cut(value):
@@ -2444,14 +2450,12 @@ class GeometricTransformationBox(_GraphicsElement):
 
 
 class InsetBox(_GraphicsElement):
-    def init(self, graphics, style, item=None, content=None, pos=None,
-             opos=(0, 0), absolute_coordinates=False):
+    def init(self, graphics, style, item=None, content=None, pos=None, opos=(0, 0)):
         super(InsetBox, self).init(graphics, item, style)
 
         self.color = self.style.get_option('System`FontColor')
         if self.color is None:
             self.color, _ = style.get_style(_Color, face_element=False)
-        self.absolute_coordinates = absolute_coordinates
 
         if item is not None:
             if len(item.leaves) not in (1, 2, 3):
@@ -2487,11 +2491,13 @@ class InsetBox(_GraphicsElement):
 
     def to_svg(self):
         x, y = self.pos.pos()
+        absolute = self.pos.is_absolute()
+
         content = self.content.boxes_to_xml(
             evaluation=self.graphics.evaluation)
         style = create_css(font_color=self.color)
 
-        if not self.absolute_coordinates:
+        if not absolute:
             x, y = list(self.graphics.local_to_screen.transform([(x, y)]))[0]
 
         svg = (
@@ -2499,7 +2505,7 @@ class InsetBox(_GraphicsElement):
             '<math>%s</math></foreignObject>') % (
                 x, y, self.opos[0], self.opos[1], style, content)
 
-        if not self.absolute_coordinates:
+        if not absolute:
             svg = self.graphics.inverse_local_to_screen.to_svg(svg)
 
         return svg
@@ -3246,7 +3252,7 @@ clip(%s);
                         elements, tick_label_style,
                         content=content,
                         pos=AxisCoords(elements, pos=p_origin(x),
-                                   d=p_self0(-tick_label_d)), opos=p_self0(1), absolute_coordinates=True))
+                        d=p_self0(-tick_label_d)), opos=p_self0(1)))
                 for x in ticks_small:
                     pos = p_origin(x)
                     ticks_lines.append([AxisCoords(elements, pos=pos),
