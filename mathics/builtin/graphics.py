@@ -773,6 +773,34 @@ class ColorDistance(Builtin):
             if not compute:
                 evaluation.message('ColorDistance', 'invdist', distance_function)
                 return
+        elif distance_function.has_form('List', 2):
+            if (isinstance(distance_function.leaves[0], String) and
+            distance_function.leaves[0].get_string_value() == 'CMC'):
+                if isinstance(distance_function.leaves[1], String):
+                    if distance_function.leaves[1].get_string_value() == 'Acceptability':
+                        compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
+                                                              100*c2.to_color_space('LAB')[:3], 2, 1)/100
+                    elif distance_function.leaves[1].get_string_value() == 'Perceptibility':
+                        compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
+                                                              100*c2.to_color_space('LAB')[:3], 1, 1)/100
+                    else:
+                        evaluation.message('ColorDistance', 'invdist', distance_function)
+                        return
+                if (distance_function.leaves[1].has_form('List', 2) and
+                distance_function.leaves[1].leaves[0].get_int_value() > 0 and
+                distance_function.leaves[1].leaves[1].get_int_value() > 0):
+                    lightness = distance_function.leaves[1].leaves[0].get_int_value()
+                    chroma = distance_function.leaves[1].leaves[1].get_int_value()
+                    compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
+                                                            100*c2.to_color_space('LAB')[:3], lightness, chroma)/100
+                else:
+                    evaluation.message('ColorDistance', 'invdist', distance_function)
+                    return
+            else:
+                evaluation.message('ColorDistance', 'invdist', distance_function)
+                return
+        elif isinstance(distance_function, Symbol) and distance_function.get_name() == 'System`Automatic':
+            compute = ColorDistance._distances.get("CIE76")
         else:
             def compute(a, b):
                 Expression(distance_function,
