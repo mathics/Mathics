@@ -803,9 +803,13 @@ class ColorDistance(Builtin):
             compute = ColorDistance._distances.get("CIE76")
         else:
             def compute(a, b):
-                Expression(distance_function,
-                           a.to_color_space('LAB'),
-                           b.to_color_space('LAB'))
+                return Expression('Apply',
+                                    distance_function,
+                                    Expression('List',
+                                                Expression('List', *[Real(val) for val in a.to_color_space('LAB')]),
+                                                Expression('List', *[Real(val) for val in b.to_color_space('LAB')])
+                                              )
+                                    ).evaluate(evaluation)         
 
         def distance(a, b):
             try:
@@ -814,7 +818,12 @@ class ColorDistance(Builtin):
             except ColorError:
                 evaluation.message('ColorDistance', 'invarg', a, b)
                 raise
-            return from_python(compute(py_a, py_b))
+            result = from_python(compute(py_a, py_b))
+            if not isinstance(result, Real):
+                evaluation.message('ColorDistance', 'invdist', distance_function)
+                return
+            else:
+                return result
 
         try:
             if c1.get_head_name() == 'System`List':
