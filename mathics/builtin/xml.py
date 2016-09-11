@@ -74,11 +74,11 @@ def xml_object(root):
 
 
 def parse_xml(filename):
-    with mathics_open(filename) as f:
+    with mathics_open(filename, 'rb') as f:
         xml = f.read()
         if lxml_available:
-            parser = ET.XMLParser(strip_cdata=False, remove_comments=False, recover=True, encoding='utf8')
-            root = ET.XML(xml.encode('utf8'), parser)
+            parser = ET.XMLParser(strip_cdata=False, remove_comments=False, recover=True)
+            root = ET.XML(xml, parser)
         else:
             root = ET.fromstring(xml)
     return root
