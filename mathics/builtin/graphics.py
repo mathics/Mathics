@@ -225,7 +225,7 @@ def _cie2000_distance(lab1, lab2):
 
 
 def _CMC_distance(lab1, lab2, l, c):
-    #refernce https://en.wikipedia.org/wiki/Color_difference#CMC_l:c_.281984.29
+    #reference https://en.wikipedia.org/wiki/Color_difference#CMC_l:c_.281984.29
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
@@ -736,6 +736,8 @@ class ColorDistance(Builtin):
     DeltaC: difference in the C component of LCHColor
     DeltaH: difference in the H component of LCHColor
 
+    It is also possible to specify a custom distance
+
     >> N[ColorDistance[Magenta, Green], 5]
      = 2.2507
     """
@@ -809,7 +811,7 @@ class ColorDistance(Builtin):
                                                 Expression('List', *[Real(val) for val in a.to_color_space('LAB')]),
                                                 Expression('List', *[Real(val) for val in b.to_color_space('LAB')])
                                               )
-                                    ).evaluate(evaluation)         
+                                    ).evaluate(evaluation)
 
         def distance(a, b):
             try:
