@@ -86,7 +86,7 @@ def parse_xml(filename):
 
 class PlaintextImport(Builtin):
     """
-    #> StringReplace[StringTake[Import["ExampleData/InventionNo1.xml", "Plaintext"],31],"\n"->"/"]
+    >> StringReplace[StringTake[Import["ExampleData/InventionNo1.xml", "Plaintext"],31],FromCharacterCode[10]->"/"]
      = MuseScore 1.2/2012-09-12/5.7/40
     """
 
