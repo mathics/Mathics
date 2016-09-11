@@ -132,7 +132,10 @@ class TagsImport(Builtin):
 
 
 class XMLObjectImport(Builtin):
-    # Import["ExampleData/InventionNo1.xml", "XMLObject"]
+    """
+    >> Length[Flatten[Import["ExampleData/InventionNo1.xml", "XMLObject"]]]
+     = 2
+    """
 
     context = 'System`XML`'
 
