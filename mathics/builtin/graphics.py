@@ -225,7 +225,7 @@ def _cie2000_distance(lab1, lab2):
 
 
 def _CMC_distance(lab1, lab2, l, c):
-    #refernce https://en.wikipedia.org/wiki/Color_difference#CMC_l:c_.281984.29
+    #reference https://en.wikipedia.org/wiki/Color_difference#CMC_l:c_.281984.29
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
@@ -774,23 +774,26 @@ class ColorDistance(Builtin):
                 evaluation.message('ColorDistance', 'invdist', distance_function)
                 return
         elif distance_function.has_form('List', 2):
-            if (isinstance(distance_function.leaves[0], String) and
-            distance_function.leaves[0].get_string_value() == 'CMC'):
-                if isinstance(distance_function.leaves[1], String):
-                    if distance_function.leaves[1].get_string_value() == 'Acceptability':
+            first_list_arg = distance_function.leaves[0]
+            second_list_arg = distance_function.leaves[1]
+            
+            if (isinstance(frst_list_arg, String) and
+                first_list_arg.get_string_value() == 'CMC'):
+                if isinstance(second_list_arg, String):
+                    if second_list_arg.get_string_value() == 'Acceptability':
                         compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
                                                               100*c2.to_color_space('LAB')[:3], 2, 1)/100
-                    elif distance_function.leaves[1].get_string_value() == 'Perceptibility':
+                    elif second_list_arg.get_string_value() == 'Perceptibility':
                         compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
                                                               100*c2.to_color_space('LAB')[:3], 1, 1)/100
                     else:
                         evaluation.message('ColorDistance', 'invdist', distance_function)
                         return
-                if (distance_function.leaves[1].has_form('List', 2) and
-                distance_function.leaves[1].leaves[0].get_int_value() > 0 and
-                distance_function.leaves[1].leaves[1].get_int_value() > 0):
-                    lightness = distance_function.leaves[1].leaves[0].get_int_value()
-                    chroma = distance_function.leaves[1].leaves[1].get_int_value()
+                if (second_list_arg.has_form('List', 2) and
+                second_list_arg.leaves[0].get_int_value() > 0 and
+                second_list_arg.leaves[1].get_int_value() > 0):
+                    lightness = second_list_arg.leaves[0].get_int_value()
+                    chroma = second_list_arg.leaves[1].get_int_value()
                     compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
                                                             100*c2.to_color_space('LAB')[:3], lightness, chroma)/100
                 else:
@@ -809,7 +812,7 @@ class ColorDistance(Builtin):
                                                 Expression('List', *[Real(val) for val in a.to_color_space('LAB')]),
                                                 Expression('List', *[Real(val) for val in b.to_color_space('LAB')])
                                               )
-                                    ).evaluate(evaluation)         
+                                    ).evaluate(evaluation)
 
         def distance(a, b):
             try:
