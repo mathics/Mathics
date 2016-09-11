@@ -568,7 +568,7 @@ function createQuery(before, noFocus, updatingAll) {
 		ul = $E('ul', {'class': 'query'},
 			$E('li', {'class': 'request'},
 				textarea = $E('textarea', {'class': 'request', 'spellcheck': 'false'}),
-				$E('span', {'class': 'submitbutton', 'title': "Submit [Shift+Return]"},
+				$E('span', {'class': 'submitbutton', 'title': "Evaluate [Shift+Return]"},
 					submitButton = $E('span', $T('='))
 				)
 			)
