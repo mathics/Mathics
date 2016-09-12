@@ -65,20 +65,35 @@ def _gen_ir(expr, lookup_args, builder):
         return int_type(expr.get_int_value())
     elif isinstance(expr, Real):
         return real_type(expr.round_to_float())
-    elif expr.has_form('Plus', 1, None):
-        args = [_gen_ir(leaf, lookup_args, builder) for leaf in expr.get_leaves()]
-        if any(arg.type == real_type for arg in args):
-            # convert args to real as needed
-            for i, arg in enumerate(args):
-                if arg.type == int_type:
-                    args[i] = builder.sitofp(arg, real_type)
-            return reduce(builder.fadd, args)
-        elif all(arg.type == int_type for arg in args):
-            return reduce(builder.add, args)
-        else:
-            raise CompilationError()
+    elif not isinstance(expr, Expression):
+        raise CompilationError()
+
+    # generate leaves
+    args = [_gen_ir(leaf, lookup_args, builder) for leaf in expr.get_leaves()]
+
+    # check leaf types
+    if any(arg.type == real_type for arg in args):
+        for i, arg in enumerate(args):
+            if arg.type == int_type:
+                args[i] = builder.sitofp(arg, real_type)
+        ret_type = real_type
+    elif all(arg.type == int_type for arg in args):
+        ret_type = int_type
     else:
-        raise CompilationError
+        raise CompilationError()
+
+    # convert expression
+    if expr.has_form('Plus', 1, None):
+        if ret_type == real_type:
+            return reduce(builder.fadd, args)
+        elif ret_type == int_type:
+            return reduce(builder.add, args)
+    elif expr.has_form('Times', 1, None):
+        if ret_type == real_type:
+            return reduce(builder.fmul, args)
+        elif ret_type == int_type:
+            return reduce(builder.mul, args)
+    raise CompilationError()
 
 
 def create_execution_engine():
