@@ -1,9 +1,9 @@
 from llvmlite import ir
 import llvmlite.binding as llvm
 
-from mathics.core.expression import Expression, Integer, Symbol
+from mathics.core.expression import Expression, Integer, Symbol, Real
 
-from ctypes import c_int64, CFUNCTYPE
+from ctypes import c_int64, c_double, CFUNCTYPE
 
 
 class CompilationError(Exception):
@@ -11,6 +11,7 @@ class CompilationError(Exception):
 
 # create some useful types
 int_type = ir.IntType(64)
+real_type = ir.DoubleType()
 ifunc2_type = ir.FunctionType(int_type, (int_type, int_type))
 
 
@@ -20,17 +21,21 @@ class MathicsArg(object):
         self.type = type
 
 
-def generate_ir(expr, args, func_name):
+def generate_ir(expr, args, func_name, ret_type):
     '''
     generates LLVM IR for a given expression
     '''
     # create an empty module
     module = ir.Module(name=__file__)
 
-    # TODO infer function type from args
+    # infer function type from args and ret_type
+    func_type = ir.FunctionType(ret_type, tuple(arg.type for arg in args))
+
+    # declare a function inside the module
+    func = ir.Function(module, func_type, name=func_name)
 
     # declare a function inside it
-    func = ir.Function(module, ifunc2_type, name=func_name)
+    # func = ir.Function(module, ifunc2_type, name=func_name)
 
     # implement the function
     block = func.append_basic_block(name='entry')
@@ -50,11 +55,23 @@ def _gen_ir(expr, lookup_args, builder):
         arg = lookup_args[expr.get_name()]
         return arg
     elif isinstance(expr, Integer):
-        raise NotImplementedError
+        return int_type(expr.get_int_value())
+    elif isinstance(expr, Real):
+        return real_type(expr.round_to_float())
     elif expr.has_form('Plus', 2):
         a, b = [_gen_ir(leaf, lookup_args, builder) for leaf in expr.get_leaves()]
-        result = builder.add(a, b, name='res')
-        return result
+        if a.type == int_type and b.type == int_type:
+            return builder.add(a, b)
+        elif a.type == int_type and b.type == real_type:
+            v = builder.sitofp(a, real_type)
+            return builder.fadd(v, b)
+        elif a.type == real_type and b.type == int_type:
+            v = builder.sitofp(b, real_type)
+            return builder.fadd(a, v)
+        elif a.type == real_type and b.type == real_type:
+            return builder.fadd(a, b)
+        else:
+            raise CompilationError
     else:
         raise CompilationError
 
@@ -96,20 +113,22 @@ llvm.initialize_native_asmprinter()  # yes, even this one
 engine = create_execution_engine()
 
 
-def _compile(expr, args):
-    llvm_ir = generate_ir(expr, args, 'plus')
+def llvm_to_ctype(t):
+    'converts llvm types to ctypes'
+    if t == int_type:
+        return c_int64
+    elif t == real_type:
+        return c_double
+
+
+def _compile(expr, args, ret_type):
+    llvm_ir = generate_ir(expr, args, 'plus', ret_type)
+    # print(llvm_ir)
     mod = compile_ir(engine, llvm_ir)
 
     # lookup function pointer
     func_ptr = engine.get_function_address('plus')
 
     # run function via ctypes
-    cfunc = CFUNCTYPE(c_int64, c_int64, c_int64)(func_ptr)
+    cfunc = CFUNCTYPE(llvm_to_ctype(ret_type), *(llvm_to_ctype(arg.type) for arg in args))(func_ptr)
     return cfunc
-
-# Example: compile an expression
-expr = Expression('Plus', Symbol('x'), Symbol('y'))
-args = [MathicsArg('System`x', 'int'), MathicsArg('System`y', 'int')]
-cfunc = _compile(expr, args)
-
-assert cfunc(1, 2) == 3
