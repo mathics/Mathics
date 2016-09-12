@@ -7,7 +7,7 @@ XML
 
 from mathics.builtin.base import Builtin
 from mathics.builtin.files import mathics_open
-from mathics.core.expression import Expression, String
+from mathics.core.expression import Expression, String, Symbol, from_python
 
 # use lxml, if available, as it has some additional features such as parsing XML
 # versions, comments and cdata. fallback on python builtin xml parser otherwise.
@@ -55,7 +55,15 @@ def node_to_xml_element(node, strip_whitespace=True):
             if tail:
                 yield String(tail)
 
-    return [Expression('XMLElement', String(node.tag), Expression('List'), Expression('List', *list(children())))]
+    def attributes():
+        for name, value in node.attrib.items():
+            yield Expression('Rule', from_python(name), from_python(value))
+
+    return [Expression(
+        'XMLElement',
+        String(node.tag),
+        Expression('List', *list(attributes())),
+        Expression('List', *list(children())))]
 
 
 def xml_object(root):
@@ -73,15 +81,61 @@ def xml_object(root):
         Expression('List', *declaration), *node_to_xml_element(root))
 
 
-def parse_xml(filename):
+class ParseError(Exception):
+    pass
+
+
+def parse_xml_string(xml):
+    if lxml_available:
+        try:
+            parser = ET.XMLParser(strip_cdata=False, remove_comments=False, recover=False)
+            return ET.XML(xml, parser)
+        except ET.XMLSyntaxError as e:
+            raise ParseError(str(e))
+    else:
+        try:
+            return ET.fromstring(xml)
+        except ET.ParseError as e:
+            raise ParseError(str(e))
+
+
+def parse_xml_file(filename):
     with mathics_open(filename, 'rb') as f:
-        xml = f.read()
-        if lxml_available:
-            parser = ET.XMLParser(strip_cdata=False, remove_comments=False, recover=True)
-            root = ET.XML(xml, parser)
-        else:
-            root = ET.fromstring(xml)
+        root = parse_xml_string(f.read())
     return root
+
+
+def parse_xml(parse, text, evaluation):
+    try:
+        return parse(text.get_string_value())
+    except ParseError as e:
+        evaluation.message('XML`Parser`Get', 'prserr', str(e))
+        return Symbol('$Failed')
+
+
+class _Get(Builtin):
+    context = 'XML`Parser`'
+
+    messages = {
+        'prserr': '``.',
+    }
+
+    def apply(self, text, evaluation):
+        '''%(name)s[text_String]'''
+        root = parse_xml(self._parse, text, evaluation)
+        if isinstance(root, Symbol):  # $Failed?
+            return root
+        else:
+            return xml_object(root)
+
+class XMLGet(_Get):
+    def _parse(self, text):
+        return parse_xml_file(text)
+
+
+class XMLGetString(_Get):
+    def _parse(self, text):
+        return parse_xml_string(text)
 
 
 class PlaintextImport(Builtin):
@@ -90,11 +144,13 @@ class PlaintextImport(Builtin):
      = MuseScore 1.2/2012-09-12/5.7/40
     """
 
-    context = 'System`XML`'
+    context = 'XML`'
 
     def apply(self, text, evaluation):
         '''%(name)s[text_String]'''
-        root = parse_xml(text.get_string_value())
+        root = parse_xml(parse_xml_file, text, evaluation)
+        if isinstance(root, Symbol):  # $Failed?
+            return root
 
         def lines():
             for line in root.itertext():
@@ -111,7 +167,7 @@ class TagsImport(Builtin):
      = {accidental, alter, arpeggiate, articulations, attributes, backup, bar-style, barline, beam, beat-type}
     """
 
-    context = 'System`XML`'
+    context = 'XML`'
 
     @staticmethod
     def _tags(root):
@@ -127,19 +183,22 @@ class TagsImport(Builtin):
 
     def apply(self, text, evaluation):
         '''%(name)s[text_String]'''
-        root = parse_xml(text.get_string_value())
+        root = parse_xml(parse_xml_file, text, evaluation)
+        if isinstance(root, Symbol):  # $Failed?
+            return root
         return Expression('List', Expression('Rule', 'Tags', self._tags(root)))
 
 
 class XMLObjectImport(Builtin):
     """
-    >> Import["ExampleData/InventionNo1.xml", "XMLObject"][[2]][[3]][[1]]
+    >> Part[Import["ExampleData/InventionNo1.xml", "XMLObject"], 2, 3, 1]
      = XMLElement[identification, {}, {XMLElement[encoding, {}, {XMLElement[software, {}, {MuseScore 1.2}], XMLElement[encoding-date, {}, {2012-09-12}]}]}]
     """
 
-    context = 'System`XML`'
+    context = 'XML`'
 
     def apply(self, text, evaluation):
         '''%(name)s[text_String]'''
-        root = parse_xml(text.get_string_value())
-        return Expression('List', Expression('Rule', 'XMLObject', xml_object(root)))
+        xml = Expression('XML`Parser`XMLGet', text).evaluate(evaluation)
+        return Expression('List', Expression('Rule', 'XMLObject', xml))
+

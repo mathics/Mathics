@@ -7,9 +7,9 @@ Begin["System`Convert`XML`"]
 ImportExport`RegisterImport[
     "XML",
     {
-        "XMLObject" :> System`XML`XMLObjectImport,
-        "Plaintext" :> System`XML`PlaintextImport,
-        "Tags" :> System`XML`TagsImport,
+        "XMLObject" :> XML`XMLObjectImport,
+        "Plaintext" :> XML`PlaintextImport,
+        "Tags" :> XML`TagsImport,
     },
     {},
 	AvailableElements -> {"Plaintext", "Tags", "XMLObject"},
