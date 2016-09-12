@@ -121,13 +121,21 @@ def llvm_to_ctype(t):
         return c_double
 
 
-def _compile(expr, args, ret_type):
-    llvm_ir = generate_ir(expr, args, 'plus', ret_type)
-    # print(llvm_ir)
+def infer_return_type(expr, args):
+    if all(arg.type == int_type for arg in args):
+        return int_type
+    else:
+        return real_type
+
+
+def _compile(expr, args):
+    ret_type = infer_return_type(expr, args)
+
+    llvm_ir = generate_ir(expr, args, 'mathics', ret_type)
     mod = compile_ir(engine, llvm_ir)
 
     # lookup function pointer
-    func_ptr = engine.get_function_address('plus')
+    func_ptr = engine.get_function_address('mathics')
 
     # run function via ctypes
     cfunc = CFUNCTYPE(llvm_to_ctype(ret_type), *(llvm_to_ctype(arg.type) for arg in args))(func_ptr)
