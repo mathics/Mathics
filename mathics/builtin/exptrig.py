@@ -1028,7 +1028,7 @@ class AnglePath(Builtin):
     >> AnglePath[{a, b}]
      = {{0, 0}, {Cos[a], Sin[a]}, {Cos[a] + Cos[a + b], Sin[a] + Sin[a + b]}}
 
-    >> Precision[Part[AnglePath[{N[1/3, 100], N[2/3, 100]}], 2, 1]
+    >> Precision[Part[AnglePath[{N[1/3, 100], N[2/3, 100]}], 2, 1]]
      = 100.
 
     >> Graphics[Line[AnglePath[Table[1.7, {50}]]]]
