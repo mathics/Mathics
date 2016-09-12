@@ -925,28 +925,11 @@ class AnglePathFold(Fold):
     def __init__(self, parse):
         self._parse = parse
 
-    def _operands(self, state, steps):
-        expr_x, expr_y, expr_phi = state
-        yield expr_x
-        yield expr_y
-        if expr_phi is not None:
-            yield expr_phi
-
-        parse = self._parse
-        for step in steps:
-            expr_distance, expr_delta_phi = parse(step)
-            if expr_distance is not None:
-                yield expr_distance
-            yield expr_delta_phi
-
-    def _fold(self, state, steps, as_operand, out, math, at_least):
-        sin = math.sin
-        cos = math.cos
-
+    def _operands(self, state, steps, at_least):
         SYMBOLIC = self.SYMBOLIC
         MPMATH = self.MPMATH
 
-        def pos_operand(x):
+        def check_pos_operand(x):
             if isinstance(x, Integer) and x.get_int_value() in (0, 1):
                 pass
             elif not isinstance(x, Real):
@@ -954,32 +937,41 @@ class AnglePathFold(Fold):
             elif not x.is_machine_precision():
                 at_least(MPMATH)
 
-            return as_operand(x)
-
-        def angle_operand(phi):
+        def check_angle_operand(phi):
             if not isinstance(phi, Real):
                 at_least(SYMBOLIC)
             elif not phi.is_machine_precision():
                 at_least(MPMATH)
 
-            return as_operand(phi)
+        x, y, phi = state
 
-        expr_x, expr_y, expr_phi = state
+        check_pos_operand(x)
+        check_pos_operand(y)
 
-        x = pos_operand(expr_x)
-        y = pos_operand(expr_y)
+        if phi is not None:
+            check_angle_operand(phi)
 
-        if expr_phi is None:
-            phi = None
-        else:
-            phi = angle_operand(expr_phi)
+        yield x, y, phi
 
         parse = self._parse
 
         for step in steps:
-            expr_distance, expr_delta_phi = parse(step)
-            delta_phi = angle_operand(expr_delta_phi)
+            distance, delta_phi = parse(step)
 
+            check_angle_operand(delta_phi)
+
+            if distance is not None:
+                check_pos_operand(distance)
+
+            yield distance, delta_phi
+
+    def _fold(self, state, steps, math):
+        sin = math.sin
+        cos = math.cos
+
+        x, y, phi = state
+
+        for distance, delta_phi in steps:
             if phi is None:
                 phi = delta_phi
             else:
@@ -988,16 +980,14 @@ class AnglePathFold(Fold):
             dx = cos(phi)
             dy = sin(phi)
 
-            if expr_distance is not None:
-                distance = pos_operand(expr_distance)
-
+            if distance is not None:
                 dx *= distance
                 dy *= distance
 
             x += dx
             y += dy
 
-            yield out(x), out(y), out(phi)
+            yield x, y, phi
 
 
 class AnglePath(Builtin):

@@ -22,6 +22,7 @@ import math
 from six.moves import range
 from collections import namedtuple
 from contextlib import contextmanager
+from itertools import chain
 
 
 from mathics.builtin.base import Builtin, Predefined
@@ -929,15 +930,15 @@ class Fold(object):
     }
 
     operands = {
-        FLOAT: lambda x: x.round_to_float(),
-        MPMATH: lambda x: x.to_mpmath(),
+        FLOAT: lambda x: None if x is None else x.round_to_float(),
+        MPMATH: lambda x: None if x is None else x.to_mpmath(),
         SYMBOLIC: lambda x: x,
     }
 
-    def _operands(self, state, steps):
+    def _operands(self, state, steps, at_least):
         raise NotImplementedError
 
-    def _fold(self, state, steps, convert, math):
+    def _fold(self, state, steps, math):
         raise NotImplementedError
 
     def fold(self, x, l):
@@ -957,9 +958,7 @@ class Fold(object):
 
         for _ in range(3):
             try:
-                as_operand = self.operands.get(mode)
-
-                if init_dirty:
+                if init_dirty:  # is this a continuation from a previous run?
                     init = tuple(from_python(x) for x in init)
                     init_dirty = False
 
@@ -967,10 +966,13 @@ class Fold(object):
                     if mode < m:
                         raise TypeEscalation(m)
 
-                if mode == self.MPMATH:
-                    from mathics.core.numbers import min_prec
+                unconverted_operands = self._operands(init, l[n:], at_least)
 
-                    precision = min_prec(*list(self._operands(init, l[n:])))
+                if mode == self.MPMATH:
+                    unconverted_operands = list(unconverted_operands)  # might raise TypeEscalation
+
+                    from mathics.core.numbers import min_prec
+                    precision = min_prec(*[t for t in chain(*unconverted_operands) if t is not None])
                     working_precision = mpmath.workprec
                 else:
                     @contextmanager
@@ -988,11 +990,19 @@ class Fold(object):
                     def out(z):
                         return z
 
+                as_operand = self.operands.get(mode)
+
+                def converted_operands():
+                    for y in unconverted_operands:
+                        yield tuple(as_operand(t) for t in y)
+
                 with working_precision(precision):
-                    generator = self._fold(
-                        init, l[n:], as_operand, out, self.math.get(mode), at_least)
+                    operands = converted_operands()
+
+                    generator = self._fold(next(operands), operands, self.math.get(mode))
 
                     for y in generator:
+                        y = tuple(out(t) for t in y)
                         yield y
                         init = y
                         init_dirty = True
