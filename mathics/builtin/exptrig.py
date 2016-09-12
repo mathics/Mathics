@@ -925,45 +925,39 @@ class AnglePathFold(Fold):
     def __init__(self, parse):
         self._parse = parse
 
-    def _operands(self, state, steps, at_least):
+    def _operands(self, state, steps):
         SYMBOLIC = self.SYMBOLIC
         MPMATH = self.MPMATH
+        FLOAT = self.FLOAT
 
         def check_pos_operand(x):
-            if isinstance(x, Integer) and x.get_int_value() in (0, 1):
-                pass
-            elif not isinstance(x, Real):
-                at_least(SYMBOLIC)
-            elif not x.is_machine_precision():
-                at_least(MPMATH)
+            if x is not None:
+                if isinstance(x, Integer) and x.get_int_value() in (0, 1):
+                    pass
+                elif not isinstance(x, Real):
+                    return SYMBOLIC
+                elif not x.is_machine_precision():
+                    return MPMATH
+            return FLOAT
 
         def check_angle_operand(phi):
-            if not isinstance(phi, Real):
-                at_least(SYMBOLIC)
-            elif not phi.is_machine_precision():
-                at_least(MPMATH)
-
-        x, y, phi = state
-
-        check_pos_operand(x)
-        check_pos_operand(y)
-
-        if phi is not None:
-            check_angle_operand(phi)
-
-        yield x, y, phi
+            if phi is not None:
+                if not isinstance(phi, Real):
+                    return SYMBOLIC
+                elif not phi.is_machine_precision():
+                    return MPMATH
+            return FLOAT
 
         parse = self._parse
 
+        x, y, phi = state
+        mode = max(check_pos_operand(x), check_pos_operand(y), check_angle_operand(phi))
+        yield mode, x, y, phi
+
         for step in steps:
             distance, delta_phi = parse(step)
-
-            check_angle_operand(delta_phi)
-
-            if distance is not None:
-                check_pos_operand(distance)
-
-            yield distance, delta_phi
+            mode = max(check_angle_operand(delta_phi), check_pos_operand(distance))
+            yield mode, distance, delta_phi
 
     def _fold(self, state, steps, math):
         sin = math.sin

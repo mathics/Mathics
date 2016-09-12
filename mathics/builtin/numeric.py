@@ -935,11 +935,32 @@ class Fold(object):
         SYMBOLIC: lambda x: x,
     }
 
-    def _operands(self, state, steps, at_least):
+    def _operands(self, state, steps):
         raise NotImplementedError
 
     def _fold(self, state, steps, math):
         raise NotImplementedError
+
+    def _spans(self, operands):
+        spans = {}
+        k = 0
+        j = 0
+
+        for mode in (self.FLOAT, self.MPMATH):
+            for i, operand in enumerate(operands[k:]):
+                if operand[0] > mode:
+                    break
+                j = i + k + 1
+
+            if k == 0 and j == 1:  # only init state? then ignore.
+                j = 0
+
+            spans[mode] = slice(k, j)
+            k = j
+
+        spans[self.SYMBOLIC] = slice(k, len(operands))
+
+        return spans
 
     def fold(self, x, l):
         # computes fold(x, l) with the internal _fold function. will start
@@ -947,70 +968,57 @@ class Fold(object):
         # precision if or symbolical evaluation only if necessary. folded
         # items already computed are carried over to new evaluation modes.
 
-        mode = self.FLOAT
+        yield x  # initial state
 
-        n = 0
+        init = None
+        operands = list(self._operands(x, l))
+        spans = self._spans(operands)
 
-        init = x
-        init_dirty = False
+        for mode in (self.FLOAT, self.MPMATH, self.SYMBOLIC):
+            s_operands = [y[1:] for y in operands[spans[mode]]]
 
-        yield x
+            if not s_operands:
+                continue
 
-        for _ in range(3):
-            try:
-                if init_dirty:  # is this a continuation from a previous run?
-                    init = tuple(from_python(x) for x in init)
-                    init_dirty = False
+            if mode == self.MPMATH:
+                from mathics.core.numbers import min_prec
+                precision = min_prec(*[t for t in chain(*s_operands) if t is not None])
+                working_precision = mpmath.workprec
+            else:
+                @contextmanager
+                def working_precision(_):
+                    yield
+                precision = None
 
-                def at_least(m):
-                    if mode < m:
-                        raise TypeEscalation(m)
+            if mode == self.FLOAT:
+                def out(z):
+                    return Real(z)
+            elif mode == self.MPMATH:
+                def out(z):
+                    return Real(z, precision)
+            else:
+                def out(z):
+                    return z
 
-                unconverted_operands = self._operands(init, l[n:], at_least)
+            as_operand = self.operands.get(mode)
 
-                if mode == self.MPMATH:
-                    unconverted_operands = list(unconverted_operands)  # might raise TypeEscalation
+            def converted_operands():
+                for y in s_operands:
+                    yield tuple(as_operand(t) for t in y)
 
-                    from mathics.core.numbers import min_prec
-                    precision = min_prec(*[t for t in chain(*unconverted_operands) if t is not None])
-                    working_precision = mpmath.workprec
+            with working_precision(precision):
+                c_operands = converted_operands()
+
+                if init is not None:
+                    c_init = tuple((None if t is None else as_operand(from_python(t))) for t in init)
                 else:
-                    @contextmanager
-                    def working_precision(_):
-                        yield
-                    precision = None
+                    c_init = next(c_operands)
+                    init = tuple((None if t is None else out(t)) for t in c_init)
 
-                if mode == self.FLOAT:
-                    def out(z):
-                        return Real(z)
-                elif mode == self.MPMATH:
-                    def out(z):
-                        return Real(z, precision)
-                else:
-                    def out(z):
-                        return z
+                generator = self._fold(
+                    c_init, c_operands, self.math.get(mode))
 
-                as_operand = self.operands.get(mode)
-
-                def converted_operands():
-                    for y in unconverted_operands:
-                        yield tuple(as_operand(t) for t in y)
-
-                with working_precision(precision):
-                    operands = converted_operands()
-
-                    generator = self._fold(next(operands), operands, self.math.get(mode))
-
-                    for y in generator:
-                        y = tuple(out(t) for t in y)
-                        yield y
-                        init = y
-                        init_dirty = True
-                        n += 1
-
-                return
-            except TypeEscalation as t:
-                assert t.mode > mode
-                mode = t.mode
-
-        raise ValueError  # should have evaluated symbolically and succeeded.
+                for y in generator:
+                    y = tuple(out(t) for t in y)
+                    yield y
+                    init = y
