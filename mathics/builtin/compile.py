@@ -1,3 +1,5 @@
+from functools import reduce
+
 from llvmlite import ir
 import llvmlite.binding as llvm
 
@@ -47,6 +49,11 @@ def generate_ir(expr, args, func_name, ret_type):
     return str(module)
 
 
+def check_type(arg):
+    if arg.type not in (int_type, double_type):
+        raise CompilationError()
+
+
 def _gen_ir(expr, lookup_args, builder):
     '''
     walks an expression tree and constructs the ir block
@@ -58,20 +65,18 @@ def _gen_ir(expr, lookup_args, builder):
         return int_type(expr.get_int_value())
     elif isinstance(expr, Real):
         return real_type(expr.round_to_float())
-    elif expr.has_form('Plus', 2):
-        a, b = [_gen_ir(leaf, lookup_args, builder) for leaf in expr.get_leaves()]
-        if a.type == int_type and b.type == int_type:
-            return builder.add(a, b)
-        elif a.type == int_type and b.type == real_type:
-            v = builder.sitofp(a, real_type)
-            return builder.fadd(v, b)
-        elif a.type == real_type and b.type == int_type:
-            v = builder.sitofp(b, real_type)
-            return builder.fadd(a, v)
-        elif a.type == real_type and b.type == real_type:
-            return builder.fadd(a, b)
+    elif expr.has_form('Plus', 1, None):
+        args = [_gen_ir(leaf, lookup_args, builder) for leaf in expr.get_leaves()]
+        if any(arg.type == real_type for arg in args):
+            # convert args to real as needed
+            for i, arg in enumerate(args):
+                if arg.type == int_type:
+                    args[i] = builder.sitofp(arg, real_type)
+            return reduce(builder.fadd, args)
+        elif all(arg.type == int_type for arg in args):
+            return reduce(builder.add, args)
         else:
-            raise CompilationError
+            raise CompilationError()
     else:
         raise CompilationError
 

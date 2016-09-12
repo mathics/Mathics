@@ -24,7 +24,7 @@ class ArithmeticTest(unittest.TestCase):
         self.assertEqual(cfunc(1, 2.5), 8.5)
 
     def test_d(self):
-        expr = Expression('Plus', Symbol('x'), MachineReal(1.5))
+        expr = Expression('Plus', Symbol('x'), MachineReal(1.5), Integer(2), Symbol('x'))
         args = [MathicsArg('System`x', real_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(2.5), 4.0)
+        self.assertEqual(cfunc(2.5), 8.5)
