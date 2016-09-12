@@ -21,6 +21,7 @@ import zlib
 import math
 from six.moves import range
 from collections import namedtuple
+from contextlib import contextmanager
 
 
 from mathics.builtin.base import Builtin, Predefined
@@ -29,7 +30,7 @@ from mathics.core.numbers import (
     get_precision, PrecisionValueError)
 from mathics.core.expression import (
     Integer, Real, Complex, Expression, Number, Symbol, Rational, from_python,
-    MachineReal)
+    MachineReal, PrecisionReal)
 from mathics.core.convert import from_sympy
 
 class N(Builtin):
@@ -928,10 +929,13 @@ class Fold(object):
     }
 
     operands = {
-        FLOAT: lambda x: x.to_python(),
+        FLOAT: lambda x: x.round_to_float(),
         MPMATH: lambda x: x.to_mpmath(),
         SYMBOLIC: lambda x: x,
     }
+
+    def _operands(self, state, steps):
+        raise NotImplementedError
 
     def _fold(self, state, steps, convert, math):
         raise NotImplementedError
@@ -963,14 +967,36 @@ class Fold(object):
                     if mode < m:
                         raise TypeEscalation(m)
 
-                generator = self._fold(
-                    init, l[n:], as_operand, self.math.get(mode), at_least)
+                if mode == self.MPMATH:
+                    from mathics.core.numbers import min_prec
 
-                for y in generator:
-                    yield y
-                    init = y
-                    init_dirty = True
-                    n += 1
+                    precision = min_prec(*list(self._operands(init, l[n:])))
+                    working_precision = mpmath.workprec
+                else:
+                    @contextmanager
+                    def working_precision(_):
+                        yield
+                    precision = None
+
+                if mode == self.FLOAT:
+                    def out(z):
+                        return Real(z)
+                elif mode == self.MPMATH:
+                    def out(z):
+                        return Real(z, precision)
+                else:
+                    def out(z):
+                        return z
+
+                with working_precision(precision):
+                    generator = self._fold(
+                        init, l[n:], as_operand, out, self.math.get(mode), at_least)
+
+                    for y in generator:
+                        yield y
+                        init = y
+                        init_dirty = True
+                        n += 1
 
                 return
             except TypeEscalation as t:

@@ -925,7 +925,21 @@ class AnglePathFold(Fold):
     def __init__(self, parse):
         self._parse = parse
 
-    def _fold(self, state, steps, as_operand, math, at_least):
+    def _operands(self, state, steps):
+        expr_x, expr_y, expr_phi = state
+        yield expr_x
+        yield expr_y
+        if expr_phi is not None:
+            yield expr_phi
+
+        parse = self._parse
+        for step in steps:
+            expr_distance, expr_delta_phi = parse(step)
+            if expr_distance is not None:
+                yield expr_distance
+            yield expr_delta_phi
+
+    def _fold(self, state, steps, as_operand, out, math, at_least):
         sin = math.sin
         cos = math.cos
 
@@ -983,7 +997,7 @@ class AnglePathFold(Fold):
             x += dx
             y += dy
 
-            yield x, y, phi
+            yield out(x), out(y), out(phi)
 
 
 class AnglePath(Builtin):
@@ -1013,6 +1027,9 @@ class AnglePath(Builtin):
 
     >> AnglePath[{a, b}]
      = {{0, 0}, {Cos[a], Sin[a]}, {Cos[a] + Cos[a + b], Sin[a] + Sin[a + b]}}
+
+    >> Precision[Part[AnglePath[{N[1/3, 100], N[2/3, 100]}], 2, 1]
+     = 100.
 
     >> Graphics[Line[AnglePath[Table[1.7, {50}]]]]
      = -Graphics-
