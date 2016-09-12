@@ -743,13 +743,14 @@ class ColorDistance(Builtin):
     """
 
     options = {
-        'DistanceFunction': '"CIE76"',
+        'DistanceFunction': 'Automatic',
     }
 
     messages = {
         'invdist': '`1` is not Automatic or a valid distance specification.',
         'invarg': '`1` and `2` should be two colors or a color and a lists of colors or ' +
                   'two lists of colors of the same length.'
+        
     }
     
     # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space 
@@ -766,6 +767,7 @@ class ColorDistance(Builtin):
         "CMC": lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3], 1, 1)/100
 
     }
+
 
     def apply(self, c1, c2, evaluation, options):
         'ColorDistance[c1_, c2_, OptionsPattern[ColorDistance]]'
@@ -823,10 +825,7 @@ class ColorDistance(Builtin):
                 evaluation.message('ColorDistance', 'invarg', a, b)
                 raise
             result = from_python(compute(py_a, py_b))
-            if not isinstance(result, Real):
-                pass
-            else:
-                return result
+            return result
 
         try:
             if c1.get_head_name() == 'System`List':
