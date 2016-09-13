@@ -2,6 +2,8 @@ from functools import reduce
 
 from llvmlite import ir
 import llvmlite.binding as llvm
+import llvmlite.llvmpy.core as lc
+from llvmlite.llvmpy.core import Type
 
 from mathics.core.expression import Expression, Integer, Symbol, Real
 
@@ -54,6 +56,15 @@ def check_type(arg):
         raise CompilationError()
 
 
+def call_fp_intr(builder, name, args):
+    '''
+    call a LLVM intrinsic floating-point operation
+    '''
+    mod = builder.module
+    intr = lc.Function.intrinsic(mod, name, [arg.type for arg in args])
+    return builder.call(intr, args)
+
+
 def _gen_ir(expr, lookup_args, builder):
     '''
     walks an expression tree and constructs the ir block
@@ -93,6 +104,43 @@ def _gen_ir(expr, lookup_args, builder):
             return reduce(builder.fmul, args)
         elif ret_type == int_type:
             return reduce(builder.mul, args)
+    elif expr.has_form('Sin', 1):
+        if ret_type == real_type:
+            return call_fp_intr(builder, 'llvm.sin', args)
+    elif expr.has_form('Cos', 1):
+        if ret_type == real_type:
+            return call_fp_intr(builder, 'llvm.cos', args)
+    elif expr.has_form('Tan', 1):
+        if ret_type == real_type:
+            # FIXME this approach is inaccurate
+            a = call_fp_intr(builder, 'llvm.sin', args)
+            b = call_fp_intr(builder, 'llvm.cos', args)
+            return builder.fdiv(a, b)
+    elif expr.has_form('Power', 2):
+        # FIXME unknown intrinsic
+        # TODO llvm.powi if second argument is integer
+        # TODO llvm.exp if first argument is E
+        # TODO llvm.exp2 if first argument is 2
+        if ret_type == real_type:
+            return call_fp_intr(builder, 'llvm.pow', args)
+    elif expr.has_form('Exp', 1):
+        if ret_type == real_type:
+            return call_fp_intr(builder, 'llvm.exp', args)
+    elif expr.has_form('Log', 1):
+        # TODO log2 and log10 special cases
+        if ret_type == real_type:
+            return call_fp_intr(builder, 'llvm.log', args)
+    elif expr.has_form('Abs', 1):
+        if ret_type == real_type:
+            return call_fp_intr(builder, 'llvm.fabs', args)
+    elif expr.has_form('Min', 1, None):
+        if ret_type == real_type:
+            # FIXME unknown intrinsic
+            return reduce(lambda arg1, arg2: call_fp_intr(builder, 'llvm.minnum', [arg1, arg2]), args)
+    elif expr.has_form('Max', 1, None):
+        if ret_type == real_type:
+            # FIXME unknown intrinsic
+            return reduce(lambda arg1, arg2: call_fp_intr(builder, 'llvm.maxnum', [arg1, arg2]), args)
     raise CompilationError()
 
 
