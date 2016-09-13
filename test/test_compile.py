@@ -64,19 +64,17 @@ class ArithmeticTest(unittest.TestCase):
     def test_tan(self):
         self._test_unary_math('Tan', math.tan)
 
-    @unittest.expectedFailure
     def test_pow(self):
         self._test_binary_math('Power', lambda x, y : x ** y)
 
-    @unittest.expectedFailure
     def test_div0(self):
         expr = Expression('Power', Symbol('x'), Symbol('y'))
         args = [MathicsArg('System`x', real_type), MathicsArg('System`y', real_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(0.0, -1.5), float('+inf'))
         self.assertEqual(cfunc(0.0, -1.0), float('+inf'))
-        self.assertEqual(cfunc(-0.0, -1.0), float('+inf'))
-        self.assertEqual(cfunc(0.0, 0.0), float('nan'))
+        self.assertEqual(cfunc(-0.0, -1.0), float('-inf'))
+        self.assertEqual(cfunc(0.0, 0.0), float('1.0'))     # NaN?
 
     def test_exp(self):
         self._test_unary_math('Exp', math.exp)
@@ -87,10 +85,8 @@ class ArithmeticTest(unittest.TestCase):
     def test_abs(self):
         self._test_unary_math('Abs', abs)
 
-    @unittest.expectedFailure
     def test_max(self):
         self._test_binary_math('Max', max)
 
-    @unittest.expectedFailure
     def test_min(self):
         self._test_binary_math('Min', min)
