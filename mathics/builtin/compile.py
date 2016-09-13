@@ -25,14 +25,17 @@ class MathicsArg(object):
         self.type = type
 
 
-def generate_ir(expr, args, func_name, ret_type):
+def generate_ir(expr, args, func_name, known_ret_type=None):
     '''
     generates LLVM IR for a given expression
     '''
+    # assume that the function returns a real. Note that this is verified by
+    # looking at the type of the head of the converted expression.
+    ret_type = real_type if known_ret_type is None else known_ret_type
+
     # create an empty module
     module = ir.Module(name=__file__)
 
-    # infer function type from args and ret_type
     func_type = ir.FunctionType(ret_type, tuple(arg.type for arg in args))
 
     # declare a function inside the module
@@ -47,8 +50,17 @@ def generate_ir(expr, args, func_name, ret_type):
 
     lookup_args = {arg.name: func_arg for arg, func_arg in zip(args, func.args)}
 
-    builder.ret(_gen_ir(expr, lookup_args, builder))
-    return str(module)
+    ir_code = _gen_ir(expr, lookup_args, builder)
+
+    # if the return isn't correct then try again
+    if known_ret_type is None and ir_code.type != ret_type:
+        return generate_ir(expr, args, func_name, ir_code.type)
+
+    # type was known or guessed correctly
+    assert ir_code.type == ret_type
+
+    builder.ret(ir_code)
+    return str(module), ret_type
 
 
 def check_type(arg):
@@ -189,17 +201,8 @@ def llvm_to_ctype(t):
         return c_double
 
 
-def infer_return_type(expr, args):
-    if all(arg.type == int_type for arg in args):
-        return int_type
-    else:
-        return real_type
-
-
 def _compile(expr, args):
-    ret_type = infer_return_type(expr, args)
-
-    llvm_ir = generate_ir(expr, args, 'mathics', ret_type)
+    llvm_ir, ret_type = generate_ir(expr, args, 'mathics')
     mod = compile_ir(engine, llvm_ir)
 
     # lookup function pointer
