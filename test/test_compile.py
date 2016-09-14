@@ -132,12 +132,28 @@ class FlowControlTest(unittest.TestCase):
         self.assertEqual(cfunc(1), 2)
         self.assertEqual(cfunc(2), 3)
 
-    def test_if_types(self):
-        expr = Expression('If', Expression('Equal', Symbol('x'), Integer(1)), Integer(2), MachineReal(3))
-        args = [MathicsArg('System`x', int_type)]
+    def test_if_int_real(self):
+        expr = Expression('If', Symbol('x'), Integer(2), MachineReal(3))
+        args = [MathicsArg('System`x', bool_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(1), 2.0)
-        self.assertEqual(cfunc(2), 3.0)
+        self.assertEqual(cfunc(True), 2.0)
+        self.assertEqual(cfunc(False), 3.0)
+
+    def test_if_real_int(self):
+        expr = Expression('If', Symbol('x'), MachineReal(3), Integer(2))
+        args = [MathicsArg('System`x', bool_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(True), 3.0)
+        self.assertEqual(cfunc(False), 2.0)
+
+    def test_if_bool_bool(self):
+        expr = Expression('If', Symbol('x'), Symbol('y'), Symbol('z'))
+        args = [MathicsArg('System`x', bool_type), MathicsArg('System`y', bool_type), MathicsArg('System`z', bool_type)]
+        cfunc = _compile(expr, args)
+        self.assertTrue(cfunc(True, True, False))
+        self.assertTrue(cfunc(False, False, True))
+        self.assertFalse(cfunc(True, False, True))
+        self.assertFalse(cfunc(False, True, False))
 
 
 class ComparisonTest(unittest.TestCase):

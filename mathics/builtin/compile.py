@@ -124,12 +124,44 @@ def _gen_ir(expr, lookup_args, builder):
         if cond.type != bool_type:
             raise CompilationError()
 
-        # FIXME currently this computes both cases
-        then_result = _gen_ir(args[1], lookup_args, builder)
-        else_result = _gen_ir(args[2], lookup_args, builder)
-        ret_type, args = convert_args([then_result, else_result], builder)
-        then_result, else_result = args
-        return builder.select(cond, then_result, else_result)
+        # construct new blocks
+        then_block = builder.append_basic_block()
+        else_block = builder.append_basic_block()
+        cont_block = builder.append_basic_block()
+
+        # branch to then or else block
+        builder.cbranch(cond, then_block, else_block)
+
+        # results for both block
+        with builder.goto_block(then_block):
+            then_result = _gen_ir(args[1], lookup_args, builder)
+        with builder.goto_block(else_block):
+            else_result = _gen_ir(args[2], lookup_args, builder)
+
+        # type check both blocks - determine resulting type
+        if then_result.type == else_result.type:
+            ret_type = then_result.type
+        elif then_result.type == int_type and else_result.type == real_type:
+            builder.position_at_end(then_block)
+            then_result = builder.sitofp(then_result, real_type)
+            ret_type = real_type
+        elif then_result.type == real_type and else_result.type == int_type:
+            builder.position_at_end(else_block)
+            else_result = builder.sitofp(else_result, real_type)
+            ret_type = real_type
+
+        # both blocks branch to continuation block
+        with builder.goto_block(then_block):
+            builder.branch(cont_block)
+        with builder.goto_block(else_block):
+            builder.branch(cont_block)
+
+        # continuation block
+        builder.position_at_start(cont_block)
+        result = builder.phi(ret_type)
+        result.add_incoming(then_result, then_block)
+        result.add_incoming(else_result, else_block)
+        return result
 
     # generate leaves
     args = [_gen_ir(leaf, lookup_args, builder) for leaf in expr.get_leaves()]
