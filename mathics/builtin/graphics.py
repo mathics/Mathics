@@ -759,8 +759,8 @@ class ColorDistance(Builtin):
     _distances = {
 	"CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
         "CIE94": lambda c1, c2: _euclidean_distance(c1.to_color_space('LCH')[:3], c2.to_color_space('LCH')[:3]),
-	"CIE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
-	"CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,	
+        "CIE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
+        "CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,	
         "DeltaL": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 0),
         "DeltaC": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 1),
         "DeltaH": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 2),
