@@ -778,19 +778,17 @@ class ColorDistance(Builtin):
                 evaluation.message('ColorDistance', 'invdist', distance_function)
                 return
         elif distance_function.has_form('List', 2):
-            if (isinstance(distance_function.leaves[0], String)
-            and distance_function.leaves[0].get_string_value() == 'CMC'):
-                if isinstance(distance_function.leaves[1], String):
-                    if distance_function.leaves[1].get_string_value() == 'Acceptability':
-                        compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
-                                                              100*c2.to_color_space('LAB')[:3], 2, 1)/100
-                    elif distance_function.leaves[1].get_string_value() == 'Perceptibility':
-                        compute = ColorDistance._distances.get("CMC")
-                    else:
-                        evaluation.message('ColorDistance', 'invdist', distance_function)
-                        return
+            if distance_function.leaves[0].get_string_value() == 'CMC':
+                if distance_function.leaves[1].get_string_value() == 'Acceptability':
+                    compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
+                                                            100*c2.to_color_space('LAB')[:3], 2, 1)/100
+                elif distance_function.leaves[1].get_string_value() == 'Perceptibility':
+                    compute = ColorDistance._distances.get("CMC")
+                else:
+                    evaluation.message('ColorDistance', 'invdist', distance_function)
+                    return
                     
-                if (distance_function.leaves[1].has_form('List', 2)
+                if (distance_function.leaves[1].has_form('List', 2):
                 and distance_function.leaves[1].leaves[0].get_int_value() > 0
                 and distance_function.leaves[1].leaves[1].get_int_value() > 0):
                     
@@ -815,7 +813,7 @@ class ColorDistance(Builtin):
                                                 Expression('List', *[Real(val) for val in a.to_color_space('LAB')]),
                                                 Expression('List', *[Real(val) for val in b.to_color_space('LAB')])
                                               )
-                                    ).evaluate(evaluation)
+                                    )
 
         def distance(a, b):
             try:
