@@ -322,7 +322,7 @@ class Evaluation(object):
                 data = pickle.dumps(result)
                 if len(data) > max_stored_size:
                     return Symbol('Null')
-            except ValueError:
+            except (ValueError, pickle.PicklingError):
                 return Symbol('Null')
         return result
 
