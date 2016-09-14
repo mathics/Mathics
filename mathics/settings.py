@@ -11,10 +11,6 @@ from os import path
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
-# node.js based layout engine
-NODE = 'node'  # path to node binary; default 'node' assumes it is in PATH
-NODE_MODULES = None  # overrides NODE_PATH environment variable if not None
-
 # set only to True in DEBUG mode
 DEBUG_MAIL = True
 PROPAGATE_EXCEPTIONS = True
