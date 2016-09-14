@@ -2,11 +2,21 @@ import unittest
 import mpmath
 import random
 
-from mathics.builtin.compile import _compile, CompileArg, int_type, real_type, bool_type
 from mathics.core.expression import Expression, Symbol, Integer, MachineReal
 
+from mathics.builtin.compile import has_llvmlite
 
-class ArithmeticTest(unittest.TestCase):
+if has_llvmlite:
+    from mathics.builtin.compile import _compile, CompileArg, int_type, real_type, bool_type
+
+
+class CompileTest(unittest.TestCase):
+    def setUp(self):
+        if not has_llvmlite:
+            self.skipTest('No llvmlite detected. Skipping all compile tests')
+
+
+class ArithmeticTest(CompileTest):
     def test_a(self):
         expr = Expression('Plus', Symbol('x'), Integer(2))
         args = [CompileArg('System`x', int_type), CompileArg('System`y', int_type)]
@@ -108,7 +118,7 @@ class ArithmeticTest(unittest.TestCase):
         self._test_binary_math('Min', min)
 
 
-class FlowControlTest(unittest.TestCase):
+class FlowControlTest(CompileTest):
 
     def test_if(self):
         expr = Expression('If', Symbol('x'), Symbol('y'), Symbol('z'))
@@ -189,7 +199,7 @@ class FlowControlTest(unittest.TestCase):
         self.assertEqual(cfunc(1), 1)
         self.assertEqual(cfunc(4), 4)
 
-class ComparisonTest(unittest.TestCase):
+class ComparisonTest(CompileTest):
     def test_int_equal(self):
         expr = Expression('Equal', Symbol('x'), Symbol('y'), Integer(3))
         args = [CompileArg('System`x', int_type), CompileArg('System`y', int_type)]
@@ -252,7 +262,7 @@ class ComparisonTest(unittest.TestCase):
             cfunc = _compile(expr, real_args)
             check(cfunc(*(float(arg) for arg in args)))
 
-class LogicTest(unittest.TestCase):
+class LogicTest(CompileTest):
     def _test_logic(self, head, args, result):
             check = getattr(self, 'assert' + str(result))
             arg_names = ['x%i' % i for i in range(len(args))]
@@ -302,7 +312,7 @@ class LogicTest(unittest.TestCase):
         self._test_logic('Not', [False], True)
 
 
-class BitwiseTest(unittest.TestCase):
+class BitwiseTest(CompileTest):
     def _test_bitwise(self, head, args, result):
             arg_names = ['x%i' % i for i in range(len(args))]
             expr = Expression(head, *(Symbol(arg_name) for arg_name in arg_names))

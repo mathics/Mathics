@@ -7,7 +7,7 @@ import llvmlite.llvmpy.core as lc
 from mathics.core.expression import Expression, Integer, Symbol, Real
 from mathics.builtin.compile.types import int_type, real_type, bool_type, void_type
 from mathics.builtin.compile.utils import pairwise
-from mathics.builtin.compile.base import CompilationError
+from mathics.builtin.compile.base import CompileError
 
 
 class IRGenerator(object):
@@ -83,7 +83,7 @@ class IRGenerator(object):
         elif all(arg.type == bool_type for arg in args):
             ret_type = bool_type
         else:
-            raise CompilationError()
+            raise CompileError()
         return ret_type, args
 
     def _gen_ir(self, expr):
@@ -100,7 +100,7 @@ class IRGenerator(object):
         elif isinstance(expr, Real):
             return real_type(expr.round_to_float())
         elif not isinstance(expr, Expression):
-            raise CompilationError()
+            raise CompileError()
 
         if expr.has_form('If', 3):
             args = expr.get_leaves()
@@ -110,7 +110,7 @@ class IRGenerator(object):
             if cond.type == int_type:
                 cond = builder.icmp_signed('!=', cond, int_type(0))
             if cond.type != bool_type:
-                raise CompilationError()
+                raise CompileError()
 
             # construct new blocks
             then_block = builder.append_basic_block()
@@ -144,7 +144,7 @@ class IRGenerator(object):
             elif then_result.type != void_type and else_result.type == void_type:
                 ret_type = then_result.type
             else:
-                raise CompilationError()
+                raise CompileError()
 
             # continuation block
             cont_block = builder.append_basic_block()
@@ -282,7 +282,7 @@ class IRGenerator(object):
                 elif ret_type == int_type:
                     result.append(builder.icmp_signed('==', lhs, rhs))
                 else:
-                    raise CompilationError()
+                    raise CompileError()
             return reduce(builder.and_, result)
         elif expr.has_form('Unequal', 2, None):
             # Unequal[e1, e2, ... en] gives True only if none of the ei are equal.
@@ -293,7 +293,7 @@ class IRGenerator(object):
                 elif ret_type == int_type:
                     result.append(builder.icmp_signed('!=', lhs, rhs))
                 else:
-                    raise CompilationError()
+                    raise CompileError()
             return reduce(builder.and_, result)
         elif expr.has_form('Less', 2, None):
             result = []
@@ -303,7 +303,7 @@ class IRGenerator(object):
                 elif ret_type == int_type:
                     result.append(builder.icmp_signed('<', lhs, rhs))
                 else:
-                    raise CompilationError()
+                    raise CompileError()
             return reduce(builder.and_, result)
         elif expr.has_form('LessEqual', 2, None):
             result = []
@@ -313,7 +313,7 @@ class IRGenerator(object):
                 elif ret_type == int_type:
                     result.append(builder.icmp_signed('<=', lhs, rhs))
                 else:
-                    raise CompilationError()
+                    raise CompileError()
             return reduce(builder.and_, result)
         elif expr.has_form('Greater', 2, None):
             result = []
@@ -323,7 +323,7 @@ class IRGenerator(object):
                 elif ret_type == int_type:
                     result.append(builder.icmp_signed('>', lhs, rhs))
                 else:
-                    raise CompilationError()
+                    raise CompileError()
             return reduce(builder.and_, result)
         elif expr.has_form('GreaterEqual', 2, None):
             result = []
@@ -333,7 +333,7 @@ class IRGenerator(object):
                 elif ret_type == int_type:
                     result.append(builder.icmp_signed('>=', lhs, rhs))
                 else:
-                    raise CompilationError()
+                    raise CompileError()
             return reduce(builder.and_, result)
         elif expr.has_form('And', 1, None) and ret_type == bool_type:
             return reduce(builder.and_, args)
@@ -359,9 +359,9 @@ class IRGenerator(object):
                 self._returned_type = ret_type
             self._returned_type = ret_type
             return builder.ret(result)
-        raise CompilationError()
+        raise CompileError()
 
     def set_returned_type(self, ret_type):
         if self._returned_type is not None and self._returned_type != ret_type:
-            raise CompilationError()
+            raise CompileError()
         self._returned_type = ret_type

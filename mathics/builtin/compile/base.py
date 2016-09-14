@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-class CompilationError(Exception):
+class CompileError(Exception):
     pass
 
 

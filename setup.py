@@ -160,7 +160,7 @@ setup(
         'mathics.core',
         'mathics.core.parser',
         'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.builtin.numpy_utils',
-        'mathics.builtin.pympler',
+        'mathics.builtin.pympler', 'mathics.builtin.compile',
         'mathics.doc',
         'mathics.web', 'mathics.web.templatetags'
     ],

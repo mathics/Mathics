@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 from mathics.builtin import (
-    algebra, arithmetic, assignment, attributes, calculus, combinatorial,
+    algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
     graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
@@ -17,7 +17,7 @@ from mathics.builtin.base import (
 from mathics.settings import ENABLE_FILES_MODULE
 
 modules = [
-    algebra, arithmetic, assignment, attributes, calculus, combinatorial,
+    algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
     graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
