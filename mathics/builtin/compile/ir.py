@@ -2,43 +2,12 @@ from functools import reduce
 import itertools
 
 from llvmlite import ir
-import llvmlite.binding as llvm
 import llvmlite.llvmpy.core as lc
-from llvmlite.llvmpy.core import Type
 
 from mathics.core.expression import Expression, Integer, Symbol, Real
-
-from ctypes import c_int64, c_double, c_bool, CFUNCTYPE
-
-
-class CompilationError(Exception):
-    pass
-
-# create some useful types
-int_type = ir.IntType(64)
-real_type = ir.DoubleType()
-bool_type = ir.IntType(1)
-void_type = ir.VoidType()
-
-
-class MathicsArg(object):
-    def __init__(self, name, type):
-        self.name = name
-        self.type = type
-
-
-def pairwise(args):
-    '''
-    [a, b, c] -> [(a, b), (b, c)]
-    >>> list(pairwise([1, 2, 3]))
-    [(1, 2), (2, 3)]
-    '''
-    first = True
-    for arg in args:
-        if not first:
-            yield last, arg
-        first = False
-        last = arg
+from mathics.builtin.compile.types import int_type, real_type, bool_type, void_type
+from mathics.builtin.compile.utils import pairwise
+from mathics.builtin.compile.base import CompilationError, MathicsArg
 
 
 class IRGenerator(object):
@@ -396,65 +365,3 @@ class IRGenerator(object):
         if self._returned_type is not None and self._returned_type != ret_type:
             raise CompilationError()
         self._returned_type = ret_type
-
-
-def create_execution_engine():
-    """
-    Create an ExecutionEngine suitable for JIT code generation on
-    the host CPU.  The engine is reusable for an arbitrary number of
-    modules.
-    """
-    # Create a target machine representing the host
-    target = llvm.Target.from_default_triple()
-    target_machine = target.create_target_machine()
-    # And an execution engine with an empty backing module
-    backing_mod = llvm.parse_assembly("")
-    engine = llvm.create_mcjit_compiler(backing_mod, target_machine)
-    return engine
-
-
-def compile_ir(engine, llvm_ir):
-    """
-    Compile the LLVM IR string with the given engine.
-    The compiled module object is returned.
-    """
-    # Create a LLVM module object from the IR
-    mod = llvm.parse_assembly(llvm_ir)
-    mod.verify()
-    # Now add the module and make sure it is ready for execution
-    engine.add_module(mod)
-    engine.finalize_object()
-    return mod
-
-
-# setup llvm for code generation
-llvm.initialize()
-llvm.initialize_native_target()
-llvm.initialize_native_asmprinter()  # yes, even this one
-
-engine = create_execution_engine()
-
-
-def llvm_to_ctype(t):
-    'converts llvm types to ctypes'
-    if t == int_type:
-        return c_int64
-    elif t == real_type:
-        return c_double
-    elif t == bool_type:
-        return c_bool
-    else:
-        raise TypeError(t)
-
-
-def _compile(expr, args):
-    ir_gen = IRGenerator(expr, args, 'mathics')
-    llvm_ir, ret_type = ir_gen.generate_ir()
-    mod = compile_ir(engine, llvm_ir)
-
-    # lookup function pointer
-    func_ptr = engine.get_function_address('mathics')
-
-    # run function via ctypes
-    cfunc = CFUNCTYPE(llvm_to_ctype(ret_type), *(llvm_to_ctype(arg.type) for arg in args))(func_ptr)
-    return cfunc
