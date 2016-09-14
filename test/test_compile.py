@@ -2,7 +2,7 @@ import unittest
 import math
 import random
 
-from mathics.builtin.compile import _compile, MathicsArg, int_type, real_type
+from mathics.builtin.compile import _compile, MathicsArg, int_type, real_type, bool_type
 from mathics.core.expression import Expression, Symbol, Integer, MachineReal
 
 
@@ -129,36 +129,36 @@ class ComparisonTest(unittest.TestCase):
         expr = Expression('Equal', Symbol('x'), Symbol('y'), Integer(3))
         args = [MathicsArg('System`x', int_type), MathicsArg('System`y', int_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(3, 3), True)
-        self.assertEqual(cfunc(2, 2), False)
-        self.assertEqual(cfunc(2, 3), False)
+        self.assertTrue(cfunc(3, 3))
+        self.assertFalse(cfunc(2, 2))
+        self.assertFalse(cfunc(2, 3))
 
     def test_int_unequal(self):
         expr = Expression('Unequal', Symbol('x'), Symbol('y'), Integer(3))
         args = [MathicsArg('System`x', int_type), MathicsArg('System`y', int_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(1, 2), True)
-        self.assertEqual(cfunc(3, 2), False)
-        self.assertEqual(cfunc(2, 3), False)
-        self.assertEqual(cfunc(2, 2), False)
-        self.assertEqual(cfunc(3, 3), False)
+        self.assertTrue(cfunc(1, 2))
+        self.assertFalse(cfunc(3, 2))
+        self.assertFalse(cfunc(2, 3))
+        self.assertFalse(cfunc(2, 2))
+        self.assertFalse(cfunc(3, 3))
 
     def test_real_equal(self):
         expr = Expression('Equal', Symbol('x'), Symbol('y'))
         args = [MathicsArg('System`x', real_type), MathicsArg('System`y', real_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(3.0, 3.0), True)
-        self.assertEqual(cfunc(3.0, 2.0), False)
-        self.assertEqual(cfunc(2.0, 3.0), False)
+        self.assertTrue(cfunc(3.0, 3.0))
+        self.assertFalse(cfunc(3.0, 2.0))
+        self.assertFalse(cfunc(2.0, 3.0))
         # TODO NaN/+inf/-inf comparisons
 
     def test_int_real_equal(self):
         expr = Expression('Equal', Symbol('x'), Symbol('y'))
         args = [MathicsArg('System`x', real_type), MathicsArg('System`y', int_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(3.0, 3), True)
-        self.assertEqual(cfunc(3.0, 2), False)
-        self.assertEqual(cfunc(2.0, 3), False)
+        self.assertTrue(cfunc(3.0, 3))
+        self.assertFalse(cfunc(3.0, 2))
+        self.assertFalse(cfunc(2.0, 3))
 
     def test_inequalities(self):
         cases = [
@@ -176,11 +176,87 @@ class ComparisonTest(unittest.TestCase):
             ('GreaterEqual', (2, 1), True),
         ]
         for head, args, result in cases:
+            check = getattr(self, 'assert' + str(result))
+
             expr = Expression(head, Symbol('x'), Symbol('y'))
             int_args = [MathicsArg('System`x', int_type), MathicsArg('System`y', int_type)]
             cfunc = _compile(expr, int_args)
-            self.assertEqual(cfunc(*args), result)
+            check(cfunc(*args))
 
             real_args = [MathicsArg('System`x', real_type), MathicsArg('System`y', real_type)]
             cfunc = _compile(expr, real_args)
-            self.assertEqual(cfunc(*(float(arg) for arg in args)), result)
+            check(cfunc(*(float(arg) for arg in args)))
+
+class LogicTest(unittest.TestCase):
+    def _test_logic(self, head, args, result):
+            check = getattr(self, 'assert' + str(result))
+            arg_names = ['x%i' % i for i in range(len(args))]
+            expr = Expression(head, *(Symbol(arg_name) for arg_name in arg_names))
+            bool_args = [MathicsArg('System`' + arg_name, bool_type) for arg_name in arg_names]
+            cfunc = _compile(expr, bool_args)
+            check(cfunc(*args))
+
+    def test_and(self):
+        self._test_logic('And', [False], False)
+        self._test_logic('And', [True], True)
+        self._test_logic('And', [True, True], True)
+        self._test_logic('And', [True, False], False)
+        self._test_logic('And', [False, True], False)
+        self._test_logic('And', [False, False], False)
+        self._test_logic('And', [True, True, True], True)
+        self._test_logic('And', [True, True, False], False)
+
+    def test_or(self):
+        self._test_logic('Or', [True, True], True)
+        self._test_logic('Or', [True, False], True)
+        self._test_logic('Or', [False, True], True)
+        self._test_logic('Or', [False, False], False)
+        self._test_logic('Or', [True, True, True], True)
+        self._test_logic('Or', [True, True, False], True)
+        self._test_logic('Or', [True, False, False], True)
+        self._test_logic('Or', [False, False, False], False)
+
+    def test_xor(self):
+        # result determined by even/odd number of True/False
+        self._test_logic('Xor', [True, True], False)
+        self._test_logic('Xor', [True, False], True)
+        self._test_logic('Xor', [False, True], True)
+        self._test_logic('Xor', [False, False], False)
+        self._test_logic('Xor', [True, True, True], True)
+        self._test_logic('Xor', [True, True, False], False)
+        self._test_logic('Xor', [True, False, True], False)
+        self._test_logic('Xor', [False, True, True], False)
+        self._test_logic('Xor', [True, False, False], True)
+        self._test_logic('Xor', [False, True, False], True)
+        self._test_logic('Xor', [False, False, True], True)
+        self._test_logic('Xor', [False, False, False], False)
+
+
+    def test_not(self):
+        self._test_logic('Not', [True], False)
+        self._test_logic('Not', [False], True)
+
+
+class BitwiseTest(unittest.TestCase):
+    def _test_bitwise(self, head, args, result):
+            arg_names = ['x%i' % i for i in range(len(args))]
+            expr = Expression(head, *(Symbol(arg_name) for arg_name in arg_names))
+            int_args = [MathicsArg('System`' + arg_name, int_type) for arg_name in arg_names]
+            cfunc = _compile(expr, int_args)
+            self.assertEqual(cfunc(*args), result)
+
+    def test_bitand(self):
+        self._test_bitwise('BitAnd', [17], 17)
+        self._test_bitwise('BitAnd', [318931, 313144, 34141], 34064)
+
+    def test_bitor(self):
+        self._test_bitwise('BitOr', [17], 17)
+        self._test_bitwise('BitOr', [318931, 313144, 34141], 319487)
+
+    def test_bitxor(self):
+        self._test_bitwise('BitXor', [17], 17)
+        self._test_bitwise('BitXor', [318931, 313144, 34141], 40886)
+
+    def test_bitnot(self):
+        self._test_bitwise('BitNot', [0], -1)
+        self._test_bitwise('BitNot', [13413], -13414)

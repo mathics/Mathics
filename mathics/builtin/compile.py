@@ -8,7 +8,7 @@ from llvmlite.llvmpy.core import Type
 
 from mathics.core.expression import Expression, Integer, Symbol, Real
 
-from ctypes import c_int64, c_double, CFUNCTYPE
+from ctypes import c_int64, c_double, c_bool, CFUNCTYPE
 
 
 class CompilationError(Exception):
@@ -50,10 +50,6 @@ def generate_ir(expr, args, func_name, known_ret_type=None):
 
     ir_code = _gen_ir(expr, lookup_args, builder)
 
-    # llvmlite can convert IntType(1) to python bool so convert to int
-    if ir_code.type == bool_type:
-        ir_code = builder.zext(ir_code, int_type)
-
     # if the return isn't correct then try again
     if known_ret_type is None and ir_code.type != ret_type:
         return generate_ir(expr, args, func_name, ir_code.type)
@@ -83,6 +79,8 @@ def convert_args(args, builder):
         ret_type = real_type
     elif all(arg.type == int_type for arg in args):
         ret_type = int_type
+    elif all(arg.type == bool_type for arg in args):
+        ret_type = bool_type
     else:
         raise CompilationError()
     return ret_type, args
@@ -249,6 +247,22 @@ def _gen_ir(expr, lookup_args, builder):
             else:
                 raise CompilationError()
         return reduce(builder.and_, result)
+    elif expr.has_form('And', 1, None) and ret_type == bool_type:
+        return reduce(builder.and_, args)
+    elif expr.has_form('Or', 1, None) and ret_type == bool_type:
+        return reduce(builder.or_, args)
+    elif expr.has_form('Xor', 1, None) and ret_type == bool_type:
+        return reduce(builder.xor, args)
+    elif expr.has_form('Not', 1) and ret_type == bool_type:
+        return builder.not_(args[0])
+    elif expr.has_form('BitAnd', 1, None) and ret_type == int_type:
+        return reduce(builder.and_, args)
+    elif expr.has_form('BitOr', 1, None) and ret_type == int_type:
+        return reduce(builder.or_, args)
+    elif expr.has_form('BitXor', 1, None) and ret_type == int_type:
+        return reduce(builder.xor, args)
+    elif expr.has_form('BitNot', 1) and ret_type == int_type:
+        return builder.not_(args[0])
     raise CompilationError()
 
 
@@ -295,6 +309,10 @@ def llvm_to_ctype(t):
         return c_int64
     elif t == real_type:
         return c_double
+    elif t == bool_type:
+        return c_bool
+    else:
+        raise TypeError(t)
 
 
 def _compile(expr, args):
