@@ -161,6 +161,12 @@ def _gen_ir(expr, lookup_args, builder):
             a = call_fp_intr(builder, 'llvm.sin', args)
             b = call_fp_intr(builder, 'llvm.cos', args)
             return builder.fdiv(a, b)
+    elif expr.has_form('Cot', 1):
+        if ret_type == real_type:
+            # FIXME this approach is inaccurate
+            a = call_fp_intr(builder, 'llvm.sin', args)
+            b = call_fp_intr(builder, 'llvm.cos', args)
+            return builder.fdiv(b, a)
     elif expr.has_form('Power', 2):
         # FIXME unknown intrinsic
         # TODO llvm.powi if second argument is integer
