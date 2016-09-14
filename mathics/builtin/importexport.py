@@ -20,8 +20,10 @@ import urllib
 
 try:
     import urllib.request as urllib2
+    from urllib.error import HTTPError, URLError
 except ImportError:
     import urllib2
+    from urllib2 import HTTPError, URLError
 
 mimetypes.add_type('application/vnd.wolfram.mathematica.package', '.m')
 
@@ -365,6 +367,14 @@ class RegisterExport(Builtin):
 
 
 class FetchURL(Builtin):
+    '''
+    >> Quiet[FetchURL["https:////", {}]]
+     = $Failed
+
+    >> Quiet[FetchURL["http://mathics.org/url_test_case", {}]]
+     = $Failed
+    '''
+
     messages = {
         'httperr': '`1` could not be retrieved; `2`.',
     }
@@ -387,16 +397,19 @@ class FetchURL(Builtin):
                 return mimetype_dict.get(content_type)
 
             result = Import._import(temp_path, determine_filetype, elements, evaluation)
-        except urllib.error.HTTPError as e:
+        except HTTPError as e:
             evaluation.message(
                 'FetchURL', 'httperr', url,
-                'the server returned an HTTP status code of %s (%s)' % (e.code, e.reason))
+                'the server returned an HTTP status code of %s (%s)' % (e.code, str(e.reason)))
             return Symbol('$Failed')
-        except urllib.error.URLError as e:  # see https://docs.python.org/3/howto/urllib2.html
+        except URLError as e:  # see https://docs.python.org/3/howto/urllib2.html
             if hasattr(e, 'reason'):
-                evaluation.message('FetchURL', 'httperr', url, e.reason)
+                evaluation.message('FetchURL', 'httperr', url, str(e.reason))
             elif hasattr(e, 'code'):
                 evaluation.message('FetchURL', 'httperr', url, 'server returned %s' % e.code)
+            return Symbol('$Failed')
+        except ValueError as e:
+            evaluation.message('FetchURL', 'httperr', url, str(e))
             return Symbol('$Failed')
         finally:
             os.unlink(temp_path)
