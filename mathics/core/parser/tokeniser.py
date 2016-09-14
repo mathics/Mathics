@@ -134,7 +134,7 @@ tokens = [
     ('Divide', r' \/|\u00f7 '),
     ('Power', r' \^ '),
     ('Dot', r' \. '),
-    ('Minus', r' \- '),
+    ('Minus', r' \-|\u2212 '),
     ('Plus', r' \+ '),
     ('RawBackslash', r' \\ '),
 
