@@ -90,3 +90,21 @@ class ArithmeticTest(unittest.TestCase):
 
     def test_min(self):
         self._test_binary_math('Min', min)
+
+
+class FlowControlTest(unittest.TestCase):
+
+    def test_if(self):
+        expr = Expression('If', Symbol('x'), Symbol('y'), Symbol('z'))
+        args = [MathicsArg('System`x', int_type), MathicsArg('System`y', real_type), MathicsArg('System`z', real_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(0, 3.0, 4.0), 4.0)
+        self.assertEqual(cfunc(1, 3.0, 4.0), 3.0)
+        self.assertEqual(cfunc(2, 3.0, 4.0), 3.0)
+
+    def test_if_cont(self):
+        expr = Expression('Plus', Integer(1), Expression('If', Symbol('x'), Expression('Sin', Symbol('y')), Expression('Cos', Symbol('y'))))
+        args = [MathicsArg('System`x', int_type), MathicsArg('System`y', real_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(0, 0.0), 2.0)
+        self.assertEqual(cfunc(1, 0.0), 1.0)

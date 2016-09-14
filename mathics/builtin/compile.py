@@ -16,7 +16,7 @@ class CompilationError(Exception):
 # create some useful types
 int_type = ir.IntType(64)
 real_type = ir.DoubleType()
-ifunc2_type = ir.FunctionType(int_type, (int_type, int_type))
+bool_type = ir.IntType(1)
 
 
 class MathicsArg(object):
@@ -40,9 +40,6 @@ def generate_ir(expr, args, func_name, known_ret_type=None):
 
     # declare a function inside the module
     func = ir.Function(module, func_type, name=func_name)
-
-    # declare a function inside it
-    # func = ir.Function(module, ifunc2_type, name=func_name)
 
     # implement the function
     block = func.append_basic_block(name='entry')
@@ -77,6 +74,20 @@ def call_fp_intr(builder, name, args):
     return builder.call(intr, args)
 
 
+def convert_args(args, builder):
+    # check/convert leaf types
+    if any(arg.type == real_type for arg in args):
+        for i, arg in enumerate(args):
+            if arg.type == int_type:
+                args[i] = builder.sitofp(arg, real_type)
+        ret_type = real_type
+    elif all(arg.type == int_type for arg in args):
+        ret_type = int_type
+    else:
+        raise CompilationError()
+    return ret_type, args
+
+
 def _gen_ir(expr, lookup_args, builder):
     '''
     walks an expression tree and constructs the ir block
@@ -91,19 +102,49 @@ def _gen_ir(expr, lookup_args, builder):
     elif not isinstance(expr, Expression):
         raise CompilationError()
 
+    if expr.has_form('If', 3):
+        args = expr.get_leaves()
+
+        # condition
+        cond = _gen_ir(args[0], lookup_args, builder)
+        if cond.type == int_type:
+            cond = builder.icmp_signed('!=', cond, int_type(0))
+        if cond.type != bool_type:
+            raise CompilationError()
+
+        # blocks
+        then_block = builder.append_basic_block()
+        else_block = builder.append_basic_block()
+        cont_block = builder.append_basic_block()
+
+        # branch
+        builder.cbranch(cond, then_block, else_block)
+
+        # then
+        then_builder = ir.IRBuilder(then_block)
+        then_result = _gen_ir(args[1], lookup_args, then_builder)
+        then_builder.branch(cont_block)
+
+        # else
+        else_builder = ir.IRBuilder(else_block)
+        else_result = _gen_ir(args[2], lookup_args, else_builder)
+        else_builder.branch(cont_block)
+
+        # continuation
+        ret_type = real_type
+        builder.position_at_start(cont_block)
+
+        phi = builder.phi(ret_type)
+        phi.add_incoming(then_result, then_block)
+        phi.add_incoming(else_result, else_block)
+        return phi
+
     # generate leaves
     args = [_gen_ir(leaf, lookup_args, builder) for leaf in expr.get_leaves()]
 
+
     # check leaf types
-    if any(arg.type == real_type for arg in args):
-        for i, arg in enumerate(args):
-            if arg.type == int_type:
-                args[i] = builder.sitofp(arg, real_type)
-        ret_type = real_type
-    elif all(arg.type == int_type for arg in args):
-        ret_type = int_type
-    else:
-        raise CompilationError()
+    ret_type, args = convert_args(args, builder)
 
     # convert expression
     if expr.has_form('Plus', 1, None):
