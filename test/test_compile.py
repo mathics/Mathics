@@ -66,6 +66,12 @@ class ArithmeticTest(unittest.TestCase):
     def test_cot(self):
         self._test_unary_math('Cot', mpmath.cot)
 
+    def test_sec(self):
+        self._test_unary_math('Sec', mpmath.sec)
+
+    def test_csc(self):
+        self._test_unary_math('Csc', mpmath.csc)
+
     def test_pow(self):
         self._test_binary_math('Power', mpmath.power)
 
