@@ -1756,6 +1756,7 @@ class General(Builtin):
         'notboxes': "`1` is not a valid box structure.",
 
         'pyimport': "`1`[] is not available. Your Python installation misses the \"`2`\" module.",
+        'nowebeng': "Web Engine is not available: `1`",
     }
 
 
