@@ -416,7 +416,7 @@ class OutputSizeLimit(Predefined):
     """
 
     name = '$OutputSizeLimit'
-    value = 100
+    value = 1000
 
     rules = {
         '$OutputSizeLimit': str(value),
