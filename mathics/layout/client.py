@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# you may use "NODE" in settings.py to specify a custom node binary, and you may use NODE_PATH in settings.py
-# to specify a custom node_modules path (that has the necessary node modules mathjax-node, ...).
-#
 # Your installation of nodejs with the following packages: mathjax-node svg2png (install them using
 # npm).
 
@@ -14,8 +11,6 @@
 import subprocess
 from subprocess import Popen
 import os
-
-from mathics import settings
 
 import socket
 import json
@@ -116,8 +111,6 @@ class WebEngine:
     def _create_client(self):
         try:
             popen_env = os.environ.copy()
-            if settings.NODE_MODULES:
-                popen_env["NODE_PATH"] = os.path.expandvars(settings.NODE_MODULES)
 
             server_path = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)), 'server.js')
@@ -127,7 +120,7 @@ class WebEngine:
                 raise WebEngineUnavailable(error_text + message)
 
             process = Popen(
-                [os.path.expandvars(settings.NODE), server_path],
+                ['node', server_path],
                 stdout=subprocess.PIPE,
                 env=popen_env)
 
