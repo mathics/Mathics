@@ -168,7 +168,6 @@ def _gen_ir(expr, lookup_args, builder):
             b = call_fp_intr(builder, 'llvm.cos', args)
             return builder.fdiv(b, a)
     elif expr.has_form('Power', 2):
-        # FIXME unknown intrinsic
         # TODO llvm.powi if second argument is integer
         # TODO llvm.exp if first argument is E
         # TODO llvm.exp2 if first argument is 2
@@ -186,11 +185,9 @@ def _gen_ir(expr, lookup_args, builder):
             return call_fp_intr(builder, 'llvm.fabs', args)
     elif expr.has_form('Min', 1, None):
         if ret_type == real_type:
-            # FIXME unknown intrinsic
             return reduce(lambda arg1, arg2: call_fp_intr(builder, 'llvm.minnum', [arg1, arg2]), args)
     elif expr.has_form('Max', 1, None):
         if ret_type == real_type:
-            # FIXME unknown intrinsic
             return reduce(lambda arg1, arg2: call_fp_intr(builder, 'llvm.maxnum', [arg1, arg2]), args)
     elif expr.has_form('Equal', 2, None):
         result = []
