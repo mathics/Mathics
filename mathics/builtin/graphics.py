@@ -738,7 +738,7 @@ class ColorDistance(Builtin):
 
     It is also possible to specify a custom distance
 
-    >> N[ColorDistance[Magenta, Green], 5]
+    >> ColorDistance[Magenta, Green]
      = 2.2507
     >> ColorDistance[{Red, Blue}, {Green, Yellow}, DistanceFunction -> {"CMC", "Perceptibility"}]
      = List[1.0495, 1.27455]
