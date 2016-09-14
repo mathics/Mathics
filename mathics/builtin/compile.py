@@ -1,4 +1,5 @@
 from functools import reduce
+import itertools
 
 from llvmlite import ir
 import llvmlite.binding as llvm
@@ -49,6 +50,10 @@ def generate_ir(expr, args, func_name, known_ret_type=None):
 
     ir_code = _gen_ir(expr, lookup_args, builder)
 
+    # llvmlite can convert IntType(1) to python bool so convert to int
+    if ir_code.type == bool_type:
+        ir_code = builder.zext(ir_code, int_type)
+
     # if the return isn't correct then try again
     if known_ret_type is None and ir_code.type != ret_type:
         return generate_ir(expr, args, func_name, ir_code.type)
@@ -58,11 +63,6 @@ def generate_ir(expr, args, func_name, known_ret_type=None):
 
     builder.ret(ir_code)
     return str(module), ret_type
-
-
-def check_type(arg):
-    if arg.type not in (int_type, double_type):
-        raise CompilationError()
 
 
 def call_fp_intr(builder, name, args):
@@ -86,6 +86,20 @@ def convert_args(args, builder):
     else:
         raise CompilationError()
     return ret_type, args
+
+
+def pairwise(args):
+    '''
+    [a, b, c] -> [(a, b), (b, c)]
+    >>> list(pairwise([1, 2, 3]))
+    [(1, 2), (2, 3)]
+    '''
+    first = True
+    for arg in args:
+        if not first:
+            yield last, arg
+        first = False
+        last = arg
 
 
 def _gen_ir(expr, lookup_args, builder):
@@ -112,32 +126,12 @@ def _gen_ir(expr, lookup_args, builder):
         if cond.type != bool_type:
             raise CompilationError()
 
-        # blocks
-        then_block = builder.append_basic_block()
-        else_block = builder.append_basic_block()
-        cont_block = builder.append_basic_block()
-
-        # branch
-        builder.cbranch(cond, then_block, else_block)
-
-        # then
-        then_builder = ir.IRBuilder(then_block)
-        then_result = _gen_ir(args[1], lookup_args, then_builder)
-        then_builder.branch(cont_block)
-
-        # else
-        else_builder = ir.IRBuilder(else_block)
-        else_result = _gen_ir(args[2], lookup_args, else_builder)
-        else_builder.branch(cont_block)
-
-        # continuation
-        ret_type = real_type
-        builder.position_at_start(cont_block)
-
-        phi = builder.phi(ret_type)
-        phi.add_incoming(then_result, then_block)
-        phi.add_incoming(else_result, else_block)
-        return phi
+        # FIXME currently this computes both cases
+        then_result = _gen_ir(args[1], lookup_args, builder)
+        else_result = _gen_ir(args[2], lookup_args, builder)
+        ret_type, args = convert_args([then_result, else_result], builder)
+        then_result, else_result = args
+        return builder.select(cond, then_result, else_result)
 
     # generate leaves
     args = [_gen_ir(leaf, lookup_args, builder) for leaf in expr.get_leaves()]
@@ -194,6 +188,67 @@ def _gen_ir(expr, lookup_args, builder):
         if ret_type == real_type:
             # FIXME unknown intrinsic
             return reduce(lambda arg1, arg2: call_fp_intr(builder, 'llvm.maxnum', [arg1, arg2]), args)
+    elif expr.has_form('Equal', 2, None):
+        result = []
+        for lhs, rhs in pairwise(args):
+            if ret_type == real_type:
+                result.append(builder.fcmp_ordered('==', lhs, rhs))
+            elif ret_type == int_type:
+                result.append(builder.icmp_signed('==', lhs, rhs))
+            else:
+                raise CompilationError()
+        return reduce(builder.and_, result)
+    elif expr.has_form('Unequal', 2, None):
+        # Unequal[e1, e2, ... en] gives True only if none of the ei are equal.
+        result = []
+        for lhs, rhs in itertools.combinations(args, 2):
+            if ret_type == real_type:
+                result.append(builder.fcmp_ordered('!=', lhs, rhs))
+            elif ret_type == int_type:
+                result.append(builder.icmp_signed('!=', lhs, rhs))
+            else:
+                raise CompilationError()
+        return reduce(builder.and_, result)
+    elif expr.has_form('Less', 2, None):
+        result = []
+        for lhs, rhs in pairwise(args):
+            if ret_type == real_type:
+                result.append(builder.fcmp_ordered('<', lhs, rhs))
+            elif ret_type == int_type:
+                result.append(builder.icmp_signed('<', lhs, rhs))
+            else:
+                raise CompilationError()
+        return reduce(builder.and_, result)
+    elif expr.has_form('LessEqual', 2, None):
+        result = []
+        for lhs, rhs in pairwise(args):
+            if ret_type == real_type:
+                result.append(builder.fcmp_ordered('<=', lhs, rhs))
+            elif ret_type == int_type:
+                result.append(builder.icmp_signed('<=', lhs, rhs))
+            else:
+                raise CompilationError()
+        return reduce(builder.and_, result)
+    elif expr.has_form('Greater', 2, None):
+        result = []
+        for lhs, rhs in pairwise(args):
+            if ret_type == real_type:
+                result.append(builder.fcmp_ordered('>', lhs, rhs))
+            elif ret_type == int_type:
+                result.append(builder.icmp_signed('>', lhs, rhs))
+            else:
+                raise CompilationError()
+        return reduce(builder.and_, result)
+    elif expr.has_form('GreaterEqual', 2, None):
+        result = []
+        for lhs, rhs in pairwise(args):
+            if ret_type == real_type:
+                result.append(builder.fcmp_ordered('>=', lhs, rhs))
+            elif ret_type == int_type:
+                result.append(builder.icmp_signed('>=', lhs, rhs))
+            else:
+                raise CompilationError()
+        return reduce(builder.and_, result)
     raise CompilationError()
 
 

@@ -108,3 +108,79 @@ class FlowControlTest(unittest.TestCase):
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(0, 0.0), 2.0)
         self.assertEqual(cfunc(1, 0.0), 1.0)
+
+    def test_if_eq(self):
+        expr = Expression('If', Expression('Equal', Symbol('x'), Integer(1)), Integer(2), Integer(3))
+        args = [MathicsArg('System`x', int_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(1), 2)
+        self.assertEqual(cfunc(2), 3)
+
+    def test_if_types(self):
+        expr = Expression('If', Expression('Equal', Symbol('x'), Integer(1)), Integer(2), MachineReal(3))
+        args = [MathicsArg('System`x', int_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(1), 2.0)
+        self.assertEqual(cfunc(2), 3.0)
+
+
+class ComparisonTest(unittest.TestCase):
+    def test_int_equal(self):
+        expr = Expression('Equal', Symbol('x'), Symbol('y'), Integer(3))
+        args = [MathicsArg('System`x', int_type), MathicsArg('System`y', int_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(3, 3), True)
+        self.assertEqual(cfunc(2, 2), False)
+        self.assertEqual(cfunc(2, 3), False)
+
+    def test_int_unequal(self):
+        expr = Expression('Unequal', Symbol('x'), Symbol('y'), Integer(3))
+        args = [MathicsArg('System`x', int_type), MathicsArg('System`y', int_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(1, 2), True)
+        self.assertEqual(cfunc(3, 2), False)
+        self.assertEqual(cfunc(2, 3), False)
+        self.assertEqual(cfunc(2, 2), False)
+        self.assertEqual(cfunc(3, 3), False)
+
+    def test_real_equal(self):
+        expr = Expression('Equal', Symbol('x'), Symbol('y'))
+        args = [MathicsArg('System`x', real_type), MathicsArg('System`y', real_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(3.0, 3.0), True)
+        self.assertEqual(cfunc(3.0, 2.0), False)
+        self.assertEqual(cfunc(2.0, 3.0), False)
+        # TODO NaN/+inf/-inf comparisons
+
+    def test_int_real_equal(self):
+        expr = Expression('Equal', Symbol('x'), Symbol('y'))
+        args = [MathicsArg('System`x', real_type), MathicsArg('System`y', int_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(3.0, 3), True)
+        self.assertEqual(cfunc(3.0, 2), False)
+        self.assertEqual(cfunc(2.0, 3), False)
+
+    def test_inequalities(self):
+        cases = [
+            ('Less', (1, 2), True),
+            ('Less', (1, 1), False),
+            ('Less', (2, 1), False),
+            ('LessEqual', (1, 2), True),
+            ('LessEqual', (1, 1), True),
+            ('LessEqual', (2, 1), False),
+            ('Greater', (1, 2), False),
+            ('Greater', (1, 1), False),
+            ('Greater', (2, 1), True),
+            ('GreaterEqual', (1, 2), False),
+            ('GreaterEqual', (1, 1), True),
+            ('GreaterEqual', (2, 1), True),
+        ]
+        for head, args, result in cases:
+            expr = Expression(head, Symbol('x'), Symbol('y'))
+            int_args = [MathicsArg('System`x', int_type), MathicsArg('System`y', int_type)]
+            cfunc = _compile(expr, int_args)
+            self.assertEqual(cfunc(*args), result)
+
+            real_args = [MathicsArg('System`x', real_type), MathicsArg('System`y', real_type)]
+            cfunc = _compile(expr, real_args)
+            self.assertEqual(cfunc(*(float(arg) for arg in args)), result)
