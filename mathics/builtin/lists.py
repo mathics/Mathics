@@ -13,16 +13,20 @@ from six.moves import zip
 from itertools import chain
 
 from mathics.builtin.base import (
-    Builtin, Test, InvalidLevelspecError,
+    Builtin, Test, InvalidLevelspecError, BinaryOperator,
     PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
-from mathics.core.expression import Expression, String, Symbol, Integer, Number
-from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt
+from mathics.core.expression import Expression, String, Symbol, Integer, Number, Real, strip_context, from_python
+from mathics.core.expression import min_prec, machine_precision
+from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
 from mathics.builtin.algebra import cancel
 from mathics.algorithm.introselect import introselect
+from mathics.algorithm.clusters import optimize, agglomerate, kmeans, PrecomputedDistances, LazyDistances
+from mathics.algorithm.clusters import AutomaticSplitCriterion, AutomaticMergeCriterion
+from mathics.builtin.options import options_to_rules
 
 import sympy
 import heapq
@@ -168,7 +172,7 @@ class None_(Predefined):
     name = 'None'
 
 
-class Span(Builtin):
+class Span(BinaryOperator):
     """
     <dl>
     <dt>'Span'
@@ -184,7 +188,7 @@ class Span(Builtin):
     >> ;;3 // FullForm
      = Span[1, 3]
 
-    ## Test parsing : 8 cases to consider
+    ## Parsing: 8 cases to consider
     #> a ;; b ;; c // FullForm
      = Span[a, b, c]
     #>   ;; b ;; c // FullForm
@@ -201,11 +205,18 @@ class Span(Builtin):
      = Span[a, All]
     #>   ;;        // FullForm
      = Span[1, All]
+
+    ## Formatting
+    #> a ;; b ;; c
+     = a ;; b ;; c
+    #> a ;; b
+     = a ;; b
+    #> a ;; b ;; c ;; d
+     = (1 ;; d) (a ;; b ;; c)
     """
 
-    # operator = ';;'
-    # precedence = 305
-    pass
+    operator = ';;'
+    precedence = 305
 
 
 def join_lists(lists):
@@ -412,9 +423,9 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
                                                     assignment.leaves):
                     process_level(sub_item, sub_assignment)
         process_level(result, assign_list)
-        return list_of_list[0]
-    else:
-        return result
+        result = list_of_list[0]
+    result.last_evaluated = None
+    return result
 
 
 def is_in_level(current, depth, start=1, stop=None):
@@ -476,6 +487,8 @@ def python_levelspec(levelspec):
             return values[0], values[1]
         else:
             raise InvalidLevelspecError
+    elif isinstance(levelspec, Symbol) and levelspec.get_name() == 'System`All':
+        return 0, None
     else:
         return 1, value_to_level(levelspec)
 
@@ -590,6 +603,10 @@ def python_seq(start, stop, step, length):
     '''
     if step == 0:
         return None
+
+    # special empty case
+    if start is not None and stop is not None and stop + 1 == start and step > 0:
+        return slice(0, 0, 1)
 
     if start == 0 or stop == 0:
         return None
@@ -765,10 +782,10 @@ class Part(Builtin):
 
     #> {1, 2, 3, 4}[[1;;3;;-1]]
      : Cannot take positions 1 through 3 in {1, 2, 3, 4}.
-     = {1, 2, 3, 4}[[Span[1, 3, -1]]]
+     = {1, 2, 3, 4}[[1 ;; 3 ;; -1]]
     #> {1, 2, 3, 4}[[3;;1]]
      : Cannot take positions 3 through 1 in {1, 2, 3, 4}.
-     = {1, 2, 3, 4}[[Span[3, 1]]]
+     = {1, 2, 3, 4}[[3 ;; 1]]
     """
 
     attributes = ('NHoldRest', 'ReadProtected')
@@ -1097,6 +1114,21 @@ class Take(Builtin):
     #> Take[l, {-1}]
      : Nonatomic expression expected at position 1 in Take[l, {-1}].
      = Take[l, {-1}]
+
+    ## Empty case
+    #> Take[{1, 2, 3, 4, 5}, {-1, -2}]
+     = {}
+    #> Take[{1, 2, 3, 4, 5}, {0, -1}]
+     = {}
+    #> Take[{1, 2, 3, 4, 5}, {1, 0}]
+     = {}
+    #> Take[{1, 2, 3, 4, 5}, {2, 1}]
+     = {}
+    #> Take[{1, 2, 3, 4, 5}, {1, 0, 2}]
+     = {}
+    #> Take[{1, 2, 3, 4, 5}, {1, 0, -1}]
+     : Cannot take positions 1 through 0 in {1, 2, 3, 4, 5}.
+     = Take[{1, 2, 3, 4, 5}, {1, 0, -1}]
     """
 
     messages = {
@@ -1360,14 +1392,172 @@ class Cases(Builtin):
     <dl>
     <dt>'Cases[$list$, $pattern$]'
         <dd>returns the elements of $list$ that match $pattern$.
+    <dt>'Cases[$list$, $pattern$, $ls$]'
+        <dd>returns the elements matching at levelspec $ls$.
     </dl>
 
     >> Cases[{a, 1, 2.5, "string"}, _Integer|_Real]
      = {1, 2.5}
+    >> Cases[_Complex][{1, 2I, 3, 4-I, 5}]
+     = {2 I, 4 - I}
+
+    #> Cases[1, 2]
+     = {}
+
+    #> Cases[f[1, 2], 2]
+     = {2}
+
+    #> Cases[f[f[1, 2], f[2]], 2]
+     = {}
+    #> Cases[f[f[1, 2], f[2]], 2, 2]
+     = {2, 2}
+    #> Cases[f[f[1, 2], f[2], 2], 2, Infinity]
+     = {2, 2, 2}
+
+    #> Cases[{1, f[2], f[3, 3, 3], 4, f[5, 5]}, f[x__] :> Plus[x]]
+     = {2, 9, 10}
+    #> Cases[{1, f[2], f[3, 3, 3], 4, f[5, 5]}, f[x__] -> Plus[x]]
+     = {2, 3, 3, 3, 5, 5}
+
+    ## Issue 531
+    #> z = f[x, y]; x = 1; Cases[z, _Symbol, Infinity]
+     = {y}
     """
+
+
     rules = {
-        'Cases[list_, pattern_]': 'Select[list, MatchQ[#, pattern]&]',
+        'Cases[pattern_][list_]': 'Cases[list, pattern]',
     }
+
+    def apply(self, items, pattern, ls, evaluation):
+        'Cases[items_, pattern_, ls_:{1}]'
+        if items.is_atom():
+            return Expression('List')
+
+        try:
+            start, stop = python_levelspec(ls)
+        except InvalidLevelspecError:
+            return evaluation.message('Position', 'level', ls)
+
+        results = []
+
+        from mathics.builtin.patterns import Matcher
+
+        if pattern.has_form('Rule', 2) or pattern.has_form('RuleDelayed', 2):
+            from mathics.core.rules import Rule
+            match = Matcher(pattern.leaves[0]).match
+            rule = Rule(pattern.leaves[0], pattern.leaves[1])
+            def callback(level):
+                if match(level, evaluation):
+                    result = rule.apply(level, evaluation)
+                    result = result.evaluate(evaluation)
+                    results.append(result)
+                return level
+        else:
+            match = Matcher(pattern).match
+            def callback(level):
+                if match(level, evaluation):
+                    results.append(level)
+                return level
+
+        # TODO
+        # heads = self.get_option(options, 'Heads', evaluation).is_true()
+        heads = False
+
+        walk_levels(items, start, stop, heads=heads, callback=callback)
+
+        return Expression('List', *results)
+
+
+class DeleteCases(Builtin):
+    """
+    <dl>
+    <dt>'DeleteCases[$list$, $pattern$]'
+        <dd>returns the elements of $list$ that do not match $pattern$.
+    </dl>
+
+    >> DeleteCases[{a, 1, 2.5, "string"}, _Integer|_Real]
+     = {a, string}
+
+    >> DeleteCases[{a, b, 1, c, 2, 3}, _Symbol]
+     = {1, 2, 3}
+
+    ## Issue 531
+    #> z = {x, y}; x = 1; DeleteCases[z, _Symbol]
+     = {1}
+    """
+
+    def apply(self, items, pattern, evaluation):
+        'DeleteCases[items_, pattern_]'
+        if items.is_atom():
+            evaluation.message('Select', 'normal')
+            return
+
+        from mathics.builtin.patterns import Matcher
+        match = Matcher(pattern).match
+        return Expression('List', *[leaf for leaf in items.leaves if not match(leaf, evaluation)])
+
+
+class Position(Builtin):
+    '''
+    <dl>
+    <dt>'Position[$expr$, $patt$]'
+        <dd>returns the list of positions for which $expr$ matches $patt$.
+    <dt>'Position[$expr$, $patt$, $ls$]'
+        <dd>returns the positions on levels specified by levelspec $ls$.
+    </dl>
+
+    >> Position[{1, 2, 2, 1, 2, 3, 2}, 2]
+     = {{2}, {3}, {5}, {7}}
+
+    Find positions upto 3 levels deep
+    >> Position[{1 + Sin[x], x, (Tan[x] - y)^2}, x, 3]
+     = {{1, 2, 1}, {2}}
+
+    Find all powers of x
+    >> Position[{1 + x^2, x y ^ 2,  4 y,  x ^ z}, x^_]
+     = {{1, 2}, {4}}
+
+    Use Position as an operator
+    >> Position[_Integer][{1.5, 2, 2.5}]
+     = {{2}}
+    '''
+
+    options = {
+        'Heads': 'True'
+    }
+
+    rules = {
+        'Position[pattern_][expr_]': 'Position[expr, pattern]',
+    }
+
+    def apply_invalidlevel(self, patt, expr, ls, evaluation, options={}):
+        'Position[expr_, patt_, ls_, OptionsPattern[Position]]'
+
+        return evaluation.message('Position', 'level', ls)
+
+    def apply_level(self, expr, patt, ls, evaluation, options={}):
+        '''Position[expr_, patt_, Optional[Pattern[ls, _?LevelQ], {0, DirectedInfinity[1]}],
+                    OptionsPattern[Position]]'''
+
+        try:
+            start, stop = python_levelspec(ls)
+        except InvalidLevelspecError:
+            return evaluation.message('Position', 'level', ls)
+
+        from mathics.builtin.patterns import Matcher
+
+        match = Matcher(patt).match
+        result = []
+
+        def callback(level, pos):
+            if match(level, evaluation):
+                result.append(pos)
+            return level
+
+        heads = self.get_option(options, 'Heads', evaluation).is_true()
+        walk_levels(expr, start, stop, heads=heads, callback=callback, include_pos=True)
+        return from_python(result)
 
 
 class MemberQ(Builtin):
@@ -1384,10 +1574,13 @@ class MemberQ(Builtin):
      = False
     >> MemberQ[{"a", b, f[x]}, _?NumericQ]
      = False
+    >> MemberQ[_List][{{}}]
+     = True
     """
     rules = {
         'MemberQ[list_, pattern_]': (
             'Length[Select[list, MatchQ[#, pattern]&]] > 0'),
+        'MemberQ[pattern_][expr_]': 'MemberQ[expr, pattern]',
     }
 
 
@@ -1415,14 +1608,14 @@ class Range(Builtin):
     def apply(self, imin, imax, di, evaluation):
         'Range[imin_?RealNumberQ, imax_?RealNumberQ, di_?RealNumberQ]'
 
-        imin = imin.value
-        imax = imax.value
-        di = di.value
+        imin = imin.to_sympy()
+        imax = imax.to_sympy()
+        di = di.to_sympy()
         index = imin
         result = []
         while index <= imax:
             evaluation.check_stopped()
-            result.append(Number.from_mp(index))
+            result.append(from_sympy(index))
             index += di
         return Expression('List', *result)
 
@@ -1434,11 +1627,6 @@ class _IterationFunction(Builtin):
     """
 
     attributes = ('HoldAll',)
-    rules = {
-        '%(name)s[expr_, {i_Symbol, imin_, imax_}]': (
-            '%(name)s[expr, {i, imin, imax, 1}]'),
-    }
-
     allow_loopcontrol = False
     throw_iterb = True
 
@@ -1459,7 +1647,10 @@ class _IterationFunction(Builtin):
         '%(name)s[expr_, {imax_}]'
 
         index = 0
-        imax = imax.evaluate(evaluation).get_real_value()
+        imax = imax.evaluate(evaluation).numerify(evaluation)
+        if isinstance(imax, Number):
+            imax = imax.round()
+        imax = imax.get_float_value()
         if imax is None:
             if self.throw_iterb:
                 evaluation.message(self.get_name(), 'iterb')
@@ -1479,8 +1670,17 @@ class _IterationFunction(Builtin):
                     break
                 else:
                     raise
+            except ReturnInterrupt as e:
+                if self.allow_loopcontrol:
+                    return e.expr
+                else:
+                    raise
             index += 1
         return self.get_result(result)
+
+    def apply_iter_nostep(self, expr, i, imin, imax, evaluation):
+        '%(name)s[expr_, {i_Symbol, imin_, imax_}]'
+        return self.apply_iter(expr, i, imin, imax, Integer(1), evaluation)
 
     def apply_iter(self, expr, i, imin, imax, di, evaluation):
         '%(name)s[expr_, {i_Symbol, imin_, imax_, di_}]'
@@ -1489,6 +1689,8 @@ class _IterationFunction(Builtin):
             whole_expr = Expression(
                 self.get_name(), expr, Expression('List', i, imin, imax))
             sympy_expr = whole_expr.to_sympy()
+            if sympy_expr is None:
+                return None
 
             # apply Together to produce results similar to Mathematica
             result = sympy.together(sympy_expr)
@@ -1497,6 +1699,7 @@ class _IterationFunction(Builtin):
 
             if not result.same(whole_expr):
                 return result
+            return
 
         index = imin.evaluate(evaluation)
         imax = imax.evaluate(evaluation)
@@ -1527,6 +1730,11 @@ class _IterationFunction(Builtin):
                     break
                 else:
                     raise
+            except ReturnInterrupt as e:
+                if self.allow_loopcontrol:
+                    return e.expr
+                else:
+                    raise
             index = Expression('Plus', index, di).evaluate(evaluation)
         return self.get_result(result)
 
@@ -1549,6 +1757,11 @@ class _IterationFunction(Builtin):
             except BreakInterrupt:
                 if self.allow_loopcontrol:
                     break
+                else:
+                    raise
+            except ReturnInterrupt as e:
+                if self.allow_loopcontrol:
+                    return e.expr
                 else:
                     raise
         return self.get_result(result)
@@ -1762,6 +1975,37 @@ class Join(Builtin):
             return Expression('List')
 
 
+class Catenate(Builtin):
+    """
+    <dl>
+    <dt>'Catenate[{$l1$, $l2$, ...}]'
+        <dd>concatenates the lists $l1$, $l2$, ...
+    </dl>
+
+    >> Catenate[{{1, 2, 3}, {4, 5}}]
+     = {1, 2, 3, 4, 5}
+    """
+
+    messages = {
+        'invrp': '`1` is not a list.'
+    }
+
+    def apply(self, lists, evaluation):
+        'Catenate[lists_List]'
+        def parts():
+            for l in lists.leaves:
+                head_name = l.get_head_name()
+                if head_name == 'System`List':
+                    yield l.leaves
+                elif head_name != 'System`Missing':
+                    raise MessageException('Catenate', 'invrp', l)
+
+        try:
+            return Expression('List', *list(chain(*list(parts()))))
+        except MessageException as e:
+            e.message(evaluation)
+
+
 class Append(Builtin):
     """
     <dl>
@@ -1793,6 +2037,51 @@ class Append(Builtin):
 
         return Expression(expr.get_head(),
                           *(expr.get_leaves() + [item]))
+
+
+class AppendTo(Builtin):
+    """
+    <dl>
+    <dt>'AppendTo[$s$, $item$]'
+        <dd>append $item$ to value of $s$ and sets $s$ to the result.
+    </dl>
+
+    >> s = {};
+    >> AppendTo[s, 1]
+     = {1}
+    >> s
+     = {1}
+
+    'Append' works on expressions with heads other than 'List':
+    >> y = f[];
+    >> AppendTo[y, x]
+     = f[x]
+    >> y
+     = f[x]
+
+    #> AppendTo[{}, 1]
+     : {} is not a variable with a value, so its value cannot be changed.
+     = AppendTo[{}, 1]
+
+    #> AppendTo[a, b]
+     : a is not a variable with a value, so its value cannot be changed.
+     = AppendTo[a, b]
+    """
+
+    attributes = ('HoldFirst',)
+
+    messages = {
+        'rvalue': '`1` is not a variable with a value, so its value cannot be changed.',
+    }
+
+    def apply(self, s, item, evaluation):
+        'AppendTo[s_, item_]'
+        if isinstance(s, Symbol):
+            resolved_s = s.evaluate(evaluation)
+            if not resolved_s.is_atom():
+                result = Expression('Set', s, Expression('Append', resolved_s, item))
+                return result.evaluate(evaluation)
+        return evaluation.message('AppendTo', 'rvalue', s)
 
 
 class Prepend(Builtin):
@@ -2842,6 +3131,70 @@ class StandardDeviation(_Rectangular):
             return Expression('Sqrt', Expression('Variance', l))
 
 
+class Covariance(Builtin):
+    """
+    <dl>
+    <dt>'Covariance[$a$, $b$]'
+      <dd>computes the covariance between the equal-sized vectors $a$ and $b$.
+    </dl>
+
+    >> Covariance[{0.2, 0.3, 0.1}, {0.3, 0.3, -0.2}]
+     = 0.025
+    """
+
+    messages = {
+        'shlen': '`` must contain at least two elements.',
+        'vctmat': '`1` and `2` need to be of equal length.',
+    }
+
+    def apply(self, a, b, evaluation):
+        'Covariance[a_List, b_List]'
+
+        if len(a.leaves) != len(b.leaves):
+            evaluation.message('Covariance', 'vctmat', a, b)
+        elif len(a.leaves) < 2:
+            evaluation.message('Covariance', 'shlen', a)
+        elif len(b.leaves) < 2:
+            evaluation.message('Covariance', 'shlen', b)
+        else:
+            ma = Expression('Subtract', a, Expression('Mean', a))
+            mb = Expression('Subtract', b, Expression('Mean', b))
+            return Expression('Divide', Expression('Dot', ma, Expression('Conjugate', mb)), len(a.leaves) - 1)
+
+
+class Correlation(Builtin):
+    """
+    <dl>
+    <dt>'Correlation[$a$, $b$]'
+      <dd>computes Pearson's correlation of two equal-sized vectors $a$ and $b$.
+    </dl>
+
+    An example from Wikipedia:
+
+    >> Correlation[{10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5}, {8.04, 6.95, 7.58, 8.81, 8.33, 9.96, 7.24, 4.26, 10.84, 4.82, 5.68}]
+     = 0.816421
+    """
+
+    messages = {
+        'shlen': '`` must contain at least two elements.',
+        'vctmat': '`1` and `2` need to be of equal length.',
+    }
+
+    def apply(self, a, b, evaluation):
+        'Correlation[a_List, b_List]'
+
+        if len(a.leaves) != len(b.leaves):
+            evaluation.message('Correlation', 'vctmat', a, b)
+        elif len(a.leaves) < 2:
+            evaluation.message('Correlation', 'shlen', a)
+        elif len(b.leaves) < 2:
+            evaluation.message('Correlation', 'shlen', b)
+        else:
+            da = Expression('StandardDeviation', a)
+            db = Expression('StandardDeviation', b)
+            return Expression('Divide', Expression('Covariance', a, b), Expression('Times', da, db))
+
+
 class _Rotate(Builtin):
     messages = {
         'rspec': '`` should be an integer or a list of integers.'
@@ -3215,3 +3568,532 @@ class TakeSmallestBy(_RankedTakeSmallest):
     def apply(self, l, f, n, evaluation, options):
         'TakeSmallestBy[l_List, f_, n_, OptionsPattern[TakeSmallestBy]]'
         return self._compute(l, n, evaluation, options, f=f)
+
+
+class _IllegalPaddingDepth(Exception):
+    def __init__(self, level):
+        self.level = level
+
+
+class _Pad(Builtin):
+    messages = {
+        'normal': 'Expression at position 1 in `` must not be an atom.',
+        'level': 'Cannot pad list `3` which has `4` using padding `1` which specifies `2`.',
+        'ilsm': 'Expected an integer or a list of integers at position `1` in `2`.'
+    }
+
+    rules = {
+        '%(name)s[l_]': '%(name)s[l, Automatic]'
+    }
+
+    @staticmethod
+    def _find_dims(expr):
+        def dive(expr, level):
+            if isinstance(expr, Expression):
+                if expr.leaves:
+                    return max(dive(x, level + 1) for x in expr.leaves)
+                else:
+                    return level + 1
+            else:
+                return level
+
+        def calc(expr, dims, level):
+            if isinstance(expr, Expression):
+                for x in expr.leaves:
+                    calc(x, dims, level + 1)
+                dims[level] = max(dims[level], len(expr.leaves))
+
+        dims = [0] * dive(expr, 0)
+        calc(expr, dims, 0)
+        return dims
+
+    @staticmethod
+    def _build(l, n, x, m, level, mode):  # mode < 0 for left pad, > 0 for right pad
+        if not n:
+            return l
+        if not isinstance(l, Expression):
+            raise _IllegalPaddingDepth(level)
+
+        if isinstance(m, (list, tuple)):
+            current_m = m[0] if m else 0
+            next_m = m[1:]
+        else:
+            current_m = m
+            next_m = m
+
+        def clip(a, d, s):
+            assert d != 0
+            if s < 0:
+                return a[-d:]  # end with a[-1]
+            else:
+                return a[:d]  # start with a[0]
+
+        def padding(amount, sign):
+            if amount == 0:
+                return []
+            elif len(n) > 1:
+                return [_Pad._build(Expression('List'), n[1:], x, next_m, level + 1, mode)] * amount
+            else:
+                return clip(x * (1 + amount // len(x)), amount, sign)
+
+        leaves = l.leaves
+        d = n[0] - len(leaves)
+        if d < 0:
+            new_leaves = clip(leaves, d, mode)
+            padding_main = []
+        elif d >= 0:
+            new_leaves = leaves
+            padding_main = padding(d, mode)
+
+        if current_m > 0:
+            padding_margin = padding(min(current_m, len(new_leaves) + len(padding_main)), -mode)
+
+            if len(padding_margin) > len(padding_main):
+                padding_main = []
+                new_leaves = clip(new_leaves, -(len(padding_margin) - len(padding_main)), mode)
+            elif len(padding_margin) > 0:
+                padding_main = clip(padding_main, -len(padding_margin), mode)
+        else:
+            padding_margin = []
+
+        if len(n) > 1:
+            new_leaves = (_Pad._build(e, n[1:], x, next_m, level + 1, mode) for e in new_leaves)
+
+        if mode < 0:
+            parts = (padding_main, new_leaves, padding_margin)
+        else:
+            parts = (padding_margin, new_leaves, padding_main)
+
+        return Expression(l.get_head(), *list(chain(*parts)))
+
+    def _pad(self, in_l, in_n, in_x, in_m, evaluation, expr):
+        if not isinstance(in_l, Expression):
+            evaluation.message(self.get_name(), 'normal', expr())
+            return
+
+        py_n = None
+        if isinstance(in_n, Symbol) and in_n.get_name() == 'System`Automatic':
+            py_n = _Pad._find_dims(in_l)
+        elif in_n.get_head_name() == 'System`List':
+            if all(isinstance(leaf, Integer) for leaf in in_n.leaves):
+                py_n = [leaf.get_int_value() for leaf in in_n.leaves]
+        elif isinstance(in_n, Integer):
+            py_n = [in_n.get_int_value()]
+
+        if py_n is None:
+            evaluation.message(self.get_name(), 'ilsm', 2, expr())
+            return
+
+        if in_x.get_head_name() == 'System`List':
+            py_x = in_x.leaves
+        else:
+            py_x = [in_x]
+
+        if isinstance(in_m, Integer):
+            py_m = in_m.get_int_value()
+        else:
+            if not all(isinstance(x, Integer) for x in in_m.leaves):
+                evaluation.message(self.get_name(), 'ilsm', 4, expr())
+                return
+            py_m = [x.get_int_value() for x in in_m.leaves]
+
+        try:
+            return _Pad._build(in_l, py_n, py_x, py_m, 1, self._mode)
+        except _IllegalPaddingDepth as e:
+            def levels(k):
+                if k == 1:
+                    return '1 level'
+                else:
+                    return '%d levels' % k
+            evaluation.message(self.get_name(), 'level', in_n, levels(len(py_n)), in_l, levels(e.level - 1))
+            return None
+
+    def apply_zero(self, l, n, evaluation):
+        '%(name)s[l_, n_]'
+        return self._pad(l, n, Integer(0), Integer(0), evaluation, lambda: Expression(self.get_name(), l, n))
+
+    def apply(self, l, n, x, evaluation):
+        '%(name)s[l_, n_, x_]'
+        return self._pad(l, n, x, Integer(0), evaluation, lambda: Expression(self.get_name(), l, n, x))
+
+    def apply_margin(self, l, n, x, m, evaluation):
+        '%(name)s[l_, n_, x_, m_]'
+        return self._pad(l, n, x, m, evaluation, lambda: Expression(self.get_name(), l, n, x, m))
+
+
+class PadLeft(_Pad):
+    """
+    <dl>
+    <dt>'PadLeft[$list$, $n$]'
+        <dd>pads $list$ to length $n$ by adding 0 on the left.
+    <dt>'PadLeft[$list$, $n$, $x$]'
+        <dd>pads $list$ to length $n$ by adding $x$ on the left.
+    <dt>'PadLeft[$list$, {$n1$, $n2, ...}, $x$]'
+        <dd>pads $list$ to lengths $n1$, $n2$ at levels 1, 2, ... respectively by adding $x$ on the left.
+    <dt>'PadLeft[$list$, $n$, $x$, $m$]'
+        <dd>pads $list$ to length $n$ by adding $x$ on the left and adding a margin of $m$ on the right.
+    <dt>'PadLeft[$list$, $n$, $x$, {$m1$, $m2$, ...}]'
+        <dd>pads $list$ to length $n$ by adding $x$ on the left and adding margins of $m1$, $m2$, ...
+         on levels 1, 2, ... on the right.
+    <dt>'PadLeft[$list$]'
+        <dd>turns the ragged list $list$ into a regular list by adding 0 on the left.
+    </dl>
+
+    >> PadLeft[{1, 2, 3}, 5]
+     = {0, 0, 1, 2, 3}
+    >> PadLeft[x[a, b, c], 5]
+     = x[0, 0, a, b, c]
+    >> PadLeft[{1, 2, 3}, 2]
+     = {2, 3}
+    >> PadLeft[{{}, {1, 2}, {1, 2, 3}}]
+     = {{0, 0, 0}, {0, 1, 2}, {1, 2, 3}}
+    >> PadLeft[{1, 2, 3}, 10, {a, b, c}, 2]
+     = {b, c, a, b, c, 1, 2, 3, a, b}
+    >> PadLeft[{{1, 2, 3}}, {5, 2}, x, 1]
+     = {{x, x}, {x, x}, {x, x}, {3, x}, {x, x}}
+    """
+
+    _mode = -1
+
+
+class PadRight(_Pad):
+    """
+    <dl>
+    <dt>'PadRight[$list$, $n$]'
+        <dd>pads $list$ to length $n$ by adding 0 on the right.
+    <dt>'PadRight[$list$, $n$, $x$]'
+        <dd>pads $list$ to length $n$ by adding $x$ on the right.
+    <dt>'PadRight[$list$, {$n1$, $n2, ...}, $x$]'
+        <dd>pads $list$ to lengths $n1$, $n2$ at levels 1, 2, ... respectively by adding $x$ on the right.
+    <dt>'PadRight[$list$, $n$, $x$, $m$]'
+        <dd>pads $list$ to length $n$ by adding $x$ on the left and adding a margin of $m$ on the left.
+    <dt>'PadRight[$list$, $n$, $x$, {$m1$, $m2$, ...}]'
+        <dd>pads $list$ to length $n$ by adding $x$ on the right and adding margins of $m1$, $m2$, ...
+         on levels 1, 2, ... on the left.
+    <dt>'PadRight[$list$]'
+        <dd>turns the ragged list $list$ into a regular list by adding 0 on the right.
+    </dl>
+
+    >> PadRight[{1, 2, 3}, 5]
+     = {1, 2, 3, 0, 0}
+    >> PadRight[x[a, b, c], 5]
+     = x[a, b, c, 0, 0]
+    >> PadRight[{1, 2, 3}, 2]
+     = {1, 2}
+    >> PadRight[{{}, {1, 2}, {1, 2, 3}}]
+     = {{0, 0, 0}, {1, 2, 0}, {1, 2, 3}}
+    >> PadRight[{1, 2, 3}, 10, {a, b, c}, 2]
+     = {b, c, 1, 2, 3, a, b, c, a, b}
+    >> PadRight[{{1, 2, 3}}, {5, 2}, x, 1]
+     = {{x, x}, {x, 1}, {x, x}, {x, x}, {x, x}}
+    """
+
+    _mode = 1
+
+
+class _IllegalDistance(Exception):
+    def __init__(self, distance):
+        self.distance = distance
+
+
+class _IllegalDataPoint(Exception):
+    pass
+
+
+def _to_real_distance(d):
+    if not isinstance(d, (Real, Integer)):
+        raise _IllegalDistance(d)
+
+    mpd = d.to_mpmath()
+    if mpd is None or mpd < 0:
+        raise _IllegalDistance(d)
+
+    return mpd
+
+
+class _PrecomputedDistances(PrecomputedDistances):
+    # computes all n^2 distances for n points with one big evaluation in the beginning.
+
+    def __init__(self, df, p, evaluation):
+        distances_form = [df(p[i], p[j]) for i in range(len(p)) for j in range(i)]
+        distances = Expression('N', Expression('List', *distances_form)).evaluate(evaluation)
+        mpmath_distances = [_to_real_distance(d) for d in distances.leaves]
+        super(_PrecomputedDistances, self).__init__(mpmath_distances)
+
+
+class _LazyDistances(LazyDistances):
+    # computes single distances only as needed, caches already computed distances.
+
+    def __init__(self, df, p, evaluation):
+        super(_LazyDistances, self).__init__()
+        self._df = df
+        self._p = p
+        self._evaluation = evaluation
+
+    def _compute_distance(self, i, j):
+        p = self._p
+        d = Expression('N', self._df(p[i], p[j])).evaluate(self._evaluation)
+        return _to_real_distance(d)
+
+
+class _Cluster(Builtin):
+    options = {
+        'Method': 'Optimize',
+        'DistanceFunction': 'Automatic',
+        'RandomSeed': 'Automatic',
+    }
+
+    messages = {
+        'amtd': '`1` failed to pick a suitable distance function for `2`.',
+        'bdmtd': 'Method in `` must be either "Optimize", "Agglomerate" or "KMeans".',
+        'intpm': 'Positive integer expected at position 2 in ``.',
+        'list': 'Expected a list or a rule with equally sized lists at position 1 in ``.',
+        'nclst': 'Cannot find more clusters than there are elements: `1` is larger than `2`.',
+        'xnum': 'The distance function returned ``, which is not a non-negative real value.',
+        'rseed': 'The random seed specified through `` must be an integer or Automatic.',
+        'kmsud': 'KMeans only supports SquaredEuclideanDistance as distance measure.',
+    }
+
+    _criteria = {
+        'Optimize': AutomaticSplitCriterion,
+        'Agglomerate': AutomaticMergeCriterion,
+        'KMeans': None,
+    }
+
+    def _cluster(self, p, k, mode, evaluation, options, expr):
+        method_string, method = self.get_option_string(options, 'Method', evaluation)
+        if method_string not in ('Optimize', 'Agglomerate', 'KMeans'):
+            evaluation.message(self.get_name(), 'bdmtd', Expression('Rule', 'Method', method))
+            return
+
+        dist_p = None
+        if p.get_head_name() == 'System`Rule':
+            if all(q.get_head_name() == 'System`List' for q in p.leaves):
+                dist_p, repr_p = (q.leaves for q in p.leaves)
+        elif p.get_head_name() == 'System`List':
+            if all(q.get_head_name() == 'System`Rule' for q in p.leaves):
+                dist_p, repr_p = ([q.leaves[i] for q in p.leaves] for i in range(2))
+            else:
+                dist_p = repr_p = p.leaves
+
+        if dist_p is None or len(dist_p) != len(repr_p):
+            evaluation.message(self.get_name(), 'list', expr)
+            return
+
+        if not dist_p:
+            return Expression('List')
+
+        if k is not None:  # the number of clusters k is specified as an integer.
+            if not isinstance(k, Integer):
+                evaluation.message(self.get_name(), 'intpm', expr)
+                return
+            py_k = k.get_int_value()
+            if py_k < 1:
+                evaluation.message(self.get_name(), 'intpm', expr)
+                return
+            if py_k > len(dist_p):
+                evaluation.message(self.get_name(), 'nclst', py_k, len(dist_p))
+                return
+            elif py_k == 1:
+                return Expression('List', *repr_p)
+            elif py_k == len(dist_p):
+                return Expression('List', [Expression('List', q) for q in repr_p])
+        else:  # automatic detection of k. choose a suitable method here.
+            if len(dist_p) <= 2:
+                return Expression('List', *repr_p)
+            constructor = self._criteria.get(method_string)
+            py_k = (constructor, {}) if constructor else None
+
+        seed_string, seed = self.get_option_string(options, 'RandomSeed', evaluation)
+        if seed_string == 'Automatic':
+            py_seed = 12345
+        elif isinstance(seed, Integer):
+            py_seed = seed.get_int_value()
+        else:
+            evaluation.message(self.get_name(), 'rseed', Expression('Rule', 'RandomSeed', seed))
+            return
+
+        distance_function_string, distance_function = self.get_option_string(
+            options, 'DistanceFunction', evaluation)
+        if distance_function_string == 'Automatic':
+            from mathics.builtin.tensors import get_default_distance
+            distance_function = get_default_distance(dist_p)
+            if distance_function is None:
+                name_of_builtin = strip_context(self.get_name())
+                evaluation.message(self.get_name(), 'amtd', name_of_builtin, Expression('List', *dist_p))
+                return
+
+        if method_string == 'KMeans' and distance_function != 'SquaredEuclideanDistance':
+            evaluation.message(self.get_name(), 'kmsud')
+            return
+
+        def df(i, j):
+            return Expression(distance_function, i, j)
+
+        try:
+            if method_string == 'Agglomerate':
+                clusters = self._agglomerate(mode, repr_p, dist_p, py_k, df, evaluation)
+            elif method_string == 'Optimize':
+                clusters = optimize(repr_p, py_k, _LazyDistances(df, dist_p, evaluation), mode, py_seed)
+            elif method_string == 'KMeans':
+                clusters = self._kmeans(mode, repr_p, dist_p, py_k, py_seed, evaluation)
+        except _IllegalDistance as e:
+            evaluation.message(self.get_name(), 'xnum', e.distance)
+            return
+        except _IllegalDataPoint:
+            name_of_builtin = strip_context(self.get_name())
+            evaluation.message(self.get_name(), 'amtd', name_of_builtin, Expression('List', *dist_p))
+            return
+
+        if mode == 'clusters':
+            return Expression('List', *[Expression('List', *c) for c in clusters])
+        elif mode == 'components':
+            return Expression('List', *clusters)
+        else:
+            raise ValueError('illegal mode %s' % mode)
+
+    def _agglomerate(self, mode, repr_p, dist_p, py_k, df, evaluation):
+        if mode == 'clusters':
+            clusters = agglomerate(repr_p, py_k, _PrecomputedDistances(
+                df, dist_p, evaluation), mode)
+        elif mode == 'components':
+            clusters = agglomerate(repr_p, py_k, _PrecomputedDistances(
+                df, dist_p, evaluation), mode)
+
+        return clusters
+
+    def _kmeans(self, mode, repr_p, dist_p, py_k, py_seed, evaluation):
+        items = []
+
+        def convert_scalars(p):
+            for q in p:
+                if not isinstance(q, (Real, Integer)):
+                    raise _IllegalDataPoint
+                mpq = q.to_mpmath()
+                if mpq is None:
+                    raise _IllegalDataPoint
+                items.append(q)
+                yield mpq
+
+        def convert_vectors(p):
+            d = None
+            for q in p:
+                if q.get_head_name() != 'System`List':
+                    raise _IllegalDataPoint
+                v = list(convert_scalars(q.leaves))
+                if d is None:
+                    d = len(v)
+                elif len(v) != d:
+                    raise _IllegalDataPoint
+                yield v
+
+        if dist_p[0].is_numeric():
+            numeric_p = [[x] for x in convert_scalars(dist_p)]
+        else:
+            numeric_p = list(convert_vectors(dist_p))
+
+        # compute epsilon similar to Real.__eq__, such that "numbers that differ in their last seven binary digits
+        # are considered equal"
+
+        prec = min_prec(*items) or machine_precision
+        eps = 0.5 ** (prec - 7)
+
+        return kmeans(numeric_p, repr_p, py_k, mode, py_seed, eps)
+
+
+class FindClusters(_Cluster):
+    """
+    <dl>
+    <dt>'FindClusters[$list$]'
+        <dd>returns a list of clusters formed from the elements of $list$. The number of cluster is determined
+        automatically.
+    <dt>'FindClusters[$list$, $k$]'
+        <dd>returns a list of $k$ clusters formed from the elements of $list$.
+    </dl>
+
+    >> FindClusters[{1, 2, 20, 10, 11, 40, 19, 42}]
+     = {{1, 2, 20, 10, 11, 19}, {40, 42}}
+
+    >> FindClusters[{25, 100, 17, 20}]
+     = {{25, 17, 20}, {100}}
+
+    >> FindClusters[{3, 6, 1, 100, 20, 5, 25, 17, -10, 2}]
+     = {{3, 6, 1, 5, -10, 2}, {100}, {20, 25, 17}}
+
+    >> FindClusters[{1, 2, 10, 11, 20, 21}]
+     = {{1, 2}, {10, 11}, {20, 21}}
+
+    >> FindClusters[{1, 2, 10, 11, 20, 21}, 2]
+     = {{1, 2, 10, 11}, {20, 21}}
+
+    >> FindClusters[{1 -> a, 2 -> b, 10 -> c}]
+     = {{a, b}, {c}}
+
+    >> FindClusters[{1, 2, 5} -> {a, b, c}]
+     = {{a, b}, {c}}
+
+    >> FindClusters[{1, 2, 3, 1, 2, 10, 100}, Method -> "Agglomerate"]
+     = {{1, 2, 3, 1, 2, 10}, {100}}
+
+    >> FindClusters[{1, 2, 3, 10, 17, 18}, Method -> "Agglomerate"]
+     = {{1, 2, 3}, {10}, {17, 18}}
+
+    >> FindClusters[{{1}, {5, 6}, {7}, {2, 4}}, DistanceFunction -> (Abs[Length[#1] - Length[#2]]&)]
+     = {{{1}, {7}}, {{5, 6}, {2, 4}}}
+
+    >> FindClusters[{"meep", "heap", "deep", "weep", "sheep", "leap", "keep"}, 3]
+     = {{meep, deep, weep, keep}, {heap, leap}, {sheep}}
+
+    FindClusters' automatic distance function detection supports scalars, numeric tensors, boolean vectors and
+    strings.
+
+    The Method option must be either "Agglomerate" or "Optimize". If not specified, it defaults to "Optimize".
+    Note that the Agglomerate and Optimize methods usually produce different clusterings.
+
+    The runtime of the Agglomerate method is quadratic in the number of clustered points n, builds the clustering
+    from the bottom up, and is exact (no element of randomness). The Optimize method's runtime is linear in n,
+    Optimize builds the clustering from top down, and uses random sampling.
+    """
+
+    def apply(self, p, evaluation, options):
+        'FindClusters[p_, OptionsPattern[%(name)s]]'
+        return self._cluster(p, None, 'clusters', evaluation, options,
+                             Expression('FindClusters', p, *options_to_rules(options)))
+
+    def apply_manual_k(self, p, k, evaluation, options):
+        'FindClusters[p_, k_Integer, OptionsPattern[%(name)s]]'
+        return self._cluster(p, k, 'clusters', evaluation, options,
+                             Expression('FindClusters', p, k, *options_to_rules(options)))
+
+
+class ClusteringComponents(_Cluster):
+    """
+    <dl>
+    <dt>'ClusteringComponents[$list$]'
+        <dd>forms clusters from $list$ and returns a list of cluster indices, in which each
+        element shows the index of the cluster in which the corresponding element in $list$
+        ended up.
+    <dt>'ClusteringComponents[$list$, $k$]'
+        <dd>forms $k$ clusters from $list$ and returns a list of cluster indices, in which
+        each element shows the index of the cluster in which the corresponding element in
+        $list$ ended up.
+    </dl>
+
+    For more detailed documentation regarding options and behavior, see FindClusters[].
+
+    >> ClusteringComponents[{1, 2, 3, 1, 2, 10, 100}]
+     = {1, 1, 1, 1, 1, 1, 2}
+
+    >> ClusteringComponents[{10, 100, 20}, Method -> "KMeans"]
+     = {1, 0, 1}
+    """
+
+    def apply(self, p, evaluation, options):
+        'ClusteringComponents[p_, OptionsPattern[%(name)s]]'
+        return self._cluster(p, None, 'components', evaluation, options,
+                             Expression('ClusteringComponents', p, *options_to_rules(options)))
+
+    def apply_manual_k(self, p, k, evaluation, options):
+        'ClusteringComponents[p_, k_Integer, OptionsPattern[%(name)s]]'
+        return self._cluster(p, k, 'components', evaluation, options,
+                             Expression('ClusteringComponents', p, k, *options_to_rules(options)))

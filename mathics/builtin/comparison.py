@@ -70,6 +70,56 @@ class UnsameQ(BinaryOperator):
         else:
             return Symbol('True')
 
+
+class TrueQ(Builtin):
+    """
+    <dl>
+    <dt>'TrueQ[$expr$]'
+        <dd>returns 'True' if and only if $expr$ is 'True'.
+    </dl>
+
+    >> TrueQ[True]
+     = True
+
+    >> TrueQ[False]
+     = False
+
+    >> TrueQ[a]
+     = False
+    """
+
+    rules = {
+        'TrueQ[expr_]': 'If[expr, True, False, False]',
+    }
+
+
+class ValueQ(Builtin):
+    """
+    <dl>
+    <dt>'ValueQ[$expr$]'
+        <dd>returns 'True' if and only if $expr$ is defined.
+    </dl>
+
+    >> ValueQ[x]
+     = False
+    >> x = 1;
+    >> ValueQ[x]
+     = True
+
+    #> ValueQ[True]
+     = False
+    """
+
+    attributes = ('HoldFirst',)
+
+    def apply(self, expr, evaluation):
+        'ValueQ[expr_]'
+        evaluated_expr = expr.evaluate(evaluation)
+        if expr.same(evaluated_expr):
+            return Symbol('False')
+        return Symbol('True')
+
+
 operators = {
     'System`Less': (-1,),
     'System`LessEqual': (-1, 0),
@@ -119,10 +169,15 @@ class _EqualityOperator(_InequalityOperator):
             return False
         elif isinstance(l1, String) and isinstance(l2, String):
             return False
-        elif l1.to_sympy().is_number and l2.to_sympy().is_number:
+
+        l1_sympy = l1.to_sympy()
+        l2_sympy = l2.to_sympy()
+        if l1_sympy is None or l2_sympy is None:
+            return None
+        if l1_sympy.is_number and l2_sympy.is_number:
             # assert min_prec(l1, l2) is None
             prec = 64  # TODO: Use $MaxExtraPrecision
-            if l1.to_sympy().n(dps(prec)) == l2.to_sympy().n(dps(prec)):
+            if l1_sympy.n(dps(prec)) == l2_sympy.n(dps(prec)):
                 return True
             return False
         elif l1.has_form('List', None) and l2.has_form('List', None):
@@ -231,18 +286,15 @@ class Inequality(Builtin):
 
 
 def do_cmp(x1, x2):
-    real1, real2 = x1.get_real_value(), x2.get_real_value()
-    inf1 = inf2 = None
+    inf1 = inf2 = real1 = real2 = None
+    if isinstance(x1, (Real, Integer, Rational)):
+        real1 = x1.to_sympy()
+    if isinstance(x2, (Real, Integer, Rational)):
+        real2 = x2.to_sympy()
     if x1.has_form('DirectedInfinity', 1):
         inf1 = x1.leaves[0].get_int_value()
     if x2.has_form('DirectedInfinity', 1):
         inf2 = x2.leaves[0].get_int_value()
-
-    if real1 is not None and get_type(real1) != 'f':
-        real1 = sympy.Float(real1)
-    if real2 is not None and get_type(real2) != 'f':
-        real2 = sympy.Float(real2)
-    # Bus error when not converting to mpf
 
     if real1 is not None and real2 is not None:
         if x1 == x2:
@@ -266,7 +318,21 @@ def do_cmp(x1, x2):
         return None
 
 
-class Equal(_EqualityOperator, SympyFunction):
+class SympyComparison(SympyFunction):
+    def to_sympy(self, expr, **kwargs):
+        to_sympy = super(SympyComparison, self).to_sympy
+        if len(expr.leaves) > 2:
+            def pairs(items):
+                yield Expression(expr.get_head_name(), *items[:2])
+                items = items[1:]
+                while len(items) >= 2:
+                    yield Expression(expr.get_head_name(), *items[:2])
+                    items = items[1:]
+            return sympy.And(*[to_sympy(p, **kwargs) for p in pairs(expr.leaves)])
+        return to_sympy(expr, **kwargs)
+
+
+class Equal(_EqualityOperator, SympyComparison):
     """
     <dl>
     <dt>'Equal[$x$, $y$]'
@@ -296,17 +362,21 @@ class Equal(_EqualityOperator, SympyFunction):
     >> 0.73908513321516064200000000 == 0.73908513321516064100000000
      = False
 
-    >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10016
-     = False
-    >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10017
+    ## TODO Needs power precision tracking
+    ## >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10012
+    ##  = False
+    ## >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10013
+    ##  = True
+
+    #> 0.1111111111111111 ==  0.1111111111111126
      = True
+    #> 0.1111111111111111 ==  0.1111111111111127
+     = False
 
-    ## TODO: Needs ^^ opperator
-
-    ## Real numbers are considered equal if they only differ in their last seven binary digits
+    ## TODO needs better precision tracking
     ## #> 2^^1.000000000000000000000000000000000000000000000000000000000000 ==  2^^1.000000000000000000000000000000000000000000000000000001111111
     ##  = True
-    ## 2^^1.000000000000000000000000000000000000000000000000000000000000 ==  2^^1.000000000000000000000000000000000000000000000000000010000000
+    ## #> 2^^1.000000000000000000000000000000000000000000000000000000000000 ==  2^^1.000000000000000000000000000000000000000000000000000010000000
     ##  = False
 
     Comparisons are done using the lower precision:
@@ -352,7 +422,7 @@ class Equal(_EqualityOperator, SympyFunction):
         return x
 
 
-class Unequal(_EqualityOperator, SympyFunction):
+class Unequal(_EqualityOperator, SympyComparison):
     """
     <dl>
     <dt>'Unequal[$x$, $y$]'
@@ -407,7 +477,7 @@ class Unequal(_EqualityOperator, SympyFunction):
         return not x
 
 
-class Less(_ComparisonOperator, SympyFunction):
+class Less(_ComparisonOperator, SympyComparison):
     """
     <dl>
     <dt>'Less[$x$, $y$]'
@@ -425,7 +495,7 @@ class Less(_ComparisonOperator, SympyFunction):
     sympy_name = 'StrictLessThan'
 
 
-class LessEqual(_ComparisonOperator, SympyFunction):
+class LessEqual(_ComparisonOperator, SympyComparison):
     """
     <dl>
     <dt>'LessEqual[$x$, $y$]'
@@ -439,7 +509,7 @@ class LessEqual(_ComparisonOperator, SympyFunction):
     sympy_name = 'LessThan'
 
 
-class Greater(_ComparisonOperator, SympyFunction):
+class Greater(_ComparisonOperator, SympyComparison):
     """
     <dl>
     <dt>'Greater[$x$, $y$]'
@@ -458,7 +528,7 @@ class Greater(_ComparisonOperator, SympyFunction):
     sympy_name = 'StrictGreaterThan'
 
 
-class GreaterEqual(_ComparisonOperator, SympyFunction):
+class GreaterEqual(_ComparisonOperator, SympyComparison):
     """
     <dl>
     <dt>'GreaterEqual[$x$, $y$]'

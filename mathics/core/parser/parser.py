@@ -13,6 +13,16 @@ from mathics.core.parser.operators import (
     inequality_ops, misc_ops)
 
 
+special_symbols = {
+    '\u03C0': 'Pi',         # Pi
+    '\uF74D': 'E',          # ExponentialE
+    '\uF74E': 'I',          # ImaginaryI
+    '\uF74F': 'I',          # ImaginaryJ
+    '\u221E': 'Infinity',   # Infinity
+    '\u00B0': 'Degree',     # Degree
+}
+
+
 class Parser(object):
     def __init__(self):
         # no implicit times on these tokens
@@ -287,7 +297,8 @@ class Parser(object):
         return result
 
     def p_Symbol(self, token):
-        result = Symbol(token.text, context=None)
+        symbol_name = special_symbols.get(token.text, token.text)
+        result = Symbol(symbol_name, context=None)
         self.consume()
         return result
 

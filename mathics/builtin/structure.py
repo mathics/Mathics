@@ -4,7 +4,8 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
+from mathics.builtin.base import (Builtin, Predefined, BinaryOperator, Test,
+                                  MessageException)
 from mathics.core.expression import (Expression, String, Symbol, Integer,
                                      Rational, strip_context)
 from mathics.core.rules import Pattern
@@ -486,6 +487,66 @@ class Map(BinaryOperator):
         return result
 
 
+class Scan(Builtin):
+    '''
+    <dl>
+    <dt>'Scan[$f$, $expr$]'
+      <dd>applies $f$ to each element of $expr$ and returns 'Null'.
+    <dt>'Scan[$f$, $expr$, $levelspec$]
+      <dd>applies $f$ to each level specified by $levelspec$ of $expr$.
+    </dl>
+
+    >> Scan[Print, {1, 2, 3}]
+     | 1
+     | 2
+     | 3
+
+    #> Scan[Print, f[g[h[x]]], 2]
+     | h[x]
+     | g[h[x]]
+
+    #> Scan[Print][{1, 2}]
+     | 1
+     | 2
+
+    #> Scan[Return, {1, 2}]
+     = 1
+    '''
+
+    options = {
+        'Heads': 'False',
+    }
+
+    rules = {
+        'Scan[f_][expr_]': 'Scan[f, expr]',
+    }
+
+    def apply_invalidlevel(self, f, expr, ls, evaluation, options={}):
+        'Scan[f_, expr_, ls_, OptionsPattern[Map]]'
+
+        return evaluation.message('Map', 'level', ls)
+
+    def apply_level(self, f, expr, ls, evaluation, options={}):
+        '''Scan[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}],
+                OptionsPattern[Map]]'''
+
+        try:
+            start, stop = python_levelspec(ls)
+        except InvalidLevelspecError:
+            evaluation.message('Map', 'level', ls)
+            return
+
+        def callback(level):
+            Expression(f, level).evaluate(evaluation)
+            return level
+
+        heads = self.get_option(options, 'Heads', evaluation).is_true()
+        result, depth = walk_levels(
+            expr, start, stop, heads=heads, callback=callback)
+
+        return Symbol('Null')
+
+
 class MapIndexed(Builtin):
     """
     <dl>
@@ -556,6 +617,100 @@ class MapIndexed(Builtin):
         return result
 
 
+class MapThread(Builtin):
+    """
+    <dl>
+    <dt>'MapThread[$f$, {{$a1$, $a2$, ...}, {$b1$, $b2$, ...}, ...}]
+      <dd>returns '{$f$[$a1$, $b1$, ...], $f$[$a2$, $b2$, ...], ...}'.
+    <dt>'MapThread[$f$, {$expr1$, $expr2$, ...}, $n$]'
+      <dd>applies $f$ at level $n$.
+    </dl>
+
+    >> MapThread[f, {{a, b, c}, {1, 2, 3}}]
+     = {f[a, 1], f[b, 2], f[c, 3]}
+
+    >> MapThread[f, {{{a, b}, {c, d}}, {{e, f}, {g, h}}}, 2]
+     = {{f[a, e], f[b, f]}, {f[c, g], f[d, h]}}
+
+    #> MapThread[f, {{a, b}, {c, d}}, {1}]
+     : Non-negative machine-sized integer expected at position 3 in MapThread[f, {{a, b}, {c, d}}, {1}].
+     = MapThread[f, {{a, b}, {c, d}}, {1}]
+
+    #> MapThread[f, {{a, b}, {c, d}}, 2]
+     : Object {a, b} at position {2, 1} in MapThread[f, {{a, b}, {c, d}}, 2] has only 1 of required 2 dimensions.
+     = MapThread[f, {{a, b}, {c, d}}, 2]
+
+    #> MapThread[f, {{a}, {b, c}}]
+     : Incompatible dimensions of objects at positions {2, 1} and {2, 2} of MapThread[f, {{a}, {b, c}}]; dimensions are 1 and 2.
+     = MapThread[f, {{a}, {b, c}}]
+
+    #> MapThread[f, {}]
+     = {}
+
+    #> MapThread[f, {a, b}, 0]
+     = f[a, b]
+    #> MapThread[f, {a, b}, 1]
+     :  Object a at position {2, 1} in MapThread[f, {a, b}, 1] has only 0 of required 1 dimensions.
+     = MapThread[f, {a, b}, 1]
+
+    ## Behaviour extends MMA
+    #> MapThread[f, {{{a, b}, {c}}, {{d, e}, {f}}}, 2]
+     = {{f[a, d], f[b, e]}, {f[c, f]}}
+    """
+
+    messages = {
+        'intnm': 'Non-negative machine-sized integer expected at position `2` in `1`.',
+        'mptc': 'Incompatible dimensions of objects at positions {2, `1`} and {2, `2`} of `3`; dimensions are `4` and `5`.',
+        'mptd': 'Object `1` at position {2, `2`} in `3` has only `4` of required `5` dimensions.',
+        'list': 'List expected at position `2` in `1`.',
+    }
+
+    def apply(self, f, expr, evaluation):
+        'MapThread[f_, expr_]'
+
+        return self.apply_n(f, expr, None, evaluation)
+
+    def apply_n(self, f, expr, n, evaluation):
+        'MapThread[f_, expr_, n_]'
+
+        if n is None:
+            n = 1
+            full_expr = Expression('MapThread', f, expr)
+        else:
+            full_expr = Expression('MapThread', f, expr, n)
+            n = n.get_int_value()
+
+        if n is None or n < 0:
+            return evaluation.message('MapThread', 'intnm', full_expr, 3)
+
+        if expr.has_form('List', 0):
+            return Expression('List')
+        if not expr.has_form('List', None):
+            return evaluation.message('MapThread', 'list', 2, full_expr)
+
+        heads = expr.get_leaves()
+
+        def walk(args, depth=0):
+            'walk all trees concurrently and build result'
+            if depth == n:
+                return Expression(f, *args)
+            else:
+                dim = None
+                for i, arg in enumerate(args):
+                    if not arg.has_form('List', None):
+                        raise MessageException('MapThread', 'mptd', heads[i], i + 1, full_expr, depth, n)
+                    if dim is None:
+                        dim = len(arg.leaves)
+                    if dim != len(arg.leaves):
+                        raise MessageException('MapThread', 'mptc', 1, i + 1, full_expr, dim, len(arg.leaves))
+                return Expression('List', *[walk([arg.leaves[i] for arg in args], depth + 1) for i in range(dim)])
+
+        try:
+            return walk(heads)
+        except MessageException as e:
+            return e.message(evaluation)
+
+
 class Thread(Builtin):
     """
     <dl>
@@ -612,7 +767,13 @@ class FreeQ(Builtin):
      = True
     >> FreeQ[a+b+c, x_+y_+z_]
      = False
+    >> FreeQ[x_+y_+z_][a+b]
+     = True
     """
+
+    rules = {
+        'FreeQ[form_][expr_]': 'FreeQ[expr, form]',
+    }
 
     def apply(self, expr, form, evaluation):
         'FreeQ[expr_, form_]'

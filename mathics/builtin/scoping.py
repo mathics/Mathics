@@ -107,10 +107,6 @@ class Block(Builtin):
 
         vars = dict(get_scoping_vars(vars, 'Block', evaluation))
         result = dynamic_scoping(expr.evaluate, vars, evaluation)
-
-        # Variables may have changed: must revalute
-        result.is_evaluated = False
-
         return result
 
 
@@ -266,7 +262,7 @@ class Contexts(Builtin):
     ## this assignment makes sure that a definition in Global` exists
     >> x = 5;
     >> Contexts[] // InputForm
-     = {"Combinatorica`", "Global`", "ImportExport`", "Internal`", "System`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`"}
+     = {"Combinatorica`", "Global`", "ImportExport`", "Internal`", "System`", "System`Convert`Image`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`"}
     """
 
     def apply(self, evaluation):

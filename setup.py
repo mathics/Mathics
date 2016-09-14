@@ -66,7 +66,7 @@ else:
     INSTALL_REQUIRES += ['cython>=0.15.1']
 
 # General Requirements
-INSTALL_REQUIRES += ['sympy==1.0', 'django >= 1.8, < 1.9',
+INSTALL_REQUIRES += ['sympy==1.0', 'django >= 1.8, < 1.9a0',
                      'mpmath>=0.19', 'python-dateutil', 'colorama', 'six>=1.10']
 
 
@@ -77,10 +77,10 @@ def subdirs(root, file='*.*', depth=10):
 
 class initialize(Command):
     """
-    Manually creates the database used by Django
+    Manually create the Django database used by the web notebook
     """
 
-    description = "manually create the database used by django"
+    description = "manually create the Django database used by the web notebook"
     user_options = []  # distutils complains if this is not here.
 
     def __init__(self, *args):
@@ -108,18 +108,18 @@ class initialize(Command):
             subprocess.check_call(
                 [sys.executable, 'mathics/manage.py', 'migrate', '--noinput'])
             print("")
-            print("database created successfully.")
+            print("Database created successfully.")
         except subprocess.CalledProcessError:
-            print("error: failed to create database")
+            print("Error: failed to create database")
             sys.exit(1)
 
 
 class test(Command):
     """
-    Runs the unittests
+    Run the unittests
     """
 
-    description = "runs the unittests"
+    description = "run the unittests"
     user_options = []
 
     def __init__(self, *args):
@@ -159,7 +159,7 @@ setup(
         'mathics.algorithm',
         'mathics.core',
         'mathics.core.parser',
-        'mathics.builtin', 'mathics.builtin.pymimesniffer',
+        'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.builtin.numpy_utils',
         'mathics.doc',
         'mathics.web', 'mathics.web.templatetags'
     ],
@@ -186,6 +186,7 @@ setup(
         'console_scripts': [
             'mathics = mathics.main:main',
             'mathicsserver = mathics.server:main',
+            'mathicsscript = mathics.script:main',
         ],
     },
 

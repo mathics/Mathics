@@ -18,7 +18,7 @@ from django.contrib import auth
 from django.contrib.auth.models import User
 
 from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation, Message, Result
+from mathics.core.evaluation import Evaluation, Message, Result, Output
 
 from mathics.web.models import Query, Worksheet
 from mathics.web.forms import LoginForm, SaveForm
@@ -26,6 +26,7 @@ from mathics.doc import documentation
 from mathics.doc.doc import DocPart, DocChapter, DocSection
 import six
 from six.moves import range
+from string import Template
 
 if settings.DEBUG:
     JSON_CONTENT_TYPE = 'text/html'
@@ -42,6 +43,10 @@ class JsonResponse(HttpResponse):
     def __init__(self, result={}):
         response = json.dumps(result)
         super(JsonResponse, self).__init__(response, content_type=JSON_CONTENT_TYPE)
+
+
+class WebOutput(Output):
+    pass
 
 
 def require_ajax_login(func):
@@ -102,7 +107,7 @@ def query(request):
 
     user_definitions = request.session.get('definitions')
     definitions.set_user_definitions(user_definitions)
-    evaluation = Evaluation(definitions, format='xml')
+    evaluation = Evaluation(definitions, format='xml', output=WebOutput())
     feeder = MultiLineFeeder(input, '<notebook>')
     results = []
     try:

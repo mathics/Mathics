@@ -24,11 +24,13 @@ def matrix_data(m):
     if not m.has_form('List', None):
         return None
     if all(leaf.has_form('List', None) for leaf in m.leaves):
-        return [[item.to_sympy() for item in row.leaves] for row in m.leaves]
+        result =[[item.to_sympy() for item in row.leaves] for row in m.leaves]
+        if not any(None in row for row in result):
+            return result
     elif not any(leaf.has_form('List', None) for leaf in m.leaves):
-        return [item.to_sympy() for item in m.leaves]
-    else:
-        return None
+        result =[item.to_sympy() for item in m.leaves]
+        if None not in result:
+            return result
 
 
 def to_sympy_matrix(data, **kwargs):
@@ -147,22 +149,6 @@ class VectorAngle(Builtin):
     }
 
 
-class Degree(Builtin):
-    """
-    <dl>
-    <dt>'Degree'
-        <dd>is the number of radians in one degree.
-    </dl>
-
-    >> Cos[60 Degree]
-     = 1 / 2
-    """
-
-    rules = {
-        'Degree': '(Pi/180)'
-    }
-
-
 class Inverse(Builtin):
     """
     <dl>
@@ -193,7 +179,7 @@ class Inverse(Builtin):
         if matrix.det() == 0:
             return evaluation.message('Inverse', 'sing', m)
         inv = matrix.inv()
-        return from_sympy(inv) 
+        return from_sympy(inv)
 
 
 class SingularValueDecomposition(Builtin):
@@ -207,11 +193,16 @@ class SingularValueDecomposition(Builtin):
     $u$\'$u$=1, $v$\'$v$=1, and $s$ is diagonal.
 
     >> SingularValueDecomposition[{{1.5, 2.0}, {2.5, 3.0}}]
-     = {{{0.538953533497208, 0.842335496539754}, {0.842335496539754, -0.538953533497208}}, {{4.63555452966064, 0.}, {0., 0.10786196059193}}, {{0.628677545037648, 0.77766608796156}, {-0.77766608796156, 0.628677545037648}}}
+     = {{{0.538954, 0.842335}, {0.842335, -0.538954}}, {{4.63555, 0.}, {0., 0.107862}}, {{0.628678, 0.777666}, {-0.777666, 0.628678}}}
+
 
     #> SingularValueDecomposition[{{3/2, 2}, {5/2, 3}}]
      : Symbolic SVD is not implemented, performing numerically.
-     = {{{0.538953533497208, 0.842335496539754}, {0.842335496539754, -0.538953533497208}}, {{4.63555452966064, 0.}, {0., 0.10786196059193}}, {{0.628677545037648, 0.77766608796156}, {-0.77766608796156, 0.628677545037648}}}
+     = {{{0.538954, 0.842335}, {0.842335, -0.538954}}, {{4.63555, 0.}, {0., 0.107862}}, {{0.628678, 0.777666}, {-0.777666, 0.628678}}}
+
+    #> SingularValueDecomposition[{1, {2}}]
+     : Argument {1, {2}} at position 1 is not a non-empty rectangular matrix.
+     = SingularValueDecomposition[{1, {2}}]
     """
 
     # Sympy lacks symbolic SVD
@@ -225,16 +216,20 @@ class SingularValueDecomposition(Builtin):
 
     messages = {
         'nosymb': "Symbolic SVD is not implemented, performing numerically.",
+        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
     }
 
     def apply(self, m, evaluation):
-        'SingularValueDecomposition[m_?MatrixQ]'
+        'SingularValueDecomposition[m_]'
+
+        matrix = to_mpmath_matrix(m)
+        if matrix is None:
+            return evaluation.message('SingularValueDecomposition', 'matrix', m, 1)
 
         if not any(leaf.is_inexact() for row in m.leaves for leaf in row.leaves):
             # symbolic argument (not implemented)
             evaluation.message('SingularValueDecomposition', 'nosymb')
 
-        matrix = to_mpmath_matrix(m)
         U, S, V = mp.svd(matrix)
         S = mp.diag(S)
         U_list = Expression('List', *U.tolist())
@@ -256,16 +251,23 @@ class QRDecomposition(Builtin):
     #> QRDecomposition[{{1, 2, 3, 4}, {1, 4, 9, 16}, {1, 8, 27, 64}}]
      : Sympy is unable to perform the QR decomposition.
      = QRDecomposition[{{1, 2, 3, 4}, {1, 4, 9, 16}, {1, 8, 27, 64}}]
+
+    #> QRDecomposition[{1, {2}}]
+     : Argument {1, {2}} at position 1 is not a non-empty rectangular matrix.
+     = QRDecomposition[{1, {2}}]
     """
 
     messages = {
         'sympy': 'Sympy is unable to perform the QR decomposition.',
+        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
     }
 
     def apply(self, m, evaluation):
-        'QRDecomposition[m_?MatrixQ]'
+        'QRDecomposition[m_]'
 
         matrix = to_sympy_matrix(m)
+        if matrix is None:
+            return evaluation.message('QRDecomposition', 'matrix', m, 1)
         try:
             Q, R = matrix.QRdecomposition()
         except sympy.matrices.MatrixError:
@@ -289,13 +291,23 @@ class PseudoInverse(Builtin):
      = {{-3, 2, 0}, {2, -1, 0}, {1, -2, 1}}
 
     >> PseudoInverse[{{1.0, 2.5}, {2.5, 1.0}}]
-     = {{-0.190476190476190476, 0.476190476190476191}, {0.47619047619047619, -0.190476190476190476}}
+     = {{-0.190476, 0.47619}, {0.47619, -0.190476}}
+
+    #> PseudoInverse[{1, {2}}]
+    : Argument {1, {2}} at position 1 is not a non-empty rectangular matrix.
+    = PseudoInverse[{1, {2}}]
     """
+
+    messages = {
+        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
+    }
 
     def apply(self, m, evaluation):
         'PseudoInverse[m_]'
 
         matrix = to_sympy_matrix(m)
+        if matrix is None:
+            return evaluation.message('PseudoInverse', 'matrix', m, 1)
         pinv = matrix.pinv()
         return from_sympy(pinv)
 
@@ -322,17 +334,30 @@ class LeastSquares(Builtin):
     #> LeastSquares[{{1, 1, 1}, {1, 1, 1}}, {1, 0}]
      : Solving for underdetermined system not implemented.
      = LeastSquares[{{1, 1, 1}, {1, 1, 1}}, {1, 0}]
+
+    #> LeastSquares[{1, {2}}, {1, 2}]
+     : Argument {1, {2}} at position 1 is not a non-empty rectangular matrix.
+     = LeastSquares[{1, {2}}, {1, 2}]
+    #> LeastSquares[{{1, 2}, {3, 4}}, {1, {2}}]
+     : Argument {1, {2}} at position 2 is not a non-empty rectangular matrix.
+     = LeastSquares[{{1, 2}, {3, 4}}, {1, {2}}]
     """
 
     messages = {
-        'underdetermined': "Solving for underdetermined system not implemented."
+        'underdetermined': "Solving for underdetermined system not implemented.",
+        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
     }
 
     def apply(self, m, b, evaluation):
         'LeastSquares[m_, b_]'
 
         matrix = to_sympy_matrix(m)
-        b_vector = to_sympy_matrix([el.to_sympy() for el in b.leaves])
+        if matrix is None:
+            return evaluation.message('LeastSquares', 'matrix', m, 1)
+
+        b_vector = to_sympy_matrix(b)
+        if b_vector is None:
+            return evaluation.message('LeastSquares', 'matrix', b, 2)
 
         try:
             solution = matrix.solve_least_squares(b_vector)  # default method = Cholesky
@@ -362,12 +387,20 @@ class LinearSolve(Builtin):
     >> LinearSolve[{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}, {1, -2, 3}]
      : Linear equation encountered that has no solution.
      = LinearSolve[{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}, {1, -2, 3}]
+
+    #> LinearSolve[{1, {2}}, {1, 2}]
+     : Argument {1, {2}} at position 1 is not a non-empty rectangular matrix.
+     = LinearSolve[{1, {2}}, {1, 2}]
+    #> LinearSolve[{{1, 2}, {3, 4}}, {1, {2}}]
+     : Argument {1, {2}} at position 2 is not a non-empty rectangular matrix.
+     = LinearSolve[{{1, 2}, {3, 4}}, {1, {2}}]
     """
 
     messages = {
         'lslc': ("Coefficient matrix and target vector(s) or matrix "
                  "do not have the same dimensions."),
         'nosol': "Linear equation encountered that has no solution.",
+        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
     }
 
     def apply(self, m, b, evaluation):
@@ -375,7 +408,7 @@ class LinearSolve(Builtin):
 
         matrix = matrix_data(m)
         if matrix is None:
-            return
+            return evaluation.message('LinearSolve', 'matrix', m, 1)
         if not b.has_form('List', None):
             return
         if len(b.leaves) != len(matrix):
@@ -383,7 +416,7 @@ class LinearSolve(Builtin):
         system = [mm + [v] for mm, v in zip(matrix, b.leaves)]
         system = to_sympy_matrix(system)
         if system is None:
-            return
+            return evaluation.message('LinearSolve', 'matrix', b, 2)
         syms = [sympy.Dummy('LinearSolve_var%d' % k)
                 for k in range(system.cols - 1)]
         sol = sympy.solve_linear_system(system, *syms)
@@ -414,14 +447,23 @@ class NullSpace(Builtin):
      = {}
     >> MatrixRank[A]
      = 3
+
+    #> NullSpace[{1, {2}}]
+     : Argument {1, {2}} at position 1 is not a non-empty rectangular matrix.
+     = NullSpace[{1, {2}}]
     """
+
+    messages = {
+        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
+    }
 
     def apply(self, m, evaluation):
         'NullSpace[m_]'
 
         matrix = to_sympy_matrix(m)
         if matrix is None:
-            return
+            return evaluation.message('NullSpace', 'matrix', m, 1)
+
         nullspace = matrix.nullspace()
         # convert n x 1 matrices to vectors
         nullspace = [list(vec) for vec in nullspace]
@@ -446,15 +488,20 @@ class RowReduce(Builtin):
      . 0   0   0
 
     #> RowReduce[{{1, 0}, {0}}]
+     : Argument {{1, 0}, {0}} at position 1 is not a non-empty rectangular matrix.
      = RowReduce[{{1, 0}, {0}}]
     """
+
+    messages = {
+        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
+    }
 
     def apply(self, m, evaluation):
         'RowReduce[m_]'
 
         matrix = to_sympy_matrix(m)
         if matrix is None:
-            return
+            return evaluation.message('RowReduce', 'matrix', m, 1)
         reduced = matrix.rref()[0]
         return from_sympy(reduced)
 
@@ -472,14 +519,22 @@ class MatrixRank(Builtin):
      = 3
     >> MatrixRank[{{a, b}, {3 a, 3 b}}]
      = 1
+
+    #> MatrixRank[{{1, 0}, {0}}]
+     : Argument {{1, 0}, {0}} at position 1 is not a non-empty rectangular matrix.
+     = MatrixRank[{{1, 0}, {0}}]
     """
+
+    messages = {
+        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
+    }
 
     def apply(self, m, evaluation):
         'MatrixRank[m_]'
 
         matrix = to_sympy_matrix(m)
         if matrix is None:
-            return
+            return evaluation.message('MatrixRank', 'matrix', m, 1)
         rank = len(matrix.rref()[1])
         return Integer(rank)
 
@@ -499,13 +554,24 @@ class Eigenvalues(Builtin):
 
     >> Eigenvalues[{{7, 1}, {-4, 3}}]
      = {5, 5}
+
+    #> Eigenvalues[{{1, 0}, {0}}]
+     : Argument {{1, 0}, {0}} at position 1 is not a non-empty rectangular matrix.
+     = Eigenvalues[{{1, 0}, {0}}]
     """
+
+    messages = {
+        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
+    }
 
     def apply(self, m, evaluation):
         'Eigenvalues[m_]'
 
         matrix = to_sympy_matrix(m)
-        if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+        if matrix is None:
+            return evaluation.message('Eigenvalues', 'matrix', m, 1)
+
+        if matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Eigenvalues', 'matsq', m)
         eigenvalues = matrix.eigenvals()
         try:
@@ -550,17 +616,28 @@ class MatrixPower(Builtin):
     #> MatrixPower[{{0, x}, {0, 0}}, n]
      = {{0 ^ n, n x 0 ^ (-1 + n)}, {0, 0 ^ n}}
 
+    #> MatrixPower[{{1, 0}, {0}}, 2]
+     : Argument {{1, 0}, {0}} at position 1 is not a non-empty rectangular matrix.
+     = MatrixPower[{{1, 0}, {0}}, 2]
     """
 
     messages = {
         'matrixpowernotimplemented': ('Matrix power not implemented for matrix `1`.'),
+        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
     }
 
     def apply(self, m, power, evaluation):
         'MatrixPower[m_, power_]'
         sympy_m = to_sympy_matrix(m)
+        if sympy_m is None:
+            return evaluation.message('MatrixPower', 'matrix', m, 1)
+
+        sympy_power = power.to_sympy()
+        if sympy_power is None:
+            return
+
         try:
-            res = sympy_m ** power.to_sympy()
+            res = sympy_m ** sympy_power
         except NotImplementedError:
             return evaluation.message('MatrixPower', 'matrixpowernotimplemented', m)
         return from_sympy(res)
@@ -577,14 +654,19 @@ class MatrixExp(Builtin):
      = {{1, -2 + 2 E}, {0, E}}
 
     >> MatrixExp[{{1.5, 0.5}, {0.5, 2.0}}]
-     = {{5.16266024276223, 3.029519834622}, {3.029519834622, 8.19218007738423}}
+     = {{5.16266, 3.02952}, {3.02952, 8.19218}}
 
     #> MatrixExp[{{a, 0}, {0, b}}]
      = {{E ^ a, 0}, {0, E ^ b}}
+
+    #> MatrixExp[{{1, 0}, {0}}]
+     : Argument {{1, 0}, {0}} at position 1 is not a non-empty rectangular matrix.
+     = MatrixExp[{{1, 0}, {0}}]
     """
 
     messages = {
         'matrixexpnotimplemented': ('Matrix power not implemented for matrix `1`.'),
+        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
     }
 
     # TODO fix precision
@@ -592,6 +674,9 @@ class MatrixExp(Builtin):
     def apply(self, m, evaluation):
         'MatrixExp[m_]'
         sympy_m = to_sympy_matrix(m)
+        if sympy_m is None:
+            return evaluation.message('MatrixExp', 'matrix', m, 1)
+
         try:
             res = sympy_m.exp()
         except NotImplementedError:
@@ -650,7 +735,7 @@ class Norm(Builtin):
 
     rules = {
         'Norm[m_?NumberQ]': 'Abs[m]',
-        'Norm[m_, DirectedInfinity[1]]': 'Max[Abs[m]]',
+        'Norm[m_?VectorQ, DirectedInfinity[1]]': 'Max[Abs[m]]',
     }
 
     messages = {
@@ -677,6 +762,8 @@ class Norm(Builtin):
             return evaluation.message('Norm', 'ptype', l)
 
         l = l.to_sympy()
+        if l is None:
+            return
         matrix = to_sympy_matrix(m)
 
         if matrix is None:
@@ -736,7 +823,7 @@ class Eigenvectors(Builtin):
     >> Eigenvectors[{{2, 0, 0}, {0, -1, 0}, {0, 0, 0}}]
      = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
     >> Eigenvectors[{{0.1, 0.2}, {0.8, 0.5}}]
-     = {{0.309016994374947, 1.}, {-0.809016994374947, 1.}}
+     = {{0.309017, 1.}, {-0.809017, 1.}}
 
     #> Eigenvectors[{{-2, 1, -1}, {-3, 2, 1}, {-1, 1, 0}}]
      = {{1 / 3, 7 / 3, 1}, {1, 1, 0}, {0, 0, 0}}
@@ -941,7 +1028,7 @@ class CosineDistance(Builtin):
     </dl>
 
     >> N[CosineDistance[{7, 9}, {71, 89}]]
-     = 0.0000759645721323140522
+     = 0.0000759646
 
     >> CosineDistance[{a, b}, {c, d}]
      = 1 + (-a c - b d) / (Sqrt[Abs[a] ^ 2 + Abs[b] ^ 2] Sqrt[Abs[c] ^ 2 + Abs[d] ^ 2])

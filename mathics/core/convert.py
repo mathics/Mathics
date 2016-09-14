@@ -27,7 +27,7 @@ class SympyExpression(BasicSympy):
     nargs = None
 
     def __new__(cls, *exprs):
-        # sympy simplify may also recreate the object if simplification occured
+        # sympy simplify may also recreate the object if simplification occurred
         # in the leaves
         from mathics.core.expression import Expression
 
@@ -37,9 +37,11 @@ class SympyExpression(BasicSympy):
         elif len(exprs) == 1 and isinstance(exprs[0], Expression):
             # called with Mathics argument
             expr = exprs[0]
-            obj = BasicSympy.__new__(
-                cls, expr.head.to_sympy(),
-                *tuple(leaf.to_sympy() for leaf in expr.leaves))
+            sympy_head = expr.head.to_sympy()
+            sympy_leaves = [leaf.to_sympy() for leaf in expr.leaves]
+            if sympy_head is None or None in sympy_leaves:
+                return None
+            obj = BasicSympy.__new__(cls, sympy_head, *sympy_leaves)
             obj.expr = expr
         else:
             raise TypeError
@@ -80,7 +82,7 @@ class SympyExpression(BasicSympy):
 
     @property
     def is_commutative(self):
-        if all(getattr(t, 'is_commutative') for t in self.args):
+        if all(getattr(t, 'is_commutative', False) for t in self.args):
             return True
         else:
             return False
@@ -92,7 +94,8 @@ class SympyExpression(BasicSympy):
 def from_sympy(expr):
     from mathics.builtin import sympy_to_mathics
     from mathics.core.expression import (
-        Symbol, Integer, Rational, Real, Complex, String, Expression)
+        Symbol, Integer, Rational, Real, Complex, String, Expression, MachineReal)
+    from mathics.core.numbers import machine_precision
 
     from sympy.core import numbers, function, symbol
 
@@ -103,7 +106,7 @@ def from_sympy(expr):
     if isinstance(expr, float):
         return Real(expr)
     if isinstance(expr, complex):
-        return Complex(expr.real, expr.imag)
+        return Complex(Real(expr.real), Real(expr.imag))
     if isinstance(expr, six.string_types):
         return String(expr)
     if expr is None:
@@ -144,7 +147,7 @@ def from_sympy(expr):
         elif isinstance(expr, numbers.NegativeInfinity):
             return Expression('Times', Integer(-1), Symbol('Infinity'))
         elif isinstance(expr, numbers.ImaginaryUnit):
-            return Complex(0, 1)
+            return Complex(Integer(0), Integer(1))
         elif isinstance(expr, numbers.Integer):
             return Integer(expr.p)
         elif isinstance(expr, numbers.Rational):
@@ -158,6 +161,8 @@ def from_sympy(expr):
                     return Symbol('Indeterminate')
             return Rational(expr.p, expr.q)
         elif isinstance(expr, numbers.Float):
+            if expr._prec == machine_precision:
+                return MachineReal(float(expr))
             return Real(expr)
         elif isinstance(expr, numbers.NaN):
             return Symbol('Indeterminate')
@@ -179,6 +184,20 @@ def from_sympy(expr):
 
     elif isinstance(expr, SympyExpression):
         return expr.expr
+
+    elif isinstance(expr, sympy.Piecewise):
+        args = expr.args
+        default = []
+        if len(args) > 0:
+            default_case, default_cond = args[-1]
+            if default_cond == sympy.true:
+                args = args[:-1]
+                if isinstance(default_case, sympy.Integer) and int(default_case) == 0:
+                    pass  # ignore, as 0 default case is always implicit in Piecewise[]
+                else:
+                    default = [from_sympy(default_case)]
+        return Expression('Piecewise', Expression('List', *[Expression(
+            'List', from_sympy(case), from_sympy(cond)) for case, cond in args]), *default)
 
     elif isinstance(expr, sympy.RootSum):
         return Expression('RootSum', from_sympy(expr.poly),
@@ -234,22 +253,22 @@ def from_sympy(expr):
 
     elif isinstance(expr, sympy.LessThan):
         return Expression('LessEqual',
-                          [from_sympy(arg) for arg in expr.args])
+                          *[from_sympy(arg) for arg in expr.args])
     elif isinstance(expr, sympy.StrictLessThan):
         return Expression('Less',
-                          [from_sympy(arg) for arg in expr.args])
+                          *[from_sympy(arg) for arg in expr.args])
     elif isinstance(expr, sympy.GreaterThan):
         return Expression('GreaterEqual',
-                          [from_sympy(arg) for arg in expr.args])
+                          *[from_sympy(arg) for arg in expr.args])
     elif isinstance(expr, sympy.StrictGreaterThan):
         return Expression('Greater',
-                          [from_sympy(arg) for arg in expr.args])
+                          *[from_sympy(arg) for arg in expr.args])
     elif isinstance(expr, sympy.Unequality):
         return Expression('Unequal',
-                          [from_sympy(arg) for arg in expr.args])
+                          *[from_sympy(arg) for arg in expr.args])
     elif isinstance(expr, sympy.Equality):
         return Expression('Equal',
-                          [from_sympy(arg) for arg in expr.args])
+                          *[from_sympy(arg) for arg in expr.args])
     elif expr is sympy.true:
         return Symbol('True')
     elif expr is sympy.false:

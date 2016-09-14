@@ -27,8 +27,9 @@ TIMEOUT = None
 
 MAX_RECURSION_DEPTH = 512
 
-# number of bits of precision for inexact calculations
-MACHINE_PRECISION = 64
+# max pickle.dumps() size for storing results in DB
+# historically 10000 was used on public mathics servers
+MAX_STORED_SIZE = 10000
 
 ADMINS = (
     ('Admin', 'mail@test.com'),

@@ -19,14 +19,43 @@ from six import unichr
 from mathics.builtin.base import BinaryOperator, Builtin, Test
 from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
+from mathics.builtin.lists import python_seq, convert_seq
 
 
-def to_regex(expr):
+def to_regex(expr, abbreviated_patterns=False):
     if expr is None:
         return None
 
     if isinstance(expr, String):
-        return re.escape(expr.get_string_value())
+        result = expr.get_string_value()
+        if abbreviated_patterns:
+            pieces = []
+            i, j = 0, 0
+            while j < len(result):
+                c = result[j]
+                if c == '\\' and j + 1 < len(result):
+                    pieces.append(re.escape(result[i:j]))
+                    pieces.append(re.escape(result[j+1]))
+                    j += 2
+                    i = j
+                elif c == '*':
+                    pieces.append(re.escape(result[i:j]))
+                    pieces.append('(.*)')
+                    j += 1
+                    i = j
+                elif c == '@':
+                    pieces.append(re.escape(result[i:j]))
+                    # one or more characters, excluding uppercase letters
+                    pieces.append('([^A-Z]+)')
+                    j += 1
+                    i = j
+                else:
+                    j += 1
+            pieces.append(re.escape(result[i:j]))
+            result = ''.join(pieces)
+        else:
+            result = re.escape(result)
+        return result
     if expr.has_form('RegularExpression', 1):
         regex = expr.leaves[0].get_string_value()
         if regex is None:
@@ -418,7 +447,7 @@ class HexidecimalCharacter(Builtin):
 
 
 class StringMatchQ(Builtin):
-    """
+    r"""
     >> StringMatchQ["abc", "abc"]
      = True
 
@@ -444,6 +473,31 @@ class StringMatchQ(Builtin):
     #> StringMatchQ[1.5, NumberString]
      : String or list of strings expected at position 1 in StringMatchQ[1.5, NumberString].
      = StringMatchQ[1.5, NumberString]
+
+    Use StringMatchQ as an operator
+    >> StringMatchQ[LetterCharacter]["a"]
+     = True
+
+    ## Abbreviated string patterns Issue #517
+    #> StringMatchQ["abcd", "abc*"]
+     = True
+    #> StringMatchQ["abc", "abc*"]
+     = True
+    #> StringMatchQ["abc\\", "abc\\"]
+     = True
+    #> StringMatchQ["abc*d", "abc\\*d"]
+     = True
+    #> StringMatchQ["abc*d", "abc\\**"]
+     = True
+    #> StringMatchQ["abcde", "a*f"]
+     = False
+
+    #> StringMatchQ["abcde", "a@e"]
+     = True
+    #> StringMatchQ["aBCDe", "a@e"]
+     = False
+    #> StringMatchQ["ae", "a@e"]
+     = False
     """
 
     attributes = ('Listable',)
@@ -457,6 +511,10 @@ class StringMatchQ(Builtin):
         'strse': 'String or list of strings expected at position `1` in `2`.',
     }
 
+    rules = {
+        'StringMatchQ[patt_][expr_]': 'StringMatchQ[expr, patt]',
+    }
+
     def apply(self, string, patt, evaluation, options):
         'StringMatchQ[string_, patt_, OptionsPattern[%(name)s]]'
         py_string = string.get_string_value()
@@ -464,7 +522,7 @@ class StringMatchQ(Builtin):
             return evaluation.message('StringMatchQ', 'strse', Integer(1),
                                       Expression('StringMatchQ', string, patt))
 
-        re_patt = to_regex(patt)
+        re_patt = to_regex(patt, abbreviated_patterns=True)
         if re_patt is None:
             return evaluation.message('StringExpression', 'invld', patt,
                                       Expression('StringExpression', patt))
@@ -609,7 +667,154 @@ class StringSplit(Builtin):
         for re_patt in re_patts:
             result = [t for s in result for t in mathics_split(re_patt, s, flags=flags)]
 
-        return from_python([x for x in result if x != ''])
+        return Expression('List', *[String(x) for x in result if x != ''])
+
+
+class StringPosition(Builtin):
+    '''
+    <dl>
+    <dt>'StringPosition["$string$", $patt$]'
+      <dd>gives a list of starting and ending positions where $patt$ matches "$string$".
+    <dt>'StringPosition["$string$", $patt$, $n$]'
+      <dd>returns the first $n$ matches only.
+    <dt>'StringPosition["$string$", {$patt1$, $patt2$, ...}, $n$]'
+      <dd>matches multiple patterns.
+    <dt>'StringPosition[{$s1$, $s2$, ...}, $patt$]'
+      <dd>returns a list of matches for multiple strings.
+    </dl>
+
+    >> StringPosition["123ABCxyABCzzzABCABC", "ABC"]
+     = {{4, 6}, {9, 11}, {15, 17}, {18, 20}}
+
+    >> StringPosition["123ABCxyABCzzzABCABC", "ABC", 2]
+     = {{4, 6}, {9, 11}}
+
+    'StringPosition' can be useful for searching through text.
+    >> data = Import["ExampleData/EinsteinSzilLetter.txt"];
+    >> StringPosition[data, "uranium"]
+     = {{299, 305}, {870, 876}, {1538, 1544}, {1671, 1677}, {2300, 2306}, {2784, 2790}, {3093, 3099}}
+
+    #> StringPosition["123ABCxyABCzzzABCABC", "ABC", -1]
+     : Non-negative integer or Infinity expected at position 3 in StringPosition[123ABCxyABCzzzABCABC, ABC, -1].
+     = StringPosition[123ABCxyABCzzzABCABC, ABC, -1]
+
+    ## Overlaps
+    #> StringPosition["1231221312112332", RegularExpression["[12]+"]]
+     = {{1, 2}, {2, 2}, {4, 7}, {5, 7}, {6, 7}, {7, 7}, {9, 13}, {10, 13}, {11, 13}, {12, 13}, {13, 13}, {16, 16}}
+    #> StringPosition["1231221312112332", RegularExpression["[12]+"], Overlaps -> False]
+     = {{1, 2}, {4, 7}, {9, 13}, {16, 16}}
+    #> StringPosition["1231221312112332", RegularExpression["[12]+"], Overlaps -> x]
+     = {{1, 2}, {4, 7}, {9, 13}, {16, 16}}
+    #> StringPosition["1231221312112332", RegularExpression["[12]+"], Overlaps -> All]
+     : Overlaps -> All option is not currently implemented in Mathics.
+     = {{1, 2}, {2, 2}, {4, 7}, {5, 7}, {6, 7}, {7, 7}, {9, 13}, {10, 13}, {11, 13}, {12, 13}, {13, 13}, {16, 16}}
+
+    #> StringPosition["21211121122", {"121", "11"}]
+     = {{2, 4}, {4, 5}, {5, 6}, {6, 8}, {8, 9}}
+    #> StringPosition["21211121122", {"121", "11"}, Overlaps -> False]
+     = {{2, 4}, {5, 6}, {8, 9}}
+
+    #> StringPosition[{"abc", "abcda"}, "a"]
+     = {{{1, 1}}, {{1, 1}, {5, 5}}}
+
+    #> StringPosition[{"abc"}, "a", Infinity]
+     = {{{1, 1}}}
+
+    #> StringPosition["abc"]["123AabcDEabc"]
+     = {{5, 7}, {10, 12}}
+    '''
+
+    options = {
+        'IgnoreCase': 'False',
+        'MetaCharacters': 'None',
+        'Overlaps': 'True',
+    }
+
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+        'overall': 'Overlaps -> All option is not currently implemented in Mathics.',
+        'innf': 'Non-negative integer or Infinity expected at position `2` in `1`.',
+    }
+
+    rules = {
+        'StringPosition[patt_][s_]': 'StringPosition[s, patt]',
+    }
+
+    def apply(self, string, patt, evaluation, options):
+        'StringPosition[string_, patt_, OptionsPattern[StringPosition]]'
+
+        return self.apply_n(string, patt, Expression('DirectedInfinity', Integer(1)), evaluation, options)
+
+    def apply_n(self, string, patt, n, evaluation, options):
+        'StringPosition[string_, patt_, n:(_Integer|DirectedInfinity[1]), OptionsPattern[StringPosition]]'
+
+        expr = Expression('StringPosition', string, patt, n)
+
+        # check n
+        if n.has_form('DirectedInfinity', 1):
+            py_n = float('inf')
+        else:
+            py_n = n.get_int_value()
+            if py_n is None or py_n < 0:
+                return evaluation.message('StringPosition', 'innf', expr, Integer(3))
+
+        # check options
+        if options['System`Overlaps'] == Symbol('True'):
+            overlap = True
+        elif options['System`Overlaps'] == Symbol('False'):
+            overlap = False
+        elif options['System`Overlaps'] == Symbol('All'):
+            # TODO
+            evaluation.message('StringPosition', 'overall')
+            overlap = True
+        else:
+            overlap = False    # unknown options are teated as False
+
+        # convert patterns
+        if patt.has_form('List', None):
+            patts = patt.get_leaves()
+        else:
+            patts = [patt]
+        re_patts = []
+        for p in patts:
+            py_p = to_regex(p)
+            if py_p is None:
+                return evaluation.message('StringExpression', 'invld', p, patt)
+            re_patts.append(py_p)
+        compiled_patts = [re.compile(re_patt) for re_patt in re_patts]
+
+        # string or list of strings
+        if string.has_form('List', None):
+            py_strings = [s.get_string_value() for s in string.leaves]
+            if None in py_strings:
+                return
+            results = [self.do_apply(py_string, compiled_patts, py_n, overlap) for py_string in py_strings]
+            return Expression('List', *results)
+        else:
+            py_string = string.get_string_value()
+            if py_string is None:
+                return
+            return self.do_apply(py_string, compiled_patts, py_n, overlap)
+
+    @staticmethod
+    def do_apply(py_string, compiled_patts, py_n, overlap):
+        result = []
+        start = 0
+        while start < len(py_string):
+            found_match = False
+            for compiled_patt in compiled_patts:
+                m = compiled_patt.match(py_string, start)
+                if m is None:
+                    continue
+                found_match = True
+                result.append([m.start() + 1, m.end()])    # 0 to 1 based indexing
+                if len(result) == py_n:
+                    return from_python(result)
+                if not overlap:
+                    start = m.end()
+            if overlap or not found_match:
+                start += 1
+        return from_python(result)
 
 
 class StringLength(Builtin):
@@ -713,6 +918,10 @@ class StringReplace(Builtin):
      = 01XY
     #> StringReplace["xyXY", "xy" -> "01", IgnoreCase -> True]
      = 0101
+
+    StringReplace also can be used as an operator:
+    >> StringReplace["y" -> "ies"]["city"]
+     = cities
     """
 
     # TODO Special Characters
@@ -733,6 +942,10 @@ class StringReplace(Builtin):
         'srep': '`1` is not a valid string replacement rule.',
         'innf': ('Non-negative integer or Infinity expected at '
                  'position `1` in `2`.'),
+    }
+
+    rules = {
+        'StringReplace[rule_][string_]': 'StringReplace[string, rule]',
     }
 
     def apply_n(self, string, rule, n, evaluation, options):
@@ -802,6 +1015,49 @@ class StringReplace(Builtin):
                 'List', *[String(do_subs(py_stri)) for py_stri in py_strings])
         else:
             return String(do_subs(py_strings))
+
+
+class StringRepeat(Builtin):
+    """
+    <dl>
+    <dt>'StringRepeat["$string$", $n$]'
+        <dd>gives $string$ repeated $n$ times.
+    <dt>'StringRepeat["$string$", $n$, $max$]'
+        <dd>gives $string$ repeated $n$ times, but not more than $max$ characters.
+    </dl>
+
+    >> StringRepeat["abc", 3]
+     = abcabcabc
+
+    >> StringRepeat["abc", 10, 7]
+     = abcabca
+    """
+
+    messages = {
+        'intp': 'A positive integer is expected at position `1` in `2`.',
+    }
+
+    def apply(self, s, n, evaluation):
+        'StringRepeat[s_String, n_]'
+        py_n = n.get_int_value() if isinstance(n, Integer) else 0
+        if py_n < 1:
+            evaluation.message('StringRepeat', 'intp', 2, Expression('StringRepeat', s, n))
+        return String(s.get_string_value() * py_n)
+
+    def apply_truncated(self, s, n, m, evaluation):
+        'StringRepeat[s_String, n_Integer, m_Integer]'
+        py_n = n.get_int_value() if isinstance(n, Integer) else 0
+        py_m = m.get_int_value() if isinstance(m, Integer) else 0
+
+        if py_n < 1:
+            evaluation.message('StringRepeat', 'intp', 2, Expression('StringRepeat', s, n, m))
+        if py_m < 1:
+            evaluation.message('StringRepeat', 'intp', 3, Expression('StringRepeat', s, n, m))
+
+        py_s = s.get_string_value()
+        py_n = min(1 + py_m // len(py_s), py_n)
+
+        return String((py_s * py_n)[:py_m])
 
 
 class Characters(Builtin):
@@ -889,6 +1145,76 @@ class String_(Builtin):
     """
 
     name = 'String'
+
+
+class LowerCaseQ(Test):
+    """
+    <dl>
+    <dt>'LowerCaseQ[$s$]'
+        <dd>returns True if $s$ consists wholly of lower case characters.
+    </dl>
+
+    >> LowerCaseQ["abc"]
+     = True
+
+    An empty string returns True.
+    >> LowerCaseQ[""]
+     = True
+    """
+
+    def test(self, s):
+        return isinstance(s, String) and all(c.islower() for c in s.get_string_value())
+
+
+class ToLowerCase(Builtin):
+    """
+    <dl>
+    <dt>'ToLowerCase[$s$]'
+        <dd>returns $s$ in all lower case.
+    </dl>
+
+    >> ToLowerCase["New York"]
+     = new york
+    """
+
+    def apply(self, s, evaluation):
+        'ToLowerCase[s_String]'
+        return String(s.get_string_value().lower())
+
+
+class UpperCaseQ(Test):
+    """
+    <dl>
+    <dt>'UpperCaseQ[$s$]'
+        <dd>returns True if $s$ consists wholly of upper case characters.
+    </dl>
+
+    >> UpperCaseQ["ABC"]
+     = True
+
+    An empty string returns True.
+    >> UpperCaseQ[""]
+     = True
+    """
+
+    def test(self, s):
+        return isinstance(s, String) and all(c.isupper() for c in s.get_string_value())
+
+
+class ToUpperCase(Builtin):
+    """
+    <dl>
+    <dt>'ToUpperCase[$s$]'
+        <dd>returns $s$ in all upper case.
+    </dl>
+
+    >> ToUpperCase["New York"]
+     = NEW YORK
+    """
+
+    def apply(self, s, evaluation):
+        'ToUpperCase[s_String]'
+        return String(s.get_string_value().upper())
 
 
 class ToString(Builtin):
@@ -1236,6 +1562,8 @@ class StringTake(Builtin):
         <dd>gives the $n$th character in $string$.
     <dt>'StringTake["$string$", {$m$, $n$}]'
         <dd>gives characters $m$ through $n$ in $string$.
+    <dt>'StringTake["$string$", {$m$, $n$, $s$}]'
+        <dd>gives characters $m$ through $n$ in steps of $s$.
     </dl>
 
     >> StringTake["abcde", 2]
@@ -1248,77 +1576,57 @@ class StringTake(Builtin):
     = b
     >> StringTake["abcd", {2,3}]
     = bc
-    >> StringTake["abcd", {3,2}]
-    = 
-    #> StringTake["abcd",0]
-    = 
+    >> StringTake["abcdefgh", {1, 5, 2}]
+     = ace
+
+    StringTake also supports standard sequence specifications
+    >> StringTake["abcdef", All]
+     = abcdef
+
+    #> StringTake["abcd", 0] // InputForm
+    = ""
+    #> StringTake["abcd", {3, 2}] // InputForm
+    = ""
+    #> StringTake["", {1, 0}] // InputForm
+    = ""
+
+    #> StringTake["abc", {0, 0}]
+    : Cannot take positions 0 through 0 in "abc".
+    = StringTake[abc, {0, 0}]
     """
+
     messages = {
         'strse': 'String expected at position 1.',
         'mseqs': 'Integer or list of two Intergers are expected at position 2.',
         'take': 'Cannot take positions `1` through `2` in "`3`".',
     }
 
-    def apply1_(self, string, n, evaluation):
-        'StringTake[string_,n_Integer]'
-        if not isinstance(string, String):
+    def apply(self, string, seqspec, evaluation):
+        'StringTake[string_, seqspec_]'
+
+        result = string.get_string_value()
+        if result is None:
             return evaluation.message('StringTake', 'strse')
 
-        pos = n.value
-        if pos > len(string.get_string_value()):
-            return evaluation.message('StringTake', 'take', 1, pos, string)
-        if pos < -len(string.get_string_value()):
-            return evaluation.message('StringTake', 'take', pos, -1, string)
-        if pos > 0:
-            return String(string.get_string_value()[:pos])
-        if pos < 0:
-            return String(string.get_string_value()[pos:])
-        if pos == 0:
-            return String("")             # it is what mma does
+        if isinstance(seqspec, Integer):
+            pos = seqspec.get_int_value()
+            if pos >= 0:
+                seq = (1, pos, 1)
+            else:
+                seq = (pos, None, 1)
+        else:
+            seq = convert_seq(seqspec)
 
-    def apply2_(self, string, ni, nf, evaluation):
-        'StringTake[string_,{ni_Integer,nf_Integer}]'
-        if not isinstance(string, String):
-            return evaluation.message('StringTake', 'strse')
+        if seq is None:
+            return evaluation.message('StringTake', 'mseqs')
 
-        if ni.value == 0 or nf.value == 0:
-            return evaluation.message('StringTake', 'take', ni, nf)
-        fullstring = string.get_string_value()
-        lenfullstring = len(fullstring)
-        posi = ni.value
-        if posi < 0:
-            posi = lenfullstring + posi + 1
-        posf = nf.value
-        if posf < 0:
-            posf = lenfullstring + posf + 1
-        if posf > lenfullstring or posi > lenfullstring or posf <= 0 or posi <= 0:
-            # positions out of range
-            return evaluation.message('StringTake', 'take', ni, nf, fullstring)
-        if posf < posi:
-            String("")
-        return String(fullstring[(posi - 1):posf])
+        start, stop, step = seq
+        py_slice = python_seq(start, stop, step, len(result))
 
-    def apply3_(self, string, ni, evaluation):
-        'StringTake[string_,{ni_}]'
-        if not isinstance(string, String):
-            return evaluation.message('StringTake', 'strse')
+        if py_slice is None:
+            return evaluation.message('StringTake', 'take', start, stop, string)
 
-        if ni.value == 0:
-            return evaluation.message('StringTake', 'take', ni, ni)
-        fullstring = string.get_string_value()
-        lenfullstring = len(fullstring)
-        posi = ni.value
-        if posi < 0:
-            posi = lenfullstring + posi + 1
-        if posi > lenfullstring or posi <= 0:
-            return evaluation.message('StringTake', 'take', ni, ni, fullstring)
-        return String(fullstring[(posi - 1):posi])
-
-    def apply4_(self, string, something, evaluation):
-        'StringTake[string_,something___]'
-        if not isinstance(string, String):
-            return evaluation.message('StringTake', 'strse')
-        return evaluation.message('StringTake', 'mseqs')
+        return String(result[py_slice])
 
 
 class StringDrop(Builtin):

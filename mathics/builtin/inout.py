@@ -10,6 +10,8 @@ from __future__ import absolute_import
 import six
 
 import re
+import sympy
+import mpmath
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator)
@@ -18,7 +20,10 @@ from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
-    Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError)
+    Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError,
+    from_python, MachineReal, PrecisionReal)
+from mathics.core.numbers import (
+    dps, prec, convert_base, machine_precision, reconstruct_digits)
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
@@ -93,6 +98,206 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
         leaf = parenthesize(precedence, leaf, leaf_boxes, parenthesized)
         result.append(leaf)
     return Expression('RowBox', Expression('List', *result))
+
+
+def real_to_s_exp(expr, n):
+    if expr.is_zero:
+        s = '0'
+        sign_prefix = ''
+        if expr.is_machine_precision():
+            exp = 0
+        else:
+            p = expr.get_precision()
+            exp = -dps(p)
+        nonnegative = 1
+    else:
+        if n is None:
+            if expr.is_machine_precision():
+                value = expr.get_float_value()
+                s = repr(value)
+            else:
+                with mpmath.workprec(expr.get_precision()):
+                    value = expr.to_mpmath()
+                    s = mpmath.nstr(value, dps(expr.get_precision()) + 1)
+        else:
+            with mpmath.workprec(expr.get_precision()):
+                value = expr.to_mpmath()
+                s = mpmath.nstr(value, n)
+
+        # sign prefix
+        if s[0] == '-':
+            assert value < 0
+            nonnegative = 0
+            s = s[1:]
+        else:
+            assert value >= 0
+            nonnegative = 1
+
+        # exponent (exp is actual, pexp is printed)
+        if 'e' in s:
+            s, exp = s.split('e')
+            exp = int(exp)
+            if len(s) > 1 and s[1] == '.':
+                # str(float) doesn't always include '.' if 'e' is present.
+                s = s[0] + s[2:].rstrip('0')
+        else:
+            exp = s.index('.') - 1
+            s = s[:exp + 1] + s[exp + 2:].rstrip('0')
+
+            # consume leading '0's.
+            i = 0
+            while s[i] == '0':
+                i += 1
+                exp -= 1
+            s = s[i:]
+
+        # add trailing zeros for precision reals
+        if n is not None and not expr.is_machine_precision() and len(s) < n:
+            s = s + '0' * (n - len(s))
+    return s, exp, nonnegative
+
+
+def int_to_s_exp(expr, n):
+    n = expr.get_int_value()
+    if n < 0:
+        nonnegative = 0
+        s = str(-n)
+    else:
+        nonnegative = 1
+        s = str(n)
+    exp = len(s) - 1
+    return s, exp, nonnegative
+
+
+def number_form(expr, n, f, evaluation, options):
+    '''
+    Converts a Real or Integer instance to Boxes.
+
+    n digits of precision with f (can be None) digits after the decimal point.
+    evaluation (can be None) is used for messages.
+
+    The allowed options are python versions of the options permitted to
+    NumberForm and must be supplied. See NumberForm or Real.make_boxes
+    for correct option examples.
+    '''
+
+    assert isinstance(n, int) and n > 0 or n is None
+    assert f is None or (isinstance(f, int) and f >= 0)
+
+    is_int = False
+    if isinstance(expr, Integer):
+        assert n is not None
+        s, exp, nonnegative = int_to_s_exp(expr, n)
+        if f is None:
+            is_int = True
+    elif isinstance(expr, Real):
+        if n is not None:
+            n = min(n, dps(expr.get_precision()) + 1)
+        s, exp, nonnegative = real_to_s_exp(expr, n)
+        if n is None:
+            n = len(s)
+    else:
+        raise ValueError('Expected Real or Integer.')
+
+    assert isinstance(n, int) and n > 0
+
+    sign_prefix = options['NumberSigns'][nonnegative]
+
+    # round exponent to ExponentStep
+    rexp = (exp // options['ExponentStep']) * options['ExponentStep']
+
+    if is_int:
+        # integer never uses scientific notation
+        pexp = ''
+    else:
+        method = options['ExponentFunction']
+        pexp = method(Integer(rexp)).get_int_value()
+        if pexp is not None:
+            exp -= pexp
+            pexp = str(pexp)
+        else:
+            pexp = ''
+
+    # pad right with '0'.
+    if len(s) < exp + 1:
+        if evaluation is not None:
+            evaluation.message('NumberForm', 'sigz')
+        # TODO NumberPadding?
+        s = s + '0' * (1 + exp - len(s))
+    # pad left with '0'.
+    if exp < 0:
+        s = '0' * (-exp) + s
+        exp = 0
+
+    # left and right of NumberPoint
+    left, right = s[:exp + 1], s[exp + 1:]
+
+    def _round(number, ndigits):
+        '''
+        python round() for integers but with correct rounding.
+        e.g. `_round(14225, -1)` is `14230` not `14220`.
+        '''
+        assert isinstance(ndigits, six.integer_types)
+        assert ndigits < 0
+        assert isinstance(number, six.integer_types)
+        assert number >= 0
+        number += 5 * int(10 ** -(1 + ndigits))
+        number //= int(10 ** -ndigits)
+        return number
+
+    # pad with NumberPadding
+    if f is not None:
+        if len(right) < f:
+            # pad right
+            right = right + (f - len(right)) * options['NumberPadding'][1]
+        elif len(right) > f:
+            # round right
+            tmp = int(left + right)
+            tmp = _round(tmp, f - len(right))
+            tmp = str(tmp)
+            left, right = tmp[:exp + 1], tmp[exp + 1:]
+
+    def split_string(s, start, step):
+        if start > 0:
+            yield s[:start]
+        for i in range(start, len(s), step):
+            yield s[i:i+step]
+
+    # insert NumberSeparator
+    digit_block = options['DigitBlock']
+    if digit_block[0] != 0:
+        left = split_string(left, len(left) % digit_block[0], digit_block[0])
+        left = options['NumberSeparator'][0].join(left)
+    if digit_block[1] != 0:
+        right = split_string(right, 0, digit_block[1])
+        right = options['NumberSeparator'][1].join(right)
+
+    left_padding = 0
+    max_sign_len = max(len(options['NumberSigns'][0]), len(options['NumberSigns'][1]))
+    l = len(sign_prefix) + len(left) + len(right) - max_sign_len
+    if l < n:
+        left_padding = n - l
+    elif len(sign_prefix) < max_sign_len:
+        left_padding = max_sign_len - len(sign_prefix)
+    left_padding = left_padding * options['NumberPadding'][0]
+
+    # insert NumberPoint
+    if options['SignPadding']:
+        prefix = sign_prefix + left_padding
+    else:
+        prefix = left_padding + sign_prefix
+
+    if is_int:
+        s = prefix + left
+    else:
+        s = prefix + left + options['NumberPoint'] + right
+
+    # base
+    base = '10'
+
+    # build number
+    method = options['NumberFormat']
+    return method(String(s), String(base), String(pexp), options)
 
 
 class MakeBoxes(Builtin):
@@ -255,15 +460,7 @@ class MakeBoxes(Builtin):
             f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]'''
 
         if expr.is_atom():
-            x = expr
-            if isinstance(x, Symbol):
-                return String(evaluation.definitions.shorten_name(x.name))
-            elif isinstance(x, String):
-                return String('"' + six.text_type(x.value) + '"')
-            elif isinstance(x, (Integer, Real)):
-                return x.make_boxes(f.get_name())
-            elif isinstance(x, (Rational, Complex)):
-                return x.format(evaluation, f.get_name())
+            return expr.atom_to_boxes(f, evaluation)
         else:
             head = expr.head
             leaves = expr.leaves
@@ -302,14 +499,7 @@ class MakeBoxes(Builtin):
         '''MakeBoxes[x_?AtomQ,
             f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]'''
 
-        if isinstance(x, Symbol):
-            return String(evaluation.definitions.shorten_name(x.name))
-        elif isinstance(x, String):
-            return String('"' + x.value + '"')
-        elif isinstance(x, (Integer, Real)):
-            return x.make_boxes(f.get_name())
-        elif isinstance(x, (Rational, Complex)):
-            return x.format(evaluation, f.get_name())
+        return x.atom_to_boxes(f, evaluation)
 
     def apply_outerprecedenceform(self, expr, prec, f, evaluation):
         '''MakeBoxes[OuterPrecedenceForm[expr_, prec_],
@@ -385,7 +575,7 @@ class ToBoxes(Builtin):
 
     Unlike 'MakeBoxes', 'ToBoxes' evaluates its argument:
     >> ToBoxes[a + a]
-     = RowBox[{2, \u2062, a}]
+     = RowBox[{2,  , a}]
 
     >> ToBoxes[a + b]
      = RowBox[{a, +, b}]
@@ -981,12 +1171,25 @@ class Message(Builtin):
 
     attributes = ('HoldFirst',)
 
+    messages = {
+        'name': 'Message name `1` is not of the form symbol::name or symbol::name::language.',
+    }
+
     def apply(self, symbol, tag, params, evaluation):
         'Message[MessageName[symbol_Symbol, tag_String], params___]'
 
         params = params.get_sequence()
         evaluation.message(symbol.name, tag.value, *params)
         return Symbol('Null')
+
+
+def check_message(expr):
+    'checks if an expression is a valid message'
+    if expr.has_form('MessageName', 2):
+        symbol, tag = expr.get_leaves()
+        if symbol.get_name() and tag.get_string_value():
+            return True
+    return False
 
 
 class Quiet(Builtin):
@@ -1041,7 +1244,7 @@ class Quiet(Builtin):
         'Quiet[expr_, moff_, mon_]'
 
         def get_msg_list(expr):
-            if expr.has_form('MessageName', 2):
+            if check_message(expr):
                 expr = Expression('List', expr)
             if expr.get_name() == 'System`All':
                 all = True
@@ -1053,21 +1256,17 @@ class Quiet(Builtin):
                 all = False
                 messages = []
                 for item in expr.leaves:
-                    if item.has_form('MessageName', 2):
-                        symbol = item.leaves[0].get_name()
-                        tag = item.leaves[1].get_string_value()
-                        if symbol and tag:
-                            messages.append((symbol, tag))
-                        else:
-                            raise ValueError
+                    if check_message(item):
+                        messages.append(item)
                     else:
                         raise ValueError
             else:
                 raise ValueError
             return all, messages
 
-        old_quiet_all, old_quiet_messages = \
-            evaluation.quiet_all, evaluation.quiet_messages.copy()
+        old_quiet_all = evaluation.quiet_all
+        old_quiet_messages = set(evaluation.get_quiet_messages())
+        quiet_messages = old_quiet_messages.copy()
         try:
             quiet_expr = Expression('Quiet', expr, moff, mon)
             try:
@@ -1090,22 +1289,111 @@ class Quiet(Builtin):
                     conflict.append(off)
                     break
             if conflict:
-                evaluation.message(
-                    'Quiet', 'conflict', quiet_expr, Expression('List', *(
-                        Expression('MessageName', Symbol(symbol), String(tag))
-                        for symbol, tag in conflict)))
+                evaluation.message('Quiet', 'conflict', quiet_expr, Expression('List', *conflict))
                 return
             for off in off_messages:
-                evaluation.quiet_messages.add(off)
+                quiet_messages.add(off)
             for on in on_messages:
-                evaluation.quiet_messages.discard(on)
+                quiet_messages.discard(on)
             if on_all:
-                evaluation.quiet_messages = set()
+                quiet_messages = set()
+            evaluation.set_quiet_messages(quiet_messages)
 
             return expr.evaluate(evaluation)
         finally:
-            evaluation.quiet_all, evaluation.quiet_messages =\
-                old_quiet_all, old_quiet_messages
+            evaluation.quiet_all = old_quiet_all
+            evaluation.set_quiet_messages(old_quiet_messages)
+
+
+class Off(Builtin):
+    '''
+    <dl>
+    <dt>'Off[$symbol$::$tag$]'
+        <dd>turns a message off so it is no longer printed.
+    </dl>
+
+    >> Off[Power::infy]
+    >> 1 / 0
+     = ComplexInfinity
+
+    >> Off[Power::indet, Syntax::com]
+    >> {0 ^ 0,}
+     = {Indeterminate, Null}
+
+    #> Off[1]
+     :  Message name 1 is not of the form symbol::name or symbol::name::language.
+    #> Off[Message::name, 1]
+
+    #> On[Power::infy, Power::indet, Syntax::com]
+    '''
+
+    attributes = ('HoldAll',)
+
+    def apply(self, expr, evaluation):
+        'Off[expr___]'
+
+        seq = expr.get_sequence()
+        quiet_messages = set(evaluation.get_quiet_messages())
+
+        if not seq:
+            # TODO Off[s::trace] for all symbols
+            return
+
+        for e in seq:
+            if isinstance(e, Symbol):
+                quiet_messages.add(Expression('MessageName', e, String('trace')))
+            elif check_message(e):
+                quiet_messages.add(e)
+            else:
+                evaluation.message('Message', 'name', e)
+            evaluation.set_quiet_messages(quiet_messages)
+
+        return Symbol('Null')
+
+
+class On(Builtin):
+    '''
+    <dl>
+    <dt>'On[$symbol$::$tag$]'
+        <dd>turns a message on for printing.
+    </dl>
+
+    >> Off[Power::infy]
+    >> 1 / 0
+     = ComplexInfinity
+    >> On[Power::infy]
+    >> 1 / 0
+     : Infinite expression 1 / 0 encountered.
+     = ComplexInfinity
+    '''
+
+    # TODO
+    '''
+    #> On[f::x]
+     : Message f::x not found.
+    '''
+
+    attributes = ('HoldAll',)
+
+    def apply(self, expr, evaluation):
+        'On[expr___]'
+
+        seq = expr.get_sequence()
+        quiet_messages = set(evaluation.get_quiet_messages())
+
+        if not seq:
+            # TODO On[s::trace] for all symbols
+            return
+
+        for e in seq:
+            if isinstance(e, Symbol):
+                quiet_messages.discard(Expression('MessageName', e, String('trace')))
+            elif check_message(e):
+                quiet_messages.discard(e)
+            else:
+                evaluation.message('Message', 'name', e)
+            evaluation.set_quiet_messages(quiet_messages)
+        return Symbol('Null')
 
 
 class MessageName(BinaryOperator):
@@ -1311,7 +1599,7 @@ class General(Builtin):
             "Symbol `1` in part assignment does not have an immediate value."),
         'openx': "`1` is not open.",
         'optb': "Optional object `1` in `2` is not a single blank.",
-        'ovfl': "Overflow occured in computation.",
+        'ovfl': "Overflow occurred in computation.",
         'partd': "Part specification is longer than depth of object.",
         'partw': "Part `1` of `2` does not exist.",
         'plld': "Endpoints in `1` must be distinct machine-size real numbers.",
@@ -1340,6 +1628,8 @@ class General(Builtin):
         'invalidargs': "Invalid arguments.",
 
         'notboxes': "`1` is not a valid box structure.",
+
+        'pyimport': "`1`[] is not available. Your Python installation misses the \"`2`\" module.",
     }
 
 
@@ -1458,8 +1748,7 @@ class MathMLForm(Builtin):
      = <math><mi>\u03bc</mi></math>
 
     #> MathMLForm[Graphics[Text["\u03bc"]]]
-     = <math><mtable><mtr><mtd><svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
-     .  version="1.0" width="..." height="..." viewBox="..."><foreignObject x="..." y="..." ox="0.000000" oy="0.000000" style="stroke: none; fill: none; color: rgb(0.000000%, 0.000000%, 0.000000%)"><math><mtext>\u03bc</mtext></math></foreignObject></svg></mtd></mtr></mtable></math>
+     = <math><mglyph width="..." height="..." src="data:image/svg+xml;base64,..."/></math>
 
     ## The <mo> should contain U+2062 INVISIBLE TIMES
     #> MathMLForm[MatrixForm[{{2*a, 0},{0,0}}]]
@@ -1570,3 +1859,534 @@ class Precedence(Builtin):
             else:
                 precedence = 670
         return Real(precedence)
+
+
+class _NumberForm(Builtin):
+    '''
+    Base class for NumberForm, AccountingForm, EngineeringForm, and ScientificForm.
+    '''
+
+    default_ExponentFunction = None
+    default_NumberFormat = None
+
+    messages = {
+        'npad': 'Value for option NumberPadding -> `1` should be a string or a pair of strings.',
+        'dblk': 'Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.',
+        'npt': 'Value for option `1` -> `2` is expected to be a string.',
+        'nsgn': 'Value for option NumberSigns -> `1` should be a pair of strings or two pairs of strings.',
+        'nspr': 'Value for option NumberSeparator -> `1` should be a string or a pair of strings.',
+        'opttf': 'Value of option `1` -> `2` should be True or False.',
+        'estep': 'Value of option `1` -> `2` is not a positive integer.',
+        'iprf': 'Formatting specification `1` should be a positive integer or a pair of positive integers.',    # NumberFormat only
+        'sigz': 'In addition to the number of digits requested, one or more zeros will appear as placeholders.',
+    }
+
+    def check_options(self, options, evaluation):
+        '''
+        Checks options are valid and converts them to python.
+        '''
+        result = {}
+        for option_name in self.options:
+            method = getattr(self, 'check_' + option_name)
+            arg = options['System`' + option_name]
+            value = method(arg, evaluation)
+            if value is None:
+                return None
+            result[option_name] = value
+        return result
+
+    def check_DigitBlock(self, value, evaluation):
+        py_value = value.get_int_value()
+        if value.same(Symbol('Infinity')):
+            return [0, 0]
+        elif py_value is not None and py_value > 0:
+            return [py_value, py_value]
+        elif value.has_form('List', 2):
+            nleft, nright = value.leaves
+            py_left, py_right = nleft.get_int_value(), nright.get_int_value()
+            if nleft.same(Symbol('Infinity')):
+                nleft = 0
+            elif py_left is not None and py_left > 0:
+                nleft = py_left
+            else:
+                nleft = None
+            if nright.same(Symbol('Infinity')):
+                nright = 0
+            elif py_right is not None and py_right > 0:
+                nright = py_right
+            else:
+                nright = None
+            result = [nleft, nright]
+            if None not in result:
+                return result
+        return evaluation.message(self.get_name(), 'dblk', value)
+
+    def check_ExponentFunction(self, value, evaluation):
+        if value.same(Symbol('Automatic')):
+            return self.default_ExponentFunction
+        def exp_function(x):
+            return Expression(value, x).evaluate(evaluation)
+        return exp_function
+
+    def check_NumberFormat(self, value, evaluation):
+        if value.same(Symbol('Automatic')):
+            return self.default_NumberFormat
+        def num_function(man, base, exp, options):
+            return Expression(value, man, base, exp).evaluate(evaluation)
+        return num_function
+
+    def check_NumberMultiplier(self, value, evaluation):
+        result = value.get_string_value()
+        if result is None:
+            evaluation.message(self.get_name(), 'npt', 'NumberMultiplier', value)
+        return result
+
+    def check_NumberPoint(self, value, evaluation):
+        result = value.get_string_value()
+        if result is None:
+            evaluation.message(self.get_name(), 'npt', 'NumberPoint', value)
+        return result
+
+    def check_ExponentStep(self, value, evaluation):
+        result = value.get_int_value()
+        if result is None or result <= 0:
+            return evaluation.message(self.get_name(), 'estep', 'ExponentStep', value)
+        return result
+
+    def check_SignPadding(self, value, evaluation):
+        if value.same(Symbol('True')):
+            return True
+        elif value.same(Symbol('False')):
+            return False
+        return evaluation.message(self.get_name(), 'opttf', value)
+
+    def _check_List2str(self, value, msg, evaluation):
+        if value.has_form('List', 2):
+            result = [leaf.get_string_value() for leaf in value.leaves]
+            if None not in result:
+                return result
+        return evaluation.message(self.get_name(), msg, value)
+
+    def check_NumberSigns(self, value, evaluation):
+        return self._check_List2str(value, 'nsgn', evaluation)
+
+    def check_NumberPadding(self, value, evaluation):
+        return self._check_List2str(value, 'npad', evaluation)
+
+    def check_NumberSeparator(self, value, evaluation):
+        py_str = value.get_string_value()
+        if py_str is not None:
+            return [py_str, py_str]
+        return self._check_List2str(value, 'nspr', evaluation)
+
+
+class NumberForm(_NumberForm):
+    '''
+    <dl>
+    <dt>'NumberForm[$expr$, $n$]'
+        <dd>prints a real number $expr$ with $n$-digits of precision.
+    <dt>'NumberForm[$expr$, {$n$, $f$}]'
+        <dd>prints with $n$-digits and $f$ digits to the right of the decimal point.
+    </dl>
+
+    >> NumberForm[N[Pi], 10]
+     = 3.141592654
+
+    >> NumberForm[N[Pi], {10, 5}]
+     = 3.14159
+
+
+    ## Undocumented edge cases
+    #> NumberForm[Pi, 20]
+     = Pi
+    #> NumberForm[2/3, 10]
+     = 2 / 3
+
+    ## No n or f
+    #> NumberForm[N[Pi]]
+     = 3.14159
+    #> NumberForm[N[Pi, 20]]
+     = 3.1415926535897932385
+    #> NumberForm[14310983091809]
+     = 14310983091809
+
+    ## Zero case
+    #> z0 = 0.0;
+    #> z1 = 0.0000000000000000000000000000;
+    #> NumberForm[{z0, z1}, 10]
+     = {0., 0.×10^-28}
+    #> NumberForm[{z0, z1}, {10, 4}]
+     = {0.0000, 0.0000×10^-28}
+
+    ## Trailing zeros
+    #> NumberForm[1.0, 10]
+     = 1.
+    #> NumberForm[1.000000000000000000000000, 10]
+     = 1.000000000
+    #> NumberForm[1.0, {10, 8}]
+     = 1.00000000
+    #> NumberForm[N[Pi, 33], 33]
+     = 3.14159265358979323846264338327950
+
+    ## Correct rounding - see sympy/issues/11472
+    #> NumberForm[0.645658509, 6]
+     = 0.645659
+    #> NumberForm[N[1/7], 30]
+     = 0.1428571428571428
+
+    ## Integer case
+    #> NumberForm[{0, 2, -415, 83515161451}, 5]
+     = {0, 2, -415, 83515161451}
+    #> NumberForm[{2^123, 2^123.}, 4, ExponentFunction -> ((#1) &)]
+     = {10633823966279326983230456482242756608, 1.063×10^37}
+    #> NumberForm[{0, 10, -512}, {10, 3}]
+     = {0.000, 10.000, -512.000}
+
+    ## Check arguments
+    #> NumberForm[1.5, -4]
+     : Formatting specification -4 should be a positive integer or a pair of positive integers.
+     = 1.5
+    #> NumberForm[1.5, {1.5, 2}]
+     : Formatting specification {1.5, 2} should be a positive integer or a pair of positive integers.
+     = 1.5
+    #> NumberForm[1.5, {1, 2.5}]
+     : Formatting specification {1, 2.5} should be a positive integer or a pair of positive integers.
+     = 1.5
+
+    ## Right padding
+    #> NumberForm[153., 2]
+     : In addition to the number of digits requested, one or more zeros will appear as placeholders.
+     = 150.
+    #> NumberForm[0.00125, 1]
+     = 0.001
+    #> NumberForm[10^5 N[Pi], {5, 3}]
+     : In addition to the number of digits requested, one or more zeros will appear as placeholders.
+     = 314160.000
+    #> NumberForm[10^5 N[Pi], {6, 3}]
+     = 314159.000
+    #> NumberForm[10^5 N[Pi], {6, 10}]
+     = 314159.0000000000
+    #> NumberForm[1.0000000000000000000, 10, NumberPadding -> {"X", "Y"}]
+     = X1.000000000
+
+    ## Check options
+
+    ## DigitBlock
+    #> NumberForm[12345.123456789, 14, DigitBlock -> 3]
+     = 12,345.123 456 789
+    #> NumberForm[12345.12345678, 14, DigitBlock -> 3]
+     = 12,345.123 456 78
+    #> NumberForm[N[10^ 5 Pi], 15, DigitBlock -> {4, 2}]
+     = 31,4159.26 53 58 97 9
+    #> NumberForm[1.2345, 3, DigitBlock -> -4]
+     : Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.
+     = 1.2345
+    #> NumberForm[1.2345, 3, DigitBlock -> x]
+     : Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.
+     = 1.2345
+    #> NumberForm[1.2345, 3, DigitBlock -> {x, 3}]
+     : Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.
+     = 1.2345
+    #> NumberForm[1.2345, 3, DigitBlock -> {5, -3}]
+     : Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.
+     = 1.2345
+
+    ## ExponentFunction
+    #> NumberForm[12345.123456789, 14, ExponentFunction -> ((#) &)]
+     = 1.2345123456789×10^4
+    #> NumberForm[12345.123456789, 14, ExponentFunction -> (Null&)]
+     = 12345.123456789
+    #> y = N[Pi^Range[-20, 40, 15]];
+    #> NumberForm[y, 10, ExponentFunction -> (3 Quotient[#, 3] &)]
+     =  {114.0256472×10^-12, 3.267763643×10^-3, 93.64804748×10^3, 2.683779414×10^12, 76.91214221×10^18}
+    #> NumberForm[y, 10, ExponentFunction -> (Null &)]
+     : In addition to the number of digits requested, one or more zeros will appear as placeholders.
+     : In addition to the number of digits requested, one or more zeros will appear as placeholders.
+     = {0.0000000001140256472, 0.003267763643, 93648.04748, 2683779414000., 76912142210000000000.}
+
+    ## ExponentStep
+    #> NumberForm[10^8 N[Pi], 10, ExponentStep -> 3]
+     = 314.1592654×10^6
+    #> NumberForm[1.2345, 3, ExponentStep -> x]
+     : Value of option ExponentStep -> x is not a positive integer.
+     = 1.2345
+    #> NumberForm[1.2345, 3, ExponentStep -> 0]
+     : Value of option ExponentStep -> 0 is not a positive integer.
+     = 1.2345
+    #> NumberForm[y, 10, ExponentStep -> 6]
+     = {114.0256472×10^-12, 3267.763643×10^-6, 93648.04748, 2.683779414×10^12, 76.91214221×10^18}
+
+    ## NumberFormat
+    #> NumberForm[y, 10, NumberFormat -> (#1 &)]
+     = {1.140256472, 0.003267763643, 93648.04748, 2.683779414, 7.691214221}
+
+    ## NumberMultiplier
+    #> NumberForm[1.2345, 3, NumberMultiplier -> 0]
+     : Value for option NumberMultiplier -> 0 is expected to be a string.
+     = 1.2345
+    #> NumberForm[N[10^ 7 Pi], 15, NumberMultiplier -> "*"]
+     = 3.14159265358979*10^7
+
+    ## NumberPoint
+    #> NumberForm[1.2345, 5, NumberPoint -> ","]
+     = 1,2345
+    #> NumberForm[1.2345, 3, NumberPoint -> 0]
+     : Value for option NumberPoint -> 0 is expected to be a string.
+     = 1.2345
+
+    ## NumberPadding
+    #> NumberForm[1.41, {10, 5}]
+     = 1.41000
+    #> NumberForm[1.41, {10, 5}, NumberPadding -> {"", "X"}]
+     = 1.41XXX
+    #> NumberForm[1.41, {10, 5}, NumberPadding -> {"X", "Y"}]
+     = XXXXX1.41YYY
+    #> NumberForm[1.41, 10, NumberPadding -> {"X", "Y"}]
+     = XXXXXXXX1.41
+    #> NumberForm[1.2345, 3, NumberPadding -> 0]
+     :  Value for option NumberPadding -> 0 should be a string or a pair of strings.
+     = 1.2345
+    #> NumberForm[1.41, 10, NumberPadding -> {"X", "Y"}, NumberSigns -> {"-------------", ""}]
+     = XXXXXXXXXXXXXXXXXXXX1.41
+    #> NumberForm[{1., -1., 2.5, -2.5}, {4, 6}, NumberPadding->{"X", "Y"}]
+     = {X1.YYYYYY, -1.YYYYYY, X2.5YYYYY, -2.5YYYYY}
+
+    ## NumberSeparator
+    #> NumberForm[N[10^ 5 Pi], 15, DigitBlock -> 3, NumberSeparator -> " "]
+     = 314 159.265 358 979
+    #> NumberForm[N[10^ 5 Pi], 15, DigitBlock -> 3, NumberSeparator -> {" ", ","}]
+     = 314 159.265,358,979
+    #> NumberForm[N[10^ 5 Pi], 15, DigitBlock -> 3, NumberSeparator -> {",", " "}]
+     = 314,159.265 358 979
+    #> NumberForm[N[10^ 7 Pi], 15, DigitBlock -> 3, NumberSeparator -> {",", " "}]
+     = 3.141 592 653 589 79×10^7
+    #> NumberForm[1.2345, 3, NumberSeparator -> 0]
+     :  Value for option NumberSeparator -> 0 should be a string or a pair of strings.
+     = 1.2345
+
+    ## NumberSigns
+    #> NumberForm[1.2345, 5, NumberSigns -> {"-", "+"}]
+     = +1.2345
+    #> NumberForm[-1.2345, 5, NumberSigns -> {"- ", ""}]
+     = - 1.2345
+    #> NumberForm[1.2345, 3, NumberSigns -> 0]
+     : Value for option NumberSigns -> 0 should be a pair of strings or two pairs of strings.
+     = 1.2345
+
+    ## SignPadding
+    #> NumberForm[1.234, 6, SignPadding -> True, NumberPadding -> {"X", "Y"}]
+     = XXX1.234
+    #> NumberForm[-1.234, 6, SignPadding -> True, NumberPadding -> {"X", "Y"}]
+     = -XX1.234
+    #> NumberForm[-1.234, 6, SignPadding -> False, NumberPadding -> {"X", "Y"}]
+     = XX-1.234
+    #> NumberForm[-1.234, {6, 4}, SignPadding -> False, NumberPadding -> {"X", "Y"}]
+     = X-1.234Y
+
+    ## 1-arg, Option case
+    #> NumberForm[34, ExponentFunction->(Null&)]
+     = 34
+
+    ## zero padding integer x0.0 case
+    #> NumberForm[50.0, {5, 1}]
+     = 50.0
+    #> NumberForm[50, {5, 1}]
+     = 50.0
+
+    ## Rounding correctly
+    #> NumberForm[43.157, {10, 1}]
+     = 43.2
+    #> NumberForm[43.15752525, {10, 5}, NumberSeparator -> ",", DigitBlock -> 1]
+     = 4,3.1,5,7,5,3
+    #> NumberForm[80.96, {16, 1}]
+     = 81.0
+    #> NumberForm[142.25, {10, 1}]
+     = 142.3
+    '''
+
+    options = {
+        'DigitBlock': 'Infinity',
+        'ExponentFunction': 'Automatic',
+        'ExponentStep': '1',
+        'NumberFormat': 'Automatic',
+        'NumberMultiplier': '"×"',
+        'NumberPadding': '{"", "0"}',
+        'NumberPoint': '"."',
+        'NumberSeparator': '{",", " "}',
+        'NumberSigns': '{"-", ""}',
+        'SignPadding': 'False',
+    }
+
+    @staticmethod
+    def default_ExponentFunction(value):
+        n = value.get_int_value()
+        if -5 <= n <= 5:
+            return Symbol('Null')
+        else:
+            return value
+
+    @staticmethod
+    def default_NumberFormat(man, base, exp, options):
+        py_exp = exp.get_string_value()
+        if py_exp:
+            mul = String(options['NumberMultiplier'])
+            return Expression('RowBox', Expression('List', man, mul, Expression('SuperscriptBox', base, exp)))
+        else:
+            return man
+
+    def apply_list_n(self, expr, n, evaluation, options):
+        'NumberForm[expr_?ListQ, n_, OptionsPattern[NumberForm]]'
+        options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
+        return Expression('List', *[Expression('NumberForm', leaf, n, *options) for leaf in expr.leaves])
+
+    def apply_list_nf(self, expr, n, f, evaluation, options):
+        'NumberForm[expr_?ListQ, {n_, f_}, OptionsPattern[NumberForm]]'
+        options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
+        return Expression('List', *[Expression('NumberForm', leaf, Expression('List', n, f), *options) for leaf in expr.leaves])
+
+    def apply_makeboxes(self, expr, form, evaluation, options={}):
+        '''MakeBoxes[NumberForm[expr_, OptionsPattern[NumberForm]],
+            form:StandardForm|TraditionalForm|OutputForm]'''
+
+        fallback = Expression('MakeBoxes', expr, form)
+
+        py_options = self.check_options(options, evaluation)
+        if py_options is None:
+            return fallback
+
+        if isinstance(expr, Integer):
+            py_n = len(str(abs(expr.get_int_value())))
+        elif isinstance(expr, Real):
+            if expr.is_machine_precision():
+                py_n = 6
+            else:
+                py_n = dps(expr.get_precision())
+        else:
+            py_n = None
+
+        if py_n is not None:
+            return number_form(expr, py_n, None, evaluation, py_options)
+        return Expression('MakeBoxes', expr, form)
+
+    def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
+        '''MakeBoxes[NumberForm[expr_, n_?NotOptionQ, OptionsPattern[NumberForm]],
+            form:StandardForm|TraditionalForm|OutputForm]'''
+
+        fallback = Expression('MakeBoxes', expr, form)
+
+        py_n = n.get_int_value()
+        if py_n is None or py_n <= 0:
+            evaluation.message('NumberForm', 'iprf', n)
+            return fallback
+
+        py_options = self.check_options(options, evaluation)
+        if py_options is None:
+            return fallback
+
+        if isinstance(expr, (Integer, Real)):
+            return number_form(expr, py_n, None, evaluation, py_options)
+        return Expression('MakeBoxes', expr, form)
+
+    def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
+        '''MakeBoxes[NumberForm[expr_, {n_, f_}, OptionsPattern[NumberForm]],
+            form:StandardForm|TraditionalForm|OutputForm]'''
+
+        fallback = Expression('MakeBoxes', expr, form)
+
+        nf = Expression('List', n, f)
+        py_n = n.get_int_value()
+        py_f = f.get_int_value()
+        if py_n is None or py_n <= 0 or py_f is None or py_f < 0:
+            evaluation.message('NumberForm', 'iprf', nf)
+            return fallback
+
+        py_options = self.check_options(options, evaluation)
+        if py_options is None:
+            return fallback
+
+        if isinstance(expr, (Integer, Real)):
+            return number_form(expr, py_n, py_f, evaluation, py_options)
+        return Expression('MakeBoxes', expr, form)
+
+
+class BaseForm(Builtin):
+    """
+    <dl>
+    <dt>'BaseForm[$expr$, $n$]'
+        <dd>prints numbers in $expr$ in base $n$.
+    </dl>
+
+    >> BaseForm[33, 2]
+     = 100001_2
+
+    >> BaseForm[234, 16]
+     = ea_16
+
+    >> BaseForm[12.3, 2]
+     = 1100.01001100110011001_2
+
+    >> BaseForm[-42, 16]
+     = -2a_16
+
+    >> BaseForm[x, 2]
+     = x
+
+    >> BaseForm[12, 3] // FullForm
+     = BaseForm[12, 3]
+
+    Bases must be between 2 and 36:
+    >> BaseForm[12, -3]
+     : Positive machine-sized integer expected at position 2 in BaseForm[12, -3].
+     : MakeBoxes[BaseForm[12, -3], OutputForm] is not a valid box structure.
+    >> BaseForm[12, 100]
+     : Requested base 100 must be between 2 and 36.
+     : MakeBoxes[BaseForm[12, 100], OutputForm] is not a valid box structure.
+
+    #> BaseForm[0, 2]
+     = 0_2
+    #> BaseForm[0.0, 2]
+     = 0.0_2
+
+    #> BaseForm[N[Pi, 30], 16]
+     = 3.243f6a8885a308d313198a2e_16
+    """
+
+    messages = {
+        'intpm': (
+            "Positive machine-sized integer expected at position 2 in "
+            "BaseForm[`1`, `2`]."),
+        'basf': "Requested base `1` must be between 2 and 36.",
+    }
+
+    def apply_makeboxes(self, expr, n, f, evaluation):
+        '''MakeBoxes[BaseForm[expr_, n_],
+            f:StandardForm|TraditionalForm|OutputForm]'''
+
+        base = n.get_int_value()
+
+        if base <= 0:
+            evaluation.message('BaseForm', 'intpm', expr, n)
+            return
+
+        if isinstance(expr, PrecisionReal):
+            x = expr.to_sympy()
+            p = reconstruct_digits(expr.get_precision())
+        elif isinstance(expr, MachineReal):
+            x = expr.get_float_value()
+            p = reconstruct_digits(machine_precision)
+        elif isinstance(expr, Integer):
+            x = expr.get_int_value()
+            p = 0
+        else:
+            return Expression("MakeBoxes", expr, f)
+
+        try:
+            val = convert_base(x, base, p)
+        except ValueError:
+            return evaluation.message('BaseForm', 'basf', n)
+
+        if f.get_name() == 'System`OutputForm':
+            return from_python("%s_%d" % (val, base))
+        else:
+            return Expression(
+                'SubscriptBox', String(val), String(base))

@@ -70,3 +70,4 @@ script:
     fi
 notifications:
     email: false
+    slack: mathics:VIjdkcZPlA79sOtVOtyjdOcT

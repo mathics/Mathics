@@ -14,7 +14,7 @@ from six.moves import zip
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, from_python
 from mathics.core.evaluation import (
-    AbortInterrupt, BreakInterrupt, ContinueInterrupt)
+    AbortInterrupt, BreakInterrupt, ContinueInterrupt, ReturnInterrupt)
 from mathics.builtin.lists import _IterationFunction
 from mathics.builtin.patterns import match
 
@@ -70,6 +70,10 @@ class CompoundExpression(BinaryOperator):
 
     #> CompoundExpression[]
     #> %
+
+    ## Issue 531
+    #> z = Max[1, 1 + x]; x = 2; z
+     = 3
     """
 
     operator = ';'
@@ -168,6 +172,12 @@ class Switch(Builtin):
 
     #> a; Switch[b, b]
      : Switch called with 2 arguments. Switch must be called with an odd number of arguments.
+     = Switch[b, b]
+
+    ## Issue 531
+    #> z = Switch[b, b];
+     : Switch called with 2 arguments. Switch must be called with an odd number of arguments.
+    #> z
      = Switch[b, b]
     """
 
@@ -308,6 +318,12 @@ class For(Builtin):
      = 3628800
     >> n == 10!
      = True
+
+    #> n := 1
+    #> For[i=1, i<=10, i=i+1, If[i > 5, Return[i]]; n = n * i]
+     = 6
+    #> n
+     = 120
     """
 
     attributes = ('HoldRest',)
@@ -331,6 +347,8 @@ class For(Builtin):
                     pass
             except BreakInterrupt:
                 break
+            except ReturnInterrupt as e:
+                return e.expr
         return Symbol('Null')
 
 
@@ -348,6 +366,9 @@ class While(Builtin):
     >> While[b != 0, {a, b} = {b, Mod[a, b]}];
     >> a
      = 3
+
+    #> i = 1; While[True, If[i^2 > 100, Return[i + 1], i++]]
+     = 12
     """
 
     attributes = ('HoldAll',)
@@ -366,6 +387,8 @@ class While(Builtin):
                 pass
             except BreakInterrupt:
                 break
+            except ReturnInterrupt as e:
+                return e.expr
         return Symbol('Null')
 
 
@@ -481,7 +504,7 @@ class FixedPoint(Builtin):
     </dl>
 
     >> FixedPoint[Cos, 1.0]
-     = 0.739085133215160639
+     = 0.739085
 
     >> FixedPoint[#+1 &, 1, 20]
      = 21
@@ -492,7 +515,7 @@ class FixedPoint(Builtin):
      : Non-negative integer expected.
      = FixedPoint[f, x, -1]
     #> FixedPoint[Cos, 1.0, Infinity]
-     = 0.739085133215160639
+     = 0.739085
     """
 
     def apply(self, f, expr, n, evaluation):
@@ -529,12 +552,12 @@ class FixedPointList(Builtin):
     </dl>
 
     >> FixedPointList[Cos, 1.0, 4]
-     = {1., 0.540302305868139717, 0.857553215846393416, 0.65428979049777915, 0.793480358742565592}
+     = {1., 0.540302, 0.857553, 0.65429, 0.79348}
 
     Observe the convergence of Newton's method for approximating square roots:
     >> newton[n_] := FixedPointList[.5(# + n/#) &, 1.];
     >> newton[9]
-     = {1., 5., 3.4, 3.02352941176470588, 3.00009155413138018, 3.00000000139698386, 3.00000000000000001, 3.}
+     = {1., 5., 3.4, 3.02353, 3.00009, 3., 3., 3.}
 
     Plot the "hailstone" sequence of a number:
     >> collatz[1] := 1;
@@ -551,7 +574,7 @@ class FixedPointList(Builtin):
      : Non-negative integer expected.
      = FixedPointList[f, x, -1]
     #> Last[FixedPointList[Cos, 1.0, Infinity]]
-     = 0.739085133215160639
+     = 0.739085
     """
 
     def apply(self, f, expr, n, evaluation):
@@ -599,8 +622,48 @@ class Abort(Builtin):
 
         raise AbortInterrupt
 
-# class Return(Builtin):
-#    pass
+
+class Return(Builtin):
+    '''
+    <dl>
+    <dt>'Return[$expr$]'
+      <dd>aborts a function call and returns $expr$.
+    </dl>
+
+    >> f[x_] := (If[x < 0, Return[0]]; x)
+    >> f[-1]
+     = 0
+
+    >> Do[If[i > 3, Return[]]; Print[i], {i, 10}]
+     | 1
+     | 2
+     | 3
+
+    'Return' only exits from the innermost control flow construct.
+    >> g[x_] := (Do[If[x < 0, Return[0]], {i, {2, 1, 0, -1}}]; x)
+    >> g[-1]
+     = -1
+
+    #> h[x_] := (If[x < 0, Return[]]; x)
+    #> h[1]
+     = 1
+    #> h[-1]
+
+    ## Issue 513
+    #> f[x_] := Return[x];
+    #> g[y_] := Module[{}, z = f[y]; 2]
+    #> g[1]
+     = 2
+    '''
+
+    rules = {
+        'Return[]': 'Return[Null]',
+    }
+
+    def apply(self, expr, evaluation):
+        'Return[expr_]'
+
+        raise ReturnInterrupt(expr)
 
 
 class Break(Builtin):

@@ -34,7 +34,8 @@ class TimeoutInterrupt(EvaluationInterrupt):
 
 
 class ReturnInterrupt(EvaluationInterrupt):
-    pass
+    def __init__(self, expr):
+        self.expr = expr
 
 
 class BreakInterrupt(EvaluationInterrupt):
@@ -95,7 +96,7 @@ class Message(Out):
         self.text = text
 
     def __str__(self):
-        return ' : ' + self.text
+        return '{}::{}: {}'.format(self.symbol, self.tag, self.text)
 
     def __eq__(self, other):
         return self.is_message == other.is_message and self.text == other.text
@@ -143,9 +144,23 @@ class Result(object):
         }
 
 
+class Output(object):
+    def max_stored_size(self, settings):
+        return settings.MAX_STORED_SIZE
+
+    def out(self, out):
+        pass
+
+    def clear(self, wait):
+        raise NotImplementedError
+
+    def display(self, data, metadata):
+        raise NotImplementedError
+
+
 class Evaluation(object):
     def __init__(self, definitions=None,
-                 out_callback=None, format='text', catch_interrupt=True):
+                 output=None, format='text', catch_interrupt=True):
         from mathics.core.definitions import Definitions
 
         if definitions is None:
@@ -155,13 +170,12 @@ class Evaluation(object):
         self.timeout = False
         self.stopped = False
         self.out = []
-        self.out_callback = out_callback
+        self.output = output if output else Output()
         self.listeners = {}
         self.options = None
         self.predetermined_out = None
 
         self.quiet_all = False
-        self.quiet_messages = set()
         self.format = format
         self.catch_interrupt = catch_interrupt
 
@@ -221,7 +235,7 @@ class Evaluation(object):
                 self.definitions.add_rule('Out', Rule(
                     Expression('Out', line_no), stored_result))
             if result != Symbol('Null'):
-                return self.format_output(result)
+                return self.format_output(result, self.format)
             else:
                 return None
         try:
@@ -256,9 +270,12 @@ class Evaluation(object):
                 exc_result = Symbol('$Aborted')
             except AbortInterrupt:  # , error:
                 exc_result = Symbol('$Aborted')
+            except ReturnInterrupt as ret:
+                exc_result = ret.expr
             if exc_result is not None:
                 self.recursion_depth = 0
-                result = self.format_output(exc_result)
+                if exc_result != Symbol('Null'):
+                    result = self.format_output(exc_result, self.format)
 
             result = Result(self.out, result, line_no)
             self.out = []
@@ -285,23 +302,31 @@ class Evaluation(object):
 
         # Prevent too large results from being stored, as this can exceed the
         # DB's max_allowed_packet size
-        data = pickle.dumps(result)
-        if len(data) > 10000:
-            return Symbol('Null')
+        max_stored_size = self.output.max_stored_size(settings)
+        if max_stored_size is not None:
+            data = pickle.dumps(result)
+            if len(data) > max_stored_size:
+                return Symbol('Null')
         return result
 
     def stop(self):
         self.stopped = True
 
-    def format_output(self, expr):
+    def format_output(self, expr, format=None):
+        if format is None:
+            format = self.format
+
+        if isinstance(format, dict):
+            return dict((k, self.format_output(expr, f)) for k, f in format.items())
+
         from mathics.core.expression import Expression, BoxError
 
-        if self.format == 'text':
+        if format == 'text':
             result = expr.format(self, 'System`OutputForm')
-        elif self.format == 'xml':
+        elif format == 'xml':
             result = Expression(
                 'StandardForm', expr).format(self, 'System`MathMLForm')
-        elif self.format == 'tex':
+        elif format == 'tex':
             result = Expression('StandardForm', expr).format(
                 self, 'System`TeXForm')
         else:
@@ -314,6 +339,23 @@ class Evaluation(object):
             boxes = None
         return boxes
 
+    def set_quiet_messages(self, messages):
+        from mathics.core.expression import Expression, String
+        value = Expression('List', *messages)
+        self.definitions.set_ownvalue('Internal`$QuietMessages', value)
+
+    def get_quiet_messages(self):
+        from mathics.core.expression import Expression
+        value = self.definitions.get_definition('Internal`$QuietMessages').ownvalues
+        if value:
+            try:
+                value = value[0].replace
+            except AttributeError:
+                return []
+        if not isinstance(value, Expression):
+            return []
+        return value.leaves
+
     def message(self, symbol, tag, *args):
         from mathics.core.expression import (String, Symbol, Expression,
                                              from_python)
@@ -321,8 +363,11 @@ class Evaluation(object):
         # Allow evaluation.message('MyBuiltin', ...) (assume
         # System`MyBuiltin)
         symbol = ensure_context(symbol)
+        quiet_messages = set(self.get_quiet_messages())
 
-        if (symbol, tag) in self.quiet_messages or self.quiet_all:
+        pattern = Expression('MessageName', Symbol(symbol), String(tag))
+
+        if pattern in quiet_messages or self.quiet_all:
             return
 
         # Shorten the symbol's name according to the current context
@@ -334,7 +379,6 @@ class Evaluation(object):
         if settings.DEBUG_PRINT:
             print('MESSAGE: %s::%s (%s)' % (symbol_shortname, tag, args))
 
-        pattern = Expression('MessageName', Symbol(symbol), String(tag))
         text = self.definitions.get_value(
             symbol, 'System`Messages', pattern, self)
         if text is None:
@@ -346,20 +390,18 @@ class Evaluation(object):
             text = String("Message %s::%s not found." % (symbol_shortname, tag))
 
         text = self.format_output(Expression(
-            'StringForm', text, *(from_python(arg) for arg in args)))
+            'StringForm', text, *(from_python(arg) for arg in args)), 'text')
 
         self.out.append(Message(symbol_shortname, tag, text))
-        if self.out_callback:
-            self.out_callback(self.out[-1])
+        self.output.out(self.out[-1])
 
     def print_out(self, text):
         from mathics.core.expression import from_python
 
-        text = self.format_output(from_python(text))
+        text = self.format_output(from_python(text), 'text')
 
         self.out.append(Print(text))
-        if self.out_callback:
-            self.out_callback(self.out[-1])
+        self.output.out(self.out[-1])
         if settings.DEBUG_PRINT:
             print('OUT: ' + text)
 

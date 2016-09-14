@@ -17,6 +17,7 @@ from mathics.core.expression import Expression, Integer, Number
 from mathics.core.convert import (
     sympy_symbol_prefix, SympyExpression, from_sympy)
 from mathics.core.rules import Pattern
+from mathics.core.numbers import dps
 from mathics.builtin.scoping import dynamic_scoping
 
 import sympy
@@ -308,11 +309,13 @@ class Derivative(PostfixOperator, SympyFunction):
         except AttributeError:
             pass
 
-        if len(exprs) != 4 or not all(len(expr.leaves) >= 1
+        if len(exprs) != 4 or not all(len(exp.leaves) >= 1
                                       for exp in exprs[:3]):
             return
 
         sym_x = exprs[0].leaves[0].to_sympy()
+        if sym_x is None:
+            return
         func = exprs[1].leaves[0]
         sym_func = sympy.Function(str(
             sympy_symbol_prefix + func.__str__()))(sym_x)
@@ -375,9 +378,12 @@ class Integrate(SympyFunction):
      = Integrate[sin[x], x]
 
     #> Integrate[x ^ 3.5 + x, x]
-     = x ^ 2 / 2 + 0.222222222222222222 x ^ 4.5
+     = x ^ 2 / 2 + 0.222222 x ^ 4.5
 
-    #> Integrate[Abs[Sin[phi]],{phi,0,2Pi}]//N
+    Sometimes there is a loss of precision during integration
+    >> Integrate[Abs[Sin[phi]],{phi,0,2Pi}]//N
+     = 4.000
+    >> % // Precision
      = 4.
 
     #> Integrate[1/(x^5+1), x]
@@ -457,7 +463,7 @@ class Integrate(SympyFunction):
         'Integrate[f_, xs__]'
 
         f_sympy = f.to_sympy()
-        if isinstance(f_sympy, SympyExpression):
+        if f_sympy is None or isinstance(f_sympy, SympyExpression):
             return
         xs = xs.get_sequence()
         vars = []
@@ -473,12 +479,16 @@ class Integrate(SympyFunction):
                         prec = prec_new
                 a = a.to_sympy()
                 b = b.to_sympy()
+                if a is None or b is None:
+                    return
             else:
                 a = b = None
             if not x.get_name():
                 evaluation.message('Integrate', 'ilim')
                 return
             x = x.to_sympy()
+            if x is None:
+                return
             if a is None or b is None:
                 vars.append(x)
             else:
@@ -495,8 +505,9 @@ class Integrate(SympyFunction):
             # -sign(_Mathics_User_j)*sign(_Mathics_User_w)
             return
 
-        if prec is not None:
-            result = sympy.N(result)
+        if prec is not None and isinstance(result, sympy.Integral):
+            # TODO MaxExtaPrecision -> maxn
+            result = result.evalf(dps(prec))
         result = from_sympy(result)
         return result
 
@@ -653,6 +664,8 @@ class Solve(Builtin):
                 left, right = eq.leaves
                 left = left.to_sympy()
                 right = right.to_sympy()
+                if left is None or right is None:
+                    return
                 eq = left - right
                 eq = sympy.together(eq)
                 eq = sympy.cancel(eq)
@@ -661,6 +674,8 @@ class Solve(Builtin):
                 sympy_denoms.append(denom)
 
         vars_sympy = [var.to_sympy() for var in vars]
+        if None in vars_sympy:
+            return
 
         # delete unused variables to avoid SymPy's
         # PolynomialError: Not a zero-dimensional system
@@ -793,6 +808,10 @@ class Limit(Builtin):
 
     #> Limit[(1 + cos[x]) / x, x -> 0]
      = Limit[(1 + cos[x]) / x, x -> 0]
+
+    #> Limit[x, x -> x0, Direction -> x]
+     : Value of Direction -> x should be -1 or 1.
+     = Limit[x, x -> x0, Direction -> x]
     """
 
     attributes = ('Listable',)
@@ -812,14 +831,17 @@ class Limit(Builtin):
         x = x.to_sympy()
         x0 = x0.to_sympy()
 
+        if expr is None or x is None or x0 is None:
+            return
+
         direction = self.get_option(options, 'Direction', evaluation)
         value = direction.get_int_value()
-        if value not in (-1, 1):
-            evaluation.message('Limit', 'ldir', direction)
-        if value > 0:
+        if value == -1:
+            dir_sympy = '+'
+        elif value == 1:
             dir_sympy = '-'
         else:
-            dir_sympy = '+'
+            return evaluation.message('Limit', 'ldir', direction)
 
         try:
             result = sympy.limit(expr, x, x0, dir_sympy)
@@ -850,18 +872,18 @@ class FindRoot(Builtin):
     'FindRoot' uses Newton\'s method, so the function of interest should have a first derivative.
 
     >> FindRoot[Cos[x], {x, 1}]
-     = {x -> 1.57079632679489662}
+     = {x -> 1.5708}
     >> FindRoot[Sin[x] + Exp[x],{x, 0}]
-     = {x -> -0.588532743981861077}
+     = {x -> -0.588533}
 
     >> FindRoot[Sin[x] + Exp[x] == Pi,{x, 0}]
-     = {x -> 0.866815239911458064}
+     = {x -> 0.866815}
 
     'FindRoot' has attribute 'HoldAll' and effectively uses 'Block' to localize $x$.
     However, in the result $x$ will eventually still be replaced by its value.
     >> x = 3;
     >> FindRoot[Tan[x] + Sin[x] == Pi, {x, 1}]
-     = {3 -> 1.14911295431426855}
+     = {3 -> 1.14911}
     >> Clear[x]
 
     'FindRoot' stops after 100 iterations:
@@ -871,7 +893,7 @@ class FindRoot(Builtin):
 
     Find complex roots:
     >> FindRoot[x ^ 2 + x + 1, {x, -I}]
-     = {x -> -0.5 - 0.866025403784438647 I}
+     = {x -> -0.5 - 0.866025 I}
 
     The function has to return numerical values:
     >> FindRoot[f[x] == 0, {x, 0}]

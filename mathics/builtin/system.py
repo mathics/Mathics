@@ -8,6 +8,8 @@ System functions
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
+import sys
+
 from mathics.core.expression import Expression, String, strip_context
 from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
@@ -101,3 +103,41 @@ class Failed(Predefined):
     """
 
     name = '$Failed'
+
+
+class CommandLine(Predefined):
+    '''
+    <dl>
+    <dt>'$CommandLine'
+      <dd>is a list of strings passed on the command line to launch the Mathics session.
+    </dl>
+    >> $CommandLine
+     = {...}
+    '''
+
+    name = '$CommandLine'
+
+    def evaluate(self, evaluation):
+        return Expression('List', *(String(arg) for arg in sys.argv))
+
+
+class ScriptCommandLine(Predefined):
+    '''
+    <dl>
+    <dt>'$ScriptCommandLine'
+      <dd>is a list of string arguments when running the kernel is script mode.
+    </dl>
+    >> $ScriptCommandLine
+     = {...}
+    '''
+
+    name = '$ScriptCommandLine'
+
+    def evaluate(self, evaluation):
+        try:
+            dash_index = sys.argv.index('--')
+        except ValueError:
+            # not run in script mode
+            return Expression('List')
+
+        return Expression('List', *(String(arg) for arg in sys.argv[dash_index + 1:]))

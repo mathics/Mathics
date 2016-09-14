@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import re
 import sympy
 from functools import total_ordering
+import importlib
 
 from mathics.core.definitions import Definition
 from mathics.core.rules import Rule, BuiltinRule, Pattern
@@ -99,7 +100,9 @@ class Builtin(object):
                 if form not in formatvalues:
                     formatvalues[form] = []
                 if not isinstance(pattern, BaseExpression):
+                    pattern = pattern % {'name': name}
                     pattern = parse_builtin_rule(pattern)
+                replace = replace % {'name': name}
                 formatvalues[form].append(Rule(
                     pattern, parse_builtin_rule(replace), system=True))
         for form, formatrules in formatvalues.items():
@@ -146,11 +149,13 @@ class Builtin(object):
             makeboxes_def.add_rule(rule)
 
     @classmethod
-    def get_name(cls):
+    def get_name(cls, short=False):
         if cls.name is None:
             shortname = cls.__name__
         else:
             shortname = cls.name
+        if short:
+            return shortname
         return cls.context + shortname
 
     def get_operator(self):
@@ -162,6 +167,7 @@ class Builtin(object):
     def get_functions(self, prefix='apply'):
         from mathics.core.parser import parse_builtin_rule
 
+        unavailable_function = self._get_unavailable_function()
         for name in dir(self):
             if name.startswith(prefix):
                 function = getattr(self, name)
@@ -177,6 +183,8 @@ class Builtin(object):
                     attrs = []
                 pattern = pattern % {'name': self.get_name()}
                 pattern = parse_builtin_rule(pattern)
+                if unavailable_function:
+                    function = unavailable_function
                 if attrs:
                     yield (attrs, pattern), function
                 else:
@@ -190,6 +198,31 @@ class Builtin(object):
         else:
             return None
 
+    def _get_unavailable_function(self):
+        requires = getattr(self, 'requires', [])
+
+        for package in requires:
+            try:
+                importlib.import_module(package)
+            except ImportError:
+                def apply(**kwargs):  # will override apply method
+                    kwargs['evaluation'].message(
+                        'General', 'pyimport',  # see inout.py
+                        strip_context(self.get_name()), package)
+
+                return apply
+
+        return None
+
+    def get_option_string(self, *params):
+        s = self.get_option(*params)
+        if isinstance(s, String):
+            return s.get_string_value(), s
+        elif isinstance(s, Symbol):
+            for prefix in ('Global`', 'System`'):
+                if s.get_name().startswith(prefix):
+                    return s.get_name()[len(prefix):], s
+        return None, s
 
 class InstancableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):
@@ -216,6 +249,16 @@ class InstancableBuiltin(Builtin):
         pass
 
 
+class AtomBuiltin(Builtin):
+    # allows us to define apply functions, rules, messages, etc. for Atoms
+    # which are by default not in the definitions' contribution pipeline.
+    # see Image[] for an example of this.
+
+    def get_name(self):
+        name = super(AtomBuiltin, self).get_name()
+        return re.sub(r"Atom$", "", name)
+
+
 class Operator(Builtin):
     operator = None
     precedence = None
@@ -232,15 +275,6 @@ class Operator(Builtin):
             return self.operator_display
         else:
             return self.operator
-
-    def is_binary(self):
-        return False
-
-    def is_prefix(self):
-        return False
-
-    def is_postfix(self):
-        return False
 
 
 class Predefined(Builtin):
@@ -271,16 +305,10 @@ class PrefixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PrefixOperator, self).__init__('Prefix', *args, **kwargs)
 
-    def is_prefix(self):
-        return True
-
 
 class PostfixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PostfixOperator, self).__init__('Postfix', *args, **kwargs)
-
-    def is_postfix(self):
-        return True
 
 
 class BinaryOperator(Operator):
@@ -319,9 +347,6 @@ class BinaryOperator(Operator):
             default_rules.update(self.rules)
             self.rules = default_rules
 
-    def is_binary(self):
-        return True
-
 
 class Test(Builtin):
     def apply(self, expr, evaluation):
@@ -354,12 +379,20 @@ class SympyFunction(SympyObject):
     def prepare_sympy(self, leaves):
         return leaves
 
+    def get_sympy_function(self, leaves):
+        if self.sympy_name:
+            return getattr(sympy, self.sympy_name)
+        return None
+
     def to_sympy(self, expr, **kwargs):
         try:
             if self.sympy_name:
                 leaves = self.prepare_sympy(expr.leaves)
-                return getattr(sympy, self.sympy_name)(*(
-                    leaf.to_sympy(**kwargs) for leaf in leaves))
+                sympy_args = [leaf.to_sympy(**kwargs) for leaf in leaves]
+                if None in sympy_args:
+                    return None
+                sympy_function = self.get_sympy_function(leaves)
+                return sympy_function(*sympy_args)
         except TypeError:
             pass
 

@@ -16,7 +16,7 @@ from math import sin, cos, pi, sqrt, isnan, isinf
 import numbers
 import itertools
 
-from mathics.core.expression import (Expression, Real, NumberError, Symbol,
+from mathics.core.expression import (Expression, Real, Symbol,
                                      String, from_python)
 from mathics.builtin.base import Builtin
 from mathics.builtin.scoping import dynamic_scoping
@@ -124,7 +124,7 @@ class Axis(Builtin):
 
 def extract_pyreal(value):
     if isinstance(value, Real):
-        return chop(value).get_real_value()
+        return chop(value).round_to_float()
     return None
 
 
@@ -258,19 +258,13 @@ class _Plot(Builtin):
         functions = self.get_functions_param(functions)
         x_name = x.get_name()
 
-        try:
-            start = start.to_number(n_evaluation=evaluation)
-        except NumberError:
-            evaluation.message(self.get_name(), 'plln', start, expr)
-            return
-        try:
-            stop = stop.to_number(n_evaluation=evaluation)
-        except NumberError:
-            evaluation.message(self.get_name(), 'plln', stop, expr)
-            return
-        if start >= stop:
-            evaluation.message(self.get_name(), 'plld', expr_limits)
-            return
+        py_start = start.round_to_float(evaluation)
+        py_stop = stop.round_to_float(evaluation)
+        if py_start is None or py_stop is None:
+            return evaluation.message(self.get_name(), 'plln', stop, expr)
+        if py_start >= py_stop:
+            return evaluation.message(self.get_name(), 'plld', expr_limits)
+        start, stop = py_start, py_stop
 
         # PlotRange Option
         def check_range(range):
@@ -736,11 +730,10 @@ class _Plot3D(Builtin):
         plot_name = self.get_name()
 
         def convert_limit(value, limits):
-            try:
-                return value.to_number(n_evaluation=evaluation)
-            except NumberError:
+            result = value.round_to_float(evaluation)
+            if result is None:
                 evaluation.message(plot_name, 'plln', value, limits)
-                return None
+            return result
 
         xstart = convert_limit(xstart, xexpr_limits)
         xstop = convert_limit(xstop, xexpr_limits)
@@ -818,7 +811,7 @@ class _Plot3D(Builtin):
                     # value = dynamic_scoping(
                     #    f.evaluate, {x: Real(x_value), y: Real(y_value)},
                     #    evaluation)
-                    # value = chop(value).get_real_value()
+                    # value = chop(value).get_float_value()
                     if value is not None:
                         value = float(value)
                     stored[(x_value, y_value)] = value
@@ -1501,18 +1494,16 @@ class DensityPlot(_Plot3D):
                 'ColorData',
                 color_function.get_string_value()).evaluate(evaluation)
             if func.has_form('ColorDataFunction', 4):
-                color_function_min = func.leaves[2].leaves[0].get_real_value()
-                color_function_max = func.leaves[2].leaves[1].get_real_value()
+                color_function_min = func.leaves[2].leaves[0].round_to_float()
+                color_function_max = func.leaves[2].leaves[1].round_to_float()
                 color_function = Expression('Function', Expression(
                     func.leaves[3], Expression('Slot', 1)))
             else:
                 evaluation.message('DensityPlot', 'color', func)
                 return
         if color_function.has_form('ColorDataFunction', 4):
-            color_function_min = \
-                color_function.leaves[2].leaves[0].get_real_value()
-            color_function_max = \
-                color_function.leaves[2].leaves[1].get_real_value()
+            color_function_min = color_function.leaves[2].leaves[0].round_to_float()
+            color_function_max = color_function.leaves[2].leaves[1].round_to_float()
 
         color_function_scaling = color_function_scaling.is_true()
         v_range = v_max - v_min

@@ -220,6 +220,30 @@ class _SetOperator(object):
             else:
                 evaluation.message(lhs_name, 'cxlist', rhs)
                 return False
+        elif lhs_name == 'System`$MinPrecision':
+            # $MinPrecision = Infinity is not allowed
+            if rhs_int_value is not None and rhs_int_value >= 0:
+                ignore_protection = True
+                max_prec = evaluation.definitions.get_config_value('$MaxPrecision')
+                if max_prec is not None and max_prec < rhs_int_value:
+                    evaluation.message('$MinPrecision', 'preccon', Symbol('$MinPrecision'))
+                    return True
+            else:
+                evaluation.message(lhs_name, 'precset', lhs, rhs)
+                return False
+        elif lhs_name == 'System`$MaxPrecision':
+            if rhs.has_form('DirectedInfinity', 1) and rhs.leaves[0].get_int_value() == 1:
+                ignore_protection = True
+            elif rhs_int_value is not None and rhs_int_value > 0:
+                ignore_protection = True
+                min_prec = evaluation.definitions.get_config_value('$MinPrecision')
+                if min_prec is not None and rhs_int_value < min_prec:
+                    evaluation.message('$MaxPrecision', 'preccon', Symbol('$MaxPrecision'))
+                    ignore_protection = True
+                    return True
+            else:
+                evaluation.message(lhs_name, 'precset', lhs, rhs)
+                return False
 
         rhs_name = rhs.get_head_name()
         if rhs_name == 'System`Condition':
@@ -360,6 +384,8 @@ class Set(BinaryOperator, _SetOperator):
     >> B[[1;;2, 2;;-1]] = {{t, u}, {y, z}};
     >> B
      = {{1, t, u}, {4, y, z}, {7, 8, 9}}
+
+    #> x = Infinity;
     """
 
     operator = '='

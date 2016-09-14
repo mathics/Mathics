@@ -202,11 +202,11 @@ function translateDOMElement(element, svg) {
 		drawGraphics3D(div, data);
 		dom = div;
 	}
-	if (nodeName == 'svg' || nodeName == 'graphics3d') {
+	if (nodeName == 'svg' || nodeName == 'graphics3d' || nodeName.toLowerCase() == 'img') {
 		// create <mspace> that will contain the graphics
 		object = createMathNode('mspace');
 		var width, height;
-		if (nodeName == 'svg') {
+		if (nodeName == 'svg' || nodeName.toLowerCase() == 'img') {
 			width = dom.getAttribute('width');
 			height = dom.getAttribute('height');
 		} else {
@@ -274,10 +274,38 @@ function translateDOMElement(element, svg) {
 	return dom;
 }
 
+function convertMathGlyphs(dom) {
+    // convert mglyphs to their classic representation (<svg> or <img>), so the new mglyph logic does not make
+    // anything worse in the classic Mathics frontend for now. In the long run, this code should vanish.
+
+    var MML = "http://www.w3.org/1998/Math/MathML";
+    var glyphs = dom.getElementsByTagName("mglyph");
+    for (var i = 0; i < glyphs.length; i++) {
+        var glyph = glyphs[i];
+        var src = glyph.getAttribute('src');
+        if (src.startsWith('data:image/svg+xml;base64,')) {
+            var svgText = atob(src.substring(src.indexOf(",") + 1));
+            var mtable =document.createElementNS(MML, "mtable");
+            mtable.innerHTML = '<mtr><mtd>' + svgText + '</mtd></mtr>';
+            var svg = mtable.getElementsByTagNameNS("*", "svg")[0];
+            svg.setAttribute('width', glyph.getAttribute('width'));
+            svg.setAttribute('height', glyph.getAttribute('height'));
+            glyph.parentNode.replaceChild(mtable, glyph);
+        } else if (src.startsWith('data:image/')) {
+            var img = document.createElement('img');
+            img.setAttribute('src', src)
+            img.setAttribute('width', glyph.getAttribute('width'));
+            img.setAttribute('height', glyph.getAttribute('height'));
+            glyph.parentNode.replaceChild(img, glyph);
+        }
+    }
+}
+
 function createLine(value) {
 	if (value.startsWith('<math')) {
 		var dom = document.createElement('div');
 		dom.updateDOM(value);
+		convertMathGlyphs(dom);
 		return translateDOMElement(dom.childNodes[0]);
 	} else {
 		var lines = value.split('\n');
@@ -365,7 +393,7 @@ function submitQuery(textarea, onfinish) {
 		onSuccess: function(transport) {
 			textarea.ul.select('li[class!=request][class!=submitbutton]').invoke('deleteElement');
 			if (!transport.responseText) {
-				// A fatal Python error has occured, e.g. on 4.4329408320439^43214234345
+				// A fatal Python error has occurred, e.g. on 4.4329408320439^43214234345
 				// ("Fatal Python error: mp_reallocate failure")
 				// -> print overflow message
 				transport.responseText = '{"results": [{"out": [{"prefix": "General::noserver", "message": true, "tag": "noserver", "symbol": "General", "text": "<math><mrow><mtext>No server running.</mtext></mrow></math>"}]}]}';
@@ -501,7 +529,7 @@ function createQuery(before, noFocus, updatingAll) {
 	var li = $E('li', {'id': 'query_' + queryIndex++, 'class': 'query'},
 		ul = $E('ul', {'class': 'query'},
 			$E('li', {'class': 'request'},
-				textarea = $E('textarea', {'class': 'request'}),
+				textarea = $E('textarea', {'class': 'request', 'spellcheck': 'false'}),
 				$E('span', {'class': 'submitbutton', 'title': "Submit [Shift+Return]"},
 					submitButton = $E('span', $T('='))
 				)

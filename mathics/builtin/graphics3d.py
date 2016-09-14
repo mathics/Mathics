@@ -13,7 +13,7 @@ from six.moves import map
 from six.moves import range
 
 import numbers
-from mathics.core.expression import (Expression, NumberError, from_python,
+from mathics.core.expression import (Expression, from_python,
                                      system_symbols_dict)
 from mathics.builtin.base import BoxConstructError, Builtin, InstancableBuiltin
 from .graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
@@ -27,9 +27,11 @@ from django.utils.html import escape as escape_html
 
 def coords3D(value):
     if value.has_form('List', 3):
-        return (value.leaves[0].to_number(),
-                value.leaves[1].to_number(),
-                value.leaves[2].to_number())
+        result = (value.leaves[0].round_to_float(),
+                  value.leaves[1].round_to_float(),
+                  value.leaves[2].round_to_float())
+        if None not in result:
+            return result
     raise CoordinatesError
 
 
@@ -106,7 +108,7 @@ class Graphics3D(Graphics):
      . size(6.6667cm, 6.6667cm);
      . currentprojection=perspective(2.6,-4.8,4.0);
      . currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
-     . path3 g=(0,1,0)--(0.20791,0.97815,0)--(0.40674,0.91355,0)--(0.58779,0.80902,0)--(0.74314,0.66913,0)--(0.86603,0.5,0)--(0.95106,0.30902,0)--(0.99452,0.10453,0)--(0.99452,-0.10453,0)--(0.95106,-0.30902,0)--(0.86603,-0.5,0)--(0.74314,-0.66913,0)--(0.58779,-0.80902,0)--(0.40674,-0.91355,0)--(0.20791,-0.97815,0)--(-1.568e-18,-1,0)--(-0.20791,-0.97815,0)--(-0.40674,-0.91355,0)--(-0.58779,-0.80902,0)--(-0.74314,-0.66913,0)--(-0.86603,-0.5,0)--(-0.95106,-0.30902,0)--(-0.99452,-0.10453,0)--(-0.99452,0.10453,0)--(-0.95106,0.30902,0)--(-0.86603,0.5,0)--(-0.74314,0.66913,0)--(-0.58779,0.80902,0)--(-0.40674,0.91355,0)--(-0.20791,0.97815,0)--(1.2677e-17,1,0)--cycle;dot(g, rgb(0, 0, 0));
+     . path3 g=(0,1,0)--(0.20791,0.97815,0)--(0.40674,0.91355,0)--(0.58779,0.80902,0)--(0.74314,0.66913,0)--(0.86603,0.5,0)--(0.95106,0.30902,0)--(0.99452,0.10453,0)--(0.99452,-0.10453,0)--(0.95106,-0.30902,0)--(0.86603,-0.5,0)--(0.74314,-0.66913,0)--(0.58779,-0.80902,0)--(0.40674,-0.91355,0)--(0.20791,-0.97815,0)--(5.6655e-16,-1,0)--(-0.20791,-0.97815,0)--(-0.40674,-0.91355,0)--(-0.58779,-0.80902,0)--(-0.74314,-0.66913,0)--(-0.86603,-0.5,0)--(-0.95106,-0.30902,0)--(-0.99452,-0.10453,0)--(-0.99452,0.10453,0)--(-0.95106,0.30902,0)--(-0.86603,0.5,0)--(-0.74314,0.66913,0)--(-0.58779,0.80902,0)--(-0.40674,0.91355,0)--(-0.20791,0.97815,0)--(1.5314e-15,1,0)--cycle;dot(g, rgb(0, 0, 0));
      . draw(((-0.99452,-1,-1)--(0.99452,-1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
      . draw(((-0.99452,1,-1)--(0.99452,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
      . draw(((-0.99452,-1,1)--(0.99452,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
@@ -292,10 +294,7 @@ class Graphics3DBox(GraphicsBox):
         if not isinstance(plot_range, list) or len(plot_range) != 3:
             raise BoxConstructError
 
-        try:
-            elements = Graphics3DElements(leaves[0], evaluation)
-        except NumberError:
-            raise BoxConstructError
+        elements = Graphics3DElements(leaves[0], evaluation)
 
         def calc_dimensions(final_pass=True):
             if 'System`Automatic' in plot_range:
@@ -899,18 +898,13 @@ class Cuboid(Builtin):
     def apply_full(self, xmin, ymin, zmin, xmax, ymax, zmax, evaluation):
         'Cuboid[{xmin_, ymin_, zmin_}, {xmax_, ymax_, zmax_}]'
 
-        try:
-            xmin, ymin, zmin = [value.to_number(n_evaluation=evaluation)
-                                for value in (xmin, ymin, zmin)]
-            xmax, ymax, zmax = [value.to_number(n_evaluation=evaluation)
-                                for value in (xmax, ymax, zmax)]
-        except NumberError:
-            # TODO
-            return
+        xmin, ymin, zmin = [value.round_to_float(evaluation) for value in (xmin, ymin, zmin)]
+        xmax, ymax, zmax = [value.round_to_float(evaluation) for value in (xmax, ymax, zmax)]
+        if None in (xmin, ymin, zmin, xmax, ymax, zmax):
+            return  # TODO
 
         if (xmax <= xmin) or (ymax <= ymin) or (zmax <= zmin):
-            # TODO
-            return
+            return  # TODO
 
         polygons = [
             # X
@@ -970,12 +964,11 @@ class Cuboid(Builtin):
 
     def apply_min(self, xmin, ymin, zmin, evaluation):
         'Cuboid[{xmin_, ymin_, zmin_}]'
-        try:
-            xmin, ymin, zmin = [value.to_number(
-                n_evaluation=evaluation) for value in (xmin, ymin, zmin)]
-        except NumberError:
-            # TODO
-            return
+        xmin, ymin, zmin = [value.round_to_float(evaluation)
+                            for value in (xmin, ymin, zmin)]
+        if None in (xmin, ymin, zmin):
+            return  # TODO
+
         (xmax, ymax, zmax) = (from_python(value + 1)
                               for value in (xmin, ymin, zmin))
         (xmin, ymin, zmin) = (from_python(value)

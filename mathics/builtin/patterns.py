@@ -40,6 +40,7 @@ from six.moves import range
 
 from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
 from mathics.builtin.base import PatternObject
+from mathics.builtin.lists import python_levelspec, InvalidLevelspecError
 
 from mathics.core.expression import (
     Symbol, Expression, Number, Integer, Rational, Real)
@@ -128,6 +129,88 @@ def create_rules(rules_expr, expr, name, evaluation, extra_args=[]):
         return result, False
 
 
+class Replace(Builtin):
+    """
+    <dl>
+    <dt>'Replace[$expr$, $x$ -> $y$]'
+        <dd>yields the result of replacing $expr$ with $y$ if it
+        matches the pattern $x$.
+    <dt>'Replace[$expr$, $x$ -> $y$, $levelspec$]'
+        <dd>replaces only subexpressions at levels specified through
+        $levelspec$.
+    <dt>'Replace[$expr$, {$x$ -> $y$, ...}]'
+        <dd>performs replacement with multiple rules, yielding a
+        single result expression.
+    <dt>'Replace[$expr$, {{$a$ -> $b$, ...}, {$c$ -> $d$, ...}, ...}]'
+        <dd>returns a list containing the result of performing each
+        set of replacements.
+    </dl>
+
+    >> Replace[x, {x -> 2}]
+     = 2
+
+    By default, only the top level is searched for matches
+    >> Replace[1 + x, {x -> 2}]
+     = 1 + x
+
+    >> Replace[x, {{x -> 1}, {x -> 2}}]
+     = {1, 2}
+
+    Replace stops after the first replacement
+    >> Replace[x, {x -> {}, _List -> y}]
+     = {}
+
+    Replace replaces the deepest levels first
+    >> Replace[x[1], {x[1] -> y, 1 -> 2}, All]
+     = x[2]
+
+    By default, heads are not replaced
+    >> Replace[x[x[y]], x -> z, All]
+     = x[x[y]]
+
+    Heads can be replaced using the Heads option
+    >> Replace[x[x[y]], x -> z, All, Heads -> True]
+     = z[z[y]]
+
+    Note that heads are handled at the level of leaves
+    >> Replace[x[x[y]], x -> z, {1}, Heads -> True]
+     = z[x[y]]
+
+    You can use Replace as an operator
+    >> Replace[{x_ -> x + 1}][10]
+     = 11
+    """
+
+    messages = {
+        'reps': "`1` is not a valid replacement rule.",
+        'rmix': "Elements of `1` are a mixture of lists and nonlists.",
+    }
+
+    rules = {
+        'Replace[rules_][expr_]': 'Replace[expr, rules]',
+    }
+
+    options = {
+        'Heads': 'False',
+    }
+
+    def apply_levelspec(self, expr, rules, ls, evaluation, options):
+        'Replace[expr_, rules_, Optional[Pattern[ls, _?LevelQ], {0}], OptionsPattern[Replace]]'
+        try:
+            rules, ret = create_rules(rules, expr, 'Replace', evaluation)
+            if ret:
+                return rules
+
+            heads = self.get_option(options, 'Heads', evaluation).is_true()
+
+            result, applied = expr.apply_rules(
+                rules, evaluation, level=0, options={
+                    'levelspec': python_levelspec(ls), 'heads': heads})
+            return result
+        except InvalidLevelspecError:
+            evaluation.message('General', 'level', ls)
+
+
 class ReplaceAll(BinaryOperator):
     """
     <dl>
@@ -159,8 +242,16 @@ class ReplaceAll(BinaryOperator):
      : Elements of {{a -> x, b -> y}, a -> w, b -> z} are a mixture of lists and nonlists.
      = {{a, b} /. {{a -> x, b -> y}, a -> w, b -> z}, {u, v}}
 
+    ReplaceAll also can be used as an operator:
+    >> ReplaceAll[{a -> 1}][{a, b}]
+     = {1, b}
+
     #> a + b /. x_ + y_ -> {x, y}
      = {a, b}
+
+    ReplaceAll replaces the shallowest levels first:
+    >> ReplaceAll[x[1], {x[1] -> y, 1 -> 2}]
+     = y
     """
 
     operator = '/.'
@@ -171,6 +262,10 @@ class ReplaceAll(BinaryOperator):
     messages = {
         'reps': "`1` is not a valid replacement rule.",
         'rmix': "Elements of `1` are a mixture of lists and nonlists.",
+    }
+
+    rules = {
+        'ReplaceAll[rules_][expr_]': 'ReplaceAll[expr, rules]',
     }
 
     def apply(self, expr, rules, evaluation):
@@ -477,19 +572,26 @@ class Except(PatternObject):
             self.p.match(yield_func, expression, vars, evaluation)
 
 
+class Matcher(object):
+    def __init__(self, form):
+        self.form = Pattern.create(form)
+
+    def match(self, expr, evaluation):
+        class StopGenerator_MatchQ(StopGenerator):
+            pass
+
+        def yield_func(vars, rest):
+            raise StopGenerator_MatchQ(Symbol("True"))
+
+        try:
+            self.form.match(yield_func, expr, {}, evaluation)
+        except StopGenerator_MatchQ:
+            return True
+        return False
+
+
 def match(expr, form, evaluation):
-    class StopGenerator_MatchQ(StopGenerator):
-        pass
-
-    form = Pattern.create(form)
-
-    def yield_func(vars, rest):
-        raise StopGenerator_MatchQ(Symbol("True"))
-    try:
-        form.match(yield_func, expr, {}, evaluation)
-    except StopGenerator_MatchQ:
-        return True
-    return False
+    return Matcher(form).match(expr, evaluation)
 
 
 class MatchQ(Builtin):
@@ -503,7 +605,13 @@ class MatchQ(Builtin):
      = True
     >> MatchQ[123, _Real]
      = False
+    >> MatchQ[_Integer][123]
+     = True
     """
+
+    rules = {
+        'MatchQ[form_][expr_]': 'MatchQ[expr, form]',
+    }
 
     def apply(self, expr, form, evaluation):
         'MatchQ[expr_, form_]'
@@ -636,7 +744,7 @@ class Pattern_(PatternObject):
     formats = {
         'Verbatim[Pattern][symbol_, '
         'pattern_?(!MatchQ[#, _Blank|_BlankSequence|_BlankNullSequence]&)]': (
-            'Infix[{symbol, pattern}, ":", 140]'),
+            'Infix[{symbol, pattern}, ":", 150, Left]'),
     }
 
     def init(self, expr):
@@ -709,6 +817,15 @@ class Optional(BinaryOperator, PatternObject):
     >> Default[h, k_] := k
     >> h[a] /. h[x_, y_.] -> {x, y}
      = {a, 2}
+
+    #> a:b:c
+     = a : b : c
+    #> FullForm[a:b:c]
+     = Optional[Pattern[a, b], c]
+    #> (a:b):c
+     = a : b : c
+    #> a:(b:c)
+     = a : (b : c)
     """
 
     operator = ':'
@@ -723,7 +840,7 @@ class Optional(BinaryOperator, PatternObject):
     }
 
     formats = {
-        'Verbatim[Optional][pattern_Pattern, default_]': 'Infix[{HoldForm[pattern], HoldForm[default]}, ":", 150]',
+        'Verbatim[Optional][pattern_Pattern, default_]': 'Infix[{HoldForm[pattern], HoldForm[default]}, ":", 140, Right]',
     }
 
     arg_counts = [1, 2]
