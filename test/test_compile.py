@@ -69,6 +69,14 @@ class ArithmeticTest(unittest.TestCase):
     def test_pow(self):
         self._test_binary_math('Power', mpmath.power)
 
+    def test_hyperbolics(self):
+        self._test_unary_math('Sinh', mpmath.sinh)
+        self._test_unary_math('Cosh', mpmath.cosh)
+        self._test_unary_math('Tanh', mpmath.tanh)
+        self._test_unary_math('Csch', mpmath.csch)
+        self._test_unary_math('Sech', mpmath.sech)
+        self._test_unary_math('Coth', mpmath.coth)
+
     def test_div0(self):
         expr = Expression('Power', Symbol('x'), Symbol('y'))
         args = [MathicsArg('System`x', real_type), MathicsArg('System`y', real_type)]

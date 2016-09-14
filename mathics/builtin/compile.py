@@ -189,6 +189,50 @@ def _gen_ir(expr, lookup_args, builder):
     elif expr.has_form('Max', 1, None):
         if ret_type == real_type:
             return reduce(lambda arg1, arg2: call_fp_intr(builder, 'llvm.maxnum', [arg1, arg2]), args)
+    elif expr.has_form('Sinh', 1) and ret_type == real_type:
+        # FIXME this approach is inaccurate
+        # Sinh[x] = (Exp[x] - Exp[-x]) / 2
+        a = call_fp_intr(builder, 'llvm.exp', args)
+        negx = builder.fsub(real_type(0.0), args[0])
+        b = call_fp_intr(builder, 'llvm.exp', [negx])
+        c = builder.fsub(a, b)
+        return builder.fmul(c, real_type(0.5))
+    elif expr.has_form('Cosh', 1) and ret_type == real_type:
+        # FIXME this approach is inaccurate
+        # Cosh[x] = (Exp[x] + Exp[-x]) / 2
+        a = call_fp_intr(builder, 'llvm.exp', args)
+        negx = builder.fsub(real_type(0.0), args[0])
+        b = call_fp_intr(builder, 'llvm.exp', [negx])
+        c = builder.fadd(a, b)
+        return builder.fmul(c, real_type(0.5))
+    elif expr.has_form('Tanh', 1) and ret_type == real_type:
+        # FIXME this approach is inaccurate
+        # Tanh[x] = (Exp[x] - Exp[-x]) / (Exp[x] + Exp[-x])
+        a = call_fp_intr(builder, 'llvm.exp', args)
+        negx = builder.fsub(real_type(0.0), args[0])
+        b = call_fp_intr(builder, 'llvm.exp', [negx])
+        return builder.fdiv(builder.fsub(a, b), builder.fadd(a, b))
+    elif expr.has_form('Sech', 1) and ret_type == real_type:
+        # FIXME this approach is inaccurate
+        # Sech[x] = 2 / (Exp[x] - Exp[-x])
+        a = call_fp_intr(builder, 'llvm.exp', args)
+        negx = builder.fsub(real_type(0.0), args[0])
+        b = call_fp_intr(builder, 'llvm.exp', [negx])
+        return builder.fdiv(real_type(2.0), builder.fadd(a, b))
+    elif expr.has_form('Csch', 1) and ret_type == real_type:
+        # FIXME this approach is inaccurate
+        # Csch[x] = 2 / (Exp[x] + Exp[-x])
+        a = call_fp_intr(builder, 'llvm.exp', args)
+        negx = builder.fsub(real_type(0.0), args[0])
+        b = call_fp_intr(builder, 'llvm.exp', [negx])
+        return builder.fdiv(real_type(2.0), builder.fsub(a, b))
+    elif expr.has_form('Coth', 1) and ret_type == real_type:
+        # FIXME this approach is inaccurate
+        # Coth[x] = (Exp[x] + Exp[-x]) / (Exp[x] - Exp[-x])
+        a = call_fp_intr(builder, 'llvm.exp', args)
+        negx = builder.fsub(real_type(0.0), args[0])
+        b = call_fp_intr(builder, 'llvm.exp', [negx])
+        return builder.fdiv(builder.fadd(a, b), builder.fsub(a, b))
     elif expr.has_form('Equal', 2, None):
         result = []
         for lhs, rhs in pairwise(args):
