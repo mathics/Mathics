@@ -155,6 +155,39 @@ class FlowControlTest(unittest.TestCase):
         self.assertFalse(cfunc(True, False, True))
         self.assertFalse(cfunc(False, True, False))
 
+    def test_return(self):
+        expr = Expression('Return', Symbol('x'))
+        args = [MathicsArg('System`x', int_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(1), 1)
+
+    def test_if_return1(self):
+        expr = Expression('If', Symbol('x'), Expression('Return', Symbol('y')), Integer(3))
+        args = [MathicsArg('System`x', bool_type), MathicsArg('System`y', int_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(True, 1), 1)
+        self.assertEqual(cfunc(False, 1), 3)
+
+    def test_if_return2(self):
+        expr = Expression('If', Symbol('x'), Expression('Return', Symbol('y')), Expression('Return', Integer(3)))
+        args = [MathicsArg('System`x', bool_type), MathicsArg('System`y', int_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(True, 1), 1)
+        self.assertEqual(cfunc(False, 1), 3)
+
+    def test_if_return3(self):
+        expr = Expression('If', Symbol('x'), Symbol('y'), Expression('Return', Integer(3)))
+        args = [MathicsArg('System`x', bool_type), MathicsArg('System`y', int_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(True, 1), 1)
+        self.assertEqual(cfunc(False, 1), 3)
+
+    def test_expr_return(self):
+        expr = Expression('Plus', Integer(3), Expression('Return', Symbol('x')))
+        args = [MathicsArg('System`x', int_type)]
+        cfunc = _compile(expr, args)
+        self.assertEqual(cfunc(1), 1)
+        self.assertEqual(cfunc(4), 4)
 
 class ComparisonTest(unittest.TestCase):
     def test_int_equal(self):

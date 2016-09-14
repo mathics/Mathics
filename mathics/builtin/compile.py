@@ -18,6 +18,7 @@ class CompilationError(Exception):
 int_type = ir.IntType(64)
 real_type = ir.DoubleType()
 bool_type = ir.IntType(1)
+void_type = ir.VoidType()
 
 
 class MathicsArg(object):
@@ -51,14 +52,18 @@ def generate_ir(expr, args, func_name, known_ret_type=None):
     ir_code = _gen_ir(expr, lookup_args, builder)
 
     # if the return isn't correct then try again
-    if known_ret_type is None and ir_code.type != ret_type:
-        return generate_ir(expr, args, func_name, ir_code.type)
+    if known_ret_type is None:
+        if ir_code.type == void_type:
+            return generate_ir(expr, args, func_name, lookup_args['_result'])
+        elif ir_code.type != ret_type:
+            return generate_ir(expr, args, func_name, ir_code.type)
 
-    # type was known or guessed correctly
-    assert ir_code.type == ret_type
-
-    builder.ret(ir_code)
+    if ir_code.type != void_type:
+        # type was known or guessed correctly
+        assert ir_code.type == ret_type
+        builder.ret(ir_code)
     return str(module), ret_type
+
 
 
 def call_fp_intr(builder, name, args):
@@ -127,7 +132,6 @@ def _gen_ir(expr, lookup_args, builder):
         # construct new blocks
         then_block = builder.append_basic_block()
         else_block = builder.append_basic_block()
-        cont_block = builder.append_basic_block()
 
         # branch to then or else block
         builder.cbranch(cond, then_block, else_block)
@@ -139,7 +143,10 @@ def _gen_ir(expr, lookup_args, builder):
             else_result = _gen_ir(args[2], lookup_args, builder)
 
         # type check both blocks - determine resulting type
-        if then_result.type == else_result.type:
+        if then_result.type == void_type and else_result.type == void_type:
+            # both blocks terminate so no continuation block
+            return then_result
+        elif then_result.type == else_result.type:
             ret_type = then_result.type
         elif then_result.type == int_type and else_result.type == real_type:
             builder.position_at_end(then_block)
@@ -149,23 +156,35 @@ def _gen_ir(expr, lookup_args, builder):
             builder.position_at_end(else_block)
             else_result = builder.sitofp(else_result, real_type)
             ret_type = real_type
-
-        # both blocks branch to continuation block
-        with builder.goto_block(then_block):
-            builder.branch(cont_block)
-        with builder.goto_block(else_block):
-            builder.branch(cont_block)
+        elif then_result.type == void_type and else_result.type != void_type:
+            ret_type = else_result.type
+        elif then_result.type != void_type and else_result.type == void_type:
+            ret_type = then_result.type
+        else:
+            raise CompilationError()
 
         # continuation block
+        cont_block = builder.append_basic_block()
         builder.position_at_start(cont_block)
         result = builder.phi(ret_type)
-        result.add_incoming(then_result, then_block)
-        result.add_incoming(else_result, else_block)
+
+        # both blocks branch to continuation block (unless they terminate)
+        if then_result.type != void_type:
+            with builder.goto_block(then_block):
+                builder.branch(cont_block)
+            result.add_incoming(then_result, then_block)
+        if else_result.type != void_type:
+            with builder.goto_block(else_block):
+                builder.branch(cont_block)
+            result.add_incoming(else_result, else_block)
         return result
 
     # generate leaves
     args = [_gen_ir(leaf, lookup_args, builder) for leaf in expr.get_leaves()]
 
+    for arg in args:
+        if arg.type == void_type:
+            return arg
 
     # check leaf types
     ret_type, args = convert_args(args, builder)
@@ -349,6 +368,13 @@ def _gen_ir(expr, lookup_args, builder):
         return reduce(builder.xor, args)
     elif expr.has_form('BitNot', 1) and ret_type == int_type:
         return builder.not_(args[0])
+    elif expr.has_form('Return', 1):
+        ret_type = args[0].type
+        predetermined_ret_type = lookup_args.get('_result')
+        if predetermined_ret_type is not None and ret_type != predetermined_ret_type:
+            raise CompilationError()
+        lookup_args['_result'] = ret_type
+        return builder.ret(args[0])
     raise CompilationError()
 
 
