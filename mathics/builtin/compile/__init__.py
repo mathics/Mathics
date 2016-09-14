@@ -3,5 +3,5 @@
 
 from .ir import IRGenerator
 from .compile import _compile
-from .base import MathicsArg
+from .base import CompileArg
 from .types import *

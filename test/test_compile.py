@@ -2,38 +2,38 @@ import unittest
 import mpmath
 import random
 
-from mathics.builtin.compile import _compile, MathicsArg, int_type, real_type, bool_type
+from mathics.builtin.compile import _compile, CompileArg, int_type, real_type, bool_type
 from mathics.core.expression import Expression, Symbol, Integer, MachineReal
 
 
 class ArithmeticTest(unittest.TestCase):
     def test_a(self):
         expr = Expression('Plus', Symbol('x'), Integer(2))
-        args = [MathicsArg('System`x', int_type), MathicsArg('System`y', int_type)]
+        args = [CompileArg('System`x', int_type), CompileArg('System`y', int_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(2, 4), 4)
 
     def test_b(self):
         expr = Expression('Plus', Symbol('x'), Symbol('y'))
-        args = [MathicsArg('System`x', int_type), MathicsArg('System`y', real_type)]
+        args = [CompileArg('System`x', int_type), CompileArg('System`y', real_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(1, 2.5), 3.5)
 
     def test_c(self):
         expr = Expression('Plus', Expression('Plus', Symbol('x'), Symbol('y')),  Integer(5))
-        args = [MathicsArg('System`x', int_type), MathicsArg('System`y', real_type)]
+        args = [CompileArg('System`x', int_type), CompileArg('System`y', real_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(1, 2.5), 8.5)
 
     def test_d(self):
         expr = Expression('Plus', Symbol('x'), MachineReal(1.5), Integer(2), Symbol('x'))
-        args = [MathicsArg('System`x', real_type)]
+        args = [CompileArg('System`x', real_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(2.5), 8.5)
 
     def _test_unary_math(self, name, fn):
         expr = Expression(name, Symbol('x'))
-        args = [MathicsArg('System`x', real_type)]
+        args = [CompileArg('System`x', real_type)]
         cfunc = _compile(expr, args)
         for _ in range(1000):
             x = random.random()
@@ -41,7 +41,7 @@ class ArithmeticTest(unittest.TestCase):
 
     def _test_binary_math(self, name, fn):
         expr = Expression(name, Symbol('x'), Symbol('y'))
-        args = [MathicsArg('System`x', real_type), MathicsArg('System`y', real_type)]
+        args = [CompileArg('System`x', real_type), CompileArg('System`y', real_type)]
         cfunc = _compile(expr, args)
         for _ in range(1000):
             x = random.random()
@@ -85,7 +85,7 @@ class ArithmeticTest(unittest.TestCase):
 
     def test_div0(self):
         expr = Expression('Power', Symbol('x'), Symbol('y'))
-        args = [MathicsArg('System`x', real_type), MathicsArg('System`y', real_type)]
+        args = [CompileArg('System`x', real_type), CompileArg('System`y', real_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(0.0, -1.5), float('+inf'))
         self.assertEqual(cfunc(0.0, -1.0), float('+inf'))
@@ -112,7 +112,7 @@ class FlowControlTest(unittest.TestCase):
 
     def test_if(self):
         expr = Expression('If', Symbol('x'), Symbol('y'), Symbol('z'))
-        args = [MathicsArg('System`x', int_type), MathicsArg('System`y', real_type), MathicsArg('System`z', real_type)]
+        args = [CompileArg('System`x', int_type), CompileArg('System`y', real_type), CompileArg('System`z', real_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(0, 3.0, 4.0), 4.0)
         self.assertEqual(cfunc(1, 3.0, 4.0), 3.0)
@@ -120,35 +120,35 @@ class FlowControlTest(unittest.TestCase):
 
     def test_if_cont(self):
         expr = Expression('Plus', Integer(1), Expression('If', Symbol('x'), Expression('Sin', Symbol('y')), Expression('Cos', Symbol('y'))))
-        args = [MathicsArg('System`x', int_type), MathicsArg('System`y', real_type)]
+        args = [CompileArg('System`x', int_type), CompileArg('System`y', real_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(0, 0.0), 2.0)
         self.assertEqual(cfunc(1, 0.0), 1.0)
 
     def test_if_eq(self):
         expr = Expression('If', Expression('Equal', Symbol('x'), Integer(1)), Integer(2), Integer(3))
-        args = [MathicsArg('System`x', int_type)]
+        args = [CompileArg('System`x', int_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(1), 2)
         self.assertEqual(cfunc(2), 3)
 
     def test_if_int_real(self):
         expr = Expression('If', Symbol('x'), Integer(2), MachineReal(3))
-        args = [MathicsArg('System`x', bool_type)]
+        args = [CompileArg('System`x', bool_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(True), 2.0)
         self.assertEqual(cfunc(False), 3.0)
 
     def test_if_real_int(self):
         expr = Expression('If', Symbol('x'), MachineReal(3), Integer(2))
-        args = [MathicsArg('System`x', bool_type)]
+        args = [CompileArg('System`x', bool_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(True), 3.0)
         self.assertEqual(cfunc(False), 2.0)
 
     def test_if_bool_bool(self):
         expr = Expression('If', Symbol('x'), Symbol('y'), Symbol('z'))
-        args = [MathicsArg('System`x', bool_type), MathicsArg('System`y', bool_type), MathicsArg('System`z', bool_type)]
+        args = [CompileArg('System`x', bool_type), CompileArg('System`y', bool_type), CompileArg('System`z', bool_type)]
         cfunc = _compile(expr, args)
         self.assertTrue(cfunc(True, True, False))
         self.assertTrue(cfunc(False, False, True))
@@ -157,34 +157,34 @@ class FlowControlTest(unittest.TestCase):
 
     def test_return(self):
         expr = Expression('Return', Symbol('x'))
-        args = [MathicsArg('System`x', int_type)]
+        args = [CompileArg('System`x', int_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(1), 1)
 
     def test_if_return1(self):
         expr = Expression('If', Symbol('x'), Expression('Return', Symbol('y')), Integer(3))
-        args = [MathicsArg('System`x', bool_type), MathicsArg('System`y', int_type)]
+        args = [CompileArg('System`x', bool_type), CompileArg('System`y', int_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(True, 1), 1)
         self.assertEqual(cfunc(False, 1), 3)
 
     def test_if_return2(self):
         expr = Expression('If', Symbol('x'), Expression('Return', Symbol('y')), Expression('Return', Integer(3)))
-        args = [MathicsArg('System`x', bool_type), MathicsArg('System`y', int_type)]
+        args = [CompileArg('System`x', bool_type), CompileArg('System`y', int_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(True, 1), 1)
         self.assertEqual(cfunc(False, 1), 3)
 
     def test_if_return3(self):
         expr = Expression('If', Symbol('x'), Symbol('y'), Expression('Return', Integer(3)))
-        args = [MathicsArg('System`x', bool_type), MathicsArg('System`y', int_type)]
+        args = [CompileArg('System`x', bool_type), CompileArg('System`y', int_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(True, 1), 1)
         self.assertEqual(cfunc(False, 1), 3)
 
     def test_expr_return(self):
         expr = Expression('Plus', Integer(3), Expression('Return', Symbol('x')))
-        args = [MathicsArg('System`x', int_type)]
+        args = [CompileArg('System`x', int_type)]
         cfunc = _compile(expr, args)
         self.assertEqual(cfunc(1), 1)
         self.assertEqual(cfunc(4), 4)
@@ -192,7 +192,7 @@ class FlowControlTest(unittest.TestCase):
 class ComparisonTest(unittest.TestCase):
     def test_int_equal(self):
         expr = Expression('Equal', Symbol('x'), Symbol('y'), Integer(3))
-        args = [MathicsArg('System`x', int_type), MathicsArg('System`y', int_type)]
+        args = [CompileArg('System`x', int_type), CompileArg('System`y', int_type)]
         cfunc = _compile(expr, args)
         self.assertTrue(cfunc(3, 3))
         self.assertFalse(cfunc(2, 2))
@@ -200,7 +200,7 @@ class ComparisonTest(unittest.TestCase):
 
     def test_int_unequal(self):
         expr = Expression('Unequal', Symbol('x'), Symbol('y'), Integer(3))
-        args = [MathicsArg('System`x', int_type), MathicsArg('System`y', int_type)]
+        args = [CompileArg('System`x', int_type), CompileArg('System`y', int_type)]
         cfunc = _compile(expr, args)
         self.assertTrue(cfunc(1, 2))
         self.assertFalse(cfunc(3, 2))
@@ -210,7 +210,7 @@ class ComparisonTest(unittest.TestCase):
 
     def test_real_equal(self):
         expr = Expression('Equal', Symbol('x'), Symbol('y'))
-        args = [MathicsArg('System`x', real_type), MathicsArg('System`y', real_type)]
+        args = [CompileArg('System`x', real_type), CompileArg('System`y', real_type)]
         cfunc = _compile(expr, args)
         self.assertTrue(cfunc(3.0, 3.0))
         self.assertFalse(cfunc(3.0, 2.0))
@@ -219,7 +219,7 @@ class ComparisonTest(unittest.TestCase):
 
     def test_int_real_equal(self):
         expr = Expression('Equal', Symbol('x'), Symbol('y'))
-        args = [MathicsArg('System`x', real_type), MathicsArg('System`y', int_type)]
+        args = [CompileArg('System`x', real_type), CompileArg('System`y', int_type)]
         cfunc = _compile(expr, args)
         self.assertTrue(cfunc(3.0, 3))
         self.assertFalse(cfunc(3.0, 2))
@@ -244,11 +244,11 @@ class ComparisonTest(unittest.TestCase):
             check = getattr(self, 'assert' + str(result))
 
             expr = Expression(head, Symbol('x'), Symbol('y'))
-            int_args = [MathicsArg('System`x', int_type), MathicsArg('System`y', int_type)]
+            int_args = [CompileArg('System`x', int_type), CompileArg('System`y', int_type)]
             cfunc = _compile(expr, int_args)
             check(cfunc(*args))
 
-            real_args = [MathicsArg('System`x', real_type), MathicsArg('System`y', real_type)]
+            real_args = [CompileArg('System`x', real_type), CompileArg('System`y', real_type)]
             cfunc = _compile(expr, real_args)
             check(cfunc(*(float(arg) for arg in args)))
 
@@ -257,7 +257,7 @@ class LogicTest(unittest.TestCase):
             check = getattr(self, 'assert' + str(result))
             arg_names = ['x%i' % i for i in range(len(args))]
             expr = Expression(head, *(Symbol(arg_name) for arg_name in arg_names))
-            bool_args = [MathicsArg('System`' + arg_name, bool_type) for arg_name in arg_names]
+            bool_args = [CompileArg('System`' + arg_name, bool_type) for arg_name in arg_names]
             cfunc = _compile(expr, bool_args)
             check(cfunc(*args))
 
@@ -306,7 +306,7 @@ class BitwiseTest(unittest.TestCase):
     def _test_bitwise(self, head, args, result):
             arg_names = ['x%i' % i for i in range(len(args))]
             expr = Expression(head, *(Symbol(arg_name) for arg_name in arg_names))
-            int_args = [MathicsArg('System`' + arg_name, int_type) for arg_name in arg_names]
+            int_args = [CompileArg('System`' + arg_name, int_type) for arg_name in arg_names]
             cfunc = _compile(expr, int_args)
             self.assertEqual(cfunc(*args), result)
 
