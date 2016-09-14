@@ -740,6 +740,8 @@ class ColorDistance(Builtin):
 
     >> N[ColorDistance[Magenta, Green], 5]
      = 2.2507
+    >> ColorDistance[{Red, Blue}, {Green, Yellow}, DistanceFunction -> {"CMC", "Perceptibility"}]
+     = List[1.0495, 1.27455]
     """
 
     options = {
@@ -784,19 +786,17 @@ class ColorDistance(Builtin):
                                                             100*c2.to_color_space('LAB')[:3], 2, 1)/100
                 elif distance_function.leaves[1].get_string_value() == 'Perceptibility':
                     compute = ColorDistance._distances.get("CMC")
-                else:
-                    evaluation.message('ColorDistance', 'invdist', distance_function)
-                    return
                     
-                if (distance_function.leaves[1].has_form('List', 2):
-                and distance_function.leaves[1].leaves[0].get_int_value() > 0
-                and distance_function.leaves[1].leaves[1].get_int_value() > 0):
+                elif distance_function.leaves[1].has_form('List', 2):
+                    if (isinstance(distance_function.leaves[1].leaves[0], Integer)
+                    and isinstance(distance_function.leaves[1].leaves[1], Integer)):
+                        if (distance_function.leaves[1].leaves[0].get_int_value() > 0
+                        and distance_function.leaves[1].leaves[1].get_int_value() > 0):
+                            lightness = distance_function.leaves[1].leaves[0].get_int_value()
+                            chroma = distance_function.leaves[1].leaves[1].get_int_value()
                     
-                    lightness = distance_function.leaves[1].leaves[0].get_int_value()
-                    chroma = distance_function.leaves[1].leaves[1].get_int_value()
-                    
-                    compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
-                                                            100*c2.to_color_space('LAB')[:3], lightness, chroma)/100
+                            compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
+                                                                    100*c2.to_color_space('LAB')[:3], lightness, chroma)/100
                 else:
                     evaluation.message('ColorDistance', 'invdist', distance_function)
                     return
