@@ -368,10 +368,10 @@ class RegisterExport(Builtin):
 
 class FetchURL(Builtin):
     '''
-    >> Quiet[FetchURL["https:////", {}]]
+    #> Quiet[FetchURL["https:////", {}]]
      = $Failed
 
-    >> Quiet[FetchURL["http://mathics.org/url_test_case", {}]]
+    #> Quiet[FetchURL["http://mathics.org/url_test_case", {}]]
      = $Failed
     '''
 
