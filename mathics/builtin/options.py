@@ -12,6 +12,7 @@ import six
 
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import Symbol, Expression, get_default_value
+from mathics.builtin.image import Image
 
 
 class Options(Builtin):
@@ -75,9 +76,14 @@ class Options(Builtin):
 
         name = f.get_name()
         if not name:
-            evaluation.message('Options', 'sym', f, 1)
-            return
-        options = evaluation.definitions.get_options(name)
+            if isinstance(f, Image):
+                # FIXME ColorSpace, MetaInformation
+                options = f.metadata
+            else:
+                evaluation.message('Options', 'sym', f, 1)
+                return
+        else:
+            options = evaluation.definitions.get_options(name)
         result = []
         for option, value in sorted(six.iteritems(options), key=lambda item: item[0]):
             # Don't use HoldPattern, since the returned List should be

@@ -665,15 +665,21 @@ class MergeCriterion(object):
         self.distances = distances
         self.n = n
 
-    def save_and_merge(self, clusters, i, j, d_min):
+    def merge(self, clusters, i, j, d_min, save):
         raise NotImplementedError()
-
-    def best(self, clusters):
-        return clusters
 
     def _fast_distance(self):
         distances = self.distances
         return lambda x, y: distances[_index(max(x, y), min(x, y))]
+
+
+class FixedDistanceCriterion(MergeCriterion):
+    def __init__(self, distances, n, merge_limit):
+        super(FixedDistanceCriterion, self).__init__(distances, n)
+        self._merge_limit = merge_limit
+
+    def merge(self, clusters, i, j, d_min, save):
+        return d_min <= self._merge_limit
 
 
 class _DunnMergeCriterion(MergeCriterion):
@@ -688,21 +694,16 @@ class _DunnMergeCriterion(MergeCriterion):
 
         self._diameters = [0.] * n
         self._max_diameter = 0.
-
         self._best_dunn = None
-        self._best_partition = None
 
         self._merge_limit = merge_limit
 
-    def best(self, clusters):
-        return self._best_partition
-
-    def save_and_merge(self, clusters, i, j, d_min):
+    def merge(self, clusters, i, j, d_min, save):
         # save the current partition if it's better than before.
 
         dunn = (d_min, self._max_diameter)
         if self._best_dunn is None or _ratio_bigger_than(dunn, self._best_dunn):
-            self._best_partition = [c[:] for c in clusters if c]
+            save()
             if self._max_diameter > 0.:
                 self._best_dunn = dunn
 
@@ -725,7 +726,7 @@ class _DunnMergeCriterion(MergeCriterion):
 AutomaticMergeCriterion = _DunnMergeCriterion
 
 
-def agglomerate(points, k, distances, mode='clusters'):
+def agglomerate(points_and_weights, k, distances, mode='clusters'):
     # this is an implementation of heap-based clustering as described
     # by [Kurita1991].
 
@@ -751,6 +752,12 @@ def agglomerate(points, k, distances, mode='clusters'):
     # mode: 'clusters' returns clusters, 'dominant' returns one dominant
     # representant of each cluster only, 'components' returns the index of
     # the cluster each element is in for each element.
+
+    if mode == 'dominant':
+        points, weight_ = points_and_weights
+        weight = [x for x in weight_]
+    else:
+        points = points_and_weights
 
     clusters = [[i] for i in range(len(points))]
 
@@ -867,12 +874,39 @@ def agglomerate(points, k, distances, mode='clusters'):
 
         n_clusters = n
 
-        if mode == 'dominant':
-            dominant = list(range(n))
-            result = dominant
-        elif mode in ('clusters', 'components'):
-            dominant = None
-            result = clusters
+        # if the criterion does not call save(), "best" is always the current (last) configuration.
+        # save() allows to put a different configuration into "best" and keep on clustering and
+        # return the "best" configuration later on as result.
+
+        if mode in ('clusters', 'components'):
+            dominant = False
+            best = [clusters]
+
+            def save():  # save current configuration
+                best[0] = [c[:] for c in clusters if c]
+
+            def result():
+                best_clusters = best[0]
+
+                # sort, so clusters appear in order of their first element appearance in the original list.
+                r = sorted([sorted(c) for c in best_clusters if c], key=lambda c: c[0])
+
+                if mode == 'components':
+                    return _components(r, n)
+                elif mode == 'clusters':
+                    return [[points[i] for i in c] for c in r]
+        elif mode == 'dominant':
+            dominant = True
+            best = [clusters, weight]
+
+            def save():  # save current configuration
+                best[0] = [c[:] for c in clusters if c]
+                best[1] = weight[:]
+
+            def result():
+                best_clusters, best_weight = best
+                prototypes = [(points[i], best_weight[i], c) for i, c in enumerate(best_clusters) if c is not None]
+                return sorted(prototypes, key=lambda t: t[1], reverse=True)  # most weighted first
         else:
             raise ValueError('illegal mode %s' % mode)
 
@@ -881,45 +915,52 @@ def agglomerate(points, k, distances, mode='clusters'):
 
             i, j = lookup[p]
 
-            if i > j:
+            if dominant:
+                if weight[j] > weight[i]:  # always merge smaller (j) into larger, dominant (i)
+                    i, j = j, i
+            elif i > j:
                 i, j = j, i  # merge later chunk to earlier one to preserve order
 
-            if criterion and not criterion.save_and_merge(clusters, i, j, d):
+            if criterion and not criterion.merge(clusters, i, j, d, save):
                 break
 
             heap = remove(where[p], heap, where)  # remove distance (i, j)
 
+            # look at each connection to i, and each connection to j, so that we look at the same
+            # points connection to the cluster, i.e. (a=(1, i), b=(1, j)), (a=(2, i), b=(2,i)), etc.
             for a, b in zip(unmerged_pairs(i, j, n), unmerged_pairs(j, i, n)):
+                # first, remove the distance to j from the heap, as only the distance to i should
+                # remain, as the new cluster will be i.
+
                 y, py, u = heap[where[b]]
                 heap = remove(where[b], heap, where)
 
-                x, px, _ = heap[where[a]]
-                if y < x:  # compare only values here, and not tuples (x, p)
-                    update(where[a], (y, px, u), heap, where)
+                # now update the distance to i with j's distance, if j was a shorter distance. this
+                # implements a "single linkage" clustering, where the distance of an outside point to
+                # the cluster is always the shortest distance from that outside point to any point in
+                # the cluster.
+
+                # in the "dominant" mode, we do not want this. instead, we want to keep the distance
+                # from outside points to the dominant element in the cluster, which is always "a",
+                # so that the clustering depends on the distance of cluster center to new elements.
+                # using single linkage with "dominant" would fray the borders of the clustering, so
+                # that the dominant elements are not really dominant anymore.
+
+                if not dominant:  # use single linkage?
+                    x, px, _ = heap[where[a]]
+                    if y < x:  # compare only values here, and not tuples (x, p)
+                        update(where[a], (y, px, u), heap, where)
 
             if dominant:
-                if len(clusters[j]) > len(clusters[i]):
-                    dominant[i] = dominant[j]
-                dominant[j] = None
+                weight[i] += weight[j]
+                weight[j] = 0
 
             clusters[i].extend(clusters[j])
             clusters[j] = None
 
             n_clusters -= 1
 
-        if criterion:
-            result = criterion.best(result)
-
-        # sort, so clusters appear in order of their first element appearance
-        # in the original list.
-        result = sorted([sorted(c) for c in result if c], key=lambda c: c[0])
-
-        if mode == 'components':
-            return _components(result, n)
-        elif mode == 'clusters':
-            return [[points[i] for i in c] for c in result]
-        else:
-            raise ValueError('illegal mode %s' % mode)
+        return result()
 
     return reduce()
 
