@@ -802,12 +802,9 @@ class ColorDistance(Builtin):
                             chroma = distance_function.leaves[1].leaves[1].get_int_value()
                             compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
                                                                     100*c2.to_color_space('LAB')[:3], lightness, chroma)/100
-                            
+
         elif isinstance(distance_function, Symbol) and distance_function.get_name() == 'System`Automatic':
             compute = ColorDistance._distances.get("CIE76")
-        if compute == None:
-            evaluation.message('ColorDistance', 'invdist', distance_function)
-            return
         else:
             def compute(a, b):
                 return Expression('Apply',
@@ -817,6 +814,9 @@ class ColorDistance(Builtin):
                                                 Expression('List', *[Real(val) for val in b.to_color_space('LAB')])
                                               )
                                     )
+        if compute == None:
+            evaluation.message('ColorDistance', 'invdist', distance_function)
+            return
 
         def distance(a, b):
             try:
