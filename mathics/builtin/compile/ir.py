@@ -23,7 +23,7 @@ def single_real_arg(f):
         if arg.type == void_type:
             return arg
         elif arg.type == int_type:
-            arg = self.builder.sitofp(arg, real_type)
+            arg = self.int_to_real(arg)
         return f(self, [arg])
     return wrapped_f
 
@@ -50,7 +50,7 @@ def int_real_args(minargs):
                 ret_type = real_type
                 for i, arg in enumerate(args):
                     if arg.type == int_type:
-                        args[i] = self.builder.sitofp(arg, real_type)
+                        args[i] = self.int_to_real(arg)
             return f(self, args, ret_type)
         return wrapped_f
     return wraps
@@ -159,6 +159,10 @@ class IRGenerator(object):
         intr = lc.Function.intrinsic(mod, name, [arg.type for arg in args])
         return self.builder.call(intr, args)
 
+    def int_to_real(self, arg):
+        assert arg.type == int_type
+        return self.builder.sitofp(arg, real_type)
+
     def _gen_ir(self, expr):
         '''
         walks an expression tree and constructs the ir block
@@ -220,11 +224,11 @@ class IRGenerator(object):
             ret_type = then_result.type
         elif then_result.type == int_type and else_result.type == real_type:
             builder.position_at_end(then_block)
-            then_result = builder.sitofp(then_result, real_type)
+            then_result = self.int_to_real(then_result)
             ret_type = real_type
         elif then_result.type == real_type and else_result.type == int_type:
             builder.position_at_end(else_block)
-            else_result = builder.sitofp(else_result, real_type)
+            else_result = self.int_to_real(else_result)
             ret_type = real_type
         elif then_result.type == void_type and else_result.type != void_type:
             ret_type = else_result.type
@@ -260,7 +264,7 @@ class IRGenerator(object):
 
         builder = self.builder
         if self._returned_type == real_type and arg.type == int_type:
-            arg = builder.sitofp(arg, real_type)
+            arg = self.int_to_real(arg)
         elif self._returned_type == int_type and arg.type == real_type:
             self._returned_type = arg.type
         self._returned_type = arg.type
@@ -289,7 +293,7 @@ class IRGenerator(object):
         # convert exponent
         exponent = self._gen_ir(leaves[1])
         if exponent.type == int_type:
-            exponent = self.builder.sitofp(exponent, real_type)
+            exponent = self.int_to_real(exponent)
         elif exponent.type == void_type:
             return exponent
 
@@ -304,7 +308,7 @@ class IRGenerator(object):
         # convert base
         base =  self._gen_ir(leaves[0])
         if base.type == int_type:
-            base = self.builder.sitofp(base, real_type)
+            base = self.int_to_real(base)
         elif base.type == void_type:
             return base
 
