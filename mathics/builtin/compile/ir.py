@@ -3,10 +3,11 @@ import itertools
 
 from llvmlite import ir
 import llvmlite.llvmpy.core as lc
+import ctypes
 
-from mathics.core.expression import Expression, Integer, Symbol, Real
+from mathics.core.expression import Expression, Integer, Symbol, Real, String
 from mathics.builtin.compile.types import int_type, real_type, bool_type, void_type
-from mathics.builtin.compile.utils import pairwise
+from mathics.builtin.compile.utils import pairwise, llvm_to_ctype
 from mathics.builtin.compile.base import CompileError
 
 
@@ -136,16 +137,21 @@ class IRGenerator(object):
         if self._known_ret_type is None:
             # determine the type returned
             if ir_code.type == void_type:
-                self._known_ret_type = self._returned_type
-                assert self._known_ret_type is not None
-                # force generation again in case multiple returns of different types
-                return self.generate_ir()
+                if self._returned_type is not None:
+                    # we returned something so use that type
+                    self._known_ret_type = self._returned_type
+                    # force generation again in case multiple returns of different types
+                    return self.generate_ir()
+                else:
+                    # actually returned void e.g. Print[]
+                    pass
 
             if ir_code.type != ret_type:
                 # guessed incorrectly - try again
                 self._known_ret_type = ir_code.type
                 return self.generate_ir()
 
+        # void handles its own returns
         if ir_code.type != void_type:
             self.builder.ret(ir_code)
 
@@ -162,6 +168,25 @@ class IRGenerator(object):
     def int_to_real(self, arg):
         assert arg.type == int_type
         return self.builder.sitofp(arg, real_type)
+
+    def add_caller(self, py_f, ret_type, args):
+        '''
+        Inserts a caller to a python function
+        '''
+        # see http://eli.thegreenplace.net/2015/calling-back-into-python-from-llvmlite-jited-code/
+
+        c_func_type = ctypes.CFUNCTYPE(llvm_to_ctype(ret_type), *(llvm_to_ctype(arg.type) for arg in args))
+        c_func = c_func_type(py_f)
+        c_func_addr = ctypes.cast(c_func, ctypes.c_void_p).value
+
+        addrcaller_func_type = ir.FunctionType(ret_type, [arg.type for arg in args])
+        cb_func_ptr_type = addrcaller_func_type.as_pointer()
+
+        f = self.builder.inttoptr(int_type(c_func_addr), cb_func_ptr_type, name='f')
+        call = self.builder.call(f, args)
+        if call.type == void_type:
+            return self.builder.ret_void()
+        return call
 
     def _gen_ir(self, expr):
         '''

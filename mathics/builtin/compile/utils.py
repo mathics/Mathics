@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from mathics.builtin.compile.types import int_type, real_type, bool_type
-from ctypes import c_int64, c_double, c_bool
+from mathics.builtin.compile.types import int_type, real_type, bool_type, void_type
+from ctypes import c_int64, c_double, c_bool, c_void_p
 
 
 def pairwise(args):
@@ -27,5 +27,7 @@ def llvm_to_ctype(t):
         return c_double
     elif t == bool_type:
         return c_bool
+    elif t == void_type:
+        return c_void_p
     else:
         raise TypeError(t)

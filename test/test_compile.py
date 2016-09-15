@@ -1,8 +1,10 @@
+import sys
 import unittest
 import mpmath
 import random
+from six import StringIO
 
-from mathics.core.expression import Expression, Symbol, Integer, MachineReal
+from mathics.core.expression import Expression, Symbol, Integer, MachineReal, String
 
 from mathics.builtin.compile import has_llvmlite
 
@@ -207,6 +209,22 @@ class FlowControlTest(CompileTest):
         args = [CompileArg('System`x', int_type)]
         cfunc = _compile(expr, args)
         self.assertIs(cfunc(1), 1)
+
+    @unittest.expectedFailure
+    def test_print(self):
+        expr = Expression('Print', String('Hello world'))
+        cfunc = _compile(expr, [])
+
+        # XXX Hack to capture the output
+        saved_stdout = sys.stdout
+        try:
+            out = StringIO()
+            sys.stdout = out
+            cfunc()
+            output = out.getvalue().strip()
+            self.assertEqual(output, 'Hello world')
+        finally:
+            sys.stdout = saved_stdout
 
     def test_if_return1(self):
         expr = Expression('If', Symbol('x'), Expression('Return', Symbol('y')), Integer(3))
