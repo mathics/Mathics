@@ -21,25 +21,25 @@ class ArithmeticTest(CompileTest):
         expr = Expression('Plus', Symbol('x'), Integer(2))
         args = [CompileArg('System`x', int_type), CompileArg('System`y', int_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(2, 4), 4)
+        self.assertIs(cfunc(2, 4), 4)
 
     def test_b(self):
         expr = Expression('Plus', Symbol('x'), Symbol('y'))
         args = [CompileArg('System`x', int_type), CompileArg('System`y', real_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(1, 2.5), 3.5)
+        self.assertIs(cfunc(1, 2.5), 3.5)
 
     def test_c(self):
         expr = Expression('Plus', Expression('Plus', Symbol('x'), Symbol('y')),  Integer(5))
         args = [CompileArg('System`x', int_type), CompileArg('System`y', real_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(1, 2.5), 8.5)
+        self.assertIs(cfunc(1, 2.5), 8.5)
 
     def test_d(self):
         expr = Expression('Plus', Symbol('x'), MachineReal(1.5), Integer(2), Symbol('x'))
         args = [CompileArg('System`x', real_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(2.5), 8.5)
+        self.assertIs(cfunc(2.5), 8.5)
 
     def _test_unary_math(self, name, fn):
         expr = Expression(name, Symbol('x'))
@@ -134,10 +134,10 @@ class ArithmeticTest(CompileTest):
         expr = Expression('Power', Symbol('x'), Symbol('y'))
         args = [CompileArg('System`x', real_type), CompileArg('System`y', real_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(0.0, -1.5), float('+inf'))
-        self.assertEqual(cfunc(0.0, -1.0), float('+inf'))
-        self.assertEqual(cfunc(-0.0, -1.0), float('-inf'))
-        self.assertEqual(cfunc(0.0, 0.0), float('1.0'))     # NaN?
+        self.assertIs(cfunc(0.0, -1.5), float('+inf'))
+        self.assertIs(cfunc(0.0, -1.0), float('+inf'))
+        self.assertIs(cfunc(-0.0, -1.0), float('-inf'))
+        self.assertIs(cfunc(0.0, 0.0), float('1.0'))     # NaN?
 
     def test_exp(self):
         self._test_unary_math('Exp', mpmath.exp)
@@ -161,37 +161,37 @@ class FlowControlTest(CompileTest):
         expr = Expression('If', Symbol('x'), Symbol('y'), Symbol('z'))
         args = [CompileArg('System`x', int_type), CompileArg('System`y', real_type), CompileArg('System`z', real_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(0, 3.0, 4.0), 4.0)
-        self.assertEqual(cfunc(1, 3.0, 4.0), 3.0)
-        self.assertEqual(cfunc(2, 3.0, 4.0), 3.0)
+        self.assertIs(cfunc(0, 3.0, 4.0), 4.0)
+        self.assertIs(cfunc(1, 3.0, 4.0), 3.0)
+        self.assertIs(cfunc(2, 3.0, 4.0), 3.0)
 
     def test_if_cont(self):
         expr = Expression('Plus', Integer(1), Expression('If', Symbol('x'), Expression('Sin', Symbol('y')), Expression('Cos', Symbol('y'))))
         args = [CompileArg('System`x', int_type), CompileArg('System`y', real_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(0, 0.0), 2.0)
-        self.assertEqual(cfunc(1, 0.0), 1.0)
+        self.assertIs(cfunc(0, 0.0), 2.0)
+        self.assertIs(cfunc(1, 0.0), 1.0)
 
     def test_if_eq(self):
         expr = Expression('If', Expression('Equal', Symbol('x'), Integer(1)), Integer(2), Integer(3))
         args = [CompileArg('System`x', int_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(1), 2)
-        self.assertEqual(cfunc(2), 3)
+        self.assertIs(cfunc(1), 2)
+        self.assertIs(cfunc(2), 3)
 
     def test_if_int_real(self):
         expr = Expression('If', Symbol('x'), Integer(2), MachineReal(3))
         args = [CompileArg('System`x', bool_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(True), 2.0)
-        self.assertEqual(cfunc(False), 3.0)
+        self.assertIs(cfunc(True), 2.0)
+        self.assertIs(cfunc(False), 3.0)
 
     def test_if_real_int(self):
         expr = Expression('If', Symbol('x'), MachineReal(3), Integer(2))
         args = [CompileArg('System`x', bool_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(True), 3.0)
-        self.assertEqual(cfunc(False), 2.0)
+        self.assertIs(cfunc(True), 3.0)
+        self.assertIs(cfunc(False), 2.0)
 
     def test_if_bool_bool(self):
         expr = Expression('If', Symbol('x'), Symbol('y'), Symbol('z'))
@@ -206,35 +206,35 @@ class FlowControlTest(CompileTest):
         expr = Expression('Return', Symbol('x'))
         args = [CompileArg('System`x', int_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(1), 1)
+        self.assertIs(cfunc(1), 1)
 
     def test_if_return1(self):
         expr = Expression('If', Symbol('x'), Expression('Return', Symbol('y')), Integer(3))
         args = [CompileArg('System`x', bool_type), CompileArg('System`y', int_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(True, 1), 1)
-        self.assertEqual(cfunc(False, 1), 3)
+        self.assertIs(cfunc(True, 1), 1)
+        self.assertIs(cfunc(False, 1), 3)
 
     def test_if_return2(self):
         expr = Expression('If', Symbol('x'), Expression('Return', Symbol('y')), Expression('Return', Integer(3)))
         args = [CompileArg('System`x', bool_type), CompileArg('System`y', int_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(True, 1), 1)
-        self.assertEqual(cfunc(False, 1), 3)
+        self.assertIs(cfunc(True, 1), 1)
+        self.assertIs(cfunc(False, 1), 3)
 
     def test_if_return3(self):
         expr = Expression('If', Symbol('x'), Symbol('y'), Expression('Return', Integer(3)))
         args = [CompileArg('System`x', bool_type), CompileArg('System`y', int_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(True, 1), 1)
-        self.assertEqual(cfunc(False, 1), 3)
+        self.assertIs(cfunc(True, 1), 1)
+        self.assertIs(cfunc(False, 1), 3)
 
     def test_expr_return(self):
         expr = Expression('Plus', Integer(3), Expression('Return', Symbol('x')))
         args = [CompileArg('System`x', int_type)]
         cfunc = _compile(expr, args)
-        self.assertEqual(cfunc(1), 1)
-        self.assertEqual(cfunc(4), 4)
+        self.assertIs(cfunc(1), 1)
+        self.assertIs(cfunc(4), 4)
 
 class ComparisonTest(CompileTest):
     def test_int_equal(self):
@@ -355,7 +355,7 @@ class BitwiseTest(CompileTest):
             expr = Expression(head, *(Symbol(arg_name) for arg_name in arg_names))
             int_args = [CompileArg('System`' + arg_name, int_type) for arg_name in arg_names]
             cfunc = _compile(expr, int_args)
-            self.assertEqual(cfunc(*args), result)
+            self.assertIs(cfunc(*args), result)
 
     def test_bitand(self):
         self._test_bitwise('BitAnd', [17], 17)
