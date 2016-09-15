@@ -1764,6 +1764,51 @@ class PolygonBox(_Polyline):
         return asy
 
 
+class RegularPolygon(Builtin):
+    pass
+
+
+class RegularPolygonBox(PolygonBox):
+    def init(self, graphics, style, item):
+        if len(item.leaves) in (1, 2, 3) and isinstance(item.leaves[-1], Integer):
+            r = 1.
+            phi0 = 0.
+
+            if len(item.leaves) >= 2:
+                rspec = item.leaves[-2]
+                if rspec.get_head_name() == 'System`List':
+                    if len(rspec.leaves) != 2:
+                        raise BoxConstructError
+                    r = rspec.leaves[0].round_to_float()
+                    phi0 = rspec.leaves[1].round_to_float()
+                else:
+                    r = rspec.round_to_float()
+
+            x = 0.
+            y = 0.
+            if len(item.leaves) == 3:
+                pos = item.leaves[0]
+                if not pos.has_form('List', 2):
+                    raise BoxConstructError
+                x = pos.leaves[0].round_to_float()
+                y = pos.leaves[1].round_to_float()
+
+            n = item.leaves[-1].get_int_value()
+
+            def vertices():
+                from math import sin, cos, pi
+                pi2 = pi * 2.
+                for i in range(n):
+                    phi = phi0 + pi2 * i / float(n)
+                    yield Expression('List', Real(x + r * cos(phi)), Real(y + r * sin(phi)))
+
+            new_item = Expression('RegularPolygonBox', Expression('List', *list(vertices())))
+        else:
+            raise BoxConstructError
+
+        super(RegularPolygonBox, self).init(graphics, style, new_item)
+
+
 class Arrow(Builtin):
     """
     <dl>
@@ -3296,7 +3341,9 @@ class Large(Builtin):
 
 
 element_heads = frozenset(system_symbols(
-    'Rectangle', 'Disk', 'Line', 'Arrow', 'FilledCurve', 'BezierCurve', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere', 'Style'))
+    'Rectangle', 'Disk', 'Line', 'Arrow', 'FilledCurve', 'BezierCurve',
+    'Point', 'Circle', 'Polygon', 'RegularPolygon',
+    'Inset', 'Text', 'Sphere', 'Style'))
 
 styles = system_symbols_dict({
     'RGBColor': RGBColor,
@@ -3329,6 +3376,7 @@ GLOBALS = system_symbols_dict({
     'Disk': Disk,
     'Circle': Circle,
     'Polygon': Polygon,
+    'RegularPolygon': RegularPolygon,
     'Inset': Inset,
     'Text': Text,
     'RectangleBox': RectangleBox,
@@ -3339,6 +3387,7 @@ GLOBALS = system_symbols_dict({
     'ArrowBox': ArrowBox,
     'CircleBox': CircleBox,
     'PolygonBox': PolygonBox,
+    'RegularPolygonBox': RegularPolygonBox,
     'PointBox': PointBox,
     'InsetBox': InsetBox,
 })
