@@ -11,6 +11,7 @@ from six.moves.queue import Queue
 
 import sys
 from threading import Thread
+import itertools
 
 from mathics import settings
 from mathics.core.expression import ensure_context, KeyComparable
@@ -19,6 +20,18 @@ FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
            'TeXForm', 'MathMLForm',
            'MatrixForm', 'TableForm']
+
+
+def _interleave(*gens):  # interleaves over n generators of even or uneven lengths
+    active = [gen for gen in gens]
+    while len(active) > 0:
+        i = 0
+        while i < len(active):
+            try:
+                yield next(active[i])
+                i += 1
+            except StopIteration:
+                del active[i]
 
 
 class EvaluationInterrupt(Exception):
@@ -177,6 +190,7 @@ class Evaluation(object):
 
         self.quiet_all = False
         self.format = format
+        self.output_size_limit = None
         self.catch_interrupt = catch_interrupt
 
     def parse(self, query):
@@ -321,22 +335,37 @@ class Evaluation(object):
 
         from mathics.core.expression import Expression, BoxError
 
-        if format == 'text':
-            result = expr.format(self, 'System`OutputForm')
-        elif format == 'xml':
-            result = Expression(
-                'StandardForm', expr).format(self, 'System`MathMLForm')
-        elif format == 'tex':
-            result = Expression('StandardForm', expr).format(
-                self, 'System`TeXForm')
-        else:
-            raise ValueError
+        orig_output_size_limit = self.output_size_limit
         try:
-            boxes = result.boxes_to_text(evaluation=self)
-        except BoxError:
-            self.message('General', 'notboxes',
-                         Expression('FullForm', result).evaluate(self))
-            boxes = None
+            self.output_size_limit = self.definitions.get_config_value('System`$OutputSizeLimit')
+            options = {}
+
+            if format == 'text':
+                result = expr.format(self, 'System`OutputForm')
+                # for MathMLForm and TexForm, output size limits are applied in the form's apply
+                # methods (e.g. see MathMLForm.apply) and then passed through result.boxes_to_text
+                # which must, in these cases, not apply additional clipping, as this would clip
+                # already clipped string material. for OutputForm, on the other hand, the call to
+                # result.boxes_to_text is the only place we have to apply output size limits.
+                options['output_size_limit'] = self.output_size_limit
+            elif format == 'xml':
+                result = Expression(
+                    'StandardForm', expr).format(self, 'System`MathMLForm')
+            elif format == 'tex':
+                result = Expression('StandardForm', expr).format(
+                    self, 'System`TeXForm')
+            else:
+                raise ValueError
+
+            try:
+                boxes = result.boxes_to_text(evaluation=self, **options)
+            except BoxError:
+                self.message('General', 'notboxes',
+                             Expression('FullForm', result).evaluate(self))
+                boxes = None
+        finally:
+            self.output_size_limit = orig_output_size_limit
+
         return boxes
 
     def set_quiet_messages(self, messages):
@@ -355,6 +384,66 @@ class Evaluation(object):
         if not isinstance(value, Expression):
             return []
         return value.leaves
+
+    def make_boxes(self, items, form, segment=None):
+        from mathics.core.expression import Expression, Omitted
+
+        if self.output_size_limit is None or len(items) < 1:
+            if segment is not None:
+                segment.extend((False, 0, 0))
+            return [Expression('MakeBoxes', item, form) for item in items]
+
+        old_capacity = self.output_size_limit
+        capacity = old_capacity
+
+        left_leaves = []
+        right_leaves = []
+
+        middle = len(items) // 2
+        # note that we use generator expressions, not list comprehensions, here, since we
+        # might quit early in the loop below, and copying all leaves might prove inefficient.
+        from_left = ((leaf, left_leaves.append) for leaf in items[:middle])
+        from_right = ((leaf, right_leaves.append) for leaf in reversed(items[middle:]))
+
+        try:
+            for item, push in _interleave(from_left, from_right):
+                self.output_size_limit = capacity
+
+                # calling evaluate() here is a serious difference to the implementation
+                # without $OutputSizeLimit. here, we evaluate MakeBoxes bottom up, i.e.
+                # the leaves get evaluated first, since we need to estimate their size
+                # here.
+                #
+                # without $OutputSizeLimit, on the other hand, the expression
+                # gets evaluates from the top down, i.e. first MakeBoxes is wrapped around
+                # each expression, then we call evaluate on the root node. assuming that
+                # there are no rules like MakeBoxes[x_, MakeBoxes[y_]], both approaches
+                # should be identical.
+                #
+                # we could work around this difference by pushing the unevaluated
+                # expression here (see "push(box)" below), instead of the evaluated.
+                # this would be very inefficient though, since we would get quadratic
+                # runtime (quadratic in the depth of the tree).
+                box = Expression('MakeBoxes', item, form).evaluate(self)
+
+                cost = len(box.boxes_to_xml(evaluation=self))  # evaluate len as XML
+                if capacity < cost:
+                    break
+                capacity -= cost
+                push(box)
+        finally:
+            self.output_size_limit = old_capacity
+
+        ellipsis_size = len(items) - (len(left_leaves) + len(right_leaves))
+        ellipsis = [Omitted('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []
+
+        if segment is not None:
+            if ellipsis_size > 0:
+                segment.extend((True, len(left_leaves), len(items) - len(right_leaves)))
+            else:
+                segment.extend((False, 0, 0))
+
+        return list(itertools.chain(left_leaves, ellipsis, reversed(right_leaves)))
 
     def message(self, symbol, tag, *args):
         from mathics.core.expression import (String, Symbol, Expression,

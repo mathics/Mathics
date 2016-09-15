@@ -14,7 +14,7 @@ import six
 from six.moves import zip
 
 import mathics
-from mathics.core.definitions import Definitions
+from mathics.core.definitions import Definitions, Symbol
 from mathics.core.evaluation import Evaluation
 from mathics.core.parser import SingleLineFeeder
 from mathics.builtin import builtins
@@ -23,6 +23,10 @@ from mathics import version_string
 from mathics import settings
 
 definitions = Definitions(add_builtin=True)
+
+def reset_user_definitions():
+    definitions.reset_user_definitions()
+    definitions.set_ownvalue('System`$OutputSizeLimit', Symbol('Infinity'))  # no limit
 
 sep = '-' * 70 + '\n'
 
@@ -97,7 +101,7 @@ def test_case(test, tests, index=0, quiet=False):
 
 
 def test_tests(tests, index, quiet=False, stop_on_failure=False, start_at=0):
-    definitions.reset_user_definitions()
+    reset_user_definitions()
     count = failed = skipped = 0
     failed_symbols = set()
     for test in tests.tests:
@@ -116,7 +120,7 @@ def test_tests(tests, index, quiet=False, stop_on_failure=False, start_at=0):
 
 def create_output(tests, output_xml, output_tex):
     for format, output in [('xml', output_xml), ('tex', output_tex)]:
-        definitions.reset_user_definitions()
+        reset_user_definitions()
         for test in tests.tests:
             key = test.key
             evaluation = Evaluation(definitions, format=format, catch_interrupt=False)

@@ -392,3 +392,35 @@ class Out(Builtin):
         '    f:StandardForm|TraditionalForm|InputForm|OutputForm]':
         r'"%%" <> ToString[k]',
     }
+
+
+class OutputSizeLimit(Predefined):
+    """
+    <dl>
+    <dt>'$OutputSizeLimit'
+        <dd>specifies the maximum amount of data output that gets
+        displayed before the output gets truncated. The amount of
+        output is measured as the number of bytes of MathML XML
+        that has been generated to represent the output data.
+
+        To set no limit on output size, use $OutputSizeLimit = Infinity.
+    </dl>
+
+    >> $OutputSizeLimit = 100;
+    >> Table[i, {i, 1, 100}]
+     = {1, 2, 3, 4, 5, <<91>>, 97, 98, 99, 100}
+    >> $OutputSizeLimit = 10;
+    >> Table[i, {i, 1, 100}]
+     = {1, <<99>>}
+    >> $OutputSizeLimit = Infinity;
+    """
+
+    name = '$OutputSizeLimit'
+    value = 1000
+
+    rules = {
+        '$OutputSizeLimit': str(value),
+    }
+
+    def evaluate(self, evaluation):
+        return Integer(self.value)

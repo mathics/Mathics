@@ -2002,6 +2002,13 @@ def encode_mathml(text):
     text = text.replace('"', '&quot;').replace(' ', '&nbsp;')
     return text.replace('\n', '<mspace linebreak="newline" />')
 
+def _limit_string_size(text, limit):
+    limit = max(limit, 3)
+    if len(text) > limit:
+        ellipsis = "\u2026"
+        return text[:limit // 2] + ellipsis + text[len(text) - limit // 2:]
+    else:
+        return text
 
 TEX_REPLACE = {
     '{': r'\{',
@@ -2054,14 +2061,17 @@ class String(Atom):
     def __str__(self):
         return '"%s"' % self.value
 
-    def boxes_to_text(self, show_string_characters=False, **options):
+    def boxes_to_text(self, show_string_characters=False, output_size_limit=None, **options):
         value = self.value
         if (not show_string_characters and      # nopep8
             value.startswith('"') and value.endswith('"')):
             value = value[1:-1]
-        return value
+        if output_size_limit is None:
+            return value
+        else:
+            return _limit_string_size(value, output_size_limit)
 
-    def boxes_to_xml(self, show_string_characters=False, **options):
+    def boxes_to_xml(self, show_string_characters=False, output_size_limit=None, **options):
         from mathics.core.parser import is_symbol_name
         from mathics.builtin import builtins
 
@@ -2073,30 +2083,33 @@ class String(Atom):
 
         text = self.value
 
+        def render(format, string):
+            if output_size_limit is not None:
+                string = _limit_string_size(string, output_size_limit - (len(format) - len('%s')))
+            return format % encode_mathml(string)
+
         if text.startswith('"') and text.endswith('"'):
             if show_string_characters:
-                return '<ms>%s</ms>' % encode_mathml(text[1:-1])
+                return render('<ms>%s</ms>', text[1:-1])
             else:
-                return '<mtext>%s</mtext>' % encode_mathml(text[1:-1])
+                return render('<mtext>%s</mtext>', text[1:-1])
         elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
-            return '<mn>%s</mn>' % encode_mathml(text)
+            return render('<mn>%s</mn>', text)
         else:
             if text in operators or text in extra_operators:
                 if text == '\u2146':
-                    return (
-                        '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>'
-                        % encode_mathml(text))
+                    return render(
+                        '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>', text)
                 if text == '\u2062':
-                    return (
-                        '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>'
-                        % encode_mathml(text))
-                return '<mo>%s</mo>' % encode_mathml(text)
+                    return render(
+                        '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>', text)
+                return render('<mo>%s</mo>', text)
             elif is_symbol_name(text):
-                return '<mi>%s</mi>' % encode_mathml(text)
+                return render('<mi>%s</mi>', text)
             else:
-                return '<mtext>%s</mtext>' % encode_mathml(text)
+                return render('<mtext>%s</mtext>', text)
 
-    def boxes_to_tex(self, show_string_characters=False, **options):
+    def boxes_to_tex(self, show_string_characters=False, output_size_limit=None, **options):
         from mathics.builtin import builtins
 
         operators = set()
@@ -2107,13 +2120,18 @@ class String(Atom):
 
         text = self.value
 
+        def render(format, string, in_text=False):
+            if output_size_limit is not None:
+                string = _limit_string_size(string, output_size_limit - (len(format) - len('%s')))
+            return format % encode_tex(string, in_text)
+
         if text.startswith('"') and text.endswith('"'):
             if show_string_characters:
-                return r'\text{"%s"}' % encode_tex(text[1:-1], in_text=True)
+                return render(r'\text{"%s"}', text[1:-1], in_text=True)
             else:
-                return r'\text{%s}' % encode_tex(text[1:-1], in_text=True)
+                return render(r'\text{%s}', text[1:-1], in_text=True)
         elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
-            return encode_tex(text)
+            return render('%s', text)
         else:
             if text == '\u2032':
                 return "'"
@@ -2126,9 +2144,9 @@ class String(Atom):
             elif text == '\u00d7':
                 return r'\times '
             elif text in ('(', '[', '{'):
-                return r'\left%s' % encode_tex(text)
+                return render(r'\left%s', text)
             elif text in (')', ']', '}'):
-                return r'\right%s' % encode_tex(text)
+                return render(r'\right%s', text)
             elif text == '\u301a':
                 return r'\left[\left['
             elif text == '\u301b':
@@ -2144,9 +2162,9 @@ class String(Atom):
             elif text == '\u220f':
                 return r'\prod'
             elif len(text) > 1:
-                return r'\text{%s}' % encode_tex(text, in_text=True)
+                return render(r'\text{%s}', text, in_text=True)
             else:
-                return encode_tex(text)
+                return render('%s', text)
 
     def atom_to_boxes(self, f, evaluation):
         return String('"' + six.text_type(self.value) + '"')
@@ -2186,6 +2204,23 @@ class String(Atom):
 
     def __getnewargs__(self):
         return (self.value,)
+
+
+class Omitted(String):  # represents an omitted portion like <<42>> (itself not collapsible)
+    def __new__(cls, value, **kwargs):
+        return super(Omitted, cls).__new__(cls, value, **kwargs)
+
+    def boxes_to_text(self, **options):
+        new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
+        return super(Omitted, self).boxes_to_text(**new_options)
+
+    def boxes_to_xml(self, **options):
+        new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
+        return super(Omitted, self).boxes_to_xml(**new_options)
+
+    def boxes_to_tex(self, **options):
+        new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
+        return super(Omitted, self).boxes_to_tex(**new_options)
 
 
 def get_default_value(name, evaluation, k=None, n=None):
