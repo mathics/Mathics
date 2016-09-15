@@ -2493,7 +2493,10 @@ class Rasterize(Builtin):
             stream = BytesIO()
             stream.write(png)
             stream.seek(0)
-            pixels = skimage.io.imread(stream)
+            im = PIL.Image.open(stream)
+            # note that we need to get these pixels as long as stream is still open,
+            # otherwise PIL will generate an IO error.
+            pixels = numpy.array(im)
             stream.close()
 
             return Image(pixels, 'RGB')
