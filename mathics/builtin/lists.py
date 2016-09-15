@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 from six.moves import range
 from six.moves import zip
-from itertools import chain
+from itertools import chain, permutations
 
 from mathics.builtin.base import (
     Builtin, Test, InvalidLevelspecError, BinaryOperator,
@@ -4097,3 +4097,40 @@ class ClusteringComponents(_Cluster):
         'ClusteringComponents[p_, k_Integer, OptionsPattern[%(name)s]]'
         return self._cluster(p, k, 'components', evaluation, options,
                              Expression('ClusteringComponents', p, k, *options_to_rules(options)))
+
+
+class Permutations(Builtin):
+    messages = {
+        'nninfseq': 'The number specified at position 2 of `` must be a non-negative integer, All, or Infinity.'
+    }
+
+    def apply(self, l, evaluation):
+        'Permutations[l_List]'
+        return Expression('List', *[Expression('List', *p)
+                                    for p in permutations(l.leaves, len(l.leaves))])
+
+    def apply_n(self, l, n, evaluation):
+        'Permutations[l_List, n_]'
+
+        if n.has_form('DirectedInfinity', 1) and isinstance(n.leaves[0], Integer) and n.leaves[0].get_int_value() > 0:
+            py_n = len(l.leaves)
+            rs = range(py_n + 1)
+        elif isinstance(n, Symbol) and n.get_name() == 'System`All':
+            py_n = len(l.leaves)
+            rs = range(py_n + 1)
+        elif isinstance(n, Integer):
+            py_n = min(n.get_int_value(), len(l.leaves))
+            rs = range(py_n + 1)
+        elif n.has_form('List', 1) and isinstance(n.leaves[0], Integer):
+            py_n = n.leaves[0].get_int_value()
+            rs = (py_n,)
+        else:
+            py_n = None
+
+        if py_n is None or py_n < 0:
+            evaluation.message(self.get_name(), 'nninfseq', Expression(self.get_name(), l, n))
+            return
+
+        return Expression('List', *[Expression('List', *p)
+                                    for r in rs
+                                    for p in permutations(l.leaves, r)])
