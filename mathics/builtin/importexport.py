@@ -799,6 +799,7 @@ class FileFormat(Builtin):
             'text/x-tex': 'TeX',
             'text/x-vcalendar': 'VCS',
             'text/x-vcard': 'VCF',
+            'text/xml': 'XML',
             'video/avi': 'AVI',
             'video/quicktime': 'QuickTime',
             'video/x-flv': 'FLV',
