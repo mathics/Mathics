@@ -285,14 +285,23 @@ class IRGenerator(object):
         leaves = expr.get_leaves()
         if len(leaves) != 2:
             raise CompileError()
+
+        # handle E ^ x
+        if leaves[0].same(Symbol('E')):
+            exponent = self._gen_ir(leaves[1])
+            if exponent.type == real_type:
+               exponent = self.builder.sitofp(exponent, real_type)
+            if exponent.type == real_type:
+                return self.call_fp_intr('llvm.exp', [exponent])
+            else:
+                raise CompileError
+
         base, exponent = [self._gen_ir(leaf) for leaf in leaves]
         if base.type == real_type and exponent.type == int_type:
             return self.call_fp_intr('llvm.powi', [base, exponent])
         elif base.type == int_type and exponent.type == real_type:
             if leaves[0].get_int_value() == 2:
-                return self.call_fp_intr('llvm.exp2', exponent)
-            elif leaves[0].same(Symbol('E')):
-                return self.call_fp_intr('llvm.exp', exponent)
+                return self.call_fp_intr('llvm.exp2', [exponent])
             else:
                 exponent = self.builder.sitofp(exponent, real_type)
         elif base.type == real_type and exponent.type == real_type:

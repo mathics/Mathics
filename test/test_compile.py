@@ -82,10 +82,26 @@ class ArithmeticTest(CompileTest):
     def test_csc(self):
         self._test_unary_math('Csc', mpmath.csc)
 
-    def test_pow(self):
+    def test_pow_real(self):
         self._test_binary_math('Power', mpmath.power)
-        # TODO 2 ^ x
-        # TODO E ^ x
+
+    def test_pow_2(self):
+        # 2 ^ x
+        expr = Expression('Power', Integer(2), Symbol('x'))
+        args = [CompileArg('System`x', real_type)]
+        cfunc = _compile(expr, args)
+        for _ in range(1000):
+            x = random.random()
+            self.assertAlmostEqual(cfunc(x), mpmath.power(2, x))
+
+    def test_pow_E(self):
+        # E ^ x
+        expr = Expression('Power', Symbol('E'), Symbol('x'))
+        args = [CompileArg('System`x', real_type)]
+        cfunc = _compile(expr, args)
+        for _ in range(1000):
+            x = random.random()
+            self.assertAlmostEqual(cfunc(x), mpmath.exp(x))
 
     def test_hyperbolics(self):
         self._test_unary_math('Sinh', mpmath.sinh)
