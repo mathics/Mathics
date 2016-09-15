@@ -10,6 +10,94 @@ from mathics.builtin.compile.utils import pairwise
 from mathics.builtin.compile.base import CompileError
 
 
+def single_real_arg(f):
+    '''
+    One real argument.
+    Converts integer argument to real argument.
+    '''
+    def wrapped_f(self, expr):
+        leaves = expr.get_leaves()
+        if len(leaves) != 1:
+            raise CompileError()
+        arg = self._gen_ir(leaves[0])
+        if arg.type == void_type:
+            return arg
+        elif arg.type == int_type:
+            arg = self.builder.sitofp(arg, real_type)
+        return f(self, [arg])
+    return wrapped_f
+
+
+def int_real_args(minargs):
+    '''
+    Many real or integer arguments expected.
+    If any real arguments are provided all integer arguments will be converted.
+    '''
+    def wraps(f):
+        def wrapped_f(self, expr):
+            leaves = expr.get_leaves()
+            if len(leaves) < minargs:
+                raise CompileError()
+            args = [self._gen_ir(leaf) for leaf in leaves]
+            for arg in args:
+                if arg.type == void_type:
+                    return arg
+            if any(arg.type not in (real_type, int_type) for arg in args):
+                raise CompileError()
+            if all(arg.type == int_type for arg in args):
+                ret_type = int_type
+            else:
+                ret_type = real_type
+                for i, arg in enumerate(args):
+                    if arg.type == int_type:
+                        args[i] = self.builder.sitofp(arg, real_type)
+            return f(self, args, ret_type)
+        return wrapped_f
+    return wraps
+
+
+def int_args(f):
+    '''
+    Integer arguments.
+    Converts boolean to integer arguments.
+    '''
+    def wrapped_f(self, expr):
+        leaves = expr.get_leaves()
+        args = [self._gen_ir(leaf) for leaf in leaves]
+        for arg in args:
+            if arg.type == void_type:
+                return arg
+        # TODO bool to int
+        # for i, arg in enumerate(args):
+        #     if arg.type == bool_type:
+        #         pass
+        if any(arg.type != int_type for arg in args):
+            raise CompileError()
+        return f(self, args)
+    return wrapped_f
+
+
+def bool_args(f):
+    '''
+    Boolean arguments.
+    Converts integer to boolean arguments.
+    '''
+    def wrapped_f(self, expr):
+        leaves = expr.get_leaves()
+        args = [self._gen_ir(leaf) for leaf in leaves]
+        for arg in args:
+            if arg.type == void_type:
+                return arg
+        # TODO int to bool
+        # for i, arg in enumerate(args):
+        #     if arg.type == int_type:
+        #         pass
+        if any(arg.type != bool_type for arg in args):
+            raise CompileError()
+        return f(self, args)
+    return wrapped_f
+
+
 class IRGenerator(object):
     def __init__(self, expr, args, func_name):
         self.expr = expr
@@ -71,27 +159,10 @@ class IRGenerator(object):
         intr = lc.Function.intrinsic(mod, name, [arg.type for arg in args])
         return self.builder.call(intr, args)
 
-    def convert_args(self, args):
-        # check/convert leaf types
-        if any(arg.type == real_type for arg in args):
-            for i, arg in enumerate(args):
-                if arg.type == int_type:
-                    args[i] = self.builder.sitofp(arg, real_type)
-            ret_type = real_type
-        elif all(arg.type == int_type for arg in args):
-            ret_type = int_type
-        elif all(arg.type == bool_type for arg in args):
-            ret_type = bool_type
-        else:
-            raise CompileError()
-        return ret_type, args
-
     def _gen_ir(self, expr):
         '''
         walks an expression tree and constructs the ir block
         '''
-        builder = self.builder
-
         if isinstance(expr, Symbol):
             arg = self.lookup_args[expr.get_name()]
             return arg
@@ -102,266 +173,348 @@ class IRGenerator(object):
         elif not isinstance(expr, Expression):
             raise CompileError()
 
-        if expr.has_form('If', 3):
-            args = expr.get_leaves()
+        head_name = expr.get_head_name()
+        if head_name.startswith('System`'):
+            head_name = head_name[7:]
+            method = getattr(self, '_gen_' + head_name, None)
+        else:
+            method = None
 
-            # condition
-            cond = self._gen_ir(args[0])
-            if cond.type == int_type:
-                cond = builder.icmp_signed('!=', cond, int_type(0))
-            if cond.type != bool_type:
-                raise CompileError()
+        if method is None:
+            raise CompileError()
 
-            # construct new blocks
-            then_block = builder.append_basic_block()
-            else_block = builder.append_basic_block()
+        return method(expr)
 
-            # branch to then or else block
-            builder.cbranch(cond, then_block, else_block)
+    def _gen_If(self, expr):
+        if not expr.has_form('If', 3):
+            raise CompileError()
 
-            # results for both block
+        builder = self.builder
+        args = expr.get_leaves()
+
+        # condition
+        cond = self._gen_ir(args[0])
+        if cond.type == int_type:
+            cond = builder.icmp_signed('!=', cond, int_type(0))
+        if cond.type != bool_type:
+            raise CompileError()
+
+        # construct new blocks
+        then_block = builder.append_basic_block()
+        else_block = builder.append_basic_block()
+
+        # branch to then or else block
+        builder.cbranch(cond, then_block, else_block)
+
+        # results for both block
+        with builder.goto_block(then_block):
+            then_result = self._gen_ir(args[1])
+        with builder.goto_block(else_block):
+            else_result = self._gen_ir(args[2])
+
+        # type check both blocks - determine resulting type
+        if then_result.type == void_type and else_result.type == void_type:
+            # both blocks terminate so no continuation block
+            return then_result
+        elif then_result.type == else_result.type:
+            ret_type = then_result.type
+        elif then_result.type == int_type and else_result.type == real_type:
+            builder.position_at_end(then_block)
+            then_result = builder.sitofp(then_result, real_type)
+            ret_type = real_type
+        elif then_result.type == real_type and else_result.type == int_type:
+            builder.position_at_end(else_block)
+            else_result = builder.sitofp(else_result, real_type)
+            ret_type = real_type
+        elif then_result.type == void_type and else_result.type != void_type:
+            ret_type = else_result.type
+        elif then_result.type != void_type and else_result.type == void_type:
+            ret_type = then_result.type
+        else:
+            raise CompileError()
+
+        # continuation block
+        cont_block = builder.append_basic_block()
+        builder.position_at_start(cont_block)
+        result = builder.phi(ret_type)
+
+        # both blocks branch to continuation block (unless they terminate)
+        if then_result.type != void_type:
             with builder.goto_block(then_block):
-                then_result = self._gen_ir(args[1])
+                builder.branch(cont_block)
+            result.add_incoming(then_result, then_block)
+        if else_result.type != void_type:
             with builder.goto_block(else_block):
-                else_result = self._gen_ir(args[2])
+                builder.branch(cont_block)
+            result.add_incoming(else_result, else_block)
+        return result
 
-            # type check both blocks - determine resulting type
-            if then_result.type == void_type and else_result.type == void_type:
-                # both blocks terminate so no continuation block
-                return then_result
-            elif then_result.type == else_result.type:
-                ret_type = then_result.type
-            elif then_result.type == int_type and else_result.type == real_type:
-                builder.position_at_end(then_block)
-                then_result = builder.sitofp(then_result, real_type)
-                ret_type = real_type
-            elif then_result.type == real_type and else_result.type == int_type:
-                builder.position_at_end(else_block)
-                else_result = builder.sitofp(else_result, real_type)
-                ret_type = real_type
-            elif then_result.type == void_type and else_result.type != void_type:
-                ret_type = else_result.type
-            elif then_result.type != void_type and else_result.type == void_type:
-                ret_type = then_result.type
+    def _gen_Return(self, expr):
+        leaves = expr.get_leaves()
+        if len(leaves) != 1:
+            raise CompileError()
+
+        arg = self._gen_ir(leaves[0])
+        if arg.type == void_type:
+            return arg
+
+        builder = self.builder
+        if self._returned_type == real_type and arg.type == int_type:
+            arg = builder.sitofp(arg, real_type)
+        elif self._returned_type == int_type and arg.type == real_type:
+            self._returned_type = arg.type
+        self._returned_type = arg.type
+        return builder.ret(arg)
+
+    @int_real_args(1)
+    def _gen_Plus(self, args, ret_type):
+        if ret_type == real_type:
+            return reduce(self.builder.fadd, args)
+        elif ret_type == int_type:
+            return reduce(self.builder.add, args)
+
+    @int_real_args(1)
+    def _gen_Times(self, args, ret_type):
+        if ret_type == real_type:
+            return reduce(self.builder.fmul, args)
+        elif ret_type == int_type:
+            return reduce(self.builder.mul, args)
+
+    def _gen_Power(self, expr):
+        # TODO (int_type, int_type) power
+        leaves = expr.get_leaves()
+        if len(leaves) != 2:
+            raise CompileError()
+        base, exponent = [self._gen_ir(leaf) for leaf in leaves]
+        if base.type == real_type and exponent.type == int_type:
+            return self.call_fp_intr('llvm.powi', [base, exponent])
+        elif base.type == int_type and exponent.type == real_type:
+            if leaves[0].get_int_value() == 2:
+                return self.call_fp_intr('llvm.exp2', exponent)
+            elif leaves[0].same(Symbol('E')):
+                return self.call_fp_intr('llvm.exp', exponent)
+            else:
+                exponent = self.builder.sitofp(exponent, real_type)
+        elif base.type == real_type and exponent.type == real_type:
+            pass
+        else:
+            raise CompileError()
+        return self.call_fp_intr('llvm.pow', [base, exponent])
+
+    @single_real_arg
+    def _gen_Sin(self, args):
+        return self.call_fp_intr('llvm.sin', args)
+
+    @single_real_arg
+    def _gen_Cos(self, args):
+        return self.call_fp_intr('llvm.cos', args)
+
+    @single_real_arg
+    def _gen_Tan(self, args):
+        # FIXME this approach is inaccurate
+        sinx = self.call_fp_intr('llvm.sin', args)
+        cosx = self.call_fp_intr('llvm.cos', args)
+        return self.builder.fdiv(sinx, cosx)
+
+    @single_real_arg
+    def _gen_Sec(self, args):
+        # FIXME this approach is inaccurate
+        cosx = self.call_fp_intr('llvm.cos', args)
+        return self.builder.fdiv(real_type(1.0), cosx)
+
+    @single_real_arg
+    def _gen_Csc(self, args):
+        # FIXME this approach is inaccurate
+        sinx = self.call_fp_intr('llvm.sin', args)
+        return self.builder.fdiv(real_type(1.0), sinx)
+
+    @single_real_arg
+    def _gen_Cot(self, args):
+        # FIXME this approach is inaccurate
+        sinx = self.call_fp_intr('llvm.sin', args)
+        cosx = self.call_fp_intr('llvm.cos', args)
+        return self.builder.fdiv(cosx, sinx)
+
+    @single_real_arg
+    def _gen_Exp(self, args):
+        return self.call_fp_intr('llvm.exp', args)
+
+    @single_real_arg
+    def _gen_Log(self, args):
+        return self.call_fp_intr('llvm.log', args)
+
+    @single_real_arg
+    def _gen_Abs(self, args):
+        return self.call_fp_intr('llvm.fabs', args)
+
+    @int_real_args(1)
+    def _gen_Min(self, args, ret_type):
+        return reduce(lambda arg1, arg2: self.call_fp_intr('llvm.minnum', [arg1, arg2]), args)
+
+    @int_real_args(1)
+    def _gen_Max(self, args, ret_type):
+        return reduce(lambda arg1, arg2: self.call_fp_intr('llvm.maxnum', [arg1, arg2]), args)
+
+    @single_real_arg
+    def _gen_Sinh(self, args):
+        # FIXME this approach is inaccurate
+        # Sinh[x] = (Exp[x] - Exp[-x]) / 2
+        a = self.call_fp_intr('llvm.exp', args)
+        negx = self.builder.fsub(real_type(0.0), args[0])
+        b = self.call_fp_intr('llvm.exp', [negx])
+        c = self.builder.fsub(a, b)
+        return self.builder.fmul(c, real_type(0.5))
+
+    @single_real_arg
+    def _gen_Cosh(self, args):
+        # FIXME this approach is inaccurate
+        # Cosh[x] = (Exp[x] + Exp[-x]) / 2
+        a = self.call_fp_intr('llvm.exp', args)
+        negx = self.builder.fsub(real_type(0.0), args[0])
+        b = self.call_fp_intr('llvm.exp', [negx])
+        c = self.builder.fadd(a, b)
+        return self.builder.fmul(c, real_type(0.5))
+
+    @single_real_arg
+    def _gen_Tanh(self, args):
+        # FIXME this approach is inaccurate
+        # Tanh[x] = (Exp[x] - Exp[-x]) / (Exp[x] + Exp[-x])
+        a = self.call_fp_intr('llvm.exp', args)
+        negx = self.builder.fsub(real_type(0.0), args[0])
+        b = self.call_fp_intr('llvm.exp', [negx])
+        return self.builder.fdiv(self.builder.fsub(a, b), self.builder.fadd(a, b))
+
+    @single_real_arg
+    def _gen_Sech(self, args):
+        # FIXME this approach is inaccurate
+        # Sech[x] = 2 / (Exp[x] - Exp[-x])
+        a = self.call_fp_intr('llvm.exp', args)
+        negx = self.builder.fsub(real_type(0.0), args[0])
+        b = self.call_fp_intr('llvm.exp', [negx])
+        return self.builder.fdiv(real_type(2.0), self.builder.fadd(a, b))
+
+    @single_real_arg
+    def _gen_Csch(self, args):
+        # FIXME this approach is inaccurate
+        # Csch[x] = 2 / (Exp[x] + Exp[-x])
+        a = self.call_fp_intr('llvm.exp', args)
+        negx = self.builder.fsub(real_type(0.0), args[0])
+        b = self.call_fp_intr('llvm.exp', [negx])
+        return self.builder.fdiv(real_type(2.0), self.builder.fsub(a, b))
+
+    @single_real_arg
+    def _gen_Coth(self, args):
+        # FIXME this approach is inaccurate
+        # Coth[x] = (Exp[x] + Exp[-x]) / (Exp[x] - Exp[-x])
+        a = self.call_fp_intr('llvm.exp', args)
+        negx = self.builder.fsub(real_type(0.0), args[0])
+        b = self.call_fp_intr('llvm.exp', [negx])
+        return self.builder.fdiv(self.builder.fadd(a, b), self.builder.fsub(a, b))
+
+    @int_real_args(2)
+    def _gen_Equal(self, args, ret_type):
+        result = []
+        for lhs, rhs in pairwise(args):
+            if ret_type == real_type:
+                result.append(self.builder.fcmp_ordered('==', lhs, rhs))
+            elif ret_type == int_type:
+                result.append(self.builder.icmp_signed('==', lhs, rhs))
             else:
                 raise CompileError()
+        return reduce(self.builder.and_, result)
 
-            # continuation block
-            cont_block = builder.append_basic_block()
-            builder.position_at_start(cont_block)
-            result = builder.phi(ret_type)
-
-            # both blocks branch to continuation block (unless they terminate)
-            if then_result.type != void_type:
-                with builder.goto_block(then_block):
-                    builder.branch(cont_block)
-                result.add_incoming(then_result, then_block)
-            if else_result.type != void_type:
-                with builder.goto_block(else_block):
-                    builder.branch(cont_block)
-                result.add_incoming(else_result, else_block)
-            return result
-
-        # generate leaves
-        args = [self._gen_ir(leaf) for leaf in expr.get_leaves()]
-
-        for arg in args:
-            if arg.type == void_type:
-                return arg
-
-        # check leaf types
-        ret_type, args = self.convert_args(args)
-
-        # convert expression
-        if expr.has_form('Plus', 1, None):
+    @int_real_args(2)
+    def _gen_Unequal(self, args, ret_type):
+        result = []
+        # Unequal[e1, e2, ... en] gives True only if none of the ei are equal.
+        result = []
+        for lhs, rhs in itertools.combinations(args, 2):
             if ret_type == real_type:
-                return reduce(builder.fadd, args)
+                result.append(self.builder.fcmp_ordered('!=', lhs, rhs))
             elif ret_type == int_type:
-                return reduce(builder.add, args)
-        elif expr.has_form('Times', 1, None):
-            if ret_type == real_type:
-                return reduce(builder.fmul, args)
-            elif ret_type == int_type:
-                return reduce(builder.mul, args)
-        elif expr.has_form('Sin', 1):
-            if ret_type == real_type:
-                return self.call_fp_intr('llvm.sin', args)
-        elif expr.has_form('Cos', 1):
-            if ret_type == real_type:
-                return self.call_fp_intr('llvm.cos', args)
-        elif expr.has_form('Tan', 1):
-            if ret_type == real_type:
-                # FIXME this approach is inaccurate
-                sinx = self.call_fp_intr('llvm.sin', args)
-                cosx = self.call_fp_intr('llvm.cos', args)
-                return builder.fdiv(sinx, cosx)
-        elif expr.has_form('Sec', 1) and ret_type == real_type:
-            # FIXME this approach is inaccurate
-            cosx = self.call_fp_intr('llvm.cos', args)
-            return builder.fdiv(real_type(1.0), cosx)
-        elif expr.has_form('Csc', 1) and ret_type == real_type:
-            # FIXME this approach is inaccurate
-            sinx = self.call_fp_intr('llvm.sin', args)
-            return builder.fdiv(real_type(1.0), sinx)
-        elif expr.has_form('Cot', 1) and ret_type == real_type:
-            # FIXME this approach is inaccurate
-            sinx = self.call_fp_intr('llvm.sin', args)
-            cosx = self.call_fp_intr('llvm.cos', args)
-            return builder.fdiv(cosx, sinx)
-        elif expr.has_form('Power', 2):
-            # TODO llvm.powi if second argument is integer
-            # TODO llvm.exp if first argument is E
-            # TODO llvm.exp2 if first argument is 2
-            if ret_type == real_type:
-                return self.call_fp_intr('llvm.pow', args)
-        elif expr.has_form('Exp', 1):
-            if ret_type == real_type:
-                return self.call_fp_intr('llvm.exp', args)
-        elif expr.has_form('Log', 1):
-            # TODO log2 and log10 special cases
-            if ret_type == real_type:
-                return self.call_fp_intr('llvm.log', args)
-        elif expr.has_form('Abs', 1):
-            if ret_type == real_type:
-                return self.call_fp_intr('llvm.fabs', args)
-        elif expr.has_form('Min', 1, None):
-            if ret_type == real_type:
-                return reduce(lambda arg1, arg2: self.call_fp_intr('llvm.minnum', [arg1, arg2]), args)
-        elif expr.has_form('Max', 1, None):
-            if ret_type == real_type:
-                return reduce(lambda arg1, arg2: self.call_fp_intr('llvm.maxnum', [arg1, arg2]), args)
-        elif expr.has_form('Sinh', 1) and ret_type == real_type:
-            # FIXME this approach is inaccurate
-            # Sinh[x] = (Exp[x] - Exp[-x]) / 2
-            a = self.call_fp_intr('llvm.exp', args)
-            negx = builder.fsub(real_type(0.0), args[0])
-            b = self.call_fp_intr('llvm.exp', [negx])
-            c = builder.fsub(a, b)
-            return builder.fmul(c, real_type(0.5))
-        elif expr.has_form('Cosh', 1) and ret_type == real_type:
-            # FIXME this approach is inaccurate
-            # Cosh[x] = (Exp[x] + Exp[-x]) / 2
-            a = self.call_fp_intr('llvm.exp', args)
-            negx = builder.fsub(real_type(0.0), args[0])
-            b = self.call_fp_intr('llvm.exp', [negx])
-            c = builder.fadd(a, b)
-            return builder.fmul(c, real_type(0.5))
-        elif expr.has_form('Tanh', 1) and ret_type == real_type:
-            # FIXME this approach is inaccurate
-            # Tanh[x] = (Exp[x] - Exp[-x]) / (Exp[x] + Exp[-x])
-            a = self.call_fp_intr('llvm.exp', args)
-            negx = builder.fsub(real_type(0.0), args[0])
-            b = self.call_fp_intr('llvm.exp', [negx])
-            return builder.fdiv(builder.fsub(a, b), builder.fadd(a, b))
-        elif expr.has_form('Sech', 1) and ret_type == real_type:
-            # FIXME this approach is inaccurate
-            # Sech[x] = 2 / (Exp[x] - Exp[-x])
-            a = self.call_fp_intr('llvm.exp', args)
-            negx = builder.fsub(real_type(0.0), args[0])
-            b = self.call_fp_intr('llvm.exp', [negx])
-            return builder.fdiv(real_type(2.0), builder.fadd(a, b))
-        elif expr.has_form('Csch', 1) and ret_type == real_type:
-            # FIXME this approach is inaccurate
-            # Csch[x] = 2 / (Exp[x] + Exp[-x])
-            a = self.call_fp_intr('llvm.exp', args)
-            negx = builder.fsub(real_type(0.0), args[0])
-            b = self.call_fp_intr('llvm.exp', [negx])
-            return builder.fdiv(real_type(2.0), builder.fsub(a, b))
-        elif expr.has_form('Coth', 1) and ret_type == real_type:
-            # FIXME this approach is inaccurate
-            # Coth[x] = (Exp[x] + Exp[-x]) / (Exp[x] - Exp[-x])
-            a = self.call_fp_intr('llvm.exp', args)
-            negx = builder.fsub(real_type(0.0), args[0])
-            b = self.call_fp_intr('llvm.exp', [negx])
-            return builder.fdiv(builder.fadd(a, b), builder.fsub(a, b))
-        elif expr.has_form('Equal', 2, None):
-            result = []
-            for lhs, rhs in pairwise(args):
-                if ret_type == real_type:
-                    result.append(builder.fcmp_ordered('==', lhs, rhs))
-                elif ret_type == int_type:
-                    result.append(builder.icmp_signed('==', lhs, rhs))
-                else:
-                    raise CompileError()
-            return reduce(builder.and_, result)
-        elif expr.has_form('Unequal', 2, None):
-            # Unequal[e1, e2, ... en] gives True only if none of the ei are equal.
-            result = []
-            for lhs, rhs in itertools.combinations(args, 2):
-                if ret_type == real_type:
-                    result.append(builder.fcmp_ordered('!=', lhs, rhs))
-                elif ret_type == int_type:
-                    result.append(builder.icmp_signed('!=', lhs, rhs))
-                else:
-                    raise CompileError()
-            return reduce(builder.and_, result)
-        elif expr.has_form('Less', 2, None):
-            result = []
-            for lhs, rhs in pairwise(args):
-                if ret_type == real_type:
-                    result.append(builder.fcmp_ordered('<', lhs, rhs))
-                elif ret_type == int_type:
-                    result.append(builder.icmp_signed('<', lhs, rhs))
-                else:
-                    raise CompileError()
-            return reduce(builder.and_, result)
-        elif expr.has_form('LessEqual', 2, None):
-            result = []
-            for lhs, rhs in pairwise(args):
-                if ret_type == real_type:
-                    result.append(builder.fcmp_ordered('<=', lhs, rhs))
-                elif ret_type == int_type:
-                    result.append(builder.icmp_signed('<=', lhs, rhs))
-                else:
-                    raise CompileError()
-            return reduce(builder.and_, result)
-        elif expr.has_form('Greater', 2, None):
-            result = []
-            for lhs, rhs in pairwise(args):
-                if ret_type == real_type:
-                    result.append(builder.fcmp_ordered('>', lhs, rhs))
-                elif ret_type == int_type:
-                    result.append(builder.icmp_signed('>', lhs, rhs))
-                else:
-                    raise CompileError()
-            return reduce(builder.and_, result)
-        elif expr.has_form('GreaterEqual', 2, None):
-            result = []
-            for lhs, rhs in pairwise(args):
-                if ret_type == real_type:
-                    result.append(builder.fcmp_ordered('>=', lhs, rhs))
-                elif ret_type == int_type:
-                    result.append(builder.icmp_signed('>=', lhs, rhs))
-                else:
-                    raise CompileError()
-            return reduce(builder.and_, result)
-        elif expr.has_form('And', 1, None) and ret_type == bool_type:
-            return reduce(builder.and_, args)
-        elif expr.has_form('Or', 1, None) and ret_type == bool_type:
-            return reduce(builder.or_, args)
-        elif expr.has_form('Xor', 1, None) and ret_type == bool_type:
-            return reduce(builder.xor, args)
-        elif expr.has_form('Not', 1) and ret_type == bool_type:
-            return builder.not_(args[0])
-        elif expr.has_form('BitAnd', 1, None) and ret_type == int_type:
-            return reduce(builder.and_, args)
-        elif expr.has_form('BitOr', 1, None) and ret_type == int_type:
-            return reduce(builder.or_, args)
-        elif expr.has_form('BitXor', 1, None) and ret_type == int_type:
-            return reduce(builder.xor, args)
-        elif expr.has_form('BitNot', 1) and ret_type == int_type:
-            return builder.not_(args[0])
-        elif expr.has_form('Return', 1):
-            result = args[0]
-            if self._returned_type == real_type and ret_type == int_type:
-               result = builder.sitofp(result, real_type)
-            elif self._returned_type == int_type and ret_type == real_type:
-                self._returned_type = ret_type
-            self._returned_type = ret_type
-            return builder.ret(result)
-        raise CompileError()
+                result.append(self.builder.icmp_signed('!=', lhs, rhs))
+            else:
+                raise CompileError()
+        return reduce(self.builder.and_, result)
 
-    def set_returned_type(self, ret_type):
-        if self._returned_type is not None and self._returned_type != ret_type:
-            raise CompileError()
-        self._returned_type = ret_type
+    @int_real_args(2)
+    def _gen_Less(self, args, ret_type):
+        result = []
+        for lhs, rhs in pairwise(args):
+            if ret_type == real_type:
+                result.append(self.builder.fcmp_ordered('<', lhs, rhs))
+            elif ret_type == int_type:
+                result.append(self.builder.icmp_signed('<', lhs, rhs))
+            else:
+                raise CompileError()
+        return reduce(self.builder.and_, result)
+
+    @int_real_args(2)
+    def _gen_LessEqual(self, args, ret_type):
+        result = []
+        for lhs, rhs in pairwise(args):
+            if ret_type == real_type:
+                result.append(self.builder.fcmp_ordered('<=', lhs, rhs))
+            elif ret_type == int_type:
+                result.append(self.builder.icmp_signed('<=', lhs, rhs))
+            else:
+                raise CompileError()
+        return reduce(self.builder.and_, result)
+
+    @int_real_args(2)
+    def _gen_Greater(self, args, ret_type):
+        result = []
+        for lhs, rhs in pairwise(args):
+            if ret_type == real_type:
+                result.append(self.builder.fcmp_ordered('>', lhs, rhs))
+            elif ret_type == int_type:
+                result.append(self.builder.icmp_signed('>', lhs, rhs))
+            else:
+                raise CompileError()
+        return reduce(self.builder.and_, result)
+
+    @int_real_args(2)
+    def _gen_GreaterEqual(self, args, ret_type):
+        result = []
+        for lhs, rhs in pairwise(args):
+            if ret_type == real_type:
+                result.append(self.builder.fcmp_ordered('>=', lhs, rhs))
+            elif ret_type == int_type:
+                result.append(self.builder.icmp_signed('>=', lhs, rhs))
+            else:
+                raise CompileError()
+        return reduce(self.builder.and_, result)
+
+    @bool_args
+    def _gen_And(self, args):
+        return reduce(self.builder.and_, args)
+
+    @bool_args
+    def _gen_Or(self, args):
+        return reduce(self.builder.or_, args)
+
+    @bool_args
+    def _gen_Xor(self, args):
+        return reduce(self.builder.xor, args)
+
+    @bool_args
+    def _gen_Not(self, args):
+        if len(args) != 1:
+            raise CompileError
+        return self.builder.not_(args[0])
+
+    @int_args
+    def _gen_BitAnd(self, args):
+        return reduce(self.builder.and_, args)
+
+    @int_args
+    def _gen_BitOr(self, args):
+        return reduce(self.builder.or_, args)
+
+    @int_args
+    def _gen_BitXor(self, args):
+        return reduce(self.builder.xor, args)
+
+    @int_args
+    def _gen_BitNot(self, args):
+        return self.builder.not_(args[0])

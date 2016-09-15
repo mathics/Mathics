@@ -84,6 +84,8 @@ class ArithmeticTest(CompileTest):
 
     def test_pow(self):
         self._test_binary_math('Power', mpmath.power)
+        # TODO 2 ^ x
+        # TODO E ^ x
 
     def test_hyperbolics(self):
         self._test_unary_math('Sinh', mpmath.sinh)
