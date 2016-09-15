@@ -102,6 +102,11 @@ def matrix_to_numpy(a):
     return numpy.array(list(matrix()))
 
 
+def numpy_flip(pixels, axis):
+    f = (numpy.flipud, numpy.fliplr)[axis]
+    return f(pixels)
+
+
 def convolve(in1, in2, fixed=True):
     # a very much boiled down version scipy.signal.signaltools.fftconvolve with added padding, see
     # https://github.com/scipy/scipy/blob/master/scipy/signal/signaltools.py; please see the Scipy
@@ -1515,6 +1520,7 @@ class DominantColors(Builtin):
             py_max_color_coverage = color_coverage.leaves[1].round_to_float()
         else:
             py_min_color_coverage = color_coverage.round_to_float()
+            py_max_color_coverage = 1.
 
         if py_min_color_coverage is None or py_max_color_coverage is None:
             return
@@ -1643,19 +1649,29 @@ class ImageTake(_ImageBuiltin):
             pixels = image.pixels[py_n:]
         return Image(pixels, image.color_space)
 
+    def _slice(self, image, i1, i2, axis):
+        n = image.pixels.shape[axis]
+        py_i1 = min(max(i1.get_int_value() - 1, 0), n - 1)
+        py_i2 = min(max(i2.get_int_value() - 1, 0), n - 1)
+
+        def flip(pixels):
+            if py_i1 > py_i2:
+                return numpy_flip(pixels, axis)
+            else:
+                return pixels
+
+        return slice(min(py_i1, py_i2), 1 + max(py_i1, py_i2)), flip
+
     def apply_rows(self, image, r1, r2, evaluation):
         'ImageTake[image_Image, {r1_Integer, r2_Integer}]'
-        py_r1 = max(r1.get_int_value() - 1, 0)
-        py_r2 = max(r2.get_int_value() - 1, 0)
-        return Image(image.pixels[py_r1:1 + py_r2], image.color_space)
+        s, f = self._slice(image, r1, r2, 0)
+        return Image(f(image.pixels[s]), image.color_space)
 
     def apply_rows_cols(self, image, r1, r2, c1, c2, evaluation):
         'ImageTake[image_Image, {r1_Integer, r2_Integer}, {c1_Integer, c2_Integer}]'
-        py_r1 = max(r1.get_int_value() - 1, 0)
-        py_r2 = max(r2.get_int_value() - 1, 0)
-        py_c1 = max(c1.get_int_value() - 1, 0)
-        py_c2 = max(c2.get_int_value() - 1, 0)
-        return Image(image.pixels[py_r1:1 + py_r2, py_c1:1 + py_c2], image.color_space)
+        sr, fr = self._slice(image, r1, r2, 0)
+        sc, fc = self._slice(image, c1, c2, 1)
+        return Image(fc(fr(image.pixels[sr, sc])), image.color_space)
 
 
 class PixelValue(_ImageBuiltin):
