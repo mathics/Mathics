@@ -681,42 +681,23 @@ class _Plot(Builtin):
                           *options_to_rules(options))
 
 
-class BarChart(Builtin):
-    """
-    <dl>
-    <dt>'BarChart[{$p1$, $p2$ ...}]'
-        <dd>draws a bar chart.
-    </dl>
-
-    >> BarChart[{1, 4, 2}]
-     = -Graphics-
-
-    >> BarChart[{1, 4, 2}, ChartStyle -> {Red, Green, Blue}]
-     = -Graphics-
-
-    >> BarChart[{{1, 2, 3}, {2, 3, 4}}]
-     = -Graphics-
-
-    >> BarChart[{{1, 2, 3}, {2, 3, 4}}, ChartLabels -> {"a", "b", "c"}]
-     = -Graphics-
-
-    >> BarChart[{{1, 5}, {3, 4}}, ChartStyle -> {{EdgeForm[Thin], White}, {EdgeForm[Thick], White}}]
-     = -Graphics-
-    """
+class _Chart(Builtin):
+    attributes = ('HoldAll',)
 
     from .graphics import Graphics
 
-    attributes = ('HoldAll',)
-
     options = Graphics.options.copy()
     options.update({
-        'Axes': '{False, True}',
-        'AspectRatio': '1 / GoldenRatio',
         'Mesh': 'None',
         'PlotRange': 'Automatic',
         'ChartLabels': 'None',
         'ChartStyle': 'Automatic',
     })
+
+    never_monochrome = False
+
+    def _draw(self, data, color, evaluation, options):
+        raise NotImplementedError()
 
     def apply(self, points, evaluation, options):
         '%(name)s[points_, OptionsPattern[%(name)s]]'
@@ -761,13 +742,202 @@ class BarChart(Builtin):
                     return
                 multiple_colors = True
 
-            if not multiple_colors:
+            if not multiple_colors and not self.never_monochrome:
                 colors = [Expression('RGBColor', *mpl_colors[0])]
             else:
                 colors = [Expression('RGBColor', *c) for c in mpl_colors]
             spread_colors = True
         else:
             return
+
+        def color(k, n):
+            if spread_colors and n < len(colors):
+                index = int(k * (len(colors) - 1)) // n
+                return colors[index]
+            else:
+                return colors[(k - 1) % len(colors)]
+
+        return self._draw(data, color, evaluation, options)
+
+
+class PieChart(_Chart):
+    """
+    <dl>
+    <dt>'PieChart[{$p1$, $p2$ ...}]'
+        <dd>draws a pie chart.
+    </dl>
+
+    >> PieChart[{1, 4, 2}]
+     = -Graphics-
+
+    >> PieChart[{8, 16, 2}, SectorOrigin -> {Automatic, 1.5}]
+     = -Graphics-
+
+    >> PieChart[{{10, 20, 30}, {15, 22, 30}}]
+     = -Graphics-
+
+    >> PieChart[{{10, 20, 30}, {15, 22, 30}}, SectorSpacing -> None]
+     = -Graphics-
+
+    >> PieChart[{{10, 20, 30}, {15, 22, 30}}, ChartLabels -> {a, b, c}]
+     = -Graphics-
+
+    Negative values are clipped to 0.
+    >> PieChart[{1, -1, 3}]
+     = -Graphics-
+    """
+
+    options = _Chart.options.copy()
+    options.update({
+        'Axes': '{False, False}',
+        'AspectRatio': '1',
+        'SectorOrigin': '{Automatic, 0}',
+        'SectorSpacing': 'Automatic',
+    })
+
+    never_monochrome = True
+
+    def _draw(self, data, color, evaluation, options):
+        data = [[max(0., x) for x in group] for group in data]
+
+        sector_origin = self.get_option(options, 'SectorOrigin', evaluation)
+        if not sector_origin.has_form('List', 2):
+            return
+        sector_origin = Expression('N', sector_origin).evaluate(evaluation)
+
+        orientation = sector_origin.leaves[0]
+        if isinstance(orientation, Symbol) and orientation.get_name() == 'System`Automatic':
+            sector_phi = pi
+            sector_sign = -1.
+        elif orientation.has_form('List', 2) and isinstance(orientation.leaves[1], String):
+            sector_phi = orientation.leaves[0].round_to_float()
+            clock_name = orientation.leaves[1].get_string_value()
+            if clock_name == 'Clockwise':
+                sector_sign = -1.
+            elif clock_name == 'Counterclockwise':
+                sector_sign = 1.
+            else:
+                return
+        else:
+            return
+
+        sector_spacing = self.get_option(options, 'SectorSpacing', evaluation)
+        if isinstance(sector_spacing, Symbol):
+            if sector_spacing.get_name() == 'System`Automatic':
+                sector_spacing = Expression('List', Integer(0), Real(0.2))
+            elif sector_spacing.get_name() == 'System`None':
+                sector_spacing = Expression('List', Integer(0), Integer(0))
+            else:
+                return
+        if not sector_spacing.has_form('List', 2):
+            return
+        segment_spacing = 0.  # not yet implemented; needs real arc graphics
+        radius_spacing = max(0., min(1., sector_spacing.leaves[1].round_to_float()))
+
+        def vector2(x, y):
+            return Expression('List', Real(x), Real(y))
+
+        def radii():
+            outer = 2.
+            inner = sector_origin.leaves[1].round_to_float()
+            n = len(data)
+
+            d = (outer - inner) / n
+
+            r0 = outer
+            for i in range(n):
+                r1 = r0 - d
+                if i > 0:
+                    r0 -= radius_spacing * d
+                yield (r0, r1)
+                r0 = r1
+
+        def phis(values):
+            s = sum(values)
+
+            t = 0.
+            pi2 = pi * 2.
+            phi0 = pi
+            spacing = sector_sign * segment_spacing / 2.
+
+            for k, value in enumerate(values):
+                t += value
+                phi1 = sector_phi + sector_sign * (t / s) * pi2
+
+                yield (phi0 + spacing, phi1 - spacing)
+                phi0 = phi1
+
+        def segments():
+            yield Expression('EdgeForm', Symbol('Black'))
+
+            origin = vector2(0., 0.)
+
+            for values, (r0, r1) in zip(data, radii()):
+                radius = vector2(r0, r0)
+
+                n = len(values)
+
+                for k, (phi0, phi1) in enumerate(phis(values)):
+                    yield Expression('Style', Expression(
+                        'Disk', origin, radius, vector2(phi0, phi1)), color(k + 1, n))
+
+                if r1 > 0.:
+                    yield Expression('Style', Expression(
+                        'Disk', origin, vector2(r1, r1)), Symbol('White'))
+
+        def labels(names):
+            yield Expression('FaceForm', Symbol('Black'))
+
+            for values, (r0, r1) in zip(data, radii()):
+                for name, (phi0, phi1) in zip(names, phis(values)):
+                    r = (r0 + r1) / 2.
+                    phi = (phi0 + phi1) / 2.
+                    yield Expression('Text', name, vector2(r * cos(phi), r * sin(phi)))
+
+        graphics = list(segments())
+
+        chart_labels = self.get_option(options, 'ChartLabels', evaluation)
+        if chart_labels.get_head_name() == 'System`List':
+            graphics.extend(list(labels(chart_labels.leaves)))
+
+        options['System`PlotRange'] = Expression(
+            'List', vector2(-2., 2.), vector2(-2., 2.))
+
+        return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
+
+
+class BarChart(_Chart):
+    """
+    <dl>
+    <dt>'BarChart[{$p1$, $p2$ ...}]'
+        <dd>draws a bar chart.
+    </dl>
+
+    >> BarChart[{1, 4, 2}]
+     = -Graphics-
+
+    >> BarChart[{1, 4, 2}, ChartStyle -> {Red, Green, Blue}]
+     = -Graphics-
+
+    >> BarChart[{{1, 2, 3}, {2, 3, 4}}]
+     = -Graphics-
+
+    >> BarChart[{{1, 2, 3}, {2, 3, 4}}, ChartLabels -> {"a", "b", "c"}]
+     = -Graphics-
+
+    >> BarChart[{{1, 5}, {3, 4}}, ChartStyle -> {{EdgeForm[Thin], White}, {EdgeForm[Thick], White}}]
+     = -Graphics-
+    """
+
+    options = _Chart.options.copy()
+    options.update({
+        'Axes': '{False, True}',
+        'AspectRatio': '1 / GoldenRatio',
+    })
+
+    def _draw(self, data, color, evaluation, options):
+        def vector2(x, y):
+            return Expression('List', Real(x), Real(y))
 
         def boxes():
             w = 0.9
@@ -786,31 +956,25 @@ class BarChart(Builtin):
                 x += 0.2
 
         def rectangles():
-            yield Expression('EdgeForm', Expression('RGBColor', 0, 0, 0))
+            yield Expression('EdgeForm', Symbol('Black'))
 
             last_x1 = 0
 
             for (k, n), x0, x1, y in boxes():
-                if spread_colors and n < len(colors):
-                    index = int(k * (len(colors) - 1)) // n
-                    color = colors[index]
-                else:
-                    color = colors[(k - 1) % len(colors)]
-
                 yield Expression('Style', Expression(
                     'Rectangle',
                     Expression('List', x0, 0),
-                    Expression('List', x1, y)), color)
+                    Expression('List', x1, y)), color(k, n))
 
                 last_x1 = x1
 
-            yield Expression('Line', Expression('List', Expression('List', 0, 0), Expression('List', last_x1, 0)))
+            yield Expression('Line', Expression('List', vector2(0, 0), vector2(last_x1, 0)))
 
         def axes():
-            yield Expression('FaceForm', Expression('RGBColor', 0, 0, 0))
+            yield Expression('FaceForm', Symbol('Black'))
 
             def points(x):
-                return Expression('List', Expression('List', x, 0), Expression('List', x, -0.2))
+                return Expression('List', vector2(x, 0), vector2(x, -0.2))
 
             for (k, n), x0, x1, y in boxes():
                 if k == 1:
@@ -819,12 +983,12 @@ class BarChart(Builtin):
                     yield Expression('Line', points(x1))
 
         def labels(names):
-            yield Expression('FaceForm', Expression('RGBColor', 0, 0, 0))
+            yield Expression('FaceForm', Symbol('Black'))
 
             for (k, n), x0, x1, y in boxes():
                 if k <= len(names):
                     name = names[k - 1]
-                    yield Expression('Text', name, Expression('List', (x0 + x1) / 2, -0.2))
+                    yield Expression('Text', name, vector2((x0 + x1) / 2, -0.2))
 
         x_coords = list(itertools.chain(*[[x0, x1] for (k, n), x0, x1, y in boxes()]))
         y_coords = [0] + [y for (k, n), x0, x1, y in boxes()]
@@ -846,7 +1010,7 @@ class BarChart(Builtin):
         # at origin (0,0); otherwise it will be shifted right; see GraphicsBox.axis_ticks().
         x_range[0] = -.1
 
-        options['System`PlotRange'] = from_python([x_range, y_range])
+        options['System`PlotRange'] = Expression('List', vector2(*x_range), vector2(*y_range))
 
         return Expression('Graphics', Expression('List', *graphics), *options_to_rules(options))
 
