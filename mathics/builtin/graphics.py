@@ -742,6 +742,11 @@ class ColorDistance(Builtin):
      = 2.2507
     >> ColorDistance[{Red, Blue}, {Green, Yellow}, DistanceFunction -> {"CMC", "Perceptibility"}]
      = {1.0495, 1.27455}
+    #> ColorDistance[Blue, Red, DistanceFunction -> "CIE2000"]
+     = 0.557976
+    #> ColorDistance[Red, Black, DistanceFunction -> (Abs[#1[[1]] - #2[[1]]] &)]
+     = 0.542917
+    
     """
 
     options = {
@@ -759,7 +764,7 @@ class ColorDistance(Builtin):
     # with {l,a,b}={L^*,a^*,b^*}/100. Corrections factors are put accordingly.
     
     _distances = {
-	"CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
+        "CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
         "CIE94": lambda c1, c2: _euclidean_distance(c1.to_color_space('LCH')[:3], c2.to_color_space('LCH')[:3]),
         "CIE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
         "CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,	
@@ -774,6 +779,7 @@ class ColorDistance(Builtin):
     def apply(self, c1, c2, evaluation, options):
         'ColorDistance[c1_, c2_, OptionsPattern[ColorDistance]]'
         distance_function = options.get('System`DistanceFunction')
+        compute = None
         if isinstance(distance_function, String):
             compute = ColorDistance._distances.get(distance_function.get_string_value())
             if not compute:
@@ -794,17 +800,14 @@ class ColorDistance(Builtin):
                         and distance_function.leaves[1].leaves[1].get_int_value() > 0):
                             lightness = distance_function.leaves[1].leaves[0].get_int_value()
                             chroma = distance_function.leaves[1].leaves[1].get_int_value()
-                    
                             compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
                                                                     100*c2.to_color_space('LAB')[:3], lightness, chroma)/100
-                else:
-                    evaluation.message('ColorDistance', 'invdist', distance_function)
-                    return
-            else:
-                evaluation.message('ColorDistance', 'invdist', distance_function)
-                return
+                            
         elif isinstance(distance_function, Symbol) and distance_function.get_name() == 'System`Automatic':
             compute = ColorDistance._distances.get("CIE76")
+        if compute == None:
+            evaluation.message('ColorDistance', 'invdist', distance_function)
+            return
         else:
             def compute(a, b):
                 return Expression('Apply',
