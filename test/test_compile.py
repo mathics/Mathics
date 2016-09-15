@@ -85,6 +85,12 @@ class ArithmeticTest(CompileTest):
     def test_pow_real(self):
         self._test_binary_math('Power', mpmath.power)
 
+    def test_pow_int(self):
+        expr = Expression('Power', MachineReal(2.5), Symbol('x'))
+        args = [CompileArg('System`x', int_type)]
+        cfunc = _compile(expr, args)
+        self.assertEquals(cfunc(4), 2.5 ** 4)
+
     def test_pow_2(self):
         # 2 ^ x
         expr = Expression('Power', Integer(2), Symbol('x'))
