@@ -1273,6 +1273,10 @@ class ByteCount(Builtin):
 
     It may heavily depend on the Python implementation in use.
     
+    >> ByteCount[List[1, 2]]
+     = 3368
+    >> ByteCount["Hello World!"]
+     = 848
     """
 
     def apply(self, expression, evaluation):
