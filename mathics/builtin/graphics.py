@@ -417,7 +417,7 @@ class Graphics(Builtin):
 
     In 'TeXForm', 'Graphics' produces Asymptote figures:
     >> Graphics[Circle[]] // TeXForm
-     = 
+     =
      . \begin{asy}
      . size(5.8556cm, 5.8333cm);
      . add((175,175,175,0,0,175)*(new picture(){picture s=currentpicture,t=new picture;currentpicture=t;draw(ellipse((0,0),1,1), rgb(0, 0, 0)+linewidth(0.0038095));currentpicture=s;return t;})());
@@ -2649,6 +2649,19 @@ class Style(object):
             return 0
         return edge_style.get_thickness()
 
+    def to_axis_style(self):
+        return AxisStyle(self)
+
+
+class AxisStyle(Style):
+    def __init__(self, style):
+        super(AxisStyle, self).__init__(style.graphics, style.edge, style.face)
+        self.styles = style.styles
+        self.options = style.options
+
+    def get_line_width(self, face_element=True):
+        return 0.5
+
 
 def _flatten(leaves):
     for leaf in leaves:
@@ -3205,6 +3218,11 @@ clip(%s);
         ticks_style = [elements.create_style(s) for s in ticks_style]
         axes_style = [elements.create_style(s) for s in axes_style]
         label_style = elements.create_style(label_style)
+
+        ticks_style = [s.to_axis_style() for s in ticks_style]
+        axes_style = [s.to_axis_style() for s in axes_style]
+        label_style = label_style.to_axis_style()
+
         ticks_style[0].extend(axes_style[0])
         ticks_style[1].extend(axes_style[1])
 
