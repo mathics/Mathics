@@ -170,7 +170,11 @@ class _DateFormat(Builtin):
             return datelist
 
         if isinstance(etime, six.string_types):
-            date = dateutil.parser.parse(etime.strip('"'))
+            try:
+                date = dateutil.parser.parse(etime.strip('"'))
+            except ValueError:
+                evaluation.message(form_name, 'str', epochtime, 'Automatic')
+                return
             datelist = [date.year, date.month, date.day, date.hour,
                         date.minute, date.second + 1e-06 * date.microsecond]
             return datelist
@@ -303,6 +307,8 @@ class DateList(_DateFormat):
      = {..., 5, 18, 0, 0, 0.}
     #> DateList[{"5/18", {"Month", "Day"}}][[1]] == DateList[][[1]]
      = True
+    #> Quiet[DateList[abc]]
+     = DateList[abc]
     """
     # TODO: Somehow check that the current year is correct
 
@@ -311,7 +317,7 @@ class DateList(_DateFormat):
     }
 
     messages = {
-        'arg': 'Argument `1` cannot be intepreted as a date or time input.',
+        'arg': 'Argument `1` cannot be interpreted as a date or time input.',
         'str': 'String `1` cannot be interpreted as a date in format `2`.',
     }
 
