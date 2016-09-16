@@ -16,6 +16,7 @@ from six.moves import map
 from six.moves import range
 from six.moves import zip
 from itertools import chain
+from math import sin, cos, pi
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
@@ -1765,14 +1766,31 @@ class PolygonBox(_Polyline):
 
 
 class RegularPolygon(Builtin):
-    pass
+    """
+    <dl>
+    <dt>'RegularPolygon[$n$]'
+        <dd>gives the regular polygon with $n$ edges.
+    <dt>'RegularPolygon[$r$, $n$]'
+        <dd>gives the regular polygon with $n$ edges and radius $r$.
+    <dt>'RegularPolygon[{$r$, $phi$}, $n$]'
+        <dd>gives the regular polygon with radius $r$ with one vertex drawn at angle $phi$.
+    <dt>'RegularPolygon[{$x, $y}, $r$, $n$]'
+        <dd>gives the regular polygon centered at the position {$x, $y}.
+    </dl>
+
+    >> Graphics[RegularPolygon[5]]
+    = -Graphics-
+
+    >> Graphics[{Yellow, Rectangle[], Orange, RegularPolygon[{1, 1}, {0.25, 0}, 3]}]
+    = -Graphics-
+    """
 
 
 class RegularPolygonBox(PolygonBox):
     def init(self, graphics, style, item):
         if len(item.leaves) in (1, 2, 3) and isinstance(item.leaves[-1], Integer):
             r = 1.
-            phi0 = 0.
+            phi0 = None
 
             if len(item.leaves) >= 2:
                 rspec = item.leaves[-2]
@@ -1795,8 +1813,12 @@ class RegularPolygonBox(PolygonBox):
 
             n = item.leaves[-1].get_int_value()
 
+            if phi0 is None:
+                phi0 = -pi / 2.
+                if n % 1 == 0:
+                    phi0 += pi / n
+
             def vertices():
-                from math import sin, cos, pi
                 pi2 = pi * 2.
                 for i in range(n):
                     phi = phi0 + pi2 * i / float(n)
