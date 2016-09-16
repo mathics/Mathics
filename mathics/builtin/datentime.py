@@ -165,7 +165,7 @@ class _DateFormat(Builtin):
         'fmt': '`1` is not a valid date format.',
     }
 
-    automatic = re.compile(r'^([0-9]{1,4})(-|/|\s)([0-9]{1,2})\2([0-9]{1,4})\s*')
+    automatic = re.compile(r'^([0-9]{1,4})([^0-9]+)([0-9]{1,2})\2([0-9]{1,4})\s*')
 
     def parse_date_automatic(self, epochtime, etime, evaluation):
         m = _DateFormat.automatic.search(etime)
