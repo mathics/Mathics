@@ -507,6 +507,9 @@ class Expression(BaseExpression):
         self.leaves = [from_python(leaf) for leaf in leaves]
         return self
 
+    def __sizeof__(self):
+        pass # figure out how to
+
     def copy(self):
         result = Expression(
             self.head.copy(), *[leaf.copy() for leaf in self.leaves])
@@ -1459,6 +1462,9 @@ class Number(Atom):
     def __str__(self):
         return str(self.value)
 
+    def __sizeof__(self):
+        return self.value.__sizeof__()
+
     @staticmethod
     def from_mpmath(value, prec=None):
         'Converts mpf or mpc to Number.'
@@ -1516,6 +1522,9 @@ class Integer(Number):
         self = super(Integer, cls).__new__(cls)
         self.value = n
         return self
+
+    def __sizeof__(self):
+        return self.value.__sizeof__()
 
     def boxes_to_text(self, **options):
         return str(self.value)
@@ -1591,6 +1600,9 @@ class Rational(Number):
         self = super(Rational, cls).__new__(cls)
         self.value = sympy.Rational(numerator, denominator)
         return self
+
+    def __sizeof__(self):
+        return self.numerator().__sizeof__() + self.denominator().__sizeof__()
 
     def atom_to_boxes(self, f, evaluation):
         return self.format(evaluation, f.get_name())
@@ -1698,6 +1710,9 @@ class Real(Number):
         else:
             return PrecisionReal.__new__(PrecisionReal, value)
 
+    def __sizeof__(self):
+        return self.value.__sizeof__()
+
     def boxes_to_text(self, **options):
         return self.make_boxes('System`OutputForm').boxes_to_text(**options)
 
@@ -1764,6 +1779,9 @@ class MachineReal(Real):
     def to_python(self, *args, **kwargs):
         return self.value
 
+    def __sizeof__(self):
+        return self.value.__sizeof__()
+
     def to_sympy(self):
         return sympy.Float(self.value)
 
@@ -1822,6 +1840,9 @@ class PrecisionReal(Real):
         self = Number.__new__(cls)
         self.value = sympy.Float(value)
         return self
+
+    def __sizeof__(self):
+        return self.value.__sizeof__()
 
     def to_python(self, *args, **kwargs):
         return float(self.value)
@@ -1896,6 +1917,9 @@ class Complex(Number):
 
     def __str__(self):
         return str(self.to_sympy())
+
+    def __sizeof_(self):
+        return self.real.__sizeof__() + self.imag.__sizeof__()
 
     def to_sympy(self, **kwargs):
         return self.real.to_sympy() + sympy.I * self.imag.to_sympy()
@@ -2053,6 +2077,9 @@ class String(Atom):
 
     def __str__(self):
         return '"%s"' % self.value
+
+    def __sizeof__(self):
+        return self.value.__sizeof__()
 
     def boxes_to_text(self, show_string_characters=False, **options):
         value = self.value
