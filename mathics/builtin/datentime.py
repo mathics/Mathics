@@ -168,12 +168,24 @@ class _DateFormat(Builtin):
         x1, x2, x3 = tuple(m.group(i) for i in (1, 3, 4))
         x_integers = tuple(int(x) for x in (x1, x2, x3))
         if len(x1) <= 2:
-            is_ambiguous = True
+            if int(x1) > 12:
+                month_day = '%d %m'
+                is_ambiguous = False
+            elif int(x2) > 12:
+                month_day = '%m %d'
+                is_ambiguous = False
+            elif int(x1) == int(x2):
+                month_day = '%m %d'
+                is_ambiguous = False
+            else:
+                month_day = '%m %d'
+                is_ambiguous = True
+
             if len(x3) <= 2:
-                date = datetime.strptime('%02d %02d %02d' % x_integers, '%m %d %y')
-            else:  # also marked as ambiguous, since it's not ISO 8601 order
-                date = datetime.strptime('%02d %02d %04d' % x_integers, '%m %d %Y')
-        elif len(x3) <= 2:
+                date = datetime.strptime('%02d %02d %02d' % x_integers, month_day + ' %y')
+            else:
+                date = datetime.strptime('%02d %02d %04d' % x_integers, month_day + ' %Y')
+        elif len(x3) == 4:
             is_ambiguous = False
             date = datetime.strptime('%04d %02d %02d' % x_integers, '%Y %m %d')
         else:
@@ -314,6 +326,10 @@ class DateList(_DateFormat):
 
     >> DateList["31/10/1991"]
      = {1991, 10, 31, 0, 0, 0.}
+
+    >> DateList["1/10/1991"]
+     : The interpretation of 1/10/1991 is ambiguous.
+     = {1991, 1, 10, 0, 0, 0.}
 
     >> DateList[{"31/10/91", {"Day", "Month", "YearShort"}}]
      = {1991, 10, 31, 0, 0, 0.}
