@@ -368,12 +368,10 @@ class RegisterExport(Builtin):
 
 class FetchURL(Builtin):
     '''
-    #> FetchURL["https:////", {}]
-     : https://// could not be retrieved; no host given.
+    #> Quiet[FetchURL["https:////", {}]]
      = $Failed
 
-    #> FetchURL["http://mathics.org/url_test_case", {}]
-     : http://mathics.org/url_test_case could not be retrieved; the server returned an HTTP status code of 404 (Not Found). 
+    #> Quiet[FetchURL["http://mathics.org/url_test_case", {}]]
      = $Failed
     '''
 
