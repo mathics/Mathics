@@ -4100,9 +4100,39 @@ class ClusteringComponents(_Cluster):
 
 
 class Permutations(Builtin):
+    '''
+    <dl>
+    <dt>'Permutations[$list$]'
+        <dd>gives all possible orderings of the items in $list$.
+    <dt>'Permutations[$list$, $n$]'
+        <dd>gives permutations up to length $n$.
+    <dt>'Permutations[$list$, {$n$}]'
+        <dd>gives permutations of length $n$.
+    </dl>
+
+    >> Permutations[{y, 1, x}]
+     = {{y, 1, x}, {y, x, 1}, {1, y, x}, {1, x, y}, {x, y, 1}, {x, 1, y}}
+
+    Elements are differentiated by their position in $list$, not their value.
+
+    >> Permutations[{a, b, b}]
+     = {{a, b, b}, {a, b, b}, {b, a, b}, {b, b, a}, {b, a, b}, {b, b, a}}
+
+    >> Permutations[{1, 2, 3}, 2]
+     = {{}, {1}, {2}, {3}, {1, 2}, {1, 3}, {2, 1}, {2, 3}, {3, 1}, {3, 2}}
+
+    >> Permutations[{1, 2, 3}, {2}]
+     = {{1, 2}, {1, 3}, {2, 1}, {2, 3}, {3, 1}, {3, 2}}
+    '''
+
     messages = {
+        'argt': 'Permutation expects at least one argument.',
         'nninfseq': 'The number specified at position 2 of `` must be a non-negative integer, All, or Infinity.'
     }
+
+    def apply_argt(self, evaluation):
+        'Permutations[]'
+        evaluation.message(self.get_name(), 'argt')
 
     def apply(self, l, evaluation):
         'Permutations[l_List]'
@@ -4112,15 +4142,13 @@ class Permutations(Builtin):
     def apply_n(self, l, n, evaluation):
         'Permutations[l_List, n_]'
 
+        rs = None
         if n.has_form('DirectedInfinity', 1) and isinstance(n.leaves[0], Integer) and n.leaves[0].get_int_value() > 0:
             py_n = len(l.leaves)
-            rs = range(py_n + 1)
         elif isinstance(n, Symbol) and n.get_name() == 'System`All':
             py_n = len(l.leaves)
-            rs = range(py_n + 1)
         elif isinstance(n, Integer):
             py_n = min(n.get_int_value(), len(l.leaves))
-            rs = range(py_n + 1)
         elif n.has_form('List', 1) and isinstance(n.leaves[0], Integer):
             py_n = n.leaves[0].get_int_value()
             rs = (py_n,)
@@ -4130,6 +4158,9 @@ class Permutations(Builtin):
         if py_n is None or py_n < 0:
             evaluation.message(self.get_name(), 'nninfseq', Expression(self.get_name(), l, n))
             return
+
+        if rs is None:
+            rs = range(py_n + 1)
 
         return Expression('List', *[Expression('List', *p)
                                     for r in rs
