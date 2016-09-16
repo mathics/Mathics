@@ -9,6 +9,7 @@ from mathics.builtin.base import (Builtin, Predefined, BinaryOperator, Test,
 from mathics.core.expression import (Expression, String, Symbol, Integer,
                                      Rational, strip_context)
 from mathics.core.rules import Pattern
+from .pympler.asizeof import asizeof as count_bytes
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
                                    InvalidLevelspecError)
@@ -1261,3 +1262,20 @@ class Through(Builtin):
         for leaf in args.get_sequence():
             items.append(Expression(leaf, *x.get_sequence()))
         return Expression(p, *items)
+
+
+class ByteCount(Builtin):
+    """
+    <dl>
+    <dt>'ByteCount[$expr$]'
+        <dd>gives the internal memory space used by $expr$, in bytes.
+    </dl>
+
+    It may heavily depend on the Python implementation in use.
+    
+    """
+
+    def apply(self, expression, evaluation):
+        'ByteCount[expression_]'
+
+        return Integer(count_bytes(expression))
