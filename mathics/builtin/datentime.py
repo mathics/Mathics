@@ -158,7 +158,14 @@ class DateStringFormat(Predefined):
 
 
 class _DateFormat(Builtin):
-    automatic = re.compile(r'^([0-9]{1,4})([-]|[/]|\s)([0-9]{1,2})\2([0-9]{1,4})\s*')
+    messages = {
+        'arg': 'Argument `1` cannot be interpreted as a date or time input.',
+        'str': 'String `1` cannot be interpreted as a date in format `2`.',
+        'ambig': 'The interpretation of `1` is ambiguous.',
+        'fmt': '`1` is not a valid date format.',
+    }
+
+    automatic = re.compile(r'^([0-9]{1,4})(-|/|\s)([0-9]{1,2})\2([0-9]{1,4})\s*')
 
     def parse_date_automatic(self, epochtime, etime, evaluation):
         m = _DateFormat.automatic.search(etime)
@@ -166,28 +173,23 @@ class _DateFormat(Builtin):
             return dateutil.parser.parse(etime)
 
         x1, x2, x3 = tuple(m.group(i) for i in (1, 3, 4))
-        x_integers = tuple(int(x) for x in (x1, x2, x3))
+        i1, i2, i3 = tuple(int(x) for x in (x1, x2, x3))
+
         if len(x1) <= 2:
-            if int(x1) > 12:
+            if i1 > 12:
                 month_day = '%d %m'
                 is_ambiguous = False
-            elif int(x2) > 12:
-                month_day = '%m %d'
-                is_ambiguous = False
-            elif int(x1) == int(x2):
-                month_day = '%m %d'
-                is_ambiguous = False
             else:
                 month_day = '%m %d'
-                is_ambiguous = True
+                is_ambiguous = not(i2 > 12 or i1 == i2)  # is i2 not clearly a day?
 
             if len(x3) <= 2:
-                date = datetime.strptime('%02d %02d %02d' % x_integers, month_day + ' %y')
+                date = datetime.strptime('%02d %02d %02d' % (i1, i2, i3), month_day + ' %y')
             else:
-                date = datetime.strptime('%02d %02d %04d' % x_integers, month_day + ' %Y')
-        elif len(x3) == 4:
+                date = datetime.strptime('%02d %02d %04d' % (i1, i2, i3), month_day + ' %Y')
+        elif len(x1) == 4:
             is_ambiguous = False
-            date = datetime.strptime('%04d %02d %02d' % x_integers, '%Y %m %d')
+            date = datetime.strptime('%04d %02d %02d' % (i1, i2, i3), '%Y %m %d')
         else:
             raise ValueError()
 
@@ -361,12 +363,6 @@ class DateList(_DateFormat):
         'DateList[]': 'DateList[AbsoluteTime[]]',
     }
 
-    messages = {
-        'arg': 'Argument `1` cannot be interpreted as a date or time input.',
-        'str': 'String `1` cannot be interpreted as a date in format `2`.',
-        'ambig': 'The interpretation of `1` is ambiguous.',
-    }
-
     def apply(self, epochtime, evaluation):
         '%(name)s[epochtime_]'
         datelist = self.to_datelist(epochtime, evaluation)
@@ -448,11 +444,6 @@ class DateString(_DateFormat):
         'DateString[epochtime_]': 'DateString[epochtime, $DateStringFormat]',
     }
 
-    messages = {
-        'arg': 'Argument `1` cannot be intepreted as a date or time input.',
-        'fmt': '`1` is not a valid date format.',
-    }
-
     attributes = ('ReadProtected',)
 
     def apply(self, epochtime, form, evaluation):
@@ -525,11 +516,6 @@ class AbsoluteTime(_DateFormat):
     #> AbsoluteTime[1000]
      = 1000
     """
-
-    messages = {
-        'arg': 'Argument `1` cannot be intepreted as a date or time input.',
-        'fmt': '`1` is not a valid date format.',
-    }
 
     def apply_now(self, evaluation):
         'AbsoluteTime[]'
