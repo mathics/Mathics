@@ -15,6 +15,7 @@ from six.moves import range
 import time
 from datetime import datetime, timedelta
 import dateutil.parser
+import re
 
 from mathics.core.expression import (Expression, Real, Symbol, String,
                                      from_python)
@@ -157,6 +158,34 @@ class DateStringFormat(Predefined):
 
 
 class _DateFormat(Builtin):
+    automatic = re.compile(r'^([0-9]{1,4})([-]|[/]|\s)([0-9]{1,2})\2([0-9]{1,4})\s*')
+
+    def parse_date_automatic(self, epochtime, etime, evaluation):
+        m = _DateFormat.automatic.search(etime)
+        if not m:
+            return dateutil.parser.parse(etime)
+
+        x1, x2, x3 = tuple(m.group(i) for i in (1, 3, 4))
+        x_integers = tuple(int(x) for x in (x1, x2, x3))
+        if len(x1) <= 2:
+            is_ambiguous = True
+            if len(x3) <= 2:
+                date = datetime.strptime('%02d %02d %02d' % x_integers, '%m %d %y')
+            else:  # also marked as ambiguous, since it's not ISO 8601 order
+                date = datetime.strptime('%02d %02d %04d' % x_integers, '%m %d %Y')
+        elif len(x3) <= 2:
+            is_ambiguous = False
+            date = datetime.strptime('%04d %02d %02d' % x_integers, '%Y %m %d')
+        else:
+            raise ValueError()
+
+        date = dateutil.parser.parse(datetime.strftime(date, '%x') + ' ' + etime[len(m.group(0)):])
+
+        if is_ambiguous:
+            evaluation.message(self.get_name(), 'ambig', epochtime)
+
+        return date
+
     def to_datelist(self, epochtime, evaluation):
         """ Converts date-time 'epochtime' to datelist """
         etime = epochtime.to_python()
@@ -171,7 +200,7 @@ class _DateFormat(Builtin):
 
         if isinstance(etime, six.string_types):
             try:
-                date = dateutil.parser.parse(etime.strip('"'))
+                date = self.parse_date_automatic(epochtime, etime.strip('"'), evaluation)
             except ValueError:
                 evaluation.message(form_name, 'str', epochtime, 'Automatic')
                 return
@@ -319,6 +348,7 @@ class DateList(_DateFormat):
     messages = {
         'arg': 'Argument `1` cannot be interpreted as a date or time input.',
         'str': 'String `1` cannot be interpreted as a date in format `2`.',
+        'ambig': 'The interpretation of `1` is ambiguous.',
     }
 
     def apply(self, epochtime, evaluation):
