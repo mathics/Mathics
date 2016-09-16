@@ -4143,15 +4143,13 @@ class Permutations(Builtin):
         'Permutations[l_List, n_]'
 
         rs = None
-        if n.has_form('DirectedInfinity', 1) and isinstance(n.leaves[0], Integer) and n.leaves[0].get_int_value() > 0:
-            py_n = len(l.leaves)
-        elif isinstance(n, Symbol) and n.get_name() == 'System`All':
-            py_n = len(l.leaves)
-        elif isinstance(n, Integer):
+        if isinstance(n, Integer):
             py_n = min(n.get_int_value(), len(l.leaves))
         elif n.has_form('List', 1) and isinstance(n.leaves[0], Integer):
             py_n = n.leaves[0].get_int_value()
             rs = (py_n,)
+        elif (n.has_form('DirectedInfinity', 1) and n.leaves[0].get_int_value() == 1) or n.get_name() == 'System`All':
+            py_n = len(l.leaves)
         else:
             py_n = None
 
