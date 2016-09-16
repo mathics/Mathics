@@ -1424,7 +1424,6 @@ class Cases(Builtin):
      = {y}
     """
 
-
     rules = {
         'Cases[pattern_][list_]': 'Cases[list, pattern]',
     }
@@ -1496,6 +1495,28 @@ class DeleteCases(Builtin):
         from mathics.builtin.patterns import Matcher
         match = Matcher(pattern).match
         return Expression('List', *[leaf for leaf in items.leaves if not match(leaf, evaluation)])
+
+
+class Count(Builtin):
+    """
+    <dl>
+    <dt>'Count[$list$, $pattern$]'
+        <dd>returns the number of times $pattern$ appears in $list$.
+    <dt>'Count[$list$, $pattern$, $ls$]'
+        <dd>counts the elements matching at levelspec $ls$.
+    </dl>
+
+    >> Count[{3, 7, 10, 7, 5, 3, 7, 10}, 3]
+     = 2
+
+    >> Count[{{a, a}, {a, a, a}, a}, a, {2}]
+     = 5
+    """
+
+    rules = {
+        'Count[pattern_][list_]': 'Count[list, pattern]',
+        'Count[list_, arguments__]': 'Length[Cases[list, arguments]]',
+    }
 
 
 class Position(Builtin):
