@@ -15,7 +15,6 @@ from mathics.builtin.lists import (python_levelspec, walk_levels,
 from mathics.builtin.functional import Identity
 import six
 from six.moves import range
-from sys import getsizeof
 
 
 class Sort(Builtin):
@@ -1262,13 +1261,3 @@ class Through(Builtin):
         for leaf in args.get_sequence():
             items.append(Expression(leaf, *x.get_sequence()))
         return Expression(p, *items)
-
-
-
-def ByteCount(Builtin):
-
-
-
-    def apply(self, expression, evaluation):
-        'ByteCount[expression_]'
-        return Integer(getsizeof(expression))
