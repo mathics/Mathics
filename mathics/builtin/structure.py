@@ -1271,6 +1271,7 @@ class ByteCount(Builtin):
         <dd>gives the internal memory space used by $expr$, in bytes.
     </dl>
 
+    The results may heavily depend on the Python implementation in use.
     """
 
     def apply(self, expression, evaluation):
