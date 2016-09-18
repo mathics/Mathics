@@ -1793,7 +1793,7 @@ def _image_pixels(matrix):
     except ValueError:  # irregular array, e.g. {{0, 1}, {0, 1, 1}}
         return None
     shape = pixels.shape
-    if len(shape) == 2 or (len(shape) == 3 and shape[2] in (1, 3)):
+    if len(shape) == 2 or (len(shape) == 3 and shape[2] in (1, 3, 4)):
         return pixels
     else:
         return None
@@ -2016,6 +2016,14 @@ class Image(Atom):
 
 
 class ImageAtom(AtomBuiltin):
+    '''
+    #> Image[{{{1,1,0},{0,1,1}}, {{1,0,1},{1,1,0}}}]
+     = -Image-
+
+    #> Image[{{{0,0,0,0.25},{0,0,0,0.5}}, {{0,0,0,0.5},{0,0,0,0.75}}}]
+     = -Image-
+    '''
+
     requires = _image_requires
 
     def apply_create(self, array, evaluation):
@@ -2023,7 +2031,7 @@ class ImageAtom(AtomBuiltin):
         pixels = _image_pixels(array.to_python())
         if pixels is not None:
             shape = pixels.shape
-            is_rgb = (len(shape) == 3 and shape[2] == 3)
+            is_rgb = (len(shape) == 3 and shape[2] in (3, 4))
             return Image(pixels.clip(0, 1), 'RGB' if is_rgb else 'Grayscale')
         else:
             return Expression('Image', array)
