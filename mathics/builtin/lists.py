@@ -2529,38 +2529,45 @@ class _GatherOperation(Builtin):
                   "every pair of elements."),
     }
 
-    def apply(self, list, test, evaluation):
-        '%(name)s[list_, test_]'
-
-        if list.is_atom():
-            expr = Expression(self.get_name(), list, test)
-            return evaluation.message(self.get_name(), 'normal', 1, expr)
-
-        if list.get_head_name() != 'System`List':
-            expr = Expression(self.get_name(), list, test)
-            return evaluation.message(self.get_name(), 'list', expr, 1)
+    def apply(self, values, test, evaluation):
+        '%(name)s[values_, test_]'
+        if not self._check_list(values, test, evaluation):
+            return
 
         if _is_sameq(test):
-            return self._gather(list, _FastEquivalence())
+            return self._gather(values, values, _FastEquivalence())
         else:
-            return self._gather(list, _SlowEquivalence(test, evaluation, self.get_name()))
+            return self._gather(values, values, _SlowEquivalence(test, evaluation, self.get_name()))
 
-    def _gather(self, a_list, equivalence):
+    def _check_list(self, values, arg2, evaluation):
+        if values.is_atom():
+            expr = Expression(self.get_name(), values, arg2)
+            evaluation.message(self.get_name(), 'normal', 1, expr)
+            return False
+
+        if values.get_head_name() != 'System`List':
+            expr = Expression(self.get_name(), values, arg2)
+            evaluation.message(self.get_name(), 'list', expr, 1)
+            return False
+
+        return True
+
+    def _gather(self, keys, values, equivalence):
         bins = []
         Bin = self._bin
 
-        for elem in a_list.leaves:
-            selection = equivalence.select(elem)
+        for key, value in zip(keys.leaves, values.leaves):
+            selection = equivalence.select(key)
             for prototype, add_to_bin in selection:  # find suitable bin
-                if equivalence.same(prototype, elem):
-                    add_to_bin(elem)  # add to existing bin
+                if equivalence.same(prototype, key):
+                    add_to_bin(value)  # add to existing bin
                     break
             else:
-                a_bin = Bin(elem)  # create new bin
-                selection.append((elem, a_bin.add_to))
-                bins.append(a_bin)
+                new_bin = Bin(value)  # create new bin
+                selection.append((key, new_bin.add_to))
+                bins.append(new_bin)
 
-        return Expression('List', *[a_bin.from_python() for a_bin in bins])
+        return Expression('List', *[b.from_python() for b in bins])
 
 
 class Gather(_GatherOperation):
@@ -2585,7 +2592,7 @@ class Gather(_GatherOperation):
     _bin = _GatherBin
 
 
-class GatherBy(Builtin):
+class GatherBy(_GatherOperation):
     """
     <dl>
     <dt>'GatherBy[$list$, $f$]'
@@ -2613,8 +2620,21 @@ class GatherBy(Builtin):
         'GatherBy[l_]': 'GatherBy[l, Identity]',
         'GatherBy[l_, {r__, f_}]': 'Map[GatherBy[#, f]&, GatherBy[l, {r}], {Length[{r}]}]',
         'GatherBy[l_, {f_}]': 'GatherBy[l, f]',
-        'GatherBy[l_, f_]': 'Gather[l, SameQ[f[#1], f[#2]]&]'
     }
+
+    _bin = _GatherBin
+
+    def apply(self, values, func, evaluation):
+        '%(name)s[values_, func_]'
+
+        if not self._check_list(values, func, evaluation):
+            return
+
+        keys = Expression('Map', func, values).evaluate(evaluation)
+        if len(keys.leaves) != len(values.leaves):
+            return
+
+        return self._gather(keys, values, _FastEquivalence())
 
 
 class Tally(_GatherOperation):
