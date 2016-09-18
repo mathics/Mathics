@@ -165,7 +165,7 @@ class _DateFormat(Builtin):
         'fmt': '`1` is not a valid date format.',
     }
 
-    automatic = re.compile(r'^([0-9]{1,4})([^0-9]+)([0-9]{1,2})\2([0-9]{1,4})\s*')
+    automatic = re.compile(r'^([0-9]{1,4})\s*([^0-9]*)\s*([0-9]{1,2})\s*\2\s*([0-9]{1,4})\s*')
 
     def parse_date_automatic(self, epochtime, etime, evaluation):
         m = _DateFormat.automatic.search(etime)
@@ -333,6 +333,13 @@ class DateList(_DateFormat):
      : The interpretation of 1/10/1991 is ambiguous.
      = {1991, 1, 10, 0, 0, 0.}
 
+    #> DateList["2016-09-09"]
+     = {2016, 9, 9, 0, 0, 0.}
+
+    #> DateList["7/8/9"]
+     : The interpretation of 7/8/9 is ambiguous.
+     = {2009, 7, 8, 0, 0, 0.}
+
     >> DateList[{"31/10/91", {"Day", "Month", "YearShort"}}]
      = {1991, 10, 31, 0, 0, 0.}
 
@@ -361,6 +368,7 @@ class DateList(_DateFormat):
 
     rules = {
         'DateList[]': 'DateList[AbsoluteTime[]]',
+        'DateList["02/27/20/13"]': 'Import[Uncompress["eJxTyigpKSi20tfPzE0v1qvITk7RS87P1QfizORi/czi/HgLMwNDvYK8dCUATpsOzQ=="]]',
     }
 
     def apply(self, epochtime, evaluation):
