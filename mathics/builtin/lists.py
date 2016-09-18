@@ -4230,6 +4230,9 @@ class Nearest(Builtin):
 
             py_distances = [(_to_real_distance(d), i) for i, d in enumerate(distances.leaves)]
 
+            if py_r is not None:
+                py_distances = [(d, i) for d, i in py_distances if d <= py_r]
+
             def pick():
                 if py_n is None:
                     candidates = sorted(py_distances)
@@ -4237,8 +4240,6 @@ class Nearest(Builtin):
                     candidates = heapq.nsmallest(py_n, py_distances)
 
                 for d, i in candidates:
-                    if py_r is not None and d > py_r:
-                        break
                     yield repr_p[i]
 
             return Expression('List', *list(pick()))
