@@ -390,9 +390,16 @@ class FetchURL(Builtin):
 
         temp_handle, temp_path = tempfile.mkstemp(suffix='')
         try:
-            with urllib2.urlopen(py_url) as f:
-                content_type = f.info().get_content_type()
+            f = urllib2.urlopen(py_url)
+            try:
+                if sys.version_info >= (3, 0):
+                    content_type = f.info().get_content_type()
+                else:
+                    content_type = f.headers['content-type']
+
                 os.write(temp_handle, f.read())
+            finally:
+                f.close()
 
             def determine_filetype():
                 return mimetype_dict.get(content_type)
