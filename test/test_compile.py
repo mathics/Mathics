@@ -1,8 +1,10 @@
 import sys
 import unittest
 import mpmath
+import itertools
 import random
 from six import StringIO
+import math
 
 from mathics.core.expression import Expression, Symbol, Integer, MachineReal, String
 
@@ -20,6 +22,18 @@ class CompileTest(unittest.TestCase):
     def assertTypeEqual(self, a, b):
         self.assertEqual(type(a), type(b))
         self.assertEqual(a, b)
+
+    def assertNumEqual(self, a, b):
+        self.assertEqual(type(a), type(b))
+        if isinstance(a, float):
+            self.assertEqual(math.isnan(a), math.isnan(b))
+            self.assertEqual(math.isinf(a), math.isinf(b))
+            if not (math.isnan(a) or math.isnan(b) or math.isinf(a) or math.isinf(b)):
+                # normalise compared numbers
+                factor = 10 ** -math.log10(1 + abs(a) + abs(b))
+                self.assertAlmostEqual(a * factor, b * factor)
+        else:
+            self.assertEqual(a, b)
 
 
 class ArithmeticTest(CompileTest):
@@ -47,22 +61,49 @@ class ArithmeticTest(CompileTest):
         cfunc = _compile(expr, args)
         self.assertTypeEqual(cfunc(2.5), 8.5)
 
+    @staticmethod
+    def _random(typ):
+        if typ == int_type:
+            return random.randrange(-500, 500)
+        elif typ == real_type:
+            return random.random()
+        else:
+            raise TypeError()
+
+    @staticmethod
+    def _py_evaluate(fn, *args):
+        try:
+            py_result = fn(*args)
+        except ZeroDivisionError:
+            return float('inf')
+        if isinstance(py_result, mpmath.mpc):
+            return float('nan')
+        if isinstance(py_result, mpmath.mpf):
+            py_result = float(py_result)
+        return py_result
+
     def _test_unary_math(self, name, fn):
         expr = Expression(name, Symbol('x'))
-        args = [CompileArg('System`x', real_type)]
-        cfunc = _compile(expr, args)
-        for _ in range(1000):
-            x = random.random()
-            self.assertAlmostEqual(cfunc(x), float(fn(x)))
+        for xtype in [int_type, real_type]:
+            args = [CompileArg('System`x', xtype)]
+            cfunc = _compile(expr, args)
+            for _ in range(1000):
+                x = self._random(xtype)
+                py_result = self._py_evaluate(fn, x)
+                c_result = cfunc(x)
+                self.assertNumEqual(c_result, py_result)
 
     def _test_binary_math(self, name, fn):
         expr = Expression(name, Symbol('x'), Symbol('y'))
-        args = [CompileArg('System`x', real_type), CompileArg('System`y', real_type)]
-        cfunc = _compile(expr, args)
-        for _ in range(1000):
-            x = random.random()
-            y = random.random()
-            self.assertAlmostEqual(cfunc(x, y), fn(x, y))
+        for xtype, ytype in itertools.product([int_type, real_type], repeat=2):
+            args = [CompileArg('System`x', xtype), CompileArg('System`y', ytype)]
+            cfunc = _compile(expr, args)
+            for _ in range(1000):
+                x = self._random(xtype)
+                y = self._random(ytype)
+                py_result = self._py_evaluate(fn, x, y)
+                c_result = cfunc(x, y)
+                self.assertNumEqual(py_result, c_result)
 
     def test_plus(self):
         self._test_binary_math('Plus', lambda x, y: x + y)
