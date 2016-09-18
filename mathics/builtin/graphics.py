@@ -1813,13 +1813,17 @@ class RegularPolygonBox(PolygonBox):
 
             n = item.leaves[-1].get_int_value()
 
+            if any(t is None for t in (x, y, r)) or n < 0:
+                raise BoxConstructError
+
             if phi0 is None:
                 phi0 = -pi / 2.
-                if n % 1 == 0:
+                if n % 1 == 0 and n > 0:
                     phi0 += pi / n
 
+            pi2 = pi * 2.
+
             def vertices():
-                pi2 = pi * 2.
                 for i in range(n):
                     phi = phi0 + pi2 * i / float(n)
                     yield Expression('List', Real(x + r * cos(phi)), Real(y + r * sin(phi)))
