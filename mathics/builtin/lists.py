@@ -1400,7 +1400,7 @@ class Pick(Builtin):
      = {b}
 
     >> Pick[f[g[1, 2], h[3, 4]], {{True, False}, {False, True}}]
-     = [g[1], h[4]]
+     = f[g[1], h[4]]
 
     >> Pick[{a, b, c, d, e}, {1, 2, 3.5, 4, 5.5}, _Integer]
      = {a, b, d}
