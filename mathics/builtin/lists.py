@@ -3435,12 +3435,14 @@ class Quantile(Builtin):
     def apply(self, l, qs, a, b, c, d, evaluation):
         '''Quantile[l_List, qs_List, {{a_, b_}, {c_, d_}}]'''
 
-        partially_sorted = l.leaves[:]
-        results = []
-
         n = len(l.leaves)
+        partially_sorted = l.leaves[:]
+
+        def ranked(i):
+            return introselect(partially_sorted, min(max(0, i - 1), n - 1))
 
         numeric_qs = qs.evaluate(evaluation).numerify(evaluation)
+        results = []
 
         for q in numeric_qs.leaves:
             py_q = q.to_mpmath()
@@ -3452,14 +3454,10 @@ class Quantile(Builtin):
             x = Expression('Plus', a, Expression(
                 'Times', Expression('Plus', Integer(n), b), q))
 
-            def ranked(*i):
-                for j in i:
-                    yield introselect(partially_sorted, min(max(0, j - 1), n - 1))
-
             numeric_x = x.evaluate(evaluation).numerify(evaluation)
 
             if isinstance(numeric_x, Integer):
-                results.append(list(ranked(numeric_x.get_int_value()))[0])
+                results.append(ranked(numeric_x.get_int_value()))
             else:
                 py_x = numeric_x.to_mpmath()
 
@@ -3469,10 +3467,11 @@ class Quantile(Builtin):
                 from mpmath import floor as mpfloor, ceil as mpceil
 
                 if c.get_int_value() == 1 and d.get_int_value() == 0:  # k == 1?
-                    results.append(list(ranked(int(mpceil(py_x))))[0])
+                    results.append(ranked(int(mpceil(py_x))))
                 else:
                     py_floor_x = mpfloor(py_x)
-                    s0, s1 = ranked(int(py_floor_x), int(mpceil(py_x)))
+                    s0 = ranked(int(py_floor_x))
+                    s1 = ranked(int(mpceil(py_x)))
 
                     k = Expression('Plus', c, Expression(
                         'Times', d, Expression('Subtract', x, Expression('Floor', x))))
