@@ -169,6 +169,11 @@ class IRGenerator(object):
         assert arg.type == int_type
         return self.builder.sitofp(arg, real_type)
 
+    def int_to_bool(self, arg):
+        assert arg.type == int_type
+        # any non-zero int is true
+        return self.builder.icmp_signed('!=', arg, int_type(0))
+
     def add_caller(self, py_f, ret_type, args):
         '''
         Inserts a caller to a python function
@@ -224,7 +229,7 @@ class IRGenerator(object):
         # condition
         cond = self._gen_ir(args[0])
         if cond.type == int_type:
-            cond = builder.icmp_signed('!=', cond, int_type(0))
+            cond = self.int_to_bool(cond)
         if cond.type != bool_type:
             raise CompileError()
 
