@@ -21,6 +21,19 @@ class Compile(Builtin):
     #> cf[x]
      : Invalid argument x should be Integer, Real or boolean.
      = CompiledFunction[{x}, Sin[x], -CompiledCode-][x]
+
+    #> cf = Compile[{{x, _Real}, {x, _Integer}}, Sin[x + y]]
+     : TODO: repeated arg warning
+     = Compile[{{x, _Real}, {x, _Integer}}, Sin[x + y]]
+
+    #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + y]]
+     = CompiledFunction[{x, y}, Sin[x + y], -CompiledCode-]
+    #> cf[1, 2]
+     = 0.14112
+
+    #> cf[x + y]
+     : TODO: wrong number of args warning
+     = cf[x + y]
     '''
 
     requires = (
