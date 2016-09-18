@@ -68,10 +68,9 @@ def int_args(f):
         for arg in args:
             if arg.type == void_type:
                 return arg
-        # TODO bool to int
-        # for i, arg in enumerate(args):
-        #     if arg.type == bool_type:
-        #         pass
+        for i, arg in enumerate(args):
+            if arg.type == bool_type:
+                args[i] = self.bool_to_int(arg)
         if any(arg.type != int_type for arg in args):
             raise CompileError()
         return f(self, args)
@@ -89,14 +88,36 @@ def bool_args(f):
         for arg in args:
             if arg.type == void_type:
                 return arg
-        # TODO int to bool
-        # for i, arg in enumerate(args):
-        #     if arg.type == int_type:
-        #         pass
+        for i, arg in enumerate(args):
+            if arg.type == int_type:
+                args[i] = self.int_to_bool(arg)
         if any(arg.type != bool_type for arg in args):
             raise CompileError()
         return f(self, args)
     return wrapped_f
+
+
+def real_args(f):
+    '''
+    Real arguments.
+    Converts integer to real arguments.
+    '''
+    def wrapped_f(self, expr):
+        leaves = expr.get_leaves()
+        args = [self._gen_ir(leaf) for leaf in leaves]
+        for arg in args:
+            if arg.type == void_type:
+                return arg
+        for i, arg in enumerate(args):
+            if arg.type == bool_type:
+                args[i] = self.int_to_real(self.bool_to_int(arg))
+            elif arg.type == int_type:
+                args[i] = self.int_to_real(arg)
+        if any(arg.type != real_type for arg in args):
+            raise CompileError()
+        return f(self, args)
+    return wrapped_f
+
 
 
 class IRGenerator(object):
@@ -173,6 +194,10 @@ class IRGenerator(object):
         assert arg.type == int_type
         # any non-zero int is true
         return self.builder.icmp_signed('!=', arg, int_type(0))
+
+    def bool_to_int(self, arg):
+        assert arg.type == bool_type
+        return self.builder.zext(arg)
 
     def add_caller(self, py_f, ret_type, args):
         '''
@@ -394,12 +419,12 @@ class IRGenerator(object):
     def _gen_Abs(self, args):
         return self.call_fp_intr('llvm.fabs', args)
 
-    @int_real_args(1)
-    def _gen_Min(self, args, ret_type):
+    @real_args
+    def _gen_Min(self, args):
         return reduce(lambda arg1, arg2: self.call_fp_intr('llvm.minnum', [arg1, arg2]), args)
 
-    @int_real_args(1)
-    def _gen_Max(self, args, ret_type):
+    @real_args
+    def _gen_Max(self, args):
         return reduce(lambda arg1, arg2: self.call_fp_intr('llvm.maxnum', [arg1, arg2]), args)
 
     @single_real_arg
