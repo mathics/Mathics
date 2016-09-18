@@ -3424,7 +3424,7 @@ class Quantile(Builtin):
     """
 
     rules = {
-        'Quantile[list_List, q_List, x___]': 'Quantile[list, #, x]& /@ q',
+        'Quantile[list_List, q_, abcd_]': 'Quantile[list, {q}, abcd]',
         'Quantile[list_List, q_]': 'Quantile[list, q, {{0, 1}, {1, 0}}]',
     }
 
@@ -3432,40 +3432,58 @@ class Quantile(Builtin):
         'nquan': 'The quantile `1` has to be between 0 and 1.',
     }
 
-    def apply(self, l, q, a, b, c, d, evaluation):
-        '''Quantile[l_List, q_, {{a_, b_}, {c_, d_}}]'''
+    def apply(self, l, qs, a, b, c, d, evaluation):
+        '''Quantile[l_List, qs_List, {{a_, b_}, {c_, d_}}]'''
 
-        py_q = q.evaluate(evaluation).numerify(evaluation).to_mpmath()
-        if py_q is None or not 0. <= py_q <= 1.:
-            evaluation.message('Quantile', 'nquan', q)
-            return
+        partially_sorted = l.leaves[:]
+        results = []
 
         n = len(l.leaves)
 
-        x = Expression('Plus', a, Expression(
-            'Times', Expression('Plus', Integer(n), b), q))
+        numeric_qs = qs.evaluate(evaluation).numerify(evaluation)
 
-        def ranked(i):
-            return introselect(l.leaves[:], min(max(0, i - 1), n - 1))
+        for q in numeric_qs.leaves:
+            py_q = q.to_mpmath()
 
-        numeric_x = x.evaluate(evaluation).numerify(evaluation)
-
-        if isinstance(numeric_x, Integer):
-            return ranked(numeric_x.get_int_value())
-        else:
-            py_x = numeric_x.to_mpmath()
-
-            if py_x is None:
+            if py_q is None or not 0. <= py_q <= 1.:
+                evaluation.message('Quantile', 'nquan', q)
                 return
 
-            from mpmath import floor as mpfloor, ceil as mpceil
-            py_floor_x = mpfloor(py_x)
+            x = Expression('Plus', a, Expression(
+                'Times', Expression('Plus', Integer(n), b), q))
 
-            s0 = ranked(int(py_floor_x))
-            s1 = ranked(int(mpceil(py_x)))
+            def ranked(*i):
+                for j in i:
+                    yield introselect(partially_sorted, min(max(0, j - 1), n - 1))
 
-            k = Expression('Plus', c, Expression('Times', d, Expression('Subtract', x, Expression('Floor', x))))
-            return Expression('Plus', s0, Expression('Times', k, Expression('Subtract', s1, s0)))
+            numeric_x = x.evaluate(evaluation).numerify(evaluation)
+
+            if isinstance(numeric_x, Integer):
+                results.append(list(ranked(numeric_x.get_int_value()))[0])
+            else:
+                py_x = numeric_x.to_mpmath()
+
+                if py_x is None:
+                    return
+
+                from mpmath import floor as mpfloor, ceil as mpceil
+
+                if c.get_int_value() == 1 and d.get_int_value() == 0:  # k == 1?
+                    results.append(list(ranked(int(mpceil(py_x))))[0])
+                else:
+                    py_floor_x = mpfloor(py_x)
+                    s0, s1 = ranked(int(py_floor_x), int(mpceil(py_x)))
+
+                    k = Expression('Plus', c, Expression(
+                        'Times', d, Expression('Subtract', x, Expression('Floor', x))))
+
+                    results.append(Expression('Plus', s0, Expression(
+                        'Times', k, Expression('Subtract', s1, s0))))
+
+        if len(results) == 1:
+            return results[0]
+        else:
+            return Expression('List', *results)
 
 
 class Quartiles(Builtin):
