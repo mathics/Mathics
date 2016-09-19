@@ -808,22 +808,28 @@ class Expression(BaseExpression):
 
             if ('System`SequenceHold' not in attributes and    # noqa
                 'System`HoldAllComplete' not in attributes):
-                new = new.flatten(Symbol('Sequence'))
-            leaves = new.leaves
+                new = new.flatten(SEQUENCE)
+                leaves = new.leaves
 
             for leaf in leaves:
                 leaf.unevaluated = False
+
             if 'System`HoldAllComplete' not in attributes:
+                dirty_new = False
+
                 for index, leaf in enumerate(leaves):
                     if leaf.has_form('Unevaluated', 1):
                         leaves[index] = leaf.leaves[0]
                         leaves[index].unevaluated = True
+                        dirty_new = True
+
+                if dirty_new:
+                    new = Expression(head, *leaves)
 
             def flatten_callback(new_leaves, old):
                 for leaf in new_leaves:
                     leaf.unevaluated = old.unevaluated
 
-            new = Expression(head, *leaves)
             if 'System`Flat' in attributes:
                 new = new.flatten(new.head, callback=flatten_callback)
             if 'System`Orderless' in attributes:
@@ -1453,6 +1459,9 @@ class Symbol(Atom):
 
     def __getnewargs__(self):
         return (self.name, self.sympy_dummy)
+
+
+SEQUENCE = Symbol('Sequence')
 
 
 class Number(Atom):
