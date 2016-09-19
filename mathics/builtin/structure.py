@@ -15,6 +15,7 @@ from mathics.builtin.lists import (python_levelspec, walk_levels,
                                    InvalidLevelspecError)
 from mathics.builtin.functional import Identity
 import six
+import platform
 from six.moves import range
 
 
@@ -1276,5 +1277,7 @@ class ByteCount(Builtin):
 
     def apply(self, expression, evaluation):
         'ByteCount[expression_]'
-
-        return Integer(count_bytes(expression))
+        if platform.python_implementation == 'PyPy':
+            return evaluation.message('ByteCount', 'pypy')
+        else:
+            return Integer(count_bytes(expression))
