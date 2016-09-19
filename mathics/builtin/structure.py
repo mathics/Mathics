@@ -9,7 +9,6 @@ from mathics.builtin.base import (Builtin, Predefined, BinaryOperator, Test,
 from mathics.core.expression import (Expression, String, Symbol, Integer,
                                      Rational, strip_context)
 from mathics.core.rules import Pattern
-from .pympler.asizeof import asizeof as count_bytes
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
                                    InvalidLevelspecError)
@@ -17,6 +16,11 @@ from mathics.builtin.functional import Identity
 import six
 import platform
 from six.moves import range
+try:
+    from .pympler.asizeof import asizeof as count_bytes
+    bytecount_support = True
+except AttributeError: 
+    bytecount_support = False
 
 
 class Sort(Builtin):
@@ -1277,7 +1281,7 @@ class ByteCount(Builtin):
 
     def apply(self, expression, evaluation):
         'ByteCount[expression_]'
-        if platform.python_implementation == 'PyPy':
-            return evaluation.message('ByteCount', 'pypy')
+        if (platform.python_implementation == 'PyPy'
+                return evaluation.message('ByteCount', 'pypy')
         else:
             return Integer(count_bytes(expression))
