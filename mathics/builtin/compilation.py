@@ -23,8 +23,12 @@ class Compile(Builtin):
      = CompiledFunction[{x}, Sin[x], -CompiledCode-][x]
 
     #> cf = Compile[{{x, _Real}, {x, _Integer}}, Sin[x + y]]
-     : TODO: repeated arg warning
+     : Duplicate parameter x found in {{x, _Real}, {x, _Integer}}.
      = Compile[{{x, _Real}, {x, _Integer}}, Sin[x + y]]
+
+    #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + z]]
+     : expression Sin[x + z] could not be compiled.
+     = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + z]]
 
     #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + y]]
      = CompiledFunction[{x, y}, Sin[x + y], -CompiledCode-]
@@ -32,8 +36,7 @@ class Compile(Builtin):
      = 0.14112
 
     #> cf[x + y]
-     : TODO: wrong number of args warning
-     = cf[x + y]
+     = CompiledFunction[{x, y}, Sin[x + y], -CompiledCode-][x + y]
     '''
 
     requires = (
@@ -44,6 +47,7 @@ class Compile(Builtin):
         'invar': 'var `1` should be {symbol, type} annotation.',
         'invars': 'vars should be a list of {symbol, type} annotations.',
         'comperr': 'expression `1` could not be compiled.',
+        'fdup': 'Duplicate parameter `1` found in `2`.',
     }
 
     def apply(self, vars, expr, evaluation):
@@ -61,37 +65,50 @@ class Compile(Builtin):
         if not vars.has_form('List', None):
             return evaluation.message('Compile', 'invars')
         args = []
+        names = set([])
         for var in vars.get_leaves():
             if var.has_form('List', 1) and isinstance(var.leaves[0], Symbol):
-                args.append(CompileArg(var.leaves[0].get_name(), real_type))
+                symb = var.leaves[0]
+                name = symb.get_name()
+                typ = real_type
             elif var.has_form('List', 2):
                 symb, typ = var.get_leaves()
                 if isinstance(symb, Symbol) and typ in permitted_types:
-                    args.append(CompileArg(symb.get_name(), permitted_types[typ]))
+                    name = symb.get_name()
+                    typ = permitted_types[typ]
                 else:
                     return evaluation.message('Compile', 'invar', var)
             else:
                 return evaluation.message('Compile', 'invar', var)
 
+            # check for duplicate names
+            if name in names:
+                return evaluation.message('Compile', 'fdup', symb, vars)
+            else:
+                names.add(name)
+
+            args.append(CompileArg(name, typ))
+
         try:
             cfunc = _compile(expr, args)
         except CompileError:
             return evaluation.message('Compile', 'comperr', expr)
-        code = CompiledCode(cfunc)
+        code = CompiledCode(cfunc, args)
         arg_names = Expression('List', *(Symbol(arg.name) for arg in args))
         return Expression('CompiledFunction', arg_names, expr, code)
 
 
 class CompiledCode(Atom):
-    def __init__(self, cfunc, **kwargs):
+    def __init__(self, cfunc, args, **kwargs):
         super(CompiledCode, self).__init__(**kwargs)
         self.cfunc = cfunc
+        self.args = args
 
     def __str__(self):
         return '-CompiledCode-'
 
     def do_copy(self):
-        return CompiledCode(self.cfunc)
+        return CompiledCode(self.cfunc, self.args)
 
     def default_format(self, evaluation, form):
         return str(self)
@@ -133,8 +150,14 @@ class CompiledFunction(Builtin):
 
     def apply(self, argnames, expr, code, args, evaluation):
         'CompiledFunction[argnames_, expr_, code_CompiledCode][args__]'
+
+        argseq = args.get_sequence()
+
+        if len(argseq) != len(code.args):
+            return
+
         py_args = []
-        for arg in args.get_sequence():
+        for arg in argseq:
             if isinstance(arg, Integer):
                 py_args.append(arg.get_int_value())
             elif arg.same(Symbol('True')):
@@ -145,6 +168,6 @@ class CompiledFunction(Builtin):
                 py_args.append(arg.round_to_float(evaluation))
         try:
             result = code.cfunc(*py_args)
-        except ctypes.ArgumentError:
+        except (TypeError, ctypes.ArgumentError):
             return evaluation.message('CompiledFunction', 'argerr', args)
         return from_python(result)

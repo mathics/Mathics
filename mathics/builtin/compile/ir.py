@@ -223,7 +223,10 @@ class IRGenerator(object):
         walks an expression tree and constructs the ir block
         '''
         if isinstance(expr, Symbol):
-            arg = self.lookup_args[expr.get_name()]
+            try:
+                arg = self.lookup_args[expr.get_name()]
+            except KeyError:
+                raise CompileError()
             return arg
         elif isinstance(expr, Integer):
             return int_type(expr.get_int_value())
