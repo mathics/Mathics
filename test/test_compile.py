@@ -23,8 +23,9 @@ class CompileTest(unittest.TestCase):
         self.assertEqual(type(a), type(b))
         self.assertEqual(a, b)
 
-    def assertNumEqual(self, a, b):
-        self.assertEqual(type(a), type(b))
+    def assertNumEqual(self, a, b, check_type=True):
+        if check_type:
+            self.assertEqual(type(a), type(b))
         if isinstance(a, float):
             self.assertEqual(math.isnan(a), math.isnan(b))
             self.assertEqual(math.isinf(a), math.isinf(b))
@@ -93,7 +94,7 @@ class ArithmeticTest(CompileTest):
                 c_result = cfunc(x)
                 self.assertNumEqual(c_result, py_result)
 
-    def _test_binary_math(self, name, fn):
+    def _test_binary_math(self, name, fn, check_type=True):
         expr = Expression(name, Symbol('x'), Symbol('y'))
         for xtype, ytype in itertools.product([int_type, real_type], repeat=2):
             args = [CompileArg('System`x', xtype), CompileArg('System`y', ytype)]
@@ -103,7 +104,7 @@ class ArithmeticTest(CompileTest):
                 y = self._random(ytype)
                 py_result = self._py_evaluate(fn, x, y)
                 c_result = cfunc(x, y)
-                self.assertNumEqual(py_result, c_result)
+                self.assertNumEqual(py_result, c_result, check_type)
 
     def test_plus(self):
         self._test_binary_math('Plus', lambda x, y: x + y)
@@ -196,10 +197,14 @@ class ArithmeticTest(CompileTest):
         self._test_unary_math('Abs', abs)
 
     def test_max(self):
-        self._test_binary_math('Max', max)
+        # disable type checks
+        # in python max(1.3, 2) -> 2 but max(2.4, 2) -> 2.4
+        # when they return 2.0 and 2.4 respectively
+        self._test_binary_math('Max', max, check_type=False)
 
     def test_min(self):
-        self._test_binary_math('Min', min)
+        # disable type check (see test_max)
+        self._test_binary_math('Min', min, check_type=False)
 
 
 class FlowControlTest(CompileTest):

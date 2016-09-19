@@ -97,29 +97,6 @@ def bool_args(f):
     return wrapped_f
 
 
-def real_args(f):
-    '''
-    Real arguments.
-    Converts integer to real arguments.
-    '''
-    def wrapped_f(self, expr):
-        leaves = expr.get_leaves()
-        args = [self._gen_ir(leaf) for leaf in leaves]
-        for arg in args:
-            if arg.type == void_type:
-                return arg
-        for i, arg in enumerate(args):
-            if arg.type == bool_type:
-                args[i] = self.int_to_real(self.bool_to_int(arg))
-            elif arg.type == int_type:
-                args[i] = self.int_to_real(arg)
-        if any(arg.type != real_type for arg in args):
-            raise CompileError()
-        return f(self, args)
-    return wrapped_f
-
-
-
 class IRGenerator(object):
     def __init__(self, expr, args, func_name):
         self.expr = expr
@@ -418,17 +395,36 @@ class IRGenerator(object):
     def _gen_Log(self, args):
         return self.call_fp_intr('llvm.log', args)
 
-    @single_real_arg
-    def _gen_Abs(self, args):
-        return self.call_fp_intr('llvm.fabs', args)
+    @int_real_args(1)
+    def _gen_Abs(self, args, ret_type):
+        if len(args) != 1:
+            raise CompileError()
+        arg = args[0]
+        if ret_type == int_type:
+            # FIXME better way to do this?
+            neg_arg = self.builder.mul(arg, int_type(-1))
+            cond = self.builder.icmp_signed('<', arg, int_type(0))
+            return self.builder.select(cond, neg_arg, arg)
+        elif ret_type == real_type:
+            return self.call_fp_intr('llvm.fabs', args)
 
-    @real_args
-    def _gen_Min(self, args):
-        return reduce(lambda arg1, arg2: self.call_fp_intr('llvm.minnum', [arg1, arg2]), args)
+    @int_real_args(1)
+    def _gen_Min(self, args, ret_type):
+        if ret_type == int_type:
+            # FIXME better way to do this?
+            return reduce(lambda arg1, arg2: self.builder.select(
+                self.builder.icmp_signed('<', arg1, arg2), arg1, arg2), args)
+        elif ret_type == real_type:
+            return reduce(lambda arg1, arg2: self.call_fp_intr('llvm.minnum', [arg1, arg2]), args)
 
-    @real_args
-    def _gen_Max(self, args):
-        return reduce(lambda arg1, arg2: self.call_fp_intr('llvm.maxnum', [arg1, arg2]), args)
+    @int_real_args(1)
+    def _gen_Max(self, args, ret_type):
+        if ret_type == int_type:
+            # FIXME better way to do this?
+            return reduce(lambda arg1, arg2: self.builder.select(
+                self.builder.icmp_signed('>', arg1, arg2), arg1, arg2), args)
+        elif ret_type == real_type:
+            return reduce(lambda arg1, arg2: self.call_fp_intr('llvm.maxnum', [arg1, arg2]), args)
 
     @single_real_arg
     def _gen_Sinh(self, args):
