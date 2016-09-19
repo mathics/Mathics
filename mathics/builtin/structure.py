@@ -1281,8 +1281,10 @@ class ByteCount(Builtin):
 
     def apply(self, expression, evaluation):
         'ByteCount[expression_]'
-        if (platform.python_implementation == 'PyPy'
-            and bytecount_support == False):
+        if bytecount_support == False:
+            if platform.python_implementation == 'PyPy':
                 return evaluation.message('ByteCount', 'pypy')
+            else:
+                return
         else:
             return Integer(count_bytes(expression))
