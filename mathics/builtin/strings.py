@@ -1047,8 +1047,18 @@ class StringReplace(_StringFind):
 
 class StringCases(_StringFind):
     '''
-    >> StringCases["aabaaab", Longest[RegularExpression["a+b"]]]
-     = {aab, aaab}
+    <dl>
+    <dt>'StringCases["$string$", $pattern$]'
+        <dd>gives all occurences of $pattern$ in $string$.
+    <dt>'StringReplace["$string$", $pattern$ -> $form$]'
+        <dd>gives all instances of $form$ that stem from occurences of $pattern$ in $string$.
+    <dt>'StringCases["$string$", {$pattern1$, $pattern2$, ...}]'
+        <dd>gives all occurences of $pattern1$, $pattern2$, ....
+    <dt>'StringReplace["$string$", $pattern$, $n$]'
+        <dd>gives only the first $n$ occurences.
+    <dt>'StringReplace[{"$string1$", "$string2$", ...}, $pattern$]'
+        <dd>gives occurences in $string1$, $string2$, ...
+    </dl>
 
     >> StringCases["aabaaab", "a" ~~ __ ~~ "b"]
      = {aabaaab}
@@ -1074,10 +1084,7 @@ class StringCases(_StringFind):
 
             re.sub(py_s, collect, py_stri, py_n, flags=flags)
 
-        if len(cases) == 1:
-            return cases[0]
-        else:
-            return Expression('List', *cases)
+        return Expression('List', *cases)
 
     def apply(self, string, rule, n, evaluation, options):
         '%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'

@@ -1183,6 +1183,13 @@ class Shortest(Builtin):
 
 
 class Longest(Builtin):
+    '''
+    >> StringCases["aabaaab", Longest["a" ~~ __ ~~ "b"]]
+     = {aabaaab}
+
+    >> StringCases["aabaaab", Longest[RegularExpression["a+b"]]]
+     = {aab, aaab}
+    '''
     pass
 
 
