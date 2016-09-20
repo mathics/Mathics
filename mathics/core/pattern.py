@@ -163,8 +163,13 @@ class ExpressionPattern(Pattern):
             #    next_leaves = self.leaves[1:]
 
             # early exit if the number of leaves does not match the predetermined length
-            if self._fixed_nargs is not None and len(expression.get_leaves()) != self._fixed_nargs:
-                return
+            if self._fixed_nargs is not None:
+                if 'System`Flat' in attributes:
+                    if len(expression.get_leaves()) < self._fixed_nargs:
+                        return
+                else:
+                    if len(expression.get_leaves()) != self._fixed_nargs:
+                        return
 
             def yield_choice(pre_vars):
                 next_leaf = self.leaves[0]
