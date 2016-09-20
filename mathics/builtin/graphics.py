@@ -16,6 +16,7 @@ from six.moves import map
 from six.moves import range
 from six.moves import zip
 from itertools import chain
+from math import sin, cos, pi
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
@@ -1764,6 +1765,76 @@ class PolygonBox(_Polyline):
         return asy
 
 
+class RegularPolygon(Builtin):
+    """
+    <dl>
+    <dt>'RegularPolygon[$n$]'
+        <dd>gives the regular polygon with $n$ edges.
+    <dt>'RegularPolygon[$r$, $n$]'
+        <dd>gives the regular polygon with $n$ edges and radius $r$.
+    <dt>'RegularPolygon[{$r$, $phi$}, $n$]'
+        <dd>gives the regular polygon with radius $r$ with one vertex drawn at angle $phi$.
+    <dt>'RegularPolygon[{$x, $y}, $r$, $n$]'
+        <dd>gives the regular polygon centered at the position {$x, $y}.
+    </dl>
+
+    >> Graphics[RegularPolygon[5]]
+    = -Graphics-
+
+    >> Graphics[{Yellow, Rectangle[], Orange, RegularPolygon[{1, 1}, {0.25, 0}, 3]}]
+    = -Graphics-
+    """
+
+
+class RegularPolygonBox(PolygonBox):
+    def init(self, graphics, style, item):
+        if len(item.leaves) in (1, 2, 3) and isinstance(item.leaves[-1], Integer):
+            r = 1.
+            phi0 = None
+
+            if len(item.leaves) >= 2:
+                rspec = item.leaves[-2]
+                if rspec.get_head_name() == 'System`List':
+                    if len(rspec.leaves) != 2:
+                        raise BoxConstructError
+                    r = rspec.leaves[0].round_to_float()
+                    phi0 = rspec.leaves[1].round_to_float()
+                else:
+                    r = rspec.round_to_float()
+
+            x = 0.
+            y = 0.
+            if len(item.leaves) == 3:
+                pos = item.leaves[0]
+                if not pos.has_form('List', 2):
+                    raise BoxConstructError
+                x = pos.leaves[0].round_to_float()
+                y = pos.leaves[1].round_to_float()
+
+            n = item.leaves[-1].get_int_value()
+
+            if any(t is None for t in (x, y, r)) or n < 0:
+                raise BoxConstructError
+
+            if phi0 is None:
+                phi0 = -pi / 2.
+                if n % 1 == 0 and n > 0:
+                    phi0 += pi / n
+
+            pi2 = pi * 2.
+
+            def vertices():
+                for i in range(n):
+                    phi = phi0 + pi2 * i / float(n)
+                    yield Expression('List', Real(x + r * cos(phi)), Real(y + r * sin(phi)))
+
+            new_item = Expression('RegularPolygonBox', Expression('List', *list(vertices())))
+        else:
+            raise BoxConstructError
+
+        super(RegularPolygonBox, self).init(graphics, style, new_item)
+
+
 class Arrow(Builtin):
     """
     <dl>
@@ -3296,7 +3367,9 @@ class Large(Builtin):
 
 
 element_heads = frozenset(system_symbols(
-    'Rectangle', 'Disk', 'Line', 'Arrow', 'FilledCurve', 'BezierCurve', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere', 'Style'))
+    'Rectangle', 'Disk', 'Line', 'Arrow', 'FilledCurve', 'BezierCurve',
+    'Point', 'Circle', 'Polygon', 'RegularPolygon',
+    'Inset', 'Text', 'Sphere', 'Style'))
 
 styles = system_symbols_dict({
     'RGBColor': RGBColor,
@@ -3329,6 +3402,7 @@ GLOBALS = system_symbols_dict({
     'Disk': Disk,
     'Circle': Circle,
     'Polygon': Polygon,
+    'RegularPolygon': RegularPolygon,
     'Inset': Inset,
     'Text': Text,
     'RectangleBox': RectangleBox,
@@ -3339,6 +3413,7 @@ GLOBALS = system_symbols_dict({
     'ArrowBox': ArrowBox,
     'CircleBox': CircleBox,
     'PolygonBox': PolygonBox,
+    'RegularPolygonBox': RegularPolygonBox,
     'PointBox': PointBox,
     'InsetBox': InsetBox,
 })
