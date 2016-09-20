@@ -14,7 +14,14 @@ from mathics.builtin.lists import (python_levelspec, walk_levels,
                                    InvalidLevelspecError)
 from mathics.builtin.functional import Identity
 import six
+import platform
 from six.moves import range
+
+if platform.python_implementation() == 'PyPy':
+    bytecount_support = False
+else:
+    from .pympler.asizeof import asizeof as count_bytes
+    bytecount_support = True
 
 
 class Sort(Builtin):
@@ -1261,3 +1268,21 @@ class Through(Builtin):
         for leaf in args.get_sequence():
             items.append(Expression(leaf, *x.get_sequence()))
         return Expression(p, *items)
+
+
+class ByteCount(Builtin):
+    """
+    <dl>
+    <dt>'ByteCount[$expr$]'
+        <dd>gives the internal memory space used by $expr$, in bytes.
+    </dl>
+
+    The results may heavily depend on the Python implementation in use.
+    """
+
+    def apply(self, expression, evaluation):
+        'ByteCount[expression_]'
+        if not bytecount_support:
+            return evaluation.message('ByteCount', 'pypy')
+        else:
+            return Integer(count_bytes(expression))
