@@ -11,6 +11,8 @@ from __future__ import absolute_import
 import sys
 import re
 import unicodedata
+from binascii import hexlify, unhexlify
+from heapq import heappush, heappop
 
 import six
 from six.moves import range
@@ -31,6 +33,52 @@ _regex_shortest = {
     '+': '+?',
     '*': '*?',
 }
+
+
+def _encode_pname(name):
+    return 'n' + hexlify(name.encode('utf8')).decode('utf8')
+
+
+def _decode_pname(name):
+    return unhexlify(name[1:]).decode('utf8')
+
+
+def _evaluate_match(s, m, evaluation):
+    replace = dict((_decode_pname(name), String(value)) for name, value in m.groupdict().items())
+    return s.replace_vars(replace, in_scoping=False).evaluate(evaluation)
+
+
+def _parallel_match(text, rules, flags, limit):
+    heap = []
+
+    def push(i, iter, form):
+        m = None
+        try:
+            m = next(iter)
+        except StopIteration:
+            pass
+        if m is not None:
+            heappush(heap, (m.start(), i, m, form, iter))
+
+    for i, (patt, form) in enumerate(rules):
+        push(i, re.finditer(patt, text, flags=flags), form)
+
+    k = 0
+    n = 0
+
+    while heap:
+        start, i, match, form, iter = heappop(heap)
+
+        if start >= k:
+            yield match, form
+
+            n += 1
+            if n >= limit > 0:
+                break
+
+            k = match.end()
+
+        push(i, iter, form)
 
 
 def to_regex(expr, q=_regex_longest, abbreviated_patterns=False):
@@ -139,6 +187,11 @@ def to_regex(expr, q=_regex_longest, abbreviated_patterns=False):
         return to_regex(expr.leaves[0], _regex_shortest)
     if expr.has_form('Longest', 1):
         return to_regex(expr.leaves[0], _regex_longest)
+    if expr.has_form('Pattern', 2) and isinstance(expr.leaves[0], Symbol):
+        return '(?P<%s>%s)' % (
+            _encode_pname(expr.leaves[0].get_name()),
+            to_regex(expr.leaves[1], q))
+
     return None
 
 
@@ -905,10 +958,8 @@ class _StringFind(Builtin):
                 if py_s is None:
                     return evaluation.message(
                         'StringExpression', 'invld', r.leaves[0], r.leaves[0])
-                # TODO: py_sp is allowed to be more general (function, etc)
-                py_sp = r.leaves[1].get_string_value()
-                if py_sp is not None:
-                    return py_s, py_sp
+                py_sp = r.leaves[1]
+                return py_s, py_sp
             elif cases:
                 py_s = to_regex(r)
                 if py_s is None:
@@ -941,9 +992,9 @@ class _StringFind(Builtin):
 
         if isinstance(py_strings, list):
             return Expression(
-                'List', *[self._find(py_stri, py_rules, py_n, flags) for py_stri in py_strings])
+                'List', *[self._find(py_stri, py_rules, py_n, flags, evaluation) for py_stri in py_strings])
         else:
-            return self._find(py_strings, py_rules, py_n, flags)
+            return self._find(py_strings, py_rules, py_n, flags, evaluation)
 
 
 class StringReplace(_StringFind):
@@ -969,7 +1020,7 @@ class StringReplace(_StringFind):
     >> StringReplace["xyzwxyzwxxyzxyzw", {"xyz" -> "A", "w" -> "BCD"}]
      = ABCDABCDxAABCD
 
-    Only replace the first 2 occurances:
+    Only replace the first 2 occurences:
     >> StringReplace["xyxyxyyyxxxyyxy", "xy" -> "A", 2]
      = AAxyyyxxxyyxy
 
@@ -991,6 +1042,9 @@ class StringReplace(_StringFind):
     #> StringReplace["abcabc", "a" -> "b", -1]
      : Non-negative integer or Infinity expected at position 3 in StringReplace[abcabc, a -> b, -1].
      = StringReplace[abcabc, a -> b, -1]
+    #> StringReplace["abc", "b" -> 4]
+     : String expected.
+     = a <> 4 <> c
 
     #> StringReplace["01101100010", "01" .. -> "x"]
      = x1x100x0
@@ -1034,10 +1088,19 @@ class StringReplace(_StringFind):
         'StringReplace[rule_][string_]': 'StringReplace[string, rule]',
     }
 
-    def _find(self, py_stri, py_rules, py_n, flags):
-        for py_s, py_sp in py_rules:
-            py_stri = re.sub(py_s, py_sp, py_stri, py_n, flags=flags)
-        return String(py_stri)
+    def _find(self, py_stri, py_rules, py_n, flags, evaluation):
+        def cases():
+            k = 0
+            for match, form in _parallel_match(py_stri, py_rules, flags, py_n):
+                start, end = match.span()
+                if start > k:
+                    yield String(py_stri[k:start])
+                yield _evaluate_match(form, match, evaluation)
+                k = end
+            if k < len(py_stri):
+                yield String(py_stri[k:])
+
+        return Expression('StringJoin', *list(cases()))
 
     def apply(self, string, rule, n, evaluation, options):
         '%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'
@@ -1065,26 +1128,24 @@ class StringCases(_StringFind):
 
     >> StringCases["aabaaab", Shortest["a" ~~ __ ~~ "b"]]
      = {aab, aaab}
+
+    >> StringCases["-abc- def -uvw- xyz", Shortest["-" ~~ x__ ~~ "-"] -> x]
+     = {abc, uvw}
     '''
 
     rules = {
         'StringCases[rule_][string_]': 'StringCases[string, rule]',
     }
 
-    def _find(self, py_stri, py_rules, py_n, flags):
-        cases = []
-
-        for py_s, py_sp in py_rules:
-            def collect(m):
-                if py_sp is None:
-                    cases.append(String(m.group(0)))
+    def _find(self, py_stri, py_rules, py_n, flags, evaluation):
+        def cases():
+            for match, form in _parallel_match(py_stri, py_rules, flags, py_n):
+                if form is None:
+                    yield String(match.group(0))
                 else:
-                    cases.append(String(m.expand(py_sp)))
-                return ''
+                    yield _evaluate_match(form, match, evaluation)
 
-            re.sub(py_s, collect, py_stri, py_n, flags=flags)
-
-        return Expression('List', *cases)
+        return Expression('List', *list(cases()))
 
     def apply(self, string, rule, n, evaluation, options):
         '%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'
