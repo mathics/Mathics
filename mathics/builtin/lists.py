@@ -1387,6 +1387,50 @@ class SplitBy(Builtin):
         return result
 
 
+class Pick(Builtin):
+    """
+    <dl>
+    <dt>'Pick[$list$, $sel$]'
+        <dd>returns those items in $list$ that are True in $sel$.
+    <dt>'Pick[$list$, $sel$, $patt$]'
+        <dd>returns those items in $list$ that match $patt$ in $sel$.
+    </dl>
+
+    >> Pick[{a, b, c}, {False, True, False}]
+     = {b}
+
+    >> Pick[f[g[1, 2], h[3, 4]], {{True, False}, {False, True}}]
+     = f[g[1], h[4]]
+
+    >> Pick[{a, b, c, d, e}, {1, 2, 3.5, 4, 5.5}, _Integer]
+     = {a, b, d}
+    """
+
+    def _do(self, items0, sel0, match):
+        def pick(items, sel):
+            for x, s in zip(items, sel):
+                if match(s):
+                    yield x
+                elif not x.is_atom() and not s.is_atom():
+                    yield Expression(x.get_head(), *list(pick(x.leaves, s.leaves)))
+
+        r = list(pick([items0], [sel0]))
+        if not r:
+            return Expression('Sequence')
+        else:
+            return r[0]
+
+    def apply(self, items, sel, evaluation):
+        'Pick[items_, sel_]'
+        return self._do(items, sel, lambda s: s.is_true())
+
+    def apply_pattern(self, items, sel, pattern, evaluation):
+        'Pick[items_, sel_, pattern_]'
+        from mathics.builtin.patterns import Matcher
+        match = Matcher(pattern).match
+        return self._do(items, sel, lambda s: match(s, evaluation))
+
+
 class Cases(Builtin):
     """
     <dl>
