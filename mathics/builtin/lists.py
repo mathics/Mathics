@@ -3877,6 +3877,22 @@ class _LazyDistances(LazyDistances):
         return _to_real_distance(d)
 
 
+def _dist_repr(p):
+    dist_p = repr_p = None
+    if p.has_form('Rule', 2):
+        if all(q.get_head_name() == 'System`List' for q in p.leaves):
+            dist_p, repr_p = (q.leaves for q in p.leaves)
+        elif p.leaves[0].get_head_name() == 'System`List' and p.leaves[1].get_name() == 'System`Automatic':
+            dist_p = p.leaves[0].leaves
+            repr_p = [Integer(i + 1) for i in range(len(dist_p))]
+    elif p.get_head_name() == 'System`List':
+        if all(q.get_head_name() == 'System`Rule' for q in p.leaves):
+            dist_p, repr_p = ([q.leaves[i] for q in p.leaves] for i in range(2))
+        else:
+            dist_p = repr_p = p.leaves
+    return dist_p, repr_p
+
+
 class _Cluster(Builtin):
     options = {
         'Method': 'Optimize',
@@ -3907,15 +3923,7 @@ class _Cluster(Builtin):
             evaluation.message(self.get_name(), 'bdmtd', Expression('Rule', 'Method', method))
             return
 
-        dist_p = None
-        if p.get_head_name() == 'System`Rule':
-            if all(q.get_head_name() == 'System`List' for q in p.leaves):
-                dist_p, repr_p = (q.leaves for q in p.leaves)
-        elif p.get_head_name() == 'System`List':
-            if all(q.get_head_name() == 'System`Rule' for q in p.leaves):
-                dist_p, repr_p = ([q.leaves[i] for q in p.leaves] for i in range(2))
-            else:
-                dist_p = repr_p = p.leaves
+        dist_p, repr_p = _dist_repr(p)
 
         if dist_p is None or len(dist_p) != len(repr_p):
             evaluation.message(self.get_name(), 'list', expr)
@@ -4138,6 +4146,133 @@ class ClusteringComponents(_Cluster):
         'ClusteringComponents[p_, k_Integer, OptionsPattern[%(name)s]]'
         return self._cluster(p, k, 'components', evaluation, options,
                              Expression('ClusteringComponents', p, k, *options_to_rules(options)))
+
+
+class Nearest(Builtin):
+    '''
+    <dl>
+    <dt>'Nearest[$list$, $x$]'
+        <dd>returns the one item in $list$ that is nearest to $x$.
+    <dt>'Nearest[$list$, $x$, $n$]'
+        <dd>returns the $n$ nearest items.
+    <dt>'Nearest[$list$, $x$, {$n$, $r$}]'
+        <dd>returns up to $n$ nearest items that are not farther from $x$ than $r$.
+    <dt>'Nearest[{$p1$ -> $q1$, $p2$ -> $q2$, ...}, $x$]'
+        <dd>returns $q1$, $q2$, ... but measures the distances using $p1$, $p2$, ...
+    <dt>'Nearest[{$p1$, $p2$, ...} -> {$q1$, $q2$, ...}, $x$]'
+        <dd>returns $q1$, $q2$, ... but measures the distances using $p1$, $p2$, ...
+    </dl>
+
+    >> Nearest[{5, 2.5, 10, 11, 15, 8.5, 14}, 12]
+     = {11}
+
+    Return all items within a distance of 5:
+
+    >> Nearest[{5, 2.5, 10, 11, 15, 8.5, 14}, 12, {All, 5}]
+     = {11, 10, 14}
+
+    >> Nearest[{Blue -> "blue", White -> "white", Red -> "red", Green -> "green"}, {Orange, Gray}]
+     = {{red}, {white}}
+    '''
+
+    options = {
+        'DistanceFunction': 'Automatic',
+        'Method': '"Scan"',
+    }
+
+    messages = {
+        'amtd': '`1` failed to pick a suitable distance function for `2`.',
+        'list': 'Expected a list or a rule with equally sized lists at position 1 in ``.',
+        'nimp': 'Method `1` is not implemented yet.',
+    }
+
+    rules = {
+        'Nearest[list_, pattern_]': 'Nearest[list, pattern, 1]',
+        'Nearest[pattern_][list_]': 'Nearest[list, pattern]',
+    }
+
+    def apply(self, items, pivot, limit, evaluation, options):
+        'Nearest[items_List, pivot_, limit_, OptionsPattern[%(name)s]]'
+
+        method = self.get_option(options, 'Method', evaluation)
+        if not isinstance(method, String) or method.get_string_value() != 'Scan':
+            evaluation('Nearest', 'nimp', method)
+            return
+
+        dist_p, repr_p = _dist_repr(items)
+
+        if dist_p is None or len(dist_p) != len(repr_p):
+            evaluation.message(self.get_name(), 'list', Expression('Nearest', items, x, n))
+            return
+
+        if limit.has_form('List', 2):
+            up_to = limit.leaves[0]
+            py_r = limit.leaves[1].to_mpmath()
+        else:
+            up_to = limit
+            py_r = None
+
+        if isinstance(up_to, Integer):
+            py_n = up_to.get_int_value()
+        elif up_to.get_name() == 'System`All':
+            py_n = None
+        else:
+            return
+
+        if not dist_p or (py_n is not None and py_n < 1):
+            return Expression('List')
+
+        multiple_x = False
+
+        distance_function_string, distance_function = self.get_option_string(
+            options, 'DistanceFunction', evaluation)
+        if distance_function_string == 'Automatic':
+            from mathics.builtin.tensors import get_default_distance
+
+            distance_function = get_default_distance(dist_p)
+            if distance_function is None:
+                evaluation.message(self.get_name(), 'amtd', 'Nearest', Expression('List', *dist_p))
+                return
+
+            if pivot.get_head_name() == 'System`List':
+                _, depth_x = walk_levels(pivot)
+                _, depth_items = walk_levels(dist_p[0])
+
+                if depth_x > depth_items:
+                    multiple_x = True
+
+        def nearest(x):
+            calls = [Expression(distance_function, x, y) for y in dist_p]
+            distances = Expression('List', *calls).evaluate(evaluation)
+
+            if not distances.has_form('List', len(dist_p)):
+                raise ValueError()
+
+            py_distances = [(_to_real_distance(d), i) for i, d in enumerate(distances.leaves)]
+
+            if py_r is not None:
+                py_distances = [(d, i) for d, i in py_distances if d <= py_r]
+
+            def pick():
+                if py_n is None:
+                    candidates = sorted(py_distances)
+                else:
+                    candidates = heapq.nsmallest(py_n, py_distances)
+
+                for d, i in candidates:
+                    yield repr_p[i]
+
+            return Expression('List', *list(pick()))
+
+        try:
+            if not multiple_x:
+                return nearest(pivot)
+            else:
+                return Expression('List', *[nearest(t) for t in pivot.leaves])
+        except _IllegalDistance:
+            return Symbol('$Failed')
+        except ValueError:
+            return Symbol('$Failed')
 
 
 class Permutations(Builtin):
