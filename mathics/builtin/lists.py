@@ -3473,6 +3473,98 @@ class RankedMax(Builtin):
             return introselect(l.leaves[:], len(l.leaves) - py_n)
 
 
+class Quantile(Builtin):
+    """
+    <dl>
+    <dt>'Quantile[$list$, $q$]'
+      <dd>returns the $q$th quantile of $list$.
+    </dl>
+
+    >> Quantile[Range[11], 1/3]
+     = 4
+
+    >> Quantile[Range[16], 1/4]
+     = 5
+    """
+
+    rules = {
+        'Quantile[list_List, q_, abcd_]': 'Quantile[list, {q}, abcd]',
+        'Quantile[list_List, q_]': 'Quantile[list, q, {{0, 1}, {1, 0}}]',
+    }
+
+    messages = {
+        'nquan': 'The quantile `1` has to be between 0 and 1.',
+    }
+
+    def apply(self, l, qs, a, b, c, d, evaluation):
+        '''Quantile[l_List, qs_List, {{a_, b_}, {c_, d_}}]'''
+
+        n = len(l.leaves)
+        partially_sorted = l.leaves[:]
+
+        def ranked(i):
+            return introselect(partially_sorted, min(max(0, i - 1), n - 1))
+
+        numeric_qs = qs.evaluate(evaluation).numerify(evaluation)
+        results = []
+
+        for q in numeric_qs.leaves:
+            py_q = q.to_mpmath()
+
+            if py_q is None or not 0. <= py_q <= 1.:
+                evaluation.message('Quantile', 'nquan', q)
+                return
+
+            x = Expression('Plus', a, Expression(
+                'Times', Expression('Plus', Integer(n), b), q))
+
+            numeric_x = x.evaluate(evaluation).numerify(evaluation)
+
+            if isinstance(numeric_x, Integer):
+                results.append(ranked(numeric_x.get_int_value()))
+            else:
+                py_x = numeric_x.to_mpmath()
+
+                if py_x is None:
+                    return
+
+                from mpmath import floor as mpfloor, ceil as mpceil
+
+                if c.get_int_value() == 1 and d.get_int_value() == 0:  # k == 1?
+                    results.append(ranked(int(mpceil(py_x))))
+                else:
+                    py_floor_x = mpfloor(py_x)
+                    s0 = ranked(int(py_floor_x))
+                    s1 = ranked(int(mpceil(py_x)))
+
+                    k = Expression('Plus', c, Expression(
+                        'Times', d, Expression('Subtract', x, Expression('Floor', x))))
+
+                    results.append(Expression('Plus', s0, Expression(
+                        'Times', k, Expression('Subtract', s1, s0))))
+
+        if len(results) == 1:
+            return results[0]
+        else:
+            return Expression('List', *results)
+
+
+class Quartiles(Builtin):
+    """
+    <dl>
+    <dt>'Quartiles[$list$]'
+      <dd>returns the 1/4, 1/2, and 3/4 quantiles of $list$.
+    </dl>
+
+    >> Quartiles[Range[25]]
+     = {27 / 4, 13, 77 / 4}
+    """
+
+    rules = {
+        'Quartiles[list_List]': 'Quantile[list, {1/4, 1/2, 3/4}, {{1/2, 0}, {0, 1}}]',
+    }
+
+
 class _RankedTake(Builtin):
     messages = {
         'intpm': 'Expected non-negative integer at position `1` in `2`.',
