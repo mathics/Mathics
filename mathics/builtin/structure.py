@@ -17,7 +17,7 @@ import six
 import platform
 from six.moves import range
 
-if platform.python_implementation == 'PyPy':
+if platform.python_implementation() == 'PyPy':
     bytecount_support = False
 else:
     from .pympler.asizeof import asizeof as count_bytes
