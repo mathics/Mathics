@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from mathics.core.expression import Expression, Symbol, strip_context, KeyComparable
+from mathics.core.expression import Expression, SEQUENCE, strip_context, KeyComparable
 from mathics.core.pattern import Pattern, StopGenerator
 
 
@@ -48,7 +48,7 @@ class BaseRule(KeyComparable):
             # Flatten out sequences (important for Rule itself!)
 
             def flatten(expr):
-                new_expr = expr.flatten(Symbol('Sequence'), pattern_only=True)
+                new_expr = expr.flatten(SEQUENCE, pattern_only=True)
                 if not new_expr.is_atom():
                     for index, leaf in enumerate(new_expr.leaves):
                         new_expr.leaves[index] = flatten(leaf)
