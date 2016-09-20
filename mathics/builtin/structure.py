@@ -16,11 +16,12 @@ from mathics.builtin.functional import Identity
 import six
 import platform
 from six.moves import range
-try:
+
+if platform.python_implementation == 'PyPy':
+    bytecount_support = False
+else:
     from .pympler.asizeof import asizeof as count_bytes
     bytecount_support = True
-except AttributeError: 
-    bytecount_support = False
 
 
 class Sort(Builtin):
@@ -1281,10 +1282,7 @@ class ByteCount(Builtin):
 
     def apply(self, expression, evaluation):
         'ByteCount[expression_]'
-        if bytecount_support == False:
-            if platform.python_implementation == 'PyPy':
-                return evaluation.message('ByteCount', 'pypy')
-            else:
-                return
+        if not bytecount_support:
+            return evaluation.message('ByteCount', 'pypy')
         else:
             return Integer(count_bytes(expression))
