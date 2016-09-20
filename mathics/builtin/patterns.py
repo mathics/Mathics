@@ -1178,6 +1178,14 @@ class RepeatedNull(Repeated):
         super(RepeatedNull, self).init(expr, min=0)
 
 
+class Shortest(Builtin):
+    pass
+
+
+class Longest(Builtin):
+    pass
+
+
 class Condition(BinaryOperator, PatternObject):
     """
     <dl>
