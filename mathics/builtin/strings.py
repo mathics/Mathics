@@ -507,15 +507,15 @@ class LetterCharacter(Builtin):
     """
     <dl>
     <dt>'LetterCharacter'
-      <dd>represents the letters a-z and A-Z.
+      <dd>represents letters.
     </dl>
 
     >> StringMatchQ[#, LetterCharacter] & /@ {"a", "1", "A", " ", "."}
      = {True, False, True, False, False}
 
-    LetterCharacter does not match unicode characters.
+    LetterCharacter also matches unicode characters.
     >> StringMatchQ["\[Lambda]", LetterCharacter]
-     = False
+     = True
     """
 
 
@@ -1163,7 +1163,7 @@ class StringCases(_StringFind):
      = {abc}
 
     #> StringCases["abc-abc xyz-uvw", Shortest[x : WordCharacter .. ~~ "-" ~~ x : LetterCharacter] -> x]
-    : Ignored restriction given for x in x : LetterCharacter as it does not match previous occurences of x.
+     : Ignored restriction given for x in x : LetterCharacter as it does not match previous occurences of x.
      = {abc}
 
     >> StringCases["abba", {"a" -> 10, "b" -> 20}, 2]
