@@ -30,13 +30,28 @@ def xml_comments(node):
         return Expression('List', *[String(s.text) for s in node.xpath('//comment()')])
 
 
-def node_to_xml_element(node, strip_whitespace=True):
+_namespace_key = Expression('List', String('http://www.w3.org/2000/xmlns/'), String('xmlns'))
+
+
+def node_to_xml_element(node, parent_namespace=None, strip_whitespace=True):
     if lxml_available:
         if isinstance(node, ET._Comment):
             items = [Expression(Expression('XMLObject', String('Comment')), String(node.text))]
             if node.tail is not None:
                 items.append(String(node.tail))
             return items
+
+    # see https://reference.wolfram.com/language/XML/tutorial/RepresentingXML.html
+
+    default_namespace = node.nsmap[None]
+
+    if default_namespace != parent_namespace:
+        declare_default_namespace = default_namespace
+    else:
+        declare_default_namespace = None
+
+    tag = ET.QName(node.tag)
+    namespace = tag.namespace
 
     def children():
         text = node.text
@@ -46,7 +61,7 @@ def node_to_xml_element(node, strip_whitespace=True):
             if text:
                 yield String(text)
         for child in node:
-            for element in node_to_xml_element(child):
+            for element in node_to_xml_element(child, default_namespace, strip_whitespace):
                 yield element
         tail = node.tail
         if tail:
@@ -58,13 +73,10 @@ def node_to_xml_element(node, strip_whitespace=True):
     def attributes():
         for name, value in node.attrib.items():
             yield Expression('Rule', from_python(name), from_python(value))
+        if declare_default_namespace:
+            yield Expression('Rule', _namespace_key, String(declare_default_namespace))
 
-    # see https://reference.wolfram.com/language/XML/tutorial/RepresentingXML.html
-
-    tag = ET.QName(node.tag)
-    namespace = tag.namespace
-
-    if namespace is None:
+    if namespace is None or namespace == default_namespace:
         name = String(tag.localname)
     else:
         name = Expression('List', String(namespace), String(tag.localname))
@@ -211,6 +223,9 @@ class XMLObjectImport(Builtin):
     """
     >> Part[Import["ExampleData/InventionNo1.xml", "XMLObject"], 2, 3, 1]
      = XMLElement[identification, {}, {XMLElement[encoding, {}, {XMLElement[software, {}, {MuseScore 1.2}], XMLElement[encoding-date, {}, {2012-09-12}]}]}]
+
+    >> Import["ExampleData/Namespaces.xml"]
+     = XMLObject[Document][{XMLObject[Declaration][Version -> 1.0, Encoding -> UTF-8]}, XMLElement[book, {{http://www.w3.org/2000/xmlns/, xmlns} -> urn:loc.gov:books}, {XMLElement[title, {}, {Cheaper by the Dozen}], XMLElement[{urn:ISBN:0-395-36341-6, number}, {}, {1568491379}], XMLElement[notes, {}, {XMLElement[p, {{http://www.w3.org/2000/xmlns/, xmlns} -> http://www.w3.org/1999/xhtml}, {This is a, XMLElement[i, {}, {funny, book!}]}]}]}]]
     """
 
     context = 'XML`'
