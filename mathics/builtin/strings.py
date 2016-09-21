@@ -81,9 +81,15 @@ def _parallel_match(text, rules, flags, limit):
         push(i, iter, form)
 
 
-def to_regex(expr, q=_regex_longest, abbreviated_patterns=False):
+def to_regex(expr, evaluation, q=_regex_longest, groups=None, abbreviated_patterns=False):
     if expr is None:
         return None
+
+    if groups is None:
+        groups = {}
+
+    def recurse(x, quantifiers=q):
+        return to_regex(x, evaluation, q=quantifiers, groups=groups)
 
     if isinstance(expr, String):
         result = expr.get_string_value()
@@ -130,7 +136,7 @@ def to_regex(expr, q=_regex_longest, abbreviated_patterns=False):
     if isinstance(expr, Symbol):
         return {
             'System`NumberString': r'[-|+]?(\d+(\.\d*)?|\.\d+)?',
-            'System`Whitespace': r'\s+',
+            'System`Whitespace': r'(?u)\s+',
             'System`DigitCharacter': r'\d',
             'System`WhitespaceCharacter': r'(?u)\s',
             'System`WordCharacter': r'(?u)[^\W_]',
@@ -159,7 +165,7 @@ def to_regex(expr, q=_regex_longest, abbreviated_patterns=False):
             leaves = [expr.leaves[0], Expression('Blank')]
         else:
             leaves = [expr.leaves[0], expr.leaves[1]]
-        leaves = [to_regex(leaf, q) for leaf in leaves]
+        leaves = [recurse(leaf) for leaf in leaves]
         if all(leaf is not None for leaf in leaves):
             return '(?!{0}){1}'.format(*leaves)
     if expr.has_form('Characters', 1):
@@ -167,30 +173,40 @@ def to_regex(expr, q=_regex_longest, abbreviated_patterns=False):
         if leaf is not None:
             return '[{0}]'.format(re.escape(leaf))
     if expr.has_form('StringExpression', None):
-        leaves = [to_regex(leaf, q) for leaf in expr.leaves]
+        leaves = [recurse(leaf) for leaf in expr.leaves]
         if None in leaves:
             return None
         return "".join(leaves)
     if expr.has_form('Repeated', 1):
-        leaf = to_regex(expr.leaves[0], q)
+        leaf = recurse(expr.leaves[0])
         if leaf is not None:
             return '({0})'.format(leaf) + q['+']
     if expr.has_form('RepeatedNull', 1):
-        leaf = to_regex(expr.leaves[0], q)
+        leaf = recurse(expr.leaves[0])
         if leaf is not None:
             return '({0})'.format(leaf) + q['*']
     if expr.has_form('Alternatives', None):
-        leaves = [to_regex(leaf, q) for leaf in expr.leaves]
+        leaves = [recurse(leaf) for leaf in expr.leaves]
         if all(leaf is not None for leaf in leaves):
             return "|".join(leaves)
     if expr.has_form('Shortest', 1):
-        return to_regex(expr.leaves[0], _regex_shortest)
+        return recurse(expr.leaves[0], quantifiers=_regex_shortest)
     if expr.has_form('Longest', 1):
-        return to_regex(expr.leaves[0], _regex_longest)
+        return recurse(expr.leaves[0], quantifiers=_regex_longest)
     if expr.has_form('Pattern', 2) and isinstance(expr.leaves[0], Symbol):
-        return '(?P<%s>%s)' % (
-            _encode_pname(expr.leaves[0].get_name()),
-            to_regex(expr.leaves[1], q))
+        name = expr.leaves[0].get_name()
+        patt = groups.get(name, None)
+        if patt is not None:
+            if expr.leaves[1].has_form('Blank', 0):
+                pass  # ok, no warnings
+            elif not expr.leaves[1].same(patt):
+                evaluation.message('StringExpression', 'cond', expr.leaves[0], expr, expr.leaves[0])
+            return '(?P=%s)' % _encode_pname(name)
+        else:
+            groups[name] = expr.leaves[1]
+            return '(?P<%s>%s)' % (
+                _encode_pname(name),
+                recurse(expr.leaves[1]))
 
     return None
 
@@ -251,6 +267,7 @@ class StringExpression(BinaryOperator):
 
     messages = {
         'invld': 'Element `1` is not a valid string or pattern element in `2`.',
+        'cond': 'Ignored restriction given for `1` in `2` as it does not match previous occurences of `1`. ',
     }
 
     def apply(self, args, evaluation):
@@ -590,7 +607,7 @@ class StringMatchQ(Builtin):
             return evaluation.message('StringMatchQ', 'strse', Integer(1),
                                       Expression('StringMatchQ', string, patt))
 
-        re_patt = to_regex(patt, abbreviated_patterns=True)
+        re_patt = to_regex(patt, evaluation, abbreviated_patterns=True)
         if re_patt is None:
             return evaluation.message('StringExpression', 'invld', patt,
                                       Expression('StringExpression', patt))
@@ -722,7 +739,7 @@ class StringSplit(Builtin):
             patts = [patt]
         re_patts = []
         for p in patts:
-            py_p = to_regex(p)
+            py_p = to_regex(p, evaluation)
             if py_p is None:
                 return evaluation.message('StringExpression', 'invld', p, patt)
             re_patts.append(py_p)
@@ -845,7 +862,7 @@ class StringPosition(Builtin):
             patts = [patt]
         re_patts = []
         for p in patts:
-            py_p = to_regex(p)
+            py_p = to_regex(p, evaluation)
             if py_p is None:
                 return evaluation.message('StringExpression', 'invld', p, patt)
             re_patts.append(py_p)
@@ -954,14 +971,14 @@ class _StringFind(Builtin):
         # convert rule
         def convert_rule(r):
             if r.has_form('Rule', None) and len(r.leaves) == 2:
-                py_s = to_regex(r.leaves[0])
+                py_s = to_regex(r.leaves[0], evaluation)
                 if py_s is None:
                     return evaluation.message(
                         'StringExpression', 'invld', r.leaves[0], r.leaves[0])
                 py_sp = r.leaves[1]
                 return py_s, py_sp
             elif cases:
-                py_s = to_regex(r)
+                py_s = to_regex(r, evaluation)
                 if py_s is None:
                     return evaluation.message('StringExpression', 'invld', r, r)
                 return py_s, None
@@ -1128,19 +1145,26 @@ class StringCases(_StringFind):
     </dl>
 
     >> StringCases["axbaxxb", "a" ~~ x_ ~~ "b"]
-     = {"axb"}
+     = {axb}
 
     >> StringCases["axbaxxb", "a" ~~ x__ ~~ "b"]
-     = {"axbaxxb"}
+     = {axbaxxb}
 
     >> StringCases["axbaxxb", Shortest["a" ~~ x__ ~~ "b"]]
-     = {"axb", "axxb"}
+     = {axb, axxb}
 
     >> StringCases["-abc- def -uvw- xyz", Shortest["-" ~~ x__ ~~ "-"] -> x]
      = {abc, uvw}
 
     >> StringCases["-öhi- -abc- -.-", "-" ~~ x : WordCharacter .. ~~ "-" -> x]
-     = {"öhi", "abc"}
+     = {öhi, abc}
+
+    >> StringCases["abc-abc xyz-uvw", Shortest[x : WordCharacter .. ~~ "-" ~~ x_] -> x]
+     = {abc}
+
+    #> StringCases["abc-abc xyz-uvw", Shortest[x : WordCharacter .. ~~ "-" ~~ x : LetterCharacter] -> x]
+    : Ignored restriction given for x in x : LetterCharacter as it does not match previous occurences of x.
+     = {abc}
 
     >> StringCases["abba", {"a" -> 10, "b" -> 20}, 2]
      = {10, 20}
