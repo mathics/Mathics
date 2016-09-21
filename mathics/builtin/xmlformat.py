@@ -59,9 +59,19 @@ def node_to_xml_element(node, strip_whitespace=True):
         for name, value in node.attrib.items():
             yield Expression('Rule', from_python(name), from_python(value))
 
+    # see https://reference.wolfram.com/language/XML/tutorial/RepresentingXML.html
+
+    tag = ET.QName(node.tag)
+    namespace = tag.namespace
+
+    if namespace is None:
+        name = String(tag.localname)
+    else:
+        name = Expression('List', String(namespace), String(tag.localname))
+
     return [Expression(
         'XMLElement',
-        String(node.tag),
+        name,
         Expression('List', *list(attributes())),
         Expression('List', *list(children())))]
 
@@ -111,6 +121,14 @@ def parse_xml(parse, text, evaluation):
     except ParseError as e:
         evaluation.message('XML`Parser`Get', 'prserr', str(e))
         return Symbol('$Failed')
+
+
+class XMLObject(Builtin):
+    pass
+
+
+class XMLElement(Builtin):
+    pass
 
 
 class _Get(Builtin):
