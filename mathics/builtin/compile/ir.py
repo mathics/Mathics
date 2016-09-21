@@ -2,7 +2,6 @@ from functools import reduce
 import itertools
 
 from llvmlite import ir
-import llvmlite.llvmpy.core as lc
 import ctypes
 
 from mathics.core.expression import Expression, Integer, Symbol, Real, String
@@ -155,12 +154,15 @@ class IRGenerator(object):
 
         return str(module), ret_type
 
-    def call_fp_intr(self, name, args):
+    def call_fp_intr(self, name, args, ret_type=real_type):
         '''
         call a LLVM intrinsic floating-point operation
         '''
+        # see https://github.com/numba/llvmlite/pull/205 for an explanation of declare_intrinsic
         mod = self.builder.module
-        intr = lc.Function.intrinsic(mod, name, [arg.type for arg in args])
+        fullname = name + '.' + ret_type.intrinsic_name
+        fnty = ir.FunctionType(ret_type, [arg.type for arg in args])
+        intr = mod.declare_intrinsic(fullname, fnty=fnty)
         return self.builder.call(intr, args)
 
     def int_to_real(self, arg):
