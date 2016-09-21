@@ -132,14 +132,14 @@ def to_regex(expr, q=_regex_longest, abbreviated_patterns=False):
             'System`NumberString': r'[-|+]?(\d+(\.\d*)?|\.\d+)?',
             'System`Whitespace': r'\s+',
             'System`DigitCharacter': r'\d',
-            'System`WhitespaceCharacter': r'\s',
-            'System`WordCharacter': r'[0-9a-zA-Z]',
+            'System`WhitespaceCharacter': r'(?u)\s',
+            'System`WordCharacter': r'(?u)[^\W_]',
             'System`StartOfLine': r'^',
             'System`EndOfLine': r'$',
             'System`StartOfString': r'\A',
             'System`EndOfString': r'\Z',
             'System`WordBoundary': r'\b',
-            'System`LetterCharacter': r'[a-zA-Z]',
+            'System`LetterCharacter': r'(?u)[^\W_0-9]',
             'System`HexidecimalCharacter': r'[0-9a-fA-F]',
         }.get(expr.get_name())
 
@@ -1139,8 +1139,17 @@ class StringCases(_StringFind):
     >> StringCases["-abc- def -uvw- xyz", Shortest["-" ~~ x__ ~~ "-"] -> x]
      = {abc, uvw}
 
+    >> StringCases["-öhi- -abc- -.-", "-" ~~ x : WordCharacter .. ~~ "-" -> x]
+     = {"öhi", "abc"}
+
     >> StringCases["abba", {"a" -> 10, "b" -> 20}, 2]
      = {10, 20}
+
+    >> StringCases["a#ä_123", WordCharacter]
+     = {a, ä, 1, 2, 3}
+
+    >> StringCases["a#ä_123", LetterCharacter]
+     = {a, ä}
     '''
 
     rules = {
