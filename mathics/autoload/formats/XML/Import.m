@@ -9,7 +9,7 @@ ImportExport`RegisterImport[
     {
         "XMLObject" :> XML`XMLObjectImport,
         "Plaintext" :> XML`PlaintextImport,
-        "Tags" :> XML`TagsImport,
+        "Tags" :> XML`TagsImport
     },
     {},
 	AvailableElements -> {"Plaintext", "Tags", "XMLObject"},
