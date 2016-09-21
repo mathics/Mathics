@@ -1024,6 +1024,10 @@ class StringReplace(_StringFind):
     >> StringReplace["xyxyxyyyxxxyyxy", "xy" -> "A", 2]
      = AAxyyyxxxyyxy
 
+    Also works for multiple rules:
+    >> StringReplace["abba", {"a" -> "A", "b" -> "B"}, 2]
+     = ABba
+
     StringReplace acts on lists of strings too:
     >> StringReplace[{"xyxyxxy", "yxyxyxxxyyxy"}, "xy" -> "A"]
      = {AAxA, yAAxxAyA}
@@ -1123,14 +1127,20 @@ class StringCases(_StringFind):
         <dd>gives occurences in $string1$, $string2$, ...
     </dl>
 
-    >> StringCases["aabaaab", "a" ~~ __ ~~ "b"]
-     = {aabaaab}
+    >> StringCases["axbaxxb", "a" ~~ x_ ~~ "b"]
+     = {"axb"}
 
-    >> StringCases["aabaaab", Shortest["a" ~~ __ ~~ "b"]]
-     = {aab, aaab}
+    >> StringCases["axbaxxb", "a" ~~ x__ ~~ "b"]
+     = {"axbaxxb"}
+
+    >> StringCases["axbaxxb", Shortest["a" ~~ x__ ~~ "b"]]
+     = {"axb", "axxb"}
 
     >> StringCases["-abc- def -uvw- xyz", Shortest["-" ~~ x__ ~~ "-"] -> x]
      = {abc, uvw}
+
+    >> StringCases["abba", {"a" -> 10, "b" -> 20}, 2]
+     = {10, 20}
     '''
 
     rules = {
