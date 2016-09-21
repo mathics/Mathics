@@ -267,7 +267,7 @@ class StringExpression(BinaryOperator):
 
     messages = {
         'invld': 'Element `1` is not a valid string or pattern element in `2`.',
-        'cond': 'Ignored restriction given for `1` in `2` as it does not match previous occurences of `1`. ',
+        'cond': 'Ignored restriction given for `1` in `2` as it does not match previous occurences of `1`.',
     }
 
     def apply(self, args, evaluation):
