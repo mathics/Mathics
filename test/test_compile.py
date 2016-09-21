@@ -11,7 +11,7 @@ from mathics.core.expression import Expression, Symbol, Integer, MachineReal, St
 from mathics.builtin.compile import has_llvmlite
 
 if has_llvmlite:
-    from mathics.builtin.compile import _compile, CompileArg, int_type, real_type, bool_type
+    from mathics.builtin.compile import _compile, CompileArg, int_type, real_type, bool_type, CompileError
 
 
 class CompileTest(unittest.TestCase):
@@ -303,6 +303,12 @@ class FlowControlTest(CompileTest):
         cfunc = _compile(expr, args)
         self.assertTypeEqual(cfunc(1), 1)
         self.assertTypeEqual(cfunc(4), 4)
+
+    def test_if_return_error(self):
+        expr = Expression('If', Symbol('x'), Expression('Return', Symbol('y')), Expression('Return', Symbol('z')))
+        args = [CompileArg('System`x', bool_type), CompileArg('System`y', int_type), CompileArg('System`z', bool_type)]
+        with self.assertRaises(CompileError):
+            _compile(expr, args)
 
 class ComparisonTest(CompileTest):
     def test_int_equal(self):

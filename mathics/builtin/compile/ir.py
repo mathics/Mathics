@@ -299,13 +299,17 @@ class IRGenerator(object):
         if arg.type == void_type:
             return arg
 
-        builder = self.builder
-        if self._returned_type == real_type and arg.type == int_type:
+        if self._returned_type == arg.type:
+            pass
+        elif self._returned_type is None:
+            self._returned_type = arg.type
+        elif self._returned_type == real_type and arg.type == int_type:
             arg = self.int_to_real(arg)
         elif self._returned_type == int_type and arg.type == real_type:
             self._returned_type = arg.type
-        self._returned_type = arg.type
-        return builder.ret(arg)
+        else:
+            raise CompileError('Conflicting return types {} and {}.'.format(self._returned_type, arg.type))
+        return self.builder.ret(arg)
 
     @int_real_args(1)
     def _gen_Plus(self, args, ret_type):
