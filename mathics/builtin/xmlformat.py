@@ -9,6 +9,9 @@ from mathics.builtin.base import Builtin
 from mathics.builtin.files import mathics_open
 from mathics.core.expression import Expression, String, Symbol, from_python
 
+from io import StringIO
+import re
+
 # use lxml, if available, as it has some additional features such as parsing XML
 # versions, comments and cdata. fallback on python builtin xml parser otherwise.
 
@@ -43,15 +46,23 @@ def node_to_xml_element(node, parent_namespace=None, strip_whitespace=True):
 
     # see https://reference.wolfram.com/language/XML/tutorial/RepresentingXML.html
 
-    default_namespace = node.nsmap[None]
+    default_namespace = node.get('xmlns')
+    if default_namespace is None:
+        default_namespace = parent_namespace
 
-    if default_namespace != parent_namespace:
-        declare_default_namespace = default_namespace
+    if lxml_available:
+        tag = ET.QName(node.tag)
+        localname = tag.localname
+        namespace = tag.namespace
     else:
-        declare_default_namespace = None
-
-    tag = ET.QName(node.tag)
-    namespace = tag.namespace
+        tag = node.tag
+        if not tag.startswith('{'):
+            namespace = None
+            localname = tag
+        else:
+            m = re.match('\{(.*)\}(.*)', node.tag)
+            namespace = m.group(1)
+            localname = m.group(2)
 
     def children():
         text = node.text
@@ -72,14 +83,16 @@ def node_to_xml_element(node, parent_namespace=None, strip_whitespace=True):
 
     def attributes():
         for name, value in node.attrib.items():
-            yield Expression('Rule', from_python(name), from_python(value))
-        if declare_default_namespace:
-            yield Expression('Rule', _namespace_key, String(declare_default_namespace))
+            if name == 'xmlns':
+                name = _namespace_key
+            else:
+                name = from_python(name)
+            yield Expression('Rule', name, from_python(value))
 
     if namespace is None or namespace == default_namespace:
-        name = String(tag.localname)
+        name = String(localname)
     else:
-        name = Expression('List', String(namespace), String(tag.localname))
+        name = Expression('List', String(namespace), String(localname))
 
     return [Expression(
         'XMLElement',
@@ -107,23 +120,41 @@ class ParseError(Exception):
     pass
 
 
-def parse_xml_string(xml):
+def parse_xml_stream(f):
+    def parse(**kwargs):  # inspired by http://effbot.org/zone/element-namespaces.htm
+        events = "start", "start-ns"
+
+        root = None
+        namespace = None
+
+        for event, elem in ET.iterparse(f, events, **kwargs):
+            if event == "start-ns":
+                if not elem[0]:  # setting default namespace?
+                    namespace = elem[1]
+            elif event == "start":
+                if root is None:
+                    root = elem
+                if namespace:
+                    elem.set('xmlns', namespace)
+                    namespace = None
+
+        return root
+
     if lxml_available:
         try:
-            parser = ET.XMLParser(strip_cdata=False, remove_comments=False, recover=False)
-            return ET.XML(xml, parser)
+            return parse(remove_comments=False, recover=False)
         except ET.XMLSyntaxError as e:
             raise ParseError(str(e))
     else:
         try:
-            return ET.fromstring(xml)
+            return parse()
         except ET.ParseError as e:
             raise ParseError(str(e))
 
 
 def parse_xml_file(filename):
     with mathics_open(filename, 'rb') as f:
-        root = parse_xml_string(f.read())
+        root = parse_xml_stream(f)
     return root
 
 
@@ -165,7 +196,10 @@ class XMLGet(_Get):
 
 class XMLGetString(_Get):
     def _parse(self, text):
-        return parse_xml_string(text)
+        with StringIO() as f:
+            f.write(text)
+            f.seek(0)
+            return parse_xml_stream(f)
 
 
 class PlaintextImport(Builtin):
