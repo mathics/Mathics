@@ -148,6 +148,9 @@ class BaseExpression(KeyComparable):
     def flatten_sequence(self):
         return self
 
+    def flatten_pattern_sequence(self):
+        return self
+
     def get_attributes(self, definitions):
         return set()
 
