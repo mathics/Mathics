@@ -520,11 +520,15 @@ class Expression(BaseExpression):
             head = Symbol(head)
         self.head = head
         self.leaves = [from_python(leaf) for leaf in leaves]
-        self.seq = list(_sequences(self.leaves))
+        self.seq = None
         return self
 
     def sequences(self):
-        return self.seq
+        seq = self.seq
+        if seq is None:
+            seq = list(_sequences(self.leaves))
+            self.seq = seq
+        return seq
 
     def _flatten_sequence(self, sequence):
         indices = self.seq
