@@ -1527,9 +1527,6 @@ class Symbol(Atom):
         return (self.name, self.sympy_dummy)
 
 
-SEQUENCE = Symbol('Sequence')
-
-
 class Number(Atom):
     def __str__(self):
         return str(self.value)

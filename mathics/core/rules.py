@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from mathics.core.expression import Expression, SEQUENCE, strip_context, KeyComparable
+from mathics.core.expression import Expression, strip_context, KeyComparable
 from mathics.core.pattern import Pattern, StopGenerator
 
 
