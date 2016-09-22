@@ -367,6 +367,9 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         else:
             raise MessageException('Part', 'pspec', index)
 
+        if any(item.is_atom() for item in items):
+            raise MessageException('Part', 'partd')
+
         return [select(item, rest_indices) for item in items]
 
     try:
@@ -407,7 +410,8 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         process_level(result, assign_list)
         result = list_of_list[0]
 
-    result.last_evaluated = None
+        result.last_evaluated = None
+
     return result
 
 
