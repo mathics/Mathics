@@ -531,7 +531,7 @@ class Expression(BaseExpression):
         return seq
 
     def _flatten_sequence(self, sequence):
-        indices = self.seq
+        indices = self.sequences()
         if not indices:
             return self
 
