@@ -1839,18 +1839,20 @@ class PixelValue(_ImageBuiltin):
 
     >> lena = Import["ExampleData/lena.tif"];
     >> PixelValue[lena, {1, 1}]
-     = {0.886275, 0.537255, 0.490196}
+     = {0.321569, 0.0862745, 0.223529}
+    #> {82 / 255, 22 / 255, 57 / 255} // N  (* pixel byte values from bottom left corner *)
+     = {0.321569, 0.0862745, 0.223529}
 
     #> PixelValue[lena, {0, 1}];
      : Padding not implemented for PixelValue.
     #> PixelValue[lena, {512, 1}]
-     = {0.784314, 0.388235, 0.352941}
+     = {0.72549, 0.290196, 0.317647}
     #> PixelValue[lena, {513, 1}];
      : Padding not implemented for PixelValue.
     #> PixelValue[lena, {1, 0}];
      : Padding not implemented for PixelValue.
     #> PixelValue[lena, {1, 512}]
-     = {0.321569, 0.0862745, 0.223529}
+     = {0.886275, 0.537255, 0.490196}
     #> PixelValue[lena, {1, 513}];
      : Padding not implemented for PixelValue.
     '''
@@ -1861,11 +1863,13 @@ class PixelValue(_ImageBuiltin):
 
     def apply(self, image, x, y, evaluation):
         'PixelValue[image_Image, {x_?RealNumberQ, y_?RealNumberQ}]'
-        x = int(x.round_to_float() - 1)
-        y = int(y.round_to_float() - 1)
-        if not (0 <= x < image.pixels.shape[0] and 0 <= y < image.pixels.shape[1]):
+        x = int(x.round_to_float())
+        y = int(y.round_to_float())
+        height = image.pixels.shape[0]
+        width = image.pixels.shape[1]
+        if not (1 <= x <= width and 1 <= y <= height):
             return evaluation.message('PixelValue', 'nopad')
-        pixel = pixels_as_float(image.pixels)[y, x]
+        pixel = pixels_as_float(image.pixels)[height - y, x - 1]
         if isinstance(pixel, (numpy.ndarray, numpy.generic, list)):
             return Expression('List', *[MachineReal(float(x)) for x in list(pixel)])
         else:
@@ -1878,13 +1882,39 @@ class PixelValuePositions(_ImageBuiltin):
     <dt>'PixelValuePositions[$image$, $val$]'
       <dd>gives the positions of all pixels in $image$ that have value $val$.
     </dl>
+
+    >> PixelValuePositions[Image[{{0, 1}, {1, 0}, {1, 1}}], 1]
+     = {{1, 1}, {1, 2}, {2, 1}, {2, 3}}
+
+    >> PixelValuePositions[Image[{{0.2, 0.4}, {0.9, 0.6}, {0.3, 0.8}}], 0.5, 0.15]
+     = {{2, 2}, {2, 3}}
+
+    >> img = Import["ExampleData/lena.tif"];
+    >> PixelValuePositions[img, 3 / 255, 0.5 / 255]
+     = {{180, 192, 2}, {181, 192, 2}, {181, 193, 2}, {188, 204, 2}, {265, 314, 2}, {364, 77, 2}, {365, 72, 2}, {365, 73, 2}, {365, 77, 2}, {366, 70, 2}, {367, 65, 2}}
+    >> PixelValue[img, {180, 192}]
+     = {0.25098, 0.0117647, 0.215686}
     '''
 
-    def apply(self, image, val, evaluation):
-        'PixelValuePositions[image_Image, val_?RealNumberQ]'
-        rows, cols = numpy.where(pixels_as_float(image.pixels) == float(val.round_to_float()))
-        p = numpy.dstack((cols, rows)) + numpy.array([1, 1])
-        return from_python(p.tolist())
+    rules = {
+        'PixelValuePositions[image_Image, val_?RealNumberQ]': 'PixelValuePositions[image, val, 0]',
+    }
+
+    def apply(self, image, val, d, evaluation):
+        'PixelValuePositions[image_Image, val_?RealNumberQ, d_?RealNumberQ]'
+        val = val.round_to_float()
+        d = d.round_to_float()
+
+        positions = numpy.argwhere(numpy.isclose(pixels_as_float(image.pixels), val, atol=d, rtol=0))
+
+        # python indexes from 0 at top left -> indices from 1 starting at bottom left
+        # if single channel then ommit channel indices
+        height = image.pixels.shape[0]
+        if image.pixels.shape[2] == 1:
+            result = sorted((j + 1, height - i) for i, j, k in positions.tolist())
+        else:
+            result = sorted((j + 1, height - i, k + 1) for i, j, k in positions.tolist())
+        return Expression('List', *(Expression('List', *arg) for arg in result))
 
 
 # image attribute queries
@@ -1903,6 +1933,11 @@ class ImageDimensions(_ImageBuiltin):
 
     >> ImageDimensions[RandomImage[1, {50, 70}]]
      = {50, 70}
+
+    #> Image[{{0, 1}, {1, 0}, {1, 1}}] // ImageDimensions
+     = {2, 3}
+    #> Image[{{0.2, 0.4}, {0.9, 0.6}, {0.3, 0.8}}] // ImageDimensions
+     = {2, 3}
     '''
     def apply(self, image, evaluation):
         'ImageDimensions[image_Image]'
