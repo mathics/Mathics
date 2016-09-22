@@ -348,7 +348,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
 
     def one(f):
         def g(x, indices):
-            return pick(list(f(x))[0], indices)
+            return pick(list(f(x)), indices)[0]
         return g
 
     def pick(items, indices):
