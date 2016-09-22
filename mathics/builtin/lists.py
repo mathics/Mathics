@@ -285,129 +285,111 @@ def set_part(list, indices, new):
 
 
 def walk_parts(list_of_list, indices, evaluation, assign_list=None):
-    list = list_of_list[0]
-
-    # To get rid of duplicate entries (TODO: could be made faster!)
-    list = list.copy()
-
-    list.set_positions()
-    list_of_list = [list]
-
-    result = list.copy()
-    result.set_positions()
-
-    inner_list = [result]   # changed in loop
-
-    list_of_result = [result]   # to be able to change it in replace_result
-
-    def replace_item(all, item, new):
-        if item.position is None:
-            all[0] = new
-        else:
-            item.position.replace(new)
-
-    for index in indices:
-        index = index.evaluate(evaluation)
-        if index.has_form('Span', None):
-            if len(index.leaves) > 3:
-                evaluation.message('Part', 'span', index)
-                return False
-            start = 1
-            stop = None
-            step = 1
-            if len(index.leaves) > 0:
-                start = index.leaves[0].get_int_value()
-            if len(index.leaves) > 1:
-                stop = index.leaves[1].get_int_value()
-                if stop is None:
-                    if index.leaves[1].get_name() == 'System`All':
-                        stop = None
-                    else:
-                        evaluation.message('Part', 'span', index)
-                        return False
-            if len(index.leaves) > 2:
-                step = index.leaves[2].get_int_value()
-
-            if start == 0 or stop == 0:
-                # index 0 is undefined
-                evaluation.message('Part', 'span', 0)
-                return False
-
-            if start is None or step is None:
-                evaluation.message('Part', 'span', index)
-                return False
-
-            for inner in inner_list:
-                py_slice = python_seq(start, stop, step, len(inner.leaves))
-                if py_slice is None:
-                    evaluation.message('Part', 'take', start, stop, inner)
-                    return False
-                if inner.is_atom():
-                    evaluation.message('Part', 'partd')
-                    return False
-                inner.leaves = inner.leaves[py_slice]
-                inner.original = None
-                inner.set_positions()
-            inner_list = join_lists(inner.leaves for inner in inner_list)
-        elif index.has_form('List', None):
-            index_list = index
-            indices = []
-            for index in index_list.leaves:
-                if not isinstance(index, Integer):
-                    evaluation.message('Part', 'pspec', index_list)
-                    return False
-                index = index.value
-                if index > 0:
-                    py_index = index - 1
+    def span(index):
+        if len(index.leaves) > 3:
+            raise MessageException('Part', 'span', index)
+        start = 1
+        stop = None
+        step = 1
+        if len(index.leaves) > 0:
+            start = index.leaves[0].get_int_value()
+        if len(index.leaves) > 1:
+            stop = index.leaves[1].get_int_value()
+            if stop is None:
+                if index.leaves[1].get_name() == 'System`All':
+                    stop = None
                 else:
-                    py_index = index
-                indices.append((py_index, index))
+                    raise MessageException('Part', 'span', index)
+        if len(index.leaves) > 2:
+            step = index.leaves[2].get_int_value()
 
-            for inner in inner_list:
-                if inner.is_atom():
-                    evaluation.message('Part', 'partd')
-                    return False
+        if start == 0 or stop == 0:
+            # index 0 is undefined
+            raise MessageException('Part', 'span', 0)
 
-                new_leaves = []
-                for py_index, index in indices:
-                    try:
-                        if index != 0:
-                            part = inner.leaves[py_index]
-                        else:
-                            part = inner.head
-                        new_leaves.append(part)
-                    except IndexError:
-                        evaluation.message('Part', 'partw', index, inner)
-                        return False
-                inner.leaves = new_leaves
-                inner.original = None
-                inner.set_positions()
-            inner_list = join_lists(inner.leaves for inner in inner_list)
+        if start is None or step is None:
+            raise MessageException('Part', 'span', index)
+
+        def select(inner):
+            py_slice = python_seq(start, stop, step, len(inner.leaves))
+            if py_slice is None:
+                raise MessageException('Part', 'take', start, stop, inner)
+            return inner.leaves[py_slice]
+
+        return select
+
+    def sequence(index):
+        if not isinstance(index, list):
+            index_list = [index]
+        else:
+            index_list = index
+
+        for index_item in index_list:
+            if not isinstance(index_item, Integer):
+                raise MessageException('Part', 'pspec', index)
+
+        def select(inner):
+            for index_item in index_list:
+                int_index = index_item.value
+
+                if int_index == 0:
+                    yield inner.head
+                elif 1 <= int_index <= len(inner.leaves):
+                    yield inner.leaves[int_index - 1]
+                else:
+                    raise MessageException('Part', 'partw', index_item, inner)
+
+        return select
+
+    def many(f):
+        def g(x, indices):
+            return Expression(x.get_head(), *pick(list(f(x)), indices))
+        return g
+
+    def one(f):
+        def g(x, indices):
+            return pick(list(f(x))[0], indices)
+        return g
+
+    def pick(items, indices):
+        if not indices:
+            return items
+
+        index = indices[0].evaluate(evaluation)
+        rest_indices = indices[1:]
+
+        if index.has_form('Span', None):
+            select = many(span(index))
+        elif index.has_form('List', None):
+            select = many(sequence(index.leaves))
         elif isinstance(index, Integer):
-            index = index.value
-            if index > 0:
-                py_index = index - 1
-            else:
-                py_index = index
-            for inner in inner_list:
-                if inner.is_atom():
-                    evaluation.message('Part', 'partd')
-                    return False
-                try:
-                    if index != 0:
-                        part = inner.leaves[py_index]
-                    else:
-                        part = inner.head
-                except IndexError:
-                    evaluation.message('Part', 'partw', index, inner)
-                    return False
-                replace_item(list_of_result, inner, part)
-                part.set_positions()
-            inner_list = [inner.leaves[py_index] for inner in inner_list]
+            select = one(sequence(index))
+        else:
+            raise MessageException('Part', 'pspec', index)
 
-    result = list_of_result[0]
+        return [select(item, rest_indices) for item in items]
+
+    try:
+        result = list(pick(list_of_list, indices))[0]
+    except MessageException as e:
+        e.message(evaluation)
+        return False
 
     if assign_list is not None:
+        walk_list = list_of_list[0]
+
+        # To get rid of duplicate entries (TODO: could be made faster!)
+        walk_list = walk_list.copy()
+
+        walk_list.set_positions()
+        list_of_list = [walk_list]
+
+        def replace_item(all, item, new):
+            if item.position is None:
+                all[0] = new
+            else:
+                item.position.replace(new)
+
         def process_level(item, assignment):
             if item.is_atom():
                 replace_item(list_of_list, item.original, assignment)
@@ -424,6 +406,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
                     process_level(sub_item, sub_assignment)
         process_level(result, assign_list)
         result = list_of_list[0]
+
     result.last_evaluated = None
     return result
 
