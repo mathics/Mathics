@@ -574,6 +574,7 @@ class Expression(BaseExpression):
     def copy(self):
         result = Expression(
             self.head.copy(), *[leaf.copy() for leaf in self.leaves])
+        result.seq = self.seq
         result.options = self.options
         result.original = self
         # result.last_evaluated = self.last_evaluated
@@ -584,6 +585,7 @@ class Expression(BaseExpression):
         # the original, only the Expression instance is new.
         expr = Expression(self.head)
         expr.leaves = self.leaves
+        expr.seq = self.seq
         expr.options = self.options
         expr.last_evaluated = self.last_evaluated
         return expr
