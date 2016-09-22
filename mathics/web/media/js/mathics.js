@@ -9,175 +9,6 @@ var lastFocus = null;
 
 var welcome = true;
 
-const UNDO_LIMIT = 200;
-var undoStack = [];
-var redoStack = [];
-var prevKeyType;
-var currKeyType;
-var push = false;
-var holdPreRemoveState = false;
-var pushPreRemoveState = false;
-
-var prevTrackedState = {
-  olderSibling: null,
-  self: null,
-  text: null,
-  caratStart: null,
-  caratEnd: null
-};
-var pprevTrackedState = {
-  olderSibling: null,
-  self: null,
-  text: null,
-  caratStart: null,
-  caratEnd: null
-};
-var preRemoveState = {
-  olderSibling: null,
-  self: null,
-  text: null,
-  caratStart: null,
-  caratEnd: null
-};
-
-function getQuery(textarea) {
-  return textarea.parentNode.parentNode.parentNode;
-}
-
-function keyType(event) {
-  switch (event.keyCode) {
-  case 32:  // Space
-    return 'space';
-  case 13:  // Return
-    return 'return';
-  case 188:  // ,
-  case 190:  // .
-  case 219:  // [ or {
-  case 221:  // ] or }
-  case 222:  // "
-    return 'punctuation';
-  case 35:  // End
-  case 36:  // Home
-  case 37:  // Left arrow
-  case 38:  // Up arrow
-  case 39:  // Right arrow
-  case 40:  // Down arrow
-    return 'nav';
-  default:
-    switch (event.key) {
-    case '(':
-    case ')':
-      return 'punctuation';
-    default:
-      return 'key';
-    }
-  }
-}
-
-function undoWatchKeyDown(event) {
-  currKeyType = keyType(event);
-  if (event.ctrlKey || event.metaKey || event.altKey) {
-    return;
-  } else if (currKeyType === 'return'
-  ||  prevKeyType === 'punctuation'
-  || (prevKeyType === 'space' && currKeyType !== 'space')
-  || (prevKeyType === 'nav' && currKeyType !== 'nav')) {
-    push = true;
-  } else if (prevKeyType !== 'rem' && currKeyType === 'rem') {
-    holdPreRemoveState = true;
-  } else if (holdPreRemoveState && currKeyType !== 'rem') {
-    pushPreRemoveState = true;
-  }
-}
-
-function undoWatchKeyUp(event) {
-  currKeyType = keyType(event);
-  if (push) {
-    var state = {};
-    for (prop in prevTrackedState) {
-      state[prop] = prevTrackedState[prop];
-    }
-    undoStack.push(state);
-    push = false;
-  } else if (holdPreRemoveState) {
-    for (prop in prevTrackedState) {
-      preRemoveState[prop] = prevTrackedState[prop];
-    }
-    holdPreRemoveState = false;
-  } else if (pushPreRemoveState) {
-    var state = {};
-    for (prop in preRemoveState) {
-      state[prop] = preRemoveState[prop];
-    }
-    undoStack.push(state);
-    pushPreRemoveState = false;
-  }
-
-  // Update tracked states
-  prevKeyType = currKeyType;
-  for (var prop in prevTrackedState) {
-    pprevTrackedState[prop] = prevTrackedState[prop];
-  }
-  prevTrackedState['self'] = getQuery(lastFocus);
-  prevTrackedState['olderSibling'] = prevTrackedState['self'].previousSibling;
-  prevTrackedState['text'] = lastFocus.value;
-  prevTrackedState['caratStart'] = lastFocus.selectionStart;
-  prevTrackedState['caratEnd'] = lastFocus.selectionEnd;
-}
-
-function undo() {
-  if (undoStack.length > 0) {
-    var state = undoStack.pop();
-    var textarea = state['self'].getElementsByTagName('textarea')[0];
-    textarea.focus();
-
-    var redoState = {
-      olderSibling: state['self'].previousSibling,
-      self: state['self'],
-      text: lastFocus.value,
-      caratStart: lastFocus.selectionStart,
-      caratEnd: lastFocus.selectionEnd
-    };
-    redoStack.push(redoState);
-
-    textarea.value = state['text'];
-    textarea.selectionStart = state['caratStart'];
-    textarea.selectionEnd = state['caratEnd'];
-  } else {
-    if (!!lastFocus.value) {
-      redoStack.push({
-        olderSibling: getQuery(lastFocus).previousSibling,
-        self: getQuery(lastFocus),
-        text: lastFocus.value,
-        caratStart: lastFocus.selectionStart,
-        caratEnd: lastFocus.selectionEnd
-      });
-      lastFocus.value = '';
-    }
-  }
-}
-
-function redo() {
-  if (redoStack.length > 0) {
-    var state = redoStack.pop();
-    var textarea = state['self'].getElementsByTagName('textarea')[0];
-    textarea.focus();
-
-    var undoState = {
-      olderSibling: state['self'].previousSibling,
-      self: state['self'],
-      text: lastFocus.value,
-      caratStart: lastFocus.selectionStart,
-      caratEnd: lastFocus.selectionEnd
-    };
-    undoStack.push(undoState);
-
-    textarea.value = state['text'];
-    textarea.selectionStart = state['caratStart'];
-    textarea.selectionEnd = state['caratEnd'];
-  }
-}
-
 function getLetterWidth(element) {
   var letter = $E('span', $T('m'));
   letter.setStyle({
@@ -634,12 +465,6 @@ function keyDown(event) {
       } else
         createQuery(textarea.li.nextSibling);
     }
-  } else if (event.ctrlKey && (event.keyCode === 89 || (event.shiftKey && event.keyCode === 90))) { // Redo: Ctrl-y or Ctrl-Shift-z.
-    event.preventDefault(); event.stopImmediatePropagation(); event.stopPropagation();  // Suppress browser's native undo-redo.
-    redo();
-  } else if (event.ctrlKey && event.keyCode === 90) {  // Undo.
-    event.preventDefault(); event.stopImmediatePropagation(); event.stopPropagation();
-    undo();
   } else
     if (isGlobalKey(event))
       event.stop();
@@ -883,8 +708,6 @@ function domLoaded() {
 
   if ($('queriesContainer')) {
     $('queriesContainer').appendChild($E('ul', {'id': 'queries'}));
-    $('queriesContainer').observe('keydown', undoWatchKeyDown);
-    $('queriesContainer').observe('keyup', undoWatchKeyUp);
 
     $('document').observe('mousedown', documentMouseDown.bindAsEventListener($('document')));
     $('document').observe('click', documentClick.bindAsEventListener($('document')));

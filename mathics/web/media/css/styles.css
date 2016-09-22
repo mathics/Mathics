@@ -25,8 +25,8 @@ body > header {
 }
 
 #logotext {
-  margin-top: 8px;
-  margin-left: 5px;
+  margin-top: 6px;
+  margin-left: 6px;
   margin-right: 0em;
 }
 #logo.load,
@@ -36,28 +36,16 @@ body > header {
   animation: fadein-anim 0.4s;
 }
 @keyframes fadein-anim {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from {opacity: 0;}
+  to {opacity: 1;}
 }
 @-moz-keyframes fadein-anim {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from {opacity: 0;}
+  to {opacity: 1;}
 }
 @-webkit-keyframes fadein-anim {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from {opacity: 0;}
+  to {opacity: 1;}
 }
 #logo.working {
   -webkit-animation: pulse 4s;
@@ -71,37 +59,19 @@ body > header {
   animation-timing-function: linear;
 }
 @-webkit-keyframes pulse {
-  from {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-  to {
-    opacity: 1;
-  }
+  from {opacity: 1;}
+  50% {opacity: 0.5;}
+  to {opacity: 1;}
 }
 @-moz-keyframes pulse {
-  from {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-  to {
-    opacity: 1;
-  }
+  from {opacity: 1;}
+  50% {opacity: 0.5;}
+  to {opacity: 1;}
 }
 @keyframes pulse {
-  from {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-  to {
-    opacity: 1;
-  }
+  from {opacity: 1;}
+  50% {opacity: 0.5;}
+  to {opacity: 1;}
 }
 
 div.menu {
@@ -170,12 +140,23 @@ div.menu a {
   width: 1em;
   text-align: center;
   height: 24px;
+  transition: 0.1s ease;
 }
 div.menu a:hover {
   background-color: #000;
   color: #f6f6f6;
 }
+div.menu a.inactive {
+  color: #666;
+  background-color: #3f3f3f;
+}
+div.menu a.inactive:hover {
+  cursor: default;
+}
 div.menu a+a {
+  border-left: #3f3f3f 1px solid;
+}
+div.menu .separate-left {
   border-left: #666 1px solid;
 }
 div.menu a:first-child {
@@ -265,6 +246,10 @@ div.login a:hover {
   font-size: 0.9em;
 }
 
+#authenticated, #notAuthenticated {
+  padding-top: 8px;
+}
+
 #authenticated #logout {
   color: #cccecb;
 }
@@ -338,7 +323,7 @@ a.pdf {
   margin-bottom: 1em;
 }
 #welcomeContainer a {
-  color: #cccecb;
+  color: #eee;
   text-decoration: underline;
   font-weight: bold;
 }
@@ -370,8 +355,8 @@ a.pdf {
 }
 #welcome code {
   border-radius: 4px;
-  border: 1px solid #999;
-  background-color: #ccc;
+  border: 1px solid #ccc;
+  background-color: #ececec;
   color: #3f3f3f;
   padding: 1px 2px 1px 2px;
   margin: 1px;
