@@ -536,14 +536,12 @@ class Expression(BaseExpression):
         flattened = []
         extend = flattened.extend
 
-        last = 0
+        k = 0
         for i in indices:
-            next = indices[i]
-            extend(leaves[last:next])
-            extend(sequence(next))
-            last = next + 1
-
-        extend(leaves[last:])
+            extend(leaves[k:i])
+            extend(sequence(leaves[i]))
+            k = i + 1
+        extend(leaves[k:])
 
         return Expression(self.head, *flattened)
 
