@@ -509,6 +509,7 @@ class Expression(BaseExpression):
         self.head = head
         self.leaves = [from_python(leaf) for leaf in leaves]
         self._sequences = None
+        self.sym = None
         return self
 
     def sequences(self):
@@ -559,10 +560,27 @@ class Expression(BaseExpression):
             expr.options = self.options
         return expr
 
+    def symbols(self):
+        sym = self.sym
+        if sym is None:
+            list_of_symbols = [self.get_head_name()]
+
+            for leaf in self.leaves:
+                if isinstance(leaf, Symbol):
+                    list_of_symbols.append(leaf.get_name())
+                elif isinstance(leaf, Expression):
+                    list_of_symbols.extend(list(leaf.symbols()))
+
+            sym = set(list_of_symbols)
+            self.sym = sym
+
+        return sym
+
     def copy(self):
         result = Expression(
             self.head.copy(), *[leaf.copy() for leaf in self.leaves])
         result._sequences = self._sequences
+        result.sym = self.sym
         result.options = self.options
         result.original = self
         # result.last_evaluated = self.last_evaluated
@@ -574,6 +592,7 @@ class Expression(BaseExpression):
         expr = Expression(self.head)
         expr.leaves = self.leaves
         expr._sequences = self._sequences
+        expr.sym = self.sym
         expr.options = self.options
         expr.last_evaluated = self.last_evaluated
         return expr
@@ -834,7 +853,7 @@ class Expression(BaseExpression):
         try:
             while reevaluate:
                 # changed before last evaluated?
-                if expr.last_evaluated is not None and definitions.last_changed(expr) <= expr.last_evaluated:
+                if definitions.not_changed(expr, expr.last_evaluated):
                     break
 
                 names.add(expr.get_lookup_name())
@@ -976,6 +995,7 @@ class Expression(BaseExpression):
         for index, leaf in enumerate(new.leaves):
             if leaf.unevaluated:
                 new.leaves[index] = Expression('Unevaluated', leaf)
+                new.sym = None
 
         new.unformatted = self.unformatted
         new.last_evaluated = evaluation.definitions.now
