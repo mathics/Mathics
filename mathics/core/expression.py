@@ -592,6 +592,8 @@ class Expression(BaseExpression):
             head = Symbol(head)
         self._head = head
         self._leaves = tuple(from_python(leaf) for leaf in leaves)
+        self._sequences = None
+        self._format_cache = None
         return self
 
     @property
@@ -699,6 +701,7 @@ class Expression(BaseExpression):
             expr.options = self.options
         return expr
 
+
     def _rebuild_cache(self):
         cache = self._cache
 
@@ -767,6 +770,7 @@ class Expression(BaseExpression):
         # First[Timing[Fold[#1+#2&, Range[750]]]]
         expr._cache = self._rebuild_cache()
         expr.options = self.options
+        expr.last_evaluated = self.last_evaluated
         return expr
 
     def set_positions(self, position=None) -> None:
