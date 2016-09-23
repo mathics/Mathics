@@ -1251,24 +1251,6 @@ class ColorConvert(Builtin):
     LUV: convert to LUVColor
     RGB: convert to RGBColor
     XYZ: convert to XYZColor
-
-    >> img = Import["ExampleData/lena.tif"];
-    >> ColorConvert[img, "LAB"]
-     = -Image-
-    >> ColorConvert[img, "Grayscale"]
-     = -Image-
-    #> ColorConvert[img, "CMYK"]
-     = -Image-
-    #> ColorConvert[img, "HSB"]
-     = -Image-
-    #> ColorConvert[img, "LCH"]
-     = -Image-
-    #> ColorConvert[img, "LUV"]
-     = -Image-
-    #> ColorConvert[img, "RGB"]
-     = -Image-
-    #> ColorConvert[img, "XYZ"]
-     = -Image-
     """
 
     messages = {
