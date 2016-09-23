@@ -509,7 +509,7 @@ class Expression(BaseExpression):
         self.head = head
         self.leaves = [from_python(leaf) for leaf in leaves]
         self._sequences = None
-        self.sym = None
+        self._symbols = None
         return self
 
     def sequences(self):
@@ -561,7 +561,7 @@ class Expression(BaseExpression):
         return expr
 
     def symbols(self, intermediate=False):
-        sym = self.sym
+        sym = self._symbols
         if sym is None:
             list_of_symbols = [self.get_head_name()]
 
@@ -581,10 +581,10 @@ class Expression(BaseExpression):
             else:
                 sym = set(list_of_symbols)
 
-            self.sym = sym
+            self._symbols = sym
         elif not intermediate and isinstance(sym, list):
             sym = set(sym)
-            self.sym = sym
+            self._symbols = sym
 
         return sym
 
@@ -592,7 +592,7 @@ class Expression(BaseExpression):
         result = Expression(
             self.head.copy(), *[leaf.copy() for leaf in self.leaves])
         result._sequences = self._sequences
-        result.sym = self.sym
+        result._symbols = self._symbols
         result.options = self.options
         result.original = self
         # result.last_evaluated = self.last_evaluated
@@ -604,7 +604,7 @@ class Expression(BaseExpression):
         expr = Expression(self.head)
         expr.leaves = self.leaves
         expr._sequences = self._sequences
-        expr.sym = self.sym
+        expr._symbols = self._symbols
         expr.options = self.options
         expr.last_evaluated = self.last_evaluated
         return expr
