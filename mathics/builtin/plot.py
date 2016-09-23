@@ -24,6 +24,12 @@ from mathics.builtin.options import options_to_rules
 from mathics.builtin.numeric import chop
 
 
+try:
+    from mathics.builtin.compile import _compile, CompileArg, CompileError, real_type
+    has_compile = True
+except ImportError as e:
+    has_compile = False
+
 def gradient_palette(color_function, n, evaluation):  # always returns RGB values
     if isinstance(color_function, String):
         color_data = Expression('ColorData', color_function).evaluate(evaluation)
@@ -161,32 +167,53 @@ def extract_pyreal(value):
     return None
 
 
-def quiet_evaluate(expr, vars, evaluation, expect_list=False):
-    """ Evaluates expr with given dynamic scoping values
-    without producing arithmetic error messages. """
-    expr = Expression('N', expr)
-    quiet_expr = Expression('Quiet', expr, Expression(
-        'List', Expression('MessageName', Symbol('Power'), String('infy'))))
-    value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)
-    if expect_list:
-        if value.has_form('List', None):
-            value = [extract_pyreal(item) for item in value.leaves]
-            if any(item is None for item in value):
-                return None
-            return value
-        else:
-            return None
-    else:
-        value = extract_pyreal(value)
-        if value is None or isinf(value) or isnan(value):
-            return None
-        return value
-
-
 def zero_to_one(value):
     if value == 0:
         return 1
     return value
+
+
+def compile_quiet_function(expr, arg_names, evaluation, expect_list):
+    '''
+    Given an expression return a quiet callable version.
+    Compiles the expression where possible.
+    '''
+    if has_compile and not expect_list:
+        try:
+            cfunc = _compile(expr, [CompileArg(arg_name, real_type) for arg_name in arg_names])
+        except CompileError:
+            pass
+        else:
+            def quiet_f(*args):
+                try:
+                    result = cfunc(*args)
+                    if not (isnan(result) or isinf(result)):
+                        return result
+                except:
+                    pass
+                return None
+            return quiet_f
+
+    expr = Expression('N', expr)
+    quiet_expr = Expression('Quiet', expr, Expression(
+        'List', Expression('MessageName', Symbol('Power'), String('infy'))))
+    def quiet_f(*args):
+        vars = {arg_name: Real(arg) for arg_name, arg in zip(arg_names, args)}
+        value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)
+        if expect_list:
+            if value.has_form('List', None):
+                value = [extract_pyreal(item) for item in value.leaves]
+                if any(item is None for item in value):
+                    return None
+                return value
+            else:
+                return None
+        else:
+            value = extract_pyreal(value)
+            if value is None or isinf(value) or isnan(value):
+                return None
+            return value
+    return quiet_f
 
 
 def automatic_plot_range(values):
@@ -266,6 +293,8 @@ class _Plot(Builtin):
         'invexcl': ("Value of Exclusions -> `1` is not None, Automatic or an "
                     "appropriate list of constraints."),
     }
+
+    expect_list = False
 
     def apply(self, functions, x, start, stop, evaluation, options):
         '''%(name)s[functions_, {x_Symbol, start_, stop_},
@@ -430,9 +459,10 @@ class _Plot(Builtin):
             tmp_mesh_points = []  # For this function only
             continuous = False
             d = (stop - start) / (plotpoints - 1)
+            cf = compile_quiet_function(f, [x_name], evaluation, self.expect_list)
             for i in range(plotpoints):
                 x_value = start + i * d
-                point = self.eval_f(f, x_name, x_value, evaluation)
+                point = self.eval_f(cf, x_value)
                 if point is not None:
                     if continuous:
                         points[-1].append(point)
@@ -514,7 +544,7 @@ class _Plot(Builtin):
                             x_value = 0.5 * (line_xvalues[i - 1] +
                                              line_xvalues[i])
 
-                            point = self.eval_f(f, x_name, x_value, evaluation)
+                            point = self.eval_f(cf, x_value)
                             if point is not None:
                                 line.insert(i, point)
                                 line_xvalues.insert(i, x_value)
@@ -522,7 +552,7 @@ class _Plot(Builtin):
 
                             x_value = 0.5 * (line_xvalues[i - 2] +
                                              line_xvalues[i - 1])
-                            point = self.eval_f(f, x_name, x_value, evaluation)
+                            point = self.eval_f(cf, x_value)
                             if point is not None:
                                 line.insert(i - 1, point)
                                 line_xvalues.insert(i - 1, x_value)
@@ -834,21 +864,17 @@ class _Plot3D(Builtin):
         for indx, f in enumerate(functions):
             stored = {}
 
+            cf = compile_quiet_function(f, [x.get_name(), y.get_name()], evaluation, False)
+
             def eval_f(x_value, y_value):
-                value = stored.get((x_value, y_value), False)
-                if value is False:
-                    value = quiet_evaluate(
-                        f, {x.get_name(): Real(x_value),
-                            y.get_name(): Real(y_value)},
-                        evaluation)
-                    # value = dynamic_scoping(
-                    #    f.evaluate, {x: Real(x_value), y: Real(y_value)},
-                    #    evaluation)
-                    # value = chop(value).get_float_value()
+                try:
+                    return stored[(x_value, y_value)]
+                except KeyError:
+                    value = cf(x_value, y_value)
                     if value is not None:
                         value = float(value)
                     stored[(x_value, y_value)] = value
-                return value
+                    return value
 
             triangles = []
 
@@ -1193,11 +1219,10 @@ class Plot(_Plot):
                 x_range = [start, stop]
         return x_range, y_range
 
-    def eval_f(self, f, x_name, x_value, evaluation):
-        value = quiet_evaluate(f, {x_name: Real(x_value)}, evaluation)
-        if value is None:
-            return None
-        return (x_value, value)
+    def eval_f(self, f, x_value):
+        value = f(x_value)
+        if value is not None:
+            return (x_value, value)
 
 
 class ParametricPlot(_Plot):
@@ -1222,6 +1247,8 @@ class ParametricPlot(_Plot):
     >> ParametricPlot[{{Sin[u], Cos[u]},{0.6 Sin[u], 0.6 Cos[u]}, {0.2 Sin[u], 0.2 Cos[u]}}, {u, 0, 2 Pi}, PlotRange->1, AspectRatio->1]
     = -Graphics-
     """
+
+    expect_list = True
 
     def get_functions_param(self, functions):
         if (functions.has_form('List', 2) and
@@ -1251,12 +1278,10 @@ class ParametricPlot(_Plot):
                 x_range, y_range = plotrange
         return x_range, y_range
 
-    def eval_f(self, f, x_name, x_value, evaluation):
-        value = quiet_evaluate(
-            f, {x_name: Real(x_value)}, evaluation, expect_list=True)
-        if value is None or len(value) != 2:
-            return None
-        return value
+    def eval_f(self, f, x_value):
+        value = f(x_value)
+        if value is not None and len(value) == 2:
+            return value
 
 
 class PolarPlot(_Plot):
@@ -1303,11 +1328,10 @@ class PolarPlot(_Plot):
                 x_range, y_range = plotrange
         return x_range, y_range
 
-    def eval_f(self, f, x_name, x_value, evaluation):
-        value = quiet_evaluate(f, {x_name: Real(x_value)}, evaluation)
-        if value is None:
-            return None
-        return (value * cos(x_value), value * sin(x_value))
+    def eval_f(self, f, x_value):
+        value = f(x_value)
+        if value is not None:
+            return (value * cos(x_value), value * sin(x_value))
 
 
 class ListPlot(_ListPlot):
