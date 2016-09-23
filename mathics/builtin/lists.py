@@ -335,21 +335,31 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
 
                 if int_index == 0:
                     yield inner.head
-                elif -n <= int_index <= n:
+                elif 1 <= int_index <= n:
                     yield inner.leaves[int_index - 1]
+                elif -n <= int_index <= -1:
+                    yield inner.leaves[int_index]
                 else:
                     raise MessageException('Part', 'partw', index_item, inner)
 
         return select
 
-    def many(f):
+    def select_many(f):
         def g(x, indices):
-            return Expression(x.get_head(), *pick(list(f(x)), indices))
+            expr = Expression(x.get_head(), *pick(list(f(x)), indices))
+
+            if assign_list is not None:
+                expr.original = None
+                expr.set_positions()
+
+            return expr
+
         return g
 
-    def one(f):
+    def select_one(f):
         def g(x, indices):
             return pick(list(f(x)), indices)[0]
+
         return g
 
     def pick(items, indices):
@@ -360,11 +370,11 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         rest_indices = indices[1:]
 
         if index.has_form('Span', None):
-            select = many(span(index))
+            select = select_many(span(index))
         elif index.has_form('List', None):
-            select = many(sequence(index.leaves))
+            select = select_many(sequence(index.leaves))
         elif isinstance(index, Integer):
-            select = one(sequence(index))
+            select = select_one(sequence(index))
         else:
             raise MessageException('Part', 'pspec', index)
 
@@ -373,17 +383,21 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
 
         return [select(item, rest_indices) for item in items]
 
+    walk_list = list_of_list[0]
+
     if assign_list is not None:
-        walk_list = list_of_list[0]
+        # this double copying is needed to make the current logic in
+        # the assign_list and its access to original work.
 
-        # To get rid of duplicate entries (TODO: could be made faster!)
         walk_list = walk_list.copy()
-
         walk_list.set_positions()
         list_of_list = [walk_list]
 
+        walk_list = walk_list.copy()
+        walk_list.set_positions()
+
     try:
-        result = list(pick(list_of_list, indices))[0]
+        result = list(pick([walk_list], indices))[0]
     except MessageException as e:
         e.message(evaluation)
         return False
@@ -397,11 +411,11 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
 
         def process_level(item, assignment):
             if item.is_atom():
-                replace_item(list_of_list, item, assignment)
+                replace_item(list_of_list, item.original, assignment)
             elif (assignment.get_head_name() != 'System`List' or
                   len(item.leaves) != len(assignment.leaves)):
                 if item.original:
-                    replace_item(list_of_list, item, assignment)
+                    replace_item(list_of_list, item.original, assignment)
                 else:
                     for leaf in item.leaves:
                         process_level(leaf, assignment)
