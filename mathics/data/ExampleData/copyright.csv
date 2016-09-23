@@ -11,4 +11,5 @@ ExampleData.txt	GNU Free Documentation License 1.2	Own Work	Created By Angus Gri
 numberdata.csv	GNU Free Documentation License 1.2	Own Work	Created By Angus Griffith with a simple Python script
 colors.json	GNU Free Documentation License 1.2	Own Work	Created Manually By Angus Griffith 
 Testosterone.svg	Public Domain	http://en.wikipedia.org/wiki/File:Testosteron.svg	Taken from http://en.wikipedia.org/wiki/Testosterone on 2013/03/03
-InventionNo1.xml    GNU Free Documentation License  http://openmusicscore.org/index.php?option=com_content&view=article&id=125:invention-no-1-bwv-772-bach-johann-sebastian&catid=84&Itemid=531
+InventionNo1.xml	GNU Free Documentation License	http://openmusicscore.org/index.php?option=com_content&view=article&id=125:invention-no-1-bwv-772-bach-johann-sebastian&catid=84&Itemid=531
+Namespaces.xml	CC BY-NC-SA License	http://edutechwiki.unige.ch/en/XML_namespace	"A larger example of namespace scoping" with comments removed
