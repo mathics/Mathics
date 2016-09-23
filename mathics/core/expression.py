@@ -520,14 +520,14 @@ class Expression(BaseExpression):
             head = Symbol(head)
         self.head = head
         self.leaves = [from_python(leaf) for leaf in leaves]
-        self.seq = None
+        self._sequences = None
         return self
 
     def sequences(self):
-        seq = self.seq
+        seq = self._sequences
         if seq is None:
             seq = list(_sequences(self.leaves))
-            self.seq = seq
+            self._sequences = seq
         return seq
 
     def _flatten_sequence(self, sequence):
@@ -574,7 +574,7 @@ class Expression(BaseExpression):
     def copy(self):
         result = Expression(
             self.head.copy(), *[leaf.copy() for leaf in self.leaves])
-        result.seq = self.seq
+        result._sequences = self._sequences
         result.options = self.options
         result.original = self
         # result.last_evaluated = self.last_evaluated
@@ -585,7 +585,7 @@ class Expression(BaseExpression):
         # the original, only the Expression instance is new.
         expr = Expression(self.head)
         expr.leaves = self.leaves
-        expr.seq = self.seq
+        expr._sequences = self._sequences
         expr.options = self.options
         expr.last_evaluated = self.last_evaluated
         return expr
