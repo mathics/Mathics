@@ -331,10 +331,11 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         def select(inner):
             for index_item in index_list:
                 int_index = index_item.value
+                n = len(inner.leaves)
 
                 if int_index == 0:
                     yield inner.head
-                elif 1 <= int_index <= len(inner.leaves):
+                elif -n <= int_index <= n:
                     yield inner.leaves[int_index - 1]
                 else:
                     raise MessageException('Part', 'partw', index_item, inner)
@@ -372,12 +373,6 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
 
         return [select(item, rest_indices) for item in items]
 
-    try:
-        result = list(pick(list_of_list, indices))[0]
-    except MessageException as e:
-        e.message(evaluation)
-        return False
-
     if assign_list is not None:
         walk_list = list_of_list[0]
 
@@ -387,6 +382,13 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         walk_list.set_positions()
         list_of_list = [walk_list]
 
+    try:
+        result = list(pick(list_of_list, indices))[0]
+    except MessageException as e:
+        e.message(evaluation)
+        return False
+
+    if assign_list is not None:
         def replace_item(all, item, new):
             if item.position is None:
                 all[0] = new
@@ -395,11 +397,11 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
 
         def process_level(item, assignment):
             if item.is_atom():
-                replace_item(list_of_list, item.original, assignment)
+                replace_item(list_of_list, item, assignment)
             elif (assignment.get_head_name() != 'System`List' or
                   len(item.leaves) != len(assignment.leaves)):
                 if item.original:
-                    replace_item(list_of_list, item.original, assignment)
+                    replace_item(list_of_list, item, assignment)
                 else:
                     for leaf in item.leaves:
                         process_level(leaf, assignment)
@@ -407,9 +409,10 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
                 for sub_item, sub_assignment in zip(item.leaves,
                                                     assignment.leaves):
                     process_level(sub_item, sub_assignment)
-        process_level(result, assign_list)
-        result = list_of_list[0]
 
+        process_level(result, assign_list)
+
+        result = list_of_list[0]
         result.last_evaluated = None
 
     return result
