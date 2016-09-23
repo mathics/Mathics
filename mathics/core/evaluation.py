@@ -318,8 +318,11 @@ class Evaluation(object):
         # DB's max_allowed_packet size
         max_stored_size = self.output.max_stored_size(settings)
         if max_stored_size is not None:
-            data = pickle.dumps(result)
-            if len(data) > max_stored_size:
+            try:
+                data = pickle.dumps(result)
+                if len(data) > max_stored_size:
+                    return Symbol('Null')
+            except (ValueError, pickle.PicklingError):
                 return Symbol('Null')
         return result
 
