@@ -56,7 +56,7 @@ DATABASES = {
     }
 }
 
-REQUIRE_LOGIN = True
+REQUIRE_LOGIN = False
 
 SERVER_EMAIL = 'mathics@localhost'
 

@@ -75,6 +75,7 @@ function toggleDoc() {
 		hideDoc();
 	else
 		showDoc();
+    $('search').select();
 }
 
 function searchChange(event) {
