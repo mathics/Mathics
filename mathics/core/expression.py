@@ -557,7 +557,7 @@ class Expression(BaseExpression):
             expr.options = self.options
         return expr
 
-    def symbols(self):
+    def symbols(self, intermediate=False):
         sym = self.sym
         if sym is None:
             list_of_symbols = [self.get_head_name()]
@@ -566,9 +566,21 @@ class Expression(BaseExpression):
                 if isinstance(leaf, Symbol):
                     list_of_symbols.append(leaf.get_name())
                 elif isinstance(leaf, Expression):
-                    list_of_symbols.extend(list(leaf.symbols()))
+                    list_of_symbols.extend(list(leaf.symbols(True)))
 
-            sym = set(list_of_symbols)
+            # converting the symbols list to a set is slow. by default,
+            # we only do this for the final expression returned to
+            # not_changed(), but not for intermediate ones. this yields
+            # better benchmarks.
+
+            if intermediate:
+                sym = list_of_symbols
+            else:
+                sym = set(list_of_symbols)
+
+            self.sym = sym
+        elif not intermediate and isinstance(sym, list):
+            sym = set(sym)
             self.sym = sym
 
         return sym
