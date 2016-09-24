@@ -2263,6 +2263,9 @@ def _interleave(*gens):  # interleaves over n generators of even or uneven lengt
 
 
 class _MakeBoxesStrategy(object):
+    def capacity(self):
+        raise NotImplementedError()
+
     def make(self, items, form, segment=None):
         raise NotImplementedError()
 
@@ -2270,6 +2273,9 @@ class _MakeBoxesStrategy(object):
 class _UnlimitedMakeBoxesStrategy(_MakeBoxesStrategy):
     def __init__(self):
         pass
+
+    def capacity(self):
+        return None
 
     def make(self, items, form, segment=None):
         if segment is not None:
@@ -2288,10 +2294,13 @@ class _LimitedMakeBoxesState:
 
 class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
     def __init__(self, capacity, evaluation):
-        self.capacity = capacity
-        self.evaluation = evaluation
-        self._state = _LimitedMakeBoxesState(self.capacity, 1, True, 1)
+        self._capacity = capacity
+        self._evaluation = evaluation
+        self._state = _LimitedMakeBoxesState(self._capacity, 1, True, 1)
         self._unlimited = _UnlimitedMakeBoxesStrategy()
+
+    def capacity(self):
+        return self._capacity
 
     def make(self, items, form, segment=None):
         state = self._state
@@ -2382,13 +2391,13 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
             state = _LimitedMakeBoxesState(**kwargs)
             self._state = state
 
-            box = Expression('MakeBoxes', item, form).evaluate(self.evaluation)
+            box = Expression('MakeBoxes', item, form).evaluate(self._evaluation)
 
             # estimate the cost of the output related to box. always calling boxes_to_xml here is
             # the simple solution; the problem is that it's redundant, as for {{{a}, b}, c}, we'd
             # call boxes_to_xml first on {a}, then on {{a}, b}, then on {{{a}, b}, c}. a good fix
             # is not simple though, so let's keep it this way for now.
-            cost = len(box.boxes_to_xml(evaluation=self.evaluation))  # evaluate len as XML
+            cost = len(box.boxes_to_xml(evaluation=self._evaluation))  # evaluate len as XML
 
             return box, cost
         finally:
