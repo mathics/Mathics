@@ -2262,14 +2262,6 @@ def _interleave(*gens):  # interleaves over n generators of even or uneven lengt
                 del active[i]
 
 
-class _MakeBoxesState:
-    def __init__(self, capacity, side, both_sides, depth):
-        self.capacity = capacity  # output size remaining
-        self.side = side  # start from left side (<0) or right side (>0)?
-        self.both_sides = both_sides  # always evaluate both sides?
-        self.depth = depth  # stack depth of MakeBoxes evaluation
-
-
 class _MakeBoxesStrategy(object):
     def make(self, items, form, segment=None):
         raise NotImplementedError()
@@ -2285,11 +2277,20 @@ class _UnlimitedMakeBoxesStrategy(_MakeBoxesStrategy):
         return [Expression('MakeBoxes', item, form) for item in items]
 
 
+class _LimitedMakeBoxesState:
+    def __init__(self, capacity, side, both_sides, depth):
+        self.capacity = capacity  # output size remaining
+        self.side = side  # start from left side (<0) or right side (>0)?
+        self.both_sides = both_sides  # always evaluate both sides?
+        self.depth = depth  # stack depth of MakeBoxes evaluation
+        self.consumed = 0  # sum of costs consumed so far
+
+
 class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
     def __init__(self, capacity, evaluation):
         self.capacity = capacity
         self.evaluation = evaluation
-        self._state = _MakeBoxesState(self.capacity, 1, True, 1)
+        self._state = _LimitedMakeBoxesState(self.capacity, 1, True, 1)
         self._unlimited = _UnlimitedMakeBoxesStrategy()
 
     def make(self, items, form, segment=None):
@@ -2346,7 +2347,7 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
             # this would be very inefficient though, since we would get quadratic
             # runtime (quadratic in the depth of the tree).
 
-            box = self._evaluate(
+            box, cost = self._evaluate(
                 item,
                 form,
                 capacity=capacity // 2,  # reserve rest half of capacity for other side
@@ -2355,9 +2356,9 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
                 depth=depth + 1)
 
             push(box)
+            state.consumed += cost
 
-            sum_of_costs += len(box.boxes_to_xml(evaluation=self))  # evaluate len as XML
-
+            sum_of_costs += cost
             if i >= delay_break:
                 capacity -= sum_of_costs
                 sum_of_costs = 0
@@ -2378,8 +2379,18 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
     def _evaluate(self, item, form, **kwargs):
         old_state = self._state
         try:
-            self._state = _MakeBoxesState(**kwargs)
-            return Expression('MakeBoxes', item, form).evaluate(self.evaluation)
+            state = _LimitedMakeBoxesState(**kwargs)
+            self._state = state
+
+            box = Expression('MakeBoxes', item, form).evaluate(self.evaluation)
+
+            # estimate the cost of the output related to box. always calling boxes_to_xml here is
+            # the simple solution; the problem is that it's redundant, as for {{{a}, b}, c}, we'd
+            # call boxes_to_xml first on {a}, then on {{a}, b}, then on {{{a}, b}, c}. a good fix
+            # is not simple though, so let's keep it this way for now.
+            cost = len(box.boxes_to_xml(evaluation=self.evaluation))  # evaluate len as XML
+
+            return box, cost
         finally:
             self._state = old_state
 
