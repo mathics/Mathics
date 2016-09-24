@@ -385,6 +385,7 @@ def _list_parts(items, selectors, assignment):
             if unwrap is None:
                 expr = item.shallow_copy()
                 expr.leaves = picked
+                expr.last_evaluated = None
 
                 if assignment:
                     expr.original = None
@@ -412,6 +413,8 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
 
         walk_list = walk_list.copy()
         walk_list.set_positions()
+
+    indices = [index.evaluate(evaluation) for index in indices]
 
     try:
         result = _parts(
