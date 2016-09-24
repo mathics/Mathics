@@ -8,6 +8,7 @@ import sympy
 import mpmath
 import math
 import re
+from itertools import chain
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
@@ -2247,3 +2248,145 @@ def print_parenthesizes(precedence, outer_precedence=None,
     return (outer_precedence is not None and (
         outer_precedence > precedence or (
             outer_precedence == precedence and parenthesize_when_equal)))
+
+
+def _interleave(*gens):  # interleaves over n generators of even or uneven lengths
+    active = [gen for gen in gens]
+    while len(active) > 0:
+        i = 0
+        while i < len(active):
+            try:
+                yield next(active[i])
+                i += 1
+            except StopIteration:
+                del active[i]
+
+
+class _MakeBoxesState:
+    def __init__(self, capacity, side, both_sides, depth):
+        self.capacity = capacity  # output size remaining
+        self.side = side  # start from left side (<0) or right side (>0)?
+        self.both_sides = both_sides  # always evaluate both sides?
+        self.depth = depth  # stack depth of MakeBoxes evaluation
+
+
+class _MakeBoxesStrategy(object):
+    def make(self, items, form, segment=None):
+        raise NotImplementedError()
+
+
+class _UnlimitedMakeBoxesStrategy(_MakeBoxesStrategy):
+    def __init__(self):
+        pass
+
+    def make(self, items, form, segment=None):
+        if segment is not None:
+            segment.extend((False, 0, 0))
+        return [Expression('MakeBoxes', item, form) for item in items]
+
+
+class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
+    def __init__(self, capacity, evaluation):
+        self.capacity = capacity
+        self.evaluation = evaluation
+        self._state = _MakeBoxesState(self.capacity, 1, True, 1)
+        self._unlimited = _UnlimitedMakeBoxesStrategy()
+
+    def make(self, items, form, segment=None):
+        state = self._state
+        capacity = state.capacity
+
+        if capacity is None or len(items) < 1:
+            return self._unlimited(items, form, segment)
+
+        left_leaves = []
+        right_leaves = []
+
+        middle = len(items) // 2
+
+        # note that we use generator expressions, not list comprehensions, here, since we
+        # might quit early in the loop below, and copying all leaves might prove inefficient.
+        from_left = ((leaf, left_leaves.append) for leaf in items[:middle])
+        from_right = ((leaf, right_leaves.append) for leaf in reversed(items[middle:]))
+
+        # specify at which side to start making boxes (either from the left or from the right).
+        side = state.side
+        if side > 0:
+            from_sides = (from_left, from_right)
+        else:
+            from_sides = (from_right, from_left)
+
+        # usually we start on one side and make boxes until the capacity is exhausted.
+        # however, at the first real list (i.e. > 1 elements) we force evaluation of
+        # both sides in order to make sure the start and the end portion is visible.
+        both_sides = state.both_sides
+        if both_sides and len(items) > 1:
+            delay_break = 1
+            both_sides = False  # disable both_sides from this depth on
+        else:
+            delay_break = 0
+
+        depth = state.depth
+        sum_of_costs = 0
+
+        for i, (item, push) in enumerate(_interleave(*from_sides)):
+            # calling evaluate() here is a serious difference to the implementation
+            # without $OutputSizeLimit. here, we evaluate MakeBoxes bottom up, i.e.
+            # the leaves get evaluated first, since we need to estimate their size
+            # here.
+            #
+            # without $OutputSizeLimit, on the other hand, the expression
+            # gets evaluates from the top down, i.e. first MakeBoxes is wrapped around
+            # each expression, then we call evaluate on the root node. assuming that
+            # there are no rules like MakeBoxes[x_, MakeBoxes[y_]], both approaches
+            # should be identical.
+            #
+            # we could work around this difference by pushing the unevaluated
+            # expression here (see "push(box)" below), instead of the evaluated.
+            # this would be very inefficient though, since we would get quadratic
+            # runtime (quadratic in the depth of the tree).
+
+            box = self._evaluate(
+                item,
+                form,
+                capacity=capacity // 2,  # reserve rest half of capacity for other side
+                side=side * -((i % 2) * 2 - 1),  # flip between side and -side
+                both_sides=both_sides,  # force both-sides evaluation for deeper levels?
+                depth=depth + 1)
+
+            push(box)
+
+            sum_of_costs += len(box.boxes_to_xml(evaluation=self))  # evaluate len as XML
+
+            if i >= delay_break:
+                capacity -= sum_of_costs
+                sum_of_costs = 0
+                if capacity <= 0:
+                    break
+
+        ellipsis_size = len(items) - (len(left_leaves) + len(right_leaves))
+        ellipsis = [Omitted('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []
+
+        if segment is not None:
+            if ellipsis_size > 0:
+                segment.extend((True, len(left_leaves), len(items) - len(right_leaves)))
+            else:
+                segment.extend((False, 0, 0))
+
+        return list(chain(left_leaves, ellipsis, reversed(right_leaves)))
+
+    def _evaluate(self, item, form, **kwargs):
+        old_state = self._state
+        try:
+            self._state = _MakeBoxesState(**kwargs)
+            return Expression('MakeBoxes', item, form).evaluate(self.evaluation)
+        finally:
+            self._state = old_state
+
+
+def make_boxes_strategy(capacity, evaluation):
+    if capacity is None:
+        return _UnlimitedMakeBoxesStrategy()
+    else:
+        return _LimitedMakeBoxesStrategy(capacity, evaluation)
+
