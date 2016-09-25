@@ -658,10 +658,10 @@ class GridBox(BoxConstruct):
      = \begin{array}{cc} a & b\\ c & d\end{array}
 
     #> MathMLForm[TableForm[{{a,b},{c,d}}]]
-     = <math><mtable columnalign="center">
+     = <math><mstyle mathvariant="..."><mtable columnalign="center">
      . <mtr><mtd columnalign="center"><mi>a</mi></mtd><mtd columnalign="center"><mi>b</mi></mtd></mtr>
      . <mtr><mtd columnalign="center"><mi>c</mi></mtd><mtd columnalign="center"><mi>d</mi></mtd></mtr>
-     . </mtable></math>
+     . </mtable></mstyle></math>
     """
 
     options = {
@@ -1753,21 +1753,21 @@ class MathMLForm(Builtin):
     </dl>
 
     >> MathMLForm[HoldForm[Sqrt[a^3]]]
-     = <math><msqrt><msup><mi>a</mi> <mn>3</mn></msup></msqrt></math>
+     = <math><mstyle mathvariant="..."><msqrt><msup><mi>a</mi> <mn>3</mn></msup></msqrt></mstyle></math>
 
     ## Test cases for Unicode
     #> MathMLForm[\\[Mu]]
-     = <math><mi>\u03bc</mi></math>
+     = <math><mstyle mathvariant="..."><mi>\u03bc</mi></mstyle></math>
 
     #> MathMLForm[Graphics[Text["\u03bc"]]]
-     = <math><mglyph width="..." height="..." src="data:image/svg+xml;base64,..."/></math>
+     = <math><mstyle mathvariant="..."><mglyph width="..." height="..." src="data:image/svg+xml;base64,..."/></mstyle></math>
 
     ## The <mo> should contain U+2062 INVISIBLE TIMES
     #> MathMLForm[MatrixForm[{{2*a, 0},{0,0}}]]
-     = <math><mrow><mo>(</mo> <mtable columnalign="center">
+     = <math><mstyle mathvariant="..."><mrow><mo>(</mo> <mtable columnalign="center">
      . <mtr><mtd columnalign="center"><mrow><mn>2</mn> <mo form="prefix" lspace="0" rspace="0.2em">\u2062</mo> <mi>a</mi></mrow></mtd><mtd columnalign="center"><mn>0</mn></mtd></mtr>
      . <mtr><mtd columnalign="center"><mn>0</mn></mtd><mtd columnalign="center"><mn>0</mn></mtd></mtr>
-     . </mtable> <mo>)</mo></mrow></math>
+     . </mtable> <mo>)</mo></mrow></mstyle></math>
     """
 
     def apply_mathml(self, expr, evaluation):

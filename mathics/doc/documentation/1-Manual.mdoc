@@ -710,14 +710,14 @@ You can cause a much bigger mess by overriding 'MakeBoxes' than by sticking to '
  = <not closed
 However, this will not affect formatting of expressions involving 'c':
 >> c + 1 // MathMLForm
- = <math><mrow><mn>1</mn> <mo>+</mo> <mi>c</mi></mrow></math>
+ = <math><mstyle mathvariant="..."><mrow><mn>1</mn> <mo>+</mo> <mi>c</mi></mrow></mstyle></math>
 That\'s because 'MathMLForm' will, when not overridden for a special case, call 'StandardForm' first.
 'Format' will produce escaped output:
 >> Format[d, MathMLForm] = "<not closed";
 >> d // MathMLForm
- = <math><mtext>&lt;not&nbsp;closed</mtext></math>
+ = <math><mstyle mathvariant="..."><mtext>&lt;not&nbsp;closed</mtext></mstyle></math>
 >> d + 1 // MathMLForm
- = <math><mrow><mn>1</mn> <mo>+</mo> <mtext>&lt;not&nbsp;closed</mtext></mrow></math>
+ = <math><mstyle mathvariant="..."><mrow><mn>1</mn> <mo>+</mo> <mtext>&lt;not&nbsp;closed</mtext></mrow></mstyle></math>
  
 For instance, you can override 'MakeBoxes' to format lists in a different way:
 >> MakeBoxes[{items___}, StandardForm] := RowBox[{"[", Sequence @@ Riffle[MakeBoxes /@ {items}, " "], "]"}]
