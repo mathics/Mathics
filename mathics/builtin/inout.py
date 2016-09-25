@@ -1783,6 +1783,8 @@ class MathMLForm(Builtin):
             xml = ''
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
+        if True:  # configuration to be defined
+            xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
         mathml = '<math>%s</math>' % xml  # convert_box(boxes)
         return Expression('RowBox', Expression('List', String(mathml)))
 
