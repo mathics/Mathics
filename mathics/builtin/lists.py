@@ -3016,6 +3016,55 @@ class Reverse(Builtin):
             return Reverse._reverse(expr, 1, py_levels)
 
 
+class CentralMoment(Builtin):  # see https://en.wikipedia.org/wiki/Central_moment
+    '''
+    <dl>
+    <dt>'CentralMoment[$list$, $r$]'
+      <dd>gives the the $r$th central moment (i.e. the $r$th moment about the mean) of $list$.
+    </dl>
+
+    >> CentralMoment[{1.1, 1.2, 1.4, 2.1, 2.4}, 4]
+     = 0.100845
+    '''
+
+    rules = {
+        'CentralMoment[list_List, r_]': 'Total[(list - Mean[list]) ^ r] / Length[list]',
+    }
+
+
+class Skewness(Builtin):  # see https://en.wikipedia.org/wiki/Skewness
+    '''
+    <dl>
+    <dt>'Skewness[$list$]'
+      <dd>gives Pearson's moment coefficient of skewness for $list$ (a measure for estimating
+      the symmetry of a distribution).
+    </dl>
+
+    >> Skewness[{1.1, 1.2, 1.4, 2.1, 2.4}]
+     = 0.407041
+    '''
+
+    rules = {
+        'Skewness[list_List]': 'CentralMoment[list, 3] / (CentralMoment[list, 2] ^ (3 / 2))',
+    }
+
+
+class Kurtosis(Builtin):  # see https://en.wikipedia.org/wiki/Kurtosis
+    '''
+    <dl>
+    <dt>'Kurtosis[$list$]'
+      <dd>gives the Pearson measure of kurtosis for $list$ (a measure of existing outliers).
+    </dl>
+
+    >> Kurtosis[{1.1, 1.2, 1.4, 2.1, 2.4}]
+     = 1.42098
+    '''
+
+    rules = {
+        'Kurtosis[list_List]': 'CentralMoment[list, 4] / (CentralMoment[list, 2] ^ 2)',
+    }
+
+
 class Mean(Builtin):
     """
     <dl>
