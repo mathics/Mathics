@@ -1219,7 +1219,7 @@ class Condition(BinaryOperator, PatternObject):
         # for new_vars, rest in self.pattern.match(expression, vars,
         # evaluation):
         def yield_match(new_vars, rest):
-            test_expr = self.test.replace_vars(new_vars)
+            test_expr = self.test.replace_vars(new_vars, evaluation)
             test_result = test_expr.evaluate(evaluation)
             if test_result.is_true():
                 yield_func(new_vars, rest)

@@ -89,7 +89,7 @@ class Rule(BaseRule):
         self.replace = replace
 
     def do_replace(self, vars, options, evaluation):
-        new = self.replace.replace_vars(vars)
+        new = self.replace.replace_vars(vars, evaluation)
         new.options = options
 
         # if options is a non-empty dict, we need to ensure reevaluation of the whole expression, since 'new' will

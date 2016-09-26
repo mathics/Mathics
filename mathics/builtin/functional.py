@@ -88,7 +88,7 @@ class Function(PostfixOperator):
         else:
             vars = dict(list(zip((
                 var.get_name() for var in vars), args[:len(vars)])))
-            return body.replace_vars(vars)
+            return body.replace_vars(vars, evaluation)
 
 
 class Slot(Builtin):
