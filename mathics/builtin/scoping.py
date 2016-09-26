@@ -167,6 +167,10 @@ class Module(Builtin):
      = a
     >> Module[{a}, Block[{}, a]]
      = a$5
+
+    #> Module[{n = 3}, Module[{b = n * 5}, b * 7]]
+     = 105
+
     """
 
     attributes = ('HoldAll',)
