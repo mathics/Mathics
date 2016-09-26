@@ -1,22 +1,9 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
 
 import sys
 import os
@@ -25,15 +12,21 @@ import re
 import locale
 
 from mathics.core.definitions import Definitions
-from mathics.core.expression import Integer, strip_context
-from mathics.core.evaluation import Evaluation
-from mathics import print_version, print_license, get_version_string
+from mathics.core.expression import strip_context
+from mathics.core.evaluation import Evaluation, Output
+from mathics.core.parser import LineFeeder, FileLineFeeder
+from mathics import version_string, license_string, __version__
 from mathics import settings
 
+import six
+from six.moves import input
 
-class TerminalShell(object):
+
+class TerminalShell(LineFeeder):
     def __init__(self, definitions, colors, want_readline, want_completion):
+        super(TerminalShell, self).__init__('<stdin>')
         self.input_encoding = locale.getpreferredencoding()
+        self.lineno = 0
 
         # Try importing readline to enable arrow keys support etc.
         self.using_readline = False
@@ -81,22 +74,18 @@ class TerminalShell(object):
         term_colors = color_schemes.get(colors.upper())
         if term_colors is None:
             out_msg = "The 'colors' argument must be {0} or None"
-            print out_msg.format(repr(color_schemes.keys()))
+            print(out_msg.format(repr(list(color_schemes.keys()))))
             quit()
 
         self.incolors, self.outcolors = term_colors
         self.definitions = definitions
 
     def get_last_line_number(self):
-        line = self.definitions.get_definition('$Line').ownvalues
-        if line:
-            return line[0].replace.get_int_value()
-        else:
-            return 1    # user may have deleted $Line (e.g. by calling Quit[])
+        return self.definitions.get_line_no()
 
-    def get_in_prompt(self, continued=False):
+    def get_in_prompt(self):
         next_line_number = self.get_last_line_number() + 1
-        if continued:
+        if self.lineno > 0:
             return ' ' * len('In[{0}]:= '.format(next_line_number))
         else:
             return '{1}In[{2}{0}{3}]:= {4}'.format(next_line_number, *self.incolors)
@@ -105,48 +94,46 @@ class TerminalShell(object):
         line_number = self.get_last_line_number()
         return '{1}Out[{2}{0}{3}]= {4}'.format(line_number, *self.outcolors)
 
-    def evaluate(self, text):
-        def to_output(text):
-            line_number = self.get_last_line_number()
-            newline = '\n' + ' ' * len('Out[{0}]= '.format(line_number))
-            return newline.join(text.splitlines())
+    def to_output(self, text):
+        line_number = self.get_last_line_number()
+        newline = '\n' + ' ' * len('Out[{0}]= '.format(line_number))
+        return newline.join(text.splitlines())
 
-        def out_callback(out):
-            print to_output(unicode(out))
-
-        evaluation = Evaluation(text,
-                                self.definitions,
-                                timeout=settings.TIMEOUT,
-                                out_callback=out_callback)
-        for result in evaluation.results:
-            if result.result is not None:
-                print(self.get_out_prompt() +
-                      to_output(unicode(result.result)) + '\n')
+    def out_callback(self, out):
+        print(self.to_output(six.text_type(out)))
 
     def read_line(self, prompt):
         if self.using_readline:
             return self.rl_read_line(prompt)
-        return raw_input(prompt)
+        return input(prompt)
+
+    def print_result(self, result):
+        if result is not None and result.result is not None:
+            output = self.to_output(six.text_type(result.result))
+            print(self.get_out_prompt() + output + '\n')
 
     def rl_read_line(self, prompt):
-        # sys.stdout is wrapped by a codecs.StreamWriter object in
-        # mathics/__init__.py, which interferes with raw_input's use
-        # of readline.
+        # Wrap ANSI colour sequences in \001 and \002, so readline
+        # knows that they're nonprinting.
+        prompt = self.ansi_color_re.sub(
+            lambda m: "\001" + m.group(0) + "\002", prompt)
+
+        # For Py2 sys.stdout is wrapped by a codecs.StreamWriter object in
+        # mathics/__init__.py which interferes with raw_input's use of readline
         #
         # To work around this issue, call raw_input with the original
         # file object as sys.stdout, which is in the undocumented
         # 'stream' field of codecs.StreamWriter.
-        orig_stdout = sys.stdout
-        try:
-            # Wrap ANSI colour sequences in \001 and \002, so readline
-            # knows that they're nonprinting.
-            prompt = self.ansi_color_re.sub(
-                lambda m: "\001" + m.group(0) + "\002", prompt)
-            sys.stdout = sys.stdout.stream
-            ret = raw_input(prompt)
-            return ret
-        finally:
-            sys.stdout = orig_stdout
+        if six.PY2:
+            orig_stdout = sys.stdout
+            try:
+                sys.stdout = sys.stdout.stream
+                ret = input(prompt).decode(self.input_encoding)
+                return ret
+            finally:
+                sys.stdout = orig_stdout
+        else:
+            return input(prompt)
 
     def complete_symbol_name(self, text, state):
         try:
@@ -154,7 +141,7 @@ class TerminalShell(object):
         except Exception:
             # any exception thrown inside the completer gets silently
             # thrown away otherwise
-            print "Unhandled error in readline completion"
+            print("Unhandled error in readline completion")
 
     def _complete_symbol_name(self, text, state):
         # The readline module calls this function repeatedly,
@@ -175,39 +162,26 @@ class TerminalShell(object):
             matches = [strip_context(m) for m in matches]
         return matches
 
+    def reset_lineno(self):
+        self.lineno = 0
 
-# Adapted from code at http://mydezigns.wordpress.com/2009/09/22/balanced-brackets-in-python/ 
+    def feed(self):
+        result = self.read_line(self.get_in_prompt()) + '\n'
+        if result == '\n':
+            return ''   # end of input
+        self.lineno += 1
+        return result
 
-def wait_for_line(input_string):
-    """
-    Should the intepreter wait for another line of input or try to evaluate the
-    current line as is.
-    """
-    trailing_ops = ['+', '-', '/', '*', '^', '=',
-                    '>', '<', '/;', '/:', '/.', '&&', '||']
-    if any(input_string.rstrip().endswith(op) for op in trailing_ops):
-        return True
-
-    brackets = [('(', ')'), ('[', ']'), ('{', '}')]
-    kStart, kEnd, stack = 0, 1, []
-    in_string = False
-    for char in input_string:
-        if char == '"':
-            in_string = not in_string
-        if not in_string:
-            for bracketPair in brackets:
-                if char == bracketPair[kStart]:
-                    stack.append(char)
-                elif char == bracketPair[kEnd]:
-                    if len(stack) == 0:
-                        return False
-                    if stack.pop() != bracketPair[kStart]:
-                        # Brackets are not balanced, but return False so that a
-                        # parse error can be raised
-                        return False
-    if len(stack) == 0 and not in_string:
+    def empty(self):
         return False
-    return True
+
+
+class TerminalOutput(Output):
+    def __init__(self, shell):
+        self.shell = shell
+
+    def out(self, out):
+        return self.shell.out_callback(out)
 
 
 def main():
@@ -255,69 +229,70 @@ def main():
         action='store_true')
 
     argparser.add_argument(
-        '--version', '-v', action='version', version=get_version_string(False))
+        '--version', '-v', action='version',
+        version='%(prog)s ' + __version__)
 
-    args = argparser.parse_args()
+    args, script_args = argparser.parse_known_args()
 
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
 
     definitions = Definitions(add_builtin=True)
-    definitions.set_ownvalue('$Line', Integer(0))  # Reset the line number
+    definitions.set_line_no(0)
 
     shell = TerminalShell(
         definitions, args.colors, want_readline=not(args.no_readline),
         want_completion=not(args.no_completion))
 
-    if not (args.quiet or args.script):
-        print_version(is_server=False)
-        print_license()
-        print u"Quit by pressing {0}\n".format(quit_command)
-
     if args.execute:
         for expr in args.execute:
-            total_input = expr.decode(shell.input_encoding)
-            print shell.get_in_prompt() + total_input
-            shell.evaluate(total_input)
+            print(shell.get_in_prompt() + expr)
+            evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
+            result = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
+            shell.print_result(result)
+
         if not args.persist:
             return
 
     if args.FILE is not None:
-        total_input = ''
-        for line_no, line in enumerate(args.FILE):
-            try:
-                line = line.decode('utf-8')     # TODO: other encodings
-                if args.script and line_no == 0 and line.startswith('#!'):
+        feeder = FileLineFeeder(args.FILE)
+        try:
+            while not feeder.empty():
+                evaluation = Evaluation(
+                    shell.definitions, output=TerminalOutput(shell), catch_interrupt=False)
+                query = evaluation.parse_feeder(feeder)
+                if query is None:
                     continue
-                print shell.get_in_prompt(continued=total_input != '') + line,
-                total_input += ' ' + line
-                if line != "" and wait_for_line(total_input):
-                    continue
-                shell.evaluate(total_input)
-                total_input = ""
-            except (KeyboardInterrupt):
-                print '\nKeyboardInterrupt'
-            except (SystemExit, EOFError):
-                print "\n\nGood bye!\n"
-                break
-        if not args.persist:
+                evaluation.evaluate(query, timeout=settings.TIMEOUT)
+        except (KeyboardInterrupt):
+            print('\nKeyboardInterrupt')
+
+        if args.persist:
+            definitions.set_line_no(0)
+        else:
             return
 
-    total_input = ""
+    if not args.quiet:
+        print()
+        print(version_string + '\n')
+        print(license_string + '\n')
+        print("Quit by pressing {0}\n".format(quit_command))
+
     while True:
         try:
-            line = shell.read_line(
-                shell.get_in_prompt(continued=total_input != ''))
-            line = line.decode(shell.input_encoding)
-            total_input += line
-            if line != "" and wait_for_line(total_input):
+            evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
+            query = evaluation.parse_feeder(shell)
+            if query is None:
                 continue
-            shell.evaluate(total_input)
-            total_input = ""
+            result = evaluation.evaluate(query, timeout=settings.TIMEOUT)
+            if result is not None:
+                shell.print_result(result)
         except (KeyboardInterrupt):
-            print '\nKeyboardInterrupt'
+            print('\nKeyboardInterrupt')
         except (SystemExit, EOFError):
-            print "\n\nGood bye!\n"
+            print("\n\nGoodbye!\n")
             break
+        finally:
+            shell.reset_lineno()
 
 if __name__ == '__main__':
     main()

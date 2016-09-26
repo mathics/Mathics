@@ -1,14 +1,13 @@
 Welcome to Mathics!
 ===================
 
-Mathics is a general-purpose computer algebra system (CAS). It is meant to be a free, light-weight alternative to Mathematica.
+Mathics is a general-purpose computer algebra system (CAS). It is meant to be a free, lightweight alternative to Mathematica.
 
-The homepage of Mathics is at http://www.mathics.org, where you can find installation instructions.
-There is also a server to use Mathics online at http://www.mathics.net.
+The home page of Mathics is http://mathics.github.io.
 
 Installing
 ----------
-`Here <https://github.com/mathics/Mathics/wiki/Installing>`_ is short a guide on how to install Mathics on your computer.
+`Here <https://github.com/mathics/Mathics/wiki/Installing>`_ is a short guide on how to install Mathics on your computer.
 
 Contributing
 ------------
@@ -17,7 +16,7 @@ Please feel encouraged to contribute to Mathics! Create your own fork, make the 
 
 |Travis|_
 
-.. |Travis| image:: https://secure.travis-ci.org/mathics/Mathics.png?branch=master
+.. |Travis| image:: https://secure.travis-ci.org/mathics/Mathics.svg?branch=master
 .. _Travis: https://travis-ci.org/mathics/Mathics
 
 License

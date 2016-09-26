@@ -1,29 +1,15 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from mathics.builtin import (
-    algebra, arithmetic, assignment, attributes, calculus, combinatorial,
+    algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory,
+    graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
-    specialfunctions, scoping, strings, structure, system, tensors)
+    specialfunctions, scoping, strings, structure, system, tensors, xmlformat)
 
 from mathics.builtin.base import (
     Builtin, SympyObject, BoxConstruct, Operator, PatternObject)
@@ -31,11 +17,11 @@ from mathics.builtin.base import (
 from mathics.settings import ENABLE_FILES_MODULE
 
 modules = [
-    algebra, arithmetic, assignment, attributes, calculus, combinatorial,
+    algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, inout, integer, linalg, lists, logic, numbertheory,
+    graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
-    specialfunctions, scoping, strings, structure, system, tensors]
+    specialfunctions, scoping, strings, structure, system, tensors, xmlformat]
 
 if ENABLE_FILES_MODULE:
     from mathics.builtin import files, importexport
@@ -57,11 +43,11 @@ for module in modules:
     vars = dir(module)
     for name in vars:
         var = getattr(module, name)
-        if (hasattr(var, '__module__')
-                and var.__module__.startswith('mathics.builtin.')
-                and var.__module__ != 'mathics.builtin.base'
-                and is_builtin(var) and not name.startswith('_')
-                and var.__module__ == module.__name__):
+        if (hasattr(var, '__module__') and
+            var.__module__.startswith('mathics.builtin.') and
+            var.__module__ != 'mathics.builtin.base' and
+            is_builtin(var) and not name.startswith('_') and
+            var.__module__ == module.__name__):     # nopep8
 
             instance = var(expression=False)
 
@@ -85,8 +71,8 @@ def add_builtins(new_builtins):
         name = builtin.get_name()
         if isinstance(builtin, SympyObject):
             mathics_to_sympy[name] = builtin
-            if builtin.sympy_name:
-                sympy_to_mathics[builtin.sympy_name] = builtin
+            for sympy_name in builtin.get_sympy_names():
+                sympy_to_mathics[sympy_name] = builtin
         if isinstance(builtin, BoxConstruct):
             box_constructs[name] = builtin
         if isinstance(builtin, Operator):

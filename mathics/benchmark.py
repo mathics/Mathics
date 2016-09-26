@@ -1,25 +1,34 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+import time
+from argparse import ArgumentParser
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+try:
+    from statistics import mean
+    from statistics import median_low as median
+except ImportError:
+    mean = lambda l: sum(l) / len(l)
+    median = lambda l: sorted(l)[len(l) // 2]
+
+
+import mathics
+from mathics.core.parser import parse, MultiLineFeeder, SingleLineFeeder
+from mathics.core.definitions import Definitions
+from mathics.core.evaluation import Evaluation
+
+from six.moves import map
+from six.moves import range
 
 # Default number of times to repeat each benchmark. None -> Automatic
 TESTS_PER_BENCHMARK = None
+
 
 # Mathics expressions to benchmark
 BENCHMARKS = {
@@ -53,28 +62,21 @@ BENCHMARKS = {
         'RandomInteger[{0,10}, {10,10}] + RandomInteger[{0,10}, {10,10}]'],
 }
 
+DEPTH = 300
+
 PARSING_BENCHMARKS = [
-    "+".join(map(str, range(1, 1000))),
-    ";".join(map(str, range(1, 1000))),
-    "/".join(map(str, range(1, 1000))),
-    "^".join(map(str, range(1, 1000))),
-    "! " * 1000 + 'expr',
-    "!" * 1000 + 'expr',
-    'expr' + "& " * 1000,
-    "Sin[" * 1000 + '0.5' + "]" * 1000,
+    "+".join(map(str, range(1, DEPTH))),
+    ";".join(map(str, range(1, DEPTH))),
+    "/".join(map(str, range(1, DEPTH))),
+    "^".join(map(str, range(1, DEPTH))),
+    "! " * DEPTH + 'expr',
+    "!" * DEPTH + 'expr',
+    'expr' + "& " * DEPTH,
+    "Sin[" * DEPTH + '0.5' + "]" * DEPTH,
 ]
 
-import sys
-import time
-from argparse import ArgumentParser
-
-import mathics
-from mathics.core.parser import parse
-from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation
-
 definitions = Definitions(add_builtin=True)
-evaluation = None
+evaluation = Evaluation(definitions=definitions, catch_interrupt=False)
 
 
 def format_time_units(seconds):
@@ -96,27 +98,30 @@ def timeit(func, repeats=None):
     times = []
     if repeats is not None:
         # Fixed number of repeats
-        for i in xrange(repeats):
+        for i in range(repeats):
             times.append(time.clock())
             func()
     else:
         # Automatic number of repeats
         repeats = 10000
-        for i in xrange(repeats):
+        for i in range(repeats):
             times.append(time.clock())
             func()
-            if any(i == j for j in (5, 10, 100, 1000, 5000)):
+            if (i + 1) in (5, 10, 100, 1000, 5000):
                 if times[-1] > times[0] + 1:
-                    repeats = i
+                    repeats = i + 1
                     break
 
     times.append(time.clock())
 
-    average_time = format_time_units((times[-1] - times[0]) / repeats)
-    best_time = format_time_units(
-        min([times[i + 1] - times[i] for i in range(repeats)]))
-    print "    {0:5n} loops, avg: {1} per loop, best: {2} per loop".format(
-        repeats, average_time, best_time)
+    times = [times[i+1] - times[i] for i in range(repeats)]
+
+    average_time = format_time_units(mean(times))
+    best_time = format_time_units(min(times))
+    median_time = format_time_units(median(times))
+
+    print("    {0:5n} loops, avg: {1}, best: {2}, median: {3} per loop".format(
+        repeats, average_time, best_time, median_time))
 
 
 def truncate_line(string):
@@ -126,36 +131,58 @@ def truncate_line(string):
 
 
 def benchmark_parse(expression_string):
-    print "  '{0}'".format(truncate_line(expression_string))
-    timeit(lambda: parse(expression_string, definitions))
+    print("  '{0}'".format(truncate_line(expression_string)))
+    timeit(lambda: parse(definitions, SingleLineFeeder(expression_string)))
+
+
+def benchmark_parse_file(fname):
+    try:
+        import urllib.request
+    except ImportError:
+        print('install urllib for Combinatorica parsing test')
+        return
+    print("  '{0}'".format(truncate_line(fname)))
+    with urllib.request.urlopen(fname) as f:
+        code = f.read().decode('utf-8')
+
+    def do_parse():
+        feeder = MultiLineFeeder(code)
+        while not feeder.empty():
+            parse(definitions, feeder)
+    timeit(do_parse)
+
+
+def benchmark_parser():
+    print("PARSING BENCHMARKS:")
+    for expression_string in PARSING_BENCHMARKS:
+        benchmark_parse(expression_string)
+    benchmark_parse_file(
+        'http://www.cs.uiowa.edu/~sriram/Combinatorica/NewCombinatorica.m')
 
 
 def benchmark_format(expression_string):
-    print "  '{0}'".format(expression_string)
-    expr = parse(expression_string, definitions)
+    print("  '{0}'".format(expression_string))
+    expr = parse(definitions, SingleLineFeeder(expression_string))
     timeit(lambda: expr.default_format(evaluation, "FullForm"))
 
 
 def benchmark_expression(expression_string):
-    print "  '{0}'".format(expression_string)
-    expr = parse(expression_string, definitions)
+    print("  '{0}'".format(expression_string))
+    expr = parse(definitions, SingleLineFeeder(expression_string))
     timeit(lambda: expr.evaluate(evaluation))
 
 
 def benchmark_section(section_name):
-    print section_name
+    print(section_name)
     for benchmark in BENCHMARKS.get(section_name):
         benchmark_expression(benchmark)
-    print ""
+    print()
 
 
-def benchmark_all():
-    print "EVALUATION BENCHMARKS:"
+def benchmark_all_sections():
+    print("EVALUATION BENCHMARKS:")
     for section_name in sorted(BENCHMARKS.keys()):
         benchmark_section(section_name)
-    print "PARSING BENCHMARKS:"
-    for expression_string in PARSING_BENCHMARKS:
-        benchmark_parse(expression_string)
 
 
 def main():
@@ -175,6 +202,9 @@ def main():
         help="only test SECTION")
 
     parser.add_argument(
+        '-p', '--parser', action='store_true', help="only test parser")
+
+    parser.add_argument(
         '--expression', '-e', dest="expression", metavar="EXPRESSION",
         help="benchmark a valid Mathics expression")
 
@@ -184,14 +214,6 @@ def main():
 
     args = parser.parse_args()
 
-    try:
-        evaluation = Evaluation("", definitions, catch_interrupt=False)
-    except Exception, exc:
-        print "Exception {0}".format(exc)
-        info = sys.exc_info()
-        sys.excepthook(*info)
-        sys.exit(-1)
-
     if args.repeat is not None:
         TESTS_PER_BENCHMARK = int(args.repeat)
 
@@ -199,8 +221,11 @@ def main():
         benchmark_expression(args.expression)
     elif args.section:
         benchmark_section(args.section)
+    elif args.parser:
+        benchmark_parser()
     else:
-        benchmark_all()
+        benchmark_all_sections()
+        benchmark_parser()
 
 if __name__ == '__main__':
     main()

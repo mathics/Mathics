@@ -1,27 +1,14 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # cython: profile=False
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from mathics.core.expression import (Expression, system_symbols,
                                      ensure_context)
 from mathics.core.util import subsets, subranges, permutations
+from six.moves import range
 
 # from mathics.core.pattern_nocython import (
 #    StopGenerator #, Pattern #, ExpressionPattern)
@@ -56,9 +43,6 @@ class StopGenerator_Pattern(StopGenerator):
 
 
 class Pattern(object):
-    #@staticmethod
-    # def create(expr):
-
     create = staticmethod(Pattern_create)
 
     def match(self, yield_func, expression, vars, evaluation, head=None,
@@ -88,7 +72,7 @@ class Pattern(object):
             raise StopGenerator_Pattern(True)
         try:
             self.match(yield_match, expression, vars, evaluation, fully=fully)
-        except StopGenerator_Pattern, exc:
+        except StopGenerator_Pattern as exc:
             return exc.value
         return False
 
@@ -128,14 +112,12 @@ class Pattern(object):
     def has_form(self, *args):
         return self.expr.has_form(*args)
 
-    def get_match_candidates(
-            self, leaves, expression, attributes, evaluation, vars={}):
+    def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
         return []
 
     def get_match_candidates_count(
             self, leaves, expression, attributes, evaluation, vars={}):
-        return len(self.get_match_candidates(
-            leaves, expression, attributes, evaluation, vars))
+        return len(self.get_match_candidates(leaves, expression, attributes, evaluation, vars))
 
 
 class AtomPattern(Pattern):
@@ -144,7 +126,7 @@ class AtomPattern(Pattern):
         self.expr = expr
 
     def __repr__(self):
-        return (u'<AtomPattern: %s>' % self.atom).encode('unicode_escape')
+        return '<AtomPattern: %s>' % self.atom
 
     def match(self, yield_func, expression, vars, evaluation, head=None,
               leaf_index=None, leaf_count=None, fully=True, wrap_oneid=True):
@@ -152,8 +134,7 @@ class AtomPattern(Pattern):
             # yield vars, None
             yield_func(vars, None)
 
-    def get_match_candidates(
-            self, leaves, expression, attributes, evaluation, vars={}):
+    def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
         return [leaf for leaf in leaves if leaf.same(self.atom)]
 
     def get_match_count(self, vars={}):
@@ -271,13 +252,12 @@ class ExpressionPattern(Pattern):
                             groups[name] = [prev_pattern, pattern]
                     prev_pattern = pattern
                     prev_name = name
-            expr_groups = {}
             # prev_leaf = None
+
+            # count duplicate leaves
+            expr_groups = {}
             for leaf in expression.leaves:
-                if leaf in expr_groups:
-                    expr_groups[leaf] += 1
-                else:
-                    expr_groups[leaf] = 1
+                expr_groups[leaf] = expr_groups.get(leaf, 0) + 1
 
             def per_name(yield_name, groups, vars):
                 """
@@ -308,11 +288,11 @@ class ExpressionPattern(Pattern):
                         """
 
                         if expr_groups:
-                            expr, count = expr_groups[0]
+                            expr, count = expr_groups.popitem()
                             max_per_pattern = count / len(patterns)
                             for per_pattern in range(max_per_pattern, -1, -1):
                                 for next in per_expr(   # nopep8
-                                    expr_groups[1:], sum + per_pattern):
+                                    expr_groups, sum + per_pattern):
                                     yield_expr([expr] * per_pattern + next)
                         else:
                             if sum >= match_count[0]:
@@ -329,14 +309,14 @@ class ExpressionPattern(Pattern):
                                 setting[name] = wrapping
                                 yield_name(setting)
                             per_name(yield_next, groups[1:], vars)
-                    per_expr(yield_expr, expr_groups.items())
+                    per_expr(yield_expr, expr_groups)
                 else:  # no groups left
                     yield_name(vars)
 
             # for setting in per_name(groups.items(), vars):
             # def yield_name(setting):
             #    yield_func(setting)
-            per_name(yield_func, groups.items(), vars)
+            per_name(yield_func, list(groups.items()), vars)
         else:
             yield_func(vars)
 
@@ -351,7 +331,7 @@ class ExpressionPattern(Pattern):
                 if leaf.get_head_name() == head_name]
 
     def __repr__(self):
-        return (u'<ExpressionPattern: %s>' % self.expr).encode('unicode_escape')
+        return '<ExpressionPattern: %s>' % self.expr
 
     def get_match_count(self, vars={}):
         return (1, 1)
@@ -392,11 +372,9 @@ class ExpressionPattern(Pattern):
         if len(leaf_candidates) < match_count[0]:
             return
 
-        # STRANGE: candidate in leaf_candidates causes BusError for
-        # Real ^ Integer (e.g. 2.0^3) when not converted to a set!
-        leaf_candidates = set(leaf_candidates)
-
         candidates = rest_expression[1]
+
+        leaf_candidates = set(leaf_candidates)  # for fast lookup
 
         # "Artificially" only use more leaves than specified for some kind
         # of pattern.
@@ -450,8 +428,6 @@ class ExpressionPattern(Pattern):
                              included=leaf_candidates, less_first=less_first,
                              *set_lengths)
 
-        # print "Match %s in %s" % (leaf, expression)
-
         if rest_leaves:
             next_leaf = rest_leaves[0]
             next_rest_leaves = rest_leaves[1:]
@@ -459,10 +435,6 @@ class ExpressionPattern(Pattern):
         next_index = leaf_index + 1
 
         for items, items_rest in sets:
-            # try:
-            # print (u"  " + u", ".join(unicode(item)
-            #        for item in items)).encode('utf-8')
-            # except
             # Include wrappings like Plus[a, b] only if not all items taken
             # - in that case we would match the same expression over and over.
 
@@ -514,8 +486,7 @@ class ExpressionPattern(Pattern):
         """
         # TODO: fixed_vars!
 
-        return [leaf for leaf in leaves
-                if self.does_match(leaf, evaluation, vars)]
+        return [leaf for leaf in leaves if self.does_match(leaf, evaluation, vars)]
 
     def get_match_candidates_count(self, leaves, expression, attributes,
                                    evaluation, vars={}):

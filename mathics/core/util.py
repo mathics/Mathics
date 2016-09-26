@@ -1,22 +1,12 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from six.moves import range
+from six import unichr
 
 import re
 
@@ -73,7 +63,7 @@ def permutations(items, without_duplicates=True):
 def subsets(items, min, max, included=None, less_first=False):
     if max is None:
         max = len(items)
-    lengths = range(min, max + 1)
+    lengths = list(range(min, max + 1))
     if not less_first:
         lengths = reversed(lengths)
     lengths = list(lengths)
@@ -140,13 +130,13 @@ def subsets_2(items, min, max, without_duplicates=True):
                         yield set
                 for set in decide(chosen, not_chosen + [rest[0]], rest[1:]):
                     yield set
-        for subset in decide([], [], counts.keys()):
+        for subset in decide([], [], list(counts.keys())):
             t = tuple(subset[0])
             if t not in already:
                 yield subset
                 already.add(t)
             else:
-                print 'already taken'
+                print('already taken')
 
 
 def subranges(items, min_count, max, flexible_start=False, included=None,
@@ -157,11 +147,11 @@ def subranges(items, min_count, max, flexible_start=False, included=None,
         max = len(items)
     max = min(max, len(items))
     if flexible_start:
-        starts = range(len(items) - max + 1)
+        starts = list(range(len(items) - max + 1))
     else:
         starts = (0,)
     for start in starts:
-        lengths = range(min_count, max + 1)
+        lengths = list(range(min_count, max + 1))
         if not less_first:
             lengths = reversed(lengths)
         lengths = list(lengths)
@@ -191,4 +181,4 @@ def unicode_superscript(value):
         else:
             value = ord(c)
         return unichr(value)
-    return u''.join(repl_char(c) for c in value)
+    return ''.join(repl_char(c) for c in value)

@@ -1,0 +1,15 @@
+[run]
+branch = True
+
+[report]
+exclude_lines =
+    pragma: no cover
+    raise NotImplementedError
+    if __name__ == .__main__.:
+ignore_errors = True
+omit =
+    setup.py
+    mathics/doc/*
+    mathics/builtin/pymimesniffer/*
+    mathics/manage.py
+    mathics/test.py

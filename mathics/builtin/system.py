@@ -1,14 +1,18 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 System functions
 """
 
-import re
+from __future__ import unicode_literals
+from __future__ import absolute_import
+
+import sys
 
 from mathics.core.expression import Expression, String, strip_context
 from mathics.builtin.base import Builtin, Predefined
-from mathics import get_version_string
+from mathics import version_string
 
 
 class Version(Predefined):
@@ -25,7 +29,7 @@ class Version(Predefined):
     name = '$Version'
 
     def evaluate(self, evaluation):
-        return String(get_version_string(True))
+        return String(version_string.replace('\n', ' '))
 
 
 class Names(Builtin):
@@ -37,8 +41,12 @@ class Names(Builtin):
 
     >> Names["List"]
      = {List}
+
+    The wildcard '*' matches any character:
     >> Names["List*"]
      = {List, ListLinePlot, ListPlot, ListQ, Listable}
+
+    The wildcard '@' matches only lowercase characters:
     >> Names["List@"]
      = {Listable}
 
@@ -69,3 +77,67 @@ class Names(Builtin):
         # TODO: Mathematica ignores contexts when it sorts the list of
         # names.
         return Expression('List', *[String(name) for name in sorted(names)])
+
+
+class Aborted(Predefined):
+    """
+    <dl>
+    <dt>'$Aborted'
+        <dd>is returned by a calculation that has been aborted.
+    </dl>
+    """
+
+    name = '$Aborted'
+
+
+class Failed(Predefined):
+    """
+    <dl>
+    <dt>'$Failed'
+        <dd>is returned by some functions in the event of an error.
+    </dl>
+
+    >> Get["nonexistent_file.m"]
+     : Cannot open nonexistent_file.m.
+     = $Failed
+    """
+
+    name = '$Failed'
+
+
+class CommandLine(Predefined):
+    '''
+    <dl>
+    <dt>'$CommandLine'
+      <dd>is a list of strings passed on the command line to launch the Mathics session.
+    </dl>
+    >> $CommandLine
+     = {...}
+    '''
+
+    name = '$CommandLine'
+
+    def evaluate(self, evaluation):
+        return Expression('List', *(String(arg) for arg in sys.argv))
+
+
+class ScriptCommandLine(Predefined):
+    '''
+    <dl>
+    <dt>'$ScriptCommandLine'
+      <dd>is a list of string arguments when running the kernel is script mode.
+    </dl>
+    >> $ScriptCommandLine
+     = {...}
+    '''
+
+    name = '$ScriptCommandLine'
+
+    def evaluate(self, evaluation):
+        try:
+            dash_index = sys.argv.index('--')
+        except ValueError:
+            # not run in script mode
+            return Expression('List')
+
+        return Expression('List', *(String(arg) for arg in sys.argv[dash_index + 1:]))

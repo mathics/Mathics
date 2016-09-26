@@ -1,4 +1,8 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from mathics.builtin.base import BinaryOperator, Predefined, PrefixOperator
 from mathics.core.expression import Expression, Symbol
@@ -6,10 +10,19 @@ from mathics.core.expression import Expression, Symbol
 
 class Or(BinaryOperator):
     """
-    'Or[$expr1$, $expr2$, ...]' evaluates expressions until one evaluation results in 'True',
-    in which case 'Or' returns 'True'. If all expressions evaluate to 'False', 'Or' returns 'False'.
+    <dl>
+    <dt>'Or[$expr1$, $expr2$, ...]'
+    <dt>'$expr1$ || $expr2$ || ...'
+        <dd>evaluates each expression in turn, returning 'True'
+        as soon as an expression evaluates to 'True'. If all
+        expressions evaluate to 'False', 'Or' returns 'False'.
+    </dl>
+
     >> False || True
      = True
+
+    If an expression does not evaluate to 'True' or 'False', 'Or'
+    returns a result in symbolic form:
     >> a || False || b
      = a || b
     """
@@ -41,12 +54,18 @@ class Or(BinaryOperator):
 class And(BinaryOperator):
     """
     <dl>
-        <dt>'And[$expr1$, $expr2$, ...]'
-        <dd>evaluates expressions until one evaluation results in 'False',
-        in which case 'And' returns 'False'. If all expressions evaluate to 'True', 'And' returns 'True'.
+    <dt>'And[$expr1$, $expr2$, ...]'
+    <dt>'$expr1$ && $expr2$ && ...'
+        <dd>evaluates each expression in turn, returning 'False'
+        as soon as an expression evaluates to 'False'. If all
+        expressions evaluate to 'True', 'And' returns 'True'.
     </dl>
+
     >> True && True && False
      = False
+
+    If an expression does not evaluate to 'True' or 'False', 'And'
+    returns a result in symbolic form:
     >> a && b && True && c
      = a && b && c
     """
@@ -77,7 +96,12 @@ class And(BinaryOperator):
 
 class Not(PrefixOperator):
     """
-    'Not' negates a logical expression.
+    <dl>
+    <dt>'Not[$expr$]'
+    <dt>'!$expr$'
+        <dd>negates the logical expression $expr$.
+    </dl>
+
     >> !True
      = False
     >> !False
@@ -96,8 +120,20 @@ class Not(PrefixOperator):
 
 
 class True_(Predefined):
+    """
+    <dl>
+    <dt>'True'
+        <dd>represents the Boolean true value.
+    </dl>
+    """
     name = 'True'
 
 
 class False_(Predefined):
+    """
+    <dl>
+    <dt>'False'
+        <dd>represents the Boolean false value.
+    </dl>
+    """
     name = 'False'

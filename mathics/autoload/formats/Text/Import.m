@@ -33,7 +33,7 @@ WordsImport[stream_]:=
         {"Words" -> words}
     ]
 
-RegisterImport[
+ImportExport`RegisterImport[
     "Text",
     {
         "Data" :> System`Convert`TextDump`DataImport,

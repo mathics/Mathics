@@ -1,6 +1,45 @@
 CHANGES
 =======
 
+0.9
+---
+
+New features:
+
+- Improved syntax error messages #329
+- SVD, LeastSquares, PseudoInverse #258, #321
+- Python 3 support #317
+- Improvements to Riffle #313
+- Tweaks to PolarPlot #305
+- StringTake #285
+- Norm #268 #270
+- Total, Accumulate, FoldList, Fold #264, #252
+- Flatten #253 #269
+- Which with symbolic arguments #250
+- Min/Max with symbolic arguments # 249
+
+Dependency Updates:
+
+- upgraded to ply 3.8 (issue #246)
+- dropped interrupting cow #317
+- added six (already required by django) #317
+
+Bug fixes:
+
+- Span issues with negative indices #196 fixed by #263 #325
+- SVG export bug fixed by #324
+- Django runserver threading issue #158 fixed by #323
+- asymptote bug building docs #297 fixed by #317
+- Simplify issue #254 fixed by #322
+- ParametricPlot bug fixed by #320
+- DensityPlot SVG regression in the web interface.
+- main function for server.py #288, #289 fixed by #298
+- ply table regeneration #294 fixed by #295
+- Print bar issue #290 fixed by #293
+- Quit[] index error #292 partially fixed by #307
+- Quit definition fixed by #286
+- Conjugate issue #272 fixed by #281
+
 0.8
 ---
 
@@ -36,7 +75,7 @@ New features:
 
 Bugs fixed:
 
-- Fix unevalued index handling (issue #217)
+- Fix unevaluated index handling (issue #217)
 - Fix ``Solve`` treating one solution equal to 1 as a tautology (issue
   #208)
 - Fix temporary symbols appearing in the result when taking
@@ -45,7 +84,7 @@ Bugs fixed:
 - Fix mathicsserver wildcard address binding
 - Fix ``Dot`` acting on matrices in MatrixForm (issue #145)
 - Fix Sum behaviour when using range to generate index values (issue #149)
-- Fix behaviour of plot with unevalated arguments (issue #150)
+- Fix behaviour of plot with unevaluated arguments (issue #150)
 - Fix zero-width space between factors in MathJax output (issue #45)
 - Fix ``{{2*a, 0},{0,0}}//MatrixForm`` crashing in the web interface
   (issue #182)

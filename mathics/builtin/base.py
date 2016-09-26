@@ -1,31 +1,20 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import re
 import sympy
+from functools import total_ordering
+import importlib
 
 from mathics.core.definitions import Definition
 from mathics.core.rules import Rule, BuiltinRule, Pattern
 from mathics.core.expression import (BaseExpression, Expression, Symbol,
                                      String, Integer, ensure_context,
                                      strip_context)
+import six
 
 
 class Builtin(object):
@@ -89,7 +78,7 @@ class Builtin(object):
                 return '' if f == '' else ensure_context(f)
             if isinstance(pattern, tuple):
                 forms, pattern = pattern
-                if isinstance(forms, str):
+                if isinstance(forms, six.string_types):
                     forms = [contextify_form_name(forms)]
                 else:
                     forms = [contextify_form_name(f) for f in forms]
@@ -108,10 +97,12 @@ class Builtin(object):
         for pattern, replace in self.formats.items():
             forms, pattern = extract_forms(name, pattern)
             for form in forms:
-                if not form in formatvalues:
+                if form not in formatvalues:
                     formatvalues[form] = []
                 if not isinstance(pattern, BaseExpression):
+                    pattern = pattern % {'name': name}
                     pattern = parse_builtin_rule(pattern)
+                replace = replace % {'name': name}
                 formatvalues[form].append(Rule(
                     pattern, parse_builtin_rule(replace), system=True))
         for form, formatrules in formatvalues.items():
@@ -127,7 +118,7 @@ class Builtin(object):
             attributes = ['System`Protected']
         attributes += list(ensure_context(a) for a in self.attributes)
         options = {}
-        for option, value in self.options.iteritems():
+        for option, value in six.iteritems(self.options):
             option = ensure_context(option)
             options[option] = parse_builtin_rule(value)
             if option.startswith('System`'):
@@ -138,7 +129,7 @@ class Builtin(object):
                     definitions.builtin[option] = Definition(
                         name=name, attributes=set())
         defaults = []
-        for spec, value in self.defaults.iteritems():
+        for spec, value in six.iteritems(self.defaults):
             value = parse_builtin_rule(value)
             pattern = None
             if spec is None:
@@ -158,11 +149,13 @@ class Builtin(object):
             makeboxes_def.add_rule(rule)
 
     @classmethod
-    def get_name(cls):
+    def get_name(cls, short=False):
         if cls.name is None:
             shortname = cls.__name__
         else:
             shortname = cls.name
+        if short:
+            return shortname
         return cls.context + shortname
 
     def get_operator(self):
@@ -174,6 +167,7 @@ class Builtin(object):
     def get_functions(self, prefix='apply'):
         from mathics.core.parser import parse_builtin_rule
 
+        unavailable_function = self._get_unavailable_function()
         for name in dir(self):
             if name.startswith(prefix):
                 function = getattr(self, name)
@@ -189,6 +183,8 @@ class Builtin(object):
                     attrs = []
                 pattern = pattern % {'name': self.get_name()}
                 pattern = parse_builtin_rule(pattern)
+                if unavailable_function:
+                    function = unavailable_function
                 if attrs:
                     yield (attrs, pattern), function
                 else:
@@ -202,6 +198,31 @@ class Builtin(object):
         else:
             return None
 
+    def _get_unavailable_function(self):
+        requires = getattr(self, 'requires', [])
+
+        for package in requires:
+            try:
+                importlib.import_module(package)
+            except ImportError:
+                def apply(**kwargs):  # will override apply method
+                    kwargs['evaluation'].message(
+                        'General', 'pyimport',  # see inout.py
+                        strip_context(self.get_name()), package)
+
+                return apply
+
+        return None
+
+    def get_option_string(self, *params):
+        s = self.get_option(*params)
+        if isinstance(s, String):
+            return s.get_string_value(), s
+        elif isinstance(s, Symbol):
+            for prefix in ('Global`', 'System`'):
+                if s.get_name().startswith(prefix):
+                    return s.get_name()[len(prefix):], s
+        return None, s
 
 class InstancableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):
@@ -228,6 +249,16 @@ class InstancableBuiltin(Builtin):
         pass
 
 
+class AtomBuiltin(Builtin):
+    # allows us to define apply functions, rules, messages, etc. for Atoms
+    # which are by default not in the definitions' contribution pipeline.
+    # see Image[] for an example of this.
+
+    def get_name(self):
+        name = super(AtomBuiltin, self).get_name()
+        return re.sub(r"Atom$", "", name)
+
+
 class Operator(Builtin):
     operator = None
     precedence = None
@@ -244,19 +275,6 @@ class Operator(Builtin):
             return self.operator_display
         else:
             return self.operator
-
-    def is_binary(self):
-        return False
-
-    def is_prefix(self):
-        return False
-
-    def is_postfix(self):
-        return False
-
-    def post_parse(self, expression):
-        return Expression(expression.head.post_parse(), *[
-            leaf.post_parse() for leaf in expression.leaves])
 
 
 class Predefined(Builtin):
@@ -275,7 +293,7 @@ class UnaryOperator(Operator):
             name = 'Verbatim[%s]' % name
         if self.default_formats:
             op_pattern = '%s[item_]' % name
-            if not op_pattern in self.formats:
+            if op_pattern not in self.formats:
                 operator = self.get_operator_display()
                 if operator is not None:
                     form = '%s[{HoldForm[item]},"%s",%d]' % (
@@ -287,16 +305,10 @@ class PrefixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PrefixOperator, self).__init__('Prefix', *args, **kwargs)
 
-    def is_prefix(self):
-        return True
-
 
 class PostfixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
         super(PostfixOperator, self).__init__('Postfix', *args, **kwargs)
-
-    def is_postfix(self):
-        return True
 
 
 class BinaryOperator(Operator):
@@ -335,9 +347,6 @@ class BinaryOperator(Operator):
             default_rules.update(self.rules)
             self.rules = default_rules
 
-    def is_binary(self):
-        return True
-
 
 class Test(Builtin):
     def apply(self, expr, evaluation):
@@ -360,22 +369,35 @@ class SympyObject(Builtin):
     def is_constant(self):
         return False
 
+    def get_sympy_names(self):
+        if self.sympy_name:
+            return [self.sympy_name]
+        return []
+
 
 class SympyFunction(SympyObject):
     def prepare_sympy(self, leaves):
         return leaves
 
+    def get_sympy_function(self, leaves):
+        if self.sympy_name:
+            return getattr(sympy, self.sympy_name)
+        return None
+
     def to_sympy(self, expr, **kwargs):
         try:
             if self.sympy_name:
                 leaves = self.prepare_sympy(expr.leaves)
-                return getattr(sympy, self.sympy_name)(*(
-                    leaf.to_sympy(**kwargs) for leaf in leaves))
+                sympy_args = [leaf.to_sympy(**kwargs) for leaf in leaves]
+                if None in sympy_args:
+                    return None
+                sympy_function = self.get_sympy_function(leaves)
+                return sympy_function(*sympy_args)
         except TypeError:
             pass
 
-    def from_sympy(self, leaves):
-        return leaves
+    def from_sympy(self, sympy_name, leaves):
+        return Expression(self.get_name(), *leaves)
 
     def prepare_mathics(self, sympy_expr):
         return sympy_expr
@@ -389,8 +411,11 @@ class SympyConstant(SympyObject, Predefined):
         return True
 
     def to_sympy(self, expr, **kwargs):
-        # there is no "native" SymPy expression for e.g. E[x]
-        return None
+        if expr.is_atom():
+            return getattr(sympy, self.sympy_name)
+        else:
+            # there is no "native" SymPy expression for e.g. E[x]
+            return None
 
 
 class InvalidLevelspecError(Exception):
@@ -478,3 +503,103 @@ class PatternObject(InstancableBuiltin, Pattern):
 
     def get_attributes(self, definitions):
         return self.head.get_attributes(definitions)
+
+
+class MessageException(Exception):
+    def __init__(self, *message):
+        self._message = message
+
+    def message(self, evaluation):
+        evaluation.message(*self._message)
+
+
+class NegativeIntegerException(Exception):
+    pass
+
+
+@total_ordering
+class CountableInteger:
+    """
+    CountableInteger is an integer specifying a countable amount (including
+    zero) that can optionally be specified as an upper bound through UpTo[].
+    """
+
+    # currently MMA does not support UpTo[Infinity], but Infinity already shows
+    # up in UpTo's parameter error messages as supported option; it would make
+    # perfect sense. currently, we stick with MMA's current behaviour and set
+    # _support_infinity to False.
+    _support_infinity = False
+
+    def __init__(self, value='Infinity', upper_limit=True):
+        self._finite = (value != 'Infinity')
+        if self._finite:
+            assert isinstance(value, int) and value >= 0
+            self._integer = value
+        else:
+            assert upper_limit
+            self._integer = None
+        self._upper_limit = upper_limit
+
+    def is_upper_limit(self):
+        return self._upper_limit
+
+    def get_int_value(self):
+        assert self._finite
+        return self._integer
+
+    def __eq__(self, other):
+        if isinstance(other, CountableInteger):
+            if self._finite:
+                return other._finite and self._integer == other._integer
+            else:
+                return not other._finite
+        elif isinstance(other, int):
+            return self._finite and self._integer == other
+        else:
+            return False
+
+    def __lt__(self, other):
+        if isinstance(other, CountableInteger):
+            if self._finite:
+                return other._finite and self._integer < other._value
+            else:
+                return False
+        elif isinstance(other, int):
+            return self._finite and self._integer < other
+        else:
+            return False
+
+    @staticmethod
+    def from_expression(expr):
+        """
+        :param expr: expression from which to build a CountableInteger
+        :return: an instance of CountableInteger or None, if the whole
+        original expression should remain unevaluated.
+        :raises: MessageException, NegativeIntegerException
+        """
+
+        if isinstance(expr, Integer):
+            py_n = expr.get_int_value()
+            if py_n >= 0:
+                return CountableInteger(py_n, upper_limit=False)
+            else:
+                raise NegativeIntegerException()
+        elif expr.get_head_name() == 'System`UpTo':
+            if len(expr.leaves) != 1:
+                raise MessageException('UpTo', 'argx', len(expr.leaves))
+            else:
+                n = expr.leaves[0]
+                if isinstance(n, Integer):
+                    py_n = n.get_int_value()
+                    if py_n < 0:
+                        raise MessageException('UpTo', 'innf', expr)
+                    else:
+                        return CountableInteger(py_n, upper_limit=True)
+                elif CountableInteger._support_infinity:
+                    if n.get_head_name() == 'System`DirectedInfinity' and len(n.leaves) == 1:
+                        if n.leaves[0].get_int_value() > 0:
+                            return CountableInteger('Infinity', upper_limit=True)
+                        else:
+                            return CountableInteger(0, upper_limit=True)
+
+        return None  # leave original expression unevaluated

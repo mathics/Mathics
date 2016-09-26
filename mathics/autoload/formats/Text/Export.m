@@ -12,7 +12,7 @@ TextExport[filename_, expr_, opts___] :=
     Close[strm];
   ]
 
-RegisterExport[
+ImportExport`RegisterExport[
     "Text",
 	System`Convert`TextDump`TextExport,
 	FunctionChannels -> {"FileNames"},

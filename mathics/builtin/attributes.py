@@ -1,4 +1,5 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 r"""
 Attributes
@@ -7,13 +8,16 @@ There are several builtin-attributes which have a predefined meaning in \Mathics
 However, you can set any symbol as an attribute, in contrast to \Mathematica.
 """
 
+from __future__ import unicode_literals
+from __future__ import absolute_import
+
 from mathics.builtin.base import Predefined, Builtin
 from mathics.core.expression import Symbol, Expression
 from mathics.builtin.assignment import get_symbol_list
 
 
 class Attributes(Builtin):
-    u"""
+    """
     <dl>
     <dt>'Attributes'[$symbol$]
         <dd>returns the attributes of $symbol$.
@@ -307,7 +311,7 @@ class Orderless(Predefined):
     <dl>
     <dt>'Orderless'
         <dd>is an attribute indicating that the leaves in an
-        expression f[a, b, c] can be placed in any order.
+        expression 'f[a, b, c]' can be placed in any order.
     </dl>
 
     The leaves of an 'Orderless' function are automatically sorted:
@@ -331,7 +335,7 @@ class OneIdentity(Predefined):
     """
     <dl>
     <dt>'OneIdentity'
-        <dd>is an attribute specifying that $f$[$x$] should be treated
+        <dd>is an attribute specifying that '$f$[$x$]' should be treated
         as equivalent to $x$ in pattern matching.
     </dl>
 

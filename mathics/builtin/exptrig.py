@@ -1,4 +1,5 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Exponential, trigonometric and hyperbolic functions
@@ -8,28 +9,31 @@ Numerical values and derivatives can be computed; however, most special exact va
 rules are not implemented yet.
 """
 
-from __future__ import with_statement
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import sympy
 import mpmath
+import math
 
 from mathics.builtin.base import Builtin, SympyConstant
-from mathics.core.expression import Real, Expression, Integer
-from mathics.core.numbers import dps
+from mathics.core.expression import (
+    Expression, Real, Integer, Symbol, PrecisionReal, MachineReal, Number)
+from mathics.core.numbers import dps, get_precision, PrecisionValueError
 
-from mathics.builtin.numeric import get_precision
+from mathics.builtin.numeric import Fold
 from mathics.builtin.arithmetic import _MPMathFunction
 
 
 class Pi(SympyConstant):
-    u"""
+    """
     <dl>
     <dt>'Pi'
         <dd>is the constant \u03c0.
     </dl>
 
     >> N[Pi]
-     = 3.14159265358979324
+     = 3.14159
     >> N[Pi, 50]
      = 3.1415926535897932384626433832795028841971693993751
 
@@ -41,9 +45,16 @@ class Pi(SympyConstant):
 
     def apply_N(self, precision, evaluation):
         'N[Pi, precision_]'
-        precision = get_precision(precision, evaluation)
-        if precision is not None:
-            return Real(sympy.pi.n(dps(precision)), p=precision)
+
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        if d is None:
+            return MachineReal(math.pi)
+        else:
+            return PrecisionReal(sympy.pi.n(d))
 
 
 class E(SympyConstant):
@@ -54,24 +65,31 @@ class E(SympyConstant):
     </dl>
 
     >> N[E]
-     = 2.71828182845904524
+     = 2.71828
     >> N[E, 50]
-     = 2.7182818284590452353602874713526624977572470937
+     = 2.7182818284590452353602874713526624977572470937000
 
     >> Attributes[E]
      = {Constant, Protected, ReadProtected}
 
     #> 5. E
-     = 13.5914091422952262
+     = 13.5914
     """
 
     sympy_name = 'E'
 
     def apply_N(self, precision, evaluation):
         'N[E, precision_]'
-        precision = get_precision(precision, evaluation)
-        if precision is not None:
-            return Real(sympy.E.n(dps(precision)), p=precision)
+
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        if d is None:
+            return MachineReal(math.e)
+        else:
+            return PrecisionReal(sympy.E.n(d))
 
 
 class GoldenRatio(SympyConstant):
@@ -82,7 +100,7 @@ class GoldenRatio(SympyConstant):
     </dl>
 
     >> N[GoldenRatio]
-     = 1.61803398874989485
+     = 1.61803
     """
 
     sympy_name = 'GoldenRatio'
@@ -90,6 +108,51 @@ class GoldenRatio(SympyConstant):
     rules = {
         'N[GoldenRatio, prec_]': 'N[(1+Sqrt[5])/2, prec]',
     }
+
+
+class Degree(SympyConstant):
+    """
+    <dl>
+    <dt>'Degree'
+        <dd>is the number of radians in one degree.
+    </dl>
+
+    >> Cos[60 Degree]
+     = 1 / 2
+
+    Degree has the value of Pi / 180
+    >> Degree == Pi / 180
+     = True
+
+    #> Cos[Degree[x]]
+     = Cos[Degree[x]]
+
+    ## Issue 274
+    #> \[Degree] == ° == Degree
+     = True
+
+    #> N[Degree]
+     = 0.0174533
+    #> N[Degree, 30]
+     = 0.0174532925199432957692369076849
+    """
+
+    def to_sympy(self, expr):
+        if expr == Symbol('System`Degree'):
+            return sympy.pi / 180
+
+    def apply_N(self, precision, evaluation):
+        'N[Degree, precision_]'
+
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        if d is None:
+            return MachineReal(math.pi / 180)
+        else:
+            return PrecisionReal((sympy.pi / 180).n(d))
 
 
 class Exp(_MPMathFunction):
@@ -102,18 +165,25 @@ class Exp(_MPMathFunction):
     >> Exp[1]
      = E
     >> Exp[10.0]
-     = 22026.4657948067169
+     = 22026.5
     >> Exp[x] //FullForm
      = Power[E, x]
 
     >> Plot[Exp[x], {x, 0, 3}]
      = -Graphics-
+
+    #> Exp[1.*^20]
+     : Overflow occurred in computation.
+     = Overflow[]
     """
 
     rules = {
         'Exp[x_]': 'E ^ x',
         'Derivative[1][Exp]': 'Exp',
     }
+
+    def from_sympy(self, sympy_name, leaves):
+        return Expression('Power', Symbol('E'), leaves[0])
 
 
 class Log(_MPMathFunction):
@@ -134,13 +204,16 @@ class Log(_MPMathFunction):
      = 3
 
     #> Log[1.4]
-     = 0.336472236621212931
+     = 0.336472
 
-    #> Log[1.4]
-     = 0.336472236621212931
+    #> Log[Exp[1.4]]
+     = 1.4
 
     #> Log[-1.4]
-     = 0.336472236621212931 + 3.14159265358979324 I
+     = 0.336472 + 3.14159 I
+
+    #> N[Log[10], 30]
+     = 2.30258509299404568401799145468
     """
 
     nargs = 2
@@ -162,8 +235,8 @@ class Log(_MPMathFunction):
             leaves = [leaves[1], leaves[0]]
         return leaves
 
-    def eval(self, *args):
-        return mpmath.log(args[1], args[0])
+    def get_mpmath_function(self, args):
+        return lambda base, x: mpmath.log(x, base)
 
 
 class Log2(Builtin):
@@ -176,7 +249,7 @@ class Log2(Builtin):
     >> Log2[4 ^ 8]
      = 16
     >> Log2[5.6]
-     = 2.48542682717024176
+     = 2.48543
     >> Log2[E ^ 2]
      = 2 / Log[2]
     """
@@ -196,7 +269,7 @@ class Log10(Builtin):
     >> Log10[1000]
      = 3
     >> Log10[{2., 5.}]
-     = {0.301029995663981195, 0.698970004336018805}
+     = {0.30103, 0.69897}
     >> Log10[E ^ 3]
      = 3 / Log[10]
     """
@@ -216,14 +289,17 @@ class Sin(_MPMathFunction):
     >> Sin[0]
      = 0
     >> Sin[0.5]
-     = 0.479425538604203
+     = 0.479426
     >> Sin[3 Pi]
      = 0
     >> Sin[1.0 + I]
-     = 1.29845758141597729 + 0.634963914784736108 I
+     = 1.29846 + 0.634964 I
 
     >> Plot[Sin[x], {x, -Pi, Pi}]
      = -Graphics-
+
+    #> N[Sin[1], 40]
+     = 0.8414709848078965066525023216302989996226
     """
 
     mpmath_name = 'sin'
@@ -246,6 +322,9 @@ class Cos(_MPMathFunction):
 
     >> Cos[3 Pi]
      = -1
+
+    #> Cos[1.5 Pi]
+     = -1.83697*^-16
     """
 
     mpmath_name = 'cos'
@@ -270,6 +349,9 @@ class Tan(_MPMathFunction):
      = 0
     >> Tan[Pi / 2]
      = ComplexInfinity
+
+    #> Tan[0.5 Pi]
+     = 1.63312*^16
     """
 
     mpmath_name = 'tan'
@@ -293,7 +375,7 @@ class Sec(_MPMathFunction):
     >> Sec[1] (* Sec[1] in Mathematica *)
      = 1 / Cos[1]
     >> Sec[1.]
-     = 1.85081571768092562
+     = 1.85082
     """
 
     mpmath_name = 'sec'
@@ -321,7 +403,7 @@ class Csc(_MPMathFunction):
     >> Csc[1] (* Csc[1] in Mathematica *)
      = 1 / Sin[1]
     >> Csc[1.]
-     = 1.18839510577812122
+     = 1.1884
     """
 
     mpmath_name = 'csc'
@@ -347,7 +429,7 @@ class Cot(_MPMathFunction):
     >> Cot[0]
      = ComplexInfinity
     >> Cot[1.]
-     = 0.642092615934330703
+     = 0.642093
     """
 
     mpmath_name = 'cot'
@@ -416,9 +498,9 @@ class ArcTan(_MPMathFunction):
     >> ArcTan[1]
      = Pi / 4
     >> ArcTan[1.0]
-     = 0.78539816339744831
+     = 0.785398
     >> ArcTan[-1.0]
-     = -0.78539816339744831
+     = -0.785398
 
     >> ArcTan[1, 1]
      = Pi / 4
@@ -667,7 +749,7 @@ class ArcSinh(_MPMathFunction):
     >> ArcSinh[0.]
      = 0.
     >> ArcSinh[1.0]
-     = 0.881373587019543025
+     = 0.881374
     """
 
     sympy_name = 'asinh'
@@ -688,19 +770,18 @@ class ArcCosh(_MPMathFunction):
     >> ArcCosh[0]
      = I / 2 Pi
     >> ArcCosh[0.]
-     = 0. + 1.57079632679489662 I
+     = 0. + 1.5708 I
     >> ArcCosh[0.00000000000000000000000000000000000000]
-     = 0. + 1.5707963267948966191479842624545426588 I
+     = 1.5707963267948966192313216916397514421 I
 
     #> ArcCosh[1.4]
-     = 0.867014726490565104
+     = 0.867015
     """
 
     sympy_name = 'acosh'
     mpmath_name = 'acosh'
 
     rules = {
-        'ArcCosh[z:0.0]': 'N[I / 2 Pi, Precision[1+z]]',
         'Derivative[1][ArcCosh]': '1/(Sqrt[#-1]*Sqrt[#+1])&',
     }
 
@@ -719,7 +800,7 @@ class ArcTanh(_MPMathFunction):
     >> ArcTanh[0]
      = 0
     >> ArcTanh[.5 + 2 I]
-     = 0.0964156202029961672 + 1.12655644083482235 I
+     = 0.0964156 + 1.12656 I
     >> ArcTanh[2 + I]
      = ArcTanh[2 + I]
     """
@@ -744,7 +825,7 @@ class ArcSech(_MPMathFunction):
     >> ArcSech[1]
      = 0
     >> ArcSech[0.5]
-     = 1.31695789692481671
+     = 1.31696
     """
 
     sympy_name = ''
@@ -772,7 +853,7 @@ class ArcCsch(_MPMathFunction):
     >> ArcCsch[0]
      = ComplexInfinity
     >> ArcCsch[1.0]
-     = 0.881373587019543025
+     = 0.881374
     """
 
     sympy_name = ''
@@ -802,9 +883,12 @@ class ArcCoth(_MPMathFunction):
     >> ArcCoth[1]
      = Infinity
     >> ArcCoth[0.0]
-     = 0. + 1.57079632679489662 I
+     = 0. + 1.5708 I
     >> ArcCoth[0.5]
-     = 0.549306144334054846 - 1.57079632679489662 I
+     = 0.549306 - 1.5708 I
+
+    #> ArcCoth[0.000000000000000000000000000000000000000]
+     = 1.57079632679489661923132169163975144210 I
     """
 
     sympy_name = 'acoth'
@@ -824,10 +908,10 @@ class Haversine(_MPMathFunction):
     </dl>
 
     >> Haversine[1.5]
-     = 0.464631399166148545
+     = 0.464631
 
     >> Haversine[0.5 + 2I]
-     = -1.15081866645704728 + 0.869404752237158167 I
+     = -1.15082 + 0.869405 I
     """
 
     rules = {
@@ -843,12 +927,196 @@ class InverseHaversine(_MPMathFunction):
     </dl>
 
     >> InverseHaversine[0.5]
-     = 1.57079632679489662
+     = 1.5708
 
     >> InverseHaversine[1 + 2.5 I]
-     = 1.76458946334982881 + 2.33097465304931242 I
+     = 1.76459 + 2.33097 I
     """
 
     rules = {
         'InverseHaversine[z_]': '2 * ArcSin[Sqrt[z]]'
     }
+
+
+class AngleVector(Builtin):
+    """
+    <dl>
+    <dt>'AngleVector[$phi$]'
+        <dd>returns the point at angle $phi$ on the unit circle.
+    <dt>'AngleVector[{$r$, $phi$}]'
+        <dd>returns the point at angle $phi$ on a circle of radius $r$.
+    <dt>'AngleVector[{$x$, $y$}, $phi$]'
+        <dd>returns the point at angle $phi$ on a circle of radius 1 centered at {$x$, $y$}.
+    <dt>'AngleVector[{$x$, $y$}, {$r$, $phi$}]'
+        <dd>returns point at angle $phi$ on a circle of radius $r$ centered at {$x$, $y$}.
+    </dl>
+
+    >> AngleVector[90 Degree]
+     = {0, 1}
+
+    >> AngleVector[{1, 10}, a]
+     = {1 + Cos[a], 10 + Sin[a]}
+    """
+
+    rules = {
+        'AngleVector[phi_]': '{Cos[phi], Sin[phi]}',
+        'AngleVector[{r_, phi_}]': '{r * Cos[phi], r * Sin[phi]}',
+        'AngleVector[{x_, y_}, phi_]': '{x + Cos[phi], y + Sin[phi]}',
+        'AngleVector[{x_, y_}, {r_, phi_}]': '{x + r * Cos[phi], y + r * Sin[phi]}',
+    }
+
+
+class AnglePathFold(Fold):
+    def __init__(self, parse):
+        self._parse = parse
+
+    def _operands(self, state, steps):
+        SYMBOLIC = self.SYMBOLIC
+        MPMATH = self.MPMATH
+        FLOAT = self.FLOAT
+
+        def check_pos_operand(x):
+            if x is not None:
+                if isinstance(x, Integer) and x.get_int_value() in (0, 1):
+                    pass
+                elif not isinstance(x, Real):
+                    return SYMBOLIC
+                elif not x.is_machine_precision():
+                    return MPMATH
+            return FLOAT
+
+        def check_angle_operand(phi):
+            if phi is not None:
+                if not isinstance(phi, Real):
+                    return SYMBOLIC
+                elif not phi.is_machine_precision():
+                    return MPMATH
+            return FLOAT
+
+        parse = self._parse
+
+        x, y, phi = state
+        mode = max(check_pos_operand(x), check_pos_operand(y), check_angle_operand(phi))
+        yield mode, x, y, phi
+
+        for step in steps:
+            distance, delta_phi = parse(step)
+            mode = max(check_angle_operand(delta_phi), check_pos_operand(distance))
+            yield mode, distance, delta_phi
+
+    def _fold(self, state, steps, math):
+        sin = math.sin
+        cos = math.cos
+
+        x, y, phi = state
+
+        for distance, delta_phi in steps:
+            if phi is None:
+                phi = delta_phi
+            else:
+                phi += delta_phi
+
+            dx = cos(phi)
+            dy = sin(phi)
+
+            if distance is not None:
+                dx *= distance
+                dy *= distance
+
+            x += dx
+            y += dy
+
+            yield x, y, phi
+
+
+class AnglePath(Builtin):
+    """
+    <dl>
+    <dt>'AnglePath[{$phi1$, $phi2$, ...}]'
+        <dd>returns the points formed by a turtle starting at {0, 0} and angled at 0 degrees going through
+        the turns given by angles $phi1$, $phi2$, ... and using distance 1 for each step.
+    <dt>'AnglePath[{{$r1$, $phi1$}, {$r2$, $phi2$}, ...}]'
+        <dd>instead of using 1 as distance, use $r1$, $r2$, ... as distances for the respective steps.
+    <dt>'AngleVector[$phi0$, {$phi1$, $phi2$, ...}]'
+        <dd>returns the points on a path formed by a turtle starting with direction $phi0$ instead of 0.
+    <dt>'AngleVector[{$x$, $y$}, {$phi1$, $phi2$, ...}]'
+        <dd>returns the points on a path formed by a turtle starting at {$x, $y} instead of {0, 0}.
+    <dt>'AngleVector[{{$x$, $y$}, $phi0$}, {$phi1$, $phi2$, ...}]'
+        <dd>specifies initial position {$x$, $y$} and initial direction $phi0$.
+    <dt>'AngleVector[{{$x$, $y$}, {$dx$, $dy$}}, {$phi1$, $phi2$, ...}]'
+        <dd>specifies initial position {$x$, $y$} and a slope {$dx$, $dy$} that is understood to be the
+        initial direction of the turtle.
+    </dl>
+
+    >> AnglePath[{90 Degree, 90 Degree, 90 Degree, 90 Degree}]
+     = {{0, 0}, {0, 1}, {-1, 1}, {-1, 0}, {0, 0}}
+
+    >> AnglePath[{{1, 1}, 90 Degree}, {{1, 90 Degree}, {2, 90 Degree}, {1, 90 Degree}, {2, 90 Degree}}]
+     = {{1, 1}, {0, 1}, {0, -1}, {1, -1}, {1, 1}}
+
+    >> AnglePath[{a, b}]
+     = {{0, 0}, {Cos[a], Sin[a]}, {Cos[a] + Cos[a + b], Sin[a] + Sin[a + b]}}
+
+    >> Precision[Part[AnglePath[{N[1/3, 100], N[2/3, 100]}], 2, 1]]
+     = 100.
+
+    >> Graphics[Line[AnglePath[Table[1.7, {50}]]]]
+     = -Graphics-
+
+    >> Graphics[Line[AnglePath[RandomReal[{-1, 1}, {100}]]]]
+     = -Graphics-
+    """
+
+    messages = {
+        'steps': '`1` is not a valid description of steps.'
+    }
+
+    @staticmethod
+    def _compute(x0, y0, phi0, steps, evaluation):
+        if not steps:
+            return Expression('List')
+
+        class IllegalStepSpecification(Exception):
+            pass
+
+        if steps[0].get_head_name() == 'System`List':
+            def parse(step):
+                if step.get_head_name() != 'System`List':
+                    raise IllegalStepSpecification
+                arguments = step.leaves
+                if len(arguments) != 2:
+                    raise IllegalStepSpecification
+                return arguments
+        else:
+            def parse(step):
+                if step.get_head_name() == 'System`List':
+                    raise IllegalStepSpecification
+                return None, step
+
+        try:
+            fold = AnglePathFold(parse)
+            leaves = [Expression('List', x, y) for x, y, _ in fold.fold((x0, y0, phi0), steps)]
+            return Expression('List', *leaves)
+        except IllegalStepSpecification:
+            evaluation.message('AnglePath', 'steps', Expression('List', *steps))
+
+    def apply(self, steps, evaluation):
+        'AnglePath[{steps___}]'
+        return AnglePath._compute(Integer(0), Integer(0), None, steps.get_sequence(), evaluation)
+
+    def apply_phi0(self, phi0, steps, evaluation):
+        'AnglePath[phi0_, {steps___}]'
+        return AnglePath._compute(Integer(0), Integer(0), phi0, steps.get_sequence(), evaluation)
+
+    def apply_xy(self, x, y, steps, evaluation):
+        'AnglePath[{x_, y_}, {steps___}]'
+        return AnglePath._compute(x, y, None, steps.get_sequence(), evaluation)
+
+    def apply_xy_phi0(self, x, y, phi0, steps, evaluation):
+        'AnglePath[{{x_, y_}, phi0_}, {steps___}]'
+        return AnglePath._compute(x, y, phi0, steps.get_sequence(), evaluation)
+
+    def apply_xy_dx(self, x, y, dx, dy, steps, evaluation):
+        'AnglePath[{{x_, y_}, {dx_, dy_}}, {steps___}]'
+        phi0 = Expression('ArcTan', dx, dy)
+        return AnglePath._compute(x, y, phi0, steps.get_sequence(), evaluation)

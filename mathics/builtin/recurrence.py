@@ -1,8 +1,12 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Recurrence relation solvers
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import sympy
 from mathics.builtin.base import Builtin
@@ -13,8 +17,8 @@ from mathics.core.convert import sympy_symbol_prefix, from_sympy
 class RSolve(Builtin):
     """
     <dl>
-    <dt>'RSolve[$eqn$, $a[n]$, $n$]'
-        <dd>solves a recurrence equation for the function '$a[n]$'.
+    <dt>'RSolve[$eqn$, $a$[$n$], $n$]'
+        <dd>solves a recurrence equation for the function '$a$[$n$]'.
     </dl>
 
     >> RSolve[a[n] == a[n+1], a[n], n]
@@ -94,10 +98,19 @@ class RSolve(Builtin):
                     isinstance(l.leaves[0].to_python(), int) and
                     r.is_numeric()):
 
-                    conditions[l.leaves[0].to_python()] = r.to_sympy()
+                    r_sympy = r.to_sympy()
+                    if r_sympy is None:
+                        raise ValueError
+                    conditions[l.leaves[0].to_python()] = r_sympy
                     return False
             return True
-        relation = filter(is_relation, eqns.leaves)[0]
+
+        # evaluate is_relation on all leaves to store conditions
+        try:
+            relations = [leaf for leaf in eqns.leaves if is_relation(leaf)]
+        except ValueError:
+            return
+        relation = relations[0]
 
         left, right = relation.leaves
         relation = Expression('Plus', left, Expression(
@@ -105,6 +118,8 @@ class RSolve(Builtin):
 
         sym_eq = relation.to_sympy(
             converted_functions=set([func.get_head_name()]))
+        if sym_eq is None:
+            return
         sym_n = sympy.symbols(str(sympy_symbol_prefix + n.name))
         sym_func = sympy.Function(str(
             sympy_symbol_prefix + func.get_head_name()))(sym_n)

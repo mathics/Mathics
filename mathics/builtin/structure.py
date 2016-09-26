@@ -1,12 +1,27 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-from mathics.builtin.base import Builtin, Predefined, BinaryOperator, Test
+from __future__ import unicode_literals
+from __future__ import absolute_import
+
+from mathics.builtin.base import (Builtin, Predefined, BinaryOperator, Test,
+                                  MessageException)
 from mathics.core.expression import (Expression, String, Symbol, Integer,
-                                     strip_context)
+                                     Rational, strip_context)
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
                                    InvalidLevelspecError)
+from mathics.builtin.functional import Identity
+import six
+import platform
+from six.moves import range
+
+if platform.python_implementation() == 'PyPy':
+    bytecount_support = False
+else:
+    from .pympler.asizeof import asizeof as count_bytes
+    bytecount_support = True
 
 
 class Sort(Builtin):
@@ -68,22 +83,169 @@ class Sort(Builtin):
         if list.is_atom():
             evaluation.message('Sort', 'normal')
         else:
-            def compare(e1, e2):
-                result = Expression(p, e1, e2).evaluate(evaluation)
-                if result.is_true():
-                    result = Expression(p, e2, e1).evaluate(evaluation)
-                    if result.is_true():
-                        return 0
-                    else:
-                        return -1
-                else:
-                    return 1
-            new_leaves = sorted(list.leaves, cmp=compare)
+            class Key(object):
+                def __init__(self, leaf):
+                    self.leaf = leaf
+
+                def __gt__(self, other):
+                    return not Expression(p, self.leaf, other.leaf).evaluate(evaluation).is_true()
+
+            new_leaves = sorted(list.leaves, key=Key)
             return Expression(list.head, *new_leaves)
+
+
+class SortBy(Builtin):
+    """
+    <dl>
+    <dt>'SortBy[$list$, $f$]'
+    <dd>sorts $list$ (or the leaves of any other expression) according to canonical ordering of the keys that are
+    extracted from the $list$'s elements using $f. Chunks of leaves that appear the same under $f are sorted
+    according to their natural order (without applying $f).
+    <dt>'SortBy[$f$]'
+    <dd>creates an operator function that, when applied, sorts by $f.
+    </dl>
+
+    >> SortBy[{{5, 1}, {10, -1}}, Last]
+    = {{10, -1}, {5, 1}}
+
+    >> SortBy[Total][{{5, 1}, {10, -9}}]
+    = {{10, -9}, {5, 1}}
+    """
+
+    rules = {
+        'SortBy[f_]': 'SortBy[#, f]&',
+    }
+
+    messages = {
+        'list': 'List expected at position `2` in `1`.',
+        'func': 'Function expected at position `2` in `1`.',
+    }
+
+    def apply(self, l, f, evaluation):
+        'SortBy[l_, f_]'
+
+        if l.is_atom():
+            return evaluation.message('Sort', 'normal')
+        elif l.get_head_name() != 'System`List':
+            expr = Expression('SortBy', l, f)
+            return evaluation.message(self.get_name(), 'list', expr, 1)
+        else:
+            keys_expr = Expression('Map', f, l).evaluate(evaluation)  # precompute:
+            # even though our sort function has only (n log n) comparisons, we should
+            # compute f no more than n times.
+
+            if keys_expr is None or keys_expr.get_head_name() != 'System`List'\
+                    or len(keys_expr.leaves) != len(l.leaves):
+                expr = Expression('SortBy', l, f)
+                return evaluation.message('SortBy', 'func', expr, 2)
+
+            keys = keys_expr.leaves
+            raw_keys = l.leaves
+
+            class Key(object):
+                def __init__(self, index):
+                    self.index = index
+
+                def __gt__(self, other):
+                    kx, ky = keys[self.index], keys[other.index]
+                    if kx > ky:
+                        return True
+                    elif kx < ky:
+                        return False
+                    else:  # if f(x) == f(y), resort to x < y?
+                        return raw_keys[self.index] > raw_keys[other.index]
+
+            # we sort a list of indices. after sorting, we reorder the leaves.
+            new_indices = sorted(list(range(len(raw_keys))), key=Key)
+            new_leaves = [raw_keys[i] for i in new_indices]  # reorder leaves
+            return Expression(l.head, *new_leaves)
+
+
+class BinarySearch(Builtin):
+    """
+    <dl>
+    <dt>'Combinatorica`BinarySearch[$l$, $k$]'
+        <dd>searches the list $l$, which has to be sorted, for key $k$ and returns its index in $l$. If $k$ does not
+        exist in $l$, 'BinarySearch' returns (a + b) / 2, where a and b are the indices between which $k$ would have
+        to be inserted in order to maintain the sorting order in $l$. Please note that $k$ and the elements in $l$
+        need to be comparable under a strict total order (see https://en.wikipedia.org/wiki/Total_order).
+
+    <dt>'Combinatorica`BinarySearch[$l$, $k$, $f$]'
+        <dd>the index of $k in the elements of $l$ if $f$ is applied to the latter prior to comparison. Note that $f$
+        needs to yield a sorted sequence if applied to the elements of $l.
+    </dl>
+
+    >> Combinatorica`BinarySearch[{3, 4, 10, 100, 123}, 100]
+     = 4
+
+    >> Combinatorica`BinarySearch[{2, 3, 9}, 7] // N
+     = 2.5
+
+    >> Combinatorica`BinarySearch[{2, 7, 9, 10}, 3] // N
+     = 1.5
+
+    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, -100] // N
+     = 0.5
+
+    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, 20] // N
+     = 4.5
+
+    >> Combinatorica`BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]
+     = 2
+    """
+
+    context = 'Combinatorica`'
+
+    rules = {
+        'Combinatorica`BinarySearch[l_List, k_] /; Length[l] > 0': 'Combinatorica`BinarySearch[l, k, Identity]'
+    }
+
+    def apply(self, l, k, f, evaluation):
+        'Combinatorica`BinarySearch[l_List, k_, f_] /; Length[l] > 0'
+
+        leaves = l.leaves
+
+        lower_index = 1
+        upper_index = len(leaves)
+
+        if lower_index > upper_index:  # empty list l? Length[l] > 0 condition should guard us, but check anyway
+            return Symbol('$Aborted')
+
+        # "transform" is a handy wrapper for applying "f" or nothing
+        transform = (lambda x: x) if isinstance(f, Identity) else (lambda x: Expression(f, x).evaluate(evaluation))
+
+        # loop invariants (true at any time in the following loop):
+        # (1) lower_index <= upper_index
+        # (2) k > leaves[i] for all i < lower_index
+        # (3) k < leaves[i] for all i > upper_index
+        while True:
+            pivot_index = (lower_index + upper_index) >> 1  # i.e. a + (b - a) // 2
+            # as lower_index <= upper_index, lower_index <= pivot_index <= upper_index
+            pivot = transform(leaves[pivot_index - 1])  # 1-based to 0-based
+
+            # we assume a trichotomous relation: k < pivot, or k = pivot, or k > pivot
+            if k < pivot:
+                if pivot_index == lower_index:  # see invariant (2), to see that
+                    # k < leaves[pivot_index] and k > leaves[pivot_index - 1]
+                    return Rational((pivot_index - 1) + pivot_index, 2)
+                upper_index = pivot_index - 1
+            elif k == pivot:
+                return Integer(pivot_index)
+            else:  # k > pivot
+                if pivot_index == upper_index:  # see invariant (3), to see that
+                    # k > leaves[pivot_index] and k < leaves[pivot_index + 1]
+                    return Rational(pivot_index + (pivot_index + 1), 2)
+                lower_index = pivot_index + 1
 
 
 class PatternsOrderedQ(Builtin):
     """
+    <dl>
+    <dt>'PatternsOrderedQ[$patt1$, $patt2$]'
+        <dd>returns 'True' if pattern $patt1$ would be applied before
+        $patt2$ according to canonical pattern ordering.
+    </dl>
+
     >> PatternsOrderedQ[x__, x_]
      = False
     >> PatternsOrderedQ[x_, x__]
@@ -95,8 +257,7 @@ class PatternsOrderedQ(Builtin):
     def apply(self, p1, p2, evaluation):
         'PatternsOrderedQ[p1_, p2_]'
 
-        result = cmp(p1.get_sort_key(True), p2.get_sort_key(True))
-        if result <= 0:
+        if p1.get_sort_key(True) <= p2.get_sort_key(True):
             return Symbol('True')
         else:
             return Symbol('False')
@@ -104,6 +265,12 @@ class PatternsOrderedQ(Builtin):
 
 class OrderedQ(Builtin):
     """
+    <dl>
+    <dt>'OrderedQ[$a$, $b$]'
+        <dd>is 'True' if $a$ sorts before $b$ according to canonical
+        ordering.
+    </dl>
+
     >> OrderedQ[a, b]
      = True
     >> OrderedQ[b, a]
@@ -113,15 +280,50 @@ class OrderedQ(Builtin):
     def apply(self, e1, e2, evaluation):
         'OrderedQ[e1_, e2_]'
 
-        result = cmp(e1, e2)
-        if result <= 0:
+        if e1 <= e2:
             return Symbol('True')
         else:
             return Symbol('False')
 
 
+class Order(Builtin):
+    """
+    <dl>
+    <dt>'Order[$x$, $y$]'
+        <dd>returns a number indicating the canonical ordering of $x$ and $y$. 1 indicates that $x$ is before $y$,
+        -1 that $y$ is before $x$. 0 indicates that there is no specific ordering. Uses the same order as 'Sort'.
+    </dl>
+
+    >> Order[7, 11]
+     = 1
+
+    >> Order[100, 10]
+     = -1
+
+    >> Order[x, z]
+     = 1
+
+    >> Order[x, x]
+     = 0
+    """
+
+    def apply(self, x, y, evaluation):
+        'Order[x_, y_]'
+        if x < y:
+            return Integer(1)
+        elif x > y:
+            return Integer(-1)
+        else:
+            return Integer(0)
+
+
 class Head(Builtin):
     """
+    <dl>
+    <dt>'Head[$expr$]'
+        <dd>returns the head of the expression or atom $expr$.
+    </dl>
+
     >> Head[a * b]
      = Times
     >> Head[6]
@@ -139,7 +341,8 @@ class Head(Builtin):
 class ApplyLevel(BinaryOperator):
     """
     <dl>
-    <dt>'ApplyLevel[$f$, $expr$]' or '$f$ @@@ $expr$'
+    <dt>'ApplyLevel[$f$, $expr$]'
+    <dt>'$f$ @@@ $expr$'
         <dd>is equivalent to 'Apply[$f$, $expr$, {1}]'.
     </dl>
 
@@ -157,9 +360,10 @@ class ApplyLevel(BinaryOperator):
 
 
 class Apply(BinaryOperator):
-    u"""
+    """
     <dl>
-    <dt>'Apply[$f$, $expr$]' or '$f$ @@ $expr$'
+    <dt>'Apply[$f$, $expr$]'
+    <dt>'$f$ @@ $expr$'
         <dd>replaces the head of $expr$ with $f$.
     <dt>'Apply[$f$, $expr$, $levelspec$]'
         <dd>applies $f$ on the parts specified by $levelspec$.
@@ -290,6 +494,66 @@ class Map(BinaryOperator):
         return result
 
 
+class Scan(Builtin):
+    '''
+    <dl>
+    <dt>'Scan[$f$, $expr$]'
+      <dd>applies $f$ to each element of $expr$ and returns 'Null'.
+    <dt>'Scan[$f$, $expr$, $levelspec$]
+      <dd>applies $f$ to each level specified by $levelspec$ of $expr$.
+    </dl>
+
+    >> Scan[Print, {1, 2, 3}]
+     | 1
+     | 2
+     | 3
+
+    #> Scan[Print, f[g[h[x]]], 2]
+     | h[x]
+     | g[h[x]]
+
+    #> Scan[Print][{1, 2}]
+     | 1
+     | 2
+
+    #> Scan[Return, {1, 2}]
+     = 1
+    '''
+
+    options = {
+        'Heads': 'False',
+    }
+
+    rules = {
+        'Scan[f_][expr_]': 'Scan[f, expr]',
+    }
+
+    def apply_invalidlevel(self, f, expr, ls, evaluation, options={}):
+        'Scan[f_, expr_, ls_, OptionsPattern[Map]]'
+
+        return evaluation.message('Map', 'level', ls)
+
+    def apply_level(self, f, expr, ls, evaluation, options={}):
+        '''Scan[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}],
+                OptionsPattern[Map]]'''
+
+        try:
+            start, stop = python_levelspec(ls)
+        except InvalidLevelspecError:
+            evaluation.message('Map', 'level', ls)
+            return
+
+        def callback(level):
+            Expression(f, level).evaluate(evaluation)
+            return level
+
+        heads = self.get_option(options, 'Heads', evaluation).is_true()
+        result, depth = walk_levels(
+            expr, start, stop, heads=heads, callback=callback)
+
+        return Symbol('Null')
+
+
 class MapIndexed(Builtin):
     """
     <dl>
@@ -360,6 +624,100 @@ class MapIndexed(Builtin):
         return result
 
 
+class MapThread(Builtin):
+    """
+    <dl>
+    <dt>'MapThread[$f$, {{$a1$, $a2$, ...}, {$b1$, $b2$, ...}, ...}]
+      <dd>returns '{$f$[$a1$, $b1$, ...], $f$[$a2$, $b2$, ...], ...}'.
+    <dt>'MapThread[$f$, {$expr1$, $expr2$, ...}, $n$]'
+      <dd>applies $f$ at level $n$.
+    </dl>
+
+    >> MapThread[f, {{a, b, c}, {1, 2, 3}}]
+     = {f[a, 1], f[b, 2], f[c, 3]}
+
+    >> MapThread[f, {{{a, b}, {c, d}}, {{e, f}, {g, h}}}, 2]
+     = {{f[a, e], f[b, f]}, {f[c, g], f[d, h]}}
+
+    #> MapThread[f, {{a, b}, {c, d}}, {1}]
+     : Non-negative machine-sized integer expected at position 3 in MapThread[f, {{a, b}, {c, d}}, {1}].
+     = MapThread[f, {{a, b}, {c, d}}, {1}]
+
+    #> MapThread[f, {{a, b}, {c, d}}, 2]
+     : Object {a, b} at position {2, 1} in MapThread[f, {{a, b}, {c, d}}, 2] has only 1 of required 2 dimensions.
+     = MapThread[f, {{a, b}, {c, d}}, 2]
+
+    #> MapThread[f, {{a}, {b, c}}]
+     : Incompatible dimensions of objects at positions {2, 1} and {2, 2} of MapThread[f, {{a}, {b, c}}]; dimensions are 1 and 2.
+     = MapThread[f, {{a}, {b, c}}]
+
+    #> MapThread[f, {}]
+     = {}
+
+    #> MapThread[f, {a, b}, 0]
+     = f[a, b]
+    #> MapThread[f, {a, b}, 1]
+     :  Object a at position {2, 1} in MapThread[f, {a, b}, 1] has only 0 of required 1 dimensions.
+     = MapThread[f, {a, b}, 1]
+
+    ## Behaviour extends MMA
+    #> MapThread[f, {{{a, b}, {c}}, {{d, e}, {f}}}, 2]
+     = {{f[a, d], f[b, e]}, {f[c, f]}}
+    """
+
+    messages = {
+        'intnm': 'Non-negative machine-sized integer expected at position `2` in `1`.',
+        'mptc': 'Incompatible dimensions of objects at positions {2, `1`} and {2, `2`} of `3`; dimensions are `4` and `5`.',
+        'mptd': 'Object `1` at position {2, `2`} in `3` has only `4` of required `5` dimensions.',
+        'list': 'List expected at position `2` in `1`.',
+    }
+
+    def apply(self, f, expr, evaluation):
+        'MapThread[f_, expr_]'
+
+        return self.apply_n(f, expr, None, evaluation)
+
+    def apply_n(self, f, expr, n, evaluation):
+        'MapThread[f_, expr_, n_]'
+
+        if n is None:
+            n = 1
+            full_expr = Expression('MapThread', f, expr)
+        else:
+            full_expr = Expression('MapThread', f, expr, n)
+            n = n.get_int_value()
+
+        if n is None or n < 0:
+            return evaluation.message('MapThread', 'intnm', full_expr, 3)
+
+        if expr.has_form('List', 0):
+            return Expression('List')
+        if not expr.has_form('List', None):
+            return evaluation.message('MapThread', 'list', 2, full_expr)
+
+        heads = expr.get_leaves()
+
+        def walk(args, depth=0):
+            'walk all trees concurrently and build result'
+            if depth == n:
+                return Expression(f, *args)
+            else:
+                dim = None
+                for i, arg in enumerate(args):
+                    if not arg.has_form('List', None):
+                        raise MessageException('MapThread', 'mptd', heads[i], i + 1, full_expr, depth, n)
+                    if dim is None:
+                        dim = len(arg.leaves)
+                    if dim != len(arg.leaves):
+                        raise MessageException('MapThread', 'mptc', 1, i + 1, full_expr, dim, len(arg.leaves))
+                return Expression('List', *[walk([arg.leaves[i] for arg in args], depth + 1) for i in range(dim)])
+
+        try:
+            return walk(heads)
+        except MessageException as e:
+            return e.message(evaluation)
+
+
 class Thread(Builtin):
     """
     <dl>
@@ -400,6 +758,12 @@ class Thread(Builtin):
 
 class FreeQ(Builtin):
     """
+    <dl>
+    <dt>'FreeQ[$expr$, $x$]'
+        <dd>returns 'True' if $expr$ does not contain the expression
+        $x$.
+    </dl>
+
     >> FreeQ[y, x]
      = True
     >> FreeQ[a+b+c, a+b]
@@ -410,7 +774,13 @@ class FreeQ(Builtin):
      = True
     >> FreeQ[a+b+c, x_+y_+z_]
      = False
+    >> FreeQ[x_+y_+z_][a+b]
+     = True
     """
+
+    rules = {
+        'FreeQ[form_][expr_]': 'FreeQ[expr, form]',
+    }
 
     def apply(self, expr, form, evaluation):
         'FreeQ[expr_, form_]'
@@ -432,6 +802,7 @@ class Flatten(Builtin):
     <dt>'Flatten[$expr$, $n$, $h$]'
         <dd>flattens expressions with head $h$ instead of 'List'.
     </dl>
+
     >> Flatten[{{a, b}, {c, {d}, e}, {f, {g, h}}}]
      = {a, b, c, d, e, f, g, h}
     >> Flatten[{{a, b}, {c, {e}, e}, {f, {g, h}}}, 1]
@@ -534,7 +905,7 @@ class Flatten(Builtin):
     def apply_list(self, expr, n, h, evaluation):
         'Flatten[expr_, n_List, h_]'
 
-        ## prepare levels
+        # prepare levels
         # find max depth which matches `h`
         expr, max_depth = walk_levels(expr)
         max_depth = {'max_depth': max_depth}    # hack to modify max_depth from callback
@@ -583,7 +954,7 @@ class Flatten(Builtin):
                     evaluation.message('Flatten', 'fldep', l, n, max_depth, expr)
                     return
 
-        ## assign new indices to each leaf
+        # assign new indices to each leaf
         new_indices = {}
 
         def callback(expr, pos):
@@ -593,10 +964,9 @@ class Flatten(Builtin):
             return expr
         expr, depth = walk_levels(expr, callback=callback, include_pos=True)
 
-        ## build new tree inserting nodes as needed
+        # build new tree inserting nodes as needed
         result = Expression(h)
-        leaves = new_indices.items()
-        leaves.sort()
+        leaves = sorted(six.iteritems(new_indices))
 
         def insert_leaf(expr, leaves):
             # gather leaves into groups with the same leading index
@@ -638,7 +1008,11 @@ class Flatten(Builtin):
 
 class Null(Predefined):
     """
-    'Null' is the implicit result of expressions that do not yield a result:
+    <dl>
+    <dt>'Null'
+        <dd>is the implicit result of expressions that do not yield a result.
+    </dl>
+
     >> FullForm[a:=b]
      = Null
 
@@ -653,6 +1027,13 @@ class Null(Predefined):
 
 class AtomQ(Test):
     """
+    <dl>
+    <dt>'AtomQ[$x$]'
+        <dd>is true if $x$ is an atom (an object such as a number or
+        string, which cannot be divided into subexpressions using
+        'Part').
+    </dl>
+
     >> AtomQ[x]
      = True
     >> AtomQ[1.2]
@@ -671,6 +1052,11 @@ class AtomQ(Test):
 
 class SymbolQ(Test):
     """
+    <dl>
+    <dt>'SymbolQ[$x$]'
+        <dd>is 'True' if $x$ is a symbol, or 'False' otherwise.
+    </dl>
+
     >> SymbolQ[a]
      = True
     >> SymbolQ[1]
@@ -684,8 +1070,12 @@ class SymbolQ(Test):
 
 
 class Symbol_(Builtin):
-    u"""
-    'Symbol' is the head of symbols.
+    """
+    <dl>
+    <dt>'Symbol'
+        <dd>is the head of symbols.
+    </dl>
+
     >> Head[x]
      = Symbol
     You can use 'Symbol' to create symbols from strings:
@@ -719,7 +1109,16 @@ class Symbol_(Builtin):
 
 class SymbolName(Builtin):
     """
+    <dl>
+    <dt>'SymbolName[$s$]'
+        <dd>returns the name of the symbol $s$ (without any leading
+        context name).
+    </dl>
+
     >> SymbolName[x] // InputForm
+     = "x"
+
+    #> SymbolName[a`b`x] // InputForm
      = "x"
     """
 
@@ -735,7 +1134,7 @@ class Depth(Builtin):
     """
     <dl>
     <dt>'Depth[$expr$]'
-    <dd>gives the depth of $expr$
+        <dd>gives the depth of $expr$.
     </dl>
 
     The depth of an expression is defined as one plus the maximum
@@ -768,9 +1167,9 @@ class Operate(Builtin):
     """
     <dl>
     <dt>'Operate[$p$, $expr$]'
-    <dd>applies $p$ to the head of $expr$.
+        <dd>applies $p$ to the head of $expr$.
     <dt>'Operate[$p$, $expr$, $n$]'
-    <dd>applies $p$ to the $n$th head of $expr$.
+        <dd>applies $p$ to the $n$th head of $expr$.
     </dl>
 
     >> Operate[p, f[a, b]]
@@ -844,7 +1243,7 @@ class Through(Builtin):
     """
     <dl>
     <dt>'Through[$p$[$f$][$x$]]'
-    <dd>gives $p$[$f$[$x$]].
+        <dd>gives $p$[$f$[$x$]].
     </dl>
 
     >> Through[f[g][x]]
@@ -869,3 +1268,21 @@ class Through(Builtin):
         for leaf in args.get_sequence():
             items.append(Expression(leaf, *x.get_sequence()))
         return Expression(p, *items)
+
+
+class ByteCount(Builtin):
+    """
+    <dl>
+    <dt>'ByteCount[$expr$]'
+        <dd>gives the internal memory space used by $expr$, in bytes.
+    </dl>
+
+    The results may heavily depend on the Python implementation in use.
+    """
+
+    def apply(self, expression, evaluation):
+        'ByteCount[expression_]'
+        if not bytecount_support:
+            return evaluation.message('ByteCount', 'pypy')
+        else:
+            return Integer(count_bytes(expression))

@@ -1,22 +1,9 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
 
 import sys
 import os
@@ -26,7 +13,7 @@ import errno
 import subprocess
 
 import mathics
-from mathics import print_version, print_license
+from mathics import server_version_string, license_string
 from mathics import settings as mathics_settings  # Prevents UnboundLocalError
 
 
@@ -85,12 +72,14 @@ def launch_app(args):
     port = args.port
 
     if not args.quiet:
-        print_version(is_server=True)
-        print_license()
-        print u"Quit by pressing %s\n" % quit_command
-
-        print u"""Open the graphical user interface at
-http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port
+        print()
+        print(server_version_string)
+        print()
+        print(license_string)
+        print()
+        print("Quit by pressing %s\n" % quit_command)
+        print("""Open the graphical user interface at
+http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port)
 
     if args.external:
         addr = '0.0.0.0'
@@ -117,7 +106,7 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port
         # Need to use an OS exit because sys.exit doesn't work in a thread
         os._exit(1)
     except KeyboardInterrupt:
-        print "\nGoodbye!\n"
+        print("\nGoodbye!\n")
         sys.exit(0)
 
 

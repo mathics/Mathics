@@ -1,4 +1,5 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Patterns and rules
@@ -32,8 +33,14 @@ Options using 'OptionsPattern' and 'OptionValue':
 The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 """
 
+from __future__ import unicode_literals
+from __future__ import absolute_import
+
+from six.moves import range
+
 from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
 from mathics.builtin.base import PatternObject
+from mathics.builtin.lists import python_levelspec, InvalidLevelspecError
 
 from mathics.core.expression import (
     Symbol, Expression, Number, Integer, Rational, Real)
@@ -43,6 +50,12 @@ from mathics.core.pattern import Pattern, StopGenerator
 
 class Rule_(BinaryOperator):
     """
+    <dl>
+    <dt>'Rule[$x$, $y$]'
+    <dt>'$x$ -> $y$'
+        <dd>represents a rule replacing $x$ with $y$.
+    </dl>
+
     >> a+b+c /. c->d
     = a + b + d
     >> {x,x^2,y} /. x->3
@@ -67,6 +80,13 @@ class Rule_(BinaryOperator):
 
 class RuleDelayed(BinaryOperator):
     """
+    <dl>
+    <dt>'RuleDelayed[$x$, $y$]'
+    <dt>'$x$ :> $y$'
+        <dd>represents a rule replacing $x$ with $y$, with $y$ held
+        unevaluated.
+    </dl>
+
     >> Attributes[RuleDelayed]
      = {HoldRest, Protected, SequenceHold}
     """
@@ -109,14 +129,110 @@ def create_rules(rules_expr, expr, name, evaluation, extra_args=[]):
         return result, False
 
 
+class Replace(Builtin):
+    """
+    <dl>
+    <dt>'Replace[$expr$, $x$ -> $y$]'
+        <dd>yields the result of replacing $expr$ with $y$ if it
+        matches the pattern $x$.
+    <dt>'Replace[$expr$, $x$ -> $y$, $levelspec$]'
+        <dd>replaces only subexpressions at levels specified through
+        $levelspec$.
+    <dt>'Replace[$expr$, {$x$ -> $y$, ...}]'
+        <dd>performs replacement with multiple rules, yielding a
+        single result expression.
+    <dt>'Replace[$expr$, {{$a$ -> $b$, ...}, {$c$ -> $d$, ...}, ...}]'
+        <dd>returns a list containing the result of performing each
+        set of replacements.
+    </dl>
+
+    >> Replace[x, {x -> 2}]
+     = 2
+
+    By default, only the top level is searched for matches
+    >> Replace[1 + x, {x -> 2}]
+     = 1 + x
+
+    >> Replace[x, {{x -> 1}, {x -> 2}}]
+     = {1, 2}
+
+    Replace stops after the first replacement
+    >> Replace[x, {x -> {}, _List -> y}]
+     = {}
+
+    Replace replaces the deepest levels first
+    >> Replace[x[1], {x[1] -> y, 1 -> 2}, All]
+     = x[2]
+
+    By default, heads are not replaced
+    >> Replace[x[x[y]], x -> z, All]
+     = x[x[y]]
+
+    Heads can be replaced using the Heads option
+    >> Replace[x[x[y]], x -> z, All, Heads -> True]
+     = z[z[y]]
+
+    Note that heads are handled at the level of leaves
+    >> Replace[x[x[y]], x -> z, {1}, Heads -> True]
+     = z[x[y]]
+
+    You can use Replace as an operator
+    >> Replace[{x_ -> x + 1}][10]
+     = 11
+    """
+
+    messages = {
+        'reps': "`1` is not a valid replacement rule.",
+        'rmix': "Elements of `1` are a mixture of lists and nonlists.",
+    }
+
+    rules = {
+        'Replace[rules_][expr_]': 'Replace[expr, rules]',
+    }
+
+    options = {
+        'Heads': 'False',
+    }
+
+    def apply_levelspec(self, expr, rules, ls, evaluation, options):
+        'Replace[expr_, rules_, Optional[Pattern[ls, _?LevelQ], {0}], OptionsPattern[Replace]]'
+        try:
+            rules, ret = create_rules(rules, expr, 'Replace', evaluation)
+            if ret:
+                return rules
+
+            heads = self.get_option(options, 'Heads', evaluation).is_true()
+
+            result, applied = expr.apply_rules(
+                rules, evaluation, level=0, options={
+                    'levelspec': python_levelspec(ls), 'heads': heads})
+            return result
+        except InvalidLevelspecError:
+            evaluation.message('General', 'level', ls)
+
+
 class ReplaceAll(BinaryOperator):
     """
+    <dl>
+    <dt>'ReplaceAll[$expr$, $x$ -> $y$]'
+    <dt>'$expr$ /. $x$ -> $y$'
+        <dd>yields the result of replacing all subexpressions of
+        $expr$ matching the pattern $x$ with $y$.
+    <dt>'$expr$ /. {$x$ -> $y$, ...}'
+        <dd>performs replacement with multiple rules, yielding a
+        single result expression.
+    <dt>'$expr$ /. {{$a$ -> $b$, ...}, {$c$ -> $d$, ...}, ...}'
+        <dd>returns a list containing the result of performing each
+        set of replacements.
+    </dl>
+
     >> a+b+c /. c->d
      = a + b + d
     >> g[a+b+c,a]/.g[x_+y_,x_]->{x,y}
      = {a, b + c}
 
-    If $rules$ is a list of lists, a list of all possible respective replacements is returned:
+    If $rules$ is a list of lists, a list of all possible respective
+    replacements is returned:
     >> {a, b} /. {{a->x, b->y}, {a->u, b->v}}
      = {{x, y}, {u, v}}
     The list can be arbitrarily nested:
@@ -126,8 +242,16 @@ class ReplaceAll(BinaryOperator):
      : Elements of {{a -> x, b -> y}, a -> w, b -> z} are a mixture of lists and nonlists.
      = {{a, b} /. {{a -> x, b -> y}, a -> w, b -> z}, {u, v}}
 
+    ReplaceAll also can be used as an operator:
+    >> ReplaceAll[{a -> 1}][{a, b}]
+     = {1, b}
+
     #> a + b /. x_ + y_ -> {x, y}
      = {a, b}
+
+    ReplaceAll replaces the shallowest levels first:
+    >> ReplaceAll[x[1], {x[1] -> y, 1 -> 2}]
+     = y
     """
 
     operator = '/.'
@@ -138,6 +262,10 @@ class ReplaceAll(BinaryOperator):
     messages = {
         'reps': "`1` is not a valid replacement rule.",
         'rmix': "Elements of `1` are a mixture of lists and nonlists.",
+    }
+
+    rules = {
+        'ReplaceAll[rules_][expr_]': 'ReplaceAll[expr, rules]',
     }
 
     def apply(self, expr, rules, evaluation):
@@ -153,6 +281,13 @@ class ReplaceAll(BinaryOperator):
 
 class ReplaceRepeated(BinaryOperator):
     """
+    <dl>
+    <dt>'ReplaceRepeated[$expr$, $x$ -> $y$]'
+    <dt>'$expr$ //. $x$ -> $y$'
+        <dd>repeatedly applies the rule '$x$ -> $y$' to $expr$ until
+        the result no longer changes.
+    </dl>
+
     >> a+b+c //. c->d
      = a + b + d
 
@@ -197,6 +332,12 @@ class ReplaceRepeated(BinaryOperator):
 
 class ReplaceList(Builtin):
     """
+    <dl>
+    <dt>'ReplaceList[$expr$, $rules$]'
+        <dd>returns a list of all possible results of applying $rules$
+        to $expr$.
+    </dl>
+
     Get all subsequences of a list:
     >> ReplaceList[{a, b, c}, {___, x__, ___} -> {x}]
      = {{a}, {a, b}, {a, b, c}, {b}, {b, c}, {c}}
@@ -253,6 +394,13 @@ class ReplaceList(Builtin):
 
 class PatternTest(BinaryOperator, PatternObject):
     """
+    <dl>
+    <dt>'PatternTest[$pattern$, $test$]'
+    <dt>'$pattern$ ? $test$'
+        <dd>constrains $pattern$ to match $expr$ only if the
+        evaluation of '$test$[$expr$]' yields 'True'.
+    </dl>
+
     >> MatchQ[3, _Integer?(#>0&)]
      = True
     >> MatchQ[-3, _Integer?(#>0&)]
@@ -327,8 +475,22 @@ class PatternTest(BinaryOperator, PatternObject):
 
 class Alternatives(BinaryOperator, PatternObject):
     """
+    <dl>
+    <dt>'Alternatives[$p1$, $p2$, ..., $p_i$]'
+    <dt>'$p1$ | $p2$ | ... | $p_i$'
+        <dd>is a pattern that matches any of the patterns '$p1$, $p2$,
+        ...., $p_i$'.
+    </dl>
+
     >> a+b+c+d/.(a|b)->t
      = c + d + 2 t
+
+    Alternatives can also be used for string expressions
+    >> StringReplace["0123 3210", "1" | "2" -> "X"]
+     = 0XX3 3XX0
+
+    #> StringReplace["h1d9a f483", DigitCharacter | WhitespaceCharacter -> ""]
+     = hdaf
     """
 
     operator = '|'
@@ -362,25 +524,80 @@ class Alternatives(BinaryOperator, PatternObject):
         return range
 
 
+class Except(PatternObject):
+    """
+    <dl>
+    <dt>'Except[$c$]'
+        <dd>represents a pattern object that matches any expression except those matching $c$.
+    <dt>'Except[$c$, $p$]'
+        <dd>represents a pattern object that matches $p$ but not $c$.
+    </dl>
+
+    >> Cases[{x, a, b, x, c}, Except[x]]
+     = {a, b, c}
+
+    >> Cases[{a, 0, b, 1, c, 2, 3}, Except[1, _Integer]]
+     = {0, 2, 3}
+
+    Except can also be used for string expressions:
+    >> StringReplace["Hello world!", Except[LetterCharacter] -> ""]
+     = Helloworld
+
+    #> StringReplace["abc DEF 123!", Except[LetterCharacter, WordCharacter] -> "0"]
+     = abc DEF 000!
+    """
+
+    arg_counts = [1, 2]
+
+    def init(self, expr):
+        super(Except, self).init(expr)
+        self.c = Pattern.create(expr.leaves[0])
+        if len(expr.leaves) == 2:
+            self.p = Pattern.create(expr.leaves[1])
+        else:
+            self.p = Pattern.create(Expression('Blank'))
+
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
+        class StopGenerator_Except(StopGenerator):
+            pass
+
+        def except_yield_func(vars, rest):
+            raise StopGenerator_Except(Symbol("True"))
+
+        try:
+            self.c.match(except_yield_func, expression, vars, evaluation)
+        except StopGenerator_Except:
+            pass
+        else:
+            self.p.match(yield_func, expression, vars, evaluation)
+
+
+class Matcher(object):
+    def __init__(self, form):
+        self.form = Pattern.create(form)
+
+    def match(self, expr, evaluation):
+        class StopGenerator_MatchQ(StopGenerator):
+            pass
+
+        def yield_func(vars, rest):
+            raise StopGenerator_MatchQ(Symbol("True"))
+
+        try:
+            self.form.match(yield_func, expr, {}, evaluation)
+        except StopGenerator_MatchQ:
+            return True
+        return False
+
+
 def match(expr, form, evaluation):
-    class StopGenerator_MatchQ(StopGenerator):
-        pass
-
-    form = Pattern.create(form)
-
-    def yield_func(vars, rest):
-        raise StopGenerator_MatchQ(Symbol("True"))
-    try:
-        form.match(yield_func, expr, {}, evaluation)
-    except StopGenerator_MatchQ:
-        return True
-    return False
+    return Matcher(form).match(expr, evaluation)
 
 
 class MatchQ(Builtin):
     """
     <dl>
-        <dt>'MatchQ[$expr$, $form$]'
+    <dt>'MatchQ[$expr$, $form$]'
         <dd>tests whether $expr$ matches $form$.
     </dl>
 
@@ -388,7 +605,13 @@ class MatchQ(Builtin):
      = True
     >> MatchQ[123, _Real]
      = False
+    >> MatchQ[_Integer][123]
+     = True
     """
+
+    rules = {
+        'MatchQ[form_][expr_]': 'MatchQ[expr, form]',
+    }
 
     def apply(self, expr, form, evaluation):
         'MatchQ[expr_, form_]'
@@ -400,10 +623,19 @@ class MatchQ(Builtin):
 
 class Verbatim(PatternObject):
     """
+    <dl>
+    <dt>'Verbatim[$expr$]'
+        <dd>prevents pattern constructs in $expr$ from taking effect,
+        allowing them to match themselves.
+    </dl>
+
+    Create a pattern matching 'Blank':
     >> _ /. Verbatim[_]->t
      = t
     >> x /. Verbatim[_]->t
      = x
+
+    Without 'Verbatim', 'Blank' has its normal effect:
     >> x /. _->t
      = t
     """
@@ -420,10 +652,12 @@ class Verbatim(PatternObject):
 
 
 class HoldPattern(PatternObject):
-
     """
-    'HoldPattern[$expr$]' is equivalent to $expr$ for pattern matching,
-    but maintains it in an unevaluated form.
+    <dl>
+    <dt>'HoldPattern[$expr$]'
+        <dd>is equivalent to $expr$ for pattern matching, but
+        maintains it in an unevaluated form.
+    </dl>
 
     >> HoldPattern[x + x]
      = HoldPattern[x + x]
@@ -453,10 +687,12 @@ class HoldPattern(PatternObject):
 class Pattern_(PatternObject):
     """
     <dl>
-    <dt>'Pattern[$symb$, $patt$]' or '$symb$ : $patt$'
+    <dt>'Pattern[$symb$, $patt$]'
+    <dt>'$symb$ : $patt$'
         <dd>assigns the name $symb$ to the pattern $patt$.
     <dt>'$symb$_$head$'
-        <dd>is equivalent to '$symb$ : _$head$' (accordingly with '__' and '___').
+        <dd>is equivalent to '$symb$ : _$head$' (accordingly with '__'
+        and '___').
     <dt>'$symb$ : $patt$ : $default$'
         <dd>is a pattern with name $symb$ and default value $default$,
         equivalent to 'Optional[$patt$ : $symb$, $default$]'.
@@ -475,24 +711,17 @@ class Pattern_(PatternObject):
 
     Nested 'Pattern' assign multiple names to the same pattern. Still,
     the last parameter is the default value.
-    >> f[y] /. f[a:b:_:d] -> {a, b}
-     = {y, y}
+    >> f[y] /. f[a:b,_:d] -> {a, b}
+     = f[y]
     This is equivalent to:
-    >> f[] /. f[a:b_:d] -> {a, b}
-     = {d, d}
+    >> f[a] /. f[a:_:b] -> {a, b}
+     = {a, b}
     'FullForm':
     >> FullForm[a:b:c:d:e]
      = Optional[Pattern[a, b], Optional[Pattern[c, d], e]]
 
-    ## Test parsing for following TODO test
-    #> Hold[f[] /. f[a:b:_:d] -> {a, b}] // FullForm
-     = Hold[ReplaceAll[f[], Rule[f[Pattern[a, Optional[Pattern[b, Blank[]], d]]], List[a, b]]]]
-    """
-
-    # TODO: This parses correctly (see above test) but computes incorrectly
-    """
-    >> f[] /. f[a:b:_:d] -> {a, b}
-     = {d, d}
+    >> f[] /. f[a:_:b] -> {a, b}
+     = {b, b}
     """
 
     name = 'Pattern'
@@ -515,7 +744,7 @@ class Pattern_(PatternObject):
     formats = {
         'Verbatim[Pattern][symbol_, '
         'pattern_?(!MatchQ[#, _Blank|_BlankSequence|_BlankNullSequence]&)]': (
-            'Infix[{symbol, pattern}, ":", 140]'),
+            'Infix[{symbol, pattern}, ":", 150, Left]'),
     }
 
     def init(self, expr):
@@ -558,8 +787,10 @@ class Pattern_(PatternObject):
 class Optional(BinaryOperator, PatternObject):
     """
     <dl>
-    <dt>'Optional[$patt$, $default$]' or '$patt$ : $default$'
-        <dd>is a pattern which matches $patt$ and which, if omitted should be replaced by $default$.
+    <dt>'Optional[$patt$, $default$]'
+    <dt>'$patt$ : $default$'
+        <dd>is a pattern which matches $patt$, which if omitted
+        should be replaced by $default$.
     </dl>
 
     >> f[x_, y_:1] := {x, y}
@@ -586,6 +817,15 @@ class Optional(BinaryOperator, PatternObject):
     >> Default[h, k_] := k
     >> h[a] /. h[x_, y_.] -> {x, y}
      = {a, 2}
+
+    #> a:b:c
+     = a : b : c
+    #> FullForm[a:b:c]
+     = Optional[Pattern[a, b], c]
+    #> (a:b):c
+     = a : b : c
+    #> a:(b:c)
+     = a : (b : c)
     """
 
     operator = ':'
@@ -594,30 +834,13 @@ class Optional(BinaryOperator, PatternObject):
 
     default_formats = False
 
-    def post_parse(self, expression):
-        leaves = [leaf.post_parse() for leaf in expression.leaves]
-        expression = Expression(expression.head.post_parse(), *leaves)
-        if (expression.has_form('Optional', 2) and expression.leaves[0].get_name()):
-            sub = expression.leaves[1]
-            if sub.has_form(('Pattern', 'Optional'), 2):
-                return Expression(
-                    'Optional',
-                    Expression('Pattern', expression.leaves[0], sub.leaves[0]),
-                    sub.leaves[1])
-            else:
-                return Expression(
-                    'Pattern',
-                    *[leaf.post_parse() for leaf in expression.leaves])
-        else:
-            return expression
-
     rules = {
         'MakeBoxes[Verbatim[Optional][Verbatim[Pattern][symbol_Symbol, Verbatim[_]]], f:StandardForm|TraditionalForm|InputForm|OutputForm]': 'MakeBoxes[symbol, f] <> "_."',
         'MakeBoxes[Verbatim[Optional][Verbatim[_]], f:StandardForm|TraditionalForm|InputForm|OutputForm]': '"_."',
     }
 
     formats = {
-        'Verbatim[Optional][pattern_Pattern, default_]': 'Infix[{HoldForm[pattern], HoldForm[default]}, ":", 150]',
+        'Verbatim[Optional][pattern_Pattern, default_]': 'Infix[{HoldForm[pattern], HoldForm[default]}, ":", 140, Right]',
     }
 
     arg_counts = [1, 2]
@@ -689,9 +912,11 @@ class _Blank(PatternObject):
 class Blank(_Blank):
     """
     <dl>
-    <dt>'_' or 'Blank'[]
+    <dt>'Blank[]'
+    <dt>'_'
         <dd>represents any single expression in a pattern.
-    <dt>'_'$h$ or 'Blank'[$h$]
+    <dt>'Blank[$h$]'
+    <dt>'_$h$'
         <dd>represents any expression with head $h$.
     </dl>
 
@@ -710,6 +935,9 @@ class Blank(_Blank):
     'Blank' only matches a single expression:
     >> MatchQ[f[1, 2], f[_]]
      = False
+
+    #> StringReplace["hello world!", _ -> "x"]
+     = xxxxxxxxxxxx
     """
     rules = {
         'MakeBoxes[Verbatim[Blank][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"_"',
@@ -728,9 +956,12 @@ class Blank(_Blank):
 class BlankSequence(_Blank):
     """
     <dl>
-    <dt>'__' or 'BlankSequence'[]
-        <dd>represents any non-empty sequence of expression leaves in a pattern.
-    <dt>'__'$h$ or 'BlankSequence'[$h$]
+    <dt>'BlankSequence[]'
+    <dt>'__'
+        <dd>represents any non-empty sequence of expression leaves in
+        a pattern.
+    <dt>'BlankSequence[$h$]'
+    <dt>'__$h$'
         <dd>represents any sequence of leaves, all of which have head $h$.
     </dl>
 
@@ -756,6 +987,9 @@ class BlankSequence(_Blank):
      = {{a, b}, {d}}
     #> a + b + c + d /. Plus[x__, c] -> {x}
      = {a, b, d}
+
+    #> StringReplace[{"ab", "abc", "abcd"}, "b" ~~ __ -> "x"]
+     = {ab, ax, ax}
     """
     rules = {
         'MakeBoxes[Verbatim[BlankSequence][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"__"',
@@ -784,7 +1018,8 @@ class BlankSequence(_Blank):
 class BlankNullSequence(_Blank):
     """
     <dl>
-    <dt>'___' or 'BlankNullSequence'[]
+    <dt>'BlankNullSequence[]'
+    <dt>'___'
         <dd>represents any sequence of expression leaves in a pattern,
         including an empty sequence.
     </dl>
@@ -805,6 +1040,9 @@ class BlankNullSequence(_Blank):
      = ___symbol
     #> ___symbol //FullForm
      = BlankNullSequence[symbol]
+
+    #> StringReplace[{"ab", "abc", "abcd"}, "b" ~~ ___ -> "x"]
+     = {ax, ax, ax}
     """
 
     rules = {
@@ -831,6 +1069,11 @@ class BlankNullSequence(_Blank):
 
 class Repeated(PostfixOperator, PatternObject):
     """
+    <dl>
+    <dt>'Repeated[$pattern$]'
+        <dd>matches one or more occurrences of $pattern$.
+    </dl>
+
     >> a_Integer.. // FullForm
      = Repeated[Pattern[a, Blank[Integer]]]
     >> 0..1//FullForm
@@ -844,6 +1087,11 @@ class Repeated(PostfixOperator, PatternObject):
      = Repeated[1]
     #> 8^^1.. // FullForm   (* Mathematica gets this wrong *)
      = Repeated[1]
+
+    #> StringReplace["010110110001010", "01".. -> "a"]
+     = a1a100a0
+    #> StringMatchQ[#, "a" ~~ ("b"..) ~~ "a"] &/@ {"aa", "aba", "abba"}
+     = {False, True, True}
     """
 
     messages = {
@@ -904,6 +1152,11 @@ class Repeated(PostfixOperator, PatternObject):
 
 class RepeatedNull(Repeated):
     """
+    <dl>
+    <dt>'RepeatedNull[$pattern$]'
+        <dd>matches zero or more occurrences of $pattern$.
+    </dl>
+
     >> a___Integer...//FullForm
      = RepeatedNull[Pattern[a, BlankNullSequence[Integer]]]
     >> f[x] /. f[x, 0...] -> t
@@ -913,6 +1166,9 @@ class RepeatedNull(Repeated):
      = RepeatedNull[1]
     #> 8^^1... // FullForm   (* Mathematica gets this wrong *)
      = RepeatedNull[1]
+
+    #> StringMatchQ[#, "a" ~~ ("b"...) ~~ "a"] &/@ {"aa", "aba", "abba"}
+     = {True, True, True}
     """
 
     operator = '...'
@@ -924,8 +1180,15 @@ class RepeatedNull(Repeated):
 
 class Condition(BinaryOperator, PatternObject):
     """
-    'Condition' sets a condition on the pattern to match, using variables of the pattern.
+    <dl>
+    <dt>'Condition[$pattern$, $expr$]'
+    <dt>'$pattern$ /; $expr$'
+        <dd>places an additional constraint on $pattern$ that only
+        allows it to match if $expr$ evaluates to 'True'.
+    </dl>
 
+    The controlling expression of a 'Condition' can use variables from
+    the pattern:
     >> f[3] /. f[x_] /; x>0 -> t
      = t
     >> f[-3] /. f[x_] /; x>0 -> t
@@ -967,13 +1230,14 @@ class OptionsPattern(PatternObject):
     """
     <dl>
     <dt>'OptionsPattern[$f$]'
-        <dd>is a pattern that stands for a sequence of options given to a function,
-        with default values taken from 'Options[$f$]'. The options can be of the form
-        '$opt$->$value$' or '$opt$:>$value$', and might be in arbitrarily nested lists.
+        <dd>is a pattern that stands for a sequence of options given
+        to a function, with default values taken from 'Options[$f$]'.
+        The options can be of the form '$opt$->$value$' or
+        '$opt$:>$value$', and might be in arbitrarily nested lists.
     <dt>'OptionsPattern[{$opt1$->$value1$, ...}]'
-        <dd>takes explicit default values from the given list.
-        The list may also contain symbols $f$, for which 'Options[$f$]' is taken into account;
-        it may be arbitrarily nested.
+        <dd>takes explicit default values from the given list. The
+        list may also contain symbols $f$, for which 'Options[$f$]' is
+        taken into account; it may be arbitrarily nested.
         'OptionsPattern[{}]' does not use any default values.
     </dl>
 
