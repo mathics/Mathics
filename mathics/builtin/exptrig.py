@@ -935,27 +935,3 @@ class InverseHaversine(_MPMathFunction):
     rules = {
         'InverseHaversine[z_]': '2 * ArcSin[Sqrt[z]]'
     }
-
-
-class LogisticSigmoid(Builtin):
-    """
-    <dl>
-    <dt>'LogisticSigmoid[$z$]'
-        <dd>returns the logistic sigmoid of $z$.
-    </dl>
-    
-    >> LogisticSigmoid[0.5]
-     = 0.622459
-
-    >> LogisticSigmoid[0.5 + 2.3 I]
-     = 1.06475 +0.808177 I
-
-    >> LogisticSigmoid[{-0.2, 0.1, 0.3}]
-     = {0.450166,0.524979,0.574443}
-    """
-
-    attributes = ('Listable', 'NumericFunction',)
-    
-    rules = {'LogisticSigmoid[z_?NumberQ]': 'Power[Plus[1,Power[E,Times[-1,z]]],-1]'}
-
-    
