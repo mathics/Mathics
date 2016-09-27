@@ -13,10 +13,17 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import sympy
+import mpmath
+from mpmath import mpf
+import math
 import hashlib
 import zlib
 import math
 from six.moves import range
+from collections import namedtuple
+from contextlib import contextmanager
+from itertools import chain
+
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (
@@ -24,9 +31,8 @@ from mathics.core.numbers import (
     get_precision, PrecisionValueError)
 from mathics.core.expression import (
     Integer, Real, Complex, Expression, Number, Symbol, Rational, from_python,
-    MachineReal)
+    MachineReal, PrecisionReal)
 from mathics.core.convert import from_sympy
-
 
 class N(Builtin):
     """
@@ -890,3 +896,129 @@ class Hash(Builtin):
     def apply(self, expr, hashtype, evaluation):
         'Hash[expr_, hashtype_String]'
         return Hash.compute(expr.user_hash, hashtype.get_string_value())
+
+
+class TypeEscalation(Exception):
+    def __init__(self, mode):
+        self.mode = mode
+
+
+class Fold(object):
+    # allows inherited classes to specify a single algorithm implementation that
+    # can be called with machine precision, arbitrary precision or symbolically.
+
+    ComputationFunctions = namedtuple(
+        'ComputationFunctions', ('sin', 'cos'))
+
+    FLOAT = 0
+    MPMATH = 1
+    SYMBOLIC = 2
+
+    math = {
+        FLOAT: ComputationFunctions(
+            cos=math.cos,
+            sin=math.sin,
+        ),
+        MPMATH: ComputationFunctions(
+            cos=mpmath.cos,
+            sin=mpmath.sin,
+        ),
+        SYMBOLIC: ComputationFunctions(
+            cos=lambda x: Expression('Cos', x),
+            sin=lambda x: Expression('Sin', x),
+        )
+    }
+
+    operands = {
+        FLOAT: lambda x: None if x is None else x.round_to_float(),
+        MPMATH: lambda x: None if x is None else x.to_mpmath(),
+        SYMBOLIC: lambda x: x,
+    }
+
+    def _operands(self, state, steps):
+        raise NotImplementedError
+
+    def _fold(self, state, steps, math):
+        raise NotImplementedError
+
+    def _spans(self, operands):
+        spans = {}
+        k = 0
+        j = 0
+
+        for mode in (self.FLOAT, self.MPMATH):
+            for i, operand in enumerate(operands[k:]):
+                if operand[0] > mode:
+                    break
+                j = i + k + 1
+
+            if k == 0 and j == 1:  # only init state? then ignore.
+                j = 0
+
+            spans[mode] = slice(k, j)
+            k = j
+
+        spans[self.SYMBOLIC] = slice(k, len(operands))
+
+        return spans
+
+    def fold(self, x, l):
+        # computes fold(x, l) with the internal _fold function. will start
+        # its evaluation machine precision, and will escalate to arbitrary
+        # precision if or symbolical evaluation only if necessary. folded
+        # items already computed are carried over to new evaluation modes.
+
+        yield x  # initial state
+
+        init = None
+        operands = list(self._operands(x, l))
+        spans = self._spans(operands)
+
+        for mode in (self.FLOAT, self.MPMATH, self.SYMBOLIC):
+            s_operands = [y[1:] for y in operands[spans[mode]]]
+
+            if not s_operands:
+                continue
+
+            if mode == self.MPMATH:
+                from mathics.core.numbers import min_prec
+                precision = min_prec(*[t for t in chain(*s_operands) if t is not None])
+                working_precision = mpmath.workprec
+            else:
+                @contextmanager
+                def working_precision(_):
+                    yield
+                precision = None
+
+            if mode == self.FLOAT:
+                def out(z):
+                    return Real(z)
+            elif mode == self.MPMATH:
+                def out(z):
+                    return Real(z, precision)
+            else:
+                def out(z):
+                    return z
+
+            as_operand = self.operands.get(mode)
+
+            def converted_operands():
+                for y in s_operands:
+                    yield tuple(as_operand(t) for t in y)
+
+            with working_precision(precision):
+                c_operands = converted_operands()
+
+                if init is not None:
+                    c_init = tuple((None if t is None else as_operand(from_python(t))) for t in init)
+                else:
+                    c_init = next(c_operands)
+                    init = tuple((None if t is None else out(t)) for t in c_init)
+
+                generator = self._fold(
+                    c_init, c_operands, self.math.get(mode))
+
+                for y in generator:
+                    y = tuple(out(t) for t in y)
+                    yield y
+                    init = y

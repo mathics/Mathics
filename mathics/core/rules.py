@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from mathics.core.expression import Expression, Symbol, strip_context, KeyComparable
+from mathics.core.expression import Expression, strip_context, KeyComparable
 from mathics.core.pattern import Pattern, StopGenerator
 
 
@@ -46,17 +46,7 @@ class BaseRule(KeyComparable):
                 result = new_expression
 
             # Flatten out sequences (important for Rule itself!)
-
-            def flatten(expr):
-                new_expr = expr.flatten(Symbol('Sequence'), pattern_only=True)
-                if not new_expr.is_atom():
-                    for index, leaf in enumerate(new_expr.leaves):
-                        new_expr.leaves[index] = flatten(leaf)
-                if hasattr(expr, 'options'):
-                    new_expr.options = expr.options
-                return new_expr
-
-            result = flatten(result)
+            result = result.flatten_pattern_sequence()
             if return_list:
                 result_list.append(result)
                 # count += 1
@@ -89,7 +79,7 @@ class Rule(BaseRule):
         self.replace = replace
 
     def do_replace(self, vars, options, evaluation):
-        new = self.replace.replace_vars(vars)
+        new = self.replace.replace_vars(vars, evaluation)
         new.options = options
 
         # if options is a non-empty dict, we need to ensure reevaluation of the whole expression, since 'new' will

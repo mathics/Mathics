@@ -167,6 +167,10 @@ class Module(Builtin):
      = a
     >> Module[{a}, Block[{}, a]]
      = a$5
+
+    #> Module[{n = 3}, Module[{b = n * 5}, b * 7]]
+     = 105
+
     """
 
     attributes = ('HoldAll',)
@@ -194,7 +198,7 @@ class Module(Builtin):
             if new_def is not None:
                 evaluation.definitions.set_ownvalue(new_name, new_def)
             replace[name] = Symbol(new_name)
-        new_expr = expr.replace_vars(replace, in_scoping=False)
+        new_expr = expr.replace_vars(replace, evaluation, in_scoping=False)
         result = new_expr.evaluate(evaluation)
         return result
 
@@ -262,7 +266,7 @@ class Contexts(Builtin):
     ## this assignment makes sure that a definition in Global` exists
     >> x = 5;
     >> Contexts[] // InputForm
-     = {"Combinatorica`", "Global`", "ImportExport`", "Internal`", "System`", "System`Convert`Image`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`"}
+     = {"Combinatorica`", "Global`", "ImportExport`", "Internal`", "System`", "System`Convert`Image`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`", "XML`", "XML`Parser`"}
     """
 
     def apply(self, evaluation):

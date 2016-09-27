@@ -9,13 +9,14 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from __future__ import division
 
-from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees
+from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians, exp
 import json
 import base64
 from six.moves import map
 from six.moves import range
 from six.moves import zip
 from itertools import chain
+from math import sin, cos, pi
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
@@ -24,6 +25,7 @@ from mathics.core.expression import (
     Expression, Integer, Rational, Real, String, Symbol, strip_context,
     system_symbols, system_symbols_dict, from_python)
 from mathics.builtin.colors import convert as convert_color
+from mathics.core.numbers import machine_epsilon
 
 
 class CoordinatesError(BoxConstructError):
@@ -176,6 +178,75 @@ def _euclidean_distance(a, b):
 
 def _component_distance(a, b, i):
     return abs(a[i] - b[i])
+
+	
+def _cie2000_distance(lab1, lab2):
+    #reference: https://en.wikipedia.org/wiki/Color_difference#CIEDE2000
+    e = machine_epsilon
+    kL = kC = kH = 1 #common values
+    
+    L1, L2 = lab1[0], lab2[0]
+    a1, a2 = lab1[1], lab2[1]
+    b1, b2 = lab1[2], lab2[2]
+    
+    dL = L2 - L1
+    Lm = (L1 + L2)/2
+    C1 = sqrt(a1**2 + b1**2)
+    C2 = sqrt(a2**2 + b2**2)
+    Cm = (C1 + C2)/2;
+    
+    a1 = a1 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
+    a2 = a2 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
+    
+    C1 = sqrt(a1**2 + b1**2)
+    C2 = sqrt(a2**2 + b2**2)
+    Cm = (C1 + C2)/2
+    dC = C2 - C1
+    
+    h1 = (180 * atan2(b1, a1 + e))/pi % 360
+    h2 = (180 * atan2(b2, a2 + e))/pi % 360
+    if abs(h2 - h1) <= 180:
+        dh = h2 - h1 
+    elif abs(h2 - h1) > 180 and h2 <= h1:
+        dh = h2 - h1 + 360
+    elif abs(h2 - h1) > 180 and h2 > h1:
+        dh = h2 - h1 - 360
+                    
+    dH = 2*sqrt(C1*C2)*sin(radians(dh)/2)
+    
+    Hm = (h1 + h2)/2 if abs(h2 - h1) <= 180 else (h1 + h2 + 360)/2
+    T = 1 - 0.17*cos(radians(Hm - 30)) + 0.24*cos(radians(2*Hm)) + 0.32*cos(radians(3*Hm + 6)) - 0.2*cos(radians(4*Hm - 63))
+    
+    SL = 1 + (0.015*(Lm - 50)**2)/sqrt(20 + (Lm - 50)**2)
+    SC = 1 + 0.045*Cm
+    SH = 1 + 0.015*Cm*T
+    
+    rT = -2 * sqrt(Cm**7/(Cm**7 + 25**7))*sin(radians(60*exp(-((Hm - 275)**2 / 25**2))))
+    return sqrt((dL/(SL*kL))**2 + (dC/(SC*kC))**2 + (dH/(SH*kH))**2 + rT*(dC/(SC*kC))*(dH/(SH*kH)))
+
+
+def _CMC_distance(lab1, lab2, l, c):
+    #reference https://en.wikipedia.org/wiki/Color_difference#CMC_l:c_.281984.29
+    L1, L2 = lab1[0], lab2[0]
+    a1, a2 = lab1[1], lab2[1]
+    b1, b2 = lab1[2], lab2[2]
+    
+    dL, da, db = L2-L1, a2-a1, b2-b1
+    e = machine_epsilon
+    
+    C1 = sqrt(a1**2 + b1**2);
+    C2 = sqrt(a2**2 + b2**2);
+    
+    h1 = (180 * atan2(b1, a1 + e))/pi % 360;
+    dC = C2 - C1;
+    dH2 = da**2 + db**2 - dC**2;
+    F = C1**2/sqrt(C1**4 + 1900);
+    T = 0.56 + abs(0.2*cos(radians(h1 + 168))) if (164 <= h1 and h1 <= 345) else 0.36 + abs(0.4*cos(radians(h1 + 35)));
+    
+    SL = 0.511 if L1 < 16 else (0.040975*L1)/(1 + 0.01765*L1);
+    SC = (0.0638*C1)/(1 + 0.0131*C1) + 0.638;
+    SH = SC*(F*T + 1 - F);
+    return sqrt((dL/(l*SL))**2 + (dC/(c*SC))**2 + dH2/SH**2)
 
 
 def _extract_graphics(graphics, format, evaluation):
@@ -660,45 +731,93 @@ class ColorDistance(Builtin):
 
     CIE76: euclidean distance in the LABColor space
     CIE94: euclidean distance in the LCHColor space
+    CIE2000 or CIEDE2000: CIE94 distance with corrections
+    CMC: Colour Measurement Committee metric (1984)
     DeltaL: difference in the L component of LCHColor
     DeltaC: difference in the C component of LCHColor
     DeltaH: difference in the H component of LCHColor
 
-    >> N[ColorDistance[Magenta, Green], 5]
+    It is also possible to specify a custom distance
+
+    >> ColorDistance[Magenta, Green]
      = 2.2507
+    >> ColorDistance[{Red, Blue}, {Green, Yellow}, DistanceFunction -> {"CMC", "Perceptibility"}]
+     = {1.0495, 1.27455}
+    #> ColorDistance[Blue, Red, DistanceFunction -> "CIE2000"]
+     = 0.557976
+    #> ColorDistance[Red, Black, DistanceFunction -> (Abs[#1[[1]] - #2[[1]]] &)]
+     = 0.542917
+    
     """
 
     options = {
-        'DistanceFunction': '"CIE76"',
+        'DistanceFunction': 'Automatic',
     }
 
     messages = {
-        'invdist': '`` is not a valid color distance function.',
+        'invdist': '`1` is not Automatic or a valid distance specification.',
         'invarg': '`1` and `2` should be two colors or a color and a lists of colors or ' +
                   'two lists of colors of the same length.'
+        
     }
-
+    
+    # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space 
+    # with {l,a,b}={L^*,a^*,b^*}/100. Corrections factors are put accordingly.
+    
     _distances = {
         "CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
         "CIE94": lambda c1, c2: _euclidean_distance(c1.to_color_space('LCH')[:3], c2.to_color_space('LCH')[:3]),
+        "CIE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
+        "CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,	
         "DeltaL": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 0),
         "DeltaC": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 1),
         "DeltaH": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 2),
+        "CMC": lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3], 1, 1)/100
+
     }
+
 
     def apply(self, c1, c2, evaluation, options):
         'ColorDistance[c1_, c2_, OptionsPattern[ColorDistance]]'
         distance_function = options.get('System`DistanceFunction')
+        compute = None
         if isinstance(distance_function, String):
             compute = ColorDistance._distances.get(distance_function.get_string_value())
             if not compute:
                 evaluation.message('ColorDistance', 'invdist', distance_function)
                 return
+        elif distance_function.has_form('List', 2):
+            if distance_function.leaves[0].get_string_value() == 'CMC':
+                if distance_function.leaves[1].get_string_value() == 'Acceptability':
+                    compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
+                                                            100*c2.to_color_space('LAB')[:3], 2, 1)/100
+                elif distance_function.leaves[1].get_string_value() == 'Perceptibility':
+                    compute = ColorDistance._distances.get("CMC")
+                    
+                elif distance_function.leaves[1].has_form('List', 2):
+                    if (isinstance(distance_function.leaves[1].leaves[0], Integer)
+                    and isinstance(distance_function.leaves[1].leaves[1], Integer)):
+                        if (distance_function.leaves[1].leaves[0].get_int_value() > 0
+                        and distance_function.leaves[1].leaves[1].get_int_value() > 0):
+                            lightness = distance_function.leaves[1].leaves[0].get_int_value()
+                            chroma = distance_function.leaves[1].leaves[1].get_int_value()
+                            compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
+                                                                    100*c2.to_color_space('LAB')[:3], lightness, chroma)/100
+
+        elif isinstance(distance_function, Symbol) and distance_function.get_name() == 'System`Automatic':
+            compute = ColorDistance._distances.get("CIE76")
         else:
             def compute(a, b):
-                Expression(distance_function,
-                           a.to_color_space('LAB'),
-                           b.to_color_space('LAB'))
+                return Expression('Apply',
+                                    distance_function,
+                                    Expression('List',
+                                                Expression('List', *[Real(val) for val in a.to_color_space('LAB')]),
+                                                Expression('List', *[Real(val) for val in b.to_color_space('LAB')])
+                                              )
+                                    )
+        if compute == None:
+            evaluation.message('ColorDistance', 'invdist', distance_function)
+            return
 
         def distance(a, b):
             try:
@@ -707,7 +826,8 @@ class ColorDistance(Builtin):
             except ColorError:
                 evaluation.message('ColorDistance', 'invarg', a, b)
                 raise
-            return from_python(compute(py_a, py_b))
+            result = from_python(compute(py_a, py_b))
+            return result
 
         try:
             if c1.get_head_name() == 'System`List':
@@ -724,6 +844,9 @@ class ColorDistance(Builtin):
             else:
                 return distance(c1, c2)
         except ColorError:
+            return
+        except NotImplementedError:
+            evaluation.message('ColorDistance', 'invdist', distance_function)
             return
 
 
@@ -1640,6 +1763,76 @@ class PolygonBox(_Polyline):
                     ['(%.5g,%.5g)' % coords.pos() for coords in line]) + '--cycle'
                 asy += 'filldraw(%s, %s);' % (path, pens)
         return asy
+
+
+class RegularPolygon(Builtin):
+    """
+    <dl>
+    <dt>'RegularPolygon[$n$]'
+        <dd>gives the regular polygon with $n$ edges.
+    <dt>'RegularPolygon[$r$, $n$]'
+        <dd>gives the regular polygon with $n$ edges and radius $r$.
+    <dt>'RegularPolygon[{$r$, $phi$}, $n$]'
+        <dd>gives the regular polygon with radius $r$ with one vertex drawn at angle $phi$.
+    <dt>'RegularPolygon[{$x, $y}, $r$, $n$]'
+        <dd>gives the regular polygon centered at the position {$x, $y}.
+    </dl>
+
+    >> Graphics[RegularPolygon[5]]
+    = -Graphics-
+
+    >> Graphics[{Yellow, Rectangle[], Orange, RegularPolygon[{1, 1}, {0.25, 0}, 3]}]
+    = -Graphics-
+    """
+
+
+class RegularPolygonBox(PolygonBox):
+    def init(self, graphics, style, item):
+        if len(item.leaves) in (1, 2, 3) and isinstance(item.leaves[-1], Integer):
+            r = 1.
+            phi0 = None
+
+            if len(item.leaves) >= 2:
+                rspec = item.leaves[-2]
+                if rspec.get_head_name() == 'System`List':
+                    if len(rspec.leaves) != 2:
+                        raise BoxConstructError
+                    r = rspec.leaves[0].round_to_float()
+                    phi0 = rspec.leaves[1].round_to_float()
+                else:
+                    r = rspec.round_to_float()
+
+            x = 0.
+            y = 0.
+            if len(item.leaves) == 3:
+                pos = item.leaves[0]
+                if not pos.has_form('List', 2):
+                    raise BoxConstructError
+                x = pos.leaves[0].round_to_float()
+                y = pos.leaves[1].round_to_float()
+
+            n = item.leaves[-1].get_int_value()
+
+            if any(t is None for t in (x, y, r)) or n < 0:
+                raise BoxConstructError
+
+            if phi0 is None:
+                phi0 = -pi / 2.
+                if n % 1 == 0 and n > 0:
+                    phi0 += pi / n
+
+            pi2 = pi * 2.
+
+            def vertices():
+                for i in range(n):
+                    phi = phi0 + pi2 * i / float(n)
+                    yield Expression('List', Real(x + r * cos(phi)), Real(y + r * sin(phi)))
+
+            new_item = Expression('RegularPolygonBox', Expression('List', *list(vertices())))
+        else:
+            raise BoxConstructError
+
+        super(RegularPolygonBox, self).init(graphics, style, new_item)
 
 
 class Arrow(Builtin):
@@ -3174,7 +3367,9 @@ class Large(Builtin):
 
 
 element_heads = frozenset(system_symbols(
-    'Rectangle', 'Disk', 'Line', 'Arrow', 'FilledCurve', 'BezierCurve', 'Point', 'Circle', 'Polygon', 'Inset', 'Text', 'Sphere', 'Style'))
+    'Rectangle', 'Disk', 'Line', 'Arrow', 'FilledCurve', 'BezierCurve',
+    'Point', 'Circle', 'Polygon', 'RegularPolygon',
+    'Inset', 'Text', 'Sphere', 'Style'))
 
 styles = system_symbols_dict({
     'RGBColor': RGBColor,
@@ -3207,6 +3402,7 @@ GLOBALS = system_symbols_dict({
     'Disk': Disk,
     'Circle': Circle,
     'Polygon': Polygon,
+    'RegularPolygon': RegularPolygon,
     'Inset': Inset,
     'Text': Text,
     'RectangleBox': RectangleBox,
@@ -3217,6 +3413,7 @@ GLOBALS = system_symbols_dict({
     'ArrowBox': ArrowBox,
     'CircleBox': CircleBox,
     'PolygonBox': PolygonBox,
+    'RegularPolygonBox': RegularPolygonBox,
     'PointBox': PointBox,
     'InsetBox': InsetBox,
 })

@@ -8,6 +8,7 @@ import sympy
 import mpmath
 import math
 import re
+from itertools import chain
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
@@ -140,6 +141,15 @@ class BaseExpression(KeyComparable):
         self.pattern_sequence = False
         self.unformatted = self
         self.last_evaluated = None
+        return self
+
+    def sequences(self):
+        return None
+
+    def flatten_sequence(self):
+        return self
+
+    def flatten_pattern_sequence(self):
         return self
 
     def get_attributes(self, definitions):
@@ -498,6 +508,12 @@ class Monomial(object):
         return 0
 
 
+def _sequences(leaves):
+    for i, leaf in enumerate(leaves):
+        if leaf.get_head_name() == 'System`Sequence' or leaf.sequences():
+            yield i
+
+
 class Expression(BaseExpression):
     def __new__(cls, head, *leaves):
         self = super(Expression, cls).__new__(cls)
@@ -505,11 +521,61 @@ class Expression(BaseExpression):
             head = Symbol(head)
         self.head = head
         self.leaves = [from_python(leaf) for leaf in leaves]
+        self._sequences = None
         return self
+
+    def sequences(self):
+        seq = self._sequences
+        if seq is None:
+            seq = list(_sequences(self.leaves))
+            self._sequences = seq
+        return seq
+
+    def _flatten_sequence(self, sequence):
+        indices = self.sequences()
+        if not indices:
+            return self
+
+        leaves = self.leaves
+
+        flattened = []
+        extend = flattened.extend
+
+        k = 0
+        for i in indices:
+            extend(leaves[k:i])
+            extend(sequence(leaves[i]))
+            k = i + 1
+        extend(leaves[k:])
+
+        return Expression(self.head, *flattened)
+
+    def flatten_sequence(self):
+        def sequence(leaf):
+            if leaf.get_head_name() == 'System`Sequence':
+                return leaf.leaves
+            else:
+                return [leaf]
+
+        return self._flatten_sequence(sequence)
+
+    def flatten_pattern_sequence(self):
+        def sequence(leaf):
+            flattened = leaf.flatten_pattern_sequence()
+            if leaf.get_head_name() == 'System`Sequence' and leaf.pattern_sequence:
+                return flattened.leaves
+            else:
+                return [flattened]
+
+        expr = self._flatten_sequence(sequence)
+        if hasattr(self, 'options'):
+            expr.options = self.options
+        return expr
 
     def copy(self):
         result = Expression(
             self.head.copy(), *[leaf.copy() for leaf in self.leaves])
+        result._sequences = self._sequences
         result.options = self.options
         result.original = self
         # result.last_evaluated = self.last_evaluated
@@ -520,6 +586,7 @@ class Expression(BaseExpression):
         # the original, only the Expression instance is new.
         expr = Expression(self.head)
         expr.leaves = self.leaves
+        expr._sequences = self._sequences
         expr.options = self.options
         expr.last_evaluated = self.last_evaluated
         return expr
@@ -808,22 +875,28 @@ class Expression(BaseExpression):
 
             if ('System`SequenceHold' not in attributes and    # noqa
                 'System`HoldAllComplete' not in attributes):
-                new = new.flatten(Symbol('Sequence'))
-            leaves = new.leaves
+                new = new.flatten_sequence()
+                leaves = new.leaves
 
             for leaf in leaves:
                 leaf.unevaluated = False
+
             if 'System`HoldAllComplete' not in attributes:
+                dirty_new = False
+
                 for index, leaf in enumerate(leaves):
                     if leaf.has_form('Unevaluated', 1):
                         leaves[index] = leaf.leaves[0]
                         leaves[index].unevaluated = True
+                        dirty_new = True
+
+                if dirty_new:
+                    new = Expression(head, *leaves)
 
             def flatten_callback(new_leaves, old):
                 for leaf in new_leaves:
                     leaf.unevaluated = old.unevaluated
 
-            new = Expression(head, *leaves)
             if 'System`Flat' in attributes:
                 new = new.flatten(new.head, callback=flatten_callback)
             if 'System`Orderless' in attributes:
@@ -1140,16 +1213,14 @@ class Expression(BaseExpression):
                 expr = Expression(head, *expr.leaves)
             return expr, new_applied[0]
 
-
-    def replace_vars(self, vars, options=None,
-                     in_scoping=True, in_function=True):
+    def replace_vars(self, vars, evaluation, options=None, in_scoping=True, in_function=True):
         from mathics.builtin.scoping import get_scoping_vars
 
         if not in_scoping:
             if (self.head.get_name() in ('System`Module', 'System`Block', 'System`With') and
                 len(self.leaves) > 0):  # nopep8
 
-                scoping_vars = set(name for name, new_def in get_scoping_vars(self.leaves[0]))
+                scoping_vars = set(name for name, new_def in get_scoping_vars(self.leaves[0], evaluation=evaluation))
                 """for var in new_vars:
                     if var in scoping_vars:
                         del new_vars[var]"""
@@ -1171,7 +1242,7 @@ class Expression(BaseExpression):
                     body = self.leaves[1]
                     replacement = {name: Symbol(name + '$') for name in func_params}
                     func_params = [Symbol(name + '$') for name in func_params]
-                    body = body.replace_vars(replacement, options, in_scoping)
+                    body = body.replace_vars(replacement, evaluation, options, in_scoping)
                     leaves = [Expression('List', *func_params), body] + \
                         self.leaves[2:]
 
@@ -1180,8 +1251,8 @@ class Expression(BaseExpression):
 
         return Expression(
             self.head.replace_vars(
-                vars, options=options, in_scoping=in_scoping),
-            *[leaf.replace_vars(vars, options=options, in_scoping=in_scoping)
+                vars, evaluation, options=options, in_scoping=in_scoping),
+            *[leaf.replace_vars(vars, evaluation, options=options, in_scoping=in_scoping)
               for leaf in leaves])
 
     def replace_slots(self, slots, evaluation):
@@ -1319,7 +1390,7 @@ class Atom(BaseExpression):
     def __repr__(self):
         return '<%s: %s>' % (self.get_atom_name(), self)
 
-    def replace_vars(self, vars, options=None, in_scoping=True):
+    def replace_vars(self, vars, evaluation, options=None, in_scoping=True):
         return self
 
     def replace_slots(self, slots, evaluation):
@@ -1418,7 +1489,7 @@ class Symbol(Atom):
     def same(self, other):
         return isinstance(other, Symbol) and self.name == other.name
 
-    def replace_vars(self, vars, options={}, in_scoping=True):
+    def replace_vars(self, vars, evaluation, options={}, in_scoping=True):
         assert all(fully_qualified_symbol_name(v) for v in vars)
         var = vars.get(self.name, None)
         if var is None:
@@ -2002,6 +2073,13 @@ def encode_mathml(text):
     text = text.replace('"', '&quot;').replace(' ', '&nbsp;')
     return text.replace('\n', '<mspace linebreak="newline" />')
 
+def _limit_string_size(text, limit):
+    limit = max(limit, 3)
+    if len(text) > limit:
+        ellipsis = "\u2026"
+        return text[:limit // 2] + ellipsis + text[len(text) - limit // 2:]
+    else:
+        return text
 
 TEX_REPLACE = {
     '{': r'\{',
@@ -2054,14 +2132,17 @@ class String(Atom):
     def __str__(self):
         return '"%s"' % self.value
 
-    def boxes_to_text(self, show_string_characters=False, **options):
+    def boxes_to_text(self, show_string_characters=False, output_size_limit=None, **options):
         value = self.value
         if (not show_string_characters and      # nopep8
             value.startswith('"') and value.endswith('"')):
             value = value[1:-1]
-        return value
+        if output_size_limit is None:
+            return value
+        else:
+            return _limit_string_size(value, output_size_limit)
 
-    def boxes_to_xml(self, show_string_characters=False, **options):
+    def boxes_to_xml(self, show_string_characters=False, output_size_limit=None, **options):
         from mathics.core.parser import is_symbol_name
         from mathics.builtin import builtins
 
@@ -2073,30 +2154,33 @@ class String(Atom):
 
         text = self.value
 
+        def render(format, string):
+            if output_size_limit is not None:
+                string = _limit_string_size(string, output_size_limit - (len(format) - len('%s')))
+            return format % encode_mathml(string)
+
         if text.startswith('"') and text.endswith('"'):
             if show_string_characters:
-                return '<ms>%s</ms>' % encode_mathml(text[1:-1])
+                return render('<ms>%s</ms>', text[1:-1])
             else:
-                return '<mtext>%s</mtext>' % encode_mathml(text[1:-1])
+                return render('<mtext>%s</mtext>', text[1:-1])
         elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
-            return '<mn>%s</mn>' % encode_mathml(text)
+            return render('<mn>%s</mn>', text)
         else:
             if text in operators or text in extra_operators:
                 if text == '\u2146':
-                    return (
-                        '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>'
-                        % encode_mathml(text))
+                    return render(
+                        '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>', text)
                 if text == '\u2062':
-                    return (
-                        '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>'
-                        % encode_mathml(text))
-                return '<mo>%s</mo>' % encode_mathml(text)
+                    return render(
+                        '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>', text)
+                return render('<mo>%s</mo>', text)
             elif is_symbol_name(text):
-                return '<mi>%s</mi>' % encode_mathml(text)
+                return render('<mi>%s</mi>', text)
             else:
-                return '<mtext>%s</mtext>' % encode_mathml(text)
+                return render('<mtext>%s</mtext>', text)
 
-    def boxes_to_tex(self, show_string_characters=False, **options):
+    def boxes_to_tex(self, show_string_characters=False, output_size_limit=None, **options):
         from mathics.builtin import builtins
 
         operators = set()
@@ -2107,13 +2191,18 @@ class String(Atom):
 
         text = self.value
 
+        def render(format, string, in_text=False):
+            if output_size_limit is not None:
+                string = _limit_string_size(string, output_size_limit - (len(format) - len('%s')))
+            return format % encode_tex(string, in_text)
+
         if text.startswith('"') and text.endswith('"'):
             if show_string_characters:
-                return r'\text{"%s"}' % encode_tex(text[1:-1], in_text=True)
+                return render(r'\text{"%s"}', text[1:-1], in_text=True)
             else:
-                return r'\text{%s}' % encode_tex(text[1:-1], in_text=True)
+                return render(r'\text{%s}', text[1:-1], in_text=True)
         elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
-            return encode_tex(text)
+            return render('%s', text)
         else:
             if text == '\u2032':
                 return "'"
@@ -2126,9 +2215,9 @@ class String(Atom):
             elif text == '\u00d7':
                 return r'\times '
             elif text in ('(', '[', '{'):
-                return r'\left%s' % encode_tex(text)
+                return render(r'\left%s', text)
             elif text in (')', ']', '}'):
-                return r'\right%s' % encode_tex(text)
+                return render(r'\right%s', text)
             elif text == '\u301a':
                 return r'\left[\left['
             elif text == '\u301b':
@@ -2144,9 +2233,9 @@ class String(Atom):
             elif text == '\u220f':
                 return r'\prod'
             elif len(text) > 1:
-                return r'\text{%s}' % encode_tex(text, in_text=True)
+                return render(r'\text{%s}', text, in_text=True)
             else:
-                return encode_tex(text)
+                return render('%s', text)
 
     def atom_to_boxes(self, f, evaluation):
         return String('"' + six.text_type(self.value) + '"')
@@ -2188,6 +2277,23 @@ class String(Atom):
         return (self.value,)
 
 
+class Omitted(String):  # represents an omitted portion like <<42>> (itself not collapsible)
+    def __new__(cls, value, **kwargs):
+        return super(Omitted, cls).__new__(cls, value, **kwargs)
+
+    def boxes_to_text(self, **options):
+        new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
+        return super(Omitted, self).boxes_to_text(**new_options)
+
+    def boxes_to_xml(self, **options):
+        new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
+        return super(Omitted, self).boxes_to_xml(**new_options)
+
+    def boxes_to_tex(self, **options):
+        new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
+        return super(Omitted, self).boxes_to_tex(**new_options)
+
+
 def get_default_value(name, evaluation, k=None, n=None):
     pos = []
     if k is not None:
@@ -2212,3 +2318,165 @@ def print_parenthesizes(precedence, outer_precedence=None,
     return (outer_precedence is not None and (
         outer_precedence > precedence or (
             outer_precedence == precedence and parenthesize_when_equal)))
+
+
+def _interleave(*gens):  # interleaves over n generators of even or uneven lengths
+    active = [gen for gen in gens]
+    while len(active) > 0:
+        i = 0
+        while i < len(active):
+            try:
+                yield next(active[i])
+                i += 1
+            except StopIteration:
+                del active[i]
+
+
+class _MakeBoxesStrategy(object):
+    def capacity(self):
+        raise NotImplementedError()
+
+    def make(self, items, form, segment=None):
+        raise NotImplementedError()
+
+
+class _UnlimitedMakeBoxesStrategy(_MakeBoxesStrategy):
+    def __init__(self):
+        pass
+
+    def capacity(self):
+        return None
+
+    def make(self, items, form, segment=None):
+        if segment is not None:
+            segment.extend((False, 0, 0))
+        return [Expression('MakeBoxes', item, form) for item in items]
+
+
+class _LimitedMakeBoxesState:
+    def __init__(self, capacity, side, both_sides, depth):
+        self.capacity = capacity  # output size remaining
+        self.side = side  # start from left side (<0) or right side (>0)?
+        self.both_sides = both_sides  # always evaluate both sides?
+        self.depth = depth  # stack depth of MakeBoxes evaluation
+        self.consumed = 0  # sum of costs consumed so far
+
+
+class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
+    def __init__(self, capacity, evaluation):
+        self._capacity = capacity
+        self._evaluation = evaluation
+        self._state = _LimitedMakeBoxesState(self._capacity, 1, True, 1)
+        self._unlimited = _UnlimitedMakeBoxesStrategy()
+
+    def capacity(self):
+        return self._capacity
+
+    def make(self, items, form, segment=None):
+        state = self._state
+        capacity = state.capacity
+
+        if capacity is None or len(items) < 1:
+            return self._unlimited(items, form, segment)
+
+        left_leaves = []
+        right_leaves = []
+
+        middle = len(items) // 2
+
+        # note that we use generator expressions, not list comprehensions, here, since we
+        # might quit early in the loop below, and copying all leaves might prove inefficient.
+        from_left = ((leaf, left_leaves.append) for leaf in items[:middle])
+        from_right = ((leaf, right_leaves.append) for leaf in reversed(items[middle:]))
+
+        # specify at which side to start making boxes (either from the left or from the right).
+        side = state.side
+        if side > 0:
+            from_sides = (from_left, from_right)
+        else:
+            from_sides = (from_right, from_left)
+
+        # usually we start on one side and make boxes until the capacity is exhausted.
+        # however, at the first real list (i.e. > 1 elements) we force evaluation of
+        # both sides in order to make sure the start and the end portion is visible.
+        both_sides = state.both_sides
+        if both_sides and len(items) > 1:
+            delay_break = 1
+            both_sides = False  # disable both_sides from this depth on
+        else:
+            delay_break = 0
+
+        depth = state.depth
+        sum_of_costs = 0
+
+        for i, (item, push) in enumerate(_interleave(*from_sides)):
+            # calling evaluate() here is a serious difference to the implementation
+            # without $OutputSizeLimit. here, we evaluate MakeBoxes bottom up, i.e.
+            # the leaves get evaluated first, since we need to estimate their size
+            # here.
+            #
+            # without $OutputSizeLimit, on the other hand, the expression
+            # gets evaluates from the top down, i.e. first MakeBoxes is wrapped around
+            # each expression, then we call evaluate on the root node. assuming that
+            # there are no rules like MakeBoxes[x_, MakeBoxes[y_]], both approaches
+            # should be identical.
+            #
+            # we could work around this difference by pushing the unevaluated
+            # expression here (see "push(box)" below), instead of the evaluated.
+            # this would be very inefficient though, since we would get quadratic
+            # runtime (quadratic in the depth of the tree).
+
+            box, cost = self._evaluate(
+                item,
+                form,
+                capacity=capacity // 2,  # reserve rest half of capacity for other side
+                side=side * -((i % 2) * 2 - 1),  # flip between side and -side
+                both_sides=both_sides,  # force both-sides evaluation for deeper levels?
+                depth=depth + 1)
+
+            push(box)
+            state.consumed += cost
+
+            sum_of_costs += cost
+            if i >= delay_break:
+                capacity -= sum_of_costs
+                sum_of_costs = 0
+                if capacity <= 0:
+                    break
+
+        ellipsis_size = len(items) - (len(left_leaves) + len(right_leaves))
+        ellipsis = [Omitted('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []
+
+        if segment is not None:
+            if ellipsis_size > 0:
+                segment.extend((True, len(left_leaves), len(items) - len(right_leaves)))
+            else:
+                segment.extend((False, 0, 0))
+
+        return list(chain(left_leaves, ellipsis, reversed(right_leaves)))
+
+    def _evaluate(self, item, form, **kwargs):
+        old_state = self._state
+        try:
+            state = _LimitedMakeBoxesState(**kwargs)
+            self._state = state
+
+            box = Expression('MakeBoxes', item, form).evaluate(self._evaluation)
+
+            # estimate the cost of the output related to box. always calling boxes_to_xml here is
+            # the simple solution; the problem is that it's redundant, as for {{{a}, b}, c}, we'd
+            # call boxes_to_xml first on {a}, then on {{a}, b}, then on {{{a}, b}, c}. a good fix
+            # is not simple though, so let's keep it this way for now.
+            cost = len(box.boxes_to_xml(evaluation=self._evaluation))  # evaluate len as XML
+
+            return box, cost
+        finally:
+            self._state = old_state
+
+
+def make_boxes_strategy(capacity, evaluation):
+    if capacity is None:
+        return _UnlimitedMakeBoxesStrategy()
+    else:
+        return _LimitedMakeBoxesStrategy(capacity, evaluation)
+

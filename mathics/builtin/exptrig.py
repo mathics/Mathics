@@ -21,6 +21,7 @@ from mathics.core.expression import (
     Expression, Real, Integer, Symbol, PrecisionReal, MachineReal, Number)
 from mathics.core.numbers import dps, get_precision, PrecisionValueError
 
+from mathics.builtin.numeric import Fold
 from mathics.builtin.arithmetic import _MPMathFunction
 
 
@@ -935,3 +936,187 @@ class InverseHaversine(_MPMathFunction):
     rules = {
         'InverseHaversine[z_]': '2 * ArcSin[Sqrt[z]]'
     }
+
+
+class AngleVector(Builtin):
+    """
+    <dl>
+    <dt>'AngleVector[$phi$]'
+        <dd>returns the point at angle $phi$ on the unit circle.
+    <dt>'AngleVector[{$r$, $phi$}]'
+        <dd>returns the point at angle $phi$ on a circle of radius $r$.
+    <dt>'AngleVector[{$x$, $y$}, $phi$]'
+        <dd>returns the point at angle $phi$ on a circle of radius 1 centered at {$x$, $y$}.
+    <dt>'AngleVector[{$x$, $y$}, {$r$, $phi$}]'
+        <dd>returns point at angle $phi$ on a circle of radius $r$ centered at {$x$, $y$}.
+    </dl>
+
+    >> AngleVector[90 Degree]
+     = {0, 1}
+
+    >> AngleVector[{1, 10}, a]
+     = {1 + Cos[a], 10 + Sin[a]}
+    """
+
+    rules = {
+        'AngleVector[phi_]': '{Cos[phi], Sin[phi]}',
+        'AngleVector[{r_, phi_}]': '{r * Cos[phi], r * Sin[phi]}',
+        'AngleVector[{x_, y_}, phi_]': '{x + Cos[phi], y + Sin[phi]}',
+        'AngleVector[{x_, y_}, {r_, phi_}]': '{x + r * Cos[phi], y + r * Sin[phi]}',
+    }
+
+
+class AnglePathFold(Fold):
+    def __init__(self, parse):
+        self._parse = parse
+
+    def _operands(self, state, steps):
+        SYMBOLIC = self.SYMBOLIC
+        MPMATH = self.MPMATH
+        FLOAT = self.FLOAT
+
+        def check_pos_operand(x):
+            if x is not None:
+                if isinstance(x, Integer) and x.get_int_value() in (0, 1):
+                    pass
+                elif not isinstance(x, Real):
+                    return SYMBOLIC
+                elif not x.is_machine_precision():
+                    return MPMATH
+            return FLOAT
+
+        def check_angle_operand(phi):
+            if phi is not None:
+                if not isinstance(phi, Real):
+                    return SYMBOLIC
+                elif not phi.is_machine_precision():
+                    return MPMATH
+            return FLOAT
+
+        parse = self._parse
+
+        x, y, phi = state
+        mode = max(check_pos_operand(x), check_pos_operand(y), check_angle_operand(phi))
+        yield mode, x, y, phi
+
+        for step in steps:
+            distance, delta_phi = parse(step)
+            mode = max(check_angle_operand(delta_phi), check_pos_operand(distance))
+            yield mode, distance, delta_phi
+
+    def _fold(self, state, steps, math):
+        sin = math.sin
+        cos = math.cos
+
+        x, y, phi = state
+
+        for distance, delta_phi in steps:
+            if phi is None:
+                phi = delta_phi
+            else:
+                phi += delta_phi
+
+            dx = cos(phi)
+            dy = sin(phi)
+
+            if distance is not None:
+                dx *= distance
+                dy *= distance
+
+            x += dx
+            y += dy
+
+            yield x, y, phi
+
+
+class AnglePath(Builtin):
+    """
+    <dl>
+    <dt>'AnglePath[{$phi1$, $phi2$, ...}]'
+        <dd>returns the points formed by a turtle starting at {0, 0} and angled at 0 degrees going through
+        the turns given by angles $phi1$, $phi2$, ... and using distance 1 for each step.
+    <dt>'AnglePath[{{$r1$, $phi1$}, {$r2$, $phi2$}, ...}]'
+        <dd>instead of using 1 as distance, use $r1$, $r2$, ... as distances for the respective steps.
+    <dt>'AngleVector[$phi0$, {$phi1$, $phi2$, ...}]'
+        <dd>returns the points on a path formed by a turtle starting with direction $phi0$ instead of 0.
+    <dt>'AngleVector[{$x$, $y$}, {$phi1$, $phi2$, ...}]'
+        <dd>returns the points on a path formed by a turtle starting at {$x, $y} instead of {0, 0}.
+    <dt>'AngleVector[{{$x$, $y$}, $phi0$}, {$phi1$, $phi2$, ...}]'
+        <dd>specifies initial position {$x$, $y$} and initial direction $phi0$.
+    <dt>'AngleVector[{{$x$, $y$}, {$dx$, $dy$}}, {$phi1$, $phi2$, ...}]'
+        <dd>specifies initial position {$x$, $y$} and a slope {$dx$, $dy$} that is understood to be the
+        initial direction of the turtle.
+    </dl>
+
+    >> AnglePath[{90 Degree, 90 Degree, 90 Degree, 90 Degree}]
+     = {{0, 0}, {0, 1}, {-1, 1}, {-1, 0}, {0, 0}}
+
+    >> AnglePath[{{1, 1}, 90 Degree}, {{1, 90 Degree}, {2, 90 Degree}, {1, 90 Degree}, {2, 90 Degree}}]
+     = {{1, 1}, {0, 1}, {0, -1}, {1, -1}, {1, 1}}
+
+    >> AnglePath[{a, b}]
+     = {{0, 0}, {Cos[a], Sin[a]}, {Cos[a] + Cos[a + b], Sin[a] + Sin[a + b]}}
+
+    >> Precision[Part[AnglePath[{N[1/3, 100], N[2/3, 100]}], 2, 1]]
+     = 100.
+
+    >> Graphics[Line[AnglePath[Table[1.7, {50}]]]]
+     = -Graphics-
+
+    >> Graphics[Line[AnglePath[RandomReal[{-1, 1}, {100}]]]]
+     = -Graphics-
+    """
+
+    messages = {
+        'steps': '`1` is not a valid description of steps.'
+    }
+
+    @staticmethod
+    def _compute(x0, y0, phi0, steps, evaluation):
+        if not steps:
+            return Expression('List')
+
+        class IllegalStepSpecification(Exception):
+            pass
+
+        if steps[0].get_head_name() == 'System`List':
+            def parse(step):
+                if step.get_head_name() != 'System`List':
+                    raise IllegalStepSpecification
+                arguments = step.leaves
+                if len(arguments) != 2:
+                    raise IllegalStepSpecification
+                return arguments
+        else:
+            def parse(step):
+                if step.get_head_name() == 'System`List':
+                    raise IllegalStepSpecification
+                return None, step
+
+        try:
+            fold = AnglePathFold(parse)
+            leaves = [Expression('List', x, y) for x, y, _ in fold.fold((x0, y0, phi0), steps)]
+            return Expression('List', *leaves)
+        except IllegalStepSpecification:
+            evaluation.message('AnglePath', 'steps', Expression('List', *steps))
+
+    def apply(self, steps, evaluation):
+        'AnglePath[{steps___}]'
+        return AnglePath._compute(Integer(0), Integer(0), None, steps.get_sequence(), evaluation)
+
+    def apply_phi0(self, phi0, steps, evaluation):
+        'AnglePath[phi0_, {steps___}]'
+        return AnglePath._compute(Integer(0), Integer(0), phi0, steps.get_sequence(), evaluation)
+
+    def apply_xy(self, x, y, steps, evaluation):
+        'AnglePath[{x_, y_}, {steps___}]'
+        return AnglePath._compute(x, y, None, steps.get_sequence(), evaluation)
+
+    def apply_xy_phi0(self, x, y, phi0, steps, evaluation):
+        'AnglePath[{{x_, y_}, phi0_}, {steps___}]'
+        return AnglePath._compute(x, y, phi0, steps.get_sequence(), evaluation)
+
+    def apply_xy_dx(self, x, y, dx, dy, steps, evaluation):
+        'AnglePath[{{x_, y_}, {dx_, dy_}}, {steps___}]'
+        phi0 = Expression('ArcTan', dx, dy)
+        return AnglePath._compute(x, y, phi0, steps.get_sequence(), evaluation)

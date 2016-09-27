@@ -7,14 +7,14 @@ function showPage(response) {
 	}
 
     $$('li.test p').each(function(test){
-        test.insert($E('span', 
+        test.insert($E('span',
                     {'class': 'submitbutton', 'title': "Run this example!"},
 					submitButton = $E('span', $T('='))
 				));
 
         test.observe('mouseover', function(e){
             $(test).addClassName('focused');
-        });    
+        });
         test.observe('mouseout', function(e){
             $(test).removeClassName('focused');
         });
@@ -42,7 +42,7 @@ function loadDoc(page) {
 			docLoaded = true;
 			var response = transport.responseText.evalJSON();
 			showPage(response);
-			$$('#doc *')[0].scrollIntoView();			
+			$$('#doc *')[0].scrollIntoView();
 		}
 	});
 }
@@ -52,15 +52,22 @@ function showDoc() {
 	$('code').addClassName('doc');
 	$('doc').show();
 	$('doclink').addClassName('active');
+  $('doclink').select('i')[0].removeClassName('fa-question-circle-o');
+  $('doclink').select('i')[0].addClassName('fa-question-circle');
+  $('search').addClassName('shown');
+  // $('search').focus();
 	if (!docLoaded)
 		loadDoc('/');
 }
 
 function hideDoc() {
-	$('doc').hide();	
+	$('doc').hide();
 	$('document').removeClassName('doc');
 	$('code').removeClassName('doc');
 	$('doclink').removeClassName('active');
+  $('doclink').select('i')[0].removeClassName('fa-question-circle');
+  $('doclink').select('i')[0].addClassName('fa-question-circle-o');
+  $('search').removeClassName('shown');
 }
 
 function toggleDoc() {
@@ -68,6 +75,7 @@ function toggleDoc() {
 		hideDoc();
 	else
 		showDoc();
+    $('search').select();
 }
 
 function searchChange(event) {
@@ -99,13 +107,13 @@ function searchFocus() {
 	if ($('search').hasClassName('empty')) {
 		$('search').value = '';
 		$('search').removeClassName('empty');
-	}			
+	}
 }
 
 function searchBlur() {
 	if (!$('search').value) {
 		$('search').addClassName('empty');
-		$('search').value = "Search";
+		$('search').value = "\uf002";
 	}
 }
 

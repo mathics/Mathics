@@ -160,6 +160,7 @@ setup(
         'mathics.core',
         'mathics.core.parser',
         'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.builtin.numpy_utils',
+        'mathics.builtin.pympler', 'mathics.builtin.compile',
         'mathics.doc',
         'mathics.web', 'mathics.web.templatetags'
     ],
@@ -174,7 +175,8 @@ setup(
             'packages/*/*.m', 'packages/*/Kernel/init.m'],
         'mathics.doc': ['documentation/*.mdoc', 'xml/data'],
         'mathics.web': [
-            'media/css/*.css', 'media/img/*.gif',
+            'media/css/*.css', 'media/img/*.*', 'media/fonts/*',
+            'media/img/favicons/*',
             'media/js/innerdom/*.js', 'media/js/prototype/*.js',
             'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
             'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',

@@ -21,9 +21,10 @@ from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
     Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError,
-    from_python, MachineReal, PrecisionReal)
+    from_python, MachineReal, PrecisionReal, Omitted)
 from mathics.core.numbers import (
     dps, prec, convert_base, machine_precision, reconstruct_digits)
+from mathics.builtin.lists import riffle
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
@@ -80,12 +81,22 @@ def parenthesize(precedence, leaf, leaf_boxes, when_equal):
     return leaf_boxes
 
 
-def make_boxes_infix(leaves, ops, precedence, grouping, form):
+def make_boxes_infix(leaves, ops, precedence, grouping, form, evaluation):
+    segment = []
+    boxes = evaluation.make_boxes(leaves, form, segment)
+
+    seg_shortened, seg_l, seg_r = segment
+    if seg_shortened:
+        leaves = leaves[:seg_l] + [Symbol('Null')] + leaves[seg_r:]
+        ops = ops[:seg_l] + ops[seg_r - 1:]  # ellipsis item gets rightmost operator from ellipsed chunk
 
     result = []
-    for index, leaf in enumerate(leaves):
+    for index, leaf_box in enumerate(zip(leaves, boxes)):
+        leaf, box = leaf_box
+
         if index > 0:
             result.append(ops[index - 1])
+
         parenthesized = False
         if grouping == 'System`NonAssociative':
             parenthesized = True
@@ -94,8 +105,11 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
         elif grouping == 'System`Right' and index == 0:
             parenthesized = True
 
-        leaf_boxes = MakeBoxes(leaf, form)
-        leaf = parenthesize(precedence, leaf, leaf_boxes, parenthesized)
+        if seg_shortened and index == seg_l:
+            leaf = box  # ellipsis item, do not parenthesize
+        else:
+            leaf = parenthesize(precedence, leaf, box, parenthesized)
+
         result.append(leaf)
     return Expression('RowBox', Expression('List', *result))
 
@@ -302,13 +316,6 @@ def number_form(expr, n, f, evaluation, options):
 
 class MakeBoxes(Builtin):
     """
-    <dl>
-    <dt>'MakeBoxes[$expr$]'
-        <dd>is a low-level formatting primitive that converts $expr$
-        to box form, without evaluating it.
-    <dt>'\( ... \)'
-        <dd>directly inputs box objects.
-    </dl>
 
     String representation of boxes
     >> \(x \^ 2\)
@@ -479,16 +486,13 @@ class MakeBoxes(Builtin):
             result = [head_boxes, String(left)]
 
             if len(leaves) > 1:
-                row = []
                 if f_name in ('System`InputForm', 'System`OutputForm',
                               'System`FullForm'):
                     sep = ', '
                 else:
                     sep = ','
-                for index, leaf in enumerate(leaves):
-                    if index > 0:
-                        row.append(String(sep))
-                    row.append(MakeBoxes(leaf, f))
+                boxes = evaluation.make_boxes(leaves, f)
+                row = riffle(boxes, String(sep))
                 result.append(RowBox(Expression('List', *row)))
             elif len(leaves) == 1:
                 result.append(MakeBoxes(leaves[0], f))
@@ -559,7 +563,7 @@ class MakeBoxes(Builtin):
                 ops = [get_op(op) for op in h.leaves]
             else:
                 ops = [get_op(h)] * (len(leaves) - 1)
-            return make_boxes_infix(leaves, ops, precedence, grouping, f)
+            return make_boxes_infix(leaves, ops, precedence, grouping, f, evaluation)
         elif len(leaves) == 1:
             return MakeBoxes(leaves[0], f)
         else:
@@ -792,13 +796,21 @@ class Grid(Builtin):
         '''MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]],
             f:StandardForm|TraditionalForm|OutputForm]'''
 
-        return Expression(
-            'GridBox',
-            Expression('List', *(
-                Expression('List', *(
-                    Expression('MakeBoxes', item, f) for item in row.leaves))
-                for row in array.leaves)),
-            *options_to_rules(options))
+        lengths = [len(row.leaves) for row in array.leaves]
+        segment = []
+        boxes = evaluation.make_boxes([item for row in array.leaves for item in row.leaves], f, segment)
+        if segment[0]:  # too long?
+            return Omitted('<<%d>>' % sum(lengths))
+        else:
+            rows = []
+            i = 0
+            for l in lengths:
+                rows.append(Expression('List', *boxes[i:i + l]))
+                i += l
+            return Expression(
+                'GridBox',
+                Expression('List', *rows),
+                *options_to_rules(options))
 
 
 class TableForm(Builtin):
@@ -951,7 +963,7 @@ class Subscript(Builtin):
 
         y = y.get_sequence()
         return Expression(
-            'SubscriptBox', Expression('MakeBoxes', x, f), *list_boxes(y, f))
+            'SubscriptBox', Expression('MakeBoxes', x, f), *list_boxes(y, f, evaluation))
 
 
 class SubscriptBox(Builtin):
@@ -1763,7 +1775,9 @@ class MathMLForm(Builtin):
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
         try:
-            xml = boxes.boxes_to_xml(evaluation=evaluation)
+            xml = boxes.boxes_to_xml(
+                evaluation=evaluation,
+                output_size_limit=evaluation.boxes_strategy.capacity())
         except BoxError:
             evaluation.message(
                 'General', 'notboxes',
@@ -1799,7 +1813,9 @@ class TeXForm(Builtin):
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
         try:
-            tex = boxes.boxes_to_tex(evaluation=evaluation)
+            tex = boxes.boxes_to_tex(
+                evaluation=evaluation,
+                output_size_limit=evaluation.boxes_strategy.capacity())
 
             # Replace multiple newlines by a single one e.g. between asy-blocks
             tex = MULTI_NEWLINE_RE.sub('\n', tex)

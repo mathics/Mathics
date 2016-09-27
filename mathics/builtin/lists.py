@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 from six.moves import range
 from six.moves import zip
-from itertools import chain
+from itertools import chain, permutations
 
 from mathics.builtin.base import (
     Builtin, Test, InvalidLevelspecError, BinaryOperator,
@@ -60,7 +60,7 @@ class List(Builtin):
 
         items = items.get_sequence()
         return Expression(
-            'RowBox', Expression('List', *list_boxes(items, f, "{", "}")))
+            'RowBox', Expression('List', *list_boxes(items, f, evaluation, "{", "}")))
 
 
 class ListQ(Test):
@@ -93,8 +93,8 @@ class NotListQ(Test):
         return expr.get_head_name() != 'System`List'
 
 
-def list_boxes(items, f, open=None, close=None):
-    result = [Expression('MakeBoxes', item, f) for item in items]
+def list_boxes(items, f, evaluation, open=None, close=None):
+    result = evaluation.make_boxes(items, f)
     if f.get_name() in ('System`OutputForm', 'System`InputForm'):
         sep = ", "
     else:
@@ -800,7 +800,7 @@ class Part(Builtin):
             open, close = "[[", "]]"
         else:
             open, close = "\u301a", "\u301b"
-        indices = list_boxes(i, f, open, close)
+        indices = list_boxes(i, f, evaluation, open, close)
         result = Expression('RowBox', Expression('List', list, *indices))
         return result
 
@@ -1387,6 +1387,50 @@ class SplitBy(Builtin):
         return result
 
 
+class Pick(Builtin):
+    """
+    <dl>
+    <dt>'Pick[$list$, $sel$]'
+        <dd>returns those items in $list$ that are True in $sel$.
+    <dt>'Pick[$list$, $sel$, $patt$]'
+        <dd>returns those items in $list$ that match $patt$ in $sel$.
+    </dl>
+
+    >> Pick[{a, b, c}, {False, True, False}]
+     = {b}
+
+    >> Pick[f[g[1, 2], h[3, 4]], {{True, False}, {False, True}}]
+     = f[g[1], h[4]]
+
+    >> Pick[{a, b, c, d, e}, {1, 2, 3.5, 4, 5.5}, _Integer]
+     = {a, b, d}
+    """
+
+    def _do(self, items0, sel0, match):
+        def pick(items, sel):
+            for x, s in zip(items, sel):
+                if match(s):
+                    yield x
+                elif not x.is_atom() and not s.is_atom():
+                    yield Expression(x.get_head(), *list(pick(x.leaves, s.leaves)))
+
+        r = list(pick([items0], [sel0]))
+        if not r:
+            return Expression('Sequence')
+        else:
+            return r[0]
+
+    def apply(self, items, sel, evaluation):
+        'Pick[items_, sel_]'
+        return self._do(items, sel, lambda s: s.is_true())
+
+    def apply_pattern(self, items, sel, pattern, evaluation):
+        'Pick[items_, sel_, pattern_]'
+        from mathics.builtin.patterns import Matcher
+        match = Matcher(pattern).match
+        return self._do(items, sel, lambda s: match(s, evaluation))
+
+
 class Cases(Builtin):
     """
     <dl>
@@ -1423,7 +1467,6 @@ class Cases(Builtin):
     #> z = f[x, y]; x = 1; Cases[z, _Symbol, Infinity]
      = {y}
     """
-
 
     rules = {
         'Cases[pattern_][list_]': 'Cases[list, pattern]',
@@ -1496,6 +1539,28 @@ class DeleteCases(Builtin):
         from mathics.builtin.patterns import Matcher
         match = Matcher(pattern).match
         return Expression('List', *[leaf for leaf in items.leaves if not match(leaf, evaluation)])
+
+
+class Count(Builtin):
+    """
+    <dl>
+    <dt>'Count[$list$, $pattern$]'
+        <dd>returns the number of times $pattern$ appears in $list$.
+    <dt>'Count[$list$, $pattern$, $ls$]'
+        <dd>counts the elements matching at levelspec $ls$.
+    </dl>
+
+    >> Count[{3, 7, 10, 7, 5, 3, 7, 10}, 3]
+     = 2
+
+    >> Count[{{a, a}, {a, a, a}, a}, a, {2}]
+     = 5
+    """
+
+    rules = {
+        'Count[pattern_][list_]': 'Count[list, pattern]',
+        'Count[list_, arguments__]': 'Length[Cases[list, arguments]]',
+    }
 
 
 class Position(Builtin):
@@ -2508,38 +2573,45 @@ class _GatherOperation(Builtin):
                   "every pair of elements."),
     }
 
-    def apply(self, list, test, evaluation):
-        '%(name)s[list_, test_]'
-
-        if list.is_atom():
-            expr = Expression(self.get_name(), list, test)
-            return evaluation.message(self.get_name(), 'normal', 1, expr)
-
-        if list.get_head_name() != 'System`List':
-            expr = Expression(self.get_name(), list, test)
-            return evaluation.message(self.get_name(), 'list', expr, 1)
+    def apply(self, values, test, evaluation):
+        '%(name)s[values_, test_]'
+        if not self._check_list(values, test, evaluation):
+            return
 
         if _is_sameq(test):
-            return self._gather(list, _FastEquivalence())
+            return self._gather(values, values, _FastEquivalence())
         else:
-            return self._gather(list, _SlowEquivalence(test, evaluation, self.get_name()))
+            return self._gather(values, values, _SlowEquivalence(test, evaluation, self.get_name()))
 
-    def _gather(self, a_list, equivalence):
+    def _check_list(self, values, arg2, evaluation):
+        if values.is_atom():
+            expr = Expression(self.get_name(), values, arg2)
+            evaluation.message(self.get_name(), 'normal', 1, expr)
+            return False
+
+        if values.get_head_name() != 'System`List':
+            expr = Expression(self.get_name(), values, arg2)
+            evaluation.message(self.get_name(), 'list', expr, 1)
+            return False
+
+        return True
+
+    def _gather(self, keys, values, equivalence):
         bins = []
         Bin = self._bin
 
-        for elem in a_list.leaves:
-            selection = equivalence.select(elem)
+        for key, value in zip(keys.leaves, values.leaves):
+            selection = equivalence.select(key)
             for prototype, add_to_bin in selection:  # find suitable bin
-                if equivalence.same(prototype, elem):
-                    add_to_bin(elem)  # add to existing bin
+                if equivalence.same(prototype, key):
+                    add_to_bin(value)  # add to existing bin
                     break
             else:
-                a_bin = Bin(elem)  # create new bin
-                selection.append((elem, a_bin.add_to))
-                bins.append(a_bin)
+                new_bin = Bin(value)  # create new bin
+                selection.append((key, new_bin.add_to))
+                bins.append(new_bin)
 
-        return Expression('List', *[a_bin.from_python() for a_bin in bins])
+        return Expression('List', *[b.from_python() for b in bins])
 
 
 class Gather(_GatherOperation):
@@ -2564,7 +2636,7 @@ class Gather(_GatherOperation):
     _bin = _GatherBin
 
 
-class GatherBy(Builtin):
+class GatherBy(_GatherOperation):
     """
     <dl>
     <dt>'GatherBy[$list$, $f$]'
@@ -2592,8 +2664,21 @@ class GatherBy(Builtin):
         'GatherBy[l_]': 'GatherBy[l, Identity]',
         'GatherBy[l_, {r__, f_}]': 'Map[GatherBy[#, f]&, GatherBy[l, {r}], {Length[{r}]}]',
         'GatherBy[l_, {f_}]': 'GatherBy[l, f]',
-        'GatherBy[l_, f_]': 'Gather[l, SameQ[f[#1], f[#2]]&]'
     }
+
+    _bin = _GatherBin
+
+    def apply(self, values, func, evaluation):
+        '%(name)s[values_, func_]'
+
+        if not self._check_list(values, func, evaluation):
+            return
+
+        keys = Expression('Map', func, values).evaluate(evaluation)
+        if len(keys.leaves) != len(values.leaves):
+            return
+
+        return self._gather(keys, values, _FastEquivalence())
 
 
 class Tally(_GatherOperation):
@@ -2995,6 +3080,55 @@ class Reverse(Builtin):
             return Reverse._reverse(expr, 1, py_levels)
 
 
+class CentralMoment(Builtin):  # see https://en.wikipedia.org/wiki/Central_moment
+    '''
+    <dl>
+    <dt>'CentralMoment[$list$, $r$]'
+      <dd>gives the the $r$th central moment (i.e. the $r$th moment about the mean) of $list$.
+    </dl>
+
+    >> CentralMoment[{1.1, 1.2, 1.4, 2.1, 2.4}, 4]
+     = 0.100845
+    '''
+
+    rules = {
+        'CentralMoment[list_List, r_]': 'Total[(list - Mean[list]) ^ r] / Length[list]',
+    }
+
+
+class Skewness(Builtin):  # see https://en.wikipedia.org/wiki/Skewness
+    '''
+    <dl>
+    <dt>'Skewness[$list$]'
+      <dd>gives Pearson's moment coefficient of skewness for $list$ (a measure for estimating
+      the symmetry of a distribution).
+    </dl>
+
+    >> Skewness[{1.1, 1.2, 1.4, 2.1, 2.4}]
+     = 0.407041
+    '''
+
+    rules = {
+        'Skewness[list_List]': 'CentralMoment[list, 3] / (CentralMoment[list, 2] ^ (3 / 2))',
+    }
+
+
+class Kurtosis(Builtin):  # see https://en.wikipedia.org/wiki/Kurtosis
+    '''
+    <dl>
+    <dt>'Kurtosis[$list$]'
+      <dd>gives the Pearson measure of kurtosis for $list$ (a measure of existing outliers).
+    </dl>
+
+    >> Kurtosis[{1.1, 1.2, 1.4, 2.1, 2.4}]
+     = 1.42098
+    '''
+
+    rules = {
+        'Kurtosis[list_List]': 'CentralMoment[list, 4] / (CentralMoment[list, 2] ^ 2)',
+    }
+
+
 class Mean(Builtin):
     """
     <dl>
@@ -3386,6 +3520,98 @@ class RankedMax(Builtin):
             evaluation.message('RankedMax', 'rank', py_n, len(l.leaves))
         else:
             return introselect(l.leaves[:], len(l.leaves) - py_n)
+
+
+class Quantile(Builtin):
+    """
+    <dl>
+    <dt>'Quantile[$list$, $q$]'
+      <dd>returns the $q$th quantile of $list$.
+    </dl>
+
+    >> Quantile[Range[11], 1/3]
+     = 4
+
+    >> Quantile[Range[16], 1/4]
+     = 5
+    """
+
+    rules = {
+        'Quantile[list_List, q_, abcd_]': 'Quantile[list, {q}, abcd]',
+        'Quantile[list_List, q_]': 'Quantile[list, q, {{0, 1}, {1, 0}}]',
+    }
+
+    messages = {
+        'nquan': 'The quantile `1` has to be between 0 and 1.',
+    }
+
+    def apply(self, l, qs, a, b, c, d, evaluation):
+        '''Quantile[l_List, qs_List, {{a_, b_}, {c_, d_}}]'''
+
+        n = len(l.leaves)
+        partially_sorted = l.leaves[:]
+
+        def ranked(i):
+            return introselect(partially_sorted, min(max(0, i - 1), n - 1))
+
+        numeric_qs = qs.evaluate(evaluation).numerify(evaluation)
+        results = []
+
+        for q in numeric_qs.leaves:
+            py_q = q.to_mpmath()
+
+            if py_q is None or not 0. <= py_q <= 1.:
+                evaluation.message('Quantile', 'nquan', q)
+                return
+
+            x = Expression('Plus', a, Expression(
+                'Times', Expression('Plus', Integer(n), b), q))
+
+            numeric_x = x.evaluate(evaluation).numerify(evaluation)
+
+            if isinstance(numeric_x, Integer):
+                results.append(ranked(numeric_x.get_int_value()))
+            else:
+                py_x = numeric_x.to_mpmath()
+
+                if py_x is None:
+                    return
+
+                from mpmath import floor as mpfloor, ceil as mpceil
+
+                if c.get_int_value() == 1 and d.get_int_value() == 0:  # k == 1?
+                    results.append(ranked(int(mpceil(py_x))))
+                else:
+                    py_floor_x = mpfloor(py_x)
+                    s0 = ranked(int(py_floor_x))
+                    s1 = ranked(int(mpceil(py_x)))
+
+                    k = Expression('Plus', c, Expression(
+                        'Times', d, Expression('Subtract', x, Expression('Floor', x))))
+
+                    results.append(Expression('Plus', s0, Expression(
+                        'Times', k, Expression('Subtract', s1, s0))))
+
+        if len(results) == 1:
+            return results[0]
+        else:
+            return Expression('List', *results)
+
+
+class Quartiles(Builtin):
+    """
+    <dl>
+    <dt>'Quartiles[$list$]'
+      <dd>returns the 1/4, 1/2, and 3/4 quantiles of $list$.
+    </dl>
+
+    >> Quartiles[Range[25]]
+     = {27 / 4, 13, 77 / 4}
+    """
+
+    rules = {
+        'Quartiles[list_List]': 'Quantile[list, {1/4, 1/2, 3/4}, {{1/2, 0}, {0, 1}}]',
+    }
 
 
 class _RankedTake(Builtin):
@@ -3836,6 +4062,22 @@ class _LazyDistances(LazyDistances):
         return _to_real_distance(d)
 
 
+def _dist_repr(p):
+    dist_p = repr_p = None
+    if p.has_form('Rule', 2):
+        if all(q.get_head_name() == 'System`List' for q in p.leaves):
+            dist_p, repr_p = (q.leaves for q in p.leaves)
+        elif p.leaves[0].get_head_name() == 'System`List' and p.leaves[1].get_name() == 'System`Automatic':
+            dist_p = p.leaves[0].leaves
+            repr_p = [Integer(i + 1) for i in range(len(dist_p))]
+    elif p.get_head_name() == 'System`List':
+        if all(q.get_head_name() == 'System`Rule' for q in p.leaves):
+            dist_p, repr_p = ([q.leaves[i] for q in p.leaves] for i in range(2))
+        else:
+            dist_p = repr_p = p.leaves
+    return dist_p, repr_p
+
+
 class _Cluster(Builtin):
     options = {
         'Method': 'Optimize',
@@ -3866,15 +4108,7 @@ class _Cluster(Builtin):
             evaluation.message(self.get_name(), 'bdmtd', Expression('Rule', 'Method', method))
             return
 
-        dist_p = None
-        if p.get_head_name() == 'System`Rule':
-            if all(q.get_head_name() == 'System`List' for q in p.leaves):
-                dist_p, repr_p = (q.leaves for q in p.leaves)
-        elif p.get_head_name() == 'System`List':
-            if all(q.get_head_name() == 'System`Rule' for q in p.leaves):
-                dist_p, repr_p = ([q.leaves[i] for q in p.leaves] for i in range(2))
-            else:
-                dist_p = repr_p = p.leaves
+        dist_p, repr_p = _dist_repr(p)
 
         if dist_p is None or len(dist_p) != len(repr_p):
             evaluation.message(self.get_name(), 'list', expr)
@@ -4097,3 +4331,196 @@ class ClusteringComponents(_Cluster):
         'ClusteringComponents[p_, k_Integer, OptionsPattern[%(name)s]]'
         return self._cluster(p, k, 'components', evaluation, options,
                              Expression('ClusteringComponents', p, k, *options_to_rules(options)))
+
+
+class Nearest(Builtin):
+    '''
+    <dl>
+    <dt>'Nearest[$list$, $x$]'
+        <dd>returns the one item in $list$ that is nearest to $x$.
+    <dt>'Nearest[$list$, $x$, $n$]'
+        <dd>returns the $n$ nearest items.
+    <dt>'Nearest[$list$, $x$, {$n$, $r$}]'
+        <dd>returns up to $n$ nearest items that are not farther from $x$ than $r$.
+    <dt>'Nearest[{$p1$ -> $q1$, $p2$ -> $q2$, ...}, $x$]'
+        <dd>returns $q1$, $q2$, ... but measures the distances using $p1$, $p2$, ...
+    <dt>'Nearest[{$p1$, $p2$, ...} -> {$q1$, $q2$, ...}, $x$]'
+        <dd>returns $q1$, $q2$, ... but measures the distances using $p1$, $p2$, ...
+    </dl>
+
+    >> Nearest[{5, 2.5, 10, 11, 15, 8.5, 14}, 12]
+     = {11}
+
+    Return all items within a distance of 5:
+
+    >> Nearest[{5, 2.5, 10, 11, 15, 8.5, 14}, 12, {All, 5}]
+     = {11, 10, 14}
+
+    >> Nearest[{Blue -> "blue", White -> "white", Red -> "red", Green -> "green"}, {Orange, Gray}]
+     = {{red}, {white}}
+    '''
+
+    options = {
+        'DistanceFunction': 'Automatic',
+        'Method': '"Scan"',
+    }
+
+    messages = {
+        'amtd': '`1` failed to pick a suitable distance function for `2`.',
+        'list': 'Expected a list or a rule with equally sized lists at position 1 in ``.',
+        'nimp': 'Method `1` is not implemented yet.',
+    }
+
+    rules = {
+        'Nearest[list_, pattern_]': 'Nearest[list, pattern, 1]',
+        'Nearest[pattern_][list_]': 'Nearest[list, pattern]',
+    }
+
+    def apply(self, items, pivot, limit, evaluation, options):
+        'Nearest[items_List, pivot_, limit_, OptionsPattern[%(name)s]]'
+
+        method = self.get_option(options, 'Method', evaluation)
+        if not isinstance(method, String) or method.get_string_value() != 'Scan':
+            evaluation('Nearest', 'nimp', method)
+            return
+
+        dist_p, repr_p = _dist_repr(items)
+
+        if dist_p is None or len(dist_p) != len(repr_p):
+            evaluation.message(self.get_name(), 'list', Expression('Nearest', items, x, n))
+            return
+
+        if limit.has_form('List', 2):
+            up_to = limit.leaves[0]
+            py_r = limit.leaves[1].to_mpmath()
+        else:
+            up_to = limit
+            py_r = None
+
+        if isinstance(up_to, Integer):
+            py_n = up_to.get_int_value()
+        elif up_to.get_name() == 'System`All':
+            py_n = None
+        else:
+            return
+
+        if not dist_p or (py_n is not None and py_n < 1):
+            return Expression('List')
+
+        multiple_x = False
+
+        distance_function_string, distance_function = self.get_option_string(
+            options, 'DistanceFunction', evaluation)
+        if distance_function_string == 'Automatic':
+            from mathics.builtin.tensors import get_default_distance
+
+            distance_function = get_default_distance(dist_p)
+            if distance_function is None:
+                evaluation.message(self.get_name(), 'amtd', 'Nearest', Expression('List', *dist_p))
+                return
+
+            if pivot.get_head_name() == 'System`List':
+                _, depth_x = walk_levels(pivot)
+                _, depth_items = walk_levels(dist_p[0])
+
+                if depth_x > depth_items:
+                    multiple_x = True
+
+        def nearest(x):
+            calls = [Expression(distance_function, x, y) for y in dist_p]
+            distances = Expression('List', *calls).evaluate(evaluation)
+
+            if not distances.has_form('List', len(dist_p)):
+                raise ValueError()
+
+            py_distances = [(_to_real_distance(d), i) for i, d in enumerate(distances.leaves)]
+
+            if py_r is not None:
+                py_distances = [(d, i) for d, i in py_distances if d <= py_r]
+
+            def pick():
+                if py_n is None:
+                    candidates = sorted(py_distances)
+                else:
+                    candidates = heapq.nsmallest(py_n, py_distances)
+
+                for d, i in candidates:
+                    yield repr_p[i]
+
+            return Expression('List', *list(pick()))
+
+        try:
+            if not multiple_x:
+                return nearest(pivot)
+            else:
+                return Expression('List', *[nearest(t) for t in pivot.leaves])
+        except _IllegalDistance:
+            return Symbol('$Failed')
+        except ValueError:
+            return Symbol('$Failed')
+
+
+class Permutations(Builtin):
+    '''
+    <dl>
+    <dt>'Permutations[$list$]'
+        <dd>gives all possible orderings of the items in $list$.
+    <dt>'Permutations[$list$, $n$]'
+        <dd>gives permutations up to length $n$.
+    <dt>'Permutations[$list$, {$n$}]'
+        <dd>gives permutations of length $n$.
+    </dl>
+
+    >> Permutations[{y, 1, x}]
+     = {{y, 1, x}, {y, x, 1}, {1, y, x}, {1, x, y}, {x, y, 1}, {x, 1, y}}
+
+    Elements are differentiated by their position in $list$, not their value.
+
+    >> Permutations[{a, b, b}]
+     = {{a, b, b}, {a, b, b}, {b, a, b}, {b, b, a}, {b, a, b}, {b, b, a}}
+
+    >> Permutations[{1, 2, 3}, 2]
+     = {{}, {1}, {2}, {3}, {1, 2}, {1, 3}, {2, 1}, {2, 3}, {3, 1}, {3, 2}}
+
+    >> Permutations[{1, 2, 3}, {2}]
+     = {{1, 2}, {1, 3}, {2, 1}, {2, 3}, {3, 1}, {3, 2}}
+    '''
+
+    messages = {
+        'argt': 'Permutation expects at least one argument.',
+        'nninfseq': 'The number specified at position 2 of `` must be a non-negative integer, All, or Infinity.'
+    }
+
+    def apply_argt(self, evaluation):
+        'Permutations[]'
+        evaluation.message(self.get_name(), 'argt')
+
+    def apply(self, l, evaluation):
+        'Permutations[l_List]'
+        return Expression('List', *[Expression('List', *p)
+                                    for p in permutations(l.leaves, len(l.leaves))])
+
+    def apply_n(self, l, n, evaluation):
+        'Permutations[l_List, n_]'
+
+        rs = None
+        if isinstance(n, Integer):
+            py_n = min(n.get_int_value(), len(l.leaves))
+        elif n.has_form('List', 1) and isinstance(n.leaves[0], Integer):
+            py_n = n.leaves[0].get_int_value()
+            rs = (py_n,)
+        elif (n.has_form('DirectedInfinity', 1) and n.leaves[0].get_int_value() == 1) or n.get_name() == 'System`All':
+            py_n = len(l.leaves)
+        else:
+            py_n = None
+
+        if py_n is None or py_n < 0:
+            evaluation.message(self.get_name(), 'nninfseq', Expression(self.get_name(), l, n))
+            return
+
+        if rs is None:
+            rs = range(py_n + 1)
+
+        return Expression('List', *[Expression('List', *p)
+                                    for r in rs
+                                    for p in permutations(l.leaves, r)])
