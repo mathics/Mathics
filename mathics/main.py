@@ -232,6 +232,10 @@ def main():
         '--version', '-v', action='version',
         version='%(prog)s ' + __version__)
 
+    argparser.add_argument(
+        '--initfile',  nargs='?', type=argparse.FileType('r'), help='execute first the initialization file')
+
+
     args, script_args = argparser.parse_known_args()
 
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
@@ -242,6 +246,26 @@ def main():
     shell = TerminalShell(
         definitions, args.colors, want_readline=not(args.no_readline),
         want_completion=not(args.no_completion))
+
+
+    if args.initfile:       
+        feeder = FileLineFeeder(args.initfile)
+        try:
+            while not feeder.empty():
+                evaluation = Evaluation(
+                    shell.definitions, output=TerminalOutput(shell), catch_interrupt=False)
+                query = evaluation.parse_feeder(feeder)
+                if query is None:
+                    continue
+                evaluation.evaluate(query, timeout=settings.TIMEOUT)
+        except (KeyboardInterrupt):
+            print('\nKeyboardInterrupt')
+        except (SystemExit, EOFError):
+            print("\n\nGoodbye!\n")            
+        finally:
+            shell.reset_lineno()
+
+    definitions.set_line_no(0)
 
     if args.execute:
         for expr in args.execute:
