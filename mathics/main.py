@@ -235,7 +235,6 @@ def main():
         '--version', '-v', action='version',
         version='%(prog)s ' + __version__)
 
-
     args, script_args = argparser.parse_known_args()
 
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
@@ -246,7 +245,6 @@ def main():
     shell = TerminalShell(
         definitions, args.colors, want_readline=not(args.no_readline),
         want_completion=not(args.no_completion))
-
 
     if args.execute:
         for expr in args.execute:
