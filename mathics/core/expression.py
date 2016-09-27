@@ -143,6 +143,15 @@ class BaseExpression(KeyComparable):
         self.last_evaluated = None
         return self
 
+    def sequences(self):
+        return None
+
+    def flatten_sequence(self):
+        return self
+
+    def flatten_pattern_sequence(self):
+        return self
+
     def get_attributes(self, definitions):
         return set()
 
@@ -499,6 +508,12 @@ class Monomial(object):
         return 0
 
 
+def _sequences(leaves):
+    for i, leaf in enumerate(leaves):
+        if leaf.get_head_name() == 'System`Sequence' or leaf.sequences():
+            yield i
+
+
 class Expression(BaseExpression):
     def __new__(cls, head, *leaves):
         self = super(Expression, cls).__new__(cls)
@@ -506,11 +521,61 @@ class Expression(BaseExpression):
             head = Symbol(head)
         self.head = head
         self.leaves = [from_python(leaf) for leaf in leaves]
+        self._sequences = None
         return self
+
+    def sequences(self):
+        seq = self._sequences
+        if seq is None:
+            seq = list(_sequences(self.leaves))
+            self._sequences = seq
+        return seq
+
+    def _flatten_sequence(self, sequence):
+        indices = self.sequences()
+        if not indices:
+            return self
+
+        leaves = self.leaves
+
+        flattened = []
+        extend = flattened.extend
+
+        k = 0
+        for i in indices:
+            extend(leaves[k:i])
+            extend(sequence(leaves[i]))
+            k = i + 1
+        extend(leaves[k:])
+
+        return Expression(self.head, *flattened)
+
+    def flatten_sequence(self):
+        def sequence(leaf):
+            if leaf.get_head_name() == 'System`Sequence':
+                return leaf.leaves
+            else:
+                return [leaf]
+
+        return self._flatten_sequence(sequence)
+
+    def flatten_pattern_sequence(self):
+        def sequence(leaf):
+            flattened = leaf.flatten_pattern_sequence()
+            if leaf.get_head_name() == 'System`Sequence' and leaf.pattern_sequence:
+                return flattened.leaves
+            else:
+                return [flattened]
+
+        expr = self._flatten_sequence(sequence)
+        if hasattr(self, 'options'):
+            expr.options = self.options
+        return expr
 
     def copy(self):
         result = Expression(
             self.head.copy(), *[leaf.copy() for leaf in self.leaves])
+        result._sequences = self._sequences
         result.options = self.options
         result.original = self
         # result.last_evaluated = self.last_evaluated
@@ -521,6 +586,7 @@ class Expression(BaseExpression):
         # the original, only the Expression instance is new.
         expr = Expression(self.head)
         expr.leaves = self.leaves
+        expr._sequences = self._sequences
         expr.options = self.options
         expr.last_evaluated = self.last_evaluated
         return expr
@@ -809,7 +875,7 @@ class Expression(BaseExpression):
 
             if ('System`SequenceHold' not in attributes and    # noqa
                 'System`HoldAllComplete' not in attributes):
-                new = new.flatten(SEQUENCE)
+                new = new.flatten_sequence()
                 leaves = new.leaves
 
             for leaf in leaves:
@@ -1458,9 +1524,6 @@ class Symbol(Atom):
 
     def __getnewargs__(self):
         return (self.name, self.sympy_dummy)
-
-
-SEQUENCE = Symbol('Sequence')
 
 
 class Number(Atom):
