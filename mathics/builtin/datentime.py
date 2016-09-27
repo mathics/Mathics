@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 import dateutil.parser
 import re
 
-from mathics.core.expression import (Expression, Real, Symbol, String,
+from mathics.core.expression import (Expression, Real, Symbol, String, Integer,
                                      from_python)
 
 from mathics.builtin.base import Builtin, Predefined
@@ -888,3 +888,40 @@ class DateDifference(Builtin):
                 return from_python(result[0][0])
             return from_python(result[0])
         return from_python(result)
+
+
+class EasterSunday(Builtin):  # Calendar`EasterSunday
+    """
+    <dl>
+    <dt>'EasterSunday[$year$]'
+      <dd>returns the date of the Gregorian Easter Sunday as {year, month, day}.
+    </dl>
+
+    >> EasterSunday[2000]
+     = {2000, 4, 23}
+
+    >> EasterSunday[2030]
+     = {2030, 4, 21}
+    """
+
+    def apply(self, year, evaluation):
+        'EasterSunday[year_Integer]'
+        y = year.get_int_value()
+
+        # "Anonymous Gregorian algorithm", see https://en.wikipedia.org/wiki/Computus
+        a = y % 19
+        b = y // 100
+        c = y % 100
+        d = b // 4
+        e = b % 4
+        f = (b + 8) // 25
+        g = (b - f + 1) // 3
+        h = (19 * a + b - d - g + 15) % 30
+        i = c // 4
+        k = c % 4
+        l = (32 + 2 * e + 2 * i - h - k) % 7
+        m = (a + 11 * h + 22 * l) // 451
+        month = (h + l - 7 * m + 114) // 31
+        day = ((h + l - 7 * m + 114) % 31) + 1
+
+        return Expression('List', year, Integer(month), Integer(day))
