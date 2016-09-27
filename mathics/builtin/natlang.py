@@ -119,6 +119,10 @@ try:
         'Adjective': [nltk.corpus.wordnet.ADJ, nltk.corpus.wordnet.ADJ_SAT],
         'Adverb': [nltk.corpus.wordnet.ADV],
     }
+except LookupError:
+    print("warning: nltk dictionary not installed\n")    
+    _wordnet_pos_to_type = {}
+    _wordnet_type_to_pos = {}
 except ImportError:
     _wordnet_pos_to_type = {}
     _wordnet_type_to_pos = {}
