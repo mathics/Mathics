@@ -1024,17 +1024,9 @@ class Unset(PostfixOperator):
 class Quit(Builtin):
     """
     <dl>
-    <dt>'Quit'[]
+    <dt>'Quit'
         <dd>removes all user-defined definitions.
     </dl>
-
-    >> a = 3
-     = 3
-    >> Quit[]
-     = Null[]
-    >> a
-     = a
-
 
     >> a = 3
      = 3
@@ -1051,12 +1043,6 @@ class Quit(Builtin):
      = x
     """
     def apply(self, evaluation):
-        'Quit[]'
-
-        evaluation.definitions.set_user_definitions({})
-        return Symbol('Null')
-
-    def apply2(self, evaluation):
         'Quit'
 
         evaluation.definitions.set_user_definitions({})
