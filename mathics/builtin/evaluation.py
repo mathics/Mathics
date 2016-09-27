@@ -408,10 +408,10 @@ class OutputSizeLimit(Predefined):
 
     >> $OutputSizeLimit = 100;
     >> Table[i, {i, 1, 100}]
-     = {1, 2, 3, 4, 5, <<91>>, 97, 98, 99, 100}
+     = {1, 2, 3, 4, 5, <<90>>, 96, 97, 98, 99, 100}
     >> $OutputSizeLimit = 10;
     >> Table[i, {i, 1, 100}]
-     = {1, <<99>>}
+     = {1, <<98>>, 100}
     >> $OutputSizeLimit = Infinity;
     """
 
