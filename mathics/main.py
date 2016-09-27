@@ -177,6 +177,9 @@ class TerminalShell(LineFeeder):
 
 
 class TerminalOutput(Output):
+    def max_stored_size(self, settings):
+        return None
+
     def __init__(self, shell):
         self.shell = shell
 
