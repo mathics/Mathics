@@ -959,7 +959,7 @@ class Expression(BaseExpression):
             for index, leaf in enumerate(new.leaves):
                 if leaf.unevaluated:
                     new.leaves[index] = Expression('Unevaluated', leaf)
-                    new.sym = None
+                    new._symbols = None
 
             new.unformatted = self.unformatted
             new.last_evaluated = evaluation.definitions.now
