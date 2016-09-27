@@ -73,7 +73,7 @@ class SympyExpression(BasicSympy):
         old, new = from_sympy(old), from_sympy(new)
         old_name = old.get_name()
         if old_name:
-            new_expr = self.expr.replace_vars({old_name: new})
+            new_expr = self.expr.replace_vars({old_name: new}, None)
             return SympyExpression(new_expr)
         return self
 
