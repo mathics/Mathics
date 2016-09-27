@@ -186,6 +186,11 @@ def main():
         '--persist', help='go to interactive shell after evaluating FILE or -e',
         action='store_true')
 
+    # --initfile is different from the combination FILE --persist since the first one
+    # leaves the history empty and sets the current $Line to 1.
+    argparser.add_argument(
+        '--initfile', type=argparse.FileType('r'), help='Loads INITFILE before start')
+
     argparser.add_argument(
         '--quiet', '-q', help='don\'t print message at startup',
         action='store_true')
@@ -223,6 +228,20 @@ def main():
     shell = TerminalShell(
         definitions, args.colors, want_readline=not(args.no_readline),
         want_completion=not(args.no_completion))
+
+    if args.initfile:
+        feeder = FileLineFeeder(args.initfile)
+        try:
+            while not feeder.empty():
+                evaluation = Evaluation(
+                    shell.definitions, output=TerminalOutput(shell), catch_interrupt=False)
+                query = evaluation.parse_feeder(feeder)
+                if query is None:
+                    continue
+                evaluation.evaluate(query, timeout=settings.TIMEOUT)
+        except (KeyboardInterrupt):
+            print('\nKeyboardInterrupt')
+        definitions.set_line_no(0)
 
     if args.execute:
         for expr in args.execute:
@@ -274,6 +293,7 @@ def main():
             break
         finally:
             shell.reset_lineno()
+
 
 if __name__ == '__main__':
     main()
