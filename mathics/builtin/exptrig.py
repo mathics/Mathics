@@ -1066,10 +1066,10 @@ class LogisticSigmoid(Builtin):
      = 0.622459
 
     >> LogisticSigmoid[0.5 + 2.3 I]
-     = 1.06475 +0.808177 I
+     = 1.06475 + 0.808177 I
 
     >> LogisticSigmoid[{-0.2, 0.1, 0.3}]
-     = {0.450166,0.524979,0.574443}
+     = {0.450166, 0.524979, 0.574443}
     """
 
     attributes = ('Listable', 'NumericFunction',)
