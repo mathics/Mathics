@@ -32,12 +32,12 @@ class DSolve(Builtin):
 
     #> Attributes[f] = {HoldAll};
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]
-     : To avoid possible ambiguity, the arguments of the dependent variable in f[x + x] - Sin[f'[x]] should literally match the independent variables.
+     : To avoid possible ambiguity, the arguments of the dependent variable in f[x + x] == Sin[f'[x]] should literally match the independent variables.
      = DSolve[f[x + x] == Sin[f'[x]], f, x]
 
     #> Attributes[f] = {};
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]
-     : To avoid possible ambiguity, the arguments of the dependent variable in f[2 x] - Sin[f'[x]] should literally match the independent variables.
+     : To avoid possible ambiguity, the arguments of the dependent variable in f[2 x] == Sin[f'[x]] should literally match the independent variables.
      = DSolve[f[2 x] == Sin[f'[x]], f, x]
 
     #> DSolve[f'[x] == f[x], f, x] // FullForm
@@ -51,6 +51,10 @@ class DSolve(Builtin):
 
     #> DSolve[f'[x] == f[x], f, x] /. {C[1] -> C[0]}
      = {{f -> (Function[{x}, C[0] E ^ x])}}
+
+    #> DSolve[f[x] == 0, f, {}]
+     : {} cannot be used as a variable.
+     = DSolve[f[x] == 0, f, {}]
     """
 
     # TODO: GeneratedParameters option
@@ -84,13 +88,8 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'deqn', eqn)
             return
 
-        # FIXME: This code is duplicated in calculus.py
-        if ((x.is_atom() and not x.is_symbol()) or      # nopep8
-            x.get_head_name() in ('System`Plus', 'System`Times',
-                                  'System`Power') or
-            'System`Constant' in x.get_attributes(evaluation.definitions)):
-            evaluation.message('DSolve', 'dsvar')
-            return
+        if not x.is_symbol():
+            return evaluation.message('DSolve', 'dsvar', x)
 
         # Fixes pathalogical DSolve[y''[x] == y[x], y, x]
         try:
@@ -105,22 +104,12 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'dsfun', y)
             return
 
-        if len(func.leaves) != 1:
-            evaluation.message('DSolve', 'symmua')
-            return
-
-        if x not in func.leaves:
+        if func.leaves != [x]:
             evaluation.message('DSolve', 'deqx')
             return
 
-        left, right = eqn.leaves
-        eqn = Expression('Plus', left, Expression(
-            'Times', -1, right)).evaluate(evaluation)
-
         sym_eq = eqn.to_sympy(converted_functions=set([func.get_head_name()]))
-        sym_x = sympy.symbols(str(sympy_symbol_prefix + x.name))
-        sym_func = sympy.Function(str(
-            sympy_symbol_prefix + func.get_head_name()))(sym_x)
+        sym_func = func.head.to_sympy()(*(leaf.to_sympy() for leaf in func.leaves))
 
         try:
             sym_result = sympy.dsolve(sym_eq, sym_func)
