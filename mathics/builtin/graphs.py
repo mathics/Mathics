@@ -197,7 +197,7 @@ class Graph(Atom):
 
                 yield Expression('Circle', Expression('List', x, y), Expression('List', r, r))
 
-                yield Expression('FontSize', Expression('Scaled', r))
+                # yield Expression('FontSize', Expression('Scaled', r))
                 yield Expression('Text', v, Expression('List', x, y))
 
         graphics = Expression('Graphics', Expression('List', *list(primitives())))
@@ -261,7 +261,7 @@ def _graph_from_list(rules):
     else:
         layout = _generic_layout
 
-    return Graph(len(vertices), vertices, len(edges), edges, G, layout)
+    return Graph(vertices, edges, G, layout)
 
 
 class DirectedEdge(Builtin):
@@ -500,7 +500,7 @@ class CompleteGraph(_NetworkXBuiltin):
         G.add_nodes_from(vertices)
         G.add_edges_from(e.leaves for e in edges)
 
-        return Graph(len(vertices), vertices, len(edges), edges, G, _circular_layout)
+        return Graph(vertices, edges, G, _circular_layout)
 
     def apply_multipartite(self, n, evaluation):
         '%(name)s[n_List]'
