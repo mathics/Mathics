@@ -3,7 +3,6 @@
 
 """
 Exponential, trigonometric and hyperbolic functions
-
 Mathics basically supports all important trigonometric and hyperbolic functions.
 Numerical values and derivatives can be computed; however, most special exact values and simplification
 rules are not implemented yet.
@@ -31,12 +30,10 @@ class Pi(SympyConstant):
     <dt>'Pi'
         <dd>is the constant \u03c0.
     </dl>
-
     >> N[Pi]
      = 3.14159
     >> N[Pi, 50]
      = 3.1415926535897932384626433832795028841971693993751
-
     >> Attributes[Pi]
      = {Constant, Protected, ReadProtected}
     """
@@ -63,15 +60,12 @@ class E(SympyConstant):
     <dt>'E'
         <dd>is the constant e.
     </dl>
-
     >> N[E]
      = 2.71828
     >> N[E, 50]
      = 2.7182818284590452353602874713526624977572470937000
-
     >> Attributes[E]
      = {Constant, Protected, ReadProtected}
-
     #> 5. E
      = 13.5914
     """
@@ -98,7 +92,6 @@ class GoldenRatio(SympyConstant):
     <dt>'GoldenRatio'
         <dd>is the golden ratio.
     </dl>
-
     >> N[GoldenRatio]
      = 1.61803
     """
@@ -116,21 +109,16 @@ class Degree(SympyConstant):
     <dt>'Degree'
         <dd>is the number of radians in one degree.
     </dl>
-
     >> Cos[60 Degree]
      = 1 / 2
-
     Degree has the value of Pi / 180
     >> Degree == Pi / 180
      = True
-
     #> Cos[Degree[x]]
      = Cos[Degree[x]]
-
     ## Issue 274
     #> \[Degree] == ° == Degree
      = True
-
     #> N[Degree]
      = 0.0174533
     #> N[Degree, 30]
@@ -161,17 +149,14 @@ class Exp(_MPMathFunction):
     <dt>'Exp[$z$]'
         <dd>returns the exponential function of $z$.
     </dl>
-
     >> Exp[1]
      = E
     >> Exp[10.0]
      = 22026.5
     >> Exp[x] //FullForm
      = Power[E, x]
-
     >> Plot[Exp[x], {x, 0, 3}]
      = -Graphics-
-
     #> Exp[1.*^20]
      : Overflow occurred in computation.
      = Overflow[]
@@ -192,26 +177,20 @@ class Log(_MPMathFunction):
     <dt>'Log[$z$]'
         <dd>returns the natural logarithm of $z$.
     </dl>
-
     >> Log[{0, 1, E, E * E, E ^ 3, E ^ x}]
      = {-Infinity, 0, 1, 2, 3, Log[E ^ x]}
     >> Log[0.]
      = Indeterminate
     >> Plot[Log[x], {x, 0, 5}]
      = -Graphics-
-
     #> Log[1000] / Log[10] // Simplify
      = 3
-
     #> Log[1.4]
      = 0.336472
-
     #> Log[Exp[1.4]]
      = 1.4
-
     #> Log[-1.4]
      = 0.336472 + 3.14159 I
-
     #> N[Log[10], 30]
      = 2.30258509299404568401799145468
     """
@@ -245,7 +224,6 @@ class Log2(Builtin):
     <dt>'Log2[$z$]'
         <dd>returns the base-2 logarithm of $z$.
     </dl>
-
     >> Log2[4 ^ 8]
      = 16
     >> Log2[5.6]
@@ -265,7 +243,6 @@ class Log10(Builtin):
     <dt>'Log10[$z$]'
         <dd>returns the base-10 logarithm of $z$.
     </dl>
-
     >> Log10[1000]
      = 3
     >> Log10[{2., 5.}]
@@ -285,7 +262,6 @@ class Sin(_MPMathFunction):
     <dt>'Sin[$z$]'
         <dd>returns the sine of $z$.
     </dl>
-
     >> Sin[0]
      = 0
     >> Sin[0.5]
@@ -294,10 +270,8 @@ class Sin(_MPMathFunction):
      = 0
     >> Sin[1.0 + I]
      = 1.29846 + 0.634964 I
-
     >> Plot[Sin[x], {x, -Pi, Pi}]
      = -Graphics-
-
     #> N[Sin[1], 40]
      = 0.8414709848078965066525023216302989996226
     """
@@ -319,10 +293,8 @@ class Cos(_MPMathFunction):
     <dt>'Cos[$z$]'
         <dd>returns the cosine of $z$.
     </dl>
-
     >> Cos[3 Pi]
      = -1
-
     #> Cos[1.5 Pi]
      = -1.83697*^-16
     """
@@ -344,12 +316,10 @@ class Tan(_MPMathFunction):
     <dt>'Tan[$z$]'
         <dd>returns the tangent of $z$.
     </dl>
-
     >> Tan[0]
      = 0
     >> Tan[Pi / 2]
      = ComplexInfinity
-
     #> Tan[0.5 Pi]
      = 1.63312*^16
     """
@@ -369,7 +339,6 @@ class Sec(_MPMathFunction):
     <dt>'Sec[$z$]'
         <dd>returns the secant of $z$.
     </dl>
-
     >> Sec[0]
      = 1
     >> Sec[1] (* Sec[1] in Mathematica *)
@@ -397,7 +366,6 @@ class Csc(_MPMathFunction):
     <dt>'Csc[$z$]'
         <dd>returns the cosecant of $z$.
     </dl>
-
     >> Csc[0]
      = ComplexInfinity
     >> Csc[1] (* Csc[1] in Mathematica *)
@@ -425,7 +393,6 @@ class Cot(_MPMathFunction):
     <dt>'Cot[$z$]'
         <dd>returns the cotangent of $z$.
     </dl>
-
     >> Cot[0]
      = ComplexInfinity
     >> Cot[1.]
@@ -446,7 +413,6 @@ class ArcSin(_MPMathFunction):
     <dt>'ArcSin[$z$]'
         <dd>returns the inverse sine of $z$.
     </dl>
-
     >> ArcSin[0]
      = 0
     >> ArcSin[1]
@@ -469,7 +435,6 @@ class ArcCos(_MPMathFunction):
     <dt>'ArcCos[$z$]'
         <dd>returns the inverse cosine of $z$.
     </dl>
-
     >> ArcCos[1]
      = 0
     >> ArcCos[0]
@@ -494,14 +459,12 @@ class ArcTan(_MPMathFunction):
     <dt>'ArcTan[$z$]'
         <dd>returns the inverse tangent of $z$.
     </dl>
-
     >> ArcTan[1]
      = Pi / 4
     >> ArcTan[1.0]
      = 0.785398
     >> ArcTan[-1.0]
      = -0.785398
-
     >> ArcTan[1, 1]
      = Pi / 4
     #> ArcTan[-1, 1]
@@ -510,7 +473,6 @@ class ArcTan(_MPMathFunction):
      = -Pi / 4
     #> ArcTan[-1, -1]
      = -3 Pi / 4
-
     #> ArcTan[1, 0]
      = 0
     #> ArcTan[-1, 0]
@@ -540,7 +502,6 @@ class ArcSec(_MPMathFunction):
     <dt>'ArcSec[$z$]'
         <dd>returns the inverse secant of $z$.
     </dl>
-
     >> ArcSec[1]
      = 0
     >> ArcSec[-1]
@@ -568,7 +529,6 @@ class ArcCsc(_MPMathFunction):
     <dt>'ArcCsc[$z$]'
         <dd>returns the inverse cosecant of $z$.
     </dl>
-
     >> ArcCsc[1]
      = Pi / 2
     >> ArcCsc[-1]
@@ -596,7 +556,6 @@ class ArcCot(_MPMathFunction):
     <dt>'ArcCot[$z$]'
         <dd>returns the inverse cotangent of $z$.
     </dl>
-
     >> ArcCot[0]
      = Pi / 2
     >> ArcCot[1]
@@ -619,7 +578,6 @@ class Sinh(_MPMathFunction):
     <dt>'Sinh[$z$]'
         <dd>returns the hyperbolic sine of $z$.
     </dl>
-
     >> Sinh[0]
      = 0
     """
@@ -637,7 +595,6 @@ class Cosh(_MPMathFunction):
     <dt>'Cosh[$z$]'
         <dd>returns the hyperbolic cosine of $z$.
     </dl>
-
     >> Cosh[0]
      = 1
     """
@@ -655,7 +612,6 @@ class Tanh(_MPMathFunction):
     <dt>'Tanh[$z$]'
         <dd>returns the hyperbolic tangent of $z$.
     </dl>
-
     >> Tanh[0]
      = 0
     """
@@ -673,7 +629,6 @@ class Sech(_MPMathFunction):
     <dt>'Sech[$z$]'
         <dd>returns the hyperbolic secant of $z$.
     </dl>
-
     >> Sech[0]
      = 1
     """
@@ -697,7 +652,6 @@ class Csch(_MPMathFunction):
     <dt>'Csch[$z$]'
         <dd>returns the hyperbolic cosecant of $z$.
     </dl>
-
     >> Csch[0]
      = ComplexInfinity
     """
@@ -723,7 +677,6 @@ class Coth(_MPMathFunction):
     <dt>'Coth[$z$]'
         <dd>returns the hyperbolic cotangent of $z$.
     </dl>
-
     >> Coth[0]
      = ComplexInfinity
     """
@@ -743,7 +696,6 @@ class ArcSinh(_MPMathFunction):
     <dt>'ArcSinh[$z$]'
         <dd>returns the inverse hyperbolic sine of $z$.
     </dl>
-
     >> ArcSinh[0]
      = 0
     >> ArcSinh[0.]
@@ -766,14 +718,12 @@ class ArcCosh(_MPMathFunction):
     <dt>'ArcCosh[$z$]'
         <dd>returns the inverse hyperbolic cosine of $z$.
     </dl>
-
     >> ArcCosh[0]
      = I / 2 Pi
     >> ArcCosh[0.]
      = 0. + 1.5708 I
     >> ArcCosh[0.00000000000000000000000000000000000000]
      = 1.5707963267948966192313216916397514421 I
-
     #> ArcCosh[1.4]
      = 0.867015
     """
@@ -792,7 +742,6 @@ class ArcTanh(_MPMathFunction):
     <dt>'ArcTanh[$z$]'
         <dd>returns the inverse hyperbolic tangent of $z$.
     </dl>
-
     >> ArcTanh[0]
      = 0
     >> ArcTanh[1]
@@ -819,7 +768,6 @@ class ArcSech(_MPMathFunction):
     <dt>'ArcSech[$z$]'
         <dd>returns the inverse hyperbolic secant of $z$.
     </dl>
-
     >> ArcSech[0]
      = Infinity
     >> ArcSech[1]
@@ -849,7 +797,6 @@ class ArcCsch(_MPMathFunction):
     <dt>'ArcCsch[$z$]'
         <dd>returns the inverse hyperbolic cosecant of $z$.
     </dl>
-
     >> ArcCsch[0]
      = ComplexInfinity
     >> ArcCsch[1.0]
@@ -877,7 +824,6 @@ class ArcCoth(_MPMathFunction):
     <dt>'ArcCoth[$z$]'
         <dd>returns the inverse hyperbolic cotangent of $z$.
     </dl>
-
     >> ArcCoth[0]
      = I / 2 Pi
     >> ArcCoth[1]
@@ -886,7 +832,6 @@ class ArcCoth(_MPMathFunction):
      = 0. + 1.5708 I
     >> ArcCoth[0.5]
      = 0.549306 - 1.5708 I
-
     #> ArcCoth[0.000000000000000000000000000000000000000]
      = 1.57079632679489661923132169163975144210 I
     """
@@ -906,10 +851,8 @@ class Haversine(_MPMathFunction):
     <dt>'Haversine[$z$]'
         <dd>returns the haversine function of $z$.
     </dl>
-
     >> Haversine[1.5]
      = 0.464631
-
     >> Haversine[0.5 + 2I]
      = -1.15082 + 0.869405 I
     """
@@ -925,10 +868,8 @@ class InverseHaversine(_MPMathFunction):
     <dt>'Haversine[$z$]'
         <dd>returns the inverse haversine function of $z$.
     </dl>
-
     >> InverseHaversine[0.5]
      = 1.5708
-
     >> InverseHaversine[1 + 2.5 I]
      = 1.76459 + 2.33097 I
     """
@@ -950,10 +891,8 @@ class AngleVector(Builtin):
     <dt>'AngleVector[{$x$, $y$}, {$r$, $phi$}]'
         <dd>returns point at angle $phi$ on a circle of radius $r$ centered at {$x$, $y$}.
     </dl>
-
     >> AngleVector[90 Degree]
      = {0, 1}
-
     >> AngleVector[{1, 10}, a]
      = {1 + Cos[a], 10 + Sin[a]}
     """
@@ -1047,22 +986,16 @@ class AnglePath(Builtin):
         <dd>specifies initial position {$x$, $y$} and a slope {$dx$, $dy$} that is understood to be the
         initial direction of the turtle.
     </dl>
-
     >> AnglePath[{90 Degree, 90 Degree, 90 Degree, 90 Degree}]
      = {{0, 0}, {0, 1}, {-1, 1}, {-1, 0}, {0, 0}}
-
     >> AnglePath[{{1, 1}, 90 Degree}, {{1, 90 Degree}, {2, 90 Degree}, {1, 90 Degree}, {2, 90 Degree}}]
      = {{1, 1}, {0, 1}, {0, -1}, {1, -1}, {1, 1}}
-
     >> AnglePath[{a, b}]
      = {{0, 0}, {Cos[a], Sin[a]}, {Cos[a] + Cos[a + b], Sin[a] + Sin[a + b]}}
-
     >> Precision[Part[AnglePath[{N[1/3, 100], N[2/3, 100]}], 2, 1]]
      = 100.
-
     >> Graphics[Line[AnglePath[Table[1.7, {50}]]]]
      = -Graphics-
-
     >> Graphics[Line[AnglePath[RandomReal[{-1, 1}, {100}]]]]
      = -Graphics-
     """
@@ -1120,3 +1053,27 @@ class AnglePath(Builtin):
         'AnglePath[{{x_, y_}, {dx_, dy_}}, {steps___}]'
         phi0 = Expression('ArcTan', dx, dy)
         return AnglePath._compute(x, y, phi0, steps.get_sequence(), evaluation)
+
+
+class LogisticSigmoid(Builtin):
+    """
+    <dl>
+    <dt>'LogisticSigmoid[$z$]'
+        <dd>returns the logistic sigmoid of $z$.
+    </dl>
+    
+    >> LogisticSigmoid[0.5]
+     = 0.622459
+
+    >> LogisticSigmoid[0.5 + 2.3 I]
+     = 1.06475 +0.808177 I
+
+    >> LogisticSigmoid[{-0.2, 0.1, 0.3}]
+     = {0.450166,0.524979,0.574443}
+    """
+
+    attributes = ('Listable', 'NumericFunction',)
+    
+    rules = {'LogisticSigmoid[z_?NumberQ]': 'Power[Plus[1,Power[E,Times[-1,z]]],-1]'}
+
+    
