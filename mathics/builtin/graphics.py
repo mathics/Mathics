@@ -2653,14 +2653,30 @@ class Style(object):
         return AxisStyle(self)
 
 
-class AxisStyle(Style):
+class AxisStyle(object):
+    # used exclusively for graphics generated inside GraphicsBox.create_axes().
+    # wraps a Style instance for graphics and does not operate on local but on
+    # screen space, i.e. has to apply "local_to_screen" to all widths, sizes, ...
+
     def __init__(self, style):
-        super(AxisStyle, self).__init__(style.graphics, style.edge, style.face)
-        self.styles = style.styles
-        self.options = style.options
+        self.base = Style(style.graphics)
+        self.base.extend(style)
+        self.sx = style.graphics.local_to_screen.matrix[0][0]
+
+    def extend(self, style, pre=True):
+        self.base.extend(style.base, pre)
+
+    def clone(self):
+        return AxisStyle(self.base.clone())
+
+    def get_style(self, *args, **kwargs):
+        return self.base.get_style(*args, **kwargs)
+
+    def get_option(self, name):
+        return self.base.get_option(name)
 
     def get_line_width(self, face_element=True):
-        return 0.5
+        return self.base.get_line_width(face_element) * self.sx
 
 
 def _flatten(leaves):
