@@ -1140,6 +1140,6 @@ class LogisticSigmoid(Builtin):
 
     attributes = ('Listable', 'NumericFunction',)
     
-    rules = {'LogisticSigmoid[z_?RealNumberQ]': '1 / (1 + Exp[-z])'}
+    rules = {'LogisticSigmoid[z_?NumberQ]': '1 / (1 + Exp[-z])'}
 
     
