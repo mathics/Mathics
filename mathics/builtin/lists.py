@@ -321,7 +321,7 @@ def _parts_span_selector(pspec):
 
 
 def _parts_sequence_selector(pspec):
-    if not isinstance(pspec, list):
+    if not isinstance(pspec, (tuple, list)):
         indices = [pspec]
     else:
         indices = pspec
@@ -2365,11 +2365,11 @@ class Reap(Builtin):
             result = expr.evaluate(evaluation)
             items = []
             for pattern, tags in sown:
-                list = Expression('List')
+                leaves = []
                 for tag, elements in tags:
-                    list.leaves.append(Expression(
+                    leaves.append(Expression(
                         f, tag, Expression('List', *elements)))
-                items.append(list)
+                items.append(Expression('List', *leaves))
             return Expression('List', result, Expression('List', *items))
         finally:
             evaluation.remove_listener('sow', listener)
