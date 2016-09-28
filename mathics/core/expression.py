@@ -640,13 +640,11 @@ class Expression(BaseExpression):
         leaves = list(self._leaves)
         leaves[index] = value
         self._leaves = tuple(leaves)
-        self._leaves_changed()
-
-    def _leaves_changed(self):
         self._symbols = None
         self._sequences = None
 
-    def _leaves_reordered(self):
+    def set_reordered_leaves(self, leaves):
+        self._leaves = leaves
         self._sequences = None
 
     def get_lookup_name(self):
@@ -1253,8 +1251,7 @@ class Expression(BaseExpression):
             leaves.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
         else:
             leaves.sort()
-        self._leaves = tuple(leaves)
-        self._leaves_reordered()
+        self.set_reordered_leaves(leaves)
 
     def filter_leaves(self, head_name):
         # TODO: should use sorting
