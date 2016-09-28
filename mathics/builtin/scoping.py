@@ -202,7 +202,7 @@ class Module(Builtin):
             if new_def is not None:
                 evaluation.definitions.set_ownvalue(new_name, new_def)
             replace[name] = Symbol(new_name)
-        new_expr = expr.replace_vars(replace, None, in_scoping=False)
+        new_expr = expr.replace_vars(replace, in_scoping=False)
         result = new_expr.evaluate(evaluation)
         return result
 
