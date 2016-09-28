@@ -1939,7 +1939,7 @@ class Array(Builtin):
         'Array[f_, dimsexpr_, origins_:1, head_:List]'
 
         if dimsexpr.has_form('List', None):
-            dims = dimsexpr.leaves[:]
+            dims = dimsexpr.get_mutable_leaves()
         else:
             dims = [dimsexpr]
         for index, dim in enumerate(dims):
@@ -1952,7 +1952,7 @@ class Array(Builtin):
             if len(origins.leaves) != len(dims):
                 evaluation.message('Array', 'plen', dimsexpr, origins)
                 return
-            origins = origins.leaves[:]
+            origins = origins.get_mutable_leaves()
         else:
             origins = [origins] * len(dims)
         for index, origin in enumerate(origins):
@@ -2136,8 +2136,8 @@ class Append(Builtin):
         if expr.is_atom():
             return evaluation.message('Append', 'normal')
 
-        return Expression(expr.get_head(),
-                          *(expr.get_leaves() + [item]))
+        return Expression(
+            expr.get_head(), *list(chain(expr.get_leaves(), [item])))
 
 
 class AppendTo(Builtin):
@@ -3488,7 +3488,7 @@ class Median(_Rectangular):
             except _NotRectangularException:
                 evaluation.message('Median', 'rectn', Expression('Median', l))
         elif all(leaf.is_numeric() for leaf in l.leaves):
-            v = l.leaves[:]  # copy needed for introselect
+            v = l.get_mutable_leaves()  # copy needed for introselect
             n = len(v)
             if n % 2 == 0:  # even number of elements?
                 i = n // 2
@@ -3527,7 +3527,7 @@ class RankedMin(Builtin):
         elif py_n > len(l.leaves):
             evaluation.message('RankedMin', 'rank', py_n, len(l.leaves))
         else:
-            return introselect(l.leaves[:], py_n - 1)
+            return introselect(l.get_mutable_leaves(), py_n - 1)
 
 
 class RankedMax(Builtin):
@@ -3555,7 +3555,7 @@ class RankedMax(Builtin):
         elif py_n > len(l.leaves):
             evaluation.message('RankedMax', 'rank', py_n, len(l.leaves))
         else:
-            return introselect(l.leaves[:], len(l.leaves) - py_n)
+            return introselect(l.get_mutable_leaves(), len(l.leaves) - py_n)
 
 
 class Quantile(Builtin):
@@ -3585,7 +3585,7 @@ class Quantile(Builtin):
         '''Quantile[l_List, qs_List, {{a_, b_}, {c_, d_}}]'''
 
         n = len(l.leaves)
-        partially_sorted = l.leaves[:]
+        partially_sorted = l.get_mutable_leaves()
 
         def ranked(i):
             return introselect(partially_sorted, min(max(0, i - 1), n - 1))

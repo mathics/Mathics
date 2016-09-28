@@ -266,8 +266,8 @@ class Plus(BinaryOperator, SympyFunction):
                     leaves.append(last_item)
                 else:
                     if last_item.has_form('Times', None):
-                        last_item.leaves.insert(0, from_sympy(last_count))
-                        leaves.append(last_item)
+                        leaves.append(Expression(
+                            'Times', from_sympy(last_count), *last_item.leaves))
                     else:
                         leaves.append(Expression(
                             'Times', from_sympy(last_count), last_item))
@@ -281,7 +281,7 @@ class Plus(BinaryOperator, SympyFunction):
                     for leaf in item.leaves:
                         if isinstance(leaf, Number):
                             count = leaf.to_sympy()
-                            rest = item.leaves[:]
+                            rest = item.get_mutable_leaves()
                             rest.remove(leaf)
                             if len(rest) == 1:
                                 rest = rest[0]
@@ -590,8 +590,8 @@ class Times(BinaryOperator, SympyFunction):
             elif (leaves and item.has_form('Power', 2) and
                   leaves[-1].has_form('Power', 2) and
                   item.leaves[0].same(leaves[-1].leaves[0])):
-                leaves[-1].leaves[1] = Expression(
-                    'Plus', item.leaves[1], leaves[-1].leaves[1])
+                leaves[-1] = Expression('Power', leaves[-1].leaves[0], Expression(
+                    'Plus', item.leaves[1], leaves[-1].leaves[1]))
             elif (leaves and item.has_form('Power', 2) and
                   item.leaves[0].same(leaves[-1])):
                 leaves[-1] = Expression(
@@ -626,8 +626,9 @@ class Times(BinaryOperator, SympyFunction):
         elif number.is_zero:
             return number
         elif number.same(Integer(-1)) and leaves and leaves[0].has_form('Plus', None):
-            leaves[0].leaves = [Expression('Times', Integer(-1), leaf)
-                                for leaf in leaves[0].leaves]
+            leaves[0] = Expression(
+                leaves[0].get_head(),
+                *[Expression('Times', Integer(-1), leaf) for leaf in leaves[0].leaves])
             number = None
 
         for leaf in leaves:
