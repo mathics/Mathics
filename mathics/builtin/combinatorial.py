@@ -91,13 +91,13 @@ class Multinomial(Builtin):
         'Multinomial[values___]'
 
         values = values.get_sequence()
-        result = Expression('Times')
+        leaves = []
         total = []
         for value in values:
             total.append(value)
-            result.leaves.append(Expression(
+            leaves.append(Expression(
                 'Binomial', Expression('Plus', *total), value))
-        return result
+        return Expression('Times', *leaves)
 
 
 class _NoBoolVector(Exception):

@@ -7,6 +7,8 @@ from mathics.core.expression import Expression, strip_context, KeyComparable
 from mathics.core.pattern import Pattern, StopGenerator
 from mathics.core.util import function_arguments
 
+from itertools import chain
+
 class StopGenerator_BaseRule(StopGenerator):
     pass
 
@@ -39,8 +41,8 @@ class BaseRule(KeyComparable):
             if new_expression is None:
                 new_expression = expression
             if rest[0] or rest[1]:
-                result = Expression(expression.get_head(), *(
-                    rest[0] + [new_expression] + rest[1]))
+                result = Expression(expression.get_head(), *list(
+                    chain(rest[0], [new_expression], rest[1])))
             else:
                 result = new_expression
 

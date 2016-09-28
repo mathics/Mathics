@@ -286,17 +286,17 @@ class Inner(Builtin):
         def rec(i_cur, j_cur, i_rest, j_rest):
             evaluation.check_stopped()
             if i_rest:
-                new = Expression(head)
+                leaves = []
                 for i in range(1, i_rest[0] + 1):
-                    new.leaves.append(
+                    leaves.append(
                         rec(i_cur + [i], j_cur, i_rest[1:], j_rest))
-                return new
+                return Expression(head, *leaves)
             elif j_rest:
-                new = Expression(head)
+                leaves = []
                 for j in range(1, j_rest[0] + 1):
-                    new.leaves.append(
+                    leaves.append(
                         rec(i_cur, j_cur + [j], i_rest, j_rest[1:]))
-                return new
+                return Expression(head, *leaves)
             else:
                 def summand(i):
                     return Expression(f, get_part(list1, i_cur + [i]),

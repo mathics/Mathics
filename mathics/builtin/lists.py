@@ -268,11 +268,11 @@ def set_part(list, indices, new):
                 raise PartDepthError
             try:
                 if pos > 0:
-                    cur.leaves[pos - 1] = new
+                    cur.set_leaves(pos - 1, new)
                 elif pos == 0:
-                    cur.head = new
+                    cur.set_head(new)
                 else:
-                    cur.leaves[pos] = new
+                    cur.set_leaves(pos, new)
             except IndexError:
                 raise PartRangeError
 
@@ -412,8 +412,7 @@ def _list_parts(items, selectors, assignment):
 
             if unwrap is None:
                 expr = item.shallow_copy()
-                expr.leaves = picked
-                expr.last_evaluated = None
+                expr.set_leaves(slice(len(expr.leaves)), picked)
 
                 if assignment:
                     expr.original = None
@@ -1114,7 +1113,7 @@ class ReplacePart(Builtin):
             position = replacement.leaves[0]
             replace = replacement.leaves[1]
             if position.has_form('List', None):
-                position = position.leaves
+                position = position.get_mutable_leaves()
             else:
                 position = [position]
             for index, pos in enumerate(position):
@@ -1300,7 +1299,7 @@ def _take_span_selector(seq):
 
 def _drop_span_selector(seq):
     def sliced(x, s):
-        y = x[:]
+        y = list(x[:])
         del y[s]
         return y
 
@@ -2259,7 +2258,7 @@ class Array(Builtin):
         'Array[f_, dimsexpr_, origins_:1, head_:List]'
 
         if dimsexpr.has_form('List', None):
-            dims = dimsexpr.leaves[:]
+            dims = dimsexpr.get_mutable_leaves()
         else:
             dims = [dimsexpr]
         for index, dim in enumerate(dims):
@@ -2272,7 +2271,7 @@ class Array(Builtin):
             if len(origins.leaves) != len(dims):
                 evaluation.message('Array', 'plen', dimsexpr, origins)
                 return
-            origins = origins.leaves[:]
+            origins = origins.get_mutable_leaves()
         else:
             origins = [origins] * len(dims)
         for index, origin in enumerate(origins):
@@ -2456,8 +2455,8 @@ class Append(Builtin):
         if expr.is_atom():
             return evaluation.message('Append', 'normal')
 
-        return Expression(expr.get_head(),
-                          *(expr.get_leaves() + [item]))
+        return Expression(
+            expr.get_head(), *list(chain(expr.get_leaves(), [item])))
 
 
 class AppendTo(Builtin):
@@ -2537,7 +2536,7 @@ class Prepend(Builtin):
             return evaluation.message('Prepend', 'normal')
 
         return Expression(expr.get_head(),
-                          *([item] + expr.get_leaves()))
+            *list(chain([item], expr.get_leaves())))
 
 
 class PrependTo(Builtin):
@@ -3867,7 +3866,7 @@ class Median(_Rectangular):
             except _NotRectangularException:
                 evaluation.message('Median', 'rectn', Expression('Median', l))
         elif all(leaf.is_numeric() for leaf in l.leaves):
-            v = l.leaves[:]  # copy needed for introselect
+            v = l.get_mutable_leaves()  # copy needed for introselect
             n = len(v)
             if n % 2 == 0:  # even number of elements?
                 i = n // 2
@@ -3906,7 +3905,7 @@ class RankedMin(Builtin):
         elif py_n > len(l.leaves):
             evaluation.message('RankedMin', 'rank', py_n, len(l.leaves))
         else:
-            return introselect(l.leaves[:], py_n - 1)
+            return introselect(l.get_mutable_leaves(), py_n - 1)
 
 
 class RankedMax(Builtin):
@@ -3934,7 +3933,7 @@ class RankedMax(Builtin):
         elif py_n > len(l.leaves):
             evaluation.message('RankedMax', 'rank', py_n, len(l.leaves))
         else:
-            return introselect(l.leaves[:], len(l.leaves) - py_n)
+            return introselect(l.get_mutable_leaves(), len(l.leaves) - py_n)
 
 
 class Quantile(Builtin):
@@ -3964,7 +3963,7 @@ class Quantile(Builtin):
         '''Quantile[l_List, qs_List, {{a_, b_}, {c_, d_}}]'''
 
         n = len(l.leaves)
-        partially_sorted = l.leaves[:]
+        partially_sorted = l.get_mutable_leaves()
 
         def ranked(i):
             return introselect(partially_sorted, min(max(0, i - 1), n - 1))

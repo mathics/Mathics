@@ -73,9 +73,9 @@ class ExpressionPointer(object):
 
     def replace(self, new) -> None:
         if self.position == 0:
-            self.parent.head = new
+            self.parent.set_head(new)
         else:
-            self.parent.leaves[self.position - 1] = new
+            self.parent.set_leaves(self.position - 1, new)
 
     def __str__(self) -> str:
         return '%s[[%s]]' % (self.parent, self.position)
@@ -513,11 +513,27 @@ class Expression(BaseExpression):
         self = super(Expression, cls).__new__(cls)
         if isinstance(head, str):
             head = Symbol(head)
-        self.head = head
-        self.leaves = [from_python(leaf) for leaf in leaves]
+        self._head = head
+        self._leaves = tuple(from_python(leaf) for leaf in leaves)
         self._sequences = None
         self._symbols = None
         return self
+
+    @property
+    def head(self):
+        return self._head
+
+    @head.setter
+    def head(self, value):
+        raise ValueError('Expression.head is write protected')
+
+    @property
+    def leaves(self):
+        return self._leaves
+
+    @leaves.setter
+    def leaves(self, value):
+        raise ValueError('Expression.leaves is write protected')
 
     def sequences(self):
         seq = self._sequences
@@ -609,7 +625,7 @@ class Expression(BaseExpression):
         # this is a minimal, shallow copy: head, leaves are shared with
         # the original, only the Expression instance is new.
         expr = Expression(self.head)
-        expr.leaves = self.leaves
+        expr._leaves = self._leaves
         expr._sequences = self._sequences
         expr._symbols = self._symbols
         expr.options = self.options
@@ -623,10 +639,30 @@ class Expression(BaseExpression):
             leaf.set_positions(ExpressionPointer(self, index + 1))
 
     def get_head(self):
-        return self.head
+        return self._head
+
+    def set_head(self, head):
+        self._head = head
+        self._symbols = None
 
     def get_leaves(self):
-        return self.leaves
+        return self._leaves
+
+    def get_mutable_leaves(self):
+        return list(self._leaves)
+
+    def set_leaves(self, index, value):
+        leaves = list(self._leaves)
+        leaves[index] = value
+        self._leaves = tuple(leaves)
+        self._symbols = None
+        self._sequences = None
+        self.last_evaluated = None
+
+    def set_reordered_leaves(self, leaves):
+        self._leaves = tuple(leaves)
+        self._sequences = None
+        self.last_evaluated = None
 
     def get_lookup_name(self) -> bool:
         return self.head.get_lookup_name()
@@ -754,7 +790,7 @@ class Expression(BaseExpression):
                     pattern += 20
             if pattern > 0:
                 return [2, pattern, 1, 1, 0, self.head.get_sort_key(True),
-                        [leaf.get_sort_key(True) for leaf in self.leaves], 1]
+                        tuple(leaf.get_sort_key(True) for leaf in self.leaves), 1]
 
             if name == 'System`PatternTest':
                 if len(self.leaves) != 2:
@@ -803,7 +839,7 @@ class Expression(BaseExpression):
                 # precedence
                 return [
                     2, 0, 1, 1, 0, self.head.get_sort_key(True),
-                    [leaf.get_sort_key(True) for leaf in self.leaves] + [[4]],
+                    tuple(chain((leaf.get_sort_key(True) for leaf in self.leaves), ([4],))),
                     1]
         else:
             exps = {}
@@ -924,7 +960,7 @@ class Expression(BaseExpression):
     def evaluate_next(self, evaluation) -> typing.Tuple['Expression', bool]:
         head = self.head.evaluate(evaluation)
         attributes = head.get_attributes(evaluation.definitions)
-        leaves = self.leaves[:]
+        leaves = self.get_mutable_leaves()
 
         def rest_range(indices):
             if 'System`HoldAllComplete' not in attributes:
@@ -963,16 +999,18 @@ class Expression(BaseExpression):
             leaf.unevaluated = False
 
         if 'System`HoldAllComplete' not in attributes:
-            dirty_new = False
+            dirty_leaves = None
 
             for index, leaf in enumerate(leaves):
                 if leaf.has_form('Unevaluated', 1):
-                    leaves[index] = leaf.leaves[0]
-                    leaves[index].unevaluated = True
-                    dirty_new = True
+                    if dirty_leaves is None:
+                        dirty_leaves = list(leaves)
+                    dirty_leaves[index] = leaf.leaves[0]
+                    dirty_leaves[index].unevaluated = True
 
-            if dirty_new:
-                new = Expression(head, *leaves)
+            if dirty_leaves:
+                new = Expression(head, *dirty_leaves)
+                leaves = new.leaves
 
         def flatten_callback(new_leaves, old):
             for leaf in new_leaves:
@@ -1021,11 +1059,17 @@ class Expression(BaseExpression):
                 else:
                     return result, True
 
+        dirty_leaves = None
+
         # Expression did not change, re-apply Unevaluated
         for index, leaf in enumerate(new.leaves):
             if leaf.unevaluated:
-                new.leaves[index] = Expression('Unevaluated', leaf)
-                new._symbols = None
+                if dirty_leaves is None:
+                    dirty_leaves = list(new.leaves)
+                dirty_leaves[index] = Expression('Unevaluated', leaf)
+
+        if dirty_leaves:
+            new = Expression(head, *dirty_leaves)
 
         new.unformatted = self.unformatted
         new.last_evaluated = evaluation.definitions.now
@@ -1230,11 +1274,12 @@ class Expression(BaseExpression):
 
     def sort(self, pattern=False):
         " Sort the leaves according to internal ordering. "
-
+        leaves = list(self._leaves)
         if pattern:
-            self.leaves.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
+            leaves.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
         else:
-            self.leaves.sort()
+            leaves.sort()
+        self.set_reordered_leaves(leaves)
 
     def filter_leaves(self, head_name):
         # TODO: should use sorting
@@ -1312,8 +1357,7 @@ class Expression(BaseExpression):
                     replacement = {name: Symbol(name + '$') for name in func_params}
                     func_params = [Symbol(name + '$') for name in func_params]
                     body = body.replace_vars(replacement, options, in_scoping)
-                    leaves = [Expression('List', *func_params), body] + \
-                        self.leaves[2:]
+                    leaves = chain([Expression('List', *func_params), body], self.leaves[2:])
 
         if not vars:  # might just be a symbol set via Set[] we looked up here
             return self.shallow_copy()
@@ -1419,9 +1463,9 @@ class Expression(BaseExpression):
                 if _prec is None or leaf_prec < _prec:
                     _prec = leaf_prec
         if _prec is not None:
-            new_leaves = self.leaves[:]
-            for index in range(len(self.leaves)):
-                leaf = self.leaves[index]
+            new_leaves = self.get_mutable_leaves()
+            for index in range(len(new_leaves)):
+                leaf = new_leaves[index]
                 # Don't "numerify" numbers: they should be numerified
                 # automatically by the processing function,
                 # and we don't want to lose exactness in e.g. 1.0+I.
