@@ -471,7 +471,6 @@ class LinearModelFit(Builtin):
     </dl>
 
     >> m = LinearModelFit[{{2, 1}, {3, 4}, {5, 3}, {7, 6}}, x, x]
-
     >> m["BasisFunctions"]
      = {1, x}
 
@@ -482,7 +481,7 @@ class LinearModelFit(Builtin):
      = {0.186441, 0.779661}
 
     >> m["DesignMatrix"]
-     = {{1., 2.}, {1., 3.}, {1., 5.}, {1., 7.}}
+     = {{1, 2}, {1, 3}, {1, 5}, {1, 7}}
 
     >> m["Function"]
      = 0.186441 + 0.779661 #1&
@@ -490,8 +489,10 @@ class LinearModelFit(Builtin):
     >> m["Response"]
      = {1, 4, 3, 6}
 
-    >>  m = LinearModelFit[{{2, 2, 1}, {3, 2, 4}, {5, 6, 3}, {7, 9, 6}}, {Sin[x], Cos[y]}, {x, y}]
+    >> m["FitResiduals"]
+     = {-0.745763, 1.47458, -1.08475, 0.355932}
 
+    >> m = LinearModelFit[{{2, 2, 1}, {3, 2, 4}, {5, 6, 3}, {7, 9, 6}}, {Sin[x], Cos[y]}, {x, y}]
     >> m["BasisFunctions"]
      = {1, Sin[x], Cos[y]}
 
@@ -499,9 +500,11 @@ class LinearModelFit(Builtin):
      = 3.33077 - 5.65221 Cos[#2] - 5.01042 Sin[#1]&
 
     >> m = LinearModelFit[{{{1, 4}, {1, 5}, {1, 7}}, {1, 2, 3}}]
-
     >> m["BasisFunctions"]
      = {#1, #2}
+
+    >> m["FitResiduals"]
+     = {-0.142857, 0.214286, -0.0714286}
     """
 
     # see the paper "Regression by linear combination of basis functions" by Risi Kondor for a good
@@ -514,33 +517,34 @@ class LinearModelFit(Builtin):
         'LinearModelFit[data_, f_List, x_List] /; Length[f] == Length[x]':
             '''
             LinearModelFit[{DesignMatrix[data, f, x], Part[data, ;;, -1]},
-                {Prepend[f, 1], Prepend[MapThread[#1 /. #2 -> #3&, {f, x, Table[Slot[i], {i, Length[f]}]}], 1]}]
+                Prepend[MapThread[#1 /. #2 -> #3&, {f, x, Table[Slot[i], {i, Length[f]}]}], 1],
+                "BasisFunctions" -> Prepend[f, 1], "NumberOfSlots" -> Length[f]]
             ''',
 
-        'LinearModelFit[{m_?MatrixQ, v_}, {f_List, fs_List}]':  # fs is Slot[] version of f
+        'LinearModelFit[{m_?MatrixQ, v_}, f_, options___]':  # f is a Slot[] version of BasisFunctions
             '''
-            Module[{m1 = N[m]},
-                Module[{t1 = Transpose[m1]},
-                    Module[{parameters = Dot[Dot[Inverse[Dot[t1, m1]], t1], N[v]]},
-                        FittedModel[{
-                            "BasisFunctions" -> f,
-                            "BestFit" -> Total[f * parameters],
-                            "BestFitParameters" -> parameters,
-                            "DesignMatrix" -> m,
-                            "Function" -> Replace[Temporary[Total[fs * parameters]],
-                                Temporary -> Function, 1, Heads -> True], (* work around Function's Hold *)
-                            "Response" -> v
-                        }]
+            Module[{m1 = N[m], v1 = N[v], bf = "BasisFunctions" /. Join[{options}, {"BasisFunctions" -> f}]},
+                Module[{t1 = Transpose[m1], n = "NumberOfSlots" /. Join[{options}, {"NumberOfSlots" -> Length[f]}]},
+                    Module[{parameters = Dot[Dot[Inverse[Dot[t1, m1]], t1], v1]},
+                        Module[{function = Replace[Temporary[Total[f * parameters]],
+                            Temporary -> Function, 1, Heads -> True], (* work around Function's Hold *)},
+                            FittedModel[{
+                                "BasisFunctions" -> bf,
+                                "BestFit" -> Total[bf * parameters],
+                                "BestFitParameters" -> parameters,
+                                "DesignMatrix" -> m,
+                                "Function" -> function,
+                                "Response" -> v,
+                                "FitResiduals" -> MapThread[#2 - (function @@ Take[#1, -n])&, {m1, v1}]
+                            }]
+                        ]
                     ]
                 ]
             ]
             ''',
 
-        'LinearModelFit[{m_?MatrixQ, v_}, f_]':
-            'LinearModelFit[{m, v}, {f, f}]',
-
         'LinearModelFit[{m_?MatrixQ, v_}]':
-            'LinearModelFit[{m, v}, Table[Slot[i], {i, Length[v]}]]',
+            'LinearModelFit[{m, v}, Table[Slot[i], {i, Length[First[m]]}]]',
     }
 
 
