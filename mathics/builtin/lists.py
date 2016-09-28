@@ -273,11 +273,11 @@ def set_part(list, indices, new):
                 raise PartDepthError
             try:
                 if pos > 0:
-                    cur.leaves[pos - 1] = new
+                    cur.set_leaves(pos - 1, new)
                 elif pos == 0:
-                    cur.head = new
+                    cur.set_head(new)
                 else:
-                    cur.leaves[pos] = new
+                    cur.set_leaves(pos, new)
             except IndexError:
                 raise PartRangeError
 
@@ -384,8 +384,7 @@ def _list_parts(items, selectors, assignment):
 
             if unwrap is None:
                 expr = item.shallow_copy()
-                expr.leaves = picked
-                expr.last_evaluated = None
+                expr.set_leaves(slice(len(expr.leaves)), picked)
 
                 if assignment:
                     expr.original = None
@@ -1082,7 +1081,7 @@ class ReplacePart(Builtin):
             position = replacement.leaves[0]
             replace = replacement.leaves[1]
             if position.has_form('List', None):
-                position = position.leaves
+                position = position.get_mutable_leaves()
             else:
                 position = [position]
             for index, pos in enumerate(position):
@@ -1132,7 +1131,7 @@ def _take_span_selector(seq):
 
 def _drop_span_selector(seq):
     def sliced(x, s):
-        y = x[:]
+        y = list(x[:])
         del y[s]
         return y
 
@@ -2217,7 +2216,7 @@ class Prepend(Builtin):
             return evaluation.message('Prepend', 'normal')
 
         return Expression(expr.get_head(),
-                          *([item] + expr.get_leaves()))
+            *list(chain([item], expr.get_leaves())))
 
 
 def get_tuples(items):

@@ -503,11 +503,19 @@ class Expression(BaseExpression):
         self = super(Expression, cls).__new__(cls)
         if isinstance(head, six.string_types):
             head = Symbol(head)
-        self.head = head
+        self._head = head
         self._leaves = tuple(from_python(leaf) for leaf in leaves)
         self._sequences = None
         self._symbols = None
         return self
+
+    @property
+    def head(self):
+        return self._head
+
+    @head.setter
+    def head(self, value):
+        raise ValueError('Expression.head is write protected')
 
     @property
     def leaves(self):
@@ -621,10 +629,10 @@ class Expression(BaseExpression):
             leaf.set_positions(ExpressionPointer(self, index + 1))
 
     def get_head(self):
-        return self.head
+        return self._head
 
     def set_head(self, head):
-        self.head = head
+        self._head = head
         self._symbols = None
 
     def get_leaves(self):
@@ -639,10 +647,12 @@ class Expression(BaseExpression):
         self._leaves = tuple(leaves)
         self._symbols = None
         self._sequences = None
+        self.last_evaluated = None
 
     def set_reordered_leaves(self, leaves):
-        self._leaves = leaves
+        self._leaves = tuple(leaves)
         self._sequences = None
+        self.last_evaluated = None
 
     def get_lookup_name(self):
         return self.head.get_lookup_name()
@@ -761,7 +771,7 @@ class Expression(BaseExpression):
                     pattern += 20
             if pattern > 0:
                 return [2, pattern, 1, 1, 0, self.head.get_sort_key(True),
-                        [leaf.get_sort_key(True) for leaf in self.leaves], 1]
+                        tuple(leaf.get_sort_key(True) for leaf in self.leaves), 1]
 
             if name == 'System`PatternTest':
                 if len(self.leaves) != 2:
@@ -810,7 +820,7 @@ class Expression(BaseExpression):
                 # precedence
                 return [
                     2, 0, 1, 1, 0, self.head.get_sort_key(True),
-                    [leaf.get_sort_key(True) for leaf in self.leaves] + [[4]],
+                    tuple(chain((leaf.get_sort_key(True) for leaf in self.leaves), ([4],))),
                     1]
         else:
             exps = {}
