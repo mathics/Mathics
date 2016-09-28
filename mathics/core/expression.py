@@ -1213,14 +1213,16 @@ class Expression(BaseExpression):
                 expr = Expression(head, *expr.leaves)
             return expr, new_applied[0]
 
-    def replace_vars(self, vars, evaluation, options=None, in_scoping=True, in_function=True):
+
+    def replace_vars(self, vars, options=None,
+                     in_scoping=True, in_function=True):
         from mathics.builtin.scoping import get_scoping_vars
 
         if not in_scoping:
             if (self.head.get_name() in ('System`Module', 'System`Block', 'System`With') and
                 len(self.leaves) > 0):  # nopep8
 
-                scoping_vars = set(name for name, new_def in get_scoping_vars(self.leaves[0], evaluation=evaluation))
+                scoping_vars = set(name for name, new_def in get_scoping_vars(self.leaves[0]))
                 """for var in new_vars:
                     if var in scoping_vars:
                         del new_vars[var]"""
@@ -1242,7 +1244,7 @@ class Expression(BaseExpression):
                     body = self.leaves[1]
                     replacement = {name: Symbol(name + '$') for name in func_params}
                     func_params = [Symbol(name + '$') for name in func_params]
-                    body = body.replace_vars(replacement, evaluation, options, in_scoping)
+                    body = body.replace_vars(replacement, options, in_scoping)
                     leaves = [Expression('List', *func_params), body] + \
                         self.leaves[2:]
 
@@ -1251,8 +1253,8 @@ class Expression(BaseExpression):
 
         return Expression(
             self.head.replace_vars(
-                vars, evaluation, options=options, in_scoping=in_scoping),
-            *[leaf.replace_vars(vars, evaluation, options=options, in_scoping=in_scoping)
+                vars, options=options, in_scoping=in_scoping),
+            *[leaf.replace_vars(vars, options=options, in_scoping=in_scoping)
               for leaf in leaves])
 
     def replace_slots(self, slots, evaluation):
@@ -1390,7 +1392,7 @@ class Atom(BaseExpression):
     def __repr__(self):
         return '<%s: %s>' % (self.get_atom_name(), self)
 
-    def replace_vars(self, vars, evaluation, options=None, in_scoping=True):
+    def replace_vars(self, vars, options=None, in_scoping=True):
         return self
 
     def replace_slots(self, slots, evaluation):
@@ -1489,7 +1491,7 @@ class Symbol(Atom):
     def same(self, other):
         return isinstance(other, Symbol) and self.name == other.name
 
-    def replace_vars(self, vars, evaluation, options={}, in_scoping=True):
+    def replace_vars(self, vars, options={}, in_scoping=True):
         assert all(fully_qualified_symbol_name(v) for v in vars)
         var = vars.get(self.name, None)
         if var is None:

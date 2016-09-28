@@ -722,7 +722,7 @@ class Definition(Builtin):
             evaluation.check_stopped()
             if isinstance(rule, Rule):
                 r = rhs(rule.replace.replace_vars(
-                        {'System`Definition': Expression('HoldForm', Symbol('Definition'))}, evaluation))
+                        {'System`Definition': Expression('HoldForm', Symbol('Definition'))}))
                 lines.append(Expression('HoldForm', Expression(
                     up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
 
