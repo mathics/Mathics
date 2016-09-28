@@ -1056,7 +1056,7 @@ def get_symbol_values(symbol, func_name, position, evaluation):
         definition = evaluation.definitions.get_definition(name)
     else:
         definition = evaluation.definitions.get_user_definition(name)
-    result = Expression('List')
+    leaves = []
     for rule in definition.get_values_list(position):
         if isinstance(rule, Rule):
             pattern = rule.pattern
@@ -1064,9 +1064,9 @@ def get_symbol_values(symbol, func_name, position, evaluation):
                 pattern = pattern.expr
             else:
                 pattern = Expression('HoldPattern', pattern.expr)
-            result.leaves.append(Expression(
+            leaves.append(Expression(
                 'RuleDelayed', pattern, rule.replace))
-    return result
+    return Expression('List', *leaves)
 
 
 class DownValues(Builtin):

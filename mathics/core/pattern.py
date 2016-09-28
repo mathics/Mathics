@@ -9,6 +9,7 @@ from mathics.core.expression import (Expression, system_symbols,
                                      ensure_context)
 from mathics.core.util import subsets, subranges, permutations
 from six.moves import range
+from itertools import chain
 
 # from mathics.core.pattern_nocython import (
 #    StopGenerator #, Pattern #, ExpressionPattern)
@@ -451,11 +452,11 @@ class ExpressionPattern(Pattern):
                 if next_rest is None:
                     yield_func(
                         next_vars,
-                        (rest_expression[0] + items_rest[0], []))
+                        (list(chain(rest_expression[0], items_rest[0])), []))
                 else:
                     yield_func(
                         next_vars,
-                        (rest_expression[0] + items_rest[0], next_rest[1]))
+                        (list(chain(rest_expression[0], items_rest[0])), next_rest[1]))
 
             def match_yield(new_vars, _):
                 if rest_leaves:
