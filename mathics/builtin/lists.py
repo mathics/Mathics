@@ -349,7 +349,7 @@ def _parts_span_selector(pspec):
 
 
 def _parts_sequence_selector(pspec):
-    if not isinstance(pspec, list):
+    if not isinstance(pspec, (tuple, list)):
         indices = [pspec]
     else:
         indices = pspec
@@ -902,21 +902,15 @@ class Partition(Builtin):
         'Parition[list_, n_, d_, k]': 'Partition[list, n, d, {k, k}]',
     }
 
-    def chunks(self, l, n, d):
-        assert n > 0 and d > 0
-        return [x for x in [l[i:i + n] for i in range(0, len(l), d)] if len(x) == n]
-
     def apply_no_overlap(self, l, n, evaluation):
         'Partition[l_List, n_Integer]'
         # TODO: Error checking
-        return Expression('List', *self.chunks(
-            l.get_leaves(), n.get_int_value(), n.get_int_value()))
+        return Expression('List', *list(l.partition(n.get_int_value(), n.get_int_value())))
 
     def apply(self, l, n, d, evaluation):
         'Partition[l_List, n_Integer, d_Integer]'
         # TODO: Error checking
-        return Expression('List', *self.chunks(
-            l.get_leaves(), n.get_int_value(), d.get_int_value()))
+        return Expression('List', *list(l.partition(n.get_int_value(), d.get_int_value())))
 
 
 class Extract(Builtin):
@@ -2744,11 +2738,11 @@ class Reap(Builtin):
             result = expr.evaluate(evaluation)
             items = []
             for pattern, tags in sown:
-                list = Expression('List')
+                leaves = []
                 for tag, elements in tags:
-                    list.leaves.append(Expression(
+                    leaves.append(Expression(
                         f, tag, Expression('List', *elements)))
-                items.append(list)
+                items.append(Expression('List', *leaves))
             return Expression('List', result, Expression('List', *items))
         finally:
             evaluation.remove_listener('sow', listener)
