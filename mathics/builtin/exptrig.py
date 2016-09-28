@@ -1134,7 +1134,7 @@ class LogisticSigmoid(Builtin):
     >> LogisticSigmoid[{-0.2, 0.1, 0.3}]
      = {0.450166, 0.524979, 0.574443}
 
-    #> LogisticSigmoid[LogisticSigmoid[I Pi]]
+    #> LogisticSigmoid[I Pi]
      = LogisticSigmoid[I Pi]
     """
 
