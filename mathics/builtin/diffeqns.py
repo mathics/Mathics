@@ -8,6 +8,7 @@ Differential equation solver functions
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
+import six
 import sympy
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression
@@ -57,6 +58,13 @@ class DSolve(Builtin):
      = DSolve[f[x] == 0, f, {}]
     """
 
+    # XXX sympy #11669 test
+    """
+    #> DSolve[\[Gamma]'[x] == 0, \[Gamma], x]
+     : Hit sympy bug #11669.
+     = ...
+    """
+
     # TODO: GeneratedParameters option
 
     messages = {
@@ -73,6 +81,7 @@ class DSolve(Builtin):
         'symsys': "SymPy can't solve systems of DEs.",
         'symimp': "SymPy can't solve this form of DE.",
         'symmua': "SymPy can't handle functions of multiple variables.",
+        'sym11669': 'Hit sympy bug #11669.',
     }
 
     def apply(self, eqn, y, x, evaluation):
@@ -108,8 +117,17 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'deqx')
             return
 
-        sym_eq = eqn.to_sympy(converted_functions=set([func.get_head_name()]))
-        sym_func = func.head.to_sympy()(*(leaf.to_sympy() for leaf in func.leaves))
+        # Workaround sympy bug #11669.
+        # https://github.com/sympy/sympy/issues/11669https://github.com/sympy/sympy/issues/11669
+        f_name = func.get_head_name()
+        if six.PY2:
+            try:
+                f_name = str(f_name)
+            except UnicodeEncodeError:
+                return evaluation.message('DSolve', 'sym11669', func.get_head_name())
+
+        sym_func = sympy.Function(f_name)(*(leaf.to_sympy() for leaf in func.leaves))
+        sym_eq = eqn.to_sympy(converted_functions=set([f_name]))
 
         try:
             sym_result = sympy.dsolve(sym_eq, sym_func)
