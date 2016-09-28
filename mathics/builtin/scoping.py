@@ -24,7 +24,8 @@ def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
         if var.has_form('Set', 2):
             var_name = var.leaves[0].get_name()
             new_def = var.leaves[1]
-            new_def = new_def.evaluate(evaluation)
+            if evaluation:
+                new_def = new_def.evaluate(evaluation)
         elif var.has_form('Symbol'):
             var_name = var.get_name()
             new_def = None
@@ -171,6 +172,9 @@ class Module(Builtin):
     #> Module[{n = 3}, Module[{b = n * 5}, b * 7]]
      = 105
 
+    #> Module[{a = 3}, Module[{c = If[ToString[Head[a]] == "Integer", a * 5, Abort[]]}, c]]
+     = 15
+
     """
 
     attributes = ('HoldAll',)
@@ -198,7 +202,7 @@ class Module(Builtin):
             if new_def is not None:
                 evaluation.definitions.set_ownvalue(new_name, new_def)
             replace[name] = Symbol(new_name)
-        new_expr = expr.replace_vars(replace, evaluation, in_scoping=False)
+        new_expr = expr.replace_vars(replace, in_scoping=False)
         result = new_expr.evaluate(evaluation)
         return result
 

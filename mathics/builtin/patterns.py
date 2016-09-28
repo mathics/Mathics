@@ -1178,6 +1178,21 @@ class RepeatedNull(Repeated):
         super(RepeatedNull, self).init(expr, min=0)
 
 
+class Shortest(Builtin):
+    pass
+
+
+class Longest(Builtin):
+    '''
+    >> StringCases["aabaaab", Longest["a" ~~ __ ~~ "b"]]
+     = {aabaaab}
+
+    >> StringCases["aabaaab", Longest[RegularExpression["a+b"]]]
+     = {aab, aaab}
+    '''
+    pass
+
+
 class Condition(BinaryOperator, PatternObject):
     """
     <dl>
@@ -1219,7 +1234,7 @@ class Condition(BinaryOperator, PatternObject):
         # for new_vars, rest in self.pattern.match(expression, vars,
         # evaluation):
         def yield_match(new_vars, rest):
-            test_expr = self.test.replace_vars(new_vars, evaluation)
+            test_expr = self.test.replace_vars(new_vars)
             test_result = test_expr.evaluate(evaluation)
             if test_result.is_true():
                 yield_func(new_vars, rest)

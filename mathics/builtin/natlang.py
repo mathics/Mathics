@@ -103,29 +103,31 @@ def _make_forms():
 
     return forms
 
+# the following two may only be accessed after_WordNetBuiltin._load_wordnet has
+# been called.
+
+_wordnet_pos_to_type = {}
+_wordnet_type_to_pos = {}
+
 try:
     import nltk
 
-    _wordnet_pos_to_type = {
-        nltk.corpus.wordnet.VERB: 'Verb',
-        nltk.corpus.wordnet.NOUN: 'Noun',
-        nltk.corpus.wordnet.ADJ: 'Adjective',
-        nltk.corpus.wordnet.ADJ_SAT: 'Adjective',
-        nltk.corpus.wordnet.ADV: 'Adverb',
-    }
-    _wordnet_type_to_pos = {
-        'Verb': [nltk.corpus.wordnet.VERB],
-        'Noun': [nltk.corpus.wordnet.NOUN],
-        'Adjective': [nltk.corpus.wordnet.ADJ, nltk.corpus.wordnet.ADJ_SAT],
-        'Adverb': [nltk.corpus.wordnet.ADV],
-    }
-except LookupError:
-    print("warning: nltk dictionary not installed\n")    
-    _wordnet_pos_to_type = {}
-    _wordnet_type_to_pos = {}
+    def _init_nltk_maps():
+        _wordnet_pos_to_type.update({
+            nltk.corpus.wordnet.VERB: 'Verb',
+            nltk.corpus.wordnet.NOUN: 'Noun',
+            nltk.corpus.wordnet.ADJ: 'Adjective',
+            nltk.corpus.wordnet.ADJ_SAT: 'Adjective',
+            nltk.corpus.wordnet.ADV: 'Adverb',
+        })
+        _wordnet_type_to_pos.update({
+            'Verb': [nltk.corpus.wordnet.VERB],
+            'Noun': [nltk.corpus.wordnet.NOUN],
+            'Adjective': [nltk.corpus.wordnet.ADJ, nltk.corpus.wordnet.ADJ_SAT],
+            'Adverb': [nltk.corpus.wordnet.ADV],
+        })
 except ImportError:
-    _wordnet_pos_to_type = {}
-    _wordnet_type_to_pos = {}
+    pass
 
 try:
     import spacy
@@ -773,6 +775,7 @@ class _WordNetBuiltin(Builtin):
     def _init_wordnet(self, evaluation, language_name, language_code):
         try:
             wordnet_resource = nltk.data.find('corpora/wordnet')
+            _init_nltk_maps()
         except LookupError:
             evaluation.message(self.get_name(), 'package', 'wordnet')
             return None
@@ -1074,7 +1077,7 @@ class WordData(_WordListBuiltin):
         if not parts:
             return Expression('Missing', 'NotAvailable')
         else:
-            return Expression('List', *[String(s) for s in sorted([_wordnet_pos_to_type(p) for p in parts])])
+            return Expression('List', *[String(s) for s in sorted([_wordnet_pos_to_type[p] for p in parts])])
 
     def _property(self, word, py_property, py_form, evaluation, options):
         if py_property == 'PorterStem':
