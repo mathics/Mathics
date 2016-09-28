@@ -106,22 +106,35 @@ def _make_forms():
 try:
     import nltk
 
-    _wordnet_pos_to_type = {
-        nltk.corpus.wordnet.VERB: 'Verb',
-        nltk.corpus.wordnet.NOUN: 'Noun',
-        nltk.corpus.wordnet.ADJ: 'Adjective',
-        nltk.corpus.wordnet.ADJ_SAT: 'Adjective',
-        nltk.corpus.wordnet.ADV: 'Adverb',
-    }
-    _wordnet_type_to_pos = {
-        'Verb': [nltk.corpus.wordnet.VERB],
-        'Noun': [nltk.corpus.wordnet.NOUN],
-        'Adjective': [nltk.corpus.wordnet.ADJ, nltk.corpus.wordnet.ADJ_SAT],
-        'Adverb': [nltk.corpus.wordnet.ADV],
-    }
-except ImportError:
-    _wordnet_pos_to_type = {}
-    _wordnet_type_to_pos = {}
+    _lazy_wordnet_pos_to_type = {}
+    _lazy_wordnet_type_to_pos = {}
+
+    def _wordnet_pos_to_type(p):
+        if not _lazy_wordnet_pos_to_type:
+            _lazy_wordnet_pos_to_type.update({
+                nltk.corpus.wordnet.VERB: 'Verb',
+                nltk.corpus.wordnet.NOUN: 'Noun',
+                nltk.corpus.wordnet.ADJ: 'Adjective',
+                nltk.corpus.wordnet.ADJ_SAT: 'Adjective',
+                nltk.corpus.wordnet.ADV: 'Adverb',
+            })
+        return _lazy_wordnet_pos_to_type[p]
+
+    def _wordnet_type_to_pos(t):
+        if not _lazy_wordnet_type_to_pos:
+            _lazy_wordnet_type_to_pos.update({
+                'Verb': [nltk.corpus.wordnet.VERB],
+                'Noun': [nltk.corpus.wordnet.NOUN],
+                'Adjective': [nltk.corpus.wordnet.ADJ, nltk.corpus.wordnet.ADJ_SAT],
+                'Adverb': [nltk.corpus.wordnet.ADV],
+            })
+        return _lazy_wordnet_type_to_pos[t]
+except (ImportError, LookupError):
+    def _wordnet_pos_to_type(p):
+        raise ValueError('Needed NLTK corpora are not installed.')
+
+    def _wordnet_type_to_pos(t):
+        raise ValueError('Needed NLTK corpora are not installed.')
 
 try:
     import spacy
@@ -839,7 +852,7 @@ class _WordNetBuiltin(Builtin):
             for lemma in WordProperty._synonymous_lemmas(syn):
                 yield lemma.name()
 
-        return what, _wordnet_pos_to_type[pos], containers
+        return what, _wordnet_pos_to_type(pos), containers
 
     @staticmethod
     def syn(syn, wordnet, language_code):
@@ -996,7 +1009,7 @@ class _WordListBuiltin(_WordNetBuiltin):
                 if type == 'All':
                     filtered_pos = [None]
                 else:
-                    filtered_pos = _wordnet_type_to_pos[type]
+                    filtered_pos = _wordnet_type_to_pos(type)
                 words = []
                 for pos in filtered_pos:
                     words.extend(list(wordnet.all_lemma_names(pos, language_code)))
