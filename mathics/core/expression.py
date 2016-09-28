@@ -515,7 +515,7 @@ class Expression(BaseExpression):
 
     @head.setter
     def head(self, value):
-        raise ValueError('Expression.head is write protected')
+        raise ValueError('Expression.head is write protected. Use set_head().')
 
     @property
     def leaves(self):
@@ -523,7 +523,7 @@ class Expression(BaseExpression):
 
     @leaves.setter
     def leaves(self, value):
-        raise ValueError('Expression.leaves is write protected')
+        raise ValueError('Expression.leaves is write protected. Use set_leaves().')
 
     def sequences(self):
         seq = self._sequences
@@ -638,10 +638,10 @@ class Expression(BaseExpression):
     def get_leaves(self):
         return self._leaves
 
-    def get_mutable_leaves(self):
+    def get_mutable_leaves(self):  # shallow, mutable copy of the leaves array
         return list(self._leaves)
 
-    def set_leaves(self, index, value):
+    def set_leaves(self, index, value):  # leaves are removed, added or replaced
         leaves = list(self._leaves)
         leaves[index] = value
         self._leaves = tuple(leaves)
@@ -649,7 +649,7 @@ class Expression(BaseExpression):
         self._sequences = None
         self.last_evaluated = None
 
-    def set_reordered_leaves(self, leaves):
+    def set_reordered_leaves(self, leaves):  # same leaves, but in a different order
         self._leaves = tuple(leaves)
         self._sequences = None
         self.last_evaluated = None
