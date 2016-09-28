@@ -454,7 +454,9 @@ class DesignMatrix(Builtin):
     """
 
     rules = {
-        'DesignMatrix[m_, f_, x_?AtomQ]': 'DesignMatrix[m, {f}, ConstantArray[x, Length[f]]]',
+        'DesignMatrix[m_, f_List, x_?AtomQ]': 'DesignMatrix[m, {f}, ConstantArray[x, Length[f]]]',
+
+        'DesignMatrix[m_, f_, x_?AtomQ]': 'DesignMatrix[m, {f}, {x}]',
 
         'DesignMatrix[m_, f_List, x_List]':
             'Prepend[MapThread[Function[{ff, xx, rr}, ff /. xx -> rr], {f, x, Most[#]}], 1]& /@ m',
