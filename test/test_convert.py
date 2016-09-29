@@ -12,9 +12,16 @@ import unittest
 
 
 class SympyConvert(unittest.TestCase):
-    def compare(self, mathics_expr, sympy_expr, **kwargs):
+
+    def compare_to_sympy(self, mathics_expr, sympy_expr, **kwargs):
         self.assertEqual(mathics_expr.to_sympy(**kwargs), sympy_expr)
-        self.assertEqual(mathics_expr, mathics.from_sympy(sympy_expr))
+
+    def compare_to_mathics(self, mathics_expr, sympy_expr, **kwargs):
+        self.assertEqual(mathics_expr, mathics.from_sympy(sympy_expr, **kwargs))
+
+    def compare(self, mathics_expr, sympy_expr, **kwargs):
+        self.compare_to_sympy(mathics_expr, sympy_expr, **kwargs)
+        self.compare_to_mathics(mathics_expr, sympy_expr)
 
     def testSymbol(self):
         self.compare(
@@ -88,7 +95,8 @@ class SympyConvert(unittest.TestCase):
         sfxy = sympy.Function('_Mathics_User_Global`f')(sympy.Symbol('_Mathics_User_Global`x'), sympy.Symbol('_Mathics_User_Global`y'))
         sym_expr = sympy.Derivative(sfxy, sympy.Symbol('_Mathics_User_Global`x'))
 
-        self.compare(expr, sym_expr, **kwargs)
+        self.compare_to_sympy(expr, sym_expr, **kwargs)
+        # compare_to_mathics fails because Derivative becomes D (which then evaluates to Derivative)
 
     def testConvertedFunctions(self):
         kwargs = {'converted_functions': set(['Global`f'])}
