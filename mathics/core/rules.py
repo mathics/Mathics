@@ -7,6 +7,8 @@ from __future__ import absolute_import
 from mathics.core.expression import Expression, strip_context, KeyComparable
 from mathics.core.pattern import Pattern, StopGenerator
 
+from inspect import signature
+
 
 class StopGenerator_BaseRule(StopGenerator):
     pass
@@ -36,7 +38,7 @@ class BaseRule(KeyComparable):
                 if name.startswith('_option_'):
                     options[name[len('_option_'):]] = value
                     del vars[name]
-            new_expression = self.do_replace(vars, options, evaluation)
+            new_expression = self.do_replace(expression, vars, options, evaluation)
             if new_expression is None:
                 new_expression = expression
             if rest[0] or rest[1]:
@@ -78,7 +80,7 @@ class Rule(BaseRule):
         super(Rule, self).__init__(pattern, system=system)
         self.replace = replace
 
-    def do_replace(self, vars, options, evaluation):
+    def do_replace(self, expression, vars, options, evaluation):
         new = self.replace.replace_vars(vars)
         new.options = options
 
@@ -108,12 +110,15 @@ class BuiltinRule(BaseRule):
     def __init__(self, pattern, function, system=False):
         super(BuiltinRule, self).__init__(pattern, system=system)
         self.function = function
+        self.pass_expression = 'expression' in signature(function).parameters.keys()
 
-    def do_replace(self, vars, options, evaluation):
+    def do_replace(self, expression, vars, options, evaluation):
         # The Python function implementing this builtin expects
         # argument names corresponding to the symbol names without
         # context marks.
         vars_noctx = dict(((strip_context(s), vars[s]) for s in vars))
+        if self.pass_expression:
+            vars_noctx['expression'] = expression
         if options:
             return self.function(
                 evaluation=evaluation, options=options, **vars_noctx)
