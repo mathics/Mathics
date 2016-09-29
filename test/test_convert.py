@@ -79,6 +79,17 @@ class SympyConvert(unittest.TestCase):
                 sympy.Symbol('_Mathics_User_Global`x'),
                 sympy.Symbol('_Mathics_User_Global`y')))
 
+    def testDerivative2(self):
+        kwargs = {'converted_functions': set(['Global`f'])}
+
+        head = mathics.Expression(mathics.Expression('System`Derivative', mathics.Integer(1), mathics.Integer(0)), mathics.Symbol('Global`f'))
+        expr = mathics.Expression(head, mathics.Symbol('Global`x'), mathics.Symbol('Global`y'))
+
+        sfxy = sympy.Function('_Mathics_User_Global`f')(sympy.Symbol('_Mathics_User_Global`x'), sympy.Symbol('_Mathics_User_Global`y'))
+        sym_expr = sympy.Derivative(sfxy, sympy.Symbol('_Mathics_User_Global`x'))
+
+        self.compare(expr, sym_expr, **kwargs)
+
     def testConvertedFunctions(self):
         kwargs = {'converted_functions': set(['Global`f'])}
 
