@@ -33,7 +33,13 @@ class DSolve(Builtin):
 
     DSolve can also solve basic PDE
     >> DSolve[D[f[x, y], x] / f[x, y] + 3 D[f[x, y], y] / f[x, y] == 2, f, {x, y}]
-     = {{f -> (Function[{x, y}, F[3 x - y] E ^ (x / 5 + 3 y / 5)])}}
+     = {{f -> (Function[{x, y}, E ^ (x / 5 + 3 y / 5) C[1][3 x - y]])}}
+
+    >> DSolve[D[f[x, y], x] x + D[f[x, y], y] y == 2, f[x, y], {x, y}]
+     = {{f[x, y] -> 2 Log[x] + C[1][y / x]}}
+
+    >> DSolve[D[y[x, t], t] + 2 D[y[x, t], x] == 0, y[x, t], {x, t}]
+     = {{y[x, t] -> C[1][-2 t + x]}}
 
     #> Attributes[f] = {HoldAll};
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]
@@ -138,9 +144,13 @@ class DSolve(Builtin):
         sym_func = func.to_sympy(**conversion_args)
         sym_eq = eqn.to_sympy(**conversion_args)
 
+        # XXX when sympy adds support for higher-order PDE we will have to
+        # change this to a tuple of solvefuns
+        kwargs = {'solvefun': sympy.Function(str('C1'))}
+
         try:
             if len(syms) > 1:
-                sym_result = sympy.pdsolve(sym_eq, sym_func)
+                sym_result = sympy.pdsolve(sym_eq, sym_func, **kwargs)
             else:
                 sym_result = sympy.dsolve(sym_eq, sym_func)
         except ValueError:
