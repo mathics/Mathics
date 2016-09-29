@@ -126,8 +126,9 @@ class DSolve(Builtin):
             except UnicodeEncodeError:
                 return evaluation.message('DSolve', 'sym11669', func.get_head_name())
 
-        sym_func = sympy.Function(f_name)(*(leaf.to_sympy() for leaf in func.leaves))
-        sym_eq = eqn.to_sympy(converted_functions=set([f_name]))
+        conversion_args = {'converted_functions': set([f_name])}
+        sym_func = func.to_sympy(**conversion_args)
+        sym_eq = eqn.to_sympy(**conversion_args)
 
         try:
             sym_result = sympy.dsolve(sym_eq, sym_func)
