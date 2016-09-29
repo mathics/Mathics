@@ -421,6 +421,3 @@ class OutputSizeLimit(Predefined):
     rules = {
         '$OutputSizeLimit': str(value),
     }
-
-    def evaluate(self, evaluation):
-        return Integer(self.value)
