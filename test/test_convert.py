@@ -92,7 +92,7 @@ class SympyConvert(unittest.TestCase):
         head = mathics.Expression(mathics.Expression('System`Derivative', mathics.Integer(1), mathics.Integer(0)), mathics.Symbol('Global`f'))
         expr = mathics.Expression(head, mathics.Symbol('Global`x'), mathics.Symbol('Global`y'))
 
-        sfxy = sympy.Function('_Mathics_User_Global`f')(sympy.Symbol('_Mathics_User_Global`x'), sympy.Symbol('_Mathics_User_Global`y'))
+        sfxy = sympy.Function(str('_Mathics_User_Global`f'))(sympy.Symbol('_Mathics_User_Global`x'), sympy.Symbol('_Mathics_User_Global`y'))
         sym_expr = sympy.Derivative(sfxy, sympy.Symbol('_Mathics_User_Global`x'))
 
         self.compare_to_sympy(expr, sym_expr, **kwargs)
@@ -102,12 +102,12 @@ class SympyConvert(unittest.TestCase):
         kwargs = {'converted_functions': set(['Global`f'])}
 
         marg1 = mathics.Expression('Global`f', mathics.Symbol('Global`x'))
-        sarg1 = sympy.Function('_Mathics_User_Global`f')(sympy.Symbol('_Mathics_User_Global`x'))
+        sarg1 = sympy.Function(str('_Mathics_User_Global`f'))(sympy.Symbol('_Mathics_User_Global`x'))
         self.compare(marg1, sarg1, **kwargs)
 
         marg2 = mathics.Expression('Global`f',
             mathics.Symbol('Global`x'), mathics.Symbol('Global`y'))
-        sarg2 = sympy.Function('_Mathics_User_Global`f')(
+        sarg2 = sympy.Function(str('_Mathics_User_Global`f'))(
             sympy.Symbol('_Mathics_User_Global`x'), sympy.Symbol('_Mathics_User_Global`y'))
         self.compare(marg2, sarg2, **kwargs)
 
