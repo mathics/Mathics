@@ -7,16 +7,7 @@ from __future__ import absolute_import
 from mathics.core.expression import Expression, strip_context, KeyComparable
 from mathics.core.pattern import Pattern, StopGenerator
 
-try:
-    from inspect import signature
-
-    def _function_arguments(f):
-        return signature(f).parameters.keys()
-except ImportError:  # python2, pypy
-    from inspect import getargspec
-
-    def _function_arguments(f):
-        return getargspec(f).args
+from mathics.core.util import function_arguments
 
 
 class StopGenerator_BaseRule(StopGenerator):
@@ -119,7 +110,7 @@ class BuiltinRule(BaseRule):
     def __init__(self, pattern, function, system=False):
         super(BuiltinRule, self).__init__(pattern, system=system)
         self.function = function
-        self.pass_expression = 'expression' in _function_arguments(function)
+        self.pass_expression = 'expression' in function_arguments(function)
 
     def do_replace(self, expression, vars, options, evaluation):
         # The Python function implementing this builtin expects
