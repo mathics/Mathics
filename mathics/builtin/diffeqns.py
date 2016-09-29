@@ -31,6 +31,10 @@ class DSolve(Builtin):
     >> DSolve[y''[x] == y[x], y, x]
      = {{y -> (Function[{x}, C[1] E ^ (-x) + C[2] E ^ x])}}
 
+    DSolve can also solve basic PDE
+    >> DSolve[D[f[x, y], x] / f[x, y] + 3 D[f[x, y], y] / f[x, y] == 2, f, {x, y}]
+     = {{f -> (Function[{x, y}, F[3 x - y] E ^ (x / 5 + 3 y / 5)])}}
+
     #> Attributes[f] = {HoldAll};
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]
      : To avoid possible ambiguity, the arguments of the dependent variable in f[x + x] == Sin[f'[x]] should literally match the independent variables.
@@ -97,7 +101,11 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'deqn', eqn)
             return
 
-        if not x.is_symbol():
+        if x.is_symbol():
+            syms = [x]
+        elif x.has_form('List', 1, None):
+            syms = x.get_leaves()
+        else:
             return evaluation.message('DSolve', 'dsvar', x)
 
         # Fixes pathalogical DSolve[y''[x] == y[x], y, x]
@@ -106,14 +114,14 @@ class DSolve(Builtin):
             function_form = None
             func = y
         except AttributeError:
-            func = Expression(y, x)
-            function_form = Expression('List', x)
+            func = Expression(y, *syms)
+            function_form = Expression('List', *syms)
 
         if func.is_atom():
             evaluation.message('DSolve', 'dsfun', y)
             return
 
-        if func.leaves != [x]:
+        if func.leaves != syms:
             evaluation.message('DSolve', 'deqx')
             return
 
@@ -131,7 +139,10 @@ class DSolve(Builtin):
         sym_eq = eqn.to_sympy(**conversion_args)
 
         try:
-            sym_result = sympy.dsolve(sym_eq, sym_func)
+            if len(syms) > 1:
+                sym_result = sympy.pdsolve(sym_eq, sym_func)
+            else:
+                sym_result = sympy.dsolve(sym_eq, sym_func)
         except ValueError:
             evaluation.message('DSolve', 'symimp')
             return
