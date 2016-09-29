@@ -225,6 +225,8 @@ class _SpacyBuiltin(Builtin):
     def _load_spacy(self, evaluation, options):
         language_code = None
         language_name = self.get_option(options, 'Language', evaluation)
+        if language_name is None:
+            language_name = String('Undefined')
         if isinstance(language_name, String):
             language_code = _SpacyBuiltin._language_codes.get(language_name.get_string_value())
         if not language_code:
@@ -382,7 +384,7 @@ class DeleteStopwords(_SpacyBuiltin):
 
     def apply_list(self, l, evaluation, options):
         'DeleteStopwords[l_List, OptionsPattern[%(name)s]]'
-        is_stop = self._is_stop_lambda(options)
+        is_stop = self._is_stop_lambda(evaluation, options)
 
         def filter_words(words):
             for w in words:
@@ -397,7 +399,7 @@ class DeleteStopwords(_SpacyBuiltin):
         'DeleteStopwords[s_String, OptionsPattern[%(name)s]]'
         doc = self._nlp(s.get_string_value(), evaluation, options)
         if doc:
-            is_stop = self._is_stop_lambda(evaluation)
+            is_stop = self._is_stop_lambda(evaluation, options)
             if is_stop:
                 def tokens():
                     for token in doc:
@@ -424,9 +426,10 @@ class WordFrequency(_SpacyBuiltin):
      = 0.5
     """
 
-    options = {
+    options = _SpacyBuiltin.options
+    options.update({
         'IgnoreCase': 'False'
-    }
+    })
 
     def apply(self, text, word, evaluation, options):
         'WordFrequency[text_String, word_, OptionsPattern[%(name)s]]'
@@ -636,22 +639,22 @@ class TextStructure(_SpacyBuiltin):
 class WordSimilarity(_SpacyBuiltin):
     """
     <dl>
-    <dt>'Experimental`WordSimilarity[$text1$, $text2]'
+    <dt>'WordSimilarity[$text1$, $text2]'
       <dd>returns a real-valued measure of semantic similarity of two texts or words.
-    <dt>'Experimental`WordSimilarity[{$text1$, $i1}, {$text2, $j1$}]'
+    <dt>'WordSimilarity[{$text1$, $i1}, {$text2, $j1$}]'
       <dd>returns a measure of similarity of two words within two texts.
-    <dt>'Experimental`WordSimilarity[{$text1$, {$i1, $i2, ...}}, {$text2, {$j1$, $j2$, ...}}]'
+    <dt>'WordSimilarity[{$text1$, {$i1, $i2, ...}}, {$text2, {$j1$, $j2$, ...}}]'
       <dd>returns a measure of similarity of multiple words within two texts.
     </dl>
 
-    >> WordSimilarity["car", "train"]
-     = 0.500020857388
+    >> NumberForm[WordSimilarity["car", "train"], 3]
+     = 0.5
 
-    >> WordSimilarity["car", "hedgehog"]
-     = 0.367589115186
+    >> NumberForm[WordSimilarity["car", "hedgehog"], 3]
+     = 0.368
 
-    >> WordSimilarity[{"An ocean full of water.", {2, 2}}, { "A desert full of sand.", {2, 5}}]
-     = {0.252807221426, 0.176639220193}
+    >> NumberForm[WordSimilarity[{"An ocean full of water.", {2, 2}}, { "A desert full of sand.", {2, 5}}], 3]
+     = {0.253, 0.177}
     """
 
     messages = _merge_dictionaries(_SpacyBuiltin.messages, {
@@ -1178,7 +1181,7 @@ class DictionaryLookup(_WordListBuiltin):
     """
 
     def compile(self, pattern, evaluation):
-        re_patt = to_regex(pattern)
+        re_patt = to_regex(pattern, evaluation)
         if re_patt is None:
             evaluation.message('StringExpression', 'invld', pattern, Expression('StringExpression', pattern))
             return
