@@ -1213,7 +1213,7 @@ class StringRepeat(Builtin):
 
     #> StringRepeat["x", 0]
      : A positive integer is expected at position 2 in StringRepeat[x, 0].
-     = StringRepeat["x", 0]
+     = StringRepeat[x, 0]
     """
 
     messages = {
