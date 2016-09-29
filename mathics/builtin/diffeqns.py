@@ -87,7 +87,7 @@ class DSolve(Builtin):
     def apply(self, eqn, y, x, evaluation):
         'DSolve[eqn_, y_, x_]'
 
-        if eqn.has_form('List', eqn):
+        if eqn.has_form('List', None):
             # TODO: Try and solve BVPs using Solve or something analagous OR
             # add this functonality to sympy.
             evaluation.message('DSolve', 'symsys')
