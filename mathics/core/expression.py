@@ -2409,6 +2409,7 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
             delay_break = 0
 
         depth = state.depth
+
         sum_of_costs = 0
 
         for i, (item, push) in enumerate(_interleave(*from_sides)):
@@ -2465,11 +2466,11 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
 
             box = Expression('MakeBoxes', item, form).evaluate(self._evaluation)
 
-            # estimate the cost of the output related to box. always calling boxes_to_xml here is
+            # estimate the cost of the output related to box. always calling boxes_to_text here is
             # the simple solution; the problem is that it's redundant, as for {{{a}, b}, c}, we'd
-            # call boxes_to_xml first on {a}, then on {{a}, b}, then on {{{a}, b}, c}. a good fix
+            # call boxes_to_text first on {a}, then on {{a}, b}, then on {{{a}, b}, c}. a good fix
             # is not simple though, so let's keep it this way for now.
-            cost = len(box.boxes_to_xml(evaluation=self._evaluation))  # evaluate len as XML
+            cost = len(box.boxes_to_text(evaluation=self._evaluation))
 
             return box, cost
         finally:
