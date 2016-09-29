@@ -2379,7 +2379,7 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
         capacity = state.capacity
 
         if capacity is None or len(items) < 1:
-            return self._unlimited(items, form, segment)
+            return self._unlimited.make(items, form, segment)
 
         left_leaves = []
         right_leaves = []

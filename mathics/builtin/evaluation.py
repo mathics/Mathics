@@ -412,6 +412,8 @@ class OutputSizeLimit(Predefined):
     >> $OutputSizeLimit = 10;
     >> Table[i, {i, 1, 100}]
      = {1, <<98>>, 100}
+    #> {}
+     = {}
     >> $OutputSizeLimit = Infinity;
     """
 
