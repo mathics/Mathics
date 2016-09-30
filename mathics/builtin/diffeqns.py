@@ -66,6 +66,18 @@ class DSolve(Builtin):
     #> DSolve[f[x] == 0, f, {}]
      : {} cannot be used as a variable.
      = DSolve[f[x] == 0, f, {}]
+
+    ## Order of arguments shoudn't matter
+    #> DSolve[D[f[x, y], x] == D[f[x, y], y], f, {x, y}]
+     = {{f -> (Function[{x, y}, C[1][-x - y]])}}
+    ## FIXME SymPy can't handle this case:
+    #> DSolve[D[f[x, y], x] == D[f[x, y], y], f, {y, x}]
+     : SymPy can't solve this form of DE.
+     = DSolve[...]
+    #> DSolve[D[f[x, y], x] == D[f[x, y], y], f[x, y], {x, y}]
+     = {{f[x, y] -> C[1][-x - y]}}
+    #> DSolve[D[f[x, y], x] == D[f[x, y], y], f[x, y], {y, x}]
+     = {{f[x, y] -> C[1][-x - y]}}
     """
 
     # XXX sympy #11669 test
@@ -127,7 +139,7 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'dsfun', y)
             return
 
-        if func.leaves != syms:
+        if set(func.leaves) != set(syms):
             evaluation.message('DSolve', 'deqx')
             return
 
