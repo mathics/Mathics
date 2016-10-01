@@ -62,6 +62,15 @@ def system_symbols_dict(d):
     return {ensure_context(k): v for k, v in six.iteritems(d)}
 
 
+_layout_boxes = system_symbols(
+    'RowBox',
+    'SuperscriptBox',
+    'SubscriptBox',
+    'SubsuperscriptBox',
+    'FractionBox',
+    'SqrtBox')
+
+
 class BoxError(Exception):
     def __init__(self, box, form):
         super(BoxError, self).__init__(
@@ -1159,9 +1168,19 @@ class Expression(BaseExpression):
             raise BoxError(self, 'tex')
 
     def output_cost(self):
-        # self.head is quite often a layout directive that is not output (e.g.
-        # it might be a System`SubscriptBox), and so we ignore it for now.
-        return sum(leaf.output_cost() for leaf in self.leaves)
+        name = self.get_head_name()
+
+        if name in ('System`ImageBox', 'System`GraphicsBox', 'System`Graphics3DBox'):
+            return 0  # always display
+
+        cost = sum(leaf.output_cost() for leaf in self.leaves)
+
+        if name == 'System`List':
+            return 2 + cost + len(self.leaves)  # {a, b, c}
+        elif name in _layout_boxes:
+            return cost
+        else:
+            return cost + 2 + self.head.output_cost() + len(self.leaves)  # XYZ[a, b, c]
 
     def default_format(self, evaluation, form):
         return '%s[%s]' % (self.head.default_format(evaluation, form),
