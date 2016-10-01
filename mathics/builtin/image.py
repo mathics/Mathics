@@ -26,6 +26,8 @@ _image_requires = (
 _skimage_requires = _image_requires + (
     'skimage',
     'scipy',
+    'matplotlib',
+    'networkx',
 )
 
 try:
