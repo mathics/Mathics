@@ -16,7 +16,7 @@ from mathics.builtin.base import Builtin, AtomBuiltin
 from mathics.builtin.graphics import GraphicsBox
 from mathics.core.expression import Expression, Symbol, Atom, Real, Integer, system_symbols_dict, from_python
 
-from itertools import permutations
+from itertools import permutations, islice
 from collections import defaultdict
 from math import sqrt
 
@@ -120,6 +120,7 @@ class _NetworkXBuiltin(Builtin):
 
     messages = {
         'graph': 'Expected a graph at position 1 in ``.',
+        'inv': 'Vertex at position `1` in `2` must belong to the graph at position 1.',
     }
 
     def _build_graph(self, graph, evaluation, options, expr):
@@ -228,6 +229,9 @@ class Graph(Atom):
         self.layout = layout
         self.options = options
         self.highlights = highlights
+
+    def empty(self):
+        return len(self.G) == 0
 
     def add_vertices(self, new_vertices, new_vertex_properties):
         vertices = self.vertices.clone()
@@ -468,13 +472,11 @@ class Graph(Atom):
         return new_graph, 'WEIGHT'
 
 
-def _is_path(vertices, G):
-    return all(d <= 2 for d in G.degree(vertices).values())
-
-
 def _is_connected(G):
+    if len(G) == 0:  # empty graph?
+        return True
     if isinstance(G, (nx.MultiDiGraph, nx.DiGraph)):
-        return len(list(nx.strongly_connected_components(G))) == 1
+        return sum(1 for _ in (islice(nx.strongly_connected_components(G), 2))) == 1
     else:
         return nx.is_connected(G)
 
@@ -527,18 +529,22 @@ def _graph_from_list(rules, options):
         pass
 
     def parse_edge(r, attr_dict):
-        name = r.get_head_name()
+        if r.is_atom():
+            raise ParseError
 
-        if name == 'System`Property' and len(r.leaves) == 2:
-            expr, prop = r.leaves
+        name = r.get_head_name()
+        leaves = r.leaves
+
+        if name == 'System`Property' and len(leaves) == 2:
+            expr, prop = leaves
             attr_dict = _parse_property(prop, attr_dict)
             parse_edge(expr, attr_dict)
             return
 
-        if len(r.leaves) != 2:
+        if len(leaves) != 2:
             raise ParseError
 
-        u, v = r.leaves
+        u, v = leaves
 
         u = add_vertex(u)
         v = add_vertex(v)
@@ -588,7 +594,7 @@ def _graph_from_list(rules, options):
             attr_dict = attr_dict or empty_dict
             G.add_edge(u, v, **attr_dict)
 
-    if _is_path(vertices, G):
+    if all(d <= 2 for d in G.degree(vertices).values()):
         layout = _spectral_layout
     else:
         layout = _generic_layout
@@ -607,6 +613,7 @@ class PropertyValue(Builtin):
     '''
     >> g = Graph[{a <-> b, Property[b <-> c, SomeKey -> 123]}];
     >> PropertyValue[{g, b <-> c}, SomeKey]
+     = 123
     '''
 
     def apply(self, graph, item, name, evaluation):
@@ -618,10 +625,22 @@ class PropertyValue(Builtin):
 
 
 class DirectedEdge(Builtin):
+    '''
+    <dl>
+    <dt>'DirectedEdge[$u$, $v$]'
+      <dd>a directed edge from $u$ to $v$.
+    </dl>
+    '''
     pass
 
 
 class UndirectedEdge(Builtin):
+    '''
+    <dl>
+    <dt>'UndirectedEdge[$u$, $v$]'
+      <dd>an undirected edge between $u$ and $v$.
+    </dl>
+    '''
     pass
 
 
@@ -638,6 +657,15 @@ class GraphAtom(AtomBuiltin):
 
     >> Graph[{1->2, 2->3, 3->1}, VertexStyle -> {1 -> Green, 3 -> Blue}]
      = -Graph-
+
+    >> Graph[x]
+     = Graph[x]
+
+    >> Graph[{1}]
+     = Graph[{1}]
+
+    >> Graph[{{1 -> 2}}]
+     = Graph[{{1 -> 2}}]
     '''
 
     requires = (
@@ -678,13 +706,29 @@ class PathGraphQ(_NetworkXBuiltin):
 
     >> PathGraphQ[{1 -> 2, 2 -> 3, 2 -> 4}]
      = False
+
+    #> PathGraphQ[Graph[{}]]
+     = False
+    #> PathGraphQ[Graph[{1 -> 2, 3 -> 4}]]
+     = False
+    #> PathGraphQ[Graph[{1 -> 2, 2 -> 1}]]
+     = True
+    #> PathGraphQ[Graph[{}]]
+     = False
     '''
 
     def apply(self, graph, evaluation, options):
         'PathGraphQ[graph_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, lambda: Expression('PathGraphQ', graph))
         if graph:
-            return Symbol('True') if _is_path(graph.vertices.expressions, graph.G) else Symbol('False')
+            if graph.empty():
+                is_path = False
+            else:
+                G = graph.G
+                is_path = _is_connected(G)
+                if is_path:
+                    is_path = all(d <= 2 for d in G.degree(graph.vertices.expressions).values())
+            return Symbol('True' if is_path else 'False')
 
 
 class ConnectedGraphQ(_NetworkXBuiltin):
@@ -700,13 +744,16 @@ class ConnectedGraphQ(_NetworkXBuiltin):
 
     >> g = Graph[{1 <-> 2, 2 <-> 3, 4 <-> 5}]; ConnectedGraphQ[g]
      = False
+
+    #> ConnectedGraphQ[Graph[{}]]
+     = True
     '''
 
     def apply(self, graph, evaluation, options):
         'ConnectedGraphQ[graph_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, lambda: Expression('ConnectedGraphQ', graph))
         if graph:
-            return Symbol('True') if _is_connected(graph.G) else Symbol('False')
+            return Symbol('True' if _is_connected(graph.G) else 'False')
 
 
 class ConnectedComponents(_NetworkXBuiltin):
@@ -754,18 +801,34 @@ class WeaklyConnectedComponents(_NetworkXBuiltin):
 
 class FindVertexCut(_NetworkXBuiltin):
     '''
+    <dl>
+    <dt>'FindVertexCut[$g$]'
+        <dd>finds a set of vertices of minimum cardinality that, if removed, renders $g$ disconnected.
+    <dt>'FindVertexCut[$g$, $s$, $t$]'
+        <dd>finds a vertex cut that disconnects all paths from $s$ to $t$.
+    </dl>
+
     >> g = Graph[{1 -> 2, 2 -> 3}]; FindVertexCut[g]
      = {}
 
     >> g = Graph[{1 <-> 2, 2 <-> 3}]; FindVertexCut[g]
      = {2}
+
+    >> g = Graph[{1 <-> 2, 2 <-> 3, 1 <-> x, x <-> 3}, 1, 3]; FindVertexCut[g]
+     = {}
+
+    #> FindVertexCut[Graph[{}]]
+     = {}
+    #> FindVertexCut[Graph[{}], 1, 2]
+     : Vertex at position 2 in FindVertexCut[Graph[{}], 1, 2] must belong to the graph at position 1.
+     = FindVertexCut[Graph[{}], 1, 2]
     '''
 
     def apply(self, graph, evaluation, options):
         'FindVertexCut[graph_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, lambda: Expression('FindVertexCut', graph))
         if graph:
-            if not _is_connected(graph.G):
+            if graph.empty() or not _is_connected(graph.G):
                 return Expression('List')
             else:
                 return Expression('List', *nx.minimum_node_cut(graph.G))
@@ -773,11 +836,19 @@ class FindVertexCut(_NetworkXBuiltin):
     def apply_st(self, graph, s, t, evaluation, options):
         'FindVertexCut[graph_, s_, t_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, lambda: Expression('FindVertexCut', graph, s, t))
-        if graph:
-            if not _is_connected(graph.G):
-                return Expression('List')
-            else:
-                return Expression('List', *nx.minimum_node_cut(graph.G, s, t))
+        if not graph:
+            return
+
+        G = graph.G
+        if not G.has_node(s):
+            evaluation.message(self.get_name(), 'inv', 2, expression)
+        elif not G.has_node(t):
+            evaluation.message(self.get_name(), 'inv', 3, expression)
+
+        if graph.empty() or not _is_connected(graph.G):
+            return Expression('List')
+        else:
+            return Expression('List', *nx.minimum_node_cut(G, s, t))
 
 
 class HighlightGraph(_NetworkXBuiltin):
@@ -898,18 +969,24 @@ class EdgeConnectivity(_NetworkXBuiltin):
 
     >> EdgeConnectivity[{1 <-> 2, 2 <-> 3, 1 <-> 3}]
      = 2
+
+    >> EdgeConnectivity[{1 <-> 2, 3 <-> 4}]
+     = 0
+
+    #> EdgeConnectivity[Graph[{}]]
+     = EdgeConnectivity[-Graph-]
     '''
 
     def apply(self, graph, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, lambda: Expression('EdgeConnectivity', graph))
-        if graph:
+        if graph and not graph.empty():
             return Integer(nx.edge_connectivity(graph.G))
 
     def apply_st(self, graph, s, t, evaluation, options):
         '%(name)s[graph_, s_, t_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, lambda: Expression('EdgeConnectivity', graph, s, t))
-        if graph:
+        if graph and not graph.empty():
             return Integer(nx.edge_connectivity(graph.G, s, t))
 
 
@@ -926,12 +1003,18 @@ class VertexConnectivity(_NetworkXBuiltin):
 
     >> VertexConnectivity[{1 <-> 2, 2 <-> 3, 1 <-> 3}]
      = 2
+
+    >> VertexConnectivity[{1 <-> 2, 3 <-> 4}]
+     = 0
+
+    #> VertexConnectivity[Graph[{}]]
+     = EdgeConnectivity[-Graph-]
     '''
 
     def apply(self, graph, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, lambda: Expression('VertexConnectivity', graph))
-        if graph:
+        if graph and not graph.empty():
             if not _is_connected(graph.G):
                 return Integer(0)
             else:
@@ -940,7 +1023,7 @@ class VertexConnectivity(_NetworkXBuiltin):
     def apply_st(self, graph, s, t, evaluation, options):
         '%(name)s[graph_, s_, t_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, lambda: Expression('VertexConnectivity', graph, s, t))
-        if graph:
+        if graph and not graph.empty():
             if not _is_connected(graph.G):
                 return Integer(0)
             else:
@@ -1193,15 +1276,30 @@ class FindShortestPath(_NetworkXBuiltin):
      = {1, 2, 3}
     >> a = 10; FindShortestPath[g, 1, 3]
      = {1, 3}
+
+    #> FindShortestPath[{}, 1, 2]
+     : Vertex at position 2 in FindShortestPath[Graph[{}], 1, 2] must belong to the graph at position 1.
+     = FindShortestPath[{}, 1, 2]
+
+    #> FindShortestPath[{1 -> 2}, 1, 3]
+     : Vertex at position 3 in FindShortestPath[{1 -> 2}, 1, 3] must belong to the graph at position 1.
+     = FindShortestPath[{1 -> 2}, 1, 3]
     '''
 
     def apply_s_t(self, graph, s, t, evaluation, options):
         '%(name)s[graph_, s_, t_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, lambda: Expression('FindShortestPath', graph, s, t))
-        if graph:
+        if not graph:
+            return
+        G = graph.G
+        if not G.has_node(s):
+            evaluation.message(self.get_name(), 'inv', 2, expression)
+        elif not G.has_node(t):
+            evaluation.message(self.get_name(), 'inv', 3, expression)
+        else:
             try:
                 weight = graph.update_weights(evaluation)
-                return Expression('List', *list(nx.shortest_path(graph.G, source=s, target=t, weight=weight)))
+                return Expression('List', *list(nx.shortest_path(G, source=s, target=t, weight=weight)))
             except nx.exception.NetworkXNoPath:
                 return Expression('List')
 
@@ -1222,6 +1320,13 @@ class GraphDistance(_NetworkXBuiltin):
 
     >> GraphDistance[{1 <-> 2, 3 <-> 4}, 3]
      = {Infinity, Infinity, 0, 1}
+
+    #> GraphDistance[{}, 1, 1]
+     : Vertex at position 2 in GraphDistance[{}, 1, 1] must belong to the graph at position 1.
+     = GraphDistance[{}, 1, 1]
+    #> GraphDistance[{1 -> 2}, 3, 4]
+     : Vertex at position 2 in GraphDistance[{1 -> 2}, 3, 4] must belong to the graph at position 1.
+     = GraphDistance[{1 -> 2}, 3, 4]
     '''
 
     def apply_s(self, graph, s, evaluation, options):
@@ -1236,7 +1341,14 @@ class GraphDistance(_NetworkXBuiltin):
     def apply_s_t(self, graph, s, t, evaluation, options):
         '%(name)s[graph_, s_, t_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, lambda: Expression('GraphDistance', graph))
-        if graph:
+        if not graph:
+            return
+        G = graph.G
+        if not G.has_node(s):
+            evaluation.message(self.get_name(), 'inv', 2, expression)
+        elif not G.has_node(t):
+            evaluation.message(self.get_name(), 'inv', 3, expression)
+        else:
             try:
                 weight = graph.update_weights(evaluation)
                 return from_python(nx.shortest_path_length(graph.G, source=s, target=t, weight=weight))
@@ -1248,11 +1360,23 @@ class CompleteGraph(_NetworkXBuiltin):
     '''
     >> CompleteGraph[8]
      = -Graph-
+
+    #> CompleteGraph[0]
+     : Expected a positive integer at position 1 in CompleteGraph[0].
+     = CompleteGraph[8]
     '''
+
+    messages = {
+        'ilsmp': 'Expected a positive integer at position 1 in ``.',
+    }
 
     def apply(self, n, evaluation, options):
         '%(name)s[n_Integer, OptionsPattern[%(name)s]]'
         py_n = n.get_int_value()
+
+        if py_n < 1:
+            evaluation.message(self.get_name(), 'ilsmp', expression)
+            return
 
         vertices = [Integer(i) for i in range(py_n)]
         edges = [Expression('UndirectedEdge', Integer(e1), Integer(e2))

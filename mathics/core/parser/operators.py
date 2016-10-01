@@ -60,7 +60,6 @@ right_binary_ops = {
     'SuchThat': 180,
     'Rule': 120,
     'RuleDelayed': 120,
-    'UndirectedEdge': 120,
     'AddTo': 100,
     'SubtractFrom': 100,
     'TimesBy': 100,
@@ -131,6 +130,7 @@ flat_binary_ops = {
 }
 
 nonassoc_binary_ops = {
+    'UndirectedEdge': 120,
     'PatternTest': 680,
 }
 
