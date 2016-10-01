@@ -420,7 +420,7 @@ class OutputSizeLimit(Predefined):
     #> Table[Graphics[Table[Circle[],{10}]], {5}]
      = {-Graphics-, -Graphics-, -Graphics-, -Graphics-, -Graphics-}
 
-    #> ImageAvailable = SameQ[Head[Image[{{0, 1}, {1, 0}}] // ToBoxes], ImageBox];
+    #> Quiet[ImageAvailable = SameQ[Head[Image[{{0, 1}, {1, 0}}] // ToBoxes], ImageBox]];
     #> If[ImageAvailable, Table[Image[{{1, 0}, {0, 1}}], {5}], {"-Image-", "-Image-", "-Image-", "-Image-", "-Image-"}]
      = {-Image-, -Image-, -Image-, -Image-, -Image-}
 
