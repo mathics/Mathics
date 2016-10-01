@@ -1171,16 +1171,17 @@ class Expression(BaseExpression):
         name = self.get_head_name()
 
         if name in ('System`ImageBox', 'System`GraphicsBox', 'System`Graphics3DBox'):
-            return 0  # always display
+            return 1  # count as expensive as one character
 
         cost_of_leaves = sum(leaf.output_cost() for leaf in self.leaves)
+        separator_cost = 1  # i.e. ","
 
         if name == 'System`List':
-            return 2 + cost_of_leaves + len(self.leaves)  # {a, b, c}
+            return 2 + cost_of_leaves + separator_cost * len(self.leaves)  # {a, b, c}
         elif name in _layout_boxes:
             return cost_of_leaves
         else:
-            return cost_of_leaves + 2 + self.head.output_cost() + len(self.leaves)  # XYZ[a, b, c]
+            return cost_of_leaves + 2 + self.head.output_cost() + separator_cost * len(self.leaves)  # XYZ[a, b, c]
 
     def default_format(self, evaluation, form):
         return '%s[%s]' % (self.head.default_format(evaluation, form),
