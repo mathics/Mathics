@@ -23,6 +23,11 @@ _image_requires = (
     'PIL',
 )
 
+_skimage_requires = _image_requires + (
+    'skimage',
+    'scipy',
+)
+
 try:
     import warnings
 
@@ -47,6 +52,11 @@ class _ImageBuiltin(Builtin):
 
 class _ImageTest(Test):
     requires = _image_requires
+
+
+class _SkimageBuiltin(_ImageBuiltin):
+    requires = _skimage_requires
+
 
 # helpers
 
@@ -975,7 +985,7 @@ class MedianFilter(PillowImageFilter):
         return self.compute(image, PIL.ImageFilter.MedianFilter(1 + 2 * r.get_int_value()))
 
 
-class EdgeDetect(_ImageBuiltin):
+class EdgeDetect(_SkimageBuiltin):
     '''
     <dl>
     <dt>'EdgeDetect[$image$]'
@@ -990,10 +1000,6 @@ class EdgeDetect(_ImageBuiltin):
     >> EdgeDetect[lena, 4, 0.5]
      = -Image-
     '''
-
-    requires = _image_requires + (
-        'skimage',
-    )
 
     rules = {
         'EdgeDetect[i_Image]': 'EdgeDetect[i, 2, 0.2]',
@@ -1118,10 +1124,7 @@ class ImageConvolve(_ImageBuiltin):
         return Image(numpy.dstack(channels), image.color_space)
 
 
-class _MorphologyFilter(_ImageBuiltin):
-    requires = _image_requires + (
-        'skimage',
-    )
+class _MorphologyFilter(_SkimageBuiltin):
 
     messages = {
         'grayscale': 'Your image has been converted to grayscale as color images are not supported yet.'
@@ -1195,10 +1198,7 @@ class Closing(_MorphologyFilter):
     '''
 
 
-class MorphologicalComponents(_ImageBuiltin):
-    requires = _image_requires + (
-        'skimage',
-    )
+class MorphologicalComponents(_SkimageBuiltin):
 
     rules = {
         'MorphologicalComponents[i_Image]': 'MorphologicalComponents[i, 0]'
@@ -1316,7 +1316,7 @@ class ColorQuantize(_ImageBuiltin):
         return Image(numpy.array(im), 'RGB')
 
 
-class Threshold(_ImageBuiltin):
+class Threshold(_SkimageBuiltin):
     '''
     <dl>
     <dt>'Threshold[$image$]'
@@ -1352,12 +1352,8 @@ class Threshold(_ImageBuiltin):
         method = self.get_option(options, 'Method', evaluation)
         method_name = method.get_string_value() if isinstance(method, String) else method.to_python()
         if method_name == 'Cluster':
-            try:
-                import skimage.filters
-                threshold = skimage.filters.threshold_otsu(pixels)
-            except ImportError:
-                evaluation.message('Threshold', 'skimage')
-                return
+           import skimage.filters
+           threshold = skimage.filters.threshold_otsu(pixels)
         elif method_name == 'Median':
             threshold = numpy.median(pixels)
         elif method_name == 'Mean':
@@ -1368,7 +1364,7 @@ class Threshold(_ImageBuiltin):
         return MachineReal(float(threshold))
 
 
-class Binarize(_ImageBuiltin):
+class Binarize(_SkimageBuiltin):
     '''
     <dl>
     <dt>'Binarize[$image$]'
