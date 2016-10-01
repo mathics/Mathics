@@ -717,9 +717,9 @@ class PathGraphQ(_NetworkXBuiltin):
      = False
     '''
 
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         'PathGraphQ[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('PathGraphQ', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             if graph.empty():
                 is_path = False
@@ -749,9 +749,9 @@ class ConnectedGraphQ(_NetworkXBuiltin):
      = True
     '''
 
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         'ConnectedGraphQ[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('ConnectedGraphQ', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             return Symbol('True' if _is_connected(graph.G) else 'False')
 
@@ -768,9 +768,9 @@ class ConnectedComponents(_NetworkXBuiltin):
      = {{4, 5}, {1, 2, 3}}
     '''
 
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         'ConnectedComponents[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('ConnectedComponents', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             vertices_sorted = graph.vertices.get_sorted()
             components = [Expression('List', *vertices_sorted(c)) for c in _components(graph.G)]
@@ -789,14 +789,15 @@ class WeaklyConnectedComponents(_NetworkXBuiltin):
      = {{1, 2, 3, 4, 5}, {6, 7, 8}}
     '''
 
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         'WeaklyConnectedComponents[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('WeaklyConnectedComponents', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             vertices_sorted = graph.vertices_sorted()
             return Expression(
                 'List',
-                *[Expression('List', *vertices_sorted(c)) for c in nx.connected_components(graph.G.to_undirected())])
+                *[Expression('List', *vertices_sorted(c)) for c in
+                  nx.connected_components(graph.G.to_undirected())])
 
 
 class FindVertexCut(_NetworkXBuiltin):
@@ -824,18 +825,18 @@ class FindVertexCut(_NetworkXBuiltin):
      = FindVertexCut[Graph[{}], 1, 2]
     '''
 
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         'FindVertexCut[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('FindVertexCut', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             if graph.empty() or not _is_connected(graph.G):
                 return Expression('List')
             else:
                 return Expression('List', *nx.minimum_node_cut(graph.G))
 
-    def apply_st(self, graph, s, t, evaluation, options):
+    def apply_st(self, graph, s, t, expression, evaluation, options):
         'FindVertexCut[graph_, s_, t_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('FindVertexCut', graph, s, t))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if not graph:
             return
 
@@ -856,7 +857,7 @@ class HighlightGraph(_NetworkXBuiltin):
 
     '''
 
-    def apply(self, graph, what, evaluation, options):
+    def apply(self, graph, what, expression, evaluation, options):
         'HighlightGraph[graph_, what_List, OptionsPattern[%(name)s]]'
         default_highlight = [Expression('RGBColor', 1, 0, 0)]
 
@@ -876,38 +877,39 @@ class HighlightGraph(_NetworkXBuiltin):
 
         rules.append((Expression('Blank'), Expression('Missing')))
 
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('HighlightGraph', graph, what))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             rule_exprs = Expression('List', *[Expression('Rule', *r) for r in rules])
             return graph.with_highlight(rule_exprs)
 
 
 class _PatternList(_NetworkXBuiltin):
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression(self.get_name(), graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             return Expression('List', *self._items(graph))
 
-    def apply_patt(self, graph, patt, evaluation, options):
+    def apply_patt(self, graph, patt, expression, evaluation, options):
         '%(name)s[graph_, patt_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression(self.get_name(), graph, patt))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             return Expression('Cases', Expression('List', *self._items(graph)), patt)
 
 
 class _PatternCount(_NetworkXBuiltin):
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression(self.get_name(), graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             return Integer(len(self._items(graph)))
 
-    def apply_patt(self, graph, patt, evaluation, options):
+    def apply_patt(self, graph, patt, expression, evaluation, options):
         '%(name)s[graph_, patt_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression(self.get_name(), graph, patt))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
-            return Expression('Length', Expression('Cases', Expression('List', *self._items(graph)), patt))
+            return Expression('Length', Expression(
+                'Cases', Expression('List', *self._items(graph)), patt))
 
 
 class VertexCount(_PatternCount):
@@ -977,15 +979,15 @@ class EdgeConnectivity(_NetworkXBuiltin):
      = EdgeConnectivity[-Graph-]
     '''
 
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('EdgeConnectivity', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph and not graph.empty():
             return Integer(nx.edge_connectivity(graph.G))
 
-    def apply_st(self, graph, s, t, evaluation, options):
+    def apply_st(self, graph, s, t, expression, evaluation, options):
         '%(name)s[graph_, s_, t_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('EdgeConnectivity', graph, s, t))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph and not graph.empty():
             return Integer(nx.edge_connectivity(graph.G, s, t))
 
@@ -1011,18 +1013,18 @@ class VertexConnectivity(_NetworkXBuiltin):
      = EdgeConnectivity[-Graph-]
     '''
 
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('VertexConnectivity', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph and not graph.empty():
             if not _is_connected(graph.G):
                 return Integer(0)
             else:
                 return Integer(nx.node_connectivity(graph.G))
 
-    def apply_st(self, graph, s, t, evaluation, options):
+    def apply_st(self, graph, s, t, expression, evaluation, options):
         '%(name)s[graph_, s_, t_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('VertexConnectivity', graph, s, t))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph and not graph.empty():
             if not _is_connected(graph.G):
                 return Integer(0)
@@ -1043,9 +1045,9 @@ class BetweennessCentrality(_Centrality):
      = {3., 3., 6., 6., 6.}
     '''
 
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('BetweennessCentrality', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             weight = graph.update_weights(evaluation)
             centrality = nx.betweenness_centrality(graph.G, normalized=False, weight=weight)
@@ -1061,9 +1063,9 @@ class ClosenessCentrality(_Centrality):
      = {0.4, 0.4, 0.4, 0.5, 0.666667}
     '''
 
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('ClosenessCentrality', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             weight = graph.update_weights(evaluation)
             centrality = nx.closeness_centrality(graph.G, normalized=False, distance=weight)
@@ -1086,21 +1088,21 @@ class DegreeCentrality(_Centrality):
         s = len(graph.G) - 1  # undo networkx's normalization
         return Expression('List', *[Integer(s * centrality.get(v, 0)) for v in graph.vertices.expressions])
 
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('DegreeCentrality', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             return self._from_dict(graph, nx.degree_centrality(graph.G))
 
-    def apply_in(self, graph, evaluation, options):
+    def apply_in(self, graph, expression, evaluation, options):
         '%(name)s[graph_, "In", OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('DegreeCentrality', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             return self._from_dict(graph, nx.in_degree_centrality(graph.G))
 
-    def apply_out(self, graph, evaluation, options):
+    def apply_out(self, graph, expression, evaluation, options):
         '%(name)s[graph_, "Out", OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('DegreeCentrality', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             return self._from_dict(graph, nx.out_degree_centrality(graph.G))
 
@@ -1158,19 +1160,19 @@ class EigenvectorCentrality(_ComponentwiseCentrality):
     def _centrality(self, g, weight):
         return nx.eigenvector_centrality(g, max_iter=10000, tol=1.0e-7, weight=weight)
 
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('EigenvectorCentrality', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             return self._compute(graph, evaluation)
 
 
-    def apply_in_out(self, graph, dir, evaluation, options):
+    def apply_in_out(self, graph, dir, expression, evaluation, options):
         '%(name)s[graph_, dir_String, OptionsPattern[%(name)s]]'
         py_dir = dir.get_string_value()
         if py_dir not in ('In', 'Out'):
             return
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('EigenvectorCentrality', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             return self._compute(graph, evaluation, py_dir == 'Out')
 
@@ -1191,9 +1193,9 @@ class KatzCentrality(_ComponentwiseCentrality):
     def _centrality(self, g, weight, alpha, beta):
         return nx.katz_centrality(g, alpha=alpha, beta=beta, normalized=False, weight=weight)
 
-    def apply(self, graph, alpha, beta, evaluation, options):
+    def apply(self, graph, alpha, beta, expression, evaluation, options):
         '%(name)s[graph_, alpha_, beta_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('KatzCentrality'))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             py_alpha = alpha.to_mpmath()
             py_beta = beta.to_mpmath()
@@ -1208,9 +1210,9 @@ class PageRankCentrality(_Centrality):
      = {0.184502, 0.207565, 0.170664, 0.266605, 0.170664}
     '''
 
-    def apply_alpha_beta(self, graph, alpha, evaluation, options):
+    def apply_alpha_beta(self, graph, alpha, expression, evaluation, options):
         '%(name)s[graph_, alpha_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('PageRankCentrality'))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             py_alpha = alpha.to_mpmath()
             if py_alpha is None:
@@ -1226,9 +1228,9 @@ class HITSCentrality(_Centrality):
      = {{0.292893, 0., 0., 0.707107, 0.}, {0., 1., 0.707107, 0., 0.707107}}
     '''
 
-    def apply(self, graph, evaluation, options):
+    def apply(self, graph, expression, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('HITSCentrality', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             G, _ = graph.coalesced_graph(evaluation)  # FIXME warn if weight > 1
 
@@ -1286,9 +1288,9 @@ class FindShortestPath(_NetworkXBuiltin):
      = FindShortestPath[{1 -> 2}, 1, 3]
     '''
 
-    def apply_s_t(self, graph, s, t, evaluation, options):
+    def apply_s_t(self, graph, s, t, expression, evaluation, options):
         '%(name)s[graph_, s_, t_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('FindShortestPath', graph, s, t))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if not graph:
             return
         G = graph.G
@@ -1329,18 +1331,18 @@ class GraphDistance(_NetworkXBuiltin):
      = GraphDistance[{1 -> 2}, 3, 4]
     '''
 
-    def apply_s(self, graph, s, evaluation, options):
+    def apply_s(self, graph, s, expression, evaluation, options):
         '%(name)s[graph_, s_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('GraphDistance', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             weight = graph.update_weights(evaluation)
             d = nx.shortest_path_length(graph.G, source=s, weight=weight)
             inf = Expression('DirectedInfinity', 1)
             return Expression('List', *[d.get(v, inf) for v in graph.vertices.expressions])
 
-    def apply_s_t(self, graph, s, t, evaluation, options):
+    def apply_s_t(self, graph, s, t, expression, evaluation, options):
         '%(name)s[graph_, s_, t_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, lambda: Expression('GraphDistance', graph))
+        graph = self._build_graph(graph, evaluation, options, expression)
         if not graph:
             return
         G = graph.G
