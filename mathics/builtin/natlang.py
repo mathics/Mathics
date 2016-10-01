@@ -55,10 +55,6 @@ import heapq
 import math
 
 
-def _status_message(text, evaluation):
-    evaluation.print_out(text)
-
-
 def _parse_nltk_lookup_error(e):
     m = re.search("Resource '([^']+)' not found\.", str(e))
     if m:
@@ -237,7 +233,6 @@ class _SpacyBuiltin(Builtin):
         if instance:
             return instance
 
-        _status_message('Loading %s language data. This might take a moment.' % language_name, evaluation)
         try:
             if 'SPACY_DATA' in os.environ:
                 instance = spacy.load(language_code, via=os.environ['SPACY_DATA'])
@@ -789,8 +784,6 @@ class _WordNetBuiltin(Builtin):
         except LookupError:
             evaluation.message(self.get_name(), 'package', 'omw')
             return None
-
-        _status_message('Loading %s word data. Please wait.' % language_name, evaluation)
 
         wordnet = nltk.corpus.reader.wordnet.WordNetCorpusReader(wordnet_resource, omw)
 
