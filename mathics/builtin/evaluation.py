@@ -414,8 +414,8 @@ class OutputSizeLimit(Predefined):
 
     #> Take[Range[1000], 1001]
      : Cannot take positions 1 through 1001 in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, <<976>>, 989, 990, 991, 992, 993, 994, 995, 996, 997, 998, 999, 1000}.
-     : Parts of this output were omitted (see <<988>>). To generate the whole output, please set $OutputSizeLimit = Infinity.
-     = Take[{1, 2, 3, 4, 5, 6, <<988>>, 995, 996, 997, 998, 999, 1000}, 1001]
+     : Parts of this output were omitted (see <<976>>). To generate the whole output, please set $OutputSizeLimit = Infinity.
+     = Take[{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, <<976>>, 989, 990, 991, 992, 993, 994, 995, 996, 997, 998, 999, 1000}, 1001]
 
     #> {}
      = {}
