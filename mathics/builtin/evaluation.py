@@ -407,8 +407,13 @@ class OutputSizeLimit(Predefined):
     </dl>
 
     >> $OutputSizeLimit = 50;
+
     >> Table[i, {i, 1, 100}]
      = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, <<71>>, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100}
+
+    #> {}
+     = {}
+
 
     #> $OutputSizeLimit = 100;
 
