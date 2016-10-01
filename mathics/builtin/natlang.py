@@ -55,10 +55,6 @@ import heapq
 import math
 
 
-def _status_message(text, evaluation):
-    evaluation.print_out(text)
-
-
 def _parse_nltk_lookup_error(e):
     m = re.search("Resource '([^']+)' not found\.", str(e))
     if m:
@@ -237,7 +233,6 @@ class _SpacyBuiltin(Builtin):
         if instance:
             return instance
 
-        _status_message('Loading %s language data. This might take a moment.' % language_name, evaluation)
         try:
             if 'SPACY_DATA' in os.environ:
                 instance = spacy.load(language_code, via=os.environ['SPACY_DATA'])
@@ -420,7 +415,7 @@ class WordFrequency(_SpacyBuiltin):
     $word$ may also specify multiple words using $a$ | $b$ | ...
 
     >> WordFrequency[Import["ExampleData/EinsteinSzilLetter.txt"], "a" | "the"]
-     = 0.0667701863354037267
+     = 0.0667702
 
     >> WordFrequency["Apple Tree", "apple", IgnoreCase -> True]
      = 0.5
@@ -588,7 +583,7 @@ class TextStructure(_SpacyBuiltin):
     </dl>
 
     >> TextStructure["The cat sat on the mat.", "ConstituentString"]
-     = (Sentence, ((Verb Phrase, (Noun Phrase, (Determiner, The), (Noun, cat)), (Verb, sat), (Prepositional Phrase, (Preposition, on), (Noun Phrase, (Determiner, the), (Noun, mat))), (Punctuation, .))))
+     = {(Sentence, ((Verb Phrase, (Noun Phrase, (Determiner, The), (Noun, cat)), (Verb, sat), (Prepositional Phrase, (Preposition, on), (Noun Phrase, (Determiner, the), (Noun, mat))), (Punctuation, .))))}
     """
 
     _root_pos = set(i for i, names in _pos_tags.items() if names[1])
@@ -789,8 +784,6 @@ class _WordNetBuiltin(Builtin):
         except LookupError:
             evaluation.message(self.get_name(), 'package', 'omw')
             return None
-
-        _status_message('Loading %s word data. Please wait.' % language_name, evaluation)
 
         wordnet = nltk.corpus.reader.wordnet.WordNetCorpusReader(wordnet_resource, omw)
 
@@ -1177,7 +1170,7 @@ class DictionaryLookup(_WordListBuiltin):
     </dl>
 
     >> DictionaryLookup["bake" ~~ ___, 3]
-     = {baked, bakehouse, bake}
+     = {bake, bakeapple, baked}
     """
 
     def compile(self, pattern, evaluation):
@@ -1192,7 +1185,7 @@ class DictionaryLookup(_WordListBuiltin):
     def search(self, dictionary_words, pattern):
         for dictionary_word in dictionary_words:
             if pattern.match(dictionary_word):
-                yield String(dictionary_word.replace('_', ' '))
+                yield dictionary_word.replace('_', ' ')
 
     def lookup(self, language_name, word, n, evaluation):
         pattern = self.compile(word, evaluation)
@@ -1200,11 +1193,9 @@ class DictionaryLookup(_WordListBuiltin):
             dictionary_words = self._words(language_name, 'All', evaluation)
             if dictionary_words:
                 matches = self.search(dictionary_words, pattern)
-                if n is None:
-                    matches = sorted(list(matches))
-                else:
-                    matches = list(itertools.islice(matches, 0, n))
-                return Expression('List', *matches)
+                if n is not None:
+                    matches = itertools.islice(matches, 0, n)
+                return Expression('List', *(String(match) for match in sorted(matches)))
 
     def apply_english(self, word, evaluation):
         'DictionaryLookup[word_]'
@@ -1339,8 +1330,10 @@ class SpellingCorrectionList(Builtin):
       <dd>returns a list of suggestions for spelling corrected versions of $word$.
     </dl>
 
-    >> SpellingCorrectionList["lisbin"]
-     = {Lisbon, Lisbeth, listing, listen}
+    Results may differ depending on which dictionaries can be found by enchant.
+
+    >> SpellingCorrectionList["hipopotamus"]
+     = {hippopotamus, hypothalamus...}
     '''
 
     requires = (

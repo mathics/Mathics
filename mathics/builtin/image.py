@@ -23,6 +23,13 @@ _image_requires = (
     'PIL',
 )
 
+_skimage_requires = _image_requires + (
+    'skimage',
+    'scipy',
+    'matplotlib',
+    'networkx',
+)
+
 try:
     import warnings
 
@@ -47,6 +54,11 @@ class _ImageBuiltin(Builtin):
 
 class _ImageTest(Test):
     requires = _image_requires
+
+
+class _SkimageBuiltin(_ImageBuiltin):
+    requires = _skimage_requires
+
 
 # helpers
 
@@ -573,7 +585,7 @@ class ImageResize(_ImageBuiltin):
             return evaluation.message('ImageResize', 'imgrsm', resampling)
 
         try:
-            import skimage
+            from skimage import transform
 
             sy = h / old_h
             sx = w / old_w
@@ -587,9 +599,9 @@ class ImageResize(_ImageBuiltin):
                 # TODO overcome this limitation
                 return evaluation.message('ImageResize', 'gaussaspect')
             elif s > 1:
-                pixels = skimage.transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
+                pixels = transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
             else:
-                pixels = skimage.transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
+                pixels = transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
 
             return Image(pixels, image.color_space)
         except ImportError:
@@ -792,10 +804,6 @@ class ImageAdjust(_ImageBuiltin):
     >> lena = Import["ExampleData/lena.tif"];
     >> ImageAdjust[lena]
      = -Image-
-
-    #> img = Image[{{0.1, 0.5}, {0.5, 0.9}}];
-    #> ImageData[ImageAdjust[img]]
-     = {{0., 0.5}, {0.5, 1.}}
     '''
 
     rules = {
@@ -822,7 +830,9 @@ class ImageAdjust(_ImageBuiltin):
 
     def apply_contrast_brightness_gamma(self, image, c, b, g, evaluation):
         'ImageAdjust[image_Image, {c_?RealNumberQ, b_?RealNumberQ, g_?RealNumberQ}]'
+
         im = image.pil()
+
 
         # gamma
         g = g.round_to_float()
@@ -977,7 +987,7 @@ class MedianFilter(PillowImageFilter):
         return self.compute(image, PIL.ImageFilter.MedianFilter(1 + 2 * r.get_int_value()))
 
 
-class EdgeDetect(_ImageBuiltin):
+class EdgeDetect(_SkimageBuiltin):
     '''
     <dl>
     <dt>'EdgeDetect[$image$]'
@@ -992,10 +1002,6 @@ class EdgeDetect(_ImageBuiltin):
     >> EdgeDetect[lena, 4, 0.5]
      = -Image-
     '''
-
-    requires = _image_requires + (
-        'skimage',
-    )
 
     rules = {
         'EdgeDetect[i_Image]': 'EdgeDetect[i, 2, 0.2]',
@@ -1120,10 +1126,7 @@ class ImageConvolve(_ImageBuiltin):
         return Image(numpy.dstack(channels), image.color_space)
 
 
-class _MorphologyFilter(_ImageBuiltin):
-    requires = _image_requires + (
-        'skimage',
-    )
+class _MorphologyFilter(_SkimageBuiltin):
 
     messages = {
         'grayscale': 'Your image has been converted to grayscale as color images are not supported yet.'
@@ -1197,10 +1200,7 @@ class Closing(_MorphologyFilter):
     '''
 
 
-class MorphologicalComponents(_ImageBuiltin):
-    requires = _image_requires + (
-        'skimage',
-    )
+class MorphologicalComponents(_SkimageBuiltin):
 
     rules = {
         'MorphologicalComponents[i_Image]': 'MorphologicalComponents[i, 0]'
@@ -1318,7 +1318,7 @@ class ColorQuantize(_ImageBuiltin):
         return Image(numpy.array(im), 'RGB')
 
 
-class Threshold(_ImageBuiltin):
+class Threshold(_SkimageBuiltin):
     '''
     <dl>
     <dt>'Threshold[$image$]'
@@ -1354,12 +1354,8 @@ class Threshold(_ImageBuiltin):
         method = self.get_option(options, 'Method', evaluation)
         method_name = method.get_string_value() if isinstance(method, String) else method.to_python()
         if method_name == 'Cluster':
-            try:
-                import skimage.filters
-                threshold = skimage.filters.threshold_otsu(pixels)
-            except ImportError:
-                evaluation.message('Threshold', 'skimage')
-                return
+           import skimage.filters
+           threshold = skimage.filters.threshold_otsu(pixels)
         elif method_name == 'Median':
             threshold = numpy.median(pixels)
         elif method_name == 'Mean':
@@ -1370,7 +1366,7 @@ class Threshold(_ImageBuiltin):
         return MachineReal(float(threshold))
 
 
-class Binarize(_ImageBuiltin):
+class Binarize(_SkimageBuiltin):
     '''
     <dl>
     <dt>'Binarize[$image$]'
@@ -1393,8 +1389,9 @@ class Binarize(_ImageBuiltin):
     def apply(self, image, evaluation):
         'Binarize[image_Image]'
         image = image.grayscale()
-        threshold = Expression('Threshold', image).evaluate(evaluation).round_to_float()
-        return Image(image.pixels > threshold, 'Grayscale')
+        thresh = Expression('Threshold', image).evaluate(evaluation).round_to_float()
+        if thresh is not None:
+            return Image(image.pixels > thresh, 'Grayscale')
 
     def apply_t(self, image, t, evaluation):
         'Binarize[image_Image, t_?RealNumberQ]'
