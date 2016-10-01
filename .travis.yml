@@ -49,11 +49,12 @@ before_install:
   - if [[ "$ALL_MODULES" == "true" ]]; then
       sudo apt-get update -qq &&
       sudo apt-get install -qq python-enchant &&
-      pip install numpy scikit-image pyocr wordcloud ipywidgets ipykernel IPython spacy nltk langid pycountry pyenchant lxml Pillow &&
+      pip install numpy scikit-image pyocr wordcloud ipywidgets ipykernel IPython nltk langid pycountry pyenchant lxml Pillow &&
       if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then
           pip install pattern;
       fi &&
       if [[ $TRAVIS_PYTHON_VERSION != pypy ]]; then
+          pip install scipy &&
           pip install spacy &&
           python -m spacy.en.download;
       fi &&
