@@ -311,6 +311,9 @@ class BaseExpression(KeyComparable):
             'MakeBoxes', expr, Symbol(form)).evaluate(evaluation)
         return result
 
+    def output_cost(self):
+        return 0
+
     def is_free(self, form, evaluation):
         from mathics.core.pattern import StopGenerator
 
@@ -1155,6 +1158,11 @@ class Expression(BaseExpression):
         else:
             raise BoxError(self, 'tex')
 
+    def output_cost(self):
+        # self.head is quite often a layout directive that is not output (e.g.
+        # it might be a System`SubscriptBox), and so we ignore it for now.
+        return sum(leaf.output_cost() for leaf in self.leaves)
+
     def default_format(self, evaluation, form):
         return '%s[%s]' % (self.head.default_format(evaluation, form),
                            ', '.join([leaf.default_format(evaluation, form)
@@ -1435,6 +1443,9 @@ class Symbol(Atom):
     def do_copy(self):
         return Symbol(self.name)
 
+    def output_cost(self):
+        return len(self.name)
+
     def boxes_to_text(self, **options):
         return str(self.name)
 
@@ -1596,6 +1607,9 @@ class Integer(Number):
     def boxes_to_xml(self, **options):
         return self.make_boxes('MathMLForm').boxes_to_xml(**options)
 
+    def output_cost(self):
+        return len(str(self.value))
+
     def boxes_to_tex(self, **options):
         return str(self.value)
 
@@ -1664,6 +1678,9 @@ class Rational(Number):
         self = super(Rational, cls).__new__(cls)
         self.value = sympy.Rational(numerator, denominator)
         return self
+
+    def output_cost(self):
+        return len(str(self.value))
 
     def atom_to_boxes(self, f, evaluation):
         return self.format(evaluation, f.get_name())
@@ -1770,6 +1787,9 @@ class Real(Number):
             return MachineReal.__new__(MachineReal, value)
         else:
             return PrecisionReal.__new__(PrecisionReal, value)
+
+    def output_cost(self):
+        return len(str(self.value))
 
     def boxes_to_text(self, **options):
         return self.make_boxes('System`OutputForm').boxes_to_text(**options)
@@ -2134,6 +2154,9 @@ class String(Atom):
     def __str__(self):
         return '"%s"' % self.value
 
+    def output_cost(self):
+        return len(self.value)
+
     def boxes_to_text(self, show_string_characters=False, output_size_limit=None, **options):
         value = self.value
         if (not show_string_characters and      # nopep8
@@ -2378,8 +2401,8 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
         state = self._state
         capacity = state.capacity
 
-        if capacity is None or len(items) < 1:
-            return self._unlimited(items, form, segment)
+        if capacity is None or len(items) <= 2:
+            return self._unlimited.make(items, form, segment)
 
         left_leaves = []
         right_leaves = []
@@ -2469,7 +2492,7 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
             # the simple solution; the problem is that it's redundant, as for {{{a}, b}, c}, we'd
             # call boxes_to_xml first on {a}, then on {{a}, b}, then on {{{a}, b}, c}. a good fix
             # is not simple though, so let's keep it this way for now.
-            cost = len(box.boxes_to_xml(evaluation=self._evaluation))  # evaluate len as XML
+            cost = box.output_cost()
 
             return box, cost
         finally:
