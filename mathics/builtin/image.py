@@ -1391,8 +1391,9 @@ class Binarize(_ImageBuiltin):
     def apply(self, image, evaluation):
         'Binarize[image_Image]'
         image = image.grayscale()
-        threshold = Expression('Threshold', image).evaluate(evaluation).round_to_float()
-        return Image(image.pixels > threshold, 'Grayscale')
+        thresh = Expression('Threshold', image).evaluate(evaluation).round_to_float()
+        if thresh is not None:
+            return Image(image.pixels > thresh, 'Grayscale')
 
     def apply_t(self, image, t, evaluation):
         'Binarize[image_Image, t_?RealNumberQ]'
