@@ -411,10 +411,14 @@ class OutputSizeLimit(Predefined):
      = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, <<71>>, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100}
 
     #> $OutputSizeLimit = 100;
+
     #> Table[Graphics[Table[Circle[],{10}]], {5}]
      = {-Graphics-, -Graphics-, -Graphics-, -Graphics-, -Graphics-}
-    #> Table[Image[{{1, 0}, {0, 1}}], {5}]
+
+    #> ImageAvailable = SameQ[Head[Image[{{0, 1}, {1, 0}}] // ToBoxes], ImageBox];
+    #> If[ImageAvailable, Table[Image[{{1, 0}, {0, 1}}], {5}], {"-Image-", "-Image-", "-Image-", "-Image-", "-Image-"}]
      = {-Image-, -Image-, -Image-, -Image-, -Image-}
+
     #> $OutputSizeLimit = Infinity;
 
     """
