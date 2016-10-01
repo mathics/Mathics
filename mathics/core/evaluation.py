@@ -317,7 +317,7 @@ class Evaluation(object):
     def stop(self):
         self.stopped = True
 
-    def format_output(self, expr, format=None):
+    def format_output(self, expr, format=None, warn_about_omitted=True):
         if format is None:
             format = self.format
 
@@ -334,14 +334,19 @@ class Evaluation(object):
 
             options = {}
 
+            # for xml/MathMLForm and tex/TexForm, output size limits are applied in the output
+            # form's apply methods (e.g. see MathMLForm.apply) and then passed through
+            # result.boxes_to_text which, in these two cases, must not apply any additional
+            # clipping (it would clip already clipped string material).
+
+            # for text/OutputForm, on the other hand, the call to result.boxes_to_text is the
+            # only place there is to apply output size limits, which has us resort to setting
+            # options['output_size_limit']. NOTE: disabled right now, causes problems with
+            # long message outputs (see test case Table[i, {i, 1, 100}] under OutputSizeLimit).
+
             if format == 'text':
                 result = expr.format(self, 'System`OutputForm')
-                # for MathMLForm and TexForm, output size limits are applied in the form's apply
-                # methods (e.g. see MathMLForm.apply) and then passed through result.boxes_to_text
-                # which must, in these cases, not apply additional clipping, as this would clip
-                # already clipped string material. for OutputForm, on the other hand, the call to
-                # result.boxes_to_text is the only place we have to apply output size limits.
-                options['output_size_limit'] = capacity
+                # options['output_size_limit'] = capacity
             elif format == 'xml':
                 result = Expression(
                     'StandardForm', expr).format(self, 'System`MathMLForm')
@@ -358,7 +363,8 @@ class Evaluation(object):
                              Expression('FullForm', result).evaluate(self))
                 boxes = None
 
-            omissions.warn(self)
+            if warn_about_omitted:
+                omissions.warn(self)
         finally:
             self.boxes_strategy = old_boxes_strategy
 
@@ -418,7 +424,7 @@ class Evaluation(object):
             text = String("Message %s::%s not found." % (symbol_shortname, tag))
 
         text = self.format_output(Expression(
-            'StringForm', text, *(from_python(arg) for arg in args)), 'text')
+            'StringForm', text, *(from_python(arg) for arg in args)), 'text', warn_about_omitted=False)
 
         self.out.append(Message(symbol_shortname, tag, text))
         self.output.out(self.out[-1])

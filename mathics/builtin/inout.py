@@ -1140,6 +1140,12 @@ class StringForm(Builtin):
         '''MakeBoxes[StringForm[s_String, args___],
             f:StandardForm|TraditionalForm|OutputForm]'''
 
+        # StringForm does not call evaluation.make_boxes
+        # since we use it for messages and we never want
+        # to omit parts of the message. args are subject
+        # to MakeBoxes (see below) and thus can get parts
+        # omitted.
+
         s = s.value
         args = args.get_sequence()
         result = []

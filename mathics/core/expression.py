@@ -1173,14 +1173,14 @@ class Expression(BaseExpression):
         if name in ('System`ImageBox', 'System`GraphicsBox', 'System`Graphics3DBox'):
             return 0  # always display
 
-        cost = sum(leaf.output_cost() for leaf in self.leaves)
+        cost_of_leaves = sum(leaf.output_cost() for leaf in self.leaves)
 
         if name == 'System`List':
-            return 2 + cost + len(self.leaves)  # {a, b, c}
+            return 2 + cost_of_leaves + len(self.leaves)  # {a, b, c}
         elif name in _layout_boxes:
-            return cost
+            return cost_of_leaves
         else:
-            return cost + 2 + self.head.output_cost() + len(self.leaves)  # XYZ[a, b, c]
+            return cost_of_leaves + 2 + self.head.output_cost() + len(self.leaves)  # XYZ[a, b, c]
 
     def default_format(self, evaluation, form):
         return '%s[%s]' % (self.head.default_format(evaluation, form),
