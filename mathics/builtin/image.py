@@ -573,7 +573,7 @@ class ImageResize(_ImageBuiltin):
             return evaluation.message('ImageResize', 'imgrsm', resampling)
 
         try:
-            import skimage
+            from skimage import transform
 
             sy = h / old_h
             sx = w / old_w
@@ -587,9 +587,9 @@ class ImageResize(_ImageBuiltin):
                 # TODO overcome this limitation
                 return evaluation.message('ImageResize', 'gaussaspect')
             elif s > 1:
-                pixels = skimage.transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
+                pixels = transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
             else:
-                pixels = skimage.transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
+                pixels = transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
 
             return Image(pixels, image.color_space)
         except ImportError:
@@ -792,10 +792,6 @@ class ImageAdjust(_ImageBuiltin):
     >> lena = Import["ExampleData/lena.tif"];
     >> ImageAdjust[lena]
      = -Image-
-
-    #> img = Image[{{0.1, 0.5}, {0.5, 0.9}}];
-    #> ImageData[ImageAdjust[img]]
-     = {{0., 0.5}, {0.5, 1.}}
     '''
 
     rules = {
@@ -822,7 +818,9 @@ class ImageAdjust(_ImageBuiltin):
 
     def apply_contrast_brightness_gamma(self, image, c, b, g, evaluation):
         'ImageAdjust[image_Image, {c_?RealNumberQ, b_?RealNumberQ, g_?RealNumberQ}]'
+
         im = image.pil()
+
 
         # gamma
         g = g.round_to_float()
