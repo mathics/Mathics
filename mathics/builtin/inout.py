@@ -1640,6 +1640,8 @@ class General(Builtin):
         'invalidargs': "Invalid arguments.",
 
         'notboxes': "`1` is not a valid box structure.",
+        'omit': "Parts of this output were omitted (see `1`). " +
+                  "To generate the whole output, please set $OutputSizeLimit = Infinity.",
 
         'pyimport': "`1`[] is not available. Your Python installation misses the \"`2`\" module.",
     }

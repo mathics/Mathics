@@ -14,7 +14,7 @@ from threading import Thread
 import itertools
 
 from mathics import settings
-from mathics.core.expression import ensure_context, KeyComparable, make_boxes_strategy
+from mathics.core.expression import ensure_context, KeyComparable, make_boxes_strategy, Omissions
 
 FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
@@ -178,7 +178,7 @@ class Evaluation(object):
 
         self.quiet_all = False
         self.format = format
-        self.boxes_strategy = make_boxes_strategy(None, self)
+        self.boxes_strategy = make_boxes_strategy(None, None, self)
         self.catch_interrupt = catch_interrupt
 
     def parse(self, query):
@@ -329,7 +329,8 @@ class Evaluation(object):
         old_boxes_strategy = self.boxes_strategy
         try:
             capacity = self.definitions.get_config_value('System`$OutputSizeLimit')
-            self.boxes_strategy = make_boxes_strategy(capacity, self)
+            omissions = Omissions()
+            self.boxes_strategy = make_boxes_strategy(capacity, omissions, self)
 
             options = {}
 
@@ -356,6 +357,8 @@ class Evaluation(object):
                 self.message('General', 'notboxes',
                              Expression('FullForm', result).evaluate(self))
                 boxes = None
+
+            omissions.warn(self)
         finally:
             self.boxes_strategy = old_boxes_strategy
 

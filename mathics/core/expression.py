@@ -2331,7 +2331,8 @@ class Omitted(String):  # represents an omitted portion like <<42>> (itself not 
 
     def boxes_to_xml(self, **options):
         new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
-        return super(Omitted, self).boxes_to_xml(**new_options)
+        s = super(Omitted, self).boxes_to_xml(**new_options)
+        return "<mtext mathcolor='#4040a0'>%s</mtext>" % s
 
     def boxes_to_tex(self, **options):
         new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
@@ -2384,9 +2385,25 @@ class _MakeBoxesStrategy(object):
         raise NotImplementedError()
 
 
+class Omissions:
+    def __init__(self):
+        self._omissions = []
+
+    def add(self, count):
+        n = len(self._omissions)
+        if n < 3:
+            self._omissions.append('<<%d>>' % count)
+        if n == 3:
+            self._omissions.append('...')
+
+    def warn(self, evaluation):
+        if self._omissions:
+            evaluation.message('General', 'omit', ', '.join(self._omissions))
+
+
 class _UnlimitedMakeBoxesStrategy(_MakeBoxesStrategy):
     def __init__(self):
-        pass
+        self.omissions_occured = False
 
     def capacity(self):
         return None
@@ -2407,11 +2424,12 @@ class _LimitedMakeBoxesState:
 
 
 class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
-    def __init__(self, capacity, evaluation):
+    def __init__(self, capacity, omissions, evaluation):
         self._capacity = capacity
         self._evaluation = evaluation
         self._state = _LimitedMakeBoxesState(self._capacity, 1, True, 1)
         self._unlimited = _UnlimitedMakeBoxesStrategy()
+        self._omissions = omissions
 
     def capacity(self):
         return self._capacity
@@ -2489,6 +2507,8 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
                     break
 
         ellipsis_size = len(items) - (len(left_leaves) + len(right_leaves))
+        if ellipsis_size > 0 and self._omissions:
+            self._omissions.add(ellipsis_size)
         ellipsis = [Omitted('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []
 
         if segment is not None:
@@ -2518,9 +2538,9 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
             self._state = old_state
 
 
-def make_boxes_strategy(capacity, evaluation):
+def make_boxes_strategy(capacity, omissions, evaluation):
     if capacity is None:
         return _UnlimitedMakeBoxesStrategy()
     else:
-        return _LimitedMakeBoxesStrategy(capacity, evaluation)
+        return _LimitedMakeBoxesStrategy(capacity, omissions, evaluation)
 
