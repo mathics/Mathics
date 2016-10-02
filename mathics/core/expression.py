@@ -1187,7 +1187,7 @@ class Expression(BaseExpression):
             total_cost = 2 + cost_of_leaves + separator_cost * n_separators  # {a, b, c}, [a, b, c]
 
             if name != 'System`List':
-                total_cost += self.head.output_cost() + separator_cost * n_separators
+                total_cost += self.head.output_cost()
 
             return total_cost
 
