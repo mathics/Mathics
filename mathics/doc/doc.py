@@ -125,7 +125,7 @@ def escape_latex_output(text):
 
     text = _replace_all(text, [('\\', '\\\\'), ('{', '\\{'), ('}', '\\}'),
                                ('~', '\\~'), ('&', '\\&'), ('%', '\\%'),
-                               ('$', r'\$')])
+                               ('$', r'\$'), ('_', '\\_')])
     return text
 
 
@@ -967,7 +967,7 @@ class DocTest(object):
             for out in result['out']:
                 kind = 'message' if out['message'] else 'print'
                 text += "\\begin{test%s}%s\\end{test%s}" % (
-                    kind, out['text'], kind)
+                    kind, escape_latex_output(out['text']), kind)
             if result['result']:  # is not None and result['result'].strip():
                 text += "\\begin{testresult}%s\\end{testresult}" % result[
                     'result']
