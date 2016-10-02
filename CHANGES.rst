@@ -1,6 +1,159 @@
 CHANGES
 =======
 
+1.0
+---
+
+New features:
+
+- Graph #600
+- LinearModelFit #592
+- EasterSunday #590
+- DSolve for PDE #589
+- LogisticSigmoid #588
+- CentralMoment, Skewness, Kurtosis #583
+- New web interface #574
+- Image support and processing functions #571, #541, #497, #493, #482
+- StringCases, Shortest, Longest string match/replace #570
+- Quantime and Quartiles #567
+- Pick #563
+- ByteCount #560
+- Nearest #559
+- Count #558
+- RegularPolygon #556
+- impoved date parsing #555
+- Permutations #552
+- LLVM compilation of simple expressions #548
+- NumberForm #534, #530, #455
+- basic scripting with matihcsscript
+- Arcs for Disk and Circle #498, #526
+- download from URL #525
+- $CommandLine #524
+- Background option for Graphics #522
+- Style #521, #471, #468
+- abbreviated string patterns #518
+- Return #515
+- better messages #514
+- Undo and redo functionality in web interface #511
+- Covariance and Correlation #506
+- ToLowerCase, ToUpperCase, LowerCaseQ, UpperCaseQ #505
+- StirngRepeat #504
+- TextRecognise #500
+- axis numbers to integers when possible #495
+- PointSize[] #494
+- FilledCurve[], BezierCurve[], BezierFunction[] #485
+- PadLeft, PadRight #484
+- Manipulate #483, #379, #366
+- Replace #478
+- String operator versions #476
+- improvements to Piecewise #475
+- Derivation typo #474
+- Natural language processing functions #472
+- Arrow, Arrowheads #470
+- optional modules with requires attribute #465
+- MachinePrecision #463
+- Catenate #454
+- Quotient #456
+- disable spellcheck on query fields #453
+- MapThread #452
+- Scan and Return #451
+- On and Off #450
+- $MachineEpsilon and $MachinePrecision #449
+- ExpandAll #447
+- Position #445
+- StringPosition #444
+- AppendTo, DeleteCases, TrueQ,  ValueQ #443
+- Indeterminate #439
+- more integral functions #437
+- ExpIntegralEi and ExpIntegralE #435
+- Variance and StandardDeviation #424
+- Legacy Random function #422
+- Improved gamma functions #419
+- new recursive descent parser #416
+- TakeSmallest and related #412
+- Boole #411
+- Median, RankedMin, RankedMax #410
+- HammingDistance #409
+- JaccardDissimilarity and others #407
+- EuclideanDistance[] and related #405
+- Magic methods for Expression #404
+- Reverse #403
+- RotateLeft[] and RotateRight[] #402
+- ColorDistance[], ColorConvert[] #400
+- Predefine and document $Aborted and $Failed #399
+- IntegerString, FromDigits, and more #397
+- EditDistance and DamerauLevenshteinDistance #394
+- QRDecomposition #393
+- RandomChoice[] and RandomSample[] #488
+- Hash #387
+- Graphics boxes for colors #386
+- $OutputSizeLimit #385, #605
+- Except #353
+- Document many things #341
+- StringExpression #339
+- Legacy file functions #338
+- upgrade to Sympy 1.0 #334
+
+Bug fixes:
+
+- Nested Modules #591, #584
+- Python2 Import bug #565
+- XML import #554
+- \[Minus] parsing bug #550
+- Cases evaluation bug #531
+- Take edge cases #519
+- PlotSize bug #512
+- Firefox nodeValue warning #496
+- Django database permissions #489
+- FromDigits missing message #479
+- numerfication upon result only #477
+- saving and loading notebooks #473
+- Rationalise #460
+- Optional and Pattern precedence values #459
+- fix Sum[i / Log[i], {i, 1, Infinity}] #442
+- added \[Pi] \[Degree], \[Infinity] and \[I] to parser #441
+- fix loss of precision bugs #440
+- many minor bugs from fuzzing #436
+- Positive/Negative do not numerify arguments #430 fixes #380
+- chains of approximate identites #429
+- Logical expressions behave inconsistently/incorrectly #420 fixes #260
+- fix Take[_Symbol, ___] #396
+- avoid slots in rule handling #375 fixes #373
+- Gather[], GatherBy[], Tally[], Union[], Intersect[], IntersectingQ[], DisjointQ[], SortBy[] and BinarySearch[] #373
+- symbol string comparison bug #371
+- Fix Begin/BeginPackage leaking user-visible symbols #352
+- Fix TableForm and Dimensions with an empty list #343
+- Trailing slash bug #337
+- Global system bug #336
+- Null comparison bug #371
+- CompoundExpression Out[n] assignment bug #335 fixes #331
+- load unevaluated cells #332
+
+Performance improvements:
+
+- Large expression formatting with $OutputSizeLimit #581
+- Faster terminal output #579
+- faster walk_paths #578
+- faster flatten for Sequence symbols #577
+- compilation for plotting #576
+- Sequence optimisations #568
+- Improvements to GatherBy #566
+- optimised Expression creation #536
+- Expression caching #535
+- Definitions caching #507
+- optimised Position[], Cases[], DeleteCases[] #503
+- optimised StringSplit[] #502
+- optimised $RecursionLimit #501
+- optimised insert_rule #464
+- optimised IntegerLength #462
+- optimised BaseExpression creation #458
+- No reevaluation of evaluated values #391
+- shortcut rule lookup #389
+- 15% performance boost by preventing some rule lookups #384
+- 25% performance boost using same over __eq__
+- n log n algorithm for Complement[] and DeleteDuplicates[] #373
+- Avoid computing x^y in PowerMod[x, y, m] #342
+
 0.9
 ---
 
