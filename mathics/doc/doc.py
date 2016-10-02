@@ -146,8 +146,10 @@ def escape_latex(text):
 \end{lstlisting}""" % match.group(1).strip()
     text, post_substitutions = pre_sub(PYTHON_RE, text, repl_python)
 
-    text = _replace_all(text, [('\\', '\\\\'), ('{', '\\{'), ('}', '\\}'),
-                               ('~', '\\~{ }'), ('&', '\\&'), ('%', '\\%')])
+    text = _replace_all(text, [
+        ('\\', '\\\\'), ('{', '\\{'), ('}', '\\}'),
+        ('~', '\\~{ }'), ('&', '\\&'), ('%', '\\%'),
+    ])
 
     def repl(match):
         text = match.group(1)
@@ -192,7 +194,9 @@ def escape_latex(text):
         return '\\begin{%s}%s\\end{%s}' % (env, content, env)
     text = LIST_RE.sub(repl_list, text)
 
-    text = _replace_all(text, [('$', r'\$'), ('\u03c0', '$\pi$')])
+    text = _replace_all(text, [
+        ('$', r'\$'), ('\u03c0', r'$\pi$'), ('≥', r'$\ge$'), ('≤', r'$\le$'), ('≠', r'$\ne$'),
+    ])
 
     def repl_char(match):
         char = match.group(1)
