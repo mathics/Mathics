@@ -2203,7 +2203,7 @@ class String(Atom):
                 return render(r'\text{"%s"}', text[1:-1], in_text=True)
             else:
                 return render(r'\text{%s}', text[1:-1], in_text=True)
-        elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
+        elif text and text[0] in '0123456789-.':
             return render('%s', text)
         else:
             if text == '\u2032':
