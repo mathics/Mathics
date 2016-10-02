@@ -8,3 +8,7 @@ for filename in $(find documentation/images/ -name "*.eps"); do
 	mkdir -p "tex/images"
 	mv "$pdf" "tex/images/"
 done
+
+for filename in ../web/media/img/logo-{heptatom,text}.svg; do
+    inkscape $filename --export-pdf="tex/$(basename "$filename" .svg).pdf"
+done
