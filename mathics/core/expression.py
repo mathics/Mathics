@@ -2128,7 +2128,7 @@ extra_operators = set((',', '(', ')', '[', ']', '{', '}',
 class String(Atom):
     def __new__(cls, value):
         self = super(String, cls).__new__(cls)
-        self.value = value
+        self.value = six.text_type(value)
         return self
 
     def __str__(self):
