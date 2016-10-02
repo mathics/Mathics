@@ -5,6 +5,9 @@
 XML
 """
 
+from __future__ import unicode_literals
+
+
 from mathics.builtin.base import Builtin
 from mathics.builtin.files import mathics_open
 from mathics.core.expression import Expression, String, Symbol, from_python
