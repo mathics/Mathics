@@ -321,7 +321,10 @@ class BaseExpression(KeyComparable):
         return result
 
     def output_cost(self):
-        return 0
+        # the cost of outputting this item, usually the number of
+        # characters without any formatting elements or whitespace;
+        # e.g. "a, b", would be counted as 3.
+        return 1  # fallback implementation: count as one character
 
     def is_free(self, form, evaluation):
         from mathics.core.pattern import StopGenerator
@@ -1173,15 +1176,20 @@ class Expression(BaseExpression):
         if name in ('System`ImageBox', 'System`GraphicsBox', 'System`Graphics3DBox'):
             return 1  # count as expensive as one character
 
-        cost_of_leaves = sum(leaf.output_cost() for leaf in self.leaves)
-        separator_cost = 1  # i.e. ","
+        leaves = self.leaves
+        cost_of_leaves = sum(leaf.output_cost() for leaf in leaves)
 
-        if name == 'System`List':
-            return 2 + cost_of_leaves + separator_cost * len(self.leaves)  # {a, b, c}
-        elif name in _layout_boxes:
+        if name in _layout_boxes:
             return cost_of_leaves
         else:
-            return cost_of_leaves + 2 + self.head.output_cost() + separator_cost * len(self.leaves)  # XYZ[a, b, c]
+            separator_cost = 1  # i.e. ","
+            n_separators = max(len(leaves) - 1, 0)
+            total_cost = 2 + cost_of_leaves + separator_cost * n_separators  # {a, b, c}, [a, b, c]
+
+            if name != 'System`List':
+                total_cost += self.head.output_cost() + separator_cost * n_separators
+
+            return total_cost
 
     def default_format(self, evaluation, form):
         return '%s[%s]' % (self.head.default_format(evaluation, form),
@@ -1614,6 +1622,7 @@ _number_form_options = {
     'NumberMultiplier': '\u00d7',
 }
 
+
 class Integer(Number):
     def __new__(cls, value):
         n = int(value)
@@ -1700,7 +1709,8 @@ class Rational(Number):
         return self
 
     def output_cost(self):
-        return len(str(self.value))
+        numer, denom = self.value.as_numer_denom()
+        return len(str(numer)) + len(str(denom))
 
     def atom_to_boxes(self, f, evaluation):
         return self.format(evaluation, f.get_name())
@@ -1809,7 +1819,7 @@ class Real(Number):
             return PrecisionReal.__new__(PrecisionReal, value)
 
     def output_cost(self):
-        return len(str(self.value))
+        return len(self.boxes_to_text())
 
     def boxes_to_text(self, **options):
         return self.make_boxes('System`OutputForm').boxes_to_text(**options)
@@ -2009,6 +2019,9 @@ class Complex(Number):
 
     def __str__(self):
         return str(self.to_sympy())
+
+    def output_cost(self):
+        return self.real.output_cost() + self.imag.output_cost() + 2  # "+", "I"
 
     def to_sympy(self, **kwargs):
         return self.real.to_sympy() + sympy.I * self.imag.to_sympy()
