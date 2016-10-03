@@ -23,6 +23,13 @@ Additional contributions were made by:
 - mmatera
 - Mingye Wang @Arthur2e5
 - Wolf Vollprecht (wolfv)
+- Ali Abbas (alouche)
+- Josh Chen (jaycech3n)
+- Martin Portman (mportman)
+- Bernhard Liebl (poke1024)
+- Marco Savelli (Piruzzolo)
+- Timothy Cyrus (tcyrus)
+- Andrew Murray (radarhere)
 
 Thanks to the authors of all projects that are used in Mathics:
 - Django
