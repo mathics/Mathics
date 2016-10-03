@@ -2075,14 +2075,6 @@ def encode_mathml(text):
     text = text.replace('"', '&quot;').replace(' ', '&nbsp;')
     return text.replace('\n', '<mspace linebreak="newline" />')
 
-def _limit_string_size(text, limit):
-    limit = max(limit, 3)
-    if len(text) > limit:
-        ellipsis = "\u2026"
-        return text[:limit // 2] + ellipsis + text[len(text) - limit // 2:]
-    else:
-        return text
-
 TEX_REPLACE = {
     '{': r'\{',
     '}': r'\}',
@@ -2134,17 +2126,14 @@ class String(Atom):
     def __str__(self):
         return '"%s"' % self.value
 
-    def boxes_to_text(self, show_string_characters=False, output_size_limit=None, **options):
+    def boxes_to_text(self, show_string_characters=False, **options):
         value = self.value
         if (not show_string_characters and      # nopep8
             value.startswith('"') and value.endswith('"')):
             value = value[1:-1]
-        if output_size_limit is None:
-            return value
-        else:
-            return _limit_string_size(value, output_size_limit)
+        return value
 
-    def boxes_to_xml(self, show_string_characters=False, output_size_limit=None, **options):
+    def boxes_to_xml(self, show_string_characters=False, **options):
         from mathics.core.parser import is_symbol_name
         from mathics.builtin import builtins
 
@@ -2157,8 +2146,6 @@ class String(Atom):
         text = self.value
 
         def render(format, string):
-            if output_size_limit is not None:
-                string = _limit_string_size(string, output_size_limit - (len(format) - len('%s')))
             return format % encode_mathml(string)
 
         if text.startswith('"') and text.endswith('"'):
@@ -2182,7 +2169,7 @@ class String(Atom):
             else:
                 return render('<mtext>%s</mtext>', text)
 
-    def boxes_to_tex(self, show_string_characters=False, output_size_limit=None, **options):
+    def boxes_to_tex(self, show_string_characters=False, **options):
         from mathics.builtin import builtins
 
         operators = set()
@@ -2194,8 +2181,6 @@ class String(Atom):
         text = self.value
 
         def render(format, string, in_text=False):
-            if output_size_limit is not None:
-                string = _limit_string_size(string, output_size_limit - (len(format) - len('%s')))
             return format % encode_tex(string, in_text)
 
         if text.startswith('"') and text.endswith('"'):
@@ -2279,23 +2264,6 @@ class String(Atom):
         return (self.value,)
 
 
-class Omitted(String):  # represents an omitted portion like <<42>> (itself not collapsible)
-    def __new__(cls, value, **kwargs):
-        return super(Omitted, cls).__new__(cls, value, **kwargs)
-
-    def boxes_to_text(self, **options):
-        new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
-        return super(Omitted, self).boxes_to_text(**new_options)
-
-    def boxes_to_xml(self, **options):
-        new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
-        return super(Omitted, self).boxes_to_xml(**new_options)
-
-    def boxes_to_tex(self, **options):
-        new_options = dict((k, v) for k, v in options.items() if k != 'output_size_limit')
-        return super(Omitted, self).boxes_to_tex(**new_options)
-
-
 def get_default_value(name, evaluation, k=None, n=None):
     pos = []
     if k is not None:
@@ -2320,165 +2288,3 @@ def print_parenthesizes(precedence, outer_precedence=None,
     return (outer_precedence is not None and (
         outer_precedence > precedence or (
             outer_precedence == precedence and parenthesize_when_equal)))
-
-
-def _interleave(*gens):  # interleaves over n generators of even or uneven lengths
-    active = [gen for gen in gens]
-    while len(active) > 0:
-        i = 0
-        while i < len(active):
-            try:
-                yield next(active[i])
-                i += 1
-            except StopIteration:
-                del active[i]
-
-
-class _MakeBoxesStrategy(object):
-    def capacity(self):
-        raise NotImplementedError()
-
-    def make(self, items, form, segment=None):
-        raise NotImplementedError()
-
-
-class _UnlimitedMakeBoxesStrategy(_MakeBoxesStrategy):
-    def __init__(self):
-        pass
-
-    def capacity(self):
-        return None
-
-    def make(self, items, form, segment=None):
-        if segment is not None:
-            segment.extend((False, 0, 0))
-        return [Expression('MakeBoxes', item, form) for item in items]
-
-
-class _LimitedMakeBoxesState:
-    def __init__(self, capacity, side, both_sides, depth):
-        self.capacity = capacity  # output size remaining
-        self.side = side  # start from left side (<0) or right side (>0)?
-        self.both_sides = both_sides  # always evaluate both sides?
-        self.depth = depth  # stack depth of MakeBoxes evaluation
-        self.consumed = 0  # sum of costs consumed so far
-
-
-class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
-    def __init__(self, capacity, evaluation):
-        self._capacity = capacity
-        self._evaluation = evaluation
-        self._state = _LimitedMakeBoxesState(self._capacity, 1, True, 1)
-        self._unlimited = _UnlimitedMakeBoxesStrategy()
-
-    def capacity(self):
-        return self._capacity
-
-    def make(self, items, form, segment=None):
-        state = self._state
-        capacity = state.capacity
-
-        if capacity is None or len(items) < 1:
-            return self._unlimited(items, form, segment)
-
-        left_leaves = []
-        right_leaves = []
-
-        middle = len(items) // 2
-
-        # note that we use generator expressions, not list comprehensions, here, since we
-        # might quit early in the loop below, and copying all leaves might prove inefficient.
-        from_left = ((leaf, left_leaves.append) for leaf in items[:middle])
-        from_right = ((leaf, right_leaves.append) for leaf in reversed(items[middle:]))
-
-        # specify at which side to start making boxes (either from the left or from the right).
-        side = state.side
-        if side > 0:
-            from_sides = (from_left, from_right)
-        else:
-            from_sides = (from_right, from_left)
-
-        # usually we start on one side and make boxes until the capacity is exhausted.
-        # however, at the first real list (i.e. > 1 elements) we force evaluation of
-        # both sides in order to make sure the start and the end portion is visible.
-        both_sides = state.both_sides
-        if both_sides and len(items) > 1:
-            delay_break = 1
-            both_sides = False  # disable both_sides from this depth on
-        else:
-            delay_break = 0
-
-        depth = state.depth
-        sum_of_costs = 0
-
-        for i, (item, push) in enumerate(_interleave(*from_sides)):
-            # calling evaluate() here is a serious difference to the implementation
-            # without $OutputSizeLimit. here, we evaluate MakeBoxes bottom up, i.e.
-            # the leaves get evaluated first, since we need to estimate their size
-            # here.
-            #
-            # without $OutputSizeLimit, on the other hand, the expression
-            # gets evaluates from the top down, i.e. first MakeBoxes is wrapped around
-            # each expression, then we call evaluate on the root node. assuming that
-            # there are no rules like MakeBoxes[x_, MakeBoxes[y_]], both approaches
-            # should be identical.
-            #
-            # we could work around this difference by pushing the unevaluated
-            # expression here (see "push(box)" below), instead of the evaluated.
-            # this would be very inefficient though, since we would get quadratic
-            # runtime (quadratic in the depth of the tree).
-
-            box, cost = self._evaluate(
-                item,
-                form,
-                capacity=capacity // 2,  # reserve rest half of capacity for other side
-                side=side * -((i % 2) * 2 - 1),  # flip between side and -side
-                both_sides=both_sides,  # force both-sides evaluation for deeper levels?
-                depth=depth + 1)
-
-            push(box)
-            state.consumed += cost
-
-            sum_of_costs += cost
-            if i >= delay_break:
-                capacity -= sum_of_costs
-                sum_of_costs = 0
-                if capacity <= 0:
-                    break
-
-        ellipsis_size = len(items) - (len(left_leaves) + len(right_leaves))
-        ellipsis = [Omitted('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []
-
-        if segment is not None:
-            if ellipsis_size > 0:
-                segment.extend((True, len(left_leaves), len(items) - len(right_leaves)))
-            else:
-                segment.extend((False, 0, 0))
-
-        return list(chain(left_leaves, ellipsis, reversed(right_leaves)))
-
-    def _evaluate(self, item, form, **kwargs):
-        old_state = self._state
-        try:
-            state = _LimitedMakeBoxesState(**kwargs)
-            self._state = state
-
-            box = Expression('MakeBoxes', item, form).evaluate(self._evaluation)
-
-            # estimate the cost of the output related to box. always calling boxes_to_xml here is
-            # the simple solution; the problem is that it's redundant, as for {{{a}, b}, c}, we'd
-            # call boxes_to_xml first on {a}, then on {{a}, b}, then on {{{a}, b}, c}. a good fix
-            # is not simple though, so let's keep it this way for now.
-            cost = len(box.boxes_to_xml(evaluation=self._evaluation))  # evaluate len as XML
-
-            return box, cost
-        finally:
-            self._state = old_state
-
-
-def make_boxes_strategy(capacity, evaluation):
-    if capacity is None:
-        return _UnlimitedMakeBoxesStrategy()
-    else:
-        return _LimitedMakeBoxesStrategy(capacity, evaluation)
-
