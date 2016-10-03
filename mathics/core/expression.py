@@ -2395,7 +2395,7 @@ class _MakeBoxesStrategy(object):
     def capacity(self):
         raise NotImplementedError()
 
-    def make(self, items, form, segment=None):
+    def make(self, head, make_leaf, n_leaves, left, right, sep, materialize, form):
         raise NotImplementedError()
 
 
@@ -2415,6 +2415,13 @@ class Omissions:
             evaluation.message('General', 'omit', ', '.join(self._omissions))
 
 
+def _riffle_separators(elements, separators):
+    yield elements[0]
+    for e, s in zip(elements[1:], separators):
+        yield s
+        yield e
+
+
 class _UnlimitedMakeBoxesStrategy(_MakeBoxesStrategy):
     def __init__(self):
         self.omissions_occured = False
@@ -2422,10 +2429,28 @@ class _UnlimitedMakeBoxesStrategy(_MakeBoxesStrategy):
     def capacity(self):
         return None
 
-    def make(self, items, form, segment=None):
-        if segment is not None:
-            segment.extend((False, 0, 0))
-        return [Expression('MakeBoxes', item, form) for item in items]
+    def make(self, head, make_leaf, n_leaves, left, right, sep, materialize, form):
+        prefix = []
+        if head is not None:
+            prefix.append(head)
+        if left is not None:
+            prefix.append(left)
+
+        inner = [make_leaf(i) for i in range(n_leaves)]
+
+        if sep is not None and n_leaves > 1:
+            if isinstance(sep, (list, tuple)):
+                inner = list(_riffle_separators(inner, sep))
+            else:
+                from mathics.builtin.lists import riffle
+                inner = riffle(inner, sep)
+
+        if right is not None:
+            suffix = [right]
+        else:
+            suffix = []
+
+        return materialize(prefix, inner, suffix)
 
 
 class _LimitedMakeBoxesState:
@@ -2448,22 +2473,22 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
     def capacity(self):
         return self._capacity
 
-    def make(self, items, form, segment=None):
+    def make(self, head, make_leaf, n_leaves, left, right, sep, materialize, form):
         state = self._state
         capacity = state.capacity
 
-        if capacity is None or len(items) <= 2:
-            return self._unlimited.make(items, form, segment)
+        if capacity is None or n_leaves <= 2:
+            return self._unlimited.make(head, make_leaf, n_leaves, left, right, sep, materialize, form)
 
         left_leaves = []
         right_leaves = []
 
-        middle = len(items) // 2
+        middle = n_leaves // 2
 
         # note that we use generator expressions, not list comprehensions, here, since we
         # might quit early in the loop below, and copying all leaves might prove inefficient.
-        from_left = ((leaf, left_leaves.append) for leaf in items[:middle])
-        from_right = ((leaf, right_leaves.append) for leaf in reversed(items[middle:]))
+        from_left = ((leaf, left_leaves.append) for leaf in range(0, middle))
+        from_right = ((leaf, right_leaves.append) for leaf in reversed(range(middle, n_leaves)))
 
         # specify at which side to start making boxes (either from the left or from the right).
         side = state.side
@@ -2476,7 +2501,7 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
         # however, at the first real list (i.e. > 1 elements) we force evaluation of
         # both sides in order to make sure the start and the end portion is visible.
         both_sides = state.both_sides
-        if both_sides and len(items) > 1:
+        if both_sides and n_leaves > 1:
             delay_break = 1
             both_sides = False  # disable both_sides from this depth on
         else:
@@ -2485,7 +2510,7 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
         depth = state.depth
         sum_of_costs = 0
 
-        for i, (item, push) in enumerate(_interleave(*from_sides)):
+        for i, (index, push) in enumerate(_interleave(*from_sides)):
             # calling evaluate() here is a serious difference to the implementation
             # without $OutputSizeLimit. here, we evaluate MakeBoxes bottom up, i.e.
             # the leaves get evaluated first, since we need to estimate their size
@@ -2503,8 +2528,8 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
             # runtime (quadratic in the depth of the tree).
 
             box, cost = self._evaluate(
-                item,
-                form,
+                make_leaf,
+                index,
                 capacity=capacity // 2,  # reserve rest half of capacity for other side
                 side=side * -((i % 2) * 2 - 1),  # flip between side and -side
                 both_sides=both_sides,  # force both-sides evaluation for deeper levels?
@@ -2520,26 +2545,48 @@ class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
                 if capacity <= 0:
                     break
 
-        ellipsis_size = len(items) - (len(left_leaves) + len(right_leaves))
+        ellipsis_size = n_leaves - (len(left_leaves) + len(right_leaves))
         if ellipsis_size > 0 and self._omissions:
             self._omissions.add(ellipsis_size)
         ellipsis = [Omitted('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []
 
-        if segment is not None:
-            if ellipsis_size > 0:
-                segment.extend((True, len(left_leaves), len(items) - len(right_leaves)))
+        #if segment is not None:
+        #    if ellipsis_size > 0:
+        #        segment.extend((True, len(left_leaves), len(items) - len(right_leaves)))
+        #    else:
+        #        segment.extend((False, 0, 0))
+
+        inner = list(chain(left_leaves, ellipsis, reversed(right_leaves)))
+
+        if sep is not None and n_leaves > 1:
+            if isinstance(sep, (list, tuple)):
+                # ellipsis item gets rightmost separator from ellipsed chunk
+                sep = sep[:len(left_leaves)] + sep[len(right_leaves) - 1:]
+                inner = list(_riffle_separators(inner, sep))
             else:
-                segment.extend((False, 0, 0))
+                from mathics.builtin.lists import riffle
+                inner = riffle(inner, sep)
 
-        return list(chain(left_leaves, ellipsis, reversed(right_leaves)))
+        prefix = []
+        if head is not None:
+            prefix.append(head)
+        if left is not None:
+            prefix.append(left)
 
-    def _evaluate(self, item, form, **kwargs):
+        if right is not None:
+            suffix = [right]
+        else:
+            suffix = []
+
+        return materialize(prefix, inner, suffix)
+
+    def _evaluate(self, make_leaf, index, **kwargs):
         old_state = self._state
         try:
             state = _LimitedMakeBoxesState(**kwargs)
             self._state = state
 
-            box = Expression('MakeBoxes', item, form).evaluate(self._evaluation)
+            box = make_leaf(index).evaluate(self._evaluation)
 
             # estimate the cost of the output related to box. always calling boxes_to_xml here is
             # the simple solution; the problem is that it's redundant, as for {{{a}, b}, c}, we'd

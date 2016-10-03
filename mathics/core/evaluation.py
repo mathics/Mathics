@@ -387,8 +387,9 @@ class Evaluation(object):
             return []
         return value.leaves
 
-    def make_boxes(self, items, form, segment=None):
-        return self.boxes_strategy.make(items, form, segment)
+    def make_boxes(self, prefix, make_leaf, n_leaves, left, right, sep, materialize, form):
+        return self.boxes_strategy.make(
+            prefix, make_leaf, n_leaves, left, right, sep, materialize, form)
 
     def message(self, symbol, tag, *args):
         from mathics.core.expression import (String, Symbol, Expression,

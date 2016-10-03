@@ -12,6 +12,7 @@ import six
 import re
 import sympy
 import mpmath
+from itertools import chain
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator)
@@ -24,7 +25,6 @@ from mathics.core.expression import (
     from_python, MachineReal, PrecisionReal, Omitted)
 from mathics.core.numbers import (
     dps, prec, convert_base, machine_precision, reconstruct_digits)
-from mathics.builtin.lists import riffle
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
@@ -82,20 +82,12 @@ def parenthesize(precedence, leaf, leaf_boxes, when_equal):
 
 
 def make_boxes_infix(leaves, ops, precedence, grouping, form, evaluation):
-    segment = []
-    boxes = evaluation.make_boxes(leaves, form, segment)
+    def materialize(prefix, inner, suffix):
+        return Expression('RowBox', Expression('List', *list(chain(prefix, inner, suffix))))
 
-    seg_shortened, seg_l, seg_r = segment
-    if seg_shortened:
-        leaves = leaves[:seg_l] + [Symbol('Null')] + leaves[seg_r:]
-        ops = ops[:seg_l] + ops[seg_r - 1:]  # ellipsis item gets rightmost operator from ellipsed chunk
-
-    result = []
-    for index, leaf_box in enumerate(zip(leaves, boxes)):
-        leaf, box = leaf_box
-
-        if index > 0:
-            result.append(ops[index - 1])
+    def make_leaf(index):
+        leaf = leaves[index]
+        box = Expression('MakeBoxes', leaf, form)
 
         parenthesized = False
         if grouping == 'System`NonAssociative':
@@ -105,13 +97,12 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form, evaluation):
         elif grouping == 'System`Right' and index == 0:
             parenthesized = True
 
-        if seg_shortened and index == seg_l:
-            leaf = box  # ellipsis item, do not parenthesize
-        else:
-            leaf = parenthesize(precedence, leaf, box, parenthesized)
+        return parenthesize(precedence, leaf, box, parenthesized)
 
-        result.append(leaf)
-    return Expression('RowBox', Expression('List', *result))
+    return evaluation.make_boxes(
+        None, make_leaf, len(leaves),
+        None, None, ops,
+        materialize, form)
 
 
 def real_to_s_exp(expr, n):
@@ -480,24 +471,24 @@ class MakeBoxes(Builtin):
 
             # Parenthesize infix operators at the head of expressions,
             # like (a + b)[x], but not f[a] in f[a][b].
-            #
-            head_boxes = parenthesize(670,
-                                      head, MakeBoxes(head, f), False)
-            result = [head_boxes, String(left)]
+            prefix = parenthesize(670, head, Expression('MakeBoxes', head, f), False)
 
-            if len(leaves) > 1:
-                if f_name in ('System`InputForm', 'System`OutputForm',
-                              'System`FullForm'):
-                    sep = ', '
-                else:
-                    sep = ','
-                boxes = evaluation.make_boxes(leaves, f)
-                row = riffle(boxes, String(sep))
-                result.append(RowBox(Expression('List', *row)))
-            elif len(leaves) == 1:
-                result.append(MakeBoxes(leaves[0], f))
-            result.append(String(right))
-            return RowBox(Expression('List', *result))
+            def make_leaf(i):
+                return Expression('MakeBoxes', leaves[i], f)
+
+            if f_name in ('System`InputForm', 'System`OutputForm',
+                          'System`FullForm'):
+                sep = ', '
+            else:
+                sep = ','
+
+            def materialize(prefix, inner, suffix):
+                if len(inner) > 1:
+                    inner = [Expression('RowBox', Expression('List', *inner))]
+                return Expression('RowBox', Expression('List', *list(chain(prefix, inner, suffix))))
+
+            return evaluation.make_boxes(
+                prefix, make_leaf, len(leaves), String(left), String(right), String(sep), materialize, f)
 
     def _apply_atom(self, x, f, evaluation):
         '''MakeBoxes[x_?AtomQ,
@@ -797,20 +788,31 @@ class Grid(Builtin):
             f:StandardForm|TraditionalForm|OutputForm]'''
 
         lengths = [len(row.leaves) for row in array.leaves]
-        segment = []
-        boxes = evaluation.make_boxes([item for row in array.leaves for item in row.leaves], f, segment)
-        if segment[0]:  # too long?
-            return Omitted('<<%d>>' % sum(lengths))
-        else:
-            rows = []
-            i = 0
-            for l in lengths:
-                rows.append(Expression('List', *boxes[i:i + l]))
-                i += l
-            return Expression(
-                'GridBox',
-                Expression('List', *rows),
-                *options_to_rules(options))
+        n_leaves = sum(lengths)
+
+        def materialize(boxes):
+            if len(boxes) == n_leaves:
+                rows = []
+                i = 0
+                for l in lengths:
+                    rows.append(Expression('List', *boxes[i:i + l]))
+                    i += l
+                return Expression(
+                    'GridBox',
+                    Expression('List', *rows),
+                    *options_to_rules(options))
+            else:  # too long
+                return Omitted('<<%d>>' % n_leaves)
+
+        flat = [item for row in array.leaves for item in row.leaves]
+
+        def make_leaf(i):
+            return Expression('MakeBoxes', flat[i], f)
+
+        return evaluation.make_boxes(
+            None, make_leaf, n_leaves,
+            None, None, None,
+            materialize, f)
 
 
 class TableForm(Builtin):
@@ -961,9 +963,11 @@ class Subscript(Builtin):
     def apply_makeboxes(self, x, y, f, evaluation):
         'MakeBoxes[Subscript[x_, y__], f:StandardForm|TraditionalForm]'
 
-        y = y.get_sequence()
-        return Expression(
-            'SubscriptBox', Expression('MakeBoxes', x, f), *list_boxes(y, f, evaluation))
+        def materialize(prefix, inner, suffix):
+            return Expression('SubscriptBox', *list(chain(prefix, inner, suffix)))
+
+        return list_boxes(
+            Expression('MakeBoxes', x, f), y.get_sequence(), materialize, f, evaluation)
 
 
 class SubscriptBox(Builtin):
