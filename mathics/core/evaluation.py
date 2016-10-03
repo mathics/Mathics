@@ -11,10 +11,9 @@ from six.moves.queue import Queue
 
 import sys
 from threading import Thread
-import itertools
 
 from mathics import settings
-from mathics.core.expression import ensure_context, KeyComparable, make_boxes_strategy
+from mathics.core.expression import ensure_context, KeyComparable
 
 FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
@@ -178,7 +177,6 @@ class Evaluation(object):
 
         self.quiet_all = False
         self.format = format
-        self.boxes_strategy = make_boxes_strategy(None, self)
         self.catch_interrupt = catch_interrupt
 
     def parse(self, query):
@@ -326,39 +324,23 @@ class Evaluation(object):
 
         from mathics.core.expression import Expression, BoxError
 
-        old_boxes_strategy = self.boxes_strategy
+        if format == 'text':
+            result = expr.format(self, 'System`OutputForm')
+        elif format == 'xml':
+            result = Expression(
+                'StandardForm', expr).format(self, 'System`MathMLForm')
+        elif format == 'tex':
+            result = Expression('StandardForm', expr).format(
+                self, 'System`TeXForm')
+        else:
+            raise ValueError
+
         try:
-            capacity = self.definitions.get_config_value('System`$OutputSizeLimit')
-            self.boxes_strategy = make_boxes_strategy(capacity, self)
-
-            options = {}
-
-            if format == 'text':
-                result = expr.format(self, 'System`OutputForm')
-                # for MathMLForm and TexForm, output size limits are applied in the form's apply
-                # methods (e.g. see MathMLForm.apply) and then passed through result.boxes_to_text
-                # which must, in these cases, not apply additional clipping, as this would clip
-                # already clipped string material. for OutputForm, on the other hand, the call to
-                # result.boxes_to_text is the only place we have to apply output size limits.
-                options['output_size_limit'] = capacity
-            elif format == 'xml':
-                result = Expression(
-                    'StandardForm', expr).format(self, 'System`MathMLForm')
-            elif format == 'tex':
-                result = Expression('StandardForm', expr).format(
-                    self, 'System`TeXForm')
-            else:
-                raise ValueError
-
-            try:
-                boxes = result.boxes_to_text(evaluation=self, **options)
-            except BoxError:
-                self.message('General', 'notboxes',
-                             Expression('FullForm', result).evaluate(self))
-                boxes = None
-        finally:
-            self.boxes_strategy = old_boxes_strategy
-
+            boxes = result.boxes_to_text(evaluation=self)
+        except BoxError:
+            self.message('General', 'notboxes',
+                         Expression('FullForm', result).evaluate(self))
+            boxes = None
         return boxes
 
     def set_quiet_messages(self, messages):
@@ -377,9 +359,6 @@ class Evaluation(object):
         if not isinstance(value, Expression):
             return []
         return value.leaves
-
-    def make_boxes(self, items, form, segment=None):
-        return self.boxes_strategy.make(items, form, segment)
 
     def message(self, symbol, tag, *args):
         from mathics.core.expression import (String, Symbol, Expression,
