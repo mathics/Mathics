@@ -16,17 +16,24 @@ echo "Releasing Mathics $version"
 rm -rf build/release
 python setup.py build
 mkdir build/release
+rm build/lib/mathics/doc/xml/data # data file is big so make sure we don't package it
 cp -r build/lib*/mathics build/release/
 rm build/release/*/*/*.so
 cp setup.py AUTHORS.txt CHANGES.rst COPYING.txt README.rst build/release/
 cp mathics/doc/tex/mathics.pdf build/release/
 
 zipfilename="mathics-$version.zip"
+tgzfilename="mathics-$version.tgz"
+releasedir="mathics-$version"
 rm -f "build/$zipfilename"
-cd build/release
+rm -f "build/$tgzfilename"
+cd build/
+cp -r release/ $releasedir/
 echo "Creating ZIP file $zipfilename"
-zip -r "../$zipfilename" .
-cd ../..
+zip -r $zipfilename $releasedir/
+echo "Creating TGZ file $tgzfilename"
+tar czf $tgzfilename $releasedir/
+cd ..
 
 mkdir -p Homepage/release
 cp "build/$zipfilename" Homepage/release/
