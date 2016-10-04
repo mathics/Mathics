@@ -25,7 +25,7 @@ LOG_QUERIES = False
 # unix only
 TIMEOUT = None
 
-MAX_RECURSION_DEPTH = 512
+MAX_RECURSION_DEPTH = 65536
 
 # max pickle.dumps() size for storing results in DB
 # historically 10000 was used on public mathics servers

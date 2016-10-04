@@ -15,7 +15,7 @@ from mathics import settings
 def set_recursionlimit(n):
     "Sets the required python recursion limit given $RecursionLimit value"
     def conversion(m):
-        return 200 + 5 * m
+        return 200 + 20 * m
     sys.setrecursionlimit(conversion(n))
     if sys.getrecursionlimit() != conversion(n):
         raise OverflowError
@@ -37,7 +37,7 @@ class RecursionLimit(Predefined):
      = 200
 
     >> $RecursionLimit = x;
-     : Cannot set $RecursionLimit to x; value must be an integer between 20 and 512.
+     : Cannot set $RecursionLimit to x; value must be an integer between 20 and 65536.
 
     >> $RecursionLimit = 512
      = 512
@@ -54,6 +54,18 @@ class RecursionLimit(Predefined):
     #> $RecursionLimit = 200
      = 200
 
+    #> ClearAll[f];
+    #> f[x_, 0] := x; f[x_, n_] := f[x + 1, n - 1];
+    #> Block[{$RecursionLimit = 20}, f[0, 100]]
+     = 100
+    #> ClearAll[f];
+
+    #> ClearAll[f];
+    #> f[x_, 0] := x; f[x_, n_] := Module[{y = x + 1}, f[y, n - 1]];
+    #> Block[{$RecursionLimit = 20}, f[0, 100]]
+     : Recursion depth of 20 exceeded.
+     = $Aborted
+    #> ClearAll[f];
     """
 
     name = '$RecursionLimit'
@@ -75,6 +87,61 @@ class RecursionLimit(Predefined):
 
     rules = {
         '$RecursionLimit': str(value),
+    }
+
+    def evaluate(self, evaluation):
+        return Integer(self.value)
+
+
+class IterationLimit(Predefined):
+    """
+    <dl>
+    <dt>'$IterationLimit'
+        <dd>specifies the maximum number of times a reevaluation may happen.
+    </dl>
+
+    Calculations terminated by '$IterationLimit' return '$Aborted':
+    >> ClearAll[f]; f[x_] := f[x + 1];
+    >> f[x]
+     : Iteration limit of 1000 exceeded.
+     = $Aborted
+    >> $IterationLimit
+     = 1000
+    >> ClearAll[f];
+
+    >> $IterationLimit = x;
+     : Cannot set $IterationLimit to x; value must be an integer between 20 and Infinity.
+
+    #> ClearAll[f];
+    #> f[x_, 0] := x; f[x_, n_] := f[x + 1, n - 1];
+    #> Block[{$IterationLimit = 20}, f[0, 100]]
+     : Iteration limit of 20 exceeded.
+     = $Aborted
+    #> ClearAll[f];
+
+    #> ClearAll[f];
+    #> f[x_, 0] := x; f[x_, n_] := Module[{y = x + 1}, f[y, n - 1]];
+    #> Block[{$IterationLimit = 20}, f[0, 100]]
+     = 100
+    #> ClearAll[f];
+    """
+
+    name = '$IterationLimit'
+    value = 1000
+
+    rules = {
+        '$IterationLimit': str(value),
+    }
+
+    messages = {
+        'itlim': "Iteration limit of `1` exceeded.",
+        'limset': (
+            "Cannot set $IterationLimit to `1`; "
+            "value must be an integer between 20 and Infinity."),
+    }
+
+    rules = {
+        '$IterationLimit': str(value),
     }
 
     def evaluate(self, evaluation):

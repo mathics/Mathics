@@ -172,6 +172,11 @@ class _SetOperator(object):
                 # TODO: Message
                 return False
             ignore_protection = True
+        if lhs_name == 'System`$IterationLimit':
+            if (not rhs_int_value or rhs_int_value < 20) and not rhs.get_name() == 'System`Infinity':
+                evaluation.message('$IterationLimit', 'limset', rhs)
+                return False
+            ignore_protection = True
         elif lhs_name == 'System`$ModuleNumber':
             if not rhs_int_value or rhs_int_value <= 0:
                 evaluation.message('$ModuleNumber', 'set', rhs)

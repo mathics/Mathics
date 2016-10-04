@@ -155,6 +155,9 @@ class BaseExpression(KeyComparable):
     def get_attributes(self, definitions):
         return set()
 
+    def evaluate_next(self, evaluation):
+        return self.evaluate(evaluation), False
+
     def evaluate(self, evaluation):
         evaluation.check_stopped()
         return self
@@ -832,6 +835,29 @@ class Expression(BaseExpression):
             return self
 
     def evaluate(self, evaluation):
+        expr = self
+        reevaluate = True
+        limit = None
+        iteration = 1
+
+        while reevaluate:
+            expr, reevaluate = expr.evaluate_next(evaluation)
+            if not reevaluate:
+                break
+
+            iteration += 1
+
+            if limit is None:
+                limit = evaluation.definitions.get_config_value('$IterationLimit')
+                if limit is None:
+                    limit = 'inf'
+            if limit != 'inf' and iteration > limit:
+                evaluation.error('$IterationLimit', 'itlim', limit)
+                return Symbol('$Aborted')
+
+        return expr
+
+    def evaluate_next(self, evaluation):
         from mathics.core.evaluation import ReturnInterrupt
         evaluation.inc_recursion_depth()
         old_options = evaluation.options
@@ -840,7 +866,7 @@ class Expression(BaseExpression):
         try:
             # changed before last evaluated
             if self.last_evaluated is not None and evaluation.definitions.last_changed(self) <= self.last_evaluated:
-                return self
+                return self, False
             head = self.head.evaluate(evaluation)
             attributes = head.get_attributes(evaluation.definitions)
             leaves = self.leaves[:]
@@ -909,9 +935,9 @@ class Expression(BaseExpression):
                 if done:
                     if threaded.same(new):
                         new.last_evaluated = evaluation.definitions.now
-                        return new
+                        return new, False
                     else:
-                        return threaded.evaluate(evaluation)
+                        return threaded, True
 
             def rules():
                 rules_names = set()
@@ -936,9 +962,9 @@ class Expression(BaseExpression):
                 if result is not None:
                     if result.same(new):
                         new.last_evaluated = evaluation.definitions.now
-                        return new
+                        return new, False
                     else:
-                        return result.evaluate(evaluation)
+                        return result, True
 
             # Expression did not change, re-apply Unevaluated
             for index, leaf in enumerate(new.leaves):
@@ -947,7 +973,7 @@ class Expression(BaseExpression):
 
             new.unformatted = self.unformatted
             new.last_evaluated = evaluation.definitions.now
-            return new
+            return new, False
 
         # "Return gets discarded only if it was called from within the r.h.s.
         # of a user-defined rule."
@@ -956,7 +982,7 @@ class Expression(BaseExpression):
         #
         except ReturnInterrupt as ret:
             if self.get_lookup_name() in evaluation.definitions.user:
-                return ret.expr
+                return ret.expr, False
             else:
                 raise ret
         finally:
