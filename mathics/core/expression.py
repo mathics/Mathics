@@ -835,25 +835,36 @@ class Expression(BaseExpression):
             return self
 
     def evaluate(self, evaluation):
+        from mathics.core.evaluation import ReturnInterrupt
+
         expr = self
         reevaluate = True
         limit = None
         iteration = 1
+        names = []
 
-        while reevaluate:
-            expr, reevaluate = expr.evaluate_next(evaluation)
-            if not reevaluate:
-                break
+        try:
+            while reevaluate:
+                names.append(expr.get_lookup_name())
 
-            iteration += 1
+                expr, reevaluate = expr.evaluate_next(evaluation)
+                if not reevaluate:
+                    break
 
-            if limit is None:
-                limit = evaluation.definitions.get_config_value('$IterationLimit')
+                iteration += 1
+
                 if limit is None:
-                    limit = 'inf'
-            if limit != 'inf' and iteration > limit:
-                evaluation.error('$IterationLimit', 'itlim', limit)
-                return Symbol('$Aborted')
+                    limit = evaluation.definitions.get_config_value('$IterationLimit')
+                    if limit is None:
+                        limit = 'inf'
+                if limit != 'inf' and iteration > limit:
+                    evaluation.error('$IterationLimit', 'itlim', limit)
+                    return Symbol('$Aborted')
+        except ReturnInterrupt as ret:
+            if any(name in evaluation.definitions.user for name in names):
+                return ret.expr
+            else:
+                raise ret
 
         return expr
 
