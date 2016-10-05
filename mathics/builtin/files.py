@@ -662,7 +662,10 @@ class Read(Builtin):
             while True:
                 word = ''
                 while True:
-                    tmp = stream.read(1)
+                    try:
+                        tmp = stream.read(1)
+                    except UnicodeDecodeError:
+                        tmp = ' '  # ignore
 
                     if tmp == '':
                         if word == '':
