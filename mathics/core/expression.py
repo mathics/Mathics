@@ -9,6 +9,7 @@ import mpmath
 import math
 import re
 from itertools import chain
+from bisect import bisect_left
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
@@ -524,10 +525,42 @@ class Expression(BaseExpression):
         self._sequences = None
         return self
 
+    def partition(self, n, d):
+        assert n > 0 and d > 0
+
+        # a fast partition that relies on three optimizations:
+        # (O1) leaves are not checked via from_python
+        # (O2) sequences are efficiently derived from self.sequences()
+        # (O3) if self has been evaluated, there's no need to
+        # reevaluate any partition of self.
+
+        # performance test case: First[Timing[Partition[Range[50000], 15, 1]]]
+
+        leaves = self.leaves
+        head = Symbol('List')
+        seq = self.sequences()
+
+        for lower in range(0, len(leaves), d):
+            upper = lower + n
+
+            chunk = leaves[lower:upper]
+            if len(chunk) != n:
+                continue
+
+            a = bisect_left(seq, lower)  # all(val >= i for val in seq[a:])
+            b = bisect_left(seq, upper)  # all(val >= j for val in seq[b:])
+
+            expr = Expression(head)  # (O1)
+            expr.leaves = chunk  # (O1)
+            expr._sequences = tuple(x - lower for x in seq[a:b])  # (O2)
+            expr.last_evaluated = self.last_evaluated  # (O3)
+
+            yield expr
+
     def sequences(self):
         seq = self._sequences
         if seq is None:
-            seq = list(_sequences(self.leaves))
+            seq = tuple(_sequences(self.leaves))
             self._sequences = seq
         return seq
 
