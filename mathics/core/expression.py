@@ -841,7 +841,7 @@ class Expression(BaseExpression):
         reevaluate = True
         limit = None
         iteration = 1
-        names = []
+        names = set()
         definitions = evaluation.definitions
 
         old_options = evaluation.options
@@ -853,7 +853,7 @@ class Expression(BaseExpression):
                 if expr.last_evaluated is not None and definitions.last_changed(expr) <= expr.last_evaluated:
                     break
 
-                names.append(expr.get_lookup_name())
+                names.add(expr.get_lookup_name())
 
                 if hasattr(expr, 'options') and expr.options:
                     evaluation.options = expr.options
@@ -878,7 +878,7 @@ class Expression(BaseExpression):
         # Otherwise it propogates up.
         #
         except ReturnInterrupt as ret:
-            if any(name in definitions.user for name in names):
+            if names.intersection(definitions.user.keys()):
                 return ret.expr
             else:
                 raise ret
