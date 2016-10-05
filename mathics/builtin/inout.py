@@ -1619,6 +1619,7 @@ class General(Builtin):
                   "which is not a valid list of replacement rules."),
         'write': "Tag `1` in `2` is Protected.",
         'wrsym': "Symbol `1` is Protected.",
+        'ucdec': "An invalid unicode sequence was encountered and ignored.",
 
         # Self-defined messages
         # 'rep': "`1` is not a valid replacement rule.",

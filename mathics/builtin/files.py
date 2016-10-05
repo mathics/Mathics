@@ -666,6 +666,7 @@ class Read(Builtin):
                         tmp = stream.read(1)
                     except UnicodeDecodeError:
                         tmp = ' '  # ignore
+                        evaluation.message('General', 'ucdec')
 
                     if tmp == '':
                         if word == '':
