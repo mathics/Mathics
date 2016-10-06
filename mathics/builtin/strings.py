@@ -11,6 +11,8 @@ from __future__ import absolute_import
 import sys
 import re
 import unicodedata
+from binascii import hexlify, unhexlify
+from heapq import heappush, heappop
 
 import six
 from six.moves import range
@@ -22,9 +24,72 @@ from mathics.core.expression import (Expression, Symbol, String, Integer,
 from mathics.builtin.lists import python_seq, convert_seq
 
 
-def to_regex(expr, abbreviated_patterns=False):
+_regex_longest = {
+    '+': '+',
+    '*': '*',
+}
+
+_regex_shortest = {
+    '+': '+?',
+    '*': '*?',
+}
+
+
+def _encode_pname(name):
+    return 'n' + hexlify(name.encode('utf8')).decode('utf8')
+
+
+def _decode_pname(name):
+    return unhexlify(name[1:]).decode('utf8')
+
+
+def _evaluate_match(s, m, evaluation):
+    replace = dict((_decode_pname(name), String(value)) for name, value in m.groupdict().items())
+    return s.replace_vars(replace, in_scoping=False).evaluate(evaluation)
+
+
+def _parallel_match(text, rules, flags, limit):
+    heap = []
+
+    def push(i, iter, form):
+        m = None
+        try:
+            m = next(iter)
+        except StopIteration:
+            pass
+        if m is not None:
+            heappush(heap, (m.start(), i, m, form, iter))
+
+    for i, (patt, form) in enumerate(rules):
+        push(i, re.finditer(patt, text, flags=flags), form)
+
+    k = 0
+    n = 0
+
+    while heap:
+        start, i, match, form, iter = heappop(heap)
+
+        if start >= k:
+            yield match, form
+
+            n += 1
+            if n >= limit > 0:
+                break
+
+            k = match.end()
+
+        push(i, iter, form)
+
+
+def to_regex(expr, evaluation, q=_regex_longest, groups=None, abbreviated_patterns=False):
     if expr is None:
         return None
+
+    if groups is None:
+        groups = {}
+
+    def recurse(x, quantifiers=q):
+        return to_regex(x, evaluation, q=quantifiers, groups=groups)
 
     if isinstance(expr, String):
         result = expr.get_string_value()
@@ -71,16 +136,16 @@ def to_regex(expr, abbreviated_patterns=False):
     if isinstance(expr, Symbol):
         return {
             'System`NumberString': r'[-|+]?(\d+(\.\d*)?|\.\d+)?',
-            'System`Whitespace': r'\s+',
+            'System`Whitespace': r'(?u)\s+',
             'System`DigitCharacter': r'\d',
-            'System`WhitespaceCharacter': r'\s',
-            'System`WordCharacter': r'[0-9a-zA-Z]',
+            'System`WhitespaceCharacter': r'(?u)\s',
+            'System`WordCharacter': r'(?u)[^\W_]',
             'System`StartOfLine': r'^',
             'System`EndOfLine': r'$',
             'System`StartOfString': r'\A',
             'System`EndOfString': r'\Z',
             'System`WordBoundary': r'\b',
-            'System`LetterCharacter': r'[a-zA-Z]',
+            'System`LetterCharacter': r'(?u)[^\W_0-9]',
             'System`HexidecimalCharacter': r'[0-9a-fA-F]',
         }.get(expr.get_name())
 
@@ -92,15 +157,15 @@ def to_regex(expr, abbreviated_patterns=False):
     if expr.has_form('Blank', 0):
         return r'(.|\n)'
     if expr.has_form('BlankSequence', 0):
-        return r'(.|\n)+'
+        return r'(.|\n)' + q['+']
     if expr.has_form('BlankNullSequence', 0):
-        return r'(.|\n)*'
+        return r'(.|\n)' + q['*']
     if expr.has_form('Except', 1, 2):
         if len(expr.leaves) == 1:
             leaves = [expr.leaves[0], Expression('Blank')]
         else:
             leaves = [expr.leaves[0], expr.leaves[1]]
-        leaves = [to_regex(leaf) for leaf in leaves]
+        leaves = [recurse(leaf) for leaf in leaves]
         if all(leaf is not None for leaf in leaves):
             return '(?!{0}){1}'.format(*leaves)
     if expr.has_form('Characters', 1):
@@ -108,22 +173,41 @@ def to_regex(expr, abbreviated_patterns=False):
         if leaf is not None:
             return '[{0}]'.format(re.escape(leaf))
     if expr.has_form('StringExpression', None):
-        leaves = [to_regex(leaf) for leaf in expr.leaves]
+        leaves = [recurse(leaf) for leaf in expr.leaves]
         if None in leaves:
             return None
         return "".join(leaves)
     if expr.has_form('Repeated', 1):
-        leaf = to_regex(expr.leaves[0])
+        leaf = recurse(expr.leaves[0])
         if leaf is not None:
-            return '({0})+'.format(leaf)
+            return '({0})'.format(leaf) + q['+']
     if expr.has_form('RepeatedNull', 1):
-        leaf = to_regex(expr.leaves[0])
+        leaf = recurse(expr.leaves[0])
         if leaf is not None:
-            return '({0})*'.format(leaf)
+            return '({0})'.format(leaf) + q['*']
     if expr.has_form('Alternatives', None):
-        leaves = [to_regex(leaf) for leaf in expr.leaves]
+        leaves = [recurse(leaf) for leaf in expr.leaves]
         if all(leaf is not None for leaf in leaves):
             return "|".join(leaves)
+    if expr.has_form('Shortest', 1):
+        return recurse(expr.leaves[0], quantifiers=_regex_shortest)
+    if expr.has_form('Longest', 1):
+        return recurse(expr.leaves[0], quantifiers=_regex_longest)
+    if expr.has_form('Pattern', 2) and isinstance(expr.leaves[0], Symbol):
+        name = expr.leaves[0].get_name()
+        patt = groups.get(name, None)
+        if patt is not None:
+            if expr.leaves[1].has_form('Blank', 0):
+                pass  # ok, no warnings
+            elif not expr.leaves[1].same(patt):
+                evaluation.message('StringExpression', 'cond', expr.leaves[0], expr, expr.leaves[0])
+            return '(?P=%s)' % _encode_pname(name)
+        else:
+            groups[name] = expr.leaves[1]
+            return '(?P<%s>%s)' % (
+                _encode_pname(name),
+                recurse(expr.leaves[1]))
+
     return None
 
 
@@ -183,6 +267,7 @@ class StringExpression(BinaryOperator):
 
     messages = {
         'invld': 'Element `1` is not a valid string or pattern element in `2`.',
+        'cond': 'Ignored restriction given for `1` in `2` as it does not match previous occurences of `1`.',
     }
 
     def apply(self, args, evaluation):
@@ -422,15 +507,15 @@ class LetterCharacter(Builtin):
     """
     <dl>
     <dt>'LetterCharacter'
-      <dd>represents the letters a-z and A-Z.
+      <dd>represents letters.
     </dl>
 
     >> StringMatchQ[#, LetterCharacter] & /@ {"a", "1", "A", " ", "."}
      = {True, False, True, False, False}
 
-    LetterCharacter does not match unicode characters.
+    LetterCharacter also matches unicode characters.
     >> StringMatchQ["\[Lambda]", LetterCharacter]
-     = False
+     = True
     """
 
 
@@ -522,7 +607,7 @@ class StringMatchQ(Builtin):
             return evaluation.message('StringMatchQ', 'strse', Integer(1),
                                       Expression('StringMatchQ', string, patt))
 
-        re_patt = to_regex(patt, abbreviated_patterns=True)
+        re_patt = to_regex(patt, evaluation, abbreviated_patterns=True)
         if re_patt is None:
             return evaluation.message('StringExpression', 'invld', patt,
                                       Expression('StringExpression', patt))
@@ -654,7 +739,7 @@ class StringSplit(Builtin):
             patts = [patt]
         re_patts = []
         for p in patts:
-            py_p = to_regex(p)
+            py_p = to_regex(p, evaluation)
             if py_p is None:
                 return evaluation.message('StringExpression', 'invld', p, patt)
             re_patts.append(py_p)
@@ -777,7 +862,7 @@ class StringPosition(Builtin):
             patts = [patt]
         re_patts = []
         for p in patts:
-            py_p = to_regex(p)
+            py_p = to_regex(p, evaluation)
             if py_p is None:
                 return evaluation.message('StringExpression', 'invld', p, patt)
             re_patts.append(py_p)
@@ -846,7 +931,90 @@ class StringLength(Builtin):
         return Integer(len(str.value))
 
 
-class StringReplace(Builtin):
+class _StringFind(Builtin):
+    attributes = ('Protected')
+
+    options = {
+        'IgnoreCase': 'False',
+        'MetaCharacters': 'None',
+    }
+
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+        'srep': '`1` is not a valid string replacement rule.',
+        'innf': ('Non-negative integer or Infinity expected at '
+                 'position `1` in `2`.'),
+    }
+
+    def _find(py_stri, py_rules, py_n, flags):
+        raise NotImplementedError()
+
+    def _apply(self, string, rule, n, evaluation, options, cases):
+        if n.same(Symbol('System`Private`Null')):
+            expr = Expression(self.get_name(), string, rule)
+            n = None
+        else:
+            expr = Expression(self.get_name(), string, rule, n)
+
+        # convert string
+        if string.has_form('List', None):
+            py_strings = [stri.get_string_value() for stri in string.leaves]
+            if None in py_strings:
+                return evaluation.message(
+                    self.get_name(), 'strse', Integer(1), expr)
+        else:
+            py_strings = string.get_string_value()
+            if py_strings is None:
+                return evaluation.message(
+                    self.get_name(), 'strse', Integer(1), expr)
+
+        # convert rule
+        def convert_rule(r):
+            if r.has_form('Rule', None) and len(r.leaves) == 2:
+                py_s = to_regex(r.leaves[0], evaluation)
+                if py_s is None:
+                    return evaluation.message(
+                        'StringExpression', 'invld', r.leaves[0], r.leaves[0])
+                py_sp = r.leaves[1]
+                return py_s, py_sp
+            elif cases:
+                py_s = to_regex(r, evaluation)
+                if py_s is None:
+                    return evaluation.message('StringExpression', 'invld', r, r)
+                return py_s, None
+
+            return evaluation.message(self.get_name(), 'srep', r)
+
+        if rule.has_form('List', None):
+            py_rules = [convert_rule(r) for r in rule.leaves]
+        else:
+            py_rules = [convert_rule(rule)]
+        if None in py_rules:
+            return None
+
+        # convert n
+        if n is None:
+            py_n = 0
+        elif n == Expression('DirectedInfinity', Integer(1)):
+            py_n = 0
+        else:
+            py_n = n.get_int_value()
+            if py_n is None or py_n < 0:
+                return evaluation.message(self.get_name(), 'innf', Integer(3), expr)
+
+        # flags
+        flags = re.MULTILINE
+        if options['System`IgnoreCase'] == Symbol('True'):
+            flags = flags | re.IGNORECASE
+
+        if isinstance(py_strings, list):
+            return Expression(
+                'List', *[self._find(py_stri, py_rules, py_n, flags, evaluation) for py_stri in py_strings])
+        else:
+            return self._find(py_strings, py_rules, py_n, flags, evaluation)
+
+
+class StringReplace(_StringFind):
     """
     <dl>
     <dt>'StringReplace["$string$", "$a$"->"$b$"]'
@@ -869,9 +1037,13 @@ class StringReplace(Builtin):
     >> StringReplace["xyzwxyzwxxyzxyzw", {"xyz" -> "A", "w" -> "BCD"}]
      = ABCDABCDxAABCD
 
-    Only replace the first 2 occurances:
+    Only replace the first 2 occurences:
     >> StringReplace["xyxyxyyyxxxyyxy", "xy" -> "A", 2]
      = AAxyyyxxxyyxy
+
+    Also works for multiple rules:
+    >> StringReplace["abba", {"a" -> "A", "b" -> "B"}, 2]
+     = ABba
 
     StringReplace acts on lists of strings too:
     >> StringReplace[{"xyxyxxy", "yxyxyxxxyyxy"}, "xy" -> "A"]
@@ -891,6 +1063,9 @@ class StringReplace(Builtin):
     #> StringReplace["abcabc", "a" -> "b", -1]
      : Non-negative integer or Infinity expected at position 3 in StringReplace[abcabc, a -> b, -1].
      = StringReplace[abcabc, a -> b, -1]
+    #> StringReplace["abc", "b" -> 4]
+     : String expected.
+     = a <> 4 <> c
 
     #> StringReplace["01101100010", "01" .. -> "x"]
      = x1x100x0
@@ -930,91 +1105,95 @@ class StringReplace(Builtin):
      = A x B
     """
 
-    attributes = ('Protected')
-
-    options = {
-        'IgnoreCase': 'False',
-        'MetaCharacters': 'None',
-    }
-
-    messages = {
-        'strse': 'String or list of strings expected at position `1` in `2`.',
-        'srep': '`1` is not a valid string replacement rule.',
-        'innf': ('Non-negative integer or Infinity expected at '
-                 'position `1` in `2`.'),
-    }
-
     rules = {
         'StringReplace[rule_][string_]': 'StringReplace[string, rule]',
     }
 
-    def apply_n(self, string, rule, n, evaluation, options):
-        'StringReplace[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'
+    def _find(self, py_stri, py_rules, py_n, flags, evaluation):
+        def cases():
+            k = 0
+            for match, form in _parallel_match(py_stri, py_rules, flags, py_n):
+                start, end = match.span()
+                if start > k:
+                    yield String(py_stri[k:start])
+                yield _evaluate_match(form, match, evaluation)
+                k = end
+            if k < len(py_stri):
+                yield String(py_stri[k:])
+
+        return Expression('StringJoin', *list(cases()))
+
+    def apply(self, string, rule, n, evaluation, options):
+        '%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'
         # this pattern is a slight hack to get around missing Shortest/Longest.
+        return self._apply(string, rule, n, evaluation, options, False)
 
-        if n.same(Symbol('System`Private`Null')):
-            expr = Expression('StringReplace', string, rule)
-            n = None
-        else:
-            expr = Expression('StringReplace', string, rule, n)
 
-        # convert string
-        if string.has_form('List', None):
-            py_strings = [stri.get_string_value() for stri in string.leaves]
-            if None in py_strings:
-                return evaluation.message(
-                    'StringReplace', 'strse', Integer(1), expr)
-        else:
-            py_strings = string.get_string_value()
-            if py_strings is None:
-                return evaluation.message(
-                    'StringReplace', 'strse', Integer(1), expr)
+class StringCases(_StringFind):
+    '''
+    <dl>
+    <dt>'StringCases["$string$", $pattern$]'
+        <dd>gives all occurences of $pattern$ in $string$.
+    <dt>'StringReplace["$string$", $pattern$ -> $form$]'
+        <dd>gives all instances of $form$ that stem from occurences of $pattern$ in $string$.
+    <dt>'StringCases["$string$", {$pattern1$, $pattern2$, ...}]'
+        <dd>gives all occurences of $pattern1$, $pattern2$, ....
+    <dt>'StringReplace["$string$", $pattern$, $n$]'
+        <dd>gives only the first $n$ occurences.
+    <dt>'StringReplace[{"$string1$", "$string2$", ...}, $pattern$]'
+        <dd>gives occurences in $string1$, $string2$, ...
+    </dl>
 
-        # convert rule
-        def convert_rule(r):
-            if r.has_form('Rule', None) and len(r.leaves) == 2:
-                py_s = to_regex(r.leaves[0])
-                if py_s is None:
-                    return evaluation.message(
-                        'StringExpression', 'invld', r.leaves[0], r.leaves[0])
-                # TODO: py_sp is allowed to be more general (function, etc)
-                py_sp = r.leaves[1].get_string_value()
-                if py_sp is not None:
-                    return (py_s, py_sp)
-            return evaluation.message('StringReplace', 'srep', r)
+    >> StringCases["axbaxxb", "a" ~~ x_ ~~ "b"]
+     = {axb}
 
-        if rule.has_form('List', None):
-            py_rules = [convert_rule(r) for r in rule.leaves]
-        else:
-            py_rules = [convert_rule(rule)]
-        if None in py_rules:
-            return None
+    >> StringCases["axbaxxb", "a" ~~ x__ ~~ "b"]
+     = {axbaxxb}
 
-        # convert n
-        if n is None:
-            py_n = 0
-        elif n == Expression('DirectedInfinity', Integer(1)):
-            py_n = 0
-        else:
-            py_n = n.get_int_value()
-            if py_n is None or py_n < 0:
-                return evaluation.message('StringReplace', 'innf', Integer(3), expr)
+    >> StringCases["axbaxxb", Shortest["a" ~~ x__ ~~ "b"]]
+     = {axb, axxb}
 
-        # flags
-        flags = re.MULTILINE
-        if options['System`IgnoreCase'] == Symbol('True'):
-            flags = flags | re.IGNORECASE
+    >> StringCases["-abc- def -uvw- xyz", Shortest["-" ~~ x__ ~~ "-"] -> x]
+     = {abc, uvw}
 
-        def do_subs(py_stri):
-            for py_s, py_sp in py_rules:
-                py_stri = re.sub(py_s, py_sp, py_stri, py_n, flags=flags)
-            return py_stri
+    >> StringCases["-öhi- -abc- -.-", "-" ~~ x : WordCharacter .. ~~ "-" -> x]
+     = {öhi, abc}
 
-        if isinstance(py_strings, list):
-            return Expression(
-                'List', *[String(do_subs(py_stri)) for py_stri in py_strings])
-        else:
-            return String(do_subs(py_strings))
+    >> StringCases["abc-abc xyz-uvw", Shortest[x : WordCharacter .. ~~ "-" ~~ x_] -> x]
+     = {abc}
+
+    #> StringCases["abc-abc xyz-uvw", Shortest[x : WordCharacter .. ~~ "-" ~~ x : LetterCharacter] -> x]
+     : Ignored restriction given for x in x : LetterCharacter as it does not match previous occurences of x.
+     = {abc}
+
+    >> StringCases["abba", {"a" -> 10, "b" -> 20}, 2]
+     = {10, 20}
+
+    >> StringCases["a#ä_123", WordCharacter]
+     = {a, ä, 1, 2, 3}
+
+    >> StringCases["a#ä_123", LetterCharacter]
+     = {a, ä}
+    '''
+
+    rules = {
+        'StringCases[rule_][string_]': 'StringCases[string, rule]',
+    }
+
+    def _find(self, py_stri, py_rules, py_n, flags, evaluation):
+        def cases():
+            for match, form in _parallel_match(py_stri, py_rules, flags, py_n):
+                if form is None:
+                    yield String(match.group(0))
+                else:
+                    yield _evaluate_match(form, match, evaluation)
+
+        return Expression('List', *list(cases()))
+
+    def apply(self, string, rule, n, evaluation, options):
+        '%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'
+        # this pattern is a slight hack to get around missing Shortest/Longest.
+        return self._apply(string, rule, n, evaluation, options, True)
 
 
 class StringRepeat(Builtin):
@@ -1031,33 +1210,38 @@ class StringRepeat(Builtin):
 
     >> StringRepeat["abc", 10, 7]
      = abcabca
+
+    #> StringRepeat["x", 0]
+     : A positive integer is expected at position 2 in StringRepeat[x, 0].
+     = StringRepeat[x, 0]
     """
 
     messages = {
         'intp': 'A positive integer is expected at position `1` in `2`.',
     }
 
-    def apply(self, s, n, evaluation):
+    def apply(self, s, n, expression, evaluation):
         'StringRepeat[s_String, n_]'
         py_n = n.get_int_value() if isinstance(n, Integer) else 0
         if py_n < 1:
-            evaluation.message('StringRepeat', 'intp', 2, Expression('StringRepeat', s, n))
-        return String(s.get_string_value() * py_n)
+            evaluation.message('StringRepeat', 'intp', 2, expression)
+        else:
+            return String(s.get_string_value() * py_n)
 
-    def apply_truncated(self, s, n, m, evaluation):
+    def apply_truncated(self, s, n, m, expression, evaluation):
         'StringRepeat[s_String, n_Integer, m_Integer]'
         py_n = n.get_int_value() if isinstance(n, Integer) else 0
         py_m = m.get_int_value() if isinstance(m, Integer) else 0
 
         if py_n < 1:
-            evaluation.message('StringRepeat', 'intp', 2, Expression('StringRepeat', s, n, m))
-        if py_m < 1:
-            evaluation.message('StringRepeat', 'intp', 3, Expression('StringRepeat', s, n, m))
+            evaluation.message('StringRepeat', 'intp', 2, expression)
+        elif py_m < 1:
+            evaluation.message('StringRepeat', 'intp', 3, expression)
+        else:
+            py_s = s.get_string_value()
+            py_n = min(1 + py_m // len(py_s), py_n)
 
-        py_s = s.get_string_value()
-        py_n = min(1 + py_m // len(py_s), py_n)
-
-        return String((py_s * py_n)[:py_m])
+            return String((py_s * py_n)[:py_m])
 
 
 class Characters(Builtin):

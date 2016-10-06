@@ -14,13 +14,142 @@ from mathics.builtin.base import Builtin, Predefined, Symbol, String
 
 from .pymimesniffer import magic
 import mimetypes
+import sys
 
+import urllib
+
+try:
+    import urllib.request as urllib2
+    from urllib.error import HTTPError, URLError
+except ImportError:
+    import urllib2
+    from urllib2 import HTTPError, URLError
 
 mimetypes.add_type('application/vnd.wolfram.mathematica.package', '.m')
 
 # Seems that JSON is not registered on the mathics.net server, so we do it manually here.
 # Keep in mind that mimetypes has system-dependent aspects (it inspects "/etc/mime.types" and other files).
 mimetypes.add_type('application/json', '.json')
+
+# TODO: Add more file formats
+
+mimetype_dict = {
+    'application/dicom': 'DICOM',
+    'application/dbase': 'DBF',
+    'application/dbf': 'DBF',
+    'application/eps': 'EPS',
+    'application/fits': 'FITS',
+    'application/json': 'JSON',
+    'application/mathematica': 'NB',
+    'application/mdb': 'MDB',
+    'application/mbox': 'MBOX',
+    'application/msaccess': 'MDB',
+    'application/octet-stream': 'OBJ',
+    'application/pdf': 'PDF',
+    'application/pcx': 'PCX',
+    'application/postscript': 'EPS',
+    'application/rss+xml': 'RSS',
+    'application/rtf': 'RTF',
+    'application/sla': 'STL',
+    'application/tga': 'TGA',
+    'application/vnd.google-earth.kml+xml': 'KML',
+    'application/vnd.ms-excel': 'XLS',
+    'application/vnd.ms-pki.stl': 'STL',
+    'application/vnd.oasis.opendocument.spreadsheet': 'ODS',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',  # nopep8
+    'application/vnd.sun.xml.calc': 'SXC',
+    'application/vnd.msaccess': 'MDB',
+    'application/vnd.wolfram.cdf': 'CDF',
+    'application/vnd.wolfram.cdf.text': 'CDF',
+    'application/vnd.wolfram.mathematica.package': 'Package',
+    'application/xhtml+xml': 'XHTML',
+    'application/xml': 'XML',
+    'application/x-3ds': '3DS',
+    'application/x-cdf': 'NASACDF',
+    'application/x-eps': 'EPS',
+    'application/x-flac': 'FLAC',
+    'application/x-font-bdf': 'BDF',
+    'application/x-hdf': 'HDF',
+    'application/x-msaccess': 'MDB',
+    'application/x-netcdf': 'NetCDF',
+    'application/x-shockwave-flash': 'SWF',
+    'application/x-tex': 'TeX',  # Also TeX
+    'audio/aiff': 'AIFF',
+    'audio/basic': 'AU',  # Also SND
+    'audio/midi': 'MIDI',
+    'audio/x-aifc': 'AIFF',
+    'audio/x-aiff': 'AIFF',
+    'audio/x-flac': 'FLAC',
+    'audio/x-wav': 'WAV',
+    'chemical/seq-na-genbank': 'GenBank',
+    'chemical/seq-aa-fasta': 'FASTA',
+    'chemical/seq-na-fasta': 'FASTA',
+    'chemical/seq-na-fastq': 'FASTQ',
+    'chemical/seq-na-sff': 'SFF',
+    'chemical/x-cif': 'CIF',
+    'chemical/x-daylight-smiles': 'SMILES',
+    'chemical/x-hin': 'HIN',
+    'chemical/x-jcamp-dx': 'JCAMP-DX',
+    'chemical/x-mdl-molfile': 'MOL',
+    'chemical/x-mdl-sdf': 'SDF',
+    'chemical/x-mdl-sdfile': 'SDF',
+    'chemical/x-mdl-tgf': 'TGF',
+    'chemical/x-mmcif': 'CIF',
+    'chemical/x-mol2': 'MOL2',
+    'chemical/x-mopac-input': 'Table',
+    'chemical/x-pdb': 'PDB',
+    'chemical/x-xyz': 'XYZ',
+    'image/bmp': 'BMP',
+    'image/eps': 'EPS',
+    'image/fits': 'FITS',
+    'image/gif': 'GIF',
+    'image/jp2': 'JPEG2000',
+    'image/jpeg': 'JPEG',
+    'image/pbm': 'PNM',
+    'image/pcx': 'PCX',
+    'image/pict': 'PICT',
+    'image/png': 'PNG',
+    'image/svg+xml': 'SVG',
+    'image/tga': 'TGA',
+    'image/tiff': 'TIFF',
+    'image/vnd.dxf': 'DXF',
+    'image/vnd.microsoft.icon': 'ICO',
+    'image/x-3ds': '3DS',
+    'image/x-dxf': 'DXF',
+    'image/x-exr': 'OpenEXR',
+    'image/x-icon': 'ICO',
+    'image/x-ms-bmp': 'BMP',
+    'image/x-pcx': 'PCX',
+    'image/x-portable-anymap': 'PNM',
+    'image/x-portable-bitmap': 'PBM',
+    'image/x-portable-graymap': 'PGM',
+    'image/x-portable-pixmap': 'PPM',
+    'image/x-xbitmap': 'XBM',
+    'model/x3d+xml': 'X3D',
+    'model/vrml': 'VRML',
+    'model/x-lwo': 'LWO',
+    'model/x-pov': 'POV',
+    'text/calendar': 'ICS',
+    'text/comma-separated-values': 'CSV',
+    'text/csv': 'CSV',
+    'text/html': 'HTML',
+    'text/mathml': 'MathML',
+    'text/plain': 'Text',
+    'text/rtf': 'RTF',
+    'text/scriptlet': 'SCT',
+    'text/tab-separated-values': 'TSV',
+    'text/texmacs': 'Text',
+    'text/vnd.graphviz': 'DOT',
+    'text/x-csrc': 'C',
+    'text/x-tex': 'TeX',
+    'text/x-vcalendar': 'VCS',
+    'text/x-vcard': 'VCF',
+    'text/xml': 'XML',
+    'video/avi': 'AVI',
+    'video/quicktime': 'QuickTime',
+    'video/x-flv': 'FLV',
+    # None: 'Binary',
+}
 
 IMPORTERS = {}
 EXPORTERS = {}
@@ -238,6 +367,64 @@ class RegisterExport(Builtin):
         return Symbol('Null')
 
 
+class FetchURL(Builtin):
+    '''
+    #> Quiet[FetchURL["https:////", {}]]
+     = $Failed
+
+    #> Quiet[FetchURL["http://mathics.org/url_test_case", {}]]
+     = $Failed
+    '''
+
+    messages = {
+        'httperr': '`1` could not be retrieved; `2`.',
+    }
+
+    def apply(self, url, elements, evaluation):
+        'FetchURL[url_String, elements_]'
+
+        import tempfile
+        import os
+
+        py_url = url.get_string_value()
+
+        temp_handle, temp_path = tempfile.mkstemp(suffix='')
+        try:
+            f = urllib2.urlopen(py_url)
+            try:
+                if sys.version_info >= (3, 0):
+                    content_type = f.info().get_content_type()
+                else:
+                    content_type = f.headers['content-type']
+
+                os.write(temp_handle, f.read())
+            finally:
+                f.close()
+
+            def determine_filetype():
+                return mimetype_dict.get(content_type)
+
+            result = Import._import(temp_path, determine_filetype, elements, evaluation)
+        except HTTPError as e:
+            evaluation.message(
+                'FetchURL', 'httperr', url,
+                'the server returned an HTTP status code of %s (%s)' % (e.code, str(e.reason)))
+            return Symbol('$Failed')
+        except URLError as e:  # see https://docs.python.org/3/howto/urllib2.html
+            if hasattr(e, 'reason'):
+                evaluation.message('FetchURL', 'httperr', url, str(e.reason))
+            elif hasattr(e, 'code'):
+                evaluation.message('FetchURL', 'httperr', url, 'server returned %s' % e.code)
+            return Symbol('$Failed')
+        except ValueError as e:
+            evaluation.message('FetchURL', 'httperr', url, str(e))
+            return Symbol('$Failed')
+        finally:
+            os.unlink(temp_path)
+
+        return result
+
+
 class Import(Builtin):
     """
     <dl>
@@ -273,6 +460,10 @@ class Import(Builtin):
     ## JSON
     >> Import["ExampleData/colors.json"]
      = {colorsArray -> {{colorName -> black, rgbValue -> (0, 0, 0), hexValue -> #000000}, {colorName -> red, rgbValue -> (255, 0, 0), hexValue -> #FF0000}, {colorName -> green, rgbValue -> (0, 255, 0), hexValue -> #00FF00}, {colorName -> blue, rgbValue -> (0, 0, 255), hexValue -> #0000FF}, {colorName -> yellow, rgbValue -> (255, 255, 0), hexValue -> #FFFF00}, {colorName -> cyan, rgbValue -> (0, 255, 255), hexValue -> #00FFFF}, {colorName -> magenta, rgbValue -> (255, 0, 255), hexValue -> #FF00FF}, {colorName -> white, rgbValue -> (255, 255, 255), hexValue -> #FFFFFF}}}
+
+    ## XML
+    #> Import["ExampleData/InventionNo1.xml", "Tags"]
+     = {accidental, alter, arpeggiate, ..., words}
     """
 
     messages = {
@@ -297,11 +488,25 @@ class Import(Builtin):
             evaluation.message('Import', 'chtype', filename)
             return Symbol('$Failed')
 
+        # Download via URL
+        if isinstance(filename, String):
+            if any(filename.get_string_value().startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
+                return Expression('FetchURL', filename, elements)
+
+        # Load local file
         findfile = Expression('FindFile', filename).evaluate(evaluation)
         if findfile == Symbol('$Failed'):
             evaluation.message('Import', 'nffil')
             return findfile
 
+        def determine_filetype():
+            return Expression('FileFormat', findfile).evaluate(
+                evaluation=evaluation).get_string_value()
+
+        return self._import(findfile, determine_filetype, elements, evaluation)
+
+    @staticmethod
+    def _import(findfile, determine_filetype, elements, evaluation):
         # Check elements
         if elements.has_form('List', None):
             elements = elements.get_leaves()
@@ -322,8 +527,7 @@ class Import(Builtin):
                 elements.remove(el)
                 break
         else:
-            filetype = Expression('FileFormat', findfile).evaluate(
-                evaluation=evaluation).get_string_value()
+            filetype = determine_filetype()
 
         if filetype not in IMPORTERS.keys():
             evaluation.message('Import', 'fmtnosup', filetype)
@@ -367,7 +571,7 @@ class Import(Builtin):
         # Perform the import
         defaults = None
 
-        if elements == []:
+        if not elements:
             defaults = get_results(default_function)
             if defaults is None:
                 return Symbol('$Failed')
@@ -646,12 +850,12 @@ class FileFormat(Builtin):
 
     #> FileFormat["ExampleData/Testosterone.svg"]
      = SVG
-    """
 
-    # TODO: JSON example file
-    """
-    #> FileFormat["ExampleData/example.json"]
+    #> FileFormat["ExampleData/colors.json"]
      = JSON
+
+    #> FileFormat["ExampleData/InventionNo1.xml"]
+     = XML
     """
 
     messages = {
@@ -686,129 +890,10 @@ class FileFormat(Builtin):
             else:
                 mime = set([mime])
 
-        # TODO: Add more file formats
-
-        typedict = {
-            'application/dicom': 'DICOM',
-            'application/dbase': 'DBF',
-            'application/dbf': 'DBF',
-            'application/eps': 'EPS',
-            'application/fits': 'FITS',
-            'application/json': 'JSON',
-            'application/mathematica': 'NB',
-            'application/mdb': 'MDB',
-            'application/mbox': 'MBOX',
-            'application/msaccess': 'MDB',
-            'application/octet-stream': 'OBJ',
-            'application/pdf': 'PDF',
-            'application/pcx': 'PCX',
-            'application/postscript': 'EPS',
-            'application/rss+xml': 'RSS',
-            'application/rtf': 'RTF',
-            'application/sla': 'STL',
-            'application/tga': 'TGA',
-            'application/vnd.google-earth.kml+xml': 'KML',
-            'application/vnd.ms-excel': 'XLS',
-            'application/vnd.ms-pki.stl': 'STL',
-            'application/vnd.oasis.opendocument.spreadsheet': 'ODS',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',    # nopep8
-            'application/vnd.sun.xml.calc': 'SXC',
-            'application/vnd.msaccess': 'MDB',
-            'application/vnd.wolfram.cdf': 'CDF',
-            'application/vnd.wolfram.cdf.text': 'CDF',
-            'application/vnd.wolfram.mathematica.package': 'Package',
-            'application/xhtml+xml': 'XHTML',
-            'application/xml': 'XML',
-            'application/x-3ds': '3DS',
-            'application/x-cdf': 'NASACDF',
-            'application/x-eps': 'EPS',
-            'application/x-flac': 'FLAC',
-            'application/x-font-bdf': 'BDF',
-            'application/x-hdf': 'HDF',
-            'application/x-msaccess': 'MDB',
-            'application/x-netcdf': 'NetCDF',
-            'application/x-shockwave-flash': 'SWF',
-            'application/x-tex': 'TeX',  # Also TeX
-            'audio/aiff': 'AIFF',
-            'audio/basic': 'AU',        # Also SND
-            'audio/midi': 'MIDI',
-            'audio/x-aifc': 'AIFF',
-            'audio/x-aiff': 'AIFF',
-            'audio/x-flac': 'FLAC',
-            'audio/x-wav': 'WAV',
-            'chemical/seq-na-genbank': 'GenBank',
-            'chemical/seq-aa-fasta': 'FASTA',
-            'chemical/seq-na-fasta': 'FASTA',
-            'chemical/seq-na-fastq': 'FASTQ',
-            'chemical/seq-na-sff': 'SFF',
-            'chemical/x-cif': 'CIF',
-            'chemical/x-daylight-smiles': 'SMILES',
-            'chemical/x-hin': 'HIN',
-            'chemical/x-jcamp-dx': 'JCAMP-DX',
-            'chemical/x-mdl-molfile': 'MOL',
-            'chemical/x-mdl-sdf': 'SDF',
-            'chemical/x-mdl-sdfile': 'SDF',
-            'chemical/x-mdl-tgf': 'TGF',
-            'chemical/x-mmcif': 'CIF',
-            'chemical/x-mol2': 'MOL2',
-            'chemical/x-mopac-input': 'Table',
-            'chemical/x-pdb': 'PDB',
-            'chemical/x-xyz': 'XYZ',
-            'image/bmp': 'BMP',
-            'image/eps': 'EPS',
-            'image/fits': 'FITS',
-            'image/gif': 'GIF',
-            'image/jp2': 'JPEG2000',
-            'image/jpeg': 'JPEG',
-            'image/pbm': 'PNM',
-            'image/pcx': 'PCX',
-            'image/pict': 'PICT',
-            'image/png': 'PNG',
-            'image/svg+xml': 'SVG',
-            'image/tga': 'TGA',
-            'image/tiff': 'TIFF',
-            'image/vnd.dxf': 'DXF',
-            'image/vnd.microsoft.icon': 'ICO',
-            'image/x-3ds': '3DS',
-            'image/x-dxf': 'DXF',
-            'image/x-exr': 'OpenEXR',
-            'image/x-icon': 'ICO',
-            'image/x-ms-bmp': 'BMP',
-            'image/x-pcx': 'PCX',
-            'image/x-portable-anymap': 'PNM',
-            'image/x-portable-bitmap': 'PBM',
-            'image/x-portable-graymap': 'PGM',
-            'image/x-portable-pixmap': 'PPM',
-            'image/x-xbitmap': 'XBM',
-            'model/x3d+xml': 'X3D',
-            'model/vrml': 'VRML',
-            'model/x-lwo': 'LWO',
-            'model/x-pov': 'POV',
-            'text/calendar': 'ICS',
-            'text/comma-separated-values': 'CSV',
-            'text/csv': 'CSV',
-            'text/html': 'HTML',
-            'text/mathml': 'MathML',
-            'text/plain': 'Text',
-            'text/rtf': 'RTF',
-            'text/scriptlet': 'SCT',
-            'text/tab-separated-values': 'TSV',
-            'text/texmacs': 'Text',
-            'text/vnd.graphviz': 'DOT',
-            'text/x-csrc': 'C',
-            'text/x-tex': 'TeX',
-            'text/x-vcalendar': 'VCS',
-            'text/x-vcard': 'VCF',
-            'video/avi': 'AVI',
-            'video/quicktime': 'QuickTime',
-            'video/x-flv': 'FLV',
-            # None: 'Binary',
-        }
-
         result = []
-        for key in typedict.keys():
+        for key in mimetype_dict.keys():
             if key in mime:
-                result.append(typedict[key])
+                result.append(mimetype_dict[key])
 
         if len(result) == 0:
             result = 'Binary'

@@ -81,7 +81,6 @@ def parenthesize(precedence, leaf, leaf_boxes, when_equal):
 
 
 def make_boxes_infix(leaves, ops, precedence, grouping, form):
-
     result = []
     for index, leaf in enumerate(leaves):
         if index > 0:
@@ -96,6 +95,7 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
 
         leaf_boxes = MakeBoxes(leaf, form)
         leaf = parenthesize(precedence, leaf, leaf_boxes, parenthesized)
+
         result.append(leaf)
     return Expression('RowBox', Expression('List', *result))
 

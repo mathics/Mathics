@@ -1178,6 +1178,21 @@ class RepeatedNull(Repeated):
         super(RepeatedNull, self).init(expr, min=0)
 
 
+class Shortest(Builtin):
+    pass
+
+
+class Longest(Builtin):
+    '''
+    >> StringCases["aabaaab", Longest["a" ~~ __ ~~ "b"]]
+     = {aabaaab}
+
+    >> StringCases["aabaaab", Longest[RegularExpression["a+b"]]]
+     = {aab, aaab}
+    '''
+    pass
+
+
 class Condition(BinaryOperator, PatternObject):
     """
     <dl>

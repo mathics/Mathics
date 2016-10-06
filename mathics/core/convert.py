@@ -22,6 +22,16 @@ sympy_slot_prefix = '_Mathics_Slot_'
 BasicSympy = sympy.Expr
 
 
+def is_Cn_expr(name):
+    if name.startswith(sympy_symbol_prefix) or name.startswith(sympy_slot_prefix):
+        return False
+    if not name.startswith('C'):
+        return False
+    n = name[1:]
+    if n and n.isdigit():
+        return True
+
+
 class SympyExpression(BasicSympy):
     is_Function = True
     nargs = None
@@ -126,9 +136,7 @@ def from_sympy(expr):
             if isinstance(expr, symbol.Dummy):
                 name = name + ('__Dummy_%d' % expr.dummy_index)
                 return Symbol(name, sympy_dummy=expr)
-            if ((not name.startswith(sympy_symbol_prefix) or     # noqa
-                 name.startswith(sympy_slot_prefix)) and
-                name.startswith('C')):
+            if is_Cn_expr(name):
                 return Expression('C', int(name[1:]))
             if name.startswith(sympy_symbol_prefix):
                 name = name[len(sympy_symbol_prefix):]
@@ -237,6 +245,8 @@ def from_sympy(expr):
             name = 'Derivative'
         else:
             name = expr.func.__name__
+            if is_Cn_expr(name):
+                return Expression(Expression('C', int(name[1:])), *[from_sympy(arg) for arg in expr.args])
             if name.startswith(sympy_symbol_prefix):
                 name = name[len(sympy_symbol_prefix):]
         args = [from_sympy(arg) for arg in expr.args]

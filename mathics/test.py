@@ -15,7 +15,7 @@ from six.moves import zip
 
 import mathics
 from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation
+from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import SingleLineFeeder
 from mathics.builtin import builtins
 from mathics.doc import documentation
@@ -23,6 +23,12 @@ from mathics import version_string
 from mathics import settings
 
 definitions = Definitions(add_builtin=True)
+
+
+class TestOutput(Output):
+    def max_stored_size(self, settings):
+        return None
+
 
 sep = '-' * 70 + '\n'
 
@@ -58,7 +64,7 @@ def test_case(test, tests, index=0, quiet=False):
         print('%4d. TEST %s' % (index, test))
 
     feeder = SingleLineFeeder(test, '<test>')
-    evaluation = Evaluation(definitions, catch_interrupt=False)
+    evaluation = Evaluation(definitions, catch_interrupt=False, output=TestOutput())
     try:
         query = evaluation.parse_feeder(feeder)
         if query is None:
@@ -119,7 +125,7 @@ def create_output(tests, output_xml, output_tex):
         definitions.reset_user_definitions()
         for test in tests.tests:
             key = test.key
-            evaluation = Evaluation(definitions, format=format, catch_interrupt=False)
+            evaluation = Evaluation(definitions, format=format, catch_interrupt=False, output=TestOutput())
             result = evaluation.parse_evaluate(test.test)
             if result is None:
                 result = []

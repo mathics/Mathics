@@ -9,44 +9,37 @@ from __future__ import division
 from mathics.builtin.base import (
     Builtin, AtomBuiltin, Test, BoxConstruct, String)
 from mathics.core.expression import (
-    Atom, Expression, Integer, Rational, Real, Symbol, from_python)
-from mathics.builtin.colors import convert as convert_color
+    Atom, Expression, Integer, Rational, Real, MachineReal, Symbol, from_python)
+from mathics.builtin.colors import convert as convert_color, colorspaces as known_colorspaces
 
 import six
 import base64
 import functools
+import itertools
 import math
 
 _image_requires = (
-    'skimage',
-    'warnings',
     'numpy',
-    'scipy',
     'PIL',
+)
+
+_skimage_requires = _image_requires + (
+    'skimage',
+    'scipy',
     'matplotlib',
+    'networkx',
 )
 
 try:
-    import skimage
-    import skimage.io
-    import skimage.transform
-    import skimage.filters
-    import skimage.exposure
-    import skimage.feature
-    import skimage.filters.rank
-    import skimage.morphology
-    import skimage.measure
-
     import warnings
 
     import PIL
     import PIL.ImageEnhance
     import PIL.ImageOps
     import PIL.ImageFilter
+    from PIL.ExifTags import TAGS as ExifTags
 
     import numpy
-
-    import matplotlib.cm
 
     _enabled = True
 except ImportError:
@@ -62,7 +55,141 @@ class _ImageBuiltin(Builtin):
 class _ImageTest(Test):
     requires = _image_requires
 
+
+class _SkimageBuiltin(_ImageBuiltin):
+    requires = _skimage_requires
+
+
+# helpers
+
+
+def pixels_as_float(pixels):
+    dtype = pixels.dtype
+    if dtype in (numpy.float32, numpy.float64):
+        return pixels
+    elif dtype == numpy.uint8:
+        return pixels.astype(numpy.float32) / 255.
+    elif dtype == numpy.uint16:
+        return pixels.astype(numpy.float32) / 65535.
+    elif dtype == numpy.bool:
+        return pixels.astype(numpy.float32)
+    else:
+        raise NotImplementedError
+
+
+def pixels_as_ubyte(pixels):
+    dtype = pixels.dtype
+    if dtype in (numpy.float32, numpy.float64):
+        pixels = numpy.maximum(numpy.minimum(pixels, 1.), 0.)
+        return (pixels * 255.).astype(numpy.uint8)
+    elif dtype == numpy.uint8:
+        return pixels
+    elif dtype == numpy.uint16:
+        return (pixels / 256).astype(numpy.uint8)
+    elif dtype == numpy.bool:
+        return pixels.astype(numpy.uint8) * 255
+    else:
+        raise NotImplementedError
+
+
+def pixels_as_uint(pixels):
+    dtype = pixels.dtype
+    if dtype in (numpy.float32, numpy.float64):
+        pixels = numpy.maximum(numpy.minimum(pixels, 1.), 0.)
+        return (pixels * 65535.).astype(numpy.uint16)
+    elif dtype == numpy.uint8:
+        return pixels.astype(numpy.uint16) * 256
+    elif dtype == numpy.uint16:
+        return pixels
+    elif dtype == numpy.bool:
+        return pixels.astype(numpy.uint8) * 65535
+    else:
+        raise NotImplementedError
+
+
+def matrix_to_numpy(a):
+    def matrix():
+        for y in a.leaves:
+            yield [x.round_to_float() for x in y.leaves]
+    return numpy.array(list(matrix()))
+
+
+def numpy_to_matrix(pixels):
+    channels = pixels.shape[2]
+    if channels == 1:
+        return pixels[:,:,0].tolist()
+    else:
+        return pixels.tolist()
+
+
+def numpy_flip(pixels, axis):
+    f = (numpy.flipud, numpy.fliplr)[axis]
+    return f(pixels)
+
+
+def convolve(in1, in2, fixed=True):
+    # a very much boiled down version scipy.signal.signaltools.fftconvolve with added padding, see
+    # https://github.com/scipy/scipy/blob/master/scipy/signal/signaltools.py; please see the Scipy
+    # LICENSE in the accompanying files.
+
+    in1 = numpy.asarray(in1)
+    in2 = numpy.asarray(in2)
+
+    padding = numpy.array(in2.shape) // 2
+    if fixed:  # add "Fixed" padding?
+        in1 = numpy.pad(in1, padding, 'edge')
+
+    s1 = numpy.array(in1.shape)
+    s2 = numpy.array(in2.shape)
+    shape = s1 + s2 - 1
+
+    sp1 = numpy.fft.rfftn(in1, shape)
+    sp2 = numpy.fft.rfftn(in2, shape)
+    ret = numpy.fft.irfftn(sp1 * sp2, shape)
+
+    excess = (numpy.array(ret.shape) - s1) // 2 + padding
+    return ret[tuple(slice(p, -p) for p in excess)]
+
 # import and export
+
+class _Exif:
+    _names = {  # names overriding the ones given by Pillow
+        37385: 'FlashInfo',
+        40960: 'FlashpixVersion',
+        40962: 'PixelXDimension',
+        40963: 'PixelYDimension',
+    }
+
+    @staticmethod
+    def extract(im, evaluation):
+        if hasattr(im, '_getexif'):
+            exif = im._getexif()
+            if not exif:
+                return
+
+            for k, v in sorted(exif.items(), key=lambda x: x[0]):
+                name = ExifTags.get(k)
+                if not name:
+                    continue
+
+                # EXIF has the following types: Short, Long, Rational, Ascii, Byte
+                # (see http://www.exiv2.org/tags.html). we detect the type from the
+                # Python type Pillow gives us and do the appropiate MMA handling.
+
+                if isinstance(v, tuple) and len(v) == 2:  # Rational
+                    value = Rational(v[0], v[1])
+                    if name == 'FocalLength':
+                        value = value.round(2)
+                    else:
+                        value = Expression('Simplify', value).evaluate(evaluation)
+                elif isinstance(v, bytes):  # Byte
+                    value = String(' '.join(['%d' % x for x in v]))
+                elif isinstance(v, (int, str)):  # Short, Long, Ascii
+                    value = v
+                else:
+                    continue
+
+                yield Expression('Rule', String(_Exif._names.get(k, name)), value)
 
 
 class ImageImport(_ImageBuiltin):
@@ -79,12 +206,21 @@ class ImageImport(_ImageBuiltin):
     #> Import["ExampleData/lena.tif"]
      = -Image-
     """
+
     def apply(self, path, evaluation):
         '''ImageImport[path_?StringQ]'''
-        pixels = skimage.io.imread(path.get_string_value())
+        pillow = PIL.Image.open(path.get_string_value())
+        pixels = numpy.asarray(pillow)
         is_rgb = len(pixels.shape) >= 3 and pixels.shape[2] >= 3
-        atom = Image(pixels, 'RGB' if is_rgb else 'Grayscale')
-        return Expression('List', Expression('Rule', String('Image'), atom))
+        exif = Expression('List', *list(_Exif.extract(pillow, evaluation)))
+
+        image = Image(pixels, 'RGB' if is_rgb else 'Grayscale')
+        return Expression(
+            'List',
+            Expression('Rule', String('Image'), image),
+            Expression('Rule', String('ColorSpace'), String(image.color_space)),
+            Expression('Rule', String('ImageSize'), from_python(image.dimensions())),
+            Expression('Rule', String('RawExif'), exif))
 
 
 class ImageExport(_ImageBuiltin):
@@ -95,7 +231,7 @@ class ImageExport(_ImageBuiltin):
     def apply(self, path, expr, opts, evaluation):
         '''ImageExport[path_?StringQ, expr_, opts___]'''
         if isinstance(expr, Image):
-            skimage.io.imsave(path.get_string_value(), expr.pixels)
+            expr.pil().save(path.get_string_value())
             return Symbol('Null')
         else:
             return evaluation.message('ImageExport', 'noimage')
@@ -112,7 +248,7 @@ class _ImageArithmetic(_ImageBuiltin):
     @staticmethod
     def convert_Image(image):
         assert isinstance(image, Image)
-        return skimage.img_as_float(image.pixels)
+        return pixels_as_float(image.pixels)
 
     @staticmethod
     def convert_args(*args):
@@ -363,6 +499,7 @@ class ImageResize(_ImageBuiltin):
         'imgrssz': 'The size `1` is not a valid image size specification.',
         'imgrsm': 'Invalid resampling method `1`.',
         'gaussaspect': 'Gaussian resampling needs to maintain aspect ratio.',
+        'skimage': 'Please install skimage to use Resampling -> Gaussian.',
     }
 
     def _get_image_size_spec(self, old_size, new_size):
@@ -441,10 +578,15 @@ class ImageResize(_ImageBuiltin):
 
         # perform the resize
         if resampling_name == 'Nearest':
-            pixels = skimage.transform.resize(image.pixels, (h, w), order=0)
+            return image.filter(lambda im: im.resize((w, h), resample=PIL.Image.NEAREST))
         elif resampling_name == 'Bicubic':
-            pixels = skimage.transform.resize(image.pixels, (h, w), order=3)
-        elif resampling_name == 'Gaussian':
+            return image.filter(lambda im: im.resize((w, h), resample=PIL.Image.BICUBIC))
+        elif resampling_name != 'Gaussian':
+            return evaluation.message('ImageResize', 'imgrsm', resampling)
+
+        try:
+            from skimage import transform
+
             sy = h / old_h
             sx = w / old_w
             if sy > sx:
@@ -457,13 +599,13 @@ class ImageResize(_ImageBuiltin):
                 # TODO overcome this limitation
                 return evaluation.message('ImageResize', 'gaussaspect')
             elif s > 1:
-                pixels = skimage.transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
+                pixels = transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
             else:
-                pixels = skimage.transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
-        else:
-            return evaluation.message('ImageResize', 'imgrsm', resampling)
+                pixels = transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
 
-        return Image(pixels, image.color_space)
+            return Image(pixels, image.color_space)
+        except ImportError:
+            evaluation.message('ImageResize', 'skimage')
 
 
 class ImageReflect(_ImageBuiltin):
@@ -577,7 +719,10 @@ class ImageRotate(_ImageBuiltin):
         py_angle = angle.round_to_float(evaluation)
         if py_angle is None:
             return evaluation.message('ImageRotate', 'imgang', angle)
-        return Image(skimage.transform.rotate(image.pixels, 180 * py_angle / math.pi, resize=True), image.color_space)
+
+        def rotate(im):
+            return im.rotate(180 * py_angle / math.pi, resample=PIL.Image.BICUBIC, expand=True)
+        return image.filter(rotate)
 
 
 class ImagePartition(_ImageBuiltin):
@@ -659,10 +804,6 @@ class ImageAdjust(_ImageBuiltin):
     >> lena = Import["ExampleData/lena.tif"];
     >> ImageAdjust[lena]
      = -Image-
-
-    #> img = Image[{{0.1, 0.5}, {0.5, 0.9}}];
-    #> ImageData[ImageAdjust[img]]
-     = {{0., 0.5}, {0.5, 1.}}
     '''
 
     rules = {
@@ -672,7 +813,7 @@ class ImageAdjust(_ImageBuiltin):
 
     def apply_auto(self, image, evaluation):
         'ImageAdjust[image_Image]'
-        pixels = skimage.img_as_float(image.pixels)
+        pixels = pixels_as_float(image.pixels)
 
         # channel limits
         axis = (0, 1)
@@ -689,20 +830,22 @@ class ImageAdjust(_ImageBuiltin):
 
     def apply_contrast_brightness_gamma(self, image, c, b, g, evaluation):
         'ImageAdjust[image_Image, {c_?RealNumberQ, b_?RealNumberQ, g_?RealNumberQ}]'
+
         im = image.pil()
 
+
         # gamma
-        g = g.to_python()
+        g = g.round_to_float()
         if g != 1:
             im = PIL.ImageEnhance.Color(im).enhance(g)
 
         # brightness
-        b = b.to_python()
+        b = b.round_to_float()
         if b != 0:
             im = PIL.ImageEnhance.Brightness(im).enhance(b + 1)
 
         # contrast
-        c = c.to_python()
+        c = c.round_to_float()
         if c != 0:
             im = PIL.ImageEnhance.Contrast(im).enhance(c + 1)
 
@@ -710,28 +853,65 @@ class ImageAdjust(_ImageBuiltin):
 
 
 class Blur(_ImageBuiltin):
-    rules = {
-        'Blur[i_Image]': 'Blur[i, 2]'
-    }
+    '''
+    <dl>
+    <dt>'Blur[$image$]'
+      <dd>gives a blurred version of $image$.
+    <dt>'Blur[$image$, $r$]'
+      <dd>blurs $image$ with a kernel of size $r$.
+    </dl>
 
-    def apply(self, image, r, evaluation):
-        'Blur[image_Image, r_?RealNumberQ]'
-        return Image(numpy.array(image.pil().filter(
-            PIL.ImageFilter.GaussianBlur(r.to_python()))), image.color_space)
+    >> lena = Import["ExampleData/lena.tif"];
+    >> Blur[lena]
+     = -Image-
+    >> Blur[lena, 5]
+     = -Image-
+    '''
+
+    rules = {
+        'Blur[image_Image]': 'Blur[image, 2]',
+        'Blur[image_Image, r_?RealNumberQ]': 'ImageConvolve[image, BoxMatrix[r] / Total[Flatten[BoxMatrix[r]]]]',
+    }
 
 
 class Sharpen(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'Sharpen[$image$]'
+      <dd>gives a sharpened version of $image$.
+    <dt>'Sharpen[$image$, $r$]'
+      <dd>sharpens $image$ with a kernel of size $r$.
+    </dl>
+
+    >> lena = Import["ExampleData/lena.tif"];
+    >> Sharpen[lena]
+     = -Image-
+    >> Sharpen[lena, 5]
+     = -Image-
+    '''
+
     rules = {
         'Sharpen[i_Image]': 'Sharpen[i, 2]'
     }
 
     def apply(self, image, r, evaluation):
         'Sharpen[image_Image, r_?RealNumberQ]'
-        return Image(numpy.array(image.pil().filter(
-            PIL.ImageFilter.UnsharpMask(r.to_python()))), image.color_space)
+        f = PIL.ImageFilter.UnsharpMask(r.round_to_float())
+        return image.filter(lambda im: im.filter(f))
 
 
 class GaussianFilter(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'GaussianFilter[$image$, $r$]'
+      <dd>blurs $image$ using a Gaussian blur filter of radius $r$.
+    </dl>
+
+    >> lena = Import["ExampleData/lena.tif"];
+    >> GaussianFilter[lena, 2.5]
+     = -Image-
+    '''
+
     messages = {
         'only3': 'GaussianFilter only supports up to three channels.'
     }
@@ -741,9 +921,8 @@ class GaussianFilter(_ImageBuiltin):
         if len(image.pixels.shape) > 2 and image.pixels.shape[2] > 3:
             return evaluation.message('GaussianFilter', 'only3')
         else:
-            return Image(skimage.filters.gaussian(
-                skimage.img_as_float(image.pixels),
-                sigma=radius.to_python() / 2, multichannel=True), image.color_space)
+            f = PIL.ImageFilter.GaussianBlur(radius.round_to_float())
+            return image.filter(lambda im: im.filter(f))
 
 
 # morphological image filters
@@ -751,28 +930,79 @@ class GaussianFilter(_ImageBuiltin):
 
 class PillowImageFilter(_ImageBuiltin):
     def compute(self, image, f):
-        return Image(numpy.array(image.pil().filter(f)), image.color_space)
+        return image.filter(lambda im: im.filter(f))
 
 
 class MinFilter(PillowImageFilter):
+    '''
+    <dl>
+    <dt>'MinFilter[$image$, $r$]'
+      <dd>gives $image$ with a minimum filter of radius $r$ applied on it. This always
+      picks the smallest value in the filter's area.
+    </dl>
+
+    >> lena = Import["ExampleData/lena.tif"];
+    >> MinFilter[lena, 5]
+     = -Image-
+    '''
+
     def apply(self, image, r, evaluation):
         'MinFilter[image_Image, r_Integer]'
-        return self.compute(image, PIL.ImageFilter.MinFilter(1 + 2 * r.to_python()))
+        return self.compute(image, PIL.ImageFilter.MinFilter(1 + 2 * r.get_int_value()))
 
 
 class MaxFilter(PillowImageFilter):
+    '''
+    <dl>
+    <dt>'MaxFilter[$image$, $r$]'
+      <dd>gives $image$ with a maximum filter of radius $r$ applied on it. This always
+      picks the largest value in the filter's area.
+    </dl>
+
+    >> lena = Import["ExampleData/lena.tif"];
+    >> MaxFilter[lena, 5]
+     = -Image-
+    '''
+
     def apply(self, image, r, evaluation):
         'MaxFilter[image_Image, r_Integer]'
-        return self.compute(image, PIL.ImageFilter.MaxFilter(1 + 2 * r.to_python()))
+        return self.compute(image, PIL.ImageFilter.MaxFilter(1 + 2 * r.get_int_value()))
 
 
 class MedianFilter(PillowImageFilter):
+    '''
+    <dl>
+    <dt>'MedianFilter[$image$, $r$]'
+      <dd>gives $image$ with a median filter of radius $r$ applied on it. This always
+      picks the median value in the filter's area.
+    </dl>
+
+    >> lena = Import["ExampleData/lena.tif"];
+    >> MedianFilter[lena, 5]
+     = -Image-
+    '''
+
     def apply(self, image, r, evaluation):
         'MedianFilter[image_Image, r_Integer]'
-        return self.compute(image, PIL.ImageFilter.MedianFilter(1 + 2 * r.to_python()))
+        return self.compute(image, PIL.ImageFilter.MedianFilter(1 + 2 * r.get_int_value()))
 
 
-class EdgeDetect(_ImageBuiltin):
+class EdgeDetect(_SkimageBuiltin):
+    '''
+    <dl>
+    <dt>'EdgeDetect[$image$]'
+      <dd>returns an image showing the edges in $image$.
+    </dl>
+
+    >> lena = Import["ExampleData/lena.tif"];
+    >> EdgeDetect[lena]
+     = -Image-
+    >> EdgeDetect[lena, 5]
+     = -Image-
+    >> EdgeDetect[lena, 4, 0.5]
+     = -Image-
+    '''
+
     rules = {
         'EdgeDetect[i_Image]': 'EdgeDetect[i, 2, 0.2]',
         'EdgeDetect[i_Image, r_?RealNumberQ]': 'EdgeDetect[i, r, 0.2]'
@@ -780,32 +1010,124 @@ class EdgeDetect(_ImageBuiltin):
 
     def apply(self, image, r, t, evaluation):
         'EdgeDetect[image_Image, r_?RealNumberQ, t_?RealNumberQ]'
+        import skimage.feature
+        pixels = image.grayscale().pixels
         return Image(skimage.feature.canny(
-            image.grayscale().pixels, sigma=r.to_python() / 2,
-            low_threshold=0.5 * t.to_python(), high_threshold=t.to_python()),
+            pixels.reshape(pixels.shape[:2]), sigma=r.round_to_float() / 2,
+            low_threshold=0.5 * t.round_to_float(), high_threshold=t.round_to_float()),
             'Grayscale')
 
 
+def _matrix(rows):
+    return Expression('List', *[Expression('List', *r) for r in rows])
+
+
 class BoxMatrix(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'BoxMatrix[$s]'
+      <dd>Gives a box shaped kernel of size 2 $s$ + 1.
+    </dl>
+
+    >> BoxMatrix[3]
+     = {{1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}}
+    '''
+
     def apply(self, r, evaluation):
         'BoxMatrix[r_?RealNumberQ]'
-        s = 1 + 2 * r.to_python()
-        return from_python(skimage.morphology.rectangle(s, s).tolist())
+        py_r = abs(r.round_to_float())
+        s = int(math.floor(1 + 2 * py_r))
+        return _matrix([[Integer(1)] * s] * s)
 
 
 class DiskMatrix(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'DiskMatrix[$s]'
+      <dd>Gives a disk shaped kernel of size 2 $s$ + 1.
+    </dl>
+
+    >> DiskMatrix[3]
+     = {{0, 0, 1, 1, 1, 0, 0}, {0, 1, 1, 1, 1, 1, 0}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {1, 1, 1, 1, 1, 1, 1}, {0, 1, 1, 1, 1, 1, 0}, {0, 0, 1, 1, 1, 0, 0}}
+    '''
+
     def apply(self, r, evaluation):
         'DiskMatrix[r_?RealNumberQ]'
-        return from_python(skimage.morphology.disk(r).tolist())
+        py_r = abs(r.round_to_float())
+        s = int(math.floor(0.5 + py_r))
+
+        m = (Integer(0), Integer(1))
+        r_sqr = (py_r + 0.5) * (py_r + 0.5)
+
+        def rows():
+            for y in range(-s, s + 1):
+                yield [m[int((x) * (x) + (y) * (y) <= r_sqr)] for x in range(-s, s + 1)]
+
+        return _matrix(rows())
 
 
 class DiamondMatrix(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'DiamondMatrix[$s]'
+      <dd>Gives a diamond shaped kernel of size 2 $s$ + 1.
+    </dl>
+
+    >> DiamondMatrix[3]
+     = {{0, 0, 0, 1, 0, 0, 0}, {0, 0, 1, 1, 1, 0, 0}, {0, 1, 1, 1, 1, 1, 0}, {1, 1, 1, 1, 1, 1, 1}, {0, 1, 1, 1, 1, 1, 0}, {0, 0, 1, 1, 1, 0, 0}, {0, 0, 0, 1, 0, 0, 0}}
+    '''
+
     def apply(self, r, evaluation):
         'DiamondMatrix[r_?RealNumberQ]'
-        return from_python(skimage.morphology.diamond(r).tolist())
+        py_r = abs(r.round_to_float())
+        t = int(math.floor(0.5 + py_r))
+
+        zero = Integer(0)
+        one = Integer(1)
+
+        def rows():
+            for d in range(0, t):
+                p = [zero] * (t - d)
+                yield p + ([one] * (1 + d * 2)) + p
+
+            yield [one] * (2 * t + 1)
+
+            for d in reversed(range(0, t)):
+                p = [zero] * (t - d)
+                yield p + ([one] * (1 + d * 2)) + p
+
+        return _matrix(rows())
 
 
-class _MorphologyFilter(_ImageBuiltin):
+class ImageConvolve(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageConvolve[$image$, $kernel$]'
+      <dd>Computes the convolution of $image$ using $kernel$.
+    </dl>
+
+    >> img = Import["ExampleData/lena.tif"];
+    >> ImageConvolve[img, DiamondMatrix[5] / 61]
+     = -Image-
+    >> ImageConvolve[img, DiskMatrix[5] / 97]
+     = -Image-
+    >> ImageConvolve[img, BoxMatrix[5] / 121]
+     = -Image-
+    '''
+
+    def apply(self, image, kernel, evaluation):
+        '%(name)s[image_Image, kernel_?MatrixQ]'
+        numpy_kernel = matrix_to_numpy(kernel)
+        pixels = pixels_as_float(image.pixels)
+        shape = pixels.shape[:2]
+        channels = []
+        for c in (pixels[:, :, i] for i in range(pixels.shape[2])):
+            channels.append(convolve(c.reshape(shape), numpy_kernel, fixed=True))
+        return Image(numpy.dstack(channels), image.color_space)
+
+
+class _MorphologyFilter(_SkimageBuiltin):
+
     messages = {
         'grayscale': 'Your image has been converted to grayscale as color images are not supported yet.'
     }
@@ -818,9 +1140,11 @@ class _MorphologyFilter(_ImageBuiltin):
         '%(name)s[image_Image, k_?MatrixQ]'
         if image.color_space != 'Grayscale':
             image = image.grayscale()
-            evaluation.message(self.name, 'grayscale')
+            evaluation.message(self.get_name(), 'grayscale')
+        import skimage.morphology
         f = getattr(skimage.morphology, self.get_name(True).lower())
-        img = f(image.pixels, numpy.array(k.to_python()))
+        shape = image.pixels.shape[:2]
+        img = f(image.pixels.reshape(shape), matrix_to_numpy(k))
         return Image(img, 'Grayscale')
 
 
@@ -876,14 +1200,16 @@ class Closing(_MorphologyFilter):
     '''
 
 
-class MorphologicalComponents(_ImageBuiltin):
+class MorphologicalComponents(_SkimageBuiltin):
+
     rules = {
         'MorphologicalComponents[i_Image]': 'MorphologicalComponents[i, 0]'
     }
 
     def apply(self, image, t, evaluation):
         'MorphologicalComponents[image_Image, t_?RealNumberQ]'
-        pixels = skimage.img_as_ubyte(skimage.img_as_float(image.grayscale().pixels) > t.to_python())
+        pixels = pixels_as_ubyte(pixels_as_float(image.grayscale().pixels) > t.round_to_float())
+        import skimage.measure
         return from_python(skimage.measure.label(pixels, background=0, connectivity=2).tolist())
 
 
@@ -891,6 +1217,17 @@ class MorphologicalComponents(_ImageBuiltin):
 
 
 class ImageColorSpace(_ImageBuiltin):
+    """
+    <dl>
+    <dt>'ImageColorSpace[$image$]'
+        <dd>gives $image$'s color space, e.g. "RGB" or "CMYK".
+    </dl>
+
+    >> img = Import["ExampleData/lena.tif"];
+    >> ImageColorSpace[img]
+     = RGB
+    """
+
     def apply(self, image, evaluation):
         'ImageColorSpace[image_Image]'
         return String(image.color_space)
@@ -946,24 +1283,68 @@ class ColorConvert(Builtin):
 
 
 class ColorQuantize(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ColorQuantize[$image$, $n$]'
+      <dd>gives a version of $image$ using only $n$ colors.
+    </dl>
+
+    >> img = Import["ExampleData/lena.tif"];
+    >> ColorQuantize[img, 6]
+     = -Image-
+
+    #> ColorQuantize[img, 0]
+     : Positive integer expected at position 2 in ColorQuantize[-Image-, 0].
+     = ColorQuantize[-Image-, 0]
+    #> ColorQuantize[img, -1]
+     : Positive integer expected at position 2 in ColorQuantize[-Image-, -1].
+     = ColorQuantize[-Image-, -1]
+    '''
+
+    messages = {
+        'intp': 'Positive integer expected at position `2` in `1`.',
+    }
+
     def apply(self, image, n, evaluation):
         'ColorQuantize[image_Image, n_Integer]'
+        if n.get_int_value() <= 0:
+            return evaluation.message('ColorQuantize', 'intp', Expression('ColorQuantize', image, n), 2)
         converted = image.color_convert('RGB')
         if converted is None:
             return
-        pixels = skimage.img_as_ubyte(converted.pixels)
-        im = PIL.Image.fromarray(pixels).quantize(n.to_python())
+        pixels = pixels_as_ubyte(converted.pixels)
+        im = PIL.Image.fromarray(pixels).quantize(n.get_int_value())
         im = im.convert('RGB')
         return Image(numpy.array(im), 'RGB')
 
 
-class Threshold(_ImageBuiltin):
+class Threshold(_SkimageBuiltin):
+    '''
+    <dl>
+    <dt>'Threshold[$image$]'
+      <dd>gives a value suitable for binarizing $image$.
+    </dl>
+
+    The option "Method" may be "Cluster" (use Otsu's threshold), "Median", or "Mean".
+
+    >> img = Import["ExampleData/lena.tif"];
+    >> Threshold[img]
+     = 0.456739
+    >> Binarize[img, %]
+     = -Image-
+    >> Threshold[img, Method -> "Mean"]
+     = 0.486458
+    >> Threshold[img, Method -> "Median"]
+     = 0.504726
+    '''
+
     options = {
         'Method': '"Cluster"'
     }
 
     messages = {
-        'illegalmethod': 'Method `` is not supported.'
+        'illegalmethod': 'Method `` is not supported.',
+        'skimage': 'Please install scikit-image to use Method -> Cluster.',
     }
 
     def apply(self, image, evaluation, options):
@@ -973,7 +1354,8 @@ class Threshold(_ImageBuiltin):
         method = self.get_option(options, 'Method', evaluation)
         method_name = method.get_string_value() if isinstance(method, String) else method.to_python()
         if method_name == 'Cluster':
-            threshold = skimage.filters.threshold_otsu(pixels)
+           import skimage.filters
+           threshold = skimage.filters.threshold_otsu(pixels)
         elif method_name == 'Median':
             threshold = numpy.median(pixels)
         elif method_name == 'Mean':
@@ -981,39 +1363,70 @@ class Threshold(_ImageBuiltin):
         else:
             return evaluation.message('Threshold', 'illegalmethod', method)
 
-        return Real(threshold)
+        return MachineReal(float(threshold))
 
 
-class Binarize(_ImageBuiltin):
+class Binarize(_SkimageBuiltin):
+    '''
+    <dl>
+    <dt>'Binarize[$image$]'
+      <dd>gives a binarized version of $image$, in which each pixel is either 0 or 1.
+    <dt>'Binarize[$image$, $t$]'
+      <dd>map values $x$ > $t$ to 1, and values $x$ <= $t$ to 0.
+    <dt>'Binarize[$image$, {$t1$, $t2$}]'
+      <dd>map $t1$ < $x$ < $t2$ to 1, and all other values to 0.
+    </dl>
+
+    >> img = Import["ExampleData/lena.tif"];
+    >> Binarize[img]
+     = -Image-
+    >> Binarize[img, 0.7]
+     = -Image-
+    >> Binarize[img, {0.2, 0.6}]
+     = -Image-
+    '''
+
     def apply(self, image, evaluation):
         'Binarize[image_Image]'
         image = image.grayscale()
-        threshold = Expression('Threshold', image).evaluate(evaluation).to_python()
-        return Image(image.pixels > threshold, 'Grayscale')
+        thresh = Expression('Threshold', image).evaluate(evaluation).round_to_float()
+        if thresh is not None:
+            return Image(image.pixels > thresh, 'Grayscale')
 
     def apply_t(self, image, t, evaluation):
         'Binarize[image_Image, t_?RealNumberQ]'
         pixels = image.grayscale().pixels
-        return Image(pixels > t.to_python(), 'Grayscale')
+        return Image(pixels > t.round_to_float(), 'Grayscale')
 
     def apply_t1_t2(self, image, t1, t2, evaluation):
         'Binarize[image_Image, {t1_?RealNumberQ, t2_?RealNumberQ}]'
         pixels = image.grayscale().pixels
-        mask1 = pixels > t1.to_python()
-        mask2 = pixels < t2.to_python()
+        mask1 = pixels > t1.round_to_float()
+        mask2 = pixels < t2.round_to_float()
         return Image(mask1 * mask2, 'Grayscale')
 
 
 class ColorNegate(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ColorNegate[$image$]'
+      <dd>Gives a version of $image$ with all colors negated.
+    </dl>
+    '''
+
     def apply(self, image, evaluation):
         'ColorNegate[image_Image]'
-        pixels = image.pixels
-        anchor = numpy.ndarray(pixels.shape, dtype=pixels.dtype)
-        anchor.fill(skimage.dtype_limits(pixels)[1])
-        return Image(anchor - pixels, image.color_space)
+        return image.filter(lambda im: PIL.ImageOps.invert(im))
 
 
 class ColorSeparate(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ColorSeparate[$image$]'
+      <dd>Gives each channel of $image$ as a separate grayscale image.
+    </dl>
+    '''
+
     def apply(self, image, evaluation):
         'ColorSeparate[image_Image]'
         images = []
@@ -1024,6 +1437,39 @@ class ColorSeparate(_ImageBuiltin):
             for i in range(pixels.shape[2]):
                 images.append(Image(pixels[:, :, i], 'Grayscale'))
         return Expression('List', *images)
+
+
+class ColorCombine(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ColorCombine[$channels$, $colorspace$]'
+      <dd>Gives an image with $colorspace$ and the respective components described by the given channels.
+    </dl>
+
+    >> ColorCombine[{{{1, 0}, {0, 0.75}}, {{0, 1}, {0, 0.25}}, {{0, 0}, {1, 0.5}}}, "RGB"]
+     = -Image-
+    '''
+
+    def apply(self, channels, colorspace, evaluation):
+        'ColorCombine[channels_List, colorspace_String]'
+
+        py_colorspace = colorspace.get_string_value()
+        if py_colorspace not in known_colorspaces:
+            return
+
+        numpy_channels = []
+        for channel in channels.leaves:
+            if not Expression('MatrixQ', channel).evaluate(evaluation).is_true():
+                return
+            numpy_channels.append(matrix_to_numpy(channel))
+
+        if not numpy_channels:
+            return
+
+        if not all(x.shape == numpy_channels[0].shape for x in numpy_channels[1:]):
+            return
+
+        return Image(numpy.dstack(numpy_channels), py_colorspace)
 
 
 def _linearize(a):
@@ -1056,28 +1502,246 @@ def _linearize(a):
 
 
 class Colorize(_ImageBuiltin):
-    def apply(self, a, evaluation):
-        'Colorize[a_?MatrixQ]'
+    '''
+    <dl>
+    <dt>'Colorize[$values$]'
+      <dd>returns an image where each number in the rectangular matrix $values$ is a pixel and each
+      occurence of the same number is displayed in the same unique color, which is different from the
+      colors of all non-identical numbers.
+    <dt>'Colorize[$image$]'
+      <dd>gives a colorized version of $image$.
+    </dl>
 
-        a, n = _linearize(numpy.array(a.to_python()))
+    >> Colorize[{{1.3, 2.1, 1.5}, {1.3, 1.3, 2.1}, {1.3, 2.1, 1.5}}]
+     = -Image-
+
+    >> Colorize[{{1, 2}, {2, 2}, {2, 3}}, ColorFunction -> (Blend[{White, Blue}, #]&)]
+     = -Image-
+    '''
+
+    options = {
+        'ColorFunction': 'Automatic',
+    }
+
+    messages = {
+        'cfun': '`1` is neither a gradient ColorData nor a pure function suitable as ColorFunction.',
+    }
+
+    def apply(self, values, evaluation, options):
+        'Colorize[values_, OptionsPattern[%(name)s]]'
+
+        if isinstance(values, Image):
+            pixels = values.grayscale().pixels
+            matrix = pixels_as_ubyte(pixels.reshape(pixels.shape[:2]))
+        else:
+            if not Expression('MatrixQ', values).evaluate(evaluation).is_true():
+                return
+            matrix = matrix_to_numpy(values)
+
+        a, n = _linearize(matrix)
         # the maximum value for n is the number of pixels in a, which is acceptable and never too large.
 
-        cmap = matplotlib.cm.get_cmap('hot', n)
-        p = numpy.transpose(numpy.array([cmap(i) for i in range(n)])[:, 0:3])
+        color_function = self.get_option(options, 'ColorFunction', evaluation)
+        if isinstance(color_function, Symbol) and color_function.get_name() == 'System`Automatic':
+            color_function = String('LakeColors')
+
+        from mathics.builtin.plot import gradient_palette
+        cmap = gradient_palette(color_function, n, evaluation)
+        if not cmap:
+            evaluation.message('Colorize', 'cfun', color_function)
+            return
+
         s = (a.shape[0], a.shape[1], 1)
+        p = numpy.transpose(numpy.array([cmap[i] for i in range(n)])[:, 0:3])
         return Image(numpy.concatenate([p[i][a].reshape(s) for i in range(3)], axis=2), color_space='RGB')
+
+
+class DominantColors(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'DominantColors[$image$]'
+      <dd>gives a list of colors which are dominant in the given image.
+    <dt>'DominantColors[$image$, $n$]'
+      <dd>returns at most $n$ colors.
+    <dt>'DominantColors[$image$, $n$, $prop$]'
+      <dd>returns the given property $prop$, which may be "Color" (return RGB colors), "LABColor" (return
+      LAB colors), "Count" (return the number of pixels a dominant color covers), "Coverage" (return the
+      fraction of the image a dominant color covers), or "CoverageImage" (return a black and white image
+      indicating with white the parts that are covered by a dominant color).
+    </dl>
+
+    The option "ColorCoverage" specifies the minimum amount of coverage needed to include a dominant color
+    in the result.
+
+    The option "MinColorDistance" specifies the distance (in LAB color space) up to which colors are merged
+    and thus regarded as belonging to the same dominant color.
+
+    >> img = Import["ExampleData/sunflowers.jpg"]
+     = -Image-
+
+    >> DominantColors[img]
+     = {RGBColor[0.0235294, 0.00392157, 0.], RGBColor[1., 0.835294, 0.027451], RGBColor[0.0352941, 0.168627, 0.], RGBColor[0.0941176, 0.294118, 0.00392157], RGBColor[0.12549, 0.415686, 0.0196078], RGBColor[0.752941, 0.835294, 0.996078], RGBColor[0.952941, 0.705882, 0.]}
+
+    >> DominantColors[img, 3]
+     = {RGBColor[0.0235294, 0.00392157, 0.], RGBColor[1., 0.835294, 0.027451], RGBColor[0.0352941, 0.168627, 0.]}
+
+    >> DominantColors[img, 3, "Coverage"]
+     = {311 / 1584, 5419 / 31680, 1081 / 7680}
+
+    >> DominantColors[img, 3, "CoverageImage"]
+     = {-Image-, -Image-, -Image-}
+
+    >> DominantColors[img, 3, "Count"]
+     = {49760, 43352, 35673}
+
+    >> DominantColors[img, 2, "LABColor"]
+     = {LABColor[0.00562582, 0.0125387, 0.00866458], LABColor[0.86979, 0.0391206, 0.856497]}
+
+    >> DominantColors[img, MinColorDistance -> 0.5]
+     = {RGBColor[0.0941176, 0.294118, 0.00392157], RGBColor[1., 0.835294, 0.027451], RGBColor[0.0235294, 0.00392157, 0.], RGBColor[0.752941, 0.835294, 0.996078], RGBColor[0.490196, 0.258824, 0.0196078]}
+
+    >> DominantColors[img, ColorCoverage -> 0.15]
+     = {RGBColor[0.0235294, 0.00392157, 0.], RGBColor[1., 0.835294, 0.027451]}
+    '''
+
+    rules = {
+        'DominantColors[image_Image, n_Integer, options___]': 'DominantColors[image, n, "Color", options]',
+        'DominantColors[image_Image, options___]': 'DominantColors[image, 256, "Color", options]',
+    }
+
+    options = {
+        'ColorCoverage': 'Automatic',
+        'MinColorDistance': 'Automatic',
+    }
+
+    def apply(self, image, n, prop, evaluation, options):
+        'DominantColors[image_Image, n_Integer, prop_String, OptionsPattern[%(name)s]]'
+
+        py_prop = prop.get_string_value()
+        if py_prop not in ('Color', 'LABColor', 'Count', 'Coverage', 'CoverageImage'):
+            return
+
+        color_coverage = self.get_option(options, 'ColorCoverage', evaluation)
+        min_color_distance = self.get_option(options, 'MinColorDistance', evaluation)
+
+        if isinstance(min_color_distance, Symbol) and min_color_distance.get_name() == 'System`Automatic':
+            py_min_color_distance = 0.15
+        else:
+            py_min_color_distance = min_color_distance.round_to_float()
+            if py_min_color_distance is None:
+                return
+
+        if isinstance(color_coverage, Symbol) and color_coverage.get_name() == 'System`Automatic':
+            py_min_color_coverage = 0.05
+            py_max_color_coverage = 1.
+        elif color_coverage.has_form('List', 2):
+            py_min_color_coverage = color_coverage.leaves[0].round_to_float()
+            py_max_color_coverage = color_coverage.leaves[1].round_to_float()
+        else:
+            py_min_color_coverage = color_coverage.round_to_float()
+            py_max_color_coverage = 1.
+
+        if py_min_color_coverage is None or py_max_color_coverage is None:
+            return
+
+        at_most = n.get_int_value()
+
+        if at_most > 256:
+            return
+
+        # reduce complexity by reducing to 256 colors. this is not uncommon; see Kiranyaz et al.,
+        # "Perceptual Dominant Color Extraction by Multidimensional Particle Swarm Optimization":
+        # "to reduce the computational complexity [...] a preprocessing step, which creates a
+        # limited color palette in RGB color domain, is first performed."
+
+        im = image.color_convert('RGB').pil().convert(
+            'P', palette=PIL.Image.ADAPTIVE, colors=256)
+        pixels = numpy.array(list(im.getdata()))
+
+        flat = numpy.array(list(im.getpalette())) / 255.0  # float values now
+        rgb_palette = [flat[i:i + 3] for i in range(0, len(flat), 3)]  # group by 3
+        lab_palette = [numpy.array(x) for x in convert_color(rgb_palette, 'RGB', 'LAB', False)]
+
+        bins = numpy.bincount(pixels, minlength=len(rgb_palette))
+        num_pixels = im.size[0] * im.size[1]
+
+        from mathics.algorithm.clusters import agglomerate, PrecomputedDistances, FixedDistanceCriterion
+
+        norm = numpy.linalg.norm
+
+        def df(i, j):
+            return norm(lab_palette[i] - lab_palette[j])
+
+        lab_distances = [df(i, j) for i in range(len(lab_palette)) for j in range(i)]
+
+        if py_prop == 'LABColor':
+            out_palette = lab_palette
+            out_palette_head = 'LABColor'
+        else:
+            out_palette = rgb_palette
+            out_palette_head = 'RGBColor'
+
+        dominant = agglomerate(
+            (out_palette, bins),
+            (FixedDistanceCriterion, {'merge_limit': py_min_color_distance}),
+            PrecomputedDistances(lab_distances),
+            mode='dominant')
+
+        def result():
+            min_count = max(0, int(num_pixels * py_min_color_coverage))
+            max_count = min(num_pixels, int(num_pixels * py_max_color_coverage))
+
+            for prototype, count, members in dominant:
+                if max_count >= count > min_count:
+                    if py_prop == 'Count':
+                        yield Integer(count)
+                    elif py_prop == 'Coverage':
+                        yield Rational(int(count), num_pixels)
+                    elif py_prop == 'CoverageImage':
+                        mask = numpy.ndarray(shape=pixels.shape, dtype=numpy.bool)
+                        mask.fill(0)
+                        for i in members:
+                            mask = mask | (pixels == i)
+                        yield Image(mask.reshape(tuple(reversed(im.size))), 'Grayscale')
+                    else:
+                        yield Expression(out_palette_head, *prototype)
+
+        return Expression('List', *itertools.islice(result(), 0, at_most))
 
 
 # pixel access
 
 
 class ImageData(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageData[$image$]'
+      <dd>gives a list of all color values of $image$ as a matrix.
+    <dt>'ImageData[$image$, $stype$]'
+      <dd>gives a list of color values in type $stype$.
+    </dl>
+
+    >> img = Image[{{0.2, 0.4}, {0.9, 0.6}, {0.5, 0.8}}];
+    >> ImageData[img]
+     = {{0.2, 0.4}, {0.9, 0.6}, {0.5, 0.8}}
+
+    >> ImageData[img, "Byte"]
+     = {{51, 102}, {229, 153}, {127, 204}}
+
+    >> ImageData[Image[{{0, 1}, {1, 0}, {1, 1}}], "Bit"]
+     = {{0, 1}, {1, 0}, {1, 1}}
+
+    #> ImageData[img, "Bytf"]
+     : Unsupported pixel format "Bytf".
+     = ImageData[-Image-, Bytf]
+    '''
+
     rules = {
         'ImageData[image_Image]': 'ImageData[image, "Real"]'
     }
 
     messages = {
-        'pixelfmt': 'unsupported pixel format "``"'
+        'pixelfmt': 'Unsupported pixel format "``".'
     }
 
     def apply(self, image, stype, evaluation):
@@ -1085,40 +1749,151 @@ class ImageData(_ImageBuiltin):
         pixels = image.pixels
         stype = stype.get_string_value()
         if stype == 'Real':
-            pixels = skimage.img_as_float(pixels)
+            pixels = pixels_as_float(pixels)
         elif stype == 'Byte':
-            pixels = skimage.img_as_ubyte(pixels)
+            pixels = pixels_as_ubyte(pixels)
         elif stype == 'Bit16':
-            pixels = skimage.img_as_uint(pixels)
+            pixels = pixels_as_uint(pixels)
         elif stype == 'Bit':
-            pixels = pixels.as_dtype(numpy.bool)
+            pixels = pixels.astype(numpy.bool)
         else:
             return evaluation.message('ImageData', 'pixelfmt', stype)
-        return from_python(pixels.tolist())
+        return from_python(numpy_to_matrix(pixels))
 
 
 class ImageTake(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageTake[$image$, $n$]'
+      <dd>gives the first $n$ rows of $image$.
+    <dt>'ImageTake[$image$, -$n$]'
+      <dd>gives the last $n$ rows of $image$.
+    <dt>'ImageTake[$image$, {$r1$, $r2$}]'
+      <dd>gives rows $r1$, ..., $r2$ of $image$.
+    <dt>'ImageTake[$image$, {$r1$, $r2$}, {$c1$, $c2$}]'
+      <dd>gives a cropped version of $image$.
+    </dl>
+    '''
+
     def apply(self, image, n, evaluation):
         'ImageTake[image_Image, n_Integer]'
-        return Image(image.pixels[:int(n.to_python())], image.color_space)
+        py_n = n.get_int_value()
+        if py_n >= 0:
+            pixels = image.pixels[:py_n]
+        elif py_n < 0:
+            pixels = image.pixels[py_n:]
+        return Image(pixels, image.color_space)
+
+    def _slice(self, image, i1, i2, axis):
+        n = image.pixels.shape[axis]
+        py_i1 = min(max(i1.get_int_value() - 1, 0), n - 1)
+        py_i2 = min(max(i2.get_int_value() - 1, 0), n - 1)
+
+        def flip(pixels):
+            if py_i1 > py_i2:
+                return numpy_flip(pixels, axis)
+            else:
+                return pixels
+
+        return slice(min(py_i1, py_i2), 1 + max(py_i1, py_i2)), flip
+
+    def apply_rows(self, image, r1, r2, evaluation):
+        'ImageTake[image_Image, {r1_Integer, r2_Integer}]'
+        s, f = self._slice(image, r1, r2, 0)
+        return Image(f(image.pixels[s]), image.color_space)
+
+    def apply_rows_cols(self, image, r1, r2, c1, c2, evaluation):
+        'ImageTake[image_Image, {r1_Integer, r2_Integer}, {c1_Integer, c2_Integer}]'
+        sr, fr = self._slice(image, r1, r2, 0)
+        sc, fc = self._slice(image, c1, c2, 1)
+        return Image(fc(fr(image.pixels[sr, sc])), image.color_space)
 
 
 class PixelValue(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'PixelValue[$image$, {$x$, $y$}]'
+      <dd>gives the value of the pixel at position {$x$, $y$} in $image$.
+    </dl>
+
+    >> lena = Import["ExampleData/lena.tif"];
+    >> PixelValue[lena, {1, 1}]
+     = {0.321569, 0.0862745, 0.223529}
+    #> {82 / 255, 22 / 255, 57 / 255} // N  (* pixel byte values from bottom left corner *)
+     = {0.321569, 0.0862745, 0.223529}
+
+    #> PixelValue[lena, {0, 1}];
+     : Padding not implemented for PixelValue.
+    #> PixelValue[lena, {512, 1}]
+     = {0.72549, 0.290196, 0.317647}
+    #> PixelValue[lena, {513, 1}];
+     : Padding not implemented for PixelValue.
+    #> PixelValue[lena, {1, 0}];
+     : Padding not implemented for PixelValue.
+    #> PixelValue[lena, {1, 512}]
+     = {0.886275, 0.537255, 0.490196}
+    #> PixelValue[lena, {1, 513}];
+     : Padding not implemented for PixelValue.
+    '''
+
+    messages = {
+        'nopad': 'Padding not implemented for PixelValue.',
+    }
+
     def apply(self, image, x, y, evaluation):
         'PixelValue[image_Image, {x_?RealNumberQ, y_?RealNumberQ}]'
-        pixel = image.pixels[int(y.to_python() - 1), int(x.to_python() - 1)]
+        x = int(x.round_to_float())
+        y = int(y.round_to_float())
+        height = image.pixels.shape[0]
+        width = image.pixels.shape[1]
+        if not (1 <= x <= width and 1 <= y <= height):
+            return evaluation.message('PixelValue', 'nopad')
+        pixel = pixels_as_float(image.pixels)[height - y, x - 1]
         if isinstance(pixel, (numpy.ndarray, numpy.generic, list)):
-            return Expression('List', *[Real(float(x)) for x in list(pixel)])
+            return Expression('List', *[MachineReal(float(x)) for x in list(pixel)])
         else:
-            return Real(float(pixel))
+            return MachineReal(float(pixel))
 
 
 class PixelValuePositions(_ImageBuiltin):
-    def apply(self, image, val, evaluation):
-        'PixelValuePositions[image_Image, val_?RealNumberQ]'
-        rows, cols = numpy.where(skimage.img_as_float(image.pixels) == float(val.to_python()))
-        p = numpy.dstack((cols, rows)) + numpy.array([1, 1])
-        return from_python(p.tolist())
+    '''
+    <dl>
+    <dt>'PixelValuePositions[$image$, $val$]'
+      <dd>gives the positions of all pixels in $image$ that have value $val$.
+    </dl>
+
+    >> PixelValuePositions[Image[{{0, 1}, {1, 0}, {1, 1}}], 1]
+     = {{1, 1}, {1, 2}, {2, 1}, {2, 3}}
+
+    >> PixelValuePositions[Image[{{0.2, 0.4}, {0.9, 0.6}, {0.3, 0.8}}], 0.5, 0.15]
+     = {{2, 2}, {2, 3}}
+
+    >> img = Import["ExampleData/lena.tif"];
+    >> PixelValuePositions[img, 3 / 255, 0.5 / 255]
+     = {{180, 192, 2}, {181, 192, 2}, {181, 193, 2}, {188, 204, 2}, {265, 314, 2}, {364, 77, 2}, {365, 72, 2}, {365, 73, 2}, {365, 77, 2}, {366, 70, 2}, {367, 65, 2}}
+    >> PixelValue[img, {180, 192}]
+     = {0.25098, 0.0117647, 0.215686}
+    '''
+
+    rules = {
+        'PixelValuePositions[image_Image, val_?RealNumberQ]': 'PixelValuePositions[image, val, 0]',
+    }
+
+    def apply(self, image, val, d, evaluation):
+        'PixelValuePositions[image_Image, val_?RealNumberQ, d_?RealNumberQ]'
+        val = val.round_to_float()
+        d = d.round_to_float()
+
+        positions = numpy.argwhere(numpy.isclose(pixels_as_float(image.pixels), val, atol=d, rtol=0))
+
+        # python indexes from 0 at top left -> indices from 1 starting at bottom left
+        # if single channel then ommit channel indices
+        height = image.pixels.shape[0]
+        if image.pixels.shape[2] == 1:
+            result = sorted((j + 1, height - i) for i, j, k in positions.tolist())
+        else:
+            result = sorted((j + 1, height - i, k + 1) for i, j, k in positions.tolist())
+        return Expression('List', *(Expression('List', *arg) for arg in result))
 
 
 # image attribute queries
@@ -1127,8 +1902,8 @@ class PixelValuePositions(_ImageBuiltin):
 class ImageDimensions(_ImageBuiltin):
     '''
     <dl>
-    <dt>'ImageDimensions[image]'
-      <dd>Returns the dimensions of an image in pixels.
+    <dt>'ImageDimensions[$image$]'
+      <dd>Returns the dimensions of $image$ in pixels.
     </dl>
 
     >> lena = Import["ExampleData/lena.tif"];
@@ -1137,6 +1912,11 @@ class ImageDimensions(_ImageBuiltin):
 
     >> ImageDimensions[RandomImage[1, {50, 70}]]
      = {50, 70}
+
+    #> Image[{{0, 1}, {1, 0}, {1, 1}}] // ImageDimensions
+     = {2, 3}
+    #> Image[{{0.2, 0.4}, {0.9, 0.6}, {0.3, 0.8}}] // ImageDimensions
+     = {2, 3}
     '''
     def apply(self, image, evaluation):
         'ImageDimensions[image_Image]'
@@ -1144,19 +1924,65 @@ class ImageDimensions(_ImageBuiltin):
 
 
 class ImageAspectRatio(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageAspectRatio[$image$]'
+      <dd>gives the aspect ratio of $image$.
+    </dl>
+
+    >> img = Import["ExampleData/lena.tif"];
+    >> ImageAspectRatio[img]
+     = 1
+
+    >> ImageAspectRatio[Image[{{0, 1}, {1, 0}, {1, 1}}]]
+     = 3 / 2
+    '''
+
     def apply(self, image, evaluation):
         'ImageAspectRatio[image_Image]'
         dim = image.dimensions()
-        return Real(dim[1] / float(dim[0]))
+        return Expression('Divide', Integer(dim[1]), Integer(dim[0]))
 
 
 class ImageChannels(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageChannels[$image$]'
+      <dd>gives the number of channels in $image$.
+    </dl>
+
+    >> ImageChannels[Image[{{0, 1}, {1, 0}}]]
+     = 1
+
+    >> img = Import["ExampleData/lena.tif"];
+    >> ImageChannels[img]
+     = 3
+    '''
+
     def apply(self, image, evaluation):
         'ImageChannels[image_Image]'
         return Integer(image.channels())
 
 
 class ImageType(_ImageBuiltin):
+    '''
+    <dl>
+    <dt>'ImageType[$image$]'
+      <dd>gives the interval storage type of $image$, e.g. "Real", "Bit32", or "Bit".
+    </dl>
+
+    >> img = Import["ExampleData/lena.tif"];
+    >> ImageType[img]
+     = Byte
+
+    >> ImageType[Image[{{0, 1}, {1, 0}}]]
+     = Real
+
+    >> ImageType[Binarize[img]]
+     = Bit
+
+    '''
+
     def apply(self, image, evaluation):
         'ImageType[image_Image]'
         return String(image.storage_type())
@@ -1168,6 +1994,13 @@ class BinaryImageQ(_ImageTest):
     <dt>'BinaryImageQ[$image]'
       <dd>returns True if the pixels of $image are binary bit values, and False otherwise.
     </dl>
+
+    >> img = Import["ExampleData/lena.tif"];
+    >> BinaryImageQ[img]
+     = False
+
+    >> BinaryImageQ[Binarize[img]]
+     = True
     '''
 
     def test(self, expr):
@@ -1183,7 +2016,7 @@ def _image_pixels(matrix):
     except ValueError:  # irregular array, e.g. {{0, 1}, {0, 1, 1}}
         return None
     shape = pixels.shape
-    if len(shape) == 2 or (len(shape) == 3 and shape[2] in (1, 3)):
+    if len(shape) == 2 or (len(shape) == 3 and shape[2] in (1, 3, 4)):
         return pixels
     else:
         return None
@@ -1230,19 +2063,75 @@ class ImageBox(BoxConstruct):
 
 
 class Image(Atom):
-    def __init__(self, pixels, color_space, **kwargs):
+    def __init__(self, pixels, color_space, metadata={}, **kwargs):
         super(Image, self).__init__(**kwargs)
+        if len(pixels.shape) == 2:
+            pixels = pixels.reshape(list(pixels.shape) + [1])
         self.pixels = pixels
         self.color_space = color_space
+        self.metadata = metadata
+
+    def filter(self, f):  # apply PIL filters component-wise
+        pixels = self.pixels
+        n = pixels.shape[2]
+        channels = [f(PIL.Image.fromarray(c, 'L')) for c in (pixels[:, :, i] for i in range(n))]
+        return Image(numpy.dstack(channels), self.color_space)
 
     def pil(self):
-        return PIL.Image.fromarray(self.pixels)
+        # see http://pillow.readthedocs.io/en/3.1.x/handbook/concepts.html#concept-modes
+        n = self.channels()
+
+        if n == 1:
+            dtype = self.pixels.dtype
+
+            if dtype in (numpy.float32, numpy.float64):
+                pixels = self.pixels.astype(numpy.float32)
+                mode = 'F'
+            elif dtype == numpy.uint32:
+                pixels = self.pixels
+                mode = 'I'
+            else:
+                pixels = pixels_as_ubyte(self.pixels)
+                mode = 'L'
+
+            pixels = pixels.reshape(pixels.shape[:2])
+        elif n == 3:
+            if self.color_space == 'LAB':
+                mode = 'LAB'
+                pixels = self.pixels
+            elif self.color_space == 'HSB':
+                mode = 'HSV'
+                pixels = self.pixels
+            elif self.color_space == 'RGB':
+                mode = 'RGB'
+                pixels = self.pixels
+            else:
+                mode = 'RGB'
+                pixels = self.color_convert('RGB').pixels
+
+            pixels = pixels_as_ubyte(pixels)
+        elif n == 4:
+            if self.color_space == 'CMYK':
+                mode = 'CMYK'
+                pixels = self.pixels
+            elif self.color_space == 'RGB':
+                mode = 'RGBA'
+                pixels = self.pixels
+            else:
+                mode = 'RGBA'
+                pixels = self.color_convert('RGB').pixels
+
+            pixels = pixels_as_ubyte(pixels)
+        else:
+            raise NotImplementedError
+
+        return PIL.Image.fromarray(pixels, mode)
 
     def color_convert(self, to_color_space, preserve_alpha=True):
-        if to_color_space == self.color_space:
+        if to_color_space == self.color_space and preserve_alpha:
             return self
         else:
-            pixels = skimage.img_as_float(self.pixels)
+            pixels = pixels_as_float(self.pixels)
             converted = convert_color(pixels, self.color_space, to_color_space, preserve_alpha)
             if converted is None:
                 return None
@@ -1252,61 +2141,51 @@ class Image(Atom):
         return self.color_convert('Grayscale')
 
     def atom_to_boxes(self, f, evaluation):
-        try:
-            if self.color_space == 'Grayscale' and self.pixels.shape[2] == 1:
-                pixels = self.pixels
-                # convert_color gives us [[[a], [b], ...]], but
-                # skimage.io.imsave only wants [[a, b, ...]], so:
-                pixels = pixels.reshape(pixels.shape[:2])
-            else:
-                pixels = self.color_convert('RGB', False).pixels
+        pixels = pixels_as_ubyte(self.color_convert('RGB', True).pixels)
+        shape = pixels.shape
 
-            if pixels is None:
-                raise ValueError('could not convert pixels to RGB.')
+        width = shape[1]
+        height = shape[0]
+        scaled_width = width
+        scaled_height = height
 
-            if pixels.dtype == numpy.bool:
-                pixels = skimage.img_as_ubyte(pixels)
+        if len(shape) >= 3 and shape[2] == 4:
+            pixels_format = 'RGBA'
+        else:
+            pixels_format = 'RGB'
 
-            shape = pixels.shape
+        pillow = PIL.Image.fromarray(pixels, pixels_format)
 
-            width = shape[1]
-            height = shape[0]
-            scaled_width = width
-            scaled_height = height
+        # if the image is very small, scale it up using nearest neighbour.
+        min_size = 128
+        if width < min_size and height < min_size:
+            scale = min_size / max(width, height)
+            scaled_width = int(scale * width)
+            scaled_height = int(scale * height)
+            pillow = pillow.resize(
+                (scaled_height, scaled_width), resample=PIL.Image.NEAREST)
 
-            # if the image is very small, scale it up using nearest neighbour.
-            min_size = 128
-            if width < min_size and height < min_size:
-                scale = min_size / max(width, height)
-                scaled_width = int(scale * width)
-                scaled_height = int(scale * height)
-                pixels = skimage.transform.resize(pixels, (scaled_height, scaled_width), order=0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
 
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
+            stream = BytesIO()
+            pillow.save(stream, format='png')
+            stream.seek(0)
+            contents = stream.read()
+            stream.close()
 
-                stream = BytesIO()
-                skimage.io.imsave(stream, pixels, 'pil', format_str='png')
-                stream.seek(0)
-                contents = stream.read()
-                stream.close()
+        encoded = base64.b64encode(contents)
+        if not six.PY2:
+            encoded = encoded.decode('utf8')
+        encoded = 'data:image/png;base64,' + encoded
 
-            encoded = base64.b64encode(contents)
-            if not six.PY2:
-                encoded = encoded.decode('utf8')
-            encoded = 'data:image/png;base64,' + encoded
-
-            return Expression('ImageBox', String(encoded), Integer(scaled_width), Integer(scaled_height))
-        except Exception as e:
-            evaluation.print_out('Image processing failed: %s' % str(e))
-            return String('')
-
+        return Expression('ImageBox', String(encoded), Integer(scaled_width), Integer(scaled_height))
 
     def __str__(self):
         return '-Image-'
 
     def do_copy(self):
-        return Image(self.pixels)
+        return Image(self.pixels, self.color_space, self.metadata)
 
     def default_format(self, evaluation, form):
         return '-Image-'
@@ -1318,24 +2197,24 @@ class Image(Atom):
             return hash(self)
 
     def same(self, other):
-        return isinstance(other, Image) and numpy.array_equal(self.pixels, other.pixels)
+        if not isinstance(other, Image):
+            return False
+        if self.color_space != other.color_space or self.metadata != other.metadata:
+            return False
+        return numpy.array_equal(self.pixels, other.pixels)
 
     def to_python(self, *args, **kwargs):
         return self.pixels
 
     def __hash__(self):
-        return hash(("Image", self.pixels.tobytes()))
+        return hash(("Image", self.pixels.tobytes(), self.color_space, frozenset(self.metadata.items())))
 
     def dimensions(self):
         shape = self.pixels.shape
-        return (shape[1], shape[0])
+        return shape[1], shape[0]
 
     def channels(self):
-        shape = self.pixels.shape
-        if len(shape) < 3:
-            return 1
-        else:
-            return shape[2]
+        return self.pixels.shape[2]
 
     def storage_type(self):
         dtype = self.pixels.dtype
@@ -1352,8 +2231,22 @@ class Image(Atom):
         else:
             return str(dtype)
 
+    def options(self):
+        return Expression(
+            'List',
+            Expression('Rule', String('ColorSpace'), String(self.color_space)),
+            Expression('Rule', String('MetaInformation'), self.metadata))
+
 
 class ImageAtom(AtomBuiltin):
+    '''
+    #> Image[{{{1,1,0},{0,1,1}}, {{1,0,1},{1,1,0}}}]
+     = -Image-
+
+    #> Image[{{{0,0,0,0.25},{0,0,0,0.5}}, {{0,0,0,0.5},{0,0,0,0.75}}}]
+     = -Image-
+    '''
+
     requires = _image_requires
 
     def apply_create(self, array, evaluation):
@@ -1361,7 +2254,7 @@ class ImageAtom(AtomBuiltin):
         pixels = _image_pixels(array.to_python())
         if pixels is not None:
             shape = pixels.shape
-            is_rgb = (len(shape) == 3 and shape[2] == 3)
+            is_rgb = (len(shape) == 3 and shape[2] in (3, 4))
             return Image(pixels.clip(0, 1), 'RGB' if is_rgb else 'Grayscale')
         else:
             return Expression('Image', array)

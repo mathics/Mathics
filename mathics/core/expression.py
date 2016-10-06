@@ -8,6 +8,7 @@ import sympy
 import mpmath
 import math
 import re
+from itertools import chain
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
@@ -140,6 +141,15 @@ class BaseExpression(KeyComparable):
         self.pattern_sequence = False
         self.unformatted = self
         self.last_evaluated = None
+        return self
+
+    def sequences(self):
+        return None
+
+    def flatten_sequence(self):
+        return self
+
+    def flatten_pattern_sequence(self):
         return self
 
     def get_attributes(self, definitions):
@@ -498,6 +508,12 @@ class Monomial(object):
         return 0
 
 
+def _sequences(leaves):
+    for i, leaf in enumerate(leaves):
+        if leaf.get_head_name() == 'System`Sequence' or leaf.sequences():
+            yield i
+
+
 class Expression(BaseExpression):
     def __new__(cls, head, *leaves):
         self = super(Expression, cls).__new__(cls)
@@ -505,11 +521,61 @@ class Expression(BaseExpression):
             head = Symbol(head)
         self.head = head
         self.leaves = [from_python(leaf) for leaf in leaves]
+        self._sequences = None
         return self
+
+    def sequences(self):
+        seq = self._sequences
+        if seq is None:
+            seq = list(_sequences(self.leaves))
+            self._sequences = seq
+        return seq
+
+    def _flatten_sequence(self, sequence):
+        indices = self.sequences()
+        if not indices:
+            return self
+
+        leaves = self.leaves
+
+        flattened = []
+        extend = flattened.extend
+
+        k = 0
+        for i in indices:
+            extend(leaves[k:i])
+            extend(sequence(leaves[i]))
+            k = i + 1
+        extend(leaves[k:])
+
+        return Expression(self.head, *flattened)
+
+    def flatten_sequence(self):
+        def sequence(leaf):
+            if leaf.get_head_name() == 'System`Sequence':
+                return leaf.leaves
+            else:
+                return [leaf]
+
+        return self._flatten_sequence(sequence)
+
+    def flatten_pattern_sequence(self):
+        def sequence(leaf):
+            flattened = leaf.flatten_pattern_sequence()
+            if leaf.get_head_name() == 'System`Sequence' and leaf.pattern_sequence:
+                return flattened.leaves
+            else:
+                return [flattened]
+
+        expr = self._flatten_sequence(sequence)
+        if hasattr(self, 'options'):
+            expr.options = self.options
+        return expr
 
     def copy(self):
         result = Expression(
             self.head.copy(), *[leaf.copy() for leaf in self.leaves])
+        result._sequences = self._sequences
         result.options = self.options
         result.original = self
         # result.last_evaluated = self.last_evaluated
@@ -520,6 +586,7 @@ class Expression(BaseExpression):
         # the original, only the Expression instance is new.
         expr = Expression(self.head)
         expr.leaves = self.leaves
+        expr._sequences = self._sequences
         expr.options = self.options
         expr.last_evaluated = self.last_evaluated
         return expr
@@ -808,22 +875,28 @@ class Expression(BaseExpression):
 
             if ('System`SequenceHold' not in attributes and    # noqa
                 'System`HoldAllComplete' not in attributes):
-                new = new.flatten(Symbol('Sequence'))
-            leaves = new.leaves
+                new = new.flatten_sequence()
+                leaves = new.leaves
 
             for leaf in leaves:
                 leaf.unevaluated = False
+
             if 'System`HoldAllComplete' not in attributes:
+                dirty_new = False
+
                 for index, leaf in enumerate(leaves):
                     if leaf.has_form('Unevaluated', 1):
                         leaves[index] = leaf.leaves[0]
                         leaves[index].unevaluated = True
+                        dirty_new = True
+
+                if dirty_new:
+                    new = Expression(head, *leaves)
 
             def flatten_callback(new_leaves, old):
                 for leaf in new_leaves:
                     leaf.unevaluated = old.unevaluated
 
-            new = Expression(head, *leaves)
             if 'System`Flat' in attributes:
                 new = new.flatten(new.head, callback=flatten_callback)
             if 'System`Orderless' in attributes:
@@ -2002,7 +2075,6 @@ def encode_mathml(text):
     text = text.replace('"', '&quot;').replace(' ', '&nbsp;')
     return text.replace('\n', '<mspace linebreak="newline" />')
 
-
 TEX_REPLACE = {
     '{': r'\{',
     '}': r'\}',
@@ -2048,7 +2120,7 @@ extra_operators = set((',', '(', ')', '[', ']', '{', '}',
 class String(Atom):
     def __new__(cls, value):
         self = super(String, cls).__new__(cls)
-        self.value = value
+        self.value = six.text_type(value)
         return self
 
     def __str__(self):
@@ -2073,28 +2145,29 @@ class String(Atom):
 
         text = self.value
 
+        def render(format, string):
+            return format % encode_mathml(string)
+
         if text.startswith('"') and text.endswith('"'):
             if show_string_characters:
-                return '<ms>%s</ms>' % encode_mathml(text[1:-1])
+                return render('<ms>%s</ms>', text[1:-1])
             else:
-                return '<mtext>%s</mtext>' % encode_mathml(text[1:-1])
+                return render('<mtext>%s</mtext>', text[1:-1])
         elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
-            return '<mn>%s</mn>' % encode_mathml(text)
+            return render('<mn>%s</mn>', text)
         else:
             if text in operators or text in extra_operators:
                 if text == '\u2146':
-                    return (
-                        '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>'
-                        % encode_mathml(text))
+                    return render(
+                        '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>', text)
                 if text == '\u2062':
-                    return (
-                        '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>'
-                        % encode_mathml(text))
-                return '<mo>%s</mo>' % encode_mathml(text)
+                    return render(
+                        '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>', text)
+                return render('<mo>%s</mo>', text)
             elif is_symbol_name(text):
-                return '<mi>%s</mi>' % encode_mathml(text)
+                return render('<mi>%s</mi>', text)
             else:
-                return '<mtext>%s</mtext>' % encode_mathml(text)
+                return render('<mtext>%s</mtext>', text)
 
     def boxes_to_tex(self, show_string_characters=False, **options):
         from mathics.builtin import builtins
@@ -2107,13 +2180,16 @@ class String(Atom):
 
         text = self.value
 
+        def render(format, string, in_text=False):
+            return format % encode_tex(string, in_text)
+
         if text.startswith('"') and text.endswith('"'):
             if show_string_characters:
-                return r'\text{"%s"}' % encode_tex(text[1:-1], in_text=True)
+                return render(r'\text{"%s"}', text[1:-1], in_text=True)
             else:
-                return r'\text{%s}' % encode_tex(text[1:-1], in_text=True)
-        elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
-            return encode_tex(text)
+                return render(r'\text{%s}', text[1:-1], in_text=True)
+        elif text and text[0] in '0123456789-.':
+            return render('%s', text)
         else:
             if text == '\u2032':
                 return "'"
@@ -2126,9 +2202,9 @@ class String(Atom):
             elif text == '\u00d7':
                 return r'\times '
             elif text in ('(', '[', '{'):
-                return r'\left%s' % encode_tex(text)
+                return render(r'\left%s', text)
             elif text in (')', ']', '}'):
-                return r'\right%s' % encode_tex(text)
+                return render(r'\right%s', text)
             elif text == '\u301a':
                 return r'\left[\left['
             elif text == '\u301b':
@@ -2144,9 +2220,9 @@ class String(Atom):
             elif text == '\u220f':
                 return r'\prod'
             elif len(text) > 1:
-                return r'\text{%s}' % encode_tex(text, in_text=True)
+                return render(r'\text{%s}', text, in_text=True)
             else:
-                return encode_tex(text)
+                return render('%s', text)
 
     def atom_to_boxes(self, f, evaluation):
         return String('"' + six.text_type(self.value) + '"')
