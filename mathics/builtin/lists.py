@@ -983,7 +983,7 @@ class Most(Builtin):
         if expr.is_atom():
             evaluation.message('Most', 'normal')
             return
-        return Expression(expr.head, *expr.leaves[:-1])
+        return expr.restructure(expr.head, expr.leaves[:-1])
 
 
 class Rest(Builtin):
@@ -1010,7 +1010,7 @@ class Rest(Builtin):
         if expr.is_atom():
             evaluation.message('Rest', 'normal')
             return
-        return Expression(expr.head, *expr.leaves[1:])
+        return expr.restructure(expr.head, expr.leaves[1:])
 
 
 class ReplacePart(Builtin):
