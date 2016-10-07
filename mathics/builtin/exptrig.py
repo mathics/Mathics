@@ -1025,6 +1025,10 @@ class AnglePathFold(Fold):
             yield x, y, phi
 
 
+class _IllegalStepSpecification(Exception):
+    pass
+
+
 class AnglePath(Builtin):
     """
     <dl>
@@ -1072,28 +1076,25 @@ class AnglePath(Builtin):
         if not steps:
             return Expression('List')
 
-        class IllegalStepSpecification(Exception):
-            pass
-
         if steps[0].get_head_name() == 'System`List':
             def parse(step):
                 if step.get_head_name() != 'System`List':
-                    raise IllegalStepSpecification
+                    raise _IllegalStepSpecification
                 arguments = step.leaves
                 if len(arguments) != 2:
-                    raise IllegalStepSpecification
+                    raise _IllegalStepSpecification
                 return arguments
         else:
             def parse(step):
                 if step.get_head_name() == 'System`List':
-                    raise IllegalStepSpecification
+                    raise _IllegalStepSpecification
                 return None, step
 
         try:
             fold = AnglePathFold(parse)
             leaves = [Expression('List', x, y) for x, y, _ in fold.fold((x0, y0, phi0), steps)]
             return Expression('List', *leaves)
-        except IllegalStepSpecification:
+        except _IllegalStepSpecification:
             evaluation.message('AnglePath', 'steps', Expression('List', *steps))
 
     def apply(self, steps, evaluation):

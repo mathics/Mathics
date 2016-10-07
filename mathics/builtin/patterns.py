@@ -524,6 +524,10 @@ class Alternatives(BinaryOperator, PatternObject):
         return range
 
 
+class _StopGeneratorExcept(StopGenerator):
+    pass
+
+
 class Except(PatternObject):
     """
     <dl>
@@ -558,18 +562,19 @@ class Except(PatternObject):
             self.p = Pattern.create(Expression('Blank'))
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
-        class StopGenerator_Except(StopGenerator):
-            pass
-
         def except_yield_func(vars, rest):
-            raise StopGenerator_Except(Symbol("True"))
+            raise _StopGeneratorExcept(True)
 
         try:
             self.c.match(except_yield_func, expression, vars, evaluation)
-        except StopGenerator_Except:
+        except _StopGeneratorExcept:
             pass
         else:
             self.p.match(yield_func, expression, vars, evaluation)
+
+
+class _StopGeneratorMatchQ(StopGenerator):
+    pass
 
 
 class Matcher(object):
@@ -577,15 +582,12 @@ class Matcher(object):
         self.form = Pattern.create(form)
 
     def match(self, expr, evaluation):
-        class StopGenerator_MatchQ(StopGenerator):
-            pass
-
         def yield_func(vars, rest):
-            raise StopGenerator_MatchQ(Symbol("True"))
+            raise _StopGeneratorMatchQ(True)
 
         try:
             self.form.match(yield_func, expr, {}, evaluation)
-        except StopGenerator_MatchQ:
+        except _StopGeneratorMatchQ:
             return True
         return False
 
@@ -1332,3 +1334,25 @@ class OptionsPattern(PatternObject):
             return (leaf.has_form(('Rule', 'RuleDelayed'), 2) or
                     leaf.has_form('List', None))
         return [leaf for leaf in leaves if _match(leaf)]
+
+
+class _StopGeneratorBaseExpressionIsFree(StopGenerator):
+    pass
+
+
+def is_free(expr, form, evaluation):
+    # for vars, rest in form.match(self, {}, evaluation, fully=False):
+    def yield_match(vars, rest):
+        raise _StopGeneratorBaseExpressionIsFree(False)
+        # return False
+
+    try:
+        form.match(yield_match, expr, {}, evaluation, fully=False)
+    except _StopGeneratorBaseExpressionIsFree as exc:
+        return exc.value
+
+    if expr.is_atom():
+        return True
+    else:
+        return expr.head.is_free(form, evaluation) and all(
+            leaf.is_free(form, evaluation) for leaf in expr.leaves)

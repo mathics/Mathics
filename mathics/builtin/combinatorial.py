@@ -102,11 +102,13 @@ class Multinomial(Builtin):
         return result
 
 
+class _NoBoolVector(Exception):
+    pass
+
+
 class _BooleanDissimilarity(Builtin):
     @staticmethod
     def _to_bool_vector(u):
-        class NoBoolVector(Exception):
-            pass
 
         def generate():
             for leaf in u.leaves:
@@ -115,7 +117,7 @@ class _BooleanDissimilarity(Builtin):
                     if val in (0, 1):
                         yield val
                     else:
-                        raise NoBoolVector
+                        raise _NoBoolVector
                 elif isinstance(leaf, Symbol):
                     name = leaf.name
                     if name == 'System`True':
@@ -123,13 +125,13 @@ class _BooleanDissimilarity(Builtin):
                     elif name == 'System`False':
                         yield 0
                     else:
-                        raise NoBoolVector
+                        raise _NoBoolVector
                 else:
-                    raise NoBoolVector
+                    raise _NoBoolVector
 
         try:
             return [x for x in generate()]
-        except NoBoolVector:
+        except _NoBoolVector:
             return None
 
     def apply(self, u, v, evaluation):
