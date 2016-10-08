@@ -456,6 +456,8 @@ class Import(Builtin):
      = {Data, Lines, Plaintext, String, Words}
     >> Import["ExampleData/ExampleData.txt", "Lines"]
      = ...
+    #> Import["ExampleData/Middlemarch.txt"];
+     : An invalid unicode sequence was encountered and ignored.
 
     ## JSON
     >> Import["ExampleData/colors.json"]
