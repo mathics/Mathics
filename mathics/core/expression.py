@@ -525,42 +525,8 @@ class Expression(BaseExpression):
         self._sequences = None
         return self
 
-    def restructure(self, head, leaves):
-        # NOTE: leaves must originate from self.leaves or its sub trees!
-        expr = Expression(head)
-        expr.leaves = leaves
-        expr.last_evaluated = self.last_evaluated
-        return expr
-
-    def partition(self, n, d):
-        assert n > 0 and d > 0
-
-        # a fast partition that relies on three optimizations:
-        # (O1) leaves are not checked via from_python
-        # (O2) sequences are efficiently derived from self.sequences()
-        # (O3) if self has been evaluated, there's no need to
-        # reevaluate any partition of self.
-
-        # performance test case: x = Range[50000]; First[Timing[Partition[x, 15, 1]]]
-
-        leaves = self.leaves
-        head = Symbol('List')
-        seq = self.sequences()
-
-        for lower in range(0, len(leaves), d):
-            upper = lower + n
-
-            chunk = leaves[lower:upper]
-            if len(chunk) != n:
-                continue
-
-            a = bisect_left(seq, lower)  # all(val >= i for val in seq[a:])
-            b = bisect_left(seq, upper)  # all(val >= j for val in seq[b:])
-
-            expr = self.restructure(head, chunk)  # (O1), (O3)
-            expr._sequences = tuple(x - lower for x in seq[a:b])  # (O2)
-
-            yield expr
+    def slice(self, lower, upper, evaluation):
+        return Structure(self.head, self, evaluation).from_slice(self, lower, upper)
 
     def sequences(self):
         seq = self._sequences
@@ -2326,3 +2292,68 @@ def print_parenthesizes(precedence, outer_precedence=None,
     return (outer_precedence is not None and (
         outer_precedence > precedence or (
             outer_precedence == precedence and parenthesize_when_equal)))
+
+
+class Structure:  # Select?
+    # performance test case: x = Range[50000]; First[Timing[Partition[x, 15, 1]]]
+
+    def __init__(self, head, orig, evaluation):
+        if isinstance(head, six.string_types):
+            head = Symbol(head)
+        self.head = head
+
+        if isinstance(head, Symbol):
+            definitions = evaluation.definitions
+
+            definition = definitions.get_definition(head.get_name(), only_if_exists=True)
+            if definition is None:
+                safe = True
+            else:
+                safe = all(len(definition.get_values_list(x)) == 0 for x in ('up', 'sub', 'down', 'own'))
+        else:
+            safe = False
+
+        if safe:  # no definitions for head
+            if isinstance(orig, tuple):
+                last_evaluated = definitions.now
+                for expr in orig:
+                    if expr.last_evaluated is None or definitions.last_changed(expr) > expr.last_evaluated:
+                        last_evaluated = None
+                        break
+            elif isinstance(orig, (Expression, Structure)):
+                last_evaluated = orig.last_evaluated
+            else:
+                raise ValueError
+
+            self.last_evaluated = last_evaluated
+        else:
+            self.last_evaluated = None
+
+    def from_leaves(self, leaves):
+        # IMPORTANT: caller guarantees that leaves originate from orig.leaves or its sub trees!
+
+        expr = Expression(self.head)
+        expr.leaves = leaves
+        expr.last_evaluated = self.last_evaluated
+        return expr
+
+    def from_slice(self, expr, lower, upper):
+        # IMPORTANT: caller guarantees that expr is from origins!
+
+        leaves = expr.leaves
+        n_leaves = len(leaves)
+
+        lower %= n_leaves
+        upper %= n_leaves
+
+        expr = self.from_leaves(leaves[lower:upper])
+
+        seq = expr._sequences
+        if seq:
+            a = bisect_left(seq, lower)  # all(val >= i for val in seq[a:])
+            b = bisect_left(seq, upper)  # all(val >= j for val in seq[b:])
+            expr._sequences = tuple(x - lower for x in seq[a:b])  # (O2)
+        elif seq is not None:
+            expr._sequences = ()
+
+        return expr
