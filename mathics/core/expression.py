@@ -2314,7 +2314,7 @@ class Structure:  # Select?
             safe = False
 
         if safe:  # no definitions for head
-            if isinstance(orig, tuple):
+            if isinstance(orig, (list, tuple)):
                 last_evaluated = definitions.now
                 for expr in orig:
                     if expr.last_evaluated is None or definitions.last_changed(expr) > expr.last_evaluated:
@@ -2323,7 +2323,7 @@ class Structure:  # Select?
             elif isinstance(orig, (Expression, Structure)):
                 last_evaluated = orig.last_evaluated
             else:
-                raise ValueError
+                raise ValueError('expected Expression, Structure, tuple or list as orig param')
 
             self.last_evaluated = last_evaluated
         else:
@@ -2333,25 +2333,26 @@ class Structure:  # Select?
         # IMPORTANT: caller guarantees that leaves originate from orig.leaves or its sub trees!
 
         expr = Expression(self.head)
-        expr.leaves = leaves
+        expr.leaves = list(leaves)
         expr.last_evaluated = self.last_evaluated
         return expr
+
+    def from_condition(self, expr, cond):
+        # IMPORTANT: caller guarantees that expr is from origins!
+        return self.from_leaves([leaf for leaf in expr.leaves if cond(leaf)])
 
     def from_slice(self, expr, lower, upper):
         # IMPORTANT: caller guarantees that expr is from origins!
 
         leaves = expr.leaves
-        n_leaves = len(leaves)
-
-        lower %= n_leaves
-        upper %= n_leaves
-
+        lower, upper, _ = slice(lower, upper).indices(len(leaves))
         expr = self.from_leaves(leaves[lower:upper])
 
         seq = expr._sequences
         if seq:
             a = bisect_left(seq, lower)  # all(val >= i for val in seq[a:])
             b = bisect_left(seq, upper)  # all(val >= j for val in seq[b:])
+
             expr._sequences = tuple(x - lower for x in seq[a:b])  # (O2)
         elif seq is not None:
             expr._sequences = ()
