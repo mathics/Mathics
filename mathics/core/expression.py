@@ -604,7 +604,6 @@ class Expression(BaseExpression):
         expr._sequences = self._sequences
         expr.options = self.options
         expr.last_evaluated = self.last_evaluated
-        expr._format_cache = self._format_cache
         return expr
 
     def set_positions(self, position=None):
