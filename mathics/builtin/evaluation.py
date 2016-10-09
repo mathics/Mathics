@@ -4,21 +4,9 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-import sys
-
 from mathics.builtin.base import Predefined, Builtin
 from mathics.core.expression import Integer
-
-from mathics import settings
-
-
-def set_recursionlimit(n):
-    "Sets the required python recursion limit given $RecursionLimit value"
-    def conversion(m):
-        return 200 + 20 * m
-    sys.setrecursionlimit(conversion(n))
-    if sys.getrecursionlimit() != conversion(n):
-        raise OverflowError
+from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
 
 
 class RecursionLimit(Predefined):
@@ -71,7 +59,7 @@ class RecursionLimit(Predefined):
     name = '$RecursionLimit'
     value = 200
 
-    set_recursionlimit(value)
+    set_python_recursion_limit(value)
 
     rules = {
         '$RecursionLimit': str(value),
@@ -81,8 +69,9 @@ class RecursionLimit(Predefined):
         'reclim': "Recursion depth of `1` exceeded.",
         'limset': (
             "Cannot set $RecursionLimit to `1`; "
-            "value must be an integer between 20 and %d.") % (
-                settings.MAX_RECURSION_DEPTH),
+            "value must be an integer between 20 and %d; "
+            "use the MATHICS_MAX_RECURSION_DEPTH environment variable to allow higher limits.") % (
+                MAX_RECURSION_DEPTH),
     }
 
     rules = {
