@@ -2294,40 +2294,57 @@ def print_parenthesizes(precedence, outer_precedence=None,
             outer_precedence == precedence and parenthesize_when_equal)))
 
 
-class Structure:  # Select?
+def _is_safe_head(head, cache, evaluation):
+    if not isinstance(head, Symbol):
+        return False
+
+    head_name = head.get_name()
+
+    if cache:
+        r = cache.get(head_name)
+        if r is not None:
+            return r
+
+    definitions = evaluation.definitions
+
+    definition = definitions.get_definition(head_name, only_if_exists=True)
+    if definition is None:
+        r = True
+    else:
+        r = all(len(definition.get_values_list(x)) == 0 for x in ('up', 'sub', 'down', 'own'))
+
+    if cache:
+        cache[head_name] = r
+
+    return r
+
+
+class Structure:
     # performance test case: x = Range[50000]; First[Timing[Partition[x, 15, 1]]]
 
-    def __init__(self, head, orig, evaluation):
+    def __init__(self, head, orig, evaluation, cache=None):
         if isinstance(head, six.string_types):
             head = Symbol(head)
         self.head = head
 
-        if isinstance(head, Symbol):
-            definitions = evaluation.definitions
-
-            definition = definitions.get_definition(head.get_name(), only_if_exists=True)
-            if definition is None:
-                safe = True
-            else:
-                safe = all(len(definition.get_values_list(x)) == 0 for x in ('up', 'sub', 'down', 'own'))
-        else:
-            safe = False
-
-        if safe:  # no definitions for head
-            if isinstance(orig, (list, tuple)):
+        if isinstance(orig, (Expression, Structure)):
+            last_evaluated = orig.last_evaluated
+            if last_evaluated is not None and not _is_safe_head(head, cache, evaluation):
+                last_evaluated = None
+        elif isinstance(orig, (list, tuple)):
+            if _is_safe_head(head, cache, evaluation):
+                definitions = evaluation.definitions
                 last_evaluated = definitions.now
                 for expr in orig:
                     if expr.last_evaluated is None or definitions.last_changed(expr) > expr.last_evaluated:
                         last_evaluated = None
                         break
-            elif isinstance(orig, (Expression, Structure)):
-                last_evaluated = orig.last_evaluated
             else:
-                raise ValueError('expected Expression, Structure, tuple or list as orig param')
-
-            self.last_evaluated = last_evaluated
+                last_evaluated = None
         else:
-            self.last_evaluated = None
+            raise ValueError('expected Expression, Structure, tuple or list as orig param')
+
+        self.last_evaluated = last_evaluated
 
     def from_leaves(self, leaves):
         # IMPORTANT: caller guarantees that leaves originate from orig.leaves or its sub trees!

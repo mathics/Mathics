@@ -365,7 +365,7 @@ def _part_selectors(indices):
             raise MessageException('Part', 'pspec', index)
 
 
-def _list_parts(items, selectors, assignment):
+def _list_parts(items, selectors, heads, evaluation, assignment):
     if not selectors:
         for item in items:
             yield item
@@ -381,24 +381,25 @@ def _list_parts(items, selectors, assignment):
             selected = list(select(item))
 
             picked = list(_list_parts(
-                selected, selectors[1:], assignment))
+                selected, selectors[1:], heads, evaluation, assignment))
 
             if unwrap is None:
-                expr = item.shallow_copy()
-                expr.leaves = picked
-                expr.last_evaluated = None
-
                 if assignment:
+                    expr = Expression(item.head, *picked)
                     expr.original = None
                     expr.set_positions()
+                else:
+                    expr = Structure(
+                        item.head, item, evaluation, cache=heads).from_leaves(picked)
 
                 yield expr
             else:
                 yield unwrap(picked)
 
 
-def _parts(items, selectors, assignment=False):
-    return list(_list_parts([items], list(selectors), assignment))[0]
+def _parts(items, selectors, evaluation, assignment=False):
+    heads = {}
+    return list(_list_parts([items], list(selectors), heads, evaluation, assignment))[0]
 
 
 def walk_parts(list_of_list, indices, evaluation, assign_list=None):
@@ -421,6 +422,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         result = _parts(
             walk_list,
             _part_selectors(indices),
+            evaluation,
             assign_list is not None)
     except MessageException as e:
         e.message(evaluation)
@@ -1226,7 +1228,7 @@ class Take(Builtin):
                 'Take', 'normal', 1, Expression('Take', items, *seqs))
 
         try:
-            return _parts(items, [_take_span_selector(seq) for seq in seqs])
+            return _parts(items, [_take_span_selector(seq) for seq in seqs], evaluation)
         except MessageException as e:
             e.message(evaluation)
 
@@ -1276,7 +1278,7 @@ class Drop(Builtin):
                 'Drop', 'normal', 1, Expression('Drop', items, *seqs))
 
         try:
-            return _parts(items, [_drop_span_selector(seq) for seq in seqs])
+            return _parts(items, [_drop_span_selector(seq) for seq in seqs], evaluation)
         except MessageException as e:
             e.message(evaluation)
 
