@@ -312,24 +312,8 @@ class BaseExpression(KeyComparable):
         return result
 
     def is_free(self, form, evaluation):
-        from mathics.core.pattern import StopGenerator
-
-        class StopGenerator_BaseExpression_is_free(StopGenerator):
-            pass
-
-        # for vars, rest in form.match(self, {}, evaluation, fully=False):
-        def yield_match(vars, rest):
-            raise StopGenerator_BaseExpression_is_free(False)
-            # return False
-        try:
-            form.match(yield_match, self, {}, evaluation, fully=False)
-        except StopGenerator_BaseExpression_is_free as exc:
-            return exc.value
-        if self.is_atom():
-            return True
-        else:
-            return self.head.is_free(form, evaluation) and all(
-                leaf.is_free(form, evaluation) for leaf in self.leaves)
+        from mathics.builtin.patterns import item_is_free
+        return item_is_free(self, form, evaluation)
 
     def is_inexact(self):
         return self.get_precision() is not None

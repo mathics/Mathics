@@ -1592,6 +1592,10 @@ class ToCharacterCode(Builtin):
         return from_python(codes)
 
 
+class _InvalidCodepointError(ValueError):
+    pass
+
+
 class FromCharacterCode(Builtin):
     """
     <dl>
@@ -1667,9 +1671,6 @@ class FromCharacterCode(Builtin):
         "FromCharacterCode[n_]"
         exp = Expression('FromCharacterCode', n)
 
-        class InvalidCodepointError(ValueError):
-            pass
-
         def convert_codepoint_list(l, encoding=None):
             if encoding is not None:
                 raise NotImplementedError
@@ -1681,7 +1682,7 @@ class FromCharacterCode(Builtin):
                     evaluation.message(
                         'FromCharacterCode', 'notunicode',
                         Expression('List', *l), Integer(i + 1))
-                    raise InvalidCodepointError
+                    raise _InvalidCodepointError
                 s += unichr(pyni)
 
             return s
@@ -1710,7 +1711,7 @@ class FromCharacterCode(Builtin):
                     return evaluation.message(
                         'FromCharacterCode', 'intnm', exp, Integer(1))
                 return String(convert_codepoint_list([n]))
-        except InvalidCodepointError:
+        except _InvalidCodepointError:
             return
 
         assert False, "can't get here"
