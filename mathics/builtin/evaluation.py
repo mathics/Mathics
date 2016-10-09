@@ -25,7 +25,7 @@ class RecursionLimit(Predefined):
      = 200
 
     >> $RecursionLimit = x;
-     : Cannot set $RecursionLimit to x; value must be an integer between 20 and 65536.
+     : Cannot set $RecursionLimit to x; value must be an integer between 20 and 512; use the MATHICS_MAX_RECURSION_DEPTH environment variable to allow higher limits.
 
     >> $RecursionLimit = 512
      = 512
