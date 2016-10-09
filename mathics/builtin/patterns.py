@@ -1340,19 +1340,19 @@ class _StopGeneratorBaseExpressionIsFree(StopGenerator):
     pass
 
 
-def is_free(expr, form, evaluation):
+def item_is_free(item, form, evaluation):
     # for vars, rest in form.match(self, {}, evaluation, fully=False):
     def yield_match(vars, rest):
         raise _StopGeneratorBaseExpressionIsFree(False)
         # return False
 
     try:
-        form.match(yield_match, expr, {}, evaluation, fully=False)
+        form.match(yield_match, item, {}, evaluation, fully=False)
     except _StopGeneratorBaseExpressionIsFree as exc:
         return exc.value
 
-    if expr.is_atom():
+    if item.is_atom():
         return True
     else:
-        return expr.head.is_free(form, evaluation) and all(
-            leaf.is_free(form, evaluation) for leaf in expr.leaves)
+        return item_is_free(item.head, form, evaluation) and all(
+            item_is_free(leaf, form, evaluation) for leaf in item.leaves)
