@@ -5,8 +5,7 @@
 Graphs
 """
 
-# uses GraphViz, if it's installed in the PATH (see pydotplus.graphviz.find_graphviz and http://www.graphviz.org).
-# export PATH="$PATH:/Users/bernhard/dev/homebrew/bin"
+# uses GraphViz, if it's installed in your PATH (see pydotplus.graphviz.find_graphviz and http://www.graphviz.org).
 
 from __future__ import unicode_literals
 from __future__ import absolute_import
@@ -15,10 +14,11 @@ from __future__ import division
 from mathics.builtin.base import Builtin, AtomBuiltin
 from mathics.builtin.graphics import GraphicsBox
 from mathics.core.expression import Expression, Symbol, Atom, Real, Integer, system_symbols_dict, from_python
+from mathics.core.util import robust_min
 
 from itertools import permutations, islice
 from collections import defaultdict
-from math import sqrt
+from math import sqrt, ceil
 
 try:
     import networkx as nx
@@ -52,6 +52,15 @@ def _generic_layout(G):
     return nx.drawing.fruchterman_reingold_layout(G, pos=pos, k=1.0)
 
 
+def _auto_layout(G):
+    if all(d <= 2 for d in G.degree(G.nodes()).values()):
+        layout = _spectral_layout
+    else:
+        layout = _generic_layout
+
+    return layout(G)
+
+
 def _components(G):
     if isinstance(G, (nx.MultiDiGraph, nx.DiGraph)):
         return nx.strongly_connected_components(G)
@@ -59,15 +68,68 @@ def _components(G):
         return nx.connected_components(G)
 
 
-def _squared_distances(edges, pos):
-    for e in edges:
-        e1, e2 = e.leaves
-        if e1 != e2:
-            x1, y1 = pos[e1]
-            x2, y2 = pos[e2]
-            dx = x2 - x1
-            dy = y2 - y1
-            yield dx * dx + dy * dy
+_default_minimum_distance = 0.3
+
+
+def _min_distance(edges, pos):
+    def distances():
+        for e in edges:
+            e1, e2 = e.leaves
+            if e1 != e2:
+                x1, y1 = pos[e1]
+                x2, y2 = pos[e2]
+                dx = x2 - x1
+                dy = y2 - y1
+                yield dx * dx + dy * dy
+
+    d = robust_min(distances())
+    if d is None:
+        return _default_minimum_distance
+    else:
+        return sqrt(d)
+
+
+def _pos_into_box(vertices, pos, min_box, max_box):
+    new_pos = {}
+
+    cx = (min_box[0] + max_box[0]) / 2
+    cy = (min_box[1] + max_box[1]) / 2
+    dx = max_box[0] - min_box[0]
+    dy = max_box[1] - min_box[1]
+
+    if len(vertices) == 1:
+        for v in vertices:
+            new_pos[v] = (cx, cy)
+    else:
+        points = pos.values()
+        for p0 in points:
+            x0, y0 = p0
+            x1 = x0
+            y1 = y0
+            for p in points:
+                x, y = p
+                x0 = min(x0, x)
+                y0 = min(y0, y)
+                x1 = max(x1, x)
+                y1 = max(y1, y)
+            break
+
+        zx = (x0 + x1) / 2
+        zy = (y0 + y1) / 2
+        s = 1.0 / max((x1 - x0) / dx, (y1 - y0) / dy)
+        for k, p in pos.items():
+            x, y = p
+            new_pos[k] = (cx + (x - zx) * s, cy + (y - zy) * s)
+
+    return new_pos
+
+
+def _move_pos(pos, dx, dy):
+    new_pos = {}
+    for k, p in pos.items():
+        x, y = p
+        new_pos[k] = (x + dx, y + dy)
+    return new_pos
 
 
 _vertex_size_names = system_symbols_dict({
@@ -292,21 +354,9 @@ class Graph(Atom):
 
         return lambda x: values.get(x, default_value)
 
-    def atom_to_boxes(self, form, evaluation):
-        G = self.G
+    def _primitives(self, pos, vertices, edges, minimum_distance, evaluation):
         highlights = self.highlights
-
-        edges = self.edges.expressions
-        vertices = self.vertices.expressions
-        pos = self.layout(G)
-
-        distances = list(_squared_distances(edges, pos))
         default_radius = 0.1
-
-        if len(distances) <= 1:
-            minimum_distance = 1.
-        else:
-            minimum_distance = sqrt(min(*distances))
 
         vertex_size = self._styling(
             'System`VertexSize', vertices, _vertex_size, default_radius)
@@ -316,9 +366,6 @@ class Graph(Atom):
 
         edge_style = self._styling(
             'System`EdgeStyle', edges, _edge_style, None)
-
-        directed = isinstance(G, nx.DiGraph)
-        edge = 'DirectedEdge' if directed else 'UndirectedEdge'
 
         if highlights:
             def highlighted(exprs):
@@ -343,6 +390,8 @@ class Graph(Atom):
 
         def edge_primitives():
             yield Expression('AbsoluteThickness', 0.1)
+
+            directed = isinstance(self.G, nx.DiGraph)
 
             if directed:
                 yield Expression('Arrowheads', 0.04)
@@ -416,7 +465,65 @@ class Graph(Atom):
             Expression('List', *list(vertex_primitives())),
             Expression('List', vertex_face, vertex_edge))
 
-        graphics = Expression('Graphics', Expression('List', edge_expression, vertex_expression))
+        return Expression('List', edge_expression, vertex_expression)
+
+    def _layout(self, evaluation):
+        G = self.G
+
+        components = list(nx.connected_components(G.to_undirected()))
+        if not components:  # empty graph?
+            return []
+        n_components = len(components)
+
+        if n_components == 1:
+            component_edges = [self.edges.expressions]
+        else:
+            vertex_component = {}
+            for i, component in enumerate(components):
+                for vertex in component:
+                    vertex_component[vertex] = i
+
+            component_edges = [[] for _ in range(n_components)]
+            for edge in self.edges.expressions:
+                component_edges[vertex_component[edge.leaves[0]]].append(edge)
+
+        def boxes(box):
+            minimum_distance = _default_minimum_distance
+            stored_pos = []
+
+            for i, (vertices, edges) in enumerate(zip(components, component_edges)):
+                if len(vertices) > 1:
+                    base_pos = _auto_layout(G.subgraph(vertices))
+                else:
+                    base_pos = None
+
+                pos = _pos_into_box(vertices, base_pos, (0, 0), (1, 1))
+                stored_pos.append(pos)
+
+                minimum_distance = min(minimum_distance, _min_distance(edges, pos))
+
+            for i, (vertices, edges, pos) in enumerate(zip(components, component_edges, stored_pos)):
+                pos = _move_pos(pos, *box(i, minimum_distance))
+
+                yield self._primitives(
+                    pos, vertices, edges, minimum_distance, evaluation)
+
+        if n_components <= 3:
+            n = n_components
+        else:
+            n = int(ceil(sqrt(n_components)))
+
+        def grid(i, d):
+            x = i % n
+            y = (n - 1) - i // n
+            s = 1 + 1.1 * d
+            return x * s, y * s
+
+        return Expression('List', *list(boxes(grid)))
+
+    def atom_to_boxes(self, form, evaluation):
+        primitives = self._layout(evaluation)
+        graphics = Expression('Graphics', primitives)
         graphics_box = Expression('MakeBoxes', graphics, form).evaluate(evaluation)
         return Expression('GraphBox', *graphics_box.leaves)
 
@@ -594,15 +701,10 @@ def _graph_from_list(rules, options):
             attr_dict = attr_dict or empty_dict
             G.add_edge(u, v, **attr_dict)
 
-    if all(d <= 2 for d in G.degree(vertices).values()):
-        layout = _spectral_layout
-    else:
-        layout = _generic_layout
-
     return Graph(
         _Collection(vertices, vertex_properties),
         _Collection(edges, edge_properties),
-        G, layout, options)
+        G, None, options)
 
 
 class Property(Builtin):
@@ -1372,7 +1474,7 @@ class CompleteGraph(_NetworkXBuiltin):
         'ilsmp': 'Expected a positive integer at position 1 in ``.',
     }
 
-    def apply(self, n, evaluation, options):
+    def apply(self, n, expression, evaluation, options):
         '%(name)s[n_Integer, OptionsPattern[%(name)s]]'
         py_n = n.get_int_value()
 
