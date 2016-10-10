@@ -38,27 +38,70 @@ def _shell_layout(G):
     return nx.drawing.shell_layout(G, scale=2.0)
 
 
-def _generic_layout(G):
-    pos = None
-
+def _generic_layout(G, warn):
     try:
         import pydotplus
 
         if pydotplus.graphviz.find_graphviz():
-            pos = nx.nx_pydot.graphviz_layout(G)
+            return nx.nx_pydot.graphviz_layout(G, prog='dot')
     except ImportError:
         pass
 
-    return nx.drawing.fruchterman_reingold_layout(G, pos=pos, k=1.0)
+    warn('Could not find pydotplus/dot; graph layout quality might be low.')
+    return nx.drawing.fruchterman_reingold_layout(G, pos=None, k=1.0)
 
 
-def _auto_layout(G):
-    if all(d <= 2 for d in G.degree(G.nodes()).values()):
-        layout = _spectral_layout
+def _path_layout(G, root):
+    v = root
+    x = 0
+    y = 0
+
+    k = 0
+    d = 0
+
+    pos = {}
+    neighbors = G.neighbors(v)
+
+    while True:
+        pos[v] = (x, y)
+
+        if not neighbors:
+            break
+        v = neighbors[0]
+        neighbors = G.neighbors(v)
+
+        if k == 0:
+            if d < 1 or neighbors:
+                d += 1
+            x += d
+        elif k == 1:
+            y += d
+        elif k == 2:
+            if neighbors:
+                d += 1
+            x -= d
+        elif k == 3:
+            y -= d
+
+        k = (k + 1) % 4
+
+    return pos
+
+
+def _auto_layout(G, warn):
+    path_root = None
+
+    for v, d in G.degree(G.nodes()).items():
+        if d == 1 and G.neighbors(v):
+            path_root = v
+        elif d > 2:
+            path_root = None
+            break
+
+    if path_root is not None:
+        return _path_layout(G, path_root)
     else:
-        layout = _generic_layout
-
-    return layout(G)
+        return _generic_layout(G, warn)
 
 
 def _components(G):
@@ -491,9 +534,16 @@ class Graph(Atom):
             minimum_distance = _default_minimum_distance
             stored_pos = []
 
+            warnings = set()
+
+            def warn(message):
+                if message not in warnings:
+                    warnings.add(message)
+                    evaluation.print_out(message)
+
             for i, (vertices, edges) in enumerate(zip(components, component_edges)):
                 if len(vertices) > 1:
-                    base_pos = _auto_layout(G.subgraph(vertices))
+                    base_pos = _auto_layout(G.subgraph(vertices), warn)
                 else:
                     base_pos = None
 
