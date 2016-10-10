@@ -2157,3 +2157,55 @@ class DamerauLevenshteinDistance(_StringDistance):
 
     def _distance(self, s1, s2, same):
         return _levenshtein_like_or_border_cases(s1, s2, same, _damerau_levenshtein)
+
+
+class RemoveDiacritics(Builtin):
+    """
+    <dl>
+    <dt>'RemoveDiacritics[$s$]'
+        <dd>returns a version of $s$ with all diacritics removed.
+    </dl>
+
+    >> RemoveDiacritics["en prononçant pêcher et pécher"]
+     = en prononcant pecher et pecher
+
+    >> RemoveDiacritics["piñata"]
+     = pinata
+    """
+
+    def apply(self, s, evaluation):
+        'RemoveDiacritics[s_String]'
+        return String(unicodedata.normalize(
+            'NFKD', s.get_string_value()).encode('ascii', 'ignore').decode('ascii'))
+
+
+class Transliterate(Builtin):
+    """
+    <dl>
+    <dt>'Transliterate[$s$]'
+        <dd>transliterates a text in some script into an ASCII string.
+    </dl>
+
+    # The following examples were taken from
+    # https://en.wikipedia.org/wiki/Iliad,
+    # https://en.wikipedia.org/wiki/Russian_language, and
+    # https://en.wikipedia.org/wiki/Hiragana
+
+    >> Transliterate["μήτηρ γάρ τέ μέ φησι θεὰ Θέτις ἀργυρόπεζα"]
+     = meter gar te me phesi thea Thetis arguropeza
+
+    >> Transliterate["Алекса́ндр Пу́шкин"]
+     = Aleksandr Pushkin
+
+    >> Transliterate["つかう"]
+     = tsukau
+    """
+
+    requires = (
+        'unidecode',
+    )
+
+    def apply(self, s, evaluation):
+        'Transliterate[s_String]'
+        from unidecode import unidecode
+        return String(unidecode(s.get_string_value()))
