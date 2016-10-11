@@ -345,6 +345,27 @@ class Graph(Atom):
         G.add_nodes_from(zip(new_vertices, new_vertex_properties))
         return Graph(vertices, self.edges, G, self.layout, self.options, self.highlights)
 
+    def delete_vertices(self, vertices_to_delete):
+        vertices_to_delete = set(vertices_to_delete)
+
+        G = self.G.copy()
+        for vertex in vertices_to_delete:
+            G.remove_node(vertex)
+
+        vertices = self.vertices.clone()
+        vertices.delete(vertices_to_delete)
+
+        def edges_to_delete():
+            for edge in self.edges.expressions:
+                u, v = edge.leaves
+                if u in vertices_to_delete or v in vertices_to_delete:
+                    yield edge
+
+        edges = self.edges.clone()
+        edges.delete(edges_to_delete())
+
+        return Graph(vertices, edges, G, self.layout, self.options, self.highlights)
+
     def __str__(self):
         return '-Graph-'
 
@@ -1567,13 +1588,42 @@ class VertexAdd(_NetworkXBuiltin):
      = -Graph-
     >> g3 = VertexAdd[g2, {5, 10}]
      = -Graph-
+    >> VertexAdd[{a -> b}, c];
+     = -Graph-
     '''
 
-    def apply(self, graph, v, evaluation, options):
-        '%(name)s[graph_Graph, v_, OptionsPattern[%(name)s]]'
-        if v.has_form('List', None):
-            return graph.add_vertices(*zip(*[_parse_vertex(x) for x in v.leaves]))
-        else:
-            return graph.add_vertices(*zip(*[_parse_vertex(v)]))
+    def apply(self, graph, v, expression, evaluation, options):
+        '%(name)s[graph_, v_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression)
+        if graph:
+            if v.has_form('List', None):
+                return graph.add_vertices(*zip(*[_parse_vertex(x) for x in v.leaves]))
+            else:
+                return graph.add_vertices(*zip(*[_parse_vertex(v)]))
 
 
+class VertexDelete(_NetworkXBuiltin):
+    '''
+    >> g1 = Graph[{1 -> 2, 2 -> 3, 3 -> 4}];
+    >> VertexDelete[g1, 3]
+     = -Graph-
+    >> VertexDelete[{a -> b, b -> c, c -> d, d -> a}, {a, c}]
+     = -Graph-
+    >> VertexDelete[{1 -> 2, 2 -> 3, 3 -> 4, 4 -> 6, 6 -> 8, 8 -> 2}, _?OddQ]
+    '''
+
+    def apply(self, graph, what, expression, evaluation, options):
+        '%(name)s[graph_, what_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression)
+        if graph:
+            from mathics.builtin import pattern_objects
+
+            head_name = what.get_head_name()
+            if head_name in pattern_objects:
+                cases = Expression('Cases', Expression('List', *graph.vertices.expressions), what).evaluate(evaluation)
+                if cases.get_head_name() == 'System`List':
+                    return graph.delete_vertices(cases.leaves)
+            elif head_name == 'System`List':
+                return graph.delete_vertices(what.leaves)
+            else:
+                return graph.delete_vertices(what)
