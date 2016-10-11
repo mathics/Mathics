@@ -29,16 +29,8 @@ mathics-users@googlegroups.com and ask for help.
 """
 
 import sys
-<<<<<<< HEAD
-import os
-import json
-
-from distutils import log
-
-=======
 import platform
 import os
->>>>>>> 4dd81e6fa49ba2567e5d7e5df17870498b1570c3
 from setuptools import setup, Command, Extension
 from setuptools.command.install import install
 
@@ -75,19 +67,6 @@ else:
     INSTALL_REQUIRES += ['cython>=0.15.1']
 
 # General Requirements
-<<<<<<< HEAD
-SETUP_REQUIRES = [] # TODO ipython
-
-INSTALL_REQUIRES += ['sympy==0.7.6', 'django >= 1.8, < 1.9', 'ply>=3.8',
-                     'mpmath>=0.19', 'python-dateutil', 'colorama',
-                     'interruptingcow'] + SETUP_REQUIRES
-
-# if sys.platform == "darwin":
-#    INSTALL_REQUIRES += ['readline']
-=======
-INSTALL_REQUIRES += ['sympy==1.0', 'django >= 1.8, < 1.9a0',
-                     'mpmath>=0.19', 'python-dateutil', 'colorama', 'six>=1.10']
->>>>>>> 4dd81e6fa49ba2567e5d7e5df17870498b1570c3
 
 kernel_json = {
     'argv': [sys.executable,
@@ -105,21 +84,13 @@ class install_with_kernelspec(install):
         from ipykernel.kernelspec import write_kernel_spec
         from jupyter_client.kernelspec import KernelSpecManager
 
-<<<<<<< HEAD
-        kernel_spec_manager = KernelSpecManager()
 
-        log.info('Writing kernel spec')
-        kernel_spec_path = write_kernel_spec(overrides=kernel_json)
+def subdirs(root, file='*.*', depth=10):
+    for k in range(depth):
+        yield root + '*/' * k + file
 
-        log.info('Installing kernel spec')
-        try:
-            kernel_spec_manager.install_kernel_spec(
-                kernel_spec_path,
-                kernel_name=kernel_json['name'],
-                user=self.user)
-        except:
-            log.error('Failed to install kernel spec')
-=======
+
+
 class initialize(Command):
     """
     Manually create the Django database used by the web notebook
@@ -158,7 +129,6 @@ class initialize(Command):
             print("Error: failed to create database")
             sys.exit(1)
 
->>>>>>> 4dd81e6fa49ba2567e5d7e5df17870498b1570c3
 
 class test(Command):
     """
@@ -192,6 +162,8 @@ class test(Command):
 CMDCLASS['test'] = test
 CMDCLASS['install'] = install_with_kernelspec
 
+mathjax_files = list(subdirs('media/js/mathjax/'))
+
 setup(
     name="Mathics",
     cmdclass=CMDCLASS,
@@ -212,7 +184,6 @@ setup(
     install_requires=INSTALL_REQUIRES,
     dependency_links=DEPENDENCY_LINKS,
 
-    setup_requires=SETUP_REQUIRES,
 
     package_data={
         'mathics': [
@@ -226,23 +197,15 @@ setup(
             'media/js/innerdom/*.js', 'media/js/prototype/*.js',
             'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
             'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
-<<<<<<< HEAD
-            'templates/doc/*.html'],
-        'mathics.data': ['*.csv', 'ExampleData/*'],
-=======
             'templates/doc/*.html'] + mathjax_files,
->>>>>>> 4dd81e6fa49ba2567e5d7e5df17870498b1570c3
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
     },
 
     entry_points={
         'console_scripts': [
             'mathics = mathics.main:main',
-<<<<<<< HEAD
-=======
             'mathicsserver = mathics.server:main',
             'mathicsscript = mathics.script:main',
->>>>>>> 4dd81e6fa49ba2567e5d7e5df17870498b1570c3
         ],
     },
 
@@ -254,13 +217,6 @@ setup(
     author_email="mathics@angusgriffith.com",
     description="A general-purpose computer algebra system.",
     license="GPL",
-<<<<<<< HEAD
-    keywords="computer algebra system mathics mathematica sympy wolfram",
-    url="http://www.mathics.github.io/",   # project home page, if any
-
-    # TODO: could also include long_description, download_url, classifiers,
-    # etc.
-=======
     url="https://mathics.github.io/",
     download_url="https://github.com/mathics/Mathics/tarball/v0.9",
     keywords=['Mathematica', 'Wolfram', 'Interpreter', 'Shell', 'Math', 'CAS'],
@@ -282,5 +238,4 @@ setup(
         'Topic :: Software Development :: Interpreters',
     ],
     # TODO: could also include long_description, download_url,
->>>>>>> 4dd81e6fa49ba2567e5d7e5df17870498b1570c3
 )

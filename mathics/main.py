@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-def main():
-    from subprocess import call
-    call(['jupyter', 'console', '--kernel', 'mathics'])
-=======
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
@@ -320,7 +315,6 @@ def main():
             break
         finally:
             shell.reset_lineno()
->>>>>>> 4dd81e6fa49ba2567e5d7e5df17870498b1570c3
 
 if __name__ == '__main__':
     main()
