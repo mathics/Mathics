@@ -1,21 +1,3 @@
-/**
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
 var docLoaded = false;
 var lastSearchValue = '';
 
@@ -25,14 +7,14 @@ function showPage(response) {
 	}
 
     $$('li.test p').each(function(test){
-        test.insert($E('span', 
+        test.insert($E('span',
                     {'class': 'submitbutton', 'title': "Run this example!"},
 					submitButton = $E('span', $T('='))
 				));
 
         test.observe('mouseover', function(e){
             $(test).addClassName('focused');
-        });    
+        });
         test.observe('mouseout', function(e){
             $(test).removeClassName('focused');
         });
@@ -60,7 +42,7 @@ function loadDoc(page) {
 			docLoaded = true;
 			var response = transport.responseText.evalJSON();
 			showPage(response);
-			$$('#doc *')[0].scrollIntoView();			
+			$$('#doc *')[0].scrollIntoView();
 		}
 	});
 }
@@ -70,15 +52,22 @@ function showDoc() {
 	$('code').addClassName('doc');
 	$('doc').show();
 	$('doclink').addClassName('active');
+  $('doclink').select('i')[0].removeClassName('fa-question-circle-o');
+  $('doclink').select('i')[0].addClassName('fa-question-circle');
+  $('search').addClassName('shown');
+  // $('search').focus();
 	if (!docLoaded)
 		loadDoc('/');
 }
 
 function hideDoc() {
-	$('doc').hide();	
+	$('doc').hide();
 	$('document').removeClassName('doc');
 	$('code').removeClassName('doc');
 	$('doclink').removeClassName('active');
+  $('doclink').select('i')[0].removeClassName('fa-question-circle');
+  $('doclink').select('i')[0].addClassName('fa-question-circle-o');
+  $('search').removeClassName('shown');
 }
 
 function toggleDoc() {
@@ -86,6 +75,7 @@ function toggleDoc() {
 		hideDoc();
 	else
 		showDoc();
+    $('search').select();
 }
 
 function searchChange(event) {
@@ -117,13 +107,13 @@ function searchFocus() {
 	if ($('search').hasClassName('empty')) {
 		$('search').value = '';
 		$('search').removeClassName('empty');
-	}			
+	}
 }
 
 function searchBlur() {
 	if (!$('search').value) {
 		$('search').addClassName('empty');
-		$('search').value = "Search";
+		$('search').value = "\uf002";
 	}
 }
 

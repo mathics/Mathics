@@ -1,5 +1,10 @@
-# -*- coding: utf8 -*-
-import re
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
+
+from six.moves import zip
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
@@ -156,8 +161,8 @@ class _SetOperator(object):
         if lhs_name == 'System`$RecursionLimit':
             # if (not rhs_int_value or rhs_int_value < 20) and not
             # rhs.get_name() == 'System`Infinity':
-            if (not rhs_int_value or rhs_int_value < 20  # noqa
-                or rhs_int_value > settings.MAX_RECURSION_DEPTH):
+            if (not rhs_int_value or rhs_int_value < 20 or
+                rhs_int_value > settings.MAX_RECURSION_DEPTH):  # nopep8
 
                 evaluation.message('$RecursionLimit', 'limset', rhs)
                 return False
@@ -165,6 +170,13 @@ class _SetOperator(object):
                 set_recursionlimit(rhs_int_value)
             except OverflowError:
                 # TODO: Message
+                return False
+            ignore_protection = True
+        elif lhs_name == 'System`$OutputSizeLimit':
+            if rhs.to_python() == float('inf'):
+                rhs = Symbol('System`Infinity')
+            elif rhs_int_value is None or rhs_int_value <= 0:
+                evaluation.message(lhs_name, 'intnn', rhs)
                 return False
             ignore_protection = True
         elif lhs_name == 'System`$ModuleNumber':
@@ -200,20 +212,44 @@ class _SetOperator(object):
             #    $Context = $Context <> "test`"
             #
             if new_context.startswith('`'):
-                new_context = (
-                    evaluation.definitions.get_current_context()
-                    + new_context.lstrip('`'))
+                new_context = (evaluation.definitions.get_current_context() +
+                               new_context.lstrip('`'))
 
             evaluation.definitions.set_current_context(new_context)
             ignore_protection = True
+            return True
         elif lhs_name == 'System`$ContextPath':
-            if rhs.has_form('List', None) and all(
-                    valid_context_name(s.get_string_value()) for s in rhs.leaves):
-                evaluation.definitions.context_path = [
-                    s.get_string_value() for s in rhs.leaves]
+            context_path = [s.get_string_value() for s in rhs.get_leaves()]
+            if rhs.has_form('List', None) and all(valid_context_name(s) for s in context_path):
+                evaluation.definitions.set_context_path(context_path)
                 ignore_protection = True
+                return True
             else:
                 evaluation.message(lhs_name, 'cxlist', rhs)
+                return False
+        elif lhs_name == 'System`$MinPrecision':
+            # $MinPrecision = Infinity is not allowed
+            if rhs_int_value is not None and rhs_int_value >= 0:
+                ignore_protection = True
+                max_prec = evaluation.definitions.get_config_value('$MaxPrecision')
+                if max_prec is not None and max_prec < rhs_int_value:
+                    evaluation.message('$MinPrecision', 'preccon', Symbol('$MinPrecision'))
+                    return True
+            else:
+                evaluation.message(lhs_name, 'precset', lhs, rhs)
+                return False
+        elif lhs_name == 'System`$MaxPrecision':
+            if rhs.has_form('DirectedInfinity', 1) and rhs.leaves[0].get_int_value() == 1:
+                ignore_protection = True
+            elif rhs_int_value is not None and rhs_int_value > 0:
+                ignore_protection = True
+                min_prec = evaluation.definitions.get_config_value('$MinPrecision')
+                if min_prec is not None and rhs_int_value < min_prec:
+                    evaluation.message('$MaxPrecision', 'preccon', Symbol('$MaxPrecision'))
+                    ignore_protection = True
+                    return True
+            else:
+                evaluation.message(lhs_name, 'precset', lhs, rhs)
                 return False
 
         rhs_name = rhs.get_head_name()
@@ -257,8 +293,8 @@ class _SetOperator(object):
 
     def assign(self, lhs, rhs, evaluation):
         if lhs.get_head_name() == 'System`List':
-            if (not (rhs.get_head_name() == 'System`List')     # noqa
-                or len(lhs.leaves) != len(rhs.leaves)):
+            if (not (rhs.get_head_name() == 'System`List') or
+                len(lhs.leaves) != len(rhs.leaves)):    # nopep8
 
                 evaluation.message(self.get_name(), 'shape', lhs, rhs)
                 return False
@@ -297,6 +333,7 @@ class _SetOperator(object):
 class Set(BinaryOperator, _SetOperator):
     """
     <dl>
+    <dt>'Set[$expr$, $value$]'
     <dt>$expr$ = $value$
         <dd>evaluates $value$ and assigns it to $expr$.
     <dt>{$s1$, $s2$, $s3$} = {$v1$, $v2$, $v3$}
@@ -354,6 +391,8 @@ class Set(BinaryOperator, _SetOperator):
     >> B[[1;;2, 2;;-1]] = {{t, u}, {y, z}};
     >> B
      = {{1, t, u}, {4, y, z}, {7, 8, 9}}
+
+    #> x = Infinity;
     """
 
     operator = '='
@@ -376,6 +415,7 @@ class Set(BinaryOperator, _SetOperator):
 class SetDelayed(Set):
     """
     <dl>
+    <dt>'SetDelayed[$expr$, $value$]'
     <dt>$expr$ := $value$
         <dd>assigns $value$ to $expr$, without evaluating $value$.
     </dl>
@@ -466,6 +506,13 @@ class UpSet(BinaryOperator, _SetOperator):
 
 class UpSetDelayed(UpSet):
     """
+    <dl>
+    <dt>'UpSetDelayed[$expression$, $value$]'
+    <dt>'$expression$ ^:= $value$'
+        <dd>assigns $expression$ to the value of $f$[$x$] (without
+        evaluating $expression$), associating the value with $x$.
+    </dl>
+
     >> a[b] ^:= x
     >> x = 2;
     >> a[b]
@@ -495,10 +542,13 @@ class UpSetDelayed(UpSet):
 class TagSet(Builtin, _SetOperator):
     """
     <dl>
-    <dt>'TagSet[$f$, $lhs$, $rhs$]' or 'f /: lhs = rhs'</dt>
-        <dd>sets $lhs$ to be $rhs$ and assigns the corresonding rule to the symbol $f$.
+    <dt>'TagSet[$f$, $expr$, $value$]'
+    <dt>'$f$ /: $expr$ = $value$'
+        <dd>assigns $value$ to $expr$, associating the corresponding
+        rule with the symbol $f$.
     </dl>
 
+    Create an upvalue without using 'UpSet':
     >> x /: f[x] = 2
      = 2
     >> f[x]
@@ -538,7 +588,8 @@ class TagSet(Builtin, _SetOperator):
 class TagSetDelayed(TagSet):
     """
     <dl>
-    <dt>'TagSetDelayed[$f$, $lhs$, $rhs$]' or 'f /: lhs := rhs'
+    <dt>'TagSetDelayed[$f$, $expr$, $value$]'
+    <dt>'$f$ /: $expr$ := $value$'
         <dd>is the delayed version of 'TagSet'.
     </dl>
     """
@@ -692,7 +743,7 @@ class Definition(Builtin):
                         'List',
                         *(Symbol(attribute) for attribute in attributes)))))
 
-        if definition is not None and not 'System`ReadProtected' in attributes:
+        if definition is not None and 'System`ReadProtected' not in attributes:
             for rule in definition.ownvalues:
                 print_rule(rule)
             for rule in definition.downvalues:
@@ -703,8 +754,7 @@ class Definition(Builtin):
                 print_rule(rule, up=True)
             for rule in definition.nvalues:
                 print_rule(rule)
-            formats = definition.formatvalues.items()
-            formats.sort()
+            formats = sorted(definition.formatvalues.items())
             for format, rules in formats:
                 for rule in rules:
                     def lhs(expr):
@@ -719,8 +769,7 @@ class Definition(Builtin):
         for rule in all.defaultvalues:
             print_rule(rule)
         if all.options:
-            options = all.options.items()
-            options.sort()
+            options = sorted(all.options.items())
             lines.append(
                 Expression('HoldForm', Expression(
                     'Set', Expression('Options', symbol),
@@ -864,7 +913,8 @@ class ClearAll(Clear):
 class Unset(PostfixOperator):
     """
     <dl>
-    <dt>'Unset[$x$]' or '$x$=.'
+    <dt>'Unset[$x$]'
+    <dt>'$x$=.'
         <dd>removes any value belonging to $x$.
     </dl>
     >> a = 2
@@ -1023,17 +1073,22 @@ def get_symbol_values(symbol, func_name, position, evaluation):
 
 class DownValues(Builtin):
     """
-    'DownValues[$symbol$]' gives the list of downvalues associated with $symbol$.
+    <dl>
+    <dt>'DownValues[$symbol$]'
+        <dd>gives the list of downvalues associated with $symbol$.
+    </dl>
 
-    'DownValues' uses 'HoldPattern' and 'RuleDelayed' to protect the downvalues from being
-    evaluated. Moreover, it has attribute 'HoldAll' to get the specified symbol instead of its value.
+    'DownValues' uses 'HoldPattern' and 'RuleDelayed' to protect the
+    downvalues from being evaluated. Moreover, it has attribute
+    'HoldAll' to get the specified symbol instead of its value.
 
     >> f[x_] := x ^ 2
     >> DownValues[f]
      = {HoldPattern[f[x_]] :> x ^ 2}
 
-    Mathics will sort the rules you assign to a symbol according to their specifity. If it cannot decide
-    which rule is more special, the newer one will get higher precedence.
+    Mathics will sort the rules you assign to a symbol according to
+    their specificity. If it cannot decide which rule is more special,
+    the newer one will get higher precedence.
     >> f[x_Integer] := 2
     >> f[x_Real] := 3
     >> DownValues[f]
@@ -1044,10 +1099,14 @@ class DownValues(Builtin):
      = 3
     >> f[a]
      = a ^ 2
-    The default order of patterns can be computed using 'Sort' with 'PatternsOrderedQ':
+
+    The default order of patterns can be computed using 'Sort' with
+    'PatternsOrderedQ':
     >> Sort[{x_, x_Integer}, PatternsOrderedQ]
      = {x_Integer, x_}
-    By assigning values to 'DownValues', you can override the default ordering:
+
+    By assigning values to 'DownValues', you can override the default
+    ordering:
     >> DownValues[g] := {g[x_] :> x ^ 2, g[x_Integer] :> x}
     >> g[2]
      = 4
@@ -1068,6 +1127,11 @@ class DownValues(Builtin):
 
 class OwnValues(Builtin):
     """
+    <dl>
+    <dt>'OwnValues[$symbol$]'
+        <dd>gives the list of ownvalues associated with $symbol$.
+    </dl>
+
     >> x = 3;
     >> x = 2;
     >> OwnValues[x]
@@ -1094,6 +1158,11 @@ class OwnValues(Builtin):
 
 class SubValues(Builtin):
     """
+    <dl>
+    <dt>'SubValues[$symbol$]'
+        <dd>gives the list of subvalues associated with $symbol$.
+    </dl>
+
     >> f[1][x_] := x
     >> f[2][x_] := x ^ 2
     >> SubValues[f]
@@ -1114,6 +1183,11 @@ class SubValues(Builtin):
 
 class UpValues(Builtin):
     """
+    <dl>
+    <dt>'UpValues[$symbol$]'
+        <dd>gives the list of upvalues associated with $symbol$.
+    </dl>
+
     >> a + b ^= 2
      = 2
     >> UpValues[a]
@@ -1137,6 +1211,11 @@ class UpValues(Builtin):
 
 class NValues(Builtin):
     """
+    <dl>
+    <dt>'NValues[$symbol$]'
+        <dd>gives the list of numerical values associated with $symbol$.
+    </dl>
+
     >> NValues[a]
      = {}
     >> N[a] = 3;
@@ -1172,6 +1251,11 @@ class NValues(Builtin):
 
 class Messages(Builtin):
     """
+    <dl>
+    <dt>'Messages[$symbol$]'
+        <dd>gives the list of messages associated with $symbol$.
+    </dl>
+
     >> a::b = "foo"
      = foo
     >> Messages[a]
@@ -1193,6 +1277,11 @@ class Messages(Builtin):
 
 class DefaultValues(Builtin):
     """
+    <dl>
+    <dt>'DefaultValues[$symbol$]'
+        <dd>gives the list of default values associated with $symbol$.
+    </dl>
+
     >> Default[f, 1] = 4
      = 4
     >> DefaultValues[f]
@@ -1220,7 +1309,12 @@ class DefaultValues(Builtin):
 
 class AddTo(BinaryOperator):
     """
-    '$x$ += $dx$' is equivalent to '$x$ = $x$ + $dx$'.
+    <dl>
+    <dt>'AddTo[$x$, $dx$]'</dt>
+    <dt>'$x$ += $dx$'</dt>
+        <dd>is equivalent to '$x$ = $x$ + $dx$'.
+    </dl>
+
     >> a = 10;
     >> a += 2
      = 12
@@ -1240,7 +1334,12 @@ class AddTo(BinaryOperator):
 
 class SubtractFrom(BinaryOperator):
     """
-    '$x$ -= $dx$' is equivalent to '$x$ = $x$ - $dx$'.
+    <dl>
+    <dt>'SubtractFrom[$x$, $dx$]'</dt>
+    <dt>'$x$ -= $dx$'</dt>
+        <dd>is equivalent to '$x$ = $x$ - $dx$'.
+    </dl>
+
     >> a = 10;
     >> a -= 2
      = 8
@@ -1260,7 +1359,12 @@ class SubtractFrom(BinaryOperator):
 
 class TimesBy(BinaryOperator):
     """
-    '$x$ *= $dx$' is equivalent to '$x$ = $x$ * $dx$'.
+    <dl>
+    <dt>'TimesBy[$x$, $dx$]'</dt>
+    <dt>'$x$ *= $dx$'</dt>
+        <dd>is equivalent to '$x$ = $x$ * $dx$'.
+    </dl>
+
     >> a = 10;
     >> a *= 2
      = 20
@@ -1280,7 +1384,12 @@ class TimesBy(BinaryOperator):
 
 class DivideBy(BinaryOperator):
     """
-    '$x$ /= $dx$' is equivalent to '$x$ = $x$ / $dx$'.
+    <dl>
+    <dt>'DivideBy[$x$, $dx$]'</dt>
+    <dt>'$x$ /= $dx$'</dt>
+        <dd>is equivalent to '$x$ = $x$ / $dx$'.
+    </dl>
+
     >> a = 10;
     >> a /= 2
      = 5
@@ -1300,6 +1409,12 @@ class DivideBy(BinaryOperator):
 
 class Increment(PostfixOperator):
     """
+    <dl>
+    <dt>'Increment[$x$]'</dt>
+    <dt>'$x$++'</dt>
+        <dd>increments $x$ by 1, returning the original value of $x$.
+    </dl>
+
     >> a = 2;
     >> a++
      = 2
@@ -1325,9 +1440,12 @@ class Increment(PostfixOperator):
 class PreIncrement(PrefixOperator):
     """
     <dl>
-    <dt>'PreIncrement[$x$]' or '++$x$'
-        <dd>is equivalent to '$x$ = $x$ + 1'.
+    <dt>'PreIncrement[$x$]'</dt>
+    <dt>'++$x$'</dt>
+        <dd>increments $x$ by 1, returning the new value of $x$.
     </dl>
+
+    '++$a$' is equivalent to '$a$ = $a$ + 1':
     >> a = 2;
     >> ++a
      = 3
@@ -1346,6 +1464,12 @@ class PreIncrement(PrefixOperator):
 
 class Decrement(PostfixOperator):
     """
+    <dl>
+    <dt>'Decrement[$x$]'</dt>
+    <dt>'$x$--'</dt>
+        <dd>decrements $x$ by 1, returning the original value of $x$.
+    </dl>
+
     >> a = 5;
     >> a--
      = 5
@@ -1364,6 +1488,13 @@ class Decrement(PostfixOperator):
 
 class PreDecrement(PrefixOperator):
     """
+    <dl>
+    <dt>'PreDecrement[$x$]'</dt>
+    <dt>'--$x$'</dt>
+        <dd>decrements $x$ by 1, returning the new value of $x$.
+    </dl>
+
+    '--$a$' is equivalent to '$a$ = $a$ - 1':
     >> a = 2;
     >> --a
      = 1

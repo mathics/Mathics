@@ -1,18 +1,26 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Options and default arguments
 """
 
+from __future__ import unicode_literals
+from __future__ import absolute_import
+
+import six
+
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import Symbol, Expression, get_default_value
+from mathics.builtin.image import Image
 
 
 class Options(Builtin):
     """
     <dl>
     <dt>'Options[$f$]'
-        <dd>gives a list of optional arguments to $f$ and their default values.
+        <dd>gives a list of optional arguments to $f$ and their
+        default values.
     </dl>
 
     You can assign values to 'Options' to specify options.
@@ -68,11 +76,16 @@ class Options(Builtin):
 
         name = f.get_name()
         if not name:
-            evaluation.message('Options', 'sym', f, 1)
-            return
-        options = evaluation.definitions.get_options(name)
+            if isinstance(f, Image):
+                # FIXME ColorSpace, MetaInformation
+                options = f.metadata
+            else:
+                evaluation.message('Options', 'sym', f, 1)
+                return
+        else:
+            options = evaluation.definitions.get_options(name)
         result = []
-        for option, value in sorted(options.items(), key=lambda item: item[0]):
+        for option, value in sorted(six.iteritems(options), key=lambda item: item[0]):
             # Don't use HoldPattern, since the returned List should be
             # assignable to Options again!
             result.append(Expression('RuleDelayed', Symbol(option), value))
@@ -83,8 +96,8 @@ class OptionValue(Builtin):
     """
     <dl>
     <dt>'OptionValue[$name$]'
-        <dd>gives the value of the option $name$ as specified in a call to a function
-        with 'OptionsPattern'.
+        <dd>gives the value of the option $name$ as specified in a
+        call to a function with 'OptionsPattern'.
     </dl>
 
     >> f[a->3] /. f[OptionsPattern[{}]] -> {OptionValue[a]}
@@ -176,7 +189,13 @@ class Default(Builtin):
 
 class OptionQ(Test):
     """
+    <dl>
+    <dt>'OptionQ[$expr$]'
+        <dd>returns 'True' if $expr$ has the form of a valid option
+        specification.
+    </dl>
 
+    Examples of option specifications:
     >> OptionQ[a -> True]
      = True
     >> OptionQ[a :> True]
@@ -186,6 +205,8 @@ class OptionQ(Test):
     >> OptionQ[{a :> True}]
      = True
 
+    'OptionQ' returns 'False' if its argument is not a valid option
+    specification:
     >> OptionQ[x]
      = False
     """
@@ -201,6 +222,12 @@ class OptionQ(Test):
 
 class NotOptionQ(Test):
     """
+    <dl>
+    <dt>'NotOptionQ[$expr$]'
+        <dd>returns 'True' if $expr$ does not have the form of a valid
+        option specification.
+    </dl>
+
     >> NotOptionQ[x]
      = True
     >> NotOptionQ[2]
@@ -222,5 +249,5 @@ class NotOptionQ(Test):
 
 
 def options_to_rules(options):
-    items = sorted(options.iteritems())
+    items = sorted(six.iteritems(options))
     return [Expression('Rule', Symbol(name), value) for name, value in items]

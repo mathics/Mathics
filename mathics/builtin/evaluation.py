@@ -1,4 +1,8 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import sys
 
@@ -19,6 +23,13 @@ def set_recursionlimit(n):
 
 class RecursionLimit(Predefined):
     """
+    <dl>
+    <dt>'$RecursionLimit'
+        <dd>specifies the maximum allowable recursion depth after
+        which a calculation is terminated.
+    </dl>
+
+    Calculations terminated by '$RecursionLimit' return '$Aborted':
     >> a = a + a
      : Recursion depth of 200 exceeded.
      = $Aborted
@@ -72,6 +83,10 @@ class RecursionLimit(Predefined):
 
 class Hold(Builtin):
     """
+    <dl>
+    <dt>'Hold[$expr$]'
+        <dd>prevents $expr$ from being evaluated.
+    </dl>
     >> Attributes[Hold]
      = {HoldAll, Protected}
     """
@@ -81,6 +96,11 @@ class Hold(Builtin):
 
 class HoldComplete(Builtin):
     """
+    <dl>
+    <dt>'HoldComplete[$expr$]'
+        <dd>prevents $expr$ from being evaluated, and also prevents
+        'Sequence' objects from being spliced into argument lists.
+    </dl>
     >> Attributes[HoldComplete]
      = {HoldAllComplete, Protected}
     """
@@ -90,7 +110,10 @@ class HoldComplete(Builtin):
 
 class HoldForm(Builtin):
     """
-    'HoldForm[$expr$]' maintains $expr$ in an unevaluated form, but prints as $expr$.
+    <dl>
+    <dt>'HoldForm[$expr$]'
+        <dd>is equivalent to 'Hold[$expr$]', but prints as $expr$.
+    </dl>
 
     >> HoldForm[1 + 2 + 3]
      = 1 + 2 + 3
@@ -109,9 +132,19 @@ class HoldForm(Builtin):
 
 class Evaluate(Builtin):
     """
+    <dl>
+    <dt>'Evaluate[$expr$]'
+        <dd>forces evaluation of $expr$, even if it occurs inside a
+        held argument or a 'Hold' form.
+    </dl>
+
+    Create a function $f$ with a held argument:
     >> SetAttributes[f, HoldAll]
     >> f[1 + 2]
      = f[1 + 2]
+
+    'Evaluate' forces evaluation of the argument, even though $f$ has
+    the 'HoldAll' attribute:
     >> f[Evaluate[1 + 2]]
      = f[3]
 
@@ -131,6 +164,17 @@ class Evaluate(Builtin):
 
 class Unevaluated(Builtin):
     """
+    <dl>
+    <dt>'Unevaluated[$expr$]'
+        <dd>temporarily leaves $expr$ in an unevaluated form when it
+        appears as a function argument.
+    </dl>
+
+    'Unevaluated' is automatically removed when function arguments are
+    evaluated:
+    >> Sqrt[Unevaluated[x]]
+     = Sqrt[x]
+
     >> Length[Unevaluated[1+2+3+4]]
      = 4
     'Unevaluated' has attribute 'HoldAllComplete':
@@ -163,7 +207,8 @@ class ReleaseHold(Builtin):
     """
     <dl>
     <dt>'ReleaseHold[$expr$]'
-    <dd>removes any 'Hold', 'HoldForm', 'HoldPattern' or 'HoldComplete' head from $expr$.
+        <dd>removes any 'Hold', 'HoldForm', 'HoldPattern' or
+        'HoldComplete' head from $expr$.
     </dl>
     >> x = 3;
     >> Hold[x]
@@ -214,6 +259,10 @@ class Sequence(Builtin):
 
 class Line(Builtin):
     """
+    <dl>
+    <dt>'$Line'
+        <dd>holds the current input line number.
+    </dl>
     >> $Line
      = 1
     >> $Line
@@ -232,6 +281,10 @@ class Line(Builtin):
 
 class HistoryLength(Builtin):
     """
+    <dl>
+    <dt>'$HistoryLength'
+        <dd>specifies the maximum number of 'In' and 'Out' entries.
+    </dl>
     >> $HistoryLength
      = 100
     >> $HistoryLength = 1;
@@ -257,6 +310,10 @@ class HistoryLength(Builtin):
 
 class In(Builtin):
     """
+    <dl>
+    <dt>'In[$k$]'
+        <dd>gives the $k$th line of input.
+    </dl>
     >> x = 1
      = 1
     >> x = x + 1
@@ -290,7 +347,8 @@ class In(Builtin):
 class Out(Builtin):
     """
     <dl>
-    <dt>'Out[$k$]' or '%$k$'
+    <dt>'Out[$k$]'
+    <dt>'%$k$'
         <dd>gives the result of the $k$th input line.
     <dt>'%', '%%', etc.
         <dd>gives the result of the previous input line, of the line before the previous input line, etc.
@@ -302,6 +360,7 @@ class Out(Builtin):
      = 42
     >> 43;
     >> %
+     = 43
     >> 44
      = 44
     >> %1
@@ -333,3 +392,35 @@ class Out(Builtin):
         '    f:StandardForm|TraditionalForm|InputForm|OutputForm]':
         r'"%%" <> ToString[k]',
     }
+
+
+class OutputSizeLimit(Predefined):
+    """
+    <dl>
+    <dt>'$OutputSizeLimit'
+        <dd>specifies the maximum amount of data output that gets
+        displayed before the output gets truncated. The amount of
+        output is measured as the number of bytes of MathML XML
+        that has been generated to represent the output data.
+
+        To set no limit on output size, use $OutputSizeLimit = Infinity.
+    </dl>
+
+    >> $OutputSizeLimit = 100;
+    >> Table[i, {i, 1, 100}]
+     = {1, 2, 3, 4, 5, <<90>>, 96, 97, 98, 99, 100}
+    >> $OutputSizeLimit = 10;
+    >> Table[i, {i, 1, 100}]
+     = {1, <<98>>, 100}
+    >> $OutputSizeLimit = Infinity;
+    """
+
+    name = '$OutputSizeLimit'
+    value = 1000
+
+    rules = {
+        '$OutputSizeLimit': str(value),
+    }
+
+    def evaluate(self, evaluation):
+        return Integer(self.value)

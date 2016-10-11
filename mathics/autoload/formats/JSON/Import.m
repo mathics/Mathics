@@ -31,7 +31,7 @@ importJSON[filename_String]:=
         {"Data" -> data}
     ]
 
-RegisterImport[
+ImportExport`RegisterImport[
     "JSON",
     System`Convert`JSONDump`importJSON,
     {},

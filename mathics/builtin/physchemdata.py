@@ -1,8 +1,12 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Physical and Chemical data
 """
+
+# from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from csv import reader as csvreader
 
@@ -10,10 +14,11 @@ from mathics.builtin.base import Builtin
 from mathics.core.expression import (Expression, from_python, Symbol, String,
                                      strip_context)
 from mathics.settings import ROOT_DIR
+import six
 
 
 def load_element_data():
-    element_file = open(ROOT_DIR + 'data/element.csv', 'rb')
+    element_file = open(ROOT_DIR + 'data/element.csv', 'r')
     reader = csvreader(element_file, delimiter='\t')
     element_data = []
     for row in reader:
@@ -27,10 +32,11 @@ _ELEMENT_DATA = load_element_data()
 class ElementData(Builtin):
     """
     <dl>
-    <dt>'ElementData["$name$", "$property$"]
-        <dd>gives the value of the $property$ for the chemical specified by $name$".
-    <dt>'ElementData[$n$, "$property$"]
-        <dd>gives the value of the $property$ for the $n$th chemical element".
+    <dt>'ElementData["$name$", "$property$"]'
+        <dd>gives the value of the $property$ for the chemical
+        specified by $name$.
+    <dt>'ElementData[$n$, "$property$"]'
+        <dd>gives the value of the $property$ for the $n$th chemical element.
     </dl>
 
     >> ElementData[74]
@@ -113,8 +119,6 @@ class ElementData(Builtin):
     def apply_int(self, n, prop, evaluation):
         "ElementData[n_?IntegerQ, prop_]"
 
-        from mathics.core.parser import parse
-
         py_n = n.to_python()
         py_prop = prop.to_python()
 
@@ -123,14 +127,14 @@ class ElementData(Builtin):
             if not 1 <= py_n <= 118:
                 evaluation.message("ElementData", "noent", n)
                 return
-        elif isinstance(py_n, unicode):
+        elif isinstance(py_n, six.string_types):
             pass
         else:
             evaluation.message("ElementData", "noent", n)
             return
 
         # Check property specifier
-        if isinstance(py_prop, str) or isinstance(py_prop, unicode):
+        if isinstance(py_prop, six.string_types):
             py_prop = str(py_prop)
 
         if py_prop == '"Properties"':
@@ -140,7 +144,7 @@ class ElementData(Builtin):
                     result.append(_ELEMENT_DATA[0][i])
             return from_python(sorted(result))
 
-        if not (isinstance(py_prop, str) and
+        if not (isinstance(py_prop, six.string_types) and
                 py_prop[0] == py_prop[-1] == '"' and
                 py_prop.strip('"') in _ELEMENT_DATA[0]):
             evaluation.message("ElementData", "noprop", prop)
@@ -158,7 +162,7 @@ class ElementData(Builtin):
         if result == "NOT_KNOWN":
             return Expression("Missing", "Unknown")
 
-        result = parse(result, evaluation.definitions)
+        result = evaluation.parse(result)
         if isinstance(result, Symbol):
             result = String(strip_context(result.get_name()))
         return result

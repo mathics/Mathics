@@ -1,8 +1,14 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Functional programming
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
+
+from six.moves import zip
 
 from mathics.builtin.base import Builtin, PostfixOperator
 from mathics.core.expression import Expression
@@ -11,7 +17,8 @@ from mathics.core.expression import Expression
 class Function(PostfixOperator):
     """
     <dl>
-    <dt>'Function[$body$]' or '$body$ &'
+    <dt>'Function[$body$]'
+    <dt>'$body$ &'
         <dd>represents a pure function with parameters '#1', '#2', etc.
     <dt>'Function[{$x1$, $x2$, ...}, $body$]'
         <dd>represents a pure function with parameters $x1$, $x2$, etc.
@@ -79,8 +86,8 @@ class Function(PostfixOperator):
         if len(vars) > len(args):
             evaluation.message('Function', 'fpct', )
         else:
-            vars = dict(zip((
-                var.get_name() for var in vars), args[:len(vars)]))
+            vars = dict(list(zip((
+                var.get_name() for var in vars), args[:len(vars)])))
             return body.replace_vars(vars)
 
 
@@ -90,7 +97,7 @@ class Slot(Builtin):
     <dt>'#$n$'
         <dd>represents the $n$th argument to a pure function.
     <dt>'#'
-        <dd>is short-hand for '#1'
+        <dd>is short-hand for '#1'.
     <dt>'#0'
         <dd>represents the pure function itself.
     </dl>
@@ -194,6 +201,10 @@ class Composition(Builtin):
 
 class Identity(Builtin):
     """
+    <dl>
+    <dt>'Identity[$x$]'
+        <dd>is the identity function, which returns $x$ unchanged.
+    </dl>
     >> Identity[x]
      = x
     >> Identity[x, y]

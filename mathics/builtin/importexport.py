@@ -1,21 +1,155 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Importing and Exporting
 """
 
+from __future__ import unicode_literals
+from __future__ import absolute_import
+import six
+
 from mathics.core.expression import Expression, from_python
 from mathics.builtin.base import Builtin, Predefined, Symbol, String
 
-from pymimesniffer import magic
+from .pymimesniffer import magic
 import mimetypes
+import sys
 
+import urllib
+
+try:
+    import urllib.request as urllib2
+    from urllib.error import HTTPError, URLError
+except ImportError:
+    import urllib2
+    from urllib2 import HTTPError, URLError
 
 mimetypes.add_type('application/vnd.wolfram.mathematica.package', '.m')
 
 # Seems that JSON is not registered on the mathics.net server, so we do it manually here.
 # Keep in mind that mimetypes has system-dependent aspects (it inspects "/etc/mime.types" and other files).
 mimetypes.add_type('application/json', '.json')
+
+# TODO: Add more file formats
+
+mimetype_dict = {
+    'application/dicom': 'DICOM',
+    'application/dbase': 'DBF',
+    'application/dbf': 'DBF',
+    'application/eps': 'EPS',
+    'application/fits': 'FITS',
+    'application/json': 'JSON',
+    'application/mathematica': 'NB',
+    'application/mdb': 'MDB',
+    'application/mbox': 'MBOX',
+    'application/msaccess': 'MDB',
+    'application/octet-stream': 'OBJ',
+    'application/pdf': 'PDF',
+    'application/pcx': 'PCX',
+    'application/postscript': 'EPS',
+    'application/rss+xml': 'RSS',
+    'application/rtf': 'RTF',
+    'application/sla': 'STL',
+    'application/tga': 'TGA',
+    'application/vnd.google-earth.kml+xml': 'KML',
+    'application/vnd.ms-excel': 'XLS',
+    'application/vnd.ms-pki.stl': 'STL',
+    'application/vnd.oasis.opendocument.spreadsheet': 'ODS',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',  # nopep8
+    'application/vnd.sun.xml.calc': 'SXC',
+    'application/vnd.msaccess': 'MDB',
+    'application/vnd.wolfram.cdf': 'CDF',
+    'application/vnd.wolfram.cdf.text': 'CDF',
+    'application/vnd.wolfram.mathematica.package': 'Package',
+    'application/xhtml+xml': 'XHTML',
+    'application/xml': 'XML',
+    'application/x-3ds': '3DS',
+    'application/x-cdf': 'NASACDF',
+    'application/x-eps': 'EPS',
+    'application/x-flac': 'FLAC',
+    'application/x-font-bdf': 'BDF',
+    'application/x-hdf': 'HDF',
+    'application/x-msaccess': 'MDB',
+    'application/x-netcdf': 'NetCDF',
+    'application/x-shockwave-flash': 'SWF',
+    'application/x-tex': 'TeX',  # Also TeX
+    'audio/aiff': 'AIFF',
+    'audio/basic': 'AU',  # Also SND
+    'audio/midi': 'MIDI',
+    'audio/x-aifc': 'AIFF',
+    'audio/x-aiff': 'AIFF',
+    'audio/x-flac': 'FLAC',
+    'audio/x-wav': 'WAV',
+    'chemical/seq-na-genbank': 'GenBank',
+    'chemical/seq-aa-fasta': 'FASTA',
+    'chemical/seq-na-fasta': 'FASTA',
+    'chemical/seq-na-fastq': 'FASTQ',
+    'chemical/seq-na-sff': 'SFF',
+    'chemical/x-cif': 'CIF',
+    'chemical/x-daylight-smiles': 'SMILES',
+    'chemical/x-hin': 'HIN',
+    'chemical/x-jcamp-dx': 'JCAMP-DX',
+    'chemical/x-mdl-molfile': 'MOL',
+    'chemical/x-mdl-sdf': 'SDF',
+    'chemical/x-mdl-sdfile': 'SDF',
+    'chemical/x-mdl-tgf': 'TGF',
+    'chemical/x-mmcif': 'CIF',
+    'chemical/x-mol2': 'MOL2',
+    'chemical/x-mopac-input': 'Table',
+    'chemical/x-pdb': 'PDB',
+    'chemical/x-xyz': 'XYZ',
+    'image/bmp': 'BMP',
+    'image/eps': 'EPS',
+    'image/fits': 'FITS',
+    'image/gif': 'GIF',
+    'image/jp2': 'JPEG2000',
+    'image/jpeg': 'JPEG',
+    'image/pbm': 'PNM',
+    'image/pcx': 'PCX',
+    'image/pict': 'PICT',
+    'image/png': 'PNG',
+    'image/svg+xml': 'SVG',
+    'image/tga': 'TGA',
+    'image/tiff': 'TIFF',
+    'image/vnd.dxf': 'DXF',
+    'image/vnd.microsoft.icon': 'ICO',
+    'image/x-3ds': '3DS',
+    'image/x-dxf': 'DXF',
+    'image/x-exr': 'OpenEXR',
+    'image/x-icon': 'ICO',
+    'image/x-ms-bmp': 'BMP',
+    'image/x-pcx': 'PCX',
+    'image/x-portable-anymap': 'PNM',
+    'image/x-portable-bitmap': 'PBM',
+    'image/x-portable-graymap': 'PGM',
+    'image/x-portable-pixmap': 'PPM',
+    'image/x-xbitmap': 'XBM',
+    'model/x3d+xml': 'X3D',
+    'model/vrml': 'VRML',
+    'model/x-lwo': 'LWO',
+    'model/x-pov': 'POV',
+    'text/calendar': 'ICS',
+    'text/comma-separated-values': 'CSV',
+    'text/csv': 'CSV',
+    'text/html': 'HTML',
+    'text/mathml': 'MathML',
+    'text/plain': 'Text',
+    'text/rtf': 'RTF',
+    'text/scriptlet': 'SCT',
+    'text/tab-separated-values': 'TSV',
+    'text/texmacs': 'Text',
+    'text/vnd.graphviz': 'DOT',
+    'text/x-csrc': 'C',
+    'text/x-tex': 'TeX',
+    'text/x-vcalendar': 'VCS',
+    'text/x-vcard': 'VCF',
+    'text/xml': 'XML',
+    'video/avi': 'AVI',
+    'video/quicktime': 'QuickTime',
+    'video/x-flv': 'FLV',
+    # None: 'Binary',
+}
 
 IMPORTERS = {}
 EXPORTERS = {}
@@ -29,13 +163,13 @@ class ImportFormats(Predefined):
     </dl>
 
     >> $ImportFormats
-     = {CSV, JSON, Text}
+     = {...CSV,...JSON,...Text...}
     """
 
     name = '$ImportFormats'
 
     def evaluate(self, evaluation):
-        return from_python(sorted(IMPORTERS.keys()))
+        return Expression('List', *sorted(IMPORTERS.keys()))
 
 
 class ExportFormats(Predefined):
@@ -46,16 +180,15 @@ class ExportFormats(Predefined):
     </dl>
 
     >> $ExportFormats
-     = {CSV, SVG, Text}
+     = {...CSV,...SVG,...Text...}
     """
 
     name = '$ExportFormats'
 
     def evaluate(self, evaluation):
-        return from_python(sorted(EXPORTERS.keys()))
+        return Expression('List', *sorted(EXPORTERS.keys()))
 
 
-# FIXME This should be private, ImportExport`RegisterImport
 class RegisterImport(Builtin):
     """
     <dl>
@@ -71,7 +204,7 @@ class RegisterImport(Builtin):
     >> ExampleFormat1Import[filename_String] := Module[{stream, head, data}, stream = OpenRead[filename]; head = ReadList[stream, String, 2]; data = Partition[ReadList[stream, Number], 2]; Close[stream]; {"Header" -> head, "Data" -> data}]
 
     'RegisterImport' is then used to register the above function to a new data format.
-    >> RegisterImport["ExampleFormat1", ExampleFormat1Import]
+    >> ImportExport`RegisterImport["ExampleFormat1", ExampleFormat1Import]
 
     >> FilePrint["ExampleData/ExampleData.txt"]
      | Example File Format
@@ -98,7 +231,7 @@ class RegisterImport(Builtin):
 
     >> ExampleFormat2DataImport[filename_String] := Module[{stream, data}, stream = OpenRead[filename]; Skip[stream, String, 2]; data = Partition[ReadList[stream, Number], 2]; Close[stream]; {"Data" -> data}]
 
-    >> RegisterImport["ExampleFormat2", {"Data" :> ExampleFormat2DataImport, ExampleFormat2DefaultImport}]
+    >> ImportExport`RegisterImport["ExampleFormat2", {"Data" :> ExampleFormat2DataImport, ExampleFormat2DefaultImport}]
 
     >> Import["ExampleData/ExampleData.txt", {"ExampleFormat2", "Elements"}]
      = {Data, Header}
@@ -129,6 +262,8 @@ class RegisterImport(Builtin):
 
     """
 
+    context = 'ImportExport`'
+
     attributes = ('Protected', 'ReadProtected')
 
     # XXX OptionsIssue
@@ -147,13 +282,13 @@ class RegisterImport(Builtin):
     }
 
     rules = {
-        'RegisterImport[formatname_String, function_]':
-        'RegisterImport[formatname, function, {}]',
+        'ImportExport`RegisterImport[formatname_String, function_]':
+        'ImportExport`RegisterImport[formatname, function, {}]',
     }
 
     def apply(self, formatname, function, posts, evaluation, options):
-        '''RegisterImport[formatname_String, function_, posts_,
-               OptionsPattern[RegisterImport]]'''
+        '''ImportExport`RegisterImport[formatname_String, function_, posts_,
+                OptionsPattern[ImportExport`RegisterImport]]'''
 
         if function.has_form('List', None):
             leaves = function.get_leaves()
@@ -171,13 +306,11 @@ class RegisterImport(Builtin):
         default = leaves[-1]
         posts = {}
 
-        IMPORTERS[formatname.get_string_value()] = (
-            conditionals, default, posts, options)
+        IMPORTERS[formatname.get_string_value()] = (conditionals, default, posts, options)
 
         return Symbol('Null')
 
 
-# FIXME This should be private, ImportExport`RegisterExport
 class RegisterExport(Builtin):
     """
     <dl>
@@ -188,7 +321,7 @@ class RegisterExport(Builtin):
     Simple text exporter
     >> ExampleExporter1[filename_, data_, opts___] := Module[{strm = OpenWrite[filename], char = data}, WriteString[strm, char]; Close[strm]]
 
-    >> RegisterExport["ExampleFormat1", ExampleExporter1]
+    >> ImportExport`RegisterExport["ExampleFormat1", ExampleExporter1]
 
     >> Export["sample.txt", "Encode this string!", "ExampleFormat1"];
 
@@ -200,7 +333,7 @@ class RegisterExport(Builtin):
     Very basic encrypted text exporter
     >> ExampleExporter2[filename_, data_, opts___] := Module[{strm = OpenWrite[filename], char}, (* TODO: Check data *) char = FromCharacterCode[Mod[ToCharacterCode[data] - 84, 26] + 97]; WriteString[strm, char]; Close[strm]]
 
-    >> RegisterExport["ExampleFormat2", ExampleExporter2]
+    >> ImportExport`RegisterExport["ExampleFormat2", ExampleExporter2]
 
     >> Export["sample.txt", "encodethisstring", "ExampleFormat2"];
 
@@ -209,6 +342,8 @@ class RegisterExport(Builtin):
 
     #> DeleteFile["sample.txt"]
     """
+
+    context = 'ImportExport`'
 
     options = {
         'Path': 'Automatic',
@@ -225,10 +360,69 @@ class RegisterExport(Builtin):
     }
 
     def apply(self, formatname, function, evaluation, options):
-        'RegisterExport[formatname_String, function_, OptionsPattern[RegisterExport]]'
+        '''ImportExport`RegisterExport[formatname_String, function_,
+                OptionsPattern[ImportExport`RegisterExport]]'''
         EXPORTERS[formatname.get_string_value()] = function
 
         return Symbol('Null')
+
+
+class FetchURL(Builtin):
+    '''
+    #> Quiet[FetchURL["https:////", {}]]
+     = $Failed
+
+    #> Quiet[FetchURL["http://mathics.org/url_test_case", {}]]
+     = $Failed
+    '''
+
+    messages = {
+        'httperr': '`1` could not be retrieved; `2`.',
+    }
+
+    def apply(self, url, elements, evaluation):
+        'FetchURL[url_String, elements_]'
+
+        import tempfile
+        import os
+
+        py_url = url.get_string_value()
+
+        temp_handle, temp_path = tempfile.mkstemp(suffix='')
+        try:
+            f = urllib2.urlopen(py_url)
+            try:
+                if sys.version_info >= (3, 0):
+                    content_type = f.info().get_content_type()
+                else:
+                    content_type = f.headers['content-type']
+
+                os.write(temp_handle, f.read())
+            finally:
+                f.close()
+
+            def determine_filetype():
+                return mimetype_dict.get(content_type)
+
+            result = Import._import(temp_path, determine_filetype, elements, evaluation)
+        except HTTPError as e:
+            evaluation.message(
+                'FetchURL', 'httperr', url,
+                'the server returned an HTTP status code of %s (%s)' % (e.code, str(e.reason)))
+            return Symbol('$Failed')
+        except URLError as e:  # see https://docs.python.org/3/howto/urllib2.html
+            if hasattr(e, 'reason'):
+                evaluation.message('FetchURL', 'httperr', url, str(e.reason))
+            elif hasattr(e, 'code'):
+                evaluation.message('FetchURL', 'httperr', url, 'server returned %s' % e.code)
+            return Symbol('$Failed')
+        except ValueError as e:
+            evaluation.message('FetchURL', 'httperr', url, str(e))
+            return Symbol('$Failed')
+        finally:
+            os.unlink(temp_path)
+
+        return result
 
 
 class Import(Builtin):
@@ -266,12 +460,10 @@ class Import(Builtin):
     ## JSON
     >> Import["ExampleData/colors.json"]
      = {colorsArray -> {{colorName -> black, rgbValue -> (0, 0, 0), hexValue -> #000000}, {colorName -> red, rgbValue -> (255, 0, 0), hexValue -> #FF0000}, {colorName -> green, rgbValue -> (0, 255, 0), hexValue -> #00FF00}, {colorName -> blue, rgbValue -> (0, 0, 255), hexValue -> #0000FF}, {colorName -> yellow, rgbValue -> (255, 255, 0), hexValue -> #FFFF00}, {colorName -> cyan, rgbValue -> (0, 255, 255), hexValue -> #00FFFF}, {colorName -> magenta, rgbValue -> (255, 0, 255), hexValue -> #FF00FF}, {colorName -> white, rgbValue -> (255, 255, 255), hexValue -> #FFFFFF}}}
-    """
 
-    # TODO: Images tests
-    """
-    >> Import["ExampleData/sunflowers.jpg"]
-     = -Image-
+    ## XML
+    #> Import["ExampleData/InventionNo1.xml", "Tags"]
+     = {accidental, alter, arpeggiate, ..., words}
     """
 
     messages = {
@@ -292,15 +484,29 @@ class Import(Builtin):
 
         # Check filename
         path = filename.to_python()
-        if not (isinstance(path, basestring) and path[0] == path[-1] == '"'):
+        if not (isinstance(path, six.string_types) and path[0] == path[-1] == '"'):
             evaluation.message('Import', 'chtype', filename)
             return Symbol('$Failed')
 
+        # Download via URL
+        if isinstance(filename, String):
+            if any(filename.get_string_value().startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
+                return Expression('FetchURL', filename, elements)
+
+        # Load local file
         findfile = Expression('FindFile', filename).evaluate(evaluation)
         if findfile == Symbol('$Failed'):
             evaluation.message('Import', 'nffil')
             return findfile
 
+        def determine_filetype():
+            return Expression('FileFormat', findfile).evaluate(
+                evaluation=evaluation).get_string_value()
+
+        return self._import(findfile, determine_filetype, elements, evaluation)
+
+    @staticmethod
+    def _import(findfile, determine_filetype, elements, evaluation):
         # Check elements
         if elements.has_form('List', None):
             elements = elements.get_leaves()
@@ -321,24 +527,24 @@ class Import(Builtin):
                 elements.remove(el)
                 break
         else:
-            filetype = Expression('FileFormat', findfile).evaluate(
-                evaluation=evaluation).get_string_value()
+            filetype = determine_filetype()
 
         if filetype not in IMPORTERS.keys():
             evaluation.message('Import', 'fmtnosup', filetype)
             return Symbol('$Failed')
 
         # Load the importer
-        (conditionals, default_function, posts,
-         importer_options) = IMPORTERS[filetype]
+        (conditionals, default_function, posts, importer_options) = IMPORTERS[filetype]
 
-        # XXX OptionsIssue
-        # function_channels = importer_options.get(String("FunctionChannels"))
-        function_channels = importer_options.get(Symbol("FunctionChannels"))
+        function_channels = importer_options.get("System`FunctionChannels")
+        if function_channels is None:
+            # TODO message
+            return Symbol('$Failed')
 
-        # XXX OptionsIssue
-        # default_element = importer_options.get(String("DefaultElement"))
-        default_element = importer_options.get(Symbol("DefaultElement"))
+        default_element = importer_options.get("System`DefaultElement")
+        if default_element is None:
+            # TODO message
+            return Symbol('$Failed')
 
         def get_results(tmp_function):
             if function_channels == Expression('List', String('FileNames')):
@@ -351,8 +557,8 @@ class Import(Builtin):
                 tmp = Expression(tmp_function, stream).evaluate(evaluation)
                 Expression('Close', stream).evaluate(evaluation)
             else:
-                # TODO print appropriate error message
-                raise NotImplementedError
+                # TODO message
+                return Symbol('$Failed')
             tmp = tmp.get_leaves()
             if not all(expr.has_form('Rule', None) for expr in tmp):
                 return None
@@ -360,12 +566,12 @@ class Import(Builtin):
             # return {a.get_string_value() : b for (a,b) in map(lambda x:
             # x.get_leaves(), tmp)}
             return dict((a.get_string_value(), b)
-                        for (a, b) in map(lambda x: x.get_leaves(), tmp))
+                        for (a, b) in [x.get_leaves() for x in tmp])
 
         # Perform the import
         defaults = None
 
-        if elements == []:
+        if not elements:
             defaults = get_results(default_function)
             if defaults is None:
                 return Symbol('$Failed')
@@ -389,14 +595,14 @@ class Import(Builtin):
                     return Symbol('$Failed')
                 # Use set() to remove duplicates
                 return from_python(sorted(set(
-                    conditionals.keys() + defaults.keys() + posts.keys())))
+                    list(conditionals.keys()) + list(defaults.keys()) + list(posts.keys()))))
             else:
                 if el in conditionals.keys():
                     result = get_results(conditionals[el])
                     if result is None:
                         return Symbol('$Failed')
-                    if len(result.keys()) == 1 and result.keys()[0] == el:
-                        return result.values()[0]
+                    if len(list(result.keys())) == 1 and list(result.keys())[0] == el:
+                        return list(result.values())[0]
                 elif el in posts.keys():
                     # TODO: allow use of conditionals
                     result = get_results(posts[el])
@@ -482,6 +688,13 @@ class Export(Builtin):
      | 1,2,3
      | 4,5,6
     #> DeleteFile[%%]
+
+    ## SVG
+    #> Export["sine.svg", Plot[Sin[x], {x,0,1}]]
+     = sine.svg
+    #> FileFormat[%]
+     = SVG
+    #> DeleteFile[%%]
     """
 
     messages = {
@@ -491,9 +704,19 @@ class Export(Builtin):
     }
 
     _extdict = {
+        'bmp': 'BMP',
+        'gif': 'GIF',
+        'jp2': 'JPEG2000',
         'jpg': 'JPEG',
+        'pcx': 'PCX',
+        'png': 'PNG',
+        'ppm': 'PPM',
+        'pbm': 'PBM',
+        'pgm': 'PGM',
+        'tif': 'TIFF',
         'txt': 'Text',
         'csv': 'CSV',
+        'svg': 'SVG',
     }
 
     rules = {
@@ -524,7 +747,7 @@ class Export(Builtin):
         if not self._check_filename(filename, evaluation):
             return Symbol('$Failed')
 
-        ## Process elems {comp* format?, elem1*}
+        # Process elems {comp* format?, elem1*}
         leaves = elems.get_leaves()
 
         format_spec, elems_spec = [], []
@@ -570,14 +793,14 @@ class Export(Builtin):
 
     def _check_filename(self, filename, evaluation):
         path = filename.to_python()
-        if isinstance(path, basestring) and path[0] == path[-1] == '"':
+        if isinstance(path, six.string_types) and path[0] == path[-1] == '"':
             return True
         evaluation.message('Export', 'chtype', filename)
         return False
 
     def _infer_form(self, filename, evaluation):
         ext = Expression('FileExtension', filename).evaluate(evaluation)
-        ext = ext.get_string_value()
+        ext = ext.get_string_value().lower()
         return self._extdict.get(ext)
 
 
@@ -627,12 +850,12 @@ class FileFormat(Builtin):
 
     #> FileFormat["ExampleData/Testosterone.svg"]
      = SVG
-    """
 
-    # TODO: JSON example file
-    """
-    #> FileFormat["ExampleData/example.json"]
+    #> FileFormat["ExampleData/colors.json"]
      = JSON
+
+    #> FileFormat["ExampleData/InventionNo1.xml"]
+     = XML
     """
 
     messages = {
@@ -667,129 +890,10 @@ class FileFormat(Builtin):
             else:
                 mime = set([mime])
 
-        # TODO: Add more file formats
-
-        typedict = {
-            'application/dicom': 'DICOM',
-            'application/dbase': 'DBF',
-            'application/dbf': 'DBF',
-            'application/eps': 'EPS',
-            'application/fits': 'FITS',
-            'application/json': 'JSON',
-            'application/mathematica': 'NB',
-            'application/mdb': 'MDB',
-            'application/mbox': 'MBOX',
-            'application/msaccess': 'MDB',
-            'application/octet-stream': 'OBJ',
-            'application/pdf': 'PDF',
-            'application/pcx': 'PCX',
-            'application/postscript': 'EPS',
-            'application/rss+xml': 'RSS',
-            'application/rtf': 'RTF',
-            'application/sla': 'STL',
-            'application/tga': 'TGA',
-            'application/vnd.google-earth.kml+xml': 'KML',
-            'application/vnd.ms-excel': 'XLS',
-            'application/vnd.ms-pki.stl': 'STL',
-            'application/vnd.oasis.opendocument.spreadsheet': 'ODS',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',    # nopep8
-            'application/vnd.sun.xml.calc': 'SXC',
-            'application/vnd.msaccess': 'MDB',
-            'application/vnd.wolfram.cdf': 'CDF',
-            'application/vnd.wolfram.cdf.text': 'CDF',
-            'application/vnd.wolfram.mathematica.package': 'Package',
-            'application/xhtml+xml': 'XHTML',
-            'application/xml': 'XML',
-            'application/x-3ds': '3DS',
-            'application/x-cdf': 'NASACDF',
-            'application/x-eps': 'EPS',
-            'application/x-flac': 'FLAC',
-            'application/x-font-bdf': 'BDF',
-            'application/x-hdf': 'HDF',
-            'application/x-msaccess': 'MDB',
-            'application/x-netcdf': 'NetCDF',
-            'application/x-shockwave-flash': 'SWF',
-            'application/x-tex': 'TeX',  # Also TeX
-            'audio/aiff': 'AIFF',
-            'audio/basic': 'AU',        # Also SND
-            'audio/midi': 'MIDI',
-            'audio/x-aifc': 'AIFF',
-            'audio/x-aiff': 'AIFF',
-            'audio/x-flac': 'FLAC',
-            'audio/x-wav': 'WAV',
-            'chemical/seq-na-genbank': 'GenBank',
-            'chemical/seq-aa-fasta': 'FASTA',
-            'chemical/seq-na-fasta': 'FASTA',
-            'chemical/seq-na-fastq': 'FASTQ',
-            'chemical/seq-na-sff': 'SFF',
-            'chemical/x-cif': 'CIF',
-            'chemical/x-daylight-smiles': 'SMILES',
-            'chemical/x-hin': 'HIN',
-            'chemical/x-jcamp-dx': 'JCAMP-DX',
-            'chemical/x-mdl-molfile': 'MOL',
-            'chemical/x-mdl-sdf': 'SDF',
-            'chemical/x-mdl-sdfile': 'SDF',
-            'chemical/x-mdl-tgf': 'TGF',
-            'chemical/x-mmcif': 'CIF',
-            'chemical/x-mol2': 'MOL2',
-            'chemical/x-mopac-input': 'Table',
-            'chemical/x-pdb': 'PDB',
-            'chemical/x-xyz': 'XYZ',
-            'image/bmp': 'BMP',
-            'image/eps': 'EPS',
-            'image/fits': 'FITS',
-            'image/gif': 'GIF',
-            'image/jp2': 'JPEG2000',
-            'image/jpeg': 'JPEG',
-            'image/pbm': 'PNM',
-            'image/pcx': 'PCX',
-            'image/pict': 'PICT',
-            'image/png': 'PNG',
-            'image/svg+xml': 'SVG',
-            'image/tga': 'TGA',
-            'image/tiff': 'TIFF',
-            'image/vnd.dxf': 'DXF',
-            'image/vnd.microsoft.icon': 'ICO',
-            'image/x-3ds': '3DS',
-            'image/x-dxf': 'DXF',
-            'image/x-exr': 'OpenEXR',
-            'image/x-icon': 'ICO',
-            'image/x-ms-bmp': 'BMP',
-            'image/x-pcx': 'PCX',
-            'image/x-portable-anymap': 'PNM',
-            'image/x-portable-bitmap': 'PBM',
-            'image/x-portable-graymap': 'PGM',
-            'image/x-portable-pixmap': 'PPM',
-            'image/x-xbitmap': 'XBM',
-            'model/x3d+xml': 'X3D',
-            'model/vrml': 'VRML',
-            'model/x-lwo': 'LWO',
-            'model/x-pov': 'POV',
-            'text/calendar': 'ICS',
-            'text/comma-separated-values': 'CSV',
-            'text/csv': 'CSV',
-            'text/html': 'HTML',
-            'text/mathml': 'MathML',
-            'text/plain': 'Text',
-            'text/rtf': 'RTF',
-            'text/scriptlet': 'SCT',
-            'text/tab-separated-values': 'TSV',
-            'text/texmacs': 'Text',
-            'text/vnd.graphviz': 'DOT',
-            'text/x-csrc': 'C',
-            'text/x-tex': 'TeX',
-            'text/x-vcalendar': 'VCS',
-            'text/x-vcard': 'VCF',
-            'video/avi': 'AVI',
-            'video/quicktime': 'QuickTime',
-            'video/x-flv': 'FLV',
-            # None: 'Binary',
-        }
-
         result = []
-        for key in typedict.keys():
+        for key in mimetype_dict.keys():
             if key in mime:
-                result.append(typedict[key])
+                result.append(mimetype_dict[key])
 
         if len(result) == 0:
             result = 'Binary'

@@ -15,7 +15,7 @@ ImportCSV[filename_String]:=
         }
 ]
 
-RegisterImport[
+ImportExport`RegisterImport[
     "CSV",
     System`Convert`TableDump`ImportCSV,
     {

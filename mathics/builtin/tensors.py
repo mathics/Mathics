@@ -1,11 +1,16 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Tensor functions
 """
 
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from six.moves import range
+
 from mathics.builtin.base import Builtin, BinaryOperator
-from mathics.core.expression import Expression, Symbol, Integer
+from mathics.core.expression import Expression, Symbol, Integer, String
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import get_part
@@ -22,6 +27,7 @@ class ArrayQ(Builtin):
         <dd>furthermore tests whether $test$ yields 'True' for all elements of $expr$.
         'ArrayQ[$expr$]' is equivalent to 'ArrayQ[$expr$, _, True&]'.
     </dl>
+
     >> ArrayQ[a]
      = False
     >> ArrayQ[{a}]
@@ -75,6 +81,15 @@ class ArrayQ(Builtin):
 
 class VectorQ(Builtin):
     """
+    <dl>
+    <dt>'VectorQ[$v$]'
+        <dd>returns 'True' if $v$ is a list of elements which are
+        not themselves lists.
+    <dt>'VectorQ[$v$, $f$]'
+        <dd>returns 'True' if $v$ is a vector and '$f$[$x$]' returns
+        'True' for each element $x$ of $v$.
+    </dl>
+
     >> VectorQ[{a, b, c}]
      = True
     """
@@ -87,6 +102,14 @@ class VectorQ(Builtin):
 
 class MatrixQ(Builtin):
     """
+    <dl>
+    <dt>'MatrixQ[$m$]'
+        <dd>returns 'True' if $m$ is a list of equal-length lists.
+    <dt>'MatrixQ[$m$, $f$]'
+        <dd>only returns 'True' if '$f$[$x$]' returns 'True' for each
+        element $x$ of the matrix $m$.
+    </dl>
+
     >> MatrixQ[{{1, 3}, {4.0, 3/2}}, NumberQ]
      = True
     """
@@ -104,6 +127,7 @@ def get_dimensions(expr, head=None):
         if head is not None and not expr.head.same(head):
             return []
         sub_dim = None
+        sub = []
         for leaf in expr.leaves:
             sub = get_dimensions(leaf, expr.head)
             if sub_dim is None:
@@ -117,8 +141,16 @@ def get_dimensions(expr, head=None):
 
 class Dimensions(Builtin):
     """
+    <dl>
+    <dt>'Dimensions[$expr$]'
+        <dd>returns a list of the dimensions of the expression $expr$.
+    </dl>
+
+    A vector of length 3:
     >> Dimensions[{a, b, c}]
      = {3}
+
+    A 3x2 matrix:
     >> Dimensions[{{a, b}, {c, d}, {e, f}}]
      = {3, 2}
 
@@ -129,6 +161,11 @@ class Dimensions(Builtin):
     The expression can have any head:
     >> Dimensions[f[f[a, b, c]]]
      = {1, 3}
+
+    #> Dimensions[{}]
+     = {0}
+    #> Dimensions[{{}}]
+     = {1, 0}
     """
 
     def apply(self, expr, evaluation):
@@ -140,6 +177,12 @@ class Dimensions(Builtin):
 
 class ArrayDepth(Builtin):
     """
+    <dl>
+    <dt>'ArrayDepth[$a$]'
+        <dd>returns the depth of the non-ragged array $a$, defined as
+        'Length[Dimensions[$a$]]'.
+    </dl>
+
     >> ArrayDepth[{{a,b},{c,d}}]
      = 2
     >> ArrayDepth[x]
@@ -153,6 +196,12 @@ class ArrayDepth(Builtin):
 
 class Dot(BinaryOperator):
     """
+    <dl>
+    <dt>'Dot[$x$, $y$]'
+    <dt>'$x$ . $y$'
+        <dd>computes the vector dot product or matrix product $x$ . $y$.
+    </dl>
+
     Scalar product of vectors:
     >> {a, b, c} . {x, y, z}
      = a x + b y + c z
@@ -177,8 +226,18 @@ class Dot(BinaryOperator):
 
 class Inner(Builtin):
     """
+    <dl>
+    <dt>'Inner[$f$, $x$, $y$, $g$]'
+        <dd>computes a generalised inner product of $x$ and $y$, using
+        a multiplication function $f$ and an addition function $g$.
+    </dl>
+
     >> Inner[f, {a, b}, {x, y}, g]
      = g[f[a, x], f[b, y]]
+
+    'Inner' can be used to compute a dot product:
+    >> Inner[Times, {a, b}, {c, d}, Plus] == {a, b} . {c, d}
+     = True
 
     The inner product of two boolean matrices:
     >> Inner[And, {{False, False}, {False, True}}, {{True, False}, {True, True}}, Or]
@@ -222,13 +281,13 @@ class Inner(Builtin):
             evaluation.check_stopped()
             if i_rest:
                 new = Expression(head)
-                for i in xrange(1, i_rest[0] + 1):
+                for i in range(1, i_rest[0] + 1):
                     new.leaves.append(
                         rec(i_cur + [i], j_cur, i_rest[1:], j_rest))
                 return new
             elif j_rest:
                 new = Expression(head)
-                for j in xrange(1, j_rest[0] + 1):
+                for j in range(1, j_rest[0] + 1):
                     new.leaves.append(
                         rec(i_cur, j_cur + [j], i_rest, j_rest[1:]))
                 return new
@@ -237,7 +296,7 @@ class Inner(Builtin):
                     return Expression(f, get_part(list1, i_cur + [i]),
                                       get_part(list2, [i] + j_cur))
                 part = Expression(
-                    g, *[summand(i) for i in xrange(1, inner_dim + 1)])
+                    g, *[summand(i) for i in range(1, inner_dim + 1)])
                 # cur_expr.leaves.append(part)
                 return part
 
@@ -246,6 +305,12 @@ class Inner(Builtin):
 
 class Outer(Builtin):
     """
+    <dl>
+    <dt>'Outer[$f$, $x$, $y$]'
+        <dd>computes a generalised outer product of $x$ and $y$, using
+        the function $f$ in place of multiplication.
+    </dl>
+
     >> Outer[f, {a, b}, {1, 2, 3}]
      = {{f[a, 1], f[a, 2], f[a, 3]}, {f[b, 1], f[b, 2], f[b, 3]}}
 
@@ -384,3 +449,29 @@ class IdentityMatrix(Builtin):
     rules = {
         'IdentityMatrix[n_Integer]': 'DiagonalMatrix[Table[1, {n}]]',
     }
+
+
+def get_default_distance(p):
+    if all(q.is_numeric() for q in p):
+        return 'SquaredEuclideanDistance'
+    elif all(q.get_head_name() == 'System`List' for q in p):
+        dimensions = [get_dimensions(q) for q in p]
+        if len(dimensions) < 1:
+            return None
+        d0 = dimensions[0]
+        if not all(d == d0 for d in dimensions[1:]):
+            return None
+        if len(dimensions[0]) == 1:  # vectors?
+            def is_boolean(x):
+                return x.get_head_name() == 'System`Symbol' and x.get_name() in ('System`True', 'System`False')
+            if all(all(is_boolean(e) for e in q.leaves) for q in p):
+                return 'JaccardDissimilarity'
+        return 'SquaredEuclideanDistance'
+    elif all(isinstance(q, String) for q in p):
+        return 'EditDistance'
+    else:
+        from mathics.builtin.graphics import expression_to_color
+        if all(expression_to_color(q) is not None for q in p):
+            return 'ColorDistance'
+
+        return None

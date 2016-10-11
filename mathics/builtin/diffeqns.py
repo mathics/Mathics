@@ -1,8 +1,12 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Differential equation solver functions
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import sympy
 from mathics.builtin.base import Builtin
@@ -24,7 +28,7 @@ class DSolve(Builtin):
      = {{y[x] -> C[1] E ^ (-x) + C[2] E ^ x}}
 
     >> DSolve[y''[x] == y[x], y, x]
-     = {{y -> (Function[{x}, C[1] Exp[-x] + C[2] Exp[x]])}}
+     = {{y -> (Function[{x}, C[1] E ^ (-x) + C[2] E ^ x])}}
 
     #> Attributes[f] = {HoldAll};
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]
@@ -37,16 +41,16 @@ class DSolve(Builtin):
      = DSolve[f[2 x] == Sin[f'[x]], f, x]
 
     #> DSolve[f'[x] == f[x], f, x] // FullForm
-     = List[List[Rule[f, Function[List[x], Times[C[1], Exp[x]]]]]]
+     = List[List[Rule[f, Function[List[x], Times[C[1], Power[E, x]]]]]]
 
     #> DSolve[f'[x] == f[x], f, x] /. {C[1] -> 1}
-     = {{f -> (Function[{x}, 1 Exp[x]])}}
+     = {{f -> (Function[{x}, 1 E ^ x])}}
 
     #> DSolve[f'[x] == f[x], f, x] /. {C -> D}
-     = {{f -> (Function[{x}, D[1] Exp[x]])}}
+     = {{f -> (Function[{x}, D[1] E ^ x])}}
 
     #> DSolve[f'[x] == f[x], f, x] /. {C[1] -> C[0]}
-     = {{f -> (Function[{x}, C[0] Exp[x]])}}
+     = {{f -> (Function[{x}, C[0] E ^ x])}}
     """
 
     # TODO: GeneratedParameters option

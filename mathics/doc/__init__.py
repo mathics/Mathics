@@ -1,9 +1,10 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-u"""
-    Mathics: a general-purpose computer algebra system
-    Copyright (C) 2011-2013 The Mathics Team
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
+<<<<<<< HEAD
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -19,5 +20,8 @@ u"""
 """
 
 from doc import Documentation, Doc
+=======
+from .doc import Documentation
+>>>>>>> 4dd81e6fa49ba2567e5d7e5df17870498b1570c3
 
 documentation = Documentation()

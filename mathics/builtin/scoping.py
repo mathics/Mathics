@@ -1,4 +1,8 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.expression import (Expression, String, Symbol, Integer,
@@ -20,7 +24,8 @@ def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
         if var.has_form('Set', 2):
             var_name = var.leaves[0].get_name()
             new_def = var.leaves[1]
-            new_def = new_def.evaluate(evaluation)
+            if evaluation:
+                new_def = new_def.evaluate(evaluation)
         elif var.has_form('Symbol'):
             var_name = var.get_name()
             new_def = None
@@ -55,12 +60,15 @@ def dynamic_scoping(func, vars, evaluation):
 class Block(Builtin):
     """
     <dl>
-    <dt>'Block[{$vars$}, $expr$]'
-        <dd>temporarily stores the definitions of certain variables, evaluates
-        $expr$ with reset values and restores the original definitions afterwards.
+    <dt>'Block[{$x$, $y$, ...}, $expr$]'
+        <dd>temporarily removes the definitions of the given
+        variables, evaluates $expr$, and restores the original
+        definitions afterwards.
     <dt>'Block[{$x$=$x0$, $y$=$y0$, ...}, $expr$]'
-        <dd>assigns initial values to the reset variables.
+        <dd>assigns temporary values to the variables during the
+        evaluation of $expr$.
     </dl>
+
     >> n = 10
      = 10
     >> Block[{n = 5}, n ^ 2]
@@ -100,10 +108,6 @@ class Block(Builtin):
 
         vars = dict(get_scoping_vars(vars, 'Block', evaluation))
         result = dynamic_scoping(expr.evaluate, vars, evaluation)
-
-        # Variables may have changed: must revalute
-        result.is_evaluated = False
-
         return result
 
 
@@ -139,9 +143,10 @@ class Module(Builtin):
     """
     <dl>
     <dt>'Module[{$vars$}, $expr$]'
-        <dd>localizes variables by giving them a temporary name of the form
-    'name$number', where number is the current value of '$ModuleNumber'. Each time a module
-    is evaluated, '$ModuleNumber' is incremented.
+        <dd>localizes variables by giving them a temporary name of the
+        form 'name$number', where number is the current value of
+        '$ModuleNumber'. Each time a module is evaluated,
+        '$ModuleNumber' is incremented.
     </dl>
 
     >> x = 10;
@@ -163,6 +168,13 @@ class Module(Builtin):
      = a
     >> Module[{a}, Block[{}, a]]
      = a$5
+
+    #> Module[{n = 3}, Module[{b = n * 5}, b * 7]]
+     = 105
+
+    #> Module[{a = 3}, Module[{c = If[ToString[Head[a]] == "Integer", a * 5, Abort[]]}, c]]
+     = 15
+
     """
 
     attributes = ('HoldAll',)
@@ -258,7 +270,7 @@ class Contexts(Builtin):
     ## this assignment makes sure that a definition in Global` exists
     >> x = 5;
     >> Contexts[] // InputForm
-     = {"Global`", "System`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`"}
+     = {"Combinatorica`", "Global`", "ImportExport`", "Internal`", "System`", "System`Convert`Image`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`", "XML`", "XML`Parser`"}
     """
 
     def apply(self, evaluation):
@@ -311,6 +323,19 @@ class ContextPath(Predefined):
 
     >> $ContextPath // InputForm
      = {"Global`", "System`"}
+
+    #> $ContextPath = Sin[2]
+     : Sin[2] is not a list of valid context names ending in `.
+     = Sin[2]
+
+    #> x`x = 1; x
+     = x
+    #> $ContextPath = {"x`"};
+    #> x
+     = 1
+    #> System`$ContextPath
+     = {x`}
+    #> $ContextPath = {"Global`", "System`"};
     """
 
     name = '$ContextPath'
@@ -342,6 +367,13 @@ class Begin(Builtin):
     >> End[]
      : No previous context defined.
      = Global`
+
+    #> Begin["`test`"]
+     = Global`test`
+    #> Context[]
+     = Global`test`
+    #> End[]
+     = Global`test`
     """
 
     rules = {
@@ -349,7 +381,8 @@ class Begin(Builtin):
              Unprotect[System`Private`$ContextStack];
              System`Private`$ContextStack = Append[System`Private`$ContextStack, $Context];
              Protect[System`Private`$ContextStack];
-             $Context = context
+             $Context = context;
+             $Context
         ''',
     }
 
@@ -368,7 +401,7 @@ class End(Builtin):
 
     rules = {
         'End[]': '''
-             Block[{old=$Context},
+             Block[{System`Private`old=$Context},
                    If[Length[System`Private`$ContextStack] === 0,
                      (* then *) Message[End::noctx]; $Context,
                      (* else *) Unprotect[System`Private`$ContextStack];
@@ -376,7 +409,7 @@ class End(Builtin):
                                     {Last[System`Private`$ContextStack],
                                      Most[System`Private`$ContextStack]};
                                 Protect[System`Private`$ContextStack];
-                                old]]
+                                System`Private`old]]
         ''',
     }
 
@@ -433,7 +466,7 @@ class EndPackage(Builtin):
 
     After 'EndPackage', the values of '$Context' and '$ContextPath' at
     the time of the 'BeginPackage' call are restored, with the new
-    package's context prepended to $ContextPath.
+    package\'s context prepended to $ContextPath.
     """
 
     messages = {
@@ -442,13 +475,13 @@ class EndPackage(Builtin):
 
     rules = {
         'EndPackage[]': '''
-             Block[{newctx=Quiet[End[], {End::noctx}]},
+             Block[{System`Private`newctx=Quiet[End[], {End::noctx}]},
                    If[Length[System`Private`$ContextPathStack] === 0,
                       (* then *) Message[EndPackage::noctx],
                       (* else *) Unprotect[System`Private`$ContextPathStack];
                                  {$ContextPath, System`Private`$ContextPathStack} =
                                      {Prepend[Last[System`Private`$ContextPathStack],
-                                              newctx],
+                                              System`Private`newctx],
                                       Most[System`Private`$ContextPathStack]};
                                  Protect[System`Private`$ContextPathStack];
                                  Null]]
@@ -460,8 +493,8 @@ class ContextStack(Builtin):
     """
     <dl>
     <dt>'System`Private`$ContextStack'
-        <dd>tracks the values of '$Context' saved by 'Begin' and
-        'BeginPackage'.
+        <dd>is an internal variable tracking the values of '$Context'
+        saved by 'Begin' and 'BeginPackage'.
     </dl>
     """
 
@@ -477,8 +510,8 @@ class ContextPathStack(Builtin):
     """
     <dl>
     <dt>'System`Private`$ContextPathStack'
-        <dd>tracks the values of '$ContextPath' saved by 'Begin' and
-        'BeginPackage'.
+        <dd>is an internal variable tracking the values of
+        '$ContextPath' saved by 'Begin' and 'BeginPackage'.
     </dl>
     """
 

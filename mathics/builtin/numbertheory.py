@@ -1,8 +1,15 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Number theoretic functions
 """
+
+from __future__ import unicode_literals
+from __future__ import absolute_import
+import six
+from six.moves import map
+from six.moves import range
 
 import sympy
 from itertools import combinations
@@ -14,6 +21,11 @@ from mathics.core.expression import (
 
 class PowerMod(Builtin):
     """
+    <dl>
+    <dt>'PowerMod[$x$, $y$, $m$]'
+        <dd>computes $x$^$y$ modulo $m$.
+    </dl>
+
     >> PowerMod[2, 10000000, 3]
      = 1
     >> PowerMod[3, -2, 10]
@@ -45,15 +57,21 @@ class PowerMod(Builtin):
             return
         if b < 0:
             b = -b
-            if a == 0:
+            try:
+                a = int(sympy.invert(a, m))
+            except sympy.polys.polyerrors.NotInvertible:
                 evaluation.message('PowerMod', 'ninv', a_int, m_int)
                 return
-            a = sympy.invert(a, m)
-        return Integer(sympy.Mod(a ** b, m))
+        return Integer(pow(a, b, m))
 
 
 class Mod(Builtin):
     """
+    <dl>
+    <dt>'Mod[$x$, $m$]'
+        <dd>returns $x$ modulo $m$.
+    </dl>
+
     >> Mod[14, 6]
      = 2
     >> Mod[-3, 4]
@@ -70,8 +88,7 @@ class Mod(Builtin):
     def apply(self, n, m, evaluation):
         'Mod[n_Integer, m_Integer]'
 
-        n_int, m_int = n, m
-        n, m = n.value, m.value
+        n, m = n.get_int_value(), m.get_int_value()
         if m == 0:
             evaluation.message('Mod', 'divz', m)
             return
@@ -80,6 +97,11 @@ class Mod(Builtin):
 
 class EvenQ(Test):
     """
+    <dl>
+    <dt>'EvenQ[$x$]'
+        <dd>returns 'True' if $x$ is even, and 'False' otherwise.
+    </dl>
+
     >> EvenQ[4]
      = True
     >> EvenQ[-3]
@@ -95,6 +117,11 @@ class EvenQ(Test):
 
 class OddQ(Test):
     """
+    <dl>
+    <dt>'OddQ[$x$]'
+        <dd>returns 'True' if $x$ is odd, and 'False' otherwise.
+    </dl>
+
     >> OddQ[-3]
      = True
     >> OddQ[0]
@@ -141,7 +168,7 @@ class GCD(Builtin):
 
 # FIXME: Previosuly this used gmpy's gcdext. sympy's gcdex is not as powerful
 # class ExtendedGCD(Builtin):
-#    u"""
+#    """
 #    >> ExtendedGCD[10, 15]
 #     = {5, {-1, 1}}
 #
@@ -231,16 +258,16 @@ class FactorInteger(Builtin):
 
         if isinstance(n, Integer):
             factors = sympy.factorint(n.value)
-            factors = sorted(factors.iteritems())
+            factors = sorted(six.iteritems(factors))
             return Expression('List', *(Expression('List', factor, exp)
                                         for factor, exp in factors))
 
         elif isinstance(n, Rational):
-            factors, factors_denom = map(
-                sympy.factorint, n.value.as_numer_denom())
-            for factor, exp in factors_denom.iteritems():
+            factors, factors_denom = list(map(
+                sympy.factorint, n.value.as_numer_denom()))
+            for factor, exp in six.iteritems(factors_denom):
                 factors[factor] = factors.get(factor, 0) - exp
-            factors = sorted(factors.iteritems())
+            factors = sorted(six.iteritems(factors))
             return Expression('List', *(Expression('List', factor, exp)
                                         for factor, exp in factors))
         else:
@@ -279,7 +306,7 @@ class IntegerExponent(Builtin):
         py_n, py_b = n.to_python(), b.to_python()
         expr = Expression('IntegerExponent', n, b)
 
-        if not (isinstance(py_n, int) or isinstance(py_n, long)):
+        if not isinstance(py_n, six.integer_types):
             evaluation.message('IntegerExponent', 'int', expr)
         py_n = abs(py_n)
 
@@ -327,6 +354,11 @@ class Prime(Builtin):
 
 class PrimeQ(Builtin):
     """
+    <dl>
+    <dt>'PrimeQ[$n$]'
+        <dd>returns 'True' if $n$ is a prime number.
+    </dl>
+
     For very large numbers, 'PrimeQ' uses probabilistic prime testing, so it might be wrong sometimes
     (a number might be composite even though 'PrimeQ' says it is prime).
     The algorithm might be changed in the future.
@@ -369,22 +401,14 @@ class PrimeQ(Builtin):
         else:
             return Symbol('False')
 
-        # old variant using gmpy
-        """count = 25
-        while True:
-            evaluation.check_stopped()
-            result = n.is_prime(count)
-            print result, count
-            if result == 0:
-                return Symbol('False')
-            elif result == 2:
-                return Symbol('True')
-            count += 50"""
-
 
 class CoprimeQ(Builtin):
     """
-    Test whether two numbers are coprime by computing their greatest common divisor
+    <dl>
+    <dt>'CoprimeQ[$x$, $y$]'
+        <dd>tests whether $x$ and $y$ are coprime by computing their
+        greatest common divisor.
+    </dl>
 
     >> CoprimeQ[7, 9]
      = True
@@ -407,7 +431,6 @@ class CoprimeQ(Builtin):
 
     >> CoprimeQ[2, 4, 5]
      = False
-
     """
     attributes = ('Listable',)
 
@@ -427,7 +450,10 @@ class CoprimeQ(Builtin):
 
 class PrimePowerQ(Builtin):
     """
-    Tests wheter a number is a prime power
+    <dl>
+    <dt>'PrimePowerQ[$n$]'
+        <dd>returns 'True' if $n$ is a power of a prime number.
+    </dl>
 
     >> PrimePowerQ[9]
      = True
@@ -457,7 +483,7 @@ class PrimePowerQ(Builtin):
      = False
     """
 
-    #TODO: Complex args
+    # TODO: Complex args
     """
     #> PrimePowerQ[{3 + I, 3 - 2 I, 3 + 4 I, 9 + 7 I}]
      = {False, True, True, False}
@@ -486,7 +512,7 @@ class PrimePi(Builtin):
     """
     <dl>
     <dt>'PrimePi[$x$]'
-        <dd>gives the number of primes less than or equal to $x$
+        <dd>gives the number of primes less than or equal to $x$.
     </dl>
 
     >> PrimePi[100]
@@ -567,7 +593,7 @@ class RandomPrime(Builtin):
     <dl>
     <dt>'RandomPrime[{$imin$, $imax}]'
         <dd>gives a random prime between $imin$ and $imax$.
-    <dt>'RanomPrime[$imax$]
+    <dt>'RandomPrime[$imax$]'
         <dd>gives a random prime between 2 and $imax$.
     <dt>'RandomPrime[$range$, $n$]'
         <dd>gives a list of $n$ random primes in $range$.
@@ -644,3 +670,40 @@ class RandomPrime(Builtin):
         except ValueError:
             evaluation.message('RandomPrime', 'noprime')
             return
+
+
+class Quotient(Builtin):
+    '''
+    <dl>
+    <dt>'Quotient[m, n]'
+      <dd>computes the integer quotient of $m$ and $n$.
+    </dl>
+
+    >> Quotient[23, 7]
+     = 3
+
+    #> Quotient[13, 0]
+     : Infinite expression Quotient[13, 0] encountered.
+     = ComplexInfinity
+    #> Quotient[-17, 7]
+     = -3
+    #> Quotient[-17, -4]
+     = 4
+    #> Quotient[19, -4]
+     = -5
+    '''
+
+    attributes = ('Listable', 'NumericFunction')
+
+    messages = {
+        'infy': 'Infinite expression `1` encountered.',
+    }
+
+    def apply(self, m, n, evaluation):
+        'Quotient[m_Integer, n_Integer]'
+        py_m = m.get_int_value()
+        py_n = n.get_int_value()
+        if py_n == 0:
+            evaluation.message('Quotient', 'infy', Expression('Quotient', m, n))
+            return Symbol('ComplexInfinity')
+        return Integer(py_m // py_n)
