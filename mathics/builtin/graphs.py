@@ -289,13 +289,16 @@ class _Collection(object):
             self.properties.extend(properties)
         self.expressions.extend(expressions)
         self.index = None
+        return expressions
 
     def delete(self, expressions):
         index = self.get_index()
-        removed = set(index[x] for x in expressions)
-        self.expressions = [x for i, x in enumerate(self.expressions) if i not in removed]
-        self.properties = [x for i, x in enumerate(self.properties) if i not in removed]
+        trash = set(index[x] for x in expressions)
+        deleted = [self.expressions[i] for i in trash]
+        self.expressions = [x for i, x in enumerate(self.expressions) if i not in trash]
+        self.properties = [x for i, x in enumerate(self.properties) if i not in trash]
         self.index = None
+        return deleted
 
     def data(self):
         return self.expressions, list(self.get_properties())
@@ -333,18 +336,44 @@ class _Collection(object):
         return p.get(name)
 
 
+def _count_edges(counts, edges, sign):
+    n_directed, n_undirected = counts
+    for edge in edges:
+        if edge.get_head_name() == 'System`DirectedEdge':
+            n_directed += sign
+        else:
+            n_undirected += sign
+    return n_directed, n_undirected
+
+
 class _EdgeCollection(_Collection):
-    def __init__(self, expressions, properties=None, index=None, mixed=False):
+    def __init__(self, expressions, properties=None, index=None, n_directed=0, n_undirected=0):
         super(_EdgeCollection, self).__init__(expressions, properties, index)
-        self.mixed = mixed
+        self.counts = (n_directed, n_undirected)
+
+    def is_mixed(self):
+        n_directed, n_undirected = self.counts
+        return n_directed > 0 and n_undirected > 0
 
     def clone(self):
         properties = self.properties
+        n_directed, n_undirected = self.counts
         return _EdgeCollection(
             self.expressions[:],
             properties[:] if properties else None,
-            None,
-            self.mixed)
+            None,  # index
+            n_directed,
+            n_undirected)
+
+    def extend(self, expressions, properties):
+        added = super(_EdgeCollection, self).extend(expressions, properties)
+        self.counts = _count_edges(self.counts, added, 1)
+        return added
+
+    def delete(self, expressions):
+        deleted = super(_EdgeCollection, self).delete(expressions)
+        self.counts = _count_edges(self.counts, deleted, -1)
+        return deleted
 
 
 class _FullGraphRewrite(Exception):
@@ -377,7 +406,7 @@ class Graph(Atom):
         return len(self.G) == 0
 
     def is_mixed_graph(self):
-        return self.edges.mixed
+        return self.edges.is_mixed()
 
     def is_multigraph(self):
         return isinstance(self.G, (nx.MultiDiGraph, nx.MultiGraph))
@@ -452,7 +481,6 @@ class Graph(Atom):
                     if directed:
                         add_edge(u, v)
                         add_edge(v, u)
-                        edges.mixed = True
                     else:
                         add_edge(u, v)
 
@@ -854,6 +882,10 @@ def _create_graph(new_edges, new_edge_properties, options, from_graph=None):
             multigraph[0] = True
 
     edge_weights = _edge_weights(options)
+    use_directed_edges = options.get('System`DirectedEdges').is_true()
+
+    directed_edge_head = Symbol('DirectedEdge' if use_directed_edges else 'UndirectedEdge')
+    undirected_edge_head = Symbol('UndirectedEdge')
 
     def parse_edge(r, attr_dict):
         if r.is_atom():
@@ -872,16 +904,16 @@ def _create_graph(new_edges, new_edge_properties, options, from_graph=None):
 
         if name in ('System`Rule', 'System`DirectedEdge'):
             edges_container = directed_edges
-            head = 'System`DirectedEdge'
+            head = directed_edge_head
             track_edges((u, v))
         elif name == 'System`UndirectedEdge':
             edges_container = undirected_edges
-            head = 'System`UndirectedEdge'
+            head = undirected_edge_head
             track_edges((u, v), (v, u))
         else:
             raise _GraphParseError
 
-        if head == name:
+        if head.get_name() == name:
             edges.append(r)
         else:
             edges.append(Expression(head, u, v))
@@ -919,9 +951,14 @@ def _create_graph(new_edges, new_edge_properties, options, from_graph=None):
             attr_dict = attr_dict or empty_dict
             G.add_edge(u, v, **attr_dict)
 
+    edge_collection = _EdgeCollection(
+        edges, edge_properties,
+        n_directed=len(directed_edges),
+        n_undirected=len(undirected_edges))
+
     return Graph(
         _Collection(vertices, vertex_properties),
-        _EdgeCollection(edges, edge_properties, mixed=(directed_edges and undirected_edges)),
+        edge_collection,
         G, None, options)
 
 
@@ -992,6 +1029,15 @@ class GraphAtom(AtomBuiltin):
 
     >> Graph[{{1 -> 2}}]
      = Graph[{{1 -> 2}}]
+
+    >> g = Graph[{1 -> 2, 2 -> 3}, DirectedEdges -> True];
+    >> EdgeCount[g, _DirectedEdge]
+     = 2
+    >> g = Graph[{1 -> 2, 2 -> 3}, DirectedEdges -> False];
+    >> EdgeCount[g, _DirectedEdge]
+     = 0
+    >> EdgeCount[g, _UndirectedEdge]
+     = 2
     '''
 
     requires = (
@@ -1002,6 +1048,7 @@ class GraphAtom(AtomBuiltin):
         'VertexSize': '{}',
         'VertexStyle': '{}',
         'EdgeStyle': '{}',
+        'DirectedEdges': 'True',
     }
 
     def apply(self, graph, evaluation, options):
@@ -1073,6 +1120,13 @@ class MixedGraphQ(_NetworkXBuiltin):
      = False
 
     #> MixedGraphQ["abc"]
+     = False
+
+    #> g = Graph[{1 -> 2, 2 -> 3}]; MixedGraphQ[g]
+     = False
+    #> g = EdgeAdd[g, a <-> b]; MixedGraphQ[g]
+     = True
+    #> g = EdgeDelete[g, a <-> b]; MixedGraphQ[g]
      = False
     '''
 
@@ -1927,7 +1981,7 @@ class CompleteGraph(_NetworkXBuiltin):
 
         return Graph(
             _Collection(vertices),
-            _EdgeCollection(edges),
+            _EdgeCollection(edges, n_undirected=len(edges)),
             G, _circular_layout, options)
 
     def apply_multipartite(self, n, evaluation, options):
@@ -1942,7 +1996,7 @@ def _convert_networkx_graph(G, options):
     edges = [Expression('System`UndirectedEdge', u, v) for u, v in G.edges_iter()]
     return Graph(
         _Collection(G.nodes()),
-        _EdgeCollection(edges),
+        _EdgeCollection(edges, n_undirected=len(edges)),
         G, None, options)
 
 
