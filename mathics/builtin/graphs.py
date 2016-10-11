@@ -277,6 +277,10 @@ class _Collection:
             properties[:] if properties else None,
             None)
 
+    def filter(self, expressions):
+        index = self.get_index()
+        return [expr for expr in expressions if expr in index]
+
     def extend(self, expressions, properties):
         if properties:
             if self.properties is None:
@@ -349,8 +353,7 @@ class Graph(Atom):
         vertices_to_delete = set(vertices_to_delete)
 
         G = self.G.copy()
-        for vertex in vertices_to_delete:
-            G.remove_node(vertex)
+        G.remove_nodes_from(vertices_to_delete)
 
         vertices = self.vertices.clone()
         vertices.delete(vertices_to_delete)
@@ -365,6 +368,30 @@ class Graph(Atom):
         edges.delete(edges_to_delete())
 
         return Graph(vertices, edges, G, self.layout, self.options, self.highlights)
+
+    def delete_edges(self, edges_to_delete):
+        G = self.G.copy()
+        directed = isinstance(G, (nx.MultiDiGraph, nx.DiGraph))
+
+        edges_to_delete = self.edges.filter(edges_to_delete)
+
+        for edge in edges_to_delete:
+            if edge.has_form('DirectedEdge', 2):
+                if directed:
+                    u, v = edge.leaves
+                    G.remove_edge(u, v)
+            elif edge.has_form('UndirectedEdge', 2):
+                u, v = edge.leaves
+                if directed:
+                    G.remove_edge(u, v)
+                    G.remove_edge(v, u)
+                else:
+                    G.remove_edge(u, v)
+
+        edges = self.edges.clone()
+        edges.delete(edges_to_delete)
+
+        return Graph(self.vertices, edges, G, self.layout, self.options, self.highlights)
 
     def __str__(self):
         return '-Graph-'
@@ -455,17 +482,15 @@ class Graph(Atom):
         def edge_primitives():
             yield Expression('AbsoluteThickness', 0.1)
 
-            directed = isinstance(self.G, nx.DiGraph)
-
-            if directed:
-                yield Expression('Arrowheads', 0.04)
-            else:
-                yield Expression('Arrowheads', 0)
-
             # FIXME handle multigraphs with multiple same edges
             # FIXME needs curves in Graphics
 
             for (e, style), properties in zip(highlighted(edges), self.edges.get_properties()):
+                if e.get_head_name() == 'System`DirectedEdge':
+                    yield Expression('Arrowheads', 0.04)
+                else:
+                    yield Expression('Arrowheads', 0)
+
                 e1, e2 = e.leaves
 
                 p1 = pos[e1]
@@ -787,13 +812,19 @@ class PropertyValue(Builtin):
     >> g = Graph[{a <-> b, Property[b <-> c, SomeKey -> 123]}];
     >> PropertyValue[{g, b <-> c}, SomeKey]
      = 123
+    >> PropertyValue[{g, b <-> c}, SomeUnknownKey]
+     = $Failed
     '''
+
+    requires = (
+        'networkx',
+    )
 
     def apply(self, graph, item, name, evaluation):
         'PropertyValue[{graph_Graph, item_}, name_Symbol]'
         value = graph.get_property(item, name.get_name())
         if value is None:
-            return  # FIXME
+            return Symbol('$Failed')
         return value
 
 
@@ -1620,10 +1651,50 @@ class VertexDelete(_NetworkXBuiltin):
 
             head_name = what.get_head_name()
             if head_name in pattern_objects:
-                cases = Expression('Cases', Expression('List', *graph.vertices.expressions), what).evaluate(evaluation)
+                cases = Expression('Cases', Expression(
+                    'List', *graph.vertices.expressions), what).evaluate(evaluation)
                 if cases.get_head_name() == 'System`List':
                     return graph.delete_vertices(cases.leaves)
             elif head_name == 'System`List':
                 return graph.delete_vertices(what.leaves)
             else:
-                return graph.delete_vertices(what)
+                return graph.delete_vertices([what])
+
+
+class EdgeDelete(_NetworkXBuiltin):
+    '''
+    >> EdgeDelete[{a -> b, b -> c, c -> d}, b -> c]
+     = -Graph-
+
+    >> EdgeDelete[{4<->5,5<->7,7<->9,9<->5,2->4,4->6,6->2}, _UndirectedEdge]
+     = -Graph-
+
+    >> Length[EdgeList[EdgeDelete[{a -> b, b -> c, c -> b, c -> d}, b <-> c]]]
+     = 4
+
+    >> Length[EdgeList[EdgeDelete[{a -> b, b <-> c, c -> d}, b -> c]]]
+     = 3
+
+    >> Length[EdgeList[EdgeDelete[{a -> b, b <-> c, c -> d}, c -> b]]]
+     = 3
+
+    >> Length[EdgeList[EdgeDelete[{a -> b, b <-> c, c -> d}, b <-> c]]]
+     = 2
+    '''
+
+    def apply(self, graph, what, expression, evaluation, options):
+        '%(name)s[graph_, what_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression)
+        if graph:
+            from mathics.builtin import pattern_objects
+
+            head_name = what.get_head_name()
+            if head_name in pattern_objects:
+                cases = Expression('Cases', Expression(
+                    'List', *graph.edges.expressions), what).evaluate(evaluation)
+                if cases.get_head_name() == 'System`List':
+                    return graph.delete_edges(cases.leaves)
+            elif head_name == 'System`List':
+                return graph.delete_edges(what.leaves)
+            else:
+                return graph.delete_edges([what])
