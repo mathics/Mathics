@@ -13,6 +13,7 @@ from __future__ import division
 
 from mathics.builtin.base import Builtin, AtomBuiltin
 from mathics.builtin.graphics import GraphicsBox
+from mathics.builtin.randomnumbers import RandomEnv
 from mathics.core.expression import Expression, Symbol, Atom, Real, Integer, system_symbols_dict, from_python
 from mathics.core.util import robust_min
 
@@ -62,7 +63,7 @@ def _path_layout(G, root):
     pos = {}
     neighbors = G.neighbors(v)
 
-    while True:
+    for _ in range(len(G)):
         pos[v] = (x, y)
 
         if not neighbors:
@@ -91,7 +92,7 @@ def _path_layout(G, root):
 def _auto_layout(G, warn):
     path_root = None
 
-    for v, d in G.degree(G.nodes()).items():
+    for v, d in G.degree(G.nodes_iter()).items():
         if d == 1 and G.neighbors(v):
             path_root = v
         elif d > 2:
@@ -228,13 +229,13 @@ class _NetworkXBuiltin(Builtin):
         'inv': 'Vertex at position `1` in `2` must belong to the graph at position 1.',
     }
 
-    def _build_graph(self, graph, evaluation, options, expr):
+    def _build_graph(self, graph, evaluation, options, expr, quiet=False):
         head = graph.get_head_name()
         if head == 'System`Graph':
             return graph
         elif head == 'System`List':
             return _graph_from_list(graph.leaves, options)
-        else:
+        elif quiet == False:
             evaluation.message(self.get_name(), 'graph', expr)
 
     def _evaluate_atom(self, graph, options, compute):
@@ -264,7 +265,7 @@ class GraphBox(GraphicsBox):
         return '-Graph-'
 
 
-class _Collection:
+class _Collection(object):
     def __init__(self, expressions, properties=None, index=None):
         self.expressions = expressions
         self.properties = properties if properties else None
@@ -295,6 +296,9 @@ class _Collection:
         self.expressions = [x for i, x in enumerate(self.expressions) if i not in removed]
         self.properties = [x for i, x in enumerate(self.properties) if i not in removed]
         self.index = None
+
+    def data(self):
+        return self.expressions, list(self.get_properties())
 
     def get_index(self):
         index = self.index
@@ -329,6 +333,36 @@ class _Collection:
         return p.get(name)
 
 
+class _EdgeCollection(_Collection):
+    def __init__(self, expressions, properties=None, index=None, mixed=False):
+        super(_EdgeCollection, self).__init__(expressions, properties, index)
+        self.mixed = mixed
+
+    def clone(self):
+        properties = self.properties
+        return _EdgeCollection(
+            self.expressions[:],
+            properties[:] if properties else None,
+            None,
+            self.mixed)
+
+
+class _FullGraphRewrite(Exception):
+    pass
+
+
+def _normalize_edges(edges):
+    for edge in edges:
+        head_name = edge.get_head_name()
+        if head_name == 'System`Property' and len(edge.leaves) == 2:
+            expr, prop = edge.leaves
+            yield Expression(edge.get_head(), list(_normalize_edges([expr]))[0], prop)
+        elif head_name == 'System`Rule':
+            yield Expression('System`DirectedEdge', *edge.leaves)
+        else:
+            yield edge
+
+
 class Graph(Atom):
     def __init__(self, vertices, edges, G, layout, options, highlights=None, **kwargs):
         super(Graph, self).__init__(**kwargs)
@@ -341,6 +375,15 @@ class Graph(Atom):
 
     def empty(self):
         return len(self.G) == 0
+
+    def is_mixed_graph(self):
+        return self.edges.mixed
+
+    def is_multigraph(self):
+        return isinstance(self.G, (nx.MultiDiGraph, nx.MultiGraph))
+
+    def is_loop_free(self):
+        return not self.G.nodes_with_selfloops()
 
     def add_vertices(self, new_vertices, new_vertex_properties):
         vertices = self.vertices.clone()
@@ -369,10 +412,59 @@ class Graph(Atom):
 
         return Graph(vertices, edges, G, self.layout, self.options, self.highlights)
 
+    def add_edges(self, new_edges, new_edge_properties):
+        G = self.G.copy()
+
+        vertices = self.vertices.clone()
+        vertex_index = self.vertices.get_index()
+
+        multigraph = self.is_multigraph()
+        directed = isinstance(G, (nx.MultiDiGraph, nx.DiGraph))
+
+        edges = self.edges.clone()
+        new_edges = list(_normalize_edges(new_edges))
+        edges.extend(new_edges, new_edge_properties)
+
+        def add_edge(u, v):
+            vertex_u, attr_dict_u = _parse_item(u)
+            vertex_v, attr_dict_v = _parse_item(v)
+
+            if not multigraph and G.has_edge(vertex_u, vertex_v):
+                raise _FullGraphRewrite
+
+            G.add_edge(vertex_u, vertex_v)
+
+            if vertex_u not in vertex_index:
+                vertices.extend([vertex_u], [attr_dict_u])
+            if vertex_v not in vertex_index:
+                vertices.extend([vertex_v], [attr_dict_v])
+
+        try:
+            for edge in new_edges:
+                if edge.has_form('DirectedEdge', 2):
+                    u, v = edge.leaves
+                    if directed:
+                        add_edge(u, v)
+                    else:
+                        raise _FullGraphRewrite
+                elif edge.has_form('UndirectedEdge', 2):
+                    u, v = edge.leaves
+                    if directed:
+                        add_edge(u, v)
+                        add_edge(v, u)
+                        edges.mixed = True
+                    else:
+                        add_edge(u, v)
+
+            return Graph(vertices, edges, G, self.layout, self.options, self.highlights)
+        except _FullGraphRewrite:
+            return _create_graph(new_edges, new_edge_properties, from_graph=G)
+
     def delete_edges(self, edges_to_delete):
         G = self.G.copy()
         directed = isinstance(G, (nx.MultiDiGraph, nx.DiGraph))
 
+        edges_to_delete = list(_normalize_edges(edges_to_delete))
         edges_to_delete = self.edges.filter(edges_to_delete)
 
         for edge in edges_to_delete:
@@ -634,7 +726,7 @@ class Graph(Atom):
         weights = None
         G = self.G
 
-        if isinstance(G, (nx.MultiGraph, nx.MultiDiGraph)):
+        if self.is_multigraph():
             for u, v, k, data in G.edges_iter(data=True, keys=True):
                 w = data.get('System`EdgeWeight')
                 if w is not None:
@@ -693,15 +785,53 @@ def _edge_weights(options):
     return expr.leaves
 
 
-def _graph_from_list(rules, options):
-    known_vertices = set()
-    known_edges = set()
-    multi_graph = [False]
+class _GraphParseError(Exception):
+    pass
 
-    vertices = []
-    vertex_properties = []
-    edges = []
-    edge_properties = []
+
+def _parse_item(x, attr_dict=None):
+    if x.get_head_name() == 'System`Property' and len(x.leaves) == 2:
+        expr, prop = x.leaves
+        attr_dict = _parse_property(prop, attr_dict)
+        return _parse_item(expr, attr_dict)
+    else:
+        return x, attr_dict
+
+
+def _graph_from_list(rules, options):
+    if not rules:
+        return Graph(_Collection([]), _EdgeCollection([]), nx.Graph(), None, options)
+    else:
+        new_edges, new_edge_properties = zip(*[_parse_item(x) for x in rules])
+        return _create_graph(new_edges, new_edge_properties, options)
+
+
+def _create_graph(new_edges, new_edge_properties, options, from_graph=None):
+    directed_edges = []
+    undirected_edges = []
+
+    if from_graph is not None:
+        vertices, vertex_properties = from_graph.vertices.data()
+        edges, edge_properties = from_graph.edges.data()
+
+        for edge, attr_dict in zip(edges, edge_properties):
+            u, v = edge.leaves
+            if edge.get_head_name() == 'System`DirectedEdge':
+                directed_edges.append((u, v, attr_dict))
+            else:
+                undirected_edges.append((u, v, attr_dict))
+
+        multigraph = [from_graph.is_multigraph()]
+    else:
+        vertices = []
+        vertex_properties = []
+        edges = []
+        edge_properties = []
+
+        multigraph = [False]
+
+    known_vertices = set(vertices)
+    known_edges = set(edges)
 
     def add_vertex(x, attr_dict=None):
         if x.get_head_name() == 'System`Property' and len(x.leaves) == 2:
@@ -714,45 +844,33 @@ def _graph_from_list(rules, options):
             vertex_properties.append(attr_dict)
         return x
 
-    directed_edges = []
-    undirected_edges = []
-
     def track_edges(*edges):
-        if multi_graph[0]:
+        if multigraph[0]:
             return
         previous_n_edges = len(known_edges)
         for edge in edges:
             known_edges.add(edge)
         if len(known_edges) < previous_n_edges + len(edges):
-            multi_graph[0] = True
+            multigraph[0] = True
 
     edge_weights = _edge_weights(options)
 
-    class ParseError(Exception):
-        pass
-
     def parse_edge(r, attr_dict):
         if r.is_atom():
-            raise ParseError
+            raise _GraphParseError
 
         name = r.get_head_name()
         leaves = r.leaves
 
-        if name == 'System`Property' and len(leaves) == 2:
-            expr, prop = leaves
-            attr_dict = _parse_property(prop, attr_dict)
-            parse_edge(expr, attr_dict)
-            return
-
         if len(leaves) != 2:
-            raise ParseError
+            raise _GraphParseError
 
         u, v = leaves
 
         u = add_vertex(u)
         v = add_vertex(v)
 
-        if name == 'System`Rule' or name == 'System`DirectedEdge':
+        if name in ('System`Rule', 'System`DirectedEdge'):
             edges_container = directed_edges
             head = 'System`DirectedEdge'
             track_edges((u, v))
@@ -761,7 +879,7 @@ def _graph_from_list(rules, options):
             head = 'System`UndirectedEdge'
             track_edges((u, v), (v, u))
         else:
-            raise ParseError
+            raise _GraphParseError
 
         if head == name:
             edges.append(r)
@@ -772,18 +890,22 @@ def _graph_from_list(rules, options):
         edges_container.append((u, v, attr_dict))
 
     try:
-        for i, r in enumerate(rules):
-            if i < len(edge_weights):
-                attr_dict = {'System`EdgeWeight': edge_weights[i]}
-            else:
-                attr_dict = None
-            parse_edge(r, attr_dict)
-    except ParseError:
+        def full_new_edge_properties():
+            for i, (attr_dict, w) in enumerate(zip(new_edge_properties, edge_weights)):
+                attr_dict = {} if attr_dict is None else attr_dict.copy()
+                attr_dict['System`EdgeWeight'] = w
+                yield attr_dict
+            for _ in range(len(new_edge_properties) - len(edge_weights)):
+                yield None
+
+        for edge, attr_dict in zip(new_edges, full_new_edge_properties()):
+            parse_edge(edge, attr_dict)
+    except _GraphParseError:
         return
 
     empty_dict = {}
     if directed_edges:
-        G = nx.MultiDiGraph() if multi_graph[0] else nx.DiGraph()
+        G = nx.MultiDiGraph() if multigraph[0] else nx.DiGraph()
         for u, v, attr_dict in directed_edges:
             attr_dict = attr_dict or empty_dict
             G.add_edge(u, v, **attr_dict)
@@ -792,14 +914,14 @@ def _graph_from_list(rules, options):
             G.add_edge(u, v, **attr_dict)
             G.add_edge(v, u, **attr_dict)
     else:
-        G = nx.MultiGraph() if multi_graph[0] else nx.Graph()
+        G = nx.MultiGraph() if multigraph[0] else nx.Graph()
         for u, v, attr_dict in undirected_edges:
             attr_dict = attr_dict or empty_dict
             G.add_edge(u, v, **attr_dict)
 
     return Graph(
         _Collection(vertices, vertex_properties),
-        _Collection(edges, edge_properties),
+        _EdgeCollection(edges, edge_properties, mixed=(directed_edges and undirected_edges)),
         G, None, options)
 
 
@@ -919,11 +1041,13 @@ class PathGraphQ(_NetworkXBuiltin):
      = True
     #> PathGraphQ[Graph[{}]]
      = False
+    #> PathGraphQ["abc"]
+     = False
     '''
 
     def apply(self, graph, expression, evaluation, options):
         'PathGraphQ[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, expression)
+        graph = self._build_graph(graph, evaluation, options, expression, quiet=True)
         if graph:
             if graph.empty():
                 is_path = False
@@ -933,6 +1057,145 @@ class PathGraphQ(_NetworkXBuiltin):
                 if is_path:
                     is_path = all(d <= 2 for d in G.degree(graph.vertices.expressions).values())
             return Symbol('True' if is_path else 'False')
+        else:
+            return Symbol('False')
+
+
+class MixedGraphQ(_NetworkXBuiltin):
+    '''
+    >> g = Graph[{1 -> 2, 2 -> 3}]; MixedGraphQ[g]
+     = False
+
+    >> g = Graph[{1 -> 2, 2 <-> 3}]; MixedGraphQ[g]
+     = True
+
+    #> g = Graph[{}]; MixedGraphQ[g]
+     = False
+
+    #> MixedGraphQ["abc"]
+     = False
+    '''
+
+    def apply(self, graph, expression, evaluation, options):
+        '%(name)s[graph_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression, quiet=True)
+        if graph:
+            return Symbol('True' if graph.is_mixed_graph() else 'False')
+        else:
+            return Symbol('False')
+
+
+class MultigraphQ(_NetworkXBuiltin):
+    '''
+    >> g = Graph[{1 -> 2, 2 -> 3}]; MultigraphQ[g]
+     = False
+
+    >> g = Graph[{1 -> 2, 2 -> 3, 1 -> 2}]; MultigraphQ[g]
+     = True
+
+    #> g = Graph[{}]; MultigraphQ[g]
+     = False
+
+    #> MultigraphQ["abc"]
+     = False
+    '''
+
+    def apply(self, graph, expression, evaluation, options):
+        '%(name)s[graph_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression, quiet=True)
+        if graph:
+            return Symbol('True' if graph.is_multigraph() else 'False')
+        else:
+            return Symbol('False')
+
+
+class AcyclicGraphQ(_NetworkXBuiltin):
+    '''
+    >> g = Graph[{1 -> 2, 2 -> 3}]; AcyclicGraphQ[g]
+     = False
+
+    >> g = Graph[{1 -> 2, 2 -> 3, 5 -> 2, 3 -> 4, 3 -> 5}]; AcyclicGraphQ[g]
+     = True
+
+    #> g = Graph[{1 -> 2, 2 -> 3, 5 -> 2, 3 -> 4, 5 -> 3}]; AcyclicGraphQ[g]
+     = False
+
+    #> g = Graph[{1 -> 2, 2 -> 3, 5 -> 2, 3 -> 4, 5 <-> 3}]; AcyclicGraphQ[g]
+     = True
+
+    #> g = Graph[{1 <-> 2, 2 <-> 3, 5 <-> 2, 3 <-> 4, 5 <-> 3}]; AcyclicGraphQ[g]
+     = True
+
+    #> g = Graph[{}]; AcyclicGraphQ[{}]
+     = False
+
+    #> AcyclicGraphQ["abc"]
+     = False
+    '''
+
+    def apply(self, graph, expression, evaluation, options):
+        '%(name)s[graph_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression, quiet=True)
+        if graph:
+            try:
+                cycles = nx.find_cycle(graph.G)
+            except nx.exception.NetworkXNoCycle:
+                cycles = None
+            return Symbol('True' if cycles else 'False')
+        else:
+            return Symbol('False')
+
+
+class LoopFreeGraphQ(_NetworkXBuiltin):
+    '''
+    >> g = Graph[{1 -> 2, 2 -> 3}]; LoopFreeGraphQ[g]
+     = True
+
+    >> g = Graph[{1 -> 2, 2 -> 3, 1 -> 1}]; LoopFreeGraphQ[g]
+     = False
+
+    #> g = Graph[{}]; LoopFreeGraphQ[{}]
+     = False
+
+    #> LoopFreeGraphQ["abc"]
+     = False
+    '''
+
+    def apply(self, graph, expression, evaluation, options):
+        '%(name)s[graph_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression, quiet=True)
+        if graph:
+            if graph.empty():
+                return Symbol('False')
+            else:
+                return Symbol('True' if graph.is_loop_free() else 'False')
+        else:
+            return Symbol('False')
+
+
+class DirectedGraphQ(_NetworkXBuiltin):
+    '''
+    >> g = Graph[{1 -> 2, 2 -> 3}]; DirectedGraphQ[g]
+     = False
+
+    >> g = Graph[{1 -> 2, 2 <-> 3}]; DirectedGraphQ[g]
+     = False
+
+    #> g = Graph[{}]; DirectedGraphQ[{}]
+     = False
+
+    #> DirectedGraphQ["abc"]
+     = False
+    '''
+
+    def apply(self, graph, expression, evaluation, options):
+        '%(name)s[graph_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression, quiet=True)
+        if graph:
+            directed = isinstance(graph.G, (nx.MultiDiGraph, nx.DiGraph)) and not graph.is_mixed_graph()
+            return Symbol('True' if directed else 'False')
+        else:
+            return Symbol('False')
 
 
 class ConnectedGraphQ(_NetworkXBuiltin):
@@ -951,13 +1214,83 @@ class ConnectedGraphQ(_NetworkXBuiltin):
 
     #> ConnectedGraphQ[Graph[{}]]
      = True
+
+    #> ConnectedGraphQ["abc"]
+     = False
     '''
 
     def apply(self, graph, expression, evaluation, options):
-        'ConnectedGraphQ[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, expression)
+        '%(name)s[graph_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression, quiet=True)
         if graph:
             return Symbol('True' if _is_connected(graph.G) else 'False')
+        else:
+            return Symbol('False')
+
+
+class SimpleGraphQ(_NetworkXBuiltin):
+    '''
+    >> g = Graph[{1 -> 2, 2 -> 3, 3 <-> 4}]; SimpleGraphQ[g]
+     = True
+
+    >> g = Graph[{1 -> 2, 2 -> 3, 1 -> 1}]; SimpleGraphQ[g]
+     = False
+
+    >> g = Graph[{1 -> 2, 2 -> 3, 1 -> 2}]; SimpleGraphQ[g]
+     = False
+
+    #> SimpleGraphQ[Graph[{}]]
+     = True
+
+    #> SimpleGraphQ["abc"]
+     = False
+    '''
+
+    def apply(self, graph, expression, evaluation, options):
+        '%(name)s[graph_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression, quiet=True)
+        if graph:
+            if graph.empty():
+                return Symbol('True')
+            else:
+                simple = graph.is_loop_free() and not graph.is_multigraph()
+                return Symbol('True' if simple else 'False')
+        else:
+            return Symbol('False')
+
+
+class PlanarGraphQ(_NetworkXBuiltin):
+    '''
+    # see https://en.wikipedia.org/wiki/Planar_graph
+
+    >> PlanarGraphQ[CompleteGraph[4]]
+     = True
+
+    >> PlanarGraphQ[CompleteGraph[5]]
+     = False
+
+    #> PlanarGraphQ[Graph[{}]]
+     = False
+
+    #> PlanarGraphQ["abc"]
+     = False
+    '''
+
+    requires = _NetworkXBuiltin.requires + (
+        'planarity',
+    )
+
+    def apply(self, graph, expression, evaluation, options):
+        '%(name)s[graph_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression, quiet=True)
+        if graph:
+            if graph.empty():
+                return Symbol('False')
+            else:
+                import planarity
+                return Symbol('True' if planarity.is_planar(graph.G) else 'False')
+        else:
+            return Symbol('False')
 
 
 class ConnectedComponents(_NetworkXBuiltin):
@@ -1594,7 +1927,7 @@ class CompleteGraph(_NetworkXBuiltin):
 
         return Graph(
             _Collection(vertices),
-            _Collection(edges),
+            _EdgeCollection(edges),
             G, _circular_layout, options)
 
     def apply_multipartite(self, n, evaluation, options):
@@ -1603,13 +1936,25 @@ class CompleteGraph(_NetworkXBuiltin):
             return Graph(nx.complete_multipartite_graph(*[i.get_int_value() for i in n.leaves]))
 
 
-def _parse_vertex(x, attr_dict=None):
-    if x.get_head_name() == 'System`Property' and len(x.leaves) == 2:
-        expr, prop = x.leaves
-        attr_dict = _parse_property(prop, attr_dict)
-        return _parse_vertex(expr, attr_dict)
-    else:
-        return x, attr_dict
+def _convert_networkx_graph(G, options):
+    mapping = dict((v, Integer(i)) for i, v in enumerate(G.nodes_iter()))
+    G = nx.relabel_nodes(G, mapping)
+    edges = [Expression('System`UndirectedEdge', u, v) for u, v in G.edges_iter()]
+    return Graph(
+        _Collection(G.nodes()),
+        _EdgeCollection(edges),
+        G, None, options)
+
+
+class RandomGraph(_NetworkXBuiltin):
+    def apply_nm(self, n, m, expression, evaluation, options):
+        '%(name)s[{n_Integer, m_Integer}, OptionsPattern[%(name)s]]'
+        py_n = n.get_int_value()
+        py_m = m.get_int_value()
+        with RandomEnv(evaluation) as rand:
+            seed = rand.randint(0, 2 ** 63 - 1)
+            G = nx.gnm_random_graph(py_n, py_m, seed=seed)
+            return _convert_networkx_graph(G, options)
 
 
 class VertexAdd(_NetworkXBuiltin):
@@ -1623,14 +1968,14 @@ class VertexAdd(_NetworkXBuiltin):
      = -Graph-
     '''
 
-    def apply(self, graph, v, expression, evaluation, options):
-        '%(name)s[graph_, v_, OptionsPattern[%(name)s]]'
+    def apply(self, graph, what, expression, evaluation, options):
+        '%(name)s[graph_, what_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
-            if v.has_form('List', None):
-                return graph.add_vertices(*zip(*[_parse_vertex(x) for x in v.leaves]))
+            if what.get_head_name() == 'System`List':
+                return graph.add_vertices(*zip(*[_parse_item(x) for x in what.leaves]))
             else:
-                return graph.add_vertices(*zip(*[_parse_vertex(v)]))
+                return graph.add_vertices(*zip(*[_parse_item(what)]))
 
 
 class VertexDelete(_NetworkXBuiltin):
@@ -1658,16 +2003,29 @@ class VertexDelete(_NetworkXBuiltin):
             elif head_name == 'System`List':
                 return graph.delete_vertices(what.leaves)
             else:
-                return graph.delete_vertices([what])
+                return graph.add_edges([what])
+
+
+class EdgeAdd(_NetworkXBuiltin):
+    '''
+    >> EdgeAdd[{1->2,2->3},3->1]
+     = -Graph-
+    '''
+
+    def apply(self, graph, what, expression, evaluation, options):
+        '%(name)s[graph_, what_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression)
+        if graph:
+            if what.get_head_name() == 'System`List':
+                return graph.add_edges(*zip(*[_parse_item(x) for x in what.leaves]))
+            else:
+                return graph.add_edges(*zip(*[_parse_item(what)]))
 
 
 class EdgeDelete(_NetworkXBuiltin):
     '''
-    >> EdgeDelete[{a -> b, b -> c, c -> d}, b -> c]
-     = -Graph-
-
-    >> EdgeDelete[{4<->5,5<->7,7<->9,9<->5,2->4,4->6,6->2}, _UndirectedEdge]
-     = -Graph-
+    >> Length[EdgeList[EdgeDelete[{a -> b, b -> c, c -> d}, b -> c]]]
+     = 2
 
     >> Length[EdgeList[EdgeDelete[{a -> b, b -> c, c -> b, c -> d}, b <-> c]]]
      = 4
@@ -1680,6 +2038,9 @@ class EdgeDelete(_NetworkXBuiltin):
 
     >> Length[EdgeList[EdgeDelete[{a -> b, b <-> c, c -> d}, b <-> c]]]
      = 2
+
+    >> EdgeDelete[{4<->5,5<->7,7<->9,9<->5,2->4,4->6,6->2}, _UndirectedEdge]
+     = -Graph-
     '''
 
     def apply(self, graph, what, expression, evaluation, options):
