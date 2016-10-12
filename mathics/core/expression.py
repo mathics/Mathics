@@ -150,7 +150,8 @@ class EvaluationToken:
         for token in tokens:
             if definitions.changed(token):
                 return None
-        return EvaluationToken(definitions.now, set.union(*[token.symbols for token in tokens]))
+        return EvaluationToken(
+            definitions.now, set.union(*[token.symbols for token in tokens]))
 
 
 class BaseExpression(KeyComparable):
@@ -169,6 +170,9 @@ class BaseExpression(KeyComparable):
 
     def clear_token(self):
         self._token = None
+
+    def get_token(self):
+        return None
 
     def sequences(self):
         return None
@@ -632,42 +636,66 @@ class Expression(BaseExpression):
             expr.options = self.options
         return expr
 
-    def update_token(self, evaluation=None):
+    def _prepare_symbols(self, as_set=False):
         token = self._token
+
+        if token is None:
+            time = None
+        else:
+            sym = token.symbols
+            if sym is not None:
+                if as_set and isinstance(sym, list):
+                    token = EvaluationToken(token.time, set(sym))
+                return token
+            time = token.time
+
+        list_of_symbols = [self.get_head_name()]
+
+        for leaf in self.leaves:
+            if isinstance(leaf, Symbol):
+                list_of_symbols.append(leaf.get_name())
+            elif isinstance(leaf, Expression):
+                leaf_token = leaf._prepare_symbols()
+                list_of_symbols.extend(list(leaf_token.symbols))
+
+        # converting the symbols list to a set is slow. by default,
+        # we only do this for the final expression given to
+        # Definitions.changed(), but not for intermediate ones.
+        # this yields better benchmarks.
+
+        sym = list_of_symbols
+
+        if as_set:
+            sym = set(sym)
+
+        token = EvaluationToken(time, sym)
+        return token
+
+    def get_token(self):
+        # make sure that EvaluationToken is complete (i.e. has symbols).
+        # returns None if token does not exist or has no time.
+
+        token = self._token
+
+        if token is None:
+            return None
+
+        time = token.time
+
+        if time is None:
+            return None
+
+        return self._prepare_symbols(as_set=True)
+
+    def update_token(self, evaluation):
+        token = self._token
+
         if token is None:
             sym = None
         else:
             sym = token.symbols
 
-        dirty = False
-        if sym is None:
-            list_of_symbols = [self.get_head_name()]
-
-            for leaf in self.leaves:
-                if isinstance(leaf, Symbol):
-                    list_of_symbols.append(leaf.get_name())
-                elif isinstance(leaf, Expression):
-                    leaf.update_token()
-                    list_of_symbols.extend(list(leaf._token.symbols))
-
-            # converting the symbols list to a set is slow. by default,
-            # we only do this for the final expression given to
-            # Definitions.changed(), but not for intermediate ones.
-            # this yields better benchmarks.
-
-            sym = list_of_symbols
-            dirty = True
-
-        if evaluation:
-            if isinstance(sym, list):
-                sym = set(list_of_symbols)
-            time = evaluation.definitions.now
-            dirty = True
-        else:
-            time = None
-
-        if dirty:
-            self._token = EvaluationToken(time, sym)
+        self._token = EvaluationToken(evaluation.definitions.now, sym)
 
     def copy(self, reevaluate=False)  -> 'Expression': :
         expr = Expression(self.head.copy(reevaluate))
@@ -976,7 +1004,7 @@ class Expression(BaseExpression):
         try:
             while reevaluate:
                 # changed before last evaluated?
-                if not definitions.changed(expr._token):
+                if not definitions.changed(expr.get_token()):
                     break
 
                 names.add(expr.get_lookup_name())
@@ -2553,7 +2581,7 @@ class Structure:
                 token = None
         elif isinstance(orig, (list, tuple)):
             if _is_safe_head(head, cache, evaluation):
-                token = EvaluationToken.union([expr._token for expr in orig], evaluation)
+                token = EvaluationToken.union([expr.get_token() for expr in orig], evaluation)
             else:
                 token = None
         else:
