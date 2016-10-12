@@ -452,7 +452,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         process_level(result, assign_list)
 
         result = list_of_list[0]
-        result.last_evaluated = None
+        result.clear_token()
 
     return result
 

@@ -124,12 +124,16 @@ class Definitions(object):
         for k in self.proxy.pop(tail, []):
             definitions_cache.pop(k, None)
 
-    def not_changed(self, expr, maximum):
+    def changed(self, token):
+        if token is None:
+            return True
+
+        maximum = token.time
         if maximum is None:
-            return False
+            return True
 
         # timestamp for the most recently changed part of a given expression.
-        for name in expr.symbols():
+        for name in token.symbols:
             symb = self.get_definition(name, only_if_exists=True)
             if symb is None:
                 # symbol doesn't exist so it was never changed
@@ -140,9 +144,9 @@ class Definitions(object):
                     # must be system symbol
                     symb.changed = 0
                 elif changed > maximum:
-                    return False
+                    return True
 
-        return True
+        return False
 
     def get_current_context(self):
         # It's crucial to specify System` in this get_ownvalue() call,
