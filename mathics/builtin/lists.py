@@ -905,12 +905,12 @@ class Partition(Builtin):
     def apply_no_overlap(self, l, n, evaluation):
         'Partition[l_List, n_Integer]'
         # TODO: Error checking
-        return Expression('List', *list(l.partition(n.get_int_value(), n.get_int_value())))
+        return l.restructure('List', list(l.partition(n.get_int_value(), n.get_int_value())))
 
     def apply(self, l, n, d, evaluation):
         'Partition[l_List, n_Integer, d_Integer]'
         # TODO: Error checking
-        return Expression('List', *list(l.partition(n.get_int_value(), d.get_int_value())))
+        return l.restructure('List', list(l.partition(n.get_int_value(), d.get_int_value())))
 
 
 class Extract(Builtin):

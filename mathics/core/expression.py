@@ -538,6 +538,13 @@ class Expression(BaseExpression):
     def leaves(self, value):
         raise ValueError('Expression.leaves is write protected. Use set_leaves().')
 
+    def restructure(self, head, leaves):
+        # NOTE: leaves must originate from self.leaves or its sub trees!
+        expr = Expression(head)
+        expr.leaves = leaves
+        expr.last_evaluated = self.last_evaluated
+        return expr
+
     def partition(self, n, d):
         assert n > 0 and d > 0
 
@@ -547,7 +554,7 @@ class Expression(BaseExpression):
         # (O3) if self has been evaluated, there's no need to
         # reevaluate any partition of self.
 
-        # performance test case: First[Timing[Partition[Range[50000], 15, 1]]]
+        # performance test case: x = Range[50000]; First[Timing[Partition[x, 15, 1]]]
 
         leaves = self.leaves
         head = Symbol('List')
@@ -563,10 +570,8 @@ class Expression(BaseExpression):
             a = bisect_left(seq, lower)  # all(val >= i for val in seq[a:])
             b = bisect_left(seq, upper)  # all(val >= j for val in seq[b:])
 
-            expr = Expression(head)  # (O1)
-            expr.leaves = chunk  # (O1)
+            expr = self.restructure(head, chunk)  # (O1), (O3)
             expr._sequences = tuple(x - lower for x in seq[a:b])  # (O2)
-            expr.last_evaluated = self.last_evaluated  # (O3)
 
             yield expr
 
