@@ -904,7 +904,6 @@ class Information(PrefixOperator):
         usagetext=_get_usage_string(symbol,evaluation);
         if usagetext is not None :
             evaluation.print_out(String(usagetext))
-
         # It would be deserable to call here the routine inside Definition, but for some reason it fails...
         return Symbol('Null')
 
