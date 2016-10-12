@@ -1953,12 +1953,49 @@ class Arrowheads(_GraphicsElement):
             yield self._arrow_size(self.spec, extent), 1, default_arrow
 
 
+class _Line:
+    def make_draw_svg(self, style):
+        def draw(points):
+            yield '<polyline points="'
+            yield ' '.join('%f,%f' % xy for xy in points)
+            yield '" style="%s" />' % style
+
+        return draw
+
+    def make_draw_asy(self, pen):
+        def draw(points):
+            yield 'draw('
+            yield '--'.join(['(%.5g,%5g)' % xy for xy in points])
+            yield ', % s);' % pen
+
+        return draw
+
+
+class _BezierCurve:
+    def __init__(self, spline_degree=3):
+        self.spline_degree = spline_degree
+
+    def make_draw_svg(self, style):
+        def draw(points):
+            s = ' '.join(_svg_bezier((self.spline_degree, points)))
+            yield '<path d="%s" style="%s"/>' % (s, style)
+
+        return draw
+
+    def make_draw_asy(self, pen):
+        def draw(points):
+            for path in _asy_bezier((self.spline_degree, points)):
+                yield 'draw(%s, %s);' % (path, pen)
+
+        return draw
+
+
 class ArrowBox(_Polyline):
     def init(self, graphics, style, item=None):
-        super(ArrowBox, self).init(graphics, item, style)
-
         if not item:
             raise BoxConstructError
+
+        super(ArrowBox, self).init(graphics, item, style)
 
         leaves = item.leaves
         if len(leaves) == 2:
@@ -1968,8 +2005,27 @@ class ArrowBox(_Polyline):
         else:
             raise BoxConstructError
 
+        curve = leaves[0]
+
+        curve_head_name = curve.get_head_name()
+        if curve_head_name == 'System`List':
+            curve_points = curve
+            self.curve = _Line()
+        elif curve_head_name == 'System`Line':
+            if len(curve.leaves) != 1:
+                raise BoxConstructError
+            curve_points = curve.leaves[0]
+            self.curve = _Line()
+        elif curve_head_name == 'System`BezierCurve':
+            if len(curve.leaves) != 1:
+                raise BoxConstructError
+            curve_points = curve.leaves[0]
+            self.curve = _BezierCurve()
+        else:
+            raise BoxConstructError
+
         self.setback = setback
-        self.do_init(graphics, leaves[0])
+        self.do_init(graphics, curve_points)
         self.graphics = graphics
         self.edge_color, _ = style.get_style(_Color, face_element=False)
         self.heads, _ = style.get_style(Arrowheads, face_element=False)
@@ -2154,12 +2210,9 @@ class ArrowBox(_Polyline):
     def to_svg(self):
         width = self.style.get_line_width(face_element=False)
         style = create_css(edge_color=self.edge_color, stroke_width=width)
-        arrow_style = create_css(face_color=self.edge_color, stroke_width=width)
+        polyline = self.curve.make_draw_svg(style)
 
-        def polyline(points):
-            yield '<polyline points="'
-            yield ' '.join('%f,%f' % xy for xy in points)
-            yield '" style="%s" />' % style
+        arrow_style = create_css(face_color=self.edge_color, stroke_width=width)
 
         def polygon(points):
             yield '<polygon points="'
@@ -2174,12 +2227,9 @@ class ArrowBox(_Polyline):
     def to_asy(self):
         width = self.style.get_line_width(face_element=False)
         pen = create_pens(edge_color=self.edge_color, stroke_width=width)
-        arrow_pen = create_pens(face_color=self.edge_color, stroke_width=width)
+        polyline = self.curve.make_draw_asy(pen)
 
-        def polyline(points):
-            yield 'draw('
-            yield '--'.join(['(%.5g,%5g)' % xy for xy in points])
-            yield ', % s);' % pen
+        arrow_pen = create_pens(face_color=self.edge_color, stroke_width=width)
 
         def polygon(points):
             yield 'filldraw('

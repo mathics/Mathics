@@ -600,34 +600,103 @@ class Graph(Atom):
                     yield expr, None
 
         def edge_primitives():
-            yield Expression('AbsoluteThickness', 0.1)
+            yield Expression('AbsoluteThickness', 0.25)
 
-            # FIXME handle multigraphs with multiple same edges
-            # FIXME needs curves in Graphics
+            def edge_ids():
+                vertex_index = self.vertices.get_index()
+                for edge in edges:
+                    v1, v2 = edge.leaves
+                    i1 = vertex_index[v1]
+                    i2 = vertex_index[v2]
+                    flipped = i2 < i1
+                    yield ((i2, i1) if flipped else (i1, i2)), flipped
 
-            for (e, style), properties in zip(highlighted(edges), self.edges.get_properties()):
-                if e.get_head_name() == 'System`DirectedEdge':
-                    yield Expression('Arrowheads', 0.04)
+            def bends():
+                ids = list(edge_ids())
+                multiplicites = defaultdict(int)
+                for edge_id, _ in ids:
+                    multiplicites[edge_id] += 1
+                edge_numbers = {}
+                for edge_id, flipped in ids:
+                    m = multiplicites[edge_id]
+                    if m == 1:
+                        yield None
+                    else:
+                        i = edge_numbers.get(edge_id, 1)
+                        z = -1 + 2 * ((i - 1) / (m - 1))
+                        if flipped:
+                            z = -z
+                        yield z
+                        edge_numbers[edge_id] = i + 1
+
+            G = self.G
+
+            for (edge, style), properties, bend in zip(highlighted(edges), self.edges.get_properties(), bends()):
+                if edge.get_head_name() == 'System`DirectedEdge':
+                    yield Expression('Arrowheads', 0.03)
                 else:
                     yield Expression('Arrowheads', 0)
 
-                e1, e2 = e.leaves
+                v1, v2 = edge.leaves
 
-                p1 = pos[e1]
-                p2 = pos[e2]
+                if v1.same(v2):  # self-loop?
+                    x, y = pos[v1]
+                    r = vertex_size(v1) * minimum_distance
 
-                r1 = vertex_size(e1) * minimum_distance
-                r2 = vertex_size(e2) * minimum_distance
+                    # determine on which side to draw the loop. choose that side where we expect the least
+                    # number of intersections with other edges connected to this vertex.
+                    n_left_edges = 0
+                    n_right_edges = 0
+                    for v2 in G.neighbors(v1):
+                        nx, ny = pos[v2]
+                        if nx - x > 0:
+                            n_right_edges += 1
+                        else:
+                            n_left_edges += 1
 
-                q1 = Expression('List', *p1)
-                q2 = Expression('List', *p2)
-                arrow = Expression('Arrow', Expression('List', q1, q2), Expression('List', r1, r2))
+                    ly = 4. * r
+                    lx = -ly if n_left_edges <= n_right_edges else ly
+                    points = [
+                        Expression('List', x, y),
+                        Expression('List', x + lx, y - ly),
+                        Expression('List', x + lx, y + ly),
+                        Expression('List', x, y)]
+
+                    arrow = Expression('Arrow', Expression('BezierCurve', Expression('List', *points)), r)
+                else:
+                    r1 = vertex_size(v1) * minimum_distance
+                    r2 = vertex_size(v2) * minimum_distance
+
+                    if bend is None:
+                        p1 = pos[v1]
+                        p2 = pos[v2]
+                        q1 = Expression('List', *p1)
+                        q2 = Expression('List', *p2)
+                        arrow = Expression('Arrow', Expression('List', q1, q2), Expression('List', r1, r2))
+                    else:
+                        x1, y1 = pos[v1]
+                        x2, y2 = pos[v2]
+
+                        dx = x2 - x1
+                        dy = y2 - y1
+                        d = sqrt(dx * dx + dy * dy)
+                        nx = -dy / d
+                        ny = dx / d
+
+                        z = 0.5 * minimum_distance * bend
+                        points = [
+                            Expression('List', x1, y1),
+                            Expression('List', 0.5 * (x1 + x2) + nx * z, 0.5 * (y1 + y2) + ny * z),
+                            Expression('List', x2, y2)]
+
+                        curve =  Expression('BezierCurve', Expression('List', *points))
+                        arrow = Expression('Arrow', curve, Expression('List', r1, r2))
 
                 if style is None and properties is not None:
                     style = properties.get('System`EdgeStyle')
 
                 if style is None:
-                    style = edge_style(e)
+                    style = edge_style(edge)
 
                 if style is not None:
                     arrow = Expression('Style', arrow, style)
@@ -637,8 +706,6 @@ class Graph(Atom):
         def vertex_primitives():
             for (v, style), properties in zip(highlighted(vertices), self.vertices.get_properties()):
                 xy = pos.get(v)
-                if xy is None:
-                    continue  # FIXME isolated vertices are not supported yet
 
                 x, y = xy
                 r = vertex_size(v) * minimum_distance
