@@ -888,6 +888,7 @@ class Information(PrefixOperator):
     >> H[F[y_,u_]]^:=F[H[y],u]
     >> Information[F]
      |F[x] evaluates the square of x
+     = Null
     """
     operator="??"
     precedence=5001
