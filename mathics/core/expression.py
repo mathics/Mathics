@@ -133,6 +133,26 @@ class KeyComparable(object):
         return self.get_sort_key() != other.get_sort_key()
 
 
+class EvaluationToken:
+    def __init__(self, time=None, symbols=None):
+        self.time = time
+        self.symbols = symbols
+
+    def copy(self):
+        return EvaluationToken(self.time, self.symbols)
+
+    def reordered(self):
+        return EvaluationToken(None, self.symbols)
+
+    @staticmethod
+    def union(tokens, evaluation):
+        definitions = evaluation.definitions
+        for token in tokens:
+            if definitions.changed(token):
+                return None
+        return EvaluationToken(definitions.now, set.union(*[token.symbols for token in tokens]))
+
+
 class BaseExpression(KeyComparable):
     options: Any
     pattern_sequence: bool
@@ -144,8 +164,11 @@ class BaseExpression(KeyComparable):
         self.options = None
         self.pattern_sequence = False
         self.unformatted = self
-        self.last_evaluated = None
+        self._token = None
         return self
+
+    def clear_token(self):
+        self._token = None
 
     def sequences(self):
         return None
@@ -519,7 +542,6 @@ class Expression(BaseExpression):
         self._head = head
         self._leaves = tuple(from_python(leaf) for leaf in leaves)
         self._sequences = None
-        self._symbols = None
         return self
 
     @property
@@ -538,8 +560,29 @@ class Expression(BaseExpression):
     def leaves(self, value):
         raise ValueError('Expression.leaves is write protected. Use set_leaves().')
 
-    def slice(self, lower, upper, evaluation):
-        return Structure(self.head, self, evaluation).from_slice(self, lower, upper)
+    def slice(self, head, py_slice, evaluation):
+        # faster equivalent to: Expression(head, *self.leaves[py_slice])
+        return Structure(head, self, evaluation).slice(self, py_slice)
+
+    def filter(self, head, cond, evaluation):
+        # faster equivalent to: Expression(head, [leaf in self.leaves if cond(leaf)])
+        return Structure(head, self, evaluation).filter(self, cond)
+
+    def restructure(self, head, leaves, evaluation, cache=None, deps=None):
+        # faster equivalent to: Expression(head, *leaves)
+
+        # the caller guarantees that _all_ elements in leaves are either from
+        # self.leaves (or its sub trees) or from one of the expression given
+        # in the tuple "deps" (or its sub trees).
+
+        # if this method is called repeatedly, and the caller guarantees
+        # that no definitions change between subsequent calls, then cache
+        # may be passed an initially empty dict to speed up calls.
+
+        if deps is None:
+            deps = self
+        s = Structure(head, deps, evaluation, cache=cache)
+        return s(list(leaves))
 
     def sequences(self):
         seq = self._sequences
@@ -589,8 +632,14 @@ class Expression(BaseExpression):
             expr.options = self.options
         return expr
 
-    def symbols(self, intermediate=False):
-        sym = self._symbols
+    def update_token(self, evaluation=None):
+        token = self._token
+        if token is None:
+            sym = None
+        else:
+            sym = token.symbols
+
+        dirty = False
         if sym is None:
             list_of_symbols = [self.get_head_name()]
 
@@ -598,44 +647,46 @@ class Expression(BaseExpression):
                 if isinstance(leaf, Symbol):
                     list_of_symbols.append(leaf.get_name())
                 elif isinstance(leaf, Expression):
-                    list_of_symbols.extend(list(leaf.symbols(True)))
+                    leaf.update_token()
+                    list_of_symbols.extend(list(leaf._token.symbols))
 
             # converting the symbols list to a set is slow. by default,
-            # we only do this for the final expression returned to
-            # not_changed(), but not for intermediate ones. this yields
-            # better benchmarks.
+            # we only do this for the final expression given to
+            # Definitions.changed(), but not for intermediate ones.
+            # this yields better benchmarks.
 
-            if intermediate:
-                sym = list_of_symbols
-            else:
+            sym = list_of_symbols
+            dirty = True
+
+        if evaluation:
+            if isinstance(sym, list):
                 sym = set(list_of_symbols)
+            time = evaluation.definitions.now
+            dirty = True
+        else:
+            time = None
 
-            self._symbols = sym
-        elif not intermediate and isinstance(sym, list):
-            sym = set(sym)
-            self._symbols = sym
+        if dirty:
+            self._token = EvaluationToken(time, sym)
 
-        return sym
-
-    def copy(self)  -> 'Expression': :
-        result = Expression(
-            self.head.copy(), *[leaf.copy() for leaf in self.leaves])
-        result._sequences = self._sequences
-        result._symbols = self._symbols
-        result.options = self.options
-        result.original = self
-        # result.last_evaluated = self.last_evaluated
-        return result
+    def copy(self, reevaluate=False)  -> 'Expression': :
+        expr = Expression(self.head.copy(reevaluate))
+        expr._leaves = [leaf.copy(reevaluate) for leaf in self._leaves]
+        if not reevaluate:
+            expr._token = self._token
+        expr._sequences = self._sequences
+        expr.options = self.options
+        expr.original = self
+        return expr
 
     def shallow_copy(self) -> 'Expression':
         # this is a minimal, shallow copy: head, leaves are shared with
         # the original, only the Expression instance is new.
         expr = Expression(self.head)
         expr._leaves = self._leaves
+        expr._token = self._token
         expr._sequences = self._sequences
-        expr._symbols = self._symbols
         expr.options = self.options
-        expr.last_evaluated = self.last_evaluated
         return expr
 
     def set_positions(self, position=None) -> None:
@@ -649,7 +700,7 @@ class Expression(BaseExpression):
 
     def set_head(self, head):
         self._head = head
-        self._symbols = None
+        self._token = None
 
     def get_leaves(self):
         return self._leaves
@@ -661,14 +712,14 @@ class Expression(BaseExpression):
         leaves = list(self._leaves)
         leaves[index] = value
         self._leaves = tuple(leaves)
-        self._symbols = None
+        self._token = None
         self._sequences = None
-        self.last_evaluated = None
 
     def set_reordered_leaves(self, leaves):  # same leaves, but in a different order
         self._leaves = tuple(leaves)
         self._sequences = None
-        self.last_evaluated = None
+        if self._token:
+            self._token = self._token.reordered()
 
     def get_lookup_name(self) -> bool:
         return self.head.get_lookup_name()
@@ -925,7 +976,7 @@ class Expression(BaseExpression):
         try:
             while reevaluate:
                 # changed before last evaluated?
-                if definitions.not_changed(expr, expr.last_evaluated):
+                if not definitions.changed(expr._token):
                     break
 
                 names.add(expr.get_lookup_name())
@@ -1027,13 +1078,13 @@ class Expression(BaseExpression):
         if 'System`Orderless' in attributes:
             new.sort()
 
-        new.last_evaluated = evaluation.definitions.now
+        new.update_token(evaluation)
 
         if 'System`Listable' in attributes:
             done, threaded = new.thread(evaluation)
             if done:
                 if threaded.same(new):
-                    new.last_evaluated = evaluation.definitions.now
+                    new.update_token(evaluation)
                     return new, False
                 else:
                     return threaded, True
@@ -1060,7 +1111,7 @@ class Expression(BaseExpression):
             result = rule.apply(new, evaluation, fully=False)
             if result is not None:
                 if result.same(new):
-                    new.last_evaluated = evaluation.definitions.now
+                    new.update_token(evaluation)
                     return new, False
                 else:
                     return result, True
@@ -1078,7 +1129,7 @@ class Expression(BaseExpression):
             new = Expression(head, *dirty_leaves)
 
         new.unformatted = self.unformatted
-        new.last_evaluated = evaluation.definitions.now
+        new.update_token(evaluation)
         return new, False
 
     def evaluate_leaves(self, evaluation) -> 'Expression':
@@ -1540,7 +1591,8 @@ class Atom(BaseExpression):
     def numerify(self, evaluation) -> 'Atom':
         return self
 
-    def copy(self) -> 'Atom':
+
+    def copy(self, reevaluate=False) -> 'Atom':
         result = self.do_copy()
         result.original = self
         return result
@@ -2459,66 +2511,86 @@ def print_parenthesizes(precedence, outer_precedence=None,
             outer_precedence == precedence and parenthesize_when_equal)))
 
 
-class Structure:  # Select?
+def _is_safe_head(head, cache, evaluation):
+    if not isinstance(head, Symbol):
+        return False
+
+    head_name = head.get_name()
+
+    if cache:
+        r = cache.get(head_name)
+        if r is not None:
+            return r
+
+    definitions = evaluation.definitions
+
+    definition = definitions.get_definition(head_name, only_if_exists=True)
+    if definition is None:
+        r = True
+    else:
+        r = all(len(definition.get_values_list(x)) == 0 for x in ('up', 'sub', 'down', 'own'))
+
+    if cache:
+        cache[head_name] = r
+
+    return r
+
+
+_optimize_sequences = True  # more complex code, gains primarily for Partition[]
+
+
+class Structure:
     # performance test case: x = Range[50000]; First[Timing[Partition[x, 15, 1]]]
 
-    def __init__(self, head, orig, evaluation):
+    def __init__(self, head, orig, evaluation, cache=None):
         if isinstance(head, six.string_types):
             head = Symbol(head)
         self.head = head
 
-        if isinstance(head, Symbol):
-            definitions = evaluation.definitions
-
-            definition = definitions.get_definition(head.get_name(), only_if_exists=True)
-            if definition is None:
-                safe = True
+        if isinstance(orig, (Expression, Structure)):
+            token = orig._token
+            if token is not None and not _is_safe_head(head, cache, evaluation):
+                token = None
+        elif isinstance(orig, (list, tuple)):
+            if _is_safe_head(head, cache, evaluation):
+                token = EvaluationToken.union([expr._token for expr in orig], evaluation)
             else:
-                safe = all(len(definition.get_values_list(x)) == 0 for x in ('up', 'sub', 'down', 'own'))
+                token = None
         else:
-            safe = False
+            raise ValueError('expected Expression, Structure, tuple or list as orig param')
 
-        if safe:  # no definitions for head
-            if isinstance(orig, tuple):
-                last_evaluated = definitions.now
-                for expr in orig:
-                    if expr.last_evaluated is None or definitions.last_changed(expr) > expr.last_evaluated:
-                        last_evaluated = None
-                        break
-            elif isinstance(orig, (Expression, Structure)):
-                last_evaluated = orig.last_evaluated
-            else:
-                raise ValueError
+        self._token = token
 
-            self.last_evaluated = last_evaluated
-        else:
-            self.last_evaluated = None
-
-    def from_leaves(self, leaves):
+    def __call__(self, leaves):  # create from leaves
         # IMPORTANT: caller guarantees that leaves originate from orig.leaves or its sub trees!
 
         expr = Expression(self.head)
-        expr.leaves = leaves
-        expr.last_evaluated = self.last_evaluated
+        expr._leaves = tuple(leaves)
+        expr._token = self._token
         return expr
 
-    def from_slice(self, expr, lower, upper):
+    def filter(self, expr, cond):
+        # IMPORTANT: caller guarantees that expr is from origins!
+        return self([leaf for leaf in expr.leaves if cond(leaf)])
+
+    def slice(self, expr, py_slice):
         # IMPORTANT: caller guarantees that expr is from origins!
 
         leaves = expr.leaves
-        n_leaves = len(leaves)
+        lower, upper, step = py_slice.indices(len(leaves))
+        if step != 1:
+            raise ValueError('Structure.slice only supports slice steps of 1')
 
-        lower %= n_leaves
-        upper %= n_leaves
+        expr = self(leaves[lower:upper])
 
-        expr = self.from_leaves(leaves[lower:upper])
+        if _optimize_sequences:
+            seq = expr._sequences
+            if seq:
+                a = bisect_left(seq, lower)  # all(val >= i for val in seq[a:])
+                b = bisect_left(seq, upper)  # all(val >= j for val in seq[b:])
 
-        seq = expr._sequences
-        if seq:
-            a = bisect_left(seq, lower)  # all(val >= i for val in seq[a:])
-            b = bisect_left(seq, upper)  # all(val >= j for val in seq[b:])
-            expr._sequences = tuple(x - lower for x in seq[a:b])  # (O2)
-        elif seq is not None:
-            expr._sequences = ()
+                expr._sequences = tuple(x - lower for x in seq[a:b])  # (O2)
+            elif seq is not None:
+                expr._sequences = ()
 
         return expr
