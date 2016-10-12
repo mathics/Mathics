@@ -852,6 +852,8 @@ class Information(PrefixOperator):
 
 
     >> ?? Plus
+     |
+     |
      |    <dl>
      |    <dt>'Plus[$a$, $b$, ...]'</dt>
      |    <dt>$a$ + $b$ + ...</dt>
@@ -860,6 +862,8 @@ class Information(PrefixOperator):
      = Null
 
     >> Information[Integrate]
+     |
+     |
      |    <dl>
      |    <dt>'Integrate[$f$, $x$]'
      |    <dd>integrates $f$ with respect to $x$. The result does not contain the additive integration constant.
