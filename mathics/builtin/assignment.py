@@ -627,6 +627,11 @@ class Definition(Builtin):
     >> Definition[a]
      = a = 2
 
+    >> a = 2;
+    >> ? a
+     = a = 2
+
+
     >> f[x_] := x ^ 2
     >> g[f] ^:= 2
     >> Definition[f]
