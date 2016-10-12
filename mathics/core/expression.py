@@ -164,6 +164,9 @@ class BaseExpression(KeyComparable):
         self._token = None
         return self
 
+    def clear_token(self):
+        self._token = None
+
     def sequences(self):
         return None
 
@@ -619,9 +622,6 @@ class Expression(BaseExpression):
         if hasattr(self, 'options'):
             expr.options = self.options
         return expr
-
-    def clear_token(self):
-        self._token = None
 
     def update_token(self, evaluation=None):
         token = self._token
