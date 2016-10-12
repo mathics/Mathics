@@ -911,9 +911,8 @@ class Information(PrefixOperator):
         usagetext=_get_usage_string(symbol,evaluation);
         if usagetext is not None :
             evaluation.print_out(String(usagetext))
-
-
-        return Definition.format_definition(None,symbol,evaluation,grid)
+        tmpdef = Definition()
+        return tmpdef.format_definition(symbol,evaluation,grid)
 
 
 
