@@ -526,12 +526,24 @@ class Expression(BaseExpression):
         return self
 
     def slice(self, head, py_slice, evaluation):
+        # faster equivalent to: Expression(head, *self.leaves[py_slice])
         return Structure(head, self, evaluation).slice(self, py_slice)
 
     def filter(self, head, cond, evaluation):
+        # faster equivalent to: Expression(head, [leaf in self.leaves if cond(leaf)])
         return Structure(head, self, evaluation).filter(self, cond)
 
     def restructure(self, head, leaves, evaluation, cache=None, deps=None):
+        # faster equivalent to: Expression(head, *leaves)
+
+        # the caller guarantees that _all_ elements in leaves are either from
+        # self.leaves (or its sub trees) or from one of the expression given
+        # in the tuple "deps" (or its sub trees).
+
+        # if this method is called repeatedly, and the caller guarantees
+        # that no definitions change between subsequent calls, then cache
+        # may be passed an initially empty dict to speed up calls.
+
         if deps is None:
             deps = self
         s = Structure(head, deps, evaluation, cache=cache)
