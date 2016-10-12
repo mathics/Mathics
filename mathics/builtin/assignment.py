@@ -9,8 +9,10 @@ from six.moves import zip
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
 from mathics.core.expression import (Expression, Symbol, valid_context_name,
-                                     system_symbols)
-from mathics.core.rules import Rule
+                                     system_symbols,String)
+
+from mathics.core.rules import Rule,BuiltinRule
+from mathics.builtin.patterns import RuleDelayed
 from mathics.builtin.lists import walk_parts
 from mathics.builtin.evaluation import set_recursionlimit
 
@@ -726,6 +728,7 @@ class Definition(Builtin):
                 lines.append(Expression('HoldForm', Expression(
                     up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
 
+
         name = symbol.get_name()
         if not name:
             evaluation.message('Definition', 'sym', symbol, 1)
@@ -795,6 +798,120 @@ class Definition(Builtin):
 
         return self.format_definition(symbol, evaluation, grid=False)
 
+
+
+
+
+
+
+def information_interpret_doc_string(ds):
+    # TODO: work a little bit the interpretation
+    ds = ds.split("\n")
+    out = ""
+    for s in ds:
+        if s[0:6]=="    >>":
+            # If we reach the test section, stop the loop.
+            break
+        out = out + "\n" + s
+    return out
+
+
+def _get_usage_string(symbol,evaluation):
+    '''
+    Returns a python string with the documentation associated to a given symbol.
+    '''
+    definition = evaluation.definitions.get_definition(symbol.name)
+    ruleusage = definition.get_values_list('messages')
+    usagetext = None;
+    from mathics.builtin import builtins
+    bio = builtins.get(definition.name)
+    if bio is not None:
+        usagetext = information_interpret_doc_string(bio.__class__.__doc__)
+
+    # For built-in symbols, looks for a docstring.
+#    if symbol.function. is Builtin:            
+    #evaluation.print_out(String("found: " + usagetext))
+    #usagetext = information_interpret_doc_string(symbol.__doc__)
+        
+    # Looks for the "usage" message. For built-in symbols, if there is an "usage" chain, overwrite the __doc__ information.
+    for rulemsg in ruleusage:
+        if  rulemsg.pattern.expr.leaves[1].__str__()=="\"usage\"":
+            usagetext = rulemsg.replace.value        
+    return  usagetext            
+
+
+
+class Information(PrefixOperator):    
+    """
+    <dl>
+    <dt>'Information[$symbol$]'
+        <dd>Prints information about a $symbol$
+    </dl>
+    'Information' does not print information for 'ReadProtected' symbols.
+    'Information' uses 'InputForm' to format values.
+
+
+
+    >> Information[Plus]
+     | System`Plus
+     | Attributes: 
+     | {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected}
+
+
+    >> Information[Integrate]
+     | System`Integrate
+     | Integrate[list_List, x_]=(Integrate[#1, x]&) /@ list
+     | Attributes: 
+     | {Protected, ReadProtected}
+
+
+    >> a = 2;
+    >> Information[a]
+     | Global`a
+     | a = 2 
+
+    >> F[x_] := x^2
+    >> F::usage = "F[x] evaluates the square of x."
+    >> H[F[u_]]^:= F[H[u]^2]
+    >> Information[F]
+    
+     : | {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected} = {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected}
+     : | 
+    """
+    operator="??"
+    precedence=5001
+    attributes = ('HoldAll', 'SequenceHold','Protect','ReadProtect')
+    messages = {'notfound': 'Expression `1` is not a symbol'}
+
+
+    def format_definition(self, symbol, evaluation, grid=True):
+        'StandardForm,TraditionalForm,OutputForm: Information[symbol_]'
+
+        from mathics.core.expression import from_python        
+
+        if  isinstance(symbol,String): 
+            evaluation.print_out(symbol)
+            evaluation.evaluate(Expression('Information', Symbol('System`String')))        
+            return  
+
+
+        if not isinstance(symbol,Symbol): 
+            evaluation.message('Information','notfound',symbol)                         
+            return Symbol('Null');
+
+        usagetext=_get_usage_string(symbol,evaluation);
+        if usagetext is not None :
+            evaluation.print_out(String(usagetext))
+
+
+        return Definition.format_definition(None,symbol,evaluation,grid)
+
+
+
+
+    def format_definition_input(self, symbol, evaluation):
+        'InputForm: Information[symbol_]'
+        return self.format_definition(symbol, evaluation, grid=False)
 
 class Clear(Builtin):
     """

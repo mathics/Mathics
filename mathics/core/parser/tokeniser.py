@@ -206,6 +206,9 @@ tokens = [
     ('Therefore', r' \u2234 '),
     ('Because', r' \u2235 '),
     ('Backslash', r' \u2216 '),
+
+    ('Information', r'\?\?'),
+    ('Definition', r'\?'),
 ]
 
 
@@ -230,7 +233,7 @@ literal_tokens = {
     '<': ['Get', 'StringJoin', 'LessEqual', 'Less'],
     '=': ['SameQ', 'UnsameQ', 'Equal', 'Unset', 'Set'],
     '>': ['PutAppend', 'Put', 'GreaterEqual', 'Greater'],
-    '?': ['PatternTest'],
+    '?': ['PatternTest','Information', 'Definition'],
     '@': ['ApplyList', 'Apply', 'Composition', 'Prefix'],
     '[': ['RawLeftBracket'],
     '\\': ['LeftRowBox', 'RightRowBox', 'InterpretedBox', 'SuperscriptBox',
