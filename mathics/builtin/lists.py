@@ -870,21 +870,15 @@ class Partition(Builtin):
         'Parition[list_, n_, d_, k]': 'Partition[list, n, d, {k, k}]',
     }
 
-    def chunks(self, l, n, d):
-        assert n > 0 and d > 0
-        return [x for x in [l[i:i + n] for i in range(0, len(l), d)] if len(x) == n]
-
     def apply_no_overlap(self, l, n, evaluation):
         'Partition[l_List, n_Integer]'
         # TODO: Error checking
-        return Expression('List', *self.chunks(
-            l.get_leaves(), n.get_int_value(), n.get_int_value()))
+        return Expression('List', *list(l.partition(n.get_int_value(), n.get_int_value())))
 
     def apply(self, l, n, d, evaluation):
         'Partition[l_List, n_Integer, d_Integer]'
         # TODO: Error checking
-        return Expression('List', *self.chunks(
-            l.get_leaves(), n.get_int_value(), d.get_int_value()))
+        return Expression('List', *list(l.partition(n.get_int_value(), d.get_int_value())))
 
 
 class Extract(Builtin):
