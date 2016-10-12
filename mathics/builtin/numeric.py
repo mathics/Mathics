@@ -223,7 +223,7 @@ class N(Builtin):
             else:
                 eval_range = range(len(expr.leaves))
             head = Expression('N', expr.head, prec).evaluate(evaluation)
-            leaves = expr.leaves[:]
+            leaves = expr.get_mutable_leaves()
             for index in eval_range:
                 leaves[index] = Expression(
                     'N', leaves[index], prec).evaluate(evaluation)

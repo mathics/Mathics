@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 from six.moves import zip
+from itertools import chain
 
 from mathics.builtin.base import Builtin, PostfixOperator
 from mathics.core.expression import Expression
@@ -70,8 +71,7 @@ class Function(PostfixOperator):
     def apply_slots(self, body, args, evaluation):
         'Function[body_][args___]'
 
-        args = args.get_sequence()
-        args.insert(0, Expression('Function', body))
+        args = list(chain([Expression('Function', body)], args.get_sequence()))
         return body.replace_slots(args, evaluation)
 
     def apply_named(self, vars, body, args, evaluation):
