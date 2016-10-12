@@ -525,19 +525,13 @@ class Expression(BaseExpression):
         self._sequences = None
         return self
 
-    def slice(self, lower, upper, evaluation, head=None):
-        if head is None:
-            head = self.head
-        return Structure(head, self, evaluation).slice(self, lower, upper)
+    def slice(self, head, py_slice, evaluation):
+        return Structure(head, self, evaluation).slice(self, py_slice)
 
-    def filter(self, cond, evaluation, head=None):
-        if head is None:
-            head = self.head
+    def filter(self, head, cond, evaluation):
         return Structure(head, self, evaluation).filter(self, cond)
 
-    def restructure(self, leaves, evaluation, head=None, cache=None, deps=None):
-        if head is None:
-            head = self.head
+    def restructure(self, head, leaves, evaluation, cache=None, deps=None):
         if deps is None:
             deps = self
         s = Structure(head, deps, evaluation, cache=cache)
@@ -2373,11 +2367,14 @@ class Structure:
         # IMPORTANT: caller guarantees that expr is from origins!
         return self([leaf for leaf in expr.leaves if cond(leaf)])
 
-    def slice(self, expr, lower, upper):
+    def slice(self, expr, py_slice):
         # IMPORTANT: caller guarantees that expr is from origins!
 
         leaves = expr.leaves
-        lower, upper, _ = slice(lower, upper).indices(len(leaves))
+        lower, upper, step = py_slice.indices(len(leaves))
+        if step != 1:
+            raise ValueError('Structure.slice only supports slice steps of 1')
+
         expr = self(leaves[lower:upper])
 
         seq = expr._sequences

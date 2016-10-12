@@ -389,7 +389,7 @@ def _list_parts(items, selectors, heads, evaluation, assignment):
                     expr.original = None
                     expr.set_positions()
                 else:
-                    expr = item.restructure(picked, evaluation)
+                    expr = item.restructure(item.head, picked, evaluation)
 
                 yield expr
             else:
@@ -890,7 +890,7 @@ class Partition(Builtin):
                 if len(chunk) != n:
                     continue
 
-                yield make_slice(expr, lower, upper)
+                yield make_slice(expr, slice(lower, upper))
 
         return outer(slices())
 
@@ -1011,7 +1011,7 @@ class Most(Builtin):
         if expr.is_atom():
             evaluation.message('Most', 'normal')
             return
-        return expr.slice(0, -1, evaluation)
+        return expr.slice(expr.head, slice(0, -1), evaluation)
 
 
 class Rest(Builtin):
@@ -1038,7 +1038,7 @@ class Rest(Builtin):
         if expr.is_atom():
             evaluation.message('Rest', 'normal')
             return
-        return expr.slice(1, len(expr.leaves), evaluation)
+        return expr.slice(expr.head, slice(1, len(expr.leaves)), evaluation)
 
 
 class ReplacePart(Builtin):
@@ -1314,7 +1314,7 @@ class Select(Builtin):
             test = Expression(expr, leaf)
             return test.evaluate(evaluation).is_true()
 
-        return items.filter(cond, evaluation)
+        return items.filter(items.head, cond, evaluation)
 
 
 class Split(Builtin):
@@ -1472,7 +1472,7 @@ class Pick(Builtin):
                 if match(s):
                     yield x
                 elif not x.is_atom() and not s.is_atom():
-                    yield x.restructure(pick(x.leaves, s.leaves), evaluation)
+                    yield x.restructure(x.head, pick(x.leaves, s.leaves), evaluation)
 
         r = list(pick([items0], [sel0]))
         if not r:
@@ -1602,7 +1602,7 @@ class DeleteCases(Builtin):
         def cond(leaf):
             return not match(leaf, evaluation)
 
-        return items.filter(cond, evaluation, head='List')
+        return items.filter('List', cond, evaluation)
 
 
 class Count(Builtin):
@@ -2101,7 +2101,7 @@ class Join(Builtin):
             result.extend(list.leaves)
 
         if result:
-            return sequence[0].restructure(result, evaluation, deps=sequence)
+            return sequence[0].restructure(head, result, evaluation, deps=sequence)
         else:
             return Expression('List')
 
@@ -2132,7 +2132,12 @@ class Catenate(Builtin):
                     raise MessageException('Catenate', 'invrp', l)
 
         try:
-            return Expression('List', *list(chain(*list(parts()))))
+            result = list(chain(*list(parts())))
+            if result:
+                return lists.leaves[0].restructure(
+                    'List', result, evaluation, deps=lists.leaves)
+            else:
+                return Expression('List')
         except MessageException as e:
             e.message(evaluation)
 
@@ -2166,7 +2171,8 @@ class Append(Builtin):
         if expr.is_atom():
             return evaluation.message('Append', 'normal')
 
-        return expr.restructure(expr.get_leaves() + [item], evaluation, deps=(expr, item))
+        return expr.restructure(
+            expr.head, expr.get_leaves() + [item], evaluation, deps=(expr, item))
 
 
 class AppendTo(Builtin):
@@ -2245,8 +2251,8 @@ class Prepend(Builtin):
         if expr.is_atom():
             return evaluation.message('Prepend', 'normal')
 
-        return Expression(expr.get_head(),
-                          *([item] + expr.get_leaves()))
+        return expr.restructure(
+            expr.head, [item] + expr.get_leaves(), evaluation, deps=(expr, item))
 
 
 def get_tuples(items):
@@ -2530,9 +2536,11 @@ class Riffle(Builtin):
         'Riffle[list_List, sep_]'
 
         if sep.has_form('List', None):
-            return Expression('List', *riffle_lists(list.get_leaves(), sep.leaves))
+            result = riffle_lists(list.get_leaves(), sep.leaves)
         else:
-            return Expression('List', *riffle_lists(list.get_leaves(), [sep]))
+            result = riffle_lists(list.get_leaves(), [sep])
+
+        return list.restructure('List', result, evaluation, deps=(list, sep))
 
 
 def _is_sameq(same_test):
@@ -3113,14 +3121,18 @@ class Reverse(Builtin):
             return expr
 
         if levels[0] == level:
-            expr = expr.restructure(reversed(expr.leaves), evaluation)
+            expr = expr.restructure(expr.head, reversed(expr.leaves), evaluation)
 
             if len(levels) > 1:
                 expr = expr.restructure(
-                    [Reverse._reverse(leaf, level + 1, levels[1:], evaluation) for leaf in expr.leaves], evaluation)
+                    expr.head,
+                    [Reverse._reverse(leaf, level + 1, levels[1:], evaluation) for leaf in expr.leaves],
+                    evaluation)
         else:
             expr = expr.restructure(
-                [Reverse._reverse(leaf, level + 1, levels, evaluation) for leaf in expr.leaves], evaluation)
+                expr.head,
+                [Reverse._reverse(leaf, level + 1, levels, evaluation) for leaf in expr.leaves],
+                evaluation)
 
         return expr
 
@@ -3418,7 +3430,7 @@ class _Rotate(Builtin):
         if len(n) > 1:
             new_leaves = [self._rotate(item, n[1:], evaluation) for item in new_leaves]
 
-        return expr.restructure(new_leaves, evaluation)
+        return expr.restructure(expr.head, new_leaves, evaluation)
 
     def apply_one(self, expr, evaluation):
         '%(name)s[expr_]'
@@ -3760,7 +3772,7 @@ class _RankedTake(Builtin):
             else:
                 result = self._get_n(py_n, heap)
 
-            return l.restructure([x[leaf_pos] for x in result], evaluation, head='List')
+            return l.restructure('List', [x[leaf_pos] for x in result], evaluation)
 
 
 class _RankedTakeSmallest(_RankedTake):
