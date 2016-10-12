@@ -389,8 +389,7 @@ def _list_parts(items, selectors, heads, evaluation, assignment):
                     expr.original = None
                     expr.set_positions()
                 else:
-                    expr = Structure(
-                        item.head, item, evaluation, cache=heads).from_leaves(picked)
+                    expr = item.restructure(picked, evaluation)
 
                 yield expr
             else:
@@ -880,7 +879,7 @@ class Partition(Builtin):
         inner = Structure('List', expr, evaluation)
         outer = Structure('List', inner, evaluation)
 
-        make_slice = inner.from_slice
+        make_slice = inner.slice
 
         def slices():
             leaves = expr.leaves
@@ -893,7 +892,7 @@ class Partition(Builtin):
 
                 yield make_slice(expr, lower, upper)
 
-        return outer.from_leaves(slices())
+        return outer(slices())
 
     def apply_no_overlap(self, l, n, evaluation):
         'Partition[l_List, n_Integer]'
@@ -1315,7 +1314,7 @@ class Select(Builtin):
             test = Expression(expr, leaf)
             return test.evaluate(evaluation).is_true()
 
-        return Structure(items.head, items, evaluation).from_condition(items, cond)
+        return items.filter(cond, evaluation)
 
 
 class Split(Builtin):
@@ -1379,9 +1378,7 @@ class Split(Builtin):
 
         inner = Structure('List', mlist, evaluation)
         outer = Structure(mlist.head, inner, evaluation)
-
-        make_inner = inner.from_leaves
-        return outer.from_leaves([make_inner(l) for l in result])
+        return outer([inner(l) for l in result])
 
 
 class SplitBy(Builtin):
@@ -1431,8 +1428,9 @@ class SplitBy(Builtin):
                 result.append([leaf])
             prev = curr
 
-        return Expression(mlist.head, *[Expression('List', *l)
-                                        for l in result])
+        inner = Structure('List', mlist, evaluation)
+        outer = Structure(mlist.head, inner, evaluation)
+        return outer([inner(l) for l in result])
 
     def apply_multiple(self, mlist, funcs, evaluation):
         'SplitBy[mlist_, funcs_?ListQ]'
@@ -1474,7 +1472,7 @@ class Pick(Builtin):
                 if match(s):
                     yield x
                 elif not x.is_atom() and not s.is_atom():
-                    yield Structure(x.get_head(), x, evaluation).from_leaves(pick(x.leaves, s.leaves))
+                    yield x.restructure(pick(x.leaves, s.leaves), evaluation)
 
         r = list(pick([items0], [sel0]))
         if not r:
@@ -1604,7 +1602,7 @@ class DeleteCases(Builtin):
         def cond(leaf):
             return not match(leaf, evaluation)
 
-        return Structure('List', items, evaluation).from_condition(items, cond)
+        return items.filter(cond, evaluation, head='List')
 
 
 class Count(Builtin):
@@ -2103,7 +2101,7 @@ class Join(Builtin):
             result.extend(list.leaves)
 
         if result:
-            return Structure(head, sequence, evaluation).from_leaves(result)
+            return sequence[0].restructure(result, evaluation, deps=sequence)
         else:
             return Expression('List')
 
@@ -2168,7 +2166,7 @@ class Append(Builtin):
         if expr.is_atom():
             return evaluation.message('Append', 'normal')
 
-        return Structure(expr.get_head(), (expr, item), evaluation).from_leaves(expr.get_leaves() + [item])
+        return expr.restructure(expr.get_leaves() + [item], evaluation, deps=(expr, item))
 
 
 class AppendTo(Builtin):
@@ -3115,14 +3113,14 @@ class Reverse(Builtin):
             return expr
 
         if levels[0] == level:
-            expr = Structure(expr.head, expr, evaluation).from_leaves(reversed(expr.leaves))
+            expr = expr.restructure(reversed(expr.leaves), evaluation)
 
             if len(levels) > 1:
-                expr = Structure(expr.head, expr, evaluation).from_leaves(
-                    [Reverse._reverse(leaf, level + 1, levels[1:], evaluation) for leaf in expr.leaves])
+                expr = expr.restructure(
+                    [Reverse._reverse(leaf, level + 1, levels[1:], evaluation) for leaf in expr.leaves], evaluation)
         else:
-            expr = Structure(expr.head, expr, evaluation).from_leaves(
-                [Reverse._reverse(leaf, level + 1, levels, evaluation) for leaf in expr.leaves])
+            expr = expr.restructure(
+                [Reverse._reverse(leaf, level + 1, levels, evaluation) for leaf in expr.leaves], evaluation)
 
         return expr
 
@@ -3420,7 +3418,7 @@ class _Rotate(Builtin):
         if len(n) > 1:
             new_leaves = [self._rotate(item, n[1:], evaluation) for item in new_leaves]
 
-        return Structure(expr.get_head(), expr, evaluation).from_leaves(new_leaves)
+        return expr.restructure(new_leaves, evaluation)
 
     def apply_one(self, expr, evaluation):
         '%(name)s[expr_]'
@@ -3762,7 +3760,7 @@ class _RankedTake(Builtin):
             else:
                 result = self._get_n(py_n, heap)
 
-            return Structure('List', l, evaluation).from_leaves([x[leaf_pos] for x in result])
+            return l.restructure([x[leaf_pos] for x in result], evaluation, head='List')
 
 
 class _RankedTakeSmallest(_RankedTake):
@@ -4596,5 +4594,4 @@ class Permutations(Builtin):
         inner = Structure('List', l, evaluation)
         outer = Structure('List', inner, evaluation)
 
-        make_inner = inner.from_leaves
-        return outer.from_leaves([make_inner(p) for r in rs for p in permutations(l.leaves, r)])
+        return outer([inner(p) for r in rs for p in permutations(l.leaves, r)])
