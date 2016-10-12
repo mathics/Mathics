@@ -365,7 +365,7 @@ def _part_selectors(indices):
             raise MessageException('Part', 'pspec', index)
 
 
-def _list_parts(items, selectors, assignment):
+def _list_parts(items, selectors, heads, evaluation, assignment):
     if not selectors:
         for item in items:
             yield item
@@ -381,23 +381,25 @@ def _list_parts(items, selectors, assignment):
             selected = list(select(item))
 
             picked = list(_list_parts(
-                selected, selectors[1:], assignment))
+                selected, selectors[1:], heads, evaluation, assignment))
 
             if unwrap is None:
-                expr = item.shallow_copy()
-                expr.set_leaves(slice(len(expr.leaves)), picked)
-
                 if assignment:
+                    expr = Expression(item.head, *picked)
                     expr.original = None
                     expr.set_positions()
+                else:
+                    expr = Structure(
+                        item.head, item, evaluation, cache=heads).from_leaves(picked)
 
                 yield expr
             else:
                 yield unwrap(picked)
 
 
-def _parts(items, selectors, assignment=False):
-    return list(_list_parts([items], list(selectors), assignment))[0]
+def _parts(items, selectors, evaluation, assignment=False):
+    heads = {}
+    return list(_list_parts([items], list(selectors), heads, evaluation, assignment))[0]
 
 
 def walk_parts(list_of_list, indices, evaluation, assign_list=None):
@@ -420,6 +422,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         result = _parts(
             walk_list,
             _part_selectors(indices),
+            evaluation,
             assign_list is not None)
     except MessageException as e:
         e.message(evaluation)
@@ -890,7 +893,7 @@ class Partition(Builtin):
 
                 yield make_slice(expr, lower, upper)
 
-        return outer.from_leaves(list(slices()))
+        return outer.from_leaves(slices())
 
     def apply_no_overlap(self, l, n, evaluation):
         'Partition[l_List, n_Integer]'
@@ -1225,7 +1228,7 @@ class Take(Builtin):
                 'Take', 'normal', 1, Expression('Take', items, *seqs))
 
         try:
-            return _parts(items, [_take_span_selector(seq) for seq in seqs])
+            return _parts(items, [_take_span_selector(seq) for seq in seqs], evaluation)
         except MessageException as e:
             e.message(evaluation)
 
@@ -1275,7 +1278,7 @@ class Drop(Builtin):
                 'Drop', 'normal', 1, Expression('Drop', items, *seqs))
 
         try:
-            return _parts(items, [_drop_span_selector(seq) for seq in seqs])
+            return _parts(items, [_drop_span_selector(seq) for seq in seqs], evaluation)
         except MessageException as e:
             e.message(evaluation)
 
@@ -1308,13 +1311,11 @@ class Select(Builtin):
             evaluation.message('Select', 'normal')
             return
 
-        def leaves():
-            for leaf in items.leaves:
-                test = Expression(expr, leaf)
-                if test.evaluate(evaluation).is_true():
-                    yield leaf
+        def cond(leaf):
+            test = Expression(expr, leaf)
+            return test.evaluate(evaluation).is_true()
 
-        return Structure(items.head, items, evaluation).from_leaves(list(leaves()))
+        return Structure(items.head, items, evaluation).from_condition(items, cond)
 
 
 class Split(Builtin):
@@ -1473,7 +1474,7 @@ class Pick(Builtin):
                 if match(s):
                     yield x
                 elif not x.is_atom() and not s.is_atom():
-                    yield Structure(x.get_head(), x, evaluation).from_leaves(list(pick(x.leaves, s.leaves)))
+                    yield Structure(x.get_head(), x, evaluation).from_leaves(pick(x.leaves, s.leaves))
 
         r = list(pick([items0], [sel0]))
         if not r:
@@ -1600,12 +1601,10 @@ class DeleteCases(Builtin):
         from mathics.builtin.patterns import Matcher
         match = Matcher(pattern).match
 
-        def indices():
-            for index, leaf in enumerate(items.leaves):
-                if not match(leaf, evaluation):
-                    yield index
+        def cond(leaf):
+            return not match(leaf, evaluation)
 
-        return items.pick('List', indices(), evaluation)
+        return Structure('List', items, evaluation).from_condition(items, cond)
 
 
 class Count(Builtin):
