@@ -660,10 +660,11 @@ class Expression(BaseExpression):
         if dirty:
             self._token = EvaluationToken(time, sym)
 
-    def copy(self):
-        expr = Expression(self.head.copy())
-        expr._leaves = [leaf.copy() for leaf in self._leaves]
-        expr._token = self._token
+    def copy(self, reevaluate=False):
+        expr = Expression(self.head.copy(reevaluate))
+        expr._leaves = [leaf.copy(reevaluate) for leaf in self._leaves]
+        if not reevaluate:
+            expr._token = self._token
         expr._sequences = self._sequences
         expr.options = self.options
         expr.original = self
@@ -1549,7 +1550,7 @@ class Atom(BaseExpression):
     def numerify(self, evaluation):
         return self
 
-    def copy(self):
+    def copy(self, reevaluate=False):
         result = self.do_copy()
         result.original = self
         return result
