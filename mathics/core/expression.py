@@ -648,6 +648,7 @@ class Expression(BaseExpression):
                 sym.update(leaf_token.symbols)
 
         token = EvaluationToken(time, sym)
+        self._token = token
         return token
 
     def get_token(self):
