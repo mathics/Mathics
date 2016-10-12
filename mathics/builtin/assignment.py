@@ -857,10 +857,7 @@ class Information(PrefixOperator):
      |    <dt>$a$ + $b$ + ...</dt>
      |    <dd>represents the sum of the terms $a$, $b$, ...
      |    </dl>
-     |Attributes[Plus] = {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected}
-     |Default[Plus] = 0
      = Null
-
 
     >> Information[Integrate]
      |    <dl>
@@ -871,21 +868,17 @@ class Information(PrefixOperator):
      |    </dl>
      | 
      |    Integrate a polynomial:
-     |Attributes[Integrate] = {Protected, ReadProtected}
      = Null
 
     >> a = 2;
     >> Information[a]
-     | a = 2
-     = Null 
+     = Null
    
     >> F[x_] := x^2
     >> F::usage = "F[x] evaluates the square of x."
     >> H[F[y_,u_]]^:=F[H[y],u]
     >> Information[F]
-     |F[x] returns the square of x
-     |F[x_] = x^2
-     |H[F[y_, u_]] ^= F[H[y], u]
+     |F[x] evaluates the square of x
     """
     operator="??"
     precedence=5001
