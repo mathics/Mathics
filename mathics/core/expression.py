@@ -681,6 +681,7 @@ class Expression(BaseExpression):
         expr = Expression(self._head.copy(reevaluate))
         expr._leaves = [leaf.copy(reevaluate) for leaf in self._leaves]
         if not reevaluate:
+            self._prepare_symbols()  # First[Timing[Fold[#1+#2&, Range[750]]]]
             expr._token = self._token
         expr._sequences = self._sequences
         expr.options = self.options
@@ -692,6 +693,7 @@ class Expression(BaseExpression):
         # the original, only the Expression instance is new.
         expr = Expression(self._head)
         expr._leaves = self._leaves
+        self._prepare_symbols()  # First[Timing[Fold[#1+#2&, Range[750]]]]
         expr._token = self._token
         expr._sequences = self._sequences
         expr.options = self.options
