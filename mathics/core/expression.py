@@ -530,12 +530,24 @@ class Expression(BaseExpression):
         raise ValueError('Expression.leaves is write protected. Use set_leaves().')
 
     def slice(self, head, py_slice, evaluation):
+        # faster equivalent to: Expression(head, *self.leaves[py_slice])
         return Structure(head, self, evaluation).slice(self, py_slice)
 
     def filter(self, head, cond, evaluation):
+        # faster equivalent to: Expression(head, [leaf in self.leaves if cond(leaf)])
         return Structure(head, self, evaluation).filter(self, cond)
 
     def restructure(self, head, leaves, evaluation, cache=None, deps=None):
+        # faster equivalent to: Expression(head, *leaves)
+
+        # the caller guarantees that _all_ elements in leaves are either from
+        # self.leaves (or its sub trees) or from one of the expression given
+        # in the tuple "deps" (or its sub trees).
+
+        # if this method is called repeatedly, and the caller guarantees
+        # that no definitions change between subsequent calls, then cache
+        # may be passed an initially empty dict to speed up calls.
+
         if deps is None:
             deps = self
         s = Structure(head, deps, evaluation, cache=cache)
@@ -2434,26 +2446,38 @@ class Structure:
             last_evaluated = orig.last_evaluated
             if last_evaluated is not None and not _is_safe_head(head, cache, evaluation):
                 last_evaluated = None
+                symbols = None
+            else:
+                symbols = orig.symbols()
         elif isinstance(orig, (list, tuple)):
             if _is_safe_head(head, cache, evaluation):
                 definitions = evaluation.definitions
                 last_evaluated = definitions.now
+                symbols = set()
                 for expr in orig:
-                    if expr.last_evaluated is None or definitions.last_changed(expr) > expr.last_evaluated:
+                    if not definitions.not_changed(expr, expr.last_evaluated):
                         last_evaluated = None
+                        symbols = None
                         break
+                    symbols = symbols.union(expr.symbols())
             else:
                 last_evaluated = None
+                symbols = None
         else:
             raise ValueError('expected Expression, Structure, tuple or list as orig param')
 
         self.last_evaluated = last_evaluated
+        self._symbols = symbols
+
+    def symbols(self):
+        return self._symbols
 
     def __call__(self, leaves):  # create from leaves
         # IMPORTANT: caller guarantees that leaves originate from orig.leaves or its sub trees!
 
         expr = Expression(self.head)
-        expr.leaves = list(leaves)
+        expr._leaves = tuple(leaves)
+        expr._symbols = self._symbols
         expr.last_evaluated = self.last_evaluated
         return expr
 
