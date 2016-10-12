@@ -627,7 +627,7 @@ class Expression(BaseExpression):
             expr.options = self.options
         return expr
 
-    def _prepare_symbols(self, as_set=False):
+    def _prepare_symbols(self):
         token = self._token
 
         if token is None:
@@ -635,29 +635,17 @@ class Expression(BaseExpression):
         else:
             sym = token.symbols
             if sym is not None:
-                if as_set and isinstance(sym, list):
-                    token = EvaluationToken(token.time, set(sym))
                 return token
             time = token.time
 
-        list_of_symbols = [self.get_head_name()]
+        sym = set((self.get_head_name(),))
 
         for leaf in self._leaves:
             if isinstance(leaf, Symbol):
-                list_of_symbols.append(leaf.get_name())
+                sym.add(leaf.get_name())
             elif isinstance(leaf, Expression):
                 leaf_token = leaf._prepare_symbols()
-                list_of_symbols.extend(list(leaf_token.symbols))
-
-        # converting the symbols list to a set is slow. by default,
-        # we only do this for the final expression given to
-        # Definitions.changed(), but not for intermediate ones.
-        # this yields better benchmarks.
-
-        sym = list_of_symbols
-
-        if as_set:
-            sym = set(sym)
+                sym.update(leaf_token.symbols)
 
         token = EvaluationToken(time, sym)
         return token
@@ -676,7 +664,7 @@ class Expression(BaseExpression):
         if time is None:
             return None
 
-        return self._prepare_symbols(as_set=True)
+        return self._prepare_symbols()
 
     def update_token(self, evaluation):
         token = self._token
