@@ -529,8 +529,23 @@ class Expression(BaseExpression):
     def leaves(self, value):
         raise ValueError('Expression.leaves is write protected. Use set_leaves().')
 
-    def slice(self, lower, upper, evaluation):
-        return Structure(self.head, self, evaluation).from_slice(self, lower, upper)
+    def slice(self, lower, upper, evaluation, head=None):
+        if head is None:
+            head = self.head
+        return Structure(head, self, evaluation).slice(self, lower, upper)
+
+    def filter(self, cond, evaluation, head=None):
+        if head is None:
+            head = self.head
+        return Structure(head, self, evaluation).filter(self, cond)
+
+    def restructure(self, leaves, evaluation, head=None, cache=None, deps=None):
+        if head is None:
+            head = self.head
+        if deps is None:
+            deps = self
+        s = Structure(head, deps, evaluation, cache=cache)
+        return s(list(leaves))
 
     def sequences(self):
         seq = self._sequences
@@ -2440,7 +2455,7 @@ class Structure:
 
         self.last_evaluated = last_evaluated
 
-    def from_leaves(self, leaves):
+    def __call__(self, leaves):  # create from leaves
         # IMPORTANT: caller guarantees that leaves originate from orig.leaves or its sub trees!
 
         expr = Expression(self.head)
@@ -2448,16 +2463,16 @@ class Structure:
         expr.last_evaluated = self.last_evaluated
         return expr
 
-    def from_condition(self, expr, cond):
+    def filter(self, expr, cond):
         # IMPORTANT: caller guarantees that expr is from origins!
-        return self.from_leaves([leaf for leaf in expr.leaves if cond(leaf)])
+        return self([leaf for leaf in expr.leaves if cond(leaf)])
 
-    def from_slice(self, expr, lower, upper):
+    def slice(self, expr, lower, upper):
         # IMPORTANT: caller guarantees that expr is from origins!
 
         leaves = expr.leaves
         lower, upper, _ = slice(lower, upper).indices(len(leaves))
-        expr = self.from_leaves(leaves[lower:upper])
+        expr = self(leaves[lower:upper])
 
         seq = expr._sequences
         if seq:
