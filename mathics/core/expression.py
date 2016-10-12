@@ -177,10 +177,10 @@ class BaseExpression(KeyComparable):
     def sequences(self):
         return None
 
-    def flatten_sequence(self) -> 'BaseExpression':
+    def flatten_sequence(self, evaluation) -> 'BaseExpression':
         return self
 
-    def flatten_pattern_sequence(self) -> 'BaseExpression':
+    def flatten_pattern_sequence(self, evaluation)  -> 'BaseExpression':
         return self
 
     def get_attributes(self, definitions):
@@ -595,7 +595,7 @@ class Expression(BaseExpression):
             self._sequences = seq
         return seq
 
-    def _flatten_sequence(self, sequence) -> 'Expression':
+    def _flatten_sequence(self, sequence, evaluation)-> 'Expression':
         indices = self.sequences()
         if not indices:
             return self
@@ -612,26 +612,26 @@ class Expression(BaseExpression):
             k = i + 1
         extend(leaves[k:])
 
-        return self.restructure(self._head, flattened)
+        return self.restructure(self._head, flattened, evaluation)
 
-    def flatten_sequence(self):
+    def flatten_sequence(self, evaluation):
         def sequence(leaf):
             if leaf.get_head_name() == 'System`Sequence':
                 return leaf._leaves
             else:
                 return [leaf]
 
-        return self._flatten_sequence(sequence)
+        return self._flatten_sequence(sequence, evaluation)
 
-    def flatten_pattern_sequence(self):
+    def flatten_pattern_sequence(self, evaluation):
         def sequence(leaf):
-            flattened = leaf.flatten_pattern_sequence()
+            flattened = leaf.flatten_pattern_sequence(evaluation)
             if leaf.get_head_name() == 'System`Sequence' and leaf.pattern_sequence:
                 return flattened._leaves
             else:
                 return [flattened]
 
-        expr = self._flatten_sequence(sequence)
+        expr = self._flatten_sequence(sequence, evaluation)
         if hasattr(self, 'options'):
             expr.options = self.options
         return expr
@@ -689,8 +689,9 @@ class Expression(BaseExpression):
 
     def copy(self, reevaluate=False) -> 'Expression':
         expr = Expression(self._head.copy(reevaluate))
-        expr._leaves = [leaf.copy(reevaluate) for leaf in self._leaves]
+        expr._leaves = tuple(leaf.copy(reevaluate) for leaf in self._leaves)
         if not reevaluate:
+            self._prepare_symbols()  # First[Timing[Fold[#1+#2&, Range[750]]]]
             expr._token = self._token
         expr._sequences = self._sequences
         expr.options = self.options
@@ -702,6 +703,7 @@ class Expression(BaseExpression):
         # the original, only the Expression instance is new.
         expr = Expression(self._head)
         expr._leaves = self._leaves
+        self._prepare_symbols()  # First[Timing[Fold[#1+#2&, Range[750]]]]
         expr._token = self._token
         expr._sequences = self._sequences
         expr.options = self.options
@@ -1070,11 +1072,11 @@ class Expression(BaseExpression):
             # rest_range(range(0, 0))
 
         new = Expression(head)
-        new._leaves = leaves
+        new._leaves = tuple(leaves)
 
         if ('System`SequenceHold' not in attributes and    # noqa
             'System`HoldAllComplete' not in attributes):
-            new = new.flatten_sequence()
+            new = new.flatten_sequence(evaluation)
             leaves = new._leaves
 
         for leaf in leaves:
@@ -1091,8 +1093,9 @@ class Expression(BaseExpression):
                     dirty_leaves[index].unevaluated = True
 
             if dirty_leaves:
-                new = Expression(head, *dirty_leaves)
-                leaves = new._leaves
+                new = Expression(head)
+                new._leaves = tuple(dirty_leaves)
+                leaves = dirty_leaves
 
         def flatten_callback(new_leaves, old):
             for leaf in new_leaves:
@@ -1152,7 +1155,7 @@ class Expression(BaseExpression):
 
         if dirty_leaves:
             new = Expression(head)
-            new._leaves = dirty_leaves
+            new._leaves = tuple(dirty_leaves)
 
         new.unformatted = self.unformatted
         new.update_token(evaluation)

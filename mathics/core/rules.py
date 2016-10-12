@@ -47,7 +47,7 @@ class BaseRule(KeyComparable):
                 result = new_expression
 
             # Flatten out sequences (important for Rule itself!)
-            result = result.flatten_pattern_sequence()
+            result = result.flatten_pattern_sequence(evaluation)
             if return_list:
                 result_list.append(result)
                 # count += 1
