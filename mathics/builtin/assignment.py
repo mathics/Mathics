@@ -715,7 +715,7 @@ class Definition(Builtin):
 
     attributes = ('HoldAll',)
 
-    def format_definition(self, symbol, evaluation, grid=True):
+    def format_definition(self, symbol, evaluation, grid=False):
         'StandardForm,TraditionalForm,OutputForm: Definition[symbol_]'
 
         lines = []
@@ -795,7 +795,6 @@ class Definition(Builtin):
 
     def format_definition_input(self, symbol, evaluation):
         'InputForm: Definition[symbol_]'
-
         return self.format_definition(symbol, evaluation, grid=False)
 
 
@@ -852,31 +851,41 @@ class Information(PrefixOperator):
 
 
 
-    >> Information[Plus]
-     | System`Plus
-     | Attributes: 
-     | {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected}
+    >> ?? Plus
+     |    <dl>
+     |    <dt>'Plus[$a$, $b$, ...]'</dt>
+     |    <dt>$a$ + $b$ + ...</dt>
+     |    <dd>represents the sum of the terms $a$, $b$, ...
+     |    </dl>
+     |Attributes[Plus] = {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected}
+     |Default[Plus] = 0
+     = Null
 
 
     >> Information[Integrate]
-     | System`Integrate
-     | Integrate[list_List, x_]=(Integrate[#1, x]&) /@ list
-     | Attributes: 
-     | {Protected, ReadProtected}
-
+     |    <dl>
+     |    <dt>'Integrate[$f$, $x$]'
+     |    <dd>integrates $f$ with respect to $x$. The result does not contain the additive integration constant.
+     |    <dt>'Integrate[$f$, {$x$, $a$, $b$}]'
+     |    <dd>computes the definite integral of $f$ with respect to $x$ from $a$ to $b$.
+     |    </dl>
+     | 
+     |    Integrate a polynomial:
+     |Attributes[Integrate] = {Protected, ReadProtected}
+     = Null
 
     >> a = 2;
     >> Information[a]
-     | Global`a
-     | a = 2 
-
+     | a = 2
+     = Null 
+   
     >> F[x_] := x^2
     >> F::usage = "F[x] evaluates the square of x."
-    >> H[F[u_]]^:= F[H[u]^2]
+    >> H[F[y_,u_]]^:=F[H[y],u]
     >> Information[F]
-    
-     : | {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected} = {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected}
-     : | 
+     |F[x] returns the square of x
+     |F[x_] = x^2
+     |H[F[y_, u_]] ^= F[H[y], u]
     """
     operator="??"
     precedence=5001
@@ -884,7 +893,7 @@ class Information(PrefixOperator):
     messages = {'notfound': 'Expression `1` is not a symbol'}
 
 
-    def format_definition(self, symbol, evaluation, grid=True):
+    def format_definition(self, symbol, evaluation, grid=False):
         'StandardForm,TraditionalForm,OutputForm: Information[symbol_]'
 
         from mathics.core.expression import from_python        

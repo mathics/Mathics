@@ -233,7 +233,7 @@ literal_tokens = {
     '<': ['Get', 'StringJoin', 'LessEqual', 'Less'],
     '=': ['SameQ', 'UnsameQ', 'Equal', 'Unset', 'Set'],
     '>': ['PutAppend', 'Put', 'GreaterEqual', 'Greater'],
-    '?': ['PatternTest','Information', 'Definition'],
+    '?': ['Information', 'Definition','PatternTest'],
     '@': ['ApplyList', 'Apply', 'Composition', 'Prefix'],
     '[': ['RawLeftBracket'],
     '\\': ['LeftRowBox', 'RightRowBox', 'InterpretedBox', 'SuperscriptBox',
@@ -350,7 +350,9 @@ class Tokeniser(object):
         if indices:
             for index in indices:
                 tag, pattern = self.tokens[index]
+
                 match = pattern.match(self.code, self.pos)
+
                 if match is not None:
                     break
         else:
