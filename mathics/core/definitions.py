@@ -124,7 +124,7 @@ class Definitions(object):
         for k in self.proxy.pop(tail, []):
             definitions_cache.pop(k, None)
 
-    def changed(self, maximum, symbols):
+    def has_changed(self, maximum, symbols):
         # timestamp for the most recently changed part of a given expression.
         for name in symbols:
             symb = self.get_definition(name, only_if_exists=True)
