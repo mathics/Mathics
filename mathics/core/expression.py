@@ -133,16 +133,36 @@ class KeyComparable(object):
         return self.get_sort_key() != other.get_sort_key()
 
 
-class EvaluationToken:
-    def __init__(self, time=None, symbols=None, sequences=None):
+# ExpressionCache keeps track of the following attributes for one Expression instance:
+
+# time: (1) the last time (in terms of Definitions.now) this expression was evaluated
+#   or (2) None, if the current expression has not yet been evaluatec (i.e. is new or
+#   changed).
+# symbols: (1) a set of symbols occuring in this expression's head, its leaves'
+#   heads, any of its sub expressions' heads or as Symbol leaves somewhere (maybe deep
+#   down) in the expression tree start by this expressions' leaves, or (2) None, if no
+#   information on which symbols are contained in this expression is available
+# sequences: (1) a list of leaf indices that indicate the position of all Sequence
+#   heads that are either in the leaf's head or any of the indicated leaf's sub
+#   expressions' heads, or (2) None, if no information is available.
+
+class ExpressionCache:
+    def __init__(self, time=None, symbols=None, sequences=None, copy=None):
+        if copy is not None:
+            time = time or copy.time
+            symbols = symbols or copy.symbols
+            sequences = sequences or copy.sequences
         self.time = time
         self.symbols = symbols
         self.sequences = sequences
 
     def copy(self):
-        return EvaluationToken(self.time, self.symbols, self.sequences)
+        return ExpressionCache(self.time, self.symbols, self.sequences)
 
     def sliced(self, lower, upper):
+        # indicates that the Expression's leaves have been slices with
+        # the given indices.
+
         seq = self.sequences
 
         if seq:
@@ -154,37 +174,37 @@ class EvaluationToken:
         else:
             new_sequences = None
 
-        return EvaluationToken(self.time, self.symbols, new_sequences)
+        return ExpressionCache(self.time, self.symbols, new_sequences)
 
     def reordered(self):
+        # indicates that the Expression's leaves have been reordered
+        # or reduced (i.e. that the leaves have changed, but that
+        # no new leaf instances were added).
+
         sequences = self.sequences
 
-        # note that we do not touch sequences == [], which
-        # is fine even with reordered leaves.
+        # note that we keep sequences == [], since they are fine even
+        # after having reordered leaves.
         if sequences:
             sequences = None
 
-        return EvaluationToken(None, self.symbols, sequences)
+        return ExpressionCache(None, self.symbols, sequences)
 
     @staticmethod
     def union(expressions, evaluation):
         definitions = evaluation.definitions
 
         for expr in expressions:
-            if expr.changed(definitions):
+            if expr.has_changed(definitions):
                 return None
 
-        new_sequences = tuple()
-        for expr in expressions:
-            seq = expr._token.sequences
-            if seq is None or len(seq) > 0:
-                new_sequences = None
-                break
+        symbols = set.union(
+            *[expr._cache.symbols for expr in expressions])
 
-        return EvaluationToken(
+        return ExpressionCache(
             definitions.now,
-            set.union(*[expr._token.symbols for expr in expressions]),
-            new_sequences)
+            symbols,
+            None if 'System`Sequence' in symbols else tuple())
 
 
 class BaseExpression(KeyComparable):
@@ -198,13 +218,13 @@ class BaseExpression(KeyComparable):
         self.options = None
         self.pattern_sequence = False
         self.unformatted = self
-        self._token = None
+        self._cache = None
         return self
 
-    def clear_token(self):
-        self._token = None
+    def clear_cache(self):
+        self._cache = None
 
-    def changed(self, definitions):
+    def has_changed(self, definitions):
         return True
 
     def sequences(self):
@@ -592,13 +612,13 @@ class Expression(BaseExpression):
 
     def slice(self, head, py_slice, evaluation):
         # faster equivalent to: Expression(head, *self.leaves[py_slice])
-        return Structure(head, self, evaluation).slice(self, py_slice)
+        return structure(head, self, evaluation).slice(self, py_slice)
 
     def filter(self, head, cond, evaluation):
         # faster equivalent to: Expression(head, [leaf in self.leaves if cond(leaf)])
-        return Structure(head, self, evaluation).filter(self, cond)
+        return structure(head, self, evaluation).filter(self, cond)
 
-    def restructure(self, head, leaves, evaluation, cache=None, deps=None):
+    def restructure(self, head, leaves, evaluation, structure_cache=None, deps=None):
         # faster equivalent to: Expression(head, *leaves)
 
         # the caller guarantees that _all_ elements in leaves are either from
@@ -606,12 +626,12 @@ class Expression(BaseExpression):
         # in the tuple "deps" (or its sub trees).
 
         # if this method is called repeatedly, and the caller guarantees
-        # that no definitions change between subsequent calls, then cache
+        # that no definitions change between subsequent calls, then heads_cache
         # may be passed an initially empty dict to speed up calls.
 
         if deps is None:
             deps = self
-        s = Structure(head, deps, evaluation, cache=cache)
+        s = structure(head, deps, evaluation, structure_cache=structure_cache)
         return s(list(leaves))
 
     def _no_symbol(self, symbol_name):
@@ -619,24 +639,24 @@ class Expression(BaseExpression):
         # sub leaves contain no Symbol with symbol_name. if this returns
         # False, such a Symbol might or might not exist.
 
-        token = self._token
-        if token is None:
+        cache = self._cache
+        if cache is None:
             return False
 
-        symbols = token.symbols
+        symbols = cache.symbols
         if symbols is not None and symbol_name not in symbols:
             return True
         else:
             return False
 
     def sequences(self):
-        token = self._token
-        if token:
-            seq = token.sequences
+        cache = self._cache
+        if cache:
+            seq = cache.sequences
             if seq is not None:
                 return seq
 
-        return self._inspect_symbols().sequences
+        return self._rebuild_cache().sequences
 
     def _flatten_sequence(self, sequence, evaluation)-> 'Expression':
         indices = self.sequences()
@@ -679,68 +699,61 @@ class Expression(BaseExpression):
             expr.options = self.options
         return expr
 
-    def _inspect_symbols(self):
-        token = self._token
+    def _rebuild_cache(self):
+        cache = self._cache
 
-        if token is None:
+        if cache is None:
             time = None
-        elif token.symbols is None:
-            time = token.time
-        elif token.sequences is None:
-            time = token.time
+        elif cache.symbols is None:
+            time = cache.time
+        elif cache.sequences is None:
+            time = cache.time
         else:
-            return token
+            return cache
 
         sym = set((self.get_head_name(),))
         seq = []
 
         for i, leaf in enumerate(self._leaves):
             if isinstance(leaf, Expression):
-                leaf_symbols = leaf._inspect_symbols().symbols
+                leaf_symbols = leaf._rebuild_cache().symbols
                 sym.update(leaf_symbols)
                 if 'System`Sequence' in leaf_symbols:
                     seq.append(i)
             elif isinstance(leaf, Symbol):
                 sym.add(leaf.get_name())
 
-        token = EvaluationToken(time, sym, seq)
-        self._token = token
-        return token
+        cache = ExpressionCache(time, sym, seq)
+        self._cache = cache
+        return cache
 
-    def changed(self, definitions):
-        token = self._token
+    def has_changed(self, definitions):
+        cache = self._cache
 
-        if token is None:
+        if cache is None:
             return True
 
-        time = token.time
+        time = cache.time
 
         if time is None:
             return True
 
-        if token.symbols is None:
-            token = self._inspect_symbols()
+        if cache.symbols is None:
+            cache = self._rebuild_cache()
 
-        return definitions.changed(time, token.symbols)
+        return definitions.has_changed(time, cache.symbols)
 
-    def update_token(self, evaluation):
-        token = self._token
-
-        if token is None:
-            sym = None
-            seq = None
-        else:
-            sym = token.symbols
-            seq = token.sequences
-
-        self._token = EvaluationToken(evaluation.definitions.now, sym, seq)
+    def _timestamp_cache(self, evaluation):
+        self._cache = ExpressionCache(evaluation.definitions.now, copy=self._cache)
 
 
     def copy(self, reevaluate=False) -> 'Expression':
         expr = Expression(self._head.copy(reevaluate))
         expr._leaves = tuple(leaf.copy(reevaluate) for leaf in self._leaves)
         if not reevaluate:
-            expr._token = self._inspect_symbols()  # First[Timing[Fold[#1+#2&, Range[750]]]]
+            # rebuilding the cache in self speeds up large operations, e.g.
+            # First[Timing[Fold[#1+#2&, Range[750]]]]
+            expr._cache = self._rebuild_cache()
         expr.options = self.options
         expr.original = self
         return expr
@@ -750,7 +763,9 @@ class Expression(BaseExpression):
         # the original, only the Expression instance is new.
         expr = Expression(self._head)
         expr._leaves = self._leaves
-        expr._token = self._inspect_symbols()  # First[Timing[Fold[#1+#2&, Range[750]]]]
+        # rebuilding the cache in self speeds up large operations, e.g.
+        # First[Timing[Fold[#1+#2&, Range[750]]]]
+        expr._cache = self._rebuild_cache()
         expr.options = self.options
         return expr
 
@@ -765,7 +780,7 @@ class Expression(BaseExpression):
 
     def set_head(self, head):
         self._head = head
-        self._token = None
+        self._cache = None
 
     def get_leaves(self):
         return self._leaves
@@ -777,12 +792,12 @@ class Expression(BaseExpression):
         leaves = list(self._leaves)
         leaves[index] = value
         self._leaves = tuple(leaves)
-        self._token = None
+        self._cache = None
 
     def set_reordered_leaves(self, leaves):  # same leaves, but in a different order
         self._leaves = tuple(leaves)
-        if self._token:
-            self._token = self._token.reordered()
+        if self._cache:
+            self._cache = self._cache.reordered()
 
     def get_lookup_name(self)-> bool:
         return self._head.get_lookup_name()
@@ -1049,7 +1064,7 @@ class Expression(BaseExpression):
         try:
             while reevaluate:
                 # changed before last evaluated?
-                if not expr.changed(definitions):
+                if not expr.has_changed(definitions):
                     break
 
                 names.add(expr.get_lookup_name())
@@ -1155,13 +1170,13 @@ class Expression(BaseExpression):
         if 'System`Orderless' in attributes:
             new.sort()
 
-        new.update_token(evaluation)
+        new._timestamp_cache(evaluation)
 
         if 'System`Listable' in attributes:
             done, threaded = new.thread(evaluation)
             if done:
                 if threaded.same(new):
-                    new.update_token(evaluation)
+                    new._timestamp_cache(evaluation)
                     return new, False
                 else:
                     return threaded, True
@@ -1188,7 +1203,7 @@ class Expression(BaseExpression):
             result = rule.apply(new, evaluation, fully=False)
             if result is not None:
                 if result.same(new):
-                    new.update_token(evaluation)
+                    new._timestamp_cache(evaluation)
                     return new, False
                 else:
                     return result, True
@@ -1207,7 +1222,7 @@ class Expression(BaseExpression):
             new._leaves = tuple(dirty_leaves)
 
         new.unformatted = self.unformatted
-        new.update_token(evaluation)
+        new._timestamp_cache(evaluation)
         return new, False
 
 
@@ -2570,7 +2585,11 @@ def print_parenthesizes(precedence, outer_precedence=None,
             outer_precedence == precedence and parenthesize_when_equal)))
 
 
-def _is_safe_head(head, cache, evaluation):
+def _is_neutral_head(head, cache, evaluation):
+    # a head is neutral if it does not invoke any rules, but is sure to make its Expression stay
+    # the way it is (e.g. List[1, 2, 3] will always stay List[1, 2, 3], so long as nobody defines
+    # a rule on this).
+
     if not isinstance(head, Symbol):
         return False
 
@@ -2595,50 +2614,113 @@ def _is_safe_head(head, cache, evaluation):
     return r
 
 
-class Structure:
-    # performance test case: x = Range[50000]; First[Timing[Partition[x, 15, 1]]]
+# Structure helps implementations make the ExpressionCache not invalidate across simple commands
+# such as Take[], Most[], etc. without this, constant reevaluation of lists happens, which results
+# in quadratic runtimes for command like Fold[#1+#2&, Range[x]].
 
-    def __init__(self, head, orig, evaluation, cache=None):
-        if isinstance(head, six.string_types):
-            head = Symbol(head)
-        self.head = head
+# A good performance test case for Structure: x = Range[50000]; First[Timing[Partition[x, 15, 1]]]
 
-        if isinstance(orig, (Expression, Structure)):
-            token = orig._token
-            if token is not None and not _is_safe_head(head, cache, evaluation):
-                token = None
-        elif isinstance(orig, (list, tuple)):
-            if _is_safe_head(head, cache, evaluation):
-                token = EvaluationToken.union(orig, evaluation)
-            else:
-                token = None
-        else:
-            raise ValueError('expected Expression, Structure, tuple or list as orig param')
 
-        self._token = token
+class Structure(object):
+    def __call__(self, leaves):
+        # create an Expression with the given list "leaves" as leaves.
+        # NOTE: the caller guarantees that "leaves" only contains items that are from "origins".
+        raise NotImplementedError
 
-    def __call__(self, leaves):  # create from leaves
-        # IMPORTANT: caller guarantees that leaves originate from orig.leaves or its sub trees!
+    def filter(self, expr, cond):
+        # create an Expression with a subset of "expr".leaves (picked out by the filter "cond").
+        # NOTE: the caller guarantees that "expr" is from "origins".
+        raise NotImplementedError
 
-        expr = Expression(self.head)
+    def slice(self, expr, py_slice):
+        # create an Expression, using the given slice of "expr".leaves as leaves.
+        # NOTE: the caller guarantees that "expr" is from "origins".
+        raise NotImplementedError
+
+
+# UnlinkedStructure produces Expressions that are not linked to "origins" in terms of cache.
+# This produces the same thing as doing Expression(head, *leaves).
+
+class UnlinkedStructure(Structure):
+    def __init__(self, head):
+        self._head = head
+        self._cache = None
+
+    def __call__(self, leaves):
+        expr = Expression(self._head)
         expr._leaves = tuple(leaves)
-        if self._token:
-            expr._token = self._token.reordered()
         return expr
 
     def filter(self, expr, cond):
-        # IMPORTANT: caller guarantees that expr is from origins!
         return self([leaf for leaf in expr._leaves if cond(leaf)])
 
     def slice(self, expr, py_slice):
-        # IMPORTANT: caller guarantees that expr is from origins!
+        leaves = expr._leaves
+        lower, upper, step = py_slice.indices(len(leaves))
+        if step != 1:
+            raise ValueError('Structure.slice only supports slice steps of 1')
+        return self(leaves[lower:upper])
 
+
+# LinkedStructure produces Expressions that are linked to "origins" in terms of cache. This
+# carries over information from the cache of the originating Expressions into the Expressions
+# that are newly created.
+
+class LinkedStructure(Structure):
+    def __init__(self, head, cache):
+        self._head = head
+        self._cache = cache
+
+    def __call__(self, leaves):
+        expr = Expression(self._head)
+        expr._leaves = tuple(leaves)
+        expr._cache = self._cache.reordered()
+        return expr
+
+    def filter(self, expr, cond):
+        return self([leaf for leaf in expr._leaves if cond(leaf)])
+
+    def slice(self, expr, py_slice):
         leaves = expr._leaves
         lower, upper, step = py_slice.indices(len(leaves))
         if step != 1:
             raise ValueError('Structure.slice only supports slice steps of 1')
 
-        new = self(leaves[lower:upper])
-        if expr._token:
-            new._token = expr._token.sliced(lower, upper)
+        new = Expression(self._head)
+        new._leaves = tuple(leaves[lower:upper])
+        if expr._cache:
+            new._cache = expr._cache.sliced(lower, upper)
+
         return new
+
+
+def structure(head, origins, evaluation, structure_cache=None):
+    # creates a Structure for building Expressions with head "head" and leaves
+    # originating (exlusively) from "origins" (leaves are passed into the functions
+    # of Structure further down).
+
+    # "origins" may either be an Expression (i.e. all leaves must originate from that
+    # expression), a Structure (all leaves passed in this "self" Structure must be
+    # manufactured using that Structure), or a list of Expressions (i.e. all leaves
+    # must originate from one of the listed Expressions).
+
+    if isinstance(head, six.string_types):
+        head = Symbol(head)
+
+    if isinstance(origins, (Expression, Structure)):
+        cache = origins._cache
+        if cache is not None and not _is_neutral_head(head, structure_cache, evaluation):
+            cache = None
+    elif isinstance(origins, (list, tuple)):
+        if _is_neutral_head(head, structure_cache, evaluation):
+            cache = ExpressionCache.union(origins, evaluation)
+        else:
+            cache = None
+    else:
+        raise ValueError('expected Expression, Structure, tuple or list as orig param')
+
+    if cache is None:
+        return UnlinkedStructure(head)
+    else:
+        return LinkedStructure(head, cache)
+

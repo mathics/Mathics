@@ -15,7 +15,7 @@ from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
 from mathics.core.expression import Expression, String, Symbol, Integer, Number, Real, strip_context, from_python
 from mathics.core.expression import min_prec, machine_precision
-from mathics.core.expression import Structure
+from mathics.core.expression import structure
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
@@ -480,7 +480,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         process_level(result, assign_list)
 
         result = list_of_list[0]
-        result.clear_token()
+        result.clear_cache()
 
     return result
 
@@ -908,8 +908,8 @@ class Partition(Builtin):
     def _partition(self, expr, n, d, evaluation):
         assert n > 0 and d > 0
 
-        inner = Structure('List', expr, evaluation)
-        outer = Structure('List', inner, evaluation)
+        inner = structure('List', expr, evaluation)
+        outer = structure('List', inner, evaluation)
 
         make_slice = inner.slice
 
@@ -1469,6 +1469,11 @@ class Select(Builtin):
     >> Select[a, True]
      : Nonatomic expression expected.
      = Select[a, True]
+
+    #> A[x__] := 31415 /; Length[{x}] == 3;
+    #> Select[A[5, 2, 7, 1], OddQ]
+     = 31415
+    #> ClearAll[A];
     """
 
     def apply(self, items, expr, evaluation):
@@ -1514,6 +1519,11 @@ class Split(Builtin):
 
     #> Split[{}]
      = {}
+
+    #> A[x__] := 321 /; Length[{x}] == 5;
+    #> Split[A[x, x, x, y, x, y, y, z]]
+     = 321
+    #> ClearAll[A];
     """
 
     rules = {
@@ -1544,8 +1554,8 @@ class Split(Builtin):
             else:
                 result.append([leaf])
 
-        inner = Structure('List', mlist, evaluation)
-        outer = Structure(mlist.head, inner, evaluation)
+        inner = structure('List', mlist, evaluation)
+        outer = structure(mlist.head, inner, evaluation)
         return outer([inner(l) for l in result])
 
 
@@ -1596,8 +1606,8 @@ class SplitBy(Builtin):
                 result.append([leaf])
             prev = curr
 
-        inner = Structure('List', mlist, evaluation)
-        outer = Structure(mlist.head, inner, evaluation)
+        inner = structure('List', mlist, evaluation)
+        outer = structure(mlist.head, inner, evaluation)
         return outer([inner(l) for l in result])
 
     def apply_multiple(self, mlist, funcs, evaluation):
@@ -4985,8 +4995,9 @@ class Permutations(Builtin):
         if rs is None:
             rs = range(py_n + 1)
 
-        inner = Structure('List', l, evaluation)
-        outer = Structure('List', inner, evaluation)
+        inner = structure('List', l, evaluation)
+        outer = structure('List', inner, evaluation)
+
         return outer([inner(p) for r in rs for p in permutations(l.leaves, r)])
     
 

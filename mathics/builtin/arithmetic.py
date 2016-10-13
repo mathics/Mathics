@@ -631,7 +631,7 @@ class Times(BinaryOperator, SympyFunction):
             number = None
 
         for leaf in leaves:
-            leaf.clear_token()
+            leaf.clear_cache()
 
         if number is not None:
             leaves.insert(0, number)
