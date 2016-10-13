@@ -9,9 +9,9 @@ from six.moves import zip
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
 from mathics.core.expression import (Expression, Symbol, valid_context_name,
-                                     system_symbols,String)
+                                     system_symbols, String)
 
-from mathics.core.rules import Rule,BuiltinRule
+from mathics.core.rules import Rule, BuiltinRule
 from mathics.builtin.patterns import RuleDelayed
 from mathics.builtin.lists import walk_parts
 from mathics.builtin.evaluation import set_recursionlimit
@@ -891,7 +891,7 @@ class Information(PrefixOperator):
      = Null
     """
     operator="??"
-    precedence=5001
+    precedence=0
     attributes = ('HoldAll', 'SequenceHold','Protect','ReadProtect')
     messages = {'notfound': 'Expression `1` is not a symbol'}
 
@@ -910,11 +910,90 @@ class Information(PrefixOperator):
         if not isinstance(symbol,Symbol): 
             evaluation.message('Information','notfound',symbol)                         
             return Symbol('Null');
-
+        
+        #Print the "usage" message if available. 
         usagetext=_get_usage_string(symbol,evaluation);
         if usagetext is not None :
             evaluation.print_out(String(usagetext))
+
         # It would be deserable to call here the routine inside Definition, but for some reason it fails...
+        # Instead, I just copy the code from Definition
+        lines = []
+
+        def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
+            evaluation.check_stopped()
+            if isinstance(rule, Rule):
+                r = rhs(rule.replace.replace_vars(
+                        {'System`Definition': Expression('HoldForm', Symbol('Definition'))}))
+                lines.append(Expression('HoldForm', Expression(
+                    up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
+
+        name = symbol.get_name()
+        if not name:
+            evaluation.message('Definition', 'sym', symbol, 1)
+            return
+        attributes = evaluation.definitions.get_attributes(name)
+        definition = evaluation.definitions.get_user_definition(
+            name, create=False)
+        all = evaluation.definitions.get_definition(name)
+        if attributes:
+            attributes = list(attributes)
+            attributes.sort()
+            lines.append(Expression(
+                'HoldForm', Expression(
+                    'Set', Expression('Attributes', symbol), Expression(
+                        'List',
+                        *(Symbol(attribute) for attribute in attributes)))))
+
+        if definition is not None and 'System`ReadProtected' not in attributes:
+            for rule in definition.ownvalues:
+                print_rule(rule)
+            for rule in definition.downvalues:
+                print_rule(rule)
+            for rule in definition.subvalues:
+                print_rule(rule)
+            for rule in definition.upvalues:
+                print_rule(rule, up=True)
+            for rule in definition.nvalues:
+                print_rule(rule)
+            formats = sorted(definition.formatvalues.items())
+            for format, rules in formats:
+                for rule in rules:
+                    def lhs(expr):
+                        return Expression('Format', expr, Symbol(format))
+
+                    def rhs(expr):
+                        if expr.has_form('Infix', None):
+                            expr = Expression(Expression(
+                                'HoldForm', expr.head), *expr.leaves)
+                        return Expression('InputForm', expr)
+                    print_rule(rule, lhs=lhs, rhs=rhs)
+        for rule in all.defaultvalues:
+            print_rule(rule)
+        if all.options:
+            options = sorted(all.options.items())
+            lines.append(
+                Expression('HoldForm', Expression(
+                    'Set', Expression('Options', symbol),
+                    Expression('List', *(
+                        Expression('Rule', Symbol(name), value)
+                        for name, value in options)))))
+        if grid:
+            if lines:
+                return Expression(
+                    'Grid', Expression(
+                        'List', *(Expression('List', line) for line in lines)),
+                    Expression(
+                        'Rule', Symbol('ColumnAlignments'), Symbol('Left')))
+            else:
+                return Symbol('Null')
+        else:
+            for line in lines:
+                evaluation.print_out(Expression('InputForm', line))
+            return Symbol('Null')
+
+
+
         return Symbol('Null')
 
 
