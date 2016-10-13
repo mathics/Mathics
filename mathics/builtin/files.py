@@ -1961,7 +1961,7 @@ class _OpenAction(Builtin):
             path_string = tmp
 
         try:
-            encoding = options.get('System`CharacterEncoding')
+            encoding = options.get('System`CharacterEncoding').evaluate(evaluation)
             if not isinstance(encoding, String):
                 return
 
