@@ -6,7 +6,7 @@ mathics.pdf: mathics.tex documentation.tex
 	
 latex: mathics.pdf
 
-clear:
+clean:
 	rm -f mathics.asy mathics.aux mathics.idx mathics.log mathics.mtc mathics.mtc* mathics.out mathics.toc
 	rm -f mathics.fdb_latexmk mathics.ilg mathics.ind mathics.maf mathics.pre
 	rm -f mathics_*.*

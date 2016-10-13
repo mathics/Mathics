@@ -60,7 +60,7 @@ class List(Builtin):
 
         items = items.get_sequence()
         return Expression(
-            'RowBox', Expression('List', *list_boxes(items, f, evaluation, "{", "}")))
+            'RowBox', Expression('List', *list_boxes(items, f, "{", "}")))
 
 
 class ListQ(Test):
@@ -93,8 +93,8 @@ class NotListQ(Test):
         return expr.get_head_name() != 'System`List'
 
 
-def list_boxes(items, f, evaluation, open=None, close=None):
-    result = evaluation.make_boxes(items, f)
+def list_boxes(items, f, open=None, close=None):
+    result = [Expression('MakeBoxes', item, f) for item in items]
     if f.get_name() in ('System`OutputForm', 'System`InputForm'):
         sep = ", "
     else:
@@ -827,7 +827,7 @@ class Part(Builtin):
             open, close = "[[", "]]"
         else:
             open, close = "\u301a", "\u301b"
-        indices = list_boxes(i, f, evaluation, open, close)
+        indices = list_boxes(i, f, open, close)
         result = Expression('RowBox', Expression('List', list, *indices))
         return result
 

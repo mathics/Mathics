@@ -480,9 +480,8 @@ class _Color(_GraphicsElement):
                 # become RGBColor[0, 0, 0, 1]. does not seem the right thing
                 # to do in this general context. poke1024
 
-                # if len(components) < len(self.default_components):
-                #    components.extend(self.default_components[
-                #                      len(components):])
+                if len(components) < 3:
+                   components.extend(self.default_components[len(components):])
 
                 self.components = components
             else:
