@@ -1820,7 +1820,6 @@ class TeXForm(Builtin):
             # Replace multiple newlines by a single one e.g. between asy-blocks
             tex = MULTI_NEWLINE_RE.sub('\n', tex)
 
-
             tex = tex.replace(' \uF74c', ' \, d')  # tmp hack for Integrate
         except BoxError:
             evaluation.message(
