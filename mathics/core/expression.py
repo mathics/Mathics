@@ -579,10 +579,28 @@ class Expression(BaseExpression):
         s = Structure(head, deps, evaluation, cache=cache)
         return s(list(leaves))
 
+    def _no_symbol(self, symbol_name):
+        # if this return True, it's safe to say that self.leaves or its
+        # sub leaves contain no Symbol with symbol_name. if this returns
+        # False however, such a Symbol might sitll exist.
+
+        token = self._token
+        if token is None:
+            return False
+
+        symbols = token.symbols
+        if symbols is not None and symbol_name not in symbols:
+            return True
+        else:
+            return False
+
     def sequences(self):
         seq = self._sequences
         if seq is None:
-            seq = tuple(_sequences(self._leaves))
+            if self._no_symbol('System`Sequence'):
+                seq = tuple()
+            else:
+                seq = tuple(_sequences(self._leaves))
             self._sequences = seq
         return seq
 
@@ -763,6 +781,8 @@ class Expression(BaseExpression):
         return True
 
     def has_symbol(self, symbol_name):
+        if self._no_symbol(symbol_name):
+            return False
         return self._head.has_symbol(symbol_name) or any(
             leaf.has_symbol(symbol_name) for leaf in self._leaves)
 
@@ -938,6 +958,8 @@ class Expression(BaseExpression):
 
     def flatten(self, head, pattern_only=False, callback=None, level=None):
         if level is not None and level <= 0:
+            return self
+        if self._no_symbol(head.get_name()):
             return self
         sub_level = None if level is None else level - 1
         do_flatten = False
@@ -1344,8 +1366,10 @@ class Expression(BaseExpression):
         # TODO: should use sorting
         head_name = ensure_context(head_name)
 
-        return [leaf for leaf in self._leaves
-                if leaf.get_head_name() == head_name]
+        if self._no_symbol(head_name):
+            return []
+        else:
+            return [leaf for leaf in self._leaves if leaf.get_head_name() == head_name]
 
     def apply_rules(self, rules, evaluation, level=0, options=None):
         """for rule in rules:
