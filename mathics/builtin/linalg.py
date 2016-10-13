@@ -432,6 +432,129 @@ class LinearSolve(Builtin):
             return evaluation.message('LinearSolve', 'nosol')
 
 
+class FittedModel(Builtin):
+    rules = {
+        'FittedModel[x_List][s_String]': 's /. x',
+        'FittedModel[x_List][y_]': '("Function" /. x)[y]',
+
+        'MakeBoxes[FittedModel[x_List], f_]':
+            '''
+            RowBox[{"FittedModel[",
+                Replace[Temporary["BestFit" /. x, f], Temporary -> MakeBoxes, 1, Heads -> True],
+                "]"}]
+            ''',
+    }
+
+
+class DesignMatrix(Builtin):
+    """
+    <dl>
+    <dt>'DesignMatrix[$m$, $f$, $x$]'
+        <dd>returns the design matrix.
+    </dl>
+
+    >> DesignMatrix[{{2, 1}, {3, 4}, {5, 3}, {7, 6}}, x, x]
+     = {{1, 2}, {1, 3}, {1, 5}, {1, 7}}
+
+    >> DesignMatrix[{{2, 1}, {3, 4}, {5, 3}, {7, 6}}, f[x], x]
+     = {{1, f[2]}, {1, f[3]}, {1, f[5]}, {1, f[7]}}
+    """
+
+    rules = {
+        'DesignMatrix[m_, f_List, x_?AtomQ]': 'DesignMatrix[m, {f}, ConstantArray[x, Length[f]]]',
+
+        'DesignMatrix[m_, f_, x_?AtomQ]': 'DesignMatrix[m, {f}, {x}]',
+
+        'DesignMatrix[m_, f_List, x_List]':
+            'Prepend[MapThread[Function[{ff, xx, rr}, ff /. xx -> rr], {f, x, Most[#]}], 1]& /@ m',
+    }
+
+
+class LinearModelFit(Builtin):
+    """
+    <dl>
+    <dt>'LinearModelFit[$m$, $f$, $x$]'
+        <dd>returns the design matrix.
+    </dl>
+
+    >> m = LinearModelFit[{{2, 1}, {3, 4}, {5, 3}, {7, 6}}, x, x];
+    >> m["BasisFunctions"]
+     = {1, x}
+
+    >> m["BestFit"]
+     = 0.186441 + 0.779661 x
+
+    >> m["BestFitParameters"]
+     = {0.186441, 0.779661}
+
+    >> m["DesignMatrix"]
+     = {{1, 2}, {1, 3}, {1, 5}, {1, 7}}
+
+    >> m["Function"]
+     = 0.186441 + 0.779661 #1&
+
+    >> m["Response"]
+     = {1, 4, 3, 6}
+
+    >> m["FitResiduals"]
+     = {-0.745763, 1.47458, -1.08475, 0.355932}
+
+    >> m = LinearModelFit[{{2, 2, 1}, {3, 2, 4}, {5, 6, 3}, {7, 9, 6}}, {Sin[x], Cos[y]}, {x, y}];
+    >> m["BasisFunctions"]
+     = {1, Sin[x], Cos[y]}
+
+    >> m["Function"]
+     = 3.33077 - 5.65221 Cos[#2] - 5.01042 Sin[#1]&
+
+    >> m = LinearModelFit[{{{1, 4}, {1, 5}, {1, 7}}, {1, 2, 3}}];
+    >> m["BasisFunctions"]
+     = {#1, #2}
+
+    >> m["FitResiduals"]
+     = {-0.142857, 0.214286, -0.0714286}
+    """
+
+    # see the paper "Regression by linear combination of basis functions" by Risi Kondor for a good
+    # summary of the math behind this
+
+    rules = {
+        'LinearModelFit[data_, f_, x_?AtomQ]':
+            'LinearModelFit[data, {f}, {x}]',
+
+        'LinearModelFit[data_, f_List, x_List] /; Length[f] == Length[x]':
+            '''
+            LinearModelFit[{DesignMatrix[data, f, x], Part[data, ;;, -1]},
+                Prepend[MapThread[#1 /. #2 -> #3&, {f, x, Table[Slot[i], {i, Length[f]}]}], 1],
+                "BasisFunctions" -> Prepend[f, 1], "NumberOfSlots" -> Length[f]]
+            ''',
+
+        'LinearModelFit[{m_?MatrixQ, v_}, f_, options___]':  # f is a Slot[] version of BasisFunctions
+            '''
+            Module[{m1 = N[m], v1 = N[v], bf = "BasisFunctions" /. Join[{options}, {"BasisFunctions" -> f}]},
+                Module[{t1 = Transpose[m1], n = "NumberOfSlots" /. Join[{options}, {"NumberOfSlots" -> Length[f]}]},
+                    Module[{parameters = Dot[Dot[Inverse[Dot[t1, m1]], t1], v1]},
+                        Module[{function = Replace[Temporary[Total[f * parameters]],
+                            Temporary -> Function, 1, Heads -> True], (* work around Function's Hold *)},
+                            FittedModel[{
+                                "BasisFunctions" -> bf,
+                                "BestFit" -> Total[bf * parameters],
+                                "BestFitParameters" -> parameters,
+                                "DesignMatrix" -> m,
+                                "Function" -> function,
+                                "Response" -> v,
+                                "FitResiduals" -> MapThread[#2 - (function @@ Take[#1, -n])&, {m1, v1}]
+                            }]
+                        ]
+                    ]
+                ]
+            ]
+            ''',
+
+        'LinearModelFit[{m_?MatrixQ, v_}]':
+            'LinearModelFit[{m, v}, Table[Slot[i], {i, Length[First[m]]}]]',
+    }
+
+
 class NullSpace(Builtin):
     """
     <dl>

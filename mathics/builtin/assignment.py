@@ -174,13 +174,6 @@ class _SetOperator(object):
                 # TODO: Message
                 return False
             ignore_protection = True
-        elif lhs_name == 'System`$OutputSizeLimit':
-            if rhs.to_python() == float('inf'):
-                rhs = Symbol('System`Infinity')
-            elif rhs_int_value is None or rhs_int_value <= 0:
-                evaluation.message(lhs_name, 'intnn', rhs)
-                return False
-            ignore_protection = True
         elif lhs_name == 'System`$ModuleNumber':
             if not rhs_int_value or rhs_int_value <= 0:
                 evaluation.message('$ModuleNumber', 'set', rhs)

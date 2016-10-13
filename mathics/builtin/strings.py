@@ -1210,33 +1210,38 @@ class StringRepeat(Builtin):
 
     >> StringRepeat["abc", 10, 7]
      = abcabca
+
+    #> StringRepeat["x", 0]
+     : A positive integer is expected at position 2 in StringRepeat[x, 0].
+     = StringRepeat[x, 0]
     """
 
     messages = {
         'intp': 'A positive integer is expected at position `1` in `2`.',
     }
 
-    def apply(self, s, n, evaluation):
+    def apply(self, s, n, expression, evaluation):
         'StringRepeat[s_String, n_]'
         py_n = n.get_int_value() if isinstance(n, Integer) else 0
         if py_n < 1:
-            evaluation.message('StringRepeat', 'intp', 2, Expression('StringRepeat', s, n))
-        return String(s.get_string_value() * py_n)
+            evaluation.message('StringRepeat', 'intp', 2, expression)
+        else:
+            return String(s.get_string_value() * py_n)
 
-    def apply_truncated(self, s, n, m, evaluation):
+    def apply_truncated(self, s, n, m, expression, evaluation):
         'StringRepeat[s_String, n_Integer, m_Integer]'
         py_n = n.get_int_value() if isinstance(n, Integer) else 0
         py_m = m.get_int_value() if isinstance(m, Integer) else 0
 
         if py_n < 1:
-            evaluation.message('StringRepeat', 'intp', 2, Expression('StringRepeat', s, n, m))
-        if py_m < 1:
-            evaluation.message('StringRepeat', 'intp', 3, Expression('StringRepeat', s, n, m))
+            evaluation.message('StringRepeat', 'intp', 2, expression)
+        elif py_m < 1:
+            evaluation.message('StringRepeat', 'intp', 3, expression)
+        else:
+            py_s = s.get_string_value()
+            py_n = min(1 + py_m // len(py_s), py_n)
 
-        py_s = s.get_string_value()
-        py_n = min(1 + py_m // len(py_s), py_n)
-
-        return String((py_s * py_n)[:py_m])
+            return String((py_s * py_n)[:py_m])
 
 
 class Characters(Builtin):
@@ -1587,6 +1592,10 @@ class ToCharacterCode(Builtin):
         return from_python(codes)
 
 
+class _InvalidCodepointError(ValueError):
+    pass
+
+
 class FromCharacterCode(Builtin):
     """
     <dl>
@@ -1662,9 +1671,6 @@ class FromCharacterCode(Builtin):
         "FromCharacterCode[n_]"
         exp = Expression('FromCharacterCode', n)
 
-        class InvalidCodepointError(ValueError):
-            pass
-
         def convert_codepoint_list(l, encoding=None):
             if encoding is not None:
                 raise NotImplementedError
@@ -1676,7 +1682,7 @@ class FromCharacterCode(Builtin):
                     evaluation.message(
                         'FromCharacterCode', 'notunicode',
                         Expression('List', *l), Integer(i + 1))
-                    raise InvalidCodepointError
+                    raise _InvalidCodepointError
                 s += unichr(pyni)
 
             return s
@@ -1705,7 +1711,7 @@ class FromCharacterCode(Builtin):
                     return evaluation.message(
                         'FromCharacterCode', 'intnm', exp, Integer(1))
                 return String(convert_codepoint_list([n]))
-        except InvalidCodepointError:
+        except _InvalidCodepointError:
             return
 
         assert False, "can't get here"
@@ -2152,3 +2158,55 @@ class DamerauLevenshteinDistance(_StringDistance):
 
     def _distance(self, s1, s2, same):
         return _levenshtein_like_or_border_cases(s1, s2, same, _damerau_levenshtein)
+
+
+class RemoveDiacritics(Builtin):
+    """
+    <dl>
+    <dt>'RemoveDiacritics[$s$]'
+        <dd>returns a version of $s$ with all diacritics removed.
+    </dl>
+
+    >> RemoveDiacritics["en prononçant pêcher et pécher"]
+     = en prononcant pecher et pecher
+
+    >> RemoveDiacritics["piñata"]
+     = pinata
+    """
+
+    def apply(self, s, evaluation):
+        'RemoveDiacritics[s_String]'
+        return String(unicodedata.normalize(
+            'NFKD', s.get_string_value()).encode('ascii', 'ignore').decode('ascii'))
+
+
+class Transliterate(Builtin):
+    """
+    <dl>
+    <dt>'Transliterate[$s$]'
+        <dd>transliterates a text in some script into an ASCII string.
+    </dl>
+
+    # The following examples were taken from
+    # https://en.wikipedia.org/wiki/Iliad,
+    # https://en.wikipedia.org/wiki/Russian_language, and
+    # https://en.wikipedia.org/wiki/Hiragana
+
+    >> Transliterate["μήτηρ γάρ τέ μέ φησι θεὰ Θέτις ἀργυρόπεζα"]
+     = meter gar te me phesi thea Thetis arguropeza
+
+    >> Transliterate["Алекса́ндр Пу́шкин"]
+     = Aleksandr Pushkin
+
+    >> Transliterate["つかう"]
+     = tsukau
+    """
+
+    requires = (
+        'unidecode',
+    )
+
+    def apply(self, s, evaluation):
+        'Transliterate[s_String]'
+        from unidecode import unidecode
+        return String(unidecode(s.get_string_value()))
