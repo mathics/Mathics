@@ -805,21 +805,6 @@ class Definition(Builtin):
 
 
 
-
-
-
-def information_interpret_doc_string(ds):
-    # TODO: work a little bit the interpretation
-    ds = ds.split("\n")
-    out = ""
-    for s in ds:
-        if s[0:6]=="    >>":
-            # If we reach the test section, stop the loop.
-            break
-        out = out + "\n" + s
-    return out
-
-
 def _get_usage_string(symbol,evaluation):
     '''
     Returns a python string with the documentation associated to a given symbol.
