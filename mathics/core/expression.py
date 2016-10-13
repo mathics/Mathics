@@ -78,7 +78,7 @@ class ExpressionPointer(object):
         if self.position == 0:
             self.parent.set_head(new)
         else:
-            self.parent.set_leaves(self.position - 1, new)
+            self.parent.set_leaf(self.position - 1, new)
 
     def __str__(self) -> str:
         return '%s[[%s]]' % (self.parent, self.position)
@@ -554,7 +554,7 @@ class Expression(BaseExpression):
 
     @head.setter
     def head(self, value):
-        raise ValueError('Expression.head is write protected. Use set_head().')
+        raise ValueError('Expression.head is write protected.')
 
     @property
     def leaves(self):
@@ -562,7 +562,7 @@ class Expression(BaseExpression):
 
     @leaves.setter
     def leaves(self, value):
-        raise ValueError('Expression.leaves is write protected. Use set_leaves().')
+        raise ValueError('Expression.leaves is write protected.')
 
     def slice(self, head, py_slice, evaluation):
         # faster equivalent to: Expression(head, *self.leaves[py_slice])
@@ -591,7 +591,7 @@ class Expression(BaseExpression):
     def _no_symbol(self, symbol_name):
         # if this return True, it's safe to say that self.leaves or its
         # sub leaves contain no Symbol with symbol_name. if this returns
-        # False however, such a Symbol might sitll exist.
+        # False, such a Symbol might or might not exist.
 
         token = self._token
         if token is None:
@@ -746,7 +746,7 @@ class Expression(BaseExpression):
     def get_mutable_leaves(self):  # shallow, mutable copy of the leaves array
         return list(self._leaves)
 
-    def set_leaves(self, index, value):  # leaves are removed, added or replaced
+    def set_leaf(self, index, value):  # leaves are removed, added or replaced
         leaves = list(self._leaves)
         leaves[index] = value
         self._leaves = tuple(leaves)
@@ -1069,6 +1069,8 @@ class Expression(BaseExpression):
 
         def rest_range(indices):
             if 'System`HoldAllComplete' not in attributes:
+                if self._no_symbol('System`Evaluate'):
+                    return
                 for index in indices:
                     leaf = leaves[index]
                     if leaf.has_form('Evaluate', 1):

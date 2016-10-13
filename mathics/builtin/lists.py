@@ -269,11 +269,11 @@ def set_part(list, indices, new):
                 raise PartDepthError
             try:
                 if pos > 0:
-                    cur.set_leaves(pos - 1, new)
+                    cur.set_leaf(pos - 1, new)
                 elif pos == 0:
                     cur.set_head(new)
                 else:
-                    cur.set_leaves(pos, new)
+                    cur.set_leaf(pos, new)
             except IndexError:
                 raise PartRangeError
 
