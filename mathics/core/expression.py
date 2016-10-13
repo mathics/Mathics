@@ -679,7 +679,7 @@ class Expression(BaseExpression):
 
     def copy(self, reevaluate=False):
         expr = Expression(self._head.copy(reevaluate))
-        expr._leaves = [leaf.copy(reevaluate) for leaf in self._leaves]
+        expr._leaves = tuple(leaf.copy(reevaluate) for leaf in self._leaves)
         if not reevaluate:
             self._prepare_symbols()  # First[Timing[Fold[#1+#2&, Range[750]]]]
             expr._token = self._token
@@ -1045,7 +1045,7 @@ class Expression(BaseExpression):
             # rest_range(range(0, 0))
 
         new = Expression(head)
-        new._leaves = leaves
+        new._leaves = tuple(leaves)
 
         if ('System`SequenceHold' not in attributes and    # noqa
             'System`HoldAllComplete' not in attributes):
@@ -1067,7 +1067,7 @@ class Expression(BaseExpression):
 
             if dirty_leaves:
                 new = Expression(head)
-                new._leaves = dirty_leaves
+                new._leaves = tuple(dirty_leaves)
                 leaves = dirty_leaves
 
         def flatten_callback(new_leaves, old):
@@ -1128,7 +1128,7 @@ class Expression(BaseExpression):
 
         if dirty_leaves:
             new = Expression(head)
-            new._leaves = dirty_leaves
+            new._leaves = tuple(dirty_leaves)
 
         new.unformatted = self.unformatted
         new.update_token(evaluation)
