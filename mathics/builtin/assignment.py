@@ -830,7 +830,8 @@ def _get_usage_string(symbol,evaluation):
     from mathics.builtin import builtins
     bio = builtins.get(definition.name)
     if bio is not None:
-        usagetext = information_interpret_doc_string(bio.__class__.__doc__)
+        from mathics.doc import Doc
+        usagetext = Doc(bio.__class__.__doc__).__str__()
 
     # For built-in symbols, looks for a docstring.
 #    if symbol.function. is Builtin:            
