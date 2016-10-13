@@ -134,24 +134,57 @@ class KeyComparable(object):
 
 
 class EvaluationToken:
-    def __init__(self, time=None, symbols=None):
+    def __init__(self, time=None, symbols=None, sequences=None):
         self.time = time
         self.symbols = symbols
+        self.sequences = sequences
 
     def copy(self):
-        return EvaluationToken(self.time, self.symbols)
+        return EvaluationToken(self.time, self.symbols, self.sequences)
+
+    def sliced(self, lower, upper):
+        seq = self.sequences
+
+        if seq:
+            a = bisect_left(seq, lower)  # all(val >= i for val in seq[a:])
+            b = bisect_left(seq, upper)  # all(val >= j for val in seq[b:])
+            new_sequences = tuple(x - lower for x in seq[a:b])
+        elif seq is not None:
+            new_sequences = tuple()
+        else:
+            new_sequences = None
+
+        return EvaluationToken(self.time, self.symbols, new_sequences)
 
     def reordered(self):
-        return EvaluationToken(None, self.symbols)
+        sequences = self.sequences
+
+        # note that we do not touch sequences == [], which
+        # is fine even with reordered leaves.
+        if sequences:
+            sequences = None
+
+        return EvaluationToken(None, self.symbols, sequences)
 
     @staticmethod
-    def union(tokens, evaluation):
+    def union(expressions, evaluation):
         definitions = evaluation.definitions
-        for token in tokens:
-            if definitions.changed(token):
+
+        for expr in expressions:
+            if expr.changed(definitions):
                 return None
+
+        new_sequences = tuple()
+        for expr in expressions:
+            seq = expr._token.sequences
+            if seq is None or len(seq) > 0:
+                new_sequences = None
+                break
+
         return EvaluationToken(
-            definitions.now, set.union(*[token.symbols for token in tokens]))
+            definitions.now,
+            set.union(*[expr._token.symbols for expr in expressions]),
+            new_sequences)
 
 
 class BaseExpression(KeyComparable):
@@ -171,8 +204,8 @@ class BaseExpression(KeyComparable):
     def clear_token(self):
         self._token = None
 
-    def get_token(self):
-        return None
+    def changed(self, definitions):
+        return True
 
     def sequences(self):
         return None
@@ -528,12 +561,6 @@ class Monomial(object):
         return 0
 
 
-def _sequences(leaves):
-    for i, leaf in enumerate(leaves):
-        if leaf.get_head_name() == 'System`Sequence' or leaf.sequences():
-            yield i
-
-
 class Expression(BaseExpression):
     head: 'Symbol'
     leaves: typing.List[Any]
@@ -545,7 +572,6 @@ class Expression(BaseExpression):
             head = Symbol(head)
         self._head = head
         self._leaves = tuple(from_python(leaf) for leaf in leaves)
-        self._sequences = None
         return self
 
     @property
@@ -604,14 +630,13 @@ class Expression(BaseExpression):
             return False
 
     def sequences(self):
-        seq = self._sequences
-        if seq is None:
-            if self._no_symbol('System`Sequence'):
-                seq = tuple()
-            else:
-                seq = tuple(_sequences(self._leaves))
-            self._sequences = seq
-        return seq
+        token = self._token
+        if token:
+            seq = token.sequences
+            if seq is not None:
+                return seq
+
+        return self._inspect_symbols().sequences
 
     def _flatten_sequence(self, sequence, evaluation)-> 'Expression':
         indices = self.sequences()
@@ -654,64 +679,68 @@ class Expression(BaseExpression):
             expr.options = self.options
         return expr
 
-    def _prepare_symbols(self):
+    def _inspect_symbols(self):
         token = self._token
 
         if token is None:
             time = None
-        else:
-            sym = token.symbols
-            if sym is not None:
-                return token
+        elif token.symbols is None:
             time = token.time
+        elif token.sequences is None:
+            time = token.time
+        else:
+            return token
 
         sym = set((self.get_head_name(),))
+        seq = []
 
-        for leaf in self._leaves:
-            if isinstance(leaf, Symbol):
+        for i, leaf in enumerate(self._leaves):
+            if isinstance(leaf, Expression):
+                leaf_symbols = leaf._inspect_symbols().symbols
+                sym.update(leaf_symbols)
+                if 'System`Sequence' in leaf_symbols:
+                    seq.append(i)
+            elif isinstance(leaf, Symbol):
                 sym.add(leaf.get_name())
-            elif isinstance(leaf, Expression):
-                leaf_token = leaf._prepare_symbols()
-                sym.update(leaf_token.symbols)
 
-        token = EvaluationToken(time, sym)
+        token = EvaluationToken(time, sym, seq)
         self._token = token
         return token
 
-    def get_token(self):
-        # make sure that EvaluationToken is complete (i.e. has symbols).
-        # returns None if token does not exist or has no time.
-
+    def changed(self, definitions):
         token = self._token
 
         if token is None:
-            return None
+            return True
 
         time = token.time
 
         if time is None:
-            return None
+            return True
 
-        return self._prepare_symbols()
+        if token.symbols is None:
+            token = self._inspect_symbols()
+
+        return definitions.changed(time, token.symbols)
 
     def update_token(self, evaluation):
         token = self._token
 
         if token is None:
             sym = None
+            seq = None
         else:
             sym = token.symbols
+            seq = token.sequences
 
-        self._token = EvaluationToken(evaluation.definitions.now, sym)
+        self._token = EvaluationToken(evaluation.definitions.now, sym, seq)
 
 
     def copy(self, reevaluate=False) -> 'Expression':
         expr = Expression(self._head.copy(reevaluate))
         expr._leaves = tuple(leaf.copy(reevaluate) for leaf in self._leaves)
         if not reevaluate:
-            self._prepare_symbols()  # First[Timing[Fold[#1+#2&, Range[750]]]]
-            expr._token = self._token
-        expr._sequences = self._sequences
+            expr._token = self._inspect_symbols()  # First[Timing[Fold[#1+#2&, Range[750]]]]
         expr.options = self.options
         expr.original = self
         return expr
@@ -721,9 +750,7 @@ class Expression(BaseExpression):
         # the original, only the Expression instance is new.
         expr = Expression(self._head)
         expr._leaves = self._leaves
-        self._prepare_symbols()  # First[Timing[Fold[#1+#2&, Range[750]]]]
-        expr._token = self._token
-        expr._sequences = self._sequences
+        expr._token = self._inspect_symbols()  # First[Timing[Fold[#1+#2&, Range[750]]]]
         expr.options = self.options
         return expr
 
@@ -751,11 +778,9 @@ class Expression(BaseExpression):
         leaves[index] = value
         self._leaves = tuple(leaves)
         self._token = None
-        self._sequences = None
 
     def set_reordered_leaves(self, leaves):  # same leaves, but in a different order
         self._leaves = tuple(leaves)
-        self._sequences = None
         if self._token:
             self._token = self._token.reordered()
 
@@ -1024,7 +1049,7 @@ class Expression(BaseExpression):
         try:
             while reevaluate:
                 # changed before last evaluated?
-                if not definitions.changed(expr.get_token()):
+                if not expr.changed(definitions):
                     break
 
                 names.add(expr.get_lookup_name())
@@ -2570,9 +2595,6 @@ def _is_safe_head(head, cache, evaluation):
     return r
 
 
-_optimize_sequences = True  # more complex code, gains primarily for Partition[]
-
-
 class Structure:
     # performance test case: x = Range[50000]; First[Timing[Partition[x, 15, 1]]]
 
@@ -2587,7 +2609,7 @@ class Structure:
                 token = None
         elif isinstance(orig, (list, tuple)):
             if _is_safe_head(head, cache, evaluation):
-                token = EvaluationToken.union([expr.get_token() for expr in orig], evaluation)
+                token = EvaluationToken.union(orig, evaluation)
             else:
                 token = None
         else:
@@ -2600,7 +2622,8 @@ class Structure:
 
         expr = Expression(self.head)
         expr._leaves = tuple(leaves)
-        expr._token = self._token
+        if self._token:
+            expr._token = self._token.reordered()
         return expr
 
     def filter(self, expr, cond):
@@ -2615,16 +2638,7 @@ class Structure:
         if step != 1:
             raise ValueError('Structure.slice only supports slice steps of 1')
 
-        expr = self(leaves[lower:upper])
-
-        if _optimize_sequences:
-            seq = expr._sequences
-            if seq:
-                a = bisect_left(seq, lower)  # all(val >= i for val in seq[a:])
-                b = bisect_left(seq, upper)  # all(val >= j for val in seq[b:])
-
-                expr._sequences = tuple(x - lower for x in seq[a:b])  # (O2)
-            elif seq is not None:
-                expr._sequences = ()
-
-        return expr
+        new = self(leaves[lower:upper])
+        if expr._token:
+            new._token = expr._token.sliced(lower, upper)
+        return new

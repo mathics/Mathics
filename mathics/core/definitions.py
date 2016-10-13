@@ -204,16 +204,9 @@ class Definitions(object):
         for k in self.proxy.pop(tail, []):
             definitions_cache.pop(k, None)
 
-    def changed(self, token):
-        if token is None:
-            return True
-
-        maximum = token.time
-        if maximum is None:
-            return True
-
+    def changed(self, maximum, symbols):
         # timestamp for the most recently changed part of a given expression.
-        for name in token.symbols:
+        for name in symbols:
             symb = self.get_definition(name, only_if_exists=True)
             if symb is None:
                 # symbol doesn't exist so it was never changed
