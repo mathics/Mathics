@@ -3,9 +3,9 @@
 Begin["System`Convert`TableDump`"]
 
 
-ImportCSV[filename_String]:=
-    Module[{stream, data, grid},
-        stream = OpenRead[filename];
+ImportCSV[filename_String, opts:OptionsPattern[]]:=
+    Module[{stream, data, grid, sep = FilterRules[{opts}, System`FieldSeparators][[1]]},
+        stream = OpenRead @@ Join[{filename}, FilterRules[{opts}, System`CharacterEncoding]];
         data = StringSplit[#, ","]& /@ ReadList[stream, String];
         grid = Grid[data];
         Close[stream];

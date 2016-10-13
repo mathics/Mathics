@@ -1311,7 +1311,9 @@ class OptionsPattern(PatternObject):
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         if self.defaults is None:
-            self.defaults = kwargs['head']
+            self.defaults = kwargs.get('head')
+            if self.defaults is None:
+                self.defaults = Expression('List')
         values = self.defaults.get_option_values(
             evaluation, allow_symbols=True, stop_on_error=False)
         sequence = expression.get_sequence()

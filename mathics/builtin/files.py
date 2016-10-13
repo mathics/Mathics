@@ -116,9 +116,10 @@ def _lookup_stream(n=None):
 
 
 class mathics_open:
-    def __init__(self, name, mode='r'):
+    def __init__(self, name, mode='r', encoding=None):
         self.name = name
         self.mode = mode
+        self.encoding = encoding
 
         if mode not in ['r', 'w', 'a', 'rb', 'wb', 'ab']:
             raise ValueError("Can't handle mode {0}".format(mode))
@@ -132,7 +133,10 @@ class mathics_open:
             raise IOError
 
         # determine encoding
-        encoding = 'utf-8' if 'b' not in self.mode else None
+        if 'b' not in self.mode:
+            encoding = self.encoding
+        else:
+            encoding = None
 
         # open the stream
         stream = io.open(path, self.mode, encoding=encoding)
@@ -748,6 +752,8 @@ class Read(Builtin):
 
             except EOFError:
                 return Symbol('EndOfFile')
+            except UnicodeDecodeError:
+                evaluation.message('General', 'ucdec')
 
         if len(result) == 1:
             return from_python(*result)
@@ -1909,6 +1915,7 @@ class _OpenAction(Builtin):
 
     options = {
         'BinaryFormat': 'False',
+        'CharacterEncoding': '$CharacterEncoding',
     }
 
     messages = {
@@ -1954,7 +1961,11 @@ class _OpenAction(Builtin):
             path_string = tmp
 
         try:
-            opener = mathics_open(path_string, mode=mode)
+            encoding = options.get('System`CharacterEncoding')
+            if not isinstance(encoding, String):
+                return
+
+            opener = mathics_open(path_string, mode=mode, encoding=encoding.get_string_value())
             opener.__enter__()
             n = opener.n
         except IOError:
@@ -2843,6 +2854,9 @@ class ReadList(Read):
         while True:
             tmp = super(ReadList, self).apply(
                 channel, types, evaluation, options)
+
+            if tmp is None:
+                return
 
             if tmp == Symbol('$Failed'):
                 return

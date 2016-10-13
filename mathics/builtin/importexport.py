@@ -481,8 +481,17 @@ class Import(Builtin):
         'Import[filename_]': 'Import[filename, {}]',
     }
 
-    def apply(self, filename, elements, evaluation):
-        'Import[filename_, elements_]'
+    options = {
+        'CharacterEncoding': '$CharacterEncoding',
+        'FieldSeparators': '","',
+    }
+
+    def apply(self, filename, evaluation, options):
+        'Import[filename_, OptionsPattern[%(name)s]]'
+        return self.apply_elements(filename, Expression('List'), evaluation, options)
+
+    def apply_elements(self, filename, elements, evaluation, options):
+        'Import[filename_, elements_List, OptionsPattern[%(name)s]]'
 
         # Check filename
         path = filename.to_python()
@@ -505,10 +514,10 @@ class Import(Builtin):
             return Expression('FileFormat', findfile).evaluate(
                 evaluation=evaluation).get_string_value()
 
-        return self._import(findfile, determine_filetype, elements, evaluation)
+        return self._import(findfile, determine_filetype, elements, evaluation, options)
 
     @staticmethod
-    def _import(findfile, determine_filetype, elements, evaluation):
+    def _import(findfile, determine_filetype, elements, evaluation, options):
         # Check elements
         if elements.has_form('List', None):
             elements = elements.get_leaves()
@@ -548,11 +557,17 @@ class Import(Builtin):
             # TODO message
             return Symbol('$Failed')
 
+        def get_import_options():
+            yield Symbol('System`CharacterEncoding'), options.get('System`CharacterEncoding')
+            yield Symbol('System`FieldSeparators'), options.get('System`FieldSeparators')
+
+        import_options = [Expression('Rule', name, value) for name, value in get_import_options()]
+
         def get_results(tmp_function):
             if function_channels == Expression('List', String('FileNames')):
-                tmp = Expression(tmp_function, findfile).evaluate(evaluation)
+                tmp = Expression(tmp_function, findfile, *import_options).evaluate(evaluation)
             elif function_channels == Expression('List', String('Streams')):
-                stream = Expression('OpenRead', findfile).evaluate(evaluation)
+                stream = Expression('OpenRead', findfile, *import_options).evaluate(evaluation)
                 if stream.get_head_name() != 'System`InputStream':
                     evaluation.message('Import', 'nffil')
                     return None

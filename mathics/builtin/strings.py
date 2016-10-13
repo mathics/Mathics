@@ -18,7 +18,7 @@ import six
 from six.moves import range
 from six import unichr
 
-from mathics.builtin.base import BinaryOperator, Builtin, Test
+from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
 from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
 from mathics.builtin.lists import python_seq, convert_seq
@@ -242,6 +242,23 @@ def mathics_split(patt, string, flags):
 
     # slice up the string
     return [string[start:stop] for start, stop in indices]
+
+
+class CharacterEncoding(Predefined):
+    """
+    <dl>
+    <dt>'CharacterEncoding'
+        <dd>specifies the default character encoding to use if no other encoding is
+        specified.
+    </dl>
+    """
+
+    name = '$CharacterEncoding'
+    value = '"UTF-8"'
+
+    rules = {
+        '$CharacterEncoding': value,
+    }
 
 
 class StringExpression(BinaryOperator):
