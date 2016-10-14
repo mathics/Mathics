@@ -475,6 +475,8 @@ class Import(Builtin):
     = {{0.88, 0.60, 0.94}, {0.76, 0.19, 0.51}, {0.97, 0.04, 0.26}, {0.33, 0.74, 0.79}, {0.42, 0.64, 0.56}}
     #> Import["ExampleData/numberdata.csv"]
     = {{0.88, 0.60, 0.94}, {0.76, 0.19, 0.51}, {0.97, 0.04, 0.26}, {0.33, 0.74, 0.79}, {0.42, 0.64, 0.56}}
+    #> Import["ExampleData/numberdata.csv", "FieldSeparators" -> "."]
+    = {{0, 88,0, 60,0, 94}, {0, 76,0, 19,0, 51}, {0, 97,0, 04,0, 26}, {0, 33,0, 74,0, 79}, {0, 42,0, 64,0, 56}}
 
     ## Text
     >> Import["ExampleData/ExampleData.txt", "Elements"]
@@ -483,6 +485,8 @@ class Import(Builtin):
      = ...
     #> Import["ExampleData/Middlemarch.txt"];
      : An invalid unicode sequence was encountered and ignored.
+    #> StringTake[Import["ExampleData/Middlemarch.txt", CharacterEncoding -> "Latin-1"], {21, 69}]
+     = "Le sentiment de la fausseté des plaisirs présents"
 
     ## JSON
     >> Import["ExampleData/colors.json"]
@@ -715,6 +719,20 @@ class Export(Builtin):
     #> FilePrint[%]
      | 1 + x + y
     #> DeleteFile[%%]
+
+    #> Export["abc.txt", "ä", CharacterEncoding -> "Latin-1"];
+    #> strm = OpenRead["abc.txt", BinaryFormat -> True];
+    #> BinaryRead[strm]
+     = 228
+    #> Close[strm];
+    #> DeleteFile["abc.txt"];
+
+    #> Export["abc.txt", "ä", CharacterEncoding -> "UTF-8"];
+    #> strm = OpenRead["abc.txt", BinaryFormat -> True];
+    #> BinaryRead[strm]
+     = 195
+    #> Close[strm];
+    #> DeleteFile["abc.txt"];
 
     ## CSV
     #> Export["abc.csv", {{1, 2, 3}, {4, 5, 6}}]
