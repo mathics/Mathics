@@ -833,41 +833,40 @@ class Information(PrefixOperator):
     'Information' does not print information for 'ReadProtected' symbols.
     'Information' uses 'InputForm' to format values.
 
-
-
-    >> ?? Plus
-     |
-     |
-     |    <dl>
-     |    <dt>'Plus[$a$, $b$, ...]'</dt>
-     |    <dt>$a$ + $b$ + ...</dt>
-     |    <dd>represents the sum of the terms $a$, $b$, ...
-     |    </dl>
-     = Null
-
-    >> Information[Integrate]
-     |
-     |
-     |    <dl>
-     |    <dt>'Integrate[$f$, $x$]'
-     |    <dd>integrates $f$ with respect to $x$. The result does not contain the additive integration constant.
-     |    <dt>'Integrate[$f$, {$x$, $a$, $b$}]'
-     |    <dd>computes the definite integral of $f$ with respect to $x$ from $a$ to $b$.
-     |    </dl>
-     | 
-     |    Integrate a polynomial:
-     = Null
+     
 
     >> a = 2;
     >> Information[a]
      = Null
+     | a = 2
+
+    >> ?? a
+     = Null
+     | a = 2
    
     >> F[x_] := x^2
     >> F::usage = "F[x] evaluates the square of x."
+     = F[x] evaluates the square of x.
     >> H[F[y_,u_]]^:=F[H[y],u]
     >> Information[F]
-     |F[x] evaluates the square of x
      = Null
+     | F[x] evaluates the square of x.
+     | F[x_] = x^2
+     | H[F[y_, u_]] ^= F[H[y], u]
+
+
+    >> ?? Print
+     = Null
+    | <dl>
+    |              <dt>'Print[$expr$, ...]'
+    |                  <dd>prints each $expr$ in string form.
+    |              </dl>
+    |  Print["Hello world!"]
+    |    Print["The answer is ", 7 * 6, "."]
+    |    Print["\[Mu]"]
+    |    Print["μ"]
+    | Attributes[Print] = {Protected}
+ 
     """
     operator="??"
     precedence=0
