@@ -9,7 +9,7 @@ Options[CSVExport] = {
 
 CSVExport[filename_String, data_, opts:OptionsPattern[]]:=
     Module[{strm, char, wraplist, sep = "FieldSeparators" /. {opts}},
-        strm = OpenWrite[filename];
+        strm = OpenWrite @@ Join[{filename}, FilterRules[{opts}, "CharacterEncoding"]];
         If[strm === $Failed, Return[$Failed]];
         wraplist[x_] := If[Head[x] === List, x, {x}];
         char = Map[ToString, wraplist /@ wraplist[data], {2}];

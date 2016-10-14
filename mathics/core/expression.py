@@ -343,7 +343,7 @@ class BaseExpression(KeyComparable):
                         continue
                 name = option.leaves[0].get_name()
                 if not name and isinstance(option.leaves[0], String):
-                    name = '"%s"' % option.leaves[0].get_string_value()
+                    name = ensure_context(option.leaves[0].get_string_value())
                 if not name:
                     if stop_on_error:
                         return None

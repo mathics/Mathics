@@ -4,7 +4,8 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from mathics.builtin.base import BinaryOperator, Predefined, PrefixOperator
+from mathics.builtin.base import BinaryOperator, Predefined, PrefixOperator, Builtin
+from mathics.builtin.lists import InvalidLevelspecError, python_levelspec, walk_levels
 from mathics.core.expression import Expression, Symbol
 
 
@@ -137,3 +138,70 @@ class False_(Predefined):
     </dl>
     """
     name = 'False'
+
+
+class _ShortCircuit(Exception):
+    def __init__(self, result):
+        self.result = result
+
+
+class _ManyTrue(Builtin):
+    rules = {
+        '%(name)s[list_List, test_]': '%(name)s[list, test, 1]',
+        '%(name)s[test_][list_List]': '%(name)s[list, test]',
+    }
+
+    def _short_circuit(self, what):
+        raise NotImplementedError
+
+    def _no_short_circuit(self):
+        raise NotImplementedError
+
+    def apply(self, expr, test, level, evaluation):
+        '%(name)s[expr_, test_, level_]'
+
+        try:
+            start, stop = python_levelspec(level)
+        except InvalidLevelspecError:
+            evaluation.message('Level', 'level', level)
+            return
+
+        def callback(node):
+            self._short_circuit(Expression(
+                test, node).evaluate(evaluation).is_true())
+            return node
+
+        try:
+            walk_levels(expr, start, stop, callback=callback)
+        except _ShortCircuit as e:
+            return e.result
+
+        return self._no_short_circuit()
+
+
+class NoneTrue(_ManyTrue):
+    def _short_circuit(self, what):
+        if what:
+            raise _ShortCircuit(Symbol('False'))
+
+    def _no_short_circuit(self):
+        return Symbol('True')
+
+
+class AnyTrue(_ManyTrue):
+    def _short_circuit(self, what):
+        if what:
+            raise _ShortCircuit(Symbol('True'))
+
+    def _no_short_circuit(self):
+        return Symbol('False')
+
+
+class AllTrue(_ManyTrue):
+    def _short_circuit(self, what):
+        if not what:
+            raise _ShortCircuit(Symbol('False'))
+
+    def _no_short_circuit(self):
+        return Symbol('True')
+

@@ -2,10 +2,13 @@
 
 Begin["System`Convert`TextDump`"]
 
+Options[TextExport] = {
+    "CharacterEncoding" :> $CharacterEncoding
+};
 
-TextExport[filename_, expr_, opts___] := 
-  Module[{strm, data}, 
-    strm = OpenWrite[filename];
+TextExport[filename_, expr_, opts:OptionsPattern[]] :=
+  Module[{strm, data},
+    strm = OpenWrite @@ Join[{filename}, FilterRules[{opts}, "CharacterEncoding"]];
     If[strm === $Failed, Return[$Failed]];
     data = ToString[expr];
     WriteString[strm, data];
@@ -16,7 +19,7 @@ ImportExport`RegisterExport[
     "Text",
 	System`Convert`TextDump`TextExport,
 	FunctionChannels -> {"FileNames"},
-	Options -> {"ByteOrderMark"},
+	Options -> {"CharacterEncoding", "ByteOrderMark"},
 	DefaultElement -> "Plaintext",
 	BinaryFormat -> True
 ]

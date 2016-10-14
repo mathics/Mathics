@@ -190,13 +190,18 @@ class Builtin(object):
                 else:
                     yield (pattern, function)
 
-    def get_option(self, options, name, evaluation, pop=False):
-        name = ensure_context(name)
-        value = options.pop(name, None) if pop else options.get(name)
-        if value is not None:
-            return value.evaluate(evaluation)
-        else:
-            return None
+    @staticmethod
+    def get_option(options, name, evaluation, pop=False):
+        for context in ('System`%s', 'Global`%s', '"%s"'):
+            resolved_name = context % name
+            if resolved_name in options:
+                value = options.pop(resolved_name, None) if pop else options.get(resolved_name)
+                if value is not None:
+                    return value.evaluate(evaluation)
+                else:
+                    return None
+
+        return None
 
     def _get_unavailable_function(self):
         requires = getattr(self, 'requires', [])

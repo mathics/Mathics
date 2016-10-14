@@ -248,6 +248,39 @@ class NotOptionQ(Test):
                        for e in expr)
 
 
+class FilterRules(Builtin):
+    """
+    <dl>
+    <dt>'FilterRules[$rules$, $pattern$]'
+        <dd>gives those $rules$ that have a left side that matches $pattern$.
+    <dt>'FilterRules[$rules$, {$pattern1$, $pattern2$, ...}]'
+        <dd>gives those $rules$ that have a left side that match at least one of $pattern1$, $pattern2$, ...
+    </dl>
+
+    >> FilterRules[{x -> 100, y -> 1000}, x]
+     = {x -> 100}
+
+    >> FilterRules[{x -> 100, y -> 1000, z -> 10000}, {a, b, x, z}]
+     = {x -> 100, z -> 10000}
+    """
+
+    rules = {
+        'FilterRules[rules_List, patterns_List]': 'FilterRules[rules, Alternatives @@ patterns]',
+    }
+
+    def apply(self, rules, pattern, evaluation):
+        'FilterRules[rules_List, pattern_]'
+        from mathics.builtin.patterns import Matcher
+        match = Matcher(pattern).match
+
+        def matched():
+            for rule in rules.leaves:
+                if rule.has_form('Rule', 2) and match(rule.leaves[0], evaluation):
+                    yield rule
+
+        return Expression('List', *list(matched()))
+
+
 def options_to_rules(options):
     items = sorted(six.iteritems(options))
     return [Expression('Rule', Symbol(name), value) for name, value in items]

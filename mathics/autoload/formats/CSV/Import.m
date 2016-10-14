@@ -10,7 +10,7 @@ Options[ImportCSV] = {
 
 ImportCSV[filename_String, opts:OptionsPattern[]]:=
     Module[{stream, data, grid, sep = "FieldSeparators" /. {opts}},
-        stream = OpenRead @@ Join[{filename}, {} (* FilterRules[{opts}, "CharacterEncoding"] *)  ];
+        stream = OpenRead @@ Join[{filename}, FilterRules[{opts}, "CharacterEncoding"]];
         data = StringSplit[#, sep]& /@ ReadList[stream, String];
         grid = Grid[data];
         Close[stream];
