@@ -236,6 +236,12 @@ class Parser(object):
     # Called with one Token and return a Node.
     # Used for prefix operators and brackets.
 
+    def p_PatternTest(self,token):
+       self.consume()
+       q = prefix_ops['Definition']
+       child = self.parse_exp(q)
+       return Node('Definition',child)
+
     def p_Factorial(self, token):
         self.consume()
         q = prefix_ops['Not']

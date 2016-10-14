@@ -68,6 +68,7 @@ tokens = [
     ('SqrtBox', r' \\\@ '),
     ('FormBox', r' \\\` '),
 
+#    ('Definition', r'\?'),
     ('PatternTest', r' \? '),
     ('Increment', r' \+\+ '),
     ('Decrement', r' \-\- '),
@@ -208,7 +209,7 @@ tokens = [
     ('Backslash', r' \u2216 '),
 
     ('Information', r'\?\?'),
-    ('Definition', r'\?'),
+
 ]
 
 
@@ -233,7 +234,7 @@ literal_tokens = {
     '<': ['Get', 'StringJoin', 'LessEqual', 'Less'],
     '=': ['SameQ', 'UnsameQ', 'Equal', 'Unset', 'Set'],
     '>': ['PutAppend', 'Put', 'GreaterEqual', 'Greater'],
-    '?': ['Information', 'Definition','PatternTest'],
+    '?': ['Information', 'PatternTest'],
     '@': ['ApplyList', 'Apply', 'Composition', 'Prefix'],
     '[': ['RawLeftBracket'],
     '\\': ['LeftRowBox', 'RightRowBox', 'InterpretedBox', 'SuperscriptBox',
