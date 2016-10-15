@@ -294,22 +294,10 @@ class Evaluation(object):
         return result
 
     def get_stored_result(self, result):
-        from mathics.core.expression import Symbol
-
         # Remove outer format
         if result.has_form(FORMATS, 1):
             result = result.leaves[0]
 
-        # Prevent too large results from being stored, as this can exceed the
-        # DB's max_allowed_packet size
-        max_stored_size = self.output.max_stored_size(settings)
-        if max_stored_size is not None:
-            try:
-                data = pickle.dumps(result)
-                if len(data) > max_stored_size:
-                    return Symbol('Null')
-            except (ValueError, pickle.PicklingError):
-                return Symbol('Null')
         return result
 
     def stop(self):

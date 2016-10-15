@@ -17,16 +17,14 @@ from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.models import User
 
-from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation, Message, Result, Output
+from mathics.core.evaluation import Message, Result
 
-from mathics.web.models import Query, Worksheet
+from mathics.web.models import Query, Worksheet, get_session_evaluation
 from mathics.web.forms import LoginForm, SaveForm
 from mathics.doc import documentation
 from mathics.doc.doc import DocPart, DocChapter, DocSection
 import six
 from six.moves import range
-from string import Template
 
 if settings.DEBUG:
     JSON_CONTENT_TYPE = 'text/html'
@@ -45,18 +43,12 @@ class JsonResponse(HttpResponse):
         super(JsonResponse, self).__init__(response, content_type=JSON_CONTENT_TYPE)
 
 
-class WebOutput(Output):
-    pass
-
-
 def require_ajax_login(func):
     def new_func(request, *args, **kwargs):
         if not request.user.is_authenticated():
             return JsonResponse({'requireLogin': True})
         return func(request, *args, **kwargs)
     return new_func
-
-definitions = Definitions(add_builtin=True)
 
 
 def require_ajax_login(f):
@@ -105,9 +97,7 @@ def query(request):
                           )
         query_log.save()
 
-    user_definitions = request.session.get('definitions')
-    definitions.set_user_definitions(user_definitions)
-    evaluation = Evaluation(definitions, format='xml', output=WebOutput())
+    evaluation = get_session_evaluation(request.session)
     feeder = MultiLineFeeder(input, '<notebook>')
     results = []
     try:
@@ -131,7 +121,6 @@ def query(request):
     result = {
         'results': [result.get_data() for result in results],
     }
-    request.session['definitions'] = definitions.get_user_definitions()
 
     if settings.LOG_QUERIES:
         query_log.timeout = evaluation.timeout
@@ -235,10 +224,7 @@ Your password is: %s\n\nYours,\nThe Mathics team""" % password)
 
 
 def logout(request):
-    # Remember user definitions
-    user_definitions = request.session.get('definitions', {})
     auth.logout(request)
-    request.session['definitions'] = user_definitions
     return JsonResponse()
 
 
