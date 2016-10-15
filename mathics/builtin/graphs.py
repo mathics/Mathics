@@ -14,7 +14,7 @@ from __future__ import division
 from mathics.builtin.base import Builtin, AtomBuiltin
 from mathics.builtin.graphics import GraphicsBox
 from mathics.builtin.randomnumbers import RandomEnv
-from mathics.core.expression import Expression, Symbol, Atom, Real, Integer, system_symbols_dict, from_python
+from mathics.core.expression import Expression, Symbol, Atom, Real, Integer, String, system_symbols_dict, from_python
 from mathics.core.util import robust_min
 
 from itertools import permutations, islice
@@ -261,8 +261,22 @@ class _NetworkXBuiltin(Builtin):
 
 
 class GraphBox(GraphicsBox):
+    def _graphics_box(self, leaves, options):
+        evaluation = options['evaluation']
+        graph, form = leaves
+        primitives = graph._layout(evaluation)
+        graphics = Expression('Graphics', primitives)
+        graphics_box = Expression('MakeBoxes', graphics, form).evaluate(evaluation)
+        return graphics_box
+
     def boxes_to_text(self, leaves, **options):
         return '-Graph-'
+
+    def boxes_to_xml(self, leaves, **options):
+        return self._graphics_box(leaves, options).boxes_to_xml(**options)
+
+    def boxes_to_tex(self, leaves, **options):
+        return self._graphics_box(leaves, options).boxes_to_tex(**options)
 
 
 class _Collection(object):
@@ -805,10 +819,7 @@ class Graph(Atom):
         return Expression('List', *list(boxes(grid)))
 
     def atom_to_boxes(self, form, evaluation):
-        primitives = self._layout(evaluation)
-        graphics = Expression('Graphics', primitives)
-        graphics_box = Expression('MakeBoxes', graphics, form).evaluate(evaluation)
-        return Expression('GraphBox', *graphics_box.leaves)
+        return Expression('GraphBox', self, form)
 
     def get_property(self, item, name):
         if item.get_head_name() in ('System`DirectedEdge', 'System`UndirectedEdge'):
