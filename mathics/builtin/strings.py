@@ -1647,13 +1647,7 @@ class ToCharacterCode(Builtin):
         'strse': 'String or list of strings expected at position `1` in `2`.',
     }
 
-    rules = {
-        'ToCharacterCode[string_]': 'ToCharacterCode[string, $CharacterEncoding]',
-    }
-
-    def apply(self, string, encoding, evaluation):
-        "ToCharacterCode[string_, encoding_String]"
-
+    def _encode(self, string, encoding, evaluation):
         exp = Expression('ToCharacterCode', string)
 
         if string.has_form('List', None):
@@ -1668,14 +1662,18 @@ class ToCharacterCode(Builtin):
                 evaluation.message('ToCharacterCode', 'strse', Integer(1), exp)
                 return None
 
-        py_encoding = to_python_encoding(encoding.get_string_value())
-        if py_encoding is None:
-            evaluation.message('General', 'charcode', encoding)
-            return
+        if encoding == 'Unicode':
+            def convert(s):
+                return [ord(code) for code in s]
+        else:
+            py_encoding = to_python_encoding(encoding)
+            if py_encoding is None:
+                evaluation.message('General', 'charcode', encoding)
+                return
 
-        def convert(s):
-            bytes = s.encode(py_encoding)
-            return [int(code) for code in bytes]
+            def convert(s):
+                bytes = s.encode(py_encoding)
+                return [int(code) for code in bytes]
 
         if isinstance(string, list):
             codes = [convert(substring) for substring in string]
@@ -1683,6 +1681,14 @@ class ToCharacterCode(Builtin):
             codes = convert(string)
 
         return from_python(codes)
+
+    def apply_default(self, string, evaluation):
+        "ToCharacterCode[string_]"
+        return self._encode(string, 'Unicode', evaluation)
+
+    def apply(self, string, encoding, evaluation):
+        "ToCharacterCode[string_, encoding_String]"
+        return self._encode(string, encoding.get_string_value(), evaluation)
 
 
 class _InvalidCodepointError(ValueError):
@@ -1764,21 +1770,16 @@ class FromCharacterCode(Builtin):
         'utf8': 'The given codes could not be decoded as utf-8.',
     }
 
-    rules = {
-        'FromCharacterCode[n_]': 'FromCharacterCode[n, "Unicode"]',
-    }
-
-    def apply(self, n, encoding, evaluation):
-        "FromCharacterCode[n_, encoding_String]"
+    def _decode(self, n, encoding, evaluation):
         exp = Expression('FromCharacterCode', n)
 
-        py_encoding = to_python_encoding(encoding.get_string_value())
+        py_encoding = to_python_encoding(encoding)
         if py_encoding is None:
             evaluation.message('General', 'charcode', encoding)
             return
 
         def convert_codepoint_list(l):
-            if py_encoding == 'utf_16':
+            if encoding == 'Unicode':
                 s = ''
                 for i, ni in enumerate(l):
                     pyni = ni.get_int_value()
@@ -1824,6 +1825,14 @@ class FromCharacterCode(Builtin):
             return
 
         assert False, "can't get here"
+
+    def apply_default(self, n, evaluation):
+        "FromCharacterCode[n_]"
+        return self._decode(n, 'Unicode', evaluation)
+
+    def apply(self, n, encoding, evaluation):
+        "FromCharacterCode[n_, encoding_String]"
+        return self._decode(n, encoding.get_string_value(), evaluation)
 
 
 class StringQ(Test):
