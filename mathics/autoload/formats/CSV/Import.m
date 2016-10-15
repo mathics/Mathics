@@ -8,9 +8,9 @@ Options[ImportCSV] = {
     "FieldSeparators" -> ","
 };
 
-ImportCSV[filename_String, opts:OptionsPattern[]]:=
-    Module[{stream, data, grid, sep = "FieldSeparators" /. {opts}},
-        stream = OpenRead @@ Join[{filename}, FilterRules[{opts}, "CharacterEncoding"]];
+ImportCSV[filename_String, OptionsPattern[]]:=
+    Module[{stream, data, grid, sep = OptionValue["FieldSeparators"]},
+        stream = OpenRead[filename, CharacterEncoding -> OptionValue["CharacterEncoding"]];
         data = StringSplit[#, sep]& /@ ReadList[stream, String];
         grid = Grid[data];
         Close[stream];

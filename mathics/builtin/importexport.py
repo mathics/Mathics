@@ -514,8 +514,12 @@ class Import(Builtin):
         'Import[filename_, OptionsPattern[]]'
         return self.apply_elements(filename, Expression('List'), evaluation, options)
 
+    def apply_element(self, filename, element, evaluation, options={}):
+        'Import[filename_, element_String, OptionsPattern[]]'
+        return self.apply_elements(filename, Expression('List', element), evaluation, options)
+
     def apply_elements(self, filename, elements, evaluation, options={}):
-        'Import[filename_, elements_List, OptionsPattern[]]'
+        'Import[filename_, elements_List?AllTrue[#, NotOptionQ]&, OptionsPattern[]]'
 
         # Check filename
         path = filename.to_python()
@@ -777,7 +781,7 @@ class Export(Builtin):
             'Export[filename, expr, {elems}]'),
     }
 
-    def apply_noelems(self, filename, expr, evaluation, options={}):
+    def apply(self, filename, expr, evaluation, options={}):
         "Export[filename_, expr_, OptionsPattern[]]"
 
         # Check filename
@@ -791,9 +795,13 @@ class Export(Builtin):
             evaluation.message('Export', 'infer', filename)
             return Symbol('$Failed')
         else:
-            return self.apply(filename, expr, String(form), evaluation, options)
+            return self.apply_elements(filename, expr, String(form), evaluation, options)
 
-    def apply(self, filename, expr, elems, evaluation, options={}):
+    def apply_element(self, filename, expr, element, evaluation, options={}):
+        'Export[filename_, expr_, element_String, OptionsPattern[]]'
+        return self.apply_elements(filename, expr, Expression('List', element), evaluation, options)
+
+    def apply_elements(self, filename, expr, elems, evaluation, options={}):
         "Export[filename_, expr_, elems_List?AllTrue[#, NotOptionQ]&, OptionsPattern[]]"
 
         # Check filename

@@ -6,9 +6,9 @@ Options[TextExport] = {
     "CharacterEncoding" :> $CharacterEncoding
 };
 
-TextExport[filename_, expr_, opts:OptionsPattern[]] :=
+TextExport[filename_, expr_, OptionsPattern[]] :=
   Module[{strm, data},
-    strm = OpenWrite @@ Join[{filename}, FilterRules[{opts}, "CharacterEncoding"]];
+    strm = OpenWrite[filename, CharacterEncoding -> OptionValue["CharacterEncoding"]];
     If[strm === $Failed, Return[$Failed]];
     data = ToString[expr];
     WriteString[strm, data];

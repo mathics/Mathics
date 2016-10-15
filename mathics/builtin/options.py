@@ -11,7 +11,7 @@ from __future__ import absolute_import
 import six
 
 from mathics.builtin.base import Builtin, Test
-from mathics.core.expression import Symbol, Expression, get_default_value
+from mathics.core.expression import Symbol, Expression, get_default_value, ensure_context
 from mathics.builtin.image import Image
 
 
@@ -33,6 +33,11 @@ class Options(Builtin):
      = x ^ 2
     >> f[x, n -> 3]
      = x ^ 3
+
+    #> f[x_, OptionsPattern[f]] := x ^ OptionValue["m"];
+    #> Options[f] = {"m" -> 7};
+    #> f[x]
+     = x ^ 7
 
     Delayed option rules are evaluated just when the corresponding 'OptionValue' is called:
     >> f[a :> Print["value"]] /. f[OptionsPattern[{}]] :> (OptionValue[a]; Print["between"]; OptionValue[a]);
@@ -127,6 +132,10 @@ class OptionValue(Builtin):
         if evaluation.options is None:
             return
         name = symbol.get_name()
+        if not name:
+            name = symbol.get_string_value()
+            if name:
+                name = ensure_context(name)
         if not name:
             evaluation.message('OptionValue', 'sym', symbol, 1)
             return
