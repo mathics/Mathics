@@ -20,7 +20,7 @@ Additional contributions were made by:
 - Yingjie Lan @lanyjie
 - @limeblack
 - Martin Portman @mportman
-- @mmatera
+- Mauricio Matera @mmatera
 - Marek Šuppa @mrshu
 - Marco Savelli @Piruzzolo
 - Toshiyuki Ogura @ogra
