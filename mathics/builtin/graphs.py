@@ -840,7 +840,7 @@ class Graph(Atom):
 
     def coalesced_graph(self, evaluation):
         if isinstance(self.G, (nx.DiGraph, nx.Graph)):
-            return self.G
+            return self.G, 'WEIGHT'
 
         new_edges = defaultdict(lambda: 0)
         for u, v, data in self.G.edges_iter(data=True):
@@ -949,7 +949,7 @@ def _create_graph(new_edges, new_edge_properties, options, from_graph=None):
             multigraph[0] = True
 
     edge_weights = _edge_weights(options)
-    use_directed_edges = options.get('System`DirectedEdges').is_true()
+    use_directed_edges = options.get('System`DirectedEdges', Symbol('True')).is_true()
 
     directed_edge_head = Symbol('DirectedEdge' if use_directed_edges else 'UndirectedEdge')
     undirected_edge_head = Symbol('UndirectedEdge')
@@ -1297,7 +1297,7 @@ class LoopFreeGraphQ(_NetworkXBuiltin):
 class DirectedGraphQ(_NetworkXBuiltin):
     '''
     >> g = Graph[{1 -> 2, 2 -> 3}]; DirectedGraphQ[g]
-     = False
+     = True
 
     >> g = Graph[{1 -> 2, 2 <-> 3}]; DirectedGraphQ[g]
      = False
@@ -1451,7 +1451,7 @@ class WeaklyConnectedComponents(_NetworkXBuiltin):
         'WeaklyConnectedComponents[graph_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
-            vertices_sorted = graph.vertices_sorted()
+            vertices_sorted = graph.vertices.get_sorted()
             return Expression(
                 'List',
                 *[Expression('List', *vertices_sorted(c)) for c in
@@ -1808,7 +1808,7 @@ class EigenvectorCentrality(_ComponentwiseCentrality):
     >> g = Graph[{a <-> b, b <-> c, a <-> c, d <-> e, e <-> f, f <-> d, e <-> d}]; EigenvectorCentrality[g]
      = {0.166667, 0.166667, 0.166667, 0.183013, 0.183013, 0.133975}
 
-    >> g = Graph[{a - > b, b -> c, c -> d, b -> e, a -> e}]; EigenvectorCentrality[g]
+    >> g = Graph[{a -> b, b -> c, c -> d, b -> e, a -> e}]; EigenvectorCentrality[g]
      = {0.166667, 0.166667, 0.166667, 0.183013, 0.183013, 0.133975}
 
     >> g = Graph[{a -> b, b -> c, c -> d, b -> e, a -> e, c -> a}]; EigenvectorCentrality[g]
@@ -2023,7 +2023,7 @@ class CompleteGraph(_NetworkXBuiltin):
 
     #> CompleteGraph[0]
      : Expected a positive integer at position 1 in CompleteGraph[0].
-     = CompleteGraph[8]
+     = CompleteGraph[0]
     '''
 
     messages = {
