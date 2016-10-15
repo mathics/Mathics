@@ -1620,6 +1620,7 @@ class General(Builtin):
         'write': "Tag `1` in `2` is Protected.",
         'wrsym': "Symbol `1` is Protected.",
         'ucdec': "An invalid unicode sequence was encountered and ignored.",
+        'charcode': 'The character encoding `1` is not supported. Use $CharacterEncodings to list supported encodings.',
 
         # Self-defined messages
         # 'rep': "`1` is not a valid replacement rule.",

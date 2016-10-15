@@ -1313,6 +1313,10 @@ class OptionsPattern(PatternObject):
         if self.defaults is None:
             self.defaults = kwargs.get('head')
             if self.defaults is None:
+                # we end up here with OptionsPattern that do not have any
+                # default options defined, e.g. with this code:
+                # f[x:OptionsPattern[]] := x; f["Test" -> 1]
+                # set self.defaults to an empty List, so we don't crash.
                 self.defaults = Expression('List')
         values = self.defaults.get_option_values(
             evaluation, allow_symbols=True, stop_on_error=False)

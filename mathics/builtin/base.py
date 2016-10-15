@@ -192,14 +192,21 @@ class Builtin(object):
 
     @staticmethod
     def get_option(options, name, evaluation, pop=False):
-        for context in ('System`%s', 'Global`%s', '"%s"'):
-            resolved_name = context % name
-            if resolved_name in options:
-                value = options.pop(resolved_name, None) if pop else options.get(resolved_name)
-                if value is not None:
-                    return value.evaluate(evaluation)
-                else:
-                    return None
+        # we do not care, whether an option X is given as
+        # System`X, Global`X, or "X". we always handle it
+        # as the same option. this matches Wolfram Language
+        # behaviour.
+
+        for variant in ('System`%s', 'Global`%s', '"%s"'):
+            resolved_name = variant % name
+
+            if pop:
+                value = options.pop(resolved_name, None)
+            else:
+                value = options.get(resolved_name)
+
+            if value is not None:
+                return value.evaluate(evaluation)
 
         return None
 

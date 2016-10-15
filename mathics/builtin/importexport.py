@@ -485,7 +485,7 @@ class Import(Builtin):
      = ...
     #> Import["ExampleData/Middlemarch.txt"];
      : An invalid unicode sequence was encountered and ignored.
-    #> StringTake[Import["ExampleData/Middlemarch.txt", CharacterEncoding -> "Latin-1"], {21, 69}]
+    #> StringTake[Import["ExampleData/Middlemarch.txt", CharacterEncoding -> "ISO8859-1"], {21, 69}]
      = "Le sentiment de la fausseté des plaisirs présents"
 
     ## JSON

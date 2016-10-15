@@ -180,6 +180,23 @@ class _ManyTrue(Builtin):
 
 
 class NoneTrue(_ManyTrue):
+    """
+    <dl>
+    <dt>'NoneTrue[{$expr1$, $expr2$, ...}, $test$]'
+        <dd>returns True if no application of $test$ to $expr1$, $expr2$, ... evaluates to True.
+    <dt>'NoneTrue[$list$, $test$, $level$]'
+        <dd>returns True if no application of $test$ to items of $list$ at $level$ evaluates to True.
+    <dt>'NoneTrue[$test$]'
+        <dd>gives an operator that may be applied to expressions.
+    </dl>
+
+    >> NoneTrue[{1, 3, 5}, EvenQ]
+     = True
+
+    >> NoneTrue[{1, 4, 5}, EvenQ]
+     = False
+    """
+
     def _short_circuit(self, what):
         if what:
             raise _ShortCircuit(Symbol('False'))
@@ -189,6 +206,23 @@ class NoneTrue(_ManyTrue):
 
 
 class AnyTrue(_ManyTrue):
+    """
+    <dl>
+    <dt>'AnyTrue[{$expr1$, $expr2$, ...}, $test$]'
+        <dd>returns True if any application of $test$ to $expr1$, $expr2$, ... evaluates to True.
+    <dt>'AnyTrue[$list$, $test$, $level$]'
+        <dd>returns True if any application of $test$ to items of $list$ at $level$ evaluates to True.
+    <dt>'AnyTrue[$test$]'
+        <dd>gives an operator that may be applied to expressions.
+    </dl>
+
+    >> AnyTrue[{1, 3, 5}, EvenQ]
+     = False
+
+    >> AnyTrue[{1, 4, 5}, EvenQ]
+     = True
+    """
+
     def _short_circuit(self, what):
         if what:
             raise _ShortCircuit(Symbol('True'))
@@ -198,6 +232,22 @@ class AnyTrue(_ManyTrue):
 
 
 class AllTrue(_ManyTrue):
+    """
+    <dl>
+    <dt>'AllTrue[{$expr1$, $expr2$, ...}, $test$]'
+        <dd>returns True if all applications of $test$ to $expr1$, $expr2$, ... evaluate to True.
+    <dt>'AllTrue[$list$, $test$, $level$]'
+        <dd>returns True if all applications of $test$ to items of $list$ at $level$ evaluate to True.
+    <dt>'AllTrue[$test$]'
+        <dd>gives an operator that may be applied to expressions.
+    </dl>
+
+    >> AllTrue[{2, 4, 6}, EvenQ]
+     = True
+
+    >> AllTrue[{2, 4, 7}, EvenQ]
+     = False
+    """
     def _short_circuit(self, what):
         if not what:
             raise _ShortCircuit(Symbol('False'))
