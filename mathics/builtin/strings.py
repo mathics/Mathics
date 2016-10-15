@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import sys
+from sys import version_info
 import re
 import unicodedata
 from binascii import hexlify, unhexlify
@@ -242,6 +243,22 @@ def mathics_split(patt, string, flags):
 
     # slice up the string
     return [string[start:stop] for start, stop in indices]
+
+
+if version_info >= (3, 0):
+    def pack_bytes(codes):
+        return bytes(codes)
+
+    def unpack_bytes(codes):
+        return [int(code) for code in codes]
+else:
+    from struct import pack, unpack
+
+    def pack_bytes(codes):
+        return pack('B' * len(codes), *codes)
+
+    def unpack_bytes(codes):
+        return unpack('B' * len(codes), codes)
 
 
 class CharacterEncoding(Predefined):
@@ -1664,7 +1681,7 @@ class ToCharacterCode(Builtin):
 
         if encoding == 'Unicode':
             def convert(s):
-                return [ord(code) for code in s]
+                return Expression('List', *[Integer(ord(code)) for code in s])
         else:
             py_encoding = to_python_encoding(encoding)
             if py_encoding is None:
@@ -1672,15 +1689,12 @@ class ToCharacterCode(Builtin):
                 return
 
             def convert(s):
-                bytes = s.encode(py_encoding)
-                return [int(code) for code in bytes]
+                return Expression('List', *[Integer(x) for x in unpack_bytes(s.encode(py_encoding))])
 
         if isinstance(string, list):
-            codes = [convert(substring) for substring in string]
+            return Expression('List', *[convert(substring) for substring in string])
         elif isinstance(string, six.string_types):
-            codes = convert(string)
-
-        return from_python(codes)
+            return convert(string)
 
     def apply_default(self, string, evaluation):
         "ToCharacterCode[string_]"
@@ -1792,7 +1806,7 @@ class FromCharacterCode(Builtin):
                 return s
             else:
                 codes = [x.get_int_value() & 0xff for x in l]
-                return bytes(codes).decode(py_encoding)
+                return pack_bytes(codes).decode(py_encoding)
 
         try:
             if n.has_form('List', None):
@@ -1821,7 +1835,7 @@ class FromCharacterCode(Builtin):
         except _InvalidCodepointError:
             return
         except UnicodeDecodeError:
-            evaluation.message(self.get_name(), 'utf-8')
+            evaluation.message(self.get_name(), 'utf8')
             return
 
         assert False, "can't get here"
