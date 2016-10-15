@@ -124,7 +124,7 @@ class Implies(BinaryOperator):
     """
     <dl>
     <dt>'Implies[$expr1$, $expr2$]'
-    <dt>'$expr1$ && $expr2$'
+    <dt>'$expr1$ \u21D2 $expr2$'
         <dd>evaluates each expression in turn, returning 'True'
         as soon as the first expression evaluates to 'False'. If the
         first expression evaluates to 'True', 'Implies' returns the
@@ -145,13 +145,18 @@ class Implies(BinaryOperator):
     operator = '\u21D2'
     precedence = 200
     attributes = ('HoldAll', 'OneIdentity')
-    narg = 2
     grouping = 'Right'
 
-    rules = {
-        'Implies[False, x_]': 'True',
-        'Implies[True, x_]': 'x',
-    }
+    def apply(self, x, y, evaluation):
+        'Implies[x_, y_]'
+
+        result0 = x.evaluate(evaluation)
+        if result0 == Symbol('False'):
+            return Symbol('True')
+        elif result0.is_true():
+            return y.evaluate(evaluation)
+        else:
+            return Expression('Implies', result0, y.evaluate(evaluation))
 
 
 class Equivalent(BinaryOperator):
@@ -183,7 +188,6 @@ class Equivalent(BinaryOperator):
         'Equivalent[args___]'
 
         args = args.get_sequence()
-        leaves = []
         flag = False
         for arg in args:
             result = arg.evaluate(evaluation)
