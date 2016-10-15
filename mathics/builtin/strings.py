@@ -1762,7 +1762,6 @@ class FromCharacterCode(Builtin):
             'Non-negative machine-sized integer expected at '
             'position `2` in `1`.'),
         'utf8': 'The given codes could not be decoded as utf-8.',
-        'code': 'The given codes could not be decoded as `1`.',
     }
 
     rules = {
@@ -1791,10 +1790,7 @@ class FromCharacterCode(Builtin):
                     s += unichr(pyni)
                 return s
             else:
-                codes = [x.get_int_value() for x in l]
-                if not all(0 <= code <= 255 for code in codes):
-                    evaluation.message('FromCharacterCode', 'code', encoding)
-                    raise _InvalidCodepointError
+                codes = [x.get_int_value() & 0xff for x in l]
                 return bytes(codes).decode(py_encoding)
 
         try:
