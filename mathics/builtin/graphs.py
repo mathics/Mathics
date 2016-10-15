@@ -106,7 +106,7 @@ def _auto_layout(G, warn):
 
 
 def _components(G):
-    if isinstance(G, (nx.MultiDiGraph, nx.DiGraph)):
+    if G.is_directed():
         return nx.strongly_connected_components(G)
     else:
         return nx.connected_components(G)
@@ -462,7 +462,7 @@ class Graph(Atom):
         vertex_index = self.vertices.get_index()
 
         multigraph = self.is_multigraph()
-        directed = isinstance(G, (nx.MultiDiGraph, nx.DiGraph))
+        directed = G.is_directed()
 
         edges = self.edges.clone()
         new_edges = list(_normalize_edges(new_edges))
@@ -504,7 +504,7 @@ class Graph(Atom):
 
     def delete_edges(self, edges_to_delete):
         G = self.G.copy()
-        directed = isinstance(G, (nx.MultiDiGraph, nx.DiGraph))
+        directed = G.is_directed()
 
         edges_to_delete = list(_normalize_edges(edges_to_delete))
         edges_to_delete = self.edges.filter(edges_to_delete)
@@ -862,7 +862,7 @@ class Graph(Atom):
                 w = 1
             new_edges[(u, v)] += w
 
-        if isinstance(self.G, nx.MultiDiGraph):
+        if self.G.is_directed():
             new_graph = nx.DiGraph()
         else:
             new_graph = nx.Graph()
@@ -872,12 +872,17 @@ class Graph(Atom):
 
         return new_graph, 'WEIGHT'
 
+    def sort_vertices(self, vertices):
+        # sort the given vertices in the graphs order
+        index = self.vertices.get_index()
+        return [v for _, v in sorted([(index[v], v) for v in vertices])]
+
 
 def _is_connected(G):
     if len(G) == 0:  # empty graph?
         return True
-    if isinstance(G, (nx.MultiDiGraph, nx.DiGraph)):
-        return sum(1 for _ in (islice(nx.strongly_connected_components(G), 2))) == 1
+    elif G.is_directed():
+        return nx.is_strongly_connected(G)
     else:
         return nx.is_connected(G)
 
@@ -1005,8 +1010,8 @@ def _create_graph(new_edges, new_edge_properties, options, from_graph=None):
                 attr_dict = {} if attr_dict is None else attr_dict.copy()
                 attr_dict['System`EdgeWeight'] = w
                 yield attr_dict
-            for _ in range(len(new_edge_properties) - len(edge_weights)):
-                yield None
+            for attr_dict in new_edge_properties[len(edge_weights):]:
+                yield attr_dict
 
         for edge, attr_dict in zip(new_edges, full_new_edge_properties()):
             parse_edge(edge, attr_dict)
@@ -1152,10 +1157,17 @@ class PathGraph(_NetworkXBuiltin):
 
 class PathGraphQ(_NetworkXBuiltin):
     '''
-    >> PathGraphQ[{1 -> 2, 2 -> 3}]
+    >> PathGraphQ[Graph[{1 -> 2, 2 -> 3}]]
      = True
-
-    >> PathGraphQ[{1 -> 2, 2 -> 3, 2 -> 4}]
+    #> PathGraphQ[Graph[{1 -> 2, 2 -> 3, 3 -> 1}]]
+     = True
+    #> PathGraphQ[Graph[{1 <-> 2, 2 <-> 3}]]
+     = True
+    >> PathGraphQ[Graph[{1 -> 2, 2 <-> 3}]]
+     = False
+    >> PathGraphQ[Graph[{1 -> 2, 3 -> 2}]]
+     = False
+    >> PathGraphQ[Graph[{1 -> 2, 2 -> 3, 2 -> 4}]]
      = False
 
     #> PathGraphQ[Graph[{}]]
@@ -1164,26 +1176,37 @@ class PathGraphQ(_NetworkXBuiltin):
      = False
     #> PathGraphQ[Graph[{1 -> 2, 2 -> 1}]]
      = True
+    #> PathGraphQ[Graph[{1 -> 2, 2 -> 3, 2 -> 3}]]
+     = True
     #> PathGraphQ[Graph[{}]]
      = False
     #> PathGraphQ["abc"]
+     = False
+    #> PathGraphQ[{1 -> 2, 2 -> 3}]
      = False
     '''
 
     def apply(self, graph, expression, evaluation, options):
         'PathGraphQ[graph_, OptionsPattern[%(name)s]]'
-        graph = self._build_graph(graph, evaluation, options, expression, quiet=True)
-        if graph:
-            if graph.empty():
-                is_path = False
-            else:
-                G = graph.G
-                is_path = _is_connected(G)
-                if is_path:
-                    is_path = all(d <= 2 for d in G.degree(graph.vertices.expressions).values())
-            return Symbol('True' if is_path else 'False')
-        else:
+        if not isinstance(graph, Graph):
             return Symbol('False')
+
+        if graph.empty():
+            is_path = False
+        else:
+            G = graph.G
+
+            if G.is_directed():
+                connected = nx.is_semiconnected(G)
+            else:
+                connected = nx.is_connected(G)
+
+            if connected:
+                is_path = all(d <= 2 for d in G.degree(graph.vertices.expressions).values())
+            else:
+                is_path = False
+
+        return Symbol('True' if is_path else 'False')
 
 
 class MixedGraphQ(_NetworkXBuiltin):
@@ -1324,7 +1347,7 @@ class DirectedGraphQ(_NetworkXBuiltin):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, expression, quiet=True)
         if graph:
-            directed = isinstance(graph.G, (nx.MultiDiGraph, nx.DiGraph)) and not graph.is_mixed_graph()
+            directed = graph.G.is_directed() and not graph.is_mixed_graph()
             return Symbol('True' if directed else 'False')
         else:
             return Symbol('False')
@@ -1337,6 +1360,12 @@ class ConnectedGraphQ(_NetworkXBuiltin):
 
     >> g = Graph[{1 -> 2, 2 -> 3, 3 -> 1}]; ConnectedGraphQ[g]
      = True
+
+    #> g = Graph[{1 -> 2, 2 -> 3, 2 -> 3, 3 -> 1}]; ConnectedGraphQ[g]
+     = True
+
+    #> g = Graph[{1 -> 2, 2 -> 3}]; ConnectedGraphQ[g]
+     = False
 
     >> g = Graph[{1 <-> 2, 2 <-> 3}]; ConnectedGraphQ[g]
      = True
@@ -1462,11 +1491,15 @@ class WeaklyConnectedComponents(_NetworkXBuiltin):
         'WeaklyConnectedComponents[graph_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
+            components = nx.connected_components(graph.G.to_undirected())
+
+            index = graph.vertices.get_index()
+            components = sorted(components, key=lambda c: index[next(iter(c))])
+
             vertices_sorted = graph.vertices.get_sorted()
-            return Expression(
-                'List',
-                *[Expression('List', *vertices_sorted(c)) for c in
-                  nx.connected_components(graph.G.to_undirected())])
+            result = [Expression('List', *vertices_sorted(c)) for c in components]
+
+            return Expression('List', *result)
 
 
 class FindVertexCut(_NetworkXBuiltin):
@@ -1485,7 +1518,7 @@ class FindVertexCut(_NetworkXBuiltin):
      = {2}
 
     >> g = Graph[{1 <-> 2, 2 <-> 3, 1 <-> x, x <-> 3}]; FindVertexCut[g]
-     = {x, 2}
+     = {2, x}
 
     #> FindVertexCut[Graph[{}]]
      = {}
@@ -1501,7 +1534,7 @@ class FindVertexCut(_NetworkXBuiltin):
             if graph.empty() or not _is_connected(graph.G):
                 return Expression('List')
             else:
-                return Expression('List', *nx.minimum_node_cut(graph.G))
+                return Expression('List', *graph.sort_vertices(nx.minimum_node_cut(graph.G)))
 
     def apply_st(self, graph, s, t, expression, evaluation, options):
         'FindVertexCut[graph_, s_, t_, OptionsPattern[%(name)s]]'
@@ -1514,11 +1547,10 @@ class FindVertexCut(_NetworkXBuiltin):
             evaluation.message(self.get_name(), 'inv', 2, expression)
         elif not G.has_node(t):
             evaluation.message(self.get_name(), 'inv', 3, expression)
-
-        if graph.empty() or not _is_connected(graph.G):
+        elif graph.empty() or not _is_connected(graph.G):
             return Expression('List')
         else:
-            return Expression('List', *nx.minimum_node_cut(G, s, t))
+            return Expression('List', *graph.sort_vertices(nx.minimum_node_cut(G, s, t)))
 
 
 class HighlightGraph(_NetworkXBuiltin):
@@ -1679,7 +1711,7 @@ class VertexConnectivity(_NetworkXBuiltin):
      = 0
 
     #> VertexConnectivity[Graph[{}]]
-     = EdgeConnectivity[-Graph-]
+     = VertexConnectivity[-Graph-]
     '''
 
     def apply(self, graph, expression, evaluation, options):
@@ -2097,7 +2129,7 @@ class VertexAdd(_NetworkXBuiltin):
      = -Graph-
     >> g3 = VertexAdd[g2, {5, 10}]
      = -Graph-
-    >> VertexAdd[{a -> b}, c];
+    >> VertexAdd[{a -> b}, c]
      = -Graph-
     '''
 
@@ -2119,6 +2151,7 @@ class VertexDelete(_NetworkXBuiltin):
     >> VertexDelete[{a -> b, b -> c, c -> d, d -> a}, {a, c}]
      = -Graph-
     >> VertexDelete[{1 -> 2, 2 -> 3, 3 -> 4, 4 -> 6, 6 -> 8, 8 -> 2}, _?OddQ]
+     = -Graph-
     '''
 
     def apply(self, graph, what, expression, evaluation, options):
@@ -2136,7 +2169,7 @@ class VertexDelete(_NetworkXBuiltin):
             elif head_name == 'System`List':
                 return graph.delete_vertices(what.leaves)
             else:
-                return graph.add_edges([what])
+                return graph.delete_vertices([what])
 
 
 class EdgeAdd(_NetworkXBuiltin):
