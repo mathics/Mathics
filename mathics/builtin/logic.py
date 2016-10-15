@@ -131,12 +131,12 @@ class Implies(BinaryOperator):
         second expression.
     </dl>
 
-    >> True \u21D2 False
+    >> Implies[True, False]
      = False
 
     If an expression does not evaluate to 'True' or 'False', 'Implies'
     returns a result in symbolic form:
-    >> a \u21D2 b \u21D2 True \u21D2 c
+    >> Implies[a, Implies[b, Implies[True, c]]]
      = a \u21D2 b \u21D2 c
     """
 
@@ -161,14 +161,16 @@ class Equivalent(BinaryOperator):
          ($expr1$ && $expr2$ && ...) || (!$expr1$ && !$expr2$ && ...)
      </dl>
 
-     >> True \u21D4 True \u21D4 False
+     >> Equivalent[True, True, False]
       = False
 
      If all expressions do not evaluate to 'True' or 'False', 'Equivalent'
      returns a result in symbolic form:
-     >> a \u21D4 b \u21D4 True \u21D4 c
+     >> Equivalent[a, b, c]
       = a \u21D4 b \u21D4 c
-      Otherwise, 'Equivalent' returns a result in DNF.
+      Otherwise, 'Equivalent' returns a result in DNF
+      >> Equivalent[a, b, True, c]
+       = a && b && c
      """
 
     operator = '\u21D4'
@@ -207,7 +209,7 @@ class Xor(BinaryOperator):
 
     If an expression does not evaluate to 'True' or 'False', 'Xor'
     returns a result in symbolic form:
-    >> a \u22BB False \u22BB b]
+    >> Xor[a, False, b]
      = a \u22BB b
     """
 
