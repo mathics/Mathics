@@ -131,8 +131,10 @@ class Implies(BinaryOperator):
         second expression.
     </dl>
 
-    >> Implies[True, False]
-     = False
+    >> Implies[False, a]
+     = True
+    >> Implies[True, a]
+     = a
 
     If an expression does not evaluate to 'True' or 'False', 'Implies'
     returns a result in symbolic form:
