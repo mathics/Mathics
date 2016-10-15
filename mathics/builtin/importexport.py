@@ -486,7 +486,7 @@ class Import(Builtin):
     #> Import["ExampleData/Middlemarch.txt"];
      : An invalid unicode sequence was encountered and ignored.
     #> StringTake[Import["ExampleData/Middlemarch.txt", CharacterEncoding -> "ISO8859-1"], {21, 69}]
-     = "Le sentiment de la fausseté des plaisirs présents"
+     = Le sentiment de la fausseté des plaisirs présents
 
     ## JSON
     >> Import["ExampleData/colors.json"]
@@ -519,7 +519,7 @@ class Import(Builtin):
         return self.apply_elements(filename, Expression('List', element), evaluation, options)
 
     def apply_elements(self, filename, elements, evaluation, options={}):
-        'Import[filename_, elements_List?AllTrue[#, NotOptionQ]&, OptionsPattern[]]'
+        'Import[filename_, elements_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]'
 
         # Check filename
         path = filename.to_python()
@@ -802,7 +802,7 @@ class Export(Builtin):
         return self.apply_elements(filename, expr, Expression('List', element), evaluation, options)
 
     def apply_elements(self, filename, expr, elems, evaluation, options={}):
-        "Export[filename_, expr_, elems_List?AllTrue[#, NotOptionQ]&, OptionsPattern[]]"
+        "Export[filename_, expr_, elems_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]"
 
         # Check filename
         if not self._check_filename(filename, evaluation):
