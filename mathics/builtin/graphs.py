@@ -231,11 +231,11 @@ class _NetworkXBuiltin(Builtin):
 
     def _build_graph(self, graph, evaluation, options, expr, quiet=False):
         head = graph.get_head_name()
-        if head == 'System`Graph':
+        if head == 'System`Graph' and isinstance(graph, Atom):
             return graph
         elif head == 'System`List':
             return _graph_from_list(graph.leaves, options)
-        elif quiet == False:
+        elif not quiet:
             evaluation.message(self.get_name(), 'graph', expr)
 
     def _evaluate_atom(self, graph, options, compute):
@@ -839,7 +839,7 @@ class Graph(Atom):
         return weights
 
     def coalesced_graph(self, evaluation):
-        if isinstance(self.G, (nx.DiGraph, nx.Graph)):
+        if not isinstance(self.G, (nx.MultiDiGraph, nx.MultiGraph)):
             return self.G, 'WEIGHT'
 
         new_edges = defaultdict(lambda: 0)
@@ -856,8 +856,8 @@ class Graph(Atom):
         else:
             new_graph = nx.Graph()
 
-        # FIXME make sure vertex order is unchanged from self.G
-        new_graph.add_edges_from(((u, v, {'WEIGHT': w}) for (u, v), w in new_edges.items()))
+        new_graph.add_edges_from(
+            ((u, v, {'WEIGHT': w}) for (u, v), w in new_edges.items()))
 
         return new_graph, 'WEIGHT'
 
@@ -1473,8 +1473,8 @@ class FindVertexCut(_NetworkXBuiltin):
     >> g = Graph[{1 <-> 2, 2 <-> 3}]; FindVertexCut[g]
      = {2}
 
-    >> g = Graph[{1 <-> 2, 2 <-> 3, 1 <-> x, x <-> 3}, 1, 3]; FindVertexCut[g]
-     = {}
+    >> g = Graph[{1 <-> 2, 2 <-> 3, 1 <-> x, x <-> 3}]; FindVertexCut[g]
+     = {x, 2}
 
     #> FindVertexCut[Graph[{}]]
      = {}
@@ -1790,6 +1790,7 @@ class _ComponentwiseCentrality(_Centrality):
             if s > 0:
                 for i, x in enumerate(values):
                     result[i] += x / s
+
         return Expression('List', *[Real(x) for x in result])
 
 
@@ -1938,7 +1939,7 @@ class FindShortestPath(_NetworkXBuiltin):
      = {1, 3}
 
     #> FindShortestPath[{}, 1, 2]
-     : Vertex at position 2 in FindShortestPath[Graph[{}], 1, 2] must belong to the graph at position 1.
+     : Vertex at position 2 in FindShortestPath[{}, 1, 2] must belong to the graph at position 1.
      = FindShortestPath[{}, 1, 2]
 
     #> FindShortestPath[{1 -> 2}, 1, 3]
