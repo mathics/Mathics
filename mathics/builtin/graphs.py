@@ -1169,6 +1169,8 @@ class PathGraphQ(_NetworkXBuiltin):
      = False
     >> PathGraphQ[Graph[{1 -> 2, 2 -> 3, 2 -> 4}]]
      = False
+    >> PathGraphQ[Graph[{1 -> 2, 3 -> 2, 2 -> 4}]]
+     = False
 
     #> PathGraphQ[Graph[{}]]
      = False
@@ -1176,8 +1178,8 @@ class PathGraphQ(_NetworkXBuiltin):
      = False
     #> PathGraphQ[Graph[{1 -> 2, 2 -> 1}]]
      = True
-    #> PathGraphQ[Graph[{1 -> 2, 2 -> 3, 2 -> 3}]]
-     = True
+    >> PathGraphQ[Graph[{1 -> 2, 2 -> 3, 2 -> 3}]]
+     = False
     #> PathGraphQ[Graph[{}]]
      = False
     #> PathGraphQ["abc"]
@@ -1524,7 +1526,7 @@ class FindVertexCut(_NetworkXBuiltin):
      = {}
     #> FindVertexCut[Graph[{}], 1, 2]
      : Vertex at position 2 in FindVertexCut[Graph[{}], 1, 2] must belong to the graph at position 1.
-     = FindVertexCut[Graph[{}], 1, 2]
+     = FindVertexCut[-Graph-, 1, 2]
     '''
 
     def apply(self, graph, expression, evaluation, options):
@@ -1852,8 +1854,8 @@ class EigenvectorCentrality(_ComponentwiseCentrality):
     >> g = Graph[{a <-> b, b <-> c, a <-> c, d <-> e, e <-> f, f <-> d, e <-> d}]; EigenvectorCentrality[g]
      = {0.166667, 0.166667, 0.166667, 0.183013, 0.183013, 0.133975}
 
-    >> g = Graph[{a -> b, b -> c, c -> d, b -> e, a -> e}]; EigenvectorCentrality[g]
-     = {0.166667, 0.166667, 0.166667, 0.183013, 0.183013, 0.133975}
+    #> g = Graph[{a -> b, b -> c, c -> d, b -> e, a -> e}]; EigenvectorCentrality[g]
+     = {0., 0., 0., 0., 0.}
 
     >> g = Graph[{a -> b, b -> c, c -> d, b -> e, a -> e, c -> a}]; EigenvectorCentrality[g]
      = {0.333333, 0.333333, 0.333333, 0., 0.}
