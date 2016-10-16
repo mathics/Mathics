@@ -16,8 +16,9 @@ from mathics.builtin.graphics import GraphicsBox
 from mathics.builtin.randomnumbers import RandomEnv
 from mathics.core.expression import Expression, Symbol, Atom, Real, Integer, String, system_symbols_dict, from_python
 from mathics.core.util import robust_min
+from mathics.builtin.patterns import Matcher
 
-from itertools import permutations, islice
+from itertools import permutations
 from collections import defaultdict
 from math import sqrt, ceil
 
@@ -226,8 +227,14 @@ class _NetworkXBuiltin(Builtin):
 
     messages = {
         'graph': 'Expected a graph at position 1 in ``.',
-        'inv': 'Vertex at position `1` in `2` must belong to the graph at position 1.',
+        'inv': 'The `1` at position `2` in `3` does not belong to the graph at position 1.',
     }
+
+    def _not_a_vertex(self, expression, pos, evaluation):
+        evaluation.message(self.get_name(), 'inv', 'vertex', pos, expression)
+
+    def _not_an_edge(self, expression, pos, evaluation):
+        evaluation.message(self.get_name(), 'inv', 'edge', pos, expression)
 
     def _build_graph(self, graph, evaluation, options, expr, quiet=False):
         head = graph.get_head_name()
@@ -244,20 +251,6 @@ class _NetworkXBuiltin(Builtin):
             return compute(graph)
         elif head == 'System`List':
             return compute(_graph_from_list(graph.leaves, options))
-
-    def _evaluate(self, graph, options, compute):
-        head = graph.get_head_name()
-        if head == 'System`Graph':
-            return compute(graph.G)
-        elif head == 'System`List':
-            return compute(_graph_from_list(graph.leaves, options).G)
-        else:
-            evaluation.message(self.get_name(), 'graph', expr)
-
-    def _evaluate_to_list(self, graph, options, compute):
-        r = self._evaluate(graph, options, compute)
-        if r:
-            return Expression('List', *r)
 
 
 class GraphBox(GraphicsBox):
@@ -873,7 +866,7 @@ class Graph(Atom):
         return new_graph, 'WEIGHT'
 
     def sort_vertices(self, vertices):
-        # sort the given vertices in the graphs order
+        # sort the given vertices in the graph's natural order
         index = self.vertices.get_index()
         return [v for _, v in sorted([(index[v], v) for v in vertices])]
 
@@ -1525,7 +1518,7 @@ class FindVertexCut(_NetworkXBuiltin):
     #> FindVertexCut[Graph[{}]]
      = {}
     #> FindVertexCut[Graph[{}], 1, 2]
-     : Vertex at position 2 in FindVertexCut[Graph[{}], 1, 2] must belong to the graph at position 1.
+     : The vertex at position 2 in FindVertexCut[-Graph-, 1, 2] does not belong to the graph at position 1.
      = FindVertexCut[-Graph-, 1, 2]
     '''
 
@@ -1546,9 +1539,9 @@ class FindVertexCut(_NetworkXBuiltin):
 
         G = graph.G
         if not G.has_node(s):
-            evaluation.message(self.get_name(), 'inv', 2, expression)
+            self._not_a_vertex(expression, 2, evaluation)
         elif not G.has_node(t):
-            evaluation.message(self.get_name(), 'inv', 3, expression)
+            self._not_a_vertex(expression, 3, evaluation)
         elif graph.empty() or not _is_connected(graph.G):
             return Expression('List')
         else:
@@ -1635,6 +1628,9 @@ class VertexList(_PatternList):
 
     >> VertexList[{a -> c, c -> b}]
      = {a, c, b}
+
+    >> VertexList[{a -> c, 5 -> b}, _Integer -> 10]
+     = {10}
     '''
 
     def _items(self, graph):
@@ -1659,6 +1655,106 @@ class EdgeList(_PatternList):
 
     def _items(self, graph):
         return graph.edges.expressions
+
+
+class EdgeRules(_NetworkXBuiltin):
+    '''
+    >> EdgeRules[{1 <-> 2, 2 -> 3, 3 <-> 4}]
+     = {1 -> 2, 2 -> 3, 3 -> 4}
+    '''
+
+    def apply(self, graph, expression, evaluation, options):
+        '%(name)s[graph_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression)
+        if graph:
+            def rules():
+                for expr in graph.edges.expressions:
+                    u, v = expr.leaves
+                    yield Expression('Rule', u, v)
+            return Expression('List', *list(rules()))
+
+
+class AdjacencyList(_NetworkXBuiltin):
+    '''
+    >> AdjacencyList[{1 -> 2, 2 -> 3}, 3]
+     = {2}
+
+    >> AdjacencyList[{1 -> 2, 2 -> 3}, _?EvenQ]
+     = {1, 3}
+
+    >> AdjacencyList[{x -> 2, x -> 3, x -> 4, 2 -> 10, 2 -> 11, 4 -> 20, 4 -> 21, 10 -> 100}, 10, 2]
+     = {x, 2, 11, 100}
+    '''
+
+    def _retrieve(self, graph, what, neighbors, expression, evaluation):
+        from mathics.builtin import pattern_objects
+        if what.get_head_name() in pattern_objects:
+            collected = set()
+            match = Matcher(what).match
+            for v in graph.G.nodes_iter():
+                if match(v, evaluation):
+                    collected.update(neighbors(v))
+            return Expression('List', *graph.sort_vertices(list(collected)))
+        elif graph.G.has_node(what):
+            return Expression('List', *graph.sort_vertices(neighbors(what)))
+        else:
+            self._not_a_vertex(expression, 2, evaluation)
+
+    def apply(self, graph, what, expression, evaluation, options):
+        '%(name)s[graph_, what_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression)
+        if graph:
+            G = graph.G.to_undirected()  # FIXME inefficient
+            return self._retrieve(graph, what, lambda v: G.neighbors(v), expression, evaluation)
+
+    def apply_d(self, graph, what, d, expression, evaluation, options):
+        '%(name)s[graph_, what_, d_, OptionsPattern[%(name)s]]'
+        py_d = d.to_mpmath()
+        if py_d is None:
+            return
+
+        graph = self._build_graph(graph, evaluation, options, expression)
+        if graph:
+            G = graph.G
+
+            def neighbors(v):
+                return nx.ego_graph(G, v, radius=py_d, undirected=True, center=False).nodes()
+
+            return self._retrieve(graph, what, neighbors, expression, evaluation)
+
+
+class VertexIndex(_NetworkXBuiltin):
+    '''
+    >> VertexIndex[{c <-> d, d <-> a}, a]
+     = 3
+    '''
+
+    def apply(self, graph, v, expression, evaluation, options):
+        '%(name)s[graph_, v_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression)
+        if graph:
+            i = graph.vertices.get_index().get(v)
+            if i is None:
+                self._not_a_vertex(expression, 2, evaluation)
+            else:
+                return Integer(i + 1)
+
+
+class EdgeIndex(_NetworkXBuiltin):
+    '''
+    >> EdgeIndex[{c <-> d, d <-> a, a -> e}, d <-> a]
+     = 2
+    '''
+
+    def apply(self, graph, v, expression, evaluation, options):
+        '%(name)s[graph_, v_, OptionsPattern[%(name)s]]'
+        graph = self._build_graph(graph, evaluation, options, expression)
+        if graph:
+            i = graph.edges.get_index().get(v)
+            if i is None:
+                self._not_an_edge(expression, 2, evaluation)
+            else:
+                return Integer(i + 1)
 
 
 class EdgeConnectivity(_NetworkXBuiltin):
@@ -1984,11 +2080,11 @@ class FindShortestPath(_NetworkXBuiltin):
      = {1, 3}
 
     #> FindShortestPath[{}, 1, 2]
-     : Vertex at position 2 in FindShortestPath[{}, 1, 2] must belong to the graph at position 1.
+     : The vertex at position 2 in FindShortestPath[{}, 1, 2] does not belong to the graph at position 1.
      = FindShortestPath[{}, 1, 2]
 
     #> FindShortestPath[{1 -> 2}, 1, 3]
-     : Vertex at position 3 in FindShortestPath[{1 -> 2}, 1, 3] must belong to the graph at position 1.
+     : The vertex at position 3 in FindShortestPath[{1 -> 2}, 1, 3] does not belong to the graph at position 1.
      = FindShortestPath[{1 -> 2}, 1, 3]
     '''
 
@@ -1999,9 +2095,9 @@ class FindShortestPath(_NetworkXBuiltin):
             return
         G = graph.G
         if not G.has_node(s):
-            evaluation.message(self.get_name(), 'inv', 2, expression)
+            self._not_a_vertex(expression, 2, evaluation)
         elif not G.has_node(t):
-            evaluation.message(self.get_name(), 'inv', 3, expression)
+            self._not_a_vertex(expression, 3, evaluation)
         else:
             try:
                 weight = graph.update_weights(evaluation)
@@ -2028,10 +2124,10 @@ class GraphDistance(_NetworkXBuiltin):
      = {Infinity, Infinity, 0, 1}
 
     #> GraphDistance[{}, 1, 1]
-     : Vertex at position 2 in GraphDistance[{}, 1, 1] must belong to the graph at position 1.
+     : The vertex at position 2 in GraphDistance[{}, 1, 1] does not belong to the graph at position 1.
      = GraphDistance[{}, 1, 1]
     #> GraphDistance[{1 -> 2}, 3, 4]
-     : Vertex at position 2 in GraphDistance[{1 -> 2}, 3, 4] must belong to the graph at position 1.
+     : The vertex at position 2 in GraphDistance[{1 -> 2}, 3, 4] does not belong to the graph at position 1.
      = GraphDistance[{1 -> 2}, 3, 4]
     '''
 
@@ -2051,9 +2147,9 @@ class GraphDistance(_NetworkXBuiltin):
             return
         G = graph.G
         if not G.has_node(s):
-            evaluation.message(self.get_name(), 'inv', 2, expression)
+            self._not_a_vertex(expression, 2, evaluation)
         elif not G.has_node(t):
-            evaluation.message(self.get_name(), 'inv', 3, expression)
+            self._not_a_vertex(expression, 3, evaluation)
         else:
             try:
                 weight = graph.update_weights(evaluation)
@@ -2114,14 +2210,24 @@ def _convert_networkx_graph(G, options):
 
 
 class RandomGraph(_NetworkXBuiltin):
-    def apply_nm(self, n, m, expression, evaluation, options):
-        '%(name)s[{n_Integer, m_Integer}, OptionsPattern[%(name)s]]'
+    def _generate(self, n, m, k, evaluation, options):
         py_n = n.get_int_value()
         py_m = m.get_int_value()
+        py_k = k.get_int_value()
+
         with RandomEnv(evaluation) as rand:
-            seed = rand.randint(0, 2 ** 63 - 1)
-            G = nx.gnm_random_graph(py_n, py_m, seed=seed)
-            return _convert_networkx_graph(G, options)
+            for _ in range(py_k):
+                seed = rand.randint(0, 2 ** 63 - 1)
+                G = nx.gnm_random_graph(py_n, py_m, seed=seed)
+                yield _convert_networkx_graph(G, options)
+
+    def apply_nm(self, n, m, expression, evaluation, options):
+        '%(name)s[{n_Integer, m_Integer}, OptionsPattern[%(name)s]]'
+        return self._generate(n, m, Integer(1), evaluation, options)[0]
+
+    def apply_nm(self, n, m, k, expression, evaluation, options):
+        '%(name)s[{n_Integer, m_Integer}, k_Integer, OptionsPattern[%(name)s]]'
+        return Expression('List', *self._generate(n, m, k, evaluation, options))
 
 
 class VertexAdd(_NetworkXBuiltin):
