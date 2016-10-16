@@ -16,13 +16,13 @@ from mathics.core.evaluation import Evaluation, Output
 class WebOutput(Output):
     pass
 
-definitions = Definitions(add_builtin=True)
 _evaluations = {}
 
 
 def get_session_evaluation(session):
     evaluation = _evaluations.get(session.session_key)
     if evaluation is None:
+        definitions = Definitions(add_builtin=True)
         evaluation = Evaluation(
             definitions, format='xml', output=WebOutput())
         _evaluations[session.session_key] = evaluation
