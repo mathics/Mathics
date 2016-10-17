@@ -68,7 +68,7 @@ tokens = [
     ('SqrtBox', r' \\\@ '),
     ('FormBox', r' \\\` '),
 
-#    ('Definition', r'\?'),
+    ('Information', r'\?\?'),
     ('PatternTest', r' \? '),
     ('Increment', r' \+\+ '),
     ('Decrement', r' \-\- '),
@@ -207,9 +207,6 @@ tokens = [
     ('Therefore', r' \u2234 '),
     ('Because', r' \u2235 '),
     ('Backslash', r' \u2216 '),
-
-    ('Information', r'\?\?'),
-
 ]
 
 
@@ -351,9 +348,7 @@ class Tokeniser(object):
         if indices:
             for index in indices:
                 tag, pattern = self.tokens[index]
-
                 match = pattern.match(self.code, self.pos)
-
                 if match is not None:
                     break
         else:
