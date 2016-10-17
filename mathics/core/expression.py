@@ -2726,3 +2726,26 @@ def structure(head, origins, evaluation, structure_cache=None):
     else:
         return LinkedStructure(head, cache)
 
+
+def atom_list(head, leaves, atom_names, evaluation):
+    # if we encounter an Expression that consists wholly of atoms and those atoms have
+    # no rules associated with them, we can speed up evaluation.
+
+    expr = Expression(head)
+    expr._leaves = list(leaves)
+
+    if not _is_neutral_head(head, None, evaluation) or any(not atom for atom in atom_names):
+        return expr
+
+    full_atom_names = [ensure_context(atom) for atom in atom_names]
+
+    if not all(_is_neutral_symbol(atom, None, evaluation) for atom in full_atom_names):
+        return expr
+
+    sym = set(chain([head.get_name()], full_atom_names))
+    expr._cache = ExpressionCache(evaluation.definitions.now, sym, None)
+    return expr
+
+
+def string_list(head, leaves, evaluation):
+    return atom_list(head, leaves, ('String',), evaluation)

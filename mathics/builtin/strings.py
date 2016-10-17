@@ -14,7 +14,7 @@ from heapq import heappush, heappop
 
 from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
 from mathics.core.expression import (Expression, Symbol, String, Integer,
-                                     from_python)
+                                     from_python, string_list)
 from mathics.builtin.lists import python_seq, convert_seq
 
 
@@ -907,7 +907,7 @@ class StringSplit(Builtin):
         for re_patt in re_patts:
             result = [t for s in result for t in mathics_split(re_patt, s, flags=flags)]
 
-        return Expression('List', *[String(x) for x in result if x != ''])
+        return string_list('List', [String(x) for x in result if x != ''], evaluation)
 
 
 class StringPosition(Builtin):
