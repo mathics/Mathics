@@ -124,7 +124,7 @@ class Implies(BinaryOperator):
     """
     <dl>
     <dt>'Implies[$expr1$, $expr2$]'
-    <dt>'$expr1$ \u21D2 $expr2$'
+    <dt>'$expr1$ \uF523 $expr2$'
         <dd>evaluates each expression in turn, returning 'True'
         as soon as the first expression evaluates to 'False'. If the
         first expression evaluates to 'True', 'Implies' returns the
@@ -139,10 +139,10 @@ class Implies(BinaryOperator):
     If an expression does not evaluate to 'True' or 'False', 'Implies'
     returns a result in symbolic form:
     >> Implies[a, Implies[b, Implies[True, c]]]
-     = a \u21D2 b \u21D2 c
+     = a \uF523 b \uF523 c
     """
 
-    operator = '\u21D2'
+    operator = '\uF523'
     precedence = 200
     grouping = 'Right'
 
