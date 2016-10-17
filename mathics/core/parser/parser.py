@@ -237,10 +237,12 @@ class Parser(object):
     # Used for prefix operators and brackets.
 
     def p_PatternTest(self,token):
-       self.consume()
-       q = prefix_ops['Definition']
-       child = self.parse_exp(q)
-       return Node('Definition',child)
+        from mathics.core.expression import Expression
+        from mathics.core.rules import Rule
+        self.consume()
+        q = prefix_ops['Definition']
+        child = self.parse_exp(q)
+        return Node('Information',child,Node('Rule',Symbol("LongForm"),Symbol("False")))
 
     def p_Factorial(self, token):
         self.consume()

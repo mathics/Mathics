@@ -872,13 +872,13 @@ class Information(PrefixOperator):
     precedence=0
     attributes = ('HoldAll', 'SequenceHold','Protect','ReadProtect')
     messages = {'notfound': 'Expression `1` is not a symbol'}
+    options = {'LongForm':'True',}
 
 
-    def format_definition(self, symbol, evaluation, grid=False):
-        'StandardForm,TraditionalForm,OutputForm: Information[symbol_]'
-
-        from mathics.core.expression import from_python        
-
+    def format_definition(self, symbol, evaluation, grid=False,**options):
+        'StandardForm,TraditionalForm,OutputForm: Information[symbol_,OptionsPattern[Information]]'
+        from mathics.core.expression import from_python
+        
         if  isinstance(symbol,String): 
             evaluation.print_out(symbol)
             evaluation.evaluate(Expression('Information', Symbol('System`String')))        
@@ -894,6 +894,8 @@ class Information(PrefixOperator):
         if usagetext is not None :
             evaluation.print_out(String(usagetext))
 
+        if not self.get_option(options['options'],'LongForm',evaluation).to_python():
+            return Symbol('Null')
         # It would be deserable to call here the routine inside Definition, but for some reason it fails...
         # Instead, I just copy the code from Definition
         lines = []
