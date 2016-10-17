@@ -807,7 +807,7 @@ def _get_usage_string(symbol, evaluation, htmlout = False):
     usagetext = None;
     from mathics.builtin import builtins
     bio = builtins.get(definition.name)
-    print(htmlout)
+
     if bio is not None:
         from mathics.doc.doc import Doc
         if htmlout:
