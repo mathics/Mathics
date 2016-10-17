@@ -711,6 +711,10 @@ class Definition(Builtin):
      = Null
     """
 
+    operator = '?'
+    precedence = 5000
+    grouping = 'Right'
+
     attributes = ('HoldAll',)
 
     def format_definition(self, symbol, evaluation, grid=True):
