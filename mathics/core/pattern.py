@@ -165,13 +165,28 @@ class ExpressionPattern(Pattern):
             def yield_choice(pre_vars):
                 next_leaf = self.leaves[0]
                 next_leaves = self.leaves[1:]
+
+                unmatched_leaves = expression.leaves
+                optimize_blanks = True
+
+                # "optimize_blanks" handles expressions with leading blanks H[x_, y_, ...]
+                # much more efficiently by not calling get_match_candidates_count() on leaves
+                # that have already been matched with one of the leading blanks. performance
+                # test case: GatherBy[Range[10000], OddQ]
+
                 for leaf in self.leaves:
                     match_count = leaf.get_match_count()
                     candidates = leaf.get_match_candidates_count(
-                        expression.leaves, expression, attributes, evaluation,
+                        unmatched_leaves, expression, attributes, evaluation,
                         pre_vars)
                     if candidates < match_count[0]:
                         raise StopGenerator_ExpressionPattern_match()
+                    if optimize_blanks:
+                        if tuple(match_count) == (1, 1):  # Blank? (i.e. length == 1?)
+                            unmatched_leaves = unmatched_leaves[1:]
+                        else:
+                            optimize_blanks = False
+
                 # for new_vars, rest in self.match_leaf(    # nopep8
                 #    self.leaves[0], self.leaves[1:], ([], expression.leaves),
                 #    pre_vars, expression, attributes, evaluation, first=True,
