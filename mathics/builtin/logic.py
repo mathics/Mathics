@@ -144,7 +144,6 @@ class Implies(BinaryOperator):
 
     operator = '\u21D2'
     precedence = 200
-    attributes = ('HoldAll', 'OneIdentity')
     grouping = 'Right'
 
     def apply(self, x, y, evaluation):
@@ -163,7 +162,7 @@ class Equivalent(BinaryOperator):
     """
      <dl>
      <dt>'Equivalent[$expr1$, $expr2$, ...]'
-     <dt>'$expr1$ \u21D4 $expr2$ \u21D4 ...'
+     <dt>'$expr1$ \u29E6 $expr2$ \u29E6 ...'
          <dd>is equivalent to
          ($expr1$ && $expr2$ && ...) || (!$expr1$ && !$expr2$ && ...)
      </dl>
@@ -174,20 +173,27 @@ class Equivalent(BinaryOperator):
      If all expressions do not evaluate to 'True' or 'False', 'Equivalent'
      returns a result in symbolic form:
      >> Equivalent[a, b, c]
-      = a \u21D4 b \u21D4 c
+      = a \u29E6 b \u29E6 c
       Otherwise, 'Equivalent' returns a result in DNF
-      >> Equivalent[a, b, True, c]
-       = a && b && c
+     >> Equivalent[a, b, True, c]
+      = a && b && c
+     #> Equivalent[]
+      = True
+     #> Equivalent[a]
+      = True
      """
 
-    operator = '\u21D4'
+    operator = '\u29E6'
     precedence = 205
-    attributes = ('Flat', 'HoldAll', 'OneIdentity')
+    attributes = ('Orderless')
 
     def apply(self, args, evaluation):
         'Equivalent[args___]'
 
         args = args.get_sequence()
+        argc = len(args)
+        if argc == 0 or argc == 1:
+            return Symbol('True')
         flag = False
         for arg in args:
             result = arg.evaluate(evaluation)
@@ -195,7 +201,8 @@ class Equivalent(BinaryOperator):
                 flag = not flag
                 break
         if flag:
-            return Expression('Or', Expression('And', *args), Expression('And', *[Expression('Not', arg) for arg in args])).evaluate(evaluation)
+            return Expression('Or', Expression('And', *args),
+                              Expression('And', *[Expression('Not', arg) for arg in args])).evaluate(evaluation)
         else:
             return Expression('Equivalent', *args)
 
@@ -212,10 +219,22 @@ class Xor(BinaryOperator):
 
     >> Xor[False, True]
      = True
+    >> Xor[True, True]
+     = False
 
     If an expression does not evaluate to 'True' or 'False', 'Xor'
     returns a result in symbolic form:
     >> Xor[a, False, b]
+     = a \u22BB b
+    #> Xor[]
+     = False
+    #> Xor[a]
+     = a
+    #> Xor[False]
+     = False
+    #> Xor[True]
+     = True
+    #> Xor[a, b]
      = a \u22BB b
     """
 

@@ -339,7 +339,7 @@ named_characters = {
     'Equal': '\uF431',
     'EqualTilde': '\u2242',
     'Equilibrium': '\u21CC',
-    'Equivalent': '\u21D4',
+    'Equivalent': '\u29E6',
     'ErrorIndicator': '\uF767',
     'EscapeKey': '\uF769',
     'Eta': '\u03B7',
@@ -510,6 +510,7 @@ named_characters = {
     'ImaginaryI': '\uF74E',
     'ImaginaryJ': '\uF74F',
     'ImplicitPlus': '\uF39E',
+# Implies' unicode in Mathematica is '\uF523', but it will show nothing without the specific font.
     'Implies': '\u21D2',
     'Infinity': '\u221E',
     'Integral': '\u222B',
