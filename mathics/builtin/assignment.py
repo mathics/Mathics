@@ -620,9 +620,6 @@ class Definition(Builtin):
     >> Definition[a]
      = a = 2
 
-    >> a = 2;
-    >> ? a
-     = a = 2
 
 
     >> f[x_] := x ^ 2
@@ -711,13 +708,10 @@ class Definition(Builtin):
      = Null
     """
 
-    operator = '?'
-    precedence = 5000
-    grouping = 'Right'
 
     attributes = ('HoldAll',)
 
-    def format_definition(self, symbol, evaluation, grid=False):
+    def format_definition(self, symbol, evaluation, grid=True):
         'StandardForm,TraditionalForm,OutputForm: Definition[symbol_]'
 
         lines = []
@@ -842,37 +836,50 @@ class Information(PrefixOperator):
     'Information' uses 'InputForm' to format values.
 
      
-
     >> a = 2;
     >> Information[a]
-     = Null
-     | a = 2
-
-    >> ?? a
-     = Null
-     | a = 2
-   
-    >> F[x_] := x^2
-    >> F::usage = "F[x] evaluates the square of x."
-     = F[x] evaluates the square of x.
-    >> H[F[y_,u_]]^:=F[H[y],u]
-    >> Information[F]
-     = Null
-     | F[x] evaluates the square of x.
-     | F[x_] = x^2
-     | H[F[y_, u_]] ^= F[H[y], u]
+     = a = 2
 
 
-    >> ?? Print
-     = Null
-     | <dl>
-     | <dt>'Print[$expr$, ...]'
-     | <dd>prints each $expr$ in string form.
-     | </dl>
-     | Attributes[Print] = {Protected}
- 
+    >> f[x_] := x ^ 2
+    >> g[f] ^:= 2
+    >> f::usage = "f[x] returns the square of x";
+    >> Information[f]
+     = f[x] returns the square of x
+     .
+     . f[x_] = x ^ 2
+     .
+     . g[f] ^= 2
+
+    >> ? Table
+     = <dl>
+     .     <dt>'Table[$expr$, {$i$, $n$}]'
+     .         <dd>evaluates $expr$ with $i$ ranging from 1 to $n$, returning a list of the results.
+     .     <dt>'Table[$expr$, {$i$, $start$, $stop$, $step$}]'
+     .         <dd>evaluates $expr$ with $i$ ranging from $start$ to $stop$,
+     .         incrementing by $step$.
+     .     <dt>'Table[$expr$, {$i$, {$e1$, $e2$, ..., $ei$}}]'
+     .         <dd>evaluates $expr$ with $i$ taking on the values $e1$, $e2$,
+     .         ..., $ei$.
+     .     </dl>
+
+    >> Information[Table]
+     = <dl>
+     .     <dt>'Table[$expr$, {$i$, $n$}]'
+     .         <dd>evaluates $expr$ with $i$ ranging from 1 to $n$, returning a list of the results.
+     .     <dt>'Table[$expr$, {$i$, $start$, $stop$, $step$}]'
+     .         <dd>evaluates $expr$ with $i$ ranging from $start$ to $stop$,
+     .         incrementing by $step$.
+     .     <dt>'Table[$expr$, {$i$, {$e1$, $e2$, ..., $ei$}}]'
+     .         <dd>evaluates $expr$ with $i$ taking on the values $e1$, $e2$,
+     .         ..., $ei$.
+     .     </dl>
+     .
+     . Attributes[Table] = {HoldAll, Protected}
+     .
     """
-    operator="??"
+
+    operator = "??"
     precedence=0
     attributes = ('HoldAll', 'SequenceHold','Protect','ReadProtect')
     messages = {'notfound': 'Expression `1` is not a symbol'}
@@ -881,57 +888,49 @@ class Information(PrefixOperator):
 
 
 
-    def format_definition(self, symbol, evaluation, grid=False,**options):
-        'MathMLForm: Information[symbol_, OptionsPattern[Information]]'
-        from mathics.core.expression import from_python
-        
-        if  isinstance(symbol,String): 
-            evaluation.print_out(symbol)
-            evaluation.evaluate(Expression('Information', Symbol('System`String')))        
-            return  
-
-
-        if not isinstance(symbol,Symbol): 
-            evaluation.message('Information','notfound',symbol)                         
-            return Symbol('Null');
-        
-        #Print the "usage" message if available. 
-        usagetext=_get_usage_string(symbol,evaluation,True);
-        if usagetext is not None :
-            evaluation.print_out(String(usagetext))
-
-        if  self.get_option(options['options'],'LongForm',evaluation).to_python():
-            self.show_definitions(symbol, evaluation, grid)
-
-
-    def format_definition(self, symbol, evaluation, grid=False,**options):
+    def format_definition(self, symbol, evaluation, grid = True,**options):
         'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
         from mathics.core.expression import from_python
+        lines = []
         
         if  isinstance(symbol,String): 
             evaluation.print_out(symbol)
             evaluation.evaluate(Expression('Information', Symbol('System`String')))        
             return  
 
-
+        
         if not isinstance(symbol,Symbol): 
             evaluation.message('Information','notfound',symbol)                         
             return Symbol('Null');
+
         
         #Print the "usage" message if available. 
-        usagetext=_get_usage_string(symbol,evaluation);
+        usagetext = _get_usage_string(symbol,evaluation);
         if usagetext is not None :
-            evaluation.print_out(String(usagetext))
+            lines.append(String(usagetext))
+#            evaluation.print_out(String(usagetext))
 
         if  self.get_option(options['options'],'LongForm',evaluation).to_python():
-            self.show_definitions(symbol, evaluation, grid)
+            self.show_definitions(symbol, evaluation, lines)
 
-        return Symbol('Null')
+        if grid:
+            if lines:
+                return Expression(
+                    'Grid', Expression(
+                        'List', *(Expression('List', line) for line in lines)),
+                    Expression(
+                        'Rule', Symbol('ColumnAlignments'), Symbol('Left')))
+            else:
+                return Symbol('Null')
+        else:
+            for line in lines:
+                evaluation.print_out(Expression('InputForm', line))
+            return Symbol('Null')
+
         # It would be deserable to call here the routine inside Definition, but for some reason it fails...
         # Instead, I just copy the code from Definition
 
-    def show_definitions(self,symbol, evaluation, grid=False):
-        lines = []
+    def show_definitions(self,symbol, evaluation, lines):
 
         def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
             evaluation.check_stopped()
@@ -991,20 +990,7 @@ class Information(PrefixOperator):
                     Expression('List', *(
                         Expression('Rule', Symbol(name), value)
                         for name, value in options)))))
-        if grid:
-            if lines:
-                return Expression(
-                    'Grid', Expression(
-                        'List', *(Expression('List', line) for line in lines)),
-                    Expression(
-                        'Rule', Symbol('ColumnAlignments'), Symbol('Left')))
-            else:
-                return Symbol('Null')
-        else:
-            for line in lines:
-                evaluation.print_out(Expression('InputForm', line))
-            return Symbol('Null')
-        return Symbol('Null')
+        return 
 
 
 
