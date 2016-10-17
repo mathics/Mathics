@@ -9,8 +9,10 @@ from six.moves import zip
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
 from mathics.core.expression import (Expression, Symbol, valid_context_name,
-                                     system_symbols)
-from mathics.core.rules import Rule
+                                     system_symbols, String)
+
+from mathics.core.rules import Rule, BuiltinRule
+from mathics.builtin.patterns import RuleDelayed
 from mathics.builtin.lists import walk_parts
 from mathics.builtin.evaluation import set_recursionlimit
 
@@ -170,13 +172,6 @@ class _SetOperator(object):
                 set_recursionlimit(rhs_int_value)
             except OverflowError:
                 # TODO: Message
-                return False
-            ignore_protection = True
-        elif lhs_name == 'System`$OutputSizeLimit':
-            if rhs.to_python() == float('inf'):
-                rhs = Symbol('System`Infinity')
-            elif rhs_int_value is None or rhs_int_value <= 0:
-                evaluation.message(lhs_name, 'intnn', rhs)
                 return False
             ignore_protection = True
         elif lhs_name == 'System`$ModuleNumber':
@@ -625,6 +620,11 @@ class Definition(Builtin):
     >> Definition[a]
      = a = 2
 
+    >> a = 2;
+    >> ? a
+     = a = 2
+
+
     >> f[x_] := x ^ 2
     >> g[f] ^:= 2
     >> Definition[f]
@@ -717,9 +717,191 @@ class Definition(Builtin):
 
     attributes = ('HoldAll',)
 
-    def format_definition(self, symbol, evaluation, grid=True):
+    def format_definition(self, symbol, evaluation, grid=False):
         'StandardForm,TraditionalForm,OutputForm: Definition[symbol_]'
 
+        lines = []
+
+        def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
+            evaluation.check_stopped()
+            if isinstance(rule, Rule):
+                r = rhs(rule.replace.replace_vars(
+                        {'System`Definition': Expression('HoldForm', Symbol('Definition'))}))
+                lines.append(Expression('HoldForm', Expression(
+                    up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
+
+
+        name = symbol.get_name()
+        if not name:
+            evaluation.message('Definition', 'sym', symbol, 1)
+            return
+        attributes = evaluation.definitions.get_attributes(name)
+        definition = evaluation.definitions.get_user_definition(
+            name, create=False)
+        all = evaluation.definitions.get_definition(name)
+        if attributes:
+            attributes = list(attributes)
+            attributes.sort()
+            lines.append(Expression(
+                'HoldForm', Expression(
+                    'Set', Expression('Attributes', symbol), Expression(
+                        'List',
+                        *(Symbol(attribute) for attribute in attributes)))))
+
+        if definition is not None and 'System`ReadProtected' not in attributes:
+            for rule in definition.ownvalues:
+                print_rule(rule)
+            for rule in definition.downvalues:
+                print_rule(rule)
+            for rule in definition.subvalues:
+                print_rule(rule)
+            for rule in definition.upvalues:
+                print_rule(rule, up=True)
+            for rule in definition.nvalues:
+                print_rule(rule)
+            formats = sorted(definition.formatvalues.items())
+            for format, rules in formats:
+                for rule in rules:
+                    def lhs(expr):
+                        return Expression('Format', expr, Symbol(format))
+
+                    def rhs(expr):
+                        if expr.has_form('Infix', None):
+                            expr = Expression(Expression(
+                                'HoldForm', expr.head), *expr.leaves)
+                        return Expression('InputForm', expr)
+                    print_rule(rule, lhs=lhs, rhs=rhs)
+        for rule in all.defaultvalues:
+            print_rule(rule)
+        if all.options:
+            options = sorted(all.options.items())
+            lines.append(
+                Expression('HoldForm', Expression(
+                    'Set', Expression('Options', symbol),
+                    Expression('List', *(
+                        Expression('Rule', Symbol(name), value)
+                        for name, value in options)))))
+        if grid:
+            if lines:
+                return Expression(
+                    'Grid', Expression(
+                        'List', *(Expression('List', line) for line in lines)),
+                    Expression(
+                        'Rule', Symbol('ColumnAlignments'), Symbol('Left')))
+            else:
+                return Symbol('Null')
+        else:
+            for line in lines:
+                evaluation.print_out(Expression('InputForm', line))
+            return Symbol('Null')
+
+    def format_definition_input(self, symbol, evaluation):
+        'InputForm: Definition[symbol_]'
+        return self.format_definition(symbol, evaluation, grid=False)
+
+
+
+
+def _get_usage_string(symbol,evaluation):
+    '''
+    Returns a python string with the documentation associated to a given symbol.
+    '''
+    definition = evaluation.definitions.get_definition(symbol.name)
+    ruleusage = definition.get_values_list('messages')
+    usagetext = None;
+    from mathics.builtin import builtins
+    bio = builtins.get(definition.name)
+    if bio is not None:
+        from mathics.doc.doc import Doc
+        usagetext = Doc(bio.__class__.__doc__).__str__()
+
+    # For built-in symbols, looks for a docstring.
+#    if symbol.function. is Builtin:            
+    #evaluation.print_out(String("found: " + usagetext))
+    #usagetext = information_interpret_doc_string(symbol.__doc__)
+        
+    # Looks for the "usage" message. For built-in symbols, if there is an "usage" chain, overwrite the __doc__ information.
+    for rulemsg in ruleusage:
+        if  rulemsg.pattern.expr.leaves[1].__str__()=="\"usage\"":
+            usagetext = rulemsg.replace.value        
+    return  usagetext            
+
+
+
+class Information(PrefixOperator):    
+    """
+    <dl>
+    <dt>'Information[$symbol$]'
+        <dd>Prints information about a $symbol$
+    </dl>
+    'Information' does not print information for 'ReadProtected' symbols.
+    'Information' uses 'InputForm' to format values.
+
+     
+
+    >> a = 2;
+    >> Information[a]
+     = Null
+     | a = 2
+
+    >> ?? a
+     = Null
+     | a = 2
+   
+    >> F[x_] := x^2
+    >> F::usage = "F[x] evaluates the square of x."
+     = F[x] evaluates the square of x.
+    >> H[F[y_,u_]]^:=F[H[y],u]
+    >> Information[F]
+     = Null
+     | F[x] evaluates the square of x.
+     | F[x_] = x^2
+     | H[F[y_, u_]] ^= F[H[y], u]
+
+
+    >> ?? Print
+     = Null
+    | <dl>
+    |              <dt>'Print[$expr$, ...]'
+    |                  <dd>prints each $expr$ in string form.
+    |              </dl>
+    |  Print["Hello world!"]
+    |    Print["The answer is ", 7 * 6, "."]
+    |    Print["\[Mu]"]
+    |    Print["μ"]
+    | Attributes[Print] = {Protected}
+ 
+    """
+    operator="??"
+    precedence=0
+    attributes = ('HoldAll', 'SequenceHold','Protect','ReadProtect')
+    messages = {'notfound': 'Expression `1` is not a symbol'}
+    options = {'LongForm':'True',}
+
+
+    def format_definition(self, symbol, evaluation, grid=False,**options):
+        'StandardForm,TraditionalForm,OutputForm: Information[symbol_,OptionsPattern[Information]]'
+        from mathics.core.expression import from_python
+        
+        if  isinstance(symbol,String): 
+            evaluation.print_out(symbol)
+            evaluation.evaluate(Expression('Information', Symbol('System`String')))        
+            return  
+
+
+        if not isinstance(symbol,Symbol): 
+            evaluation.message('Information','notfound',symbol)                         
+            return Symbol('Null');
+        
+        #Print the "usage" message if available. 
+        usagetext=_get_usage_string(symbol,evaluation);
+        if usagetext is not None :
+            evaluation.print_out(String(usagetext))
+
+        if not self.get_option(options['options'],'LongForm',evaluation).to_python():
+            return Symbol('Null')
+        # It would be deserable to call here the routine inside Definition, but for some reason it fails...
+        # Instead, I just copy the code from Definition
         lines = []
 
         def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
@@ -794,11 +976,16 @@ class Definition(Builtin):
                 evaluation.print_out(Expression('InputForm', line))
             return Symbol('Null')
 
+
+
+        return Symbol('Null')
+
+
+
+
     def format_definition_input(self, symbol, evaluation):
-        'InputForm: Definition[symbol_]'
-
+        'InputForm: Information[symbol_]'
         return self.format_definition(symbol, evaluation, grid=False)
-
 
 class Clear(Builtin):
     """

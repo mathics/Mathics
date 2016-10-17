@@ -17,8 +17,13 @@ prefix_ops = {
     'Exists': 240,
     'NotExists': 240,
     'Not': 230,
+<<<<<<< HEAD
     'Information': 5000,
     'Definition' : 5001,
+=======
+    'Information': 5001,
+    'Definition' : 5000,
+>>>>>>> 6e92232ac9113bbc7182b5dad664ff245ba96363
 }
 
 postfix_ops = {

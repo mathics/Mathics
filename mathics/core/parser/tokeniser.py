@@ -71,6 +71,7 @@ tokens = [
     ('SqrtBox', r' \\\@ '),
     ('FormBox', r' \\\` '),
 
+#    ('Definition', r'\?'),
     ('PatternTest', r' \? '),
     ('Increment', r' \+\+ '),
     ('Decrement', r' \-\- '),
@@ -209,6 +210,9 @@ tokens = [
     ('Therefore', r' \u2234 '),
     ('Because', r' \u2235 '),
     ('Backslash', r' \u2216 '),
+
+    ('Information', r'\?\?'),
+
 ]
 
 
@@ -233,7 +237,7 @@ literal_tokens = {
     '<': ['Get', 'StringJoin', 'LessEqual', 'Less'],
     '=': ['SameQ', 'UnsameQ', 'Equal', 'Unset', 'Set'],
     '>': ['PutAppend', 'Put', 'GreaterEqual', 'Greater'],
-    '?': ['PatternTest','Definition','Information'],
+    '?': ['Information', 'PatternTest'],
     '@': ['ApplyList', 'Apply', 'Composition', 'Prefix'],
     '[': ['RawLeftBracket'],
     '\\': ['LeftRowBox', 'RightRowBox', 'InterpretedBox', 'SuperscriptBox',
@@ -350,7 +354,9 @@ class Tokeniser(object):
         if indices:
             for index in indices:
                 tag, pattern = self.tokens[index]
+
                 match = pattern.match(self.code, self.pos)
+
                 if match is not None:
                     break
         else:
