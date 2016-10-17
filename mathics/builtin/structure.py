@@ -75,7 +75,7 @@ class Sort(Builtin):
             evaluation.message('Sort', 'normal')
         else:
             new_leaves = sorted(list.leaves)
-            return Expression(list.head, *new_leaves)
+            return list.restructure(list.head, new_leaves, evaluation)
 
     def apply_predicate(self, list, p, evaluation):
         'Sort[list_, p_]'
@@ -91,7 +91,7 @@ class Sort(Builtin):
                     return not Expression(p, self.leaf, other.leaf).evaluate(evaluation).is_true()
 
             new_leaves = sorted(list.leaves, key=Key)
-            return Expression(list.head, *new_leaves)
+            return list.restructure(list.head, new_leaves, evaluation)
 
 
 class SortBy(Builtin):
@@ -158,7 +158,7 @@ class SortBy(Builtin):
             # we sort a list of indices. after sorting, we reorder the leaves.
             new_indices = sorted(list(range(len(raw_keys))), key=Key)
             new_leaves = [raw_keys[i] for i in new_indices]  # reorder leaves
-            return Expression(l.head, *new_leaves)
+            return l.restructure(l.head, new_leaves, evaluation)
 
 
 class BinarySearch(Builtin):
