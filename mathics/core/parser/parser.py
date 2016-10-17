@@ -236,14 +236,6 @@ class Parser(object):
     # Called with one Token and return a Node.
     # Used for prefix operators and brackets.
 
-    def p_PatternTest(self,token):
-        from mathics.core.expression import Expression
-        from mathics.core.rules import Rule
-        self.consume()
-        q = prefix_ops['Definition']
-        child = self.parse_exp(q)
-        return Node('Information',child,Node('Rule',Symbol("LongForm"),Symbol("False")))
-
     def p_Factorial(self, token):
         self.consume()
         q = prefix_ops['Not']
@@ -421,12 +413,17 @@ class Parser(object):
         q = prefix_ops['PreDecrement']
         return Node('PreDecrement', self.parse_exp(q))
 
+    def p_PatternTest(self,token):
+        self.consume()
+        q = prefix_ops['Definition']
+        child = self.parse_exp(q)
+        return Node('Information', child, Node('Rule',Symbol("LongForm"), Symbol("False")))
 
     def p_Information(self, token):
         self.consume()
         q = prefix_ops['Information']
-        return Node('Information', self.parse_exp(q))
-
+        child = self.parse_exp(q)
+        return Node('Information', child, Node('Rule',Symbol("LongForm"), Symbol("True")))
 
     # E methods
     #
