@@ -55,7 +55,6 @@ for module in modules:
                 builtins.append((instance.get_name(), instance))
                 builtins_by_module[module.__name__].append(instance)
 
-
 # builtins = dict(builtins)
 
 mathics_to_sympy = {}
