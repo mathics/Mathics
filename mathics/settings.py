@@ -58,7 +58,13 @@ DATABASES = {
 
 REQUIRE_LOGIN = False
 
-SERVER_EMAIL = 'mathics@localhost'
+# if REQUIRE_LOGIN is True be sure to set up an email sender:
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_HOST_USER = 'mathics'
+EMAIL_HOST_PASSWORD = ''
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
