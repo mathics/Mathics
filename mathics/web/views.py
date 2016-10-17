@@ -17,6 +17,8 @@ from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.models import User
 
+from django.core.mail import send_mail
+
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Message, Result, Output
 
@@ -187,10 +189,7 @@ def nicepass(alpha=6, numeric=2):
 
 
 def email_user(user, subject, text):
-    if settings.DEBUG_MAIL:
-        print('\n'.join(['-' * 70, 'E-Mail to %s:\n%s\n%s' % (user.email, subject, text), '-' * 70]))
-    else:
-        user.email_user(subject, text)
+    send_mail(subject, text, 'noreply@mathics.net', [user.username], fail_silently=False)
 
 
 def login(request):
