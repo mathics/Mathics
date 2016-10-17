@@ -756,6 +756,9 @@ class Pattern_(PatternObject):
             self.error('patvar', expr)
         self.pattern = Pattern.create(expr.leaves[1])
 
+    def __repr__(self):
+        return '<Pattern: %s>' % repr(self.pattern)
+
     def get_match_count(self, vars={}):
         return self.pattern.get_match_count(vars)
 
