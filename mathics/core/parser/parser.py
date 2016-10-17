@@ -422,11 +422,6 @@ class Parser(object):
         return Node('PreDecrement', self.parse_exp(q))
 
 
-    def p_Definition(self, token):
-        self.consume()
-        q = prefix_ops['Definition']
-        return Node('Definition', self.parse_exp(q))
-
     def p_Information(self, token):
         self.consume()
         q = prefix_ops['Information']
