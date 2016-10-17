@@ -240,7 +240,7 @@ class Xor(BinaryOperator):
 
     operator = '\u22BB'
     precedence = 215
-    attributes = ('Flat', 'HoldAll', 'OneIdentity')
+    attributes = ('Flat', 'OneIdentity', 'Orderless')
 
     def apply(self, args, evaluation):
         'Xor[args___]'
