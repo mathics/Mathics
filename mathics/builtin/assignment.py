@@ -798,7 +798,7 @@ class Definition(Builtin):
 
 
 
-def _get_usage_string(symbol,evaluation):
+def _get_usage_string(symbol, evaluation, htmlout = False):
     '''
     Returns a python string with the documentation associated to a given symbol.
     '''
@@ -807,9 +807,13 @@ def _get_usage_string(symbol,evaluation):
     usagetext = None;
     from mathics.builtin import builtins
     bio = builtins.get(definition.name)
+    print(htmlout)
     if bio is not None:
         from mathics.doc.doc import Doc
-        usagetext = Doc(bio.__class__.__doc__).__str__()
+        if htmlout:
+            usagetext = Doc(bio.__class__.__doc__).items[0].html()
+        else:
+            usagetext = Doc(bio.__class__.__doc__).items[0].__str__()
 
     # For built-in symbols, looks for a docstring.
 #    if symbol.function. is Builtin:            
@@ -857,15 +861,11 @@ class Information(PrefixOperator):
 
     >> ?? Print
      = Null
-    | <dl>
-    |              <dt>'Print[$expr$, ...]'
-    |                  <dd>prints each $expr$ in string form.
-    |              </dl>
-    |  Print["Hello world!"]
-    |    Print["The answer is ", 7 * 6, "."]
-    |    Print["\[Mu]"]
-    |    Print["μ"]
-    | Attributes[Print] = {Protected}
+     | <dl>
+     | <dt>'Print[$expr$, ...]'
+     | <dd>prints each $expr$ in string form.
+     | </dl>
+     | Attributes[Print] = {Protected}
  
     """
     operator="??"
@@ -875,8 +875,33 @@ class Information(PrefixOperator):
     options = {'LongForm':'True',}
 
 
+
+
     def format_definition(self, symbol, evaluation, grid=False,**options):
-        'StandardForm,TraditionalForm,OutputForm: Information[symbol_,OptionsPattern[Information]]'
+        'MathMLForm: Information[symbol_, OptionsPattern[Information]]'
+        from mathics.core.expression import from_python
+        
+        if  isinstance(symbol,String): 
+            evaluation.print_out(symbol)
+            evaluation.evaluate(Expression('Information', Symbol('System`String')))        
+            return  
+
+
+        if not isinstance(symbol,Symbol): 
+            evaluation.message('Information','notfound',symbol)                         
+            return Symbol('Null');
+        
+        #Print the "usage" message if available. 
+        usagetext=_get_usage_string(symbol,evaluation,True);
+        if usagetext is not None :
+            evaluation.print_out(String(usagetext))
+
+        if  self.get_option(options['options'],'LongForm',evaluation).to_python():
+            self.show_definitions(symbol, evaluation, grid)
+
+
+    def format_definition(self, symbol, evaluation, grid=False,**options):
+        'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
         from mathics.core.expression import from_python
         
         if  isinstance(symbol,String): 
@@ -894,10 +919,14 @@ class Information(PrefixOperator):
         if usagetext is not None :
             evaluation.print_out(String(usagetext))
 
-        if not self.get_option(options['options'],'LongForm',evaluation).to_python():
-            return Symbol('Null')
+        if  self.get_option(options['options'],'LongForm',evaluation).to_python():
+            self.show_definitions(symbol, evaluation, grid)
+
+        return Symbol('Null')
         # It would be deserable to call here the routine inside Definition, but for some reason it fails...
         # Instead, I just copy the code from Definition
+
+    def show_definitions(self,symbol, evaluation, grid=False):
         lines = []
 
         def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
@@ -971,11 +1000,7 @@ class Information(PrefixOperator):
             for line in lines:
                 evaluation.print_out(Expression('InputForm', line))
             return Symbol('Null')
-
-
-
         return Symbol('Null')
-
 
 
 
