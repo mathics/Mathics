@@ -25,7 +25,9 @@ LOG_QUERIES = False
 # unix only
 TIMEOUT = None
 
-MAX_RECURSION_DEPTH = 512
+# specifies a maximum recursion depth is safe for all Python environments
+# without setting a custom thread stack size.
+DEFAULT_MAX_RECURSION_DEPTH = 512
 
 # max pickle.dumps() size for storing results in DB
 # historically 10000 was used on public mathics servers
@@ -58,7 +60,13 @@ DATABASES = {
 
 REQUIRE_LOGIN = False
 
-SERVER_EMAIL = 'mathics@localhost'
+# if REQUIRE_LOGIN is True be sure to set up an email sender:
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_HOST_USER = 'mathics'
+EMAIL_HOST_PASSWORD = ''
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name

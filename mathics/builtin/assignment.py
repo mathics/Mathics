@@ -14,7 +14,7 @@ from mathics.core.expression import (Expression, Symbol, valid_context_name,
 from mathics.core.rules import Rule, BuiltinRule
 from mathics.builtin.patterns import RuleDelayed
 from mathics.builtin.lists import walk_parts
-from mathics.builtin.evaluation import set_recursionlimit
+from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
 
 from mathics import settings
 
@@ -164,14 +164,19 @@ class _SetOperator(object):
             # if (not rhs_int_value or rhs_int_value < 20) and not
             # rhs.get_name() == 'System`Infinity':
             if (not rhs_int_value or rhs_int_value < 20 or
-                rhs_int_value > settings.MAX_RECURSION_DEPTH):  # nopep8
+                rhs_int_value > MAX_RECURSION_DEPTH):  # nopep8
 
                 evaluation.message('$RecursionLimit', 'limset', rhs)
                 return False
             try:
-                set_recursionlimit(rhs_int_value)
+                set_python_recursion_limit(rhs_int_value)
             except OverflowError:
                 # TODO: Message
+                return False
+            ignore_protection = True
+        if lhs_name == 'System`$IterationLimit':
+            if (not rhs_int_value or rhs_int_value < 20) and not rhs.get_name() == 'System`Infinity':
+                evaluation.message('$IterationLimit', 'limset', rhs)
                 return False
             ignore_protection = True
         elif lhs_name == 'System`$ModuleNumber':
