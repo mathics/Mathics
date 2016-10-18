@@ -868,7 +868,7 @@ class Graph(Atom):
     def sort_vertices(self, vertices):
         # sort the given vertices in the graph's natural order
         index = self.vertices.get_index()
-        return [v for _, v in sorted([(index[v], v) for v in vertices])]
+        return [y for _, y in sorted([(index[x], x) for x in vertices])]
 
 
 def _is_connected(G):
