@@ -770,16 +770,16 @@ class Graph(Atom):
             for edge in self.edges.expressions:
                 component_edges[vertex_component[edge.leaves[0]]].append(edge)
 
+        warnings = set()
+
+        def warn(message):
+            if message not in warnings:
+                warnings.add(message)
+                evaluation.print_out(message)
+
         def boxes(box):
             minimum_distance = _default_minimum_distance
             stored_pos = []
-
-            warnings = set()
-
-            def warn(message):
-                if message not in warnings:
-                    warnings.add(message)
-                    evaluation.print_out(message)
 
             for i, (vertices, edges) in enumerate(zip(components, component_edges)):
                 if len(vertices) > 1:
