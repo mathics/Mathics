@@ -2413,6 +2413,11 @@ class InsetBox(_GraphicsElement):
             if self.graphics.evaluation.output.warn_about_web_engine():
                 self.graphics.evaluation.message(
                     'General', 'nowebeng', str(e), once=True)
+        except Exception as e:
+            self.svg = None
+
+            self.graphics.evaluation.message(
+                'General', 'nowebeng', str(e), once=True)
 
     def extent(self):
         p = self.pos.pos()
