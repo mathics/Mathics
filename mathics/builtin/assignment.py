@@ -809,15 +809,16 @@ def _get_usage_string(symbol, evaluation, htmlout = False):
     ruleusage = definition.get_values_list('messages')
     usagetext = None;
     from mathics.builtin import builtins
+    import re
     bio = builtins.get(definition.name)
 
     if bio is not None:
         from mathics.doc.doc import Doc
         if htmlout:
-            usagetext = Doc(bio.__class__.__doc__).items[0].html()
+            usagetext = Doc(bio.__class__.__doc__).text(0)
         else:
-            usagetext = Doc(bio.__class__.__doc__).items[0].__str__()
-
+            usagetext = Doc(bio.__class__.__doc__).text(0)
+        usagetext = re.sub(r'\$([0-9a-zA-Z]*)\$', r'\1' , usagetext)
     # For built-in symbols, looks for a docstring.
 #    if symbol.function. is Builtin:            
     #evaluation.print_out(String("found: " + usagetext))
@@ -857,31 +858,29 @@ class Information(PrefixOperator):
      . g[f] ^= 2
 
     >> ? Table
-     = <dl>
-     .     <dt>'Table[$expr$, {$i$, $n$}]'
-     .         <dd>evaluates $expr$ with $i$ ranging from 1 to $n$, returning
-     .         a list of the results.
-     .     <dt>'Table[$expr$, {$i$, $start$, $stop$, $step$}]'
-     .         <dd>evaluates $expr$ with $i$ ranging from $start$ to $stop$,
-     .         incrementing by $step$.
-     .     <dt>'Table[$expr$, {$i$, {$e1$, $e2$, ..., $ei$}}]'
-     .         <dd>evaluates $expr$ with $i$ taking on the values $e1$, $e2$,
-     .         ..., $ei$.
-     .     </dl>
-     .  
+     = 
+     .   'Table[expr, {i, n}]'
+     .     evaluates expr with i ranging from 1 to n, returning
+     . a list of the results.
+     .   'Table[expr, {i, start, stop, step}]'
+     .     evaluates expr with i ranging from start to stop,
+     . incrementing by step.
+     .   'Table[expr, {i, {e1, e2, ..., ei}}]'
+     .     evaluates expr with i taking on the values e1, e2,
+     . ..., ei.
+     .      
 
     >> Information[Table]
-     = <dl>
-     .     <dt>'Table[$expr$, {$i$, $n$}]'
-     .         <dd>evaluates $expr$ with $i$ ranging from 1 to $n$, returning
-     .         a list of the results.
-     .     <dt>'Table[$expr$, {$i$, $start$, $stop$, $step$}]'
-     .         <dd>evaluates $expr$ with $i$ ranging from $start$ to $stop$,
-     .         incrementing by $step$.
-     .     <dt>'Table[$expr$, {$i$, {$e1$, $e2$, ..., $ei$}}]'
-     .         <dd>evaluates $expr$ with $i$ taking on the values $e1$, $e2$,
-     .         ..., $ei$.
-     .     </dl>
+     = 
+     .   'Table[expr, {i, n}]'
+     .     evaluates expr with i ranging from 1 to n, returning
+     . a list of the results.
+     .   'Table[expr, {i, start, stop, step}]'
+     .     evaluates expr with i ranging from start to stop,
+     . incrementing by step.
+     .   'Table[expr, {i, {e1, e2, ..., ei}}]'
+     .     evaluates expr with i taking on the values e1, e2,
+     . ..., ei.
      .
      . Attributes[Table] = {HoldAll, Protected}
      .
