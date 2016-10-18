@@ -116,7 +116,156 @@ class Not(PrefixOperator):
     rules = {
         'Not[True]': 'False',
         'Not[False]': 'True',
+        'Not[Not[expr_]]': 'expr',
     }
+
+
+class Implies(BinaryOperator):
+    """
+    <dl>
+    <dt>'Implies[$expr1$, $expr2$]'
+    <dt>'$expr1$ \uF523 $expr2$'
+        <dd>evaluates each expression in turn, returning 'True'
+        as soon as the first expression evaluates to 'False'. If the
+        first expression evaluates to 'True', 'Implies' returns the
+        second expression.
+    </dl>
+
+    >> Implies[False, a]
+     = True
+    >> Implies[True, a]
+     = a
+
+    If an expression does not evaluate to 'True' or 'False', 'Implies'
+    returns a result in symbolic form:
+    >> Implies[a, Implies[b, Implies[True, c]]]
+     = a \uF523 b \uF523 c
+    """
+
+    operator = '\uF523'
+    precedence = 200
+    grouping = 'Right'
+
+    def apply(self, x, y, evaluation):
+        'Implies[x_, y_]'
+
+        result0 = x.evaluate(evaluation)
+        if result0 == Symbol('False'):
+            return Symbol('True')
+        elif result0.is_true():
+            return y.evaluate(evaluation)
+        else:
+            return Expression('Implies', result0, y.evaluate(evaluation))
+
+
+class Equivalent(BinaryOperator):
+    """
+     <dl>
+     <dt>'Equivalent[$expr1$, $expr2$, ...]'
+     <dt>'$expr1$ \u29E6 $expr2$ \u29E6 ...'
+         <dd>is equivalent to
+         ($expr1$ && $expr2$ && ...) || (!$expr1$ && !$expr2$ && ...)
+     </dl>
+
+     >> Equivalent[True, True, False]
+      = False
+
+     If all expressions do not evaluate to 'True' or 'False', 'Equivalent'
+     returns a result in symbolic form:
+     >> Equivalent[a, b, c]
+      = a \u29E6 b \u29E6 c
+      Otherwise, 'Equivalent' returns a result in DNF
+     >> Equivalent[a, b, True, c]
+      = a && b && c
+     #> Equivalent[]
+      = True
+     #> Equivalent[a]
+      = True
+     """
+
+    operator = '\u29E6'
+    precedence = 205
+    attributes = ('Orderless')
+
+    def apply(self, args, evaluation):
+        'Equivalent[args___]'
+
+        args = args.get_sequence()
+        argc = len(args)
+        if argc == 0 or argc == 1:
+            return Symbol('True')
+        flag = False
+        for arg in args:
+            result = arg.evaluate(evaluation)
+            if result == Symbol('False') or result.is_true():
+                flag = not flag
+                break
+        if flag:
+            return Expression('Or', Expression('And', *args),
+                              Expression('And', *[Expression('Not', arg) for arg in args])).evaluate(evaluation)
+        else:
+            return Expression('Equivalent', *args)
+
+
+class Xor(BinaryOperator):
+    """
+    <dl>
+    <dt>'Xor[$expr1$, $expr2$, ...]'
+    <dt>'$expr1$ \u22BB $expr2$ \u22BB ...'
+        <dd>evaluates each expression in turn, returning 'True'
+        as soon as not all expressions evaluate to the same value. If all
+        expressions evaluate to the same value, 'Xor' returns 'False'.
+    </dl>
+
+    >> Xor[False, True]
+     = True
+    >> Xor[True, True]
+     = False
+
+    If an expression does not evaluate to 'True' or 'False', 'Xor'
+    returns a result in symbolic form:
+    >> Xor[a, False, b]
+     = a \u22BB b
+    #> Xor[]
+     = False
+    #> Xor[a]
+     = a
+    #> Xor[False]
+     = False
+    #> Xor[True]
+     = True
+    #> Xor[a, b]
+     = a \u22BB b
+    """
+
+    operator = '\u22BB'
+    precedence = 215
+    attributes = ('Flat', 'OneIdentity', 'Orderless')
+
+    def apply(self, args, evaluation):
+        'Xor[args___]'
+
+        args = args.get_sequence()
+        leaves = []
+        flag = True
+        for arg in args:
+            result = arg.evaluate(evaluation)
+            if result.is_true():
+                flag = not flag
+            elif result != Symbol('False'):
+                leaves.append(result)
+        if leaves and flag:
+            if len(leaves) == 1:
+                return leaves[0]
+            else:
+                return Expression('Xor', *leaves)
+        elif leaves and not flag:
+            if len(leaves) == 1:
+                return Expression('Not', leaves[0])
+            else:
+                return Expression('Not', Expression('Xor', *leaves))
+        else:
+            return Symbol(repr(not flag))
 
 
 class True_(Predefined):
