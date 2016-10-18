@@ -385,9 +385,9 @@ class DeleteStopwords(_SpacyBuiltin):
             for w in words:
                 s = w.get_string_value()
                 if not s:
-                    yield s
+                    yield String(s)
                 elif not is_stop(s):
-                    yield s
+                    yield String(s)
         return string_list('List', filter_words(l.leaves), evaluation)
 
     def apply_string(self, s, evaluation, options):
