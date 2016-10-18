@@ -859,7 +859,8 @@ class Information(PrefixOperator):
     >> ? Table
      = <dl>
      .     <dt>'Table[$expr$, {$i$, $n$}]'
-     .         <dd>evaluates $expr$ with $i$ ranging from 1 to $n$, returning a list of the results.
+     .         <dd>evaluates $expr$ with $i$ ranging from 1 to $n$, returning
+     .         a list of the results.
      .     <dt>'Table[$expr$, {$i$, $start$, $stop$, $step$}]'
      .         <dd>evaluates $expr$ with $i$ ranging from $start$ to $stop$,
      .         incrementing by $step$.
@@ -867,11 +868,13 @@ class Information(PrefixOperator):
      .         <dd>evaluates $expr$ with $i$ taking on the values $e1$, $e2$,
      .         ..., $ei$.
      .     </dl>
+     .  
 
     >> Information[Table]
      = <dl>
      .     <dt>'Table[$expr$, {$i$, $n$}]'
-     .         <dd>evaluates $expr$ with $i$ ranging from 1 to $n$, returning a list of the results.
+     .         <dd>evaluates $expr$ with $i$ ranging from 1 to $n$, returning
+     .         a list of the results.
      .     <dt>'Table[$expr$, {$i$, $start$, $stop$, $step$}]'
      .         <dd>evaluates $expr$ with $i$ ranging from $start$ to $stop$,
      .         incrementing by $step$.
