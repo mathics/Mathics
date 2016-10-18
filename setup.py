@@ -32,7 +32,6 @@ import sys
 import platform
 import os
 from setuptools import setup, Command, Extension
-from setuptools.command.install import install
 
 # Ensure user has the correct Python version
 if sys.version_info[:2] != (2, 7) and sys.version_info < (3, 2):
@@ -67,28 +66,13 @@ else:
     INSTALL_REQUIRES += ['cython>=0.15.1']
 
 # General Requirements
-
-kernel_json = {
-    'argv': [sys.executable,
-             '-m', 'mathics',
-             '-f', '{connection_file}'],
-    'display_name': 'mathics',
-    'language': 'Wolfram',
-    'name': 'mathics',
-}
-
-class install_with_kernelspec(install):
-    def run(self):
-        install.run(self)
-
-        from ipykernel.kernelspec import write_kernel_spec
-        from jupyter_client.kernelspec import KernelSpecManager
+INSTALL_REQUIRES += ['sympy==1.0', 'django >= 1.8, < 1.9a0',
+                     'mpmath>=0.19', 'python-dateutil', 'colorama', 'six>=1.10']
 
 
 def subdirs(root, file='*.*', depth=10):
     for k in range(depth):
         yield root + '*/' * k + file
-
 
 
 class initialize(Command):
@@ -159,8 +143,8 @@ class test(Command):
             sys.exit(1)
 
 
+CMDCLASS['initialize'] = initialize
 CMDCLASS['test'] = test
-CMDCLASS['install'] = install_with_kernelspec
 
 mathjax_files = list(subdirs('media/js/mathjax/'))
 
@@ -183,7 +167,6 @@ setup(
 
     install_requires=INSTALL_REQUIRES,
     dependency_links=DEPENDENCY_LINKS,
-
 
     package_data={
         'mathics': [
