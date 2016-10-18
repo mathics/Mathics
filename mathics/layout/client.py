@@ -162,6 +162,15 @@ class WebEngine:
             server_path = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)), 'server.js')
 
+            if True:
+                # fixes problems on Windows network drives
+                import tempfile
+                fd, copied_path = tempfile.mkstemp(suffix='js')
+                with open(server_path, 'rb') as f:
+                    os.write(fd, f.read())
+                os.fsync(fd)
+                server_path = copied_path
+
             def abort(message):
                 error_text = 'Node.js failed to startup %s:\n\n' % server_path
                 raise WebEngineUnavailable(error_text + message)
