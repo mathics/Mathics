@@ -4415,7 +4415,7 @@ class Nearest(Builtin):
         'Nearest[pattern_][list_]': 'Nearest[list, pattern]',
     }
 
-    def apply(self, items, pivot, limit, evaluation, options):
+    def apply(self, items, pivot, limit, expression, evaluation, options):
         'Nearest[items_, pivot_, limit_, OptionsPattern[%(name)s]]'
 
         method = self.get_option(options, 'Method', evaluation)
@@ -4426,7 +4426,7 @@ class Nearest(Builtin):
         dist_p, repr_p = _dist_repr(items)
 
         if dist_p is None or len(dist_p) != len(repr_p):
-            evaluation.message(self.get_name(), 'list', Expression('Nearest', items, x, n))
+            evaluation.message(self.get_name(), 'list', expression)
             return
 
         if limit.has_form('List', 2):
