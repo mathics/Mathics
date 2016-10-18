@@ -2669,25 +2669,38 @@ def structure(head, origins, evaluation, structure_cache=None):
         return LinkedStructure(head, cache)
 
 
-def atom_list(head, leaves, atom_names, evaluation):
-    # if we encounter an Expression that consists wholly of atoms and those atoms have
-    # no rules associated with them, we can speed up evaluation.
+def atom_list_constructor(evaluation, head, *atom_names):
+    # if we encounter an Expression that consists wholly of atoms and those atoms (and the
+    # expression's head) have no rules associated with them, we can speed up evaluation.
 
-    expr = Expression(head)
-    expr._leaves = list(leaves)
+    # note that you may use a constructor constructed via atom_list_constructor() only as
+    # long as the evaluation's Definitions are guaranteed to not change.
 
     if not _is_neutral_head(head, None, evaluation) or any(not atom for atom in atom_names):
-        return expr
+        optimize = False
+    else:
+        full_atom_names = [ensure_context(atom) for atom in atom_names]
 
-    full_atom_names = [ensure_context(atom) for atom in atom_names]
+        if not all(_is_neutral_symbol(atom, None, evaluation) for atom in full_atom_names):
+            optimize = False
+        else:
+            optimize = True
 
-    if not all(_is_neutral_symbol(atom, None, evaluation) for atom in full_atom_names):
-        return expr
+    if optimize:
+        def construct(leaves):
+            expr = Expression(head)
+            expr._leaves = list(leaves)
+            sym = set(chain([head.get_name()], full_atom_names))
+            expr._cache = ExpressionCache(evaluation.definitions.now, sym, None)
+            return expr
+    else:
+        def construct(leaves):
+            expr = Expression(head)
+            expr._leaves = list(leaves)
+            return expr
 
-    sym = set(chain([head.get_name()], full_atom_names))
-    expr._cache = ExpressionCache(evaluation.definitions.now, sym, None)
-    return expr
+    return construct
 
 
 def string_list(head, leaves, evaluation):
-    return atom_list(head, leaves, ('String',), evaluation)
+    return atom_list_constructor(evaluation, head, 'String')(leaves)
