@@ -1236,13 +1236,14 @@ class CoefficientList(Builtin):
                     if not dims:
                         return from_sympy(poly.coeff_monomial(exponents))
                     
-                    result = Expression('List')
+                    leaves = []
                     first_dim = dims[0]
                     for i in range(first_dim+1):
                         exponents.append(i)
                         subs = _nth(poly, dims[1:], exponents)
-                        result.leaves.append(subs)
+                        leaves.append(subs)
                         exponents.pop()
+                    result = Expression('List', *leaves)
                     return result
                 
                 return _nth(sympy_poly, dimensions, [])

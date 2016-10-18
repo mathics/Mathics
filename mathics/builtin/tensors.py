@@ -272,15 +272,15 @@ class Inner(Builtin):
         if not m or not n:
             evaluation.message('Inner', 'normal')
             return
-        if list1.head != list2.head:
-            evaluation.message('Inner', 'heads', list1.head, list2.head)
+        if list1.get_head() != list2.get_head():
+            evaluation.message('Inner', 'heads', list1.get_head(), list2.get_head())
             return
         if m[-1] != n[0]:
             evaluation.message(
                 'Inner', 'incom', m[-1], len(m), list1, n[0], list2)
             return
 
-        head = list1.head
+        head = list1.get_head()
         inner_dim = n[0]
 
         def rec(i_cur, j_cur, i_rest, j_rest):
@@ -298,9 +298,10 @@ class Inner(Builtin):
                         rec(i_cur, j_cur + [j], i_rest, j_rest[1:]))
                 return Expression(head, *leaves)
             else:
-                def summand(i):
-                    return Expression(f, get_part(list1, i_cur + [i]),
-                                      get_part(list2, [i] + j_cur))
+                def summand(i):                    
+                    part1 = get_part(list1, i_cur + [i])
+                    part2 = get_part(list2, [i] + j_cur)
+                    return Expression(f, part1, part2)
                 part = Expression(
                     g, *[summand(i) for i in range(1, inner_dim + 1)])
                 # cur_expr.leaves.append(part)

@@ -222,32 +222,32 @@ def join_lists(lists):
     return new_list
 
 
-def get_part(list, indices):
+def get_part(varlist, indices):
     " Simple part extraction. indices must be a list of python integers. "
 
     def rec(cur, rest):
         if rest:
-            pos = rest[0]
             if cur.is_atom():
-                raise PartDepthError
+                raise PartDepthError(rest[0])
+            pos = rest[0]
+            leaves = cur.get_leaves()
             try:
                 if pos > 0:
-                    part = cur.leaves[pos - 1]
+                    part = leaves[pos - 1]
                 elif pos == 0:
-                    part = cur.head
+                    part = cur.get_head()
                 else:
-                    part = cur.leaves[pos]
+                    part = leaves[pos]
             except IndexError:
                 raise PartRangeError
             return rec(part, rest[1:])
         else:
             return cur
-    return rec(list, indices).copy()
+    return rec(varlist, indices).copy()
 
 
-def set_part(list, indices, new):
+def set_part(varlist, indices, newval):
     " Simple part replacement. indices must be a list of python integers. "
-
     def rec(cur, rest):
         if len(rest) > 1:
             pos = rest[0]
@@ -255,63 +255,30 @@ def set_part(list, indices, new):
                 raise PartDepthError
             try:
                 if pos > 0:
-                    part = cur.leaves[pos - 1]
+                    part = cur._leaves[pos - 1]
                 elif pos == 0:
-                    part = cur.head
+                    part = cur.get_head()
                 else:
-                    part = cur.leaves[pos]
+                    part = cur._leaves[pos]
             except IndexError:
                 raise PartRangeError
-            rec(part, rest[1:])
+            return rec(part, rest[1:])
         elif len(rest) == 1:
             pos = rest[0]
             if cur.is_atom():
                 raise PartDepthError
             try:
                 if pos > 0:
-                    cur.set_leaf(pos - 1, new)
+                    cur.set_leaf(pos - 1, newval)
                 elif pos == 0:
-                    cur.set_head(new)
+                    cur.set_head(newval)
                 else:
-                    cur.set_leaf(pos, new)
+                    cur.set_leaf(pos, newval)
             except IndexError:
                 raise PartRangeError
 
-    rec(list, indices)
+    rec(varlist, indices)
 
-def set_sequence(list, indices):
-    "Replace a part to Sequence. indices must be a list of python integers. "
-
-    def sequence(cur, rest):
-        if len(rest) > 1:
-            pos = rest[0]
-            if cur.is_atom():
-                raise PartDepthError(pos)
-            try:
-                if pos > 0:
-                    part = cur.leaves[pos - 1]
-                elif pos == 0:
-                    part = cur.head
-                else:
-                    part = cur.leaves[pos]
-            except IndexError:
-                raise PartRangeError
-            sequence(part, rest[1:])
-        elif len(rest) == 1:
-            pos = rest[0]
-            if cur.is_atom():
-                raise PartDepthError(pos)
-            try:
-                if pos > 0:
-                    cur.leaves[pos - 1] = Expression('Sequence')
-                elif pos == 0:
-                    cur.head = Symbol('Sequence')
-                else:
-                    cur.leaves[pos] = Expression('Sequence')
-            except IndexError:
-                raise PartRangeError
-
-    sequence(list, indices)
 
 def _parts_span_selector(pspec):
     if len(pspec.leaves) > 3:
@@ -1750,96 +1717,6 @@ class Cases(Builtin):
         return Expression('List', *results)
 
 
-
-class Delete(Builtin):
-    """
-    <dl>
-    <dt>'Delete[$expr$, $n$]'
-        <dd>returns $expr$ with part $n$ removed.
-    </dl>
-
-    >> Delete[{a, b, c, d}, 3]
-     = {a, b, d}
-    >> Delete[{a, b, c, d}, -2]
-     = {a, b, d}
-    >> Delete[{{1, 2}, {3, 4}}, {1, 2}]
-     = {{1}, {3, 4}}
-    #> Delete[{1,2,3,4},5]
-     : Cannot delete position 5 in Delete[{1, 2, 3, 4}, 5].
-     = Delete[{1, 2, 3, 4}, 5]
-    """
-
-    messages = {
-        'normal': 'Nonatomic expression expected at position `1` in `2`.',
-        'delete': "Cannot delete position `1` in `2`.",
-    }
-
-
-    def del_one(self,cur,pos):
-        l = len(cur.leaves)
-        if cur.is_atom():
-            raise PartDepthError
-        if pos > l:
-            raise PartRangeError
-        if pos > 0:
-            cur.leaves = cur.leaves[:pos-1] + cur.leaves[pos:]
-            return cur
-        elif pos == 0:
-            cur.head = Symbol('System`Sequence')
-            return cur
-        elif pos >= -l:
-            cur.leaves = cur.leaves[:l+pos] + cur.leaves[l+pos+1:]
-            return cur
-        else:
-            raise PartRangeError
-
-    def del_rec(self, cur, rest):
-        if cur.is_atom():
-            raise PartDepthError
-        if len(rest) > 1:
-            pos = rest[0]
-            try:
-                if pos > 0:
-                    part = get_part(cur,[pos])
-                    part = self.del_rec(part,rest[1:])
-                    cur.leaves = cur.leaves[:pos-1] + [part] + cur.leaves[pos:]
-                    return cur
-                elif pos == 0:
-                    raise PartRangeError
-                elif pos >= -len(cur.leaves):
-                    l = len(cur.leaves)
-                    part = get_part(cur,[l+pos+1])
-                    part = self.del_rec(part,rest[1:])
-                    cur.leaves = cur.leaves[:l+pos] + [part] + cur.leaves[l+pos+1:]
-                    return cur
-                else:
-                    raise PartRangeError
-            except IndexError:
-                raise PartRangeError
-        else:
-            return self.del_one(cur, rest[0])
-
-    def del_part(self, expr,indices,evaluation):
-        if indices.is_atom():
-            return self.del_one(expr,indices.get_int_value())
-        else:
-            indices = [index.get_int_value() for index in indices.leaves]
-            return self.del_rec(expr.copy(), indices)
-
-    def apply(self, items, n, evaluation):
-        'Delete[items_, n_]'
-
-        if items.is_atom():
-            return evaluation.message(
-                'Delete', 'normal', 1, Expression('Delete', items, n))
-        try:
-            return self.del_part(items,n,evaluation)
-        except MessageException as e:
-            e.message(evaluation)
-        except PartRangeError:
-            evaluation.message('Delete', 'delete', n, Expression('Delete', items, n))
-        except PartDepthError:
-            evaluation.message('Delete', 'delete', n, Expression('Delete', items, n))
 
 
 class DeleteCases(Builtin):
@@ -5079,6 +4956,47 @@ class SubsetQ(Builtin):
         else:
             return Symbol('False')
 
+def delete_one(expr, pos):
+    if expr.is_atom():
+        raise PartDepthError(pos)
+    leaves = expr.leaves
+    if pos == 0:
+        return Expression(Symbol("System`Sequence"), *leaves)
+    l = len(leaves)
+    truepos = pos
+    if truepos < 0:
+        truepos = l + truepos
+    else:
+        truepos = truepos - 1
+    if truepos < 0 or truepos>=l:
+        raise PartRangeError
+    leaves = leaves[:truepos] + (Expression("System`Sequence"),) +  leaves[truepos+1:]
+    return Expression(expr.get_head(), *leaves)
+
+
+
+def delete_rec(expr, pos):
+    if len(pos)==1:
+        return delete_one(expr, pos[0])    
+    truepos = pos[0]
+    if truepos == 0 or expr.is_atom():
+        raise PartDepthError(pos[0])
+    leaves = expr.leaves
+    l = len(leaves)
+    if truepos < 0:
+        truepos = truepos + l
+        if truepos < 0:
+            raise PartRangeError
+        newleaf = delete_rec(leaves[truepos], pos[1:])
+        leaves = leaves[:truepos] +  newleaf  + leaves[truepos+1:] 
+    else:
+        if truepos > l:
+            raise PartRangeError
+        newleaf = delete_rec(leaves[truepos-1 ], pos[1:])
+        leaves = leaves[:truepos-1] +  (newleaf,)  + leaves[truepos:] 
+    return Expression(expr.get_head(), *leaves)
+
+
 class Delete(Builtin):
     """
     <dl>
@@ -5174,15 +5092,11 @@ class Delete(Builtin):
 
     def apply_one(self, expr, position, evaluation):
         'Delete[expr_, position_Integer]'
-
-        new_expr = expr.copy()
-        pos = [position.get_int_value()]
+        pos = position.get_int_value()
         try:
-            set_sequence(new_expr, pos)
-        except PartError:
-            return evaluation.message('Delete', 'partw', Expression('List', *pos), expr)
-
-        return new_expr
+            return delete_one(expr, pos)
+        except PartRangeError:
+            evaluation.message('Delete', 'partw', Expression('List', pos), expr)
 
     def apply(self, expr, positions, evaluation):
         'Delete[expr_, positions___]'
@@ -5200,8 +5114,13 @@ class Delete(Builtin):
         # Create new python list of the positions and sort it
         positions = [l for l in positions.leaves] if positions.leaves[0].has_form('List', None) else [positions]
         positions.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
-
-        new_expr = expr.copy()
+        
+        leaves = expr.leaves
+        newexpr = expr
+        #pypositions = [[p.get_int_value() for p in position.get_leaves()]
+        #             for position in positions]
+        # for it in range(len(positions)):
+        #    pos = pypositions[it]
         for position in positions:
             pos = [p.get_int_value() for p in position.get_leaves()]
             if None in pos:
@@ -5209,13 +5128,13 @@ class Delete(Builtin):
             if len(pos) == 0:
                 return evaluation.message('Delete', 'psl', Expression('List', *positions), expr)
             try:
-                set_sequence(new_expr, pos)
+                newexpr = delete_rec(newexpr, pos)
             except PartDepthError as exc:
                 return evaluation.message('Delete', 'partw', Integer(exc.index), expr)
             except PartError:
                 return evaluation.message('Delete', 'partw', Expression('List', *pos), expr)
+        return newexpr
 
-        return new_expr
 
 class Association(Builtin):
     """
