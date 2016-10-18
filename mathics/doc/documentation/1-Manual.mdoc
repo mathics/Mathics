@@ -618,7 +618,11 @@ Thus, 'Block' can be used to temporarily assign a value to a variable:
 >> Block[{$RecursionLimit = 30}, x = 2 x]
  : Recursion depth of 30 exceeded.
  = $Aborted
- 
+
+>> f[x_] := f[x + 1]; Block[{$IterationLimit = 30}, f[1]]
+ : Iteration limit of 30 exceeded.
+ = $Aborted
+
 It is common to use scoping constructs for function definitions with local variables:
 >> fac[n_] := Module[{k, p}, p = 1; For[k = 1, k <= n, ++k, p *= k]; p]
 >> fac[10]
