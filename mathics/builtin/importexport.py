@@ -401,6 +401,10 @@ class FetchURL(Builtin):
             finally:
                 f.close()
 
+                # on some OS (e.g. Windows) all writers need to be closed before another
+                # reader (e.g. Import._import) can access it. so close the file here.
+                os.close(temp_handle)
+
             def determine_filetype():
                 return mimetype_dict.get(content_type)
 
