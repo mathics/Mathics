@@ -1262,19 +1262,19 @@ class MultigraphQ(_NetworkXBuiltin):
 class AcyclicGraphQ(_NetworkXBuiltin):
     '''
     >> g = Graph[{1 -> 2, 2 -> 3}]; AcyclicGraphQ[g]
-     = False
+     = True
 
     >> g = Graph[{1 -> 2, 2 -> 3, 5 -> 2, 3 -> 4, 3 -> 5}]; AcyclicGraphQ[g]
-     = True
-
-    #> g = Graph[{1 -> 2, 2 -> 3, 5 -> 2, 3 -> 4, 5 -> 3}]; AcyclicGraphQ[g]
      = False
 
-    #> g = Graph[{1 -> 2, 2 -> 3, 5 -> 2, 3 -> 4, 5 <-> 3}]; AcyclicGraphQ[g]
+    #> g = Graph[{1 -> 2, 2 -> 3, 5 -> 2, 3 -> 4, 5 -> 3}]; AcyclicGraphQ[g]
      = True
 
+    #> g = Graph[{1 -> 2, 2 -> 3, 5 -> 2, 3 -> 4, 5 <-> 3}]; AcyclicGraphQ[g]
+     = False
+
     #> g = Graph[{1 <-> 2, 2 <-> 3, 5 <-> 2, 3 <-> 4, 5 <-> 3}]; AcyclicGraphQ[g]
-     = True
+     = False
 
     #> g = Graph[{}]; AcyclicGraphQ[{}]
      = False
@@ -1286,12 +1286,12 @@ class AcyclicGraphQ(_NetworkXBuiltin):
     def apply(self, graph, expression, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
         graph = self._build_graph(graph, evaluation, options, expression, quiet=True)
-        if graph:
+        if graph and not graph.empty():
             try:
                 cycles = nx.find_cycle(graph.G)
             except nx.exception.NetworkXNoCycle:
                 cycles = None
-            return Symbol('True' if cycles else 'False')
+            return Symbol('True' if not cycles else 'False')
         else:
             return Symbol('False')
 
