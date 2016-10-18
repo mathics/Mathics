@@ -429,7 +429,7 @@ class FetchURL(Builtin):
             def determine_filetype():
                 return mimetype_dict.get(content_type)
 
-            result = Import._import(temp_path, determine_filetype, elements, evaluation)
+            result = Import._import(temp_path, determine_filetype, elements, evaluation, {})
         except HTTPError as e:
             evaluation.message(
                 'FetchURL', 'httperr', url,
