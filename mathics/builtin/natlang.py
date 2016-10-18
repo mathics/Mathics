@@ -351,13 +351,13 @@ class TextSentences(_SpacyBuiltin):
         'TextSentences[text_String, OptionsPattern[%(name)s]]'
         doc = self._nlp(text.get_string_value(), evaluation, options)
         if doc:
-            return string_list('List', *[String(sent.text) for sent in doc.sents], evaluation)
+            return string_list('List', [String(sent.text) for sent in doc.sents], evaluation)
 
     def apply_n(self, text, n, evaluation, options):
         'TextSentences[text_String, n_Integer, OptionsPattern[%(name)s]]'
         doc = self._nlp(text.get_string_value(), evaluation, options)
         if doc:
-            return string_list('List', *itertools.islice(
+            return string_list('List', itertools.islice(
                 (String(sent.text) for sent in doc.sents), n.get_int_value()), evaluation)
 
 

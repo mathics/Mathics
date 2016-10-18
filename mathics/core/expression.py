@@ -2674,7 +2674,7 @@ def atom_list(head, leaves, atom_names, evaluation):
     # no rules associated with them, we can speed up evaluation.
 
     expr = Expression(head)
-    expr._leaves = leaves
+    expr._leaves = list(leaves)
 
     if not _is_neutral_head(head, None, evaluation) or any(not atom for atom in atom_names):
         return expr
