@@ -419,15 +419,12 @@ class Parser(object):
         child = self.parse_exp(q)
         return Node('Information', child, Node('Rule',Symbol("LongForm"), Symbol("False")))
 
-    def p_Definition(self, token):
-        self.consume()
-        q = prefix_ops['Definition']
-        return Node('Definition', self.parse_exp(q))
-
     def p_Information(self, token):
         self.consume()
         q = prefix_ops['Information']
         child = self.parse_exp(q)
+        if not child.__class__ is Symbol:
+            raise InvalidSyntaxError()
         return Node('Information', child, Node('Rule',Symbol("LongForm"), Symbol("True")))
 
     # E methods
