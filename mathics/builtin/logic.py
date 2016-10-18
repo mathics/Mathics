@@ -195,6 +195,9 @@ class NoneTrue(_ManyTrue):
 
     >> NoneTrue[{1, 4, 5}, EvenQ]
      = False
+
+    #> NoneTrue[{}, EvenQ]
+     = True
     """
 
     def _short_circuit(self, what):
@@ -221,6 +224,9 @@ class AnyTrue(_ManyTrue):
 
     >> AnyTrue[{1, 4, 5}, EvenQ]
      = True
+
+    #> AnyTrue[{}, EvenQ]
+     = False
     """
 
     def _short_circuit(self, what):
@@ -247,6 +253,9 @@ class AllTrue(_ManyTrue):
 
     >> AllTrue[{2, 4, 7}, EvenQ]
      = False
+
+    #> AllTrue[{}, EvenQ]
+     = True
     """
     def _short_circuit(self, what):
         if not what:

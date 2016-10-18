@@ -8,6 +8,7 @@ import re
 import sympy
 from functools import total_ordering
 import importlib
+from itertools import chain
 
 from mathics.core.definitions import Definition
 from mathics.core.rules import Rule, BuiltinRule, Pattern
@@ -192,12 +193,16 @@ class Builtin(object):
 
     @staticmethod
     def get_option(options, name, evaluation, pop=False):
-        # we do not care, whether an option X is given as
-        # System`X, Global`X, or "X". we always handle it
-        # as the same option. this matches Wolfram Language
+        # we do not care whether an option X is given as System`X,
+        # Global`X, or with any prefix from $ContextPath for that
+        # matter. Also, the quoted string form "X" is ok. all these
+        # variants name the same option. this matches Wolfram Language
         # behaviour.
 
-        for variant in ('System`%s', 'Global`%s', '"%s"'):
+        contexts = (s + '%s' for s in
+                    evaluation.definitions.get_context_path())
+
+        for variant in chain(contexts, ('"%s"',)):
             resolved_name = variant % name
 
             if pop:

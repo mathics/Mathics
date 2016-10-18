@@ -724,7 +724,7 @@ class Export(Builtin):
      | 1 + x + y
     #> DeleteFile[%%]
 
-    #> Export["abc.txt", "ä", CharacterEncoding -> "Latin-1"];
+    #> Export["abc.txt", "ä", CharacterEncoding -> "ISOLatin1"];
     #> strm = OpenRead["abc.txt", BinaryFormat -> True];
     #> BinaryRead[strm]
      = 228
