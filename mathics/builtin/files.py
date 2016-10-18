@@ -33,6 +33,8 @@ from mathics.core.numbers import dps
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
                                   PrefixOperator)
 from mathics.builtin.numeric import Hash
+from mathics.builtin.strings import to_python_encoding
+from mathics.builtin.base import MessageException
 from mathics.settings import ROOT_DIR
 
 
@@ -116,9 +118,10 @@ def _lookup_stream(n=None):
 
 
 class mathics_open:
-    def __init__(self, name, mode='r'):
+    def __init__(self, name, mode='r', encoding=None):
         self.name = name
         self.mode = mode
+        self.encoding = encoding
 
         if mode not in ['r', 'w', 'a', 'rb', 'wb', 'ab']:
             raise ValueError("Can't handle mode {0}".format(mode))
@@ -132,10 +135,19 @@ class mathics_open:
             raise IOError
 
         # determine encoding
-        encoding = 'utf-8' if 'b' not in self.mode else None
+        if 'b' not in self.mode:
+            encoding = self.encoding
+            if encoding is None:
+                python_encoding = None
+            else:
+                python_encoding = to_python_encoding(encoding)
+                if python_encoding is None:
+                    raise MessageException('General', 'charcode', encoding)
+        else:
+            python_encoding = None
 
         # open the stream
-        stream = io.open(path, self.mode, encoding=encoding)
+        stream = io.open(path, self.mode, encoding=python_encoding)
 
         # build the Expression
         n = next(NSTREAMS)
@@ -748,6 +760,8 @@ class Read(Builtin):
 
             except EOFError:
                 return Symbol('EndOfFile')
+            except UnicodeDecodeError:
+                evaluation.message('General', 'ucdec')
 
         if len(result) == 1:
             return from_python(*result)
@@ -1909,6 +1923,7 @@ class _OpenAction(Builtin):
 
     options = {
         'BinaryFormat': 'False',
+        'CharacterEncoding': '$CharacterEncoding',
     }
 
     messages = {
@@ -1954,11 +1969,18 @@ class _OpenAction(Builtin):
             path_string = tmp
 
         try:
-            opener = mathics_open(path_string, mode=mode)
+            encoding = self.get_option(options, 'CharacterEncoding', evaluation)
+            if not isinstance(encoding, String):
+                return
+
+            opener = mathics_open(path_string, mode=mode, encoding=encoding.get_string_value())
             opener.__enter__()
             n = opener.n
         except IOError:
             evaluation.message('General', 'noopen', path)
+            return
+        except MessageException as e:
+            e.message(evaluation)
             return
 
         return Expression(self.stream_type, path, Integer(n))
@@ -2104,6 +2126,9 @@ class Get(PrefixOperator):
                     result = query.evaluate(evaluation)
         except IOError:
             evaluation.message('General', 'noopen', path)
+            return Symbol('$Failed')
+        except MessageException as e:
+            e.message(evaluation)
             return Symbol('$Failed')
         return result
 
@@ -2844,6 +2869,9 @@ class ReadList(Read):
             tmp = super(ReadList, self).apply(
                 channel, types, evaluation, options)
 
+            if tmp is None:
+                return
+
             if tmp == Symbol('$Failed'):
                 return
 
@@ -2954,6 +2982,9 @@ class FilePrint(Builtin):
                 result = f.read()
         except IOError:
             evaluation.message('General', 'noopen', path)
+            return
+        except MessageException as e:
+            e.message(evaluation)
             return
 
         result = [result]
@@ -3392,6 +3423,9 @@ class FindList(Builtin):
             except IOError:
                 evaluation.message('General', 'noopen', path)
                 return
+            except MessageException as e:
+                e.message(evaluation)
+                return
 
             result = []
             for line in lines:
@@ -3636,6 +3670,9 @@ class FileByteCount(Builtin):
         except IOError:
             evaluation.message('General', 'noopen', filename)
             return
+        except MessageException as e:
+            e.message(evaluation)
+            return
 
         return from_python(count)
 
@@ -3695,7 +3732,11 @@ class FileHash(Builtin):
             with mathics_open(py_filename, 'rb') as f:
                 dump = f.read()
         except IOError:
-            return evaluation.message('General', 'noopen', filename)
+            evaluation.message('General', 'noopen', filename)
+            return
+        except MessageException as e:
+            e.message(evaluation)
+            return
 
         return Hash.compute(lambda update: update(dump), hashtype.get_string_value())
 

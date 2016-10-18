@@ -3,10 +3,15 @@
 Begin["System`Convert`TableDump`"]
 
 
-ImportCSV[filename_String]:=
-    Module[{stream, data, grid},
-        stream = OpenRead[filename];
-        data = StringSplit[#, ","]& /@ ReadList[stream, String];
+Options[ImportCSV] = {
+    "CharacterEncoding" :> $CharacterEncoding,
+    "FieldSeparators" -> ","
+};
+
+ImportCSV[filename_String, OptionsPattern[]]:=
+    Module[{stream, data, grid, sep = OptionValue["FieldSeparators"]},
+        stream = OpenRead[filename, CharacterEncoding -> OptionValue["CharacterEncoding"]];
+        data = StringSplit[#, sep]& /@ ReadList[stream, String];
         grid = Grid[data];
         Close[stream];
         {
@@ -25,7 +30,11 @@ ImportExport`RegisterImport[
     (* Sources -> ImportExport`DefaultSources["Table"], *)
     FunctionChannels -> {"FileNames"},
     AvailableElements -> {"Data", "Grid"},
-    DefaultElement -> "Data"
+    DefaultElement -> "Data",
+    Options -> {
+        "CharacterEncoding",
+        "FieldSeparators"
+    }
 ]
 
 

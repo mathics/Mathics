@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import sys
+from sys import version_info
 import re
 import unicodedata
 from binascii import hexlify, unhexlify
@@ -18,7 +19,7 @@ import six
 from six.moves import range
 from six import unichr
 
-from mathics.builtin.base import BinaryOperator, Builtin, Test
+from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
 from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
 from mathics.builtin.lists import python_seq, convert_seq
@@ -242,6 +243,97 @@ def mathics_split(patt, string, flags):
 
     # slice up the string
     return [string[start:stop] for start, stop in indices]
+
+
+if version_info >= (3, 0):
+    def pack_bytes(codes):
+        return bytes(codes)
+
+    def unpack_bytes(codes):
+        return [int(code) for code in codes]
+else:
+    from struct import pack, unpack
+
+    def pack_bytes(codes):
+        return pack('B' * len(codes), *codes)
+
+    def unpack_bytes(codes):
+        return unpack('B' * len(codes), codes)
+
+
+class CharacterEncoding(Predefined):
+    """
+    <dl>
+    <dt>'CharacterEncoding'
+        <dd>specifies the default character encoding to use if no other encoding is
+        specified.
+    </dl>
+    """
+
+    name = '$CharacterEncoding'
+    value = '"UTF-8"'
+
+    rules = {
+        '$CharacterEncoding': value,
+    }
+
+
+_encodings = {
+    # see https://docs.python.org/2/library/codecs.html#standard-encodings
+    "ASCII": "ascii",
+    "CP949": "cp949",
+    "CP950": "cp950",
+    "EUC-JP": "euc_jp",
+    "IBM-850": "cp850",
+    "ISOLatin1": "iso8859_1",
+    "ISOLatin2": "iso8859_2",
+    "ISOLatin3": "iso8859_3",
+    "ISOLatin4": "iso8859_4",
+    "ISOLatinCyrillic": "iso8859_5",
+    "ISO8859-1": "iso8859_1",
+    "ISO8859-2": "iso8859_2",
+    "ISO8859-3": "iso8859_3",
+    "ISO8859-4": "iso8859_4",
+    "ISO8859-5": "iso8859_5",
+    "ISO8859-6": "iso8859_6",
+    "ISO8859-7": "iso8859_7",
+    "ISO8859-8": "iso8859_8",
+    "ISO8859-9": "iso8859_9",
+    "ISO8859-10": "iso8859_10",
+    "ISO8859-13": "iso8859_13",
+    "ISO8859-14": "iso8859_14",
+    "ISO8859-15": "iso8859_15",
+    "ISO8859-16": "iso8859_16",
+    "koi8-r": "koi8_r",
+    "MacintoshCyrillic": "mac_cyrillic",
+    "MacintoshGreek": "mac_greek",
+    "MacintoshIcelandic": "mac_iceland",
+    "MacintoshRoman": "mac_roman",
+    "MacintoshTurkish": "mac_turkish",
+    "ShiftJIS": "shift_jis",
+    "Unicode": "utf_16",
+    "UTF-8": "utf_8",
+    "UTF8": "utf_8",
+    "WindowsANSI": "cp1252",
+    "WindowsBaltic": "cp1257",
+    "WindowsCyrillic": "cp1251",
+    "WindowsEastEurope": "cp1250",
+    "WindowsGreek": "cp1253",
+    "WindowsTurkish": "cp1254",
+}
+
+
+def to_python_encoding(encoding):
+    return _encodings.get(encoding)
+
+
+class CharacterEncodings(Predefined):
+    name = '$CharacterEncodings'
+    value = '{%s}' % ','.join(map(lambda s: '"%s"' % s, _encodings.keys()))
+
+    rules = {
+        '$CharacterEncodings': value,
+    }
 
 
 class StringExpression(BinaryOperator):
@@ -1537,6 +1629,12 @@ class ToCharacterCode(Builtin):
     >> ToCharacterCode["\[Alpha]\[Beta]\[Gamma]"]
      = {945, 946, 947}
 
+    >> ToCharacterCode["ä", "UTF8"]
+     = {195, 164}
+
+    >> ToCharacterCode["ä", "ISO8859-1"]
+     = {228}
+
     >> ToCharacterCode[{"ab", "c"}]
      = {{97, 98}, {99}}
 
@@ -1566,11 +1664,7 @@ class ToCharacterCode(Builtin):
         'strse': 'String or list of strings expected at position `1` in `2`.',
     }
 
-    # TODO encoding
-
-    def apply(self, string, evaluation):
-        "ToCharacterCode[string_]"
-
+    def _encode(self, string, encoding, evaluation):
         exp = Expression('ToCharacterCode', string)
 
         if string.has_form('List', None):
@@ -1585,11 +1679,30 @@ class ToCharacterCode(Builtin):
                 evaluation.message('ToCharacterCode', 'strse', Integer(1), exp)
                 return None
 
+        if encoding == 'Unicode':
+            def convert(s):
+                return Expression('List', *[Integer(ord(code)) for code in s])
+        else:
+            py_encoding = to_python_encoding(encoding)
+            if py_encoding is None:
+                evaluation.message('General', 'charcode', encoding)
+                return
+
+            def convert(s):
+                return Expression('List', *[Integer(x) for x in unpack_bytes(s.encode(py_encoding))])
+
         if isinstance(string, list):
-            codes = [[ord(char) for char in substring] for substring in string]
+            return Expression('List', *[convert(substring) for substring in string])
         elif isinstance(string, six.string_types):
-            codes = [ord(char) for char in string]
-        return from_python(codes)
+            return convert(string)
+
+    def apply_default(self, string, evaluation):
+        "ToCharacterCode[string_]"
+        return self._encode(string, 'Unicode', evaluation)
+
+    def apply(self, string, encoding, evaluation):
+        "ToCharacterCode[string_, encoding_String]"
+        return self._encode(string, encoding.get_string_value(), evaluation)
 
 
 class _InvalidCodepointError(ValueError):
@@ -1609,6 +1722,9 @@ class FromCharacterCode(Builtin):
 
     >> FromCharacterCode[100]
      = d
+
+    >> FromCharacterCode[228, "ISO8859-1"]
+     = ä
 
     >> FromCharacterCode[{100, 101, 102}]
      = def
@@ -1665,27 +1781,32 @@ class FromCharacterCode(Builtin):
         'intnm': (
             'Non-negative machine-sized integer expected at '
             'position `2` in `1`.'),
+        'utf8': 'The given codes could not be decoded as utf-8.',
     }
 
-    def apply(self, n, evaluation):
-        "FromCharacterCode[n_]"
+    def _decode(self, n, encoding, evaluation):
         exp = Expression('FromCharacterCode', n)
 
-        def convert_codepoint_list(l, encoding=None):
-            if encoding is not None:
-                raise NotImplementedError
+        py_encoding = to_python_encoding(encoding)
+        if py_encoding is None:
+            evaluation.message('General', 'charcode', encoding)
+            return
 
-            s = ''
-            for i, ni in enumerate(l):
-                pyni = ni.get_int_value()
-                if not(pyni is not None and 0 <= pyni <= 0xffff):
-                    evaluation.message(
-                        'FromCharacterCode', 'notunicode',
-                        Expression('List', *l), Integer(i + 1))
-                    raise _InvalidCodepointError
-                s += unichr(pyni)
-
-            return s
+        def convert_codepoint_list(l):
+            if encoding == 'Unicode':
+                s = ''
+                for i, ni in enumerate(l):
+                    pyni = ni.get_int_value()
+                    if not(pyni is not None and 0 <= pyni <= 0xffff):
+                        evaluation.message(
+                            'FromCharacterCode', 'notunicode',
+                            Expression('List', *l), Integer(i + 1))
+                        raise _InvalidCodepointError
+                    s += unichr(pyni)
+                return s
+            else:
+                codes = [x.get_int_value() & 0xff for x in l]
+                return pack_bytes(codes).decode(py_encoding)
 
         try:
             if n.has_form('List', None):
@@ -1713,8 +1834,19 @@ class FromCharacterCode(Builtin):
                 return String(convert_codepoint_list([n]))
         except _InvalidCodepointError:
             return
+        except UnicodeDecodeError:
+            evaluation.message(self.get_name(), 'utf8')
+            return
 
         assert False, "can't get here"
+
+    def apply_default(self, n, evaluation):
+        "FromCharacterCode[n_]"
+        return self._decode(n, 'Unicode', evaluation)
+
+    def apply(self, n, encoding, evaluation):
+        "FromCharacterCode[n_, encoding_String]"
+        return self._decode(n, encoding.get_string_value(), evaluation)
 
 
 class StringQ(Test):
