@@ -784,6 +784,8 @@ class Expression(BaseExpression):
                         self.leaves, 1]
 
     def same(self, other):
+        if id(self) == id(other):
+            return True
         if self.get_head_name() != other.get_head_name():
             return False
         if not self.head.same(other.get_head()):
@@ -1524,7 +1526,7 @@ class Symbol(Atom):
         rules = evaluation.definitions.get_ownvalues(self.name)
         for rule in rules:
             result = rule.apply(self, evaluation, fully=True)
-            if result is not None and result != self:
+            if result is not None and not result.same(self):
                 return result.evaluate(evaluation)
         return self
 
