@@ -212,7 +212,12 @@ class BinarySearch(Builtin):
             return Symbol('$Aborted')
 
         # "transform" is a handy wrapper for applying "f" or nothing
-        transform = (lambda x: x) if isinstance(f, Identity) else (lambda x: Expression(f, x).evaluate(evaluation))
+        if f.get_name() == 'System`Identity':
+            def transform(x):
+                return x
+        else:
+            def transform(x):
+                return Expression(f, x).evaluate(evaluation)
 
         # loop invariants (true at any time in the following loop):
         # (1) lower_index <= upper_index
