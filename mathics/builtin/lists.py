@@ -4394,6 +4394,9 @@ class Nearest(Builtin):
 
     >> Nearest[{Blue -> "blue", White -> "white", Red -> "red", Green -> "green"}, {Orange, Gray}]
      = {{red}, {white}}
+
+    >> Nearest[{{0, 1}, {1, 2}, {2, 3}} -> {a, b, c}, {1.1, 2}]
+     = {b}
     '''
 
     options = {
@@ -4413,7 +4416,7 @@ class Nearest(Builtin):
     }
 
     def apply(self, items, pivot, limit, evaluation, options):
-        'Nearest[items_List, pivot_, limit_, OptionsPattern[%(name)s]]'
+        'Nearest[items_, pivot_, limit_, OptionsPattern[%(name)s]]'
 
         method = self.get_option(options, 'Method', evaluation)
         if not isinstance(method, String) or method.get_string_value() != 'Scan':
