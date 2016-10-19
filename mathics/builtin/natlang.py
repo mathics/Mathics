@@ -255,8 +255,13 @@ class _SpacyBuiltin(Builtin):
         nlp = self._load_spacy(evaluation, options)
         if not nlp:
             return None
-        return nlp.is_stop
 
+        vocab = nlp.vocab
+
+        def is_stop(word):
+            return vocab[word].is_stop
+
+        return is_stop
 
 
 class WordFrequencyData(_SpacyBuiltin):
