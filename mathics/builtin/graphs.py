@@ -1512,8 +1512,8 @@ class FindVertexCut(_NetworkXBuiltin):
     >> g = Graph[{1 <-> 2, 2 <-> 3}]; FindVertexCut[g]
      = {2}
 
-    >> g = Graph[{1 <-> 2, 2 <-> 3, 1 <-> x, x <-> 3}]; FindVertexCut[g]
-     = {2, x}
+    >> g = Graph[{1 <-> x, x <-> 2, 1 <-> y, y <-> 2, x <-> y}]; FindVertexCut[g]
+     = {x, y}
 
     #> FindVertexCut[Graph[{}]]
      = {}
