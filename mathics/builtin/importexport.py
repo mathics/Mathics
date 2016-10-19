@@ -9,12 +9,13 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 import six
 
-from mathics.core.expression import Expression, from_python
+from mathics.core.expression import Expression, from_python, strip_context
 from mathics.builtin.base import Builtin, Predefined, Symbol, String
 
 from .pymimesniffer import magic
 import mimetypes
 import sys
+from itertools import chain
 
 import urllib
 
@@ -154,6 +155,30 @@ mimetype_dict = {
 IMPORTERS = {}
 EXPORTERS = {}
 
+
+def _importer_exporter_options(available_options, options, evaluation):
+    stream_options = []
+    custom_options = []
+
+    if available_options and available_options.has_form('List', None):
+        for name in available_options.leaves:
+            if isinstance(name, String):
+                py_name = name.get_string_value()
+            elif isinstance(name, Symbol):
+                py_name = strip_context(name.get_name())
+            else:
+                py_name = None
+
+            if py_name:
+                value = Builtin.get_option(options, py_name, evaluation)
+                if value is not None:
+                    expr = Expression('Rule', String(py_name), value)
+                    if py_name == 'CharacterEncoding':
+                        stream_options.append(expr)
+                    else:
+                        custom_options.append(expr)
+
+    return stream_options, custom_options
 
 class ImportFormats(Predefined):
     """
@@ -362,7 +387,7 @@ class RegisterExport(Builtin):
     def apply(self, formatname, function, evaluation, options):
         '''ImportExport`RegisterExport[formatname_String, function_,
                 OptionsPattern[ImportExport`RegisterExport]]'''
-        EXPORTERS[formatname.get_string_value()] = function
+        EXPORTERS[formatname.get_string_value()] = (function, options)
 
         return Symbol('Null')
 
@@ -401,10 +426,14 @@ class FetchURL(Builtin):
             finally:
                 f.close()
 
+                # on some OS (e.g. Windows) all writers need to be closed before another
+                # reader (e.g. Import._import) can access it. so close the file here.
+                os.close(temp_handle)
+
             def determine_filetype():
                 return mimetype_dict.get(content_type)
 
-            result = Import._import(temp_path, determine_filetype, elements, evaluation)
+            result = Import._import(temp_path, determine_filetype, elements, evaluation, {})
         except HTTPError as e:
             evaluation.message(
                 'FetchURL', 'httperr', url,
@@ -450,6 +479,8 @@ class Import(Builtin):
     = {{0.88, 0.60, 0.94}, {0.76, 0.19, 0.51}, {0.97, 0.04, 0.26}, {0.33, 0.74, 0.79}, {0.42, 0.64, 0.56}}
     #> Import["ExampleData/numberdata.csv"]
     = {{0.88, 0.60, 0.94}, {0.76, 0.19, 0.51}, {0.97, 0.04, 0.26}, {0.33, 0.74, 0.79}, {0.42, 0.64, 0.56}}
+    #> Import["ExampleData/numberdata.csv", "FieldSeparators" -> "."]
+    = {{0, 88,0, 60,0, 94}, {0, 76,0, 19,0, 51}, {0, 97,0, 04,0, 26}, {0, 33,0, 74,0, 79}, {0, 42,0, 64,0, 56}}
 
     ## Text
     >> Import["ExampleData/ExampleData.txt", "Elements"]
@@ -458,6 +489,8 @@ class Import(Builtin):
      = ...
     #> Import["ExampleData/Middlemarch.txt"];
      : An invalid unicode sequence was encountered and ignored.
+    #> StringTake[Import["ExampleData/Middlemarch.txt", CharacterEncoding -> "ISO8859-1"], {21, 69}]
+     = Le sentiment de la fausseté des plaisirs présents
 
     ## JSON
     >> Import["ExampleData/colors.json"]
@@ -481,8 +514,16 @@ class Import(Builtin):
         'Import[filename_]': 'Import[filename, {}]',
     }
 
-    def apply(self, filename, elements, evaluation):
-        'Import[filename_, elements_]'
+    def apply(self, filename, evaluation, options={}):
+        'Import[filename_, OptionsPattern[]]'
+        return self.apply_elements(filename, Expression('List'), evaluation, options)
+
+    def apply_element(self, filename, element, evaluation, options={}):
+        'Import[filename_, element_String, OptionsPattern[]]'
+        return self.apply_elements(filename, Expression('List', element), evaluation, options)
+
+    def apply_elements(self, filename, elements, evaluation, options={}):
+        'Import[filename_, elements_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]'
 
         # Check filename
         path = filename.to_python()
@@ -505,10 +546,10 @@ class Import(Builtin):
             return Expression('FileFormat', findfile).evaluate(
                 evaluation=evaluation).get_string_value()
 
-        return self._import(findfile, determine_filetype, elements, evaluation)
+        return self._import(findfile, determine_filetype, elements, evaluation, options)
 
     @staticmethod
-    def _import(findfile, determine_filetype, elements, evaluation):
+    def _import(findfile, determine_filetype, elements, evaluation, options):
         # Check elements
         if elements.has_form('List', None):
             elements = elements.get_leaves()
@@ -538,6 +579,9 @@ class Import(Builtin):
         # Load the importer
         (conditionals, default_function, posts, importer_options) = IMPORTERS[filetype]
 
+        stream_options, custom_options = _importer_exporter_options(
+            importer_options.get("System`Options"), options, evaluation)
+
         function_channels = importer_options.get("System`FunctionChannels")
         if function_channels is None:
             # TODO message
@@ -550,13 +594,14 @@ class Import(Builtin):
 
         def get_results(tmp_function):
             if function_channels == Expression('List', String('FileNames')):
-                tmp = Expression(tmp_function, findfile).evaluate(evaluation)
+                joined_options = list(chain(stream_options, custom_options))
+                tmp = Expression(tmp_function, findfile, *joined_options).evaluate(evaluation)
             elif function_channels == Expression('List', String('Streams')):
-                stream = Expression('OpenRead', findfile).evaluate(evaluation)
+                stream = Expression('OpenRead', findfile, *stream_options).evaluate(evaluation)
                 if stream.get_head_name() != 'System`InputStream':
                     evaluation.message('Import', 'nffil')
                     return None
-                tmp = Expression(tmp_function, stream).evaluate(evaluation)
+                tmp = Expression(tmp_function, stream, *custom_options).evaluate(evaluation)
                 Expression('Close', stream).evaluate(evaluation)
             else:
                 # TODO message
@@ -683,6 +728,20 @@ class Export(Builtin):
      | 1 + x + y
     #> DeleteFile[%%]
 
+    #> Export["abc.txt", "ä", CharacterEncoding -> "ISOLatin1"];
+    #> strm = OpenRead["abc.txt", BinaryFormat -> True];
+    #> BinaryRead[strm]
+     = 228
+    #> Close[strm];
+    #> DeleteFile["abc.txt"];
+
+    #> Export["abc.txt", "ä", CharacterEncoding -> "UTF-8"];
+    #> strm = OpenRead["abc.txt", BinaryFormat -> True];
+    #> BinaryRead[strm]
+     = 195
+    #> Close[strm];
+    #> DeleteFile["abc.txt"];
+
     ## CSV
     #> Export["abc.csv", {{1, 2, 3}, {4, 5, 6}}]
      = abc.csv
@@ -726,8 +785,8 @@ class Export(Builtin):
             'Export[filename, expr, {elems}]'),
     }
 
-    def apply_noelems(self, filename, expr, evaluation):
-        "Export[filename_, expr_]"
+    def apply(self, filename, expr, evaluation, options={}):
+        "Export[filename_, expr_, OptionsPattern[]]"
 
         # Check filename
         if not self._check_filename(filename, evaluation):
@@ -740,10 +799,14 @@ class Export(Builtin):
             evaluation.message('Export', 'infer', filename)
             return Symbol('$Failed')
         else:
-            return self.apply(filename, expr, String(form), evaluation)
+            return self.apply_elements(filename, expr, String(form), evaluation, options)
 
-    def apply(self, filename, expr, elems, evaluation):
-        "Export[filename_, expr_, elems_List]"
+    def apply_element(self, filename, expr, element, evaluation, options={}):
+        'Export[filename_, expr_, element_String, OptionsPattern[]]'
+        return self.apply_elements(filename, expr, Expression('List', element), evaluation, options)
+
+    def apply_elements(self, filename, expr, elems, evaluation, options={}):
+        "Export[filename_, expr_, elems_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]"
 
         # Check filename
         if not self._check_filename(filename, evaluation):
@@ -785,9 +848,13 @@ class Export(Builtin):
             return Symbol('$Failed')
 
         # Load the exporter
-        exporter_symbol = EXPORTERS[format_spec[0]]
+        exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
 
-        exporter_function = Expression(exporter_symbol, filename, expr)
+        stream_options, custom_options = _importer_exporter_options(
+            exporter_options.get("System`Options"), options, evaluation)
+
+        exporter_function = Expression(
+            exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
 
         if exporter_function.evaluate(evaluation) == Symbol('Null'):
             return filename
