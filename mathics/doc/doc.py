@@ -855,21 +855,6 @@ class Doc(object):
     def __str__(self):
         return '\n'.join(str(item) for item in self.items)
 
-    def text(self, detail_level):
-        # used for introspection
-        # TODO parse XML and pretty print
-        # HACK
-        item = str(self.items[0])
-        item = '\n'.join(line.strip() for line in item.split('\n'))
-        item = item.replace('<dl>', '')
-        item = item.replace('</dl>', '')
-        item = item.replace('<dt>', '  ')
-        item = item.replace('</dt>', '')
-        item = item.replace('<dd>', '    ')
-        item = item.replace('</dd>', '')
-        item = '\n'.join(line for line in item.split('\n') if not line.isspace())
-        return item
-
     def get_tests(self):
         tests = []
         for item in self.items:
