@@ -12,11 +12,11 @@ modules = (
     "lxml",
     "matplotlib",
     "networkx",
-    "PIL",
+    "pillow",
     "wordcloud",
     "pycor",
     "scipy",
-    "skimage",
+    "scikit-image",
 )
 
 print('installed modules:')
