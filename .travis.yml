@@ -58,7 +58,7 @@ before_install:
           pip install Pillow wordcloud pyocr scipy scikit-image &&
           pip install spacy &&
           python travis.py &&
-          sputnik --name spacy --repository-url http://index.spacy.io install en==1.1.0
+          sputnik --name spacy --repository-url http://index.spacy.io install en==1.1.0;
       fi &&
       python -m nltk.downloader wordnet omw;
     fi
