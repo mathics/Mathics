@@ -155,6 +155,9 @@ class BaseExpression(KeyComparable):
     def get_attributes(self, definitions):
         return set()
 
+    def evaluate_next(self, evaluation):
+        return self.evaluate(evaluation), False
+
     def evaluate(self, evaluation):
         evaluation.check_stopped()
         return self
@@ -342,6 +345,8 @@ class BaseExpression(KeyComparable):
                     else:
                         continue
                 name = option.leaves[0].get_name()
+                if not name and isinstance(option.leaves[0], String):
+                    name = ensure_context(option.leaves[0].get_string_value())
                 if not name:
                     if stop_on_error:
                         return None
@@ -781,6 +786,8 @@ class Expression(BaseExpression):
                         self.leaves, 1]
 
     def same(self, other):
+        if id(self) == id(other):
+            return True
         if self.get_head_name() != other.get_head_name():
             return False
         if not self.head.same(other.get_head()):
@@ -817,121 +824,41 @@ class Expression(BaseExpression):
 
     def evaluate(self, evaluation):
         from mathics.core.evaluation import ReturnInterrupt
-        evaluation.inc_recursion_depth()
+
+        expr = self
+        reevaluate = True
+        limit = None
+        iteration = 1
+        names = set()
+        definitions = evaluation.definitions
+
         old_options = evaluation.options
-        if hasattr(self, 'options') and self.options:
-            evaluation.options = self.options
+        evaluation.inc_recursion_depth()
+
         try:
-            # changed before last evaluated
-            if self.last_evaluated is not None and evaluation.definitions.last_changed(self) <= self.last_evaluated:
-                return self
-            head = self.head.evaluate(evaluation)
-            attributes = head.get_attributes(evaluation.definitions)
-            leaves = self.leaves[:]
+            while reevaluate:
+                # changed before last evaluated?
+                if expr.last_evaluated is not None and definitions.last_changed(expr) <= expr.last_evaluated:
+                    break
 
-            def rest_range(indices):
-                if 'System`HoldAllComplete' not in attributes:
-                    for index in indices:
-                        leaf = leaves[index]
-                        if leaf.has_form('Evaluate', 1):
-                            leaves[index] = leaf.evaluate(evaluation)
+                names.add(expr.get_lookup_name())
 
-            def eval_range(indices):
-                for index in indices:
-                    leaf = leaves[index]
-                    if not leaf.has_form('Unevaluated', 1):
-                        leaves[index] = leaf.evaluate(evaluation)
+                if hasattr(expr, 'options') and expr.options:
+                    evaluation.options = expr.options
 
-            if 'System`HoldAll' in attributes or 'System`HoldAllComplete' in attributes:
-                # eval_range(range(0, 0))
-                rest_range(range(len(leaves)))
-            elif 'System`HoldFirst' in attributes:
-                rest_range(range(0, min(1, len(leaves))))
-                eval_range(range(1, len(leaves)))
-            elif 'System`HoldRest' in attributes:
-                eval_range(range(0, min(1, len(leaves))))
-                rest_range(range(1, len(leaves)))
-            else:
-                eval_range(range(len(leaves)))
-                # rest_range(range(0, 0))
+                expr, reevaluate = expr.evaluate_next(evaluation)
+                if not reevaluate:
+                    break
 
-            new = Expression(head, *leaves)
+                iteration += 1
 
-            if ('System`SequenceHold' not in attributes and    # noqa
-                'System`HoldAllComplete' not in attributes):
-                new = new.flatten_sequence()
-                leaves = new.leaves
-
-            for leaf in leaves:
-                leaf.unevaluated = False
-
-            if 'System`HoldAllComplete' not in attributes:
-                dirty_new = False
-
-                for index, leaf in enumerate(leaves):
-                    if leaf.has_form('Unevaluated', 1):
-                        leaves[index] = leaf.leaves[0]
-                        leaves[index].unevaluated = True
-                        dirty_new = True
-
-                if dirty_new:
-                    new = Expression(head, *leaves)
-
-            def flatten_callback(new_leaves, old):
-                for leaf in new_leaves:
-                    leaf.unevaluated = old.unevaluated
-
-            if 'System`Flat' in attributes:
-                new = new.flatten(new.head, callback=flatten_callback)
-            if 'System`Orderless' in attributes:
-                new.sort()
-
-            new.last_evaluated = evaluation.definitions.now
-
-            if 'System`Listable' in attributes:
-                done, threaded = new.thread(evaluation)
-                if done:
-                    if threaded.same(new):
-                        new.last_evaluated = evaluation.definitions.now
-                        return new
-                    else:
-                        return threaded.evaluate(evaluation)
-
-            def rules():
-                rules_names = set()
-                if 'System`HoldAllComplete' not in attributes:
-                    for leaf in leaves:
-                        name = leaf.get_lookup_name()
-                        if len(name) > 0:  # only lookup rules if this is a symbol
-                            if name not in rules_names:
-                                rules_names.add(name)
-                                for rule in evaluation.definitions.get_upvalues(name):
-                                    yield rule
-                lookup_name = new.get_lookup_name()
-                if lookup_name == new.get_head_name():
-                    for rule in evaluation.definitions.get_downvalues(lookup_name):
-                        yield rule
-                else:
-                    for rule in evaluation.definitions.get_subvalues(lookup_name):
-                        yield rule
-
-            for rule in rules():
-                result = rule.apply(new, evaluation, fully=False)
-                if result is not None:
-                    if result.same(new):
-                        new.last_evaluated = evaluation.definitions.now
-                        return new
-                    else:
-                        return result.evaluate(evaluation)
-
-            # Expression did not change, re-apply Unevaluated
-            for index, leaf in enumerate(new.leaves):
-                if leaf.unevaluated:
-                    new.leaves[index] = Expression('Unevaluated', leaf)
-
-            new.unformatted = self.unformatted
-            new.last_evaluated = evaluation.definitions.now
-            return new
+                if limit is None:
+                    limit = definitions.get_config_value('$IterationLimit')
+                    if limit is None:
+                        limit = 'inf'
+                if limit != 'inf' and iteration > limit:
+                    evaluation.error('$IterationLimit', 'itlim', limit)
+                    return Symbol('$Aborted')
 
         # "Return gets discarded only if it was called from within the r.h.s.
         # of a user-defined rule."
@@ -939,13 +866,124 @@ class Expression(BaseExpression):
         # Otherwise it propogates up.
         #
         except ReturnInterrupt as ret:
-            if self.get_lookup_name() in evaluation.definitions.user:
+            if names.intersection(definitions.user.keys()):
                 return ret.expr
             else:
                 raise ret
         finally:
             evaluation.options = old_options
             evaluation.dec_recursion_depth()
+
+        return expr
+
+    def evaluate_next(self, evaluation):
+        head = self.head.evaluate(evaluation)
+        attributes = head.get_attributes(evaluation.definitions)
+        leaves = self.leaves[:]
+
+        def rest_range(indices):
+            if 'System`HoldAllComplete' not in attributes:
+                for index in indices:
+                    leaf = leaves[index]
+                    if leaf.has_form('Evaluate', 1):
+                        leaves[index] = leaf.evaluate(evaluation)
+
+        def eval_range(indices):
+            for index in indices:
+                leaf = leaves[index]
+                if not leaf.has_form('Unevaluated', 1):
+                    leaves[index] = leaf.evaluate(evaluation)
+
+        if 'System`HoldAll' in attributes or 'System`HoldAllComplete' in attributes:
+            # eval_range(range(0, 0))
+            rest_range(range(len(leaves)))
+        elif 'System`HoldFirst' in attributes:
+            rest_range(range(0, min(1, len(leaves))))
+            eval_range(range(1, len(leaves)))
+        elif 'System`HoldRest' in attributes:
+            eval_range(range(0, min(1, len(leaves))))
+            rest_range(range(1, len(leaves)))
+        else:
+            eval_range(range(len(leaves)))
+            # rest_range(range(0, 0))
+
+        new = Expression(head, *leaves)
+
+        if ('System`SequenceHold' not in attributes and    # noqa
+            'System`HoldAllComplete' not in attributes):
+            new = new.flatten_sequence()
+            leaves = new.leaves
+
+        for leaf in leaves:
+            leaf.unevaluated = False
+
+        if 'System`HoldAllComplete' not in attributes:
+            dirty_new = False
+
+            for index, leaf in enumerate(leaves):
+                if leaf.has_form('Unevaluated', 1):
+                    leaves[index] = leaf.leaves[0]
+                    leaves[index].unevaluated = True
+                    dirty_new = True
+
+            if dirty_new:
+                new = Expression(head, *leaves)
+
+        def flatten_callback(new_leaves, old):
+            for leaf in new_leaves:
+                leaf.unevaluated = old.unevaluated
+
+        if 'System`Flat' in attributes:
+            new = new.flatten(new.head, callback=flatten_callback)
+        if 'System`Orderless' in attributes:
+            new.sort()
+
+        new.last_evaluated = evaluation.definitions.now
+
+        if 'System`Listable' in attributes:
+            done, threaded = new.thread(evaluation)
+            if done:
+                if threaded.same(new):
+                    new.last_evaluated = evaluation.definitions.now
+                    return new, False
+                else:
+                    return threaded, True
+
+        def rules():
+            rules_names = set()
+            if 'System`HoldAllComplete' not in attributes:
+                for leaf in leaves:
+                    name = leaf.get_lookup_name()
+                    if len(name) > 0:  # only lookup rules if this is a symbol
+                        if name not in rules_names:
+                            rules_names.add(name)
+                            for rule in evaluation.definitions.get_upvalues(name):
+                                yield rule
+            lookup_name = new.get_lookup_name()
+            if lookup_name == new.get_head_name():
+                for rule in evaluation.definitions.get_downvalues(lookup_name):
+                    yield rule
+            else:
+                for rule in evaluation.definitions.get_subvalues(lookup_name):
+                    yield rule
+
+        for rule in rules():
+            result = rule.apply(new, evaluation, fully=False)
+            if result is not None:
+                if result.same(new):
+                    new.last_evaluated = evaluation.definitions.now
+                    return new, False
+                else:
+                    return result, True
+
+        # Expression did not change, re-apply Unevaluated
+        for index, leaf in enumerate(new.leaves):
+            if leaf.unevaluated:
+                new.leaves[index] = Expression('Unevaluated', leaf)
+
+        new.unformatted = self.unformatted
+        new.last_evaluated = evaluation.definitions.now
+        return new, False
 
     def evaluate_leaves(self, evaluation):
         leaves = [leaf.evaluate(evaluation) for leaf in self.leaves]
@@ -1490,7 +1528,7 @@ class Symbol(Atom):
         rules = evaluation.definitions.get_ownvalues(self.name)
         for rule in rules:
             result = rule.apply(self, evaluation, fully=True)
-            if result is not None and result != self:
+            if result is not None and not result.same(self):
                 return result.evaluate(evaluation)
         return self
 

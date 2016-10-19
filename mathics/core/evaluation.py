@@ -9,8 +9,9 @@ import six
 import six.moves.cPickle as pickle
 from six.moves.queue import Queue
 
+import os
 import sys
-from threading import Thread
+from threading import Thread, stack_size as set_thread_stack_size
 
 from mathics import settings
 from mathics.core.expression import ensure_context, KeyComparable
@@ -55,11 +56,45 @@ def _thread_target(request, queue):
         queue.put((False, exc_info))
 
 
-def run_with_timeout(request, timeout):
+# MAX_RECURSION_DEPTH gives the maximum value allowed for $RecursionLimit. it's usually set to its
+# default settings.DEFAULT_MAX_RECURSION_DEPTH.
+
+MAX_RECURSION_DEPTH = max(settings.DEFAULT_MAX_RECURSION_DEPTH, int(os.getenv(
+    'MATHICS_MAX_RECURSION_DEPTH', settings.DEFAULT_MAX_RECURSION_DEPTH)))
+
+
+def python_recursion_depth(n):
+    # convert Mathics recursion depth to Python recursion depth. this estimates how many Python calls
+    # we need at worst to process one Mathics recursion.
+    return 200 + 30 * n
+
+
+def python_stack_size(n):  # n is a Mathics recursion depth
+    # python_stack_frame_size is the (maximum) number of bytes Python needs for one call on the stack.
+    python_stack_frame_size = 512  # value estimated experimentally
+    return python_recursion_depth(n) * python_stack_frame_size
+
+
+def set_python_recursion_limit(n):
+    "Sets the required python recursion limit given $RecursionLimit value"
+    python_depth = python_recursion_depth(n)
+    sys.setrecursionlimit(python_depth)
+    if sys.getrecursionlimit() != python_depth:
+        raise OverflowError
+
+
+def run_with_timeout_and_stack(request, timeout):
     '''
-    interrupts evaluation after a given time period.
+    interrupts evaluation after a given time period. provides a suitable stack environment.
     '''
-    if timeout is None:
+
+    # only use set_thread_stack_size if max recursion depth was changed via the environment variable
+    # MATHICS_MAX_RECURSION_DEPTH. if it is set, we always use a thread, even if timeout is None, in
+    # order to be able to set the thread stack size.
+
+    if MAX_RECURSION_DEPTH > settings.DEFAULT_MAX_RECURSION_DEPTH:
+        set_thread_stack_size(python_stack_size(MAX_RECURSION_DEPTH))
+    elif timeout is None:
         return request()
 
     queue = Queue(maxsize=1)   # stores the result or exception
@@ -240,7 +275,7 @@ class Evaluation(object):
                 return None
         try:
             try:
-                result = run_with_timeout(evaluate, timeout)
+                result = run_with_timeout_and_stack(evaluate, timeout)
             except KeyboardInterrupt:
                 if self.catch_interrupt:
                     exc_result = Symbol('$Aborted')
@@ -449,7 +484,7 @@ class Evaluation(object):
     def inc_recursion_depth(self):
         self.check_stopped()
         limit = self.definitions.get_config_value(
-            '$RecursionLimit', settings.MAX_RECURSION_DEPTH)
+            '$RecursionLimit', MAX_RECURSION_DEPTH)
         if limit is not None:
             if limit < 20:
                 limit = 20
