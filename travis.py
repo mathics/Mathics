@@ -14,7 +14,7 @@ modules = (
     "networkx",
     "pillow",
     "wordcloud",
-    "pycor",
+    "pyocr",
     "scipy",
     "scikit-image",
 )
