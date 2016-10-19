@@ -49,15 +49,15 @@ before_install:
   - if [[ "$ALL_MODULES" == "true" ]]; then
       sudo apt-get update -qq &&
       sudo apt-get install -qq python-enchant &&
-      pip install numpy wordcloud ipywidgets ipykernel IPython nltk langid pycountry pyenchant lxml matplotlib networkx &&
-      python -c 'print([(p, getattr(__import__(p), "__version__", "n/a")) for p in ("numpy", "wordcloud", "ipywidgets", "ipykernel", "IPython", "nltk", "langid", "pycountry", "enchant", "lxml", "matplotlib", "networkx")])' &&
+      pip install numpy ipywidgets ipykernel IPython nltk langid pycountry pyenchant lxml matplotlib networkx &&
+      python -c 'print([(p, getattr(__import__(p), "__version__", "n/a")) for p in ("numpy", "ipywidgets", "ipykernel", "IPython", "nltk", "langid", "pycountry", "enchant", "lxml", "matplotlib", "networkx")])' &&
       if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then
           pip install pattern;
       fi &&
       if [[ $TRAVIS_PYTHON_VERSION != pypy ]]; then
-          pip install Pillow pyocr scipy scikit-image &&
+          pip install Pillow wordcloud pyocr scipy scikit-image &&
           pip install spacy &&
-          python -c 'print([(p, getattr(__import__(p), "__version__", "n/a")) for p in ("PIL", "pyocr", "scipy", "skimage", "spacy")])' &&
+          python -c 'print([(p, getattr(__import__(p), "__version__", "n/a")) for p in ("PIL", "wordcloud", "pyocr", "scipy", "skimage", "spacy")])' &&
           python -m spacy.en.download;
       fi &&
       python -m nltk.downloader wordnet omw;
