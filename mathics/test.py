@@ -36,6 +36,7 @@ sep = '-' * 70 + '\n'
 def compare(result, wanted):
     if result == wanted:
         return True
+
     if result is None or wanted is None:
         return False
     result = result.splitlines()

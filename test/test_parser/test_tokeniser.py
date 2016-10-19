@@ -136,3 +136,7 @@ class TokeniserTest(unittest.TestCase):
 
     def testBoxes(self):
         self.assertEqual(self.tokens('\\(1\\)'), [Token('LeftRowBox', '\\(', 0), Token('Number', "1", 2), Token('RightRowBox', '\\)', 3)])
+
+    def testInformation(self):
+        self.assertEqual(self.tokens('??Sin'), [Token('Information', '??', 0), Token('Symbol', 'Sin', 2)])
+        self.assertEqual(self.tokens('? ?Sin'), [Token('PatternTest', '?', 0), Token('PatternTest', '?', 2), Token('Symbol', 'Sin', 3)])
