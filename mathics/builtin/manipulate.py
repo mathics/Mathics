@@ -13,8 +13,11 @@ from mathics.core.expression import Expression, Symbol, Integer, from_python
 
 import demandimport
 
-with demandimport.enabled():
-    import ipywidgets
+try:
+    with demandimport.enabled():
+        import ipywidgets
+except ImportError:
+    pass  # ok due to "require"
 
 
 def _has_kernel():

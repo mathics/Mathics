@@ -55,9 +55,12 @@ import heapq
 import math
 import demandimport
 
-with demandimport.enabled():
-    import nltk
-    import spacy
+try:
+    with demandimport.enabled():
+        import nltk
+        import spacy
+except ImportError:
+    pass  # ok due to "require"
 
 
 class _Lazy(object):
