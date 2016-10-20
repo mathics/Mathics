@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import importlib
+from contextlib import contextmanager
+from demandimport import _demandmod as lazy_module
 
 module_names = [
     'algebra', 'arithmetic', 'assignment', 'attributes', 'calculus', 'combinatorial', 'compilation',
@@ -24,11 +26,8 @@ if ENABLE_FILES_MODULE:
 builtins = []
 builtins_by_module = {}
 
-
-from contextlib import contextmanager
-
 if BENCHMARK_STARTUP:
-    class Benchmark:
+    class Loader:
         def __init__(self, section):
             self._benchmarks = []
             self._section = section
@@ -56,7 +55,7 @@ else:
     def _load(name):
         yield
 
-    class Benchmark:
+    class Loader:
         def __init__(self, section):
             pass
 
@@ -81,11 +80,17 @@ def load_module(name):
     builtins_by_module[module.__name__] = []
     vars = dir(module)
     for name in vars:
+        if name.startswith('_'):
+            continue
+
         var = getattr(module, name)
+        if isinstance(var, lazy_module):
+            continue
+
         if (hasattr(var, '__module__') and
                 var.__module__.startswith('mathics.builtin.') and
                     var.__module__ != 'mathics.builtin.base' and
-                is_builtin(var) and not name.startswith('_') and
+                is_builtin(var) and
                     var.__module__ == module.__name__):  # nopep8
 
             instance = var(expression=False)
@@ -98,9 +103,9 @@ def load_module(name):
 
 
 def load_modules():
-    with Benchmark('import') as benchmark:
+    with Loader('import') as loader:
         for name in module_names:
-            with benchmark(name):
+            with loader(name):
                 yield load_module(name)
 
 modules = list(load_modules())
@@ -153,12 +158,12 @@ def get_module_doc(module):
 
 
 def contribute(definitions):
-    with Benchmark('contribute') as benchmark:
+    with Loader('contribute') as loader:
         # let MakeBoxes contribute first
         builtins['System`MakeBoxes'].contribute(definitions)
         for name, item in builtins.items():
             if name != 'System`MakeBoxes':
-                with benchmark(name):
+                with loader(name):
                     item.contribute(definitions)
 
     from mathics.core.expression import ensure_context

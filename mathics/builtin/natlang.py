@@ -53,6 +53,126 @@ import itertools
 from itertools import chain
 import heapq
 import math
+import demandimport
+
+with demandimport.enabled():
+    import nltk
+    import spacy
+
+
+class _Lazy(object):
+    def __getattr__(self, item):
+        if item.startswith('_init_'):
+            raise ValueError('no init function for attribute %s' % item[len('_init_'):])
+        elif item.startswith('_'):
+            return getattr(super(_Lazy, self), item)
+
+        value = getattr(self, '_init_%s' % item)()
+        setattr(self, item, value)
+        return value
+
+
+class _WordNetTables(_Lazy):
+    def _init_pos_to_type(self):
+        return {
+            nltk.corpus.wordnet.VERB: 'Verb',
+            nltk.corpus.wordnet.NOUN: 'Noun',
+            nltk.corpus.wordnet.ADJ: 'Adjective',
+            nltk.corpus.wordnet.ADJ_SAT: 'Adjective',
+            nltk.corpus.wordnet.ADV: 'Adverb',
+        }
+
+    def _init_type_to_pos(self):
+        return {
+            'Verb': [nltk.corpus.wordnet.VERB],
+            'Noun': [nltk.corpus.wordnet.NOUN],
+            'Adjective': [nltk.corpus.wordnet.ADJ, nltk.corpus.wordnet.ADJ_SAT],
+            'Adverb': [nltk.corpus.wordnet.ADV],
+        }
+
+
+class _SpacyTables(_Lazy):
+    def _init_pos_tags(self):
+        # Part of speech tags and their public interface names in Mathics
+        # see http://www.mathcs.emory.edu/~choi/doc/clear-dependency-2012.pdf
+
+        return {
+            spacy.parts_of_speech.ADJ: ('Adjective', ''),
+            spacy.parts_of_speech.ADP: ('Preposition', 'Prepositional Phrase'),
+            spacy.parts_of_speech.ADV: ('Adverb', ''),
+            spacy.parts_of_speech.CONJ: ('Conjunct', ''),
+            spacy.parts_of_speech.DET: ('Determiner', ''),
+            spacy.parts_of_speech.INTJ: ('Interjection', ''),
+            spacy.parts_of_speech.NOUN: ('Noun', 'Noun Phrase'),
+            spacy.parts_of_speech.NUM: ('Number', ''),
+            spacy.parts_of_speech.PART: ('Particle', ''),
+            spacy.parts_of_speech.PRON: ('Pronoun', ''),
+            spacy.parts_of_speech.PROPN: ('Proposition', ''),
+            spacy.parts_of_speech.PUNCT: ('Punctuation', ''),
+            spacy.parts_of_speech.SCONJ: ('Sconj', ''),
+            spacy.parts_of_speech.SYM: ('Symbol', ''),
+            spacy.parts_of_speech.VERB: ('Verb', 'Verb Phrase'),
+            spacy.parts_of_speech.X: ('X', ''),
+            spacy.parts_of_speech.EOL: ('EOL', ''),
+            spacy.parts_of_speech.SPACE: ('Space', ''),
+        }
+
+    def _init_forms(self):
+        # Mathics named entity names and their corresponding constants in spacy.
+        symbols = {
+            'Person': spacy.symbols.PERSON,
+            'Company': spacy.symbols.ORG,
+            'Quantity': spacy.symbols.QUANTITY,
+            'Number': spacy.symbols.CARDINAL,
+            'CurrencyAmount': spacy.symbols.MONEY,
+            'Country': spacy.symbols.GPE,  # also includes cities and states
+            'City': spacy.symbols.GPE,  # also includes countries and states
+        }
+
+        forms = {
+            'Word': lambda doc: (token for token in doc),
+            'Sentence': lambda doc: (sent for sent in doc.sents),
+            'Paragraph': lambda doc: _fragments(doc, re.compile(r"^[\n][\n]+$")),
+            'Line': lambda doc: _fragments(doc, re.compile(r"^[\n]$")),
+
+            'URL': lambda doc: (token for token in doc if token.orth_.like_url()),
+            'EmailAddress': lambda doc: (token for token in doc if token.orth_.like_email()),
+        }
+
+        def filter_named_entity(label):
+            def generator(doc):
+                for ent in doc.ents:
+                    if ent.label == label:
+                        yield ent
+
+            return generator
+
+        def filter_pos(pos):
+            def generator(doc):
+                for token in doc:
+                    if token.pos == pos:
+                        yield token
+
+            return generator
+
+        for name, symbol in symbols.items():
+            forms[name] = filter_named_entity(symbol)
+
+        for tag, names in self.pos_tags.items():
+            name, phrase_name = names
+            forms[name] = filter_pos(tag)
+
+        return forms
+
+    def _init_root_pos(self):
+        return set(i for i, names in self.pos_tags.items() if names[1])
+
+    def _init_span(self):
+        return spacy.tokens.Span
+
+
+_wordnet_tables = _WordNetTables()
+_spacy_tables = _SpacyTables()
 
 
 def _parse_nltk_lookup_error(e):
@@ -63,114 +183,6 @@ def _parse_nltk_lookup_error(e):
         return 'unknown'
 
 
-def _make_forms():
-    forms = {
-        'Word': lambda doc: (token for token in doc),
-        'Sentence': lambda doc: (sent for sent in doc.sents),
-        'Paragraph': lambda doc: _fragments(doc, re.compile(r"^[\n][\n]+$")),
-        'Line': lambda doc: _fragments(doc, re.compile(r"^[\n]$")),
-
-        'URL': lambda doc: (token for token in doc if token.orth_.like_url()),
-        'EmailAddress': lambda doc: (token for token in doc if token.orth_.like_email()),
-    }
-
-    def filter_named_entity(label):
-        def generator(doc):
-            for ent in doc.ents:
-                if ent.label == label:
-                    yield ent
-
-        return generator
-
-    def filter_pos(pos):
-        def generator(doc):
-            for token in doc:
-                if token.pos == pos:
-                    yield token
-
-        return generator
-
-    for name, symbol in _symbols.items():
-        forms[name] = filter_named_entity(symbol)
-
-    for tag, names in _pos_tags.items():
-        name, phrase_name = names
-        forms[name] = filter_pos(tag)
-
-    return forms
-
-# the following two may only be accessed after_WordNetBuiltin._load_wordnet has
-# been called.
-
-_wordnet_pos_to_type = {}
-_wordnet_type_to_pos = {}
-
-try:
-    import nltk
-
-    def _init_nltk_maps():
-        _wordnet_pos_to_type.update({
-            nltk.corpus.wordnet.VERB: 'Verb',
-            nltk.corpus.wordnet.NOUN: 'Noun',
-            nltk.corpus.wordnet.ADJ: 'Adjective',
-            nltk.corpus.wordnet.ADJ_SAT: 'Adjective',
-            nltk.corpus.wordnet.ADV: 'Adverb',
-        })
-        _wordnet_type_to_pos.update({
-            'Verb': [nltk.corpus.wordnet.VERB],
-            'Noun': [nltk.corpus.wordnet.NOUN],
-            'Adjective': [nltk.corpus.wordnet.ADJ, nltk.corpus.wordnet.ADJ_SAT],
-            'Adverb': [nltk.corpus.wordnet.ADV],
-        })
-except ImportError:
-    pass
-
-try:
-    import spacy
-    from spacy.tokens import Span
-
-    # Part of speech tags and their public interface names in Mathics
-    # see http://www.mathcs.emory.edu/~choi/doc/clear-dependency-2012.pdf
-    _pos_tags = {
-        spacy.parts_of_speech.ADJ: ('Adjective', ''),
-        spacy.parts_of_speech.ADP: ('Preposition', 'Prepositional Phrase'),
-        spacy.parts_of_speech.ADV: ('Adverb', ''),
-        spacy.parts_of_speech.CONJ: ('Conjunct', ''),
-        spacy.parts_of_speech.DET: ('Determiner', ''),
-        spacy.parts_of_speech.INTJ: ('Interjection', ''),
-        spacy.parts_of_speech.NOUN: ('Noun', 'Noun Phrase'),
-        spacy.parts_of_speech.NUM: ('Number', ''),
-        spacy.parts_of_speech.PART: ('Particle', ''),
-        spacy.parts_of_speech.PRON: ('Pronoun', ''),
-        spacy.parts_of_speech.PROPN: ('Proposition', ''),
-        spacy.parts_of_speech.PUNCT: ('Punctuation', ''),
-        spacy.parts_of_speech.SCONJ: ('Sconj', ''),
-        spacy.parts_of_speech.SYM: ('Symbol', ''),
-        spacy.parts_of_speech.VERB: ('Verb', 'Verb Phrase'),
-        spacy.parts_of_speech.X: ('X', ''),
-        spacy.parts_of_speech.EOL: ('EOL', ''),
-        spacy.parts_of_speech.SPACE: ('Space', ''),
-    }
-
-    # Mathics named entitiy names and their corresponding constants in spacy.
-    _symbols = {
-        'Person': spacy.symbols.PERSON,
-        'Company': spacy.symbols.ORG,
-        'Quantity': spacy.symbols.QUANTITY,
-        'Number': spacy.symbols.CARDINAL,
-        'CurrencyAmount': spacy.symbols.MONEY,
-        'Country': spacy.symbols.GPE,  # also includes cities and states
-        'City': spacy.symbols.GPE,  # also includes countries and states
-    }
-
-    # forms are everything one can use in TextCases[] or TextPosition[].
-    _forms = _make_forms()
-except ImportError:
-    _pos_tags = {}
-    _symbols = {}
-    _forms = {}
-
-
 def _merge_dictionaries(a, b):
     c = a.copy()
     c.update(b)
@@ -178,7 +190,7 @@ def _merge_dictionaries(a, b):
 
 
 def _position(t):
-    if isinstance(t, Span):
+    if isinstance(t, _spacy_tables.span):
         l = t.doc[t.start]
         r = t.doc[t.end - 1]
         return 1 + l.idx, r.idx + len(r.text)
@@ -187,14 +199,15 @@ def _position(t):
 
 
 def _fragments(doc, sep):
+    span = _spacy_tables.span
     start = 0
     for i, token in enumerate(doc):
         if sep.match(token.text):
-            yield Span(doc, start, i)
+            yield span(doc, start, i)
             start = i + 1
     end = len(doc)
     if start < end:
-        yield Span(doc, start, end)
+        yield span(doc, start, end)
 
 
 class _SpacyBuiltin(Builtin):
@@ -426,9 +439,8 @@ class WordFrequency(_SpacyBuiltin):
      = 0.5
     """
 
-    options = _SpacyBuiltin.options
-    options.update({
-        'IgnoreCase': 'False'
+    options = _merge_dictionaries(_SpacyBuiltin.options, {
+        'IgnoreCase': 'False',
     })
 
     def apply(self, text, word, evaluation, options):
@@ -464,11 +476,12 @@ class Containing(Builtin):
 
 def _cases(doc, form):
     if isinstance(form, String):
-        generators = [_forms.get(form.get_string_value())]
+        generators = [_spacy_tables.forms.get(form.get_string_value())]
     elif form.get_head_name() == 'System`Alternatives':
         if not all(isinstance(f, String) for f in form.leaves):
             return  # error
-        generators = [_forms.get(f.get_string_value()) for f in form.leaves]
+        spacy_form = _spacy_tables.forms.get
+        generators = [spacy_form(f.get_string_value()) for f in form.leaves]
     elif form.get_head_name() == 'System`Containing':
         if len(form.leaves) == 2:
             for t in _containing(doc, *form.leaves):
@@ -502,7 +515,7 @@ def _cases(doc, form):
 def _containing(doc, outer, inner):
     if not isinstance(outer, String):
         return  # error
-    outer_generator = _forms.get(outer.get_string_value())
+    outer_generator = _spacy_tables.forms.get(outer.get_string_value())
     inner_iter = _cases(doc, inner)
     inner_start = None
     produce_t = False
@@ -591,11 +604,9 @@ class TextStructure(_SpacyBuiltin):
      = {(Sentence, ((Verb Phrase, (Noun Phrase, (Determiner, The), (Noun, cat)), (Verb, sat), (Prepositional Phrase, (Preposition, on), (Noun Phrase, (Determiner, the), (Noun, mat))), (Punctuation, .))))}
     """
 
-    _root_pos = set(i for i, names in _pos_tags.items() if names[1])
-
     def _to_constituent_string(self, node):
         token, children = node
-        name, phrase_name = _pos_tags.get(token.pos, ('Unknown', 'Unknown Phrase'))
+        name, phrase_name = _spacy_tables.pos_tags.get(token.pos, ('Unknown', 'Unknown Phrase'))
         if not children:
             return '(%s, %s)' % (name, token.text)
         else:
@@ -618,7 +629,7 @@ class TextStructure(_SpacyBuiltin):
 
                 sub = list(root.subtree)
 
-                if root.pos not in self._root_pos:
+                if root.pos not in _spacy_tables.root_pos:
                     roots.extend(self._to_tree(sub, path + [root]))
                 else:
                     roots.append((root, self._to_tree(sub, path + [root])))
@@ -778,7 +789,6 @@ class _WordNetBuiltin(Builtin):
     def _init_wordnet(self, evaluation, language_name, language_code):
         try:
             wordnet_resource = nltk.data.find('corpora/wordnet')
-            _init_nltk_maps()
         except LookupError:
             evaluation.message(self.get_name(), 'package', 'wordnet')
             return None
@@ -847,7 +857,7 @@ class _WordNetBuiltin(Builtin):
             for lemma in WordProperty._synonymous_lemmas(syn):
                 yield lemma.name()
 
-        return what, _wordnet_pos_to_type[pos], containers
+        return what, _wordnet_tables.pos_to_type[pos], containers
 
     @staticmethod
     def syn(syn, wordnet, language_code):
@@ -1004,7 +1014,7 @@ class _WordListBuiltin(_WordNetBuiltin):
                 if type == 'All':
                     filtered_pos = [None]
                 else:
-                    filtered_pos = _wordnet_type_to_pos[type]
+                    filtered_pos = _wordnet_tables.type_to_pos[type]
                 words = []
                 for pos in filtered_pos:
                     words.extend(list(wordnet.all_lemma_names(pos, language_code)))
@@ -1078,7 +1088,7 @@ class WordData(_WordListBuiltin):
         if not parts:
             return Expression('Missing', 'NotAvailable')
         else:
-            return Expression('List', *[String(s) for s in sorted([_wordnet_pos_to_type[p] for p in parts])])
+            return Expression('List', *[String(s) for s in sorted([_wordnet_tables.pos_to_type[p] for p in parts])])
 
     def _property(self, word, py_property, py_form, evaluation, options):
         if py_property == 'PorterStem':
