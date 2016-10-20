@@ -4,31 +4,67 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from mathics.builtin import (
-    algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
-    comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
-    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
-    specialfunctions, scoping, strings, structure, system, tensors, xmlformat)
+import importlib
+
+module_names = [
+    'algebra', 'arithmetic', 'assignment', 'attributes', 'calculus', 'combinatorial', 'compilation',
+    'comparison', 'control', 'datentime', 'diffeqns', 'evaluation', 'exptrig', 'functional',
+    'graphics', 'graphics3d', 'image', 'inout', 'integer', 'linalg', 'lists', 'logic', 'manipulate', 'natlang',
+    'numbertheory', 'numeric', 'options', 'patterns', 'plot', 'physchemdata', 'randomnumbers', 'recurrence',
+    'specialfunctions', 'scoping', 'strings', 'structure', 'system', 'tensors', 'xmlformat']
 
 from mathics.builtin.base import (
     Builtin, SympyObject, BoxConstruct, Operator, PatternObject)
 
-from mathics.settings import ENABLE_FILES_MODULE
-
-modules = [
-    algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
-    comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
-    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
-    specialfunctions, scoping, strings, structure, system, tensors, xmlformat]
+from mathics.settings import ENABLE_FILES_MODULE, BENCHMARK_STARTUP
 
 if ENABLE_FILES_MODULE:
-    from mathics.builtin import files, importexport
-    modules += [files, importexport]
+    module_names += ['files', 'importexport']
 
 builtins = []
 builtins_by_module = {}
+
+
+from contextlib import contextmanager
+
+if BENCHMARK_STARTUP:
+    class Benchmark:
+        def __init__(self, section):
+            self._benchmarks = []
+            self._section = section
+
+        def __enter__(self):
+            @contextmanager
+            def load(name):
+                from time import time
+                t0 = time()
+                yield
+                t1 = time()
+                self._benchmarks.append((name, t1 - t0))
+            return load
+
+        def __exit__(self, type, value, tb):
+            duration = sum(map(lambda rec: rec[1], self._benchmarks))
+            print('%s took %.1f s:' % (self._section, duration))
+            self._benchmarks.sort(key=lambda rec: rec[1], reverse=True)
+            for name, dt in self._benchmarks[:10]:
+                print('    %s %f' % (name, dt))
+            print('    ...')
+            print()
+else:
+    @contextmanager
+    def _load(name):
+        yield
+
+    class Benchmark:
+        def __init__(self, section):
+            pass
+
+        def __enter__(self):
+            return _load
+
+        def __exit__(self, type, value, tb):
+            pass
 
 
 def is_builtin(var):
@@ -38,16 +74,19 @@ def is_builtin(var):
         return any(is_builtin(base) for base in var.__bases__)
     return False
 
-for module in modules:
+
+def load_module(name):
+    module = importlib.import_module("mathics.builtin.%s" % name)
+
     builtins_by_module[module.__name__] = []
     vars = dir(module)
     for name in vars:
         var = getattr(module, name)
         if (hasattr(var, '__module__') and
-            var.__module__.startswith('mathics.builtin.') and
-            var.__module__ != 'mathics.builtin.base' and
-            is_builtin(var) and not name.startswith('_') and
-            var.__module__ == module.__name__):     # nopep8
+                var.__module__.startswith('mathics.builtin.') and
+                    var.__module__ != 'mathics.builtin.base' and
+                is_builtin(var) and not name.startswith('_') and
+                    var.__module__ == module.__name__):  # nopep8
 
             instance = var(expression=False)
 
@@ -55,6 +94,16 @@ for module in modules:
                 builtins.append((instance.get_name(), instance))
                 builtins_by_module[module.__name__].append(instance)
 
+    return module
+
+
+def load_modules():
+    with Benchmark('import') as benchmark:
+        for name in module_names:
+            with benchmark(name):
+                yield load_module(name)
+
+modules = list(load_modules())
 
 # builtins = dict(builtins)
 
@@ -104,11 +153,13 @@ def get_module_doc(module):
 
 
 def contribute(definitions):
-    # let MakeBoxes contribute first
-    builtins['System`MakeBoxes'].contribute(definitions)
-    for name, item in builtins.items():
-        if name != 'System`MakeBoxes':
-            item.contribute(definitions)
+    with Benchmark('contribute') as benchmark:
+        # let MakeBoxes contribute first
+        builtins['System`MakeBoxes'].contribute(definitions)
+        for name, item in builtins.items():
+            if name != 'System`MakeBoxes':
+                with benchmark(name):
+                    item.contribute(definitions)
 
     from mathics.core.expression import ensure_context
     from mathics.core.parser import all_operator_names

@@ -88,6 +88,9 @@ SITE_ID = 1
 # users to access local files
 ENABLE_FILES_MODULE = True
 
+# Enabling this prints out some stats on what takes time to startup Mathics.
+BENCHMARK_STARTUP = False
+
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
 USE_I18N = True
