@@ -6,25 +6,27 @@ from __future__ import absolute_import
 
 from mathics.core.expression import String, strip_context
 from mathics import settings
-from mathics.core.evaluation import Evaluation, Output
+from mathics.core.evaluation import Output
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Symbol, Integer, from_python
 
-try:
-    from ipykernel.kernelbase import Kernel
-    _jupyter = True
-except ImportError:
-    _jupyter = False
+import demandimport
 
-try:
-    from ipywidgets import IntSlider, FloatSlider, ToggleButtons, Box, DOMWidget
-    from IPython.core.formatters import IPythonDisplayFormatter
-    _ipywidgets = True
-except ImportError:
-    # fallback to non-Manipulate-enabled build if we don't have ipywidgets installed.
-    _ipywidgets = False
+with demandimport.enabled():
+    import ipywidgets
 
+
+def _has_kernel():
+    try:
+        from ipykernel.kernelbase import Kernel
+
+        if not Kernel.initialized() or Kernel.instance() is None:
+            return False
+
+        return True
+    except ImportError:
+        return False
 
 """
 A basic implementation of Manipulate[]. There is currently no support for Dynamic[] elements.
@@ -34,8 +36,8 @@ This implementation is basically a port from ipywidget.widgets.interaction for M
 def _interactive(interact_f, kwargs_widgets):
     # this is a modified version of interactive() in ipywidget.widgets.interaction
 
-    container = Box(_dom_classes=['widget-interact'])
-    container.children = [w for w in kwargs_widgets if isinstance(w, DOMWidget)]
+    container = ipywidgets.Box(_dom_classes=['widget-interact'])
+    container.children = [w for w in kwargs_widgets if isinstance(w, ipywidgets.DOMWidget)]
 
     def call_f(name=None, old=None, new=None):
         kwargs = dict((widget._kwarg, widget.value) for widget in kwargs_widgets)
@@ -146,7 +148,7 @@ class _WidgetInstantiator():
             raise IllegalWidgetArguments(symbol)
         else:
             defval = min(max(default.to_python(), minimum_value), maximum_value)
-            widget = _create_widget(FloatSlider, value=defval, min=minimum_value, max=maximum_value)
+            widget = _create_widget(ipywidgets.FloatSlider, value=defval, min=minimum_value, max=maximum_value)
             self._add_widget(widget, symbol.get_name(), lambda x: from_python(x), label)
 
     def _add_discrete_widget(self, symbol, label, default, minimum, maximum, step, evaluation):
@@ -158,11 +160,11 @@ class _WidgetInstantiator():
         else:
             default_value = min(max(default.to_python(), minimum_value), maximum_value)
             if all(isinstance(x, Integer) for x in [minimum, maximum, default, step]):
-                widget = _create_widget(IntSlider, value=default_value, min=minimum_value, max=maximum_value,
-                                   step=step_value)
+                widget = _create_widget(
+                    ipywidgets.IntSlider, value=default_value, min=minimum_value, max=maximum_value, step=step_value)
             else:
-                widget = _create_widget(FloatSlider, value=default_value, min=minimum_value, max=maximum_value,
-                                     step=step_value)
+                widget = _create_widget(
+                    ipywidgets.FloatSlider, value=default_value, min=minimum_value, max=maximum_value, step=step_value)
             self._add_widget(widget, symbol.get_name(), lambda x: from_python(x), label)
 
     def _add_options_widget(self, symbol, options, default, label, evaluation):
@@ -176,7 +178,7 @@ class _WidgetInstantiator():
             if option.same(default):
                 default_index = i
 
-        widget = _create_widget(ToggleButtons, options=formatted_options, value=default_index)
+        widget = _create_widget(ipywidgets.ToggleButtons, options=formatted_options, value=default_index)
         self._add_widget(widget, symbol.get_name(), lambda j: options.leaves[j], label)
 
     def _add_widget(self, widget, name, parse, label):
@@ -261,12 +263,14 @@ class Manipulate(Builtin):
     }
 
     requires = (
+        'ipykernel',
         'ipywidgets',
     )
 
     def apply(self, expr, args, evaluation):
         'Manipulate[expr_, args__]'
-        if (not _jupyter) or (not Kernel.initialized()) or (Kernel.instance() is None):
+
+        if not _has_kernel():
             return evaluation.message('Manipulate', 'jupyter')
 
         instantiator = _WidgetInstantiator()  # knows about the arguments and their widgets
@@ -305,6 +309,7 @@ class Manipulate(Builtin):
         widgets = instantiator.get_widgets()
         if len(widgets) > 0:
             box = _interactive(instantiator.build_callback(callback), widgets)  # create the widget
+            from IPython.core.formatters import IPythonDisplayFormatter
             formatter = IPythonDisplayFormatter()
             if not formatter(box):  # make the widget appear on the Jupyter notebook
                 return evaluation.message('Manipulate', 'widgetdisp')
