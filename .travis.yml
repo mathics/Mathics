@@ -49,14 +49,16 @@ before_install:
   - if [[ "$ALL_MODULES" == "true" ]]; then
       sudo apt-get update -qq &&
       sudo apt-get install -qq python-enchant &&
-      pip install numpy wordcloud ipywidgets ipykernel IPython nltk langid pycountry pyenchant lxml matplotlib networkx &&
+      pip install numpy ipywidgets ipykernel IPython nltk langid pycountry pyenchant lxml matplotlib networkx &&
+      python travis.py &&
       if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then
           pip install pattern;
       fi &&
       if [[ $TRAVIS_PYTHON_VERSION != pypy ]]; then
-          pip install Pillow pyocr scipy scikit-image &&
+          pip install Pillow wordcloud pyocr scipy scikit-image &&
           pip install spacy &&
-          python -m spacy.en.download;
+          python travis.py &&
+          sputnik --name spacy --repository-url http://index.spacy.io install en==1.1.0;
       fi &&
       python -m nltk.downloader wordnet omw;
     fi

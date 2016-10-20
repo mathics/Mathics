@@ -1576,32 +1576,32 @@ class DominantColors(_ImageBuiltin):
     The option "MinColorDistance" specifies the distance (in LAB color space) up to which colors are merged
     and thus regarded as belonging to the same dominant color.
 
-    >> img = Import["ExampleData/sunflowers.jpg"]
+    >> img = Import["ExampleData/lena.tif"]
      = -Image-
 
     >> DominantColors[img]
-     = {RGBColor[0.0235294, 0.00392157, 0.], RGBColor[1., 0.835294, 0.027451], RGBColor[0.0352941, 0.168627, 0.], RGBColor[0.0941176, 0.294118, 0.00392157], RGBColor[0.12549, 0.415686, 0.0196078], RGBColor[0.752941, 0.835294, 0.996078], RGBColor[0.952941, 0.705882, 0.]}
+     = {RGBColor[0.827451, 0.537255, 0.486275], RGBColor[0.87451, 0.439216, 0.45098], RGBColor[0.341176, 0.0705882, 0.254902], RGBColor[0.690196, 0.266667, 0.309804], RGBColor[0.533333, 0.192157, 0.298039], RGBColor[0.878431, 0.760784, 0.721569]}
 
     >> DominantColors[img, 3]
-     = {RGBColor[0.0235294, 0.00392157, 0.], RGBColor[1., 0.835294, 0.027451], RGBColor[0.0352941, 0.168627, 0.]}
+     = {RGBColor[0.827451, 0.537255, 0.486275], RGBColor[0.87451, 0.439216, 0.45098], RGBColor[0.341176, 0.0705882, 0.254902]}
 
     >> DominantColors[img, 3, "Coverage"]
-     = {311 / 1584, 5419 / 31680, 1081 / 7680}
+     = {28579 / 131072, 751 / 4096, 23841 / 131072}
 
     >> DominantColors[img, 3, "CoverageImage"]
      = {-Image-, -Image-, -Image-}
 
     >> DominantColors[img, 3, "Count"]
-     = {49760, 43352, 35673}
+     = {57158, 48064, 47682}
 
     >> DominantColors[img, 2, "LABColor"]
-     = {LABColor[0.00562582, 0.0125387, 0.00866458], LABColor[0.86979, 0.0391206, 0.856497]}
+     = {LABColor[0.646831, 0.279785, 0.193184], LABColor[0.608465, 0.443559, 0.195911]}
 
     >> DominantColors[img, MinColorDistance -> 0.5]
-     = {RGBColor[0.0941176, 0.294118, 0.00392157], RGBColor[1., 0.835294, 0.027451], RGBColor[0.0235294, 0.00392157, 0.], RGBColor[0.752941, 0.835294, 0.996078], RGBColor[0.490196, 0.258824, 0.0196078]}
+     = {RGBColor[0.87451, 0.439216, 0.45098], RGBColor[0.341176, 0.0705882, 0.254902]}
 
     >> DominantColors[img, ColorCoverage -> 0.15]
-     = {RGBColor[0.0235294, 0.00392157, 0.], RGBColor[1., 0.835294, 0.027451]}
+     = {RGBColor[0.827451, 0.537255, 0.486275], RGBColor[0.87451, 0.439216, 0.45098], RGBColor[0.341176, 0.0705882, 0.254902]}
     '''
 
     rules = {
