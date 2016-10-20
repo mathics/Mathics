@@ -7,7 +7,7 @@ from __future__ import absolute_import
 import re
 import sympy
 from functools import total_ordering
-import importlib
+import pkgutil
 from itertools import chain
 
 from mathics.core.definitions import Definition
@@ -16,6 +16,16 @@ from mathics.core.expression import (BaseExpression, Expression, Symbol,
                                      String, Integer, ensure_context,
                                      strip_context)
 import six
+
+_package_available = {}
+
+
+def _is_package_available(name):
+    available = _package_available.get(name)
+    if available is None:
+        available = pkgutil.find_loader(name) is not None
+        _package_available[name] = available
+    return available
 
 
 class Builtin(object):
@@ -219,9 +229,7 @@ class Builtin(object):
         requires = getattr(self, 'requires', [])
 
         for package in requires:
-            try:
-                importlib.import_module(package)
-            except ImportError:
+            if not _is_package_available(package):
                 def apply(**kwargs):  # will override apply method
                     kwargs['evaluation'].message(
                         'General', 'pyimport',  # see inout.py
