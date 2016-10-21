@@ -30,8 +30,12 @@ mathics-users@googlegroups.com and ask for help.
 
 import sys
 import platform
-import os
+import subprocess
+
 from setuptools import setup, Command, Extension
+from setuptools.command.install import install as InstallCommand
+
+from distutils import log
 
 # Ensure user has the correct Python version
 if sys.version_info[:2] != (2, 7) and sys.version_info < (3, 2):
@@ -143,6 +147,80 @@ class test(Command):
             sys.exit(1)
 
 
+class install(InstallCommand):
+    user_options = InstallCommand.user_options + [
+        ('jupyter', None, 'also install the Mathics Jupyter kernel')
+    ]
+
+    def initialize_options(self):
+        InstallCommand.initialize_options(self)
+        self.jupyter = False
+
+    def finalize_options(self):
+        InstallCommand.finalize_options(self)
+
+    def run(self):
+        # The recommended way is with the setup_requires argument to setup
+        # This fails because ipython doesn't build under easy_install
+        requires = INSTALL_REQUIRES
+
+        if self.jupyter:
+            requires += ['ipython', 'ipykernel']
+
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install'] + requires)
+
+        # Unfortunately the recommended call to 'install.run(self)'
+        # will completely ignore the install_requirements.
+        # So we trick it by calling the underlying bdist_egg instead:
+        #self.do_egg_install()
+        InstallCommand.run(self)
+
+        if self.jupyter:
+            self.install_jupyter_kernelspec()
+
+    def install_jupyter_kernelspec(self):
+        from ipykernel.kernelspec import write_kernel_spec
+        from jupyter_client.kernelspec import KernelSpecManager
+
+        kernel_json = {
+            'argv': [sys.executable,
+                     '-m', 'imathics',
+                     '-f', '{connection_file}'],
+            'display_name': 'mathics',
+            'language': 'Mathematica',
+            'name': 'mathics',
+        }
+
+        kernel_spec_manager = KernelSpecManager()
+
+        log.info('Writing kernel spec')
+        kernel_spec_path = write_kernel_spec(overrides=kernel_json)
+
+        log.info('Installing kernel spec ' + kernel_spec_path)
+        try:
+            kernel_spec_manager.install_kernel_spec(
+                kernel_spec_path,
+                kernel_name=kernel_json['name'],
+                user=self.user)
+        except Exception as e:
+            log.error(str(e.args))
+            log.error('Failed to install kernel spec')
+        else:
+            return
+
+        # retry with not self.user
+        log.info('Retry install kernel spec')
+        try:
+            kernel_spec_manager.install_kernel_spec(
+                kernel_spec_path,
+                kernel_name=kernel_json['name'],
+                user=not self.user)
+        except Exception as e:
+            log.error(str(e.args))
+            log.error('Failed to install kernel spec')
+
+
+CMDCLASS['install'] = install
 CMDCLASS['initialize'] = initialize
 CMDCLASS['test'] = test
 
@@ -162,7 +240,8 @@ setup(
         'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.builtin.numpy_utils',
         'mathics.builtin.pympler', 'mathics.builtin.compile',
         'mathics.doc',
-        'mathics.web', 'mathics.web.templatetags'
+        'mathics.web', 'mathics.web.templatetags',
+        'imathics',
     ],
 
     install_requires=INSTALL_REQUIRES,
@@ -182,6 +261,7 @@ setup(
             'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
             'templates/doc/*.html'] + mathjax_files,
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
+        'imathics': ['mathics.js'],
     },
 
     entry_points={
@@ -189,6 +269,7 @@ setup(
             'mathics = mathics.main:main',
             'mathicsserver = mathics.server:main',
             'mathicsscript = mathics.script:main',
+            'imathics = imathics.terminalapp:main',
         ],
     },
 
