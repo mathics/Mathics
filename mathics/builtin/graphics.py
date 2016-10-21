@@ -141,6 +141,7 @@ def _to_float(x):
         raise BoxConstructError
     return x
 
+
 def create_pens(edge_color=None, face_color=None, stroke_width=None,
                 is_face_element=False):
     result = []
@@ -264,94 +265,25 @@ def _CMC_distance(lab1, lab2, l, c):
 def _extract_graphics(graphics, format, evaluation):
     graphics_box = Expression('MakeBoxes', graphics).evaluate(evaluation)
     builtin = GraphicsBox(expression=False)
+
     elements, calc_dimensions = builtin._prepare_elements(
         graphics_box.leaves, {'evaluation': evaluation}, neg_y=True)
-    xmin, xmax, ymin, ymax, _, _, _, _ = calc_dimensions()
 
-    # xmin, xmax have always been moved to 0 here. the untransformed
-    # and unscaled bounds are found in elements.xmin, elements.ymin,
-    # elements.extent_width, elements.extent_height.
+    if not isinstance(elements.elements[0], GeometricTransformationBox):
+        raise ValueError('expected GeometricTransformationBox')
 
-    # now compute the position of origin (0, 0) in the transformed
-    # coordinate space.
-
-    ex = elements.extent_width
-    ey = elements.extent_height
-
-    sx = (xmax - xmin) / ex
-    sy = (ymax - ymin) / ey
-
-    ox = -elements.xmin * sx + xmin
-    oy = -elements.ymin * sy + ymin
+    contents = elements.elements[0].contents
 
     # generate code for svg or asy.
 
     if format == 'asy':
-        code = '\n'.join(element.to_asy() for element in elements.elements)
+        code = '\n'.join(element.to_asy() for element in contents)
     elif format == 'svg':
-        code = elements.to_svg()
+        code = ''.join(element.to_svg() for element in contents)
     else:
         raise NotImplementedError
 
-    return xmin, xmax, ymin, ymax, ox, oy, ex, ey, code
-
-
-class _SVGTransform():
-    def __init__(self):
-        self.transforms = []
-
-    def matrix(self, a, b, c, d, e, f):
-        # a c e
-        # b d f
-        # 0 0 1
-        self.transforms.append('matrix(%f, %f, %f, %f, %f, %f)' % (a, b, c, d, e, f))
-
-    def translate(self, x, y):
-        self.transforms.append('translate(%f, %f)' % (x, y))
-
-    def scale(self, x, y):
-        self.transforms.append('scale(%f, %f)' % (x, y))
-
-    def rotate(self, x):
-        self.transforms.append('rotate(%f)' % x)
-
-    def apply(self, svg):
-        return '<g transform="%s">%s</g>' % (' '.join(self.transforms), svg)
-
-
-class _ASYTransform():
-    _template = """
-    add(%s * (new picture() {
-        picture saved = currentpicture;
-        picture transformed = new picture;
-        currentpicture = transformed;
-        %s
-        currentpicture = saved;
-        return transformed;
-    })());
-    """
-
-    def __init__(self):
-        self.transforms = []
-
-    def matrix(self, a, b, c, d, e, f):
-        # a c e
-        # b d f
-        # 0 0 1
-        # see http://asymptote.sourceforge.net/doc/Transforms.html#Transforms
-        self.transforms.append('(%f, %f, %f, %f, %f, %f)' % (e, f, a, c, b, d))
-
-    def translate(self, x, y):
-        self.transforms.append('shift(%f, %f)' % (x, y))
-
-    def scale(self, x, y):
-        self.transforms.append('scale(%f, %f)' % (x, y))
-
-    def rotate(self, x):
-        self.transforms.append('rotate(%f)' % x)
-
-    def apply(self, asy):
-        return self._template % (' * '.join(self.transforms), asy)
+    return code
 
 
 def _to_float(x):
@@ -1047,7 +979,7 @@ class PointSize(_Size):
     </dl>
     """
     def get_size(self):
-        return self.graphics.view_width * self.value
+        return self.graphics.extent_width * self.value
 
 
 class FontColor(Builtin):
@@ -2413,24 +2345,28 @@ class ArrowBox(_Polyline):
             for s in self.curve.arrows(transformed_points, heads):
                 yield s
 
-    def _custom_arrow(self, format, format_transform):
+    def _custom_arrow(self, format, transform):
         def make(graphics):
-            xmin, xmax, ymin, ymax, ox, oy, ex, ey, code = _extract_graphics(
+            code = _extract_graphics(
                 graphics, format, self.graphics.evaluation)
-            boxw = xmax - xmin
-            boxh = ymax - ymin
+
+            half_pi = pi / 2.
 
             def draw(px, py, vx, vy, t1, s):
                 t0 = t1
-                cx = px + t0 * vx
-                cy = py + t0 * vy
 
-                transform = format_transform()
-                transform.translate(cx, cy)
-                transform.scale(-s / boxw * ex, -s / boxh * ey)
-                transform.rotate(90 + degrees(atan2(vy, vx)))
-                transform.translate(-ox, -oy)
-                yield transform.apply(code)
+                tx = px + t0 * vx
+                ty = py + t0 * vy
+
+                r = half_pi + atan2(vy, vx)
+
+                s = -s
+
+                cos_r = cos(r)
+                sin_r = sin(r)
+
+                # see TranslationTransform[{tx,ty}].ScalingTransform[{s,s}].RotationTransform[r]
+                yield transform([[s * cos_r, -s * sin_r, tx], [s * sin_r, s * cos_r, ty], [0, 0, 1]], code)
 
             return draw
 
@@ -2448,9 +2384,12 @@ class ArrowBox(_Polyline):
             yield ' '.join('%f,%f' % xy for xy in points)
             yield '" style="%s" />' % arrow_style
 
-        extent = self.graphics.view_width or 0
+        def svg_transform(m, code):
+            return _Transform(m).to_svg(code)
+
+        extent = self.graphics.extent_width or 0
         default_arrow = self._default_arrow(polygon)
-        custom_arrow = self._custom_arrow('svg', _SVGTransform)
+        custom_arrow = self._custom_arrow('svg', svg_transform)
         return ''.join(self._draw(polyline, default_arrow, custom_arrow, extent))
 
     def to_asy(self):
@@ -2465,9 +2404,12 @@ class ArrowBox(_Polyline):
             yield '--'.join(['(%.5g,%5g)' % xy for xy in points])
             yield '--cycle, % s);' % arrow_pen
 
-        extent = self.graphics.view_width or 0
+        def asy_transform(m, code):
+            return _Transform(m).to_asy(code)
+
+        extent = self.graphics.extent_width or 0
         default_arrow = self._default_arrow(polygon)
-        custom_arrow = self._custom_arrow('asy', _ASYTransform)
+        custom_arrow = self._custom_arrow('asy', asy_transform)
         return ''.join(self._draw(polyline, default_arrow, custom_arrow, extent))
 
     def extent(self):
@@ -2572,6 +2514,9 @@ class Rotate(Builtin):
      = -Graphics-
 
     >> Graphics[{Rotate[Rectangle[{0, 0}, {0.2, 0.2}], 1.2, {0.1, 0.1}], Red, Disk[{0.1, 0.1}, 0.05]}]
+     = -Graphics-
+
+    >> Graphics[Table[Rotate[Scale[{RGBColor[i,1-i,1],Rectangle[],Black,Text["ABC",{0.5,0.5}]},1-i],Pi*i], {i,0,1,0.2}]]
      = -Graphics-
     """
 
@@ -2781,6 +2726,9 @@ class InsetBox(_GraphicsElement):
             evaluation=evaluation)
         style = create_css(font_color=self.color)
 
+        if not self.absolute_coordinates:
+            x, y = list(self.graphics.local_to_screen.transform([(x, y)]))[0]
+
         if not self.svg:
             svg = (
                 '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
@@ -2790,7 +2738,7 @@ class InsetBox(_GraphicsElement):
             svg = self._text_svg_xml(style, x, y)
 
         if not self.absolute_coordinates:
-            svg = self.graphics.text_matrix.to_svg(svg)
+            svg = self.graphics.inverse_local_to_screen.to_svg(svg)
 
         return svg
 
@@ -3044,14 +2992,14 @@ class GraphicsElements(_GraphicsElements):
     def __init__(self, content, evaluation, neg_y=False):
         super(GraphicsElements, self).__init__(content, evaluation)
         self.neg_y = neg_y
-        self.xmin = self.ymin = self.pixel_width = None
-        self.pixel_height = self.extent_width = self.extent_height = None
-        self.view_width = None
+        self.pixel_width = None
+        self.extent_width = self.extent_height = None
         self.local_to_screen = None
 
     def set_size(self, xmin, ymin, extent_width, extent_height, pixel_width, pixel_height):
         self.pixel_width = pixel_width
         self.extent_width = extent_width
+        self.extent_height = extent_height
 
         tx = -xmin
         ty = -ymin
@@ -3079,7 +3027,7 @@ class GraphicsElements(_GraphicsElements):
 
         self.elements[0].patch_transforms([transform])
         self.local_to_screen = transform
-        self.text_matrix = _Transform([[1. / sx, 0, 0], [0, 1. / sy, 0], [0, 0, 1]])
+        self.inverse_local_to_screen = transform.inverse()
 
     def add_axis_element(self, e):
         # axis elements are added after the GeometricTransformationBox and are thus not
@@ -3343,7 +3291,6 @@ class GraphicsBox(BoxConstruct):
             leaves, options, max_width=450)
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
-        elements.view_width = w
 
         asy_completely_visible = '\n'.join(
             element.to_asy() for element in elements.elements
@@ -3383,7 +3330,6 @@ clip(%s);
             leaves, options, neg_y=True)
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
-        elements.view_width = w
 
         svg = elements.to_svg()
 
