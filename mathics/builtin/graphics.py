@@ -78,6 +78,9 @@ class Coords(object):
         p = (self.p[0] + x, self.p[1] + y)
         return Coords(self.graphics, pos=p)
 
+    def is_absolute(self):
+        return False
+
 
 class AxisCoords(Coords):
     def __init__(self, graphics, expr=None, pos=None, d=None):
@@ -96,6 +99,9 @@ class AxisCoords(Coords):
 
     def add(self, x, y):
         raise NotImplementedError
+
+    def is_absolute(self):
+        return True
 
 
 def cut(value):
@@ -407,7 +413,7 @@ class Graphics(Builtin):
 
     In 'TeXForm', 'Graphics' produces Asymptote figures:
     >> Graphics[Circle[]] // TeXForm
-     =
+     = 
      . \begin{asy}
      . size(5.8556cm, 5.8333cm);
      . add((175,175,175,0,0,175)*(new picture(){picture s=currentpicture,t=new picture;currentpicture=t;draw(ellipse((0,0),1,1), rgb(0, 0, 0)+linewidth(0.0038095));currentpicture=s;return t;})());
@@ -2600,14 +2606,12 @@ class GeometricTransformationBox(_GraphicsElement):
 
 
 class InsetBox(_GraphicsElement):
-    def init(self, graphics, style, item=None, content=None, pos=None,
-             opos=(0, 0), font_size=None, absolute_coordinates=False):
+    def init(self, graphics, style, item=None, content=None, pos=None, opos=(0, 0), font_size=None):
         super(InsetBox, self).init(graphics, item, style)
 
         self.color = self.style.get_option('System`FontColor')
         if self.color is None:
             self.color, _ = style.get_style(_Color, face_element=False)
-        self.absolute_coordinates = absolute_coordinates
 
         if font_size is not None:
             self.font_size = FontSize(self.graphics, value=font_size)
@@ -2722,11 +2726,13 @@ class InsetBox(_GraphicsElement):
     def to_svg(self):
         evaluation = self.graphics.evaluation
         x, y = self.pos.pos()
+        absolute = self.pos.is_absolute()
+
         content = self.content.boxes_to_xml(
             evaluation=evaluation)
         style = create_css(font_color=self.color)
 
-        if not self.absolute_coordinates:
+        if not absolute:
             x, y = list(self.graphics.local_to_screen.transform([(x, y)]))[0]
 
         if not self.svg:
@@ -2737,7 +2743,7 @@ class InsetBox(_GraphicsElement):
         else:
             svg = self._text_svg_xml(style, x, y)
 
-        if not self.absolute_coordinates:
+        if not absolute:
             svg = self.graphics.inverse_local_to_screen.to_svg(svg)
 
         return svg
@@ -3482,7 +3488,7 @@ clip(%s);
                         elements, tick_label_style,
                         content=content,
                         pos=AxisCoords(elements, pos=p_origin(x),
-                                   d=p_self0(-tick_label_d)), opos=p_self0(1), font_size=font_size, absolute_coordinates=True))
+                            d=p_self0(-tick_label_d)), opos=p_self0(1), font_size=font_size))
                 for x in ticks_small:
                     pos = p_origin(x)
                     ticks_lines.append([AxisCoords(elements, pos=pos),
