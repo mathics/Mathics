@@ -56,7 +56,7 @@ before_install:
       fi &&
       if [[ $TRAVIS_PYTHON_VERSION != pypy ]]; then
           pip install Pillow wordcloud pyocr scipy scikit-image &&
-          pip install spacy &&
+          pip install spacy==1.0.3 &&
           python travis.py &&
           sputnik --name spacy --repository-url http://index.spacy.io install en==1.1.0;
       fi &&
