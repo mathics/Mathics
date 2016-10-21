@@ -2887,6 +2887,35 @@ class Style(object):
             return 0
         return edge_style.get_thickness()
 
+    def to_axis_style(self):
+        return AxisStyle(self)
+
+
+class AxisStyle(object):
+    # used exclusively for graphics generated inside GraphicsBox.create_axes().
+    # wraps a Style instance for graphics and does not operate on local but on
+    # screen space, i.e. has to apply "local_to_screen" to all widths, sizes, ...
+
+    def __init__(self, style):
+        self.base = Style(style.graphics)
+        self.base.extend(style)
+        self.sx = style.graphics.local_to_screen.matrix[0][0]
+
+    def extend(self, style, pre=True):
+        self.base.extend(style.base, pre)
+
+    def clone(self):
+        return AxisStyle(self.base.clone())
+
+    def get_style(self, *args, **kwargs):
+        return self.base.get_style(*args, **kwargs)
+
+    def get_option(self, name):
+        return self.base.get_option(name)
+
+    def get_line_width(self, face_element=True):
+        return self.base.get_line_width(face_element) * self.sx
+
 
 def _flatten(leaves):
     for leaf in leaves:
@@ -3439,6 +3468,11 @@ clip(%s);
         ticks_style = [elements.create_style(s) for s in ticks_style]
         axes_style = [elements.create_style(s) for s in axes_style]
         label_style = elements.create_style(label_style)
+
+        ticks_style = [s.to_axis_style() for s in ticks_style]
+        axes_style = [s.to_axis_style() for s in axes_style]
+        label_style = label_style.to_axis_style()
+
         ticks_style[0].extend(axes_style[0])
         ticks_style[1].extend(axes_style[1])
 
