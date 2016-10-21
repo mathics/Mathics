@@ -337,6 +337,137 @@ class _ASYTransform():
         return self._template % (' * '.join(self.transforms), asy)
 
 
+def _to_float(x):
+    if isinstance(x, Integer):
+        return x.get_int_value()
+    else:
+        y = x.round_to_float()
+        if y is None:
+            raise BoxConstructError
+        return y
+
+
+class _Transform():
+    def __init__(self, f):
+        if not isinstance(f, Expression):
+            self.matrix = f
+            return
+
+        if f.get_head_name() != 'System`TransformationFunction':
+            raise BoxConstructError
+
+        if len(f.leaves) != 1 or f.leaves[0].get_head_name() != 'System`List':
+            raise BoxConstructError
+
+        rows = f.leaves[0].leaves
+        if len(rows) != 3:
+            raise BoxConstructError
+        if any(row.get_head_name() != 'System`List' for row in rows):
+            raise BoxConstructError
+        if any(len(row.leaves) != 3 for row in rows):
+            raise BoxConstructError
+
+        self.matrix = [[_to_float(x) for x in row.leaves] for row in rows]
+
+    def scaled(self, x, y):
+        # we compute AB, where A is the scale matrix (x, y, 1) and B is
+        # self.matrix
+        m = self.matrix
+        return _Transform([[t * x for t in m[0]], [t * y for t in m[1]], m[2]])
+
+    def transform(self, p):
+        m = self.matrix
+
+        m11 = m[0][0]
+        m12 = m[0][1]
+        m13 = m[0][2]
+
+        m21 = m[1][0]
+        m22 = m[1][1]
+        m23 = m[1][2]
+
+        for x, y in p:
+            yield m11 * x + m12 * y + m13, m21 * x + m22 * y + m23
+
+    def to_svg(self, svg):
+        m = self.matrix
+
+        a = m[0][0]
+        b = m[1][0]
+        c = m[0][1]
+        d = m[1][1]
+        e = m[0][2]
+        f = m[1][2]
+
+        if m[2][0] != 0. or m[2][1] != 0. or m[2][2] != 1.:
+            raise BoxConstructError
+
+        # a c e
+        # b d f
+        # 0 0 1
+
+        t = 'matrix(%f, %f, %f, %f, %f, %f)' % (a, b, c, d, e, f)
+        return '<g transform="%s">%s</g>' % (t, svg)
+
+
+class _SVGTransform():
+    def __init__(self):
+        self.transforms = []
+
+    def matrix(self, a, b, c, d, e, f):
+        # a c e
+        # b d f
+        # 0 0 1
+        self.transforms.append('matrix(%f, %f, %f, %f, %f, %f)' % (a, b, c, d, e, f))
+
+    def translate(self, x, y):
+        self.transforms.append('translate(%f, %f)' % (x, y))
+
+    def scale(self, x, y):
+        self.transforms.append('scale(%f, %f)' % (x, y))
+
+    def rotate(self, x):
+        self.transforms.append('rotate(%f)' % x)
+
+    def apply(self, svg):
+        return '<g transform="%s">%s</g>' % (' '.join(self.transforms), svg)
+
+
+class _ASYTransform():
+    _template = """
+    add(%s * (new picture() {
+        picture saved = currentpicture;
+        picture transformed = new picture;
+        currentpicture = transformed;
+        %s
+        currentpicture = saved;
+        return transformed;
+    })());
+    """
+
+    def __init__(self):
+        self.transforms = []
+
+    def matrix(self, a, b, c, d, e, f):
+        # a c e
+        # b d f
+        # 0 0 1
+        # see http://asymptote.sourceforge.net/doc/Transforms.html#Transforms
+        self.transforms.append('(%f, %f, %f, %f, %f, %f)' % (e, f, a, c, b, d))
+
+    def translate(self, x, y):
+        self.transforms.append('shift(%f, %f)' % (x, y))
+
+    def scale(self, x, y):
+        self.transforms.append('scale(%f, %f)' % (x, y))
+
+    def rotate(self, x):
+        self.transforms.append('rotate(%f)' % x)
+
+    def apply(self, asy):
+        return self._template % (' * '.join(self.transforms), asy)
+
+
 class Graphics(Builtin):
     r"""
     <dl>
@@ -397,6 +528,8 @@ class Graphics(Builtin):
                 return Expression('List', *[convert(item) for item in content.leaves])
             elif head == 'System`Style':
                 return Expression('StyleBox', *[convert(item) for item in content.leaves])
+            elif head == 'System`GeometricTransformation' and len(content.leaves) == 2:
+                return Expression('GeometricTransformationBox', convert(content.leaves[0]), content.leaves[1])
 
             if head in element_heads:
                 if head == 'System`Text':
@@ -2657,7 +2790,6 @@ def _flatten(leaves):
 class _GraphicsElements(object):
     def __init__(self, content, evaluation):
         self.evaluation = evaluation
-        self.elements = []
         self.view_width = None
         self.web_engine_warning_issued = False
 
@@ -2706,6 +2838,8 @@ class _GraphicsElements(object):
                         raise BoxConstructError
                     for element in convert(item.leaves[0], stylebox_style(style, item.leaves[1:])):
                         yield element
+                elif head == 'System`GeometricTransformationBox':
+                    yield GeometricTransformationBox(self, style, list(convert(item.leaves[0], style)), item.leaves[1])
                 elif head[-3:] == 'Box':  # and head[:-3] in element_heads:
                     element_class = get_class(head)
                     if element_class is not None:
@@ -2753,6 +2887,16 @@ class GraphicsElements(_GraphicsElements):
         self.xmin = self.ymin = self.pixel_width = None
         self.pixel_height = self.extent_width = self.extent_height = None
         self.view_width = None
+
+    def fix_transform(self, transform):
+        if self.pixel_width is not None:
+            w = self.extent_width if self.extent_width > 0 else 1
+            h = self.extent_height if self.extent_height > 0 else 1
+            x = self.pixel_width / w
+            y = self.pixel_height / h
+            return transform.scaled(x, y)
+        else:
+            return transform
 
     def translate(self, coords):
         if self.pixel_width is not None:
