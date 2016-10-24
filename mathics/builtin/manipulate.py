@@ -168,8 +168,8 @@ class _WidgetInstantiator():
     def _add_options_widget(self, symbol, options, default, label, evaluation):
         formatted_options = []
         for i, option in enumerate(options.leaves):
-            data = evaluation.format_all_outputs(option)
-            formatted_options.append((data['text/plain'], i))
+            data = evaluation.format_output(option, format='text')
+            formatted_options.append((data, i))
 
         default_index = 0
         for i, option in enumerate(options.leaves):
