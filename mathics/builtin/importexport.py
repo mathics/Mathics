@@ -964,6 +964,11 @@ class FileFormat(Builtin):
             if key in mime:
                 result.append(mimetype_dict[key])
 
+        # the following fixes an extremely annoying behaviour on some (not all)
+        # installations of Windows, where we end up classifying .csv files als XLS.
+        if len(result) == 1 and result[0] == 'XLS' and path.lower().endswith('.csv'):
+            return String('CSV')
+
         if len(result) == 0:
             result = 'Binary'
         elif len(result) == 1:
