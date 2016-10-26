@@ -2351,7 +2351,7 @@ class StringTrim(Builtin):
         <dd>returns a version of $s$ with whitespace removed from start and end.
     </dl>
 
-    >> StringJoin["a", StringTrim["  \tb\n "], "c"]
+    >> StringJoin["a", StringTrim["  \\tb\\n "], "c"]
      = abc
 
     >> StringTrim["ababaxababyaabab", RegularExpression["(ab)+"]]
