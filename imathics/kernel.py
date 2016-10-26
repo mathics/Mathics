@@ -157,12 +157,14 @@ class MathicsKernel(Kernel):
             if result:
                 self.result_callback(result)
         except Exception as exc:
-            self.out_callback(Print('An error occured: ' + str(exc)))
+            stack = traceback.format_exception(*sys.exc_info())
+
+            self.out_callback(Print('An error occured: ' + str(exc) + '\n\n' + '\n'.join(stack)))
 
             # internal error
             response['status'] = 'error'
             response['ename'] = 'System:exception'
-            response['traceback'] = traceback.format_exception(*sys.exc_info())
+            response['traceback'] = stack
         else:
             response['status'] = 'ok'
 
