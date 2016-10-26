@@ -2342,3 +2342,50 @@ class Transliterate(Builtin):
         'Transliterate[s_String]'
         from unidecode import unidecode
         return String(unidecode(s.get_string_value()))
+
+
+class StringTrim(Builtin):
+    """
+    <dl>
+    <dt>'StringTrim[$s$]'
+        <dd>returns a version of $s$ with whitespace removed from start and end.
+    </dl>
+
+    >> StringJoin["a", StringTrim["  \tb\n "], "c"]
+     = abc
+
+    >> StringTrim["ababaxababyaabab", RegularExpression["(ab)+"]]
+     = axababya
+    """
+
+    def apply(self, s, evaluation):
+        'StringTrim[s_String]'
+        return String(s.get_string_value().strip(" \t\n"))
+
+    def apply_pattern(self, s, patt, expression, evaluation):
+        'StringTrim[s_String, patt_]'
+        text = s.get_string_value()
+        if not text:
+            return s
+
+        py_patt = to_regex(patt, evaluation)
+        if py_patt is None:
+            return evaluation.message('StringExpression', 'invld', patt, expression)
+
+        if not py_patt.startswith(r'\A'):
+            left_patt = r'\A' + py_patt
+        else:
+            left_patt = py_patt
+
+        if not py_patt.endswith(r'\Z'):
+            right_patt = py_patt + r'\Z'
+        else:
+            right_patt = py_patt
+
+        m = re.search(left_patt, text)
+        left = m.end(0) if m else 0
+
+        m = re.search(right_patt, text)
+        right = m.start(0) if m else len(text)
+
+        return String(text[left:right])
