@@ -691,6 +691,7 @@ class _Chart(Builtin):
         'Mesh': 'None',
         'PlotRange': 'Automatic',
         'ChartLabels': 'None',
+        'ChartLegends': 'None',
         'ChartStyle': 'Automatic',
     })
 
@@ -715,6 +716,11 @@ class _Chart(Builtin):
         else:
             multiple_colors = False
             groups = [points]
+
+        chart_legends = self.get_option(options, 'ChartLegends', evaluation)
+        has_chart_legends = chart_legends.get_head_name() == 'System`List'
+        if has_chart_legends:
+            multiple_colors = True
 
         def to_number(x):
             if isinstance(x, Integer):
@@ -750,6 +756,41 @@ class _Chart(Builtin):
         else:
             return
 
+        def legends(names):
+            if not data:
+                return
+
+            n = len(data[0])
+            for d in data[1:]:
+                if len(d) != n:
+                    return  # data groups should have same size
+
+            def box(color):
+                return Expression(
+                    'Graphics', Expression('List', Expression('FaceForm', color), Expression('Rectangle')),
+                    Expression('Rule', Symbol('ImageSize'), Expression('List', 50, 50)))
+
+            rows_per_col = 5
+
+            n_cols = 1 + len(names) // rows_per_col
+            if len(names) % rows_per_col == 0:
+                n_cols -= 1
+
+            if n_cols == 1:
+                n_rows = len(names)
+            else:
+                n_rows = rows_per_col
+
+            for i in range(n_rows):
+                items = []
+                for j in range(n_cols):
+                    k = 1 + i + j * rows_per_col
+                    if k - 1 < len(names):
+                        items.extend([box(color(k, n)), names[k - 1]])
+                    else:
+                        items.extend([String(""), String("")])
+                yield Expression('List', *items)
+
         def color(k, n):
             if spread_colors and n < len(colors):
                 index = int(k * (len(colors) - 1)) // n
@@ -757,7 +798,13 @@ class _Chart(Builtin):
             else:
                 return colors[(k - 1) % len(colors)]
 
-        return self._draw(data, color, evaluation, options)
+        chart = self._draw(data, color, evaluation, options)
+
+        if has_chart_legends:
+            grid = Expression('Grid', Expression('List', *list(legends(chart_legends.leaves))))
+            chart = Expression('Row', Expression('List', chart, grid))
+
+        return chart
 
 
 class PieChart(_Chart):
