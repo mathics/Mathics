@@ -406,7 +406,7 @@ class FetchURL(Builtin):
         'httperr': '`1` could not be retrieved; `2`.',
     }
 
-    def apply(self, url, elements, evaluation, options):
+    def apply(self, url, elements, evaluation, options={}):
         'FetchURL[url_String, elements_, OptionsPattern[]]'
 
         import tempfile
