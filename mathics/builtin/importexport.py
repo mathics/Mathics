@@ -11,6 +11,7 @@ import six
 
 from mathics.core.expression import Expression, from_python, strip_context
 from mathics.builtin.base import Builtin, Predefined, Symbol, String
+from mathics.builtin.options import options_to_rules
 
 from .pymimesniffer import magic
 import mimetypes
@@ -405,8 +406,8 @@ class FetchURL(Builtin):
         'httperr': '`1` could not be retrieved; `2`.',
     }
 
-    def apply(self, url, elements, evaluation):
-        'FetchURL[url_String, elements_]'
+    def apply(self, url, elements, evaluation, options={}):
+        'FetchURL[url_String, elements_, OptionsPattern[]]'
 
         import tempfile
         import os
@@ -433,7 +434,7 @@ class FetchURL(Builtin):
             def determine_filetype():
                 return mimetype_dict.get(content_type)
 
-            result = Import._import(temp_path, determine_filetype, elements, evaluation, {})
+            result = Import._import(temp_path, determine_filetype, elements, evaluation, options)
         except HTTPError as e:
             evaluation.message(
                 'FetchURL', 'httperr', url,
@@ -534,7 +535,7 @@ class Import(Builtin):
         # Download via URL
         if isinstance(filename, String):
             if any(filename.get_string_value().startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
-                return Expression('FetchURL', filename, elements)
+                return Expression('FetchURL', filename, elements, *options_to_rules(options))
 
         # Load local file
         findfile = Expression('FindFile', filename).evaluate(evaluation)
