@@ -44,6 +44,7 @@ class Converter(object):
         s = s.replace('\\r\\n', '\r\n')
         s = s.replace('\\r', '\r')
         s = s.replace('\\n', '\n')
+        s = s.replace('\\t', '\t')
         return s
 
     def convert_Symbol(self, node):
