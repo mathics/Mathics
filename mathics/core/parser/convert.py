@@ -40,7 +40,7 @@ class GenericConverter(object):
         if node.context is not None:
             return 'Symbol', node.context + '`' + node.value
         else:
-            return 'SymbolLookup', node.value
+            return 'Lookup', node.value
 
     def convert_String(self, node):
         value = self.string_escape(node.value)
