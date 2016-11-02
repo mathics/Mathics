@@ -18,38 +18,11 @@ import re
 
 try:
     import lxml.html as lhtml
-    lxml_available = True
 except ImportError:
-    lxml_available = False
+    pass
 
-def node_to_xml_element(node, parent_namespace=None, strip_whitespace=True):
-    if lxml_available:
-        if isinstance(node, ET._Comment):
-            items = [Expression(Expression('XMLObject', String('Comment')), String(node.text))]
-            if node.tail is not None:
-                items.append(String(node.tail))
-            return items
 
-    # see https://reference.wolfram.com/language/XML/tutorial/RepresentingXML.html
-
-    default_namespace = node.get('xmlns')
-    if default_namespace is None:
-        default_namespace = parent_namespace
-
-    if lxml_available:
-        tag = ET.QName(node.tag)
-        localname = tag.localname
-        namespace = tag.namespace
-    else:
-        tag = node.tag
-        if not tag.startswith('{'):
-            namespace = None
-            localname = tag
-        else:
-            m = re.match('\{(.*)\}(.*)', node.tag)
-            namespace = m.group(1)
-            localname = m.group(2)
-
+def node_to_xml_element(node, strip_whitespace=True):
     def children():
         text = node.text
         if text:
@@ -58,7 +31,7 @@ def node_to_xml_element(node, parent_namespace=None, strip_whitespace=True):
             if text:
                 yield String(text)
         for child in node:
-            for element in node_to_xml_element(child, default_namespace, strip_whitespace):
+            for element in node_to_xml_element(child, strip_whitespace):
                 yield element
         tail = node.tail
         if tail:
@@ -69,34 +42,25 @@ def node_to_xml_element(node, parent_namespace=None, strip_whitespace=True):
 
     def attributes():
         for name, value in node.attrib.items():
-            if name == 'xmlns':
-                name = _namespace_key
-            else:
-                name = from_python(name)
-            yield Expression('Rule', name, from_python(value))
-
-    if namespace is None or namespace == default_namespace:
-        name = String(localname)
-    else:
-        name = Expression('List', String(namespace), String(localname))
+            yield Expression('Rule', from_python(name), from_python(value))
 
     return [Expression(
         'XMLElement',
-        name,
+        String(node.tag),
         Expression('List', *list(attributes())),
         Expression('List', *list(children())))]
 
 
-def xml_object(root):
-    tree = root.getroottree()
-    declaration = [
-        Expression(Expression('XMLObject', String('Declaration')),
-        Expression('Rule', String('Version'), String(tree.docinfo.xml_version)),
+def xml_object(tree):
+    declaration = [Expression(
+        Expression('XMLObject', String('Declaration')),
+        Expression('Rule', String('Version'), String(tree.docinfo.xml_version or "1.0")),
+        Expression('Rule', String('Standalone'), String("yes") if tree.docinfo.standalone else String("no")),
         Expression('Rule', String('Encoding'), String(tree.docinfo.encoding)))]
 
     return Expression(
         Expression('XMLObject', String('Document')),
-        Expression('List', *declaration), *node_to_xml_element(root))
+        Expression('List', *declaration), *node_to_xml_element(tree.getroot()))
 
 
 class ParseError(Exception):
@@ -109,8 +73,7 @@ def parse_html_stream(f):
 
 def parse_html_file(filename):
     with mathics_open(filename, 'rb') as f:
-        root = parse_html_stream(f)
-    return root
+        return parse_html_stream(f)
 
 
 def parse_html(parse, text, evaluation):
@@ -124,15 +87,28 @@ def parse_html(parse, text, evaluation):
         return Symbol('$Failed')
 
 
-class XMLObject(Builtin):
-    pass
+class _HTMLBuiltin(Builtin):
+    context = 'HTML`'
+
+    requires = (
+        'lxml',
+    )
 
 
-class XMLElement(Builtin):
-    pass
+class _TagImport(_HTMLBuiltin):
+    def _import(self, tree):
+        raise NotImplementedError
+
+    def apply(self, text, evaluation):
+        '''%(name)s[text_String]'''
+        tree = parse_html(parse_html_file, text, evaluation)
+        if isinstance(tree, Symbol):  # $Failed?
+            return tree
+        return Expression('List', Expression(
+            'Rule', self.tag_name, self._import(tree)))
 
 
-class _Get(Builtin):
+class _Get(_HTMLBuiltin):
     context = 'HTML`Parser`'
 
     messages = {
@@ -155,11 +131,11 @@ class HTMLGet(_Get):
 
 class HTMLGetString(_Get):
     """
-    >> Head[XML`Parser`XMLGetString["<a></a>"]]
+    #> Head[HTML`Parser`HTMLGetString["<a></a>"]]
      = XMLObject[Document]
 
-    #> XML`Parser`XMLGetString["<a><b></a>"]
-     : Opening and ending tag mismatch: b line 1 and a, line 1, column 11.
+    #> Head[HTML`Parser`HTMLGetString["<a><b></a>"]]
+     = XMLObject[Document]
     """
 
     def _parse(self, text):
@@ -169,133 +145,187 @@ class HTMLGetString(_Get):
             return parse_html_stream(f)
 
 
-class DataImport(Builtin):
-    """
-    >> StringReplace[StringTake[Import["ExampleData/InventionNo1.xml", "Plaintext"],31],FromCharacterCode[10]->"/"]
-     = MuseScore 1.2/2012-09-12/5.7/40
-    """
+class _DataImport(_TagImport):
+    def _import(self, tree):
+        full_data = self.full_data
 
-    context = 'HTML`'
+        if full_data:
+            def add_data(l, x):
+                l.append(x)
+                return l
+        else:
+            def add_data(l, x):
+                if x is None:
+                    return l
+                if l is None:
+                    return [x]
+                elif len(x) == 1:
+                    l.extend(x)
+                elif x:
+                    l.append(Expression('List', *x))
+                return l
 
-    def apply(self, text, evaluation):
-        '''%(name)s[text_String]'''
-        root = parse_html(parse_html_file, text, evaluation)
-        if isinstance(root, Symbol):  # $Failed?
-            return root
+        newline = re.compile(r"\s+")
 
-        full_data = False
+        def add_text(l, node):
+            deep_data = traverse(node)
+            if deep_data:  # if there's data, we ignore any text
+                add_data(l, deep_data)
+            else:
+                t = []
+                for s in node.xpath('.//text()'):
+                    t.append(s)
+                if t or full_data:
+                    l.append(String(newline.sub(' ', ' '.join(t))))
 
-        def data():
-            for node in root.xpath("//*[local-name()='table' or local-name()='ul']"):
-                if node.tag == 'table':
+        def traverse(parent):
+            if full_data:
+                data = []
+            else:
+                data = None
+
+            for node in parent:
+                tag = node.tag
+                if tag == 'table':
                     row_data = []
                     for tr in node.xpath('tr'):
                         col_data = []
-                        for td in tr.xpath('td'):
-                            text = []
-                            for s in td.xpath('.//text()'):
-                                text.append(s)
-                            col_data.append(String(' '.join(text)))
-                        row_data.append(Expression('List', *col_data))
-                    if row_data or full_data:
-                        yield Expression('List', *row_data)
+                        for td in tr.xpath('th|td'):
+                            add_text(col_data, td)
+                        add_data(row_data, col_data)
+                    data = add_data(data, row_data)
+                elif tag in ('ul', 'ol'):
+                    list_data = []
+                    for child in node:
+                        deep_data = traverse(child)
+                        if deep_data:
+                            add_data(list_data, deep_data)
+                        elif child.tag == 'li':
+                            add_text(list_data, child)
+                    data = add_data(data, list_data)
+                else:
+                    data = add_data(data, traverse(node))
 
-        return Expression('List', Expression('Rule', 'Data', Expression('List', *list(data()))))
+            if data and len(data) == 1:
+                data = data[0]
+
+            return data
+
+        result = traverse(tree.getroot())
+        if result is None:
+            result = []
+
+        return Expression('List', *result)
 
 
-class HyperlinksImport(Builtin):
+class DataImport(_DataImport):
     """
-    >> StringReplace[StringTake[Import["ExampleData/InventionNo1.xml", "Plaintext"],31],FromCharacterCode[10]->"/"]
-     = MuseScore 1.2/2012-09-12/5.7/40
-    """
+    >> Import["ExampleData/PrimeMeridian.html", "Data"][[1, 1, 2, 3]]
+     = {Washington, D.C., 77°03′56.07″ W (1897) or 77°04′02.24″ W (NAD 27) or 77°04′01.16″ W (NAD 83), New Naval Observatory meridian}
 
-    context = 'HTML`'
-
-    def apply(self, text, evaluation):
-        '''%(name)s[text_String]'''
-        root = parse_html(parse_html_file, text, evaluation)
-        if isinstance(root, Symbol):  # $Failed?
-            return root
-
-        def hyperlinks():
-            for link in root.xpath('//a'):
-                href = link.get('href')
-                if href:
-                    yield href
-
-        return Expression('List', Expression('Rule', 'Hyperlinks', Expression('List', *list(hyperlinks()))))
-
-
-class ImageLinksImport(Builtin):
-    """
-    >> StringReplace[StringTake[Import["ExampleData/InventionNo1.xml", "Plaintext"],31],FromCharacterCode[10]->"/"]
-     = MuseScore 1.2/2012-09-12/5.7/40
+    #> Length[Import["ExampleData/PrimeMeridian.html", "Data"]]
+     = 3
     """
 
-    context = 'HTML`'
-
-    def apply(self, text, evaluation):
-        '''%(name)s[text_String]'''
-        root = parse_html(parse_html_file, text, evaluation)
-        if isinstance(root, Symbol):  # $Failed?
-            return root
-
-        def hyperlinks():
-            for link in root.xpath('//img'):
-                src = link.get('src')
-                if src:
-                    yield src
-
-        return Expression('List', Expression('Rule', 'ImageLinks', Expression('List', *list(hyperlinks()))))
+    full_data = False
+    tag_name = 'Data'
 
 
-class PlaintextImport(Builtin):
+class FullDataImport(_DataImport):
+    full_data = True
+    tag_name = 'FullData'
+
+
+class _LinksImport(_TagImport):
+    def _links(self, root):
+        raise NotImplementedError
+
+    def _import(self, tree):
+        return Expression('List', *list(self._links(tree)))
+
+
+class HyperlinksImport(_LinksImport):
     """
-    >> StringReplace[StringTake[Import["ExampleData/InventionNo1.xml", "Plaintext"],31],FromCharacterCode[10]->"/"]
-     = MuseScore 1.2/2012-09-12/5.7/40
+    >> Import["ExampleData/PrimeMeridian.html", "Hyperlinks"][[1]]
+     = /wiki/Prime_meridian_(Greenwich)
     """
 
-    context = 'HTML`'
+    tag_name = 'Hyperlinks'
 
-    def apply(self, text, evaluation):
-        '''%(name)s[text_String]'''
-        root = parse_html(parse_html_file, text, evaluation)
-        if isinstance(root, Symbol):  # $Failed?
-            return root
+    def _links(self, tree):
+        for link in tree.xpath('//a'):
+            href = link.get('href')
+            if href and not href.startswith('#'):
+                yield href
 
+
+class ImageLinksImport(_LinksImport):
+    """
+    >> Import["ExampleData/PrimeMeridian.html", "ImageLinks"][[6]]
+     = //upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Prime_meridian.jpg/180px-Prime_meridian.jpg
+    """
+
+    tag_name = 'ImageLinks'
+
+    def _links(self, tree):
+        for link in tree.xpath('//img'):
+            src = link.get('src')
+            if src:
+                yield src
+
+
+class PlaintextImport(_TagImport):
+    """
+    >> DeleteDuplicates[StringCases[Import["ExampleData/PrimeMeridian.html"], RegularExpression["Wiki[a-z]+"]]]
+     = {Wikipedia, Wikidata, Wikibase, Wikimedia}
+    """
+
+    tag_name = 'Plaintext'
+
+    def _import(self, tree):
         def lines():
-            for text in root.xpath('//text()'):
-                s = text.strip()
-                if s:
-                    yield s
-        plaintext = String('\n'.join(lines()))
-        return Expression('List', Expression('Rule', 'Plaintext', plaintext))
+            for s in tree.xpath('//text()'):
+                t = s.strip()
+                if t:
+                    yield t
+
+        return String('\n'.join(lines()))
 
 
-class SourceImport(Builtin):
+class SourceImport(_HTMLBuiltin):
     """
-    >> StringReplace[StringTake[Import["ExampleData/InventionNo1.xml", "Plaintext"],31],FromCharacterCode[10]->"/"]
-     = MuseScore 1.2/2012-09-12/5.7/40
+    >> DeleteDuplicates[StringCases[Import["ExampleData/PrimeMeridian.html", "Source"], RegularExpression["<t[a-z]+>"]]]
+     = {<title>, <tr>, <th>, <td>}
     """
-
-    context = 'HTML`'
 
     def apply(self, text, evaluation):
         '''%(name)s[text_String]'''
-        with mathics_open(text, 'r') as f:
-            return Expression('List', Expression('Rule', 'Source',  String(f.read())))
+        def source(filename):
+            with mathics_open(filename, 'rb') as f:
+                return Expression('List', Expression('Rule', 'Source',  String(f.read())))
+
+        return parse_html(source, text, evaluation)
 
 
-class XMLObjectImport(Builtin):
+class TitleImport(_TagImport):
     """
-    >> Part[Import["ExampleData/InventionNo1.xml", "XMLObject"], 2, 3, 1]
-     = XMLElement[identification, {}, {XMLElement[encoding, {}, {XMLElement[software, {}, {MuseScore 1.2}], XMLElement[encoding-date, {}, {2012-09-12}]}]}]
-
-    >> Part[Import["ExampleData/Namespaces.xml"], 2]
-     = XMLElement[book, {{http://www.w3.org/2000/xmlns/, xmlns} -> urn:loc.gov:books}, {XMLElement[title, {}, {Cheaper by the Dozen}], XMLElement[{urn:ISBN:0-395-36341-6, number}, {}, {1568491379}], XMLElement[notes, {}, {XMLElement[p, {{http://www.w3.org/2000/xmlns/, xmlns} -> http://www.w3.org/1999/xhtml}, {This is a, XMLElement[i, {}, {funny, book!}]}]}]}]
+    >> Import["ExampleData/PrimeMeridian.html", "Title"]
+     = Prime meridian - Wikipedia
     """
 
-    context = 'HTML`'
+    tag_name = 'Title'
+
+    def _import(self, tree):
+        for node in tree.xpath('//title'):
+            return String(node.text_content())
+        return String('')
+
+
+class XMLObjectImport(_HTMLBuiltin):
+    """
+    >> Part[Import["ExampleData/PrimeMeridian.html", "XMLObject"], 2, 3, 1, 3, 2]
+     = XMLElement[title, {}, {Prime meridian - Wikipedia}]
+    """
 
     def apply(self, text, evaluation):
         '''%(name)s[text_String]'''
