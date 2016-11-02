@@ -210,6 +210,7 @@ class XMLGetString(_Get):
      = XMLObject[Document]
 
     #> XML`Parser`XMLGetString["<a><b></a>"]
+     = $Failed
      : Opening and ending tag mismatch: b line 1 and a, line 1, column 11.
     """
 
