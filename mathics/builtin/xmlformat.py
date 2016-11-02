@@ -13,7 +13,7 @@ from mathics.builtin.files import mathics_open
 from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import MessageException
 
-from io import StringIO
+from io import BytesIO
 import re
 
 # use lxml, if available, as it has some additional features such as parsing XML
@@ -166,7 +166,7 @@ def parse_xml(parse, text, evaluation):
     try:
         return parse(text.get_string_value())
     except ParseError as e:
-        evaluation.message('XML`Parser`Get', 'prserr', str(e))
+        evaluation.message('XML`Parser`XMLGet', 'prserr', str(e))
         return Symbol('$Failed')
     except IOError:
         evaluation.message('General', 'noopen', text.get_string_value())
@@ -205,9 +205,17 @@ class XMLGet(_Get):
 
 
 class XMLGetString(_Get):
+    """
+    >> Head[XML`Parser`XMLGetString["<a></a>"]]
+     = XMLObject[Document]
+
+    #> XML`Parser`XMLGetString["<a><b></a>"]
+     : Opening and ending tag mismatch: b line 1 and a, line 1, column 11.
+    """
+
     def _parse(self, text):
-        with StringIO() as f:
-            f.write(text)
+        with BytesIO() as f:
+            f.write(text.encode('utf8'))
             f.seek(0)
             return parse_xml_stream(f)
 
