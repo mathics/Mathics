@@ -22,7 +22,8 @@ from mathics.builtin.base import Builtin
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.options import options_to_rules
 from mathics.builtin.numeric import chop
-
+from mathics.builtin.graphics import Graphics
+from mathics.builtin.graphics3d import Graphics3D
 
 try:
     from mathics.builtin.compile import _compile, CompileArg, CompileError, real_type
@@ -30,12 +31,6 @@ try:
 except ImportError as e:
     has_compile = False
 
-_plot_options = set([
-    'System`PlotPoints',
-    'System`Exclusions',
-    'System`MaxRecursion',
-    'System`Mesh',
-])
 
 def gradient_palette(color_function, n, evaluation):  # always returns RGB values
     if isinstance(color_function, String):
@@ -610,7 +605,7 @@ class _Plot(Builtin):
                     'Point', Expression('List', *meshpoints)))
 
         return Expression('Graphics', Expression('List', *graphics),
-                          *options_to_rules(options, _plot_options))
+                          *options_to_rules(options, Graphics.options))
 
 
 class _ListPlot(Builtin):
@@ -772,7 +767,7 @@ class _ListPlot(Builtin):
         options['System`PlotRange'] = from_python([x_range, y_range])
 
         return Expression('Graphics', Expression('List', *graphics),
-                          *options_to_rules(options, _plot_options))
+                          *options_to_rules(options, Graphics.options))
 
 
 class _Plot3D(Builtin):
@@ -1497,7 +1492,7 @@ class Plot3D(_Plot3D):
 
     def final_graphics(self, graphics, options):
         return Expression('Graphics3D', Expression('List', *graphics),
-                          *options_to_rules(options, _plot_options))
+                          *options_to_rules(options, Graphics3D.options))
 
 
 class DensityPlot(_Plot3D):
@@ -1632,4 +1627,4 @@ class DensityPlot(_Plot3D):
 
     def final_graphics(self, graphics, options):
         return Expression('Graphics', Expression('List', *graphics),
-                          *options_to_rules(options, _plot_options))
+                          *options_to_rules(options, Graphics.options))

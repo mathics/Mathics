@@ -115,7 +115,7 @@ class BuiltinRule(BaseRule):
     def do_replace(self, expression, vars, options, evaluation):
         # check if the given options are actually supported by the
         # Builtin. if not, issue an optx error and abort.
-        if options:
+        if options and '*' not in self.supported_options:
             from mathics.builtin.base import has_option
             for key in options.keys():
                 if not has_option(self.supported_options, strip_context(key), evaluation):

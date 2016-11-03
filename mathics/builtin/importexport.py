@@ -515,6 +515,10 @@ class Import(Builtin):
         'Import[filename_]': 'Import[filename, {}]',
     }
 
+    options = {
+        '*': 'Automatic',  # pass through all options
+    }
+
     def apply(self, filename, evaluation, options={}):
         'Import[filename_, OptionsPattern[]]'
         return self.apply_elements(filename, Expression('List'), evaluation, options)
@@ -784,6 +788,10 @@ class Export(Builtin):
     rules = {
         'Export[filename_, expr_, elems_?NotListQ]': (
             'Export[filename, expr, {elems}]'),
+    }
+
+    options = {
+        '*': 'Automatic',  # pass through all options
     }
 
     def apply(self, filename, expr, evaluation, options={}):
