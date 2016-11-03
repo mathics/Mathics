@@ -18,6 +18,34 @@ from mathics.core.expression import (BaseExpression, Expression, Symbol,
 import six
 
 
+def get_option(options, name, evaluation, pop=False, evaluate=True):
+    # we do not care whether an option X is given as System`X,
+    # Global`X, or with any prefix from $ContextPath for that
+    # matter. Also, the quoted string form "X" is ok. all these
+    # variants name the same option. this matches Wolfram Language
+    # behaviour.
+
+    contexts = (s + '%s' for s in
+                evaluation.definitions.get_context_path())
+
+    for variant in chain(contexts, ('"%s"',)):
+        resolved_name = variant % name
+
+        if pop:
+            value = options.pop(resolved_name, None)
+        else:
+            value = options.get(resolved_name)
+
+        if value is not None:
+            return value.evaluate(evaluation) if evaluate else value
+
+    return None
+
+
+def has_option(options, name, evaluation):
+    return get_option(options, name, evaluation, evaluate=False) is not None
+
+
 class Builtin(object):
     name = None
     context = 'System`'
@@ -47,9 +75,22 @@ class Builtin(object):
         from mathics.core.parser import parse_builtin_rule
 
         name = self.get_name()
+
+        options = {}
+        for option, value in six.iteritems(self.options):
+            option = ensure_context(option)
+            options[option] = parse_builtin_rule(value)
+            if option.startswith('System`'):
+                # Create a definition for the option's symbol.
+                # Otherwise it'll be created in Global` when it's
+                # used, so it won't work.
+                if option not in definitions.builtin:
+                    definitions.builtin[option] = Definition(
+                        name=name, attributes=set())
+
         rules = []
         for pattern, function in self.get_functions():
-            rules.append(BuiltinRule(pattern, function, system=True))
+            rules.append(BuiltinRule(name, pattern, function, options, system=True))
         for pattern, replace in self.rules.items():
             if not isinstance(pattern, BaseExpression):
                 pattern = pattern % {'name': name}
@@ -94,7 +135,7 @@ class Builtin(object):
                 if form not in formatvalues:
                     formatvalues[form] = []
                 formatvalues[form].append(BuiltinRule(
-                    pattern, function, system=True))
+                    name, pattern, function, {}, system=True))
         for pattern, replace in self.formats.items():
             forms, pattern = extract_forms(name, pattern)
             for form in forms:
@@ -113,22 +154,15 @@ class Builtin(object):
                          String(value), system=True)
                     for msg, value in self.messages.items()]
 
+        messages.append(Rule(Expression('MessageName', Symbol(name), String('optx')),
+            String('Option `1` in `2` is not supported by Mathics.'), system=True))
+
         if name == 'System`MakeBoxes':
             attributes = []
         else:
             attributes = ['System`Protected']
         attributes += list(ensure_context(a) for a in self.attributes)
-        options = {}
-        for option, value in six.iteritems(self.options):
-            option = ensure_context(option)
-            options[option] = parse_builtin_rule(value)
-            if option.startswith('System`'):
-                # Create a definition for the option's symbol.
-                # Otherwise it'll be created in Global` when it's
-                # used, so it won't work.
-                if option not in definitions.builtin:
-                    definitions.builtin[option] = Definition(
-                        name=name, attributes=set())
+
         defaults = []
         for spec, value in six.iteritems(self.defaults):
             value = parse_builtin_rule(value)
@@ -193,27 +227,7 @@ class Builtin(object):
 
     @staticmethod
     def get_option(options, name, evaluation, pop=False):
-        # we do not care whether an option X is given as System`X,
-        # Global`X, or with any prefix from $ContextPath for that
-        # matter. Also, the quoted string form "X" is ok. all these
-        # variants name the same option. this matches Wolfram Language
-        # behaviour.
-
-        contexts = (s + '%s' for s in
-                    evaluation.definitions.get_context_path())
-
-        for variant in chain(contexts, ('"%s"',)):
-            resolved_name = variant % name
-
-            if pop:
-                value = options.pop(resolved_name, None)
-            else:
-                value = options.get(resolved_name)
-
-            if value is not None:
-                return value.evaluate(evaluation)
-
-        return None
+        return get_option(options, name, evaluation, pop)
 
     def _get_unavailable_function(self):
         requires = getattr(self, 'requires', [])

@@ -30,6 +30,13 @@ try:
 except ImportError as e:
     has_compile = False
 
+_plot_options = set([
+    'System`PlotPoints',
+    'System`Exclusions',
+    'System`MaxRecursion',
+    'System`Mesh',
+])
+
 def gradient_palette(color_function, n, evaluation):  # always returns RGB values
     if isinstance(color_function, String):
         color_data = Expression('ColorData', color_function).evaluate(evaluation)
@@ -603,7 +610,7 @@ class _Plot(Builtin):
                     'Point', Expression('List', *meshpoints)))
 
         return Expression('Graphics', Expression('List', *graphics),
-                          *options_to_rules(options))
+                          *options_to_rules(options, _plot_options))
 
 
 class _ListPlot(Builtin):
@@ -765,7 +772,7 @@ class _ListPlot(Builtin):
         options['System`PlotRange'] = from_python([x_range, y_range])
 
         return Expression('Graphics', Expression('List', *graphics),
-                          *options_to_rules(options))
+                          *options_to_rules(options, _plot_options))
 
 
 class _Plot3D(Builtin):
@@ -1490,7 +1497,7 @@ class Plot3D(_Plot3D):
 
     def final_graphics(self, graphics, options):
         return Expression('Graphics3D', Expression('List', *graphics),
-                          *options_to_rules(options))
+                          *options_to_rules(options, _plot_options))
 
 
 class DensityPlot(_Plot3D):
@@ -1625,4 +1632,4 @@ class DensityPlot(_Plot3D):
 
     def final_graphics(self, graphics, options):
         return Expression('Graphics', Expression('List', *graphics),
-                          *options_to_rules(options))
+                          *options_to_rules(options, _plot_options))

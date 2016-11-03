@@ -290,6 +290,8 @@ class FilterRules(Builtin):
         return Expression('List', *list(matched()))
 
 
-def options_to_rules(options):
+def options_to_rules(options, remove=None):
     items = sorted(six.iteritems(options))
+    if remove:
+        items = [(name, value) for name, value in items if name not in remove]
     return [Expression('Rule', Symbol(name), value) for name, value in items]
