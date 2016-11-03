@@ -211,7 +211,7 @@ class XMLGetString(_Get):
 
     #> XML`Parser`XMLGetString["<a><b></a>"]
      = $Failed
-     : ...mismatch...
+     : ...tag...
     """
 
     def _parse(self, text):
