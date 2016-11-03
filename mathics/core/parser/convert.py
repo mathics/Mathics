@@ -113,11 +113,11 @@ class GenericConverter(object):
                 # in the mantissa
                 d = len(man) - 2    # one less for decimal point
                 if d < reconstruct_digits(machine_precision):
-                    result = float(sign_prefix + s)
+                    return 'MachineReal', float(sign_prefix + s)
                 else:
-                    result = (('DecimalString', str(sign_prefix + s)), d)
+                    return 'PrecisionReal', ('DecimalString', str(sign_prefix + s)), d
             elif suffix == '':
-                result = float(sign_prefix + s)
+                return 'MachineReal', float(sign_prefix + s)
             elif suffix.startswith('`'):
                 acc = float(suffix[1:])
                 x = float(s)
@@ -125,14 +125,9 @@ class GenericConverter(object):
                     prec10 = acc
                 else:
                     prec10 = acc + log10(x)
-                result = (('DecimalString', str(sign_prefix + s)), prec10)
+                return 'PrecisionReal', ('DecimalString', str(sign_prefix + s)), prec10
             else:
-                result = (('DecimalString', str(sign_prefix + s)), float(suffix))
-
-            if isinstance(result, float):
-                return 'MachineReal', result
-            elif isinstance(result, tuple):
-                return tuple('PrecisionReal') + result
+                return 'PrecisionReal', ('DecimalString', str(sign_prefix + s)), float(suffix)
 
         # Put into standard form mantissa * base ^ n
         s = s.split('.')
@@ -177,7 +172,7 @@ class GenericConverter(object):
         if prec10 is None:
             return 'MachineReal', x
         else:
-            return 'PrecisionReal', result
+            return 'PrecisionReal', result, prec10
 
 
 class Converter(GenericConverter):
@@ -197,7 +192,7 @@ class Converter(GenericConverter):
     def _make_Symbol(self, s):
         return ma.Symbol(s)
 
-    def _make_SymbolLookup(self, s):
+    def _make_Lookup(self, s):
         value = self.definitions.lookup_name(s)
         return ma.Symbol(value)
 
