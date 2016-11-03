@@ -105,24 +105,17 @@ class Rule(BaseRule):
 
 
 class BuiltinRule(BaseRule):
-    def __init__(self, name, pattern, function, supported_options, system=False):
+    def __init__(self, name, pattern, function, check_options, system=False):
         super(BuiltinRule, self).__init__(pattern, system=system)
         self.name = name
         self.function = function
-        self.supported_options = supported_options
+        self.check_options = check_options
         self.pass_expression = 'expression' in function_arguments(function)
 
     def do_replace(self, expression, vars, options, evaluation):
-        # check if the given options are actually supported by the
-        # Builtin. if not, issue an optx error and abort.
-        if options and '*' not in self.supported_options:
-            from mathics.builtin.base import has_option
-            for key in options.keys():
-                if not has_option(self.supported_options, strip_context(key), evaluation):
-                    evaluation.message(
-                        self.name, 'optx',
-                        Expression('Rule', strip_context(key), options[key]), self.name)
-                    return None
+        if options and self.check_options:
+            if not self.check_options(options, evaluation):
+                return None
         # The Python function implementing this builtin expects
         # argument names corresponding to the symbol names without
         # context marks.

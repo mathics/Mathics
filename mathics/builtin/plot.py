@@ -283,6 +283,7 @@ class _Plot(Builtin):
         'PlotRange': 'Automatic',
         'PlotPoints': 'None',
         'Exclusions': 'Automatic',
+        '$OptionSyntax': 'Strict',
     })
 
     messages = {

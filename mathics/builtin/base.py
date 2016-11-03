@@ -77,7 +77,11 @@ class Builtin(object):
         name = self.get_name()
 
         options = {}
+        option_syntax = 'Warn'
         for option, value in six.iteritems(self.options):
+            if option == '$OptionSyntax':
+                option_syntax = value
+                continue
             option = ensure_context(option)
             options[option] = parse_builtin_rule(value)
             if option.startswith('System`'):
@@ -88,9 +92,36 @@ class Builtin(object):
                     definitions.builtin[option] = Definition(
                         name=name, attributes=set())
 
+        # Check if the given options are actually supported by the Builtin.
+        # If not, we might issue an optx error and abort. Using '$OptionSyntax'
+        # in your Builtin's 'options', you can specify the exact behaviour
+        # using one of the following values:
+
+        # - 'Strict': warn and fail with unsupported options
+        # - 'Warn': warn about unsupported options, but continue
+        # - 'Ignore': allow unsupported options, do not warn
+
+        if option_syntax in ('Strict', 'Warn'):
+            def check_options(options_to_check, evaluation):
+                for key, value in options_to_check.items():
+                    short_key = strip_context(key)
+                    if not has_option(options, short_key, evaluation):
+                        evaluation.message(
+                            self.name,
+                            'optx',
+                            Expression('Rule', short_key, value),
+                            strip_context(self.name))
+                        if option_syntax == 'Strict':
+                            return False
+                return True
+        elif option_syntax == 'Ignore':
+            check_options = None
+        else:
+            raise ValueError('illegal option mode %s; check $OptionSyntax.' % option_syntax)
+
         rules = []
         for pattern, function in self.get_functions():
-            rules.append(BuiltinRule(name, pattern, function, options, system=True))
+            rules.append(BuiltinRule(name, pattern, function, check_options, system=True))
         for pattern, replace in self.rules.items():
             if not isinstance(pattern, BaseExpression):
                 pattern = pattern % {'name': name}
@@ -135,7 +166,7 @@ class Builtin(object):
                 if form not in formatvalues:
                     formatvalues[form] = []
                 formatvalues[form].append(BuiltinRule(
-                    name, pattern, function, {}, system=True))
+                    name, pattern, function, None, system=True))
         for pattern, replace in self.formats.items():
             forms, pattern = extract_forms(name, pattern)
             for form in forms:
@@ -155,7 +186,7 @@ class Builtin(object):
                     for msg, value in self.messages.items()]
 
         messages.append(Rule(Expression('MessageName', Symbol(name), String('optx')),
-            String('Option `1` in `2` is not supported by Mathics.'), system=True))
+            String('`1` is not a supported option for `2`[].'), system=True))
 
         if name == 'System`MakeBoxes':
             attributes = []

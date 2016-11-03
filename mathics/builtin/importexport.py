@@ -10,7 +10,7 @@ from __future__ import absolute_import
 import six
 
 from mathics.core.expression import Expression, from_python, strip_context
-from mathics.builtin.base import Builtin, Predefined, Symbol, String
+from mathics.builtin.base import Builtin, Predefined, Symbol, String, get_option
 from mathics.builtin.options import options_to_rules
 
 from .pymimesniffer import magic
@@ -157,9 +157,10 @@ IMPORTERS = {}
 EXPORTERS = {}
 
 
-def _importer_exporter_options(available_options, options, evaluation):
+def _importer_exporter_options(available_options, options, builtin, evaluation):
     stream_options = []
     custom_options = []
+    remaining_options = options.copy()
 
     if available_options and available_options.has_form('List', None):
         for name in available_options.leaves:
@@ -171,7 +172,7 @@ def _importer_exporter_options(available_options, options, evaluation):
                 py_name = None
 
             if py_name:
-                value = Builtin.get_option(options, py_name, evaluation)
+                value = get_option(remaining_options, py_name, evaluation, pop=True)
                 if value is not None:
                     expr = Expression('Rule', String(py_name), value)
                     if py_name == 'CharacterEncoding':
@@ -179,7 +180,16 @@ def _importer_exporter_options(available_options, options, evaluation):
                     else:
                         custom_options.append(expr)
 
+    # warn about unsupported options.
+    for name, value in remaining_options.items():
+        evaluation.message(
+            builtin,
+            'optx',
+            Expression('Rule', strip_context(name), value),
+            strip_context(builtin))
+
     return stream_options, custom_options
+
 
 class ImportFormats(Predefined):
     """
@@ -516,7 +526,7 @@ class Import(Builtin):
     }
 
     options = {
-        '*': 'Automatic',  # pass through all options
+        '$OptionSyntax': 'Ignore',
     }
 
     def apply(self, filename, evaluation, options={}):
@@ -585,7 +595,7 @@ class Import(Builtin):
         (conditionals, default_function, posts, importer_options) = IMPORTERS[filetype]
 
         stream_options, custom_options = _importer_exporter_options(
-            importer_options.get("System`Options"), options, evaluation)
+            importer_options.get("System`Options"), options, 'System`Import', evaluation)
 
         function_channels = importer_options.get("System`FunctionChannels")
         if function_channels is None:
@@ -791,7 +801,7 @@ class Export(Builtin):
     }
 
     options = {
-        '*': 'Automatic',  # pass through all options
+        '$OptionSyntax': 'Ignore',
     }
 
     def apply(self, filename, expr, evaluation, options={}):
@@ -860,7 +870,7 @@ class Export(Builtin):
         exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
 
         stream_options, custom_options = _importer_exporter_options(
-            exporter_options.get("System`Options"), options, evaluation)
+            exporter_options.get("System`Options"), options, 'System`Export', evaluation)
 
         exporter_function = Expression(
             exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
