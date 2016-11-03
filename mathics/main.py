@@ -232,10 +232,23 @@ def main():
         action='store_true')
 
     argparser.add_argument(
+        '--no-warnings', help="disable warnings from python and python libraries",
+        action='store_true')
+
+    argparser.add_argument(
         '--version', '-v', action='version',
         version='%(prog)s ' + __version__)
 
     args, script_args = argparser.parse_known_args()
+
+    if args.no_warnings:
+        # sometimes Matplotlib outputs warnings during startup, e.g. "Matplotlib is
+        # building the font cache using fc-list. This may take a moment.". This is
+        # not what we want during running test cases; this option disables all such
+        # output, so that nothing interferes with the output we expect.
+
+        import warnings
+        warnings.simplefilter("ignore")
 
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
 

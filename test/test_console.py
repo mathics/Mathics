@@ -14,7 +14,7 @@ from six.moves import range
 class ConsoleTest(unittest.TestCase):
     def setUp(self):
         os.environ["TERM"] = "dumb"
-        self.console = pexpect.spawn(sys.executable + ' mathics/main.py --color NOCOLOR')
+        self.console = pexpect.spawn(sys.executable + ' mathics/main.py --no-warnings --color NOCOLOR')
 
     def readline(self):
         return self.console.readline().decode('utf-8')
@@ -24,14 +24,8 @@ class ConsoleTest(unittest.TestCase):
 
         self.assertRegexpMatches(self.readline(), '\r\n')
 
-        next_line = self.readline()
-        if 'font cache' in next_line:
-            # sometimes Matplotlib happens to interfere here, messaging "Matplotlib is
-            # building the font cache using fc-list. This may take a moment.". ignore this.
-            next_line = self.readline()
-
         self.assertRegexpMatches(
-            next_line, 'Mathics \\d\\.\\d.*\r\n')
+            self.readline(), 'Mathics \\d\\.\\d.*\r\n')
         self.assertRegexpMatches(
             self.readline(), 'on (CPython|PyPy) \\d+.\\d+.\\d+ \\(.+\\) ?\r\n')
         self.assertRegexpMatches(
