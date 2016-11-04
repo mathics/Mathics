@@ -143,24 +143,21 @@ def parse_xml_stream(f):
         return root
 
     if lxml_available:
+        iterparse = ET.iterparse(f, ("start", "start-ns"), remove_comments=False, strip_cdata=False, recover=False)
         try:
-            iter = ET.iterparse(f, ("start", "start-ns"), remove_comments=False, strip_cdata=False, recover=False)
-            return parse(iter)
+            return parse(iterparse)
         except ET.XMLSyntaxError as e:
-            if iter.error_log:
-                error = iter.error_log[-1]
-                if error.type_name == 'ERR_GT_REQUIRED':
-                    raise ParseError('invalid token at line %d, column %d' % (error.line, error.column))
+            # note: iterparse.error_log, e.g. iterparse.error_log[-1].type_name contains the exact error code. this
+            # might be useful for further error handling in the future.
             raise ParseError(str(e))
     else:
         try:
-            iter = ET.iterparse(f, ("start", "start-ns"))
-            return parse(iter)
+            return parse(ET.iterparse(f, ("start", "start-ns")))
         except ET.ParseError as e:
-            print(e.code)
-            if e.code == 4:  # not well-formed, invalid token
+            if e.code == 9:  # XML_ERROR_JUNK_AFTER_DOC_ELEMENT
+                # for this specific error, we produce the error exactly as lxml would. useful for use in test cases.
                 line, column = e.position
-                raise ParseError('invalid token at line %d, column %d' % (line, column))
+                raise ParseError('Extra content at the end of the document, line %d, column %d' % (line, column + 1))
             else:
                 raise ParseError(str(e))
 
@@ -175,7 +172,6 @@ def parse_xml(parse, text, evaluation):
     try:
         return parse(text.get_string_value())
     except ParseError as e:
-        # Opening and ending tag mismatch: b line 1 and a, line 1, column 11.
         evaluation.message('XML`Parser`XMLGet', 'prserr', str(e))
         return Symbol('$Failed')
     except IOError:
@@ -219,9 +215,9 @@ class XMLGetString(_Get):
     >> Head[XML`Parser`XMLGetString["<a></a>"]]
      = XMLObject[Document]
 
-    #> XXML`Parser`XMLGetString["<a//>"]
+    #> XML`Parser`XMLGetString["<a></a>xyz"]
      = $Failed
-     : invalid token at line 1, column 3.
+     : Extra content at the end of the document, line 1, column 8.
     """
 
     def _parse(self, text):
