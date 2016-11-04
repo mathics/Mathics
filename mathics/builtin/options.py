@@ -13,6 +13,7 @@ import six
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import Symbol, Expression, get_default_value, ensure_context
 from mathics.builtin.image import Image
+from mathics.core.expression import strip_context
 
 
 class Options(Builtin):
@@ -293,5 +294,5 @@ class FilterRules(Builtin):
 def options_to_rules(options, filter=None):
     items = sorted(six.iteritems(options))
     if filter:
-        items = [(name, value) for name, value in items if name in filter.keys()]
+        items = [(name, value) for name, value in items if strip_context(name) in filter.keys()]
     return [Expression('Rule', Symbol(name), value) for name, value in items]
