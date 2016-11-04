@@ -2333,9 +2333,18 @@ class WordCloud(Builtin):
     <dl>
     <dt>'WordCloud[{$word1$, $word2$, ...}]'
       <dd>Gives a word cloud with the given list of words.
+    <dt>'WordCloud[{$weight1$ -> $word1$, $weight2$ -> $word2$, ...}]'
+      <dd>Gives a word cloud with the words weighted using the given weights.
+    <dt>'WordCloud[{$weight1$, $weight2$, ...} -> {$word1$, $word2$, ...}]'
+      <dd>Also gives a word cloud with the words weighted using the given weights.
+    <dt>'WordCloud[{{$word1$, $weight1$}, {$word2$, $weight2$}, ...}]'
+      <dd>Gives a word cloud with the words weighted using the given weights.
     </dl>
 
     >> WordCloud[StringSplit[Import["ExampleData/EinsteinSzilLetter.txt"]]]
+     = -Image-
+
+    >> WordCloud[Range[50] -> ToString /@ Range[50]]
      = -Image-
     '''
 
@@ -2361,24 +2370,66 @@ class WordCloud(Builtin):
         (102, 102, 102),
     )
 
+    def apply_words_weights(self, weights, words, evaluation, options):
+        'WordCloud[weights_List -> words_List, OptionsPattern[%(name)s]]'
+        if len(weights.leaves) != len(words.leaves):
+            return
+
+        def weights_and_words():
+            for weight, word in zip(weights.leaves, words.leaves):
+                yield weight.round_to_float(), word.get_string_value()
+
+        return self._word_cloud(weights_and_words(), evaluation, options)
+
     def apply_words(self, words, evaluation, options):
         'WordCloud[words_List, OptionsPattern[%(name)s]]'
-        ignore_case = self.get_option(options, 'IgnoreCase', evaluation) == Symbol('True')
+
+        if not words:
+            return
+        elif isinstance(words.leaves[0], String):
+            def weights_and_words():
+                for word in words.leaves:
+                    yield 1, word.get_string_value()
+        else:
+            def weights_and_words():
+                for word in words.leaves:
+                    if len(word.leaves) != 2:
+                        raise ValueError
+
+                    head_name = word.get_head_name()
+                    if head_name == 'System`Rule':
+                        weight, s = word.leaves
+                    elif head_name == 'System`List':
+                        s, weight = word.leaves
+                    else:
+                        raise ValueError
+
+                    yield weight.round_to_float(), s.get_string_value()
+
+        try:
+            return self._word_cloud(weights_and_words(), evaluation, options)
+        except ValueError:
+            return
+
+    def _word_cloud(self, words, evaluation, options):
+        ignore_case = self.get_option(
+            options, 'IgnoreCase', evaluation) == Symbol('True')
 
         freq = dict()
-        for word in words.leaves:
-            if not isinstance(word, String):
+        for py_weight, py_word in words:
+            if py_word is None or py_weight is None:
                 return
-            py_word = word.get_string_value()
+
             if ignore_case:
                 key = py_word.lower()
             else:
                 key = py_word
+
             record = freq.get(key, None)
             if record is None:
-                freq[key] = [py_word, 1]
+                freq[key] = [py_word, py_weight]
             else:
-                record[1] += 1
+                record[1] += py_weight
 
         max_items = self.get_option(options, 'MaxItems', evaluation)
         if isinstance(max_items, Integer):
