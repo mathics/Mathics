@@ -416,7 +416,10 @@ class FetchURL(Builtin):
 
         temp_handle, temp_path = tempfile.mkstemp(suffix='')
         try:
-            f = urllib2.urlopen(py_url)
+            # some pages need cookies or they will end up in an infinite redirect (i.e. HTTP 303)
+            # loop, which prevents the page from getting loaded.
+            f = urllib2.build_opener(urllib2.HTTPCookieProcessor).open(py_url)
+
             try:
                 if sys.version_info >= (3, 0):
                     content_type = f.info().get_content_type()
