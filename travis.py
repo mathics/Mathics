@@ -27,3 +27,7 @@ for module in sorted(modules):
         print('    ' + str(pkg_resources.get_distribution(module)))
     except pkg_resources.DistributionNotFound:
         print('    %s n/a' % module)
+
+import locale
+
+print('system locale:', locale.getdefaultlocale())
