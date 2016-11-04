@@ -235,9 +235,6 @@ def write_latex():
 
 
 def main():
-    import locale
-    locale.setlocale(locale.LC_ALL, '')
-
     parser = ArgumentParser(description="Mathics test suite.", add_help=False)
     parser.add_argument(
         '--help', '-h', help='show this help message and exit', action='help')
