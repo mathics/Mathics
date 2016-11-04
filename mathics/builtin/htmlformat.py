@@ -15,6 +15,7 @@ from mathics.builtin.base import MessageException
 
 from io import BytesIO
 import re
+import sys
 
 try:
     import lxml.html as lhtml
@@ -67,8 +68,13 @@ class ParseError(Exception):
     pass
 
 
-def parse_html_stream(f):
-    return lhtml.parse(f)
+if '__pypy__' in sys.builtin_module_names:
+    def parse_html_stream(f):
+        parser = lhtml.HTMLParser(encoding='utf8')
+        return lhtml.parse(f, parser)
+else:
+    def parse_html_stream(f):
+        return lhtml.parse(f)
 
 
 def parse_html_file(filename):
