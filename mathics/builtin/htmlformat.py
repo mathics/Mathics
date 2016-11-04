@@ -72,8 +72,13 @@ def parse_html_stream(f):
 
 
 def parse_html_file(filename):
-    with mathics_open(filename, 'rb') as f:
-        return parse_html_stream(f)
+    import sys
+    if '__pypy__' in sys.builtin_module_names:
+        with mathics_open(filename, 'r', encoding='UTF-8') as f:
+            return parse_html_stream(f)
+    else:
+        with mathics_open(filename, 'rb') as f:
+            return parse_html_stream(f)
 
 
 def parse_html(parse, text, evaluation):
