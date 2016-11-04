@@ -306,7 +306,7 @@ class SourceImport(_HTMLBuiltin):
     def apply(self, text, evaluation):
         '''%(name)s[text_String]'''
         def source(filename):
-            with mathics_open(filename, 'rb') as f:
+            with mathics_open(filename, 'r', encoding='UTF-8') as f:
                 return Expression('List', Expression('Rule', 'Source',  String(f.read())))
 
         return parse_html(source, text, evaluation)
