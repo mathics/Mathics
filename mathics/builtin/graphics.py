@@ -60,14 +60,8 @@ def add_coords(a, b):
     return x1 + x2, y1 + y2
 
 
-def cut_coords(xy):
-    "Cut values in graphics primitives (not displayed otherwise in SVG)"
-    border = 10 ** 8
-    return min(max(xy[0], -border), border), min(max(xy[1], -border), border)
-
-
 def axis_coords(graphics, pos, d=None):
-    p = cut_coords(graphics.translate(pos))
+    p = graphics.translate(pos)
     if d is not None:
         d = graphics.translate_absolute_in_pixels(d)
         return p[0] + d[0], p[1] + d[1]
@@ -285,6 +279,13 @@ class _Transform:
 
         self.matrix = [[_to_float(x) for x in row.leaves] for row in rows]
 
+    def combine(self, transform0):
+        if isinstance(transform0, _Transform):
+            return self.multiply(transform0)
+        else:
+            t = self
+            return lambda *p: transform0(*t(p))
+
     def inverse(self):
         return _Transform(Matrix(self.matrix).inv().tolist())
 
@@ -293,7 +294,7 @@ class _Transform:
         b = other.matrix
         return _Transform([[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)])
 
-    def transform(self, p):
+    def __call__(self, p):
         m = self.matrix
 
         m11 = m[0][0]
@@ -396,6 +397,10 @@ class Graphics(Builtin):
         'PlotRangePadding': 'Automatic',
         'ImageSize': 'Automatic',
         'Background': 'Automatic',
+
+        'PrecomputeTransformations': 'False',  # Mathics specific; used internally to enable stuff like
+        # Plot[x + 1e-20 * x, {x, 0, 1}] that without precomputing transformations inside Mathics will
+        # hit SVGs numerical accuracy abilities (strokes with width < 1e-6 won't get transformed in SVG).
     }
 
     box_suffix = 'Box'
@@ -1462,21 +1467,26 @@ class LineBox(_Polyline):
 
     def to_svg(self, transform):
         l = self.style.get_line_width(face_element=False)
+        l = list(transform((l, l)))[0][0]  # assume pure scaling transform
         style = create_css(edge_color=self.edge_color, stroke_width=l)
 
         svg = ''
         for line in self.lines:
             path = ' '.join(['%f,%f' % c for c in transform(*line)])
             svg += '<polyline points="%s" style="%s" />' % (path, style)
+
         return svg
 
     def to_asy(self, transform):
         l = self.style.get_line_width(face_element=False)
+        l = list(transform((l, l)))[0][0]  # assume pure scaling transform
         pen = create_pens(edge_color=self.edge_color, stroke_width=l)
+
         asy = ''
         for line in self.lines:
             path = '--'.join(['(%.5g,%5g)' % c for c in transform(*line)])
             asy += 'draw(%s, %s);' % (path, pen)
+
         return asy
 
 
@@ -2546,6 +2556,7 @@ class GeometricTransformationBox(_GraphicsElement):
             functions = [transform]
         evaluation = graphics.evaluation
         self.transforms = [_Transform(Expression('N', f).evaluate(evaluation)) for f in functions]
+        self.precompute = graphics.precompute_transformations
 
     def patch_transforms(self, transforms):
         self.transforms = transforms
@@ -2553,24 +2564,31 @@ class GeometricTransformationBox(_GraphicsElement):
     def extent(self):
         def points():
             for content in self.contents:
+                p = content.extent()
                 for transform in self.transforms:
-                    p = content.extent()
-                    for q in transform.transform(p):
+                    for q in transform(p):
                         yield q
         return list(points())
 
-    def to_svg(self, outer_transform):
-        def instances():
-            for content in self.contents:
-                content_svg = content.to_svg(outer_transform)
+    def to_svg(self, transform0):
+        if self.precompute:
+            def instances():
                 for transform in self.transforms:
-                    yield transform.to_svg(content_svg)
+                    t = transform.combine(transform0)
+                    for content in self.contents:
+                        yield content.to_svg(t)
+        else:
+            def instances():
+                for content in self.contents:
+                    content_svg = content.to_svg(transform0)
+                    for transform in self.transforms:
+                        yield transform.to_svg(content_svg)
         return ''.join(instances())
 
-    def to_asy(self, outer_transform):
+    def to_asy(self, transform0):
         def instances():
             for content in self.contents:
-                content_asy = content.to_asy(outer_transform)
+                content_asy = content.to_asy(transform0)
                 for transform in self.transforms:
                     yield transform.to_asy(content_asy)
         return ''.join(instances())
@@ -2715,7 +2733,7 @@ class InsetBox(_GraphicsElement):
 
         if not self.svg:
             if not is_absolute:
-                x, y = list(self.graphics.local_to_screen.transform([(x, y)]))[0]
+                x, y = list(self.graphics.local_to_screen([(x, y)]))[0]
 
             svg = (
                 '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
@@ -2986,7 +3004,8 @@ class _GraphicsElements(object):
 
 
 class GraphicsElements(_GraphicsElements):
-    def __init__(self, content, evaluation, neg_y=False):
+    def __init__(self, content, evaluation, neg_y=False, precompute_transformations=False):
+        self.precompute_transformations = precompute_transformations
         super(GraphicsElements, self).__init__(content, evaluation)
         self.neg_y = neg_y
         self.pixel_width = None
@@ -3035,7 +3054,7 @@ class GraphicsElements(_GraphicsElements):
 
     def translate(self, coords):
         if self.local_to_screen:
-            return list(self.local_to_screen.transform([coords]))[0]
+            return list(self.local_to_screen([coords]))[0]
         else:
             return coords[0], coords[1]
 
@@ -3073,8 +3092,15 @@ class GraphicsElements(_GraphicsElements):
         return xmin, xmax, ymin, ymax
 
     def to_svg(self):
+        border = 10 ** 8
+
+        def cut_coords(xy):
+            "Cut values in graphics primitives (not displayed otherwise in SVG)"
+            return min(max(xy[0], -border), border), min(max(xy[1], -border), border)
+
         def cut(*p):
             return [cut_coords(q) for q in p]
+
         return '\n'.join(element.to_svg(cut) for element in self.elements)
 
     def to_asy(self):
@@ -3163,9 +3189,11 @@ class GraphicsBox(BoxConstruct):
 
         transformation = Expression('System`TransformationFunction', [[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
+        precompute_transformations = graphics_options['System`PrecomputeTransformations'].is_true()
+
         elements = GraphicsElements(
             Expression('System`GeometricTransformationBox', leaves[0], transformation),
-            options['evaluation'], neg_y)
+            options['evaluation'], neg_y, precompute_transformations)
 
         axes = []  # to be filled further down
 
