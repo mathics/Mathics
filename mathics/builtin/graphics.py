@@ -3887,7 +3887,7 @@ class Automatic(Builtin):
     graphical options:
 
     >> Cases[Options[Plot], HoldPattern[_ :> Automatic]]
-     = {Background :> Automatic, Exclusions :> Automatic, ImageSize :> Automatic, MaxRecursion :> Automatic, PlotRange :> Automatic, PlotRangePadding :> Automatic}
+     = {Background :> Automatic, Exclusions :> Automatic, ImageSize :> Automatic, MaxRecursion :> Automatic, PlotRange :> Automatic, PlotRangePadding :> Automatic, Transformation :> Automatic}
     '''
 
 
