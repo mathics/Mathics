@@ -45,7 +45,7 @@ def get_class(name):
     # like return globals().get(name)
 
 
-def coords(value):
+def expr_to_coords(value):
     if not value.has_form('List', 2):
         raise CoordinatesError
     x, y = value.leaves[0].to_mpmath(), value.leaves[1].to_mpmath()
@@ -284,7 +284,10 @@ class _Transform:
             return self.multiply(transform0)
         else:
             t = self
-            return lambda *p: transform0(*t(p))
+
+            def combined(*p, w=1):
+                return transform0(*t(*p, w=w), w=w)
+            return combined
 
     def inverse(self):
         return _Transform(Matrix(self.matrix).inv().tolist())
@@ -294,7 +297,7 @@ class _Transform:
         b = other.matrix
         return _Transform([[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)])
 
-    def __call__(self, p):
+    def __call__(self, *p, w=1):
         m = self.matrix
 
         m11 = m[0][0]
@@ -305,8 +308,14 @@ class _Transform:
         m22 = m[1][1]
         m23 = m[1][2]
 
-        for x, y in p:
-            yield m11 * x + m12 * y + m13, m21 * x + m22 * y + m23
+        if w == 1:
+            for x, y in p:
+                yield m11 * x + m12 * y + m13, m21 * x + m22 * y + m23
+        elif w == 0:
+            for x, y in p:
+                yield m11 * x + m12 * y, m21 * x + m22 * y
+        else:
+            raise NotImplementedError("w not in (0, 1)")
 
     def to_svg(self, svg):
         m = self.matrix
@@ -352,6 +361,10 @@ class _Transform:
                         "currentpicture=s;return t;})());"))
 
 
+def _no_transform(*p, w=None):
+    return p
+
+
 class Graphics(Builtin):
     r"""
     <dl>
@@ -384,7 +397,7 @@ class Graphics(Builtin):
 
     Invalid graphics directives yield invalid box structures:
     >> Graphics[Circle[{a, b}]]
-     : GraphicsBox[CircleBox[List[a, b]], Rule[AspectRatio, Automatic], Rule[Axes, False], Rule[AxesStyle, List[]], Rule[Background, Automatic], Rule[ImageSize, Automatic], Rule[LabelStyle, List[]], Rule[PlotRange, Automatic], Rule[PlotRangePadding, Automatic], Rule[TicksStyle, List[]]] is not a valid box structure.
+     : GraphicsBox[CircleBox[List[a, b]], Rule[AspectRatio, Automatic], Rule[Axes, False], Rule[AxesStyle, List[]], Rule[Background, Automatic], Rule[ImageSize, Automatic], Rule[LabelStyle, List[]], Rule[PlotRange, Automatic], Rule[PlotRangePadding, Automatic], Rule[TicksStyle, List[]], Rule[Transformation, Automatic]] is not a valid box structure.
     """
 
     options = {
@@ -398,9 +411,10 @@ class Graphics(Builtin):
         'ImageSize': 'Automatic',
         'Background': 'Automatic',
 
-        'PrecomputeTransformations': 'False',  # Mathics specific; used internally to enable stuff like
-        # Plot[x + 1e-20 * x, {x, 0, 1}] that without precomputing transformations inside Mathics will
-        # hit SVGs numerical accuracy abilities (strokes with width < 1e-6 won't get transformed in SVG).
+        'Transformation': 'Automatic',  # Mathics specific; used internally to enable stuff like
+        # Plot[x + 1e-20 * x, {x, 0, 1}] that without precomputing transformations inside Mathics
+        # will hit SVGs numerical accuracy abilities in some browsers as strokes with width < 1e-6
+        # will get rounded to 0 and thus won't get scale transformed in SVG and vanish.
     }
 
     box_suffix = 'Box'
@@ -1122,11 +1136,11 @@ class RectangleBox(_GraphicsElement):
         self.edge_color, self.face_color = style.get_style(
             _Color, face_element=True)
 
-        self.p1 = coords(item.leaves[0])
+        self.p1 = expr_to_coords(item.leaves[0])
         if len(item.leaves) == 1:
             self.p2 = add_coords(self.p1, (1, 1))
         elif len(item.leaves) == 2:
-            self.p2 = coords(item.leaves[1])
+            self.p2 = expr_to_coords(item.leaves[1])
 
     def extent(self):
         l = self.style.get_line_width(face_element=True) / 2
@@ -1179,7 +1193,7 @@ class _RoundBox(_GraphicsElement):
             raise BoxConstructError
         self.edge_color, self.face_color = style.get_style(
             _Color, face_element=self.face_element)
-        self.c = coords(item.leaves[0])
+        self.c = expr_to_coords(item.leaves[0])
         if len(item.leaves) == 1:
             rx = ry = 1
         elif len(item.leaves) == 2:
@@ -1303,7 +1317,7 @@ class _ArcBox(_RoundBox):
 
     def to_asy(self, transform):
         if self.arc is None:
-            return super(_ArcBox, self).to_asy()
+            return super(_ArcBox, self).to_asy(transform)
 
         x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params(transform)
 
@@ -1352,7 +1366,8 @@ class _Polyline(_GraphicsElement):
                 lines.append(leaf.leaves)
             else:
                 raise BoxConstructError
-        self.lines = [[coords(point) for point in line] for line in lines]
+        make_coords = graphics.make_coords  # for Graphics and Graphics3D support
+        self.lines = [make_coords(line) for line in lines]
 
     def extent(self):
         l = self.style.get_line_width(face_element=False)
@@ -1467,7 +1482,7 @@ class LineBox(_Polyline):
 
     def to_svg(self, transform):
         l = self.style.get_line_width(face_element=False)
-        l = list(transform((l, l)))[0][0]  # assume pure scaling transform
+        l = list(transform((l, l), w=0))[0][0]
         style = create_css(edge_color=self.edge_color, stroke_width=l)
 
         svg = ''
@@ -1479,7 +1494,7 @@ class LineBox(_Polyline):
 
     def to_asy(self, transform):
         l = self.style.get_line_width(face_element=False)
-        l = list(transform((l, l)))[0][0]  # assume pure scaling transform
+        l = list(transform((l, l), w=0))[0][0]
         pen = create_pens(edge_color=self.edge_color, stroke_width=l)
 
         asy = ''
@@ -1693,7 +1708,7 @@ class FilledCurveBox(_GraphicsElement):
                     for part in parts:
                         if part.get_head_name() != 'System`List':
                             raise BoxConstructError
-                        c.extend([coords(xy) for xy in part.leaves])
+                        c.extend([expr_to_coords(xy) for xy in part.leaves])
 
                     yield k, c
 
@@ -2306,9 +2321,9 @@ class ArrowBox(_Polyline):
             while s > 0.:
                 if len(line) < 2:
                     return []
-                xy, length = setback(line[0].p, line[1].p, s)
+                xy, length = setback(line[0], line[1], s)
                 if xy is not None:
-                    line[0] = line[0].add(*xy)
+                    line[0] = add_coords(line[0], xy)
                 else:
                     line = line[1:]
                 s -= length
@@ -2566,7 +2581,7 @@ class GeometricTransformationBox(_GraphicsElement):
             for content in self.contents:
                 p = content.extent()
                 for transform in self.transforms:
-                    for q in transform(p):
+                    for q in transform(*p):
                         yield q
         return list(points())
 
@@ -2617,11 +2632,11 @@ class InsetBox(_GraphicsElement):
             self.content = content.format(
                 graphics.evaluation, 'TraditionalForm')
             if len(item.leaves) > 1:
-                self.pos = coords(item.leaves[1])
+                self.pos = expr_to_coords(item.leaves[1])
             else:
                 self.pos = (0, 0)
             if len(item.leaves) > 2:
-                self.opos = coords(item.leaves[2])
+                self.opos = expr_to_coords(item.leaves[2])
             else:
                 self.opos = (0, 0)
         else:
@@ -2733,7 +2748,7 @@ class InsetBox(_GraphicsElement):
 
         if not self.svg:
             if not is_absolute:
-                x, y = list(self.graphics.local_to_screen([(x, y)]))[0]
+                x, y = list(self.graphics.local_to_screen((x, y)))[0]
 
             svg = (
                 '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
@@ -2986,6 +3001,9 @@ class _GraphicsElements(object):
 
         self.elements = list(convert(content, self.get_style_class()(self)))
 
+    def make_coords(self, points):  # overriden by Graphics3DElements
+        return [expr_to_coords(p) for p in points]
+
     def create_style(self, expr):
         style = self.get_style_class()(self)
 
@@ -3054,7 +3072,7 @@ class GraphicsElements(_GraphicsElements):
 
     def translate(self, coords):
         if self.local_to_screen:
-            return list(self.local_to_screen([coords]))[0]
+            return list(self.local_to_screen(coords))[0]
         else:
             return coords[0], coords[1]
 
@@ -3098,15 +3116,13 @@ class GraphicsElements(_GraphicsElements):
             "Cut values in graphics primitives (not displayed otherwise in SVG)"
             return min(max(xy[0], -border), border), min(max(xy[1], -border), border)
 
-        def cut(*p):
+        def cut(*p, w=None):
             return [cut_coords(q) for q in p]
 
         return '\n'.join(element.to_svg(cut) for element in self.elements)
 
     def to_asy(self):
-        def no_transform(*p):
-            return p
-        return '\n'.join(element.to_asy(no_transform) for element in self.elements)
+        return '\n'.join(element.to_asy(_no_transform) for element in self.elements)
 
 
 class GraphicsBox(BoxConstruct):
@@ -3189,7 +3205,7 @@ class GraphicsBox(BoxConstruct):
 
         transformation = Expression('System`TransformationFunction', [[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
-        precompute_transformations = graphics_options['System`PrecomputeTransformations'].is_true()
+        precompute_transformations = graphics_options['System`Transformation'].get_string_value() == 'Precomputed'
 
         elements = GraphicsElements(
             Expression('System`GeometricTransformationBox', leaves[0], transformation),
@@ -3324,11 +3340,11 @@ class GraphicsBox(BoxConstruct):
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
 
         asy_completely_visible = '\n'.join(
-            element.to_asy() for element in elements.elements
+            element.to_asy(_no_transform) for element in elements.elements
             if element.is_completely_visible)
 
         asy_regular = '\n'.join(
-            element.to_asy() for element in elements.elements
+            element.to_asy(_no_transform) for element in elements.elements
             if not element.is_completely_visible)
 
         asy_box = 'box((%s,%s), (%s,%s))' % (asy_number(xmin), asy_number(ymin), asy_number(xmax), asy_number(ymax))
