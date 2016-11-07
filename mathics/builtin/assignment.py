@@ -941,7 +941,6 @@ class Information(PrefixOperator):
                         {'System`Definition': Expression('HoldForm', Symbol('Definition'))}))
                 lines.append(Expression('HoldForm', Expression(
                     up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
->>>>>>> information
 
         return self.format_definition(symbol, evaluation, grid=False)
 
