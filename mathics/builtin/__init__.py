@@ -104,7 +104,7 @@ def get_module_doc(module):
 
 
 inout_hooks = {'$PreRead':"$PreRead is a global variable whose value, if set, is applied to the \
-text or box form of every input expression before it is fed to the parser. ",
+text or box form of every input expression before it is fed to the parser. (Not implemented yet) ",
                '$Pre': "$Pre is a global variable whose value, if set, is applied to every \
 input expression.",
                '$Post': "$Post is a global variable whose value, if set, is applied to every \
@@ -112,7 +112,7 @@ output expression. ",
                '$PrePrint': "$PrePrint is a global variable whose value, if set, is applied to \
 every expression before it is printed. ",
                '$SyntaxHandler': "$SyntaxHandler is a global variable which, if set, is applied to any \
-input string that is found to contain a syntax error. ",
+               input string that is found to contain a syntax error. (Not implemented yet) ",
            }
 
 def load_InOut_hooks(definitions):
