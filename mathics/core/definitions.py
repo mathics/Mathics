@@ -687,6 +687,6 @@ class Definition(object):
         return False
 
     def __repr__(self):
-        s = '<Definition: name: {}, downvalues: {}, formats: {}, attributes: {} >'.format(
+        s = '<Definition: name: {}, downvalues: {}, formats: {}, attributes: {}>'.format(
             self.name, self.downvalues, self.formatvalues, self.attributes)
         return s.encode('unicode_escape')
