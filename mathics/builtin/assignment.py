@@ -625,8 +625,6 @@ class Definition(Builtin):
     >> Definition[a]
      = a = 2
 
-
-
     >> f[x_] := x ^ 2
     >> g[f] ^:= 2
     >> Definition[f]
@@ -729,7 +727,6 @@ class Definition(Builtin):
                 lines.append(Expression('HoldForm', Expression(
                     up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
 
-
         name = symbol.get_name()
         if not name:
             evaluation.message('Definition', 'sym', symbol, 1)
@@ -796,6 +793,7 @@ class Definition(Builtin):
 
     def format_definition_input(self, symbol, evaluation):
         'InputForm: Definition[symbol_]'
+        
         return self.format_definition(symbol, evaluation, grid=False)
 
 
