@@ -193,6 +193,10 @@ class Output(object):
         raise NotImplementedError
 
 
+
+
+    
+    
 class Evaluation(object):
     def __init__(self, definitions=None,
                  output=None, format='text', catch_interrupt=True):
@@ -253,12 +257,23 @@ class Evaluation(object):
 
         result = None
         exc_result = None
+        
+        def check_io_hook(hook):
+            return  len(self.definitions.get_definition(hook).ownvalues)>0
 
+            
         def evaluate():
             if history_length > 0:
                 self.definitions.add_rule('In', Rule(
                     Expression('In', line_no), query))
-            result = query.evaluate(self)
+            if check_io_hook('System`$Pre'):
+                result = Expression('System`$Pre', query).evaluate(self)
+            else:
+                result = query.evaluate(self)
+
+            if check_io_hook('System`$Post'):
+                result = Expression('System`$Post', result).evaluate(self)
+
             if history_length > 0:
                 if self.predetermined_out is not None:
                     out_result = self.predetermined_out
@@ -270,6 +285,9 @@ class Evaluation(object):
                 self.definitions.add_rule('Out', Rule(
                     Expression('Out', line_no), stored_result))
             if result != Symbol('Null'):
+                if check_io_hook('System`$PrePrint'): 
+                    print(self.definitions.get_definition('System`$PrePrint').__repr__())
+                    result = Expression('System`$PrePrint', result).evaluate(self)
                 return self.format_output(result, self.format)
             else:
                 return None
