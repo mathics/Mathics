@@ -892,7 +892,7 @@ class Information(PrefixOperator):
 
     def format_definition(self, symbol, evaluation, grid = True,**options):
         'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
-        from mathics.core.expression import from_python
+        from mathics.core.expression import from_python, String
         lines = []
         
         if  isinstance(symbol,String): 
