@@ -205,10 +205,6 @@ def main():
         '--help', '-h', help='show this help message and exit', action='help')
 
     argparser.add_argument(
-        '--initfile', type=argparse.FileType('r'), help='Loads INITFILE before start')
-
-
-    argparser.add_argument(
         '--persist', help='go to interactive shell after evaluating FILE or -e',
         action='store_true')
 
