@@ -193,10 +193,6 @@ class Output(object):
         raise NotImplementedError
 
 
-
-
-    
-    
 class Evaluation(object):
     def __init__(self, definitions=None,
                  output=None, format='text', catch_interrupt=True):
