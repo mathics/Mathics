@@ -9,8 +9,10 @@ from six.moves import zip
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
 from mathics.core.expression import (Expression, Symbol, valid_context_name,
-                                     system_symbols)
-from mathics.core.rules import Rule
+                                     system_symbols, String)
+
+from mathics.core.rules import Rule, BuiltinRule
+from mathics.builtin.patterns import RuleDelayed
 from mathics.builtin.lists import walk_parts
 from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
 
@@ -709,6 +711,7 @@ class Definition(Builtin):
      = Null
     """
 
+
     attributes = ('HoldAll',)
 
     def format_definition(self, symbol, evaluation, grid=True):
@@ -892,7 +895,7 @@ class Information(PrefixOperator):
 
     def format_definition(self, symbol, evaluation, grid = True,**options):
         'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
-        from mathics.core.expression import from_python, String
+        from mathics.core.expression import from_python
         lines = []
         
         if  isinstance(symbol,String): 
@@ -942,8 +945,63 @@ class Information(PrefixOperator):
                 lines.append(Expression('HoldForm', Expression(
                     up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
 
-        return self.format_definition(symbol, evaluation, grid=False)
+        name = symbol.get_name()
+        if not name:
+            evaluation.message('Definition', 'sym', symbol, 1)
+            return
+        attributes = evaluation.definitions.get_attributes(name)
+        definition = evaluation.definitions.get_user_definition(
+            name, create=False)
+        all = evaluation.definitions.get_definition(name)
+        if attributes:
+            attributes = list(attributes)
+            attributes.sort()
+            lines.append(Expression(
+                'HoldForm', Expression(
+                    'Set', Expression('Attributes', symbol), Expression(
+                        'List',
+                        *(Symbol(attribute) for attribute in attributes)))))
 
+        if definition is not None and 'System`ReadProtected' not in attributes:
+            for rule in definition.ownvalues:
+                print_rule(rule)
+            for rule in definition.downvalues:
+                print_rule(rule)
+            for rule in definition.subvalues:
+                print_rule(rule)
+            for rule in definition.upvalues:
+                print_rule(rule, up=True)
+            for rule in definition.nvalues:
+                print_rule(rule)
+            formats = sorted(definition.formatvalues.items())
+            for format, rules in formats:
+                for rule in rules:
+                    def lhs(expr):
+                        return Expression('Format', expr, Symbol(format))
+
+                    def rhs(expr):
+                        if expr.has_form('Infix', None):
+                            expr = Expression(Expression(
+                                'HoldForm', expr.head), *expr.leaves)
+                        return Expression('InputForm', expr)
+                    print_rule(rule, lhs=lhs, rhs=rhs)
+        for rule in all.defaultvalues:
+            print_rule(rule)
+        if all.options:
+            options = sorted(all.options.items())
+            lines.append(
+                Expression('HoldForm', Expression(
+                    'Set', Expression('Options', symbol),
+                    Expression('List', *(
+                        Expression('Rule', Symbol(name), value)
+                        for name, value in options)))))
+        return 
+
+
+
+    def format_definition_input(self, symbol, evaluation):
+        'InputForm: Information[symbol_]'
+        return self.format_definition(symbol, evaluation, grid=False)
 
 class Clear(Builtin):
     """
