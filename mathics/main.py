@@ -268,22 +268,6 @@ def main():
         
         definitions.set_line_no(0)
 
-    if args.initfile:
-        feeder = FileLineFeeder(args.initfile)
-        try:
-            while not feeder.empty():
-                evaluation = Evaluation(
-                    shell.definitions, output=TerminalOutput(shell), catch_interrupt=False)
-                query = evaluation.parse_feeder(feeder)
-                if query is None:
-                    continue
-                evaluation.evaluate(query, timeout=settings.TIMEOUT)
-        except (KeyboardInterrupt):
-            print('\nKeyboardInterrupt')
-        
-        definitions.set_line_no(0)
-
-
     if args.execute:
         for expr in args.execute:
             print(shell.get_in_prompt() + expr)
