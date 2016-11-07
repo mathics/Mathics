@@ -148,8 +148,3 @@ def contribute(definitions):
             op = ensure_context(operator)
             definitions.builtin[op] = Definition(name=op)
 
-    
-#    definitions.builtin['System`$PrePrint'].set_values_list('messages',
-#                                                            Rule('usage',"$PrePrint is a global variable whose value, if set, is applied to \
-#every expression before it is printed. ",True))
-    
