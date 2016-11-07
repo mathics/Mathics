@@ -255,7 +255,7 @@ class Evaluation(object):
         exc_result = None
         
         def check_io_hook(hook):
-            return  len(self.definitions.get_definition(hook).ownvalues)>0
+            return  len(self.definitions.get_ownvalues(hook))>0
 
             
         def evaluate():
@@ -281,8 +281,7 @@ class Evaluation(object):
                 self.definitions.add_rule('Out', Rule(
                     Expression('Out', line_no), stored_result))
             if result != Symbol('Null'):
-                if check_io_hook('System`$PrePrint'): 
-                    print(self.definitions.get_definition('System`$PrePrint').__repr__())
+                if check_io_hook('System`$PrePrint'):
                     result = Expression('System`$PrePrint', result).evaluate(self)
                 return self.format_output(result, self.format)
             else:
