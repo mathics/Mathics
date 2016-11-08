@@ -7,7 +7,7 @@ from __future__ import absolute_import
 from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
+    graphics, graphics3d, image, inout, integer, iohooks, linalg, lists, logic, manipulate, natlang, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
     specialfunctions, scoping, strings, structure, system, tensors, xmlformat)
 
@@ -19,7 +19,7 @@ from mathics.settings import ENABLE_FILES_MODULE
 modules = [
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
+    graphics, graphics3d, image, inout, integer, iohooks, linalg, lists, logic, manipulate, natlang, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
     specialfunctions, scoping, strings, structure, system, tensors, xmlformat]
 
@@ -103,29 +103,6 @@ def get_module_doc(module):
     return title, text
 
 
-inout_hooks = {'$PreRead':"$PreRead is a global variable whose value, if set, is applied to the \
-text or box form of every input expression before it is fed to the parser. (Not implemented yet) ",
-               '$Pre': "$Pre is a global variable whose value, if set, is applied to every \
-input expression.",
-               '$Post': "$Post is a global variable whose value, if set, is applied to every \
-output expression. ",
-               '$PrePrint': "$PrePrint is a global variable whose value, if set, is applied to \
-every expression before it is printed. ",
-               '$SyntaxHandler': "$SyntaxHandler is a global variable which, if set, is applied to any \
-               input string that is found to contain a syntax error. (Not implemented yet) ",
-           }
-
-def load_InOut_hooks(definitions):
-    from mathics.core.definitions import Definition
-    from mathics.core.expression import  Symbol, String
-    from mathics.core.rules import Rule
-    from mathics.core.pattern import Pattern_create
-    from mathics.builtin.inout import MessageName
-    for hook in inout_hooks:
-        fullname = "System`" + hook
-        definitions.builtin[fullname] = Definition(name = fullname )
-        usage = Rule(MessageName(Symbol(fullname), String("usage")), String(inout_hooks[hook]))
-        definitions.builtin[fullname].set_values_list('messages',[usage])
 
 def contribute(definitions):
     # let MakeBoxes contribute first
@@ -134,8 +111,14 @@ def contribute(definitions):
         if name != 'System`MakeBoxes':
             item.contribute(definitions)
 
-    load_InOut_hooks(definitions)
-    
+    # Is there another way to Unprotect these symbols at initialization?
+    definitions.get_attributes('System`$PreRead').clear()
+    definitions.get_attributes('System`$Pre').clear()
+    definitions.get_attributes('System`$Post').clear()
+    definitions.get_attributes('System`$PrePrint').clear()
+    definitions.get_attributes('System`$SyntaxHandler').clear()
+
+            
     from mathics.core.expression import ensure_context
     from mathics.core.parser import all_operator_names
     from mathics.core.definitions import Definition
@@ -148,8 +131,3 @@ def contribute(definitions):
             op = ensure_context(operator)
             definitions.builtin[op] = Definition(name=op)
 
-    
-#    definitions.builtin['System`$PrePrint'].set_values_list('messages',
-#                                                            Rule('usage',"$PrePrint is a global variable whose value, if set, is applied to \
-#every expression before it is printed. ",True))
-    
