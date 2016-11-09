@@ -20,7 +20,7 @@ CSVExport[strm_OutputStream, data_, OptionsPattern[]]:=
 ImportExport`RegisterExport[
     "CSV",
     System`Convert`TableDump`CSVExport,
-    FunctionChannels -> {"Stream"},
+    FunctionChannels -> {"Streams"},
     Options -> {"ByteOrderMark"},
     DefaultElement -> "Plaintext",
     BinaryFormat -> True,
