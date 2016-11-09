@@ -7,9 +7,8 @@ Options[CSVExport] = {
     "FieldSeparators" -> ","
 };
 
-CSVExport[filename_String, data_, OptionsPattern[]]:=
-    Module[{strm, char, wraplist, sep = OptionValue["FieldSeparators"]},
-        strm = OpenWrite[filename, CharacterEncoding -> OptionValue["CharacterEncoding"]];
+CSVExport[strm_OutputStream, data_, OptionsPattern[]]:=
+    Module[{char, wraplist, sep = OptionValue["FieldSeparators"]},        
         If[strm === $Failed, Return[$Failed]];
         wraplist[x_] := If[Head[x] === List, x, {x}];
         char = Map[ToString, wraplist /@ wraplist[data], {2}];
@@ -21,7 +20,7 @@ CSVExport[filename_String, data_, OptionsPattern[]]:=
 ImportExport`RegisterExport[
     "CSV",
     System`Convert`TableDump`CSVExport,
-    FunctionChannels -> {"FileNames"},
+    FunctionChannels -> {"Stream"},
     Options -> {"ByteOrderMark"},
     DefaultElement -> "Plaintext",
     BinaryFormat -> True,
