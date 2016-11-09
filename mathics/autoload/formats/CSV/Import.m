@@ -8,7 +8,7 @@ Options[ImportCSV] = {
     "FieldSeparators" -> ","
 };
 
-ImportCSV[stream, OptionsPattern[]]:=
+ImportCSV[stream_InputStream, OptionsPattern[]]:=
     Module[{data, grid, sep = OptionValue["FieldSeparators"]},        
         data = StringSplit[#, sep]& /@ ReadList[stream, String];
         grid = Grid[data];
