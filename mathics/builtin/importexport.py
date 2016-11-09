@@ -458,6 +458,7 @@ class FetchURL(Builtin):
         return result
 
 
+    
 class Import(Builtin):
     """
     <dl>
@@ -512,6 +513,7 @@ class Import(Builtin):
         'noelem': (
             'The Import element `1` is not present when importing as `2`.'),
         'fmtnosup': '`1` is not a supported Import format.',
+        'emptyfch': 'Function Channel not defined.'
     }
 
     rules = {
@@ -553,7 +555,7 @@ class Import(Builtin):
         return self._import(findfile, determine_filetype, elements, evaluation, options)
 
     @staticmethod
-    def _import(findfile, determine_filetype, elements, evaluation, options):
+    def _import(findfile, determine_filetype, elements, evaluation, options, data = None):
         # Check elements
         if elements.has_form('List', None):
             elements = elements.get_leaves()
@@ -589,6 +591,7 @@ class Import(Builtin):
         function_channels = importer_options.get("System`FunctionChannels")
         if function_channels is None:
             # TODO message
+            evaluation.message('Import', 'emptyfch')
             return Symbol('$Failed')
 
         default_element = importer_options.get("System`DefaultElement")
@@ -596,12 +599,28 @@ class Import(Builtin):
             # TODO message
             return Symbol('$Failed')
 
-        def get_results(tmp_function):
+        def get_results(tmp_function, findfile):
             if function_channels == Expression('List', String('FileNames')):
                 joined_options = list(chain(stream_options, custom_options))
+                tmpfile = False
+                if findfile is None:
+                    tmpfile = True
+                    stream = Expression('OpenWrite').evaluate(evaluation)
+                    findfile = stream.leaves[0]
+                    if not data is None:
+                        Expression('WriteString', data).evaluate(evaluation)
+                    else:
+                        Expression('WriteString', String("")).evaluate(evaluation)
+                    Expression('Close', stream).evaluate(evaluation)
+                    stream = None
                 tmp = Expression(tmp_function, findfile, *joined_options).evaluate(evaluation)
+                if tmpfile:
+                     Expression("DeleteFile", findfile).evaluate(evaluation)
             elif function_channels == Expression('List', String('Streams')):
-                stream = Expression('OpenRead', findfile, *stream_options).evaluate(evaluation)
+                if findfile is None:
+                    stream = Expression('StringToStream', data).evaluate(evaluation)
+                else:
+                    stream = Expression('OpenRead', findfile, *stream_options).evaluate(evaluation)
                 if stream.get_head_name() != 'System`InputStream':
                     evaluation.message('Import', 'nffil')
                     return None
@@ -623,7 +642,7 @@ class Import(Builtin):
         defaults = None
 
         if not elements:
-            defaults = get_results(default_function)
+            defaults = get_results(default_function, findfile)
             if defaults is None:
                 return Symbol('$Failed')
             if default_element == Symbol("Automatic"):
@@ -641,7 +660,7 @@ class Import(Builtin):
             assert len(elements) == 1
             el = elements[0]
             if el == "Elements":
-                defaults = get_results(default_function)
+                defaults = get_results(default_function, findfile)
                 if defaults is None:
                     return Symbol('$Failed')
                 # Use set() to remove duplicates
@@ -649,7 +668,7 @@ class Import(Builtin):
                     list(conditionals.keys()) + list(defaults.keys()) + list(posts.keys()))))
             else:
                 if el in conditionals.keys():
-                    result = get_results(conditionals[el])
+                    result = get_results(conditionals[el], findfile)
                     if result is None:
                         return Symbol('$Failed')
                     if len(list(result.keys())) == 1 and list(result.keys())[0] == el:
@@ -661,7 +680,7 @@ class Import(Builtin):
                         return Symbol('$Failed')
                 else:
                     if defaults is None:
-                        defaults = get_results(default_function)
+                        defaults = get_results(default_function, findfile)
                         if defaults is None:
                             return Symbol('$Failed')
                     if el in defaults.keys():
@@ -672,6 +691,99 @@ class Import(Builtin):
                         return Symbol('$Failed')
 
 
+class ImportString(Import):
+    """
+    <dl>
+    <dt>'ImportString["$data$", "$format$"]'
+      <dd>imports data in the specified format from a string.
+    <dt>'ImportString["$file$", $elements$]'
+      <dd>imports the specified elements from a string.
+    <dt>'Import["$data$"]' 
+      <dd>attempts to determine the format of the string from its content.
+    </dl>
+
+     
+    #> ImportString[x]
+     : First argument x is not a string.
+     = $Failed
+
+    ## CSV
+    #> datastring = "0.88, 0.60, 0.94\n.076, 0.19, .51\n0.97, 0.04, .26"
+    #> Import[datastring, "Elements"]
+     = {Data, Grid}
+    #> ImportString[datastring, "Data"]
+    = {{0.88, 0.60, 0.94}, {0.76, 0.19, 0.51}, {0.97, 0.04, 0.26}}
+    #> ImportString[datastring]
+    = {{0.88, 0.60, 0.94}, {0.76, 0.19, 0.51}, {0.97, 0.04, 0.26}}
+    #> Import["datastring", "FieldSeparators" -> "."]
+    = {{0, 88,0, 60,0, 94}, {0, 76,0, 19,0, 51}, {0, 97,0, 04,0, 26}}
+
+    ## Text
+    >> str = "Hello!\n    This is a testing text\n";
+    >> ImportString[str, "Elements"]
+     = {Data, Lines, Plaintext, String, Words}
+    >> ImportString[str, "Lines"]
+     = ...
+    """
+       
+    messages = {
+        'string': 'First argument `1` is not a string.',
+        'noelem': (
+            'The Import element `1` is not present when importing as `2`.'),
+        'fmtnosup': '`1` is not a supported Import format.',
+    }
+
+    rules = {
+            }
+
+        
+    def apply(self, data, evaluation, options={}):
+        'ImportString[data_, OptionsPattern[]]'
+        return self.apply_elements(data, Expression('List'), evaluation, options)
+
+    def apply_element(self, data, element, evaluation, options={}):
+        'ImportString[data_, element_String, OptionsPattern[]]'
+        return self.apply_elements(data, Expression('List', element), evaluation, options)
+
+    
+    def apply_elements(self, data, elements, evaluation, options={}):
+        'ImportString[data_, elements_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]'
+        if not (isinstance(data, String)):
+            evaluation.message('Import', 'string', data)
+            return Symbol('$Failed')
+        
+        def determine_filetype():
+            if not FileFormat.detector:
+                loader = magic.MagicLoader()
+                loader.load()
+                FileFormat.detector = magic.MagicDetector(loader.mimetypes)
+            mime = set(FileFormat.detector.match("", data=data.to_python()))
+
+            result = []
+            for key in mimetype_dict.keys():
+                if key in mime:
+                    result.append(mimetype_dict[key])
+
+            # the following fixes an extremely annoying behaviour on some (not all)
+            # installations of Windows, where we end up classifying .csv files als XLS.
+            if len(result) == 1 and result[0] == 'XLS' and path.lower().endswith('.csv'):
+                return String('CSV')
+            
+            if len(result) == 0:
+                result = 'Binary'
+            elif len(result) == 1:
+                result = result[0]
+            else:
+                return None
+
+            return result
+        
+        return self._import(None, determine_filetype, elements, evaluation, options, data = data)
+
+
+
+    
+                    
 class Export(Builtin):
     """
     <dl>
@@ -981,3 +1093,4 @@ class FileFormat(Builtin):
             return None
 
         return from_python(result)
+
