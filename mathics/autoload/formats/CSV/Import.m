@@ -27,7 +27,7 @@ ImportExport`RegisterImport[
 	    "Grid" :> GetGrid
     },
     (* Sources -> ImportExport`DefaultSources["Table"], *)
-    FunctionChannels -> {"Stream"},
+    FunctionChannels -> {"Streams"},
     AvailableElements -> {"Data", "Grid"},
     DefaultElement -> "Data",
     Options -> {
