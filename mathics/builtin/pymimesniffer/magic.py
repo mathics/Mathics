@@ -5,6 +5,8 @@ import sys
 import os.path
 import logging
 
+import io
+
 
 class MagicRule(object):
     def __init__(
@@ -26,34 +28,38 @@ class MagicDetector(object):
         self.mimetypes = mimetypes
 
     def match(self, filename, data=None):
+        matches = {}
+        
         if not data:
             file = open(filename, 'rb')
-        elif isinstance(data, str) or isinstance(data, str):
+            buf = b''
+        elif isinstance(data, str):
             from io import StringIO
-
             file = StringIO(data)
+            matches['text/plain'] =  self.mimetypes['text/plain']
+            buf = ''
         elif hasattr(data, 'read'):
+            buf = b''
             file = data
         else:
-            from io import StringIO
-
-            file = StringIO(str(data))
-
+            from io import BytesIO
+            file = BytesIO(data)
+            buf = b''
+            
         ext = os.path.splitext(filename)[1]
 
         if ext:
             ext = ext[1:]
 
-        matches = {}
 
-        buf = b''
+
 
         for mimetype, rules in self.mimetypes.items():
             for rule in rules:
                 if rule.parentType and rule.parentType not in list(matches.keys()):
                     continue
 
-                if rule.extensions and ext not in rule.extensions:
+                if rule.extensions and ext != ""  and ext not in rule.extensions:
                     continue
 
                 for offset, value in rule.magicNumbers:
