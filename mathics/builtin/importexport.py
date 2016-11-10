@@ -458,7 +458,6 @@ class FetchURL(Builtin):
         return result
 
 
-    
 class Import(Builtin):
     """
     <dl>
@@ -584,7 +583,7 @@ class Import(Builtin):
             evaluation.message('Import', 'fmtnosup', filetype)
             evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
-        
+
         # Load the importer
         (conditionals, default_function, posts, importer_options) = IMPORTERS[filetype]
 
@@ -606,7 +605,7 @@ class Import(Builtin):
             # TODO message
             evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
-            
+
         def get_results(tmp_function, findfile):
             if function_channels == Expression('List', String('FileNames')):
                 joined_options = list(chain(stream_options, custom_options))
@@ -934,6 +933,7 @@ class Export(Builtin):
 
     def apply(self, filename, expr, evaluation, options={}):
         "Export[filename_, expr_, OptionsPattern[]]"
+
         # Check filename
         if not self._check_filename(filename, evaluation):
             return Symbol('$Failed')
@@ -1000,7 +1000,6 @@ class Export(Builtin):
         # Load the exporter
         exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
         function_channels = exporter_options.get("System`FunctionChannels")
-
         
         stream_options, custom_options = _importer_exporter_options(
             exporter_options.get("System`Options"), options, evaluation)
