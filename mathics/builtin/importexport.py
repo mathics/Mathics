@@ -556,6 +556,7 @@ class Import(Builtin):
 
     @staticmethod
     def _import(findfile, determine_filetype, elements, evaluation, options, data = None):
+        current_predetermined_out = evaluation.predetermined_out
         # Check elements
         if elements.has_form('List', None):
             elements = elements.get_leaves()
@@ -565,6 +566,7 @@ class Import(Builtin):
         for el in elements:
             if not isinstance(el, String):
                 evaluation.message('Import', 'noelem', el)
+                evaluation.predetermined_out = current_predetermined_out
                 return Symbol('$Failed')
 
         elements = [el.get_string_value() for el in elements]
@@ -580,8 +582,9 @@ class Import(Builtin):
 
         if filetype not in IMPORTERS.keys():
             evaluation.message('Import', 'fmtnosup', filetype)
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
-
+        
         # Load the importer
         (conditionals, default_function, posts, importer_options) = IMPORTERS[filetype]
 
@@ -591,14 +594,19 @@ class Import(Builtin):
         function_channels = importer_options.get("System`FunctionChannels")
         if function_channels is None:
             # TODO message
-            evaluation.message('Import', 'emptyfch')
+            if data is None:
+                evaluation.message('Import', 'emptyfch')
+            else:
+                evaluation.message('ImportString', 'emptyfch')
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
 
         default_element = importer_options.get("System`DefaultElement")
         if default_element is None:
             # TODO message
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
-
+            
         def get_results(tmp_function, findfile):
             if function_channels == Expression('List', String('FileNames')):
                 joined_options = list(chain(stream_options, custom_options))
@@ -623,18 +631,22 @@ class Import(Builtin):
                     stream = Expression('OpenRead', findfile, *stream_options).evaluate(evaluation)
                 if stream.get_head_name() != 'System`InputStream':
                     evaluation.message('Import', 'nffil')
+                    evaluation.predetermined_out = current_predetermined_out
                     return None
                 tmp = Expression(tmp_function, stream, *custom_options).evaluate(evaluation)
                 Expression('Close', stream).evaluate(evaluation)
             else:
                 # TODO message
+                evaluation.predetermined_out = current_predetermined_out
                 return Symbol('$Failed')
             tmp = tmp.get_leaves()
             if not all(expr.has_form('Rule', None) for expr in tmp):
+                evaluation.predetermined_out = current_predetermined_out
                 return None
 
             # return {a.get_string_value() : b for (a,b) in map(lambda x:
             # x.get_leaves(), tmp)}
+            evaluation.predetermined_out = current_predetermined_out
             return dict((a.get_string_value(), b)
                         for (a, b) in [x.get_leaves() for x in tmp])
 
@@ -644,8 +656,10 @@ class Import(Builtin):
         if not elements:
             defaults = get_results(default_function, findfile)
             if defaults is None:
+                evaluation.predetermined_out = current_predetermined_out
                 return Symbol('$Failed')
             if default_element == Symbol("Automatic"):
+                evaluation.predetermined_out = current_predetermined_out
                 return Expression('List', *(
                     Expression('Rule', String(key), defaults[key])
                     for key in defaults.keys()))
@@ -654,7 +668,9 @@ class Import(Builtin):
                 if result is None:
                     evaluation.message('Import', 'noelem', default_element,
                                        from_python(filetype))
+                    evaluation.predetermined_out = current_predetermined_out
                     return Symbol('$Failed')
+                evaluation.predetermined_out = current_predetermined_out
                 return result
         else:
             assert len(elements) == 1
@@ -662,32 +678,40 @@ class Import(Builtin):
             if el == "Elements":
                 defaults = get_results(default_function, findfile)
                 if defaults is None:
+                    evaluation.predetermined_out = current_predetermined_out
                     return Symbol('$Failed')
                 # Use set() to remove duplicates
+                evaluation.predetermined_out = current_predetermined_out
                 return from_python(sorted(set(
                     list(conditionals.keys()) + list(defaults.keys()) + list(posts.keys()))))
             else:
                 if el in conditionals.keys():
                     result = get_results(conditionals[el], findfile)
                     if result is None:
+                        evaluation.predetermined_out = current_predetermined_out
                         return Symbol('$Failed')
                     if len(list(result.keys())) == 1 and list(result.keys())[0] == el:
+                        evaluation.predetermined_out = current_predetermined_out
                         return list(result.values())[0]
                 elif el in posts.keys():
                     # TODO: allow use of conditionals
                     result = get_results(posts[el])
                     if result is None:
+                        evaluation.predetermined_out = current_predetermined_out
                         return Symbol('$Failed')
                 else:
                     if defaults is None:
                         defaults = get_results(default_function, findfile)
                         if defaults is None:
+                            evaluation.predetermined_out = current_predetermined_out
                             return Symbol('$Failed')
                     if el in defaults.keys():
+                        evaluation.predetermined_out = current_predetermined_out
                         return defaults[el]
                     else:
                         evaluation.message('Import', 'noelem', from_python(el),
                                            from_python(filetype))
+                        evaluation.predetermined_out = current_predetermined_otu
                         return Symbol('$Failed')
 
 
@@ -698,7 +722,7 @@ class ImportString(Import):
       <dd>imports data in the specified format from a string.
     <dt>'ImportString["$file$", $elements$]'
       <dd>imports the specified elements from a string.
-    <dt>'Import["$data$"]' 
+    <dt>'ImportString["$data$"]' 
       <dd>attempts to determine the format of the string from its content.
     </dl>
 
@@ -708,18 +732,22 @@ class ImportString(Import):
      = $Failed
 
     ## CSV
-    #> datastring = "0.88, 0.60, 0.94\n.076, 0.19, .51\n0.97, 0.04, .26"
-    #> Import[datastring, "Elements"]
+    #> datastring = "0.88, 0.60, 0.94\\n.076, 0.19, .51\\n0.97, 0.04, .26";
+    #> ImportString[datastring, "Elements"]
+     = {Data, Lines, Plaintext, String, Words}
+    #> ImportString[datastring, {"CSV","Elements"}]
      = {Data, Grid}
-    #> ImportString[datastring, "Data"]
-    = {{0.88, 0.60, 0.94}, {0.76, 0.19, 0.51}, {0.97, 0.04, 0.26}}
+    #> ImportString[datastring, {"CSV", "Data"}]
+    = {{0.88,  0.60,  0.94}, {.076,  0.19,  .51}, {0.97,  0.04,  .26}}
     #> ImportString[datastring]
-    = {{0.88, 0.60, 0.94}, {0.76, 0.19, 0.51}, {0.97, 0.04, 0.26}}
-    #> Import["datastring", "FieldSeparators" -> "."]
-    = {{0, 88,0, 60,0, 94}, {0, 76,0, 19,0, 51}, {0, 97,0, 04,0, 26}}
+    = 0.88, 0.60, 0.94
+    .  .076, 0.19, .51
+    .  0.97, 0.04, .26
+    #> ImportString[datastring, "CSV","FieldSeparators" -> "."]
+    = {{0, 88, 0, 60, 0, 94}, {076, 0, 19, , 51}, {0, 97, 0, 04, , 26}}
 
     ## Text
-    >> str = "Hello!\n    This is a testing text\n";
+    >> str = "Hello!\\n    This is a testing text\\n";
     >> ImportString[str, "Elements"]
      = {Data, Lines, Plaintext, String, Words}
     >> ImportString[str, "Lines"]
@@ -743,13 +771,14 @@ class ImportString(Import):
 
     def apply_element(self, data, element, evaluation, options={}):
         'ImportString[data_, element_String, OptionsPattern[]]'
+        
         return self.apply_elements(data, Expression('List', element), evaluation, options)
 
     
     def apply_elements(self, data, elements, evaluation, options={}):
         'ImportString[data_, elements_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]'
         if not (isinstance(data, String)):
-            evaluation.message('Import', 'string', data)
+            evaluation.message('ImportString', 'string', data)
             return Symbol('$Failed')
         
         def determine_filetype():
@@ -905,10 +934,8 @@ class Export(Builtin):
 
     def apply(self, filename, expr, evaluation, options={}):
         "Export[filename_, expr_, OptionsPattern[]]"
-
         # Check filename
         if not self._check_filename(filename, evaluation):
-            print("fail _check_filename")
             return Symbol('$Failed')
 
         # Determine Format
@@ -929,7 +956,6 @@ class Export(Builtin):
 
         # Check filename
         if not self._check_filename(filename, evaluation):
-            print("fail _check_filename")
             return Symbol('$Failed')
 
         # Process elems {comp* format?, elem1*}
@@ -948,12 +974,15 @@ class Export(Builtin):
             else:
                 elems_spec.append(leaf)
 
+        # Just to be sure that the following calls do not change the state of this property
+        current_predetermined_out =  evaluation.predetermined_out
         # Infer format if not present
         if not found_form:
             assert format_spec == []
             format_spec = self._infer_form(filename, evaluation)
             if format_spec is None:
                 evaluation.message('Export', 'infer', filename)
+                evaluation.predetermined_out = current_predetermined_out
                 return Symbol('$Failed')
             format_spec = [format_spec]
         else:
@@ -965,6 +994,7 @@ class Export(Builtin):
         if elems_spec != []:        # FIXME: support elems
             evaluation.message(
                 'Export', 'noelem', elems, String(format_spec[0]))
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
 
         # Load the exporter
@@ -978,6 +1008,7 @@ class Export(Builtin):
         
         if function_channels is None:
             evaluation.message('Export', 'emptyfch')
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
         elif function_channels == Expression('List', String('FileNames')):
             exporter_function = Expression(
@@ -987,15 +1018,16 @@ class Export(Builtin):
             stream = Expression('OpenWrite', filename, *stream_options).evaluate(evaluation)
             if stream.get_head_name() != 'System`OutputStream':
                 evaluation.message('Export', 'nffil')
-                return None
+                evaluation.predetermined_out = current_predetermined_out
+                return Symbol("$Failed")
             exporter_function = Expression(
                 exporter_symbol, stream, expr, *list(chain(stream_options, custom_options)))
             res = exporter_function.evaluate(evaluation)
-            Expression('Close', stream).evaluate(evaluation)
-            
+            Expression('Close', stream).evaluate(evaluation)            
         if res == Symbol('Null'):
-            return filename
-            
+            evaluation.predetermined_out = current_predetermined_out
+            return filename      
+        evaluation.predetermined_out = current_predetermined_out
         return Symbol('$Failed')
 
     def _check_filename(self, filename, evaluation):
@@ -1020,9 +1052,19 @@ class ExportString(Builtin):
       <dd>exports $exprs$ to a string as elements specified by $elems$.
     </dl>
 
+    >> ExportString[{{1,2,3,4},{3},{2},{4}}, "CSV"]
+     = 1,2,3,4
+     . 3,
+     . 2,
+     . 4,
+
     >> ExportString[{1,2,3,4}, "CSV"]
-     = "1, 2
-     .  3, 4"
+     = 1,
+     . 2,
+     . 3,
+     . 4,
+    >> ExportString[Integrate[f[x],{x,0,2}], "SVG"]
+     = <svg><mrow><msubsup><mo>∫</mo> <mn>0</mn> <mn>2</mn></msubsup> <mrow><mi>f</mi> <mo>[</mo> <mi>x</mi> <mo>]</mo></mrow> <mo form="prefix" lspace="0" rspace="0.2em">⁢</mo> <mrow><mtext></mtext> <mi>x</mi></mrow></mrow></svg>
     """
 
     messages = {
@@ -1058,9 +1100,13 @@ class ExportString(Builtin):
             else:
                 elems_spec.append(leaf)
 
+        # Just to be sure that the following evaluations do not change the value of this property
+        current_predetermined_out =  evaluation.predetermined_out
+
         # Infer format if not present
         if format_spec is None:
             evaluation.message('ExportString', 'infer', filename)
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
 
         # First item in format_spec is the explicit format.
@@ -1073,6 +1119,7 @@ class ExportString(Builtin):
             else:
                 evaluation.message(
                     'ExportString', 'noelem', elems, String("Unknown"))
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
 
         # Load the exporter
@@ -1084,6 +1131,7 @@ class ExportString(Builtin):
         
         if function_channels is None:
             evaluation.message('ExportString', 'emptyfch')
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
         elif function_channels == Expression('List', String('FileNames')):
             # Generates a temporary file
@@ -1094,7 +1142,7 @@ class ExportString(Builtin):
             exporter_function = Expression(
                 exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
             if exporter_function.evaluate(evaluation) != Symbol('Null'):
-                print("Export failed")
+                evaluation.predetermined_out = current_predetermined_out
                 return Symbol('$Failed')
             else:
                 try:
@@ -1105,6 +1153,7 @@ class ExportString(Builtin):
                 except Exception as e:
                     print("something went wrong")
                     print(e)
+                    evaluation.predetermined_out = current_predetermined_out
                     return Symbol('$Failed')
         elif function_channels == Expression('List', String('Streams')):
             from io import StringIO
@@ -1123,7 +1172,10 @@ class ExportString(Builtin):
             Expression('Close', stream).evaluate(evaluation)
         else:
             evaluation.message('ExportString', 'emptyfch')
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
+        
+        evaluation.predetermined_out = current_predetermined_out
         return res
 
 

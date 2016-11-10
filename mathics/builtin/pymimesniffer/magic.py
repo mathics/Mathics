@@ -35,12 +35,14 @@ class MagicDetector(object):
         
         if not data:
             file = open(filename, 'rb')
+            buf = b''
         elif isinstance(data, str) or isinstance(data, six.text_type):
             from io import StringIO
             file = StringIO(data)
             matches['text/plain'] =  self.mimetypes['text/plain']
             buf = ''
         elif hasattr(data, 'read'):
+            buf = b''
             file = data
         else:
             from io import BytesIO
