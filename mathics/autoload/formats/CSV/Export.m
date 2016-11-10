@@ -14,7 +14,6 @@ CSVExport[strm_OutputStream, data_, OptionsPattern[]]:=
         char = Map[ToString, wraplist /@ wraplist[data], {2}];
         char = StringJoin[Riffle[Riffle[#, sep] & /@ char, "\n"]];
         WriteString[strm, char];
-        Close[strm];
     ]
 
 ImportExport`RegisterExport[

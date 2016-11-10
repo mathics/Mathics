@@ -10,7 +10,7 @@ from __future__ import absolute_import
 import six
 
 from mathics.core.expression import Expression, from_python, strip_context
-from mathics.builtin.base import Builtin, Predefined, Symbol, String
+from mathics.builtin.base import Builtin, Predefined, Symbol, String, Integer
 from mathics.builtin.options import options_to_rules
 
 from .pymimesniffer import magic
@@ -878,6 +878,8 @@ class Export(Builtin):
         'chtype': "First argument `1` is not a valid file specification.",
         'infer': "Cannot infer format of file `1`.",
         'noelem': "`1` is not a valid set of export elements for the `2` format.",
+        'emptyfch': 'Function Channel not defined.',
+        'nffil':  'File `1` could not be opened',
     }
 
     _extdict = {
@@ -906,6 +908,7 @@ class Export(Builtin):
 
         # Check filename
         if not self._check_filename(filename, evaluation):
+            print("fail _check_filename")
             return Symbol('$Failed')
 
         # Determine Format
@@ -926,6 +929,7 @@ class Export(Builtin):
 
         # Check filename
         if not self._check_filename(filename, evaluation):
+            print("fail _check_filename")
             return Symbol('$Failed')
 
         # Process elems {comp* format?, elem1*}
@@ -965,15 +969,33 @@ class Export(Builtin):
 
         # Load the exporter
         exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
+        function_channels = exporter_options.get("System`FunctionChannels")
 
+        
         stream_options, custom_options = _importer_exporter_options(
             exporter_options.get("System`Options"), options, evaluation)
 
-        exporter_function = Expression(
-            exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
-
-        if exporter_function.evaluate(evaluation) == Symbol('Null'):
+        
+        if function_channels is None:
+            evaluation.message('Export', 'emptyfch')
+            return Symbol('$Failed')
+        elif function_channels == Expression('List', String('FileNames')):
+            exporter_function = Expression(
+                exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
+            res = exporter_function.evaluate(evaluation)
+        elif function_channels == Expression('List', String('Streams')):
+            stream = Expression('OpenWrite', filename, *stream_options).evaluate(evaluation)
+            if stream.get_head_name() != 'System`OutputStream':
+                evaluation.message('Export', 'nffil')
+                return None
+            exporter_function = Expression(
+                exporter_symbol, stream, expr, *list(chain(stream_options, custom_options)))
+            res = exporter_function.evaluate(evaluation)
+            Expression('Close', stream).evaluate(evaluation)
+            
+        if res == Symbol('Null'):
             return filename
+            
         return Symbol('$Failed')
 
     def _check_filename(self, filename, evaluation):
@@ -989,6 +1011,132 @@ class Export(Builtin):
         return self._extdict.get(ext)
 
 
+class ExportString(Builtin):
+    """
+    <dl>
+    <dt>'ExportString[$expr$, $form$]'
+      <dd>exports $expr$ to a string, in the format $form$.
+    <dt>'Export["$file$", $exprs$, $elems$]'
+      <dd>exports $exprs$ to a string as elements specified by $elems$.
+    </dl>
+
+    >> ExportString[{1,2,3,4}, "CSV"]
+     = "1, 2
+     .  3, 4"
+    """
+
+    messages = {
+        'noelem': "`1` is not a valid set of export elements for the `2` format.",
+        'emptyfch': 'Function Channel not defined.',
+    }
+
+    rules = {
+        'ExportString[expr_, elems_?NotListQ]': (
+            'ExportString[expr, {elems}]'),
+    }
+
+
+    def apply_element(self, expr, element, evaluation, options={}):
+        'ExportString[expr_, element_String, OptionsPattern[]]'
+        return self.apply_elements(expr, Expression('List', element), evaluation, options)
+
+    def apply_elements(self, expr, elems, evaluation, options={}):
+        "ExportString[expr_, elems_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]"
+        # Process elems {comp* format?, elem1*}
+        leaves = elems.get_leaves()
+
+        format_spec, elems_spec = [], []
+        found_form = False
+        for leaf in leaves[::-1]:
+            leaf_str = leaf.get_string_value()
+
+            if not found_form and leaf_str in EXPORTERS:
+                found_form = True
+                
+            if found_form:
+                format_spec.append(leaf_str)
+            else:
+                elems_spec.append(leaf)
+
+        # Infer format if not present
+        if format_spec is None:
+            evaluation.message('ExportString', 'infer', filename)
+            return Symbol('$Failed')
+
+        # First item in format_spec is the explicit format.
+        # The other elements (if present) are compression formats
+
+        if elems_spec != []:        # FIXME: support elems
+            if format_spec != []:
+                evaluation.message(
+                    'ExportString', 'noelem', elems, String(format_spec[0]))
+            else:
+                evaluation.message(
+                    'ExportString', 'noelem', elems, String("Unknown"))
+            return Symbol('$Failed')
+
+        # Load the exporter
+        exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
+        function_channels = exporter_options.get("System`FunctionChannels")
+
+        stream_options, custom_options = _importer_exporter_options(
+            exporter_options.get("System`Options"), options, evaluation)
+        
+        if function_channels is None:
+            evaluation.message('ExportString', 'emptyfch')
+            return Symbol('$Failed')
+        elif function_channels == Expression('List', String('FileNames')):
+            # Generates a temporary file
+            import tempfile
+            tmpfile =  tempfile.NamedTemporaryFile(dir=tempfile.gettempdir())
+            filename = String(tmpfile.name)
+            tmpfile.close()
+            exporter_function = Expression(
+                exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
+            if exporter_function.evaluate(evaluation) != Symbol('Null'):
+                print("Export failed")
+                return Symbol('$Failed')
+            else:
+                try:
+                    tmpstream = open(filename.value, 'r')
+                    res = tmpstream.read()
+                    tmpstream.close()
+                    res = String(res)
+                except Exception as e:
+                    print("something went wrong")
+                    print(e)
+                    return Symbol('$Failed')
+        elif function_channels == Expression('List', String('Streams')):
+            from io import StringIO
+            from mathics.builtin.files import STREAMS, NSTREAMS
+            pystream = StringIO()
+            n = next(NSTREAMS)
+            STREAMS.append(pystream)
+            stream = Expression('OutputStream', String('String'), Integer(n))
+            exporter_function = Expression(
+                exporter_symbol, stream, expr, *list(chain(stream_options, custom_options)))
+            res = exporter_function.evaluate(evaluation)
+            if res == Symbol('Null'):
+                res = String(pystream.getvalue())
+            else:
+                res = Symbol("$Failed")
+            Expression('Close', stream).evaluate(evaluation)
+        else:
+            evaluation.message('ExportString', 'emptyfch')
+            return Symbol('$Failed')
+        return res
+
+
+
+
+
+
+
+
+
+
+
+    
 class FileFormat(Builtin):
     """
     <dl>

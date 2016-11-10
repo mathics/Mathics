@@ -12,7 +12,6 @@ ImportCSV[stream_InputStream, OptionsPattern[]]:=
     Module[{data, grid, sep = OptionValue["FieldSeparators"]},        
         data = StringSplit[#, sep]& /@ ReadList[stream, String];
         grid = Grid[data];
-        Close[stream];
         {
             "Data" -> data,
             "Grid" -> grid

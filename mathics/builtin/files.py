@@ -3508,7 +3508,7 @@ class StringToStream(Builtin):
         'StringToStream[string_]'
         pystring = string.to_python()[1:-1]
         stream = io.StringIO(six.text_type(pystring))
-
+        
         name = Symbol('String')
         n = next(NSTREAMS)
 
