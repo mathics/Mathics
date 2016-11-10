@@ -529,7 +529,6 @@ class Import(Builtin):
 
     def apply_elements(self, filename, elements, evaluation, options={}):
         'Import[filename_, elements_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]'
-
         # Check filename
         path = filename.to_python()
         if not (isinstance(path, six.string_types) and path[0] == path[-1] == '"'):
@@ -543,6 +542,7 @@ class Import(Builtin):
 
         # Load local file
         findfile = Expression('FindFile', filename).evaluate(evaluation)
+
         if findfile == Symbol('$Failed'):
             evaluation.message('Import', 'nffil')
             return findfile
@@ -564,6 +564,7 @@ class Import(Builtin):
 
         for el in elements:
             if not isinstance(el, String):
+
                 evaluation.message('Import', 'noelem', el)
                 evaluation.predetermined_out = current_predetermined_out
                 return Symbol('$Failed')
@@ -591,6 +592,7 @@ class Import(Builtin):
             importer_options.get("System`Options"), options, evaluation)
 
         function_channels = importer_options.get("System`FunctionChannels")
+
         if function_channels is None:
             # TODO message
             if data is None:
@@ -599,6 +601,7 @@ class Import(Builtin):
                 evaluation.message('ImportString', 'emptyfch')
             evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
+
 
         default_element = importer_options.get("System`DefaultElement")
         if default_element is None:
@@ -1292,4 +1295,64 @@ class FileFormat(Builtin):
             return None
 
         return from_python(result)
+
+import base64
+
+class B64Encode(Builtin):
+    """
+    <dl>
+    <dt> 'System`Convert`B64Dump`B64Encode[$expr$]'
+    <dd>Encodes $expr$ in Base64 coding
+    </dl>
+
+    >> System`Convert`B64Dump`B64Encode["Hello world"]
+     = IkhlbGxvIHdvcmxkIg==
+    >> System`Convert`B64Dump`B64Decode[%]
+     = Hello world
+    >> System`Convert`B64Dump`B64Encode[Integrate[f[x],{x,0,2}]]
+     = SW50ZWdyYXRlW2ZbeF0sIHt4LCAwLCAyfV0=
+    >> System`Convert`B64Dump`B64Decode[%]
+     = Integrate[f[x], {x, 0, 2}]
+    >> System`Convert`B64Dump`B64Encode[RandomImage[0.,{10,10}]]
+     = ...
+    """
+    
+    context = "System`Convert`B64Dump`"
+    name = "B64Encode"
+
+    def apply(self, expr, evaluation):
+        'System`Convert`B64Dump`B64Encode[expr_]'
+        if isinstance(expr,String):
+            stringtocodify = "\"" + expr.get_string_value() + "\""
+        else:
+            stringtocodify = Expression('ToString',expr).evaluate(evaluation).get_string_value()
+        return String(base64.b64encode(bytearray(stringtocodify, 'utf8')).decode('utf8'))
+            
+
+
+
+class B64Decode(Builtin):
+    """
+    <dl>
+    <dt> 'System`Convert`B64Dump`B64Decode[$string$]'
+    <dd>Decode  $string$ in Base64 coding to an expression.
+    </dl>
+
+    """
+    
+    context = "System`Convert`B64Dump`"
+    name = "B64Decode"
+
+    def apply(self, expr, evaluation):
+        'System`Convert`B64Dump`B64Decode[expr_String]'
+        try:
+            clearstring = base64.b64decode(bytearray(expr.get_string_value(), 'utf8')).decode('utf8')
+        except Exception as e:
+            print(e.__repr__())
+            return Symbol("$Failed")
+        return Expression('ToExpression', String(str(clearstring,))).evaluate(evaluation)
+
+
+
+
 
