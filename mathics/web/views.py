@@ -25,6 +25,8 @@ from mathics.doc.doc import DocPart, DocChapter, DocSection
 
 from string import Template
 
+documentation.load_pymathics_doc()
+
 if settings.DEBUG:
     JSON_CONTENT_TYPE = 'text/html'
 else:
@@ -48,7 +50,8 @@ def require_ajax_login(func):
         return func(request, *args, **kwargs)
     return new_func
 
-definitions = Definitions(add_builtin=True)
+from mathics.settings import default_pymathics_modules
+definitions = Definitions(add_builtin=True, extension_modules=default_pymathics_modules)
 
 
 def require_ajax_login(f):

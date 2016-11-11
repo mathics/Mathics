@@ -183,13 +183,16 @@ def main():
         '--help', '-h', help='show this help message and exit', action='help')
 
     argparser.add_argument(
+        '--pyextensions', '-l', action='append', metavar='PYEXT', help='directory to load extensions in python')
+
+    argparser.add_argument(
         '--persist', help='go to interactive shell after evaluating FILE or -e',
         action='store_true')
 
     # --initfile is different from the combination FILE --persist since the first one
     # leaves the history empty and sets the current $Line to 1.
     argparser.add_argument(
-        '--initfile', type=argparse.FileType('r'), help='Loads INITFILE before start')
+        '--initfile', help='the same that FILE and --persist together', type=argparse.FileType('r'))
 
     argparser.add_argument(
         '--quiet', '-q', help='don\'t print message at startup',
@@ -222,7 +225,15 @@ def main():
 
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
 
-    definitions = Definitions(add_builtin=True)
+    extension_modules = []
+    if args.pyextensions:
+        for ext in args.pyextensions:
+            extension_modules.append(ext)
+    else:
+        from mathics.settings import default_pymathics_modules 
+        extension_modules = default_pymathics_modules
+
+    definitions = Definitions(add_builtin=True, extension_modules=extension_modules)
     definitions.set_line_no(0)
 
     shell = TerminalShell(
@@ -241,6 +252,7 @@ def main():
                 evaluation.evaluate(query, timeout=settings.TIMEOUT)
         except (KeyboardInterrupt):
             print('\nKeyboardInterrupt')
+
         definitions.set_line_no(0)
 
     if args.execute:

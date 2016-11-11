@@ -131,7 +131,7 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
 
     if deep:
         # thread over everything
-        for i, sub_expr,in enumerate(sub_exprs):
+        for i, sub_expr, in enumerate(sub_exprs):
             if not sub_expr.is_atom():
                 head = _expand(sub_expr.head)    # also expand head
                 leaves = sub_expr.get_leaves()

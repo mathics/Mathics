@@ -204,6 +204,7 @@ class Module(Builtin):
         result = new_expr.evaluate(evaluation)
         return result
 
+
 class Unique(Predefined):
     """
     <dl>
@@ -227,7 +228,7 @@ class Unique(Predefined):
     Create a unique symbol whose name begins with x:
     >> Unique["x"]
      = x2
-    
+
     #> $3 = 3;
     #> Unique[]
      = $4
@@ -262,7 +263,7 @@ class Unique(Predefined):
 
     #> Unique[{m, "s", n}, {Flat, Listable, Orderless}]
      = {m$7, s5, n$8}
-     
+
     #> Attributes[{m$7, s5, n$8}]
      = {{Flat, Listable, Orderless}, {Flat, Listable, Orderless}, {Flat, Listable, Orderless}}
 
@@ -272,7 +273,7 @@ class Unique(Predefined):
 
     #> Unique[{"s"}, Flat]
      = {s6}
-     
+
     #> Attributes[s6]
      = {Flat}
     """
@@ -296,7 +297,7 @@ class Unique(Predefined):
 
         new_name = '$%d' % (self.seq_number)
         self.seq_number += 1
-        #Next symbol in case of new name is defined before
+        # Next symbol in case of new name is defined before
         while evaluation.definitions.get_definition(new_name, True) is not None:
             new_name = '$%d' % (self.seq_number)
             self.seq_number += 1
@@ -319,14 +320,14 @@ class Unique(Predefined):
                 text = symbol.get_string_value()
                 if text is None or not is_symbol_name(text):
                     return evaluation.message('Unique', 'usym', symbol)
-                
+
         # Check valid attributes
         attrs = []
         if len(attributes) > 0:
             attrs = get_symbol_list(attributes[0], lambda item: evaluation.message('Unique', 'attnf', item))
             if attrs is None:
                 return None
-            
+
         # Generate list new symbols
         list = []
         for symbol in symbols:
@@ -339,7 +340,7 @@ class Unique(Predefined):
                 while evaluation.definitions.get_definition(new_name, True) is not None:
                     new_name = '%s%d' % (symbol.get_string_value(), self.seq_number)
                     self.seq_number += 1
-                list.append(Symbol(new_name))    
+                list.append(Symbol(new_name))
         for symbol in list:
             for att in attrs:
                 evaluation.definitions.set_attribute(symbol.get_name(), att)
@@ -348,6 +349,7 @@ class Unique(Predefined):
             return Expression('List', *list)
         else:
             return list[0]
+
 
 class Context(Builtin):
     r"""

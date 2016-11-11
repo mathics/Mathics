@@ -459,27 +459,35 @@ class Exit(Builtin):
 
     Exit is an alias for Quit.
     '''
-
+    # I need to recover the standard behaviour to make the tests run properly.
     rules = {
-        'Exit': "Quit",
+        'Exit[n_]': 'Quit[n]',
+        'Exit': 'Quit',
     }
 
+    # def apply(self, evaluation):
+    #    'Exit'
+    #    exit()
+#
+#    def apply_n(self, n, evaluation):
+#        'Exit[n_Integer]'
+#        exit(n.get_int_value())
 
-class Quit(Builtin):
-    '''
-    <dl>
-    <dt>'Quit[]'
-      <dd>terminates the Mathics session.
-    <dt>'Quit[n]'
-      <dd>terminates with exit code $n$.
-    </dl>
-    '''
 
-    rules = {
-        'Quit[]': "Quit[0]",
-    }
-
-    def apply(self, n, evaluation):
-        'Quit[n_Integer]'
-        exit(n.get_int_value())
+# class Quit(Builtin):
+#    '''
+#    <dl>
+#    <dt>'Quit'
+#      <dd>terminates the Mathics session.
+#    <dt>'Quit[n]'
+#      <dd>terminates with exit code $n$.
+#    </dl>
+#
+#    Quit is an alias for Exit.
+#    '''
+#
+#    rules = {
+#        'Quit[n_Integer]': 'Exit[n]',
+#        'Quit': 'Exit',
+#    }
 
