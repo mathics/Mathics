@@ -41,7 +41,7 @@ def valuesname(name):
 
 
 class Definitions(object):
-    def __init__(self, add_builtin=False, builtin_filename=None):
+    def __init__(self, add_builtin=False, builtin_filename=None, extension_modules=[]):
         super(Definitions, self).__init__()
         self.builtin = {}
         self.user = {}
@@ -67,9 +67,23 @@ class Definitions(object):
                     loaded = True
             if not loaded:
                 contribute(self)
+                if extension_modules != []:
+                    import importlib
+                    for module in extension_modules:
+                        try:
+                            importlib.import_module(module).contribute(self)
+                            modules.append(module)
+                        except Exception as e:
+                            print(e.__repr__())
+                            print("Module " + module + " is not a valid extension for mathics.")
+                            continue
+                            
                 if builtin_filename is not None:
                     builtin_file = open(builtin_filename, 'wb')
                     pickle.dump(self.builtin, builtin_file, -1)
+
+
+                        
 
             for root, dirs, files in os.walk(os.path.join(ROOT_DIR, 'autoload')):
                 for path in [os.path.join(root, f) for f in files if f.endswith('.m')]:
