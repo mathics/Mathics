@@ -18,6 +18,7 @@ from mathics.core.expression import (BaseExpression, Expression, Symbol,
 import six
 
 
+
 class Builtin(object):
     name = None
     context = 'System`'
@@ -240,6 +241,9 @@ class Builtin(object):
                 if s.get_name().startswith(prefix):
                     return s.get_name()[len(prefix):], s
         return None, s
+
+
+    
 
 class InstancableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):

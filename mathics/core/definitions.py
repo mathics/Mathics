@@ -40,6 +40,9 @@ def valuesname(name):
         return name[7:-6].lower()
 
 
+
+
+
 class Definitions(object):
     def __init__(self, add_builtin=False, builtin_filename=None, extension_modules=[]):
         super(Definitions, self).__init__()
@@ -50,6 +53,7 @@ class Definitions(object):
         self.lookup_cache = {}
         self.proxy = defaultdict(set)
         self.now = 0    # increments whenever something is updated
+        self.pymathicsmodules = []
 
         if add_builtin:
             from mathics.builtin import modules, contribute
@@ -68,23 +72,15 @@ class Definitions(object):
             if not loaded:
                 contribute(self)
                 if extension_modules != []:
-                    import importlib
                     for module in extension_modules:
-                        try:
-                            importlib.import_module(module).contribute(self)
-                            modules.append(module)
-                        except Exception as e:
-                            print(e.__repr__())
-                            print("Module " + module + " is not a valid extension for mathics.")
-                            continue
+                        if self.load_pymathics_module(module):
+                            pymathicsmodules.append(module)
                             
                 if builtin_filename is not None:
                     builtin_file = open(builtin_filename, 'wb')
                     pickle.dump(self.builtin, builtin_file, -1)
 
-
-                        
-
+            # Load symbols from the autoload folder
             for root, dirs, files in os.walk(os.path.join(ROOT_DIR, 'autoload')):
                 for path in [os.path.join(root, f) for f in files if f.endswith('.m')]:
                     Expression('Get', String(path)).evaluate(Evaluation(self))
@@ -103,6 +99,29 @@ class Definitions(object):
             self.builtin.update(self.user)
             self.user = {}
             self.clear_cache()
+
+    def load_pymathics_module(self, name, modules):
+        import importlib
+        try:
+            module =  importlib.import_module(name)
+        except Exception as e:
+            print(e.__repr__())
+            print("Module " + name + " is not a module")
+            return None
+
+        vars = dir(module)
+        for name in vars:
+            var = getattr(module, name)
+            if (hasattr(var, '__module__') and
+                not var.__module__.startswith('mathics.builtin.') and
+                var.__module__ != 'mathics.builtin.base' and
+                not name.startswith('_') and
+                var.__module__ == module.__name__):     # nopep8
+                instance = var(expression=False)
+                print(instance.__repr__())
+                instance.contribute(definitions)              
+
+
 
     def clear_cache(self, name=None):
         # the definitions cache (self.definitions_cache) caches (incomplete and complete) names -> Definition(),
