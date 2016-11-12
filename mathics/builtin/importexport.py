@@ -1350,7 +1350,7 @@ class B64Decode(Builtin):
         except Exception as e:
             print(e.__repr__())
             return Symbol("$Failed")
-        return Expression('ToExpression', String(str(clearstring,))).evaluate(evaluation)
+        return Expression('ToExpression', String(six.text_type(clearstring))).evaluate(evaluation)
 
 
 
