@@ -51,6 +51,8 @@ class Builtin(object):
         rules = []
         for pattern, function in self.get_functions():
             rules.append(BuiltinRule(pattern, function, system=True))
+        if hasattr(self,'author'):
+            print(rules)
         for pattern, replace in self.rules.items():
             if not isinstance(pattern, BaseExpression):
                 pattern = pattern % {'name': name}
@@ -144,6 +146,8 @@ class Builtin(object):
             name=name, rules=rules, formatvalues=formatvalues,
             messages=messages, attributes=attributes, options=options,
             defaultvalues=defaults)
+        if hasattr(self, "author"):
+            print(definition.__repr__())
         definitions.builtin[name] = definition
 
         makeboxes_def = definitions.builtin['System`MakeBoxes']
@@ -172,6 +176,9 @@ class Builtin(object):
         unavailable_function = self._get_unavailable_function()
         for name in dir(self):
             if name.startswith(prefix):
+                if hasattr(self, "author"):
+                    print("adding rule? ")
+
                 function = getattr(self, name)
                 pattern = function.__doc__
                 if pattern is None:  # Fixes PyPy bug
@@ -185,11 +192,19 @@ class Builtin(object):
                     attrs = []
                 pattern = pattern % {'name': self.get_name()}
                 pattern = parse_builtin_rule(pattern)
+                if hasattr(self, "author"):
+                    print(pattern.__repr__())
+                    print("->")
+                    print(function)
                 if unavailable_function:
                     function = unavailable_function
                 if attrs:
+                    if hasattr(self, "author"):
+                        print("attrs: yiending (attrs,pattern), function")
                     yield (attrs, pattern), function
                 else:
+                    if hasattr(self, "author"):
+                        print("not attrs: yiending (pattern, function)")
                     yield (pattern, function)
 
     @staticmethod

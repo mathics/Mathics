@@ -1507,3 +1507,54 @@ class PreDecrement(PrefixOperator):
     rules = {
         '--x_': 'x = x - 1',
     }
+
+
+
+class LoadPyMathicsModule(Builtin):
+    """
+    <dl>
+    <dt>'LoadPyMathicsModule[$module$]'</dt>
+    <dd>'Load Mathics definitions from the python module $module$</dd>
+    </dl>
+
+    >>  LoadPyMathicsModule["testpymathicsmodule"]
+     =  testpymathicsmodule
+    >>  MyPyTestContext`MyPyTestFunction[a]
+     = This is a PyMathics output
+    >> MyPyTestContext`MyPyTestSymbol
+     = 1234
+    """
+
+    
+    def apply(self, module, evaluation):
+        "LoadPyMathicsModule[module_String]"
+        print("loading module " + module.value)
+        import importlib
+        from mathics.builtin import is_builtin, builtins
+        #try:
+        if True:
+            loaded_module = importlib.import_module(module.value)
+            vars = dir(loaded_module)
+            newsymbols = {}
+            for name in vars:
+                var = getattr(loaded_module, name)
+                if (hasattr(var, '__module__') and
+                    var.__module__ != 'mathics.builtin.base' and 
+                    is_builtin(var) and not name.startswith('_') and
+                    var.__module__ == loaded_module.__name__):     # nopep8
+
+                    instance = var(expression=False)
+                    if isinstance(instance, Builtin):
+                        newsymbols[instance.get_name()] =  instance
+            builtins.update(newsymbols)
+            for name, item in newsymbols.items():
+                if name != 'System`MakeBoxes':
+                    print("   ...contributing")
+                    item.contribute(evaluation.definitions)
+
+#        except Exception as e:
+#            print("exception loading " + module.value + ":")
+#            print(e.__repr__())
+#            return Symbol("$Failed")
+        return module
+    
