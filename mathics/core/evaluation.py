@@ -257,7 +257,7 @@ class Evaluation(object):
         def evaluate():
             if history_length > 0:
                 self.definitions.add_rule('In', Rule(
-                    Expression('In', line_no), query))
+                    Expression('In', line_no), query))            
             result = query.evaluate(self)
             if history_length > 0:
                 if self.predetermined_out is not None:

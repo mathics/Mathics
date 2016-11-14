@@ -1528,11 +1528,9 @@ class LoadPyMathicsModule(Builtin):
     
     def apply(self, module, evaluation):
         "LoadPyMathicsModule[module_String]"
-        print("loading module " + module.value)
         import importlib
         from mathics.builtin import is_builtin, builtins
-        #try:
-        if True:
+        try:
             loaded_module = importlib.import_module(module.value)
             vars = dir(loaded_module)
             newsymbols = {}
@@ -1549,12 +1547,11 @@ class LoadPyMathicsModule(Builtin):
             builtins.update(newsymbols)
             for name, item in newsymbols.items():
                 if name != 'System`MakeBoxes':
-                    print("   ...contributing")
                     item.contribute(evaluation.definitions)
 
-#        except Exception as e:
-#            print("exception loading " + module.value + ":")
-#            print(e.__repr__())
-#            return Symbol("$Failed")
+        except Exception as e:
+            print("exception loading " + module.value + ":")
+            print(e.__repr__())
+            return Symbol("$Failed")
         return module
     
