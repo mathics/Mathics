@@ -71,10 +71,9 @@ class Definitions(object):
                     loaded = True
             if not loaded:
                 contribute(self)
-                if extension_modules != []:
-                    for module in extension_modules:
-                        if self.load_pymathics_module(module):
-                            pymathicsmodules.append(module)
+                for module in extension_modules:
+                    if self.load_python_module(module):
+                        pymathicsmodules.append(module)
                             
                 if builtin_filename is not None:
                     builtin_file = open(builtin_filename, 'wb')
@@ -100,26 +99,39 @@ class Definitions(object):
             self.user = {}
             self.clear_cache()
 
-    def load_pymathics_module(self, name, modules):
-        import importlib
-        try:
-            module =  importlib.import_module(name)
-        except Exception as e:
-            print(e.__repr__())
-            print("Module " + name + " is not a module")
-            return None
 
-        vars = dir(module)
-        for name in vars:
-            var = getattr(module, name)
-            if (hasattr(var, '__module__') and
-                not var.__module__.startswith('mathics.builtin.') and
-                var.__module__ != 'mathics.builtin.base' and
-                not name.startswith('_') and
-                var.__module__ == module.__name__):     # nopep8
-                instance = var(expression=False)
-                print(instance.__repr__())
-                instance.contribute(definitions)              
+    
+    def load_python_module(self, module):
+        import importlib
+        from mathics.builtin import is_builtin, builtins
+        try:
+            loaded_module = importlib.import_module(module)
+        except Exception as e:
+            print(e)
+            return 1
+        try:
+            vars = dir(loaded_module)
+            newsymbols = {}
+            for name in vars:
+                var = getattr(loaded_module, name)
+                if (hasattr(var, '__module__') and
+                    var.__module__ != 'mathics.builtin.base' and 
+                    is_builtin(var) and not name.startswith('_') and
+                    var.__module__ == loaded_module.__name__):     # nopep8
+
+                    instance = var(expression=False)
+                    if isinstance(instance, Builtin):
+                        newsymbols[instance.get_name()] =  instance
+            self.builtins.update(newsymbols)
+            for name, item in newsymbols.items():
+                if name != 'System`MakeBoxes':
+                    item.contribute(evaluation.self)
+
+        except Exception as e:
+            print("exception loading " + module.value + ":")
+            print(e.__repr__())
+            return 2
+        return 0        
 
 
 
