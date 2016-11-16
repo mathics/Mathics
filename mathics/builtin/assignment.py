@@ -1531,44 +1531,20 @@ class LoadPyMathicsModule(Builtin):
      = 1234
     """
 
-    messages = {
-        'nopymod': "Python module `1` does not exist.",
-        'nomatmod': "No Mathics symbols in  module `1`.",
-        }
+    messages = {'notfound': '`1` was not found.',
+                'notmathicslib': '`1` is not a pymathis module.',
+    }
+    
 
     def apply(self, module, evaluation):
         "LoadPyMathicsModule[module_String]"
-        import importlib
-        from mathics.builtin import is_builtin, builtins
         try:
-            loaded_module = importlib.import_module(module.value)
+            module_loaded= evaluation.definitions.load_python_module(module.value)
+        except PyMathicsLoadException as e:
+            evaluation.message(self.name, 'notmathicslib', module)            
+            return Symbol("$Failed")
         except ImportError as e:
-            evaluation.message("LoadPyMathicsModule", 'nopymod', module)
-            return(Symbol("$Failed"))
-        try:
-            vars = dir(loaded_module)
-            newsymbols = {}
-            for name in vars:
-                var = getattr(loaded_module, name)
-                if (hasattr(var, '__module__') and
-                    var.__module__ != 'mathics.builtin.base' and 
-                    is_builtin(var) and not name.startswith('_') and
-                    var.__module__ == loaded_module.__name__):     # nopep8
-
-                    instance = var(expression=False)
-                    if isinstance(instance, Builtin):
-                        newsymbols[instance.get_name()] =  instance
-            if len(newsymbols) == 0:
-                evaluation.message("LoadPyMathicsModule", 'nomatmod', module)
-                return Symbol("$Failed")
-            builtins.update(newsymbols)        
-            for name, item in newsymbols.items():
-                if name != 'System`MakeBoxes':
-                    item.contribute(evaluation.definitions)
-
-        except Exception as e:
-            print("exception loading " + module.value + ":")
-            print(e.__repr__())
+            evaluation.message(self.name, 'notfound', module)            
             return Symbol("$Failed")
         return module
     
