@@ -1521,8 +1521,8 @@ class LoadPyMathicsModule(Builtin):
     >> LoadPyMathicsModule["nomodule"]
      : Python module nomodule does not exist.
      = $Failed
-    >> LoadPyMathicsModule["matplotlib"]
-     : matplotlib is not a pymathis module.
+    >> LoadPyMathicsModule["sys"]
+     : sys is not a pymathics module.
      = $Failed
     >>  LoadPyMathicsModule["testpymathicsmodule"]
      =  testpymathicsmodule
@@ -1533,7 +1533,7 @@ class LoadPyMathicsModule(Builtin):
     """
 
     messages = {'notfound': 'Python module `1` does not exist.',
-                'notmathicslib': '`1` is not a pymathis module.',
+                'notmathicslib': '`1` is not a pymathics module.',
     }
     
 
