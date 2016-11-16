@@ -270,7 +270,7 @@ class Contexts(Builtin):
     ## this assignment makes sure that a definition in Global` exists
     >> x = 5;
     >> Contexts[] // InputForm
-     = {"Combinatorica`", "Global`", "ImportExport`", "Internal`", "System`", "System`Convert`B64Dump`", "System`Convert`Image`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`", "XML`", "XML`Parser`"}
+     = ...
     """
 
     def apply(self, evaluation):
