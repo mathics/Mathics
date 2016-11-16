@@ -1148,15 +1148,15 @@ class ExportString(Builtin):
                 return Symbol('$Failed')
             else:
                 try:
-                    tmpstream = open(filename.value, 'r')
-                    res = tmpstream.read()
+                    tmpstream = open(filename.value, 'rb')
+                    res = tmpstream.read().decode('utf-8')
                     tmpstream.close()
-                    res = String(res)
                 except Exception as e:
                     print("something went wrong")
                     print(e)
                     evaluation.predetermined_out = current_predetermined_out
                     return Symbol('$Failed')
+                res = String(six.text_type(res))
         elif function_channels == Expression('List', String('Streams')):
             from io import StringIO
             from mathics.builtin.files import STREAMS, NSTREAMS
@@ -1168,7 +1168,7 @@ class ExportString(Builtin):
                 exporter_symbol, stream, expr, *list(chain(stream_options, custom_options)))
             res = exporter_function.evaluate(evaluation)
             if res == Symbol('Null'):
-                res = String(pystream.getvalue())
+                res = String(six.text_type(pystream.getvalue()))
             else:
                 res = Symbol("$Failed")
             Expression('Close', stream).evaluate(evaluation)
