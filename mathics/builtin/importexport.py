@@ -1153,7 +1153,6 @@ class ExportString(Builtin):
                     print(e)
                     evaluation.predetermined_out = current_predetermined_out
                     return Symbol('$Failed')
-                print (six.text_type(res))
                 res = String(six.text_type(res))
         elif function_channels == Expression('List', String('Streams')):
             from io import StringIO
