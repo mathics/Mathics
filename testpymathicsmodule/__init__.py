@@ -1,11 +1,17 @@
 
 from  mathics.builtin.base import Builtin, Symbol, String, AtomBuiltin
 
+
+
+pymathics_version_data = {'author': 'Juan Mauricio Matera',
+                          'version': '1.0',
+                          'requirements': [],
+                         }
+
 class MyPyTestFunction(Builtin):
     """
     MyPyTestFunction defines a Symbol.
     """
-    author = "Mauricio Matera"
     context = "MyPyTestContext`"
 
     attributes = ("Protected", "OneIdentity", "HoldFirst")
@@ -19,7 +25,6 @@ class MyPyTestSymbol(AtomBuiltin):
     """
     MyPyTestSymbol defines a Symbol.
     """
-    author = "Mauricio Matera"
     context = "MyPyTestContext`"
     rules = {'MyPyTestContext`MyPyTestSymbol': '1234'}
     def __init__(self, *args, **kargs):
