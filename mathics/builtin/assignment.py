@@ -10,6 +10,7 @@ from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
 from mathics.core.expression import (Expression, Symbol, valid_context_name,
                                      system_symbols)
+from mathics.core.definitions import PyMathicsLoadException
 from mathics.core.rules import Rule
 from mathics.builtin.lists import walk_parts
 from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
@@ -1521,7 +1522,7 @@ class LoadPyMathicsModule(Builtin):
      : Python module nomodule does not exist.
      = $Failed
     >> LoadPyMathicsModule["matplotlib"]
-     : No Mathics symbols in  module matplotlib
+     : matplotlib is not a pymathis module.
      = $Failed
     >>  LoadPyMathicsModule["testpymathicsmodule"]
      =  testpymathicsmodule
@@ -1531,7 +1532,7 @@ class LoadPyMathicsModule(Builtin):
      = 1234
     """
 
-    messages = {'notfound': '`1` was not found.',
+    messages = {'notfound': 'Python module `1` does not exist.',
                 'notmathicslib': '`1` is not a pymathis module.',
     }
     
@@ -1539,12 +1540,12 @@ class LoadPyMathicsModule(Builtin):
     def apply(self, module, evaluation):
         "LoadPyMathicsModule[module_String]"
         try:
-            module_loaded= evaluation.definitions.load_python_module(module.value)
-        except PyMathicsLoadException as e:
-            evaluation.message(self.name, 'notmathicslib', module)            
-            return Symbol("$Failed")
+            module_loaded = evaluation.definitions.load_python_module(module.value)
         except ImportError as e:
-            evaluation.message(self.name, 'notfound', module)            
-            return Symbol("$Failed")
+            evaluation.message(self.get_name(), 'notfound', module)            
+            return Symbol('$Failed')
+        except PyMathicsLoadException as e:
+            evaluation.message(self.get_name(), 'notmathicslib', module)        
+            return Symbol('$Failed')
         return module
     

@@ -14,6 +14,7 @@ import bisect
 
 from collections import defaultdict
 
+
 from mathics.core.expression import Expression, Symbol, String, fully_qualified_symbol_name, strip_context
 from mathics.core.characters import letters, letterlikes
 
@@ -41,6 +42,10 @@ def valuesname(name):
 
 
 
+class PyMathicsLoadException(Exception):
+    def __init__(self,module):
+        self.name = module + " is not a valid pymathics module"
+        self.module = module
 
 
 class Definitions(object):
@@ -77,11 +82,11 @@ class Definitions(object):
                     except PyMathicsLoadException as e:
                         print(e.module + ' is not a valid pymathics module.')
                         continue
-                    except Exception as e:
+                    except ImportError as e:
                         print(e.__repr__())
                         continue
-                    print(module + loaded_module.pymathics_version_data['version'] + "  by " + loaded_module.pymathics_version_data['author'])
-                    self.builtin.append(module)
+                    #print(module +" v"+ loaded_module.pymathics_version_data['version'] + "  by " + loaded_module.pymathics_version_data['author'])
+                    
                             
                 if builtin_filename is not None:
                     builtin_file = open(builtin_filename, 'wb')
@@ -109,17 +114,17 @@ class Definitions(object):
 
 
     
-    def load_python_module(self, module):
-        class PyMathicsLoadException(Exception):
-            def __init__(self,module):
-                self.module = module
-                
+    def load_python_module(self, module):                
         import importlib
+        from mathics.builtin.base import Builtin
         from mathics.builtin import is_builtin, builtins
-        loaded_module = importlib.import_module(module)
+        try:
+            loaded_module = importlib.import_module(module)
+        except ImportError as e:
+            raise e
         vars = dir(loaded_module)
         newsymbols = {}
-        if not pymathics_version_data in vars:
+        if not hasattr(loaded_module,'pymathics_version_data'):
             raise PyMathicsLoadException(module)
         for name in vars:
             var = getattr(loaded_module, name)
@@ -130,10 +135,10 @@ class Definitions(object):
                 instance = var(expression=False)
                 if isinstance(instance, Builtin):
                     newsymbols[instance.get_name()] =  instance
-        self.builtins.update(newsymbols)
+        self.builtin.update(newsymbols)
         for name, item in newsymbols.items():
             if name != 'System`MakeBoxes':
-                item.contribute(evaluation.self)
+                item.contribute(self)
         return loaded_module
 
 
