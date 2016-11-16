@@ -206,6 +206,10 @@ def main():
 
 
     argparser.add_argument(
+        '--pyextensions', '-l', action='append', metavar='PYEXT', help='directory to load extensions in python')
+
+    
+    argparser.add_argument(
         '--persist', help='go to interactive shell after evaluating FILE or -e',
         action='store_true')
 
@@ -245,7 +249,13 @@ def main():
 
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
 
-    definitions = Definitions(add_builtin=True)
+    extension_modules = []
+    if args.pyextensions:
+        for ext in args.pyextensions:
+            extension_modules.append(ext)
+
+    
+    definitions = Definitions(add_builtin=True, extension_modules=extension_modules)
     definitions.set_line_no(0)
 
     shell = TerminalShell(
@@ -279,6 +289,7 @@ def main():
         if not args.persist:
             return
 
+    
     if args.FILE is not None:
         feeder = FileLineFeeder(args.FILE)
         try:

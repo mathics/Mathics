@@ -18,6 +18,7 @@ from mathics.core.expression import (BaseExpression, Expression, Symbol,
 import six
 
 
+
 class Builtin(object):
     name = None
     context = 'System`'
@@ -139,6 +140,8 @@ class Builtin(object):
                 pattern = Expression('Default', Symbol(name), Integer(spec))
             if pattern is not None:
                 defaults.append(Rule(pattern, value, system=True))
+
+
         definition = Definition(
             name=name, rules=rules, formatvalues=formatvalues,
             messages=messages, attributes=attributes, options=options,
@@ -171,6 +174,7 @@ class Builtin(object):
         unavailable_function = self._get_unavailable_function()
         for name in dir(self):
             if name.startswith(prefix):
+
                 function = getattr(self, name)
                 pattern = function.__doc__
                 if pattern is None:  # Fixes PyPy bug
@@ -240,6 +244,9 @@ class Builtin(object):
                 if s.get_name().startswith(prefix):
                     return s.get_name()[len(prefix):], s
         return None, s
+
+
+    
 
 class InstancableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):

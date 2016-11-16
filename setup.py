@@ -162,7 +162,8 @@ setup(
         'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.builtin.numpy_utils',
         'mathics.builtin.pympler', 'mathics.builtin.compile',
         'mathics.doc',
-        'mathics.web', 'mathics.web.templatetags'
+        'mathics.web', 'mathics.web.templatetags',
+	'testpymathicsmodule'
     ],
 
     install_requires=INSTALL_REQUIRES,

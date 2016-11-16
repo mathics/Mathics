@@ -11,8 +11,9 @@ from mathics.builtin.base import (
 from mathics.core.expression import (Expression, Symbol, valid_context_name,
                                      system_symbols, String)
 
-from mathics.core.rules import Rule, BuiltinRule
 from mathics.builtin.patterns import RuleDelayed
+from mathics.core.definitions import PyMathicsLoadException
+from mathics.core.rules import Rule, BuiltinRule
 from mathics.builtin.lists import walk_parts
 from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
 
@@ -1716,3 +1717,44 @@ class PreDecrement(PrefixOperator):
     rules = {
         '--x_': 'x = x - 1',
     }
+
+
+
+class LoadPyMathicsModule(Builtin):
+    """
+    <dl>
+    <dt>'LoadPyMathicsModule[$module$]'</dt>
+    <dd>'Load Mathics definitions from the python module $module$</dd>
+    </dl>
+
+    >> LoadPyMathicsModule["nomodule"]
+     : Python module nomodule does not exist.
+     = $Failed
+    >> LoadPyMathicsModule["matplotlib"]
+     : matplotlib is not a pymathis module.
+     = $Failed
+    >>  LoadPyMathicsModule["testpymathicsmodule"]
+     =  testpymathicsmodule
+    >>  MyPyTestContext`MyPyTestFunction[a]
+     = This is a PyMathics output
+    >> MyPyTestContext`MyPyTestSymbol
+     = 1234
+    """
+
+    messages = {'notfound': 'Python module `1` does not exist.',
+                'notmathicslib': '`1` is not a pymathis module.',
+    }
+    
+
+    def apply(self, module, evaluation):
+        "LoadPyMathicsModule[module_String]"
+        try:
+            module_loaded = evaluation.definitions.load_python_module(module.value)
+        except ImportError as e:
+            evaluation.message(self.get_name(), 'notfound', module)            
+            return Symbol('$Failed')
+        except PyMathicsLoadException as e:
+            evaluation.message(self.get_name(), 'notmathicslib', module)        
+            return Symbol('$Failed')
+        return module
+    

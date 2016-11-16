@@ -269,7 +269,6 @@ class Evaluation(object):
 
             if check_io_hook('System`$Post'):
                 result = Expression('System`$Post', result).evaluate(self)
-
             if history_length > 0:
                 if self.predetermined_out is not None:
                     out_result = self.predetermined_out
