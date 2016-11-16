@@ -1313,8 +1313,6 @@ class B64Encode(Builtin):
      = SW50ZWdyYXRlW2ZbeF0sIHt4LCAwLCAyfV0=
     >> System`Convert`B64Dump`B64Decode[%]
      = Integrate[f[x], {x, 0, 2}]
-    >> System`Convert`B64Dump`B64Encode[RandomImage[0.,{10,10}]]
-     = ...
     """
     
     context = "System`Convert`B64Dump`"
@@ -1351,8 +1349,6 @@ class B64Decode(Builtin):
             print(e.__repr__())
             return Symbol("$Failed")
         return Expression('ToExpression', String(six.text_type(clearstring))).evaluate(evaluation)
-
-
 
 
 
