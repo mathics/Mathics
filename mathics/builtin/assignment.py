@@ -1517,6 +1517,12 @@ class LoadPyMathicsModule(Builtin):
     <dd>'Load Mathics definitions from the python module $module$</dd>
     </dl>
 
+    >> LoadPyMathicsModule["nomodule"]
+     : Python module nomodule does not exist.
+     = $Failed
+    >> LoadPyMathicsModule["matplotlib"]
+     : No Mathics symbols in  module matplotlib
+     = $Failed
     >>  LoadPyMathicsModule["testpymathicsmodule"]
      =  testpymathicsmodule
     >>  MyPyTestContext`MyPyTestFunction[a]
@@ -1525,13 +1531,21 @@ class LoadPyMathicsModule(Builtin):
      = 1234
     """
 
-    
+    messages = {
+        'nopymod': "Python module `1` does not exist.",
+        'nomatmod': "No Mathics symbols in  module `1`.",
+        }
+
     def apply(self, module, evaluation):
         "LoadPyMathicsModule[module_String]"
         import importlib
         from mathics.builtin import is_builtin, builtins
         try:
             loaded_module = importlib.import_module(module.value)
+        except ImportError as e:
+            evaluation.message("LoadPyMathicsModule", 'nopymod', module)
+            return(Symbol("$Failed"))
+        try:
             vars = dir(loaded_module)
             newsymbols = {}
             for name in vars:
@@ -1544,7 +1558,10 @@ class LoadPyMathicsModule(Builtin):
                     instance = var(expression=False)
                     if isinstance(instance, Builtin):
                         newsymbols[instance.get_name()] =  instance
-            builtins.update(newsymbols)
+            if len(newsymbols) == 0:
+                evaluation.message("LoadPyMathicsModule", 'nomatmod', module)
+                return Symbol("$Failed")
+            builtins.update(newsymbols)        
             for name, item in newsymbols.items():
                 if name != 'System`MakeBoxes':
                     item.contribute(evaluation.definitions)
