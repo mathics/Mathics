@@ -53,7 +53,8 @@ class Definitions(object):
         super(Definitions, self).__init__()
         self.builtin = {}
         self.user = {}
-
+        self.pymathics = []
+        
         self.definitions_cache = {}
         self.lookup_cache = {}
         self.proxy = defaultdict(set)
@@ -139,9 +140,14 @@ class Definitions(object):
         for name, item in newsymbols.items():
             if name != 'System`MakeBoxes':
                 item.contribute(self)
+                self.pymathics.append(name)
         return loaded_module
 
-
+    def clean_pymathics_symbols(self):
+        for name in self.pymathics:
+            self.builtin.__delitem__(name)
+        self.pymathics.clear()
+        
 
     def clear_cache(self, name=None):
         # the definitions cache (self.definitions_cache) caches (incomplete and complete) names -> Definition(),
@@ -235,8 +241,11 @@ class Definitions(object):
     def get_user_names(self):
         return set(self.user)
 
+    def get_pymathics_names(self):
+        return set(self.pymathics)
+
     def get_names(self):
-        return self.get_builtin_names() | self.get_user_names()
+        return self.get_builtin_names() | self.get_pymathics_names()  | self.get_user_names()
 
     def get_accessible_contexts(self):
         "Return the contexts reachable though $Context or $ContextPath."
@@ -355,8 +364,8 @@ class Definitions(object):
         name = self.lookup_name(name)
         user = self.user.get(name, None)
         builtin = self.builtin.get(name, None)
-
-        if user is None and builtin is None:
+        
+        if user is None and builtin is None:            
             definition = None
         elif builtin is None:
             definition = user
@@ -365,13 +374,13 @@ class Definitions(object):
         else:
             if user:
                 attributes = user.attributes
-            elif builtin:
+            elif builtin:  #Never happens
                 attributes = builtin.attributes
-            else:
+            else:  #Never happens
                 attributes = set()
-            if not user:
+            if not user: # Never happens
                 user = Definition(name=name)
-            if not builtin:
+            if not builtin: # Never happens
                 builtin = Definition(name=name)
             options = builtin.options.copy()
             options.update(user.options)

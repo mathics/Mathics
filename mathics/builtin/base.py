@@ -44,7 +44,7 @@ class Builtin(object):
     def __init__(self, *args, **kwargs):
         super(Builtin, self).__init__()
 
-    def contribute(self, definitions):
+    def contribute(self, definitions, pymodule=False):
         from mathics.core.parser import parse_builtin_rule
 
         name = self.get_name()
@@ -146,7 +146,10 @@ class Builtin(object):
             name=name, rules=rules, formatvalues=formatvalues,
             messages=messages, attributes=attributes, options=options,
             defaultvalues=defaults)
-        definitions.builtin[name] = definition
+        if pymodule:
+            definitions.pymathics[name] = definition
+        else:
+            definitions.builtin[name] = definition
 
         makeboxes_def = definitions.builtin['System`MakeBoxes']
         for rule in box_rules:
