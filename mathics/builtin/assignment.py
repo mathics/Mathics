@@ -1045,6 +1045,7 @@ class Quit(Builtin):
         'Quit[]'
 
         evaluation.definitions.set_user_definitions({})
+        evaluation.definitions.clear_pymathics_definitions()
         return Symbol('Null')
 
 
@@ -1530,6 +1531,9 @@ class LoadPyMathicsModule(Builtin):
      = This is a PyMathics output
     >> MyPyTestContext`MyPyTestSymbol
      = 1234
+    >> Quit[]
+    >> MyPyTestContext`MyPyTestSymbol
+     = MyPyTestContext`MyPyTestSymbol
     """
 
     messages = {'notfound': 'Python module `1` does not exist.',
