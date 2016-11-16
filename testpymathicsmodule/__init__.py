@@ -1,12 +1,20 @@
+#
+"""
+This is an example of an external mathics module. It just defines a function and a symbol, in the same way is done for  builtin symbols.
+"""
 
-from  mathics.builtin.base import Builtin, Symbol, String, AtomBuiltin
 
 
-
+# To be recognized as an external mathics module, the following variable
+# is required:
+#
 pymathics_version_data = {'author': 'Juan Mauricio Matera',
                           'version': '1.0',
-                          'requirements': [],
+                          'requirements': [],  # Maybe this field is useful.
                          }
+
+from  mathics.builtin.base import Builtin, Symbol, String, AtomBuiltin
+#import unknownmodule
 
 class MyPyTestFunction(Builtin):
     """
