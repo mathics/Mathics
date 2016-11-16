@@ -146,7 +146,7 @@ class Definitions(object):
     def clear_pymathics_definitions(self):
         for name in self.pymathics:
             self.builtin.__delitem__(name)
-        self.pymathics.clear()
+        self.pymathics = []
 
 
     def clear_cache(self, name=None):
