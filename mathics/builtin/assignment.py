@@ -1523,7 +1523,7 @@ class LoadPyMathicsModule(Builtin):
     >> LoadPyMathicsModule["matplotlib"]
      : No Mathics symbols in  module matplotlib
      = $Failed
-    >>  LoadPyMathicsModule["testpymathicsmodule"]
+    >>  LoadPyMathicsModule["pymathics.testpymathicsmodule"]
      =  testpymathicsmodule
     >>  MyPyTestContext`MyPyTestFunction[a]
      = This is a PyMathics output

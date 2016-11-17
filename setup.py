@@ -163,7 +163,8 @@ setup(
         'mathics.builtin.pympler', 'mathics.builtin.compile',
         'mathics.doc',
         'mathics.web', 'mathics.web.templatetags',
-	'testpymathicsmodule'
+	'pymathics.testpymathicsmodule',
+	'pymathics.natlang',
     ],
 
     install_requires=INSTALL_REQUIRES,
