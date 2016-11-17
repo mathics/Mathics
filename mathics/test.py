@@ -18,11 +18,11 @@ from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import SingleLineFeeder
 from mathics.builtin import builtins
-from mathics.doc import documentation
+
 from mathics import version_string
 from mathics import settings
 
-definitions = Definitions(add_builtin=True)
+
 
 
 class TestOutput(Output):
@@ -32,6 +32,9 @@ class TestOutput(Output):
 
 sep = '-' * 70 + '\n'
 
+#Global variables
+definitions = None
+documentation = None
 
 def compare(result, wanted):
     if result == wanted:
@@ -168,7 +171,8 @@ def open_ensure_dir(f, *args, **kwargs):
 
 
 def test_all(quiet=False, generate_output=False, stop_on_failure=False,
-             start_at=0):
+             start_at=0, include_pymathics = False):
+    global documentation
     if not quiet:
         print("Testing %s" % version_string)
 
@@ -191,6 +195,34 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
             if sub_failed and stop_on_failure:
                 break
         builtin_count = len(builtins)
+
+        if include_pymathics:
+            pymathics_part = DocPart(documentation, "Pymathics Modules", is_reference=True)
+            from mathics.settings import default_pymathics_modules 
+            from mathics.doc.doc import  PymathicsDocumentation
+            for module in  default_pymathics_modules:
+                main_documentation = documentation
+                moduledoc = PymathicsDocumentation(module)
+                documentation = moduledoc
+                for part in  documentation.parts:
+                    if  part.title == "Pymathics Modules":
+                        for chapter in part.chapters:
+                            pymathics_part.append(chapter)
+
+                for tests in documentation.get_tests():
+                    sub_count, sub_failed, sub_skipped, symbols, index = test_tests(
+                        tests, index, quiet=quiet, stop_on_failure=stop_on_failure,
+                        start_at=start_at)
+                    if generate_output:
+                        create_output(tests, output_xml, output_tex)
+                    count += sub_count
+                    failed += sub_failed
+                    skipped += sub_skipped
+                    failed_symbols.update(symbols)
+                    if sub_failed and stop_on_failure:
+                        break
+            documentation = main_documentation
+        builtin_count = builtin_count + len(moduledoc.symbols)
     except KeyboardInterrupt:
         print("\nAborted.\n")
         return
@@ -235,6 +267,12 @@ def write_latex():
 
 
 def main():
+    from mathics.doc import documentation as main_mathics_documentation
+    global definitions
+    global documentation
+    definitions = Definitions(add_builtin=True)
+    documentation = main_mathics_documentation
+
     parser = ArgumentParser(description="Mathics test suite.", add_help=False)
     parser.add_argument(
         '--help', '-h', help='show this help message and exit', action='help')

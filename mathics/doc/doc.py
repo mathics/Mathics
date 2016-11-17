@@ -731,7 +731,8 @@ class PymathicsDocumentation(Documentation):
             return
         
         #Load the dictionary of mathics symbols defined in the module
-        symbols = {}
+        self.symbols = {}
+        
         for name in dir(self.pymathicsmodule):
             var = getattr(self.pymathicsmodule, name)
             if (hasattr(var, '__module__') and
@@ -740,7 +741,7 @@ class PymathicsDocumentation(Documentation):
                 var.__module__ == loaded_module.__name__):     # nopep8
                 instance = var(expression=False)
                 if isinstance(instance, Builtin):
-                    symbols[instance.get_name()] = instance
+                    self.symbols[instance.get_name()] = instance
         # Defines de default first part, in case we are building an independent documentation module.
         self.title = "Overview"
         self.parts = []
@@ -781,7 +782,7 @@ class PymathicsDocumentation(Documentation):
         builtin_part = DocPart(self, "Pymathics Modules", is_reference=True)
         title, text = get_module_doc(self.pymathicsmodule)
         chapter = DocChapter(builtin_part, title, Doc(text))
-        for instance in symbols:
+        for instance in self.symbols:
             installed = True
             for package in self.pymathicsmodule.pymathics_version_data['requires']:
                 try:
