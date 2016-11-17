@@ -560,75 +560,6 @@ class DocElement(object):
 
 
 class Documentation(DocElement):
-    def __init__(self):
-        self.title = "Overview"
-        self.parts = []
-        self.parts_by_slug = {}
-        dir = settings.DOC_DIR
-        files = listdir(dir)
-        files.sort()
-        appendix = []
-        for file in files:
-            part_title = file[2:]
-            if part_title.endswith('.mdoc'):
-                part_title = part_title[:-len('.mdoc')]
-                part = DocPart(self, part_title)
-                text = open(dir + file, 'rb').read().decode('utf8')
-                text = filter_comments(text)
-                chapters = CHAPTER_RE.findall(text)
-                for title, text in chapters:
-                    chapter = DocChapter(part, title)
-                    text += '<section title=""></section>'
-                    sections = SECTION_RE.findall(text)
-                    for pre_text, title, text in sections:
-                        if not chapter.doc:
-                            chapter.doc = Doc(pre_text)
-                        if title:
-                            section = DocSection(chapter, title, text)
-                            chapter.sections.append(section)
-                    part.chapters.append(chapter)
-                if file[0].isdigit():
-                    self.parts.append(part)
-                else:
-                    part.is_appendix = True
-                    appendix.append(part)
-
-        for title, modules, builtins_by_module, start in [(
-            "Reference of built-in symbols", builtin.modules,
-            builtin.builtins_by_module, True)]:     # nopep8
-            # ("Reference of optional symbols", optional.modules,
-            #  optional.optional_builtins_by_module, False)]:
-
-            builtin_part = DocPart(self, title, is_reference=start)
-            for module in modules:
-                title, text = get_module_doc(module)
-                chapter = DocChapter(builtin_part, title, Doc(text))
-                builtins = builtins_by_module[module.__name__]
-                for instance in builtins:
-                    installed = True
-                    for package in getattr(instance, 'requires', []):
-                        try:
-                            importlib.import_module(package)
-                        except ImportError:
-                            installed = False
-                            break
-                    section = DocSection(
-                        chapter, strip_system_prefix(instance.get_name()),
-                        instance.__doc__ or '',
-                        operator=instance.get_operator(),
-                        installed=installed)
-                    chapter.sections.append(section)
-                builtin_part.chapters.append(chapter)
-            self.parts.append(builtin_part)
-
-        for part in appendix:
-            self.parts.append(part)
-
-        # set keys of tests
-        for tests in self.get_tests():
-            for test in tests.tests:
-                test.key = (
-                    tests.part, tests.chapter, tests.section, test.index)
 
     def __str__(self):
         return '\n\n\n'.join(str(part) for part in self.parts)
@@ -704,6 +635,178 @@ class Documentation(DocElement):
                     elif query == section.operator:
                         result.append((True, section))
         return result
+
+
+class MathicsMainDocumentation(Documentation):
+    def __init__(self):
+        self.title = "Overview"
+        self.parts = []
+        self.parts_by_slug = {}
+        dir = settings.DOC_DIR
+        files = listdir(dir)
+        files.sort()
+        appendix = []
+        for file in files:
+            part_title = file[2:]
+            if part_title.endswith('.mdoc'):
+                part_title = part_title[:-len('.mdoc')]
+                part = DocPart(self, part_title)
+                text = open(dir + file, 'rb').read().decode('utf8')
+                text = filter_comments(text)
+                chapters = CHAPTER_RE.findall(text)
+                for title, text in chapters:
+                    chapter = DocChapter(part, title)
+                    text += '<section title=""></section>'
+                    sections = SECTION_RE.findall(text)
+                    for pre_text, title, text in sections:
+                        if not chapter.doc:
+                            chapter.doc = Doc(pre_text)
+                        if title:
+                            section = DocSection(chapter, title, text)
+                            chapter.sections.append(section)
+                    part.chapters.append(chapter)
+                if file[0].isdigit():
+                    self.parts.append(part)
+                else:
+                    part.is_appendix = True
+                    appendix.append(part)
+
+        for title, modules, builtins_by_module, start in [(
+            "Reference of built-in symbols", builtin.modules,
+            builtin.builtins_by_module, True)]:     # nopep8
+            # ("Reference of optional symbols", optional.modules,
+            #  optional.optional_builtins_by_module, False)]:
+
+            builtin_part = DocPart(self, title, is_reference=start)
+            for module in modules:
+                title, text = get_module_doc(module)
+                chapter = DocChapter(builtin_part, title, Doc(text))
+                builtins = builtins_by_module[module.__name__]
+                for instance in builtins:
+                    installed = True
+                    for package in getattr(instance, 'requires', []):
+                        try:
+                            importlib.import_module(package)
+                        except ImportError:
+                            installed = False
+                            break
+                    section = DocSection(
+                        chapter, strip_system_prefix(instance.get_name()),
+                        instance.__doc__ or '',
+                        operator=instance.get_operator(),
+                        installed=installed)
+                    chapter.sections.append(section)
+                builtin_part.chapters.append(chapter)
+            self.parts.append(builtin_part)
+
+        for part in appendix:
+            self.parts.append(part)
+
+        # set keys of tests
+        for tests in self.get_tests():
+            for test in tests.tests:
+                test.key = (
+                    tests.part, tests.chapter, tests.section, test.index)
+
+
+class PymathicsDocumentation(Documentation):
+    def __init__(self, module):
+        import importlib
+        #Load the module and verifies it is a pymathics module
+        try:
+            self.pymathicsmodule = importlib.import(module)
+        except ImportError:
+            print("Module does not exist")
+            dir = ""
+            self.pymathicsmodule = None
+            return 
+        if hasattr(self.pymathicsmodule, "pymathics_version_data"):
+            dir = self.pymathicsmodule.__path__
+            self.version = self.pymathicsmodule.pymathics_version_data['version']
+            self.author = self.pymathicsmodule.pymathics_version_data['author']
+        else:
+            print(module + " is not a pymathics module.")
+            dir = ""
+            self.pymathicsmodule = None
+            return
+        
+        #Load the dictionary of mathics symbols defined in the module
+        symbols = {}
+        for name in dir(self.pymathicsmodule):
+            var = getattr(self.pymathicsmodule, name)
+            if (hasattr(var, '__module__') and
+                var.__module__ != 'mathics.builtin.base' and 
+                    is_builtin(var) and not name.startswith('_') and
+                var.__module__ == loaded_module.__name__):     # nopep8
+                instance = var(expression=False)
+                if isinstance(instance, Builtin):
+                    symbols[instance.get_name()] = instance
+        # Defines de default first part, in case we are building an independent documentation module.
+        self.title = "Overview"
+        self.parts = []
+        self.parts_by_slug = {}
+        try:
+            files = listdir(dir + '/doc')
+            dir = dir + '/doc'
+            files.sort()
+        except FileNotFound:
+            files = []
+        appendix = []
+        for file in files:
+            part_title = file[2:]
+            if part_title.endswith('.mdoc'):
+                part_title = part_title[:-len('.mdoc')]
+                part = DocPart(self, part_title)
+                text = open(dir + file, 'rb').read().decode('utf8')
+                text = filter_comments(text)
+                chapters = CHAPTER_RE.findall(text)
+                for title, text in chapters:
+                    chapter = DocChapter(part, title)
+                    text += '<section title=""></section>'
+                    sections = SECTION_RE.findall(text)
+                    for pre_text, title, text in sections:
+                        if not chapter.doc:
+                            chapter.doc = Doc(pre_text)
+                        if title:
+                            section = DocSection(chapter, title, text)
+                            chapter.sections.append(section)
+                    part.chapters.append(chapter)
+                if file[0].isdigit():
+                    self.parts.append(part)
+                else:
+                    part.is_appendix = True
+                    appendix.append(part)
+        
+        # Builds the automatic documentation
+        builtin_part = DocPart(self, "Pymathics Modules", is_reference=True)
+        title, text = get_module_doc(self.pymathicsmodule)
+        chapter = DocChapter(builtin_part, title, Doc(text))
+        for instance in symbols:
+            installed = True
+            for package in self.pymathicsmodule.pymathics_version_data['requires']:
+                try:
+                    importlib.import_module(package)
+                except ImportError:
+                    installed = False
+                    break
+            section = DocSection(
+                chapter, strip_system_prefix(instance.get_name()),
+                instance.__doc__ or '',
+                operator=instance.get_operator(),
+                installed=installed)
+            chapter.sections.append(section)
+            builtin_part.chapters.append(chapter)
+            self.parts.append(builtin_part)
+        # Adds possible appendices
+        for part in appendix:
+            self.parts.append(part)
+
+        # set keys of tests
+        for tests in self.get_tests():
+            for test in tests.tests:
+                test.key = (
+                    tests.part, tests.chapter, tests.section, test.index)
+
 
 
 class DocPart(DocElement):

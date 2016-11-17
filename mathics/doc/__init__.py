@@ -4,6 +4,6 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from .doc import Documentation
+from .doc import MathisMainDocumentation
 
-documentation = Documentation()
+documentation = MathisMainDocumentation()
