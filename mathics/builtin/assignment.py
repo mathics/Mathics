@@ -1509,7 +1509,6 @@ class PreDecrement(PrefixOperator):
     }
 
 
-
 class LoadPyMathicsModule(Builtin):
     """
     <dl>
@@ -1532,14 +1531,12 @@ class LoadPyMathicsModule(Builtin):
     """
 
     messages = {'notfound': '`1` was not found.',
-                'notmathicslib': '`1` is not a pymathis module.',
-    }
-    
+                'notmathicslib': '`1` is not a pymathis module.', }
 
     def apply(self, module, evaluation):
         "LoadPyMathicsModule[module_String]"
         try:
-            module_loaded= evaluation.definitions.load_python_module(module.value)
+            module_loaded = evaluation.definitions.load_python_module(module.value)
         except PyMathicsLoadException as e:
             evaluation.message(self.name, 'notmathicslib', module)            
             return Symbol("$Failed")
@@ -1547,4 +1544,3 @@ class LoadPyMathicsModule(Builtin):
             evaluation.message(self.name, 'notfound', module)            
             return Symbol("$Failed")
         return module
-    

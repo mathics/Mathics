@@ -40,9 +40,6 @@ def valuesname(name):
         return name[7:-6].lower()
 
 
-
-
-
 class Definitions(object):
     def __init__(self, add_builtin=False, builtin_filename=None, extension_modules=[]):
         super(Definitions, self).__init__()
@@ -53,7 +50,6 @@ class Definitions(object):
         self.lookup_cache = {}
         self.proxy = defaultdict(set)
         self.now = 0    # increments whenever something is updated
-
 
         if add_builtin:
             from mathics.builtin import modules, contribute
@@ -82,10 +78,10 @@ class Definitions(object):
                         continue
                     print(module + loaded_module.pymathics_version_data['version'] + "  by " + loaded_module.pymathics_version_data['author'])
                     self.builtin.append(module)
-                            
-                if builtin_filename is not None:
-                    builtin_file = open(builtin_filename, 'wb')
-                    pickle.dump(self.builtin, builtin_file, -1)
+
+                    if builtin_filename is not None:
+                        builtin_file = open(builtin_filename, 'wb')
+                        pickle.dump(self.builtin, builtin_file, -1)
 
             # Load symbols from the autoload folder
             for root, dirs, files in os.walk(os.path.join(ROOT_DIR, 'autoload')):
@@ -107,36 +103,32 @@ class Definitions(object):
             self.user = {}
             self.clear_cache()
 
-
-    
     def load_python_module(self, module):
-        class PyMathicsLoadException(Exception):
-            def __init__(self,module):
-                self.module = module
-                
+        '''
+        loads Mathics builtin objects and their definitions
+        from an external python module
+        '''
         import importlib
         from mathics.builtin import is_builtin, builtins
         loaded_module = importlib.import_module(module)
         vars = dir(loaded_module)
         newsymbols = {}
-        if not pymathics_version_data in vars:
+        if not ('pymathics_version_data' in vars):
             raise PyMathicsLoadException(module)
         for name in vars:
             var = getattr(loaded_module, name)
             if (hasattr(var, '__module__') and
                 var.__module__ != 'mathics.builtin.base' and 
-                is_builtin(var) and not name.startswith('_') and
+                    is_builtin(var) and not name.startswith('_') and
                 var.__module__ == loaded_module.__name__):     # nopep8
                 instance = var(expression=False)
                 if isinstance(instance, Builtin):
-                    newsymbols[instance.get_name()] =  instance
+                    newsymbols[instance.get_name()] = instance
         self.builtins.update(newsymbols)
         for name, item in newsymbols.items():
             if name != 'System`MakeBoxes':
                 item.contribute(evaluation.self)
         return loaded_module
-
-
 
     def clear_cache(self, name=None):
         # the definitions cache (self.definitions_cache) caches (incomplete and complete) names -> Definition(),
@@ -378,18 +370,17 @@ class Definitions(object):
                     formatvalues[form] = rules
 
             definition = Definition(name=name,
-                              ownvalues=user.ownvalues + builtin.ownvalues,
-                              downvalues=user.downvalues + builtin.downvalues,
-                              subvalues=user.subvalues + builtin.subvalues,
-                              upvalues=user.upvalues + builtin.upvalues,
-                              formatvalues=formatvalues,
-                              messages=user.messages + builtin.messages,
-                              attributes=attributes,
-                              options=options,
-                              nvalues=user.nvalues + builtin.nvalues,
-                              defaultvalues=user.defaultvalues +
-                              builtin.defaultvalues,
-                              )
+                                    ownvalues=user.ownvalues + builtin.ownvalues,
+                                    downvalues=user.downvalues + builtin.downvalues,
+                                    subvalues=user.subvalues + builtin.subvalues,
+                                    upvalues=user.upvalues + builtin.upvalues,
+                                    formatvalues=formatvalues,
+                                    messages=user.messages + builtin.messages,
+                                    attributes=attributes,
+                                    options=options,
+                                    nvalues=user.nvalues + builtin.nvalues,
+                                    defaultvalues=user.defaultvalues +
+                                    builtin.defaultvalues,)
 
         if definition is not None:
             self.proxy[strip_context(original_name)].add(original_name)
