@@ -197,9 +197,9 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
         builtin_count = len(builtins)
 
         if include_pymathics:
+            from mathics.doc.doc import  PymathicsDocumentation, DocPart, DocChapter, DocPart
             pymathics_part = DocPart(documentation, "Pymathics Modules", is_reference=True)
             from mathics.settings import default_pymathics_modules 
-            from mathics.doc.doc import  PymathicsDocumentation
             main_documentation = documentation
             pymathics_part = DocPart(main_documentation, "Pymathics Modules")
             for module in  default_pymathics_modules:
@@ -292,6 +292,8 @@ def main():
                         action="store_true", help="hide passed tests")
     parser.add_argument('--stop-on-failure', action="store_true",
                         help="stop on failure")
+    parser.add_argument('--pymathics', '-l', dest="pymathics", action="store_true",
+                        help="also checks pymathics modules.")
     parser.add_argument('--skip', metavar='N', dest="skip", type=int,
                         default=0, help="skip the first N tests")
     args = parser.parse_args()
@@ -305,7 +307,7 @@ def main():
             start_at = args.skip + 1
             test_all(quiet=args.quiet, generate_output=args.output,
                      stop_on_failure=args.stop_on_failure,
-                     start_at=start_at)
+                     start_at=start_at, include_pymathics = args.pymathics)
 
 if __name__ == '__main__':
     main()

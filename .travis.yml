@@ -78,14 +78,27 @@ install:
 script:
   - python setup.py test
   - if [[ "$DOC" == "true" ]]; then
-      python mathics/test.py -o &&
-      python mathics/test.py -t &&
-      cd mathics/doc/ &&
-      ./images.sh &&
-      cd tex/ &&
-      make latex;
+      if [[ "$ALL_MODULES" == "true" ]]; then
+         python mathics/test.py -o -l &&
+	 python mathics/test.py -t -l &&	
+         cd mathics/doc/ &&
+         ./images.sh &&
+         cd tex/ &&
+         make latex;
+      else
+      	 python mathics/test.py -o &&
+      	 python mathics/test.py -t &&
+         cd mathics/doc/ &&
+         ./images.sh &&
+         cd tex/ &&
+         make latex;
+      fi
     else
-      python mathics/test.py;
+      if [["$ALL_MODULES" == "true" ]]; then
+      	 python mathics/test.py -l;
+      else
+         python mathics/test.py;
+      fi
     fi
 notifications:
     email: false
