@@ -1044,6 +1044,7 @@ class Quit(Builtin):
         'Quit[]'
 
         evaluation.definitions.set_user_definitions({})
+        evaluation.definitions.clear_pymathics_modules()
         return Symbol('Null')
 
 

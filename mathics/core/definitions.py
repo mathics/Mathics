@@ -49,6 +49,7 @@ class Definitions(object):
         super(Definitions, self).__init__()
         self.builtin = {}
         self.user = {}
+        self.pymathics = [] 
 
         self.definitions_cache = {}
         self.lookup_cache = {}
@@ -131,8 +132,15 @@ class Definitions(object):
         self.builtin.update(newsymbols)
         for name, item in newsymbols.items():
             if name != 'System`MakeBoxes':
+                self.pymathics.append(name)
                 item.contribute(self)
         return loaded_module
+
+    def clear_pymathics_modules(self):
+        for s in self.pymathics:
+            self.builtin.__delitem__(s)
+        self.pymathics = []
+        return None
 
     def clear_cache(self, name=None):
         # the definitions cache (self.definitions_cache) caches (incomplete and complete) names -> Definition(),
