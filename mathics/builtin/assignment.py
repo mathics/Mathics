@@ -1519,19 +1519,19 @@ class LoadPyMathicsModule(Builtin):
     >> LoadPyMathicsModule["nomodule"]
      : Python module nomodule does not exist.
      = $Failed
-    >> LoadPyMathicsModule["matplotlib"]
-     : No Mathics symbols in  module matplotlib
+    >> LoadPyMathicsModule["sys"]
+     : Python module sys is not a pymathics module.
      = $Failed
     >>  LoadPyMathicsModule["pymathics.testpymathicsmodule"]
-     =  testpymathicsmodule
+     =  pymathics.testpymathicsmodule
     >>  MyPyTestContext`MyPyTestFunction[a]
      = This is a PyMathics output
     >> MyPyTestContext`MyPyTestSymbol
      = 1234
     """
-
-    messages = {'notfound': '`1` was not found.',
-                'notmathicslib': '`1` is not a pymathis module.', }
+    name = "LoadPyMathicsModule"
+    messages = {'notfound': 'Python module `1` does not exist.',
+                'notmathicslib': 'Python module `1` is not a pymathics module.', }
 
     def apply(self, module, evaluation):
         "LoadPyMathicsModule[module_String]"

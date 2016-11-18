@@ -113,7 +113,7 @@ class Definitions(object):
         from an external python module
         '''
         import importlib
-        from mathics.builtin import is_builtin, builtins
+        from mathics.builtin import is_builtin, builtins, Builtin
         loaded_module = importlib.import_module(module)
         vars = dir(loaded_module)
         newsymbols = {}
@@ -128,10 +128,10 @@ class Definitions(object):
                 instance = var(expression=False)
                 if isinstance(instance, Builtin):
                     newsymbols[instance.get_name()] = instance
-        self.builtins.update(newsymbols)
+        self.builtin.update(newsymbols)
         for name, item in newsymbols.items():
             if name != 'System`MakeBoxes':
-                item.contribute(evaluation.self)
+                item.contribute(self)
         return loaded_module
 
     def clear_cache(self, name=None):
