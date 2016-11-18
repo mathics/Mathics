@@ -3,7 +3,7 @@
 This is an example of an external mathics module. It just defines a function and a symbol, in the same way is done for  builtin symbols.
 """
 
-
+import six
 
 # To be recognized as an external mathics module, the following variable
 # is required:
@@ -20,7 +20,7 @@ class MyPyTestFunction(Builtin):
     """
     MyPyTestFunction defines a Symbol.
     """
-    context = "MyPyTestContext`"
+    context = six.string_type("MyPyTestContext`")
 
     attributes = ("Protected", "OneIdentity", "HoldFirst")
     def apply(self, val, evaluation):
@@ -33,7 +33,7 @@ class MyPyTestSymbol(AtomBuiltin):
     """
     MyPyTestSymbol defines a Symbol.
     """
-    context = "MyPyTestContext`"
+    context = six.string_type("MyPyTestContext`")
     rules = {'MyPyTestContext`MyPyTestSymbol': '1234'}
     def __init__(self, *args, **kargs):
         super(MyPyTestSymbol,self).__init__(name="MyPyTestSymbol",*args,**kargs)        

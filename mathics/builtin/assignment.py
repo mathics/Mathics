@@ -15,7 +15,7 @@ from mathics.builtin.lists import walk_parts
 from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
 
 from mathics import settings
-
+from mathics.core.definitions import PyMathicsLoadException
 
 def get_symbol_list(list, error_callback):
     if list.has_form('List', None):

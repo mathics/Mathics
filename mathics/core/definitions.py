@@ -40,6 +40,10 @@ def valuesname(name):
         return name[7:-6].lower()
 
 
+class PyMathicsLoadException(Exception):
+    def __init__(self,name):
+        self.name = name
+
 class Definitions(object):
     def __init__(self, add_builtin=False, builtin_filename=None, extension_modules=[]):
         super(Definitions, self).__init__()

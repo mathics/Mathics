@@ -200,8 +200,9 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
             pymathics_part = DocPart(documentation, "Pymathics Modules", is_reference=True)
             from mathics.settings import default_pymathics_modules 
             from mathics.doc.doc import  PymathicsDocumentation
+            main_documentation = documentation
+            pymathics_part = DocPart(main_documentation, "Pymathics Modules")
             for module in  default_pymathics_modules:
-                main_documentation = documentation
                 moduledoc = PymathicsDocumentation(module)
                 documentation = moduledoc
                 for part in  documentation.parts:
@@ -221,8 +222,10 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
                     failed_symbols.update(symbols)
                     if sub_failed and stop_on_failure:
                         break
+                builtin_count = builtin_count + len(moduledoc.symbols)
+            main_documentation.parts.append(pymathics_part)
             documentation = main_documentation
-        builtin_count = builtin_count + len(moduledoc.symbols)
+
     except KeyboardInterrupt:
         print("\nAborted.\n")
         return

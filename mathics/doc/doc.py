@@ -714,7 +714,7 @@ class PymathicsDocumentation(Documentation):
         import importlib
         #Load the module and verifies it is a pymathics module
         try:
-            self.pymathicsmodule = importlib.import(module)
+            self.pymathicsmodule = importlib.import_module(module)
         except ImportError:
             print("Module does not exist")
             dir = ""
