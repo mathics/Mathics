@@ -1537,7 +1537,7 @@ class LoadPyMathicsModule(Builtin):
     def apply(self, module, evaluation):
         "LoadPyMathicsModule[module_String]"
         try:
-            module_loaded = evaluation.definitions.load_python_module(module.value)
+            module_loaded = evaluation.definitions.load_pymathics_module(module.value)
         except PyMathicsLoadException as e:
             evaluation.message(self.name, 'notmathicslib', module)            
             return Symbol("$Failed")

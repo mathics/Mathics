@@ -74,7 +74,7 @@ class Definitions(object):
                 contribute(self)
                 for module in extension_modules:
                     try:
-                        loaded_module = self.load_python_module(module)
+                        loaded_module = self.load_pymathics_module(module)
                     except PyMathicsLoadException as e:
                         print(e.module + ' is not a valid pymathics module.')
                         continue
@@ -108,7 +108,7 @@ class Definitions(object):
             self.user = {}
             self.clear_cache()
 
-    def load_python_module(self, module):
+    def load_pymathics_module(self, module):
         '''
         loads Mathics builtin objects and their definitions
         from an external python module

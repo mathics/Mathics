@@ -146,13 +146,14 @@ def test_section(section, quiet=False, stop_on_failure=False):
     print('Testing section %s' % section)
     for tests in documentation.get_tests():
         if tests.section == section or tests.section == '$' + section:
+            found = True
             for test in tests.tests:
                 index += 1
                 if not test_case(test, tests, index, quiet=quiet):
                     failed += 1
                     if stop_on_failure:
                         break
-
+                    
     print()
     if failed > 0:
         print('%d test%s failed.' % (failed, 's' if failed != 1 else ''))
@@ -170,6 +171,102 @@ def open_ensure_dir(f, *args, **kwargs):
         return open(f, *args, **kwargs)
 
 
+def test_pymathics_module(module, quiet=False, generate_output=False, stop_on_failure=False,
+                          start_at=0, xmlfilepath = None, texfilepath = None):
+    from mathics.doc.doc import  PymathicsDocumentation, DocPart, DocChapter, DocPart
+    global documentation
+    global definitions
+
+    # Check the module exists
+    try:
+        import importlib
+        version_module = importlib(module).pymathics_version_data['version']
+    except ImportError:
+        print("%s pymathis module was not found.", module)
+        return sys.exit(1)
+    except Exception:
+        print("%s is not a pymathics module.",module)
+        return sys.exit(1)
+    
+    builtinmathicsdocumentation = documentation
+    builtinmathicsdefinitions = definitions
+
+    definitions = Definitions(add_builtin=True)
+    definitions.load_pymathics_module(module)
+    documentation = PymathicsDocumentation(module)
+
+    if xmlfilepath:
+        xmlfile = xmlfilepath
+    else:
+        xmlfile = settings.DOC_XML_DATA + "-" + module
+
+    if texfilepath:
+        texfile = texfilepath
+    else:
+        texfile = settings.DOC_TEX_DATA + "-" + module
+
+    if not quiet:
+        print("\n Testing module %s v %s in mathics %s" % (module, version_module,  version_string))
+    try:
+        index = 0
+        count = failed = skipped = 0
+        failed_symbols = set()
+        output_xml = {}
+        output_tex = {}
+
+        for tests in documentation.get_tests():
+            sub_count, sub_failed, sub_skipped, symbols, index = test_tests(
+                tests, index, quiet=quiet, stop_on_failure=stop_on_failure,
+                start_at=start_at)
+            if generate_output:
+                create_output(tests, output_xml, output_tex)
+            count += sub_count
+            failed += sub_failed
+            skipped += sub_skipped
+            failed_symbols.update(symbols)
+            if sub_failed and stop_on_failure:
+                break
+        builtin_count = len(builtins)
+    except KeyboardInterrupt:
+        print("\nAborted.\n")
+        documentation = builtinmathicsdocumentation
+        definitions = builtinmathicsdefinitions
+        return
+
+
+    if failed > 0:
+        print(sep)
+    print("%d Tests for %d pymathics symbols in %s , %d passed, %d failed, %d skipped." % (
+        count, builtin_count, module, count - failed - skipped, failed, skipped))
+    if failed_symbols:
+        if stop_on_failure:
+            print("(not all tests are accounted for due to --stop-on-failure)")
+        print("Failed:")
+        for part, chapter, section in sorted(failed_symbols):
+            print('  - %s in %s / %s' % (section, part, chapter))
+
+    if failed == 0:
+        print('\nOK')
+
+        if generate_output:
+            print('Save XML')
+            with open_ensure_dir(xmlfile , 'wb') as output_file:
+                pickle.dump(output_xml, output_file, 0)
+
+            print('Save TEX')
+            with open_ensure_dir(texfile, 'wb') as output_file:
+                pickle.dump(output_tex, output_file, 0)
+    else:
+        print('\nFAILED')
+        return sys.exit(1)      # Travis-CI knows the tests have failed
+
+    
+
+    
+    documentation = builtinmathicsdocumentation
+    definitions = builtinmathicsdefinitions
+    return 
+    
 def test_all(quiet=False, generate_output=False, stop_on_failure=False,
              start_at=0, include_pymathics = False):
     global documentation
@@ -302,6 +399,10 @@ def main():
         write_latex()
     else:
         if args.section:
+            if args.pymathics:
+                from mathics.settings import default_pymathics_modules 
+                for pymmodule in default_pymathics_modules:
+                    definitions.load_pymathics_module(pymmodule)
             test_section(args.section, stop_on_failure=args.stop_on_failure)
         else:
             start_at = args.skip + 1
