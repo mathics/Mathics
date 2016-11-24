@@ -143,11 +143,12 @@ class Definitions(object):
                 self.pymathics.append(name)
         return loaded_module
 
-    def clean_pymathics_symbols(self):
+    def clear_pymathics_definitions(self):
         for name in self.pymathics:
             self.builtin.__delitem__(name)
-        self.pymathics.clear()
-        
+        self.pymathics = []
+
+
 
     def clear_cache(self, name=None):
         # the definitions cache (self.definitions_cache) caches (incomplete and complete) names -> Definition(),

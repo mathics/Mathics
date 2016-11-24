@@ -1253,7 +1253,7 @@ class Quit(Builtin):
     def apply(self, evaluation):
         'Quit[]'
         evaluation.definitions.set_user_definitions({})
-        evaluation.definitions.clean_pymathics_symbols()
+        evaluation.definitions.clear_pymathics_definitions()
         return Symbol('Null')
 
 
