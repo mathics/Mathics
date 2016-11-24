@@ -1303,7 +1303,7 @@ class LanguageIdentify(Builtin):
         # an alternative: https://github.com/Mimino666/langdetect
         import pycountry
         code, _ = langid.classify(text.get_string_value())
-        language = pycountry.languages.get(iso639_1_code=code)
+        language = pycountry.languages.get(iso639_3_code=code)
         return String(language.name)
 
 
