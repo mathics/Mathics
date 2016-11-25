@@ -1,5 +1,9 @@
+
+
 pymathics_version_data = {'author': 'Juan Mauricio Matera',
                           'version': '1.0',
-                          'requirements': [],  # Maybe this field is useful.
+                          'requires': [],  # Maybe this field would be useful.
                          }
+
+from  .natlang import *
 

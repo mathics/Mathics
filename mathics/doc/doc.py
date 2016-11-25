@@ -709,7 +709,7 @@ class MathicsMainDocumentation(Documentation):
                     tests.part, tests.chapter, tests.section, test.index)
 
 
-class PymathicsDocumentation(Documentation):
+class PyMathicsDocumentation(Documentation):
     def __init__(self, module):
         import importlib
         #Load the module and verifies it is a pymathics module
@@ -717,28 +717,28 @@ class PymathicsDocumentation(Documentation):
             self.pymathicsmodule = importlib.import_module(module)
         except ImportError:
             print("Module does not exist")
-            dir = ""
+            mainfolder = ""
             self.pymathicsmodule = None
             return 
         if hasattr(self.pymathicsmodule, "pymathics_version_data"):
-            dir = self.pymathicsmodule.__path__
+            mainfolder = self.pymathicsmodule.__path__[0]
             self.version = self.pymathicsmodule.pymathics_version_data['version']
             self.author = self.pymathicsmodule.pymathics_version_data['author']
         else:
             print(module + " is not a pymathics module.")
-            dir = ""
+            mainfolder = ""
             self.pymathicsmodule = None
             return
         
         #Load the dictionary of mathics symbols defined in the module
         self.symbols = {}
-        
+        from mathics.builtin import is_builtin, Builtin
         for name in dir(self.pymathicsmodule):
             var = getattr(self.pymathicsmodule, name)
             if (hasattr(var, '__module__') and
                 var.__module__ != 'mathics.builtin.base' and 
                     is_builtin(var) and not name.startswith('_') and
-                var.__module__ == loaded_module.__name__):     # nopep8
+                var.__module__[:len(self.pymathicsmodule.__name__)] == self.pymathicsmodule.__name__):     # nopep8
                 instance = var(expression=False)
                 if isinstance(instance, Builtin):
                     self.symbols[instance.get_name()] = instance
@@ -747,10 +747,10 @@ class PymathicsDocumentation(Documentation):
         self.parts = []
         self.parts_by_slug = {}
         try:
-            files = listdir(dir + '/doc')
-            dir = dir + '/doc'
+            files = listdir(mainfolder + '/doc')
+            mainfolder = mainfolder + '/doc'
             files.sort()
-        except FileNotFound:
+        except FileNotFoundError:
             files = []
         appendix = []
         for file in files:
@@ -782,16 +782,17 @@ class PymathicsDocumentation(Documentation):
         builtin_part = DocPart(self, "Pymathics Modules", is_reference=True)
         title, text = get_module_doc(self.pymathicsmodule)
         chapter = DocChapter(builtin_part, title, Doc(text))
-        for instance in self.symbols:
+        for name in self.symbols:
+            instance = self.symbols[name]
             installed = True
-            for package in self.pymathicsmodule.pymathics_version_data['requires']:
+            for package in self.pymathicsmodule.pymathics_version_data['requires'] :
                 try:
                     importlib.import_module(package)
                 except ImportError:
                     installed = False
                     break
             section = DocSection(
-                chapter, strip_system_prefix(instance.get_name()),
+                chapter, strip_system_prefix(name),
                 instance.__doc__ or '',
                 operator=instance.get_operator(),
                 installed=installed)

@@ -23,8 +23,6 @@ from mathics import version_string
 from mathics import settings
 
 
-
-
 class TestOutput(Output):
     def max_stored_size(self, settings):
         return None
@@ -268,11 +266,16 @@ def test_pymathics_module(module, quiet=False, generate_output=False, stop_on_fa
     return 
     
 def test_all(quiet=False, generate_output=False, stop_on_failure=False,
-             start_at=0, include_pymathics = False):
+             start_at=0, xmldatafolder=None, texdatafolder=None):
     global documentation
     if not quiet:
         print("Testing %s" % version_string)
 
+    if generate_output:
+        if xmldatafolder is None:
+            xmldatafolder = settings.DOC_XML_DATA
+        if texdatafolder is None:
+            texdatafolder = settings.DOC_TEX_DATA
     try:
         index = 0
         count = failed = skipped = 0
@@ -293,35 +296,35 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
                 break
         builtin_count = len(builtins)
 
-        if include_pymathics:
-            from mathics.doc.doc import  PymathicsDocumentation, DocPart, DocChapter, DocPart
-            pymathics_part = DocPart(documentation, "Pymathics Modules", is_reference=True)
-            from mathics.settings import default_pymathics_modules 
-            main_documentation = documentation
-            pymathics_part = DocPart(main_documentation, "Pymathics Modules")
-            for module in  default_pymathics_modules:
-                moduledoc = PymathicsDocumentation(module)
-                documentation = moduledoc
-                for part in  documentation.parts:
-                    if  part.title == "Pymathics Modules":
-                        for chapter in part.chapters:
-                            pymathics_part.append(chapter)
+        # if include_pymathics:
+        #     from mathics.doc.doc import  PymathicsDocumentation, DocPart, DocChapter, DocPart
+        #     pymathics_part = DocPart(documentation, "Pymathics Modules", is_reference=True)
+        #     from mathics.settings import default_pymathics_modules 
+        #     main_documentation = documentation
+        #     pymathics_part = DocPart(main_documentation, "Pymathics Modules")
+        #     for module in  default_pymathics_modules:
+        #         moduledoc = PymathicsDocumentation(module)
+        #         documentation = moduledoc
+        #         for part in  documentation.parts:
+        #             if  part.title == "Pymathics Modules":
+        #                 for chapter in part.chapters:
+        #                     pymathics_part.append(chapter)
 
-                for tests in documentation.get_tests():
-                    sub_count, sub_failed, sub_skipped, symbols, index = test_tests(
-                        tests, index, quiet=quiet, stop_on_failure=stop_on_failure,
-                        start_at=start_at)
-                    if generate_output:
-                        create_output(tests, output_xml, output_tex)
-                    count += sub_count
-                    failed += sub_failed
-                    skipped += sub_skipped
-                    failed_symbols.update(symbols)
-                    if sub_failed and stop_on_failure:
-                        break
-                builtin_count = builtin_count + len(moduledoc.symbols)
-            main_documentation.parts.append(pymathics_part)
-            documentation = main_documentation
+        #         for tests in documentation.get_tests():
+        #             sub_count, sub_failed, sub_skipped, symbols, index = test_tests(
+        #                 tests, index, quiet=quiet, stop_on_failure=stop_on_failure,
+        #                 start_at=start_at)
+        #             if generate_output:
+        #                 create_output(tests, output_xml, output_tex)
+        #             count += sub_count
+        #             failed += sub_failed
+        #             skipped += sub_skipped
+        #             failed_symbols.update(symbols)
+        #             if sub_failed and stop_on_failure:
+        #                 break
+        #         builtin_count = builtin_count + len(moduledoc.symbols)
+        #     main_documentation.parts.append(pymathics_part)
+        #     documentation = main_documentation
 
     except KeyboardInterrupt:
         print("\nAborted.\n")
@@ -343,24 +346,34 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
 
         if generate_output:
             print('Save XML')
-            with open_ensure_dir(settings.DOC_XML_DATA, 'wb') as output_file:
+            with open_ensure_dir(xmldatafolder, 'wb') as output_file:
                 pickle.dump(output_xml, output_file, 0)
 
             print('Save TEX')
-            with open_ensure_dir(settings.DOC_TEX_DATA, 'wb') as output_file:
+            with open_ensure_dir(texdatafolder, 'wb') as output_file:
                 pickle.dump(output_tex, output_file, 0)
     else:
         print('\nFAILED')
         return sys.exit(1)      # Travis-CI knows the tests have failed
 
 
-def write_latex():
+def write_latex(texdatapath=None, latexfilepath=None):
+    if texdatapath:
+        texdata = texdatapath
+    else:
+        texdata = settings.DOC_TEX_DATA
+
+    if latexfilepath:
+        latexfile = latexfilepath
+    else:
+        latexfile = settings.DOC_LATEX_FILE 
+
     print("Load data")
-    with open_ensure_dir(settings.DOC_TEX_DATA, 'rb') as output_file:
+    with open_ensure_dir(texdata, 'rb') as output_file:
         output_tex = pickle.load(output_file)
 
     print('Print documentation')
-    with open_ensure_dir(settings.DOC_LATEX_FILE, 'wb') as doc:
+    with open_ensure_dir(latexfile, 'wb') as doc:
         content = documentation.latex(output_tex)
         content = content.encode('utf-8')
         doc.write(content)
@@ -408,7 +421,7 @@ def main():
             start_at = args.skip + 1
             test_all(quiet=args.quiet, generate_output=args.output,
                      stop_on_failure=args.stop_on_failure,
-                     start_at=start_at, include_pymathics = args.pymathics)
+                     start_at=start_at)
 
 if __name__ == '__main__':
     main()

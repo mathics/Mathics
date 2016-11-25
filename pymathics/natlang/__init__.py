@@ -1,6 +1,6 @@
-import pymathics.natlang.natlang
+from .natlang import *
 
 pymathics_version_data = {'author': '',
                           'version':'0.0.0',
-                          'requirments': ['nltk','spacy'],
+                          'requires': ['nltk','spacy'],
                           }
