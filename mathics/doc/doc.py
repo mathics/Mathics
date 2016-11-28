@@ -720,16 +720,15 @@ class MathicsMainDocumentation(Documentation):
         from mathics.settings import default_pymathics_modules
         pymathicspart = None
         # Look the "Pymathics Modules" part, and if it does not exist, create it.  
-        for part in documentation.parts:
+        for part in self.parts:
             if part.title == "Pymathics Modules":
                 pymathicspart = part
         if pymathicspart is None:
             pymathicspart = DocPart(self, "Pymathics Modules", is_reference=True)
-            documentation.parts.append(pymathicspart)
+            self.parts.append(pymathicspart)
             
         #For each module, create the documentation object and load the chapters in the pymathics part.    
         for pymmodule in default_pymathics_modules:
-            definitions.load_pymathics_module(pymmodule)
             pymathicsdoc = PyMathicsDocumentation(pymmodule)
             for part in pymathicsdoc.parts:
                 if part.title == "Pymathics Modules":
