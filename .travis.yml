@@ -11,7 +11,7 @@ env:
   global:
     - SYMPY_SRC=sympy-1.0
     - DOC="false"
-    - ALL_MODULES="false"
+    - PYMATHICS_MODULES="false"
     - CYTHON="false"
 matrix:
   fast_finish: true
@@ -25,19 +25,19 @@ matrix:
     - python: 3.5
       env: SYMPY_SRC=master
     - python: 2.7
-      env: ALL_MODULES="true"
+      env: PYMATHICS_MODULES="true"
     - python: 3.5
-      env: ALL_MODULES="true"
+      env: PYMATHICS_MODULES="true"
     - python: pypy
-      env: ALL_MODULES="true"
+      env: PYMATHICS_MODULES="true"
     - python: 2.7
       env: CYTHON="true"
     - python: 3.5
       env: CYTHON="true"
     - python: 2.7
-      env: ALL_MODULES="true" CYTHON="true"
+      env: PYMATHICS_MODULES="true" CYTHON="true"
     - python: 3.5
-      env: ALL_MODULES="true" CYTHON="true"
+      env: PYMATHICS_MODULES="true" CYTHON="true"
   allow_failures:
     - python: 3.2
     - python: pypy3
@@ -46,7 +46,7 @@ matrix:
 before_install:
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
-  - if [[ "$ALL_MODULES" == "true" ]]; then
+  - if [[ "$PYMATHICS_MODULES" == "true" ]]; then
       sudo apt-get update -qq &&
       sudo apt-get install -qq python-enchant &&
       pip install numpy ipywidgets ipykernel IPython nltk langid pycountry pyenchant lxml matplotlib networkx &&
@@ -78,11 +78,11 @@ install:
 script:
   - python setup.py test
   - if [[ "$DOC" == "true" ]]; then
-      if [[ "$ALL_MODULES" == "true" ]]; then
-         python mathics/test.py -o -l &&
-         python mathics/test.py -t -l &&
-         cd mathics/doc/ &&
-         ./images.sh &&
+      if [[ "$PYMATHICS_MODULES" == "true" ]]; then
+         python pymathics/test.py -o &&
+         python pymathics/test.py  &&
+         cd pymathics/doc/ &&
+         #./images.sh &&
          cd tex/ &&
          make latex;
       else
@@ -94,8 +94,8 @@ script:
          make latex;
       fi
     else
-      if [["$ALL_MODULES" == "true" ]]; then
-         python mathics/test.py -l;
+      if [["$PYMATHICS_MODULES" == "true" ]]; then
+         python pymathics/test.py;
       else
          python mathics/test.py;
       fi
