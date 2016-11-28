@@ -80,7 +80,7 @@ script:
   - if [[ "$DOC" == "true" ]]; then
       if [[ "$PYMATHICS_MODULES" == "true" ]]; then
          python pymathics/test.py -o &&
-         python pymathics/test.py  &&
+         python pymathics/test.py -t  &&
          cd pymathics/doc/ &&
          #./images.sh &&
          cd tex/ &&
