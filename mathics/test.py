@@ -275,7 +275,6 @@ def main():
     else:
         if args.pymathics:
             documentation.load_pymathics_doc()
-
         if args.section:
             test_section(args.section, stop_on_failure=args.stop_on_failure)
         else:

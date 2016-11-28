@@ -12,7 +12,7 @@ import six
 
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import Symbol, Expression, get_default_value, ensure_context
-from mathics.builtin.image import Image
+from pymathics.image import Image
 
 
 class Options(Builtin):

@@ -1,5 +1,7 @@
 #
 """
+Pymathics TestPyMathics
+
 This is an example of an external mathics module. It just defines a function and a symbol, in the same way is done for  builtin symbols.
 """
 

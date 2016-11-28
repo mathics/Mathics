@@ -762,10 +762,10 @@ class PyMathicsDocumentation(Documentation):
             return
 
         # Paths
-        self.doc_dir =  self.pymathicsmodule.__path__[0] + "/doc"
-        self.xml_data_file = self.doc_dir + "/xml/data"
-        self.tex_data_file = self.doc_dir + "/tex/data"
-        self.latex_file = self.doc_dir    + "/tex/documentation.tex"
+        self.doc_dir =  self.pymathicsmodule.__path__[0] + "/doc/"
+        self.xml_data_file = self.doc_dir + "xml/data"
+        self.tex_data_file = self.doc_dir + "tex/data"
+        self.latex_file = self.doc_dir    + "tex/documentation.tex"
         
         #Load the dictionary of mathics symbols defined in the module
         self.symbols = {}
