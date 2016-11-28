@@ -732,7 +732,9 @@ class MathicsMainDocumentation(Documentation):
             pymathicsdoc = PyMathicsDocumentation(pymmodule)
             for part in pymathicsdoc.parts:
                 if part.title == "Pymathics Modules":
-                    for ch in part.chapters: 
+                    for ch in part.chapters:
+                        ch.part = pymathicspart
+                        pymathicspart.chapters_by_slug[ch.slug] = ch
                         pymathicspart.chapters.append(ch)
 
         self.pymathics_doc_loaded = True
