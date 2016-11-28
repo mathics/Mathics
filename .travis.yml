@@ -82,7 +82,6 @@ script:
          python pymathics/test.py -o &&
          python pymathics/test.py -t  &&
          cd pymathics/doc/ &&
-         #./images.sh &&
          cd tex/ &&
          make latex;
       else
