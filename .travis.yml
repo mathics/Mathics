@@ -95,7 +95,7 @@ script:
       fi
     else
       if [["$ALL_MODULES" == "true" ]]; then
-         python mathics/test.py -l;
+         python pymathics/test.py;
       else
          python mathics/test.py;
       fi
