@@ -168,102 +168,6 @@ def open_ensure_dir(f, *args, **kwargs):
             os.makedirs(d)
         return open(f, *args, **kwargs)
 
-
-def test_pymathics_module(module, quiet=False, generate_output=False, stop_on_failure=False,
-                          start_at=0, xmlfilepath = None, texfilepath = None):
-    from mathics.doc.doc import  PymathicsDocumentation, DocPart, DocChapter, DocPart
-    global documentation
-    global definitions
-
-    # Check the module exists
-    try:
-        import importlib
-        version_module = importlib(module).pymathics_version_data['version']
-    except ImportError:
-        print("%s pymathis module was not found.", module)
-        return sys.exit(1)
-    except Exception:
-        print("%s is not a pymathics module.",module)
-        return sys.exit(1)
-    
-    builtinmathicsdocumentation = documentation
-    builtinmathicsdefinitions = definitions
-
-    definitions = Definitions(add_builtin=True)
-    definitions.load_pymathics_module(module)
-    documentation = PymathicsDocumentation(module)
-
-    if xmlfilepath:
-        xmlfile = xmlfilepath
-    else:
-        xmlfile = settings.DOC_XML_DATA + "-" + module
-
-    if texfilepath:
-        texfile = texfilepath
-    else:
-        texfile = settings.DOC_TEX_DATA + "-" + module
-
-    if not quiet:
-        print("\n Testing module %s v %s in mathics %s" % (module, version_module,  version_string))
-    try:
-        index = 0
-        count = failed = skipped = 0
-        failed_symbols = set()
-        output_xml = {}
-        output_tex = {}
-
-        for tests in documentation.get_tests():
-            sub_count, sub_failed, sub_skipped, symbols, index = test_tests(
-                tests, index, quiet=quiet, stop_on_failure=stop_on_failure,
-                start_at=start_at)
-            if generate_output:
-                create_output(tests, output_xml, output_tex)
-            count += sub_count
-            failed += sub_failed
-            skipped += sub_skipped
-            failed_symbols.update(symbols)
-            if sub_failed and stop_on_failure:
-                break
-        builtin_count = len(builtins)
-    except KeyboardInterrupt:
-        print("\nAborted.\n")
-        documentation = builtinmathicsdocumentation
-        definitions = builtinmathicsdefinitions
-        return
-
-
-    if failed > 0:
-        print(sep)
-    print("%d Tests for %d pymathics symbols in %s , %d passed, %d failed, %d skipped." % (
-        count, builtin_count, module, count - failed - skipped, failed, skipped))
-    if failed_symbols:
-        if stop_on_failure:
-            print("(not all tests are accounted for due to --stop-on-failure)")
-        print("Failed:")
-        for part, chapter, section in sorted(failed_symbols):
-            print('  - %s in %s / %s' % (section, part, chapter))
-
-    if failed == 0:
-        print('\nOK')
-
-        if generate_output:
-            print('Save XML')
-            with open_ensure_dir(xmlfile , 'wb') as output_file:
-                pickle.dump(output_xml, output_file, 0)
-
-            print('Save TEX')
-            with open_ensure_dir(texfile, 'wb') as output_file:
-                pickle.dump(output_tex, output_file, 0)
-    else:
-        print('\nFAILED')
-        return sys.exit(1)      # Travis-CI knows the tests have failed
-
-    
-
-    
-    documentation = builtinmathicsdocumentation
-    definitions = builtinmathicsdefinitions
-    return 
     
 def test_all(quiet=False, generate_output=False, stop_on_failure=False,
              start_at=0, xmldatafolder=None, texdatafolder=None):
@@ -295,37 +199,6 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
             if sub_failed and stop_on_failure:
                 break
         builtin_count = len(builtins)
-
-        # if include_pymathics:
-        #     from mathics.doc.doc import  PymathicsDocumentation, DocPart, DocChapter, DocPart
-        #     pymathics_part = DocPart(documentation, "Pymathics Modules", is_reference=True)
-        #     from mathics.settings import default_pymathics_modules 
-        #     main_documentation = documentation
-        #     pymathics_part = DocPart(main_documentation, "Pymathics Modules")
-        #     for module in  default_pymathics_modules:
-        #         moduledoc = PymathicsDocumentation(module)
-        #         documentation = moduledoc
-        #         for part in  documentation.parts:
-        #             if  part.title == "Pymathics Modules":
-        #                 for chapter in part.chapters:
-        #                     pymathics_part.append(chapter)
-
-        #         for tests in documentation.get_tests():
-        #             sub_count, sub_failed, sub_skipped, symbols, index = test_tests(
-        #                 tests, index, quiet=quiet, stop_on_failure=stop_on_failure,
-        #                 start_at=start_at)
-        #             if generate_output:
-        #                 create_output(tests, output_xml, output_tex)
-        #             count += sub_count
-        #             failed += sub_failed
-        #             skipped += sub_skipped
-        #             failed_symbols.update(symbols)
-        #             if sub_failed and stop_on_failure:
-        #                 break
-        #         builtin_count = builtin_count + len(moduledoc.symbols)
-        #     main_documentation.parts.append(pymathics_part)
-        #     documentation = main_documentation
-
     except KeyboardInterrupt:
         print("\nAborted.\n")
         return
@@ -346,34 +219,23 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
 
         if generate_output:
             print('Save XML')
-            with open_ensure_dir(xmldatafolder, 'wb') as output_file:
+            with open_ensure_dir(documentation.xml_data_file, 'wb') as output_file:
                 pickle.dump(output_xml, output_file, 0)
 
             print('Save TEX')
-            with open_ensure_dir(texdatafolder, 'wb') as output_file:
+            with open_ensure_dir(documentation.tex_data_file, 'wb') as output_file:
                 pickle.dump(output_tex, output_file, 0)
     else:
         print('\nFAILED')
         return sys.exit(1)      # Travis-CI knows the tests have failed
 
 
-def write_latex(texdatapath=None, latexfilepath=None):
-    if texdatapath:
-        texdata = texdatapath
-    else:
-        texdata = settings.DOC_TEX_DATA
-
-    if latexfilepath:
-        latexfile = latexfilepath
-    else:
-        latexfile = settings.DOC_LATEX_FILE 
-
-    print("Load data")
-    with open_ensure_dir(texdata, 'rb') as output_file:
+def write_latex():
+    with open_ensure_dir(documentation.tex_data_file, 'rb') as output_file:
         output_tex = pickle.load(output_file)
 
-    print('Print documentation')
-    with open_ensure_dir(latexfile, 'wb') as doc:
+    print('Print documentation in '+ documentation.latex_file)
+    with open_ensure_dir(documentation.latex_file, 'wb') as doc:
         content = documentation.latex(output_tex)
         content = content.encode('utf-8')
         doc.write(content)

@@ -642,16 +642,22 @@ class MathicsMainDocumentation(Documentation):
         self.title = "Overview"
         self.parts = []
         self.parts_by_slug = {}
-        dir = settings.DOC_DIR
-        files = listdir(dir)
+        self.doc_dir = settings.DOC_DIR
+        self.xml_data_file = settings.DOC_XML_DATA
+        self.tex_data_file = settings.DOC_TEX_DATA
+        self.latex_file = settings.DOC_LATEX_FILE
+
+        files = listdir(self.doc_dir)
         files.sort()
         appendix = []
+
+        
         for file in files:
             part_title = file[2:]
             if part_title.endswith('.mdoc'):
                 part_title = part_title[:-len('.mdoc')]
                 part = DocPart(self, part_title)
-                text = open(dir + file, 'rb').read().decode('utf8')
+                text = open(self.doc_dir + file, 'rb').read().decode('utf8')
                 text = filter_comments(text)
                 chapters = CHAPTER_RE.findall(text)
                 for title, text in chapters:
@@ -701,7 +707,7 @@ class MathicsMainDocumentation(Documentation):
 
         for part in appendix:
             self.parts.append(part)
-
+        
         # set keys of tests
         for tests in self.get_tests():
             for test in tests.tests:
@@ -719,7 +725,8 @@ class PyMathicsDocumentation(Documentation):
             print("Module does not exist")
             mainfolder = ""
             self.pymathicsmodule = None
-            return 
+            return
+
         if hasattr(self.pymathicsmodule, "pymathics_version_data"):
             mainfolder = self.pymathicsmodule.__path__[0]
             self.version = self.pymathicsmodule.pymathics_version_data['version']
@@ -729,10 +736,17 @@ class PyMathicsDocumentation(Documentation):
             mainfolder = ""
             self.pymathicsmodule = None
             return
+
+        # Paths
+        self.doc_dir =  self.pymathicsmodule.__path__[0] + "/doc"
+        self.xml_data_file = self.doc_dir + "/xml/data"
+        self.tex_data_file = self.doc_dir + "/tex/data"
+        self.latex_file = self.doc_dir    + "/tex/documentation.tex"
         
         #Load the dictionary of mathics symbols defined in the module
         self.symbols = {}
         from mathics.builtin import is_builtin, Builtin
+        print("loading symbols")
         for name in dir(self.pymathicsmodule):
             var = getattr(self.pymathicsmodule, name)
             if (hasattr(var, '__module__') and
@@ -747,10 +761,13 @@ class PyMathicsDocumentation(Documentation):
         self.parts = []
         self.parts_by_slug = {}
         try:
-            files = listdir(mainfolder + '/doc')
-            mainfolder = mainfolder + '/doc'
+            files = listdir(self.doc_dir)
             files.sort()
         except FileNotFoundError:
+            self.doc_dir = ""
+            self.xml_data_file = ""
+            self.tex_data_file = ""
+            self.latex_file = ""
             files = []
         appendix = []
         for file in files:
@@ -758,7 +775,7 @@ class PyMathicsDocumentation(Documentation):
             if part_title.endswith('.mdoc'):
                 part_title = part_title[:-len('.mdoc')]
                 part = DocPart(self, part_title)
-                text = open(dir + file, 'rb').read().decode('utf8')
+                text = open(self.doc_dir + file, 'rb').read().decode('utf8')
                 text = filter_comments(text)
                 chapters = CHAPTER_RE.findall(text)
                 for title, text in chapters:
@@ -777,7 +794,7 @@ class PyMathicsDocumentation(Documentation):
                 else:
                     part.is_appendix = True
                     appendix.append(part)
-        
+
         # Builds the automatic documentation
         builtin_part = DocPart(self, "Pymathics Modules", is_reference=True)
         title, text = get_module_doc(self.pymathicsmodule)
@@ -785,7 +802,7 @@ class PyMathicsDocumentation(Documentation):
         for name in self.symbols:
             instance = self.symbols[name]
             installed = True
-            for package in self.pymathicsmodule.pymathics_version_data['requires'] :
+            for package in getattr(instance, 'requires', []) :
                 try:
                     importlib.import_module(package)
                 except ImportError:
@@ -797,8 +814,8 @@ class PyMathicsDocumentation(Documentation):
                 operator=instance.get_operator(),
                 installed=installed)
             chapter.sections.append(section)
-            builtin_part.chapters.append(chapter)
-            self.parts.append(builtin_part)
+        builtin_part.chapters.append(chapter)
+        self.parts.append(builtin_part)
         # Adds possible appendices
         for part in appendix:
             self.parts.append(part)
@@ -809,8 +826,7 @@ class PyMathicsDocumentation(Documentation):
                 test.key = (
                     tests.part, tests.chapter, tests.section, test.index)
 
-
-
+                
 class DocPart(DocElement):
     def __init__(self, doc, title, is_reference=False):
         self.doc = doc
@@ -956,7 +972,8 @@ class Doc(object):
             if tests is not None:
                 self.items.append(tests)
                 tests = None
-
+        
+        
     def __str__(self):
         return '\n'.join(str(item) for item in self.items)
 

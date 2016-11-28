@@ -6,4 +6,4 @@ from __future__ import absolute_import
 
 from .doc import MathicsMainDocumentation
 
-documentation = MathicsMainDocumentation()
+# documentation = MathicsMainDocumentation()
