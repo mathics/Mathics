@@ -269,15 +269,14 @@ def main():
     parser.add_argument('--skip', metavar='N', dest="skip", type=int,
                         default=0, help="skip the first N tests")
     args = parser.parse_args()
-
+    
     if args.tex:
         write_latex()
     else:
+        if args.pymathics:
+            documentation.load_pymathics_doc()
+
         if args.section:
-            if args.pymathics:
-                from mathics.settings import default_pymathics_modules 
-                for pymmodule in default_pymathics_modules:
-                    definitions.load_pymathics_module(pymmodule)
             test_section(args.section, stop_on_failure=args.stop_on_failure)
         else:
             start_at = args.skip + 1

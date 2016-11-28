@@ -646,7 +646,7 @@ class MathicsMainDocumentation(Documentation):
         self.xml_data_file = settings.DOC_XML_DATA
         self.tex_data_file = settings.DOC_TEX_DATA
         self.latex_file = settings.DOC_LATEX_FILE
-
+        self.pymathics_doc_loaded = False
         files = listdir(self.doc_dir)
         files.sort()
         appendix = []
@@ -714,6 +714,29 @@ class MathicsMainDocumentation(Documentation):
                 test.key = (
                     tests.part, tests.chapter, tests.section, test.index)
 
+    def load_pymathics_doc():
+        if self.pymathics_doc_loaded:
+            return
+        from mathics.settings import default_pymathics_modules
+        pymathicspart = None
+        # Look the "Pymathics Modules" part, and if it does not exist, create it.  
+        for part in documentation.parts:
+            if part.title == "Pymathics Modules":
+                pymathicspart = part
+        if pymathicspart is None:
+            pymathicspart = DocPart(self, "Pymathics Modules", is_reference=True)
+            documentation.parts.append(pymathicspart)
+            
+        #For each module, create the documentation object and load the chapters in the pymathics part.    
+        for pymmodule in default_pymathics_modules:
+            definitions.load_pymathics_module(pymmodule)
+            pymathicsdoc = PyMathicsDocumentation(pymmodule)
+            for part in pymathicsdoc.parts:
+                if part.title == "Pymathics Modules":
+                    for ch in part.chapters: 
+                        pymathicspart.chapters.append(ch)
+
+        self.pymathics_doc_loaded = True
 
 class PyMathicsDocumentation(Documentation):
     def __init__(self, module):

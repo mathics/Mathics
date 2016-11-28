@@ -30,6 +30,8 @@ import six
 from six.moves import range
 from string import Template
 
+documentation.load_pymathics_doc()
+
 if settings.DEBUG:
     JSON_CONTENT_TYPE = 'text/html'
 else:
