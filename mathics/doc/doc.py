@@ -714,7 +714,7 @@ class MathicsMainDocumentation(Documentation):
                 test.key = (
                     tests.part, tests.chapter, tests.section, test.index)
 
-    def load_pymathics_doc():
+    def load_pymathics_doc(self):
         if self.pymathics_doc_loaded:
             return
         from mathics.settings import default_pymathics_modules
