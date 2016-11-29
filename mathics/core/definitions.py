@@ -49,7 +49,7 @@ class Definitions(object):
         super(Definitions, self).__init__()
         self.builtin = {}
         self.user = {}
-        self.pymathics = [] 
+        self.pymathics = {} 
 
         self.definitions_cache = {}
         self.lookup_cache = {}
@@ -74,7 +74,7 @@ class Definitions(object):
                 contribute(self)
                 for module in extension_modules:
                     try:
-                        loaded_module = self.load_pymathics_module(module)
+                        loaded_module = self.load_pymathics_module(module, remove_on_quit=False)
                     except PyMathicsLoadException as e:
                         print(e.module + ' is not a valid pymathics module.')
                         continue
@@ -108,7 +108,7 @@ class Definitions(object):
             self.user = {}
             self.clear_cache()
 
-    def load_pymathics_module(self, module):
+    def load_pymathics_module(self, module, remove_on_quit=True):
         '''
         loads Mathics builtin objects and their definitions
         from an external python module
@@ -132,14 +132,19 @@ class Definitions(object):
         self.builtin.update(newsymbols)
         for name, item in newsymbols.items():
             if name != 'System`MakeBoxes':
-                self.pymathics.append(name)
+                if remove_on_quit and name not in self.pymathics:
+                    self.pymathics[name] = self.builtin.get(name, None)
                 item.contribute(self)
         return loaded_module
 
     def clear_pymathics_modules(self):
         for s in self.pymathics:
-            if s in self.builtin: 
-                self.builtin.__delitem__(s)
+            if s in self.builtin:
+                # If there was a true built-in definition for the symbol, restore it, else, remove he symbol. 
+                if self.pymathics[s]:
+                    self.builtin[s] = self.pymathics[s]
+                else:
+                    self.builtin.__delitem__(s)
         self.pymathics = []
         return None
 
