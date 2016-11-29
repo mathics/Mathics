@@ -94,9 +94,9 @@ script:
       fi
     else
       if [["$PYMATHICS_MODULES" == "true" ]]; then
-         python pymathics/test.py;
+        echo "python pymathics/test.py;"
       else
-         python mathics/test.py;
+        echo "python mathics/test.py;"
       fi
     fi
     echo "Everything OK?"
