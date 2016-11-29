@@ -129,16 +129,21 @@ class Definitions(object):
                 instance = var(expression=False)
                 if isinstance(instance, Builtin):
                     newsymbols[instance.get_name()] = instance
+
+        for name in newsymbols:
+            if remove_on_quit and name not in self.pymathics:
+                    self.pymathics[name] = self.builtin.get(name, None)
+
         self.builtin.update(newsymbols)
         for name, item in newsymbols.items():
             if name != 'System`MakeBoxes':
-                if remove_on_quit and name not in self.pymathics:
-                    self.pymathics[name] = self.builtin.get(name, None)
                 item.contribute(self)
         return loaded_module
 
     def clear_pymathics_modules(self):
+        print(self.pymathics.__repr__())
         for s in self.pymathics:
+            print("dropping " + s)
             if s in self.builtin:
                 # If there was a true built-in definition for the symbol, restore it, else, remove he symbol. 
                 if self.pymathics[s]:
