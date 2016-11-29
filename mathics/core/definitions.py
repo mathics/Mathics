@@ -138,7 +138,8 @@ class Definitions(object):
 
     def clear_pymathics_modules(self):
         for s in self.pymathics:
-            self.builtin.__delitem__(s)
+            if self.builtin.has_hey(s): 
+                self.builtin.__delitem__(s)
         self.pymathics = []
         return None
 
