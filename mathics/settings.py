@@ -119,7 +119,7 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = 'mathics.urls'
 
-default_pymathics_modules = ["pymathics.natlang",  "pymathics.testpymathicsmodule"]
+default_pymathics_modules = ["pymathics.natlang"]
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or

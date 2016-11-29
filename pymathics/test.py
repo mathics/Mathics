@@ -15,13 +15,51 @@ from mathics.core.definitions import Definitions
 from mathics.doc.doc import PyMathicsDocumentation
 
 
-module = "pymathics"
+
+
 
 definitions = Definitions(add_builtin=True)
-definitions.load_pymathics_module(module)
-documentation = PyMathicsDocumentation(module)
+documentation = PyMathicsDocumentation()
 
+
+def load_all_pymathics_modules():
+    from mathics.settings import default_pymathics_modules
+    from os import listdir, path
+    from mathics.doc.doc import DocPart, DocChapter
+    
+    global definitions
+    global documentation
+    pymathics_dir = __path__[0]
+    documentation.doc_dir =  pymathics_dir + "/doc/"
+    documentation.xml_data_file =  documentation.xml_data_file + "xml/"
+    documentation.tex_data_file =  documentation.xml_data_file + "tex/"
+    documentation.latex_file    =  documentation.xml_data_file + "tex/pymathics-documentation.tex"
+
+    pymathics_modules =  []
+    subdirs = listdir(pymathics_dir)
+    for folder in subdirs:
+        if folder.isdir():
+            pymathics_modules.append(folder)
+
+    modules_part = DocPart(documentation, "Modules", False)
+    
+    for module in pymathics_modules:
+        try:
+            definitions.load_pymathics_module(module)
+        except Exception:
+            continue
+        docs = PyMathicsDocumentation(module)
+        part = doc.get_part("pymathics-modules")
+        for ch in part.chapters:
+            ch.part = modules_part
+            modules_part.chapters_by_slug[ch.slug] = ch
+            modules_part.chapters.append(ch)
+    documentation.parts.append(modules_part)
+    
+
+    
 def main():
+    load_all_pymathics_modules()
     testsuite.documentation = documentation
     testsuite.definitions = definitions
     parser = ArgumentParser(description="Mathics test suite, Pymathics module.", add_help=False)

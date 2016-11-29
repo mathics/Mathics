@@ -740,8 +740,19 @@ class MathicsMainDocumentation(Documentation):
         self.pymathics_doc_loaded = True
 
 class PyMathicsDocumentation(Documentation):
-    def __init__(self, module):
+    def __init__(self, module=None):
+        if module is None:
+            self.title = "Overview"
+            self.parts = []
+            self.parts_by_slug = {}
+            self.doc_dir =  None
+            self.xml_data_file = None
+            self.tex_data_file = None
+            self.latex_file = None
+            self.symbols = {}
+            return
         import importlib
+        
         #Load the module and verifies it is a pymathics module
         try:
             self.pymathicsmodule = importlib.import_module(module)
