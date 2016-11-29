@@ -99,7 +99,7 @@ script:
         echo "python mathics/test.py;"
       fi
     fi
-    echo "Everything OK?"
+  - echo "Everything OK?"
 notifications:
     email: false
     slack: mathics:VIjdkcZPlA79sOtVOtyjdOcT
