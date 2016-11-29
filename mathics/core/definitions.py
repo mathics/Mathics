@@ -82,7 +82,7 @@ class Definitions(object):
                         print(e.__repr__())
                         continue
                     print(module + loaded_module.pymathics_version_data['version'] + "  by " + loaded_module.pymathics_version_data['author'])
-                    self.builtin.append(module)
+
 
                     if builtin_filename is not None:
                         builtin_file = open(builtin_filename, 'wb')
