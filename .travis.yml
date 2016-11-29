@@ -94,12 +94,11 @@ script:
       fi
     else
       if [["$PYMATHICS_MODULES" == "true" ]]; then
-        echo "python pymathics/test.py;"
+        python pymathics/test.py;
       else
-        echo "python mathics/test.py;"
+        python mathics/test.py --stop-on-failure;
       fi
     fi
-  - echo "Everything OK?"
 notifications:
     email: false
     slack: mathics:VIjdkcZPlA79sOtVOtyjdOcT
