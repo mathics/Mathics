@@ -84,9 +84,9 @@ class Definitions(object):
                     print(module + loaded_module.pymathics_version_data['version'] + "  by " + loaded_module.pymathics_version_data['author'])
 
 
-                    if builtin_filename is not None:
-                        builtin_file = open(builtin_filename, 'wb')
-                        pickle.dump(self.builtin, builtin_file, -1)
+                if builtin_filename is not None:
+                    builtin_file = open(builtin_filename, 'wb')
+                    pickle.dump(self.builtin, builtin_file, -1)
 
             # Load symbols from the autoload folder
             for root, dirs, files in os.walk(os.path.join(ROOT_DIR, 'autoload')):
