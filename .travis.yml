@@ -99,6 +99,7 @@ script:
          python mathics/test.py;
       fi
     fi
+    echo "Everything OK?"
 notifications:
     email: false
     slack: mathics:VIjdkcZPlA79sOtVOtyjdOcT
