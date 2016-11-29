@@ -81,7 +81,7 @@ class Definitions(object):
                     except Exception as e:
                         print(e.__repr__())
                         continue
-                    print(module + loaded_module.pymathics_version_data['version'] + "  by " + loaded_module.pymathics_version_data['author'])
+                    #print(module + loaded_module.pymathics_version_data['version'] + "  by " + loaded_module.pymathics_version_data['author'])
 
 
                 if builtin_filename is not None:
