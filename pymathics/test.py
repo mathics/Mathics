@@ -29,16 +29,19 @@ def load_all_pymathics_modules():
     
     global definitions
     global documentation
-    pymathics_dir = __path__[0]
+
+    pymathics_dir = path.dirname(__file__) + "/"
     documentation.doc_dir =  pymathics_dir + "/doc/"
-    documentation.xml_data_file =  documentation.xml_data_file + "xml/"
-    documentation.tex_data_file =  documentation.xml_data_file + "tex/"
-    documentation.latex_file    =  documentation.xml_data_file + "tex/pymathics-documentation.tex"
+    documentation.xml_data_file =  pymathics_dir + "xml/"
+    documentation.tex_data_file =  pymathics_dir + "tex/"
+    documentation.latex_file    =  pymathics_dir + "tex/pymathics-documentation.tex"
 
     pymathics_modules =  []
     subdirs = listdir(pymathics_dir)
     for folder in subdirs:
-        if folder.isdir():
+        if folder[0] == "_":
+            continue
+        if path.isdir(pymathics_dir + folder):
             pymathics_modules.append(folder)
 
     modules_part = DocPart(documentation, "Modules", False)
@@ -49,13 +52,13 @@ def load_all_pymathics_modules():
         except Exception:
             continue
         docs = PyMathicsDocumentation(module)
-        part = doc.get_part("pymathics-modules")
+        part = docs.get_part("pymathics-modules")
         for ch in part.chapters:
             ch.part = modules_part
             modules_part.chapters_by_slug[ch.slug] = ch
             modules_part.chapters.append(ch)
     documentation.parts.append(modules_part)
-    
+
 
     
 def main():
