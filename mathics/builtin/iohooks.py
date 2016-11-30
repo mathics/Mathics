@@ -14,6 +14,7 @@ class IOHookPreRead(Builtin):
     '''
     name = "$PreRead"
 
+
 class IOHookPre(Builtin):
     '''
     <dl>
@@ -43,7 +44,7 @@ class IOHookPre(Builtin):
     '''
     name = "$Pre"
 
-    
+
 class IOHookPost(Builtin):
     '''
     <dl>
@@ -76,6 +77,3 @@ class IOHookSyntaxHandler(Builtin):
     </dl>
     '''
     name = "$SyntaxHandler"
-
-
-

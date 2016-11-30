@@ -110,8 +110,8 @@ def xml_object(root):
         tree = root.getroottree()
         declaration = [
             Expression(Expression('XMLObject', String('Declaration')),
-            Expression('Rule', String('Version'), String(tree.docinfo.xml_version)),
-            Expression('Rule', String('Encoding'), String(tree.docinfo.encoding)))]
+                       Expression('Rule', String('Version'), String(tree.docinfo.xml_version)),
+                       Expression('Rule', String('Encoding'), String(tree.docinfo.encoding)))]
     else:
         declaration = []
 
@@ -205,6 +205,7 @@ class _Get(Builtin):
         else:
             return xml_object(root)
 
+
 class XMLGet(_Get):
     def _parse(self, text):
         return parse_xml_file(text)
@@ -293,4 +294,3 @@ class XMLObjectImport(Builtin):
         '''%(name)s[text_String]'''
         xml = Expression('XML`Parser`XMLGet', text).evaluate(evaluation)
         return Expression('List', Expression('Rule', 'XMLObject', xml))
-

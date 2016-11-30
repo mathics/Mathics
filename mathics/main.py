@@ -204,7 +204,6 @@ def main():
     argparser.add_argument(
         '--help', '-h', help='show this help message and exit', action='help')
 
-
     argparser.add_argument(
         '--pyextensions', '-l', action='append', metavar='PYEXT', help='directory to load extensions in python')
 
@@ -214,8 +213,6 @@ def main():
 
     argparser.add_argument(
         '--initfile', help='the same that FILE and --persist together', type=argparse.FileType('r'))
-
-
 
     argparser.add_argument(
         '--quiet', '-q', help='don\'t print message at startup',
@@ -263,7 +260,6 @@ def main():
         definitions, args.colors, want_readline=not(args.no_readline),
         want_completion=not(args.no_completion))
 
-
     if args.initfile:
         feeder = FileLineFeeder(args.initfile)
         try:
@@ -276,9 +272,8 @@ def main():
                 evaluation.evaluate(query, timeout=settings.TIMEOUT)
         except (KeyboardInterrupt):
             print('\nKeyboardInterrupt')
-        
-        definitions.set_line_no(0)
 
+        definitions.set_line_no(0)
 
     if args.execute:
         for expr in args.execute:

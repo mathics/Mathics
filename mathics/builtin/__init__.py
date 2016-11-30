@@ -103,7 +103,6 @@ def get_module_doc(module):
     return title, text
 
 
-
 def contribute(definitions):
     # let MakeBoxes contribute first
     builtins['System`MakeBoxes'].contribute(definitions)
@@ -118,7 +117,6 @@ def contribute(definitions):
     definitions.get_attributes('System`$PrePrint').clear()
     definitions.get_attributes('System`$SyntaxHandler').clear()
 
-            
     from mathics.core.expression import ensure_context
     from mathics.core.parser import all_operator_names
     from mathics.core.definitions import Definition
@@ -130,4 +128,3 @@ def contribute(definitions):
         if not definitions.have_definition(ensure_context(operator)):
             op = ensure_context(operator)
             definitions.builtin[op] = Definition(name=op)
-

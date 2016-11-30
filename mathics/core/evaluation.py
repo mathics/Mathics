@@ -253,11 +253,10 @@ class Evaluation(object):
 
         result = None
         exc_result = None
-        
-        def check_io_hook(hook):
-            return  len(self.definitions.get_ownvalues(hook))>0
 
-            
+        def check_io_hook(hook):
+            return len(self.definitions.get_ownvalues(hook)) > 0
+
         def evaluate():
             if history_length > 0:
                 self.definitions.add_rule('In', Rule(
