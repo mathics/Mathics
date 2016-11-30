@@ -151,7 +151,7 @@ class Definitions(object):
                     self.builtin[s] = self.pymathics[s]
                 else:
                     self.builtin.__delitem__(s)
-        self.pymathics = []
+        self.pymathics = {}
         return None
 
     def clear_cache(self, name=None):
