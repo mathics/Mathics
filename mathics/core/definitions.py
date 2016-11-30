@@ -154,7 +154,6 @@ class Definitions(object):
         self.pymathics = []
         return None
 
-
     def clear_cache(self, name=None):
         # the definitions cache (self.definitions_cache) caches (incomplete and complete) names -> Definition(),
         # e.g. "xy" -> d and "MyContext`xy" -> d. we need to clear this cache if a Definition() changes (which

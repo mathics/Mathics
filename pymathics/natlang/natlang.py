@@ -1297,14 +1297,17 @@ class LanguageIdentify(Builtin):
         'pycountry',
     )
 
+    messages = {'langnotfound': 'Language code "``" not found.'}
     def apply(self, text, evaluation):
         'LanguageIdentify[text_String]'
         import langid  # see https://github.com/saffsd/langid.py
         # an alternative: https://github.com/Mimino666/langdetect
         import pycountry
         code, _ = langid.classify(text.get_string_value())
-        language = pycountry.languages.get(alpha_2=code, None)
-        if language is None:
+        try:
+            language = pycountry.languages.get(alpha_2=code)
+        except KeyError:
+            evaluation.message('LanguageIdentify', 'langnotfound', String(code))
             return Symbol("$Failed")
         return String(language.name)
 
