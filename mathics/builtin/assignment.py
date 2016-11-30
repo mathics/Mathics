@@ -16,7 +16,7 @@ from mathics.builtin.lists import walk_parts
 from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
 
 from mathics import settings
-
+from mathics.core.definitions import PyMathicsLoadException
 
 def get_symbol_list(list, error_callback):
     if list.has_form('List', None):
@@ -1045,7 +1045,7 @@ class Quit(Builtin):
         'Quit[]'
 
         evaluation.definitions.set_user_definitions({})
-        evaluation.definitions.clear_pymathics_definitions()
+        evaluation.definitions.clear_pymathics_modules()
         return Symbol('Null')
 
 
@@ -1511,7 +1511,6 @@ class PreDecrement(PrefixOperator):
     }
 
 
-
 class LoadPyMathicsModule(Builtin):
     """
     <dl>
@@ -1523,10 +1522,10 @@ class LoadPyMathicsModule(Builtin):
      : Python module nomodule does not exist.
      = $Failed
     >> LoadPyMathicsModule["sys"]
-     : sys is not a pymathics module.
+     : Python module sys is not a pymathics module.
      = $Failed
-    >>  LoadPyMathicsModule["testpymathicsmodule"]
-     =  testpymathicsmodule
+    >>  LoadPyMathicsModule["pymathics.testpymathicsmodule"]
+     =  pymathics.testpymathicsmodule
     >>  MyPyTestContext`MyPyTestFunction[a]
      = This is a PyMathics output
     >> MyPyTestContext`MyPyTestSymbol
@@ -1535,16 +1534,18 @@ class LoadPyMathicsModule(Builtin):
     >> MyPyTestContext`MyPyTestSymbol
      = MyPyTestContext`MyPyTestSymbol
     """
-
+    name = "LoadPyMathicsModule"
     messages = {'notfound': 'Python module `1` does not exist.',
-                'notmathicslib': '`1` is not a pymathics module.',
-    }
-    
+                'notmathicslib': 'Python module `1` is not a pymathics module.', }
+
 
     def apply(self, module, evaluation):
         "LoadPyMathicsModule[module_String]"
         try:
-            module_loaded = evaluation.definitions.load_python_module(module.value)
+            module_loaded = evaluation.definitions.load_pymathics_module(module.value)
+        except PyMathicsLoadException as e:
+            evaluation.message(self.name, 'notmathicslib', module)            
+            return Symbol("$Failed")
         except ImportError as e:
             evaluation.message(self.get_name(), 'notfound', module)            
             return Symbol('$Failed')
@@ -1552,4 +1553,3 @@ class LoadPyMathicsModule(Builtin):
             evaluation.message(self.get_name(), 'notmathicslib', module)        
             return Symbol('$Failed')
         return module
-    

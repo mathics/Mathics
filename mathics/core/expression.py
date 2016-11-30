@@ -1039,7 +1039,7 @@ class Expression(BaseExpression):
                             for leaf in self.leaves[0].leaves])
         elif self.has_form('SuperscriptBox', 2):
             return '^'.join([leaf.boxes_to_text(**options)
-                               for leaf in self.leaves])
+                             for leaf in self.leaves])
         else:
             raise BoxError(self, 'text')
 
@@ -1234,7 +1234,6 @@ class Expression(BaseExpression):
                 new_applied[0] = new_applied[0] or applied
                 expr = Expression(head, *expr.leaves)
             return expr, new_applied[0]
-
 
     def replace_vars(self, vars, options=None,
                      in_scoping=True, in_function=True):
@@ -1604,6 +1603,7 @@ _number_form_options = {
     'SignPadding': False,
     'NumberMultiplier': '\u00d7',
 }
+
 
 class Integer(Number):
     def __new__(cls, value):

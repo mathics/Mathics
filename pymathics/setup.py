@@ -185,7 +185,6 @@ setup(
             'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
             'templates/doc/*.html'] + mathjax_files,
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
-        'pymathics': ['doc/documentation/*.mdoc', 'doc/xml/data'],
     },
 
     entry_points={
