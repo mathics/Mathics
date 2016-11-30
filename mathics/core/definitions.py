@@ -46,6 +46,10 @@ class PyMathicsLoadException(Exception):
         self.name = module + " is not a valid pymathics module"
         self.module = module
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> contributes
 
 class Definitions(object):
     def __init__(self, add_builtin=False, builtin_filename=None, extension_modules=[]):
@@ -150,7 +154,6 @@ class Definitions(object):
                     self.builtin.__delitem__(s)
         self.pymathics = {}
         return None
-
 
     def clear_cache(self, name=None):
         # the definitions cache (self.definitions_cache) caches (incomplete and complete) names -> Definition(),

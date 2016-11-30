@@ -19,7 +19,6 @@ pymathics_version_data = {'author': 'Juan Mauricio Matera',
 from  mathics.builtin.base import Builtin, Symbol, String, AtomBuiltin
 
 
-
 class MyPyTestFunction(Builtin):
     """
     MyPyTestFunction defines a Symbol.
