@@ -41,7 +41,6 @@ def valuesname(name):
         return name[7:-6].lower()
 
 
-
 class PyMathicsLoadException(Exception):
     def __init__(self,module):
         self.name = module + " is not a valid pymathics module"
@@ -53,13 +52,12 @@ class Definitions(object):
         super(Definitions, self).__init__()
         self.builtin = {}
         self.user = {}
-        self.pymathics = []
-        
+        self.pymathics = {} 
+
         self.definitions_cache = {}
         self.lookup_cache = {}
         self.proxy = defaultdict(set)
         self.now = 0    # increments whenever something is updated
-
 
         if add_builtin:
             from mathics.builtin import modules, contribute
@@ -79,16 +77,13 @@ class Definitions(object):
                 contribute(self)
                 for module in extension_modules:
                     try:
-                        loaded_module = self.load_python_module(module)
+                        loaded_module = self.load_pymathics_module(module, remove_on_quit=False)
                     except PyMathicsLoadException as e:
                         print(e.module + ' is not a valid pymathics module.')
                         continue
                     except ImportError as e:
                         print(e.__repr__())
                         continue
-                    #print(module +" v"+ loaded_module.pymathics_version_data['version'] + "  by " + loaded_module.pymathics_version_data['author'])
-                    
-                            
                 if builtin_filename is not None:
                     builtin_file = open(builtin_filename, 'wb')
                     pickle.dump(self.builtin, builtin_file, -1)
@@ -113,41 +108,48 @@ class Definitions(object):
             self.user = {}
             self.clear_cache()
 
-
-    
-    def load_python_module(self, module):                
+    def load_pymathics_module(self, module, remove_on_quit=True):
+        '''
+        loads Mathics builtin objects and their definitions
+        from an external python module
+        '''
         import importlib
-        from mathics.builtin.base import Builtin
-        from mathics.builtin import is_builtin, builtins
-        try:
-            loaded_module = importlib.import_module(module)
-        except ImportError as e:
-            raise e
+        from mathics.builtin import is_builtin, builtins, Builtin
+        loaded_module = importlib.import_module(module)
         vars = dir(loaded_module)
         newsymbols = {}
-        if not hasattr(loaded_module,'pymathics_version_data'):
+        if not ('pymathics_version_data' in vars):
             raise PyMathicsLoadException(module)
         for name in vars:
             var = getattr(loaded_module, name)
             if (hasattr(var, '__module__') and
                 var.__module__ != 'mathics.builtin.base' and 
-                is_builtin(var) and not name.startswith('_') and
-                var.__module__ == loaded_module.__name__):     # nopep8
+                    is_builtin(var) and not name.startswith('_') and
+                var.__module__[:len(loaded_module.__name__)] == loaded_module.__name__):     # nopep8
                 instance = var(expression=False)
                 if isinstance(instance, Builtin):
-                    newsymbols[instance.get_name()] =  instance
+                    newsymbols[instance.get_name()] = instance
+        for name in newsymbols:
+            if remove_on_quit and name not in self.pymathics:
+                    self.pymathics[name] = self.builtin.get(name, None)
         self.builtin.update(newsymbols)
         for name, item in newsymbols.items():
             if name != 'System`MakeBoxes':
                 item.contribute(self)
-                self.pymathics.append(name)
         return loaded_module
 
-    def clear_pymathics_definitions(self):
-        for name in self.pymathics:
-            self.builtin.__delitem__(name)
+    def clear_pymathics_modules(self):
+        print(self.pymathics.__repr__())
+        for s in self.pymathics:
+            print("dropping " + s)
+            if s in self.builtin:
+                # If there was a true built-in definition for the symbol, restore it, else, remove he symbol. 
+                if self.pymathics[s]:
+                    self.builtin[s] = self.pymathics[s]
+                else:
+                    self.builtin.__delitem__(s)
         self.pymathics = []
-
+        return None
 
 
     def clear_cache(self, name=None):
@@ -393,18 +395,17 @@ class Definitions(object):
                     formatvalues[form] = rules
 
             definition = Definition(name=name,
-                              ownvalues=user.ownvalues + builtin.ownvalues,
-                              downvalues=user.downvalues + builtin.downvalues,
-                              subvalues=user.subvalues + builtin.subvalues,
-                              upvalues=user.upvalues + builtin.upvalues,
-                              formatvalues=formatvalues,
-                              messages=user.messages + builtin.messages,
-                              attributes=attributes,
-                              options=options,
-                              nvalues=user.nvalues + builtin.nvalues,
-                              defaultvalues=user.defaultvalues +
-                              builtin.defaultvalues,
-                              )
+                                    ownvalues=user.ownvalues + builtin.ownvalues,
+                                    downvalues=user.downvalues + builtin.downvalues,
+                                    subvalues=user.subvalues + builtin.subvalues,
+                                    upvalues=user.upvalues + builtin.upvalues,
+                                    formatvalues=formatvalues,
+                                    messages=user.messages + builtin.messages,
+                                    attributes=attributes,
+                                    options=options,
+                                    nvalues=user.nvalues + builtin.nvalues,
+                                    defaultvalues=user.defaultvalues +
+                                    builtin.defaultvalues,)
 
         if definition is not None:
             self.proxy[strip_context(original_name)].add(original_name)

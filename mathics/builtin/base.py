@@ -18,7 +18,6 @@ from mathics.core.expression import (BaseExpression, Expression, Symbol,
 import six
 
 
-
 class Builtin(object):
     name = None
     context = 'System`'
@@ -140,8 +139,6 @@ class Builtin(object):
                 pattern = Expression('Default', Symbol(name), Integer(spec))
             if pattern is not None:
                 defaults.append(Rule(pattern, value, system=True))
-
-
         definition = Definition(
             name=name, rules=rules, formatvalues=formatvalues,
             messages=messages, attributes=attributes, options=options,
@@ -248,8 +245,6 @@ class Builtin(object):
                     return s.get_name()[len(prefix):], s
         return None, s
 
-
-    
 
 class InstancableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):

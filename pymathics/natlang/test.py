@@ -18,9 +18,11 @@ from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import SingleLineFeeder
 from mathics.builtin import builtins
-
+from mathics.doc import documentation
 from mathics import version_string
 from mathics import settings
+
+definitions = Definitions(add_builtin=True, extension_modules=['pymathics.natlang'])
 
 
 class TestOutput(Output):
@@ -30,9 +32,6 @@ class TestOutput(Output):
 
 sep = '-' * 70 + '\n'
 
-#Global variables
-definitions = None
-documentation = None
 
 def compare(result, wanted):
     if result == wanted:
@@ -144,14 +143,13 @@ def test_section(section, quiet=False, stop_on_failure=False):
     print('Testing section %s' % section)
     for tests in documentation.get_tests():
         if tests.section == section or tests.section == '$' + section:
-            found = True
             for test in tests.tests:
                 index += 1
                 if not test_case(test, tests, index, quiet=quiet):
                     failed += 1
                     if stop_on_failure:
                         break
-                    
+
     print()
     if failed > 0:
         print('%d test%s failed.' % (failed, 's' if failed != 1 else ''))
@@ -168,18 +166,12 @@ def open_ensure_dir(f, *args, **kwargs):
             os.makedirs(d)
         return open(f, *args, **kwargs)
 
-    
+
 def test_all(quiet=False, generate_output=False, stop_on_failure=False,
-             start_at=0, xmldatafolder=None, texdatafolder=None):
-    global documentation
+             start_at=0):
     if not quiet:
         print("Testing %s" % version_string)
 
-    if generate_output:
-        if xmldatafolder is None:
-            xmldatafolder = settings.DOC_XML_DATA
-        if texdatafolder is None:
-            texdatafolder = settings.DOC_TEX_DATA
     try:
         index = 0
         count = failed = skipped = 0
@@ -219,11 +211,11 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
 
         if generate_output:
             print('Save XML')
-            with open_ensure_dir(documentation.xml_data_file, 'wb') as output_file:
+            with open_ensure_dir(settings.DOC_XML_DATA, 'wb') as output_file:
                 pickle.dump(output_xml, output_file, 0)
 
             print('Save TEX')
-            with open_ensure_dir(documentation.tex_data_file, 'wb') as output_file:
+            with open_ensure_dir(settings.DOC_TEX_DATA, 'wb') as output_file:
                 pickle.dump(output_tex, output_file, 0)
     else:
         print('\nFAILED')
@@ -231,23 +223,18 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
 
 
 def write_latex():
-    with open_ensure_dir(documentation.tex_data_file, 'rb') as output_file:
+    print("Load data")
+    with open_ensure_dir(settings.DOC_TEX_DATA, 'rb') as output_file:
         output_tex = pickle.load(output_file)
 
-    print('Print documentation in '+ documentation.latex_file)
-    with open_ensure_dir(documentation.latex_file, 'wb') as doc:
+    print('Print documentation')
+    with open_ensure_dir(settings.DOC_LATEX_FILE, 'wb') as doc:
         content = documentation.latex(output_tex)
         content = content.encode('utf-8')
         doc.write(content)
 
 
 def main():
-    from mathics.doc import documentation as main_mathics_documentation
-    global definitions
-    global documentation
-    definitions = Definitions(add_builtin=True)
-    documentation = main_mathics_documentation
-
     parser = ArgumentParser(description="Mathics test suite.", add_help=False)
     parser.add_argument(
         '--help', '-h', help='show this help message and exit', action='help')
@@ -264,17 +251,13 @@ def main():
                         action="store_true", help="hide passed tests")
     parser.add_argument('--stop-on-failure', action="store_true",
                         help="stop on failure")
-    parser.add_argument('--pymathics', '-l', dest="pymathics", action="store_true",
-                        help="also checks pymathics modules.")
     parser.add_argument('--skip', metavar='N', dest="skip", type=int,
                         default=0, help="skip the first N tests")
     args = parser.parse_args()
-    
+
     if args.tex:
         write_latex()
     else:
-        if args.pymathics:
-            documentation.load_pymathics_doc()
         if args.section:
             test_section(args.section, stop_on_failure=args.stop_on_failure)
         else:
