@@ -131,7 +131,7 @@ class Definitions(object):
                     newsymbols[instance.get_name()] = instance
         for name in newsymbols:
             if remove_on_quit and name not in self.pymathics:
-                    self.pymathics[name] = self.builtin.get(name, None)
+                self.pymathics[name] = self.builtin.get(name, None)
         self.builtin.update(newsymbols)
         for name, item in newsymbols.items():
             if name != 'System`MakeBoxes':
@@ -148,7 +148,7 @@ class Definitions(object):
                     self.builtin[s] = self.pymathics[s]
                 else:
                     self.builtin.__delitem__(s)
-        self.pymathics = []
+        self.pymathics = {}
         return None
 
 
