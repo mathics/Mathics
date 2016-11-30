@@ -15,9 +15,6 @@ from mathics.core.definitions import Definitions
 from mathics.doc.doc import PyMathicsDocumentation
 
 
-
-
-
 definitions = Definitions(add_builtin=True)
 documentation = PyMathicsDocumentation()
 
@@ -26,17 +23,17 @@ def load_all_pymathics_modules():
     from mathics.settings import default_pymathics_modules
     from os import listdir, path
     from mathics.doc.doc import DocPart, DocChapter
-    
+
     global definitions
     global documentation
 
     pymathics_dir = path.dirname(__file__) + "/"
-    documentation.doc_dir =  pymathics_dir + "/doc/"
-    documentation.xml_data_file =  pymathics_dir + "xml/"
-    documentation.tex_data_file =  pymathics_dir + "tex/"
-    documentation.latex_file    =  pymathics_dir + "tex/pymathics-documentation.tex"
+    documentation.doc_dir = pymathics_dir + "/doc/"
+    documentation.xml_data_file = pymathics_dir + "xml/"
+    documentation.tex_data_file = pymathics_dir + "tex/"
+    documentation.latex_file = pymathics_dir + "tex/pymathics-documentation.tex"
 
-    pymathics_modules =  []
+    pymathics_modules = []
     subdirs = listdir(pymathics_dir)
     for folder in subdirs:
         if folder[0] == "_":
@@ -45,7 +42,7 @@ def load_all_pymathics_modules():
             pymathics_modules.append(folder)
 
     modules_part = DocPart(documentation, "Modules", False)
-    
+
     for module in pymathics_modules:
         try:
             definitions.load_pymathics_module(module)
@@ -60,7 +57,6 @@ def load_all_pymathics_modules():
     documentation.parts.append(modules_part)
 
 
-    
 def main():
     load_all_pymathics_modules()
     testsuite.documentation = documentation

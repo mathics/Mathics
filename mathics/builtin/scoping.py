@@ -521,6 +521,3 @@ class ContextPathStack(Builtin):
     rules = {
         'System`Private`$ContextPathStack': '{}',
     }
-
-
-
