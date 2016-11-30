@@ -207,7 +207,6 @@ def main():
     argparser.add_argument(
         '--pyextensions', '-l', action='append', metavar='PYEXT', help='directory to load extensions in python')
 
-    
     argparser.add_argument(
         '--persist', help='go to interactive shell after evaluating FILE or -e',
         action='store_true')
@@ -251,7 +250,6 @@ def main():
         from mathics.settings import default_pymathics_modules 
         extension_modules = default_pymathics_modules
 
-    
     definitions = Definitions(add_builtin=True, extension_modules=extension_modules)
     definitions.set_line_no(0)
 
@@ -269,7 +267,6 @@ def main():
         if not args.persist:
             return
 
-    
     if args.FILE is not None:
         feeder = FileLineFeeder(args.FILE)
         try:

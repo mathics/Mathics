@@ -30,9 +30,10 @@ class TestOutput(Output):
 
 sep = '-' * 70 + '\n'
 
-#Global variables
+# Global variables
 definitions = None
 documentation = None
+
 
 def compare(result, wanted):
     if result == wanted:
@@ -151,7 +152,7 @@ def test_section(section, quiet=False, stop_on_failure=False):
                     failed += 1
                     if stop_on_failure:
                         break
-                    
+
     print()
     if failed > 0:
         print('%d test%s failed.' % (failed, 's' if failed != 1 else ''))
@@ -168,7 +169,7 @@ def open_ensure_dir(f, *args, **kwargs):
             os.makedirs(d)
         return open(f, *args, **kwargs)
 
-    
+
 def test_all(quiet=False, generate_output=False, stop_on_failure=False,
              start_at=0, xmldatafolder=None, texdatafolder=None):
     global documentation
@@ -234,7 +235,6 @@ def write_latex():
     with open_ensure_dir(documentation.tex_data_file, 'rb') as output_file:
         output_tex = pickle.load(output_file)
 
-    print('Print documentation in '+ documentation.latex_file)
     with open_ensure_dir(documentation.latex_file, 'wb') as doc:
         content = documentation.latex(output_tex)
         content = content.encode('utf-8')
@@ -269,7 +269,7 @@ def main():
     parser.add_argument('--skip', metavar='N', dest="skip", type=int,
                         default=0, help="skip the first N tests")
     args = parser.parse_args()
-    
+
     if args.tex:
         write_latex()
     else:

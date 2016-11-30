@@ -18,6 +18,7 @@ from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_li
 from mathics import settings
 from mathics.core.definitions import PyMathicsLoadException
 
+
 def get_symbol_list(list, error_callback):
     if list.has_form('List', None):
         list = list.leaves
@@ -1537,7 +1538,6 @@ class LoadPyMathicsModule(Builtin):
     name = "LoadPyMathicsModule"
     messages = {'notfound': 'Python module `1` does not exist.',
                 'notmathicslib': 'Python module `1` is not a pymathics module.', }
-
 
     def apply(self, module, evaluation):
         "LoadPyMathicsModule[module_String]"

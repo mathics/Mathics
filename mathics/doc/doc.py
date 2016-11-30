@@ -181,7 +181,7 @@ def escape_latex(text):
     def repl_dl(match):
         text = match.group(1)
         text = DL_ITEM_RE.sub(lambda m: '\\%(tag)s{%(content)s}\n' %
-            m.groupdict(), text)
+                              m.groupdict(), text)
         return '\\begin{definitions}%s\\end{definitions}' % text
     text = DL_RE.sub(repl_dl, text)
 
@@ -651,7 +651,6 @@ class MathicsMainDocumentation(Documentation):
         files.sort()
         appendix = []
 
-        
         for file in files:
             part_title = file[2:]
             if part_title.endswith('.mdoc'):
@@ -707,7 +706,7 @@ class MathicsMainDocumentation(Documentation):
 
         for part in appendix:
             self.parts.append(part)
-        
+
         # set keys of tests
         for tests in self.get_tests():
             for test in tests.tests:
@@ -726,8 +725,8 @@ class MathicsMainDocumentation(Documentation):
         if pymathicspart is None:
             pymathicspart = DocPart(self, "Pymathics Modules", is_reference=True)
             self.parts.append(pymathicspart)
-            
-        #For each module, create the documentation object and load the chapters in the pymathics part.    
+
+        # For each module, create the documentation object and load the chapters in the pymathics part.    
         for pymmodule in default_pymathics_modules:
             pymathicsdoc = PyMathicsDocumentation(pymmodule)
             for part in pymathicsdoc.parts:
@@ -739,21 +738,22 @@ class MathicsMainDocumentation(Documentation):
 
         self.pymathics_doc_loaded = True
 
+
 class PyMathicsDocumentation(Documentation):
     def __init__(self, module=None):
         if module is None:
             self.title = "Overview"
             self.parts = []
             self.parts_by_slug = {}
-            self.doc_dir =  None
+            self.doc_dir = None
             self.xml_data_file = None
             self.tex_data_file = None
             self.latex_file = None
             self.symbols = {}
             return
         import importlib
-        
-        #Load the module and verifies it is a pymathics module
+
+        # Load the module and verifies it is a pymathics module
         try:
             self.pymathicsmodule = importlib.import_module(module)
         except ImportError:
@@ -773,12 +773,12 @@ class PyMathicsDocumentation(Documentation):
             return
 
         # Paths
-        self.doc_dir =  self.pymathicsmodule.__path__[0] + "/doc/"
+        self.doc_dir = self.pymathicsmodule.__path__[0] + "/doc/"
         self.xml_data_file = self.doc_dir + "xml/data"
         self.tex_data_file = self.doc_dir + "tex/data"
-        self.latex_file = self.doc_dir    + "tex/documentation.tex"
-        
-        #Load the dictionary of mathics symbols defined in the module
+        self.latex_file = self.doc_dir + "tex/documentation.tex"
+
+        # Load the dictionary of mathics symbols defined in the module
         self.symbols = {}
         from mathics.builtin import is_builtin, Builtin
         print("loading symbols")
@@ -837,7 +837,7 @@ class PyMathicsDocumentation(Documentation):
         for name in self.symbols:
             instance = self.symbols[name]
             installed = True
-            for package in getattr(instance, 'requires', []) :
+            for package in getattr(instance, 'requires', []):
                 try:
                     importlib.import_module(package)
                 except ImportError:
@@ -861,7 +861,7 @@ class PyMathicsDocumentation(Documentation):
                 test.key = (
                     tests.part, tests.chapter, tests.section, test.index)
 
-                
+
 class DocPart(DocElement):
     def __init__(self, doc, title, is_reference=False):
         self.doc = doc
@@ -1007,8 +1007,7 @@ class Doc(object):
             if tests is not None:
                 self.items.append(tests)
                 tests = None
-        
-        
+
     def __str__(self):
         return '\n'.join(str(item) for item in self.items)
 

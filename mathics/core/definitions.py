@@ -42,10 +42,9 @@ def valuesname(name):
 
 
 class PyMathicsLoadException(Exception):
-    def __init__(self,module):
+    def __init__(self, module):
         self.name = module + " is not a valid pymathics module"
         self.module = module
-
 
 
 class Definitions(object):
