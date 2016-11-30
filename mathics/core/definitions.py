@@ -42,14 +42,10 @@ def valuesname(name):
 
 
 class PyMathicsLoadException(Exception):
-    def __init__(self,module):
+    def __init__(self, module):
         self.name = module + " is not a valid pymathics module"
         self.module = module
 
-<<<<<<< HEAD
-=======
-
->>>>>>> contributes
 
 class Definitions(object):
     def __init__(self, add_builtin=False, builtin_filename=None, extension_modules=[]):
@@ -251,7 +247,7 @@ class Definitions(object):
         return set(self.pymathics)
 
     def get_names(self):
-        return self.get_builtin_names() | self.get_pymathics_names()  | self.get_user_names()
+        return self.get_builtin_names() | self.get_pymathics_names() | self.get_user_names()
 
     def get_accessible_contexts(self):
         "Return the contexts reachable though $Context or $ContextPath."
@@ -370,7 +366,7 @@ class Definitions(object):
         name = self.lookup_name(name)
         user = self.user.get(name, None)
         builtin = self.builtin.get(name, None)
-        
+
         if user is None and builtin is None:            
             definition = None
         elif builtin is None:
@@ -380,13 +376,13 @@ class Definitions(object):
         else:
             if user:
                 attributes = user.attributes
-            elif builtin:  #Never happens
+            elif builtin:                        #  Never happens
                 attributes = builtin.attributes
-            else:  #Never happens
+            else:                                #  Never happens
                 attributes = set()
-            if not user: # Never happens
+            if not user:                         #  Never happens
                 user = Definition(name=name)
-            if not builtin: # Never happens
+            if not builtin:                      #  Never happens
                 builtin = Definition(name=name)
             options = builtin.options.copy()
             options.update(user.options)

@@ -20,6 +20,7 @@ from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_li
 from mathics import settings
 from mathics.core.definitions import PyMathicsLoadException
 
+
 def get_symbol_list(list, error_callback):
     if list.has_form('List', None):
         list = list.leaves
@@ -712,7 +713,6 @@ class Definition(Builtin):
      = Null
     """
 
-
     attributes = ('HoldAll',)
 
     def format_definition(self, symbol, evaluation, grid=True):
@@ -793,20 +793,17 @@ class Definition(Builtin):
             return Symbol('Null')
 
     def format_definition_input(self, symbol, evaluation):
-        'InputForm: Definition[symbol_]'
-        
+        'InputForm: Definition[symbol_]'        
         return self.format_definition(symbol, evaluation, grid=False)
 
 
-
-
-def _get_usage_string(symbol, evaluation, htmlout = False):
+def _get_usage_string(symbol, evaluation, htmlout=False):
     '''
     Returns a python string with the documentation associated to a given symbol.
     '''
     definition = evaluation.definitions.get_definition(symbol.name)
     ruleusage = definition.get_values_list('messages')
-    usagetext = None;
+    usagetext = None
     from mathics.builtin import builtins
     import re
     bio = builtins.get(definition.name)
@@ -817,18 +814,17 @@ def _get_usage_string(symbol, evaluation, htmlout = False):
             usagetext = Doc(bio.__class__.__doc__).text(0)
         else:
             usagetext = Doc(bio.__class__.__doc__).text(0)
-        usagetext = re.sub(r'\$([0-9a-zA-Z]*)\$', r'\1' , usagetext)
+        usagetext = re.sub(r'\$([0-9a-zA-Z]*)\$', r'\1', usagetext)
     # For built-in symbols, looks for a docstring.
-#    if symbol.function. is Builtin:            
-    #evaluation.print_out(String("found: " + usagetext))
-    #usagetext = information_interpret_doc_string(symbol.__doc__)
-        
+    # if symbol.function. is Builtin:            
+    # evaluation.print_out(String("found: " + usagetext))
+    # usagetext = information_interpret_doc_string(symbol.__doc__)
+
     # Looks for the "usage" message. For built-in symbols, if there is an "usage" chain, overwrite the __doc__ information.
     for rulemsg in ruleusage:
-        if  rulemsg.pattern.expr.leaves[1].__str__()=="\"usage\"":
+        if rulemsg.pattern.expr.leaves[1].__str__() == "\"usage\"":
             usagetext = rulemsg.replace.value        
-    return  usagetext            
-
+    return usagetext
 
 
 class Information(PrefixOperator):    
@@ -840,7 +836,7 @@ class Information(PrefixOperator):
     'Information' does not print information for 'ReadProtected' symbols.
     'Information' uses 'InputForm' to format values.
 
-     
+
     >> a = 2;
     >> Information[a]
      = a = 2
@@ -886,37 +882,29 @@ class Information(PrefixOperator):
     """
 
     operator = "??"
-    precedence=0
-    attributes = ('HoldAll', 'SequenceHold','Protect','ReadProtect')
+    precedence = 0
+    attributes = ('HoldAll', 'SequenceHold', 'Protect', 'ReadProtect')
     messages = {'notfound': 'Expression `1` is not a symbol'}
-    options = {'LongForm':'True',}
+    options = {'LongForm': 'True', }
 
-
-
-
-    def format_definition(self, symbol, evaluation, grid = True,**options):
+    def format_definition(self, symbol, evaluation, grid=True, **options):
         'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
         from mathics.core.expression import from_python
         lines = []
-        
-        if  isinstance(symbol,String): 
+        if isinstance(symbol, String): 
             evaluation.print_out(symbol)
             evaluation.evaluate(Expression('Information', Symbol('System`String')))        
-            return  
-
-        
-        if not isinstance(symbol,Symbol): 
-            evaluation.message('Information','notfound',symbol)                         
-            return Symbol('Null');
-
-        
-        #Print the "usage" message if available. 
-        usagetext = _get_usage_string(symbol,evaluation);
-        if usagetext is not None :
+            return
+        if not isinstance(symbol, Symbol): 
+            evaluation.message('Information', 'notfound', symbol)                         
+            return Symbol('Null')
+        # Print the "usage" message if available.
+        usagetext = _get_usage_string(symbol, evaluation)
+        if usagetext is not None:
             lines.append(String(usagetext))
 #            evaluation.print_out(String(usagetext))
 
-        if  self.get_option(options['options'],'LongForm',evaluation).to_python():
+        if self.get_option(options['options'], 'LongForm', evaluation).to_python():
             self.show_definitions(symbol, evaluation, lines)
 
         if grid:
@@ -936,7 +924,7 @@ class Information(PrefixOperator):
         # It would be deserable to call here the routine inside Definition, but for some reason it fails...
         # Instead, I just copy the code from Definition
 
-    def show_definitions(self,symbol, evaluation, lines):
+    def show_definitions(self, symbol, evaluation, lines):
 
         def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
             evaluation.check_stopped()
@@ -998,11 +986,10 @@ class Information(PrefixOperator):
                         for name, value in options)))))
         return 
 
-
-
     def format_definition_input(self, symbol, evaluation):
         'InputForm: Information[symbol_]'
         return self.format_definition(symbol, evaluation, grid=False)
+
 
 class Clear(Builtin):
     """
