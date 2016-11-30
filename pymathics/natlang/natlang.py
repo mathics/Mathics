@@ -1303,7 +1303,9 @@ class LanguageIdentify(Builtin):
         # an alternative: https://github.com/Mimino666/langdetect
         import pycountry
         code, _ = langid.classify(text.get_string_value())
-        language = pycountry.languages.get(alpha_2=code)
+        language = pycountry.languages.get(alpha_2=code, None)
+        if language is None:
+            return Symbol("$Failed")
         return String(language.name)
 
 
