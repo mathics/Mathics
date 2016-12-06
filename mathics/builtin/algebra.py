@@ -251,7 +251,13 @@ class Factor(Builtin):
 
     >> Factor[1 / (x^2+2x+1) + 1 / (x^4+2x^2+1)]
      = (2 + 2 x + 3 x ^ 2 + x ^ 4) / ((1 + x) ^ 2 (1 + x ^ 2) ^ 2)
+
+    ## Issue659
+    #> Factor[{x+x^2}]
+     = {x (1 + x)}
     """
+
+    attributes = ('Listable',)
 
     def apply(self, expr, evaluation):
         'Factor[expr_]'
