@@ -293,10 +293,9 @@ class Parser(object):
 
         # sign
         if s[0] == '-':
-            sign_prefix, s = s[0], s[1:]
+            s = s[1:]
             sign = -1
         else:
-            sign_prefix = ''
             sign = 1
 
         # base
@@ -320,7 +319,6 @@ class Parser(object):
             exp, s = int(s[1]), s[0]
 
         # precision/accuracy
-        prec, acc = None, None
         s = s.split('`', 1)
         if len(s) == 1:
             s, suffix = s[0], None
