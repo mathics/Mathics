@@ -330,8 +330,7 @@ class Tokeniser(object):
     def sntx_message(self, pos=None):
         if pos is None:
             pos = self.pos
-        pre = '"' + self.code[:pos] + '"'
-        post = '"' + self.code[pos:].rstrip('\n') + '"'
+        pre, post = self.code[:pos], self.code[pos:].rstrip('\n')
         if pos == 0:
             self.feeder.message('Syntax', 'sntxb', post)
         else:
